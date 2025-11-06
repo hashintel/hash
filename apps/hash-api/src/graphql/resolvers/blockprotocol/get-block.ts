@@ -1,4 +1,4 @@
-import { blockProtocolHubOrigin } from "@local/hash-isomorphic-utils/blocks";
+import { blockProtocolHubOrigin } from "@local/hash-isomorphic-utils/blocks-constants";
 
 import type { BlockProtocolBlock, ResolverFn } from "../../api-types.gen";
 import type { GraphQLContext } from "../../context";

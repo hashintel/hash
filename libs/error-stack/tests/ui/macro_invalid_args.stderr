@@ -7,7 +7,11 @@ error[E0277]: the trait bound `&str: IntoReport` is not satisfied
    |     |     the trait `std::error::Error` is not implemented for `str`
    |     required by a bound introduced by this call
    |
-   = help: the trait `IntoReport` is implemented for `error_stack::Report<C>`
+help: the trait `IntoReport` is implemented for `error_stack::Report<C>`
+  --> src/report.rs
+   |
+   | impl<C: ?Sized> IntoReport for Report<C> {
+   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
    = note: required for `&str` to implement `std::error::Error`
    = note: required for `error_stack::Report<&str>` to implement `From<&str>`
    = note: required for `&str` to implement `Into<error_stack::Report<&str>>`
@@ -42,7 +46,11 @@ error[E0277]: the trait bound `&str: Into<error_stack::Report<&str>>` is not sat
 17 |     bail!("Error")
    |     ^^^^^^^^^^^^^^ the trait `std::error::Error` is not implemented for `str`
    |
-   = help: the trait `IntoReport` is implemented for `error_stack::Report<C>`
+help: the trait `IntoReport` is implemented for `error_stack::Report<C>`
+  --> src/report.rs
+   |
+   | impl<C: ?Sized> IntoReport for Report<C> {
+   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
    = note: required for `&str` to implement `std::error::Error`
    = note: required for `error_stack::Report<&str>` to implement `From<&str>`
    = note: required for `&str` to implement `Into<error_stack::Report<&str>>`
@@ -58,7 +66,11 @@ error[E0277]: the trait bound `&str: IntoReport` is not satisfied
    |             |             the trait `std::error::Error` is not implemented for `str`
    |             required by a bound introduced by this call
    |
-   = help: the trait `IntoReport` is implemented for `error_stack::Report<C>`
+help: the trait `IntoReport` is implemented for `error_stack::Report<C>`
+  --> src/report.rs
+   |
+   | impl<C: ?Sized> IntoReport for Report<C> {
+   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
    = note: required for `&str` to implement `std::error::Error`
    = note: required for `error_stack::Report<&str>` to implement `From<&str>`
    = note: required for `&str` to implement `Into<error_stack::Report<&str>>`
@@ -93,7 +105,11 @@ error[E0277]: the trait bound `&str: Into<error_stack::Report<&str>>` is not sat
 21 |     let _ = ensure!(true, "Error");
    |             ^^^^^^^^^^^^^^^^^^^^^^ the trait `std::error::Error` is not implemented for `str`
    |
-   = help: the trait `IntoReport` is implemented for `error_stack::Report<C>`
+help: the trait `IntoReport` is implemented for `error_stack::Report<C>`
+  --> src/report.rs
+   |
+   | impl<C: ?Sized> IntoReport for Report<C> {
+   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
    = note: required for `&str` to implement `std::error::Error`
    = note: required for `error_stack::Report<&str>` to implement `From<&str>`
    = note: required for `&str` to implement `Into<error_stack::Report<&str>>`

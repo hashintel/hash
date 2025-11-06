@@ -117,7 +117,7 @@ variable "external_load_balancer_arn_suffix" {
   description = "ARN suffix of the external ALB for CloudWatch metrics"
 }
 
-variable "critical_alerts_topic_arn" {
+variable "pagerduty_grafana_aws_integration_key" {
   type        = string
-  description = "ARN of the critical alerts SNS topic"
+  description = "PagerDuty integration key for Grafana service"
 }

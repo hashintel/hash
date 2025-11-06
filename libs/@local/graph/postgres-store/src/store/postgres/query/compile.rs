@@ -1,5 +1,5 @@
 use alloc::borrow::Cow;
-use core::{iter::once, mem};
+use core::iter::once;
 use std::collections::{HashMap, HashSet};
 
 use error_stack::{Report, bail, ensure};
@@ -14,13 +14,12 @@ use hash_graph_temporal_versioning::TimeAxis;
 use postgres_types::ToSql;
 use tracing::instrument;
 
-use super::expression::JoinType;
+use super::expression::{JoinType, TableName, TableReference};
 use crate::store::postgres::query::{
-    Alias, AliasedTable, Column, Condition, Distinctness, EqualityOperator, Expression, Function,
-    JoinExpression, OrderByExpression, PostgresQueryPath, PostgresRecord, SelectExpression,
-    SelectStatement, Table, Transpile as _, WhereExpression, WindowStatement, WithExpression,
-    expression::{GroupByExpression, PostgresType},
-    statement::FromItem,
+    Alias, Column, Condition, Distinctness, EqualityOperator, Expression, Function,
+    PostgresQueryPath, PostgresRecord, SelectExpression, SelectStatement, Table, Transpile as _,
+    WindowStatement,
+    expression::{FromItem, GroupByExpression, PostgresType},
     table::{
         DataTypeEmbeddings, DatabaseColumn as _, EntityEmbeddings, EntityTemporalMetadata,
         EntityTypeEmbeddings, EntityTypes, JsonField, OntologyIds, OntologyTemporalMetadata,
@@ -38,8 +37,8 @@ pub struct AppliedFilters {
     temporal_axes: bool,
 }
 
-pub struct TableInfo {
-    tables: HashSet<AliasedTable>,
+pub struct TableInfo<'p> {
+    tables: HashSet<TableReference<'p>>,
     pinned_timestamp_index: Option<usize>,
     variable_interval_index: Option<usize>,
 }
@@ -47,8 +46,8 @@ pub struct TableInfo {
 pub struct CompilerArtifacts<'p> {
     parameters: Vec<&'p (dyn ToSql + Sync)>,
     condition_index: usize,
-    required_tables: HashSet<AliasedTable>,
-    table_info: TableInfo,
+    required_tables: HashSet<TableReference<'p>>,
+    table_info: TableInfo<'p>,
     cursor_disallowed_reason: Option<&'static str>,
 }
 
@@ -59,12 +58,14 @@ struct PathSelection {
     ordering: Option<(Ordering, Option<NullOrdering>)>,
 }
 
+type TableHook<'p, 'q, T> = fn(&mut SelectCompiler<'p, 'q, T>, Alias) -> Vec<Condition>;
+
 pub struct SelectCompiler<'p, 'q: 'p, T: QueryRecord> {
     statement: SelectStatement,
     artifacts: CompilerArtifacts<'p>,
     temporal_axes: Option<&'p QueryTemporalAxes>,
     include_drafts: bool,
-    table_hooks: HashMap<Table, fn(&mut Self, Alias)>,
+    table_hooks: HashMap<TableName<'p>, TableHook<'p, 'q, T>>,
     selections: HashMap<&'p T::QueryPath<'q>, PathSelection>,
 }
 
@@ -87,37 +88,32 @@ pub enum SelectCompilerError {
 impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
     /// Creates a new, empty compiler.
     pub fn new(temporal_axes: Option<&'p QueryTemporalAxes>, include_drafts: bool) -> Self {
-        let mut table_hooks = HashMap::<_, fn(&mut Self, Alias)>::new();
+        let mut table_hooks = HashMap::<_, TableHook<'p, 'q, R>>::new();
 
         if temporal_axes.is_some() {
-            table_hooks.insert(Table::OntologyTemporalMetadata, Self::pin_ontology_table);
+            table_hooks.insert(
+                TableName::from(Table::OntologyTemporalMetadata),
+                Self::ontology_table_conditions,
+            );
         }
         if temporal_axes.is_some() || !include_drafts {
             table_hooks.insert(
-                Table::EntityTemporalMetadata,
-                Self::filter_temporal_metadata,
+                TableName::from(Table::EntityTemporalMetadata),
+                Self::temporal_metadata_conditions,
             );
         }
 
         Self {
-            statement: SelectStatement {
-                with: WithExpression::default(),
-                distinct: Vec::new(),
-                selects: Vec::new(),
-                from: FromItem::Table {
-                    table: R::base_table(),
-                    alias: Some(Alias {
+            statement: SelectStatement::builder()
+                .selects(Vec::new())
+                .from(
+                    FromItem::table(R::base_table()).alias(R::base_table().aliased(Alias {
                         condition_index: 0,
                         chain_depth: 0,
                         number: 0,
-                    }),
-                },
-                joins: Vec::new(),
-                where_expression: WhereExpression::default(),
-                order_by_expression: OrderByExpression::default(),
-                group_by_expression: GroupByExpression::default(),
-                limit: None,
-            },
+                    })),
+                )
+                .build(),
             artifacts: CompilerArtifacts {
                 parameters: Vec::new(),
                 condition_index: 0,
@@ -146,7 +142,7 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
         default
             .statement
             .selects
-            .push(SelectExpression::new(Expression::Asterisk, None));
+            .push(SelectExpression::Asterisk(None));
         default
     }
 
@@ -193,7 +189,7 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
         }
     }
 
-    fn pin_ontology_table(&mut self, alias: Alias) {
+    fn ontology_table_conditions(&mut self, alias: Alias) -> Vec<Condition> {
         let table = Table::OntologyTemporalMetadata.aliased(alias);
         if let Some(temporal_axes) = self.temporal_axes
             && self.artifacts.table_info.tables.insert(table)
@@ -201,48 +197,41 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
             let transaction_time_index = self.time_index(temporal_axes, TimeAxis::TransactionTime);
             match temporal_axes {
                 QueryTemporalAxes::DecisionTime { .. } => {
-                    self.add_condition(
-                        Condition::TimeIntervalContainsTimestamp(
-                            Expression::ColumnReference {
-                                column: Column::OntologyTemporalMetadata(
-                                    OntologyTemporalMetadata::TransactionTime,
-                                ),
-                                table_alias: Some(alias),
-                            },
-                            Expression::Parameter(transaction_time_index),
+                    vec![Condition::TimeIntervalContainsTimestamp(
+                        Expression::ColumnReference(
+                            Column::OntologyTemporalMetadata(
+                                OntologyTemporalMetadata::TransactionTime,
+                            )
+                            .aliased(alias),
                         ),
-                        Some(table),
-                    );
+                        Expression::Parameter(transaction_time_index),
+                    )]
                 }
                 QueryTemporalAxes::TransactionTime { .. } => {
-                    self.add_condition(
-                        Condition::Overlap(
-                            Expression::ColumnReference {
-                                column: Column::OntologyTemporalMetadata(
-                                    OntologyTemporalMetadata::TransactionTime,
-                                ),
-                                table_alias: Some(alias),
-                            },
-                            Expression::Parameter(transaction_time_index),
+                    vec![Condition::Overlap(
+                        Expression::ColumnReference(
+                            Column::OntologyTemporalMetadata(
+                                OntologyTemporalMetadata::TransactionTime,
+                            )
+                            .aliased(alias),
                         ),
-                        Some(table),
-                    );
+                        Expression::Parameter(transaction_time_index),
+                    )]
                 }
             }
+        } else {
+            Vec::new()
         }
     }
 
-    fn filter_temporal_metadata(&mut self, alias: Alias) {
+    fn temporal_metadata_conditions(&mut self, alias: Alias) -> Vec<Condition> {
+        let mut conditions = Vec::new();
         let table = Table::EntityTemporalMetadata.aliased(alias);
-        if self.artifacts.table_info.tables.insert(table) {
+        if self.artifacts.table_info.tables.insert(table.clone()) {
             if !self.include_drafts {
-                self.add_condition(
-                    Condition::Exists(Expression::ColumnReference {
-                        column: Column::EntityTemporalMetadata(EntityTemporalMetadata::DraftId),
-                        table_alias: Some(alias),
-                    }),
-                    Some(table),
-                );
+                conditions.push(Condition::Exists(Expression::ColumnReference(
+                    Column::EntityTemporalMetadata(EntityTemporalMetadata::DraftId).aliased(alias),
+                )));
             }
 
             if let Some(temporal_axes) = self.temporal_axes {
@@ -253,32 +242,29 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
 
                 // Adds the pinned timestamp condition, so for the projected decision time, we use
                 // the transaction time and vice versa.
-                self.add_condition(
+                conditions.extend([
                     Condition::TimeIntervalContainsTimestamp(
-                        Expression::ColumnReference {
-                            column: Column::EntityTemporalMetadata(
-                                EntityTemporalMetadata::from_time_axis(pinned_axis),
-                            ),
-                            table_alias: Some(alias),
-                        },
+                        Expression::ColumnReference(
+                            Column::EntityTemporalMetadata(EntityTemporalMetadata::from_time_axis(
+                                pinned_axis,
+                            ))
+                            .aliased(alias),
+                        ),
                         Expression::Parameter(pinned_time_index),
                     ),
-                    Some(table),
-                );
-                self.add_condition(
                     Condition::Overlap(
-                        Expression::ColumnReference {
-                            column: Column::EntityTemporalMetadata(
-                                EntityTemporalMetadata::from_time_axis(variable_axis),
-                            ),
-                            table_alias: Some(alias),
-                        },
+                        Expression::ColumnReference(
+                            Column::EntityTemporalMetadata(EntityTemporalMetadata::from_time_axis(
+                                variable_axis,
+                            ))
+                            .aliased(alias),
+                        ),
                         Expression::Parameter(variable_time_index),
                     ),
-                    Some(table),
-                );
+                ]);
             }
         }
+        conditions
     }
 
     /// Adds a new path to the selection.
@@ -325,9 +311,10 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
             stored.index
         } else {
             let expression = self.compile_path_column(path);
-            self.statement
-                .selects
-                .push(SelectExpression::new(expression.clone(), None));
+            self.statement.selects.push(SelectExpression::Expression {
+                expression: expression.clone(),
+                alias: None,
+            });
 
             if distinctness == Distinctness::Distinct {
                 self.statement.distinct.push(expression.clone());
@@ -349,21 +336,6 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
                 },
             );
             index
-        }
-    }
-
-    fn add_condition(&mut self, condition: Condition, table: Option<AliasedTable>) {
-        // If a table is provided and we have a join on that table, we add the condition to the
-        // join.
-        if let Some(join) = table.and_then(|table| {
-            self.statement
-                .joins
-                .iter_mut()
-                .find(|join| join.table == table)
-        }) {
-            join.additional_conditions.push(condition);
-        } else {
-            self.statement.where_expression.add_condition(condition);
         }
     }
 
@@ -413,7 +385,7 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
     {
         let condition = self.compile_filter(filter)?;
         self.artifacts.condition_index += 1;
-        self.add_condition(condition, None);
+        self.statement.where_expression.conditions.push(condition);
         Ok(())
     }
 
@@ -515,13 +487,8 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
                         bail!(SelectCompilerError::UnsupportedEmbeddingPath);
                     };
                     let embeddings_table = embeddings_column.table();
-                    let embeddings_alias = Alias {
-                        condition_index: 0,
-                        chain_depth: 0,
-                        number: 0,
-                    };
-                    let distance_expression = Expression::ColumnReference {
-                        column: match embeddings_table {
+                    let distance_expression = Expression::ColumnReference(
+                        match embeddings_table {
                             Table::DataTypeEmbeddings => {
                                 Column::DataTypeEmbeddings(DataTypeEmbeddings::Distance)
                             }
@@ -560,19 +527,23 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
                             | Table::Reference(_) => {
                                 bail!(SelectCompilerError::UnsupportedEmbeddingPath)
                             }
-                        },
-                        table_alias: Some(path_alias),
-                    };
+                        }
+                        .aliased(path_alias),
+                    );
 
-                    if let Some(last_join) = self.statement.joins.last_mut() {
+                    if let Some(FromItem::JoinOn {
+                        right: last_from, ..
+                    }) = self.statement.from.as_mut()
+                        && let Some(last_reference_table) = last_from.reference_table()
+                    {
                         ensure!(
-                            matches!(
-                                last_join.table.table,
-                                Table::DataTypeEmbeddings
-                                    | Table::PropertyTypeEmbeddings
-                                    | Table::EntityTypeEmbeddings
-                                    | Table::EntityEmbeddings
-                            ) || last_join.statement.is_some(),
+                            last_reference_table.name == TableName::from(Table::DataTypeEmbeddings)
+                                || last_reference_table.name
+                                    == TableName::from(Table::PropertyTypeEmbeddings)
+                                || last_reference_table.name
+                                    == TableName::from(Table::EntityTypeEmbeddings)
+                                || last_reference_table.name
+                                    == TableName::from(Table::EntityEmbeddings),
                             SelectCompilerError::MultipleEmbeddings
                         );
 
@@ -616,51 +587,38 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
                             | Table::Reference(_) => unreachable!(),
                         };
 
-                        last_join.statement = Some(SelectStatement {
-                            with: WithExpression::default(),
-                            distinct: vec![],
-                            selects: select_columns
-                                .iter()
-                                .map(|&column| {
-                                    SelectExpression::new(
-                                        Expression::ColumnReference {
-                                            column,
-                                            table_alias: Some(embeddings_alias),
-                                        },
-                                        None,
-                                    )
-                                })
-                                .chain(once(SelectExpression::new(
-                                    Expression::Function(Function::Min(Box::new(
-                                        Expression::CosineDistance(
-                                            Box::new(Expression::ColumnReference {
-                                                column: embeddings_column,
-                                                table_alias: Some(embeddings_alias),
-                                            }),
-                                            Box::new(parameter_expression),
-                                        ),
-                                    ))),
-                                    Some("distance"),
-                                )))
-                                .collect(),
-                            from: FromItem::Table {
-                                table: embeddings_table,
-                                alias: Some(embeddings_alias),
-                            },
-                            joins: vec![],
-                            where_expression: WhereExpression::default(),
-                            order_by_expression: OrderByExpression::default(),
-                            group_by_expression: GroupByExpression {
-                                expressions: select_columns
-                                    .iter()
-                                    .map(|&column| Expression::ColumnReference {
-                                        column,
-                                        table_alias: Some(embeddings_alias),
-                                    })
-                                    .collect(),
-                            },
-                            limit: None,
-                        });
+                        **last_from = FromItem::subquery(
+                            SelectStatement::builder()
+                                .selects(
+                                    select_columns
+                                        .iter()
+                                        .map(|&column| SelectExpression::Expression {
+                                            expression: Expression::ColumnReference(column.into()),
+                                            alias: None,
+                                        })
+                                        .chain(once(SelectExpression::Expression {
+                                            expression: Expression::Function(Function::Min(
+                                                Box::new(Expression::CosineDistance(
+                                                    Box::new(Expression::ColumnReference(
+                                                        embeddings_column.into(),
+                                                    )),
+                                                    Box::new(parameter_expression),
+                                                )),
+                                            )),
+                                            alias: Some("distance"),
+                                        }))
+                                        .collect(),
+                                )
+                                .from(FromItem::table(embeddings_table))
+                                .group_by_expression(GroupByExpression {
+                                    expressions: select_columns
+                                        .iter()
+                                        .map(|&column| Expression::ColumnReference(column.into()))
+                                        .collect(),
+                                }),
+                        )
+                        .alias(last_reference_table.clone())
+                        .build();
                     }
 
                     self.statement.order_by_expression.insert_front(
@@ -668,9 +626,10 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
                         Ordering::Ascending,
                         None,
                     );
-                    self.statement
-                        .selects
-                        .push(SelectExpression::new(distance_expression.clone(), None));
+                    self.statement.selects.push(SelectExpression::Expression {
+                        expression: distance_expression.clone(),
+                        alias: None,
+                    });
                     self.statement.distinct.push(distance_expression.clone());
                     Condition::LessOrEqual(distance_expression, maximum_expression)
                 }
@@ -762,49 +721,35 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
         // Add a WITH expression selecting the partitioned version
         self.statement.with.add_statement(
             Table::OntologyIds,
-            SelectStatement {
-                with: WithExpression::default(),
-                distinct: Vec::new(),
-                selects: vec![
-                    SelectExpression::new(Expression::Asterisk, None),
-                    SelectExpression::new(
-                        Expression::Window(
+            SelectStatement::builder()
+                .selects(vec![
+                    SelectExpression::Asterisk(None),
+                    SelectExpression::Expression {
+                        expression: Expression::Window(
                             Box::new(Expression::Function(Function::Max(Box::new(
-                                Expression::ColumnReference {
-                                    column: version_column,
-                                    table_alias: Some(alias),
-                                },
+                                Expression::ColumnReference(version_column.aliased(alias)),
                             )))),
-                            WindowStatement::partition_by(Expression::ColumnReference {
-                                column: Column::OntologyIds(OntologyIds::BaseUrl),
-                                table_alias: Some(alias),
-                            }),
+                            WindowStatement::partition_by(Expression::ColumnReference(
+                                Column::OntologyIds(OntologyIds::BaseUrl).aliased(alias),
+                            )),
                         ),
-                        Some("latest_version"),
-                    ),
-                ],
-                from: FromItem::Table {
-                    table: version_column.table(),
-                    alias: Some(alias),
-                },
-                joins: vec![],
-                where_expression: WhereExpression::default(),
-                order_by_expression: OrderByExpression::default(),
-                group_by_expression: GroupByExpression::default(),
-                limit: None,
-            },
+                        alias: Some("latest_version"),
+                    },
+                ])
+                .from(
+                    FromItem::table(version_column.table())
+                        .alias(version_column.table().aliased(alias))
+                        .build(),
+                )
+                .build(),
         );
 
         let alias = self.add_join_statements(path);
         // Join the table of `path` and compare the version to the latest version
-        let latest_version_expression = Expression::ColumnReference {
-            column: Column::OntologyIds(OntologyIds::LatestVersion),
-            table_alias: Some(alias),
-        };
-        let version_expression = Expression::ColumnReference {
-            column: version_column,
-            table_alias: Some(alias),
-        };
+        let latest_version_expression = Expression::ColumnReference(
+            Column::OntologyIds(OntologyIds::LatestVersion).aliased(alias),
+        );
+        let version_expression = Expression::ColumnReference(version_column.aliased(alias));
 
         match operator {
             EqualityOperator::Equal => {
@@ -891,14 +836,15 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
 
         let alias = self.add_join_statements(path);
 
-        if let Some(hook) = self.table_hooks.get(&column.table()) {
-            hook(self, alias);
+        if let Some(hook) = self.table_hooks.get(&column.table().into()) {
+            let conditions = hook(self, alias);
+            self.statement
+                .where_expression
+                .conditions
+                .extend(conditions);
         }
 
-        let column_expression = Expression::ColumnReference {
-            column,
-            table_alias: Some(alias),
-        };
+        let column_expression = Expression::ColumnReference(column.aliased(alias));
 
         match parameter {
             None => column_expression,
@@ -930,10 +876,10 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
                     Expression::Function(Function::JsonExtractPath(vec![
                         column_expression,
                         Expression::Function(Function::JsonExtractAsText(
-                            Box::new(Expression::ColumnReference {
-                                column: Column::EntityTypes(EntityTypes::Schema),
-                                table_alias: Some(self.add_join_statements(&label_path)),
-                            }),
+                            Box::new(Expression::ColumnReference(
+                                Column::EntityTypes(EntityTypes::Schema)
+                                    .aliased(self.add_join_statements(&label_path)),
+                            )),
                             PathToken::Field(Cow::Borrowed("labelProperty")),
                         )),
                     ]))
@@ -1061,121 +1007,142 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
 
     /// Joins a chain of [`Relation`]s and returns the table name of the last joined table.
     ///
-    /// Joining the tables attempts to deduplicate [`JoinExpression`]s. As soon as a new filter was
+    /// Joining the tables attempts to deduplicate join operations. As soon as a new filter was
     /// compiled, each subsequent call will result in a new join-chain.
     ///
     /// [`Relation`]: super::table::Relation
     #[instrument(level = "debug", skip_all)]
+    #[expect(clippy::too_many_lines)]
     fn add_join_statements<'f: 'q>(&mut self, path: &R::QueryPath<'f>) -> Alias
     where
         R::QueryPath<'f>: PostgresQueryPath,
     {
-        let mut current_table = AliasedTable {
-            table: R::base_table(),
-            alias: Alias {
-                condition_index: 0,
-                chain_depth: 0,
-                number: 0,
-            },
-        };
+        let mut current_table = Cow::<TableReference<'_>>::Owned(TableReference {
+            schema: None,
+            name: R::base_table().into(),
+            alias: Some(Alias::default()),
+        });
 
-        if let Some(hook) = self.table_hooks.get(&current_table.table) {
-            hook(self, current_table.alias);
+        if let Some(hook) = self.table_hooks.get(&current_table.name) {
+            let conditions = hook(self, current_table.alias.unwrap_or_default());
+            self.statement
+                .where_expression
+                .conditions
+                .extend(conditions);
         }
 
         let mut is_outer_join_chain = false;
         for relation in path.relations() {
-            let foreign_key_join = relation.joins();
-            for foreign_key_reference in foreign_key_join {
-                let mut join_expression = JoinExpression::from_foreign_key(
-                    foreign_key_reference,
-                    current_table.alias,
-                    Alias {
-                        condition_index: self.artifacts.condition_index,
-                        chain_depth: current_table.alias.chain_depth + 1,
-                        number: 0,
-                    },
+            for foreign_key_reference in relation.joins() {
+                let join_type = if is_outer_join_chain {
+                    JoinType::LeftOuter
+                } else {
+                    let join_type = foreign_key_reference.join_type();
+                    if join_type != JoinType::Inner {
+                        is_outer_join_chain = true;
+                    }
+                    join_type
+                };
+
+                let mut join_table = foreign_key_reference.table().aliased(Alias {
+                    condition_index: self.artifacts.condition_index,
+                    chain_depth: current_table.alias.unwrap_or_default().chain_depth + 1,
+                    number: 0,
+                });
+                let mut conditions = foreign_key_reference.conditions(
+                    current_table.alias.unwrap_or_default(),
+                    join_table.alias.unwrap_or_default(),
                 );
 
-                if is_outer_join_chain {
-                    join_expression.join = JoinType::LeftOuter;
-                } else if join_expression.join != JoinType::Inner {
-                    is_outer_join_chain = true;
-                } else {
-                    // Join is Inner type, keep as-is
-                }
-
-                // TODO: If we join on the same column as the previous join, we can reuse the that
-                //       join. For example, if we join on
-                //       `entities.entity_type_ontology_id = entity_type.ontology_id` and then on
-                //       `entity_type.ontology_id = ontology_ids.ontology_id`, we can merge the two
-                //       joins into `entities. entity_type_ontology_id = ontology_ids.ontology_id`.
-                //       We, however, need to make sure, that we only alter a join statement with a
-                //       table we don't require anymore.
-                //       The following code is a first attempt at this, but it is not working yet.
-                //   see https://linear.app/hash/issue/H-3015
-                // if let Some(last_join) = self.statement.joins.pop() {
-                //     // Check if we are joining on the same column as the previous join
-                //     if last_join.join == current_column
-                //         && !self
-                //             .artifacts
-                //             .required_tables
-                //             .contains(&last_join.join.table())
-                //     {
-                //         current_column = last_join.on;
-                //     } else {
-                //         self.statement.joins.push(last_join);
-                //     }
-                // }
-
                 let mut found = false;
-                for existing in &self.statement.joins {
-                    if existing.table == join_expression.table {
+                let mut max_number = 0;
+
+                let mut existing = self.statement.from.as_ref();
+                while let Some(FromItem::JoinOn {
+                    left,
+                    join_type: _,
+                    right: existing_from_item,
+                    condition: existing_conditions,
+                }) = existing
+                {
+                    existing = Some(left);
+
+                    let Some(existing_table) = existing_from_item.reference_table() else {
+                        continue;
+                    };
+
+                    // Check for exact match to reuse existing join
+                    if *existing_table == join_table {
                         // We only need to check the join conditions, not the join type or
                         // additional conditions. This is enough to reuse an existing join
                         // statement.
-                        if existing.on == join_expression.on
-                            && existing.on_alias == join_expression.on_alias
-                        {
-                            // We already have a join statement for this column, so we can reuse it.
-                            current_table = existing.table;
+                        if existing_conditions.starts_with(&conditions) {
+                            // We already have a join statement for this column, so we can reuse
+                            // it.
+                            current_table = Cow::Borrowed(existing_table);
                             found = true;
                             break;
                         }
-                        // We already have a join statement for this table, but it's on a different
-                        // column. We need to create a new join statement later on with a new,
-                        // unique alias.
-                        join_expression.table.alias.number += 1;
-                    } else if let (Table::Reference(lhs), Table::Reference(rhs)) =
-                        (&existing.table.table, &join_expression.table.table)
-                        && mem::discriminant(lhs) == mem::discriminant(rhs)
-                        && existing.table.alias == join_expression.table.alias
+                    }
+
+                    // Track maximum number for joins with same table name and alias prefix
+                    if let Some(existing_alias) = existing_table.alias
+                        && join_table.name == existing_table.name
+                        && join_table
+                            .alias
+                            .map(|alias| (alias.condition_index, alias.chain_depth))
+                            == existing_table
+                                .alias
+                                .map(|alias| (alias.condition_index, alias.chain_depth))
                     {
-                        // We have a join statement for the same table but with different
-                        // conditions.
-                        join_expression.table.alias.number += 1;
-                    } else {
-                        // No alias conflict, continue with existing alias
+                        max_number = max_number.max(existing_alias.number + 1);
                     }
                 }
 
+                // If we didn't find an exact match but found alias conflicts, update the alias
                 if !found {
+                    if max_number > 0 {
+                        join_table.alias.get_or_insert_default().number = max_number;
+                        // Recalculate conditions with the updated alias
+                        conditions = foreign_key_reference.conditions(
+                            current_table.alias.unwrap_or_default(),
+                            join_table.alias.unwrap_or_default(),
+                        );
+                    }
+
                     // We don't have a join statement for this column yet, so we need to create one.
-                    current_table = join_expression.table;
-                    self.statement.joins.push(join_expression);
-
-                    for condition in relation.additional_conditions(current_table) {
-                        self.add_condition(condition, Some(current_table));
+                    current_table = Cow::Owned(join_table.clone());
+                    conditions.extend(relation.additional_conditions(&join_table));
+                    if let Some(hook) = self.table_hooks.get(&current_table.name) {
+                        conditions.extend(hook(self, current_table.alias.unwrap_or_default()));
                     }
 
-                    if let Some(hook) = self.table_hooks.get(&current_table.table) {
-                        hook(self, current_table.alias);
-                    }
+                    self.statement.from = Some(
+                        self.statement
+                            .from
+                            .take()
+                            .expect(
+                                "Tried to join on a `SELECT` statement without a `FROM` statement",
+                            )
+                            .join(
+                                join_type,
+                                FromItem::table(TableReference {
+                                    alias: None,
+                                    ..join_table.clone()
+                                })
+                                .alias(join_table),
+                            )
+                            .on(conditions)
+                            .build(),
+                    );
                 }
             }
         }
 
-        self.artifacts.required_tables.insert(current_table);
-        current_table.alias
+        let alias = current_table.alias.unwrap_or_default();
+        self.artifacts
+            .required_tables
+            .insert(current_table.into_owned());
+        alias
     }
 }

@@ -50,3 +50,9 @@ variable "pg_superuser_password" {
   sensitive   = true
   description = "Password for the 'superuser' user in the Postgres instance"
 }
+
+variable "pagerduty_main_database_aws_integration_key" {
+  type        = string
+  sensitive   = true
+  description = "PagerDuty integration key for main database AWS alerts"
+}

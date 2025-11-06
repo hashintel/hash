@@ -5,7 +5,7 @@ use crate::store::postgres::query::{Expression, Transpile};
 /// A [`Filter`], which can be transpiled.
 ///
 /// [`Filter`]: hash_graph_store::filter::Filter
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum Condition {
     All(Vec<Self>),
     Any(Vec<Self>),

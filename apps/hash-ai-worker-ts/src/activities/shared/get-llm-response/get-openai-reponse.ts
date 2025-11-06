@@ -3,7 +3,6 @@ import { Context } from "@temporalio/activity";
 import dedent from "dedent";
 import { backOff } from "exponential-backoff";
 import type { OpenAI } from "openai";
-import type { Headers } from "openai/core";
 import { APIError, RateLimitError } from "openai/error";
 import { promptTokensEstimate } from "openai-chat-tokens";
 
@@ -104,8 +103,8 @@ const convertOpenAiTimeStringToMilliseconds = (timeString: string): number => {
 };
 
 const getWaitPeriodFromHeaders = (headers?: Headers): number => {
-  const tokenReset = headers?.["x-ratelimit-reset-tokens"];
-  const requestReset = headers?.["x-ratelimit-reset-requests"];
+  const tokenReset = headers?.get("x-ratelimit-reset-tokens");
+  const requestReset = headers?.get("x-ratelimit-reset-requests");
   if (!tokenReset && !requestReset) {
     return defaultRateLimitRetryDelay;
   }
@@ -269,7 +268,9 @@ export const getOpenAiResponse = async <ToolName extends string>(
     do {
       estimatedPromptTokens = promptTokensEstimate({
         messages: openAiMessages,
-        functions: openAiTools?.map((tool) => tool.function),
+        functions: openAiTools
+          ?.filter((tool) => tool.type === "function")
+          .map((tool) => tool.function),
       });
 
       logger.info(`Estimated prompt tokens: ${estimatedPromptTokens}`);
@@ -498,12 +499,18 @@ export const getOpenAiResponse = async <ToolName extends string>(
   const retryMessageContent: LlmUserMessage["content"] = [];
 
   for (const openAiToolCall of firstChoice.message.tool_calls ?? []) {
-    const {
-      id,
-      function: { name, arguments: functionArguments },
-    } = openAiToolCall;
+    const { id } = openAiToolCall;
 
-    const toolDefinition = tools?.find((tool) => tool.name === name);
+    const rawInput =
+      openAiToolCall.type === "function"
+        ? openAiToolCall.function.arguments
+        : openAiToolCall.custom.input;
+    const rawName =
+      openAiToolCall.type === "function"
+        ? openAiToolCall.function.name
+        : openAiToolCall.custom.name;
+
+    const toolDefinition = tools?.find((tool) => tool.name === rawName);
 
     if (!toolDefinition) {
       retryMessageContent.push({
@@ -519,7 +526,7 @@ export const getOpenAiResponse = async <ToolName extends string>(
     let parsedInput: object | undefined = undefined;
 
     try {
-      parsedInput = JSON.parse(functionArguments) as object;
+      parsedInput = JSON.parse(rawInput) as object;
     } catch (error) {
       retryMessageContent.push({
         type: "tool_result",
@@ -556,7 +563,11 @@ export const getOpenAiResponse = async <ToolName extends string>(
       continue;
     }
 
-    parsedToolCalls.push({ id, name: name as ToolName, input: sanitizedInput });
+    parsedToolCalls.push({
+      id,
+      name: rawName as ToolName,
+      input: sanitizedInput,
+    });
   }
 
   if (retryMessageContent.length > 0) {

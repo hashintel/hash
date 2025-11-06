@@ -27,7 +27,7 @@ use type_system::{
     provenance::{OriginProvenance, OriginType},
 };
 
-use crate::{DatabaseApi, DatabaseTestWrapper, assert_equal_entities};
+use crate::{DatabaseApi, DatabaseTestWrapper};
 
 async fn seed(database: &mut DatabaseTestWrapper) -> DatabaseApi<'_> {
     database
@@ -380,7 +380,7 @@ async fn no_initial_metadata() {
         .await
         .expect("could not update entity");
 
-    assert_equal_entities(&entity, &updated_entity);
+    assert_eq!(&entity, &updated_entity);
 
     let updated_entity = api
         .patch_entity(

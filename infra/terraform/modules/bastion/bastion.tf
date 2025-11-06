@@ -59,27 +59,48 @@ resource "aws_security_group" "bastion" {
   name   = "${local.prefix}ssh"
   vpc_id = var.vpc_id
 
-  ingress {
-    from_port        = var.ssh_port
-    to_port          = var.ssh_port
-    protocol         = "tcp"
-    cidr_blocks      = var.ingress_cidr_blocks
-    ipv6_cidr_blocks = var.ingress_ipv6_cidr_blocks
-  }
-
-  egress {
-    from_port        = 0
-    to_port          = 0
-    protocol         = "-1"
-    cidr_blocks      = var.egress_cidr_blocks
-    ipv6_cidr_blocks = var.egress_ipv6_cidr_blocks
-  }
-
   revoke_rules_on_delete = true
 
   lifecycle {
     create_before_destroy = true
   }
+}
+
+# resource "aws_vpc_security_group_ingress_rule" "bastion_ssh_ipv4" {
+#   for_each = toset(var.ingress_cidr_blocks)
+
+#   security_group_id = aws_security_group.bastion.id
+#   cidr_ipv4         = each.value
+#   from_port         = var.ssh_port
+#   to_port           = var.ssh_port
+#   ip_protocol       = tcp
+# }
+
+# resource "aws_vpc_security_group_ingress_rule" "bastion_ssh_ipv6" {
+#   for_each = toset(var.ingress_ipv6_cidr_blocks)
+
+#   security_group_id = aws_security_group.bastion.id
+#   cidr_ipv6         = each.value
+#   from_port         = var.ssh_port
+#   to_port           = var.ssh_port
+#   ip_protocol       = tcp
+# }
+
+
+resource "aws_vpc_security_group_egress_rule" "bastion_ssh_ipv4" {
+  for_each = toset(var.egress_cidr_blocks)
+
+  security_group_id = aws_security_group.bastion.id
+  cidr_ipv4         = each.value
+  ip_protocol       = "-1"
+}
+
+resource "aws_vpc_security_group_egress_rule" "bastion_ssh_ipv6" {
+  for_each = toset(var.egress_ipv6_cidr_blocks)
+
+  security_group_id = aws_security_group.bastion.id
+  cidr_ipv6         = each.value
+  ip_protocol       = "-1"
 }
 
 resource "aws_iam_role" "bastion" {

@@ -3,14 +3,12 @@ use core::{fmt, fmt::Formatter};
 use postgres_types::ToSql;
 
 use crate::store::postgres::query::{
-    Alias, AliasedTable, Column, Expression, Function, OrderByExpression, SelectExpression,
-    SelectStatement, Table, Transpile, WhereExpression, WithExpression,
-    expression::{GroupByExpression, PostgresType},
+    Alias, Column, Expression, Function, SelectExpression, SelectStatement, Table, Transpile,
+    expression::{FromItem, PostgresType},
     rows::PostgresRow,
-    statement::FromItem,
 };
 
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, PartialEq)]
 pub enum InsertValueItem {
     Default,
     Values(Vec<Expression>),
@@ -40,7 +38,7 @@ impl Transpile for InsertValueItem {
     }
 }
 
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, PartialEq)]
 pub struct InsertStatement {
     pub table: Table,
     pub alias: Option<Alias>,
@@ -55,11 +53,7 @@ impl Transpile for InsertStatement {
 
         if let Some(alias) = self.alias {
             fmt.write_str(" AS ")?;
-            AliasedTable {
-                table: self.table,
-                alias,
-            }
-            .transpile(fmt)?;
+            self.table.aliased(alias).transpile(fmt)?;
         }
 
         if !self.columns.is_empty() {
@@ -150,13 +144,10 @@ impl<'p> InsertStatementBuilder<'p> {
         let InsertValueItem::Values(values) = &mut self.statement.values else {
             unreachable!()
         };
-        values.push(Expression::FieldAccess(
-            Box::new(Expression::Cast(
-                Box::new(Expression::Parameter(self.parameters.len())),
-                PostgresType::Row(self.statement.table),
-            )),
-            Box::new(Expression::Asterisk),
-        ));
+        values.push(Expression::RowExpansion(Box::new(Expression::Cast(
+            Box::new(Expression::Parameter(self.parameters.len())),
+            PostgresType::Row(self.statement.table),
+        ))));
         self
     }
 
@@ -170,23 +161,17 @@ impl<'p> InsertStatementBuilder<'p> {
                 table,
                 alias: None,
                 columns: vec![],
-                values: InsertValueItem::Query(Box::new(SelectStatement {
-                    with: WithExpression::default(),
-                    distinct: vec![],
-                    selects: vec![SelectExpression {
-                        expression: Expression::Asterisk,
-                        alias: None,
-                    }],
-                    from: FromItem::Function(Function::Unnest(Box::new(Expression::Cast(
-                        Box::new(Expression::Parameter(1)),
-                        PostgresType::Array(Box::new(PostgresType::Row(table))),
-                    )))),
-                    joins: vec![],
-                    where_expression: WhereExpression::default(),
-                    order_by_expression: OrderByExpression::default(),
-                    group_by_expression: GroupByExpression::default(),
-                    limit: None,
-                })),
+                values: InsertValueItem::Query(Box::new(
+                    SelectStatement::builder()
+                        .selects(vec![SelectExpression::Asterisk(None)])
+                        .from(FromItem::function(Function::Unnest(Box::new(
+                            Expression::Cast(
+                                Box::new(Expression::Parameter(1)),
+                                PostgresType::Array(Box::new(PostgresType::Row(table))),
+                            ),
+                        ))))
+                        .build(),
+                )),
             },
             parameters: vec![rows],
         }
