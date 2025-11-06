@@ -206,8 +206,11 @@ export const InitialStateEditor: React.FC<InitialStateEditorProps> = ({
           data={tableData}
           colHeaders={placeType.elements.map((el) => el.name)}
           rowHeaders
+          width="100%"
           height="auto"
+          stretchH="all"
           minRows={1}
+          autoWrapCol
           contextMenu={!hasSimulation}
           readOnly={hasSimulation}
           licenseKey="non-commercial-and-evaluation"
