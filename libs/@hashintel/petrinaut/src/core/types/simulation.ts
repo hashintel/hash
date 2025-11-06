@@ -1,13 +1,22 @@
 import type { ID, Place, SDCPN, Transition } from "./sdcpn";
 
+export type ParameterValues = Record<string, number | boolean>;
+
 export type DifferentialEquationFn = (
   placeValues: Float64Array,
   t: number,
+  parameters: ParameterValues,
 ) => Float64Array;
 
-export type LambdaFn = (tokenValues: number[][][]) => number;
+export type LambdaFn = (
+  tokenValues: number[][][],
+  parameters: ParameterValues,
+) => number;
 
-export type TransitionKernelFn = (tokenValues: number[][][]) => number[][][];
+export type TransitionKernelFn = (
+  tokenValues: number[][][],
+  parameters: ParameterValues,
+) => number[][][];
 
 export type SimulationInput = {
   sdcpn: SDCPN;
@@ -24,6 +33,7 @@ export type SimulationInstance = {
   differentialEquationFns: Map<string, DifferentialEquationFn>;
   lambdaFns: Map<string, LambdaFn>;
   transitionKernelFns: Map<string, TransitionKernelFn>;
+  parameterValues: ParameterValues;
   dt: number;
   rngState: number;
   frames: SimulationFrame[];
@@ -33,7 +43,10 @@ export type SimulationInstance = {
 export type SimulationFrame = {
   simulation: SimulationInstance;
   time: number;
-  places: Map<ID, { instance: Place; offset: number; count: number }>;
+  places: Map<
+    ID,
+    { instance: Place; offset: number; count: number; dimensions: number }
+  >;
   transitions: Map<ID, { instance: Transition; timeSinceLastFiring: number }>;
   /**
    * Buffer containing all place values concatenated.

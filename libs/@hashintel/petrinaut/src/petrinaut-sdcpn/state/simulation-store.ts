@@ -2,7 +2,7 @@ import { create } from "zustand";
 import { devtools } from "zustand/middleware";
 
 import { buildSimulation } from "../../core/build-simulation";
-import { executeTransitions } from "../../core/helpers/execute-transitions";
+import { computeNextFrame } from "../../core/helpers/compute-next-frame";
 import type { SimulationInstance } from "../../core/types/simulation";
 import type { SDCPNState } from "./sdcpn-store";
 
@@ -31,12 +31,21 @@ export type SimulationStoreState = {
   // Parameter values for the simulation (key: parameter ID, value: parameter value)
   parameterValues: Record<string, string>;
 
+  // Initial marking for the simulation (stored separately from SDCPN definition)
+  // Maps place ID to initial token data
+  initialMarking: InitialMarking;
+
+  // Set initial marking for a specific place
+  setInitialMarking: (
+    placeId: string,
+    marking: { values: Float64Array; count: number },
+  ) => void;
+
   // Set a parameter value
   setParameterValue: (parameterId: string, value: string) => void;
 
-  // Initialize the simulation with initial marking
+  // Initialize the simulation with seed and dt (uses stored initialMarking)
   initialize: (params: {
-    initialMarking: InitialMarking;
     seed: number;
     dt: number;
   }) => void;
@@ -65,6 +74,18 @@ export function createSimulationStore(sdcpnStore: {
         state: "NotRun",
         error: null,
         parameterValues: {},
+        initialMarking: new Map(),
+
+        setInitialMarking: (placeId, marking) =>
+          set(
+            (state) => {
+              const newMarking = new Map(state.initialMarking);
+              newMarking.set(placeId, marking);
+              return { initialMarking: newMarking };
+            },
+            false,
+            { type: "setInitialMarking", placeId, marking },
+          ),
 
         setParameterValue: (parameterId, value) =>
           set(
@@ -78,7 +99,7 @@ export function createSimulationStore(sdcpnStore: {
             { type: "setParameterValue", parameterId, value },
           ),
 
-        initialize: ({ initialMarking, seed, dt }) =>
+        initialize: ({ seed, dt }) =>
           set(
             (state) => {
               // Prevent initialization if already running
@@ -94,15 +115,15 @@ export function createSimulationStore(sdcpnStore: {
                 // eslint-disable-next-line no-console
                 console.log("Initializing simulation with:", {
                   sdcpn,
-                  initialMarking,
+                  initialMarking: state.initialMarking,
                   seed,
                   dt,
                 });
 
-                // Build the simulation instance
+                // Build the simulation instance using stored initialMarking
                 const simulationInstance = buildSimulation({
                   sdcpn,
-                  initialMarking,
+                  initialMarking: state.initialMarking,
                   seed,
                   dt,
                 });
@@ -158,18 +179,16 @@ export function createSimulationStore(sdcpnStore: {
               }
 
               try {
-                const currentFrame =
-                  state.simulation.frames[state.simulation.currentFrameNumber]!;
+                // Compute the next frame (applies dynamics + transitions)
+                const updatedSimulation = computeNextFrame(state.simulation);
 
-                // Execute transitions to get the next frame
-                const nextFrame = executeTransitions(currentFrame);
+                const nextFrame =
+                  updatedSimulation.frames[updatedSimulation.currentFrameNumber]!;
 
-                // Create updated simulation instance with new frame
-                const updatedSimulation: SimulationInstance = {
-                  ...state.simulation,
-                  frames: [...state.simulation.frames, nextFrame],
-                  currentFrameNumber: state.simulation.currentFrameNumber + 1,
-                };
+                // eslint-disable-next-line no-console
+                console.log("Next frame generated:", nextFrame);
+                // eslint-disable-next-line no-console
+                console.log("Frame buffer:", nextFrame.buffer);
 
                 return {
                   simulation: updatedSimulation,
@@ -177,6 +196,9 @@ export function createSimulationStore(sdcpnStore: {
                   error: null,
                 };
               } catch (error) {
+                // eslint-disable-next-line no-console
+                console.error("Error during simulation step:", error);
+
                 return {
                   state: "Error",
                   error:
@@ -197,6 +219,7 @@ export function createSimulationStore(sdcpnStore: {
               state: "NotRun",
               error: null,
               parameterValues: {},
+              // Keep initialMarking when resetting - it's configuration, not simulation state
             },
             false,
             "reset",

@@ -57,6 +57,20 @@ export function buildSimulation(input: SimulationInput): SimulationInstance {
     sdcpn.transitions.map((transition) => [transition.id, transition]),
   );
 
+  // Build parameter values from SDCPN parameters
+  const parameterValues: Record<string, number | boolean> = {};
+  for (const param of sdcpn.parameters) {
+    const value = param.defaultValue;
+    if (param.type === "real") {
+      parameterValues[param.variableName] = Number.parseFloat(value);
+    } else if (param.type === "integer") {
+      parameterValues[param.variableName] = Number.parseInt(value, 10);
+    } else {
+      // boolean
+      parameterValues[param.variableName] = value === "true";
+    }
+  }
+
   // Validate that all places in initialMarking exist in SDCPN
   for (const placeId of initialMarking.keys()) {
     if (!placesMap.has(placeId)) {
@@ -157,7 +171,12 @@ export function buildSimulation(input: SimulationInput): SimulationInstance {
   let bufferSize = 0;
   const placeStates = new Map<
     string,
-    { instance: (typeof sdcpn.places)[0]; offset: number; count: number }
+    {
+      instance: (typeof sdcpn.places)[0];
+      offset: number;
+      count: number;
+      dimensions: number;
+    }
   >();
 
   // Process places in a consistent order (sorted by ID)
@@ -173,6 +192,7 @@ export function buildSimulation(input: SimulationInput): SimulationInstance {
       instance: place,
       offset: bufferSize,
       count,
+      dimensions,
     });
 
     bufferSize += dimensions * count;
@@ -211,6 +231,7 @@ export function buildSimulation(input: SimulationInput): SimulationInstance {
     differentialEquationFns,
     lambdaFns,
     transitionKernelFns,
+    parameterValues,
     dt,
     rngState: seed,
     frames: [], // Will be populated with the initial frame

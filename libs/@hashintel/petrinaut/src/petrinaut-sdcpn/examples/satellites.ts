@@ -7,7 +7,7 @@ export const satellitesSDCPN: SDCPN = {
     {
       id: "place__3cbc7944-34cb-4eeb-b779-4e392a171fe1",
       name: "Space",
-      type: null,
+      type: "type-satellite",
       dynamicsEnabled: true,
       differentialEquationCode: { refId: "de-satellite-orbit" },
       x: 30,
@@ -45,7 +45,7 @@ export const satellitesSDCPN: SDCPN = {
       ],
       lambdaType: "predicate",
       lambdaCode: `// Check if two satellites collide (are within collision threshold)
-export default Lambda((tokens, parameters) => {  
+export default Lambda(([tokens], parameters) => {
   const collision_threshold = parameters.collision_threshold || 10.0;
   
   // Get positions of the two satellites
@@ -133,18 +133,30 @@ export default TransitionKernel((tokens) => {
       typeId: "type-satellite",
       name: "Satellite Orbit Dynamics",
       code: `// Example of ODE for Satellite in orbit (simplified)
-export default Dynamics(tokens => {
-  const mu = 400000.0; // Gravitational parameter
-
-  // Return derivatives for each dimension of each token
-  return tokens.map(([x, y, direction, velocity]) => {
+// Receives: placeValues (Float64Array with all token values concatenated: [x1,y1,dir1,vel1, x2,y2,dir2,vel2, ...])
+// Returns: Float64Array with derivatives in same structure: [dx1,dy1,ddir1,dvel1, dx2,dy2,ddir2,dvel2, ...]
+export default Dynamics((placeValues, t, parameters) => {
+  const mu = parameters.gravitational_constant || 400000.0; // Gravitational parameter
+  
+  const dimensions = 4; // x, y, direction, velocity
+  const numTokens = placeValues.length / dimensions;
+  const derivatives = new Float64Array(placeValues.length);
+  
+  // Process each token (satellite)
+  for (let i = 0; i < numTokens; i++) {
+    const offset = i * dimensions;
+    const x = placeValues[offset];
+    const y = placeValues[offset + 1];
+    const direction = placeValues[offset + 2];
+    const velocity = placeValues[offset + 3];
+    
     const r = Math.hypot(x, y); // Distance to Earth center
     
     // Gravitational acceleration vector (points toward origin)
     const ax = (-mu * x) / (r * r * r);
     const ay = (-mu * y) / (r * r * r);
     
-    // Project that acceleration into satellite’s velocity frame
+    // Project that acceleration into satellite's velocity frame
     const ddirection =
       (-ax * Math.sin(direction) + ay * Math.cos(direction)) / velocity;
     const dvelocity = ax * Math.cos(direction) + ay * Math.sin(direction);
@@ -152,9 +164,15 @@ export default Dynamics(tokens => {
     // Position derivative (from velocity)
     const dx = velocity * Math.cos(direction);
     const dy = velocity * Math.sin(direction);
-
-    return [dx, dy, ddirection, dvelocity];
-  })
+    
+    // Store derivatives for this token
+    derivatives[offset] = dx;
+    derivatives[offset + 1] = dy;
+    derivatives[offset + 2] = ddirection;
+    derivatives[offset + 3] = dvelocity;
+  }
+  
+  return derivatives;
 })`,
     },
   ],

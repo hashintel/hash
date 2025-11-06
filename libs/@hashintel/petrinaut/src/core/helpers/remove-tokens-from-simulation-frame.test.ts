@@ -60,7 +60,7 @@ describe("removeTokensFromSimulationFrame", () => {
             instance: {
               id: "p1",
               name: "Place 1",
-              dimensions: 2,
+              
               differentialEquationCode: "return 0;",
             },
             offset: 0,
@@ -102,7 +102,7 @@ describe("removeTokensFromSimulationFrame", () => {
             instance: {
               id: "p1",
               name: "Place 1",
-              dimensions: 1,
+              
               differentialEquationCode: "return 0;",
             },
             offset: 0,
@@ -144,7 +144,7 @@ describe("removeTokensFromSimulationFrame", () => {
             instance: {
               id: "p1",
               name: "Place 1",
-              dimensions: 1,
+              
               differentialEquationCode: "return 0;",
             },
             offset: 0,
@@ -190,7 +190,7 @@ describe("removeTokensFromSimulationFrame", () => {
             instance: {
               id: "p1",
               name: "Place 1",
-              dimensions: 1,
+              
               differentialEquationCode: "return 0;",
             },
             offset: 0,
@@ -237,7 +237,7 @@ describe("removeTokensFromSimulationFrame", () => {
             instance: {
               id: "p1",
               name: "Place 1",
-              dimensions: 1,
+              
               differentialEquationCode: "return 0;",
             },
             offset: 0,
@@ -284,7 +284,7 @@ describe("removeTokensFromSimulationFrame", () => {
             instance: {
               id: "p1",
               name: "Place 1",
-              dimensions: 3,
+              
               differentialEquationCode: "return 0;",
             },
             offset: 0,
@@ -335,7 +335,7 @@ describe("removeTokensFromSimulationFrame", () => {
             instance: {
               id: "p1",
               name: "Place 1",
-              dimensions: 2,
+              
               differentialEquationCode: "return 0;",
             },
             offset: 0,
@@ -348,7 +348,7 @@ describe("removeTokensFromSimulationFrame", () => {
             instance: {
               id: "p2",
               name: "Place 2",
-              dimensions: 1,
+              
               differentialEquationCode: "return 0;",
             },
             offset: 4, // After p1's 2 tokens * 2 dimensions
@@ -401,7 +401,7 @@ describe("removeTokensFromSimulationFrame", () => {
             instance: {
               id: "p1",
               name: "Place 1",
-              dimensions: 1,
+              
               differentialEquationCode: "return 0;",
             },
             offset: 0,
@@ -414,7 +414,7 @@ describe("removeTokensFromSimulationFrame", () => {
             instance: {
               id: "p2",
               name: "Place 2",
-              dimensions: 1,
+              
               differentialEquationCode: "return 0;",
             },
             offset: 2,
@@ -463,7 +463,7 @@ describe("removeTokensFromSimulationFrame", () => {
             instance: {
               id: "p1",
               name: "Place 1",
-              dimensions: 1,
+              
               differentialEquationCode: "return 0;",
             },
             offset: 0,
@@ -476,7 +476,7 @@ describe("removeTokensFromSimulationFrame", () => {
             instance: {
               id: "p2",
               name: "Place 2",
-              dimensions: 1,
+              
               differentialEquationCode: "return 0;",
             },
             offset: 2,
@@ -489,7 +489,7 @@ describe("removeTokensFromSimulationFrame", () => {
             instance: {
               id: "p3",
               name: "Place 3",
-              dimensions: 1,
+              
               differentialEquationCode: "return 0;",
             },
             offset: 5,
@@ -546,7 +546,7 @@ describe("removeTokensFromSimulationFrame", () => {
             instance: {
               id: "p1",
               name: "Place 1",
-              dimensions: 1,
+              
               differentialEquationCode: "return 0;",
             },
             offset: 0,
@@ -559,7 +559,7 @@ describe("removeTokensFromSimulationFrame", () => {
             instance: {
               id: "p2",
               name: "Place 2",
-              dimensions: 2,
+              
               differentialEquationCode: "return 0;",
             },
             offset: 3,
@@ -572,7 +572,7 @@ describe("removeTokensFromSimulationFrame", () => {
             instance: {
               id: "p3",
               name: "Place 3",
-              dimensions: 1,
+              
               differentialEquationCode: "return 0;",
             },
             offset: 7,

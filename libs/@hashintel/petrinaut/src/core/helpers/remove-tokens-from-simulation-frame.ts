@@ -49,8 +49,8 @@ export function removeTokensFromSimulationFrame(
 
   for (const [placeId, indices] of tokensToRemove) {
     const placeState = frame.places.get(placeId)!;
-    const { offset } = placeState;
-    const tokenSize = placeState.instance.dimensions;
+    const { offset, dimensions } = placeState;
+    const tokenSize = dimensions;
 
     for (const tokenIndex of indices) {
       const tokenStartOffset = offset + tokenIndex * tokenSize;
@@ -82,8 +82,8 @@ export function removeTokensFromSimulationFrame(
   let cumulativeRemoved = 0;
 
   for (const [placeId, placeState] of placesByOffset) {
-    const { offset, count, instance } = placeState;
-    const tokenSize = instance.dimensions;
+    const { offset, count, dimensions } = placeState;
+    const tokenSize = dimensions;
 
     // Count how many tokens are being removed from this place
     const tokensRemovedFromPlace = tokensToRemove.get(placeId)?.size ?? 0;

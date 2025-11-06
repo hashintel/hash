@@ -14,6 +14,7 @@ describe("computePossibleTransition", () => {
       differentialEquationFns: new Map(),
       lambdaFns: new Map([["t1", () => 1.0]]),
       transitionKernelFns: new Map([["t1", () => [[[1.0]]]]]),
+      parameterValues: {},
       dt: 0.1,
       rngState: 42,
       frames: [],
@@ -30,11 +31,15 @@ describe("computePossibleTransition", () => {
             instance: {
               id: "p1",
               name: "Place 1",
-              dimensions: 1,
               differentialEquationCode: "return 0;",
+              type: null,
+              dynamicsEnabled: false,
+              x: 0,
+              y: 0,
             },
             offset: 0,
             count: 1, // Only 1 token available
+            dimensions: 1,
           },
         ],
       ]),
@@ -47,8 +52,11 @@ describe("computePossibleTransition", () => {
               name: "Transition 1",
               inputArcs: [{ placeId: "p1", weight: 2 }], // Requires 2 tokens
               outputArcs: [],
+              lambdaType: "stochastic",
               lambdaCode: "return 1.0;",
               transitionKernelCode: "return [[[1.0]]];",
+              x: 100,
+              y: 0,
             },
             timeSinceLastFiring: 1.0,
           },
@@ -84,6 +92,7 @@ describe("computePossibleTransition", () => {
           },
         ],
       ]),
+      parameterValues: {},
       dt: 0.1,
       rngState: 42,
       frames: [],
@@ -100,11 +109,15 @@ describe("computePossibleTransition", () => {
             instance: {
               id: "p1",
               name: "Place 1",
-              dimensions: 1,
               differentialEquationCode: "return 0;",
+              type: null,
+              dynamicsEnabled: false,
+              x: 0,
+              y: 0,
             },
             offset: 0,
             count: 2, // 2 tokens available
+            dimensions: 1,
           },
         ],
       ]),
@@ -117,8 +130,11 @@ describe("computePossibleTransition", () => {
               name: "Transition 1",
               inputArcs: [{ placeId: "p1", weight: 1 }], // Requires 1 token
               outputArcs: [{ placeId: "p2", weight: 1 }],
+              lambdaType: "stochastic",
               lambdaCode: "return 10.0;",
               transitionKernelCode: "return [[[2.0]]];",
+              x: 100,
+              y: 0,
             },
             timeSinceLastFiring: 1.0,
           },
@@ -132,9 +148,11 @@ describe("computePossibleTransition", () => {
 
     // THEN it should return the result from the transition kernel
     expect(result).not.toBeNull();
-    expect(result).toEqual({
+    expect(result).toMatchObject({
       remove: { p1: new Set([0]) },
       add: { p2: [[2.0]] },
     });
+    // Also check that newRngState is present and is a number
+    expect(result?.newRngState).toBeTypeOf("number");
   });
 });

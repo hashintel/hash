@@ -1,8 +1,7 @@
-/* eslint-disable curly */
-
 import type { ID } from "../types/sdcpn";
 import type { SimulationFrame } from "../types/simulation";
 import { enumerateWeightedMarkingIndicesGenerator } from "./enumerate-weighted-markings";
+import { nextRandom } from "./seeded-rng";
 
 type PlaceID = ID;
 
@@ -12,6 +11,7 @@ type PlaceID = ID;
  * Returns a record with:
  * - removed: Map from PlaceID to Set of token indices to remove.
  * - added: Map from PlaceID to array of token values to create.
+ * - newRngState: Updated RNG seed after consuming randomness
  */
 export function computePossibleTransition(
   frame: SimulationFrame,
@@ -19,21 +19,24 @@ export function computePossibleTransition(
 ): null | {
   remove: Record<PlaceID, Set<number>>;
   add: Record<PlaceID, number[][]>;
+  newRngState: number;
 } {
   const { simulation } = frame;
 
   // Get the transition from the simulation instance
   const transition = frame.transitions.get(transitionId);
-  if (!transition)
+  if (!transition) {
     throw new Error(`Transition with ID ${transitionId} not found.`);
+  }
 
   // Gather input places with their weights relative to this transition.
   const inputPlaces = transition.instance.inputArcs.map((arc) => {
     const placeState = frame.places.get(arc.placeId);
-    if (!placeState)
+    if (!placeState) {
       throw new Error(
         `Place with ID ${arc.placeId} not found in current marking.`,
       );
+    }
 
     return { ...placeState, weight: arc.weight };
   });
@@ -44,28 +47,32 @@ export function computePossibleTransition(
   );
 
   // Return null if not enabled
-  if (!isTransitionEnabled) return null;
+  if (!isTransitionEnabled) {
+    return null;
+  }
 
   // Get lambda function
   const lambdaFn = simulation.lambdaFns.get(transitionId);
-  if (!lambdaFn)
+  if (!lambdaFn) {
     throw new Error(
       `Lambda function for transition ${transitionId} not found.`,
     );
+  }
 
   // Get transition kernel function
   const transitionKernelFn = simulation.transitionKernelFns.get(transitionId);
-  if (!transitionKernelFn)
+  if (!transitionKernelFn) {
     throw new Error(
       `Transition kernel fn for transition ${transitionId} not found.`,
     );
+  }
 
   //
   // Transition computation logic
   //
 
-  // Define U1 ~ Uniform(0,1)
-  const U1 = Math.random(); // TODO: Use simulation RNG
+  // Generate random number using seeded RNG and update state
+  const [U1, newRngState] = nextRandom(simulation.rngState);
   const { timeSinceLastFiring } = transition;
 
   // TODO: This should acumulate lambda over time, but for now we just consider that lambda is constant per combination.
@@ -81,7 +88,8 @@ export function computePossibleTransition(
     const tokenCombinationValues = tokenCombinationIndices.map(
       (placeTokenIndices, placeIndex) => {
         const placeOffsetInBuffer = inputPlaces[placeIndex]!.offset;
-        const dimensions = inputPlaces[placeIndex]!.instance.dimensions;
+        // Get dimensions from the place state
+        const dimensions = inputPlaces[placeIndex]!.dimensions;
 
         return placeTokenIndices.map((tokenIndexInPlace) => {
           // Offset within the global buffer
@@ -101,14 +109,26 @@ export function computePossibleTransition(
     // not a real accumulation over time with lambda varying as the paper suggests.
     // But prevent having to handle a big buffer of varying lambda values over time,
     // which should be reordered in case of new tokens arriving.
-    const lambdaValue = lambdaFn(tokenCombinationValues) * timeSinceLastFiring;
+    console.log(
+      "Token combination values for transition:",
+      transitionId,
+      tokenCombinationValues,
+    );
+    console.log("Parameters:", simulation.parameterValues);
+    const lambdaValue =
+      lambdaFn(tokenCombinationValues, simulation.parameterValues) *
+      timeSinceLastFiring;
+    console.log("Computed lambda value:", lambdaValue);
 
     // Find the first combination of tokens where e^(-lambda) < U1
     // We should normally find the minimum for all possibilities, but we try to reduce as much as we can here.
     if (Math.exp(-lambdaValue) <= U1) {
       // Transition fires!
       // Return result of the transition kernel as is (no stochasticity for now, only one result)
-      const transitionKernelOutput = transitionKernelFn(tokenCombinationValues);
+      const transitionKernelOutput = transitionKernelFn(
+        tokenCombinationValues,
+        simulation.parameterValues,
+      );
 
       return {
         // Map from place ID to set of token indices to remove
@@ -126,6 +146,7 @@ export function computePossibleTransition(
             return [outputArc.placeId, outputTokens];
           }),
         ),
+        newRngState,
       };
     }
   }
