@@ -29,6 +29,9 @@ export const PlaceProperties: React.FC<PlacePropertiesProps> = ({
 }) => {
   const simulation = useSimulationStore((state) => state.simulation);
   const initialMarking = useSimulationStore((state) => state.initialMarking);
+  const currentlyViewedFrame = useSimulationStore(
+    (state) => state.currentlyViewedFrame,
+  );
 
   // Compile visualizer code once when it changes
   const VisualizerComponent = useMemo(() => {
@@ -393,9 +396,9 @@ export const PlaceProperties: React.FC<PlacePropertiesProps> = ({
 
                 // Check if we have simulation frames or use initial marking
                 if (simulation && simulation.frames.length > 0) {
-                  // Use current simulation frame
+                  // Use currently viewed simulation frame
                   const currentFrame =
-                    simulation.frames[simulation.currentFrameNumber];
+                    simulation.frames[currentlyViewedFrame];
                   if (!currentFrame) {
                     return (
                       <div style={{ padding: 12, color: "#666" }}>
