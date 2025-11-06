@@ -307,6 +307,63 @@ export const PlaceProperties: React.FC<PlacePropertiesProps> = ({
           )}
         </div>
       )}
+
+      {/* Visualizer section */}
+      <div>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            marginBottom: 8,
+          }}
+        >
+          <div style={{ fontWeight: 500, fontSize: 12 }}>Visualizer</div>
+          <div style={{ display: "flex", alignItems: "center" }}>
+            <Switch
+              checked={place.visualizerCode !== null}
+              disabled
+              onCheckedChange={() => {
+                // Read-only for now
+              }}
+            />
+          </div>
+        </div>
+      </div>
+
+      {place.visualizerCode !== null && (
+        <div>
+          <div style={{ fontWeight: 500, fontSize: 12, marginBottom: 4 }}>
+            Visualizer Code
+          </div>
+          <div
+            style={{
+              border: "1px solid rgba(0, 0, 0, 0.1)",
+              borderRadius: 4,
+              overflow: "hidden",
+              height: 310,
+            }}
+          >
+            <MonacoEditor
+              language="typescript"
+              value={place.visualizerCode}
+              theme="vs-light"
+              options={{
+                minimap: { enabled: false },
+                scrollBeyondLastLine: false,
+                fontSize: 12,
+                lineNumbers: "off",
+                folding: true,
+                glyphMargin: false,
+                lineDecorationsWidth: 0,
+                lineNumbersMinChars: 3,
+                padding: { top: 8, bottom: 8 },
+                readOnly: true,
+              }}
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 };
