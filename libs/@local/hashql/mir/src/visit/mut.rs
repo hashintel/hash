@@ -37,17 +37,85 @@ macro_rules! Ok {
     };
 }
 
+/// Filtering strategies for controlling traversal depth in mutable visitors.
+///
+/// This module provides filter types that control how deeply a [`VisitorMut`] traverses
+/// and modifies the MIR structure. Filters determine which parts of the MIR are eligible
+/// for modification during traversal.
+///
+/// Currently, filtering controls whether interned data structures are deeply traversed
+/// and modified. Future extensions may add additional filtering capabilities for other
+/// aspects of MIR traversal.
+///
+/// [`VisitorMut`]: super::VisitorMut
 pub mod filter {
+    /// Trait defining the filtering strategy for a visitor.
+    ///
+    /// Implementors of this trait specify which parts of the MIR structure should be
+    /// deeply traversed and potentially modified during visitation.
     pub trait Filter {
+        /// Controls whether interned data structures should be deeply traversed.
+        ///
+        /// When `true`, the visitor will copy interned slices (using copy-on-write via
+        /// [`Beef`]), allow modifications to their contents, and re-intern them if changes
+        /// occur. This enables full structural modifications but requires an interner.
+        ///
+        /// When `false`, the visitor will skip traversal of interned slices entirely.
+        /// The elements within those slices will not be visited.
+        ///
+        /// # Future Extensions
+        ///
+        /// Additional filtering capabilities may be added to this trait as needed,
+        /// allowing fine-grained control over what gets traversed during visitation.
+        ///
+        /// [`Beef`]: hashql_core::intern::Beef
         const FOLD_INTERNED: bool;
     }
 
+    /// Deep filtering strategy: enables full structural modification.
+    ///
+    /// This filter allows the visitor to modify all parts of the MIR structure,
+    /// including the contents of interned slices. When using this filter:
+    ///
+    /// - Interned slices are copied using copy-on-write ([`Beef`])
+    /// - The visitor can modify the contents of these slices
+    /// - Modified slices are re-interned if changes occurred
+    /// - The visitor must provide access to an [`Interner`]
+    ///
+    /// Use this filter when your transformation needs to modify interned data,
+    /// such as filtering statements from a basic block or reordering operands.
+    ///
+    /// # Performance
+    ///
+    /// Deep filtering is more expensive than shallow filtering due to copying and
+    /// re-interning overhead. Only use it when necessary.
+    ///
+    /// [`Beef`]: hashql_core::intern::Beef
+    /// [`Interner`]: crate::intern::Interner
     pub struct Deep(());
 
     impl Filter for Deep {
         const FOLD_INTERNED: bool = true;
     }
 
+    /// Shallow filtering strategy: skips interned data structures.
+    ///
+    /// This filter causes the visitor to skip traversal of interned slices entirely.
+    /// When using this filter:
+    ///
+    /// - Interned slices are not visited at all
+    /// - Elements within those slices are not traversed or modified
+    /// - Only non-interned parts of the MIR can be modified
+    /// - No interner is required
+    ///
+    /// Use this filter when your transformation only needs to modify non-interned data,
+    /// such as replacing individual local variable references, updating basic block IDs,
+    /// or swapping constants in operands.
+    ///
+    /// # Performance
+    ///
+    /// Shallow filtering is more efficient than deep filtering since it avoids
+    /// traversing, copying, and re-interning interned slices. Prefer this when possible.
     pub struct Shallow(());
 
     impl Filter for Shallow {
@@ -55,12 +123,77 @@ pub mod filter {
     }
 }
 
+/// Trait for traversing and modifying MIR structures in-place.
+///
+/// The [`VisitorMut`] trait provides methods to traverse each type of node in the MIR control
+/// flow graph while allowing in-place modifications. This is the recommended approach for
+/// transformation passes, optimizations, and any operation that needs to modify the MIR.
+///
+/// Each method's default implementation recursively visits the substructure via the
+/// corresponding `walk_*` function. For example, `visit_body` by default calls `walk_body`.
+///
+/// # Use Cases
+///
+/// Use the [`VisitorMut`] trait when you need to:
+/// - Transform or optimize MIR structures
+/// - Replace inefficient patterns with better equivalents
+/// - Normalize MIR for later passes
+/// - Inject instrumentation or additional tracking
+/// - Perform constant propagation or other optimizations
+///
+/// For analysis that doesn't need modification, use [`Visitor`] instead - it's simpler,
+/// safer, and more efficient.
+///
+/// # Implementation Strategy
+///
+/// To implement a mutable visitor:
+///
+/// 1. Create a type that implements this trait
+/// 2. Define the [`Residual`](Self::Residual) and [`Result`](Self::Result) types
+/// 3. Choose a [`Filter`](Self::Filter) type based on what you're modifying:
+///    - [`filter::Shallow`]: When only modifying non-interned data (locals, IDs, etc.)
+///    - [`filter::Deep`]: When modifying interned slices (requires implementing
+///      [`interner`](Self::interner))
+/// 4. Override methods for the node types you want to modify
+/// 5. When overriding a method, you can:
+///    - Modify the node before visiting children
+///    - Call the corresponding `walk_*` function to traverse children
+///    - Modify the node after visiting children
+///    - Skip child traversal entirely by not calling `walk_*`
+///
+/// # Filter Types
+///
+/// The [`Filter`](Self::Filter) associated type controls how deeply interned data is processed:
+///
+/// - [`filter::Shallow`]: Visits interned slices but doesn't copy or re-intern them. Use this when
+///   you're only modifying non-interned fields (locals, basic block IDs, etc.). This is more
+///   efficient and doesn't require an interner.
+///
+/// - [`filter::Deep`]: Copies interned slices using copy-on-write ([`Beef`]), allows modification,
+///   and re-interns them if changed. Use this when you need to modify the contents of interned
+///   slices. Requires implementing [`interner`](Self::interner).
+///
+/// [`Beef`]: hashql_core::intern::Beef
+/// [`Location`]: crate::body::location::Location
+/// [`Visitor`]: super::Visitor
 pub trait VisitorMut<'heap> {
+    /// The residual type for error handling (e.g., [`Result<Infallible, E>`] for [`Result<T, E>`]).
     type Residual;
+
+    /// The output type that wraps results (must implement [`Try`]).
+    ///
+    /// Common choices include:
+    /// - [`Result<T, !>`] for infallible operations
+    /// - [`Result<T, E>`] for fallible operations
+    /// - [`ControlFlow<B, T>`] for control-flow based termination
     type Result<T>: Try<Output = T, Residual = Self::Residual>
     where
         T: 'heap;
 
+    /// Controls how deeply to process interned data.
+    ///
+    /// - [`filter::Deep`]: Modifies interned slices (requires [`interner`](Self::interner))
+    /// - [`filter::Shallow`]: Visits but doesn't modify interned slices
     type Filter: filter::Filter = filter::Deep;
 
     fn interner(&self) -> &Interner<'heap> {

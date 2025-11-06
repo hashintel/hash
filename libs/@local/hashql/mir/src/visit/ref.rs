@@ -27,17 +27,63 @@ macro_rules! Ok {
     };
 }
 
+/// Trait for read-only traversal of MIR structures.
+///
+/// The [`Visitor`] trait provides methods to traverse and analyze MIR structures without
+/// modification. This is the recommended approach for analysis passes, linting, and any
+/// operation that only needs to read MIR data.
+///
+/// Each method's default implementation recursively visits the substructure via the
+/// corresponding `walk_*` function. For example, `visit_body` by default calls `walk_body`.
+///
+/// # Use Cases
+///
+/// Use the [`Visitor`] trait when you need to:
+/// - Analyze the MIR without modifying it.
+/// - Collect information about the program (e.g., find all uses of a local).
+/// - Perform dataflow analysis (liveness, reaching definitions, etc.).
+/// - Validate MIR invariants.
+/// - Implement linting or optimization detection passes.
+///
+/// For transformations that modify the MIR, use [`VisitorMut`] instead.
+///
+/// # Implementation Strategy
+///
+/// To implement a visitor:
+///
+/// 1. Create a type that implements this trait
+/// 2. Define the [`Result`](Self::Result) type (typically [`ControlFlow<()>`], [`Result<(), E>`] or
+///    [`Result<(), !>`] in case no errors can occur).
+/// 3. Override methods for the node types you want to process
+/// 4. When overriding a method, you can:
+///    - Process the node before visiting children
+///    - Call the corresponding `walk_*` function to traverse children
+///    - Process the node after visiting children
+///    - Skip child traversal entirely by not calling `walk_*`
+///
+/// # Location Tracking
+///
+/// Every `visit_*` method receives a [`Location`] parameter that identifies the precise
+/// program point being visited.
+///
+/// [`Location`]: crate::body::location::Location
+/// [`VisitorMut`]: super::VisitorMut
 pub trait Visitor<'heap> {
+    /// The result type for visitor methods.
+    ///
+    /// This type must implement [`Try`] with an output of `()`, allowing for early
+    /// termination on failure. Common choices include:
+    /// - [`Result<(), E>`] for fallible operations
+    /// - [`ControlFlow<B, ()>`] for control-flow based termination
+    /// - [`Result<(), !>`] for infallible operations
     type Result: Try<Output = ()>;
 
-    // The mut version would be `span: &mut SpanId`
     #[expect(unused_variables, reason = "trait definition")]
     fn visit_span(&mut self, span: SpanId) -> Self::Result {
         // leaf: nothing to do
         Ok!()
     }
 
-    // The mut version would be `symbol: &mut Symbol<'heap>`
     #[expect(unused_variables, reason = "trait definition")]
     fn visit_symbol(&mut self, location: Location, symbol: Symbol<'heap>) -> Self::Result {
         // leaf: nothing to do
@@ -61,21 +107,18 @@ pub trait Visitor<'heap> {
         walk_basic_block(self, id, block)
     }
 
-    // The mut version would be `def_id: &mut DefId`
     #[expect(unused_variables, reason = "trait definition")]
     fn visit_def_id(&mut self, location: Location, def_id: DefId) -> Self::Result {
         // leaf: nothing to do
         Ok!()
     }
 
-    // The mut version would be `local: &mut Local`
     #[expect(unused_variables, reason = "trait definition")]
     fn visit_local(&mut self, location: Location, local: Local) -> Self::Result {
         // leaf, nothing to do
         Ok!()
     }
 
-    // This is never mut
     fn visit_projection(
         &mut self,
         location: Location,
