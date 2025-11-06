@@ -1,7 +1,6 @@
 import { css } from "@hashintel/ds-helpers/css";
 import { TbPlayerPlay } from "react-icons/tb";
 
-import { useSDCPNStore } from "../../../../state/sdcpn-provider";
 import { useSimulationStore } from "../../../../state/simulation-provider";
 
 export const SimulationStateSection: React.FC = () => {
@@ -10,7 +9,6 @@ export const SimulationStateSection: React.FC = () => {
   const initialize = useSimulationStore((state) => state.initialize);
   const step = useSimulationStore((state) => state.step);
   const reset = useSimulationStore((state) => state.reset);
-  const sdcpn = useSDCPNStore((state) => state.sdcpn);
 
   return (
     <div
@@ -70,6 +68,8 @@ export const SimulationStateSection: React.FC = () => {
                 marginTop: 4,
                 maxWidth: 250,
                 wordWrap: "break-word",
+                userSelect: "text",
+                cursor: "text",
               }}
             >
               {simulationError}
@@ -80,21 +80,8 @@ export const SimulationStateSection: React.FC = () => {
           <button
             type="button"
             onClick={() => {
-              // Build initial marking from places
-              // TODO: Get actual initial state from InitialStateEditor data
-              const initialMarking = new Map<
-                string,
-                { values: Float64Array; count: number }
-              >();
-              for (const place of sdcpn.places) {
-                // Default to empty marking for now
-                initialMarking.set(place.id, {
-                  values: new Float64Array(0),
-                  count: 0,
-                });
-              }
+              // Initialize simulation using stored initialMarking
               initialize({
-                initialMarking,
                 seed: Date.now(),
                 dt: 0.01,
               });

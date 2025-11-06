@@ -6,7 +6,9 @@ import {
   NumericCellType,
   registerCellType,
 } from "handsontable/cellTypes";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+
+import { useSimulationStore } from "../../../../state/simulation-provider";
 
 // Register Handsontable cell types
 registerCellType(CheckboxCellType);
@@ -14,8 +16,10 @@ registerCellType(NumericCellType);
 
 /**
  * InitialStateEditor - A component for editing initial tokens in a place
+ * Stores data in SimulationStore, not in the Place definition
  */
 interface InitialStateEditorProps {
+  placeId: string;
   placeType: {
     id: string;
     name: string;
@@ -28,12 +32,77 @@ interface InitialStateEditorProps {
 }
 
 export const InitialStateEditor: React.FC<InitialStateEditorProps> = ({
+  placeId,
   placeType,
 }) => {
-  // State for the handsontable data
-  const [tableData, setTableData] = useState<(string | number)[][]>([
-    Array(placeType.elements.length).fill(""),
-  ]);
+  const initialMarking = useSimulationStore((state) => state.initialMarking);
+  const setInitialMarking = useSimulationStore(
+    (state) => state.setInitialMarking,
+  );
+
+  // Get current marking for this place from simulation store
+  const currentMarking = initialMarking.get(placeId);
+
+  // Initialize table data from current marking or empty row
+  const [tableData, setTableData] = useState<(string | number | boolean)[][]>(
+    () => {
+      if (currentMarking && currentMarking.count > 0) {
+        // Convert Float64Array back to 2D array based on place type dimensions
+        const dimensions = placeType.elements.length;
+        const tokens: (string | number | boolean)[][] = [];
+        for (let i = 0; i < currentMarking.count; i++) {
+          const tokenValues: (string | number | boolean)[] = [];
+          for (let j = 0; j < dimensions; j++) {
+            tokenValues.push(currentMarking.values[i * dimensions + j] ?? "");
+          }
+          tokens.push(tokenValues);
+        }
+        return tokens;
+      }
+      return [Array(placeType.elements.length).fill("")];
+    },
+  );
+
+  // Update table data when marking changes externally
+  useEffect(() => {
+    if (currentMarking && currentMarking.count > 0) {
+      const dimensions = placeType.elements.length;
+      const tokens: (string | number | boolean)[][] = [];
+      for (let i = 0; i < currentMarking.count; i++) {
+        const tokenValues: (string | number | boolean)[] = [];
+        for (let j = 0; j < dimensions; j++) {
+          tokenValues.push(currentMarking.values[i * dimensions + j] ?? "");
+        }
+        tokens.push(tokenValues);
+      }
+      setTableData(tokens);
+    }
+  }, [currentMarking, placeType.elements.length]);
+
+  // Convert table data to Float64Array and save to simulation store
+  const saveToStore = (data: (string | number | boolean)[][]) => {
+    const dimensions = placeType.elements.length;
+    const count = data.length;
+    const values = new Float64Array(count * dimensions);
+
+    for (let i = 0; i < count; i++) {
+      for (let col = 0; col < dimensions; col++) {
+        const val = data[i]?.[col];
+        // Convert to number - booleans become 1/0, strings are parsed
+        if (typeof val === "boolean") {
+          values[i * dimensions + col] = val ? 1 : 0;
+        } else if (typeof val === "number") {
+          values[i * dimensions + col] = val;
+        } else if (typeof val === "string") {
+          values[i * dimensions + col] = Number.parseFloat(val) || 0;
+        } else {
+          values[i * dimensions + col] = 0;
+        }
+      }
+    }
+
+    setInitialMarking(placeId, { values, count });
+  };
 
   const columns = useMemo(
     () =>
@@ -46,10 +115,18 @@ export const InitialStateEditor: React.FC<InitialStateEditorProps> = ({
   );
 
   const addRow = () => {
-    setTableData((prev) => [
-      ...prev,
-      Array(placeType.elements.length).fill("") as (string | number)[],
-    ]);
+    setTableData((prev) => {
+      const newData = [
+        ...prev,
+        Array(placeType.elements.length).fill("") as (
+          | string
+          | number
+          | boolean
+        )[],
+      ];
+      saveToStore(newData);
+      return newData;
+    });
   };
 
   return (
@@ -104,18 +181,21 @@ export const InitialStateEditor: React.FC<InitialStateEditorProps> = ({
                   const [row, col, , newVal] = change as [
                     number,
                     number,
-                    string | number | null,
-                    string | number | null,
+                    string | number | boolean | null,
+                    string | number | boolean | null,
                   ];
                   newData[row] =
                     newData[row] ??
                     (Array(placeType.elements.length).fill("") as (
                       | string
                       | number
+                      | boolean
                     )[]);
                   newData[row] = [...newData[row]];
                   newData[row][col] = newVal ?? "";
                 }
+                // Persist to simulation store after all changes
+                saveToStore(newData);
                 return newData;
               });
             }

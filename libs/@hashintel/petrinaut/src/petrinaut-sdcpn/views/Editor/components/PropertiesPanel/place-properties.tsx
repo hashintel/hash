@@ -150,7 +150,13 @@ export const PlaceProperties: React.FC<PlacePropertiesProps> = ({
             );
           }
 
-          return <InitialStateEditor key={place.id} placeType={placeType} />;
+          return (
+            <InitialStateEditor
+              key={place.id}
+              placeId={place.id}
+              placeType={placeType}
+            />
+          );
         })()}
 
       {/* Position - only in Edit mode */}

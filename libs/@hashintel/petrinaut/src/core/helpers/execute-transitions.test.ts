@@ -29,7 +29,7 @@ describe("executeTransitions", () => {
             instance: {
               id: "p1",
               name: "Place 1",
-              dimensions: 1,
+              
               differentialEquationCode: "return 0;",
             },
             offset: 0,
@@ -86,7 +86,7 @@ describe("executeTransitions", () => {
             instance: {
               id: "p1",
               name: "Place 1",
-              dimensions: 1,
+              
               differentialEquationCode: "return 0;",
             },
             offset: 0,
@@ -99,7 +99,7 @@ describe("executeTransitions", () => {
             instance: {
               id: "p2",
               name: "Place 2",
-              dimensions: 1,
+              
               differentialEquationCode: "return 0;",
             },
             offset: 2,
@@ -174,7 +174,7 @@ describe("executeTransitions", () => {
             instance: {
               id: "p1",
               name: "Place 1",
-              dimensions: 1,
+              
               differentialEquationCode: "return 0;",
             },
             offset: 0,
@@ -187,7 +187,7 @@ describe("executeTransitions", () => {
             instance: {
               id: "p2",
               name: "Place 2",
-              dimensions: 1,
+              
               differentialEquationCode: "return 0;",
             },
             offset: 3,
@@ -200,7 +200,7 @@ describe("executeTransitions", () => {
             instance: {
               id: "p3",
               name: "Place 3",
-              dimensions: 1,
+              
               differentialEquationCode: "return 0;",
             },
             offset: 3,
@@ -291,7 +291,7 @@ describe("executeTransitions", () => {
             instance: {
               id: "p1",
               name: "Place 1",
-              dimensions: 2,
+              
               differentialEquationCode: "return 0;",
             },
             offset: 0,
@@ -304,7 +304,7 @@ describe("executeTransitions", () => {
             instance: {
               id: "p2",
               name: "Place 2",
-              dimensions: 2,
+              
               differentialEquationCode: "return 0;",
             },
             offset: 2,
@@ -373,7 +373,7 @@ describe("executeTransitions", () => {
             instance: {
               id: "p1",
               name: "Place 1",
-              dimensions: 1,
+              
               differentialEquationCode: "return 0;",
             },
             offset: 0,
@@ -386,7 +386,7 @@ describe("executeTransitions", () => {
             instance: {
               id: "p2",
               name: "Place 2",
-              dimensions: 1,
+              
               differentialEquationCode: "return 0;",
             },
             offset: 2,

@@ -66,21 +66,16 @@ describe("SimulationStore", () => {
     expect(state.error).toBeNull();
   });
 
-  it("should initialize simulation with initial marking", () => {
+  it("should initialize simulation successfully", () => {
     const store = createSimulationStore(mockSDCPNStore);
 
-    const initialMarking = new Map([
-      [
-        "p1",
-        {
-          values: new Float64Array([1.0, 2.0, 3.0, 4.0]),
-          count: 2,
-        },
-      ],
-    ]);
+    // Set initial marking in store first
+    store.getState().setInitialMarking("p1", {
+      values: new Float64Array([1.0, 2.0, 3.0, 4.0]),
+      count: 2,
+    });
 
     store.getState().initialize({
-      initialMarking,
       seed: 42,
       dt: 0.1,
     });
@@ -97,18 +92,13 @@ describe("SimulationStore", () => {
   it("should throw error when initializing while running", () => {
     const store = createSimulationStore(mockSDCPNStore);
 
-    const initialMarking = new Map([
-      [
-        "p1",
-        {
-          values: new Float64Array([1.0, 2.0]),
-          count: 1,
-        },
-      ],
-    ]);
+    // Set initial marking
+    store.getState().setInitialMarking("p1", {
+      values: new Float64Array([1.0, 2.0, 3.0, 4.0]),
+      count: 2,
+    });
 
     store.getState().initialize({
-      initialMarking,
       seed: 42,
       dt: 0.1,
     });
@@ -117,7 +107,6 @@ describe("SimulationStore", () => {
 
     expect(() =>
       store.getState().initialize({
-        initialMarking,
         seed: 42,
         dt: 0.1,
       }),
@@ -127,18 +116,13 @@ describe("SimulationStore", () => {
   it("should advance simulation by one step", () => {
     const store = createSimulationStore(mockSDCPNStore);
 
-    const initialMarking = new Map([
-      [
-        "p1",
-        {
-          values: new Float64Array([1.0, 2.0]),
-          count: 1,
-        },
-      ],
-    ]);
+    // Set initial marking
+    store.getState().setInitialMarking("p1", {
+      values: new Float64Array([1.0, 2.0]),
+      count: 1,
+    });
 
     store.getState().initialize({
-      initialMarking,
       seed: 42,
       dt: 0.1,
     });
@@ -163,18 +147,13 @@ describe("SimulationStore", () => {
   it("should reset simulation to NotRun state", () => {
     const store = createSimulationStore(mockSDCPNStore);
 
-    const initialMarking = new Map([
-      [
-        "p1",
-        {
-          values: new Float64Array([1.0, 2.0]),
-          count: 1,
-        },
-      ],
-    ]);
+    // Set initial marking
+    store.getState().setInitialMarking("p1", {
+      values: new Float64Array([1.0, 2.0]),
+      count: 1,
+    });
 
     store.getState().initialize({
-      initialMarking,
       seed: 42,
       dt: 0.1,
     });
@@ -192,18 +171,13 @@ describe("SimulationStore", () => {
   it("should change state from Paused to Running", () => {
     const store = createSimulationStore(mockSDCPNStore);
 
-    const initialMarking = new Map([
-      [
-        "p1",
-        {
-          values: new Float64Array([1.0, 2.0]),
-          count: 1,
-        },
-      ],
-    ]);
+    // Set initial marking
+    store.getState().setInitialMarking("p1", {
+      values: new Float64Array([1.0, 2.0]),
+      count: 1,
+    });
 
     store.getState().initialize({
-      initialMarking,
       seed: 42,
       dt: 0.1,
     });
@@ -216,19 +190,13 @@ describe("SimulationStore", () => {
   it("should handle errors during initialization", () => {
     const store = createSimulationStore(mockSDCPNStore);
 
-    // Invalid initial marking (wrong place ID)
-    const invalidMarking = new Map([
-      [
-        "invalid_place",
-        {
-          values: new Float64Array([1.0, 2.0]),
-          count: 1,
-        },
-      ],
-    ]);
+    // Set invalid initial marking (place doesn't exist in SDCPN)
+    store.getState().setInitialMarking("invalid_place", {
+      values: new Float64Array([1.0, 2.0]),
+      count: 1,
+    });
 
     store.getState().initialize({
-      initialMarking: invalidMarking,
       seed: 42,
       dt: 0.1,
     });
