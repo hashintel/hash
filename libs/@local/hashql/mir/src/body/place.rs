@@ -74,14 +74,21 @@ impl<'heap> Place<'heap> {
         self,
     ) -> impl DoubleEndedIterator<Item = (PlaceRef<'heap>, Projection<'heap>)> + ExactSizeIterator
     {
-        self.projections
-            .0
+        Self::iter_projections_from_parts(self.local, self.projections.0)
+    }
+
+    pub fn iter_projections_from_parts(
+        local: Local,
+        projections: &'heap [Projection<'heap>],
+    ) -> impl DoubleEndedIterator<Item = (PlaceRef<'heap>, Projection<'heap>)> + ExactSizeIterator
+    {
+        projections
             .iter()
             .enumerate()
             .map(move |(index, projection)| {
                 let place = PlaceRef {
-                    local: self.local,
-                    projections: &self.projections.0[..index],
+                    local,
+                    projections: &projections[..index],
                 };
 
                 (place, *projection)

@@ -56,7 +56,7 @@ mod filter {
 }
 
 pub trait VisitorMut<'heap> {
-    type Result<T>: Try<Output = T>
+    type Result<T>: Try<Output = T> + FromResidual<<Self::Result<T> as Try>::Residual>
     where
         T: 'heap;
 
@@ -111,30 +111,12 @@ pub trait VisitorMut<'heap> {
         walk_local(self, location, local)
     }
 
-    fn visit_projections(
-        &mut self,
-        location: Location,
-        base: Local,
-        projections: &mut Interned<'heap, [Local]>,
-    ) -> Self::Result<()> {
-        walk_projections(self, location, base, projections)
-    }
-
     fn fold_projection(
         &mut self,
         location: Location,
         base: PlaceRef<'heap>,
         projection: Projection<'heap>,
     ) -> Self::Result<Projection> {
-        walk_fold_projection(self, location, base, projection)
-    }
-
-    fn visit_projection(
-        &mut self,
-        location: Location,
-        base: PlaceRef<'heap>,
-        projection: Projection<'heap>,
-    ) -> Self::Result<()> {
         walk_projection(self, location, base, projection)
     }
 
@@ -146,7 +128,7 @@ pub trait VisitorMut<'heap> {
     fn visit_primitive(
         &mut self,
         location: Location,
-        primitive: &Primitive<'heap>,
+        primitive: &mut Primitive<'heap>,
     ) -> Self::Result<()> {
         // leaf, nothing to do
         Ok!()
@@ -375,12 +357,12 @@ pub fn walk_body<'heap, T: VisitorMut<'heap> + ?Sized>(
         source,
         basic_blocks,
         args: _,
-    }: &Body<'heap>,
+    }: &mut Body<'heap>,
 ) -> T::Result<()> {
-    visitor.visit_span(*span)?;
+    visitor.visit_span(span)?;
     visitor.visit_source(source)?;
 
-    for (id, basic_block) in basic_blocks.iter_enumerated() {
+    for (id, basic_block) in basic_blocks.iter_enumerated_mut() {
         visitor.visit_basic_block(id, basic_block)?;
     }
 
@@ -394,7 +376,7 @@ pub fn walk_basic_block<'heap, T: VisitorMut<'heap> + ?Sized>(
         params,
         statements,
         terminator,
-    }: &BasicBlock<'heap>,
+    }: &mut BasicBlock<'heap>,
 ) -> T::Result<()> {
     let mut location = Location {
         block: id,
@@ -402,7 +384,7 @@ pub fn walk_basic_block<'heap, T: VisitorMut<'heap> + ?Sized>(
     };
 
     visitor.visit_basic_block_id(location, id)?;
-    visitor.visit_basic_block_params(location, *params)?;
+    visitor.visit_basic_block_params(location, params)?;
 
     location.statement_index += 1;
 
@@ -421,10 +403,6 @@ pub fn walk_local<'heap, T: VisitorMut<'heap> + ?Sized>(
     location: Location,
     local: &mut Local,
 ) -> T::Result<()> {
-    if !T::Filter::FOLD_INTERNED {
-        return Ok!();
-    }
-
     *local = visitor.fold_local(location, *local)?;
     Ok!()
 }
@@ -433,28 +411,42 @@ pub fn walk_projection<'heap, T: VisitorMut<'heap> + ?Sized>(
     visitor: &mut T,
     location: Location,
     _base: PlaceRef<'heap>,
-    projection: Projection<'heap>,
-) -> T::Result<()> {
-    match projection {
-        Projection::Field(_) => Ok!(),
-        Projection::FieldByName(name) => visitor.visit_symbol(location, name),
-        Projection::Index(local) => visitor.visit_local(location, local),
+    mut projection: Projection<'heap>,
+) -> T::Result<Projection<'heap>> {
+    match &mut projection {
+        Projection::Field(_) => {}
+        Projection::FieldByName(name) => visitor.visit_symbol(location, name)?,
+        Projection::Index(local) => visitor.visit_local(location, local)?,
     }
+
+    T::Result::from_output(projection)
 }
 
 pub fn walk_place<'heap, T: VisitorMut<'heap> + ?Sized>(
     visitor: &mut T,
     location: Location,
-    place @ Place {
-        local,
-        projections: _,
-    }: &Place<'heap>,
+    Place { local, projections }: &mut Place<'heap>,
 ) -> T::Result<()> {
-    visitor.visit_local(location, *local)?;
+    visitor.visit_local(location, local)?;
 
-    for (base, projection) in place.iter_projections() {
-        visitor.visit_projection(location, base, projection)?;
+    if !T::Filter::FOLD_INTERNED {
+        return Ok!();
     }
+
+    let mut iter_projections = Place::iter_projections_from_parts(*local, projections.0);
+
+    // We put it briefly in an invalid state, which will be restored later
+    let mut beef = Beef::new(mem::replace(projections, Interned::new_unchecked(&[])));
+    beef.try_map(|projection| {
+        // We actually don't take that specific projection, and instead use the one from
+        // iter_projections
+        let (base, projection) = iter_projections
+            .next()
+            .unwrap_or_else(|| unreachable!("both iterators are of the same size"));
+
+        visitor.fold_projection(location, base, projection)
+    });
+    *projections = beef.finish(&visitor.interner().projections);
 
     Ok!()
 }
@@ -462,7 +454,7 @@ pub fn walk_place<'heap, T: VisitorMut<'heap> + ?Sized>(
 pub fn walk_constant<'heap, T: VisitorMut<'heap> + ?Sized>(
     visitor: &mut T,
     location: Location,
-    constant: &Constant<'heap>,
+    constant: &mut Constant<'heap>,
 ) -> T::Result<()> {
     match constant {
         Constant::Primitive(primitive) => visitor.visit_primitive(location, primitive),
@@ -485,9 +477,10 @@ pub fn walk_operand<'heap, T: VisitorMut<'heap> + ?Sized>(
 pub fn walk_target<'heap, T: VisitorMut<'heap> + ?Sized>(
     visitor: &mut T,
     location: Location,
-    Target { block, args }: &Target<'heap>,
+    Target { block, args }: &mut Target<'heap>,
 ) -> T::Result<()> {
-    visitor.visit_basic_block_id(location, *block);
+    visitor.visit_basic_block_id(location, block);
+
     for operand in args {
         visitor.visit_operand(location, operand)?;
     }
@@ -498,22 +491,22 @@ pub fn walk_target<'heap, T: VisitorMut<'heap> + ?Sized>(
 pub fn walk_statement<'heap, T: VisitorMut<'heap> + ?Sized>(
     visitor: &mut T,
     location: Location,
-    Statement { span, kind }: &Statement<'heap>,
+    Statement { span, kind }: &mut Statement<'heap>,
 ) -> T::Result<()> {
-    visitor.visit_span(*span)?;
+    visitor.visit_span(span)?;
 
     match kind {
         StatementKind::Assign(assign) => visitor.visit_statement_assign(location, assign),
         StatementKind::Nop => visitor.visit_statement_nop(location),
-        StatementKind::StorageLive(local) => visitor.visit_statement_storage_live(location, *local),
-        StatementKind::StorageDead(local) => visitor.visit_statement_storage_dead(location, *local),
+        StatementKind::StorageLive(local) => visitor.visit_statement_storage_live(location, local),
+        StatementKind::StorageDead(local) => visitor.visit_statement_storage_dead(location, local),
     }
 }
 
 pub fn walk_statement_assign<'heap, T: VisitorMut<'heap> + ?Sized>(
     visitor: &mut T,
     location: Location,
-    Assign { lhs, rhs }: &Assign<'heap>,
+    Assign { lhs, rhs }: &mut Assign<'heap>,
 ) -> T::Result<()> {
     visitor.visit_place(location, lhs)?;
     visitor.visit_rvalue(location, rhs)?;
@@ -524,7 +517,7 @@ pub fn walk_statement_assign<'heap, T: VisitorMut<'heap> + ?Sized>(
 pub fn walk_statement_storage_live<'heap, T: VisitorMut<'heap> + ?Sized>(
     visitor: &mut T,
     location: Location,
-    local: Local,
+    local: &mut Local,
 ) -> T::Result<()> {
     visitor.visit_local(location, local)?;
 
@@ -534,7 +527,7 @@ pub fn walk_statement_storage_live<'heap, T: VisitorMut<'heap> + ?Sized>(
 pub fn walk_statement_storage_dead<'heap, T: VisitorMut<'heap> + ?Sized>(
     visitor: &mut T,
     location: Location,
-    local: Local,
+    local: &mut Local,
 ) -> T::Result<()> {
     visitor.visit_local(location, local)?;
 
@@ -544,7 +537,7 @@ pub fn walk_statement_storage_dead<'heap, T: VisitorMut<'heap> + ?Sized>(
 pub fn walk_rvalue<'heap, T: VisitorMut<'heap> + ?Sized>(
     visitor: &mut T,
     location: Location,
-    rvalue: &RValue<'heap>,
+    rvalue: &mut RValue<'heap>,
 ) -> T::Result<()> {
     match rvalue {
         RValue::Load(operand) => visitor.visit_operand(location, operand),
@@ -559,7 +552,7 @@ pub fn walk_rvalue<'heap, T: VisitorMut<'heap> + ?Sized>(
 pub fn walk_rvalue_binary<'heap, T: VisitorMut<'heap> + ?Sized>(
     visitor: &mut T,
     location: Location,
-    Binary { op: _, left, right }: &Binary<'heap>,
+    Binary { op: _, left, right }: &mut Binary<'heap>,
 ) -> T::Result<()> {
     visitor.visit_operand(location, left)?;
     visitor.visit_operand(location, right)?;
@@ -570,7 +563,7 @@ pub fn walk_rvalue_binary<'heap, T: VisitorMut<'heap> + ?Sized>(
 pub fn walk_rvalue_unary<'heap, T: VisitorMut<'heap> + ?Sized>(
     visitor: &mut T,
     location: Location,
-    Unary { op: _, operand }: &Unary<'heap>,
+    Unary { op: _, operand }: &mut Unary<'heap>,
 ) -> T::Result<()> {
     visitor.visit_operand(location, operand)?;
 
@@ -580,16 +573,20 @@ pub fn walk_rvalue_unary<'heap, T: VisitorMut<'heap> + ?Sized>(
 pub fn walk_rvalue_aggregate<'heap, T: VisitorMut<'heap> + ?Sized>(
     visitor: &mut T,
     location: Location,
-    Aggregate { kind, operands }: &Aggregate<'heap>,
+    Aggregate { kind, operands }: &mut Aggregate<'heap>,
 ) -> T::Result<()> {
     match kind {
         AggregateKind::Struct { fields } => {
-            for field in fields {
-                visitor.visit_symbol(location, *field)?;
+            if T::Filter::FOLD_INTERNED {
+                // Replace with a temporarily invalid valid
+                let fields_backup = *fields;
+                let mut beef = Beef::new(mem::replace(fields, Interned::new_unchecked(&[])));
+                beef.try_map(|mut field| visitor.visit_symbol(location, &mut field));
+                todo!("finish implementation")
             }
         }
         AggregateKind::Opaque(name) => {
-            visitor.visit_symbol(location, *name)?;
+            visitor.visit_symbol(location, name)?;
         }
         AggregateKind::Tuple
         | AggregateKind::List
@@ -597,7 +594,7 @@ pub fn walk_rvalue_aggregate<'heap, T: VisitorMut<'heap> + ?Sized>(
         | AggregateKind::Closure => {}
     }
 
-    for operand in operands.iter() {
+    for operand in operands.iter_mut() {
         visitor.visit_operand(location, operand)?;
     }
 
@@ -607,9 +604,10 @@ pub fn walk_rvalue_aggregate<'heap, T: VisitorMut<'heap> + ?Sized>(
 pub fn walk_rvalue_input<'heap, T: VisitorMut<'heap> + ?Sized>(
     visitor: &mut T,
     location: Location,
-    Input { op: _, name }: &Input<'heap>,
+    Input { op: _, name }: &mut Input<'heap>,
 ) -> T::Result<()> {
-    visitor.visit_symbol(location, *name)?;
+    visitor.visit_symbol(location, name)?;
+
     Ok!()
 }
 
@@ -619,11 +617,11 @@ pub fn walk_rvalue_apply<'heap, T: VisitorMut<'heap> + ?Sized>(
     Apply {
         function,
         arguments,
-    }: &Apply<'heap>,
+    }: &mut Apply<'heap>,
 ) -> T::Result<()> {
     visitor.visit_operand(location, function)?;
 
-    for argument in arguments.iter() {
+    for argument in arguments.iter_mut() {
         visitor.visit_operand(location, argument)?;
     }
 
@@ -633,9 +631,9 @@ pub fn walk_rvalue_apply<'heap, T: VisitorMut<'heap> + ?Sized>(
 pub fn walk_terminator<'heap, T: VisitorMut<'heap> + ?Sized>(
     visitor: &mut T,
     location: Location,
-    Terminator { span, kind }: &Terminator<'heap>,
+    Terminator { span, kind }: &mut Terminator<'heap>,
 ) -> T::Result<()> {
-    visitor.visit_span(*span)?;
+    visitor.visit_span(span)?;
 
     match kind {
         TerminatorKind::Goto(goto) => visitor.visit_terminator_goto(location, goto),
@@ -651,7 +649,7 @@ pub fn walk_terminator<'heap, T: VisitorMut<'heap> + ?Sized>(
 pub fn walk_terminator_goto<'heap, T: VisitorMut<'heap> + ?Sized>(
     visitor: &mut T,
     location: Location,
-    Goto { target }: &Goto<'heap>,
+    Goto { target }: &mut Goto<'heap>,
 ) -> T::Result<()> {
     visitor.visit_target(location, target)?;
     Ok!()
@@ -660,7 +658,7 @@ pub fn walk_terminator_goto<'heap, T: VisitorMut<'heap> + ?Sized>(
 pub fn walk_terminator_branch<'heap, T: VisitorMut<'heap> + ?Sized>(
     visitor: &mut T,
     location: Location,
-    Branch { test, then, r#else }: &Branch<'heap>,
+    Branch { test, then, r#else }: &mut Branch<'heap>,
 ) -> T::Result<()> {
     visitor.visit_operand(location, test)?;
 
@@ -673,7 +671,7 @@ pub fn walk_terminator_branch<'heap, T: VisitorMut<'heap> + ?Sized>(
 pub fn walk_terminator_return<'heap, T: VisitorMut<'heap> + ?Sized>(
     visitor: &mut T,
     location: Location,
-    Return { value }: &Return<'heap>,
+    Return { value }: &mut Return<'heap>,
 ) -> T::Result<()> {
     visitor.visit_operand(location, value)?;
     Ok!()
@@ -687,7 +685,7 @@ pub fn walk_terminator_graph_read<'heap, T: VisitorMut<'heap> + ?Sized>(
         body,
         tail,
         target,
-    }: &GraphRead<'heap>,
+    }: &mut GraphRead<'heap>,
 ) -> T::Result<()> {
     let mut location = GraphReadLocation {
         base: location,
@@ -702,8 +700,8 @@ pub fn walk_terminator_graph_read<'heap, T: VisitorMut<'heap> + ?Sized>(
         location.graph_read_index += 1;
     }
 
-    visitor.visit_graph_read_tail(location, *tail)?;
-    visitor.visit_basic_block_id(location.base, *target)?;
+    visitor.visit_graph_read_tail(location, tail)?;
+    visitor.visit_basic_block_id(location.base, target)?;
 
     Ok!()
 }
@@ -711,7 +709,7 @@ pub fn walk_terminator_graph_read<'heap, T: VisitorMut<'heap> + ?Sized>(
 pub fn walk_graph_read_head<'heap, T: VisitorMut<'heap> + ?Sized>(
     visitor: &mut T,
     location: GraphReadLocation,
-    head: &GraphReadHead<'heap>,
+    head: &mut GraphReadHead<'heap>,
 ) -> T::Result<()> {
     match head {
         GraphReadHead::Entity { axis } => visitor.visit_operand(location.base, axis),
@@ -721,12 +719,12 @@ pub fn walk_graph_read_head<'heap, T: VisitorMut<'heap> + ?Sized>(
 pub fn walk_graph_read_body<'heap, T: VisitorMut<'heap> + ?Sized>(
     visitor: &mut T,
     location: GraphReadLocation,
-    body: &GraphReadBody,
+    body: &mut GraphReadBody,
 ) -> T::Result<()> {
     match body {
         GraphReadBody::Filter(func, env) => {
-            visitor.visit_def_id(location.base, *func)?;
-            visitor.visit_local(location.base, *env)
+            visitor.visit_def_id(location.base, func)?;
+            visitor.visit_local(location.base, env)
         }
     }
 }
@@ -734,7 +732,7 @@ pub fn walk_graph_read_body<'heap, T: VisitorMut<'heap> + ?Sized>(
 pub fn walk_graph_read_tail<'heap, T: VisitorMut<'heap> + ?Sized>(
     _visitor: &mut T,
     _location: GraphReadLocation,
-    tail: GraphReadTail,
+    tail: &mut GraphReadTail,
 ) -> T::Result<()> {
     match tail {
         GraphReadTail::Collect => Ok!(),
