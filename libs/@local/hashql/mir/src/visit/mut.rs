@@ -197,6 +197,12 @@ pub trait VisitorMut<'heap> {
     /// - [`filter::Shallow`]: Visits but doesn't modify interned slices
     type Filter: filter::Filter = filter::Deep;
 
+    /// Provides access to the interner for deep filtering.
+    ///
+    /// **Required** if `Filter = filter::Deep`. If not implemented with `Deep` a panic will be
+    /// issued once an interned slice is encountered.
+    ///
+    /// **Not needed** if `Filter = filter::Shallow`.
     fn interner(&self) -> &Interner<'heap> {
         panic!("must be implemented if filter has T::FOLD_INTERNED enabled")
     }
@@ -255,7 +261,7 @@ pub trait VisitorMut<'heap> {
     fn fold_projection(
         &mut self,
         location: Location,
-        base: PlaceRef<'heap>,
+        base: PlaceRef<'_, 'heap>,
         projection: Projection<'heap>,
     ) -> Self::Result<Projection<'heap>> {
         walk_projection(self, location, base, projection)
@@ -473,7 +479,7 @@ pub trait VisitorMut<'heap> {
     }
 }
 
-fn fold_interned<'heap: 'visitor, 'visitor, V: VisitorMut<'heap> + ?Sized, T>(
+fn beef_try_map<'heap: 'visitor, 'visitor, V: VisitorMut<'heap> + ?Sized, T>(
     visitor: &'visitor mut V,
     interner: impl FnOnce(&'visitor Interner<'heap>) -> &'visitor InternSet<'heap, [T]>,
     slice: &mut Interned<'heap, [T]>,
@@ -482,14 +488,45 @@ fn fold_interned<'heap: 'visitor, 'visitor, V: VisitorMut<'heap> + ?Sized, T>(
 where
     T: Copy + Eq + Hash + 'heap,
 {
-    let backup = *slice;
-
     // For a brief amount of time we put the slice into an invalid state, that is fine, as this
     // change cannot be observed, due to the fact that we *always* restore it.
+    let backup = *slice;
     let mut beef = Beef::new(mem::replace(slice, Interned::new_unchecked(&[])));
 
     let flow = beef
-        .try_map::<_, V::Result<()>>(&mut |item| on_item(visitor, item))
+        .try_map::<_, V::Result<()>>(|item| on_item(visitor, item))
+        .branch();
+
+    match flow {
+        ControlFlow::Continue(()) => {
+            // We can safely finish
+            *slice = beef.finish(interner(visitor.interner()));
+            Ok!()
+        }
+        ControlFlow::Break(err) => {
+            // Restore the original slice
+            *slice = backup;
+            V::Result::from_residual(err)
+        }
+    }
+}
+
+fn beef_try_scan<'heap: 'visitor, 'visitor, V: VisitorMut<'heap> + ?Sized, T>(
+    visitor: &'visitor mut V,
+    interner: impl FnOnce(&'visitor Interner<'heap>) -> &'visitor InternSet<'heap, [T]>,
+    slice: &mut Interned<'heap, [T]>,
+    mut on_item: impl FnMut(&mut V, &[T], T) -> V::Result<T>,
+) -> V::Result<()>
+where
+    T: Copy + Eq + Hash + 'heap,
+{
+    // For a brief amount of time we put the slice into an invalid state, that is fine, as this
+    // change cannot be observed, due to the fact that we *always* restore it.
+    let backup = *slice;
+    let mut beef = Beef::new(mem::replace(slice, Interned::new_unchecked(&[])));
+
+    let flow = beef
+        .try_scan::<_, V::Result<()>>(|prefix, item| on_item(visitor, prefix, item))
         .branch();
 
     match flow {
@@ -515,7 +552,7 @@ pub fn walk_params<'heap, T: VisitorMut<'heap> + ?Sized>(
         return Ok!();
     }
 
-    fold_interned(
+    beef_try_map(
         visitor,
         |interner| &interner.locals,
         params,
@@ -578,7 +615,7 @@ pub fn walk_basic_block<'heap, T: VisitorMut<'heap> + ?Sized>(
 pub fn walk_projection<'heap, T: VisitorMut<'heap> + ?Sized>(
     visitor: &mut T,
     location: Location,
-    _base: PlaceRef<'heap>,
+    _base: PlaceRef<'_, 'heap>,
     mut projection: Projection<'heap>,
 ) -> T::Result<Projection<'heap>> {
     match &mut projection {
@@ -601,17 +638,19 @@ pub fn walk_place<'heap, T: VisitorMut<'heap> + ?Sized>(
         return Ok!();
     }
 
-    let mut iter_projections = Place::iter_projections_from_parts(*local, projections.0);
+    beef_try_scan(
+        visitor,
+        |interner| &interner.projections,
+        projections,
+        |visitor, prefix, projection| {
+            let base = PlaceRef {
+                local: *local,
+                projections: prefix,
+            };
 
-    fold_interned!(T, visitor, projections; projections => |_| {
-        // We actually don't take that specific projection, and instead use the one from
-        // iter_projections
-        let (base, projection) = iter_projections
-            .next()
-            .unwrap_or_else(|| unreachable!("both iterators are of the same size"));
-
-        visitor.fold_projection(location, base, projection)
-    })
+            visitor.fold_projection(location, base, projection)
+        },
+    )
 }
 
 pub fn walk_constant<'heap, T: VisitorMut<'heap> + ?Sized>(
@@ -648,7 +687,7 @@ pub fn walk_target<'heap, T: VisitorMut<'heap> + ?Sized>(
         return Ok!();
     }
 
-    fold_interned(
+    beef_try_map(
         visitor,
         |interner| &interner.operands,
         args,
@@ -749,7 +788,7 @@ pub fn walk_rvalue_aggregate<'heap, T: VisitorMut<'heap> + ?Sized>(
     match kind {
         AggregateKind::Struct { fields } => {
             if T::Filter::FOLD_INTERNED {
-                fold_interned(
+                beef_try_map(
                     visitor,
                     |interner| &interner.symbols,
                     fields,

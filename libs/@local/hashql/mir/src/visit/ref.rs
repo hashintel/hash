@@ -122,7 +122,7 @@ pub trait Visitor<'heap> {
     fn visit_projection(
         &mut self,
         location: Location,
-        base: PlaceRef<'heap>,
+        base: PlaceRef<'_, 'heap>,
         projection: Projection<'heap>,
     ) -> Self::Result {
         walk_projection(self, location, base, projection)
@@ -371,7 +371,7 @@ pub fn walk_basic_block<'heap, T: Visitor<'heap> + ?Sized>(
 pub fn walk_projection<'heap, T: Visitor<'heap> + ?Sized>(
     visitor: &mut T,
     location: Location,
-    _base: PlaceRef<'heap>,
+    _base: PlaceRef<'_, 'heap>,
     projection: Projection<'heap>,
 ) -> T::Result {
     match projection {

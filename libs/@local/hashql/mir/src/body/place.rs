@@ -40,7 +40,7 @@ id::newtype!(
 /// For a place like `local_0.field_1.field_2`:
 /// - At projection 0: `PlaceRef { local: local_0, projections: [] }`
 /// - At projection 1: `PlaceRef { local: local_0, projections: [field_1] }`
-pub struct PlaceRef<'heap> {
+pub struct PlaceRef<'proj, 'heap> {
     /// The root local variable that this place reference starts from.
     pub local: Local,
 
@@ -48,7 +48,7 @@ pub struct PlaceRef<'heap> {
     ///
     /// This slice contains all projections applied before the current projection
     /// being examined during iteration.
-    pub projections: &'heap [Projection<'heap>],
+    pub projections: &'proj [Projection<'heap>],
 }
 
 /// A storage location that can be read from or written to in the MIR.
@@ -118,7 +118,7 @@ impl<'heap> Place<'heap> {
     #[must_use]
     pub fn iter_projections(
         self,
-    ) -> impl DoubleEndedIterator<Item = (PlaceRef<'heap>, Projection<'heap>)> + ExactSizeIterator
+    ) -> impl DoubleEndedIterator<Item = (PlaceRef<'heap, 'heap>, Projection<'heap>)> + ExactSizeIterator
     {
         Self::iter_projections_from_parts(self.local, self.projections.0)
     }
@@ -135,7 +135,7 @@ impl<'heap> Place<'heap> {
     pub fn iter_projections_from_parts(
         local: Local,
         projections: &'heap [Projection<'heap>],
-    ) -> impl DoubleEndedIterator<Item = (PlaceRef<'heap>, Projection<'heap>)> + ExactSizeIterator
+    ) -> impl DoubleEndedIterator<Item = (PlaceRef<'heap, 'heap>, Projection<'heap>)> + ExactSizeIterator
     {
         projections
             .iter()
