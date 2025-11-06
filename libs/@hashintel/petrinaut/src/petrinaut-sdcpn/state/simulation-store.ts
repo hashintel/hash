@@ -183,7 +183,9 @@ export function createSimulationStore(sdcpnStore: {
                 const updatedSimulation = computeNextFrame(state.simulation);
 
                 const nextFrame =
-                  updatedSimulation.frames[updatedSimulation.currentFrameNumber]!;
+                  updatedSimulation.frames[
+                    updatedSimulation.currentFrameNumber
+                  ]!;
 
                 // eslint-disable-next-line no-console
                 console.log("Next frame generated:", nextFrame);

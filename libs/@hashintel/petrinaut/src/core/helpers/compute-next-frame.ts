@@ -48,10 +48,7 @@ export function computeNextFrame(
       const placeSize = count * dimensions;
 
       // Extract the current state for this place from the buffer
-      const placeBuffer = currentFrame.buffer.slice(
-        offset,
-        offset + placeSize,
-      );
+      const placeBuffer = currentFrame.buffer.slice(offset, offset + placeSize);
 
       // Compute the next state using the differential equation
       // Note: The DifferentialEquationFn type expects (placeValues, t, parameters)
@@ -63,7 +60,11 @@ export function computeNextFrame(
         _numberOfTokens: number,
       ): Float64Array => {
         // Call the user's differential equation function
-        return diffEqFn(currentState, currentFrame.time, simulation.parameterValues);
+        return diffEqFn(
+          currentState,
+          currentFrame.time,
+          simulation.parameterValues,
+        );
       };
 
       const nextPlaceBuffer = computePlaceNextState(
@@ -97,15 +98,13 @@ export function computeNextFrame(
           time: currentFrame.time + simulation.dt,
           // Also update transition timeSinceLastFiring since time advanced
           transitions: new Map(
-            Array.from(frameAfterTransitions.transitions).map(
-              ([id, state]) => [
-                id,
-                {
-                  ...state,
-                  timeSinceLastFiring: state.timeSinceLastFiring + simulation.dt,
-                },
-              ],
-            ),
+            Array.from(frameAfterTransitions.transitions).map(([id, state]) => [
+              id,
+              {
+                ...state,
+                timeSinceLastFiring: state.timeSinceLastFiring + simulation.dt,
+              },
+            ]),
           ),
         }
       : frameAfterTransitions;
