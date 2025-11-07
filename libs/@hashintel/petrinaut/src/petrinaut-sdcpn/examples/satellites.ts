@@ -9,7 +9,9 @@ export const satellitesSDCPN: SDCPN = {
       name: "Space",
       type: "f8e9d7c6-b5a4-3210-fedc-ba9876543210",
       dynamicsEnabled: true,
-      differentialEquationCode: { refId: "1a2b3c4d-5e6f-7890-abcd-1234567890ab" },
+      differentialEquationCode: {
+        refId: "1a2b3c4d-5e6f-7890-abcd-1234567890ab",
+      },
       visualizerCode: `export default Visualization(({ tokens, parameters }) => {
   const { satellite_radius, earth_radius } = parameters;
 
@@ -207,8 +209,16 @@ export default TransitionKernel(([tokens]) => {
       elements: [
         { id: "2b3c4d5e-6f7a-8b9c-0d1e-2f3a4b5c6d7e", name: "x", type: "real" },
         { id: "3c4d5e6f-7a8b-9c0d-1e2f-3a4b5c6d7e8f", name: "y", type: "real" },
-        { id: "4d5e6f7a-8b9c-0d1e-2f3a-4b5c6d7e8f9a", name: "direction", type: "real" },
-        { id: "5e6f7a8b-9c0d-1e2f-3a4b-5c6d7e8f9a0b", name: "velocity", type: "real" },
+        {
+          id: "4d5e6f7a-8b9c-0d1e-2f3a-4b5c6d7e8f9a",
+          name: "direction",
+          type: "real",
+        },
+        {
+          id: "5e6f7a8b-9c0d-1e2f-3a4b-5c6d7e8f9a0b",
+          name: "velocity",
+          type: "real",
+        },
       ],
     },
   ],
