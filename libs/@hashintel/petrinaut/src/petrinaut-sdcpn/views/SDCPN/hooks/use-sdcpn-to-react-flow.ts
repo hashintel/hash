@@ -51,6 +51,7 @@ export function useSdcpnToReactFlow(sdcpn: SDCPN): PetriNetDefinitionObject {
         type: "place",
         dynamicsEnabled: place.dynamicsEnabled,
         hasColorType,
+        typeColor: placeType?.colorCode, // Pass the type color for border styling
       },
     });
   }
@@ -87,7 +88,7 @@ export function useSdcpnToReactFlow(sdcpn: SDCPN): PetriNetDefinitionObject {
       const arcId = `$A_${inputArc.placeId}_${transition.id}`;
 
       // Get the place to determine type color
-      const place = sdcpn.places.find((p) => p.id === inputArc.placeId);
+      const place = sdcpn.places.find((pl) => pl.id === inputArc.placeId);
       const placeType = place?.type
         ? sdcpn.types.find((type) => type.id === place.type)
         : null;
@@ -123,7 +124,7 @@ export function useSdcpnToReactFlow(sdcpn: SDCPN): PetriNetDefinitionObject {
       const arcId = `$A_${transition.id}_${outputArc.placeId}`;
 
       // Get the place to determine type color
-      const place = sdcpn.places.find((p) => p.id === outputArc.placeId);
+      const place = sdcpn.places.find((pl) => pl.id === outputArc.placeId);
       const placeType = place?.type
         ? sdcpn.types.find((type) => type.id === place.type)
         : null;

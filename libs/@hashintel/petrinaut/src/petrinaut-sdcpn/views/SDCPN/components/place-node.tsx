@@ -35,6 +35,22 @@ export const PlaceNode: React.FC<NodeProps<PlaceNodeData>> = ({
     const marking = initialMarking.get(id);
     tokenCount = marking?.count ?? 0;
   }
+
+  // Helper function to convert hex color to rgba with opacity
+  const hexToRgba = (hex: string, opacity: number): string => {
+    const r = Number.parseInt(hex.slice(1, 3), 16);
+    const g = Number.parseInt(hex.slice(3, 5), 16);
+    const b = Number.parseInt(hex.slice(5, 7), 16);
+    return `rgba(${r}, ${g}, ${b}, ${opacity})`;
+  };
+
+  // Determine background color: light tint of type color if available, otherwise default
+  const backgroundColor = data.typeColor
+    ? hexToRgba(data.typeColor, 0.1) // 10% opacity tint
+    : selected
+      ? "core.blue.10"
+      : "core.gray.10";
+
   return (
     <div
       className={css({
@@ -56,9 +72,7 @@ export const PlaceNode: React.FC<NodeProps<PlaceNodeData>> = ({
           display: "flex",
           justifyContent: "center",
           alignItems: "center",
-          background: selected ? "core.blue.10" : "core.gray.10",
           border: "2px solid",
-          borderColor: selected ? "core.blue.50" : "core.gray.50",
           fontSize: "[15px]",
           boxSizing: "border-box",
           position: "relative",
@@ -66,11 +80,16 @@ export const PlaceNode: React.FC<NodeProps<PlaceNodeData>> = ({
           lineHeight: "[1.3]",
           cursor: "default",
           _hover: {
-            borderColor: selected ? "core.blue.60" : "core.gray.70",
             boxShadow: "0 0 0 4px rgba(59, 130, 246, 0.1)",
           },
         })}
-        style={{ transition: "all 0.2s ease" }}
+        style={{
+          transition: "all 0.2s ease",
+          borderColor: data.typeColor ?? undefined,
+          backgroundColor: data.typeColor
+            ? hexToRgba(data.typeColor, 0.1)
+            : undefined,
+        }}
       >
         <div
           className={css({
