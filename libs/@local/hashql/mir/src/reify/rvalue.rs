@@ -1,6 +1,7 @@
 use hashql_core::{
     id::{Id as _, IdVec},
-    r#type::{TypeBuilder, Typed},
+    symbol::sym,
+    r#type::{TypeBuilder, Typed, builder},
 };
 use hashql_hir::node::{
     HirPtr, Node,
@@ -23,7 +24,7 @@ use crate::body::{
     constant::Constant,
     local::Local,
     operand::Operand,
-    place::{FieldIndex, Place, Projection, ProjectionKind},
+    place::{FieldIndex, Place, ProjectionKind},
     rvalue::{Aggregate, AggregateKind, Apply, Binary, Input, RValue, Unary},
 };
 
@@ -107,7 +108,6 @@ impl<'mir, 'heap> Reifier<'_, 'mir, '_, '_, 'heap> {
                 let ptr = compiler.lower_ctor(hir, ctor);
                 self.state.ctor.insert(name, ptr);
 
-                // TODO: we **cannot
                 let ptr = Operand::Constant(Constant::FnPtr(ptr));
                 let env = Operand::Constant(Constant::Unit);
                 let mut operands = IdVec::with_capacity_in(2, self.context.heap);
@@ -198,6 +198,7 @@ impl<'mir, 'heap> Reifier<'_, 'mir, '_, '_, 'heap> {
         function: Node<'heap>,
         call_arguments: &[CallArgument<'heap>],
     ) -> RValue<'heap> {
+        let function_span = function.span;
         // The argument to a fat call *must* be a place, it cannot be a constant, because a constant
         // cannot represent a fat-pointer, which is only constructed using an aggregate.
         let function = match self.operand(function) {
@@ -218,10 +219,17 @@ impl<'mir, 'heap> Reifier<'_, 'mir, '_, '_, 'heap> {
         // captured environment
         let function_pointer = function.project(
             self.context.interner,
+            function.type_id(&self.local_decls),
             ProjectionKind::Field(FieldIndex::new(0)),
         );
         let environment = function.project(
             self.context.interner,
+            // We never continue to move into the type (it is also invalid to move into it) and is
+            // considered to be completely opaque. The type information is never used.
+            TypeBuilder::spanned(function_span, self.context.environment).opaque(
+                sym::internal::ClosureEnv,
+                builder::lazy(|_, builder| builder.unknown()),
+            ),
             ProjectionKind::Field(FieldIndex::new(1)),
         );
 
@@ -258,16 +266,15 @@ impl<'mir, 'heap> Reifier<'_, 'mir, '_, '_, 'heap> {
         block: &mut CurrentBlock<'mir, 'heap>,
         hir: HirPtr,
         binder: Binder<'heap>,
-        local: Local,
         closure: Closure<'heap>,
     ) -> RValue<'heap> {
         let (
             Typed {
-                r#type: ptr_type,
+                r#type: _,
                 value: ptr,
             },
             Typed {
-                r#type: env_type,
+                r#type: _,
                 value: env,
             },
         ) = self.transform_closure(block, hir, Some(binder), closure);
@@ -277,11 +284,6 @@ impl<'mir, 'heap> Reifier<'_, 'mir, '_, '_, 'heap> {
         let mut closure_operands = IdVec::with_capacity_in(2, self.context.heap);
         closure_operands.push(Operand::Constant(Constant::FnPtr(ptr)));
         closure_operands.push(Operand::Place(Place::local(env, self.context.interner)));
-
-        // The type of the local changes here, because now it's a fat pointer
-        // (just a tuple in disguise)
-        self.local_decls[local].r#type =
-            TypeBuilder::spanned(hir.span, self.context.environment).tuple([ptr_type, env_type]);
 
         RValue::Aggregate(Aggregate {
             kind: AggregateKind::Closure,
@@ -327,9 +329,7 @@ impl<'mir, 'heap> Reifier<'_, 'mir, '_, '_, 'heap> {
                 let () = self.terminator_branch(block, local, node.span, branch);
                 return None;
             }
-            NodeKind::Closure(closure) => {
-                self.rvalue_closure(block, node.ptr(), binder, local, closure)
-            }
+            NodeKind::Closure(closure) => self.rvalue_closure(block, node.ptr(), binder, closure),
             NodeKind::Thunk(thunk) => self.rvalue_thunk(node.ptr(), binder, thunk),
             NodeKind::Graph(graph) => {
                 // This turns into a terminator, and therefore does not contribute a statement

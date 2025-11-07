@@ -2,10 +2,7 @@ use hashql_core::{
     collections::TinyVec,
     id::{IdVec, bit_vec::BitRelations as _},
     span::Spanned,
-    r#type::{
-        PartialType, TypeId, Typed,
-        kind::{TupleType, TypeKind},
-    },
+    r#type::{TypeBuilder, TypeId, Typed},
 };
 use hashql_hir::{
     lower::dataflow::{VariableDefinitions, VariableDependencies},
@@ -80,15 +77,8 @@ impl<'mir, 'heap> Reifier<'_, 'mir, '_, '_, 'heap> {
             tuple_element_ty.push(self.local_decls[capture_local].r#type);
         }
 
-        let env_type = self.context.environment.intern_type(PartialType {
-            span: hir.span,
-            kind: self
-                .context
-                .environment
-                .intern_kind(TypeKind::Tuple(TupleType {
-                    fields: self.context.environment.intern_type_ids(&tuple_element_ty),
-                })),
-        });
+        let env_type =
+            TypeBuilder::spanned(hir.span, self.context.environment).tuple(tuple_element_ty);
         self.local_decls[env_local].r#type = env_type;
 
         let closure_type_id = self.context.hir.map.monomorphized_type_id(hir.id);

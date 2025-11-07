@@ -3,7 +3,7 @@
 //! Places represent storage locations in the MIR, including local variables and complex paths
 //! through data structures. Projections allow accessing nested data within structured types.
 
-use std::alloc::Allocator;
+use core::alloc::Allocator;
 
 use hashql_core::{id, intern::Interned, symbol::Symbol, r#type::TypeId};
 

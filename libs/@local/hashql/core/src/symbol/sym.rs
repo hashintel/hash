@@ -144,6 +144,11 @@ symbols![lexical; LEXICAL;
     web_id,
 ];
 
+// Internal names are non user constructible
+symbols![internal; INTERNAL;
+    ClosureEnv: "'<ClosureEnv>"
+];
+
 symbols![digit; DIGITS;
     zero: "0",
     one: "1",
@@ -199,7 +204,7 @@ symbols![path; PATHS;
     graph_tail_collect: "::graph::tail::collect",
 ];
 
-pub(crate) const TABLES: &[&[&Symbol<'static>]] = &[LEXICAL, DIGITS, SYMBOLS, PATHS];
+pub(crate) const TABLES: &[&[&Symbol<'static>]] = &[LEXICAL, DIGITS, SYMBOLS, PATHS, INTERNAL];
 
 #[cfg(test)]
 mod test {

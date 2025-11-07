@@ -18,9 +18,9 @@ use hashql_core::{
     span::{SpanId, Spanned},
     symbol::Symbol,
     r#type::{
-        PartialType, TypeId, Typed,
+        TypeBuilder, TypeId, Typed,
         environment::Environment,
-        kind::{ClosureType, TupleType, TypeKind},
+        kind::{ClosureType, TypeKind},
     },
 };
 use hashql_diagnostics::{Failure, Status};
@@ -199,15 +199,7 @@ impl<'ctx, 'mir, 'hir, 'env, 'heap> Reifier<'ctx, 'mir, 'hir, 'env, 'heap> {
                 // In case there are no captures, the environment will always be a unit type (aka
                 // Tuple).
                 debug_assert_matches!(source, Source::Ctor(..));
-                self.context.environment.intern_type(PartialType {
-                    span,
-                    kind: self
-                        .context
-                        .environment
-                        .intern_kind(TypeKind::Tuple(TupleType {
-                            fields: self.context.environment.intern_type_ids(&[]),
-                        })),
-                })
+                TypeBuilder::spanned(span, self.context.environment).tuple([] as [TypeId; 0])
             };
 
             let local = self.local_decls.push(LocalDecl {
