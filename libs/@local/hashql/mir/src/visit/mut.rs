@@ -876,12 +876,16 @@ pub fn walk_terminator_goto<'heap, T: VisitorMut<'heap> + ?Sized>(
 pub fn walk_terminator_switch_int<'heap, T: VisitorMut<'heap> + ?Sized>(
     visitor: &mut T,
     location: Location,
-    SwitchInt { test, then, r#else }: &mut SwitchInt<'heap>,
+    SwitchInt {
+        discriminant,
+        targets,
+    }: &mut SwitchInt<'heap>,
 ) -> T::Result<()> {
-    visitor.visit_operand(location, test)?;
+    visitor.visit_operand(location, discriminant)?;
 
-    visitor.visit_target(location, then)?;
-    visitor.visit_target(location, r#else)?;
+    for target in targets.targets_mut() {
+        visitor.visit_target(location, target)?;
+    }
 
     Ok!()
 }

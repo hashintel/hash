@@ -10,7 +10,7 @@ thunk {thunk#0}() {
     bb0(): {
         %0 = apply ({thunk#0} as FnPtr)
 
-        if(%0) -> [0: bb2(), 1: bb1()]
+        switchInt(%0) -> [0: bb2(), 1: bb1()]
     }
 
 

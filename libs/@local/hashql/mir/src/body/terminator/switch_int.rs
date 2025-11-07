@@ -209,27 +209,29 @@ impl<'heap> SwitchTargets<'heap> {
 /// - Loop conditions and early exits
 /// - Pattern matching and guard clauses
 /// - Boolean logic short-circuiting
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct SwitchInt<'heap> {
-    /// The boolean test operand that determines which branch to take.
-    ///
-    /// This [`Operand`] is evaluated to obtain a boolean value. The result
-    /// determines whether control transfers to the `then` target (if `true`)
-    /// or the `else` target (if `false`). The operand may reference a boolean
-    /// variable, constant, or the result of a boolean expression.
-    pub test: Operand<'heap>,
+    pub discriminant: Operand<'heap>,
+    pub targets: SwitchTargets<'heap>,
+    // /// The boolean test operand that determines which branch to take.
+    // ///
+    // /// This [`Operand`] is evaluated to obtain a boolean value. The result
+    // /// determines whether control transfers to the `then` target (if `true`)
+    // /// or the `else` target (if `false`). The operand may reference a boolean
+    // /// variable, constant, or the result of a boolean expression.
+    // pub test: Operand<'heap>,
 
-    /// The target destination when the test evaluates to `true`.
-    ///
-    /// This [`Target`] specifies the basic block to transfer control to when
-    /// the test condition is satisfied. It includes both the destination block
-    /// and any arguments to pass to that block's parameters.
-    pub then: Target<'heap>,
+    // /// The target destination when the test evaluates to `true`.
+    // ///
+    // /// This [`Target`] specifies the basic block to transfer control to when
+    // /// the test condition is satisfied. It includes both the destination block
+    // /// and any arguments to pass to that block's parameters.
+    // pub then: Target<'heap>,
 
-    /// The target destination when the test evaluates to `false`.
-    ///
-    /// This [`Target`] specifies the basic block to transfer control to when
-    /// the test condition is not satisfied. It includes both the destination
-    /// block and any arguments to pass to that block's parameters.
-    pub r#else: Target<'heap>,
+    // /// The target destination when the test evaluates to `false`.
+    // ///
+    // /// This [`Target`] specifies the basic block to transfer control to when
+    // /// the test condition is not satisfied. It includes both the destination
+    // /// block and any arguments to pass to that block's parameters.
+    // pub r#else: Target<'heap>,
 }

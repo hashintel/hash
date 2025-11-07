@@ -429,12 +429,11 @@ where
         match kind {
             &TerminatorKind::Goto(Goto { target: _ }) => write!(self.writer, "goto"),
             &TerminatorKind::SwitchInt(SwitchInt {
-                test,
-                then: _,
-                r#else: _,
+                discriminant,
+                targets: _,
             }) => {
                 write!(self.writer, "switchInt(")?;
-                self.format_part(test)?;
+                self.format_part(discriminant)?;
                 self.writer.write_all(b")")
             }
             &TerminatorKind::Return(Return { value }) => {
@@ -444,6 +443,16 @@ where
             TerminatorKind::GraphRead(graph_read) => self.format_part(graph_read),
             TerminatorKind::Unreachable => write!(self.writer, "unreachable"),
         }
+    }
+}
+
+impl<'heap, W, S> FormatPart<u128> for TextFormat<W, S>
+where
+    W: io::Write,
+    S: SourceLookup<'heap>,
+{
+    fn format_part(&mut self, value: u128) -> io::Result<()> {
+        write!(self.writer, "{value}")
     }
 }
 
@@ -458,15 +467,16 @@ where
                 write!(self.writer, " -> ")?;
                 self.format_part(target)
             }
-            &TerminatorKind::SwitchInt(SwitchInt {
-                test: _,
-                then,
-                r#else,
+            TerminatorKind::SwitchInt(SwitchInt {
+                discriminant: _,
+                targets,
             }) => {
-                write!(self.writer, " -> [0: ")?;
-                self.format_part(r#else)?;
-                write!(self.writer, ", 1: ")?;
-                self.format_part(then)?;
+                write!(self.writer, " -> [")?;
+                self.csv(
+                    targets
+                        .iter()
+                        .map(|(value, target)| KeyValuePair(value, target)),
+                )?;
                 write!(self.writer, "]")
             }
             &TerminatorKind::Return(_) | TerminatorKind::Unreachable => Ok(()),
