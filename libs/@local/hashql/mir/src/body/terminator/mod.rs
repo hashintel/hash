@@ -16,7 +16,7 @@ pub use self::{
     goto::Goto,
     graph::{GraphRead, GraphReadBody, GraphReadHead, GraphReadLocation, GraphReadTail},
     r#return::Return,
-    switch_int::{SwitchInt, SwitchTargets},
+    switch_int::{SwitchIf, SwitchInt, SwitchTargets},
     target::Target,
 };
 
