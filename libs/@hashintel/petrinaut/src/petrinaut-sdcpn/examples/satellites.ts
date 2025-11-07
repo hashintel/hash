@@ -19,8 +19,6 @@ export const satellitesSDCPN: SDCPN = {
   const centerX = width / 2;
   const centerY = height / 2;
 
-  console.log(">>:", { earth_radius, satellite_radius });
-
   return (
     <svg
       viewBox={\`0 0 \${width} \${height}\`}
@@ -172,20 +170,14 @@ export default TransitionKernel(([tokens]) => {
       ],
       lambdaType: "predicate",
       lambdaCode: `// Check if satellite crashes into Earth (within crash threshold of origin)
-export default Lambda(([tokens], parameters) => {
-  if (tokens.length < 1) return false;
-  
+export default Lambda(([tokens], parameters) => {  
   const { earth_radius, crash_threshold } = parameters;
   
   // Get satellite position
   const [x, y] = tokens[0];
-
-  console.log("---- Crash check:", { tokens, x, y });
   
   // Calculate distance from Earth center (origin)
   const distance = Math.hypot(x, y);
-  
-  console.log("++++ Crash check:", { distance, earth_radius });
 
   // Crash occurs if satellite is too close to Earth
   return distance < earth_radius ? Infinity : 0;
