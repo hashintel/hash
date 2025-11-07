@@ -1,15 +1,15 @@
 import type { SDCPN } from "../../core/types/sdcpn";
 
 export const satellitesSDCPN: SDCPN = {
-  id: "sdcpn-1762206865689",
+  id: "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
   title: "Satellites in Orbit",
   places: [
     {
-      id: "place__3cbc7944-34cb-4eeb-b779-4e392a171fe1",
+      id: "3cbc7944-34cb-4eeb-b779-4e392a171fe1",
       name: "Space",
-      type: "type-satellite",
+      type: "f8e9d7c6-b5a4-3210-fedc-ba9876543210",
       dynamicsEnabled: true,
-      differentialEquationCode: { refId: "de-satellite-orbit" },
+      differentialEquationCode: { refId: "1a2b3c4d-5e6f-7890-abcd-1234567890ab" },
       visualizerCode: `export default Visualization(({ tokens, parameters }) => {
   const { satellite_radius, earth_radius } = parameters;
 
@@ -98,9 +98,9 @@ export const satellitesSDCPN: SDCPN = {
       height: 130,
     },
     {
-      id: "place__ea42ba61-03ea-4940-b2e2-b594d5331a71",
+      id: "ea42ba61-03ea-4940-b2e2-b594d5331a71",
       name: "Debris",
-      type: "type-satellite",
+      type: "f8e9d7c6-b5a4-3210-fedc-ba9876543210",
       dynamicsEnabled: false,
       differentialEquationCode: "",
       visualizerCode: null,
@@ -112,17 +112,17 @@ export const satellitesSDCPN: SDCPN = {
   ],
   transitions: [
     {
-      id: "transition__d25015d8-7aac-45ff-82b0-afd943f1b7ec",
+      id: "d25015d8-7aac-45ff-82b0-afd943f1b7ec",
       name: "Collision",
       inputArcs: [
         {
-          placeId: "place__3cbc7944-34cb-4eeb-b779-4e392a171fe1",
+          placeId: "3cbc7944-34cb-4eeb-b779-4e392a171fe1",
           weight: 2,
         },
       ],
       outputArcs: [
         {
-          placeId: "place__ea42ba61-03ea-4940-b2e2-b594d5331a71",
+          placeId: "ea42ba61-03ea-4940-b2e2-b594d5331a71",
           weight: 2,
         },
       ],
@@ -156,17 +156,17 @@ export default TransitionKernel(([tokens]) => {
       height: 80,
     },
     {
-      id: "transition__716fe1e5-9b35-413f-83fe-99b28ba73945",
+      id: "716fe1e5-9b35-413f-83fe-99b28ba73945",
       name: "Crash",
       inputArcs: [
         {
-          placeId: "place__3cbc7944-34cb-4eeb-b779-4e392a171fe1",
+          placeId: "3cbc7944-34cb-4eeb-b779-4e392a171fe1",
           weight: 1,
         },
       ],
       outputArcs: [
         {
-          placeId: "place__ea42ba61-03ea-4940-b2e2-b594d5331a71",
+          placeId: "ea42ba61-03ea-4940-b2e2-b594d5331a71",
           weight: 1,
         },
       ],
@@ -200,22 +200,22 @@ export default TransitionKernel(([tokens]) => {
   ],
   types: [
     {
-      id: "type-satellite",
+      id: "f8e9d7c6-b5a4-3210-fedc-ba9876543210",
       name: "Satellite",
-      iconId: "circle",
+      iconId: "9a8b7c6d-5e4f-3a2b-1c0d-9e8f7a6b5c4d",
       colorCode: "#1E90FF",
       elements: [
-        { id: "satellite-x", name: "x", type: "real" },
-        { id: "satellite-y", name: "y", type: "real" },
-        { id: "satellite-direction", name: "direction", type: "real" },
-        { id: "satellite-speed", name: "velocity", type: "real" },
+        { id: "2b3c4d5e-6f7a-8b9c-0d1e-2f3a4b5c6d7e", name: "x", type: "real" },
+        { id: "3c4d5e6f-7a8b-9c0d-1e2f-3a4b5c6d7e8f", name: "y", type: "real" },
+        { id: "4d5e6f7a-8b9c-0d1e-2f3a-4b5c6d7e8f9a", name: "direction", type: "real" },
+        { id: "5e6f7a8b-9c0d-1e2f-3a4b-5c6d7e8f9a0b", name: "velocity", type: "real" },
       ],
     },
   ],
   differentialEquations: [
     {
-      id: "de-satellite-orbit",
-      typeId: "type-satellite",
+      id: "1a2b3c4d-5e6f-7890-abcd-1234567890ab",
+      typeId: "f8e9d7c6-b5a4-3210-fedc-ba9876543210",
       name: "Satellite Orbit Dynamics",
       code: `// Example of ODE for Satellite in orbit (simplified)
 // Receives: placeValues (Float64Array with all token values concatenated: [x1,y1,dir1,vel1, x2,y2,dir2,vel2, ...])
@@ -263,35 +263,35 @@ export default Dynamics((placeValues, t, parameters) => {
   ],
   parameters: [
     {
-      id: "param-earth-radius",
+      id: "6f7a8b9c-0d1e-2f3a-4b5c-6d7e8f9a0b1c",
       name: "Earth Radius",
       variableName: "earth_radius",
       type: "real",
       defaultValue: "50.0",
     },
     {
-      id: "param-satellite-radius",
+      id: "7a8b9c0d-1e2f-3a4b-5c6d-7e8f9a0b1c2d",
       name: "Satellite Radius",
       variableName: "satellite_radius",
       type: "real",
       defaultValue: "4.0",
     },
     {
-      id: "param-collision-threshold",
+      id: "8b9c0d1e-2f3a-4b5c-6d7e-8f9a0b1c2d3e",
       name: "Collision Threshold",
       variableName: "collision_threshold",
       type: "real",
       defaultValue: "10.0",
     },
     {
-      id: "param-crash-threshold",
+      id: "9c0d1e2f-3a4b-5c6d-7e8f-9a0b1c2d3e4f",
       name: "Crash Threshold",
       variableName: "crash_threshold",
       type: "real",
       defaultValue: "5.0",
     },
     {
-      id: "param-gravitational-constant",
+      id: "0d1e2f3a-4b5c-6d7e-8f9a-0b1c2d3e4f5a",
       name: "Gravitational Constant",
       variableName: "gravitational_constant",
       type: "real",
