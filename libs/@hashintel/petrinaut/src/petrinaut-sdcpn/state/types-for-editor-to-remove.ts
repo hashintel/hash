@@ -18,6 +18,7 @@ export type PlaceNodeData = {
   type: "place";
   dynamicsEnabled: boolean;
   hasColorType: boolean;
+  typeColor?: string; // Color code from the type, if assigned
 };
 
 export type TransitionNodeData = {

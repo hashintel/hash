@@ -1,0 +1,235 @@
+{
+  "id": "example-drug-production",
+  "title": "Drug Production",
+  "types": [
+    {
+      "id": "type__1762521361788",
+      "name": "Type 1",
+      "iconId": "circle",
+      "colorCode": "#3b82f6",
+      "elements": []
+    },
+    {
+      "id": "type__1762521362204",
+      "name": "Type 2",
+      "iconId": "circle",
+      "colorCode": "#ef4444",
+      "elements": []
+    },
+    {
+      "id": "type__1762521362500",
+      "name": "Type 3",
+      "iconId": "circle",
+      "colorCode": "#10b981",
+      "elements": []
+    },
+    {
+      "id": "type__1762521362659",
+      "name": "Type 4",
+      "iconId": "circle",
+      "colorCode": "#f59e0b",
+      "elements": []
+    }
+  ],
+  "differentialEquations": [],
+  "parameters": [],
+  "places": [
+    {
+      "id": "place__0",
+      "name": "Plant A Supply",
+      "type": "type__1762521362204",
+      "dynamicsEnabled": false,
+      "differentialEquationCode": "",
+      "x": -150,
+      "y": 180,
+      "width": 130,
+      "height": 130
+    },
+    {
+      "id": "place__1",
+      "name": "Plant B Supply",
+      "type": "type__1762521362500",
+      "dynamicsEnabled": false,
+      "differentialEquationCode": "",
+      "x": -165,
+      "y": 495,
+      "width": 130,
+      "height": 130
+    },
+    {
+      "id": "place__2",
+      "name": "Manufacturing Plant",
+      "type": "type__1762521362659",
+      "dynamicsEnabled": false,
+      "differentialEquationCode": "",
+      "x": 300,
+      "y": 270,
+      "width": 130,
+      "height": 130
+    },
+    {
+      "id": "place__3",
+      "name": "QA Queue",
+      "type": null,
+      "dynamicsEnabled": false,
+      "differentialEquationCode": "",
+      "x": 690,
+      "y": 480,
+      "width": 130,
+      "height": 130
+    },
+    {
+      "id": "place__4",
+      "name": "Disposal",
+      "type": null,
+      "dynamicsEnabled": false,
+      "differentialEquationCode": "",
+      "x": 1100,
+      "y": 600,
+      "width": 130,
+      "height": 130
+    },
+    {
+      "id": "place__5",
+      "name": "Dispatch",
+      "type": null,
+      "dynamicsEnabled": false,
+      "differentialEquationCode": "",
+      "x": 1000,
+      "y": 200,
+      "width": 130,
+      "height": 130
+    },
+    {
+      "id": "place__6",
+      "name": "Hospital",
+      "type": null,
+      "dynamicsEnabled": false,
+      "differentialEquationCode": "",
+      "x": 1300,
+      "y": 380,
+      "width": 130,
+      "height": 130
+    }
+  ],
+  "transitions": [
+    {
+      "id": "transition__0",
+      "name": "Deliver to Plant",
+      "inputArcs": [
+        {
+          "placeId": "place__0",
+          "weight": 1
+        },
+        {
+          "placeId": "place__1",
+          "weight": 2
+        }
+      ],
+      "outputArcs": [
+        {
+          "placeId": "place__2",
+          "weight": 1
+        }
+      ],
+      "lambdaType": "predicate",
+      "lambdaCode": "",
+      "transitionKernelCode": "",
+      "x": 60,
+      "y": 375,
+      "width": 160,
+      "height": 80
+    },
+    {
+      "id": "transition__1",
+      "name": "Manufacture",
+      "inputArcs": [
+        {
+          "placeId": "place__2",
+          "weight": 1
+        }
+      ],
+      "outputArcs": [
+        {
+          "placeId": "place__3",
+          "weight": 1
+        }
+      ],
+      "lambdaType": "predicate",
+      "lambdaCode": "",
+      "transitionKernelCode": "",
+      "x": 480,
+      "y": 345,
+      "width": 160,
+      "height": 80
+    },
+    {
+      "id": "transition__2",
+      "name": "Quality Check",
+      "inputArcs": [
+        {
+          "placeId": "place__3",
+          "weight": 1
+        }
+      ],
+      "outputArcs": [
+        {
+          "placeId": "place__5",
+          "weight": 1
+        },
+        {
+          "placeId": "place__4",
+          "weight": 1
+        }
+      ],
+      "lambdaType": "predicate",
+      "lambdaCode": "",
+      "transitionKernelCode": "",
+      "x": 870,
+      "y": 400,
+      "width": 160,
+      "height": 80
+    },
+    {
+      "id": "transition__3",
+      "name": "Ship",
+      "inputArcs": [
+        {
+          "placeId": "place__5",
+          "weight": 1
+        }
+      ],
+      "outputArcs": [
+        {
+          "placeId": "place__6",
+          "weight": 1
+        }
+      ],
+      "lambdaType": "predicate",
+      "lambdaCode": "",
+      "transitionKernelCode": "",
+      "x": 1150,
+      "y": 280,
+      "width": 160,
+      "height": 80
+    },
+    {
+      "id": "transition__b8c8ca28-8bdb-4004-a5a9-7271f650c3e7",
+      "name": "transition 12",
+      "inputArcs": [
+        {
+          "placeId": "place__1",
+          "weight": 1
+        }
+      ],
+      "outputArcs": [],
+      "lambdaType": "predicate",
+      "lambdaCode": "",
+      "transitionKernelCode": "",
+      "x": 105,
+      "y": 645,
+      "width": 160,
+      "height": 80
+    }
+  ]
+}

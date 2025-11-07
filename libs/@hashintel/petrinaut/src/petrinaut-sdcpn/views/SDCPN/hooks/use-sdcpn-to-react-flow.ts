@@ -51,6 +51,7 @@ export function useSdcpnToReactFlow(sdcpn: SDCPN): PetriNetDefinitionObject {
         type: "place",
         dynamicsEnabled: place.dynamicsEnabled,
         hasColorType,
+        typeColor: placeType?.colorCode, // Pass the type color for border styling
       },
     });
   }
