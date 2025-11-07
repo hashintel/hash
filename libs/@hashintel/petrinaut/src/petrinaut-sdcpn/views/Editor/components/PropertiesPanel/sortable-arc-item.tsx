@@ -1,6 +1,8 @@
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
+import { css } from "@hashintel/ds-helpers/css";
 import { MdDragIndicator } from "react-icons/md";
+import { TbTrash } from "react-icons/tb";
 
 /**
  * SortableArcItem - A draggable arc item that displays place name and weight
@@ -11,6 +13,7 @@ interface SortableArcItemProps {
   weight: number;
   disabled?: boolean;
   onWeightChange: (weight: number) => void;
+  onDelete?: () => void;
 }
 
 export const SortableArcItem: React.FC<SortableArcItemProps> = ({
@@ -19,6 +22,7 @@ export const SortableArcItem: React.FC<SortableArcItemProps> = ({
   weight,
   disabled = false,
   onWeightChange,
+  onDelete,
 }) => {
   const {
     attributes,
@@ -96,6 +100,32 @@ export const SortableArcItem: React.FC<SortableArcItemProps> = ({
           cursor: disabled ? "not-allowed" : "text",
         }}
       />
+      {onDelete && !disabled && (
+        <button
+          type="button"
+          onClick={onDelete}
+          className={css({
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            width: "[24px]",
+            height: "[24px]",
+            padding: "spacing.0",
+            border: "none",
+            background: "[transparent]",
+            cursor: "pointer",
+            color: "core.gray.60",
+            flexShrink: "0",
+            borderRadius: "radius.4",
+            _hover: {
+              color: "core.red.60",
+              backgroundColor: "core.red.10",
+            },
+          })}
+        >
+          <TbTrash size={16} />
+        </button>
+      )}
     </div>
   );
 };

@@ -88,6 +88,24 @@ export const TransitionProperties: React.FC<TransitionPropertiesProps> = ({
     }
   };
 
+  const handleDeleteInputArc = (placeId: string) => {
+    const newInputArcs = transition.inputArcs.filter(
+      (arc) => arc.placeId !== placeId,
+    );
+    onUpdate(transition.id, {
+      inputArcs: newInputArcs,
+    });
+  };
+
+  const handleDeleteOutputArc = (placeId: string) => {
+    const newOutputArcs = transition.outputArcs.filter(
+      (arc) => arc.placeId !== placeId,
+    );
+    onUpdate(transition.id, {
+      outputArcs: newOutputArcs,
+    });
+  };
+
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
       <div>
@@ -170,6 +188,7 @@ export const TransitionProperties: React.FC<TransitionPropertiesProps> = ({
                         weight,
                       );
                     }}
+                    onDelete={() => handleDeleteInputArc(arc.placeId)}
                   />
                 );
               })}
@@ -213,6 +232,7 @@ export const TransitionProperties: React.FC<TransitionPropertiesProps> = ({
                         weight,
                       );
                     }}
+                    onDelete={() => handleDeleteOutputArc(arc.placeId)}
                   />
                 );
               })}
