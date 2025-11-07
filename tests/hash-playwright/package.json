@@ -22,6 +22,7 @@
     "js-yaml": "4.1.0"
   },
   "devDependencies": {
+    "@apps/hash-api": "0.0.0-private",
     "@apps/hash-frontend": "0.0.0-private",
     "@apps/plugin-browser": "0.0.9",
     "@blockprotocol/graph": "0.4.0-canary.2",

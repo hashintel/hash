@@ -17241,6 +17241,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@tests/hash-playwright@workspace:tests/hash-playwright"
   dependencies:
+    "@apps/hash-api": "npm:0.0.0-private"
     "@apps/hash-frontend": "npm:0.0.0-private"
     "@apps/plugin-browser": "npm:0.0.9"
     "@blockprotocol/graph": "npm:0.4.0-canary.2"
