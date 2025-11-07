@@ -13,7 +13,7 @@ use crate::{
         constant::Constant,
         local::Local,
         operand::Operand,
-        place::{Place, Projection},
+        place::{Place, ProjectionKind},
         rvalue::{Aggregate, AggregateKind, Apply, Binary, Input, RValue, Unary},
         statement::{Assign, Statement, StatementKind},
         terminator::{
@@ -168,10 +168,10 @@ where
         self.format_part(local)?;
 
         for projection in projections {
-            match projection {
-                Projection::Field(index) => write!(self.writer, ".{index}")?,
-                Projection::FieldByName(symbol) => write!(self.writer, ".{symbol}")?,
-                &Projection::Index(local) => {
+            match projection.kind {
+                ProjectionKind::Field(index) => write!(self.writer, ".{index}")?,
+                ProjectionKind::FieldByName(symbol) => write!(self.writer, ".{symbol}")?,
+                ProjectionKind::Index(local) => {
                     write!(self.writer, "[")?;
                     self.format_part(local)?;
                     write!(self.writer, "]")?;

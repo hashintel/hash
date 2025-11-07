@@ -1,4 +1,7 @@
-use hashql_core::id::{Id as _, IdVec};
+use hashql_core::{
+    id::{Id as _, IdVec},
+    r#type::{TypeBuilder, Typed},
+};
 use hashql_hir::node::{
     HirPtr, Node,
     call::{Call, CallArgument, PointerKind},
@@ -20,7 +23,7 @@ use crate::body::{
     constant::Constant,
     local::Local,
     operand::Operand,
-    place::{FieldIndex, Place, Projection},
+    place::{FieldIndex, Place, Projection, ProjectionKind},
     rvalue::{Aggregate, AggregateKind, Apply, Binary, Input, RValue, Unary},
 };
 
@@ -104,6 +107,7 @@ impl<'mir, 'heap> Reifier<'_, 'mir, '_, '_, 'heap> {
                 let ptr = compiler.lower_ctor(hir, ctor);
                 self.state.ctor.insert(name, ptr);
 
+                // TODO: we **cannot
                 let ptr = Operand::Constant(Constant::FnPtr(ptr));
                 let env = Operand::Constant(Constant::Unit);
                 let mut operands = IdVec::with_capacity_in(2, self.context.heap);
@@ -208,12 +212,18 @@ impl<'mir, 'heap> Reifier<'_, 'mir, '_, '_, 'heap> {
             }
         };
 
+        // TODO: the result *must* be a closure type for it to be typechk.
+
         // To the function we add two projections, one for the function pointer, and one for the
         // captured environment
-        let function_pointer =
-            function.project(self.context.interner, Projection::Field(FieldIndex::new(0)));
-        let environment =
-            function.project(self.context.interner, Projection::Field(FieldIndex::new(1)));
+        let function_pointer = function.project(
+            self.context.interner,
+            ProjectionKind::Field(FieldIndex::new(0)),
+        );
+        let environment = function.project(
+            self.context.interner,
+            ProjectionKind::Field(FieldIndex::new(1)),
+        );
 
         let mut arguments = IdVec::with_capacity_in(call_arguments.len() + 1, self.context.heap);
 
@@ -248,15 +258,30 @@ impl<'mir, 'heap> Reifier<'_, 'mir, '_, '_, 'heap> {
         block: &mut CurrentBlock<'mir, 'heap>,
         hir: HirPtr,
         binder: Binder<'heap>,
+        local: Local,
         closure: Closure<'heap>,
     ) -> RValue<'heap> {
-        let (ptr, env) = self.transform_closure(block, hir, Some(binder), closure);
+        let (
+            Typed {
+                r#type: ptr_type,
+                value: ptr,
+            },
+            Typed {
+                r#type: env_type,
+                value: env,
+            },
+        ) = self.transform_closure(block, hir, Some(binder), closure);
 
         // We first need to figure out the environment that we need to capture, these are variables
         // that are referenced out of scope (upvars).
         let mut closure_operands = IdVec::with_capacity_in(2, self.context.heap);
         closure_operands.push(Operand::Constant(Constant::FnPtr(ptr)));
         closure_operands.push(Operand::Place(Place::local(env, self.context.interner)));
+
+        // The type of the local changes here, because now it's a fat pointer
+        // (just a tuple in disguise)
+        self.local_decls[local].r#type =
+            TypeBuilder::spanned(hir.span, self.context.environment).tuple([ptr_type, env_type]);
 
         RValue::Aggregate(Aggregate {
             kind: AggregateKind::Closure,
@@ -302,7 +327,9 @@ impl<'mir, 'heap> Reifier<'_, 'mir, '_, '_, 'heap> {
                 let () = self.terminator_branch(block, local, node.span, branch);
                 return None;
             }
-            NodeKind::Closure(closure) => self.rvalue_closure(block, node.ptr(), binder, closure),
+            NodeKind::Closure(closure) => {
+                self.rvalue_closure(block, node.ptr(), binder, local, closure)
+            }
             NodeKind::Thunk(thunk) => self.rvalue_thunk(node.ptr(), binder, thunk),
             NodeKind::Graph(graph) => {
                 // This turns into a terminator, and therefore does not contribute a statement

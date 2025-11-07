@@ -3,9 +3,11 @@
 //! Places represent storage locations in the MIR, including local variables and complex paths
 //! through data structures. Projections allow accessing nested data within structured types.
 
-use hashql_core::{id, intern::Interned, symbol::Symbol};
+use std::alloc::Allocator;
 
-use super::local::Local;
+use hashql_core::{id, intern::Interned, symbol::Symbol, r#type::TypeId};
+
+use super::local::{Local, LocalDecl, LocalVec};
 use crate::intern::Interner;
 
 id::newtype!(
@@ -90,9 +92,14 @@ impl<'heap> Place<'heap> {
     /// This method creates a new [`Place`] that extends the current projection chain by
     /// appending one more projection step.
     #[must_use]
-    pub fn project(self, interner: &Interner<'heap>, projection: Projection<'heap>) -> Self {
+    pub fn project(
+        self,
+        interner: &Interner<'heap>,
+        r#type: TypeId,
+        kind: ProjectionKind<'heap>,
+    ) -> Self {
         let mut projections = self.projections.to_vec();
-        projections.push(projection);
+        projections.push(Projection { r#type, kind });
 
         Self {
             local: self.local,
@@ -149,6 +156,19 @@ impl<'heap> Place<'heap> {
                 (place, *projection)
             })
     }
+
+    pub fn type_id<A: Allocator>(&self, decl: &LocalVec<LocalDecl<'heap>, A>) -> TypeId {
+        self.projections
+            .last()
+            .map_or_else(|| decl[self.local].r#type, |projection| projection.r#type)
+    }
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+pub struct Projection<'heap> {
+    pub r#type: TypeId,
+
+    pub kind: ProjectionKind<'heap>,
 }
 
 /// A projection operation that navigates within structured data.
@@ -169,7 +189,7 @@ impl<'heap> Place<'heap> {
 /// [`FieldByName`]: Projection::FieldByName
 /// [`Index`]: Projection::Index
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-pub enum Projection<'heap> {
+pub enum ProjectionKind<'heap> {
     /// Access a field by positional index in a closed/complete type.
     ///
     /// This projection provides efficient positional access when the complete

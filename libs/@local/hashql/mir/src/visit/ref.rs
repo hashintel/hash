@@ -12,7 +12,7 @@ use crate::{
         local::{Local, LocalDecl},
         location::Location,
         operand::Operand,
-        place::{Place, PlaceRef, Projection},
+        place::{Place, PlaceRef, Projection, ProjectionKind},
         rvalue::{Aggregate, AggregateKind, Apply, Binary, Input, RValue, Unary},
         statement::{Assign, Statement, StatementKind},
         terminator::{
@@ -410,12 +410,14 @@ pub fn walk_projection<'heap, T: Visitor<'heap> + ?Sized>(
     visitor: &mut T,
     location: Location,
     _base: PlaceRef<'_, 'heap>,
-    projection: Projection<'heap>,
+    Projection { r#type, kind }: Projection<'heap>,
 ) -> T::Result {
-    match projection {
-        Projection::Field(_) => Ok!(),
-        Projection::FieldByName(name) => visitor.visit_symbol(location, name),
-        Projection::Index(local) => visitor.visit_local(location, local),
+    visitor.visit_type_id(r#type)?;
+
+    match kind {
+        ProjectionKind::Field(_) => Ok!(),
+        ProjectionKind::FieldByName(name) => visitor.visit_symbol(location, name),
+        ProjectionKind::Index(local) => visitor.visit_local(location, local),
     }
 }
 

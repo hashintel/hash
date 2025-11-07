@@ -3,7 +3,7 @@ use hashql_core::{
     id::{IdVec, bit_vec::BitRelations as _},
     span::Spanned,
     r#type::{
-        PartialType, TypeId,
+        PartialType, TypeId, Typed,
         kind::{TupleType, TypeKind},
     },
 };
@@ -37,7 +37,7 @@ impl<'mir, 'heap> Reifier<'_, 'mir, '_, '_, 'heap> {
         hir: HirPtr,
         binder: Option<Binder<'heap>>,
         closure: Closure<'heap>,
-    ) -> (DefId, Local) {
+    ) -> (Typed<DefId>, Typed<Local>) {
         let mut dependencies = VariableDependencies::from_set(self.state.var_pool.acquire());
         dependencies.visit_closure(&closure);
         let mut dependencies = dependencies.finish();
@@ -91,10 +91,8 @@ impl<'mir, 'heap> Reifier<'_, 'mir, '_, '_, 'heap> {
         });
         self.local_decls[env_local].r#type = env_type;
 
-        let closure_type = unwrap_closure_type(
-            self.context.hir.map.monomorphized_type_id(hir.id),
-            self.context.environment,
-        );
+        let closure_type_id = self.context.hir.map.monomorphized_type_id(hir.id);
+        let closure_type = unwrap_closure_type(closure_type_id, self.context.environment);
         let compiler = Reifier::new(self.context, self.state);
         let ptr = compiler.lower_closure(hir, &captures, env_type, binder, closure, closure_type);
 
@@ -111,7 +109,16 @@ impl<'mir, 'heap> Reifier<'_, 'mir, '_, '_, 'heap> {
 
         self.state.var_pool.release(captures);
 
-        (ptr, env_local)
+        (
+            Typed {
+                value: ptr,
+                r#type: closure_type_id,
+            },
+            Typed {
+                value: env_local,
+                r#type: env_type,
+            },
+        )
     }
 
     fn transform_binding(

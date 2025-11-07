@@ -57,7 +57,7 @@ impl<'mir, 'heap> Reifier<'_, 'mir, '_, '_, 'heap> {
                 };
 
                 let (ptr, env) = self.transform_closure(block, filter.ptr(), None, closure);
-                GraphReadBody::Filter(ptr, env)
+                GraphReadBody::Filter(ptr.value, env.value)
             }
         }
     }

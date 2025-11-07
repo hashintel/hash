@@ -52,7 +52,7 @@ use crate::{
         constant::Constant,
         local::{Local, LocalDecl, LocalVec},
         operand::Operand,
-        place::{FieldIndex, Place, Projection},
+        place::{FieldIndex, Place, Projection, ProjectionKind},
         rvalue::{Aggregate, AggregateKind, RValue},
         statement::{Assign, Statement, StatementKind},
         terminator::{Return, Terminator, TerminatorKind},
@@ -263,11 +263,12 @@ impl<'ctx, 'mir, 'hir, 'env, 'heap> Reifier<'ctx, 'mir, 'hir, 'env, 'heap> {
                         lhs: Place::local(local, self.context.interner),
                         rhs: RValue::Load(Operand::Place(Place {
                             local: env,
-                            projections: self
-                                .context
-                                .interner
-                                .projections
-                                .intern_slice(&[Projection::Field(FieldIndex::new(index))]),
+                            projections: self.context.interner.projections.intern_slice(&[
+                                Projection {
+                                    r#type: env_type.fields[index],
+                                    kind: ProjectionKind::Field(FieldIndex::new(index)),
+                                },
+                            ]),
                         })),
                     }),
                 });

@@ -21,7 +21,7 @@ use crate::{
         local::{Local, LocalDecl},
         location::Location,
         operand::Operand,
-        place::{Place, PlaceRef, Projection},
+        place::{Place, PlaceRef, Projection, ProjectionKind},
         rvalue::{Aggregate, AggregateKind, Apply, Binary, Input, RValue, Unary},
         statement::{Assign, Statement, StatementKind},
         terminator::{
@@ -653,15 +653,20 @@ pub fn walk_projection<'heap, T: VisitorMut<'heap> + ?Sized>(
     visitor: &mut T,
     location: Location,
     _base: PlaceRef<'_, 'heap>,
-    mut projection: Projection<'heap>,
+    Projection {
+        mut r#type,
+        mut kind,
+    }: Projection<'heap>,
 ) -> T::Result<Projection<'heap>> {
-    match &mut projection {
-        Projection::Field(_) => {}
-        Projection::FieldByName(name) => visitor.visit_symbol(location, name)?,
-        Projection::Index(local) => visitor.visit_local(location, local)?,
+    visitor.visit_type_id(&mut r#type)?;
+
+    match &mut kind {
+        ProjectionKind::Field(_) => {}
+        ProjectionKind::FieldByName(name) => visitor.visit_symbol(location, name)?,
+        ProjectionKind::Index(local) => visitor.visit_local(location, local)?,
     }
 
-    T::Result::from_output(projection)
+    T::Result::from_output(Projection { r#type, kind })
 }
 
 pub fn walk_place<'heap, T: VisitorMut<'heap> + ?Sized>(
