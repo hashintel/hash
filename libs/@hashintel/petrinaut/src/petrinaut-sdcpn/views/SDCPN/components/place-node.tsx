@@ -2,14 +2,30 @@ import { css } from "@hashintel/ds-helpers/css";
 import { TbMathFunction, TbPalette } from "react-icons/tb";
 import { Handle, type NodeProps, Position } from "reactflow";
 
+import { useSimulationStore } from "../../../state/simulation-provider";
 import type { PlaceNodeData } from "../../../state/types-for-editor-to-remove";
 import { handleStyling } from "../styles/styling";
 
 export const PlaceNode: React.FC<NodeProps<PlaceNodeData>> = ({
+  id,
   data,
   isConnectable,
   selected,
 }: NodeProps<PlaceNodeData>) => {
+  const simulation = useSimulationStore((state) => state.simulation);
+  const currentlyViewedFrame = useSimulationStore(
+    (state) => state.currentlyViewedFrame,
+  );
+
+  // Get token count from the currently viewed frame
+  let tokenCount: number | null = null;
+  if (simulation && simulation.frames.length > 0) {
+    const frame = simulation.frames[currentlyViewedFrame];
+    const placeData = frame?.places.get(id);
+    if (placeData) {
+      tokenCount = placeData.count;
+    }
+  }
   return (
     <div
       className={css({
@@ -64,7 +80,37 @@ export const PlaceNode: React.FC<NodeProps<PlaceNodeData>> = ({
           {data.hasColorType && <TbPalette />}
           {data.dynamicsEnabled && <TbMathFunction />}
         </div>
-        {data.label}
+        <div
+          className={css({
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            gap: "spacing.2",
+          })}
+        >
+          <div>{data.label}</div>
+
+          {tokenCount !== null && (
+            <div
+              className={css({
+                position: "absolute",
+                top: "[70%]",
+                fontSize: "[11px]",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                color: "[white]",
+                backgroundColor: "[black]",
+                width: "[20px]",
+                height: "[20px]",
+                borderRadius: "[50%]",
+                fontWeight: "semibold",
+              })}
+            >
+              {tokenCount}
+            </div>
+          )}
+        </div>
       </div>
       <Handle
         type="source"
