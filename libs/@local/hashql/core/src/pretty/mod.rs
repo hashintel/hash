@@ -16,7 +16,12 @@ use anstyle::{AnsiColor, Color, Style};
 
 use crate::{
     collections::FastHashSet,
-    r#type::{TypeId, environment::Environment, kind::GenericArguments},
+    intern::Interned,
+    r#type::{
+        TypeId,
+        environment::Environment,
+        kind::{GenericArguments, TypeKind},
+    },
 };
 
 pub(crate) const BLUE: Style = Style::new().fg_color(Some(Color::Ansi(AnsiColor::Blue)));
@@ -177,21 +182,21 @@ enum RecursionGuardState {
 }
 
 impl RecursionGuardState {
-    fn enter<T>(&mut self, value: &T) -> bool {
+    fn enter<'heap, T>(&mut self, value: Interned<'heap, T>) -> bool {
         match self {
             Self::Depth(depth) => {
                 *depth += 1;
                 true
             }
-            Self::Reference(set) => set.insert(core::ptr::from_ref(value).addr()),
+            Self::Reference(set) => set.insert(core::ptr::from_ref(value.0).addr()),
         }
     }
 
-    fn exit<T>(&mut self, value: &T) {
+    fn exit<'heap, T>(&mut self, value: Interned<'heap, T>) {
         match self {
             Self::Depth(depth) => *depth -= 1,
             Self::Reference(set) => {
-                set.remove(&core::ptr::from_ref(value).addr());
+                set.remove(&core::ptr::from_ref(value.0).addr());
             }
         }
     }
@@ -237,6 +242,14 @@ impl PrettyPrintBoundary {
             limit: config.recursion_limit,
             config,
         }
+    }
+
+    pub(crate) fn enter<'heap>(&mut self, kind: Interned<'heap, TypeKind<'heap>>) -> bool {
+        self.visited.enter(kind)
+    }
+
+    pub(crate) fn exit<'heap>(&mut self, kind: Interned<'heap, TypeKind<'heap>>) {
+        self.visited.exit(kind);
     }
 
     fn track<'heap, E, T>(

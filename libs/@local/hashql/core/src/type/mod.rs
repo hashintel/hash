@@ -7,6 +7,7 @@ pub mod error;
 pub mod inference;
 pub mod kind;
 pub mod lattice;
+mod pretty;
 pub(crate) mod recursion;
 #[cfg(test)]
 pub(crate) mod tests;
@@ -104,7 +105,7 @@ where
         &self,
         env: &Environment<'heap>,
         boundary: &mut PrettyPrintBoundary,
-    ) -> pretty::RcDoc<'heap, anstyle::Style> {
+    ) -> ::pretty::RcDoc<'heap, anstyle::Style> {
         self.kind.pretty(env, boundary)
     }
 
@@ -113,7 +114,7 @@ where
         env: &Environment<'heap>,
         boundary: &mut PrettyPrintBoundary,
         arguments: kind::GenericArguments<'heap>,
-    ) -> pretty::RcDoc<'heap, anstyle::Style>
+    ) -> ::pretty::RcDoc<'heap, anstyle::Style>
     where
         Self: PrettyPrint<'heap, Environment<'heap>>,
     {
