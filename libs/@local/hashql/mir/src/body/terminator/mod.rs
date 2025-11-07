@@ -4,19 +4,19 @@
 //! determine where execution continues. Unlike statements, terminators can affect
 //! control flow by jumping to other blocks, calling functions, or ending execution.
 
-mod branch;
 mod goto;
 mod graph;
 mod r#return;
+mod switch_int;
 mod target;
 
 use hashql_core::span::SpanId;
 
 pub use self::{
-    branch::SwitchInt,
     goto::Goto,
     graph::{GraphRead, GraphReadBody, GraphReadHead, GraphReadLocation, GraphReadTail},
     r#return::Return,
+    switch_int::{SwitchInt, SwitchTargets},
     target::Target,
 };
 
