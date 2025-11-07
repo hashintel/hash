@@ -1,12 +1,9 @@
 use core::ops::Deref;
 
-use pretty::{DocAllocator as _, RcAllocator, RcDoc};
-
 use super::{GenericArgumentId, Param};
 use crate::{
     collections::SmallVec,
     intern::Interned,
-    pretty::{ORANGE, PrettyPrint, PrettyPrintBoundary, RED},
     span::SpanId,
     symbol::Ident,
     r#type::{

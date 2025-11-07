@@ -116,7 +116,7 @@ pub(crate) trait FormatType<'env, T> {
 }
 
 pub struct TypeFormatter<'env, 'heap> {
-    pretty: &'env Formatter<'heap>,
+    fmt: &'env Formatter<'heap>,
     env: &'env Environment<'heap>,
     guard: RecursionGuard<'heap>,
     generics: Vec<GenericArgumentReference<'heap>>,
@@ -125,12 +125,12 @@ pub struct TypeFormatter<'env, 'heap> {
 
 impl<'env: 'heap, 'heap> TypeFormatter<'env, 'heap> {
     pub fn new(
-        pretty: &'env Formatter<'heap>,
+        formatter: &'env Formatter<'heap>,
         env: &'env Environment<'heap>,
         options: TypeFormatterOptions,
     ) -> Self {
         Self {
-            pretty,
+            fmt: formatter,
             env,
             guard: RecursionGuard::from(options.recursion_strategy),
             generics: Vec::new(),
@@ -151,7 +151,7 @@ impl<'env: 'heap, 'heap> FormatType<'env, Interned<'heap, TypeKind<'heap>>>
 {
     fn format_type(&mut self, value: Interned<'heap, TypeKind<'heap>>) -> Doc<'env> {
         if !self.guard.enter(value) {
-            return self.pretty.text_str("...");
+            return self.fmt.text_str("...");
         }
 
         let doc = match *value {
@@ -167,8 +167,8 @@ impl<'env: 'heap, 'heap> FormatType<'env, Interned<'heap, TypeKind<'heap>>>
             TypeKind::Generic(generic) => self.format_type(generic),
             TypeKind::Param(param) => self.format_type(param),
             TypeKind::Infer(infer) => self.format_type(infer),
-            TypeKind::Never => self.pretty.type_name(sym::symbol::exclamation_mark),
-            TypeKind::Unknown => self.pretty.type_name(sym::symbol::question_mark),
+            TypeKind::Never => self.fmt.type_name(sym::symbol::exclamation_mark),
+            TypeKind::Unknown => self.fmt.type_name(sym::symbol::question_mark),
         };
 
         self.guard.exit(value);
@@ -191,20 +191,20 @@ impl<'env: 'heap, 'heap> FormatType<'env, TypeId> for TypeFormatter<'env, 'heap>
 
 impl<'env: 'heap, 'heap> FormatType<'env, OpaqueType<'heap>> for TypeFormatter<'env, 'heap> {
     fn format_type(&mut self, OpaqueType { name, repr }: OpaqueType<'heap>) -> Doc<'env> {
-        self.pretty
+        self.fmt
             .type_name(name)
-            .append(self.pretty.parens(self.format_type(repr)))
+            .append(self.fmt.parens(self.format_type(repr)))
     }
 }
 
 impl<'env: 'heap, 'heap> FormatType<'env, PrimitiveType> for TypeFormatter<'env, 'heap> {
     fn format_type(&mut self, value: PrimitiveType) -> Doc<'env> {
         match value {
-            PrimitiveType::Number => self.pretty.type_name(sym::lexical::Number),
-            PrimitiveType::Integer => self.pretty.type_name(sym::lexical::Integer),
-            PrimitiveType::String => self.pretty.type_name(sym::lexical::String),
-            PrimitiveType::Null => self.pretty.type_name(sym::lexical::Null),
-            PrimitiveType::Boolean => self.pretty.type_name(sym::lexical::Boolean),
+            PrimitiveType::Number => self.fmt.type_name(sym::lexical::Number),
+            PrimitiveType::Integer => self.fmt.type_name(sym::lexical::Integer),
+            PrimitiveType::String => self.fmt.type_name(sym::lexical::String),
+            PrimitiveType::Null => self.fmt.type_name(sym::lexical::Null),
+            PrimitiveType::Boolean => self.fmt.type_name(sym::lexical::Boolean),
         }
     }
 }
@@ -213,13 +213,13 @@ impl<'env: 'heap, 'heap> FormatType<'env, IntrinsicType> for TypeFormatter<'env,
     fn format_type(&mut self, value: IntrinsicType) -> Doc<'env> {
         match value {
             IntrinsicType::List(ListType { element }) => self
-                .pretty
+                .fmt
                 .type_name(sym::lexical::List)
-                .append(self.pretty.angles(self.format_type(element))),
+                .append(self.fmt.angles(self.format_type(element))),
             IntrinsicType::Dict(DictType { key, value }) => {
-                self.pretty.type_name(sym::lexical::Dict).append(
-                    self.pretty.angles(
-                        self.pretty
+                self.fmt.type_name(sym::lexical::Dict).append(
+                    self.fmt.angles(
+                        self.fmt
                             .comma_sep([self.format_type(key), self.format_type(value)]),
                     ),
                 )
@@ -230,9 +230,9 @@ impl<'env: 'heap, 'heap> FormatType<'env, IntrinsicType> for TypeFormatter<'env,
 
 impl<'env: 'heap, 'heap> FormatType<'env, StructType<'heap>> for TypeFormatter<'env, 'heap> {
     fn format_type(&mut self, StructType { fields }: StructType<'heap>) -> Doc<'env> {
-        self.pretty.r#struct(
+        self.fmt.r#struct(
             fields.into_iter().map(|&StructField { name, value }| {
-                (self.pretty.field(name), self.format_type(value))
+                (self.fmt.field(name), self.format_type(value))
             }),
         )
     }
@@ -240,14 +240,14 @@ impl<'env: 'heap, 'heap> FormatType<'env, StructType<'heap>> for TypeFormatter<'
 
 impl<'env: 'heap, 'heap> FormatType<'env, TupleType<'heap>> for TypeFormatter<'env, 'heap> {
     fn format_type(&mut self, TupleType { fields }: TupleType<'heap>) -> Doc<'env> {
-        self.pretty
+        self.fmt
             .tuple(fields.into_iter().map(|&element| self.format_type(element)))
     }
 }
 
 impl<'env: 'heap, 'heap> FormatType<'env, UnionType<'heap>> for TypeFormatter<'env, 'heap> {
     fn format_type(&mut self, UnionType { variants }: UnionType<'heap>) -> Doc<'env> {
-        self.pretty.union(
+        self.fmt.union(
             variants
                 .into_iter()
                 .map(|&element| self.format_type(element)),
@@ -257,7 +257,7 @@ impl<'env: 'heap, 'heap> FormatType<'env, UnionType<'heap>> for TypeFormatter<'e
 
 impl<'env: 'heap, 'heap> FormatType<'env, IntersectionType<'heap>> for TypeFormatter<'env, 'heap> {
     fn format_type(&mut self, IntersectionType { variants }: IntersectionType<'heap>) -> Doc<'env> {
-        self.pretty.intersection(
+        self.fmt.intersection(
             variants
                 .into_iter()
                 .map(|&element| self.format_type(element)),
@@ -269,7 +269,7 @@ impl<'env: 'heap, 'heap> FormatType<'env, ClosureType<'heap>> for TypeFormatter<
     fn format_type(&mut self, ClosureType { params, returns }: ClosureType<'heap>) -> Doc<'env> {
         let returns = self.format_type(returns);
 
-        self.pretty.closure_type(
+        self.fmt.closure_type(
             params.into_iter().map(|&element| self.format_type(element)),
             returns,
         )
@@ -281,9 +281,9 @@ impl<'env: 'heap, 'heap> FormatType<'env, GenericArgumentId> for TypeFormatter<'
         let reference = self.generics.iter().find(|reference| reference.id == value);
 
         if let Some(reference) = reference {
-            self.pretty.type_name(reference.name)
+            self.fmt.type_name(reference.name)
         } else {
-            self.pretty.type_name_owned(format!("?{value}"))
+            self.fmt.type_name_owned(format!("?{value}"))
         }
     }
 }
@@ -298,10 +298,10 @@ impl<'env: 'heap, 'heap> FormatType<'env, Apply<'heap>> for TypeFormatter<'env, 
     ) -> Doc<'env> {
         let base = self.format_type(base);
 
-        self.pretty
+        self.fmt
             .generic_args(substitutions.into_iter().map(
                 |&GenericSubstitution { argument, value }| {
-                    self.pretty
+                    self.fmt
                         .key_value(self.format_type(argument), "=", self.format_type(value))
                 },
             ))
@@ -319,10 +319,10 @@ impl<'env: 'heap, 'heap> FormatType<'env, GenericArgument<'heap>> for TypeFormat
         }: GenericArgument<'heap>,
     ) -> Doc<'env> {
         if let Some(constraint) = constraint {
-            self.pretty
+            self.fmt
                 .key_value(self.format_type(id), ":", self.format_type(constraint))
         } else {
-            self.pretty.type_name(name)
+            self.fmt.type_name(name)
         }
     }
 }
@@ -336,14 +336,14 @@ impl<'env: 'heap, 'heap> FormatType<'env, Generic<'heap>> for TypeFormatter<'env
         // specialize on opaques, these are then `A<T, U, V>(..)`
         let (prefix, postfix) =
             if let TypeKind::Opaque(OpaqueType { name, repr }) = *self.env.r#type(base).kind {
-                (self.pretty.type_name(name), repr)
+                (self.fmt.type_name(name), repr)
             } else {
-                (self.pretty.nil(), base)
+                (self.fmt.nil(), base)
             };
 
         let doc = prefix
             .append(
-                self.pretty.generic_args(
+                self.fmt.generic_args(
                     arguments
                         .into_iter()
                         .map(|&argument| self.format_type(argument)),
@@ -364,7 +364,7 @@ impl<'env: 'heap, 'heap> FormatType<'env, Param> for TypeFormatter<'env, 'heap> 
         if self.options.resolve_substitutions
             && let Some(substitution) = self.env.substitution.argument(argument)
         {
-            doc = doc.append(self.pretty.braces(self.format_type(substitution)));
+            doc = doc.append(self.fmt.braces(self.format_type(substitution)));
         }
 
         doc
@@ -373,7 +373,7 @@ impl<'env: 'heap, 'heap> FormatType<'env, Param> for TypeFormatter<'env, 'heap> 
 
 impl<'env: 'heap, 'heap> FormatType<'env, HoleId> for TypeFormatter<'env, 'heap> {
     fn format_type(&mut self, value: HoleId) -> Doc<'env> {
-        self.pretty.type_name_owned(format!("_{value}"))
+        self.fmt.type_name_owned(format!("_{value}"))
     }
 }
 
@@ -384,7 +384,7 @@ impl<'env: 'heap, 'heap> FormatType<'env, Infer> for TypeFormatter<'env, 'heap> 
         if self.options.resolve_substitutions
             && let Some(substitution) = self.env.substitution.infer(hole)
         {
-            doc = doc.append(self.pretty.braces(self.format_type(substitution)));
+            doc = doc.append(self.fmt.braces(self.format_type(substitution)));
         }
 
         doc

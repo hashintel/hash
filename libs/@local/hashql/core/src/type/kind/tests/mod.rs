@@ -1,13 +1,10 @@
 #![expect(clippy::min_ident_chars, clippy::missing_asserts_for_indexing)]
 #![coverage(off)]
 
-use crate::{
-    pretty::{PrettyOptions, PrettyPrint as _},
-    r#type::{
-        TypeId,
-        environment::{AnalysisEnvironment, Environment, LatticeEnvironment, Variance},
-        lattice::Lattice as _,
-    },
+use crate::r#type::{
+    TypeId,
+    environment::{AnalysisEnvironment, Environment, LatticeEnvironment, Variance},
+    lattice::Lattice as _,
 };
 
 mod closure;

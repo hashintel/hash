@@ -1,10 +1,8 @@
 use core::ops::ControlFlow;
 
-use pretty::RcDoc;
 use smallvec::SmallVec;
 
 use crate::{
-    pretty::{BLUE, PrettyPrint, PrettyPrintBoundary},
     symbol::Ident,
     r#type::{
         Type, TypeId,
@@ -241,11 +239,5 @@ impl PrimitiveType {
             Self::Null => "Null",
             Self::Boolean => "Boolean",
         }
-    }
-}
-
-impl<'heap, E> PrettyPrint<'heap, E> for PrimitiveType {
-    fn pretty(&self, _: &E, _: &mut PrettyPrintBoundary) -> RcDoc<'heap, anstyle::Style> {
-        RcDoc::text(self.as_str()).annotate(BLUE)
     }
 }

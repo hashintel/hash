@@ -1,12 +1,10 @@
 use core::ops::ControlFlow;
 
-use pretty::{DocAllocator as _, RcAllocator, RcDoc};
 use smallvec::SmallVec;
 
-use super::{TypeKind, generic::GenericArguments};
+use super::TypeKind;
 use crate::{
     intern::Interned,
-    pretty::{PrettyPrint, PrettyPrintBoundary},
     symbol::Ident,
     r#type::{
         PartialType, Type, TypeId,

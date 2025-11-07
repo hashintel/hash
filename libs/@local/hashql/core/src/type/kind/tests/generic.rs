@@ -1,6 +1,5 @@
 use crate::{
     heap::Heap,
-    pretty::PrettyPrint as _,
     span::SpanId,
     r#type::{
         PartialType,

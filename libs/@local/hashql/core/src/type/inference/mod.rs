@@ -15,11 +15,7 @@ use super::{
     environment::{Environment, InferenceEnvironment, instantiate::InstantiateEnvironment},
     kind::{generic::GenericArgumentId, infer::HoleId},
 };
-use crate::{
-    collections::FastHashMap,
-    pretty::{PrettyPrint, PrettyPrintBoundary},
-    symbol::Ident,
-};
+use crate::{collections::FastHashMap, symbol::Ident};
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum Subject {

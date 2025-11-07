@@ -3,8 +3,6 @@ pub mod param;
 
 use core::{fmt::Display, hash::Hash, ops::Deref};
 
-use pretty::{DocAllocator as _, RcAllocator, RcDoc};
-
 pub use self::{
     apply::{Apply, GenericSubstitution, GenericSubstitutions},
     param::Param,
@@ -14,7 +12,7 @@ use crate::{
     collections::{SmallVec, TinyVec},
     intern::Interned,
     newtype, newtype_collections, newtype_producer,
-    pretty::{ORANGE, PrettyPrint, PrettyPrintBoundary, display::DisplayBuilder},
+    pretty::display::DisplayBuilder,
     span::SpanId,
     symbol::{Ident, Symbol},
     r#type::{
@@ -69,12 +67,6 @@ impl<'heap> From<GenericArgument<'heap>> for GenericArgumentReference<'heap> {
             id: argument.id,
             name: argument.name,
         }
-    }
-}
-
-impl<'heap, E> PrettyPrint<'heap, E> for GenericArgumentReference<'heap> {
-    fn pretty(&self, _: &E, _: &mut PrettyPrintBoundary) -> RcDoc<'heap, anstyle::Style> {
-        RcDoc::text(format!("{}?{}", self.name, self.id)).annotate(ORANGE)
     }
 }
 

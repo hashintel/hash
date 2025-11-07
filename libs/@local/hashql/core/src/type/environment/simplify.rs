@@ -6,12 +6,13 @@ use smallvec::SmallVec;
 use super::{AnalysisEnvironment, Environment, Variance, context::provision::ProvisionedGuard};
 use crate::{
     intern::Provisioned,
-    pretty::{PrettyOptions, PrettyPrint as _},
+    pretty::{self, Formatter, RenderOptions},
     r#type::{
         PartialType, Type, TypeId,
         error::TypeCheckDiagnosticIssues,
         inference::{Substitution, VariableKind, VariableLookup},
         lattice::Lattice as _,
+        pretty::{TypeFormatter, TypeFormatterOptions},
         recursion::RecursionBoundary,
     },
 };
@@ -154,9 +155,16 @@ impl<'env, 'heap> SimplifyEnvironment<'env, 'heap> {
                 reason = "false positive, this is a manual `debug_panic`"
             )]
             if cfg!(debug_assertions) {
+                let formatter = Formatter::new();
+                let mut formatter = TypeFormatter::new(
+                    &formatter,
+                    self.environment,
+                    TypeFormatterOptions::default(),
+                );
+
                 panic!(
                     "type id {id} should have been provisioned, but wasn't.\n{}",
-                    r#type.pretty_print(self, PrettyOptions::default())
+                    pretty::render(&formatter.format(r#type), RenderOptions::default())
                 );
             }
 

@@ -1,6 +1,5 @@
 use core::ops::{ControlFlow, Deref};
 
-use pretty::RcDoc;
 use smallvec::SmallVec;
 
 use super::TypeKind;
@@ -8,7 +7,6 @@ use crate::{
     algorithms::cartesian_product,
     collections::FastHashMap,
     intern::Interned,
-    pretty::{PrettyPrint, PrettyPrintBoundary},
     symbol::{Ident, Symbol},
     r#type::{
         PartialType, Type, TypeId,

@@ -15,7 +15,6 @@ pub mod union;
 
 use core::{ops::ControlFlow, ptr};
 
-use pretty::RcDoc;
 use smallvec::SmallVec;
 
 pub use self::{
@@ -33,8 +32,8 @@ pub use self::{
 use super::{
     PartialType, Type, TypeId,
     environment::{
-        AnalysisEnvironment, Environment, InferenceEnvironment, LatticeEnvironment,
-        SimplifyEnvironment, Variance, instantiate::InstantiateEnvironment,
+        AnalysisEnvironment, InferenceEnvironment, LatticeEnvironment, SimplifyEnvironment,
+        Variance, instantiate::InstantiateEnvironment,
     },
     error::{
         UnsupportedProjectionCategory, UnsupportedSubscriptCategory, no_type_inference,
@@ -43,10 +42,7 @@ use super::{
     inference::{Constraint, Inference, Variable, VariableKind},
     lattice::{Lattice, Projection, Subscript},
 };
-use crate::{
-    pretty::{CYAN, GRAY, PrettyPrint, PrettyPrintBoundary},
-    symbol::Ident,
-};
+use crate::symbol::Ident;
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum TypeKind<'heap> {

@@ -1,11 +1,9 @@
 use core::ops::ControlFlow;
 
-use pretty::RcDoc;
 use smallvec::SmallVec;
 
 use super::TypeKind;
 use crate::{
-    pretty::{PrettyPrint, PrettyPrintBoundary},
     symbol::{Ident, Symbol},
     r#type::{
         PartialType, Type, TypeId,

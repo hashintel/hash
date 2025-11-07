@@ -6,7 +6,6 @@ use pretty::RcDoc;
 
 use crate::{
     collections::FastHashMap,
-    pretty::{PrettyPrint, PrettyPrintBoundary},
     span::SpanId,
     r#type::{
         PartialType, Type,

@@ -9,7 +9,6 @@ use super::{
     kind::{Infer, Param, generic::GenericArgumentId, infer::HoleId, test::assert_equiv},
 };
 use crate::{
-    pretty::PrettyPrint as _,
     span::SpanId,
     symbol::Ident,
     r#type::{

@@ -6,7 +6,6 @@ use smallvec::SmallVec;
 use super::TypeKind;
 use crate::{
     intern::Interned,
-    pretty::PrettyPrint,
     span::SpanId,
     symbol::Ident,
     r#type::{
