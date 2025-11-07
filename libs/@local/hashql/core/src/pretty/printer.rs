@@ -49,26 +49,17 @@ impl<'heap> Pretty<'heap> {
     }
 
     /// Creates a variable or function name.
-    pub fn variable<'this>(&'this self, text: Symbol<'heap>) -> PrettyDoc<'this>
-    where
-        'this: 'heap,
-    {
+    pub fn variable<'this: 'heap>(&'this self, text: Symbol<'heap>) -> PrettyDoc<'this> {
         self.arena.text(text.unwrap()).annotate(Semantic::Variable)
     }
 
     /// Creates an operator (+, ->, =>, |, &, etc.).
-    pub fn op_str<'this>(&'this self, text: &'this str) -> PrettyDoc<'this>
-    where
-        'this: 'heap,
-    {
+    pub fn op_str<'this: 'heap>(&'this self, text: &'this str) -> PrettyDoc<'this> {
         self.arena.text(text).annotate(Semantic::Operator)
     }
 
     /// Creates an operator (+, ->, =>, |, &, etc.).
-    pub fn op<'this>(&'this self, text: Symbol<'heap>) -> PrettyDoc<'this>
-    where
-        'this: 'heap,
-    {
+    pub fn op<'this: 'heap>(&'this self, text: Symbol<'heap>) -> PrettyDoc<'this> {
         self.op_str(text.unwrap())
     }
 
@@ -77,120 +68,82 @@ impl<'heap> Pretty<'heap> {
     }
 
     /// Creates punctuation (parentheses, brackets, commas, colons, etc.).
-    pub fn punct<'this>(&'this self, text: Symbol<'heap>) -> PrettyDoc<'this>
-    where
-        'this: 'heap,
-    {
+    pub fn punct<'this: 'heap>(&'this self, text: Symbol<'heap>) -> PrettyDoc<'this> {
         self.punct_str(text.unwrap())
     }
 
     /// Creates a literal value (number, string, boolean).
-    pub fn literal<'this>(&'this self, text: Symbol<'heap>) -> PrettyDoc<'this>
-    where
-        'this: 'heap,
-    {
+    pub fn literal<'this: 'heap>(&'this self, text: Symbol<'heap>) -> PrettyDoc<'this> {
         self.arena.text(text.unwrap()).annotate(Semantic::Literal)
     }
 
     /// Creates a field name.
-    pub fn field<'this>(&'this self, text: Symbol<'heap>) -> PrettyDoc<'this>
-    where
-        'this: 'heap,
-    {
+    pub fn field<'this: 'heap>(&'this self, text: Symbol<'heap>) -> PrettyDoc<'this> {
         self.arena.text(text.unwrap()).annotate(Semantic::Field)
     }
 
     /// Creates a comment or metadata annotation.
-    pub fn comment<'this>(&'this self, text: Symbol<'heap>) -> PrettyDoc<'this>
-    where
-        'this: 'heap,
-    {
+    pub fn comment<'this: 'heap>(&'this self, text: Symbol<'heap>) -> PrettyDoc<'this> {
         self.arena.text(text.unwrap()).annotate(Semantic::Comment)
     }
 
     /// Creates plain text without semantic annotation.
-    pub fn text<'this>(&'this self, text: Symbol<'heap>) -> PrettyDoc<'this>
-    where
-        'this: 'heap,
-    {
+    pub fn text<'this: 'heap>(&'this self, text: Symbol<'heap>) -> PrettyDoc<'this> {
         self.arena.text(text.unwrap())
     }
 
     // === Basic document combinators ===
 
     /// Creates an empty document.
-    pub fn nil<'this>(&'this self) -> PrettyDoc<'this>
-    where
-        'this: 'heap,
-    {
+    pub fn nil<'this: 'heap>(&'this self) -> PrettyDoc<'this> {
         self.arena.nil()
     }
 
     /// Creates a space.
-    pub fn space<'this>(&'this self) -> PrettyDoc<'this>
-    where
-        'this: 'heap,
-    {
+    pub fn space<'this: 'heap>(&'this self) -> PrettyDoc<'this> {
         self.arena.space()
     }
 
     /// Creates a hard line break (always breaks).
-    pub fn hardline<'this>(&'this self) -> PrettyDoc<'this>
-    where
-        'this: 'heap,
-    {
+    pub fn hardline<'this: 'heap>(&'this self) -> PrettyDoc<'this> {
         self.arena.hardline()
     }
 
     /// Creates a line break that becomes a space when grouped.
-    pub fn line<'this>(&'this self) -> PrettyDoc<'this>
-    where
-        'this: 'heap,
-    {
+    pub fn line<'this: 'heap>(&'this self) -> PrettyDoc<'this> {
         self.arena.line()
     }
 
     /// Creates a line break that disappears when grouped.
-    pub fn line_<'this>(&'this self) -> PrettyDoc<'this>
-    where
-        'this: 'heap,
-    {
+    pub fn line_<'this: 'heap>(&'this self) -> PrettyDoc<'this> {
         self.arena.line_()
     }
 
     /// Creates a soft line break (line that becomes space when grouped).
-    pub fn softline<'this>(&'this self) -> PrettyDoc<'this>
-    where
-        'this: 'heap,
-    {
+    pub fn softline<'this: 'heap>(&'this self) -> PrettyDoc<'this> {
         self.arena.softline()
     }
 
     /// Creates a soft line break that disappears when grouped.
-    pub fn softline_<'this>(&'this self) -> PrettyDoc<'this>
-    where
-        'this: 'heap,
-    {
+    pub fn softline_<'this: 'heap>(&'this self) -> PrettyDoc<'this> {
         self.arena.softline_()
     }
 
     /// Concatenates documents.
-    pub fn concat<'this, I>(&'this self, docs: I) -> PrettyDoc<'this>
+    pub fn concat<'this: 'heap, I>(&'this self, docs: I) -> PrettyDoc<'this>
     where
-        'this: 'heap,
         I: IntoIterator<Item = PrettyDoc<'this>>,
     {
         self.arena.concat(docs)
     }
 
     /// Intersperses documents with a separator.
-    pub fn intersperse<'this, I>(
+    pub fn intersperse<'this: 'heap, I>(
         &'this self,
         docs: I,
         separator: PrettyDoc<'this>,
     ) -> PrettyDoc<'this>
     where
-        'this: 'heap,
         I: IntoIterator<Item = PrettyDoc<'this>>,
     {
         self.arena.intersperse(docs, separator)
