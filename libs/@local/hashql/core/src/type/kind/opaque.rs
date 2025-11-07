@@ -326,24 +326,3 @@ impl<'heap> Inference<'heap> for OpaqueType<'heap> {
         )
     }
 }
-
-impl<'heap> PrettyPrint<'heap, Environment<'heap>> for OpaqueType<'heap> {
-    fn pretty(
-        &self,
-        env: &Environment<'heap>,
-        boundary: &mut PrettyPrintBoundary,
-    ) -> RcDoc<'heap, anstyle::Style> {
-        // Remove the module from the name (if exists) this increases readability during
-        // pretty-printing.
-        let name = self.name.unwrap();
-        let name = name
-            .rsplit_once("::")
-            .map_or_else(|| name, |(_, name)| name);
-
-        RcDoc::text(name)
-            .append(RcDoc::text("["))
-            .append(boundary.pretty_type(env, self.repr).group())
-            .append(RcDoc::text("]"))
-            .group()
-    }
-}

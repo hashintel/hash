@@ -28,25 +28,6 @@ pub struct GenericSubstitution {
     pub value: TypeId,
 }
 
-impl<'heap> PrettyPrint<'heap, Environment<'heap>> for GenericSubstitution {
-    fn pretty(
-        &self,
-        env: &Environment<'heap>,
-        boundary: &mut PrettyPrintBoundary,
-    ) -> RcDoc<'heap, anstyle::Style> {
-        let name = format!("?{}", self.argument);
-
-        RcDoc::text(name)
-            .annotate(ORANGE)
-            .append(RcDoc::space())
-            .append("=")
-            .append(RcDoc::softline())
-            .group()
-            .append(boundary.pretty_type(env, self.value).group())
-            .group()
-    }
-}
-
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub struct GenericSubstitutions<'heap>(Option<Interned<'heap, [GenericSubstitution]>>);
 
@@ -108,29 +89,6 @@ impl Deref for GenericSubstitutions<'_> {
 
     fn deref(&self) -> &Self::Target {
         self.as_slice()
-    }
-}
-
-impl<'heap> PrettyPrint<'heap, Environment<'heap>> for GenericSubstitutions<'heap> {
-    fn pretty(
-        &self,
-        env: &Environment<'heap>,
-        boundary: &mut PrettyPrintBoundary,
-    ) -> RcDoc<'heap, anstyle::Style> {
-        match self.as_slice() {
-            [] => RcAllocator.nil(),
-            slice => RcAllocator.intersperse(
-                slice
-                    .iter()
-                    .map(|substitution| substitution.pretty(env, boundary)),
-                RcDoc::text(",").append(RcDoc::softline()),
-            ),
-        }
-        .nest(1)
-        .group()
-        .angles()
-        .group()
-        .into_doc()
     }
 }
 
@@ -420,21 +378,5 @@ impl<'heap> Inference<'heap> for Apply<'heap> {
                 })),
             },
         )
-    }
-}
-
-impl<'heap> PrettyPrint<'heap, Environment<'heap>> for Apply<'heap> {
-    fn pretty(
-        &self,
-        env: &Environment<'heap>,
-        boundary: &mut PrettyPrintBoundary,
-    ) -> RcDoc<'heap, anstyle::Style> {
-        boundary
-            .pretty_type(env, self.base)
-            .append(RcDoc::softline())
-            .group()
-            .append(RcDoc::text("where").annotate(RED))
-            .append(self.substitutions.pretty(env, boundary).group())
-            .group()
     }
 }

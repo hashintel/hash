@@ -112,28 +112,6 @@ impl<'heap> GenericArgument<'heap> {
     }
 }
 
-impl<'heap> PrettyPrint<'heap, Environment<'heap>> for GenericArgument<'heap> {
-    fn pretty(
-        &self,
-        env: &Environment<'heap>,
-        boundary: &mut PrettyPrintBoundary,
-    ) -> RcDoc<'heap, anstyle::Style> {
-        let name = format!("{}?{}", self.name, self.id);
-
-        let mut doc = RcDoc::text(name).annotate(ORANGE).group();
-
-        if let Some(constraint) = self.constraint {
-            doc = doc
-                .append(RcDoc::text(":"))
-                .append(RcDoc::softline())
-                .append(boundary.pretty_type(env, constraint).group())
-                .group();
-        }
-
-        doc
-    }
-}
-
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub struct GenericArguments<'heap>(Option<Interned<'heap, [GenericArgument<'heap>]>>);
 
@@ -195,29 +173,6 @@ impl<'heap> Deref for GenericArguments<'heap> {
 
     fn deref(&self) -> &Self::Target {
         self.as_slice()
-    }
-}
-
-impl<'heap> PrettyPrint<'heap, Environment<'heap>> for GenericArguments<'heap> {
-    fn pretty(
-        &self,
-        env: &Environment<'heap>,
-        boundary: &mut PrettyPrintBoundary,
-    ) -> RcDoc<'heap, anstyle::Style> {
-        match self.as_slice() {
-            [] => return RcDoc::nil(),
-            arguments => RcAllocator.intersperse(
-                arguments
-                    .iter()
-                    .map(|argument| argument.pretty(env, boundary)),
-                RcDoc::text(",").append(RcDoc::softline()),
-            ),
-        }
-        .nest(1)
-        .group()
-        .angles()
-        .group()
-        .into_doc()
     }
 }
 
@@ -537,15 +492,5 @@ impl<'heap> Inference<'heap> for Generic<'heap> {
                 kind: env.intern_kind(TypeKind::Generic(Self { base, arguments })),
             },
         )
-    }
-}
-
-impl<'heap> PrettyPrint<'heap, Environment<'heap>> for Generic<'heap> {
-    fn pretty(
-        &self,
-        env: &Environment<'heap>,
-        boundary: &mut PrettyPrintBoundary,
-    ) -> RcDoc<'heap, anstyle::Style> {
-        boundary.pretty_generic_type(env, self.base, self.arguments)
     }
 }

@@ -1,13 +1,12 @@
 use core::{assert_matches::debug_assert_matches, ops::ControlFlow};
 
 use bitvec::bitvec;
-use pretty::{DocAllocator as _, RcAllocator, RcDoc};
 use smallvec::SmallVec;
 
 use super::TypeKind;
 use crate::{
     intern::Interned,
-    pretty::{PrettyPrint, PrettyPrintBoundary},
+    pretty::PrettyPrint,
     span::SpanId,
     symbol::Ident,
     r#type::{
@@ -719,28 +718,5 @@ impl<'heap> Inference<'heap> for UnionType<'heap> {
                 })),
             },
         )
-    }
-}
-
-impl<'heap> PrettyPrint<'heap, Environment<'heap>> for UnionType<'heap> {
-    fn pretty(
-        &self,
-        env: &Environment<'heap>,
-        boundary: &mut PrettyPrintBoundary,
-    ) -> RcDoc<'heap, anstyle::Style> {
-        RcAllocator
-            .intersperse(
-                self.variants
-                    .iter()
-                    .map(|&variant| boundary.pretty_type(env, variant)),
-                RcDoc::line()
-                    .append(RcDoc::text("|"))
-                    .append(RcDoc::space()),
-            )
-            .nest(1)
-            .group()
-            .parens()
-            .group()
-            .into_doc()
     }
 }

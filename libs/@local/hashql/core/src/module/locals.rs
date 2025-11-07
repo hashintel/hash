@@ -59,35 +59,6 @@ impl<'heap> TypeDef<'heap> {
     }
 }
 
-impl<'heap> PrettyPrint<'heap, Environment<'heap>> for TypeDef<'heap> {
-    fn pretty(
-        &self,
-        env: &Environment<'heap>,
-        boundary: &mut PrettyPrintBoundary,
-    ) -> RcDoc<'heap, anstyle::Style> {
-        match &*self.arguments {
-            [] => RcDoc::nil(),
-            _ => RcAllocator
-                .intersperse(
-                    self.arguments
-                        .iter()
-                        .map(|argument| argument.pretty(env, boundary)),
-                    RcDoc::text(",").append(RcDoc::softline()),
-                )
-                .nest(1)
-                .group()
-                .angles()
-                .into_doc(),
-        }
-        .group()
-        .append(RcDoc::softline())
-        .append("=")
-        .append(RcDoc::softline())
-        .append(boundary.pretty_type(env, self.id))
-        .group()
-    }
-}
-
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub struct Local<'heap, T> {
     pub name: Symbol<'heap>,

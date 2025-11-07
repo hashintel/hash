@@ -227,20 +227,6 @@ impl<'heap> Inference<'heap> for ListType {
     }
 }
 
-impl<'heap> PrettyPrint<'heap, Environment<'heap>> for ListType {
-    fn pretty(
-        &self,
-        env: &Environment<'heap>,
-        boundary: &mut PrettyPrintBoundary,
-    ) -> RcDoc<'heap, anstyle::Style> {
-        RcDoc::text("List")
-            .append(RcDoc::text("<"))
-            .append(boundary.pretty_type(env, self.element).group())
-            .append(RcDoc::text(">"))
-            .group()
-    }
-}
-
 /// Represents a dictionary (key-value mapping) type.
 ///
 /// Dictionary types maintain a key type and a value type, with specific variance behavior:
@@ -551,31 +537,6 @@ impl<'heap> Inference<'heap> for DictType {
     }
 }
 
-impl<'heap> PrettyPrint<'heap, Environment<'heap>> for DictType {
-    fn pretty(
-        &self,
-        env: &Environment<'heap>,
-        boundary: &mut PrettyPrintBoundary,
-    ) -> RcDoc<'heap, anstyle::Style> {
-        RcDoc::text("Dict")
-            .append(
-                RcAllocator
-                    .intersperse(
-                        [self.key, self.value]
-                            .into_iter()
-                            .map(|id| boundary.pretty_type(env, id)),
-                        RcDoc::text(",").append(RcDoc::softline()),
-                    )
-                    .nest(1)
-                    .group()
-                    .angles()
-                    .group()
-                    .into_doc(),
-            )
-            .group()
-    }
-}
-
 // Intrinsics are "magical" types in the HashQL language that have no "substance", in the sense that
 // there's no way to define them in terms of HashQL itself.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
@@ -797,19 +758,6 @@ impl<'heap> Inference<'heap> for IntrinsicType {
         match self.kind {
             Self::List(list) => self.with(list).instantiate(env),
             Self::Dict(dict) => self.with(dict).instantiate(env),
-        }
-    }
-}
-
-impl<'heap> PrettyPrint<'heap, Environment<'heap>> for IntrinsicType {
-    fn pretty(
-        &self,
-        env: &Environment<'heap>,
-        boundary: &mut PrettyPrintBoundary,
-    ) -> RcDoc<'heap, anstyle::Style> {
-        match self {
-            Self::List(list) => list.pretty(env, boundary),
-            Self::Dict(dict) => dict.pretty(env, boundary),
         }
     }
 }
