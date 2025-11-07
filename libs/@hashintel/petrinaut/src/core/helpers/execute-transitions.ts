@@ -179,11 +179,6 @@ export function executeTransitions(frame: SimulationFrame): SimulationFrame {
     }
   }
 
-  // eslint-disable-next-line no-console
-  console.log("Transitions fired:", Array.from(transitionsFired));
-  // eslint-disable-next-line no-console
-  console.log("Tokens to add after all transitions:", tokensToAdd);
-
   // If no transitions fired, return the original frame
   if (transitionsFired.size === 0) {
     return frame;
