@@ -15,7 +15,7 @@ use crate::{
         basic_block::BasicBlockId,
         local::Local,
         terminator::{
-            Branch, GraphRead, GraphReadBody, GraphReadHead, GraphReadTail, Target, Terminator,
+            GraphRead, GraphReadBody, GraphReadHead, GraphReadTail, SwitchInt, Target, Terminator,
             TerminatorKind,
         },
     },
@@ -155,7 +155,7 @@ impl<'mir, 'heap> Reifier<'_, 'mir, '_, '_, 'heap> {
         block.terminate(
             Terminator {
                 span,
-                kind: TerminatorKind::Branch(Branch {
+                kind: TerminatorKind::SwitchInt(SwitchInt {
                     test,
                     then: Target::block(then_entry, self.context.interner),
                     r#else: Target::block(else_entry, self.context.interner),

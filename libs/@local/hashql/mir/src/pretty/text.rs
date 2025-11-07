@@ -17,8 +17,8 @@ use crate::{
         rvalue::{Aggregate, AggregateKind, Apply, Binary, Input, RValue, Unary},
         statement::{Assign, Statement, StatementKind},
         terminator::{
-            Branch, Goto, GraphRead, GraphReadBody, GraphReadHead, GraphReadTail, Return, Target,
-            Terminator, TerminatorKind,
+            Goto, GraphRead, GraphReadBody, GraphReadHead, GraphReadTail, Return, SwitchInt,
+            Target, Terminator, TerminatorKind,
         },
     },
     def::{DefId, DefIdSlice},
@@ -428,12 +428,12 @@ where
     fn format_part(&mut self, TerminatorHead(kind): TerminatorHead<'_, 'heap>) -> io::Result<()> {
         match kind {
             &TerminatorKind::Goto(Goto { target: _ }) => write!(self.writer, "goto"),
-            &TerminatorKind::Branch(Branch {
+            &TerminatorKind::SwitchInt(SwitchInt {
                 test,
                 then: _,
                 r#else: _,
             }) => {
-                write!(self.writer, "if(")?;
+                write!(self.writer, "switchInt(")?;
                 self.format_part(test)?;
                 self.writer.write_all(b")")
             }
@@ -458,7 +458,7 @@ where
                 write!(self.writer, " -> ")?;
                 self.format_part(target)
             }
-            &TerminatorKind::Branch(Branch {
+            &TerminatorKind::SwitchInt(SwitchInt {
                 test: _,
                 then,
                 r#else,

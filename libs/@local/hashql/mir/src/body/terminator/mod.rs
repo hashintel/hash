@@ -13,7 +13,7 @@ mod target;
 use hashql_core::span::SpanId;
 
 pub use self::{
-    branch::Branch,
+    branch::SwitchInt,
     goto::Goto,
     graph::{GraphRead, GraphReadBody, GraphReadHead, GraphReadLocation, GraphReadTail},
     r#return::Return,
@@ -68,7 +68,7 @@ pub enum TerminatorKind<'heap> {
     ///
     /// This terminator kind evaluates a boolean condition and transfers control
     /// to one of two target basic blocks based on the result.
-    Branch(Branch<'heap>),
+    SwitchInt(SwitchInt<'heap>),
 
     /// Return from the current function.
     ///

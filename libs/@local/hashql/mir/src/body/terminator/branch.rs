@@ -30,7 +30,7 @@ use crate::body::operand::Operand;
 /// - Pattern matching and guard clauses
 /// - Boolean logic short-circuiting
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-pub struct Branch<'heap> {
+pub struct SwitchInt<'heap> {
     /// The boolean test operand that determines which branch to take.
     ///
     /// This [`Operand`] is evaluated to obtain a boolean value. The result

@@ -14,8 +14,8 @@ use crate::{
         rvalue::{Aggregate, AggregateKind, Apply, Binary, Input, RValue, Unary},
         statement::{Assign, Statement, StatementKind},
         terminator::{
-            Branch, Goto, GraphRead, GraphReadBody, GraphReadHead, GraphReadLocation,
-            GraphReadTail, Return, Target, Terminator, TerminatorKind,
+            Goto, GraphRead, GraphReadBody, GraphReadHead, GraphReadLocation, GraphReadTail,
+            Return, SwitchInt, Target, Terminator, TerminatorKind,
         },
     },
     def::DefId,
@@ -255,12 +255,12 @@ pub trait Visitor<'heap> {
         walk_terminator_goto(self, location, goto)
     }
 
-    fn visit_terminator_branch(
+    fn visit_terminator_switch_int(
         &mut self,
         location: Location,
-        branch: &Branch<'heap>,
+        branch: &SwitchInt<'heap>,
     ) -> Self::Result {
-        walk_terminator_branch(self, location, branch)
+        walk_terminator_switch_int(self, location, branch)
     }
 
     fn visit_terminator_return(
@@ -581,7 +581,7 @@ pub fn walk_terminator<'heap, T: Visitor<'heap> + ?Sized>(
 
     match kind {
         TerminatorKind::Goto(goto) => visitor.visit_terminator_goto(location, goto),
-        TerminatorKind::Branch(branch) => visitor.visit_terminator_branch(location, branch),
+        TerminatorKind::SwitchInt(branch) => visitor.visit_terminator_switch_int(location, branch),
         TerminatorKind::Return(r#return) => visitor.visit_terminator_return(location, r#return),
         TerminatorKind::GraphRead(graph_read) => {
             visitor.visit_terminator_graph_read(location, graph_read)
@@ -599,10 +599,10 @@ pub fn walk_terminator_goto<'heap, T: Visitor<'heap> + ?Sized>(
     Ok!()
 }
 
-pub fn walk_terminator_branch<'heap, T: Visitor<'heap> + ?Sized>(
+pub fn walk_terminator_switch_int<'heap, T: Visitor<'heap> + ?Sized>(
     visitor: &mut T,
     location: Location,
-    Branch { test, then, r#else }: &Branch<'heap>,
+    SwitchInt { test, then, r#else }: &SwitchInt<'heap>,
 ) -> T::Result {
     visitor.visit_operand(location, test)?;
 

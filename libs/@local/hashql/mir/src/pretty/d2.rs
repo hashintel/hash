@@ -11,7 +11,7 @@ use crate::{
     body::{
         Body,
         basic_block::{BasicBlock, BasicBlockId},
-        terminator::{Branch, Goto, GraphRead, TerminatorKind},
+        terminator::{Goto, GraphRead, SwitchInt, TerminatorKind},
     },
     def::{DefId, DefIdSlice},
     pretty::text::{Signature, TargetParams, TerminatorHead},
@@ -170,7 +170,7 @@ where
                 self.format_text(TargetParams(target.args))?;
                 writeln!(self.writer, "'")?;
             }
-            TerminatorKind::Branch(Branch {
+            TerminatorKind::SwitchInt(SwitchInt {
                 test: _,
                 then,
                 r#else,
