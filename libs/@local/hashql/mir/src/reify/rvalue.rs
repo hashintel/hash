@@ -213,8 +213,6 @@ impl<'mir, 'heap> Reifier<'_, 'mir, '_, '_, 'heap> {
             }
         };
 
-        // TODO: the result *must* be a closure type for it to be typechk.
-
         // To the function we add two projections, one for the function pointer, and one for the
         // captured environment
         let function_pointer = function.project(

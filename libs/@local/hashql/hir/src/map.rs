@@ -137,7 +137,7 @@ impl<'heap> HirMap<'heap> {
         self.insert_type_id(id, type_id);
 
         if let Some(monomorphized_type_id) = monomorphized_type_id {
-            self.insert_type_id(id, monomorphized_type_id);
+            self.insert_monomorphized_type_id(id, monomorphized_type_id);
         }
 
         if let Some(type_arguments) = type_arguments {

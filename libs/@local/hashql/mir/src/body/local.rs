@@ -31,10 +31,21 @@ id::newtype!(
 
 id::newtype_collections!(pub type Local* from Local);
 
+/// Declaration information for a local variable in the MIR.
+///
+/// [`LocalDecl`] stores the metadata associated with a [`Local`] variable, including
+/// its source location, type information, and optional name.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub struct LocalDecl<'heap> {
+    /// Source location where this local variable is declared.
     pub span: SpanId,
+
+    /// The type of values stored in this local variable.
     pub r#type: TypeId,
 
+    /// Optional name for this local variable.
+    ///
+    /// This is [`Some`] for user-declared variables and [`None`] for compiler-generated
+    /// temporaries. The name is used for debugging and diagnostics, not for resolution.
     pub name: Option<Symbol<'heap>>,
 }

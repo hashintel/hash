@@ -131,9 +131,49 @@ impl<'heap> Decompose<'heap> for Type<'heap> {
     }
 }
 
+/// A value paired with its type information.
+///
+/// [`Typed<T>`] is a wrapper that associates a value of type `T` with its corresponding [`TypeId`]
+/// in the type system.
+///
+/// # Use Cases
+///
+/// Use [`Typed`] when:
+/// - Passing values between compilation phases where type information must be preserved
+/// - Returning values where the type cannot be inferred from context alone
+/// - Building data structures where each element may have a different type
+///
+/// # Ergonomics
+///
+/// [`Typed<T>`] implements [`Deref`] to `T`, allowing transparent access to the
+/// wrapped value without explicit unwrapping:
+///
+/// ```
+/// # use hashql_core::r#type::{Typed, TypeId};
+/// let typed_value = Typed {
+///     r#type: TypeId::PLACEHOLDER,
+///     value: 42,
+/// };
+/// assert_eq!(*typed_value, 42); // Deref coercion works
+/// ```
+///
+/// # Example
+///
+/// ```
+/// # use hashql_core::r#type::{Typed, TypeId};
+/// # use hashql_core::id::Id;
+/// fn process_value(typed: Typed<i32>) -> i32 {
+///     // Can use type_id for type checking
+///     println!("Processing value with type {:?}", typed.r#type);
+///     // Can access value directly via Deref
+///     typed.value * 2
+/// }
+/// ```
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub struct Typed<T> {
+    /// The type identifier for this value in the type system.
     pub r#type: TypeId,
+    /// The actual value being wrapped.
     pub value: T,
 }
 

@@ -164,10 +164,18 @@ impl<'heap> Place<'heap> {
     }
 }
 
+/// A single projection step that navigates into structured data, carrying its result type.
+///
+/// A [`Projection`] represents one step in navigating through structured data, combining
+/// both the navigation operation ([`ProjectionKind`]) and the resulting type of that operation.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub struct Projection<'heap> {
+    /// The type of the value after applying this projection.
+    ///
+    /// This is the result type of the projection operation, not the type being projected from.
     pub r#type: TypeId,
 
+    /// The kind of projection operation being performed.
     pub kind: ProjectionKind<'heap>,
 }
 
@@ -185,9 +193,9 @@ pub struct Projection<'heap> {
 /// - **Name-based Access**: [`FieldByName`] uses symbols for structural/partial types
 /// - **Dynamic Access**: [`Index`] uses computed values for collections
 ///
-/// [`Field`]: Projection::Field
-/// [`FieldByName`]: Projection::FieldByName
-/// [`Index`]: Projection::Index
+/// [`Field`]: ProjectionKind::Field
+/// [`FieldByName`]: ProjectionKind::FieldByName
+/// [`Index`]: ProjectionKind::Index
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum ProjectionKind<'heap> {
     /// Access a field by positional index in a closed/complete type.
