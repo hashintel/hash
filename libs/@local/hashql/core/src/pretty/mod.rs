@@ -23,9 +23,18 @@ enum Format {
     Plain,
 }
 
-struct RenderOptions {
+pub struct RenderOptions {
     pub format: Format,
     pub max_width: usize,
+}
+
+impl Default for RenderOptions {
+    fn default() -> Self {
+        Self {
+            format: Format::Ansi,
+            max_width: 80,
+        }
+    }
 }
 
 /// Write formatted output to a stream.

@@ -13,12 +13,14 @@ use super::{
     environment::Environment,
     inference::{SelectionConstraint, Variable},
     kind::{generic::GenericArgumentId, intrinsic::DictType},
+    pretty::{FormatType, TypeFormatter},
 };
 use crate::{
-    pretty::{PrettyOptions, PrettyPrint},
+    pretty::{self, Formatter, RenderOptions},
     similarity::did_you_mean,
     span::SpanId,
     symbol::{Ident, Symbol},
+    r#type::pretty::TypeFormatterOptions,
 };
 
 pub type TypeCheckDiagnostic<K = Severity> = Diagnostic<TypeCheckDiagnosticCategory, SpanId, K>;
@@ -243,9 +245,15 @@ impl DiagnosticCategory for TypeCheckDiagnosticCategory {
     }
 }
 
+macro_rules! pprint {
+    ($fmt:expr; $args:expr) => {
+        pretty::render(&$fmt.format(*$args), RenderOptions::default())
+    };
+}
+
 /// Creates a type mismatch diagnostic with specific labels for the left and right types
-pub(crate) fn type_mismatch<'heap, E, T, U>(
-    env: &E,
+pub(crate) fn type_mismatch<'env, 'heap, T, U>(
+    env: &'env Environment<'heap>,
 
     lhs: Type<'heap, T>,
     rhs: Type<'heap, U>,
@@ -253,26 +261,22 @@ pub(crate) fn type_mismatch<'heap, E, T, U>(
     help: Option<&str>,
 ) -> TypeCheckDiagnostic
 where
-    T: PrettyPrint<'heap, E>,
-    U: PrettyPrint<'heap, E>,
+    TypeFormatter<'env, 'heap>: FormatType<'env, T> + FormatType<'env, U>,
 {
+    let formatter = Formatter::new();
+    let mut formatter = TypeFormatter::new(&formatter, env, TypeFormatterOptions::default());
+
     let mut diagnostic =
         Diagnostic::new(TypeCheckDiagnosticCategory::TypeMismatch, Severity::Error).primary(
             Label::new(
                 lhs.span,
-                format!(
-                    "This is of type `{}`",
-                    lhs.kind.pretty_print(env, PrettyOptions::default())
-                ),
+                format!("This is of type `{}`", pprint!(formatter; lhs.kind)),
             ),
         );
 
     diagnostic.labels.push(Label::new(
         rhs.span,
-        format!(
-            "... and this is of type `{}`",
-            rhs.kind.pretty_print(env, PrettyOptions::default())
-        ),
+        format!("... and this is of type `{}`", pprint!(formatter; rhs.kind)),
     ));
 
     if let Some(text) = help {
@@ -449,15 +453,17 @@ pub(crate) fn opaque_type_name_mismatch<'heap, K>(
 
 /// Creates a diagnostic for when a union type variant doesn't match any variant in the expected
 /// union type
-pub(crate) fn union_variant_mismatch<'heap, E, K1, K2>(
-    env: &E,
+pub(crate) fn union_variant_mismatch<'env, 'heap, K1, K2>(
+    env: &'env Environment<'heap>,
     bad_variant: Type<'heap, K1>,
     expected_union: Type<'heap, K2>,
 ) -> TypeCheckDiagnostic
 where
-    K1: PrettyPrint<'heap, E>,
-    K2: PrettyPrint<'heap, E>,
+    TypeFormatter<'env, 'heap>: FormatType<'env, K1> + FormatType<'env, K2>,
 {
+    let formatter = Formatter::new();
+    let mut formatter = TypeFormatter::new(&formatter, env, TypeFormatterOptions::default());
+
     let mut diagnostic = Diagnostic::new(
         TypeCheckDiagnosticCategory::UnionVariantMismatch,
         Severity::Error,
@@ -466,7 +472,7 @@ where
         bad_variant.span,
         format!(
             "variant `{}` must be a subtype of at least one variant in the expected union",
-            bad_variant.kind.pretty_print(env, PrettyOptions::default())
+            pprint!(formatter; bad_variant.kind)
         ),
     ));
 
@@ -475,7 +481,7 @@ where
         expected_union.span,
         format!(
             "expected union containing at least one supertype variant for `{}`",
-            bad_variant.kind.pretty_print(env, PrettyOptions::default())
+            pprint!(formatter; bad_variant.kind)
         ),
     ));
 
@@ -487,10 +493,8 @@ where
 
     diagnostic.add_message(Message::note(format!(
         "expected union: `{}`\nfound variant: `{}` which is not a subtype of any expected variants",
-        expected_union
-            .kind
-            .pretty_print(env, PrettyOptions::default()),
-        bad_variant.kind.pretty_print(env, PrettyOptions::default()),
+        pprint!(formatter; expected_union.kind),
+        pprint!(formatter; bad_variant.kind)
     )));
 
     diagnostic
@@ -546,21 +550,24 @@ pub(crate) fn function_parameter_count_mismatch<'heap, K>(
     diagnostic
 }
 
-pub(crate) fn cannot_be_subtype_of_never<'heap, E, K, L>(
-    env: &E,
+pub(crate) fn cannot_be_subtype_of_never<'env, 'heap, K, L>(
+    env: &'env Environment<'heap>,
     subtype: Type<'heap, K>,
     supertype: Type<'heap, L>,
 ) -> TypeCheckDiagnostic
 where
-    K: PrettyPrint<'heap, E>,
+    TypeFormatter<'env, 'heap>: FormatType<'env, K>,
 {
+    let formatter = Formatter::new();
+    let mut formatter = TypeFormatter::new(&formatter, env, TypeFormatterOptions::default());
+
     let mut diagnostic =
         Diagnostic::new(TypeCheckDiagnosticCategory::TypeMismatch, Severity::Error).primary(
             Label::new(
                 subtype.span,
                 format!(
                     "`{}` cannot be a subtype of `!`",
-                    subtype.kind.pretty_print(env, PrettyOptions::default())
+                    pprint!(formatter; subtype.kind)
                 ),
             ),
         );
@@ -582,21 +589,24 @@ where
     diagnostic
 }
 
-pub(crate) fn cannot_be_supertype_of_unknown<'heap, E, K, L>(
-    env: &E,
+pub(crate) fn cannot_be_supertype_of_unknown<'env, 'heap, K, L>(
+    env: &'env Environment<'heap>,
     subtype: Type<'heap, K>,
     supertype: Type<'heap, L>,
 ) -> TypeCheckDiagnostic
 where
-    L: PrettyPrint<'heap, E>,
+    TypeFormatter<'env, 'heap>: FormatType<'env, L>,
 {
+    let formatter = Formatter::new();
+    let mut formatter = TypeFormatter::new(&formatter, env, TypeFormatterOptions::default());
+
     let mut diagnostic =
         Diagnostic::new(TypeCheckDiagnosticCategory::TypeMismatch, Severity::Error).primary(
             Label::new(
                 supertype.span,
                 format!(
                     "`{}` type cannot be a supertype of `?`",
-                    supertype.kind.pretty_print(env, PrettyOptions::default())
+                    pprint!(formatter; supertype.kind)
                 ),
             ),
         );
@@ -627,6 +637,9 @@ where
     K1: PrettyPrint<'heap, E>,
     K2: PrettyPrint<'heap, E>,
 {
+    let formatter = Formatter::new();
+    let mut formatter = TypeFormatter::new(&formatter, env, TypeFormatterOptions::default());
+
     let mut diagnostic = Diagnostic::new(
         TypeCheckDiagnosticCategory::IntersectionVariantMismatch,
         Severity::Error,
@@ -844,6 +857,9 @@ pub(crate) fn incompatible_lower_equal_constraint<'heap, K>(
 where
     K: PrettyPrint<'heap, Environment<'heap>>,
 {
+    let formatter = Formatter::new();
+    let mut formatter = TypeFormatter::new(&formatter, env, TypeFormatterOptions::default());
+
     let mut diagnostic = Diagnostic::new(
         TypeCheckDiagnosticCategory::IncompatibleLowerEqualConstraint,
         Severity::Error,
@@ -912,6 +928,9 @@ pub(crate) fn incompatible_upper_equal_constraint<'heap, K>(
 where
     K: PrettyPrint<'heap, Environment<'heap>>,
 {
+    let formatter = Formatter::new();
+    let mut formatter = TypeFormatter::new(&formatter, env, TypeFormatterOptions::default());
+
     let mut diagnostic = Diagnostic::new(
         TypeCheckDiagnosticCategory::IncompatibleUpperEqualConstraint,
         Severity::Error,
@@ -979,6 +998,9 @@ pub(crate) fn bound_constraint_violation<'heap, E, K>(
 where
     K: PrettyPrint<'heap, E>,
 {
+    let formatter = Formatter::new();
+    let mut formatter = TypeFormatter::new(&formatter, env, TypeFormatterOptions::default());
+
     let mut diagnostic = Diagnostic::new(
         TypeCheckDiagnosticCategory::BoundConstraintViolation,
         Severity::Error,
@@ -1061,6 +1083,9 @@ pub(crate) fn conflicting_equality_constraints<'heap, E, K>(
 where
     K: PrettyPrint<'heap, E>,
 {
+    let formatter = Formatter::new();
+    let mut formatter = TypeFormatter::new(&formatter, env, TypeFormatterOptions::default());
+
     let mut diagnostic = Diagnostic::new(
         TypeCheckDiagnosticCategory::ConflictingEqualityConstraints,
         Severity::Error,
@@ -1169,6 +1194,9 @@ pub(crate) fn struct_field_not_found<'heap, K>(
 where
     K: PrettyPrint<'heap, Environment<'heap>>,
 {
+    let formatter = Formatter::new();
+    let mut formatter = TypeFormatter::new(&formatter, env, TypeFormatterOptions::default());
+
     let mut diagnostic =
         Diagnostic::new(TypeCheckDiagnosticCategory::FieldNotFound, Severity::Error).primary(
             Label::new(field.span, format!("Field '{field}' does not exist")),
@@ -1235,6 +1263,9 @@ pub(crate) fn invalid_tuple_index<'heap, K>(
 where
     K: PrettyPrint<'heap, Environment<'heap>>,
 {
+    let formatter = Formatter::new();
+    let mut formatter = TypeFormatter::new(&formatter, env, TypeFormatterOptions::default());
+
     let mut diagnostic = Diagnostic::new(
         TypeCheckDiagnosticCategory::InvalidTupleIndex,
         Severity::Error,
@@ -1275,6 +1306,9 @@ pub(crate) fn tuple_index_out_of_bounds<'heap, K>(
 where
     K: PrettyPrint<'heap, Environment<'heap>>,
 {
+    let formatter = Formatter::new();
+    let mut formatter = TypeFormatter::new(&formatter, env, TypeFormatterOptions::default());
+
     let mut diagnostic = Diagnostic::new(
         TypeCheckDiagnosticCategory::TupleIndexOutOfBounds,
         Severity::Error,
@@ -1358,6 +1392,9 @@ pub(crate) fn unsupported_projection<'heap, K>(
 where
     K: PrettyPrint<'heap, Environment<'heap>>,
 {
+    let formatter = Formatter::new();
+    let mut formatter = TypeFormatter::new(&formatter, env, TypeFormatterOptions::default());
+
     let mut diagnostic = Diagnostic::new(
         TypeCheckDiagnosticCategory::UnsupportedProjection,
         Severity::Error,
@@ -1480,6 +1517,9 @@ pub(crate) fn unsupported_subscript<'heap, K>(
 where
     K: PrettyPrint<'heap, Environment<'heap>>,
 {
+    let formatter = Formatter::new();
+    let mut formatter = TypeFormatter::new(&formatter, env, TypeFormatterOptions::default());
+
     let index = env.r#type(index);
 
     let mut diagnostic = Diagnostic::new(
@@ -1578,6 +1618,9 @@ pub(crate) fn recursive_type_projection<'heap, K>(
 where
     K: PrettyPrint<'heap, Environment<'heap>>,
 {
+    let formatter = Formatter::new();
+    let mut formatter = TypeFormatter::new(&formatter, env, TypeFormatterOptions::default());
+
     let mut diagnostic = Diagnostic::new(
         TypeCheckDiagnosticCategory::RecursiveTypeProjection,
         Severity::Error,
@@ -1620,6 +1663,9 @@ pub(crate) fn recursive_type_subscript<'heap, K>(
 where
     K: PrettyPrint<'heap, Environment<'heap>>,
 {
+    let formatter = Formatter::new();
+    let mut formatter = TypeFormatter::new(&formatter, env, TypeFormatterOptions::default());
+
     let index = env.r#type(index);
 
     let mut diagnostic = Diagnostic::new(
@@ -1751,6 +1797,9 @@ pub(crate) fn list_subscript_mismatch<'heap, K>(
 where
     K: PrettyPrint<'heap, Environment<'heap>>,
 {
+    let formatter = Formatter::new();
+    let mut formatter = TypeFormatter::new(&formatter, env, TypeFormatterOptions::default());
+
     let index = env.r#type(index);
 
     let mut diagnostic = Diagnostic::new(
@@ -1788,6 +1837,9 @@ pub(crate) fn dict_subscript_mismatch<'heap>(
     index: TypeId,
     env: &Environment<'heap>,
 ) -> TypeCheckDiagnostic {
+    let formatter = Formatter::new();
+    let mut formatter = TypeFormatter::new(&formatter, env, TypeFormatterOptions::default());
+
     let index = env.r#type(index);
     let expected = env.r#type(dict.kind.key);
 
@@ -1835,6 +1887,9 @@ pub(crate) fn unsatisfiable_upper_constraint(
     upper_constraint: TypeId,
     variable: Variable,
 ) -> TypeCheckDiagnostic {
+    let formatter = Formatter::new();
+    let mut formatter = TypeFormatter::new(&formatter, env, TypeFormatterOptions::default());
+
     let upper_type = env.r#type(upper_constraint);
     let variable_type = variable.into_type(env);
 
