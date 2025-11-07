@@ -5,6 +5,50 @@ import { FaChevronDown, FaChevronRight } from "react-icons/fa6";
 import { useEditorStore } from "../../../../state/editor-provider";
 import { useSDCPNStore } from "../../../../state/sdcpn-provider";
 
+// Pool of 10 well-differentiated colors for types
+const TYPE_COLOR_POOL = [
+  "#3b82f6", // Blue
+  "#ef4444", // Red
+  "#10b981", // Green
+  "#f59e0b", // Amber
+  "#8b5cf6", // Violet
+  "#ec4899", // Pink
+  "#14b8a6", // Teal
+  "#f97316", // Orange
+  "#6366f1", // Indigo
+  "#84cc16", // Lime
+];
+
+/**
+ * Get the next available color from the pool that's not currently in use.
+ * If all colors are in use, cycle back to the beginning.
+ */
+const getNextAvailableColor = (existingColors: string[]): string => {
+  const unusedColor = TYPE_COLOR_POOL.find(
+    (color) => !existingColors.includes(color),
+  );
+  return unusedColor ?? TYPE_COLOR_POOL[0]!;
+};
+
+/**
+ * Extract the highest type number from existing type names.
+ * Looks for patterns like "Type 1", "Type 2", "New Type 3", etc.
+ */
+const getNextTypeNumber = (existingNames: string[]): number => {
+  let maxNumber = 0;
+  for (const name of existingNames) {
+    // Match patterns like "Type 1", "New Type 2", etc.
+    const match = name.match(/Type\s+(\d+)/i);
+    if (match) {
+      const num = parseInt(match[1]!, 10);
+      if (num > maxNumber) {
+        maxNumber = num;
+      }
+    }
+  }
+  return maxNumber + 1;
+};
+
 export const TypesSection: React.FC = () => {
   const [isExpanded, setIsExpanded] = useState(true);
   const types = useSDCPNStore((state) => state.sdcpn.types);
@@ -62,11 +106,16 @@ export const TypesSection: React.FC = () => {
         <button
           type="button"
           onClick={() => {
+            const existingColors = types.map((type) => type.colorCode);
+            const existingNames = types.map((type) => type.name);
+            const nextNumber = getNextTypeNumber(existingNames);
+            const nextColor = getNextAvailableColor(existingColors);
+
             const newType = {
               id: `type__${Date.now()}`,
-              name: "New Type",
+              name: `Type ${nextNumber}`,
               iconId: "circle",
-              colorCode: "#3b82f6",
+              colorCode: nextColor,
               elements: [],
             };
             addType(newType);

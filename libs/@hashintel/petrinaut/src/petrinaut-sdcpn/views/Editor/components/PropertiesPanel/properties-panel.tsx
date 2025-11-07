@@ -22,6 +22,7 @@ export const PropertiesPanel: React.FC = () => {
   const updatePlace = useSDCPNStore((state) => state.updatePlace);
   const updateTransition = useSDCPNStore((state) => state.updateTransition);
   const updateArcWeight = useSDCPNStore((state) => state.updateArcWeight);
+  const updateType = useSDCPNStore((state) => state.updateType);
 
   // Resize functionality
   const [panelWidth, setPanelWidth] = useState(320);
@@ -171,7 +172,13 @@ export const PropertiesPanel: React.FC = () => {
     case "type": {
       const typeData = sdcpn.types.find((type) => type.id === selectedId);
       if (typeData) {
-        content = <TypeProperties type={typeData} />;
+        content = (
+          <TypeProperties
+            type={typeData}
+            onUpdate={updateType}
+            globalMode={globalMode}
+          />
+        );
       }
       break;
     }
