@@ -1,4 +1,6 @@
-import type { SDCPN } from "../../../core/types/sdcpn";
+import { MarkerType } from "reactflow";
+
+import type { SDCPN } from "../../../../core/types/sdcpn";
 import { useEditorStore } from "../../../state/editor-provider";
 import type {
   NodeType,
@@ -84,12 +86,29 @@ export function useSdcpnToReactFlow(sdcpn: SDCPN): PetriNetDefinitionObject {
       // Arc ID format: $A_<inputId>_<outputId>
       const arcId = `$A_${inputArc.placeId}_${transition.id}`;
 
+      // Get the place to determine type color
+      const place = sdcpn.places.find((p) => p.id === inputArc.placeId);
+      const placeType = place?.type
+        ? sdcpn.types.find((type) => type.id === place.type)
+        : null;
+      const arcColor = placeType?.colorCode ?? "#999";
+
       arcs.push({
         id: arcId,
         source: inputArc.placeId,
         target: transition.id,
         type: "default" as const,
         selected: selectedItemIds.has(arcId),
+        markerEnd: {
+          type: MarkerType.ArrowClosed,
+          color: arcColor,
+          width: 20,
+          height: 20,
+        },
+        style: {
+          stroke: arcColor,
+          strokeWidth: 2,
+        },
         data: {
           tokenWeights: {
             default: inputArc.weight,
@@ -103,12 +122,29 @@ export function useSdcpnToReactFlow(sdcpn: SDCPN): PetriNetDefinitionObject {
       // Arc ID format: $A_<inputId>_<outputId>
       const arcId = `$A_${transition.id}_${outputArc.placeId}`;
 
+      // Get the place to determine type color
+      const place = sdcpn.places.find((p) => p.id === outputArc.placeId);
+      const placeType = place?.type
+        ? sdcpn.types.find((type) => type.id === place.type)
+        : null;
+      const arcColor = placeType?.colorCode ?? "#999";
+
       arcs.push({
         id: arcId,
         source: transition.id,
         target: outputArc.placeId,
         type: "default" as const,
         selected: selectedItemIds.has(arcId),
+        markerEnd: {
+          type: MarkerType.ArrowClosed,
+          color: arcColor,
+          width: 20,
+          height: 20,
+        },
+        style: {
+          stroke: arcColor,
+          strokeWidth: 2,
+        },
         data: {
           tokenWeights: {
             default: outputArc.weight,
