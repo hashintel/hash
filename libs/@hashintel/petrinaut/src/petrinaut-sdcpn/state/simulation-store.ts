@@ -119,14 +119,6 @@ export function createSimulationStore(sdcpnStore: {
               try {
                 const { sdcpn } = sdcpnStore.getState();
 
-                // eslint-disable-next-line no-console
-                console.log("Initializing simulation with:", {
-                  sdcpn,
-                  initialMarking: state.initialMarking,
-                  seed,
-                  dt,
-                });
-
                 // Build the simulation instance using stored initialMarking
                 const simulationInstance = buildSimulation({
                   sdcpn,
@@ -134,12 +126,6 @@ export function createSimulationStore(sdcpnStore: {
                   seed,
                   dt,
                 });
-
-                // eslint-disable-next-line no-console
-                console.log(
-                  "Simulation initialized successfully:",
-                  simulationInstance,
-                );
 
                 return {
                   simulation: simulationInstance,
@@ -194,11 +180,6 @@ export function createSimulationStore(sdcpnStore: {
                   updatedSimulation.frames[
                     updatedSimulation.currentFrameNumber
                   ]!;
-
-                // eslint-disable-next-line no-console
-                console.log("Next frame generated:", nextFrame);
-                // eslint-disable-next-line no-console
-                console.log("Frame buffer:", nextFrame.buffer);
 
                 return {
                   simulation: updatedSimulation,
