@@ -34,16 +34,18 @@ pub enum Semantic {
 
 impl Semantic {
     /// Converts semantic annotation to visual style.
+    #[must_use]
     pub const fn to_style(self) -> Style {
         match self {
             Self::Keyword => Style::new().fg_color(Some(Color::Ansi(AnsiColor::Magenta))),
             Self::TypeName => Style::new().fg_color(Some(Color::Ansi(AnsiColor::Blue))),
             Self::Variable => Style::new(),
             Self::Operator => Style::new().fg_color(Some(Color::Ansi(AnsiColor::Yellow))),
-            Self::Punctuation => Style::new().fg_color(Some(Color::Ansi(AnsiColor::BrightBlack))),
+            Self::Punctuation | Self::Comment => {
+                Style::new().fg_color(Some(Color::Ansi(AnsiColor::BrightBlack)))
+            }
             Self::Literal => Style::new().fg_color(Some(Color::Ansi(AnsiColor::Green))),
             Self::Field => Style::new().fg_color(Some(Color::Ansi(AnsiColor::Cyan))),
-            Self::Comment => Style::new().fg_color(Some(Color::Ansi(AnsiColor::BrightBlack))),
         }
     }
 }

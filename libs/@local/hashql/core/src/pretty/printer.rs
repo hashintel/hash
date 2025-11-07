@@ -22,6 +22,7 @@ pub struct Pretty<'heap> {
 
 impl<'heap> Pretty<'heap> {
     /// Creates a new pretty printer.
+    #[must_use]
     pub fn new() -> Self {
         Self {
             arena: Arena::new(),
