@@ -22,6 +22,8 @@
     assert_matches,
     binary_heap_into_iter_sorted,
     cold_path,
+    debug_closure_helpers,
+    formatting_options,
     get_disjoint_mut_helpers,
     iter_map_windows,
     slice_partition_dedup,

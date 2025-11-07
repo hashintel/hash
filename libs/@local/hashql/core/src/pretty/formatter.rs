@@ -16,11 +16,11 @@ pub type Doc<'pretty> = DocBuilder<'pretty, pretty::Arena<'pretty, Semantic>, Se
 ///
 /// This is the primary interface for building formatted documents.
 /// It owns the arena and provides all necessary primitives for document construction.
-pub struct Pretty<'heap> {
+pub struct Formatter<'heap> {
     arena: Arena<'heap, Semantic>,
 }
 
-impl<'heap> Pretty<'heap> {
+impl<'heap> Formatter<'heap> {
     /// Creates a new pretty printer.
     #[must_use]
     pub fn new() -> Self {
@@ -365,7 +365,7 @@ impl<'heap> Pretty<'heap> {
     }
 }
 
-impl Default for Pretty<'_> {
+impl Default for Formatter<'_> {
     fn default() -> Self {
         Self::new()
     }
