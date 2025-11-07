@@ -1,7 +1,8 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { type EdgeProps, getBezierPath } from "reactflow";
 
 import { useEditorStore } from "../../../state/editor-provider";
+import { useSDCPNStore } from "../../../state/sdcpn-provider";
 
 interface ArcData {
   tokenWeights: {
@@ -11,6 +12,8 @@ interface ArcData {
 
 export const Arc: React.FC<EdgeProps<ArcData>> = ({
   id,
+  source,
+  target,
   sourceX,
   sourceY,
   targetX,
@@ -24,15 +27,31 @@ export const Arc: React.FC<EdgeProps<ArcData>> = ({
   // Derive selected state from EditorStore
   const selectedItemIds = useEditorStore((state) => state.selectedItemIds);
 
+  // Get SDCPN data to determine place type and color
+  const sdcpn = useSDCPNStore((state) => state.sdcpn);
+
   // Check if this arc is selected by its ID
   const selected = selectedItemIds.has(id);
 
-  // Use a default token type for now
-  const defaultTokenType = {
-    id: "default",
-    name: "Token",
-    color: "#4A90E2",
-  };
+  // Determine which node is the place and get its type color
+  const placeTypeColor = useMemo(() => {
+    // Arcs connect places to transitions or transitions to places
+    // We need to find which end is the place
+    const sourcePlace = sdcpn.places.find((place) => place.id === source);
+    const targetPlace = sdcpn.places.find((place) => place.id === target);
+
+    const place = sourcePlace ?? targetPlace;
+
+    if (!place || !place.type) {
+      // No place or no type assigned - use neutral color
+      return null;
+    }
+
+    // Find the type definition
+    const typeDefinition = sdcpn.types.find((type) => type.id === place.type);
+
+    return typeDefinition?.colorCode ?? null;
+  }, [sdcpn.places, sdcpn.types, source, target]);
 
   const [arcPath, labelX, labelY] = getBezierPath({
     sourceX,
@@ -82,18 +101,31 @@ export const Arc: React.FC<EdgeProps<ArcData>> = ({
       />
 
       <g transform={`translate(${labelX}, ${labelY})`}>
-        {/* Show tokens required or produced */}
+        {/* Show arc weights */}
         {Object.entries(data?.tokenWeights ?? {})
           .filter(([_, weight]) => weight > 0)
-          .map(([tokenTypeId, weight], index, nonZeroWeights) => {
-            // Use default token type for now
-            const tokenType = defaultTokenType;
+          .map(([_tokenTypeId, weight], index, nonZeroWeights) => {
+            const yOffset = (index - (nonZeroWeights.length - 1) / 2) * 24;
 
-            const yOffset = (index - (nonZeroWeights.length - 1) / 2) * 20;
+            // Use type color if place has a type, otherwise neutral gray
+            const outlineColor = placeTypeColor ?? "#999";
+            const fillColor = "white";
+            const textColor = "#333";
 
             return (
-              <g key={tokenTypeId} transform={`translate(0, ${yOffset})`}>
-                <circle cx="0" cy="0" r="10" fill={tokenType.color} />
+              <g key={_tokenTypeId} transform={`translate(0, ${yOffset})`}>
+                {/* Square with colored outline */}
+                <rect
+                  x="-10"
+                  y="-10"
+                  width="20"
+                  height="20"
+                  fill={fillColor}
+                  stroke={outlineColor}
+                  strokeWidth="2"
+                  rx="2"
+                />
+                {/* Weight number */}
                 <text
                   x="0"
                   y="0"
@@ -102,7 +134,7 @@ export const Arc: React.FC<EdgeProps<ArcData>> = ({
                   style={{
                     fontSize: 12,
                     fontWeight: 600,
-                    fill: "white",
+                    fill: textColor,
                     pointerEvents: "none",
                   }}
                 >
