@@ -13,7 +13,7 @@ pub(crate) mod recursion;
 pub(crate) mod tests;
 pub mod visit;
 
-use core::ops::Receiver;
+use core::ops::{Deref, Receiver};
 
 pub use self::{
     builder::TypeBuilder,
@@ -128,5 +128,19 @@ impl<'heap> Decompose<'heap> for Type<'heap> {
             span: partial.span,
             kind,
         }
+    }
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+pub struct Typed<T> {
+    pub r#type: TypeId,
+    pub value: T,
+}
+
+impl<T> Deref for Typed<T> {
+    type Target = T;
+
+    fn deref(&self) -> &Self::Target {
+        &self.value
     }
 }

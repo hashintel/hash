@@ -1,6 +1,11 @@
 use hashql_core::{
+    collections::TinyVec,
     id::{IdVec, bit_vec::BitRelations as _},
     span::Spanned,
+    r#type::{
+        PartialType, TypeId,
+        kind::{TupleType, TypeKind},
+    },
 };
 use hashql_hir::{
     lower::dataflow::{VariableDefinitions, VariableDependencies},
@@ -13,10 +18,10 @@ use hashql_hir::{
     visit::Visitor as _,
 };
 
-use super::{Reifier, current::CurrentBlock, error::local_variable_unmapped};
+use super::{Reifier, current::CurrentBlock, error::local_variable_unmapped, unwrap_closure_type};
 use crate::{
     body::{
-        local::Local,
+        local::{Local, LocalDecl},
         operand::Operand,
         place::Place,
         rvalue::{Aggregate, AggregateKind, RValue},
@@ -47,13 +52,17 @@ impl<'mir, 'heap> Reifier<'_, 'mir, '_, '_, 'heap> {
         self.state.var_pool.release(definitions);
         let captures = dependencies;
 
-        let compiler = Reifier::new(self.context, self.state);
-        let ptr = compiler.lower_closure(hir, &captures, binder, closure);
-
         // Now we need to do environment capture, for that create a tuple aggregate of all the
         // captured variables in a new local
-        let env_local = self.local_counter.next();
+        let env_local = self.local_decls.push(LocalDecl {
+            span: hir.span,
+            r#type: TypeId::PLACEHOLDER, // To be replaced with actual type later
+            name: None,
+        });
+
         let mut tuple_elements = IdVec::with_capacity_in(captures.count(), self.context.heap);
+        let mut tuple_element_ty = TinyVec::with_capacity(captures.count());
+
         for var in &captures {
             let Some(capture_local) = self.locals[var] else {
                 self.state
@@ -67,7 +76,27 @@ impl<'mir, 'heap> Reifier<'_, 'mir, '_, '_, 'heap> {
                 capture_local,
                 self.context.interner,
             )));
+
+            tuple_element_ty.push(self.local_decls[capture_local].r#type);
         }
+
+        let env_type = self.context.environment.intern_type(PartialType {
+            span: hir.span,
+            kind: self
+                .context
+                .environment
+                .intern_kind(TypeKind::Tuple(TupleType {
+                    fields: self.context.environment.intern_type_ids(&tuple_element_ty),
+                })),
+        });
+        self.local_decls[env_local].r#type = env_type;
+
+        let closure_type = unwrap_closure_type(
+            self.context.hir.map.monomorphized_type_id(hir.id),
+            self.context.environment,
+        );
+        let compiler = Reifier::new(self.context, self.state);
+        let ptr = compiler.lower_closure(hir, &captures, env_type, binder, closure, closure_type);
 
         block.push_statement(Statement {
             span: hir.span,
@@ -90,7 +119,11 @@ impl<'mir, 'heap> Reifier<'_, 'mir, '_, '_, 'heap> {
         block: &mut CurrentBlock<'mir, 'heap>,
         binding: &Binding<'heap>,
     ) {
-        let local = self.local_counter.next();
+        let local = self.local_decls.push(LocalDecl {
+            span: binding.span,
+            r#type: self.context.hir.map.type_id(binding.value.id),
+            name: binding.binder.name,
+        });
         self.locals.insert(binding.binder.id, local);
 
         if let Some(rvalue) = self.rvalue(block, binding.binder, local, binding.value) {

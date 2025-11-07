@@ -464,6 +464,10 @@ impl<'heap> Visitor<'heap> for TypeChecking<'_, '_, '_, 'heap> {
         self.verify_subtype(self.context.map.type_id(closure.body.id), returns);
 
         self.context.map.insert_type_id(self.current.id, inferred);
+        self.context.map.insert_monomorphized_type_id(
+            self.current.id,
+            self.simplify.simplify(self.closures[&self.current.id]),
+        );
     }
 
     fn visit_thunk(&mut self, _: &'heap Thunk<'heap>) {

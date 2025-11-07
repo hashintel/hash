@@ -6,16 +6,22 @@ mod terminator;
 mod transform;
 mod types;
 
+use std::assert_matches::debug_assert_matches;
+
 use hashql_core::{
     collections::{
         FastHashMap,
         pool::{MixedBitSetPool, MixedBitSetRecycler},
     },
     heap::Heap,
-    id::{Id as _, IdCounter, IdVec, bit_vec::MixedBitSet},
+    id::{Id as _, IdVec, bit_vec::MixedBitSet},
     span::{SpanId, Spanned},
     symbol::Symbol,
-    r#type::environment::Environment,
+    r#type::{
+        PartialType, TypeId, Typed,
+        environment::Environment,
+        kind::{ClosureType, TupleType, TypeKind},
+    },
 };
 use hashql_diagnostics::{Failure, Status};
 use hashql_hir::{
@@ -44,7 +50,7 @@ use crate::{
         Body, Source,
         basic_block::{BasicBlock, BasicBlockVec},
         constant::Constant,
-        local::Local,
+        local::{Local, LocalDecl, LocalVec},
         operand::Operand,
         place::{FieldIndex, Place, Projection},
         rvalue::{Aggregate, AggregateKind, RValue},
@@ -133,8 +139,7 @@ struct Reifier<'ctx, 'mir, 'hir, 'env, 'heap> {
     /// Mapping from HIR variable IDs to MIR local IDs for the current function.
     locals: VarIdVec<Option<Local>>,
 
-    /// Counter for generating fresh local IDs.
-    local_counter: IdCounter<Local>,
+    local_decls: LocalVec<LocalDecl<'heap>, &'heap Heap>,
 }
 
 impl<'ctx, 'mir, 'hir, 'env, 'heap> Reifier<'ctx, 'mir, 'hir, 'env, 'heap> {
@@ -143,13 +148,14 @@ impl<'ctx, 'mir, 'hir, 'env, 'heap> Reifier<'ctx, 'mir, 'hir, 'env, 'heap> {
         state: &'ctx mut CrossCompileState<'heap>,
     ) -> Self {
         let blocks = BasicBlockVec::new_in(context.heap);
+        let local_decls = LocalVec::new_in(context.heap);
 
         Self {
             context,
             state,
             blocks,
             locals: VarIdVec::new(),
-            local_counter: IdCounter::new(),
+            local_decls,
         }
     }
 
@@ -174,8 +180,8 @@ impl<'ctx, 'mir, 'hir, 'env, 'heap> Reifier<'ctx, 'mir, 'hir, 'env, 'heap> {
         mut self,
         source: Source<'heap>,
         span: SpanId,
-        params: impl IntoIterator<Item = VarId>,
-        captures: Option<&MixedBitSet<VarId>>,
+        params: impl IntoIterator<Item = Typed<Binder<'heap>>>,
+        captures: Option<(&MixedBitSet<VarId>, TypeId)>,
         on_block: impl FnOnce(&mut Self, &mut CurrentBlock<'mir, 'heap>) -> Spanned<Operand<'heap>>,
     ) -> DefId {
         let mut args = 0;
@@ -186,7 +192,30 @@ impl<'ctx, 'mir, 'hir, 'env, 'heap> Reifier<'ctx, 'mir, 'hir, 'env, 'heap> {
         // be thin calls (although that would require that we move functions into a separate type
         // from closures).
         let env = if matches!(source, Source::Closure(_, _) | Source::Ctor(_)) {
-            let local = self.local_counter.next();
+            let r#type = if let Some((_, type_id)) = captures {
+                debug_assert_matches!(source, Source::Closure(..));
+                type_id
+            } else {
+                // In case there are no captures, the environment will always be a unit type (aka
+                // Tuple).
+                debug_assert_matches!(source, Source::Ctor(..));
+                self.context.environment.intern_type(PartialType {
+                    span,
+                    kind: self
+                        .context
+                        .environment
+                        .intern_kind(TypeKind::Tuple(TupleType {
+                            fields: self.context.environment.intern_type_ids(&[]),
+                        })),
+                })
+            };
+
+            let local = self.local_decls.push(LocalDecl {
+                span,
+                r#type,
+                name: None,
+            });
+
             args += 1;
 
             local
@@ -197,35 +226,52 @@ impl<'ctx, 'mir, 'hir, 'env, 'heap> Reifier<'ctx, 'mir, 'hir, 'env, 'heap> {
             Local::MAX
         };
 
-        for param in params {
-            let local = self.local_counter.next();
+        for Typed {
+            value: Binder { id, span, name },
+            r#type,
+        } in params
+        {
+            let local = self.local_decls.push(LocalDecl { span, r#type, name });
             args += 1;
 
-            self.locals.insert(param, local);
+            self.locals.insert(id, local);
         }
 
         let mut block = CurrentBlock::new(self.context.heap, self.context.interner);
 
         // For each of the variables mentioned, create a local variable statement, which is a
         // projection inside of a tuple.
-        for (index, capture) in captures.into_iter().flatten().enumerate() {
-            let local = self.local_counter.next();
-            self.locals.insert(capture, local);
+        if let Some((captures, env_type)) = captures {
+            // `env_type` is guaranteed to be a tuple type
+            let TypeKind::Tuple(env_type) = *self.context.environment.r#type(env_type).kind else {
+                panic!("The caller must provide a tuple type for the environment") // <- should this be an ICE diagnostic? If so what is the fallback?
+            };
 
-            block.push_statement(Statement {
-                span,
-                kind: StatementKind::Assign(Assign {
-                    lhs: Place::local(local, self.context.interner),
-                    rhs: RValue::Load(Operand::Place(Place {
-                        local: env,
-                        projections: self
-                            .context
-                            .interner
-                            .projections
-                            .intern_slice(&[Projection::Field(FieldIndex::new(index))]),
-                    })),
-                }),
-            });
+            debug_assert_eq!(captures.count(), env_type.fields.len());
+
+            for (index, capture) in captures.iter().enumerate() {
+                let local = self.local_decls.push(LocalDecl {
+                    span,
+                    r#type: env_type.fields[index],
+                    name: None,
+                });
+                self.locals.insert(capture, local);
+
+                block.push_statement(Statement {
+                    span,
+                    kind: StatementKind::Assign(Assign {
+                        lhs: Place::local(local, self.context.interner),
+                        rhs: RValue::Load(Operand::Place(Place {
+                            local: env,
+                            projections: self
+                                .context
+                                .interner
+                                .projections
+                                .intern_slice(&[Projection::Field(FieldIndex::new(index))]),
+                        })),
+                    }),
+                });
+            }
         }
 
         let body = on_block(&mut self, &mut block);
@@ -241,6 +287,7 @@ impl<'ctx, 'mir, 'hir, 'env, 'heap> Reifier<'ctx, 'mir, 'hir, 'env, 'heap> {
         let block = Body {
             span,
             source,
+            local_decls: self.local_decls,
             basic_blocks: self.blocks,
             args,
         };
@@ -256,14 +303,26 @@ impl<'ctx, 'mir, 'hir, 'env, 'heap> Reifier<'ctx, 'mir, 'hir, 'env, 'heap> {
         self,
         hir: HirPtr,
         captures: &MixedBitSet<VarId>,
+        env_type: TypeId,
         binder: Option<Binder<'heap>>,
         closure: Closure<'heap>,
+        closure_type: ClosureType<'heap>,
     ) -> DefId {
+        debug_assert_eq!(closure_type.params.len(), closure.signature.params.len());
+
         self.lower_impl(
             Source::Closure(hir.id, binder),
             hir.span,
-            closure.signature.params.iter().map(|param| param.name.id),
-            Some(captures),
+            closure
+                .signature
+                .params
+                .iter()
+                .zip(closure_type.params)
+                .map(|(param, &r#type)| Typed {
+                    r#type,
+                    value: param.name,
+                }),
+            Some((captures, env_type)),
             |this, block| this.transform_body(block, closure.body),
         )
     }
@@ -276,7 +335,7 @@ impl<'ctx, 'mir, 'hir, 'env, 'heap> Reifier<'ctx, 'mir, 'hir, 'env, 'heap> {
         self.lower_impl(
             Source::Thunk(hir.id, Some(binder)),
             hir.span,
-            [] as [VarId; 0],
+            [] as [_; 0],
             None,
             |this, block| this.transform_body(block, thunk.body),
         )
@@ -288,7 +347,7 @@ impl<'ctx, 'mir, 'hir, 'env, 'heap> Reifier<'ctx, 'mir, 'hir, 'env, 'heap> {
     /// parameters depending on their signature.
     fn lower_ctor(self, hir: HirPtr, ctor: TypeConstructor<'heap>) -> DefId {
         let closure_type = unwrap_closure_type(
-            self.context.hir.map.type_id(hir.id),
+            self.context.hir.map.monomorphized_type_id(hir.id),
             self.context.environment,
         );
 
@@ -297,7 +356,14 @@ impl<'ctx, 'mir, 'hir, 'env, 'heap> Reifier<'ctx, 'mir, 'hir, 'env, 'heap> {
         } else {
             // Because the function is pure, we invent a 0 parameter as the local, meaning that we
             // compile it in isolation
-            Some(VarId::new(0))
+            Some(Typed {
+                value: Binder {
+                    id: VarId::new(0),
+                    span: hir.span,
+                    name: None,
+                },
+                r#type: closure_type.params[0],
+            })
         };
 
         self.lower_impl(
@@ -306,12 +372,16 @@ impl<'ctx, 'mir, 'hir, 'env, 'heap> Reifier<'ctx, 'mir, 'hir, 'env, 'heap> {
             param,
             None,
             |this, block| {
-                let output = this.local_counter.next();
+                let output = this.local_decls.push(LocalDecl {
+                    span: hir.span,
+                    r#type: closure_type.returns,
+                    name: None,
+                });
                 let lhs = Place::local(output, this.context.interner);
 
                 let operand = if let Some(param) = param {
                     Operand::Place(Place::local(
-                        this.locals[param]
+                        this.locals[param.id]
                             .unwrap_or_else(|| unreachable!("We just verified this local exists")),
                         this.context.interner,
                     ))

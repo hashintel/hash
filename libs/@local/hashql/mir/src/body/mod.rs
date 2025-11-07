@@ -11,7 +11,10 @@
 use hashql_core::{heap::Heap, span::SpanId, symbol::Symbol};
 use hashql_hir::node::{HirId, r#let::Binder};
 
-use self::basic_block::{BasicBlock, BasicBlockVec};
+use self::{
+    basic_block::{BasicBlock, BasicBlockVec},
+    local::{LocalDecl, LocalVec},
+};
 use crate::def::DefId;
 
 pub mod basic_block;
@@ -112,6 +115,8 @@ pub struct Body<'heap> {
     /// optimization passes, analysis tools, and debugging to understand the origin
     /// and expected behavior of the MIR code.
     pub source: Source<'heap>,
+
+    pub local_decls: LocalVec<LocalDecl<'heap>, &'heap Heap>,
 
     /// The collection of basic blocks that make up this body's control-flow graph.
     ///
