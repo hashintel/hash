@@ -5,6 +5,8 @@
 //! structures. The implementation uses the `pretty` crate as its document model.
 
 pub mod display;
+pub mod printer;
+pub mod semantic;
 
 use core::fmt::{self, Display, Formatter};
 use std::io;
