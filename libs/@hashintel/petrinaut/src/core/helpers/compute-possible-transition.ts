@@ -109,16 +109,9 @@ export function computePossibleTransition(
     // not a real accumulation over time with lambda varying as the paper suggests.
     // But prevent having to handle a big buffer of varying lambda values over time,
     // which should be reordered in case of new tokens arriving.
-    console.log(
-      "Token combination values for transition:",
-      transitionId,
-      tokenCombinationValues,
-    );
-    console.log("Parameters:", simulation.parameterValues);
     const lambdaValue =
       lambdaFn(tokenCombinationValues, simulation.parameterValues) *
       timeSinceLastFiring;
-    console.log("Computed lambda value:", lambdaValue);
 
     // Find the first combination of tokens where e^(-lambda) < U1
     // We should normally find the minimum for all possibilities, but we try to reduce as much as we can here.

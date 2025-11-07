@@ -144,9 +144,11 @@ export default Lambda(([tokens], parameters) => {
       transitionKernelCode: `// When satellites collide, they become debris (lose velocity)
 export default TransitionKernel(([tokens]) => {
   // Both satellites become stationary debris at their collision point
-  return tokens.map(([x, y]) => {
-    return [[x, y, 0, 0]]; // Position preserved, direction and velocity zeroed
-  });
+  return [
+    tokens.map(([x, y]) => {
+      return [x, y, 0, 0]; // Position preserved, direction and velocity zeroed
+    })
+  ];
 })`,
       x: 255,
       y: 180,
@@ -184,9 +186,11 @@ export default Lambda(([tokens], parameters) => {
 })`,
       transitionKernelCode: `// When satellite crashes into Earth, it becomes debris at crash site
 export default TransitionKernel(([tokens]) => {
-  return tokens.map(([x, y]) => {
-    return [[x, y, 0, 0]]; // Position preserved, direction and velocity zeroed
-  });
+  return [
+    tokens.map(([x, y]) => {
+      return [x, y, 0, 0]; // Position preserved, direction and velocity zeroed
+    })
+  ];
 })`,
       x: 255,
       y: 30,
