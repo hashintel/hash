@@ -11,14 +11,15 @@ export const satellitesSDCPN: SDCPN = {
       dynamicsEnabled: true,
       differentialEquationCode: { refId: "de-satellite-orbit" },
       visualizerCode: `export default Visualization(({ tokens, parameters }) => {
-  const EARTH_RADIUS = 50; // pixels
-  const SATELLITE_RADIUS = 4; // pixels
+  const { satellite_radius, earth_radius } = parameters;
 
   const width = 800;
   const height = 600;
 
   const centerX = width / 2;
   const centerY = height / 2;
+
+  console.log(">>:", { earth_radius, satellite_radius });
 
   return (
     <svg
@@ -32,21 +33,10 @@ export const satellitesSDCPN: SDCPN = {
       <circle
         cx={centerX}
         cy={centerY}
-        r={EARTH_RADIUS}
+        r={earth_radius}
         fill="#2196f3"
         stroke="#1976d2"
         strokeWidth="2"
-      />
-
-      {/* Earth surface details */}
-      <circle
-        cx={centerX}
-        cy={centerY}
-        r={EARTH_RADIUS - 5}
-        fill="none"
-        stroke="#64b5f6"
-        strokeWidth="1"
-        opacity="0.3"
       />
 
       {/* Satellites */}
@@ -58,23 +48,11 @@ export const satellitesSDCPN: SDCPN = {
 
         return (
           <g key={index}>
-            {/* Satellite orbit path (optional visualization) */}
-            <circle
-              cx={centerX}
-              cy={centerY}
-              r={Math.hypot(x, y)}
-              fill="none"
-              stroke="#666"
-              strokeWidth="1"
-              opacity="0.2"
-              strokeDasharray="2,2"
-            />
-
             {/* Satellite */}
             <circle
               cx={screenX}
               cy={screenY}
-              r={SATELLITE_RADIUS}
+              r={satellite_radius}
               fill="#ff5722"
               stroke="#d84315"
               strokeWidth="1"
@@ -84,8 +62,8 @@ export const satellitesSDCPN: SDCPN = {
             <line
               x1={screenX}
               y1={screenY}
-              x2={screenX + Math.cos(direction) * Math.log(velocity)}
-              y2={screenY + Math.sin(direction) * Math.log(velocity)}
+              x2={screenX + Math.cos(direction) * Math.log(velocity) * 10}
+              y2={screenY + Math.sin(direction) * Math.log(velocity) * 10}
               stroke="#ffc107"
               strokeWidth="2"
               markerEnd="url(#arrowhead)"
@@ -124,7 +102,7 @@ export const satellitesSDCPN: SDCPN = {
     {
       id: "place__ea42ba61-03ea-4940-b2e2-b594d5331a71",
       name: "Debris",
-      type: null,
+      type: "type-satellite",
       dynamicsEnabled: false,
       differentialEquationCode: "",
       visualizerCode: null,
@@ -153,7 +131,7 @@ export const satellitesSDCPN: SDCPN = {
       lambdaType: "predicate",
       lambdaCode: `// Check if two satellites collide (are within collision threshold)
 export default Lambda(([tokens], parameters) => {
-  const collision_threshold = parameters.collision_threshold || 10.0;
+  const { collision_threshold } = parameters;
   
   // Get positions of the two satellites
   const [x1, y1] = tokens[0];
@@ -163,13 +141,13 @@ export default Lambda(([tokens], parameters) => {
   const distance = Math.hypot(x2 - x1, y2 - y1);
   
   // Collision occurs if distance is less than threshold
-  return distance < collision_threshold;
+  return distance < collision_threshold ? Infinity : 0;
 })`,
       transitionKernelCode: `// When satellites collide, they become debris (lose velocity)
-export default TransitionKernel((tokens) => {
+export default TransitionKernel(([tokens]) => {
   // Both satellites become stationary debris at their collision point
   return tokens.map(([x, y]) => {
-    return [x, y, 0, 0]; // Position preserved, direction and velocity zeroed
+    return [[x, y, 0, 0]]; // Position preserved, direction and velocity zeroed
   });
 })`,
       x: 255,
@@ -194,24 +172,28 @@ export default TransitionKernel((tokens) => {
       ],
       lambdaType: "predicate",
       lambdaCode: `// Check if satellite crashes into Earth (within crash threshold of origin)
-export default Lambda((tokens, parameters) => {
+export default Lambda(([tokens], parameters) => {
   if (tokens.length < 1) return false;
   
-  const crash_threshold = parameters.crash_threshold || 5.0;
+  const { earth_radius, crash_threshold } = parameters;
   
   // Get satellite position
   const [x, y] = tokens[0];
+
+  console.log("---- Crash check:", { tokens, x, y });
   
   // Calculate distance from Earth center (origin)
   const distance = Math.hypot(x, y);
   
+  console.log("++++ Crash check:", { distance, earth_radius });
+
   // Crash occurs if satellite is too close to Earth
-  return distance < crash_threshold;
+  return distance < earth_radius ? Infinity : 0;
 })`,
       transitionKernelCode: `// When satellite crashes into Earth, it becomes debris at crash site
-export default TransitionKernel((tokens) => {
+export default TransitionKernel(([tokens]) => {
   return tokens.map(([x, y]) => {
-    return [x, y, 0, 0]; // Position preserved, direction and velocity zeroed
+    return [[x, y, 0, 0]]; // Position preserved, direction and velocity zeroed
   });
 })`,
       x: 255,
@@ -243,7 +225,7 @@ export default TransitionKernel((tokens) => {
 // Receives: placeValues (Float64Array with all token values concatenated: [x1,y1,dir1,vel1, x2,y2,dir2,vel2, ...])
 // Returns: Float64Array with derivatives in same structure: [dx1,dy1,ddir1,dvel1, dx2,dy2,ddir2,dvel2, ...]
 export default Dynamics((placeValues, t, parameters) => {
-  const mu = parameters.gravitational_constant || 400000.0; // Gravitational parameter
+  const mu = parameters.gravitational_constant; // Gravitational parameter
   
   const dimensions = 4; // x, y, direction, velocity
   const numTokens = placeValues.length / dimensions;
@@ -284,6 +266,20 @@ export default Dynamics((placeValues, t, parameters) => {
     },
   ],
   parameters: [
+    {
+      id: "param-earth-radius",
+      name: "Earth Radius",
+      variableName: "earth_radius",
+      type: "real",
+      defaultValue: "50.0",
+    },
+    {
+      id: "param-satellite-radius",
+      name: "Satellite Radius",
+      variableName: "satellite_radius",
+      type: "real",
+      defaultValue: "4.0",
+    },
     {
       id: "param-collision-threshold",
       name: "Collision Threshold",
