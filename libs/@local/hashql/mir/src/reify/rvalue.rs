@@ -222,8 +222,13 @@ impl<'mir, 'heap> Reifier<'_, 'mir, '_, '_, 'heap> {
         );
         let environment = function.project(
             self.context.interner,
-            // We never continue to move into the type (it is also invalid to move into it) and is
-            // considered to be completely opaque. The type information is never used.
+            // The environment is intentionally opaque because:
+            // 1. It should never be inspected outside of the call boundary
+            // 2. For closures nested inside of values, the type will always be represented as a
+            //    `Closure`, so won't have a tuple associated with it, therefore reconstruction of
+            //    the environment isn't possible.
+            // 3. The environment is immediately destructured at function entry, this projection
+            //    exists only to pass it as an argument
             TypeBuilder::spanned(function_span, self.context.environment).opaque(
                 sym::internal::ClosureEnv,
                 builder::lazy(|_, builder| builder.unknown()),
