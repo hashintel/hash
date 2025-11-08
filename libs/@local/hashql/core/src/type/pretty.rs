@@ -1,3 +1,4 @@
+use core::fmt::Display;
 use std::io;
 
 use super::{
@@ -175,7 +176,7 @@ impl<'env: 'heap, 'heap> TypeFormatter<'env, 'heap> {
         self.format_type(value)
     }
 
-    pub fn render<T>(&mut self, value: T, options: RenderOptions) -> String
+    pub fn render<T>(&mut self, value: T, options: RenderOptions) -> impl Display + use<'env, T>
     where
         Self: FormatType<'env, T>,
     {
@@ -191,7 +192,7 @@ impl<'env: 'heap, 'heap> TypeFormatter<'env, 'heap> {
     where
         Self: FormatType<'env, T>,
     {
-        crate::pretty::render_into(self.format_type(value), options, write)
+        crate::pretty::render_into(&self.format_type(value), options, write)
     }
 }
 

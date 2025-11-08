@@ -962,17 +962,18 @@ where
 }
 
 /// Creates a diagnostic for when a lower bound is not a subtype of an upper bound in a constraint
-pub(crate) fn bound_constraint_violation<'env, 'heap, K>(
+pub(crate) fn bound_constraint_violation<'env: 'heap, 'heap, K>(
     env: &'env Environment<'heap>,
     variable: Variable,
     lower_bound: Type<'heap, K>,
     upper_bound: Type<'heap, K>,
 ) -> TypeCheckDiagnostic
 where
-    TypeFormatter<'env, 'heap>: FormatType<'env, K>,
+    K: Copy,
+    for<'fmt> TypeFormatter<'fmt, 'heap>: FormatType<'fmt, K>,
 {
-    let formatter = Formatter::new();
-    let mut formatter = TypeFormatter::new(&formatter, env, TypeFormatterOptions::default());
+    let formatter_ref = Formatter::new();
+    let mut formatter = TypeFormatter::new(&formatter_ref, env, TypeFormatterOptions::default());
 
     let mut diagnostic = Diagnostic::new(
         TypeCheckDiagnosticCategory::BoundConstraintViolation,

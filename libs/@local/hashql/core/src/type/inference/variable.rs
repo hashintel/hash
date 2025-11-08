@@ -2,7 +2,6 @@ use alloc::rc::Rc;
 use core::ops::Index;
 
 use ena::unify::{NoError, UnifyKey, UnifyValue};
-use pretty::RcDoc;
 
 use crate::{
     collections::FastHashMap,
@@ -39,15 +38,15 @@ impl Variable {
     }
 }
 
-impl<'heap> PrettyPrint<'heap, Environment<'heap>> for Variable {
-    fn pretty(
-        &self,
-        env: &Environment<'heap>,
-        boundary: &mut PrettyPrintBoundary,
-    ) -> pretty::RcDoc<'heap, anstyle::Style> {
-        self.kind.pretty(env, boundary)
-    }
-}
+// impl<'heap> PrettyPrint<'heap, Environment<'heap>> for Variable {
+//     fn pretty(
+//         &self,
+//         env: &Environment<'heap>,
+//         boundary: &mut PrettyPrintBoundary,
+//     ) -> pretty::RcDoc<'heap, anstyle::Style> {
+//         self.kind.pretty(env, boundary)
+//     }
+// }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub(crate) enum VariableProvenance {
@@ -102,14 +101,14 @@ impl VariableKind {
     }
 }
 
-impl<'heap, E> PrettyPrint<'heap, E> for VariableKind {
-    fn pretty(&self, _: &E, _: &mut PrettyPrintBoundary) -> pretty::RcDoc<'heap, anstyle::Style> {
-        match self {
-            Self::Hole(id) => RcDoc::text(format!("_{id}")),
-            Self::Generic(id) => RcDoc::text(format!("?{id}")),
-        }
-    }
-}
+// impl<'heap, E> PrettyPrint<'heap, E> for VariableKind {
+//     fn pretty(&self, _: &E, _: &mut PrettyPrintBoundary) -> pretty::RcDoc<'heap, anstyle::Style>
+// {         match self {
+//             Self::Hole(id) => RcDoc::text(format!("_{id}")),
+//             Self::Generic(id) => RcDoc::text(format!("?{id}")),
+//         }
+//     }
+// }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub(crate) struct VariableId(u32);
