@@ -9,10 +9,10 @@ Person:0(2)
 ════ Types ═════════════════════════════════════════════════════════════════════
 
 ┌─ ::main::Person:0(2)
-└→ ::main::Person:0((Integer))
+└→ ::main::Person:0(Integer)
 
 ┌─ ::main::Person:0
-└→ (Integer) -> ::main::Person:0((Integer))
+└→ (Integer) -> ::main::Person:0(Integer)
 
 ┌─ 2
 └→ Integer

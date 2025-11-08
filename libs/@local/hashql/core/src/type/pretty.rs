@@ -229,7 +229,7 @@ impl<'fmt> FormatType<'fmt, TypeId> for TypeFormatter<'fmt, '_, '_> {
 impl<'fmt, 'heap> FormatType<'fmt, OpaqueType<'heap>> for TypeFormatter<'fmt, '_, 'heap> {
     fn format_type(&mut self, OpaqueType { name, repr }: OpaqueType<'heap>) -> Doc<'fmt> {
         let repr_ty = self.env.r#type(repr);
-        let mut inner = self.format_type(repr).parens();
+        let mut inner = self.format_type(repr);
 
         if !matches!(repr_ty.kind, TypeKind::Struct(_) | TypeKind::Tuple(_)) {
             inner = self.fmt.parens(inner);

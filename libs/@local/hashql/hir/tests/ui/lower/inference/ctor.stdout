@@ -9,10 +9,10 @@
 ════ Types ═════════════════════════════════════════════════════════════════════
 
 ┌─ ::core::option::Some(2)
-└→ _0«::core::option::Some((Integer))»
+└→ _0«::core::option::Some(Integer)»
 
 ┌─ ::core::option::Some
-└→ <T?25>(T?25«Integer») -> ::core::option::Some((T?25«Integer»))
+└→ <T?25>(T?25«Integer») -> ::core::option::Some(T?25«Integer»)
 
 ┌─ 2
 └→ Integer
