@@ -2,12 +2,13 @@ import { useState } from "react";
 
 import { Box } from "../../components/box";
 import { Stack } from "../../components/stack";
+import { productionMachines } from "../../examples/broken-machines";
 import { exampleSDCPN } from "../../examples/example";
 import { satellitesSDCPN } from "../../examples/satellites";
 import { useEditorStore } from "../../state/editor-provider";
 import { useSDCPNStore } from "../../state/sdcpn-provider";
 import { SDCPNView } from "../SDCPN/sdcpn-view";
-import { BottomBar } from "./components/bottom-bar";
+import { BottomBar } from "./components/BottomBar/bottom-bar";
 import { LeftSideBar } from "./components/LeftSideBar/left-sidebar";
 import { ModeSelector } from "./components/mode-selector";
 import { PropertiesPanel } from "./components/PropertiesPanel/properties-panel";
@@ -124,6 +125,14 @@ export const EditorView: React.FC = () => {
                     label: "Satellites",
                     onClick: () => {
                       setSDCPN(satellitesSDCPN);
+                      clearSelection();
+                    },
+                  },
+                  {
+                    id: "load-example-production-machines",
+                    label: "Production Machines",
+                    onClick: () => {
+                      setSDCPN(productionMachines);
                       clearSelection();
                     },
                   },
