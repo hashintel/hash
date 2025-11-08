@@ -207,4 +207,114 @@ describe("SimulationStore", () => {
     expect(state.simulation).toBeNull();
     expect(state.error).toContain("does not exist in SDCPN");
   });
+
+  it("should set currently viewed frame", () => {
+    const store = createSimulationStore(mockSDCPNStore);
+
+    // Set initial marking
+    store.getState().setInitialMarking("p1", {
+      values: new Float64Array([1.0, 2.0]),
+      count: 1,
+    });
+
+    store.getState().initialize({
+      seed: 42,
+      dt: 0.1,
+    });
+
+    // Step a few times to create multiple frames
+    store.getState().step();
+    store.getState().step();
+
+    // Set viewed frame to frame 1
+    store.getState().setCurrentlyViewedFrame(1);
+
+    const state = store.getState();
+
+    expect(state.currentlyViewedFrame).toBe(1);
+  });
+
+  it("should clamp viewed frame to valid range", () => {
+    const store = createSimulationStore(mockSDCPNStore);
+
+    // Set initial marking
+    store.getState().setInitialMarking("p1", {
+      values: new Float64Array([1.0, 2.0]),
+      count: 1,
+    });
+
+    store.getState().initialize({
+      seed: 42,
+      dt: 0.1,
+    });
+
+    // Try to set frame beyond available frames (only 1 frame exists)
+    store.getState().setCurrentlyViewedFrame(10);
+
+    let state = store.getState();
+    expect(state.currentlyViewedFrame).toBe(0); // Should clamp to last frame (0)
+
+    // Try to set negative frame
+    store.getState().setCurrentlyViewedFrame(-5);
+
+    state = store.getState();
+    expect(state.currentlyViewedFrame).toBe(0); // Should clamp to 0
+  });
+
+  it("should throw error when setting viewed frame without simulation", () => {
+    const store = createSimulationStore(mockSDCPNStore);
+
+    expect(() => store.getState().setCurrentlyViewedFrame(0)).toThrow(
+      "Cannot set viewed frame: No simulation initialized.",
+    );
+  });
+
+  it("should update currentlyViewedFrame when stepping", () => {
+    const store = createSimulationStore(mockSDCPNStore);
+
+    // Set initial marking
+    store.getState().setInitialMarking("p1", {
+      values: new Float64Array([1.0, 2.0]),
+      count: 1,
+    });
+
+    store.getState().initialize({
+      seed: 42,
+      dt: 0.1,
+    });
+
+    expect(store.getState().currentlyViewedFrame).toBe(0);
+
+    // Step to frame 1
+    store.getState().step();
+    expect(store.getState().currentlyViewedFrame).toBe(1);
+
+    // Step to frame 2
+    store.getState().step();
+    expect(store.getState().currentlyViewedFrame).toBe(2);
+  });
+
+  it("should reset currentlyViewedFrame when resetting simulation", () => {
+    const store = createSimulationStore(mockSDCPNStore);
+
+    // Set initial marking
+    store.getState().setInitialMarking("p1", {
+      values: new Float64Array([1.0, 2.0]),
+      count: 1,
+    });
+
+    store.getState().initialize({
+      seed: 42,
+      dt: 0.1,
+    });
+
+    store.getState().step();
+    expect(store.getState().currentlyViewedFrame).toBe(1);
+
+    store.getState().reset();
+
+    const state = store.getState();
+    expect(state.currentlyViewedFrame).toBe(0);
+    expect(state.state).toBe("NotRun");
+  });
 });

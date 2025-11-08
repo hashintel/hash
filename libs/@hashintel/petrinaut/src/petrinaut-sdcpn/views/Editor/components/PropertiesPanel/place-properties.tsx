@@ -1,12 +1,16 @@
 import MonacoEditor from "@monaco-editor/react";
+import { useMemo } from "react";
 
+import { compileVisualizer } from "../../../../../core/helpers/compile-visualizer";
 import type {
   DifferentialEquation,
   Place,
   SDCPNType,
 } from "../../../../../core/types/sdcpn";
 import { Switch } from "../../../../components/switch";
+import { useSimulationStore } from "../../../../state/simulation-provider";
 import { InitialStateEditor } from "./initial-state-editor";
+import { VisualizerErrorBoundary } from "./visualizer-error-boundary";
 
 interface PlacePropertiesProps {
   place: Place;
@@ -23,6 +27,27 @@ export const PlaceProperties: React.FC<PlacePropertiesProps> = ({
   globalMode,
   onUpdate,
 }) => {
+  const simulation = useSimulationStore((state) => state.simulation);
+  const initialMarking = useSimulationStore((state) => state.initialMarking);
+  const currentlyViewedFrame = useSimulationStore(
+    (state) => state.currentlyViewedFrame,
+  );
+
+  // Compile visualizer code once when it changes
+  const VisualizerComponent = useMemo(() => {
+    if (!place.visualizerCode) {
+      return null;
+    }
+
+    try {
+      return compileVisualizer(place.visualizerCode);
+    } catch (error) {
+      // eslint-disable-next-line no-console
+      console.error("Failed to compile visualizer code:", error);
+      return null;
+    }
+  }, [place.visualizerCode]);
+
   // Determine current differential equation selection
   const isCustom =
     typeof place.differentialEquationCode === "string" ||
@@ -305,6 +330,171 @@ export const PlaceProperties: React.FC<PlacePropertiesProps> = ({
               {availableDiffEqs.find((eq) => eq.id === selectedDiffEqId)?.name}
             </div>
           )}
+        </div>
+      )}
+
+      {/* Visualizer section */}
+      {globalMode === "edit" && (
+        <div>
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              marginBottom: 8,
+            }}
+          >
+            <div style={{ fontWeight: 500, fontSize: 12 }}>Visualizer</div>
+            <div style={{ display: "flex", alignItems: "center" }}>
+              <Switch
+                checked={place.visualizerCode !== null}
+                disabled
+                onCheckedChange={() => {
+                  // Read-only for now
+                }}
+              />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {place.visualizerCode !== null && (
+        <div>
+          <div style={{ fontWeight: 500, fontSize: 12, marginBottom: 4 }}>
+            {globalMode === "simulate" &&
+            simulation &&
+            simulation.frames.length > 0
+              ? "Visualizer Output"
+              : "Visualizer Code"}
+          </div>
+          <div
+            style={{
+              border: "1px solid rgba(0, 0, 0, 0.1)",
+              borderRadius: 4,
+              overflow: "hidden",
+            }}
+          >
+            {globalMode === "simulate" ? (
+              // Show live token values and parameters during simulation
+              (() => {
+                // Get place type to determine dimensions
+                const placeType = place.type
+                  ? types.find((tp) => tp.id === place.type)
+                  : null;
+
+                if (!placeType) {
+                  return (
+                    <div style={{ padding: 12, color: "#666" }}>
+                      Place has no type set
+                    </div>
+                  );
+                }
+
+                const dimensions = placeType.elements.length;
+                const tokens: number[][] = [];
+                let parameters: Record<string, number | boolean> = {};
+
+                // Check if we have simulation frames or use initial marking
+                if (simulation && simulation.frames.length > 0) {
+                  // Use currently viewed simulation frame
+                  const currentFrame = simulation.frames[currentlyViewedFrame];
+                  if (!currentFrame) {
+                    return (
+                      <div style={{ padding: 12, color: "#666" }}>
+                        No frame data available
+                      </div>
+                    );
+                  }
+
+                  const placeState = currentFrame.places.get(place.id);
+                  if (!placeState) {
+                    return (
+                      <div style={{ padding: 12, color: "#666" }}>
+                        Place not found in frame
+                      </div>
+                    );
+                  }
+
+                  const { offset, count } = placeState;
+                  const placeSize = count * dimensions;
+                  const tokenValues = Array.from(
+                    currentFrame.buffer.slice(offset, offset + placeSize),
+                  );
+
+                  // Format tokens as array of arrays
+                  for (let i = 0; i < count; i++) {
+                    const token: number[] = [];
+                    for (let colIndex = 0; colIndex < dimensions; colIndex++) {
+                      token.push(tokenValues[i * dimensions + colIndex] ?? 0);
+                    }
+                    tokens.push(token);
+                  }
+
+                  parameters = simulation.parameterValues;
+                } else {
+                  // Use initial marking
+                  const marking = initialMarking.get(place.id);
+                  if (marking && marking.count > 0) {
+                    for (let i = 0; i < marking.count; i++) {
+                      const token: number[] = [];
+                      for (
+                        let colIndex = 0;
+                        colIndex < dimensions;
+                        colIndex++
+                      ) {
+                        token.push(
+                          marking.values[i * dimensions + colIndex] ?? 0,
+                        );
+                      }
+                      tokens.push(token);
+                    }
+                  }
+
+                  // Parameters are empty when simulation hasn't been initialized
+                  parameters = {};
+                }
+
+                // Render the compiled visualizer component
+                if (!VisualizerComponent) {
+                  return (
+                    <div style={{ padding: 12, color: "#d32f2f" }}>
+                      Failed to compile visualizer code. Check console for
+                      errors.
+                    </div>
+                  );
+                }
+
+                return (
+                  <VisualizerErrorBoundary>
+                    <VisualizerComponent
+                      tokens={tokens}
+                      parameters={parameters}
+                    />
+                  </VisualizerErrorBoundary>
+                );
+              })()
+            ) : (
+              // Show code editor in edit mode
+              <MonacoEditor
+                language="typescript"
+                height={400}
+                value={place.visualizerCode}
+                theme="vs-light"
+                options={{
+                  minimap: { enabled: false },
+                  scrollBeyondLastLine: false,
+                  fontSize: 12,
+                  lineNumbers: "off",
+                  folding: true,
+                  glyphMargin: false,
+                  lineDecorationsWidth: 0,
+                  lineNumbersMinChars: 3,
+                  padding: { top: 8, bottom: 8 },
+                  readOnly: true,
+                }}
+              />
+            )}
+          </div>
         </div>
       )}
     </div>

@@ -106,6 +106,7 @@ export function createEditorStore(sdcpnStore: {
             "deleteSelection",
           ),
         // Get the type of an item by its ID
+        // TODO: Should be in SDCPN store?
         getItemType: (id) => {
           const sdcpn = sdcpnStore.getState().sdcpn;
 

@@ -1,16 +1,33 @@
 import { css } from "@hashintel/ds-helpers/css";
-import { TbLambda } from "react-icons/tb";
+import { TbBolt, TbLambda } from "react-icons/tb";
 import { Handle, type NodeProps, Position } from "reactflow";
 
+import { useSimulationStore } from "../../../state/simulation-provider";
 import type { TransitionNodeData } from "../../../state/types-for-editor-to-remove";
 import { handleStyling } from "../styles/styling";
 
 export const TransitionNode: React.FC<NodeProps<TransitionNodeData>> = ({
+  id,
   data,
   isConnectable,
   selected,
 }: NodeProps<TransitionNodeData>) => {
   const { label } = data;
+
+  const simulation = useSimulationStore((state) => state.simulation);
+  const currentlyViewedFrame = useSimulationStore(
+    (state) => state.currentlyViewedFrame,
+  );
+
+  // Check if this transition just fired (time since last fire is zero)
+  let justFired = false;
+  if (simulation && simulation.frames.length > 0) {
+    const frame = simulation.frames[currentlyViewedFrame];
+    const transitionData = frame?.transitions.get(id);
+    if (transitionData) {
+      justFired = transitionData.timeSinceLastFiring === 0;
+    }
+  }
 
   return (
     <div
@@ -66,7 +83,28 @@ export const TransitionNode: React.FC<NodeProps<TransitionNodeData>> = ({
             <TbLambda />
           </div>
         )}
-        {label}
+        <div
+          className={css({
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            gap: "spacing.2",
+          })}
+        >
+          <div>{label}</div>
+          {justFired && (
+            <div
+              className={css({
+                fontSize: "[16px]",
+                color: "core.yellow.60",
+                display: "flex",
+                alignItems: "center",
+              })}
+            >
+              <TbBolt />
+            </div>
+          )}
+        </div>
       </div>
       <Handle
         type="source"

@@ -40,6 +40,9 @@ export const InitialStateEditor: React.FC<InitialStateEditorProps> = ({
     (state) => state.setInitialMarking,
   );
   const simulation = useSimulationStore((state) => state.simulation);
+  const currentlyViewedFrame = useSimulationStore(
+    (state) => state.currentlyViewedFrame,
+  );
 
   // Determine if we should show current simulation state or initial marking
   const hasSimulation = simulation !== null && simulation.frames.length > 0;
@@ -50,8 +53,8 @@ export const InitialStateEditor: React.FC<InitialStateEditorProps> = ({
     count: number;
   } | null => {
     if (hasSimulation) {
-      // Get from current frame
-      const currentFrame = simulation.frames[simulation.currentFrameNumber];
+      // Get from currently viewed frame
+      const currentFrame = simulation.frames[currentlyViewedFrame];
       if (!currentFrame) {
         return null;
       }

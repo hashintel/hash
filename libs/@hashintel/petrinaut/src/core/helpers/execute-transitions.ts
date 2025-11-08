@@ -131,8 +131,6 @@ function addTokensToSimulationFrame(
  * @returns A new SimulationFrame with all transitions applied, or the original frame if no transitions fired
  */
 export function executeTransitions(frame: SimulationFrame): SimulationFrame {
-  // eslint-disable-next-line no-console
-  console.log("Executing transitions for frame at time:", frame.time);
   // Map to accumulate all tokens to add: PlaceID -> array of token values
   const tokensToAdd = new Map<PlaceID, number[][]>();
 
@@ -142,23 +140,10 @@ export function executeTransitions(frame: SimulationFrame): SimulationFrame {
   // Start with the current frame and update it as transitions fire
   let currentFrame = frame;
 
-  // eslint-disable-next-line no-console
-  console.log("Initial frame state:", currentFrame.transitions);
-
   // Iterate through all transitions in the frame
   for (const [transitionId, _transitionState] of currentFrame.transitions) {
-    // eslint-disable-next-line no-console
-    console.log("Attempting to fire transition:", transitionId);
     // Compute if this transition can fire based on the current state
     const result = computePossibleTransition(currentFrame, transitionId);
-
-    // eslint-disable-next-line no-console
-    console.log(
-      "Result of computePossibleTransition for",
-      transitionId,
-      ":",
-      result,
-    );
 
     if (result !== null) {
       // Transition fired!
@@ -193,11 +178,6 @@ export function executeTransitions(frame: SimulationFrame): SimulationFrame {
       }
     }
   }
-
-  // eslint-disable-next-line no-console
-  console.log("Transitions fired:", Array.from(transitionsFired));
-  // eslint-disable-next-line no-console
-  console.log("Tokens to add after all transitions:", tokensToAdd);
 
   // If no transitions fired, return the original frame
   if (transitionsFired.size === 0) {
