@@ -9,11 +9,11 @@
 ════ Types ═════════════════════════════════════════════════════════════════════
 
 ┌─ ::core::math::add(42.12, 42)
-└→ _0{Number}
+└→ _0«Number»
 
 ┌─ ::core::math::add
-└→ <T?25: Number, U?26: Number>(T?25{Number}, U?26{Integer}) -> T?25{Number}
-   | U?26{Integer}
+└→ <T?25: Number, U?26: Number>(T?25«Number», U?26«Integer») -> T?25«Number»
+   | U?26«Integer»
 
 ┌─ 42.12
 └→ Number

@@ -15,15 +15,15 @@
 └→ <T:0?29: Integer>(T:0?29, T:0?29) -> T:0?29
 
 ┌─ ::core::math::add(a:0, b:0)
-└→ _0{Integer}
+└→ _0«Integer»
 
 ┌─ ::core::math::add
-└→ <T?27: Number, U?28: Number>(T?27{Integer}, U?28{Integer}) -> T?27{Integer}
-   | U?28{Integer}
+└→ <T?27: Number, U?28: Number>(T?27«Integer», U?28«Integer») -> T?27«Integer»
+   | U?28«Integer»
 
 ┌─ a:0
-└→ ?26{Integer}
+└→ ?26«Integer»
 
 ┌─ b:0
-└→ ?26{Integer}
+└→ ?26«Integer»
 

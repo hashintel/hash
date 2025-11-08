@@ -15,15 +15,15 @@
 └→ <T:0?29: Number>(T:0?29, T:0?29) -> T:0?29
 
 ┌─ ::core::math::add(a:0, b:0)
-└→ _0{Number}
+└→ _0«Number»
 
 ┌─ ::core::math::add
-└→ <T?27: Number, U?28: Number>(T?27{Number}, U?28{Number}) -> T?27{Number}
-   | U?28{Number}
+└→ <T?27: Number, U?28: Number>(T?27«Number», U?28«Number») -> T?27«Number»
+   | U?28«Number»
 
 ┌─ a:0
-└→ ?26{Number}
+└→ ?26«Number»
 
 ┌─ b:0
-└→ ?26{Number}
+└→ ?26«Number»
 

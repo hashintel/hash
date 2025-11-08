@@ -219,6 +219,18 @@ impl<'alloc, 'heap> Formatter<'alloc, 'heap> {
             .append(self.punct_str("]"))
     }
 
+    /// Wraps content in angle brackets.
+    pub fn enclosed(
+        &'alloc self,
+        left: &'static str,
+        content: Doc<'alloc>,
+        right: &'static str,
+    ) -> Doc<'alloc> {
+        self.punct_str(left)
+            .append(content)
+            .append(self.punct_str(right))
+    }
+
     /// Wraps content in curly braces.
     pub fn braces(&'alloc self, content: Doc<'alloc>) -> Doc<'alloc> {
         self.punct_str("{")

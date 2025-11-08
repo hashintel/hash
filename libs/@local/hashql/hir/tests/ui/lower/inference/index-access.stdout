@@ -15,19 +15,19 @@ foo:0[0]
 ┌─ let foo:0 = [42]
 │  in
 │  foo:0[0]
-└→ _1{Integer| Null}
+└→ _1«Integer| Null»
 
 ┌─ [42]
-└→ List<_0{Integer}>
+└→ List<_0«Integer»>
 
 ┌─ 42
 └→ Integer
 
 ┌─ foo:0[0]
-└→ _1{Integer| Null}
+└→ _1«Integer| Null»
 
 ┌─ foo:0
-└→ List<_0{Integer}>
+└→ List<_0«Integer»>
 
 ┌─ 0
 └→ Integer

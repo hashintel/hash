@@ -416,7 +416,10 @@ impl<'fmt> FormatType<'fmt, Param> for TypeFormatter<'fmt, '_, '_> {
         if self.options.resolve_substitutions
             && let Some(substitution) = self.env.substitution.argument(argument)
         {
-            doc = doc.append(self.fmt.braces(self.format_type(substitution)));
+            doc = doc.append(
+                self.fmt
+                    .enclosed("\u{ab}", self.format_type(substitution), "\u{bb}"),
+            );
         }
 
         doc
@@ -436,7 +439,10 @@ impl<'fmt> FormatType<'fmt, Infer> for TypeFormatter<'fmt, '_, '_> {
         if self.options.resolve_substitutions
             && let Some(substitution) = self.env.substitution.infer(hole)
         {
-            doc = doc.append(self.fmt.braces(self.format_type(substitution)));
+            doc = doc.append(
+                self.fmt
+                    .enclosed("\u{ab}", self.format_type(substitution), "\u{bb}"),
+            );
         }
 
         doc

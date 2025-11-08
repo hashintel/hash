@@ -21,22 +21,22 @@ else
 │  ::core::option::Some(2)
 │  else
 │  ::core::option::None()
-└→ _0{::core::option::Some((Integer))}| _1{::core::option::None((Null))}
+└→ _0«::core::option::Some((Integer))»| _1«::core::option::None((Null))»
 
 ┌─ true
 └→ Boolean
 
 ┌─ ::core::option::Some(2)
-└→ _0{::core::option::Some((Integer))}
+└→ _0«::core::option::Some((Integer))»
 
 ┌─ ::core::option::Some
-└→ <T?25>(T?25{Integer}) -> ::core::option::Some((T?25{Integer}))
+└→ <T?25>(T?25«Integer») -> ::core::option::Some((T?25«Integer»))
 
 ┌─ 2
 └→ Integer
 
 ┌─ ::core::option::None()
-└→ _1{::core::option::None((Null))}
+└→ _1«::core::option::None((Null))»
 
 ┌─ ::core::option::None
 └→ () -> ::core::option::None((Null))

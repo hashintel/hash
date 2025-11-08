@@ -12,24 +12,24 @@
 
 ┌─ (lhs:0: _0, rhs:0: _1): _2 ->
 │  ::core::math::add(lhs:0, rhs:0)(2, 3)
-└→ _4{Integer}
+└→ _4«Integer»
 
 ┌─ (lhs:0: _0, rhs:0: _1): _2 ->
 │  ::core::math::add(lhs:0, rhs:0)
-└→ (_0{Integer}, _1{Integer}) -> _2{Integer}
+└→ (_0«Integer», _1«Integer») -> _2«Integer»
 
 ┌─ ::core::math::add(lhs:0, rhs:0)
-└→ _3{Integer}
+└→ _3«Integer»
 
 ┌─ ::core::math::add
-└→ <T?25: Number, U?26: Number>(T?25{Integer}, U?26{Integer}) -> T?25{Integer}
-   | U?26{Integer}
+└→ <T?25: Number, U?26: Number>(T?25«Integer», U?26«Integer») -> T?25«Integer»
+   | U?26«Integer»
 
 ┌─ lhs:0
-└→ _0{Integer}
+└→ _0«Integer»
 
 ┌─ rhs:0
-└→ _1{Integer}
+└→ _1«Integer»
 
 ┌─ 2
 └→ Integer

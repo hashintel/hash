@@ -24,7 +24,7 @@ else
 └→ Number| Number
 
 ┌─ 42 as _0
-└→ _0{Integer}
+└→ _0«Integer»
 
 ┌─ 42
 └→ Integer

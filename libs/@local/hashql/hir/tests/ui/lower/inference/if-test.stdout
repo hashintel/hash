@@ -24,7 +24,7 @@ else
 └→ Integer| Integer
 
 ┌─ ::core::bool::and(true, false)
-└→ _0{Boolean}
+└→ _0«Boolean»
 
 ┌─ ::core::bool::and
 └→ (Boolean, Boolean) -> Boolean
