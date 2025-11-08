@@ -19,17 +19,17 @@
 //!     pretty::{Format, Formatter, RenderOptions},
 //! };
 //!
-//! let heap = Heap::default();
+//! let heap = Heap::new();
 //! let fmt = Formatter::new(&heap);
 //!
 //! let doc = fmt
 //!     .keyword_str("let")
 //!     .append(fmt.space())
-//!     .append(fmt.variable_str("x"))
+//!     .append(fmt.variable_owned("x".to_owned()))
 //!     .append(fmt.space())
 //!     .append(fmt.punct_str("="))
 //!     .append(fmt.space())
-//!     .append(fmt.literal_owned("42".to_string()));
+//!     .append(fmt.literal_owned("42".to_owned()));
 //!
 //! let output = hashql_core::pretty::render(doc, RenderOptions::default());
 //! println!("{}", output);
