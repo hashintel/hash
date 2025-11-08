@@ -5,14 +5,14 @@ use hashql_core::{
     heap::Heap,
     module::ModuleRegistry,
     pretty::{Formatter, RenderOptions},
-    r#type::environment::Environment,
+    r#type::{TypeFormatterOptions, environment::Environment},
 };
 use hashql_hir::{
     context::HirContext,
     intern::Interner,
     lower::hoist::{GraphHoisting, GraphHoistingConfig},
     node::Node,
-    pretty::NodeFormatter,
+    pretty::{NodeFormatter, NodeFormatterOptions},
 };
 
 use super::{
@@ -70,7 +70,14 @@ impl Suite for HirLowerGraphHoistingSuite {
         )?;
 
         let formatter = Formatter::new(heap);
-        let mut formatter = NodeFormatter::with_defaults(&formatter, &environment, &context);
+        let mut formatter = NodeFormatter::new(
+            &formatter,
+            &environment,
+            &context,
+            NodeFormatterOptions {
+                r#type: TypeFormatterOptions::default().with_elide_opaque(true),
+            },
+        );
 
         let _ = writeln!(
             output,

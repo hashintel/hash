@@ -5,12 +5,15 @@ use hashql_core::{
     collections::FastHashMap,
     module::ModuleRegistry,
     pretty::{Formatter, RenderOptions},
-    r#type::environment::Environment,
+    r#type::{TypeFormatterOptions, environment::Environment},
     value::{self, List, Opaque, Primitive, Struct, Value},
 };
 use hashql_eval::graph::read::{FilterSlice, GraphReadCompiler};
 use hashql_hir::{
-    context::HirContext, intern::Interner, node::NodeData, pretty::NodeFormatter,
+    context::HirContext,
+    intern::Interner,
+    node::NodeData,
+    pretty::{NodeFormatter, NodeFormatterOptions},
     visit::Visitor as _,
 };
 
@@ -53,7 +56,14 @@ impl Suite for EvalGraphReadEntitySuite {
         )?;
 
         let formatter = Formatter::new(heap);
-        let mut formatter = NodeFormatter::with_defaults(&formatter, &environment, &context);
+        let mut formatter = NodeFormatter::new(
+            &formatter,
+            &environment,
+            &context,
+            NodeFormatterOptions {
+                r#type: TypeFormatterOptions::default().with_elide_opaque(true),
+            },
+        );
 
         let _ = writeln!(
             output,

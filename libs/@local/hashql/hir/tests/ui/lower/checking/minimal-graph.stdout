@@ -1,14 +1,20 @@
 ════ Initial HIR ═══════════════════════════════════════════════════════════════
 
-::graph::tail::collect(::graph::head::entities(::graph::tmp::decision_time_now()))
+::graph::tail::collect(
+    ::graph::head::entities(::graph::tmp::decision_time_now())
+)
 
 ════ HIR after type checking ═══════════════════════════════════════════════════
 
-::graph::tail::collect(::graph::head::entities(::graph::tmp::decision_time_now()))
+::graph::tail::collect(
+    ::graph::head::entities(::graph::tmp::decision_time_now())
+)
 
 ════ Types ═════════════════════════════════════════════════════════════════════
 
-┌─ ::graph::tail::collect(::graph::head::entities(::graph::tmp::decision_time_now()))
+┌─ ::graph::tail::collect(
+│      ::graph::head::entities(::graph::tmp::decision_time_now())
+│  )
 └→ List<::graph::types::knowledge::entity::Entity(
        id: ::graph::types::knowledge::entity::EntityRecordId(
            edition_id: ::graph::types::knowledge::entity::EntityEditionId(::core::uuid::Uuid(String)),

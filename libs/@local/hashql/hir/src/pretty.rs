@@ -484,12 +484,7 @@ impl<'fmt, 'heap> FormatNode<'fmt, &Call<'heap>> for NodeFormatter<'fmt, '_, 'he
             .iter()
             .map(|CallArgument { span: _, value }| self.format_node(*value));
 
-        function_doc.append(
-            fmt.parens(
-                fmt.intersperse(arg_docs, fmt.punct_str(",").append(fmt.line()))
-                    .group(),
-            ),
-        )
+        function_doc.append(fmt.delimited("(", arg_docs, ")"))
     }
 }
 
@@ -686,7 +681,7 @@ impl<'fmt, 'heap> FormatNode<'fmt, &GraphReadHead<'heap>> for NodeFormatter<'fmt
         match node {
             GraphReadHead::Entity { axis } => {
                 // Format as: entity(axis)
-                let keyword = self.fmt.keyword(sym::lexical::entity);
+                let keyword = self.fmt.keyword(sym::path::graph_head_entities);
                 let axis = self.format_node(*axis);
                 keyword.append(self.fmt.parens(axis))
             }
@@ -699,7 +694,7 @@ impl<'fmt, 'heap> FormatNode<'fmt, &GraphReadBody<'heap>> for NodeFormatter<'fmt
         match node {
             GraphReadBody::Filter(closure) => {
                 // Format as: filter(closure)
-                let keyword = self.fmt.keyword(sym::lexical::filter);
+                let keyword = self.fmt.keyword(sym::path::graph_body_filter);
                 let closure_doc = self.format_node(*closure);
                 keyword.append(self.fmt.parens(closure_doc))
             }
@@ -712,7 +707,7 @@ impl<'fmt> FormatNode<'fmt, GraphReadTail> for NodeFormatter<'fmt, '_, '_> {
         match node {
             GraphReadTail::Collect => {
                 // Format as: collect
-                self.fmt.keyword(sym::lexical::collect)
+                self.fmt.keyword(sym::path::graph_tail_collect)
             }
         }
     }

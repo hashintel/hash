@@ -8,37 +8,11 @@ let %1 = thunk ->
     %2 = thunk -> let %6 = if true then true else false in %6,
     %3 = thunk ->
         let %7 = %1(),
-            %9 = entity(%7)
-                 |> filter((
-                     vertex:0: ::graph::types::knowledge::entity::Entity(
-                         id: ::graph::types::knowledge::entity::EntityRecordId(
-                             edition_id: ::graph::types::knowledge::entity::EntityEditionId(::core::uuid::Uuid(String)),
-                             entity_id: ::graph::types::knowledge::entity::EntityId(
-                                 draft_id: ::core::option::None(Null)
-                                 | ::core::option::Some(::graph::types::knowledge::entity::DraftId(::core::uuid::Uuid(String))),
-                                 entity_uuid: ::graph::types::knowledge::entity::EntityUuid(::core::uuid::Uuid(String)),
-                                 web_id: ::graph::types::principal::actor_group::web::WebId(::graph::types::principal::actor_group::ActorGroupEntityUuid(::core::uuid::Uuid(String)))
-                             )
-                         ),
-                         link_data: ::core::option::None(Null)
-                         | ::core::option::Some(::graph::types::knowledge::entity::LinkData(
-                             left_entity_id: ::graph::types::knowledge::entity::EntityId(
-                                 draft_id: ::core::option::None(Null)
-                                 | ::core::option::Some(::graph::types::knowledge::entity::DraftId(::core::uuid::Uuid(String))),
-                                 entity_uuid: ::graph::types::knowledge::entity::EntityUuid(::core::uuid::Uuid(String)),
-                                 web_id: ::graph::types::principal::actor_group::web::WebId(::graph::types::principal::actor_group::ActorGroupEntityUuid(::core::uuid::Uuid(String)))
-                             ),
-                             right_entity_id: ::graph::types::knowledge::entity::EntityId(
-                                 draft_id: ::core::option::None(Null)
-                                 | ::core::option::Some(::graph::types::knowledge::entity::DraftId(::core::uuid::Uuid(String))),
-                                 entity_uuid: ::graph::types::knowledge::entity::EntityUuid(::core::uuid::Uuid(String)),
-                                 web_id: ::graph::types::principal::actor_group::web::WebId(::graph::types::principal::actor_group::ActorGroupEntityUuid(::core::uuid::Uuid(String)))
-                             )
-                         )),
-                         properties: ?
-                     )
+            %9 = ::graph::head::entities(%7)
+                 |> ::graph::body::filter((
+                     vertex:0: ::graph::types::knowledge::entity::Entity
                  ): Boolean -> let %8 = %2() in %8)
-                 |> collect
+                 |> ::graph::tail::collect
         in
         %9
 in

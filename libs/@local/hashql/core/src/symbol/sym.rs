@@ -189,6 +189,9 @@ symbols![path; PATHS;
     option: "::core::option::Option",
     some: "::core::option::Some",
     none: "::core::option::None",
+    graph_head_entities: "::graph::head::entities",
+    graph_body_filter: "::graph::body::filter",
+    graph_tail_collect: "::graph::tail::collect",
 ];
 
 pub(crate) const TABLES: &[&[&Symbol<'static>]] = &[LEXICAL, DIGITS, SYMBOLS, PATHS];
