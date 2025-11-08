@@ -15,7 +15,7 @@ foo:0[0]
 ┌─ let foo:0 = [42]
 │  in
 │  foo:0[0]
-└→ Integer| Null
+└→ Integer | Null
 
 ┌─ [42]
 └→ List<Integer>
@@ -24,7 +24,7 @@ foo:0[0]
 └→ Integer
 
 ┌─ foo:0[0]
-└→ Integer| Null
+└→ Integer | Null
 
 ┌─ foo:0
 └→ List<Integer>

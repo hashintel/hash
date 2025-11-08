@@ -21,7 +21,7 @@ else
 │  ::core::option::Some(2)
 │  else
 │  ::core::option::None()
-└→ _0«::core::option::Some(Integer)»| _1«::core::option::None(Null)»
+└→ _0«::core::option::Some(Integer)» | _1«::core::option::None(Null)»
 
 ┌─ true
 └→ Boolean

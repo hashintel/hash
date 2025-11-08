@@ -21,7 +21,7 @@ else
 │  $?x
 │  else
 │  42 as _0 as Number
-└→ Number| Number
+└→ Number | Number
 
 ┌─ 42 as _0
 └→ _0«Integer»

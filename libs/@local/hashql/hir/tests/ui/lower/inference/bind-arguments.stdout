@@ -13,7 +13,7 @@
 
 ┌─ ::core::math::add<Number, Integer>
 └→ [?25 = Number, ?26 = Integer] <T?25: Number, U?26: Number>(T?25«Number»,
-    U?26«Integer») -> T?25«Number»| U?26«Integer»
+    U?26«Integer») -> T?25«Number» | U?26«Integer»
 
 ┌─ 42.12
 └→ Number

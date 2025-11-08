@@ -4,4 +4,4 @@ Expr#4294967040@32
 ------------------------
 
 ┌─ Combined:0<>
-└→ (name: String)& (age: Number)
+└→ (name: String) & (age: Number)

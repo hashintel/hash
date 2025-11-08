@@ -259,7 +259,7 @@ impl<'alloc, 'heap> Formatter<'alloc, 'heap> {
     {
         self.intersperse(
             items,
-            self.softline_()
+            self.softline()
                 .append(self.punct_str("|"))
                 .append(self.space()),
         )
@@ -271,7 +271,7 @@ impl<'alloc, 'heap> Formatter<'alloc, 'heap> {
     {
         self.intersperse(
             items,
-            self.softline_()
+            self.softline()
                 .append(self.punct_str("&"))
                 .append(self.space()),
         )
@@ -330,7 +330,7 @@ impl<'alloc, 'heap> Formatter<'alloc, 'heap> {
 
         // Check if we have a *second* item
         let Some(second) = items.next() else {
-            return self.delimited("(", [first, self.punct_str(",")], ")");
+            return self.delimited("(", [first.append(self.punct_str(","))], ")");
         };
 
         self.delimited("(", [first, second].into_iter().chain(items), ")")

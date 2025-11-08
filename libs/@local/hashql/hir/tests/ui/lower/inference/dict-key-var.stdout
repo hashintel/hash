@@ -15,7 +15,7 @@ bar:0
 ┌─ let foo:0 = ::core::cmp::lte(2, 3), bar:0 = {foo:0: 42, true: foo:0}
 │  in
 │  bar:0
-└→ Dict<_1«Boolean», _2«Integer| Boolean»>
+└→ Dict<_1«Boolean», _2«Integer | Boolean»>
 
 ┌─ ::core::cmp::lte(2, 3)
 └→ _0«Boolean»
@@ -30,7 +30,7 @@ bar:0
 └→ Integer
 
 ┌─ {foo:0: 42, true: foo:0}
-└→ Dict<_1«Boolean», _2«Integer| Boolean»>
+└→ Dict<_1«Boolean», _2«Integer | Boolean»>
 
 ┌─ foo:0
 └→ _0«Boolean»
@@ -45,5 +45,5 @@ bar:0
 └→ _0«Boolean»
 
 ┌─ bar:0
-└→ Dict<_1«Boolean», _2«Integer| Boolean»>
+└→ Dict<_1«Boolean», _2«Integer | Boolean»>
 
