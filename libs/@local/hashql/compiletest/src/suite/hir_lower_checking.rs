@@ -4,15 +4,15 @@ use hashql_ast::node::expr::Expr;
 use hashql_core::{
     heap::Heap,
     module::ModuleRegistry,
-    pretty::{PrettyOptions, PrettyPrint as _},
-    r#type::environment::Environment,
+    pretty::{Formatter, RenderOptions},
+    r#type::{TypeFormatter, environment::Environment},
 };
 use hashql_hir::{
     context::HirContext,
     intern::Interner,
     lower::checking::{TypeChecking, TypeCheckingResidual},
     node::Node,
-    pretty::PrettyPrintEnvironment,
+    pretty::NodeFormatter,
     visit::Visitor as _,
 };
 
@@ -85,18 +85,15 @@ impl Suite for HirLowerTypeCheckingSuite {
             .collect();
         checking_inputs.sort_unstable_by_key(|&(hir_id, _)| hir_id);
 
+        let formatter = Formatter::new(heap);
+        let mut value_formatter = NodeFormatter::with_defaults(&formatter, &environment, &context);
+        let mut type_formatter = TypeFormatter::with_defaults(&formatter, &environment);
+
         let _ = writeln!(
             output,
             "\n{}\n\n{}",
             Header::new("HIR after type checking"),
-            node.pretty_print(
-                &PrettyPrintEnvironment {
-                    env: &environment,
-                    symbols: &context.symbols,
-                    map: &context.map,
-                },
-                PrettyOptions::default().without_color()
-            )
+            value_formatter.render(node, RenderOptions::default())
         );
 
         if !checking_inputs.is_empty() {
@@ -109,9 +106,7 @@ impl Suite for HirLowerTypeCheckingSuite {
                 "\n{}\n",
                 Annotated {
                     content: name,
-                    annotation: environment
-                        .r#type(type_id)
-                        .pretty_print(&environment, PrettyOptions::default().without_color())
+                    annotation: type_formatter.render(type_id, RenderOptions::default())
                 }
             );
         }
@@ -127,20 +122,8 @@ impl Suite for HirLowerTypeCheckingSuite {
                 output,
                 "{}\n",
                 Annotated {
-                    content: node.pretty_print(
-                        &PrettyPrintEnvironment {
-                            env: &environment,
-                            symbols: &context.symbols,
-                            map: &context.map,
-                        },
-                        PrettyOptions::default().without_color()
-                    ),
-                    annotation: environment.r#type(type_id).pretty_print(
-                        &environment,
-                        PrettyOptions::default()
-                            .without_color()
-                            .with_resolve_substitutions(true)
-                    )
+                    content: value_formatter.render(node, RenderOptions::default()),
+                    annotation: type_formatter.render(type_id, RenderOptions::default())
                 }
             );
         }

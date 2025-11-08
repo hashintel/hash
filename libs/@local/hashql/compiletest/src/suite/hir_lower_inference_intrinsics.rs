@@ -3,10 +3,10 @@ use core::fmt::Write as _;
 use hashql_ast::node::expr::Expr;
 use hashql_core::{
     module::ModuleRegistry,
-    pretty::{PrettyOptions, PrettyPrint as _},
+    pretty::{Formatter, RenderOptions},
     r#type::environment::Environment,
 };
-use hashql_hir::{context::HirContext, intern::Interner, pretty::PrettyPrintEnvironment};
+use hashql_hir::{context::HirContext, intern::Interner, pretty::NodeFormatter};
 
 use super::{
     RunContext, Suite, SuiteDiagnostic,
@@ -63,18 +63,14 @@ impl Suite for HirLowerTypeInferenceIntrinsicsSuite {
 
         environment.substitution = substitution;
 
+        let formatter = Formatter::new(heap);
+        let mut formatter = NodeFormatter::with_defaults(&formatter, &environment, &context);
+
         let _ = writeln!(
             output,
             "\n{}\n\n{}",
             Header::new("HIR after type inference"),
-            node.pretty_print(
-                &PrettyPrintEnvironment {
-                    env: &environment,
-                    symbols: &context.symbols,
-                    map: &context.map,
-                },
-                PrettyOptions::default().without_color()
-            )
+            formatter.render(node, RenderOptions::default())
         );
 
         let _ = writeln!(output, "\n{}\n", Header::new("Intrinsics"));
@@ -91,14 +87,7 @@ impl Suite for HirLowerTypeInferenceIntrinsicsSuite {
                 output,
                 "{}\n",
                 Annotated {
-                    content: node.pretty_print(
-                        &PrettyPrintEnvironment {
-                            env: &environment,
-                            symbols: &context.symbols,
-                            map: &context.map,
-                        },
-                        PrettyOptions::default().without_color()
-                    ),
+                    content: formatter.render(node, RenderOptions::default()),
                     annotation: intrinsic
                 }
             );

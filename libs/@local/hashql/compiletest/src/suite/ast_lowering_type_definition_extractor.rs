@@ -11,13 +11,18 @@ use hashql_ast::{
     visit::Visitor as _,
 };
 use hashql_core::{
-    module::{ModuleRegistry, locals::Local, namespace::ModuleNamespace},
-    pretty::{PrettyOptions, PrettyPrint as _},
+    module::{
+        ModuleRegistry,
+        locals::{Local, TypeDef},
+        namespace::ModuleNamespace,
+    },
+    pretty::{Formatter, RenderOptions},
     span::SpanId,
-    r#type::environment::Environment,
+    r#type::{TypeFormatter, environment::Environment, kind::generic::GenericArgumentReference},
 };
 
 use super::{RunContext, Suite, SuiteDiagnostic, common::process_issues};
+use crate::suite::common::Annotated;
 
 pub(crate) struct AstLoweringTypeDefinitionExtractorSuite;
 
@@ -69,11 +74,24 @@ impl Suite for AstLoweringTypeDefinitionExtractorSuite {
         let mut locals: Vec<_> = locals.iter().collect();
         locals.sort_by_key(|&Local { name, .. }| name);
 
-        for def in locals {
+        let formatter = Formatter::new(heap);
+        let mut formatter = TypeFormatter::with_defaults(&formatter, &environment);
+
+        for &Local {
+            name,
+            value: TypeDef { id, arguments },
+        } in locals
+        {
             let _: Result<(), _> = write!(
                 output,
                 "\n\n{}",
-                &def.pretty_print(&environment, PrettyOptions::default().without_color())
+                Annotated {
+                    content: format!(
+                        "{name}{}",
+                        GenericArgumentReference::display_mangled(&arguments)
+                    ),
+                    annotation: formatter.render(id, RenderOptions::default())
+                }
             );
         }
 

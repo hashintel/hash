@@ -4,13 +4,13 @@ use hashql_ast::node::expr::Expr;
 use hashql_core::{
     collections::FastHashMap,
     module::ModuleRegistry,
-    pretty::{PrettyOptions, PrettyPrint as _},
+    pretty::{Formatter, RenderOptions},
     r#type::environment::Environment,
     value::{self, List, Opaque, Primitive, Struct, Value},
 };
 use hashql_eval::graph::read::{FilterSlice, GraphReadCompiler};
 use hashql_hir::{
-    context::HirContext, intern::Interner, node::NodeData, pretty::PrettyPrintEnvironment,
+    context::HirContext, intern::Interner, node::NodeData, pretty::NodeFormatter,
     visit::Visitor as _,
 };
 
@@ -52,18 +52,14 @@ impl Suite for EvalGraphReadEntitySuite {
             hashql_hir::lower::lower(node, &types, &mut environment, &mut context),
         )?;
 
+        let formatter = Formatter::new(heap);
+        let mut formatter = NodeFormatter::with_defaults(&formatter, &environment, &context);
+
         let _ = writeln!(
             output,
             "{}\n\n{}",
             Header::new("HIR"),
-            node.pretty_print(
-                &PrettyPrintEnvironment {
-                    env: &environment,
-                    symbols: &context.symbols,
-                    map: &context.map
-                },
-                PrettyOptions::default().without_color()
-            )
+            formatter.render(node, RenderOptions::default()),
         );
 
         let user_id_value = Value::Opaque(Opaque::new(

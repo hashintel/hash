@@ -1,7 +1,11 @@
 pub mod apply;
 pub mod param;
 
-use core::{fmt::Display, hash::Hash, ops::Deref};
+use core::{
+    fmt::{self, Display},
+    hash::Hash,
+    ops::Deref,
+};
 
 pub use self::{
     apply::{Apply, GenericSubstitution, GenericSubstitutions},
@@ -58,6 +62,23 @@ impl<'heap> GenericArgumentReference<'heap> {
         DisplayBuilder::new(references.iter().map(|reference| reference.name.demangle()))
             .separated(", ")
             .delimited("<", ">")
+    }
+
+    #[must_use]
+    pub fn display_mangled(references: &[Self]) -> impl Display {
+        DisplayBuilder::new(
+            references
+                .iter()
+                .map(|GenericArgumentReference { id, name }| {
+                    fmt::from_fn(|fmt| {
+                        Display::fmt(name, fmt)?;
+                        fmt.write_str("?")?;
+                        Display::fmt(id, fmt)
+                    })
+                }),
+        )
+        .separated(", ")
+        .delimited("<", ">")
     }
 }
 

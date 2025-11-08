@@ -29,6 +29,7 @@ impl UnOp {
         }
     }
 
+    #[must_use]
     pub const fn as_symbol(self) -> Symbol<'static> {
         match self {
             Self::Not => sym::symbol::exclamation_mark,

@@ -127,7 +127,7 @@ impl<'fmt, 'env, 'heap> NodeFormatter<'fmt, 'env, 'heap> {
     }
 }
 
-impl<'fmt, 'env, 'heap> FormatNode<'fmt, &NodeKind<'heap>> for NodeFormatter<'fmt, 'env, 'heap> {
+impl<'fmt, 'heap> FormatNode<'fmt, &NodeKind<'heap>> for NodeFormatter<'fmt, '_, 'heap> {
     fn format_node(&mut self, node: &NodeKind<'heap>) -> Doc<'fmt> {
         match node {
             NodeKind::Data(data) => self.format_node(data),
@@ -144,7 +144,7 @@ impl<'fmt, 'env, 'heap> FormatNode<'fmt, &NodeKind<'heap>> for NodeFormatter<'fm
     }
 }
 
-impl<'fmt, 'env, 'heap> FormatNode<'fmt, Node<'heap>> for NodeFormatter<'fmt, 'env, 'heap> {
+impl<'fmt, 'heap> FormatNode<'fmt, Node<'heap>> for NodeFormatter<'fmt, '_, 'heap> {
     fn format_node(&mut self, node: Node<'heap>) -> Doc<'fmt> {
         let previous = self.ptr;
         self.ptr = node.ptr();
@@ -156,7 +156,7 @@ impl<'fmt, 'env, 'heap> FormatNode<'fmt, Node<'heap>> for NodeFormatter<'fmt, 'e
     }
 }
 
-impl<'fmt, 'env, 'heap> FormatNode<'fmt, &Data<'heap>> for NodeFormatter<'fmt, 'env, 'heap> {
+impl<'fmt, 'heap> FormatNode<'fmt, &Data<'heap>> for NodeFormatter<'fmt, '_, 'heap> {
     fn format_node(&mut self, node: &Data<'heap>) -> Doc<'fmt> {
         match node {
             Data::Struct(r#struct) => self.format_node(r#struct),
@@ -168,7 +168,7 @@ impl<'fmt, 'env, 'heap> FormatNode<'fmt, &Data<'heap>> for NodeFormatter<'fmt, '
     }
 }
 
-impl<'fmt, 'env, 'heap> FormatNode<'fmt, &Struct<'heap>> for NodeFormatter<'fmt, 'env, 'heap> {
+impl<'fmt, 'heap> FormatNode<'fmt, &Struct<'heap>> for NodeFormatter<'fmt, '_, 'heap> {
     fn format_node(&mut self, Struct { fields }: &Struct<'heap>) -> Doc<'fmt> {
         let fmt = self.fmt;
 
@@ -180,7 +180,7 @@ impl<'fmt, 'env, 'heap> FormatNode<'fmt, &Struct<'heap>> for NodeFormatter<'fmt,
     }
 }
 
-impl<'fmt, 'env, 'heap> FormatNode<'fmt, &Dict<'heap>> for NodeFormatter<'fmt, 'env, 'heap> {
+impl<'fmt, 'heap> FormatNode<'fmt, &Dict<'heap>> for NodeFormatter<'fmt, '_, 'heap> {
     fn format_node(&mut self, Dict { fields }: &Dict<'heap>) -> Doc<'fmt> {
         let fmt = self.fmt;
 
@@ -192,7 +192,7 @@ impl<'fmt, 'env, 'heap> FormatNode<'fmt, &Dict<'heap>> for NodeFormatter<'fmt, '
     }
 }
 
-impl<'fmt, 'env, 'heap> FormatNode<'fmt, &Tuple<'heap>> for NodeFormatter<'fmt, 'env, 'heap> {
+impl<'fmt, 'heap> FormatNode<'fmt, &Tuple<'heap>> for NodeFormatter<'fmt, '_, 'heap> {
     fn format_node(&mut self, Tuple { fields }: &Tuple<'heap>) -> Doc<'fmt> {
         let fmt = self.fmt;
 
@@ -202,7 +202,7 @@ impl<'fmt, 'env, 'heap> FormatNode<'fmt, &Tuple<'heap>> for NodeFormatter<'fmt, 
     }
 }
 
-impl<'fmt, 'env, 'heap> FormatNode<'fmt, &List<'heap>> for NodeFormatter<'fmt, 'env, 'heap> {
+impl<'fmt, 'heap> FormatNode<'fmt, &List<'heap>> for NodeFormatter<'fmt, '_, 'heap> {
     fn format_node(&mut self, List { elements }: &List<'heap>) -> Doc<'fmt> {
         let fmt = self.fmt;
 
@@ -212,7 +212,7 @@ impl<'fmt, 'env, 'heap> FormatNode<'fmt, &List<'heap>> for NodeFormatter<'fmt, '
     }
 }
 
-impl<'fmt, 'env, 'heap> FormatNode<'fmt, &Primitive<'heap>> for NodeFormatter<'fmt, 'env, 'heap> {
+impl<'fmt, 'heap> FormatNode<'fmt, &Primitive<'heap>> for NodeFormatter<'fmt, '_, 'heap> {
     fn format_node(&mut self, node: &Primitive<'heap>) -> Doc<'fmt> {
         match node {
             Primitive::Null => self.fmt.literal(sym::lexical::null),
@@ -228,7 +228,7 @@ impl<'fmt, 'env, 'heap> FormatNode<'fmt, &Primitive<'heap>> for NodeFormatter<'f
     }
 }
 
-impl<'fmt, 'env, 'heap> FormatNode<'fmt, &Variable<'heap>> for NodeFormatter<'fmt, 'env, 'heap> {
+impl<'fmt, 'heap> FormatNode<'fmt, &Variable<'heap>> for NodeFormatter<'fmt, '_, 'heap> {
     fn format_node(&mut self, node: &Variable<'heap>) -> Doc<'fmt> {
         match node {
             Variable::Local(local_variable) => self.format_node(local_variable),
@@ -237,9 +237,7 @@ impl<'fmt, 'env, 'heap> FormatNode<'fmt, &Variable<'heap>> for NodeFormatter<'fm
     }
 }
 
-impl<'fmt, 'env, 'heap> FormatNode<'fmt, &LocalVariable<'heap>>
-    for NodeFormatter<'fmt, 'env, 'heap>
-{
+impl<'fmt, 'heap> FormatNode<'fmt, &LocalVariable<'heap>> for NodeFormatter<'fmt, '_, 'heap> {
     fn format_node(&mut self, LocalVariable { id, arguments }: &LocalVariable<'heap>) -> Doc<'fmt> {
         let name = self.fmt.variable(self.context.symbols.binder[id.value]);
 
@@ -252,9 +250,7 @@ impl<'fmt, 'env, 'heap> FormatNode<'fmt, &LocalVariable<'heap>>
     }
 }
 
-impl<'fmt, 'env, 'heap> FormatNode<'fmt, &QualifiedVariable<'heap>>
-    for NodeFormatter<'fmt, 'env, 'heap>
-{
+impl<'fmt, 'heap> FormatNode<'fmt, &QualifiedVariable<'heap>> for NodeFormatter<'fmt, '_, 'heap> {
     fn format_node(
         &mut self,
         QualifiedVariable { path, arguments }: &QualifiedVariable<'heap>,
@@ -269,7 +265,7 @@ impl<'fmt, 'env, 'heap> FormatNode<'fmt, &QualifiedVariable<'heap>>
     }
 }
 
-impl<'fmt, 'env, 'heap> FormatNode<'fmt, &Let<'heap>> for NodeFormatter<'fmt, 'env, 'heap> {
+impl<'fmt, 'heap> FormatNode<'fmt, &Let<'heap>> for NodeFormatter<'fmt, '_, 'heap> {
     fn format_node(&mut self, Let { bindings, body }: &Let<'heap>) -> Doc<'fmt> {
         let fmt = self.fmt;
 
@@ -292,7 +288,7 @@ impl<'fmt, 'env, 'heap> FormatNode<'fmt, &Let<'heap>> for NodeFormatter<'fmt, 'e
     }
 }
 
-impl<'fmt, 'env, 'heap> FormatNode<'fmt, &Binding<'heap>> for NodeFormatter<'fmt, 'env, 'heap> {
+impl<'fmt, 'heap> FormatNode<'fmt, &Binding<'heap>> for NodeFormatter<'fmt, '_, 'heap> {
     fn format_node(
         &mut self,
         Binding {
@@ -313,7 +309,7 @@ impl<'fmt, 'env, 'heap> FormatNode<'fmt, &Binding<'heap>> for NodeFormatter<'fmt
     }
 }
 
-impl<'fmt, 'env, 'heap> FormatNode<'fmt, &Operation<'heap>> for NodeFormatter<'fmt, 'env, 'heap> {
+impl<'fmt, 'heap> FormatNode<'fmt, &Operation<'heap>> for NodeFormatter<'fmt, '_, 'heap> {
     fn format_node(&mut self, node: &Operation<'heap>) -> Doc<'fmt> {
         match node {
             Operation::Type(type_operation) => self.format_node(type_operation),
@@ -324,9 +320,7 @@ impl<'fmt, 'env, 'heap> FormatNode<'fmt, &Operation<'heap>> for NodeFormatter<'f
     }
 }
 
-impl<'fmt, 'env, 'heap> FormatNode<'fmt, &TypeOperation<'heap>>
-    for NodeFormatter<'fmt, 'env, 'heap>
-{
+impl<'fmt, 'heap> FormatNode<'fmt, &TypeOperation<'heap>> for NodeFormatter<'fmt, '_, 'heap> {
     fn format_node(&mut self, node: &TypeOperation<'heap>) -> Doc<'fmt> {
         match node {
             TypeOperation::Assertion(type_assertion) => self.format_node(type_assertion),
@@ -335,9 +329,7 @@ impl<'fmt, 'env, 'heap> FormatNode<'fmt, &TypeOperation<'heap>>
     }
 }
 
-impl<'fmt, 'env, 'heap> FormatNode<'fmt, &TypeAssertion<'heap>>
-    for NodeFormatter<'fmt, 'env, 'heap>
-{
+impl<'fmt, 'heap> FormatNode<'fmt, &TypeAssertion<'heap>> for NodeFormatter<'fmt, '_, 'heap> {
     fn format_node(
         &mut self,
         TypeAssertion {
@@ -364,18 +356,14 @@ impl<'fmt, 'env, 'heap> FormatNode<'fmt, &TypeAssertion<'heap>>
     }
 }
 
-impl<'fmt, 'env, 'heap> FormatNode<'fmt, &TypeConstructor<'heap>>
-    for NodeFormatter<'fmt, 'env, 'heap>
-{
+impl<'fmt, 'heap> FormatNode<'fmt, &TypeConstructor<'heap>> for NodeFormatter<'fmt, '_, 'heap> {
     fn format_node(&mut self, TypeConstructor { name }: &TypeConstructor<'heap>) -> Doc<'fmt> {
         // Type constructors are like variables in representation
         self.fmt.type_name(*name)
     }
 }
 
-impl<'fmt, 'env, 'heap> FormatNode<'fmt, &BinaryOperation<'heap>>
-    for NodeFormatter<'fmt, 'env, 'heap>
-{
+impl<'fmt, 'heap> FormatNode<'fmt, &BinaryOperation<'heap>> for NodeFormatter<'fmt, '_, 'heap> {
     fn format_node(
         &mut self,
         BinaryOperation { op, left, right }: &BinaryOperation<'heap>,
@@ -391,9 +379,7 @@ impl<'fmt, 'env, 'heap> FormatNode<'fmt, &BinaryOperation<'heap>>
     }
 }
 
-impl<'fmt, 'env, 'heap> FormatNode<'fmt, &UnaryOperation<'heap>>
-    for NodeFormatter<'fmt, 'env, 'heap>
-{
+impl<'fmt, 'heap> FormatNode<'fmt, &UnaryOperation<'heap>> for NodeFormatter<'fmt, '_, 'heap> {
     fn format_node(&mut self, UnaryOperation { op, expr }: &UnaryOperation<'heap>) -> Doc<'fmt> {
         // Format as: op expr (no space for prefix unary operators)
         let expr = self.format_node(*expr);
@@ -402,9 +388,7 @@ impl<'fmt, 'env, 'heap> FormatNode<'fmt, &UnaryOperation<'heap>>
     }
 }
 
-impl<'fmt, 'env, 'heap> FormatNode<'fmt, &InputOperation<'heap>>
-    for NodeFormatter<'fmt, 'env, 'heap>
-{
+impl<'fmt, 'heap> FormatNode<'fmt, &InputOperation<'heap>> for NodeFormatter<'fmt, '_, 'heap> {
     fn format_node(&mut self, InputOperation { op, name }: &InputOperation<'heap>) -> Doc<'fmt> {
         use crate::node::operation::InputOp;
 
@@ -428,7 +412,7 @@ impl<'fmt, 'env, 'heap> FormatNode<'fmt, &InputOperation<'heap>>
     }
 }
 
-impl<'fmt, 'env, 'heap> FormatNode<'fmt, &Access<'heap>> for NodeFormatter<'fmt, 'env, 'heap> {
+impl<'fmt, 'heap> FormatNode<'fmt, &Access<'heap>> for NodeFormatter<'fmt, '_, 'heap> {
     fn format_node(&mut self, node: &Access<'heap>) -> Doc<'fmt> {
         match node {
             Access::Field(field_access) => self.format_node(field_access),
@@ -437,7 +421,7 @@ impl<'fmt, 'env, 'heap> FormatNode<'fmt, &Access<'heap>> for NodeFormatter<'fmt,
     }
 }
 
-impl<'fmt, 'env, 'heap> FormatNode<'fmt, &FieldAccess<'heap>> for NodeFormatter<'fmt, 'env, 'heap> {
+impl<'fmt, 'heap> FormatNode<'fmt, &FieldAccess<'heap>> for NodeFormatter<'fmt, '_, 'heap> {
     fn format_node(&mut self, FieldAccess { expr, field }: &FieldAccess<'heap>) -> Doc<'fmt> {
         // Format as: expr.field
         let expr = self.format_node(*expr);
@@ -447,7 +431,7 @@ impl<'fmt, 'env, 'heap> FormatNode<'fmt, &FieldAccess<'heap>> for NodeFormatter<
     }
 }
 
-impl<'fmt, 'env, 'heap> FormatNode<'fmt, &IndexAccess<'heap>> for NodeFormatter<'fmt, 'env, 'heap> {
+impl<'fmt, 'heap> FormatNode<'fmt, &IndexAccess<'heap>> for NodeFormatter<'fmt, '_, 'heap> {
     fn format_node(&mut self, IndexAccess { expr, index }: &IndexAccess<'heap>) -> Doc<'fmt> {
         // Format as: expr[index]
         let expr = self.format_node(*expr);
@@ -457,7 +441,7 @@ impl<'fmt, 'env, 'heap> FormatNode<'fmt, &IndexAccess<'heap>> for NodeFormatter<
     }
 }
 
-impl<'fmt, 'env, 'heap> FormatNode<'fmt, &Call<'heap>> for NodeFormatter<'fmt, 'env, 'heap> {
+impl<'fmt, 'heap> FormatNode<'fmt, &Call<'heap>> for NodeFormatter<'fmt, '_, 'heap> {
     fn format_node(
         &mut self,
         Call {
@@ -484,7 +468,7 @@ impl<'fmt, 'env, 'heap> FormatNode<'fmt, &Call<'heap>> for NodeFormatter<'fmt, '
     }
 }
 
-impl<'fmt, 'env, 'heap> FormatNode<'fmt, &Branch<'heap>> for NodeFormatter<'fmt, 'env, 'heap> {
+impl<'fmt, 'heap> FormatNode<'fmt, &Branch<'heap>> for NodeFormatter<'fmt, '_, 'heap> {
     fn format_node(&mut self, node: &Branch<'heap>) -> Doc<'fmt> {
         match node {
             Branch::If(r#if) => self.format_node(r#if),
@@ -492,7 +476,7 @@ impl<'fmt, 'env, 'heap> FormatNode<'fmt, &Branch<'heap>> for NodeFormatter<'fmt,
     }
 }
 
-impl<'fmt, 'env, 'heap> FormatNode<'fmt, &If<'heap>> for NodeFormatter<'fmt, 'env, 'heap> {
+impl<'fmt, 'heap> FormatNode<'fmt, &If<'heap>> for NodeFormatter<'fmt, '_, 'heap> {
     fn format_node(&mut self, &If { test, then, r#else }: &If<'heap>) -> Doc<'fmt> {
         // Format as: if test then branch else branch
         let if_keyword = self.fmt.keyword(sym::lexical::r#if);
@@ -517,7 +501,7 @@ impl<'fmt, 'env, 'heap> FormatNode<'fmt, &If<'heap>> for NodeFormatter<'fmt, 'en
     }
 }
 
-impl<'fmt, 'env, 'heap> FormatNode<'fmt, &Closure<'heap>> for NodeFormatter<'fmt, 'env, 'heap> {
+impl<'fmt, 'heap> FormatNode<'fmt, &Closure<'heap>> for NodeFormatter<'fmt, '_, 'heap> {
     fn format_node(
         &mut self,
         Closure {
@@ -586,7 +570,7 @@ impl<'fmt, 'env, 'heap> FormatNode<'fmt, &Closure<'heap>> for NodeFormatter<'fmt
     }
 }
 
-impl<'fmt, 'env, 'heap> FormatNode<'fmt, &Thunk<'heap>> for NodeFormatter<'fmt, 'env, 'heap> {
+impl<'fmt, 'heap> FormatNode<'fmt, &Thunk<'heap>> for NodeFormatter<'fmt, '_, 'heap> {
     fn format_node(&mut self, Thunk { body }: &Thunk<'heap>) -> Doc<'fmt> {
         // Format thunks differently from closures using the thunk keyword
         // Format as: thunk -> body
@@ -602,7 +586,7 @@ impl<'fmt, 'env, 'heap> FormatNode<'fmt, &Thunk<'heap>> for NodeFormatter<'fmt, 
     }
 }
 
-impl<'fmt, 'env, 'heap> FormatNode<'fmt, &Graph<'heap>> for NodeFormatter<'fmt, 'env, 'heap> {
+impl<'fmt, 'heap> FormatNode<'fmt, &Graph<'heap>> for NodeFormatter<'fmt, '_, 'heap> {
     fn format_node(&mut self, node: &Graph<'heap>) -> Doc<'fmt> {
         match node {
             Graph::Read(read) => self.format_node(read),
@@ -610,13 +594,13 @@ impl<'fmt, 'env, 'heap> FormatNode<'fmt, &Graph<'heap>> for NodeFormatter<'fmt, 
     }
 }
 
-impl<'fmt, 'env, 'heap> FormatNode<'fmt, &GraphRead<'heap>> for NodeFormatter<'fmt, 'env, 'heap> {
+impl<'fmt, 'heap> FormatNode<'fmt, &GraphRead<'heap>> for NodeFormatter<'fmt, '_, 'heap> {
     fn format_node(&mut self, GraphRead { head, body, tail }: &GraphRead<'heap>) -> Doc<'fmt> {
         // Format as a pipeline: head | body operations | tail
         let mut doc = self.format_node(head);
 
         // Add body operations with pipe operator
-        for operation in body.iter() {
+        for operation in body {
             let pipe = self.fmt.op(sym::symbol::pipe);
             let op_doc = self.format_node(operation);
             doc = doc
@@ -636,9 +620,7 @@ impl<'fmt, 'env, 'heap> FormatNode<'fmt, &GraphRead<'heap>> for NodeFormatter<'f
     }
 }
 
-impl<'fmt, 'env, 'heap> FormatNode<'fmt, &GraphReadHead<'heap>>
-    for NodeFormatter<'fmt, 'env, 'heap>
-{
+impl<'fmt, 'heap> FormatNode<'fmt, &GraphReadHead<'heap>> for NodeFormatter<'fmt, '_, 'heap> {
     fn format_node(&mut self, node: &GraphReadHead<'heap>) -> Doc<'fmt> {
         match node {
             GraphReadHead::Entity { axis } => {
@@ -651,9 +633,7 @@ impl<'fmt, 'env, 'heap> FormatNode<'fmt, &GraphReadHead<'heap>>
     }
 }
 
-impl<'fmt, 'env, 'heap> FormatNode<'fmt, &GraphReadBody<'heap>>
-    for NodeFormatter<'fmt, 'env, 'heap>
-{
+impl<'fmt, 'heap> FormatNode<'fmt, &GraphReadBody<'heap>> for NodeFormatter<'fmt, '_, 'heap> {
     fn format_node(&mut self, node: &GraphReadBody<'heap>) -> Doc<'fmt> {
         match node {
             GraphReadBody::Filter(closure) => {
@@ -666,7 +646,7 @@ impl<'fmt, 'env, 'heap> FormatNode<'fmt, &GraphReadBody<'heap>>
     }
 }
 
-impl<'fmt, 'env, 'heap> FormatNode<'fmt, GraphReadTail> for NodeFormatter<'fmt, 'env, 'heap> {
+impl<'fmt> FormatNode<'fmt, GraphReadTail> for NodeFormatter<'fmt, '_, '_> {
     fn format_node(&mut self, node: GraphReadTail) -> Doc<'fmt> {
         match node {
             GraphReadTail::Collect => {

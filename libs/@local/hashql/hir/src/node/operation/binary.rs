@@ -68,6 +68,7 @@ impl BinOp {
         }
     }
 
+    #[must_use]
     pub const fn as_symbol(self) -> Symbol<'static> {
         match self {
             Self::And => sym::symbol::and,
