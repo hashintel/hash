@@ -259,7 +259,7 @@ where
     T: Copy,
     U: Copy,
 {
-    let formatter = Formatter::new();
+    let formatter = Formatter::new(env.heap);
     let mut formatter = TypeFormatter::new(&formatter, env, TypeFormatterOptions::default());
 
     let mut diagnostic =
@@ -465,7 +465,7 @@ where
     K1: Copy,
     K2: Copy,
 {
-    let formatter = Formatter::new();
+    let formatter = Formatter::new(env.heap);
     let mut formatter = TypeFormatter::new(&formatter, env, TypeFormatterOptions::default());
 
     let mut diagnostic = Diagnostic::new(
@@ -563,7 +563,7 @@ where
     for<'fmt> TypeFormatter<'fmt, 'env, 'heap>: FormatType<'fmt, K>,
     K: Copy,
 {
-    let formatter = Formatter::new();
+    let formatter = Formatter::new(env.heap);
     let mut formatter = TypeFormatter::new(&formatter, env, TypeFormatterOptions::default());
 
     let mut diagnostic =
@@ -603,7 +603,7 @@ where
     for<'fmt> TypeFormatter<'fmt, 'env, 'heap>: FormatType<'fmt, L>,
     L: Copy,
 {
-    let formatter = Formatter::new();
+    let formatter = Formatter::new(env.heap);
     let mut formatter = TypeFormatter::new(&formatter, env, TypeFormatterOptions::default());
 
     let mut diagnostic =
@@ -644,7 +644,7 @@ where
     K1: Copy,
     K2: Copy,
 {
-    let formatter = Formatter::new();
+    let formatter = Formatter::new(env.heap);
     let mut formatter = TypeFormatter::new(&formatter, env, TypeFormatterOptions::default());
 
     let mut diagnostic = Diagnostic::new(
@@ -853,13 +853,13 @@ pub(crate) fn unconstrained_type_variable(variable: Variable) -> TypeCheckDiagno
 }
 
 /// Creates a diagnostic for when a lower bound is incompatible with an equality constraint
-pub(crate) fn incompatible_lower_equal_constraint<'env, 'heap>(
-    env: &'env Environment<'heap>,
+pub(crate) fn incompatible_lower_equal_constraint<'heap>(
+    env: &Environment<'heap>,
     variable: Variable,
     lower_bound: Type<'heap>,
     equals: Type<'heap>,
 ) -> TypeCheckDiagnostic {
-    let formatter = Formatter::new();
+    let formatter = Formatter::new(env.heap);
     let mut formatter = TypeFormatter::new(&formatter, env, TypeFormatterOptions::default());
 
     let mut diagnostic = Diagnostic::new(
@@ -909,13 +909,13 @@ pub(crate) fn incompatible_lower_equal_constraint<'env, 'heap>(
 }
 
 /// Creates a diagnostic for when an upper bound is incompatible with an equality constraint
-pub(crate) fn incompatible_upper_equal_constraint<'env, 'heap>(
-    env: &'env Environment<'heap>,
+pub(crate) fn incompatible_upper_equal_constraint<'heap>(
+    env: &Environment<'heap>,
     variable: Variable,
     equal: Type<'heap>,
     upper: Type<'heap>,
 ) -> TypeCheckDiagnostic {
-    let formatter = Formatter::new();
+    let formatter = Formatter::new(env.heap);
     let mut formatter = TypeFormatter::new(&formatter, env, TypeFormatterOptions::default());
 
     let mut diagnostic = Diagnostic::new(
@@ -964,14 +964,14 @@ pub(crate) fn incompatible_upper_equal_constraint<'env, 'heap>(
 }
 
 /// Creates a diagnostic for when a lower bound is not a subtype of an upper bound in a constraint
-pub(crate) fn bound_constraint_violation<'env: 'heap, 'heap>(
-    env: &'env Environment<'heap>,
+pub(crate) fn bound_constraint_violation<'heap>(
+    env: &Environment<'heap>,
     variable: Variable,
     lower_bound: Type<'heap>,
     upper_bound: Type<'heap>,
 ) -> TypeCheckDiagnostic {
-    let formatter_ref = Formatter::new();
-    let mut formatter = TypeFormatter::new(&formatter_ref, env, TypeFormatterOptions::default());
+    let formatter = Formatter::new(env.heap);
+    let mut formatter = TypeFormatter::new(&formatter, env, TypeFormatterOptions::default());
 
     let mut diagnostic = Diagnostic::new(
         TypeCheckDiagnosticCategory::BoundConstraintViolation,
@@ -1034,13 +1034,13 @@ pub(crate) fn bound_constraint_violation<'env: 'heap, 'heap>(
 }
 
 /// Creates a diagnostic for when a type variable has incompatible equality constraints
-pub(crate) fn conflicting_equality_constraints<'env, 'heap>(
-    env: &'env Environment<'heap>,
+pub(crate) fn conflicting_equality_constraints<'heap>(
+    env: &Environment<'heap>,
     variable: Variable,
     existing: Type<'heap>,
     new_type: Type<'heap>,
 ) -> TypeCheckDiagnostic {
-    let formatter = Formatter::new();
+    let formatter = Formatter::new(env.heap);
     let mut formatter = TypeFormatter::new(&formatter, env, TypeFormatterOptions::default());
 
     let mut diagnostic = Diagnostic::new(
@@ -1140,7 +1140,7 @@ where
     for<'fmt> TypeFormatter<'fmt, 'env, 'heap>: FormatType<'fmt, K>,
     K: Copy,
 {
-    let formatter = Formatter::new();
+    let formatter = Formatter::new(env.heap);
     let mut formatter = TypeFormatter::new(&formatter, env, TypeFormatterOptions::default());
 
     let mut diagnostic =
@@ -1210,7 +1210,7 @@ where
     for<'fmt> TypeFormatter<'fmt, 'env, 'heap>: FormatType<'fmt, K>,
     K: Copy,
 {
-    let formatter = Formatter::new();
+    let formatter = Formatter::new(env.heap);
     let mut formatter = TypeFormatter::new(&formatter, env, TypeFormatterOptions::default());
 
     let mut diagnostic = Diagnostic::new(
@@ -1254,7 +1254,7 @@ where
     for<'fmt> TypeFormatter<'fmt, 'env, 'heap>: FormatType<'fmt, K>,
     K: Copy,
 {
-    let formatter = Formatter::new();
+    let formatter = Formatter::new(env.heap);
     let mut formatter = TypeFormatter::new(&formatter, env, TypeFormatterOptions::default());
 
     let mut diagnostic = Diagnostic::new(
@@ -1341,7 +1341,7 @@ where
     for<'fmt> TypeFormatter<'fmt, 'env, 'heap>: FormatType<'fmt, K>,
     K: Copy,
 {
-    let formatter = Formatter::new();
+    let formatter = Formatter::new(env.heap);
     let mut formatter = TypeFormatter::new(&formatter, env, TypeFormatterOptions::default());
 
     let mut diagnostic = Diagnostic::new(
@@ -1464,10 +1464,10 @@ pub(crate) fn unsupported_subscript<'env, 'heap, K>(
     env: &'env Environment<'heap>,
 ) -> TypeCheckDiagnostic
 where
-    for<'fmt> TypeFormatter<'fmt, 'env, 'heap>: FormatType<'fmt, K>,
+    for<'fmt> TypeFormatter<'fmt, 'env, 'heap>: FormatType<'fmt, K> + FormatType<'fmt, Type<'heap>>,
     K: Copy,
 {
-    let formatter = Formatter::new();
+    let formatter = Formatter::new(env.heap);
     let mut formatter = TypeFormatter::new(&formatter, env, TypeFormatterOptions::default());
 
     let index = env.r#type(index);
@@ -1569,7 +1569,7 @@ where
     for<'fmt> TypeFormatter<'fmt, 'env, 'heap>: FormatType<'fmt, K>,
     K: Copy,
 {
-    let formatter = Formatter::new();
+    let formatter = Formatter::new(env.heap);
     let mut formatter = TypeFormatter::new(&formatter, env, TypeFormatterOptions::default());
 
     let mut diagnostic = Diagnostic::new(
@@ -1615,7 +1615,7 @@ where
     for<'fmt> TypeFormatter<'fmt, 'env, 'heap>: FormatType<'fmt, K>,
     K: Copy,
 {
-    let formatter = Formatter::new();
+    let formatter = Formatter::new(env.heap);
     let mut formatter = TypeFormatter::new(&formatter, env, TypeFormatterOptions::default());
 
     let index = env.r#type(index);
@@ -1747,10 +1747,10 @@ pub(crate) fn list_subscript_mismatch<'env, 'heap, K>(
     env: &'env Environment<'heap>,
 ) -> TypeCheckDiagnostic
 where
-    for<'fmt> TypeFormatter<'fmt, 'env, 'heap>: FormatType<'fmt, K>,
+    for<'fmt> TypeFormatter<'fmt, 'env, 'heap>: FormatType<'fmt, K> + FormatType<'fmt, Type<'heap>>,
     K: Copy,
 {
-    let formatter = Formatter::new();
+    let formatter = Formatter::new(env.heap);
     let mut formatter = TypeFormatter::new(&formatter, env, TypeFormatterOptions::default());
 
     let index = env.r#type(index);
@@ -1785,12 +1785,12 @@ where
     diagnostic
 }
 
-pub(crate) fn dict_subscript_mismatch<'env, 'heap>(
+pub(crate) fn dict_subscript_mismatch<'heap>(
     dict: Type<'heap, DictType>,
     index: TypeId,
-    env: &'env Environment<'heap>,
+    env: &Environment<'heap>,
 ) -> TypeCheckDiagnostic {
-    let formatter = Formatter::new();
+    let formatter = Formatter::new(env.heap);
     let mut formatter = TypeFormatter::new(&formatter, env, TypeFormatterOptions::default());
 
     let index = env.r#type(index);
@@ -1835,12 +1835,12 @@ pub(crate) fn dict_subscript_mismatch<'env, 'heap>(
 /// This occurs when the type system determines that no valid type can satisfy
 /// the upper bound constraint for an inference variable, typically indicating
 /// contradictory type requirements or unreachable code paths.
-pub(crate) fn unsatisfiable_upper_constraint<'env, 'heap>(
-    env: &'env Environment<'heap>,
+pub(crate) fn unsatisfiable_upper_constraint(
+    env: &Environment<'_>,
     upper_constraint: TypeId,
     variable: Variable,
 ) -> TypeCheckDiagnostic {
-    let formatter = Formatter::new();
+    let formatter = Formatter::new(env.heap);
     let mut formatter = TypeFormatter::new(&formatter, env, TypeFormatterOptions::default());
 
     let upper_type = env.r#type(upper_constraint);

@@ -161,7 +161,9 @@ impl<'heap> IntersectionType<'heap> {
         env: &mut AnalysisEnvironment<'env, 'heap>,
     ) -> bool
     where
-        TypeFormatter<'env, 'heap>: FormatType<'env, T> + FormatType<'env, U>,
+        for<'fmt> TypeFormatter<'fmt, 'env, 'heap>: FormatType<'fmt, T> + FormatType<'fmt, U>,
+        T: Copy,
+        U: Copy,
     {
         // Empty intersection (corresponds to the Unknown/top type) is a supertype of everything
         if supertype_variants.is_empty() {
@@ -211,7 +213,9 @@ impl<'heap> IntersectionType<'heap> {
         env: &mut AnalysisEnvironment<'env, 'heap>,
     ) -> bool
     where
-        TypeFormatter<'env, 'heap>: FormatType<'env, T> + FormatType<'env, U>,
+        for<'fmt> TypeFormatter<'fmt, 'env, 'heap>: FormatType<'fmt, T> + FormatType<'fmt, U>,
+        T: Copy,
+        U: Copy,
     {
         // Empty intersections are only equivalent to other empty intersections
         // As an empty intersection corresponds to `Unknown`, therefore only `Unknown ≡ Unknown`

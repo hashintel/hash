@@ -520,7 +520,7 @@ pub(crate) mod test {
 
         let join1 = lattice.join(a, a);
 
-        let formatter = Formatter::new();
+        let formatter = Formatter::new(env.heap);
         let mut formatter = TypeFormatter::with_defaults(&formatter, env);
 
         assert!(
@@ -548,7 +548,7 @@ pub(crate) mod test {
         let join1 = lattice.join(a, b);
         let join2 = lattice.join(b, a);
 
-        let formatter = Formatter::new();
+        let formatter = Formatter::new(env.heap);
         let mut formatter = TypeFormatter::with_defaults(&formatter, env);
 
         assert!(
@@ -580,7 +580,7 @@ pub(crate) mod test {
         let join2_ab = lattice.join(a, b);
         let join2 = lattice.join(join2_ab, c);
 
-        let formatter = Formatter::new();
+        let formatter = Formatter::new(env.heap);
         let mut formatter = TypeFormatter::with_defaults(&formatter, env);
 
         assert!(
@@ -612,7 +612,7 @@ pub(crate) mod test {
         let meet1 = lattice.meet(a, b); // String and Integer => Never
         let join1 = lattice.join(a, meet1); // Number or Never => Number
 
-        let formatter = Formatter::new();
+        let formatter = Formatter::new(env.heap);
         let mut formatter = TypeFormatter::with_defaults(&formatter, env);
 
         assert!(

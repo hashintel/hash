@@ -2,8 +2,6 @@ pub(crate) mod solver;
 mod variable;
 mod visit;
 
-use pretty::RcDoc;
-
 pub use self::{
     solver::InferenceSolver,
     variable::{Variable, VariableKind},

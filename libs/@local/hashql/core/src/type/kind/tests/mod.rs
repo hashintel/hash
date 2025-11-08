@@ -65,8 +65,8 @@ pub(crate) fn assert_lattice(env: &Environment, lhs: &[TypeId], rhs: &[TypeId]) 
 
 #[track_caller]
 pub(crate) fn assert_equivalent(env: &Environment, lhs: TypeId, rhs: TypeId) {
-    let formatter = Formatter::new();
-    let mut formatter = TypeFormatter::with_defaults(&formatter, &env);
+    let formatter = Formatter::new(env.heap);
+    let mut formatter = TypeFormatter::with_defaults(&formatter, env);
 
     let mut analysis = AnalysisEnvironment::new(env);
 
@@ -76,15 +76,15 @@ pub(crate) fn assert_equivalent(env: &Environment, lhs: TypeId, rhs: TypeId) {
     assert!(
         analysis.is_equivalent(lhs, rhs),
         "{} != {}",
-        pretty::render(&lhs, RenderOptions::default()),
-        pretty::render(&rhs, RenderOptions::default())
+        pretty::render(lhs_repr, RenderOptions::default()),
+        pretty::render(rhs_repr, RenderOptions::default())
     );
 }
 
 #[track_caller]
 pub(crate) fn assert_is_subtype(env: &Environment, lhs: TypeId, rhs: TypeId) {
-    let formatter = Formatter::new();
-    let mut formatter = TypeFormatter::with_defaults(&formatter, &env);
+    let formatter = Formatter::new(env.heap);
+    let mut formatter = TypeFormatter::with_defaults(&formatter, env);
 
     let mut analysis = AnalysisEnvironment::new(env);
 

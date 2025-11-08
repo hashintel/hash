@@ -1291,8 +1291,8 @@ fn instantiate_interdependent() {
     let mut instantiate = InstantiateEnvironment::new(&env);
     let type_id = instantiate.instantiate(value);
 
-    let formatter = Formatter::new();
-    let mut formatter = TypeFormatter::with_defaults(&formatter, env);
+    let formatter = Formatter::new(env.heap);
+    let mut formatter = TypeFormatter::with_defaults(&formatter, &env);
 
     // The type is complicated enough that it isn't feasible to test it through assertions.
     insta::assert_snapshot!(pretty::render(

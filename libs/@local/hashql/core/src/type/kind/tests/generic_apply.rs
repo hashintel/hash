@@ -564,7 +564,7 @@ fn simplify_instantiate_recursive() {
     let mut instantiate = InstantiateEnvironment::new(&env);
     let result_id = simplify.simplify(instantiate.instantiate(recursive.id));
 
-    let formatter = Formatter::new();
+    let formatter = Formatter::new(env.heap);
     let mut formatter = TypeFormatter::new(
         &formatter,
         &env,
@@ -896,10 +896,10 @@ fn instantiated_nested() {
     let result_id = instantiate.instantiate(bar);
     let result_id = SimplifyEnvironment::new(&env).simplify(result_id);
 
-    let formatter = Formatter::new();
+    let formatter = Formatter::new(env.heap);
     let mut formatter = TypeFormatter::new(
         &formatter,
-        env,
+        &env,
         TypeFormatterOptions::default().with_depth_tracking(None),
     );
 
@@ -983,10 +983,10 @@ fn instantiate_mutually_recursive() {
     let result_id = instantiate.instantiate(a.id);
     let result_id = SimplifyEnvironment::new(&env).simplify(result_id);
 
-    let formatter = Formatter::new();
+    let formatter = Formatter::new(env.heap);
     let mut formatter = TypeFormatter::new(
         &formatter,
-        env,
+        &env,
         TypeFormatterOptions::default().with_depth_tracking(None),
     );
 
@@ -1064,10 +1064,10 @@ fn simplify_recursive_unused() {
     let result_id = instantiate.instantiate(a.id);
     let result_id = SimplifyEnvironment::new(&env).simplify(result_id);
 
-    let formatter = Formatter::new();
+    let formatter = Formatter::new(env.heap);
     let mut formatter = TypeFormatter::new(
         &formatter,
-        env,
+        &env,
         TypeFormatterOptions::default().with_depth_tracking(None),
     );
 
@@ -1137,10 +1137,10 @@ fn instantiate_different_substitutions() {
     let mut instantiate = InstantiateEnvironment::new(&env);
     let result_id = instantiate.instantiate(bar);
 
-    let formatter = Formatter::new();
+    let formatter = Formatter::new(env.heap);
     let mut formatter = TypeFormatter::new(
         &formatter,
-        env,
+        &env,
         TypeFormatterOptions::default().with_depth_tracking(None),
     );
 
@@ -1205,10 +1205,10 @@ fn instantiate_partial() {
     let mut instantiate = InstantiateEnvironment::new(&env);
     let result_id = instantiate.instantiate(foo);
 
-    let formatter = Formatter::new();
+    let formatter = Formatter::new(env.heap);
     let mut formatter = TypeFormatter::new(
         &formatter,
-        env,
+        &env,
         TypeFormatterOptions::default().with_depth_tracking(None),
     );
 

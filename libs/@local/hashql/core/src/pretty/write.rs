@@ -6,7 +6,7 @@ use pretty::{Render, RenderAnnotated};
 
 use super::semantic::Semantic;
 
-struct Never(!);
+pub(super) struct Never(!);
 
 impl io::Write for Never {
     fn write(&mut self, _: &[u8]) -> io::Result<usize> {
@@ -32,15 +32,15 @@ pub(super) enum RenderError {
 impl RenderError {
     pub(super) fn into_io(self) -> io::Error {
         match self {
-            RenderError::Io(error) => error,
-            RenderError::Fmt(_) => io::Error::new(io::ErrorKind::Other, "fmt error"),
+            Self::Io(error) => error,
+            Self::Fmt(error) => io::Error::other(error),
         }
     }
 
     pub(super) fn into_fmt(self) -> fmt::Error {
         match self {
-            RenderError::Io(_) => fmt::Error,
-            RenderError::Fmt(error) => error,
+            Self::Io(_) => fmt::Error,
+            Self::Fmt(error) => error,
         }
     }
 }
@@ -50,13 +50,13 @@ enum Backend<F, I> {
     Io(I),
 }
 
-pub(crate) struct PlainWriter<F, I> {
+pub(super) struct PlainWriter<F, I> {
     backend: Backend<F, I>,
 }
 
 impl<I> PlainWriter<Never, I> {
     /// Creates a new plain writer.
-    pub const fn new_io(inner: I) -> Self {
+    pub(super) const fn new_io(inner: I) -> Self {
         Self {
             backend: Backend::Io(inner),
         }
@@ -65,7 +65,7 @@ impl<I> PlainWriter<Never, I> {
 
 impl<F> PlainWriter<F, Never> {
     /// Creates a new plain writer.
-    pub const fn new_fmt(inner: F) -> Self {
+    pub(super) const fn new_fmt(inner: F) -> Self {
         Self {
             backend: Backend::Fmt(inner),
         }
@@ -132,14 +132,14 @@ where
 }
 
 /// Writer that renders documents with semantic annotations as ANSI colors.
-pub(crate) struct AnsiWriter<F, I> {
+pub(super) struct AnsiWriter<F, I> {
     stack: Vec<Style>,
     plain: PlainWriter<F, I>,
 }
 
 impl<I> AnsiWriter<Never, I> {
     /// Creates a new styled writer.
-    pub const fn new_io(inner: I) -> Self {
+    pub(super) const fn new_io(inner: I) -> Self {
         Self {
             stack: Vec::new(),
             plain: PlainWriter::new_io(inner),
@@ -149,7 +149,7 @@ impl<I> AnsiWriter<Never, I> {
 
 impl<F> AnsiWriter<F, Never> {
     /// Creates a new styled writer.
-    pub const fn new_fmt(inner: F) -> Self {
+    pub(super) const fn new_fmt(inner: F) -> Self {
         Self {
             stack: Vec::new(),
             plain: PlainWriter::new_fmt(inner),

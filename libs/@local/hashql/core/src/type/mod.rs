@@ -15,7 +15,10 @@ pub mod visit;
 
 use core::ops::Receiver;
 
-pub use self::builder::TypeBuilder;
+pub use self::{
+    builder::TypeBuilder,
+    pretty::{TypeFormatter, TypeFormatterOptions},
+};
 use self::{inference::Variable, kind::TypeKind};
 use crate::{
     id::{self, HasId},

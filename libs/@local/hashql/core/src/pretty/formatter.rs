@@ -8,7 +8,7 @@ use core::iter;
 use pretty::{Arena, DocAllocator as _, DocBuilder};
 
 use super::semantic::Semantic;
-use crate::symbol::Symbol;
+use crate::{heap::Heap, symbol::Symbol};
 
 pub type Doc<'alloc> = DocBuilder<'alloc, pretty::Arena<'alloc, Semantic>, Semantic>;
 
@@ -16,16 +16,18 @@ pub type Doc<'alloc> = DocBuilder<'alloc, pretty::Arena<'alloc, Semantic>, Seman
 ///
 /// This is the primary interface for building formatted documents.
 /// It owns the arena and provides all necessary primitives for document construction.
-pub struct Formatter<'alloc> {
+pub struct Formatter<'alloc, 'heap> {
     arena: Arena<'alloc, Semantic>,
+    heap: &'heap Heap,
 }
 
-impl<'alloc> Formatter<'alloc> {
+impl<'alloc, 'heap> Formatter<'alloc, 'heap> {
     /// Creates a new pretty printer.
     #[must_use]
-    pub fn new() -> Self {
+    pub fn new(heap: &'heap Heap) -> Self {
         Self {
             arena: Arena::new(),
+            heap,
         }
     }
 
@@ -39,12 +41,12 @@ impl<'alloc> Formatter<'alloc> {
     // === Semantic constructors ===
 
     /// Creates a keyword (let, in, if, fn, etc.).
-    pub fn keyword<'heap: 'alloc>(&'alloc self, text: Symbol<'heap>) -> Doc<'alloc> {
+    pub fn keyword(&'alloc self, text: Symbol<'heap>) -> Doc<'alloc> {
         self.arena.text(text.unwrap()).annotate(Semantic::Keyword)
     }
 
     /// Creates a type name (Integer, String, List, etc.).
-    pub fn type_name<'heap: 'alloc>(&'alloc self, text: Symbol<'heap>) -> Doc<'alloc> {
+    pub fn type_name(&'alloc self, text: Symbol<'heap>) -> Doc<'alloc> {
         self.arena.text(text.unwrap()).annotate(Semantic::TypeName)
     }
 
@@ -53,7 +55,7 @@ impl<'alloc> Formatter<'alloc> {
     }
 
     /// Creates a variable or function name.
-    pub fn variable<'heap: 'alloc>(&'alloc self, text: Symbol<'heap>) -> Doc<'alloc> {
+    pub fn variable(&'alloc self, text: Symbol<'heap>) -> Doc<'alloc> {
         self.arena.text(text.unwrap()).annotate(Semantic::Variable)
     }
 
@@ -63,7 +65,7 @@ impl<'alloc> Formatter<'alloc> {
     }
 
     /// Creates an operator (+, ->, =>, |, &, etc.).
-    pub fn op(&'alloc self, text: Symbol<'alloc>) -> Doc<'alloc> {
+    pub fn op(&'alloc self, text: Symbol<'heap>) -> Doc<'alloc> {
         self.op_str(text.unwrap())
     }
 
@@ -72,22 +74,22 @@ impl<'alloc> Formatter<'alloc> {
     }
 
     /// Creates punctuation (parentheses, brackets, commas, colons, etc.).
-    pub fn punct(&'alloc self, text: Symbol<'alloc>) -> Doc<'alloc> {
+    pub fn punct(&'alloc self, text: Symbol<'heap>) -> Doc<'alloc> {
         self.punct_str(text.unwrap())
     }
 
     /// Creates a literal value (number, string, boolean).
-    pub fn literal(&'alloc self, text: Symbol<'alloc>) -> Doc<'alloc> {
+    pub fn literal(&'alloc self, text: Symbol<'heap>) -> Doc<'alloc> {
         self.arena.text(text.unwrap()).annotate(Semantic::Literal)
     }
 
     /// Creates a field name.
-    pub fn field(&'alloc self, text: Symbol<'alloc>) -> Doc<'alloc> {
+    pub fn field(&'alloc self, text: Symbol<'heap>) -> Doc<'alloc> {
         self.arena.text(text.unwrap()).annotate(Semantic::Field)
     }
 
     /// Creates a comment or metadata annotation.
-    pub fn comment(&'alloc self, text: Symbol<'alloc>) -> Doc<'alloc> {
+    pub fn comment(&'alloc self, text: Symbol<'heap>) -> Doc<'alloc> {
         self.arena.text(text.unwrap()).annotate(Semantic::Comment)
     }
 
@@ -96,7 +98,7 @@ impl<'alloc> Formatter<'alloc> {
     }
 
     /// Creates plain text without semantic annotation.
-    pub fn text<'heap: 'alloc>(&'alloc self, text: Symbol<'heap>) -> Doc<'alloc> {
+    pub fn text(&'alloc self, text: Symbol<'heap>) -> Doc<'alloc> {
         self.arena.text(text.unwrap())
     }
 
@@ -358,11 +360,5 @@ impl<'alloc> Formatter<'alloc> {
             .append(self.space())
             .append(returns)
             .group()
-    }
-}
-
-impl Default for Formatter<'_> {
-    fn default() -> Self {
-        Self::new()
     }
 }

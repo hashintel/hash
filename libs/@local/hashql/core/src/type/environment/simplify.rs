@@ -150,12 +150,8 @@ impl<'env, 'heap> SimplifyEnvironment<'env, 'heap> {
                 return substitution;
             }
 
-            #[expect(
-                clippy::manual_assert,
-                reason = "false positive, this is a manual `debug_panic`"
-            )]
             if cfg!(debug_assertions) {
-                let formatter = Formatter::new();
+                let formatter = Formatter::new(self.heap);
                 let mut formatter = TypeFormatter::new(
                     &formatter,
                     self.environment,
@@ -164,7 +160,7 @@ impl<'env, 'heap> SimplifyEnvironment<'env, 'heap> {
 
                 panic!(
                     "type id {id} should have been provisioned, but wasn't.\n{}",
-                    pretty::render(&formatter.format(r#type), RenderOptions::default())
+                    pretty::render(formatter.format(r#type), RenderOptions::default())
                 );
             }
 

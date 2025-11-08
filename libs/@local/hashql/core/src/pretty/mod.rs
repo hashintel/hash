@@ -13,7 +13,7 @@ pub use self::{
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-enum Format {
+pub enum Format {
     Plain,
     Ansi,
 }
@@ -25,17 +25,20 @@ pub struct RenderOptions {
 }
 
 impl RenderOptions {
-    pub fn with_ansi(mut self) -> Self {
+    #[must_use]
+    pub const fn with_ansi(mut self) -> Self {
         self.format = Format::Ansi;
         self
     }
 
-    pub fn with_plain(mut self) -> Self {
+    #[must_use]
+    pub const fn with_plain(mut self) -> Self {
         self.format = Format::Plain;
         self
     }
 
-    pub fn with_max_width(mut self, max_width: usize) -> Self {
+    #[must_use]
+    pub const fn with_max_width(mut self, max_width: usize) -> Self {
         self.max_width = max_width;
         self
     }
@@ -57,11 +60,7 @@ impl Default for RenderOptions {
 /// # Errors
 ///
 /// Returns [`io::Error`] if writing fails.
-pub fn render_into<'doc, W>(
-    doc: &Doc<'doc>,
-    options: RenderOptions,
-    write: &mut W,
-) -> io::Result<()>
+pub fn render_into<W>(doc: &Doc<'_>, options: RenderOptions, write: &mut W) -> io::Result<()>
 where
     W: io::Write,
 {
@@ -78,7 +77,7 @@ where
 /// Get a displayable representation.
 ///
 /// Returns a [`Display`] implementor for using in formatting contexts.
-pub fn render<'doc>(doc: Doc<'doc>, options: RenderOptions) -> impl Display {
+pub fn render(doc: Doc<'_>, options: RenderOptions) -> impl Display {
     fmt::from_fn(move |fmt| match options.format {
         Format::Plain => doc
             .render_raw(options.max_width, &mut PlainWriter::new_fmt(fmt))

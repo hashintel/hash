@@ -196,7 +196,9 @@ impl<'heap> UnionType<'heap> {
         env: &mut AnalysisEnvironment<'env, 'heap>,
     ) -> bool
     where
-        TypeFormatter<'env, 'heap>: FormatType<'env, T> + FormatType<'env, U>,
+        for<'fmt> TypeFormatter<'fmt, 'env, 'heap>: FormatType<'fmt, T> + FormatType<'fmt, U>,
+        T: Copy,
+        U: Copy,
     {
         // Empty unions are only equivalent to other empty unions
         // As an empty union corresponds to the `Never` type, therefore only `Never ≡ Never`

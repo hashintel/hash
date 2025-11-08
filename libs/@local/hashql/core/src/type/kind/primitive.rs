@@ -229,15 +229,3 @@ impl<'heap> Inference<'heap> for PrimitiveType {
         self.id
     }
 }
-
-impl PrimitiveType {
-    const fn as_str(self) -> &'static str {
-        match self {
-            Self::Number => "Number",
-            Self::Integer => "Integer",
-            Self::String => "String",
-            Self::Null => "Null",
-            Self::Boolean => "Boolean",
-        }
-    }
-}
