@@ -12,12 +12,18 @@ use crate::{heap::Heap, symbol::Symbol};
 
 pub type Doc<'alloc> = DocBuilder<'alloc, pretty::Arena<'alloc, Semantic>, Semantic>;
 
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+pub struct FormatterOptions {
+    pub indent: isize,
+}
+
 /// Pretty printer with owned arena.
 ///
 /// This is the primary interface for building formatted documents.
 /// It owns the arena and provides all necessary primitives for document construction.
 pub struct Formatter<'alloc, 'heap> {
     arena: Arena<'alloc, Semantic>,
+    options: FormatterOptions,
 
     // You may ask yourself: wow this is weird, why do we have a (phantom) reference to the heap
     // here? The answer is lifetime constraints. To be able to use any data inside of the heap
@@ -43,8 +49,25 @@ impl<'alloc, 'heap> Formatter<'alloc, 'heap> {
     pub fn new(heap: &'heap Heap) -> Self {
         Self {
             arena: Arena::new(),
+            options: FormatterOptions { indent: 4 },
             _heap: PhantomData,
         }
+    }
+
+    #[must_use]
+    #[expect(unused_variables, reason = "lifetime constraints")]
+    pub fn with_options(heap: &'heap Heap, options: FormatterOptions) -> Self {
+        Self {
+            arena: Arena::new(),
+            options,
+            _heap: PhantomData,
+        }
+    }
+
+    #[must_use]
+    pub fn with_indent(mut self, indent: isize) -> Self {
+        self.options.indent = indent;
+        self
     }
 
     /// Returns a reference to the underlying arena.
@@ -236,7 +259,7 @@ impl<'alloc, 'heap> Formatter<'alloc, 'heap> {
     /// Formats delimited content with rustfmt-style breaking.
     ///
     /// Compact: `(a, b, c)` - items separated by `, `
-    /// Expanded: `(\n    a,\n    b,\n    c\n)` - each item on own line with 4-space indent
+    /// Expanded: `(\n    a,\n    b,\n    c\n)` - each item on own line with configured indent
     pub fn delimited<I>(
         &'alloc self,
         open: &'alloc str,
@@ -260,7 +283,7 @@ impl<'alloc, 'heap> Formatter<'alloc, 'heap> {
             .append(
                 self.line_()
                     .append(self.intersperse(items, self.punct_str(",").append(self.line())))
-                    .nest(4)
+                    .nest(self.options.indent)
                     .append(self.line_()),
             )
             .append(self.punct_str(close))

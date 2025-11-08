@@ -25,11 +25,8 @@ use crate::{
 ///
 /// Controls layout, wrapping, and recursion handling for document rendering.
 #[must_use = "pretty options don't do anything unless explicitly applied"]
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, Default)]
 pub struct TypeFormatterOptions {
-    /// Spaces per indentation level.
-    pub indent: u8,
-
     /// Whether to resolve substitutions in the document.
     pub resolve_substitutions: bool,
 
@@ -38,11 +35,6 @@ pub struct TypeFormatterOptions {
 }
 
 impl TypeFormatterOptions {
-    pub const fn with_indent(mut self, indent: u8) -> Self {
-        self.indent = indent;
-        self
-    }
-
     pub const fn with_resolve_substitutions(mut self, resolve_substitutions: bool) -> Self {
         self.resolve_substitutions = resolve_substitutions;
         self
@@ -58,16 +50,6 @@ impl TypeFormatterOptions {
     pub const fn with_identity_tracking(mut self) -> Self {
         self.recursion_strategy = RecursionGuardStrategy::IdentityTracking;
         self
-    }
-}
-
-impl Default for TypeFormatterOptions {
-    fn default() -> Self {
-        Self {
-            indent: 4,
-            resolve_substitutions: false,
-            recursion_strategy: RecursionGuardStrategy::default(),
-        }
     }
 }
 
