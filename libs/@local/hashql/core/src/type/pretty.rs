@@ -282,7 +282,7 @@ impl<'fmt, 'heap> FormatType<'fmt, Interned<'heap, TypeKind<'heap>>>
 {
     fn format_type(&mut self, value: Interned<'heap, TypeKind<'heap>>) -> Doc<'fmt> {
         if !self.guard.enter(value) {
-            return self.fmt.text_str("...");
+            return self.fmt.comment_str("...");
         }
 
         let doc = self.format_type(*value);
