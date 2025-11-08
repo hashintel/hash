@@ -17,7 +17,7 @@ let a:0 = true,
         let %3 = ::graph::tmp::decision_time_now(),
             %4 = a:0 == b:0,
             %5 = entity(%3)
-            | filter((
+            |> filter((
                 vertex:0: ::graph::types::knowledge::entity::Entity(
                     id: ::graph::types::knowledge::entity::EntityRecordId(
                         edition_id: ::graph::types::knowledge::entity::EntityEditionId(::core::uuid::Uuid(String)),
@@ -46,7 +46,7 @@ let a:0 = true,
                     properties: ?
                 )
             ): Boolean -> let  in %4)
-            | collect,
+            |> collect,
             %6 = ::core::option::Some,
             %7 = %6(%5)
         in

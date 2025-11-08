@@ -123,6 +123,8 @@ pub struct TypeFormatter<'fmt, 'env, 'heap> {
     guard: RecursionGuard<'heap>,
     generics: Vec<GenericArgumentReference<'heap>>,
     options: TypeFormatterOptions,
+
+    parent_is_lattice: bool,
 }
 
 impl<'fmt, 'env, 'heap> TypeFormatter<'fmt, 'env, 'heap> {
@@ -137,6 +139,7 @@ impl<'fmt, 'env, 'heap> TypeFormatter<'fmt, 'env, 'heap> {
             guard: RecursionGuard::from(options.recursion_strategy),
             generics: Vec::new(),
             options,
+            parent_is_lattice: false,
         }
     }
 
@@ -179,7 +182,10 @@ impl<'fmt, 'env, 'heap> TypeFormatter<'fmt, 'env, 'heap> {
 
 impl<'fmt, 'heap> FormatType<'fmt, TypeKind<'heap>> for TypeFormatter<'fmt, '_, 'heap> {
     fn format_type(&mut self, value: TypeKind<'heap>) -> Doc<'fmt> {
-        match value {
+        let prev_parent_is_lattice = self.parent_is_lattice;
+        self.parent_is_lattice = matches!(value, TypeKind::Intersection(_) | TypeKind::Union(_));
+
+        let mut doc = match value {
             TypeKind::Opaque(opaque_type) => self.format_type(opaque_type),
             TypeKind::Primitive(primitive_type) => self.format_type(primitive_type),
             TypeKind::Intrinsic(intrinsic_type) => self.format_type(intrinsic_type),
@@ -194,7 +200,14 @@ impl<'fmt, 'heap> FormatType<'fmt, TypeKind<'heap>> for TypeFormatter<'fmt, '_, 
             TypeKind::Infer(infer) => self.format_type(infer),
             TypeKind::Never => self.fmt.type_name(sym::symbol::exclamation_mark),
             TypeKind::Unknown => self.fmt.type_name(sym::symbol::question_mark),
+        };
+
+        if self.parent_is_lattice && prev_parent_is_lattice {
+            doc = doc.parens();
         }
+        self.parent_is_lattice = prev_parent_is_lattice;
+
+        doc
     }
 }
 

@@ -174,6 +174,7 @@ symbols![symbol; SYMBOLS;
     lte: "<=",
     ne: "!=",
     or: "||",
+    arrow_head: "|>",
     pipe: "|",
     question_mark: "?",
     slash: "/",

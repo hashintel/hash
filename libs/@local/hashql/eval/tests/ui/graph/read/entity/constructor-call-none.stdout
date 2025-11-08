@@ -26,7 +26,7 @@ let %1 = thunk ->
     %7 = thunk ->
         let %19 = %1(),
             %21 = entity(%19)
-            | filter((
+            |> filter((
                 vertex:0: ::graph::types::knowledge::entity::Entity(
                     id: ::graph::types::knowledge::entity::EntityRecordId(
                         edition_id: ::graph::types::knowledge::entity::EntityEditionId(::core::uuid::Uuid(String)),
@@ -55,7 +55,7 @@ let %1 = thunk ->
                     properties: ?
                 )
             ): Boolean -> let %20 = %6() in %20)
-            | collect
+            |> collect
         in
         %21
 in

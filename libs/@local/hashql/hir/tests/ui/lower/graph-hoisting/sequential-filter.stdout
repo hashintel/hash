@@ -15,7 +15,7 @@ let a:0 = true,
     %5 = b:0 == a:0,
     %6 = a:0 == b:0,
     %7 = entity(%4)
-    | filter((
+    |> filter((
         vertex:0: ::graph::types::knowledge::entity::Entity(
             id: ::graph::types::knowledge::entity::EntityRecordId(
                 edition_id: ::graph::types::knowledge::entity::EntityEditionId(::core::uuid::Uuid(String)),
@@ -44,7 +44,7 @@ let a:0 = true,
             properties: ?
         )
     ): Boolean -> let  in %5)
-    | filter((
+    |> filter((
         vertex:1: ::graph::types::knowledge::entity::Entity(
             id: ::graph::types::knowledge::entity::EntityRecordId(
                 edition_id: ::graph::types::knowledge::entity::EntityEditionId(::core::uuid::Uuid(String)),
@@ -73,6 +73,6 @@ let a:0 = true,
             properties: ?
         )
     ): Boolean -> let  in %6)
-    | collect
+    |> collect
 in
 %7

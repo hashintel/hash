@@ -13,7 +13,7 @@ let %1 = ::graph::tmp::decision_time_now(),
     %4 = ::graph::types::knowledge::entity::EntityUuid,
     %5 = %4(%3),
     %7 = entity(%1)
-    | filter((
+    |> filter((
         vertex:0: ::graph::types::knowledge::entity::Entity(
             id: ::graph::types::knowledge::entity::EntityRecordId(
                 edition_id: ::graph::types::knowledge::entity::EntityEditionId(::core::uuid::Uuid(String)),
@@ -42,6 +42,6 @@ let %1 = ::graph::tmp::decision_time_now(),
             properties: ?
         )
     ): Boolean -> let %6 = vertex:0.id.entity_id.entity_uuid == %5 in %6)
-    | collect
+    |> collect
 in
 %7

@@ -6,6 +6,6 @@
 
 let %0 = ::graph::tmp::decision_time_now(),
     %1 = entity(%0)
-    | collect
+    |> collect
 in
 %1

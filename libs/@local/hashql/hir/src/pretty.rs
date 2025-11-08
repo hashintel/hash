@@ -151,10 +151,17 @@ impl<'fmt, 'heap> FormatNode<'fmt, Node<'heap>> for NodeFormatter<'fmt, '_, 'hea
     fn format_node(&mut self, node: Node<'heap>) -> Doc<'fmt> {
         let previous = self.ptr;
         self.ptr = node.ptr();
+        let prev_parent_is_op = self.parent_is_op;
+        self.parent_is_op = matches!(node.kind, NodeKind::Operation(_));
 
-        let doc = self.format_node(&node.kind);
+        let mut doc = self.format_node(&node.kind);
+
+        if self.parent_is_op && prev_parent_is_op {
+            doc = doc.parens();
+        }
 
         self.ptr = previous;
+        self.parent_is_op = prev_parent_is_op;
         doc
     }
 }
@@ -321,24 +328,12 @@ impl<'fmt, 'heap> FormatNode<'fmt, &Binding<'heap>> for NodeFormatter<'fmt, '_, 
 
 impl<'fmt, 'heap> FormatNode<'fmt, &Operation<'heap>> for NodeFormatter<'fmt, '_, 'heap> {
     fn format_node(&mut self, node: &Operation<'heap>) -> Doc<'fmt> {
-        let prev_parent_is_op = self.parent_is_op;
-        self.parent_is_op = true;
-
-        let mut doc = match node {
+        match node {
             Operation::Type(type_operation) => self.format_node(type_operation),
             Operation::Binary(binary_operation) => self.format_node(binary_operation),
             Operation::Unary(unary_operation, _) => self.format_node(unary_operation),
             Operation::Input(input_operation) => self.format_node(input_operation),
-        };
-
-        if prev_parent_is_op {
-            // We need to parenthesis the operation
-            doc = doc.parens();
         }
-
-        self.parent_is_op = prev_parent_is_op;
-
-        doc
     }
 }
 
@@ -642,7 +637,7 @@ impl<'fmt, 'heap> FormatNode<'fmt, &GraphRead<'heap>> for NodeFormatter<'fmt, '_
 
         // Add body operations with pipe operator
         for operation in body {
-            let pipe = self.fmt.op(sym::symbol::pipe);
+            let pipe = self.fmt.op(sym::symbol::arrow_head);
             let op_doc = self.format_node(operation);
             doc = doc
                 .append(self.fmt.line())
@@ -652,7 +647,7 @@ impl<'fmt, 'heap> FormatNode<'fmt, &GraphRead<'heap>> for NodeFormatter<'fmt, '_
         }
 
         // Add tail operation
-        let pipe = self.fmt.op(sym::symbol::pipe);
+        let pipe = self.fmt.op(sym::symbol::arrow_head);
         let tail_doc = self.format_node(*tail);
         doc.append(self.fmt.line())
             .append(pipe)

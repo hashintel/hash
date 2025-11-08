@@ -8,7 +8,7 @@ let %1 = thunk ->
     %9 = thunk ->
         let %12 = %1(),
             %13 = entity(%12)
-            | filter((
+            |> filter((
                 vertex:0: ::graph::types::knowledge::entity::Entity(
                     id: ::graph::types::knowledge::entity::EntityRecordId(
                         edition_id: ::graph::types::knowledge::entity::EntityEditionId(::core::uuid::Uuid(String)),
@@ -54,7 +54,7 @@ let %1 = thunk ->
                         false
                 in
                 %8)
-            | collect
+            |> collect
         in
         %13
 in

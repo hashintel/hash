@@ -5,4 +5,4 @@
 ════ HIR after specialization ══════════════════════════════════════════════════
 
 entity(::graph::tmp::decision_time_now())
-| collect
+|> collect
