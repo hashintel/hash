@@ -21,32 +21,55 @@ use crate::{
     r#type::kind::intrinsic::ListType,
 };
 
-/// Formatting configuration for pretty-printing.
+/// Formatting configuration for type pretty-printing.
 ///
-/// Controls layout, wrapping, and recursion handling for document rendering.
+/// Controls how types are rendered, including handling of substitutions,
+/// opaque types, and recursive type references.
 #[must_use = "pretty options don't do anything unless explicitly applied"]
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, Default)]
 pub struct TypeFormatterOptions {
-    /// Whether to resolve substitutions in the document.
+    /// Whether to resolve and display type substitutions inline.
+    ///
+    /// When `true`, substituted generic arguments and inferred types are shown
+    /// as `T«Integer»` where `T` was substituted with `Integer`.
     pub resolve_substitutions: bool,
 
+    /// Whether to hide the internal representation of opaque types.
+    ///
+    /// When `true`, opaque types render as just their name (e.g., `UserId`).
+    /// When `false`, they show their underlying type (e.g., `UserId(uuid: String)`).
     pub elide_opaque: bool,
 
-    /// Method used to detect cycles in recursive structures.
+    /// Strategy for detecting and preventing infinite recursion.
+    ///
+    /// See [`RecursionGuardStrategy`] for available options.
     pub recursion_strategy: RecursionGuardStrategy,
 }
 
 impl TypeFormatterOptions {
+    /// Sets whether to resolve and display type substitutions.
+    ///
+    /// When enabled, generic arguments and inference variables show their
+    /// resolved values inline using guillemet notation (« »).
     pub const fn with_resolve_substitutions(mut self, resolve_substitutions: bool) -> Self {
         self.resolve_substitutions = resolve_substitutions;
         self
     }
 
+    /// Sets whether to elide opaque type representations.
+    ///
+    /// When enabled, opaque types display only their name without showing
+    /// the underlying structural type.
     pub const fn with_elide_opaque(mut self, elide_opaque: bool) -> Self {
         self.elide_opaque = elide_opaque;
         self
     }
 
+    /// Configures depth-based recursion tracking.
+    ///
+    /// Uses a simple counter to limit nesting depth. When `max_depth` is `None`,
+    /// defaults to 32 levels. This is less precise than identity tracking but
+    /// has lower overhead.
     pub fn with_depth_tracking(mut self, max_depth: Option<usize>) -> Self {
         self.recursion_strategy = RecursionGuardStrategy::DepthCounting {
             max_depth: max_depth.unwrap_or(32),
@@ -54,6 +77,11 @@ impl TypeFormatterOptions {
         self
     }
 
+    /// Configures identity-based recursion tracking.
+    ///
+    /// Tracks exact type identities to detect actual cycles. This is the default
+    /// and provides precise cycle detection at the cost of maintaining a set
+    /// of visited types.
     pub const fn with_identity_tracking(mut self) -> Self {
         self.recursion_strategy = RecursionGuardStrategy::IdentityTracking;
         self
@@ -62,7 +90,8 @@ impl TypeFormatterOptions {
 
 /// Strategy for detecting recursive structures during pretty-printing.
 ///
-/// Determines how [`PrettyPrintBoundary`] identifies already-visited values.
+/// Determines how the type formatter identifies already-visited values to
+/// prevent infinite recursion when formatting cyclic type references.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, Default)]
 pub enum RecursionGuardStrategy {
     /// Simple depth counter without identity tracking.
@@ -124,6 +153,10 @@ pub(crate) trait FormatType<'fmt, T> {
     fn format_type(&mut self, value: T) -> Doc<'fmt>;
 }
 
+/// Pretty-printer for type expressions.
+///
+/// Converts type system representations into human-readable formatted output
+/// with proper handling of recursion, generic arguments, and type substitutions.
 pub struct TypeFormatter<'fmt, 'env, 'heap> {
     fmt: &'fmt Formatter<'fmt, 'heap>,
     env: &'env Environment<'heap>,
@@ -135,6 +168,10 @@ pub struct TypeFormatter<'fmt, 'env, 'heap> {
 }
 
 impl<'fmt, 'env, 'heap> TypeFormatter<'fmt, 'env, 'heap> {
+    /// Creates a new type formatter with specified options.
+    ///
+    /// Requires a document [`Formatter`] for building output and an [`Environment`]
+    /// for resolving type references and substitutions.
     pub fn new(
         fmt: &'fmt Formatter<'fmt, 'heap>,
         env: &'env Environment<'heap>,
@@ -150,14 +187,26 @@ impl<'fmt, 'env, 'heap> TypeFormatter<'fmt, 'env, 'heap> {
         }
     }
 
+    /// Creates a type formatter with default options.
+    ///
+    /// Uses identity-based recursion tracking and does not resolve substitutions
+    /// or elide opaque types.
     pub fn with_defaults(fmt: &'fmt Formatter<'fmt, 'heap>, env: &'env Environment<'heap>) -> Self {
         Self::new(fmt, env, TypeFormatterOptions::default())
     }
 
+    /// Formats a type identifier into a document.
+    ///
+    /// This is the primary entry point for formatting types. Returns a [`Doc`]
+    /// that can be rendered to various output formats.
     pub fn format(&mut self, value: TypeId) -> Doc<'fmt> {
         self.format_type(value)
     }
 
+    /// Formats a generic argument into a document.
+    ///
+    /// Generic arguments may include constraints which are displayed as
+    /// `T: Constraint` when present.
     pub fn format_generic_argument(&mut self, value: GenericArgument<'heap>) -> Doc<'fmt> {
         self.format_type(value)
     }
@@ -173,10 +222,20 @@ impl<'fmt, 'env, 'heap> TypeFormatter<'fmt, 'env, 'heap> {
         crate::pretty::render(self.format_type(value), options)
     }
 
+    /// Renders a type to a displayable string.
+    ///
+    /// Returns an object implementing [`Display`] which can be printed or
+    /// formatted. The rendering applies the specified options for width,
+    /// colors, etc.
     pub fn render(&mut self, value: TypeId, options: RenderOptions) -> impl Display + use<'fmt> {
         self.render_type(value, options)
     }
 
+    /// Renders a type directly to a writer.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`io::Error`] if writing to the output stream fails.
     pub fn render_into(
         &mut self,
         value: TypeId,
@@ -367,7 +426,18 @@ impl<'fmt, 'heap> FormatType<'fmt, ClosureType<'heap>> for TypeFormatter<'fmt, '
         // Group them so they stay compact
         let returns_doc = match returns_type.kind {
             TypeKind::Union(_) | TypeKind::Intersection(_) => self.fmt.parens(returns_doc.group()),
-            _ => returns_doc,
+            TypeKind::Opaque(_)
+            | TypeKind::Primitive(_)
+            | TypeKind::Intrinsic(_)
+            | TypeKind::Struct(_)
+            | TypeKind::Tuple(_)
+            | TypeKind::Closure(_)
+            | TypeKind::Apply(_)
+            | TypeKind::Generic(_)
+            | TypeKind::Param(_)
+            | TypeKind::Infer(_)
+            | TypeKind::Never
+            | TypeKind::Unknown => returns_doc,
         };
 
         self.fmt.closure_type(

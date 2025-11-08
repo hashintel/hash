@@ -1,3 +1,40 @@
+//! Pretty-printing infrastructure for formatted output.
+//!
+//! Provides a high-level API for building formatted documents with semantic
+//! annotations (colors, styles) that can be rendered to various output formats.
+//!
+//! # Architecture
+//!
+//! The pretty-printing system has three main layers:
+//!
+//! 1. **Document Construction** - [`Formatter`] builds semantic documents
+//! 2. **Semantic Annotations** - [`Semantic`] categorizes text elements
+//! 3. **Rendering** - [`render`] and [`render_into`] produce final output
+//!
+//! # Examples
+//!
+//! ```rust
+//! use hashql_core::{
+//!     heap::Heap,
+//!     pretty::{Format, Formatter, RenderOptions},
+//! };
+//!
+//! let heap = Heap::default();
+//! let fmt = Formatter::new(&heap);
+//!
+//! let doc = fmt
+//!     .keyword_str("let")
+//!     .append(fmt.space())
+//!     .append(fmt.variable_str("x"))
+//!     .append(fmt.space())
+//!     .append(fmt.punct_str("="))
+//!     .append(fmt.space())
+//!     .append(fmt.literal_owned("42".to_string()));
+//!
+//! let output = hashql_core::pretty::render(doc, RenderOptions::default());
+//! println!("{}", output);
+//! ```
+
 pub mod display;
 mod formatter;
 mod semantic;
@@ -12,31 +49,50 @@ pub use self::{
     semantic::Semantic,
 };
 
+/// Output format for rendered documents.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Format {
+    /// Plain text without ANSI escape codes.
     Plain,
+    /// ANSI-colored output for terminals.
     Ansi,
 }
 
+/// Configuration for rendering documents to output.
+///
+/// Controls the output format (plain/ANSI) and maximum line width for wrapping.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct RenderOptions {
+    /// Whether to use ANSI colors or plain text.
     pub format: Format,
+    /// Maximum line width before wrapping (default: 80).
     pub max_width: usize,
 }
 
 impl RenderOptions {
+    /// Configures ANSI color output.
+    ///
+    /// Enables terminal colors and syntax highlighting in the rendered output.
     #[must_use]
     pub const fn with_ansi(mut self) -> Self {
         self.format = Format::Ansi;
         self
     }
 
+    /// Configures plain text output.
+    ///
+    /// Disables colors and produces plain text suitable for logging or
+    /// non-terminal output.
     #[must_use]
     pub const fn with_plain(mut self) -> Self {
         self.format = Format::Plain;
         self
     }
 
+    /// Sets the maximum line width for wrapping.
+    ///
+    /// The pretty printer will attempt to keep lines under this width,
+    /// breaking at appropriate points when possible.
     #[must_use]
     pub const fn with_max_width(mut self, max_width: usize) -> Self {
         self.max_width = max_width;

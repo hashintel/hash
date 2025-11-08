@@ -34,11 +34,19 @@ pub(crate) trait FormatNode<'fmt, T> {
     fn format_node(&mut self, node: T) -> Doc<'fmt>;
 }
 
+/// Formatting configuration for HIR node pretty-printing.
+///
+/// Controls how HIR nodes are rendered, including options for nested type formatting.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Default)]
 pub struct NodeFormatterOptions {
+    /// Options for formatting type annotations within nodes.
     pub r#type: TypeFormatterOptions,
 }
 
+/// Pretty-printer for HIR (High-level Intermediate Representation) nodes.
+///
+/// Converts HIR expressions into human-readable formatted output with proper
+/// handling of precedence, type annotations, and nested structures.
 pub struct NodeFormatter<'fmt, 'env, 'heap> {
     ptr: HirPtr,
     fmt: &'fmt Formatter<'fmt, 'heap>,
@@ -51,6 +59,10 @@ pub struct NodeFormatter<'fmt, 'env, 'heap> {
 }
 
 impl<'fmt, 'env, 'heap> NodeFormatter<'fmt, 'env, 'heap> {
+    /// Creates a new HIR node formatter with specified options.
+    ///
+    /// Requires a document [`Formatter`] for building output, an [`Environment`]
+    /// for resolving types, and a [`HirContext`] for accessing HIR metadata.
     pub const fn new(
         fmt: &'fmt Formatter<'fmt, 'heap>,
         env: &'env Environment<'heap>,
@@ -69,6 +81,9 @@ impl<'fmt, 'env, 'heap> NodeFormatter<'fmt, 'env, 'heap> {
         }
     }
 
+    /// Creates a node formatter with default options.
+    ///
+    /// Uses default type formatting options and does not resolve substitutions.
     pub fn with_defaults(
         fmt: &'fmt Formatter<'fmt, 'heap>,
         env: &'env Environment<'heap>,
@@ -78,6 +93,10 @@ impl<'fmt, 'env, 'heap> NodeFormatter<'fmt, 'env, 'heap> {
         Self::new(fmt, env, context, NodeFormatterOptions::default())
     }
 
+    /// Formats an HIR node into a document.
+    ///
+    /// This is the primary entry point for formatting nodes. Returns a [`Doc`]
+    /// that can be rendered to various output formats.
     pub fn format(&mut self, value: Node<'heap>) -> Doc<'fmt> {
         self.format_node(value)
     }
@@ -93,6 +112,11 @@ impl<'fmt, 'env, 'heap> NodeFormatter<'fmt, 'env, 'heap> {
         hashql_core::pretty::render(self.format_node(value), options)
     }
 
+    /// Renders an HIR node to a displayable string.
+    ///
+    /// Returns an object implementing [`Display`] which can be printed or
+    /// formatted. The rendering applies the specified options for width,
+    /// colors, etc.
     pub fn render(
         &mut self,
         node: Node<'heap>,
@@ -101,6 +125,11 @@ impl<'fmt, 'env, 'heap> NodeFormatter<'fmt, 'env, 'heap> {
         self.render_node(node, options)
     }
 
+    /// Renders an HIR node directly to a writer.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`io::Error`] if writing to the output stream fails.
     pub fn render_into(
         &mut self,
         value: Node<'heap>,

@@ -17,7 +17,7 @@ use core::ops::Receiver;
 
 pub use self::{
     builder::TypeBuilder,
-    pretty::{TypeFormatter, TypeFormatterOptions},
+    pretty::{RecursionGuardStrategy, TypeFormatter, TypeFormatterOptions},
 };
 use self::{inference::Variable, kind::TypeKind};
 use crate::{

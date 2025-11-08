@@ -10,11 +10,33 @@ use pretty::{Arena, DocAllocator as _, DocBuilder};
 use super::semantic::Semantic;
 use crate::{heap::Heap, symbol::Symbol};
 
+/// Document type produced by the formatter.
 pub type Doc<'alloc> = DocBuilder<'alloc, pretty::Arena<'alloc, Semantic>, Semantic>;
 
+/// Configuration options for document formatting.
+///
+/// Controls layout behavior like indentation width.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub struct FormatterOptions {
+    /// Number of spaces (or columns) to indent nested content.
+    ///
+    /// Default is 4. Can be negative to outdent, though this is unusual.
     pub indent: isize,
+}
+
+impl FormatterOptions {
+    /// Changes the indentation width.
+    #[must_use]
+    pub const fn with_indent(mut self, indent: isize) -> Self {
+        self.indent = indent;
+        self
+    }
+}
+
+impl Default for FormatterOptions {
+    fn default() -> Self {
+        Self { indent: 4 }
+    }
 }
 
 /// Pretty printer with owned arena.
@@ -25,35 +47,52 @@ pub struct Formatter<'alloc, 'heap> {
     arena: Arena<'alloc, Semantic>,
     pub options: FormatterOptions,
 
-    // You may ask yourself: wow this is weird, why do we have a (phantom) reference to the heap
-    // here? The answer is lifetime constraints. To be able to use any data inside of the heap
-    // we must prove that `heap` outlives the formatter. We cannot do this normally through `'fmt:
-    // 'heap`, because then we would need to use HRTB, HRTB's cannot express lifetime bounds, even
-    // if put on the top level of the encompassing trait aka `struct Formatter<'fmt, 'heap: 'fmt>`
-    // we run into a compiler limitation. The compiler is unable to prove this HRTB (yet) and so
-    // `'fmt` turns static.
-    // but(!) because we always need to take a reference to the underlying reference (so this very
-    // type), if we attach the lifetime of the heap here, we can *always* prove that the heap
-    // outlives the formatter. Without *any* additional trait bounds making it "just work".
-    // (We need to always take a reference to the formatter - this type - because of a limitation
-    // of the pretty crate). The type that provisions the doc must have the same lifetime as the
-    // arena itself, leading to `&'fmt Formatter<'fmt, 'heap>` as the trait bound – making `'fmt`
-    // invariant. It's a bit silly, but you play with the cards that you're dealt.
+    /// Phantom reference to the heap for lifetime constraints.
+    ///
+    /// This field exists to establish the relationship `'heap: 'alloc` without
+    /// requiring Higher-Rank Trait Bounds (HRTBs) that the compiler cannot yet
+    /// prove in all contexts.
+    ///
+    /// # Why This is Necessary
+    ///
+    /// The `pretty` crate requires that document-building closures receive
+    /// `&'alloc Formatter<'alloc, 'heap>`, making `'alloc` invariant. To use
+    /// heap-allocated symbols in formatted output, we must prove `'heap: 'alloc`.
+    ///
+    /// A direct bound like `struct Formatter<'alloc, 'heap: 'alloc>` would
+    /// require HRTBs when used as a trait bound, which hits current compiler
+    /// limitations and forces `'alloc` to become `'static`.
+    ///
+    /// By including `PhantomData<&'heap Heap>`, we attach the heap's lifetime
+    /// to the struct itself. Since formatters are always used via `&'alloc self`,
+    /// the compiler can prove `'heap: 'alloc` without additional bounds.
     _heap: PhantomData<&'heap Heap>,
 }
 
 impl<'alloc, 'heap> Formatter<'alloc, 'heap> {
-    /// Creates a new pretty printer.
+    /// Creates a new pretty printer with default options.
+    ///
+    /// Uses 4-space indentation. For custom options, use [`Self::with_options`].
     #[must_use]
     #[expect(unused_variables, reason = "lifetime constraints")]
     pub fn new(heap: &'heap Heap) -> Self {
         Self {
             arena: Arena::new(),
-            options: FormatterOptions { indent: 4 },
+            options: FormatterOptions::default(),
             _heap: PhantomData,
         }
     }
 
+    /// Creates a pretty printer with custom formatting options.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// # use hashql_core::{heap::Heap, pretty::{Formatter, FormatterOptions}};
+    /// let heap = Heap::default();
+    /// let options = FormatterOptions::default().with_indent(2);
+    /// let formatter = Formatter::with_options(&heap, options);
+    /// ```
     #[must_use]
     #[expect(unused_variables, reason = "lifetime constraints")]
     pub fn with_options(heap: &'heap Heap, options: FormatterOptions) -> Self {
@@ -64,6 +103,9 @@ impl<'alloc, 'heap> Formatter<'alloc, 'heap> {
         }
     }
 
+    /// Sets the indentation width for this formatter.
+    ///
+    /// This is a convenience method that modifies the formatter's options.
     #[must_use]
     pub const fn with_indent(mut self, indent: isize) -> Self {
         self.options.indent = indent;
@@ -78,78 +120,126 @@ impl<'alloc, 'heap> Formatter<'alloc, 'heap> {
     }
 
     // === Semantic constructors ===
+    //
+    // These methods create semantically annotated text elements. Each element
+    // is categorized for appropriate styling during rendering (colors, etc.).
 
-    /// Creates a keyword (let, in, if, fn, etc.).
+    /// Creates a keyword element.
+    ///
+    /// For language keywords like `let`, `in`, `if`, `fn`, etc.
+    #[must_use]
     pub fn keyword(&'alloc self, text: Symbol<'heap>) -> Doc<'alloc> {
         self.arena.text(text.unwrap()).annotate(Semantic::Keyword)
     }
 
+    /// Creates a keyword element from a string slice.
+    #[must_use]
     pub fn keyword_str(&'alloc self, text: &'alloc str) -> Doc<'alloc> {
         self.arena.text(text).annotate(Semantic::Keyword)
     }
 
-    /// Creates a type name (Integer, String, List, etc.).
+    /// Creates a type name element.
+    ///
+    /// For type names like `Integer`, `String`, `List`, user-defined types, etc.
+    #[must_use]
     pub fn type_name(&'alloc self, text: Symbol<'heap>) -> Doc<'alloc> {
         self.arena.text(text.unwrap()).annotate(Semantic::TypeName)
     }
 
+    /// Creates a type name element from an owned string.
+    #[must_use]
     pub fn type_name_owned(&'alloc self, text: String) -> Doc<'alloc> {
         self.arena.text(text).annotate(Semantic::TypeName)
     }
 
-    /// Creates a variable or function name.
+    /// Creates a variable or function name element.
+    ///
+    /// For identifiers in expressions like variable references and function names.
+    #[must_use]
     pub fn variable(&'alloc self, text: Symbol<'heap>) -> Doc<'alloc> {
         self.arena.text(text.unwrap()).annotate(Semantic::Variable)
     }
 
+    /// Creates a variable element from an owned string.
+    #[must_use]
     pub fn variable_owned(&'alloc self, text: String) -> Doc<'alloc> {
         self.arena.text(text).annotate(Semantic::Variable)
     }
 
-    /// Creates an operator (+, ->, =>, |, &, etc.).
+    /// Creates an operator element from a string slice.
+    ///
+    /// For operators like `+`, `->`, `=>`, `|`, `&`, etc.
+    #[must_use]
     pub fn op_str(&'alloc self, text: &'alloc str) -> Doc<'alloc> {
         self.arena.text(text).annotate(Semantic::Operator)
     }
 
-    /// Creates an operator (+, ->, =>, |, &, etc.).
+    /// Creates an operator element.
+    #[must_use]
     pub fn op(&'alloc self, text: Symbol<'heap>) -> Doc<'alloc> {
         self.op_str(text.unwrap())
     }
 
+    /// Creates a punctuation element from a string slice.
+    ///
+    /// For structural punctuation like `(`, `)`, `[`, `]`, `,`, `:`, etc.
+    #[must_use]
     pub fn punct_str(&'alloc self, text: &'alloc str) -> Doc<'alloc> {
         self.arena.text(text).annotate(Semantic::Punctuation)
     }
 
-    /// Creates punctuation (parentheses, brackets, commas, colons, etc.).
+    /// Creates a punctuation element.
+    #[must_use]
     pub fn punct(&'alloc self, text: Symbol<'heap>) -> Doc<'alloc> {
         self.punct_str(text.unwrap())
     }
 
-    /// Creates a literal value (number, string, boolean).
+    /// Creates a literal value element.
+    ///
+    /// For literal values like numbers, strings, booleans, null, etc.
+    #[must_use]
     pub fn literal(&'alloc self, text: Symbol<'heap>) -> Doc<'alloc> {
         self.arena.text(text.unwrap()).annotate(Semantic::Literal)
     }
 
-    /// Creates a literal value (number, string, boolean).
+    /// Creates a literal element from an owned string.
+    #[must_use]
     pub fn literal_owned(&'alloc self, text: String) -> Doc<'alloc> {
         self.arena.text(text).annotate(Semantic::Literal)
     }
 
-    /// Creates a field name.
+    /// Creates a field name element.
+    ///
+    /// For struct field names, object keys, etc.
+    #[must_use]
     pub fn field(&'alloc self, text: Symbol<'heap>) -> Doc<'alloc> {
         self.arena.text(text.unwrap()).annotate(Semantic::Field)
     }
 
-    /// Creates a comment or metadata annotation.
+    /// Creates a comment or metadata element.
+    ///
+    /// For comments, recursion indicators like `...`, etc.
+    #[must_use]
     pub fn comment(&'alloc self, text: Symbol<'heap>) -> Doc<'alloc> {
         self.arena.text(text.unwrap()).annotate(Semantic::Comment)
     }
 
+    /// Creates a comment or metadata element from a string slice.
+    ///
+    /// For comments, recursion indicators like `...`, etc.
+    #[must_use]
+    pub fn comment_str(&'alloc self, text: &'alloc str) -> Doc<'alloc> {
+        self.arena.text(text).annotate(Semantic::Comment)
+    }
+
+    /// Creates plain text from a string slice without semantic annotation.
+    #[must_use]
     pub fn text_str(&'alloc self, text: &'alloc str) -> Doc<'alloc> {
         self.arena.text(text)
     }
 
     /// Creates plain text without semantic annotation.
+    #[must_use]
     pub fn text(&'alloc self, text: Symbol<'heap>) -> Doc<'alloc> {
         self.arena.text(text.unwrap())
     }
