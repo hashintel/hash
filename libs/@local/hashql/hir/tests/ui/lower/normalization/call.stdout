@@ -1,8 +1,6 @@
 ════ Initial HIR ═══════════════════════════════════════════════════════════════
 
-let foo:0 = (foo:1: Boolean): Boolean -> foo:1
-in
-foo:0(::core::cmp::lte(1, 2))
+let foo:0 = (foo:1: Boolean): Boolean -> foo:1 in foo:0(::core::cmp::lte(1, 2))
 
 ════ HIR after normalization ═══════════════════════════════════════════════════
 

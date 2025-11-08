@@ -30,6 +30,8 @@ pub struct TypeFormatterOptions {
     /// Whether to resolve substitutions in the document.
     pub resolve_substitutions: bool,
 
+    pub elide_opaque: bool,
+
     /// Method used to detect cycles in recursive structures.
     pub recursion_strategy: RecursionGuardStrategy,
 }
@@ -37,6 +39,11 @@ pub struct TypeFormatterOptions {
 impl TypeFormatterOptions {
     pub const fn with_resolve_substitutions(mut self, resolve_substitutions: bool) -> Self {
         self.resolve_substitutions = resolve_substitutions;
+        self
+    }
+
+    pub const fn with_elide_opaque(mut self, elide_opaque: bool) -> Self {
+        self.elide_opaque = elide_opaque;
         self
     }
 
@@ -239,16 +246,34 @@ impl<'fmt> FormatType<'fmt, TypeId> for TypeFormatter<'fmt, '_, '_> {
     }
 }
 
-impl<'fmt, 'heap> FormatType<'fmt, OpaqueType<'heap>> for TypeFormatter<'fmt, '_, 'heap> {
-    fn format_type(&mut self, OpaqueType { name, repr }: OpaqueType<'heap>) -> Doc<'fmt> {
-        let repr_ty = self.env.r#type(repr);
-        let mut inner = self.format_type(repr);
+fn format_opaque<'fmt, 'heap>(
+    formatter: &mut TypeFormatter<'fmt, '_, 'heap>,
+    OpaqueType { name, repr }: OpaqueType<'heap>,
+    generics: Option<Doc<'fmt>>,
+) -> Doc<'fmt> {
+    let mut doc = formatter.fmt.type_name(name);
+
+    if let Some(generics) = generics {
+        doc = doc.append(generics);
+    }
+
+    if !formatter.options.elide_opaque {
+        let repr_ty = formatter.env.r#type(repr);
+        let mut inner = formatter.format_type(repr);
 
         if !matches!(repr_ty.kind, TypeKind::Struct(_) | TypeKind::Tuple(_)) {
-            inner = self.fmt.parens(inner);
+            inner = formatter.fmt.parens(inner);
         }
 
-        self.fmt.type_name(name).append(inner)
+        doc = doc.append(inner);
+    }
+
+    doc
+}
+
+impl<'fmt, 'heap> FormatType<'fmt, OpaqueType<'heap>> for TypeFormatter<'fmt, '_, 'heap> {
+    fn format_type(&mut self, value: OpaqueType<'heap>) -> Doc<'fmt> {
+        format_opaque(self, value, None)
     }
 }
 
@@ -409,20 +434,16 @@ impl<'fmt, 'heap> FormatType<'fmt, Generic<'heap>> for TypeFormatter<'fmt, '_, '
             self.generics.push(argument.as_reference());
         }
 
-        // specialize on opaques, these are then `A<T, U, V>(..)`
-        let (prefix, postfix) =
-            if let TypeKind::Opaque(OpaqueType { name, repr }) = *self.env.r#type(base).kind {
-                (self.fmt.type_name(name), repr)
-            } else {
-                (self.fmt.nil(), base)
-            };
-
-        let postfix = self.format_type(postfix);
-
         let fmt = self.fmt;
-        let arg_docs = arguments.iter().map(|&argument| self.format_type(argument));
+        let generics =
+            fmt.generic_args(arguments.iter().map(|&argument| self.format_type(argument)));
 
-        let doc = prefix.append(fmt.generic_args(arg_docs)).append(postfix);
+        // specialize on opaques, these are then `A<T, U, V>(..)`
+        let doc = if let TypeKind::Opaque(opaque) = *self.env.r#type(base).kind {
+            format_opaque(self, opaque, Some(generics))
+        } else {
+            generics.append(self.format_type(base))
+        };
 
         self.generics
             .truncate(self.generics.len() - arguments.len());

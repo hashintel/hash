@@ -1,19 +1,10 @@
 ════ Initial HIR ═══════════════════════════════════════════════════════════════
 
-if true
-then
-false
+if true then
+    false
 else
-::core::cmp::lte(3, 4)
+    ::core::cmp::lte(3, 4)
 
 ════ HIR after normalization ═══════════════════════════════════════════════════
 
-let %1 = if true
-        then
-        false
-        else
-        let %0 = 3 <= 4
-        in
-        %0
-in
-%1
+let %1 = if true then false else let %0 = 3 <= 4 in %0 in %1

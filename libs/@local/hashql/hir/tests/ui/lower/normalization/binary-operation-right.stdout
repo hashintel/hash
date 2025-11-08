@@ -4,12 +4,4 @@
 
 ════ HIR after normalization ═══════════════════════════════════════════════════
 
-let %1 = if true
-        then
-        let %0 = 4 >= 3
-        in
-        %0
-        else
-        false
-in
-%1
+let %1 = if true then let %0 = 4 >= 3 in %0 else false in %1

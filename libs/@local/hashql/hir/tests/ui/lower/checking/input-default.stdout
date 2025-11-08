@@ -1,18 +1,16 @@
 ════ Initial HIR ═══════════════════════════════════════════════════════════════
 
-if $exists(x)
-then
-$?x
+if $exists(x) then
+    $?x
 else
-(42 as _0) as Number
+    (42 as _0) as Number
 
 ════ HIR after type checking ═══════════════════════════════════════════════════
 
-if $exists(x)
-then
-$?x
+if $exists(x) then
+    $?x
 else
-(42 as _0) as Number
+    (42 as _0) as Number
 
 ════ Inputs ════════════════════════════════════════════════════════════════════
 
@@ -23,11 +21,10 @@ else
 
 ════ Types ═════════════════════════════════════════════════════════════════════
 
-┌─ if $exists(x)
-│  then
-│  $?x
+┌─ if $exists(x) then
+│      $?x
 │  else
-│  (42 as _0) as Number
+│      (42 as _0) as Number
 └→ Number
 
 ┌─ 42 as _0

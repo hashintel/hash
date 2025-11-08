@@ -4,6 +4,4 @@
 
 ════ HIR after thunking ════════════════════════════════════════════════════════
 
-let %1 = thunk -> let %2 = (a:0: Number): Number -> a:0 in %2
-in
-%1
+let %1 = thunk -> let %2 = (a:0: Number): Number -> a:0 in %2 in %1

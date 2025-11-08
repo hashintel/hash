@@ -305,6 +305,7 @@ impl<'fmt, 'heap> FormatNode<'fmt, &Let<'heap>> for NodeFormatter<'fmt, '_, 'hea
             .append(r#in)
             .append(self.fmt.line())
             .append(body)
+            .group()
     }
 }
 
@@ -322,7 +323,7 @@ impl<'fmt, 'heap> FormatNode<'fmt, &Binding<'heap>> for NodeFormatter<'fmt, '_, 
 
         // Check if the value is a closure of thunk, in that case do not nest additionally
         if !matches!(value.kind, NodeKind::Thunk(_) | NodeKind::Closure(_)) {
-            value_doc = value_doc.nest(self.fmt.options.indent);
+            value_doc = value_doc.align().nest(self.fmt.options.indent);
         }
 
         name_doc
@@ -534,19 +535,23 @@ impl<'fmt, 'heap> FormatNode<'fmt, &If<'heap>> for NodeFormatter<'fmt, '_, 'heap
         let expanded = if_keyword
             .append(self.fmt.space())
             .append(test_doc)
-            .append(self.fmt.hardline())
+            .append(self.fmt.line())
+            .group()
             .append(then_keyword)
             .append(self.fmt.hardline())
             .append(
                 then_doc
                     .pretty(self.fmt.arena())
-                    .group()
-                    .nest(self.fmt.options.indent),
+                    .indent(self.fmt.options.indent as usize),
             )
             .append(self.fmt.hardline())
             .append(else_keyword)
             .append(self.fmt.hardline())
-            .append(else_doc)
+            .append(
+                else_doc
+                    .pretty(self.fmt.arena())
+                    .indent(self.fmt.options.indent as usize),
+            )
             .group();
 
         expanded.flat_alt(flat)

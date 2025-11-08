@@ -1,26 +1,23 @@
 ════ Initial HIR ═══════════════════════════════════════════════════════════════
 
-if true
-then
-::core::option::Some(2)
+if true then
+    ::core::option::Some(2)
 else
-::core::option::None()
+    ::core::option::None()
 
 ════ HIR after type inference ══════════════════════════════════════════════════
 
-if true
-then
-::core::option::Some(2)
+if true then
+    ::core::option::Some(2)
 else
-::core::option::None()
+    ::core::option::None()
 
 ════ Types ═════════════════════════════════════════════════════════════════════
 
-┌─ if true
-│  then
-│  ::core::option::Some(2)
+┌─ if true then
+│      ::core::option::Some(2)
 │  else
-│  ::core::option::None()
+│      ::core::option::None()
 └→ _0«::core::option::Some(Integer)» | _1«::core::option::None(Null)»
 
 ┌─ true

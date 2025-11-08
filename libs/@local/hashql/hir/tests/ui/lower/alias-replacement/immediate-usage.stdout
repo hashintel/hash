@@ -7,6 +7,4 @@ y:0
 
 ════ HIR after alias replacement ═══════════════════════════════════════════════
 
-let x:0 = 7
-in
-x:0
+let x:0 = 7 in x:0
