@@ -10,17 +10,17 @@ use pretty::{Arena, DocAllocator as _, DocBuilder};
 use super::semantic::Semantic;
 use crate::symbol::Symbol;
 
-pub type Doc<'pretty> = DocBuilder<'pretty, pretty::Arena<'pretty, Semantic>, Semantic>;
+pub type Doc<'alloc> = DocBuilder<'alloc, pretty::Arena<'alloc, Semantic>, Semantic>;
 
 /// Pretty printer with owned arena.
 ///
 /// This is the primary interface for building formatted documents.
 /// It owns the arena and provides all necessary primitives for document construction.
-pub struct Formatter<'heap> {
-    arena: Arena<'heap, Semantic>,
+pub struct Formatter<'alloc> {
+    arena: Arena<'alloc, Semantic>,
 }
 
-impl<'heap> Formatter<'heap> {
+impl<'alloc> Formatter<'alloc> {
     /// Creates a new pretty printer.
     #[must_use]
     pub fn new() -> Self {
@@ -32,123 +32,123 @@ impl<'heap> Formatter<'heap> {
     /// Returns a reference to the underlying arena.
     ///
     /// This is only needed for passing to rendering functions.
-    pub const fn arena(&self) -> &Arena<'heap, Semantic> {
+    pub const fn arena(&'alloc self) -> &'alloc Arena<'alloc, Semantic> {
         &self.arena
     }
 
     // === Semantic constructors ===
 
     /// Creates a keyword (let, in, if, fn, etc.).
-    pub fn keyword<'this: 'heap>(&'this self, text: Symbol<'heap>) -> Doc<'this> {
+    pub fn keyword<'heap: 'alloc>(&'alloc self, text: Symbol<'heap>) -> Doc<'alloc> {
         self.arena.text(text.unwrap()).annotate(Semantic::Keyword)
     }
 
     /// Creates a type name (Integer, String, List, etc.).
-    pub fn type_name<'this: 'heap>(&'this self, text: Symbol<'heap>) -> Doc<'this> {
+    pub fn type_name<'heap: 'alloc>(&'alloc self, text: Symbol<'heap>) -> Doc<'alloc> {
         self.arena.text(text.unwrap()).annotate(Semantic::TypeName)
     }
 
-    pub fn type_name_owned<'this: 'heap>(&'this self, text: String) -> Doc<'this> {
+    pub fn type_name_owned(&'alloc self, text: String) -> Doc<'alloc> {
         self.arena.text(text).annotate(Semantic::TypeName)
     }
 
     /// Creates a variable or function name.
-    pub fn variable<'this: 'heap>(&'this self, text: Symbol<'heap>) -> Doc<'this> {
+    pub fn variable<'heap: 'alloc>(&'alloc self, text: Symbol<'heap>) -> Doc<'alloc> {
         self.arena.text(text.unwrap()).annotate(Semantic::Variable)
     }
 
     /// Creates an operator (+, ->, =>, |, &, etc.).
-    pub fn op_str<'this: 'heap>(&'this self, text: &'this str) -> Doc<'this> {
+    pub fn op_str(&'alloc self, text: &'alloc str) -> Doc<'alloc> {
         self.arena.text(text).annotate(Semantic::Operator)
     }
 
     /// Creates an operator (+, ->, =>, |, &, etc.).
-    pub fn op<'this: 'heap>(&'this self, text: Symbol<'heap>) -> Doc<'this> {
+    pub fn op(&'alloc self, text: Symbol<'alloc>) -> Doc<'alloc> {
         self.op_str(text.unwrap())
     }
 
-    fn punct_str<'this: 'heap>(&'this self, text: &'this str) -> Doc<'this> {
+    fn punct_str(&'alloc self, text: &'alloc str) -> Doc<'alloc> {
         self.arena.text(text).annotate(Semantic::Punctuation)
     }
 
     /// Creates punctuation (parentheses, brackets, commas, colons, etc.).
-    pub fn punct<'this: 'heap>(&'this self, text: Symbol<'heap>) -> Doc<'this> {
+    pub fn punct(&'alloc self, text: Symbol<'alloc>) -> Doc<'alloc> {
         self.punct_str(text.unwrap())
     }
 
     /// Creates a literal value (number, string, boolean).
-    pub fn literal<'this: 'heap>(&'this self, text: Symbol<'heap>) -> Doc<'this> {
+    pub fn literal(&'alloc self, text: Symbol<'alloc>) -> Doc<'alloc> {
         self.arena.text(text.unwrap()).annotate(Semantic::Literal)
     }
 
     /// Creates a field name.
-    pub fn field<'this: 'heap>(&'this self, text: Symbol<'heap>) -> Doc<'this> {
+    pub fn field(&'alloc self, text: Symbol<'alloc>) -> Doc<'alloc> {
         self.arena.text(text.unwrap()).annotate(Semantic::Field)
     }
 
     /// Creates a comment or metadata annotation.
-    pub fn comment<'this: 'heap>(&'this self, text: Symbol<'heap>) -> Doc<'this> {
+    pub fn comment(&'alloc self, text: Symbol<'alloc>) -> Doc<'alloc> {
         self.arena.text(text.unwrap()).annotate(Semantic::Comment)
     }
 
-    pub fn text_str<'this: 'heap>(&'this self, text: &'this str) -> Doc<'this> {
+    pub fn text_str(&'alloc self, text: &'alloc str) -> Doc<'alloc> {
         self.arena.text(text)
     }
 
     /// Creates plain text without semantic annotation.
-    pub fn text<'this: 'heap>(&'this self, text: Symbol<'heap>) -> Doc<'this> {
+    pub fn text<'heap: 'alloc>(&'alloc self, text: Symbol<'heap>) -> Doc<'alloc> {
         self.arena.text(text.unwrap())
     }
 
     // === Basic document combinators ===
 
     /// Creates an empty document.
-    pub fn nil<'this: 'heap>(&'this self) -> Doc<'this> {
+    pub fn nil(&'alloc self) -> Doc<'alloc> {
         self.arena.nil()
     }
 
     /// Creates a space.
-    pub fn space<'this: 'heap>(&'this self) -> Doc<'this> {
+    pub fn space(&'alloc self) -> Doc<'alloc> {
         self.arena.space()
     }
 
     /// Creates a hard line break (always breaks).
-    pub fn hardline<'this: 'heap>(&'this self) -> Doc<'this> {
+    pub fn hardline(&'alloc self) -> Doc<'alloc> {
         self.arena.hardline()
     }
 
     /// Creates a line break that becomes a space when grouped.
-    pub fn line<'this: 'heap>(&'this self) -> Doc<'this> {
+    pub fn line(&'alloc self) -> Doc<'alloc> {
         self.arena.line()
     }
 
     /// Creates a line break that disappears when grouped.
-    pub fn line_<'this: 'heap>(&'this self) -> Doc<'this> {
+    pub fn line_(&'alloc self) -> Doc<'alloc> {
         self.arena.line_()
     }
 
     /// Creates a soft line break (line that becomes space when grouped).
-    pub fn softline<'this: 'heap>(&'this self) -> Doc<'this> {
+    pub fn softline(&'alloc self) -> Doc<'alloc> {
         self.arena.softline()
     }
 
     /// Creates a soft line break that disappears when grouped.
-    pub fn softline_<'this: 'heap>(&'this self) -> Doc<'this> {
+    pub fn softline_(&'alloc self) -> Doc<'alloc> {
         self.arena.softline_()
     }
 
     /// Concatenates documents.
-    pub fn concat<'this: 'heap, I>(&'this self, docs: I) -> Doc<'this>
+    pub fn concat<I>(&'alloc self, docs: I) -> Doc<'alloc>
     where
-        I: IntoIterator<Item = Doc<'this>>,
+        I: IntoIterator<Item = Doc<'alloc>>,
     {
         self.arena.concat(docs)
     }
 
     /// Intersperses documents with a separator.
-    pub fn intersperse<'this: 'heap, I>(&'this self, docs: I, separator: Doc<'this>) -> Doc<'this>
+    pub fn intersperse<I>(&'alloc self, docs: I, separator: Doc<'alloc>) -> Doc<'alloc>
     where
-        I: IntoIterator<Item = Doc<'this>>,
+        I: IntoIterator<Item = Doc<'alloc>>,
     {
         self.arena.intersperse(docs, separator)
     }
@@ -156,44 +156,44 @@ impl<'heap> Formatter<'heap> {
     // === Convenience helpers ===
 
     /// Wraps content in parentheses.
-    pub fn parens<'this: 'heap>(&'this self, content: Doc<'this>) -> Doc<'this> {
+    pub fn parens(&'alloc self, content: Doc<'alloc>) -> Doc<'alloc> {
         self.punct_str("(")
             .append(content)
             .append(self.punct_str(")"))
     }
 
     /// Wraps content in square brackets.
-    pub fn brackets<'this: 'heap>(&'this self, content: Doc<'this>) -> Doc<'this> {
+    pub fn brackets(&'alloc self, content: Doc<'alloc>) -> Doc<'alloc> {
         self.punct_str("[")
             .append(content)
             .append(self.punct_str("]"))
     }
 
     /// Wraps content in curly braces.
-    pub fn braces<'this: 'heap>(&'this self, content: Doc<'this>) -> Doc<'this> {
+    pub fn braces(&'alloc self, content: Doc<'alloc>) -> Doc<'alloc> {
         self.punct_str("{")
             .append(content)
             .append(self.punct_str("}"))
     }
 
     /// Wraps content in angle brackets.
-    pub fn angles<'this: 'heap>(&'this self, content: Doc<'this>) -> Doc<'this> {
+    pub fn angles(&'alloc self, content: Doc<'alloc>) -> Doc<'alloc> {
         self.punct_str("<")
             .append(content)
             .append(self.punct_str(">"))
     }
 
     /// Creates comma-separated items with soft line breaks.
-    pub fn comma_sep<'this: 'heap, I>(&'this self, items: I) -> Doc<'this>
+    pub fn comma_sep<I>(&'alloc self, items: I) -> Doc<'alloc>
     where
-        I: IntoIterator<Item = Doc<'this>>,
+        I: IntoIterator<Item = Doc<'alloc>>,
     {
         self.intersperse(items, self.punct_str(",").append(self.softline()))
     }
 
-    pub fn union<'this: 'heap, I>(&'this self, items: I) -> Doc<'this>
+    pub fn union<I>(&'alloc self, items: I) -> Doc<'alloc>
     where
-        I: IntoIterator<Item = Doc<'this>>,
+        I: IntoIterator<Item = Doc<'alloc>>,
     {
         self.intersperse(
             items,
@@ -203,9 +203,9 @@ impl<'heap> Formatter<'heap> {
         )
     }
 
-    pub fn intersection<'this: 'heap, I>(&'this self, items: I) -> Doc<'this>
+    pub fn intersection<I>(&'alloc self, items: I) -> Doc<'alloc>
     where
-        I: IntoIterator<Item = Doc<'this>>,
+        I: IntoIterator<Item = Doc<'alloc>>,
     {
         self.intersperse(
             items,
@@ -215,14 +215,14 @@ impl<'heap> Formatter<'heap> {
         )
     }
 
-    pub fn delimited<'this: 'heap, I>(
-        &'this self,
-        open: &'this str,
+    pub fn delimited<I>(
+        &'alloc self,
+        open: &'alloc str,
         items: I,
-        close: &'this str,
-    ) -> Doc<'this>
+        close: &'alloc str,
+    ) -> Doc<'alloc>
     where
-        I: IntoIterator<Item = Doc<'this>>,
+        I: IntoIterator<Item = Doc<'alloc>>,
     {
         let inner = self.comma_sep(items).nest(1).group();
 
@@ -239,9 +239,9 @@ impl<'heap> Formatter<'heap> {
     /// - Empty: `()`
     /// - Single: `(T, )`
     /// - Multiple: `(A, B, C)`
-    pub fn tuple<'this: 'heap, I>(&'this self, items: I) -> Doc<'this>
+    pub fn tuple<I>(&'alloc self, items: I) -> Doc<'alloc>
     where
-        I: IntoIterator<Item = Doc<'this>>,
+        I: IntoIterator<Item = Doc<'alloc>>,
     {
         let mut items = items.into_iter();
 
@@ -257,12 +257,12 @@ impl<'heap> Formatter<'heap> {
         self.delimited("(", [first, second].into_iter().chain(items), ")")
     }
 
-    pub fn key_value<'this: 'heap>(
-        &'this self,
-        key: Doc<'this>,
+    pub fn key_value(
+        &'alloc self,
+        key: Doc<'alloc>,
         sep: &'static str,
-        value: Doc<'this>,
-    ) -> Doc<'this> {
+        value: Doc<'alloc>,
+    ) -> Doc<'alloc> {
         key.append(self.punct_str(sep))
             .append(self.space())
             .append(value)
@@ -272,9 +272,9 @@ impl<'heap> Formatter<'heap> {
     ///
     /// - Empty: `(:)`
     /// - Fields: `(name: Type, ...)`
-    pub fn r#struct<'this: 'heap, I>(&'this self, fields: I) -> Doc<'this>
+    pub fn r#struct<I>(&'alloc self, fields: I) -> Doc<'alloc>
     where
-        I: IntoIterator<Item = (Doc<'this>, Doc<'this>)>,
+        I: IntoIterator<Item = (Doc<'alloc>, Doc<'alloc>)>,
     {
         let mut fields = fields.into_iter();
 
@@ -290,17 +290,17 @@ impl<'heap> Formatter<'heap> {
     }
 
     /// Formats a list.
-    pub fn list<'this: 'heap, I>(&'this self, items: I) -> Doc<'this>
+    pub fn list<I>(&'alloc self, items: I) -> Doc<'alloc>
     where
-        I: IntoIterator<Item = Doc<'this>>,
+        I: IntoIterator<Item = Doc<'alloc>>,
     {
         self.delimited("[", items, "]")
     }
 
     /// Formats a dictionary/map with key-value pairs.
-    pub fn dict<'this: 'heap, I>(&'this self, pairs: I) -> Doc<'this>
+    pub fn dict<I>(&'alloc self, pairs: I) -> Doc<'alloc>
     where
-        I: IntoIterator<Item = (Doc<'this>, Doc<'this>)>,
+        I: IntoIterator<Item = (Doc<'alloc>, Doc<'alloc>)>,
     {
         let field_docs = pairs.into_iter().map(|(key, value)| {
             key.append(self.punct_str(":"))
@@ -314,18 +314,18 @@ impl<'heap> Formatter<'heap> {
     /// Formats generic type arguments.
     ///
     /// Example: `<T, U, V>`
-    pub fn generic_args<'this: 'heap, I>(&'this self, args: I) -> Doc<'this>
+    pub fn generic_args<I>(&'alloc self, args: I) -> Doc<'alloc>
     where
-        I: IntoIterator<Item = Doc<'this>>,
+        I: IntoIterator<Item = Doc<'alloc>>,
     {
         let inner = self.comma_sep(args).nest(1).group();
 
         self.angles(inner).group()
     }
 
-    pub fn closure_type<'this: 'heap, I>(&'this self, params: I, returns: Doc<'this>) -> Doc<'this>
+    pub fn closure_type<I>(&'alloc self, params: I, returns: Doc<'alloc>) -> Doc<'alloc>
     where
-        I: IntoIterator<Item = Doc<'this>>,
+        I: IntoIterator<Item = Doc<'alloc>>,
     {
         let params_doc = self.comma_sep(params).nest(1).group();
 
@@ -340,13 +340,9 @@ impl<'heap> Formatter<'heap> {
     /// Formats a function type signature.
     ///
     /// Example: `(a: A, b: B) -> C`
-    pub fn closure_signature<'this: 'heap, I>(
-        &'this self,
-        params: I,
-        returns: Doc<'this>,
-    ) -> Doc<'this>
+    pub fn closure_signature<I>(&'alloc self, params: I, returns: Doc<'alloc>) -> Doc<'alloc>
     where
-        I: IntoIterator<Item = (Doc<'this>, Doc<'this>)>,
+        I: IntoIterator<Item = (Doc<'alloc>, Doc<'alloc>)>,
     {
         let param_docs = params.into_iter().map(|(name, ty)| {
             name.append(self.punct_str(":"))
