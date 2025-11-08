@@ -1,12 +1,11 @@
 ════ Initial HIR ═══════════════════════════════════════════════════════════════
 
-#let foo:0 = ::core::bool::and(::core::cmp::lte(2, 3), true)
+let foo:0 = ::core::bool::and(::core::cmp::lte(2, 3), true)
 in
 foo:0
 
 ════ HIR after normalization ═══════════════════════════════════════════════════
 
-#let %1 = (2 <= 3)
-     foo:0 = (%1 && true)
+let %1 = 2 <= 3, foo:0 = %1 && true
 in
 foo:0

@@ -238,8 +238,13 @@ impl<'fmt, 'heap> FormatNode<'fmt, &Variable<'heap>> for NodeFormatter<'fmt, '_,
 }
 
 impl<'fmt, 'heap> FormatNode<'fmt, &LocalVariable<'heap>> for NodeFormatter<'fmt, '_, 'heap> {
-    fn format_node(&mut self, LocalVariable { id, arguments }: &LocalVariable<'heap>) -> Doc<'fmt> {
-        let name = self.fmt.variable(self.context.symbols.binder[id.value]);
+    fn format_node(
+        &mut self,
+        node @ LocalVariable { id: _, arguments }: &LocalVariable<'heap>,
+    ) -> Doc<'fmt> {
+        let name = self
+            .fmt
+            .variable_owned(node.name(&self.context.symbols).to_string());
 
         if arguments.is_empty() {
             name
@@ -294,16 +299,11 @@ impl<'fmt, 'heap> FormatNode<'fmt, &Binding<'heap>> for NodeFormatter<'fmt, '_, 
         &mut self,
         Binding {
             span: _,
-            binder:
-                Binder {
-                    id,
-                    span: _,
-                    name: _,
-                },
+            binder,
             value,
         }: &Binding<'heap>,
     ) -> Doc<'fmt> {
-        let name = self.fmt.variable(self.context.symbols.binder[*id]);
+        let name = self.fmt.variable_owned(binder.mangled().to_string());
         let value = self.format_node(*value);
 
         self.fmt.key_value(name, "=", value)

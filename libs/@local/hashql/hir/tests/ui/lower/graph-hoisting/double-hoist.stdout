@@ -1,58 +1,85 @@
 ════ Initial HIR ═══════════════════════════════════════════════════════════════
 
-#let a:0 = true
-     b:0 = true
+let a:0 = true, b:0 = true
 in
 ::graph::tail::collect(::graph::body::filter(::graph::head::entities(::graph::tmp::decision_time_now()),
-#fn(vertex:0: _0): _1 ->
-    #let c:0 = ::graph::tail::collect(::graph::body::filter(::graph::head::entities(::graph::tmp::decision_time_now()),
-             #fn(vertex:1: _2): _3 ->
-                 ::core::cmp::eq(a:0, b:0)))
-    in
-    true))
+    (vertex:0: _0): _1 ->
+    let c:0 = ::graph::tail::collect(::graph::body::filter(::graph::head::entities(::graph::tmp::decision_time_now()),
+            (vertex:1: _2): _3 ->
+            ::core::cmp::eq(a:0, b:0)))
+        in
+        true))
 
 ════ HIR after graph hoisting ══════════════════════════════════════════════════
 
-#let a:0 = true
-     b:0 = true
-     %5 = ::graph::tmp::decision_time_now()
-     %6 = ::graph::tmp::decision_time_now()
-     %7 = (a:0 == b:0)
-     c:0 = ::graph::head::entities(%6) |> ::graph::body::filter(#fn(vertex:1:
-         Entity[(id: EntityRecordId[(edition_id: EntityEditionId[Uuid[String]],
-           entity_id: EntityId[(draft_id: (None[Null]
-             | Some[DraftId[Uuid[String]]]), entity_uuid:
-            EntityUuid[Uuid[String]], web_id:
-            WebId[ActorGroupEntityUuid[Uuid[String]]])])], link_data:
-          (None[Null]
-           | Some[LinkData[(left_entity_id: EntityId[(draft_id: (None[Null]
-              | Some[DraftId[Uuid[String]]]), entity_uuid:
-             EntityUuid[Uuid[String]], web_id:
-             WebId[ActorGroupEntityUuid[Uuid[String]]])], right_entity_id:
-            EntityId[(draft_id: (None[Null] | Some[DraftId[Uuid[String]]]),
-             entity_uuid: EntityUuid[Uuid[String]], web_id:
-             WebId[ActorGroupEntityUuid[Uuid[String]]])])]]), properties: ?)]):
-         Boolean ->
-             #let 
-             in
-             %7) |> ::graph::tail::collect
-     %8 = ::graph::head::entities(%5) |> ::graph::body::filter(#fn(vertex:0:
-         Entity[(id: EntityRecordId[(edition_id: EntityEditionId[Uuid[String]],
-           entity_id: EntityId[(draft_id: (None[Null]
-             | Some[DraftId[Uuid[String]]]), entity_uuid:
-            EntityUuid[Uuid[String]], web_id:
-            WebId[ActorGroupEntityUuid[Uuid[String]]])])], link_data:
-          (None[Null]
-           | Some[LinkData[(left_entity_id: EntityId[(draft_id: (None[Null]
-              | Some[DraftId[Uuid[String]]]), entity_uuid:
-             EntityUuid[Uuid[String]], web_id:
-             WebId[ActorGroupEntityUuid[Uuid[String]]])], right_entity_id:
-            EntityId[(draft_id: (None[Null] | Some[DraftId[Uuid[String]]]),
-             entity_uuid: EntityUuid[Uuid[String]], web_id:
-             WebId[ActorGroupEntityUuid[Uuid[String]]])])]]), properties: ?)]):
-         Boolean ->
-             #let 
-             in
-             true) |> ::graph::tail::collect
+let a:0 = true,
+    b:0 = true,
+    %5 = ::graph::tmp::decision_time_now(),
+    %6 = ::graph::tmp::decision_time_now(),
+    %7 = a:0 == b:0,
+    c:0 = entity(%6)
+    | filter((vertex:1: ::graph::types::knowledge::entity::Entity(
+        id: ::graph::types::knowledge::entity::EntityRecordId(
+            edition_id: ::graph::types::knowledge::entity::EntityEditionId(::core::uuid::Uuid(String)),
+            entity_id: ::graph::types::knowledge::entity::EntityId(
+                draft_id: ::core::option::None(Null)
+                | ::core::option::Some(::graph::types::knowledge::entity::DraftId(::core::uuid::Uuid(String))),
+                entity_uuid: ::graph::types::knowledge::entity::EntityUuid(::core::uuid::Uuid(String)),
+                web_id: ::graph::types::principal::actor_group::web::WebId(::graph::types::principal::actor_group::ActorGroupEntityUuid(::core::uuid::Uuid(String)))
+            )
+        ),
+        link_data: ::core::option::None(Null)
+        | ::core::option::Some(::graph::types::knowledge::entity::LinkData(
+            left_entity_id: ::graph::types::knowledge::entity::EntityId(
+                draft_id: ::core::option::None(Null)
+                | ::core::option::Some(::graph::types::knowledge::entity::DraftId(::core::uuid::Uuid(String))),
+                entity_uuid: ::graph::types::knowledge::entity::EntityUuid(::core::uuid::Uuid(String)),
+                web_id: ::graph::types::principal::actor_group::web::WebId(::graph::types::principal::actor_group::ActorGroupEntityUuid(::core::uuid::Uuid(String)))
+            ),
+            right_entity_id: ::graph::types::knowledge::entity::EntityId(
+                draft_id: ::core::option::None(Null)
+                | ::core::option::Some(::graph::types::knowledge::entity::DraftId(::core::uuid::Uuid(String))),
+                entity_uuid: ::graph::types::knowledge::entity::EntityUuid(::core::uuid::Uuid(String)),
+                web_id: ::graph::types::principal::actor_group::web::WebId(::graph::types::principal::actor_group::ActorGroupEntityUuid(::core::uuid::Uuid(String)))
+            )
+        )),
+        properties: ?
+    )): Boolean ->
+    let 
+        in
+        %7)
+    | collect,
+    %8 = entity(%5)
+    | filter((vertex:0: ::graph::types::knowledge::entity::Entity(
+        id: ::graph::types::knowledge::entity::EntityRecordId(
+            edition_id: ::graph::types::knowledge::entity::EntityEditionId(::core::uuid::Uuid(String)),
+            entity_id: ::graph::types::knowledge::entity::EntityId(
+                draft_id: ::core::option::None(Null)
+                | ::core::option::Some(::graph::types::knowledge::entity::DraftId(::core::uuid::Uuid(String))),
+                entity_uuid: ::graph::types::knowledge::entity::EntityUuid(::core::uuid::Uuid(String)),
+                web_id: ::graph::types::principal::actor_group::web::WebId(::graph::types::principal::actor_group::ActorGroupEntityUuid(::core::uuid::Uuid(String)))
+            )
+        ),
+        link_data: ::core::option::None(Null)
+        | ::core::option::Some(::graph::types::knowledge::entity::LinkData(
+            left_entity_id: ::graph::types::knowledge::entity::EntityId(
+                draft_id: ::core::option::None(Null)
+                | ::core::option::Some(::graph::types::knowledge::entity::DraftId(::core::uuid::Uuid(String))),
+                entity_uuid: ::graph::types::knowledge::entity::EntityUuid(::core::uuid::Uuid(String)),
+                web_id: ::graph::types::principal::actor_group::web::WebId(::graph::types::principal::actor_group::ActorGroupEntityUuid(::core::uuid::Uuid(String)))
+            ),
+            right_entity_id: ::graph::types::knowledge::entity::EntityId(
+                draft_id: ::core::option::None(Null)
+                | ::core::option::Some(::graph::types::knowledge::entity::DraftId(::core::uuid::Uuid(String))),
+                entity_uuid: ::graph::types::knowledge::entity::EntityUuid(::core::uuid::Uuid(String)),
+                web_id: ::graph::types::principal::actor_group::web::WebId(::graph::types::principal::actor_group::ActorGroupEntityUuid(::core::uuid::Uuid(String)))
+            )
+        )),
+        properties: ?
+    )): Boolean ->
+    let 
+        in
+        true)
+    | collect
 in
 %8

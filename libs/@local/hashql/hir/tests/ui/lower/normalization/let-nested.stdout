@@ -1,15 +1,11 @@
 ════ Initial HIR ═══════════════════════════════════════════════════════════════
 
-#let foo:0 = 3
+let foo:0 = 3
 in
-::core::bool::and(#let bar:0 = true
-in
-bar:0, true)
+::core::bool::and(let bar:0 = true in bar:0, true)
 
 ════ HIR after normalization ═══════════════════════════════════════════════════
 
-#let foo:0 = 3
-     bar:0 = true
-     %2 = (bar:0 && true)
+let foo:0 = 3, bar:0 = true, %2 = bar:0 && true
 in
 %2

@@ -4,7 +4,6 @@
 
 ════ HIR after normalization ═══════════════════════════════════════════════════
 
-#let %0 = ::graph::tmp::decision_time_now()
-     %1 = ::graph::head::entities(%0) |> ::graph::tail::collect
+let %0 = ::graph::tmp::decision_time_now(), %1 = entity(%0) | collect
 in
 %1

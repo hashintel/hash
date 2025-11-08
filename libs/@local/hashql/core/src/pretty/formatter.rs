@@ -102,6 +102,10 @@ impl<'alloc, 'heap> Formatter<'alloc, 'heap> {
         self.arena.text(text.unwrap()).annotate(Semantic::Variable)
     }
 
+    pub fn variable_owned(&'alloc self, text: String) -> Doc<'alloc> {
+        self.arena.text(text).annotate(Semantic::Variable)
+    }
+
     /// Creates an operator (+, ->, =>, |, &, etc.).
     pub fn op_str(&'alloc self, text: &'alloc str) -> Doc<'alloc> {
         self.arena.text(text).annotate(Semantic::Operator)
