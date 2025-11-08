@@ -537,7 +537,12 @@ impl<'fmt, 'heap> FormatNode<'fmt, &If<'heap>> for NodeFormatter<'fmt, '_, 'heap
             .append(self.fmt.hardline())
             .append(then_keyword)
             .append(self.fmt.hardline())
-            .append(then_doc)
+            .append(
+                then_doc
+                    .pretty(self.fmt.arena())
+                    .group()
+                    .nest(self.fmt.options.indent),
+            )
             .append(self.fmt.hardline())
             .append(else_keyword)
             .append(self.fmt.hardline())
