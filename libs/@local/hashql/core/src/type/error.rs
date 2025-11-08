@@ -1061,7 +1061,7 @@ where
         existing.span,
         format!(
             "Previously constrained to be exactly `{}`",
-            existing.kind.pretty_print(env, PrettyOptions::default())
+            formatter.render(*existing.kind, RenderOptions::default())
         ),
     ));
 
@@ -1070,7 +1070,7 @@ where
         new_type.span,
         format!(
             "But here constrained to be exactly `{}`",
-            new_type.kind.pretty_print(env, PrettyOptions::default())
+            formatter.render(*new_type.kind, RenderOptions::default())
         ),
     ));
 
@@ -1080,20 +1080,8 @@ where
          multiple conflicting equality constraints.\nTo fix this issue:\n1. Ensure consistent \
          type usage - either use `{}` everywhere\n2. Or use `{}` everywhere\n3. Add explicit type \
          conversions where needed\n4. Check type annotations for contradictory requirements",
-        existing.kind.pretty_print(
-            env,
-            PrettyOptions {
-                max_width: 60,
-                ..PrettyOptions::default()
-            }
-        ),
-        new_type.kind.pretty_print(
-            env,
-            PrettyOptions {
-                max_width: 60,
-                ..PrettyOptions::default()
-            }
-        )
+        formatter.render(*existing.kind, RenderOptions::default().with_max_width(60)),
+        formatter.render(*new_type.kind, RenderOptions::default().with_max_width(60))
     )));
 
     diagnostic.add_message(Message::note(
@@ -1144,16 +1132,16 @@ pub(crate) fn type_parameter_not_found<K>(
     diagnostic
 }
 
-pub(crate) fn struct_field_not_found<'heap, K>(
+pub(crate) fn struct_field_not_found<'env, 'heap, K>(
     r#type: Type<'heap, K>,
     field: Ident<'heap>,
 
     available_fields: impl ExactSizeIterator<Item = Symbol<'heap>> + Clone,
 
-    env: &Environment<'heap>,
+    env: &'env Environment<'heap>,
 ) -> TypeCheckDiagnostic
 where
-    K: PrettyPrint<'heap, Environment<'heap>>,
+    TypeFormatter<'env, 'heap>: FormatType<'env, K>,
 {
     let formatter = Formatter::new();
     let mut formatter = TypeFormatter::new(&formatter, env, TypeFormatterOptions::default());
@@ -1171,7 +1159,7 @@ where
 
     let mut help_message = format!(
         "The field '{field}' cannot be accessed on type '{}'.",
-        r#type.pretty_print(env, PrettyOptions::default())
+        formatter.render(*r#type.kind, RenderOptions::default())
     );
 
     if !suggestions.is_empty() {
@@ -1216,13 +1204,13 @@ where
     diagnostic
 }
 
-pub(crate) fn invalid_tuple_index<'heap, K>(
+pub(crate) fn invalid_tuple_index<'env, 'heap, K>(
     r#type: Type<'heap, K>,
     field: Ident<'heap>,
-    env: &Environment<'heap>,
+    env: &'env Environment<'heap>,
 ) -> TypeCheckDiagnostic
 where
-    K: PrettyPrint<'heap, Environment<'heap>>,
+    TypeFormatter<'env, 'heap>: FormatType<'env, K>,
 {
     let formatter = Formatter::new();
     let mut formatter = TypeFormatter::new(&formatter, env, TypeFormatterOptions::default());
@@ -1240,7 +1228,7 @@ where
         .labels
         .push(Label::new(r#type.span, "... on this tuple type"));
 
-    let type_str = r#type.pretty_print(env, PrettyOptions::default());
+    let type_str = formatter.render(*r#type.kind, RenderOptions::default());
     let help_message = format!(
         "Tuple elements can only be accessed using numeric indices (0, 1, 2, etc.), but '{field}' \
          is not a valid number on type '{type_str}'. Replace '{field}' with a numeric index like \
@@ -1258,14 +1246,14 @@ where
     diagnostic
 }
 
-pub(crate) fn tuple_index_out_of_bounds<'heap, K>(
+pub(crate) fn tuple_index_out_of_bounds<'env, 'heap, K>(
     r#type: Type<'heap, K>,
     field: Ident<'heap>,
     tuple_length: usize,
-    env: &Environment<'heap>,
+    env: &'env Environment<'heap>,
 ) -> TypeCheckDiagnostic
 where
-    K: PrettyPrint<'heap, Environment<'heap>>,
+    TypeFormatter<'env, 'heap>: FormatType<'env, K>,
 {
     let formatter = Formatter::new();
     let mut formatter = TypeFormatter::new(&formatter, env, TypeFormatterOptions::default());
@@ -1285,7 +1273,7 @@ where
 
     let mut help_message = format!(
         "The index '{field}' is out of bounds for type '{}'.",
-        r#type.pretty_print(env, PrettyOptions::default())
+        formatter.render(*r#type.kind, RenderOptions::default())
     );
 
     if tuple_length == 0 {
@@ -1344,14 +1332,14 @@ impl UnsupportedProjectionCategory {
     }
 }
 
-pub(crate) fn unsupported_projection<'heap, K>(
+pub(crate) fn unsupported_projection<'env, 'heap, K>(
     r#type: Type<'heap, K>,
     field: Ident<'heap>,
     category: UnsupportedProjectionCategory,
-    env: &Environment<'heap>,
+    env: &'env Environment<'heap>,
 ) -> TypeCheckDiagnostic
 where
-    K: PrettyPrint<'heap, Environment<'heap>>,
+    TypeFormatter<'env, 'heap>: FormatType<'env, K>,
 {
     let formatter = Formatter::new();
     let mut formatter = TypeFormatter::new(&formatter, env, TypeFormatterOptions::default());
@@ -1371,7 +1359,7 @@ where
 
     let mut help_message = format!(
         "Cannot access field '{field}' on type '{}'.\n\n",
-        r#type.pretty_print(env, PrettyOptions::default())
+        formatter.render(*r#type.kind, RenderOptions::default())
     );
 
     match category {
@@ -1469,14 +1457,14 @@ impl UnsupportedSubscriptCategory {
     }
 }
 
-pub(crate) fn unsupported_subscript<'heap, K>(
+pub(crate) fn unsupported_subscript<'env, 'heap, K>(
     r#type: Type<'heap, K>,
     index: TypeId,
     category: UnsupportedSubscriptCategory,
-    env: &Environment<'heap>,
+    env: &'env Environment<'heap>,
 ) -> TypeCheckDiagnostic
 where
-    K: PrettyPrint<'heap, Environment<'heap>>,
+    TypeFormatter<'env, 'heap>: FormatType<'env, K>,
 {
     let formatter = Formatter::new();
     let mut formatter = TypeFormatter::new(&formatter, env, TypeFormatterOptions::default());
@@ -1495,8 +1483,8 @@ where
 
     let mut help_message = format!(
         "Cannot subscript type '{}' with index '{}'.\n\n",
-        r#type.pretty_print(env, PrettyOptions::default()),
-        index.pretty_print(env, PrettyOptions::default())
+        formatter.render(*r#type.kind, RenderOptions::default()),
+        formatter.render(*index.kind, RenderOptions::default())
     );
 
     match category {
@@ -1571,13 +1559,13 @@ where
     diagnostic
 }
 
-pub(crate) fn recursive_type_projection<'heap, K>(
+pub(crate) fn recursive_type_projection<'env, 'heap, K>(
     r#type: Type<'heap, K>,
     field: Ident<'heap>,
-    env: &Environment<'heap>,
+    env: &'env Environment<'heap>,
 ) -> TypeCheckDiagnostic
 where
-    K: PrettyPrint<'heap, Environment<'heap>>,
+    TypeFormatter<'env, 'heap>: FormatType<'env, K>,
 {
     let formatter = Formatter::new();
     let mut formatter = TypeFormatter::new(&formatter, env, TypeFormatterOptions::default());
@@ -1602,7 +1590,7 @@ where
          mean expanding A -> (A & T) -> ((A & T) & T) -> ... infinitely, which cannot be \
          resolved.\n\nThis is mathematically impossible - there is no logical way to project \
          fields on a type that infinitely expands.",
-        r#type.pretty_print(env, PrettyOptions::default())
+        formatter.render(*r#type.kind, RenderOptions::default())
     );
 
     diagnostic.add_message(Message::help(help_message));
@@ -1616,13 +1604,13 @@ where
     diagnostic
 }
 
-pub(crate) fn recursive_type_subscript<'heap, K>(
+pub(crate) fn recursive_type_subscript<'env, 'heap, K>(
     r#type: Type<'heap, K>,
     index: TypeId,
-    env: &Environment<'heap>,
+    env: &'env Environment<'heap>,
 ) -> TypeCheckDiagnostic
 where
-    K: PrettyPrint<'heap, Environment<'heap>>,
+    TypeFormatter<'env, 'heap>: FormatType<'env, K>,
 {
     let formatter = Formatter::new();
     let mut formatter = TypeFormatter::new(&formatter, env, TypeFormatterOptions::default());
@@ -1647,7 +1635,7 @@ where
          Attempting to subscript such a type would mean expanding A -> (A & T) -> ((A & T) & T) \
          -> ... infinitely, which cannot be resolved.\n\nThis is mathematically impossible - \
          there is no logical way to perform subscript operations on types that expand infinitely.",
-        r#type.pretty_print(env, PrettyOptions::default())
+        formatter.render(*r#type.kind, RenderOptions::default())
     );
 
     diagnostic.add_message(Message::help(help_message));
@@ -1750,13 +1738,13 @@ pub(crate) fn unresolved_selection_constraint<'heap>(
     }
 }
 
-pub(crate) fn list_subscript_mismatch<'heap, K>(
+pub(crate) fn list_subscript_mismatch<'env, 'heap, K>(
     list: Type<'heap, K>,
     index: TypeId,
-    env: &Environment<'heap>,
+    env: &'env Environment<'heap>,
 ) -> TypeCheckDiagnostic
 where
-    K: PrettyPrint<'heap, Environment<'heap>>,
+    TypeFormatter<'env, 'heap>: FormatType<'env, K>,
 {
     let formatter = Formatter::new();
     let mut formatter = TypeFormatter::new(&formatter, env, TypeFormatterOptions::default());
@@ -1778,8 +1766,8 @@ where
          their elements by position.\n\nUse an integer value or expression that evaluates to an \
          integer: `list[0]` for the first element, `list[index]` where `index` is an integer \
          variable, or `list[expression]` where `expression` produces an integer result.",
-        list.pretty_print(env, PrettyOptions::default().with_max_width(60)),
-        index.pretty_print(env, PrettyOptions::default().with_max_width(60))
+        formatter.render(*list.kind, RenderOptions::default().with_max_width(60)),
+        formatter.render(*index.kind, RenderOptions::default().with_max_width(60))
     );
 
     diagnostic.add_message(Message::help(help_message));
@@ -1793,10 +1781,10 @@ where
     diagnostic
 }
 
-pub(crate) fn dict_subscript_mismatch<'heap>(
+pub(crate) fn dict_subscript_mismatch<'env, 'heap>(
     dict: Type<'heap, DictType>,
     index: TypeId,
-    env: &Environment<'heap>,
+    env: &'env Environment<'heap>,
 ) -> TypeCheckDiagnostic {
     let formatter = Formatter::new();
     let mut formatter = TypeFormatter::new(&formatter, env, TypeFormatterOptions::default());
@@ -1822,9 +1810,9 @@ pub(crate) fn dict_subscript_mismatch<'heap>(
          '{}'.\n\nDictionary keys must match exactly - there is no implicit conversion between \
          key types. Use a key of the correct type or ensure your key expression evaluates to the \
          expected type: `dict[key]` where `key` has type '{}'.",
-        index.pretty_print(env, PrettyOptions::default().with_max_width(60)),
-        expected.pretty_print(env, PrettyOptions::default().with_max_width(60)),
-        expected.pretty_print(env, PrettyOptions::default().with_max_width(60))
+        formatter.render(*index.kind, RenderOptions::default().with_max_width(60)),
+        formatter.render(*expected.kind, RenderOptions::default().with_max_width(60)),
+        formatter.render(*expected.kind, RenderOptions::default().with_max_width(60))
     );
 
     diagnostic.add_message(Message::help(help_message));
@@ -1843,8 +1831,8 @@ pub(crate) fn dict_subscript_mismatch<'heap>(
 /// This occurs when the type system determines that no valid type can satisfy
 /// the upper bound constraint for an inference variable, typically indicating
 /// contradictory type requirements or unreachable code paths.
-pub(crate) fn unsatisfiable_upper_constraint(
-    env: &Environment,
+pub(crate) fn unsatisfiable_upper_constraint<'env, 'heap>(
+    env: &'env Environment<'heap>,
     upper_constraint: TypeId,
     variable: Variable,
 ) -> TypeCheckDiagnostic {
@@ -1872,8 +1860,14 @@ pub(crate) fn unsatisfiable_upper_constraint(
         "The inference variable `{}` has an upper bound constraint of type `{}` that cannot be \
          satisfied. This typically means there are contradictory type requirements that make it \
          impossible for any valid value to exist. Review the constraints placed on this variable.",
-        variable_type.pretty_print(env, PrettyOptions::default().with_max_width(40)),
-        upper_type.pretty_print(env, PrettyOptions::default().with_max_width(40))
+        formatter.render(
+            *variable_type.kind,
+            RenderOptions::default().with_max_width(40)
+        ),
+        formatter.render(
+            *upper_type.kind,
+            RenderOptions::default().with_max_width(40)
+        )
     )));
 
     diagnostic.add_message(Message::note(
