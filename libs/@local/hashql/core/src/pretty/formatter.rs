@@ -263,9 +263,7 @@ impl<'alloc, 'heap> Formatter<'alloc, 'heap> {
     {
         self.intersperse(
             items,
-            self.softline()
-                .append(self.punct_str("|"))
-                .append(self.space()),
+            self.line().append(self.punct_str("|")).append(self.space()),
         )
     }
 
@@ -275,9 +273,7 @@ impl<'alloc, 'heap> Formatter<'alloc, 'heap> {
     {
         self.intersperse(
             items,
-            self.softline()
-                .append(self.punct_str("&"))
-                .append(self.space()),
+            self.line().append(self.punct_str("&")).append(self.space()),
         )
     }
 

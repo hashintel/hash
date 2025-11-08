@@ -336,21 +336,25 @@ impl<'fmt, 'heap> FormatType<'fmt, TupleType<'heap>> for TypeFormatter<'fmt, '_,
 
 impl<'fmt, 'heap> FormatType<'fmt, UnionType<'heap>> for TypeFormatter<'fmt, '_, 'heap> {
     fn format_type(&mut self, UnionType { variants }: UnionType<'heap>) -> Doc<'fmt> {
-        self.fmt.union(
-            variants
-                .into_iter()
-                .map(|&element| self.format_type(element)),
-        )
+        self.fmt
+            .union(
+                variants
+                    .into_iter()
+                    .map(|&element| self.format_type(element)),
+            )
+            .group()
     }
 }
 
 impl<'fmt, 'heap> FormatType<'fmt, IntersectionType<'heap>> for TypeFormatter<'fmt, '_, 'heap> {
     fn format_type(&mut self, IntersectionType { variants }: IntersectionType<'heap>) -> Doc<'fmt> {
-        self.fmt.intersection(
-            variants
-                .into_iter()
-                .map(|&element| self.format_type(element)),
-        )
+        self.fmt
+            .intersection(
+                variants
+                    .into_iter()
+                    .map(|&element| self.format_type(element)),
+            )
+            .group()
     }
 }
 
