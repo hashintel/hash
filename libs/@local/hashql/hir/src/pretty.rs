@@ -45,6 +45,8 @@ pub struct NodeFormatter<'fmt, 'env, 'heap> {
 
     context: &'env HirContext<'env, 'heap>,
     options: NodeFormatterOptions,
+
+    parent_is_op: bool,
 }
 
 impl<'fmt, 'env, 'heap> NodeFormatter<'fmt, 'env, 'heap> {
@@ -62,6 +64,7 @@ impl<'fmt, 'env, 'heap> NodeFormatter<'fmt, 'env, 'heap> {
 
             context,
             options,
+            parent_is_op: false,
         }
     }
 
@@ -318,12 +321,24 @@ impl<'fmt, 'heap> FormatNode<'fmt, &Binding<'heap>> for NodeFormatter<'fmt, '_, 
 
 impl<'fmt, 'heap> FormatNode<'fmt, &Operation<'heap>> for NodeFormatter<'fmt, '_, 'heap> {
     fn format_node(&mut self, node: &Operation<'heap>) -> Doc<'fmt> {
-        match node {
+        let prev_parent_is_op = self.parent_is_op;
+        self.parent_is_op = true;
+
+        let mut doc = match node {
             Operation::Type(type_operation) => self.format_node(type_operation),
             Operation::Binary(binary_operation) => self.format_node(binary_operation),
             Operation::Unary(unary_operation, _) => self.format_node(unary_operation),
             Operation::Input(input_operation) => self.format_node(input_operation),
+        };
+
+        if prev_parent_is_op {
+            // We need to parenthesis the operation
+            doc = doc.parens();
         }
+
+        self.parent_is_op = prev_parent_is_op;
+
+        doc
     }
 }
 

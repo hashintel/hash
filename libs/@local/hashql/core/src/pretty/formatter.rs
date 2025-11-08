@@ -434,14 +434,17 @@ impl<'alloc, 'heap> Formatter<'alloc, 'heap> {
     where
         I: IntoIterator<Item = Doc<'alloc>>,
     {
-        let params_doc = self.comma_sep(params).nest(1).group();
+        let params_doc = self.delimited("(", params, ")");
 
-        self.parens(params_doc)
+        params_doc
             .append(self.space())
             .append(self.op_str("->"))
-            .append(self.space())
-            .append(returns)
-            .group()
+            .append(
+                self.line()
+                    .append(returns)
+                    .nest(self.options.indent)
+                    .group(),
+            )
     }
 
     /// Formats a function type signature.

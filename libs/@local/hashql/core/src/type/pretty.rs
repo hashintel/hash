@@ -318,11 +318,19 @@ impl<'fmt, 'heap> FormatType<'fmt, IntersectionType<'heap>> for TypeFormatter<'f
 
 impl<'fmt, 'heap> FormatType<'fmt, ClosureType<'heap>> for TypeFormatter<'fmt, '_, 'heap> {
     fn format_type(&mut self, ClosureType { params, returns }: ClosureType<'heap>) -> Doc<'fmt> {
-        let returns = self.format_type(returns);
+        let returns_type = self.env.r#type(returns);
+        let returns_doc = self.format_type(returns);
+
+        // Wrap union/intersection return types in parentheses for clarity
+        // Group them so they stay compact
+        let returns_doc = match returns_type.kind {
+            TypeKind::Union(_) | TypeKind::Intersection(_) => self.fmt.parens(returns_doc.group()),
+            _ => returns_doc,
+        };
 
         self.fmt.closure_type(
             params.into_iter().map(|&element| self.format_type(element)),
-            returns,
+            returns_doc,
         )
     }
 }
