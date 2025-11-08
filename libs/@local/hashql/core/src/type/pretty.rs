@@ -341,7 +341,8 @@ impl<'fmt> FormatType<'fmt, GenericArgumentId> for TypeFormatter<'fmt, '_, '_> {
         let reference = self.generics.iter().find(|reference| reference.id == value);
 
         if let Some(reference) = reference {
-            self.fmt.type_name(reference.name)
+            self.fmt
+                .type_name_owned(format!("{}?{value}", reference.name))
         } else {
             self.fmt.type_name_owned(format!("?{value}"))
         }
@@ -376,7 +377,7 @@ impl<'fmt, 'heap> FormatType<'fmt, GenericArgument<'heap>> for TypeFormatter<'fm
         &mut self,
         GenericArgument {
             id,
-            name,
+            name: _,
             constraint,
         }: GenericArgument<'heap>,
     ) -> Doc<'fmt> {
@@ -384,7 +385,7 @@ impl<'fmt, 'heap> FormatType<'fmt, GenericArgument<'heap>> for TypeFormatter<'fm
             self.fmt
                 .key_value(self.format_type(id), ":", self.format_type(constraint))
         } else {
-            self.fmt.type_name(name)
+            self.format_type(id)
         }
     }
 }
