@@ -6,6 +6,7 @@
 use hashql_core::{id, intern::Interned, symbol::Symbol};
 
 use super::local::Local;
+use crate::intern::Interner;
 
 id::newtype!(
     /// A positional index for accessing fields in closed structured types.
@@ -42,6 +43,26 @@ pub struct Place<'heap> {
     /// the final storage location. An empty sequence means the place refers directly to the
     /// local variable.
     pub projections: Interned<'heap, [Projection<'heap>]>,
+}
+
+impl<'heap> Place<'heap> {
+    pub fn local(local: Local, interner: &Interner<'heap>) -> Self {
+        Self {
+            local,
+            projections: interner.projections.intern_slice(&[]),
+        }
+    }
+
+    #[must_use]
+    pub fn project(self, interner: &Interner<'heap>, projection: Projection<'heap>) -> Self {
+        let mut projections = self.projections.to_vec();
+        projections.push(projection);
+
+        Self {
+            local: self.local,
+            projections: interner.projections.intern_slice(&projections),
+        }
+    }
 }
 
 /// A projection operation that navigates within structured data.

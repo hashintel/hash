@@ -5,7 +5,10 @@
 
 use hashql_core::intern::Interned;
 
-use crate::body::{basic_block::BasicBlockId, operand::Operand};
+use crate::{
+    body::{basic_block::BasicBlockId, operand::Operand},
+    intern::Interner,
+};
 
 /// A control flow target in the HashQL MIR.
 ///
@@ -34,4 +37,13 @@ pub struct Target<'heap> {
     /// The number and types of arguments must match the target block's
     /// parameter specification.
     pub args: Interned<'heap, [Operand<'heap>]>,
+}
+
+impl<'heap> Target<'heap> {
+    pub fn block(block: BasicBlockId, interner: &Interner<'heap>) -> Self {
+        Self {
+            block,
+            args: interner.operands.intern_slice(&[]),
+        }
+    }
 }
