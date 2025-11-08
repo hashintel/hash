@@ -4,5 +4,5 @@
 
 ════ HIR after specialization ══════════════════════════════════════════════════
 
-::graph::head::entities(::graph::tmp::decision_time_now())
-|> ::graph::tail::collect
+entity(::graph::tmp::decision_time_now())
+| collect

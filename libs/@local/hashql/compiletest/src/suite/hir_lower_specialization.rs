@@ -78,7 +78,7 @@ impl Suite for HirLowerSpecializationSuite {
             output,
             "\n{}\n\n{}",
             Header::new("HIR after specialization"),
-            formatter.render(node, RenderOptions::default())
+            formatter.render(node, RenderOptions::default().with_plain())
         );
 
         Ok(output)

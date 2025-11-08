@@ -3,4 +3,5 @@ Expr#4294967040@13
 
 ------------------------
 
-type Distinct:0 = Distinct:0[Number]
+┌─ Distinct:0<>
+└→ ::main::Distinct:0((Number))

@@ -4,15 +4,15 @@
 
 ════ HIR after type checking ═══════════════════════════════════════════════════
 
-#ctor(fn(Integer) -> Some[Integer], arguments: [T])(2)
+::core::option::Some(2)
 
 ════ Types ═════════════════════════════════════════════════════════════════════
 
-┌─ #ctor(fn(Integer) -> Some[Integer], arguments: [T])(2)
-└→ Some[Integer]
+┌─ ::core::option::Some(2)
+└→ ::core::option::Some((Integer))
 
-┌─ #ctor(fn(Integer) -> Some[Integer], arguments: [T])
-└→ fn(Integer) -> Some[Integer]
+┌─ ::core::option::Some
+└→ (Integer) -> ::core::option::Some((Integer))
 
 ┌─ 2
 └→ Integer

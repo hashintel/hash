@@ -1,1 +1,5 @@
-if true ::core::option::Some(1) ::core::option::None()
+if true
+then
+::core::option::Some(1)
+else
+::core::option::None()

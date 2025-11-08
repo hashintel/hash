@@ -76,7 +76,7 @@ impl Suite for HirLowerGraphHoistingSuite {
             output,
             "\n{}\n\n{}",
             Header::new("HIR after graph hoisting"),
-            formatter.render(node, RenderOptions::default())
+            formatter.render(node, RenderOptions::default().with_plain())
         );
 
         Ok(output)

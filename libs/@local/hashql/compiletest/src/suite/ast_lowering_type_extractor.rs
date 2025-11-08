@@ -100,7 +100,7 @@ impl Suite for AstLoweringTypeExtractorSuite {
                         "{name}{}",
                         GenericArgumentReference::display_mangled(&arguments)
                     ),
-                    annotation: formatter.render(id, RenderOptions::default())
+                    annotation: formatter.render(id, RenderOptions::default().with_plain())
                 }
             );
         }
@@ -114,7 +114,7 @@ impl Suite for AstLoweringTypeExtractorSuite {
             let _: Result<(), _> = write!(
                 output,
                 "\n\n{node_id} = {}",
-                formatter.render(type_id, RenderOptions::default())
+                formatter.render(type_id, RenderOptions::default().with_plain())
             );
         }
 
@@ -131,7 +131,7 @@ impl Suite for AstLoweringTypeExtractorSuite {
                         "{node_id}{}",
                         GenericArgumentReference::display_mangled(&arguments)
                     ),
-                    annotation: formatter.render(id, RenderOptions::default())
+                    annotation: formatter.render(id, RenderOptions::default().with_plain())
                 }
             );
         }

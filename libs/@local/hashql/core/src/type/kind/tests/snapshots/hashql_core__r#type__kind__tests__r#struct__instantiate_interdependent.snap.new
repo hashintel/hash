@@ -1,0 +1,6 @@
+---
+source: libs/@local/hashql/core/src/type/kind/tests/struct.rs
+assertion_line: 1298
+expression: "formatter.render_type(type_id, RenderOptions::default().with_plain())"
+---
+<T?2, U?3: T?2>(:)

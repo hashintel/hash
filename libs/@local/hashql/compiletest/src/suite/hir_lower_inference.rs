@@ -127,7 +127,7 @@ impl Suite for HirLowerTypeInferenceSuite {
             output,
             "\n{}\n\n{}",
             Header::new("HIR after type inference"),
-            value_formatter.render(node, RenderOptions::default())
+            value_formatter.render(node, RenderOptions::default().with_plain())
         );
 
         let nodes = collect_hir_nodes(node);
@@ -139,9 +139,11 @@ impl Suite for HirLowerTypeInferenceSuite {
                 output,
                 "{}\n",
                 Annotated {
-                    content: value_formatter.render(node, RenderOptions::default()),
-                    annotation: type_formatter
-                        .render(context.map.type_id(node.id), RenderOptions::default())
+                    content: value_formatter.render(node, RenderOptions::default().with_plain()),
+                    annotation: type_formatter.render(
+                        context.map.type_id(node.id),
+                        RenderOptions::default().with_plain()
+                    )
                 }
             );
         }

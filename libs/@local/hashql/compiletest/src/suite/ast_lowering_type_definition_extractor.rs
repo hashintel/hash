@@ -90,7 +90,7 @@ impl Suite for AstLoweringTypeDefinitionExtractorSuite {
                         "{name}{}",
                         GenericArgumentReference::display_mangled(&arguments)
                     ),
-                    annotation: formatter.render(id, RenderOptions::default())
+                    annotation: formatter.render(id, RenderOptions::default().with_plain())
                 }
             );
         }

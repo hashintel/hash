@@ -1,21 +1,21 @@
 ════ Initial HIR ═══════════════════════════════════════════════════════════════
 
-#let foo:0 = (a: 42)
+let foo:0 = (a: 42)
 in
 foo:0.a
 
 ════ HIR after type inference ══════════════════════════════════════════════════
 
-#let foo:0 = (a: 42)
+let foo:0 = (a: 42)
 in
 foo:0.a
 
 ════ Types ═════════════════════════════════════════════════════════════════════
 
-┌─ #let foo:0 = (a: 42)
+┌─ let foo:0 = (a: 42)
 │  in
 │  foo:0.a
-└→ _0«Integer»
+└→ _0{Integer}
 
 ┌─ (a: 42)
 └→ (a: Integer)
@@ -24,7 +24,7 @@ foo:0.a
 └→ Integer
 
 ┌─ foo:0.a
-└→ _0«Integer»
+└→ _0{Integer}
 
 ┌─ foo:0
 └→ (a: Integer)

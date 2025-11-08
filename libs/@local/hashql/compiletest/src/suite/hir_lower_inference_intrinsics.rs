@@ -70,7 +70,7 @@ impl Suite for HirLowerTypeInferenceIntrinsicsSuite {
             output,
             "\n{}\n\n{}",
             Header::new("HIR after type inference"),
-            formatter.render(node, RenderOptions::default())
+            formatter.render(node, RenderOptions::default().with_plain())
         );
 
         let _ = writeln!(output, "\n{}\n", Header::new("Intrinsics"));
@@ -87,7 +87,7 @@ impl Suite for HirLowerTypeInferenceIntrinsicsSuite {
                 output,
                 "{}\n",
                 Annotated {
-                    content: formatter.render(node, RenderOptions::default()),
+                    content: formatter.render(node, RenderOptions::default().with_plain()),
                     annotation: intrinsic
                 }
             );

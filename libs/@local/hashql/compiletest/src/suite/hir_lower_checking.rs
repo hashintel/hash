@@ -93,7 +93,7 @@ impl Suite for HirLowerTypeCheckingSuite {
             output,
             "\n{}\n\n{}",
             Header::new("HIR after type checking"),
-            value_formatter.render(node, RenderOptions::default())
+            value_formatter.render(node, RenderOptions::default().with_plain())
         );
 
         if !checking_inputs.is_empty() {
@@ -106,7 +106,8 @@ impl Suite for HirLowerTypeCheckingSuite {
                 "\n{}\n",
                 Annotated {
                     content: name,
-                    annotation: type_formatter.render(type_id, RenderOptions::default())
+                    annotation: type_formatter
+                        .render(type_id, RenderOptions::default().with_plain())
                 }
             );
         }
@@ -122,8 +123,9 @@ impl Suite for HirLowerTypeCheckingSuite {
                 output,
                 "{}\n",
                 Annotated {
-                    content: value_formatter.render(node, RenderOptions::default()),
-                    annotation: type_formatter.render(type_id, RenderOptions::default())
+                    content: value_formatter.render(node, RenderOptions::default().with_plain()),
+                    annotation: type_formatter
+                        .render(type_id, RenderOptions::default().with_plain())
                 }
             );
         }

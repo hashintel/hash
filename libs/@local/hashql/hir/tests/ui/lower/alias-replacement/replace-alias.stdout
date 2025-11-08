@@ -1,12 +1,11 @@
 ════ Initial HIR ═══════════════════════════════════════════════════════════════
 
-#let x:0 = 2
-     y:0 = x:0
+let x:0 = 2, y:0 = x:0
 in
 ::core::math::add(x:0, y:0)
 
 ════ HIR after alias replacement ═══════════════════════════════════════════════
 
-#let x:0 = 2
+let x:0 = 2
 in
 ::core::math::add(x:0, x:0)

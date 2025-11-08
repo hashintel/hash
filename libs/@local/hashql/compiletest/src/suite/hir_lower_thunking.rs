@@ -83,7 +83,7 @@ impl Suite for HirLowerThunkingSuite {
             output,
             "\n{}\n\n{}",
             Header::new("HIR after thunking"),
-            formatter.render(node, RenderOptions::default())
+            formatter.render(node, RenderOptions::default().with_plain())
         );
 
         Ok(output)

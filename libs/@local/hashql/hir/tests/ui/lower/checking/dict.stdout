@@ -1,14 +1,14 @@
 ════ Initial HIR ═══════════════════════════════════════════════════════════════
 
-#as({"key1": 42, "key2": 43, "key3": 44}, type: Dict<String, Number>)
+{"key1": 42, "key2": 43, "key3": 44} as Dict<String, Number>
 
 ════ HIR after type checking ═══════════════════════════════════════════════════
 
-#as({"key1": 42, "key2": 43, "key3": 44}, type: Dict<String, Number>)
+{"key1": 42, "key2": 43, "key3": 44} as Dict<String, Number>
 
 ════ Types ═════════════════════════════════════════════════════════════════════
 
-┌─ #as({"key1": 42, "key2": 43, "key3": 44}, type: Dict<String, Number>)
+┌─ {"key1": 42, "key2": 43, "key3": 44} as Dict<String, Number>
 └→ Dict<String, Number>
 
 ┌─ "key1"

@@ -1,11 +1,18 @@
 ════ Initial HIR ═══════════════════════════════════════════════════════════════
 
-if input(#exists, x) input(#load?, x) #as(#as(42, type: _0), type: Number)
+if $exists(x)
+then
+$?x
+else
+42 as _0 as Number
 
 ════ HIR after type checking ═══════════════════════════════════════════════════
 
-if input(#exists, x) input(#load?, x) #as(#as(42, type: _0«Integer»),
-type: Number)
+if $exists(x)
+then
+$?x
+else
+42 as _0 as Number
 
 ════ Inputs ════════════════════════════════════════════════════════════════════
 
@@ -16,22 +23,25 @@ type: Number)
 
 ════ Types ═════════════════════════════════════════════════════════════════════
 
-┌─ if input(#exists, x) input(#load?, x) #as(#as(42, type: _0«Integer»),
-│  type: Number)
+┌─ if $exists(x)
+│  then
+│  $?x
+│  else
+│  42 as _0 as Number
 └→ Number
 
-┌─ #as(42, type: _0«Integer»)
+┌─ 42 as _0
 └→ Integer
 
 ┌─ 42
 └→ Integer
 
-┌─ input(#load?, x)
+┌─ $?x
 └→ Number
 
-┌─ input(#exists, x)
+┌─ $exists(x)
 └→ Boolean
 
-┌─ #as(#as(42, type: _0«Integer»), type: Number)
+┌─ 42 as _0 as Number
 └→ Number
 

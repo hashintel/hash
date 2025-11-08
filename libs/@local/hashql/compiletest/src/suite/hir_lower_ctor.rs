@@ -80,7 +80,7 @@ impl Suite for HirLowerCtorSuite {
             output,
             "\n{}\n\n{}",
             Header::new("HIR after ctor conversion"),
-            formatter.render(node, RenderOptions::default())
+            formatter.render(node, RenderOptions::default().with_plain())
         );
 
         Ok(output)

@@ -61,6 +61,8 @@ impl Suite for HirReifySuite {
         let formatter = Formatter::new(heap);
         let mut formatter = NodeFormatter::with_defaults(&formatter, &environment, &context);
 
-        Ok(formatter.render(node, RenderOptions::default()).to_string())
+        Ok(formatter
+            .render(node, RenderOptions::default().with_plain())
+            .to_string())
     }
 }

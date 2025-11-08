@@ -39,7 +39,7 @@ pub(crate) fn hir_lower_alias_replacement<'heap>(
         options.output,
         "{}\n\n{}",
         Header::new("Initial HIR"),
-        formatter.render(node, RenderOptions::default()),
+        formatter.render(node, RenderOptions::default().with_plain()),
     );
 
     if !options.skip_alias_replacement {
@@ -93,7 +93,7 @@ impl Suite for HirLowerAliasReplacementSuite {
             output,
             "\n{}\n\n{}",
             Header::new("HIR after alias replacement"),
-            formatter.render(node, RenderOptions::default())
+            formatter.render(node, RenderOptions::default().with_plain())
         );
 
         Ok(output)

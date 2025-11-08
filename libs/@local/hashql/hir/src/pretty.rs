@@ -255,12 +255,13 @@ impl<'fmt, 'heap> FormatNode<'fmt, &QualifiedVariable<'heap>> for NodeFormatter<
         &mut self,
         QualifiedVariable { path, arguments }: &QualifiedVariable<'heap>,
     ) -> Doc<'fmt> {
-        // Format as: path::to::var<TypeArgs>
+        // Format as: ::path::to::var<TypeArgs>
         self.fmt
-            .intersperse(
+            .punct(sym::symbol::colon_colon)
+            .append(self.fmt.intersperse(
                 path.0.iter().map(|ident| self.fmt.variable(ident.value)),
                 self.fmt.punct(sym::symbol::colon_colon),
-            )
+            ))
             .append(self.format_type_arguments(arguments))
     }
 }

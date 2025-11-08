@@ -59,7 +59,7 @@ impl Suite for EvalGraphReadEntitySuite {
             output,
             "{}\n\n{}",
             Header::new("HIR"),
-            formatter.render(node, RenderOptions::default()),
+            formatter.render(node, RenderOptions::default().with_plain()),
         );
 
         let user_id_value = Value::Opaque(Opaque::new(

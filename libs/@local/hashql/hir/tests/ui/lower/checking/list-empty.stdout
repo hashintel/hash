@@ -1,14 +1,14 @@
 ════ Initial HIR ═══════════════════════════════════════════════════════════════
 
-#as([], type: List<Integer>)
+[] as List<Integer>
 
 ════ HIR after type checking ═══════════════════════════════════════════════════
 
-#as([], type: List<Integer>)
+[] as List<Integer>
 
 ════ Types ═════════════════════════════════════════════════════════════════════
 
-┌─ #as([], type: List<Integer>)
+┌─ [] as List<Integer>
 └→ List<Integer>
 
 ┌─ []

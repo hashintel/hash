@@ -77,7 +77,7 @@ impl Suite for HirLowerNormalizationSuite {
             output,
             "\n{}\n\n{}",
             Header::new("HIR after normalization"),
-            formatter.render(node, RenderOptions::default())
+            formatter.render(node, RenderOptions::default().with_plain())
         );
 
         Ok(output)
