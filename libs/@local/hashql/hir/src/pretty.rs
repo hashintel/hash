@@ -19,7 +19,7 @@ use crate::{
         data::{Data, Dict, DictField, List, Struct, StructField, Tuple},
         graph::{Graph, GraphRead, GraphReadBody, GraphReadHead, GraphReadTail},
         kind::NodeKind,
-        r#let::{Binder, Binding, Let},
+        r#let::{Binding, Let},
         operation::{
             BinaryOperation, InputOperation, Operation, TypeAssertion, TypeConstructor,
             TypeOperation, UnaryOperation,
@@ -311,13 +311,8 @@ impl<'fmt, 'heap> FormatNode<'fmt, &Binding<'heap>> for NodeFormatter<'fmt, '_, 
 
         name.append(self.fmt.space())
             .append(self.fmt.punct_str("="))
-            .append(
-                self.fmt
-                    .line()
-                    .append(value)
-                    .nest(self.fmt.options.indent)
-                    .group(),
-            )
+            .append(self.fmt.space())
+            .append(value)
     }
 }
 

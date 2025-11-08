@@ -1,55 +1,52 @@
 ════ HIR ═══════════════════════════════════════════════════════════════════════
 
-let %1 =
-        thunk ->
-            let %6 = ::graph::tmp::decision_time_now(),
-                %7 = %6()
-            in
-            %7,
+let %1 = thunk ->
+        let %6 = ::graph::tmp::decision_time_now(),
+            %7 = %6()
+        in
+        %7,
     %2 = thunk -> let %8 = $user_ids in %8,
     %3 = thunk -> 0,
-    %5 =
-        thunk ->
-            let %9 = %1(),
-                %12 =
-                    entity(%9)
-                    | filter((
-                        vertex:0: ::graph::types::knowledge::entity::Entity(
-                            id: ::graph::types::knowledge::entity::EntityRecordId(
-                                edition_id: ::graph::types::knowledge::entity::EntityEditionId(::core::uuid::Uuid(String)),
-                                entity_id: ::graph::types::knowledge::entity::EntityId(
-                                    draft_id: ::core::option::None(Null)
-                                    | ::core::option::Some(::graph::types::knowledge::entity::DraftId(::core::uuid::Uuid(String))),
-                                    entity_uuid: ::graph::types::knowledge::entity::EntityUuid(::core::uuid::Uuid(String)),
-                                    web_id: ::graph::types::principal::actor_group::web::WebId(::graph::types::principal::actor_group::ActorGroupEntityUuid(::core::uuid::Uuid(String)))
-                                )
-                            ),
-                            link_data: ::core::option::None(Null)
-                            | ::core::option::Some(::graph::types::knowledge::entity::LinkData(
-                                left_entity_id: ::graph::types::knowledge::entity::EntityId(
-                                    draft_id: ::core::option::None(Null)
-                                    | ::core::option::Some(::graph::types::knowledge::entity::DraftId(::core::uuid::Uuid(String))),
-                                    entity_uuid: ::graph::types::knowledge::entity::EntityUuid(::core::uuid::Uuid(String)),
-                                    web_id: ::graph::types::principal::actor_group::web::WebId(::graph::types::principal::actor_group::ActorGroupEntityUuid(::core::uuid::Uuid(String)))
-                                ),
-                                right_entity_id: ::graph::types::knowledge::entity::EntityId(
-                                    draft_id: ::core::option::None(Null)
-                                    | ::core::option::Some(::graph::types::knowledge::entity::DraftId(::core::uuid::Uuid(String))),
-                                    entity_uuid: ::graph::types::knowledge::entity::EntityUuid(::core::uuid::Uuid(String)),
-                                    web_id: ::graph::types::principal::actor_group::web::WebId(::graph::types::principal::actor_group::ActorGroupEntityUuid(::core::uuid::Uuid(String)))
-                                )
-                            )),
-                            properties: ?
+    %5 = thunk ->
+        let %9 = %1(),
+            %12 = entity(%9)
+            | filter((
+                vertex:0: ::graph::types::knowledge::entity::Entity(
+                    id: ::graph::types::knowledge::entity::EntityRecordId(
+                        edition_id: ::graph::types::knowledge::entity::EntityEditionId(::core::uuid::Uuid(String)),
+                        entity_id: ::graph::types::knowledge::entity::EntityId(
+                            draft_id: ::core::option::None(Null)
+                            | ::core::option::Some(::graph::types::knowledge::entity::DraftId(::core::uuid::Uuid(String))),
+                            entity_uuid: ::graph::types::knowledge::entity::EntityUuid(::core::uuid::Uuid(String)),
+                            web_id: ::graph::types::principal::actor_group::web::WebId(::graph::types::principal::actor_group::ActorGroupEntityUuid(::core::uuid::Uuid(String)))
                         )
-                    ): Boolean ->
-                        let %10 = %2(),
-                            %11 = %3(),
-                            %4 = vertex:0.id.entity_id.entity_uuid == %10[%11]
-                        in
-                        %4)
-                    | collect
-            in
-            %12
+                    ),
+                    link_data: ::core::option::None(Null)
+                    | ::core::option::Some(::graph::types::knowledge::entity::LinkData(
+                        left_entity_id: ::graph::types::knowledge::entity::EntityId(
+                            draft_id: ::core::option::None(Null)
+                            | ::core::option::Some(::graph::types::knowledge::entity::DraftId(::core::uuid::Uuid(String))),
+                            entity_uuid: ::graph::types::knowledge::entity::EntityUuid(::core::uuid::Uuid(String)),
+                            web_id: ::graph::types::principal::actor_group::web::WebId(::graph::types::principal::actor_group::ActorGroupEntityUuid(::core::uuid::Uuid(String)))
+                        ),
+                        right_entity_id: ::graph::types::knowledge::entity::EntityId(
+                            draft_id: ::core::option::None(Null)
+                            | ::core::option::Some(::graph::types::knowledge::entity::DraftId(::core::uuid::Uuid(String))),
+                            entity_uuid: ::graph::types::knowledge::entity::EntityUuid(::core::uuid::Uuid(String)),
+                            web_id: ::graph::types::principal::actor_group::web::WebId(::graph::types::principal::actor_group::ActorGroupEntityUuid(::core::uuid::Uuid(String)))
+                        )
+                    )),
+                    properties: ?
+                )
+            ): Boolean ->
+                let %10 = %2(),
+                    %11 = %3(),
+                    %4 = vertex:0.id.entity_id.entity_uuid == %10[%11]
+                in
+                %4)
+            | collect
+        in
+        %12
 in
 %5
 
