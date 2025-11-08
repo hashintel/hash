@@ -7,7 +7,7 @@ use hashql_core::{
     r#type::{TypeFormatter, TypeFormatterOptions, environment::Environment, kind::Generic},
     value::Primitive,
 };
-use pretty::{DocBuilder, Pretty};
+use pretty::Pretty as _;
 
 use crate::{
     context::HirContext,
@@ -537,7 +537,7 @@ impl<'fmt, 'heap> FormatNode<'fmt, &If<'heap>> for NodeFormatter<'fmt, '_, 'heap
             .append(
                 then_doc
                     .pretty(self.fmt.arena())
-                    .indent(self.fmt.options.indent as usize),
+                    .indent(usize::try_from(self.fmt.options.indent).unwrap_or(4)),
             )
             .append(self.fmt.hardline())
             .append(else_keyword)
@@ -545,7 +545,7 @@ impl<'fmt, 'heap> FormatNode<'fmt, &If<'heap>> for NodeFormatter<'fmt, '_, 'heap
             .append(
                 else_doc
                     .pretty(self.fmt.arena())
-                    .indent(self.fmt.options.indent as usize),
+                    .indent(usize::try_from(self.fmt.options.indent).unwrap_or(4)),
             )
             .group();
 
