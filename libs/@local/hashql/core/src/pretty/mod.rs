@@ -8,7 +8,7 @@ use std::io;
 
 use self::write::{AnsiWriter, PlainWriter, RenderError};
 pub use self::{
-    formatter::{Doc, Formatter},
+    formatter::{Doc, Formatter, FormatterOptions},
     semantic::Semantic,
 };
 
