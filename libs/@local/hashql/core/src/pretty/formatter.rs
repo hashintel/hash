@@ -3,7 +3,7 @@
 //! Provides a high-level API over the `pretty` crate with semantic annotations.
 //! All document construction goes through this interface.
 
-use core::iter;
+use core::{iter, marker::PhantomData};
 
 use pretty::{Arena, DocAllocator as _, DocBuilder};
 
@@ -18,16 +18,32 @@ pub type Doc<'alloc> = DocBuilder<'alloc, pretty::Arena<'alloc, Semantic>, Seman
 /// It owns the arena and provides all necessary primitives for document construction.
 pub struct Formatter<'alloc, 'heap> {
     arena: Arena<'alloc, Semantic>,
-    heap: &'heap Heap,
+
+    // You may ask yourself: wow this is weird, why do we have a (phantom) reference to the heap
+    // here? The answer is lifetime constraints. To be able to use any data inside of the heap
+    // we must prove that `heap` outlives the formatter. We cannot do this normally through `'fmt:
+    // 'heap`, because then we would need to use HRTB, HRTB's cannot express lifetime bounds, even
+    // if put on the top level of the encompassing trait aka `struct Formatter<'fmt, 'heap: 'fmt>`
+    // we run into a compiler limitation. The compiler is unable to prove this HRTB (yet) and so
+    // `'fmt` turns static.
+    // but(!) because we always need to take a reference to the underlying reference (so this very
+    // type), if we attach the lifetime of the heap here, we can *always* prove that the heap
+    // outlives the formatter. Without *any* additional trait bounds making it "just work".
+    // (We need to always take a reference to the formatter - this type - because of a limitation
+    // of the pretty crate). The type that provisions the doc must have the same lifetime as the
+    // arena itself, leading to `&'fmt Formatter<'fmt, 'heap>` as the trait bound – making `'fmt`
+    // invariant. It's a bit silly, but you play with the cards that you're dealt.
+    _heap: PhantomData<&'heap Heap>,
 }
 
 impl<'alloc, 'heap> Formatter<'alloc, 'heap> {
     /// Creates a new pretty printer.
     #[must_use]
+    #[expect(unused_variables, reason = "lifetime constraints")]
     pub fn new(heap: &'heap Heap) -> Self {
         Self {
             arena: Arena::new(),
-            heap,
+            _heap: PhantomData,
         }
     }
 

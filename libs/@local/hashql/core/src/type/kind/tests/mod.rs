@@ -2,7 +2,7 @@
 #![coverage(off)]
 
 use crate::{
-    pretty::{self, Formatter, RenderOptions},
+    pretty::{Formatter, RenderOptions},
     r#type::{
         TypeId,
         environment::{AnalysisEnvironment, Environment, LatticeEnvironment, Variance},
@@ -70,14 +70,11 @@ pub(crate) fn assert_equivalent(env: &Environment, lhs: TypeId, rhs: TypeId) {
 
     let mut analysis = AnalysisEnvironment::new(env);
 
-    let lhs_repr = formatter.format(lhs);
-    let rhs_repr = formatter.format(rhs);
-
     assert!(
         analysis.is_equivalent(lhs, rhs),
         "{} != {}",
-        pretty::render(lhs_repr, RenderOptions::default()),
-        pretty::render(rhs_repr, RenderOptions::default())
+        formatter.render_type(lhs, RenderOptions::default()),
+        formatter.render_type(rhs, RenderOptions::default())
     );
 }
 
@@ -88,14 +85,11 @@ pub(crate) fn assert_is_subtype(env: &Environment, lhs: TypeId, rhs: TypeId) {
 
     let mut analysis = AnalysisEnvironment::new(env);
 
-    let lhs_repr = formatter.format(lhs);
-    let rhs_repr = formatter.format(rhs);
-
     assert!(
         analysis.is_subtype_of(Variance::Covariant, lhs, rhs),
         "{} !< {}",
-        pretty::render(lhs_repr, RenderOptions::default()),
-        pretty::render(rhs_repr, RenderOptions::default())
+        formatter.render_type(lhs, RenderOptions::default()),
+        formatter.render_type(rhs, RenderOptions::default())
     );
 }
 

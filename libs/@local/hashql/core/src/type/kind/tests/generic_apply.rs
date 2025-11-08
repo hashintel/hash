@@ -1,6 +1,6 @@
 use crate::{
     heap::Heap,
-    pretty::{self, Formatter, RenderOptions},
+    pretty::{Formatter, RenderOptions},
     span::SpanId,
     r#type::{
         PartialType,
@@ -572,10 +572,9 @@ fn simplify_instantiate_recursive() {
     );
 
     // The type is complicated enough that it isn't feasible to test it through assertions.
-    insta::assert_snapshot!(pretty::render(
-        formatter.format(result_id),
-        RenderOptions::default().with_plain()
-    ));
+    insta::assert_snapshot!(
+        formatter.render_type(result_id, RenderOptions::default().with_plain())
+    );
 }
 
 #[test]
@@ -904,11 +903,9 @@ fn instantiated_nested() {
     );
 
     // The type is complicated enough that it isn't feasible to test it through assertions.
-    // The type is complicated enough that it isn't feasible to test it through assertions.
-    insta::assert_snapshot!(pretty::render(
-        formatter.format(result_id),
-        RenderOptions::default().with_plain()
-    ));
+    insta::assert_snapshot!(
+        formatter.render_type(result_id, RenderOptions::default().with_plain())
+    );
 }
 
 #[test]
@@ -991,10 +988,9 @@ fn instantiate_mutually_recursive() {
     );
 
     // The type is complicated enough that it isn't feasible to test it through assertions.
-    insta::assert_snapshot!(pretty::render(
-        formatter.format(result_id),
-        RenderOptions::default().with_plain()
-    ));
+    insta::assert_snapshot!(
+        formatter.render_type(result_id, RenderOptions::default().with_plain())
+    );
 }
 
 #[test]
@@ -1072,10 +1068,9 @@ fn simplify_recursive_unused() {
     );
 
     // The type is complicated enough that it isn't feasible to test it through assertions.
-    insta::assert_snapshot!(pretty::render(
-        formatter.format(result_id),
-        RenderOptions::default().with_plain()
-    ));
+    insta::assert_snapshot!(
+        formatter.render_type(result_id, RenderOptions::default().with_plain())
+    );
 }
 
 #[test]
@@ -1145,10 +1140,9 @@ fn instantiate_different_substitutions() {
     );
 
     // The type is complicated enough that it isn't feasible to test it through assertions.
-    insta::assert_snapshot!(pretty::render(
-        formatter.format(result_id),
-        RenderOptions::default().with_plain()
-    ));
+    insta::assert_snapshot!(
+        formatter.render_type(result_id, RenderOptions::default().with_plain())
+    );
 }
 
 #[test]
@@ -1213,8 +1207,7 @@ fn instantiate_partial() {
     );
 
     // The type is complicated enough that it isn't feasible to test it through assertions.
-    insta::assert_snapshot!(pretty::render(
-        formatter.format(result_id),
-        RenderOptions::default().with_plain()
-    ));
+    insta::assert_snapshot!(
+        formatter.render_type(result_id, RenderOptions::default().with_plain())
+    );
 }

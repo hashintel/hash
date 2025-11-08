@@ -120,13 +120,6 @@ impl<'heap> RecursionGuard<'heap> {
             }
         }
     }
-
-    fn depth(&self) -> usize {
-        match self {
-            Self::Depth(depth, _) => *depth,
-            Self::Reference(set) => set.len(),
-        }
-    }
 }
 
 impl From<RecursionGuardStrategy> for RecursionGuard<'_> {
@@ -138,7 +131,7 @@ impl From<RecursionGuardStrategy> for RecursionGuard<'_> {
     }
 }
 
-pub trait FormatType<'fmt, T> {
+pub(crate) trait FormatType<'fmt, T> {
     fn format_type(&mut self, value: T) -> Doc<'fmt>;
 }
 
@@ -169,29 +162,31 @@ impl<'fmt, 'env, 'heap> TypeFormatter<'fmt, 'env, 'heap> {
         Self::new(fmt, env, TypeFormatterOptions::default())
     }
 
-    pub fn format<T>(&mut self, value: T) -> Doc<'fmt>
-    where
-        Self: FormatType<'fmt, T>,
-    {
+    pub fn format(&mut self, value: TypeId) -> Doc<'fmt> {
         self.format_type(value)
     }
 
-    pub fn render<T>(&mut self, value: T, options: RenderOptions) -> impl Display + use<'fmt, T>
+    pub(crate) fn render_type<T>(
+        &mut self,
+        value: T,
+        options: RenderOptions,
+    ) -> impl Display + use<'fmt, T>
     where
         Self: FormatType<'fmt, T>,
     {
         crate::pretty::render(self.format_type(value), options)
     }
 
-    pub fn render_into<T>(
+    pub fn render(&mut self, value: TypeId, options: RenderOptions) -> impl Display + use<'fmt> {
+        self.render_type(value, options)
+    }
+
+    pub fn render_into(
         &mut self,
-        value: T,
+        value: TypeId,
         options: RenderOptions,
         write: &mut impl io::Write,
-    ) -> Result<(), io::Error>
-    where
-        Self: FormatType<'fmt, T>,
-    {
+    ) -> Result<(), io::Error> {
         crate::pretty::render_into(&self.format_type(value), options, write)
     }
 }

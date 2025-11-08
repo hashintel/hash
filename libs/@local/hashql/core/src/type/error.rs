@@ -268,7 +268,7 @@ where
                 lhs.span,
                 format!(
                     "This is of type `{}`",
-                    formatter.render(*lhs.kind, RenderOptions::default())
+                    formatter.render_type(*lhs.kind, RenderOptions::default())
                 ),
             ),
         );
@@ -277,7 +277,7 @@ where
         rhs.span,
         format!(
             "... and this is of type `{}`",
-            formatter.render(*rhs.kind, RenderOptions::default())
+            formatter.render_type(*rhs.kind, RenderOptions::default())
         ),
     ));
 
@@ -476,7 +476,7 @@ where
         bad_variant.span,
         format!(
             "variant `{}` must be a subtype of at least one variant in the expected union",
-            formatter.render(*bad_variant.kind, RenderOptions::default())
+            formatter.render_type(*bad_variant.kind, RenderOptions::default())
         ),
     ));
 
@@ -485,7 +485,7 @@ where
         expected_union.span,
         format!(
             "expected union containing at least one supertype variant for `{}`",
-            formatter.render(*bad_variant.kind, RenderOptions::default())
+            formatter.render_type(*bad_variant.kind, RenderOptions::default())
         ),
     ));
 
@@ -497,8 +497,8 @@ where
 
     diagnostic.add_message(Message::note(format!(
         "expected union: `{}`\nfound variant: `{}` which is not a subtype of any expected variants",
-        formatter.render(*expected_union.kind, RenderOptions::default()),
-        formatter.render(*bad_variant.kind, RenderOptions::default())
+        formatter.render_type(*expected_union.kind, RenderOptions::default()),
+        formatter.render_type(*bad_variant.kind, RenderOptions::default())
     )));
 
     diagnostic
@@ -572,7 +572,7 @@ where
                 subtype.span,
                 format!(
                     "`{}` cannot be a subtype of `!`",
-                    formatter.render(*subtype.kind, RenderOptions::default())
+                    formatter.render_type(*subtype.kind, RenderOptions::default())
                 ),
             ),
         );
@@ -612,7 +612,7 @@ where
                 supertype.span,
                 format!(
                     "`{}` type cannot be a supertype of `?`",
-                    formatter.render(*supertype.kind, RenderOptions::default())
+                    formatter.render_type(*supertype.kind, RenderOptions::default())
                 ),
             ),
         );
@@ -655,7 +655,7 @@ where
         variant.span,
         format!(
             "variant `{}` must be a subtype of all variants in the expected intersection",
-            formatter.render(*variant.kind, RenderOptions::default())
+            formatter.render_type(*variant.kind, RenderOptions::default())
         ),
     ));
 
@@ -664,7 +664,7 @@ where
         expected_intersection.span,
         format!(
             "expected intersection containing incompatible variants for `{}`",
-            formatter.render(*expected_intersection.kind, RenderOptions::default())
+            formatter.render_type(*expected_intersection.kind, RenderOptions::default())
         ),
     ));
 
@@ -677,8 +677,8 @@ where
     diagnostic.add_message(Message::note(format!(
         "expected intersection: `{}`\nfound variant: `{}` which is not a subtype of all expected \
          variants",
-        formatter.render(*expected_intersection.kind, RenderOptions::default()),
-        formatter.render(*variant.kind, RenderOptions::default()),
+        formatter.render_type(*expected_intersection.kind, RenderOptions::default()),
+        formatter.render_type(*variant.kind, RenderOptions::default()),
     )));
 
     diagnostic
@@ -876,7 +876,7 @@ pub(crate) fn incompatible_lower_equal_constraint<'heap>(
         equals.span,
         format!(
             "Required to be exactly `{}`",
-            formatter.render(equals, RenderOptions::default())
+            formatter.render_type(equals, RenderOptions::default())
         ),
     ));
 
@@ -885,7 +885,7 @@ pub(crate) fn incompatible_lower_equal_constraint<'heap>(
         lower_bound.span,
         format!(
             "But this lower bound `{}` is not a subtype of the equality constraint",
-            formatter.render(lower_bound, RenderOptions::default())
+            formatter.render_type(lower_bound, RenderOptions::default())
         ),
     ));
 
@@ -894,8 +894,8 @@ pub(crate) fn incompatible_lower_equal_constraint<'heap>(
         "Resolve this type conflict by either:\n1. Changing the equality constraint to be \
          compatible with `{}`\n2. Modifying the lower bound type to be a subtype of `{}`\n3. \
          Ensuring both types are compatible in the type hierarchy",
-        formatter.render(lower_bound, RenderOptions::default().with_max_width(60)),
-        formatter.render(equals, RenderOptions::default().with_max_width(60))
+        formatter.render_type(lower_bound, RenderOptions::default().with_max_width(60)),
+        formatter.render_type(equals, RenderOptions::default().with_max_width(60))
     )));
 
     diagnostic.add_message(Message::note(
@@ -932,7 +932,7 @@ pub(crate) fn incompatible_upper_equal_constraint<'heap>(
         equal.span,
         format!(
             "Required to be exactly `{}`",
-            formatter.render(equal, RenderOptions::default())
+            formatter.render_type(equal, RenderOptions::default())
         ),
     ));
 
@@ -941,7 +941,7 @@ pub(crate) fn incompatible_upper_equal_constraint<'heap>(
         upper.span,
         format!(
             "But this upper bound `{}` is not a supertype of the equality constraint",
-            formatter.render(upper, RenderOptions::default())
+            formatter.render_type(upper, RenderOptions::default())
         ),
     ));
 
@@ -950,8 +950,8 @@ pub(crate) fn incompatible_upper_equal_constraint<'heap>(
         "To fix this conflict, you can:\n1. Change the equality constraint `{}` to be a subtype \
          of the upper bound\n2. Adjust the upper bound `{}` to be a supertype of the equality \
          constraint\n3. Review your type annotations to ensure they're consistent",
-        formatter.render(equal, RenderOptions::default().with_max_width(60)),
-        formatter.render(upper, RenderOptions::default().with_max_width(60))
+        formatter.render_type(equal, RenderOptions::default().with_max_width(60)),
+        formatter.render_type(upper, RenderOptions::default().with_max_width(60))
     )));
 
     diagnostic.add_message(Message::note(
@@ -987,7 +987,7 @@ pub(crate) fn bound_constraint_violation<'heap>(
         lower_bound.span,
         format!(
             "Lower bound `{}` must be a subtype of the upper bound",
-            formatter.render(*lower_bound.kind, RenderOptions::default())
+            formatter.render_type(*lower_bound.kind, RenderOptions::default())
         ),
     ));
 
@@ -996,7 +996,7 @@ pub(crate) fn bound_constraint_violation<'heap>(
         upper_bound.span,
         format!(
             "Upper bound `{}` is not a supertype of the lower bound",
-            formatter.render(*upper_bound.kind, RenderOptions::default())
+            formatter.render_type(*upper_bound.kind, RenderOptions::default())
         ),
     ));
 
@@ -1005,19 +1005,19 @@ pub(crate) fn bound_constraint_violation<'heap>(
         "These type bounds create an impossible constraint. To fix this:\n1. Modify `{}` to be a \
          proper subtype of `{}`\n2. Or adjust `{}` to be a supertype of `{}`\n3. Or check your \
          code for contradictory type assertions",
-        formatter.render(
+        formatter.render_type(
             *lower_bound.kind,
             RenderOptions::default().with_max_width(60)
         ),
-        formatter.render(
+        formatter.render_type(
             *upper_bound.kind,
             RenderOptions::default().with_max_width(60)
         ),
-        formatter.render(
+        formatter.render_type(
             *upper_bound.kind,
             RenderOptions::default().with_max_width(60)
         ),
-        formatter.render(
+        formatter.render_type(
             *lower_bound.kind,
             RenderOptions::default().with_max_width(60)
         )
@@ -1057,7 +1057,7 @@ pub(crate) fn conflicting_equality_constraints<'heap>(
         existing.span,
         format!(
             "Previously constrained to be exactly `{}`",
-            formatter.render(*existing.kind, RenderOptions::default())
+            formatter.render_type(*existing.kind, RenderOptions::default())
         ),
     ));
 
@@ -1066,7 +1066,7 @@ pub(crate) fn conflicting_equality_constraints<'heap>(
         new_type.span,
         format!(
             "But here constrained to be exactly `{}`",
-            formatter.render(*new_type.kind, RenderOptions::default())
+            formatter.render_type(*new_type.kind, RenderOptions::default())
         ),
     ));
 
@@ -1076,8 +1076,8 @@ pub(crate) fn conflicting_equality_constraints<'heap>(
          multiple conflicting equality constraints.\nTo fix this issue:\n1. Ensure consistent \
          type usage - either use `{}` everywhere\n2. Or use `{}` everywhere\n3. Add explicit type \
          conversions where needed\n4. Check type annotations for contradictory requirements",
-        formatter.render(*existing.kind, RenderOptions::default().with_max_width(60)),
-        formatter.render(*new_type.kind, RenderOptions::default().with_max_width(60))
+        formatter.render_type(*existing.kind, RenderOptions::default().with_max_width(60)),
+        formatter.render_type(*new_type.kind, RenderOptions::default().with_max_width(60))
     )));
 
     diagnostic.add_message(Message::note(
@@ -1156,7 +1156,7 @@ where
 
     let mut help_message = format!(
         "The field '{field}' cannot be accessed on type '{}'.",
-        formatter.render(*r#type.kind, RenderOptions::default())
+        formatter.render_type(*r#type.kind, RenderOptions::default())
     );
 
     if !suggestions.is_empty() {
@@ -1226,7 +1226,7 @@ where
         .labels
         .push(Label::new(r#type.span, "... on this tuple type"));
 
-    let type_str = formatter.render(*r#type.kind, RenderOptions::default());
+    let type_str = formatter.render_type(*r#type.kind, RenderOptions::default());
     let help_message = format!(
         "Tuple elements can only be accessed using numeric indices (0, 1, 2, etc.), but '{field}' \
          is not a valid number on type '{type_str}'. Replace '{field}' with a numeric index like \
@@ -1272,7 +1272,7 @@ where
 
     let mut help_message = format!(
         "The index '{field}' is out of bounds for type '{}'.",
-        formatter.render(*r#type.kind, RenderOptions::default())
+        formatter.render_type(*r#type.kind, RenderOptions::default())
     );
 
     if tuple_length == 0 {
@@ -1359,7 +1359,7 @@ where
 
     let mut help_message = format!(
         "Cannot access field '{field}' on type '{}'.\n\n",
-        formatter.render(*r#type.kind, RenderOptions::default())
+        formatter.render_type(*r#type.kind, RenderOptions::default())
     );
 
     match category {
@@ -1484,8 +1484,8 @@ where
 
     let mut help_message = format!(
         "Cannot subscript type '{}' with index '{}'.\n\n",
-        formatter.render(*r#type.kind, RenderOptions::default()),
-        formatter.render(index, RenderOptions::default())
+        formatter.render_type(*r#type.kind, RenderOptions::default()),
+        formatter.render_type(index, RenderOptions::default())
     );
 
     match category {
@@ -1592,7 +1592,7 @@ where
          mean expanding A -> (A & T) -> ((A & T) & T) -> ... infinitely, which cannot be \
          resolved.\n\nThis is mathematically impossible - there is no logical way to project \
          fields on a type that infinitely expands.",
-        formatter.render(*r#type.kind, RenderOptions::default())
+        formatter.render_type(*r#type.kind, RenderOptions::default())
     );
 
     diagnostic.add_message(Message::help(help_message));
@@ -1638,7 +1638,7 @@ where
          Attempting to subscript such a type would mean expanding A -> (A & T) -> ((A & T) & T) \
          -> ... infinitely, which cannot be resolved.\n\nThis is mathematically impossible - \
          there is no logical way to perform subscript operations on types that expand infinitely.",
-        formatter.render(*r#type.kind, RenderOptions::default())
+        formatter.render_type(*r#type.kind, RenderOptions::default())
     );
 
     diagnostic.add_message(Message::help(help_message));
@@ -1770,8 +1770,8 @@ where
          their elements by position.\n\nUse an integer value or expression that evaluates to an \
          integer: `list[0]` for the first element, `list[index]` where `index` is an integer \
          variable, or `list[expression]` where `expression` produces an integer result.",
-        formatter.render(*list.kind, RenderOptions::default().with_max_width(60)),
-        formatter.render(index, RenderOptions::default().with_max_width(60))
+        formatter.render_type(*list.kind, RenderOptions::default().with_max_width(60)),
+        formatter.render_type(index, RenderOptions::default().with_max_width(60))
     );
 
     diagnostic.add_message(Message::help(help_message));
@@ -1814,9 +1814,9 @@ pub(crate) fn dict_subscript_mismatch<'heap>(
          '{}'.\n\nDictionary keys must match exactly - there is no implicit conversion between \
          key types. Use a key of the correct type or ensure your key expression evaluates to the \
          expected type: `dict[key]` where `key` has type '{}'.",
-        formatter.render(*index.kind, RenderOptions::default().with_max_width(60)),
-        formatter.render(*expected.kind, RenderOptions::default().with_max_width(60)),
-        formatter.render(*expected.kind, RenderOptions::default().with_max_width(60))
+        formatter.render_type(*index.kind, RenderOptions::default().with_max_width(60)),
+        formatter.render_type(*expected.kind, RenderOptions::default().with_max_width(60)),
+        formatter.render_type(*expected.kind, RenderOptions::default().with_max_width(60))
     );
 
     diagnostic.add_message(Message::help(help_message));
@@ -1864,11 +1864,11 @@ pub(crate) fn unsatisfiable_upper_constraint(
         "The inference variable `{}` has an upper bound constraint of type `{}` that cannot be \
          satisfied. This typically means there are contradictory type requirements that make it \
          impossible for any valid value to exist. Review the constraints placed on this variable.",
-        formatter.render(
+        formatter.render_type(
             *variable_type.kind,
             RenderOptions::default().with_max_width(40)
         ),
-        formatter.render(
+        formatter.render_type(
             *upper_type.kind,
             RenderOptions::default().with_max_width(40)
         )

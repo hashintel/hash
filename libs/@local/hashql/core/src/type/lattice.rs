@@ -526,8 +526,8 @@ pub(crate) mod test {
         assert!(
             analysis.is_equivalent(join1, a),
             "{} != {}",
-            formatter.render(join1, RenderOptions::default()),
-            formatter.render(a, RenderOptions::default()),
+            formatter.render_type(join1, RenderOptions::default()),
+            formatter.render_type(a, RenderOptions::default()),
         );
 
         let meet1 = lattice.meet(a, a);
@@ -535,8 +535,8 @@ pub(crate) mod test {
         assert!(
             analysis.is_equivalent(meet1, a),
             "{} != {}",
-            formatter.render(meet1, RenderOptions::default()),
-            formatter.render(a, RenderOptions::default()),
+            formatter.render_type(meet1, RenderOptions::default()),
+            formatter.render_type(a, RenderOptions::default()),
         );
     }
 
@@ -554,8 +554,8 @@ pub(crate) mod test {
         assert!(
             analysis.is_equivalent(join1, join2),
             "{} != {}",
-            formatter.render(join1, RenderOptions::default()),
-            formatter.render(join2, RenderOptions::default())
+            formatter.render_type(join1, RenderOptions::default()),
+            formatter.render_type(join2, RenderOptions::default())
         );
 
         let meet1 = lattice.meet(a, b);
@@ -564,8 +564,8 @@ pub(crate) mod test {
         assert!(
             analysis.is_equivalent(meet1, meet2),
             "{} != {}",
-            formatter.render(meet1, RenderOptions::default()),
-            formatter.render(meet2, RenderOptions::default())
+            formatter.render_type(meet1, RenderOptions::default()),
+            formatter.render_type(meet2, RenderOptions::default())
         );
     }
 
@@ -586,8 +586,8 @@ pub(crate) mod test {
         assert!(
             analysis.is_equivalent(join1, join2),
             "{} != {}",
-            formatter.render(join1, RenderOptions::default()),
-            formatter.render(join2, RenderOptions::default())
+            formatter.render_type(join1, RenderOptions::default()),
+            formatter.render_type(join2, RenderOptions::default())
         );
 
         let meet1_bc = lattice.meet(b, c);
@@ -599,8 +599,8 @@ pub(crate) mod test {
         assert!(
             analysis.is_equivalent(meet1, meet2),
             "{} != {}",
-            formatter.render(meet1, RenderOptions::default()),
-            formatter.render(meet2, RenderOptions::default())
+            formatter.render_type(meet1, RenderOptions::default()),
+            formatter.render_type(meet2, RenderOptions::default())
         );
     }
 
@@ -618,8 +618,8 @@ pub(crate) mod test {
         assert!(
             analysis.is_equivalent(join1, a),
             "{} != {}",
-            formatter.render(join1, RenderOptions::default()),
-            formatter.render(a, RenderOptions::default())
+            formatter.render_type(join1, RenderOptions::default()),
+            formatter.render_type(a, RenderOptions::default())
         );
 
         let join2 = lattice.join(a, b); // Number or String => Number or String
@@ -628,8 +628,8 @@ pub(crate) mod test {
         assert!(
             analysis.is_equivalent(meet2, a),
             "{} != {}",
-            formatter.render(meet2, RenderOptions::default()),
-            formatter.render(a, RenderOptions::default())
+            formatter.render_type(meet2, RenderOptions::default()),
+            formatter.render_type(a, RenderOptions::default())
         );
     }
 

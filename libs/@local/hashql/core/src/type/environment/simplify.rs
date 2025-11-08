@@ -6,7 +6,7 @@ use smallvec::SmallVec;
 use super::{AnalysisEnvironment, Environment, Variance, context::provision::ProvisionedGuard};
 use crate::{
     intern::Provisioned,
-    pretty::{self, Formatter, RenderOptions},
+    pretty::{Formatter, RenderOptions},
     r#type::{
         PartialType, Type, TypeId,
         error::TypeCheckDiagnosticIssues,
@@ -160,7 +160,7 @@ impl<'env, 'heap> SimplifyEnvironment<'env, 'heap> {
 
                 panic!(
                     "type id {id} should have been provisioned, but wasn't.\n{}",
-                    pretty::render(formatter.format(r#type), RenderOptions::default())
+                    formatter.render_type(r#type, RenderOptions::default())
                 );
             }
 

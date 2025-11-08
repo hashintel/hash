@@ -2,7 +2,7 @@ use core::assert_matches::assert_matches;
 
 use crate::{
     heap::Heap,
-    pretty::{self, Formatter, RenderOptions},
+    pretty::{Formatter, RenderOptions},
     span::SpanId,
     symbol::Ident,
     r#type::{
@@ -1295,10 +1295,7 @@ fn instantiate_interdependent() {
     let mut formatter = TypeFormatter::with_defaults(&formatter, &env);
 
     // The type is complicated enough that it isn't feasible to test it through assertions.
-    insta::assert_snapshot!(pretty::render(
-        formatter.format(type_id),
-        RenderOptions::default().with_plain()
-    ));
+    insta::assert_snapshot!(formatter.render_type(type_id, RenderOptions::default().with_plain()));
 }
 
 #[test]

@@ -77,6 +77,7 @@ where
 /// Get a displayable representation.
 ///
 /// Returns a [`Display`] implementor for using in formatting contexts.
+#[must_use]
 pub fn render(doc: Doc<'_>, options: RenderOptions) -> impl Display {
     fmt::from_fn(move |fmt| match options.format {
         Format::Plain => doc
