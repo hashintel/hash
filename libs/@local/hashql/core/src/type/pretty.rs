@@ -1,3 +1,5 @@
+use std::io;
+
 use super::{
     Type, TypeId,
     environment::Environment,
@@ -13,7 +15,7 @@ use super::{
 use crate::{
     collections::FastHashSet,
     intern::Interned,
-    pretty::{Doc, Formatter},
+    pretty::{Doc, Formatter, RenderOptions},
     symbol::sym,
     r#type::kind::intrinsic::ListType,
 };
@@ -171,6 +173,25 @@ impl<'env: 'heap, 'heap> TypeFormatter<'env, 'heap> {
         Self: FormatType<'env, T>,
     {
         self.format_type(value)
+    }
+
+    pub fn render<T>(&mut self, value: T, options: RenderOptions) -> String
+    where
+        Self: FormatType<'env, T>,
+    {
+        crate::pretty::render(self.format_type(value), options)
+    }
+
+    pub fn render_into<T>(
+        &mut self,
+        value: T,
+        options: RenderOptions,
+        write: &mut impl io::Write,
+    ) -> Result<(), io::Error>
+    where
+        Self: FormatType<'env, T>,
+    {
+        crate::pretty::render_into(self.format_type(value), options, write)
     }
 }
 

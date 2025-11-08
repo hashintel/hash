@@ -245,12 +245,6 @@ impl DiagnosticCategory for TypeCheckDiagnosticCategory {
     }
 }
 
-macro_rules! pprint {
-    ($fmt:expr; $args:expr) => {
-        pretty::render(&$fmt.format(*$args), RenderOptions::default())
-    };
-}
-
 /// Creates a type mismatch diagnostic with specific labels for the left and right types
 pub(crate) fn type_mismatch<'env, 'heap, T, U>(
     env: &'env Environment<'heap>,
@@ -270,13 +264,19 @@ where
         Diagnostic::new(TypeCheckDiagnosticCategory::TypeMismatch, Severity::Error).primary(
             Label::new(
                 lhs.span,
-                format!("This is of type `{}`", pprint!(formatter; lhs.kind)),
+                format!(
+                    "This is of type `{}`",
+                    formatter.render(*lhs.kind, RenderOptions::default())
+                ),
             ),
         );
 
     diagnostic.labels.push(Label::new(
         rhs.span,
-        format!("... and this is of type `{}`", pprint!(formatter; rhs.kind)),
+        format!(
+            "... and this is of type `{}`",
+            formatter.render(*rhs.kind, RenderOptions::default())
+        ),
     ));
 
     if let Some(text) = help {
@@ -472,7 +472,7 @@ where
         bad_variant.span,
         format!(
             "variant `{}` must be a subtype of at least one variant in the expected union",
-            pprint!(formatter; bad_variant.kind)
+            formatter.render(*bad_variant.kind, RenderOptions::default())
         ),
     ));
 
@@ -481,7 +481,7 @@ where
         expected_union.span,
         format!(
             "expected union containing at least one supertype variant for `{}`",
-            pprint!(formatter; bad_variant.kind)
+            formatter.render(*bad_variant.kind, RenderOptions::default())
         ),
     ));
 
@@ -493,8 +493,8 @@ where
 
     diagnostic.add_message(Message::note(format!(
         "expected union: `{}`\nfound variant: `{}` which is not a subtype of any expected variants",
-        pprint!(formatter; expected_union.kind),
-        pprint!(formatter; bad_variant.kind)
+        formatter.render(*expected_union.kind, RenderOptions::default()),
+        formatter.render(*bad_variant.kind, RenderOptions::default())
     )));
 
     diagnostic
@@ -567,7 +567,7 @@ where
                 subtype.span,
                 format!(
                     "`{}` cannot be a subtype of `!`",
-                    pprint!(formatter; subtype.kind)
+                    formatter.render(*subtype.kind, RenderOptions::default())
                 ),
             ),
         );
@@ -606,7 +606,7 @@ where
                 supertype.span,
                 format!(
                     "`{}` type cannot be a supertype of `?`",
-                    pprint!(formatter; supertype.kind)
+                    formatter.render(*supertype.kind, RenderOptions::default())
                 ),
             ),
         );
@@ -628,14 +628,13 @@ where
     diagnostic
 }
 
-pub(crate) fn intersection_variant_mismatch<'heap, E, K1, K2>(
-    env: &E,
+pub(crate) fn intersection_variant_mismatch<'env, 'heap, K1, K2>(
+    env: &'env Environment<'heap>,
     variant: Type<'heap, K1>,
     expected_intersection: Type<'heap, K2>,
 ) -> TypeCheckDiagnostic
 where
-    K1: PrettyPrint<'heap, E>,
-    K2: PrettyPrint<'heap, E>,
+    TypeFormatter<'env, 'heap>: FormatType<'env, K1> + FormatType<'env, K2>,
 {
     let formatter = Formatter::new();
     let mut formatter = TypeFormatter::new(&formatter, env, TypeFormatterOptions::default());
@@ -648,7 +647,7 @@ where
         variant.span,
         format!(
             "variant `{}` must be a subtype of all variants in the expected intersection",
-            variant.kind.pretty_print(env, PrettyOptions::default())
+            formatter.render(*variant.kind, RenderOptions::default())
         ),
     ));
 
@@ -657,7 +656,7 @@ where
         expected_intersection.span,
         format!(
             "expected intersection containing incompatible variants for `{}`",
-            variant.kind.pretty_print(env, PrettyOptions::default())
+            formatter.render(*expected_intersection.kind, RenderOptions::default())
         ),
     ));
 
@@ -670,10 +669,8 @@ where
     diagnostic.add_message(Message::note(format!(
         "expected intersection: `{}`\nfound variant: `{}` which is not a subtype of all expected \
          variants",
-        expected_intersection
-            .kind
-            .pretty_print(env, PrettyOptions::default()),
-        variant.kind.pretty_print(env, PrettyOptions::default()),
+        formatter.render(*expected_intersection.kind, RenderOptions::default()),
+        formatter.render(*variant.kind, RenderOptions::default()),
     )));
 
     diagnostic
@@ -848,14 +845,14 @@ pub(crate) fn unconstrained_type_variable(variable: Variable) -> TypeCheckDiagno
 }
 
 /// Creates a diagnostic for when a lower bound is incompatible with an equality constraint
-pub(crate) fn incompatible_lower_equal_constraint<'heap, K>(
-    env: &Environment<'heap>,
+pub(crate) fn incompatible_lower_equal_constraint<'env, 'heap, K>(
+    env: &'env Environment<'heap>,
     variable: Variable,
     lower_bound: Type<'heap, K>,
     equals: Type<'heap, K>,
 ) -> TypeCheckDiagnostic
 where
-    K: PrettyPrint<'heap, Environment<'heap>>,
+    TypeFormatter<'env, 'heap>: FormatType<'env, K>,
 {
     let formatter = Formatter::new();
     let mut formatter = TypeFormatter::new(&formatter, env, TypeFormatterOptions::default());
@@ -874,7 +871,7 @@ where
         equals.span,
         format!(
             "Required to be exactly `{}`",
-            equals.pretty_print(env, PrettyOptions::default())
+            formatter.render(*equals, RenderOptions::default())
         ),
     ));
 
@@ -883,7 +880,7 @@ where
         lower_bound.span,
         format!(
             "But this lower bound `{}` is not a subtype of the equality constraint",
-            lower_bound.pretty_print(env, PrettyOptions::default())
+            formatter.render(*lower_bound, RenderOptions::default())
         ),
     ));
 
@@ -892,20 +889,8 @@ where
         "Resolve this type conflict by either:\n1. Changing the equality constraint to be \
          compatible with `{}`\n2. Modifying the lower bound type to be a subtype of `{}`\n3. \
          Ensuring both types are compatible in the type hierarchy",
-        lower_bound.pretty_print(
-            env,
-            PrettyOptions {
-                max_width: 60,
-                ..PrettyOptions::default()
-            }
-        ),
-        equals.pretty_print(
-            env,
-            PrettyOptions {
-                max_width: 60,
-                ..PrettyOptions::default()
-            }
-        )
+        formatter.render(*lower_bound, RenderOptions::default().with_max_width(60)),
+        formatter.render(*equals, RenderOptions::default().with_max_width(60))
     )));
 
     diagnostic.add_message(Message::note(
@@ -919,14 +904,14 @@ where
 }
 
 /// Creates a diagnostic for when an upper bound is incompatible with an equality constraint
-pub(crate) fn incompatible_upper_equal_constraint<'heap, K>(
-    env: &Environment<'heap>,
+pub(crate) fn incompatible_upper_equal_constraint<'env, 'heap, K>(
+    env: &'env Environment<'heap>,
     variable: Variable,
     equal: Type<'heap, K>,
     upper: Type<'heap, K>,
 ) -> TypeCheckDiagnostic
 where
-    K: PrettyPrint<'heap, Environment<'heap>>,
+    TypeFormatter<'env, 'heap>: FormatType<'env, K>,
 {
     let formatter = Formatter::new();
     let mut formatter = TypeFormatter::new(&formatter, env, TypeFormatterOptions::default());
@@ -945,7 +930,7 @@ where
         equal.span,
         format!(
             "Required to be exactly `{}`",
-            equal.pretty_print(env, PrettyOptions::default())
+            formatter.render(equal, RenderOptions::default())
         ),
     ));
 
@@ -954,7 +939,7 @@ where
         upper.span,
         format!(
             "But this upper bound `{}` is not a supertype of the equality constraint",
-            upper.pretty_print(env, PrettyOptions::default())
+            formatter.render(upper, RenderOptions::default())
         ),
     ));
 
@@ -963,20 +948,8 @@ where
         "To fix this conflict, you can:\n1. Change the equality constraint `{}` to be a subtype \
          of the upper bound\n2. Adjust the upper bound `{}` to be a supertype of the equality \
          constraint\n3. Review your type annotations to ensure they're consistent",
-        equal.pretty_print(
-            env,
-            PrettyOptions {
-                max_width: 60,
-                ..PrettyOptions::default()
-            }
-        ),
-        upper.pretty_print(
-            env,
-            PrettyOptions {
-                max_width: 60,
-                ..PrettyOptions::default()
-            }
-        )
+        formatter.render(equal, RenderOptions::default().with_max_width(60)),
+        formatter.render(upper, RenderOptions::default().with_max_width(60))
     )));
 
     diagnostic.add_message(Message::note(
@@ -989,14 +962,14 @@ where
 }
 
 /// Creates a diagnostic for when a lower bound is not a subtype of an upper bound in a constraint
-pub(crate) fn bound_constraint_violation<'heap, E, K>(
-    env: &E,
+pub(crate) fn bound_constraint_violation<'env, 'heap, K>(
+    env: &'env Environment<'heap>,
     variable: Variable,
     lower_bound: Type<'heap, K>,
     upper_bound: Type<'heap, K>,
 ) -> TypeCheckDiagnostic
 where
-    K: PrettyPrint<'heap, E>,
+    TypeFormatter<'env, 'heap>: FormatType<'env, K>,
 {
     let formatter = Formatter::new();
     let mut formatter = TypeFormatter::new(&formatter, env, TypeFormatterOptions::default());
@@ -1015,7 +988,7 @@ where
         lower_bound.span,
         format!(
             "Lower bound `{}` must be a subtype of the upper bound",
-            lower_bound.kind.pretty_print(env, PrettyOptions::default())
+            formatter.render(*lower_bound.kind, RenderOptions::default())
         ),
     ));
 
@@ -1024,7 +997,7 @@ where
         upper_bound.span,
         format!(
             "Upper bound `{}` is not a supertype of the lower bound",
-            upper_bound.kind.pretty_print(env, PrettyOptions::default())
+            formatter.render(*upper_bound.kind, RenderOptions::default())
         ),
     ));
 
@@ -1033,33 +1006,21 @@ where
         "These type bounds create an impossible constraint. To fix this:\n1. Modify `{}` to be a \
          proper subtype of `{}`\n2. Or adjust `{}` to be a supertype of `{}`\n3. Or check your \
          code for contradictory type assertions",
-        lower_bound.kind.pretty_print(
-            env,
-            PrettyOptions {
-                max_width: 60,
-                ..PrettyOptions::default()
-            }
+        formatter.render(
+            *lower_bound.kind,
+            RenderOptions::default().with_max_width(60)
         ),
-        upper_bound.kind.pretty_print(
-            env,
-            PrettyOptions {
-                max_width: 60,
-                ..PrettyOptions::default()
-            }
+        formatter.render(
+            *upper_bound.kind,
+            RenderOptions::default().with_max_width(60)
         ),
-        upper_bound.kind.pretty_print(
-            env,
-            PrettyOptions {
-                max_width: 60,
-                ..PrettyOptions::default()
-            }
+        formatter.render(
+            *upper_bound.kind,
+            RenderOptions::default().with_max_width(60)
         ),
-        lower_bound.kind.pretty_print(
-            env,
-            PrettyOptions {
-                max_width: 60,
-                ..PrettyOptions::default()
-            }
+        formatter.render(
+            *lower_bound.kind,
+            RenderOptions::default().with_max_width(60)
         )
     )));
 
@@ -1074,14 +1035,14 @@ where
 }
 
 /// Creates a diagnostic for when a type variable has incompatible equality constraints
-pub(crate) fn conflicting_equality_constraints<'heap, E, K>(
-    env: &E,
+pub(crate) fn conflicting_equality_constraints<'env, 'heap, K>(
+    env: &'env Environment<'heap>,
     variable: Variable,
     existing: Type<'heap, K>,
     new_type: Type<'heap, K>,
 ) -> TypeCheckDiagnostic
 where
-    K: PrettyPrint<'heap, E>,
+    TypeFormatter<'env, 'heap>: FormatType<'env, K>,
 {
     let formatter = Formatter::new();
     let mut formatter = TypeFormatter::new(&formatter, env, TypeFormatterOptions::default());
