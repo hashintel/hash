@@ -148,6 +148,10 @@ impl<'fmt, 'env, 'heap> TypeFormatter<'fmt, 'env, 'heap> {
         self.format_type(value)
     }
 
+    pub fn format_generic_argument(&mut self, value: GenericArgument<'heap>) -> Doc<'fmt> {
+        self.format_type(value)
+    }
+
     pub(crate) fn render_type<T>(
         &mut self,
         value: T,

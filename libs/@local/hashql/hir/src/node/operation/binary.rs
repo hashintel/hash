@@ -1,4 +1,7 @@
-use hashql_core::span::Spanned;
+use hashql_core::{
+    span::Spanned,
+    symbol::{Symbol, sym},
+};
 
 use crate::node::Node;
 
@@ -62,6 +65,19 @@ impl BinOp {
             Self::Ne => "!=",
             Self::Gte => ">=",
             Self::Gt => ">",
+        }
+    }
+
+    pub const fn as_symbol(self) -> Symbol<'static> {
+        match self {
+            Self::And => sym::symbol::and,
+            Self::Or => sym::symbol::or,
+            Self::Eq => sym::symbol::eq,
+            Self::Lt => sym::symbol::lt,
+            Self::Lte => sym::symbol::lte,
+            Self::Ne => sym::symbol::ne,
+            Self::Gte => sym::symbol::gte,
+            Self::Gt => sym::symbol::gt,
         }
     }
 }

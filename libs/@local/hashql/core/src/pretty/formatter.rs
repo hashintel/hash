@@ -23,7 +23,7 @@ pub struct FormatterOptions {
 /// It owns the arena and provides all necessary primitives for document construction.
 pub struct Formatter<'alloc, 'heap> {
     arena: Arena<'alloc, Semantic>,
-    options: FormatterOptions,
+    pub options: FormatterOptions,
 
     // You may ask yourself: wow this is weird, why do we have a (phantom) reference to the heap
     // here? The answer is lifetime constraints. To be able to use any data inside of the heap
@@ -65,7 +65,7 @@ impl<'alloc, 'heap> Formatter<'alloc, 'heap> {
     }
 
     #[must_use]
-    pub fn with_indent(mut self, indent: isize) -> Self {
+    pub const fn with_indent(mut self, indent: isize) -> Self {
         self.options.indent = indent;
         self
     }
@@ -82,6 +82,10 @@ impl<'alloc, 'heap> Formatter<'alloc, 'heap> {
     /// Creates a keyword (let, in, if, fn, etc.).
     pub fn keyword(&'alloc self, text: Symbol<'heap>) -> Doc<'alloc> {
         self.arena.text(text.unwrap()).annotate(Semantic::Keyword)
+    }
+
+    pub fn keyword_str(&'alloc self, text: &'alloc str) -> Doc<'alloc> {
+        self.arena.text(text).annotate(Semantic::Keyword)
     }
 
     /// Creates a type name (Integer, String, List, etc.).
@@ -108,7 +112,7 @@ impl<'alloc, 'heap> Formatter<'alloc, 'heap> {
         self.op_str(text.unwrap())
     }
 
-    fn punct_str(&'alloc self, text: &'alloc str) -> Doc<'alloc> {
+    pub fn punct_str(&'alloc self, text: &'alloc str) -> Doc<'alloc> {
         self.arena.text(text).annotate(Semantic::Punctuation)
     }
 
@@ -120,6 +124,11 @@ impl<'alloc, 'heap> Formatter<'alloc, 'heap> {
     /// Creates a literal value (number, string, boolean).
     pub fn literal(&'alloc self, text: Symbol<'heap>) -> Doc<'alloc> {
         self.arena.text(text.unwrap()).annotate(Semantic::Literal)
+    }
+
+    /// Creates a literal value (number, string, boolean).
+    pub fn literal_owned(&'alloc self, text: String) -> Doc<'alloc> {
+        self.arena.text(text).annotate(Semantic::Literal)
     }
 
     /// Creates a field name.
