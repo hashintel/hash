@@ -18,6 +18,7 @@ use crate::{
         error::{cannot_be_subtype_of_never, type_mismatch, union_variant_mismatch},
         inference::{Constraint, Inference, Variable},
         lattice::{Lattice, Projection, Subscript},
+        pretty::{FormatType, TypeFormatter},
     },
 };
 
@@ -135,16 +136,15 @@ impl<'heap> UnionType<'heap> {
         SmallVec::from_slice(&[id])
     }
 
-    pub(crate) fn is_subtype_of_variants<T, U>(
+    pub(crate) fn is_subtype_of_variants<'env, T, U>(
         actual: Type<'heap, T>,
         expected: Type<'heap, U>,
         self_variants: &[TypeId],
         super_variants: &[TypeId],
-        env: &mut AnalysisEnvironment<'_, 'heap>,
+        env: &mut AnalysisEnvironment<'env, 'heap>,
     ) -> bool
     where
-        T: PrettyPrint<'heap, Environment<'heap>>,
-        U: PrettyPrint<'heap, Environment<'heap>>,
+        TypeFormatter<'env, 'heap>: FormatType<'env, T> + FormatType<'env, U>,
     {
         // Empty union (corresponds to the Never type) is a subtype of any union type
         if self_variants.is_empty() {
@@ -186,16 +186,15 @@ impl<'heap> UnionType<'heap> {
         compatible
     }
 
-    pub(crate) fn is_equivalent_variants<T, U>(
+    pub(crate) fn is_equivalent_variants<'env, T, U>(
         lhs: Type<'heap, T>,
         rhs: Type<'heap, U>,
         lhs_variants: &[TypeId],
         rhs_variants: &[TypeId],
-        env: &mut AnalysisEnvironment<'_, 'heap>,
+        env: &mut AnalysisEnvironment<'env, 'heap>,
     ) -> bool
     where
-        T: PrettyPrint<'heap, Environment<'heap>>,
-        U: PrettyPrint<'heap, Environment<'heap>>,
+        TypeFormatter<'env, 'heap>: FormatType<'env, T> + FormatType<'env, U>,
     {
         // Empty unions are only equivalent to other empty unions
         // As an empty union corresponds to the `Never` type, therefore only `Never ≡ Never`

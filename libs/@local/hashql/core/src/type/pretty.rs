@@ -34,6 +34,30 @@ pub struct TypeFormatterOptions {
     pub recursion_strategy: RecursionGuardStrategy,
 }
 
+impl TypeFormatterOptions {
+    pub fn with_indent(mut self, indent: u8) -> Self {
+        self.indent = indent;
+        self
+    }
+
+    pub fn with_resolve_substitutions(mut self, resolve_substitutions: bool) -> Self {
+        self.resolve_substitutions = resolve_substitutions;
+        self
+    }
+
+    pub fn with_depth_tracking(mut self, max_depth: Option<usize>) -> Self {
+        self.recursion_strategy = RecursionGuardStrategy::DepthCounting {
+            max_depth: max_depth.unwrap_or(32),
+        };
+        self
+    }
+
+    pub fn with_identity_tracking(mut self) -> Self {
+        self.recursion_strategy = RecursionGuardStrategy::IdentityTracking;
+        self
+    }
+}
+
 impl Default for TypeFormatterOptions {
     fn default() -> Self {
         Self {
@@ -136,6 +160,10 @@ impl<'env: 'heap, 'heap> TypeFormatter<'env, 'heap> {
             generics: Vec::new(),
             options,
         }
+    }
+
+    pub fn with_defaults(formatter: &'env Formatter<'heap>, env: &'env Environment<'heap>) -> Self {
+        Self::new(formatter, env, TypeFormatterOptions::default())
     }
 
     pub fn format<T>(&mut self, value: T) -> Doc<'env>

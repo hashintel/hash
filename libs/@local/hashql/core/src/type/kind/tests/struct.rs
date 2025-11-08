@@ -2,6 +2,7 @@ use core::assert_matches::assert_matches;
 
 use crate::{
     heap::Heap,
+    pretty::{self, Formatter, RenderOptions},
     span::SpanId,
     symbol::Ident,
     r#type::{
@@ -23,6 +24,7 @@ use crate::{
             union::UnionType,
         },
         lattice::{Lattice as _, Projection, Subscript, test::assert_lattice_laws},
+        pretty::TypeFormatter,
         tests::{instantiate, instantiate_infer, instantiate_param},
     },
 };
@@ -1289,11 +1291,14 @@ fn instantiate_interdependent() {
     let mut instantiate = InstantiateEnvironment::new(&env);
     let type_id = instantiate.instantiate(value);
 
+    let formatter = Formatter::new();
+    let mut formatter = TypeFormatter::with_defaults(&formatter, env);
+
     // The type is complicated enough that it isn't feasible to test it through assertions.
-    insta::assert_snapshot!(
-        env.r#type(type_id)
-            .pretty_print(&env, PrettyOptions::default().without_color())
-    );
+    insta::assert_snapshot!(pretty::render(
+        formatter.format(type_id),
+        RenderOptions::default().with_plain()
+    ));
 }
 
 #[test]

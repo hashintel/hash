@@ -1,9 +1,3 @@
-//! Pretty printing for structured data with recursion control.
-//!
-//! This module implements a document model-based pretty printing system with
-//! configurable formatting, color support, and robust handling of recursive
-//! structures. The implementation uses the `pretty` crate as its document model.
-
 pub mod display;
 mod formatter;
 mod semantic;
@@ -18,14 +12,33 @@ pub use self::{
     semantic::Semantic,
 };
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 enum Format {
-    Ansi,
     Plain,
+    Ansi,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct RenderOptions {
     pub format: Format,
     pub max_width: usize,
+}
+
+impl RenderOptions {
+    pub fn with_ansi(mut self) -> Self {
+        self.format = Format::Ansi;
+        self
+    }
+
+    pub fn with_plain(mut self) -> Self {
+        self.format = Format::Plain;
+        self
+    }
+
+    pub fn with_max_width(mut self, max_width: usize) -> Self {
+        self.max_width = max_width;
+        self
+    }
 }
 
 impl Default for RenderOptions {
@@ -53,11 +66,11 @@ where
     W: io::Write,
 {
     match options.format {
-        Format::Ansi => doc
-            .render_raw(options.max_width, &mut AnsiWriter::new_io(write))
-            .map_err(RenderError::into_io),
         Format::Plain => doc
             .render_raw(options.max_width, &mut PlainWriter::new_io(write))
+            .map_err(RenderError::into_io),
+        Format::Ansi => doc
+            .render_raw(options.max_width, &mut AnsiWriter::new_io(write))
             .map_err(RenderError::into_io),
     }
 }
@@ -67,11 +80,11 @@ where
 /// Returns a [`Display`] implementor for using in formatting contexts.
 pub fn render<'doc>(doc: &Doc<'doc>, options: RenderOptions) -> impl Display {
     fmt::from_fn(move |fmt| match options.format {
-        Format::Ansi => doc
-            .render_raw(options.max_width, &mut AnsiWriter::new_fmt(fmt))
-            .map_err(RenderError::into_fmt),
         Format::Plain => doc
             .render_raw(options.max_width, &mut PlainWriter::new_fmt(fmt))
+            .map_err(RenderError::into_fmt),
+        Format::Ansi => doc
+            .render_raw(options.max_width, &mut AnsiWriter::new_fmt(fmt))
             .map_err(RenderError::into_fmt),
     })
 }

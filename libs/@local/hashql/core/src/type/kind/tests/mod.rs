@@ -1,10 +1,14 @@
 #![expect(clippy::min_ident_chars, clippy::missing_asserts_for_indexing)]
 #![coverage(off)]
 
-use crate::r#type::{
-    TypeId,
-    environment::{AnalysisEnvironment, Environment, LatticeEnvironment, Variance},
-    lattice::Lattice as _,
+use crate::{
+    pretty::{self, Formatter, RenderOptions},
+    r#type::{
+        TypeId,
+        environment::{AnalysisEnvironment, Environment, LatticeEnvironment, Variance},
+        lattice::Lattice as _,
+        pretty::TypeFormatter,
+    },
 };
 
 mod closure;
@@ -61,36 +65,37 @@ pub(crate) fn assert_lattice(env: &Environment, lhs: &[TypeId], rhs: &[TypeId]) 
 
 #[track_caller]
 pub(crate) fn assert_equivalent(env: &Environment, lhs: TypeId, rhs: TypeId) {
+    let formatter = Formatter::new();
+    let mut formatter = TypeFormatter::with_defaults(&formatter, &env);
+
     let mut analysis = AnalysisEnvironment::new(env);
 
-    let lhs_repr = analysis
-        .r#type(lhs)
-        .kind
-        .pretty_print(env, PrettyOptions::default());
-    let rhs_repr = analysis
-        .r#type(rhs)
-        .kind
-        .pretty_print(env, PrettyOptions::default());
+    let lhs_repr = formatter.format(lhs);
+    let rhs_repr = formatter.format(rhs);
 
-    assert!(analysis.is_equivalent(lhs, rhs), "{lhs_repr} != {rhs_repr}");
+    assert!(
+        analysis.is_equivalent(lhs, rhs),
+        "{} != {}",
+        pretty::render(&lhs, RenderOptions::default()),
+        pretty::render(&rhs, RenderOptions::default())
+    );
 }
 
 #[track_caller]
 pub(crate) fn assert_is_subtype(env: &Environment, lhs: TypeId, rhs: TypeId) {
+    let formatter = Formatter::new();
+    let mut formatter = TypeFormatter::with_defaults(&formatter, &env);
+
     let mut analysis = AnalysisEnvironment::new(env);
 
-    let lhs_repr = analysis
-        .r#type(lhs)
-        .kind
-        .pretty_print(env, PrettyOptions::default());
-    let rhs_repr = analysis
-        .r#type(rhs)
-        .kind
-        .pretty_print(env, PrettyOptions::default());
+    let lhs_repr = formatter.format(lhs);
+    let rhs_repr = formatter.format(rhs);
 
     assert!(
         analysis.is_subtype_of(Variance::Covariant, lhs, rhs),
-        "{lhs_repr} !< {rhs_repr}"
+        "{} !< {}",
+        pretty::render(lhs_repr, RenderOptions::default()),
+        pretty::render(rhs_repr, RenderOptions::default())
     );
 }
 

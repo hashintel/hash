@@ -1,7 +1,6 @@
 use core::ops::ControlFlow;
 
 use bitvec::bitvec;
-use pretty::{DocAllocator as _, RcAllocator, RcDoc};
 use smallvec::SmallVec;
 
 use super::TypeKind;
@@ -19,6 +18,7 @@ use crate::{
         error::{cannot_be_supertype_of_unknown, intersection_variant_mismatch, type_mismatch},
         inference::Inference,
         lattice::{Lattice, Projection, Subscript},
+        pretty::{FormatType, TypeFormatter},
     },
 };
 
@@ -153,16 +153,15 @@ impl<'heap> IntersectionType<'heap> {
         variants.finish()
     }
 
-    pub(crate) fn is_subtype_of_variants<T, U>(
+    pub(crate) fn is_subtype_of_variants<'env, T, U>(
         actual: Type<'heap, T>,
         expected: Type<'heap, U>,
         self_variants: &[TypeId],
         supertype_variants: &[TypeId],
-        env: &mut AnalysisEnvironment<'_, 'heap>,
+        env: &mut AnalysisEnvironment<'env, 'heap>,
     ) -> bool
     where
-        T: PrettyPrint<'heap, Environment<'heap>>,
-        U: PrettyPrint<'heap, Environment<'heap>>,
+        TypeFormatter<'env, 'heap>: FormatType<'env, T> + FormatType<'env, U>,
     {
         // Empty intersection (corresponds to the Unknown/top type) is a supertype of everything
         if supertype_variants.is_empty() {
@@ -204,16 +203,15 @@ impl<'heap> IntersectionType<'heap> {
         compatible
     }
 
-    pub(crate) fn is_equivalent_variants<T, U>(
+    pub(crate) fn is_equivalent_variants<'env, T, U>(
         lhs: Type<'heap, T>,
         rhs: Type<'heap, U>,
         lhs_variants: &[TypeId],
         rhs_variants: &[TypeId],
-        env: &mut AnalysisEnvironment<'_, 'heap>,
+        env: &mut AnalysisEnvironment<'env, 'heap>,
     ) -> bool
     where
-        T: PrettyPrint<'heap, Environment<'heap>>,
-        U: PrettyPrint<'heap, Environment<'heap>>,
+        TypeFormatter<'env, 'heap>: FormatType<'env, T> + FormatType<'env, U>,
     {
         // Empty intersections are only equivalent to other empty intersections
         // As an empty intersection corresponds to `Unknown`, therefore only `Unknown ≡ Unknown`
@@ -700,28 +698,5 @@ impl<'heap> Inference<'heap> for IntersectionType<'heap> {
                 })),
             },
         )
-    }
-}
-
-impl<'heap> PrettyPrint<'heap, Environment<'heap>> for IntersectionType<'heap> {
-    fn pretty(
-        &self,
-        env: &Environment<'heap>,
-        boundary: &mut PrettyPrintBoundary,
-    ) -> RcDoc<'heap, anstyle::Style> {
-        RcAllocator
-            .intersperse(
-                self.variants
-                    .iter()
-                    .map(|&variant| boundary.pretty_type(env, variant)),
-                RcDoc::line()
-                    .append(RcDoc::text("&"))
-                    .append(RcDoc::space()),
-            )
-            .nest(1)
-            .group()
-            .parens()
-            .group()
-            .into_doc()
     }
 }

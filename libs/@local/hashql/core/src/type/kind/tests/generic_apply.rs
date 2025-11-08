@@ -1,5 +1,6 @@
 use crate::{
     heap::Heap,
+    pretty::{self, Formatter, RenderOptions},
     span::SpanId,
     r#type::{
         PartialType,
@@ -20,6 +21,7 @@ use crate::{
             },
         },
         lattice::test::assert_lattice_laws,
+        pretty::{TypeFormatter, TypeFormatterOptions},
         tests::{instantiate, instantiate_infer, instantiate_param},
     },
 };
@@ -562,15 +564,18 @@ fn simplify_instantiate_recursive() {
     let mut instantiate = InstantiateEnvironment::new(&env);
     let result_id = simplify.simplify(instantiate.instantiate(recursive.id));
 
-    // The type is complicated enough that it isn't feasible to test it through assertions.
-    insta::assert_snapshot!(
-        env.r#type(result_id).pretty_print(
-            &env,
-            PrettyOptions::default()
-                .with_depth_tracking()
-                .without_color()
-        )
+    let formatter = Formatter::new();
+    let mut formatter = TypeFormatter::new(
+        &formatter,
+        &env,
+        TypeFormatterOptions::default().with_depth_tracking(None),
     );
+
+    // The type is complicated enough that it isn't feasible to test it through assertions.
+    insta::assert_snapshot!(pretty::render(
+        formatter.format(result_id),
+        RenderOptions::default().with_plain()
+    ));
 }
 
 #[test]
@@ -891,15 +896,19 @@ fn instantiated_nested() {
     let result_id = instantiate.instantiate(bar);
     let result_id = SimplifyEnvironment::new(&env).simplify(result_id);
 
-    // The type is complicated enough that it isn't feasible to test it through assertions.
-    insta::assert_snapshot!(
-        env.r#type(result_id).pretty_print(
-            &env,
-            PrettyOptions::default()
-                .with_depth_tracking()
-                .without_color()
-        )
+    let formatter = Formatter::new();
+    let mut formatter = TypeFormatter::new(
+        &formatter,
+        env,
+        TypeFormatterOptions::default().with_depth_tracking(None),
     );
+
+    // The type is complicated enough that it isn't feasible to test it through assertions.
+    // The type is complicated enough that it isn't feasible to test it through assertions.
+    insta::assert_snapshot!(pretty::render(
+        formatter.format(result_id),
+        RenderOptions::default().with_plain()
+    ));
 }
 
 #[test]
@@ -974,15 +983,18 @@ fn instantiate_mutually_recursive() {
     let result_id = instantiate.instantiate(a.id);
     let result_id = SimplifyEnvironment::new(&env).simplify(result_id);
 
-    // The type is complicated enough that it isn't feasible to test it through assertions.
-    insta::assert_snapshot!(
-        env.r#type(result_id).pretty_print(
-            &env,
-            PrettyOptions::default()
-                .with_depth_tracking()
-                .without_color()
-        )
+    let formatter = Formatter::new();
+    let mut formatter = TypeFormatter::new(
+        &formatter,
+        env,
+        TypeFormatterOptions::default().with_depth_tracking(None),
     );
+
+    // The type is complicated enough that it isn't feasible to test it through assertions.
+    insta::assert_snapshot!(pretty::render(
+        formatter.format(result_id),
+        RenderOptions::default().with_plain()
+    ));
 }
 
 #[test]
@@ -1052,15 +1064,18 @@ fn simplify_recursive_unused() {
     let result_id = instantiate.instantiate(a.id);
     let result_id = SimplifyEnvironment::new(&env).simplify(result_id);
 
-    // The type is complicated enough that it isn't feasible to test it through assertions.
-    insta::assert_snapshot!(
-        env.r#type(result_id).pretty_print(
-            &env,
-            PrettyOptions::default()
-                .with_depth_tracking()
-                .without_color()
-        )
+    let formatter = Formatter::new();
+    let mut formatter = TypeFormatter::new(
+        &formatter,
+        env,
+        TypeFormatterOptions::default().with_depth_tracking(None),
     );
+
+    // The type is complicated enough that it isn't feasible to test it through assertions.
+    insta::assert_snapshot!(pretty::render(
+        formatter.format(result_id),
+        RenderOptions::default().with_plain()
+    ));
 }
 
 #[test]
@@ -1122,15 +1137,18 @@ fn instantiate_different_substitutions() {
     let mut instantiate = InstantiateEnvironment::new(&env);
     let result_id = instantiate.instantiate(bar);
 
-    // The type is complicated enough that it isn't feasible to test it through assertions.
-    insta::assert_snapshot!(
-        env.r#type(result_id).pretty_print(
-            &env,
-            PrettyOptions::default()
-                .with_depth_tracking()
-                .without_color()
-        )
+    let formatter = Formatter::new();
+    let mut formatter = TypeFormatter::new(
+        &formatter,
+        env,
+        TypeFormatterOptions::default().with_depth_tracking(None),
     );
+
+    // The type is complicated enough that it isn't feasible to test it through assertions.
+    insta::assert_snapshot!(pretty::render(
+        formatter.format(result_id),
+        RenderOptions::default().with_plain()
+    ));
 }
 
 #[test]
@@ -1187,13 +1205,16 @@ fn instantiate_partial() {
     let mut instantiate = InstantiateEnvironment::new(&env);
     let result_id = instantiate.instantiate(foo);
 
-    // The type is complicated enough that it isn't feasible to test it through assertions.
-    insta::assert_snapshot!(
-        env.r#type(result_id).pretty_print(
-            &env,
-            PrettyOptions::default()
-                .with_depth_tracking()
-                .without_color()
-        )
+    let formatter = Formatter::new();
+    let mut formatter = TypeFormatter::new(
+        &formatter,
+        env,
+        TypeFormatterOptions::default().with_depth_tracking(None),
     );
+
+    // The type is complicated enough that it isn't feasible to test it through assertions.
+    insta::assert_snapshot!(pretty::render(
+        formatter.format(result_id),
+        RenderOptions::default().with_plain()
+    ));
 }
