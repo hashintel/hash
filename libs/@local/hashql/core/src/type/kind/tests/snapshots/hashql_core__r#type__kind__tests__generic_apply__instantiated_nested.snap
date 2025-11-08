@@ -2,4 +2,56 @@
 source: libs/@local/hashql/core/src/type/kind/tests/generic_apply.rs
 expression: "formatter.render_type(result_id, RenderOptions::default().with_plain())"
 ---
-<U?2>(bar: <?3= <U?2>(bar: <?3= <U?2>(bar: <?3= <U?2>(bar: <?3= <U?2>(bar: <?3= <U?2>(bar: <?3= <U?2>(bar: <?3= <U?2>(bar: <?3= <U?2>(bar: <?3= <U?2>(bar: <?3= <U?2>(bar: ...)><T?3>(foo: ...))><T?3>(foo: T?3))><T?3>(foo: T?3))><T?3>(foo: T?3))><T?3>(foo: T?3))><T?3>(foo: T?3))><T?3>(foo: T?3))><T?3>(foo: T?3))><T?3>(foo: T?3))><T?3>(foo: T?3))
+<U?2>(
+    bar: [
+        ?3 = <U?2>(
+            bar: [
+                ?3 = <U?2>(
+                    bar: [
+                        ?3 = <U?2>(
+                            bar: [
+                                ?3 = <U?2>(
+                                    bar: [
+                                        ?3 = <U?2>(
+                                            bar: [
+                                                ?3 = <U?2>(
+                                                    bar: [
+                                                        ?3 = <U?2>(
+                                                            bar: [
+                                                                ?3 = <U?2>(
+                                                                    bar: [
+                                                                        ?3 = <
+                                                                            U?2
+                                                                        >(
+                                                                            bar: [
+                                                                                ?3 = <
+                                                                                    U?2
+                                                                                >(
+                                                                                    bar: ...
+                                                                                )
+                                                                            ] <
+                                                                                T?3
+                                                                            >(
+                                                                                foo: ...
+                                                                            )
+                                                                        )
+                                                                    ] <T?3>(
+                                                                        foo: T?3
+                                                                    )
+                                                                )
+                                                            ] <T?3>(foo: T?3)
+                                                        )
+                                                    ] <T?3>(foo: T?3)
+                                                )
+                                            ] <T?3>(foo: T?3)
+                                        )
+                                    ] <T?3>(foo: T?3)
+                                )
+                            ] <T?3>(foo: T?3)
+                        )
+                    ] <T?3>(foo: T?3)
+                )
+            ] <T?3>(foo: T?3)
+        )
+    ] <T?3>(foo: T?3)
+)

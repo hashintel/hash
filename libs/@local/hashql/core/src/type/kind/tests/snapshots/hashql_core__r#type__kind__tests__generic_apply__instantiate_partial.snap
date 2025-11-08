@@ -2,10 +2,27 @@
 source: libs/@local/hashql/core/src/type/kind/tests/generic_apply.rs
 expression: "formatter.render_type(result_id, RenderOptions::default().with_plain())"
 ---
-<T?2, U?3>(foo: <?4= T?2, ?5= String><T?4, U?5>(foo: <T?4= T?2,
-   U?5= String><T?4, U?5>(foo: <T?4= T?2, U?5= String><T?4, U?5>(foo: <T?4= T?2,
-     U?5= String><T?4, U?5>(foo: <T?4= T?2, U?5= String><T?4,
-      U?5>(foo: <T?4= T?2, U?5= String><T?4, U?5>(foo: <T?4= T?2,
-        U?5= String><T?4, U?5>(foo: <T?4= T?2, U?5= String><T?4,
-         U?5>(foo: <T?4= T?2, U?5= String><T?4, U?5>(foo: <T?4= T?2,
-           U?5= String><T?4, U?5>(foo: ...)))))))))))
+<T?2, U?3>(
+    foo: [?4 = T?2, ?5 = String] <T?4, U?5>(
+        foo: [T?4 = T?2, U?5 = String] <T?4, U?5>(
+            foo: [T?4 = T?2, U?5 = String] <T?4, U?5>(
+                foo: [T?4 = T?2, U?5 = String] <T?4, U?5>(
+                    foo: [T?4 = T?2, U?5 = String] <T?4, U?5>(
+                        foo: [T?4 = T?2, U?5 = String] <T?4, U?5>(
+                            foo: [T?4 = T?2, U?5 = String] <T?4, U?5>(
+                                foo: [T?4 = T?2, U?5 = String] <T?4, U?5>(
+                                    foo: [T?4 = T?2, U?5 = String] <T?4, U?5>(
+                                        foo: [T?4 = T?2, U?5 = String] <
+                                            T?4,
+                                            U?5
+                                        >(foo: ...)
+                                    )
+                                )
+                            )
+                        )
+                    )
+                )
+            )
+        )
+    )
+)

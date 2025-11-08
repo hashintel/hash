@@ -242,9 +242,14 @@ impl<'fmt> FormatType<'fmt, TypeId> for TypeFormatter<'fmt, '_, '_> {
 
 impl<'fmt, 'heap> FormatType<'fmt, OpaqueType<'heap>> for TypeFormatter<'fmt, '_, 'heap> {
     fn format_type(&mut self, OpaqueType { name, repr }: OpaqueType<'heap>) -> Doc<'fmt> {
-        self.fmt
-            .type_name(name)
-            .append(self.fmt.parens(self.format_type(repr)))
+        let repr_ty = self.env.r#type(repr);
+        let mut inner = self.format_type(repr).parens();
+
+        if !matches!(repr_ty.kind, TypeKind::Struct(_) | TypeKind::Tuple(_)) {
+            inner = self.fmt.parens(inner);
+        }
+
+        self.fmt.type_name(name).append(inner)
     }
 }
 
@@ -357,18 +362,19 @@ impl<'fmt, 'heap> FormatType<'fmt, Apply<'heap>> for TypeFormatter<'fmt, '_, 'he
             substitutions,
         }: Apply<'heap>,
     ) -> Doc<'fmt> {
-        let base = self.format_type(base);
+        if substitutions.is_empty() {
+            return self.format_type(base);
+        }
 
-        self.fmt
-            .generic_args(
-                substitutions
-                    .iter()
-                    .map(|&GenericSubstitution { argument, value }| {
-                        self.fmt
-                            .key_value(self.format_type(argument), "=", self.format_type(value))
-                    }),
-            )
-            .append(base)
+        let fmt = self.fmt;
+        let base = self.format_type(base);
+        let substitutions = substitutions
+            .iter()
+            .map(|&GenericSubstitution { argument, value }| {
+                fmt.key_value(self.format_type(argument), "=", self.format_type(value))
+            });
+
+        fmt.generic_apply(substitutions, base)
     }
 }
 
@@ -383,7 +389,7 @@ impl<'fmt, 'heap> FormatType<'fmt, GenericArgument<'heap>> for TypeFormatter<'fm
     ) -> Doc<'fmt> {
         if let Some(constraint) = constraint {
             self.fmt
-                .key_value(self.format_type(id), ":", self.format_type(constraint))
+                .field_type(self.format_type(id), self.format_type(constraint))
         } else {
             self.format_type(id)
         }
@@ -404,12 +410,12 @@ impl<'fmt, 'heap> FormatType<'fmt, Generic<'heap>> for TypeFormatter<'fmt, '_, '
                 (self.fmt.nil(), base)
             };
 
-        let doc = prefix
-            .append(
-                self.fmt
-                    .generic_args(arguments.iter().map(|&argument| self.format_type(argument))),
-            )
-            .append(self.format_type(postfix));
+        let postfix = self.format_type(postfix);
+
+        let fmt = self.fmt;
+        let arg_docs = arguments.iter().map(|&argument| self.format_type(argument));
+
+        let doc = prefix.append(fmt.generic_args(arg_docs)).append(postfix);
 
         self.generics
             .truncate(self.generics.len() - arguments.len());

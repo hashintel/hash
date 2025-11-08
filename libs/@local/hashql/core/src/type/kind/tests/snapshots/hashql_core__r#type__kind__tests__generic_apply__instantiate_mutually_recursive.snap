@@ -2,5 +2,29 @@
 source: libs/@local/hashql/core/src/type/kind/tests/generic_apply.rs
 expression: "formatter.render_type(result_id, RenderOptions::default().with_plain())"
 ---
-<T?2>(b: <?3= T?2><U?3>(a: <?4= U?3><T?4>(b: <U?3= T?2><U?3>(a: <T?4= U?3><T?4>(b: <U?3= T?2><U?3>(a: <T?4= U?3><T?4>(b: <U?3= T?2><U?3>(a: <T?4= U?3><T?4>(b: <U?3= T?2><U?3>(a: <T?4= U?3><T?4>(b: ...),
-          b: U?3)), b: U?3)), b: U?3)), b: U?3)), b: U?3))
+<T?2>(
+    b: [?3 = T?2] <U?3>(
+        a: [?4 = U?3] <T?4>(
+            b: [U?3 = T?2] <U?3>(
+                a: [T?4 = U?3] <T?4>(
+                    b: [U?3 = T?2] <U?3>(
+                        a: [T?4 = U?3] <T?4>(
+                            b: [U?3 = T?2] <U?3>(
+                                a: [T?4 = U?3] <T?4>(
+                                    b: [U?3 = T?2] <U?3>(
+                                        a: [T?4 = U?3] <T?4>(b: ...),
+                                        b: U?3
+                                    )
+                                ),
+                                b: U?3
+                            )
+                        ),
+                        b: U?3
+                    )
+                ),
+                b: U?3
+            )
+        ),
+        b: U?3
+    )
+)

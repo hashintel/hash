@@ -233,6 +233,10 @@ impl<'alloc, 'heap> Formatter<'alloc, 'heap> {
         )
     }
 
+    /// Formats delimited content with rustfmt-style breaking.
+    ///
+    /// Compact: `(a, b, c)` - items separated by `, `
+    /// Expanded: `(\n    a,\n    b,\n    c\n)` - each item on own line with 4-space indent
     pub fn delimited<I>(
         &'alloc self,
         open: &'alloc str,
@@ -242,10 +246,23 @@ impl<'alloc, 'heap> Formatter<'alloc, 'heap> {
     where
         I: IntoIterator<Item = Doc<'alloc>>,
     {
-        let inner = self.comma_sep(items).nest(1).group();
+        let mut items = items.into_iter();
+        let Some(first) = items.next() else {
+            return self.punct_str(open).append(self.punct_str(close));
+        };
 
+        let items = iter::once(first).chain(items);
+
+        // When group() flattens: line_() → nothing, line() → space
+        // So we get: (a, b, c) when flat
+        // And: (\n    a,\n    b,\n    c\n) when broken
         self.punct_str(open)
-            .append(inner)
+            .append(
+                self.line_()
+                    .append(self.intersperse(items, self.punct_str(",").append(self.line())))
+                    .nest(4)
+                    .append(self.line_()),
+            )
             .append(self.punct_str(close))
             .group()
     }
@@ -275,15 +292,28 @@ impl<'alloc, 'heap> Formatter<'alloc, 'heap> {
         self.delimited("(", [first, second].into_iter().chain(items), ")")
     }
 
+    /// Formats key-value pairs with spaces around separator.
+    ///
+    /// Example: `key = value` or `T = Integer`
     pub fn key_value(
         &'alloc self,
         key: Doc<'alloc>,
         sep: &'static str,
         value: Doc<'alloc>,
     ) -> Doc<'alloc> {
-        key.append(self.punct_str(sep))
+        key.append(self.space())
+            .append(self.punct_str(sep))
             .append(self.space())
             .append(value)
+    }
+
+    /// Formats field-type pairs without space before separator.
+    ///
+    /// Example: `foo: Type` or `bar: Integer`
+    pub fn field_type(&'alloc self, name: Doc<'alloc>, ty: Doc<'alloc>) -> Doc<'alloc> {
+        name.append(self.punct_str(":"))
+            .append(self.space())
+            .append(ty)
     }
 
     /// Formats a struct with named fields.
@@ -302,7 +332,7 @@ impl<'alloc, 'heap> Formatter<'alloc, 'heap> {
 
         let field_docs = iter::once(first)
             .chain(fields)
-            .map(|(name, value)| self.key_value(name, ":", value));
+            .map(|(name, ty)| self.field_type(name, ty));
 
         self.delimited("(", field_docs, ")")
     }
@@ -331,14 +361,25 @@ impl<'alloc, 'heap> Formatter<'alloc, 'heap> {
 
     /// Formats generic type arguments.
     ///
-    /// Example: `<T, U, V>`
+    /// Example: `<T, U, V>` or when broken: `<\n    T,\n    U,\n    V\n>`
     pub fn generic_args<I>(&'alloc self, args: I) -> Doc<'alloc>
     where
         I: IntoIterator<Item = Doc<'alloc>>,
     {
-        let inner = self.comma_sep(args).nest(1).group();
+        self.delimited("<", args, ">")
+    }
 
-        self.angles(inner).group()
+    /// Formats a generic application (substitutions applied to a base type).
+    ///
+    /// Uses square brackets to distinguish from generic args.
+    /// Example: `[T = Integer] (foo: T)` - space after to separate from base
+    pub fn generic_apply<I>(&'alloc self, substitutions: I, base: Doc<'alloc>) -> Doc<'alloc>
+    where
+        I: IntoIterator<Item = Doc<'alloc>>,
+    {
+        self.delimited("[", substitutions, "]")
+            .append(self.space())
+            .append(base)
     }
 
     pub fn closure_type<I>(&'alloc self, params: I, returns: Doc<'alloc>) -> Doc<'alloc>

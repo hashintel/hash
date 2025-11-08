@@ -2,4 +2,68 @@
 source: libs/@local/hashql/core/src/type/kind/tests/generic_apply.rs
 expression: "formatter.render_type(result_id, RenderOptions::default().with_plain())"
 ---
-(b: (a: (b: (a: (b: (a: (b: (a: (b: (a: (b: (a: (b: (a: (b: (a: (b: (a: (b: (a: (b: (a: (b: (a: (b: (a: (b: (a: (b: (a: (b: (a: ...))))))))))))))))))))))))))))))))
+(
+    b: (
+        a: (
+            b: (
+                a: (
+                    b: (
+                        a: (
+                            b: (
+                                a: (
+                                    b: (
+                                        a: (
+                                            b: (
+                                                a: (
+                                                    b: (
+                                                        a: (
+                                                            b: (
+                                                                a: (
+                                                                    b: (
+                                                                        a: (
+                                                                            b: (
+                                                                                a: (
+                                                                                    b: (
+                                                                                        a: (
+                                                                                            b: (
+                                                                                                a: (
+                                                                                                    b: (
+                                                                                                        a: (
+                                                                                                            b: (
+                                                                                                                a: (
+                                                                                                                    b: (
+                                                                                                                        a: (
+                                                                                                                            b: (
+                                                                                                                                a: ...
+                                                                                                                            )
+                                                                                                                        )
+                                                                                                                    )
+                                                                                                                )
+                                                                                                            )
+                                                                                                        )
+                                                                                                    )
+                                                                                                )
+                                                                                            )
+                                                                                        )
+                                                                                    )
+                                                                                )
+                                                                            )
+                                                                        )
+                                                                    )
+                                                                )
+                                                            )
+                                                        )
+                                                    )
+                                                )
+                                            )
+                                        )
+                                    )
+                                )
+                            )
+                        )
+                    )
+                )
+            )
+        )
+    )
+)
