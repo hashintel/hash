@@ -2,10 +2,10 @@ use alloc::borrow::Cow;
 use core::{cmp::Ordering, fmt::Display};
 
 use hashql_core::{
-    pretty::{PrettyOptions, PrettyPrint as _},
+    pretty::{Formatter, RenderOptions},
     span::{SpanId, Spanned},
     r#type::{
-        Type, TypeId,
+        Type, TypeFormatter, TypeFormatterOptions, TypeId,
         environment::Environment,
         error::TypeCheckDiagnosticCategory,
         kind::{IntrinsicType, PrimitiveType, TypeKind, generic::GenericArgumentReference},
@@ -209,6 +209,9 @@ pub(crate) fn type_mismatch_if<'heap>(
     env: &Environment<'heap>,
     r#type: Type<'heap>,
 ) -> LoweringDiagnostic {
+    let formatter = Formatter::new(env.heap);
+    let mut formatter = TypeFormatter::new(&formatter, env, TypeFormatterOptions::default());
+
     let mut diagnostic = Diagnostic::new(
         LoweringDiagnosticCategory::TypeChecking(TypeCheckDiagnosticCategory::TypeMismatch),
         Severity::Error,
@@ -217,7 +220,7 @@ pub(crate) fn type_mismatch_if<'heap>(
         r#type.span,
         format!(
             "expected `Boolean`, found `{}`",
-            r#type.pretty_print(env, PrettyOptions::default())
+            formatter.render(r#type.id, RenderOptions::default())
         ),
     ));
 

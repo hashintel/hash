@@ -1,5 +1,8 @@
+use core::fmt::Display;
+use std::io;
+
 use hashql_core::{
-    pretty::{Doc, Formatter},
+    pretty::{Doc, Formatter, RenderOptions},
     r#type::{TypeFormatterOptions, environment::Environment},
     value::Primitive,
 };
@@ -70,7 +73,37 @@ impl<'fmt, 'env, 'heap> NodeFormatter<'fmt, 'env, 'heap> {
         Self::new(fmt, env, context, NodeFormatterOptions::default())
     }
 
-    // pub fn format(&self, value: Node<'heap>) -> Doc<'fmt> {}
+    pub fn format(&mut self, value: Node<'heap>) -> Doc<'fmt> {
+        self.format_node(value)
+    }
+
+    pub(crate) fn render_node<T>(
+        &mut self,
+        value: T,
+        options: RenderOptions,
+    ) -> impl Display + use<'fmt, T>
+    where
+        Self: FormatNode<'fmt, T>,
+    {
+        hashql_core::pretty::render(self.format_node(value), options)
+    }
+
+    pub fn render(
+        &mut self,
+        node: Node<'heap>,
+        options: RenderOptions,
+    ) -> impl Display + use<'fmt, 'heap> {
+        self.render_node(node, options)
+    }
+
+    pub fn render_into(
+        &mut self,
+        value: Node<'heap>,
+        options: RenderOptions,
+        write: &mut impl io::Write,
+    ) -> Result<(), io::Error> {
+        hashql_core::pretty::render_into(&self.format_node(value), options, write)
+    }
 }
 
 impl<'fmt, 'env, 'heap> FormatNode<'fmt, &NodeKind<'heap>> for NodeFormatter<'fmt, 'env, 'heap> {
