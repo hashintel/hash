@@ -2,16 +2,20 @@
 
 let foo:0 = 2
 in
-(a:0: Number): Boolean ->
-    ::core::cmp::gte(a:0, foo:0)
+(a:0: Number): Boolean -> ::core::cmp::gte(a:0, foo:0)
 
 ════ HIR after thunking ════════════════════════════════════════════════════════
 
-let foo:0 = thunk ->
-    2,
-    %3 = thunk ->
-    let %5 = (a:0: Number): Boolean -> let %4 = foo:0(), %2 = a:0 >= %4 in %2
-        in
-        %5
+let foo:0 = thunk -> 2,
+    %3 =
+        thunk ->
+            let %5 =
+                    (a:0: Number): Boolean ->
+                        let %4 = foo:0(),
+                            %2 = a:0 >= %4
+                        in
+                        %2
+            in
+            %5
 in
 %3

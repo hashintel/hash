@@ -1,16 +1,19 @@
 ════ Initial HIR ═══════════════════════════════════════════════════════════════
 
-let foo:0 = (foo:1: Number): Boolean ->
-    ::core::bool::and(::core::cmp::eq(foo:1, foo:1), true)
+let foo:0 =
+        (foo:1: Number): Boolean ->
+            ::core::bool::and(::core::cmp::eq(foo:1, foo:1), true)
 in
 foo:0(1)
 
 ════ HIR after normalization ═══════════════════════════════════════════════════
 
-let foo:0 = (foo:1: Number): Boolean ->
-    let %2 = foo:1 == foo:1, %3 = %2 && true
-        in
-        %3,
+let foo:0 =
+        (foo:1: Number): Boolean ->
+            let %2 = foo:1 == foo:1,
+                %3 = %2 && true
+            in
+            %3,
     %4 = foo:0(1)
 in
 %4

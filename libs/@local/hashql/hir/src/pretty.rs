@@ -280,7 +280,10 @@ impl<'fmt, 'heap> FormatNode<'fmt, &Let<'heap>> for NodeFormatter<'fmt, '_, 'hea
         let r#in = self.fmt.keyword(sym::lexical::r#in);
 
         let bindings = bindings.iter().map(|binding| self.format_node(binding));
-        let bindings = fmt.intersperse(bindings, fmt.punct(sym::symbol::comma).append(fmt.line()));
+        let bindings = fmt.intersperse(
+            bindings,
+            fmt.punct(sym::symbol::comma).append(fmt.hardline()),
+        );
 
         let body = self.format_node(*body);
 
@@ -290,7 +293,7 @@ impl<'fmt, 'heap> FormatNode<'fmt, &Let<'heap>> for NodeFormatter<'fmt, '_, 'hea
             .append(self.fmt.line())
             .append(r#in)
             .append(self.fmt.line())
-            .append(body.nest(self.fmt.options.indent))
+            .append(body)
     }
 }
 
@@ -306,7 +309,15 @@ impl<'fmt, 'heap> FormatNode<'fmt, &Binding<'heap>> for NodeFormatter<'fmt, '_, 
         let name = self.fmt.variable_owned(binder.mangled().to_string());
         let value = self.format_node(*value);
 
-        self.fmt.key_value(name, "=", value)
+        name.append(self.fmt.space())
+            .append(self.fmt.punct_str("="))
+            .append(
+                self.fmt
+                    .line()
+                    .append(value)
+                    .nest(self.fmt.options.indent)
+                    .group(),
+            )
     }
 }
 
@@ -480,6 +491,12 @@ impl<'fmt, 'heap> FormatNode<'fmt, &Branch<'heap>> for NodeFormatter<'fmt, '_, '
 impl<'fmt, 'heap> FormatNode<'fmt, &If<'heap>> for NodeFormatter<'fmt, '_, 'heap> {
     fn format_node(&mut self, &If { test, then, r#else }: &If<'heap>) -> Doc<'fmt> {
         // Format as: if test then branch else branch
+        // Compact: if test then value1 else value2
+        // Expanded: if test
+        //           then
+        //               value1
+        //           else
+        //               value2
         let if_keyword = self.fmt.keyword(sym::lexical::r#if);
         let then_keyword = self.fmt.keyword(sym::lexical::then);
         let else_keyword = self.fmt.keyword(sym::lexical::r#else);
@@ -491,14 +508,23 @@ impl<'fmt, 'heap> FormatNode<'fmt, &If<'heap>> for NodeFormatter<'fmt, '_, 'heap
         if_keyword
             .append(self.fmt.space())
             .append(test_doc)
-            .append(self.fmt.line())
+            .append(self.fmt.space())
             .append(then_keyword)
-            .append(self.fmt.line())
-            .append(then_doc.nest(self.fmt.options.indent))
+            .append(
+                self.fmt
+                    .line()
+                    .append(then_doc)
+                    .nest(self.fmt.options.indent),
+            )
             .append(self.fmt.line())
             .append(else_keyword)
-            .append(self.fmt.line())
-            .append(else_doc.nest(self.fmt.options.indent))
+            .append(
+                self.fmt
+                    .line()
+                    .append(else_doc)
+                    .nest(self.fmt.options.indent),
+            )
+            .group()
     }
 }
 
@@ -543,10 +569,7 @@ impl<'fmt, 'heap> FormatNode<'fmt, &Closure<'heap>> for NodeFormatter<'fmt, '_, 
                     let type_doc = self.format_type(param_type);
                     self.fmt.field_type(name, type_doc)
                 });
-        let params_doc = fmt.parens(
-            fmt.intersperse(param_docs, fmt.punct(sym::symbol::comma).append(fmt.line()))
-                .group(),
-        );
+        let params_doc = fmt.delimited("(", param_docs, ")");
 
         // Format return type: : ReturnType
         let return_type_doc = self
@@ -559,15 +582,20 @@ impl<'fmt, 'heap> FormatNode<'fmt, &Closure<'heap>> for NodeFormatter<'fmt, '_, 
         let body_doc = self.format_node(*body);
 
         // Format as: <T, U>(a: T, b: U): ReturnType -> body
+        // Group the signature together, body can break independently
         let arrow = self.fmt.op_str("->");
-
-        generics_doc
+        let signature = generics_doc
             .append(params_doc)
             .append(return_type_doc)
-            .append(self.fmt.space())
-            .append(arrow)
-            .append(self.fmt.line())
-            .append(body_doc.nest(self.fmt.options.indent))
+            .group();
+
+        signature.append(self.fmt.space()).append(arrow).append(
+            self.fmt
+                .line()
+                .append(body_doc)
+                .nest(self.fmt.options.indent)
+                .group(),
+        )
     }
 }
 
@@ -579,11 +607,13 @@ impl<'fmt, 'heap> FormatNode<'fmt, &Thunk<'heap>> for NodeFormatter<'fmt, '_, 'h
         let arrow = self.fmt.op_str("->");
         let body_doc = self.format_node(*body);
 
-        keyword
-            .append(self.fmt.space())
-            .append(arrow)
-            .append(self.fmt.line())
-            .append(body_doc.nest(self.fmt.options.indent))
+        keyword.append(self.fmt.space()).append(arrow).append(
+            self.fmt
+                .line()
+                .append(body_doc)
+                .nest(self.fmt.options.indent)
+                .group(),
+        )
     }
 }
 

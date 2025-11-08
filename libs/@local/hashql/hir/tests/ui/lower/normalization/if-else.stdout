@@ -1,10 +1,6 @@
 ════ Initial HIR ═══════════════════════════════════════════════════════════════
 
-if true
-then
-false
-else
-::core::cmp::lte(3, 4)
+if true then false else ::core::cmp::lte(3, 4)
 
 ════ HIR after normalization ═══════════════════════════════════════════════════
 

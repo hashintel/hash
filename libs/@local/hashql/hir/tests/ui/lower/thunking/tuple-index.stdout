@@ -6,13 +6,7 @@ foo:0.0
 
 ════ HIR after thunking ════════════════════════════════════════════════════════
 
-let foo:0 = thunk ->
-    let %2 = (0, 1, 2)
-        in
-        %2,
-    %1 = thunk ->
-    let %3 = foo:0()
-        in
-        %3.0
+let foo:0 = thunk -> let %2 = (0, 1, 2) in %2,
+    %1 = thunk -> let %3 = foo:0() in %3.0
 in
 %1

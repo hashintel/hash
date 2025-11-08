@@ -1,21 +1,17 @@
 ════ Initial HIR ═══════════════════════════════════════════════════════════════
 
-(lhs:0: _0, rhs:0: _1): _2 ->
-::core::math::add(lhs:0, rhs:0)(2, 3)
+(lhs:0: _0, rhs:0: _1): _2 -> ::core::math::add(lhs:0, rhs:0)(2, 3)
 
 ════ HIR after type inference ══════════════════════════════════════════════════
 
-(lhs:0: _0, rhs:0: _1): _2 ->
-::core::math::add(lhs:0, rhs:0)(2, 3)
+(lhs:0: _0, rhs:0: _1): _2 -> ::core::math::add(lhs:0, rhs:0)(2, 3)
 
 ════ Types ═════════════════════════════════════════════════════════════════════
 
-┌─ (lhs:0: _0, rhs:0: _1): _2 ->
-│  ::core::math::add(lhs:0, rhs:0)(2, 3)
+┌─ (lhs:0: _0, rhs:0: _1): _2 -> ::core::math::add(lhs:0, rhs:0)(2, 3)
 └→ _4«Integer»
 
-┌─ (lhs:0: _0, rhs:0: _1): _2 ->
-│  ::core::math::add(lhs:0, rhs:0)
+┌─ (lhs:0: _0, rhs:0: _1): _2 -> ::core::math::add(lhs:0, rhs:0)
 └→ (_0«Integer», _1«Integer») -> _2«Integer»
 
 ┌─ ::core::math::add(lhs:0, rhs:0)

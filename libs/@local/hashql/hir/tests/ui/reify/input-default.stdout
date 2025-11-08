@@ -1,5 +1,1 @@
-if $exists(limit)
-then
-$?limit
-else
-10 as Integer
+if $exists(limit) then $?limit else 10 as Integer

@@ -6,6 +6,8 @@ in
 
 ════ HIR after normalization ═══════════════════════════════════════════════════
 
-let foo:0 = 3, bar:0 = true, %2 = bar:0 && true
+let foo:0 = 3,
+    bar:0 = true,
+    %2 = bar:0 && true
 in
 %2

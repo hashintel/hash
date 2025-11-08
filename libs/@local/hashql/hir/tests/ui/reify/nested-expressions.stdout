@@ -1,3 +1,4 @@
-let x:0 = 10, y:0 = 20
+let x:0 = 10,
+    y:0 = 20
 in
 ::core::math::add(x:0, ::core::math::mul(y:0, 2 as Number))

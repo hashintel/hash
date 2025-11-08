@@ -1,22 +1,10 @@
 ════ Initial HIR ═══════════════════════════════════════════════════════════════
 
-if $exists(foo)
-then
-$?foo
-else
-::core::cmp::lte(2, 3) as Boolean
+if $exists(foo) then $?foo else ::core::cmp::lte(2, 3) as Boolean
 
 ════ HIR after normalization ═══════════════════════════════════════════════════
 
 let %2 = $exists(foo),
-    %3 = if %2
-    then
-    let %0 = $?foo
-        in
-        %0
-    else
-    let %1 = 2 <= 3
-        in
-        %1
+    %3 = if %2 then let %0 = $?foo in %0 else let %1 = 2 <= 3 in %1
 in
 %3
