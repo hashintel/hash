@@ -144,7 +144,9 @@ impl<'heap> UnionType<'heap> {
         env: &mut AnalysisEnvironment<'env, 'heap>,
     ) -> bool
     where
-        TypeFormatter<'env, 'heap>: FormatType<'env, T> + FormatType<'env, U>,
+        for<'fmt> TypeFormatter<'fmt, 'env, 'heap>: FormatType<'fmt, T> + FormatType<'fmt, U>,
+        T: Copy,
+        U: Copy,
     {
         // Empty union (corresponds to the Never type) is a subtype of any union type
         if self_variants.is_empty() {

@@ -16,7 +16,7 @@ use super::{
     pretty::{FormatType, TypeFormatter},
 };
 use crate::{
-    pretty::{self, Formatter, RenderOptions},
+    pretty::{Formatter, RenderOptions},
     similarity::did_you_mean,
     span::SpanId,
     symbol::{Ident, Symbol},
@@ -255,7 +255,9 @@ pub(crate) fn type_mismatch<'env, 'heap, T, U>(
     help: Option<&str>,
 ) -> TypeCheckDiagnostic
 where
-    TypeFormatter<'env, 'heap>: FormatType<'env, T> + FormatType<'env, U>,
+    for<'fmt> TypeFormatter<'fmt, 'env, 'heap>: FormatType<'fmt, T> + FormatType<'fmt, U>,
+    T: Copy,
+    U: Copy,
 {
     let formatter = Formatter::new();
     let mut formatter = TypeFormatter::new(&formatter, env, TypeFormatterOptions::default());
@@ -459,7 +461,9 @@ pub(crate) fn union_variant_mismatch<'env, 'heap, K1, K2>(
     expected_union: Type<'heap, K2>,
 ) -> TypeCheckDiagnostic
 where
-    TypeFormatter<'env, 'heap>: FormatType<'env, K1> + FormatType<'env, K2>,
+    for<'fmt> TypeFormatter<'fmt, 'env, 'heap>: FormatType<'fmt, K1> + FormatType<'fmt, K2>,
+    K1: Copy,
+    K2: Copy,
 {
     let formatter = Formatter::new();
     let mut formatter = TypeFormatter::new(&formatter, env, TypeFormatterOptions::default());
@@ -556,7 +560,8 @@ pub(crate) fn cannot_be_subtype_of_never<'env, 'heap, K, L>(
     supertype: Type<'heap, L>,
 ) -> TypeCheckDiagnostic
 where
-    TypeFormatter<'env, 'heap>: FormatType<'env, K>,
+    for<'fmt> TypeFormatter<'fmt, 'env, 'heap>: FormatType<'fmt, K>,
+    K: Copy,
 {
     let formatter = Formatter::new();
     let mut formatter = TypeFormatter::new(&formatter, env, TypeFormatterOptions::default());
@@ -595,7 +600,8 @@ pub(crate) fn cannot_be_supertype_of_unknown<'env, 'heap, K, L>(
     supertype: Type<'heap, L>,
 ) -> TypeCheckDiagnostic
 where
-    TypeFormatter<'env, 'heap>: FormatType<'env, L>,
+    for<'fmt> TypeFormatter<'fmt, 'env, 'heap>: FormatType<'fmt, L>,
+    L: Copy,
 {
     let formatter = Formatter::new();
     let mut formatter = TypeFormatter::new(&formatter, env, TypeFormatterOptions::default());
@@ -634,7 +640,9 @@ pub(crate) fn intersection_variant_mismatch<'env, 'heap, K1, K2>(
     expected_intersection: Type<'heap, K2>,
 ) -> TypeCheckDiagnostic
 where
-    TypeFormatter<'env, 'heap>: FormatType<'env, K1> + FormatType<'env, K2>,
+    for<'fmt> TypeFormatter<'fmt, 'env, 'heap>: FormatType<'fmt, K1> + FormatType<'fmt, K2>,
+    K1: Copy,
+    K2: Copy,
 {
     let formatter = Formatter::new();
     let mut formatter = TypeFormatter::new(&formatter, env, TypeFormatterOptions::default());
@@ -845,15 +853,12 @@ pub(crate) fn unconstrained_type_variable(variable: Variable) -> TypeCheckDiagno
 }
 
 /// Creates a diagnostic for when a lower bound is incompatible with an equality constraint
-pub(crate) fn incompatible_lower_equal_constraint<'env, 'heap, K>(
+pub(crate) fn incompatible_lower_equal_constraint<'env, 'heap>(
     env: &'env Environment<'heap>,
     variable: Variable,
-    lower_bound: Type<'heap, K>,
-    equals: Type<'heap, K>,
-) -> TypeCheckDiagnostic
-where
-    TypeFormatter<'env, 'heap>: FormatType<'env, K>,
-{
+    lower_bound: Type<'heap>,
+    equals: Type<'heap>,
+) -> TypeCheckDiagnostic {
     let formatter = Formatter::new();
     let mut formatter = TypeFormatter::new(&formatter, env, TypeFormatterOptions::default());
 
@@ -871,7 +876,7 @@ where
         equals.span,
         format!(
             "Required to be exactly `{}`",
-            formatter.render(*equals, RenderOptions::default())
+            formatter.render(equals, RenderOptions::default())
         ),
     ));
 
@@ -880,7 +885,7 @@ where
         lower_bound.span,
         format!(
             "But this lower bound `{}` is not a subtype of the equality constraint",
-            formatter.render(*lower_bound, RenderOptions::default())
+            formatter.render(lower_bound, RenderOptions::default())
         ),
     ));
 
@@ -889,8 +894,8 @@ where
         "Resolve this type conflict by either:\n1. Changing the equality constraint to be \
          compatible with `{}`\n2. Modifying the lower bound type to be a subtype of `{}`\n3. \
          Ensuring both types are compatible in the type hierarchy",
-        formatter.render(*lower_bound, RenderOptions::default().with_max_width(60)),
-        formatter.render(*equals, RenderOptions::default().with_max_width(60))
+        formatter.render(lower_bound, RenderOptions::default().with_max_width(60)),
+        formatter.render(equals, RenderOptions::default().with_max_width(60))
     )));
 
     diagnostic.add_message(Message::note(
@@ -904,15 +909,12 @@ where
 }
 
 /// Creates a diagnostic for when an upper bound is incompatible with an equality constraint
-pub(crate) fn incompatible_upper_equal_constraint<'env, 'heap, K>(
+pub(crate) fn incompatible_upper_equal_constraint<'env, 'heap>(
     env: &'env Environment<'heap>,
     variable: Variable,
-    equal: Type<'heap, K>,
-    upper: Type<'heap, K>,
-) -> TypeCheckDiagnostic
-where
-    TypeFormatter<'env, 'heap>: FormatType<'env, K>,
-{
+    equal: Type<'heap>,
+    upper: Type<'heap>,
+) -> TypeCheckDiagnostic {
     let formatter = Formatter::new();
     let mut formatter = TypeFormatter::new(&formatter, env, TypeFormatterOptions::default());
 
@@ -962,16 +964,12 @@ where
 }
 
 /// Creates a diagnostic for when a lower bound is not a subtype of an upper bound in a constraint
-pub(crate) fn bound_constraint_violation<'env: 'heap, 'heap, K>(
+pub(crate) fn bound_constraint_violation<'env: 'heap, 'heap>(
     env: &'env Environment<'heap>,
     variable: Variable,
-    lower_bound: Type<'heap, K>,
-    upper_bound: Type<'heap, K>,
-) -> TypeCheckDiagnostic
-where
-    K: Copy,
-    for<'fmt> TypeFormatter<'fmt, 'heap>: FormatType<'fmt, K>,
-{
+    lower_bound: Type<'heap>,
+    upper_bound: Type<'heap>,
+) -> TypeCheckDiagnostic {
     let formatter_ref = Formatter::new();
     let mut formatter = TypeFormatter::new(&formatter_ref, env, TypeFormatterOptions::default());
 
@@ -1036,15 +1034,12 @@ where
 }
 
 /// Creates a diagnostic for when a type variable has incompatible equality constraints
-pub(crate) fn conflicting_equality_constraints<'env, 'heap, K>(
+pub(crate) fn conflicting_equality_constraints<'env, 'heap>(
     env: &'env Environment<'heap>,
     variable: Variable,
-    existing: Type<'heap, K>,
-    new_type: Type<'heap, K>,
-) -> TypeCheckDiagnostic
-where
-    TypeFormatter<'env, 'heap>: FormatType<'env, K>,
-{
+    existing: Type<'heap>,
+    new_type: Type<'heap>,
+) -> TypeCheckDiagnostic {
     let formatter = Formatter::new();
     let mut formatter = TypeFormatter::new(&formatter, env, TypeFormatterOptions::default());
 
@@ -1142,7 +1137,8 @@ pub(crate) fn struct_field_not_found<'env, 'heap, K>(
     env: &'env Environment<'heap>,
 ) -> TypeCheckDiagnostic
 where
-    TypeFormatter<'env, 'heap>: FormatType<'env, K>,
+    for<'fmt> TypeFormatter<'fmt, 'env, 'heap>: FormatType<'fmt, K>,
+    K: Copy,
 {
     let formatter = Formatter::new();
     let mut formatter = TypeFormatter::new(&formatter, env, TypeFormatterOptions::default());
@@ -1211,7 +1207,8 @@ pub(crate) fn invalid_tuple_index<'env, 'heap, K>(
     env: &'env Environment<'heap>,
 ) -> TypeCheckDiagnostic
 where
-    TypeFormatter<'env, 'heap>: FormatType<'env, K>,
+    for<'fmt> TypeFormatter<'fmt, 'env, 'heap>: FormatType<'fmt, K>,
+    K: Copy,
 {
     let formatter = Formatter::new();
     let mut formatter = TypeFormatter::new(&formatter, env, TypeFormatterOptions::default());
@@ -1254,7 +1251,8 @@ pub(crate) fn tuple_index_out_of_bounds<'env, 'heap, K>(
     env: &'env Environment<'heap>,
 ) -> TypeCheckDiagnostic
 where
-    TypeFormatter<'env, 'heap>: FormatType<'env, K>,
+    for<'fmt> TypeFormatter<'fmt, 'env, 'heap>: FormatType<'fmt, K>,
+    K: Copy,
 {
     let formatter = Formatter::new();
     let mut formatter = TypeFormatter::new(&formatter, env, TypeFormatterOptions::default());
@@ -1340,7 +1338,8 @@ pub(crate) fn unsupported_projection<'env, 'heap, K>(
     env: &'env Environment<'heap>,
 ) -> TypeCheckDiagnostic
 where
-    TypeFormatter<'env, 'heap>: FormatType<'env, K>,
+    for<'fmt> TypeFormatter<'fmt, 'env, 'heap>: FormatType<'fmt, K>,
+    K: Copy,
 {
     let formatter = Formatter::new();
     let mut formatter = TypeFormatter::new(&formatter, env, TypeFormatterOptions::default());
@@ -1465,7 +1464,8 @@ pub(crate) fn unsupported_subscript<'env, 'heap, K>(
     env: &'env Environment<'heap>,
 ) -> TypeCheckDiagnostic
 where
-    TypeFormatter<'env, 'heap>: FormatType<'env, K>,
+    for<'fmt> TypeFormatter<'fmt, 'env, 'heap>: FormatType<'fmt, K>,
+    K: Copy,
 {
     let formatter = Formatter::new();
     let mut formatter = TypeFormatter::new(&formatter, env, TypeFormatterOptions::default());
@@ -1485,7 +1485,7 @@ where
     let mut help_message = format!(
         "Cannot subscript type '{}' with index '{}'.\n\n",
         formatter.render(*r#type.kind, RenderOptions::default()),
-        formatter.render(*index.kind, RenderOptions::default())
+        formatter.render(index, RenderOptions::default())
     );
 
     match category {
@@ -1566,7 +1566,8 @@ pub(crate) fn recursive_type_projection<'env, 'heap, K>(
     env: &'env Environment<'heap>,
 ) -> TypeCheckDiagnostic
 where
-    TypeFormatter<'env, 'heap>: FormatType<'env, K>,
+    for<'fmt> TypeFormatter<'fmt, 'env, 'heap>: FormatType<'fmt, K>,
+    K: Copy,
 {
     let formatter = Formatter::new();
     let mut formatter = TypeFormatter::new(&formatter, env, TypeFormatterOptions::default());
@@ -1611,7 +1612,8 @@ pub(crate) fn recursive_type_subscript<'env, 'heap, K>(
     env: &'env Environment<'heap>,
 ) -> TypeCheckDiagnostic
 where
-    TypeFormatter<'env, 'heap>: FormatType<'env, K>,
+    for<'fmt> TypeFormatter<'fmt, 'env, 'heap>: FormatType<'fmt, K>,
+    K: Copy,
 {
     let formatter = Formatter::new();
     let mut formatter = TypeFormatter::new(&formatter, env, TypeFormatterOptions::default());
@@ -1745,7 +1747,8 @@ pub(crate) fn list_subscript_mismatch<'env, 'heap, K>(
     env: &'env Environment<'heap>,
 ) -> TypeCheckDiagnostic
 where
-    TypeFormatter<'env, 'heap>: FormatType<'env, K>,
+    for<'fmt> TypeFormatter<'fmt, 'env, 'heap>: FormatType<'fmt, K>,
+    K: Copy,
 {
     let formatter = Formatter::new();
     let mut formatter = TypeFormatter::new(&formatter, env, TypeFormatterOptions::default());
@@ -1768,7 +1771,7 @@ where
          integer: `list[0]` for the first element, `list[index]` where `index` is an integer \
          variable, or `list[expression]` where `expression` produces an integer result.",
         formatter.render(*list.kind, RenderOptions::default().with_max_width(60)),
-        formatter.render(*index.kind, RenderOptions::default().with_max_width(60))
+        formatter.render(index, RenderOptions::default().with_max_width(60))
     );
 
     diagnostic.add_message(Message::help(help_message));

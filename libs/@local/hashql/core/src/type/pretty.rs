@@ -142,7 +142,7 @@ pub(crate) trait FormatType<'fmt, T> {
     fn format_type(&mut self, value: T) -> Doc<'fmt>;
 }
 
-pub struct TypeFormatter<'fmt, 'env, 'heap> {
+pub struct TypeFormatter<'fmt, 'env, 'heap: 'fmt> {
     fmt: &'fmt Formatter<'fmt>,
     env: &'env Environment<'heap>,
     guard: RecursionGuard<'heap>,
@@ -150,7 +150,7 @@ pub struct TypeFormatter<'fmt, 'env, 'heap> {
     options: TypeFormatterOptions,
 }
 
-impl<'fmt, 'env, 'heap> TypeFormatter<'fmt, 'env, 'heap> {
+impl<'fmt, 'env, 'heap: 'fmt> TypeFormatter<'fmt, 'env, 'heap> {
     pub fn new(
         fmt: &'fmt Formatter<'fmt>,
         env: &'env Environment<'heap>,
