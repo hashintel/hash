@@ -7,6 +7,7 @@ use hashql_core::{
     r#type::{TypeFormatter, TypeFormatterOptions, environment::Environment, kind::Generic},
     value::Primitive,
 };
+use pretty::{DocBuilder, Pretty};
 
 use crate::{
     context::HirContext,
@@ -299,7 +300,7 @@ impl<'fmt, 'heap> FormatNode<'fmt, &Let<'heap>> for NodeFormatter<'fmt, '_, 'hea
 
         r#let
             .append(self.fmt.space())
-            .append(bindings.nest(self.fmt.options.indent).group())
+            .append(bindings.nest(self.fmt.options.indent))
             .append(self.fmt.line())
             .append(r#in)
             .append(self.fmt.line())
@@ -316,13 +317,19 @@ impl<'fmt, 'heap> FormatNode<'fmt, &Binding<'heap>> for NodeFormatter<'fmt, '_, 
             value,
         }: &Binding<'heap>,
     ) -> Doc<'fmt> {
-        let name = self.fmt.variable_owned(binder.mangled().to_string());
-        let value = self.format_node(*value);
+        let name_doc = self.fmt.variable_owned(binder.mangled().to_string());
+        let mut value_doc = self.format_node(*value);
 
-        name.append(self.fmt.space())
+        // Check if the value is a closure of thunk, in that case do not nest additionally
+        if !matches!(value.kind, NodeKind::Thunk(_) | NodeKind::Closure(_)) {
+            value_doc = value_doc.nest(self.fmt.options.indent);
+        }
+
+        name_doc
+            .append(self.fmt.space())
             .append(self.fmt.punct_str("="))
             .append(self.fmt.space())
-            .append(value)
+            .append(value_doc)
     }
 }
 
@@ -503,33 +510,41 @@ impl<'fmt, 'heap> FormatNode<'fmt, &If<'heap>> for NodeFormatter<'fmt, '_, 'heap
         //           else
         //               value2
         let if_keyword = self.fmt.keyword(sym::lexical::r#if);
-        let then_keyword = self.fmt.keyword(sym::lexical::then);
-        let else_keyword = self.fmt.keyword(sym::lexical::r#else);
+        let then_keyword = self.fmt.keyword(sym::lexical::then).into_doc();
+        let else_keyword = self.fmt.keyword(sym::lexical::r#else).into_doc();
 
-        let test_doc = self.format_node(test);
-        let then_doc = self.format_node(then);
-        let else_doc = self.format_node(r#else);
+        let test_doc = self.format_node(test).into_doc();
+        let then_doc = self.format_node(then).into_doc();
+        let else_doc = self.format_node(r#else).into_doc();
 
-        if_keyword
+        let flat = if_keyword
+            .clone()
             .append(self.fmt.space())
             .append(test_doc)
             .append(self.fmt.space())
             .append(then_keyword)
-            .append(
-                self.fmt
-                    .line()
-                    .append(then_doc)
-                    .nest(self.fmt.options.indent),
-            )
-            .append(self.fmt.line())
+            .append(self.fmt.space())
+            .append(then_doc)
+            .append(self.fmt.space())
             .append(else_keyword)
-            .append(
-                self.fmt
-                    .line()
-                    .append(else_doc)
-                    .nest(self.fmt.options.indent),
-            )
-            .group()
+            .append(self.fmt.space())
+            .append(else_doc)
+            .group();
+
+        let expanded = if_keyword
+            .append(self.fmt.space())
+            .append(test_doc)
+            .append(self.fmt.hardline())
+            .append(then_keyword)
+            .append(self.fmt.hardline())
+            .append(then_doc)
+            .append(self.fmt.hardline())
+            .append(else_keyword)
+            .append(self.fmt.hardline())
+            .append(else_doc)
+            .group();
+
+        expanded.flat_alt(flat)
     }
 }
 

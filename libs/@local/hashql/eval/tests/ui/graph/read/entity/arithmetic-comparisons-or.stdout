@@ -8,53 +8,59 @@ let %1 = thunk ->
     %9 = thunk ->
         let %12 = %1(),
             %13 = entity(%12)
-            |> filter((
-                vertex:0: ::graph::types::knowledge::entity::Entity(
-                    id: ::graph::types::knowledge::entity::EntityRecordId(
-                        edition_id: ::graph::types::knowledge::entity::EntityEditionId(::core::uuid::Uuid(String)),
-                        entity_id: ::graph::types::knowledge::entity::EntityId(
-                            draft_id: ::core::option::None(Null)
-                            | ::core::option::Some(::graph::types::knowledge::entity::DraftId(::core::uuid::Uuid(String))),
-                            entity_uuid: ::graph::types::knowledge::entity::EntityUuid(::core::uuid::Uuid(String)),
-                            web_id: ::graph::types::principal::actor_group::web::WebId(::graph::types::principal::actor_group::ActorGroupEntityUuid(::core::uuid::Uuid(String)))
-                        )
-                    ),
-                    link_data: ::core::option::None(Null)
-                    | ::core::option::Some(::graph::types::knowledge::entity::LinkData(
-                        left_entity_id: ::graph::types::knowledge::entity::EntityId(
-                            draft_id: ::core::option::None(Null)
-                            | ::core::option::Some(::graph::types::knowledge::entity::DraftId(::core::uuid::Uuid(String))),
-                            entity_uuid: ::graph::types::knowledge::entity::EntityUuid(::core::uuid::Uuid(String)),
-                            web_id: ::graph::types::principal::actor_group::web::WebId(::graph::types::principal::actor_group::ActorGroupEntityUuid(::core::uuid::Uuid(String)))
+                |> filter((
+                    vertex:0: ::graph::types::knowledge::entity::Entity(
+                        id: ::graph::types::knowledge::entity::EntityRecordId(
+                            edition_id: ::graph::types::knowledge::entity::EntityEditionId(::core::uuid::Uuid(String)),
+                            entity_id: ::graph::types::knowledge::entity::EntityId(
+                                draft_id: ::core::option::None(Null)
+                                | ::core::option::Some(::graph::types::knowledge::entity::DraftId(::core::uuid::Uuid(String))),
+                                entity_uuid: ::graph::types::knowledge::entity::EntityUuid(::core::uuid::Uuid(String)),
+                                web_id: ::graph::types::principal::actor_group::web::WebId(::graph::types::principal::actor_group::ActorGroupEntityUuid(::core::uuid::Uuid(String)))
+                            )
                         ),
-                        right_entity_id: ::graph::types::knowledge::entity::EntityId(
-                            draft_id: ::core::option::None(Null)
-                            | ::core::option::Some(::graph::types::knowledge::entity::DraftId(::core::uuid::Uuid(String))),
-                            entity_uuid: ::graph::types::knowledge::entity::EntityUuid(::core::uuid::Uuid(String)),
-                            web_id: ::graph::types::principal::actor_group::web::WebId(::graph::types::principal::actor_group::ActorGroupEntityUuid(::core::uuid::Uuid(String)))
-                        )
-                    )),
-                    properties: ?
-                )
-            ): Boolean ->
-                let %2 = 1 > 2,
-                    %8 = if %2 then
-                        true
-                    else
-                        let %3 = 1 >= 2,
-                            %7 = if %3 then
-                                true
+                        link_data: ::core::option::None(Null)
+                        | ::core::option::Some(::graph::types::knowledge::entity::LinkData(
+                            left_entity_id: ::graph::types::knowledge::entity::EntityId(
+                                draft_id: ::core::option::None(Null)
+                                | ::core::option::Some(::graph::types::knowledge::entity::DraftId(::core::uuid::Uuid(String))),
+                                entity_uuid: ::graph::types::knowledge::entity::EntityUuid(::core::uuid::Uuid(String)),
+                                web_id: ::graph::types::principal::actor_group::web::WebId(::graph::types::principal::actor_group::ActorGroupEntityUuid(::core::uuid::Uuid(String)))
+                            ),
+                            right_entity_id: ::graph::types::knowledge::entity::EntityId(
+                                draft_id: ::core::option::None(Null)
+                                | ::core::option::Some(::graph::types::knowledge::entity::DraftId(::core::uuid::Uuid(String))),
+                                entity_uuid: ::graph::types::knowledge::entity::EntityUuid(::core::uuid::Uuid(String)),
+                                web_id: ::graph::types::principal::actor_group::web::WebId(::graph::types::principal::actor_group::ActorGroupEntityUuid(::core::uuid::Uuid(String)))
+                            )
+                        )),
+                        properties: ?
+                    )
+                ): Boolean ->
+                    let %2 = 1 > 2,
+                        %8 = if %2
+                            then
+                            true
                             else
-                                let %4 = 1 < 2,
-                                    %5 = 1 <= 2,
-                                    %6 = if %4 then true else %5
-                                in
-                                %6
-                        in
-                        %7
-                in
-                %8)
-            |> collect
+                            let %3 = 1 >= 2,
+                                %7 = if %3
+                                    then
+                                    true
+                                    else
+                                    let %4 = 1 < 2,
+                                        %5 = 1 <= 2,
+                                        %6 = if %4
+                                            then
+                                            true
+                                            else
+                                            %5
+                                    in
+                                    %6
+                            in
+                            %7
+                    in
+                    %8)
+                |> collect
         in
         %13
 in
