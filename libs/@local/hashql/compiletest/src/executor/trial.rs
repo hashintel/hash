@@ -234,7 +234,7 @@ impl<'stats> Trial<'stats> {
 
         let (received_stdout, diagnostics, secondary) = self.run_suite(&heap, expr)?;
 
-        let mut sink = ReportSink::new();
+        let mut sink = ReportSink::new_armed();
 
         verify_annotations(
             &source,
@@ -285,7 +285,7 @@ impl<'stats> Trial<'stats> {
     ) -> Result<SuiteOutput, Report<[TrialError]>> {
         let mut diagnostics = Vec::new();
         let mut secondary_outputs = FastHashMap::default();
-        let mut reports = ReportSink::new();
+        let mut reports = ReportSink::new_armed();
 
         let result = self.suite.run(
             RunContext::new(RunContextPartial {
@@ -329,7 +329,7 @@ impl<'stats> Trial<'stats> {
         let stdout_file = self.stdout_file();
         let stderr_file = self.stderr_file();
 
-        let mut sink = ReportSink::new();
+        let mut sink = ReportSink::new_armed();
 
         sink.attempt(bless_output(&stdout_file, stdout));
         sink.attempt(bless_output(&stderr_file, stderr));
@@ -356,7 +356,7 @@ impl<'stats> Trial<'stats> {
         let stdout_file = self.stdout_file();
         let stderr_file = self.stderr_file();
 
-        let mut sink = ReportSink::new();
+        let mut sink = ReportSink::new_armed();
 
         sink.attempt(assert_output(
             received_stdout,
