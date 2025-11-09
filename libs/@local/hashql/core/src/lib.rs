@@ -8,7 +8,6 @@
     arbitrary_self_types,
     associated_type_defaults,
     coverage_attribute,
-    default_field_values,
     if_let_guard,
     impl_trait_in_assoc_type,
     macro_metavar_expr,

@@ -357,7 +357,7 @@ impl<'fmt, 'heap> FormatNode<'fmt, &Binding<'heap>> for NodeFormatter<'fmt, '_, 
 
         name_doc
             .append(self.fmt.space())
-            .append(self.fmt.punct_str("="))
+            .append(self.fmt.punct(sym::symbol::assign))
             .append(self.fmt.space())
             .append(value_doc)
     }
@@ -449,15 +449,17 @@ impl<'fmt, 'heap> FormatNode<'fmt, &InputOperation<'heap>> for NodeFormatter<'fm
         match op.value {
             InputOp::Load { required } => {
                 // Format as: $name or $?name (for optional)
-                let prefix = if required { "$" } else { "$?" };
+                let prefix = if required {
+                    sym::symbol::dollar
+                } else {
+                    sym::symbol::question_mark
+                };
 
-                self.fmt
-                    .op_str(prefix)
-                    .append(self.fmt.variable(name.value))
+                self.fmt.op(prefix).append(self.fmt.variable(name.value))
             }
             InputOp::Exists => {
                 // Format as: $exists(name)
-                let keyword = self.fmt.keyword_str("$exists");
+                let keyword = self.fmt.keyword(sym::lexical::input_exists);
                 let name = self.fmt.variable(name.value);
 
                 keyword.append(self.fmt.parens(name))
@@ -480,7 +482,7 @@ impl<'fmt, 'heap> FormatNode<'fmt, &FieldAccess<'heap>> for NodeFormatter<'fmt, 
         // Format as: expr.field
         let expr = self.format_node(*expr);
 
-        expr.append(self.fmt.punct_str("."))
+        expr.append(self.fmt.punct(sym::symbol::dot))
             .append(self.fmt.field(field.value))
     }
 }
@@ -637,7 +639,7 @@ impl<'fmt, 'heap> FormatNode<'fmt, &Closure<'heap>> for NodeFormatter<'fmt, '_, 
 
         // Format as: <T, U>(a: T, b: U): ReturnType -> body
         // Group the signature together, body can break independently
-        let arrow = self.fmt.op_str("->");
+        let arrow = self.fmt.op(sym::symbol::arrow);
         let signature = generics_doc
             .append(params_doc)
             .append(return_type_doc)
@@ -658,7 +660,7 @@ impl<'fmt, 'heap> FormatNode<'fmt, &Thunk<'heap>> for NodeFormatter<'fmt, '_, 'h
         // Format thunks differently from closures using the thunk keyword
         // Format as: thunk -> body
         let keyword = self.fmt.keyword(sym::lexical::thunk);
-        let arrow = self.fmt.op_str("->");
+        let arrow = self.fmt.op(sym::symbol::arrow);
         let body_doc = self.format_node(*body);
 
         keyword.append(self.fmt.space()).append(arrow).append(

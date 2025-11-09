@@ -61,7 +61,7 @@ impl Suite for EvalGraphReadEntitySuite {
             &environment,
             &context,
             NodeFormatterOptions {
-                r#type: TypeFormatterOptions::default().with_elide_opaque(true),
+                r#type: TypeFormatterOptions::terse(),
             },
         );
 

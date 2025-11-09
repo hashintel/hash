@@ -208,12 +208,19 @@ struct VariableOrdering {
 /// This structure maintains flags indicating whether each category of constraint
 /// (currently only upper bounds) can be satisfied without creating logical contradictions.
 /// Used during constraint resolution to detect and report unsatisfiable constraint systems.
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Default)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 struct VariableConstraintSatisfiability {
     /// Whether upper bound constraints are satisfiable.
     ///
-    /// Set to `false` when upper bound resolution results in bottom types, indicating an impossible constraint combination.
-    upper: bool = true,
+    /// Set to `false` when upper bound resolution results in bottom types, indicating an
+    /// impossible constraint combination.
+    upper: bool,
+}
+
+impl Default for VariableConstraintSatisfiability {
+    fn default() -> Self {
+        Self { upper: true }
+    }
 }
 
 impl VariableConstraintSatisfiability {

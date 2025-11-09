@@ -26,19 +26,28 @@ use crate::{
 /// Controls how types are rendered, including handling of substitutions,
 /// opaque types, and recursive type references.
 #[must_use = "pretty options don't do anything unless explicitly applied"]
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, Default)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub struct TypeFormatterOptions {
     /// Whether to resolve and display type substitutions inline.
     ///
     /// When `true`, substituted generic arguments and inferred types are shown
     /// as `T«Integer»` where `T` was substituted with `Integer`.
+    /// When `false` (default), they render as just their name (e.g., `T`).
     pub resolve_substitutions: bool,
 
-    /// Whether to hide the internal representation of opaque types.
+    /// Whether to expand and show the internal representation of opaque types.
     ///
-    /// When `true`, opaque types render as just their name (e.g., `UserId`).
-    /// When `false`, they show their underlying type (e.g., `UserId(uuid: String)`).
-    pub elide_opaque: bool,
+    /// When `true` (default), opaque types show their underlying type (e.g., `UserId(uuid:
+    /// String)`).
+    /// When `false`, they render as just their name (e.g., `UserId`).
+    pub expand_opaque_types: bool,
+
+    /// Whether to display opaque types with fully qualified names.
+    ///
+    /// When `true` (default), opaque types show their fully qualified path (e.g.,
+    /// `::graph::user::UserId`).
+    /// When `false`, they render with just their name (e.g., `UserId`).
+    pub qualified_opaque_names: bool,
 
     /// Strategy for detecting and preventing infinite recursion.
     ///
@@ -46,7 +55,32 @@ pub struct TypeFormatterOptions {
     pub recursion_strategy: RecursionGuardStrategy,
 }
 
+impl Default for TypeFormatterOptions {
+    fn default() -> Self {
+        Self {
+            resolve_substitutions: false,
+            expand_opaque_types: true,
+            qualified_opaque_names: true,
+            recursion_strategy: RecursionGuardStrategy::default(),
+        }
+    }
+}
+
 impl TypeFormatterOptions {
+    /// Creates a terse formatter configuration for compact type display.
+    ///
+    /// This preset is useful for user-facing output where brevity is preferred.
+    /// Opaque types show minimal information (just unqualified names, no internals),
+    /// and substitutions are not resolved.
+    pub const fn terse() -> Self {
+        Self {
+            resolve_substitutions: false,
+            expand_opaque_types: false,
+            qualified_opaque_names: false,
+            recursion_strategy: RecursionGuardStrategy::IdentityTracking,
+        }
+    }
+
     /// Sets whether to resolve and display type substitutions.
     ///
     /// When enabled, generic arguments and inference variables show their
@@ -56,12 +90,21 @@ impl TypeFormatterOptions {
         self
     }
 
-    /// Sets whether to elide opaque type representations.
+    /// Sets whether to expand and show the internal representation of opaque types.
     ///
-    /// When enabled, opaque types display only their name without showing
-    /// the underlying structural type.
-    pub const fn with_elide_opaque(mut self, elide_opaque: bool) -> Self {
-        self.elide_opaque = elide_opaque;
+    /// When enabled, opaque types display their underlying structural type
+    /// (e.g., `UserId(uuid: String)`). When disabled, only the name is shown.
+    pub const fn with_expand_opaque_types(mut self, expand: bool) -> Self {
+        self.expand_opaque_types = expand;
+        self
+    }
+
+    /// Sets whether to display opaque types with fully qualified names.
+    ///
+    /// When enabled, opaque types show their full path (e.g., `::graph::user::UserId`).
+    /// When disabled, only the name is shown (e.g., `UserId`).
+    pub const fn with_qualified_opaque_names(mut self, qualified: bool) -> Self {
+        self.qualified_opaque_names = qualified;
         self
     }
 
@@ -310,13 +353,22 @@ fn format_opaque<'fmt, 'heap>(
     OpaqueType { name, repr }: OpaqueType<'heap>,
     generics: Option<Doc<'fmt>>,
 ) -> Doc<'fmt> {
-    let mut doc = formatter.fmt.type_name(name);
+    let type_name = if formatter.options.qualified_opaque_names {
+        formatter.fmt.type_name(name)
+    } else {
+        let name = name.unwrap();
+
+        let (_, name) = name.rsplit_once("::").unwrap_or(("", name));
+        formatter.fmt.type_name_str(name)
+    };
+
+    let mut doc = type_name;
 
     if let Some(generics) = generics {
         doc = doc.append(generics);
     }
 
-    if !formatter.options.elide_opaque {
+    if formatter.options.expand_opaque_types {
         let repr_ty = formatter.env.r#type(repr);
         let mut inner = formatter.format_type(repr);
 
@@ -453,9 +505,9 @@ impl<'fmt> FormatType<'fmt, GenericArgumentId> for TypeFormatter<'fmt, '_, '_> {
 
         if let Some(reference) = reference {
             self.fmt
-                .type_name_owned(format!("{}?{value}", reference.name))
+                .type_name_str(format!("{}?{value}", reference.name))
         } else {
-            self.fmt.type_name_owned(format!("?{value}"))
+            self.fmt.type_name_str(format!("?{value}"))
         }
     }
 }
@@ -544,7 +596,7 @@ impl<'fmt> FormatType<'fmt, Param> for TypeFormatter<'fmt, '_, '_> {
 
 impl<'fmt> FormatType<'fmt, HoleId> for TypeFormatter<'fmt, '_, '_> {
     fn format_type(&mut self, value: HoleId) -> Doc<'fmt> {
-        self.fmt.type_name_owned(format!("_{value}"))
+        self.fmt.type_name_str(format!("_{value}"))
     }
 }
 

@@ -3,6 +3,7 @@
 //! Provides a high-level API over the `pretty` crate with semantic annotations.
 //! All document construction goes through this interface.
 
+use alloc::borrow::Cow;
 use core::{iter, marker::PhantomData};
 
 use pretty::{Arena, DocAllocator as _, DocBuilder};
@@ -132,12 +133,6 @@ impl<'alloc, 'heap> Formatter<'alloc, 'heap> {
         self.arena.text(text.unwrap()).annotate(Semantic::Keyword)
     }
 
-    /// Creates a keyword element from a string slice.
-    #[must_use]
-    pub fn keyword_str(&'alloc self, text: &'alloc str) -> Doc<'alloc> {
-        self.arena.text(text).annotate(Semantic::Keyword)
-    }
-
     /// Creates a type name element.
     ///
     /// For type names like `Integer`, `String`, `List`, user-defined types, etc.
@@ -146,9 +141,9 @@ impl<'alloc, 'heap> Formatter<'alloc, 'heap> {
         self.arena.text(text.unwrap()).annotate(Semantic::TypeName)
     }
 
-    /// Creates a type name element from an owned string.
+    /// Creates a type name element from a string.
     #[must_use]
-    pub fn type_name_owned(&'alloc self, text: String) -> Doc<'alloc> {
+    pub fn type_name_str(&'alloc self, text: impl Into<Cow<'alloc, str>>) -> Doc<'alloc> {
         self.arena.text(text).annotate(Semantic::TypeName)
     }
 
@@ -170,11 +165,13 @@ impl<'alloc, 'heap> Formatter<'alloc, 'heap> {
     ///
     /// For operators like `+`, `->`, `=>`, `|`, `&`, etc.
     #[must_use]
-    pub fn op_str(&'alloc self, text: &'alloc str) -> Doc<'alloc> {
+    fn op_str(&'alloc self, text: &'alloc str) -> Doc<'alloc> {
         self.arena.text(text).annotate(Semantic::Operator)
     }
 
     /// Creates an operator element.
+    ///
+    /// For operators like `+`, `->`, `=>`, `|`, `&`, etc.
     #[must_use]
     pub fn op(&'alloc self, text: Symbol<'heap>) -> Doc<'alloc> {
         self.op_str(text.unwrap())
@@ -184,11 +181,13 @@ impl<'alloc, 'heap> Formatter<'alloc, 'heap> {
     ///
     /// For structural punctuation like `(`, `)`, `[`, `]`, `,`, `:`, etc.
     #[must_use]
-    pub fn punct_str(&'alloc self, text: &'alloc str) -> Doc<'alloc> {
+    fn punct_str(&'alloc self, text: &'alloc str) -> Doc<'alloc> {
         self.arena.text(text).annotate(Semantic::Punctuation)
     }
 
     /// Creates a punctuation element.
+    ///
+    /// For structural punctuation like `(`, `)`, `[`, `]`, `,`, `:`, etc.
     #[must_use]
     pub fn punct(&'alloc self, text: Symbol<'heap>) -> Doc<'alloc> {
         self.punct_str(text.unwrap())
