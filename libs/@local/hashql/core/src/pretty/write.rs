@@ -58,7 +58,7 @@ enum Backend<F, I> {
 ///
 /// Provides a unified interface over both [`fmt::Write`] and [`io::Write`]
 /// backends, serving as the base layer for more specialized writers like
-/// [`AnsiWriter`] and [`SvgFragmentWriter`].
+/// [`AnsiWriter`] and [`HtmlFragmentWriter`].
 pub(super) struct PlainWriter<F, I> {
     backend: Backend<F, I>,
 }
