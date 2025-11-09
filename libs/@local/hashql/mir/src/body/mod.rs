@@ -8,7 +8,7 @@
 //! The main entry point is the [`Body`] structure, which contains a collection of [`BasicBlock`]s
 //! that form the control-flow graph of the function.
 
-use hashql_core::{heap::Heap, span::SpanId, symbol::Symbol};
+use hashql_core::{heap::Heap, span::SpanId, symbol::Symbol, r#type::TypeId};
 use hashql_hir::node::{HirId, r#let::Binder};
 
 use self::{
@@ -92,9 +92,8 @@ pub enum Source<'heap> {
 /// # Local Variable Layout
 ///
 /// Local variables are allocated in a specific order:
-/// - **Local 0**: Reserved for return value temporary (if needed)
-/// - **Locals 1..=args**: Function arguments provided by caller
-/// - **Locals (args+1)..**: User variables and compiler temporaries
+/// - **Locals 0..args**: Function arguments provided by caller
+/// - **Locals args..**: User variables and compiler temporaries
 ///
 /// # Span Information
 ///
@@ -108,6 +107,9 @@ pub struct Body<'heap> {
     /// or constant that generated this MIR body.
     pub span: SpanId,
 
+    /// The return type of the function, closure, or constant.
+    pub return_type: TypeId,
+
     /// The source context that generated this MIR body.
     ///
     /// This [`Source`] indicates what kind of HashQL construct this body represents
@@ -116,6 +118,10 @@ pub struct Body<'heap> {
     /// and expected behavior of the MIR code.
     pub source: Source<'heap>,
 
+    /// The local declarations for this MIR body.
+    ///
+    /// This [`LocalVec`] contains all the local variables declared in this body,
+    /// indexed by [`LocalId`].
     pub local_decls: LocalVec<LocalDecl<'heap>, &'heap Heap>,
 
     /// The collection of basic blocks that make up this body's control-flow graph.

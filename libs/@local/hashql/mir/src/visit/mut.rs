@@ -583,6 +583,7 @@ pub fn walk_body<'heap, T: VisitorMut<'heap> + ?Sized>(
     visitor: &mut T,
     Body {
         span,
+        return_type: r#type,
         source,
         local_decls,
         basic_blocks,
@@ -590,6 +591,7 @@ pub fn walk_body<'heap, T: VisitorMut<'heap> + ?Sized>(
     }: &mut Body<'heap>,
 ) -> T::Result<()> {
     visitor.visit_span(span)?;
+    visitor.visit_type_id(r#type)?;
     visitor.visit_source(source)?;
 
     for (id, local_decl) in local_decls.iter_enumerated_mut() {

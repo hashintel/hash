@@ -181,6 +181,7 @@ impl<'ctx, 'mir, 'hir, 'env, 'heap> Reifier<'ctx, 'mir, 'hir, 'env, 'heap> {
         source: Source<'heap>,
         span: SpanId,
         params: impl IntoIterator<Item = Typed<Binder<'heap>>>,
+        returns: TypeId,
         captures: Option<(&MixedBitSet<VarId>, TypeId)>,
         on_block: impl FnOnce(&mut Self, &mut CurrentBlock<'mir, 'heap>) -> Spanned<Operand<'heap>>,
     ) -> DefId {
@@ -236,7 +237,9 @@ impl<'ctx, 'mir, 'hir, 'env, 'heap> Reifier<'ctx, 'mir, 'hir, 'env, 'heap> {
         if let Some((captures, env_type)) = captures {
             // `env_type` is guaranteed to be a tuple type
             let TypeKind::Tuple(env_type) = *self.context.environment.r#type(env_type).kind else {
-                panic!("The caller must provide a tuple type for the environment") // <- should this be an ICE diagnostic? If so what is the fallback?
+                // We do not ICE here (as a diagnostic), because there's no real replacement here,
+                // and it's completely internal to the reification process.
+                unreachable!("the caller always provides a tuple type for the environment");
             };
 
             debug_assert_eq!(captures.count(), env_type.fields.len());
@@ -279,6 +282,7 @@ impl<'ctx, 'mir, 'hir, 'env, 'heap> Reifier<'ctx, 'mir, 'hir, 'env, 'heap> {
 
         let block = Body {
             span,
+            return_type: returns,
             source,
             local_decls: self.local_decls,
             basic_blocks: self.blocks,
@@ -315,6 +319,7 @@ impl<'ctx, 'mir, 'hir, 'env, 'heap> Reifier<'ctx, 'mir, 'hir, 'env, 'heap> {
                     r#type,
                     value: param.name,
                 }),
+            closure_type.returns,
             Some((captures, env_type)),
             |this, block| this.transform_body(block, closure.body),
         )
@@ -325,10 +330,13 @@ impl<'ctx, 'mir, 'hir, 'env, 'heap> Reifier<'ctx, 'mir, 'hir, 'env, 'heap> {
     /// Thunks have no parameters or captures, making them the simplest
     /// construct to lower.
     fn lower_thunk(self, hir: HirPtr, binder: Binder<'heap>, thunk: Thunk<'heap>) -> DefId {
+        let returns = self.context.hir.map.monomorphized_type_id(hir.id);
+
         self.lower_impl(
             Source::Thunk(hir.id, Some(binder)),
             hir.span,
             [] as [_; 0],
+            returns,
             None,
             |this, block| this.transform_body(block, thunk.body),
         )
@@ -363,6 +371,7 @@ impl<'ctx, 'mir, 'hir, 'env, 'heap> Reifier<'ctx, 'mir, 'hir, 'env, 'heap> {
             Source::Ctor(ctor.name),
             hir.span,
             param,
+            closure_type.returns,
             None,
             |this, block| {
                 let output = this.local_decls.push(LocalDecl {
