@@ -26,7 +26,8 @@ let %1 = thunk ->
                       let %18 = %5(),
                           %6 = vertex:0.id.entity_id.entity_uuid == %18
                       in
-                      %6)
+                      %6
+                  )
                   |> ::graph::tail::collect
         in
         %19

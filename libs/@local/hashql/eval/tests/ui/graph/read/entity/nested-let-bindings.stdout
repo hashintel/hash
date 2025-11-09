@@ -27,7 +27,8 @@ let %3 = thunk ->
                           %19 = user_id:0(),
                           %7 = entity_uuid:0 == %19
                       in
-                      %7)
+                      %7
+                  )
                   |> ::graph::tail::collect
         in
         %20

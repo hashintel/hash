@@ -36,10 +36,12 @@ let a:0 = true,
                        |> ::graph::body::filter((vertex2:0: Entity): Boolean ->
                            let %7 = vertex1:0.id.entity_id.entity_uuid == vertex2:0.id.entity_id.entity_uuid
                            in
-                           %7)
+                           %7
+                       )
                        |> ::graph::tail::collect
              in
-             true)
+             true
+         )
          |> ::graph::tail::collect
 in
 %8

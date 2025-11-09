@@ -24,7 +24,8 @@ let a:0 = true,
                   %4 = a:0 == b:0,
                   %5 = ::graph::head::entities(%3)
                        |> ::graph::body::filter((vertex:0: Entity): Boolean ->
-                           let  in %4)
+                           let  in %4
+                       )
                        |> ::graph::tail::collect,
                   %6 = ::core::option::Some,
                   %7 = %6(%5)

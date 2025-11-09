@@ -27,7 +27,8 @@ let %2 = thunk ->
                           %19 = %6(),
                           %7 = foo:0 == %19
                       in
-                      %7)
+                      %7
+                  )
                   |> ::graph::tail::collect
         in
         %20

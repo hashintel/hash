@@ -28,7 +28,8 @@ let %1 = thunk ->
                                    in
                                    %7
                       in
-                      %8)
+                      %8
+                  )
                   |> ::graph::tail::collect
         in
         %13

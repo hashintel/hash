@@ -15,7 +15,8 @@ let %1 = thunk ->
         let %10 = %1(),
             %12 = ::graph::head::entities(%10)
                   |> ::graph::body::filter((vertex:0: Entity): Boolean ->
-                      let %11 = %3() in %11)
+                      let %11 = %3() in %11
+                  )
                   |> ::graph::tail::collect
         in
         %12

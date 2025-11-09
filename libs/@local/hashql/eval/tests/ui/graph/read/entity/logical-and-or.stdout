@@ -15,7 +15,8 @@ let %1 = thunk ->
                               else
                                   false
                      in
-                     %3)
+                     %3
+                 )
                  |> ::graph::tail::collect
         in
         %8

@@ -47,5 +47,6 @@
 ): Boolean ->
     vertex:0.id.entity_id.entity_uuid == ::graph::types::knowledge::entity::EntityUuid(
         ::core::uuid::Uuid("e2851dbb-7376-4959-9bca-f72cafc4448f")
-    ))
+    )
+)
 |> ::graph::tail::collect

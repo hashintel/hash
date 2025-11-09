@@ -3,6 +3,7 @@ use std::io;
 
 use hashql_core::{
     pretty::{Doc, Formatter, RenderOptions},
+    span::SpanId,
     symbol::sym,
     r#type::{TypeFormatter, TypeFormatterOptions, environment::Environment, kind::Generic},
     value::Primitive,
@@ -497,6 +498,38 @@ impl<'fmt, 'heap> FormatNode<'fmt, &IndexAccess<'heap>> for NodeFormatter<'fmt, 
     }
 }
 
+fn format_call<'fmt, 'heap>(
+    formatter: &mut NodeFormatter<'fmt, '_, 'heap>,
+    function: Doc<'fmt>,
+    arguments: &[CallArgument<'heap>],
+) -> Doc<'fmt> {
+    let fmt = formatter.fmt;
+
+    // If we have a *single* argument, and that argument is a closure, then we use a different
+    // indentation scheme
+    let arguments = if let [argument] = arguments
+        && let NodeKind::Closure(_) = argument.value.kind
+    {
+        let closure = formatter.format_node(argument.value);
+
+        // If this is the case, we format the first line always on the same line (the signature)
+        // and do not indent the contents
+        fmt.enclosed("(", closure.append(fmt.line_()), ")").group()
+    } else {
+        fmt.delimited(
+            "(",
+            arguments
+                .iter()
+                .map(|CallArgument { span: _, value }| formatter.format_node(*value)),
+            ")",
+        )
+    };
+
+    // Format as: function(arg1, arg2, ...)
+    // The kind (Fat/Thin) is an internal detail and not shown in the pretty output
+    function.append(arguments)
+}
+
 impl<'fmt, 'heap> FormatNode<'fmt, &Call<'heap>> for NodeFormatter<'fmt, '_, 'heap> {
     fn format_node(
         &mut self,
@@ -506,16 +539,9 @@ impl<'fmt, 'heap> FormatNode<'fmt, &Call<'heap>> for NodeFormatter<'fmt, '_, 'he
             arguments,
         }: &Call<'heap>,
     ) -> Doc<'fmt> {
-        let fmt = self.fmt;
+        let function = self.format_node(*function);
 
-        // Format as: function(arg1, arg2, ...)
-        // The kind (Fat/Thin) is an internal detail and not shown in the pretty output
-        let function_doc = self.format_node(*function);
-        let arg_docs = arguments
-            .iter()
-            .map(|CallArgument { span: _, value }| self.format_node(*value));
-
-        function_doc.append(fmt.delimited("(", arg_docs, ")"))
+        format_call(self, function, arguments)
     }
 }
 
@@ -726,8 +752,15 @@ impl<'fmt, 'heap> FormatNode<'fmt, &GraphReadBody<'heap>> for NodeFormatter<'fmt
             GraphReadBody::Filter(closure) => {
                 // Format as: filter(closure)
                 let keyword = self.fmt.keyword(sym::path::graph_body_filter);
-                let closure_doc = self.format_node(*closure);
-                keyword.append(self.fmt.parens(closure_doc))
+
+                format_call(
+                    self,
+                    keyword,
+                    &[CallArgument {
+                        span: SpanId::SYNTHETIC,
+                        value: *closure,
+                    }],
+                )
             }
         }
     }
