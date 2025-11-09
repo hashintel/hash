@@ -140,7 +140,7 @@ impl Suite for MirReifySuite {
 
         let now = Instant::now();
         let mut child = Command::new("d2")
-            .args(["-l", "elk", "--stdout-format", "svg", "-"])
+            .args(["-l", "elk", "-b=false", "--stdout-format", "svg", "-"])
             .stdin(Stdio::piped())
             .stdout(Stdio::piped())
             .spawn()
