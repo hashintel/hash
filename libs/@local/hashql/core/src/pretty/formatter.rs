@@ -201,9 +201,11 @@ impl<'alloc, 'heap> Formatter<'alloc, 'heap> {
         self.arena.text(text.unwrap()).annotate(Semantic::Literal)
     }
 
-    /// Creates a literal element from an owned string.
+    /// Creates a literal element from a string.
+    ///
+    /// For literal values like numbers, strings, booleans, null, etc.
     #[must_use]
-    pub fn literal_owned(&'alloc self, text: String) -> Doc<'alloc> {
+    pub fn literal_str(&'alloc self, text: impl Into<Cow<'alloc, str>>) -> Doc<'alloc> {
         self.arena.text(text).annotate(Semantic::Literal)
     }
 
@@ -227,7 +229,7 @@ impl<'alloc, 'heap> Formatter<'alloc, 'heap> {
     ///
     /// For comments, recursion indicators like `...`, etc.
     #[must_use]
-    pub fn comment_str(&'alloc self, text: &'alloc str) -> Doc<'alloc> {
+    pub fn comment_str(&'alloc self, text: impl Into<Cow<'alloc, str>>) -> Doc<'alloc> {
         self.arena.text(text).annotate(Semantic::Comment)
     }
 

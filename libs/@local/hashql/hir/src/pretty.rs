@@ -262,7 +262,7 @@ impl<'fmt, 'heap> FormatNode<'fmt, &Primitive<'heap>> for NodeFormatter<'fmt, '_
             Primitive::Integer(integer) => self.fmt.literal(integer.as_symbol()),
             Primitive::String(string) => {
                 let escaped = format!("\"{}\"", string.as_str().escape_default());
-                self.fmt.literal_owned(escaped)
+                self.fmt.literal_str(escaped)
             }
         }
     }
