@@ -16,7 +16,7 @@
 //! ```rust
 //! use hashql_core::{
 //!     heap::Heap,
-//!     pretty::{Format, Formatter, RenderOptions},
+//!     pretty::{Formatter, RenderOptions},
 //!     symbol::sym,
 //! };
 //!
