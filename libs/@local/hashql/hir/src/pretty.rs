@@ -589,20 +589,23 @@ impl<'fmt, 'heap> FormatNode<'fmt, &If<'heap>> for NodeFormatter<'fmt, '_, 'heap
             .append(test_doc)
             .append(self.fmt.line())
             .group()
-            .append(then_keyword)
             .append(self.fmt.hardline())
             .append(
-                then_doc
+                then_keyword
                     .pretty(self.fmt.arena())
-                    .indent(usize::try_from(self.fmt.options.indent).unwrap_or(4)),
+                    .append(self.fmt.line())
+                    .append(then_doc)
+                    .nest(self.fmt.options.indent)
+                    .group(),
             )
             .append(self.fmt.hardline())
-            .append(else_keyword)
-            .append(self.fmt.hardline())
             .append(
-                else_doc
+                else_keyword
                     .pretty(self.fmt.arena())
-                    .indent(usize::try_from(self.fmt.options.indent).unwrap_or(4)),
+                    .append(self.fmt.line())
+                    .append(else_doc)
+                    .nest(self.fmt.options.indent)
+                    .group(),
             )
             .group();
 

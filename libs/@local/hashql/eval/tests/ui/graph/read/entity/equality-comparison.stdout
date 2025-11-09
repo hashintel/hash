@@ -11,10 +11,9 @@ let %1 = thunk ->
                  |> ::graph::body::filter((vertex:0: Entity): Boolean ->
                      let %2 = true == false,
                          %3 = true != false,
-                         %4 = if %2 then
-                                  true
-                              else
-                                  %3
+                         %4 = if %2 
+                              then true
+                              else %3
                      in
                      %4
                  )
