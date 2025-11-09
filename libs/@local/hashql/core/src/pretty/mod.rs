@@ -52,7 +52,7 @@ pub use self::{
 
 /// Output format for rendered documents.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum Format {
+pub enum RenderFormat {
     /// Plain text without ANSI escape codes.
     Plain,
     /// ANSI-colored output for terminals.
@@ -67,7 +67,7 @@ pub enum Format {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct RenderOptions {
     /// Whether to use ANSI colors or plain text.
-    pub format: Format,
+    pub format: RenderFormat,
     /// Maximum line width before wrapping (default: 80).
     pub max_width: usize,
 }
@@ -78,7 +78,7 @@ impl RenderOptions {
     /// Enables terminal colors and syntax highlighting in the rendered output.
     #[must_use]
     pub const fn with_ansi(mut self) -> Self {
-        self.format = Format::Ansi;
+        self.format = RenderFormat::Ansi;
         self
     }
 
@@ -88,7 +88,7 @@ impl RenderOptions {
     /// non-terminal output.
     #[must_use]
     pub const fn with_plain(mut self) -> Self {
-        self.format = Format::Plain;
+        self.format = RenderFormat::Plain;
         self
     }
 
@@ -106,7 +106,7 @@ impl RenderOptions {
 impl Default for RenderOptions {
     fn default() -> Self {
         Self {
-            format: Format::Ansi,
+            format: RenderFormat::Ansi,
             max_width: 80,
         }
     }
@@ -126,9 +126,9 @@ where
     let mut writer = PlainWriter::new_io(write);
 
     match options.format {
-        Format::Plain => doc.render_raw(options.max_width, &mut writer),
-        Format::Ansi => doc.render_raw(options.max_width, &mut AnsiWriter::new(writer)),
-        Format::HtmlFragment => doc.render_raw(
+        RenderFormat::Plain => doc.render_raw(options.max_width, &mut writer),
+        RenderFormat::Ansi => doc.render_raw(options.max_width, &mut AnsiWriter::new(writer)),
+        RenderFormat::HtmlFragment => doc.render_raw(
             options.max_width,
             &mut XmlEscapingWriter::new(HtmlFragmentWriter::new(writer)),
         ),
@@ -145,9 +145,9 @@ pub fn render(doc: Doc<'_>, options: RenderOptions) -> impl Display {
         let mut writer = PlainWriter::new_fmt(fmt);
 
         match options.format {
-            Format::Plain => doc.render_raw(options.max_width, &mut writer),
-            Format::Ansi => doc.render_raw(options.max_width, &mut AnsiWriter::new(writer)),
-            Format::HtmlFragment => doc.render_raw(
+            RenderFormat::Plain => doc.render_raw(options.max_width, &mut writer),
+            RenderFormat::Ansi => doc.render_raw(options.max_width, &mut AnsiWriter::new(writer)),
+            RenderFormat::HtmlFragment => doc.render_raw(
                 options.max_width,
                 &mut XmlEscapingWriter::new(HtmlFragmentWriter::new(writer)),
             ),

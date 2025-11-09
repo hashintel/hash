@@ -4,9 +4,8 @@ use core::{
 };
 use std::io;
 
-use anstyle_svg::Term;
 use bstr::ByteSlice as _;
-use hashql_core::r#type::TypeFormatter;
+use hashql_core::{pretty::RenderFormat, r#type::TypeFormatter};
 
 use super::{DataFlowLookup, FormatPart, SourceLookup, TextFormat, text::HighlightBody};
 use crate::{
@@ -90,6 +89,20 @@ where
         D: DataFlowLookup<'heap>,
     {
         self.format_part((bodies, HighlightBody(highlight)))
+    }
+
+    fn format_text_unescaped<V>(&mut self, value: V) -> io::Result<()>
+    where
+        for<'a> TextFormat<&'a mut W, &'a S, &'a mut TypeFormatter<'fmt, 'fmt, 'heap>>:
+            FormatPart<V>,
+    {
+        TextFormat {
+            writer: &mut self.writer,
+            indent: 0,
+            sources: &self.sources,
+            types: &mut self.types,
+        }
+        .format_part(value)
     }
 
     fn format_text<V>(&mut self, value: V) -> io::Result<()>
@@ -391,9 +404,17 @@ where
         &mut self,
         (def, body, BodyRenderOptions { highlight }): (DefId, &Body<'heap>, BodyRenderOptions),
     ) -> io::Result<()> {
-        write!(self.writer, "def{def}: '")?;
-        self.format_text(Signature(body, SignatureOptions { color: true }))?;
-        writeln!(self.writer, "' {{")?;
+        writeln!(
+            self.writer,
+            "def{def}:''{{grid-columns:1;grid-gap:0;title:|`md "
+        )?;
+        self.format_text_unescaped(Signature(
+            body,
+            SignatureOptions {
+                format: RenderFormat::HtmlFragment,
+            },
+        ))?;
+        writeln!(self.writer, "`|;blocks:''{{")?;
 
         if highlight {
             writeln!(self.writer, r##"style.fill: "#B3D89C""##)?;
@@ -403,7 +424,7 @@ where
             self.format_part((def, id, basic_block))?;
         }
 
-        writeln!(self.writer, "}}")?;
+        writeln!(self.writer, "}}}}")?;
 
         Ok(())
     }

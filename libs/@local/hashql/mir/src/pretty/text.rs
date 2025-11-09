@@ -5,7 +5,7 @@ use std::io;
 use hashql_core::{
     id::Id as _,
     intern::Interned,
-    pretty::RenderOptions,
+    pretty::{RenderFormat, RenderOptions},
     symbol::Symbol,
     r#type::{TypeFormatter, TypeId},
 };
@@ -38,7 +38,7 @@ const fn source_keyword(source: Source<'_>) -> &'static str {
 }
 
 pub(crate) struct SignatureOptions {
-    pub color: bool,
+    pub format: RenderFormat,
 }
 
 /// A wrapper for formatting function signatures from MIR bodies.
@@ -329,19 +329,16 @@ where
 }
 
 pub(crate) struct TypeOptions {
-    color: bool,
+    format: RenderFormat,
 }
 
 impl TypeOptions {
     fn render(self) -> RenderOptions {
         // We disable wrapping for types inside of the MIR
-        let options = RenderOptions::default().with_max_width(usize::MAX);
+        let mut options = RenderOptions::default().with_max_width(usize::MAX);
+        options.format = self.format;
 
-        if self.color {
-            options.with_ansi()
-        } else {
-            options.with_plain()
-        }
+        options
     }
 }
 
@@ -378,7 +375,7 @@ where
                 Type(
                     decl.r#type,
                     TypeOptions {
-                        color: options.color,
+                        format: options.format,
                     },
                 ),
             )
@@ -754,14 +751,24 @@ where
             self.writer.write_all(b"*")?;
         }
 
-        self.format_part(Signature(body, SignatureOptions { color: false }))?;
+        self.format_part(Signature(
+            body,
+            SignatureOptions {
+                format: RenderFormat::Plain,
+            },
+        ))?;
         self.writer.write_all(b" {\n")?;
 
         // Do not render locals that are arguments, as they are already rendered in the signature
         for (local, decl) in body.local_decls.iter_enumerated().skip(body.args) {
             self.indent(1)?;
             write!(self.writer, "let %{local}: ")?;
-            self.format_part(Type(decl.r#type, TypeOptions { color: false }))?;
+            self.format_part(Type(
+                decl.r#type,
+                TypeOptions {
+                    format: RenderFormat::Plain,
+                },
+            ))?;
             self.writer.write_all(b"\n")?;
         }
 
