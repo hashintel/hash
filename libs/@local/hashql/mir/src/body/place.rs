@@ -157,6 +157,7 @@ impl<'heap> Place<'heap> {
             })
     }
 
+    /// Return the type of the place after applying all projections.
     pub fn type_id<A: Allocator>(&self, decl: &LocalVec<LocalDecl<'heap>, A>) -> TypeId {
         self.projections
             .last()
