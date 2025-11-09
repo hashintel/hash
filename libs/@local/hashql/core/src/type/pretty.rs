@@ -289,6 +289,14 @@ impl<'fmt, 'env, 'heap> TypeFormatter<'fmt, 'env, 'heap> {
     }
 }
 
+impl<'fmt, 'env, 'heap> AsMut<TypeFormatter<'fmt, 'env, 'heap>>
+    for TypeFormatter<'fmt, 'env, 'heap>
+{
+    fn as_mut(&mut self) -> &mut TypeFormatter<'fmt, 'env, 'heap> {
+        self
+    }
+}
+
 impl<'fmt, 'heap> FormatType<'fmt, TypeKind<'heap>> for TypeFormatter<'fmt, '_, 'heap> {
     fn format_type(&mut self, value: TypeKind<'heap>) -> Doc<'fmt> {
         let prev_parent_is_lattice = self.parent_is_lattice;
