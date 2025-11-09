@@ -16,7 +16,7 @@ use hashql_hir::{
 };
 
 use super::{
-    Suite, SuiteDiagnostic, hir_lower_alias_replacement::TestOptions,
+    RunContext, Suite, SuiteDiagnostic, hir_lower_alias_replacement::TestOptions,
     hir_lower_specialization::hir_lower_specialization,
 };
 use crate::suite::common::Header;
@@ -46,9 +46,10 @@ impl Suite for HirLowerNormalizationSuite {
 
     fn run<'heap>(
         &self,
-        heap: &'heap Heap,
+        RunContext {
+            heap, diagnostics, ..
+        }: RunContext<'_, 'heap>,
         expr: Expr<'heap>,
-        diagnostics: &mut Vec<SuiteDiagnostic>,
     ) -> Result<String, SuiteDiagnostic> {
         let mut environment = Environment::new(expr.span, heap);
         let registry = ModuleRegistry::new(&environment);

@@ -2,7 +2,7 @@ mod annotations;
 mod trial;
 mod trial_group;
 
-use core::error;
+use core::{cmp::Reverse, error};
 use std::{self, io, sync::mpsc, thread};
 
 use error_stack::Report;
@@ -32,6 +32,8 @@ pub(crate) enum TrialError {
     StdoutDiscrepancy(String),
     #[display("stderr discrepancy, try to bless the output:\n{_0}")]
     StderrDiscrepancy(String),
+    #[display("secondary file {_0} discrepancy, try to bless the output:\n{_1}")]
+    SecondaryFileDiscrepancy(&'static str, String),
     #[display("unfulfilled annotation: {_0:?} did not match any emitted diagnostics")]
     UnfulfilledAnnotation(DiagnosticAnnotation),
     #[display("unexpected diagnostic:\n{_0}")]
@@ -42,6 +44,10 @@ pub(crate) enum TrialError {
     TrialShouldPass,
     #[display("Assertion failed for trial: {message}")]
     AssertionFailed { message: String },
+    #[display("Trial suite has created an unexpected secondary file with extension: {_0}")]
+    UnexpectedSecondaryFile(&'static str),
+    #[display("Unable to complete run {_0}: {_1}")]
+    Run(&'static str, &'static str),
 }
 
 impl error::Error for TrialError {}
@@ -91,13 +97,16 @@ pub(crate) struct TrialContext {
     pub bless: bool,
 }
 
-pub(crate) struct TrialSet<'graph> {
-    groups: Vec<TrialGroup<'graph>>,
+pub(crate) struct TrialSet<'graph, 'stats> {
+    groups: Vec<TrialGroup<'graph, 'stats>>,
 }
 
-impl<'graph> TrialSet<'graph> {
-    pub(crate) fn from_test(groups: Vec<TestGroup<'graph>>, statistics: &Statistics) -> Self {
-        let groups = thread::scope(|scope| {
+impl<'graph, 'stats> TrialSet<'graph, 'stats> {
+    pub(crate) fn from_test(
+        groups: Vec<TestGroup<'graph>>,
+        statistics: &'stats Statistics,
+    ) -> Self {
+        let mut groups: Vec<_> = thread::scope(|scope| {
             let mut handles = Vec::new();
 
             for group in groups {
@@ -110,6 +119,9 @@ impl<'graph> TrialSet<'graph> {
                 .map(|handle| handle.join().expect("should be able to join thread"))
                 .collect()
         });
+
+        // Make sure that groups with a higher priority are scheduled first
+        groups.sort_unstable_by_key(|group| Reverse(group.max_priority));
 
         Self { groups }
     }

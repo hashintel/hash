@@ -1,4 +1,6 @@
-use core::error;
+use core::{error, str::FromStr as _};
+
+use hashql_core::collections::FastHashMap;
 
 #[derive(Debug, Clone, PartialEq, Eq, derive_more::Display)]
 pub(crate) enum DirectiveParseError {
@@ -14,9 +16,22 @@ pub(crate) enum DirectiveParseError {
     /// Unknown property key
     #[display("unknown property key: {_0} with value: {_1}")]
     UnknownPropertyKey(String, String),
+    /// Invalid TOML value
+    #[display("invalid TOML value: {_0} for key: {_1}")]
+    InvalidToml(String, String, Box<toml::de::Error>),
 }
 
-impl error::Error for DirectiveParseError {}
+impl error::Error for DirectiveParseError {
+    fn source(&self) -> Option<&(dyn core::error::Error + 'static)> {
+        match self {
+            Self::InvalidToml(_, _, error) => Some(error),
+            Self::InvalidFormat(_)
+            | Self::UnknownRunMode(_)
+            | Self::EmptyName
+            | Self::UnknownPropertyKey(..) => None,
+        }
+    }
+}
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Default)]
 pub(crate) enum RunMode {
@@ -28,11 +43,12 @@ pub(crate) enum RunMode {
     },
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq)]
 pub(crate) struct Directive {
     pub name: String,
     pub description: Option<String>,
     pub run: RunMode,
+    pub suite: FastHashMap<String, toml::Value>,
 }
 
 impl Directive {
@@ -43,6 +59,7 @@ impl Directive {
             name: name.into(),
             description: None,
             run: RunMode::default(),
+            suite: FastHashMap::default(),
         }
     }
 
@@ -63,7 +80,9 @@ impl Directive {
             ("run", "pass") => self.run = RunMode::Pass,
             ("run", "fail") => self.run = RunMode::Fail,
             ("run", "skip") => self.run = RunMode::Skip { reason: None },
-            ("run", value) if let Some(reason) = value.strip_prefix("skip reason=") => {
+            ("run", value) if let Some(mut reason) = value.strip_prefix("skip reason=") => {
+                reason = reason.trim_matches('"');
+
                 self.run = RunMode::Skip {
                     reason: Some(reason.to_owned()),
                 };
@@ -82,6 +101,17 @@ impl Directive {
             }
             ("description", description) => {
                 self.description = Some(description.to_owned());
+            }
+            (key, value) if let Some(suite_key) = key.strip_prefix("suite#") => {
+                let value = toml::Value::from_str(value).map_err(|error| {
+                    DirectiveParseError::InvalidToml(
+                        key.to_owned(),
+                        value.to_owned(),
+                        Box::new(error),
+                    )
+                })?;
+
+                self.suite.insert(suite_key.to_owned(), value);
             }
             (key, value) => {
                 return Err(DirectiveParseError::UnknownPropertyKey(

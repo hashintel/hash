@@ -37,7 +37,7 @@ pub(crate) struct Signature<'body, 'heap>(pub &'body Body<'heap>);
 /// A helper struct for formatting key-value pairs with consistent syntax.
 struct KeyValuePair<K, V>(K, V);
 
-struct HighlightBody<'def>(&'def [DefId]);
+pub(crate) struct HighlightBody<'def>(pub &'def [DefId]);
 
 /// A text-based formatter for MIR (Middle Intermediate Representation) structures.
 ///

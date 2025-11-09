@@ -32,7 +32,7 @@ pub(crate) enum FileAnnotationError {
 
 impl error::Error for FileAnnotationError {}
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq)]
 pub(crate) struct FileAnnotations {
     pub diagnostics: Vec<DiagnosticAnnotation>,
     pub directive: Directive,

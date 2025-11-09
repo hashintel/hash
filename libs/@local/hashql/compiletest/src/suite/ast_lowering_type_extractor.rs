@@ -14,14 +14,13 @@ use hashql_ast::{
     visit::Visitor as _,
 };
 use hashql_core::{
-    heap::Heap,
     module::{ModuleRegistry, locals::Local, namespace::ModuleNamespace},
     pretty::{PrettyOptions, PrettyPrint as _},
     span::SpanId,
     r#type::environment::Environment,
 };
 
-use super::{Suite, SuiteDiagnostic, common::process_issues};
+use super::{RunContext, Suite, SuiteDiagnostic, common::process_issues};
 
 pub(crate) struct AstLoweringTypeExtractorSuite;
 
@@ -32,9 +31,10 @@ impl Suite for AstLoweringTypeExtractorSuite {
 
     fn run<'heap>(
         &self,
-        heap: &'heap Heap,
+        RunContext {
+            heap, diagnostics, ..
+        }: RunContext<'_, 'heap>,
         mut expr: Expr<'heap>,
-        diagnostics: &mut Vec<SuiteDiagnostic>,
     ) -> Result<String, SuiteDiagnostic> {
         let environment = Environment::new(SpanId::SYNTHETIC, heap);
         let registry = ModuleRegistry::new(&environment);

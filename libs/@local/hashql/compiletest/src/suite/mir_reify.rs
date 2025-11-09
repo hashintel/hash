@@ -1,3 +1,10 @@
+use std::{
+    io::{BufWriter, Write as _},
+    process::{Command, Stdio},
+    thread,
+    time::Instant,
+};
+
 use hashql_ast::node::expr::Expr;
 use hashql_core::{
     heap::Heap, id::IdVec, module::ModuleRegistry, span::SpanId, r#type::environment::Environment,
@@ -7,10 +14,11 @@ use hashql_mir::{
     body::Body,
     def::{DefId, DefIdVec},
     intern::Interner,
-    pretty::TextFormat,
+    pretty::{D2Buffer, D2Format, TextFormat},
 };
 
-use super::{Suite, SuiteDiagnostic, common::process_status};
+use super::{RunContext, Suite, SuiteDiagnostic, common::process_status};
+use crate::executor::TrialError;
 
 pub(crate) fn mir_reify<'heap>(
     heap: &'heap Heap,
@@ -59,31 +67,104 @@ pub(crate) fn mir_reify<'heap>(
 pub(crate) struct MirReifySuite;
 
 impl Suite for MirReifySuite {
+    fn priority(&self) -> usize {
+        // bump the priority, so that it is run before others, to offset the needed increased time
+        // for diagram generation (700ms-800ms)
+        1
+    }
+
+    fn secondary_file_extensions(&self) -> &[&str] {
+        &["svg"]
+    }
+
     fn name(&self) -> &'static str {
         "mir/reify"
     }
 
     fn run<'heap>(
         &self,
-        heap: &'heap Heap,
+        RunContext {
+            heap,
+            diagnostics,
+            suite_directives,
+            secondary_outputs,
+            reports,
+            ..
+        }: RunContext<'_, 'heap>,
         expr: Expr<'heap>,
-        diagnostics: &mut Vec<SuiteDiagnostic>,
     ) -> Result<String, SuiteDiagnostic> {
         let mut environment = Environment::new(SpanId::SYNTHETIC, heap);
         let interner = Interner::new(heap);
 
         let (root, bodies) = mir_reify(heap, expr, &interner, &mut environment, diagnostics)?;
 
-        let mut format = TextFormat {
+        let mut text_format = TextFormat {
             writer: Vec::new(),
             indent: 4,
             sources: bodies.as_slice(),
         };
-        format
+        text_format
             .format(&bodies, &[root])
             .expect("should be able to write bodies");
 
-        let output = String::from_utf8_lossy_owned(format.writer);
+        let output = String::from_utf8_lossy_owned(text_format.writer);
+
+        let Some(d2) = suite_directives.get("d2") else {
+            return Ok(output);
+        };
+
+        let Some(d2) = d2.as_bool() else {
+            reports.capture(TrialError::Run(
+                self.name(),
+                "suite#d2 must be a valid boolean",
+            ));
+
+            return Ok(output);
+        };
+
+        if !d2 {
+            return Ok(output);
+        }
+
+        let now = Instant::now();
+        let mut child = Command::new("d2")
+            .args(["-l", "elk", "--stdout-format", "svg", "-"])
+            .stdin(Stdio::piped())
+            .stdout(Stdio::piped())
+            .spawn()
+            .expect("should be able to spawn d2");
+
+        let stdin = child.stdin.take().expect("should be able to take stdin");
+        let writer = BufWriter::new(stdin);
+
+        let handle = thread::spawn(move || {
+            // We cannot Sync/Send the actual bodies, so instead we create a thread to wait for the
+            // output.
+            child
+                .wait_with_output()
+                .expect("should be able to wait for d2")
+                .stdout
+        });
+
+        let mut d2_format = D2Format {
+            writer,
+            sources: bodies.as_slice(),
+            dataflow: (),
+            buffer: D2Buffer::default(),
+        };
+        d2_format
+            .format(&bodies, &[root])
+            .expect("should be able to write bodies");
+
+        d2_format.writer.flush().expect("should be able to flush");
+        drop(d2_format);
+
+        let diagram = handle.join().expect("should be able to join handle");
+        let diagram = String::from_utf8_lossy_owned(diagram);
+        secondary_outputs.insert("svg", diagram);
+        let taken = now.elapsed();
+        tracing::info!("time taken to generate diagram: {:?}", taken);
+
         Ok(output)
     }
 }

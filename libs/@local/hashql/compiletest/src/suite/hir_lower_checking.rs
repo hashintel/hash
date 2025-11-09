@@ -17,7 +17,7 @@ use hashql_hir::{
 };
 
 use super::{
-    Suite, SuiteDiagnostic,
+    RunContext, Suite, SuiteDiagnostic,
     common::{Annotated, Header},
     hir_lower_alias_replacement::TestOptions,
     hir_lower_inference::hir_lower_inference,
@@ -54,9 +54,10 @@ impl Suite for HirLowerTypeCheckingSuite {
 
     fn run<'heap>(
         &self,
-        heap: &'heap Heap,
+        RunContext {
+            heap, diagnostics, ..
+        }: RunContext<'_, 'heap>,
         expr: Expr<'heap>,
-        diagnostics: &mut Vec<SuiteDiagnostic>,
     ) -> Result<String, SuiteDiagnostic> {
         let mut environment = Environment::new(expr.span, heap);
         let registry = ModuleRegistry::new(&environment);

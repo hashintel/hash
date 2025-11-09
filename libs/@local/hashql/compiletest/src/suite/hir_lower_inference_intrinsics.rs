@@ -2,7 +2,6 @@ use core::fmt::Write as _;
 
 use hashql_ast::node::expr::Expr;
 use hashql_core::{
-    heap::Heap,
     module::ModuleRegistry,
     pretty::{PrettyOptions, PrettyPrint as _},
     r#type::environment::Environment,
@@ -10,7 +9,7 @@ use hashql_core::{
 use hashql_hir::{context::HirContext, intern::Interner, pretty::PrettyPrintEnvironment};
 
 use super::{
-    Suite, SuiteDiagnostic,
+    RunContext, Suite, SuiteDiagnostic,
     common::{Annotated, Header},
 };
 use crate::suite::{
@@ -28,9 +27,10 @@ impl Suite for HirLowerTypeInferenceIntrinsicsSuite {
 
     fn run<'heap>(
         &self,
-        heap: &'heap Heap,
+        RunContext {
+            heap, diagnostics, ..
+        }: RunContext<'_, 'heap>,
         expr: Expr<'heap>,
-        diagnostics: &mut Vec<SuiteDiagnostic>,
     ) -> Result<String, SuiteDiagnostic> {
         let mut environment = Environment::new(expr.span, heap);
         let registry = ModuleRegistry::new(&environment);
