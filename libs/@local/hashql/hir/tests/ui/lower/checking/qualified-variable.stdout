@@ -12,7 +12,7 @@
 └→ Integer
 
 ┌─ ::core::math::add
-└→ fn(Integer, Integer) -> Integer
+└→ (Integer, Integer) -> Integer
 
 ┌─ 123
 └→ Integer

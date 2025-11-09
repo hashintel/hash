@@ -3,6 +3,8 @@ Expr#4294967040@25
 
 ------------------------
 
-type First:0 = Number
+┌─ First:0<>
+└→ Number
 
-type Second:0 = Number
+┌─ Second:0<>
+└→ Number

@@ -1,4 +1,7 @@
-use hashql_core::span::Spanned;
+use hashql_core::{
+    span::Spanned,
+    symbol::{Symbol, sym},
+};
 
 use crate::node::Node;
 
@@ -23,6 +26,15 @@ impl UnOp {
             Self::Not => "!",
             Self::BitNot => "~",
             Self::Neg => "-",
+        }
+    }
+
+    #[must_use]
+    pub const fn as_symbol(self) -> Symbol<'static> {
+        match self {
+            Self::Not => sym::symbol::exclamation_mark,
+            Self::BitNot => sym::symbol::tilde,
+            Self::Neg => sym::symbol::sub,
         }
     }
 }

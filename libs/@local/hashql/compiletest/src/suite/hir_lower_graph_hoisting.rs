@@ -4,15 +4,15 @@ use hashql_ast::node::expr::Expr;
 use hashql_core::{
     heap::Heap,
     module::ModuleRegistry,
-    pretty::{PrettyOptions, PrettyPrint as _},
-    r#type::environment::Environment,
+    pretty::{Formatter, RenderOptions},
+    r#type::{TypeFormatterOptions, environment::Environment},
 };
 use hashql_hir::{
     context::HirContext,
     intern::Interner,
     lower::hoist::{GraphHoisting, GraphHoistingConfig},
     node::Node,
-    pretty::PrettyPrintEnvironment,
+    pretty::{NodeFormatter, NodeFormatterOptions},
 };
 
 use super::{
@@ -69,18 +69,21 @@ impl Suite for HirLowerGraphHoistingSuite {
             },
         )?;
 
+        let formatter = Formatter::new(heap);
+        let mut formatter = NodeFormatter::new(
+            &formatter,
+            &environment,
+            &context,
+            NodeFormatterOptions {
+                r#type: TypeFormatterOptions::terse(),
+            },
+        );
+
         let _ = writeln!(
             output,
             "\n{}\n\n{}",
             Header::new("HIR after graph hoisting"),
-            node.pretty_print(
-                &PrettyPrintEnvironment {
-                    env: &environment,
-                    symbols: &context.symbols,
-                    map: &context.map,
-                },
-                PrettyOptions::default().without_color()
-            )
+            formatter.render(node, RenderOptions::default().with_plain())
         );
 
         Ok(output)

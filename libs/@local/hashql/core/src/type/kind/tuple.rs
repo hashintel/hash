@@ -1,13 +1,11 @@
 use core::ops::ControlFlow;
 
-use pretty::{DocAllocator as _, RcAllocator, RcDoc};
 use smallvec::SmallVec;
 
 use super::TypeKind;
 use crate::{
     algorithms::cartesian_product,
     intern::Interned,
-    pretty::{PrettyPrint, PrettyPrintBoundary},
     symbol::Ident,
     r#type::{
         PartialType, Type, TypeId,
@@ -355,31 +353,5 @@ impl<'heap> Inference<'heap> for TupleType<'heap> {
                 })),
             },
         )
-    }
-}
-
-impl<'heap> PrettyPrint<'heap, Environment<'heap>> for TupleType<'heap> {
-    fn pretty(
-        &self,
-        env: &Environment<'heap>,
-        boundary: &mut PrettyPrintBoundary,
-    ) -> RcDoc<'heap, anstyle::Style> {
-        match self.fields.as_ref() {
-            [] => RcDoc::text("()"),
-            &[field] => RcDoc::text("(")
-                .append(boundary.pretty_type(env, field).group())
-                .append(RcDoc::text(",)"))
-                .group(),
-            fields => RcAllocator
-                .intersperse(
-                    fields.iter().map(|&field| boundary.pretty_type(env, field)),
-                    RcDoc::text(",").append(RcDoc::softline()),
-                )
-                .nest(1)
-                .group()
-                .parens()
-                .group()
-                .into_doc(),
-        }
     }
 }

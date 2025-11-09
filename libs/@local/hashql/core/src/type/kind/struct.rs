@@ -1,6 +1,5 @@
 use core::ops::{ControlFlow, Deref};
 
-use pretty::RcDoc;
 use smallvec::SmallVec;
 
 use super::TypeKind;
@@ -8,7 +7,6 @@ use crate::{
     algorithms::cartesian_product,
     collections::FastHashMap,
     intern::Interned,
-    pretty::{PrettyPrint, PrettyPrintBoundary},
     symbol::{Ident, Symbol},
     r#type::{
         PartialType, Type, TypeId,
@@ -29,21 +27,6 @@ use crate::{
 pub struct StructField<'heap> {
     pub name: Symbol<'heap>,
     pub value: TypeId,
-}
-
-impl<'heap> PrettyPrint<'heap, Environment<'heap>> for StructField<'heap> {
-    fn pretty(
-        &self,
-        env: &Environment<'heap>,
-        boundary: &mut PrettyPrintBoundary,
-    ) -> RcDoc<'heap, anstyle::Style> {
-        RcDoc::text(self.name.unwrap())
-            .append(RcDoc::text(":"))
-            .group()
-            .append(RcDoc::softline())
-            .append(boundary.pretty_type(env, self.value).group())
-            .group()
-    }
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
@@ -95,24 +78,6 @@ impl<'heap> Deref for StructFields<'heap> {
 
     fn deref(&self) -> &Self::Target {
         self.as_slice()
-    }
-}
-
-impl<'heap> PrettyPrint<'heap, Environment<'heap>> for StructFields<'heap> {
-    fn pretty(
-        &self,
-        env: &Environment<'heap>,
-        boundary: &mut PrettyPrintBoundary,
-    ) -> RcDoc<'heap, anstyle::Style> {
-        match self.0 {
-            Some(Interned([], _)) | None => RcDoc::text(":"),
-            Some(Interned(fields, _)) => RcDoc::intersperse(
-                fields.iter().map(|field| field.pretty(env, boundary)),
-                RcDoc::text(",").append(RcDoc::softline()),
-            )
-            .nest(1)
-            .group(),
-        }
     }
 }
 
@@ -548,18 +513,5 @@ impl<'heap> Inference<'heap> for StructType<'heap> {
                 })),
             },
         )
-    }
-}
-
-impl<'heap> PrettyPrint<'heap, Environment<'heap>> for StructType<'heap> {
-    fn pretty(
-        &self,
-        env: &Environment<'heap>,
-        boundary: &mut PrettyPrintBoundary,
-    ) -> RcDoc<'heap, anstyle::Style> {
-        RcDoc::text("(")
-            .append(self.fields.pretty(env, boundary))
-            .append(RcDoc::text(")"))
-            .group()
     }
 }

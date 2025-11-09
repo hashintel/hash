@@ -4,7 +4,7 @@ use hashql_ast::node::expr::Expr;
 use hashql_core::{
     heap::Heap,
     module::ModuleRegistry,
-    pretty::{PrettyOptions, PrettyPrint as _},
+    pretty::{Formatter, RenderOptions},
     r#type::environment::Environment,
 };
 use hashql_hir::{
@@ -12,7 +12,7 @@ use hashql_hir::{
     intern::Interner,
     lower::normalization::{Normalization, NormalizationState},
     node::Node,
-    pretty::PrettyPrintEnvironment,
+    pretty::NodeFormatter,
 };
 
 use super::{
@@ -70,18 +70,14 @@ impl Suite for HirLowerNormalizationSuite {
             },
         )?;
 
+        let formatter = Formatter::new(heap);
+        let mut formatter = NodeFormatter::with_defaults(&formatter, &environment, &context);
+
         let _ = writeln!(
             output,
             "\n{}\n\n{}",
             Header::new("HIR after normalization"),
-            node.pretty_print(
-                &PrettyPrintEnvironment {
-                    env: &environment,
-                    symbols: &context.symbols,
-                    map: &context.map,
-                },
-                PrettyOptions::default().without_color()
-            )
+            formatter.render(node, RenderOptions::default().with_plain())
         );
 
         Ok(output)

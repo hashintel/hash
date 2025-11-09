@@ -5,7 +5,7 @@ use hashql_ast::{
 use hashql_core::{
     heap::Heap,
     module::ModuleRegistry,
-    pretty::{PrettyOptions, PrettyPrint as _},
+    pretty::{Formatter, RenderOptions},
     span::SpanId,
     r#type::environment::Environment,
 };
@@ -13,7 +13,7 @@ use hashql_hir::{
     context::HirContext,
     intern::Interner,
     node::{Node, NodeData},
-    pretty::PrettyPrintEnvironment,
+    pretty::NodeFormatter,
 };
 
 use super::{RunContext, Suite, SuiteDiagnostic, common::process_status};
@@ -58,15 +58,11 @@ impl Suite for HirReifySuite {
 
         let (node, _) = hir_reify(heap, expr, &environment, &mut context, diagnostics)?;
 
-        Ok(node
-            .pretty_print(
-                &PrettyPrintEnvironment {
-                    env: &environment,
-                    symbols: &context.symbols,
-                    map: &context.map,
-                },
-                PrettyOptions::default().without_color(),
-            )
+        let formatter = Formatter::new(heap);
+        let mut formatter = NodeFormatter::with_defaults(&formatter, &environment, &context);
+
+        Ok(formatter
+            .render(node, RenderOptions::default().with_plain())
             .to_string())
     }
 }

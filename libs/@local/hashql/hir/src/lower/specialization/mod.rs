@@ -29,7 +29,6 @@ use crate::{
         operation::{BinOp, BinaryOperation, Operation},
         variable::Variable,
     },
-    pretty::PrettyPrintEnvironment,
 };
 
 pub struct Specialization<'ctx, 'env, 'hir, 'heap, 'diag> {
@@ -90,26 +89,15 @@ impl<'ctx, 'env, 'hir, 'heap, 'diag> Specialization<'ctx, 'env, 'hir, 'heap, 'di
             }
 
             let NodeKind::Call(call) = next.kind else {
-                self.push_diagnostic(invalid_graph_chain(
-                    &PrettyPrintEnvironment {
-                        env: self.env,
-                        symbols: &self.context.symbols,
-                        map: &self.context.map,
-                    },
-                    next.span,
-                    next,
-                ));
+                self.push_diagnostic(invalid_graph_chain(self.env, self.context, next.span, next));
 
                 return None;
             };
 
             let Some(&intrinsic) = self.intrinsics.get(&call.function.id) else {
                 self.push_diagnostic(non_intrinsic_graph_operation(
-                    &PrettyPrintEnvironment {
-                        env: self.env,
-                        symbols: &self.context.symbols,
-                        map: &self.context.map,
-                    },
+                    self.env,
+                    self.context,
                     call.function.span,
                     call.function,
                 ));

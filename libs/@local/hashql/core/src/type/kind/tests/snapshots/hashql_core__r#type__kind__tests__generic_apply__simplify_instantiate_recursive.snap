@@ -1,8 +1,33 @@
 ---
 source: libs/@local/hashql/core/src/type/kind/tests/generic_apply.rs
-expression: "env.r#type(result_id).pretty_print(&env,\nPrettyOptions::default().with_depth_tracking().without_color())"
+expression: "formatter.render_type(result_id, RenderOptions::default().with_plain())"
 ---
-(foo: (foo: (foo: (foo: (foo: (foo: (foo: (foo: (foo: (foo: (foo: (foo: (foo:
-             (foo: (foo: (foo: ...) where<>) where<>) where<>) where<>) where<>)
-          where<>) where<>) where<>) where<>) where<>) where<>) where<>)
-   where<>) where<>) where<>) where<>
+(
+    foo: (
+        foo: (
+            foo: (
+                foo: (
+                    foo: (
+                        foo: (
+                            foo: (
+                                foo: (
+                                    foo: (
+                                        foo: (
+                                            foo: (
+                                                foo: (
+                                                    foo: (
+                                                        foo: (foo: (foo: ...))
+                                                    )
+                                                )
+                                            )
+                                        )
+                                    )
+                                )
+                            )
+                        )
+                    )
+                )
+            )
+        )
+    )
+)

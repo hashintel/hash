@@ -1,33 +1,37 @@
 ════ Initial HIR ═══════════════════════════════════════════════════════════════
 
-if true ::core::option::Some(2) ::core::option::None()
+if true 
+then ::core::option::Some(2)
+else ::core::option::None()
 
 ════ HIR after type inference ══════════════════════════════════════════════════
 
-if true #ctor(fn<T?25>(?25«Integer») -> Some[?25«Integer»],
-arguments: [T])(2) #ctor(fn() -> None[Null], arguments: [])()
+if true 
+then ::core::option::Some(2)
+else ::core::option::None()
 
 ════ Types ═════════════════════════════════════════════════════════════════════
 
-┌─ if true #ctor(fn<T?25>(?25«Integer») -> Some[?25«Integer»],
-│  arguments: [T])(2) #ctor(fn() -> None[Null], arguments: [])()
-└→ (_0«Some[Integer]» | _1«None[Null]»)
+┌─ if true 
+│  then ::core::option::Some(2)
+│  else ::core::option::None()
+└→ _0«::core::option::Some(Integer)» | _1«::core::option::None(Null)»
 
 ┌─ true
 └→ Boolean
 
-┌─ #ctor(fn<T?25>(?25«Integer») -> Some[?25«Integer»], arguments: [T])(2)
-└→ _0«Some[Integer]»
+┌─ ::core::option::Some(2)
+└→ _0«::core::option::Some(Integer)»
 
-┌─ #ctor(fn<T?25>(?25«Integer») -> Some[?25«Integer»], arguments: [T])
-└→ fn<T?25>(?25«Integer») -> Some[?25«Integer»]
+┌─ ::core::option::Some
+└→ <T?25>(T?25«Integer») -> ::core::option::Some(T?25«Integer»)
 
 ┌─ 2
 └→ Integer
 
-┌─ #ctor(fn() -> None[Null], arguments: [])()
-└→ _1«None[Null]»
+┌─ ::core::option::None()
+└→ _1«::core::option::None(Null)»
 
-┌─ #ctor(fn() -> None[Null], arguments: [])
-└→ fn() -> None[Null]
+┌─ ::core::option::None
+└→ () -> ::core::option::None(Null)
 

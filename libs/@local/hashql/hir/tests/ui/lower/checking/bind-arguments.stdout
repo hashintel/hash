@@ -12,7 +12,7 @@
 └→ Number
 
 ┌─ ::core::math::add<Number, Integer>
-└→ fn(Number, Integer) -> Number
+└→ (Number, Integer) -> Number
 
 ┌─ 42.12
 └→ Number

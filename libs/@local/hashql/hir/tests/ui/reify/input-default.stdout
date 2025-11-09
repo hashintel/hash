@@ -1,1 +1,3 @@
-if input(#exists, limit) input(#load?, limit) #as(10, type: Integer)
+if $exists(limit) 
+then ?limit
+else 10 as Integer

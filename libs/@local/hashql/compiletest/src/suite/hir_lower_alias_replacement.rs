@@ -4,14 +4,14 @@ use hashql_ast::{lowering::ExtractedTypes, node::expr::Expr};
 use hashql_core::{
     heap::Heap,
     module::ModuleRegistry,
-    pretty::{PrettyOptions, PrettyPrint as _},
+    pretty::{Formatter, RenderOptions},
     span::SpanId,
     r#type::environment::Environment,
 };
 use hashql_diagnostics::DiagnosticIssues;
 use hashql_hir::{
     context::HirContext, fold::Fold as _, intern::Interner, lower::alias::AliasReplacement,
-    node::Node, pretty::PrettyPrintEnvironment,
+    node::Node, pretty::NodeFormatter,
 };
 
 use super::{RunContext, Suite, SuiteDiagnostic, hir_reify::hir_reify};
@@ -32,18 +32,14 @@ pub(crate) fn hir_lower_alias_replacement<'heap>(
 ) -> Result<(Node<'heap>, ExtractedTypes<'heap>), SuiteDiagnostic> {
     let (mut node, types) = hir_reify(heap, expr, environment, context, options.diagnostics)?;
 
+    let formatter = Formatter::new(heap);
+    let mut formatter = NodeFormatter::with_defaults(&formatter, environment, context);
+
     let _ = writeln!(
         options.output,
         "{}\n\n{}",
         Header::new("Initial HIR"),
-        node.pretty_print(
-            &PrettyPrintEnvironment {
-                env: environment,
-                symbols: &context.symbols,
-                map: &context.map
-            },
-            PrettyOptions::default().without_color()
-        )
+        formatter.render(node, RenderOptions::default().with_plain()),
     );
 
     if !options.skip_alias_replacement {
@@ -90,18 +86,14 @@ impl Suite for HirLowerAliasReplacementSuite {
             },
         )?;
 
+        let formatter = Formatter::new(heap);
+        let mut formatter = NodeFormatter::with_defaults(&formatter, &environment, &context);
+
         let _ = writeln!(
             output,
             "\n{}\n\n{}",
             Header::new("HIR after alias replacement"),
-            node.pretty_print(
-                &PrettyPrintEnvironment {
-                    env: &environment,
-                    symbols: &context.symbols,
-                    map: &context.map,
-                },
-                PrettyOptions::default().without_color()
-            )
+            formatter.render(node, RenderOptions::default().with_plain())
         );
 
         Ok(output)

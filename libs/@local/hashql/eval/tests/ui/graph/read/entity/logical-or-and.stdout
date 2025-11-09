@@ -1,38 +1,24 @@
 ════ HIR ═══════════════════════════════════════════════════════════════════════
 
-#let %1 = thunk(() ->
-         #let %5 = ::graph::tmp::decision_time_now()
-                  %6 = %5()
-             in
-             %6
-         )
-     %4 = thunk(() ->
-         #let %7 = %1()
-                  %8 = ::graph::head::entities(%7)
-                      |> ::graph::body::filter(#fn(vertex:0: Entity[(id:
-                       EntityRecordId[(edition_id:
-                        EntityEditionId[Uuid[String]], entity_id:
-                        EntityId[(draft_id: (None[Null]
-                          | Some[DraftId[Uuid[String]]]), entity_uuid:
-                         EntityUuid[Uuid[String]], web_id:
-                         WebId[ActorGroupEntityUuid[Uuid[String]]])])],
-                       link_data: (None[Null]
-                        | Some[LinkData[(left_entity_id: EntityId[(draft_id:
-                          (None[Null] | Some[DraftId[Uuid[String]]]),
-                          entity_uuid: EntityUuid[Uuid[String]], web_id:
-                          WebId[ActorGroupEntityUuid[Uuid[String]]])],
-                         right_entity_id: EntityId[(draft_id: (None[Null]
-                           | Some[DraftId[Uuid[String]]]), entity_uuid:
-                          EntityUuid[Uuid[String]], web_id:
-                          WebId[ActorGroupEntityUuid[Uuid[String]]])])]]),
-                       properties: ?)]): Boolean ->
-                          #let %2 = (true && false)
-                               %3 = if true true %2
-                          in
-                          %3) |> ::graph::tail::collect
-             in
-             %8
-         )
+let %1 = thunk ->
+        let %5 = ::graph::tmp::decision_time_now(),
+            %6 = %5()
+        in
+        %6,
+    %4 = thunk ->
+        let %7 = %1(),
+            %8 = ::graph::head::entities(%7)
+                 |> ::graph::body::filter((vertex:0: Entity): Boolean ->
+                     let %2 = true && false,
+                         %3 = if true 
+                              then true
+                              else %2
+                     in
+                     %3
+                 )
+                 |> ::graph::tail::collect
+        in
+        %8
 in
 %4
 

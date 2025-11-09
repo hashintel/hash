@@ -3,4 +3,5 @@ Expr#4294967040@13
 
 ------------------------
 
-type Alias:0 = Number
+┌─ Alias:0<>
+└→ Number

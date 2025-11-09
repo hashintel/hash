@@ -3,7 +3,6 @@ use core::assert_matches::assert_matches;
 
 use crate::{
     heap::Heap,
-    pretty::PrettyPrint as _,
     span::SpanId,
     r#type::{
         PartialType,

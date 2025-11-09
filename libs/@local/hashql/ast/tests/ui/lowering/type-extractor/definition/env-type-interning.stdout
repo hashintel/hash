@@ -3,8 +3,11 @@ Expr#4294967040@43
 
 ------------------------
 
-type A:0 = Number
+┌─ A:0<>
+└→ Number
 
-type B:0 = Number
+┌─ B:0<>
+└→ Number
 
-type Same:0 = (Number, Number)
+┌─ Same:0<>
+└→ (Number, Number)
