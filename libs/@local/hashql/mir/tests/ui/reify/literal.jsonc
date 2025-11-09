@@ -1,0 +1,3 @@
+//@ run: pass
+//@ description: Basic integer literal reification
+{ "#literal": 2 }

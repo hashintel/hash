@@ -13,6 +13,7 @@
     formatting_options,
     lock_value_accessors,
     pattern,
+    string_from_utf8_lossy_owned,
 )]
 
 extern crate alloc;

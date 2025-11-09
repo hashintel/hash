@@ -1,0 +1,52 @@
+════ Initial HIR ═══════════════════════════════════════════════════════════════
+
+#let foo:0 = ::core::cmp::lte(2, 3)
+     bar:0 = {foo:0: 42, true: foo:0}
+in
+bar:0
+
+════ HIR after type inference ══════════════════════════════════════════════════
+
+#let foo:0 = ::core::cmp::lte(2, 3)
+     bar:0 = {foo:0: 42, true: foo:0}
+in
+bar:0
+
+════ Types ═════════════════════════════════════════════════════════════════════
+
+┌─ #let foo:0 = ::core::cmp::lte(2, 3)
+│       bar:0 = {foo:0: 42, true: foo:0}
+│  in
+│  bar:0
+└→ Dict<_1«Boolean», _2«(Integer | Boolean)»>
+
+┌─ ::core::cmp::lte(2, 3)
+└→ _0«Boolean»
+
+┌─ ::core::cmp::lte
+└→ fn(Number, Number) -> Boolean
+
+┌─ 2
+└→ Integer
+
+┌─ 3
+└→ Integer
+
+┌─ {foo:0: 42, true: foo:0}
+└→ Dict<_1«Boolean», _2«(Integer | Boolean)»>
+
+┌─ foo:0
+└→ _0«Boolean»
+
+┌─ 42
+└→ Integer
+
+┌─ true
+└→ Boolean
+
+┌─ foo:0
+└→ _0«Boolean»
+
+┌─ bar:0
+└→ Dict<_1«Boolean», _2«(Integer | Boolean)»>
+

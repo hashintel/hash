@@ -426,7 +426,7 @@ impl<'heap> ReificationContext<'_, '_, '_, 'heap> {
         &mut self,
         LetExpr {
             id: _,
-            span,
+            span: _,
             name,
             value,
             r#type,
@@ -445,7 +445,13 @@ impl<'heap> ReificationContext<'_, '_, '_, 'heap> {
         self.binder_scope.insert_unique(name.value, binder.id);
         self.context.symbols.binder.insert(binder.id, name.value);
 
-        let value = self.expr(*value);
+        let mut value = self.expr(*value);
+
+        if let Some(value) = value.as_mut()
+            && let Some(r#type) = r#type.as_ref()
+        {
+            *value = self.wrap_type_assertion_node(r#type.span, *value, r#type);
+        }
 
         if let Some(bindings) = bindings {
             // We're already nested, add us to the existing set of bindings
@@ -491,7 +497,7 @@ impl<'heap> ReificationContext<'_, '_, '_, 'heap> {
             body,
         });
 
-        Some(Fold::Partial(self.wrap_type_assertion(span, kind, r#type)))
+        Some(Fold::Partial(kind))
     }
 
     const fn input_node_kind(span: SpanId, name: Ident<'heap>, op: InputOp) -> NodeKind<'heap> {

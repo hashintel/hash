@@ -1,0 +1,76 @@
+fn {ctor#::core::option::Some}(%0, %1) {
+    bb0(): {
+        %2 = opaque(::core::option::Some, %1)
+
+        return %2
+    }
+}
+
+fn {ctor#::core::option::None}(%0) {
+    bb0(): {
+        %1 = opaque(::core::option::None, ())
+
+        return %1
+    }
+}
+
+*thunk {thunk#8}() {
+    bb0(): {
+        if(true) -> [0: bb8(), 1: bb1()]
+    }
+
+
+    bb1(): {
+        %1 = 2 <= 3
+
+        if(%1) -> [0: bb6(), 1: bb2()]
+    }
+
+
+    bb2(): {
+        %3 = 2 >= 3
+
+        if(%3) -> [0: bb4(), 1: bb3()]
+    }
+
+
+    bb3(): {
+        goto -> bb5("baz")
+    }
+
+
+    bb4(): {
+        goto -> bb5("qux")
+    }
+
+
+    bb5(%4): {
+        goto -> bb7(%4)
+    }
+
+
+    bb6(): {
+        goto -> bb7("bar")
+    }
+
+
+    bb7(%2): {
+        %5 = closure(({ctor#::core::option::Some} as FnPtr), ())
+        %6 = apply %5.0 %5.1 %2
+
+        goto -> bb9(%6)
+    }
+
+
+    bb8(): {
+        %7 = closure(({ctor#::core::option::None} as FnPtr), ())
+        %8 = apply %7.0 %7.1
+
+        goto -> bb9(%8)
+    }
+
+
+    bb9(%0): {
+        return %0
+    }
+}

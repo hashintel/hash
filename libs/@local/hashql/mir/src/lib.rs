@@ -7,9 +7,12 @@
     coverage_attribute,
     if_let_guard,
     macro_metavar_expr_concat,
+    never_type,
 
     // Library Features
     allocator_api,
+    formatting_options,
+    iter_array_chunks
 )]
 #![expect(clippy::indexing_slicing)]
 extern crate alloc;
@@ -17,6 +20,7 @@ extern crate alloc;
 pub mod body;
 pub mod def;
 pub mod intern;
+pub mod pretty;
 pub mod reify;
 
 #[cfg(test)]

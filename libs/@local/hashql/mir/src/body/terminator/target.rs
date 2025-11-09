@@ -40,9 +40,9 @@ pub struct Target<'heap> {
 }
 
 impl<'heap> Target<'heap> {
-    pub fn block(block: BasicBlockId, interner: &Interner<'heap>) -> Self {
+    pub fn block(block: impl Into<BasicBlockId>, interner: &Interner<'heap>) -> Self {
         Self {
-            block,
+            block: block.into(),
             args: interner.operands.intern_slice(&[]),
         }
     }

@@ -1,0 +1,3 @@
+#let foo:0 = #as(42, type: Number)
+in
+true

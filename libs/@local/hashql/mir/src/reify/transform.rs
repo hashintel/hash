@@ -1,14 +1,14 @@
 use hashql_core::{
     id::{IdVec, bit_vec::BitRelations as _},
-    span::{SpanId, Spanned},
+    span::Spanned,
 };
 use hashql_hir::{
     lower::dataflow::{VariableDefinitions, VariableDependencies},
     node::{
-        Node,
+        HirPtr, Node,
         closure::Closure,
         kind::NodeKind,
-        r#let::{Binding, Let},
+        r#let::{Binder, Binding, Let},
     },
     visit::Visitor as _,
 };
@@ -29,7 +29,8 @@ impl<'mir, 'heap> Reifier<'_, 'mir, '_, '_, 'heap> {
     pub(super) fn transform_closure(
         &mut self,
         block: &mut CurrentBlock<'mir, 'heap>,
-        span: SpanId,
+        hir: HirPtr,
+        binder: Option<Binder<'heap>>,
         closure: Closure<'heap>,
     ) -> (DefId, Local) {
         let mut dependencies = VariableDependencies::from_set(self.state.var_pool.acquire());
@@ -47,7 +48,7 @@ impl<'mir, 'heap> Reifier<'_, 'mir, '_, '_, 'heap> {
         let captures = dependencies;
 
         let compiler = Reifier::new(self.context, self.state);
-        let ptr = compiler.lower_closure(span, &captures, closure);
+        let ptr = compiler.lower_closure(hir, &captures, binder, closure);
 
         // Now we need to do environment capture, for that create a tuple aggregate of all the
         // captured variables in a new local
@@ -55,7 +56,9 @@ impl<'mir, 'heap> Reifier<'_, 'mir, '_, '_, 'heap> {
         let mut tuple_elements = IdVec::with_capacity_in(captures.count(), self.context.heap);
         for var in &captures {
             let Some(capture_local) = self.locals[var] else {
-                self.state.diagnostics.push(local_variable_unmapped(span));
+                self.state
+                    .diagnostics
+                    .push(local_variable_unmapped(hir.span));
 
                 continue;
             };
@@ -67,7 +70,7 @@ impl<'mir, 'heap> Reifier<'_, 'mir, '_, '_, 'heap> {
         }
 
         block.push_statement(Statement {
-            span,
+            span: hir.span,
             kind: StatementKind::Assign(Assign {
                 lhs: Place::local(env_local, self.context.interner),
                 rhs: RValue::Aggregate(Aggregate {
@@ -90,7 +93,7 @@ impl<'mir, 'heap> Reifier<'_, 'mir, '_, '_, 'heap> {
         let local = self.local_counter.next();
         self.locals.insert(binding.binder.id, local);
 
-        if let Some(rvalue) = self.rvalue(block, binding.binder.id, local, binding.value) {
+        if let Some(rvalue) = self.rvalue(block, binding.binder, local, binding.value) {
             block.push_statement(Statement {
                 span: binding.span,
                 kind: StatementKind::Assign(Assign {

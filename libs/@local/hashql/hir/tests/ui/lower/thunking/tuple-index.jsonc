@@ -1,0 +1,8 @@
+//@ run: pass
+//@ description: TODO
+[
+  "let",
+  "foo",
+  { "#tuple": [{ "#literal": 0 }, { "#literal": 1 }, { "#literal": 2 }] },
+  "foo.0"
+]

@@ -7,7 +7,7 @@ use hashql_hir::node::{
 
 use super::{
     Reifier,
-    current::{CurrentBlock, Rewire},
+    current::{CurrentBlock, ForwardRef},
     error::expected_closure_filter,
 };
 use crate::{
@@ -56,7 +56,7 @@ impl<'mir, 'heap> Reifier<'_, 'mir, '_, '_, 'heap> {
                     return GraphReadBody::Filter(DefId::MAX, Local::MAX);
                 };
 
-                let (ptr, env) = self.transform_closure(block, filter.span, closure);
+                let (ptr, env) = self.transform_closure(block, filter.ptr(), None, closure);
                 GraphReadBody::Filter(ptr, env)
             }
         }
@@ -102,7 +102,7 @@ impl<'mir, 'heap> Reifier<'_, 'mir, '_, '_, 'heap> {
         block.terminate(
             terminator,
             // Once finished, the prev block should point to the next block
-            |prev| [Rewire::graph_read(prev)],
+            |prev| [ForwardRef::graph_read(prev)],
             &mut self.blocks,
         );
 
@@ -131,18 +131,21 @@ impl<'mir, 'heap> Reifier<'_, 'mir, '_, '_, 'heap> {
     ) {
         let test = self.operand(test);
 
+        // make sure that we reserve a slot **before** we finish the then and else blocks
+        block.reserve(&mut self.blocks);
+
         let (then, then_operand) = self.transform_node(then);
         let (r#else, else_operand) = self.transform_node(r#else);
 
         // We now need to wire *both* to be goto to the next block, we target a placeholder block,
         // which is going to get instantiated on the next rewire.
-        let then = then.finish_goto(
+        let (then_entry, then_exit) = then.finish_goto(
             then_operand.span,
             BasicBlockId::PLACEHOLDER,
             &[then_operand.value],
             &mut self.blocks,
         );
-        let r#else = r#else.finish_goto(
+        let (else_entry, else_exit) = r#else.finish_goto(
             else_operand.span,
             BasicBlockId::PLACEHOLDER,
             &[else_operand.value],
@@ -154,11 +157,11 @@ impl<'mir, 'heap> Reifier<'_, 'mir, '_, '_, 'heap> {
                 span,
                 kind: TerminatorKind::Branch(Branch {
                     test,
-                    then: Target::block(then, self.context.interner),
-                    r#else: Target::block(r#else, self.context.interner),
+                    then: Target::block(then_entry, self.context.interner),
+                    r#else: Target::block(else_entry, self.context.interner),
                 }),
             },
-            |_| [Rewire::goto(then), Rewire::goto(r#else)],
+            |_| [ForwardRef::goto(then_exit), ForwardRef::goto(else_exit)],
             &mut self.blocks,
         );
 

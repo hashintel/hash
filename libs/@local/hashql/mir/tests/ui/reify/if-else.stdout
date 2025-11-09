@@ -1,0 +1,30 @@
+thunk {thunk#0}() {
+    bb0(): {
+        %0 = 2 <= 3
+
+        return %0
+    }
+}
+
+*thunk {thunk#1}() {
+    bb0(): {
+        %0 = apply ({thunk#0} as FnPtr)
+
+        if(%0) -> [0: bb2(), 1: bb1()]
+    }
+
+
+    bb1(): {
+        goto -> bb3("foo")
+    }
+
+
+    bb2(): {
+        goto -> bb3("bar")
+    }
+
+
+    bb3(%1): {
+        return %1
+    }
+}

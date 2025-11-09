@@ -16,6 +16,17 @@ pub enum UnOp {
     Neg,
 }
 
+impl UnOp {
+    #[must_use]
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::Not => "!",
+            Self::BitNot => "~",
+            Self::Neg => "-",
+        }
+    }
+}
+
 /// A unary operation expression in the HashQL HIR.
 ///
 /// Represents a computation that applies a single operator to an operand,

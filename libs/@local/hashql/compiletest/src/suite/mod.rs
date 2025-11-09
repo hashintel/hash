@@ -20,6 +20,7 @@ mod hir_lower_normalization;
 mod hir_lower_specialization;
 mod hir_lower_thunking;
 mod hir_reify;
+mod mir_reify;
 mod parse_syntax_dump;
 
 use core::panic::RefUnwindSafe;
@@ -46,7 +47,7 @@ use self::{
     hir_lower_inference_intrinsics::HirLowerTypeInferenceIntrinsicsSuite,
     hir_lower_normalization::HirLowerNormalizationSuite,
     hir_lower_specialization::HirLowerSpecializationSuite,
-    hir_lower_thunking::HirLowerThunkingSuite, hir_reify::HirReifySuite,
+    hir_lower_thunking::HirLowerThunkingSuite, hir_reify::HirReifySuite, mir_reify::MirReifySuite,
     parse_syntax_dump::ParseSyntaxDumpSuite,
 };
 
@@ -84,6 +85,7 @@ const SUITES: &[&dyn Suite] = &[
     &HirLowerTypeInferenceIntrinsicsSuite,
     &HirLowerTypeInferenceSuite,
     &HirReifySuite,
+    &MirReifySuite,
     &ParseSyntaxDumpSuite,
 ];
 
