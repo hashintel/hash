@@ -1,4 +1,6 @@
 thunk {thunk#0}() {
+    let %0: Boolean
+
     bb0(): {
         %0 = 2 <= 3
 
@@ -7,6 +9,9 @@ thunk {thunk#0}() {
 }
 
 *thunk {thunk#1}() {
+    let %0: Boolean
+    let %1: String
+
     bb0(): {
         %0 = apply ({thunk#0} as FnPtr)
 

@@ -1,4 +1,7 @@
 fn {closure#6}(%0: (), %1: Integer, %2: Integer) {
+    let %3: Boolean
+    let %4: Integer
+
     bb0(): {
         %3 = %1 <= %2
 
@@ -19,6 +22,9 @@ fn {closure#6}(%0: (), %1: Integer, %2: Integer) {
 }
 
 thunk max:0() {
+    let %0: (Integer, Integer) -> Integer
+    let %1: ()
+
     bb0(): {
         %1 = ()
         %0 = closure(({closure#6} as FnPtr), %1)
@@ -28,6 +34,9 @@ thunk max:0() {
 }
 
 *thunk {thunk#5}() {
+    let %0: (Integer, Integer) -> Integer
+    let %1: Integer
+
     bb0(): {
         %0 = apply (max:0 as FnPtr)
         %1 = apply %0.0 %0.1 2 3

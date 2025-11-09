@@ -757,6 +757,18 @@ where
         self.format_part(Signature(body, SignatureOptions { color: false }))?;
         self.writer.write_all(b" {\n")?;
 
+        // Do not render locals that are arguments, as they are already rendered in the signature
+        for (local, decl) in body.local_decls.iter_enumerated().skip(body.args) {
+            self.indent(1)?;
+            write!(self.writer, "let %{local}: ")?;
+            self.format_part(Type(decl.r#type, TypeOptions { color: false }))?;
+            self.writer.write_all(b"\n")?;
+        }
+
+        if body.local_decls.len() > body.args {
+            self.writer.write_all(b"\n")?;
+        }
+
         for (index, block) in body.basic_blocks.iter_enumerated() {
             if index.as_usize() > 0 {
                 self.writer.write_all(b"\n")?;
