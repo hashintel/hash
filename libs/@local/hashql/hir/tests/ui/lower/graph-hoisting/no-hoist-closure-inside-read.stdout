@@ -19,9 +19,7 @@ let a:0 = true,
     c:0 = (): Boolean -> let %5 = a:0 == b:0 in %5,
     %6 = c:0(),
     %7 = ::graph::head::entities(%4)
-         |> ::graph::body::filter((
-             vertex:0: ::graph::types::knowledge::entity::Entity
-         ): Boolean -> let  in %6)
+         |> ::graph::body::filter((vertex:0: Entity): Boolean -> let  in %6)
          |> ::graph::tail::collect
 in
 %7

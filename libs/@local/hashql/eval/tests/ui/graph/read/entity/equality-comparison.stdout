@@ -8,9 +8,7 @@ let %1 = thunk ->
     %5 = thunk ->
         let %8 = %1(),
             %9 = ::graph::head::entities(%8)
-                 |> ::graph::body::filter((
-                     vertex:0: ::graph::types::knowledge::entity::Entity
-                 ): Boolean ->
+                 |> ::graph::body::filter((vertex:0: Entity): Boolean ->
                      let %2 = true == false,
                          %3 = true != false,
                          %4 = if %2 then

@@ -1,4 +1,4 @@
 if $exists(limit) then
-    $?limit
+    ?limit
 else
     10 as Integer

@@ -28,14 +28,10 @@ let a:0 = true,
     %6 = ::graph::tmp::decision_time_now(),
     %7 = a:0 == b:0,
     c:0 = ::graph::head::entities(%6)
-          |> ::graph::body::filter((
-              vertex:1: ::graph::types::knowledge::entity::Entity
-          ): Boolean -> let  in %7)
+          |> ::graph::body::filter((vertex:1: Entity): Boolean -> let  in %7)
           |> ::graph::tail::collect,
     %8 = ::graph::head::entities(%5)
-         |> ::graph::body::filter((
-             vertex:0: ::graph::types::knowledge::entity::Entity
-         ): Boolean -> let  in true)
+         |> ::graph::body::filter((vertex:0: Entity): Boolean -> let  in true)
          |> ::graph::tail::collect
 in
 %8

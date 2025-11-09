@@ -23,9 +23,7 @@ let foo:0 = thunk -> 2,
     %8 = thunk ->
         let %18 = %2(),
             %20 = ::graph::head::entities(%18)
-                  |> ::graph::body::filter((
-                      vertex:0: ::graph::types::knowledge::entity::Entity
-                  ): Boolean ->
+                  |> ::graph::body::filter((vertex:0: Entity): Boolean ->
                       let %19 = %6(),
                           %7 = vertex:0.id.entity_id.entity_uuid == %19
                       in
