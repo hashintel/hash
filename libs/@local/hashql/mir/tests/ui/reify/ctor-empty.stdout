@@ -1,4 +1,4 @@
-fn {ctor#::core::option::None}(%0) {
+fn {ctor#::core::option::None}(%0: ()) {
     bb0(): {
         %1 = opaque(::core::option::None, ())
 

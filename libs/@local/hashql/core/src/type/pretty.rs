@@ -289,10 +289,8 @@ impl<'fmt, 'env, 'heap> TypeFormatter<'fmt, 'env, 'heap> {
     }
 }
 
-impl<'fmt, 'env, 'heap> AsMut<TypeFormatter<'fmt, 'env, 'heap>>
-    for TypeFormatter<'fmt, 'env, 'heap>
-{
-    fn as_mut(&mut self) -> &mut TypeFormatter<'fmt, 'env, 'heap> {
+impl AsMut<Self> for TypeFormatter<'_, '_, '_> {
+    fn as_mut(&mut self) -> &mut Self {
         self
     }
 }

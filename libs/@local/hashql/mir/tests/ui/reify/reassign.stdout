@@ -1,4 +1,4 @@
-fn {ctor#::core::option::Some}(%0, %1) {
+fn {ctor#::core::option::Some}(%0: (), %1: Integer) {
     bb0(): {
         %2 = opaque(::core::option::Some, %1)
 
@@ -6,7 +6,7 @@ fn {ctor#::core::option::Some}(%0, %1) {
     }
 }
 
-fn {ctor#::core::option::None}(%0) {
+fn {ctor#::core::option::None}(%0: ()) {
     bb0(): {
         %1 = opaque(::core::option::None, ())
 
@@ -19,7 +19,6 @@ fn {ctor#::core::option::None}(%0) {
         switchInt(true) -> [0: bb2(), 1: bb1()]
     }
 
-
     bb1(): {
         %1 = (1)
         %2 = %1.0
@@ -29,14 +28,12 @@ fn {ctor#::core::option::None}(%0) {
         goto -> bb3(%4)
     }
 
-
     bb2(): {
         %5 = closure(({ctor#::core::option::None} as FnPtr), ())
         %6 = apply %5.0 %5.1
 
         goto -> bb3(%6)
     }
-
 
     bb3(%0): {
         return %0

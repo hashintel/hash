@@ -759,7 +759,7 @@ where
 
         for (index, block) in body.basic_blocks.iter_enumerated() {
             if index.as_usize() > 0 {
-                self.writer.write_all(b"\n\n")?;
+                self.writer.write_all(b"\n")?;
             }
 
             self.format_part((index, block))?;

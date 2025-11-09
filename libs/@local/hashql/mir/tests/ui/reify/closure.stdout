@@ -1,20 +1,17 @@
-fn {closure#6}(%0, %1, %2) {
+fn {closure#6}(%0: (), %1: Integer, %2: Integer) {
     bb0(): {
         %3 = %1 <= %2
 
         switchInt(%3) -> [0: bb2(), 1: bb1()]
     }
 
-
     bb1(): {
         goto -> bb3(%2)
     }
 
-
     bb2(): {
         goto -> bb3(%1)
     }
-
 
     bb3(%4): {
         return %4

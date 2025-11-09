@@ -13,16 +13,13 @@ thunk {thunk#0}() {
         switchInt(%0) -> [0: bb2(), 1: bb1()]
     }
 
-
     bb1(): {
         goto -> bb3("foo")
     }
 
-
     bb2(): {
         goto -> bb3("bar")
     }
-
 
     bb3(%1): {
         return %1

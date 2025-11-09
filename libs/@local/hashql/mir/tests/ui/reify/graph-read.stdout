@@ -6,7 +6,7 @@ thunk {thunk#1}() {
     }
 }
 
-fn {ctor#::core::uuid::Uuid}(%0, %1) {
+fn {ctor#::core::uuid::Uuid}(%0: (), %1: String) {
     bb0(): {
         %2 = opaque(::core::uuid::Uuid, %1)
 
@@ -31,7 +31,7 @@ thunk {thunk#3}() {
     }
 }
 
-fn {ctor#::graph::types::knowledge::entity::EntityUuid}(%0, %1) {
+fn {ctor#::graph::types::knowledge::entity::EntityUuid}(%0: (), %1: ::core::uuid::Uuid) {
     bb0(): {
         %2 = opaque(::graph::types::knowledge::entity::EntityUuid, %1)
 
@@ -57,7 +57,7 @@ thunk {thunk#5}() {
     }
 }
 
-fn {closure@7}(%0, %1) {
+fn {closure@7}(%0: (), %1: ::graph::types::knowledge::entity::Entity) {
     bb0(): {
         %2 = apply ({thunk#5} as FnPtr)
         %3 = %1.id.entity_id.entity_uuid == %2
@@ -75,7 +75,6 @@ fn {closure@7}(%0, %1) {
         |> filter({closure@7}, %2)
         |> collect -> bb1(_)
     }
-
 
     bb1(%1): {
         return %1
