@@ -1,0 +1,3 @@
+//@ run: pass
+//@ description: Nested and-or normalization
+["&&", {"#literal": true}, ["||", {"#literal": true}, {"#literal": false}]]
