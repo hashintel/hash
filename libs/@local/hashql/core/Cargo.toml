@@ -23,6 +23,7 @@ text-size = { workspace = true, public = true }
 # Private workspace dependencies
 
 # Private third-party dependencies
+anstyle-lossy        = { workspace = true }
 bitvec               = { workspace = true, features = ["alloc"] }
 bumpalo              = { workspace = true }
 derive_more          = { workspace = true, features = ["debug", "from"] }

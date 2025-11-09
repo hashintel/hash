@@ -4,6 +4,7 @@ use core::{
 };
 use std::io;
 
+use anstyle_svg::Term;
 use bstr::ByteSlice as _;
 use hashql_core::r#type::TypeFormatter;
 

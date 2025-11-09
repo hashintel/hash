@@ -3689,6 +3689,7 @@ name = "hashql-core"
 version = "0.0.0"
 dependencies = [
  "anstyle",
+ "anstyle-lossy",
  "bitvec",
  "bumpalo",
  "derive_more 2.0.1",
@@ -3766,6 +3767,7 @@ dependencies = [
 name = "hashql-mir"
 version = "0.0.0"
 dependencies = [
+ "anstyle-svg",
  "bstr",
  "hashql-compiletest",
  "hashql-core",
