@@ -24,8 +24,8 @@ use crate::{
         rvalue::{Aggregate, AggregateKind, Apply, Binary, Input, RValue, Unary},
         statement::{Assign, Statement, StatementKind},
         terminator::{
-            Branch, Goto, GraphRead, GraphReadBody, GraphReadHead, GraphReadLocation,
-            GraphReadTail, Return, Target, Terminator, TerminatorKind,
+            Goto, GraphRead, GraphReadBody, GraphReadHead, GraphReadLocation, GraphReadTail,
+            Return, SwitchInt, Target, Terminator, TerminatorKind,
         },
     },
     def::DefId,
@@ -423,12 +423,12 @@ pub trait VisitorMut<'heap> {
         walk_terminator_goto(self, location, goto)
     }
 
-    fn visit_terminator_branch(
+    fn visit_terminator_switch_int(
         &mut self,
         location: Location,
-        branch: &mut Branch<'heap>,
+        branch: &mut SwitchInt<'heap>,
     ) -> Self::Result<()> {
-        walk_terminator_branch(self, location, branch)
+        walk_terminator_switch_int(self, location, branch)
     }
 
     fn visit_terminator_return(
@@ -855,7 +855,7 @@ pub fn walk_terminator<'heap, T: VisitorMut<'heap> + ?Sized>(
 
     match kind {
         TerminatorKind::Goto(goto) => visitor.visit_terminator_goto(location, goto),
-        TerminatorKind::Branch(branch) => visitor.visit_terminator_branch(location, branch),
+        TerminatorKind::SwitchInt(branch) => visitor.visit_terminator_switch_int(location, branch),
         TerminatorKind::Return(r#return) => visitor.visit_terminator_return(location, r#return),
         TerminatorKind::GraphRead(graph_read) => {
             visitor.visit_terminator_graph_read(location, graph_read)
@@ -873,15 +873,19 @@ pub fn walk_terminator_goto<'heap, T: VisitorMut<'heap> + ?Sized>(
     Ok!()
 }
 
-pub fn walk_terminator_branch<'heap, T: VisitorMut<'heap> + ?Sized>(
+pub fn walk_terminator_switch_int<'heap, T: VisitorMut<'heap> + ?Sized>(
     visitor: &mut T,
     location: Location,
-    Branch { test, then, r#else }: &mut Branch<'heap>,
+    SwitchInt {
+        discriminant,
+        targets,
+    }: &mut SwitchInt<'heap>,
 ) -> T::Result<()> {
-    visitor.visit_operand(location, test)?;
+    visitor.visit_operand(location, discriminant)?;
 
-    visitor.visit_target(location, then)?;
-    visitor.visit_target(location, r#else)?;
+    for target in targets.targets_mut() {
+        visitor.visit_target(location, target)?;
+    }
 
     Ok!()
 }

@@ -16,7 +16,7 @@ fn {ctor#::core::option::None}(%0) {
 
 *thunk {thunk#6}() {
     bb0(): {
-        if(true) -> [0: bb2(), 1: bb1()]
+        switchInt(true) -> [0: bb2(), 1: bb1()]
     }
 
 

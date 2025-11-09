@@ -3,7 +3,7 @@ fn max42:0(%0, %1) {
         %2 = %0.0
         %3 = %1 <= %2
 
-        if(%3) -> [0: bb2(), 1: bb1()]
+        switchInt(%3) -> [0: bb2(), 1: bb1()]
     }
 
 
@@ -40,7 +40,7 @@ fn {ctor#::core::option::None}(%0) {
 
 *thunk {thunk#10}() {
     bb0(): {
-        if(true) -> [0: bb2(), 1: bb1()]
+        switchInt(true) -> [0: bb2(), 1: bb1()]
     }
 
 

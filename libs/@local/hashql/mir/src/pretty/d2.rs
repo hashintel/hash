@@ -11,7 +11,7 @@ use crate::{
     body::{
         Body,
         basic_block::{BasicBlock, BasicBlockId},
-        terminator::{Branch, Goto, GraphRead, TerminatorKind},
+        terminator::{Goto, GraphRead, SwitchInt, TerminatorKind},
     },
     def::{DefId, DefIdSlice},
     pretty::text::{Signature, TargetParams, TerminatorHead},
@@ -170,28 +170,32 @@ where
                 self.format_text(TargetParams(target.args))?;
                 writeln!(self.writer, "'")?;
             }
-            TerminatorKind::Branch(Branch {
-                test: _,
-                then,
-                r#else,
+            TerminatorKind::SwitchInt(SwitchInt {
+                discriminant: _,
+                targets,
             }) => {
-                write!(
-                    self.writer,
-                    "{} -> {}: {{ source-arrowhead.label: 1; label: '",
-                    BasicBlockName(block_id),
-                    BasicBlockName(then.block)
-                )?;
-                self.format_text(TargetParams(then.args))?;
-                writeln!(self.writer, "' }}")?;
+                for (value, target) in targets.iter() {
+                    write!(
+                        self.writer,
+                        "{} -> {}: {{ source-arrowhead.label: {}; label: '",
+                        BasicBlockName(block_id),
+                        BasicBlockName(target.block),
+                        value,
+                    )?;
+                    self.format_text(TargetParams(target.args))?;
+                    writeln!(self.writer, "' }}")?;
+                }
 
-                write!(
-                    self.writer,
-                    "{} -> {}: {{ source-arrowhead.label: 0; label: '",
-                    BasicBlockName(block_id),
-                    BasicBlockName(r#else.block)
-                )?;
-                self.format_text(TargetParams(r#else.args))?;
-                writeln!(self.writer, "'; style.stroke-dash: 3 }}")?;
+                if let Some(otherwise) = targets.otherwise() {
+                    write!(
+                        self.writer,
+                        "{} -> {}: {{ source-arrowhead.label: 'otherwise'; label: '",
+                        BasicBlockName(block_id),
+                        BasicBlockName(otherwise.block)
+                    )?;
+                    self.format_text(TargetParams(otherwise.args))?;
+                    writeln!(self.writer, "'; style.stroke-dash: 3 }}")?;
+                }
             }
             TerminatorKind::Return(_) | TerminatorKind::Unreachable => {}
             TerminatorKind::GraphRead(GraphRead {
