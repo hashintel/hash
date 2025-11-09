@@ -17,19 +17,20 @@
 //! use hashql_core::{
 //!     heap::Heap,
 //!     pretty::{Format, Formatter, RenderOptions},
+//!     symbol::sym,
 //! };
 //!
 //! let heap = Heap::new();
 //! let fmt = Formatter::new(&heap);
 //!
 //! let doc = fmt
-//!     .keyword_str("let")
+//!     .keyword(sym::lexical::r#let)
 //!     .append(fmt.space())
-//!     .append(fmt.variable_owned("x".to_owned()))
+//!     .append(fmt.literal_str("43"))
 //!     .append(fmt.space())
-//!     .append(fmt.punct_str("="))
+//!     .append(fmt.punct(sym::symbol::assign))
 //!     .append(fmt.space())
-//!     .append(fmt.literal_owned("42".to_owned()));
+//!     .append(fmt.literal_str("42"));
 //!
 //! let output = hashql_core::pretty::render(doc, RenderOptions::default());
 //! println!("{}", output);
