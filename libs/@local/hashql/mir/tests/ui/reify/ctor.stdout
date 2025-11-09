@@ -1,4 +1,4 @@
-fn {ctor#::core::uuid::Uuid}(%0: (), %1: String) {
+fn {ctor#::core::uuid::Uuid}(%0: (), %1: String) -> ::core::uuid::Uuid {
     let %2: ::core::uuid::Uuid
 
     bb0(): {
@@ -8,7 +8,7 @@ fn {ctor#::core::uuid::Uuid}(%0: (), %1: String) {
     }
 }
 
-thunk {thunk#0}() {
+thunk {thunk#0}() -> (String) -> ::core::uuid::Uuid {
     let %0: (String) -> ::core::uuid::Uuid
 
     bb0(): {
@@ -18,7 +18,7 @@ thunk {thunk#0}() {
     }
 }
 
-*thunk {thunk#1}() {
+*thunk {thunk#1}() -> ::core::uuid::Uuid {
     let %0: (String) -> ::core::uuid::Uuid
     let %1: ::core::uuid::Uuid
 

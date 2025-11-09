@@ -1,4 +1,4 @@
-thunk {thunk#1}() {
+thunk {thunk#1}() -> ::graph::TimeAxis {
     let %0: ::graph::TimeAxis
 
     bb0(): {
@@ -8,7 +8,7 @@ thunk {thunk#1}() {
     }
 }
 
-fn {ctor#::core::uuid::Uuid}(%0: (), %1: String) {
+fn {ctor#::core::uuid::Uuid}(%0: (), %1: String) -> ::core::uuid::Uuid {
     let %2: ::core::uuid::Uuid
 
     bb0(): {
@@ -18,7 +18,7 @@ fn {ctor#::core::uuid::Uuid}(%0: (), %1: String) {
     }
 }
 
-thunk {thunk#2}() {
+thunk {thunk#2}() -> (String) -> ::core::uuid::Uuid {
     let %0: (String) -> ::core::uuid::Uuid
 
     bb0(): {
@@ -28,7 +28,7 @@ thunk {thunk#2}() {
     }
 }
 
-thunk {thunk#3}() {
+thunk {thunk#3}() -> ::core::uuid::Uuid {
     let %0: (String) -> ::core::uuid::Uuid
     let %1: ::core::uuid::Uuid
 
@@ -40,7 +40,7 @@ thunk {thunk#3}() {
     }
 }
 
-fn {ctor#::graph::types::knowledge::entity::EntityUuid}(%0: (), %1: ::core::uuid::Uuid) {
+fn {ctor#::graph::types::knowledge::entity::EntityUuid}(%0: (), %1: ::core::uuid::Uuid) -> ::graph::types::knowledge::entity::EntityUuid {
     let %2: ::graph::types::knowledge::entity::EntityUuid
 
     bb0(): {
@@ -50,7 +50,7 @@ fn {ctor#::graph::types::knowledge::entity::EntityUuid}(%0: (), %1: ::core::uuid
     }
 }
 
-thunk {thunk#4}() {
+thunk {thunk#4}() -> (::core::uuid::Uuid) -> ::graph::types::knowledge::entity::EntityUuid {
     let %0: (::core::uuid::Uuid) -> ::graph::types::knowledge::entity::EntityUuid
 
     bb0(): {
@@ -60,7 +60,7 @@ thunk {thunk#4}() {
     }
 }
 
-thunk {thunk#5}() {
+thunk {thunk#5}() -> ::graph::types::knowledge::entity::EntityUuid {
     let %0: ::core::uuid::Uuid
     let %1: (::core::uuid::Uuid) -> ::graph::types::knowledge::entity::EntityUuid
     let %2: ::graph::types::knowledge::entity::EntityUuid
@@ -74,7 +74,7 @@ thunk {thunk#5}() {
     }
 }
 
-fn {closure@7}(%0: (), %1: ::graph::types::knowledge::entity::Entity) {
+fn {closure@7}(%0: (), %1: ::graph::types::knowledge::entity::Entity) -> Boolean {
     let %2: ::graph::types::knowledge::entity::EntityUuid
     let %3: Boolean
 
@@ -86,7 +86,7 @@ fn {closure@7}(%0: (), %1: ::graph::types::knowledge::entity::Entity) {
     }
 }
 
-*thunk {thunk#7}() {
+*thunk {thunk#7}() -> List<::graph::types::knowledge::entity::Entity> {
     let %0: ::graph::TimeAxis
     let %1: List<::graph::types::knowledge::entity::Entity>
     let %2: ()

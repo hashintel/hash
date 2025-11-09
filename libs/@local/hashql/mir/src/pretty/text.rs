@@ -380,7 +380,7 @@ where
                 ),
             )
         }))?;
-        self.writer.write_all(b") ->")?;
+        self.writer.write_all(b") -> ")?;
         self.format_part(Type(
             body.return_type,
             TypeOptions {

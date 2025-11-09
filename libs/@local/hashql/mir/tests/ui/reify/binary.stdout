@@ -1,4 +1,4 @@
-*thunk {thunk#0}() {
+*thunk {thunk#0}() -> Boolean {
     let %0: Boolean
 
     bb0(): {

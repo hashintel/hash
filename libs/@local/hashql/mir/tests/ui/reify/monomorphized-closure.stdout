@@ -1,4 +1,4 @@
-fn {closure#5}(%0: (), %1: Number, %2: Number) {
+fn {closure#5}(%0: (), %1: Number, %2: Number) -> Boolean {
     let %3: Boolean
 
     bb0(): {
@@ -8,7 +8,7 @@ fn {closure#5}(%0: (), %1: Number, %2: Number) {
     }
 }
 
-thunk {thunk#3}() {
+thunk {thunk#3}() -> (Integer, Integer) -> Boolean {
     let %0: (Integer, Integer) -> Boolean
     let %1: ()
 
@@ -20,7 +20,7 @@ thunk {thunk#3}() {
     }
 }
 
-*thunk {thunk#4}() {
+*thunk {thunk#4}() -> Boolean {
     let %0: (Integer, Integer) -> Boolean
     let %1: Boolean
 

@@ -1,4 +1,4 @@
-fn {closure#6}(%0: (), %1: Integer, %2: Integer) {
+fn {closure#6}(%0: (), %1: Integer, %2: Integer) -> Integer {
     let %3: Boolean
     let %4: Integer
 
@@ -21,7 +21,7 @@ fn {closure#6}(%0: (), %1: Integer, %2: Integer) {
     }
 }
 
-thunk max:0() {
+thunk max:0() -> (Integer, Integer) -> Integer {
     let %0: (Integer, Integer) -> Integer
     let %1: ()
 
@@ -33,7 +33,7 @@ thunk max:0() {
     }
 }
 
-*thunk {thunk#5}() {
+*thunk {thunk#5}() -> Integer {
     let %0: (Integer, Integer) -> Integer
     let %1: Integer
 

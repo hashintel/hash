@@ -330,13 +330,16 @@ impl<'ctx, 'mir, 'hir, 'env, 'heap> Reifier<'ctx, 'mir, 'hir, 'env, 'heap> {
     /// Thunks have no parameters or captures, making them the simplest
     /// construct to lower.
     fn lower_thunk(self, hir: HirPtr, binder: Binder<'heap>, thunk: Thunk<'heap>) -> DefId {
-        let returns = self.context.hir.map.monomorphized_type_id(hir.id);
+        let r#type = unwrap_closure_type(
+            self.context.hir.map.monomorphized_type_id(hir.id),
+            self.context.environment,
+        );
 
         self.lower_impl(
             Source::Thunk(hir.id, Some(binder)),
             hir.span,
             [] as [_; 0],
-            returns,
+            r#type.returns,
             None,
             |this, block| this.transform_body(block, thunk.body),
         )

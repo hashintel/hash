@@ -1,4 +1,4 @@
-thunk {thunk#1}() {
+thunk {thunk#1}() -> Boolean {
     let %0: Boolean
 
     bb0(): {
@@ -8,7 +8,7 @@ thunk {thunk#1}() {
     }
 }
 
-*thunk {thunk#2}() {
+*thunk {thunk#2}() -> Integer {
     let %0: Boolean
     let %1: Integer
     let %2: Integer

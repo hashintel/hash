@@ -1,4 +1,4 @@
-thunk foo:0() {
+thunk foo:0() -> (bar: Integer, baz: Integer, buz: Integer) {
     let %0: (bar: Integer, baz: Integer, buz: Integer)
 
     bb0(): {
@@ -8,7 +8,7 @@ thunk foo:0() {
     }
 }
 
-*thunk {thunk#1}() {
+*thunk {thunk#1}() -> Integer {
     let %0: (bar: Integer, baz: Integer, buz: Integer)
 
     bb0(): {
