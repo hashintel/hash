@@ -5,21 +5,23 @@ let %1 = thunk ->
             %7 = %6()
         in
         %7,
-    %5 = thunk ->
-        let %8 = %1(),
-            %9 = ::graph::head::entities(%8)
-                 |> ::graph::body::filter((vertex:0: Entity): Boolean ->
-                     let %2 = true == false,
-                         %3 = true != false,
-                         %4 = if %2 
-                              then true
-                              else %3
-                     in
-                     %4
-                 )
-                 |> ::graph::tail::collect
+    %2 = thunk -> let %8 = true == false in %8,
+    %4 = thunk ->
+        let %9 = %2(),
+            %10 = if %9 
+                  then true
+                  else let %3 = true != false in %3
         in
-        %9
+        %10,
+    %5 = thunk ->
+        let %11 = %1(),
+            %13 = ::graph::head::entities(%11)
+                  |> ::graph::body::filter((vertex:0: Entity): Boolean ->
+                      let %12 = %4() in %12
+                  )
+                  |> ::graph::tail::collect
+        in
+        %13
 in
 %5
 
