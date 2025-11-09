@@ -15,7 +15,7 @@ use hashql_core::span::SpanId;
 pub use self::{
     branch::Branch,
     goto::Goto,
-    graph::{GraphRead, GraphReadBody, GraphReadHead, GraphReadTail},
+    graph::{GraphRead, GraphReadBody, GraphReadHead, GraphReadLocation, GraphReadTail},
     r#return::Return,
     target::Target,
 };

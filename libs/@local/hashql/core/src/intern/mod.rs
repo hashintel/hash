@@ -1,3 +1,4 @@
+mod beef;
 mod map;
 mod set;
 use core::{
@@ -9,6 +10,7 @@ use core::{
 };
 
 pub use self::{
+    beef::Beef,
     map::{Decompose, InternMap, Provisioned},
     set::InternSet,
 };

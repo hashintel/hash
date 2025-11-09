@@ -27,10 +27,8 @@
 
 use core::{fmt, fmt::Debug, hash::Hash, ops::Try};
 
-use hashql_core::{
-    collections::SmallVec,
-    intern::{InternSet, Interned},
-};
+use super::{InternSet, Interned};
+use crate::collections::SmallVec;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 enum BeefData<'heap, T> {
@@ -70,9 +68,8 @@ where
     /// # Examples
     ///
     /// ```
-    /// # use hashql_core::intern::{InternSet, Interned};
+    /// # use hashql_core::intern::{InternSet, Interned, Beef};
     /// # use hashql_core::heap::Heap;
-    /// # use hashql_hir::fold::beef::Beef;
     /// # let heap = Heap::new();
     /// # let interner = InternSet::new(&heap);
     /// let interned = interner.intern_slice(&[1, 2, 3]);
@@ -98,9 +95,8 @@ where
     /// # Examples
     ///
     /// ```
-    /// # use hashql_core::intern::{InternSet, Interned};
+    /// # use hashql_core::intern::{InternSet, Interned, Beef};
     /// # use hashql_core::heap::Heap;
-    /// # use hashql_hir::fold::beef::Beef;
     /// # let heap = Heap::new();
     /// # let interner = InternSet::new(&heap);
     /// let interned = interner.intern_slice(&[1, 2, 3]);
@@ -192,9 +188,8 @@ where
     /// Using with `Result`:
     ///
     /// ```
-    /// # use hashql_core::intern::{InternSet, Interned};
+    /// # use hashql_core::intern::{InternSet, Interned, Beef};
     /// # use hashql_core::heap::Heap;
-    /// # use hashql_hir::fold::beef::Beef;
     /// # let heap = Heap::new();
     /// # let interner = InternSet::new(&heap);
     /// let interned = interner.intern_slice(&[1, 2, 3, 4]);
@@ -217,9 +212,8 @@ where
     /// Using with `Option`:
     ///
     /// ```
-    /// # use hashql_core::intern::{InternSet, Interned};
+    /// # use hashql_core::intern::{InternSet, Interned, Beef};
     /// # use hashql_core::heap::Heap;
-    /// # use hashql_hir::fold::beef::Beef;
     /// # let heap = Heap::new();
     /// # let interner = InternSet::new(&heap);
     /// let interned = interner.intern_slice(&[1, 2, 3]);
@@ -282,6 +276,212 @@ where
         Try::from_output(())
     }
 
+    /// Transforms each element with access to all previously transformed elements.
+    ///
+    /// This is a scanning operation where each transformation can observe the accumulated
+    /// results of all prior transformations. The closure receives two arguments:
+    /// - `&[T]`: A slice of **already-transformed** elements (the prefix)
+    /// - `T`: The current element to transform
+    ///
+    /// The key distinction from [`try_map`](Self::try_map) is that the prefix contains
+    /// transformed values, not original values. This makes `try_scan` ideal for
+    /// building up context-dependent structures where each step depends on the results
+    /// of previous steps.
+    ///
+    /// # Copy-on-Write Behavior
+    ///
+    /// Like other mutation methods, this only allocates when the first modification occurs.
+    /// If all elements remain unchanged, no allocation happens and the original interned
+    /// slice is preserved.
+    ///
+    /// # Use Cases
+    ///
+    /// This method is particularly useful for:
+    /// - Building projection chains where each projection depends on the accumulated path
+    /// - Constructing hierarchical structures incrementally
+    /// - Transformations where context from previous steps influences later steps
+    /// - Any operation where you need to "carry forward" transformed state
+    ///
+    /// # Early Termination
+    ///
+    /// The `Try` trait bound allows early termination on errors or control flow conditions.
+    /// If the closure returns an error, iteration stops immediately and elements after the
+    /// error point remain unchanged.
+    ///
+    /// # Examples
+    ///
+    /// ## Building dependent transformations
+    ///
+    /// ```
+    /// # use hashql_core::intern::{Beef, InternSet};
+    /// # use hashql_core::heap::Heap;
+    /// # let heap = Heap::new();
+    /// # let interner = InternSet::new(&heap);
+    /// let interned = interner.intern_slice(&[10, 20, 30, 40]);
+    /// let mut beef = Beef::new(interned);
+    ///
+    /// // Multiply each element by its position (length of prefix)
+    /// let _: Result<(), ()> = beef.try_scan(|prev, current| Ok(current * prev.len() as i32));
+    ///
+    /// assert_eq!(beef.as_slice(), &[0, 20, 60, 120]);
+    /// // Element 0: 10 * 0 = 0
+    /// // Element 1: 20 * 1 = 20
+    /// // Element 2: 30 * 2 = 60
+    /// // Element 3: 40 * 3 = 120
+    /// ```
+    ///
+    /// ## Accumulating with transformed values
+    ///
+    /// ```
+    /// # use hashql_core::intern::{Beef, InternSet};
+    /// # use hashql_core::heap::Heap;
+    /// # let heap = Heap::new();
+    /// # let interner = InternSet::new(&heap);
+    /// let interned = interner.intern_slice(&[1, 2, 3, 4]);
+    /// let mut beef = Beef::new(interned);
+    ///
+    /// // Each element becomes the sum of transformed prefix + current
+    /// let _: Result<(), ()> = beef.try_scan(|prev, current| {
+    ///     let sum: i32 = prev.iter().sum();
+    ///     Ok(sum + current)
+    /// });
+    ///
+    /// assert_eq!(beef.as_slice(), &[1, 3, 7, 15]);
+    /// // Element 0: sum([]) + 1 = 1
+    /// // Element 1: sum([1]) + 2 = 3
+    /// // Element 2: sum([1, 3]) + 3 = 7
+    /// // Element 3: sum([1, 3, 7]) + 4 = 15
+    /// ```
+    ///
+    /// ## Early termination with Option
+    ///
+    /// ```
+    /// # use hashql_core::intern::{Beef, InternSet};
+    /// # use hashql_core::heap::Heap;
+    /// # let heap = Heap::new();
+    /// # let interner = InternSet::new(&heap);
+    /// let interned = interner.intern_slice(&[1, 2, 3, 4, 5]);
+    /// let mut beef = Beef::new(interned);
+    ///
+    /// // Stop when prefix sum exceeds a threshold
+    /// let result: Option<()> = beef.try_scan(|prev, current| {
+    ///     if prev.iter().sum::<i32>() > 6 {
+    ///         None
+    ///     } else {
+    ///         Some(current * 2)
+    ///     }
+    /// });
+    ///
+    /// assert_eq!(result, None);
+    /// assert_eq!(beef.as_slice(), &[2, 4, 6, 4, 5]);
+    /// // Transformed [1, 2, 3], then stopped, [4, 5] unchanged
+    /// ```
+    ///
+    /// ## No allocation when unchanged
+    ///
+    /// ```
+    /// # use hashql_core::intern::{Beef, InternSet};
+    /// # use hashql_core::heap::Heap;
+    /// # use core::ptr;
+    /// # let heap = Heap::new();
+    /// # let interner = InternSet::new(&heap);
+    /// let interned = interner.intern_slice(&[1, 2, 3]);
+    /// let original_ptr = interned.as_ptr();
+    /// let mut beef = Beef::new(interned);
+    ///
+    /// // Return all elements unchanged
+    /// let _: Result<(), ()> = beef.try_scan(|_prev, x| Ok(x));
+    ///
+    /// let finished = beef.finish(&interner);
+    /// assert!(ptr::eq(finished.as_ptr(), original_ptr)); // Same memory!
+    /// ```
+    ///
+    /// ## Prefix cannot escape closure
+    ///
+    /// ```compile_fail
+    /// # use hashql_core::intern::{Beef, InternSet};
+    /// # use hashql_core::heap::Heap;
+    /// # use core::ptr;
+    /// # let heap = Heap::new();
+    /// # let interner = InternSet::new(&heap);
+    /// let interned = interner.intern_slice(&[1, 2, 3]);
+    /// let original_ptr = interned.as_ptr();
+    /// let mut beef = Beef::new(interned);
+    ///
+    /// // Return all elements unchanged
+    /// let mut escapee = &[] as &[i32];
+    /// let _: Result<(), ()> = beef.try_scan(|prev, x| {
+    ///     escapee = prev;
+    ///     Ok(x)
+    /// });
+    ///
+    /// let finished = beef.finish(&interner);
+    /// assert!(ptr::eq(finished.as_ptr(), original_ptr)); // Same memory!
+    /// ```
+    pub fn try_scan<F, U>(&mut self, mut closure: impl FnMut(&[T], T) -> F) -> U
+    where
+        F: Try<Output = T>,
+        U: Try<Output = (), Residual = F::Residual>,
+    {
+        let (offset, buffer) = match &mut self.0 {
+            BeefData::Owned(owned) => (0, owned),
+            BeefData::Interned(interned) => {
+                let mut index = 0;
+                let mut outer = None;
+
+                while index < interned.len() {
+                    // Loop through every item (until the end) of the interned slice, if the item
+                    // changed, transition to the smallvec, then use that smallvec instead
+                    let value = interned[index];
+                    let mapped = closure(&interned[..index], value)?;
+
+                    if value != mapped {
+                        // Transition to a smallvec, then use that smallvec in the final iteration
+                        let mut owned = SmallVec::from_slice(interned.0);
+                        owned[index] = mapped;
+                        self.0 = BeefData::Owned(owned);
+
+                        outer = Some(match &mut self.0 {
+                            BeefData::Owned(owned) => owned,
+                            BeefData::Interned(_) => unreachable!(),
+                        });
+
+                        index += 1;
+                        break;
+                    }
+
+                    index += 1;
+                }
+
+                let Some(outer) = outer else {
+                    // No changes have occured
+                    return Try::from_output(());
+                };
+
+                (index, outer)
+            }
+        };
+
+        let ptr = buffer.as_mut_ptr();
+        let len = buffer.len();
+        #[expect(unsafe_code)]
+        for index in offset..len {
+            // SAFETY: We're creating a shared reference to `buffer[..index]`
+            // while holding a mutable reference to `buffer[index]`.
+            // This is safe because:
+            // 1. The shared slice `previous` covers [0..index)
+            // 2. The mutable reference `remaining` is to element [index]
+            // 3. These ranges are disjoint by construction
+            // 4. `previous` is only used within the closure call and doesn't escape
+            let previous = unsafe { core::slice::from_raw_parts(ptr, index) };
+            // SAFETY: see above
+            let remaining = unsafe { &mut *ptr.add(index) };
+            *remaining = closure(previous, *remaining)?;
+        }
+
+        Try::from_output(())
+    }
+
     /// Returns the number of elements in the slice.
     #[must_use]
     pub fn len(&self) -> usize {
@@ -322,9 +522,8 @@ where
     /// # Examples
     ///
     /// ```
-    /// # use hashql_core::intern::{InternSet, Interned};
+    /// # use hashql_core::intern::{InternSet, Interned, Beef};
     /// # use hashql_core::heap::Heap;
-    /// # use hashql_hir::fold::beef::Beef;
     /// # let heap = Heap::new();
     /// # let interner = InternSet::new(&heap);
     /// // Example with modification
@@ -376,7 +575,7 @@ where
     /// ```
     /// # use hashql_core::intern::{InternSet, Interned};
     /// # use hashql_core::heap::Heap;
-    /// # use hashql_hir::fold::beef::Beef;
+    /// # use hashql_core::intern::Beef;
     /// # let heap = Heap::new();
     /// # let interner = InternSet::new(&heap);
     /// let original = interner.intern_slice(&[1, 2, 3]);
@@ -427,11 +626,11 @@ where
 mod tests {
     use core::ptr;
 
-    use hashql_core::{heap::Heap, intern::InternSet};
+    use crate::{
+        heap::Heap,
+        intern::{Beef, InternSet, Interned},
+    };
 
-    use crate::fold::beef::Beef;
-
-    // Test finish with no modifications
     #[test]
     fn finish_no_modifications() {
         let heap = Heap::new();
@@ -446,9 +645,8 @@ mod tests {
         assert!(ptr::eq(result.as_ref(), original.as_ref())); // Same memory address
     }
 
-    // Test finish with modifications
     #[test]
-    fn finish_with_modifications() {
+    fn finish_modifications() {
         let heap = Heap::new();
         let interner = InternSet::new(&heap);
         let original = interner.intern_slice(&[1, 2, 3]);
@@ -463,10 +661,30 @@ mod tests {
     }
 
     #[test]
+    fn finish_with_no_modifications() {
+        let heap = Heap::new();
+        let interner = InternSet::new(&heap);
+        let original = interner.intern_slice(&[1, 2, 3]);
+
+        let beef = Beef::new(original);
+        let result = beef.finish_with(|_| panic!("no modification should occur"));
+
+        // Should be the exact same Interned instance
+        assert_eq!(result.as_ref(), original.as_ref());
+        assert!(ptr::eq(result.as_ref(), original.as_ref())); // Same memory address
+    }
+
+    #[test]
     fn map() {
         let heap = Heap::new();
         let interner = InternSet::new(&heap);
         let original = interner.intern_slice(&[1, 2, 3, 4, 5]);
+
+        // No modification
+        let mut beef = Beef::new(original);
+        beef.map(|x| x);
+        assert_eq!(beef.as_slice(), &[1, 2, 3, 4, 5]);
+        let _: Interned<'_, [i32]> = beef.finish_with(|_| panic!("no modification = no interning"));
 
         // Partial Modification
         let mut beef = Beef::new(original);
@@ -542,10 +760,7 @@ mod tests {
         let result: Result<(), &str> = beef.try_map(Ok);
         assert_eq!(result, Ok(()));
         assert_eq!(beef.as_slice(), &[1, 2, 3, 4, 5]);
-
-        // Should still be in interned state (verify with finish)
-        let result = beef.finish(&interner);
-        assert!(ptr::eq(result.as_ref(), original.as_ref())); // Same memory address
+        let _: Interned<'_, [i32]> = beef.finish_with(|_| panic!("no modification = no interning"));
     }
 
     #[test]
@@ -658,5 +873,139 @@ mod tests {
         assert_eq!(result3, Err("Value too large"));
         // First two elements should be transformed before error
         assert_eq!(beef.as_slice(), &[2, 4, 11, 13, 15]);
+    }
+
+    #[test]
+    fn try_map_last_element() {
+        let heap = Heap::new();
+        let interner = InternSet::new(&heap);
+        let original = interner.intern_slice(&[1, 2, 3, 4, 5]);
+
+        let mut beef = Beef::new(original);
+
+        // Call try_map with success
+        let result: Result<(), &str> = beef.try_map(|x| if x == 5 { Ok(x * 2) } else { Ok(x) });
+        assert_eq!(result, Ok(()));
+        assert_eq!(beef.as_slice(), &[1, 2, 3, 4, 10]);
+    }
+
+    #[test]
+    fn try_scan_empty() {
+        let heap = Heap::new();
+        let interner = InternSet::new(&heap);
+        let original = interner.intern_slice(&[] as &[i32]);
+
+        let mut beef = Beef::new(original);
+        let result: Result<(), &str> = beef.try_scan(|_prev, x| Ok(x * 2));
+
+        assert_eq!(result, Ok(()));
+        assert_eq!(beef.as_slice(), &[] as &[i32]);
+    }
+
+    #[test]
+    fn try_scan_cumulative_sum() {
+        let heap = Heap::new();
+        let interner = InternSet::new(&heap);
+        let original = interner.intern_slice(&[1, 2, 3, 4, 5]);
+
+        let mut beef = Beef::new(original);
+        let result: Result<(), &str> = beef.try_scan(|prev, current| {
+            let sum: i32 = prev.iter().sum();
+            Ok(sum + current)
+        });
+
+        assert_eq!(result, Ok(()));
+        // prev contains already-transformed values, so this builds up:
+        // [1, 1+2=3, 1+3+3=7, 1+3+7+4=15, 1+3+7+15+5=31]
+        assert_eq!(beef.as_slice(), &[1, 3, 7, 15, 31]);
+    }
+
+    #[test]
+    fn try_scan_no_changes() {
+        let heap = Heap::new();
+        let interner = InternSet::new(&heap);
+        let original = interner.intern_slice(&[1, 2, 3, 4, 5]);
+
+        let mut beef = Beef::new(original);
+
+        let result: Result<(), &str> = beef.try_scan(|_prev, x| Ok(x));
+
+        assert_eq!(result, Ok(()));
+        assert_eq!(beef.as_slice(), &[1, 2, 3, 4, 5]);
+
+        let _: Interned<'_, [i32]> = beef.finish_with(|_| panic!("no modification = no interning"));
+    }
+
+    #[test]
+    fn try_scan_last_element_changes() {
+        let heap = Heap::new();
+        let interner = InternSet::new(&heap);
+        let original = interner.intern_slice(&[1, 2, 3, 4, 5]);
+
+        let mut beef = Beef::new(original);
+        let result: Result<(), &str> =
+            beef.try_scan(|prev, x| if prev.len() == 4 { Ok(x * 100) } else { Ok(x) });
+
+        assert_eq!(result, Ok(()));
+        assert_eq!(beef.as_slice(), &[1, 2, 3, 4, 500]);
+    }
+
+    #[test]
+    fn try_scan_verify_prefix_contents() {
+        let heap = Heap::new();
+        let interner = InternSet::new(&heap);
+        let original = interner.intern_slice(&[10, 20, 30, 40]);
+
+        let mut beef = Beef::new(original);
+        let mut expected_prefixes = vec![vec![], vec![100], vec![100, 200], vec![100, 200, 300]];
+
+        let result: Result<(), &str> = beef.try_scan(|prev, current| {
+            let expected = expected_prefixes.remove(0);
+            assert_eq!(prev, expected.as_slice());
+            Ok(current * 10)
+        });
+
+        assert_eq!(result, Ok(()));
+        assert_eq!(beef.as_slice(), &[100, 200, 300, 400]);
+        assert!(expected_prefixes.is_empty());
+    }
+
+    #[test]
+    fn try_scan_early_termination() {
+        let heap = Heap::new();
+        let interner = InternSet::new(&heap);
+        let original = interner.intern_slice(&[1, 2, 3, 4, 5]);
+
+        let mut beef = Beef::new(original);
+        let result: Option<()> = beef.try_scan(|prev, current| {
+            if prev.iter().sum::<i32>() > 6 {
+                None
+            } else {
+                Some(current * 2)
+            }
+        });
+
+        assert_eq!(result, None);
+        assert_eq!(beef.as_slice(), &[2, 4, 6, 4, 5]);
+    }
+
+    #[test]
+    fn try_scan_already_owned() {
+        let heap = Heap::new();
+        let interner = InternSet::new(&heap);
+        let original = interner.intern_slice(&[1, 2, 3, 4]);
+
+        let mut beef = Beef::new(original);
+        beef.map(|x| x * 2);
+        assert_eq!(beef.as_slice(), &[2, 4, 6, 8]);
+
+        let result: Result<(), &str> = beef.try_scan(|prev, current| {
+            let sum: i32 = prev.iter().sum();
+            Ok(sum + current)
+        });
+
+        assert_eq!(result, Ok(()));
+        // [2, 2+4=6, 2+6+6=14, 2+6+14+8=30]
+        assert_eq!(beef.as_slice(), &[2, 6, 14, 30]);
     }
 }

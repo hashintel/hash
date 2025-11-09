@@ -17,6 +17,7 @@ use crate::def::DefId;
 pub mod basic_block;
 pub mod constant;
 pub mod local;
+pub mod location;
 pub mod operand;
 pub mod place;
 pub mod rvalue;

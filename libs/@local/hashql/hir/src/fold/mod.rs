@@ -46,20 +46,19 @@
 //!
 //! [`Visitor`]: crate::visit::Visitor
 
-pub mod beef;
 pub mod nested;
 
 use core::ops::{FromResidual, Try};
 
 use hashql_core::{
-    intern::Interned,
+    intern::{Beef, Interned},
     span::{SpanId, Spanned},
     symbol::{Ident, Symbol},
     r#type::TypeId,
     value::Primitive,
 };
 
-use self::{beef::Beef, nested::NestedFilter};
+use self::nested::NestedFilter;
 use crate::{
     intern::Interner,
     node::{

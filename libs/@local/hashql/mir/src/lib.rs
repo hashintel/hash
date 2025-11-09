@@ -4,15 +4,18 @@
 #![cfg_attr(doc, doc = simple_mermaid::mermaid!("../docs/dependency-diagram.mmd"))]
 #![feature(
     // Language Features
+    associated_type_defaults,
     coverage_attribute,
     if_let_guard,
+    macro_attr,
     macro_metavar_expr_concat,
     never_type,
 
     // Library Features
     allocator_api,
     formatting_options,
-    iter_array_chunks
+    iter_array_chunks,
+    try_trait_v2
 )]
 #![expect(clippy::indexing_slicing)]
 extern crate alloc;
@@ -22,6 +25,7 @@ pub mod def;
 pub mod intern;
 pub mod pretty;
 pub mod reify;
+pub mod visit;
 
 #[cfg(test)]
 mod tests {
