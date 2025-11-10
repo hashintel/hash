@@ -34,7 +34,7 @@
     "@local/eslint": "0.0.0-private",
     "@local/tsconfig": "0.0.0-private",
     "@types/fs-extra": "11.0.4",
-    "eslint": "9.38.0",
+    "eslint": "9.39.1",
     "typescript": "5.9.3"
   }
 }
