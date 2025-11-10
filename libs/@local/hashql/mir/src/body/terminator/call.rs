@@ -6,7 +6,8 @@
 
 use hashql_core::heap;
 
-use crate::body::{basic_block::BasicBlockId, operand::Operand};
+use super::Target;
+use crate::body::{operand::Operand, place::Place};
 
 /// A function call terminator in the HashQL MIR.
 ///
@@ -50,5 +51,8 @@ pub struct Call<'heap> {
     /// This [`BasicBlockId`] specifies where control should transfer after
     /// the function call completes successfully. The called function's
     /// return values will be made available to this target block.
-    pub target: BasicBlockId,
+    pub target: Target<'heap>,
+
+    /// Where the returned values will be stored.
+    pub destination: Place<'heap>,
 }

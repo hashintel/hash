@@ -5,7 +5,7 @@ use hashql_ast::{
 use hashql_core::{
     heap::Heap,
     module::ModuleRegistry,
-    pretty::{PrettyOptions, PrettyPrint as _},
+    pretty::{Formatter, RenderOptions},
     span::SpanId,
     r#type::environment::Environment,
 };
@@ -13,10 +13,10 @@ use hashql_hir::{
     context::HirContext,
     intern::Interner,
     node::{Node, NodeData},
-    pretty::PrettyPrintEnvironment,
+    pretty::NodeFormatter,
 };
 
-use super::{Suite, SuiteDiagnostic, common::process_status};
+use super::{RunContext, Suite, SuiteDiagnostic, common::process_status};
 
 pub(crate) fn hir_reify<'heap>(
     heap: &'heap Heap,
@@ -46,9 +46,10 @@ impl Suite for HirReifySuite {
 
     fn run<'heap>(
         &self,
-        heap: &'heap Heap,
+        RunContext {
+            heap, diagnostics, ..
+        }: RunContext<'_, 'heap>,
         expr: Expr<'heap>,
-        diagnostics: &mut Vec<SuiteDiagnostic>,
     ) -> Result<String, SuiteDiagnostic> {
         let environment = Environment::new(SpanId::SYNTHETIC, heap);
         let registry = ModuleRegistry::new(&environment);
@@ -57,15 +58,11 @@ impl Suite for HirReifySuite {
 
         let (node, _) = hir_reify(heap, expr, &environment, &mut context, diagnostics)?;
 
-        Ok(node
-            .pretty_print(
-                &PrettyPrintEnvironment {
-                    env: &environment,
-                    symbols: &context.symbols,
-                    map: &context.map,
-                },
-                PrettyOptions::default().without_color(),
-            )
+        let formatter = Formatter::new(heap);
+        let mut formatter = NodeFormatter::with_defaults(&formatter, &environment, &context);
+
+        Ok(formatter
+            .render(node, RenderOptions::default().with_plain())
             .to_string())
     }
 }

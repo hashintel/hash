@@ -1,14 +1,14 @@
 ════ Initial HIR ═══════════════════════════════════════════════════════════════
 
-#as({}, type: Dict<String, Number>)
+{} as Dict<String, Number>
 
 ════ HIR after type checking ═══════════════════════════════════════════════════
 
-#as({}, type: Dict<String, Number>)
+{} as Dict<String, Number>
 
 ════ Types ═════════════════════════════════════════════════════════════════════
 
-┌─ #as({}, type: Dict<String, Number>)
+┌─ {} as Dict<String, Number>
 └→ Dict<String, Number>
 
 ┌─ {}

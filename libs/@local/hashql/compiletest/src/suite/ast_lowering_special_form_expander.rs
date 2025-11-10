@@ -2,9 +2,8 @@ use hashql_ast::{
     format::SyntaxDump as _, lowering::special_form_expander::SpecialFormExpander,
     node::expr::Expr, visit::Visitor as _,
 };
-use hashql_core::heap::Heap;
 
-use super::{Suite, SuiteDiagnostic, common::process_issues};
+use super::{RunContext, Suite, SuiteDiagnostic, common::process_issues};
 
 pub(crate) struct AstLoweringSpecialFormExpanderSuite;
 
@@ -15,9 +14,10 @@ impl Suite for AstLoweringSpecialFormExpanderSuite {
 
     fn run<'heap>(
         &self,
-        heap: &'heap Heap,
+        RunContext {
+            heap, diagnostics, ..
+        }: RunContext<'_, 'heap>,
         mut expr: Expr<'heap>,
-        diagnostics: &mut Vec<SuiteDiagnostic>,
     ) -> Result<String, SuiteDiagnostic> {
         let mut expander = SpecialFormExpander::new(heap);
 

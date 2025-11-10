@@ -368,7 +368,7 @@ impl<'env, 'heap> AnalysisEnvironment<'env, 'heap> {
 
     pub fn record_diagnostic(
         &mut self,
-        diagnostic: impl FnOnce(&Environment<'heap>) -> TypeCheckDiagnostic,
+        diagnostic: impl FnOnce(&'env Environment<'heap>) -> TypeCheckDiagnostic,
     ) -> ControlFlow<()> {
         let Some(diagnostics) = self.diagnostics.as_mut() else {
             // Fail-fast mode: No diagnostics storage available

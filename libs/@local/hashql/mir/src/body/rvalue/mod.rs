@@ -5,14 +5,16 @@
 //! Unlike places, r-values represent computations rather than storage locations.
 
 mod aggregate;
+mod apply;
 mod binary;
 mod input;
 mod unary;
 
-use self::input::Input;
 pub use self::{
     aggregate::{Aggregate, AggregateKind},
+    apply::{Apply, ArgIndex},
     binary::Binary,
+    input::Input,
     unary::Unary,
 };
 use crate::body::operand::Operand;
@@ -57,4 +59,12 @@ pub enum RValue<'heap> {
     /// values from the calling context, such as user-provided parameters
     /// or configuration values.
     Input(Input<'heap>),
+
+    /// Apply a function to a list of arguments.
+    ///
+    /// This r-value represents a function call operation, where a callable
+    /// function is invoked with a list of argument operands. This covers
+    /// all forms of function application including user-defined functions,
+    /// built-in operations, method calls, and constructor invocations.
+    Apply(Apply<'heap>),
 }

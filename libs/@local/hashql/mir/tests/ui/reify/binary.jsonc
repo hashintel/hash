@@ -1,0 +1,3 @@
+//@ run: pass
+//@ description: Binary comparison operation reification
+["<=", { "#literal": 2 }, { "#literal": 3 }]

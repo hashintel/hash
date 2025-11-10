@@ -5,7 +5,6 @@ use rstest::rstest;
 use super::ty;
 use crate::{
     heap::Heap,
-    pretty::PrettyPrint as _,
     span::SpanId,
     symbol::Ident,
     r#type::{

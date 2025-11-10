@@ -35,6 +35,6 @@ impl<'heap> LocalVariable<'heap> {
 
     #[must_use]
     pub fn name(&self, symbols: &SymbolRegistry<'heap>) -> impl Display + use<'heap> {
-        self.to_binder(symbols)
+        self.to_binder(symbols).mangled()
     }
 }

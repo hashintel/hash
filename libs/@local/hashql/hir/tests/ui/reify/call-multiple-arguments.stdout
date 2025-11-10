@@ -1,3 +1,1 @@
-#let concat:0 = null
-in
-concat:0("hello", ", ", "world", "!")
+let concat:0 = null in concat:0("hello", ", ", "world", "!")

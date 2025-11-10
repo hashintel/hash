@@ -1,0 +1,3 @@
+//@ run: pass
+//@ description: Input with default value
+["input", "foo", "Integer", { "#literal": 2 }]

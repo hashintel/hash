@@ -1,0 +1,15 @@
+thunk foo:0() {
+    bb0(): {
+        %0 = (bar: 0, baz: 1, buz: 2)
+
+        return %0
+    }
+}
+
+*thunk {thunk#1}() {
+    bb0(): {
+        %0 = apply (foo:0 as FnPtr)
+
+        return %0.bar
+    }
+}

@@ -4,19 +4,19 @@ use hashql_ast::node::expr::Expr;
 use hashql_core::{
     heap::Heap,
     module::ModuleRegistry,
-    pretty::{PrettyOptions, PrettyPrint as _},
-    r#type::environment::Environment,
+    pretty::{Formatter, RenderOptions},
+    r#type::{TypeFormatterOptions, environment::Environment},
 };
 use hashql_hir::{
     context::HirContext,
     intern::Interner,
     lower::hoist::{GraphHoisting, GraphHoistingConfig},
     node::Node,
-    pretty::PrettyPrintEnvironment,
+    pretty::{NodeFormatter, NodeFormatterOptions},
 };
 
 use super::{
-    Suite, SuiteDiagnostic, hir_lower_alias_replacement::TestOptions,
+    RunContext, Suite, SuiteDiagnostic, hir_lower_alias_replacement::TestOptions,
     hir_lower_normalization::hir_lower_normalization,
 };
 use crate::suite::common::Header;
@@ -45,9 +45,10 @@ impl Suite for HirLowerGraphHoistingSuite {
 
     fn run<'heap>(
         &self,
-        heap: &'heap Heap,
+        RunContext {
+            heap, diagnostics, ..
+        }: RunContext<'_, 'heap>,
         expr: Expr<'heap>,
-        diagnostics: &mut Vec<SuiteDiagnostic>,
     ) -> Result<String, SuiteDiagnostic> {
         let mut environment = Environment::new(expr.span, heap);
         let registry = ModuleRegistry::new(&environment);
@@ -68,18 +69,21 @@ impl Suite for HirLowerGraphHoistingSuite {
             },
         )?;
 
+        let formatter = Formatter::new(heap);
+        let mut formatter = NodeFormatter::new(
+            &formatter,
+            &environment,
+            &context,
+            NodeFormatterOptions {
+                r#type: TypeFormatterOptions::terse(),
+            },
+        );
+
         let _ = writeln!(
             output,
             "\n{}\n\n{}",
             Header::new("HIR after graph hoisting"),
-            node.pretty_print(
-                &PrettyPrintEnvironment {
-                    env: &environment,
-                    symbols: &context.symbols,
-                    map: &context.map,
-                },
-                PrettyOptions::default().without_color()
-            )
+            formatter.render(node, RenderOptions::default().with_plain())
         );
 
         Ok(output)

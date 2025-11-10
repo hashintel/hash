@@ -6,5 +6,5 @@ error[lower::generic-argument-mismatch]: Incorrect number of type arguments
   │      │                      Remove this argument
   │      This type constructor requires 2 generic arguments, but 3 were provided
   │
-  ├ help: This type constructor accepts exactly 2 generic arguments. Remove the extra parameter: Person<T, U>
+  ├ help: This type constructor accepts exactly 2 generic arguments. Remove the extra parameter: Person:0<T, U>
   ╰ note: Generic type parameters must be provided when instantiating parameterized types. Each parameter corresponds to a specific type that will be substituted throughout the type definition.

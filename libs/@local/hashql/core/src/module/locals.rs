@@ -1,11 +1,8 @@
 use core::ops::Index;
 
-use pretty::{DocAllocator as _, RcAllocator, RcDoc};
-
 use crate::{
     collections::{FastHashMap, TinyVec},
     intern::Interned,
-    pretty::{PrettyPrint, PrettyPrintBoundary},
     symbol::Symbol,
     r#type::{
         TypeId,
@@ -59,53 +56,10 @@ impl<'heap> TypeDef<'heap> {
     }
 }
 
-impl<'heap> PrettyPrint<'heap, Environment<'heap>> for TypeDef<'heap> {
-    fn pretty(
-        &self,
-        env: &Environment<'heap>,
-        boundary: &mut PrettyPrintBoundary,
-    ) -> RcDoc<'heap, anstyle::Style> {
-        match &*self.arguments {
-            [] => RcDoc::nil(),
-            _ => RcAllocator
-                .intersperse(
-                    self.arguments
-                        .iter()
-                        .map(|argument| argument.pretty(env, boundary)),
-                    RcDoc::text(",").append(RcDoc::softline()),
-                )
-                .nest(1)
-                .group()
-                .angles()
-                .into_doc(),
-        }
-        .group()
-        .append(RcDoc::softline())
-        .append("=")
-        .append(RcDoc::softline())
-        .append(boundary.pretty_type(env, self.id))
-        .group()
-    }
-}
-
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub struct Local<'heap, T> {
     pub name: Symbol<'heap>,
     pub value: T,
-}
-
-impl<'heap, E, T> PrettyPrint<'heap, E> for Local<'heap, T>
-where
-    T: PrettyPrint<'heap, E>,
-{
-    fn pretty(&self, env: &E, boundary: &mut PrettyPrintBoundary) -> RcDoc<'heap, anstyle::Style> {
-        RcDoc::text("type")
-            .append(RcDoc::space())
-            .append(RcDoc::text(self.name.unwrap()))
-            .group()
-            .append(self.value.pretty(env, boundary))
-            .group()
-    }
 }
 
 #[derive(Debug)]

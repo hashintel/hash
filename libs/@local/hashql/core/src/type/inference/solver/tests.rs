@@ -5,7 +5,6 @@ use super::{Constraint, InferenceSolver, VariableConstraint};
 use crate::{
     collections::{FastHashMap, SmallVec},
     heap::Heap,
-    pretty::PrettyPrint as _,
     span::SpanId,
     symbol::Ident,
     r#type::{

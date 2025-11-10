@@ -63,6 +63,7 @@ use crate::{
     lower::dataflow::VariableDependencies,
     node::{
         Node,
+        branch::If,
         closure::Closure,
         graph::Graph,
         r#let::{Binding, VarId},
@@ -299,6 +300,44 @@ impl<'heap> Fold<'heap> for GraphHoisting<'_, '_, 'heap> {
         let Ok(graph) = fold::walk_graph(self, graph);
         self.nested_inside_graph = previous;
         Ok(graph)
+    }
+
+    /// Processes if expressions, preventing hoisting from branches to preserve evaluation order.
+    ///
+    /// If statements introduce control flow where only one branch executes. Hoisting bindings
+    /// from inside branches would cause them to always execute, changing program semantics:
+    ///
+    /// ```text
+    /// // Before hoisting:
+    /// if condition {
+    ///   let x = expensive_computation();  // Only runs if condition is true
+    ///   x
+    /// } else {
+    ///   0
+    /// }
+    ///
+    /// // After incorrect hoisting:
+    /// let x = expensive_computation();    // Always runs, breaking semantics!
+    /// if condition {
+    ///   x
+    /// } else {
+    ///   0
+    /// }
+    /// ```
+    fn fold_if(&mut self, If { test, then, r#else }: If<'heap>) -> Self::Output<If<'heap>> {
+        // Process the test expression with hoisting enabled (safe since test always executes)
+        let test = self.fold_node(test)?;
+
+        // Disable hoisting for branches to preserve conditional evaluation
+        let prev_scope_sources = self.scope_sources.take();
+
+        let then = self.fold_node(then)?;
+        let r#else = self.fold_node(r#else)?;
+
+        // Restore hoisting state for outer scope
+        self.scope_sources = prev_scope_sources;
+
+        Ok(If { test, then, r#else })
     }
 
     /// Processes closure definitions, potentially enabling hoisting for nested expressions.

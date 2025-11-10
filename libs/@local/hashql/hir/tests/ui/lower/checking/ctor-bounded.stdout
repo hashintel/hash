@@ -4,15 +4,15 @@ Person:0(2)
 
 ════ HIR after type checking ═══════════════════════════════════════════════════
 
-#ctor(fn(Integer) -> Person:0[Integer], arguments: [T:0])(2)
+::main::Person:0(2)
 
 ════ Types ═════════════════════════════════════════════════════════════════════
 
-┌─ #ctor(fn(Integer) -> Person:0[Integer], arguments: [T:0])(2)
-└→ Person:0[Integer]
+┌─ ::main::Person:0(2)
+└→ ::main::Person:0(Integer)
 
-┌─ #ctor(fn(Integer) -> Person:0[Integer], arguments: [T:0])
-└→ fn(Integer) -> Person:0[Integer]
+┌─ ::main::Person:0
+└→ (Integer) -> ::main::Person:0(Integer)
 
 ┌─ 2
 └→ Integer

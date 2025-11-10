@@ -9,10 +9,12 @@
 
     // Library Features
     assert_matches,
+    duration_from_nanos_u128,
     file_buffered,
     formatting_options,
     lock_value_accessors,
     pattern,
+    string_from_utf8_lossy_owned,
 )]
 
 extern crate alloc;
@@ -25,6 +27,7 @@ use std::{
     panic::{self, PanicHookInfo},
     path::PathBuf,
     process::exit,
+    time::Instant,
 };
 
 use guppy::{
@@ -116,10 +119,20 @@ impl Options {
 
         let graph = PackageGraph::from_command(&mut command).expect("failed to load package graph");
 
+        let now = Instant::now();
         let tests = find::find_tests(&graph);
-        let statistics = Statistics::new();
+        tracing::info!(
+            "found {} test groups with {} test cases, in {:?}",
+            tests.len(),
+            tests.iter().map(|group| group.cases.len()).sum::<usize>(),
+            now.elapsed()
+        );
 
+        let mut statistics = Statistics::new();
+
+        let now = Instant::now();
         let mut trials = TrialSet::from_test(tests, &statistics);
+        tracing::info!("created trial set in {:?}", now.elapsed());
 
         if let Some(filter) = self.filter {
             trials.filter(filter, &graph);
@@ -130,15 +143,18 @@ impl Options {
                 let total = trials.len();
                 let ignored = trials.ignored();
 
-                setup_progress_header!(reporter, Summary { total, ignored }, statistics);
+                setup_progress_header!(reporter, Summary { total, ignored }, &statistics);
                 panic::set_hook(Box::new(panic_hook));
 
                 let reports = trials.run(&TrialContext { bless });
                 let failures = reports.len();
 
+                let timings = statistics.timings();
+
                 tracing::info!(
                     success = total - ignored - failures,
                     failures = failures,
+                    ?timings,
                     "finished trial execution"
                 );
 

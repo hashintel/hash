@@ -1,74 +1,41 @@
 ════ Initial HIR ═══════════════════════════════════════════════════════════════
 
-#let a:0 = true
-     b:0 = true
+let a:0 = true,
+    b:0 = true
 in
-if true ::core::option::Some(::graph::tail::collect(::graph::body::filter(::graph::head::entities(::graph::tmp::decision_time_now()),
-#fn(vertex:0: _0): _1 ->
-    ::core::cmp::eq(a:0, b:0)))) ::core::option::None()
+if true 
+then
+    ::core::option::Some(
+        ::graph::tail::collect(
+            ::graph::body::filter(
+                ::graph::head::entities(::graph::tmp::decision_time_now()),
+                (vertex:0: _0): _1 -> ::core::cmp::eq(a:0, b:0)
+            )
+        )
+    )
+else ::core::option::None()
 
 ════ HIR after graph hoisting ══════════════════════════════════════════════════
 
-#let a:0 = true
-     b:0 = true
-     %10 = if true #let %3 = ::graph::tmp::decision_time_now()
-              %4 = (a:0 == b:0)
-              %5 = ::graph::head::entities(%3)
-                  |> ::graph::body::filter(#fn(vertex:0: Entity[(id:
-                   EntityRecordId[(edition_id: EntityEditionId[Uuid[String]],
-                    entity_id: EntityId[(draft_id: (None[Null]
-                      | Some[DraftId[Uuid[String]]]), entity_uuid:
-                     EntityUuid[Uuid[String]], web_id:
-                     WebId[ActorGroupEntityUuid[Uuid[String]]])])], link_data:
-                   (None[Null]
-                    | Some[LinkData[(left_entity_id: EntityId[(draft_id:
-                      (None[Null] | Some[DraftId[Uuid[String]]]), entity_uuid:
-                      EntityUuid[Uuid[String]], web_id:
-                      WebId[ActorGroupEntityUuid[Uuid[String]]])],
-                     right_entity_id: EntityId[(draft_id: (None[Null]
-                       | Some[DraftId[Uuid[String]]]), entity_uuid:
-                      EntityUuid[Uuid[String]], web_id:
-                      WebId[ActorGroupEntityUuid[Uuid[String]]])])]]),
-                   properties: ?)]): Boolean ->
-                      #let 
-                      in
-                      %4) |> ::graph::tail::collect
-              %6 = #ctor(fn(List<Entity[(id: EntityRecordId[(edition_id:
-                    EntityEditionId[Uuid[String]], entity_id:
-                    EntityId[(draft_id: (None[Null]
-                      | Some[DraftId[Uuid[String]]]), entity_uuid:
-                     EntityUuid[Uuid[String]], web_id:
-                     WebId[ActorGroupEntityUuid[Uuid[String]]])])], link_data:
-                   (None[Null]
-                    | Some[LinkData[(left_entity_id: EntityId[(draft_id:
-                      (None[Null] | Some[DraftId[Uuid[String]]]), entity_uuid:
-                      EntityUuid[Uuid[String]], web_id:
-                      WebId[ActorGroupEntityUuid[Uuid[String]]])],
-                     right_entity_id: EntityId[(draft_id: (None[Null]
-                       | Some[DraftId[Uuid[String]]]), entity_uuid:
-                      EntityUuid[Uuid[String]], web_id:
-                      WebId[ActorGroupEntityUuid[Uuid[String]]])])]]),
-                   properties: ?)]>) -> Some[List<Entity[(id:
-                   EntityRecordId[(edition_id: EntityEditionId[Uuid[String]],
-                    entity_id: EntityId[(draft_id: (None[Null]
-                      | Some[DraftId[Uuid[String]]]), entity_uuid:
-                     EntityUuid[Uuid[String]], web_id:
-                     WebId[ActorGroupEntityUuid[Uuid[String]]])])], link_data:
-                   (None[Null]
-                    | Some[LinkData[(left_entity_id: EntityId[(draft_id:
-                      (None[Null] | Some[DraftId[Uuid[String]]]), entity_uuid:
-                      EntityUuid[Uuid[String]], web_id:
-                      WebId[ActorGroupEntityUuid[Uuid[String]]])],
-                     right_entity_id: EntityId[(draft_id: (None[Null]
-                       | Some[DraftId[Uuid[String]]]), entity_uuid:
-                      EntityUuid[Uuid[String]], web_id:
-                      WebId[ActorGroupEntityUuid[Uuid[String]]])])]]),
-                   properties: ?)]>], arguments: [T])
-              %7 = %6(%5)
-         in
-         %7 #let %8 = #ctor(fn() -> None[Null], arguments: [])
-              %9 = %8()
-         in
-         %9
+let a:0 = true,
+    b:0 = true,
+    %10 = if true 
+          then
+              let %3 = ::graph::tmp::decision_time_now(),
+                  %4 = a:0 == b:0,
+                  %5 = ::graph::head::entities(%3)
+                       |> ::graph::body::filter((vertex:0: Entity): Boolean ->
+                           let  in %4
+                       )
+                       |> ::graph::tail::collect,
+                  %6 = ::core::option::Some,
+                  %7 = %6(%5)
+              in
+              %7
+          else
+              let %8 = ::core::option::None,
+                  %9 = %8()
+              in
+              %9
 in
 %10

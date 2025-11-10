@@ -1,0 +1,24 @@
+fn {ctor#::core::option::None}(%0) {
+    bb0(): {
+        %1 = opaque(::core::option::None, ())
+
+        return %1
+    }
+}
+
+thunk {thunk#0}() {
+    bb0(): {
+        %0 = closure(({ctor#::core::option::None} as FnPtr), ())
+
+        return %0
+    }
+}
+
+*thunk {thunk#1}() {
+    bb0(): {
+        %0 = apply ({thunk#0} as FnPtr)
+        %1 = apply %0.0 %0.1
+
+        return %1
+    }
+}

@@ -4,17 +4,17 @@ use hashql_ast::node::expr::Expr;
 use hashql_core::{
     heap::Heap,
     module::ModuleRegistry,
-    pretty::{PrettyOptions, PrettyPrint as _},
+    pretty::{Formatter, RenderOptions},
     r#type::environment::Environment,
 };
 use hashql_diagnostics::DiagnosticIssues;
 use hashql_hir::{
     context::HirContext, fold::Fold as _, intern::Interner, lower::specialization::Specialization,
-    node::Node, pretty::PrettyPrintEnvironment,
+    node::Node, pretty::NodeFormatter,
 };
 
 use super::{
-    Suite, SuiteDiagnostic, common::Header, hir_lower_alias_replacement::TestOptions,
+    RunContext, Suite, SuiteDiagnostic, common::Header, hir_lower_alias_replacement::TestOptions,
     hir_lower_checking::hir_lower_checking,
 };
 use crate::suite::common::process_issues;
@@ -47,9 +47,10 @@ impl Suite for HirLowerSpecializationSuite {
 
     fn run<'heap>(
         &self,
-        heap: &'heap Heap,
+        RunContext {
+            heap, diagnostics, ..
+        }: RunContext<'_, 'heap>,
         expr: Expr<'heap>,
-        diagnostics: &mut Vec<SuiteDiagnostic>,
     ) -> Result<String, SuiteDiagnostic> {
         let mut environment = Environment::new(expr.span, heap);
         let registry = ModuleRegistry::new(&environment);
@@ -70,18 +71,14 @@ impl Suite for HirLowerSpecializationSuite {
             },
         )?;
 
+        let formatter = Formatter::new(heap);
+        let mut formatter = NodeFormatter::with_defaults(&formatter, &environment, &context);
+
         let _ = writeln!(
             output,
             "\n{}\n\n{}",
             Header::new("HIR after specialization"),
-            node.pretty_print(
-                &PrettyPrintEnvironment {
-                    env: &environment,
-                    symbols: &context.symbols,
-                    map: &context.map,
-                },
-                PrettyOptions::default().without_color()
-            )
+            formatter.render(node, RenderOptions::default().with_plain())
         );
 
         Ok(output)

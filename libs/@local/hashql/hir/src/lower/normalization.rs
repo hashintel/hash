@@ -54,6 +54,7 @@ use core::{convert::Infallible, mem};
 
 use hashql_core::{
     collections::pool::VecPool,
+    intern::Beef,
     span::Spanned,
     r#type::{TypeBuilder, environment::Environment},
     value::Primitive,
@@ -61,7 +62,7 @@ use hashql_core::{
 
 use crate::{
     context::HirContext,
-    fold::{self, Fold, beef::Beef},
+    fold::{self, Fold},
     intern::Interner,
     map::HirInfo,
     node::{

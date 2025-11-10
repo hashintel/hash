@@ -20,8 +20,8 @@
 ///
 /// # Examples
 ///
-/// ```rust,ignore
-/// // Example usage within the module
+/// ```rust
+/// # use hashql_core::algorithms::co_sort;
 /// let mut keys = [3, 1, 4, 1, 5];
 /// let mut values = ['c', 'a', 'd', 'b', 'e'];
 ///

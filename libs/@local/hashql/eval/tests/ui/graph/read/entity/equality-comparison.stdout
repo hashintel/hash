@@ -1,39 +1,27 @@
 ════ HIR ═══════════════════════════════════════════════════════════════════════
 
-#let %1 = thunk(() ->
-         #let %6 = ::graph::tmp::decision_time_now()
-                  %7 = %6()
-             in
-             %7
-         )
-     %5 = thunk(() ->
-         #let %8 = %1()
-                  %9 = ::graph::head::entities(%8)
-                      |> ::graph::body::filter(#fn(vertex:0: Entity[(id:
-                       EntityRecordId[(edition_id:
-                        EntityEditionId[Uuid[String]], entity_id:
-                        EntityId[(draft_id: (None[Null]
-                          | Some[DraftId[Uuid[String]]]), entity_uuid:
-                         EntityUuid[Uuid[String]], web_id:
-                         WebId[ActorGroupEntityUuid[Uuid[String]]])])],
-                       link_data: (None[Null]
-                        | Some[LinkData[(left_entity_id: EntityId[(draft_id:
-                          (None[Null] | Some[DraftId[Uuid[String]]]),
-                          entity_uuid: EntityUuid[Uuid[String]], web_id:
-                          WebId[ActorGroupEntityUuid[Uuid[String]]])],
-                         right_entity_id: EntityId[(draft_id: (None[Null]
-                           | Some[DraftId[Uuid[String]]]), entity_uuid:
-                          EntityUuid[Uuid[String]], web_id:
-                          WebId[ActorGroupEntityUuid[Uuid[String]]])])]]),
-                       properties: ?)]): Boolean ->
-                          #let %2 = (true == false)
-                               %3 = (true != false)
-                               %4 = if %2 true %3
-                          in
-                          %4) |> ::graph::tail::collect
-             in
-             %9
-         )
+let %1 = thunk ->
+        let %6 = ::graph::tmp::decision_time_now(),
+            %7 = %6()
+        in
+        %7,
+    %2 = thunk -> let %8 = true == false in %8,
+    %4 = thunk ->
+        let %9 = %2(),
+            %10 = if %9 
+                  then true
+                  else let %3 = true != false in %3
+        in
+        %10,
+    %5 = thunk ->
+        let %11 = %1(),
+            %13 = ::graph::head::entities(%11)
+                  |> ::graph::body::filter((vertex:0: Entity): Boolean ->
+                      let %12 = %4() in %12
+                  )
+                  |> ::graph::tail::collect
+        in
+        %13
 in
 %5
 

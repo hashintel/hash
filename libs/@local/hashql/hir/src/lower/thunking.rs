@@ -207,6 +207,7 @@ impl<'ctx, 'env, 'hir, 'heap> Thunking<'ctx, 'env, 'hir, 'heap> {
                 body
             }
             NodeKind::Data(Data::Primitive(_)) | NodeKind::Access(_) => {
+                let Ok(body) = self.fold_node(body);
                 ensure_local_variable(self.context, &mut bindings, body)
             }
             NodeKind::Data(_)
@@ -346,7 +347,7 @@ impl<'heap> Fold<'heap> for Thunking<'_, '_, '_, 'heap> {
 
         self.trampoline(self.context.interner.intern_node(NodeData {
             id,
-            span: self.current_node().span,
+            span: current_node.span,
             kind: NodeKind::Call(Call {
                 kind: PointerKind::Thin,
                 function: current_node,

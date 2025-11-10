@@ -5654,13 +5654,13 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@effect/vitest@npm:0.26.0":
-  version: 0.26.0
-  resolution: "@effect/vitest@npm:0.26.0"
+"@effect/vitest@npm:0.27.0":
+  version: 0.27.0
+  resolution: "@effect/vitest@npm:0.27.0"
   peerDependencies:
-    effect: ^3.18.0
+    effect: ^3.19.0
     vitest: ^3.2.0
-  checksum: 10c0/284c9ad3c8ac0544c599b0b9ddfb0f9d883b429dc257da48699997f3dd53ab9df1943b1f2974b2f6dd9aa2d4e3f92e55a65f258a06fad8dbdff86c73666f3b7b
+  checksum: 10c0/6d5d26e7375c7dab2c48f97b8a1d27de7a4693a9b91a89f246d08c84c43b07f435fb47c9498c34344bc6df3403f6b50198cb99afaf5062630fd83413ca92800b
   languageName: node
   linkType: hard
 
@@ -9545,7 +9545,7 @@ __metadata:
     "@effect/platform-node": "npm:0.98.4"
     "@effect/rpc": "npm:0.71.1"
     "@effect/sql": "npm:0.46.0"
-    "@effect/vitest": "npm:0.26.0"
+    "@effect/vitest": "npm:0.27.0"
     "@libp2p/crypto": "npm:5.1.12"
     "@libp2p/identify": "npm:4.0.5"
     "@libp2p/interface": "npm:3.0.2"
@@ -14568,6 +14568,7 @@ __metadata:
     "@rust/hashql-diagnostics": "npm:0.0.0-private"
     "@rust/hashql-eval": "npm:0.0.0-private"
     "@rust/hashql-hir": "npm:0.0.0-private"
+    "@rust/hashql-mir": "npm:0.0.0-private"
     "@rust/hashql-syntax-jexpr": "npm:0.0.0-private"
   languageName: unknown
   linkType: soft
@@ -14609,11 +14610,12 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@rust/hashql-mir@workspace:libs/@local/hashql/mir":
+"@rust/hashql-mir@npm:0.0.0-private, @rust/hashql-mir@workspace:libs/@local/hashql/mir":
   version: 0.0.0-use.local
   resolution: "@rust/hashql-mir@workspace:libs/@local/hashql/mir"
   dependencies:
     "@rust/hashql-core": "npm:0.0.0-private"
+    "@rust/hashql-diagnostics": "npm:0.0.0-private"
     "@rust/hashql-hir": "npm:0.0.0-private"
   languageName: unknown
   linkType: soft

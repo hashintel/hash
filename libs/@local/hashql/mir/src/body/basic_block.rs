@@ -22,6 +22,10 @@ id::newtype!(
     pub struct BasicBlockId(u32 is 0..=0xFFFF_FF00)
 );
 
+impl BasicBlockId {
+    pub const PLACEHOLDER: Self = Self(0xFFFF_FF00);
+}
+
 id::newtype_collections!(pub type BasicBlock* from BasicBlockId);
 
 /// A basic block in the HashQL MIR control-flow graph.

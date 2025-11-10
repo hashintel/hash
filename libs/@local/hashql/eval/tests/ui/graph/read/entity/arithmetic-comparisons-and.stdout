@@ -1,45 +1,39 @@
 ════ HIR ═══════════════════════════════════════════════════════════════════════
 
-#let %1 = thunk(() ->
-         #let %10 = ::graph::tmp::decision_time_now()
-                  %11 = %10()
-             in
-             %11
-         )
-     %9 = thunk(() ->
-         #let %12 = %1()
-                  %13 = ::graph::head::entities(%12)
-                      |> ::graph::body::filter(#fn(vertex:0: Entity[(id:
-                       EntityRecordId[(edition_id:
-                        EntityEditionId[Uuid[String]], entity_id:
-                        EntityId[(draft_id: (None[Null]
-                          | Some[DraftId[Uuid[String]]]), entity_uuid:
-                         EntityUuid[Uuid[String]], web_id:
-                         WebId[ActorGroupEntityUuid[Uuid[String]]])])],
-                       link_data: (None[Null]
-                        | Some[LinkData[(left_entity_id: EntityId[(draft_id:
-                          (None[Null] | Some[DraftId[Uuid[String]]]),
-                          entity_uuid: EntityUuid[Uuid[String]], web_id:
-                          WebId[ActorGroupEntityUuid[Uuid[String]]])],
-                         right_entity_id: EntityId[(draft_id: (None[Null]
-                           | Some[DraftId[Uuid[String]]]), entity_uuid:
-                          EntityUuid[Uuid[String]], web_id:
-                          WebId[ActorGroupEntityUuid[Uuid[String]]])])]]),
-                       properties: ?)]): Boolean ->
-                          #let %2 = (1 > 2)
-                               %8 = if %2 #let %3 = (1 >= 2)
-                                        %7 = if %3 #let %4 = (1 < 2)
-                                                 %5 = (1 <= 2)
-                                                 %6 = if %4 %5 false
-                                            in
-                                            %6 false
+let %1 = thunk ->
+        let %10 = ::graph::tmp::decision_time_now(),
+            %11 = %10()
+        in
+        %11,
+    %2 = thunk -> let %12 = 1 > 2 in %12,
+    %8 = thunk ->
+        let %13 = %2(),
+            %14 = if %13 
+                  then
+                      let %3 = 1 >= 2,
+                          %7 = if %3 
+                               then
+                                   let %4 = 1 < 2,
+                                       %6 = if %4 
+                                            then let %5 = 1 <= 2 in %5
+                                            else false
                                    in
-                                   %7 false
-                          in
-                          %8) |> ::graph::tail::collect
-             in
-             %13
-         )
+                                   %6
+                               else false
+                      in
+                      %7
+                  else false
+        in
+        %14,
+    %9 = thunk ->
+        let %15 = %1(),
+            %17 = ::graph::head::entities(%15)
+                  |> ::graph::body::filter((vertex:0: Entity): Boolean ->
+                      let %16 = %8() in %16
+                  )
+                  |> ::graph::tail::collect
+        in
+        %17
 in
 %9
 

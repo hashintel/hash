@@ -1,8 +1,9 @@
 use alloc::borrow::Cow;
 
 use hashql_core::{
-    pretty::{PrettyOptions, PrettyPrint as _},
+    pretty::{Formatter, RenderOptions},
     span::SpanId,
+    r#type::environment::Environment,
 };
 use hashql_diagnostics::{
     Diagnostic, Label,
@@ -11,7 +12,7 @@ use hashql_diagnostics::{
     severity::Severity,
 };
 
-use crate::{node::Node, pretty::PrettyPrintEnvironment};
+use crate::{context::HirContext, node::Node, pretty::NodeFormatter};
 
 pub type SpecializationDiagnostic = Diagnostic<SpecializationDiagnosticCategory, SpanId>;
 
@@ -139,10 +140,15 @@ pub(crate) fn unknown_intrinsic(span: SpanId, intrinsic_name: &str) -> Specializ
 /// This occurs when following a graph chain but encountering a specialized operation
 /// that is not a graph operation (e.g., a math operation that was already processed).
 pub(crate) fn invalid_graph_chain<'heap>(
-    env: &PrettyPrintEnvironment<'_, 'heap>,
+    env: &Environment<'heap>,
+    context: &HirContext<'_, 'heap>,
+
     span: SpanId,
     node: Node<'heap>,
 ) -> SpecializationDiagnostic {
+    let formatter = Formatter::new(env.heap);
+    let mut formatter = NodeFormatter::with_defaults(&formatter, env, context);
+
     let mut diagnostic = Diagnostic::new(
         SpecializationDiagnosticCategory::InvalidGraphChain,
         Severity::Error,
@@ -154,7 +160,7 @@ pub(crate) fn invalid_graph_chain<'heap>(
          graph data, such as filtering, entity selection, or other graph transformations. \
          Operations like math, comparisons, or other non-graph functions cannot be part of a \
          graph chain.",
-        node.pretty_print(env, PrettyOptions::default().with_max_width(60))
+        formatter.render(node, RenderOptions::default().with_max_width(60))
     )));
 
     diagnostic.add_message(Message::note(
@@ -172,10 +178,15 @@ pub(crate) fn invalid_graph_chain<'heap>(
 /// This occurs when a graph operation chain contains a function call that is not
 /// mapped to an intrinsic operation.
 pub(crate) fn non_intrinsic_graph_operation<'heap>(
-    env: &PrettyPrintEnvironment<'_, 'heap>,
+    env: &Environment<'heap>,
+    context: &HirContext<'_, 'heap>,
+
     span: SpanId,
     function: Node<'heap>,
 ) -> SpecializationDiagnostic {
+    let formatter = Formatter::new(env.heap);
+    let mut formatter = NodeFormatter::with_defaults(&formatter, env, context);
+
     let mut diagnostic = Diagnostic::new(
         SpecializationDiagnosticCategory::NonIntrinsicGraphOperation,
         Severity::Error,
@@ -187,7 +198,8 @@ pub(crate) fn non_intrinsic_graph_operation<'heap>(
          functions that are part of the HashQL graph API. Higher-order functions (HOFs) and \
          user-defined functions are not supported yet. To track support for user-defined \
          functions see https://linear.app/hash/issue/H-4776/hashql-allow-user-defined-functions-in-graph-pipelines",
-         function.pretty_print(env, PrettyOptions::default().with_max_width(60)))));
+         formatter.render(function, RenderOptions::default().with_max_width(60))
+    )));
 
     diagnostic.add_message(Message::note(
         "Graph intrinsics are built-in operations like `::graph::head::entities`, \

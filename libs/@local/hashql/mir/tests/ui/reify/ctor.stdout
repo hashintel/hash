@@ -1,0 +1,24 @@
+fn {ctor#::core::uuid::Uuid}(%0, %1) {
+    bb0(): {
+        %2 = opaque(::core::uuid::Uuid, %1)
+
+        return %2
+    }
+}
+
+thunk {thunk#0}() {
+    bb0(): {
+        %0 = closure(({ctor#::core::uuid::Uuid} as FnPtr), ())
+
+        return %0
+    }
+}
+
+*thunk {thunk#1}() {
+    bb0(): {
+        %0 = apply ({thunk#0} as FnPtr)
+        %1 = apply %0.0 %0.1 "54a3cf40-9674-4e96-9607-b7139125d700"
+
+        return %1
+    }
+}

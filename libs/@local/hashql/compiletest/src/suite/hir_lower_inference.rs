@@ -5,20 +5,22 @@ use hashql_core::{
     collections::HashMapExt as _,
     heap::Heap,
     module::ModuleRegistry,
-    pretty::{PrettyOptions, PrettyPrint as _},
-    r#type::{environment::Environment, inference::InferenceSolver},
+    pretty::{Formatter, RenderOptions},
+    r#type::{
+        TypeFormatter, TypeFormatterOptions, environment::Environment, inference::InferenceSolver,
+    },
 };
 use hashql_hir::{
     context::HirContext,
     intern::Interner,
     lower::inference::{TypeInference, TypeInferenceResidual},
     node::{HirIdMap, Node},
-    pretty::PrettyPrintEnvironment,
+    pretty::NodeFormatter,
     visit::{self, Visitor},
 };
 
 use super::{
-    Suite, SuiteDiagnostic,
+    RunContext, Suite, SuiteDiagnostic,
     common::{Annotated, Header},
     hir_lower_ctor::hir_lower_ctor,
 };
@@ -85,9 +87,10 @@ impl Suite for HirLowerTypeInferenceSuite {
 
     fn run<'heap>(
         &self,
-        heap: &'heap Heap,
+        RunContext {
+            heap, diagnostics, ..
+        }: RunContext<'_, 'heap>,
         expr: Expr<'heap>,
-        diagnostics: &mut Vec<SuiteDiagnostic>,
     ) -> Result<String, SuiteDiagnostic> {
         let mut environment = Environment::new(expr.span, heap);
         let registry = ModuleRegistry::new(&environment);
@@ -112,18 +115,19 @@ impl Suite for HirLowerTypeInferenceSuite {
 
         environment.substitution = substitution;
 
+        let formatter = Formatter::new(heap);
+        let mut value_formatter = NodeFormatter::with_defaults(&formatter, &environment, &context);
+        let mut type_formatter = TypeFormatter::new(
+            &formatter,
+            &environment,
+            TypeFormatterOptions::default().with_resolve_substitutions(true),
+        );
+
         let _ = writeln!(
             output,
             "\n{}\n\n{}",
             Header::new("HIR after type inference"),
-            node.pretty_print(
-                &PrettyPrintEnvironment {
-                    env: &environment,
-                    symbols: &context.symbols,
-                    map: &context.map,
-                },
-                PrettyOptions::default().without_color()
-            )
+            value_formatter.render(node, RenderOptions::default().with_plain())
         );
 
         let nodes = collect_hir_nodes(node);
@@ -135,22 +139,11 @@ impl Suite for HirLowerTypeInferenceSuite {
                 output,
                 "{}\n",
                 Annotated {
-                    content: node.pretty_print(
-                        &PrettyPrintEnvironment {
-                            env: &environment,
-                            symbols: &context.symbols,
-                            map: &context.map,
-                        },
-                        PrettyOptions::default().without_color()
-                    ),
-                    annotation: environment
-                        .r#type(context.map.type_id(node.id))
-                        .pretty_print(
-                            &environment,
-                            PrettyOptions::default()
-                                .without_color()
-                                .with_resolve_substitutions(true)
-                        )
+                    content: value_formatter.render(node, RenderOptions::default().with_plain()),
+                    annotation: type_formatter.render(
+                        context.map.type_id(node.id),
+                        RenderOptions::default().with_plain()
+                    )
                 }
             );
         }
