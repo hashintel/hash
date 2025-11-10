@@ -120,8 +120,7 @@ pub struct Body<'heap> {
 
     /// The local declarations for this MIR body.
     ///
-    /// This [`LocalVec`] contains all the local variables declared in this body,
-    /// indexed by [`LocalId`].
+    /// This [`LocalVec`] contains all the local variables declared in this body.
     pub local_decls: LocalVec<LocalDecl<'heap>, &'heap Heap>,
 
     /// The collection of basic blocks that make up this body's control-flow graph.
