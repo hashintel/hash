@@ -735,39 +735,6 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@apps/hash-realtime@npm:0.0.0-private, @apps/hash-realtime@workspace:apps/hash-realtime":
-  version: 0.0.0-use.local
-  resolution: "@apps/hash-realtime@workspace:apps/hash-realtime"
-  dependencies:
-    "@local/eslint": "npm:0.0.0-private"
-    "@local/hash-backend-utils": "npm:0.0.0-private"
-    "@local/tsconfig": "npm:0.0.0-private"
-    "@types/node": "npm:22.18.13"
-    eslint: "npm:9.38.0"
-    set-interval-async: "npm:3.0.3"
-    slonik: "npm:24.2.0"
-    tsx: "npm:4.20.6"
-    typescript: "npm:5.9.3"
-  languageName: unknown
-  linkType: soft
-
-"@apps/hash-search-loader@npm:0.0.0-private, @apps/hash-search-loader@workspace:apps/hash-search-loader":
-  version: 0.0.0-use.local
-  resolution: "@apps/hash-search-loader@workspace:apps/hash-search-loader"
-  dependencies:
-    "@apps/hash-api": "npm:0.0.0-private"
-    "@local/eslint": "npm:0.0.0-private"
-    "@local/hash-backend-utils": "npm:0.0.0-private"
-    "@local/hash-isomorphic-utils": "npm:0.0.0-private"
-    "@local/tsconfig": "npm:0.0.0-private"
-    "@types/node": "npm:22.18.13"
-    eslint: "npm:9.38.0"
-    hot-shots: "npm:8.5.2"
-    tsx: "npm:4.20.6"
-    typescript: "npm:5.9.3"
-  languageName: unknown
-  linkType: soft
-
 "@apps/linear-mcp@workspace:apps/mcp/linear":
   version: 0.0.0-use.local
   resolution: "@apps/linear-mcp@workspace:apps/mcp/linear"
@@ -9623,7 +9590,6 @@ __metadata:
     "@local/internal-api-client": "npm:0.0.0-private"
     "@local/status": "npm:0.0.0-private"
     "@local/tsconfig": "npm:0.0.0-private"
-    "@opensearch-project/opensearch": "npm:2.13.0"
     "@opentelemetry/api": "npm:1.9.0"
     "@opentelemetry/api-logs": "npm:0.207.0"
     "@sentry/node": "npm:10.22.0"
@@ -10637,20 +10603,6 @@ __metadata:
   bin:
     openapi-generator-cli: main.js
   checksum: 10c0/73670f0e6213ffe81d562b6a2afb65453ef0c60700b7466e60fd763c2b731fff34e4e8fde4107dca113b23693e7315fe4f5bcc4a71f048303eeba5542e1e3efb
-  languageName: node
-  linkType: hard
-
-"@opensearch-project/opensearch@npm:2.13.0":
-  version: 2.13.0
-  resolution: "@opensearch-project/opensearch@npm:2.13.0"
-  dependencies:
-    aws4: "npm:^1.11.0"
-    debug: "npm:^4.3.1"
-    hpagent: "npm:^1.2.0"
-    json11: "npm:^2.0.0"
-    ms: "npm:^2.1.3"
-    secure-json-parse: "npm:^2.4.0"
-  checksum: 10c0/c379d51fda6062fc1b857789583646ac9eecc0a255db1f7601220d7f8f84e50fcd08de81fb66ffdceb75b7752b2dd21d8aba0e397f0e8700f456332021d1db36
   languageName: node
   linkType: hard
 
@@ -17291,9 +17243,8 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@tests/hash-playwright@workspace:tests/hash-playwright"
   dependencies:
+    "@apps/hash-api": "npm:0.0.0-private"
     "@apps/hash-frontend": "npm:0.0.0-private"
-    "@apps/hash-realtime": "npm:0.0.0-private"
-    "@apps/hash-search-loader": "npm:0.0.0-private"
     "@apps/plugin-browser": "npm:0.0.9"
     "@blockprotocol/graph": "npm:0.4.0-canary.2"
     "@blockprotocol/type-system": "npm:0.1.2-canary.1"
@@ -22057,7 +22008,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"aws4@npm:^1.11.0, aws4@npm:^1.13.2":
+"aws4@npm:^1.13.2":
   version: 1.13.2
   resolution: "aws4@npm:1.13.2"
   checksum: 10c0/c993d0d186d699f685d73113733695d648ec7d4b301aba2e2a559d0cd9c1c902308cc52f4095e1396b23fddbc35113644e7f0a6a32753636306e41e3ed6f1e79
@@ -30103,13 +30054,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"hpagent@npm:^1.2.0":
-  version: 1.2.0
-  resolution: "hpagent@npm:1.2.0"
-  checksum: 10c0/505ef42e5e067dba701ea21e7df9fa73f6f5080e59d53680829827d34cd7040f1ecf7c3c8391abe9df4eb4682ef4a4321608836b5b70a61b88c1b3a03d77510b
-  languageName: node
-  linkType: hard
-
 "html-element-attributes@npm:^1.0.0":
   version: 1.3.1
   resolution: "html-element-attributes@npm:1.3.1"
@@ -32486,15 +32430,6 @@ __metadata:
     remedial: "npm:^1.0.7"
     remove-trailing-spaces: "npm:^1.0.6"
   checksum: 10c0/d28891860a7ae034873ac8ec5f69f5493106afed9a86295f1642a40b27a48df717c63966439a1dec5b8a4b30e99b86cd1b4ca7d979bb8048ffd7f7c67bfd88a3
-  languageName: node
-  linkType: hard
-
-"json11@npm:^2.0.0":
-  version: 2.0.0
-  resolution: "json11@npm:2.0.0"
-  bin:
-    json11: dist/cli.mjs
-  checksum: 10c0/4631af8025d0fac2eab0d06f0382cc6c04c990f29f917cdecd2e5faade13c1ff0779794c237fd9653085eea6f60b6fd2f395b46f3d9d599cce2e12a2bfd61b70
   languageName: node
   linkType: hard
 
@@ -40598,13 +40533,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"secure-json-parse@npm:^2.4.0":
-  version: 2.7.0
-  resolution: "secure-json-parse@npm:2.7.0"
-  checksum: 10c0/f57eb6a44a38a3eeaf3548228585d769d788f59007454214fab9ed7f01fbf2e0f1929111da6db28cf0bcc1a2e89db5219a59e83eeaec3a54e413a0197ce879e4
-  languageName: node
-  linkType: hard
-
 "seedrandom@npm:3.0.5":
   version: 3.0.5
   resolution: "seedrandom@npm:3.0.5"
@@ -40865,13 +40793,6 @@ __metadata:
     functions-have-names: "npm:^1.2.3"
     has-property-descriptors: "npm:^1.0.2"
   checksum: 10c0/fce59f90696c450a8523e754abb305e2b8c73586452619c2bad5f7bf38c7b6b4651895c9db895679c5bef9554339cf3ef1c329b66ece3eda7255785fbe299316
-  languageName: node
-  linkType: hard
-
-"set-interval-async@npm:3.0.3":
-  version: 3.0.3
-  resolution: "set-interval-async@npm:3.0.3"
-  checksum: 10c0/7547bb5265648951f3f799391d970f39be16bae2b462ad54b58e96a6a3eb9dda1f183a3b9a4bfdc0a62637b026b494fae74cda075db1c5762b58d0c9172e6d4c
   languageName: node
   linkType: hard
 
