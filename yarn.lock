@@ -6460,9 +6460,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@figma/code-connect@npm:1.3.7":
-  version: 1.3.7
-  resolution: "@figma/code-connect@npm:1.3.7"
+"@figma/code-connect@npm:1.3.8":
+  version: 1.3.8
+  resolution: "@figma/code-connect@npm:1.3.8"
   dependencies:
     boxen: "npm:5.1.1"
     chalk: "npm:^4.1.2"
@@ -6488,7 +6488,7 @@ __metadata:
     zod-validation-error: "npm:^3.2.0"
   bin:
     figma: bin/figma
-  checksum: 10c0/534752a84ba5cf286768156c41daa3d9ad15201321ac4ec3ea8521f0bdd7263fc6c7e600b2646688e2b9bad5ef54989e40d4e628ce60b71754e1ed495f7f9b91
+  checksum: 10c0/d5536355ea5c18218842ee2ca15f92ac6090b97b81ff6d91d095c604f3dd4b423d685c15f48f813a17a2f8fe616336985bc525f095756a63d106b74955719299
   languageName: node
   linkType: hard
 
@@ -7673,7 +7673,7 @@ __metadata:
   resolution: "@hashintel/ds-components@workspace:libs/@hashintel/ds-components"
   dependencies:
     "@ark-ui/react": "npm:5.26.2"
-    "@figma/code-connect": "npm:1.3.7"
+    "@figma/code-connect": "npm:1.3.8"
     "@hashintel/ds-helpers": "npm:0.0.1"
     "@local/eslint": "npm:0.0.0-private"
     "@local/tsconfig": "npm:0.0.0-private"
