@@ -1,3 +1,4 @@
+import { css } from "@hashintel/ds-helpers/css";
 import { useState } from "react";
 import { v4 as uuidv4 } from "uuid";
 
@@ -382,38 +383,31 @@ export const TypeProperties: React.FC<TypePropertiesProps> = ({
                       handleDeleteElement(element.id, element.name);
                     }}
                     disabled={isDisabled}
-                    className="dimension-delete-button"
-                    style={{
-                      fontSize: 16,
-                      width: 28,
-                      height: 28,
-                      borderRadius: 3,
-                      border: "1px solid rgba(239, 68, 68, 0.2)",
-                      backgroundColor: isDisabled
-                        ? "rgba(0, 0, 0, 0.02)"
-                        : "rgba(239, 68, 68, 0.08)",
-                      color: isDisabled ? "#ccc" : "#ef4444",
-                      cursor: isDisabled ? "not-allowed" : "pointer",
-                      fontWeight: 600,
-                      lineHeight: 1,
-                      transition: "all 0.15s ease",
-                      flexShrink: 0,
+                    className={css({
+                      fontSize: "[16px]",
+                      width: "[28px]",
+                      height: "[28px]",
+                      borderRadius: "[3px]",
+                      border: "1px solid [rgba(239, 68, 68, 0.2)]",
+                      backgroundColor: "[rgba(239, 68, 68, 0.08)]",
+                      color: "[#ef4444]",
+                      cursor: "pointer",
+                      fontWeight: "[600]",
+                      lineHeight: "[1]",
+                      transition: "[all 0.15s ease]",
+                      flexShrink: "[0]",
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
-                    }}
-                    onMouseEnter={(e) => {
-                      if (!isDisabled) {
-                        e.currentTarget.style.backgroundColor =
-                          "rgba(239, 68, 68, 0.15)";
-                      }
-                    }}
-                    onMouseLeave={(e) => {
-                      if (!isDisabled) {
-                        e.currentTarget.style.backgroundColor =
-                          "rgba(239, 68, 68, 0.08)";
-                      }
-                    }}
+                      _hover: {
+                        backgroundColor: "[rgba(239, 68, 68, 0.15)]",
+                      },
+                      _disabled: {
+                        backgroundColor: "[rgba(0, 0, 0, 0.02)]",
+                        color: "[#ccc]",
+                        cursor: "not-allowed",
+                      },
+                    })}
                     aria-label={`Delete dimension ${element.name}`}
                   >
                     ×
