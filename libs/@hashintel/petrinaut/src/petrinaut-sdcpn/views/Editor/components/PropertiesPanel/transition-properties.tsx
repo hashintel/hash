@@ -20,6 +20,7 @@ import { TbDotsVertical, TbSparkles } from "react-icons/tb";
 
 import { Menu } from "../../../../components/menu";
 import { SegmentGroup } from "../../../../components/segment-group";
+import { InfoIconTooltip } from "../../../../components/tooltip";
 import {
   generateDefaultLambdaCode,
   generateDefaultTransitionKernelCode,
@@ -155,12 +156,14 @@ export const TransitionProperties: React.FC<TransitionPropertiesProps> = ({
         />
       </div>
 
-      <div>
+      <div style={{ marginTop: 10 }}>
         <div style={{ fontWeight: 500, fontSize: 12, marginBottom: 4 }}>
           Input Arcs ({transition.inputArcs.length})
         </div>
         {transition.inputArcs.length === 0 ? (
-          <div style={{ fontSize: 12, color: "#999" }}>(none)</div>
+          <div style={{ fontSize: 12, color: "#999" }}>
+            Connect inputs to the transition's left side.
+          </div>
         ) : (
           <DndContext
             sensors={globalMode === "simulate" ? [] : sensors}
@@ -204,7 +207,9 @@ export const TransitionProperties: React.FC<TransitionPropertiesProps> = ({
           Output Arcs ({transition.outputArcs.length})
         </div>
         {transition.outputArcs.length === 0 ? (
-          <div style={{ fontSize: 12, color: "#999" }}>(none)</div>
+          <div style={{ fontSize: 12, color: "#999" }}>
+            Connect outputs to the transition's right side.
+          </div>
         ) : (
           <DndContext
             sensors={globalMode === "simulate" ? [] : sensors}
@@ -243,9 +248,10 @@ export const TransitionProperties: React.FC<TransitionPropertiesProps> = ({
         )}
       </div>
 
-      <div>
-        <div style={{ fontWeight: 500, fontSize: 12, marginBottom: 8 }}>
-          Lambda
+      <div style={{ marginTop: 10 }}>
+        <div style={{ fontWeight: 500, fontSize: 13, marginBottom: 8 }}>
+          Firing time
+          <InfoIconTooltip tooltip="Define the rate at or conditions under which this will transition will fire, optionally based on each set of input tokens’ data (where input tokens have types)." />
         </div>
         <div
           style={{
@@ -282,8 +288,8 @@ export const TransitionProperties: React.FC<TransitionPropertiesProps> = ({
           }}
         >
           {transition.lambdaType === "predicate"
-            ? "Predicate lambda acts as a boolean guard condition that must be satisfied. The transition can only fire when the predicate evaluates to true, enabling discrete control flow."
-            : "Stochastic Rate lambda returns a rate value that determines the probability of the transition firing in continuous time."}
+            ? "For a simple predicate firing check, define a boolean guard condition that must be satisfied. The transition will fire when the function returns true, enabling discrete control flow."
+            : "For a stochastic firing rate, return a value that represents the average rate per second at which the transition will fire."}
         </div>
       </div>
 
@@ -296,7 +302,16 @@ export const TransitionProperties: React.FC<TransitionPropertiesProps> = ({
             marginBottom: 4,
           }}
         >
-          <div style={{ fontWeight: 500, fontSize: 12 }}>Lambda Code</div>
+          <div
+            style={{
+              fontWeight: 500,
+              fontSize: 12,
+            }}
+          >
+            {transition.lambdaType === "predicate"
+              ? "Predicate Firing Code"
+              : "Stochastic Firing Rate Code"}
+          </div>
           {globalMode === "edit" && (
             <Menu
               trigger={
@@ -406,8 +421,9 @@ export const TransitionProperties: React.FC<TransitionPropertiesProps> = ({
             marginBottom: 4,
           }}
         >
-          <div style={{ fontWeight: 500, fontSize: 12 }}>
-            Transition Kernel Code
+          <div style={{ fontWeight: 500, fontSize: 13 }}>
+            Transition Results
+            <InfoIconTooltip tooltip="This function determines the data for output tokens, optionally based on the input token data and any global parameters defined." />
           </div>
           {globalMode === "edit" && (
             <Menu
