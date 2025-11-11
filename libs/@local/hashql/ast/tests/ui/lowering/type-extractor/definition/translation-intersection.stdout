@@ -3,4 +3,5 @@ Expr#4294967040@32
 
 ------------------------
 
-type Combined:0 = ((name: String) & (age: Number))
+┌─ Combined:0<>
+└→ (name: String) & (age: Number)

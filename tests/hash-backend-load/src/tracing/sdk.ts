@@ -2,9 +2,12 @@ import type { Context as OtelContext, Span } from "@opentelemetry/api";
 import opentelemetry, { ROOT_CONTEXT, SpanKind } from "@opentelemetry/api";
 import type { SpanOptions } from "@opentelemetry/api/build/src/trace/SpanOptions";
 import { OTLPTraceExporter } from "@opentelemetry/exporter-trace-otlp-grpc";
-import { Resource } from "@opentelemetry/resources";
+import {
+  defaultResource,
+  resourceFromAttributes,
+} from "@opentelemetry/resources";
 import { NodeSDK } from "@opentelemetry/sdk-node";
-import { SEMRESATTRS_SERVICE_NAME } from "@opentelemetry/semantic-conventions";
+import { ATTR_SERVICE_NAME } from "@opentelemetry/semantic-conventions";
 
 import type { ActionFn, Context } from "../types";
 
@@ -116,9 +119,9 @@ export const initializeTracing: ActionFn<
   }
 
   const sdk = new NodeSDK({
-    resource: Resource.default().merge(
-      new Resource({
-        [SEMRESATTRS_SERVICE_NAME]: "Load tests",
+    resource: defaultResource().merge(
+      resourceFromAttributes({
+        [ATTR_SERVICE_NAME]: "Load tests",
       }),
     ),
     traceExporter: new OTLPTraceExporter(),

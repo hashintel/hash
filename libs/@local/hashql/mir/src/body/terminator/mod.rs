@@ -4,21 +4,19 @@
 //! determine where execution continues. Unlike statements, terminators can affect
 //! control flow by jumping to other blocks, calling functions, or ending execution.
 
-mod branch;
-mod call;
 mod goto;
 mod graph;
 mod r#return;
+mod switch_int;
 mod target;
 
 use hashql_core::span::SpanId;
 
 pub use self::{
-    branch::Branch,
-    call::Call,
     goto::Goto,
-    graph::{GraphRead, GraphReadBody, GraphReadHead, GraphReadTail},
+    graph::{GraphRead, GraphReadBody, GraphReadHead, GraphReadLocation, GraphReadTail},
     r#return::Return,
+    switch_int::{SwitchIf, SwitchInt, SwitchTargets},
     target::Target,
 };
 
@@ -70,13 +68,7 @@ pub enum TerminatorKind<'heap> {
     ///
     /// This terminator kind evaluates a boolean condition and transfers control
     /// to one of two target basic blocks based on the result.
-    Branch(Branch<'heap>),
-
-    /// Function call with potential return.
-    ///
-    /// This terminator kind invokes a function and potentially returns control
-    /// to a successor block.
-    Call(Call<'heap>),
+    SwitchInt(SwitchInt<'heap>),
 
     /// Return from the current function.
     ///

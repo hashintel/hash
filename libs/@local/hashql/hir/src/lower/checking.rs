@@ -1,7 +1,7 @@
 use core::fmt::Display;
 
 use hashql_core::{
-    collections::{FastHashMap, FastHashSet, HashMapExt as _},
+    collections::{FastHashMap, FastHashSet},
     module::{
         Universe,
         item::{IntrinsicItem, IntrinsicValueItem, ItemKind},
@@ -36,12 +36,14 @@ use crate::{
         access::{FieldAccess, IndexAccess},
         branch::If,
         call::Call,
-        closure::Closure,
+        closure::{Closure, extract_signature},
         data::{Dict, List, Struct, Tuple},
         graph::Graph,
-        input::Input,
         r#let::{Let, VarIdMap},
-        operation::{BinaryOperation, TypeAssertion, TypeConstructor, UnaryOperation},
+        operation::{
+            BinaryOperation, InputOp, InputOperation, TypeAssertion, TypeConstructor,
+            UnaryOperation,
+        },
         thunk::Thunk,
         variable::{LocalVariable, QualifiedVariable},
     },
@@ -49,18 +51,17 @@ use crate::{
 };
 
 pub struct TypeCheckingResidual<'heap> {
-    pub types: HirIdMap<TypeId>,
     pub inputs: FastHashMap<Symbol<'heap>, TypeId>,
     pub intrinsics: HirIdMap<&'static str>,
 }
 
-pub struct TypeChecking<'env, 'heap> {
+pub struct TypeChecking<'ctx, 'env, 'hir, 'heap> {
     env: &'env Environment<'heap>,
-    context: &'env HirContext<'env, 'heap>,
+    context: &'ctx mut HirContext<'hir, 'heap>,
 
     locals: VarIdMap<Local<'heap>>,
-    inference: HirIdMap<TypeId>,
     intrinsics: HirIdMap<&'static str>,
+    closures: HirIdMap<TypeId>,
 
     lattice: LatticeEnvironment<'env, 'heap>,
     analysis: AnalysisEnvironment<'env, 'heap>,
@@ -71,20 +72,19 @@ pub struct TypeChecking<'env, 'heap> {
     diagnostics: LoweringDiagnosticIssues,
     analysis_diagnostics: TypeCheckDiagnosticIssues,
 
-    types: HirIdMap<TypeId>,
     inputs: FastHashMap<Symbol<'heap>, TypeId>,
     simplified: TypeIdMap<TypeId>,
 }
 
-impl<'env, 'heap> TypeChecking<'env, 'heap> {
+impl<'ctx, 'env, 'hir, 'heap> TypeChecking<'ctx, 'env, 'hir, 'heap> {
     pub fn new(
         env: &'env Environment<'heap>,
-        context: &'env HirContext<'env, 'heap>,
+        context: &'ctx mut HirContext<'hir, 'heap>,
 
         TypeInferenceResidual {
             locals,
-            types: inference,
             intrinsics,
+            closures,
         }: TypeInferenceResidual<'heap>,
     ) -> Self {
         let mut analysis = AnalysisEnvironment::new(env);
@@ -95,8 +95,8 @@ impl<'env, 'heap> TypeChecking<'env, 'heap> {
             context,
 
             locals,
-            inference,
             intrinsics,
+            closures,
 
             lattice: LatticeEnvironment::new(env),
             analysis,
@@ -107,7 +107,6 @@ impl<'env, 'heap> TypeChecking<'env, 'heap> {
             diagnostics: DiagnosticIssues::new(),
             analysis_diagnostics: DiagnosticIssues::new(),
 
-            types: FastHashMap::default(),
             inputs: FastHashMap::default(),
             simplified: FastHashMap::default(),
         }
@@ -121,13 +120,15 @@ impl<'env, 'heap> TypeChecking<'env, 'heap> {
     }
 
     fn inferred_type(&mut self, id: HirId) -> TypeId {
-        self.simplify.simplify(self.inference[&id])
+        let type_id = self.context.map.type_id(id);
+
+        self.simplified_type(type_id)
     }
 
     fn transfer_type(&mut self, id: HirId) {
         let inferred = self.inferred_type(id);
 
-        self.types.insert_unique(id, inferred);
+        self.context.map.insert_type_id(id, inferred);
     }
 
     fn verify_arity(
@@ -214,7 +215,6 @@ impl<'env, 'heap> TypeChecking<'env, 'heap> {
         );
 
         let residual = TypeCheckingResidual {
-            types: self.types,
             inputs: self.inputs,
             intrinsics: self.intrinsics,
         };
@@ -223,12 +223,12 @@ impl<'env, 'heap> TypeChecking<'env, 'heap> {
     }
 }
 
-impl<'heap> Visitor<'heap> for TypeChecking<'_, 'heap> {
+impl<'heap> Visitor<'heap> for TypeChecking<'_, '_, '_, 'heap> {
     fn visit_type_id(&mut self, id: TypeId) {
         self.simplified_type(id);
     }
 
-    fn visit_node(&mut self, node: &Node<'heap>) {
+    fn visit_node(&mut self, node: Node<'heap>) {
         if !self.visited.insert(node.id) {
             return;
         }
@@ -319,42 +319,15 @@ impl<'heap> Visitor<'heap> for TypeChecking<'_, 'heap> {
         let Let { bindings: _, body } = r#let;
 
         // We simply take the type of the body
-        let body_id = self.types[&body.id];
-        self.types.insert_unique(self.current.id, body_id);
-    }
-
-    fn visit_input(&mut self, input: &'heap Input<'heap>) {
-        visit::walk_input(self, input);
-
-        let inferred = self.inferred_type(self.current.id);
-        self.types.insert_unique(self.current.id, inferred);
-
-        if let Some(default) = &input.default {
-            self.verify_subtype(self.types[&default.id], inferred);
-        }
-
-        // Register the input type
-        match self.inputs.entry(input.name.value) {
-            Entry::Occupied(mut occupied) => {
-                // In case that the input already exists, we need to find the greatest lower bound
-                // (GLB), in case that we have: `input(a, Integer)` and `input(a, Number)`. The only
-                // acceptable input for `a` is logically `Integer`, as it is both a `Number` and a
-                // `Integer`.
-                let existing_id = *occupied.get();
-                let new_id = self.lattice.meet(existing_id, inferred);
-                occupied.insert(new_id);
-            }
-            Entry::Vacant(vacant) => {
-                vacant.insert(inferred);
-            }
-        }
+        let body_id = self.context.map.type_id(body.id);
+        self.context.map.insert_type_id(self.current.id, body_id);
     }
 
     fn visit_type_assertion(&mut self, assertion: &'heap TypeAssertion<'heap>) {
         visit::walk_type_assertion(self, assertion);
 
         let inferred = self.inferred_type(self.current.id);
-        self.types.insert_unique(self.current.id, inferred);
+        self.context.map.insert_type_id(self.current.id, inferred);
 
         // We do not need to check if the type is actually the correct one
         if assertion.force {
@@ -364,7 +337,10 @@ impl<'heap> Visitor<'heap> for TypeChecking<'_, 'heap> {
         let simplified_assertion = self.simplified_type(assertion.r#type);
 
         // value <: assertion
-        self.verify_subtype(self.types[&assertion.value.id], simplified_assertion);
+        self.verify_subtype(
+            self.context.map.type_id(assertion.value.id),
+            simplified_assertion,
+        );
     }
 
     fn visit_type_constructor(&mut self, constructor: &'heap TypeConstructor<'heap>) {
@@ -379,6 +355,32 @@ impl<'heap> Visitor<'heap> for TypeChecking<'_, 'heap> {
 
     fn visit_unary_operation(&mut self, _: &'heap UnaryOperation<'heap>) {
         unreachable!("access operations shouldn't be present yet");
+    }
+
+    fn visit_input_operation(&mut self, operation: &'heap InputOperation<'heap>) {
+        self.transfer_type(self.current.id); // We just need to transfer the (simplified) type of the current input
+
+        // Additionally we need to register the input (if it's a load instruction)
+        if operation.op.value == InputOp::Exists {
+            return; // nothing more that needs to be done
+        }
+
+        let inferred = self.context.map.type_id(self.current.id);
+
+        match self.inputs.entry(operation.name.value) {
+            Entry::Occupied(mut occupied) => {
+                // In case that the input already exists, we need to find the greatest lower bound
+                // (GLB), in case that we have: `input(a, Integer)` and `input(a, Number)`. The only
+                // acceptable input for `a` is logically `Integer`, as it is both a `Number` and a
+                // `Integer`.
+                let existing_id = *occupied.get();
+                let new_id = self.lattice.meet(existing_id, inferred);
+                occupied.insert(new_id);
+            }
+            Entry::Vacant(vacant) => {
+                vacant.insert(inferred);
+            }
+        }
     }
 
     fn visit_field_access(&mut self, access: &'heap FieldAccess<'heap>) {
@@ -402,7 +404,7 @@ impl<'heap> Visitor<'heap> for TypeChecking<'_, 'heap> {
         let closure = builder.closure(
             call.arguments
                 .iter()
-                .map(|argument| self.types[&argument.value.id]),
+                .map(|argument| self.context.map.type_id(argument.value.id)),
             returns_id,
         );
 
@@ -417,17 +419,17 @@ impl<'heap> Visitor<'heap> for TypeChecking<'_, 'heap> {
         // - covariant return value: `R <: ρ`
         //
         // For closure literals we invert the direction and collect `C <: F`
-        self.verify_subtype(self.types[&call.function.id], closure);
+        self.verify_subtype(self.context.map.type_id(call.function.id), closure);
 
-        self.types.insert_unique(self.current.id, returns_id);
+        self.context.map.insert_type_id(self.current.id, returns_id);
     }
 
     fn visit_if(&mut self, r#if: &'heap If<'heap>) {
         visit::walk_if(self, r#if);
 
-        // the test expression must evaluate to a boolean
+        // The test expression must evaluate to a boolean
         let is_test_boolean = self.is_subtype(
-            self.types[&r#if.test.id],
+            self.context.map.type_id(r#if.test.id),
             self.env.intern_type(PartialType {
                 span: r#if.test.span,
                 kind: self
@@ -438,7 +440,7 @@ impl<'heap> Visitor<'heap> for TypeChecking<'_, 'heap> {
         if !is_test_boolean {
             self.diagnostics.push(type_mismatch_if(
                 self.env,
-                self.env.r#type(self.types[&r#if.test.id]),
+                self.env.r#type(self.context.map.type_id(r#if.test.id)),
             ));
         }
 
@@ -457,11 +459,11 @@ impl<'heap> Visitor<'heap> for TypeChecking<'_, 'heap> {
         // signature, with the actual signature being used to typecheck the closure body. The
         // inferred type might've been used as a call site and therefore have different variable
         // constraints associated with it, unrelated to the function body.
-        let closure_type = closure.signature.type_signature(&self.lattice);
+        let closure_type = extract_signature(self.closures[&self.current.id], &self.lattice);
         let returns = self.simplify.simplify(closure_type.returns);
-        self.verify_subtype(self.types[&closure.body.id], returns);
+        self.verify_subtype(self.context.map.type_id(closure.body.id), returns);
 
-        self.types.insert_unique(self.current.id, inferred);
+        self.context.map.insert_type_id(self.current.id, inferred);
     }
 
     fn visit_thunk(&mut self, _: &'heap Thunk<'heap>) {

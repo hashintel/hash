@@ -102,9 +102,9 @@ impl PrincipalResource {
                         Router::new().nest(
                             "/identifier",
                             Router::new()
-                                .route("/:identifier", get(get_machine_by_identifier::<S>))
+                                .route("/{identifier}", get(get_machine_by_identifier::<S>))
                                 .route(
-                                    "/system/:identifier",
+                                    "/system/{identifier}",
                                     get(get_or_create_system_machine::<S>),
                                 ),
                         ),
@@ -113,7 +113,7 @@ impl PrincipalResource {
                         "/ai",
                         Router::new().route("/", post(create_ai_actor::<S>)).nest(
                             "/identifier",
-                            Router::new().route("/:identifier", get(get_ai_by_identifier::<S>)),
+                            Router::new().route("/{identifier}", get(get_ai_by_identifier::<S>)),
                         ),
                     ),
             )
@@ -125,34 +125,34 @@ impl PrincipalResource {
                         Router::new()
                             .route("/", post(create_org_web::<S>))
                             .nest(
-                                "/:web_id",
+                                "/{web_id}",
                                 Router::new()
                                     .route("/", get(get_web_by_id::<S>))
                                     .route("/roles", get(get_web_roles::<S>)),
                             )
-                            .route("/shortname/:shortname", get(get_web_by_shortname::<S>)),
+                            .route("/shortname/{shortname}", get(get_web_by_shortname::<S>)),
                     )
                     .nest(
                         "/teams",
                         Router::new()
                             .nest(
-                                "/:team_id",
+                                "/{team_id}",
                                 Router::new().route("/roles", get(get_team_roles::<S>)),
                             )
-                            .route("/name/:name", get(get_team_by_name::<S>)),
+                            .route("/name/{name}", get(get_team_by_name::<S>)),
                     )
                     .nest(
-                        "/:actor_group_id",
+                        "/{actor_group_id}",
                         Router::new().nest(
                             "/roles",
                             Router::new()
-                                .route("/actors/:actor_id", get(get_actor_group_role::<S>))
+                                .route("/actors/{actor_id}", get(get_actor_group_role::<S>))
                                 .nest(
-                                    "/:role/actors",
+                                    "/{role}/actors",
                                     Router::new()
                                         .route("/", get(get_actor_group_role_assignments::<S>))
                                         .route(
-                                            "/:actor_id",
+                                            "/{actor_id}",
                                             post(assign_actor_group_role::<S>)
                                                 .delete(unassign_actor_group_role::<S>),
                                         ),

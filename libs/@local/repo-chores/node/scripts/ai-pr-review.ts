@@ -1,7 +1,6 @@
 #!/usr/bin/env node
 
 import { Anthropic } from "@anthropic-ai/sdk";
-import { sleep } from "@anthropic-ai/sdk/core";
 import { LinearClient } from "@linear/sdk";
 import chalk from "chalk";
 import { config } from "dotenv-flow";
@@ -25,6 +24,7 @@ import {
   getPRDiff,
   getPROverview,
 } from "./ai-pr-review/get-pr-info";
+import { sleep } from "./shared/time";
 
 config({ path: "../../../../.env.local", silent: true });
 

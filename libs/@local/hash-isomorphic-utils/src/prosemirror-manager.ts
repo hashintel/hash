@@ -5,12 +5,11 @@ import type { EditorState, Transaction } from "prosemirror-state";
 import type { EditorProps, EditorView } from "prosemirror-view";
 
 import type { HashBlock } from "./blocks.js";
+import { fetchBlock, prepareBlockCache } from "./blocks.js";
 import {
   areComponentsCompatible,
-  fetchBlock,
   isBlockWithTextualContentProperty,
-  prepareBlockCache,
-} from "./blocks.js";
+} from "./blocks-constants.js";
 import type { BlockEntity } from "./entity.js";
 import { getBlockChildEntity, isRichTextProperties } from "./entity.js";
 import type {

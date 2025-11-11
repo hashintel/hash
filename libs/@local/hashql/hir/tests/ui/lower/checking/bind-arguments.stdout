@@ -8,15 +8,15 @@
 
 ════ Types ═════════════════════════════════════════════════════════════════════
 
+┌─ ::core::math::add<Number, Integer>(42.12, 42)
+└→ Number
+
 ┌─ ::core::math::add<Number, Integer>
-└→ fn(Number, Integer) -> Number
+└→ (Number, Integer) -> Number
 
 ┌─ 42.12
 └→ Number
 
 ┌─ 42
 └→ Integer
-
-┌─ ::core::math::add<Number, Integer>(42.12, 42)
-└→ Number
 

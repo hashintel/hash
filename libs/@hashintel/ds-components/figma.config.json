@@ -1,0 +1,6 @@
+{
+  "codeConnect": {
+    "include": ["src/components/**/*.{tsx,jsx}"],
+    "label": "React"
+  }
+}

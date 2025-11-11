@@ -1,3 +1,4 @@
+import { ApolloServerErrorCode } from "@apollo/server/errors";
 import type {
   Entity,
   EntityId,
@@ -8,7 +9,7 @@ import type {
 import { typedEntries } from "@local/advanced-types/typed-entries";
 import type { AuthenticationContext } from "@local/hash-graph-sdk/authentication-context";
 import { mergePropertiesAndMetadata } from "@local/hash-graph-sdk/entity";
-import { ApolloError, UserInputError } from "apollo-server-errors";
+import { GraphQLError } from "graphql";
 import { produce } from "immer";
 
 import type { ImpureGraphContext } from "../../../../graph/context-types";
@@ -33,6 +34,7 @@ import type {
   UpdateBlockCollectionAction,
   UpdateEntityAction,
 } from "../../../api-types.gen";
+import * as Error from "../../../error";
 
 export const createEntityWithPlaceholdersFn =
   (
@@ -55,14 +57,13 @@ export const createEntityWithPlaceholdersFn =
           entityId: entityDefinition.existingEntityId,
         });
       } catch {
-        throw new ApolloError(
+        throw Error.notFound(
           `Entity ${entityDefinition.existingEntityId} not found`,
-          "NOT_FOUND",
         );
       }
     } else {
       if (!entityDefinition.entityTypeIds?.[0]) {
-        throw new Error(
+        throw Error.badRequest(
           `Must provide at least one entry in entityTypeIds if not providing existingEntityId`,
         );
       }
@@ -112,7 +113,7 @@ export class PlaceholderResultsMap {
     if (isPlaceholderId(placeholderId)) {
       const entityId = this.map.get(placeholderId);
       if (!entityId) {
-        throw new Error(`Placeholder ${placeholderId} missing`);
+        throw Error.notFound(`Placeholder ${placeholderId} missing`);
       }
       return entityId;
     }
@@ -170,10 +171,14 @@ export const handleCreateNewEntity = async (params: {
       ).metadata.recordId.entityId,
     });
   } catch (error) {
-    if (error instanceof UserInputError) {
-      throw new UserInputError(`action ${params.index}: ${error}`);
+    if (
+      error instanceof GraphQLError &&
+      error.extensions.code === ApolloServerErrorCode.BAD_USER_INPUT
+    ) {
+      throw Error.badUserInput(`action ${params.index}: ${error}`);
     }
-    throw new Error(
+
+    throw Error.internal(
       `createEntity: Could not create new entity: ${JSON.stringify(
         error,
       )}, trying to create ${JSON.stringify(params)}`,
@@ -228,7 +233,7 @@ export const handleInsertNewBlock = async (
 
     if (existingBlockEntityId) {
       if (blockComponentId) {
-        throw new Error(
+        throw Error.badRequest(
           "InsertNewBlock: cannot set component id when using existing block entity",
         );
       }
@@ -238,7 +243,7 @@ export const handleInsertNewBlock = async (
 
       // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- @todo improve logic or types to remove this comment
       if (!existingBlock) {
-        throw new Error("InsertBlock: provided block id does not exist");
+        throw Error.notFound("InsertBlock: provided block id does not exist");
       }
 
       block = existingBlock;
@@ -249,7 +254,7 @@ export const handleInsertNewBlock = async (
         componentId: blockComponentId,
       });
     } else {
-      throw new Error(
+      throw Error.badRequest(
         `InsertBlock: exactly one of existingBlockEntity or componentId must be provided`,
       );
     }
@@ -260,10 +265,14 @@ export const handleInsertNewBlock = async (
 
     return block;
   } catch (error) {
-    if (error instanceof UserInputError) {
-      throw new UserInputError(`action ${params.index}: ${error}`);
+    if (
+      error instanceof GraphQLError &&
+      error.extensions.code === ApolloServerErrorCode.BAD_USER_INPUT
+    ) {
+      throw Error.badUserInput(`action ${params.index}: ${error}`);
     }
-    throw new Error(
+
+    throw Error.internal(
       `insertBlock: Could not insert new or existing block: ${JSON.stringify(
         error,
       )}`,
@@ -294,7 +303,7 @@ export const handleSwapBlockData = async (
 
   // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- @todo improve logic or types to remove this comment
   if (!block) {
-    throw new Error(`Block with entityId ${entityId} not found`);
+    throw Error.notFound(`Block with entityId ${entityId} not found`);
   }
 
   const { newEntityEntityId } = params.swapBlockDataAction;

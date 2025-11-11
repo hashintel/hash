@@ -2,13 +2,13 @@ use core::fmt::{self, Write as _};
 
 use crate::store::postgres::query::{Statement, Table, Transpile};
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct CommonTableExpression {
     table: Table,
     statement: Statement,
 }
 
-#[derive(Default, Clone, Debug, PartialEq, Eq, Hash)]
+#[derive(Default, Clone, Debug, PartialEq)]
 pub struct WithExpression {
     common_table_expressions: Vec<CommonTableExpression>,
 }
@@ -57,9 +57,8 @@ impl Transpile for WithExpression {
 mod tests {
     use super::*;
     use crate::store::postgres::query::{
-        Alias, Expression, SelectExpression, SelectStatement, WhereExpression,
-        expression::{GroupByExpression, OrderByExpression},
-        statement::FromItem,
+        Alias, SelectExpression, SelectStatement,
+        expression::FromItem,
         test_helper::{max_version_expression, trim_whitespace},
     };
 
@@ -70,27 +69,22 @@ mod tests {
 
         with_clause.add_statement(
             Table::OntologyIds,
-            SelectStatement {
-                with: WithExpression::default(),
-                distinct: Vec::new(),
-                selects: vec![
-                    SelectExpression::new(Expression::Asterisk, None),
-                    SelectExpression::new(max_version_expression(), Some("latest_version")),
-                ],
-                from: FromItem::Table {
-                    table: Table::OntologyIds,
-                    alias: Some(Alias {
+            SelectStatement::builder()
+                .selects(vec![
+                    SelectExpression::Asterisk(None),
+                    SelectExpression::Expression {
+                        expression: max_version_expression(),
+                        alias: Some("latest_version"),
+                    },
+                ])
+                .from(
+                    FromItem::table(Table::OntologyIds).alias(Table::OntologyIds.aliased(Alias {
                         condition_index: 0,
                         chain_depth: 0,
                         number: 0,
-                    }),
-                },
-                joins: vec![],
-                where_expression: WhereExpression::default(),
-                order_by_expression: OrderByExpression::default(),
-                group_by_expression: GroupByExpression::default(),
-                limit: None,
-            },
+                    })),
+                )
+                .build(),
         );
 
         assert_eq!(
@@ -103,24 +97,16 @@ mod tests {
 
         with_clause.add_statement(
             Table::DataTypes,
-            SelectStatement {
-                with: WithExpression::default(),
-                distinct: Vec::new(),
-                selects: vec![SelectExpression::new(Expression::Asterisk, None)],
-                from: FromItem::Table {
-                    table: Table::DataTypes,
-                    alias: Some(Alias {
+            SelectStatement::builder()
+                .selects(vec![SelectExpression::Asterisk(None)])
+                .from(
+                    FromItem::table(Table::DataTypes).alias(Table::DataTypes.aliased(Alias {
                         condition_index: 3,
                         chain_depth: 4,
                         number: 5,
-                    }),
-                },
-                joins: vec![],
-                where_expression: WhereExpression::default(),
-                order_by_expression: OrderByExpression::default(),
-                group_by_expression: GroupByExpression::default(),
-                limit: None,
-            },
+                    })),
+                )
+                .build(),
         );
 
         assert_eq!(

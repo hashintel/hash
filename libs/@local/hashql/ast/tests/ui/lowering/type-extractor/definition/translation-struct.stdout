@@ -3,4 +3,5 @@ Expr#4294967040@25
 
 ------------------------
 
-type Person:0 = (age: Number, name: String)
+┌─ Person:0<>
+└→ (age: Number, name: String)

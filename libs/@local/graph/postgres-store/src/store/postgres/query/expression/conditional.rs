@@ -4,12 +4,10 @@ use core::fmt::{
 
 use hash_graph_store::filter::PathToken;
 
-use crate::store::postgres::query::{
-    Alias, AliasedTable, Column, SelectStatement, Table, Transpile, WindowStatement,
-    table::DatabaseColumn as _,
-};
+use super::ColumnReference;
+use crate::store::postgres::query::{SelectStatement, Table, Transpile, WindowStatement};
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum Function {
     Min(Box<Expression>),
     Max(Box<Expression>),
@@ -157,18 +155,9 @@ impl Transpile for PostgresType {
 }
 
 /// A compiled expression in Postgres.
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum Expression {
-    Asterisk,
-    Column(Column),
-    ColumnReference {
-        column: Column,
-        table_alias: Option<Alias>,
-    },
-    TableReference {
-        table: Table,
-        alias: Option<Alias>,
-    },
+    ColumnReference(ColumnReference<'static>),
     /// A parameter are transpiled as a placeholder, e.g. `$1`, in order to prevent SQL injection.
     Parameter(usize),
     /// [`Constant`]s are directly transpiled into the SQL query. Caution has to be taken to
@@ -178,38 +167,24 @@ pub enum Expression {
     CosineDistance(Box<Self>, Box<Self>),
     Window(Box<Self>, WindowStatement),
     Cast(Box<Self>, PostgresType),
-    FieldAccess(Box<Self>, Box<Self>),
+    /// Row expansion - expands a composite type into its constituent columns.
+    ///
+    /// Transpiles to `(expression).*` in PostgreSQL, which is used to expand
+    /// composite/row types into individual columns. Commonly used in INSERT
+    /// statements to expand a row parameter into column values.
+    ///
+    /// # Example SQL
+    /// ```sql
+    /// INSERT INTO users VALUES (($1::users).*)
+    /// ```
+    RowExpansion(Box<Self>),
     Select(Box<SelectStatement>),
 }
 
 impl Transpile for Expression {
     fn transpile(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
         match self {
-            Self::Asterisk => fmt.write_char('*'),
-            Self::Column(column) => column.transpile(fmt),
-            Self::ColumnReference {
-                column,
-                table_alias,
-            } => {
-                let table = column.table();
-                if let Some(alias) = *table_alias {
-                    AliasedTable { table, alias }.transpile(fmt)?;
-                } else {
-                    table.transpile(fmt)?;
-                }
-                write!(fmt, r#"."{}""#, column.as_str())
-            }
-            Self::TableReference { table, alias } => {
-                if let Some(alias) = *alias {
-                    AliasedTable {
-                        table: *table,
-                        alias,
-                    }
-                    .transpile(fmt)
-                } else {
-                    table.transpile(fmt)
-                }
-            }
+            Self::ColumnReference(column) => column.transpile(fmt),
             Self::Parameter(index) => write!(fmt, "${index}"),
             Self::Constant(constant) => constant.transpile(fmt),
             Self::Function(function) => function.transpile(fmt),
@@ -231,10 +206,9 @@ impl Transpile for Expression {
                 cast_type.transpile(fmt)?;
                 fmt.write_char(')')
             }
-            Self::FieldAccess(expression, subscript) => {
+            Self::RowExpansion(expression) => {
                 expression.transpile(fmt)?;
-                fmt.write_str(".")?;
-                subscript.transpile(fmt)
+                fmt.write_str(".*")
             }
             Self::Select(select) => select.transpile(fmt),
         }
@@ -271,14 +245,16 @@ mod tests {
     #[test]
     fn transpile_function_expression() {
         assert_eq!(
-            Expression::Function(Function::Min(Box::new(Expression::ColumnReference {
-                column: DataTypeQueryPath::Version.terminating_column().0,
-                table_alias: Some(Alias {
-                    condition_index: 1,
-                    chain_depth: 2,
-                    number: 3
-                })
-            })))
+            Expression::Function(Function::Min(Box::new(Expression::ColumnReference(
+                DataTypeQueryPath::Version
+                    .terminating_column()
+                    .0
+                    .aliased(Alias {
+                        condition_index: 1,
+                        chain_depth: 2,
+                        number: 3,
+                    })
+            ),)))
             .transpile_to_string(),
             r#"MIN("ontology_ids_1_2_3"."version")"#
         );

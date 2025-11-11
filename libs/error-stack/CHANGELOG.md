@@ -4,14 +4,22 @@ All notable changes to `error-stack` will be documented in this file.
 
 ## Planned
 
-- Support for [`defmt`](https://defmt.ferrous-systems.com)
-- Better support for serialization and deserialization of `Report`
+- Add `OptionExt` to support `Option::ok_or_report`. ([#667](https://github.com/hashintel/hash/issues/667))
+- Support for [`defmt`](https://defmt.ferrous-systems.com).
+- Better support for serialization and deserialization of `Report`.
 
-## Unreleased
+## 0.7.0 - Unreleased
 
 ### Features
 
 - Support trailing commans in `bail!` macro. ([#7772](https://github.com/hashintel/hash/pull/7772))
+
+### Breaking Changes
+
+- Remove deprecated `Context` ([#7763](https://github.com/hashintel/hash/pull/7763))
+- Remove deprecated `report!` ([#7763](https://github.com/hashintel/hash/pull/7763))
+- Remove deprecated `Report::{attach_lazy, attach_printable, attach_printable_lazy}` ([#7763](https://github.com/hashintel/hash/pull/7763))
+- Depend on `serde_core` instead of `serde`. ([#7909](https://github.com/hashintel/hash/pull/7909))
 
 ## [0.6.0](https://github.com/hashintel/hash/tree/error-stack%400.6.0/libs/error-stack) - 2025-08-30
 

@@ -11,11 +11,11 @@ authors.workspace = true
 error-stack         = { workspace = true, public = true, optional = true, features = ["std"] }
 harpc-wire-protocol = { workspace = true, public = true, optional = true }
 postgres-types      = { workspace = true, public = true, optional = true }
-serde               = { workspace = true, public = true, optional = true }
 
 # Public third-party dependencies
 bytes      = { workspace = true, public = true }
 regex      = { workspace = true, public = true, optional = true }
+serde_core = { workspace = true, public = true, optional = true }
 specta     = { workspace = true, public = true, optional = true, features = ["derive"] }
 tokio-util = { workspace = true, public = true, optional = true, features = ["codec"] }
 utoipa     = { workspace = true, public = true, optional = true }
@@ -28,6 +28,7 @@ dashu-base     = { workspace = true, optional = true, features = ["std"] }
 dashu-float    = { workspace = true, optional = true }
 derive-where   = { workspace = true, optional = true }
 derive_more    = { workspace = true, optional = true, features = ["display", "error"] }
+serde          = { workspace = true, optional = true }
 serde_json     = { workspace = true, optional = true }
 simple-mermaid = { workspace = true }
 time           = { workspace = true, optional = true, features = ["macros", "serde", "parsing", "formatting"] }
@@ -46,13 +47,21 @@ required-features = ["codegen", "numeric"]
 [features]
 codegen = ["dep:specta"]
 bytes = [
+    "dep:serde_core",
     "dep:serde",
     "dep:derive-where",
     "dep:serde_json",
     "dep:tokio-util",
     "dep:error-stack",
 ]
-serde = ["dep:serde", "dep:time", "dep:regex", "dep:uuid", "dep:derive_more"]
+serde = [
+    "dep:serde_core",
+    "dep:serde",
+    "dep:time",
+    "dep:regex",
+    "dep:uuid",
+    "dep:derive_more",
+]
 harpc = ["dep:harpc-wire-protocol", "dep:tokio-util", "dep:error-stack"]
 numeric = ["dep:dashu-base", "dep:dashu-float", "dep:derive_more"]
 postgres = ["dep:postgres-types"]

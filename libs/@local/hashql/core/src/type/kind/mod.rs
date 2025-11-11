@@ -15,7 +15,6 @@ pub mod union;
 
 use core::{ops::ControlFlow, ptr};
 
-use pretty::RcDoc;
 use smallvec::SmallVec;
 
 pub use self::{
@@ -33,8 +32,8 @@ pub use self::{
 use super::{
     PartialType, Type, TypeId,
     environment::{
-        AnalysisEnvironment, Environment, InferenceEnvironment, LatticeEnvironment,
-        SimplifyEnvironment, Variance, instantiate::InstantiateEnvironment,
+        AnalysisEnvironment, InferenceEnvironment, LatticeEnvironment, SimplifyEnvironment,
+        Variance, instantiate::InstantiateEnvironment,
     },
     error::{
         UnsupportedProjectionCategory, UnsupportedSubscriptCategory, no_type_inference,
@@ -43,10 +42,7 @@ use super::{
     inference::{Constraint, Inference, Variable, VariableKind},
     lattice::{Lattice, Projection, Subscript},
 };
-use crate::{
-    pretty::{CYAN, GRAY, PrettyPrint, PrettyPrintBoundary},
-    symbol::Ident,
-};
+use crate::symbol::Ident;
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum TypeKind<'heap> {
@@ -2397,75 +2393,6 @@ impl<'heap> Inference<'heap> for TypeKind<'heap> {
                 }
             }
             Self::Infer(_) | Self::Never | Self::Unknown => self.id,
-        }
-    }
-}
-
-impl<'heap> PrettyPrint<'heap, Environment<'heap>> for TypeKind<'heap> {
-    fn pretty(
-        &self,
-        env: &Environment<'heap>,
-        boundary: &mut PrettyPrintBoundary,
-    ) -> RcDoc<'heap, anstyle::Style> {
-        match self {
-            Self::Opaque(opaque) => opaque.pretty(env, boundary),
-            Self::Primitive(primitive) => primitive.pretty(env, boundary),
-            Self::Intrinsic(intrinsic) => intrinsic.pretty(env, boundary),
-            Self::Struct(r#struct) => r#struct.pretty(env, boundary),
-            Self::Tuple(tuple) => tuple.pretty(env, boundary),
-            Self::Closure(closure) => closure.pretty(env, boundary),
-            Self::Union(union) => union.pretty(env, boundary),
-            Self::Intersection(intersection) => intersection.pretty(env, boundary),
-            Self::Apply(apply) => apply.pretty(env, boundary),
-            Self::Generic(generic) => generic.pretty(env, boundary),
-            Self::Param(param) => param.pretty(env, boundary),
-            Self::Infer(Infer { hole }) => {
-                let mut doc = RcDoc::text(format!("_{hole}")).annotate(GRAY);
-
-                if boundary.config().resolve_substitutions
-                    && let Some(substitution) = env.substitution.infer(*hole)
-                {
-                    doc = doc.append(
-                        RcDoc::text("\u{ab}")
-                            .append(boundary.pretty_type(env, substitution))
-                            .append("\u{bb}")
-                            .group(),
-                    );
-                }
-
-                doc
-            }
-            Self::Never => RcDoc::text("!").annotate(CYAN),
-            Self::Unknown => RcDoc::text("?").annotate(CYAN),
-        }
-    }
-
-    fn pretty_generic(
-        &self,
-        env: &Environment<'heap>,
-        boundary: &mut PrettyPrintBoundary,
-        arguments: GenericArguments<'heap>,
-    ) -> RcDoc<'heap, anstyle::Style> {
-        match self {
-            Self::Opaque(opaque) => opaque.pretty_generic(env, boundary, arguments),
-            Self::Primitive(primitive) => PrettyPrint::<'heap, Environment<'heap>>::pretty_generic(
-                primitive, env, boundary, arguments,
-            ),
-            Self::Intrinsic(intrinsic) => intrinsic.pretty_generic(env, boundary, arguments),
-            Self::Struct(r#struct) => r#struct.pretty_generic(env, boundary, arguments),
-            Self::Tuple(tuple) => tuple.pretty_generic(env, boundary, arguments),
-            Self::Closure(closure) => closure.pretty_generic(env, boundary, arguments),
-            Self::Union(union) => union.pretty_generic(env, boundary, arguments),
-            Self::Intersection(intersection) => {
-                intersection.pretty_generic(env, boundary, arguments)
-            }
-            Self::Apply(apply) => apply.pretty_generic(env, boundary, arguments),
-            Self::Generic(generic) => generic.pretty_generic(env, boundary, arguments),
-            Self::Param(param) => param.pretty_generic(env, boundary, arguments),
-            Self::Infer(_) | Self::Never | Self::Unknown => arguments
-                .pretty(env, boundary)
-                .append(self.pretty(env, boundary))
-                .group(),
         }
     }
 }

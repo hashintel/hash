@@ -37,7 +37,12 @@ export default defineConfig({
   build: {
     lib: {
       entry: {
+        badge: path.resolve(__dirname, "src/components/Badge/badge.tsx"),
         button: path.resolve(__dirname, "src/components/Button/button.tsx"),
+        checkbox: path.resolve(
+          __dirname,
+          "src/components/Checkbox/checkbox.tsx",
+        ),
         "refractive-pane": path.resolve(
           __dirname,
           "src/components/RefractivePane/refractive-pane.tsx",

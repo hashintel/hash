@@ -33,16 +33,12 @@ pub use self::{
     compile::{SelectCompiler, SelectCompilerError},
     condition::{Condition, EqualityOperator},
     expression::{
-        Constant, Expression, Function, JoinExpression, OrderByExpression, SelectExpression,
-        WhereExpression, WithExpression,
+        Constant, Expression, Function, SelectExpression, WhereExpression, WithExpression,
     },
     statement::{
         Distinctness, InsertStatementBuilder, SelectStatement, Statement, WindowStatement,
     },
-    table::{
-        Alias, AliasedTable, Column, ForeignKeyReference, JsonField, ReferenceTable, Relation,
-        Table,
-    },
+    table::{Alias, Column, ForeignKeyReference, JsonField, ReferenceTable, Relation, Table},
 };
 use crate::store::postgres::crud::QueryRecordDecode;
 
@@ -76,7 +72,7 @@ pub trait PostgresQueryPath: Sized {
 }
 
 /// Renders the object into a Postgres compatible format.
-pub trait Transpile: 'static {
+pub trait Transpile {
     /// Renders the value using the given [`Formatter`].
     ///
     /// # Errors
@@ -203,23 +199,27 @@ mod test_helper {
     pub fn max_version_expression() -> Expression {
         Expression::Window(
             Box::new(Expression::Function(Function::Max(Box::new(
-                Expression::ColumnReference {
-                    column: DataTypeQueryPath::Version.terminating_column().0,
-                    table_alias: Some(Alias {
+                Expression::ColumnReference(
+                    DataTypeQueryPath::Version
+                        .terminating_column()
+                        .0
+                        .aliased(Alias {
+                            condition_index: 0,
+                            chain_depth: 0,
+                            number: 0,
+                        }),
+                ),
+            )))),
+            WindowStatement::partition_by(Expression::ColumnReference(
+                DataTypeQueryPath::BaseUrl
+                    .terminating_column()
+                    .0
+                    .aliased(Alias {
                         condition_index: 0,
                         chain_depth: 0,
                         number: 0,
                     }),
-                },
-            )))),
-            WindowStatement::partition_by(Expression::ColumnReference {
-                column: DataTypeQueryPath::BaseUrl.terminating_column().0,
-                table_alias: Some(Alias {
-                    condition_index: 0,
-                    chain_depth: 0,
-                    number: 0,
-                }),
-            }),
+            )),
         )
     }
 }

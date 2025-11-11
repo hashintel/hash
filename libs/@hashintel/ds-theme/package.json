@@ -10,5 +10,12 @@
   "license": "(MIT OR Apache-2.0)",
   "sideEffects": false,
   "type": "module",
-  "main": "src/index.ts"
+  "main": "src/index.ts",
+  "scripts": {
+    "generate:panda": "tsx scripts/toPanda.ts"
+  },
+  "devDependencies": {
+    "es-toolkit": "1.41.0",
+    "tsx": "4.20.6"
+  }
 }

@@ -153,9 +153,15 @@ macro_rules! assert_equiv {
         let mut equiv_env = AnalysisEnvironment::new(&$env);
         $(equiv_env.set_substitution($substitution);)?
 
+        let formatter = crate::pretty::Formatter::new($env.heap);
+        let mut formatter = crate::r#type::pretty::TypeFormatter::new(&formatter, &$env, crate::r#type::pretty::TypeFormatterOptions::default());
+
         for (&actual, &expected) in actual.iter().zip(expected.iter()) {
-            let actual_repr = &$env.r#type(actual).pretty_print(&equiv_env, crate::pretty::PrettyOptions::default()).to_string();
-            let expected_repr = &$env.r#type(expected).pretty_print(&equiv_env, crate::pretty::PrettyOptions::default()).to_string();
+            let actual_doc = formatter.format(actual);
+            let actual_repr = crate::pretty::render(actual_doc, crate::pretty::RenderOptions::default());
+
+            let expected_doc = formatter.format(expected);
+            let expected_repr = crate::pretty::render(expected_doc, crate::pretty::RenderOptions::default());
 
             assert!(
                 equiv_env.is_equivalent(actual, expected),

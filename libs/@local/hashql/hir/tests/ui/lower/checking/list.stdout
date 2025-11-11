@@ -1,12 +1,15 @@
 ════ Initial HIR ═══════════════════════════════════════════════════════════════
 
-#as([42, 43, 44], type: List<Number>)
+[42, 43, 44] as List<Number>
 
 ════ HIR after type checking ═══════════════════════════════════════════════════
 
-#as([42, 43, 44], type: List<Number>)
+[42, 43, 44] as List<Number>
 
 ════ Types ═════════════════════════════════════════════════════════════════════
+
+┌─ [42, 43, 44] as List<Number>
+└→ List<Number>
 
 ┌─ 42
 └→ Integer
@@ -19,7 +22,4 @@
 
 ┌─ [42, 43, 44]
 └→ List<Integer>
-
-┌─ #as([42, 43, 44], type: List<Number>)
-└→ List<Number>
 

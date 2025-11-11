@@ -104,9 +104,13 @@ export const mapAnthropicMessageToLlmMessage = (params: {
                   name: content.name,
                   input: content.input as object,
                 } satisfies LlmMessageToolUseContent;
+              } else if (content.type === "text") {
+                return content;
               }
 
-              return content;
+              throw new Error(
+                `Unexpected content type: ${JSON.stringify(content)}`,
+              );
             }),
     };
   }
@@ -157,9 +161,13 @@ export const mapAnthropicMessageToLlmMessage = (params: {
                 // eslint-disable-next-line @typescript-eslint/no-base-to-string
                 content: textBlocks?.join("\n") ?? "",
               } satisfies LlmMessageToolResultContent;
+            } else if (block.type === "text") {
+              return block;
             }
 
-            return block;
+            throw new Error(
+              `Unexpected content type: ${JSON.stringify(block)}`,
+            );
           }),
   };
 };
@@ -253,7 +261,16 @@ export const mapOpenAiMessagesToLlmMessages = (params: {
         const toolCalls =
           currentMessage.tool_calls?.map<LlmMessageToolUseContent>(
             (toolCall) => {
-              const rawInput = toolCall.function.arguments;
+              const rawInput =
+                toolCall.type === "function"
+                  ? toolCall.function.arguments
+                  : toolCall.custom.input;
+
+              const rawName =
+                toolCall.type === "function"
+                  ? toolCall.function.name
+                  : toolCall.custom.name;
+
               let jsonInput: object;
               try {
                 jsonInput = JSON.parse(rawInput) as object;
@@ -265,7 +282,7 @@ export const mapOpenAiMessagesToLlmMessages = (params: {
               return {
                 type: "tool_use" as const,
                 id: toolCall.id,
-                name: sanitizeToolCallName(toolCall.function.name),
+                name: sanitizeToolCallName(rawName),
                 input: jsonInput,
               };
             },

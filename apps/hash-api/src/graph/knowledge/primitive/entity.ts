@@ -50,12 +50,12 @@ import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/gra
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type { ActionName } from "@rust/hash-graph-authorization/types";
 import type { TraversalPath } from "@rust/hash-graph-store/types";
-import { ApolloError } from "apollo-server-errors";
 
 import type {
   EntityDefinition,
   LinkedEntityDefinition,
 } from "../../../graphql/api-types.gen";
+import * as GraphQlError from "../../../graphql/error";
 import { linkedTreeFlatten } from "../../../util";
 import type { ImpureGraphFunction } from "../../context-types";
 import { afterCreateEntityHooks } from "./entity/after-create-entity-hooks";
@@ -395,10 +395,7 @@ export const createEntityWithLinks = async <
     // First element will be the root entity.
     rootEntity = entities[0].entity;
   } else {
-    throw new ApolloError(
-      "Could not create entity tree",
-      "INTERNAL_SERVER_ERROR",
-    );
+    throw GraphQlError.internal("Could not create entity tree");
   }
 
   await Promise.all(
@@ -406,7 +403,7 @@ export const createEntityWithLinks = async <
       if (link) {
         const parentEntity = entities[link.parentIndex];
         if (!parentEntity) {
-          throw new ApolloError("Could not find parent entity");
+          throw GraphQlError.notFound("Could not find parent entity");
         }
 
         // links are created as an outgoing link from the parent entity to the children.

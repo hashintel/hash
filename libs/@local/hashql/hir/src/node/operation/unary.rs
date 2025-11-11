@@ -1,4 +1,7 @@
-use hashql_core::span::Spanned;
+use hashql_core::{
+    span::Spanned,
+    symbol::{Symbol, sym},
+};
 
 use crate::node::Node;
 
@@ -14,6 +17,26 @@ pub enum UnOp {
     BitNot,
     /// The `-` operator (negation)
     Neg,
+}
+
+impl UnOp {
+    #[must_use]
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::Not => "!",
+            Self::BitNot => "~",
+            Self::Neg => "-",
+        }
+    }
+
+    #[must_use]
+    pub const fn as_symbol(self) -> Symbol<'static> {
+        match self {
+            Self::Not => sym::symbol::exclamation_mark,
+            Self::BitNot => sym::symbol::tilde,
+            Self::Neg => sym::symbol::sub,
+        }
+    }
 }
 
 /// A unary operation expression in the HashQL HIR.

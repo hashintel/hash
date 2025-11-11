@@ -52,21 +52,27 @@
 
 use core::{convert::Infallible, mem};
 
-use hashql_core::span::Spanned;
+use hashql_core::{
+    collections::pool::VecPool,
+    intern::Beef,
+    span::Spanned,
+    r#type::{TypeBuilder, environment::Environment},
+    value::Primitive,
+};
 
 use crate::{
     context::HirContext,
-    fold::{self, Fold, beef::Beef},
+    fold::{self, Fold},
     intern::Interner,
+    map::HirInfo,
     node::{
-        Node, PartialNode,
+        HirPtr, Node, NodeData,
         access::{FieldAccess, IndexAccess},
-        branch::If,
+        branch::{Branch, If},
         call::{Call, CallArgument},
         closure::Closure,
         data::{Data, DictField, List, StructField, Tuple},
         graph::read::GraphReadHead,
-        input::Input,
         kind::NodeKind,
         r#let::{Binder, Binding, Let},
         operation::{BinOp, BinaryOperation, TypeAssertion, UnaryOperation},
@@ -85,12 +91,11 @@ use crate::{
 ///
 /// Non-atoms include control flow, operations, calls, and qualified variables
 /// (which require module thunking in the future).
-pub(crate) const fn is_anf_atom(node: &Node<'_>) -> bool {
+pub(crate) const fn is_anf_atom(node: &NodeData<'_>) -> bool {
     match node.kind {
         NodeKind::Data(Data::Primitive(_)) | NodeKind::Variable(_) | NodeKind::Access(_) => true,
         NodeKind::Data(_)
         | NodeKind::Let(_)
-        | NodeKind::Input(_)
         | NodeKind::Operation(_)
         | NodeKind::Call(_)
         | NodeKind::Branch(_)
@@ -100,11 +105,20 @@ pub(crate) const fn is_anf_atom(node: &Node<'_>) -> bool {
     }
 }
 
-/// Ensures that a node is represented as a local variable.
+/// Ensures that a node is represented as a local variable reference.
 ///
-/// If the node is already a local variable, returns it unchanged. Otherwise,
-/// creates a new binding with a fresh variable and adds it to the current
-/// binding stack.
+/// This function is a core part of ANF transformation that guarantees a node
+/// can be referenced as a simple variable. If the node is already a local
+/// variable, it returns the node unchanged. Otherwise, it creates a fresh
+/// binding with a generated variable name and adds it to the binding stack.
+///
+/// The newly created variable inherits the type information from the original
+/// node.
+///
+/// # Returns
+///
+/// A [`Node`] containing either the original local variable or a new local
+/// variable reference to the bound expression.
 pub(crate) fn ensure_local_variable<'heap>(
     context: &mut HirContext<'_, 'heap>,
     bindings: &mut Vec<Binding<'heap>>,
@@ -126,7 +140,12 @@ pub(crate) fn ensure_local_variable<'heap>(
     };
     bindings.push(binding);
 
-    context.interner.intern_node(PartialNode {
+    // The type of that variable is that of the node itself
+    let id = context.counter.hir.next();
+    context.map.copy_to(node.id, id);
+
+    context.interner.intern_node(NodeData {
+        id,
         span: node.span,
         kind: NodeKind::Variable(Variable::Local(LocalVariable {
             id: Spanned {
@@ -138,20 +157,24 @@ pub(crate) fn ensure_local_variable<'heap>(
     })
 }
 
-/// Determines if a node is a projection (place expression).
+/// Determines if a node represents a projection (place expression).
 ///
 /// Projections are memory locations that can be read from or written to.
-/// They include:
-/// - Local variable references
-/// - Access expressions (field/index access on other projections)
+/// They form a subset of atoms and include:
+/// - Local variable references ([`Variable::Local`])
+/// - Access expressions ([`FieldAccess`], [`IndexAccess`]) applied to other projections
 ///
-/// Projections are a subset of atoms that represent addressable locations.
-const fn is_projection(node: &Node<'_>) -> bool {
+/// This is more restrictive than [`is_anf_atom`] because projections must be
+/// addressable locations, not just any atomic value.
+///
+/// [`Variable::Local`]: crate::node::variable::Variable::Local
+/// [`FieldAccess`]: crate::node::access::FieldAccess
+/// [`IndexAccess`]: crate::node::access::IndexAccess
+const fn is_projection(node: &NodeData<'_>) -> bool {
     match node.kind {
         NodeKind::Variable(_) | NodeKind::Access(_) => true,
         NodeKind::Data(_)
         | NodeKind::Let(_)
-        | NodeKind::Input(_)
         | NodeKind::Operation(_)
         | NodeKind::Call(_)
         | NodeKind::Branch(_)
@@ -170,30 +193,26 @@ const fn is_projection(node: &Node<'_>) -> bool {
 /// unnecessary reallocations.
 #[derive(Debug)]
 pub struct NormalizationState<'heap> {
-    /// Maximum number of binding vectors to cache in the recycler pool.
+    /// Pool of reusable binding vectors to reduce allocations
     ///
     /// The normalization process frequently creates temporary vectors to accumulate
     /// `let` bindings at boundary points. To reduce allocation overhead, completed
     /// vectors are cached in a recycler pool for reuse.
     ///
-    /// A higher value reduces allocations at the cost of increased memory usage.
+    /// A higher capacity value reduces allocations at the cost of increased memory usage.
     /// A value of 0 disables recycling entirely.
     ///
     /// # Default Value
     ///
     /// The default is 4, which provides a good balance between memory usage and
     /// allocation reduction for typical workloads.
-    pub max_recycle: usize,
-
-    /// Pool of reusable binding vectors to reduce allocations
-    recycler: Vec<Vec<Binding<'heap>>>,
+    pub recycler: VecPool<Binding<'heap>>,
 }
 
 impl Default for NormalizationState<'_> {
     fn default() -> Self {
         Self {
-            max_recycle: 4,
-            recycler: Vec::new(),
+            recycler: VecPool::new(4),
         }
     }
 }
@@ -203,41 +222,70 @@ impl Default for NormalizationState<'_> {
 /// This struct implements the [`Fold`] trait to transform HIR nodes into Administrative
 /// Normal Form (ANF). The transformation ensures that all complex expressions are
 /// broken down into sequences of simple bindings.
-pub struct Normalization<'ctx, 'env, 'heap> {
+pub struct Normalization<'ctx, 'env, 'hir, 'heap> {
     /// Mutable reference to the HIR context for interning and variable generation
-    context: &'ctx mut HirContext<'env, 'heap>,
+    context: &'ctx mut HirContext<'hir, 'heap>,
+    /// Type environment for type inference and resolution
+    env: &'env Environment<'heap>,
     /// Stack of accumulated `let` bindings within the current boundary
     bindings: Vec<Binding<'heap>>,
     /// Optional node replacement mechanism for structural transformations
     trampoline: Option<Node<'heap>>,
     /// State that is shared during multiple normalization passes
     state: &'ctx mut NormalizationState<'heap>,
+    // The current node being processed
+    current: HirPtr,
 }
 
-impl<'ctx, 'env, 'heap> Normalization<'ctx, 'env, 'heap> {
+impl<'ctx, 'env, 'hir, 'heap> Normalization<'ctx, 'env, 'hir, 'heap> {
     /// Creates a new normalization transformer.
     ///
     /// # Arguments
     ///
     /// - `context`: Mutable reference to the HIR context for interning and variable generation
+    /// - `env`: Type environment for type inference and resolution
     /// - `state`: Shared state containing configuration and reusable resources
     pub const fn new(
-        context: &'ctx mut HirContext<'env, 'heap>,
+        context: &'ctx mut HirContext<'hir, 'heap>,
+        env: &'env Environment<'heap>,
         state: &'ctx mut NormalizationState<'heap>,
     ) -> Self {
         Self {
             context,
+            env,
             bindings: Vec::new(),
             trampoline: None,
             state,
+            current: HirPtr::PLACEHOLDER,
         }
     }
 
     /// Executes the normalization transformation on the given HIR node.
     ///
-    /// This is the main entry point for the normalization process. It wraps the
-    /// input node in a boundary to ensure proper binding accumulation and returns
-    /// the normalized result.
+    /// This is the main entry point for the normalization process. It transforms the input HIR node
+    /// into Administrative Normal Form (ANF) by wrapping it in a boundary to ensure proper
+    /// binding accumulation and returns the normalized result.
+    ///
+    /// The transformation guarantees that:
+    /// - All complex expressions are bound to variables
+    /// - Function arguments are atomic values
+    /// - Control flow is explicitly represented
+    /// - Short-circuiting operations are converted to conditionals
+    ///
+    /// # Examples
+    ///
+    /// ```text
+    /// foo(bar(x), baz(y))
+    /// ```
+    ///
+    /// turns into:
+    ///
+    /// ```text
+    /// let %1 = bar(x) in
+    /// let %2 = baz(y) in
+    /// let %3 = foo(%1, %2) in
+    /// %3
+    /// ```
     ///
     /// # Panics
     ///
@@ -263,8 +311,17 @@ impl<'ctx, 'env, 'heap> Normalization<'ctx, 'env, 'heap> {
 
     /// Ensures that a node is a valid projection (place expression).
     ///
-    /// If the node is already a projection, returns it unchanged. Otherwise,
-    /// converts it to a local variable binding.
+    /// Projections represent memory locations that can be read from or assigned to,
+    /// such as variables and field/index access expressions. This function is used
+    /// when the ANF transformation requires a place expression rather than just any
+    /// atomic value.
+    ///
+    /// If the node is already a valid projection ([`Variable`] or [`Access`]), it
+    /// returns the node unchanged. Otherwise, it converts the node to a local
+    /// variable binding, making it addressable.
+    ///
+    /// [`Variable`]: crate::node::variable::Variable
+    /// [`Access`]: crate::node::access
     fn ensure_projection(&mut self, node: Node<'heap>) -> Node<'heap> {
         if is_projection(&node) {
             return node;
@@ -273,10 +330,18 @@ impl<'ctx, 'env, 'heap> Normalization<'ctx, 'env, 'heap> {
         self.ensure_local_variable(node)
     }
 
-    /// Ensures that a node is an atomic value.
+    /// Ensures that a node is an atomic value suitable for ANF.
     ///
-    /// If the node is already an atom, returns it unchanged. Otherwise,
-    /// converts it to a local variable binding.
+    /// Atoms are the fundamental values in Administrative Normal Form that can be
+    /// used directly without requiring further evaluation. This includes data literals,
+    /// variable references, and access expressions.
+    ///
+    /// If the node is already atomic (determined by [`is_anf_atom`]), it returns
+    /// the node unchanged. Otherwise, it creates a binding for the complex expression
+    /// and returns a reference to the bound variable.
+    ///
+    /// This is the most commonly used normalization function, as most contexts in
+    /// ANF require atomic operands.
     fn ensure_atom(&mut self, node: Node<'heap>) -> Node<'heap> {
         if is_anf_atom(&node) {
             return node;
@@ -306,53 +371,163 @@ impl<'ctx, 'env, 'heap> Normalization<'ctx, 'env, 'heap> {
 
     /// Processes a node within a normalization boundary.
     ///
-    /// Boundaries are points where `let` bindings are accumulated and then
-    /// wrapped around the final result. This implements the core ANF transformation
-    /// by ensuring that complex expressions are broken down into sequences of
-    /// simple bindings.
+    /// Boundaries define scopes where [`Binding`] accumulation occurs before being
+    /// wrapped into a [`Let`] expression. This is the core mechanism for ANF
+    /// transformation, ensuring that complex expressions are decomposed into
+    /// sequences of simple bindings followed by an atomic result.
     ///
-    /// The method uses vector recycling to minimize allocations during the
-    /// transformation process.
+    /// The function manages a separate binding stack for the boundary, processes
+    /// the node through the fold mechanism, ensures the result is atomic, and
+    /// finally wraps any accumulated bindings in a [`Let`] expression.
+    ///
+    /// # Boundary Examples
+    ///
+    /// Boundaries typically occur at:
+    /// - Closure and thunk bodies
+    /// - Conditional expression branches
+    /// - Short-circuiting operation operands
     fn boundary(&mut self, node: Node<'heap>) -> Node<'heap> {
         // Check if we have a recycled bindings vector that we can reuse, otherwise use a new one
-        let bindings = self.state.recycler.pop().unwrap_or_else(|| {
-            // The current amount of bindings is a good indicator for the size of vector we're
-            // expecting
-            Vec::with_capacity(self.bindings.len())
-        });
+        // The current amount of bindings is a good indicator for the size of vector we're expecting
+        let bindings = self.state.recycler.acquire_with(self.bindings.len());
 
         // Save the current bindings vector, to be restored once we've exited the boundary
         let outer = mem::replace(&mut self.bindings, bindings);
 
+        // Check if the id from the new node is the same as the one from the source node
+        // if they aren't then we can reuse the same id. Why?
+        // Only `let` expressions "erase" themselves, therefore we just no-op.
+        let prev_hir_id = node.id;
         let Ok(mut node) = fold::walk_nested_node(self, node);
         node = self.ensure_atom(node);
 
         // Restore the outer vector and retrieve the collected bindings
-        let mut bindings = core::mem::replace(&mut self.bindings, outer);
+        let bindings = core::mem::replace(&mut self.bindings, outer);
 
         if !bindings.is_empty() {
+            let id = if node.id == prev_hir_id {
+                // The item was already an atom, therefore nothing to reuse
+                let id = self.context.counter.hir.next();
+
+                // Copy any information from the underlying node as this is a simple let, and
+                // therefore takes the type of the body.
+                self.context.map.copy_to(prev_hir_id, node.id);
+                id
+            } else {
+                // We've "taken over" the id of the previous node
+                prev_hir_id
+            };
+
             // We need to wrap the collected bindings into a new let node
-            node = self.context.interner.intern_node(PartialNode {
+            node = self.context.interner.intern_node(NodeData {
+                id,
                 span: node.span,
                 kind: NodeKind::Let(Let {
                     bindings: self.context.interner.bindings.intern_slice(&bindings),
                     body: node,
                 }),
             });
-
-            bindings.clear();
         }
 
-        // If we haven't reached the limit, add the vector to the recycler
-        if self.state.recycler.len() < self.state.max_recycle {
-            self.state.recycler.push(bindings);
-        }
-
+        self.state.recycler.release(bindings);
         node
+    }
+
+    /// Handles short-circuiting boolean operations (`&&`, `||`) with special boundary semantics.
+    ///
+    /// Short-circuiting boolean operations have different evaluation properties than other
+    /// binary operations because they conditionally evaluate their right operand:
+    ///
+    /// - For `A && B`: `B` is only evaluated if `A` is true
+    /// - For `A || B`: `B` is only evaluated if `A` is false
+    ///
+    /// To properly handle this conditional evaluation in ANF, these operations are transformed
+    /// into equivalent conditional expressions, but only if the right operand isn't atomic:
+    ///
+    /// - `A && B` ≡ `if A then B else false`
+    /// - `A || B` ≡ `if A then true else B`
+    ///
+    /// This transformation treats the right operand as a boundary (its own evaluation context)
+    /// while the left operand is evaluated in the current boundary. When the right operand
+    /// contains complex expressions that require normalization, the transformation uses
+    /// the trampoline mechanism to replace the binary operation with an [`If`] expression.
+    fn fold_binary_bool(&mut self, operation: BinaryOperation<'heap>) -> BinaryOperation<'heap> {
+        let BinaryOperation { op, left, right } = operation;
+
+        // inlined version of `fold::walk_binary_operation`
+        let op = Spanned {
+            span: self.fold_span(op.span).into_ok(),
+            value: op.value,
+        };
+
+        // Proceed as normal, as `left` is equivalent to the `test` expression
+        let Ok(left) = self.fold_nested_node(left);
+
+        let left = self.ensure_atom(left);
+        // The right side is a boundary
+        let right = self.boundary(right);
+
+        // Check if the right side has been used as a boundary, if that is the case, we
+        // transform it into an `if/else` expression
+        let is_right_atom = is_anf_atom(&right);
+
+        // There is no short circuiting behaviour here required, meaning that we can just issue a
+        // normal binary operation
+        if is_right_atom {
+            return BinaryOperation { op, left, right };
+        }
+
+        let mut make_bool = |value: bool| {
+            let id = self.context.counter.hir.next();
+
+            self.context.map.insert(
+                id,
+                HirInfo {
+                    type_id: TypeBuilder::spanned(self.current.span, self.env).boolean(),
+                    type_arguments: None,
+                },
+            );
+
+            self.context.interner.intern_node(NodeData {
+                id,
+                span: self.current.span,
+                kind: NodeKind::Data(Data::Primitive(Primitive::Boolean(value))),
+            })
+        };
+
+        // We reuse the same HIR id here, because we're transforming everything.
+        // The `If` is depending on what the binary operation is
+        let r#if = match op.value {
+            // A && B => if A then B else false
+            BinOp::And => If {
+                test: left,
+                then: right,
+                r#else: make_bool(false),
+            },
+            // A || B => if A then true else B
+            BinOp::Or => If {
+                test: left,
+                then: make_bool(true),
+                r#else: right,
+            },
+            BinOp::Eq | BinOp::Ne | BinOp::Lt | BinOp::Lte | BinOp::Gt | BinOp::Gte => {
+                unreachable!("fold_binary_bool is only called on `BinOp::And` or `BinOp::Or`")
+            }
+        };
+
+        self.trampoline(self.context.interner.intern_node(NodeData {
+            id: self.current.id,
+            span: self.current.span,
+            kind: NodeKind::Branch(Branch::If(r#if)),
+        }));
+
+        // Return the original node so that the interner can reuse it, as we're going to replace it
+        // with a new node via the trampoline mechanism
+        operation
     }
 }
 
-impl<'heap> Fold<'heap> for Normalization<'_, '_, 'heap> {
+impl<'heap> Fold<'heap> for Normalization<'_, '_, '_, 'heap> {
     type NestedFilter = fold::nested::Deep;
     type Output<T>
         = Result<T, !>
@@ -369,10 +544,19 @@ impl<'heap> Fold<'heap> for Normalization<'_, '_, 'heap> {
     /// This method handles the trampoline mechanism that allows complete node
     /// replacement during the folding process. It's used for transformations
     /// like removing type assertions or flattening let bindings.
+    ///
+    /// The trampoline pattern enables one-to-one node replacements that wouldn't
+    /// be possible with normal folding, such as:
+    /// - Removing [`TypeAssertion`] nodes completely
+    /// - Flattening nested [`Let`] expressions
+    /// - Converting short-circuiting operations to [`If`] expressions
     fn fold_node(&mut self, node: Node<'heap>) -> Self::Output<Node<'heap>> {
         let backup = self.trampoline.take();
+        let previous = mem::replace(&mut self.current, node.ptr());
 
         let Ok(mut node) = fold::walk_node(self, node);
+
+        self.current = previous;
 
         let trampoline = core::mem::replace(&mut self.trampoline, backup);
         if let Some(trampoline) = trampoline {
@@ -457,6 +641,9 @@ impl<'heap> Fold<'heap> for Normalization<'_, '_, 'heap> {
     /// Let expressions are dissolved during ANF transformation. Their bindings
     /// are moved to the current boundary's binding stack, and the body replaces
     /// the entire let expression via the trampoline mechanism.
+    ///
+    /// This flattening process eliminates nested [`Let`] structures, creating
+    /// a single flat sequence of bindings at each boundary level.
     fn fold_let(&mut self, r#let: Let<'heap>) -> Self::Output<Let<'heap>> {
         let Ok(Let { bindings: _, body }) = fold::walk_let(self, r#let);
 
@@ -472,6 +659,9 @@ impl<'heap> Fold<'heap> for Normalization<'_, '_, 'heap> {
     /// Type assertions are superfluous after type checking and are removed
     /// during ANF transformation. The underlying value replaces the assertion
     /// via the trampoline mechanism.
+    ///
+    /// This removal simplifies the IR by eliminating redundant type information
+    /// that was only needed during the type checking phase.
     fn fold_type_assertion(
         &mut self,
         assertion: TypeAssertion<'heap>,
@@ -505,34 +695,7 @@ impl<'heap> Fold<'heap> for Normalization<'_, '_, 'heap> {
         operation: BinaryOperation<'heap>,
     ) -> Self::Output<BinaryOperation<'heap>> {
         if operation.op.value == BinOp::And || operation.op.value == BinOp::Or {
-            // These have special properties from the other operations, because they are
-            // short-circuiting, and therefore are actually boundaries, given: `A && B`,
-            // `B` should only be evaluated if `A` is true `A || B`, `B` should only be
-            // evaluated if `A` is false (if they are complex operations)
-            //
-            // To encode this we can say that `A && B` is equivalent to `if A then B else false`
-            // and `A || B` is equivalent to `if A then true else B`
-            // Therefore `&&` and `||` are naturally classified as boundaries, but(!) only for the
-            // right side, as `A` is always evaluated
-            let BinaryOperation { op, left, right } = operation;
-
-            // inlined version of `fold::walk_binary_operation`
-            let op = Spanned {
-                span: self.fold_span(op.span)?,
-                value: op.value,
-            };
-
-            // Proceed as normal, as `left` is equivalent to the `test` expression
-            let Ok(left) = self.fold_nested_node(left);
-
-            // The right side is a boundary
-            let right = self.boundary(right);
-
-            return Ok(BinaryOperation {
-                op,
-                left: self.ensure_atom(left),
-                right,
-            });
+            return Ok(self.fold_binary_bool(operation));
         }
 
         let Ok(BinaryOperation { op, left, right }) = fold::walk_binary_operation(self, operation);
@@ -562,28 +725,12 @@ impl<'heap> Fold<'heap> for Normalization<'_, '_, 'heap> {
         })
     }
 
-    /// Folds input declarations, ensuring default values are atomic.
-    ///
-    /// Input default values, when present, must be atoms to maintain ANF invariants.
-    fn fold_input(&mut self, input: Input<'heap>) -> Self::Output<Input<'heap>> {
-        let Ok(Input {
-            name,
-            r#type,
-            default,
-        }) = fold::walk_input(self, input);
-
-        // Ensure that the default is an atom
-        Ok(Input {
-            name,
-            r#type,
-            default: default.map(|default| self.ensure_atom(default)),
-        })
-    }
-
     /// Folds field access expressions, ensuring the base expression is a projection.
     ///
     /// Field access creates a projection, so the base expression must itself be
     /// a valid projection (place expression) to maintain proper memory access semantics.
+    /// This ensures that field access chains like `obj.field1.field2` maintain
+    /// their addressability properties throughout the normalization.
     fn fold_field_access(
         &mut self,
         access: FieldAccess<'heap>,
@@ -602,7 +749,9 @@ impl<'heap> Fold<'heap> for Normalization<'_, '_, 'heap> {
     /// - The base expression must be a valid projection
     /// - The index expression must be a local variable (not just any atom)
     ///
-    /// This ensures proper memory access patterns for later optimization phases.
+    /// The stricter requirement for local variables as indices (rather than any atom)
+    /// ensures proper memory access patterns for later optimization phases and
+    /// simplifies bounds checking and memory safety analysis.
     fn fold_index_access(
         &mut self,
         access: IndexAccess<'heap>,

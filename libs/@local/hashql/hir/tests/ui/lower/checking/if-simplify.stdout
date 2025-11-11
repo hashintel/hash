@@ -1,12 +1,21 @@
 ════ Initial HIR ═══════════════════════════════════════════════════════════════
 
-if true 3 4
+if true 
+then 3
+else 4
 
 ════ HIR after type checking ═══════════════════════════════════════════════════
 
-if true 3 4
+if true 
+then 3
+else 4
 
 ════ Types ═════════════════════════════════════════════════════════════════════
+
+┌─ if true 
+│  then 3
+│  else 4
+└→ Integer
 
 ┌─ true
 └→ Boolean
@@ -15,8 +24,5 @@ if true 3 4
 └→ Integer
 
 ┌─ 4
-└→ Integer
-
-┌─ if true 3 4
 └→ Integer
 

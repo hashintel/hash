@@ -12,7 +12,6 @@ import {
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import type { UserProperties } from "@local/hash-isomorphic-utils/system-types/user";
-import { ForbiddenError } from "apollo-server-express";
 
 import type {
   Query,
@@ -20,6 +19,7 @@ import type {
   UserUsageRecords,
 } from "../../../api-types.gen";
 import type { LoggedInGraphQLContext } from "../../../context";
+import * as Error from "../../../error";
 import { graphQLContextToImpureGraphContext } from "../../util";
 
 export const getUsageRecordsResolver: ResolverFn<
@@ -36,7 +36,7 @@ export const getUsageRecordsResolver: ResolverFn<
   );
 
   if (!userIsAdmin) {
-    throw new ForbiddenError("User is not a HASH instance admin");
+    throw Error.forbidden("User is not a HASH instance admin");
   }
 
   const { entities: users } = await queryEntities(

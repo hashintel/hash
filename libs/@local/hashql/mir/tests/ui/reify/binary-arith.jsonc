@@ -1,0 +1,3 @@
+//@ run: skip reason="HIR does not support arithmetic operations yet"
+//@ description: Binary arithmetic operation reification
+["+", { "#literal": 2 }, { "#literal": 3 }]

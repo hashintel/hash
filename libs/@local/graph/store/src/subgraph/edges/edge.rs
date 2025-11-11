@@ -27,6 +27,11 @@ where
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
+#[cfg_attr(
+    feature = "postgres",
+    derive(postgres_types::ToSql, postgres_types::FromSql),
+    postgres(name = "edge_direction", rename_all = "kebab-case")
+)]
 #[cfg_attr(feature = "codegen", derive(specta::Type))]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(rename_all = "kebab-case")]

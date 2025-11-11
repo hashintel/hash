@@ -25,8 +25,8 @@ use crate::{
         postgres::{
             AsClient, PostgresStore,
             query::rows::{
-                EntityDraftRow, EntityEditionRow, EntityEmbeddingRow, EntityHasLeftEntityRow,
-                EntityHasRightEntityRow, EntityIdRow, EntityIsOfTypeRow, EntityTemporalMetadataRow,
+                EntityDraftRow, EntityEdgeRow, EntityEditionRow, EntityEmbeddingRow, EntityIdRow,
+                EntityIsOfTypeRow, EntityTemporalMetadataRow,
             },
         },
     },
@@ -38,8 +38,7 @@ pub enum EntityRowBatch {
     Editions(Vec<EntityEditionRow>),
     Type(Vec<EntityIsOfTypeRow>),
     TemporalMetadata(Vec<EntityTemporalMetadataRow>),
-    LeftLinks(Vec<EntityHasLeftEntityRow>),
-    RightLinks(Vec<EntityHasRightEntityRow>),
+    EntityEdges(Vec<EntityEdgeRow>),
     Embeddings(Vec<EntityEmbeddingRow>),
 }
 
@@ -73,12 +72,8 @@ where
                         (LIKE entity_temporal_metadata INCLUDING ALL)
                         ON COMMIT DROP;
 
-                    CREATE TEMPORARY TABLE entity_has_left_entity_tmp
-                        (LIKE entity_has_left_entity INCLUDING ALL)
-                        ON COMMIT DROP;
-
-                    CREATE TEMPORARY TABLE entity_has_right_entity_tmp
-                        (LIKE entity_has_right_entity INCLUDING ALL)
+                    CREATE TEMPORARY TABLE entity_edge_tmp
+                        (LIKE entity_edge INCLUDING ALL)
                         ON COMMIT DROP;
 
                     CREATE TEMPORARY TABLE entity_embeddings_tmp
@@ -219,15 +214,15 @@ where
                     tracing::info!("Read {} entity temporal metadata", rows.len());
                 }
             }
-            Self::LeftLinks(links) => {
+            Self::EntityEdges(edges) => {
                 let rows = client
                     .query(
                         "
-                            INSERT INTO entity_has_left_entity_tmp
-                            SELECT DISTINCT * FROM UNNEST($1::entity_has_left_entity[])
+                            INSERT INTO entity_edge_tmp
+                            SELECT DISTINCT * FROM UNNEST($1::entity_edge[])
                             RETURNING 1;
                         ",
-                        &[&links],
+                        &[&edges],
                     )
                     .instrument(tracing::info_span!(
                         "INSERT",
@@ -238,29 +233,7 @@ where
                     .await
                     .change_context(InsertionError)?;
                 if !rows.is_empty() {
-                    tracing::info!("Read {} left entity links", rows.len());
-                }
-            }
-            Self::RightLinks(links) => {
-                let rows = client
-                    .query(
-                        "
-                            INSERT INTO entity_has_right_entity_tmp
-                            SELECT DISTINCT * FROM UNNEST($1::entity_has_right_entity[])
-                            RETURNING 1;
-                        ",
-                        &[&links],
-                    )
-                    .instrument(tracing::info_span!(
-                        "INSERT",
-                        otel.kind = "client",
-                        db.system = "postgresql",
-                        peer.service = "Postgres"
-                    ))
-                    .await
-                    .change_context(InsertionError)?;
-                if !rows.is_empty() {
-                    tracing::info!("Read {} right entity links", rows.len());
+                    tracing::info!("Read {} entity edges", rows.len());
                 }
             }
             Self::Embeddings(embeddings) => {
@@ -314,11 +287,8 @@ where
                     INSERT INTO entity_is_of_type
                         SELECT * FROM entity_is_of_type_tmp;
 
-                    INSERT INTO entity_has_left_entity
-                        SELECT * FROM entity_has_left_entity_tmp;
-
-                    INSERT INTO entity_has_right_entity
-                        SELECT * FROM entity_has_right_entity_tmp;
+                    INSERT INTO entity_edge
+                        SELECT * FROM entity_edge_tmp;
 
                     INSERT INTO entity_embeddings
                         SELECT * FROM entity_embeddings_tmp;

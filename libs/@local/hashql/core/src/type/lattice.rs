@@ -505,10 +505,11 @@ pub trait Lattice<'heap> {
 pub(crate) mod test {
     #![expect(clippy::min_ident_chars)]
     use crate::{
-        pretty::{PrettyOptions, PrettyPrint as _},
+        pretty::{Formatter, RenderOptions},
         r#type::{
             TypeId,
             environment::{AnalysisEnvironment, Environment, LatticeEnvironment},
+            pretty::TypeFormatter,
         },
     };
 
@@ -519,12 +520,14 @@ pub(crate) mod test {
 
         let join1 = lattice.join(a, a);
 
+        let formatter = Formatter::new(env.heap);
+        let mut formatter = TypeFormatter::with_defaults(&formatter, env);
+
         assert!(
             analysis.is_equivalent(join1, a),
             "{} != {}",
-            env.r#type(join1)
-                .pretty_print(env, PrettyOptions::default()),
-            env.r#type(a).pretty_print(env, PrettyOptions::default())
+            formatter.render_type(join1, RenderOptions::default()),
+            formatter.render_type(a, RenderOptions::default()),
         );
 
         let meet1 = lattice.meet(a, a);
@@ -532,9 +535,8 @@ pub(crate) mod test {
         assert!(
             analysis.is_equivalent(meet1, a),
             "{} != {}",
-            env.r#type(meet1)
-                .pretty_print(env, PrettyOptions::default()),
-            env.r#type(a).pretty_print(env, PrettyOptions::default())
+            formatter.render_type(meet1, RenderOptions::default()),
+            formatter.render_type(a, RenderOptions::default()),
         );
     }
 
@@ -546,13 +548,14 @@ pub(crate) mod test {
         let join1 = lattice.join(a, b);
         let join2 = lattice.join(b, a);
 
+        let formatter = Formatter::new(env.heap);
+        let mut formatter = TypeFormatter::with_defaults(&formatter, env);
+
         assert!(
             analysis.is_equivalent(join1, join2),
             "{} != {}",
-            env.r#type(join1)
-                .pretty_print(env, PrettyOptions::default()),
-            env.r#type(join2)
-                .pretty_print(env, PrettyOptions::default())
+            formatter.render_type(join1, RenderOptions::default()),
+            formatter.render_type(join2, RenderOptions::default())
         );
 
         let meet1 = lattice.meet(a, b);
@@ -561,10 +564,8 @@ pub(crate) mod test {
         assert!(
             analysis.is_equivalent(meet1, meet2),
             "{} != {}",
-            env.r#type(meet1)
-                .pretty_print(env, PrettyOptions::default()),
-            env.r#type(meet2)
-                .pretty_print(env, PrettyOptions::default())
+            formatter.render_type(meet1, RenderOptions::default()),
+            formatter.render_type(meet2, RenderOptions::default())
         );
     }
 
@@ -579,13 +580,14 @@ pub(crate) mod test {
         let join2_ab = lattice.join(a, b);
         let join2 = lattice.join(join2_ab, c);
 
+        let formatter = Formatter::new(env.heap);
+        let mut formatter = TypeFormatter::with_defaults(&formatter, env);
+
         assert!(
             analysis.is_equivalent(join1, join2),
             "{} != {}",
-            env.r#type(join1)
-                .pretty_print(env, PrettyOptions::default()),
-            env.r#type(join2)
-                .pretty_print(env, PrettyOptions::default())
+            formatter.render_type(join1, RenderOptions::default()),
+            formatter.render_type(join2, RenderOptions::default())
         );
 
         let meet1_bc = lattice.meet(b, c);
@@ -597,10 +599,8 @@ pub(crate) mod test {
         assert!(
             analysis.is_equivalent(meet1, meet2),
             "{} != {}",
-            env.r#type(meet1)
-                .pretty_print(env, PrettyOptions::default()),
-            env.r#type(meet2)
-                .pretty_print(env, PrettyOptions::default())
+            formatter.render_type(meet1, RenderOptions::default()),
+            formatter.render_type(meet2, RenderOptions::default())
         );
     }
 
@@ -612,12 +612,14 @@ pub(crate) mod test {
         let meet1 = lattice.meet(a, b); // String and Integer => Never
         let join1 = lattice.join(a, meet1); // Number or Never => Number
 
+        let formatter = Formatter::new(env.heap);
+        let mut formatter = TypeFormatter::with_defaults(&formatter, env);
+
         assert!(
             analysis.is_equivalent(join1, a),
             "{} != {}",
-            env.r#type(join1)
-                .pretty_print(env, PrettyOptions::default()),
-            env.r#type(a).pretty_print(env, PrettyOptions::default())
+            formatter.render_type(join1, RenderOptions::default()),
+            formatter.render_type(a, RenderOptions::default())
         );
 
         let join2 = lattice.join(a, b); // Number or String => Number or String
@@ -626,9 +628,8 @@ pub(crate) mod test {
         assert!(
             analysis.is_equivalent(meet2, a),
             "{} != {}",
-            env.r#type(meet2)
-                .pretty_print(env, PrettyOptions::default()),
-            env.r#type(a).pretty_print(env, PrettyOptions::default())
+            formatter.render_type(meet2, RenderOptions::default()),
+            formatter.render_type(a, RenderOptions::default())
         );
     }
 

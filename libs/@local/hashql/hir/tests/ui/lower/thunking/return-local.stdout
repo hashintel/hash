@@ -1,11 +1,7 @@
 ════ Initial HIR ═══════════════════════════════════════════════════════════════
 
-#let foo:0 = 2
-in
-foo:0
+let foo:0 = 2 in foo:0
 
 ════ HIR after thunking ════════════════════════════════════════════════════════
 
-#let foo:0 = thunk(() -> 2)
-in
-foo:0
+let foo:0 = thunk -> 2 in foo:0

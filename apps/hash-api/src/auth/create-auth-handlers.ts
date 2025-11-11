@@ -2,7 +2,7 @@ import { getRequiredEnv } from "@local/hash-backend-utils/environment";
 import { getHashInstance } from "@local/hash-backend-utils/hash-instance";
 import type { Logger } from "@local/hash-backend-utils/logger";
 import { publicUserAccountId } from "@local/hash-backend-utils/public-user-account-id";
-import type { Session } from "@ory/client";
+import type { Session } from "@ory/kratos-client";
 import type { AxiosError } from "axios";
 import type { Express, Request, RequestHandler } from "express";
 
@@ -136,6 +136,10 @@ export const getUserAndSession = async ({
   if (kratosSession) {
     const { identity } = kratosSession;
 
+    if (!identity) {
+      throw new Error("Could not find kratos identity for session");
+    }
+
     const { id: kratosIdentityId } = identity;
 
     const user = await getUserByKratosIdentityId(context, authentication, {
@@ -160,7 +164,6 @@ export const createAuthMiddleware = (params: {
 }): RequestHandler => {
   const { logger, context } = params;
 
-  // eslint-disable-next-line @typescript-eslint/no-misused-promises -- https://github.com/DefinitelyTyped/DefinitelyTyped/issues/50871
   return async (req, _res, next) => {
     const authHeader = req.header("authorization");
     const hasAuthHeader = authHeader?.startsWith("Bearer ") ?? false;

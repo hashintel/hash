@@ -1,0 +1,70 @@
+fn max42:0(%0, %1) {
+    bb0(): {
+        %2 = %0.0
+        %3 = %1 <= %2
+
+        switchInt(%3) -> [0: bb2(), 1: bb1()]
+    }
+
+
+    bb1(): {
+        goto -> bb3(%2)
+    }
+
+
+    bb2(): {
+        goto -> bb3(%1)
+    }
+
+
+    bb3(%4): {
+        return %4
+    }
+}
+
+fn {ctor#::core::option::Some}(%0, %1) {
+    bb0(): {
+        %2 = opaque(::core::option::Some, %1)
+
+        return %2
+    }
+}
+
+fn {ctor#::core::option::None}(%0) {
+    bb0(): {
+        %1 = opaque(::core::option::None, ())
+
+        return %1
+    }
+}
+
+*thunk {thunk#10}() {
+    bb0(): {
+        switchInt(true) -> [0: bb2(), 1: bb1()]
+    }
+
+
+    bb1(): {
+        %1 = 42
+        %3 = (%1)
+        %2 = closure((max42:0 as FnPtr), %3)
+        %4 = apply %2.0 %2.1 2
+        %5 = closure(({ctor#::core::option::Some} as FnPtr), ())
+        %6 = apply %5.0 %5.1 %4
+
+        goto -> bb3(%6)
+    }
+
+
+    bb2(): {
+        %7 = closure(({ctor#::core::option::None} as FnPtr), ())
+        %8 = apply %7.0 %7.1
+
+        goto -> bb3(%8)
+    }
+
+
+    bb3(%0): {
+        return %0
+    }
+}

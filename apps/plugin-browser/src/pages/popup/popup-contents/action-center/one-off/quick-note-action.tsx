@@ -1,5 +1,5 @@
 import { Button } from "@hashintel/design-system";
-import { paragraphBlockComponentId } from "@local/hash-isomorphic-utils/blocks";
+import { paragraphBlockComponentId } from "@local/hash-isomorphic-utils/blocks-constants";
 import {
   systemEntityTypes,
   systemLinkEntityTypes,

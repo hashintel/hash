@@ -5,7 +5,7 @@ import {
   type WebId,
 } from "@blockprotocol/type-system";
 import { IconButton } from "@hashintel/design-system";
-import { blockProtocolHubOrigin } from "@local/hash-isomorphic-utils/blocks";
+import { blockProtocolHubOrigin } from "@local/hash-isomorphic-utils/blocks-constants";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { Box, Collapse, Fade, Tooltip, Typography } from "@mui/material";
 import { orderBy } from "lodash";

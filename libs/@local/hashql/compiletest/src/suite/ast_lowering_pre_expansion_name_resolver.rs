@@ -2,11 +2,9 @@ use hashql_ast::{
     format::SyntaxDump as _, lowering::pre_expansion_name_resolver::PreExpansionNameResolver,
     node::expr::Expr, visit::Visitor as _,
 };
-use hashql_core::{
-    heap::Heap, module::ModuleRegistry, span::SpanId, r#type::environment::Environment,
-};
+use hashql_core::{module::ModuleRegistry, span::SpanId, r#type::environment::Environment};
 
-use super::{Suite, SuiteDiagnostic};
+use super::{RunContext, Suite, SuiteDiagnostic};
 
 pub(crate) struct AstLoweringNameResolverSuite;
 
@@ -17,9 +15,8 @@ impl Suite for AstLoweringNameResolverSuite {
 
     fn run<'heap>(
         &self,
-        heap: &'heap Heap,
+        RunContext { heap, .. }: RunContext<'_, 'heap>,
         mut expr: Expr<'heap>,
-        _: &mut Vec<SuiteDiagnostic>,
     ) -> Result<String, SuiteDiagnostic> {
         let environment = Environment::new(SpanId::SYNTHETIC, heap);
         let registry = ModuleRegistry::new(&environment);

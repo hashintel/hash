@@ -1,0 +1,22 @@
+thunk foo:0() {
+    bb0(): {
+        %0 = list(1, 2, 3)
+
+        return %0
+    }
+}
+
+thunk {thunk#1}() {
+    bb0(): {
+        return 0
+    }
+}
+
+*thunk {thunk#2}() {
+    bb0(): {
+        %0 = apply (foo:0 as FnPtr)
+        %1 = apply ({thunk#1} as FnPtr)
+
+        return %0[%1]
+    }
+}

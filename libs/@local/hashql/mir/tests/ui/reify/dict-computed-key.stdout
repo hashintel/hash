@@ -1,0 +1,17 @@
+thunk foo:0() {
+    bb0(): {
+        %0 = 2 <= 3
+
+        return %0
+    }
+}
+
+*thunk bar:0() {
+    bb0(): {
+        %0 = apply (foo:0 as FnPtr)
+        %1 = apply (foo:0 as FnPtr)
+        %2 = dict(%0: 42, true: %1)
+
+        return %2
+    }
+}

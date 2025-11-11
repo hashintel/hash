@@ -1,6 +1,8 @@
 ════ Initial HIR ═══════════════════════════════════════════════════════════════
 
-::graph::tail::collect(::graph::head::entities(::graph::tmp::decision_time_now()))
+::graph::tail::collect(
+    ::graph::head::entities(::graph::tmp::decision_time_now())
+)
 
 ════ HIR after specialization ══════════════════════════════════════════════════
 

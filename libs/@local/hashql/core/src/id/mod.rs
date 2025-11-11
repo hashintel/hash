@@ -1,3 +1,4 @@
+pub mod bit_vec;
 mod index;
 mod slice;
 mod union_find;
@@ -164,7 +165,7 @@ macro_rules! newtype {
         $vis struct $name($type);
 
         #[expect(clippy::allow_attributes)]
-        #[allow(dead_code)]
+        #[allow(dead_code, clippy::checked_conversions)]
         impl $name {
             /// Creates a new ID with the given value.
             ///
@@ -184,7 +185,7 @@ macro_rules! newtype {
 
         #[automatically_derived]
         #[expect(clippy::allow_attributes, reason = "automatically generated")]
-        #[allow(clippy::cast_possible_truncation, clippy::cast_lossless)]
+        #[allow(clippy::cast_possible_truncation, clippy::cast_lossless, clippy::checked_conversions)]
         impl $crate::id::Id for $name {
             const MIN: Self = Self($min);
             const MAX: Self = Self($max);
@@ -248,6 +249,8 @@ macro_rules! newtype {
             }
         }
 
+        #[expect(clippy::allow_attributes, reason = "automatically generated")]
+        #[allow(clippy::cast_possible_truncation, clippy::cast_lossless, clippy::checked_conversions)]
         impl ::core::convert::TryFrom<u32> for $name {
             type Error = $crate::id::IdError;
 
@@ -264,10 +267,11 @@ macro_rules! newtype {
             }
         }
 
+        #[expect(clippy::allow_attributes, reason = "automatically generated")]
+        #[allow(clippy::cast_possible_truncation, clippy::cast_lossless, clippy::checked_conversions)]
         impl ::core::convert::TryFrom<u64> for $name {
             type Error = $crate::id::IdError;
 
-            #[expect(clippy::cast_possible_truncation)]
             fn try_from(value: u64) -> ::core::result::Result<Self, Self::Error> {
                 if $crate::id::newtype!(@internal in_bounds; value, u64, $min, $max) {
                     Ok(Self(value as $type))
@@ -281,10 +285,11 @@ macro_rules! newtype {
             }
         }
 
+        #[expect(clippy::allow_attributes, reason = "automatically generated")]
+        #[allow(clippy::cast_possible_truncation, clippy::cast_lossless, clippy::checked_conversions)]
         impl ::core::convert::TryFrom<usize> for $name {
             type Error = $crate::id::IdError;
 
-            #[expect(clippy::cast_possible_truncation)]
             fn try_from(value: usize) -> ::core::result::Result<Self, Self::Error> {
                 if $crate::id::newtype!(@internal in_bounds; value, usize, $min, $max) {
                     Ok(Self(value as $type))
@@ -354,6 +359,14 @@ impl<I> IdCounter<I> {
         I: Id,
     {
         self.next.as_usize()
+    }
+
+    #[must_use]
+    pub const fn bound(&self) -> I
+    where
+        I: Id,
+    {
+        self.next
     }
 
     #[inline]

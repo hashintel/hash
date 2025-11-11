@@ -4,7 +4,6 @@ pub mod call;
 pub mod closure;
 pub mod data;
 pub mod graph;
-pub mod input;
 pub mod kind;
 pub mod r#let;
 pub mod operation;
@@ -13,7 +12,7 @@ pub mod variable;
 
 use hashql_core::{
     id::{self, HasId},
-    intern::{Decompose, Interned},
+    intern::Interned,
     span::SpanId,
 };
 
@@ -56,6 +55,8 @@ impl HirPtr {
     };
 }
 
+pub type Node<'heap> = Interned<'heap, NodeData<'heap>>;
+
 /// A node in the HashQL High-Level Intermediate Representation (HIR).
 ///
 /// The HIR is an optimized, more refined representation of the program derived from the AST.
@@ -76,15 +77,15 @@ impl HirPtr {
 /// The HIR is designed to be immutable after construction and uses arena allocation
 /// through the `'heap` lifetime for efficient memory management.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-pub struct Node<'heap> {
+pub struct NodeData<'heap> {
     pub id: HirId,
     pub span: SpanId,
 
     // Consider if we want to intern the `NodeKind` separately
-    pub kind: &'heap NodeKind<'heap>,
+    pub kind: NodeKind<'heap>,
 }
 
-impl Node<'_> {
+impl NodeData<'_> {
     #[must_use]
     pub const fn ptr(&self) -> HirPtr {
         HirPtr {
@@ -94,31 +95,10 @@ impl Node<'_> {
     }
 }
 
-impl HasId for Node<'_> {
+impl HasId for NodeData<'_> {
     type Id = HirId;
 
     fn id(&self) -> Self::Id {
         self.id
     }
-}
-
-impl<'heap> Decompose<'heap> for Node<'heap> {
-    type Partial = PartialNode<'heap>;
-
-    fn from_parts(id: Self::Id, partial: Interned<'heap, Self::Partial>) -> Self {
-        let Interned(partial, _) = partial;
-
-        Self {
-            id,
-            span: partial.span,
-            kind: &partial.kind,
-        }
-    }
-}
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-pub struct PartialNode<'heap> {
-    pub span: SpanId,
-
-    pub kind: NodeKind<'heap>,
 }

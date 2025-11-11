@@ -4,7 +4,6 @@ import type {
   Message,
   MessageCreateParamsBase,
   MessageCreateParamsNonStreaming,
-  MessageParam,
   ToolUseBlock,
 } from "@anthropic-ai/sdk/resources/messages";
 import { getRequiredEnv } from "@local/hash-backend-utils/environment";
@@ -50,13 +49,8 @@ export const anthropicMessageModelToMaxOutput: Record<
 };
 
 export type AnthropicMessagesCreateParams = {
-  tool_choice?:
-    | { type: "tool"; name: string }
-    | { type: "any" }
-    | { type: "auto" };
   model: PermittedAnthropicModel;
-  messages: MessageParam[];
-} & Omit<MessageCreateParamsNonStreaming, "model" | "messages">;
+} & Omit<MessageCreateParamsNonStreaming, "model">;
 
 type AnthropicMessagesCreateResponseContent = Message["content"][number];
 
@@ -79,7 +73,6 @@ const awsSecretKey = getRequiredEnv(
  */
 const awsRegion = "us-west-2";
 
-// eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-assignment
 const anthropicBedrockClient: AnthropicBedrock = new AnthropicBedrock({
   awsAccessKey,
   awsSecretKey,
@@ -103,17 +96,13 @@ export const anthropicModelToBedrockModel: Record<
 
 export type AnthropicApiProvider = "anthropic" | "amazon-bedrock";
 
-type AnthropicBedrockMessagesCreateParams = Parameters<
-  typeof anthropicBedrockClient.messages.create
->[0];
-
 export const createAnthropicMessagesWithTools = async (params: {
   payload: AnthropicMessagesCreateParams;
   provider: AnthropicApiProvider;
 }): Promise<AnthropicMessagesCreateResponse> => {
   const { payload, provider } = params;
 
-  let response: AnthropicMessagesCreateResponse;
+  let response: Message & { _request_id?: string | null | undefined };
 
   /**
    * If the model is available on Amazon Bedrock and the amazon bedrock provider
@@ -121,14 +110,9 @@ export const createAnthropicMessagesWithTools = async (params: {
    */
   if (provider === "amazon-bedrock") {
     const bedrockModel = anthropicModelToBedrockModel[payload.model];
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
-    response = (await anthropicBedrockClient.messages.create(
+    response = await anthropicBedrockClient.messages.create(
       {
-        /**
-         * @todo: replace with `MessageCreateParamsNonStreaming` once the Bedrock SDK
-         * has been updated to be in sync with the Anthropic SDK.
-         */
-        ...(payload as AnthropicBedrockMessagesCreateParams),
+        ...payload,
         model: bedrockModel,
       },
       {
@@ -137,18 +121,15 @@ export const createAnthropicMessagesWithTools = async (params: {
           "anthropic-beta": "max-tokens-3-5-sonnet-2024-07-15",
         },
       },
-    )) as AnthropicMessagesCreateResponse;
+    );
   } else {
-    response = (await anthropic.messages.create(
-      payload as MessageCreateParamsNonStreaming,
-      {
-        signal: Context.current().cancellationSignal,
-        headers: {
-          "anthropic-beta": "max-tokens-3-5-sonnet-2024-07-15",
-        },
+    response = await anthropic.messages.create(payload, {
+      signal: Context.current().cancellationSignal,
+      headers: {
+        "anthropic-beta": "max-tokens-3-5-sonnet-2024-07-15",
       },
-    )) as AnthropicMessagesCreateResponse;
+    });
   }
 
-  return response;
+  return { ...response, provider };
 };

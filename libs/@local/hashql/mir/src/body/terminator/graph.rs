@@ -7,9 +7,31 @@
 use hashql_core::heap;
 
 use crate::{
-    body::{basic_block::BasicBlockId, local::Local, operand::Operand},
+    body::{basic_block::BasicBlockId, local::Local, location::Location, operand::Operand},
     def::DefId,
 };
+
+/// A location that identifies a specific operation within a graph read terminator.
+///
+/// While a [`Location`] identifies a terminator within the control flow graph,
+/// a [`GraphReadLocation`] provides finer-grained identification of specific
+/// operations within a graph read terminator's processing pipeline.
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+pub struct GraphReadLocation {
+    /// The base location identifying the graph read terminator.
+    ///
+    /// This [`Location`] points to the graph read terminator within the
+    /// control flow graph (block and statement index).
+    pub base: Location,
+
+    /// The index of the specific operation within the graph read pipeline.
+    ///
+    /// This index identifies which operation in the graph read is being referenced:
+    /// - `0`: The head operation
+    /// - `1..n`: Body operations (indexed sequentially)
+    /// - `n`: The tail operation (where n = 1 + number of body operations)
+    pub graph_read_index: usize,
+}
 
 /// The starting point for a graph read operation.
 ///

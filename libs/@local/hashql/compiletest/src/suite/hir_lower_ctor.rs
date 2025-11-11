@@ -4,18 +4,18 @@ use hashql_ast::node::expr::Expr;
 use hashql_core::{
     heap::Heap,
     module::ModuleRegistry,
-    pretty::{PrettyOptions, PrettyPrint as _},
+    pretty::{Formatter, RenderOptions},
     span::SpanId,
     r#type::environment::Environment,
 };
 use hashql_diagnostics::DiagnosticIssues;
 use hashql_hir::{
     context::HirContext, fold::Fold as _, intern::Interner, lower::ctor::ConvertTypeConstructor,
-    node::Node, pretty::PrettyPrintEnvironment,
+    node::Node, pretty::NodeFormatter,
 };
 
 use super::{
-    Suite, SuiteDiagnostic,
+    RunContext, Suite, SuiteDiagnostic,
     common::Header,
     hir_lower_alias_replacement::{TestOptions, hir_lower_alias_replacement},
 };
@@ -49,9 +49,10 @@ impl Suite for HirLowerCtorSuite {
 
     fn run<'heap>(
         &self,
-        heap: &'heap Heap,
+        RunContext {
+            heap, diagnostics, ..
+        }: RunContext<'_, 'heap>,
         expr: Expr<'heap>,
-        diagnostics: &mut Vec<SuiteDiagnostic>,
     ) -> Result<String, SuiteDiagnostic> {
         let environment = Environment::new(SpanId::SYNTHETIC, heap);
         let registry = ModuleRegistry::new(&environment);
@@ -72,17 +73,14 @@ impl Suite for HirLowerCtorSuite {
             },
         )?;
 
+        let formatter = Formatter::new(heap);
+        let mut formatter = NodeFormatter::with_defaults(&formatter, &environment, &context);
+
         let _ = writeln!(
             output,
             "\n{}\n\n{}",
             Header::new("HIR after ctor conversion"),
-            node.pretty_print(
-                &PrettyPrintEnvironment {
-                    env: &environment,
-                    symbols: &context.symbols,
-                },
-                PrettyOptions::default().without_color()
-            )
+            formatter.render(node, RenderOptions::default().with_plain())
         );
 
         Ok(output)

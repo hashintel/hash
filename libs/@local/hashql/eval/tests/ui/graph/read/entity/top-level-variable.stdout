@@ -1,37 +1,20 @@
 ════ HIR ═══════════════════════════════════════════════════════════════════════
 
-#let %2 = thunk(() ->
-         #let %4 = ::graph::tmp::decision_time_now()
-                  %5 = %4()
-             in
-             %5
-         )
-     %3 = thunk(() ->
-         #let %6 = %2()
-                  %7 = ::graph::head::entities(%6)
-                      |> ::graph::body::filter(#fn(vertex:0: _0«Entity[(id:
-                       EntityRecordId[(edition_id:
-                        EntityEditionId[Uuid[String]], entity_id:
-                        EntityId[(draft_id: (None[Null]
-                          | Some[DraftId[Uuid[String]]]), entity_uuid:
-                         EntityUuid[Uuid[String]], web_id:
-                         WebId[ActorGroupEntityUuid[Uuid[String]]])])],
-                       link_data: (None[Null]
-                        | Some[LinkData[(left_entity_id: EntityId[(draft_id:
-                          (None[Null] | Some[DraftId[Uuid[String]]]),
-                          entity_uuid: EntityUuid[Uuid[String]], web_id:
-                          WebId[ActorGroupEntityUuid[Uuid[String]]])],
-                         right_entity_id: EntityId[(draft_id: (None[Null]
-                           | Some[DraftId[Uuid[String]]]), entity_uuid:
-                          EntityUuid[Uuid[String]], web_id:
-                          WebId[ActorGroupEntityUuid[Uuid[String]]])])]]),
-                       properties: ?)]»): _1«Boolean» ->
-                          #let foo:0 = true
-                          in
-                          foo:0) |> ::graph::tail::collect
-             in
-             %7
-         )
+let %2 = thunk ->
+        let %4 = ::graph::tmp::decision_time_now(),
+            %5 = %4()
+        in
+        %5,
+    foo:0 = thunk -> true,
+    %3 = thunk ->
+        let %6 = %2(),
+            %8 = ::graph::head::entities(%6)
+                 |> ::graph::body::filter((vertex:0: Entity): Boolean ->
+                     let %7 = foo:0() in %7
+                 )
+                 |> ::graph::tail::collect
+        in
+        %8
 in
 %3
 

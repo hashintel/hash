@@ -1,8 +1,0 @@
-error[graph-read-compiler::branch-unsupported]: Branch construct unsupported
-  ╭▸ 
-8 │       ["if", {"#literal": true}, {"#literal": true}, {"#literal": false}]
-  │       ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ conditional expressions are not supported in filter contexts
-  │
-  ├ help: rewrite the logic to avoid conditional statements
-  ├ note: conditional statements (`if`/`else`) are not supported by the current query compiler. This is a fundamental limitation that will be addressed in the next-generation compiler
-  ╰ note: consider using boolean operators (`&&`, `||`, `!`) to combine conditions directly instead of `if` statements

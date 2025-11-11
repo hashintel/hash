@@ -3,4 +3,5 @@ Expr#4294967040@18
 
 ------------------------
 
-type Numbers:0 = List<Number>
+┌─ Numbers:0<>
+└→ List<Number>

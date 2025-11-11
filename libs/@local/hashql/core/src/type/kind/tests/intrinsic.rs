@@ -4,7 +4,6 @@ use hashql_diagnostics::Success;
 
 use crate::{
     heap::Heap,
-    pretty::PrettyPrint as _,
     span::SpanId,
     symbol::Ident,
     r#type::{

@@ -8,14 +8,13 @@ use hashql_ast::{
     visit::Visitor as _,
 };
 use hashql_core::{
-    heap::Heap,
     module::{ModuleRegistry, namespace::ModuleNamespace},
     span::SpanId,
     r#type::environment::Environment,
 };
 use hashql_diagnostics::Diagnostic;
 
-use super::{Suite, SuiteDiagnostic};
+use super::{RunContext, Suite, SuiteDiagnostic};
 
 pub(crate) struct AstLoweringImportResolverContinueSuite;
 
@@ -26,9 +25,10 @@ impl Suite for AstLoweringImportResolverContinueSuite {
 
     fn run<'heap>(
         &self,
-        heap: &'heap Heap,
+        RunContext {
+            heap, diagnostics, ..
+        }: RunContext<'_, 'heap>,
         mut expr: Expr<'heap>,
-        diagnostics: &mut Vec<SuiteDiagnostic>,
     ) -> Result<String, SuiteDiagnostic> {
         let environment = Environment::new(SpanId::SYNTHETIC, heap);
         let registry = ModuleRegistry::new(&environment);

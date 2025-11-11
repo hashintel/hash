@@ -4,8 +4,8 @@ use core::convert::Infallible;
 
 use hashql_core::{
     collections::{FastHashMap, HashMapExt as _, SmallVec},
-    span::{SpanId, Spanned},
-    r#type::{TypeId, environment::Environment},
+    span::Spanned,
+    r#type::environment::Environment,
 };
 
 use self::error::{
@@ -18,7 +18,7 @@ use crate::{
     fold::{self, Fold, nested::Deep},
     intern::Interner,
     node::{
-        HirIdMap, Node, PartialNode,
+        HirIdMap, HirPtr, Node, NodeData,
         call::Call,
         graph::{
             Graph,
@@ -29,27 +29,24 @@ use crate::{
         operation::{BinOp, BinaryOperation, Operation},
         variable::Variable,
     },
-    pretty::PrettyPrintEnvironment,
 };
 
-pub struct Specialization<'env, 'heap, 'diag> {
+pub struct Specialization<'ctx, 'env, 'hir, 'heap, 'diag> {
     env: &'env Environment<'heap>,
-    context: &'env HirContext<'env, 'heap>,
+    context: &'ctx mut HirContext<'hir, 'heap>,
 
-    types: &'env mut HirIdMap<TypeId>,
     intrinsics: HirIdMap<&'static str>,
 
-    current_span: SpanId,
+    current: HirPtr,
     visited: HirIdMap<Node<'heap>>,
     locals: VarIdMap<Node<'heap>>,
     diagnostics: &'diag mut LoweringDiagnosticIssues,
 }
 
-impl<'env, 'heap, 'diag> Specialization<'env, 'heap, 'diag> {
+impl<'ctx, 'env, 'hir, 'heap, 'diag> Specialization<'ctx, 'env, 'hir, 'heap, 'diag> {
     pub fn new(
         env: &'env Environment<'heap>,
-        context: &'env HirContext<'env, 'heap>,
-        types: &'env mut HirIdMap<TypeId>,
+        context: &'ctx mut HirContext<'hir, 'heap>,
         intrinsics: HirIdMap<&'static str>,
         diagnostics: &'diag mut LoweringDiagnosticIssues,
     ) -> Self {
@@ -57,10 +54,9 @@ impl<'env, 'heap, 'diag> Specialization<'env, 'heap, 'diag> {
             env,
             context,
 
-            types,
             intrinsics,
 
-            current_span: SpanId::SYNTHETIC,
+            current: HirPtr::PLACEHOLDER,
             visited: FastHashMap::default(),
             locals: FastHashMap::default(),
             diagnostics,
@@ -93,24 +89,15 @@ impl<'env, 'heap, 'diag> Specialization<'env, 'heap, 'diag> {
             }
 
             let NodeKind::Call(call) = next.kind else {
-                self.push_diagnostic(invalid_graph_chain(
-                    &PrettyPrintEnvironment {
-                        env: self.env,
-                        symbols: &self.context.symbols,
-                    },
-                    next.span,
-                    next,
-                ));
+                self.push_diagnostic(invalid_graph_chain(self.env, self.context, next.span, next));
 
                 return None;
             };
 
             let Some(&intrinsic) = self.intrinsics.get(&call.function.id) else {
                 self.push_diagnostic(non_intrinsic_graph_operation(
-                    &PrettyPrintEnvironment {
-                        env: self.env,
-                        symbols: &self.context.symbols,
-                    },
+                    self.env,
+                    self.context,
                     call.function.span,
                     call.function,
                 ));
@@ -216,8 +203,9 @@ impl<'env, 'heap, 'diag> Specialization<'env, 'heap, 'diag> {
 
                 let read = fold::walk_graph_read(self, read)?;
 
-                return Ok(Some(self.context.interner.intern_node(PartialNode {
-                    span: self.current_span,
+                return Ok(Some(self.context.interner.intern_node(NodeData {
+                    id: self.current.id,
+                    span: self.current.span,
                     kind: NodeKind::Graph(Graph::Read(read)),
                 })));
             }
@@ -251,14 +239,15 @@ impl<'env, 'heap, 'diag> Specialization<'env, 'heap, 'diag> {
 
         let operation = fold::walk_operation(self, operation)?;
 
-        Ok(Some(self.context.interner.intern_node(PartialNode {
-            span: self.current_span,
+        Ok(Some(self.context.interner.intern_node(NodeData {
+            id: self.current.id,
+            span: self.current.span,
             kind: NodeKind::Operation(operation),
         })))
     }
 }
 
-impl<'heap> Fold<'heap> for Specialization<'_, 'heap, '_> {
+impl<'heap> Fold<'heap> for Specialization<'_, '_, '_, 'heap, '_> {
     type NestedFilter = Deep;
     type Output<T>
         = Result<T, !>
@@ -295,15 +284,15 @@ impl<'heap> Fold<'heap> for Specialization<'_, 'heap, '_> {
             return Ok(existing);
         }
 
-        let previous = self.current_span;
-        self.current_span = node.span;
+        let previous = self.current;
+        self.current = node.ptr();
 
         // We need to check **before** folding the call, if the function is an intrinsic, otherwise
         // the underlying HirId might've been changed
         let intrinsic_node = if let NodeKind::Call(call) = node.kind
             && let Some(intrinsic) = self.intrinsics.get(&call.function.id)
         {
-            self.fold_intrinsic(*call, intrinsic)?
+            self.fold_intrinsic(call, intrinsic)?
         } else {
             None
         };
@@ -314,29 +303,9 @@ impl<'heap> Fold<'heap> for Specialization<'_, 'heap, '_> {
             fold::walk_node(self, node)?
         };
 
-        // We might want to consider if we need to guard this behind some sort of check if the node
-        // hasn't been visited before (that has been output). Considering that we're already doing a
-        // dedupe step it shouldn't be needed, as it's always a unique to unique transformation.
-        if node.id != node_id {
-            let r#type = self
-                .types
-                .remove(&node_id)
-                .expect("node should only be traversed once");
-
-            self.types
-                .try_insert(node.id, r#type)
-                .expect("node id should be unique in types");
-
-            if let Some(intrinsic) = self.intrinsics.remove(&node_id) {
-                self.intrinsics
-                    .try_insert(node.id, intrinsic)
-                    .expect("node id should be unique in intrinsics");
-            }
-        }
-
         self.visited.insert(node_id, node);
 
-        self.current_span = previous;
+        self.current = previous;
 
         Ok(node)
     }

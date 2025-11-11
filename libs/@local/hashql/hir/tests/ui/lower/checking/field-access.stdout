@@ -1,31 +1,25 @@
 ════ Initial HIR ═══════════════════════════════════════════════════════════════
 
-#let foo:0 = (a: 42)
-in
-foo:0.a
+let foo:0 = (a: 42) in foo:0.a
 
 ════ HIR after type checking ═══════════════════════════════════════════════════
 
-#let foo:0 = (a: 42)
-in
-foo:0.a
+let foo:0 = (a: 42) in foo:0.a
 
 ════ Types ═════════════════════════════════════════════════════════════════════
 
-┌─ 42
+┌─ let foo:0 = (a: 42) in foo:0.a
 └→ Integer
 
 ┌─ (a: 42)
 └→ (a: Integer)
 
-┌─ foo:0
-└→ (a: Integer)
+┌─ 42
+└→ Integer
 
 ┌─ foo:0.a
 └→ Integer
 
-┌─ #let foo:0 = (a: 42)
-│  in
-│  foo:0.a
-└→ Integer
+┌─ foo:0
+└→ (a: Integer)
 

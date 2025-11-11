@@ -81,7 +81,7 @@ export const Slider: React.FC<SliderProps> = ({
             position: "relative",
             display: "flex",
             flexDirection: "column",
-            gap: "1",
+            gap: "spacing.1",
           }),
           className,
         )}
@@ -100,9 +100,9 @@ export const Slider: React.FC<SliderProps> = ({
         {label && (
           <BaseSlider.Label
             className={css({
-              fontSize: "sm",
+              fontSize: "size.textsm",
               fontWeight: "medium",
-              color: "gray.90",
+              color: "core.gray.90",
             })}
           >
             {label}
@@ -112,8 +112,8 @@ export const Slider: React.FC<SliderProps> = ({
         {showValueText && (
           <BaseSlider.ValueText
             className={css({
-              fontSize: "xs",
-              color: "gray.60",
+              fontSize: "size.textxs",
+              color: "core.gray.60",
             })}
           />
         )}
@@ -131,16 +131,16 @@ export const Slider: React.FC<SliderProps> = ({
               position: "relative",
               height: "[4px]",
               alignItems: "center",
-              borderRadius: "full",
-              backgroundColor: "gray.40",
+              borderRadius: "radius.full",
+              backgroundColor: "core.gray.40",
             })}
           >
             <BaseSliderRange
               className={css({
-                top: "0",
-                bottom: "0",
-                backgroundColor: "blue.70",
-                borderRadius: "full",
+                top: "[0px]",
+                bottom: "[0px]",
+                backgroundColor: "core.blue.70",
+                borderRadius: "radius.full",
               })}
             />
           </BaseSlider.Track>
@@ -150,14 +150,14 @@ export const Slider: React.FC<SliderProps> = ({
             className={css({
               outline: "none",
               "& > div": {
-                backgroundColor: "blue.70",
+                backgroundColor: "core.blue.70",
                 transformOrigin: "center",
                 transition:
                   "[transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275), background-color 0.2s ease]",
               },
               "&[data-dragging] > div": {
                 transform: `scale(${THUMB_ACTIVE_SCALE})`,
-                backgroundColor: "whiteAlpha.20",
+                backgroundColor: "[rgba(255,255,255,0.2)]",
                 shadow:
                   "[0 2px 4px rgba(0,0,0,0.1), inset 0 1px 3px rgba(0,0,0,0.1), inset 0 -1px 3px rgba(255,255,255,0.1)]",
               },

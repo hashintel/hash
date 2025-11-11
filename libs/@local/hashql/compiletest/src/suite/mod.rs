@@ -13,18 +13,21 @@ mod eval_graph_read_entity;
 mod hir_lower_alias_replacement;
 mod hir_lower_checking;
 mod hir_lower_ctor;
+mod hir_lower_graph_hoisting;
 mod hir_lower_inference;
 mod hir_lower_inference_intrinsics;
 mod hir_lower_normalization;
 mod hir_lower_specialization;
 mod hir_lower_thunking;
 mod hir_reify;
+mod mir_reify;
 mod parse_syntax_dump;
 
 use core::panic::RefUnwindSafe;
 
+use error_stack::ReportSink;
 use hashql_ast::node::expr::Expr;
-use hashql_core::{heap::Heap, span::SpanId};
+use hashql_core::{collections::FastHashMap, heap::Heap, span::SpanId};
 use hashql_diagnostics::{Diagnostic, category::DiagnosticCategory};
 
 use self::{
@@ -40,24 +43,79 @@ use self::{
     eval_graph_read_entity::EvalGraphReadEntitySuite,
     hir_lower_alias_replacement::HirLowerAliasReplacementSuite,
     hir_lower_checking::HirLowerTypeCheckingSuite, hir_lower_ctor::HirLowerCtorSuite,
+    hir_lower_graph_hoisting::HirLowerGraphHoistingSuite,
     hir_lower_inference::HirLowerTypeInferenceSuite,
     hir_lower_inference_intrinsics::HirLowerTypeInferenceIntrinsicsSuite,
     hir_lower_normalization::HirLowerNormalizationSuite,
     hir_lower_specialization::HirLowerSpecializationSuite,
-    hir_lower_thunking::HirLowerThunkingSuite, hir_reify::HirReifySuite,
+    hir_lower_thunking::HirLowerThunkingSuite, hir_reify::HirReifySuite, mir_reify::MirReifySuite,
     parse_syntax_dump::ParseSyntaxDumpSuite,
 };
+use crate::executor::TrialError;
 
 pub(crate) type SuiteDiagnostic = Diagnostic<Box<dyn DiagnosticCategory>, SpanId>;
 
+mod private {
+    pub(crate) struct Private(pub ());
+}
+
+pub(crate) struct RunContextPartial<'ctx, 'heap> {
+    pub heap: &'heap Heap,
+    pub diagnostics: &'ctx mut Vec<SuiteDiagnostic>,
+    pub suite_directives: &'ctx FastHashMap<String, toml::Value>,
+    pub secondary_outputs: &'ctx mut FastHashMap<&'static str, String>,
+    pub reports: &'ctx mut ReportSink<TrialError>,
+}
+
+pub(crate) struct RunContext<'ctx, 'heap> {
+    pub heap: &'heap Heap,
+    pub diagnostics: &'ctx mut Vec<SuiteDiagnostic>,
+    pub suite_directives: &'ctx FastHashMap<String, toml::Value>,
+    pub secondary_outputs: &'ctx mut FastHashMap<&'static str, String>,
+    pub reports: &'ctx mut ReportSink<TrialError>,
+
+    // Makes sure that the type is non-exhaustive within the crate, this is important so that we
+    // can ensure that adding another attribute won't have any cascading results in all compiletest
+    // suites that destructure.
+    _private: private::Private,
+}
+
+impl<'ctx, 'heap> RunContext<'ctx, 'heap> {
+    pub(crate) fn new(
+        RunContextPartial {
+            heap,
+            diagnostics,
+            suite_directives,
+            secondary_outputs,
+            reports,
+        }: RunContextPartial<'ctx, 'heap>,
+    ) -> Self {
+        Self {
+            heap,
+            diagnostics,
+            suite_directives,
+            secondary_outputs,
+            reports,
+            _private: private::Private(()),
+        }
+    }
+}
+
 pub(crate) trait Suite: RefUnwindSafe + Send + Sync + 'static {
+    fn priority(&self) -> usize {
+        0
+    }
+
+    fn secondary_file_extensions(&self) -> &[&str] {
+        &[]
+    }
+
     fn name(&self) -> &'static str;
 
     fn run<'heap>(
         &self,
-        heap: &'heap Heap,
+        ctx: RunContext<'_, 'heap>,
         expr: Expr<'heap>,
-        diagnostics: &mut Vec<SuiteDiagnostic>,
     ) -> Result<String, SuiteDiagnostic>;
 }
 
@@ -74,6 +132,7 @@ const SUITES: &[&dyn Suite] = &[
     &EvalGraphReadEntitySuite,
     &HirLowerAliasReplacementSuite,
     &HirLowerCtorSuite,
+    &HirLowerGraphHoistingSuite,
     &HirLowerNormalizationSuite,
     &HirLowerSpecializationSuite,
     &HirLowerThunkingSuite,
@@ -81,6 +140,7 @@ const SUITES: &[&dyn Suite] = &[
     &HirLowerTypeInferenceIntrinsicsSuite,
     &HirLowerTypeInferenceSuite,
     &HirReifySuite,
+    &MirReifySuite,
     &ParseSyntaxDumpSuite,
 ];
 

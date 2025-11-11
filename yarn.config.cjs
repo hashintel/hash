@@ -16,7 +16,7 @@ const enforcedDevDependencies = {
 };
 
 const ignoredDependencies = ["@blockprotocol/graph", "@sentry/webpack-plugin"];
-const ignoredWorkspaces = ["@blocks/embed", "@blocks/person"];
+const ignoredWorkspaces = [];
 
 const allowedGitDependencies = [];
 
