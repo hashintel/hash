@@ -165,6 +165,12 @@ export const SDCPNView: React.FC = () => {
       return;
     }
 
+    // Clear selection when clicking empty canvas in select mode
+    if (editionMode === "select") {
+      setSelectedItemIds(new Set());
+      return;
+    }
+
     // Only create nodes in add modes
     if (editionMode !== "add-place" && editionMode !== "add-transition") {
       return;
