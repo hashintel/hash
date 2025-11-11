@@ -42,41 +42,6 @@ export const ToolbarModes: React.FC<ToolbarModesProps> = ({
 }) => {
   return (
     <>
-      <Tooltip content="Select (V)">
-        <div
-          className={getIconContainerStyle(editionMode, "select")}
-          onClick={() => onEditionModeChange("select")}
-          onKeyDown={(event) => {
-            if (event.key === "Enter" || event.key === " ") {
-              event.preventDefault();
-              onEditionModeChange("select");
-            }
-          }}
-          role="button"
-          tabIndex={0}
-          aria-label="Select mode"
-        >
-          <FaArrowPointer />
-        </div>
-      </Tooltip>
-      <Tooltip content="Pan (H)">
-        <div
-          className={getIconContainerStyle(editionMode, "pan")}
-          onClick={() => onEditionModeChange("pan")}
-          onKeyDown={(event) => {
-            if (event.key === "Enter" || event.key === " ") {
-              event.preventDefault();
-              onEditionModeChange("pan");
-            }
-          }}
-          role="button"
-          tabIndex={0}
-          aria-label="Pan mode"
-        >
-          <FaHand />
-        </div>
-      </Tooltip>
-
       {mode === "edit" && (
         <>
           <Tooltip content="Add Place (N)">
@@ -114,7 +79,41 @@ export const ToolbarModes: React.FC<ToolbarModesProps> = ({
             </div>
           </Tooltip>
         </>
-      )}
+      )}{" "}
+      <Tooltip content="Select (V)">
+        <div
+          className={getIconContainerStyle(editionMode, "select")}
+          onClick={() => onEditionModeChange("select")}
+          onKeyDown={(event) => {
+            if (event.key === "Enter" || event.key === " ") {
+              event.preventDefault();
+              onEditionModeChange("select");
+            }
+          }}
+          role="button"
+          tabIndex={0}
+          aria-label="Select mode"
+        >
+          <FaArrowPointer />
+        </div>
+      </Tooltip>
+      <Tooltip content="Pan (H)">
+        <div
+          className={getIconContainerStyle(editionMode, "pan")}
+          onClick={() => onEditionModeChange("pan")}
+          onKeyDown={(event) => {
+            if (event.key === "Enter" || event.key === " ") {
+              event.preventDefault();
+              onEditionModeChange("pan");
+            }
+          }}
+          role="button"
+          tabIndex={0}
+          aria-label="Pan mode"
+        >
+          <FaHand />
+        </div>
+      </Tooltip>
     </>
   );
 };
