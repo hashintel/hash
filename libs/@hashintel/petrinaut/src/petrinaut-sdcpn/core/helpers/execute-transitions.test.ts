@@ -115,7 +115,9 @@ describe("executeTransitions", () => {
       ]),
       differentialEquationFns: new Map(),
       lambdaFns: new Map([["t1", () => 10.0]]),
-      transitionKernelFns: new Map([["t1", () => ({ "Place 2": [{ x: 2.0 }] })]]),
+      transitionKernelFns: new Map([
+        ["t1", () => ({ "Place 2": [{ x: 2.0 }] })],
+      ]),
       parameterValues: {},
       dt: 0.1,
       rngState: 42,
@@ -261,7 +263,10 @@ describe("executeTransitions", () => {
         ["t1", () => 10.0],
         ["t2", () => 10.0],
       ]),
-      transitionKernelFns: new Map<string, () => Record<string, Record<string, number>[]>>([
+      transitionKernelFns: new Map<
+        string,
+        () => Record<string, Record<string, number>[]>
+      >([
         ["t1", () => ({ "Place 2": [{ x: 5.0 }] })],
         ["t2", () => ({ "Place 3": [{ x: 10.0 }] })],
       ]),
@@ -568,7 +573,10 @@ describe("executeTransitions", () => {
         ["t1", () => 10.0], // High lambda, will fire
         ["t2", () => 0.001], // Low lambda, won't fire
       ]),
-      transitionKernelFns: new Map<string, () => Record<string, Record<string, number>[]>>([
+      transitionKernelFns: new Map<
+        string,
+        () => Record<string, Record<string, number>[]>
+      >([
         ["t1", () => ({ "Place 2": [{ x: 2.0 }] })],
         ["t2", () => ({ "Place 2": [{ x: 3.0 }] })],
       ]),
