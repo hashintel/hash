@@ -1,4 +1,3 @@
-import { useMemo } from "react";
 import { BaseEdge, type EdgeProps, getBezierPath } from "reactflow";
 
 import { useEditorStore } from "../../../state/editor-provider";
@@ -36,26 +35,22 @@ export const Arc: React.FC<EdgeProps<ArcData>> = ({
     targetPosition,
   });
 
-  // Override style for selected arcs
-  const edgeStyle = useMemo(() => {
-    if (selected) {
-      return {
-        ...style,
-        stroke: "#3b82f6",
-      };
-    }
-    return style;
-  }, [selected, style]);
-
   return (
     <>
-      {/* Use BaseEdge to properly render with markerEnd and style */}
-      <BaseEdge
-        id={id}
-        path={arcPath}
-        markerEnd={markerEnd}
-        style={edgeStyle}
-      />
+      {/* Selection indicator: thick orange background stroke */}
+      {selected && (
+        <BaseEdge
+          id={`${id}-selection`}
+          path={arcPath}
+          style={{
+            stroke: "rgba(249, 115, 22, 0.4)",
+            strokeWidth: 8,
+          }}
+        />
+      )}
+
+      {/* Main edge with original style */}
+      <BaseEdge id={id} path={arcPath} markerEnd={markerEnd} style={style} />
 
       {/* Weight label */}
       <g transform={`translate(${labelX}, ${labelY})`}>

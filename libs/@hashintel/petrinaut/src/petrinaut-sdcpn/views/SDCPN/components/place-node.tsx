@@ -89,6 +89,10 @@ export const PlaceNode: React.FC<NodeProps<PlaceNodeData>> = ({
           backgroundColor: data.typeColor
             ? hexToRgba(data.typeColor, 0.1)
             : undefined,
+          // Selection indicator: thick orange glow
+          boxShadow: selected
+            ? "0 0 0 4px rgba(249, 115, 22, 0.4), 0 0 0 6px rgba(249, 115, 22, 0.2)"
+            : undefined,
         }}
       >
         <div
