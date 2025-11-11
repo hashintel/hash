@@ -47,6 +47,7 @@ export const SDCPNView: React.FC = () => {
   const addPlace = useSDCPNStore((state) => state.addPlace);
   const addTransition = useSDCPNStore((state) => state.addTransition);
   const addArc = useSDCPNStore((state) => state.addArc);
+  const deleteItemsByIds = useSDCPNStore((state) => state.deleteItemsByIds);
 
   // Hook for applying node changes
   const applyNodeChanges = useApplyNodeChanges();
@@ -58,8 +59,9 @@ export const SDCPNView: React.FC = () => {
   const mode = useEditorStore((state) => state.globalMode);
   const editionMode = useEditorStore((state) => state.editionMode);
   const setEditionMode = useEditorStore((state) => state.setEditionMode);
-  const deleteSelection = useEditorStore((state) => state.deleteSelection);
-  const selectedItemIds = useEditorStore((state) => state.selectedItemIds);
+  const removeSelectedItemId = useEditorStore(
+    (state) => state.removeSelectedItemId,
+  );
   const setSelectedItemIds = useEditorStore(
     (state) => state.setSelectedItemIds,
   );
@@ -188,37 +190,6 @@ export const SDCPNView: React.FC = () => {
     createNodeAtPosition(nodeType, position);
   }
 
-  // Handle Delete key press
-  useEffect(() => {
-    function handleKeyDown(event: KeyboardEvent) {
-      if (mode === "simulate") {
-        return;
-      }
-
-      // Don't delete if focus is in an input, textarea, contentEditable, or Monaco editor
-      const target = event.target as HTMLElement;
-      const isInputFocused =
-        target.tagName === "INPUT" ||
-        target.tagName === "TEXTAREA" ||
-        target.isContentEditable ||
-        // Check if we're inside a Monaco editor
-        target.closest(".monaco-editor") !== null;
-
-      if (
-        (event.key === "Delete" || event.key === "Backspace") &&
-        selectedItemIds.size > 0 &&
-        !isInputFocused
-      ) {
-        deleteSelection();
-      }
-    }
-
-    window.addEventListener("keydown", handleKeyDown);
-    return () => {
-      window.removeEventListener("keydown", handleKeyDown);
-    };
-  }, [mode, selectedItemIds.size, deleteSelection]);
-
   // Prevent ReactFlow from capturing keyboard events when in Monaco editor
   // TODO: This is messy and we should find a better way to handle keyboard shortcuts and collisions.
   useEffect(() => {
@@ -290,7 +261,19 @@ export const SDCPNView: React.FC = () => {
         nodes={nodes}
         edges={arcs}
         nodeTypes={REACTFLOW_NODE_TYPES}
+        onNodesDelete={(rfNodes) => {
+          for (const node of rfNodes) {
+            removeSelectedItemId(node.id);
+          }
+          deleteItemsByIds(new Set(rfNodes.map((node) => node.id)));
+        }}
         edgeTypes={REACTFLOW_EDGE_TYPES}
+        onEdgesDelete={(rfEdges) => {
+          for (const edge of rfEdges) {
+            removeSelectedItemId(edge.id);
+          }
+          deleteItemsByIds(new Set(rfEdges.map((edge) => edge.id)));
+        }}
         onNodesChange={isReadonly ? undefined : applyNodeChanges}
         onEdgesChange={isReadonly ? undefined : applyNodeChanges}
         onConnect={isReadonly ? undefined : onConnect}

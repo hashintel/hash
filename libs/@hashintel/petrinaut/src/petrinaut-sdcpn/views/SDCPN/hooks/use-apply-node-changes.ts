@@ -39,7 +39,9 @@ export function useApplyNodeChanges() {
     // Check if current selection has any non-node items (types, etc.)
     const hasNonNodeSelection = Array.from(selectedItemIds).some((id) => {
       const itemType = getItemType(id);
-      return itemType !== "place" && itemType !== "transition";
+      return (
+        itemType !== "place" && itemType !== "transition" && itemType !== "arc"
+      );
     });
 
     // If we have non-node items selected, clear them when ReactFlow tries to select something

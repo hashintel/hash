@@ -84,8 +84,8 @@ export function useSdcpnToReactFlow(sdcpn: SDCPN): PetriNetDefinitionObject {
   for (const transition of sdcpn.transitions) {
     // Input arcs (from places to transition)
     for (const inputArc of transition.inputArcs) {
-      // Arc ID format: $A_<inputId>_<outputId>
-      const arcId = `$A_${inputArc.placeId}_${transition.id}`;
+      // Arc ID format: $A_<inputId>___<outputId> (triple underscore separator)
+      const arcId = `$A_${inputArc.placeId}___${transition.id}`;
 
       // Get the place to determine type color
       const place = sdcpn.places.find((pl) => pl.id === inputArc.placeId);
@@ -120,8 +120,8 @@ export function useSdcpnToReactFlow(sdcpn: SDCPN): PetriNetDefinitionObject {
 
     // Output arcs (from transition to places)
     for (const outputArc of transition.outputArcs) {
-      // Arc ID format: $A_<inputId>_<outputId>
-      const arcId = `$A_${transition.id}_${outputArc.placeId}`;
+      // Arc ID format: $A_<inputId>___<outputId> (triple underscore separator)
+      const arcId = `$A_${transition.id}___${outputArc.placeId}`;
 
       // Get the place to determine type color
       const place = sdcpn.places.find((pl) => pl.id === outputArc.placeId);
