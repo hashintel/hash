@@ -3,6 +3,7 @@ import { useState } from "react";
 import { FaChevronDown, FaChevronRight } from "react-icons/fa6";
 import { v4 as uuidv4 } from "uuid";
 
+import { InfoIconTooltip } from "../../../../components/tooltip";
 import { useEditorStore } from "../../../../state/editor-provider";
 import { useSDCPNStore } from "../../../../state/sdcpn-provider";
 import { useSimulationStore } from "../../../../state/simulation-provider";
@@ -68,7 +69,10 @@ export const ParametersSection: React.FC = () => {
           ) : (
             <FaChevronRight size={10} />
           )}
-          Parameters
+          <span>
+            Parameters
+            <InfoIconTooltip tooltip="Parameters are injected into functions which govern dynamics, transition firing rate, and transition results. You can use them to define important values which you can re-use in multiple functions." />
+          </span>
         </button>
         {!isSimulationMode && (
           <button

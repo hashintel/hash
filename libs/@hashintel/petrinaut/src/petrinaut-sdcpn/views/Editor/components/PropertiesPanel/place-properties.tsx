@@ -5,6 +5,7 @@ import { TbDotsVertical, TbSparkles } from "react-icons/tb";
 
 import { Menu } from "../../../../components/menu";
 import { Switch } from "../../../../components/switch";
+import { InfoIconTooltip } from "../../../../components/tooltip";
 import {
   DEFAULT_VISUALIZER_CODE,
   generateDefaultVisualizerCode,
@@ -20,6 +21,7 @@ import {
   useDefaultParameterValues,
 } from "../../../../hooks/use-default-parameter-values";
 import { useEditorStore } from "../../../../state/editor-provider";
+import { useSDCPNStore } from "../../../../state/sdcpn-provider";
 import { useSimulationStore } from "../../../../state/simulation-provider";
 import { InitialStateEditor } from "./initial-state-editor";
 import { VisualizerErrorBoundary } from "./visualizer-error-boundary";
@@ -52,6 +54,8 @@ export const PlaceProperties: React.FC<PlacePropertiesProps> = ({
   const setSelectedItemIds = useEditorStore(
     (state) => state.setSelectedItemIds,
   );
+
+  const availableTypes = useSDCPNStore((state) => state.sdcpn.types);
 
   // Store previous visualizer code when toggling off (in case user toggled off by mistake)
   const [savedVisualizerCode, setSavedVisualizerCode] = useState<
@@ -127,6 +131,9 @@ export const PlaceProperties: React.FC<PlacePropertiesProps> = ({
       <div>
         <div style={{ fontWeight: 500, fontSize: 12, marginBottom: 4 }}>
           Accepted token type
+          <InfoIconTooltip
+            tooltip={`If tokens in this place should carry data ("colour"), assign a data type here.${availableTypes.length === 0 ? " You must create a data type in the left-hand sidebar first." : ""} Tokens in places don't have to carry data, but they need one to enable dynamics (token data changing over time when in a place).`}
+          />
         </div>
         <select
           value={place.type ?? ""}
@@ -234,7 +241,10 @@ export const PlaceProperties: React.FC<PlacePropertiesProps> = ({
             marginBottom: 8,
           }}
         >
-          <div style={{ fontWeight: 500, fontSize: 12 }}>Dynamics</div>
+          <div style={{ fontWeight: 500, fontSize: 12 }}>
+            Dynamics
+            <InfoIconTooltip tooltip="Token data can dynamically change over time when tokens remain in a place, governed by a differential equation." />
+          </div>
           <div style={{ display: "flex", alignItems: "center" }}>
             <Switch
               checked={!!place.type && place.dynamicsEnabled}
@@ -247,7 +257,7 @@ export const PlaceProperties: React.FC<PlacePropertiesProps> = ({
             />
           </div>
         </div>
-        {place.type === null && (
+        {(place.type === null || availableDiffEqs.length === 0) && (
           <div
             style={{
               fontSize: 11,
@@ -256,12 +266,16 @@ export const PlaceProperties: React.FC<PlacePropertiesProps> = ({
               marginTop: 4,
             }}
           >
-            Select a type to enable dynamics
+            {place.type !== null
+              ? "Create a differential equation for the selected type in the left-hand sidebar first"
+              : availableTypes.length === 0
+                ? "Create a type in the left-hand sidebar first, then select it to enable dynamics."
+                : "Select a type to enable dynamics"}
           </div>
         )}
       </div>
 
-      {place.type && place.dynamicsEnabled && (
+      {place.type && place.dynamicsEnabled && availableDiffEqs.length > 0 && (
         <div>
           <div style={{ fontWeight: 500, fontSize: 12, marginBottom: 4 }}>
             Differential Equation
@@ -339,7 +353,10 @@ export const PlaceProperties: React.FC<PlacePropertiesProps> = ({
               marginBottom: 8,
             }}
           >
-            <div style={{ fontWeight: 500, fontSize: 12 }}>Visualizer</div>
+            <div style={{ fontWeight: 500, fontSize: 12 }}>
+              Visualizer
+              <InfoIconTooltip tooltip="You can set a custom visualization for tokens evolving in a place, viewable in this panel when a simulation is running." />
+            </div>
             <div style={{ display: "flex", alignItems: "center" }}>
               <Switch
                 checked={place.visualizerCode !== undefined}

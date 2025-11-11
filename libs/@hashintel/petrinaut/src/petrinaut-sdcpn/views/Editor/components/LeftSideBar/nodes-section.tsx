@@ -7,6 +7,7 @@ import {
   FaSquare,
 } from "react-icons/fa6";
 
+import { InfoIconTooltip } from "../../../../components/tooltip";
 import { useEditorStore } from "../../../../state/editor-provider";
 import { useSDCPNStore } from "../../../../state/sdcpn-provider";
 
@@ -83,7 +84,10 @@ export const NodesSection: React.FC = () => {
         ) : (
           <FaChevronRight size={10} />
         )}
-        Nodes
+        <span>
+          Nodes
+          <InfoIconTooltip tooltip="Manage nodes in the net, including places and transitions. Places represent states in the net, and transitions represent events which change the state of the net." />
+        </span>
       </button>
 
       {/* Nodes List */}
