@@ -426,20 +426,6 @@ export const DifferentialEquationProperties: React.FC<
           />
         </div>
       </div>
-
-      <div
-        style={{
-          padding: 8,
-          backgroundColor: "rgba(59, 130, 246, 0.1)",
-          borderRadius: 4,
-          fontSize: 11,
-          color: "#666",
-          flexShrink: 0,
-        }}
-      >
-        <strong>Note:</strong> Editing differential equation properties is not
-        yet available.
-      </div>
     </div>
   );
 };
