@@ -53,9 +53,23 @@ export const TypeProperties: React.FC<TypePropertiesProps> = ({
 
   // Element management handlers
   const handleAddElement = () => {
+    // Find the next dimension number
+    let maxNumber = 0;
+    for (const element of type.elements) {
+      // Match patterns like "dimension_1", "dimension_2", etc.
+      const match = element.name.match(/dimension_(\d+)/i);
+      if (match) {
+        const num = Number.parseInt(match[1]!, 10);
+        if (num > maxNumber) {
+          maxNumber = num;
+        }
+      }
+    }
+    const nextNumber = maxNumber + 1;
+
     const newElement = {
       id: uuidv4(),
-      name: "new_field",
+      name: `dimension_${nextNumber}`,
       type: "real" as const,
     };
     onUpdate(type.id, {

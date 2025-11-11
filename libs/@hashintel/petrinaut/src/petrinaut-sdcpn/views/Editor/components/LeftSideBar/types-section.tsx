@@ -123,7 +123,7 @@ export const TypesSection: React.FC = () => {
               elements: [
                 {
                   id: `element__${Date.now()}`,
-                  name: "dimension_one",
+                  name: "dimension_1",
                   type: "real" as const,
                 },
               ],
