@@ -20,7 +20,8 @@ import { TbDotsVertical, TbSparkles } from "react-icons/tb";
 
 import { Menu } from "../../../../components/menu";
 import { SegmentGroup } from "../../../../components/segment-group";
-import { InfoIconTooltip } from "../../../../components/tooltip";
+import { InfoIconTooltip, Tooltip } from "../../../../components/tooltip";
+import { UI_MESSAGES } from "../../../../constants/ui-messages";
 import {
   generateDefaultLambdaCode,
   generateDefaultTransitionKernelCode,
@@ -336,25 +337,9 @@ export const TransitionProperties: React.FC<TransitionPropertiesProps> = ({
                   id: "load-default",
                   label: "Load default template",
                   onClick: () => {
-                    // Build input arc information for code generation
-                    const inputs = transition.inputArcs
-                      .map((arc) => {
-                        const place = places.find((p) => p.id === arc.placeId);
-                        if (!place || !place.type) return null;
-                        const type = types.find((t) => t.id === place.type);
-                        if (!type) return null;
-                        return {
-                          placeName: place.name,
-                          type,
-                          weight: arc.weight,
-                        };
-                      })
-                      .filter((i) => i !== null);
-
                     onUpdate(transition.id, {
                       lambdaCode: generateDefaultLambdaCode(
                         transition.lambdaType,
-                        inputs,
                       ),
                     });
                   },
@@ -362,13 +347,20 @@ export const TransitionProperties: React.FC<TransitionPropertiesProps> = ({
                 {
                   id: "generate-ai",
                   label: (
-                    <div
-                      style={{ display: "flex", alignItems: "center", gap: 6 }}
-                    >
-                      <TbSparkles style={{ fontSize: 16 }} />
-                      Generate with AI
-                    </div>
+                    <Tooltip content={UI_MESSAGES.AI_FEATURE_COMING_SOON}>
+                      <div
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 6,
+                        }}
+                      >
+                        <TbSparkles style={{ fontSize: 16 }} />
+                        Generate with AI
+                      </div>
+                    </Tooltip>
                   ),
+                  disabled: true,
                   onClick: () => {
                     // TODO: Implement AI generation
                   },
@@ -489,13 +481,20 @@ export const TransitionProperties: React.FC<TransitionPropertiesProps> = ({
                 {
                   id: "generate-ai",
                   label: (
-                    <div
-                      style={{ display: "flex", alignItems: "center", gap: 6 }}
-                    >
-                      <TbSparkles style={{ fontSize: 16 }} />
-                      Generate with AI
-                    </div>
+                    <Tooltip content={UI_MESSAGES.AI_FEATURE_COMING_SOON}>
+                      <div
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 6,
+                        }}
+                      >
+                        <TbSparkles style={{ fontSize: 16 }} />
+                        Generate with AI
+                      </div>
+                    </Tooltip>
                   ),
+                  disabled: true,
                   onClick: () => {
                     // TODO: Implement AI generation
                   },

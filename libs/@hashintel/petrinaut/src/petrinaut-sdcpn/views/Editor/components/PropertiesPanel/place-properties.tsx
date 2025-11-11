@@ -5,7 +5,8 @@ import { TbArrowRight, TbDotsVertical, TbSparkles } from "react-icons/tb";
 
 import { Menu } from "../../../../components/menu";
 import { Switch } from "../../../../components/switch";
-import { InfoIconTooltip } from "../../../../components/tooltip";
+import { InfoIconTooltip, Tooltip } from "../../../../components/tooltip";
+import { UI_MESSAGES } from "../../../../constants/ui-messages";
 import {
   DEFAULT_VISUALIZER_CODE,
   generateDefaultVisualizerCode,
@@ -468,17 +469,20 @@ export const PlaceProperties: React.FC<PlacePropertiesProps> = ({
                   {
                     id: "generate-ai",
                     label: (
-                      <div
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          gap: 6,
-                        }}
-                      >
-                        <TbSparkles style={{ fontSize: 16 }} />
-                        Generate with AI
-                      </div>
+                      <Tooltip content={UI_MESSAGES.AI_FEATURE_COMING_SOON}>
+                        <div
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 6,
+                          }}
+                        >
+                          <TbSparkles style={{ fontSize: 16 }} />
+                          Generate with AI
+                        </div>
+                      </Tooltip>
                     ),
+                    disabled: true,
                     onClick: () => {
                       // TODO: Implement AI generation
                     },

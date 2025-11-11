@@ -5,6 +5,8 @@ import { useState } from "react";
 import { TbDotsVertical, TbSparkles } from "react-icons/tb";
 
 import { Menu } from "../../../../components/menu";
+import { Tooltip } from "../../../../components/tooltip";
+import { UI_MESSAGES } from "../../../../constants/ui-messages";
 import {
   DEFAULT_DIFFERENTIAL_EQUATION_CODE,
   generateDefaultDifferentialEquationCode,
@@ -381,13 +383,20 @@ export const DifferentialEquationProperties: React.FC<
                 {
                   id: "generate-ai",
                   label: (
-                    <div
-                      style={{ display: "flex", alignItems: "center", gap: 6 }}
-                    >
-                      <TbSparkles style={{ fontSize: 16 }} />
-                      Generate with AI
-                    </div>
+                    <Tooltip content={UI_MESSAGES.AI_FEATURE_COMING_SOON}>
+                      <div
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 6,
+                        }}
+                      >
+                        <TbSparkles style={{ fontSize: 16 }} />
+                        Generate with AI
+                      </div>
+                    </Tooltip>
                   ),
+                  disabled: true,
                   onClick: () => {
                     // TODO: Implement AI generation when editing is available
                   },
