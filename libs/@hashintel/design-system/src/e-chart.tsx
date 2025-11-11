@@ -13,17 +13,13 @@ import type { TooltipComponentOption } from "echarts/components";
 import { GridComponent, TooltipComponent } from "echarts/components";
 import * as echarts from "echarts/core";
 import { SVGRenderer } from "echarts/renderers";
-import type {
-  GraphEdgeItemOption,
-  GraphNodeItemOption,
-} from "echarts/types/src/chart/graph/GraphSeries";
 import type { FunctionComponent } from "react";
 import { useEffect, useRef, useState } from "react";
 
 export type Chart = echarts.ECharts;
 
-export type GraphNode = GraphNodeItemOption;
-export type GraphEdge = GraphEdgeItemOption;
+export type GraphNode = NonNullable<GraphSeriesOption["data"]>[number];
+export type GraphEdge = NonNullable<GraphSeriesOption["edges"]>[number];
 
 export type SeriesOption =
   | LineSeriesOption
