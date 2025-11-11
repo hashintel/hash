@@ -25,7 +25,7 @@
   "dependencies": {
     "@apps/hash-graph": "0.0.0-private",
     "@aws-sdk/client-s3": "3.858.0",
-    "@aws-sdk/client-ses": "3.858.0",
+    "@aws-sdk/client-sesv2": "3.928.0",
     "@aws-sdk/credential-provider-node": "3.858.0",
     "@aws-sdk/s3-presigned-post": "3.858.0",
     "@aws-sdk/s3-request-presigner": "3.858.0",
