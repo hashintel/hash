@@ -2,6 +2,7 @@ import { css } from "@hashintel/ds-helpers/css";
 import { useState } from "react";
 import { FaChevronDown, FaChevronRight } from "react-icons/fa6";
 
+import { InfoIconTooltip } from "../../../../components/tooltip";
 import { useEditorStore } from "../../../../state/editor-provider";
 import { useSDCPNStore } from "../../../../state/sdcpn-provider";
 
@@ -101,7 +102,10 @@ export const TypesSection: React.FC = () => {
           ) : (
             <FaChevronRight size={10} />
           )}
-          Types
+          <span>
+            Types
+            <InfoIconTooltip tooltip="Manage data types which can be assigned to tokens in a place." />
+          </span>
         </button>
         <button
           type="button"

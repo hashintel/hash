@@ -48,48 +48,47 @@ export default Dynamics((tokens, parameters) => {
   });
 });`;
 
-export function generateDefaultLambdaCode(
+export const generateDefaultLambdaCode = (
   lambdaType: "predicate" | "stochastic",
-  inputs: { placeName: string; type: SDCPNType; weight: number }[],
-): string {
-  return `// This function defines the firing rate of the transition.
-// It receives tokens from input places organized by place name.
-export default Lambda((placesTokens, parameters) => {
-  // placesTokens is an object like: { ${inputs.map((i) => `${i.placeName}: [{ ${i.type.elements.map((el) => el.name).join(", ")} }],`).join(" ")} }
-  
-  ${
-    lambdaType === "predicate"
-      ? `// Can return a boolean (true = enabled, false = disabled)
-  // Boolean: true maps to Infinity, false maps to 0
-  return true; // Trigger at every frame`
-      : `// Return a number (firing rate), 0 means disabled, Infinity means always enabled
-  return 1.0; // Constant firing rate of once per second`
-  }
-});`;
-}
+): string => `/**
+* This function controls when the transition will fire,
+* once enabled by sufficient tokens in its input places.
+* It receives tokens from input places keyed by place name,
+* and any global parameters defined.
+*/
+export default Lambda((tokensByPlace, parameters) => {
+  // tokensByPlace is an object which looks like:
+  //   { PlaceA: [{ x: 0, y: 0 }], PlaceB: [...] }
+  // where 'x' and 'y' are examples of dimensions (properties)
+  // of the token's type.
 
-export const DEFAULT_LAMBDA_CODE = `// This function defines the firing rate of the transition.
-// It receives tokens from input places organized by place name.
-export default Lambda((placesTokens, parameters) => {
-  // placesTokens is an object like: { PlaceA: [{ x: 0, y: 0 }], PlaceB: [...] }
-  
-  // Can return a number (firing rate) or boolean (true = enabled, false = disabled)
-  // Boolean: true maps to Infinity, false maps to 0
-  return true; // Always enabled (alternative: return Infinity;)
-  
-  // Example with conditional:
-  // return placesTokens.PlaceA[0].x > 0; // Enable only if x > 0
+  // When defining a predicate check,
+  // return a boolean (true = enabled, false = disabled).
+  //
+  // When defining a stochastic firing rate, return a number:
+  //  1. 0 means disabled
+  //  2. Infinity means always enabled
+  //  3. Any other number is the average rate per second
+
+  ${lambdaType === "predicate" ? "return true; // Always enabled (alternative: return Infinity;)" : "return 1.0; // Average firing rate of once per second"}
 });`;
 
 export function generateDefaultTransitionKernelCode(
   inputs: { placeName: string; type: SDCPNType; weight: number }[],
   outputs: { placeName: string; type: SDCPNType; weight: number }[],
 ): string {
-  return `// This function defines the kernel for the transition.
-// It receives tokens from input places and should return tokens for output places.
-export default TransitionKernel((placesTokens, parameters) => {
-  // placesTokens is an object like: { ${inputs.map((i) => `${i.placeName}: [{ ${i.type.elements.map((el) => el.name).join(", ")} }],`).join(" ")} }
-  
+  return `/**
+* This function defines the kernel for the transition.
+* It receives tokens from input places,
+* and any global parameters defined,
+* and should return tokens for output places keyed by place name.
+*/
+export default TransitionKernel((tokensByPlace, parameters) => {
+  // tokensByPlace is an object which looks like:
+  //   { PlaceA: [{ x: 0, y: 0 }], PlaceB: [...] }
+  // where 'x' and 'y' are examples of dimensions (properties)
+  // of the token's type.
+
   // Return an object with output place names as keys
   return {
     ${outputs
@@ -108,8 +107,12 @@ export default TransitionKernel((placesTokens, parameters) => {
 });`;
 }
 
-export const DEFAULT_TRANSITION_KERNEL_CODE = `// This function defines the kernel for the transition.
-// It receives tokens from input places and should return tokens for output places.
+export const DEFAULT_TRANSITION_KERNEL_CODE = `/**
+* This function defines the kernel for the transition.
+* It receives tokens from input places,
+* and any global parameters defined,
+* and should return tokens for output places keyed by place name.
+*/
 export default TransitionKernel((placesTokens, parameters) => {
   // Return an object with output place names as keys
   return {
