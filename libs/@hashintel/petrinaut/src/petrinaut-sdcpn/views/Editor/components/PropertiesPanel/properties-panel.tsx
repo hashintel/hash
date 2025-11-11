@@ -32,7 +32,6 @@ export const PropertiesPanel: React.FC = () => {
   // Resize functionality
   const [panelWidth, setPanelWidth] = useState(startingWidth);
   const [isResizing, setIsResizing] = useState(false);
-  const [isResizeHandleHovered, setIsResizeHandleHovered] = useState(false);
   const resizeStartXRef = useRef(0);
   const resizeStartWidthRef = useRef(startingWidth);
 
@@ -265,12 +264,6 @@ export const PropertiesPanel: React.FC = () => {
           type="button"
           aria-label="Resize properties panel"
           onMouseDown={handleResizeStart}
-          onMouseEnter={() => {
-            setIsResizeHandleHovered(true);
-          }}
-          onMouseLeave={() => {
-            setIsResizeHandleHovered(false);
-          }}
           onKeyDown={(event) => {
             if (event.key === "ArrowLeft") {
               setPanelWidth((prev) => Math.max(250, prev - 10));
@@ -283,16 +276,14 @@ export const PropertiesPanel: React.FC = () => {
             left: 0,
             top: 0,
             bottom: 0,
-            width: 4,
+            width: 9,
             cursor: "ew-resize",
             zIndex: 1001,
             background: "transparent",
             border: "none",
             padding: 0,
             borderRadius: "16px 0 0 16px",
-            backgroundColor: isResizeHandleHovered
-              ? "rgba(78, 221, 240, 0.3)"
-              : "transparent",
+            backgroundColor: "transparent",
             transition: "background-color 0.4s",
             transitionDelay: "0.2s",
           }}
