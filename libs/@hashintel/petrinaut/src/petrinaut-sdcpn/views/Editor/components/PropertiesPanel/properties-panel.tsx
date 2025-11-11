@@ -11,6 +11,8 @@ import { PlaceProperties } from "./place-properties";
 import { TransitionProperties } from "./transition-properties";
 import { TypeProperties } from "./type-properties";
 
+const startingWidth = 450;
+
 /**
  * PropertiesPanel displays properties and controls for the selected node/edge.
  */
@@ -28,11 +30,11 @@ export const PropertiesPanel: React.FC = () => {
   );
 
   // Resize functionality
-  const [panelWidth, setPanelWidth] = useState(320);
+  const [panelWidth, setPanelWidth] = useState(startingWidth);
   const [isResizing, setIsResizing] = useState(false);
   const [isResizeHandleHovered, setIsResizeHandleHovered] = useState(false);
   const resizeStartXRef = useRef(0);
-  const resizeStartWidthRef = useRef(320);
+  const resizeStartWidthRef = useRef(startingWidth);
 
   const handleResizeStart = useCallback(
     (event: React.MouseEvent) => {
@@ -110,7 +112,7 @@ export const PropertiesPanel: React.FC = () => {
           refractiveIndex={1.5}
           className={css({
             height: "[100%]",
-            width: "[320px]",
+            width: `[${panelWidth}px]`,
             backgroundColor: "[rgba(255, 255, 255, 0.7)]",
             boxShadow: "0 4px 30px rgba(0, 0, 0, 0.15)",
             border: "1px solid rgba(255, 255, 255, 0.8)",

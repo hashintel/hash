@@ -7,8 +7,8 @@ import ReactFlow, { Background, ConnectionLineType } from "reactflow";
 import { v4 as generateUuid } from "uuid";
 
 import {
-  DEFAULT_LAMBDA_CODE,
   DEFAULT_TRANSITION_KERNEL_CODE,
+  generateDefaultLambdaCode,
 } from "../../core/default-codes";
 import { useEditorStore } from "../../state/editor-provider";
 import { useSDCPNStore } from "../../state/sdcpn-provider";
@@ -148,7 +148,7 @@ export const SDCPNView: React.FC = () => {
         inputArcs: [],
         outputArcs: [],
         lambdaType: "predicate",
-        lambdaCode: DEFAULT_LAMBDA_CODE,
+        lambdaCode: generateDefaultLambdaCode("predicate"),
         transitionKernelCode: DEFAULT_TRANSITION_KERNEL_CODE,
         x: position.x,
         y: position.y,

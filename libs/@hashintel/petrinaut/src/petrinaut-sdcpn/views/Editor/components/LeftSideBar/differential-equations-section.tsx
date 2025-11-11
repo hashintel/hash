@@ -3,6 +3,7 @@ import { useState } from "react";
 import { FaChevronDown, FaChevronRight } from "react-icons/fa6";
 import { v4 as uuidv4 } from "uuid";
 
+import { InfoIconTooltip } from "../../../../components/tooltip";
 import { DEFAULT_DIFFERENTIAL_EQUATION_CODE } from "../../../../core/default-codes";
 import { useEditorStore } from "../../../../state/editor-provider";
 import { useSDCPNStore } from "../../../../state/sdcpn-provider";
@@ -65,7 +66,10 @@ export const DifferentialEquationsSection: React.FC = () => {
           ) : (
             <FaChevronRight size={10} />
           )}
-          Differential Equations
+          <span>
+            Differential Equations
+            <InfoIconTooltip tooltip="Differential equations govern how token data changes over time when tokens remain in a place (“dynamics”)." />
+          </span>
         </button>
         <button
           type="button"
