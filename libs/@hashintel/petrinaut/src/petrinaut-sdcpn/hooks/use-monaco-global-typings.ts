@@ -68,7 +68,7 @@ function transitionToTsDefinitionString(
       .join(", ")}
     }`;
 
-  console.log("Transition TS Definition:", transition.name, input, output);
+  // console.log("Transition TS Definition:", transition.name, input, output);
 
   return `{
     name: "${transition.name}";
@@ -175,9 +175,9 @@ function generateSDCPNTypings(
 ): string {
   // Generate a map from place IDs to names for easier reference
   const placeIdToNameMap = new Map<string, string>();
-  places.forEach((place) => {
+  for (const place of places) {
     placeIdToNameMap.set(place.id, place.name);
-  });
+  }
 
   const parametersDefinition = generateParametersDefinition(parameters);
   const globalTypesDefinition = generateTypesDefinition(types);
@@ -303,22 +303,22 @@ export function useMonacoGlobalTypings() {
       configureMonacoCompilerOptions(monaco);
 
       // Fetch and set React types once
-      void fetchReactTypes().then((types) => {
-        setReactTypes(types);
+      void fetchReactTypes().then((rTypes) => {
+        setReactTypes(rTypes);
 
         // Set React types as base extra libs - this is done only once
         monaco.languages.typescript.typescriptDefaults.setExtraLibs([
           {
-            content: types.react,
+            content: rTypes.react,
             filePath: "inmemory://sdcpn/node_modules/@types/react/index.d.ts",
           },
           {
-            content: types.reactJsxRuntime,
+            content: rTypes.reactJsxRuntime,
             filePath:
               "inmemory://sdcpn/node_modules/@types/react/jsx-runtime.d.ts",
           },
           {
-            content: types.reactDom,
+            content: rTypes.reactDom,
             filePath:
               "inmemory://sdcpn/node_modules/@types/react-dom/index.d.ts",
           },
@@ -342,8 +342,6 @@ export function useMonacoGlobalTypings() {
         parameters,
         currentlySelectedItemId,
       );
-
-      console.log("Updating Monaco SDCPN type definitions");
 
       // Create or update SDCPN typings model
       const sdcpnTypingsUri = monaco.Uri.parse(
