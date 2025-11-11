@@ -39,7 +39,9 @@ export const DifferentialEquationProperties: React.FC<
 
   // Find places that use this differential equation
   const placesUsingEquation = places.filter((place) => {
-    if (!place.differentialEquationCode) return false;
+    if (!place.differentialEquationCode) {
+      return false;
+    }
     if (typeof place.differentialEquationCode === "object") {
       return (
         "refId" in place.differentialEquationCode &&
