@@ -1,7 +1,6 @@
 {
   "$schema": "http://json.schemastore.org/tsconfig",
   "compilerOptions": {
-    "ignoreDeprecations": "6.0",
     "allowJs": true,
     "checkJs": true,
     "esModuleInterop": true,
