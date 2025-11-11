@@ -3,20 +3,7 @@ import { TbNumber, TbNumbers, TbToggleLeft } from "react-icons/tb";
 import { v4 as uuidv4 } from "uuid";
 
 import type { SDCPNType } from "../../../../core/types/sdcpn";
-
-// Pool of 10 well-differentiated colors for types
-const TYPE_COLOR_POOL = [
-  "#3b82f6", // Blue
-  "#ef4444", // Red
-  "#10b981", // Green
-  "#f59e0b", // Amber
-  "#8b5cf6", // Violet
-  "#ec4899", // Pink
-  "#14b8a6", // Teal
-  "#f97316", // Orange
-  "#6366f1", // Indigo
-  "#84cc16", // Lime
-];
+import { ColorSelect } from "./color-select";
 
 const ELEMENT_TYPES = ["real", "integer", "boolean"] as const;
 
@@ -213,59 +200,13 @@ export const TypeProperties: React.FC<TypePropertiesProps> = ({
           <div style={{ fontWeight: 500, fontSize: 12, marginBottom: 4 }}>
             Color
           </div>
-          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-            {/* Color picker grid with fixed-size swatches */}
-            <div
-              style={{
-                display: "flex",
-                flexWrap: "wrap",
-                gap: 6,
-              }}
-            >
-              {TYPE_COLOR_POOL.map((color) => (
-                <button
-                  key={color}
-                  type="button"
-                  onClick={() => {
-                    if (!isDisabled) {
-                      onUpdate(type.id, { colorCode: color });
-                    }
-                  }}
-                  disabled={isDisabled}
-                  style={{
-                    width: 28,
-                    height: 28,
-                    borderRadius: 4,
-                    backgroundColor: color,
-                    border:
-                      type.colorCode === color
-                        ? "2px solid #000"
-                        : "1px solid rgba(0, 0, 0, 0.1)",
-                    cursor: isDisabled ? "not-allowed" : "pointer",
-                    opacity: isDisabled ? 0.5 : 1,
-                    padding: 0,
-                    flexShrink: 0,
-                  }}
-                  aria-label={`Select color ${color}`}
-                />
-              ))}
-            </div>
-            {/* Current color display */}
-            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              <div
-                style={{
-                  width: 24,
-                  height: 24,
-                  borderRadius: 4,
-                  backgroundColor: type.colorCode,
-                  border: "1px solid rgba(0, 0, 0, 0.1)",
-                }}
-              />
-              <div style={{ fontSize: 12, fontFamily: "monospace" }}>
-                {type.colorCode}
-              </div>
-            </div>
-          </div>
+          <ColorSelect
+            value={type.colorCode}
+            onChange={(color) => {
+              onUpdate(type.id, { colorCode: color });
+            }}
+            disabled={isDisabled}
+          />
         </div>
 
         <div>
