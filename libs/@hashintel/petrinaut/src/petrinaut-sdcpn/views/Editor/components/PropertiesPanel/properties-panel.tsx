@@ -134,10 +134,15 @@ export const PropertiesPanel: React.FC = () => {
     return null;
   }
 
-  let content: React.ReactNode = null;
-
   // Use getItemType to determine what kind of item is selected
   const itemType = getItemType(selectedId);
+
+  // Don't show panel for arcs - they can only be deleted, not edited
+  if (itemType === "arc") {
+    return null;
+  }
+
+  let content: React.ReactNode = null;
 
   switch (itemType) {
     case "place": {
@@ -213,120 +218,6 @@ export const PropertiesPanel: React.FC = () => {
       );
       if (parameterData) {
         content = <ParameterProperties parameter={parameterData} />;
-      }
-      break;
-    }
-
-    case "arc": {
-      // Parse arc ID: $A_<inputId>_<outputId>
-      const parts = selectedId.split("_");
-      if (parts.length === 3) {
-        const inputId = parts[1];
-        const outputId = parts[2];
-
-        // Determine if this is a place->transition or transition->place arc
-        const inputPlace = sdcpn.places.find((place) => place.id === inputId);
-        const outputPlace = sdcpn.places.find((place) => place.id === outputId);
-        const inputTransition = sdcpn.transitions.find(
-          (transition) => transition.id === inputId,
-        );
-        const outputTransition = sdcpn.transitions.find(
-          (transition) => transition.id === outputId,
-        );
-
-        let arcType: "input" | "output" | null = null;
-        let placeId: string | null | undefined = null;
-        let transitionId: string | null | undefined = null;
-        let arcWeight = 1;
-
-        if (inputPlace && outputTransition) {
-          // Input arc: place -> transition
-          arcType = "input";
-          placeId = inputId;
-          transitionId = outputId;
-          const arc = outputTransition.inputArcs.find(
-            (arcItem) => arcItem.placeId === inputId,
-          );
-          if (arc) {
-            arcWeight = arc.weight;
-          }
-        } else if (inputTransition && outputPlace) {
-          // Output arc: transition -> place
-          arcType = "output";
-          placeId = outputId;
-          transitionId = inputId;
-          const arc = inputTransition.outputArcs.find(
-            (arcItem) => arcItem.placeId === outputId,
-          );
-          if (arc) {
-            arcWeight = arc.weight;
-          }
-        }
-
-        if (arcType && placeId && transitionId) {
-          const place = sdcpn.places.find(
-            (placeItem) => placeItem.id === placeId,
-          );
-          const transition = sdcpn.transitions.find(
-            (transitionItem) => transitionItem.id === transitionId,
-          );
-
-          content = (
-            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-              <div>
-                <div style={{ fontWeight: 600, fontSize: 16, marginBottom: 8 }}>
-                  Arc ({arcType})
-                </div>
-              </div>
-
-              <div>
-                <div style={{ fontWeight: 500, fontSize: 12, marginBottom: 4 }}>
-                  Direction
-                </div>
-                <div style={{ fontSize: 14 }}>
-                  {arcType === "input" ? (
-                    <>
-                      {place?.name ?? placeId} →{" "}
-                      {transition?.name ?? transitionId}
-                    </>
-                  ) : (
-                    <>
-                      {transition?.name ?? transitionId} →{" "}
-                      {place?.name ?? placeId}
-                    </>
-                  )}
-                </div>
-              </div>
-
-              <div>
-                <div style={{ fontWeight: 500, fontSize: 12, marginBottom: 4 }}>
-                  Place
-                </div>
-                <div style={{ fontSize: 14 }}>{place?.name ?? placeId}</div>
-                <div style={{ fontSize: 12, color: "#666" }}>{placeId}</div>
-              </div>
-
-              <div>
-                <div style={{ fontWeight: 500, fontSize: 12, marginBottom: 4 }}>
-                  Transition
-                </div>
-                <div style={{ fontSize: 14 }}>
-                  {transition?.name ?? transitionId}
-                </div>
-                <div style={{ fontSize: 12, color: "#666" }}>
-                  {transitionId}
-                </div>
-              </div>
-
-              <div>
-                <div style={{ fontWeight: 500, fontSize: 12, marginBottom: 4 }}>
-                  Weight
-                </div>
-                <div style={{ fontSize: 14 }}>{arcWeight}</div>
-              </div>
-            </div>
-          );
-        }
       }
       break;
     }

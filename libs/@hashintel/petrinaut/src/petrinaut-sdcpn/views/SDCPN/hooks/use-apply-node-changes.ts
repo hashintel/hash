@@ -1,4 +1,4 @@
-import type { NodeChange } from "reactflow";
+import type { EdgeChange, NodeChange } from "reactflow";
 
 import { useEditorStore } from "../../../state/editor-provider";
 import { useSDCPNStore } from "../../../state/sdcpn-provider";
@@ -28,7 +28,7 @@ export function useApplyNodeChanges() {
     (state) => state.updateTransitionPosition,
   );
 
-  return (changes: NodeChange[]) => {
+  return (changes: (NodeChange | EdgeChange)[]) => {
     const positionUpdates: Array<{
       id: string;
       position: { x: number; y: number };

@@ -292,6 +292,7 @@ export const SDCPNView: React.FC = () => {
         nodeTypes={REACTFLOW_NODE_TYPES}
         edgeTypes={REACTFLOW_EDGE_TYPES}
         onNodesChange={isReadonly ? undefined : applyNodeChanges}
+        onEdgesChange={isReadonly ? undefined : applyNodeChanges}
         onConnect={isReadonly ? undefined : onConnect}
         onInit={onInit}
         onPaneClick={onPaneClick}

@@ -42,7 +42,6 @@ export const Arc: React.FC<EdgeProps<ArcData>> = ({
       return {
         ...style,
         stroke: "#3b82f6",
-        strokeWidth: 3,
       };
     }
     return style;
