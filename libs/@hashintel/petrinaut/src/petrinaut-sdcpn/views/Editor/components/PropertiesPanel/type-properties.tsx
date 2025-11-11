@@ -396,7 +396,7 @@ export const TypeProperties: React.FC<TypePropertiesProps> = ({
                     onClick={() => {
                       handleDeleteElement(element.id, element.name);
                     }}
-                    disabled={isDisabled}
+                    disabled={isDisabled || type.elements.length === 1}
                     className={css({
                       fontSize: "[16px]",
                       width: "[28px]",
