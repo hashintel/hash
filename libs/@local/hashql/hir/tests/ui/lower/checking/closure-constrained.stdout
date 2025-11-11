@@ -1,22 +1,33 @@
 ════ Initial HIR ═══════════════════════════════════════════════════════════════
 
-#let add:0 = #fn<T:0?26: Number>(a:0: ?26, b:0: ?26): ?26 ->
-             ::core::math::add(a:0, b:0)
+let add:0 = <?26: Number>(a:0: ?26, b:0: ?26): ?26 ->
+        ::core::math::add(a:0, b:0)
 in
 add:0(1, 2)
 
 ════ HIR after type checking ═══════════════════════════════════════════════════
 
-#let add:0 = #fn<T:0?26: Number>(a:0: ?26«Number», b:0: ?26«Number»):
-         ?26«Number» ->
-             ::core::math::add(a:0, b:0)
+let add:0 = <?29: Number>(a:0: ?29, b:0: ?29): ?29 ->
+        ::core::math::add(a:0, b:0)
 in
 add:0(1, 2)
 
 ════ Types ═════════════════════════════════════════════════════════════════════
 
+┌─ let add:0 = <?29: Number>(a:0: ?29, b:0: ?29): ?29 ->
+│          ::core::math::add(a:0, b:0)
+│  in
+│  add:0(1, 2)
+└→ Integer
+
+┌─ <?29: Number>(a:0: ?29, b:0: ?29): ?29 -> ::core::math::add(a:0, b:0)
+└→ <T:0?29: Number>(T:0?29, T:0?29) -> T:0?29
+
+┌─ ::core::math::add(a:0, b:0)
+└→ Number
+
 ┌─ ::core::math::add
-└→ fn(Number, Number) -> Number
+└→ (Number, Number) -> Number
 
 ┌─ a:0
 └→ Number
@@ -24,29 +35,15 @@ add:0(1, 2)
 ┌─ b:0
 └→ Number
 
-┌─ ::core::math::add(a:0, b:0)
-└→ Number
-
-┌─ #fn<T:0?26: Number>(a:0: ?26«Number», b:0: ?26«Number»): ?26«Number» ->
-│      ::core::math::add(a:0, b:0)
-└→ fn<T:0?29: Number>(?29, ?29) -> ?29
+┌─ add:0(1, 2)
+└→ Integer
 
 ┌─ add:0
-└→ fn(Integer, Integer) -> Integer
+└→ (Integer, Integer) -> Integer
 
 ┌─ 1
 └→ Integer
 
 ┌─ 2
-└→ Integer
-
-┌─ add:0(1, 2)
-└→ Integer
-
-┌─ #let add:0 = #fn<T:0?26: Number>(a:0: ?26«Number», b:0: ?26«Number»):
-│           ?26«Number» ->
-│               ::core::math::add(a:0, b:0)
-│  in
-│  add:0(1, 2)
 └→ Integer
 

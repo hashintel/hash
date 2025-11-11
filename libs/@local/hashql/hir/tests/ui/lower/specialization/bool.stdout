@@ -1,13 +1,13 @@
 ════ Initial HIR ═══════════════════════════════════════════════════════════════
 
-#let and:0 = ::core::bool::and(true, false)
-     or:0 = ::core::bool::or(true, false)
+let and:0 = ::core::bool::and(true, false),
+    or:0 = ::core::bool::or(true, false)
 in
 and:0
 
 ════ HIR after specialization ══════════════════════════════════════════════════
 
-#let and:0 = (true && false)
-     or:0 = (true || false)
+let and:0 = true && false,
+    or:0 = true || false
 in
 and:0

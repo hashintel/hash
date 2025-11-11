@@ -208,12 +208,19 @@ struct VariableOrdering {
 /// This structure maintains flags indicating whether each category of constraint
 /// (currently only upper bounds) can be satisfied without creating logical contradictions.
 /// Used during constraint resolution to detect and report unsatisfiable constraint systems.
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Default)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 struct VariableConstraintSatisfiability {
     /// Whether upper bound constraints are satisfiable.
     ///
-    /// Set to `false` when upper bound resolution results in bottom types, indicating an impossible constraint combination.
-    upper: bool = true,
+    /// Set to `false` when upper bound resolution results in bottom types, indicating an
+    /// impossible constraint combination.
+    upper: bool,
+}
+
+impl Default for VariableConstraintSatisfiability {
+    fn default() -> Self {
+        Self { upper: true }
+    }
 }
 
 impl VariableConstraintSatisfiability {
@@ -402,7 +409,7 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
                         // meaning it won't be rerun.
                         self.persistent_diagnostics
                             .push(conflicting_equality_constraints(
-                                &*self.lattice,
+                                &self.lattice,
                                 variable,
                                 self.lattice.r#type(lhs),
                                 self.lattice.r#type(rhs),
@@ -578,7 +585,7 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
                             // this is a persistent diagnostic
                             self.persistent_diagnostics
                                 .push(conflicting_equality_constraints(
-                                    &*self.lattice,
+                                    &self.lattice,
                                     variable,
                                     self.lattice.r#type(existing),
                                     self.lattice.r#type(r#type),
@@ -1125,7 +1132,7 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
             {
                 // Report error: incompatible bounds
                 self.diagnostics.push(bound_constraint_violation(
-                    &*self.lattice,
+                    self.lattice.environment,
                     variable,
                     self.lattice.r#type(lower),
                     self.lattice.r#type(upper),
@@ -1192,7 +1199,7 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
                             .is_subtype_of(Variance::Covariant, lower, equal)
                     {
                         self.diagnostics.push(incompatible_lower_equal_constraint(
-                            &self.lattice,
+                            self.lattice.environment,
                             variable,
                             self.lattice.r#type(lower),
                             self.lattice.r#type(equal),

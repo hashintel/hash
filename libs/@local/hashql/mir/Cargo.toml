@@ -8,14 +8,17 @@ version.workspace = true
 
 [dependencies]
 # Public workspace dependencies
-hashql-core = { workspace = true, public = true }
-hashql-hir  = { workspace = true, public = true }
+hashql-core        = { workspace = true, public = true }
+hashql-diagnostics = { workspace = true, public = true }
+hashql-hir         = { workspace = true, public = true }
 
 # Public third-party dependencies
 
 # Private workspace dependencies
 
 # Private third-party dependencies
+bstr           = { workspace = true }
+simple-mermaid = { workspace = true }
 
 [dev-dependencies]
 hashql-compiletest = { workspace = true }

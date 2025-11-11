@@ -1,35 +1,9 @@
 #![cfg_attr(nightly, feature(error_generic_member_access))]
-#![expect(deprecated, reason = "`report!` is deprecated")]
 
 mod common;
 
 use common::*;
-use error_stack::{bail, ensure, report};
-
-#[test]
-fn report() {
-    let report = capture_error(|| Err(report!(RootError))).attach(PrintableA(0));
-    assert!(report.contains::<RootError>());
-    assert!(report.contains::<PrintableA>());
-    assert!(!report.contains::<PrintableB>());
-    assert_eq!(report.current_context(), &RootError);
-    assert_eq!(report.frames().count(), expect_count(2));
-    assert_eq!(
-        remove_builtin_messages(messages(&report)),
-        remove_builtin_messages(["printable A", "root error"])
-    );
-
-    let report = capture_error(|| Err(report!(report))).attach(PrintableB(0));
-    assert!(report.contains::<RootError>());
-    assert!(report.contains::<PrintableA>());
-    assert!(report.contains::<PrintableB>());
-    assert_eq!(report.current_context(), &RootError);
-    assert_eq!(report.frames().count(), expect_count(3));
-    assert_eq!(
-        remove_builtin_messages(messages(&report)),
-        remove_builtin_messages(["printable B", "printable A", "root error"])
-    );
-}
+use error_stack::{bail, ensure};
 
 #[test]
 fn bail() {

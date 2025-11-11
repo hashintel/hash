@@ -1,47 +1,25 @@
 use core::fmt::{self, Write as _};
 
 use crate::store::postgres::query::{
-    Alias, AliasedTable, Expression, Function, JoinExpression, SelectExpression, Table, Transpile,
-    WhereExpression, WithExpression,
-    expression::{GroupByExpression, OrderByExpression},
+    Expression, SelectExpression, Transpile, WhereExpression, WithExpression,
+    expression::{FromItem, GroupByExpression, OrderByExpression},
 };
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub enum FromItem {
-    Table { table: Table, alias: Option<Alias> },
-    Function(Function),
-}
-
-impl Transpile for FromItem {
-    fn transpile(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
-        match self {
-            Self::Table { table, alias } => {
-                table.transpile(fmt)?;
-                if let Some(alias) = *alias {
-                    fmt.write_str(" AS ")?;
-                    AliasedTable {
-                        table: *table,
-                        alias,
-                    }
-                    .transpile(fmt)
-                } else {
-                    Ok(())
-                }
-            }
-            Self::Function(function) => function.transpile(fmt),
-        }
-    }
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, bon::Builder)]
+#[builder(derive(Debug, Clone, Into))]
 pub struct SelectStatement {
+    #[builder(default)]
     pub with: WithExpression,
+    #[builder(default)]
     pub distinct: Vec<Expression>,
     pub selects: Vec<SelectExpression>,
-    pub from: FromItem,
-    pub joins: Vec<JoinExpression>,
+    #[builder(into)]
+    pub from: Option<FromItem<'static>>,
+    #[builder(default)]
     pub where_expression: WhereExpression,
+    #[builder(default)]
     pub order_by_expression: OrderByExpression,
+    #[builder(default)]
     pub group_by_expression: GroupByExpression,
     pub limit: Option<usize>,
 }
@@ -79,12 +57,9 @@ impl Transpile for SelectStatement {
             }
             condition.transpile(fmt)?;
         }
-        fmt.write_str("\nFROM ")?;
-        self.from.transpile(fmt)?;
-
-        for join in &self.joins {
-            fmt.write_char('\n')?;
-            join.transpile(fmt)?;
+        if let Some(from) = &self.from {
+            fmt.write_str("\nFROM ")?;
+            from.transpile(fmt)?;
         }
 
         if !self.where_expression.is_empty() {
@@ -149,8 +124,8 @@ mod tests {
         let (compiled_statement, compiled_parameters) = compiler.compile();
 
         pretty_assertions::assert_eq!(
-            trim_whitespace(&compiled_statement),
             trim_whitespace(expected_statement),
+            trim_whitespace(&compiled_statement),
             "actual:\n{compiled_statement}\nexpected: {expected_statement}"
         );
 
@@ -1280,13 +1255,12 @@ mod tests {
                 *,
                 "entity_embeddings_0_1_0"."distance"
               FROM "entity_temporal_metadata" AS "entity_temporal_metadata_0_0_0"
-              LEFT OUTER JOIN
-                (SELECT
-                    "entity_embeddings_0_0_0"."web_id",
-                    "entity_embeddings_0_0_0"."entity_uuid",
-                    MIN("entity_embeddings_0_0_0"."embedding" <=> $1) AS "distance"
-                  FROM "entity_embeddings" AS "entity_embeddings_0_0_0"
-                  GROUP BY "entity_embeddings_0_0_0"."web_id", "entity_embeddings_0_0_0"."entity_uuid")
+              LEFT OUTER JOIN (SELECT
+                    "entity_embeddings"."web_id",
+                    "entity_embeddings"."entity_uuid",
+                    MIN("entity_embeddings"."embedding" <=> $1) AS "distance"
+                  FROM "entity_embeddings"
+                  GROUP BY "entity_embeddings"."web_id", "entity_embeddings"."entity_uuid")
                  AS "entity_embeddings_0_1_0"
                  ON "entity_embeddings_0_1_0"."web_id" = "entity_temporal_metadata_0_0_0"."web_id"
                 AND "entity_embeddings_0_1_0"."entity_uuid" = "entity_temporal_metadata_0_0_0"."entity_uuid"

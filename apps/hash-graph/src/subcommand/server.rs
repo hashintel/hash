@@ -326,10 +326,6 @@ pub async fn server(args: ServerArgs) -> Result<(), Report<GraphError>> {
             query_logger: query_logger.map(QueryLogger::new),
         };
 
-        #[expect(
-            clippy::if_then_some_else_none,
-            reason = "False positive, this is in an async context"
-        )]
         let rpc_server_task_tracker = if args.rpc_enabled {
             tracing::info!("Starting RPC server...");
 

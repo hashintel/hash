@@ -1,7 +1,7 @@
 import type { ApolloClient } from "@apollo/client";
 import type { EntityId, WebId } from "@blockprotocol/type-system";
 import type { ComponentIdHashBlockMap } from "@local/hash-isomorphic-utils/blocks";
-import { paragraphBlockComponentId } from "@local/hash-isomorphic-utils/blocks";
+import { paragraphBlockComponentId } from "@local/hash-isomorphic-utils/blocks-constants";
 import { createProseMirrorState } from "@local/hash-isomorphic-utils/create-prose-mirror-state";
 import type { BlockEntity } from "@local/hash-isomorphic-utils/entity";
 import {

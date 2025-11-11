@@ -18,6 +18,7 @@
     "@rust/hashql-diagnostics": "0.0.0-private",
     "@rust/hashql-eval": "0.0.0-private",
     "@rust/hashql-hir": "0.0.0-private",
+    "@rust/hashql-mir": "0.0.0-private",
     "@rust/hashql-syntax-jexpr": "0.0.0-private"
   }
 }

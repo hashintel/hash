@@ -15,6 +15,7 @@ hash-graph-validation    = { workspace = true, public = true }
 hash-temporal-client     = { workspace = true, public = true }
 
 # Public third-party dependencies
+bon               = { workspace = true, public = true }
 deadpool          = { workspace = true, public = true }
 deadpool-postgres = { workspace = true, public = true }
 futures-sink      = { workspace = true, public = true }
@@ -52,6 +53,7 @@ uuid           = { workspace = true, features = ["v4", "serde"] }
 [dev-dependencies]
 hash-graph-migrations = { workspace = true }
 hash-telemetry        = { workspace = true }
+indoc                 = { workspace = true }
 pretty_assertions     = { workspace = true }
 tokio                 = { workspace = true, features = ["macros"] }
 tracing-subscriber    = { workspace = true, features = ["env-filter"] }

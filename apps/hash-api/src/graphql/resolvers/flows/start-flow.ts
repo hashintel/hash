@@ -5,10 +5,10 @@ import type {
 } from "@local/hash-isomorphic-utils/flows/temporal-types";
 import { validateFlowDefinition } from "@local/hash-isomorphic-utils/flows/util";
 import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
-import { ForbiddenError } from "apollo-server-errors";
 
 import type { MutationStartFlowArgs, ResolverFn } from "../../api-types.gen";
 import type { LoggedInGraphQLContext } from "../../context";
+import * as Error from "../../error";
 
 export const startFlow: ResolverFn<
   Promise<EntityUuid>,
@@ -23,7 +23,7 @@ export const startFlow: ResolverFn<
   const { temporal, user } = graphQLContext;
 
   if (!user.enabledFeatureFlags.includes("ai")) {
-    throw new ForbiddenError("Flows are not enabled for this user");
+    throw Error.forbidden("Flows are not enabled for this user");
   }
 
   validateFlowDefinition(flowDefinition);

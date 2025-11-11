@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useEditorContext } from "./editor-context";
 import { TokenTypeEditor } from "./token-types/token-type-editor";
 
-export { defaultTokenTypes } from "./token-types/token-type-editor";
+export { defaultTokenTypes } from "./token-types/default-token-types";
 
 export const TokenTypes = () => {
   const [tokenTypeEditorOpen, setTokenTypeEditorOpen] = useState(false);

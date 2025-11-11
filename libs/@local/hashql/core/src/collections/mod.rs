@@ -1,4 +1,5 @@
 mod hash_map;
+pub mod pool;
 
 use alloc::alloc::Global;
 use core::alloc::Allocator;

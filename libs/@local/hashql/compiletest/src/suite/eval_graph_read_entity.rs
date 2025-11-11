@@ -3,19 +3,21 @@ use core::fmt::Write as _;
 use hashql_ast::node::expr::Expr;
 use hashql_core::{
     collections::FastHashMap,
-    heap::Heap,
     module::ModuleRegistry,
-    pretty::{PrettyOptions, PrettyPrint as _},
-    r#type::environment::Environment,
+    pretty::{Formatter, RenderOptions},
+    r#type::{TypeFormatterOptions, environment::Environment},
     value::{self, List, Opaque, Primitive, Struct, Value},
 };
 use hashql_eval::graph::read::{FilterSlice, GraphReadCompiler};
 use hashql_hir::{
-    context::HirContext, intern::Interner, node::Node, pretty::PrettyPrintEnvironment,
+    context::HirContext,
+    intern::Interner,
+    node::NodeData,
+    pretty::{NodeFormatter, NodeFormatterOptions},
     visit::Visitor as _,
 };
 
-use super::{Suite, SuiteDiagnostic};
+use super::{RunContext, Suite, SuiteDiagnostic};
 use crate::suite::common::{Header, process_status};
 
 pub(crate) struct EvalGraphReadEntitySuite;
@@ -27,9 +29,10 @@ impl Suite for EvalGraphReadEntitySuite {
 
     fn run<'heap>(
         &self,
-        heap: &'heap Heap,
+        RunContext {
+            heap, diagnostics, ..
+        }: RunContext<'_, 'heap>,
         mut expr: Expr<'heap>,
-        diagnostics: &mut Vec<SuiteDiagnostic>,
     ) -> Result<String, SuiteDiagnostic> {
         let mut environment = Environment::new(expr.span, heap);
         let registry = ModuleRegistry::new(&environment);
@@ -46,23 +49,27 @@ impl Suite for EvalGraphReadEntitySuite {
         );
         let types = process_status(diagnostics, result)?;
 
-        let node = process_status(diagnostics, Node::from_ast(expr, &mut context, &types))?;
+        let node = process_status(diagnostics, NodeData::from_ast(expr, &mut context, &types))?;
         let node = process_status(
             diagnostics,
             hashql_hir::lower::lower(node, &types, &mut environment, &mut context),
         )?;
 
+        let formatter = Formatter::new(heap);
+        let mut formatter = NodeFormatter::new(
+            &formatter,
+            &environment,
+            &context,
+            NodeFormatterOptions {
+                r#type: TypeFormatterOptions::terse(),
+            },
+        );
+
         let _ = writeln!(
             output,
             "{}\n\n{}",
             Header::new("HIR"),
-            node.pretty_print(
-                &PrettyPrintEnvironment {
-                    env: &environment,
-                    symbols: &context.symbols,
-                },
-                PrettyOptions::default().without_color()
-            )
+            formatter.render(node, RenderOptions::default().with_plain()),
         );
 
         let user_id_value = Value::Opaque(Opaque::new(
@@ -96,7 +103,7 @@ impl Suite for EvalGraphReadEntitySuite {
         );
 
         let mut compiler = GraphReadCompiler::new(heap, &inputs);
-        compiler.visit_node(&node);
+        compiler.visit_node(node);
         let residual = process_status(diagnostics, compiler.finish())?;
 
         let FilterSlice::Entity { range } = residual.output[&node.id].clone();

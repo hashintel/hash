@@ -7,7 +7,6 @@ import {
   isInvitationByEmail,
   isInvitationByShortname,
 } from "@local/hash-isomorphic-utils/organization";
-import { ApolloError } from "apollo-server-errors";
 
 import {
   getEntityIncomingLinks,
@@ -27,6 +26,7 @@ import type {
   ResolverFn,
 } from "../../../api-types.gen";
 import type { LoggedInGraphQLContext } from "../../../context";
+import * as Error from "../../../error";
 import { graphQLContextToImpureGraphContext } from "../../util";
 
 export const acceptOrgInvitationResolver: ResolverFn<
@@ -59,7 +59,7 @@ export const acceptOrgInvitationResolver: ResolverFn<
       },
     );
   } catch {
-    throw new ApolloError("Invitation not found", "NOT_FOUND");
+    throw Error.notFound("Invitation not found");
   }
 
   let isForUser: boolean;
@@ -74,9 +74,8 @@ export const acceptOrgInvitationResolver: ResolverFn<
         "https://hash.ai/@h/types/property-type/shortname/"
       ] === user.shortname;
   } else {
-    throw new ApolloError(
+    throw Error.invalidInvitationType(
       `Invalid invitation type ${invitation.metadata.entityTypeIds.join(", ")}`,
-      "INVALID_INVITATION_TYPE",
     );
   }
 
@@ -100,7 +99,7 @@ export const acceptOrgInvitationResolver: ResolverFn<
   );
 
   if (!invitationLink) {
-    throw new ApolloError("Invitation link not found", "NOT_FOUND");
+    throw Error.notFound("Invitation link not found");
   }
 
   const isAlreadyAMember = await isUserMemberOfOrg(
@@ -143,9 +142,8 @@ export const acceptOrgInvitationResolver: ResolverFn<
       entityId: invitationLink.linkData.leftEntityId,
     });
   } catch {
-    throw new ApolloError(
+    throw Error.notFound(
       `Organization not found with entityId ${invitationLink.linkData.leftEntityId} (the left side of the invitation link)`,
-      "NOT_FOUND",
     );
   }
 
@@ -186,9 +184,8 @@ export const acceptOrgInvitationResolver: ResolverFn<
   if (!creatorIsOrgAdmin) {
     await archiveInvitation();
 
-    throw new ApolloError(
+    throw Error.forbidden(
       "Invitation issuer is not an administrator of the organization",
-      "UNAUTHORIZED",
     );
   }
 

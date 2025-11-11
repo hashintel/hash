@@ -28,10 +28,10 @@ pub struct Binder<'heap> {
     pub name: Option<Symbol<'heap>>,
 }
 
-impl Binder<'_> {
+impl<'heap> Binder<'heap> {
     #[must_use]
-    pub fn mangled(&self) -> impl Display + '_ {
-        struct DisplayMangled<'this>(&'this Binder<'this>);
+    pub fn mangled(self) -> impl Display + use<'heap> {
+        struct DisplayMangled<'heap>(Binder<'heap>);
 
         impl Display for DisplayMangled<'_> {
             fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {

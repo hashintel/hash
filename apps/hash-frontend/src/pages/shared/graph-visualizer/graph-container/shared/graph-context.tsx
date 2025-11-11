@@ -70,11 +70,13 @@ export const GraphContextProvider = <
   const [config, setConfig] = useLocalStorage<GraphVizConfig<NodeSizing>>({
     key: `graph-viz-config~${defaultConfig.graphKey}`,
     defaultValue: defaultConfig,
+    getInitialValueInEffect: false,
   });
 
   const [filters, setFilters] = useLocalStorage<GraphVizFilters>({
     key: `graph-viz-filters~${defaultConfig.graphKey}`,
     defaultValue: defaultFilters ?? {},
+    getInitialValueInEffect: false,
   });
 
   const [configPanelOpen, setConfigPanelOpen] = useState(false);

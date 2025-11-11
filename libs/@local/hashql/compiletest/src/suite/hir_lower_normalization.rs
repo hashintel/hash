@@ -4,7 +4,7 @@ use hashql_ast::node::expr::Expr;
 use hashql_core::{
     heap::Heap,
     module::ModuleRegistry,
-    pretty::{PrettyOptions, PrettyPrint as _},
+    pretty::{Formatter, RenderOptions},
     r#type::environment::Environment,
 };
 use hashql_hir::{
@@ -12,11 +12,11 @@ use hashql_hir::{
     intern::Interner,
     lower::normalization::{Normalization, NormalizationState},
     node::Node,
-    pretty::PrettyPrintEnvironment,
+    pretty::NodeFormatter,
 };
 
 use super::{
-    Suite, SuiteDiagnostic, hir_lower_alias_replacement::TestOptions,
+    RunContext, Suite, SuiteDiagnostic, hir_lower_alias_replacement::TestOptions,
     hir_lower_specialization::hir_lower_specialization,
 };
 use crate::suite::common::Header;
@@ -31,7 +31,7 @@ pub(crate) fn hir_lower_normalization<'heap>(
     let node = hir_lower_specialization(heap, expr, environment, context, options)?;
 
     let mut normalization_state = NormalizationState::default();
-    let normalization = Normalization::new(context, &mut normalization_state);
+    let normalization = Normalization::new(context, environment, &mut normalization_state);
     let node = normalization.run(node);
 
     Ok(node)
@@ -46,9 +46,10 @@ impl Suite for HirLowerNormalizationSuite {
 
     fn run<'heap>(
         &self,
-        heap: &'heap Heap,
+        RunContext {
+            heap, diagnostics, ..
+        }: RunContext<'_, 'heap>,
         expr: Expr<'heap>,
-        diagnostics: &mut Vec<SuiteDiagnostic>,
     ) -> Result<String, SuiteDiagnostic> {
         let mut environment = Environment::new(expr.span, heap);
         let registry = ModuleRegistry::new(&environment);
@@ -69,17 +70,14 @@ impl Suite for HirLowerNormalizationSuite {
             },
         )?;
 
+        let formatter = Formatter::new(heap);
+        let mut formatter = NodeFormatter::with_defaults(&formatter, &environment, &context);
+
         let _ = writeln!(
             output,
             "\n{}\n\n{}",
             Header::new("HIR after normalization"),
-            node.pretty_print(
-                &PrettyPrintEnvironment {
-                    env: &environment,
-                    symbols: &context.symbols,
-                },
-                PrettyOptions::default().without_color()
-            )
+            formatter.render(node, RenderOptions::default().with_plain())
         );
 
         Ok(output)

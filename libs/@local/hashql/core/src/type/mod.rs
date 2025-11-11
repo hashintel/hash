@@ -7,6 +7,7 @@ pub mod error;
 pub mod inference;
 pub mod kind;
 pub mod lattice;
+mod pretty;
 pub(crate) mod recursion;
 #[cfg(test)]
 pub(crate) mod tests;
@@ -14,21 +15,41 @@ pub mod visit;
 
 use core::ops::Receiver;
 
-pub use self::builder::TypeBuilder;
-use self::{environment::Environment, inference::Variable, kind::TypeKind};
+pub use self::{
+    builder::TypeBuilder,
+    pretty::{RecursionGuardStrategy, TypeFormatter, TypeFormatterOptions},
+};
+use self::{inference::Variable, kind::TypeKind};
 use crate::{
-    id::HasId,
+    id::{self, HasId},
     intern::{Decompose, Interned},
-    newtype, newtype_collections,
-    pretty::{PrettyPrint, PrettyPrintBoundary},
     span::SpanId,
 };
 
-newtype!(
+id::newtype!(
+    /// A unique identifier for a type in the HashQL Type System
+    ///
+    /// Each type inside the HashQL Type System is identified by a unique `TypeId`.
+    /// This identifier is used to refer to types throughout the system.
+    ///
+    /// The value space is restricted to `0..=0xFFFF_FF00`, reserving the last 256 for niches.
+    /// As real pattern types are an experimental feature in Rust, these can currently only be
+    /// used by directly modifying and accessing the `TypeId`'s internal value.
     pub struct TypeId(u32 is 0..=0xFFFF_FF00)
 );
 
-newtype_collections!(pub type TypeId* from TypeId);
+impl TypeId {
+    /// `TypeId` which is never valid.
+    ///
+    /// This is used as a placeholder throughout the system if required.
+    ///
+    /// The uniqueness constraint is not enforced by the type system, but rather just a statistical
+    /// improbability, considering that 4.294.967.040 types would need to be generated, for a
+    /// collision to occur.
+    pub const PLACEHOLDER: Self = Self(0xFFFF_FF00);
+}
+
+id::newtype_collections!(pub type TypeId* from TypeId);
 
 #[derive(Debug, PartialEq, Eq, Hash)]
 pub struct Type<'heap, K: ?Sized = TypeKind<'heap>> {
@@ -75,31 +96,6 @@ impl Type<'_> {
             span: self.span,
             kind,
         })
-    }
-}
-
-impl<'heap, K> PrettyPrint<'heap, Environment<'heap>> for Type<'heap, K>
-where
-    K: PrettyPrint<'heap, Environment<'heap>>,
-{
-    fn pretty(
-        &self,
-        env: &Environment<'heap>,
-        boundary: &mut PrettyPrintBoundary,
-    ) -> pretty::RcDoc<'heap, anstyle::Style> {
-        self.kind.pretty(env, boundary)
-    }
-
-    fn pretty_generic(
-        &self,
-        env: &Environment<'heap>,
-        boundary: &mut PrettyPrintBoundary,
-        arguments: kind::GenericArguments<'heap>,
-    ) -> pretty::RcDoc<'heap, anstyle::Style>
-    where
-        Self: PrettyPrint<'heap, Environment<'heap>>,
-    {
-        self.kind.pretty_generic(env, boundary, arguments)
     }
 }
 

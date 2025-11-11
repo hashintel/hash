@@ -13,10 +13,6 @@ import { useEffect, useState } from "react";
 import { useEditorContext } from "../editor-context";
 import type { TokenType } from "../types";
 
-export const defaultTokenTypes: TokenType[] = [
-  { id: "default", name: "Default", color: "#3498db" },
-];
-
 type TokenTypeEditorProps = {
   open: boolean;
   onClose: () => void;

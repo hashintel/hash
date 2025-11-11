@@ -1,6 +1,6 @@
-import { blockProtocolHubOrigin } from "@local/hash-isomorphic-utils/blocks";
-import type { Express } from "express";
-import proxy from "express-http-proxy";
+import { blockProtocolHubOrigin } from "@local/hash-isomorphic-utils/blocks-constants";
+import type { Express, Request, Response } from "express";
+import { createProxyMiddleware } from "http-proxy-middleware";
 
 /**
  * Set up a proxy to the blockprotocol.org proxy for the internal API,
@@ -11,20 +11,16 @@ import proxy from "express-http-proxy";
 export const setupBlockProtocolExternalServiceMethodProxy = (app: Express) => {
   app.use(
     "/api/external-service-method",
-    proxy(blockProtocolHubOrigin, {
-      proxyReqPathResolver: () => "/api/external-service-method",
-      proxyReqOptDecorator: (proxyReqOpts) => {
-        const apiKey = process.env.BLOCK_PROTOCOL_API_KEY;
+    createProxyMiddleware<Request, Response>({
+      target: blockProtocolHubOrigin,
+      on: {
+        proxyReq: (proxyReq, _, __) => {
+          const apiKey = process.env.BLOCK_PROTOCOL_API_KEY;
 
-        if (apiKey) {
-          // eslint-disable-next-line no-param-reassign
-          proxyReqOpts.headers = {
-            ...proxyReqOpts.headers,
-            "x-api-key": apiKey,
-          };
-        }
-
-        return proxyReqOpts;
+          if (apiKey) {
+            proxyReq.setHeader("x-api-key", apiKey);
+          }
+        },
       },
     }),
   );

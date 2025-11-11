@@ -1,8 +1,4 @@
-use hashql_core::{
-    intern::Interned,
-    symbol::Symbol,
-    r#type::{TypeId, kind::generic::GenericArgumentReference},
-};
+use hashql_core::{symbol::Symbol, r#type::TypeId};
 
 use crate::node::Node;
 
@@ -45,10 +41,6 @@ pub struct TypeAssertion<'heap> {
 pub struct TypeConstructor<'heap> {
     /// The name of the opaque type being constructed.
     pub name: Symbol<'heap>,
-    // The closure that performs the conversion
-    pub closure: TypeId,
-    // Any unapplied arguments to the constructor
-    pub arguments: Interned<'heap, [GenericArgumentReference<'heap>]>,
 }
 // TODO: we potentially want functions to access the repr and opaque value
 

@@ -15,6 +15,7 @@
     allocator_api,
     iter_intersperse,
     try_trait_v2,
+    unwrap_infallible,
 )]
 
 extern crate alloc;
@@ -24,6 +25,7 @@ pub mod error;
 pub mod fold;
 pub mod intern;
 pub mod lower;
+pub mod map;
 pub mod node;
 pub mod path;
 pub mod pretty;

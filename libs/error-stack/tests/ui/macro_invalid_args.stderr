@@ -1,53 +1,26 @@
 error[E0277]: the trait bound `&str: IntoReport` is not satisfied
-  --> tests/ui/macro_invalid_args.rs:19:21
+  --> tests/ui/macro_invalid_args.rs:17:11
    |
-19 |     let _ = report!("Error");
-   |             --------^^^^^^^-
-   |             |       |
-   |             |       the trait `std::error::Error` is not implemented for `str`
-   |             required by a bound introduced by this call
-   |
-   = help: the trait `IntoReport` is implemented for `error_stack::Report<C>`
-   = note: required for `&str` to implement `std::error::Error`
-   = note: required for `&str` to implement `error_stack::Context`
-   = note: required for `error_stack::Report<&str>` to implement `From<&str>`
-   = note: required for `&str` to implement `Into<error_stack::Report<&str>>`
-   = note: required for `&str` to implement `IntoReport`
-
-error[E0277]: the trait bound `&str: Into<error_stack::Report<&str>>` is not satisfied
-  --> tests/ui/macro_invalid_args.rs:19:13
-   |
-19 |     let _ = report!("Error");
-   |             ^^^^^^^^^^^^^^^^ the trait `std::error::Error` is not implemented for `str`
-   |
-   = help: the trait `IntoReport` is implemented for `error_stack::Report<C>`
-   = note: required for `&str` to implement `std::error::Error`
-   = note: required for `&str` to implement `error_stack::Context`
-   = note: required for `error_stack::Report<&str>` to implement `From<&str>`
-   = note: required for `&str` to implement `Into<error_stack::Report<&str>>`
-   = note: required for `&str` to implement `IntoReport`
-   = note: this error originates in the macro `report` (in Nightly builds, run with -Z macro-backtrace for more info)
-
-error[E0277]: the trait bound `&str: IntoReport` is not satisfied
-  --> tests/ui/macro_invalid_args.rs:25:11
-   |
-25 |     bail!("Error")
+17 |     bail!("Error")
    |     ------^^^^^^^-
    |     |     |
    |     |     the trait `std::error::Error` is not implemented for `str`
    |     required by a bound introduced by this call
    |
-   = help: the trait `IntoReport` is implemented for `error_stack::Report<C>`
+help: the trait `IntoReport` is implemented for `error_stack::Report<C>`
+  --> src/report.rs
+   |
+   | impl<C: ?Sized> IntoReport for Report<C> {
+   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
    = note: required for `&str` to implement `std::error::Error`
-   = note: required for `&str` to implement `error_stack::Context`
    = note: required for `error_stack::Report<&str>` to implement `From<&str>`
    = note: required for `&str` to implement `Into<error_stack::Report<&str>>`
    = note: required for `&str` to implement `IntoReport`
 
 error[E0308]: mismatched types
-  --> tests/ui/macro_invalid_args.rs:25:5
+  --> tests/ui/macro_invalid_args.rs:17:5
    |
-25 |     bail!("Error")
+17 |     bail!("Error")
    |     ^^^^^^^^^^^^^^
    |     |
    |     expected `Report<RootError>`, found `Report<&str>`
@@ -56,9 +29,9 @@ error[E0308]: mismatched types
    = note: expected struct `error_stack::Report<RootError>`
               found struct `error_stack::Report<&str>`
 help: the type constructed contains `error_stack::Report<&str>` due to the type of the argument passed
-  --> tests/ui/macro_invalid_args.rs:25:5
+  --> tests/ui/macro_invalid_args.rs:17:5
    |
-25 |     bail!("Error")
+17 |     bail!("Error")
    |     ^^^^^^^^^^^^^^ this argument influences the type of `Err`
 note: tuple variant defined here
   --> $RUST/core/src/result.rs
@@ -68,39 +41,45 @@ note: tuple variant defined here
    = note: this error originates in the macro `bail` (in Nightly builds, run with -Z macro-backtrace for more info)
 
 error[E0277]: the trait bound `&str: Into<error_stack::Report<&str>>` is not satisfied
-  --> tests/ui/macro_invalid_args.rs:25:5
+  --> tests/ui/macro_invalid_args.rs:17:5
    |
-25 |     bail!("Error")
+17 |     bail!("Error")
    |     ^^^^^^^^^^^^^^ the trait `std::error::Error` is not implemented for `str`
    |
-   = help: the trait `IntoReport` is implemented for `error_stack::Report<C>`
+help: the trait `IntoReport` is implemented for `error_stack::Report<C>`
+  --> src/report.rs
+   |
+   | impl<C: ?Sized> IntoReport for Report<C> {
+   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
    = note: required for `&str` to implement `std::error::Error`
-   = note: required for `&str` to implement `error_stack::Context`
    = note: required for `error_stack::Report<&str>` to implement `From<&str>`
    = note: required for `&str` to implement `Into<error_stack::Report<&str>>`
    = note: required for `&str` to implement `IntoReport`
    = note: this error originates in the macro `bail` (in Nightly builds, run with -Z macro-backtrace for more info)
 
 error[E0277]: the trait bound `&str: IntoReport` is not satisfied
-  --> tests/ui/macro_invalid_args.rs:29:27
+  --> tests/ui/macro_invalid_args.rs:21:27
    |
-29 |     let _ = ensure!(true, "Error");
+21 |     let _ = ensure!(true, "Error");
    |             --------------^^^^^^^-
    |             |             |
    |             |             the trait `std::error::Error` is not implemented for `str`
    |             required by a bound introduced by this call
    |
-   = help: the trait `IntoReport` is implemented for `error_stack::Report<C>`
+help: the trait `IntoReport` is implemented for `error_stack::Report<C>`
+  --> src/report.rs
+   |
+   | impl<C: ?Sized> IntoReport for Report<C> {
+   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
    = note: required for `&str` to implement `std::error::Error`
-   = note: required for `&str` to implement `error_stack::Context`
    = note: required for `error_stack::Report<&str>` to implement `From<&str>`
    = note: required for `&str` to implement `Into<error_stack::Report<&str>>`
    = note: required for `&str` to implement `IntoReport`
 
 error[E0308]: mismatched types
-  --> tests/ui/macro_invalid_args.rs:29:13
+  --> tests/ui/macro_invalid_args.rs:21:13
    |
-29 |     let _ = ensure!(true, "Error");
+21 |     let _ = ensure!(true, "Error");
    |             ^^^^^^^^^^^^^^^^^^^^^^
    |             |
    |             expected `Report<RootError>`, found `Report<&str>`
@@ -109,9 +88,9 @@ error[E0308]: mismatched types
    = note: expected struct `error_stack::Report<RootError>`
               found struct `error_stack::Report<&str>`
 help: the type constructed contains `error_stack::Report<&str>` due to the type of the argument passed
-  --> tests/ui/macro_invalid_args.rs:29:13
+  --> tests/ui/macro_invalid_args.rs:21:13
    |
-29 |     let _ = ensure!(true, "Error");
+21 |     let _ = ensure!(true, "Error");
    |             ^^^^^^^^^^^^^^^^^^^^^^ this argument influences the type of `Err`
 note: tuple variant defined here
   --> $RUST/core/src/result.rs
@@ -121,23 +100,26 @@ note: tuple variant defined here
    = note: this error originates in the macro `$crate::bail` which comes from the expansion of the macro `ensure` (in Nightly builds, run with -Z macro-backtrace for more info)
 
 error[E0277]: the trait bound `&str: Into<error_stack::Report<&str>>` is not satisfied
-  --> tests/ui/macro_invalid_args.rs:29:13
+  --> tests/ui/macro_invalid_args.rs:21:13
    |
-29 |     let _ = ensure!(true, "Error");
+21 |     let _ = ensure!(true, "Error");
    |             ^^^^^^^^^^^^^^^^^^^^^^ the trait `std::error::Error` is not implemented for `str`
    |
-   = help: the trait `IntoReport` is implemented for `error_stack::Report<C>`
+help: the trait `IntoReport` is implemented for `error_stack::Report<C>`
+  --> src/report.rs
+   |
+   | impl<C: ?Sized> IntoReport for Report<C> {
+   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
    = note: required for `&str` to implement `std::error::Error`
-   = note: required for `&str` to implement `error_stack::Context`
    = note: required for `error_stack::Report<&str>` to implement `From<&str>`
    = note: required for `&str` to implement `Into<error_stack::Report<&str>>`
    = note: required for `&str` to implement `IntoReport`
    = note: this error originates in the macro `$crate::bail` which comes from the expansion of the macro `ensure` (in Nightly builds, run with -Z macro-backtrace for more info)
 
 error[E0308]: mismatched types
-  --> tests/ui/macro_invalid_args.rs:35:21
+  --> tests/ui/macro_invalid_args.rs:27:21
    |
-35 |     let _ = ensure!("No boolean", RootError);
+27 |     let _ = ensure!("No boolean", RootError);
    |             --------^^^^^^^^^^^^------------
    |             |       |
    |             |       expected `bool`, found `&str`

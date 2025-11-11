@@ -1,29 +1,26 @@
 ════ Initial HIR ═══════════════════════════════════════════════════════════════
 
-#fn<T:0?26: Number>(a:0: ?26, b:0: ?26): ?26 ->
-    ::core::math::add(a:0, b:0)
+<?26: Number>(a:0: ?26, b:0: ?26): ?26 -> ::core::math::add(a:0, b:0)
 
 ════ HIR after type inference ══════════════════════════════════════════════════
 
-#fn<T:0?26: Number>(a:0: ?26«Number», b:0: ?26«Number»): ?26«Number» ->
-    ::core::math::add(a:0, b:0)
+<?29: Number>(a:0: ?29, b:0: ?29): ?29 -> ::core::math::add(a:0, b:0)
 
 ════ Types ═════════════════════════════════════════════════════════════════════
 
+┌─ <?29: Number>(a:0: ?29, b:0: ?29): ?29 -> ::core::math::add(a:0, b:0)
+└→ <T:0?29: Number>(T:0?29, T:0?29) -> T:0?29
+
+┌─ ::core::math::add(a:0, b:0)
+└→ _0«Number»
+
 ┌─ ::core::math::add
-└→ fn<T?27: Number, U?28: Number>(?27«Number», ?28«Number») -> (?27«Number»
-    | ?28«Number»)
+└→ <T?27: Number, U?28: Number>(T?27«Number», U?28«Number») ->
+       (T?27«Number» | U?28«Number»)
 
 ┌─ a:0
 └→ ?26«Number»
 
 ┌─ b:0
 └→ ?26«Number»
-
-┌─ ::core::math::add(a:0, b:0)
-└→ _0«Number»
-
-┌─ #fn<T:0?26: Number>(a:0: ?26«Number», b:0: ?26«Number»): ?26«Number» ->
-│      ::core::math::add(a:0, b:0)
-└→ fn<T:0?29: Number>(?29, ?29) -> ?29
 

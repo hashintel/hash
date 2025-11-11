@@ -1,0 +1,32 @@
+thunk {thunk#1}() {
+    bb0(): {
+        %0 = input EXISTS foo
+
+        return %0
+    }
+}
+
+*thunk {thunk#2}() {
+    bb0(): {
+        %0 = apply ({thunk#1} as FnPtr)
+
+        switchInt(%0) -> [0: bb2(), 1: bb1()]
+    }
+
+
+    bb1(): {
+        %2 = input LOAD foo
+
+        goto -> bb3(%2)
+    }
+
+
+    bb2(): {
+        goto -> bb3(2)
+    }
+
+
+    bb3(%1): {
+        return %1
+    }
+}

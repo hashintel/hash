@@ -2,7 +2,7 @@
 //!
 //! [![crates.io](https://img.shields.io/crates/v/error-stack)][crates.io]
 //! [![libs.rs](https://img.shields.io/badge/libs.rs-error--stack-orange)][libs.rs]
-//! [![rust-version](https://img.shields.io/static/v1?label=Rust&message=1.83.0/nightly-2025-10-06&color=blue)][rust-version]
+//! [![rust-version](https://img.shields.io/static/v1?label=Rust&message=1.83.0/nightly-2025-11-03&color=blue)][rust-version]
 //!
 //! [crates.io]: https://crates.io/crates/error-stack
 //! [libs.rs]: https://lib.rs/crates/error-stack
@@ -369,7 +369,7 @@
 //! }
 //! ```
 //!
-//! [`provide`]: Context::provide
+//! [`provide`]: core::error::Error::provide
 //!
 //! ## Additional Features
 //!
@@ -513,14 +513,10 @@ mod serde;
 #[cfg(feature = "unstable")]
 mod sink;
 
-#[expect(deprecated, reason = "`core::error::Error` is stable now")]
-pub use self::context::Context;
 #[cfg(all(feature = "unstable", feature = "futures"))]
 pub use self::ext::stream::TryReportStreamExt;
 #[cfg(feature = "unstable")]
 pub use self::ext::{iter::TryReportIteratorExt, tuple::TryReportTupleExt};
-#[expect(deprecated, reason = "We are moving to a more explicit API")]
-pub use self::result::Result;
 #[cfg(feature = "unstable")]
 pub use self::sink::ReportSink;
 pub use self::{

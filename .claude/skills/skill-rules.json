@@ -1,0 +1,107 @@
+{
+  "version": "1.0",
+  "description": "Skill activation triggers for HASH Claude Code. Controls when skills automatically suggest or block actions.",
+  "skills": {
+    "handling-rust-errors": {
+      "type": "domain",
+      "enforcement": "suggest",
+      "priority": "high",
+      "description": "Error handling patterns using error-stack crate for HASH Rust code",
+      "promptTriggers": {
+        "keywords": [
+          "error",
+          "Result",
+          "Report",
+          "attach",
+          "change_context",
+          "error-stack"
+        ],
+        "intentPatterns": [
+          "\\b(handle|create|define|propagate|add|implement|fix|verbessern|erweitern|hinzufügen|beheben)\\b.*?\\berror\\b",
+          "\\berror(s)?\\b.*?\\b(handling|propagation|definition|documentation|context|type|behandlung|behandeln)\\b",
+          "Result.*?Report"
+        ]
+      }
+    },
+    "managing-cargo-dependencies": {
+      "type": "domain",
+      "enforcement": "suggest",
+      "priority": "high",
+      "description": "Cargo.toml dependency management patterns for HASH workspace",
+      "promptTriggers": {
+        "keywords": [
+          "cargo",
+          "dependency",
+          "Cargo.toml",
+          "Cargo.lock",
+          "crate",
+          "workspace.dependencies",
+          "dev-dependencies",
+          "public dependency"
+        ],
+        "intentPatterns": [
+          "\\b(add|update|remove|upgrade|manage|hinzufügen|aktualisieren|entfernen|verwalten)\\b.*?\\b(dependency|dependencies|crate)\\b",
+          "\\b(cargo|Cargo\\.toml)\\b.*?\\b(dependency|dependencies)\\b",
+          "\\bworkspace\\b.*?\\bdependenc(y|ies)\\b"
+        ]
+      }
+    },
+    "writing-skills": {
+      "type": "domain",
+      "enforcement": "suggest",
+      "priority": "high",
+      "description": "Meta-skill for creating and managing Claude Code skills in HASH repository",
+      "promptTriggers": {
+        "keywords": ["skill", "skill-rules.json", "SKILL.md", "hook system"],
+        "intentPatterns": [
+          "\\b(how do|how does|explain|wie funktioniert)\\b.*?\\bskill\\b",
+          "\\b(create|add|modify|build|erstellen|hinzufügen|ändern)\\b.*?\\bskill\\b",
+          "\\bskill\\b.*?\\b(work|trigger|activate|system|structure|template|pattern|configuration|funktioniert)\\b",
+          "\\b(configure|setup|define|konfigurieren|einrichten)\\b.*?\\bskill\\b"
+        ]
+      }
+    },
+    "documenting-rust-code": {
+      "type": "domain",
+      "enforcement": "suggest",
+      "priority": "high",
+      "description": "Rust documentation practices for HASH codebase following rustdoc conventions",
+      "promptTriggers": {
+        "keywords": [
+          "documentation",
+          "doc comment",
+          "rustdoc",
+          "intra-doc link",
+          "# Errors",
+          "# Examples",
+          "# Panics",
+          "dokumentation"
+        ],
+        "intentPatterns": [
+          "\\b(write|add|create|update|improve|fix|verbessern|erweitern)\\b.*?\\b(doc|documentation|docs)\\b",
+          "\\b(document|documenting)\\b.*?\\b(function|type|struct|enum|trait|module|error|rust)\\b",
+          "\\b(documentation|docs)\\b.*?\\b(verbessern|ändern|anpassen|erweitern|improve|fix|update)\\b",
+          "\\.rs\\b.*?\\b(documentation|docs|doc comment)\\b"
+        ]
+      }
+    }
+  },
+  "notes": {
+    "enforcement_types": {
+      "suggest": "Skill suggestion appears but doesn't block execution",
+      "block": "Requires skill to be used before proceeding (guardrail)",
+      "warn": "Shows warning but allows proceeding"
+    },
+    "priority_levels": {
+      "critical": "Highest - Always trigger when matched",
+      "high": "Important - Trigger for most matches",
+      "medium": "Moderate - Trigger for clear matches",
+      "low": "Optional - Trigger only for explicit matches"
+    },
+    "customization": {
+      "pathPatterns": "Adjust to match HASH project structure (libs/@local, apps/hash-*, etc.)",
+      "keywords": "Add domain-specific terms relevant to HASH",
+      "intentPatterns": "Use regex for flexible user intent matching"
+    }
+  }
+}

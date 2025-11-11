@@ -74,13 +74,16 @@
 
 use core::{convert::Infallible, mem};
 
+use hashql_core::r#type::{TypeBuilder, TypeId, environment::Environment};
+
 use crate::{
     context::HirContext,
     fold::{self, Fold, nested::Deep},
     intern::Interner,
     lower::normalization::{ensure_local_variable, is_anf_atom},
+    map::HirInfo,
     node::{
-        Node, PartialNode,
+        Node, NodeData,
         call::{Call, PointerKind},
         data::Data,
         kind::NodeKind,
@@ -95,9 +98,10 @@ use crate::{
 /// This transformer operates exclusively on top-level module bindings, wrapping
 /// them in thunks and inserting calls at reference sites. It does not recurse
 /// into nested expressions or function bodies.
-pub struct Thunking<'ctx, 'env, 'heap> {
+pub struct Thunking<'ctx, 'env, 'hir, 'heap> {
     /// Mutable reference to the HIR context for interning and variable generation
-    context: &'ctx mut HirContext<'env, 'heap>,
+    context: &'ctx mut HirContext<'hir, 'heap>,
+    env: &'env Environment<'heap>,
     /// Set of top-level variable IDs that have been wrapped in thunks
     thunked: VarIdSet,
     /// The currently processing node during folding operations
@@ -106,11 +110,12 @@ pub struct Thunking<'ctx, 'env, 'heap> {
     trampoline: Option<Node<'heap>>,
 }
 
-impl<'ctx, 'env, 'heap> Thunking<'ctx, 'env, 'heap> {
+impl<'ctx, 'env, 'hir, 'heap> Thunking<'ctx, 'env, 'hir, 'heap> {
     /// Creates a new top-level thunking transformer.
-    pub fn new(context: &'ctx mut HirContext<'env, 'heap>) -> Self {
+    pub fn new(context: &'ctx mut HirContext<'hir, 'heap>, env: &'env Environment<'heap>) -> Self {
         Self {
             context,
+            env,
             thunked: VarIdSet::default(),
             current_node: None,
             trampoline: None,
@@ -121,12 +126,26 @@ impl<'ctx, 'env, 'heap> Thunking<'ctx, 'env, 'heap> {
     ///
     /// If the node is already a thunk, it returns the node unchanged to avoid
     /// incorrect double-thunking, which would break the calling semantics.
-    fn thunkify(&self, node: Node<'heap>) -> Node<'heap> {
+    fn thunkify(&mut self, node: Node<'heap>) -> Node<'heap> {
         if matches!(node.kind, NodeKind::Thunk(_)) {
             return node;
         }
 
-        self.context.interner.intern_node(PartialNode {
+        // The type of the node is a closure that takes no arguments and returns the same type as
+        // the node itself.
+        let id = self.context.counter.hir.next();
+        let closure_def = TypeBuilder::spanned(node.span, self.env)
+            .closure([] as [TypeId; 0], self.context.map.type_id(node.id));
+        self.context.map.insert(
+            id,
+            HirInfo {
+                type_id: closure_def,
+                type_arguments: None,
+            },
+        );
+
+        self.context.interner.intern_node(NodeData {
+            id,
             span: node.span,
             kind: NodeKind::Thunk(Thunk { body: node }),
         })
@@ -157,7 +176,7 @@ impl<'ctx, 'env, 'heap> Thunking<'ctx, 'env, 'heap> {
         let (mut bindings, body) = if let NodeKind::Let(Let { bindings, body }) = node.kind {
             // Ensure that the underlying node is an atom, if it isn't -> we're not being called
             // from HIR(ANF)
-            debug_assert!(is_anf_atom(body), "The HIR is not in ANF");
+            debug_assert!(is_anf_atom(&body), "The HIR is not in ANF");
 
             // When thunking, do not double thunk
             self.thunked.extend(
@@ -168,7 +187,7 @@ impl<'ctx, 'env, 'heap> Thunking<'ctx, 'env, 'heap> {
             );
 
             // Transform the bindings to insert thunk calls at variable reference sites
-            let Ok(bindings) = self.fold_bindings(*bindings);
+            let Ok(bindings) = self.fold_bindings(bindings);
 
             (bindings.to_vec(), body)
         } else {
@@ -176,7 +195,7 @@ impl<'ctx, 'env, 'heap> Thunking<'ctx, 'env, 'heap> {
             // from HIR(ANF)
             debug_assert!(is_anf_atom(&node), "The HIR is not in ANF");
 
-            (Vec::new(), &node)
+            (Vec::new(), node)
         };
 
         // Handle the body based on its type. Variables already reference thunks, while
@@ -185,14 +204,14 @@ impl<'ctx, 'env, 'heap> Thunking<'ctx, 'env, 'heap> {
         let body = match body.kind {
             NodeKind::Variable(_) => {
                 // Variable already references a thunk, no additional binding needed
-                *body
+                body
             }
             NodeKind::Data(Data::Primitive(_)) | NodeKind::Access(_) => {
-                ensure_local_variable(self.context, &mut bindings, *body)
+                let Ok(body) = self.fold_node(body);
+                ensure_local_variable(self.context, &mut bindings, body)
             }
             NodeKind::Data(_)
             | NodeKind::Let(_)
-            | NodeKind::Input(_)
             | NodeKind::Operation(_)
             | NodeKind::Call(_)
             | NodeKind::Branch(_)
@@ -213,7 +232,9 @@ impl<'ctx, 'env, 'heap> Thunking<'ctx, 'env, 'heap> {
 
         let bindings = self.context.interner.bindings.intern_slice(&bindings);
 
-        self.context.interner.intern_node(PartialNode {
+        self.context.interner.intern_node(NodeData {
+            // we replace the outer node if there are any bindings, so we can keep the same id
+            id: node.id,
             span: node.span,
             kind: NodeKind::Let(Let { bindings, body }),
         })
@@ -256,7 +277,7 @@ impl<'ctx, 'env, 'heap> Thunking<'ctx, 'env, 'heap> {
     }
 }
 
-impl<'heap> Fold<'heap> for Thunking<'_, '_, 'heap> {
+impl<'heap> Fold<'heap> for Thunking<'_, '_, '_, 'heap> {
     type NestedFilter = Deep;
     type Output<T>
         = Result<T, !>
@@ -303,11 +324,33 @@ impl<'heap> Fold<'heap> for Thunking<'_, '_, 'heap> {
             return Ok(variable);
         }
 
-        self.trampoline(self.context.interner.intern_node(PartialNode {
-            span: self.current_node().span,
+        let current_node = self.current_node();
+        let id = self.context.counter.hir.next();
+
+        // The type of the new node is that of the old node, but the type of the old node is a
+        // closure, as it is referencing a thunked binding.
+        let returns = self.context.map.type_id(current_node.id);
+        let closure_def =
+            TypeBuilder::spanned(current_node.span, self.env).closure([] as [TypeId; 0], returns);
+
+        self.context
+            .map
+            .insert_type_id(current_node.id, closure_def);
+        self.context.map.insert(
+            id,
+            HirInfo {
+                type_id: returns,
+                // type-arguments no longer matter at this stage
+                type_arguments: None,
+            },
+        );
+
+        self.trampoline(self.context.interner.intern_node(NodeData {
+            id,
+            span: current_node.span,
             kind: NodeKind::Call(Call {
                 kind: PointerKind::Thin,
-                function: self.current_node(),
+                function: current_node,
                 arguments: self.context.interner.intern_call_arguments(&[]),
             }),
         }));
@@ -329,11 +372,30 @@ impl<'heap> Fold<'heap> for Thunking<'_, '_, 'heap> {
 
         // Insert a call to force the thunk. The `fold_call` method ensures this
         // doesn't lead to wrong calling conventions for already-thunked qualified variables.
-        self.trampoline(self.context.interner.intern_node(PartialNode {
-            span: self.current_node().span,
+        let current_node = self.current_node();
+        let id = self.context.counter.hir.next();
+
+        let returns = self.context.map.type_id(current_node.id);
+        let closure_def =
+            TypeBuilder::spanned(current_node.span, self.env).closure([] as [TypeId; 0], returns);
+        self.context
+            .map
+            .insert_type_id(current_node.id, closure_def);
+        self.context.map.insert(
+            id,
+            HirInfo {
+                type_id: returns,
+                // type-arguments no longer matter at this stage
+                type_arguments: None,
+            },
+        );
+
+        self.trampoline(self.context.interner.intern_node(NodeData {
+            id,
+            span: current_node.span,
             kind: NodeKind::Call(Call {
                 kind: PointerKind::Thin,
-                function: self.current_node(),
+                function: current_node,
                 arguments: self.context.interner.intern_call_arguments(&[]),
             }),
         }));

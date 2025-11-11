@@ -1,0 +1,3 @@
+//@ run: pass
+//@ description: Required input value
+["input", "foo", "Integer"]

@@ -17,7 +17,7 @@
     "start": "node dist/main.js"
   },
   "dependencies": {
-    "@linear/sdk": "6.0.0",
+    "@linear/sdk": "61.0.0",
     "@local/eslint": "0.0.0-private",
     "@local/hash-backend-utils": "0.0.0-private",
     "@local/tsconfig": "0.0.0-private",
@@ -28,7 +28,7 @@
   },
   "devDependencies": {
     "@types/dotenv-flow": "3.3.3",
-    "@types/node": "22.18.11",
+    "@types/node": "22.18.13",
     "chokidar-cli": "3.0.0",
     "eslint": "9.38.0",
     "rimraf": "6.0.1",

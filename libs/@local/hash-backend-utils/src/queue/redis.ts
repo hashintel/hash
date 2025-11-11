@@ -1,6 +1,13 @@
 import { randomUUID } from "node:crypto";
 
-import type { AsyncRedisClient } from "../redis.js";
+import type {
+  RedisClientType,
+  RedisFunctions,
+  RedisModules,
+  RedisScripts,
+  TypeMapping,
+} from "redis";
+
 import { sleep } from "../utils.js";
 import type { QueueExclusiveConsumer, QueueProducer } from "./adapter.js";
 
@@ -14,26 +21,42 @@ const QUEUE_CONSUMER_OWNERSHIP_TIMEOUT_MS = 5_000;
 /**
  * An implementation of the `QueueProducer` interface based on Redis.
  */
-export class RedisQueueProducer implements QueueProducer {
-  private client: AsyncRedisClient;
+export class RedisQueueProducer<
+  // eslint-disable-next-line @typescript-eslint/no-empty-object-type
+  M extends RedisModules = {},
+  // eslint-disable-next-line @typescript-eslint/no-empty-object-type
+  F extends RedisFunctions = {},
+  // eslint-disable-next-line @typescript-eslint/no-empty-object-type
+  S extends RedisScripts = {},
+> implements QueueProducer
+{
+  readonly #client: RedisClientType<M, F, S, 3, TypeMapping>;
 
-  constructor(client: AsyncRedisClient) {
-    this.client = client;
+  constructor(client: RedisClientType<M, F, S, 3, TypeMapping>) {
+    this.#client = client;
   }
 
   push(name: string, ...items: string[]): Promise<number> {
-    return this.client.lpush(name, items);
+    return this.#client.lPush(name, items);
   }
 }
 
 /**
  * An implementation of the `QueueExclusiveConsumer` interface based on Redis.
  */
-export class RedisQueueExclusiveConsumer implements QueueExclusiveConsumer {
-  private client: AsyncRedisClient;
+export class RedisQueueExclusiveConsumer<
+  // eslint-disable-next-line @typescript-eslint/no-empty-object-type
+  M extends RedisModules = {},
+  // eslint-disable-next-line @typescript-eslint/no-empty-object-type
+  F extends RedisFunctions = {},
+  // eslint-disable-next-line @typescript-eslint/no-empty-object-type
+  S extends RedisScripts = {},
+> implements QueueExclusiveConsumer
+{
+  readonly #client: RedisClientType<M, F, S, 3, TypeMapping>;
 
   // A unique identifier for this consumer. Used to signify ownership of the queue.
-  private consumerId: string;
+  readonly #consumerId: string;
 
   // The name of the queue which this consumer has acquired, if any.
   private queueOwned?: {
@@ -42,34 +65,34 @@ export class RedisQueueExclusiveConsumer implements QueueExclusiveConsumer {
     interval: NodeJS.Timeout;
   };
 
-  constructor(client: AsyncRedisClient) {
-    this.client = client;
-    this.consumerId = randomUUID();
+  constructor(client: RedisClientType<M, F, S, 3, TypeMapping>) {
+    this.#client = client;
+    this.#consumerId = randomUUID();
   }
 
-  private ownerKey(name: string) {
+  #ownerKey(name: string) {
     return `${name}-owner`;
   }
 
-  private async setOwnership(name: string) {
+  async #setOwnership(name: string) {
     const heartbeat = QUEUE_CONSUMER_OWNERSHIP_HEARTBEAT_MS;
     const interval = setInterval(() => {
-      void this.updateOwnership(name);
+      void this.#updateOwnership(name);
     }, heartbeat);
     this.queueOwned = { name, lastUpdated: Date.now(), interval };
-    await this.updateOwnership(name);
+    await this.#updateOwnership(name);
   }
 
-  private async updateOwnership(name: string) {
-    if (!this.ownershipIsValid(name)) {
+  async #updateOwnership(name: string) {
+    if (!this.#ownershipIsValid(name)) {
       await this.release();
       return;
     }
     if (this.queueOwned === undefined) {
       return;
     }
-    await this.client.expire(
-      this.ownerKey(name),
+    await this.#client.expire(
+      this.#ownerKey(name),
       QUEUE_CONSUMER_OWNERSHIP_TIMEOUT_MS / 1000,
     );
     // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- false positive (because of await)
@@ -78,7 +101,7 @@ export class RedisQueueExclusiveConsumer implements QueueExclusiveConsumer {
     }
   }
 
-  private ownershipIsValid(name: string): boolean {
+  #ownershipIsValid(name: string): boolean {
     const timeout = QUEUE_CONSUMER_OWNERSHIP_TIMEOUT_MS;
     return (
       this.queueOwned !== undefined &&
@@ -91,10 +114,7 @@ export class RedisQueueExclusiveConsumer implements QueueExclusiveConsumer {
    * block indefinitely until the queue is acquired. Otherwise, it will continue trying
    * to acquire the queue for the specified time period.
    */
-  private async _acquire(
-    name: string,
-    timeoutMs: number | null,
-  ): Promise<boolean> {
+  async #acquire(name: string, timeoutMs: number | null): Promise<boolean> {
     const timeout = timeoutMs === null ? null : Math.min(timeoutMs, 1000);
     if (this.queueOwned && this.queueOwned.name === name) {
       // Queue is already acquired
@@ -107,7 +127,7 @@ export class RedisQueueExclusiveConsumer implements QueueExclusiveConsumer {
     // Check if the queue already has an exclusive consumer, and if not, acquire it.
     const start = Date.now();
     while (timeout ? Date.now() - start < timeout : true) {
-      const ttl = await this.client.ttl(this.ownerKey(name)); // seconds
+      const ttl = await this.#client.ttl(this.#ownerKey(name)); // seconds
       const ttlMs = ttl * 1000;
       if (timeout && Date.now() + ttlMs - start > timeout) {
         // The TTL is longer than the timeout. No point in trying again.
@@ -117,14 +137,14 @@ export class RedisQueueExclusiveConsumer implements QueueExclusiveConsumer {
         // Set this consumer as the owner. There may be a race condition where two
         // consumers attempt to acquire ownership of a free queue at the same time. By
         // using `setnx` we can set the key only if it does not already have a value.
-        const isSet = await this.client.setnx(
-          this.ownerKey(name),
-          this.consumerId,
+        const isSet = await this.#client.setNX(
+          this.#ownerKey(name),
+          this.#consumerId,
         );
         if (!isSet) {
           continue;
         }
-        await this.setOwnership(name);
+        await this.#setOwnership(name);
         return true;
       }
       await sleep(ttlMs + 100);
@@ -134,11 +154,11 @@ export class RedisQueueExclusiveConsumer implements QueueExclusiveConsumer {
   }
 
   async acquireBlocking(name: string): Promise<void> {
-    await this._acquire(name, null);
+    await this.#acquire(name, null);
   }
 
   async acquire(name: string, timeoutMs: number) {
-    return await this._acquire(name, timeoutMs);
+    return await this.#acquire(name, timeoutMs);
   }
 
   // eslint-disable-next-line @typescript-eslint/require-await -- using async to match QueueExclusiveConsumer interface
@@ -161,7 +181,7 @@ export class RedisQueueExclusiveConsumer implements QueueExclusiveConsumer {
    *   - timeoutMs < 0: throws an error
    *   - timeoutMs === null: checks once for an item on the queue and returns immediately.
    */
-  private async _pop<T>(
+  async #pop<T>(
     name: string,
     timeoutMs: number | null,
     cb: (item: string) => Promise<T>,
@@ -169,24 +189,24 @@ export class RedisQueueExclusiveConsumer implements QueueExclusiveConsumer {
     if (timeoutMs !== null && timeoutMs < 0) {
       throw new Error("`timeoutMs` must be non-negative");
     }
-    if (!this.ownershipIsValid(name)) {
+    if (!this.#ownershipIsValid(name)) {
       throw new Error(`consumer does not own queue "${name}"`);
     }
 
     // Check if there's an item which wasn't processed correctly on the last call
     const processingName = this.processingName(name);
-    let item = await this.client.rpoplpush(processingName, processingName);
+    let item = await this.#client.rPopLPush(processingName, processingName);
 
     // Otherwise, pop from the main queue and push onto the processing queue.
     item ??=
       timeoutMs === null
         ? // Non-blocking
-          await this.client.rpoplpush(name, processingName)
+          await this.#client.rPopLPush(name, processingName)
         : // Block indefinitely
           timeoutMs === 0
-          ? await this.client.brpoplpush(name, processingName, 0)
+          ? await this.#client.brPopLPush(name, processingName, 0)
           : // Block with timeout
-            await this.client.brpoplpush(
+            await this.#client.brPopLPush(
               name,
               processingName,
               timeoutMs / 1000,
@@ -200,7 +220,7 @@ export class RedisQueueExclusiveConsumer implements QueueExclusiveConsumer {
     const result = await cb(item);
 
     // The callback has succeeded. Remove the item from the processing queue.
-    await this.client.lpop(processingName);
+    await this.#client.lPop(processingName);
 
     return result;
   }
@@ -209,7 +229,7 @@ export class RedisQueueExclusiveConsumer implements QueueExclusiveConsumer {
     name: string,
     cb: (item: string) => Promise<T>,
   ): Promise<T> {
-    return (await this._pop(name, 0, cb))!;
+    return (await this.#pop(name, 0, cb))!;
   }
 
   async pop<T>(
@@ -217,13 +237,13 @@ export class RedisQueueExclusiveConsumer implements QueueExclusiveConsumer {
     timeoutMs: number | null,
     cb: (item: string) => Promise<T>,
   ): Promise<T | null> {
-    return this._pop(name, timeoutMs, cb);
+    return this.#pop(name, timeoutMs, cb);
   }
 
   async length(name: string) {
     const [mainLen, processingLen] = await Promise.all([
-      this.client.llen(name),
-      this.client.llen(this.processingName(name)),
+      this.#client.lLen(name),
+      this.#client.lLen(this.processingName(name)),
     ]);
     return mainLen + processingLen;
   }

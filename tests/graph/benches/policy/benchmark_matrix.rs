@@ -39,6 +39,10 @@ pub enum SeedLevel {
     Small,
     Medium,
     Large,
+    #[expect(
+        dead_code,
+        reason = "https://linear.app/hash/issue/BE-186/improve-seeding-performance-for-policies"
+    )]
     ExtraLarge,
 }
 
@@ -142,7 +146,9 @@ impl BenchmarkMatrix {
                 SeedLevel::Small,
                 SeedLevel::Medium,
                 SeedLevel::Large,
-                SeedLevel::ExtraLarge,
+                // TODO: improve seeding performance to enable extra large benchmarks
+                //   see https://linear.app/hash/issue/BE-186/improve-seeding-performance-for-policies
+                // SeedLevel::ExtraLarge,
             ],
             actions: vec![
                 ActionSelectivity::High,

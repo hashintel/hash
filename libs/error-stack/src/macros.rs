@@ -1,67 +1,3 @@
-/// Creates a [`Report`] from the given parameters.
-///
-/// The parameters may either be [`Error`] or a [`Report`]. The returned [`Report`] will use the
-/// the provided type as context.
-///
-/// [`Report`]: crate::Report
-/// [`Error`]: core::error::Error
-///
-/// # Examples
-///
-/// Create a [`Report`] from [`Error`]:
-///
-/// ```rust
-/// # #![expect(deprecated, reason = "`report!` is deprecated")]
-/// use std::fs;
-///
-/// use error_stack::report;
-///
-/// # fn wrapper() -> Result<(), error_stack::Report<impl core::fmt::Debug>> {
-/// match fs::read_to_string("/path/to/file") {
-///     Ok(content) => println!("file contents: {content}"),
-///     Err(err) => return Err(report!(err)),
-/// }
-/// # Ok(()) }
-/// # assert!(wrapper().unwrap_err().contains::<std::io::Error>());
-/// ```
-///
-/// ```rust
-/// # #![expect(deprecated, reason = "`report!` is deprecated")]
-/// # fn has_permission(_: &u32, _: &u32) -> bool { true }
-/// # type User = u32;
-/// # let user = 0;
-/// # type Resource = u32;
-/// # let resource = 0;
-/// use core::error::Error;
-/// use core::fmt;
-///
-/// use error_stack::report;
-///
-/// #[derive(Debug)]
-/// # #[allow(dead_code)]
-/// struct PermissionDenied(User, Resource);
-///
-/// impl fmt::Display for PermissionDenied {
-///     # #[allow(unused_variables)]
-///     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-///         # const _: &str = stringify! {
-///         ...
-///         # }; Ok(())}
-/// }
-///
-/// impl Error for PermissionDenied {}
-///
-/// if !has_permission(&user, &resource) {
-///     return Err(report!(PermissionDenied(user, resource)));
-/// }
-/// # Ok(())
-/// ```
-#[deprecated(since = "0.6.0", note = "use `IntoReport::into_report` instead")]
-#[macro_export]
-macro_rules! report {
-    ($err:expr $(,)?) => {{ $crate::IntoReport::into_report($err) }};
-}
-
 /// Creates a [`Report`] and returns it as [`Result`].
 ///
 /// Shorthand for `return Err(report!(..))`.
@@ -135,10 +71,7 @@ macro_rules! bail {
 
 /// Creates a [`Report`] and returns it as [`Result`].
 ///
-/// Shorthand for <code>return Err([report!(..)])</code>.
-///
 /// [`Report`]: crate::Report
-/// [report!(..)]: report
 ///
 /// # `unstable`
 ///
@@ -162,42 +95,6 @@ macro_rules! bail {
 /// }
 /// # Ok(()) }
 /// # assert!(wrapper().unwrap_err().contains::<std::io::Error>());
-/// ```
-///
-/// Create a [`Report`] from [`Context`]:
-///
-/// [`Context`]: crate::Context
-///
-/// ```rust
-/// # fn has_permission(_: &u32, _: &u32) -> bool { true }
-/// # type User = u32;
-/// # let user = 0;
-/// # type Resource = u32;
-/// # let resource = 0;
-/// use core::error::Error;
-/// use core::fmt;
-///
-/// use error_stack::bail;
-///
-/// #[derive(Debug)]
-/// # #[allow(dead_code)]
-/// struct PermissionDenied(User, Resource);
-///
-/// impl fmt::Display for PermissionDenied {
-///     # #[allow(unused_variables)]
-///     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-///         # const _: &str = stringify! {
-///         ...
-///         # }; Ok(())
-///     }
-/// }
-///
-/// impl Error for PermissionDenied {}
-///
-/// if !has_permission(&user, &resource) {
-///     bail!(PermissionDenied(user, resource));
-/// }
-/// # Ok(())
 /// ```
 ///
 /// Create a `Report<[C]>` from multiple errors (**unstable only**):

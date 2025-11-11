@@ -11,6 +11,7 @@ use hash_graph_store::{
 use hash_graph_temporal_versioning::TimeAxis;
 use postgres_types::ToSql;
 
+use super::expression::{ColumnName, ColumnReference, TableName, TableReference};
 use crate::store::postgres::query::{
     Condition, Constant, Expression, Transpile, expression::JoinType,
 };
@@ -44,6 +45,7 @@ pub enum Table {
     EntityIsOfTypeIds,
     EntityHasLeftEntity,
     EntityHasRightEntity,
+    EntityEdge,
     Reference(ReferenceTable),
 }
 
@@ -319,8 +321,12 @@ impl ReferenceTable {
 
 impl Table {
     #[must_use]
-    pub const fn aliased(self, alias: Alias) -> AliasedTable {
-        AliasedTable { table: self, alias }
+    pub fn aliased(self, alias: Alias) -> TableReference<'static> {
+        TableReference {
+            schema: None,
+            name: TableName::from(self),
+            alias: Some(alias),
+        }
     }
 
     #[must_use]
@@ -352,6 +358,7 @@ impl Table {
             Self::EntityIsOfTypeIds => "entity_is_of_type_ids",
             Self::EntityHasLeftEntity => "entity_has_left_entity",
             Self::EntityHasRightEntity => "entity_has_right_entity",
+            Self::EntityEdge => "entity_edge",
             Self::Reference(table) => table.as_str(),
         }
     }
@@ -1431,6 +1438,16 @@ pub enum Column {
     EntityHasRightEntity(EntityHasRightEntity),
 }
 
+impl Column {
+    #[must_use]
+    pub fn aliased(self, alias: Alias) -> ColumnReference<'static> {
+        ColumnReference {
+            correlation: Some(self.table().aliased(alias)),
+            name: ColumnName::from(self),
+        }
+    }
+}
+
 impl From<OntologyIds> for Column {
     fn from(column: OntologyIds) -> Self {
         Self::OntologyIds(column)
@@ -1677,14 +1694,6 @@ impl Column {
             | Self::EntityHasRightEntity(_) => None,
         }
     }
-
-    #[must_use]
-    pub const fn to_expression(self, table_alias: Option<Alias>) -> Expression {
-        Expression::ColumnReference {
-            column: self,
-            table_alias,
-        }
-    }
 }
 
 impl DatabaseColumn for Column {
@@ -1802,23 +1811,6 @@ impl DatabaseColumn for Column {
     }
 }
 
-pub struct QualifiedColumn {
-    pub column: Column,
-    pub alias: Option<Alias>,
-}
-
-impl Transpile for QualifiedColumn {
-    fn transpile(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
-        let table = self.column.table();
-        if let Some(alias) = self.alias {
-            AliasedTable { table, alias }.transpile(fmt)?;
-        } else {
-            table.transpile(fmt)?;
-        }
-        write!(fmt, r#"."{}""#, self.column.as_str())
-    }
-}
-
 /// Alias parameters used to uniquely identify a [`Table`].
 ///
 /// When joining tables in a query, it's necessary that the names used to reference them are unique.
@@ -1847,31 +1839,11 @@ impl Transpile for QualifiedColumn {
 ///
 /// [`DataType`]: type_system::ontology::data_type::DataType
 /// [`PropertyType`]: type_system::ontology::property_type::PropertyType
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq, Hash)]
 pub struct Alias {
     pub condition_index: usize,
     pub chain_depth: usize,
     pub number: usize,
-}
-
-/// A table available in a compiled query.
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-pub struct AliasedTable {
-    pub table: Table,
-    pub alias: Alias,
-}
-
-impl Transpile for AliasedTable {
-    fn transpile(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
-        write!(
-            fmt,
-            r#""{}_{}_{}_{}""#,
-            self.table.as_str(),
-            self.alias.condition_index,
-            self.alias.chain_depth,
-            self.alias.number
-        )
-    }
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
@@ -1918,6 +1890,19 @@ pub enum ForeignKeyReference {
 }
 
 impl ForeignKeyReference {
+    pub const fn join_type(self) -> JoinType {
+        match self {
+            Self::Single { join_type, .. } | Self::Double { join_type, .. } => join_type,
+        }
+    }
+
+    pub const fn table(self) -> Table {
+        match self {
+            Self::Single { join, .. } => join.table(),
+            Self::Double { join, .. } => join[0].table(),
+        }
+    }
+
     #[must_use]
     pub const fn reverse(self) -> Self {
         match self {
@@ -1939,6 +1924,33 @@ impl ForeignKeyReference {
                 join: on,
                 join_type: join_type.reverse(),
             },
+        }
+    }
+
+    pub fn conditions(self, on_alias: Alias, join_alias: Alias) -> Vec<Condition> {
+        match self {
+            Self::Single {
+                join,
+                on,
+                join_type: _,
+            } => vec![Condition::Equal(
+                Expression::ColumnReference(join.aliased(join_alias)),
+                Expression::ColumnReference(on.aliased(on_alias)),
+            )],
+            Self::Double {
+                join: [join1, join2],
+                on: [on1, on2],
+                join_type: _,
+            } => vec![
+                Condition::Equal(
+                    Expression::ColumnReference(join1.aliased(join_alias)),
+                    Expression::ColumnReference(on1.aliased(on_alias)),
+                ),
+                Condition::Equal(
+                    Expression::ColumnReference(join2.aliased(join_alias)),
+                    Expression::ColumnReference(on2.aliased(on_alias)),
+                ),
+            ],
         }
     }
 }
@@ -2142,22 +2154,22 @@ impl Relation {
     }
 
     #[must_use]
-    pub fn additional_conditions(self, aliased_table: AliasedTable) -> Vec<Condition> {
-        match (self, aliased_table.table) {
-            (Self::Reference { table, .. }, Table::Reference(reference_table))
-                if table == reference_table =>
-            {
-                table
+    pub fn additional_conditions(self, table: &TableReference<'_>) -> Vec<Condition> {
+        match self {
+            Self::Reference {
+                table: reference_table,
+                ..
+            } if table.name == TableName::from(Table::Reference(reference_table)) => {
+                reference_table
                     .inheritance_depth_column()
                     .map(|column| {
                         column
                             .inheritance_depth()
                             .map_or_else(Vec::new, |inheritance_depth| {
                                 vec![Condition::LessOrEqual(
-                                    Expression::ColumnReference {
-                                        column,
-                                        table_alias: Some(aliased_table.alias),
-                                    },
+                                    Expression::ColumnReference(
+                                        column.aliased(table.alias.unwrap_or_default()),
+                                    ),
                                     Expression::Constant(Constant::UnsignedInteger(
                                         inheritance_depth,
                                     )),
@@ -2166,7 +2178,28 @@ impl Relation {
                     })
                     .unwrap_or_default()
             }
-            _ => Vec::new(),
+            Self::OntologyIds
+            | Self::OntologyOwnedMetadata
+            | Self::OntologyExternalMetadata
+            | Self::OntologyAdditionalMetadata
+            | Self::DataTypeIds
+            | Self::DataTypeConversions
+            | Self::DataTypeEmbeddings
+            | Self::PropertyTypeIds
+            | Self::EntityTypeIds
+            | Self::EntityIsOfTypes
+            | Self::EntityIds
+            | Self::EntityEditions
+            | Self::FirstTitleForEntity
+            | Self::LastTitleForEntity
+            | Self::FirstLabelForEntity
+            | Self::LastLabelForEntity
+            | Self::PropertyTypeEmbeddings
+            | Self::EntityTypeEmbeddings
+            | Self::EntityEmbeddings
+            | Self::LeftEntity
+            | Self::RightEntity
+            | Self::Reference { .. } => Vec::new(),
         }
     }
 }

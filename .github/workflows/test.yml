@@ -139,18 +139,6 @@ jobs:
           HAS_RUST=$([[ -f "${{ matrix.path }}/Cargo.toml" || ${{ matrix.path }} = "apps/hash-graph" ]] && echo 'true' || echo 'false')
           echo "has-rust=$HAS_RUST" | tee -a $GITHUB_OUTPUT
 
-      - name: Install PDFium
-        if: matrix.name == '@rust/chonky'
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          temp_dir=$(mktemp -d)
-          gh release download chromium/6721 --repo bblanchon/pdfium-binaries --pattern 'pdfium-linux-x64.tgz' --dir $temp_dir
-          tar -xzf $temp_dir/pdfium-linux-x64.tgz -C $temp_dir
-          mv $temp_dir/lib/* "${{ matrix.path }}/libs/"
-          rm -rf $temp_dir
-          echo "PDFIUM_DYNAMIC_LIB_PATH=$(pwd)/${{ matrix.path }}/libs/" >> $GITHUB_ENV
-
       - name: Show disk usage
         run: df -h
 
@@ -198,11 +186,12 @@ jobs:
         uses: ./.github/actions/build-docker-images
         with:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
+          GOOGLE_CLOUD_WORKLOAD_IDENTITY_FEDERATION_CONFIG_JSON: ${{ secrets.GOOGLE_CLOUD_WORKLOAD_IDENTITY_FEDERATION_CONFIG_JSON }}
           hash-graph: ${{ matrix.name == '@apps/hash-graph' }}
           hash-ai-worker-ts: ${{ matrix.name == '@apps/hash-ai-worker-ts' }}
           hash-integration-worker: ${{ matrix.name == '@apps/hash-integration-worker' }}
-          GOOGLE_CLOUD_WORKLOAD_IDENTITY_FEDERATION_CONFIG_JSON: ${{ secrets.GOOGLE_CLOUD_WORKLOAD_IDENTITY_FEDERATION_CONFIG_JSON }}
           hash-api: ${{ matrix.name == '@apps/hash-api' }}
+          hash-frontend: ${{ matrix.name == '@apps/hash-frontend' }}
 
   integration-tests:
     name: Integration
@@ -246,18 +235,6 @@ jobs:
 
       - name: Create temp files and folders
         run: mkdir -p var/logs
-
-      - name: Install PDFium
-        if: matrix.name == '@rust/chonky'
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          temp_dir=$(mktemp -d)
-          gh release download chromium/6721 --repo bblanchon/pdfium-binaries --pattern 'pdfium-linux-x64.tgz' --dir $temp_dir
-          tar -xzf $temp_dir/pdfium-linux-x64.tgz -C $temp_dir
-          mv $temp_dir/lib/* "${{ matrix.path }}/libs/"
-          rm -rf $temp_dir
-          echo "PDFIUM_DYNAMIC_LIB_PATH=$(pwd)/${{ matrix.path }}/libs/" >> $GITHUB_ENV
 
       - name: Install playwright
         if: matrix.name == '@tests/hash-playwright'

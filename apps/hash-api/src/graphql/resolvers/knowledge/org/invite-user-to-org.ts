@@ -26,7 +26,6 @@ import type {
   InvitationViaEmail,
   InvitationViaShortname,
 } from "@local/hash-isomorphic-utils/system-types/shared";
-import { ApolloError } from "apollo-server-errors";
 import dedent from "dedent";
 
 import type { EmailTransporter } from "../../../../email/transporters";
@@ -44,6 +43,7 @@ import {
 } from "../../../../graph/knowledge/system-types/user";
 import type { ResolverFn } from "../../../api-types.gen";
 import type { LoggedInGraphQLContext } from "../../../context";
+import * as Error from "../../../error";
 import { graphQLContextToImpureGraphContext } from "../../util";
 import { getPendingOrgInvitationsFromSubgraph } from "./shared";
 
@@ -171,17 +171,13 @@ export const inviteUserToOrgResolver: ResolverFn<
     });
 
     if (!existingUserToInvite) {
-      throw new ApolloError(
-        `User with username ${userShortname} not found`,
-        "NOT_FOUND",
-      );
+      throw Error.notFound(`User with username ${userShortname} not found`);
     }
   }
 
   if (!existingUserToInvite && !userEmail) {
-    throw new ApolloError(
+    throw Error.badRequest(
       "Somehow no user found and no email address provided.",
-      "BAD_REQUEST",
     );
   }
 
@@ -193,10 +189,7 @@ export const inviteUserToOrgResolver: ResolverFn<
       entityId: orgEntityId,
     });
   } catch {
-    throw new ApolloError(
-      `Organization with webId ${orgWebId} not found`,
-      "NOT_FOUND",
-    );
+    throw Error.notFound(`Organization with webId ${orgWebId} not found`);
   }
 
   const isAlreadyAMember = !existingUserToInvite
@@ -207,10 +200,7 @@ export const inviteUserToOrgResolver: ResolverFn<
       });
 
   if (isAlreadyAMember) {
-    throw new ApolloError(
-      "User is already a member of this organization",
-      "BAD_REQUEST",
-    );
+    throw Error.badRequest("User is already a member of this organization");
   }
 
   const isOrgAdmin = await getActorGroupRole(context.graphApi, authentication, {
@@ -219,9 +209,8 @@ export const inviteUserToOrgResolver: ResolverFn<
   }).then((role) => role === "administrator");
 
   if (!isOrgAdmin) {
-    throw new ApolloError(
+    throw Error.forbidden(
       "You must be an administrator to invite users to this organization",
-      "UNAUTHORIZED",
     );
   }
 
@@ -289,9 +278,8 @@ export const inviteUserToOrgResolver: ResolverFn<
   }
 
   if (outstandingInvitationCount > 0) {
-    throw new ApolloError(
+    throw Error.badRequest(
       `There is already an invitation pending for ${userEmail ?? userShortname}`,
-      "BAD_REQUEST",
     );
   }
 

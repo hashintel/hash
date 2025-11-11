@@ -1,44 +1,37 @@
 ════ HIR ═══════════════════════════════════════════════════════════════════════
 
-#let foo:0 = thunk(() -> 2)
-     %2 = thunk(() ->
-         #let %9 = ::graph::tmp::decision_time_now()
-                  %10 = %9()
-             in
-             %10
-         )
-     %8 = thunk(() ->
-         #let %11 = %2()
-                  %12 = ::graph::head::entities(%11)
-                      |> ::graph::body::filter(#fn(vertex:0: _0«Entity[(id:
-                       EntityRecordId[(edition_id:
-                        EntityEditionId[Uuid[String]], entity_id:
-                        EntityId[(draft_id: (None[Null]
-                          | Some[DraftId[Uuid[String]]]), entity_uuid:
-                         EntityUuid[Uuid[String]], web_id:
-                         WebId[ActorGroupEntityUuid[Uuid[String]]])])],
-                       link_data: (None[Null]
-                        | Some[LinkData[(left_entity_id: EntityId[(draft_id:
-                          (None[Null] | Some[DraftId[Uuid[String]]]),
-                          entity_uuid: EntityUuid[Uuid[String]], web_id:
-                          WebId[ActorGroupEntityUuid[Uuid[String]]])],
-                         right_entity_id: EntityId[(draft_id: (None[Null]
-                           | Some[DraftId[Uuid[String]]]), entity_uuid:
-                          EntityUuid[Uuid[String]], web_id:
-                          WebId[ActorGroupEntityUuid[Uuid[String]]])])]]),
-                       properties: ?)]»): _1«Boolean» ->
-                          #let %3 = #ctor(fn(String) -> Uuid[String],
-                                   arguments: [])
-                               %4 = %3("e2851dbb-7376-4959-9bca-f72cafc4448f")
-                               %5 = #ctor(fn(Uuid[String]) ->
-                                   EntityUuid[Uuid[String]], arguments: [])
-                               %6 = %5(%4)
-                               %7 = (vertex:0.id.entity_id.entity_uuid == %6)
-                          in
-                          %7) |> ::graph::tail::collect
-             in
-             %12
-         )
+let foo:0 = thunk -> 2,
+    %2 = thunk ->
+        let %9 = ::graph::tmp::decision_time_now(),
+            %10 = %9()
+        in
+        %10,
+    %3 = thunk -> let %11 = ::core::uuid::Uuid in %11,
+    %4 = thunk ->
+        let %12 = %3(),
+            %13 = %12("e2851dbb-7376-4959-9bca-f72cafc4448f")
+        in
+        %13,
+    %5 = thunk ->
+        let %14 = ::graph::types::knowledge::entity::EntityUuid in %14,
+    %6 = thunk ->
+        let %15 = %4(),
+            %16 = %5(),
+            %17 = %16(%15)
+        in
+        %17,
+    %8 = thunk ->
+        let %18 = %2(),
+            %20 = ::graph::head::entities(%18)
+                  |> ::graph::body::filter((vertex:0: Entity): Boolean ->
+                      let %19 = %6(),
+                          %7 = vertex:0.id.entity_id.entity_uuid == %19
+                      in
+                      %7
+                  )
+                  |> ::graph::tail::collect
+        in
+        %20
 in
 %8
 

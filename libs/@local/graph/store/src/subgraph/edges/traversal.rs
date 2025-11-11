@@ -37,6 +37,11 @@ pub enum TraversalEdge {
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
+#[cfg_attr(
+    feature = "postgres",
+    derive(postgres_types::ToSql, postgres_types::FromSql),
+    postgres(name = "entity_edge_kind", rename_all = "kebab-case")
+)]
 #[cfg_attr(feature = "codegen", derive(specta::Type))]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(rename_all = "kebab-case", tag = "kind")]
@@ -121,6 +126,81 @@ pub struct EntityTraversalPath {
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct TraversalPath {
     pub edges: Vec<TraversalEdge>,
+}
+
+impl TraversalPath {
+    /// Splits the traversal path into entity edges and ontology edges.
+    ///
+    /// Entity traversal consists of edges that navigate between entities
+    /// ([`HasLeftEntity`](TraversalEdge::HasLeftEntity),
+    /// [`HasRightEntity`](TraversalEdge::HasRightEntity)). Ontology traversal begins when an
+    /// [`IsOfType`](TraversalEdge::IsOfType) edge is encountered, transitioning to type-level
+    /// navigation.
+    ///
+    /// # Returns
+    ///
+    /// A tuple containing:
+    /// - A vector of entity edges collected from the start of the path until an ontology edge is
+    ///   found
+    /// - An optional slice of ontology edges:
+    ///   - `Some(&[...])` if an [`IsOfType`](TraversalEdge::IsOfType) edge was encountered,
+    ///     containing all edges after it
+    ///   - `None` if no ontology traversal is needed (path contains only entity edges or ends
+    ///     before reaching ontology)
+    ///
+    /// # Example
+    ///
+    /// ```text
+    /// Path: [HasLeft, HasRight, IsOfType, InheritsFrom]
+    ///   → entity_edges = [HasLeft, HasRight]
+    ///   → ontology_edges = Some([InheritsFrom])
+    ///
+    /// Path: [HasLeft, HasRight]
+    ///   → entity_edges = [HasLeft, HasRight]
+    ///   → ontology_edges = None
+    ///
+    /// Path: [HasLeft, ConstrainsPropertiesOn]
+    ///   → entity_edges = [HasLeft]
+    ///   → ontology_edges = None (ontology edge without IsOfType is unreachable)
+    /// ```
+    #[must_use]
+    pub fn split_entity_path(&self) -> (Vec<EntityTraversalEdge>, Option<&[TraversalEdge]>) {
+        let mut entity_edges = Vec::new();
+        for (idx, edge) in self.edges.iter().enumerate() {
+            match edge {
+                TraversalEdge::HasLeftEntity { direction } => {
+                    entity_edges.push(EntityTraversalEdge::HasLeftEntity {
+                        direction: *direction,
+                    });
+                }
+                TraversalEdge::HasRightEntity { direction } => {
+                    entity_edges.push(EntityTraversalEdge::HasRightEntity {
+                        direction: *direction,
+                    });
+                }
+                TraversalEdge::IsOfType => {
+                    // We found an `IsOfType` edge. From here onwards, we can use the
+                    // existing traversal path for ontology edges
+                    return (
+                        entity_edges,
+                        Some(self.edges.get((idx + 1)..).unwrap_or_default()),
+                    );
+                }
+
+                TraversalEdge::InheritsFrom
+                | TraversalEdge::ConstrainsValuesOn
+                | TraversalEdge::ConstrainsPropertiesOn
+                | TraversalEdge::ConstrainsLinksOn
+                | TraversalEdge::ConstrainsLinkDestinationsOn => {
+                    // We did not found an `IsOfType` edge, so all subsequent edges can
+                    // be discarded
+                    break;
+                }
+            }
+        }
+
+        (entity_edges, None)
+    }
 }
 
 impl TryFrom<TraversalPath> for EntityTraversalPath {

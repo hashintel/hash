@@ -8,11 +8,15 @@ mod record;
 use core::hash::Hash;
 use std::collections::hash_map::Entry;
 
+use hash_graph_temporal_versioning::RightBoundedTemporalInterval;
+
 pub use self::record::SubgraphRecord;
 use self::{
     edges::Edges,
-    identifier::GraphElementVertexId,
-    temporal_axes::{QueryTemporalAxes, QueryTemporalAxesUnresolved, SubgraphTemporalAxes},
+    identifier::{EntityVertexId, GraphElementVertexId},
+    temporal_axes::{
+        QueryTemporalAxes, QueryTemporalAxesUnresolved, SubgraphTemporalAxes, VariableAxis,
+    },
     vertices::Vertices,
 };
 use crate::subgraph::{
@@ -82,5 +86,32 @@ impl Subgraph {
             direction,
             right_endpoint,
         );
+    }
+
+    /// Returns an iterator over all entities in the subgraph with their valid temporal intervals.
+    ///
+    /// This method intersects each entity's temporal metadata with the subgraph's resolved
+    /// temporal axes, yielding only entities that have temporal overlap with the query window.
+    /// Entities with no temporal overlap are filtered out.
+    ///
+    /// # Returns
+    ///
+    /// An iterator of tuples containing:
+    /// - `EntityVertexId`: The identifier of the entity
+    /// - `RightBoundedTemporalInterval<VariableAxis>`: The intersection of the entity's temporal
+    ///   metadata with the subgraph's query axes
+    pub fn entity_with_intervals(
+        &self,
+    ) -> impl Iterator<Item = (EntityVertexId, RightBoundedTemporalInterval<VariableAxis>)> {
+        self.vertices
+            .entities
+            .iter()
+            .filter_map(|(vertex_id, entity)| {
+                self.temporal_axes
+                    .resolved
+                    .clone()
+                    .intersect_variable_interval(&entity.metadata.temporal_versioning)
+                    .map(|interval| (*vertex_id, interval))
+            })
     }
 }

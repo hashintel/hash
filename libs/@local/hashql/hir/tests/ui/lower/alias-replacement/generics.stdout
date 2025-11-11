@@ -1,7 +1,7 @@
 ════ Initial HIR ═══════════════════════════════════════════════════════════════
 
-#let foo:0 = ::core::math::add<Integer>
-     bar:0 = foo:0
+let foo:0 = ::core::math::add<Integer>,
+    bar:0 = foo:0
 in
 bar:0
 

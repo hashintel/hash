@@ -118,6 +118,7 @@ pub async fn seed_benchmark_data(
     let seeding_start = std::time::Instant::now();
 
     // Create webs (organizations)
+    let webs_time_start = std::time::Instant::now();
     for web_idx in 0..config.webs {
         let web_id = transaction
             .create_web(
@@ -133,8 +134,10 @@ pub async fn seed_benchmark_data(
             .web_id;
         data.webs.push(web_id);
     }
+    let webs_time = webs_time_start.elapsed();
 
     // Create team hierarchies
+    let teams_time_start = std::time::Instant::now();
     for (web_idx, &web_id) in data.webs.iter().enumerate() {
         let (web_teams, web_leaf_teams) = create_team_hierarchy(
             &mut transaction,
@@ -149,14 +152,19 @@ pub async fn seed_benchmark_data(
         data.teams.extend(web_teams);
         data.leaf_teams.extend(web_leaf_teams);
     }
+    let teams_time = teams_time_start.elapsed();
 
     // Create users
+    let users_time_start = std::time::Instant::now();
     for _ in 0..config.users {
         let user_id = transaction.create_user(None).await?;
         data.users.push(user_id);
     }
+    let users_time = users_time_start.elapsed();
 
     // Use existing roles created by create_web/create_team and assign users
+    let web_role_time_start = std::time::Instant::now();
+    let roles_time_start = std::time::Instant::now();
     for (web_idx, &web_id) in data.webs.iter().enumerate() {
         // Get the existing web roles (Administrator, Member)
         let web_admin_role = transaction
@@ -188,8 +196,10 @@ pub async fn seed_benchmark_data(
             }
         }
     }
+    let web_roles_time = web_role_time_start.elapsed();
 
     // Create team roles (insert_team doesn't create them automatically unlike create_web)
+    let team_roles_time_start = std::time::Instant::now();
     for (team_idx, &team_id) in data.teams.iter().enumerate() {
         // Create team roles manually since insert_team doesn't create them automatically
         let team_admin_role = transaction
@@ -217,6 +227,8 @@ pub async fn seed_benchmark_data(
             }
         }
     }
+    let roles_time = roles_time_start.elapsed();
+    let team_roles_time = team_roles_time_start.elapsed();
 
     // Create realistic policy distribution with explicit principal constraints
     let action_combinations = [
@@ -233,6 +245,7 @@ pub async fn seed_benchmark_data(
     let mut all_policies = Vec::new();
 
     // 1. Global policies (accessible to all users)
+    let policies_time_start = std::time::Instant::now();
     for policy_idx in 0..config.global_policies {
         let actions = &action_combinations[policy_idx % action_combinations.len()];
         all_policies.push(PolicyCreationParams {
@@ -297,18 +310,30 @@ pub async fn seed_benchmark_data(
     data.policies = transaction
         .insert_policies_into_database(all_policies.iter())
         .await?;
+    let policies_time = policies_time_start.elapsed();
 
+    let commit_start = std::time::Instant::now();
     transaction.commit().await?;
+    let commit_time = commit_start.elapsed();
 
-    eprintln!(
-        "Seeding completed after {:?}! Summary:",
-        seeding_start.elapsed()
-    );
+    eprintln!("Seeding completed! Summary:");
     eprintln!("  - {} webs", data.webs.len());
     eprintln!("  - {} teams", data.teams.len());
     eprintln!("  - {} users", data.users.len());
     eprintln!("  - {} roles", data.roles.len());
     eprintln!("  - {} policies", data.policies.len());
+    eprintln!(
+        "  - Timings: {}s seeding total",
+        seeding_start.elapsed().as_secs()
+    );
+    eprintln!("    - Webs: {}s", webs_time.as_secs());
+    eprintln!("    - Teams: {}s", teams_time.as_secs());
+    eprintln!("    - Users: {}s", users_time.as_secs());
+    eprintln!("    - Roles: {}s", roles_time.as_secs());
+    eprintln!("      - Webs: {}s", web_roles_time.as_secs());
+    eprintln!("      - Teams: {}s", team_roles_time.as_secs());
+    eprintln!("    - Policies: {}s", policies_time.as_secs());
+    eprintln!("    - Commit: {}s", commit_time.as_secs());
 
     Ok(data)
 }

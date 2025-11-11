@@ -1,19 +1,34 @@
 ════ Initial HIR ═══════════════════════════════════════════════════════════════
 
-#input(x, type: Number, default: #as(42, type: _0))
+if $exists(x) 
+then ?x
+else (42 as _0) as Number
 
 ════ HIR after type inference ══════════════════════════════════════════════════
 
-#input(x, type: Number, default: #as(42, type: _0«Integer»))
+if $exists(x) 
+then ?x
+else (42 as _0) as Number
 
 ════ Types ═════════════════════════════════════════════════════════════════════
+
+┌─ if $exists(x) 
+│  then ?x
+│  else (42 as _0) as Number
+└→ Number | Number
+
+┌─ 42 as _0
+└→ _0«Integer»
 
 ┌─ 42
 └→ Integer
 
-┌─ #as(42, type: _0«Integer»)
-└→ _0«Integer»
+┌─ ?x
+└→ Number
 
-┌─ #input(x, type: Number, default: #as(42, type: _0«Integer»))
+┌─ $exists(x)
+└→ Boolean
+
+┌─ (42 as _0) as Number
 └→ Number
 

@@ -5,12 +5,7 @@ import type {
   Property,
   VersionedUrl,
 } from "@blockprotocol/type-system";
-import type { Issue, Organization, User } from "@linear/sdk";
-import type {
-  IssueUpdateInput,
-  UpdateOrganizationInput,
-  UpdateUserInput,
-} from "@linear/sdk/dist/_generated_documents.js";
+import type { Issue, LinearDocument, Organization, User } from "@linear/sdk";
 import type { HashLinkEntity } from "@local/hash-graph-sdk/entity";
 import {
   blockProtocolPropertyTypes,
@@ -34,9 +29,9 @@ export type SupportedLinearTypes = {
 };
 
 export type SupportedLinearUpdateInput = {
-  Issue: IssueUpdateInput;
-  User: UpdateUserInput;
-  Organization: UpdateOrganizationInput;
+  Issue: LinearDocument.IssueUpdateInput;
+  User: LinearDocument.UserUpdateInput;
+  Organization: LinearDocument.OrganizationUpdateInput;
 };
 
 export type SupportedLinearTypeNames = keyof SupportedLinearTypes;
@@ -383,16 +378,18 @@ export const linearTypeMappings = [
       {
         linearPropertyKey: "active",
         hashPropertyTypeId: linearPropertyTypes.active.propertyTypeId,
-        addHashValueToLinearUpdateInput: (updateInput, hashValue) => {
-          updateInput.active = hashValue as boolean;
+        addHashValueToLinearUpdateInput: (updateInput, _hashValue) => {
+          // TODO: https://linear.app/hash/issue/FE-60/implement-active-and-admin-sync-over-linear
+          // updateInput.active = hashValue as boolean;
           return updateInput;
         },
       } satisfies PropertyMapping<"User", "active">,
       {
         linearPropertyKey: "admin",
         hashPropertyTypeId: linearPropertyTypes.admin.propertyTypeId,
-        addHashValueToLinearUpdateInput: (updateInput, hashValue) => {
-          updateInput.admin = hashValue as boolean;
+        addHashValueToLinearUpdateInput: (updateInput, _hashValue) => {
+          // TODO: https://linear.app/hash/issue/FE-60/implement-active-and-admin-sync-over-linear
+          // updateInput.admin = hashValue as boolean;
           return updateInput;
         },
       } satisfies PropertyMapping<"User", "admin">,

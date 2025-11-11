@@ -1,0 +1,14 @@
+//@ run: pass
+//@ description: Nested tuple element access chains
+[
+  "let",
+  "foo",
+  {
+    "#tuple": [
+      { "#tuple": [{ "#literal": 0 }, { "#literal": 1 }, { "#literal": 2 }] },
+      { "#literal": 1 },
+      { "#literal": 2 }
+    ]
+  },
+  "foo.0.0"
+]

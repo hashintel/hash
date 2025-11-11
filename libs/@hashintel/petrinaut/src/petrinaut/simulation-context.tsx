@@ -133,6 +133,10 @@ export const SimulationContextProvider = ({
       JSON.stringify(placeMarkingsById),
     ) as PlaceMarkingsById;
 
+    /**
+     * @todo this logic is wrong, because a transition may be no longer enabled,
+     * if a transition fires before it and consumes a token it needs.
+     */
     for (const transition of enabledTransitions) {
       const transitionNode = petriNetDefinition.nodes.find(
         (node): node is TransitionNodeType =>

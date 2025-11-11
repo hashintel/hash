@@ -1,557 +1,1660 @@
 import { definePreset } from "@pandacss/dev";
-
 export default definePreset({
   name: "@hashintel/ds-theme",
   theme: {
-    extend: {
-      // Core tokens are the foundational design tokens.
-      // https://panda-css.com/docs/theming/tokens#core-tokens
-      tokens: {
-        colors: {
+    tokens: {
+      colors: {
+        border: {
+          neutral: {
+            hover: {
+              value: "{colors.core.gray.35}",
+            },
+            default: {
+              value: "{colors.core.gray.20}",
+            },
+            subtle: {
+              value: "{colors.core.gray.20}",
+            },
+            muted: {
+              value: "{colors.core.gray.10}",
+            },
+            active: {
+              value: "{colors.core.gray.90}",
+            },
+            emphasis: {
+              value: "{colors.core.gray.30}",
+            },
+          },
+          status: {
+            info: {
+              value: "{colors.core.blue.10}",
+            },
+            caution: {
+              value: "{colors.core.yellow.10}",
+            },
+            warning: {
+              value: "{colors.core.orange.10}",
+            },
+            critical: {
+              value: "{colors.core.red.10}",
+            },
+            success: {
+              value: "{colors.core.green.10}",
+            },
+          },
+        },
+        text: {
+          primary: {
+            value: "{colors.core.gray.90}",
+          },
+          secondary: {
+            value: "{colors.core.gray.70}",
+          },
+          tertiary: {
+            value: "{colors.core.gray.50}",
+          },
+          disabled: {
+            value: "{colors.core.gray.40}",
+          },
+          inverted: {
+            value: "{colors.core.neutral.white}",
+          },
+          semantic: {
+            info: {
+              value: "{colors.core.blue.90}",
+            },
+            success: {
+              value: "{colors.core.green.80}",
+            },
+            warning: {
+              value: "{colors.core.orange.80}",
+            },
+            critical: {
+              value: "{colors.core.red.80}",
+            },
+          },
+          link: {
+            value: "{colors.core.custom.60}",
+          },
+          linkhover: {
+            value: "{colors.core.custom.70}",
+          },
+        },
+        surface: {
+          default: {
+            value: "{colors.core.neutral.white}",
+          },
+          emphasis: {
+            value: "{colors.core.gray.20}",
+          },
+          subtle: {
+            value: "{colors.core.gray.20}",
+          },
+          alt: {
+            value: "{colors.core.gray.00}",
+          },
+          muted: {
+            value: "{colors.core.gray.10}",
+          },
+          inverted: {
+            value: "{colors.core.gray.90}",
+          },
+        },
+        bg: {
           brand: {
-            DEFAULT: {
-              50: { value: "#e3f2ff" },
-              100: { value: "#b3daff" },
-              200: { value: "#81c1ff" },
-              300: { value: "#4fa8ff" },
-              400: { value: "#1d8fff" },
-              500: { value: "#0077e6" },
-              600: { value: "#005bb4" },
-              700: { value: "#003f82" },
-              800: { value: "#002551" },
-              900: { value: "#000b21" },
+            subtle: {
+              default: {
+                value: "{colors.core.custom.00}",
+              },
+              hover: {
+                value: "{colors.core.custom.10}",
+              },
+              active: {
+                value: "{colors.core.custom.00}",
+              },
             },
-            dark: {
-              50: { value: "#001a4d" },
-              100: { value: "#b3daff" },
-              200: { value: "#81c1ff" },
-              300: { value: "#4fa8ff" },
-              400: { value: "#1d8fff" },
-              500: { value: "#0077e6" },
-              600: { value: "#005bb4" },
-              700: { value: "#003f82" },
-              800: { value: "#002551" },
-              900: { value: "#000b21" },
-            },
-          },
-          gray: {
-            DEFAULT: {
-              0: { value: "#FAFAFA" },
-              10: { value: "#F5F5F5" },
-              20: { value: "#E5E5E5" },
-              30: { value: "#D9D9D9" },
-              35: { value: "#C7C7C7" },
-              40: { value: "#A3A3A3" },
-              50: { value: "#737373" },
-              60: { value: "#525252" },
-              70: { value: "#404040" },
-              80: { value: "#262626" },
-              90: { value: "#171717" },
-              95: { value: "#0A0A0A" },
-            },
-            dark: {
-              0: { value: "#070A0D" },
-              10: { value: "#1D2836" },
-              20: { value: "#374151" },
-              30: { value: "#4B5563" },
-              35: { value: "#4B5563" },
-              40: { value: "#6B7280" },
-              50: { value: "#9CA3AF" },
-              60: { value: "#DDE0E4" },
-              70: { value: "#E5E7EB" },
-              80: { value: "#F0F2F4" },
-              90: { value: "#F6F8F9" },
-              95: { value: "#F6F8F9" },
-            },
-          },
-          grayAlpha: {
-            DEFAULT: {
-              0: { value: "rgba(0, 0, 0, 0.012)" },
-              10: { value: "rgba(0, 0, 0, 0.024)" },
-              20: { value: "rgba(0, 0, 0, 0.059)" },
-              30: { value: "rgba(0, 0, 0, 0.090)" },
-              40: { value: "rgba(0, 0, 0, 0.122)" },
-              50: { value: "rgba(0, 0, 0, 0.149)" },
-              60: { value: "rgba(0, 0, 0, 0.192)" },
-              70: { value: "rgba(0, 0, 0, 0.267)" },
-              80: { value: "rgba(0, 0, 0, 0.447)" },
-              90: { value: "rgba(0, 0, 0, 0.486)" },
-              95: { value: "rgba(0, 0, 0, 0.608)" },
-            },
-            dark: {
-              0: { value: "rgba(255, 255, 255, 0)" },
-              10: { value: "rgba(255, 255, 255, 0.035)" },
-              20: { value: "rgba(255, 255, 255, 0.059)" },
-              30: { value: "rgba(255, 255, 255, 0.090)" },
-              40: { value: "rgba(255, 255, 255, 0.122)" },
-              50: { value: "rgba(255, 255, 255, 0.149)" },
-              60: { value: "rgba(255, 255, 255, 0.192)" },
-              70: { value: "rgba(255, 255, 255, 0.267)" },
-              80: { value: "rgba(255, 255, 255, 0.447)" },
-              90: { value: "rgba(255, 255, 255, 0.486)" },
-              95: { value: "rgba(255, 255, 255, 0.608)" },
-            },
-          },
-          blue: {
-            DEFAULT: {
-              0: { value: "#E6F3FE" },
-              10: { value: "#BBDFFD" },
-              20: { value: "#9AD0FD" },
-              30: { value: "#78C0FC" },
-              40: { value: "#56B0FB" },
-              50: { value: "#34A0FA" },
-              60: { value: "#2A80C8" },
-              70: { value: "#0666C6" },
-              80: { value: "#05529E" },
-              90: { value: "#043D77" },
-              100: { value: "#071E69" },
-              110: { value: "#0E2E8C" },
-              120: { value: "#1541B0" },
-              130: { value: "#1C62E3" },
-              140: { value: "#266DF0" },
-              150: { value: "#629DF0" },
-              160: { value: "#A3CFF7" },
-              170: { value: "#C5E3FA" },
-              180: { value: "#E5EEFF" },
-              190: { value: "#F5FBFF" },
-            },
-            dark: {
-              0: { value: "#071E69" },
-              10: { value: "#0E2E8C" },
-              20: { value: "#1541B0" },
-              30: { value: "#1C62E3" },
-              40: { value: "#266DF0" },
-              50: { value: "#629DF0" },
-              60: { value: "#A3CFF7" },
-              70: { value: "#C5E3FA" },
-              80: { value: "#E5EEFF" },
-              90: { value: "#F5FBFF" },
-              100: { value: "#F5FBFF" },
-              110: { value: "#E5EEFF" },
-              120: { value: "#C5E3FA" },
-              130: { value: "#A3CFF7" },
-              140: { value: "#629DF0" },
-              150: { value: "#266DF0" },
-              160: { value: "#1C62E3" },
-              170: { value: "#1541B0" },
-              180: { value: "#0E2E8C" },
-              190: { value: "#071E69" },
-            },
-          },
-          red: {
-            DEFAULT: {
-              0: { value: "#FDE8E9" },
-              10: { value: "#FBD5D7" },
-              20: { value: "#F5A3A3" },
-              30: { value: "#F17E7E" },
-              40: { value: "#ED5A5A" },
-              50: { value: "#E93535" },
-              60: { value: "#DC1818" },
-              70: { value: "#B81414" },
-              80: { value: "#931010" },
-              90: { value: "#6E0C0C" },
-              100: { value: "#7F1D1D" },
-              110: { value: "#991B1B" },
-              120: { value: "#B91C1C" },
-              130: { value: "#DC2626" },
-              140: { value: "#EF4444" },
-              150: { value: "#F87171" },
-              160: { value: "#FCA5A5" },
-              170: { value: "#FECACA" },
-              180: { value: "#FEE2E2" },
-              190: { value: "#FEF2F2" },
-            },
-            dark: {
-              0: { value: "#7F1D1D" },
-              10: { value: "#991B1B" },
-              20: { value: "#B91C1C" },
-              30: { value: "#DC2626" },
-              40: { value: "#EF4444" },
-              50: { value: "#F87171" },
-              60: { value: "#FCA5A5" },
-              70: { value: "#FECACA" },
-              80: { value: "#FEE2E2" },
-              90: { value: "#FEF2F2" },
-              100: { value: "#FEF2F2" },
-              110: { value: "#FEE2E2" },
-              120: { value: "#FECACA" },
-              130: { value: "#FCA5A5" },
-              140: { value: "#F87171" },
-              150: { value: "#EF4444" },
-              160: { value: "#DC2626" },
-              170: { value: "#B91C1C" },
-              180: { value: "#991B1B" },
-              190: { value: "#7F1D1D" },
-            },
-          },
-          pink: {
-            DEFAULT: {
-              0: { value: "#FDF2F8" },
-              10: { value: "#FCE7F3" },
-              20: { value: "#FBCFE8" },
-              30: { value: "#F9A8D4" },
-              40: { value: "#F174B2" },
-              50: { value: "#EC4899" },
-              60: { value: "#DB2777" },
-              70: { value: "#BE185D" },
-              80: { value: "#9D174D" },
-              90: { value: "#831843" },
-            },
-            dark: {
-              0: { value: "#831843" },
-              10: { value: "#9D174D" },
-              20: { value: "#BE185D" },
-              30: { value: "#DB2777" },
-              40: { value: "#EC4899" },
-              50: { value: "#F174B2" },
-              60: { value: "#F9A8D4" },
-              70: { value: "#FBCFE8" },
-              80: { value: "#FCE7F3" },
-              90: { value: "#FDF2F8" },
-            },
-          },
-          orange: {
-            DEFAULT: {
-              0: { value: "#FFF7ED" },
-              10: { value: "#FFEDD5" },
-              20: { value: "#FED7AA" },
-              30: { value: "#FDBA74" },
-              40: { value: "#FB923C" },
-              50: { value: "#F97316" },
-              60: { value: "#D97706" },
-              70: { value: "#C2410C" },
-              80: { value: "#9A3412" },
-              90: { value: "#7C2D12" },
-            },
-            dark: {
-              0: { value: "#7C2D12" },
-              10: { value: "#9A3412" },
-              20: { value: "#C2410C" },
-              30: { value: "#D97706" },
-              40: { value: "#F97316" },
-              50: { value: "#FB923C" },
-              60: { value: "#FDBA74" },
-              70: { value: "#FED7AA" },
-              80: { value: "#FFEDD5" },
-              90: { value: "#FFF7ED" },
-            },
-          },
-          green: {
-            DEFAULT: {
-              0: { value: "#EDFAF7" },
-              10: { value: "#E4F7F3" },
-              20: { value: "#B9EBDF" },
-              30: { value: "#91DBC9" },
-              40: { value: "#4FC29E" },
-              50: { value: "#19A874" },
-              60: { value: "#159663" },
-              70: { value: "#0E7D4B" },
-              80: { value: "#096638" },
-              90: { value: "#054D27" },
-            },
-            dark: {
-              0: { value: "#054D27" },
-              10: { value: "#096638" },
-              20: { value: "#0E7D4B" },
-              30: { value: "#159663" },
-              40: { value: "#19A874" },
-              50: { value: "#4FC29E" },
-              60: { value: "#91DBC9" },
-              70: { value: "#B9EBDF" },
-              80: { value: "#E4F7F3" },
-              90: { value: "#EDFAF7" },
-            },
-          },
-          purple: {
-            DEFAULT: {
-              0: { value: "#EEE6F3" },
-              10: { value: "#E0D6FC" },
-              20: { value: "#C2ADF8" },
-              30: { value: "#A385F5" },
-              40: { value: "#865CF1" },
-              50: { value: "#6633EE" },
-              60: { value: "#5429D6" },
-              70: { value: "#401DB3" },
-              80: { value: "#2D138F" },
-              90: { value: "#1D0A6B" },
-            },
-            dark: {
-              0: { value: "#1D0A6B" },
-              10: { value: "#2D138F" },
-              20: { value: "#401DB3" },
-              30: { value: "#5429D6" },
-              40: { value: "#6633EE" },
-              50: { value: "#865CF1" },
-              60: { value: "#A385F5" },
-              70: { value: "#C2ADF8" },
-              80: { value: "#E0D6FC" },
-              90: { value: "#EEE6F3" },
+            bold: {
+              default: {
+                value: "{colors.core.custom.50}",
+              },
+              hover: {
+                value: "{colors.core.custom.60}",
+              },
+              selected: {
+                value: "{colors.core.custom.60}",
+              },
+              active: {
+                value: "{colors.core.custom.50}",
+              },
             },
           },
           neutral: {
-            DEFAULT: {
-              white: { value: "#FFFFFF" },
-              black: { value: "#000000" },
+            subtle: {
+              default: {
+                value: "{colors.core.neutral.white}",
+              },
+              hover: {
+                value: "{colors.core.gray.10}",
+              },
+              active: {
+                value: "{colors.core.gray.20}",
+              },
+              selected: {
+                value: "{colors.core.gray.10}",
+              },
             },
-            dark: {
-              white: { value: "#000000" },
-              black: { value: "#FFFFFF" },
-            },
-          },
-          yellow: {
-            DEFAULT: {
-              0: { value: "#FEFCE8" },
-              10: { value: "#FEF9C3" },
-              20: { value: "#FEF08A" },
-              30: { value: "#FDE047" },
-              40: { value: "#FACC15" },
-              50: { value: "#EAB308" },
-              60: { value: "#CA8A04" },
-              70: { value: "#A16207" },
-              80: { value: "#854D0E" },
-              90: { value: "#713F12" },
-            },
-            dark: {
-              0: { value: "#713F12" },
-              10: { value: "#854D0E" },
-              20: { value: "#A16207" },
-              30: { value: "#CA8A04" },
-              40: { value: "#EAB308" },
-              50: { value: "#FACC15" },
-              60: { value: "#FDE047" },
-              70: { value: "#FEF08A" },
-              80: { value: "#FEF9C3" },
-              90: { value: "#FEFCE8" },
+            bold: {
+              default: {
+                value: "{colors.core.gray.80}",
+              },
+              hover: {
+                value: "{colors.core.gray.70}",
+              },
+              active: {
+                value: "{colors.core.gray.80}",
+              },
+              selected: {
+                value: "{colors.core.gray.70}",
+              },
             },
           },
-          custom: {
-            DEFAULT: {
-              0: { value: "#DDEFFE" },
-              10: { value: "#BBDFFD" },
-              20: { value: "#9AD0FD" },
-              30: { value: "#78C0FC" },
-              40: { value: "#56B0FB" },
-              50: { value: "#2679F3" },
-              60: { value: "#1567E0" },
-              70: { value: "#0666C6" },
-              80: { value: "#05529E" },
-              90: { value: "#043D77" },
+          status: {
+            info: {
+              subtle: {
+                default: {
+                  value: "{colors.core.blue.00}",
+                },
+                hover: {
+                  value: "{colors.core.blue.10}",
+                },
+                active: {
+                  value: "{colors.core.blue.00}",
+                },
+              },
             },
-            dark: {
-              0: { value: "#043D77" },
-              10: { value: "#05529E" },
-              20: { value: "#0666C6" },
-              30: { value: "#1567E0" },
-              40: { value: "#2679F3" },
-              50: { value: "#56B0FB" },
-              60: { value: "#78C0FC" },
-              70: { value: "#9AD0FD" },
-              80: { value: "#BBDFFD" },
-              90: { value: "#DDEFFE" },
+            success: {
+              subtle: {
+                default: {
+                  value: "{colors.core.green.00}",
+                },
+                hover: {
+                  value: "{colors.core.green.10}",
+                },
+                active: {
+                  value: "{colors.core.green.00}",
+                },
+              },
             },
-          },
-          customAlpha: {
-            DEFAULT: {
-              0: { value: "rgba(38, 121, 243, 0.0157)" },
-              10: { value: "rgba(38, 121, 243, 0.0431)" },
-              20: { value: "rgba(38, 121, 243, 0.098)" },
-              30: { value: "rgba(38, 121, 243, 0.1647)" },
-              40: { value: "rgba(38, 121, 243, 0.2392)" },
-              50: { value: "rgba(38, 121, 243, 0.3255)" },
-              60: { value: "rgba(21, 103, 224, 0.4431)" },
-              70: { value: "rgba(38, 121, 243, 0.6314)" },
-              80: { value: "rgba(38, 121, 243, 0.7804)" },
-              90: { value: "rgba(38, 121, 243, 0.849)" },
+            caution: {
+              subtle: {
+                default: {
+                  value: "{colors.core.yellow.00}",
+                },
+                hover: {
+                  value: "{colors.core.yellow.10}",
+                },
+                active: {
+                  value: "{colors.core.yellow.00}",
+                },
+              },
             },
-            dark: {
-              0: { value: "rgba(7, 30, 105, 0.0157)" },
-              10: { value: "rgba(14, 46, 140, 0.0431)" },
-              20: { value: "rgba(21, 65, 176, 0.098)" },
-              30: { value: "rgba(28, 98, 227, 0.1647)" },
-              40: { value: "rgba(38, 109, 240, 0.2392)" },
-              50: { value: "rgba(98, 157, 240, 0.3255)" },
-              60: { value: "rgba(163, 207, 247, 0.4431)" },
-              70: { value: "rgba(197, 227, 250, 0.6314)" },
-              80: { value: "rgba(229, 238, 255, 0.7804)" },
-              90: { value: "rgba(245, 251, 255, 0.849)" },
+            warning: {
+              subtle: {
+                default: {
+                  value: "{colors.core.orange.00}",
+                },
+                hover: {
+                  value: "{colors.core.orange.10}",
+                },
+                active: {
+                  value: "{colors.core.orange.00}",
+                },
+              },
             },
-          },
-          whiteAlpha: {
-            DEFAULT: {
-              0: { value: "rgba(255, 255, 255, 0)" },
-              10: { value: "rgba(255, 255, 255, 0.1)" },
-              20: { value: "rgba(255, 255, 255, 0.2)" },
-              30: { value: "rgba(255, 255, 255, 0.3)" },
-              40: { value: "rgba(255, 255, 255, 0.4)" },
-              50: { value: "rgba(255, 255, 255, 0.5)" },
-              60: { value: "rgba(255, 255, 255, 0.6)" },
-              70: { value: "rgba(255, 255, 255, 0.7)" },
-              80: { value: "rgba(255, 255, 255, 0.8)" },
-              90: { value: "rgba(255, 255, 255, 0.9)" },
-              95: { value: "rgba(255, 255, 255, 0.95)" },
-            },
-            dark: {
-              0: { value: "rgba(0, 0, 0, 0)" },
-              10: { value: "rgba(0, 0, 0, 0.035)" },
-              20: { value: "rgba(0, 0, 0, 0.2)" },
-              30: { value: "rgba(255, 255, 255, 0.3)" },
-              40: { value: "rgba(255, 255, 255, 0.4)" },
-              50: { value: "rgba(255, 255, 255, 0.5)" },
-              60: { value: "rgba(255, 255, 255, 0.6)" },
-              70: { value: "rgba(255, 255, 255, 0.7)" },
-              80: { value: "rgba(255, 255, 255, 0.8)" },
-              90: { value: "rgba(255, 255, 255, 0.9)" },
-              95: { value: "rgba(255, 255, 255, 0.95)" },
+            critical: {
+              subtle: {
+                default: {
+                  value: "{colors.core.red.00}",
+                },
+                hover: {
+                  value: "{colors.core.red.10}",
+                },
+                active: {
+                  value: "{colors.core.red.00}",
+                },
+              },
+              strong: {
+                default: {
+                  value: "{colors.core.red.50}",
+                },
+                hover: {
+                  value: "{colors.core.red.60}",
+                },
+                active: {
+                  value: "{colors.core.red.50}",
+                },
+              },
             },
           },
         },
-        fonts: {
-          display: { value: "Inter Display, Inter, sans-serif" },
-          body: { value: "Inter, sans-serif" },
-          mono: { value: "Menlo, monospace" },
+        icon: {
+          primary: {
+            value: "{colors.core.gray.70}",
+          },
+          secondary: {
+            value: "{colors.core.gray.50}",
+          },
+          tertiary: {
+            value: "{colors.core.gray.40}",
+          },
+          disabled: {
+            value: "{colors.core.gray.30}",
+          },
+          inverted: {
+            value: "{colors.core.neutral.white}",
+          },
+          link: {
+            value: "{colors.core.custom.60}",
+          },
+          linkhover: {
+            value: "{colors.core.custom.70}",
+          },
+          semantic: {
+            info: {
+              value: "{colors.core.blue.90}",
+            },
+            success: {
+              value: "{colors.core.green.80}",
+            },
+            warning: {
+              value: "{colors.core.orange.70}",
+            },
+            critical: {
+              value: "{colors.core.red.70}",
+            },
+          },
         },
-        fontWeights: {
-          normal: { value: "400" },
-          medium: { value: "500" },
-          semibold: { value: "600" },
+        surfaceglass: {
+          "50": {
+            value: "{colors.core.gray.20}",
+          },
+          "60": {
+            value: "{colors.core.whitealpha.60}",
+          },
+          "70": {
+            value: "{colors.core.whitealpha.70}",
+          },
+          default: {
+            value: "{colors.core.whitealpha.90}",
+          },
+          alt: {
+            value: "{colors.core.whitealpha.60}",
+          },
         },
-        fontSizes: {
-          xs: { value: "12px" },
-          sm: { value: "14px" },
-          base: { value: "16px" },
-          lg: { value: "18px" },
-          xl: { value: "20px" },
-          "2xl": { value: "24px" },
-          "3xl": { value: "30px" },
-          "4xl": { value: "36px" },
+        color: {
+          accent: {
+            "10": {
+              value: "#ffffff",
+            },
+            "20": {
+              value: "#f7dccb",
+            },
+            "30": {
+              value: "#f2c1ac",
+            },
+            "40": {
+              value: "#e88372",
+            },
+            "50": {
+              value: "#dd3c3c",
+            },
+            "60": {
+              value: "#ffffff",
+            },
+            "70": {
+              value: "#ffffff",
+            },
+            "80": {
+              value: "#ffffff",
+            },
+            "90": {
+              value: "#ffffff",
+            },
+            "95": {
+              value: "#ffffff",
+            },
+            "00": {
+              value: "#ffffff",
+            },
+          },
+          accentgray: {
+            "10": {
+              value: "#ffffff",
+            },
+            "20": {
+              value: "#ffffff",
+            },
+            "30": {
+              value: "#ffffff",
+            },
+            "40": {
+              value: "#ffffff",
+            },
+            "50": {
+              value: "#968c8c",
+            },
+            "60": {
+              value: "#ffffff",
+            },
+            "70": {
+              value: "#ffffff",
+            },
+            "80": {
+              value: "#ffffff",
+            },
+            "90": {
+              value: "#ffffff",
+            },
+            "95": {
+              value: "#ffffff",
+            },
+            "00": {
+              value: "#ffffff",
+            },
+          },
         },
-        lineHeights: {
-          xs: { value: "18px" },
-          sm: { value: "21px" },
-          base: { value: "24px" },
-          lg: { value: "27px" },
-        },
+      },
+      spacing: {
         spacing: {
-          // Core spacing scale
-          0: { value: "0px" },
-          px: { value: "1px" },
-          0.5: { value: "2px" },
-          1: { value: "4px" },
-          1.5: { value: "6px" },
-          2: { value: "8px" },
-          2.5: { value: "10px" },
-          3: { value: "12px" },
-          3.5: { value: "14px" },
-          4: { value: "16px" },
-          5: { value: "20px" },
-          6: { value: "24px" },
-          7: { value: "28px" },
-          8: { value: "32px" },
-          9: { value: "36px" },
-          10: { value: "40px" },
-          11: { value: "44px" },
+          "0": {
+            value: "{spacing.spacing.default.0}",
+          },
+          "1": {
+            value: "{spacing.spacing.default.1}",
+          },
+          "2": {
+            value: "{spacing.spacing.default.2}",
+          },
+          "3": {
+            value: "{spacing.spacing.default.3}",
+          },
+          "4": {
+            value: "{spacing.spacing.default.4}",
+          },
+          "5": {
+            value: "{spacing.spacing.default.5}",
+          },
+          "6": {
+            value: "{spacing.spacing.default.6}",
+          },
+          "7": {
+            value: "{spacing.spacing.default.7}",
+          },
+          "8": {
+            value: "{spacing.spacing.default.8}",
+          },
+          "9": {
+            value: "{spacing.spacing.default.9}",
+          },
+          "10": {
+            value: "{spacing.spacing.default.10}",
+          },
+          default: {
+            "0": {
+              value: "0px",
+            },
+            "1": {
+              value: "1px",
+            },
+            "2": {
+              value: "2px",
+            },
+            "3": {
+              value: "4px",
+            },
+            "4": {
+              value: "6px",
+            },
+            "5": {
+              value: "8px",
+            },
+            "6": {
+              value: "10px",
+            },
+            "7": {
+              value: "12px",
+            },
+            "8": {
+              value: "14px",
+            },
+            "9": {
+              value: "16px",
+            },
+            "10": {
+              value: "20px",
+            },
+            "11": {
+              value: "24px",
+            },
+            "12": {
+              value: "28px",
+            },
+          },
+          compact: {
+            "0": {
+              value: "0px",
+            },
+            "1": {
+              value: "1px",
+            },
+            "2": {
+              value: "1px",
+            },
+            "3": {
+              value: "2px",
+            },
+            "4": {
+              value: "4px",
+            },
+            "5": {
+              value: "6px",
+            },
+            "6": {
+              value: "8px",
+            },
+            "7": {
+              value: "10px",
+            },
+            "8": {
+              value: "12px",
+            },
+            "9": {
+              value: "14px",
+            },
+            "10": {
+              value: "16px",
+            },
+            "11": {
+              value: "20px",
+            },
+            "12": {
+              value: "24px",
+            },
+          },
+          comfortable: {
+            "0": {
+              value: "0px",
+            },
+            "1": {
+              value: "2px",
+            },
+            "2": {
+              value: "4px",
+            },
+            "3": {
+              value: "6px",
+            },
+            "4": {
+              value: "8px",
+            },
+            "5": {
+              value: "10px",
+            },
+            "6": {
+              value: "12px",
+            },
+            "7": {
+              value: "14px",
+            },
+            "8": {
+              value: "16px",
+            },
+            "9": {
+              value: "20px",
+            },
+            "10": {
+              value: "24px",
+            },
+            "11": {
+              value: "28px",
+            },
+            "12": {
+              value: "32px",
+            },
+          },
         },
-        radii: {
-          none: { value: "0px" },
-          sm: { value: "2px" },
-          DEFAULT: { value: "4px" },
-          md: { value: "6px" },
-          lg: { value: "8px" },
-          "10px": { value: "10px" },
-          xl: { value: "12px" },
-          "2xl": { value: "16px" },
-          "3xl": { value: "24px" },
-          full: { value: "9999px" },
+      },
+      fonts: {
+        family: {
+          display: {
+            value: "Inter Display",
+          },
+          body: {
+            value: "Inter",
+          },
         },
-        shadows: {
-          sm: { value: "0 1px 2px rgba(0, 0, 0, 0.05)" },
-          md: { value: "0 4px 6px rgba(0, 0, 0, 0.1)" },
-          lg: { value: "0 10px 15px rgba(0, 0, 0, 0.15)" },
-          xl: { value: "0 20px 25px rgba(0, 0, 0, 0.2)" },
-          "2xl": { value: "0 25px 50px rgba(0, 0, 0, 0.25)" },
+        weight: {
+          normaldelete: {
+            value: "Regular",
+          },
+          mediumdelete: {
+            value: "Medium",
+          },
+          semibolddelete: {
+            value: "SemiBold",
+          },
+        },
+        typography: {
+          fontfamily: {
+            display: {
+              value: "Inter Display",
+            },
+            body: {
+              value: "Inter",
+            },
+            code: {
+              value: "Inter",
+            },
+          },
+        },
+      },
+      fontSizes: {
+        size: {
+          text3xl: {
+            value: "30px",
+          },
+          textsm: {
+            value: "14px",
+          },
+          textbase: {
+            value: "16px",
+          },
+          textxs: {
+            value: "12px",
+          },
+          textxl: {
+            value: "20px",
+          },
+          textlg: {
+            value: "18px",
+          },
+          text2xl: {
+            value: "24px",
+          },
+          text4xl: {
+            value: "36px",
+          },
+        },
+      },
+      lineHeights: {
+        leading: {
+          none: {
+            text3xl: {
+              value: "{fontSizes.size.text3xl}",
+            },
+            textsm: {
+              value: "{fontSizes.size.textsm}",
+            },
+            textxs: {
+              value: "{fontSizes.size.textxs}",
+            },
+            textbase: {
+              value: "{fontSizes.size.textbase}",
+            },
+            textlg: {
+              value: "{fontSizes.size.textlg}",
+            },
+          },
+          normal: {
+            textxs: {
+              value: 18,
+            },
+            textsm: {
+              value: 21,
+            },
+            textbase: {
+              value: 24,
+            },
+            textlg: {
+              value: 27,
+            },
+          },
+        },
+      },
+      radii: {
+        core: {
+          md: {
+            "0": {
+              value: "0px",
+            },
+            "1": {
+              value: "2px",
+            },
+            "2": {
+              value: "4px",
+            },
+            "3": {
+              value: "6px",
+            },
+            "4": {
+              value: "8px",
+            },
+            "5": {
+              value: "10px",
+            },
+            "6": {
+              value: "12px",
+            },
+            "7": {
+              value: "16px",
+            },
+            "8": {
+              value: "20px",
+            },
+            "9": {
+              value: "24px",
+            },
+            "10": {
+              value: "32px",
+            },
+            full: {
+              value: "9999px",
+            },
+          },
+          sm: {
+            "0": {
+              value: "0px",
+            },
+            "1": {
+              value: "1px",
+            },
+            "2": {
+              value: "2px",
+            },
+            "3": {
+              value: "4px",
+            },
+            "4": {
+              value: "6px",
+            },
+            "5": {
+              value: "8px",
+            },
+            "6": {
+              value: "10px",
+            },
+            "7": {
+              value: "12px",
+            },
+            "8": {
+              value: "16px",
+            },
+            "9": {
+              value: "20px",
+            },
+            "10": {
+              value: "24px",
+            },
+            full: {
+              value: "9999px",
+            },
+          },
+          lg: {
+            "0": {
+              value: "0px",
+            },
+            "1": {
+              value: "4px",
+            },
+            "2": {
+              value: "6px",
+            },
+            "3": {
+              value: "8px",
+            },
+            "4": {
+              value: "10px",
+            },
+            "5": {
+              value: "12px",
+            },
+            "6": {
+              value: "16px",
+            },
+            "7": {
+              value: "20px",
+            },
+            "8": {
+              value: "24px",
+            },
+            "9": {
+              value: "32px",
+            },
+            "10": {
+              value: "40px",
+            },
+            full: {
+              value: "9999px",
+            },
+          },
+          full: {
+            "0": {
+              value: "9999px",
+            },
+            "1": {
+              value: "9999px",
+            },
+            "2": {
+              value: "9999px",
+            },
+            "3": {
+              value: "9999px",
+            },
+            "4": {
+              value: "9999px",
+            },
+            "5": {
+              value: "9999px",
+            },
+            "6": {
+              value: "9999px",
+            },
+            "7": {
+              value: "9999px",
+            },
+            "8": {
+              value: "9999px",
+            },
+            "9": {
+              value: "9999px",
+            },
+            "10": {
+              value: "9999px",
+            },
+            full: {
+              value: "9999px",
+            },
+          },
+          none: {
+            "0": {
+              value: "0px",
+            },
+            "1": {
+              value: "0px",
+            },
+            "2": {
+              value: "0px",
+            },
+            "3": {
+              value: "0px",
+            },
+            "4": {
+              value: "0px",
+            },
+            "5": {
+              value: "0px",
+            },
+            "6": {
+              value: "0px",
+            },
+            "7": {
+              value: "0px",
+            },
+            "8": {
+              value: "0px",
+            },
+            "9": {
+              value: "0px",
+            },
+            "10": {
+              value: "0px",
+            },
+            full: {
+              value: "0px",
+            },
+          },
+        },
+        component: {
+          button: {
+            sm: {
+              value: "{radii.radius.4}",
+            },
+            md: {
+              value: "{radii.radius.4}",
+            },
+            lg: {
+              value: "{radii.radius.5}",
+            },
+            xs: {
+              value: "{radii.radius.2}",
+            },
+          },
+        },
+        radius: {
+          "0": {
+            value: "{radii.core.md.0}",
+          },
+          "1": {
+            value: "{radii.core.md.1}",
+          },
+          "2": {
+            value: "{radii.core.md.2}",
+          },
+          "3": {
+            value: "{radii.core.md.3}",
+          },
+          "4": {
+            value: "{radii.core.md.4}",
+          },
+          "5": {
+            value: "{radii.core.md.5}",
+          },
+          "6": {
+            value: "{radii.core.md.6}",
+          },
+          "7": {
+            value: "{radii.core.md.7}",
+          },
+          "8": {
+            value: "{radii.core.md.8}",
+          },
+          "9": {
+            value: "{radii.core.md.9}",
+          },
+          "10": {
+            value: "{radii.core.md.10}",
+          },
+          full: {
+            value: "{radii.core.md.full}",
+          },
         },
       },
     },
-
-    // Semantic tokens are tokens that are designed to be used in a specific context.
-    // In most cases, the value of a semantic token references to an existing token.
-    // https://panda-css.com/docs/theming/tokens#semantic-tokens
-    semanticTokens: {},
-
-    // Text styles combine typography tokens into reusable text styles
-    textStyles: {
-      // Text with no leading (line-height: normal)
-      "text-xs": {
-        value: {
-          fontFamily: "body",
-          fontSize: "xs",
-          fontWeight: "normal",
-          lineHeight: "normal",
-        },
-      },
-      "text-sm": {
-        value: {
-          fontFamily: "body",
-          fontSize: "sm",
-          fontWeight: "normal",
-          lineHeight: "normal",
-        },
-      },
-      "text-base": {
-        value: {
-          fontFamily: "body",
-          fontSize: "base",
-          fontWeight: "normal",
-          lineHeight: "normal",
-        },
-      },
-      "text-lg": {
-        value: {
-          fontFamily: "body",
-          fontSize: "lg",
-          fontWeight: "normal",
-          lineHeight: "normal",
-        },
-      },
-      "text-3xl": {
-        value: {
-          fontFamily: "display",
-          fontSize: "3xl",
-          fontWeight: "normal",
-          lineHeight: "normal",
-        },
-      },
-      // Text with normal leading (specific line-heights)
-      "text-xs-leading": {
-        value: {
-          fontFamily: "body",
-          fontSize: "xs",
-          fontWeight: "normal",
-          lineHeight: "xs",
-        },
-      },
-      "text-sm-leading": {
-        value: {
-          fontFamily: "body",
-          fontSize: "sm",
-          fontWeight: "normal",
-          lineHeight: "sm",
-        },
-      },
-      "text-base-leading": {
-        value: {
-          fontFamily: "body",
-          fontSize: "base",
-          fontWeight: "normal",
-          lineHeight: "base",
-        },
-      },
-      "text-lg-leading": {
-        value: {
-          fontFamily: "body",
-          fontSize: "lg",
-          fontWeight: "normal",
-          lineHeight: "lg",
+    semanticTokens: {
+      colors: {
+        core: {
+          gray: {
+            "10": {
+              value: {
+                _dark: "#1d2836",
+                base: "#f5f5f5",
+              },
+            },
+            "20": {
+              value: {
+                _dark: "#374151",
+                base: "#e5e5e5",
+              },
+            },
+            "30": {
+              value: {
+                _dark: "#4b5563",
+                base: "#d9d9d9",
+              },
+            },
+            "35": {
+              value: {
+                _dark: "#4b5563",
+                base: "#c7c7c7",
+              },
+            },
+            "40": {
+              value: {
+                _dark: "#6b7280",
+                base: "#a3a3a3",
+              },
+            },
+            "50": {
+              value: {
+                _dark: "#9ca3af",
+                base: "#737373",
+              },
+            },
+            "60": {
+              value: {
+                _dark: "#dde0e4",
+                base: "#525252",
+              },
+            },
+            "70": {
+              value: {
+                _dark: "#e5e7eb",
+                base: "#404040",
+              },
+            },
+            "80": {
+              value: {
+                _dark: "#f0f2f4",
+                base: "#262626",
+              },
+            },
+            "90": {
+              value: {
+                _dark: "#f6f8f9",
+                base: "#171717",
+              },
+            },
+            "95": {
+              value: {
+                _dark: "#f6f8f9",
+                base: "#0a0a0a",
+              },
+            },
+            "00": {
+              value: {
+                _dark: "#070a0d",
+                base: "#fafafa",
+              },
+            },
+          },
+          red: {
+            "10": {
+              value: {
+                _dark: "#991b1b",
+                base: "#fbd5d7",
+              },
+            },
+            "20": {
+              value: {
+                _dark: "#b91c1c",
+                base: "#f5a3a3",
+              },
+            },
+            "30": {
+              value: {
+                _dark: "#dc2626",
+                base: "#f17e7e",
+              },
+            },
+            "40": {
+              value: {
+                _dark: "#ef4444",
+                base: "#ed5a5a",
+              },
+            },
+            "50": {
+              value: {
+                _dark: "#f87171",
+                base: "#e93535",
+              },
+            },
+            "60": {
+              value: {
+                _dark: "#fca5a5",
+                base: "#dc1818",
+              },
+            },
+            "70": {
+              value: {
+                _dark: "#fecaca",
+                base: "#b81414",
+              },
+            },
+            "80": {
+              value: {
+                _dark: "#fee2e2",
+                base: "#931010",
+              },
+            },
+            "90": {
+              value: {
+                _dark: "#fef2f2",
+                base: "#6e0c0c",
+              },
+            },
+            "00": {
+              value: {
+                _dark: "#7f1d1d",
+                base: "#fde8e9",
+              },
+            },
+          },
+          orange: {
+            "10": {
+              value: {
+                _dark: "#9a3412",
+                base: "#ffe0b8",
+              },
+            },
+            "20": {
+              value: {
+                _dark: "#c2410c",
+                base: "#fed7aa",
+              },
+            },
+            "30": {
+              value: {
+                _dark: "#d97706",
+                base: "#fdba74",
+              },
+            },
+            "40": {
+              value: {
+                _dark: "#f97316",
+                base: "#fb923c",
+              },
+            },
+            "50": {
+              value: {
+                _dark: "#fb923c",
+                base: "#f97316",
+              },
+            },
+            "60": {
+              value: {
+                _dark: "#fdba74",
+                base: "#d97706",
+              },
+            },
+            "70": {
+              value: {
+                _dark: "#fed7aa",
+                base: "#c2410c",
+              },
+            },
+            "80": {
+              value: {
+                _dark: "#ffedd5",
+                base: "#9a3412",
+              },
+            },
+            "90": {
+              value: {
+                _dark: "#fff7ed",
+                base: "#7c2d12",
+              },
+            },
+            "00": {
+              value: {
+                _dark: "#7c2d12",
+                base: "#fff1e0",
+              },
+            },
+          },
+          green: {
+            "10": {
+              value: {
+                _dark: "#096638",
+                base: "#e4f7f3",
+              },
+            },
+            "20": {
+              value: {
+                _dark: "#0e7d4b",
+                base: "#b9ebdf",
+              },
+            },
+            "30": {
+              value: {
+                _dark: "#159663",
+                base: "#91dbc9",
+              },
+            },
+            "40": {
+              value: {
+                _dark: "#19a874",
+                base: "#4fc29e",
+              },
+            },
+            "50": {
+              value: {
+                _dark: "#4fc29e",
+                base: "#19a874",
+              },
+            },
+            "60": {
+              value: {
+                _dark: "#91dbc9",
+                base: "#159663",
+              },
+            },
+            "70": {
+              value: {
+                _dark: "#b9ebdf",
+                base: "#0e7d4b",
+              },
+            },
+            "80": {
+              value: {
+                _dark: "#e4f7f3",
+                base: "#096638",
+              },
+            },
+            "90": {
+              value: {
+                _dark: "#edfaf7",
+                base: "#054d27",
+              },
+            },
+            "00": {
+              value: {
+                _dark: "#054d27",
+                base: "#edfaf7",
+              },
+            },
+          },
+          blue: {
+            "10": {
+              value: {
+                _dark: "#0e2e8c",
+                base: "#daf0ff",
+              },
+            },
+            "20": {
+              value: {
+                _dark: "#1541b0",
+                base: "#bee6ff",
+              },
+            },
+            "30": {
+              value: {
+                _dark: "#1c62e3",
+                base: "#78c0fc",
+              },
+            },
+            "40": {
+              value: {
+                _dark: "#266df0",
+                base: "#56b0fb",
+              },
+            },
+            "50": {
+              value: {
+                _dark: "#629df0",
+                base: "#34a0fa",
+              },
+            },
+            "60": {
+              value: {
+                _dark: "#a3cff7",
+                base: "#2a80c8",
+              },
+            },
+            "70": {
+              value: {
+                _dark: "#c5e3fa",
+                base: "#0666c6",
+              },
+            },
+            "80": {
+              value: {
+                _dark: "#e5eeff",
+                base: "#05529e",
+              },
+            },
+            "90": {
+              value: {
+                _dark: "#f5fbff",
+                base: "#043d77",
+              },
+            },
+            "00": {
+              value: {
+                _dark: "#071e69",
+                base: "#eff9ff",
+              },
+            },
+          },
+          neutral: {
+            white: {
+              value: {
+                _dark: "#000000",
+                base: "#ffffff",
+              },
+            },
+            black: {
+              value: {
+                _dark: "#ffffff",
+                base: "#000000",
+              },
+            },
+          },
+          purple: {
+            "10": {
+              value: {
+                _dark: "#2d138f",
+                base: "#e0d6fc",
+              },
+            },
+            "20": {
+              value: {
+                _dark: "#401db3",
+                base: "#c2adf8",
+              },
+            },
+            "30": {
+              value: {
+                _dark: "#5429d6",
+                base: "#a385f5",
+              },
+            },
+            "40": {
+              value: {
+                _dark: "#6633ee",
+                base: "#865cf1",
+              },
+            },
+            "50": {
+              value: {
+                _dark: "#865cf1",
+                base: "#6633ee",
+              },
+            },
+            "60": {
+              value: {
+                _dark: "#a385f5",
+                base: "#5429d6",
+              },
+            },
+            "70": {
+              value: {
+                _dark: "#c2adf8",
+                base: "#401db3",
+              },
+            },
+            "80": {
+              value: {
+                _dark: "#e0d6fc",
+                base: "#2d138f",
+              },
+            },
+            "90": {
+              value: {
+                _dark: "#eee6f3",
+                base: "#1d0a6b",
+              },
+            },
+            "00": {
+              value: {
+                _dark: "#1d0a6b",
+                base: "#eee6f3",
+              },
+            },
+          },
+          pink: {
+            "10": {
+              value: {
+                _dark: "#9d174d",
+                base: "#fce7f3",
+              },
+            },
+            "20": {
+              value: {
+                _dark: "#be185d",
+                base: "#fbcfe8",
+              },
+            },
+            "30": {
+              value: {
+                _dark: "#db2777",
+                base: "#f9a8d4",
+              },
+            },
+            "40": {
+              value: {
+                _dark: "#ec4899",
+                base: "#f174b2",
+              },
+            },
+            "50": {
+              value: {
+                _dark: "#f174b2",
+                base: "#ec4899",
+              },
+            },
+            "60": {
+              value: {
+                _dark: "#f9a8d4",
+                base: "#db2777",
+              },
+            },
+            "70": {
+              value: {
+                _dark: "#fbcfe8",
+                base: "#be185d",
+              },
+            },
+            "80": {
+              value: {
+                _dark: "#fce7f3",
+                base: "#9d174d",
+              },
+            },
+            "90": {
+              value: {
+                _dark: "#fdf2f8",
+                base: "#831843",
+              },
+            },
+            "00": {
+              value: {
+                _dark: "#831843",
+                base: "#fdf2f8",
+              },
+            },
+          },
+          yellow: {
+            "10": {
+              value: {
+                _dark: "#854d0e",
+                base: "#fef9c3",
+              },
+            },
+            "20": {
+              value: {
+                _dark: "#a16207",
+                base: "#fef08a",
+              },
+            },
+            "30": {
+              value: {
+                _dark: "#ca8a04",
+                base: "#fde047",
+              },
+            },
+            "40": {
+              value: {
+                _dark: "#eab308",
+                base: "#facc15",
+              },
+            },
+            "50": {
+              value: {
+                _dark: "#facc15",
+                base: "#eab308",
+              },
+            },
+            "60": {
+              value: {
+                _dark: "#fde047",
+                base: "#ca8a04",
+              },
+            },
+            "70": {
+              value: {
+                _dark: "#fef08a",
+                base: "#a16207",
+              },
+            },
+            "80": {
+              value: {
+                _dark: "#fef9c3",
+                base: "#854d0e",
+              },
+            },
+            "90": {
+              value: {
+                _dark: "#fefce8",
+                base: "#713f12",
+              },
+            },
+            "00": {
+              value: {
+                _dark: "#713f12",
+                base: "#fefce8",
+              },
+            },
+          },
+          custom: {
+            "10": {
+              value: {
+                _dark: "#0e2e8c",
+                base: "#bbdffd",
+              },
+            },
+            "20": {
+              value: {
+                _dark: "#1541b0",
+                base: "#9ad0fd",
+              },
+            },
+            "30": {
+              value: {
+                _dark: "#1c62e3",
+                base: "#78c0fc",
+              },
+            },
+            "40": {
+              value: {
+                _dark: "#266df0",
+                base: "#56b0fb",
+              },
+            },
+            "50": {
+              value: {
+                _dark: "#629df0",
+                base: "#2070e6",
+              },
+            },
+            "60": {
+              value: {
+                _dark: "#a3cff7",
+                base: "#1567e0",
+              },
+            },
+            "70": {
+              value: {
+                _dark: "#c5e3fa",
+                base: "#0666c6",
+              },
+            },
+            "80": {
+              value: {
+                _dark: "#e5eeff",
+                base: "#05529e",
+              },
+            },
+            "90": {
+              value: {
+                _dark: "#f5fbff",
+                base: "#043d77",
+              },
+            },
+            "00": {
+              value: {
+                _dark: "#071e69",
+                base: "#ddeffe",
+              },
+            },
+          },
+          grayalpha: {
+            "10": {
+              value: {
+                _dark: "#ffffff",
+                base: "#000000",
+              },
+            },
+            "20": {
+              value: {
+                _dark: "#ffffff",
+                base: "#000000",
+              },
+            },
+            "30": {
+              value: {
+                _dark: "#ffffff",
+                base: "#000000",
+              },
+            },
+            "40": {
+              value: {
+                _dark: "#ffffff",
+                base: "#000000",
+              },
+            },
+            "50": {
+              value: {
+                _dark: "#ffffff",
+                base: "#000000",
+              },
+            },
+            "60": {
+              value: {
+                _dark: "#ffffff",
+                base: "#000000",
+              },
+            },
+            "70": {
+              value: {
+                _dark: "#ffffff",
+                base: "#000000",
+              },
+            },
+            "80": {
+              value: {
+                _dark: "#ffffff",
+                base: "#000000",
+              },
+            },
+            "90": {
+              value: {
+                _dark: "#ffffff",
+                base: "#000000",
+              },
+            },
+            "95": {
+              value: {
+                _dark: "#ffffff",
+                base: "#000000",
+              },
+            },
+            "00": {
+              value: {
+                _dark: "#ffffff",
+                base: "#000000",
+              },
+            },
+          },
+          customalpha: {
+            "10": {
+              value: {
+                _dark: "#0e2e8c",
+                base: "#2679f3",
+              },
+            },
+            "20": {
+              value: {
+                _dark: "#1541b0",
+                base: "#2679f3",
+              },
+            },
+            "30": {
+              value: {
+                _dark: "#1c62e3",
+                base: "#2679f3",
+              },
+            },
+            "40": {
+              value: {
+                _dark: "#266df0",
+                base: "#2679f3",
+              },
+            },
+            "50": {
+              value: {
+                _dark: "#629df0",
+                base: "#2679f3",
+              },
+            },
+            "60": {
+              value: {
+                _dark: "#a3cff7",
+                base: "#1567e0",
+              },
+            },
+            "70": {
+              value: {
+                _dark: "#c5e3fa",
+                base: "#2679f3",
+              },
+            },
+            "80": {
+              value: {
+                _dark: "#e5eeff",
+                base: "#2679f3",
+              },
+            },
+            "90": {
+              value: {
+                _dark: "#f5fbff",
+                base: "#2679f3",
+              },
+            },
+            "00": {
+              value: {
+                _dark: "#071e69",
+                base: "#2679f3",
+              },
+            },
+          },
+          whitealpha: {
+            "10": {
+              value: {
+                _dark: "#000000",
+                base: "#ffffff",
+              },
+            },
+            "20": {
+              value: {
+                _dark: "#000000",
+                base: "#ffffff",
+              },
+            },
+            "30": {
+              value: {
+                _dark: "#ffffff",
+                base: "#ffffff",
+              },
+            },
+            "40": {
+              value: {
+                _dark: "#ffffff",
+                base: "#ffffff",
+              },
+            },
+            "50": {
+              value: {
+                _dark: "#ffffff",
+                base: "#ffffff",
+              },
+            },
+            "60": {
+              value: {
+                _dark: "#ffffff",
+                base: "#ffffff",
+              },
+            },
+            "70": {
+              value: {
+                _dark: "#ffffff",
+                base: "#ffffff",
+              },
+            },
+            "80": {
+              value: {
+                _dark: "#ffffff",
+                base: "#ffffff",
+              },
+            },
+            "90": {
+              value: {
+                _dark: "#ffffff",
+                base: "#ffffff",
+              },
+            },
+            "95": {
+              value: {
+                _dark: "#ffffff",
+                base: "#ffffff",
+              },
+            },
+            "00": {
+              value: {
+                _dark: "#000000",
+                base: "#ffffff",
+              },
+            },
+          },
         },
       },
     },

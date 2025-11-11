@@ -2,12 +2,13 @@ use std::{
     fs::{self, File},
     io::{self, Cursor},
     path::{Path, PathBuf},
+    time::Instant,
 };
 
-use error_stack::{Report, ReportSink, ResultExt as _, TryReportTupleExt as _};
+use error_stack::{Report, ReportSink, ResultExt as _};
 use guppy::graph::PackageMetadata;
 use hashql_ast::node::expr::Expr;
-use hashql_core::{heap::Heap, span::SpanTable};
+use hashql_core::{collections::FastHashMap, heap::Heap, span::SpanTable};
 use hashql_diagnostics::source::SourceId;
 use hashql_syntax_jexpr::{Parser, span::Span};
 use line_index::LineIndex;
@@ -20,7 +21,7 @@ use crate::{
     annotation::directive::RunMode,
     reporter::Statistics,
     styles::{BLUE, CYAN, GRAY, GREEN, RED, YELLOW},
-    suite::{SuiteDiagnostic, find_suite},
+    suite::{RunContext, RunContextPartial, SuiteDiagnostic, find_suite},
 };
 
 fn parse_source<'heap>(
@@ -68,23 +69,29 @@ fn assert_output(
     Err(Report::new(error))
 }
 
+type SuiteOutput = (
+    Option<String>,
+    Vec<SuiteDiagnostic>,
+    FastHashMap<&'static str, String>,
+);
+
 pub(crate) struct TrialDescription {
     pub package: String,
     pub namespace: Vec<String>,
     pub name: String,
 }
 
-pub(crate) struct Trial {
+pub(crate) struct Trial<'stats> {
     pub suite: &'static dyn Suite,
     pub path: PathBuf,
     pub namespace: Vec<String>,
     pub ignore: bool,
     pub annotations: FileAnnotations,
-    pub statistics: Statistics,
+    pub statistics: &'stats Statistics,
 }
 
-impl Trial {
-    pub(crate) fn from_test(case: TestCase, statistics: &Statistics) -> Self {
+impl<'stats> Trial<'stats> {
+    pub(crate) fn from_test(case: TestCase, statistics: &'stats Statistics) -> Self {
         let suite = find_suite(&case.spec.suite).expect("suite should be available");
 
         let file = File::open_buffered(&case.path).expect("should be able to open file");
@@ -106,7 +113,7 @@ impl Trial {
             namespace: case.namespace,
             ignore: matches!(annotations.directive.run, RunMode::Skip { .. }),
             annotations,
-            statistics: statistics.clone(),
+            statistics,
         }
     }
 
@@ -137,6 +144,10 @@ impl Trial {
 
     fn stderr_file(&self) -> PathBuf {
         self.path.with_extension("stderr")
+    }
+
+    fn secondary_file(&self, extension: &str) -> PathBuf {
+        self.path.with_extension(format!("aux.{extension}"))
     }
 
     pub(crate) fn list(
@@ -189,6 +200,7 @@ impl Trial {
             return Ok(());
         }
 
+        let now = Instant::now();
         tracing::debug!("running trial");
 
         let result = self
@@ -201,10 +213,10 @@ impl Trial {
 
         if result.is_ok() {
             tracing::info!("trial passed");
-            self.statistics.increase_passed();
+            self.statistics.increase_passed(now.elapsed());
         } else {
             tracing::error!("trial failed");
-            self.statistics.increase_failed();
+            self.statistics.increase_failed(now.elapsed());
         }
 
         result
@@ -220,7 +232,7 @@ impl Trial {
 
         let (expr, spans) = parse_source(&source, &heap)?;
 
-        let (received_stdout, diagnostics) = self.run_suite(&heap, expr)?;
+        let (received_stdout, diagnostics, secondary) = self.run_suite(&heap, expr)?;
 
         let mut sink = ReportSink::new_armed();
 
@@ -236,9 +248,13 @@ impl Trial {
         let received_stderr = render_stderr(&source, &spans, &diagnostics);
 
         let result = if context.bless {
-            self.bless_outputs(received_stdout.as_deref(), received_stderr.as_deref())
+            self.bless_outputs(
+                received_stdout.as_deref(),
+                received_stderr.as_deref(),
+                secondary,
+            )
         } else {
-            self.assert_outputs(received_stdout, received_stderr)
+            self.assert_outputs(received_stdout, received_stderr, secondary)
         };
 
         if let Err(report) = result {
@@ -266,17 +282,30 @@ impl Trial {
         &self,
         heap: &'heap Heap,
         expr: Expr<'heap>,
-    ) -> Result<(Option<String>, Vec<SuiteDiagnostic>), Report<TrialError>> {
+    ) -> Result<SuiteOutput, Report<[TrialError]>> {
         let mut diagnostics = Vec::new();
+        let mut secondary_outputs = FastHashMap::default();
+        let mut reports = ReportSink::new_armed();
 
-        let result = self.suite.run(heap, expr, &mut diagnostics);
+        let result = self.suite.run(
+            RunContext::new(RunContextPartial {
+                heap,
+                diagnostics: &mut diagnostics,
+                suite_directives: &self.annotations.directive.suite,
+                secondary_outputs: &mut secondary_outputs,
+                reports: &mut reports,
+            }),
+            expr,
+        );
+
+        reports.finish()?;
 
         if self.annotations.directive.run == RunMode::Pass && result.is_err() {
-            return Err(Report::new(TrialError::TrialShouldPass));
+            return Err(Report::new(TrialError::TrialShouldPass).expand());
         }
 
         if self.annotations.directive.run == RunMode::Fail && result.is_ok() {
-            return Err(Report::new(TrialError::TrialShouldFail));
+            return Err(Report::new(TrialError::TrialShouldFail).expand());
         }
 
         let (received_stdout, fatal_diagnostic) = match result {
@@ -288,34 +317,70 @@ impl Trial {
             diagnostics.push(fatal);
         }
 
-        Ok((received_stdout, diagnostics))
+        Ok((received_stdout, diagnostics, secondary_outputs))
     }
 
     fn bless_outputs(
         &self,
         stdout: Option<&str>,
         stderr: Option<&str>,
+        mut secondary: FastHashMap<&'static str, String>,
     ) -> Result<(), Report<[TrialError]>> {
         let stdout_file = self.stdout_file();
         let stderr_file = self.stderr_file();
 
-        let stdout = bless_output(&stdout_file, stdout);
-        let stderr = bless_output(&stderr_file, stderr);
+        let mut sink = ReportSink::new_armed();
 
-        (stdout, stderr).try_collect().map(|((), ())| ())
+        sink.attempt(bless_output(&stdout_file, stdout));
+        sink.attempt(bless_output(&stderr_file, stderr));
+
+        for extension in self.suite.secondary_file_extensions() {
+            let file = self.secondary_file(extension);
+            let content = secondary.remove(extension);
+            sink.attempt(bless_output(&file, content.as_deref()));
+        }
+
+        for (remaining, _) in secondary {
+            sink.capture(TrialError::UnexpectedSecondaryFile(remaining));
+        }
+
+        sink.finish()
     }
 
     fn assert_outputs(
         &self,
         received_stdout: Option<String>,
         received_stderr: Option<String>,
+        mut secondary: FastHashMap<&'static str, String>,
     ) -> Result<(), Report<[TrialError]>> {
         let stdout_file = self.stdout_file();
         let stderr_file = self.stderr_file();
 
-        let stdout = assert_output(received_stdout, &stdout_file, TrialError::StdoutDiscrepancy);
-        let stderr = assert_output(received_stderr, &stderr_file, TrialError::StderrDiscrepancy);
+        let mut sink = ReportSink::new_armed();
 
-        (stdout, stderr).try_collect().map(|((), ())| ())
+        sink.attempt(assert_output(
+            received_stdout,
+            &stdout_file,
+            TrialError::StdoutDiscrepancy,
+        ));
+        sink.attempt(assert_output(
+            received_stderr,
+            &stderr_file,
+            TrialError::StderrDiscrepancy,
+        ));
+
+        for extension in self.suite.secondary_file_extensions() {
+            let file = self.secondary_file(extension);
+            let content = secondary.remove(extension);
+            sink.attempt(assert_output(content, &file, |diff| {
+                TrialError::SecondaryFileDiscrepancy(extension, diff)
+            }));
+        }
+
+        for (remaining, _) in secondary {
+            sink.capture(TrialError::UnexpectedSecondaryFile(remaining));
+        }
+
+        sink.finish()
     }
 }

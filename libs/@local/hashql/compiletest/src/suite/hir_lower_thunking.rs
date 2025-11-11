@@ -4,7 +4,7 @@ use hashql_ast::node::expr::Expr;
 use hashql_core::{
     heap::Heap,
     module::ModuleRegistry,
-    pretty::{PrettyOptions, PrettyPrint as _},
+    pretty::{Formatter, RenderOptions},
     r#type::environment::Environment,
 };
 use hashql_hir::{
@@ -15,12 +15,12 @@ use hashql_hir::{
         thunking::Thunking,
     },
     node::Node,
-    pretty::PrettyPrintEnvironment,
+    pretty::NodeFormatter,
 };
 
 use super::{
-    Suite, SuiteDiagnostic, hir_lower_alias_replacement::TestOptions,
-    hir_lower_normalization::hir_lower_normalization,
+    RunContext, Suite, SuiteDiagnostic, hir_lower_alias_replacement::TestOptions,
+    hir_lower_graph_hoisting::hir_lower_graph_hoisting,
 };
 use crate::suite::common::Header;
 
@@ -31,13 +31,13 @@ pub(crate) fn hir_lower_thunking<'heap>(
     context: &mut HirContext<'_, 'heap>,
     options: &mut TestOptions,
 ) -> Result<Node<'heap>, SuiteDiagnostic> {
-    let node = hir_lower_normalization(heap, expr, environment, context, options)?;
+    let node = hir_lower_graph_hoisting(heap, expr, environment, context, options)?;
 
-    let thunking = Thunking::new(context);
+    let thunking = Thunking::new(context, environment);
     let node = thunking.run(node);
 
     let mut normalization_state = NormalizationState::default();
-    let normalization = Normalization::new(context, &mut normalization_state);
+    let normalization = Normalization::new(context, environment, &mut normalization_state);
     let node = normalization.run(node);
 
     Ok(node)
@@ -52,9 +52,10 @@ impl Suite for HirLowerThunkingSuite {
 
     fn run<'heap>(
         &self,
-        heap: &'heap Heap,
+        RunContext {
+            heap, diagnostics, ..
+        }: RunContext<'_, 'heap>,
         expr: Expr<'heap>,
-        diagnostics: &mut Vec<SuiteDiagnostic>,
     ) -> Result<String, SuiteDiagnostic> {
         let mut environment = Environment::new(expr.span, heap);
         let registry = ModuleRegistry::new(&environment);
@@ -75,17 +76,14 @@ impl Suite for HirLowerThunkingSuite {
             },
         )?;
 
+        let formatter = Formatter::new(heap);
+        let mut formatter = NodeFormatter::with_defaults(&formatter, &environment, &context);
+
         let _ = writeln!(
             output,
             "\n{}\n\n{}",
             Header::new("HIR after thunking"),
-            node.pretty_print(
-                &PrettyPrintEnvironment {
-                    env: &environment,
-                    symbols: &context.symbols,
-                },
-                PrettyOptions::default().without_color()
-            )
+            formatter.render(node, RenderOptions::default().with_plain())
         );
 
         Ok(output)

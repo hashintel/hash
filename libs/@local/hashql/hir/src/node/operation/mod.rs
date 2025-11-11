@@ -1,10 +1,12 @@
 pub use self::{
     binary::{BinOp, BinaryOperation},
+    input::{InputOp, InputOperation},
     r#type::{TypeAssertion, TypeConstructor, TypeOperation},
     unary::{UnOp, UnaryOperation},
 };
 
 mod binary;
+mod input;
 mod r#type;
 mod unary;
 
@@ -21,4 +23,6 @@ pub enum Operation<'heap> {
     Binary(BinaryOperation<'heap>),
     /// Operations with a single operand (negation, not)
     Unary(UnaryOperation<'heap>, !),
+    /// Operations that work with externally supplied input values
+    Input(InputOperation<'heap>),
 }

@@ -54,7 +54,7 @@ impl PermissionResource {
             Router::new()
                 .route("/", post(create_policy::<S>))
                 .nest(
-                    "/:policy_id",
+                    "/{policy_id}",
                     Router::new()
                         .route(
                             "/",

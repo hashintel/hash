@@ -38,9 +38,6 @@ const sentryWebpackPluginOptions = {
 process.env.NEXT_PUBLIC_SHOW_WORKER_COST =
   process.env.SHOW_WORKER_COST ?? "false";
 
-process.env.NEXT_PUBLIC_HASH_OPENSEARCH_ENABLED =
-  process.env.HASH_OPENSEARCH_ENABLED ?? "false";
-
 // This allows the frontend to generate the graph type IDs in the browser
 process.env.NEXT_PUBLIC_FRONTEND_URL = process.env.FRONTEND_URL;
 

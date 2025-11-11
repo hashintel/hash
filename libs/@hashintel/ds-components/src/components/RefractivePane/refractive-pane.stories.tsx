@@ -1,5 +1,5 @@
 import { css } from "@hashintel/ds-helpers/css";
-import type { Meta, StoryObj } from "@storybook/react-vite";
+import type { Meta } from "@storybook/react-vite";
 import {
   ArrowUpRight,
   Box,
@@ -16,7 +16,7 @@ import { ExampleArticle } from "../../playground/example-article";
 import { RefractivePane } from "./refractive-pane";
 
 const meta = {
-  title: "Component Library/RefractivePane",
+  title: "Components/RefractivePane",
   component: RefractivePane,
   tags: ["docsPage"],
   parameters: {
@@ -101,8 +101,6 @@ const meta = {
 
 export default meta;
 
-type Story = StoryObj<typeof meta>;
-
 // Extended args type for stories that include child control properties
 type ExtendedArgs = typeof meta.args & {
   childWidth: number;
@@ -110,21 +108,6 @@ type ExtendedArgs = typeof meta.args & {
   childContent: string;
   width: number;
   height: number;
-};
-
-export const Default: Story = {};
-
-export const OpticalProperties: Story = {
-  args: {
-    radius: 20,
-    blur: 10,
-    specularOpacity: 0.8,
-    scaleRatio: 1.3,
-    bezelWidth: 25,
-    glassThickness: 120,
-    refractiveIndex: 1.8,
-  },
-  parameters: {},
 };
 
 export const WithDynamicallySizedChildren = {
@@ -218,11 +201,11 @@ export const WithDynamicallySizedChildren = {
           transition: "all",
           transitionDuration: "0.3s",
           transitionTimingFunction: "cubic-bezier(0.175, 0.885, 0.32, 1.275)",
-          backgroundColor: "whiteAlpha.10",
+          backgroundColor: "core.whitealpha.10",
           _hover: {
             shadow: "2xl",
             transform: "scale(1.02)",
-            backgroundColor: "grayAlpha.40",
+            backgroundColor: "core.grayalpha.40",
           },
         })}
         radius={args.radius}
@@ -324,25 +307,25 @@ export const WithScrollableContent = {
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        padding: "2",
+        padding: "spacing.1",
         border: "none",
         cursor: "pointer",
         transition: "all",
         transitionDuration: "200ms",
-        backgroundColor: isSelected ? "blue.60" : undefined,
+        backgroundColor: isSelected ? "core.blue.60" : undefined,
         _hover: {
           transform: "scale(1.05)",
-          backgroundColor: isSelected ? "blue.70" : "whiteAlpha.20",
+          backgroundColor: isSelected ? "core.blue.70" : "core.whitealpha.20",
         },
         _active: {
           transform: "scale(0.95)",
-          backgroundColor: isSelected ? "blue.80" : "whiteAlpha.30",
+          backgroundColor: isSelected ? "core.blue.80" : "core.whitealpha.30",
         },
       });
 
     const getIconStyle = (isSelected: boolean) =>
       css({
-        color: isSelected ? "neutral.white" : "neutral.black",
+        color: isSelected ? "core.neutral.white" : "core.neutral.black",
         textShadow: isSelected
           ? undefined
           : "[0 1px 4px 2px rgba(255, 255, 255, 1)]",
@@ -366,14 +349,14 @@ export const WithScrollableContent = {
         className={css({
           display: "flex",
           alignItems: "center",
-          gap: "1",
+          gap: "spacing.1",
           shadow: "md",
-          backgroundColor: "whiteAlpha.30",
+          backgroundColor: "core.whitealpha.30",
           transition: "[all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)]",
           _hover: {
             transform: "scale(1.03)",
             shadow: "lg",
-            backgroundColor: "whiteAlpha.50",
+            backgroundColor: "core.whitealpha.50",
           },
         })}
         {...refractiveProps}

@@ -75,9 +75,9 @@ export const Switch: React.FC<SwitchProps> = ({
             display: "inline-block",
             cursor: disabled ? "not-allowed" : "pointer",
             transition: "[all 0.2s ease]",
-            backgroundColor: "gray.40",
+            backgroundColor: "core.gray.40",
             _checked: {
-              backgroundColor: "green.40",
+              backgroundColor: "core.green.40",
             },
           })}
         >

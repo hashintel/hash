@@ -151,7 +151,7 @@ jobs:
           echo '```' >> $GITHUB_STEP_SUMMARY
 
       - name: Upload SARIF file
-        uses: github/codeql-action/upload-sarif@a8d1ac45b9a34d11fe398d5503176af0d06b303e # v3.30.7
+        uses: github/codeql-action/upload-sarif@5d5cd550d3e189c569da8f16ea8de2d821c9bf7a # v3.31.2
         if: always() && steps.lints.outputs.clippy == 'true'
         with:
           sarif_file: ${{ matrix.path }}/clippy.sarif
@@ -176,6 +176,10 @@ jobs:
 
   global:
     name: Global
+    permissions:
+      contents: read
+      checks: write
+      pull-requests: write
     runs-on: ubuntu-24.04
     steps:
       - name: Checkout repository
@@ -263,6 +267,22 @@ jobs:
             echo ''
             echo 'ℹ️ ℹ️ ℹ️'
             echo 'Try running `yarn fix:package-json` locally to apply autofixes.'
+            echo 'ℹ️ ℹ️ ℹ️'
+            exit 1
+          fi
+
+      - name: Validate Claude Code skills
+        if: ${{ success() || failure() }}
+        run: |
+          if ! yarn lint:skill; then
+            echo ''
+            echo ''
+            echo 'ℹ️ ℹ️ ℹ️'
+            echo 'Claude Code skill validation failed. Common issues:'
+            echo '  • Invalid JSON in .claude/skills/skill-rules.json'
+            echo '  • Missing SKILL.md files'
+            echo '  • Invalid regex patterns in intentPatterns'
+            echo 'Try running `yarn lint:skill` locally to see details.'
             echo 'ℹ️ ℹ️ ℹ️'
             exit 1
           fi
