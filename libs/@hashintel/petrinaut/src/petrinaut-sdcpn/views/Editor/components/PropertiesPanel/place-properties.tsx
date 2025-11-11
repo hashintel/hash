@@ -1,7 +1,7 @@
 /* eslint-disable id-length */
 import MonacoEditor from "@monaco-editor/react";
 import { useEffect, useMemo, useState } from "react";
-import { TbDotsVertical, TbSparkles } from "react-icons/tb";
+import { TbArrowRight, TbDotsVertical, TbSparkles } from "react-icons/tb";
 
 import { Menu } from "../../../../components/menu";
 import { Switch } from "../../../../components/switch";
@@ -159,6 +159,7 @@ export const PlaceProperties: React.FC<PlacePropertiesProps> = ({
             backgroundColor:
               globalMode === "simulate" ? "rgba(0, 0, 0, 0.05)" : "white",
             cursor: globalMode === "simulate" ? "not-allowed" : "pointer",
+            marginBottom: place.type ? 8 : 0,
           }}
         >
           <option value="">None</option>
@@ -168,6 +169,32 @@ export const PlaceProperties: React.FC<PlacePropertiesProps> = ({
             </option>
           ))}
         </select>
+
+        {place.type && (
+          <div style={{ textAlign: "right" }}>
+            <button
+              type="button"
+              onClick={() => {
+                setSelectedItemIds(new Set([place.type!]));
+              }}
+              style={{
+                fontSize: 12,
+                padding: "4px 8px",
+                border: "1px solid rgba(0, 0, 0, 0.2)",
+                borderRadius: 4,
+                backgroundColor: "white",
+                cursor: "pointer",
+                color: "#333",
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 6,
+              }}
+            >
+              Jump to Type
+              <TbArrowRight style={{ fontSize: 14 }} />
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Initial State section - only in Simulate mode */}
@@ -333,9 +360,13 @@ export const PlaceProperties: React.FC<PlacePropertiesProps> = ({
                   backgroundColor: "white",
                   cursor: "pointer",
                   color: "#333",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 6,
                 }}
               >
                 Jump to Differential Equation
+                <TbArrowRight style={{ fontSize: 14 }} />
               </button>
             </div>
           )}
