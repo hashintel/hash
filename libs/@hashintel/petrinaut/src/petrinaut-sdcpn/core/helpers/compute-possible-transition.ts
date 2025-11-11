@@ -212,7 +212,7 @@ export function computePossibleTransition(
 
       return {
         // Map from place ID to set of token indices to remove
-        // Need to provide better typing here, to not let TS infer to any[]
+        // TODO: Need to provide better typing here, to not let TS infer to any[]
         // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
         remove: Object.fromEntries([
           ...inputPlacesWithZeroDimensions.map((place) => {

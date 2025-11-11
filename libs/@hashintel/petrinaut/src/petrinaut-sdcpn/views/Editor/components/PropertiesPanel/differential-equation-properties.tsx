@@ -1,5 +1,5 @@
 /* eslint-disable id-length */
-/* eslint-disable curly */
+
 import MonacoEditor from "@monaco-editor/react";
 import { useState } from "react";
 import { TbDotsVertical, TbSparkles } from "react-icons/tb";
@@ -171,6 +171,7 @@ export const DifferentialEquationProperties: React.FC<
                       type.id === differentialEquation.typeId
                         ? "rgba(0, 0, 0, 0.05)"
                         : "transparent",
+
                     cursor: "pointer",
                     display: "flex",
                     alignItems: "center",
@@ -208,6 +209,7 @@ export const DifferentialEquationProperties: React.FC<
 
       {/* Confirmation Dialog */}
       {showConfirmDialog && (
+        // eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions
         <div
           style={{
             position: "fixed",
@@ -223,6 +225,7 @@ export const DifferentialEquationProperties: React.FC<
           }}
           onClick={cancelTypeChange}
         >
+          {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions */}
           <div
             style={{
               backgroundColor: "white",
@@ -231,7 +234,7 @@ export const DifferentialEquationProperties: React.FC<
               maxWidth: 400,
               boxShadow: "0 4px 16px rgba(0, 0, 0, 0.2)",
             }}
-            onClick={(e) => e.stopPropagation()}
+            onClick={(ev) => ev.stopPropagation()}
           >
             <div style={{ fontWeight: 600, fontSize: 16, marginBottom: 12 }}>
               Change Associated Type?

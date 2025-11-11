@@ -85,6 +85,7 @@ export const SimulationStateSection: React.FC = () => {
 
         {/* Time Step Input */}
         <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+          {/* eslint-disable-next-line jsx-a11y/label-has-associated-control -- it can't tell it's the same ID */}
           <label
             htmlFor="time-step-input"
             style={{
@@ -123,6 +124,7 @@ export const SimulationStateSection: React.FC = () => {
 
         {/* ODE Solver Method Select */}
         <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+          {/* eslint-disable-next-line jsx-a11y/label-has-associated-control -- it can't tell it's the same ID */}
           <label
             htmlFor="ode-solver-select"
             style={{

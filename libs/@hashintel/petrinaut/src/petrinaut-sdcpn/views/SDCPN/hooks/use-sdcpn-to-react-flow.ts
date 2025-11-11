@@ -1,6 +1,6 @@
 import { MarkerType } from "reactflow";
 
-import type { SDCPN } from "../../../../core/types/sdcpn";
+import type { SDCPN } from "../../../core/types/sdcpn";
 import { useEditorStore } from "../../../state/editor-provider";
 import type {
   NodeType,
