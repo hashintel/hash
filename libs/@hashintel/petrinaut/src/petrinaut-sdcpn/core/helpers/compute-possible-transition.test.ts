@@ -11,9 +11,10 @@ describe("computePossibleTransition", () => {
       title: "Test SDCPN",
       places: new Map(),
       transitions: new Map(),
+      types: new Map(),
       differentialEquationFns: new Map(),
       lambdaFns: new Map([["t1", () => 1.0]]),
-      transitionKernelFns: new Map([["t1", () => [[[1.0]]]]]),
+      transitionKernelFns: new Map([["t1", () => ({ p2: [{ x: 1.0 }] })]]),
       parameterValues: {},
       dt: 0.1,
       rngState: 42,
@@ -77,8 +78,45 @@ describe("computePossibleTransition", () => {
     const simulation: SimulationInstance = {
       id: "test-sdcpn",
       title: "Test SDCPN",
-      places: new Map(),
+      places: new Map([
+        [
+          "p1",
+          {
+            id: "p1",
+            name: "Place 1",
+            type: "type1",
+            dynamicsEnabled: false,
+            differentialEquationCode: null,
+            x: 0,
+            y: 0,
+          },
+        ],
+        [
+          "p2",
+          {
+            id: "p2",
+            name: "Place 2",
+            type: "type1",
+            dynamicsEnabled: false,
+            differentialEquationCode: null,
+            x: 0,
+            y: 0,
+          },
+        ],
+      ]),
       transitions: new Map(),
+      types: new Map([
+        [
+          "type1",
+          {
+            id: "type1",
+            name: "Type1",
+            iconId: "circle",
+            colorCode: "#FF0000",
+            elements: [{ id: "e1", name: "x", type: "real" }],
+          },
+        ],
+      ]),
       differentialEquationFns: new Map(),
       // Lambda function that returns a high value to ensure transition fires
       lambdaFns: new Map([["t1", () => 10.0]]),
@@ -88,7 +126,7 @@ describe("computePossibleTransition", () => {
           "t1",
           (_tokenValues) => {
             // Return the same structure with modified values
-            return [[[2.0]]];
+            return { "Place 2": [{ x: 2.0 }] };
           },
         ],
       ]),
@@ -110,13 +148,30 @@ describe("computePossibleTransition", () => {
               id: "p1",
               name: "Place 1",
               differentialEquationCode: null,
-              type: null,
+              type: "type1",
               dynamicsEnabled: false,
               x: 0,
               y: 0,
             },
             offset: 0,
             count: 2, // 2 tokens available
+            dimensions: 1,
+          },
+        ],
+        [
+          "p2",
+          {
+            instance: {
+              id: "p2",
+              name: "Place 2",
+              differentialEquationCode: null,
+              type: "type1",
+              dynamicsEnabled: false,
+              x: 0,
+              y: 0,
+            },
+            offset: 2,
+            count: 0,
             dimensions: 1,
           },
         ],

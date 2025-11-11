@@ -20,7 +20,16 @@ describe("SimulationStore", () => {
         ],
       },
     ],
-    differentialEquations: [],
+    differentialEquations: [
+      {
+        id: "diffeq1",
+        name: "Differential Equation 1",
+        typeId: "type1",
+        code: `export default Dynamics((placeValues) => {
+          return { x: 1, y: 1 };
+        });`,
+      },
+    ],
     parameters: [],
     places: [
       {
@@ -28,8 +37,7 @@ describe("SimulationStore", () => {
         name: "Place 1",
         type: "type1",
         dynamicsEnabled: true,
-        differentialEquationCode:
-          "export default Dynamics((placeValues, t) => { return new Float64Array([0, 0]); });",
+        differentialEquationCode: { refId: "diffeq1" },
         x: 0,
         y: 0,
       },
