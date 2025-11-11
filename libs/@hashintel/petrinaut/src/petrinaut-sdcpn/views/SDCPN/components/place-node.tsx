@@ -38,18 +38,11 @@ export const PlaceNode: React.FC<NodeProps<PlaceNodeData>> = ({
 
   // Helper function to convert hex color to rgba with opacity
   const hexToRgba = (hex: string, opacity: number): string => {
-    const r = Number.parseInt(hex.slice(1, 3), 16);
-    const g = Number.parseInt(hex.slice(3, 5), 16);
-    const b = Number.parseInt(hex.slice(5, 7), 16);
-    return `rgba(${r}, ${g}, ${b}, ${opacity})`;
+    const red = Number.parseInt(hex.slice(1, 3), 16);
+    const green = Number.parseInt(hex.slice(3, 5), 16);
+    const blue = Number.parseInt(hex.slice(5, 7), 16);
+    return `rgba(${red}, ${green}, ${blue}, ${opacity})`;
   };
-
-  // Determine background color: light tint of type color if available, otherwise default
-  const backgroundColor = data.typeColor
-    ? hexToRgba(data.typeColor, 0.1) // 10% opacity tint
-    : selected
-      ? "core.blue.10"
-      : "core.gray.10";
 
   return (
     <div
@@ -120,7 +113,13 @@ export const PlaceNode: React.FC<NodeProps<PlaceNodeData>> = ({
             gap: "spacing.2",
           })}
         >
-          <div>{data.label}</div>
+          <div
+            className={css({
+              textAlign: "center",
+            })}
+          >
+            {data.label}
+          </div>
 
           {tokenCount !== null && (
             <div

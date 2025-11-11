@@ -52,10 +52,10 @@ export const Arc: React.FC<EdgeProps<ArcData>> = ({
       {/* Main edge with original style */}
       <BaseEdge id={id} path={arcPath} markerEnd={markerEnd} style={style} />
 
-      {/* Weight label */}
+      {/* Weight label - only show for weights > 1 */}
       <g transform={`translate(${labelX}, ${labelY})`}>
         {Object.entries(data?.tokenWeights ?? {})
-          .filter(([_, weight]) => weight > 0)
+          .filter(([_, weight]) => weight > 1)
           .map(([_tokenTypeId, weight], index, nonZeroWeights) => {
             const yOffset = (index - (nonZeroWeights.length - 1) / 2) * 24;
 
@@ -63,18 +63,33 @@ export const Arc: React.FC<EdgeProps<ArcData>> = ({
               <g key={_tokenTypeId} transform={`translate(0, ${yOffset})`}>
                 {/* White background for readability */}
                 <rect
-                  x="-12"
+                  x="-16"
                   y="-10"
-                  width="24"
+                  width="32"
                   height="20"
                   fill="white"
                   stroke="#ddd"
                   strokeWidth="1"
                   rx="3"
                 />
+                {/* Multiplication symbol (grayed out) */}
+                <text
+                  x="-8"
+                  y="0"
+                  textAnchor="middle"
+                  dominantBaseline="middle"
+                  style={{
+                    fontSize: 13,
+                    fontWeight: 400,
+                    fill: "#999",
+                    pointerEvents: "none",
+                  }}
+                >
+                  ×
+                </text>
                 {/* Weight number */}
                 <text
-                  x="0"
+                  x="6"
                   y="0"
                   textAnchor="middle"
                   dominantBaseline="middle"

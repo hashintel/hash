@@ -97,7 +97,13 @@ export const TransitionNode: React.FC<NodeProps<TransitionNodeData>> = ({
             gap: "spacing.2",
           })}
         >
-          <div>{label}</div>
+          <div
+            className={css({
+              textAlign: "center",
+            })}
+          >
+            {label}
+          </div>
           {justFired && (
             <div
               className={css({
