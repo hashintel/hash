@@ -95,7 +95,27 @@ export const DifferentialEquationProperties: React.FC<
         <div style={{ fontWeight: 500, fontSize: 12, marginBottom: 4 }}>
           Name
         </div>
-        <div style={{ fontSize: 14 }}>{differentialEquation.name}</div>
+        <input
+          type="text"
+          value={differentialEquation.name}
+          onChange={(event) => {
+            onUpdate(differentialEquation.id, {
+              name: event.target.value,
+            });
+          }}
+          disabled={globalMode === "simulate"}
+          style={{
+            fontSize: 14,
+            padding: "6px 8px",
+            border: "1px solid rgba(0, 0, 0, 0.1)",
+            borderRadius: 4,
+            width: "100%",
+            boxSizing: "border-box",
+            backgroundColor:
+              globalMode === "simulate" ? "rgba(0, 0, 0, 0.05)" : "white",
+            cursor: globalMode === "simulate" ? "not-allowed" : "text",
+          }}
+        />
       </div>
 
       <div>
