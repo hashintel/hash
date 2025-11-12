@@ -10,9 +10,10 @@ describe("executeTransitions", () => {
       title: "Test SDCPN",
       places: new Map(),
       transitions: new Map(),
+      types: new Map(),
       differentialEquationFns: new Map(),
       lambdaFns: new Map([["t1", () => 1.0]]),
-      transitionKernelFns: new Map([["t1", () => [[[1.0]]]]]),
+      transitionKernelFns: new Map([["t1", () => ({ p2: [{ x: 1.0 }] })]]),
       parameterValues: {},
       dt: 0.1,
       rngState: 42,
@@ -73,11 +74,50 @@ describe("executeTransitions", () => {
     const simulation: SimulationInstance = {
       id: "test-sdcpn",
       title: "Test SDCPN",
-      places: new Map(),
+      places: new Map([
+        [
+          "p1",
+          {
+            id: "p1",
+            name: "Place 1",
+            type: "type1",
+            dynamicsEnabled: false,
+            differentialEquationCode: null,
+            x: 0,
+            y: 0,
+          },
+        ],
+        [
+          "p2",
+          {
+            id: "p2",
+            name: "Place 2",
+            type: "type1",
+            dynamicsEnabled: false,
+            differentialEquationCode: null,
+            x: 0,
+            y: 0,
+          },
+        ],
+      ]),
       transitions: new Map(),
+      types: new Map([
+        [
+          "type1",
+          {
+            id: "type1",
+            name: "Type1",
+            iconId: "circle",
+            colorCode: "#FF0000",
+            elements: [{ id: "e1", name: "x", type: "real" }],
+          },
+        ],
+      ]),
       differentialEquationFns: new Map(),
       lambdaFns: new Map([["t1", () => 10.0]]),
-      transitionKernelFns: new Map([["t1", () => [[[2.0]]]]]),
+      transitionKernelFns: new Map([
+        ["t1", () => ({ "Place 2": [{ x: 2.0 }] })],
+      ]),
       parameterValues: {},
       dt: 0.1,
       rngState: 42,
@@ -95,7 +135,7 @@ describe("executeTransitions", () => {
             instance: {
               id: "p1",
               name: "Place 1",
-              type: null,
+              type: "type1",
               dynamicsEnabled: false,
               differentialEquationCode: null,
               x: 0,
@@ -112,7 +152,7 @@ describe("executeTransitions", () => {
             instance: {
               id: "p2",
               name: "Place 2",
-              type: null,
+              type: "type1",
               dynamicsEnabled: false,
               differentialEquationCode: null,
               x: 0,
@@ -167,16 +207,68 @@ describe("executeTransitions", () => {
     const simulation: SimulationInstance = {
       id: "test-sdcpn",
       title: "Test SDCPN",
-      places: new Map(),
+      places: new Map([
+        [
+          "p1",
+          {
+            id: "p1",
+            name: "Place 1",
+            type: "type1",
+            dynamicsEnabled: false,
+            differentialEquationCode: null,
+            x: 0,
+            y: 0,
+          },
+        ],
+        [
+          "p2",
+          {
+            id: "p2",
+            name: "Place 2",
+            type: "type1",
+            dynamicsEnabled: false,
+            differentialEquationCode: null,
+            x: 0,
+            y: 0,
+          },
+        ],
+        [
+          "p3",
+          {
+            id: "p3",
+            name: "Place 3",
+            type: "type1",
+            dynamicsEnabled: false,
+            differentialEquationCode: null,
+            x: 0,
+            y: 0,
+          },
+        ],
+      ]),
       transitions: new Map(),
+      types: new Map([
+        [
+          "type1",
+          {
+            id: "type1",
+            name: "Type1",
+            iconId: "circle",
+            colorCode: "#FF0000",
+            elements: [{ id: "e1", name: "x", type: "real" }],
+          },
+        ],
+      ]),
       differentialEquationFns: new Map(),
       lambdaFns: new Map([
         ["t1", () => 10.0],
         ["t2", () => 10.0],
       ]),
-      transitionKernelFns: new Map([
-        ["t1", () => [[[5.0]]]],
-        ["t2", () => [[[10.0]]]],
+      transitionKernelFns: new Map<
+        string,
+        () => Record<string, Record<string, number>[]>
+      >([
+        ["t1", () => ({ "Place 2": [{ x: 5.0 }] })],
+        ["t2", () => ({ "Place 3": [{ x: 10.0 }] })],
       ]),
       parameterValues: {},
       dt: 0.1,
@@ -195,7 +287,7 @@ describe("executeTransitions", () => {
             instance: {
               id: "p1",
               name: "Place 1",
-              type: null,
+              type: "type1",
               dynamicsEnabled: false,
               differentialEquationCode: null,
               x: 0,
@@ -212,7 +304,7 @@ describe("executeTransitions", () => {
             instance: {
               id: "p2",
               name: "Place 2",
-              type: null,
+              type: "type1",
               dynamicsEnabled: false,
               differentialEquationCode: null,
               x: 0,
@@ -229,7 +321,7 @@ describe("executeTransitions", () => {
             instance: {
               id: "p3",
               name: "Place 3",
-              type: null,
+              type: "type1",
               dynamicsEnabled: false,
               differentialEquationCode: null,
               x: 0,
@@ -301,8 +393,48 @@ describe("executeTransitions", () => {
     const simulation: SimulationInstance = {
       id: "test-sdcpn",
       title: "Test SDCPN",
-      places: new Map(),
+      places: new Map([
+        [
+          "p1",
+          {
+            id: "p1",
+            name: "Place 1",
+            type: "type2",
+            dynamicsEnabled: false,
+            differentialEquationCode: null,
+            x: 0,
+            y: 0,
+          },
+        ],
+        [
+          "p2",
+          {
+            id: "p2",
+            name: "Place 2",
+            type: "type2",
+            dynamicsEnabled: false,
+            differentialEquationCode: null,
+            x: 0,
+            y: 0,
+          },
+        ],
+      ]),
       transitions: new Map(),
+      types: new Map([
+        [
+          "type2",
+          {
+            id: "type2",
+            name: "Type2",
+            iconId: "square",
+            colorCode: "#00FF00",
+            elements: [
+              { id: "e1", name: "x", type: "real" },
+              { id: "e2", name: "y", type: "real" },
+            ],
+          },
+        ],
+      ]),
       differentialEquationFns: new Map(),
       lambdaFns: new Map([["t1", () => 10.0]]),
       transitionKernelFns: new Map([
@@ -310,7 +442,7 @@ describe("executeTransitions", () => {
           "t1",
           (_tokens) => {
             // Transform input token [1.0, 2.0] to output [3.0, 4.0]
-            return [[[3.0, 4.0]]];
+            return { "Place 2": [{ x: 3.0, y: 4.0 }] };
           },
         ],
       ]),
@@ -331,7 +463,7 @@ describe("executeTransitions", () => {
             instance: {
               id: "p1",
               name: "Place 1",
-              type: null,
+              type: "type2",
               dynamicsEnabled: false,
               differentialEquationCode: null,
               x: 0,
@@ -348,7 +480,7 @@ describe("executeTransitions", () => {
             instance: {
               id: "p2",
               name: "Place 2",
-              type: null,
+              type: "type2",
               dynamicsEnabled: false,
               differentialEquationCode: null,
               x: 0,
@@ -397,16 +529,56 @@ describe("executeTransitions", () => {
     const simulation: SimulationInstance = {
       id: "test-sdcpn",
       title: "Test SDCPN",
-      places: new Map(),
+      places: new Map([
+        [
+          "p1",
+          {
+            id: "p1",
+            name: "Place 1",
+            type: "type1",
+            dynamicsEnabled: false,
+            differentialEquationCode: null,
+            x: 0,
+            y: 0,
+          },
+        ],
+        [
+          "p2",
+          {
+            id: "p2",
+            name: "Place 2",
+            type: "type1",
+            dynamicsEnabled: false,
+            differentialEquationCode: null,
+            x: 0,
+            y: 0,
+          },
+        ],
+      ]),
       transitions: new Map(),
+      types: new Map([
+        [
+          "type1",
+          {
+            id: "type1",
+            name: "Type1",
+            iconId: "circle",
+            colorCode: "#FF0000",
+            elements: [{ id: "e1", name: "x", type: "real" }],
+          },
+        ],
+      ]),
       differentialEquationFns: new Map(),
       lambdaFns: new Map([
         ["t1", () => 10.0], // High lambda, will fire
         ["t2", () => 0.001], // Low lambda, won't fire
       ]),
-      transitionKernelFns: new Map([
-        ["t1", () => [[[2.0]]]],
-        ["t2", () => [[[3.0]]]],
+      transitionKernelFns: new Map<
+        string,
+        () => Record<string, Record<string, number>[]>
+      >([
+        ["t1", () => ({ "Place 2": [{ x: 2.0 }] })],
+        ["t2", () => ({ "Place 2": [{ x: 3.0 }] })],
       ]),
       parameterValues: {},
       dt: 0.1,
@@ -425,7 +597,7 @@ describe("executeTransitions", () => {
             instance: {
               id: "p1",
               name: "Place 1",
-              type: null,
+              type: "type1",
               dynamicsEnabled: false,
               differentialEquationCode: null,
               x: 0,
@@ -442,7 +614,7 @@ describe("executeTransitions", () => {
             instance: {
               id: "p2",
               name: "Place 2",
-              type: null,
+              type: "type1",
               dynamicsEnabled: false,
               differentialEquationCode: null,
               x: 0,

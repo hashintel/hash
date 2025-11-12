@@ -85,7 +85,7 @@ export const Menu: React.FC<MenuProps> = ({ trigger, items }) => {
                             backgroundColor: "core.gray.10",
                           },
                           _disabled: {
-                            opacity: "[0.5]",
+                            // opacity: "[0.5]",
                             cursor: "not-allowed",
                           },
                         })}
@@ -113,7 +113,6 @@ export const Menu: React.FC<MenuProps> = ({ trigger, items }) => {
                     backgroundColor: "core.gray.10",
                   },
                   _disabled: {
-                    opacity: "[0.5]",
                     cursor: "not-allowed",
                   },
                 })}

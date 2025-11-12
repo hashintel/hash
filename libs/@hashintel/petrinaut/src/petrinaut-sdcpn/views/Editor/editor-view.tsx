@@ -1,8 +1,9 @@
 import { Box } from "../../components/box";
 import { Stack } from "../../components/stack";
 import { productionMachines } from "../../examples/broken-machines";
-import { exampleSDCPN } from "../../examples/example";
 import { satellitesSDCPN } from "../../examples/satellites";
+import { supplyChainSDCPN } from "../../examples/supply-chain";
+import { supplyChainStochasticSDCPN } from "../../examples/supply-chain-stochastic";
 import { useEditorStore } from "../../state/editor-provider";
 import { useSDCPNStore } from "../../state/sdcpn-provider";
 import { useSimulationStore } from "../../state/simulation-provider";
@@ -125,7 +126,15 @@ export const EditorView: React.FC = () => {
                     id: "load-example-supply-chain",
                     label: "Supply Chain",
                     onClick: () => {
-                      setSDCPN(exampleSDCPN);
+                      setSDCPN(supplyChainSDCPN);
+                      clearSelection();
+                    },
+                  },
+                  {
+                    id: "load-example-supply-chain-stochastic",
+                    label: "Supply Chain (Stochastic)",
+                    onClick: () => {
+                      setSDCPN(supplyChainStochasticSDCPN);
                       clearSelection();
                     },
                   },

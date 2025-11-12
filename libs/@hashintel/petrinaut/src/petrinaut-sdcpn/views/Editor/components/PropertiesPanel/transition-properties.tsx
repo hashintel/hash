@@ -20,7 +20,8 @@ import { TbDotsVertical, TbSparkles } from "react-icons/tb";
 
 import { Menu } from "../../../../components/menu";
 import { SegmentGroup } from "../../../../components/segment-group";
-import { InfoIconTooltip } from "../../../../components/tooltip";
+import { InfoIconTooltip, Tooltip } from "../../../../components/tooltip";
+import { UI_MESSAGES } from "../../../../constants/ui-messages";
 import {
   generateDefaultLambdaCode,
   generateDefaultTransitionKernelCode,
@@ -120,6 +121,11 @@ export const TransitionProperties: React.FC<TransitionPropertiesProps> = ({
       outputArcs: newOutputArcs,
     });
   };
+
+  const hasOutputPlaceWithType = transition.outputArcs.some((arc) => {
+    const place = places.find((p) => p.id === arc.placeId);
+    return place && place.type;
+  });
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
@@ -336,25 +342,9 @@ export const TransitionProperties: React.FC<TransitionPropertiesProps> = ({
                   id: "load-default",
                   label: "Load default template",
                   onClick: () => {
-                    // Build input arc information for code generation
-                    const inputs = transition.inputArcs
-                      .map((arc) => {
-                        const place = places.find((p) => p.id === arc.placeId);
-                        if (!place || !place.type) return null;
-                        const type = types.find((t) => t.id === place.type);
-                        if (!type) return null;
-                        return {
-                          placeName: place.name,
-                          type,
-                          weight: arc.weight,
-                        };
-                      })
-                      .filter((i) => i !== null);
-
                     onUpdate(transition.id, {
                       lambdaCode: generateDefaultLambdaCode(
                         transition.lambdaType,
-                        inputs,
                       ),
                     });
                   },
@@ -362,13 +352,20 @@ export const TransitionProperties: React.FC<TransitionPropertiesProps> = ({
                 {
                   id: "generate-ai",
                   label: (
-                    <div
-                      style={{ display: "flex", alignItems: "center", gap: 6 }}
-                    >
-                      <TbSparkles style={{ fontSize: 16 }} />
-                      Generate with AI
-                    </div>
+                    <Tooltip content={UI_MESSAGES.AI_FEATURE_COMING_SOON}>
+                      <div
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 6,
+                        }}
+                      >
+                        <TbSparkles style={{ fontSize: 16 }} />
+                        Generate with AI
+                      </div>
+                    </Tooltip>
                   ),
+                  disabled: true,
                   onClick: () => {
                     // TODO: Implement AI generation
                   },
@@ -412,132 +409,165 @@ export const TransitionProperties: React.FC<TransitionPropertiesProps> = ({
         </div>
       </div>
 
-      <div>
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            marginBottom: 4,
-          }}
-        >
-          <div style={{ fontWeight: 500, fontSize: 13 }}>
-            Transition Results
-            <InfoIconTooltip tooltip="This function determines the data for output tokens, optionally based on the input token data and any global parameters defined." />
+      {/* Only show Transition Results if at least one output place has a type */}
+      {hasOutputPlaceWithType ? (
+        <div>
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              marginBottom: 4,
+            }}
+          >
+            <div style={{ fontWeight: 500, fontSize: 13 }}>
+              Transition Results
+              <InfoIconTooltip tooltip="This function determines the data for output tokens, optionally based on the input token data and any global parameters defined." />
+            </div>
+            {globalMode === "edit" && (
+              <Menu
+                trigger={
+                  <button
+                    type="button"
+                    style={{
+                      background: "transparent",
+                      border: "none",
+                      cursor: "pointer",
+                      padding: 4,
+                      display: "flex",
+                      alignItems: "center",
+                      fontSize: 18,
+                      color: "rgba(0, 0, 0, 0.6)",
+                    }}
+                  >
+                    <TbDotsVertical />
+                  </button>
+                }
+                items={[
+                  {
+                    id: "load-default",
+                    label: "Load default template",
+                    onClick: () => {
+                      // Build input and output arc information for code generation
+                      const inputs = transition.inputArcs
+                        .map((arc) => {
+                          const place = places.find(
+                            (p) => p.id === arc.placeId,
+                          );
+                          if (!place || !place.type) return null;
+                          const type = types.find((t) => t.id === place.type);
+                          if (!type) return null;
+                          return {
+                            placeName: place.name,
+                            type,
+                            weight: arc.weight,
+                          };
+                        })
+                        .filter((i) => i !== null);
+
+                      const outputs = transition.outputArcs
+                        .map((arc) => {
+                          const place = places.find(
+                            (p) => p.id === arc.placeId,
+                          );
+                          if (!place || !place.type) return null;
+                          const type = types.find((t) => t.id === place.type);
+                          if (!type) return null;
+                          return {
+                            placeName: place.name,
+                            type,
+                            weight: arc.weight,
+                          };
+                        })
+                        .filter((o) => o !== null);
+
+                      onUpdate(transition.id, {
+                        transitionKernelCode:
+                          generateDefaultTransitionKernelCode(inputs, outputs),
+                      });
+                    },
+                  },
+                  {
+                    id: "generate-ai",
+                    label: (
+                      <Tooltip content={UI_MESSAGES.AI_FEATURE_COMING_SOON}>
+                        <div
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 6,
+                          }}
+                        >
+                          <TbSparkles style={{ fontSize: 16 }} />
+                          Generate with AI
+                        </div>
+                      </Tooltip>
+                    ),
+                    disabled: true,
+                    onClick: () => {
+                      // TODO: Implement AI generation
+                    },
+                  },
+                ]}
+              />
+            )}
           </div>
-          {globalMode === "edit" && (
-            <Menu
-              trigger={
-                <button
-                  type="button"
-                  style={{
-                    background: "transparent",
-                    border: "none",
-                    cursor: "pointer",
-                    padding: 4,
-                    display: "flex",
-                    alignItems: "center",
-                    fontSize: 18,
-                    color: "rgba(0, 0, 0, 0.6)",
-                  }}
-                >
-                  <TbDotsVertical />
-                </button>
-              }
-              items={[
-                {
-                  id: "load-default",
-                  label: "Load default template",
-                  onClick: () => {
-                    // Build input and output arc information for code generation
-                    const inputs = transition.inputArcs
-                      .map((arc) => {
-                        const place = places.find((p) => p.id === arc.placeId);
-                        if (!place || !place.type) return null;
-                        const type = types.find((t) => t.id === place.type);
-                        if (!type) return null;
-                        return {
-                          placeName: place.name,
-                          type,
-                          weight: arc.weight,
-                        };
-                      })
-                      .filter((i) => i !== null);
-
-                    const outputs = transition.outputArcs
-                      .map((arc) => {
-                        const place = places.find((p) => p.id === arc.placeId);
-                        if (!place || !place.type) return null;
-                        const type = types.find((t) => t.id === place.type);
-                        if (!type) return null;
-                        return {
-                          placeName: place.name,
-                          type,
-                          weight: arc.weight,
-                        };
-                      })
-                      .filter((o) => o !== null);
-
-                    onUpdate(transition.id, {
-                      transitionKernelCode: generateDefaultTransitionKernelCode(
-                        inputs,
-                        outputs,
-                      ),
-                    });
-                  },
-                },
-                {
-                  id: "generate-ai",
-                  label: (
-                    <div
-                      style={{ display: "flex", alignItems: "center", gap: 6 }}
-                    >
-                      <TbSparkles style={{ fontSize: 16 }} />
-                      Generate with AI
-                    </div>
-                  ),
-                  onClick: () => {
-                    // TODO: Implement AI generation
-                  },
-                },
-              ]}
+          <div
+            style={{
+              border: "1px solid rgba(0, 0, 0, 0.1)",
+              borderRadius: 4,
+              overflow: "hidden",
+              height: 310,
+            }}
+          >
+            <MonacoEditor
+              language="typescript"
+              value={transition.transitionKernelCode || ""}
+              path={`inmemory://sdcpn/transitions/${transition.id}/transition-kernel.ts`}
+              onChange={(value) => {
+                onUpdate(transition.id, {
+                  transitionKernelCode: value ?? "",
+                });
+              }}
+              theme="vs-light"
+              options={{
+                minimap: { enabled: false },
+                scrollBeyondLastLine: false,
+                fontSize: 12,
+                lineNumbers: "off",
+                folding: true,
+                glyphMargin: false,
+                lineDecorationsWidth: 0,
+                lineNumbersMinChars: 3,
+                padding: { top: 8, bottom: 8 },
+                readOnly: globalMode === "simulate",
+                fixedOverflowWidgets: true,
+              }}
             />
-          )}
+          </div>
         </div>
+      ) : (
         <div
           style={{
+            backgroundColor: "rgba(0, 0, 0, 0.03)",
             border: "1px solid rgba(0, 0, 0, 0.1)",
             borderRadius: 4,
-            overflow: "hidden",
-            height: 310,
+            padding: 12,
+            fontSize: 12,
+            color: "#666",
+            lineHeight: 1.5,
           }}
         >
-          <MonacoEditor
-            language="typescript"
-            value={transition.transitionKernelCode || ""}
-            path={`inmemory://sdcpn/transitions/${transition.id}/transition-kernel.ts`}
-            onChange={(value) => {
-              onUpdate(transition.id, {
-                transitionKernelCode: value ?? "",
-              });
-            }}
-            theme="vs-light"
-            options={{
-              minimap: { enabled: false },
-              scrollBeyondLastLine: false,
-              fontSize: 12,
-              lineNumbers: "off",
-              folding: true,
-              glyphMargin: false,
-              lineDecorationsWidth: 0,
-              lineNumbersMinChars: 3,
-              padding: { top: 8, bottom: 8 },
-              readOnly: globalMode === "simulate",
-              fixedOverflowWidgets: true,
-            }}
-          />
+          <div style={{ fontWeight: 500, marginBottom: 4 }}>
+            Transition Results
+          </div>
+          <div>
+            The Transition Results section is not available because none of the
+            output places have a type defined. To enable this feature, assign a
+            type to at least one output place.
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 };

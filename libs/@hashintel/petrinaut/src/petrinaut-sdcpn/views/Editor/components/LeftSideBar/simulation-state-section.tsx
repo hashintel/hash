@@ -1,14 +1,20 @@
 import { css } from "@hashintel/ds-helpers/css";
 import { useState } from "react";
+import { TbArrowRight } from "react-icons/tb";
 
+import { useEditorStore } from "../../../../state/editor-provider";
 import { useSimulationStore } from "../../../../state/simulation-provider";
 
 export const SimulationStateSection: React.FC = () => {
   const simulationState = useSimulationStore((state) => state.state);
   const simulationError = useSimulationStore((state) => state.error);
+  const errorItemId = useSimulationStore((state) => state.errorItemId);
   const reset = useSimulationStore((state) => state.reset);
   const dt = useSimulationStore((state) => state.dt);
   const setDt = useSimulationStore((state) => state.setDt);
+  const setSelectedItemIds = useEditorStore(
+    (state) => state.setSelectedItemIds,
+  );
 
   // Local state for ODE solver (not used in simulation yet, but UI is ready)
   const [odeSolver, setOdeSolver] = useState("euler");
@@ -67,24 +73,53 @@ export const SimulationStateSection: React.FC = () => {
             {simulationState === "NotRun" ? "Not Started" : simulationState}
           </span>
           {simulationState === "Error" && simulationError && (
-            <span
-              style={{
-                fontSize: 11,
-                color: "#d32f2f",
-                marginTop: 4,
-                maxWidth: 250,
-                wordWrap: "break-word",
-                userSelect: "text",
-                cursor: "text",
-              }}
-            >
-              {simulationError}
-            </span>
+            <>
+              <pre
+                style={{
+                  fontSize: 11,
+                  color: "#d32f2f",
+                  marginTop: 4,
+                  maxWidth: 250,
+                  wordWrap: "break-word",
+                  userSelect: "text",
+                  cursor: "text",
+                  textWrap: "wrap",
+                }}
+              >
+                {simulationError}
+              </pre>
+              {errorItemId && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectedItemIds(new Set([errorItemId]));
+                  }}
+                  style={{
+                    fontSize: 11,
+                    padding: "4px 8px",
+                    border: "1px solid rgba(211, 47, 47, 0.3)",
+                    borderRadius: 4,
+                    backgroundColor: "white",
+                    cursor: "pointer",
+                    color: "#d32f2f",
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 4,
+                    marginTop: 4,
+                    alignSelf: "flex-start",
+                  }}
+                >
+                  Jump to Item
+                  <TbArrowRight style={{ fontSize: 12 }} />
+                </button>
+              )}
+            </>
           )}
         </div>
 
         {/* Time Step Input */}
         <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+          {/* eslint-disable-next-line jsx-a11y/label-has-associated-control -- it can't tell it's the same ID */}
           <label
             htmlFor="time-step-input"
             style={{
@@ -123,6 +158,7 @@ export const SimulationStateSection: React.FC = () => {
 
         {/* ODE Solver Method Select */}
         <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+          {/* eslint-disable-next-line jsx-a11y/label-has-associated-control -- it can't tell it's the same ID */}
           <label
             htmlFor="ode-solver-select"
             style={{
