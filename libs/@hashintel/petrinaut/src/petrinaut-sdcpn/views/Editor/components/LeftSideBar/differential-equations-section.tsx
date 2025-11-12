@@ -75,12 +75,14 @@ export const DifferentialEquationsSection: React.FC = () => {
           type="button"
           onClick={() => {
             const name = `Equation ${differentialEquations.length + 1}`;
+            const id = uuidv4();
             addDifferentialEquation({
-              id: uuidv4(),
+              id,
               name,
               typeId: types.length > 0 ? types[0]!.id : "",
               code: DEFAULT_DIFFERENTIAL_EQUATION_CODE,
             });
+            setSelectedItemIds(new Set([id]));
           }}
           className={css({
             display: "flex",

@@ -1,10 +1,12 @@
 /* eslint-disable id-length */
-/* eslint-disable curly */
+
 import MonacoEditor from "@monaco-editor/react";
 import { useState } from "react";
 import { TbDotsVertical, TbSparkles } from "react-icons/tb";
 
 import { Menu } from "../../../../components/menu";
+import { Tooltip } from "../../../../components/tooltip";
+import { UI_MESSAGES } from "../../../../constants/ui-messages";
 import {
   DEFAULT_DIFFERENTIAL_EQUATION_CODE,
   generateDefaultDifferentialEquationCode,
@@ -39,7 +41,9 @@ export const DifferentialEquationProperties: React.FC<
 
   // Find places that use this differential equation
   const placesUsingEquation = places.filter((place) => {
-    if (!place.differentialEquationCode) return false;
+    if (!place.differentialEquationCode) {
+      return false;
+    }
     if (typeof place.differentialEquationCode === "object") {
       return (
         "refId" in place.differentialEquationCode &&
@@ -93,7 +97,27 @@ export const DifferentialEquationProperties: React.FC<
         <div style={{ fontWeight: 500, fontSize: 12, marginBottom: 4 }}>
           Name
         </div>
-        <div style={{ fontSize: 14 }}>{differentialEquation.name}</div>
+        <input
+          type="text"
+          value={differentialEquation.name}
+          onChange={(event) => {
+            onUpdate(differentialEquation.id, {
+              name: event.target.value,
+            });
+          }}
+          disabled={globalMode === "simulate"}
+          style={{
+            fontSize: 14,
+            padding: "6px 8px",
+            border: "1px solid rgba(0, 0, 0, 0.1)",
+            borderRadius: 4,
+            width: "100%",
+            boxSizing: "border-box",
+            backgroundColor:
+              globalMode === "simulate" ? "rgba(0, 0, 0, 0.05)" : "white",
+            cursor: globalMode === "simulate" ? "not-allowed" : "text",
+          }}
+        />
       </div>
 
       <div>
@@ -169,6 +193,7 @@ export const DifferentialEquationProperties: React.FC<
                       type.id === differentialEquation.typeId
                         ? "rgba(0, 0, 0, 0.05)"
                         : "transparent",
+
                     cursor: "pointer",
                     display: "flex",
                     alignItems: "center",
@@ -206,6 +231,7 @@ export const DifferentialEquationProperties: React.FC<
 
       {/* Confirmation Dialog */}
       {showConfirmDialog && (
+        // eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions
         <div
           style={{
             position: "fixed",
@@ -221,6 +247,7 @@ export const DifferentialEquationProperties: React.FC<
           }}
           onClick={cancelTypeChange}
         >
+          {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions */}
           <div
             style={{
               backgroundColor: "white",
@@ -229,7 +256,7 @@ export const DifferentialEquationProperties: React.FC<
               maxWidth: 400,
               boxShadow: "0 4px 16px rgba(0, 0, 0, 0.2)",
             }}
-            onClick={(e) => e.stopPropagation()}
+            onClick={(ev) => ev.stopPropagation()}
           >
             <div style={{ fontWeight: 600, fontSize: 16, marginBottom: 12 }}>
               Change Associated Type?
@@ -356,13 +383,20 @@ export const DifferentialEquationProperties: React.FC<
                 {
                   id: "generate-ai",
                   label: (
-                    <div
-                      style={{ display: "flex", alignItems: "center", gap: 6 }}
-                    >
-                      <TbSparkles style={{ fontSize: 16 }} />
-                      Generate with AI
-                    </div>
+                    <Tooltip content={UI_MESSAGES.AI_FEATURE_COMING_SOON}>
+                      <div
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 6,
+                        }}
+                      >
+                        <TbSparkles style={{ fontSize: 16 }} />
+                        Generate with AI
+                      </div>
+                    </Tooltip>
                   ),
+                  disabled: true,
                   onClick: () => {
                     // TODO: Implement AI generation when editing is available
                   },
@@ -400,20 +434,6 @@ export const DifferentialEquationProperties: React.FC<
             }}
           />
         </div>
-      </div>
-
-      <div
-        style={{
-          padding: 8,
-          backgroundColor: "rgba(59, 130, 246, 0.1)",
-          borderRadius: 4,
-          fontSize: 11,
-          color: "#666",
-          flexShrink: 0,
-        }}
-      >
-        <strong>Note:</strong> Editing differential equation properties is not
-        yet available.
       </div>
     </div>
   );

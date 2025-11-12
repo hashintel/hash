@@ -1,5 +1,4 @@
-import { useState } from "react";
-import { type EdgeProps, getBezierPath } from "reactflow";
+import { BaseEdge, type EdgeProps, getBezierPath } from "reactflow";
 
 import { useEditorStore } from "../../../state/editor-provider";
 
@@ -18,21 +17,14 @@ export const Arc: React.FC<EdgeProps<ArcData>> = ({
   sourcePosition,
   targetPosition,
   data,
+  style,
+  markerEnd,
 }) => {
-  const [isHovered, setIsHovered] = useState(false);
-
   // Derive selected state from EditorStore
   const selectedItemIds = useEditorStore((state) => state.selectedItemIds);
 
   // Check if this arc is selected by its ID
   const selected = selectedItemIds.has(id);
-
-  // Use a default token type for now
-  const defaultTokenType = {
-    id: "default",
-    name: "Token",
-    color: "#4A90E2",
-  };
 
   const [arcPath, labelX, labelY] = getBezierPath({
     sourceX,
@@ -45,64 +37,66 @@ export const Arc: React.FC<EdgeProps<ArcData>> = ({
 
   return (
     <>
-      <path
-        id={id}
-        className="react-flow__edge-path"
-        d={arcPath}
-        fill="none"
-        strokeWidth={20}
-        stroke={selected ? "#3b82f6" : "#555"}
-        style={{
-          cursor: "pointer",
-          strokeOpacity: isHovered
-            ? selected
-              ? 0.3
-              : 0.2
-            : selected
-              ? 0.2
-              : 0.1,
-          transition: "all 0.2s ease",
-        }}
-        onMouseEnter={() => setIsHovered(true)}
-        onMouseLeave={() => setIsHovered(false)}
-      />
-      <path
-        id={`${id}-visible`}
-        className="react-flow__edge-path"
-        d={arcPath}
-        fill="none"
-        strokeWidth={selected ? 3 : 2}
-        stroke={selected ? "#3b82f6" : "#555"}
-        style={{
-          pointerEvents: "none",
-          transitionProperty: "stroke-width, stroke",
-          transitionDuration: "0.2s",
-          transitionTimingFunction: "ease",
-        }}
-      />
+      {/* Selection indicator: thick orange background stroke */}
+      {selected && (
+        <BaseEdge
+          id={`${id}-selection`}
+          path={arcPath}
+          style={{
+            stroke: "rgba(249, 115, 22, 0.4)",
+            strokeWidth: 8,
+          }}
+        />
+      )}
 
+      {/* Main edge with original style */}
+      <BaseEdge id={id} path={arcPath} markerEnd={markerEnd} style={style} />
+
+      {/* Weight label - only show for weights > 1 */}
       <g transform={`translate(${labelX}, ${labelY})`}>
-        {/* Show tokens required or produced */}
         {Object.entries(data?.tokenWeights ?? {})
-          .filter(([_, weight]) => weight > 0)
-          .map(([tokenTypeId, weight], index, nonZeroWeights) => {
-            // Use default token type for now
-            const tokenType = defaultTokenType;
-
-            const yOffset = (index - (nonZeroWeights.length - 1) / 2) * 20;
+          .filter(([_, weight]) => weight > 1)
+          .map(([_tokenTypeId, weight], index, nonZeroWeights) => {
+            const yOffset = (index - (nonZeroWeights.length - 1) / 2) * 24;
 
             return (
-              <g key={tokenTypeId} transform={`translate(0, ${yOffset})`}>
-                <circle cx="0" cy="0" r="10" fill={tokenType.color} />
+              <g key={_tokenTypeId} transform={`translate(0, ${yOffset})`}>
+                {/* White background for readability */}
+                <rect
+                  x="-16"
+                  y="-10"
+                  width="32"
+                  height="20"
+                  fill="white"
+                  stroke="#ddd"
+                  strokeWidth="1"
+                  rx="3"
+                />
+                {/* Multiplication symbol (grayed out) */}
                 <text
-                  x="0"
+                  x="-8"
                   y="0"
                   textAnchor="middle"
                   dominantBaseline="middle"
                   style={{
-                    fontSize: 12,
+                    fontSize: 13,
+                    fontWeight: 400,
+                    fill: "#999",
+                    pointerEvents: "none",
+                  }}
+                >
+                  ×
+                </text>
+                {/* Weight number */}
+                <text
+                  x="6"
+                  y="0"
+                  textAnchor="middle"
+                  dominantBaseline="middle"
+                  style={{
+                    fontSize: 14,
                     fontWeight: 600,
-                    fill: "white",
+                    fill: "#333",
                     pointerEvents: "none",
                   }}
                 >
