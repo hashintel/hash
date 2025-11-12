@@ -147,10 +147,20 @@ export function computePossibleTransition(
     // not a real accumulation over time with lambda varying as the paper suggests.
     // But prevent having to handle a big buffer of varying lambda values over time,
     // which should be reordered in case of new tokens arriving.
-    const lambdaResult = lambdaFn(
-      tokenCombinationValues,
-      simulation.parameterValues,
-    );
+    let lambdaResult: ReturnType<typeof lambdaFn>;
+    try {
+      lambdaResult = lambdaFn(
+        tokenCombinationValues,
+        simulation.parameterValues,
+      );
+    } catch (err) {
+      throw new SDCPNItemError(
+        `Error while executing lambda function for transition \`${transition.instance.name}\`:\n\n${
+          (err as Error).message
+        }\n\nInput:\n${JSON.stringify(tokenCombinationValues, null, 2)}`,
+        transition.instance.id,
+      );
+    }
 
     // Convert boolean lambda results to numbers: true -> Infinity, false -> 0
     const lambdaNumeric =
