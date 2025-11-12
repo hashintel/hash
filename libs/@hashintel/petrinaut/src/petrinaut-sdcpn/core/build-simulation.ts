@@ -1,4 +1,5 @@
 import { deriveDefaultParameterValues } from "../hooks/use-default-parameter-values";
+import { SDCPNItemError } from "./errors";
 import { compileUserCode } from "./helpers/compile-user-code";
 import type {
   DifferentialEquationFn,
@@ -118,10 +119,11 @@ export function buildSimulation(input: SimulationInput): SimulationInstance {
       );
       differentialEquationFns.set(place.id, fn as DifferentialEquationFn);
     } catch (error) {
-      throw new Error(
-        `Failed to compile differential equation for place ${place.id}: ${
+      throw new SDCPNItemError(
+        `Failed to compile differential equation for place \`${place.name}\`:\n\n${
           error instanceof Error ? error.message : String(error)
         }`,
+        place.id,
       );
     }
   }
@@ -135,10 +137,11 @@ export function buildSimulation(input: SimulationInput): SimulationInstance {
       >(transition.lambdaCode, "Lambda");
       lambdaFns.set(transition.id, fn as LambdaFn);
     } catch (error) {
-      throw new Error(
-        `Failed to compile lambda function for transition ${transition.id}: ${
+      throw new SDCPNItemError(
+        `Failed to compile Lambda function for transition \`${transition.name}\`:\n\n${
           error instanceof Error ? error.message : String(error)
         }`,
+        transition.id,
       );
     }
   }
@@ -152,10 +155,11 @@ export function buildSimulation(input: SimulationInput): SimulationInstance {
       >(transition.transitionKernelCode, "TransitionKernel");
       transitionKernelFns.set(transition.id, fn as TransitionKernelFn);
     } catch (error) {
-      throw new Error(
-        `Failed to compile transition kernel for transition ${transition.id}: ${
+      throw new SDCPNItemError(
+        `Failed to compile transition kernel for transition \`${transition.name}\`:\n\n${
           error instanceof Error ? error.message : String(error)
         }`,
+        transition.id,
       );
     }
   }

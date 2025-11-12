@@ -2,6 +2,7 @@ import { create } from "zustand";
 import { devtools } from "zustand/middleware";
 
 import { buildSimulation } from "../core/build-simulation";
+import { SDCPNItemError } from "../core/errors";
 import { computeNextFrame } from "../core/helpers/compute-next-frame";
 import type { SimulationInstance } from "../core/types/simulation";
 import { deriveDefaultParameterValues } from "../hooks/use-default-parameter-values";
@@ -28,6 +29,9 @@ export type SimulationStoreState = {
 
   // Error message if state is Error
   error: string | null;
+
+  // Item ID associated with the error (for jumping to the problematic item)
+  errorItemId: string | null;
 
   // Parameter values for the simulation (key: parameter ID, value: parameter value)
   parameterValues: Record<string, string>;
@@ -100,6 +104,7 @@ export function createSimulationStore(sdcpnStore: {
         simulation: null,
         state: "NotRun",
         error: null,
+        errorItemId: null,
         parameterValues: {},
         initialMarking: new Map(),
         currentlyViewedFrame: 0,
@@ -176,6 +181,7 @@ export function createSimulationStore(sdcpnStore: {
                   simulation: simulationInstance,
                   state: "Paused",
                   error: null,
+                  errorItemId: null,
                   currentlyViewedFrame: 0,
                 };
               } catch (error) {
@@ -189,6 +195,8 @@ export function createSimulationStore(sdcpnStore: {
                     error instanceof Error
                       ? error.message
                       : "Unknown error occurred during initialization",
+                  errorItemId:
+                    error instanceof SDCPNItemError ? error.itemId : null,
                 };
               }
             },
@@ -225,6 +233,7 @@ export function createSimulationStore(sdcpnStore: {
                   simulation: updatedSimulation,
                   state: state.state === "Running" ? "Running" : "Paused",
                   error: null,
+                  errorItemId: null,
                   currentlyViewedFrame: updatedSimulation.currentFrameNumber,
                 };
               } catch (error) {
@@ -237,6 +246,8 @@ export function createSimulationStore(sdcpnStore: {
                     error instanceof Error
                       ? error.message
                       : "Unknown error occurred during step",
+                  errorItemId:
+                    error instanceof SDCPNItemError ? error.itemId : null,
                 };
               }
             },
@@ -350,6 +361,7 @@ export function createSimulationStore(sdcpnStore: {
                 simulation: null,
                 state: "NotRun",
                 error: null,
+                errorItemId: null,
                 parameterValues,
                 currentlyViewedFrame: 0,
                 _runTimeoutId: null,
