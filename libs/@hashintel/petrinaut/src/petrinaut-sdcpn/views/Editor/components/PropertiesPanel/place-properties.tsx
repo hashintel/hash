@@ -207,9 +207,22 @@ export const PlaceProperties: React.FC<PlacePropertiesProps> = ({
 
           // If no type or type has 0 dimensions, show simple number input
           if (!placeType || placeType.elements.length === 0) {
-            // Get current token count from initialMarking
-            const currentMarking = initialMarking.get(place.id);
-            const currentTokenCount = currentMarking?.count ?? 0;
+            // Determine if simulation is running
+            const hasSimulation =
+              simulation !== null && simulation.frames.length > 0;
+
+            // Get token count from simulation frame or initial marking
+            let currentTokenCount = 0;
+            if (hasSimulation) {
+              const currentFrame = simulation.frames[currentlyViewedFrame];
+              if (currentFrame) {
+                const placeState = currentFrame.places.get(place.id);
+                currentTokenCount = placeState?.count ?? 0;
+              }
+            } else {
+              const currentMarking = initialMarking.get(place.id);
+              currentTokenCount = currentMarking?.count ?? 0;
+            }
 
             return (
               <div>
@@ -237,6 +250,7 @@ export const PlaceProperties: React.FC<PlacePropertiesProps> = ({
                         count,
                       });
                     }}
+                    disabled={hasSimulation}
                     style={{
                       fontSize: 14,
                       padding: "6px 8px",
@@ -244,6 +258,10 @@ export const PlaceProperties: React.FC<PlacePropertiesProps> = ({
                       borderRadius: 4,
                       width: "100%",
                       boxSizing: "border-box",
+                      backgroundColor: hasSimulation
+                        ? "rgba(0, 0, 0, 0.05)"
+                        : "white",
+                      cursor: hasSimulation ? "not-allowed" : "text",
                     }}
                   />
                 </div>
