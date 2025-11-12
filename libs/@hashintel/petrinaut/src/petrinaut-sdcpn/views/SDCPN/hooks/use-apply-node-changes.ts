@@ -1,4 +1,4 @@
-import type { NodeChange } from "reactflow";
+import type { EdgeChange, NodeChange } from "reactflow";
 
 import { useEditorStore } from "../../../state/editor-provider";
 import { useSDCPNStore } from "../../../state/sdcpn-provider";
@@ -28,14 +28,25 @@ export function useApplyNodeChanges() {
     (state) => state.updateTransitionPosition,
   );
 
-  return (changes: NodeChange[]) => {
+  return (changes: (NodeChange | EdgeChange)[]) => {
     const positionUpdates: Array<{
       id: string;
       position: { x: number; y: number };
     }> = [];
 
     let selectionChanged = false;
-    const newSelectedIds = new Set(selectedItemIds);
+
+    // Check if current selection has any non-node items (types, etc.)
+    const hasNonNodeSelection = Array.from(selectedItemIds).some((id) => {
+      const itemType = getItemType(id);
+      return (
+        itemType !== "place" && itemType !== "transition" && itemType !== "arc"
+      );
+    });
+
+    // If we have non-node items selected, clear them when ReactFlow tries to select something
+    // Otherwise, keep the existing selection and let ReactFlow modify it
+    const newSelectedIds = new Set(hasNonNodeSelection ? [] : selectedItemIds);
 
     for (const change of changes) {
       if (
@@ -51,9 +62,9 @@ export function useApplyNodeChanges() {
 
       if (change.type === "select") {
         selectionChanged = true;
-        if (change.selected) {
+        if (change.selected && !selectedItemIds.has(change.id)) {
           newSelectedIds.add(change.id);
-        } else {
+        } else if (!change.selected && selectedItemIds.has(change.id)) {
           newSelectedIds.delete(change.id);
         }
       }

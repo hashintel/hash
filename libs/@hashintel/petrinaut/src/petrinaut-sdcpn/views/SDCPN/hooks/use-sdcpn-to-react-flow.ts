@@ -1,3 +1,5 @@
+import { MarkerType } from "reactflow";
+
 import type { SDCPN } from "../../../core/types/sdcpn";
 import { useEditorStore } from "../../../state/editor-provider";
 import type {
@@ -49,6 +51,7 @@ export function useSdcpnToReactFlow(sdcpn: SDCPN): PetriNetDefinitionObject {
         type: "place",
         dynamicsEnabled: place.dynamicsEnabled,
         hasColorType,
+        typeColor: placeType?.colorCode, // Pass the type color for border styling
       },
     });
   }
@@ -81,8 +84,15 @@ export function useSdcpnToReactFlow(sdcpn: SDCPN): PetriNetDefinitionObject {
   for (const transition of sdcpn.transitions) {
     // Input arcs (from places to transition)
     for (const inputArc of transition.inputArcs) {
-      // Arc ID format: $A_<inputId>_<outputId>
-      const arcId = `$A_${inputArc.placeId}_${transition.id}`;
+      // Arc ID format: $A_<inputId>___<outputId> (triple underscore separator)
+      const arcId = `$A_${inputArc.placeId}___${transition.id}`;
+
+      // Get the place to determine type color
+      const place = sdcpn.places.find((pl) => pl.id === inputArc.placeId);
+      const placeType = place?.type
+        ? sdcpn.types.find((type) => type.id === place.type)
+        : null;
+      const arcColor = placeType?.colorCode ?? "#999";
 
       arcs.push({
         id: arcId,
@@ -90,6 +100,16 @@ export function useSdcpnToReactFlow(sdcpn: SDCPN): PetriNetDefinitionObject {
         target: transition.id,
         type: "default" as const,
         selected: selectedItemIds.has(arcId),
+        markerEnd: {
+          type: MarkerType.ArrowClosed,
+          color: arcColor,
+          width: 20,
+          height: 20,
+        },
+        style: {
+          stroke: arcColor,
+          strokeWidth: 2,
+        },
         data: {
           tokenWeights: {
             default: inputArc.weight,
@@ -100,8 +120,15 @@ export function useSdcpnToReactFlow(sdcpn: SDCPN): PetriNetDefinitionObject {
 
     // Output arcs (from transition to places)
     for (const outputArc of transition.outputArcs) {
-      // Arc ID format: $A_<inputId>_<outputId>
-      const arcId = `$A_${transition.id}_${outputArc.placeId}`;
+      // Arc ID format: $A_<inputId>___<outputId> (triple underscore separator)
+      const arcId = `$A_${transition.id}___${outputArc.placeId}`;
+
+      // Get the place to determine type color
+      const place = sdcpn.places.find((pl) => pl.id === outputArc.placeId);
+      const placeType = place?.type
+        ? sdcpn.types.find((type) => type.id === place.type)
+        : null;
+      const arcColor = placeType?.colorCode ?? "#999";
 
       arcs.push({
         id: arcId,
@@ -109,6 +136,16 @@ export function useSdcpnToReactFlow(sdcpn: SDCPN): PetriNetDefinitionObject {
         target: outputArc.placeId,
         type: "default" as const,
         selected: selectedItemIds.has(arcId),
+        markerEnd: {
+          type: MarkerType.ArrowClosed,
+          color: arcColor,
+          width: 20,
+          height: 20,
+        },
+        style: {
+          stroke: arcColor,
+          strokeWidth: 2,
+        },
         data: {
           tokenWeights: {
             default: outputArc.weight,

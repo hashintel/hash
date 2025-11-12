@@ -1,4 +1,5 @@
 import { deriveDefaultParameterValues } from "../hooks/use-default-parameter-values";
+import { SDCPNItemError } from "./errors";
 import { compileUserCode } from "./helpers/compile-user-code";
 import type {
   DifferentialEquationFn,
@@ -118,10 +119,11 @@ export function buildSimulation(input: SimulationInput): SimulationInstance {
       );
       differentialEquationFns.set(place.id, fn as DifferentialEquationFn);
     } catch (error) {
-      throw new Error(
-        `Failed to compile differential equation for place ${place.id}: ${
+      throw new SDCPNItemError(
+        `Failed to compile differential equation for place \`${place.name}\`:\n\n${
           error instanceof Error ? error.message : String(error)
         }`,
+        place.id,
       );
     }
   }
@@ -135,10 +137,11 @@ export function buildSimulation(input: SimulationInput): SimulationInstance {
       >(transition.lambdaCode, "Lambda");
       lambdaFns.set(transition.id, fn as LambdaFn);
     } catch (error) {
-      throw new Error(
-        `Failed to compile lambda function for transition ${transition.id}: ${
+      throw new SDCPNItemError(
+        `Failed to compile Lambda function for transition \`${transition.name}\`:\n\n${
           error instanceof Error ? error.message : String(error)
         }`,
+        transition.id,
       );
     }
   }
@@ -146,16 +149,34 @@ export function buildSimulation(input: SimulationInput): SimulationInstance {
   // Compile all transition kernel functions
   const transitionKernelFns = new Map<string, TransitionKernelFn>();
   for (const transition of sdcpn.transitions) {
+    // Skip transitions without output places that have types
+    // (they won't need to generate token data)
+    const hasTypedOutputPlace = transition.outputArcs.some((arc) => {
+      const place = placesMap.get(arc.placeId);
+      return place && place.type;
+    });
+
+    if (!hasTypedOutputPlace) {
+      // Set a dummy function that returns an empty object for transitions
+      // without typed output places (they don't need to generate token data)
+      transitionKernelFns.set(
+        transition.id,
+        (() => ({})) as TransitionKernelFn,
+      );
+      continue;
+    }
+
     try {
       const fn = compileUserCode<
         [Record<string, Record<string, number>[]>, ParameterValues]
       >(transition.transitionKernelCode, "TransitionKernel");
       transitionKernelFns.set(transition.id, fn as TransitionKernelFn);
     } catch (error) {
-      throw new Error(
-        `Failed to compile transition kernel for transition ${transition.id}: ${
+      throw new SDCPNItemError(
+        `Failed to compile transition kernel for transition \`${transition.name}\`:\n\n${
           error instanceof Error ? error.message : String(error)
         }`,
+        transition.id,
       );
     }
   }
