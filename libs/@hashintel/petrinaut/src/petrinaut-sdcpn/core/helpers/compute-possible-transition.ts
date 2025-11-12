@@ -201,8 +201,9 @@ export function computePossibleTransition(
         const outputTokens = transitionKernelOutput[placeName];
 
         if (!outputTokens) {
-          throw new Error(
-            `Transition kernel did not return tokens for place "${placeName}"`,
+          throw new SDCPNItemError(
+            `Transition kernel for transition \`${transition.instance.name}\` did not return tokens for place "${placeName}"`,
+            transition.instance.id,
           );
         }
 
