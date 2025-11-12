@@ -43,15 +43,18 @@ async function fetchReactTypes(): Promise<ReactTypeDefinitions> {
 function transitionToTsDefinitionString(
   transition: Transition,
   placeIdToNameMap: Map<string, string>,
+  placeIdToTypeMap: Map<string, SDCPNType | undefined>,
 ): string {
   const input =
     transition.inputArcs.length === 0
       ? "never"
       : `
     {${transition.inputArcs
+      // Only include arcs whose places have defined types
+      .filter((arc) => placeIdToTypeMap.get(arc.placeId))
       .map((arc) => {
         const placeTokenType = `SDCPNPlaces['${arc.placeId}']['type']['object']`;
-        return `"${placeIdToNameMap.get(arc.placeId)!}": ${placeTokenType}[]`;
+        return `"${placeIdToNameMap.get(arc.placeId)!}": [${Array.from({ length: arc.weight }).fill(placeTokenType).join(", ")}]`;
       })
       .join(", ")}
     }`;
@@ -61,14 +64,14 @@ function transitionToTsDefinitionString(
       ? "never"
       : `{
     ${transition.outputArcs
+      // Only include arcs whose places have defined types
+      .filter((arc) => placeIdToTypeMap.get(arc.placeId))
       .map((arc) => {
         const placeTokenType = `SDCPNPlaces['${arc.placeId}']['type']['object']`;
-        return `"${placeIdToNameMap.get(arc.placeId)!}": ${placeTokenType}[]`;
+        return `"${placeIdToNameMap.get(arc.placeId)!}": [${Array.from({ length: arc.weight }).fill(placeTokenType).join(", ")}]`;
       })
       .join(", ")}
     }`;
-
-  console.log("Transition TS Definition:", transition.name, input, output);
 
   return `{
     name: "${transition.name}";
@@ -124,12 +127,13 @@ function generatePlacesDefinition(places: Place[]): string {
 function generateTransitionsDefinition(
   transitions: Transition[],
   placeIdToNameMap: Map<string, string>,
+  placeIdToTypeMap: Map<string, SDCPNType | undefined>,
 ): string {
   return `declare interface SDCPNTransitions {
       ${transitions
         .map(
           (transition) =>
-            `"${transition.id}": ${transitionToTsDefinitionString(transition, placeIdToNameMap)}`,
+            `"${transition.id}": ${transitionToTsDefinitionString(transition, placeIdToNameMap, placeIdToTypeMap)};`,
         )
         .join("\n")}`;
 }
@@ -174,10 +178,16 @@ function generateSDCPNTypings(
   currentlySelectedItemId?: string,
 ): string {
   // Generate a map from place IDs to names for easier reference
-  const placeIdToNameMap = new Map<string, string>();
-  places.forEach((place) => {
-    placeIdToNameMap.set(place.id, place.name);
-  });
+  const placeIdToNameMap = new Map(
+    places.map((place) => [place.id, place.name]),
+  );
+  const typeIdToTypeMap = new Map(types.map((type) => [type.id, type]));
+  const placeIdToTypeMap = new Map(
+    places.map((place) => [
+      place.id,
+      place.type ? typeIdToTypeMap.get(place.type) : undefined,
+    ]),
+  );
 
   const parametersDefinition = generateParametersDefinition(parameters);
   const globalTypesDefinition = generateTypesDefinition(types);
@@ -185,6 +195,7 @@ function generateSDCPNTypings(
   const transitionsDefinition = generateTransitionsDefinition(
     transitions,
     placeIdToNameMap,
+    placeIdToTypeMap,
   );
   const differentialEquationsDefinition =
     generateDifferentialEquationsDefinition(differentialEquations);
@@ -303,22 +314,22 @@ export function useMonacoGlobalTypings() {
       configureMonacoCompilerOptions(monaco);
 
       // Fetch and set React types once
-      void fetchReactTypes().then((types) => {
-        setReactTypes(types);
+      void fetchReactTypes().then((rTypes) => {
+        setReactTypes(rTypes);
 
         // Set React types as base extra libs - this is done only once
         monaco.languages.typescript.typescriptDefaults.setExtraLibs([
           {
-            content: types.react,
+            content: rTypes.react,
             filePath: "inmemory://sdcpn/node_modules/@types/react/index.d.ts",
           },
           {
-            content: types.reactJsxRuntime,
+            content: rTypes.reactJsxRuntime,
             filePath:
               "inmemory://sdcpn/node_modules/@types/react/jsx-runtime.d.ts",
           },
           {
-            content: types.reactDom,
+            content: rTypes.reactDom,
             filePath:
               "inmemory://sdcpn/node_modules/@types/react-dom/index.d.ts",
           },
@@ -342,8 +353,6 @@ export function useMonacoGlobalTypings() {
         parameters,
         currentlySelectedItemId,
       );
-
-      console.log("Updating Monaco SDCPN type definitions");
 
       // Create or update SDCPN typings model
       const sdcpnTypingsUri = monaco.Uri.parse(

@@ -22,16 +22,22 @@ describe("computeNextFrame", () => {
           ],
         },
       ],
-      differentialEquations: [],
+      differentialEquations: [
+        {
+          id: "diffeq1",
+          name: "Differential Equation 1",
+          typeId: "type1",
+          code: "export default Dynamics((tokens, parameters) => { return tokens.map(token => ({ x: 1, y: 1 })); });",
+        },
+      ],
       parameters: [],
       places: [
         {
           id: "p1",
-          name: "Place 1",
+          name: "Place1",
           type: "type1",
           dynamicsEnabled: true,
-          differentialEquationCode:
-            "export default Dynamics((placeValues, t, parameters) => { return new Float64Array([1, 1]); });",
+          differentialEquationCode: { refId: "diffeq1" },
           x: 0,
           y: 0,
         },
@@ -46,7 +52,7 @@ describe("computeNextFrame", () => {
           lambdaCode:
             "export default Lambda((tokens, parameters) => { return 0.0001; });", // Very low probability
           transitionKernelCode:
-            "export default TransitionKernel((tokens, parameters) => { return [[[100.0, 200.0]]]; });",
+            "export default TransitionKernel((tokens, parameters) => { return { 'Place1': [{ x: 100.0, y: 200.0 }] }; });",
           x: 100,
           y: 0,
         },
@@ -94,7 +100,7 @@ describe("computeNextFrame", () => {
       places: [
         {
           id: "p1",
-          name: "Place 1",
+          name: "Place1",
           type: null,
           dynamicsEnabled: true,
           differentialEquationCode: null,
@@ -137,16 +143,22 @@ describe("computeNextFrame", () => {
           elements: [{ id: "elem1", name: "x", type: "real" }],
         },
       ],
-      differentialEquations: [],
+      differentialEquations: [
+        {
+          id: "diffeq1",
+          name: "Differential Equation 1",
+          typeId: "type1",
+          code: "export default Dynamics((tokens, parameters) => { return tokens.map(token => ({ x: 1 })); });",
+        },
+      ],
       parameters: [],
       places: [
         {
           id: "p1",
-          name: "Place 1",
+          name: "Place1",
           type: "type1",
           dynamicsEnabled: false,
-          differentialEquationCode:
-            "export default Dynamics((placeValues, t, parameters) => { return new Float64Array([1]); });",
+          differentialEquationCode: { refId: "diffeq1" },
           x: 0,
           y: 0,
         },

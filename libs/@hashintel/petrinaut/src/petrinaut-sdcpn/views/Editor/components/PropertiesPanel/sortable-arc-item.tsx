@@ -4,6 +4,8 @@ import { css } from "@hashintel/ds-helpers/css";
 import { MdDragIndicator } from "react-icons/md";
 import { TbTrash } from "react-icons/tb";
 
+import { FEATURE_FLAGS } from "../../../../feature-flags";
+
 /**
  * SortableArcItem - A draggable arc item that displays place name and weight
  */
@@ -51,20 +53,22 @@ export const SortableArcItem: React.FC<SortableArcItemProps> = ({
         whiteSpace: "nowrap",
       }}
     >
-      <div
-        {...attributes}
-        {...listeners}
-        style={{
-          cursor: disabled ? "default" : "grab",
-          display: "flex",
-          alignItems: "center",
-          color: disabled ? "#ccc" : "#999",
-          flexShrink: 0,
-          pointerEvents: disabled ? "none" : "auto",
-        }}
-      >
-        <MdDragIndicator size={16} />
-      </div>
+      {FEATURE_FLAGS.REORDER_TRANSITION_ARCS && (
+        <div
+          {...attributes}
+          {...listeners}
+          style={{
+            cursor: disabled ? "default" : "grab",
+            display: "flex",
+            alignItems: "center",
+            color: disabled ? "#ccc" : "#999",
+            flexShrink: 0,
+            pointerEvents: disabled ? "none" : "auto",
+          }}
+        >
+          <MdDragIndicator size={16} />
+        </div>
+      )}
       <div
         style={{
           flex: 1,

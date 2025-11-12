@@ -8,6 +8,7 @@ describe("removeTokensFromSimulationFrame", () => {
     const simulation: SimulationInstance = {
       id: "test-sdcpn",
       title: "Test SDCPN",
+      types: new Map(),
       places: new Map(),
       transitions: new Map(),
       differentialEquationFns: new Map(),
@@ -40,6 +41,7 @@ describe("removeTokensFromSimulationFrame", () => {
     const simulation: SimulationInstance = {
       id: "test-sdcpn",
       title: "Test SDCPN",
+      types: new Map(),
       places: new Map(),
       transitions: new Map(),
       differentialEquationFns: new Map(),
@@ -87,6 +89,7 @@ describe("removeTokensFromSimulationFrame", () => {
     const simulation: SimulationInstance = {
       id: "test-sdcpn",
       title: "Test SDCPN",
+      types: new Map(),
       places: new Map(),
       transitions: new Map(),
       differentialEquationFns: new Map(),
@@ -134,6 +137,7 @@ describe("removeTokensFromSimulationFrame", () => {
     const simulation: SimulationInstance = {
       id: "test-sdcpn",
       title: "Test SDCPN",
+      types: new Map(),
       places: new Map(),
       transitions: new Map(),
       differentialEquationFns: new Map(),
@@ -185,6 +189,7 @@ describe("removeTokensFromSimulationFrame", () => {
     const simulation: SimulationInstance = {
       id: "test-sdcpn",
       title: "Test SDCPN",
+      types: new Map(),
       places: new Map(),
       transitions: new Map(),
       differentialEquationFns: new Map(),
@@ -237,6 +242,7 @@ describe("removeTokensFromSimulationFrame", () => {
     const simulation: SimulationInstance = {
       id: "test-sdcpn",
       title: "Test SDCPN",
+      types: new Map(),
       places: new Map(),
       transitions: new Map(),
       differentialEquationFns: new Map(),
@@ -289,6 +295,7 @@ describe("removeTokensFromSimulationFrame", () => {
     const simulation: SimulationInstance = {
       id: "test-sdcpn",
       title: "Test SDCPN",
+      types: new Map(),
       places: new Map(),
       transitions: new Map(),
       differentialEquationFns: new Map(),
@@ -345,6 +352,7 @@ describe("removeTokensFromSimulationFrame", () => {
     const simulation: SimulationInstance = {
       id: "test-sdcpn",
       title: "Test SDCPN",
+      types: new Map(),
       places: new Map(),
       transitions: new Map(),
       differentialEquationFns: new Map(),
@@ -420,6 +428,7 @@ describe("removeTokensFromSimulationFrame", () => {
     const simulation: SimulationInstance = {
       id: "test-sdcpn",
       title: "Test SDCPN",
+      types: new Map(),
       places: new Map(),
       transitions: new Map(),
       differentialEquationFns: new Map(),
@@ -491,6 +500,7 @@ describe("removeTokensFromSimulationFrame", () => {
     const simulation: SimulationInstance = {
       id: "test-sdcpn",
       title: "Test SDCPN",
+      types: new Map(),
       places: new Map(),
       transitions: new Map(),
       differentialEquationFns: new Map(),
@@ -587,6 +597,7 @@ describe("removeTokensFromSimulationFrame", () => {
     const simulation: SimulationInstance = {
       id: "test-sdcpn",
       title: "Test SDCPN",
+      types: new Map(),
       places: new Map(),
       transitions: new Map(),
       differentialEquationFns: new Map(),

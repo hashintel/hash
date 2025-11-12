@@ -52,19 +52,25 @@ export const TransitionNode: React.FC<NodeProps<TransitionNodeData>> = ({
           flexDirection: "column",
           justifyContent: "center",
           alignItems: "center",
-          background: selected ? "core.blue.20" : "core.gray.20",
+          background: "core.gray.20",
           border: "2px solid",
-          borderColor: selected ? "core.blue.50" : "core.gray.50",
+          borderColor: "core.gray.50",
           fontSize: "[15px]",
           boxSizing: "border-box",
           position: "relative",
           cursor: "default",
           _hover: {
-            borderColor: selected ? "core.blue.60" : "core.gray.70",
+            borderColor: "core.gray.70",
             boxShadow: "0 0 0 4px rgba(59, 130, 246, 0.1)",
           },
         })}
-        style={{ transition: "all 0.2s ease" }}
+        style={{
+          transition: "all 0.2s ease",
+          // Selection indicator: thick orange glow
+          boxShadow: selected
+            ? "0 0 0 4px rgba(249, 115, 22, 0.4), 0 0 0 6px rgba(249, 115, 22, 0.2)"
+            : undefined,
+        }}
       >
         {data.lambdaType === "stochastic" && (
           <div
@@ -91,7 +97,13 @@ export const TransitionNode: React.FC<NodeProps<TransitionNodeData>> = ({
             gap: "spacing.2",
           })}
         >
-          <div>{label}</div>
+          <div
+            className={css({
+              textAlign: "center",
+            })}
+          >
+            {label}
+          </div>
           {justFired && (
             <div
               className={css({

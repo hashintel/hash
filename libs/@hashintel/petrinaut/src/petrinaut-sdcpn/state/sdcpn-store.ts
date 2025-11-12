@@ -482,9 +482,16 @@ export function createSDCPNStore() {
               for (const id of ids) {
                 if (id.startsWith("$A_")) {
                   // This is an arc - parse and delete it
-                  const parts = id.split("_");
-                  const inputId = parts[1];
-                  const outputId = parts[2];
+                  // Arc ID format: $A_<sourceId>___<targetId> (triple underscore separator)
+                  const withoutPrefix = id.slice(3); // Remove "$A_"
+                  const parts = withoutPrefix.split("___");
+
+                  if (parts.length !== 2) {
+                    continue;
+                  }
+
+                  const inputId = parts[0];
+                  const outputId = parts[1];
 
                   if (!inputId || !outputId) {
                     continue;

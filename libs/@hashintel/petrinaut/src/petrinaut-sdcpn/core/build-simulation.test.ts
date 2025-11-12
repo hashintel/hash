@@ -21,7 +21,14 @@ describe("buildSimulation", () => {
             ],
           },
         ],
-        differentialEquations: [],
+        differentialEquations: [
+          {
+            id: "diffeq1",
+            name: "Differential Equation 1",
+            typeId: "type1",
+            code: "export default Dynamics((placeValues, t) => { return new Float64Array([0, 0]); });",
+          },
+        ],
         parameters: [],
         places: [
           {
@@ -29,8 +36,7 @@ describe("buildSimulation", () => {
             name: "Place 1",
             type: "type1",
             dynamicsEnabled: true,
-            differentialEquationCode:
-              "export default Dynamics((placeValues, t) => { return new Float64Array([0, 0]); });",
+            differentialEquationCode: { refId: "diffeq1" },
             x: 0,
             y: 0,
           },
@@ -106,7 +112,20 @@ describe("buildSimulation", () => {
             ],
           },
         ],
-        differentialEquations: [],
+        differentialEquations: [
+          {
+            id: "diffeq1",
+            name: "Differential Equation 1",
+            typeId: "type1",
+            code: "export default Dynamics((placeValues, t) => { return new Float64Array([0]); });",
+          },
+          {
+            id: "diffeq2",
+            name: "Differential Equation 2",
+            typeId: "type2",
+            code: "export default Dynamics((placeValues, t) => { return new Float64Array([0, 0]); });",
+          },
+        ],
         parameters: [],
         places: [
           {
@@ -114,8 +133,7 @@ describe("buildSimulation", () => {
             name: "Place 1",
             type: "type1",
             dynamicsEnabled: true,
-            differentialEquationCode:
-              "export default Dynamics((placeValues, t) => { return new Float64Array([0]); });",
+            differentialEquationCode: { refId: "diffeq1" },
             x: 0,
             y: 0,
           },
@@ -124,8 +142,7 @@ describe("buildSimulation", () => {
             name: "Place 2",
             type: "type2",
             dynamicsEnabled: true,
-            differentialEquationCode:
-              "export default Dynamics((placeValues, t) => { return new Float64Array([0, 0]); });",
+            differentialEquationCode: { refId: "diffeq2" },
             x: 100,
             y: 0,
           },
@@ -134,8 +151,7 @@ describe("buildSimulation", () => {
             name: "Place 3",
             type: "type1",
             dynamicsEnabled: true,
-            differentialEquationCode:
-              "export default Dynamics((placeValues, t) => { return new Float64Array([0]); });",
+            differentialEquationCode: { refId: "diffeq1" },
             x: 200,
             y: 0,
           },
@@ -264,7 +280,14 @@ describe("buildSimulation", () => {
             elements: [{ id: "e1", name: "x", type: "real" }],
           },
         ],
-        differentialEquations: [],
+        differentialEquations: [
+          {
+            id: "diffeq1",
+            name: "Differential Equation 1",
+            typeId: "type1",
+            code: "export default Dynamics((placeValues, t) => { return new Float64Array([0]); });",
+          },
+        ],
         parameters: [],
         places: [
           {
@@ -272,8 +295,7 @@ describe("buildSimulation", () => {
             name: "Place 1",
             type: "type1",
             dynamicsEnabled: true,
-            differentialEquationCode:
-              "export default Dynamics((placeValues, t) => { return new Float64Array([0]); });",
+            differentialEquationCode: { refId: "diffeq1" },
             x: 0,
             y: 0,
           },
@@ -315,7 +337,14 @@ describe("buildSimulation", () => {
             ],
           },
         ],
-        differentialEquations: [],
+        differentialEquations: [
+          {
+            id: "diffeq1",
+            name: "Differential Equation 1",
+            typeId: "type1",
+            code: "export default Dynamics((placeValues, t) => { return new Float64Array([0, 0]); });",
+          },
+        ],
         parameters: [],
         places: [
           {
@@ -323,8 +352,7 @@ describe("buildSimulation", () => {
             name: "Place 1",
             type: "type1", // Type has 2 dimensions
             dynamicsEnabled: true,
-            differentialEquationCode:
-              "export default Dynamics((placeValues, t) => { return new Float64Array([0, 0]); });",
+            differentialEquationCode: { refId: "diffeq1" },
             x: 0,
             y: 0,
           },

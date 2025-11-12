@@ -74,7 +74,7 @@ export default Lambda((tokensByPlace, parameters) => {
 });`;
 
 export function generateDefaultTransitionKernelCode(
-  inputs: { placeName: string; type: SDCPNType; weight: number }[],
+  _inputs: { placeName: string; type: SDCPNType; weight: number }[],
   outputs: { placeName: string; type: SDCPNType; weight: number }[],
 ): string {
   return `/**
