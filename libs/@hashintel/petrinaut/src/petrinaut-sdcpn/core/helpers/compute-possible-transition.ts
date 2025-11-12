@@ -1,3 +1,4 @@
+import { SDCPNItemError } from "../errors";
 import type { ID } from "../types/sdcpn";
 import type { SimulationFrame } from "../types/simulation";
 import { enumerateWeightedMarkingIndicesGenerator } from "./enumerate-weighted-markings";
@@ -77,11 +78,18 @@ export function computePossibleTransition(
 
   // TODO: This should acumulate lambda over time, but for now we just consider that lambda is constant per combination.
   // (just multiply by time since last transition)
-  const tokensCombinations = enumerateWeightedMarkingIndicesGenerator(
-    inputPlaces.filter((place) => place.dimensions > 0), // Skip places with zero dimensions, they don't impact the combinations
+
+  const inputPlacesWithAtLeastOneDimension = inputPlaces.filter(
+    (place) => place.dimensions > 0,
   );
   const inputPlacesWithZeroDimensions = inputPlaces.filter(
     (place) => place.dimensions === 0,
+  );
+
+  // TODO: This should acumulate lambda over time, but for now we just consider that lambda is constant per combination.
+  // (just multiply by time since last transition)
+  const tokensCombinations = enumerateWeightedMarkingIndicesGenerator(
+    inputPlacesWithAtLeastOneDimension,
   );
 
   for (const tokenCombinationIndices of tokensCombinations) {
@@ -94,7 +102,7 @@ export function computePossibleTransition(
       placeIndex,
       placeTokenIndices,
     ] of tokenCombinationIndices.entries()) {
-      const inputPlace = inputPlaces[placeIndex]!;
+      const inputPlace = inputPlacesWithAtLeastOneDimension[placeIndex]!;
       const placeOffsetInBuffer = inputPlace.offset;
       const dimensions = inputPlace.dimensions;
       const placeName = inputPlace.instance.name;
@@ -102,7 +110,10 @@ export function computePossibleTransition(
       // Get the type definition to access dimension names
       const typeId = inputPlace.instance.type;
       if (!typeId) {
-        throw new Error(`Place ${inputPlace.instance.id} has no type defined`);
+        throw new SDCPNItemError(
+          `Place \`${inputPlace.instance.name}\` has no type defined`,
+          inputPlace.instance.id,
+        );
       }
 
       const type = simulation.types.get(typeId);
@@ -219,8 +230,8 @@ export function computePossibleTransition(
             return [place.instance.id, place.weight];
           }),
           ...tokenCombinationIndices.map((placeTokenIndices, placeIndex) => {
-            const inputArc = transition.instance.inputArcs[placeIndex]!;
-            return [inputArc.placeId, new Set(placeTokenIndices)];
+            const inputArc = inputPlacesWithAtLeastOneDimension[placeIndex]!;
+            return [inputArc.instance.id, new Set(placeTokenIndices)];
           }),
         ]),
         // Map from place ID to array of token values to
