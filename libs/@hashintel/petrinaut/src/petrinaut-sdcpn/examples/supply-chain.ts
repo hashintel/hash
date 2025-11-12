@@ -1,7 +1,7 @@
 import type { SDCPN } from "../core/types/sdcpn";
 import { nodeDimensions } from "../views/SDCPN/styles/styling";
 
-export const exampleSDCPN: SDCPN = {
+export const supplyChainSDCPN: SDCPN = {
   id: "example-drug-production",
   title: "Drug Production",
   types: [],
@@ -10,7 +10,7 @@ export const exampleSDCPN: SDCPN = {
   places: [
     {
       id: "place__0",
-      name: "Plant A Supply",
+      name: "PlantASupply",
       type: null,
       dynamicsEnabled: false,
       differentialEquationCode: null,
@@ -21,7 +21,7 @@ export const exampleSDCPN: SDCPN = {
     },
     {
       id: "place__1",
-      name: "Plant B Supply",
+      name: "PlantBSupply",
       type: null,
       dynamicsEnabled: false,
       differentialEquationCode: null,
@@ -32,7 +32,7 @@ export const exampleSDCPN: SDCPN = {
     },
     {
       id: "place__2",
-      name: "Manufacturing Plant",
+      name: "ManufacturingPlant",
       type: null,
       dynamicsEnabled: false,
       differentialEquationCode: null,
@@ -43,7 +43,7 @@ export const exampleSDCPN: SDCPN = {
     },
     {
       id: "place__3",
-      name: "QA Queue",
+      name: "QAQueue",
       type: null,
       dynamicsEnabled: false,
       differentialEquationCode: null,
