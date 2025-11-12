@@ -70,7 +70,7 @@ export const ParametersSection: React.FC = () => {
             <FaChevronRight size={10} />
           )}
           <span>
-            Parameters
+            Global Parameters
             <InfoIconTooltip tooltip="Parameters are injected into functions which govern dynamics, transition firing rate, and transition results. You can use them to define important values which you can re-use in multiple functions." />
           </span>
         </button>
@@ -244,7 +244,7 @@ export const ParametersSection: React.FC = () => {
                 textAlign: "center",
               }}
             >
-              No parameters yet
+              No global parameters yet
             </div>
           )}
         </div>
