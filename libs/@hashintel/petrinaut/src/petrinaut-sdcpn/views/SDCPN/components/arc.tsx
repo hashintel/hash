@@ -74,7 +74,7 @@ export const Arc: React.FC<EdgeProps<ArcData>> = ({
                 />
                 {/* Multiplication symbol (grayed out) */}
                 <text
-                  x="-8"
+                  x="-6"
                   y="0"
                   textAnchor="middle"
                   dominantBaseline="middle"

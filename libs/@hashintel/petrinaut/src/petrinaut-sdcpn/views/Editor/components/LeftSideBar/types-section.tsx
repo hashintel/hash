@@ -103,7 +103,7 @@ export const TypesSection: React.FC = () => {
             <FaChevronRight size={10} />
           )}
           <span>
-            Types
+            Token Types
             <InfoIconTooltip tooltip="Manage data types which can be assigned to tokens in a place." />
           </span>
         </button>
@@ -120,7 +120,13 @@ export const TypesSection: React.FC = () => {
               name: `Type ${nextNumber}`,
               iconId: "circle",
               colorCode: nextColor,
-              elements: [],
+              elements: [
+                {
+                  id: `element__${Date.now()}`,
+                  name: "dimension_1",
+                  type: "real" as const,
+                },
+              ],
             };
             addType(newType);
           }}
@@ -139,7 +145,7 @@ export const TypesSection: React.FC = () => {
             },
           })}
           style={{ width: 24, height: 24 }}
-          aria-label="Add type"
+          aria-label="Add token type"
         >
           +
         </button>
@@ -224,7 +230,7 @@ export const TypesSection: React.FC = () => {
                     if (
                       // eslint-disable-next-line no-alert
                       window.confirm(
-                        `Delete type "${type.name}"? All places using this type will have their type set to null.`,
+                        `Delete token type "${type.name}"? All places using this type will have their type set to null.`,
                       )
                     ) {
                       removeType(type.id);
@@ -245,7 +251,7 @@ export const TypesSection: React.FC = () => {
                     },
                   })}
                   style={{ width: 20, height: 20 }}
-                  aria-label={`Delete type ${type.name}`}
+                  aria-label={`Delete token type ${type.name}`}
                 >
                   ×
                 </button>
@@ -261,7 +267,7 @@ export const TypesSection: React.FC = () => {
                 textAlign: "center",
               }}
             >
-              No types yet
+              No token types yet
             </div>
           )}
         </div>
