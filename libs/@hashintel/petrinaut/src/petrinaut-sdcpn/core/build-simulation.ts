@@ -149,6 +149,23 @@ export function buildSimulation(input: SimulationInput): SimulationInstance {
   // Compile all transition kernel functions
   const transitionKernelFns = new Map<string, TransitionKernelFn>();
   for (const transition of sdcpn.transitions) {
+    // Skip transitions without output places that have types
+    // (they won't need to generate token data)
+    const hasTypedOutputPlace = transition.outputArcs.some((arc) => {
+      const place = placesMap.get(arc.placeId);
+      return place && place.type;
+    });
+
+    if (!hasTypedOutputPlace) {
+      // Set a dummy function that returns an empty object for transitions
+      // without typed output places (they don't need to generate token data)
+      transitionKernelFns.set(
+        transition.id,
+        (() => ({})) as TransitionKernelFn,
+      );
+      continue;
+    }
+
     try {
       const fn = compileUserCode<
         [Record<string, Record<string, number>[]>, ParameterValues]
