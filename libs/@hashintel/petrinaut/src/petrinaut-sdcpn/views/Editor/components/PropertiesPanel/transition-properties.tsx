@@ -122,6 +122,11 @@ export const TransitionProperties: React.FC<TransitionPropertiesProps> = ({
     });
   };
 
+  const hasOutputPlaceWithType = transition.outputArcs.some((arc) => {
+    const place = places.find((p) => p.id === arc.placeId);
+    return place && place.type;
+  });
+
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
       <div>
@@ -404,19 +409,21 @@ export const TransitionProperties: React.FC<TransitionPropertiesProps> = ({
         </div>
       </div>
 
-      <div>
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            marginBottom: 4,
-          }}
-        >
-          <div style={{ fontWeight: 500, fontSize: 13 }}>
-            Transition Results
-            <InfoIconTooltip tooltip="This function determines the data for output tokens, optionally based on the input token data and any global parameters defined." />
-          </div>
+      {/* Only show Transition Results if at least one output place has a type */}
+      {hasOutputPlaceWithType ? (
+        <div>
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              marginBottom: 4,
+            }}
+          >
+            <div style={{ fontWeight: 500, fontSize: 13 }}>
+              Transition Results
+              <InfoIconTooltip tooltip="This function determines the data for output tokens, optionally based on the input token data and any global parameters defined." />
+            </div>
           {globalMode === "edit" && (
             <Menu
               trigger={
@@ -537,6 +544,28 @@ export const TransitionProperties: React.FC<TransitionPropertiesProps> = ({
           />
         </div>
       </div>
+      ) : (
+        <div
+          style={{
+            backgroundColor: "rgba(0, 0, 0, 0.03)",
+            border: "1px solid rgba(0, 0, 0, 0.1)",
+            borderRadius: 4,
+            padding: 12,
+            fontSize: 12,
+            color: "#666",
+            lineHeight: 1.5,
+          }}
+        >
+          <div style={{ fontWeight: 500, marginBottom: 4 }}>
+            Transition Results
+          </div>
+          <div>
+            The Transition Results section is not available because none of the
+            output places have a type defined. To enable this feature, assign a
+            type to at least one output place.
+          </div>
+        </div>
+      )}
     </div>
   );
 };
