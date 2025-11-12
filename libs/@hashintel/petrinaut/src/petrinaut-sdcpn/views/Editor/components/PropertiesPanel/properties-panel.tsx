@@ -28,6 +28,7 @@ export const PropertiesPanel: React.FC = () => {
   const updateDifferentialEquation = useSDCPNStore(
     (state) => state.updateDifferentialEquation,
   );
+  const updateParameter = useSDCPNStore((state) => state.updateParameter);
 
   // Resize functionality
   const [panelWidth, setPanelWidth] = useState(startingWidth);
@@ -216,7 +217,13 @@ export const PropertiesPanel: React.FC = () => {
         (parameter) => parameter.id === selectedId,
       );
       if (parameterData) {
-        content = <ParameterProperties parameter={parameterData} />;
+        content = (
+          <ParameterProperties
+            parameter={parameterData}
+            onUpdate={updateParameter}
+            globalMode={globalMode}
+          />
+        );
       }
       break;
     }

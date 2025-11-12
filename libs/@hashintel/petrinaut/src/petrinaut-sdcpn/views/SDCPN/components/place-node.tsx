@@ -1,5 +1,5 @@
 import { css } from "@hashintel/ds-helpers/css";
-import { TbMathFunction, TbPalette } from "react-icons/tb";
+import { TbMathFunction } from "react-icons/tb";
 import { Handle, type NodeProps, Position } from "reactflow";
 
 import { useEditorStore } from "../../../state/editor-provider";
@@ -88,23 +88,24 @@ export const PlaceNode: React.FC<NodeProps<PlaceNodeData>> = ({
             : undefined,
         }}
       >
-        <div
-          className={css({
-            position: "absolute",
-            top: "[25px]",
-            left: "[0px]",
-            width: "[100%]",
-            display: "flex",
-            alignItems: "center",
-            gap: "spacing.4",
-            justifyContent: "center",
-            color: "core.blue.60",
-            fontSize: "[18px]",
-          })}
-        >
-          {data.hasColorType && <TbPalette />}
-          {data.dynamicsEnabled && <TbMathFunction />}
-        </div>
+        {data.dynamicsEnabled && (
+          <div
+            className={css({
+              position: "absolute",
+              top: "[25px]",
+              left: "[0px]",
+              width: "[100%]",
+              display: "flex",
+              alignItems: "center",
+              gap: "spacing.4",
+              justifyContent: "center",
+              color: "core.blue.60",
+              fontSize: "[18px]",
+            })}
+          >
+            <TbMathFunction />
+          </div>
+        )}
         <div
           className={css({
             display: "flex",
