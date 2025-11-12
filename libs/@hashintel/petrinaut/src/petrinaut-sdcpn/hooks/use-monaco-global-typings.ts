@@ -54,7 +54,7 @@ function transitionToTsDefinitionString(
       .filter((arc) => placeIdToTypeMap.get(arc.placeId))
       .map((arc) => {
         const placeTokenType = `SDCPNPlaces['${arc.placeId}']['type']['object']`;
-        return `"${placeIdToNameMap.get(arc.placeId)!}": ${placeTokenType}[]`;
+        return `"${placeIdToNameMap.get(arc.placeId)!}": [${Array.from({ length: arc.weight }).fill(placeTokenType).join(", ")}]`;
       })
       .join(", ")}
     }`;
@@ -68,12 +68,10 @@ function transitionToTsDefinitionString(
       .filter((arc) => placeIdToTypeMap.get(arc.placeId))
       .map((arc) => {
         const placeTokenType = `SDCPNPlaces['${arc.placeId}']['type']['object']`;
-        return `"${placeIdToNameMap.get(arc.placeId)!}": ${placeTokenType}[]`;
+        return `"${placeIdToNameMap.get(arc.placeId)!}": [${Array.from({ length: arc.weight }).fill(placeTokenType).join(", ")}]`;
       })
       .join(", ")}
     }`;
-
-  // console.log("Transition TS Definition:", transition.name, input, output);
 
   return `{
     name: "${transition.name}";
