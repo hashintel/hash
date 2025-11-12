@@ -79,13 +79,15 @@ export const ParametersSection: React.FC = () => {
             type="button"
             onClick={() => {
               const name = `param${parameters.length + 1}`;
+              const id = uuidv4();
               addParameter({
-                id: uuidv4(),
+                id,
                 name: `Parameter ${parameters.length + 1}`,
                 variableName: name,
                 type: "real",
                 defaultValue: "0",
               });
+              setSelectedItemIds(new Set([id]));
             }}
             className={css({
               display: "flex",

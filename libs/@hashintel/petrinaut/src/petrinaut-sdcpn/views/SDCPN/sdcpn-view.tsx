@@ -128,12 +128,12 @@ export const SDCPNView: React.FC = () => {
     const { width, height } = nodeDimensions[nodeType];
 
     const id = `${nodeType}__${generateUuid()}`;
-    const label = `${nodeType} ${nodes.length + 1}`;
+    const itemNumber = nodes.length + 1;
 
     if (nodeType === "place") {
       addPlace({
         id,
-        name: label,
+        name: `Place${itemNumber}`,
         type: null,
         dynamicsEnabled: false,
         differentialEquationCode: null,
@@ -146,7 +146,7 @@ export const SDCPNView: React.FC = () => {
     } else {
       addTransition({
         id,
-        name: label,
+        name: `Transition${itemNumber}`,
         inputArcs: [],
         outputArcs: [],
         lambdaType: "predicate",

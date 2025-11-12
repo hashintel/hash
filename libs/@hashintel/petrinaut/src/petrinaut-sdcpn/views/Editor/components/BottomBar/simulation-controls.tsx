@@ -1,7 +1,9 @@
 import { css } from "@hashintel/ds-helpers/css";
+import { BiRun } from "react-icons/bi";
 import { TbCircle, TbRefresh, TbSquare } from "react-icons/tb";
 
 import { Tooltip } from "../../../../components/tooltip";
+import { FEATURE_FLAGS } from "../../../../feature-flags";
 import { useSimulationStore } from "../../../../state/simulation-provider";
 
 export const SimulationControls: React.FC = () => {
@@ -69,10 +71,10 @@ export const SimulationControls: React.FC = () => {
         <Tooltip
           content={
             simulationState === "NotRun"
-              ? "Start Recording"
+              ? "Start Simulation"
               : isRunning
-                ? "Stop Recording"
-                : "Continue Recording"
+                ? "Pause Simulation"
+                : "Continue Simulation"
           }
         >
           <button
@@ -102,14 +104,16 @@ export const SimulationControls: React.FC = () => {
             })}
             aria-label={
               simulationState === "NotRun"
-                ? "Start recording simulation"
+                ? "Run simulation"
                 : isRunning
-                  ? "Stop recording simulation"
-                  : "Continue recording simulation"
+                  ? "Pause simulation"
+                  : "Continue simulation"
             }
           >
             {isRunning ? (
               <TbSquare style={{ fontSize: "14px" }} />
+            ) : FEATURE_FLAGS.RUNNING_MAN_ICON ? (
+              <BiRun style={{ fontSize: "20px", marginRight: 2 }} />
             ) : (
               <TbCircle style={{ fontSize: "14px" }} />
             )}

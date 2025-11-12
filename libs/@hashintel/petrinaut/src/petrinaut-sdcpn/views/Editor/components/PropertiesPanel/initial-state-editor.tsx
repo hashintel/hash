@@ -202,19 +202,21 @@ export const InitialStateEditor: React.FC<InitialStateEditorProps> = ({
           border: "1px solid rgba(0, 0, 0, 0.1)",
           borderRadius: 4,
           overflow: "hidden",
-          minHeight: 150,
+          width: "100%",
+          height: 250,
         }}
       >
         <HotTable
           data={tableData}
           colHeaders={placeType.elements.map((el) => el.name)}
           rowHeaders
+          rowHeights="27px"
+          colWidths="100%"
           width="100%"
-          height="auto"
           stretchH="all"
           minRows={1}
-          autoWrapCol
           contextMenu={!hasSimulation}
+          columns={columns}
           readOnly={hasSimulation}
           licenseKey="non-commercial-and-evaluation"
           afterChange={(changes) => {
@@ -244,7 +246,6 @@ export const InitialStateEditor: React.FC<InitialStateEditorProps> = ({
               });
             }
           }}
-          columns={columns}
         />
       </div>
     </div>

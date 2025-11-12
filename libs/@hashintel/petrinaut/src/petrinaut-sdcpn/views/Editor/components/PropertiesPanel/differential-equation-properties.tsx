@@ -5,6 +5,8 @@ import { useState } from "react";
 import { TbDotsVertical, TbSparkles } from "react-icons/tb";
 
 import { Menu } from "../../../../components/menu";
+import { Tooltip } from "../../../../components/tooltip";
+import { UI_MESSAGES } from "../../../../constants/ui-messages";
 import {
   DEFAULT_DIFFERENTIAL_EQUATION_CODE,
   generateDefaultDifferentialEquationCode,
@@ -95,7 +97,27 @@ export const DifferentialEquationProperties: React.FC<
         <div style={{ fontWeight: 500, fontSize: 12, marginBottom: 4 }}>
           Name
         </div>
-        <div style={{ fontSize: 14 }}>{differentialEquation.name}</div>
+        <input
+          type="text"
+          value={differentialEquation.name}
+          onChange={(event) => {
+            onUpdate(differentialEquation.id, {
+              name: event.target.value,
+            });
+          }}
+          disabled={globalMode === "simulate"}
+          style={{
+            fontSize: 14,
+            padding: "6px 8px",
+            border: "1px solid rgba(0, 0, 0, 0.1)",
+            borderRadius: 4,
+            width: "100%",
+            boxSizing: "border-box",
+            backgroundColor:
+              globalMode === "simulate" ? "rgba(0, 0, 0, 0.05)" : "white",
+            cursor: globalMode === "simulate" ? "not-allowed" : "text",
+          }}
+        />
       </div>
 
       <div>
@@ -361,13 +383,20 @@ export const DifferentialEquationProperties: React.FC<
                 {
                   id: "generate-ai",
                   label: (
-                    <div
-                      style={{ display: "flex", alignItems: "center", gap: 6 }}
-                    >
-                      <TbSparkles style={{ fontSize: 16 }} />
-                      Generate with AI
-                    </div>
+                    <Tooltip content={UI_MESSAGES.AI_FEATURE_COMING_SOON}>
+                      <div
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 6,
+                        }}
+                      >
+                        <TbSparkles style={{ fontSize: 16 }} />
+                        Generate with AI
+                      </div>
+                    </Tooltip>
                   ),
+                  disabled: true,
                   onClick: () => {
                     // TODO: Implement AI generation when editing is available
                   },
@@ -405,20 +434,6 @@ export const DifferentialEquationProperties: React.FC<
             }}
           />
         </div>
-      </div>
-
-      <div
-        style={{
-          padding: 8,
-          backgroundColor: "rgba(59, 130, 246, 0.1)",
-          borderRadius: 4,
-          fontSize: 11,
-          color: "#666",
-          flexShrink: 0,
-        }}
-      >
-        <strong>Note:</strong> Editing differential equation properties is not
-        yet available.
       </div>
     </div>
   );

@@ -43,15 +43,18 @@ async function fetchReactTypes(): Promise<ReactTypeDefinitions> {
 function transitionToTsDefinitionString(
   transition: Transition,
   placeIdToNameMap: Map<string, string>,
+  placeIdToTypeMap: Map<string, SDCPNType | undefined>,
 ): string {
   const input =
     transition.inputArcs.length === 0
       ? "never"
       : `
     {${transition.inputArcs
+      // Only include arcs whose places have defined types
+      .filter((arc) => placeIdToTypeMap.get(arc.placeId))
       .map((arc) => {
         const placeTokenType = `SDCPNPlaces['${arc.placeId}']['type']['object']`;
-        return `"${placeIdToNameMap.get(arc.placeId)!}": ${placeTokenType}[]`;
+        return `"${placeIdToNameMap.get(arc.placeId)!}": [${Array.from({ length: arc.weight }).fill(placeTokenType).join(", ")}]`;
       })
       .join(", ")}
     }`;
@@ -61,14 +64,14 @@ function transitionToTsDefinitionString(
       ? "never"
       : `{
     ${transition.outputArcs
+      // Only include arcs whose places have defined types
+      .filter((arc) => placeIdToTypeMap.get(arc.placeId))
       .map((arc) => {
         const placeTokenType = `SDCPNPlaces['${arc.placeId}']['type']['object']`;
-        return `"${placeIdToNameMap.get(arc.placeId)!}": ${placeTokenType}[]`;
+        return `"${placeIdToNameMap.get(arc.placeId)!}": [${Array.from({ length: arc.weight }).fill(placeTokenType).join(", ")}]`;
       })
       .join(", ")}
     }`;
-
-  // console.log("Transition TS Definition:", transition.name, input, output);
 
   return `{
     name: "${transition.name}";
@@ -124,12 +127,13 @@ function generatePlacesDefinition(places: Place[]): string {
 function generateTransitionsDefinition(
   transitions: Transition[],
   placeIdToNameMap: Map<string, string>,
+  placeIdToTypeMap: Map<string, SDCPNType | undefined>,
 ): string {
   return `declare interface SDCPNTransitions {
       ${transitions
         .map(
           (transition) =>
-            `"${transition.id}": ${transitionToTsDefinitionString(transition, placeIdToNameMap)}`,
+            `"${transition.id}": ${transitionToTsDefinitionString(transition, placeIdToNameMap, placeIdToTypeMap)};`,
         )
         .join("\n")}`;
 }
@@ -174,10 +178,16 @@ function generateSDCPNTypings(
   currentlySelectedItemId?: string,
 ): string {
   // Generate a map from place IDs to names for easier reference
-  const placeIdToNameMap = new Map<string, string>();
-  for (const place of places) {
-    placeIdToNameMap.set(place.id, place.name);
-  }
+  const placeIdToNameMap = new Map(
+    places.map((place) => [place.id, place.name]),
+  );
+  const typeIdToTypeMap = new Map(types.map((type) => [type.id, type]));
+  const placeIdToTypeMap = new Map(
+    places.map((place) => [
+      place.id,
+      place.type ? typeIdToTypeMap.get(place.type) : undefined,
+    ]),
+  );
 
   const parametersDefinition = generateParametersDefinition(parameters);
   const globalTypesDefinition = generateTypesDefinition(types);
@@ -185,6 +195,7 @@ function generateSDCPNTypings(
   const transitionsDefinition = generateTransitionsDefinition(
     transitions,
     placeIdToNameMap,
+    placeIdToTypeMap,
   );
   const differentialEquationsDefinition =
     generateDifferentialEquationsDefinition(differentialEquations);

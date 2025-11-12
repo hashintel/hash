@@ -1,11 +1,12 @@
 /* eslint-disable id-length */
 import MonacoEditor from "@monaco-editor/react";
 import { useEffect, useMemo, useState } from "react";
-import { TbDotsVertical, TbSparkles } from "react-icons/tb";
+import { TbArrowRight, TbDotsVertical, TbSparkles } from "react-icons/tb";
 
 import { Menu } from "../../../../components/menu";
 import { Switch } from "../../../../components/switch";
-import { InfoIconTooltip } from "../../../../components/tooltip";
+import { InfoIconTooltip, Tooltip } from "../../../../components/tooltip";
+import { UI_MESSAGES } from "../../../../constants/ui-messages";
 import {
   DEFAULT_VISUALIZER_CODE,
   generateDefaultVisualizerCode,
@@ -159,6 +160,7 @@ export const PlaceProperties: React.FC<PlacePropertiesProps> = ({
             backgroundColor:
               globalMode === "simulate" ? "rgba(0, 0, 0, 0.05)" : "white",
             cursor: globalMode === "simulate" ? "not-allowed" : "pointer",
+            marginBottom: place.type ? 8 : 0,
           }}
         >
           <option value="">None</option>
@@ -168,6 +170,32 @@ export const PlaceProperties: React.FC<PlacePropertiesProps> = ({
             </option>
           ))}
         </select>
+
+        {place.type && (
+          <div style={{ textAlign: "right" }}>
+            <button
+              type="button"
+              onClick={() => {
+                setSelectedItemIds(new Set([place.type!]));
+              }}
+              style={{
+                fontSize: 12,
+                padding: "4px 8px",
+                border: "1px solid rgba(0, 0, 0, 0.2)",
+                borderRadius: 4,
+                backgroundColor: "white",
+                cursor: "pointer",
+                color: "#333",
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 6,
+              }}
+            >
+              Jump to Type
+              <TbArrowRight style={{ fontSize: 14 }} />
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Initial State section - only in Simulate mode */}
@@ -179,9 +207,22 @@ export const PlaceProperties: React.FC<PlacePropertiesProps> = ({
 
           // If no type or type has 0 dimensions, show simple number input
           if (!placeType || placeType.elements.length === 0) {
-            // Get current token count from initialMarking
-            const currentMarking = initialMarking.get(place.id);
-            const currentTokenCount = currentMarking?.count ?? 0;
+            // Determine if simulation is running
+            const hasSimulation =
+              simulation !== null && simulation.frames.length > 0;
+
+            // Get token count from simulation frame or initial marking
+            let currentTokenCount = 0;
+            if (hasSimulation) {
+              const currentFrame = simulation.frames[currentlyViewedFrame];
+              if (currentFrame) {
+                const placeState = currentFrame.places.get(place.id);
+                currentTokenCount = placeState?.count ?? 0;
+              }
+            } else {
+              const currentMarking = initialMarking.get(place.id);
+              currentTokenCount = currentMarking?.count ?? 0;
+            }
 
             return (
               <div>
@@ -209,6 +250,7 @@ export const PlaceProperties: React.FC<PlacePropertiesProps> = ({
                         count,
                       });
                     }}
+                    disabled={hasSimulation}
                     style={{
                       fontSize: 14,
                       padding: "6px 8px",
@@ -216,6 +258,10 @@ export const PlaceProperties: React.FC<PlacePropertiesProps> = ({
                       borderRadius: 4,
                       width: "100%",
                       boxSizing: "border-box",
+                      backgroundColor: hasSimulation
+                        ? "rgba(0, 0, 0, 0.05)"
+                        : "white",
+                      cursor: hasSimulation ? "not-allowed" : "text",
                     }}
                   />
                 </div>
@@ -333,9 +379,13 @@ export const PlaceProperties: React.FC<PlacePropertiesProps> = ({
                   backgroundColor: "white",
                   cursor: "pointer",
                   color: "#333",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 6,
                 }}
               >
                 Jump to Differential Equation
+                <TbArrowRight style={{ fontSize: 14 }} />
               </button>
             </div>
           )}
@@ -437,17 +487,20 @@ export const PlaceProperties: React.FC<PlacePropertiesProps> = ({
                   {
                     id: "generate-ai",
                     label: (
-                      <div
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          gap: 6,
-                        }}
-                      >
-                        <TbSparkles style={{ fontSize: 16 }} />
-                        Generate with AI
-                      </div>
+                      <Tooltip content={UI_MESSAGES.AI_FEATURE_COMING_SOON}>
+                        <div
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 6,
+                          }}
+                        >
+                          <TbSparkles style={{ fontSize: 16 }} />
+                          Generate with AI
+                        </div>
+                      </Tooltip>
                     ),
+                    disabled: true,
                     onClick: () => {
                       // TODO: Implement AI generation
                     },

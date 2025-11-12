@@ -1,7 +1,7 @@
 import type { SDCPN } from "../core/types/sdcpn";
 import { nodeDimensions } from "../views/SDCPN/styles/styling";
 
-export const exampleSDCPN: SDCPN = {
+export const supplyChainSDCPN: SDCPN = {
   id: "example-drug-production",
   title: "Drug Production",
   types: [],
@@ -10,7 +10,7 @@ export const exampleSDCPN: SDCPN = {
   places: [
     {
       id: "place__0",
-      name: "Plant A Supply",
+      name: "PlantASupply",
       type: null,
       dynamicsEnabled: false,
       differentialEquationCode: null,
@@ -21,7 +21,7 @@ export const exampleSDCPN: SDCPN = {
     },
     {
       id: "place__1",
-      name: "Plant B Supply",
+      name: "PlantBSupply",
       type: null,
       dynamicsEnabled: false,
       differentialEquationCode: null,
@@ -32,7 +32,7 @@ export const exampleSDCPN: SDCPN = {
     },
     {
       id: "place__2",
-      name: "Manufacturing Plant",
+      name: "ManufacturingPlant",
       type: null,
       dynamicsEnabled: false,
       differentialEquationCode: null,
@@ -43,7 +43,7 @@ export const exampleSDCPN: SDCPN = {
     },
     {
       id: "place__3",
-      name: "QA Queue",
+      name: "QAQueue",
       type: null,
       dynamicsEnabled: false,
       differentialEquationCode: null,
@@ -96,7 +96,7 @@ export const exampleSDCPN: SDCPN = {
       ],
       outputArcs: [{ placeId: "place__2", weight: 1 }],
       lambdaType: "predicate",
-      lambdaCode: "",
+      lambdaCode: "export default Lambda(() => true);",
       transitionKernelCode: "",
       x: 100,
       y: 400,
@@ -109,7 +109,7 @@ export const exampleSDCPN: SDCPN = {
       inputArcs: [{ placeId: "place__2", weight: 1 }],
       outputArcs: [{ placeId: "place__3", weight: 1 }],
       lambdaType: "predicate",
-      lambdaCode: "",
+      lambdaCode: "export default Lambda(() => true);",
       transitionKernelCode: "",
       x: 490,
       y: 350,
@@ -125,7 +125,7 @@ export const exampleSDCPN: SDCPN = {
         { placeId: "place__4", weight: 1 },
       ],
       lambdaType: "predicate",
-      lambdaCode: "",
+      lambdaCode: "export default Lambda(() => true);",
       transitionKernelCode: "",
       x: 870,
       y: 400,
@@ -138,7 +138,7 @@ export const exampleSDCPN: SDCPN = {
       inputArcs: [{ placeId: "place__5", weight: 1 }],
       outputArcs: [{ placeId: "place__6", weight: 1 }],
       lambdaType: "predicate",
-      lambdaCode: "",
+      lambdaCode: "export default Lambda(() => true);",
       transitionKernelCode: "",
       x: 1150,
       y: 280,
