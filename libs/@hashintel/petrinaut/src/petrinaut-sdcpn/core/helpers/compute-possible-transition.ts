@@ -165,12 +165,22 @@ export function computePossibleTransition(
     // Find the first combination of tokens where e^(-lambda) < U1
     // We should normally find the minimum for all possibilities, but we try to reduce as much as we can here.
     if (Math.exp(-lambdaValue) <= U1) {
-      // Transition fires!
-      // Return result of the transition kernel as is (no stochasticity for now, only one result)
-      const transitionKernelOutput = transitionKernelFn(
-        tokenCombinationValues,
-        simulation.parameterValues,
-      );
+      let transitionKernelOutput: ReturnType<typeof transitionKernelFn>;
+      try {
+        // Transition fires!
+        // Return result of the transition kernel as is (no stochasticity for now, only one result)
+        transitionKernelOutput = transitionKernelFn(
+          tokenCombinationValues,
+          simulation.parameterValues,
+        );
+      } catch (err) {
+        throw new SDCPNItemError(
+          `Error while executing transition kernel for transition \`${transition.instance.name}\`:\n\n${
+            (err as Error).message
+          }\n\nInput:\n${JSON.stringify(tokenCombinationValues, null, 2)}`,
+          transition.instance.id,
+        );
+      }
 
       // Convert transition kernel output back to place-indexed format
       // The kernel returns { PlaceName: [{ x: 0, y: 0 }, ...], ... }
