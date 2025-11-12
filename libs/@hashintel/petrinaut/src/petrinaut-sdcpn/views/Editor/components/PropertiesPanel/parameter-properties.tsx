@@ -1,12 +1,73 @@
 import type { Parameter } from "../../../../core/types/sdcpn";
 
+/**
+ * Slugifies a string to a valid JavaScript identifier.
+ * - Converts to lowercase
+ * - Replaces spaces and special characters with underscores
+ * - Removes leading/trailing underscores
+ * - Ensures it doesn't start with a number
+ */
+function slugifyToIdentifier(str: string): string {
+  return (
+    str
+      .toLowerCase()
+      // Replace spaces and non-alphanumeric characters (except underscores) with underscores
+      .replace(/[^a-z0-9_]+/g, "_")
+      // Remove leading underscores
+      .replace(/^_+/, "")
+      // Remove trailing underscores
+      .replace(/_+$/, "")
+      // Ensure it doesn't start with a number
+      .replace(/^(\d)/, "_$1")
+  );
+}
+
 interface ParameterPropertiesProps {
   parameter: Parameter;
+  onUpdate: (parameterId: string, updates: Partial<Parameter>) => void;
+  globalMode: "edit" | "simulate";
 }
 
 export const ParameterProperties: React.FC<ParameterPropertiesProps> = ({
   parameter,
+  onUpdate,
+  globalMode,
 }) => {
+  const isDisabled = globalMode === "simulate";
+
+  const handleUpdateName = (event: React.ChangeEvent<HTMLInputElement>) => {
+    onUpdate(parameter.id, { name: event.target.value });
+  };
+
+  const handleUpdateVariableName = (
+    event: React.ChangeEvent<HTMLInputElement>,
+  ) => {
+    // Allow free-form typing
+    onUpdate(parameter.id, { variableName: event.target.value });
+  };
+
+  const handleBlurVariableName = (
+    event: React.FocusEvent<HTMLInputElement>,
+  ) => {
+    const value = event.target.value.trim();
+    if (value === "") {
+      // Default to "param" if empty
+      onUpdate(parameter.id, { variableName: "param" });
+    } else {
+      // Apply slugification on blur
+      const slugified = slugifyToIdentifier(value);
+      if (slugified !== value) {
+        onUpdate(parameter.id, { variableName: slugified });
+      }
+    }
+  };
+
+  const handleUpdateDefaultValue = (
+    event: React.ChangeEvent<HTMLInputElement>,
+  ) => {
+    onUpdate(parameter.id, { defaultValue: event.target.value });
+  };
+
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
       <div>
@@ -15,89 +76,75 @@ export const ParameterProperties: React.FC<ParameterPropertiesProps> = ({
         </div>
       </div>
 
+      {/* Name field */}
       <div>
         <div style={{ fontWeight: 500, fontSize: 12, marginBottom: 4 }}>
           Name
         </div>
-        <div style={{ fontSize: 14 }}>{parameter.name}</div>
+        <input
+          type="text"
+          value={parameter.name}
+          onChange={handleUpdateName}
+          disabled={isDisabled}
+          style={{
+            fontSize: 14,
+            padding: "6px 8px",
+            border: "1px solid rgba(0, 0, 0, 0.15)",
+            borderRadius: 4,
+            width: "100%",
+            backgroundColor: isDisabled ? "rgba(0, 0, 0, 0.02)" : "white",
+            cursor: isDisabled ? "not-allowed" : "text",
+          }}
+        />
       </div>
 
+      {/* Variable Name field */}
       <div>
         <div style={{ fontWeight: 500, fontSize: 12, marginBottom: 4 }}>
           Variable Name
         </div>
-        <div
+        <input
+          type="text"
+          value={parameter.variableName}
+          onChange={handleUpdateVariableName}
+          onBlur={handleBlurVariableName}
+          disabled={isDisabled}
           style={{
             fontSize: 14,
             fontFamily: "monospace",
-            backgroundColor: "rgba(0, 0, 0, 0.03)",
-            padding: "4px 8px",
+            padding: "6px 8px",
+            border: "1px solid rgba(0, 0, 0, 0.15)",
             borderRadius: 4,
+            width: "100%",
+            backgroundColor: isDisabled ? "rgba(0, 0, 0, 0.02)" : "white",
+            cursor: isDisabled ? "not-allowed" : "text",
           }}
-        >
-          {parameter.variableName}
-        </div>
+        />
       </div>
 
-      <div>
-        <div style={{ fontWeight: 500, fontSize: 12, marginBottom: 4 }}>
-          Type
-        </div>
-        <div
-          style={{
-            fontSize: 14,
-            textTransform: "capitalize",
-            display: "inline-block",
-            padding: "4px 8px",
-            backgroundColor:
-              parameter.type === "real"
-                ? "rgba(59, 130, 246, 0.1)"
-                : parameter.type === "integer"
-                  ? "rgba(16, 185, 129, 0.1)"
-                  : "rgba(245, 158, 11, 0.1)",
-            color:
-              parameter.type === "real"
-                ? "#3b82f6"
-                : parameter.type === "integer"
-                  ? "#10b981"
-                  : "#f59e0b",
-            borderRadius: 4,
-            fontWeight: 500,
-          }}
-        >
-          {parameter.type}
-        </div>
-      </div>
+      {/* Type selector - hidden for now as internal code relies on "real" type */}
 
+      {/* Default Value field */}
       <div>
         <div style={{ fontWeight: 500, fontSize: 12, marginBottom: 4 }}>
           Default Value
         </div>
-        <div
+        <input
+          type="text"
+          value={parameter.defaultValue}
+          onChange={handleUpdateDefaultValue}
+          disabled={isDisabled}
           style={{
             fontSize: 14,
             fontFamily: "monospace",
-            backgroundColor: "rgba(0, 0, 0, 0.03)",
-            padding: "8px",
+            padding: "6px 8px",
+            border: "1px solid rgba(0, 0, 0, 0.15)",
             borderRadius: 4,
+            width: "100%",
+            backgroundColor: isDisabled ? "rgba(0, 0, 0, 0.02)" : "white",
+            cursor: isDisabled ? "not-allowed" : "text",
           }}
-        >
-          {parameter.defaultValue}
-        </div>
-      </div>
-
-      <div
-        style={{
-          marginTop: 8,
-          padding: 8,
-          backgroundColor: "rgba(59, 130, 246, 0.1)",
-          borderRadius: 4,
-          fontSize: 11,
-          color: "#666",
-        }}
-      >
-        <strong>Note:</strong> Editing parameter properties is not yet
-        available.
+        />
       </div>
     </div>
   );

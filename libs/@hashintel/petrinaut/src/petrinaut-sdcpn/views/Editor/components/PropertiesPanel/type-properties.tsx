@@ -1,31 +1,9 @@
+import { css } from "@hashintel/ds-helpers/css";
 import { useState } from "react";
-import { TbNumber, TbNumbers, TbToggleLeft } from "react-icons/tb";
 import { v4 as uuidv4 } from "uuid";
 
 import type { SDCPNType } from "../../../../core/types/sdcpn";
-
-// Pool of 10 well-differentiated colors for types
-const TYPE_COLOR_POOL = [
-  "#3b82f6", // Blue
-  "#ef4444", // Red
-  "#10b981", // Green
-  "#f59e0b", // Amber
-  "#8b5cf6", // Violet
-  "#ec4899", // Pink
-  "#14b8a6", // Teal
-  "#f97316", // Orange
-  "#6366f1", // Indigo
-  "#84cc16", // Lime
-];
-
-const ELEMENT_TYPES = ["real", "integer", "boolean"] as const;
-
-// Icons for element types
-const ELEMENT_TYPE_ICONS = {
-  real: TbNumbers, // Decimal numbers icon
-  integer: TbNumber, // Whole number icon
-  boolean: TbToggleLeft, // Toggle/switch icon
-} as const;
+import { ColorSelect } from "./color-select";
 
 /**
  * Slugify a string to make it a valid JavaScript identifier
@@ -75,9 +53,23 @@ export const TypeProperties: React.FC<TypePropertiesProps> = ({
 
   // Element management handlers
   const handleAddElement = () => {
+    // Find the next dimension number
+    let maxNumber = 0;
+    for (const element of type.elements) {
+      // Match patterns like "dimension_1", "dimension_2", etc.
+      const match = element.name.match(/dimension_(\d+)/i);
+      if (match) {
+        const num = Number.parseInt(match[1]!, 10);
+        if (num > maxNumber) {
+          maxNumber = num;
+        }
+      }
+    }
+    const nextNumber = maxNumber + 1;
+
     const newElement = {
       id: uuidv4(),
-      name: "new_field",
+      name: `dimension_${nextNumber}`,
       type: "real" as const,
     };
     onUpdate(type.id, {
@@ -86,8 +78,16 @@ export const TypeProperties: React.FC<TypePropertiesProps> = ({
   };
 
   const handleUpdateElementName = (elementId: string, newName: string) => {
-    // Slugify the name to ensure it's a valid identifier
-    const slugifiedName = slugifyToIdentifier(newName);
+    // Allow free-form typing - just update the value directly
+    const updatedElements = type.elements.map((elem) =>
+      elem.id === elementId ? { ...elem, name: newName } : elem,
+    );
+    onUpdate(type.id, { elements: updatedElements });
+  };
+
+  const handleBlurElementName = (elementId: string, currentName: string) => {
+    // Slugify the name when user finishes editing
+    const slugifiedName = slugifyToIdentifier(currentName);
 
     // Check for duplicates (excluding the current element)
     const isDuplicate = type.elements.some(
@@ -103,20 +103,13 @@ export const TypeProperties: React.FC<TypePropertiesProps> = ({
       return;
     }
 
-    const updatedElements = type.elements.map((elem) =>
-      elem.id === elementId ? { ...elem, name: slugifiedName } : elem,
-    );
-    onUpdate(type.id, { elements: updatedElements });
-  };
-
-  const handleUpdateElementType = (
-    elementId: string,
-    newType: "real" | "integer" | "boolean",
-  ) => {
-    const updatedElements = type.elements.map((elem) =>
-      elem.id === elementId ? { ...elem, type: newType } : elem,
-    );
-    onUpdate(type.id, { elements: updatedElements });
+    // Only update if the slugified version is different
+    if (currentName !== slugifiedName) {
+      const updatedElements = type.elements.map((elem) =>
+        elem.id === elementId ? { ...elem, name: slugifiedName } : elem,
+      );
+      onUpdate(type.id, { elements: updatedElements });
+    }
   };
 
   const handleDeleteElement = (elementId: string, elementName: string) => {
@@ -213,86 +206,16 @@ export const TypeProperties: React.FC<TypePropertiesProps> = ({
           <div style={{ fontWeight: 500, fontSize: 12, marginBottom: 4 }}>
             Color
           </div>
-          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-            {/* Color picker grid with fixed-size swatches */}
-            <div
-              style={{
-                display: "flex",
-                flexWrap: "wrap",
-                gap: 6,
-              }}
-            >
-              {TYPE_COLOR_POOL.map((color) => (
-                <button
-                  key={color}
-                  type="button"
-                  onClick={() => {
-                    if (!isDisabled) {
-                      onUpdate(type.id, { colorCode: color });
-                    }
-                  }}
-                  disabled={isDisabled}
-                  style={{
-                    width: 28,
-                    height: 28,
-                    borderRadius: 4,
-                    backgroundColor: color,
-                    border:
-                      type.colorCode === color
-                        ? "2px solid #000"
-                        : "1px solid rgba(0, 0, 0, 0.1)",
-                    cursor: isDisabled ? "not-allowed" : "pointer",
-                    opacity: isDisabled ? 0.5 : 1,
-                    padding: 0,
-                    flexShrink: 0,
-                  }}
-                  aria-label={`Select color ${color}`}
-                />
-              ))}
-            </div>
-            {/* Current color display */}
-            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              <div
-                style={{
-                  width: 24,
-                  height: 24,
-                  borderRadius: 4,
-                  backgroundColor: type.colorCode,
-                  border: "1px solid rgba(0, 0, 0, 0.1)",
-                }}
-              />
-              <div style={{ fontSize: 12, fontFamily: "monospace" }}>
-                {type.colorCode}
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div>
-          <div style={{ fontWeight: 500, fontSize: 12, marginBottom: 4 }}>
-            Icon ID
-          </div>
-          <input
-            type="text"
-            value={type.iconId}
-            onChange={(event) => {
-              onUpdate(type.id, { iconId: event.target.value });
+          <ColorSelect
+            value={type.colorCode}
+            onChange={(color) => {
+              onUpdate(type.id, { colorCode: color });
             }}
             disabled={isDisabled}
-            style={{
-              fontSize: 14,
-              padding: "6px 8px",
-              border: "1px solid rgba(0, 0, 0, 0.1)",
-              borderRadius: 4,
-              width: "100%",
-              boxSizing: "border-box",
-              backgroundColor: isDisabled ? "rgba(0, 0, 0, 0.05)" : "white",
-              cursor: isDisabled ? "not-allowed" : "text",
-            }}
           />
         </div>
 
-        {/* Elements Section - Editable with drag-to-reorder */}
+        {/* Dimensions Section - Editable with drag-to-reorder */}
         <div>
           <div
             style={{
@@ -303,7 +226,7 @@ export const TypeProperties: React.FC<TypePropertiesProps> = ({
             }}
           >
             <div style={{ fontWeight: 500, fontSize: 12 }}>
-              Elements ({type.elements.length})
+              Dimensions
               <span
                 style={{
                   marginLeft: 6,
@@ -331,7 +254,7 @@ export const TypeProperties: React.FC<TypePropertiesProps> = ({
                 cursor: isDisabled ? "not-allowed" : "pointer",
                 fontWeight: 600,
               }}
-              aria-label="Add element"
+              aria-label="Add dimension"
             >
               +
             </button>
@@ -349,7 +272,7 @@ export const TypeProperties: React.FC<TypePropertiesProps> = ({
                 textAlign: "center",
               }}
             >
-              No elements defined. Click + to add.
+              No dimensions defined. Click + to add.
             </div>
           ) : (
             <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
@@ -368,155 +291,141 @@ export const TypeProperties: React.FC<TypePropertiesProps> = ({
                   }}
                   onDragEnd={handleDragEnd}
                   style={{
-                    position: "relative",
-                    padding: 8,
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 6,
+                    padding: 6,
                     backgroundColor:
                       draggedIndex === index
                         ? "rgba(59, 130, 246, 0.1)"
                         : dragOverIndex === index
                           ? "rgba(59, 130, 246, 0.05)"
                           : "rgba(0, 0, 0, 0.03)",
-                    borderRadius: 4,
-                    fontSize: 12,
-                    cursor: isDisabled ? "default" : "grab",
+                    borderRadius: 3,
                     border:
                       dragOverIndex === index
                         ? "1px dashed #3b82f6"
-                        : "1px solid transparent",
+                        : "1px solid rgba(0, 0, 0, 0.1)",
                     transition: "all 0.15s ease",
                   }}
                 >
-                  {/* Delete button in top-right corner */}
+                  {/* Drag handle */}
+                  <div
+                    style={{
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: 1.5,
+                      cursor: isDisabled ? "default" : "grab",
+                      opacity: 0.4,
+                      flexShrink: 0,
+                    }}
+                  >
+                    <div
+                      style={{
+                        width: 10,
+                        height: 1.5,
+                        backgroundColor: "#666",
+                        borderRadius: 1,
+                      }}
+                    />
+                    <div
+                      style={{
+                        width: 10,
+                        height: 1.5,
+                        backgroundColor: "#666",
+                        borderRadius: 1,
+                      }}
+                    />
+                    <div
+                      style={{
+                        width: 10,
+                        height: 1.5,
+                        backgroundColor: "#666",
+                        borderRadius: 1,
+                      }}
+                    />
+                  </div>
+
+                  {/* Index chip */}
+                  <div
+                    style={{
+                      fontSize: 11,
+                      fontWeight: 600,
+                      color: "#666",
+                      backgroundColor: "rgba(0, 0, 0, 0.08)",
+                      borderRadius: 3,
+                      width: 24,
+                      height: 24,
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      flexShrink: 0,
+                    }}
+                  >
+                    {index}
+                  </div>
+
+                  {/* Name input */}
+                  <input
+                    type="text"
+                    value={element.name}
+                    onChange={(event) => {
+                      handleUpdateElementName(element.id, event.target.value);
+                    }}
+                    onBlur={(event) => {
+                      handleBlurElementName(element.id, event.target.value);
+                    }}
+                    disabled={isDisabled}
+                    placeholder="dimension_name"
+                    style={{
+                      fontSize: 13,
+                      padding: "5px 8px",
+                      border: "1px solid rgba(0, 0, 0, 0.15)",
+                      borderRadius: 3,
+                      flex: 1,
+                      backgroundColor: isDisabled
+                        ? "rgba(0, 0, 0, 0.02)"
+                        : "white",
+                      cursor: isDisabled ? "not-allowed" : "text",
+                    }}
+                  />
+
+                  {/* Delete button */}
                   <button
                     type="button"
                     onClick={() => {
                       handleDeleteElement(element.id, element.name);
                     }}
-                    disabled={isDisabled}
-                    className="element-delete-button"
-                    style={{
-                      position: "absolute",
-                      top: 0,
-                      right: 0,
-                      fontSize: 16,
-                      padding: "4px 6px",
-                      borderRadius: "0 4px 0 4px",
-                      border: "none",
-                      backgroundColor: isDisabled
-                        ? "rgba(0, 0, 0, 0.02)"
-                        : "rgba(239, 68, 68, 0.05)",
-                      color: isDisabled ? "#ccc" : "#ef4444",
-                      cursor: isDisabled ? "not-allowed" : "pointer",
-                      fontWeight: 600,
-                      lineHeight: 1,
-                      transition: "background-color 0.15s ease",
-                    }}
-                    aria-label={`Delete element ${element.name}`}
+                    disabled={isDisabled || type.elements.length === 1}
+                    className={css({
+                      fontSize: "[16px]",
+                      width: "[28px]",
+                      height: "[28px]",
+                      borderRadius: "[3px]",
+                      border: "1px solid [rgba(239, 68, 68, 0.2)]",
+                      backgroundColor: "[rgba(239, 68, 68, 0.08)]",
+                      color: "[#ef4444]",
+                      cursor: "pointer",
+                      fontWeight: "[600]",
+                      lineHeight: "[1]",
+                      transition: "[all 0.15s ease]",
+                      flexShrink: "[0]",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      _hover: {
+                        backgroundColor: "[rgba(239, 68, 68, 0.15)]",
+                      },
+                      _disabled: {
+                        backgroundColor: "[rgba(0, 0, 0, 0.02)]",
+                        color: "[#ccc]",
+                        cursor: "not-allowed",
+                      },
+                    })}
+                    aria-label={`Delete dimension ${element.name}`}
                   >
                     ×
                   </button>
-
-                  {/* Element name input with position index */}
-                  <div
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 6,
-                      marginBottom: 6,
-                    }}
-                  >
-                    <div
-                      style={{
-                        fontSize: 10,
-                        fontWeight: 600,
-                        color: "#666",
-                        backgroundColor: "rgba(0, 0, 0, 0.05)",
-                        padding: "2px 6px",
-                        borderRadius: 3,
-                        minWidth: 20,
-                        textAlign: "center",
-                        flexShrink: 0,
-                      }}
-                    >
-                      {index}
-                    </div>
-                    <input
-                      type="text"
-                      value={element.name}
-                      onChange={(event) => {
-                        handleUpdateElementName(element.id, event.target.value);
-                      }}
-                      disabled={isDisabled}
-                      placeholder="field_name"
-                      style={{
-                        fontSize: 13,
-                        fontWeight: 500,
-                        padding: "4px 6px",
-                        border: "1px solid rgba(0, 0, 0, 0.1)",
-                        borderRadius: 3,
-                        flex: 1,
-                        backgroundColor: isDisabled
-                          ? "rgba(0, 0, 0, 0.02)"
-                          : "white",
-                        cursor: isDisabled ? "not-allowed" : "text",
-                      }}
-                    />
-                  </div>
-
-                  {/* Element type selector with icon */}
-                  <div
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 6,
-                    }}
-                  >
-                    {/* Type icon */}
-                    <div
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        color: "#666",
-                        fontSize: 14,
-                      }}
-                    >
-                      {(() => {
-                        const IconComponent = ELEMENT_TYPE_ICONS[element.type];
-                        return <IconComponent />;
-                      })()}
-                    </div>
-
-                    {/* Type dropdown */}
-                    <select
-                      value={element.type}
-                      onChange={(event) => {
-                        handleUpdateElementType(
-                          element.id,
-                          event.target.value as "real" | "integer" | "boolean",
-                        );
-                      }}
-                      disabled={isDisabled}
-                      style={{
-                        fontSize: 12,
-                        padding: "4px 6px",
-                        border: "1px solid rgba(0, 0, 0, 0.1)",
-                        borderRadius: 3,
-                        flex: 1,
-                        backgroundColor: isDisabled
-                          ? "rgba(0, 0, 0, 0.02)"
-                          : "white",
-                        cursor: isDisabled ? "not-allowed" : "pointer",
-                        color: "#666",
-                      }}
-                    >
-                      {ELEMENT_TYPES.map((typeOption) => (
-                        <option key={typeOption} value={typeOption}>
-                          {typeOption}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
                 </div>
               ))}
             </div>
