@@ -1,6 +1,6 @@
 use core::{error::Error, fmt};
 
-use error_stack::{Report, bail, ensure};
+use error_stack::{bail, ensure, Report};
 
 #[derive(Debug)]
 pub struct RootError;

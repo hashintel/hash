@@ -1,6 +1,6 @@
 use crate::{
-    Report,
     fmt::r#override::{AtomicOverride, AtomicPreference},
+    Report,
 };
 
 /// The available supported charsets

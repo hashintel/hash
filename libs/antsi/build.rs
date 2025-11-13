@@ -1,7 +1,7 @@
 #![expect(missing_docs)]
 #![expect(clippy::unwrap_used)]
 
-use rustc_version::{Channel, version_meta};
+use rustc_version::{version_meta, Channel};
 
 fn main() {
     let version_meta = version_meta().unwrap();

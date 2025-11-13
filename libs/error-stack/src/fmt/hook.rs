@@ -8,7 +8,7 @@ use core::{any::TypeId, mem};
 
 pub(crate) use default::install_builtin_hooks;
 
-use crate::fmt::{ColorMode, Frame, charset::Charset};
+use crate::fmt::{charset::Charset, ColorMode, Frame};
 
 pub(crate) struct Format {
     alternate: bool,
@@ -471,8 +471,8 @@ mod default {
     use tracing_error::SpanTrace;
 
     use crate::{
-        Report,
         fmt::{hook::HookContext, location::LocationAttachment},
+        Report,
     };
 
     pub(crate) fn install_builtin_hooks() {
