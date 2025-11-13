@@ -1,8 +1,10 @@
 use core::error::Error;
-use std::path::PathBuf;
+use std::{fs, io, path::PathBuf};
 
 use clap::Parser;
 use error_stack::ResultExt as _;
+
+use crate::lcov::merge;
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, derive_more::Display)]
 #[display("Unable to merge files")]
@@ -24,13 +26,12 @@ pub(crate) struct Args {
 impl Args {
     pub(crate) fn run(self) -> Result<(), Box<dyn Error + Send + Sync>> {
         if let Some(output_file) = self.output {
-            let file = std::fs::File::create(output_file).change_context(MergeError)?;
-            let writer = std::io::BufWriter::new(file);
+            let file = fs::File::create(output_file).change_context(MergeError)?;
+            let writer = io::BufWriter::new(file);
 
-            crate::lcov::merge::transform(self.inputs, writer).change_context(MergeError)?;
+            merge::transform(self.inputs, writer).change_context(MergeError)?;
         } else {
-            crate::lcov::merge::transform(self.inputs, std::io::stdout())
-                .change_context(MergeError)?;
+            merge::transform(self.inputs, io::stdout()).change_context(MergeError)?;
         }
 
         Ok(())
