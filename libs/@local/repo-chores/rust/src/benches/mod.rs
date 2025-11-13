@@ -6,7 +6,7 @@ pub(crate) mod report;
 pub(crate) mod storage;
 
 #[must_use]
-pub(crate) fn generate_path(
+pub fn generate_path(
     group_id: &str,
     function_id: Option<&str>,
     value_str: Option<&str>,
