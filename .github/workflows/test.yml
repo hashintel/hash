@@ -162,7 +162,7 @@ jobs:
       - uses: deepsourcelabs/test-coverage-action@4284bb73a04adb39faaa6bfcc2d0e3dd137ffed7 # v1.1.3
         name: Upload test coverage to https://app.deepsource.com/gh/hashintel/hash
         with:
-          key: ${{ env.TRIMMED_PACKAGE_NAME }}
+          key: rust
           coverage-file: lcov.info
           dsn: ${{ secrets.DEEPSOURCE_DSN }}
 
