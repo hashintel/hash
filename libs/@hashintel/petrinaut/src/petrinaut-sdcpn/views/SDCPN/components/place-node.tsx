@@ -2,6 +2,7 @@ import { css } from "@hashintel/ds-helpers/css";
 import { TbMathFunction } from "react-icons/tb";
 import { Handle, type NodeProps, Position } from "reactflow";
 
+import { splitPascalCase } from "../../../lib/split-pascal-case";
 import { useEditorStore } from "../../../state/editor-provider";
 import { useSimulationStore } from "../../../state/simulation-provider";
 import type { PlaceNodeData } from "../../../state/types-for-editor-to-remove";
@@ -117,9 +118,22 @@ export const PlaceNode: React.FC<NodeProps<PlaceNodeData>> = ({
           <div
             className={css({
               textAlign: "center",
+              display: "flex",
+              flexWrap: "wrap",
+              justifyContent: "center",
             })}
           >
-            {data.label}
+            {splitPascalCase(data.label).map((segment, index) => (
+              <span
+                key={segment + index.toString()}
+                className={css({
+                  display: "inline-block",
+                  whiteSpace: "nowrap",
+                })}
+              >
+                {segment}
+              </span>
+            ))}
           </div>
 
           {tokenCount !== null && (

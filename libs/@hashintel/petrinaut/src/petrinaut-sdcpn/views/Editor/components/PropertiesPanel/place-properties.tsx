@@ -64,6 +64,43 @@ export const PlaceProperties: React.FC<PlacePropertiesProps> = ({
   >(undefined);
   useEffect(() => setSavedVisualizerCode(undefined), [place.id]);
 
+  // State for name input validation
+  const [nameInputValue, setNameInputValue] = useState(place.name);
+  const [nameError, setNameError] = useState<string | null>(null);
+
+  // Update local state when place changes
+  useEffect(() => {
+    setNameInputValue(place.name);
+    setNameError(null);
+  }, [place.id, place.name]);
+
+  // Validate PascalCase format
+  const isPascalCase = (str: string): boolean => {
+    if (!str) {
+      return false;
+    }
+    // PascalCase: starts with uppercase, contains letters (and optionally numbers at the end)
+    return /^[A-Z][a-zA-Z]*\d*$/.test(str);
+  };
+
+  const handleNameBlur = () => {
+    if (!nameInputValue.trim()) {
+      setNameError("Name cannot be empty");
+      return;
+    }
+
+    if (!isPascalCase(nameInputValue)) {
+      setNameError("Name must be in PascalCase (e.g., MyPlaceName)");
+      return;
+    }
+
+    // Valid name - update and clear error
+    setNameError(null);
+    if (nameInputValue !== place.name) {
+      onUpdate(place.id, { name: nameInputValue });
+    }
+  };
+
   // Get default parameter values from SDCPN definition
   const defaultParameterValues = useDefaultParameterValues();
 
@@ -108,17 +145,20 @@ export const PlaceProperties: React.FC<PlacePropertiesProps> = ({
         </div>
         <input
           type="text"
-          value={place.name}
+          value={nameInputValue}
           onChange={(event) => {
-            onUpdate(place.id, {
-              name: event.target.value,
-            });
+            setNameInputValue(event.target.value);
+            // Clear error when user starts typing
+            if (nameError) {
+              setNameError(null);
+            }
           }}
+          onBlur={handleNameBlur}
           disabled={globalMode === "simulate"}
           style={{
             fontSize: 14,
             padding: "6px 8px",
-            border: "1px solid rgba(0, 0, 0, 0.1)",
+            border: `1px solid ${nameError ? "#ef4444" : "rgba(0, 0, 0, 0.1)"}`,
             borderRadius: 4,
             width: "100%",
             boxSizing: "border-box",
@@ -127,6 +167,17 @@ export const PlaceProperties: React.FC<PlacePropertiesProps> = ({
             cursor: globalMode === "simulate" ? "not-allowed" : "text",
           }}
         />
+        {nameError && (
+          <div
+            style={{
+              fontSize: 12,
+              color: "#ef4444",
+              marginTop: 4,
+            }}
+          >
+            {nameError}
+          </div>
+        )}
       </div>
 
       <div>
