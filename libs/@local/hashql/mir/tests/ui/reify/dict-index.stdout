@@ -1,4 +1,6 @@
-thunk foo:0() {
+thunk foo:0() -> Dict<String, Integer> {
+    let %0: Dict<String, Integer>
+
     bb0(): {
         %0 = dict("foo": 1, "bar": 2, "baz": 3)
 
@@ -6,13 +8,16 @@ thunk foo:0() {
     }
 }
 
-thunk {thunk#1}() {
+thunk {thunk#1}() -> String {
     bb0(): {
         return "bar"
     }
 }
 
-*thunk {thunk#2}() {
+*thunk {thunk#2}() -> Integer | Null {
+    let %0: Dict<String, Integer>
+    let %1: String
+
     bb0(): {
         %0 = apply (foo:0 as FnPtr)
         %1 = apply ({thunk#1} as FnPtr)

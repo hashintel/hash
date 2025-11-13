@@ -1,4 +1,8 @@
-use hashql_core::id::{Id as _, IdVec};
+use hashql_core::{
+    id::{Id as _, IdVec},
+    symbol::sym,
+    r#type::{TypeBuilder, Typed, builder},
+};
 use hashql_hir::node::{
     HirPtr, Node,
     call::{Call, CallArgument, PointerKind},
@@ -20,7 +24,7 @@ use crate::body::{
     constant::Constant,
     local::Local,
     operand::Operand,
-    place::{FieldIndex, Place, Projection},
+    place::{FieldIndex, Place, ProjectionKind},
     rvalue::{Aggregate, AggregateKind, Apply, Binary, Input, RValue, Unary},
 };
 
@@ -194,6 +198,7 @@ impl<'mir, 'heap> Reifier<'_, 'mir, '_, '_, 'heap> {
         function: Node<'heap>,
         call_arguments: &[CallArgument<'heap>],
     ) -> RValue<'heap> {
+        let function_span = function.span;
         // The argument to a fat call *must* be a place, it cannot be a constant, because a constant
         // cannot represent a fat-pointer, which is only constructed using an aggregate.
         let function = match self.operand(function) {
@@ -210,10 +215,26 @@ impl<'mir, 'heap> Reifier<'_, 'mir, '_, '_, 'heap> {
 
         // To the function we add two projections, one for the function pointer, and one for the
         // captured environment
-        let function_pointer =
-            function.project(self.context.interner, Projection::Field(FieldIndex::new(0)));
-        let environment =
-            function.project(self.context.interner, Projection::Field(FieldIndex::new(1)));
+        let function_pointer = function.project(
+            self.context.interner,
+            function.type_id(&self.local_decls),
+            ProjectionKind::Field(FieldIndex::new(0)),
+        );
+        let environment = function.project(
+            self.context.interner,
+            // The environment is intentionally opaque because:
+            // 1. It should never be inspected outside of the call boundary
+            // 2. For closures nested inside of values, the type will always be represented as a
+            //    `Closure`, so won't have a tuple associated with it, therefore reconstruction of
+            //    the environment isn't possible.
+            // 3. The environment is immediately destructured at function entry, this projection
+            //    exists only to pass it as an argument
+            TypeBuilder::spanned(function_span, self.context.environment).opaque(
+                sym::internal::ClosureEnv,
+                builder::lazy(|_, builder| builder.unknown()),
+            ),
+            ProjectionKind::Field(FieldIndex::new(1)),
+        );
 
         let mut arguments = IdVec::with_capacity_in(call_arguments.len() + 1, self.context.heap);
 
@@ -250,7 +271,16 @@ impl<'mir, 'heap> Reifier<'_, 'mir, '_, '_, 'heap> {
         binder: Binder<'heap>,
         closure: Closure<'heap>,
     ) -> RValue<'heap> {
-        let (ptr, env) = self.transform_closure(block, hir, Some(binder), closure);
+        let (
+            Typed {
+                r#type: _,
+                value: ptr,
+            },
+            Typed {
+                r#type: _,
+                value: env,
+            },
+        ) = self.transform_closure(block, hir, Some(binder), closure);
 
         // We first need to figure out the environment that we need to capture, these are variables
         // that are referenced out of scope (upvars).

@@ -8,6 +8,7 @@ use hashql_core::{
     intern::{Beef, InternSet, Interned},
     span::SpanId,
     symbol::Symbol,
+    r#type::TypeId,
     value::Primitive,
 };
 
@@ -17,10 +18,10 @@ use crate::{
         Body, Source,
         basic_block::{BasicBlock, BasicBlockId},
         constant::Constant,
-        local::Local,
+        local::{Local, LocalDecl},
         location::Location,
         operand::Operand,
-        place::{Place, PlaceRef, Projection},
+        place::{Place, PlaceRef, Projection, ProjectionKind},
         rvalue::{Aggregate, AggregateKind, Apply, Binary, Input, RValue, Unary},
         statement::{Assign, Statement, StatementKind},
         terminator::{
@@ -214,6 +215,12 @@ pub trait VisitorMut<'heap> {
     }
 
     #[expect(unused_variables, reason = "trait definition")]
+    fn visit_type_id(&mut self, r#type: &mut TypeId) -> Self::Result<()> {
+        // leaf: nothing to do
+        Ok!()
+    }
+
+    #[expect(unused_variables, reason = "trait definition")]
     fn visit_symbol(&mut self, location: Location, symbol: &mut Symbol<'heap>) -> Self::Result<()> {
         // leaf: nothing to do
         Ok!()
@@ -227,6 +234,10 @@ pub trait VisitorMut<'heap> {
 
     fn visit_body(&mut self, body: &mut Body<'heap>) -> Self::Result<()> {
         walk_body(self, body)
+    }
+
+    fn visit_local_decl(&mut self, local: Local, decl: &mut LocalDecl<'heap>) -> Self::Result<()> {
+        walk_local_decl(self, local, decl)
     }
 
     fn visit_basic_block(
@@ -572,17 +583,41 @@ pub fn walk_body<'heap, T: VisitorMut<'heap> + ?Sized>(
     visitor: &mut T,
     Body {
         span,
+        return_type: r#type,
         source,
+        local_decls,
         basic_blocks,
         args: _,
     }: &mut Body<'heap>,
 ) -> T::Result<()> {
     visitor.visit_span(span)?;
+    visitor.visit_type_id(r#type)?;
     visitor.visit_source(source)?;
+
+    for (id, local_decl) in local_decls.iter_enumerated_mut() {
+        visitor.visit_local_decl(id, local_decl)?;
+    }
 
     for (id, basic_block) in basic_blocks.iter_enumerated_mut() {
         visitor.visit_basic_block(id, basic_block)?;
     }
+
+    Ok!()
+}
+
+pub fn walk_local_decl<'heap, T: VisitorMut<'heap> + ?Sized>(
+    visitor: &mut T,
+    _local: Local,
+    LocalDecl {
+        span,
+        r#type,
+        name: _,
+    }: &mut LocalDecl<'heap>,
+) -> T::Result<()> {
+    visitor.visit_span(span)?;
+    visitor.visit_type_id(r#type)?;
+
+    // We do not visit the name, because there is no location associated with it
 
     Ok!()
 }
@@ -620,15 +655,20 @@ pub fn walk_projection<'heap, T: VisitorMut<'heap> + ?Sized>(
     visitor: &mut T,
     location: Location,
     _base: PlaceRef<'_, 'heap>,
-    mut projection: Projection<'heap>,
+    Projection {
+        mut r#type,
+        mut kind,
+    }: Projection<'heap>,
 ) -> T::Result<Projection<'heap>> {
-    match &mut projection {
-        Projection::Field(_) => {}
-        Projection::FieldByName(name) => visitor.visit_symbol(location, name)?,
-        Projection::Index(local) => visitor.visit_local(location, local)?,
+    visitor.visit_type_id(&mut r#type)?;
+
+    match &mut kind {
+        ProjectionKind::Field(_) => {}
+        ProjectionKind::FieldByName(name) => visitor.visit_symbol(location, name)?,
+        ProjectionKind::Index(local) => visitor.visit_local(location, local)?,
     }
 
-    T::Result::from_output(projection)
+    T::Result::from_output(Projection { r#type, kind })
 }
 
 pub fn walk_place<'heap, T: VisitorMut<'heap> + ?Sized>(

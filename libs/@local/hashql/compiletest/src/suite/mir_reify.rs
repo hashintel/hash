@@ -7,7 +7,12 @@ use std::{
 
 use hashql_ast::node::expr::Expr;
 use hashql_core::{
-    heap::Heap, id::IdVec, module::ModuleRegistry, span::SpanId, r#type::environment::Environment,
+    heap::Heap,
+    id::IdVec,
+    module::ModuleRegistry,
+    pretty::Formatter,
+    span::SpanId,
+    r#type::{TypeFormatter, TypeFormatterOptions, environment::Environment},
 };
 use hashql_hir::{context::HirContext, node::NodeData};
 use hashql_mir::{
@@ -98,10 +103,17 @@ impl Suite for MirReifySuite {
 
         let (root, bodies) = mir_reify(heap, expr, &interner, &mut environment, diagnostics)?;
 
+        let formatter = Formatter::new(heap);
+        let mut formatter = TypeFormatter::new(
+            &formatter,
+            &environment,
+            TypeFormatterOptions::terse().with_qualified_opaque_names(true),
+        );
         let mut text_format = TextFormat {
             writer: Vec::new(),
             indent: 4,
             sources: bodies.as_slice(),
+            types: &mut formatter,
         };
         text_format
             .format(&bodies, &[root])
@@ -128,7 +140,7 @@ impl Suite for MirReifySuite {
 
         let now = Instant::now();
         let mut child = Command::new("d2")
-            .args(["-l", "elk", "--stdout-format", "svg", "-"])
+            .args(["-l", "elk", "-b=false", "--stdout-format", "svg", "-"])
             .stdin(Stdio::piped())
             .stdout(Stdio::piped())
             .spawn()
@@ -151,6 +163,7 @@ impl Suite for MirReifySuite {
             sources: bodies.as_slice(),
             dataflow: (),
             buffer: D2Buffer::default(),
+            types: formatter,
         };
         d2_format
             .format(&bodies, &[root])

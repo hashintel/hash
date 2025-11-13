@@ -140,6 +140,7 @@ impl<'ctx, 'env, 'hir, 'heap> Thunking<'ctx, 'env, 'hir, 'heap> {
             id,
             HirInfo {
                 type_id: closure_def,
+                monomorphized_type_id: None,
                 type_arguments: None,
             },
         );
@@ -340,6 +341,7 @@ impl<'heap> Fold<'heap> for Thunking<'_, '_, '_, 'heap> {
             id,
             HirInfo {
                 type_id: returns,
+                monomorphized_type_id: None,
                 // type-arguments no longer matter at this stage
                 type_arguments: None,
             },
@@ -385,6 +387,7 @@ impl<'heap> Fold<'heap> for Thunking<'_, '_, '_, 'heap> {
             id,
             HirInfo {
                 type_id: returns,
+                monomorphized_type_id: None,
                 // type-arguments no longer matter at this stage
                 type_arguments: None,
             },

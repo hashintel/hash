@@ -1,4 +1,6 @@
-thunk foo:0() {
+thunk foo:0() -> (bar: Integer, baz: Integer, buz: Integer) {
+    let %0: (bar: Integer, baz: Integer, buz: Integer)
+
     bb0(): {
         %0 = (bar: 0, baz: 1, buz: 2)
 
@@ -6,7 +8,9 @@ thunk foo:0() {
     }
 }
 
-*thunk {thunk#1}() {
+*thunk {thunk#1}() -> Integer {
+    let %0: (bar: Integer, baz: Integer, buz: Integer)
+
     bb0(): {
         %0 = apply (foo:0 as FnPtr)
 

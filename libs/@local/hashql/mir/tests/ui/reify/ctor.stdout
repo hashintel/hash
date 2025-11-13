@@ -1,4 +1,6 @@
-fn {ctor#::core::uuid::Uuid}(%0, %1) {
+fn {ctor#::core::uuid::Uuid}(%0: (), %1: String) -> ::core::uuid::Uuid {
+    let %2: ::core::uuid::Uuid
+
     bb0(): {
         %2 = opaque(::core::uuid::Uuid, %1)
 
@@ -6,7 +8,9 @@ fn {ctor#::core::uuid::Uuid}(%0, %1) {
     }
 }
 
-thunk {thunk#0}() {
+thunk {thunk#0}() -> (String) -> ::core::uuid::Uuid {
+    let %0: (String) -> ::core::uuid::Uuid
+
     bb0(): {
         %0 = closure(({ctor#::core::uuid::Uuid} as FnPtr), ())
 
@@ -14,7 +18,10 @@ thunk {thunk#0}() {
     }
 }
 
-*thunk {thunk#1}() {
+*thunk {thunk#1}() -> ::core::uuid::Uuid {
+    let %0: (String) -> ::core::uuid::Uuid
+    let %1: ::core::uuid::Uuid
+
     bb0(): {
         %0 = apply ({thunk#0} as FnPtr)
         %1 = apply %0.0 %0.1 "54a3cf40-9674-4e96-9607-b7139125d700"

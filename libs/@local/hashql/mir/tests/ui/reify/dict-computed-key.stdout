@@ -1,4 +1,6 @@
-thunk foo:0() {
+thunk foo:0() -> Boolean {
+    let %0: Boolean
+
     bb0(): {
         %0 = 2 <= 3
 
@@ -6,7 +8,11 @@ thunk foo:0() {
     }
 }
 
-*thunk bar:0() {
+*thunk bar:0() -> Dict<Boolean, Integer | Boolean> {
+    let %0: Boolean
+    let %1: Boolean
+    let %2: Dict<Boolean, Integer | Boolean>
+
     bb0(): {
         %0 = apply (foo:0 as FnPtr)
         %1 = apply (foo:0 as FnPtr)

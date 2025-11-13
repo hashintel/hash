@@ -1,4 +1,6 @@
-*thunk {thunk#0}() {
+*thunk {thunk#0}() -> Integer {
+    let %0: Integer
+
     bb0(): {
         %0 = input LOAD foo
 

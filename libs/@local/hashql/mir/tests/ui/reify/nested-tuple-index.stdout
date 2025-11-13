@@ -1,4 +1,6 @@
-thunk {thunk#1}() {
+thunk {thunk#1}() -> (Integer, Integer, Integer) {
+    let %0: (Integer, Integer, Integer)
+
     bb0(): {
         %0 = (0, 1, 2)
 
@@ -6,7 +8,10 @@ thunk {thunk#1}() {
     }
 }
 
-thunk foo:0() {
+thunk foo:0() -> ((Integer, Integer, Integer), Integer, Integer) {
+    let %0: (Integer, Integer, Integer)
+    let %1: ((Integer, Integer, Integer), Integer, Integer)
+
     bb0(): {
         %0 = apply ({thunk#1} as FnPtr)
         %1 = (%0, 1, 2)
@@ -15,7 +20,9 @@ thunk foo:0() {
     }
 }
 
-*thunk {thunk#2}() {
+*thunk {thunk#2}() -> Integer {
+    let %0: ((Integer, Integer, Integer), Integer, Integer)
+
     bb0(): {
         %0 = apply (foo:0 as FnPtr)
 

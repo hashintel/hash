@@ -1,4 +1,6 @@
-thunk {thunk#1}() {
+thunk {thunk#1}() -> Boolean {
+    let %0: Boolean
+
     bb0(): {
         %0 = input EXISTS foo
 
@@ -6,13 +8,16 @@ thunk {thunk#1}() {
     }
 }
 
-*thunk {thunk#2}() {
+*thunk {thunk#2}() -> Integer {
+    let %0: Boolean
+    let %1: Integer
+    let %2: Integer
+
     bb0(): {
         %0 = apply ({thunk#1} as FnPtr)
 
         switchInt(%0) -> [0: bb2(), 1: bb1()]
     }
-
 
     bb1(): {
         %2 = input LOAD foo
@@ -20,11 +25,9 @@ thunk {thunk#1}() {
         goto -> bb3(%2)
     }
 
-
     bb2(): {
         goto -> bb3(2)
     }
-
 
     bb3(%1): {
         return %1

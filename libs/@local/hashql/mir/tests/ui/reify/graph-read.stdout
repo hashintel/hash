@@ -1,4 +1,6 @@
-thunk {thunk#1}() {
+thunk {thunk#1}() -> ::graph::TimeAxis {
+    let %0: ::graph::TimeAxis
+
     bb0(): {
         %0 = input LOAD axis
 
@@ -6,7 +8,9 @@ thunk {thunk#1}() {
     }
 }
 
-fn {ctor#::core::uuid::Uuid}(%0, %1) {
+fn {ctor#::core::uuid::Uuid}(%0: (), %1: String) -> ::core::uuid::Uuid {
+    let %2: ::core::uuid::Uuid
+
     bb0(): {
         %2 = opaque(::core::uuid::Uuid, %1)
 
@@ -14,7 +18,9 @@ fn {ctor#::core::uuid::Uuid}(%0, %1) {
     }
 }
 
-thunk {thunk#2}() {
+thunk {thunk#2}() -> (String) -> ::core::uuid::Uuid {
+    let %0: (String) -> ::core::uuid::Uuid
+
     bb0(): {
         %0 = closure(({ctor#::core::uuid::Uuid} as FnPtr), ())
 
@@ -22,7 +28,10 @@ thunk {thunk#2}() {
     }
 }
 
-thunk {thunk#3}() {
+thunk {thunk#3}() -> ::core::uuid::Uuid {
+    let %0: (String) -> ::core::uuid::Uuid
+    let %1: ::core::uuid::Uuid
+
     bb0(): {
         %0 = apply ({thunk#2} as FnPtr)
         %1 = apply %0.0 %0.1 "e2851dbb-7376-4959-9bca-f72cafc4448f"
@@ -31,7 +40,9 @@ thunk {thunk#3}() {
     }
 }
 
-fn {ctor#::graph::types::knowledge::entity::EntityUuid}(%0, %1) {
+fn {ctor#::graph::types::knowledge::entity::EntityUuid}(%0: (), %1: ::core::uuid::Uuid) -> ::graph::types::knowledge::entity::EntityUuid {
+    let %2: ::graph::types::knowledge::entity::EntityUuid
+
     bb0(): {
         %2 = opaque(::graph::types::knowledge::entity::EntityUuid, %1)
 
@@ -39,7 +50,9 @@ fn {ctor#::graph::types::knowledge::entity::EntityUuid}(%0, %1) {
     }
 }
 
-thunk {thunk#4}() {
+thunk {thunk#4}() -> (::core::uuid::Uuid) -> ::graph::types::knowledge::entity::EntityUuid {
+    let %0: (::core::uuid::Uuid) -> ::graph::types::knowledge::entity::EntityUuid
+
     bb0(): {
         %0 = closure(({ctor#::graph::types::knowledge::entity::EntityUuid} as FnPtr), ())
 
@@ -47,7 +60,11 @@ thunk {thunk#4}() {
     }
 }
 
-thunk {thunk#5}() {
+thunk {thunk#5}() -> ::graph::types::knowledge::entity::EntityUuid {
+    let %0: ::core::uuid::Uuid
+    let %1: (::core::uuid::Uuid) -> ::graph::types::knowledge::entity::EntityUuid
+    let %2: ::graph::types::knowledge::entity::EntityUuid
+
     bb0(): {
         %0 = apply ({thunk#3} as FnPtr)
         %1 = apply ({thunk#4} as FnPtr)
@@ -57,7 +74,10 @@ thunk {thunk#5}() {
     }
 }
 
-fn {closure@7}(%0, %1) {
+fn {closure@7}(%0: (), %1: ::graph::types::knowledge::entity::Entity) -> Boolean {
+    let %2: ::graph::types::knowledge::entity::EntityUuid
+    let %3: Boolean
+
     bb0(): {
         %2 = apply ({thunk#5} as FnPtr)
         %3 = %1.id.entity_id.entity_uuid == %2
@@ -66,7 +86,11 @@ fn {closure@7}(%0, %1) {
     }
 }
 
-*thunk {thunk#7}() {
+*thunk {thunk#7}() -> List<::graph::types::knowledge::entity::Entity> {
+    let %0: ::graph::TimeAxis
+    let %1: List<::graph::types::knowledge::entity::Entity>
+    let %2: ()
+
     bb0(): {
         %0 = apply ({thunk#1} as FnPtr)
         %2 = ()
@@ -75,7 +99,6 @@ fn {closure@7}(%0, %1) {
         |> filter({closure@7}, %2)
         |> collect -> bb1(_)
     }
-
 
     bb1(%1): {
         return %1
