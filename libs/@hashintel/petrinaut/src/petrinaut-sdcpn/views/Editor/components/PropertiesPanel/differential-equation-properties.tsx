@@ -417,6 +417,11 @@ export const DifferentialEquationProperties: React.FC<
           <MonacoEditor
             language="typescript"
             value={differentialEquation.code}
+            onChange={(newCode) => {
+              onUpdate(differentialEquation.id, {
+                code: newCode ?? "",
+              });
+            }}
             path={`inmemory://sdcpn/differential-equations/${differentialEquation.id}.ts`}
             theme="vs-light"
             options={{
