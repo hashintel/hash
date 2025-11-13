@@ -74,7 +74,7 @@
     "@changesets/get-dependents-graph@npm:^1.3.5": "patch:@changesets/get-dependents-graph@npm%3A1.3.6#~/.yarn/patches/@changesets-get-dependents-graph-npm-1.3.6-ddd5f64f78.patch",
     "@changesets/get-dependents-graph@npm:^1.3.6": "patch:@changesets/get-dependents-graph@npm%3A1.3.6#~/.yarn/patches/@changesets-get-dependents-graph-npm-1.3.6-ddd5f64f78.patch",
     "@changesets/git@npm:^2.0.0": "patch:@changesets/git@npm%3A2.0.0#~/.yarn/patches/@changesets-git-npm-2.0.0-4220e871d3.patch",
-    "@playwright/test": "1.54.1",
+    "@playwright/test": "1.56.1",
     "@tldraw/editor@npm:2.0.0-alpha.12": "patch:@tldraw/editor@npm%3A2.0.0-alpha.12#~/.yarn/patches/@tldraw-editor-npm-2.0.0-alpha.12-ba59bf001c.patch",
     "@tldraw/tlschema@npm:2.0.0-alpha.12": "patch:@tldraw/tlschema@npm%3A2.0.0-alpha.12#~/.yarn/patches/@tldraw-tlschema-npm-2.0.0-alpha.12-13bf88407b.patch",
     "@types/react": "19.1.9",
