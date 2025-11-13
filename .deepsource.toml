@@ -4,15 +4,9 @@ exclude_patterns = ["**/node_modules/", "**/dist/", "**/build/", "**/target/", "
 test_patterns    = ["**/*.test.ts", "**/*.spec.ts"]
 
 [[analyzers]]
+meta = { environment = ["vitest", "nodejs", "browser"], plugins = ["react"] }
 name = "javascript"
 
-[analyzers.meta]
-environment = [
-    "vitest",
-    "nodejs",
-    "browser",
-]
-plugins = ["react"]
 
 [[analyzers]]
 name = "secrets"
@@ -24,19 +18,15 @@ name = "sql"
 name = "test-coverage"
 
 [[analyzers]]
+meta = { msrv = "stable" }
 name = "rust"
-
-[analyzers.meta]
-msrv = "stable"
 
 [[analyzers]]
 name = "shell"
 
 [[analyzers]]
+meta = { dockerfile_paths = ["**/Dockerfile", "**/*.Dockerfile"] }
 name = "docker"
-
-[analyzers.meta]
-dockerfile_paths = ["**/Dockerfile", "**/*.Dockerfile"]
 
 [[transformers]]
 name = "rustfmt"

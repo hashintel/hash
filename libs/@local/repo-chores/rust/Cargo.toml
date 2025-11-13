@@ -28,7 +28,7 @@ globset        = { workspace = true }
 guppy          = { workspace = true }
 hash-telemetry = { workspace = true, features = ["clap"] }
 inferno        = { workspace = true }
-lcov           = "0.8.1"
+lcov           = { workspace = true }
 serde          = { workspace = true, features = ["derive", "std"] }
 serde_json     = { workspace = true }
 simple-mermaid = { workspace = true }
