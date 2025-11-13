@@ -1,8 +1,7 @@
-version = "1"
+version = 1
 
 exclude_patterns = ["**/node_modules/", "**/dist/", "**/build/", "**/target/", "**/pkg/", "**/.turbo/"]
-
-test_patterns = ["**/*.test.ts", "**/*.spec.ts"]
+test_patterns    = ["**/*.test.ts", "**/*.spec.ts"]
 
 [[analyzers]]
 name = "javascript"
