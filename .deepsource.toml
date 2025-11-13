@@ -37,7 +37,7 @@ name = "shell"
 name = "docker"
 
 [analyzers.meta]
-dockerfile_paths = ["**/Dockerfile"]
+dockerfile_paths = ["**/Dockerfile", "**/*.Dockerfile"]
 
 [[transformers]]
 name = "rustfmt"
