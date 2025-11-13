@@ -1,12 +1,12 @@
 use std::path::PathBuf;
 
-pub mod analyze;
-pub mod fmt;
-pub mod report;
-pub mod storage;
+pub(crate) mod analyze;
+pub(crate) mod fmt;
+pub(crate) mod report;
+pub(crate) mod storage;
 
 #[must_use]
-pub fn generate_path(
+pub(crate) fn generate_path(
     group_id: &str,
     function_id: Option<&str>,
     value_str: Option<&str>,
