@@ -141,6 +141,12 @@ jobs:
           HAS_RUST=$([[ -f "${{ matrix.path }}/Cargo.toml" || ${{ matrix.path }} = "apps/hash-graph" ]] && echo 'true' || echo 'false')
           echo "has-rust=$HAS_RUST" | tee -a $GITHUB_OUTPUT
 
+          if [[ "$HAS_RUST" == "true" ]]; then
+            echo "COVERAGE_KEY=rust" >> $GITHUB_ENV
+          else
+            echo "COVERAGE_KEY=javascript" >> $GITHUB_ENV
+          fi
+
       - name: Show disk usage
         run: df -h
 
@@ -167,7 +173,7 @@ jobs:
       - uses: deepsourcelabs/test-coverage-action@4284bb73a04adb39faaa6bfcc2d0e3dd137ffed7 # v1.1.3
         name: Upload test coverage to https://app.deepsource.com/gh/hashintel/hash
         with:
-          key: rust
+          key: ${{ env.COVERAGE_KEY }}
           coverage-file: lcov-patched.info
           dsn: ${{ secrets.DEEPSOURCE_DSN }}
 
