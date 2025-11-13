@@ -1,3 +1,4 @@
+import { SDCPNItemError } from "../errors";
 import type { ID } from "../types/sdcpn";
 import type { SimulationFrame } from "../types/simulation";
 import { enumerateWeightedMarkingIndicesGenerator } from "./enumerate-weighted-markings";
@@ -77,11 +78,18 @@ export function computePossibleTransition(
 
   // TODO: This should acumulate lambda over time, but for now we just consider that lambda is constant per combination.
   // (just multiply by time since last transition)
-  const tokensCombinations = enumerateWeightedMarkingIndicesGenerator(
-    inputPlaces.filter((place) => place.dimensions > 0), // Skip places with zero dimensions, they don't impact the combinations
+
+  const inputPlacesWithAtLeastOneDimension = inputPlaces.filter(
+    (place) => place.dimensions > 0,
   );
   const inputPlacesWithZeroDimensions = inputPlaces.filter(
     (place) => place.dimensions === 0,
+  );
+
+  // TODO: This should acumulate lambda over time, but for now we just consider that lambda is constant per combination.
+  // (just multiply by time since last transition)
+  const tokensCombinations = enumerateWeightedMarkingIndicesGenerator(
+    inputPlacesWithAtLeastOneDimension,
   );
 
   for (const tokenCombinationIndices of tokensCombinations) {
@@ -94,7 +102,7 @@ export function computePossibleTransition(
       placeIndex,
       placeTokenIndices,
     ] of tokenCombinationIndices.entries()) {
-      const inputPlace = inputPlaces[placeIndex]!;
+      const inputPlace = inputPlacesWithAtLeastOneDimension[placeIndex]!;
       const placeOffsetInBuffer = inputPlace.offset;
       const dimensions = inputPlace.dimensions;
       const placeName = inputPlace.instance.name;
@@ -102,7 +110,10 @@ export function computePossibleTransition(
       // Get the type definition to access dimension names
       const typeId = inputPlace.instance.type;
       if (!typeId) {
-        throw new Error(`Place ${inputPlace.instance.id} has no type defined`);
+        throw new SDCPNItemError(
+          `Place \`${inputPlace.instance.name}\` has no type defined`,
+          inputPlace.instance.id,
+        );
       }
 
       const type = simulation.types.get(typeId);
@@ -136,10 +147,20 @@ export function computePossibleTransition(
     // not a real accumulation over time with lambda varying as the paper suggests.
     // But prevent having to handle a big buffer of varying lambda values over time,
     // which should be reordered in case of new tokens arriving.
-    const lambdaResult = lambdaFn(
-      tokenCombinationValues,
-      simulation.parameterValues,
-    );
+    let lambdaResult: ReturnType<typeof lambdaFn>;
+    try {
+      lambdaResult = lambdaFn(
+        tokenCombinationValues,
+        simulation.parameterValues,
+      );
+    } catch (err) {
+      throw new SDCPNItemError(
+        `Error while executing lambda function for transition \`${transition.instance.name}\`:\n\n${
+          (err as Error).message
+        }\n\nInput:\n${JSON.stringify(tokenCombinationValues, null, 2)}`,
+        transition.instance.id,
+      );
+    }
 
     // Convert boolean lambda results to numbers: true -> Infinity, false -> 0
     const lambdaNumeric =
@@ -154,12 +175,22 @@ export function computePossibleTransition(
     // Find the first combination of tokens where e^(-lambda) < U1
     // We should normally find the minimum for all possibilities, but we try to reduce as much as we can here.
     if (Math.exp(-lambdaValue) <= U1) {
-      // Transition fires!
-      // Return result of the transition kernel as is (no stochasticity for now, only one result)
-      const transitionKernelOutput = transitionKernelFn(
-        tokenCombinationValues,
-        simulation.parameterValues,
-      );
+      let transitionKernelOutput: ReturnType<typeof transitionKernelFn>;
+      try {
+        // Transition fires!
+        // Return result of the transition kernel as is (no stochasticity for now, only one result)
+        transitionKernelOutput = transitionKernelFn(
+          tokenCombinationValues,
+          simulation.parameterValues,
+        );
+      } catch (err) {
+        throw new SDCPNItemError(
+          `Error while executing transition kernel for transition \`${transition.instance.name}\`:\n\n${
+            (err as Error).message
+          }\n\nInput:\n${JSON.stringify(tokenCombinationValues, null, 2)}`,
+          transition.instance.id,
+        );
+      }
 
       // Convert transition kernel output back to place-indexed format
       // The kernel returns { PlaceName: [{ x: 0, y: 0 }, ...], ... }
@@ -190,8 +221,9 @@ export function computePossibleTransition(
         const outputTokens = transitionKernelOutput[placeName];
 
         if (!outputTokens) {
-          throw new Error(
-            `Transition kernel did not return tokens for place "${placeName}"`,
+          throw new SDCPNItemError(
+            `Transition kernel for transition \`${transition.instance.name}\` did not return tokens for place "${placeName}"`,
+            transition.instance.id,
           );
         }
 
@@ -219,8 +251,8 @@ export function computePossibleTransition(
             return [place.instance.id, place.weight];
           }),
           ...tokenCombinationIndices.map((placeTokenIndices, placeIndex) => {
-            const inputArc = transition.instance.inputArcs[placeIndex]!;
-            return [inputArc.placeId, new Set(placeTokenIndices)];
+            const inputArc = inputPlacesWithAtLeastOneDimension[placeIndex]!;
+            return [inputArc.instance.id, new Set(placeTokenIndices)];
           }),
         ]),
         // Map from place ID to array of token values to
