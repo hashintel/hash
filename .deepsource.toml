@@ -1,0 +1,43 @@
+version = "1"
+
+exclude_patterns = ["**/node_modules/", "**/dist/", "**/build/", "**/target/", "**/pkg/", "**/.turbo/"]
+
+test_patterns = ["**/*.test.ts", "**/*.spec.ts"]
+
+[[analyzers]]
+name = "javascript"
+
+[analyzers.meta]
+environment = [
+    "vitest",
+    "nodejs",
+    "browser",
+]
+plugins = ["react"]
+
+[[analyzers]]
+name = "secrets"
+
+[[analyzers]]
+name = "sql"
+
+[[analyzers]]
+name = "test-coverage"
+
+[[analyzers]]
+name = "rust"
+
+[analyzers.meta]
+msrv = "stable"
+
+[[analyzers]]
+name = "shell"
+
+[[analyzers]]
+name = "docker"
+
+[analyzers.meta]
+dockerfile_paths = ["**/Dockerfile"]
+
+[[transformers]]
+name = "rustfmt"
