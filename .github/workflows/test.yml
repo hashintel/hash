@@ -12,6 +12,7 @@ env:
   TURBO_TEAM: hashintel
   TURBO_CACHE: remote:rw
   NEXTEST_PROFILE: ci
+  VAULT_ADDR: ${{ secrets.VAULT_ADDR }}
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
