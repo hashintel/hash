@@ -113,6 +113,8 @@ jobs:
       fail-fast: false
     if: needs.setup.outputs.unit-tests != '{"name":[],"include":[]}'
     runs-on: ubuntu-24.04
+    permissions:
+      id-token: write
     steps:
       - name: Checkout
         uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
@@ -133,6 +135,17 @@ jobs:
           scope: |
             ${{ matrix.name }}
             @rust/hash-repo-chores
+
+      - name: Retrieve secrets
+        id: secrets
+        uses: hashicorp/vault-action@4c06c5ccf5c0761b6029f56cfb1dcf5565918a3b # v3.4.0
+        with:
+          exportToken: true
+          url: ${{ env.VAULT_ADDR }}
+          method: jwt
+          role: dev
+          secrets: |
+            infrastructure/data/github/actions/secrets deepsource_dns | DEEPSOURCE_DSN ;
 
       - name: Warm up repository
         uses: ./.github/actions/warm-up-repo
@@ -177,7 +190,7 @@ jobs:
         with:
           key: ${{ env.COVERAGE_KEY }}
           coverage-file: lcov-patched.info
-          dsn: ${{ secrets.DEEPSOURCE_DSN }}
+          dsn: ${{ env.DEEPSOURCE_DSN }}
 
       - name: Run miri
         if: always() && steps.tests.outputs.has-rust == 'true'
