@@ -8,7 +8,7 @@ use walkdir::WalkDir;
 use crate::benches::analyze::AnalyzeError;
 
 #[derive(Debug, Serialize, Deserialize)]
-pub struct Info {
+pub(crate) struct Info {
     pub title: String,
     pub full_id: String,
     pub directory_name: String,
@@ -19,21 +19,21 @@ pub struct Info {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-pub struct ConfidenceInterval {
+pub(crate) struct ConfidenceInterval {
     pub confidence_level: f64,
     pub lower_bound: f64,
     pub upper_bound: f64,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-pub struct Stat {
+pub(crate) struct Stat {
     pub confidence_interval: ConfidenceInterval,
     pub point_estimate: f64,
     pub standard_error: f64,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-pub struct Estimates {
+pub(crate) struct Estimates {
     pub mean: Stat,
     pub median: Stat,
     pub median_abs_dev: Stat,
@@ -42,26 +42,26 @@ pub struct Estimates {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-pub struct ChangeEstimates {
+pub(crate) struct ChangeEstimates {
     pub mean: Stat,
     pub median: Stat,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(transparent)]
-pub struct Tukey {
+pub(crate) struct Tukey {
     values: Box<[f64]>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-pub struct Sample {
+pub(crate) struct Sample {
     pub sampling_mode: String,
     pub iters: Box<[f64]>,
     pub times: Box<[f64]>,
 }
 
 #[derive(Debug)]
-pub struct Measurement {
+pub(crate) struct Measurement {
     pub info: Info,
     pub estimates: Estimates,
     pub sample: Sample,
@@ -105,7 +105,7 @@ impl Measurement {
 }
 
 #[derive(Debug)]
-pub struct Benchmark {
+pub(crate) struct Benchmark {
     pub measurements: HashMap<Box<str>, Measurement>,
     pub change: Option<ChangeEstimates>,
 }
@@ -118,7 +118,7 @@ impl Benchmark {
     /// # Errors
     ///
     /// Returns an error if reading from the directory fails or the data is invalid.
-    pub fn from_path(path: impl AsRef<Path>) -> Result<Option<Self>, Report<AnalyzeError>> {
+    pub(crate) fn from_path(path: impl AsRef<Path>) -> Result<Option<Self>, Report<AnalyzeError>> {
         let path = path.as_ref();
         if !path.is_dir() {
             return Ok(None);
@@ -141,7 +141,7 @@ impl Benchmark {
         }))
     }
 
-    pub fn gather(
+    pub(crate) fn gather(
         path: impl AsRef<Path>,
     ) -> impl Iterator<Item = Result<Self, Report<AnalyzeError>>> {
         WalkDir::new(path).into_iter().filter_map(|entry| {

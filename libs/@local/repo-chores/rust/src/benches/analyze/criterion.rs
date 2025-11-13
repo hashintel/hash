@@ -87,7 +87,7 @@ fn table_row(
 /// # Errors
 ///
 /// Returns an error if writing to `fmt` fails.
-pub fn format_github_markdown<'b>(
+pub(crate) fn format_github_markdown<'b>(
     fmt: &mut fmt::Formatter<'_>,
     analyses: impl IntoIterator<Item = &'b BenchmarkAnalysis>,
     name: &str,

@@ -1,25 +1,25 @@
-pub mod latex;
+pub(crate) mod latex;
 
 #[derive(Debug, Copy, Clone)]
-pub enum Color {
+pub(crate) enum Color {
     Red,
     Green,
     Gray,
 }
 
 #[derive(Debug, Copy, Clone)]
-pub struct Colored<T> {
+pub(crate) struct Colored<T> {
     pub value: T,
     pub color: Color,
 }
 
 #[derive(Debug, Copy, Clone)]
-pub struct Braced<T> {
+pub(crate) struct Braced<T> {
     pub value: T,
 }
 
 #[derive(Debug, Copy, Clone)]
-pub enum Unit {
+pub(crate) enum Unit {
     Picoseconds,
     Nanoseconds,
     Microseconds,
@@ -29,7 +29,7 @@ pub enum Unit {
 }
 
 #[derive(Debug, Copy, Clone)]
-pub struct Duration {
+pub(crate) struct Duration {
     pub amount: f64,
     pub unit: Unit,
 }
@@ -37,7 +37,7 @@ pub struct Duration {
 impl Duration {
     #[must_use]
     #[expect(clippy::float_arithmetic)]
-    pub fn from_nanos(nanos: f64) -> Self {
+    pub(crate) fn from_nanos(nanos: f64) -> Self {
         let (amount, unit) = if nanos < 1.0 {
             (nanos * 1_000.0, Unit::Picoseconds)
         } else if nanos < 1_000.0 {
@@ -55,7 +55,7 @@ impl Duration {
 
     #[must_use]
     #[expect(clippy::float_arithmetic)]
-    pub fn from_percent(percent: f64) -> Self {
+    pub(crate) fn from_percent(percent: f64) -> Self {
         Self {
             amount: percent * 100.0,
             unit: Unit::Percent,

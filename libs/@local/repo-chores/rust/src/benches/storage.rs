@@ -13,7 +13,7 @@ use serde::Serialize;
 use crate::benches::{analyze::BenchmarkAnalysis, report::Measurement};
 
 #[derive(Debug, thiserror::Error)]
-pub enum UploadError {
+pub(crate) enum UploadError {
     #[error("Failed to read input file.")]
     ReadInput,
     #[error("could not serialize file.")]
@@ -24,13 +24,13 @@ pub enum UploadError {
     FlameGraphMissing,
 }
 
-pub struct S3Storage {
+pub(crate) struct S3Storage {
     client: aws_sdk_s3::Client,
     bucket: Cow<'static, str>,
 }
 
 impl S3Storage {
-    pub fn new(config: &SdkConfig, bucket: impl Into<Cow<'static, str>>) -> Self {
+    pub(crate) fn new(config: &SdkConfig, bucket: impl Into<Cow<'static, str>>) -> Self {
         Self {
             client: aws_sdk_s3::Client::new(config),
             bucket: bucket.into(),
@@ -66,7 +66,7 @@ impl S3Storage {
     /// # Errors
     ///
     /// Returns an error if the upload fails.
-    pub async fn put_measurement(
+    pub(crate) async fn put_measurement(
         &self,
         measurement: &Measurement,
         name: &str,
@@ -100,7 +100,7 @@ impl S3Storage {
     /// # Errors
     ///
     /// Returns an error if the upload fails.
-    pub async fn put_benchmark_analysis(
+    pub(crate) async fn put_benchmark_analysis(
         &self,
         analysis: BenchmarkAnalysis,
         name: &str,
