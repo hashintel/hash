@@ -168,7 +168,7 @@ jobs:
           token: ${{ secrets.CODECOV_TOKEN }} ## not required for public repos, can be removed when https://github.com/codecov/codecov-action/issues/837 is resolved
 
       - name: Patch lcov file
-        run: cargo run -p hash-repo-chores -- lcov merge --output=lcov-patched.info $(find . -name 'lcov.info')
+        run: cargo run -p hash-repo-chores -- lcov merge --output=lcov-patched.info $(find . -name 'lcov.info' -not -path '*/node_modules/*')
 
       - uses: deepsourcelabs/test-coverage-action@4284bb73a04adb39faaa6bfcc2d0e3dd137ffed7 # v1.1.3
         name: Upload test coverage to https://app.deepsource.com/gh/hashintel/hash
