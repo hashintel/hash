@@ -2,7 +2,7 @@ import "reactflow/dist/style.css";
 
 import { css } from "@hashintel/ds-helpers/css";
 import { useEffect, useRef, useState } from "react";
-import type { Connection, ReactFlowInstance } from "reactflow";
+import type { Connection, Node, ReactFlowInstance } from "reactflow";
 import ReactFlow, { Background, ConnectionLineType } from "reactflow";
 import { v4 as generateUuid } from "uuid";
 
@@ -162,6 +162,13 @@ export const SDCPNView: React.FC = () => {
     setEditionMode("select");
   }
 
+  function onNodeClick(_event: React.MouseEvent, node: Node<NodeData>) {
+    // In simulate mode, only allow single selection
+    if (isReadonly) {
+      setSelectedItemIds(new Set([node.id]));
+    }
+  }
+
   function onPaneClick(event: React.MouseEvent) {
     if (!reactFlowInstance || !canvasContainer.current) {
       return;
@@ -278,6 +285,7 @@ export const SDCPNView: React.FC = () => {
         onEdgesChange={isReadonly ? undefined : applyNodeChanges}
         onConnect={isReadonly ? undefined : onConnect}
         onInit={onInit}
+        onNodeClick={onNodeClick}
         onPaneClick={onPaneClick}
         defaultViewport={{ x: 0, y: 0, zoom: 1 }}
         snapToGrid
@@ -289,6 +297,7 @@ export const SDCPNView: React.FC = () => {
         nodesConnectable={!isReadonly}
         elementsSelectable={!isAddMode}
         selectionOnDrag={editionMode === "select"}
+        multiSelectionKeyCode={isReadonly ? null : undefined}
         panOnScroll={false}
         zoomOnScroll
       >
