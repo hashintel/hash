@@ -2,6 +2,7 @@ import { Box } from "../../components/box";
 import { Stack } from "../../components/stack";
 import { productionMachines } from "../../examples/broken-machines";
 import { satellitesSDCPN } from "../../examples/satellites";
+import { sirModel } from "../../examples/sir-model";
 import { supplyChainSDCPN } from "../../examples/supply-chain";
 import { supplyChainStochasticSDCPN } from "../../examples/supply-chain-stochastic";
 import { useEditorStore } from "../../state/editor-provider";
@@ -151,6 +152,14 @@ export const EditorView: React.FC = () => {
                     label: "Production Machines",
                     onClick: () => {
                       setSDCPN(productionMachines);
+                      clearSelection();
+                    },
+                  },
+                  {
+                    id: "load-example-sir-model",
+                    label: "SIR Model",
+                    onClick: () => {
+                      setSDCPN(sirModel);
                       clearSelection();
                     },
                   },
