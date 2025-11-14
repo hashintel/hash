@@ -5,7 +5,7 @@ import type { SDCPN } from "../../../core/types/sdcpn";
  * @param onLoad - Callback function called with the loaded SDCPN
  * @param onError - Callback function called if there's an error
  */
-export function loadSDCPN(
+export function importSDCPN(
   onLoad: (sdcpn: SDCPN) => void,
   onError?: (error: string) => void,
 ): void {

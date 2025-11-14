@@ -39,6 +39,7 @@
     "@hashintel/design-system": "0.0.9-canary.2",
     "@hashintel/ds-components": "0.0.1",
     "@hashintel/ds-helpers": "0.0.1",
+    "@mantine/hooks": "8.3.5",
     "@monaco-editor/react": "4.7.0",
     "@mui/material": "5.18.0",
     "@mui/system": "5.18.0",
@@ -53,7 +54,6 @@
   "devDependencies": {
     "@emotion/react": "11.14.0",
     "@local/eslint": "0.0.0-private",
-    "@mantine/hooks": "8.3.5",
     "@mui/material": "5.18.0",
     "@mui/system": "5.18.0",
     "@pandacss/dev": "1.4.3",

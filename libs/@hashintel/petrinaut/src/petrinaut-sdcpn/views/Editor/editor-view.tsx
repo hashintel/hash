@@ -8,13 +8,14 @@ import { supplyChainStochasticSDCPN } from "../../examples/supply-chain-stochast
 import { useEditorStore } from "../../state/editor-provider";
 import { useSDCPNStore } from "../../state/sdcpn-provider";
 import { useSimulationStore } from "../../state/simulation-provider";
+import { useLocalStorageSDCPNs } from "../../state/use-local-storage-sdcpns";
 import { SDCPNView } from "../SDCPN/sdcpn-view";
 import { BottomBar } from "./components/BottomBar/bottom-bar";
 import { LeftSideBar } from "./components/LeftSideBar/left-sidebar";
 import { ModeSelector } from "./components/mode-selector";
 import { PropertiesPanel } from "./components/PropertiesPanel/properties-panel";
-import { loadSDCPN } from "./lib/load-sdcpn";
-import { saveSDCPN } from "./lib/save-sdcpn";
+import { exportSDCPN } from "./lib/export-sdcpn";
+import { importSDCPN } from "./lib/import-sdcpn";
 
 /**
  * EditorView is responsible for the overall editor UI layout and controls.
@@ -40,6 +41,8 @@ export const EditorView: React.FC = () => {
     (state) => state.initializeParameterValuesFromDefaults,
   );
 
+  const { storedSDCPNs } = useLocalStorageSDCPNs();
+
   // Handler for mode change that initializes parameter values when switching to simulate mode
   function handleModeChange(newMode: "edit" | "simulate") {
     if (newMode === "simulate" && mode !== "simulate") {
@@ -62,12 +65,12 @@ export const EditorView: React.FC = () => {
     clearSelection();
   }
 
-  function handleSave() {
-    saveSDCPN(sdcpn);
+  function handleExport() {
+    exportSDCPN(sdcpn);
   }
 
-  function handleLoad() {
-    loadSDCPN((loadedSDCPN) => {
+  function handleImport() {
+    importSDCPN((loadedSDCPN) => {
       setSDCPN(loadedSDCPN);
       clearSelection();
     });
@@ -104,15 +107,35 @@ export const EditorView: React.FC = () => {
                 label: "New",
                 onClick: handleNew,
               },
+              ...(Object.keys(storedSDCPNs).length > 0
+                ? [
+                    {
+                      id: "open",
+                      label: "Open",
+                      submenu: Object.entries(storedSDCPNs)
+                        .sort((a, b) =>
+                          b[1].lastUpdated.localeCompare(a[1].lastUpdated),
+                        )
+                        .map(([id, storedRecord]) => ({
+                          id: `open-${id}`,
+                          label: storedRecord.sdcpn.title,
+                          onClick: () => {
+                            setSDCPN(storedRecord.sdcpn);
+                            clearSelection();
+                          },
+                        })),
+                    },
+                  ]
+                : []),
               {
-                id: "load",
-                label: "Load",
-                onClick: handleLoad,
+                id: "export",
+                label: "Export",
+                onClick: handleExport,
               },
               {
-                id: "save",
-                label: "Save",
-                onClick: handleSave,
+                id: "import",
+                label: "Import",
+                onClick: handleImport,
               },
               {
                 id: "layout",
