@@ -33,6 +33,8 @@ jobs:
 
   setup:
     runs-on: ubuntu-24.04
+    permissions:
+      id-token: write
     outputs:
       unit-tests: ${{ steps.packages.outputs.unit-tests }}
       integration-tests: ${{ steps.packages.outputs.integration-tests }}
@@ -242,6 +244,8 @@ jobs:
       fail-fast: false
     if: needs.setup.outputs.integration-tests != '{"name":[],"include":[]}' && needs.optimize-ci.outputs.skip == 'false'
     runs-on: ubuntu-24.04
+    permissions:
+      id-token: write
     steps:
       - name: Checkout
         uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0

@@ -19,6 +19,8 @@ concurrency:
 jobs:
   setup:
     runs-on: ubuntu-24.04
+    permissions:
+      id-token: write
     outputs:
       packages: ${{ steps.packages.outputs.packages }}
     steps:
@@ -46,6 +48,7 @@ jobs:
   package:
     name: Package
     permissions:
+      id-token: write
       contents: read
       security-events: write
     needs: [setup]
@@ -179,6 +182,7 @@ jobs:
   global:
     name: Global
     permissions:
+      id-token: write
       contents: read
       checks: write
       pull-requests: write
