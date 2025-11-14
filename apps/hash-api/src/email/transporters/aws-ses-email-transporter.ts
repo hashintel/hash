@@ -1,4 +1,4 @@
-import * as aws from "@aws-sdk/client-ses";
+import { SendEmailCommand, SESv2Client } from "@aws-sdk/client-sesv2";
 import { defaultProvider } from "@aws-sdk/credential-provider-node";
 import { convert } from "html-to-text";
 import nodemailer from "nodemailer";
@@ -18,16 +18,16 @@ export interface AwsSesEmailTransporterConfig {
 
 export class AwsSesEmailTransporter implements EmailTransporter {
   private nodemailerTransporter: nodemailer.Transporter<SESTransport.SentMessageInfo>;
-  private ses: aws.SES;
+  private ses: SESv2Client;
 
   constructor(private config: AwsSesEmailTransporterConfig) {
-    this.ses = new aws.SES({
+    this.ses = new SESv2Client({
       apiVersion: "2010-12-01",
       region: config.region,
       credentialDefaultProvider: defaultProvider,
     });
     this.nodemailerTransporter = nodemailer.createTransport({
-      SES: { ses: this.ses, aws },
+      SES: { sesClient: this.ses, SendEmailCommand },
       sendingRate: 10,
     });
   }
