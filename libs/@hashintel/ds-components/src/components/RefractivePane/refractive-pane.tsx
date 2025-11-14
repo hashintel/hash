@@ -20,18 +20,18 @@ export const RefractivePane: React.FC<RefractivePaneProps> = ({
   style,
   radius,
   blur,
-  specularOpacity,
-  scaleRatio,
-  bezelWidth,
-  glassThickness,
-  refractiveIndex,
+  // specularOpacity,
+  // scaleRatio,
+  // bezelWidth,
+  // glassThickness,
+  // refractiveIndex,
   children,
 }) => {
   const filterId = `bar-filter-${useId()}`;
   const {
     ref: divRef,
-    width: trackedMotionWidth,
-    height: trackedMotionHeight,
+    // width: trackedMotionWidth,
+    // height: trackedMotionHeight,
   } = useMotionResizeObserver<HTMLDivElement>({
     initialWidth: 10,
     initialHeight: 10,
