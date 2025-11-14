@@ -19,6 +19,8 @@ concurrency:
 jobs:
   setup:
     runs-on: ubuntu-24.04
+    permissions:
+      id-token: write
     outputs:
       packages: ${{ steps.packages.outputs.packages }}
     steps:
@@ -31,6 +33,7 @@ jobs:
         uses: ./.github/actions/install-tools
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
+          vault_address: ${{ secrets.VAULT_ADDR }}
           rust: false
 
       - name: Determine changed packages
@@ -45,6 +48,7 @@ jobs:
   package:
     name: Package
     permissions:
+      id-token: write
       contents: read
       security-events: write
     needs: [setup]
@@ -66,6 +70,7 @@ jobs:
         uses: ./.github/actions/install-tools
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
+          vault_address: ${{ secrets.VAULT_ADDR }}
 
       - name: Prune repository
         uses: ./.github/actions/prune-repository
@@ -177,6 +182,7 @@ jobs:
   global:
     name: Global
     permissions:
+      id-token: write
       contents: read
       checks: write
       pull-requests: write
@@ -192,6 +198,7 @@ jobs:
         uses: ./.github/actions/install-tools
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
+          vault_address: ${{ secrets.VAULT_ADDR }}
 
       - name: Warm up repository
         uses: ./.github/actions/warm-up-repo

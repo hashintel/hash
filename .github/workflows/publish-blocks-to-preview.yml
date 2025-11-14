@@ -15,6 +15,8 @@ jobs:
   pick-blocks:
     name: Pick blocks
     runs-on: ubuntu-24.04
+    permissions:
+      id-token: write
     outputs:
       block-dir-names: ${{ steps.list-block-dir-names.outputs.block-dir-names }}
     steps:
@@ -24,6 +26,7 @@ jobs:
         uses: ./.github/actions/install-tools
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
+          vault_address: ${{ secrets.VAULT_ADDR }}
 
       - name: Warm up repository
         uses: ./.github/actions/warm-up-repo
@@ -39,6 +42,8 @@ jobs:
   process:
     name: Publish
     runs-on: ubuntu-24.04
+    permissions:
+      id-token: write
     needs:
       - pick-blocks
     strategy:
@@ -53,6 +58,7 @@ jobs:
         uses: ./.github/actions/install-tools
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
+          vault_address: ${{ secrets.VAULT_ADDR }}
 
       - name: Warm up repository
         uses: ./.github/actions/warm-up-repo
