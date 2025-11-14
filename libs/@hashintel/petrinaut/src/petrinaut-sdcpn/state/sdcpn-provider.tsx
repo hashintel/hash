@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect } from "react";
+import { createContext, useContext, useEffect, useMemo } from "react";
 import { useStore } from "zustand";
 
 import type { SDCPNState } from "./sdcpn-store";
@@ -14,11 +14,16 @@ export type SDCPNProviderProps = React.PropsWithChildren;
 export const SDCPNProvider: React.FC<SDCPNProviderProps> = ({ children }) => {
   const { storedSDCPNs, setStoredSDCPNs } = useLocalStorageSDCPNs();
 
-  const store = createSDCPNStore({
-    initialSDCPN: Object.values(storedSDCPNs).sort((a, b) =>
-      b.lastUpdated.localeCompare(a.lastUpdated),
-    )[0]?.sdcpn,
-  });
+  const store = useMemo(
+    () =>
+      createSDCPNStore({
+        initialSDCPN: Object.values(storedSDCPNs).sort((a, b) =>
+          b.lastUpdated.localeCompare(a.lastUpdated),
+        )[0]?.sdcpn,
+      }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- don't want to recreate store
+    [],
+  );
 
   const currentSdcpn = useStore(store, (state) => state.sdcpn);
 
