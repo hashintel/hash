@@ -25,7 +25,7 @@ runs:
     - name: Setup sccache
       uses: mozilla-actions/sccache-action@7d986dd989559c6ecdb630a3fd2557667be217ad # v0.0.9
 
-    - name: Start sscache server
+    - name: Start sccache server
       env:
         SCCACHE_BUCKET: ${{ env.SCCACHE_BUCKET }}
         SCCACHE_ENDPOINT: https://${{ env.SCCACHE_ACCOUNT_ID }}.r2.cloudflarestorage.com
