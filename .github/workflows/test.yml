@@ -198,6 +198,11 @@ jobs:
         run: |
           turbo run test:miri --filter "${{ matrix.name }}"
 
+      - name: Show sccache logs
+        if: always() && steps.tests.outputs.has-rust == 'true'
+        run: |
+          cat /tmp/sccache.log
+
   build:
     name: Build
     permissions:
