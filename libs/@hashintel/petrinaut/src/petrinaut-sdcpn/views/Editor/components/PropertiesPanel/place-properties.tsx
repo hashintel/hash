@@ -1,6 +1,6 @@
 /* eslint-disable id-length */
 import MonacoEditor from "@monaco-editor/react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { TbArrowRight, TbDotsVertical, TbSparkles } from "react-icons/tb";
 
 import { Menu } from "../../../../components/menu";
@@ -67,12 +67,40 @@ export const PlaceProperties: React.FC<PlacePropertiesProps> = ({
   // State for name input validation
   const [nameInputValue, setNameInputValue] = useState(place.name);
   const [nameError, setNameError] = useState<string | null>(null);
+  const [isNameInputFocused, setIsNameInputFocused] = useState(false);
+  const nameInputRef = useRef<HTMLInputElement>(null);
+  const rootDivRef = useRef<HTMLDivElement>(null);
 
   // Update local state when place changes
   useEffect(() => {
     setNameInputValue(place.name);
     setNameError(null);
   }, [place.id, place.name]);
+
+  // Handle clicks outside when name input is focused
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        isNameInputFocused &&
+        rootDivRef.current &&
+        !rootDivRef.current.contains(event.target as Node)
+      ) {
+        // Click is outside the root div and input is focused
+        event.stopPropagation();
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        nameInputRef.current?.blur();
+      }
+    };
+
+    if (isNameInputFocused) {
+      // Use capture phase to catch the event before it propagates
+      document.addEventListener("click", handleClickOutside, true);
+      return () => {
+        document.removeEventListener("click", handleClickOutside, true);
+      };
+    }
+  }, [isNameInputFocused]);
 
   // Validate PascalCase format
   const isPascalCase = (str: string): boolean => {
@@ -90,7 +118,9 @@ export const PlaceProperties: React.FC<PlacePropertiesProps> = ({
     }
 
     if (!isPascalCase(nameInputValue)) {
-      setNameError("Name must be in PascalCase (e.g., MyPlaceName)");
+      setNameError(
+        "Name must be in PascalCase (e.g., MyPlaceName or Place2). Numbers must appear at the end.",
+      );
       return;
     }
 
@@ -132,7 +162,10 @@ export const PlaceProperties: React.FC<PlacePropertiesProps> = ({
     : [];
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+    <div
+      ref={rootDivRef}
+      style={{ display: "flex", flexDirection: "column", gap: 12 }}
+    >
       <div>
         <div style={{ fontWeight: 600, fontSize: 16, marginBottom: 8 }}>
           Place
@@ -144,6 +177,7 @@ export const PlaceProperties: React.FC<PlacePropertiesProps> = ({
           Name
         </div>
         <input
+          ref={nameInputRef}
           type="text"
           value={nameInputValue}
           onChange={(event) => {
@@ -153,7 +187,11 @@ export const PlaceProperties: React.FC<PlacePropertiesProps> = ({
               setNameError(null);
             }
           }}
-          onBlur={handleNameBlur}
+          onFocus={() => setIsNameInputFocused(true)}
+          onBlur={() => {
+            setIsNameInputFocused(false);
+            handleNameBlur();
+          }}
           disabled={globalMode === "simulate"}
           style={{
             fontSize: 14,
