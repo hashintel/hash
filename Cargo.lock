@@ -1214,13 +1214,12 @@ dependencies = [
 
 [[package]]
 name = "cargo_metadata"
-version = "0.22.0"
+version = "0.23.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0c3f56c207c76c07652489840ff98687dcf213de178ac0974660d6fefeaf5ec6"
+checksum = "ef987d17b0a113becdd19d3d0022d04d7ef41f9efe4f3fb63ac44ba61df3ade9"
 dependencies = [
  "camino",
  "cargo-platform 0.3.1",
- "cargo-util-schemas",
  "semver",
  "serde",
  "serde_json",
@@ -3538,7 +3537,7 @@ dependencies = [
  "aws-sdk-s3",
  "aws-types",
  "bytes",
- "cargo_metadata 0.22.0",
+ "cargo_metadata 0.23.1",
  "clap",
  "clap_complete",
  "criterion",
