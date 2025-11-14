@@ -32,6 +32,7 @@ runs:
         SCCACHE_REGION: auto
         SCCACHE_LOG: debug
         SCCACHE_ERROR_LOG: /tmp/sccache.log
+        SCCACHE_S3_USE_SSL: "true"
         SCCACHE_S3_KEY_PREFIX: hashintel/hash/
         AWS_ACCESS_KEY_ID: ${{ env.SCCACHE_AWS_ACCESS_KEY_ID }}
         AWS_SECRET_ACCESS_KEY: ${{ env.SCCACHE_AWS_SECRET_ACCESS_KEY }}
