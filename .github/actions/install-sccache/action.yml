@@ -33,7 +33,9 @@ runs:
         SCCACHE_LOG: debug
         SCCACHE_ERROR_LOG: /tmp/sccache.log
         SCCACHE_S3_USE_SSL: "true"
-        # SCCACHE_S3_KEY_PREFIX: "hashintel-hash-"
+        SCCACHE_S3_KEY_PREFIX: "hashintel/hash/"
+        SCCACHE_S3_SERVER_SIDE_ENCRYPTION: "false"
+        SCCACHE_S3_ENABLE_VIRTUAL_HOST_STYLE: "false"
         AWS_ACCESS_KEY_ID: ${{ env.SCCACHE_AWS_ACCESS_KEY_ID }}
         AWS_SECRET_ACCESS_KEY: ${{ env.SCCACHE_AWS_SECRET_ACCESS_KEY }}
         AWS_EC2_METADATA_DISABLED: "true"
