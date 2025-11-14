@@ -13,10 +13,10 @@ runs:
         method: jwt
         role: dev
         secrets: |
-          infrastructure/data/github/actions/secrets sscache_r2_account_id | SCCACHE_ACCOUNT_ID ;
-          infrastructure/data/github/actions/secrets sscache_r2_bucket | SCCACHE_BUCKET ;
-          infrastructure/data/github/actions/secrets sscache_r2_key_id | SCCACHE_AWS_ACCESS_KEY_ID ;
-          infrastructure/data/github/actions/secrets sscache_r2_access_key | SCCACHE_AWS_SECRET_ACCESS_KEY ;
+          infrastructure/data/github/actions/secrets sccache_r2_account_id | SCCACHE_ACCOUNT_ID ;
+          infrastructure/data/github/actions/secrets sccache_r2_bucket | SCCACHE_BUCKET ;
+          infrastructure/data/github/actions/secrets sccache_r2_key_id | SCCACHE_AWS_ACCESS_KEY_ID ;
+          infrastructure/data/github/actions/secrets sccache_r2_access_key | SCCACHE_AWS_SECRET_ACCESS_KEY ;
 
     - name: Setup sccache
       uses: mozilla-actions/sccache-action@7d986dd989559c6ecdb630a3fd2557667be217ad # v0.0.9
