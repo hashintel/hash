@@ -43,6 +43,20 @@ runs:
       run: |
         sccache --start-server
 
+    - name: Debug SSL connection to R2
+      shell: bash
+      env:
+        SCCACHE_ACCOUNT_ID: ${{ env.SCCACHE_ACCOUNT_ID }}
+      run: |
+        echo "Testing R2 endpoint connectivity..."
+        curl -v "https://${SCCACHE_ACCOUNT_ID}.r2.cloudflarestorage.com" 2>&1 | head -50
+
+        echo -e "\nOpenSSL version:"
+        openssl version -a
+
+        echo -e "\nTesting TLS handshake:"
+        openssl s_client -connect "${SCCACHE_ACCOUNT_ID}.r2.cloudflarestorage.com:443" -servername "${SCCACHE_ACCOUNT_ID}.r2.cloudflarestorage.com" </dev/null 2>&1 | head -30
+
     - name: Inject sccache variables into environment
       shell: bash
       run: |
