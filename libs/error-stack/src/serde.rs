@@ -16,7 +16,7 @@
 use alloc::{format, vec, vec::Vec};
 use core::error::Error;
 
-use serde_core::{Serialize, Serializer, ser::SerializeMap as _};
+use serde_core::{ser::SerializeMap as _, Serialize, Serializer};
 
 use crate::{AttachmentKind, Frame, FrameKind, Report};
 

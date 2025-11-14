@@ -1,3 +1,3 @@
-use utoipa::{openapi, ToSchema};
+use utoipa::{ToSchema, openapi};
 
 use crate::{Interval, Timestamp};

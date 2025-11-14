@@ -5,8 +5,8 @@ mod common;
 
 use common::*;
 use error_stack::{
-    Report,
     fmt::{Charset, ColorMode},
+    Report,
 };
 use insta::assert_snapshot;
 #[cfg(feature = "spantrace")]

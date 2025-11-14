@@ -11,9 +11,9 @@ use tracing_error::{SpanTrace, SpanTraceStatus};
 #[cfg(nightly)]
 use crate::iter::{RequestRef, RequestValue};
 use crate::{
-    Attachment, Frame, OpaqueAttachment,
     context::SourceContext,
     iter::{Frames, FramesMut},
+    Attachment, Frame, OpaqueAttachment,
 };
 
 /// Contains a [`Frame`] stack consisting of [`Error`] contexts and attachments.
