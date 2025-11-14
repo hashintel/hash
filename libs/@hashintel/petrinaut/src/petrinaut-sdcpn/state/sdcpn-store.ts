@@ -11,14 +11,25 @@ import type {
 } from "../core/types/sdcpn";
 import { calculateGraphLayout } from "../lib/calculate-graph-layout";
 
-const emptySDCPN: SDCPN = {
-  id: "empty",
+const createEmptySDCPN = (): SDCPN => ({
+  id: `sdcpn-${Date.now()}`,
   title: "Untitled",
   places: [],
   transitions: [],
   types: [],
   differentialEquations: [],
   parameters: [],
+});
+
+export const isEmptySDCPN = (sdcpn: SDCPN): boolean => {
+  return (
+    sdcpn.title === "Untitled" &&
+    sdcpn.places.length === 0 &&
+    sdcpn.transitions.length === 0 &&
+    sdcpn.types.length === 0 &&
+    sdcpn.differentialEquations.length === 0 &&
+    sdcpn.parameters.length === 0
+  );
 };
 
 export type SDCPNState = {
@@ -93,11 +104,15 @@ export type SDCPNState = {
  * Creates a Zustand store for managing the SDCPN definition.
  * This stores the core SDCPN model without any UI-specific state.
  */
-export function createSDCPNStore() {
+export function createSDCPNStore({
+  initialSDCPN,
+}: {
+  initialSDCPN?: SDCPN;
+}) {
   return create<SDCPNState>()(
     devtools(
       (set, get) => ({
-        sdcpn: emptySDCPN,
+        sdcpn: initialSDCPN ?? createEmptySDCPN(),
         setSDCPN: (sdcpn) => set({ sdcpn }, false, "setSDCPN"),
 
         // Place operations
