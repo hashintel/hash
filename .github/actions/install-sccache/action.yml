@@ -24,6 +24,8 @@ runs:
 
     - name: Setup sccache
       uses: mozilla-actions/sccache-action@7d986dd989559c6ecdb630a3fd2557667be217ad # v0.0.9
+
+    - name: Start sscache server
       env:
         SCCACHE_BUCKET: ${{ env.SCCACHE_BUCKET }}
         SCCACHE_ENDPOINT: https://${{ env.SCCACHE_ACCOUNT_ID }}.r2.cloudflarestorage.com
@@ -34,8 +36,12 @@ runs:
         AWS_ACCESS_KEY_ID: ${{ env.SCCACHE_AWS_ACCESS_KEY_ID }}
         AWS_SECRET_ACCESS_KEY: ${{ env.SCCACHE_AWS_SECRET_ACCESS_KEY }}
         AWS_EC2_METADATA_DISABLED: "true"
+      shell: bash
+      run: |
+        sccache --start-server
 
     - name: Inject sccache variables into environment
       shell: bash
       run: |
+
         echo "RUSTC_WRAPPER=${SCCACHE_PATH}" >> $GITHUB_ENV
