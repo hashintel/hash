@@ -4,7 +4,7 @@ import type { SDCPN } from "../../../core/types/sdcpn";
  * Saves the SDCPN to a JSON file by triggering a browser download.
  * @param sdcpn - The SDCPN to save
  */
-export function saveSDCPN(sdcpn: SDCPN): void {
+export function exportSDCPN(sdcpn: SDCPN): void {
   // Convert SDCPN to JSON string
   const jsonString = JSON.stringify(sdcpn, null, 2);
 
@@ -15,7 +15,7 @@ export function saveSDCPN(sdcpn: SDCPN): void {
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
   link.href = url;
-  link.download = `${sdcpn.title.replace(/[^a-z0-9]/gi, "_").toLowerCase()}_${Date.now()}.json`;
+  link.download = `${sdcpn.title.replace(/[^a-z0-9]/gi, "_").toLowerCase()}_${new Date().toISOString()}.json`;
 
   // Trigger download
   document.body.appendChild(link);
