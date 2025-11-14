@@ -207,10 +207,10 @@ jobs:
         run: |
           grep "CannotCache" /tmp/sccache.log | while IFS= read -r line; do
             # Extract reason - format as "reason1 (reason2)" if comma-separated, otherwise just "reason"
-            if echo "$line" | grep -qE 'CannotCache\([^,]+, [^)]+\)'; then
-              reason=$(echo "$line" | sed -E 's/.*CannotCache\(([^,]+), ([^)]+)\).*/\1 (\2)/')
+            if echo "$line" | grep -qE 'CannotCache\([^,]+, [^)]+\):'; then
+              reason=$(echo "$line" | sed -E 's/.*CannotCache\(([^,]+), ([^)]+)\):.*/\1 (\2)/')
             else
-              reason=$(echo "$line" | sed -E 's/.*CannotCache\(([^)]+)\).*/\1/')
+              reason=$(echo "$line" | sed -E 's/.*CannotCache\(([^)]+)\):.*/\1/')
             fi
 
             # Extract crate name if present
