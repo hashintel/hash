@@ -86,4 +86,10 @@ describe("splitPascalCase", () => {
 
     expect(result).toEqual(["API", "Key"]);
   });
+
+  it("should handle PascalCase with numbers", () => {
+    const result = splitPascalCase("Space42");
+
+    expect(result).toEqual(["Space", "42"]);
+  });
 });
