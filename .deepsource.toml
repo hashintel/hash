@@ -7,7 +7,6 @@ test_patterns    = ["**/*.test.ts", "**/*.spec.ts"]
 meta = { environment = ["vitest", "nodejs", "browser"], plugins = ["react"] }
 name = "javascript"
 
-
 [[analyzers]]
 name = "secrets"
 
@@ -27,6 +26,3 @@ name = "shell"
 [[analyzers]]
 meta = { dockerfile_paths = ["**/Dockerfile", "**/*.Dockerfile"] }
 name = "docker"
-
-[[transformers]]
-name = "rustfmt"
