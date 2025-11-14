@@ -54,6 +54,12 @@ export const ToolbarModes: React.FC<ToolbarModesProps> = ({
                   onEditionModeChange("add-place");
                 }
               }}
+              draggable
+              onDragStart={(event) => {
+                // eslint-disable-next-line no-param-reassign
+                event.dataTransfer.effectAllowed = "move";
+                event.dataTransfer.setData("application/reactflow", "place");
+              }}
               role="button"
               tabIndex={0}
               aria-label="Add place mode"
@@ -70,6 +76,12 @@ export const ToolbarModes: React.FC<ToolbarModesProps> = ({
                   event.preventDefault();
                   onEditionModeChange("add-transition");
                 }
+              }}
+              draggable
+              onDragStart={(event) => {
+                // eslint-disable-next-line no-param-reassign
+                event.dataTransfer.effectAllowed = "move";
+                event.dataTransfer.setData("application/reactflow", "transition");
               }}
               role="button"
               tabIndex={0}
