@@ -206,9 +206,23 @@ jobs:
         if: always() && steps.tests.outputs.has-rust == 'true'
         run: |
           grep "CannotCache" /tmp/sccache.log | while IFS= read -r line; do
-            reason=$(echo "$line" | sed -E 's/.*CannotCache\(([^,]+), ([^)]+)\).*/\1 (\2)/')
-            crate=$(echo "$line" | sed -E 's/.*"--crate-name", "([^"]+)".*/\1/')
-            args=$(echo "$line" | sed -E 's/.*CannotCache\([^)]+\): (\[.+\])/\1/')
+            # Extract reason - format as "reason1 (reason2)" if comma-separated, otherwise just "reason"
+            if echo "$line" | grep -qE 'CannotCache\([^,]+, [^)]+\)'; then
+              reason=$(echo "$line" | sed -E 's/.*CannotCache\(([^,]+), ([^)]+)\).*/\1 (\2)/')
+            else
+              reason=$(echo "$line" | sed -E 's/.*CannotCache\(([^)]+)\).*/\1/')
+            fi
+
+            # Extract crate name if present
+            if echo "$line" | grep -q '"--crate-name"'; then
+              crate=$(echo "$line" | sed -E 's/.*"--crate-name", "([^"]+)".*/\1/')
+            else
+              crate="<no crate name>"
+            fi
+
+            # Extract args
+            args=$(echo "$line" | sed -E 's/.*CannotCache\([^)]+\): (\[.+\])$/\1/')
+
             echo ""
             echo "reason: $reason"
             echo "crate:  $crate"
