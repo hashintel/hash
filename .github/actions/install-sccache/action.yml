@@ -1,5 +1,9 @@
 name: Install sccache
 description: Setup sccache for Rust project caching
+inputs:
+  vault_address:
+    description: The URL of the Vault server
+    required: true
 
 runs:
   using: composite
@@ -9,7 +13,7 @@ runs:
       uses: hashicorp/vault-action@4c06c5ccf5c0761b6029f56cfb1dcf5565918a3b # v3.4.0
       with:
         exportToken: true
-        url: ${{ env.VAULT_ADDR }}
+        url: ${{ inputs.vault_address }}
         method: jwt
         role: dev
         secrets: |
