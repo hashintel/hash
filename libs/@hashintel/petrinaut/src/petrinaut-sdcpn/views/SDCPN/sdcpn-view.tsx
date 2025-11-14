@@ -197,6 +197,35 @@ export const SDCPNView: React.FC = () => {
     createNodeAtPosition(nodeType, position);
   }
 
+  function onDragOver(event: React.DragEvent) {
+    event.preventDefault();
+    event.dataTransfer.dropEffect = "move";
+  }
+
+  function onDrop(event: React.DragEvent) {
+    event.preventDefault();
+
+    if (!reactFlowInstance || !canvasContainer.current) {
+      return;
+    }
+
+    const nodeType = event.dataTransfer.getData("application/reactflow");
+
+    // Validate that we have a valid node type
+    if (nodeType !== "place" && nodeType !== "transition") {
+      return;
+    }
+
+    const { width, height } = nodeDimensions[nodeType];
+    const reactFlowBounds = canvasContainer.current.getBoundingClientRect();
+    const position = reactFlowInstance.project({
+      x: event.clientX - reactFlowBounds.left - width / 2,
+      y: event.clientY - reactFlowBounds.top - height / 2,
+    });
+
+    createNodeAtPosition(nodeType, position);
+  }
+
   // Prevent ReactFlow from capturing keyboard events when in Monaco editor
   // TODO: This is messy and we should find a better way to handle keyboard shortcuts and collisions.
   useEffect(() => {
@@ -287,6 +316,8 @@ export const SDCPNView: React.FC = () => {
         onInit={onInit}
         onNodeClick={onNodeClick}
         onPaneClick={onPaneClick}
+        onDrop={isReadonly ? undefined : onDrop}
+        onDragOver={isReadonly ? undefined : onDragOver}
         defaultViewport={{ x: 0, y: 0, zoom: 1 }}
         snapToGrid
         snapGrid={[SNAP_GRID_SIZE, SNAP_GRID_SIZE]}
