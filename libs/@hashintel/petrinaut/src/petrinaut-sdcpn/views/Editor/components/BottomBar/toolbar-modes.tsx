@@ -81,7 +81,10 @@ export const ToolbarModes: React.FC<ToolbarModesProps> = ({
               onDragStart={(event) => {
                 // eslint-disable-next-line no-param-reassign
                 event.dataTransfer.effectAllowed = "move";
-                event.dataTransfer.setData("application/reactflow", "transition");
+                event.dataTransfer.setData(
+                  "application/reactflow",
+                  "transition",
+                );
               }}
               role="button"
               tabIndex={0}
