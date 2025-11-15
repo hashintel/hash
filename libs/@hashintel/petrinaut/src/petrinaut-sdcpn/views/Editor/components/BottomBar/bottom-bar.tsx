@@ -58,17 +58,22 @@ export const BottomBar: React.FC<BottomBarProps> = ({
           borderRadius: "[12px]",
           backgroundColor: "[rgba(255, 255, 255, 0.8)]",
           boxShadow: "[0 4px 16px rgba(0, 0, 0, 0.15)]",
-          display: "flex",
-          alignItems: "center",
-          gap: "spacing.4",
         })}
       >
-        <ToolbarModes
-          mode={mode}
-          editionMode={editionMode}
-          onEditionModeChange={onEditionModeChange}
-        />
-        {mode === "simulate" && <SimulationControls />}
+        <div
+          className={css({
+            display: "flex",
+            alignItems: "center",
+            gap: "spacing.4",
+          })}
+        >
+          <ToolbarModes
+            mode={mode}
+            editionMode={editionMode}
+            onEditionModeChange={onEditionModeChange}
+          />
+          {mode === "simulate" && <SimulationControls />}
+        </div>
       </RefractivePane>
     </div>
   );
