@@ -43,6 +43,7 @@ export const RefractivePane: React.FC<RefractivePaneProps> = ({
       style={{
         ...style,
         borderRadius: radius,
+        backdropFilter: `blur(${blur}px)`,
       }}
     >
       {/* <Filter
@@ -58,19 +59,6 @@ export const RefractivePane: React.FC<RefractivePaneProps> = ({
         refractiveIndex={refractiveIndex}
         bezelHeightFn={CONVEX}
       /> */}
-
-      <div
-        style={{
-          zIndex: -2,
-          position: "absolute",
-          top: 0,
-          left: 0,
-          width: "100%",
-          height: "100%",
-          borderRadius: radius,
-          backdropFilter: `blur(${blur}px)`,
-        }}
-      />
 
       <div
         ref={divRef}
