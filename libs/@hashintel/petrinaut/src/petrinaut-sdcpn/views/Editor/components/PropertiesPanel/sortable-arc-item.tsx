@@ -49,8 +49,9 @@ export const SortableArcItem: React.FC<SortableArcItemProps> = ({
         display: "flex",
         alignItems: "center",
         gap: 8,
-        padding: "4px 0",
+        padding: "8px 12px",
         whiteSpace: "nowrap",
+        borderBottom: "1px solid rgba(0, 0, 0, 0.06)",
       }}
     >
       {FEATURE_FLAGS.REORDER_TRANSITION_ARCS && (
@@ -80,30 +81,49 @@ export const SortableArcItem: React.FC<SortableArcItemProps> = ({
       >
         {placeName}
       </div>
-      <input
-        type="number"
-        min="1"
-        step="1"
-        value={weight}
-        disabled={disabled}
-        onChange={(event) => {
-          const newWeight = Number.parseInt(event.target.value, 10);
-          if (!Number.isNaN(newWeight) && newWeight >= 1) {
-            onWeightChange(newWeight);
-          }
-        }}
+      <div
         style={{
-          width: 60,
-          fontSize: 14,
-          padding: "4px 8px",
-          border: "1px solid rgba(0, 0, 0, 0.1)",
-          borderRadius: 4,
-          boxSizing: "border-box",
+          display: "flex",
+          alignItems: "center",
+          gap: 6,
           flexShrink: 0,
-          backgroundColor: disabled ? "rgba(0, 0, 0, 0.05)" : "white",
-          cursor: disabled ? "not-allowed" : "text",
         }}
-      />
+      >
+        <span
+          style={{
+            fontSize: 11,
+            color: "#999",
+            textTransform: "uppercase",
+            letterSpacing: "0.5px",
+            fontWeight: 500,
+          }}
+        >
+          weight
+        </span>
+        <input
+          type="number"
+          min="1"
+          step="1"
+          value={weight}
+          disabled={disabled}
+          onChange={(event) => {
+            const newWeight = Number.parseInt(event.target.value, 10);
+            if (!Number.isNaN(newWeight) && newWeight >= 1) {
+              onWeightChange(newWeight);
+            }
+          }}
+          style={{
+            width: 60,
+            fontSize: 14,
+            padding: "4px 8px",
+            border: "1px solid rgba(0, 0, 0, 0.1)",
+            borderRadius: 4,
+            boxSizing: "border-box",
+            backgroundColor: disabled ? "rgba(0, 0, 0, 0.05)" : "white",
+            cursor: disabled ? "not-allowed" : "text",
+          }}
+        />
+      </div>
       {onDelete && !disabled && (
         <button
           type="button"
