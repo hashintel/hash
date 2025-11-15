@@ -104,7 +104,7 @@ export const PropertiesPanel: React.FC = () => {
       >
         <RefractivePane
           radius={16}
-          blur={7}
+          blur={12}
           specularOpacity={0.2}
           scaleRatio={1}
           bezelWidth={65}
@@ -298,7 +298,7 @@ export const PropertiesPanel: React.FC = () => {
 
         <RefractivePane
           radius={16}
-          blur={7}
+          blur={12}
           specularOpacity={0.2}
           scaleRatio={1}
           bezelWidth={65}

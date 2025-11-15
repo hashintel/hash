@@ -46,7 +46,7 @@ export const BottomBar: React.FC<BottomBarProps> = ({
     >
       <RefractivePane
         radius={12}
-        blur={1.5}
+        blur={4}
         specularOpacity={0}
         scaleRatio={1}
         bezelWidth={20}

@@ -52,7 +52,7 @@ export const LeftSideBar: React.FC<LeftSideBarProps> = ({
     >
       <RefractivePane
         radius={16}
-        blur={7}
+        blur={12}
         specularOpacity={0.2}
         scaleRatio={1}
         bezelWidth={65}
