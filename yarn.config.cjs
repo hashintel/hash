@@ -15,7 +15,14 @@ const enforcedDevDependencies = {
   crossEnv: { commands: ["cross-env"], ident: "cross-env" },
 };
 
-const ignoredDependencies = ["@blockprotocol/graph", "@sentry/webpack-plugin"];
+const ignoredDependencies = [
+  "@blockprotocol/graph",
+  "@sentry/webpack-plugin",
+  // Petrinaut SDCPN uses multiple packages which are many versions behind in other workspaces
+  "vitest",
+  "@dnd-kit/sortable",
+  "@babel/core",
+];
 const ignoredWorkspaces = [];
 
 const allowedGitDependencies = [];
