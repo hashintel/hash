@@ -290,7 +290,7 @@ export const PlaceProperties: React.FC<PlacePropertiesProps> = ({
         )}
       </div>
 
-      <div style={{ marginTop: 25 }}>
+      <div style={{ marginTop: 10 }}>
         <div
           style={{
             display: "flex",
@@ -499,7 +499,7 @@ export const PlaceProperties: React.FC<PlacePropertiesProps> = ({
 
       {/* Visualizer section */}
       {globalMode === "edit" && (
-        <div style={{ marginTop: 25 }}>
+        <div style={{ marginTop: 10 }}>
           <div
             style={{
               display: "flex",
