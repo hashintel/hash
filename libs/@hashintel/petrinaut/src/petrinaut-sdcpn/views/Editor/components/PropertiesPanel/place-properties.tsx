@@ -314,7 +314,7 @@ export const PlaceProperties: React.FC<PlacePropertiesProps> = ({
             }
 
             return (
-              <div>
+              <div style={{ marginTop: 25 }}>
                 <div style={{ fontWeight: 500, fontSize: 12, marginBottom: 4 }}>
                   State
                 </div>
@@ -367,19 +367,15 @@ export const PlaceProperties: React.FC<PlacePropertiesProps> = ({
           );
         })()}
 
-      <div>
+      <div style={{ marginTop: 25 }}>
         <div
           style={{
             display: "flex",
             alignItems: "center",
-            justifyContent: "space-between",
+            gap: 8,
             marginBottom: 8,
           }}
         >
-          <div style={{ fontWeight: 500, fontSize: 12 }}>
-            Dynamics
-            <InfoIconTooltip tooltip="Token data can dynamically change over time when tokens remain in a place, governed by a differential equation." />
-          </div>
           <div style={{ display: "flex", alignItems: "center" }}>
             <Switch
               checked={!!place.type && place.dynamicsEnabled}
@@ -390,6 +386,17 @@ export const PlaceProperties: React.FC<PlacePropertiesProps> = ({
                 });
               }}
             />
+          </div>
+          <div
+            style={{
+              fontWeight: 500,
+              fontSize: 12,
+              display: "flex",
+              alignItems: "center",
+            }}
+          >
+            Dynamics
+            <InfoIconTooltip tooltip="Token data can dynamically change over time when tokens remain in a place, governed by a differential equation." />
           </div>
         </div>
         {(place.type === null || availableDiffEqs.length === 0) && (
@@ -483,19 +490,15 @@ export const PlaceProperties: React.FC<PlacePropertiesProps> = ({
 
       {/* Visualizer section */}
       {globalMode === "edit" && (
-        <div>
+        <div style={{ marginTop: 25 }}>
           <div
             style={{
               display: "flex",
               alignItems: "center",
-              justifyContent: "space-between",
+              gap: 8,
               marginBottom: 8,
             }}
           >
-            <div style={{ fontWeight: 500, fontSize: 12 }}>
-              Visualizer
-              <InfoIconTooltip tooltip="You can set a custom visualization for tokens evolving in a place, viewable in this panel when a simulation is running." />
-            </div>
             <div style={{ display: "flex", alignItems: "center" }}>
               <Switch
                 checked={place.visualizerCode !== undefined}
@@ -517,6 +520,17 @@ export const PlaceProperties: React.FC<PlacePropertiesProps> = ({
                   }
                 }}
               />
+            </div>
+            <div
+              style={{
+                fontWeight: 500,
+                fontSize: 12,
+                display: "flex",
+                alignItems: "center",
+              }}
+            >
+              Visualizer
+              <InfoIconTooltip tooltip="You can set a custom visualization for tokens evolving in a place, viewable in this panel when a simulation is running." />
             </div>
           </div>
         </div>
@@ -744,6 +758,8 @@ export const PlaceProperties: React.FC<PlacePropertiesProps> = ({
           </div>
         </div>
       )}
+
+      <div style={{ height: 40 }} />
     </div>
   );
 };
