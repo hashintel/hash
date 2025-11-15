@@ -415,7 +415,7 @@ __metadata:
     puppeteer: "npm:22.15.0"
     puppeteer-extra: "npm:3.3.6"
     puppeteer-extra-plugin-stealth: "npm:2.11.2"
-    rimraf: "npm:6.0.1"
+    rimraf: "npm:6.1.0"
     sanitize-html: "npm:2.17.0"
     tsconfig-paths-webpack-plugin: "npm:4.2.0"
     tsx: "npm:4.20.6"
@@ -528,7 +528,7 @@ __metadata:
     nodemailer: "npm:6.10.1"
     oembed-providers: "npm:1.0.20250926"
     openai: "npm:6.6.0"
-    rimraf: "npm:6.0.1"
+    rimraf: "npm:6.1.0"
     ts-json-schema-generator: "npm:1.5.1"
     tsx: "npm:4.20.6"
     typescript: "npm:5.9.3"
@@ -669,7 +669,7 @@ __metadata:
     react-window: "npm:1.8.11"
     reactflow: "npm:11.11.4"
     remark-gfm: "npm:4.0.1"
-    rimraf: "npm:6.0.1"
+    rimraf: "npm:6.1.0"
     safe-stable-stringify: "npm:2.5.0"
     sass: "npm:1.93.2"
     setimmediate: "npm:1.0.5"
@@ -727,7 +727,7 @@ __metadata:
     axios: "npm:1.12.2"
     dotenv-flow: "npm:3.3.0"
     eslint: "npm:9.38.0"
-    rimraf: "npm:6.0.1"
+    rimraf: "npm:6.1.0"
     tsx: "npm:4.20.6"
     typescript: "npm:5.9.3"
     uuid: "npm:13.0.0"
@@ -749,7 +749,7 @@ __metadata:
     chokidar-cli: "npm:3.0.0"
     dotenv-flow: "npm:3.3.0"
     eslint: "npm:9.38.0"
-    rimraf: "npm:6.0.1"
+    rimraf: "npm:6.1.0"
     shx: "npm:0.4.0"
     tsx: "npm:4.20.6"
     typescript: "npm:5.9.3"
@@ -774,7 +774,7 @@ __metadata:
     dotenv-flow: "npm:3.3.0"
     eslint: "npm:9.38.0"
     notion-to-md: "npm:3.1.9"
-    rimraf: "npm:6.0.1"
+    rimraf: "npm:6.1.0"
     shx: "npm:0.4.0"
     tsx: "npm:4.20.6"
     typescript: "npm:5.9.3"
@@ -836,7 +836,7 @@ __metadata:
     react-dom: "npm:19.2.0"
     react-refresh: "npm:0.18.0"
     react-refresh-typescript: "npm:2.0.11"
-    rimraf: "npm:6.0.1"
+    rimraf: "npm:6.1.0"
     sass: "npm:1.93.2"
     sass-loader: "npm:13.3.3"
     source-map-loader: "npm:3.0.2"
@@ -4867,7 +4867,7 @@ __metadata:
     json-schema-to-typescript: "npm:15.0.4"
     lit: "npm:2.8.0"
     lodash.isequal: "npm:4.5.0"
-    rimraf: "npm:6.0.1"
+    rimraf: "npm:6.1.0"
     tsx: "npm:4.20.6"
     typescript: "npm:5.9.3"
   peerDependencies:
@@ -4935,7 +4935,7 @@ __metadata:
     "@vitest/coverage-istanbul": "npm:3.2.4"
     eslint: "npm:9.38.0"
     react: "npm:19.2.0"
-    rimraf: "npm:6.0.1"
+    rimraf: "npm:6.1.0"
     rollup: "npm:4.52.5"
     semver: "npm:7.7.3"
     tslib: "npm:2.8.1"
@@ -9457,7 +9457,7 @@ __metadata:
     "@local/tsconfig": "npm:0.0.0-private"
     eslint: "npm:9.38.0"
     react: "npm:19.2.0"
-    rimraf: "npm:6.0.1"
+    rimraf: "npm:6.1.0"
     typescript: "npm:5.9.3"
   languageName: unknown
   linkType: soft
@@ -9486,7 +9486,7 @@ __metadata:
     "@local/tsconfig": "npm:0.0.0-private"
     "@vitest/coverage-istanbul": "npm:3.2.4"
     eslint: "npm:9.38.0"
-    rimraf: "npm:6.0.1"
+    rimraf: "npm:6.1.0"
     typescript: "npm:5.9.3"
     vitest: "npm:3.2.4"
   languageName: unknown
@@ -9499,7 +9499,7 @@ __metadata:
     "@local/eslint": "npm:0.0.0-private"
     "@local/tsconfig": "npm:0.0.0-private"
     eslint: "npm:9.38.0"
-    rimraf: "npm:6.0.1"
+    rimraf: "npm:6.1.0"
     typescript: "npm:5.9.3"
   languageName: unknown
   linkType: soft
@@ -9528,7 +9528,7 @@ __metadata:
     eslint-plugin-storybook: "npm:9.1.13"
     eslint-unicorn: "npm:55.0.0"
     globals: "npm:16.4.0"
-    rimraf: "npm:6.0.1"
+    rimraf: "npm:6.1.0"
     typescript: "npm:5.9.3"
   languageName: unknown
   linkType: soft
@@ -9563,7 +9563,7 @@ __metadata:
     it-stream-types: "npm:2.0.2"
     libp2p: "npm:3.0.6"
     multiformats: "npm:13.4.1"
-    rimraf: "npm:6.0.1"
+    rimraf: "npm:6.1.0"
     typescript: "npm:5.9.3"
     uint8arraylist: "npm:2.4.8"
     vitest: "npm:3.2.4"
@@ -9612,7 +9612,7 @@ __metadata:
     googleapis: "npm:133.0.0"
     logform: "npm:2.7.0"
     redis: "npm:5.8.3"
-    rimraf: "npm:6.0.1"
+    rimraf: "npm:6.1.0"
     slonik: "npm:24.2.0"
     typescript: "npm:5.9.3"
     uuid: "npm:13.0.0"
@@ -9633,7 +9633,7 @@ __metadata:
     "@types/node": "npm:22.18.13"
     axios: "npm:1.12.2"
     fix-esm-import-path: "npm:1.10.3"
-    rimraf: "npm:6.0.1"
+    rimraf: "npm:6.1.0"
     typescript: "npm:5.9.3"
   languageName: unknown
   linkType: soft
@@ -9655,7 +9655,7 @@ __metadata:
     "@vitest/coverage-istanbul": "npm:3.2.4"
     effect: "npm:3.18.4"
     eslint: "npm:9.38.0"
-    rimraf: "npm:6.0.1"
+    rimraf: "npm:6.1.0"
     typescript: "npm:5.9.3"
     uuid: "npm:13.0.0"
     vitest: "npm:3.2.4"
@@ -9708,7 +9708,7 @@ __metadata:
     prosemirror-transform: "npm:1.7.0"
     prosemirror-view: "patch:prosemirror-view@npm%3A1.29.1#~/.yarn/patches/prosemirror-view-npm-1.29.1-ff37db4eea.patch"
     react: "npm:19.2.0"
-    rimraf: "npm:6.0.1"
+    rimraf: "npm:6.1.0"
     serialize-error: "npm:12.0.0"
     tsx: "npm:4.20.6"
     typescript: "npm:5.9.3"
@@ -9724,7 +9724,7 @@ __metadata:
     "@openapitools/openapi-generator-cli": "npm:2.25.0"
     "@types/node": "npm:22.18.13"
     axios: "npm:1.12.2"
-    rimraf: "npm:6.0.1"
+    rimraf: "npm:6.1.0"
     typescript: "npm:5.9.3"
   languageName: unknown
   linkType: soft
@@ -9772,7 +9772,7 @@ __metadata:
     execa: "npm:9.6.0"
     lodash-es: "npm:4.17.21"
     quicktype: "npm:16.0.43"
-    rimraf: "npm:6.0.1"
+    rimraf: "npm:6.1.0"
     typescript: "npm:5.9.3"
     yargs: "npm:18.0.0"
   languageName: unknown
@@ -17200,7 +17200,7 @@ __metadata:
     graphql: "npm:16.11.0"
     graphql-request: "npm:3.7.0"
     node-fetch: "npm:2.7.0"
-    rimraf: "npm:6.0.1"
+    rimraf: "npm:6.1.0"
     typescript: "npm:5.9.3"
     vitest: "npm:3.2.4"
   languageName: unknown
@@ -17232,7 +17232,7 @@ __metadata:
     artillery: "npm:2.0.26"
     dotenv-flow: "npm:3.3.0"
     eslint: "npm:9.38.0"
-    rimraf: "npm:6.0.1"
+    rimraf: "npm:6.1.0"
     rollup: "npm:4.52.5"
     typescript: "npm:5.9.3"
     uuid: "npm:13.0.0"
@@ -17259,7 +17259,7 @@ __metadata:
     execa: "npm:9.6.0"
     graphql: "npm:16.11.0"
     js-yaml: "npm:4.1.1"
-    rimraf: "npm:6.0.1"
+    rimraf: "npm:6.1.0"
     typescript: "npm:5.9.3"
   languageName: unknown
   linkType: soft
@@ -29120,7 +29120,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"glob@npm:11.0.3, glob@npm:^11.0.0, glob@npm:^11.0.2":
+"glob@npm:11.0.3, glob@npm:^11.0.2, glob@npm:^11.0.3":
   version: 11.0.3
   resolution: "glob@npm:11.0.3"
   dependencies:
@@ -36856,7 +36856,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"package-json-from-dist@npm:^1.0.0":
+"package-json-from-dist@npm:^1.0.0, package-json-from-dist@npm:^1.0.1":
   version: 1.0.1
   resolution: "package-json-from-dist@npm:1.0.1"
   checksum: 10c0/62ba2785eb655fec084a257af34dbe24292ab74516d6aecef97ef72d4897310bc6898f6c85b5cd22770eaa1ce60d55a0230e150fb6a966e3ecd6c511e23d164b
@@ -40122,15 +40122,15 @@ __metadata:
   languageName: node
   linkType: hard
 
-"rimraf@npm:6.0.1":
-  version: 6.0.1
-  resolution: "rimraf@npm:6.0.1"
+"rimraf@npm:6.1.0":
+  version: 6.1.0
+  resolution: "rimraf@npm:6.1.0"
   dependencies:
-    glob: "npm:^11.0.0"
-    package-json-from-dist: "npm:^1.0.0"
+    glob: "npm:^11.0.3"
+    package-json-from-dist: "npm:^1.0.1"
   bin:
     rimraf: dist/esm/bin.mjs
-  checksum: 10c0/b30b6b072771f0d1e73b4ca5f37bb2944ee09375be9db5f558fcd3310000d29dfcfa93cf7734d75295ad5a7486dc8e40f63089ced1722a664539ffc0c3ece8c6
+  checksum: 10c0/19658c91a08e43cd5f930384410135a1194082d5e73e0863137bc02c03d684817e30848f734ef05ec84094fe5e3eb9ffd6814ecec65d8fc2e234f5c391ab42e0
   languageName: node
   linkType: hard
 
