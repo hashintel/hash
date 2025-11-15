@@ -162,102 +162,118 @@ export const TransitionProperties: React.FC<TransitionPropertiesProps> = ({
         />
       </div>
 
-      <div style={{ marginTop: 10 }}>
+      <div style={{ marginTop: 20 }}>
         <div style={{ fontWeight: 500, fontSize: 12, marginBottom: 4 }}>
-          Input Arcs ({transition.inputArcs.length})
+          Input Arcs
         </div>
         {transition.inputArcs.length === 0 ? (
           <div style={{ fontSize: 12, color: "#999" }}>
             Connect inputs to the transition's left side.
           </div>
         ) : (
-          <DndContext
-            sensors={globalMode === "simulate" ? [] : sensors}
-            collisionDetection={closestCenter}
-            onDragEnd={handleInputArcDragEnd}
+          <div
+            style={{
+              border: "1px solid rgba(0, 0, 0, 0.1)",
+              borderRadius: 6,
+              overflow: "hidden",
+            }}
           >
-            <SortableContext
-              items={transition.inputArcs.map((arc) => arc.placeId)}
-              strategy={verticalListSortingStrategy}
+            <DndContext
+              sensors={globalMode === "simulate" ? [] : sensors}
+              collisionDetection={closestCenter}
+              onDragEnd={handleInputArcDragEnd}
             >
-              {transition.inputArcs.map((arc) => {
-                const place = places.find(
-                  (placeItem) => placeItem.id === arc.placeId,
-                );
-                return (
-                  <SortableArcItem
-                    key={arc.placeId}
-                    id={arc.placeId}
-                    placeName={place?.name ?? arc.placeId}
-                    weight={arc.weight}
-                    disabled={globalMode === "simulate"}
-                    onWeightChange={(weight) => {
-                      onArcWeightUpdate(
-                        transition.id,
-                        "input",
-                        arc.placeId,
-                        weight,
-                      );
-                    }}
-                    onDelete={() => handleDeleteInputArc(arc.placeId)}
-                  />
-                );
-              })}
-            </SortableContext>
-          </DndContext>
+              <SortableContext
+                items={transition.inputArcs.map((arc) => arc.placeId)}
+                strategy={verticalListSortingStrategy}
+              >
+                {transition.inputArcs.map((arc) => {
+                  const place = places.find(
+                    (placeItem) => placeItem.id === arc.placeId,
+                  );
+                  return (
+                    <SortableArcItem
+                      key={arc.placeId}
+                      id={arc.placeId}
+                      placeName={place?.name ?? arc.placeId}
+                      weight={arc.weight}
+                      disabled={globalMode === "simulate"}
+                      onWeightChange={(weight) => {
+                        onArcWeightUpdate(
+                          transition.id,
+                          "input",
+                          arc.placeId,
+                          weight,
+                        );
+                      }}
+                      onDelete={() => handleDeleteInputArc(arc.placeId)}
+                    />
+                  );
+                })}
+              </SortableContext>
+            </DndContext>
+          </div>
         )}
       </div>
 
       <div>
         <div style={{ fontWeight: 500, fontSize: 12, marginBottom: 4 }}>
-          Output Arcs ({transition.outputArcs.length})
+          Output Arcs
         </div>
         {transition.outputArcs.length === 0 ? (
           <div style={{ fontSize: 12, color: "#999" }}>
             Connect outputs to the transition's right side.
           </div>
         ) : (
-          <DndContext
-            sensors={globalMode === "simulate" ? [] : sensors}
-            collisionDetection={closestCenter}
-            onDragEnd={handleOutputArcDragEnd}
+          <div
+            style={{
+              border: "1px solid rgba(0, 0, 0, 0.1)",
+              borderRadius: 6,
+              overflow: "hidden",
+            }}
           >
-            <SortableContext
-              items={transition.outputArcs.map((arc) => arc.placeId)}
-              strategy={verticalListSortingStrategy}
+            <DndContext
+              sensors={globalMode === "simulate" ? [] : sensors}
+              collisionDetection={closestCenter}
+              onDragEnd={handleOutputArcDragEnd}
             >
-              {transition.outputArcs.map((arc) => {
-                const place = places.find(
-                  (placeItem) => placeItem.id === arc.placeId,
-                );
-                return (
-                  <SortableArcItem
-                    key={arc.placeId}
-                    id={arc.placeId}
-                    placeName={place?.name ?? arc.placeId}
-                    weight={arc.weight}
-                    disabled={globalMode === "simulate"}
-                    onWeightChange={(weight) => {
-                      onArcWeightUpdate(
-                        transition.id,
-                        "output",
-                        arc.placeId,
-                        weight,
-                      );
-                    }}
-                    onDelete={() => handleDeleteOutputArc(arc.placeId)}
-                  />
-                );
-              })}
-            </SortableContext>
-          </DndContext>
+              <SortableContext
+                items={transition.outputArcs.map((arc) => arc.placeId)}
+                strategy={verticalListSortingStrategy}
+              >
+                {transition.outputArcs.map((arc) => {
+                  const place = places.find(
+                    (placeItem) => placeItem.id === arc.placeId,
+                  );
+                  return (
+                    <SortableArcItem
+                      key={arc.placeId}
+                      id={arc.placeId}
+                      placeName={place?.name ?? arc.placeId}
+                      weight={arc.weight}
+                      disabled={globalMode === "simulate"}
+                      onWeightChange={(weight) => {
+                        onArcWeightUpdate(
+                          transition.id,
+                          "output",
+                          arc.placeId,
+                          weight,
+                        );
+                      }}
+                      onDelete={() => handleDeleteOutputArc(arc.placeId)}
+                    />
+                  );
+                })}
+              </SortableContext>
+            </DndContext>
+          </div>
         )}
       </div>
 
-      <div style={{ marginTop: 10 }}>
+      <div style={{ marginTop: 20 }}>
         <div style={{ fontWeight: 500, fontSize: 13, marginBottom: 8 }}>
           Firing time
-          <InfoIconTooltip tooltip="Define the rate at or conditions under which this will transition will fire, optionally based on each set of input tokens’ data (where input tokens have types)." />
+          <InfoIconTooltip tooltip="Define the rate at or conditions under which this will transition will fire, optionally based on each set of input tokens' data (where input tokens have types)." />
         </div>
         <div
           style={{
@@ -379,7 +395,7 @@ export const TransitionProperties: React.FC<TransitionPropertiesProps> = ({
             border: "1px solid rgba(0, 0, 0, 0.1)",
             borderRadius: 4,
             overflow: "hidden",
-            height: 310,
+            height: 400,
           }}
         >
           <MonacoEditor
@@ -418,6 +434,7 @@ export const TransitionProperties: React.FC<TransitionPropertiesProps> = ({
               alignItems: "center",
               justifyContent: "space-between",
               marginBottom: 4,
+              marginTop: 20,
             }}
           >
             <div style={{ fontWeight: 500, fontSize: 13 }}>
@@ -517,7 +534,7 @@ export const TransitionProperties: React.FC<TransitionPropertiesProps> = ({
               border: "1px solid rgba(0, 0, 0, 0.1)",
               borderRadius: 4,
               overflow: "hidden",
-              height: 310,
+              height: 400,
             }}
           >
             <MonacoEditor
@@ -556,6 +573,7 @@ export const TransitionProperties: React.FC<TransitionPropertiesProps> = ({
             fontSize: 12,
             color: "#666",
             lineHeight: 1.5,
+            marginTop: 20,
           }}
         >
           <div style={{ fontWeight: 500, marginBottom: 4 }}>
@@ -568,6 +586,8 @@ export const TransitionProperties: React.FC<TransitionPropertiesProps> = ({
           </div>
         </div>
       )}
+
+      <div style={{ height: 40 }} />
     </div>
   );
 };
