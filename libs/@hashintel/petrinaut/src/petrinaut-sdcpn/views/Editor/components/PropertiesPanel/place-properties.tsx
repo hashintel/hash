@@ -42,6 +42,9 @@ export const PlaceProperties: React.FC<PlacePropertiesProps> = ({
   globalMode,
   onUpdate,
 }) => {
+  const isSimulationNotRun = useSimulationStore(
+    (state) => state.state === "NotRun",
+  );
   const simulation = useSimulationStore((state) => state.simulation);
   const initialMarking = useSimulationStore((state) => state.initialMarking);
   const setInitialMarking = useSimulationStore(
@@ -287,86 +290,6 @@ export const PlaceProperties: React.FC<PlacePropertiesProps> = ({
         )}
       </div>
 
-      {/* Initial State section - only in Simulate mode */}
-      {globalMode === "simulate" &&
-        (() => {
-          const placeType = place.type
-            ? types.find((tp) => tp.id === place.type)
-            : null;
-
-          // If no type or type has 0 dimensions, show simple number input
-          if (!placeType || placeType.elements.length === 0) {
-            // Determine if simulation is running
-            const hasSimulation =
-              simulation !== null && simulation.frames.length > 0;
-
-            // Get token count from simulation frame or initial marking
-            let currentTokenCount = 0;
-            if (hasSimulation) {
-              const currentFrame = simulation.frames[currentlyViewedFrame];
-              if (currentFrame) {
-                const placeState = currentFrame.places.get(place.id);
-                currentTokenCount = placeState?.count ?? 0;
-              }
-            } else {
-              const currentMarking = initialMarking.get(place.id);
-              currentTokenCount = currentMarking?.count ?? 0;
-            }
-
-            return (
-              <div style={{ marginTop: 25 }}>
-                <div style={{ fontWeight: 500, fontSize: 12, marginBottom: 4 }}>
-                  State
-                </div>
-                <div>
-                  <div
-                    style={{ fontWeight: 500, fontSize: 12, marginBottom: 4 }}
-                  >
-                    Token count
-                  </div>
-                  <input
-                    type="number"
-                    min="0"
-                    step="1"
-                    value={currentTokenCount}
-                    onChange={(event) => {
-                      const count = Math.max(
-                        0,
-                        Number.parseInt(event.target.value, 10) || 0,
-                      );
-                      setInitialMarking(place.id, {
-                        values: new Float64Array(0), // Empty array for places without type
-                        count,
-                      });
-                    }}
-                    disabled={hasSimulation}
-                    style={{
-                      fontSize: 14,
-                      padding: "6px 8px",
-                      border: "1px solid rgba(0, 0, 0, 0.1)",
-                      borderRadius: 4,
-                      width: "100%",
-                      boxSizing: "border-box",
-                      backgroundColor: hasSimulation
-                        ? "rgba(0, 0, 0, 0.05)"
-                        : "white",
-                      cursor: hasSimulation ? "not-allowed" : "text",
-                    }}
-                  />
-                </div>
-              </div>
-            );
-          }
-
-          return (
-            <InitialStateEditor
-              key={place.id}
-              placeId={place.id}
-              placeType={placeType}
-            />
-          );
-        })()}
-
       <div style={{ marginTop: 25 }}>
         <div
           style={{
@@ -418,7 +341,7 @@ export const PlaceProperties: React.FC<PlacePropertiesProps> = ({
       </div>
 
       {place.type && place.dynamicsEnabled && availableDiffEqs.length > 0 && (
-        <div>
+        <div style={{ marginBottom: 25 }}>
           <div style={{ fontWeight: 500, fontSize: 12, marginBottom: 4 }}>
             Differential Equation
           </div>
@@ -487,6 +410,92 @@ export const PlaceProperties: React.FC<PlacePropertiesProps> = ({
           )}
         </div>
       )}
+
+      {/* Initial State section - only in Simulate mode */}
+      {globalMode === "simulate" &&
+        (() => {
+          const placeType = place.type
+            ? types.find((tp) => tp.id === place.type)
+            : null;
+
+          // If no type or type has 0 dimensions, show simple number input
+          if (!placeType || placeType.elements.length === 0) {
+            // Determine if simulation is running
+            const hasSimulation =
+              simulation !== null && simulation.frames.length > 0;
+
+            // Get token count from simulation frame or initial marking
+            let currentTokenCount = 0;
+            if (hasSimulation) {
+              const currentFrame = simulation.frames[currentlyViewedFrame];
+              if (currentFrame) {
+                const placeState = currentFrame.places.get(place.id);
+                currentTokenCount = placeState?.count ?? 0;
+              }
+            } else {
+              const currentMarking = initialMarking.get(place.id);
+              currentTokenCount = currentMarking?.count ?? 0;
+            }
+
+            return (
+              <div>
+                <div
+                  style={{
+                    fontWeight: 500,
+                    fontSize: 12,
+                    marginBottom: 4,
+                  }}
+                >
+                  {isSimulationNotRun ? "Initial State" : "State"}
+                </div>
+                <div>
+                  <div
+                    style={{ fontWeight: 500, fontSize: 12, marginBottom: 4 }}
+                  >
+                    Token count
+                  </div>
+                  <input
+                    type="number"
+                    min="0"
+                    step="1"
+                    value={currentTokenCount}
+                    onChange={(event) => {
+                      const count = Math.max(
+                        0,
+                        Number.parseInt(event.target.value, 10) || 0,
+                      );
+                      setInitialMarking(place.id, {
+                        values: new Float64Array(0), // Empty array for places without type
+                        count,
+                      });
+                    }}
+                    disabled={hasSimulation}
+                    style={{
+                      fontSize: 14,
+                      padding: "6px 8px",
+                      border: "1px solid rgba(0, 0, 0, 0.1)",
+                      borderRadius: 4,
+                      width: "100%",
+                      boxSizing: "border-box",
+                      backgroundColor: hasSimulation
+                        ? "rgba(0, 0, 0, 0.05)"
+                        : "white",
+                      cursor: hasSimulation ? "not-allowed" : "text",
+                    }}
+                  />
+                </div>
+              </div>
+            );
+          }
+
+          return (
+            <InitialStateEditor
+              key={place.id}
+              placeId={place.id}
+              placeType={placeType}
+            />
+          );
+        })()}
 
       {/* Visualizer section */}
       {globalMode === "edit" && (

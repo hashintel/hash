@@ -35,6 +35,10 @@ export const InitialStateEditor: React.FC<InitialStateEditorProps> = ({
   placeId,
   placeType,
 }) => {
+  const isSimulationNotRun = useSimulationStore(
+    (state) => state.state === "NotRun",
+  );
+
   const initialMarking = useSimulationStore((state) => state.initialMarking);
   const setInitialMarking = useSimulationStore(
     (state) => state.setInitialMarking,
@@ -179,7 +183,7 @@ export const InitialStateEditor: React.FC<InitialStateEditorProps> = ({
           alignItems: "center",
         }}
       >
-        <span>State</span>
+        <span>{isSimulationNotRun ? "Initial State" : "State"}</span>
         {!hasSimulation && (
           <button
             type="button"
