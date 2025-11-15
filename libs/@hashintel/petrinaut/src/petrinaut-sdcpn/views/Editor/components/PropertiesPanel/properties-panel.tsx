@@ -313,11 +313,19 @@ export const PropertiesPanel: React.FC = () => {
           })}
           style={{
             borderRadius: 16,
-            padding: 16,
-            overflowY: "auto",
+            overflow: "hidden",
           }}
         >
-          {content}
+          <div
+            style={{
+              position: "relative",
+              height: "100%",
+              padding: 16,
+              overflowY: "auto",
+            }}
+          >
+            {content}
+          </div>
         </RefractivePane>
       </div>
     </div>
