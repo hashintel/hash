@@ -1,5 +1,4 @@
 import { css, cx } from "@hashintel/ds-helpers/css";
-import { useId } from "react";
 
 import { useMotionResizeObserver } from "../../lib/use-motion-resize-observer";
 
@@ -27,7 +26,7 @@ export const RefractivePane: React.FC<RefractivePaneProps> = ({
   // refractiveIndex,
   children,
 }) => {
-  const filterId = `bar-filter-${useId()}`;
+  // const filterId = `bar-filter-${useId()}`;
   const {
     ref: divRef,
     // width: trackedMotionWidth,
@@ -43,7 +42,6 @@ export const RefractivePane: React.FC<RefractivePaneProps> = ({
       style={{
         ...style,
         borderRadius: radius,
-        backdropFilter: `blur(${blur}px)`,
       }}
     >
       {/* <Filter
@@ -70,7 +68,7 @@ export const RefractivePane: React.FC<RefractivePaneProps> = ({
           width: "100%",
           height: "100%",
           borderRadius: radius,
-          backdropFilter: `url(#${filterId})`,
+          backdropFilter: `blur(${blur}px)`,
         }}
       />
 
