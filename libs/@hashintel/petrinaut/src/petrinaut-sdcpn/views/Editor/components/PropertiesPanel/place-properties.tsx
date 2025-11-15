@@ -740,6 +740,7 @@ export const PlaceProperties: React.FC<PlacePropertiesProps> = ({
             ) : (
               // Show code editor in edit mode
               <MonacoEditor
+                key={`visualizer-${place.type ?? "no-type"}`}
                 language="typescript"
                 path={`inmemory://sdcpn/places/${place.id}/visualizer.tsx`}
                 height={400}
