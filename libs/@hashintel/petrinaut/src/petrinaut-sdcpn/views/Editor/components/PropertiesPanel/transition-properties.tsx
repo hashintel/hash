@@ -395,10 +395,11 @@ export const TransitionProperties: React.FC<TransitionPropertiesProps> = ({
             border: "1px solid rgba(0, 0, 0, 0.1)",
             borderRadius: 4,
             overflow: "hidden",
-            height: 400,
+            height: 340,
           }}
         >
           <MonacoEditor
+            key={`lambda-${transition.lambdaType}-${transition.inputArcs.map((a) => `${a.placeId}:${a.weight}`).join("-")}`}
             language="typescript"
             value={transition.lambdaCode || ""}
             path={`inmemory://sdcpn/transitions/${transition.id}/lambda.ts`}
@@ -538,6 +539,7 @@ export const TransitionProperties: React.FC<TransitionPropertiesProps> = ({
             }}
           >
             <MonacoEditor
+              key={`kernel-${transition.inputArcs.map((a) => `${a.placeId}:${a.weight}`).join("-")}-${transition.outputArcs.map((a) => `${a.placeId}:${a.weight}`).join("-")}`}
               language="typescript"
               value={transition.transitionKernelCode || ""}
               path={`inmemory://sdcpn/transitions/${transition.id}/transition-kernel.ts`}
