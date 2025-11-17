@@ -65,6 +65,9 @@ export const SDCPNView: React.FC = () => {
   const setSelectedItemIds = useEditorStore(
     (state) => state.setSelectedItemIds,
   );
+  const setSelectedResourceId = useEditorStore(
+    (state) => state.setSelectedResourceId,
+  );
 
   // Center viewport on SDCPN load
   useEffect(() => {
@@ -163,10 +166,8 @@ export const SDCPNView: React.FC = () => {
   }
 
   function onNodeClick(_event: React.MouseEvent, node: Node<NodeData>) {
-    // In simulate mode, only allow single selection
-    if (isReadonly) {
-      setSelectedItemIds(new Set([node.id]));
-    }
+    // Set the selected resource ID for properties panel
+    setSelectedResourceId(node.id);
   }
 
   function onPaneClick(event: React.MouseEvent) {
@@ -177,6 +178,7 @@ export const SDCPNView: React.FC = () => {
     // Clear selection when clicking empty canvas in select mode
     if (editionMode === "select") {
       setSelectedItemIds(new Set());
+      setSelectedResourceId(null);
       return;
     }
 
@@ -199,6 +201,7 @@ export const SDCPNView: React.FC = () => {
 
   function onDragOver(event: React.DragEvent) {
     event.preventDefault();
+    // eslint-disable-next-line no-param-reassign
     event.dataTransfer.dropEffect = "move";
   }
 

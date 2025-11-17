@@ -20,9 +20,11 @@ export const DifferentialEquationsSection: React.FC = () => {
   const removeDifferentialEquation = useSDCPNStore(
     (state) => state.removeDifferentialEquation,
   );
-  const selectedItemIds = useEditorStore((state) => state.selectedItemIds);
-  const setSelectedItemIds = useEditorStore(
-    (state) => state.setSelectedItemIds,
+  const selectedResourceId = useEditorStore(
+    (state) => state.selectedResourceId,
+  );
+  const setSelectedResourceId = useEditorStore(
+    (state) => state.setSelectedResourceId,
   );
 
   return (
@@ -82,7 +84,7 @@ export const DifferentialEquationsSection: React.FC = () => {
               typeId: types.length > 0 ? types[0]!.id : "",
               code: DEFAULT_DIFFERENTIAL_EQUATION_CODE,
             });
-            setSelectedItemIds(new Set([id]));
+            setSelectedResourceId(id);
           }}
           className={css({
             display: "flex",
@@ -109,7 +111,7 @@ export const DifferentialEquationsSection: React.FC = () => {
       {isExpanded && (
         <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
           {differentialEquations.map((eq) => {
-            const isSelected = selectedItemIds.has(eq.id);
+            const isSelected = selectedResourceId === eq.id;
 
             return (
               <div
@@ -122,13 +124,13 @@ export const DifferentialEquationsSection: React.FC = () => {
                   ) {
                     return;
                   }
-                  setSelectedItemIds(new Set([eq.id]));
+                  setSelectedResourceId(eq.id);
                 }}
                 role="button"
                 tabIndex={0}
                 onKeyDown={(event) => {
                   if (event.key === "Enter" || event.key === " ") {
-                    setSelectedItemIds(new Set([eq.id]));
+                    setSelectedResourceId(eq.id);
                   }
                 }}
                 style={{

@@ -55,9 +55,11 @@ export const TypesSection: React.FC = () => {
   const types = useSDCPNStore((state) => state.sdcpn.types);
   const addType = useSDCPNStore((state) => state.addType);
   const removeType = useSDCPNStore((state) => state.removeType);
-  const selectedItemIds = useEditorStore((state) => state.selectedItemIds);
-  const setSelectedItemIds = useEditorStore(
-    (state) => state.setSelectedItemIds,
+  const selectedResourceId = useEditorStore(
+    (state) => state.selectedResourceId,
+  );
+  const setSelectedResourceId = useEditorStore(
+    (state) => state.setSelectedResourceId,
   );
 
   return (
@@ -162,7 +164,7 @@ export const TypesSection: React.FC = () => {
           }}
         >
           {types.map((type) => {
-            const isSelected = selectedItemIds.has(type.id);
+            const isSelected = selectedResourceId === type.id;
 
             return (
               <div
@@ -175,13 +177,13 @@ export const TypesSection: React.FC = () => {
                   ) {
                     return;
                   }
-                  setSelectedItemIds(new Set([type.id]));
+                  setSelectedResourceId(type.id);
                 }}
                 role="button"
                 tabIndex={0}
                 onKeyDown={(event) => {
                   if (event.key === "Enter" || event.key === " ") {
-                    setSelectedItemIds(new Set([type.id]));
+                    setSelectedResourceId(type.id);
                   }
                 }}
                 style={{

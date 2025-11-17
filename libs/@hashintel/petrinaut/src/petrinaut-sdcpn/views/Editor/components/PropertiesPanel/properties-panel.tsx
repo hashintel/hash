@@ -5,7 +5,6 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useEditorStore } from "../../../../state/editor-provider";
 import { useSDCPNStore } from "../../../../state/sdcpn-provider";
 import { DifferentialEquationProperties } from "./differential-equation-properties";
-import { MultipleSelection } from "./multiple-selection";
 import { ParameterProperties } from "./parameter-properties";
 import { PlaceProperties } from "./place-properties";
 import { TransitionProperties } from "./transition-properties";
@@ -17,7 +16,9 @@ const startingWidth = 450;
  * PropertiesPanel displays properties and controls for the selected node/edge.
  */
 export const PropertiesPanel: React.FC = () => {
-  const selectedItemIds = useEditorStore((state) => state.selectedItemIds);
+  const selectedResourceId = useEditorStore(
+    (state) => state.selectedResourceId,
+  );
   const getItemType = useEditorStore((state) => state.getItemType);
   const globalMode = useEditorStore((state) => state.globalMode);
   const sdcpn = useSDCPNStore((state) => state.sdcpn);
@@ -83,56 +84,12 @@ export const PropertiesPanel: React.FC = () => {
   }, [isResizing, handleResizeMove, handleResizeEnd]);
 
   // Don't show panel if nothing is selected
-  if (selectedItemIds.size === 0) {
+  if (!selectedResourceId) {
     return null;
   }
 
-  // Show multiple items message if more than one item selected
-  if (selectedItemIds.size > 1) {
-    return (
-      <div
-        style={{
-          display: "flex",
-          position: "fixed",
-          top: 0,
-          right: 0,
-          bottom: 0,
-          padding: "16px",
-          height: "100%",
-          zIndex: 1000,
-        }}
-      >
-        <RefractivePane
-          radius={16}
-          blur={12}
-          specularOpacity={0.2}
-          scaleRatio={1}
-          bezelWidth={65}
-          glassThickness={120}
-          refractiveIndex={1.5}
-          className={css({
-            height: "[100%]",
-            width: `[${panelWidth}px]`,
-            backgroundColor: "[rgba(255, 255, 255, 0.7)]",
-            boxShadow: "0 4px 30px rgba(0, 0, 0, 0.15)",
-            border: "1px solid rgba(255, 255, 255, 0.8)",
-          })}
-          style={{
-            borderRadius: 16,
-            padding: 16,
-          }}
-        >
-          <MultipleSelection count={selectedItemIds.size} />
-        </RefractivePane>
-      </div>
-    );
-  }
-
-  // Single item selected - show its properties
-  const [selectedId] = selectedItemIds;
-  if (!selectedId) {
-    return null;
-  }
+  // Use the selected resource ID directly
+  const selectedId = selectedResourceId;
 
   // Use getItemType to determine what kind of item is selected
   const itemType = getItemType(selectedId);
