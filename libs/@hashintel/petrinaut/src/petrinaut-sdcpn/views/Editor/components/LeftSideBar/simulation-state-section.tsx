@@ -12,8 +12,8 @@ export const SimulationStateSection: React.FC = () => {
   const reset = useSimulationStore((state) => state.reset);
   const dt = useSimulationStore((state) => state.dt);
   const setDt = useSimulationStore((state) => state.setDt);
-  const setSelectedItemIds = useEditorStore(
-    (state) => state.setSelectedItemIds,
+  const setSelectedResourceId = useEditorStore(
+    (state) => state.setSelectedResourceId,
   );
 
   // Local state for ODE solver (not used in simulation yet, but UI is ready)
@@ -92,7 +92,7 @@ export const SimulationStateSection: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => {
-                    setSelectedItemIds(new Set([errorItemId]));
+                    setSelectedResourceId(errorItemId);
                   }}
                   style={{
                     fontSize: 11,

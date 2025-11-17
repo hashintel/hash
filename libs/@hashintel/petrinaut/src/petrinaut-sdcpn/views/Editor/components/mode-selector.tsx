@@ -20,7 +20,7 @@ export const ModeSelector: React.FC<ModeSelectorProps> = ({
     <div>
       <RefractivePane
         radius={12}
-        blur={1.5}
+        blur={7}
         specularOpacity={0}
         scaleRatio={1}
         bezelWidth={20}

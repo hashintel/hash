@@ -15,37 +15,16 @@ export const NodesSection: React.FC = () => {
   const [isExpanded, setIsExpanded] = useState(true);
   const places = useSDCPNStore((state) => state.sdcpn.places);
   const transitions = useSDCPNStore((state) => state.sdcpn.transitions);
-  const selectedItemIds = useEditorStore((state) => state.selectedItemIds);
-  const setSelectedItemIds = useEditorStore(
-    (state) => state.setSelectedItemIds,
+  const selectedResourceId = useEditorStore(
+    (state) => state.selectedResourceId,
   );
-  const addSelectedItemId = useEditorStore((state) => state.addSelectedItemId);
-  const removeSelectedItemId = useEditorStore(
-    (state) => state.removeSelectedItemId,
+  const setSelectedResourceId = useEditorStore(
+    (state) => state.setSelectedResourceId,
   );
 
-  const handleLayerClick = (
-    id: string,
-    event:
-      | React.MouseEvent<HTMLDivElement>
-      | React.KeyboardEvent<HTMLDivElement>,
-  ) => {
-    const hasModifier =
-      "metaKey" in event
-        ? event.metaKey || event.ctrlKey || event.shiftKey
-        : false;
-
-    if (hasModifier) {
-      // Multi-select: toggle the item
-      if (selectedItemIds.has(id)) {
-        removeSelectedItemId(id);
-      } else {
-        addSelectedItemId(id);
-      }
-    } else {
-      // Single select: replace selection
-      setSelectedItemIds(new Set([id]));
-    }
+  const handleLayerClick = (id: string) => {
+    // Single select: replace selection
+    setSelectedResourceId(id);
   };
 
   return (
@@ -103,17 +82,17 @@ export const NodesSection: React.FC = () => {
         >
           {/* Places */}
           {places.map((place) => {
-            const isSelected = selectedItemIds.has(place.id);
+            const isSelected = selectedResourceId === place.id;
             return (
               <div
                 key={place.id}
                 role="button"
                 tabIndex={0}
-                onClick={(event) => handleLayerClick(place.id, event)}
+                onClick={() => handleLayerClick(place.id)}
                 onKeyDown={(event) => {
                   if (event.key === "Enter" || event.key === " ") {
                     event.preventDefault();
-                    handleLayerClick(place.id, event);
+                    handleLayerClick(place.id);
                   }
                 }}
                 className={css({
@@ -161,17 +140,17 @@ export const NodesSection: React.FC = () => {
 
           {/* Transitions */}
           {transitions.map((transition) => {
-            const isSelected = selectedItemIds.has(transition.id);
+            const isSelected = selectedResourceId === transition.id;
             return (
               <div
                 key={transition.id}
                 role="button"
                 tabIndex={0}
-                onClick={(event) => handleLayerClick(transition.id, event)}
+                onClick={() => handleLayerClick(transition.id)}
                 onKeyDown={(event) => {
                   if (event.key === "Enter" || event.key === " ") {
                     event.preventDefault();
-                    handleLayerClick(transition.id, event);
+                    handleLayerClick(transition.id);
                   }
                 }}
                 className={css({

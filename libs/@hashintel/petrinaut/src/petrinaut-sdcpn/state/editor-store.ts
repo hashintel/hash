@@ -22,7 +22,11 @@ export type EditorState = {
   isLeftSidebarOpen: boolean;
   setLeftSidebarOpen: (isOpen: boolean) => void;
 
-  // Selection state
+  // Selected Resource ID (for properties panel)
+  selectedResourceId: string | null;
+  setSelectedResourceId: (id: string | null) => void;
+
+  // Selection state (for ReactFlow selection)
   selectedItemIds: Set<string>;
   setSelectedItemIds: (ids: Set<string>) => void;
   addSelectedItemId: (id: string) => void;
@@ -75,6 +79,14 @@ export function createEditorStore(sdcpnStore: {
           set({ isLeftSidebarOpen: isOpen }, false, {
             type: "setLeftSidebarOpen",
             isOpen,
+          }),
+
+        // Selected Resource ID
+        selectedResourceId: null,
+        setSelectedResourceId: (id) =>
+          set({ selectedResourceId: id }, false, {
+            type: "setSelectedResourceId",
+            id,
           }),
 
         // Selection
@@ -184,6 +196,7 @@ export function createEditorStore(sdcpnStore: {
               globalMode: "edit",
               editionMode: "select",
               isLeftSidebarOpen: true,
+              selectedResourceId: null,
               selectedItemIds: new Set(),
               draggingStateByNodeId: {},
             },

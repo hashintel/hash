@@ -55,8 +55,8 @@ export const PlaceProperties: React.FC<PlacePropertiesProps> = ({
     (state) => state.currentlyViewedFrame,
   );
 
-  const setSelectedItemIds = useEditorStore(
-    (state) => state.setSelectedItemIds,
+  const setSelectedResourceId = useEditorStore(
+    (state) => state.setSelectedResourceId,
   );
 
   const availableTypes = useSDCPNStore((state) => state.sdcpn.types);
@@ -268,7 +268,7 @@ export const PlaceProperties: React.FC<PlacePropertiesProps> = ({
             <button
               type="button"
               onClick={() => {
-                setSelectedItemIds(new Set([place.type!]));
+                setSelectedResourceId(place.type);
               }}
               style={{
                 fontSize: 12,
@@ -388,7 +388,7 @@ export const PlaceProperties: React.FC<PlacePropertiesProps> = ({
               <button
                 type="button"
                 onClick={() => {
-                  setSelectedItemIds(new Set([selectedDiffEqId]));
+                  setSelectedResourceId(selectedDiffEqId);
                 }}
                 style={{
                   fontSize: 12,

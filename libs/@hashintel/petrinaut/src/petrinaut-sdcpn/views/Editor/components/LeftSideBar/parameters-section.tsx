@@ -15,9 +15,11 @@ export const ParametersSection: React.FC = () => {
   const removeParameter = useSDCPNStore((state) => state.removeParameter);
   const globalMode = useEditorStore((state) => state.globalMode);
   const simulationState = useSimulationStore((state) => state.state);
-  const selectedItemIds = useEditorStore((state) => state.selectedItemIds);
-  const setSelectedItemIds = useEditorStore(
-    (state) => state.setSelectedItemIds,
+  const selectedResourceId = useEditorStore(
+    (state) => state.selectedResourceId,
+  );
+  const setSelectedResourceId = useEditorStore(
+    (state) => state.setSelectedResourceId,
   );
   const parameterValues = useSimulationStore((state) => state.parameterValues);
   const setParameterValue = useSimulationStore(
@@ -87,7 +89,7 @@ export const ParametersSection: React.FC = () => {
                 type: "real",
                 defaultValue: "0",
               });
-              setSelectedItemIds(new Set([id]));
+              setSelectedResourceId(id);
             }}
             className={css({
               display: "flex",
@@ -115,7 +117,7 @@ export const ParametersSection: React.FC = () => {
       {isExpanded && (
         <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
           {parameters.map((param) => {
-            const isSelected = selectedItemIds.has(param.id);
+            const isSelected = selectedResourceId === param.id;
 
             return (
               <div
@@ -129,13 +131,13 @@ export const ParametersSection: React.FC = () => {
                   ) {
                     return;
                   }
-                  setSelectedItemIds(new Set([param.id]));
+                  setSelectedResourceId(param.id);
                 }}
                 role="button"
                 tabIndex={0}
                 onKeyDown={(event) => {
                   if (event.key === "Enter" || event.key === " ") {
-                    setSelectedItemIds(new Set([param.id]));
+                    setSelectedResourceId(param.id);
                   }
                 }}
                 style={{
