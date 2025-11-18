@@ -280,11 +280,29 @@ export const InitialStateEditor: React.FC<InitialStateEditorProps> = ({
     if (editingCell && editingCell.row === row && editingCell.col === col) {
       if (event.key === "Enter") {
         event.preventDefault();
-        // Save the value and exit editing mode
+        // Save the value and move to next cell (or phantom row if at end)
         const value = Number.parseFloat(editingValue) || 0;
         updateCell(row, col, value);
         setEditingCell(null);
         setEditingValue("");
+        setSelectedRow(null);
+
+        // Move to next cell
+        if (col < placeType.elements.length - 1) {
+          // Move right in the same row
+          setFocusedCell({ row, col: col + 1 });
+          setTimeout(() => {
+            const nextCell = cellRefs.current.get(`${row}-${col + 1}`);
+            nextCell?.focus();
+          }, 0);
+        } else if (row < tableData.length) {
+          // Move to first cell of next row (or phantom row)
+          setFocusedCell({ row: row + 1, col: 0 });
+          setTimeout(() => {
+            const nextCell = cellRefs.current.get(`${row + 1}-0`);
+            nextCell?.focus();
+          }, 0);
+        }
       } else if (event.key === "Tab") {
         event.preventDefault();
         // Save the value and move to next/previous cell
@@ -329,9 +347,14 @@ export const InitialStateEditor: React.FC<InitialStateEditorProps> = ({
         }
       } else if (event.key === "Escape") {
         event.preventDefault();
-        // Cancel editing
+        // Cancel editing and focus the cell (not entered state)
         setEditingCell(null);
         setEditingValue("");
+        setFocusedCell({ row, col });
+        setTimeout(() => {
+          const cell = cellRefs.current.get(`${row}-${col}`);
+          cell?.focus();
+        }, 0);
       }
       return;
     }
@@ -455,6 +478,14 @@ export const InitialStateEditor: React.FC<InitialStateEditorProps> = ({
       setEditingValue(event.key);
       // Focus the input after state update
       setTimeout(() => inputRef.current?.focus(), 0);
+    } else if (event.key === "Escape") {
+      event.preventDefault();
+      // Unselect the cell and blur the element
+      setFocusedCell(null);
+      const cell = cellRefs.current.get(`${row}-${col}`);
+      if (cell) {
+        cell.blur();
+      }
     }
   };
 
