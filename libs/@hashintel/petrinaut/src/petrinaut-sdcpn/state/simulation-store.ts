@@ -428,10 +428,7 @@ export function createSimulationStore(sdcpnStore: {
               simulation: null,
               state: "NotRun",
               error: null,
-              parameterValues: {},
-              initialMarking: new Map(),
               currentlyViewedFrame: 0,
-              dt: 0.01, // Reset to default
               _runTimeoutId: null,
             },
             false,
