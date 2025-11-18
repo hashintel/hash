@@ -93,16 +93,14 @@ export const DifferentialEquationsSection: React.FC = () => {
             padding: "spacing.1",
             borderRadius: "radius.2",
             cursor: "pointer",
-            fontSize: "[14px]",
-            color: "core.gray.50",
-            background: "[transparent]",
-            border: "none",
+            fontSize: "[18px]",
+            color: "core.gray.60",
             _hover: {
-              backgroundColor: "[rgba(59, 130, 246, 0.1)]",
-              color: "[#3b82f6]",
+              backgroundColor: "[rgba(0, 0, 0, 0.05)]",
+              color: "core.gray.90",
             },
           })}
-          style={{ width: 20, height: 20 }}
+          style={{ width: 24, height: 24 }}
           aria-label="Add differential equation"
         >
           +
@@ -137,7 +135,7 @@ export const DifferentialEquationsSection: React.FC = () => {
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "space-between",
-                  padding: "4px 8px",
+                  padding: "4px 2px 4px 8px",
                   fontSize: 13,
                   borderRadius: 4,
                   backgroundColor: isSelected
