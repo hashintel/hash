@@ -213,7 +213,7 @@ export const InitialStateEditor: React.FC<InitialStateEditorProps> = ({
     setTableData((prev) => {
       const newData: number[][] = prev.filter((_, index) => index !== rowIndex);
       saveToStore(newData);
-      
+
       // Select next or previous row after deletion
       if (newData.length > 0) {
         // If deleted row was last, select the new last row
@@ -233,7 +233,9 @@ export const InitialStateEditor: React.FC<InitialStateEditorProps> = ({
           setSelectedRow(rowIndex);
           // Focus the row number cell after state update
           setTimeout(() => {
-            const rowCell = document.querySelector(`td[data-row="${rowIndex}"]`);
+            const rowCell = document.querySelector(
+              `td[data-row="${rowIndex}"]`,
+            );
             if (rowCell instanceof HTMLElement) {
               rowCell.focus();
             }
@@ -242,7 +244,7 @@ export const InitialStateEditor: React.FC<InitialStateEditorProps> = ({
       } else {
         setSelectedRow(null);
       }
-      
+
       return newData;
     });
   };
@@ -296,7 +298,10 @@ export const InitialStateEditor: React.FC<InitialStateEditorProps> = ({
               prevCell?.focus();
             }, 0);
           } else if (row > 0) {
-            setFocusedCell({ row: row - 1, col: placeType.elements.length - 1 });
+            setFocusedCell({
+              row: row - 1,
+              col: placeType.elements.length - 1,
+            });
             setTimeout(() => {
               const prevCell = cellRefs.current.get(
                 `${row - 1}-${placeType.elements.length - 1}`,
@@ -374,7 +379,7 @@ export const InitialStateEditor: React.FC<InitialStateEditorProps> = ({
     } else if (event.key === "Tab") {
       event.preventDefault();
       setSelectedRow(null);
-      
+
       if (event.shiftKey) {
         // Move to previous cell (left, or wrap to previous row)
         if (col > 0) {
