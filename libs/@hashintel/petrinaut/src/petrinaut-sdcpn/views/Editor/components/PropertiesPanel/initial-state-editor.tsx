@@ -217,7 +217,7 @@ export const InitialStateEditor: React.FC<InitialStateEditorProps> = ({
         updateCell(row, col, value);
         setEditingCell(null);
         setEditingValue("");
-        
+
         // Move to next cell (right, or wrap to next row)
         if (col < placeType.elements.length - 1) {
           setFocusedCell({ row, col: col + 1 });
