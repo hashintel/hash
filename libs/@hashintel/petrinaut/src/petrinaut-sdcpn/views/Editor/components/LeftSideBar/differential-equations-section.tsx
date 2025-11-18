@@ -33,6 +33,8 @@ export const DifferentialEquationsSection: React.FC = () => {
         display: "flex",
         flexDirection: "column",
         gap: 8,
+        paddingBottom: 16,
+        borderBottom: "1px solid rgba(0, 0, 0, 0.1)",
       }}
     >
       <div
