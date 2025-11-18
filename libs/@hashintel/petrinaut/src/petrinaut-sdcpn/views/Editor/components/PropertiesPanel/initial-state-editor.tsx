@@ -185,7 +185,7 @@ export const InitialStateEditor: React.FC<InitialStateEditorProps> = ({
   const updateCell = (row: number, col: number, value: number) => {
     setTableData((prev) => {
       let newData: number[][];
-      
+
       // If editing the phantom row (last row), create a new actual row
       if (row === prev.length) {
         newData = [
@@ -203,7 +203,7 @@ export const InitialStateEditor: React.FC<InitialStateEditorProps> = ({
           newData[row][col] = value;
         }
       }
-      
+
       saveToStore(newData);
       return newData;
     });
@@ -211,9 +211,7 @@ export const InitialStateEditor: React.FC<InitialStateEditorProps> = ({
 
   const removeRow = (rowIndex: number) => {
     setTableData((prev) => {
-      const newData: number[][] = prev.filter(
-        (_, index) => index !== rowIndex,
-      );
+      const newData: number[][] = prev.filter((_, index) => index !== rowIndex);
       saveToStore(newData);
       return newData;
     });
@@ -490,150 +488,150 @@ export const InitialStateEditor: React.FC<InitialStateEditorProps> = ({
                 Array(placeType.elements.length).fill(0) as number[],
               ];
               return displayRows.map((row, rowIndex) => (
-              <tr
-                // eslint-disable-next-line react/no-array-index-key -- Row position is stable and meaningful
-                key={`row-${rowIndex}-${row.join("-")}`}
-                style={{
-                  backgroundColor:
-                    selectedRow === rowIndex
-                      ? "rgba(59, 130, 246, 0.1)"
-                      : "white",
-                  height: "28px",
-                }}
-              >
-                <td
-                  data-row={rowIndex}
-                  onClick={() => handleRowClick(rowIndex)}
-                  onKeyDown={(event) => handleRowKeyDown(event, rowIndex)}
-                  tabIndex={0}
+                <tr
+                  // eslint-disable-next-line react/no-array-index-key -- Row position is stable and meaningful
+                  key={`row-${rowIndex}-${row.join("-")}`}
                   style={{
-                    borderRight: "1px solid rgba(0, 0, 0, 0.1)",
-                    borderBottom: "1px solid rgba(0, 0, 0, 0.05)",
-                    padding: "4px 8px",
-                    textAlign: "center",
-                    cursor: hasSimulation ? "default" : "pointer",
-                    backgroundColor: "#fafafa",
-                    fontWeight: 500,
-                    color: rowIndex === tableData.length ? "#ccc" : "#666",
+                    backgroundColor:
+                      selectedRow === rowIndex
+                        ? "rgba(59, 130, 246, 0.1)"
+                        : "white",
+                    height: "28px",
                   }}
                 >
-                  {rowIndex === tableData.length ? "" : rowIndex + 1}
-                </td>
-                {row.map((value, colIndex) => {
-                  const isEditing =
-                    editingCell?.row === rowIndex &&
-                    editingCell.col === colIndex;
-                  const isFocused =
-                    focusedCell?.row === rowIndex &&
-                    focusedCell.col === colIndex;
-                  const isPhantomRow = rowIndex === tableData.length;
+                  <td
+                    data-row={rowIndex}
+                    onClick={() => handleRowClick(rowIndex)}
+                    onKeyDown={(event) => handleRowKeyDown(event, rowIndex)}
+                    tabIndex={0}
+                    style={{
+                      borderRight: "1px solid rgba(0, 0, 0, 0.1)",
+                      borderBottom: "1px solid rgba(0, 0, 0, 0.05)",
+                      padding: "4px 8px",
+                      textAlign: "center",
+                      cursor: hasSimulation ? "default" : "pointer",
+                      backgroundColor: "#fafafa",
+                      fontWeight: 500,
+                      color: rowIndex === tableData.length ? "#ccc" : "#666",
+                    }}
+                  >
+                    {rowIndex === tableData.length ? "" : rowIndex + 1}
+                  </td>
+                  {row.map((value, colIndex) => {
+                    const isEditing =
+                      editingCell?.row === rowIndex &&
+                      editingCell.col === colIndex;
+                    const isFocused =
+                      focusedCell?.row === rowIndex &&
+                      focusedCell.col === colIndex;
+                    const isPhantomRow = rowIndex === tableData.length;
 
-                  return (
-                    <td
-                      // eslint-disable-next-line react/no-array-index-key -- Column position is stable and meaningful
-                      key={`cell-${rowIndex}-${colIndex}`}
-                      style={{
-                        borderBottom: "1px solid rgba(0, 0, 0, 0.05)",
-                        padding: 0,
-                        width: `${columnWidth}%`,
-                        height: "28px",
-                      }}
-                    >
-                      {hasSimulation ? (
-                        <div
-                          style={{
-                            height: "28px",
-                            display: "flex",
-                            alignItems: "center",
-                            fontFamily: "monospace",
-                            fontSize: 12,
-                            padding: "4px 8px",
-                            overflow: "hidden",
-                            textOverflow: "ellipsis",
-                            whiteSpace: "nowrap",
-                          }}
-                        >
-                          {value}
-                        </div>
-                      ) : isEditing ? (
-                        <input
-                          ref={inputRef}
-                          type="number"
-                          value={editingValue}
-                          onChange={(event) =>
-                            setEditingValue(event.target.value)
-                          }
-                          onKeyDown={(event) =>
-                            handleKeyDown(event, rowIndex, colIndex)
-                          }
-                          onBlur={() => {
-                            // Save on blur
-                            const val = Number.parseFloat(editingValue) || 0;
-                            updateCell(rowIndex, colIndex, val);
-                            setEditingCell(null);
-                            setEditingValue("");
-                          }}
-                          style={{
-                            width: "100%",
-                            height: "28px",
-                            border: "none",
-                            padding: "4px 8px",
-                            fontFamily: "monospace",
-                            fontSize: 12,
-                            backgroundColor: "rgba(59, 130, 246, 0.05)",
-                            outline: "2px solid #3b82f6",
-                            outlineOffset: -2,
-                            boxSizing: "border-box",
-                          }}
-                        />
-                      ) : (
-                        <div
-                          ref={(el) => {
-                            if (el) {
-                              cellRefs.current.set(
-                                `${rowIndex}-${colIndex}`,
-                                el,
-                              );
-                            } else {
-                              cellRefs.current.delete(
-                                `${rowIndex}-${colIndex}`,
-                              );
+                    return (
+                      <td
+                        // eslint-disable-next-line react/no-array-index-key -- Column position is stable and meaningful
+                        key={`cell-${rowIndex}-${colIndex}`}
+                        style={{
+                          borderBottom: "1px solid rgba(0, 0, 0, 0.05)",
+                          padding: 0,
+                          width: `${columnWidth}%`,
+                          height: "28px",
+                        }}
+                      >
+                        {hasSimulation ? (
+                          <div
+                            style={{
+                              height: "28px",
+                              display: "flex",
+                              alignItems: "center",
+                              fontFamily: "monospace",
+                              fontSize: 12,
+                              padding: "4px 8px",
+                              overflow: "hidden",
+                              textOverflow: "ellipsis",
+                              whiteSpace: "nowrap",
+                            }}
+                          >
+                            {value}
+                          </div>
+                        ) : isEditing ? (
+                          <input
+                            ref={inputRef}
+                            type="number"
+                            value={editingValue}
+                            onChange={(event) =>
+                              setEditingValue(event.target.value)
                             }
-                          }}
-                          role="button"
-                          tabIndex={0}
-                          onFocus={() =>
-                            setFocusedCell({ row: rowIndex, col: colIndex })
-                          }
-                          onKeyDown={(event) =>
-                            handleKeyDown(event, rowIndex, colIndex)
-                          }
-                          style={{
-                            width: "100%",
-                            height: "28px",
-                            padding: "4px 8px",
-                            fontFamily: "monospace",
-                            fontSize: 12,
-                            backgroundColor: "transparent",
-                            outline: isFocused ? "2px solid #3b82f6" : "none",
-                            outlineOffset: -2,
-                            cursor: "default",
-                            boxSizing: "border-box",
-                            overflow: "hidden",
-                            textOverflow: "ellipsis",
-                            whiteSpace: "nowrap",
-                            display: "flex",
-                            alignItems: "center",
-                          }}
-                        >
-                          {isPhantomRow ? "" : value}
-                        </div>
-                      )}
-                    </td>
-                  );
-                })}
-              </tr>
-            ));
+                            onKeyDown={(event) =>
+                              handleKeyDown(event, rowIndex, colIndex)
+                            }
+                            onBlur={() => {
+                              // Save on blur
+                              const val = Number.parseFloat(editingValue) || 0;
+                              updateCell(rowIndex, colIndex, val);
+                              setEditingCell(null);
+                              setEditingValue("");
+                            }}
+                            style={{
+                              width: "100%",
+                              height: "28px",
+                              border: "none",
+                              padding: "4px 8px",
+                              fontFamily: "monospace",
+                              fontSize: 12,
+                              backgroundColor: "rgba(59, 130, 246, 0.05)",
+                              outline: "2px solid #3b82f6",
+                              outlineOffset: -2,
+                              boxSizing: "border-box",
+                            }}
+                          />
+                        ) : (
+                          <div
+                            ref={(el) => {
+                              if (el) {
+                                cellRefs.current.set(
+                                  `${rowIndex}-${colIndex}`,
+                                  el,
+                                );
+                              } else {
+                                cellRefs.current.delete(
+                                  `${rowIndex}-${colIndex}`,
+                                );
+                              }
+                            }}
+                            role="button"
+                            tabIndex={0}
+                            onFocus={() =>
+                              setFocusedCell({ row: rowIndex, col: colIndex })
+                            }
+                            onKeyDown={(event) =>
+                              handleKeyDown(event, rowIndex, colIndex)
+                            }
+                            style={{
+                              width: "100%",
+                              height: "28px",
+                              padding: "4px 8px",
+                              fontFamily: "monospace",
+                              fontSize: 12,
+                              backgroundColor: "transparent",
+                              outline: isFocused ? "2px solid #3b82f6" : "none",
+                              outlineOffset: -2,
+                              cursor: "default",
+                              boxSizing: "border-box",
+                              overflow: "hidden",
+                              textOverflow: "ellipsis",
+                              whiteSpace: "nowrap",
+                              display: "flex",
+                              alignItems: "center",
+                            }}
+                          >
+                            {isPhantomRow ? "" : value}
+                          </div>
+                        )}
+                      </td>
+                    );
+                  })}
+                </tr>
+              ));
             })()}
           </tbody>
         </table>
