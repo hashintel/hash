@@ -59,15 +59,17 @@ export const satellitesSDCPN: SDCPN = {
             />
 
             {/* Velocity vector indicator */}
-            <line
-              x1={screenX}
-              y1={screenY}
-              x2={screenX + Math.cos(direction) * Math.log(velocity) * 10}
-              y2={screenY + Math.sin(direction) * Math.log(velocity) * 10}
-              stroke="#ffc107"
-              strokeWidth="2"
-              markerEnd="url(#arrowhead)"
-            />
+            {velocity > 0 && (
+              <line
+                x1={screenX}
+                y1={screenY}
+                x2={screenX + Math.cos(direction) * Math.log(velocity) * 10}
+                y2={screenY + Math.sin(direction) * Math.log(velocity) * 10}
+                stroke="#ffc107"
+                strokeWidth="2"
+                markerEnd="url(#arrowhead)"
+              />
+            )}
           </g>
         );
       })}
