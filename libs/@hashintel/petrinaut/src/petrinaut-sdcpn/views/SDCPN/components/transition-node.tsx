@@ -2,6 +2,7 @@ import { css } from "@hashintel/ds-helpers/css";
 import { TbBolt, TbLambda } from "react-icons/tb";
 import { Handle, type NodeProps, Position } from "reactflow";
 
+import { useEditorStore } from "../../../state/editor-provider";
 import { useSimulationStore } from "../../../state/simulation-provider";
 import type { TransitionNodeData } from "../../../state/types-for-editor-to-remove";
 import { handleStyling } from "../styles/styling";
@@ -14,6 +15,9 @@ export const TransitionNode: React.FC<NodeProps<TransitionNodeData>> = ({
 }: NodeProps<TransitionNodeData>) => {
   const { label } = data;
 
+  const selectedResourceId = useEditorStore(
+    (state) => state.selectedResourceId,
+  );
   const simulation = useSimulationStore((state) => state.simulation);
   const currentlyViewedFrame = useSimulationStore(
     (state) => state.currentlyViewedFrame,
@@ -28,6 +32,9 @@ export const TransitionNode: React.FC<NodeProps<TransitionNodeData>> = ({
       justFired = transitionData.timeSinceLastFiring === 0;
     }
   }
+
+  // Determine selection state
+  const isSelectedByResource = selectedResourceId === id;
 
   return (
     <div
@@ -66,10 +73,14 @@ export const TransitionNode: React.FC<NodeProps<TransitionNodeData>> = ({
         })}
         style={{
           transition: "all 0.2s ease",
-          // Selection indicator: thick orange glow
-          boxShadow: selected
-            ? "0 0 0 4px rgba(249, 115, 22, 0.4), 0 0 0 6px rgba(249, 115, 22, 0.2)"
-            : undefined,
+          // Selection indicator:
+          // - Blue glow for selectedResourceId (properties panel selection)
+          // - Orange glow for ReactFlow selection (when not selected by resource)
+          boxShadow: isSelectedByResource
+            ? "0 0 0 3px rgba(59, 178, 246, 0.4), 0 0 0 5px rgba(59, 190, 246, 0.2)"
+            : selected
+              ? "0 0 0 4px rgba(249, 115, 22, 0.4), 0 0 0 6px rgba(249, 115, 22, 0.2)"
+              : undefined,
         }}
       >
         {data.lambdaType === "stochastic" && (
