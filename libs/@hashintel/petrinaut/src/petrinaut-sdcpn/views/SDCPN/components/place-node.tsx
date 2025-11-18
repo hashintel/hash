@@ -122,6 +122,7 @@ export const PlaceNode: React.FC<NodeProps<PlaceNodeData>> = ({
               flexWrap: "wrap",
               justifyContent: "center",
             })}
+            style={{ padding: 12 }}
           >
             {splitPascalCase(data.label).map((segment, index) => (
               <span
