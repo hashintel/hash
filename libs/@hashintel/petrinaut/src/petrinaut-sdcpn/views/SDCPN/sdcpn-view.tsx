@@ -48,6 +48,7 @@ export const SDCPNView: React.FC = () => {
   const addTransition = useSDCPNStore((state) => state.addTransition);
   const addArc = useSDCPNStore((state) => state.addArc);
   const deleteItemsByIds = useSDCPNStore((state) => state.deleteItemsByIds);
+  const clearSelection = useEditorStore((state) => state.clearSelection);
 
   // Hook for applying node changes
   const applyNodeChanges = useApplyNodeChanges();
@@ -168,6 +169,7 @@ export const SDCPNView: React.FC = () => {
   function onNodeClick(_event: React.MouseEvent, node: Node<NodeData>) {
     // Set the selected resource ID for properties panel
     setSelectedResourceId(node.id);
+    clearSelection();
   }
 
   function onPaneClick(event: React.MouseEvent) {
@@ -329,7 +331,7 @@ export const SDCPNView: React.FC = () => {
         panOnDrag={editionMode === "pan" ? true : isAddMode ? false : [1, 2]}
         nodesDraggable={!isReadonly}
         nodesConnectable={!isReadonly}
-        elementsSelectable={!isAddMode}
+        elementsSelectable={!isReadonly && !isAddMode}
         selectionOnDrag={editionMode === "select"}
         multiSelectionKeyCode={isReadonly ? null : undefined}
         panOnScroll={false}

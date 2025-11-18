@@ -48,6 +48,8 @@ export const EditorView: React.FC = () => {
     if (newMode === "simulate" && mode !== "simulate") {
       // Initialize parameter values from SDCPN defaults when switching to simulate mode
       initializeParameterValuesFromDefaults();
+      // Clear selection when entering simulate mode
+      clearSelection();
     }
     setMode(newMode);
   }

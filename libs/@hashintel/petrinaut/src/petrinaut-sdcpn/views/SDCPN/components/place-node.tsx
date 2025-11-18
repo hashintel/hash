@@ -17,6 +17,9 @@ export const PlaceNode: React.FC<NodeProps<PlaceNodeData>> = ({
   const isSimulateMode = useEditorStore(
     (state) => state.globalMode === "simulate",
   );
+  const selectedResourceId = useEditorStore(
+    (state) => state.selectedResourceId,
+  );
   const simulation = useSimulationStore((state) => state.simulation);
   const currentlyViewedFrame = useSimulationStore(
     (state) => state.currentlyViewedFrame,
@@ -44,6 +47,9 @@ export const PlaceNode: React.FC<NodeProps<PlaceNodeData>> = ({
     const blue = Number.parseInt(hex.slice(5, 7), 16);
     return `rgba(${red}, ${green}, ${blue}, ${opacity})`;
   };
+
+  // Determine selection state
+  const isSelectedByResource = selectedResourceId === id;
 
   return (
     <div
@@ -83,10 +89,14 @@ export const PlaceNode: React.FC<NodeProps<PlaceNodeData>> = ({
           backgroundColor: data.typeColor
             ? hexToRgba(data.typeColor, 0.1)
             : undefined,
-          // Selection indicator: thick orange glow
-          boxShadow: selected
-            ? "0 0 0 4px rgba(249, 115, 22, 0.4), 0 0 0 6px rgba(249, 115, 22, 0.2)"
-            : undefined,
+          // Selection indicator:
+          // - Blue glow for selectedResourceId (properties panel selection)
+          // - Orange glow for ReactFlow selection (when not selected by resource)
+          boxShadow: isSelectedByResource
+            ? "0 0 0 3px rgba(59, 178, 246, 0.4), 0 0 0 5px rgba(59, 190, 246, 0.2)"
+            : selected
+              ? "0 0 0 4px rgba(249, 115, 22, 0.4), 0 0 0 6px rgba(249, 115, 22, 0.2)"
+              : undefined,
         }}
       >
         {data.dynamicsEnabled && (
