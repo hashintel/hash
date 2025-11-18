@@ -151,19 +151,24 @@ export const InitialStateEditor: React.FC<InitialStateEditorProps> = ({
 
   // Update table data when marking changes externally
   useEffect(() => {
-    if (currentMarking && currentMarking.count > 0) {
-      const dimensions = placeType.elements.length;
-      const tokens: number[][] = [];
-      for (let i = 0; i < currentMarking.count; i++) {
-        const tokenValues: number[] = [];
-        for (let colIndex = 0; colIndex < dimensions; colIndex++) {
-          tokenValues.push(
-            currentMarking.values[i * dimensions + colIndex] ?? 0,
-          );
+    if (currentMarking) {
+      if (currentMarking.count > 0) {
+        const dimensions = placeType.elements.length;
+        const tokens: number[][] = [];
+        for (let i = 0; i < currentMarking.count; i++) {
+          const tokenValues: number[] = [];
+          for (let colIndex = 0; colIndex < dimensions; colIndex++) {
+            tokenValues.push(
+              currentMarking.values[i * dimensions + colIndex] ?? 0,
+            );
+          }
+          tokens.push(tokenValues);
         }
-        tokens.push(tokenValues);
+        setTableData(tokens);
+      } else {
+        // When count is 0, set empty table data
+        setTableData([]);
       }
-      setTableData(tokens);
     }
   }, [currentMarking, placeType.elements.length]);
 
