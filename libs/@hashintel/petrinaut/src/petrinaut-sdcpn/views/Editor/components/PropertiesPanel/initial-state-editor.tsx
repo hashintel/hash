@@ -133,7 +133,7 @@ export const InitialStateEditor: React.FC<InitialStateEditorProps> = ({
       }
       return tokens;
     }
-    return [Array(placeType.elements.length).fill(0)];
+    return [];
   });
 
   const [selectedRow, setSelectedRow] = useState<number | null>(null);
