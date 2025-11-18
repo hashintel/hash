@@ -3,6 +3,51 @@ import { useEffect, useRef, useState } from "react";
 import { useSimulationStore } from "../../../../state/simulation-provider";
 
 /**
+ * Hook to make an element resizable by dragging its bottom border
+ */
+const useResizable = (initialHeight: number) => {
+  const [height, setHeight] = useState(initialHeight);
+  const [isResizing, setIsResizing] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!isResizing) {
+      return;
+    }
+
+    const handleMouseMove = (event: MouseEvent) => {
+      if (!containerRef.current) {
+        return;
+      }
+      const rect = containerRef.current.getBoundingClientRect();
+      const newHeight = event.clientY - rect.top;
+      if (newHeight >= 100 && newHeight <= 600) {
+        setHeight(newHeight);
+      }
+    };
+
+    const handleMouseUp = () => {
+      setIsResizing(false);
+    };
+
+    document.addEventListener("mousemove", handleMouseMove);
+    document.addEventListener("mouseup", handleMouseUp);
+
+    return () => {
+      document.removeEventListener("mousemove", handleMouseMove);
+      document.removeEventListener("mouseup", handleMouseUp);
+    };
+  }, [isResizing]);
+
+  return {
+    height,
+    isResizing,
+    containerRef,
+    startResize: () => setIsResizing(true),
+  };
+};
+
+/**
  * InitialStateEditor - A component for editing initial tokens in a place
  * Stores data in SimulationStore, not in the Place definition
  */
@@ -23,6 +68,8 @@ export const InitialStateEditor: React.FC<InitialStateEditorProps> = ({
   placeId,
   placeType,
 }) => {
+  const { height, isResizing, containerRef, startResize } = useResizable(250);
+
   const isSimulationNotRun = useSimulationStore(
     (state) => state.state === "NotRun",
   );
@@ -137,45 +184,39 @@ export const InitialStateEditor: React.FC<InitialStateEditorProps> = ({
 
   const updateCell = (row: number, col: number, value: number) => {
     setTableData((prev) => {
-      const newData = prev.map((rowData, index) =>
-        index === row ? [...rowData] : rowData,
-      );
-      if (newData[row]) {
-        newData[row][col] = value;
+      let newData: number[][];
+      
+      // If editing the phantom row (last row), create a new actual row
+      if (row === prev.length) {
+        newData = [
+          ...prev,
+          Array(placeType.elements.length).fill(0) as number[],
+        ];
+        if (newData[row]) {
+          newData[row][col] = value;
+        }
+      } else {
+        newData = prev.map((rowData, index) =>
+          index === row ? [...rowData] : rowData,
+        );
+        if (newData[row]) {
+          newData[row][col] = value;
+        }
       }
-      saveToStore(newData);
-      return newData;
-    });
-  };
-
-  const addRow = () => {
-    setTableData((prev) => {
-      const newData: number[][] = [
-        ...prev,
-        Array(placeType.elements.length).fill(0) as number[],
-      ];
+      
       saveToStore(newData);
       return newData;
     });
   };
 
   const removeRow = (rowIndex: number) => {
-    if (tableData.length === 1) {
-      // Don't remove the last row, just reset it
-      const newData: number[][] = [
-        Array(placeType.elements.length).fill(0) as number[],
-      ];
-      setTableData(newData);
+    setTableData((prev) => {
+      const newData: number[][] = prev.filter(
+        (_, index) => index !== rowIndex,
+      );
       saveToStore(newData);
-    } else {
-      setTableData((prev) => {
-        const newData: number[][] = prev.filter(
-          (_, index) => index !== rowIndex,
-        );
-        saveToStore(newData);
-        return newData;
-      });
-    }
+      return newData;
+    });
     setSelectedRow(null);
   };
 
@@ -225,7 +266,7 @@ export const InitialStateEditor: React.FC<InitialStateEditorProps> = ({
             const nextCell = cellRefs.current.get(`${row}-${col + 1}`);
             nextCell?.focus();
           }, 0);
-        } else if (row < tableData.length - 1) {
+        } else if (row < tableData.length) {
           setFocusedCell({ row: row + 1, col: 0 });
           setTimeout(() => {
             const nextCell = cellRefs.current.get(`${row + 1}-0`);
@@ -256,7 +297,7 @@ export const InitialStateEditor: React.FC<InitialStateEditorProps> = ({
         const prevCell = cellRefs.current.get(`${row}-${col - 1}`);
         prevCell?.focus();
       }, 0);
-    } else if (event.key === "ArrowDown" && row < tableData.length - 1) {
+    } else if (event.key === "ArrowDown" && row < tableData.length) {
       event.preventDefault();
       setFocusedCell({ row: row + 1, col });
       setTimeout(() => {
@@ -279,7 +320,7 @@ export const InitialStateEditor: React.FC<InitialStateEditorProps> = ({
           const nextCell = cellRefs.current.get(`${row}-${col + 1}`);
           nextCell?.focus();
         }, 0);
-      } else if (row < tableData.length - 1) {
+      } else if (row < tableData.length) {
         setFocusedCell({ row: row + 1, col: 0 });
         setTimeout(() => {
           const nextCell = cellRefs.current.get(`${row + 1}-0`);
@@ -375,36 +416,20 @@ export const InitialStateEditor: React.FC<InitialStateEditorProps> = ({
           fontWeight: 500,
           fontSize: 12,
           marginBottom: 4,
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
         }}
       >
-        <span>{isSimulationNotRun ? "Initial State" : "State"}</span>
-        {!hasSimulation && (
-          <button
-            type="button"
-            onClick={addRow}
-            style={{
-              fontSize: 11,
-              padding: "2px 8px",
-              border: "1px solid rgba(0, 0, 0, 0.2)",
-              borderRadius: 3,
-              backgroundColor: "white",
-              cursor: "pointer",
-            }}
-          >
-            + Add Row
-          </button>
-        )}
+        {isSimulationNotRun ? "Initial State" : "State"}
       </div>
       <div
+        ref={containerRef}
         style={{
+          position: "relative",
           border: "1px solid rgba(0, 0, 0, 0.1)",
           borderRadius: 4,
           overflow: "auto",
           width: "100%",
-          maxHeight: 250,
+          height: `${height}px`,
+          backgroundColor: "#fafafa",
         }}
       >
         <table
@@ -458,7 +483,13 @@ export const InitialStateEditor: React.FC<InitialStateEditorProps> = ({
             </tr>
           </thead>
           <tbody>
-            {tableData.map((row, rowIndex) => (
+            {(() => {
+              // Always show an empty row at the bottom for new entries
+              const displayRows = [
+                ...tableData,
+                Array(placeType.elements.length).fill(0) as number[],
+              ];
+              return displayRows.map((row, rowIndex) => (
               <tr
                 // eslint-disable-next-line react/no-array-index-key -- Row position is stable and meaningful
                 key={`row-${rowIndex}-${row.join("-")}`}
@@ -466,7 +497,8 @@ export const InitialStateEditor: React.FC<InitialStateEditorProps> = ({
                   backgroundColor:
                     selectedRow === rowIndex
                       ? "rgba(59, 130, 246, 0.1)"
-                      : "transparent",
+                      : "white",
+                  height: "28px",
                 }}
               >
                 <td
@@ -482,10 +514,10 @@ export const InitialStateEditor: React.FC<InitialStateEditorProps> = ({
                     cursor: hasSimulation ? "default" : "pointer",
                     backgroundColor: "#fafafa",
                     fontWeight: 500,
-                    color: "#666",
+                    color: rowIndex === tableData.length ? "#ccc" : "#666",
                   }}
                 >
-                  {rowIndex + 1}
+                  {rowIndex === tableData.length ? "" : rowIndex + 1}
                 </td>
                 {row.map((value, colIndex) => {
                   const isEditing =
@@ -494,6 +526,7 @@ export const InitialStateEditor: React.FC<InitialStateEditorProps> = ({
                   const isFocused =
                     focusedCell?.row === rowIndex &&
                     focusedCell.col === colIndex;
+                  const isPhantomRow = rowIndex === tableData.length;
 
                   return (
                     <td
@@ -503,11 +536,15 @@ export const InitialStateEditor: React.FC<InitialStateEditorProps> = ({
                         borderBottom: "1px solid rgba(0, 0, 0, 0.05)",
                         padding: 0,
                         width: `${columnWidth}%`,
+                        height: "28px",
                       }}
                     >
                       {hasSimulation ? (
                         <div
                           style={{
+                            height: "28px",
+                            display: "flex",
+                            alignItems: "center",
                             fontFamily: "monospace",
                             fontSize: 12,
                             padding: "4px 8px",
@@ -538,6 +575,7 @@ export const InitialStateEditor: React.FC<InitialStateEditorProps> = ({
                           }}
                           style={{
                             width: "100%",
+                            height: "28px",
                             border: "none",
                             padding: "4px 8px",
                             fontFamily: "monospace",
@@ -572,6 +610,7 @@ export const InitialStateEditor: React.FC<InitialStateEditorProps> = ({
                           }
                           style={{
                             width: "100%",
+                            height: "28px",
                             padding: "4px 8px",
                             fontFamily: "monospace",
                             fontSize: 12,
@@ -583,18 +622,38 @@ export const InitialStateEditor: React.FC<InitialStateEditorProps> = ({
                             overflow: "hidden",
                             textOverflow: "ellipsis",
                             whiteSpace: "nowrap",
+                            display: "flex",
+                            alignItems: "center",
                           }}
                         >
-                          {value}
+                          {isPhantomRow ? "" : value}
                         </div>
                       )}
                     </td>
                   );
                 })}
               </tr>
-            ))}
+            ));
+            })()}
           </tbody>
         </table>
+        <button
+          type="button"
+          aria-label="Resize table"
+          onMouseDown={startResize}
+          style={{
+            position: "absolute",
+            bottom: 0,
+            left: 0,
+            right: 0,
+            height: 8,
+            cursor: "ns-resize",
+            backgroundColor: isResizing ? "rgba(0, 0, 0, 0.1)" : "transparent",
+            border: "none",
+            padding: 0,
+            zIndex: 10,
+          }}
+        />
       </div>
     </div>
   );
