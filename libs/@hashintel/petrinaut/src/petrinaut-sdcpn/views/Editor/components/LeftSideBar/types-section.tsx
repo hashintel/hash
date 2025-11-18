@@ -190,7 +190,7 @@ export const TypesSection: React.FC = () => {
                   display: "flex",
                   alignItems: "center",
                   gap: 8,
-                  padding: "4px 9px",
+                  padding: "4px 2px 4px 8px",
                   borderRadius: 4,
                   backgroundColor: isSelected
                     ? "rgba(59, 130, 246, 0.15)"
