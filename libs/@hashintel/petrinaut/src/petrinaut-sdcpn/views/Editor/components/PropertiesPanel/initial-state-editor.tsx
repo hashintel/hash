@@ -213,9 +213,38 @@ export const InitialStateEditor: React.FC<InitialStateEditorProps> = ({
     setTableData((prev) => {
       const newData: number[][] = prev.filter((_, index) => index !== rowIndex);
       saveToStore(newData);
+      
+      // Select next or previous row after deletion
+      if (newData.length > 0) {
+        // If deleted row was last, select the new last row
+        if (rowIndex >= newData.length) {
+          setSelectedRow(newData.length - 1);
+          // Focus the row number cell after state update
+          setTimeout(() => {
+            const rowCell = document.querySelector(
+              `td[data-row="${newData.length - 1}"]`,
+            );
+            if (rowCell instanceof HTMLElement) {
+              rowCell.focus();
+            }
+          }, 0);
+        } else {
+          // Select the next row (which now has the same index)
+          setSelectedRow(rowIndex);
+          // Focus the row number cell after state update
+          setTimeout(() => {
+            const rowCell = document.querySelector(`td[data-row="${rowIndex}"]`);
+            if (rowCell instanceof HTMLElement) {
+              rowCell.focus();
+            }
+          }, 0);
+        }
+      } else {
+        setSelectedRow(null);
+      }
+      
       return newData;
     });
-    setSelectedRow(null);
   };
 
   const handleKeyDown = (
@@ -251,14 +280,31 @@ export const InitialStateEditor: React.FC<InitialStateEditorProps> = ({
         setEditingValue("");
       } else if (event.key === "Tab") {
         event.preventDefault();
-        // Save the value and move to next cell
+        // Save the value and move to next/previous cell
         const value = Number.parseFloat(editingValue) || 0;
         updateCell(row, col, value);
         setEditingCell(null);
         setEditingValue("");
+        setSelectedRow(null);
 
-        // Move to next cell (right, or wrap to next row)
-        if (col < placeType.elements.length - 1) {
+        if (event.shiftKey) {
+          // Move to previous cell (left, or wrap to previous row)
+          if (col > 0) {
+            setFocusedCell({ row, col: col - 1 });
+            setTimeout(() => {
+              const prevCell = cellRefs.current.get(`${row}-${col - 1}`);
+              prevCell?.focus();
+            }, 0);
+          } else if (row > 0) {
+            setFocusedCell({ row: row - 1, col: placeType.elements.length - 1 });
+            setTimeout(() => {
+              const prevCell = cellRefs.current.get(
+                `${row - 1}-${placeType.elements.length - 1}`,
+              );
+              prevCell?.focus();
+            }, 0);
+          }
+        } else if (col < placeType.elements.length - 1) {
           setFocusedCell({ row, col: col + 1 });
           setTimeout(() => {
             const nextCell = cellRefs.current.get(`${row}-${col + 1}`);
@@ -283,20 +329,35 @@ export const InitialStateEditor: React.FC<InitialStateEditorProps> = ({
     // Navigation keys when not editing
     if (event.key === "ArrowRight" && col < placeType.elements.length - 1) {
       event.preventDefault();
+      setSelectedRow(null);
       setFocusedCell({ row, col: col + 1 });
       setTimeout(() => {
         const nextCell = cellRefs.current.get(`${row}-${col + 1}`);
         nextCell?.focus();
       }, 0);
-    } else if (event.key === "ArrowLeft" && col > 0) {
+    } else if (event.key === "ArrowLeft") {
       event.preventDefault();
-      setFocusedCell({ row, col: col - 1 });
-      setTimeout(() => {
-        const prevCell = cellRefs.current.get(`${row}-${col - 1}`);
-        prevCell?.focus();
-      }, 0);
+      if (col > 0) {
+        setSelectedRow(null);
+        setFocusedCell({ row, col: col - 1 });
+        setTimeout(() => {
+          const prevCell = cellRefs.current.get(`${row}-${col - 1}`);
+          prevCell?.focus();
+        }, 0);
+      } else {
+        // When on first column, select the row
+        setFocusedCell(null);
+        setSelectedRow(row);
+        setTimeout(() => {
+          const rowCell = document.querySelector(`td[data-row="${row}"]`);
+          if (rowCell instanceof HTMLElement) {
+            rowCell.focus();
+          }
+        }, 0);
+      }
     } else if (event.key === "ArrowDown" && row < tableData.length) {
       event.preventDefault();
+      setSelectedRow(null);
       setFocusedCell({ row: row + 1, col });
       setTimeout(() => {
         const nextCell = cellRefs.current.get(`${row + 1}-${col}`);
@@ -304,6 +365,7 @@ export const InitialStateEditor: React.FC<InitialStateEditorProps> = ({
       }, 0);
     } else if (event.key === "ArrowUp" && row > 0) {
       event.preventDefault();
+      setSelectedRow(null);
       setFocusedCell({ row: row - 1, col });
       setTimeout(() => {
         const prevCell = cellRefs.current.get(`${row - 1}-${col}`);
@@ -311,8 +373,26 @@ export const InitialStateEditor: React.FC<InitialStateEditorProps> = ({
       }, 0);
     } else if (event.key === "Tab") {
       event.preventDefault();
-      // Move to next cell (right, or wrap to next row)
-      if (col < placeType.elements.length - 1) {
+      setSelectedRow(null);
+      
+      if (event.shiftKey) {
+        // Move to previous cell (left, or wrap to previous row)
+        if (col > 0) {
+          setFocusedCell({ row, col: col - 1 });
+          setTimeout(() => {
+            const prevCell = cellRefs.current.get(`${row}-${col - 1}`);
+            prevCell?.focus();
+          }, 0);
+        } else if (row > 0) {
+          setFocusedCell({ row: row - 1, col: placeType.elements.length - 1 });
+          setTimeout(() => {
+            const prevCell = cellRefs.current.get(
+              `${row - 1}-${placeType.elements.length - 1}`,
+            );
+            prevCell?.focus();
+          }, 0);
+        }
+      } else if (col < placeType.elements.length - 1) {
         setFocusedCell({ row, col: col + 1 });
         setTimeout(() => {
           const nextCell = cellRefs.current.get(`${row}-${col + 1}`);
@@ -370,6 +450,8 @@ export const InitialStateEditor: React.FC<InitialStateEditorProps> = ({
 
   const handleRowClick = (rowIndex: number) => {
     setSelectedRow(rowIndex);
+    setFocusedCell(null);
+    setEditingCell(null);
   };
 
   const handleRowKeyDown = (event: React.KeyboardEvent, rowIndex: number) => {
@@ -380,10 +462,32 @@ export const InitialStateEditor: React.FC<InitialStateEditorProps> = ({
       event.preventDefault();
       event.stopPropagation();
       removeRow(rowIndex);
+    } else if (event.key === "Enter" && !hasSimulation) {
+      event.preventDefault();
+      event.stopPropagation();
+      // Focus the first cell of the selected row
+      setSelectedRow(null);
+      setFocusedCell({ row: rowIndex, col: 0 });
+      setTimeout(() => {
+        const firstCell = cellRefs.current.get(`${rowIndex}-0`);
+        firstCell?.focus();
+      }, 0);
+    } else if (event.key === "ArrowRight" && !hasSimulation) {
+      event.preventDefault();
+      event.stopPropagation();
+      // Focus the first cell of the selected row
+      setSelectedRow(null);
+      setFocusedCell({ row: rowIndex, col: 0 });
+      setTimeout(() => {
+        const firstCell = cellRefs.current.get(`${rowIndex}-0`);
+        firstCell?.focus();
+      }, 0);
     } else if (event.key === "ArrowDown" && rowIndex < tableData.length - 1) {
       event.preventDefault();
       event.stopPropagation();
       setSelectedRow(rowIndex + 1);
+      setFocusedCell(null);
+      setEditingCell(null);
       // Focus the next row number cell
       const nextRowCell = document.querySelector(
         `td[data-row="${rowIndex + 1}"]`,
@@ -395,6 +499,8 @@ export const InitialStateEditor: React.FC<InitialStateEditorProps> = ({
       event.preventDefault();
       event.stopPropagation();
       setSelectedRow(rowIndex - 1);
+      setFocusedCell(null);
+      setEditingCell(null);
       // Focus the previous row number cell
       const prevRowCell = document.querySelector(
         `td[data-row="${rowIndex - 1}"]`,
@@ -482,11 +588,13 @@ export const InitialStateEditor: React.FC<InitialStateEditorProps> = ({
           </thead>
           <tbody>
             {(() => {
-              // Always show an empty row at the bottom for new entries
-              const displayRows = [
-                ...tableData,
-                Array(placeType.elements.length).fill(0) as number[],
-              ];
+              // Show an empty row at the bottom for new entries only when editable
+              const displayRows = hasSimulation
+                ? tableData
+                : [
+                    ...tableData,
+                    Array(placeType.elements.length).fill(0) as number[],
+                  ];
               return displayRows.map((row, rowIndex) => (
                 <tr
                   // eslint-disable-next-line react/no-array-index-key -- Row position is stable and meaningful
@@ -510,9 +618,13 @@ export const InitialStateEditor: React.FC<InitialStateEditorProps> = ({
                       padding: "4px 8px",
                       textAlign: "center",
                       cursor: hasSimulation ? "default" : "pointer",
-                      backgroundColor: "#fafafa",
+                      backgroundColor:
+                        selectedRow === rowIndex
+                          ? "rgba(59, 130, 246, 0.2)"
+                          : "#fafafa",
                       fontWeight: 500,
                       color: rowIndex === tableData.length ? "#ccc" : "#666",
+                      outline: "none",
                     }}
                   >
                     {rowIndex === tableData.length ? "" : rowIndex + 1}
@@ -551,7 +663,7 @@ export const InitialStateEditor: React.FC<InitialStateEditorProps> = ({
                               whiteSpace: "nowrap",
                             }}
                           >
-                            {value}
+                            {isPhantomRow ? "" : value}
                           </div>
                         ) : isEditing ? (
                           <input
@@ -600,9 +712,10 @@ export const InitialStateEditor: React.FC<InitialStateEditorProps> = ({
                             }}
                             role="button"
                             tabIndex={0}
-                            onFocus={() =>
-                              setFocusedCell({ row: rowIndex, col: colIndex })
-                            }
+                            onFocus={() => {
+                              setFocusedCell({ row: rowIndex, col: colIndex });
+                              setSelectedRow(null);
+                            }}
                             onKeyDown={(event) =>
                               handleKeyDown(event, rowIndex, colIndex)
                             }
