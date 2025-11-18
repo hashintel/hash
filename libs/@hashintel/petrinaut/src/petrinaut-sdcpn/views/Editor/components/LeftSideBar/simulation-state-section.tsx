@@ -128,7 +128,10 @@ export const SimulationStateSection: React.FC = () => {
               color: "rgba(0, 0, 0, 0.7)",
             }}
           >
-            Time Step (dt)
+            Time Step{" "}
+            <span style={{ fontSize: 10, fontWeight: 400 }}>
+              (seconds per frame)
+            </span>
           </label>
           <input
             id="time-step-input"
