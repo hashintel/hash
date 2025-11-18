@@ -297,6 +297,7 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           vault_address: ${{ secrets.VAULT_ADDR }}
+          sccache: false # sccache is already running in the background
 
       - name: Prune repository
         uses: ./.github/actions/prune-repository
