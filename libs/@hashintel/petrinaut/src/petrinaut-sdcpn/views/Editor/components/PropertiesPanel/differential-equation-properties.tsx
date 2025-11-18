@@ -428,7 +428,7 @@ export const DifferentialEquationProperties: React.FC<
               minimap: { enabled: false },
               scrollBeyondLastLine: false,
               fontSize: 12,
-              lineNumbers: "on",
+              lineNumbers: "off",
               folding: true,
               glyphMargin: false,
               lineDecorationsWidth: 0,
