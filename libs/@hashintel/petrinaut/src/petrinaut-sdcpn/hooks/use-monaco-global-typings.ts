@@ -135,7 +135,8 @@ function generateTransitionsDefinition(
           (transition) =>
             `"${transition.id}": ${transitionToTsDefinitionString(transition, placeIdToNameMap, placeIdToTypeMap)};`,
         )
-        .join("\n")}`;
+        .join("\n")}
+    }`;
 }
 
 /**
@@ -298,10 +299,9 @@ export function useMonacoGlobalTypings() {
     (state) => state.sdcpn.differentialEquations,
   );
 
-  const currentlySelectedItemId = useEditorStore((state) => {
-    const selectedIds = state.selectedItemIds;
-    return selectedIds.values().next().value;
-  });
+  const currentlySelectedItemId = useEditorStore(
+    (state) => state.selectedResourceId,
+  );
 
   const [reactTypes, setReactTypes] = useState<ReactTypeDefinitions | null>(
     null,
@@ -351,7 +351,7 @@ export function useMonacoGlobalTypings() {
         transitions,
         differentialEquations,
         parameters,
-        currentlySelectedItemId,
+        currentlySelectedItemId ?? undefined,
       );
 
       // Create or update SDCPN typings model
