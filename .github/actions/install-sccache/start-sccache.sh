@@ -82,6 +82,8 @@ main() {
     local port=$DEFAULT_PORT
     local attempt=1
 
+    port=$(get_available_port) # just for testing in CI
+
     log_info "Starting sccache server with up to $MAX_ATTEMPTS attempts"
 
     while ((attempt <= MAX_ATTEMPTS)); do
