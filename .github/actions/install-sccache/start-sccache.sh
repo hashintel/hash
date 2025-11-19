@@ -10,7 +10,8 @@ readonly PORT_RANGE_END=65535
 readonly MAX_PORT_TRIES=100
 
 # Logging functions
-log_info() { echo "::notice::$*"; }
+log_info() { echo "$*"; }
+log_notice() { echo "::notice::$*"; }
 log_error() { echo "::error::$*"; }
 log_warning() { echo "::warning::$*"; }
 
@@ -68,7 +69,8 @@ try_start_sccache() {
         log_info "Successfully started sccache server on port $port"
         return 0
     else
-        log_warning "Failed to start sccache server on port $port: $output"
+        log_warning "Failed to start sccache server on port $port"
+        log_info "Output: $output"
 
         # Unset the port variable if we set it
         if ((port != DEFAULT_PORT)); then
@@ -81,8 +83,6 @@ try_start_sccache() {
 main() {
     local port=$DEFAULT_PORT
     local attempt=1
-
-    port=$(get_available_port) # just for testing in CI
 
     log_info "Starting sccache server with up to $MAX_ATTEMPTS attempts"
 
@@ -97,7 +97,7 @@ main() {
                 log_info "Set SCCACHE_SERVER_PORT=$port in GITHUB_ENV"
             fi
 
-            log_info "✓ sccache server started successfully"
+            log_notice "sccache server started successfully on port $port"
             exit 0
         fi
 
@@ -108,7 +108,7 @@ main() {
 
         # Get an available port for next attempt
         if ! port=$(get_available_port); then
-            log_error "Aborting: Could not find an available port"
+            log_error "Aborting: Could not find an available port for sccache server"
             exit 1
         fi
 
