@@ -36,12 +36,12 @@ runs:
         SCCACHE_S3_KEY_PREFIX: "hashintel/hash/"
         SCCACHE_S3_SERVER_SIDE_ENCRYPTION: "false"
         SCCACHE_S3_ENABLE_VIRTUAL_HOST_STYLE: "false"
+        SCCACHE_IDLE_TIMEOUT: "0" # the default idle timeout is 600s (10 minutes) which is too short for our benches, `0` disables the timeout
         AWS_ACCESS_KEY_ID: ${{ env.SCCACHE_AWS_ACCESS_KEY_ID }}
         AWS_SECRET_ACCESS_KEY: ${{ env.SCCACHE_AWS_SECRET_ACCESS_KEY }}
         AWS_EC2_METADATA_DISABLED: "true"
       shell: bash
-      run: |
-        sccache --start-server
+      run: ${{ github.action_path }}/start-sccache.sh
 
     - name: Inject sccache variables into environment
       shell: bash
