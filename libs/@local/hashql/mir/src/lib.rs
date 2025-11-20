@@ -7,13 +7,13 @@
     associated_type_defaults,
     coverage_attribute,
     if_let_guard,
-    macro_attr,
     macro_metavar_expr_concat,
     never_type,
 
     // Library Features
     allocator_api,
     array_windows,
+    assert_matches,
     formatting_options,
     iter_array_chunks,
     iter_collect_into,

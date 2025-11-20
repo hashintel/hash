@@ -1,4 +1,6 @@
-fn {ctor#::core::option::None}(%0) {
+fn {ctor#::core::option::None}(%0: ()) -> ::core::option::None {
+    let %1: ::core::option::None
+
     bb0(): {
         %1 = opaque(::core::option::None, ())
 
@@ -6,7 +8,9 @@ fn {ctor#::core::option::None}(%0) {
     }
 }
 
-thunk {thunk#0}() {
+thunk {thunk#0}() -> () -> ::core::option::None {
+    let %0: () -> ::core::option::None
+
     bb0(): {
         %0 = closure(({ctor#::core::option::None} as FnPtr), ())
 
@@ -14,7 +18,10 @@ thunk {thunk#0}() {
     }
 }
 
-*thunk {thunk#1}() {
+*thunk {thunk#1}() -> ::core::option::None {
+    let %0: () -> ::core::option::None
+    let %1: ::core::option::None
+
     bb0(): {
         %0 = apply ({thunk#0} as FnPtr)
         %1 = apply %0.0 %0.1

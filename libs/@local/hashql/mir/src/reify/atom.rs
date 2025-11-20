@@ -16,7 +16,7 @@ use crate::{
         constant::Constant,
         local::Local,
         operand::Operand,
-        place::{FieldIndex, Place, Projection},
+        place::{FieldIndex, Place, Projection, ProjectionKind},
     },
     reify::{
         error::{field_index_too_large, local_variable_unmapped},
@@ -52,6 +52,8 @@ impl<'heap> Reifier<'_, '_, '_, '_, 'heap> {
 
         let mut current = node;
         loop {
+            let result_type_id = self.context.hir.map.type_id(current.id);
+
             match current.kind {
                 NodeKind::Access(Access::Field(FieldAccess { expr, field })) => {
                     let type_id = self.context.hir.map.type_id(expr.id);
@@ -79,7 +81,10 @@ impl<'heap> Reifier<'_, '_, '_, '_, 'heap> {
                                 0
                             };
 
-                            projections.push(Projection::Field(FieldIndex::new(index)));
+                            projections.push(Projection {
+                                r#type: result_type_id,
+                                kind: ProjectionKind::Field(FieldIndex::new(index)),
+                            });
                         }
                         TypeKind::Struct(_) => {
                             // TODO: in the future we must check if this is the only (closed) struct
@@ -87,7 +92,10 @@ impl<'heap> Reifier<'_, '_, '_, '_, 'heap> {
                             // otherwise we must fall back to using the slower `FieldByName`.
                             // see: https://linear.app/hash/issue/BE-42/hashql-differentiate-between-open-and-closed-structs
 
-                            projections.push(Projection::FieldByName(field.value));
+                            projections.push(Projection {
+                                r#type: result_type_id,
+                                kind: ProjectionKind::FieldByName(field.value),
+                            });
                         }
                         TypeKind::Opaque(_)
                         | TypeKind::Primitive(_)
@@ -110,7 +118,10 @@ impl<'heap> Reifier<'_, '_, '_, '_, 'heap> {
                     current = expr;
                 }
                 NodeKind::Access(Access::Index(IndexAccess { expr, index })) => {
-                    projections.push(Projection::Index(self.local(index)));
+                    projections.push(Projection {
+                        r#type: result_type_id,
+                        kind: ProjectionKind::Index(self.local(index)),
+                    });
                     current = expr;
                 }
                 NodeKind::Data(_)

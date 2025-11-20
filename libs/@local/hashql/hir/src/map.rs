@@ -17,6 +17,10 @@ use crate::node::{HirId, HirIdMap, HirIdVec};
 pub struct HirInfo<'heap> {
     /// The resolved type identifier for this HIR node.
     pub type_id: TypeId,
+
+    /// The resolved type identifier for this HIR node after monomorphization.
+    pub monomorphized_type_id: Option<TypeId>,
+
     /// Generic type arguments applied to this node, if any.
     ///
     /// This is [`None`] when no type arguments are specified.
@@ -31,6 +35,8 @@ pub struct HirInfo<'heap> {
 pub struct HirMap<'heap> {
     /// Dense storage for type IDs, indexed by HIR node ID.
     types: HirIdVec<TypeId>,
+    /// Sparse storage for monomorphized type IDs, indexed by HIR node ID.
+    monomorphized_types: HirIdMap<TypeId>,
     /// Sparse storage for generic type arguments, only populated for nodes that have them.
     types_arguments: HirIdMap<Interned<'heap, [GenericArgumentReference<'heap>]>>,
 }
@@ -41,6 +47,7 @@ impl<'heap> HirMap<'heap> {
     pub fn new() -> Self {
         HirMap {
             types: HirIdVec::new(),
+            monomorphized_types: HirIdMap::default(),
             types_arguments: HirIdMap::default(),
         }
     }
@@ -55,12 +62,29 @@ impl<'heap> HirMap<'heap> {
         self.types[id]
     }
 
+    #[inline]
+    #[must_use]
+    pub fn monomorphized_type_id(&self, id: HirId) -> TypeId {
+        self.monomorphized_types
+            .get(&id)
+            .copied()
+            .unwrap_or_else(|| self.type_id(id))
+    }
+
     /// Associates a type ID with the specified HIR node.
     ///
     /// If the internal storage is not large enough to accommodate the given ID,
     /// it will be expanded and filled with placeholder values up to that point.
     pub fn insert_type_id(&mut self, id: HirId, type_id: TypeId) {
         *self.types.fill_until(id, || TypeId::PLACEHOLDER) = type_id;
+    }
+
+    /// Associates a monomorphized type ID with the specified HIR node.
+    ///
+    /// If the internal storage is not large enough to accommodate the given ID,
+    /// it will be expanded and filled with placeholder values up to that point.
+    pub fn insert_monomorphized_type_id(&mut self, id: HirId, monomorphized_type_id: TypeId) {
+        self.monomorphized_types.insert(id, monomorphized_type_id);
     }
 
     /// Pre-populates the storage up to the specified bound.
@@ -101,14 +125,22 @@ impl<'heap> HirMap<'heap> {
     }
 
     /// Stores auxiliary data for the specified node.
-    #[expect(
-        clippy::needless_pass_by_value,
-        reason = "intentional API decision to signal hand-over"
-    )]
-    pub fn insert(&mut self, id: HirId, info: HirInfo<'heap>) {
-        self.insert_type_id(id, info.type_id);
+    pub fn insert(
+        &mut self,
+        id: HirId,
+        HirInfo {
+            type_id,
+            monomorphized_type_id,
+            type_arguments,
+        }: HirInfo<'heap>,
+    ) {
+        self.insert_type_id(id, type_id);
 
-        if let Some(type_arguments) = info.type_arguments {
+        if let Some(monomorphized_type_id) = monomorphized_type_id {
+            self.insert_monomorphized_type_id(id, monomorphized_type_id);
+        }
+
+        if let Some(type_arguments) = type_arguments {
             self.types_arguments.insert(id, type_arguments);
         }
     }

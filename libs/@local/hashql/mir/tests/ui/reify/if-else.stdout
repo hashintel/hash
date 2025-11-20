@@ -1,4 +1,6 @@
-thunk {thunk#0}() {
+thunk {thunk#0}() -> Boolean {
+    let %0: Boolean
+
     bb0(): {
         %0 = 2 <= 3
 
@@ -6,23 +8,23 @@ thunk {thunk#0}() {
     }
 }
 
-*thunk {thunk#1}() {
+*thunk {thunk#1}() -> String {
+    let %0: Boolean
+    let %1: String
+
     bb0(): {
         %0 = apply ({thunk#0} as FnPtr)
 
         switchInt(%0) -> [0: bb2(), 1: bb1()]
     }
 
-
     bb1(): {
         goto -> bb3("foo")
     }
 
-
     bb2(): {
         goto -> bb3("bar")
     }
-
 
     bb3(%1): {
         return %1

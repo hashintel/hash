@@ -121,6 +121,8 @@ jobs:
     needs: check-conditions
     if: needs.check-conditions.outputs.should_review == 'true'
     runs-on: ubuntu-24.04
+    permissions:
+      id-token: write
     steps:
       - name: Checkout source code
         uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
@@ -131,6 +133,7 @@ jobs:
         uses: ./.github/actions/install-tools
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
+          vault_address: ${{ secrets.VAULT_ADDR }}
           rust: false
 
       - name: Warm up repository

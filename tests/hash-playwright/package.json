@@ -19,7 +19,7 @@
     "@playwright/test": "1.56.1",
     "execa": "9.6.0",
     "graphql": "16.11.0",
-    "js-yaml": "4.1.0"
+    "js-yaml": "4.1.1"
   },
   "devDependencies": {
     "@apps/hash-api": "0.0.0-private",

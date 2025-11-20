@@ -5,6 +5,7 @@ use core::{
 use std::io;
 
 use bstr::ByteSlice as _;
+use hashql_core::{pretty::RenderFormat, r#type::TypeFormatter};
 
 use super::{DataFlowLookup, FormatPart, SourceLookup, TextFormat, text::HighlightBody};
 use crate::{
@@ -14,7 +15,7 @@ use crate::{
         terminator::{Goto, GraphRead, SwitchInt, TerminatorKind},
     },
     def::{DefId, DefIdSlice},
-    pretty::text::{Signature, TargetParams, TerminatorHead},
+    pretty::text::{Signature, SignatureOptions, TargetParams, TerminatorHead},
 };
 
 #[derive(Debug, Default)]
@@ -52,7 +53,7 @@ impl D2Buffer {
 /// - `W`: A writer implementing [`io::Write`] for output
 /// - `S`: A source lookup implementing [`SourceLookup`] for symbol resolution
 /// - `D`: A data flow lookup implementing [`DataFlowLookup`] for analysis data
-pub struct D2Format<W, S, D> {
+pub struct D2Format<'fmt, 'heap, W, S, D> {
     /// The writer where D2 output will be written
     pub writer: W,
     /// Source lookup for resolving symbols and identifiers
@@ -61,9 +62,11 @@ pub struct D2Format<W, S, D> {
     pub dataflow: D,
     /// Buffer used for text formatting
     pub buffer: D2Buffer,
+    /// Type formatter for formatting type information
+    pub types: TypeFormatter<'fmt, 'fmt, 'heap>,
 }
 
-impl<W, S, D> D2Format<W, S, D>
+impl<'fmt, 'heap, W, S, D> D2Format<'fmt, 'heap, W, S, D>
 where
     W: io::Write,
 {
@@ -76,7 +79,7 @@ where
     /// # Errors
     ///
     /// Returns an [`io::Error`] if writing to the underlying writer fails.
-    pub fn format<'heap>(
+    pub fn format(
         &mut self,
         bodies: &DefIdSlice<Body<'heap>>,
         highlight: &[DefId],
@@ -88,9 +91,24 @@ where
         self.format_part((bodies, HighlightBody(highlight)))
     }
 
+    fn format_text_unescaped<V>(&mut self, value: V) -> io::Result<()>
+    where
+        for<'a> TextFormat<&'a mut W, &'a S, &'a mut TypeFormatter<'fmt, 'fmt, 'heap>>:
+            FormatPart<V>,
+    {
+        TextFormat {
+            writer: &mut self.writer,
+            indent: 0,
+            sources: &self.sources,
+            types: &mut self.types,
+        }
+        .format_part(value)
+    }
+
     fn format_text<V>(&mut self, value: V) -> io::Result<()>
     where
-        for<'a> TextFormat<&'a mut Vec<u8>, &'a S>: FormatPart<V>,
+        for<'a> TextFormat<&'a mut Vec<u8>, &'a S, &'a mut TypeFormatter<'fmt, 'fmt, 'heap>>:
+            FormatPart<V>,
     {
         const REPLACEMENTS: [(u8, &[u8]); 4] = [
             (b'&', b"&amp;" as &[_]),
@@ -105,6 +123,7 @@ where
             writer: &mut self.buffer.front,
             indent: 0,
             sources: &self.sources,
+            types: &mut self.types,
         }
         .format_part(value)?;
 
@@ -132,7 +151,8 @@ where
         aux: impl IntoIterator<Item: Display>,
     ) -> io::Result<()>
     where
-        for<'a> TextFormat<&'a mut Vec<u8>, &'a S>: FormatPart<V>,
+        for<'a> TextFormat<&'a mut Vec<u8>, &'a S, &'a mut TypeFormatter<'fmt, 'fmt, 'heap>>:
+            FormatPart<V>,
     {
         let valign = if valign_bottom { "bottom" } else { "top" };
         let fmt = format_args!(r#"valign="{valign}" sides="tl""#);
@@ -150,7 +170,7 @@ where
         write!(self.writer, "</tr>")
     }
 
-    fn write_terminator<'heap>(
+    fn write_terminator(
         &mut self,
         block_id: BasicBlockId,
         block: &BasicBlock<'heap>,
@@ -278,7 +298,8 @@ impl fmt::Display for BasicBlockName {
 /// - Column headers for MIR and auxiliary data (row B)
 /// - Individual rows for each statement with optional data flow information
 /// - Terminator instruction at the bottom
-impl<'heap, W, S, D> FormatPart<(DefId, BasicBlockId, &BasicBlock<'heap>)> for D2Format<W, S, D>
+impl<'heap, W, S, D> FormatPart<(DefId, BasicBlockId, &BasicBlock<'heap>)>
+    for D2Format<'_, 'heap, W, S, D>
 where
     W: io::Write,
     S: SourceLookup<'heap>,
@@ -372,7 +393,8 @@ struct BodyRenderOptions {
     highlight: bool,
 }
 
-impl<'heap, W, S, D> FormatPart<(DefId, &Body<'heap>, BodyRenderOptions)> for D2Format<W, S, D>
+impl<'heap, W, S, D> FormatPart<(DefId, &Body<'heap>, BodyRenderOptions)>
+    for D2Format<'_, 'heap, W, S, D>
 where
     W: io::Write,
     S: SourceLookup<'heap>,
@@ -382,9 +404,17 @@ where
         &mut self,
         (def, body, BodyRenderOptions { highlight }): (DefId, &Body<'heap>, BodyRenderOptions),
     ) -> io::Result<()> {
-        write!(self.writer, "def{def}: '")?;
-        self.format_text(Signature(body))?;
-        writeln!(self.writer, "' {{")?;
+        writeln!(
+            self.writer,
+            "def{def}:''{{grid-columns:1;grid-gap:0;title:|`md "
+        )?;
+        self.format_text_unescaped(Signature(
+            body,
+            SignatureOptions {
+                format: RenderFormat::HtmlFragment,
+            },
+        ))?;
+        writeln!(self.writer, "`|;blocks:''{{")?;
 
         if highlight {
             writeln!(self.writer, r##"style.fill: "#B3D89C""##)?;
@@ -394,13 +424,14 @@ where
             self.format_part((def, id, basic_block))?;
         }
 
-        writeln!(self.writer, "}}")?;
+        writeln!(self.writer, "}}}}")?;
 
         Ok(())
     }
 }
 
-impl<'heap, W, S, D> FormatPart<(&DefIdSlice<Body<'heap>>, HighlightBody<'_>)> for D2Format<W, S, D>
+impl<'heap, W, S, D> FormatPart<(&DefIdSlice<Body<'heap>>, HighlightBody<'_>)>
+    for D2Format<'_, 'heap, W, S, D>
 where
     W: io::Write,
     S: SourceLookup<'heap>,

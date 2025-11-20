@@ -3,9 +3,11 @@
 //! Places represent storage locations in the MIR, including local variables and complex paths
 //! through data structures. Projections allow accessing nested data within structured types.
 
-use hashql_core::{id, intern::Interned, symbol::Symbol};
+use core::alloc::Allocator;
 
-use super::local::Local;
+use hashql_core::{id, intern::Interned, symbol::Symbol, r#type::TypeId};
+
+use super::local::{Local, LocalDecl, LocalVec};
 use crate::intern::Interner;
 
 id::newtype!(
@@ -90,9 +92,14 @@ impl<'heap> Place<'heap> {
     /// This method creates a new [`Place`] that extends the current projection chain by
     /// appending one more projection step.
     #[must_use]
-    pub fn project(self, interner: &Interner<'heap>, projection: Projection<'heap>) -> Self {
+    pub fn project(
+        self,
+        interner: &Interner<'heap>,
+        r#type: TypeId,
+        kind: ProjectionKind<'heap>,
+    ) -> Self {
         let mut projections = self.projections.to_vec();
-        projections.push(projection);
+        projections.push(Projection { r#type, kind });
 
         Self {
             local: self.local,
@@ -149,6 +156,28 @@ impl<'heap> Place<'heap> {
                 (place, *projection)
             })
     }
+
+    /// Return the type of the place after applying all projections.
+    pub fn type_id<A: Allocator>(&self, decl: &LocalVec<LocalDecl<'heap>, A>) -> TypeId {
+        self.projections
+            .last()
+            .map_or_else(|| decl[self.local].r#type, |projection| projection.r#type)
+    }
+}
+
+/// A single projection step that navigates into structured data, carrying its result type.
+///
+/// A [`Projection`] represents one step in navigating through structured data, combining
+/// both the navigation operation ([`ProjectionKind`]) and the resulting type of that operation.
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+pub struct Projection<'heap> {
+    /// The type of the value after applying this projection.
+    ///
+    /// This is the result type of the projection operation, not the type being projected from.
+    pub r#type: TypeId,
+
+    /// The kind of projection operation being performed.
+    pub kind: ProjectionKind<'heap>,
 }
 
 /// A projection operation that navigates within structured data.
@@ -165,11 +194,11 @@ impl<'heap> Place<'heap> {
 /// - **Name-based Access**: [`FieldByName`] uses symbols for structural/partial types
 /// - **Dynamic Access**: [`Index`] uses computed values for collections
 ///
-/// [`Field`]: Projection::Field
-/// [`FieldByName`]: Projection::FieldByName
-/// [`Index`]: Projection::Index
+/// [`Field`]: ProjectionKind::Field
+/// [`FieldByName`]: ProjectionKind::FieldByName
+/// [`Index`]: ProjectionKind::Index
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-pub enum Projection<'heap> {
+pub enum ProjectionKind<'heap> {
     /// Access a field by positional index in a closed/complete type.
     ///
     /// This projection provides efficient positional access when the complete

@@ -2,7 +2,13 @@
 
 use std::io;
 
-use hashql_core::{id::Id as _, intern::Interned, symbol::Symbol};
+use hashql_core::{
+    id::Id as _,
+    intern::Interned,
+    pretty::{RenderFormat, RenderOptions},
+    symbol::Symbol,
+    r#type::{TypeFormatter, TypeId},
+};
 use hashql_hir::node::{r#let::Binder, operation::InputOp};
 
 use super::{FormatPart, SourceLookup};
@@ -13,7 +19,7 @@ use crate::{
         constant::Constant,
         local::Local,
         operand::Operand,
-        place::{Place, Projection},
+        place::{Place, ProjectionKind},
         rvalue::{Aggregate, AggregateKind, Apply, Binary, Input, RValue, Unary},
         statement::{Assign, Statement, StatementKind},
         terminator::{
@@ -31,8 +37,12 @@ const fn source_keyword(source: Source<'_>) -> &'static str {
     }
 }
 
+pub(crate) struct SignatureOptions {
+    pub format: RenderFormat,
+}
+
 /// A wrapper for formatting function signatures from MIR bodies.
-pub(crate) struct Signature<'body, 'heap>(pub &'body Body<'heap>);
+pub(crate) struct Signature<'body, 'heap>(pub &'body Body<'heap>, pub SignatureOptions);
 
 /// A helper struct for formatting key-value pairs with consistent syntax.
 struct KeyValuePair<K, V>(K, V);
@@ -50,16 +60,19 @@ pub(crate) struct HighlightBody<'def>(pub &'def [DefId]);
 ///
 /// - `W`: A writer implementing [`io::Write`] for text output
 /// - `S`: A source lookup implementing [`SourceLookup`] for symbol resolution
-pub struct TextFormat<W, S> {
+/// - `T`: A type which implements [`AsMut<TypeFormatter>`] for type information
+pub struct TextFormat<W, S, T> {
     /// The writer where formatted text will be written
     pub writer: W,
     /// Amount of indention per level
     pub indent: usize,
     /// Source lookup for resolving symbols and identifiers
     pub sources: S,
+    /// Type formatter for formatting type information
+    pub types: T,
 }
 
-impl<W, S> TextFormat<W, S>
+impl<W, S, T> TextFormat<W, S, T>
 where
     W: io::Write,
 {
@@ -72,13 +85,14 @@ where
     /// # Errors
     ///
     /// Returns an [`io::Error`] if writing to the underlying writer fails.
-    pub fn format<'heap>(
+    pub fn format<'fmt, 'env, 'heap: 'fmt + 'env>(
         &mut self,
         bodies: &DefIdSlice<Body<'heap>>,
         highlight: &[DefId],
     ) -> io::Result<()>
     where
         S: SourceLookup<'heap>,
+        T: AsMut<TypeFormatter<'fmt, 'env, 'heap>>,
     {
         self.format_part((bodies, HighlightBody(highlight)))
     }
@@ -118,7 +132,7 @@ where
     }
 }
 
-impl<'heap, W, S> FormatPart<DefId> for TextFormat<W, S>
+impl<'heap, W, S, T> FormatPart<DefId> for TextFormat<W, S, T>
 where
     W: io::Write,
     S: SourceLookup<'heap>,
@@ -133,7 +147,7 @@ where
     }
 }
 
-impl<W, S> FormatPart<&str> for TextFormat<W, S>
+impl<W, S, T> FormatPart<&str> for TextFormat<W, S, T>
 where
     W: io::Write,
 {
@@ -142,7 +156,7 @@ where
     }
 }
 
-impl<'heap, W, S> FormatPart<Symbol<'heap>> for TextFormat<W, S>
+impl<'heap, W, S, T> FormatPart<Symbol<'heap>> for TextFormat<W, S, T>
 where
     W: io::Write,
 {
@@ -151,7 +165,7 @@ where
     }
 }
 
-impl<W, S> FormatPart<Local> for TextFormat<W, S>
+impl<W, S, T> FormatPart<Local> for TextFormat<W, S, T>
 where
     W: io::Write,
 {
@@ -160,7 +174,7 @@ where
     }
 }
 
-impl<'heap, W, S> FormatPart<Place<'heap>> for TextFormat<W, S>
+impl<'heap, W, S, T> FormatPart<Place<'heap>> for TextFormat<W, S, T>
 where
     W: io::Write,
 {
@@ -168,10 +182,10 @@ where
         self.format_part(local)?;
 
         for projection in projections {
-            match projection {
-                Projection::Field(index) => write!(self.writer, ".{index}")?,
-                Projection::FieldByName(symbol) => write!(self.writer, ".{symbol}")?,
-                &Projection::Index(local) => {
+            match projection.kind {
+                ProjectionKind::Field(index) => write!(self.writer, ".{index}")?,
+                ProjectionKind::FieldByName(symbol) => write!(self.writer, ".{symbol}")?,
+                ProjectionKind::Index(local) => {
                     write!(self.writer, "[")?;
                     self.format_part(local)?;
                     write!(self.writer, "]")?;
@@ -183,7 +197,7 @@ where
     }
 }
 
-impl<'heap, W, S> FormatPart<Constant<'heap>> for TextFormat<W, S>
+impl<'heap, W, S, T> FormatPart<Constant<'heap>> for TextFormat<W, S, T>
 where
     W: io::Write,
     S: SourceLookup<'heap>,
@@ -201,7 +215,7 @@ where
     }
 }
 
-impl<'heap, W, S> FormatPart<Operand<'heap>> for TextFormat<W, S>
+impl<'heap, W, S, T> FormatPart<Operand<'heap>> for TextFormat<W, S, T>
 where
     W: io::Write,
     S: SourceLookup<'heap>,
@@ -214,7 +228,7 @@ where
     }
 }
 
-impl<'heap, W, S> FormatPart<Source<'heap>> for TextFormat<W, S>
+impl<'heap, W, S, T> FormatPart<Source<'heap>> for TextFormat<W, S, T>
 where
     W: io::Write,
 {
@@ -244,24 +258,16 @@ where
     }
 }
 
-impl<'heap, W, S> FormatPart<(BasicBlockId, &BasicBlock<'heap>)> for TextFormat<W, S>
+impl<'heap, W, S, T> FormatPart<(BasicBlockId, &BasicBlock<'heap>)> for TextFormat<W, S, T>
 where
     W: io::Write,
     S: SourceLookup<'heap>,
 {
     fn format_part(&mut self, (id, block): (BasicBlockId, &BasicBlock<'heap>)) -> io::Result<()> {
         self.indent(1)?;
+
         write!(self.writer, "bb{id}(")?;
-
-        let mut first = true;
-        for &param in &block.params {
-            if !first {
-                self.writer.write_all(b", ")?;
-            }
-            self.format_part(param)?;
-            first = false;
-        }
-
+        self.csv(block.params.iter().copied())?;
         writeln!(self.writer, "): {{")?;
 
         for statement in &block.statements {
@@ -287,7 +293,7 @@ where
 /// A wrapper for formatting target parameters in MIR terminators.
 pub(crate) struct TargetParams<'heap>(pub Interned<'heap, [Operand<'heap>]>);
 
-impl<'heap, W, S> FormatPart<TargetParams<'heap>> for TextFormat<W, S>
+impl<'heap, W, S, T> FormatPart<TargetParams<'heap>> for TextFormat<W, S, T>
 where
     W: io::Write,
     S: SourceLookup<'heap>,
@@ -299,7 +305,7 @@ where
     }
 }
 
-impl<'heap, W, S> FormatPart<Target<'heap>> for TextFormat<W, S>
+impl<'heap, W, S, T> FormatPart<Target<'heap>> for TextFormat<W, S, T>
 where
     W: io::Write,
     S: SourceLookup<'heap>,
@@ -312,7 +318,7 @@ where
 
 struct AnonymousTarget(BasicBlockId);
 
-impl<'heap, W, S> FormatPart<AnonymousTarget> for TextFormat<W, S>
+impl<'heap, W, S, T> FormatPart<AnonymousTarget> for TextFormat<W, S, T>
 where
     W: io::Write,
     S: SourceLookup<'heap>,
@@ -322,23 +328,71 @@ where
     }
 }
 
-impl<'body, 'heap, W, S> FormatPart<Signature<'body, 'heap>> for TextFormat<W, S>
+pub(crate) struct TypeOptions {
+    format: RenderFormat,
+}
+
+impl TypeOptions {
+    fn render(self) -> RenderOptions {
+        // We disable wrapping for types inside of the MIR
+        let mut options = RenderOptions::default().with_max_width(usize::MAX);
+        options.format = self.format;
+
+        options
+    }
+}
+
+pub(crate) struct Type(TypeId, TypeOptions);
+
+impl<'fmt, 'env, 'heap: 'fmt + 'env, W, S, T> FormatPart<Type> for TextFormat<W, S, T>
 where
     W: io::Write,
+    T: AsMut<TypeFormatter<'fmt, 'env, 'heap>>,
 {
-    fn format_part(&mut self, Signature(body): Signature<'body, 'heap>) -> io::Result<()> {
+    fn format_part(&mut self, Type(r#type, options): Type) -> io::Result<()> {
+        self.types
+            .as_mut()
+            .render_into(r#type, options.render(), &mut self.writer)
+    }
+}
+
+impl<'body, 'fmt, 'env, 'heap: 'fmt + 'env, W, S, T> FormatPart<Signature<'body, 'heap>>
+    for TextFormat<W, S, T>
+where
+    W: io::Write,
+    T: AsMut<TypeFormatter<'fmt, 'env, 'heap>>,
+{
+    fn format_part(&mut self, Signature(body, options): Signature<'body, 'heap>) -> io::Result<()> {
         write!(self.writer, "{} ", source_keyword(body.source))?;
         self.format_part(body.source)?;
 
         self.writer.write_all(b"(")?;
-        self.csv((0..body.args).map(Local::new))?;
-        self.writer.write_all(b")")?;
+        self.csv((0..body.args).map(Local::new).map(|local| {
+            let decl = body.local_decls[local];
+
+            KeyValuePair(
+                local,
+                Type(
+                    decl.r#type,
+                    TypeOptions {
+                        format: options.format,
+                    },
+                ),
+            )
+        }))?;
+        self.writer.write_all(b") -> ")?;
+        self.format_part(Type(
+            body.return_type,
+            TypeOptions {
+                format: options.format,
+            },
+        ))?;
 
         Ok(())
     }
 }
 
-impl<'heap, W, S> FormatPart<GraphReadHead<'heap>> for TextFormat<W, S>
+impl<'heap, W, S, T> FormatPart<GraphReadHead<'heap>> for TextFormat<W, S, T>
 where
     W: io::Write,
     S: SourceLookup<'heap>,
@@ -354,7 +408,7 @@ where
     }
 }
 
-impl<'heap, W, S> FormatPart<GraphReadBody> for TextFormat<W, S>
+impl<'heap, W, S, T> FormatPart<GraphReadBody> for TextFormat<W, S, T>
 where
     W: io::Write,
     S: SourceLookup<'heap>,
@@ -372,7 +426,7 @@ where
     }
 }
 
-impl<W, S> FormatPart<GraphReadTail> for TextFormat<W, S>
+impl<W, S, T> FormatPart<GraphReadTail> for TextFormat<W, S, T>
 where
     W: io::Write,
 {
@@ -383,7 +437,7 @@ where
     }
 }
 
-impl<'heap, W, S> FormatPart<&GraphRead<'heap>> for TextFormat<W, S>
+impl<'heap, W, S, T> FormatPart<&GraphRead<'heap>> for TextFormat<W, S, T>
 where
     W: io::Write,
     S: SourceLookup<'heap>,
@@ -420,7 +474,7 @@ pub(crate) struct TerminatorHead<'terminator, 'heap>(pub &'terminator Terminator
 /// A wrapper for formatting the tail (target and arguments) part of MIR terminators.
 pub(crate) struct TerminatorTail<'terminator, 'heap>(pub &'terminator TerminatorKind<'heap>);
 
-impl<'heap, W, S> FormatPart<TerminatorHead<'_, 'heap>> for TextFormat<W, S>
+impl<'heap, W, S, T> FormatPart<TerminatorHead<'_, 'heap>> for TextFormat<W, S, T>
 where
     W: io::Write,
     S: SourceLookup<'heap>,
@@ -446,17 +500,16 @@ where
     }
 }
 
-impl<'heap, W, S> FormatPart<u128> for TextFormat<W, S>
+impl<W, S, T> FormatPart<u128> for TextFormat<W, S, T>
 where
     W: io::Write,
-    S: SourceLookup<'heap>,
 {
     fn format_part(&mut self, value: u128) -> io::Result<()> {
         write!(self.writer, "{value}")
     }
 }
 
-impl<'heap, W, S> FormatPart<TerminatorTail<'_, 'heap>> for TextFormat<W, S>
+impl<'heap, W, S, T> FormatPart<TerminatorTail<'_, 'heap>> for TextFormat<W, S, T>
 where
     W: io::Write,
     S: SourceLookup<'heap>,
@@ -493,7 +546,7 @@ where
     }
 }
 
-impl<'heap, W, S> FormatPart<&Terminator<'heap>> for TextFormat<W, S>
+impl<'heap, W, S, T> FormatPart<&Terminator<'heap>> for TextFormat<W, S, T>
 where
     W: io::Write,
     S: SourceLookup<'heap>,
@@ -504,7 +557,7 @@ where
     }
 }
 
-impl<'heap, W, S> FormatPart<Binary<'heap>> for TextFormat<W, S>
+impl<'heap, W, S, T> FormatPart<Binary<'heap>> for TextFormat<W, S, T>
 where
     W: io::Write,
     S: SourceLookup<'heap>,
@@ -516,7 +569,7 @@ where
     }
 }
 
-impl<'heap, W, S> FormatPart<Unary<'heap>> for TextFormat<W, S>
+impl<'heap, W, S, T> FormatPart<Unary<'heap>> for TextFormat<W, S, T>
 where
     W: io::Write,
     S: SourceLookup<'heap>,
@@ -527,10 +580,9 @@ where
     }
 }
 
-impl<'heap, K, V, W, S> FormatPart<KeyValuePair<K, V>> for TextFormat<W, S>
+impl<K, V, W, S, T> FormatPart<KeyValuePair<K, V>> for TextFormat<W, S, T>
 where
     W: io::Write,
-    S: SourceLookup<'heap>,
     Self: FormatPart<K> + FormatPart<V>,
 {
     fn format_part(&mut self, KeyValuePair(key, value): KeyValuePair<K, V>) -> io::Result<()> {
@@ -540,7 +592,7 @@ where
     }
 }
 
-impl<'heap, W, S> FormatPart<&Aggregate<'heap>> for TextFormat<W, S>
+impl<'heap, W, S, T> FormatPart<&Aggregate<'heap>> for TextFormat<W, S, T>
 where
     W: io::Write,
     S: SourceLookup<'heap>,
@@ -598,7 +650,7 @@ where
     }
 }
 
-impl<'heap, W, S> FormatPart<Input<'heap>> for TextFormat<W, S>
+impl<'heap, W, S, T> FormatPart<Input<'heap>> for TextFormat<W, S, T>
 where
     W: io::Write,
 {
@@ -618,7 +670,7 @@ where
     }
 }
 
-impl<'heap, W, S> FormatPart<&Apply<'heap>> for TextFormat<W, S>
+impl<'heap, W, S, T> FormatPart<&Apply<'heap>> for TextFormat<W, S, T>
 where
     W: io::Write,
     S: SourceLookup<'heap>,
@@ -642,7 +694,7 @@ where
     }
 }
 
-impl<'heap, W, S> FormatPart<&RValue<'heap>> for TextFormat<W, S>
+impl<'heap, W, S, T> FormatPart<&RValue<'heap>> for TextFormat<W, S, T>
 where
     W: io::Write,
     S: SourceLookup<'heap>,
@@ -659,7 +711,7 @@ where
     }
 }
 
-impl<'heap, W, S> FormatPart<&Statement<'heap>> for TextFormat<W, S>
+impl<'heap, W, S, T> FormatPart<&Statement<'heap>> for TextFormat<W, S, T>
 where
     W: io::Write,
     S: SourceLookup<'heap>,
@@ -690,10 +742,12 @@ struct BodyRenderOptions {
     highlight: bool,
 }
 
-impl<'heap, W, S> FormatPart<(&Body<'heap>, BodyRenderOptions)> for TextFormat<W, S>
+impl<'fmt, 'env, 'heap: 'fmt + 'env, W, S, T> FormatPart<(&Body<'heap>, BodyRenderOptions)>
+    for TextFormat<W, S, T>
 where
     W: io::Write,
     S: SourceLookup<'heap>,
+    T: AsMut<TypeFormatter<'fmt, 'env, 'heap>>,
 {
     fn format_part(
         &mut self,
@@ -703,12 +757,34 @@ where
             self.writer.write_all(b"*")?;
         }
 
-        self.format_part(Signature(body))?;
+        self.format_part(Signature(
+            body,
+            SignatureOptions {
+                format: RenderFormat::Plain,
+            },
+        ))?;
         self.writer.write_all(b" {\n")?;
+
+        // Do not render locals that are arguments, as they are already rendered in the signature
+        for (local, decl) in body.local_decls.iter_enumerated().skip(body.args) {
+            self.indent(1)?;
+            write!(self.writer, "let %{local}: ")?;
+            self.format_part(Type(
+                decl.r#type,
+                TypeOptions {
+                    format: RenderFormat::Plain,
+                },
+            ))?;
+            self.writer.write_all(b"\n")?;
+        }
+
+        if body.local_decls.len() > body.args {
+            self.writer.write_all(b"\n")?;
+        }
 
         for (index, block) in body.basic_blocks.iter_enumerated() {
             if index.as_usize() > 0 {
-                self.writer.write_all(b"\n\n")?;
+                self.writer.write_all(b"\n")?;
             }
 
             self.format_part((index, block))?;
@@ -719,10 +795,12 @@ where
     }
 }
 
-impl<'heap, W, S> FormatPart<(&DefIdSlice<Body<'heap>>, HighlightBody<'_>)> for TextFormat<W, S>
+impl<'fmt, 'env, 'heap: 'fmt + 'env, W, S, T>
+    FormatPart<(&DefIdSlice<Body<'heap>>, HighlightBody<'_>)> for TextFormat<W, S, T>
 where
     W: io::Write,
     S: SourceLookup<'heap>,
+    T: AsMut<TypeFormatter<'fmt, 'env, 'heap>>,
 {
     fn format_part(
         &mut self,

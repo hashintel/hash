@@ -1,4 +1,6 @@
-fn {ctor#::core::option::Some}(%0, %1) {
+fn {ctor#::core::option::Some}(%0: (), %1: Integer) -> ::core::option::Some {
+    let %2: ::core::option::Some
+
     bb0(): {
         %2 = opaque(::core::option::Some, %1)
 
@@ -6,7 +8,9 @@ fn {ctor#::core::option::Some}(%0, %1) {
     }
 }
 
-fn {ctor#::core::option::None}(%0) {
+fn {ctor#::core::option::None}(%0: ()) -> ::core::option::None {
+    let %1: ::core::option::None
+
     bb0(): {
         %1 = opaque(::core::option::None, ())
 
@@ -14,11 +18,18 @@ fn {ctor#::core::option::None}(%0) {
     }
 }
 
-*thunk {thunk#6}() {
+*thunk {thunk#6}() -> ::core::option::None | ::core::option::Some {
+    let %0: ::core::option::None | ::core::option::Some
+    let %1: Integer
+    let %2: Integer
+    let %3: (Integer) -> ::core::option::Some
+    let %4: ::core::option::Some
+    let %5: () -> ::core::option::None
+    let %6: ::core::option::None
+
     bb0(): {
         switchInt(true) -> [0: bb2(), 1: bb1()]
     }
-
 
     bb1(): {
         %1 = 1
@@ -29,14 +40,12 @@ fn {ctor#::core::option::None}(%0) {
         goto -> bb3(%4)
     }
 
-
     bb2(): {
         %5 = closure(({ctor#::core::option::None} as FnPtr), ())
         %6 = apply %5.0 %5.1
 
         goto -> bb3(%6)
     }
-
 
     bb3(%0): {
         return %0
