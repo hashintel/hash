@@ -12,9 +12,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@anthropic-ai/bedrock-sdk@npm:0.25.0":
-  version: 0.25.0
-  resolution: "@anthropic-ai/bedrock-sdk@npm:0.25.0"
+"@anthropic-ai/bedrock-sdk@npm:0.26.0":
+  version: 0.26.0
+  resolution: "@anthropic-ai/bedrock-sdk@npm:0.26.0"
   dependencies:
     "@anthropic-ai/sdk": "npm:>=0.50.3 <1"
     "@aws-crypto/sha256-js": "npm:^4.0.0"
@@ -27,7 +27,7 @@ __metadata:
     "@smithy/smithy-client": "npm:^2.1.9"
     "@smithy/types": "npm:^2.3.4"
     "@smithy/util-base64": "npm:^2.0.0"
-  checksum: 10c0/0f92e07e594417c8c53c68979dfa18f73c7a7f1255452d540f6229d80e7691f567486017630f1f8c2329cef303df702b8194e9ac844211bb6bd5eb426ad6306d
+  checksum: 10c0/39a4d35b1bcd278d573c810b7017649fdbd520844f86fb2e3566cfce12c774d1dc9e6cbaec9581f5e5687dd8bcfe97ab4ede1b4d2ad2648e1fd61ab89e8a6c92
   languageName: node
   linkType: hard
 
@@ -46,9 +46,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@anthropic-ai/sdk@npm:0.68.0, @anthropic-ai/sdk@npm:>=0.50.3 <1":
-  version: 0.68.0
-  resolution: "@anthropic-ai/sdk@npm:0.68.0"
+"@anthropic-ai/sdk@npm:0.70.1, @anthropic-ai/sdk@npm:>=0.50.3 <1":
+  version: 0.70.1
+  resolution: "@anthropic-ai/sdk@npm:0.70.1"
   dependencies:
     json-schema-to-ts: "npm:^3.1.1"
   peerDependencies:
@@ -58,7 +58,7 @@ __metadata:
       optional: true
   bin:
     anthropic-ai-sdk: bin/cli
-  checksum: 10c0/01b60122877471db814e14ef5c613b7e7968dfec2bb30cb8b87cdc120af6af83b4a75e2bf6121f8d556f61714d192314ad1fa579ee9e6b750bc8058ce1fdc941
+  checksum: 10c0/9dbbfef30b700d22b8ab63f7f273d6d7b2abfadc063c75c64e748fbe81fb3cb5dfdb608c0dc0a5ca1ea032a1a0e7168c317aaa657997326efdf061640768c174
   languageName: node
   linkType: hard
 
@@ -359,8 +359,8 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@apps/hash-ai-worker-ts@workspace:apps/hash-ai-worker-ts"
   dependencies:
-    "@anthropic-ai/bedrock-sdk": "npm:0.25.0"
-    "@anthropic-ai/sdk": "npm:0.68.0"
+    "@anthropic-ai/bedrock-sdk": "npm:0.26.0"
+    "@anthropic-ai/sdk": "npm:0.70.1"
     "@apps/hash-graph": "npm:0.0.0-private"
     "@blockprotocol/graph": "npm:0.4.0-canary.2"
     "@blockprotocol/type-system": "npm:0.1.2-canary.1"
@@ -9733,7 +9733,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@local/repo-chores@workspace:libs/@local/repo-chores/node"
   dependencies:
-    "@anthropic-ai/sdk": "npm:0.68.0"
+    "@anthropic-ai/sdk": "npm:0.70.1"
     "@blockprotocol/core": "npm:0.1.4"
     "@linear/sdk": "npm:61.0.0"
     "@local/eslint": "npm:0.0.0-private"
