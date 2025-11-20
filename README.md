@@ -206,7 +206,7 @@ yarn external-services:test up
 
 Email-sending in HASH is handled by either Kratos (in the case of authentication-related emails) or through the HASH API Email Transport (for everything else).
 
-To use `AwsSesEmailTransporter`, set `export HASH_EMAIL_TRANSPORTER=aws_ses` in your terminal before running the app. Valid AWS credentials are required for this email transporter to work.
+To use `AwsSesEmailTransporter`, set `export HASH_EMAIL_TRANSPORTER=aws` in your terminal before running the app, along with `SYSTEM_EMAIL_ADDRESS` and `SYSTEM_EMAIL_SENDER_NAME` (which control what address and name the email appears to be from). Valid AWS credentials are required for this email transporter to work.
 
 Transactional emails templates are located in the following locations:
 
