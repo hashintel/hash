@@ -172,9 +172,9 @@ dependencies = [
 
 [[package]]
 name = "anstyle-svg"
-version = "0.1.11"
+version = "0.1.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "26b9ec8c976eada1b0f9747a3d7cc4eae3bef10613e443746e7487f26c872fde"
+checksum = "e22d9f3dea8bbda97c75bd0f0203e23f1e190d6d6f27a40e10063946dc4d4362"
 dependencies = [
  "anstyle",
  "anstyle-lossy",
