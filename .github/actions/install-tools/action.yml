@@ -5,8 +5,14 @@ inputs:
   token:
     description: GitHub token for authentication
     required: true
+  vault_address:
+    description: The URL of the Vault server
+    required: true
   rust:
     description: Should Rust be installed? Can either be `"true"` or `true`
+    default: "true"
+  sccache:
+    description: Should sccache be installed? Can either be `"true"` or `true`
     default: "true"
 
 runs:
@@ -41,5 +47,7 @@ runs:
         command: ${{ github.action_path }}/install-rust.sh
 
     - name: "Install sccache"
-      if: ${{ inputs.rust == true || inputs.rust == 'true' }}
+      if: ${{ (inputs.rust == true || inputs.rust == 'true') && (inputs.sccache == true || inputs.sccache == 'true') }}
       uses: ./.github/actions/install-sccache
+      with:
+        vault_address: ${{ inputs.vault_address }}

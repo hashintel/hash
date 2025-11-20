@@ -484,6 +484,7 @@ impl<'ctx, 'env, 'hir, 'heap> Normalization<'ctx, 'env, 'hir, 'heap> {
                 id,
                 HirInfo {
                     type_id: TypeBuilder::spanned(self.current.span, self.env).boolean(),
+                    monomorphized_type_id: None,
                     type_arguments: None,
                 },
             );

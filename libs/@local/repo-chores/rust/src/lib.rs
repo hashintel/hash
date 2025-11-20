@@ -9,4 +9,5 @@ extern crate alloc;
 
 pub mod benches;
 pub mod cli;
-pub mod dependency_diagram;
+pub(crate) mod dependency_diagram;
+pub(crate) mod lcov;

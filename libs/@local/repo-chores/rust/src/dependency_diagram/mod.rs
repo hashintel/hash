@@ -19,7 +19,7 @@ use guppy::{
 
 /// Errors that can occur during dependency diagram generation.
 #[derive(Debug, derive_more::Display)]
-pub enum DependencyDiagramError {
+pub(crate) enum DependencyDiagramError {
     /// Indicates a failure when running the cargo metadata command.
     #[display("Failed to execute cargo metadata")]
     CargoMetadata,
@@ -42,7 +42,7 @@ impl Error for DependencyDiagramError {}
 /// Link generation mode for crates in the diagram.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default, clap::ValueEnum)]
 #[clap(rename_all = "kebab-case")]
-pub enum LinkMode {
+pub(crate) enum LinkMode {
     /// Create documentation links for all crates
     All,
 
@@ -60,7 +60,7 @@ pub enum LinkMode {
     clippy::struct_excessive_bools,
     reason = "This is a configuration struct"
 )]
-pub struct DependencyDiagramConfig {
+pub(crate) struct DependencyDiagramConfig {
     /// The root crate to highlight with a thicker border (if any)
     pub root: Option<String>,
 
@@ -499,7 +499,7 @@ impl<'graph> PackageResolver<'graph> for PackageQueryResolver<'_> {
 /// computationally expensive operation is detecting and removing transitive dependencies,
 /// which has O(n³) complexity in the worst case.
 #[tracing::instrument(level = "debug")]
-pub fn generate_dependency_diagram(
+pub(crate) fn generate_dependency_diagram(
     DependencyDiagramConfig {
         root,
         root_deps_only,

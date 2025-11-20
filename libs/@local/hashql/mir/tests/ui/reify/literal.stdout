@@ -1,4 +1,4 @@
-*thunk {thunk#0}() {
+*thunk {thunk#0}() -> Integer {
     bb0(): {
         return 2
     }

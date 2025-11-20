@@ -8,11 +8,11 @@ use crate::benches::{
     report::{Benchmark, ChangeEstimates, Measurement},
 };
 
-pub mod criterion;
-pub mod tracing;
+pub(crate) mod criterion;
+pub(crate) mod tracing;
 
 #[derive(Debug)]
-pub struct BenchmarkAnalysis {
+pub(crate) struct BenchmarkAnalysis {
     pub path: PathBuf,
     pub measurement: Measurement,
     pub change: Option<ChangeEstimates>,
@@ -29,7 +29,7 @@ impl BenchmarkAnalysis {
     ///
     /// - if the baseline measurement is missing
     /// - if the folded stacks cannot be read
-    pub fn from_benchmark(
+    pub(crate) fn from_benchmark(
         mut benchmark: Benchmark,
         baseline: &str,
         artifact_path: impl Into<PathBuf>,
@@ -62,7 +62,7 @@ impl BenchmarkAnalysis {
 }
 
 #[derive(Debug, thiserror::Error)]
-pub enum AnalyzeError {
+pub(crate) enum AnalyzeError {
     #[error("Failed to read input file.")]
     ReadInput,
     #[error("Unable to parse input file.")]

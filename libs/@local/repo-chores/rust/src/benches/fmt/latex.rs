@@ -2,7 +2,7 @@ use core::{fmt, fmt::Write as _};
 
 use crate::benches::fmt::{Braced, Color, Colored, Duration, Unit};
 
-pub trait Latex {
+pub(crate) trait Latex {
     /// Formats the value in LaTeX.
     ///
     /// # Errors

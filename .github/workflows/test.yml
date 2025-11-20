@@ -12,6 +12,7 @@ env:
   TURBO_TEAM: hashintel
   TURBO_CACHE: remote:rw
   NEXTEST_PROFILE: ci
+  VAULT_ADDR: ${{ secrets.VAULT_ADDR }}
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
@@ -32,6 +33,8 @@ jobs:
 
   setup:
     runs-on: ubuntu-24.04
+    permissions:
+      id-token: write
     outputs:
       unit-tests: ${{ steps.packages.outputs.unit-tests }}
       integration-tests: ${{ steps.packages.outputs.integration-tests }}
@@ -48,6 +51,7 @@ jobs:
         uses: ./.github/actions/install-tools
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
+          vault_address: ${{ secrets.VAULT_ADDR }}
           rust: false
 
       - name: Determine changed packages
@@ -113,9 +117,13 @@ jobs:
       fail-fast: false
     if: needs.setup.outputs.unit-tests != '{"name":[],"include":[]}'
     runs-on: ubuntu-24.04
+    permissions:
+      id-token: write
     steps:
       - name: Checkout
         uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
 
       - name: Clean up disk
         uses: ./.github/actions/clean-up-disk
@@ -124,11 +132,14 @@ jobs:
         uses: ./.github/actions/install-tools
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
+          vault_address: ${{ secrets.VAULT_ADDR }}
 
       - name: Prune repository
         uses: ./.github/actions/prune-repository
         with:
-          scope: ${{ matrix.name }}
+          scope: |
+            ${{ matrix.name }}
+            @rust/hash-repo-chores
 
       - name: Warm up repository
         uses: ./.github/actions/warm-up-repo
@@ -138,6 +149,12 @@ jobs:
         run: |
           HAS_RUST=$([[ -f "${{ matrix.path }}/Cargo.toml" || ${{ matrix.path }} = "apps/hash-graph" ]] && echo 'true' || echo 'false')
           echo "has-rust=$HAS_RUST" | tee -a $GITHUB_OUTPUT
+
+          if [[ "$HAS_RUST" == "true" ]]; then
+            echo "COVERAGE_KEY=rust" >> $GITHUB_ENV
+          else
+            echo "COVERAGE_KEY=javascript" >> $GITHUB_ENV
+          fi
 
       - name: Show disk usage
         run: df -h
@@ -163,6 +180,33 @@ jobs:
         if: always() && steps.tests.outputs.has-rust == 'true'
         run: |
           turbo run test:miri --filter "${{ matrix.name }}"
+
+      - name: Show sccache logs
+        if: always() && steps.tests.outputs.has-rust == 'true'
+        run: |
+          grep "CannotCache" /tmp/sccache.log | while IFS= read -r line; do
+            # Extract reason - format as "reason1 (reason2)" if comma-separated, otherwise just "reason"
+            if echo "$line" | grep -qE 'CannotCache\([^,]+, [^)]+\):'; then
+              reason=$(echo "$line" | sed -E 's/.*CannotCache\(([^,]+), ([^)]+)\):.*/\1 (\2)/')
+            else
+              reason=$(echo "$line" | sed -E 's/.*CannotCache\(([^)]+)\):.*/\1/')
+            fi
+
+            # Extract crate name if present
+            if echo "$line" | grep -q '"--crate-name"'; then
+              crate=$(echo "$line" | sed -E 's/.*"--crate-name", "([^"]+)".*/\1/')
+            else
+              crate="<no crate name>"
+            fi
+
+            # Extract args
+            args=$(echo "$line" | sed -E 's/.*CannotCache\([^)]+\): (\[.+\])$/\1/')
+
+            echo ""
+            echo "reason: $reason"
+            echo "crate:  $crate"
+            echo "args:   $args"
+          done
 
   build:
     name: Build
@@ -201,6 +245,8 @@ jobs:
       fail-fast: false
     if: needs.setup.outputs.integration-tests != '{"name":[],"include":[]}' && needs.optimize-ci.outputs.skip == 'false'
     runs-on: ubuntu-24.04
+    permissions:
+      id-token: write
     steps:
       - name: Checkout
         uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
@@ -212,6 +258,7 @@ jobs:
         uses: ./.github/actions/install-tools
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
+          vault_address: ${{ secrets.VAULT_ADDR }}
 
       - name: Prune repository
         uses: ./.github/actions/prune-repository

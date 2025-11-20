@@ -1,9 +1,9 @@
 use std::path::PathBuf;
 
-pub mod analyze;
-pub mod fmt;
-pub mod report;
-pub mod storage;
+pub(crate) mod analyze;
+pub(crate) mod fmt;
+pub(crate) mod report;
+pub(crate) mod storage;
 
 #[must_use]
 pub fn generate_path(

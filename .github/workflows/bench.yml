@@ -34,6 +34,8 @@ jobs:
     needs: [optimize-ci]
     if: needs.optimize-ci.outputs.skip == 'false'
     runs-on: ubuntu-24.04
+    permissions:
+      id-token: write
     outputs:
       unit: ${{ steps.packages.outputs.unit }}
       integration: ${{ steps.packages.outputs.integration }}
@@ -47,6 +49,7 @@ jobs:
         uses: ./.github/actions/install-tools
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
+          vault_address: ${{ secrets.VAULT_ADDR }}
           rust: false
 
       - name: Determine changed packages
@@ -90,6 +93,7 @@ jobs:
         uses: ./.github/actions/install-tools
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
+          vault_address: ${{ secrets.VAULT_ADDR }}
 
       - name: Prune repository
         if: github.event_name == 'pull_request'
@@ -129,6 +133,7 @@ jobs:
         uses: ./.github/actions/install-tools
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
+          vault_address: ${{ secrets.VAULT_ADDR }}
 
       - name: Prune repository
         uses: ./.github/actions/prune-repository
@@ -209,6 +214,7 @@ jobs:
         uses: ./.github/actions/install-tools
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
+          vault_address: ${{ secrets.VAULT_ADDR }}
 
       - name: Prune repository
         if: github.event_name == 'pull_request'
@@ -290,6 +296,8 @@ jobs:
         uses: ./.github/actions/install-tools
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
+          vault_address: ${{ secrets.VAULT_ADDR }}
+          sccache: false # sccache is already running in the background
 
       - name: Prune repository
         uses: ./.github/actions/prune-repository

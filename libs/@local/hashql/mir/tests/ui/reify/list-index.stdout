@@ -1,4 +1,6 @@
-thunk foo:0() {
+thunk foo:0() -> List<Integer> {
+    let %0: List<Integer>
+
     bb0(): {
         %0 = list(1, 2, 3)
 
@@ -6,13 +8,16 @@ thunk foo:0() {
     }
 }
 
-thunk {thunk#1}() {
+thunk {thunk#1}() -> Integer {
     bb0(): {
         return 0
     }
 }
 
-*thunk {thunk#2}() {
+*thunk {thunk#2}() -> Integer | Null {
+    let %0: List<Integer>
+    let %1: Integer
+
     bb0(): {
         %0 = apply (foo:0 as FnPtr)
         %1 = apply ({thunk#1} as FnPtr)

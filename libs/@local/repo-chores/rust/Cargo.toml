@@ -8,26 +8,27 @@ authors.workspace = true
 
 [dependencies]
 # Public workspace dependencies
-error-stack = { workspace = true, public = true }
 
 # Public third-party dependencies
-aws-types = { workspace = true, public = true }
-bytes     = { workspace = true, public = true }
-criterion = { workspace = true, public = true }
-inferno   = { workspace = true, public = true }
 
 # Private workspace dependencies
+error-stack = { workspace = true, public = false, features = ["unstable"] }
 
 # Private third-party dependencies
 aws-config     = { workspace = true }
 aws-sdk-s3     = { workspace = true }
+aws-types      = { workspace = true }
+bytes          = { workspace = true }
 cargo_metadata = { workspace = true }
 clap           = { workspace = true, features = ["cargo", "derive", "env", "wrap_help"] }
 clap_complete  = { workspace = true }
+criterion      = { workspace = true }
 derive_more    = { workspace = true, features = ["display"] }
 globset        = { workspace = true }
 guppy          = { workspace = true }
 hash-telemetry = { workspace = true, features = ["clap"] }
+inferno        = { workspace = true }
+lcov           = { workspace = true }
 serde          = { workspace = true, features = ["derive", "std"] }
 serde_json     = { workspace = true }
 simple-mermaid = { workspace = true }

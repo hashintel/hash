@@ -4,7 +4,7 @@
 //! during execution. They are the primary way to represent variables, temporaries,
 //! and intermediate computation results in the MIR.
 
-use hashql_core::id;
+use hashql_core::{id, span::SpanId, symbol::Symbol, r#type::TypeId};
 
 id::newtype!(
     /// A unique identifier for a local variable in the HashQL MIR.
@@ -28,3 +28,24 @@ id::newtype!(
     /// statements to track when local variables are active.
     pub struct Local(usize is 0..=usize::MAX)
 );
+
+id::newtype_collections!(pub type Local* from Local);
+
+/// Declaration information for a local variable in the MIR.
+///
+/// [`LocalDecl`] stores the metadata associated with a [`Local`] variable, including
+/// its source location, type information, and optional name.
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+pub struct LocalDecl<'heap> {
+    /// Source location where this local variable is declared.
+    pub span: SpanId,
+
+    /// The type of values stored in this local variable.
+    pub r#type: TypeId,
+
+    /// Optional name for this local variable.
+    ///
+    /// This is [`Some`] for user-declared variables and [`None`] for compiler-generated
+    /// temporaries. The name is used for debugging and diagnostics, not for resolution.
+    pub name: Option<Symbol<'heap>>,
+}

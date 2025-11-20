@@ -16,7 +16,7 @@
 //! ```rust
 //! use hashql_core::{
 //!     heap::Heap,
-//!     pretty::{Format, Formatter, RenderOptions},
+//!     pretty::{Formatter, RenderOptions},
 //!     symbol::sym,
 //! };
 //!
@@ -44,7 +44,7 @@ mod write;
 use core::fmt::{self, Display};
 use std::io;
 
-use self::write::{AnsiWriter, PlainWriter, RenderError};
+use self::write::{AnsiWriter, HtmlFragmentWriter, PlainWriter, RenderError, XmlEscapingWriter};
 pub use self::{
     formatter::{Doc, Formatter, FormatterOptions},
     semantic::Semantic,
@@ -52,11 +52,13 @@ pub use self::{
 
 /// Output format for rendered documents.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum Format {
+pub enum RenderFormat {
     /// Plain text without ANSI escape codes.
     Plain,
     /// ANSI-colored output for terminals.
     Ansi,
+    /// Output as a series of HTML text spans.
+    HtmlFragment,
 }
 
 /// Configuration for rendering documents to output.
@@ -65,7 +67,7 @@ pub enum Format {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct RenderOptions {
     /// Whether to use ANSI colors or plain text.
-    pub format: Format,
+    pub format: RenderFormat,
     /// Maximum line width before wrapping (default: 80).
     pub max_width: usize,
 }
@@ -76,7 +78,7 @@ impl RenderOptions {
     /// Enables terminal colors and syntax highlighting in the rendered output.
     #[must_use]
     pub const fn with_ansi(mut self) -> Self {
-        self.format = Format::Ansi;
+        self.format = RenderFormat::Ansi;
         self
     }
 
@@ -86,7 +88,7 @@ impl RenderOptions {
     /// non-terminal output.
     #[must_use]
     pub const fn with_plain(mut self) -> Self {
-        self.format = Format::Plain;
+        self.format = RenderFormat::Plain;
         self
     }
 
@@ -104,7 +106,7 @@ impl RenderOptions {
 impl Default for RenderOptions {
     fn default() -> Self {
         Self {
-            format: Format::Ansi,
+            format: RenderFormat::Ansi,
             max_width: 80,
         }
     }
@@ -121,14 +123,17 @@ pub fn render_into<W>(doc: &Doc<'_>, options: RenderOptions, write: &mut W) -> i
 where
     W: io::Write,
 {
+    let mut writer = PlainWriter::new_io(write);
+
     match options.format {
-        Format::Plain => doc
-            .render_raw(options.max_width, &mut PlainWriter::new_io(write))
-            .map_err(RenderError::into_io),
-        Format::Ansi => doc
-            .render_raw(options.max_width, &mut AnsiWriter::new_io(write))
-            .map_err(RenderError::into_io),
+        RenderFormat::Plain => doc.render_raw(options.max_width, &mut writer),
+        RenderFormat::Ansi => doc.render_raw(options.max_width, &mut AnsiWriter::new(writer)),
+        RenderFormat::HtmlFragment => doc.render_raw(
+            options.max_width,
+            &mut XmlEscapingWriter::new(HtmlFragmentWriter::new(writer)),
+        ),
     }
+    .map_err(RenderError::into_io)
 }
 
 /// Get a displayable representation.
@@ -136,12 +141,17 @@ where
 /// Returns a [`Display`] implementor for using in formatting contexts.
 #[must_use]
 pub fn render(doc: Doc<'_>, options: RenderOptions) -> impl Display {
-    fmt::from_fn(move |fmt| match options.format {
-        Format::Plain => doc
-            .render_raw(options.max_width, &mut PlainWriter::new_fmt(fmt))
-            .map_err(RenderError::into_fmt),
-        Format::Ansi => doc
-            .render_raw(options.max_width, &mut AnsiWriter::new_fmt(fmt))
-            .map_err(RenderError::into_fmt),
+    fmt::from_fn(move |fmt| {
+        let mut writer = PlainWriter::new_fmt(fmt);
+
+        match options.format {
+            RenderFormat::Plain => doc.render_raw(options.max_width, &mut writer),
+            RenderFormat::Ansi => doc.render_raw(options.max_width, &mut AnsiWriter::new(writer)),
+            RenderFormat::HtmlFragment => doc.render_raw(
+                options.max_width,
+                &mut XmlEscapingWriter::new(HtmlFragmentWriter::new(writer)),
+            ),
+        }
+        .map_err(RenderError::into_fmt)
     })
 }

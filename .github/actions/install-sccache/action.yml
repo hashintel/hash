@@ -1,21 +1,49 @@
 name: Install sccache
 description: Setup sccache for Rust project caching
+inputs:
+  vault_address:
+    description: The URL of the Vault server
+    required: true
 
 runs:
   using: composite
   steps:
+    - name: Retrieve secrets
+      id: secrets
+      uses: hashicorp/vault-action@4c06c5ccf5c0761b6029f56cfb1dcf5565918a3b # v3.4.0
+      with:
+        exportToken: true
+        url: ${{ inputs.vault_address }}
+        method: jwt
+        role: dev
+        secrets: |
+          infrastructure/data/github/actions/secrets sccache_r2_account_id | SCCACHE_ACCOUNT_ID ;
+          infrastructure/data/github/actions/secrets sccache_r2_bucket | SCCACHE_BUCKET ;
+          infrastructure/data/github/actions/secrets sccache_r2_access_key_id | SCCACHE_AWS_ACCESS_KEY_ID ;
+          infrastructure/data/github/actions/secrets sccache_r2_secret_access_key | SCCACHE_AWS_SECRET_ACCESS_KEY ;
+
     - name: Setup sccache
       uses: mozilla-actions/sccache-action@7d986dd989559c6ecdb630a3fd2557667be217ad # v0.0.9
 
-    - name: Configure sccache
-      uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
-      with:
-        script: |
-          core.exportVariable('ACTIONS_RESULTS_URL', process.env.ACTIONS_RESULTS_URL || '');
-          core.exportVariable('ACTIONS_RUNTIME_TOKEN', process.env.ACTIONS_RUNTIME_TOKEN || '');
+    - name: Start sccache server
+      env:
+        SCCACHE_BUCKET: ${{ env.SCCACHE_BUCKET }}
+        SCCACHE_ENDPOINT: https://${{ env.SCCACHE_ACCOUNT_ID }}.r2.cloudflarestorage.com
+        SCCACHE_REGION: auto
+        SCCACHE_LOG: debug
+        SCCACHE_ERROR_LOG: /tmp/sccache.log
+        SCCACHE_S3_USE_SSL: "true"
+        SCCACHE_S3_KEY_PREFIX: "hashintel/hash/"
+        SCCACHE_S3_SERVER_SIDE_ENCRYPTION: "false"
+        SCCACHE_S3_ENABLE_VIRTUAL_HOST_STYLE: "false"
+        SCCACHE_IDLE_TIMEOUT: "0" # the default idle timeout is 600s (10 minutes) which is too short for our benches, `0` disables the timeout
+        AWS_ACCESS_KEY_ID: ${{ env.SCCACHE_AWS_ACCESS_KEY_ID }}
+        AWS_SECRET_ACCESS_KEY: ${{ env.SCCACHE_AWS_SECRET_ACCESS_KEY }}
+        AWS_EC2_METADATA_DISABLED: "true"
+      shell: bash
+      run: ${{ github.action_path }}/start-sccache.sh
 
     - name: Inject sccache variables into environment
       shell: bash
       run: |
-        echo "SCCACHE_GHA_ENABLED=true" >> $GITHUB_ENV
         echo "RUSTC_WRAPPER=${SCCACHE_PATH}" >> $GITHUB_ENV

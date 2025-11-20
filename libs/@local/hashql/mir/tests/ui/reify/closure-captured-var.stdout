@@ -1,4 +1,8 @@
-fn max42:0(%0, %1) {
+fn max42:0(%0: (Integer,), %1: Integer) -> Integer {
+    let %2: Integer
+    let %3: Boolean
+    let %4: Integer
+
     bb0(): {
         %2 = %0.0
         %3 = %1 <= %2
@@ -6,23 +10,22 @@ fn max42:0(%0, %1) {
         switchInt(%3) -> [0: bb2(), 1: bb1()]
     }
 
-
     bb1(): {
         goto -> bb3(%2)
     }
 
-
     bb2(): {
         goto -> bb3(%1)
     }
-
 
     bb3(%4): {
         return %4
     }
 }
 
-fn {ctor#::core::option::Some}(%0, %1) {
+fn {ctor#::core::option::Some}(%0: (), %1: Integer) -> ::core::option::Some {
+    let %2: ::core::option::Some
+
     bb0(): {
         %2 = opaque(::core::option::Some, %1)
 
@@ -30,7 +33,9 @@ fn {ctor#::core::option::Some}(%0, %1) {
     }
 }
 
-fn {ctor#::core::option::None}(%0) {
+fn {ctor#::core::option::None}(%0: ()) -> ::core::option::None {
+    let %1: ::core::option::None
+
     bb0(): {
         %1 = opaque(::core::option::None, ())
 
@@ -38,11 +43,20 @@ fn {ctor#::core::option::None}(%0) {
     }
 }
 
-*thunk {thunk#10}() {
+*thunk {thunk#10}() -> ::core::option::None | ::core::option::Some {
+    let %0: ::core::option::None | ::core::option::Some
+    let %1: Integer
+    let %2: (Integer) -> Integer
+    let %3: (Integer,)
+    let %4: Integer
+    let %5: (Integer) -> ::core::option::Some
+    let %6: ::core::option::Some
+    let %7: () -> ::core::option::None
+    let %8: ::core::option::None
+
     bb0(): {
         switchInt(true) -> [0: bb2(), 1: bb1()]
     }
-
 
     bb1(): {
         %1 = 42
@@ -55,14 +69,12 @@ fn {ctor#::core::option::None}(%0) {
         goto -> bb3(%6)
     }
 
-
     bb2(): {
         %7 = closure(({ctor#::core::option::None} as FnPtr), ())
         %8 = apply %7.0 %7.1
 
         goto -> bb3(%8)
     }
-
 
     bb3(%0): {
         return %0
