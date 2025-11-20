@@ -42,8 +42,8 @@
     "test:unit": "vitest --run  --exclude \"**/*.ai.test.ts\""
   },
   "dependencies": {
-    "@anthropic-ai/bedrock-sdk": "0.25.0",
-    "@anthropic-ai/sdk": "0.68.0",
+    "@anthropic-ai/bedrock-sdk": "0.26.0",
+    "@anthropic-ai/sdk": "0.70.1",
     "@apps/hash-graph": "0.0.0-private",
     "@blockprotocol/graph": "0.4.0-canary.2",
     "@blockprotocol/type-system": "0.1.2-canary.1",
