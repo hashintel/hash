@@ -1,24 +1,46 @@
 use alloc::alloc::Global;
 use core::alloc::Allocator;
 
-use super::{DIRECTIONS, DirectedGraph, Direction, EdgeId, NodeId, Predecessors, Successors};
-use crate::id::{IdSlice, IdVec};
+use super::{
+    DIRECTIONS, DirectedGraph, Direction, EdgeId, NodeId, Predecessors, Successors, Traverse,
+};
+use crate::id::{HasId, IdSlice, IdVec};
 
 const TOMBSTONE: EdgeId = EdgeId(usize::MAX);
 
 pub struct Node<N> {
+    id: NodeId,
+
     pub data: N,
 
     edges: [EdgeId; DIRECTIONS],
 }
 
+impl<N> HasId for Node<N> {
+    type Id = NodeId;
+
+    fn id(&self) -> Self::Id {
+        self.id
+    }
+}
+
 pub struct Edge<E> {
+    id: EdgeId,
+
     source: NodeId,
     target: NodeId,
 
     pub data: E,
 
     next: [EdgeId; DIRECTIONS],
+}
+
+impl<E> HasId for Edge<E> {
+    type Id = EdgeId;
+
+    fn id(&self) -> Self::Id {
+        self.id
+    }
 }
 
 impl<E> Edge<E> {
@@ -57,7 +79,8 @@ impl<N, E, A: Allocator> LinkedGraph<N, E, A> {
     }
 
     pub fn add_node(&mut self, data: N) -> NodeId {
-        self.nodes.push(Node {
+        self.nodes.push_with(|id| Node {
+            id,
             data,
             edges: [TOMBSTONE; DIRECTIONS],
         })
@@ -75,7 +98,8 @@ impl<N, E, A: Allocator> LinkedGraph<N, E, A> {
         let source_outgoing = self.nodes[source].edges[Direction::Outgoing as usize];
         let target_incoming = self.nodes[target].edges[Direction::Incoming as usize];
 
-        let edge_id = self.edges.push(Edge {
+        let edge_id = self.edges.push_with(|id| Edge {
+            id,
             source,
             target,
             data,
@@ -124,30 +148,38 @@ impl<N, E, A: Allocator> DirectedGraph for LinkedGraph<N, E, A> {
         self.edges.len()
     }
 
-    fn iter_nodes(
-        &self,
-    ) -> impl ExactSizeIterator<Item = (NodeId, &Self::Node)> + DoubleEndedIterator {
-        self.nodes.iter_enumerated()
+    fn iter_nodes(&self) -> impl ExactSizeIterator<Item = &Self::Node> + DoubleEndedIterator {
+        self.nodes.iter()
     }
 
-    fn iter_edges(
-        &self,
-    ) -> impl ExactSizeIterator<Item = (EdgeId, &Self::Edge)> + DoubleEndedIterator {
-        self.edges.iter_enumerated()
+    fn iter_edges(&self) -> impl ExactSizeIterator<Item = &Self::Edge> + DoubleEndedIterator {
+        self.edges.iter()
     }
 }
 
 impl<N, E, A: Allocator> Successors for LinkedGraph<N, E, A> {
-    fn successors(&self, node: NodeId) -> impl Iterator<Item = NodeId> {
-        self.outgoing_edges(node).map(|(_, edge)| edge.target)
+    type SuccIter<'this>
+        = impl Iterator<Item = NodeId>
+    where
+        Self: 'this;
+
+    fn successors(&self, node: NodeId) -> Self::SuccIter<'_> {
+        self.outgoing_edges(node).map(|edge| edge.target)
     }
 }
 
 impl<N, E, A: Allocator> Predecessors for LinkedGraph<N, E, A> {
-    fn predecessors(&self, node: NodeId) -> impl Iterator<Item = NodeId> {
-        self.incoming_edges(node).map(|(_, edge)| edge.source)
+    type PredIter<'this>
+        = impl Iterator<Item = NodeId>
+    where
+        Self: 'this;
+
+    fn predecessors(&self, node: NodeId) -> Self::PredIter<'_> {
+        self.incoming_edges(node).map(|edge| edge.source)
     }
 }
+
+impl<N, E, A: Allocator> Traverse for LinkedGraph<N, E, A> {}
 
 pub struct IncidentEdges<'graph, N, E, A: Allocator = Global> {
     graph: &'graph LinkedGraph<N, E, A>,
@@ -167,7 +199,7 @@ impl<'graph, N, E, A: Allocator> IncidentEdges<'graph, N, E, A> {
 }
 
 impl<'graph, N, E, A: Allocator> Iterator for IncidentEdges<'graph, N, E, A> {
-    type Item = (EdgeId, &'graph Edge<E>);
+    type Item = &'graph Edge<E>;
 
     fn next(&mut self) -> Option<Self::Item> {
         if self.next == TOMBSTONE {
@@ -178,7 +210,7 @@ impl<'graph, N, E, A: Allocator> Iterator for IncidentEdges<'graph, N, E, A> {
         let edge = &self.graph.edges[id];
         self.next = edge.next[self.direction as usize];
 
-        Some((id, edge))
+        Some(edge)
     }
 
     fn size_hint(&self) -> (usize, Option<usize>) {

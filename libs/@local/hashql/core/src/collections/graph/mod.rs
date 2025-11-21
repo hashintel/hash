@@ -1,5 +1,7 @@
-use crate::id::newtype;
+use self::algorithms::{BreadthFirstTraversal, DepthFirstTraversal};
+use crate::id::{HasId, newtype};
 
+pub mod algorithms;
 pub mod linked;
 
 newtype!(pub struct NodeId(usize is 0..=usize::MAX));
@@ -14,25 +16,55 @@ pub enum Direction {
 pub(crate) const DIRECTIONS: usize = core::mem::variant_count::<Direction>();
 
 pub trait DirectedGraph {
-    type Node;
-    type Edge;
+    type Node: HasId<Id = NodeId>;
+    type Edge: HasId<Id = EdgeId>;
 
     fn node_count(&self) -> usize;
     fn edge_count(&self) -> usize;
 
-    fn iter_nodes(
-        &self,
-    ) -> impl ExactSizeIterator<Item = (NodeId, &Self::Node)> + DoubleEndedIterator;
-
-    fn iter_edges(
-        &self,
-    ) -> impl ExactSizeIterator<Item = (EdgeId, &Self::Edge)> + DoubleEndedIterator;
+    fn iter_nodes(&self) -> impl ExactSizeIterator<Item = &Self::Node> + DoubleEndedIterator;
+    fn iter_edges(&self) -> impl ExactSizeIterator<Item = &Self::Edge> + DoubleEndedIterator;
 }
 
 pub trait Successors: DirectedGraph {
-    fn successors(&self, node: NodeId) -> impl Iterator<Item = NodeId>;
+    type SuccIter<'this>: Iterator<Item = NodeId>
+    where
+        Self: 'this;
+
+    fn successors(&self, node: NodeId) -> Self::SuccIter<'_>;
 }
 
 pub trait Predecessors: DirectedGraph {
-    fn predecessors(&self, node: NodeId) -> impl Iterator<Item = NodeId>;
+    type PredIter<'this>: Iterator<Item = NodeId>
+    where
+        Self: 'this;
+
+    fn predecessors(&self, node: NodeId) -> Self::PredIter<'_>;
+}
+
+pub trait Traverse: DirectedGraph + Successors {
+    fn depth_first_traversal(
+        &self,
+        start: impl IntoIterator<Item = NodeId>,
+    ) -> impl Iterator<Item = NodeId> {
+        let mut traversal = DepthFirstTraversal::new(self);
+
+        for start in start {
+            traversal.push_start_node(start);
+        }
+
+        traversal
+    }
+    fn breadth_first_traversal(
+        &self,
+        node: impl IntoIterator<Item = NodeId>,
+    ) -> impl Iterator<Item = NodeId> {
+        let mut traversal = BreadthFirstTraversal::new(self);
+
+        for start in node {
+            traversal.push_start_node(start);
+        }
+
+        traversal
+    }
 }

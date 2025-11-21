@@ -188,6 +188,12 @@ where
         id
     }
 
+    pub fn push_with(&mut self, value: impl FnOnce(I) -> T) -> I {
+        let id = self.bound();
+        self.raw.push(value(id));
+        id
+    }
+
     /// Removes the last element from the vector and returns it, or `None` if empty.
     ///
     /// See [`Vec::pop`] for details.
