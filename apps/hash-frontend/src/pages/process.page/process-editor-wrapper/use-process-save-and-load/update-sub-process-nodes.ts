@@ -1,5 +1,5 @@
-import type { NodeType } from "@hashintel/petrinaut";
-import { nodeDimensions } from "@hashintel/petrinaut";
+import type { NodeType } from "@hashintel/petrinaut-old";
+import { nodeDimensions } from "@hashintel/petrinaut-old";
 import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
 
 import type { PersistedNet } from "../use-process-save-and-load";
@@ -31,10 +31,10 @@ export const updateSubProcessDefinitionForParentPlaces = ({
    * We want to find the leftmost and rightmost places, and the minimum y-coordinates for the leftmost and rightmost places,
    * so that we can position the new input and output places above the leftmost and rightmost places, respectively.
    */
-  let minX = Infinity;
-  let maxX = -Infinity;
-  let minYLeft = Infinity;
-  let minYRight = Infinity;
+  let minX = Number.POSITIVE_INFINITY;
+  let maxX = Number.NEGATIVE_INFINITY;
+  let minYLeft = Number.POSITIVE_INFINITY;
+  let minYRight = Number.POSITIVE_INFINITY;
 
   const newNodes: NodeType[] = [];
 
@@ -116,16 +116,16 @@ export const updateSubProcessDefinitionForParentPlaces = ({
     return null;
   }
 
-  if (minX === Infinity) {
+  if (minX === Number.POSITIVE_INFINITY) {
     minX = 0;
   }
-  if (maxX === -Infinity) {
+  if (maxX === Number.NEGATIVE_INFINITY) {
     maxX = 300;
   }
-  if (minYLeft === Infinity) {
+  if (minYLeft === Number.POSITIVE_INFINITY) {
     minYLeft = 0;
   }
-  if (minYRight === Infinity) {
+  if (minYRight === Number.POSITIVE_INFINITY) {
     minYRight = 0;
   }
 

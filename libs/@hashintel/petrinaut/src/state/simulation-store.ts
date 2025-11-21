@@ -1,9 +1,9 @@
 import { create } from "zustand";
 import { devtools } from "zustand/middleware";
 
-import { buildSimulation } from "../core/build-simulation";
 import { SDCPNItemError } from "../core/errors";
-import { computeNextFrame } from "../core/helpers/compute-next-frame";
+import { buildSimulation } from "../core/simulation/build-simulation";
+import { computeNextFrame } from "../core/simulation/compute-next-frame";
 import type { SimulationInstance } from "../core/types/simulation";
 import { deriveDefaultParameterValues } from "../hooks/use-default-parameter-values";
 import type { SDCPNState } from "./sdcpn-store";

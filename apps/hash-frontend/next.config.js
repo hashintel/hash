@@ -155,7 +155,7 @@ export default withSentryConfig(
         "@emotion/server",
         "@hashintel/block-design-system",
         "@hashintel/design-system",
-        "@hashintel/petrinaut",
+        "@hashintel/petrinaut-old",
         "@hashintel/type-editor",
         "echarts",
         "zrender",
