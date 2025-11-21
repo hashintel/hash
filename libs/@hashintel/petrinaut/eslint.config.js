@@ -1,9 +1,7 @@
 import { createBase } from "@local/eslint/deprecated";
-import storybook from "eslint-plugin-storybook";
 
 export default [
   ...createBase(import.meta.dirname),
-  ...storybook.configs["flat/recommended"],
   {
     languageOptions: {
       parserOptions: {
