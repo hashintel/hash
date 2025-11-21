@@ -35,6 +35,7 @@ extern crate alloc;
 
 pub mod algorithms;
 pub mod collections;
+pub mod graph;
 pub mod heap;
 pub mod id;
 pub mod intern;

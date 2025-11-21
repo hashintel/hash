@@ -1,4 +1,3 @@
-pub mod graph;
 mod hash_map;
 pub mod pool;
 mod work_queue;
