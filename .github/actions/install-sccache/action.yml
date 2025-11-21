@@ -47,3 +47,7 @@ runs:
       shell: bash
       run: |
         echo "RUSTC_WRAPPER=${SCCACHE_PATH}" >> $GITHUB_ENV
+        # sccache does not work with incremental builds, we do not need incremental builds in CI anyway,
+        # because we only compile the library once. Therefore not compiling at all when there are no changes
+        # is beneficial as it will lead to less compilation time and faster builds in CI.
+        echo "CARGO_INCREMENTAL=0" >> $GITHUB_ENV
