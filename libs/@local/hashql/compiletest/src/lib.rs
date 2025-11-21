@@ -9,7 +9,6 @@
 
     // Library Features
     assert_matches,
-    duration_from_nanos_u128,
     file_buffered,
     formatting_options,
     lock_value_accessors,
