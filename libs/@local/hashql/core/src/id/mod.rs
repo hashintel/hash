@@ -424,8 +424,6 @@ macro_rules! newtype_collections {
     };
 }
 
-// TODO: we might want a macro that also defines type aliases to e.g. `HashMap` and such
-
 pub use newtype;
 pub use newtype_collections;
 pub use newtype_counter;
