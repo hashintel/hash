@@ -2400,6 +2400,7 @@ dependencies = [
  "futures",
  "futures-core",
  "futures-util",
+ "glob",
  "insta",
  "owo-colors",
  "pin-project-lite",
