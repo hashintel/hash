@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
-import { buildSimulation } from "../build-simulation";
 import type { SDCPN } from "../types/sdcpn";
+import { buildSimulation } from "./build-simulation";
 import { computeNextFrame } from "./compute-next-frame";
 
 describe("computeNextFrame", () => {

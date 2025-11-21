@@ -11,7 +11,7 @@ import {
   DEFAULT_VISUALIZER_CODE,
   generateDefaultVisualizerCode,
 } from "../../../../core/default-codes";
-import { compileVisualizer } from "../../../../core/helpers/compile-visualizer";
+import { compileVisualizer } from "../../../../core/simulation/compile-visualizer";
 import type {
   DifferentialEquation,
   Place,
