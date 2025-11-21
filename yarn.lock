@@ -579,7 +579,7 @@ __metadata:
     "@graphql-codegen/typescript-operations": "npm:2.5.13"
     "@hashintel/block-design-system": "npm:0.0.5"
     "@hashintel/design-system": "npm:0.0.9-canary.2"
-    "@hashintel/petrinaut": "npm:0.0.5"
+    "@hashintel/petrinaut-old": "npm:0.0.5"
     "@hashintel/query-editor": "npm:0.0.3"
     "@hashintel/type-editor": "npm:0.0.25"
     "@lit-labs/react": "npm:1.2.1"
@@ -8211,7 +8211,7 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@hashintel/petrinaut-old@workspace:libs/@hashintel/petrinaut-old":
+"@hashintel/petrinaut-old@npm:0.0.5, @hashintel/petrinaut-old@workspace:libs/@hashintel/petrinaut-old":
   version: 0.0.0-use.local
   resolution: "@hashintel/petrinaut-old@workspace:libs/@hashintel/petrinaut-old"
   dependencies:
@@ -8245,7 +8245,7 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@hashintel/petrinaut@npm:0.0.5, @hashintel/petrinaut@workspace:libs/@hashintel/petrinaut":
+"@hashintel/petrinaut@workspace:libs/@hashintel/petrinaut":
   version: 0.0.0-use.local
   resolution: "@hashintel/petrinaut@workspace:libs/@hashintel/petrinaut"
   dependencies:

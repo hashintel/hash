@@ -7,7 +7,7 @@ import type {
 import type {
   PetriNetDefinitionObject,
   TransitionNodeType,
-} from "@hashintel/petrinaut";
+} from "@hashintel/petrinaut-old";
 import { HashEntity } from "@local/hash-graph-sdk/entity";
 import {
   blockProtocolDataTypes,
