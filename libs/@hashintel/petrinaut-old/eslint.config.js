@@ -1,0 +1,58 @@
+import { createBase } from "@local/eslint/deprecated";
+import storybook from "eslint-plugin-storybook";
+
+export default [
+  ...createBase(import.meta.dirname),
+  ...storybook.configs["flat/recommended"],
+  {
+    languageOptions: {
+      parserOptions: {
+        projectService: {
+          allowDefaultProject: [
+            "assets.d.ts",
+            "panda.config.ts",
+            "postcss.config.cjs",
+          ],
+        },
+        tsconfigRootDir: import.meta.dirname,
+      },
+    },
+  },
+  {
+    files: ["dev/**/*"],
+    languageOptions: {
+      parserOptions: {
+        project: "./dev/tsconfig.json",
+        tsconfigRootDir: import.meta.dirname,
+      },
+    },
+  },
+  {
+    files: ["dev/*.tsx"],
+    rules: {
+      "import/no-extraneous-dependencies": ["error", { devDependencies: true }],
+    },
+  },
+  {
+    rules: {
+      // Disabled because React Compiler handles optimization automatically
+      "react/jsx-no-bind": "off",
+      "no-restricted-imports": [
+        "error",
+        {
+          patterns: [
+            {
+              group: ["@mui/material/*"],
+              message: "Please import from @mui/material instead",
+            },
+            {
+              group: ["@local/*"],
+              message:
+                "You cannot use unpublished local packages in a published package.",
+            },
+          ],
+        },
+      ],
+    },
+  },
+];
