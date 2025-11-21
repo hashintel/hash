@@ -3,7 +3,7 @@ import { createRoot } from "react-dom/client";
 
 import { DevApp } from "./app";
 
-const root = createRoot(document.getElementById("root") as HTMLElement);
+const root = createRoot(document.getElementById("root")!);
 
 root.render(
   <StrictMode>

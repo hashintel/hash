@@ -12,6 +12,7 @@ export default [
             "assets.d.ts",
             "panda.config.ts",
             "postcss.config.cjs",
+            "vite.config.ts",
           ],
         },
         tsconfigRootDir: import.meta.dirname,
