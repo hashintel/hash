@@ -40,7 +40,7 @@ ansi-to-html       = { workspace = true }
 expect-test        = { workspace = true }
 futures            = { workspace = true, default-features = false, features = ["executor"] }
 futures-util       = { workspace = true }
-glob               = "0.3.3"
+glob               = { workspace = true }
 insta              = { workspace = true, features = ["filters", "ron"] }
 owo-colors         = { workspace = true }
 regex              = { workspace = true }
