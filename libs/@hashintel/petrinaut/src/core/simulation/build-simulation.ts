@@ -1,6 +1,5 @@
-import { deriveDefaultParameterValues } from "../hooks/use-default-parameter-values";
-import { SDCPNItemError } from "./errors";
-import { compileUserCode } from "./helpers/compile-user-code";
+import { deriveDefaultParameterValues } from "../../hooks/use-default-parameter-values";
+import { SDCPNItemError } from "../errors";
 import type {
   DifferentialEquationFn,
   LambdaFn,
@@ -9,7 +8,8 @@ import type {
   SimulationInput,
   SimulationInstance,
   TransitionKernelFn,
-} from "./types/simulation";
+} from "../types/simulation";
+import { compileUserCode } from "./compile-user-code";
 
 /**
  * Get the dimensions (number of elements) for a place based on its type.

@@ -36,7 +36,7 @@
     "@glideapps/glide-data-grid": "patch:@glideapps/glide-data-grid@npm%3A6.0.3#~/.yarn/patches/@glideapps-glide-data-grid-npm-6.0.3-f71d586425.patch",
     "@hashintel/block-design-system": "0.0.5",
     "@hashintel/design-system": "0.0.9-canary.2",
-    "@hashintel/petrinaut": "0.0.5",
+    "@hashintel/petrinaut-old": "0.0.5",
     "@hashintel/query-editor": "0.0.3",
     "@hashintel/type-editor": "0.0.25",
     "@lit-labs/react": "1.2.1",

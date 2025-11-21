@@ -3,8 +3,10 @@
   "compilerOptions": {
     "jsx": "preserve",
     "lib": ["dom", "dom.iterable", "ESNext"],
-    "noEmit": true
+    "rootDir": "src/",
+    "moduleResolution": "bundler",
+    "noEmit": true,
+    "skipLibCheck": true
   },
-  "include": ["theme-override.d.ts", "./src/"],
-  "exclude": ["./src/petrinaut-sdcpn"]
+  "include": ["./src/**/*"]
 }

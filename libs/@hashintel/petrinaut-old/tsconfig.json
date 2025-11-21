@@ -3,9 +3,8 @@
   "compilerOptions": {
     "jsx": "preserve",
     "lib": ["dom", "dom.iterable", "ESNext"],
-    "moduleResolution": "bundler",
-    "noEmit": true,
-    "skipLibCheck": true
+    "noEmit": true
   },
-  "include": ["./**/*"]
+  "include": ["theme-override.d.ts", "./src/"],
+  "exclude": ["./src/petrinaut-sdcpn"]
 }
