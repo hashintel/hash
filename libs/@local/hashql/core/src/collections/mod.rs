@@ -1,12 +1,13 @@
 mod hash_map;
 pub mod pool;
+mod work_queue;
 
 use alloc::alloc::Global;
 use core::alloc::Allocator;
 
 use hashbrown::{HashMap, HashSet};
 
-pub use self::hash_map::HashMapExt;
+pub use self::{hash_map::HashMapExt, work_queue::WorkQueue};
 
 pub type ConcurrentHashMap<K, V> = scc::HashMap<K, V, foldhash::fast::RandomState>;
 pub type ConcurrentHashSet<T> = scc::HashSet<T, foldhash::fast::RandomState>;
