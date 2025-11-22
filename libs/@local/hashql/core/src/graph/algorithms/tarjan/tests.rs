@@ -1,3 +1,13 @@
+//! This file is derived from the Rust compiler source code.
+//! Source: <https://github.com/rust-lang/rust/blob/e22dab387f6b4f6a87dfc54ac2f6013dddb41e68/compiler/rustc_data_structures/src/graph/scc/tests.rs>
+//!
+//! Originally dual-licensed under either of:
+//!   - Apache License, Version 2.0 (see LICENSE-APACHE.md or <https://www.apache.org/licenses/LICENSE-2.0>)
+//!   - MIT license (see LICENSE-MIT.md or <https://opensource.org/licenses/MIT>)
+//!
+//! You may use, copy, modify, and distribute this file under the terms of the
+//! GNU Affero General Public License, Version 3.0, as part of this project,
+//! provided that all original notices are preserved.
 use core::cmp;
 
 use super::{Metadata, StronglyConnectedComponents};
@@ -39,7 +49,7 @@ impl<N> Metadata<N, SccId> for MaxMetadata<N> {
         ReachableMaximum((self.mapping)(node))
     }
 
-    fn annotate_scc(&mut self, scc: SccId, root: N) -> Self::Annotation {
+    fn annotate_scc(&mut self, _: SccId, root: N) -> Self::Annotation {
         self.annotate_node(root)
     }
 
@@ -75,11 +85,11 @@ impl<N> Metadata<N, SccId> for SccBoundsMetadata<N> {
         (self.mapping)(node)
     }
 
-    fn annotate_scc(&mut self, scc: SccId, root: N) -> Self::Annotation {
+    fn annotate_scc(&mut self, _: SccId, root: N) -> Self::Annotation {
         self.annotate_node(root)
     }
 
-    fn merge_reachable(&mut self, lhs: &mut Self::Annotation, other: &Self::Annotation) {}
+    fn merge_reachable(&mut self, _: &mut Self::Annotation, _: &Self::Annotation) {}
 
     fn merge_into_scc(&mut self, lhs: &mut Self::Annotation, other: Self::Annotation) {
         *lhs = SccBounds {
@@ -89,27 +99,20 @@ impl<N> Metadata<N, SccId> for SccBoundsMetadata<N> {
     }
 }
 
+/// Tests SCC detection on a simple diamond-shaped DAG.
+/// Each node forms its own SCC since there are no cycles.
 #[test]
-fn diamond() {
+fn simple_dag() {
     let graph = TestGraph::new(&[(0, 1), (0, 2), (1, 3), (2, 3)]);
     let sccs: Sccs = Tarjan::new(&graph).run();
 
     assert_eq!(sccs.node_count(), 4);
 }
 
+/// Tests that all nodes in a strongly connected graph are identified as a single SCC.
+/// Verifies the algorithm handles cycles that branch and rejoin.
 #[test]
-fn large_scc() {
-    // The order in which things will be visited is important to this
-    // test.
-    //
-    // We will visit:
-    //
-    // 0 -> 1 -> 2 -> 0
-    //
-    // and at this point detect a cycle. 2 will return back to 1 which
-    // will visit 3. 3 will visit 2 before the cycle is complete, and
-    // hence it too will return a cycle.
-
+fn single_scc_with_multiple_nodes() {
     /*
     +-> 0
     |   |
@@ -130,8 +133,10 @@ fn assert_successors(sccs: &Sccs, scc: SccId, successors: &[SccId]) {
     assert_eq!(sccs.successors(scc).collect::<Vec<_>>(), successors);
 }
 
+/// Tests a graph with multiple SCCs where some SCCs depend on others.
+/// Verifies correct SCC identification and successor relationships in the condensation graph.
 #[test]
-fn three_sccs() {
+fn multiple_sccs_with_dependencies() {
     /*
         0
         |
@@ -155,11 +160,13 @@ fn three_sccs() {
     assert_successors(&sccs, s!(2), &[s!(0)]);
 }
 
+/// Tests a complex graph with nested cycles and multiple entry points.
+/// Verifies the algorithm correctly identifies all nodes as part of a single strongly connected
+/// component.
 #[test]
-fn find_state_2() {
+fn complex_nested_cycle() {
     // The order in which things will be visited is important to this
-    // test. It tests part of the `find_state` behavior. Here is the
-    // graph:
+    // test. Here is the graph:
     //
     //
     //       /----+
@@ -177,28 +184,7 @@ fn find_state_2() {
     //
     // 0 -> 1 -> 2 -> 1
     //
-    // and at this point detect a cycle. The state of 2 will thus be
-    // `InCycleWith { 1 }`. We will then visit the 1 -> 3 edge, which
-    // will attempt to visit 0 as well, thus going to the state
-    // `InCycleWith { 0 }`. Finally, node 1 will complete; the lowest
-    // depth of any successor was 3 which had depth 0, and thus it
-    // will be in the state `InCycleWith { 3 }`.
-    //
-    // When we finally traverse the `0 -> 4` edge and then visit node 2,
-    // the states of the nodes are:
-    //
-    // 0 BeingVisited { 0 }
-    // 1 InCycleWith { 3 }
-    // 2 InCycleWith { 1 }
-    // 3 InCycleWith { 0 }
-    //
-    // and hence 4 will traverse the links, finding an ultimate depth of 0.
-    // If will also collapse the states to the following:
-    //
-    // 0 BeingVisited { 0 }
-    // 1 InCycleWith { 3 }
-    // 2 InCycleWith { 1 }
-    // 3 InCycleWith { 0 }
+    // and at this point detect a cycle.
 
     let sccs: Sccs = Tarjan::new(&graph).run();
     assert_eq!(sccs.node_count(), 1);
@@ -211,8 +197,10 @@ fn find_state_2() {
     assert_successors(&sccs, s!(0), &[]);
 }
 
+/// Tests a graph where multiple nodes point into a single large SCC.
+/// Verifies the algorithm correctly separates the external node into its own SCC.
 #[test]
-fn find_state_3() {
+fn two_sccs_with_shared_predecessor() {
     /*
           /----+
         0 <--+ |
@@ -247,8 +235,10 @@ fn find_state_3() {
     assert_successors(&sccs, s!(1), &[s!(0)]);
 }
 
+/// Tests the algorithm on a deep linear chain to ensure stack-based iteration handles depth
+/// correctly. Each node should form its own SCC in a linear dependency chain.
 #[test]
-fn deep_linear() {
+fn deep_linear_chain() {
     /*
     0
     |
@@ -276,8 +266,9 @@ fn deep_linear() {
     assert_eq!(sccs.scc(n!(NODE_COUNT - 1)), s!(0));
 }
 
+/// Tests that metadata is correctly computed and merged for a single-node SCC with a self-loop.
 #[test]
-fn max_self_loop() {
+fn metadata_self_loop() {
     let graph = TestGraph::new(&[(0, 0)]);
     let metadata = MaxMetadata {
         mapping: |n: NodeId| if n.as_usize() == 0 { 17 } else { 0 },
@@ -287,8 +278,10 @@ fn max_self_loop() {
     assert_eq!(scc.annotation(s!(0)).0, 17);
 }
 
+/// Tests that metadata propagates correctly through a DAG via `merge_reachable`.
+/// Each SCC should accumulate the maximum value reachable from its successors.
 #[test]
-fn max_branch() {
+fn metadata_dag_propagation() {
     let graph = TestGraph::new(&[(0, 1), (0, 2), (1, 3), (2, 4)]);
     let metadata = MaxMetadata {
         mapping: |n: NodeId| n.as_usize(),
@@ -300,8 +293,9 @@ fn max_branch() {
     assert_eq!(sccs.annotation(sccs.scc(n!(2))).0, 4);
 }
 
+/// Tests that metadata merges correctly within a single SCC and propagates to predecessors.
 #[test]
-fn max_single_cycle() {
+fn metadata_single_cycle() {
     let graph = TestGraph::new(&[(0, 2), (2, 3), (2, 4), (4, 1), (1, 2)]);
     let metadata = MaxMetadata {
         mapping: |n: NodeId| n.as_usize(),
@@ -313,8 +307,10 @@ fn max_single_cycle() {
     assert_eq!(sccs.annotation(sccs.scc(n!(0))).0, 4);
 }
 
+/// Tests metadata propagation through multiple nested SCCs.
+/// Verifies that values propagate correctly from inner SCCs to outer SCCs.
 #[test]
-fn max_double_cycle() {
+fn metadata_nested_cycles() {
     let graph = TestGraph::new(&[
         (0, 1),
         (1, 2),
@@ -334,8 +330,10 @@ fn max_double_cycle() {
     assert_eq!(sccs.annotation(sccs.scc(n!(0))).0, 2);
 }
 
+/// Tests that metadata from disjoint SCCs remains isolated and doesn't leak between unconnected
+/// components.
 #[test]
-fn minimised_bug() {
+fn metadata_isolation() {
     let graph = TestGraph::new(&[(0, 3), (0, 1), (3, 2), (2, 3), (1, 4), (4, 5), (5, 4)]);
     let metadata = MaxMetadata {
         mapping: |n: NodeId| match n.as_usize() {
@@ -350,8 +348,9 @@ fn minimised_bug() {
     assert_eq!(sccs.annotation(sccs.scc(n!(4))).0, 0);
 }
 
+/// Tests metadata propagation from an SCC back to a predecessor SCC that forms a larger cycle.
 #[test]
-fn max_minimised_leak_bug() {
+fn metadata_propagation_through_cycle() {
     let graph = TestGraph::new(&[(0, 1), (0, 2), (1, 3), (3, 0), (3, 4), (4, 3)]);
     let metadata = MaxMetadata {
         mapping: |w: NodeId| match w.as_usize() {
@@ -367,8 +366,10 @@ fn max_minimised_leak_bug() {
     assert_eq!(sccs.annotation(sccs.scc(n!(0))).0, 1);
 }
 
+/// Tests metadata computation on a complex graph with multiple SCCs and intricate dependency
+/// relationships.
 #[test]
-fn max_leak_bug() {
+fn metadata_complex_graph() {
     let graph = TestGraph::new(&[
         (0, 0),
         (0, 18),
@@ -411,8 +412,7 @@ fn max_leak_bug() {
     ]);
     let metadata = MaxMetadata::new(|w: NodeId| match w.as_usize() {
         22 => 1,
-        24 => 2,
-        27 => 2,
+        24 | 27 => 2,
         _ => 0,
     });
     let sccs = Tarjan::new_with_metadata(&graph, metadata).run();
@@ -425,8 +425,9 @@ fn max_leak_bug() {
     assert_eq!(sccs.annotation(sccs.scc(n!(0))).0, 2);
 }
 
+/// Tests metadata propagation through a linear chain that terminates in a cycle.
 #[test]
-fn bug_max_zero_stick_shape() {
+fn metadata_chain_with_cycle() {
     let graph = TestGraph::new(&[(0, 1), (1, 2), (2, 3), (3, 2), (3, 4)]);
     let metadata = MaxMetadata::new(|w: NodeId| match w.as_usize() {
         4 => 1,
@@ -441,8 +442,10 @@ fn bug_max_zero_stick_shape() {
     assert_eq!(sccs.annotation(sccs.scc(n!(4))).0, 1);
 }
 
+/// Tests that `merge_into_scc` correctly combines metadata from all nodes within an SCC.
+/// Uses min/max bounds to verify both merge operations work correctly.
 #[test]
-fn bounds() {
+fn metadata_merge_within_scc() {
     let graph = TestGraph::new(&[(0, 1), (0, 2), (1, 3), (3, 0), (3, 4), (4, 3), (3, 5)]);
     let metadata = SccBoundsMetadata {
         mapping: |w: NodeId| SccBounds {
