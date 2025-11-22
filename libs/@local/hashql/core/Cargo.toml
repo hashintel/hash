@@ -14,7 +14,7 @@ hashql-diagnostics = { workspace = true, public = true }
 # Public third-party dependencies
 anstyle   = { workspace = true, public = true }
 foldhash  = { workspace = true, public = true }
-hashbrown = { workspace = true, public = true }
+hashbrown = { workspace = true, public = true, features = ["raw-entry"] }
 pretty    = { workspace = true, public = true }
 scc       = { workspace = true, public = true }
 smallvec  = { workspace = true, public = true }

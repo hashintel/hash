@@ -43,5 +43,6 @@ pub mod module;
 pub mod pretty;
 pub mod span;
 pub mod symbol;
+pub mod sync;
 pub mod r#type;
 pub mod value;

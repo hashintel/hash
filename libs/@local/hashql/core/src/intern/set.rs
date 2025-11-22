@@ -1,10 +1,16 @@
 #![expect(clippy::type_repetition_in_bounds)]
-use core::{hash::Hash, hint::cold_path};
+use core::hash::{BuildHasher as _, Hash};
+
+use hashbrown::hash_map::RawEntryMut;
 
 use super::Interned;
-use crate::{collections::ConcurrentHashSet, heap::Heap};
+use crate::{
+    collections::{FastHashMap, fast_hash_map},
+    heap::Heap,
+    sync::lock::LocalLock,
+};
 
-/// A thread-safe interner for values of type `T`.
+/// A thread-local interner for values of type `T`.
 ///
 /// An interner is a data structure that stores only one copy of each distinct value, and returns
 /// references to that copy. This is useful for:
@@ -15,27 +21,27 @@ use crate::{collections::ConcurrentHashSet, heap::Heap};
 ///
 /// # Memory Management
 ///
-/// `InternSet` allocates memory from the provided `Heap`, which should outlive the interner.
+/// `InternSet` allocates memory from the provided [`Heap`], which should outlive the interner.
 /// Interned values remain valid for the lifetime of the heap, not the interner itself.
 ///
 /// # Constraints
 ///
-/// 1. Types that implement `Drop` cannot be interned
+/// 1. Types that implement [`Drop`] cannot be interned
 /// 2. Zero-sized types cannot be interned
-/// 3. Interned types must implement `Eq` and `Hash`
+/// 3. Interned types must implement [`Eq`] and [`Hash`]
 ///
 /// # Thread Safety
 ///
-/// This implementation is built with thread-safety in mind, but due to the fact that the `Heap` is
-/// not thread-safe, concurrent interning operations are not yet supported.
+/// This implementation uses [`LocalLock`] and is **not thread-safe**. The architecture supports
+/// upgrading to [`SharedLock`] for thread-safety, but the underlying [`Heap`] allocator would
+/// also need to become thread-safe first.
 ///
-/// # Performance Considerations
-///
-/// The current implementation prioritizes code reuse and maintenance over maximum performance.
-/// For very high throughput workloads, alternative implementations could be considered as noted
-/// in the implementation comments.
+/// [`LocalLock`]: crate::sync::lock::LocalLock
+/// [`SharedLock`]: crate::sync::lock::SharedLock
 ///
 /// # Examples
+///
+/// Basic interning:
 ///
 /// ```
 /// # use hashql_core::{heap::Heap, intern::InternSet};
@@ -46,21 +52,52 @@ use crate::{collections::ConcurrentHashSet, heap::Heap};
 /// let interned1 = interner.intern(42);
 /// let interned2 = interner.intern(42);
 ///
-/// // The references point to the same memory location
+/// // They reference the same memory location
 /// assert!(core::ptr::eq(interned1.as_ref(), interned2.as_ref()));
+/// ```
+///
+/// Practical use case - interning AST node types:
+///
+/// ```
+/// # use hashql_core::{heap::Heap, intern::InternSet};
+/// #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+/// enum BinaryOp {
+///     Add,
+///     Sub,
+///     Mul,
+///     Div,
+/// }
+///
+/// #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+/// struct TypeInfo {
+///     name: &'static str,
+///     size: usize,
+/// }
+///
+/// let heap = Heap::new();
+/// let ops = InternSet::new(&heap);
+/// let types = InternSet::new(&heap);
+///
+/// // Intern operator types across your AST
+/// let add_op1 = ops.intern(BinaryOp::Add);
+/// let add_op2 = ops.intern(BinaryOp::Add);
+/// assert!(core::ptr::eq(add_op1.as_ref(), add_op2.as_ref()));
+///
+/// // Intern type information
+/// let int_type = types.intern(TypeInfo {
+///     name: "i32",
+///     size: 4,
+/// });
+/// let int_type2 = types.intern(TypeInfo {
+///     name: "i32",
+///     size: 4,
+/// });
+/// assert!(core::ptr::eq(int_type.as_ref(), int_type2.as_ref()));
 /// ```
 #[derive(derive_more::Debug)]
 #[debug(bound(T: Eq))]
 pub struct InternSet<'heap, T: ?Sized> {
-    // scc::HashMap isn't ideal for our purpose here, but allows us to re-use dependencies, for a
-    // single threaded (or few-threaded) workload a `DashMap` performs better, even better would
-    // likely be the change to something similar as the original implementation in rustc, which
-    // uses the hashbrown `HashTable` in conjunction with a `RefCell`/`Mutex` to provide interior
-    // mutability. This option would increase the required code (and therefore maintenance) by
-    // quite a bit. For our use case, as we only have short periods of time where we need to
-    // access the set, this would likely result in a significant performance improvement.
-    // Should this ever become a bottleneck, we can consider alternatives.
-    inner: ConcurrentHashSet<&'heap T>,
+    inner: LocalLock<FastHashMap<&'heap T, ()>>,
     heap: &'heap Heap,
 }
 
@@ -80,13 +117,60 @@ impl<'heap, T: ?Sized> InternSet<'heap, T> {
     /// ```
     pub fn new(heap: &'heap Heap) -> Self {
         Self {
-            inner: ConcurrentHashSet::default(),
+            inner: LocalLock::default(),
+            heap,
+        }
+    }
+
+    /// Creates a new `InternSet` with the specified initial capacity.
+    ///
+    /// Pre-allocates memory to avoid rehashing when the approximate number of unique values
+    /// is known in advance. This can improve performance when interning large numbers of values,
+    /// particularly during AST construction or bulk data processing.
+    ///
+    /// The capacity represents the number of unique values the set can hold before needing
+    /// to reallocate. Note that this is the capacity of the internal hash set, not the heap.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use hashql_core::{heap::Heap, intern::InternSet};
+    /// let heap = Heap::new();
+    ///
+    /// // Pre-allocate space for approximately 1000 unique values
+    /// let interner = InternSet::with_capacity(1000, &heap);
+    ///
+    /// // Now intern many values without triggering rehashes
+    /// for i in 0..1000 {
+    ///     interner.intern(i);
+    /// }
+    /// ```
+    ///
+    /// Use case for AST construction:
+    ///
+    /// ```
+    /// # use hashql_core::{heap::Heap, intern::InternSet};
+    /// #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+    /// struct TypeId(u32);
+    ///
+    /// let heap = Heap::new();
+    ///
+    /// // If your language has ~50 built-in types, pre-allocate for them
+    /// let type_interner = InternSet::with_capacity(50, &heap);
+    ///
+    /// for id in 0..50 {
+    ///     type_interner.intern(TypeId(id));
+    /// }
+    /// ```
+    pub fn with_capacity(capacity: usize, heap: &'heap Heap) -> Self {
+        Self {
+            inner: LocalLock::new(fast_hash_map(capacity)),
             heap,
         }
     }
 }
 
-impl<'heap, T: ?Sized + Eq + Hash> InternSet<'heap, T> {
+impl<T: ?Sized + Eq + Hash> InternSet<'_, T> {
     /// Assertion that ensures T doesn't require drop.
     ///
     /// This is necessary because we allocate memory for T on the heap and don't run
@@ -95,40 +179,6 @@ impl<'heap, T: ?Sized + Eq + Hash> InternSet<'heap, T> {
         !core::mem::needs_drop::<T>(),
         "Cannot intern a type that needs drop"
     );
-
-    /// Inserts an already allocated value into the intern set.
-    ///
-    /// This method is used internally by both `intern` and `intern_slice`. It handles the
-    /// actual insertion of a value that's already been allocated on the heap.
-    ///
-    /// If the value already exists in the set (determined by equality), the existing
-    /// interned value is returned. If not, the new value is inserted and returned.
-    ///
-    /// # Concurrency
-    ///
-    /// This method handles concurrent insertions by detecting if another thread has
-    /// already inserted the same value and using that value instead. This has the caveat that we
-    /// potentially waste memory by allocating a new value that will never be used. (In reality,
-    /// this codepath is unlikely to be hit at all.)
-    fn insert(&self, value: &'heap T) -> Interned<'heap, T> {
-        if self.inner.insert(value) == Ok(()) {
-            Interned::new_unchecked(value)
-        } else {
-            // Due to the fact that this is essentially single-threaded, the concurrent insertion is
-            // unlikely to *ever* occur.
-            cold_path();
-
-            tracing::debug!("concurrent insertion detected, using existing value");
-
-            // We never remove so we know this is going to work
-            let value = self
-                .inner
-                .read(value, |kind| *kind)
-                .unwrap_or_else(|| unreachable!());
-
-            Interned::new_unchecked(value)
-        }
-    }
 }
 
 impl<'heap, T> InternSet<'heap, T>
@@ -225,18 +275,30 @@ where
     ///
     /// assert_eq!(interned.as_ref(), &value);
     /// ```
-    #[expect(clippy::option_if_let_else, reason = "readability")]
     pub fn intern(&self, value: T) -> Interned<'heap, T> {
         const { Self::ASSERT_T_IS_NOT_DROP };
         const { Self::ASSERT_T_IS_NOT_ZERO_SIZED };
 
-        if let Some(value) = self.inner.read(&value, |value| *value) {
-            Interned::new_unchecked(value)
-        } else {
-            let value = self.heap.alloc(value);
+        let heap = self.heap;
 
-            self.insert(value)
-        }
+        let value = self.inner.map(|inner| {
+            let hash_value = inner.hasher().hash_one(&value);
+
+            match inner
+                .raw_entry_mut()
+                .from_key_hashed_nocheck(hash_value, &value)
+            {
+                RawEntryMut::Vacant(entry) => {
+                    let value = heap.alloc(value);
+
+                    let (key, ()) = entry.insert_hashed_nocheck(hash_value, &*value, ());
+                    *key
+                }
+                RawEntryMut::Occupied(entry) => *entry.key(),
+            }
+        });
+
+        Interned::new_unchecked(value)
     }
 }
 
@@ -307,18 +369,30 @@ where
     /// let slice = &[String::new()];
     /// let interned = interner.intern_slice(slice);
     /// ```
-    #[expect(clippy::option_if_let_else, reason = "readability")]
     pub fn intern_slice(&self, value: &[T]) -> Interned<'heap, [T]> {
         const { Self::ASSERT_T_IS_NOT_DROP };
         const { Self::ASSERT_T_IS_NOT_ZERO_SIZED };
 
-        if let Some(value) = self.inner.read(value, |value| *value) {
-            Interned::new_unchecked(value)
-        } else {
-            let value = self.heap.slice(value);
+        let heap = self.heap;
 
-            self.insert(value)
-        }
+        let value = self.inner.map(|inner| {
+            let hash_value = inner.hasher().hash_one(value);
+
+            match inner
+                .raw_entry_mut()
+                .from_key_hashed_nocheck(hash_value, value)
+            {
+                RawEntryMut::Vacant(entry) => {
+                    let value = heap.slice(value);
+
+                    let (key, ()) = entry.insert_hashed_nocheck(hash_value, &*value, ());
+                    *key
+                }
+                RawEntryMut::Occupied(entry) => *entry.key(),
+            }
+        });
+
+        Interned::new_unchecked(value)
     }
 }
 
@@ -471,5 +545,105 @@ mod tests {
         let value2 = intern_set.intern_slice(empty_slice2);
 
         assert!(ptr::eq(value1.as_ref(), value2.as_ref()));
+    }
+
+    #[test]
+    fn slice_different_sources_same_content() {
+        let heap = Heap::new();
+        let interner = InternSet::new(&heap);
+
+        // Create slices from different sources
+        let vec1 = vec![1, 2, 3, 4, 5];
+        let vec2 = vec![1, 2, 3, 4, 5];
+        let arr = [1, 2, 3, 4, 5];
+
+        let slice1 = interner.intern_slice(&vec1);
+        let slice2 = interner.intern_slice(&vec2);
+        let slice3 = interner.intern_slice(&arr);
+
+        // All should point to the same interned slice
+        assert!(ptr::eq(slice1.as_ref(), slice2.as_ref()));
+        assert!(ptr::eq(slice2.as_ref(), slice3.as_ref()));
+    }
+
+    #[test]
+    fn slice_subslices_are_different() {
+        let heap = Heap::new();
+        let interner = InternSet::new(&heap);
+
+        let full = [1, 2, 3, 4, 5];
+        let sub1 = &full[0..3]; // [1, 2, 3]
+        let sub2 = &full[2..5]; // [3, 4, 5]
+
+        let interned_full = interner.intern_slice(&full);
+        let interned_sub1 = interner.intern_slice(sub1);
+        let interned_sub2 = interner.intern_slice(sub2);
+
+        // All should be different
+        assert!(!ptr::eq(interned_full.as_ref(), interned_sub1.as_ref()));
+        assert!(!ptr::eq(interned_full.as_ref(), interned_sub2.as_ref()));
+        assert!(!ptr::eq(interned_sub1.as_ref(), interned_sub2.as_ref()));
+    }
+
+    #[test]
+    fn slice_varying_lengths() {
+        let heap = Heap::new();
+        let interner = InternSet::new(&heap);
+
+        // Intern slices of different lengths with the same prefix
+        for len in 1..=100 {
+            let data: Vec<i32> = (0..len).collect();
+            interner.intern_slice(&data);
+        }
+
+        // Verify length 50 is still correctly interned
+        let test = (0..50).collect::<Vec<_>>();
+        let interned1 = interner.intern_slice(&test);
+        let interned2 = interner.intern_slice(&test);
+        assert!(ptr::eq(interned1.as_ref(), interned2.as_ref()));
+    }
+
+    #[derive(Debug, Copy, Clone, PartialEq, Eq)]
+    struct CollisionInt {
+        value: i32,
+        collision_group: u8,
+    }
+
+    impl Hash for CollisionInt {
+        fn hash<H: Hasher>(&self, state: &mut H) {
+            // Only hash collision_group to force collisions
+            self.collision_group.hash(state);
+        }
+    }
+
+    #[test]
+    fn hash_collisions_with_many_values() {
+        let heap = Heap::new();
+        let set = InternSet::new(&heap);
+
+        let mut interned = vec![];
+
+        // Create 100 values that all hash to the same value
+        for i in 0..100 {
+            let val = CollisionInt {
+                value: i,
+                collision_group: 42, // Same for all
+            };
+            interned.push((val, set.intern(val)));
+        }
+
+        // Verify each value has its own interned instance
+        for i in 0..100 {
+            for j in (i + 1)..100 {
+                // Different values despite same hash
+                assert!(!ptr::eq(interned[i].1.as_ref(), interned[j].1.as_ref()));
+            }
+        }
+
+        // Verify re-interning returns same instance
+        for (val, original) in &interned {
+            let re_interned = set.intern(*val);
+            assert!(ptr::eq(original.as_ref(), re_interned.as_ref()));
+        }
     }
 }
