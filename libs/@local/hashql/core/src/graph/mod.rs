@@ -3,6 +3,8 @@ use crate::id::{HasId, newtype};
 
 pub mod algorithms;
 pub mod linked;
+#[cfg(test)]
+mod tests;
 
 newtype!(pub struct NodeId(usize is 0..=usize::MAX));
 newtype!(pub struct EdgeId(usize is 0..=usize::MAX));
@@ -16,14 +18,18 @@ pub enum Direction {
 pub(crate) const DIRECTIONS: usize = core::mem::variant_count::<Direction>();
 
 pub trait DirectedGraph {
-    type Node: HasId<Id = NodeId>;
-    type Edge: HasId<Id = EdgeId>;
+    type Node<'this>: HasId<Id = NodeId>
+    where
+        Self: 'this;
+    type Edge<'this>: HasId<Id = EdgeId>
+    where
+        Self: 'this;
 
     fn node_count(&self) -> usize;
     fn edge_count(&self) -> usize;
 
-    fn iter_nodes(&self) -> impl ExactSizeIterator<Item = &Self::Node> + DoubleEndedIterator;
-    fn iter_edges(&self) -> impl ExactSizeIterator<Item = &Self::Edge> + DoubleEndedIterator;
+    fn iter_nodes(&self) -> impl ExactSizeIterator<Item = Self::Node<'_>> + DoubleEndedIterator;
+    fn iter_edges(&self) -> impl ExactSizeIterator<Item = Self::Edge<'_>> + DoubleEndedIterator;
 }
 
 pub trait Successors: DirectedGraph {

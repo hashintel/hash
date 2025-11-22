@@ -137,8 +137,14 @@ impl<N, E, A: Allocator> LinkedGraph<N, E, A> {
 }
 
 impl<N, E, A: Allocator> DirectedGraph for LinkedGraph<N, E, A> {
-    type Edge = Edge<E>;
-    type Node = Node<N>;
+    type Edge<'this>
+        = &'this Edge<E>
+    where
+        Self: 'this;
+    type Node<'this>
+        = &'this Node<N>
+    where
+        Self: 'this;
 
     fn node_count(&self) -> usize {
         self.nodes.len()
@@ -148,11 +154,11 @@ impl<N, E, A: Allocator> DirectedGraph for LinkedGraph<N, E, A> {
         self.edges.len()
     }
 
-    fn iter_nodes(&self) -> impl ExactSizeIterator<Item = &Self::Node> + DoubleEndedIterator {
+    fn iter_nodes(&self) -> impl ExactSizeIterator<Item = Self::Node<'_>> + DoubleEndedIterator {
         self.nodes.iter()
     }
 
-    fn iter_edges(&self) -> impl ExactSizeIterator<Item = &Self::Edge> + DoubleEndedIterator {
+    fn iter_edges(&self) -> impl ExactSizeIterator<Item = Self::Edge<'_>> + DoubleEndedIterator {
         self.edges.iter()
     }
 }
