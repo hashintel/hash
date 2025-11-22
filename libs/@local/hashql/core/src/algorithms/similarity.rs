@@ -202,7 +202,7 @@ fn sorted_word_match<'heap>(
 /// # Examples
 ///
 /// ```
-/// use hashql_core::{heap::Heap, similarity::did_you_mean, symbol::Symbol};
+/// use hashql_core::{algorithms::did_you_mean, heap::Heap, symbol::Symbol};
 ///
 /// let heap = Heap::new();
 ///

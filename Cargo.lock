@@ -3699,7 +3699,6 @@ dependencies = [
  "roaring",
  "rpds",
  "rstest",
- "scc",
  "serde",
  "simple-mermaid",
  "smallvec 2.0.0-alpha.11",
