@@ -1,20 +1,23 @@
-mod tarjan;
+pub mod tarjan;
 
 use alloc::collections::VecDeque;
 
-use super::{DirectedGraph, NodeId, Successors};
-use crate::id::bit_vec::MixedBitSet;
+use super::{DirectedGraph, Successors};
+use crate::id::{Id, bit_vec::MixedBitSet};
 
-pub struct DepthFirstTraversal<'graph, G: ?Sized> {
+pub struct DepthFirstTraversal<'graph, G: ?Sized, N> {
     graph: &'graph G,
-    stack: Vec<NodeId>,
-    visited: MixedBitSet<NodeId>,
+    stack: Vec<N>,
+    visited: MixedBitSet<N>,
 }
 
-impl<'graph, G: ?Sized> DepthFirstTraversal<'graph, G> {
+impl<'graph, G: ?Sized, N> DepthFirstTraversal<'graph, G, N>
+where
+    N: Id,
+{
     pub fn new(graph: &'graph G) -> Self
     where
-        G: DirectedGraph,
+        G: DirectedGraph<NodeId = N>,
     {
         DepthFirstTraversal {
             graph,
@@ -23,31 +26,35 @@ impl<'graph, G: ?Sized> DepthFirstTraversal<'graph, G> {
         }
     }
 
-    pub fn with_start_node(graph: &'graph G, start_node: NodeId) -> Self
+    pub fn with_start_node(graph: &'graph G, start_node: N) -> Self
     where
-        G: DirectedGraph,
+        G: DirectedGraph<NodeId = N>,
     {
         let mut traversal = DepthFirstTraversal::new(graph);
         traversal.stack.push(start_node);
         traversal
     }
 
-    pub fn push_start_node(&mut self, start_node: NodeId)
+    pub fn push_start_node(&mut self, start_node: N)
     where
-        G: DirectedGraph,
+        G: DirectedGraph<NodeId = N>,
     {
         if self.visited.insert(start_node) {
             self.stack.push(start_node);
         }
     }
 
-    pub fn visited(&self, node: NodeId) -> bool {
+    pub fn visited(&self, node: N) -> bool {
         self.visited.contains(node)
     }
 }
 
-impl<G: DirectedGraph + Successors + ?Sized> Iterator for DepthFirstTraversal<'_, G> {
-    type Item = NodeId;
+impl<G: DirectedGraph<NodeId = N> + Successors + ?Sized, N> Iterator
+    for DepthFirstTraversal<'_, G, N>
+where
+    N: Id,
+{
+    type Item = N;
 
     fn next(&mut self) -> Option<Self::Item> {
         let next = self.stack.pop()?;
@@ -71,16 +78,19 @@ impl<G: DirectedGraph + Successors + ?Sized> Iterator for DepthFirstTraversal<'_
     }
 }
 
-pub struct BreadthFirstTraversal<'graph, G: ?Sized> {
+pub struct BreadthFirstTraversal<'graph, G: ?Sized, N> {
     graph: &'graph G,
-    queue: VecDeque<NodeId>,
-    visited: MixedBitSet<NodeId>,
+    queue: VecDeque<N>,
+    visited: MixedBitSet<N>,
 }
 
-impl<'graph, G: ?Sized> BreadthFirstTraversal<'graph, G> {
+impl<'graph, G: ?Sized, N> BreadthFirstTraversal<'graph, G, N>
+where
+    N: Id,
+{
     pub fn new(graph: &'graph G) -> Self
     where
-        G: DirectedGraph,
+        G: DirectedGraph<NodeId = N>,
     {
         BreadthFirstTraversal {
             graph,
@@ -89,18 +99,18 @@ impl<'graph, G: ?Sized> BreadthFirstTraversal<'graph, G> {
         }
     }
 
-    pub fn with_start_node(graph: &'graph G, start_node: NodeId) -> Self
+    pub fn with_start_node(graph: &'graph G, start_node: N) -> Self
     where
-        G: DirectedGraph,
+        G: DirectedGraph<NodeId = N>,
     {
         let mut traversal = BreadthFirstTraversal::new(graph);
         traversal.queue.push_back(start_node);
         traversal
     }
 
-    pub fn push_start_node(&mut self, start_node: NodeId)
+    pub fn push_start_node(&mut self, start_node: N)
     where
-        G: DirectedGraph,
+        G: DirectedGraph<NodeId = N>,
     {
         if self.visited.insert(start_node) {
             self.queue.push_back(start_node);
@@ -108,13 +118,17 @@ impl<'graph, G: ?Sized> BreadthFirstTraversal<'graph, G> {
     }
 
     #[must_use]
-    pub fn visited(&self, node: NodeId) -> bool {
+    pub fn visited(&self, node: N) -> bool {
         self.visited.contains(node)
     }
 }
 
-impl<G: DirectedGraph + Successors + ?Sized> Iterator for BreadthFirstTraversal<'_, G> {
-    type Item = NodeId;
+impl<G: DirectedGraph<NodeId = N> + Successors + ?Sized, N> Iterator
+    for BreadthFirstTraversal<'_, G, N>
+where
+    N: Id,
+{
+    type Item = N;
 
     fn next(&mut self) -> Option<Self::Item> {
         let next = self.queue.pop_front()?;

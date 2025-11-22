@@ -1,5 +1,5 @@
 use self::algorithms::{BreadthFirstTraversal, DepthFirstTraversal};
-use crate::id::{HasId, newtype};
+use crate::id::{HasId, Id, newtype};
 
 pub mod algorithms;
 pub mod linked;
@@ -18,10 +18,12 @@ pub enum Direction {
 pub(crate) const DIRECTIONS: usize = core::mem::variant_count::<Direction>();
 
 pub trait DirectedGraph {
-    type Node<'this>: HasId<Id = NodeId>
+    type NodeId: Id;
+    type Node<'this>: HasId<Id = Self::NodeId>
     where
         Self: 'this;
-    type Edge<'this>: HasId<Id = EdgeId>
+    type EdgeId: Id;
+    type Edge<'this>: HasId<Id = Self::EdgeId>
     where
         Self: 'this;
 
@@ -33,26 +35,26 @@ pub trait DirectedGraph {
 }
 
 pub trait Successors: DirectedGraph {
-    type SuccIter<'this>: Iterator<Item = NodeId>
+    type SuccIter<'this>: Iterator<Item = Self::NodeId>
     where
         Self: 'this;
 
-    fn successors(&self, node: NodeId) -> Self::SuccIter<'_>;
+    fn successors(&self, node: Self::NodeId) -> Self::SuccIter<'_>;
 }
 
 pub trait Predecessors: DirectedGraph {
-    type PredIter<'this>: Iterator<Item = NodeId>
+    type PredIter<'this>: Iterator<Item = Self::NodeId>
     where
         Self: 'this;
 
-    fn predecessors(&self, node: NodeId) -> Self::PredIter<'_>;
+    fn predecessors(&self, node: Self::NodeId) -> Self::PredIter<'_>;
 }
 
 pub trait Traverse: DirectedGraph + Successors {
     fn depth_first_traversal(
         &self,
-        start: impl IntoIterator<Item = NodeId>,
-    ) -> impl Iterator<Item = NodeId> {
+        start: impl IntoIterator<Item = Self::NodeId>,
+    ) -> impl Iterator<Item = Self::NodeId> {
         let mut traversal = DepthFirstTraversal::new(self);
 
         for start in start {
@@ -63,8 +65,8 @@ pub trait Traverse: DirectedGraph + Successors {
     }
     fn breadth_first_traversal(
         &self,
-        node: impl IntoIterator<Item = NodeId>,
-    ) -> impl Iterator<Item = NodeId> {
+        node: impl IntoIterator<Item = Self::NodeId>,
+    ) -> impl Iterator<Item = Self::NodeId> {
         let mut traversal = BreadthFirstTraversal::new(self);
 
         for start in node {
