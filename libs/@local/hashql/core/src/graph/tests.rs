@@ -60,10 +60,12 @@ impl DirectedGraph for TestGraph {
         = EdgeId
     where
         Self: 'this;
+    type EdgeId = EdgeId;
     type Node<'this>
         = NodeId
     where
         Self: 'this;
+    type NodeId = NodeId;
 
     fn edge_count(&self) -> usize {
         self.edge_count

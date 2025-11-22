@@ -1,99 +1,104 @@
-use super::Metadata;
-use crate::{graph::NodeId, id::IdVec, newtype};
+use core::cmp;
+
+use super::{Metadata, StronglyConnectedComponents};
+use crate::{
+    graph::{
+        DirectedGraph as _, NodeId, Successors as _, algorithms::tarjan::Tarjan, tests::TestGraph,
+    },
+    id::Id as _,
+    newtype,
+};
 
 newtype!(pub struct SccId(usize is 0..=usize::MAX));
 
-#[derive(Copy, Clone, Debug)]
-struct MaxReached(usize);
+type Sccs<M = ()> = StronglyConnectedComponents<NodeId, SccId, M>;
 
-struct Maxes(IdVec<SccId, MaxReached>, fn(NodeId) -> usize);
+macro_rules! n {
+    ($id:expr) => {
+        NodeId::from_usize($id)
+    };
+}
 
-impl Metadata<SccId> for Maxes {
-    type Annotation = MaxReached;
+macro_rules! s {
+    ($id:expr) => {
+        SccId::from_usize($id)
+    };
+}
 
-    fn annotate_node(&mut self, node: crate::graph::NodeId) -> Self::Annotation {
-        MaxReached(self.1(node))
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
+struct ReachableMaximum(usize);
+
+struct MaxMetadata<N> {
+    mapping: fn(N) -> usize,
+}
+
+impl<N> Metadata<N, SccId> for MaxMetadata<N> {
+    type Annotation = ReachableMaximum;
+
+    fn annotate_node(&mut self, node: N) -> Self::Annotation {
+        ReachableMaximum((self.mapping)(node))
     }
 
-    fn annotate_scc(&mut self, scc: SccId, root: NodeId) -> Self::Annotation {
+    fn annotate_scc(&mut self, scc: SccId, root: N) -> Self::Annotation {
         self.annotate_node(root)
     }
 
     fn merge_reachable(&mut self, lhs: &mut Self::Annotation, other: &Self::Annotation) {
-        *lhs = MaxReached(std::cmp::max(lhs.0, other.0));
+        *lhs = cmp::max(*lhs, *other);
     }
 
     fn merge_into_scc(&mut self, lhs: &mut Self::Annotation, other: Self::Annotation) {
-        *lhs = MaxReached(std::cmp::max(lhs.0, other.0));
+        *lhs = cmp::max(*lhs, other);
     }
 }
 
-impl Maxes {
-    fn annotation(&self, scc: usize) -> MaxReached {
-        self.0[scc]
-    }
-
-    fn new(mapping: fn(NodeId) -> usize) -> Self {
-        Self(IdVec::new(), mapping)
+impl<N> MaxMetadata<N> {
+    fn new(mapping: fn(N) -> usize) -> Self {
+        Self { mapping }
     }
 }
 
-impl PartialEq<usize> for MaxReached {
-    fn eq(&self, other: &usize) -> bool {
-        &self.0 == other
-    }
-}
-
-#[derive(Copy, Clone, Debug)]
-struct MinMaxIn {
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+struct SccBounds {
     min: usize,
     max: usize,
 }
-struct MinMaxes(IndexVec<usize, MinMaxIn>, fn(usize) -> MinMaxIn);
 
-impl MinMaxes {
-    fn annotation(&self, scc: usize) -> MinMaxIn {
-        self.0[scc]
-    }
+struct SccBoundsMetadata<N> {
+    mapping: fn(N) -> SccBounds,
 }
 
-impl Metadata<usize> for MinMaxes {
-    type Ann = MinMaxIn;
-    type SccIdx = usize;
+impl<N> Metadata<N, SccId> for SccBoundsMetadata<N> {
+    type Annotation = SccBounds;
 
-    fn new(&self, element: usize) -> MinMaxIn {
-        self.1(element)
+    fn annotate_node(&mut self, node: N) -> Self::Annotation {
+        (self.mapping)(node)
     }
 
-    fn annotate_scc(&mut self, scc: usize, annotation: MinMaxIn) {
-        let i = self.0.push(annotation);
-        assert!(i == scc);
-    }
-}
-
-impl Annotation for MinMaxIn {
-    fn merge_scc(self, other: Self) -> Self {
-        Self {
-            min: std::cmp::min(self.min, other.min),
-            max: std::cmp::max(self.max, other.max),
-        }
+    fn annotate_scc(&mut self, scc: SccId, root: N) -> Self::Annotation {
+        self.annotate_node(root)
     }
 
-    fn merge_reached(self, _other: Self) -> Self {
-        self
+    fn merge_reachable(&mut self, lhs: &mut Self::Annotation, other: &Self::Annotation) {}
+
+    fn merge_into_scc(&mut self, lhs: &mut Self::Annotation, other: Self::Annotation) {
+        *lhs = SccBounds {
+            min: cmp::min(lhs.min, other.min),
+            max: cmp::max(lhs.max, other.max),
+        };
     }
 }
 
 #[test]
 fn diamond() {
-    let graph = TestGraph::new(0, &[(0, 1), (0, 2), (1, 3), (2, 3)]);
-    let sccs: UsizeSccs = Sccs::new(&graph);
-    assert_eq!(sccs.num_sccs(), 4);
-    assert_eq!(sccs.num_sccs(), 4);
+    let graph = TestGraph::new(&[(0, 1), (0, 2), (1, 3), (2, 3)]);
+    let sccs: Sccs = Tarjan::new(&graph).run();
+
+    assert_eq!(sccs.node_count(), 4);
 }
 
 #[test]
-fn test_big_scc() {
+fn large_scc() {
     // The order in which things will be visited is important to this
     // test.
     //
@@ -114,13 +119,19 @@ fn test_big_scc() {
     |   v    |
     +-- 2 <--+
          */
-    let graph = TestGraph::new(0, &[(0, 1), (1, 2), (1, 3), (2, 0), (3, 2)]);
-    let sccs: UsizeSccs = Sccs::new(&graph);
-    assert_eq!(sccs.num_sccs(), 1);
+    let graph = TestGraph::new(&[(0, 1), (1, 2), (1, 3), (2, 0), (3, 2)]);
+    let sccs: Sccs = Tarjan::new(&graph).run();
+
+    assert_eq!(sccs.node_count(), 1);
+}
+
+#[track_caller]
+fn assert_successors(sccs: &Sccs, scc: SccId, successors: &[SccId]) {
+    assert_eq!(sccs.successors(scc).collect::<Vec<_>>(), successors);
 }
 
 #[test]
-fn test_three_sccs() {
+fn three_sccs() {
     /*
         0
         |
@@ -130,20 +141,22 @@ fn test_three_sccs() {
     |   v    |
     +-- 2 <--+
          */
-    let graph = TestGraph::new(0, &[(0, 1), (1, 2), (2, 1), (3, 2)]);
-    let sccs: UsizeSccs = Sccs::new(&graph);
-    assert_eq!(sccs.num_sccs(), 3);
-    assert_eq!(sccs.scc(0), 1);
-    assert_eq!(sccs.scc(1), 0);
-    assert_eq!(sccs.scc(2), 0);
-    assert_eq!(sccs.scc(3), 2);
-    assert_eq!(sccs.successors(0), &[] as &[usize]);
-    assert_eq!(sccs.successors(1), &[0]);
-    assert_eq!(sccs.successors(2), &[0]);
+    let graph = TestGraph::new(&[(0, 1), (1, 2), (2, 1), (3, 2)]);
+    let sccs: Sccs = Tarjan::new(&graph).run();
+
+    assert_eq!(sccs.node_count(), 3);
+    assert_eq!(sccs.scc(n!(0)), s!(1));
+    assert_eq!(sccs.scc(n!(1)), s!(0));
+    assert_eq!(sccs.scc(n!(2)), s!(0));
+    assert_eq!(sccs.scc(n!(3)), s!(2));
+
+    assert_successors(&sccs, s!(0), &[]);
+    assert_successors(&sccs, s!(1), &[s!(0)]);
+    assert_successors(&sccs, s!(2), &[s!(0)]);
 }
 
 #[test]
-fn test_find_state_2() {
+fn find_state_2() {
     // The order in which things will be visited is important to this
     // test. It tests part of the `find_state` behavior. Here is the
     // graph:
@@ -158,7 +171,7 @@ fn test_find_state_2() {
     // |   v      |
     // +-- 2 <----+
 
-    let graph = TestGraph::new(0, &[(0, 1), (0, 4), (1, 2), (1, 3), (2, 1), (3, 0), (4, 2)]);
+    let graph = TestGraph::new(&[(0, 1), (0, 4), (1, 2), (1, 3), (2, 1), (3, 0), (4, 2)]);
 
     // For this graph, we will start in our DFS by visiting:
     //
@@ -187,18 +200,19 @@ fn test_find_state_2() {
     // 2 InCycleWith { 1 }
     // 3 InCycleWith { 0 }
 
-    let sccs: UsizeSccs = Sccs::new(&graph);
-    assert_eq!(sccs.num_sccs(), 1);
-    assert_eq!(sccs.scc(0), 0);
-    assert_eq!(sccs.scc(1), 0);
-    assert_eq!(sccs.scc(2), 0);
-    assert_eq!(sccs.scc(3), 0);
-    assert_eq!(sccs.scc(4), 0);
-    assert_eq!(sccs.successors(0), &[] as &[usize]);
+    let sccs: Sccs = Tarjan::new(&graph).run();
+    assert_eq!(sccs.node_count(), 1);
+    assert_eq!(sccs.scc(n!(0)), s!(0));
+    assert_eq!(sccs.scc(n!(1)), s!(0));
+    assert_eq!(sccs.scc(n!(2)), s!(0));
+    assert_eq!(sccs.scc(n!(3)), s!(0));
+    assert_eq!(sccs.scc(n!(4)), s!(0));
+
+    assert_successors(&sccs, s!(0), &[]);
 }
 
 #[test]
-fn test_find_state_3() {
+fn find_state_3() {
     /*
           /----+
         0 <--+ |
@@ -209,33 +223,32 @@ fn test_find_state_3() {
     |   v      | |
     +-- 2 <----+-+
          */
-    let graph = TestGraph::new(
-        0,
-        &[
-            (0, 1),
-            (0, 4),
-            (1, 2),
-            (1, 3),
-            (2, 1),
-            (3, 0),
-            (4, 2),
-            (5, 2),
-        ],
-    );
-    let sccs: UsizeSccs = Sccs::new(&graph);
-    assert_eq!(sccs.num_sccs(), 2);
-    assert_eq!(sccs.scc(0), 0);
-    assert_eq!(sccs.scc(1), 0);
-    assert_eq!(sccs.scc(2), 0);
-    assert_eq!(sccs.scc(3), 0);
-    assert_eq!(sccs.scc(4), 0);
-    assert_eq!(sccs.scc(5), 1);
-    assert_eq!(sccs.successors(0), &[] as &[usize]);
-    assert_eq!(sccs.successors(1), &[0]);
+    let graph = TestGraph::new(&[
+        (0, 1),
+        (0, 4),
+        (1, 2),
+        (1, 3),
+        (2, 1),
+        (3, 0),
+        (4, 2),
+        (5, 2),
+    ]);
+    let sccs: Sccs = Tarjan::new(&graph).run();
+
+    assert_eq!(sccs.node_count(), 2);
+    assert_eq!(sccs.scc(n!(0)), s!(0));
+    assert_eq!(sccs.scc(n!(1)), s!(0));
+    assert_eq!(sccs.scc(n!(2)), s!(0));
+    assert_eq!(sccs.scc(n!(3)), s!(0));
+    assert_eq!(sccs.scc(n!(4)), s!(0));
+    assert_eq!(sccs.scc(n!(5)), s!(1));
+
+    assert_successors(&sccs, s!(0), &[]);
+    assert_successors(&sccs, s!(1), &[s!(0)]);
 }
 
 #[test]
-fn test_deep_linear() {
+fn deep_linear() {
     /*
     0
     |
@@ -248,231 +261,202 @@ fn test_deep_linear() {
     v
     …
      */
-    #[cfg(not(miri))]
-    const NR_NODES: usize = 1 << 14;
-    #[cfg(miri)]
-    const NR_NODES: usize = 1 << 3;
+    const NODE_COUNT: usize = 1 << 14;
+
     let mut nodes = vec![];
-    for i in 1..NR_NODES {
+    for i in 1..NODE_COUNT {
         nodes.push((i - 1, i));
     }
-    let graph = TestGraph::new(0, nodes.as_slice());
-    let sccs: UsizeSccs = Sccs::new(&graph);
-    assert_eq!(sccs.num_sccs(), NR_NODES);
-    assert_eq!(sccs.scc(0), NR_NODES - 1);
-    assert_eq!(sccs.scc(NR_NODES - 1), 0);
-}
 
-#[bench]
-fn bench_sccc(b: &mut test::Bencher) {
-    // Like `test_three_sccs` but each state is replaced by a group of
-    // three or four to have some amount of test data.
-    /*
-       0-3
-        |
-        v
-    +->4-6 11-14
-    |   |    |
-    |   v    |
-    +--7-10<-+
-         */
-    fn make_3_clique(slice: &mut [(usize, usize)], base: usize) {
-        slice[0] = (base + 0, base + 1);
-        slice[1] = (base + 1, base + 2);
-        slice[2] = (base + 2, base + 0);
-    }
-    // Not actually a clique but strongly connected.
-    fn make_4_clique(slice: &mut [(usize, usize)], base: usize) {
-        slice[0] = (base + 0, base + 1);
-        slice[1] = (base + 1, base + 2);
-        slice[2] = (base + 2, base + 3);
-        slice[3] = (base + 3, base + 0);
-        slice[4] = (base + 1, base + 3);
-        slice[5] = (base + 2, base + 1);
-    }
+    let graph = TestGraph::new(nodes.as_slice());
+    let sccs: Sccs = Tarjan::new(&graph).run();
 
-    let mut graph = [(0, 0); 6 + 3 + 6 + 3 + 4];
-    make_4_clique(&mut graph[0..6], 0);
-    make_3_clique(&mut graph[6..9], 4);
-    make_4_clique(&mut graph[9..15], 7);
-    make_3_clique(&mut graph[15..18], 11);
-    graph[18] = (0, 4);
-    graph[19] = (5, 7);
-    graph[20] = (11, 10);
-    graph[21] = (7, 4);
-    let graph = TestGraph::new(0, &graph[..]);
-    b.iter(|| {
-        let sccs: UsizeSccs = Sccs::new(&graph);
-        assert_eq!(sccs.num_sccs(), 3);
-    });
+    assert_eq!(sccs.node_count(), NODE_COUNT);
+    assert_eq!(sccs.scc(n!(0)), s!(NODE_COUNT - 1));
+    assert_eq!(sccs.scc(n!(NODE_COUNT - 1)), s!(0));
 }
 
 #[test]
-fn test_max_self_loop() {
-    let graph = TestGraph::new(0, &[(0, 0)]);
-    let mut annotations = Maxes(IndexVec::new(), |n| if n == 0 { 17 } else { 0 });
-    Sccs::new_with_annotation(&graph, &mut annotations);
-    assert_eq!(annotations.0[0], 17);
+fn max_self_loop() {
+    let graph = TestGraph::new(&[(0, 0)]);
+    let metadata = MaxMetadata {
+        mapping: |n: NodeId| if n.as_usize() == 0 { 17 } else { 0 },
+    };
+
+    let scc = Tarjan::new_with_metadata(&graph, metadata).run();
+    assert_eq!(scc.annotation(s!(0)).0, 17);
 }
 
 #[test]
-fn test_max_branch() {
-    let graph = TestGraph::new(0, &[(0, 1), (0, 2), (1, 3), (2, 4)]);
-    let mut annotations = Maxes(IndexVec::new(), |n| n);
-    let sccs = Sccs::new_with_annotation(&graph, &mut annotations);
-    assert_eq!(annotations.0[sccs.scc(0)], 4);
-    assert_eq!(annotations.0[sccs.scc(1)], 3);
-    assert_eq!(annotations.0[sccs.scc(2)], 4);
+fn max_branch() {
+    let graph = TestGraph::new(&[(0, 1), (0, 2), (1, 3), (2, 4)]);
+    let metadata = MaxMetadata {
+        mapping: |n: NodeId| n.as_usize(),
+    };
+
+    let sccs = Tarjan::new_with_metadata(&graph, metadata).run();
+    assert_eq!(sccs.annotation(sccs.scc(n!(0))).0, 4);
+    assert_eq!(sccs.annotation(sccs.scc(n!(1))).0, 3);
+    assert_eq!(sccs.annotation(sccs.scc(n!(2))).0, 4);
 }
 
 #[test]
-fn test_single_cycle_max() {
-    let graph = TestGraph::new(0, &[(0, 2), (2, 3), (2, 4), (4, 1), (1, 2)]);
-    let mut annotations = Maxes(IndexVec::new(), |n| n);
-    let sccs = Sccs::new_with_annotation(&graph, &mut annotations);
-    assert_eq!(annotations.0[sccs.scc(2)], 4);
-    assert_eq!(annotations.0[sccs.scc(0)], 4);
+fn max_single_cycle() {
+    let graph = TestGraph::new(&[(0, 2), (2, 3), (2, 4), (4, 1), (1, 2)]);
+    let metadata = MaxMetadata {
+        mapping: |n: NodeId| n.as_usize(),
+    };
+
+    let sccs = Tarjan::new_with_metadata(&graph, metadata).run();
+
+    assert_eq!(sccs.annotation(sccs.scc(n!(2))).0, 4);
+    assert_eq!(sccs.annotation(sccs.scc(n!(0))).0, 4);
 }
 
 #[test]
-fn test_double_cycle_max() {
-    let graph = TestGraph::new(
-        0,
-        &[
-            (0, 1),
-            (1, 2),
-            (1, 4),
-            (2, 3),
-            (2, 4),
-            (3, 5),
-            (4, 1),
-            (5, 4),
-        ],
-    );
-    let mut annotations = Maxes(IndexVec::new(), |n| if n == 5 { 2 } else { 1 });
+fn max_double_cycle() {
+    let graph = TestGraph::new(&[
+        (0, 1),
+        (1, 2),
+        (1, 4),
+        (2, 3),
+        (2, 4),
+        (3, 5),
+        (4, 1),
+        (5, 4),
+    ]);
+    let metadata = MaxMetadata {
+        mapping: |n: NodeId| if n.as_usize() == 5 { 2 } else { 1 },
+    };
 
-    let sccs = Sccs::new_with_annotation(&graph, &mut annotations);
+    let sccs = Tarjan::new_with_metadata(&graph, metadata).run();
 
-    assert_eq!(annotations.0[sccs.scc(0)].0, 2);
+    assert_eq!(sccs.annotation(sccs.scc(n!(0))).0, 2);
 }
 
 #[test]
-fn test_bug_minimised() {
-    let graph = TestGraph::new(0, &[(0, 3), (0, 1), (3, 2), (2, 3), (1, 4), (4, 5), (5, 4)]);
-    let mut annotations = Maxes(IndexVec::new(), |n| match n {
-        3 => 1,
-        _ => 0,
-    });
+fn minimised_bug() {
+    let graph = TestGraph::new(&[(0, 3), (0, 1), (3, 2), (2, 3), (1, 4), (4, 5), (5, 4)]);
+    let metadata = MaxMetadata {
+        mapping: |n: NodeId| match n.as_usize() {
+            3 => 1,
+            _ => 0,
+        },
+    };
 
-    let sccs = Sccs::new_with_annotation(&graph, &mut annotations);
-    assert_eq!(annotations.annotation(sccs.scc(2)), 1);
-    assert_eq!(annotations.annotation(sccs.scc(1)), 0);
-    assert_eq!(annotations.annotation(sccs.scc(4)), 0);
+    let sccs = Tarjan::new_with_metadata(&graph, metadata).run();
+    assert_eq!(sccs.annotation(sccs.scc(n!(2))).0, 1);
+    assert_eq!(sccs.annotation(sccs.scc(n!(1))).0, 0);
+    assert_eq!(sccs.annotation(sccs.scc(n!(4))).0, 0);
 }
 
 #[test]
-fn test_bug_max_leak_minimised() {
-    let graph = TestGraph::new(0, &[(0, 1), (0, 2), (1, 3), (3, 0), (3, 4), (4, 3)]);
-    let mut annotations = Maxes(IndexVec::new(), |w| match w {
-        4 => 1,
-        _ => 0,
-    });
+fn max_minimised_leak_bug() {
+    let graph = TestGraph::new(&[(0, 1), (0, 2), (1, 3), (3, 0), (3, 4), (4, 3)]);
+    let metadata = MaxMetadata {
+        mapping: |w: NodeId| match w.as_usize() {
+            4 => 1,
+            _ => 0,
+        },
+    };
 
-    let sccs = Sccs::new_with_annotation(&graph, &mut annotations);
+    let sccs = Tarjan::new_with_metadata(&graph, metadata).run();
 
-    assert_eq!(annotations.annotation(sccs.scc(2)), 0);
-    assert_eq!(annotations.annotation(sccs.scc(3)), 1);
-    assert_eq!(annotations.annotation(sccs.scc(0)), 1);
+    assert_eq!(sccs.annotation(sccs.scc(n!(2))).0, 0);
+    assert_eq!(sccs.annotation(sccs.scc(n!(3))).0, 1);
+    assert_eq!(sccs.annotation(sccs.scc(n!(0))).0, 1);
 }
 
 #[test]
-fn test_bug_max_leak() {
-    let graph = TestGraph::new(
-        8,
-        &[
-            (0, 0),
-            (0, 18),
-            (0, 19),
-            (0, 1),
-            (0, 2),
-            (0, 7),
-            (0, 8),
-            (0, 23),
-            (18, 0),
-            (18, 12),
-            (19, 0),
-            (19, 25),
-            (12, 18),
-            (12, 3),
-            (12, 5),
-            (3, 12),
-            (3, 21),
-            (3, 22),
-            (5, 13),
-            (21, 3),
-            (22, 3),
-            (13, 5),
-            (13, 4),
-            (4, 13),
-            (4, 0),
-            (2, 11),
-            (7, 6),
-            (6, 20),
-            (20, 6),
-            (8, 17),
-            (17, 9),
-            (9, 16),
-            (16, 26),
-            (26, 15),
-            (15, 10),
-            (10, 14),
-            (14, 27),
-            (23, 24),
-        ],
-    );
-    let mut annotations = Maxes::new(|w| match w {
+fn max_leak_bug() {
+    let graph = TestGraph::new(&[
+        (0, 0),
+        (0, 18),
+        (0, 19),
+        (0, 1),
+        (0, 2),
+        (0, 7),
+        (0, 8),
+        (0, 23),
+        (18, 0),
+        (18, 12),
+        (19, 0),
+        (19, 25),
+        (12, 18),
+        (12, 3),
+        (12, 5),
+        (3, 12),
+        (3, 21),
+        (3, 22),
+        (5, 13),
+        (21, 3),
+        (22, 3),
+        (13, 5),
+        (13, 4),
+        (4, 13),
+        (4, 0),
+        (2, 11),
+        (7, 6),
+        (6, 20),
+        (20, 6),
+        (8, 17),
+        (17, 9),
+        (9, 16),
+        (16, 26),
+        (26, 15),
+        (15, 10),
+        (10, 14),
+        (14, 27),
+        (23, 24),
+    ]);
+    let metadata = MaxMetadata::new(|w: NodeId| match w.as_usize() {
         22 => 1,
         24 => 2,
         27 => 2,
         _ => 0,
     });
-    let sccs = Sccs::new_with_annotation(&graph, &mut annotations);
+    let sccs = Tarjan::new_with_metadata(&graph, metadata).run();
 
-    assert_eq!(annotations.annotation(sccs.scc(2)), 0);
-    assert_eq!(annotations.annotation(sccs.scc(7)), 0);
-    assert_eq!(annotations.annotation(sccs.scc(8)), 2);
-    assert_eq!(annotations.annotation(sccs.scc(23)), 2);
-    assert_eq!(annotations.annotation(sccs.scc(3)), 2);
-    assert_eq!(annotations.annotation(sccs.scc(0)), 2);
+    assert_eq!(sccs.annotation(sccs.scc(n!(2))).0, 0);
+    assert_eq!(sccs.annotation(sccs.scc(n!(7))).0, 0);
+    assert_eq!(sccs.annotation(sccs.scc(n!(8))).0, 2);
+    assert_eq!(sccs.annotation(sccs.scc(n!(23))).0, 2);
+    assert_eq!(sccs.annotation(sccs.scc(n!(3))).0, 2);
+    assert_eq!(sccs.annotation(sccs.scc(n!(0))).0, 2);
 }
 
 #[test]
 fn test_bug_max_zero_stick_shape() {
-    let graph = TestGraph::new(0, &[(0, 1), (1, 2), (2, 3), (3, 2), (3, 4)]);
-    let mut annotations = Maxes::new(|w| match w {
+    let graph = TestGraph::new(&[(0, 1), (1, 2), (2, 3), (3, 2), (3, 4)]);
+    let metadata = MaxMetadata::new(|w: NodeId| match w.as_usize() {
         4 => 1,
         _ => 0,
     });
-    let sccs = Sccs::new_with_annotation(&graph, &mut annotations);
+    let sccs = Tarjan::new_with_metadata(&graph, metadata).run();
 
-    assert_eq!(annotations.annotation(sccs.scc(0)), 1);
-    assert_eq!(annotations.annotation(sccs.scc(1)), 1);
-    assert_eq!(annotations.annotation(sccs.scc(2)), 1);
-    assert_eq!(annotations.annotation(sccs.scc(3)), 1);
-    assert_eq!(annotations.annotation(sccs.scc(4)), 1);
+    assert_eq!(sccs.annotation(sccs.scc(n!(0))).0, 1);
+    assert_eq!(sccs.annotation(sccs.scc(n!(1))).0, 1);
+    assert_eq!(sccs.annotation(sccs.scc(n!(2))).0, 1);
+    assert_eq!(sccs.annotation(sccs.scc(n!(3))).0, 1);
+    assert_eq!(sccs.annotation(sccs.scc(n!(4))).0, 1);
 }
 
 #[test]
 fn test_min_max_in() {
-    let graph = TestGraph::new(0, &[(0, 1), (0, 2), (1, 3), (3, 0), (3, 4), (4, 3), (3, 5)]);
-    let mut annotations = MinMaxes(IndexVec::new(), |w| MinMaxIn { min: w, max: w });
-    let sccs = Sccs::new_with_annotation(&graph, &mut annotations);
+    let graph = TestGraph::new(&[(0, 1), (0, 2), (1, 3), (3, 0), (3, 4), (4, 3), (3, 5)]);
+    let metadata = SccBoundsMetadata {
+        mapping: |w: NodeId| SccBounds {
+            min: w.as_usize(),
+            max: w.as_usize(),
+        },
+    };
+    let sccs = Tarjan::new_with_metadata(&graph, metadata).run();
 
-    assert_eq!(annotations.annotation(sccs.scc(2)).min, 2);
-    assert_eq!(annotations.annotation(sccs.scc(2)).max, 2);
-    assert_eq!(annotations.annotation(sccs.scc(0)).min, 0);
-    assert_eq!(annotations.annotation(sccs.scc(0)).max, 4);
-    assert_eq!(annotations.annotation(sccs.scc(3)).min, 0);
-    assert_eq!(annotations.annotation(sccs.scc(3)).max, 4);
-    assert_eq!(annotations.annotation(sccs.scc(5)).min, 5);
+    assert_eq!(sccs.annotation(sccs.scc(n!(2))).min, 2);
+    assert_eq!(sccs.annotation(sccs.scc(n!(2))).max, 2);
+    assert_eq!(sccs.annotation(sccs.scc(n!(0))).min, 0);
+    assert_eq!(sccs.annotation(sccs.scc(n!(0))).max, 4);
+    assert_eq!(sccs.annotation(sccs.scc(n!(3))).min, 0);
+    assert_eq!(sccs.annotation(sccs.scc(n!(3))).max, 4);
+    assert_eq!(sccs.annotation(sccs.scc(n!(5))).min, 5);
 }
