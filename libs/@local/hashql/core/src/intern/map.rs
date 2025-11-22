@@ -183,7 +183,7 @@ where
 pub struct InternMap<'heap, T: Decompose<'heap>> {
     heap: &'heap Heap,
 
-    // For more information about the tradeoff and decision on the use of `LockLock`, see
+    // For more information about the tradeoff and decision on the use of `LocalLock`, see
     // the documentation on `InternSet`.
     inner: LocalLock<FastHashMap<&'heap T::Partial, T::Id>>,
 
