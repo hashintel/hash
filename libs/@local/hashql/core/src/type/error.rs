@@ -16,8 +16,8 @@ use super::{
     pretty::{FormatType, TypeFormatter},
 };
 use crate::{
+    algorithms::did_you_mean,
     pretty::{Formatter, RenderOptions},
-    similarity::did_you_mean,
     span::SpanId,
     symbol::{Ident, Symbol},
     r#type::pretty::TypeFormatterOptions,
