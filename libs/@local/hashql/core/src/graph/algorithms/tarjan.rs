@@ -5,7 +5,7 @@
 //! impossible states unrepresentable and can annotate SCCs with custom data.
 
 use alloc::{alloc::Global, vec::Vec};
-use core::{alloc::Allocator, mem, ops::Range};
+use core::{alloc::Allocator, ops::Range};
 
 use crate::{
     collections::{FastHashSet, fast_hash_set_in},
@@ -36,13 +36,7 @@ pub trait Annotations<S> {
 enum NodeState<S, A> {
     Unvisited,
 
-    Visited {
-        index: DiscoveryTime,
-        low_link: DiscoveryTime,
-        annotation: A,
-    },
-
-    Exploring {
+    OnStack {
         index: DiscoveryTime,
         low_link: DiscoveryTime,
         successors: Range<usize>,
@@ -56,22 +50,17 @@ enum NodeState<S, A> {
 }
 
 impl<S, A> NodeState<S, A> {
-    /// Returns true if the node is currently on the SCC candidate stack
-    const fn is_on_stack(&self) -> bool {
-        matches!(self, Self::Exploring { .. })
-    }
-
     /// Returns the low-link value if the node is active
     const fn low_link(&self) -> Option<DiscoveryTime> {
         match self {
-            Self::Visited { low_link, .. } | Self::Exploring { low_link, .. } => Some(*low_link),
+            Self::OnStack { low_link, .. } => Some(*low_link),
             _ => None,
         }
     }
 
     /// Updates the low-link value for an active node
     fn update_low_link(&mut self, new_low: DiscoveryTime) {
-        if let Self::Exploring { low_link, .. } | Self::Visited { low_link, .. } = self
+        if let Self::OnStack { low_link, .. } = self
             && new_low.as_usize() < low_link.as_usize()
         {
             *low_link = new_low;
@@ -171,7 +160,7 @@ where
         self.successor_stack.extend(self.graph.successors(node));
         let successors_end = self.successor_stack.len();
 
-        self.node_state[node] = NodeState::Exploring {
+        self.node_state[node] = NodeState::OnStack {
             index,
             low_link: index,
             successors: successors_start..successors_end,
@@ -189,7 +178,7 @@ where
         // Iterative DFS
         while let Some(frame) = self.dfs_stack.last_mut() {
             let current_node = frame.node;
-            let NodeState::Exploring { successors, .. } = &self.node_state[current_node] else {
+            let NodeState::OnStack { successors, .. } = &self.node_state[current_node] else {
                 unreachable!("Node state should be Exploring")
             };
             let successors_range = successors.clone();
@@ -204,18 +193,19 @@ where
                         // Visit this successor
                         self.start_exploration(successor);
                     }
-                    &NodeState::Exploring { low_link, .. } => {
+                    &NodeState::OnStack {
+                        index: succ_index, ..
+                    } => {
                         // Back edge to a node on the stack - update low-link
-                        self.node_state[current_node].update_low_link(low_link);
+                        self.node_state[current_node].update_low_link(succ_index);
                     }
-                    NodeState::Visited { .. } | NodeState::InComponent { .. } => {
+                    NodeState::InComponent { .. } => {
                         // Cross edge or forward edge - ignore for low-link
                     }
                 }
             } else {
                 // All successors processed - pop this frame
                 self.dfs_stack.pop();
-                self.successor_stack.truncate(successors_range.start);
 
                 // Update parent's low-link if there is a parent
                 if let Some(parent_frame) = self.dfs_stack.last()
@@ -224,7 +214,7 @@ where
                     self.node_state[parent_frame.node].update_low_link(current_low);
                 }
 
-                let NodeState::Exploring {
+                let NodeState::OnStack {
                     index, low_link, ..
                 } = self.node_state[current_node]
                 else {
@@ -234,23 +224,6 @@ where
                 if index == low_link {
                     // SCC is a root
                     self.finalize_scc(current_node);
-                } else {
-                    // The item is not an scc *yet*, transition to the visited state
-                    let NodeState::Exploring {
-                        index,
-                        low_link,
-                        successors: _,
-                        annotation,
-                    } = mem::replace(&mut self.node_state[current_node], NodeState::Unvisited)
-                    else {
-                        unreachable!("verified that it should be exploring previously");
-                    };
-
-                    self.node_state[current_node] = NodeState::Visited {
-                        index,
-                        low_link,
-                        annotation,
-                    };
                 }
             }
         }
@@ -267,7 +240,7 @@ where
             let node = self.scc_stack.pop().expect("SCC stack should not be empty");
             self.data.nodes[node] = scc_id;
 
-            let NodeState::Exploring {
+            let NodeState::OnStack {
                 annotation,
                 successors,
                 ..
@@ -283,7 +256,7 @@ where
                 .annotation
                 .merge_scc(annotation);
 
-            for &successor in &self.successor_stack[successors] {
+            for &successor in &self.successor_stack[successors.clone()] {
                 // If not in component, then it's either not yet finalized, or in the same scc
                 if let NodeState::InComponent { id: target_scc_id } = self.node_state[successor]
                     && target_scc_id != scc_id
@@ -300,6 +273,8 @@ where
                     scc.annotation.merge_reachable(&target.annotation);
                 }
             }
+
+            self.successor_stack.truncate(successors.start);
 
             if node == root {
                 break;
