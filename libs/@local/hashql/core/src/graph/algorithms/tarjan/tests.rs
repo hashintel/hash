@@ -100,6 +100,15 @@ impl<N> Metadata<N, SccId> for SccBoundsMetadata<N> {
     }
 }
 
+/// Tests SCC detection on an empty graph.
+/// An empty graph should have no SCCs.
+#[test]
+fn empty() {
+    let graph = TestGraph::new(&[]);
+    let sccs: Sccs = Tarjan::new(&graph).run();
+    assert_eq!(sccs.node_count(), 0);
+}
+
 /// Tests SCC detection on a simple diamond-shaped DAG.
 /// Each node forms its own SCC since there are no cycles.
 #[test]

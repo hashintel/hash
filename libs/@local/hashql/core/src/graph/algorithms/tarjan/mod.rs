@@ -544,7 +544,7 @@ where
         self.data
             .successors
             .extend(self.deduplicated_successors.drain());
-        // Sort for deterministic output and efficient binary search
+        // Sort for deterministic output
         self.data.successors[successor_len..].sort_unstable();
 
         self.data.components[scc_id].successors.end = self.data.successors.len();
