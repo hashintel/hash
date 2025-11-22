@@ -9,7 +9,7 @@ use crate::{
     newtype,
 };
 
-newtype!(pub struct SccId(usize is 0..=usize::MAX));
+newtype!(struct SccId(usize is 0..=usize::MAX));
 
 type Sccs<M = ()> = StronglyConnectedComponents<NodeId, SccId, M>;
 
@@ -426,7 +426,7 @@ fn max_leak_bug() {
 }
 
 #[test]
-fn test_bug_max_zero_stick_shape() {
+fn bug_max_zero_stick_shape() {
     let graph = TestGraph::new(&[(0, 1), (1, 2), (2, 3), (3, 2), (3, 4)]);
     let metadata = MaxMetadata::new(|w: NodeId| match w.as_usize() {
         4 => 1,
@@ -442,7 +442,7 @@ fn test_bug_max_zero_stick_shape() {
 }
 
 #[test]
-fn test_min_max_in() {
+fn bounds() {
     let graph = TestGraph::new(&[(0, 1), (0, 2), (1, 3), (3, 0), (3, 4), (4, 3), (3, 5)]);
     let metadata = SccBoundsMetadata {
         mapping: |w: NodeId| SccBounds {
