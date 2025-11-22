@@ -5481,9 +5481,9 @@ dependencies = [
 
 [[package]]
 name = "nextest-metadata"
-version = "0.12.2"
+version = "0.12.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d9a6698b97a0917b86d8ddeed0edb0fa638b594798510422448330def46b50d3"
+checksum = "2725d07ba30cabadad8e4219185a5a14dbc478e32ea72af4eb89d63f9705ca7f"
 dependencies = [
  "camino",
  "nextest-workspace-hack",
