@@ -32,7 +32,7 @@ pub mod linked;
 #[cfg(test)]
 mod tests;
 
-use self::algorithms::{BreadthFirstTraversal, DepthFirstTraversal};
+use self::algorithms::{BreadthFirstTraversal, DepthFirstTraversal, DepthFirstTraversalPostOrder};
 pub use self::linked::LinkedGraph;
 use crate::id::{HasId, Id, newtype};
 
@@ -220,6 +220,47 @@ pub trait Traverse: DirectedGraph + Successors {
         start: impl IntoIterator<Item = Self::NodeId>,
     ) -> impl Iterator<Item = Self::NodeId> {
         let mut traversal = DepthFirstTraversal::new(self);
+
+        for start in start {
+            traversal.push_start_node(start);
+        }
+
+        traversal
+    }
+
+    /// Performs a post-order depth-first traversal starting from the given nodes.
+    ///
+    /// Post-order traversal visits all descendants of a node before visiting the node
+    /// itself.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// # use hashql_core::graph::{LinkedGraph, Traverse};
+    /// #
+    /// let mut graph = LinkedGraph::new();
+    /// let root = graph.add_node("root");
+    /// let child1 = graph.add_node("child1");
+    /// let child2 = graph.add_node("child2");
+    /// graph.add_edge(root, child1, ());
+    /// graph.add_edge(root, child2, ());
+    ///
+    /// let visited: Vec<_> = graph.depth_first_traversal_post_order([root]).collect();
+    /// // Children are visited before the root
+    /// assert_eq!(visited, [child2, child1, root]);
+    ///
+    /// // Multiple disconnected starting nodes
+    /// let n3 = graph.add_node("isolated");
+    ///
+    /// let all_visited: Vec<_> = graph.depth_first_traversal_post_order([root, n3]).collect();
+    /// // Post-order: all descendants before ancestors
+    /// # assert_eq!(all_visited, [n3, child2, child1, root]);
+    /// ```
+    fn depth_first_traversal_post_order(
+        &self,
+        start: impl IntoIterator<Item = Self::NodeId>,
+    ) -> impl Iterator<Item = Self::NodeId> {
+        let mut traversal = DepthFirstTraversalPostOrder::new(self);
 
         for start in start {
             traversal.push_start_node(start);
