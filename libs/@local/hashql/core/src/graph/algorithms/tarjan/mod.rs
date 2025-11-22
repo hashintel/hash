@@ -2,7 +2,7 @@
 mod tests;
 
 use alloc::{alloc::Global, vec::Vec};
-use core::{alloc::Allocator, ops::Range};
+use core::{alloc::Allocator, iter, ops::Range, slice};
 
 use crate::{
     collections::{FastHashSet, fast_hash_set_in},
@@ -95,7 +95,7 @@ struct Data<N, S, M, A: Allocator = Global> {
     nodes: IdVec<N, S, A>,
 }
 
-pub struct StronglyConnectedComponents<N, S, M: Metadata<N, S>, A: Allocator = Global> {
+pub struct StronglyConnectedComponents<N, S, M: Metadata<N, S> = (), A: Allocator = Global> {
     pub metadata: M,
 
     data: Data<N, S, M::Annotation, A>,
@@ -109,6 +109,10 @@ where
 {
     pub fn scc(&self, node: N) -> S {
         self.data.nodes[node]
+    }
+
+    pub fn annotation(&self, scc: S) -> &M::Annotation {
+        &self.data.components[scc].annotation
     }
 }
 
@@ -151,7 +155,7 @@ where
     M: Metadata<N, S>,
 {
     type SuccIter<'this>
-        = impl Iterator<Item = S>
+        = iter::Copied<slice::Iter<'this, S>>
     where
         Self: 'this;
 
@@ -186,6 +190,19 @@ where
     #[inline]
     pub fn new(graph: &'graph G) -> Self {
         Self::new_in(graph, Global)
+    }
+}
+
+impl<'graph, G, N, S, M> Tarjan<'graph, G, N, S, M>
+where
+    G: DirectedGraph<NodeId = N> + Successors,
+    N: Id,
+    S: Id,
+    M: Metadata<N, S>,
+{
+    #[inline]
+    pub fn new_with_metadata(graph: &'graph G, metadata: M) -> Self {
+        Self::new_with_metadata_in(graph, metadata, Global)
     }
 }
 
