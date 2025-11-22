@@ -44,7 +44,7 @@
 //!
 //! // Iterate over successors
 //! let successors: Vec<_> = graph.successors(alice).collect();
-//! # assert_eq!(successors, [bob, carol]);
+//! # assert_eq!(successors, [carol, bob]);
 //! ```
 
 use alloc::alloc::Global;
@@ -225,7 +225,7 @@ impl<N, E> LinkedGraph<N, E> {
     /// # Examples
     ///
     /// ```rust
-    /// # use hashql_core::graph::LinkedGraph;
+    /// # use hashql_core::graph::{LinkedGraph, DirectedGraph as _};
     /// #
     /// let graph: LinkedGraph<&str, i32> = LinkedGraph::new();
     /// assert_eq!(graph.node_count(), 0);
@@ -244,7 +244,7 @@ impl<N, E, A: Allocator> LinkedGraph<N, E, A> {
     /// # Examples
     ///
     /// ```rust
-    /// # use hashql_core::graph::LinkedGraph;
+    /// # use hashql_core::graph::{LinkedGraph, DirectedGraph as _};
     /// #
     /// let graph: LinkedGraph<&str, i32> = LinkedGraph::new();
     /// assert_eq!(graph.node_count(), 0);
@@ -270,8 +270,8 @@ impl<N, E, A: Allocator> LinkedGraph<N, E, A> {
     /// # Examples
     ///
     /// ```rust
-    /// # use hashql_core::graph::LinkedGraph;
-    /// # let mut graph = LinkedGraph::new();
+    /// # use hashql_core::graph::{LinkedGraph, DirectedGraph as _};
+    /// # let mut graph = LinkedGraph::<_, ()>::new();
     /// let node = graph.add_node("data");
     /// assert_eq!(graph.node_count(), 1);
     /// ```
@@ -292,7 +292,7 @@ impl<N, E, A: Allocator> LinkedGraph<N, E, A> {
     ///
     /// ```rust
     /// # use hashql_core::graph::LinkedGraph;
-    /// # let mut graph = LinkedGraph::new();
+    /// # let mut graph = LinkedGraph::<_, ()>::new();
     /// let id = graph.add_node("A");
     ///
     /// assert_eq!(graph.node(id).map(|node| node.data), Some("A"));
@@ -323,7 +323,7 @@ impl<N, E, A: Allocator> LinkedGraph<N, E, A> {
     /// # Examples
     ///
     /// ```rust
-    /// # use hashql_core::graph::LinkedGraph;
+    /// # use hashql_core::graph::{LinkedGraph, DirectedGraph as _};
     /// # let mut graph = LinkedGraph::new();
     /// # let n1 = graph.add_node("A");
     /// # let n2 = graph.add_node("B");
