@@ -29,6 +29,7 @@ pub mod tarjan;
 
 use alloc::collections::VecDeque;
 
+pub use self::tarjan::Tarjan;
 use super::{DirectedGraph, Successors};
 use crate::id::{Id, bit_vec::MixedBitSet};
 
