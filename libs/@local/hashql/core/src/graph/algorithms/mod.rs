@@ -17,12 +17,12 @@
 //! // Depth-first traversal
 //! let dfs = DepthFirstTraversal::with_start_node(&graph, n1);
 //! let visited: Vec<_> = dfs.collect();
-//! # assert_eq!(visited, vec![n1, n2]);
+//! # assert_eq!(visited, [n1, n2]);
 //!
 //! // Breadth-first traversal
 //! let bfs = BreadthFirstTraversal::with_start_node(&graph, n1);
 //! let visited: Vec<_> = bfs.collect();
-//! # assert_eq!(visited, vec![n1, n2]);
+//! # assert_eq!(visited, [n1, n2]);
 //! ```
 
 pub mod tarjan;
@@ -244,7 +244,7 @@ where
     /// let traversal = BreadthFirstTraversal::new(&graph);
     ///
     /// let visited: Vec<_> = traversal.collect();
-    /// # assert_eq!(visited, vec![]);
+    /// # assert_eq!(visited, []);
     /// ```
     pub fn new(graph: &'graph G) -> Self
     where
@@ -271,7 +271,7 @@ where
     ///
     /// let traversal = BreadthFirstTraversal::with_start_node(&graph, n1);
     /// let visited: Vec<_> = traversal.collect();
-    /// # assert_eq!(visited, vec![n1, n2]);
+    /// # assert_eq!(visited, [n1, n2]);
     /// ```
     pub fn with_start_node(graph: &'graph G, start_node: N) -> Self
     where
@@ -304,7 +304,7 @@ where
     /// traversal.push_start_node(n3);
     ///
     /// let visited: Vec<_> = traversal.collect();
-    /// # assert_eq!(visited, vec![n1, n3, n2]);
+    /// # assert_eq!(visited, [n1, n3, n2]);
     /// ```
     pub fn push_start_node(&mut self, start_node: N)
     where
