@@ -29,6 +29,7 @@ macro_rules! n {
     };
 }
 
+#[expect(clippy::min_ident_chars, reason = "internal macro")]
 macro_rules! s {
     ($id:expr) => {
         SccId::from_usize($id)
