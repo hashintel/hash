@@ -131,7 +131,7 @@ pub trait DirectedGraph {
 /// graph.add_edge(n1, n3, "edge2");
 ///
 /// let successors: Vec<_> = graph.successors(n1).collect();
-/// # assert_eq!(successors, [n2, n3]);
+/// # assert_eq!(successors, [n3, n2]);
 /// ```
 pub trait Successors: DirectedGraph {
     /// Iterator type that yields successor node identifiers.
@@ -162,7 +162,7 @@ pub trait Successors: DirectedGraph {
 /// graph.add_edge(n2, n3, "edge2");
 ///
 /// let predecessors: Vec<_> = graph.predecessors(n3).collect();
-/// # assert_eq!(predecessors, vec![n1, n2]);
+/// # assert_eq!(predecessors, vec![n2, n1]);
 /// ```
 pub trait Predecessors: DirectedGraph {
     /// Iterator type that yields predecessor node identifiers.
@@ -214,7 +214,7 @@ pub trait Traverse: DirectedGraph + Successors {
     /// let n3 = graph.add_node("C");
     ///
     /// let all_visited: Vec<_> = graph.depth_first_traversal([n1, n3]).collect();
-    /// assert_eq!(all_visited, [n1, n2, n3]);
+    /// assert_eq!(all_visited, [n3, n1, n2]);
     /// ```
     fn depth_first_traversal(
         &self,
@@ -240,18 +240,20 @@ pub trait Traverse: DirectedGraph + Successors {
     /// let n1 = graph.add_node("A");
     /// let n2 = graph.add_node("B");
     /// let n3 = graph.add_node("C");
+    /// let n4 = graph.add_node("D");
     /// graph.add_edge(n1, n2, ());
     /// graph.add_edge(n1, n3, ());
+    /// graph.add_edge(n2, n4, ());
     ///
     /// // Single starting node - visits level-by-level
     /// let visited: Vec<_> = graph.breadth_first_traversal([n1]).collect();
-    /// assert_eq!(visited, [n1, n2, n3]);
+    /// assert_eq!(visited, [n1, n3, n2, n4]);
     ///
     /// // Multiple disconnected starting nodes
-    /// let n4 = graph.add_node("D");
+    /// let n5 = graph.add_node("E");
     ///
-    /// let all_visited: Vec<_> = graph.breadth_first_traversal([n1, n4]).collect();
-    /// assert!(all_visited, [n1, n4, n2, n3]);
+    /// let all_visited: Vec<_> = graph.breadth_first_traversal([n1, n5]).collect();
+    /// assert_eq!(all_visited, [n1, n5, n3, n2, n4]);
     /// ```
     fn breadth_first_traversal(
         &self,

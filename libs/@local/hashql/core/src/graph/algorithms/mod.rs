@@ -65,7 +65,7 @@ where
                 .filter(|&id| self.visited.insert(id)),
         );
 
-        None
+        Some(next)
     }
 
     fn size_hint(&self) -> (usize, Option<usize>) {
@@ -139,7 +139,7 @@ where
                 .filter(|&id| self.visited.insert(id)),
         );
 
-        None
+        Some(next)
     }
 
     fn size_hint(&self) -> (usize, Option<usize>) {
