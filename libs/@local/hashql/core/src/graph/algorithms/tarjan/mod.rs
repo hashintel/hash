@@ -1,31 +1,40 @@
-//! Tarjan's algorithm for finding strongly connected components (SCCs).
-//!
-//! This module provides an iterative, single-pass implementation of Tarjan's strongly
-//! connected components algorithm. The implementation uses type-safe node states to make
-//! impossible states unrepresentable and can annotate SCCs with custom data.
+#[cfg(test)]
+mod tests;
 
 use alloc::{alloc::Global, vec::Vec};
 use core::{alloc::Allocator, ops::Range};
 
 use crate::{
     collections::{FastHashSet, fast_hash_set_in},
-    graph::{DirectedGraph, NodeId, Successors},
-    id::{HasId as _, Id, IdVec},
+    graph::{DirectedGraph, EdgeId, Successors},
+    id::{HasId, Id, IdVec},
     newtype,
 };
 
 newtype!(pub struct DiscoveryTime(usize is 0..=usize::MAX));
 
-pub trait Annotation {
-    fn merge_scc(&mut self, other: Self);
-    fn merge_reachable(&mut self, other: &Self);
+pub trait Metadata<N, S> {
+    type Annotation;
+
+    fn annotate_node(&mut self, node: N) -> Self::Annotation;
+
+    #[expect(unused_variables, reason = "trait definition")]
+    fn annotate_scc(&mut self, scc: S, root: N) -> Self::Annotation {
+        self.annotate_node(root)
+    }
+
+    fn merge_into_scc(&mut self, lhs: &mut Self::Annotation, other: Self::Annotation);
+    fn merge_reachable(&mut self, lhs: &mut Self::Annotation, other: &Self::Annotation);
 }
 
-pub trait Annotations<S> {
-    type Annotation: Annotation;
+impl<N, S> Metadata<N, S> for () {
+    type Annotation = ();
 
-    fn annotate_node(&mut self, node: NodeId) -> Self::Annotation;
-    fn annotate_scc(&mut self, scc: S) -> Self::Annotation;
+    fn annotate_node(&mut self, _node: N) -> Self::Annotation {}
+
+    fn merge_into_scc(&mut self, _lhs: &mut Self::Annotation, _other: Self::Annotation) {}
+
+    fn merge_reachable(&mut self, _lhs: &mut Self::Annotation, _other: &Self::Annotation) {}
 }
 
 /// Represents the state of a node during Tarjan's algorithm execution.
@@ -54,7 +63,7 @@ impl<S, A> NodeState<S, A> {
     const fn low_link(&self) -> Option<DiscoveryTime> {
         match self {
             Self::OnStack { low_link, .. } => Some(*low_link),
-            _ => None,
+            Self::Unvisited | Self::InComponent { .. } => None,
         }
     }
 
@@ -70,50 +79,144 @@ impl<S, A> NodeState<S, A> {
 
 /// Represents a frame in the iterative DFS traversal
 #[derive(Debug, Clone)]
-struct DfsFrame {
-    node: NodeId,
+struct DfsFrame<N> {
+    node: N,
     successor_index: usize,
 }
 
-struct Scc<A> {
+struct Component<A> {
     annotation: A,
     successors: Range<usize>,
 }
 
-struct SccData<S, Ann, A: Allocator = Global> {
-    components: IdVec<S, Scc<Ann>, A>,
+struct Data<N, S, M, A: Allocator = Global> {
+    components: IdVec<S, Component<M>, A>,
     successors: Vec<S, A>,
-    nodes: IdVec<NodeId, S, A>,
+    nodes: IdVec<N, S, A>,
 }
 
-pub struct Tarjan<'graph, G, S, Ann: Annotations<S>, A: Allocator = Global> {
-    graph: &'graph G,
-    annotations: Ann,
+pub struct StronglyConnectedComponents<N, S, M: Metadata<N, S>, A: Allocator = Global> {
+    pub metadata: M,
 
-    node_state: IdVec<NodeId, NodeState<S, Ann::Annotation>, A>,
-    dfs_stack: Vec<DfsFrame, A>,
-    scc_stack: Vec<NodeId, A>,
-    successor_stack: Vec<NodeId, A>,
+    data: Data<N, S, M::Annotation, A>,
+}
+
+impl<N, S, M, A: Allocator> StronglyConnectedComponents<N, S, M, A>
+where
+    N: Id,
+    S: Id,
+    M: Metadata<N, S>,
+{
+    pub fn scc(&self, node: N) -> S {
+        self.data.nodes[node]
+    }
+}
+
+impl<N, S, M, A: Allocator> DirectedGraph for StronglyConnectedComponents<N, S, M, A>
+where
+    S: Id + HasId<Id = S>,
+    M: Metadata<N, S>,
+{
+    type Edge<'this>
+        = EdgeId
+    where
+        Self: 'this;
+    type EdgeId = EdgeId;
+    type Node<'this>
+        = S
+    where
+        Self: 'this;
+    type NodeId = S;
+
+    fn node_count(&self) -> usize {
+        self.data.components.len()
+    }
+
+    fn edge_count(&self) -> usize {
+        self.data.successors.len()
+    }
+
+    fn iter_nodes(&self) -> impl ExactSizeIterator<Item = Self::Node<'_>> + DoubleEndedIterator {
+        (0..self.node_count()).map(S::from_usize)
+    }
+
+    fn iter_edges(&self) -> impl ExactSizeIterator<Item = Self::Edge<'_>> + DoubleEndedIterator {
+        (0..self.edge_count()).map(EdgeId::new)
+    }
+}
+
+impl<N, S, M, A: Allocator> Successors for StronglyConnectedComponents<N, S, M, A>
+where
+    S: Id + HasId<Id = S>,
+    M: Metadata<N, S>,
+{
+    type SuccIter<'this>
+        = impl Iterator<Item = S>
+    where
+        Self: 'this;
+
+    fn successors(&self, node: S) -> Self::SuccIter<'_> {
+        let range = self.data.components[node].successors.clone();
+
+        self.data.successors[range].iter().copied()
+    }
+}
+
+pub struct Tarjan<'graph, G, N, S, M: Metadata<N, S> = (), A: Allocator = Global> {
+    graph: &'graph G,
+    metadata: M,
+
+    node_state: IdVec<N, NodeState<S, M::Annotation>, A>,
+    dfs_stack: Vec<DfsFrame<N>, A>,
+    scc_stack: Vec<N, A>,
+    successor_stack: Vec<N, A>,
     deduplicated_successors: FastHashSet<S, A>,
 
     discovery_time: DiscoveryTime,
 
-    data: SccData<S, Ann::Annotation, A>,
+    data: Data<N, S, M::Annotation, A>,
 }
 
-impl<'graph, G, S, Ann, A> Tarjan<'graph, G, S, Ann, A>
+impl<'graph, G, N, S> Tarjan<'graph, G, N, S>
 where
+    G: DirectedGraph<NodeId = N> + Successors,
+    N: Id,
     S: Id,
-    G: DirectedGraph + Successors,
-    Ann: Annotations<S>,
+{
+    #[inline]
+    pub fn new(graph: &'graph G) -> Self {
+        Self::new_in(graph, Global)
+    }
+}
+
+impl<'graph, G, N, S, A> Tarjan<'graph, G, N, S, (), A>
+where
+    G: DirectedGraph<NodeId = N> + Successors,
+    N: Id,
+    S: Id,
     A: Allocator + Clone,
 {
-    pub fn new_in(graph: &'graph G, annotations: Ann, alloc: A) -> Self {
+    #[inline]
+    pub fn new_in(graph: &'graph G, alloc: A) -> Self {
+        Self::new_with_metadata_in(graph, (), alloc)
+    }
+}
+
+impl<'graph, G, N, S, M, A> Tarjan<'graph, G, N, S, M, A>
+where
+    G: DirectedGraph<NodeId = N> + Successors,
+    N: Id,
+    S: Id,
+    M: Metadata<N, S>,
+    A: Allocator + Clone,
+{
+    pub fn new_with_metadata_in(graph: &'graph G, metadata: M, alloc: A) -> Self {
         let node_count = graph.node_count();
 
         Self {
             graph,
-            annotations,
+            metadata,
+
             // Nodes are first in an unvisited state
             node_state: IdVec::from_fn_in(node_count, |_| NodeState::Unvisited, alloc.clone()),
 
@@ -123,7 +226,7 @@ where
             deduplicated_successors: fast_hash_set_in(None, alloc.clone()),
 
             discovery_time: DiscoveryTime::MIN,
-            data: SccData {
+            data: Data {
                 components: IdVec::new_in(alloc.clone()),
                 successors: Vec::new_in(alloc.clone()),
                 nodes: IdVec::from_fn_in(node_count, |_| S::MAX, alloc),
@@ -131,7 +234,7 @@ where
         }
     }
 
-    pub fn run(mut self) -> SccData<S, Ann::Annotation, A> {
+    pub fn run(mut self) -> StronglyConnectedComponents<N, S, M, A> {
         // Explore from each unvisited node, as to handle disconnected components
         for node in self.graph.iter_nodes() {
             let id = node.id();
@@ -141,10 +244,13 @@ where
             }
         }
 
-        self.data
+        StronglyConnectedComponents {
+            data: self.data,
+            metadata: self.metadata,
+        }
     }
 
-    fn start_exploration(&mut self, node: NodeId) {
+    fn start_exploration(&mut self, node: N) {
         let index = self.discovery_time;
         self.discovery_time.increment_by(1);
 
@@ -164,13 +270,13 @@ where
             index,
             low_link: index,
             successors: successors_start..successors_end,
-            annotation: self.annotations.annotate_node(node),
+            annotation: self.metadata.annotate_node(node),
         };
 
         self.dfs_stack.push(frame);
     }
 
-    fn explore_from(&mut self, start_node: NodeId) {
+    fn explore_from(&mut self, start_node: N) {
         debug_assert!(self.dfs_stack.is_empty());
 
         self.start_exploration(start_node);
@@ -229,10 +335,10 @@ where
         }
     }
 
-    fn finalize_scc(&mut self, root: NodeId) {
+    fn finalize_scc(&mut self, root: N) {
         // Collect all nodes in this SCC from the stack
-        let scc_id = self.data.components.push_with(|id| Scc {
-            annotation: self.annotations.annotate_scc(id),
+        let scc_id = self.data.components.push_with(|id| Component {
+            annotation: self.metadata.annotate_scc(id, root),
             successors: self.data.successors.len()..self.data.successors.len(),
         });
 
@@ -252,9 +358,8 @@ where
                 unreachable!("nodes inside of the scc stack should be unvisited");
             };
 
-            self.data.components[scc_id]
-                .annotation
-                .merge_scc(annotation);
+            self.metadata
+                .merge_into_scc(&mut self.data.components[scc_id].annotation, annotation);
 
             for &successor in &self.successor_stack[successors.clone()] {
                 // If not in component, then it's either not yet finalized, or in the same scc
@@ -270,7 +375,8 @@ where
                             unreachable!("verified previously that this is disjoint")
                         });
 
-                    scc.annotation.merge_reachable(&target.annotation);
+                    self.metadata
+                        .merge_reachable(&mut scc.annotation, &target.annotation);
                 }
             }
 

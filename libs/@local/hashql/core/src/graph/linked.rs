@@ -141,10 +141,12 @@ impl<N, E, A: Allocator> DirectedGraph for LinkedGraph<N, E, A> {
         = &'this Edge<E>
     where
         Self: 'this;
+    type EdgeId = EdgeId;
     type Node<'this>
         = &'this Node<N>
     where
         Self: 'this;
+    type NodeId = NodeId;
 
     fn node_count(&self) -> usize {
         self.nodes.len()
