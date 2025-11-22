@@ -528,7 +528,7 @@ where
     /// let mut traversal = DepthFirstTraversalPostOrder::with_start_node(&graph, n1);
     ///
     /// assert!(traversal.visited(n1)); // Marked when pushed
-    /// traversal.next(); // Visit n2 (post-order)
+    /// traversal.next();
     /// assert!(traversal.visited(n2)); // Successor also marked
     ///
     /// # assert_eq!(traversal.next(), Some(n1));
