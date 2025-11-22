@@ -43,7 +43,7 @@
     "@local/tsconfig": "0.0.0-private",
     "@types/dotenv-flow": "3.3.3",
     "eslint": "9.38.0",
-    "rimraf": "6.0.1",
+    "rimraf": "6.1.2",
     "typescript": "5.9.3",
     "wait-on": "9.0.1"
   }
