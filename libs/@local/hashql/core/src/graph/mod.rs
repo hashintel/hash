@@ -27,15 +27,14 @@
 //! assert_eq!(graph.node_count(), 2);
 //! assert_eq!(graph.edge_count(), 1);
 //! ```
-
-use self::algorithms::{BreadthFirstTraversal, DepthFirstTraversal};
-pub use self::linked::LinkedGraph;
-use crate::id::{HasId, Id, newtype};
-
 pub mod algorithms;
 pub mod linked;
 #[cfg(test)]
 mod tests;
+
+use self::algorithms::{BreadthFirstTraversal, DepthFirstTraversal};
+pub use self::linked::LinkedGraph;
+use crate::id::{HasId, Id, newtype};
 
 newtype!(pub struct NodeId(usize is 0..=usize::MAX));
 newtype!(pub struct EdgeId(usize is 0..=usize::MAX));
