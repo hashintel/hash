@@ -141,6 +141,17 @@ pub trait HasId {
     fn id(&self) -> Self::Id;
 }
 
+impl<T> HasId for &T
+where
+    T: HasId,
+{
+    type Id = T::Id;
+
+    fn id(&self) -> Self::Id {
+        (**self).id()
+    }
+}
+
 /// Creates a new ID type with a specified valid range.
 ///
 /// This uses the experimental pattern type syntax to define the minimum and maximum values.
@@ -302,6 +313,14 @@ macro_rules! newtype {
                         max: $max as u64,
                     })
                 }
+            }
+        }
+
+        impl $crate::id::HasId for $name {
+            type Id = $name;
+
+            fn id(&self) -> Self::Id {
+                *self
             }
         }
     };
