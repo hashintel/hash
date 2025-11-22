@@ -41,7 +41,6 @@ pub mod id;
 pub mod intern;
 pub mod module;
 pub mod pretty;
-pub mod similarity;
 pub mod span;
 pub mod symbol;
 pub mod r#type;
