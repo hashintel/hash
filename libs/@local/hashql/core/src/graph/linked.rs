@@ -522,9 +522,6 @@ impl<N, E, A: Allocator> Traverse for LinkedGraph<N, E, A> {}
 
 /// Iterator over edges incident to a node in a specific direction.
 ///
-/// This iterator traverses the intrusive linked list of edges, following the
-/// `next` pointers until reaching the [`TOMBSTONE`] sentinel value.
-///
 /// Created by [`LinkedGraph::incident_edges`], [`LinkedGraph::incoming_edges`],
 /// or [`LinkedGraph::outgoing_edges`].
 pub struct IncidentEdges<'graph, N, E, A: Allocator = Global> {

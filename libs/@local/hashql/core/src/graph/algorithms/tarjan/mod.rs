@@ -248,7 +248,6 @@ where
 ///
 /// - **Time**: O(V + E) where V is nodes and E is edges
 /// - **Space**: O(V) for the various stacks and state tracking
-/// ```
 pub struct Tarjan<'graph, G, N, S, M: Metadata<N, S> = (), A: Allocator = Global> {
     /// Reference to the input graph.
     graph: &'graph G,
