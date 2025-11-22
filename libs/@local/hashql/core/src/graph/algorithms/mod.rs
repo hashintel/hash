@@ -1,3 +1,5 @@
+mod tarjan;
+
 use alloc::collections::VecDeque;
 
 use super::{DirectedGraph, NodeId, Successors};

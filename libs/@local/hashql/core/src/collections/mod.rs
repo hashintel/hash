@@ -43,7 +43,14 @@ pub fn fast_hash_set<T>(capacity: usize) -> FastHashSet<T> {
 
 #[inline]
 #[must_use]
-pub fn fast_hash_set_in<T, A: Allocator>(capacity: usize, allocator: A) -> FastHashSet<T, A> {
+pub fn fast_hash_set_in<T, A: Allocator>(
+    capacity: Option<usize>,
+    allocator: A,
+) -> FastHashSet<T, A> {
+    let Some(capacity) = capacity else {
+        return FastHashSet::with_hasher_in(foldhash::fast::RandomState::default(), allocator);
+    };
+
     FastHashSet::with_capacity_and_hasher_in(
         capacity,
         foldhash::fast::RandomState::default(),
