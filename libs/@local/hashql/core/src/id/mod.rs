@@ -46,6 +46,8 @@ pub trait Id:
     Copy
     + PartialEq
     + Eq
+    + PartialOrd
+    + Ord
     + Hash
     + Debug
     + Display
