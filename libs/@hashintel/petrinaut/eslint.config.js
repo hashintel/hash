@@ -1,9 +1,22 @@
-import storybook from "eslint-plugin-storybook";
 import { createBase } from "@local/eslint/deprecated";
 
 export default [
   ...createBase(import.meta.dirname),
-  ...storybook.configs["flat/recommended"],
+  {
+    languageOptions: {
+      parserOptions: {
+        projectService: {
+          allowDefaultProject: [
+            "assets.d.ts",
+            "panda.config.ts",
+            "postcss.config.cjs",
+            "vite.config.ts",
+          ],
+        },
+        tsconfigRootDir: import.meta.dirname,
+      },
+    },
+  },
   {
     files: ["dev/**/*"],
     languageOptions: {
@@ -21,6 +34,8 @@ export default [
   },
   {
     rules: {
+      // Disabled because React Compiler handles optimization automatically
+      "react/jsx-no-bind": "off",
       "no-restricted-imports": [
         "error",
         {

@@ -1,8 +1,5 @@
 import { css, cx } from "@hashintel/ds-helpers/css";
-import { useId } from "react";
 
-import { Filter } from "../../lib/flexible-filter";
-import { CONVEX } from "../../lib/surface-equations";
 import { useMotionResizeObserver } from "../../lib/use-motion-resize-observer";
 
 export type RefractivePaneProps = React.PropsWithChildren<{
@@ -22,18 +19,18 @@ export const RefractivePane: React.FC<RefractivePaneProps> = ({
   style,
   radius,
   blur,
-  specularOpacity,
-  scaleRatio,
-  bezelWidth,
-  glassThickness,
-  refractiveIndex,
+  // specularOpacity,
+  // scaleRatio,
+  // bezelWidth,
+  // glassThickness,
+  // refractiveIndex,
   children,
 }) => {
-  const filterId = `bar-filter-${useId()}`;
+  // const filterId = `bar-filter-${useId()}`;
   const {
     ref: divRef,
-    width: trackedMotionWidth,
-    height: trackedMotionHeight,
+    // width: trackedMotionWidth,
+    // height: trackedMotionHeight,
   } = useMotionResizeObserver<HTMLDivElement>({
     initialWidth: 10,
     initialHeight: 10,
@@ -47,7 +44,7 @@ export const RefractivePane: React.FC<RefractivePaneProps> = ({
         borderRadius: radius,
       }}
     >
-      <Filter
+      {/* <Filter
         id={filterId}
         blur={0}
         scaleRatio={scaleRatio}
@@ -59,20 +56,7 @@ export const RefractivePane: React.FC<RefractivePaneProps> = ({
         glassThickness={glassThickness}
         refractiveIndex={refractiveIndex}
         bezelHeightFn={CONVEX}
-      />
-
-      <div
-        style={{
-          zIndex: -2,
-          position: "absolute",
-          top: 0,
-          left: 0,
-          width: "100%",
-          height: "100%",
-          borderRadius: radius,
-          backdropFilter: `blur(${blur}px)`,
-        }}
-      />
+      /> */}
 
       <div
         ref={divRef}
@@ -84,7 +68,7 @@ export const RefractivePane: React.FC<RefractivePaneProps> = ({
           width: "100%",
           height: "100%",
           borderRadius: radius,
-          backdropFilter: `url(#${filterId})`,
+          backdropFilter: `blur(${blur}px)`,
         }}
       />
 

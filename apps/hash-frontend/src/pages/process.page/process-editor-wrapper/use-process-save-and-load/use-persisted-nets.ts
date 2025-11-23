@@ -8,7 +8,7 @@ import type { Entity, LinkEntity } from "@blockprotocol/type-system";
 import type {
   PetriNetDefinitionObject,
   TransitionNodeData,
-} from "@hashintel/petrinaut";
+} from "@hashintel/petrinaut-old";
 import { deserializeQueryEntitySubgraphResponse } from "@local/hash-graph-sdk/entity";
 import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 import {
