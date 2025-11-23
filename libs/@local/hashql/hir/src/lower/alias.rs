@@ -146,7 +146,7 @@ impl<'heap> Fold<'heap> for AliasReplacement<'_, 'heap, '_> {
         // already been replaced
         if let NodeKind::Let(r#let) = node.kind {
             // Only retain the bindings that are not aliases
-            let mut bindings = TinyVec::from_slice(&r#let.bindings);
+            let mut bindings = TinyVec::from_slice_copy(&r#let.bindings);
             bindings.retain(|binding| !self.scope.contains_key(&binding.binder.id));
 
             // For each binding that exists, remove it from the scope. This is not strictly

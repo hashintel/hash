@@ -307,7 +307,7 @@ impl<'heap> Lattice<'heap> for Generic<'heap> {
         // Due to distribution rules, we know if there's a single element, it's the same as the
         // original type.
         if base.len() == 1 {
-            return smallvec::SmallVec::from_slice(&[self.id]);
+            return smallvec::SmallVec::from_slice_copy(&[self.id]);
         }
 
         base.into_iter()
@@ -332,7 +332,7 @@ impl<'heap> Lattice<'heap> for Generic<'heap> {
         // Due to distribution rules, we know if there's a single element, it's the same as the
         // original type.
         if base.len() == 1 {
-            return smallvec::SmallVec::from_slice(&[self.id]);
+            return smallvec::SmallVec::from_slice_copy(&[self.id]);
         }
 
         base.into_iter()

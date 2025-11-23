@@ -321,7 +321,7 @@ fn apply_constraints_with_unification() {
         VariableConstraint {
             equal: Some(string),
             lower: SmallVec::new(),
-            upper: SmallVec::from_slice(&[number]),
+            upper: SmallVec::from_slice_copy(&[number]),
             satisfiability: VariableConstraintSatisfiability::default(),
         }
     );
@@ -343,8 +343,8 @@ fn solve_constraints() {
     let mut applied_constraints = FastHashMap::default();
     let constraint = VariableConstraint {
         equal: None,
-        lower: SmallVec::from_slice(&[string]),
-        upper: SmallVec::from_slice(&[unknown]),
+        lower: SmallVec::from_slice_copy(&[string]),
+        upper: SmallVec::from_slice_copy(&[unknown]),
         satisfiability: VariableConstraintSatisfiability::default(),
     };
     applied_constraints.insert(variable.kind, (variable, constraint));
@@ -424,8 +424,8 @@ fn solve_constraints_with_incompatible_bounds() {
     let mut applied_constraints = FastHashMap::default();
     let vc = VariableConstraint {
         equal: None,
-        lower: SmallVec::from_slice(&[string]),
-        upper: SmallVec::from_slice(&[number]),
+        lower: SmallVec::from_slice_copy(&[string]),
+        upper: SmallVec::from_slice_copy(&[number]),
         satisfiability: VariableConstraintSatisfiability::default(),
     };
     applied_constraints.insert(var.kind, (var, vc));
@@ -470,7 +470,7 @@ fn solve_constraints_with_incompatible_equality() {
     let mut applied_constraints = FastHashMap::default();
     let vc = VariableConstraint {
         equal: Some(string),
-        lower: SmallVec::from_slice(&[number]),
+        lower: SmallVec::from_slice_copy(&[number]),
         upper: SmallVec::new(),
         satisfiability: VariableConstraintSatisfiability::default(),
     };
@@ -516,7 +516,7 @@ fn solve_constraints_with_incompatible_upper_equal_constraint() {
     let vc = VariableConstraint {
         equal: Some(string),
         lower: SmallVec::new(),
-        upper: SmallVec::from_slice(&[number]),
+        upper: SmallVec::from_slice_copy(&[number]),
         satisfiability: VariableConstraintSatisfiability::default(),
     };
     applied_constraints.insert(var.kind, (var, vc));

@@ -162,7 +162,7 @@ impl<'heap> SpannedGenericArguments<'heap> {
         self.value.len()
     }
 
-    fn is_empty(&self) -> bool {
+    const fn is_empty(&self) -> bool {
         self.value.is_empty()
     }
 
