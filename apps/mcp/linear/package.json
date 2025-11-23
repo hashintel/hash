@@ -31,7 +31,7 @@
     "@types/node": "22.18.13",
     "chokidar-cli": "3.0.0",
     "eslint": "9.38.0",
-    "rimraf": "6.0.1",
+    "rimraf": "6.1.2",
     "shx": "0.4.0",
     "tsx": "4.20.6",
     "typescript": "5.9.3"
