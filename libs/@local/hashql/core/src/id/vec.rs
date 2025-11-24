@@ -59,6 +59,19 @@ where
         Self::from_raw(Vec::with_capacity(capacity))
     }
 
+    /// Creates an `IdVec` with `size` elements, each initialized to `elem`.
+    ///
+    /// See [`vec!`] macro for details.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use hashql_core::{id::{IdVec, Id as _}, newtype};
+    /// # newtype!(struct MyId(u32 is 0..=100));
+    /// let vec = IdVec::<MyId, i32>::from_elem(42, 5);
+    /// assert_eq!(vec.len(), 5);
+    /// assert_eq!(vec[MyId::new(0)], 42);
+    /// ```
     pub fn from_elem(elem: T, size: usize) -> Self
     where
         T: Clone,
@@ -128,6 +141,18 @@ where
         Self::from_raw(Vec::with_capacity_in(capacity, alloc))
     }
 
+    /// Creates an `IdVec` with `size` elements initialized to `elem`, using a custom allocator.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # #![feature(allocator_api)]
+    /// # use hashql_core::{id::{IdVec, Id as _}, newtype};
+    /// # newtype!(struct MyId(u32 is 0..=100));
+    /// use std::alloc::Global;
+    /// let vec = IdVec::<MyId, i32>::from_elem_in(42, 5, Global);
+    /// assert_eq!(vec.len(), 5);
+    /// ```
     #[inline]
     pub fn from_elem_in(elem: T, size: usize, alloc: A) -> Self
     where
@@ -136,6 +161,21 @@ where
         Self::from_raw(alloc::vec::from_elem_in(elem, size, alloc))
     }
 
+    /// Creates an `IdVec` with the same length as `domain`, with each element initialized to
+    /// `elem`.
+    ///
+    /// This is useful for creating vectors with the same ID domain as an existing vector.
+    /// The allocator is cloned from the domain vector.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use hashql_core::{id::{IdVec, Id as _}, newtype};
+    /// # newtype!(struct MyId(u32 is 0..=100));
+    /// let domain = IdVec::<MyId, String>::from_elem("x".to_string(), 3);
+    /// let vec = IdVec::<MyId, i32>::from_domain(0, &domain);
+    /// assert_eq!(vec.len(), domain.len());
+    /// ```
     #[inline]
     pub fn from_domain<U>(elem: T, domain: &IdVec<I, U, A>) -> Self
     where
@@ -145,6 +185,12 @@ where
         Self::from_domain_in(elem, domain, domain.raw.allocator().clone())
     }
 
+    /// Creates an `IdVec` with the same length as `domain`, initialized to `elem`, using a custom
+    /// allocator.
+    ///
+    /// This is the allocator-aware version of [`from_domain`].
+    ///
+    /// [`from_domain`]: IdVec::from_domain
     #[inline]
     pub fn from_domain_in<U>(elem: T, domain: &IdSlice<I, U>, alloc: A) -> Self
     where
@@ -220,6 +266,19 @@ where
         id
     }
 
+    /// Appends an element created by calling `value` with the new ID, and returns that ID.
+    ///
+    /// This allows creating elements that depend on their own ID.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use hashql_core::{id::{IdVec, Id as _}, newtype};
+    /// # newtype!(struct MyId(u32 is 0..=100));
+    /// let mut vec = IdVec::<MyId, String>::new();
+    /// let id = vec.push_with(|id| format!("item_{}", id.as_u32()));
+    /// assert_eq!(vec[id], "item_0");
+    /// ```
     pub fn push_with(&mut self, value: impl FnOnce(I) -> T) -> I {
         let id = self.bound();
         self.raw.push(value(id));
@@ -250,6 +309,23 @@ where
         IdSlice::from_raw_mut(&mut self.raw)
     }
 
+    /// Ensures the vector is at least long enough to contain `index`, filling with `fill` as
+    /// needed.
+    ///
+    /// Returns a mutable reference to the element at `index`. If the vector is too short,
+    /// it is extended by calling `fill` repeatedly until it contains `index`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use hashql_core::{id::{IdVec, Id as _}, newtype};
+    /// # newtype!(struct MyId(u32 is 0..=100));
+    /// let mut vec = IdVec::<MyId, i32>::new();
+    /// let value = vec.fill_until(MyId::new(5), || 0);
+    /// *value = 42;
+    /// assert_eq!(vec.len(), 6);
+    /// assert_eq!(vec[MyId::new(5)], 42);
+    /// ```
     pub fn fill_until(&mut self, index: I, fill: impl FnMut() -> T) -> &mut T {
         let new_length = index.as_usize() + 1;
 
@@ -322,6 +398,22 @@ where
         self.get(index).and_then(Option::as_ref).is_some()
     }
 
+    /// Gets the value at `index`, or inserts one by calling `value` if it doesn't exist.
+    ///
+    /// This method works on `IdVec<I, Option<T>>` to provide map-like semantics.
+    /// If the index is out of bounds or contains `None`, `value` is called to create
+    /// a new element.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use hashql_core::{id::{IdVec, Id as _}, newtype};
+    /// # newtype!(struct MyId(u32 is 0..=100));
+    /// let mut vec = IdVec::<MyId, Option<String>>::new();
+    /// let value = vec.get_or_insert_with(MyId::new(2), || "hello".to_string());
+    /// assert_eq!(value, "hello");
+    /// assert_eq!(vec.len(), 3);
+    /// ```
     pub fn get_or_insert_with(&mut self, index: I, value: impl FnOnce() -> T) -> &mut T {
         self.fill_until(index, || None).get_or_insert_with(value)
     }

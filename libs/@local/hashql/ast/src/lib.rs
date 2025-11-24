@@ -56,7 +56,6 @@
     allocator_api,
     formatting_options,
     iter_intersperse,
-    step_trait,
 )]
 #![cfg_attr(test, feature(assert_matches))]
 

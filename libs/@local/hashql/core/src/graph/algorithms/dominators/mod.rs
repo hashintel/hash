@@ -49,7 +49,10 @@ struct PreOrderFrame<Iter> {
     iter: Iter,
 }
 
-newtype!(struct PreorderIndex(u32 is 0..=u32::MAX));
+newtype!(
+    #[steppable]
+    struct PreorderIndex(u32 is 0..=u32::MAX)
+);
 
 #[derive(Clone, Debug)]
 pub struct Dominators<N> {
