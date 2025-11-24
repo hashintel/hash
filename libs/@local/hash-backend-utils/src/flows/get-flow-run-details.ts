@@ -382,7 +382,13 @@ const getFlowRunDetailedFields = async ({
         ? getActivityScheduledDetails(event)
         : getActivityStartedDetails(events, nonScheduledAttributes!);
 
-      if (activityType === "persistFlowActivity") {
+      if (
+        [
+          "persistFlowActivity",
+          "generateFlowRunName",
+          "userHasPermissionToRunFlowInWebActivity",
+        ].includes(activityType ?? "")
+      ) {
         continue;
       }
 
