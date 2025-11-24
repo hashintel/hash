@@ -12,4 +12,8 @@ export default defineConfig({
   optimizeDeps: {
     include: ["@babel/standalone"],
   },
+  root: "demo-site",
+  server: {
+    open: true,
+  },
 });

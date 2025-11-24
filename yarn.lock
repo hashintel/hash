@@ -8275,6 +8275,7 @@ __metadata:
     react-dom: "npm:19.2.0"
     react-icons: "npm:5.5.0"
     reactflow: "npm:11.11.4"
+    rimraf: "npm:6.0.1"
     typescript: "npm:5.9.3"
     uuid: "npm:13.0.0"
     vite: "npm:7.1.11"

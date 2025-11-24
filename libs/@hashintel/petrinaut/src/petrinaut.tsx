@@ -16,7 +16,7 @@ const MonacoSetup: React.FC = () => {
   return null;
 };
 
-export const PetrinautSDCPN: React.FC = () => {
+export const Petrinaut: React.FC = () => {
   return (
     <SDCPNProvider>
       <EditorProvider>

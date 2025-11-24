@@ -3,10 +3,11 @@
   "compilerOptions": {
     "jsx": "preserve",
     "lib": ["dom", "dom.iterable", "ESNext"],
-    "rootDir": "src/",
     "moduleResolution": "bundler",
     "noEmit": true,
-    "skipLibCheck": true
+    "skipLibCheck": true,
+    "outDir": "dist"
   },
-  "include": ["./src/**/*"]
+  "include": ["src", "demo-site"],
+  "exclude": ["demo-site/dist/**/*"]
 }
