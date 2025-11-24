@@ -14,6 +14,7 @@
     // Library Features
     allocator_api,
     iter_intersperse,
+    step_trait,
     try_trait_v2,
     unwrap_infallible,
 )]

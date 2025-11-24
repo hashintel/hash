@@ -59,6 +59,13 @@ where
         Self::from_raw(Vec::with_capacity(capacity))
     }
 
+    pub fn from_elem(elem: T, size: usize) -> Self
+    where
+        T: Clone,
+    {
+        Self::from_raw(vec![elem; size])
+    }
+
     /// Creates an `IdVec` by calling a closure on each ID in sequence.
     ///
     /// The closure is called with [`Id`] values from `I::from_usize(0)` up to
@@ -119,6 +126,31 @@ where
     #[inline]
     pub fn with_capacity_in(capacity: usize, alloc: A) -> Self {
         Self::from_raw(Vec::with_capacity_in(capacity, alloc))
+    }
+
+    #[inline]
+    pub fn from_elem_in(elem: T, size: usize, alloc: A) -> Self
+    where
+        T: Clone,
+    {
+        Self::from_raw(alloc::vec::from_elem_in(elem, size, alloc))
+    }
+
+    #[inline]
+    pub fn from_domain<U>(elem: T, domain: &IdVec<I, U, A>) -> Self
+    where
+        T: Clone,
+        A: Clone,
+    {
+        Self::from_domain_in(elem, domain, domain.raw.allocator().clone())
+    }
+
+    #[inline]
+    pub fn from_domain_in<U>(elem: T, domain: &IdSlice<I, U>, alloc: A) -> Self
+    where
+        T: Clone,
+    {
+        Self::from_raw(alloc::vec::from_elem_in(elem, domain.len(), alloc))
     }
 
     /// Creates an `IdVec` by calling a closure on each ID in sequence, using a custom allocator.

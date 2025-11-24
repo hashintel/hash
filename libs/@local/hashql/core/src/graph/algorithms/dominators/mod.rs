@@ -9,6 +9,16 @@
 //! GNU Affero General Public License, Version 3.0, as part of this project,
 //! provided that all original notices are preserved.
 //!
+//! Local adaptations relative to the pinned upstream:
+//! API:
+//! - Use `Id` in place of `Idx`.
+//!   - `index` -> `as_usize`
+//!   - `new` -> `from_usize`
+//!
+//! Implementation and maintenance:
+//! - Migrated to smallvec v2.
+//! - Applied clippy-driven fixes (no intended semantic changes).
+//!
 //! Finding the dominators in a control-flow graph.
 //!
 //! Algorithm based on Loukas Georgiadis,
@@ -19,10 +29,15 @@
 //! "A Fast Algorithm for Finding Dominators in a Flowgraph"
 //! Thomas Lengauer and Robert Endre Tarjan.
 //! <https://www.cs.princeton.edu/courses/archive/spr03/cs423/download/dominators.pdf>
+#![expect(clippy::min_ident_chars, reason = "vendored in code")]
+use alloc::alloc::Global;
+use core::{cmp, ops};
+
+use smallvec::{SmallVec, smallvec};
 
 use crate::{
-    graph::DirectedGraph,
-    id::{Id as _, IdVec},
+    graph::{DirectedGraph, Predecessors, Successors},
+    id::{Id, IdSlice, IdVec},
     newtype,
 };
 
@@ -34,7 +49,7 @@ struct PreOrderFrame<Iter> {
     iter: Iter,
 }
 
-newtype!(struct PreorderIndex(usize is 0..=usize::MAX));
+newtype!(struct PreorderIndex(u32 is 0..=u32::MAX));
 
 #[derive(Clone, Debug)]
 pub struct Dominators<N> {
@@ -48,48 +63,56 @@ enum Kind<N> {
     General(Inner<N>),
 }
 
-pub fn dominators<G: DirectedGraph>(g: &G) -> Dominators<G::NodeId> {
+pub fn dominators<G: DirectedGraph + Successors + Predecessors>(
+    graph: &G,
+    start_node: G::NodeId,
+) -> Dominators<G::NodeId> {
     // We often encounter MIR bodies with 1 or 2 basic blocks. Special case the dominators
     // computation and representation for those cases.
-    if is_small_path_graph(g) {
+    if is_small_path_graph(graph, start_node) {
         Dominators { kind: Kind::Path }
     } else {
         Dominators {
-            kind: Kind::General(dominators_impl(g)),
+            kind: Kind::General(dominators_impl(graph, start_node)),
         }
     }
 }
 
-fn is_small_path_graph<G: DirectedGraph>(g: &G) -> bool {
-    if g.start_node().index() != 0 {
+fn is_small_path_graph<G: DirectedGraph + Successors>(graph: &G, start_node: G::NodeId) -> bool {
+    if start_node.as_usize() != 0 {
         return false;
     }
-    if g.num_nodes() == 1 {
+
+    if graph.node_count() == 1 {
         return true;
     }
-    if g.num_nodes() == 2 {
-        return g.successors(g.start_node()).any(|n| n.index() == 1);
+    if graph.node_count() == 2 {
+        return graph.successors(start_node).any(|n| n.as_usize() == 1);
     }
+
     false
 }
 
-fn dominators_impl<G: DirectedGraph>(graph: &G) -> Inner<G::NodeId> {
+fn dominators_impl<G: DirectedGraph + Successors + Predecessors>(
+    graph: &G,
+    start_node: G::NodeId,
+) -> Inner<G::NodeId> {
     // We allocate capacity for the full set of nodes, because most of the time
     // most of the nodes *are* reachable.
-    let mut parent: IdVec<PreorderIndex, PreorderIndex> = IdVec::with_capacity(graph.num_nodes());
+    let mut parent: IdVec<PreorderIndex, PreorderIndex> = IdVec::with_capacity(graph.node_count());
 
     let mut stack = vec![PreOrderFrame {
         pre_order_idx: PreorderIndex::MIN,
-        iter: graph.successors(graph.start_node()),
+        iter: graph.successors(start_node),
     }];
     let mut pre_order_to_real: IdVec<PreorderIndex, G::NodeId> =
-        IdVec::with_capacity(graph.num_nodes());
+        IdVec::with_capacity(graph.node_count());
     let mut real_to_pre_order: IdVec<G::NodeId, Option<PreorderIndex>> =
-        IdVec::from_elem_n(None, graph.num_nodes());
-    pre_order_to_real.push(graph.start_node());
+        IdVec::from_elem(None, graph.node_count());
+    pre_order_to_real.push(start_node);
 
     parent.push(PreorderIndex::MIN); // the parent of the root node is the root for now.
-    real_to_pre_order[graph.start_node()] = Some(PreorderIndex::MIN);
+    real_to_pre_order[start_node] = Some(PreorderIndex::MIN);
 
     // Traverse the graph, collecting a number of things:
     //
@@ -118,10 +141,10 @@ fn dominators_impl<G: DirectedGraph>(graph: &G) -> Inner<G::NodeId> {
 
     let reachable_vertices = pre_order_to_real.len();
 
-    let mut idom = IdVec::from_elem(PreorderIndex::ZERO, reachable_vertices);
-    let mut semi = IdVec::from_fn_n(std::convert::identity, reachable_vertices);
+    let mut idom = IdVec::from_elem(PreorderIndex::MIN, reachable_vertices);
+    let mut semi = IdVec::from_fn(reachable_vertices, core::convert::identity);
     let mut label = semi.clone();
-    let mut bucket = IdVec::from_elem_n(vec![], reachable_vertices);
+    let mut bucket = IdVec::from_elem(vec![], reachable_vertices);
     let mut lastlinked = None;
 
     // We loop over vertices in reverse preorder. This implements the pseudocode
@@ -141,7 +164,7 @@ fn dominators_impl<G: DirectedGraph>(graph: &G) -> Inner<G::NodeId> {
     // preorder number such that there exists a path from v to w in which all elements (other than
     // w) have preorder numbers greater than w (i.e., this path is not the tree path to
     // w).
-    for w in (PreorderIndex::new(1)..PreorderIndex::new(reachable_vertices)).rev() {
+    for w in (PreorderIndex::new(1)..PreorderIndex::from_usize(reachable_vertices)).rev() {
         // Optimization: process buckets just once, at the start of the
         // iteration. Do not explicitly empty the bucket (even though it will
         // not be used again), to save some instructions.
@@ -152,7 +175,7 @@ fn dominators_impl<G: DirectedGraph>(graph: &G) -> Inner<G::NodeId> {
         // they have been placed in the bucket.
         //
         // We compute a partial set of immediate dominators here.
-        for &v in bucket[w].iter() {
+        for &v in &bucket[w] {
             // This uses the result of Lemma 5 from section 2 from the original
             // 1979 paper, to compute either the immediate or relative dominator
             // for a given vertex v.
@@ -244,7 +267,7 @@ fn dominators_impl<G: DirectedGraph>(graph: &G) -> Inner<G::NodeId> {
             //  * v itself, if v has not yet been processed
             //  * A possible 'best' semidominator for w.
             let x = eval(&mut parent, lastlinked, &semi, &mut label, v);
-            semi[w] = std::cmp::min(semi[w], semi[x]);
+            semi[w] = cmp::min(semi[w], semi[x]);
         }
         // semi[w] is now semidominator(w) and won't change any more.
 
@@ -255,10 +278,10 @@ fn dominators_impl<G: DirectedGraph>(graph: &G) -> Inner<G::NodeId> {
         // our semidominator's bucket, where it will get processed at a later
         // stage to compute its immediate dominator.
         let z = parent[w];
-        if z != semi[w] {
-            bucket[semi[w]].push(w);
-        } else {
+        if z == semi[w] {
             idom[w] = z;
+        } else {
+            bucket[semi[w]].push(w);
         }
 
         // Optimization: We share the parent array between processed and not
@@ -273,18 +296,17 @@ fn dominators_impl<G: DirectedGraph>(graph: &G) -> Inner<G::NodeId> {
     // into idom[w]. It is known to be our 'relative dominator', which means
     // that it's one of w's ancestors and has the same immediate dominator as w,
     // so use that idom.
-    for w in PreorderIndex::new(1)..PreorderIndex::new(reachable_vertices) {
+    for w in PreorderIndex::new(1)..PreorderIndex::from_usize(reachable_vertices) {
         if idom[w] != semi[w] {
             idom[w] = idom[idom[w]];
         }
     }
 
-    let mut immediate_dominators = IndexVec::from_elem_n(None, graph.num_nodes());
+    let mut immediate_dominators = IdVec::from_elem(None, graph.node_count());
     for (idx, node) in pre_order_to_real.iter_enumerated() {
         immediate_dominators[*node] = Some(pre_order_to_real[idom[idx]]);
     }
 
-    let start_node = graph.start_node();
     immediate_dominators[start_node] = None;
 
     let time = compute_access_time(start_node, &immediate_dominators);
@@ -307,10 +329,10 @@ fn dominators_impl<G: DirectedGraph>(graph: &G) -> Inner<G::NodeId> {
 /// where `+>` is a proper ancestor and `*>` is just an ancestor.
 #[inline]
 fn eval(
-    ancestor: &mut IndexSlice<PreorderIndex, PreorderIndex>,
+    ancestor: &mut IdSlice<PreorderIndex, PreorderIndex>,
     lastlinked: Option<PreorderIndex>,
-    semi: &IndexSlice<PreorderIndex, PreorderIndex>,
-    label: &mut IndexSlice<PreorderIndex, PreorderIndex>,
+    semi: &IdSlice<PreorderIndex, PreorderIndex>,
+    label: &mut IdSlice<PreorderIndex, PreorderIndex>,
     node: PreorderIndex,
 ) -> PreorderIndex {
     if is_processed(node, lastlinked) {
@@ -323,19 +345,15 @@ fn eval(
 
 #[inline]
 fn is_processed(v: PreorderIndex, lastlinked: Option<PreorderIndex>) -> bool {
-    if let Some(ll) = lastlinked {
-        v >= ll
-    } else {
-        false
-    }
+    lastlinked.is_some_and(|ll| v >= ll)
 }
 
 #[inline]
 fn compress(
-    ancestor: &mut IndexSlice<PreorderIndex, PreorderIndex>,
+    ancestor: &mut IdSlice<PreorderIndex, PreorderIndex>,
     lastlinked: Option<PreorderIndex>,
-    semi: &IndexSlice<PreorderIndex, PreorderIndex>,
-    label: &mut IndexSlice<PreorderIndex, PreorderIndex>,
+    semi: &IdSlice<PreorderIndex, PreorderIndex>,
+    label: &mut IdSlice<PreorderIndex, PreorderIndex>,
     v: PreorderIndex,
 ) {
     assert!(is_processed(v, lastlinked));
@@ -343,7 +361,7 @@ fn compress(
     //
     // We use a heap stack here to avoid recursing too deeply, exhausting the
     // stack space.
-    let mut stack: smallvec::SmallVec<[_; 8]> = smallvec::smallvec![v];
+    let mut stack: SmallVec<_, 8> = smallvec![v];
     let mut u = ancestor[v];
     while is_processed(u, lastlinked) {
         stack.push(u);
@@ -361,17 +379,20 @@ fn compress(
 
 /// Tracks the list of dominators for each node.
 #[derive(Clone, Debug)]
-struct Inner<N: Idx> {
+struct Inner<N> {
     // Even though we track only the immediate dominator of each node, it's
     // possible to get its full list of dominators by looking up the dominator
     // of each dominator.
-    immediate_dominators: IndexVec<N, Option<N>>,
-    time: IndexVec<N, Time>,
+    immediate_dominators: IdVec<N, Option<N>>,
+    time: IdVec<N, Time>,
 }
 
-impl<Node: Idx> Dominators<Node> {
+impl<N> Dominators<N>
+where
+    N: Id,
+{
     /// Returns true if node is reachable from the start node.
-    pub fn is_reachable(&self, node: Node) -> bool {
+    pub fn is_reachable(&self, node: N) -> bool {
         match &self.kind {
             Kind::Path => true,
             Kind::General(g) => g.time[node].start != 0,
@@ -379,16 +400,10 @@ impl<Node: Idx> Dominators<Node> {
     }
 
     /// Returns the immediate dominator of node, if any.
-    pub fn immediate_dominator(&self, node: Node) -> Option<Node> {
+    pub fn immediate_dominator(&self, node: N) -> Option<N> {
         match &self.kind {
-            Kind::Path => {
-                if 0 < node.index() {
-                    Some(Node::new(node.index() - 1))
-                } else {
-                    None
-                }
-            }
-            Kind::General(g) => g.immediate_dominators[node],
+            Kind::Path => (0 < node.as_usize()).then(|| N::from_usize(node.as_usize() - 1)),
+            Kind::General(general) => general.immediate_dominators[node],
         }
     }
 
@@ -398,14 +413,15 @@ impl<Node: Idx> Dominators<Node> {
     ///
     /// Panics if `b` is unreachable.
     #[inline]
-    pub fn dominates(&self, a: Node, b: Node) -> bool {
+    pub fn dominates(&self, lhs: N, rhs: N) -> bool {
         match &self.kind {
-            Kind::Path => a.index() <= b.index(),
-            Kind::General(g) => {
-                let a = g.time[a];
-                let b = g.time[b];
-                assert!(b.start != 0, "node {b:?} is not reachable");
-                a.start <= b.start && b.finish <= a.finish
+            Kind::Path => lhs.as_usize() <= rhs.as_usize(),
+            Kind::General(general) => {
+                let lhs = general.time[lhs];
+                let rhs = general.time[rhs];
+                assert!(rhs.start != 0, "node {rhs:?} is not reachable");
+
+                lhs.start <= rhs.start && rhs.finish <= lhs.finish
             }
         }
     }
@@ -419,56 +435,65 @@ struct Time {
     finish: u32,
 }
 
-fn compute_access_time<N: Idx>(
+newtype!(struct EdgeIndex(u32 is 0..=u32::MAX));
+
+fn compute_access_time<N: Id>(
     start_node: N,
-    immediate_dominators: &IndexSlice<N, Option<N>>,
-) -> IndexVec<N, Time> {
+    immediate_dominators: &IdSlice<N, Option<N>>,
+) -> IdVec<N, Time> {
     // Transpose the dominator tree edges, so that child nodes of vertex v are stored in
     // node[edges[v].start..edges[v].end].
-    let mut edges: IndexVec<N, std::ops::Range<u32>> =
-        IndexVec::from_elem(0..0, immediate_dominators);
-    for &idom in immediate_dominators.iter() {
+    let mut edges: IdVec<N, ops::Range<EdgeIndex>> = IdVec::from_domain_in(
+        EdgeIndex::from_u32(0)..EdgeIndex::from_u32(0),
+        immediate_dominators,
+        Global,
+    );
+
+    for &idom in immediate_dominators {
         if let Some(idom) = idom {
-            edges[idom].end += 1;
+            edges[idom].end.increment_by(1);
         }
     }
-    let mut m = 0;
-    for e in edges.iter_mut() {
-        m += e.end;
-        e.start = m;
-        e.end = m;
+
+    let mut max = EdgeIndex::from_u32(0);
+    for edge in edges.iter_mut() {
+        max.increment_by(edge.end.as_usize());
+        edge.start = max;
+        edge.end = max;
     }
-    let mut node = IndexVec::from_elem_n(Idx::new(0), m.try_into().unwrap());
-    for (i, &idom) in immediate_dominators.iter_enumerated() {
+
+    let mut node = IdVec::from_elem(Id::from_usize(0), max.as_usize());
+    for (id, &idom) in immediate_dominators.iter_enumerated() {
         if let Some(idom) = idom {
-            edges[idom].start -= 1;
-            node[edges[idom].start] = i;
+            edges[idom].start.decrement_by(1);
+            node[edges[idom].start] = id;
         }
     }
 
     // Perform a depth-first search of the dominator tree. Record the number of vertices discovered
     // when vertex v is discovered first as time[v].start, and when its processing is finished as
     // time[v].finish.
-    let mut time: IndexVec<N, Time> = IndexVec::from_elem(Time::default(), immediate_dominators);
+    let mut time: IdVec<N, Time> =
+        IdVec::from_domain_in(Time::default(), immediate_dominators, Global);
     let mut stack = Vec::new();
 
     let mut discovered = 1;
     stack.push(start_node);
     time[start_node].start = discovered;
 
-    while let Some(&i) = stack.last() {
-        let e = &mut edges[i];
-        if e.start == e.end {
+    while let Some(&id) = stack.last() {
+        let edge = &mut edges[id];
+        if edge.start == edge.end {
             // Finish processing vertex i.
-            time[i].finish = discovered;
+            time[id].finish = discovered;
             stack.pop();
         } else {
-            let j = node[e.start];
-            e.start += 1;
+            let start = node[edge.start];
+            edge.start.increment_by(1);
             // Start processing vertex j.
             discovered += 1;
-            time[j].start = discovered;
-            stack.push(j);
+            time[start].start = discovered;
+            stack.push(start);
         }
     }
 

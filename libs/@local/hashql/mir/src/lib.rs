@@ -17,6 +17,7 @@
     formatting_options,
     iter_array_chunks,
     iter_collect_into,
+    step_trait,
     try_trait_v2,
 )]
 #![expect(clippy::indexing_slicing)]

@@ -118,6 +118,17 @@ pub trait Id:
         Self::from_usize(self.as_usize() + amount)
     }
 
+    /// Subtracts the given amount from this ID.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the resulting ID is outside the valid range.
+    #[inline]
+    #[must_use = "Use `decrement_by` to modify the id in place"]
+    fn minus(self, amount: usize) -> Self {
+        Self::from_usize(self.as_usize() - amount)
+    }
+
     /// Mutably adds the given amount to this ID.
     ///
     /// # Panics
@@ -126,6 +137,11 @@ pub trait Id:
     #[inline]
     fn increment_by(&mut self, amount: usize) {
         *self = self.plus(amount);
+    }
+
+    #[inline]
+    fn decrement_by(&mut self, amount: usize) {
+        *self = self.minus(amount);
     }
 
     /// Returns the previous ID in sequence, if it exists.
@@ -321,6 +337,30 @@ macro_rules! newtype {
 
             fn id(&self) -> Self::Id {
                 *self
+            }
+        }
+
+        impl ::core::iter::Step for $name {
+            #[inline]
+            fn steps_between(start: &Self, end: &Self) -> (usize, Option<usize>) {
+                <usize as ::core::iter::Step>::steps_between(
+                    &$crate::id::Id::as_usize(*start),
+                    &$crate::id::Id::as_usize(*end),
+                )
+            }
+
+            #[inline]
+            fn forward_checked(start: Self, count: usize) -> Option<Self> {
+                $crate::id::Id::as_usize(start)
+                    .checked_add(count)
+                    .map($crate::id::Id::from_usize)
+            }
+
+            #[inline]
+            fn backward_checked(start: Self, count: usize) -> Option<Self> {
+                $crate::id::Id::as_usize(start)
+                    .checked_sub(count)
+                    .map($crate::id::Id::from_usize)
             }
         }
     };
