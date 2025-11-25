@@ -8256,8 +8256,6 @@ __metadata:
     "@dnd-kit/core": "npm:6.3.1"
     "@dnd-kit/sortable": "npm:10.0.0"
     "@dnd-kit/utilities": "npm:3.2.2"
-    "@emotion/react": "npm:11.14.0"
-    "@hashintel/design-system": "npm:0.0.9-canary.2"
     "@hashintel/ds-components": "npm:0.0.1"
     "@hashintel/ds-helpers": "npm:0.0.1"
     "@local/eslint": "npm:0.0.0-private"

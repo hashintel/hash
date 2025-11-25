@@ -29,7 +29,6 @@
     "@dnd-kit/core": "6.3.1",
     "@dnd-kit/sortable": "10.0.0",
     "@dnd-kit/utilities": "3.2.2",
-    "@hashintel/design-system": "0.0.9-canary.2",
     "@hashintel/ds-components": "0.0.1",
     "@hashintel/ds-helpers": "0.0.1",
     "@mantine/hooks": "8.3.5",
@@ -43,7 +42,6 @@
     "zustand": "5.0.8"
   },
   "devDependencies": {
-    "@emotion/react": "11.14.0",
     "@local/eslint": "0.0.0-private",
     "@pandacss/dev": "1.4.3",
     "@types/babel__standalone": "7.1.9",
