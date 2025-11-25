@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from "react";
+import { TbTrash } from "react-icons/tb";
 
+import { InfoIconTooltip } from "../../../../components/tooltip";
 import { useSimulationStore } from "../../../../state/simulation-provider";
 
 /**
@@ -252,6 +254,14 @@ export const InitialStateEditor: React.FC<InitialStateEditorProps> = ({
 
       return newData;
     });
+  };
+
+  const clearState = () => {
+    setTableData([]);
+    saveToStore([]);
+    setSelectedRow(null);
+    setFocusedCell(null);
+    setEditingCell(null);
   };
 
   const handleKeyDown = (
@@ -558,12 +568,40 @@ export const InitialStateEditor: React.FC<InitialStateEditorProps> = ({
     <div>
       <div
         style={{
-          fontWeight: 500,
-          fontSize: 12,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
           marginBottom: 4,
+          height: 20,
         }}
       >
-        {isSimulationNotRun ? "Initial State" : "State"}
+        <div style={{ fontWeight: 500, fontSize: 12 }}>
+          {isSimulationNotRun ? "Initial State" : "State"}
+          {isSimulationNotRun && (
+            <InfoIconTooltip tooltip="To delete an existing row, click its number in the left-most cell and press delete on your keyboard." />
+          )}
+        </div>
+        {isSimulationNotRun && tableData.length > 0 && (
+          <button
+            type="button"
+            onClick={clearState}
+            style={{
+              fontSize: 11,
+              padding: "2px 8px",
+              border: "1px solid rgba(0, 0, 0, 0.2)",
+              borderRadius: 3,
+              backgroundColor: "white",
+              cursor: "pointer",
+              color: "#666",
+              display: "flex",
+              alignItems: "center",
+              gap: 4,
+            }}
+          >
+            <TbTrash size={12} color="#a72b2bff" />
+            Clear state
+          </button>
+        )}
       </div>
       <div
         ref={containerRef}

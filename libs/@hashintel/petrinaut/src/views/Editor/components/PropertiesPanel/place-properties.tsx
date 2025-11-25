@@ -1,7 +1,13 @@
 /* eslint-disable id-length */
+import { css } from "@hashintel/ds-helpers/css";
 import MonacoEditor from "@monaco-editor/react";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { TbArrowRight, TbDotsVertical, TbSparkles } from "react-icons/tb";
+import {
+  TbArrowRight,
+  TbDotsVertical,
+  TbSparkles,
+  TbTrash,
+} from "react-icons/tb";
 
 import { Menu } from "../../../../components/menu";
 import { Switch } from "../../../../components/switch";
@@ -164,14 +170,57 @@ export const PlaceProperties: React.FC<PlacePropertiesProps> = ({
     ? differentialEquations.filter((eq) => eq.typeId === place.type)
     : [];
 
+  const removePlace = useSDCPNStore((state) => state.removePlace);
+
   return (
     <div
       ref={rootDivRef}
       style={{ display: "flex", flexDirection: "column", gap: 12 }}
     >
       <div>
-        <div style={{ fontWeight: 600, fontSize: 16, marginBottom: 8 }}>
-          Place
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            marginBottom: 8,
+          }}
+        >
+          <div style={{ fontWeight: 600, fontSize: 16 }}>Place</div>
+          <Tooltip content="Delete">
+            <button
+              type="button"
+              onClick={() => {
+                if (
+                  // eslint-disable-next-line no-alert
+                  window.confirm(
+                    `Are you sure you want to delete "${place.name}"? All arcs connected to this place will also be removed.`,
+                  )
+                ) {
+                  removePlace(place.id);
+                }
+              }}
+              className={css({
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                width: "[24px]",
+                height: "[24px]",
+                padding: "spacing.0",
+                border: "none",
+                background: "[transparent]",
+                cursor: "pointer",
+                color: "core.gray.60",
+                borderRadius: "radius.4",
+                _hover: {
+                  color: "core.red.60",
+                  backgroundColor: "core.red.10",
+                },
+              })}
+            >
+              <TbTrash size={16} />
+            </button>
+          </Tooltip>
         </div>
       </div>
 
