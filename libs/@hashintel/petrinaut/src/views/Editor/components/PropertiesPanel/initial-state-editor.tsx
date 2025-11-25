@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 
+import { InfoIconTooltip } from "../../../../components/tooltip";
 import { useSimulationStore } from "../../../../state/simulation-provider";
 
 /**
@@ -564,6 +565,9 @@ export const InitialStateEditor: React.FC<InitialStateEditorProps> = ({
         }}
       >
         {isSimulationNotRun ? "Initial State" : "State"}
+        {isSimulationNotRun && (
+          <InfoIconTooltip tooltip="To delete an existing row, click its number in the left-most cell and press delete on your keyboard." />
+        )}
       </div>
       <div
         ref={containerRef}
