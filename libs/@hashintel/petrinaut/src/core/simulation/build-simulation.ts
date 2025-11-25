@@ -19,13 +19,13 @@ function getPlaceDimensions(
   place: SimulationInput["sdcpn"]["places"][0],
   sdcpn: SimulationInput["sdcpn"],
 ): number {
-  if (!place.type) {
+  if (!place.colorId) {
     return 0;
   }
-  const type = sdcpn.types.find((tp) => tp.id === place.type);
+  const type = sdcpn.types.find((tp) => tp.id === place.colorId);
   if (!type) {
     throw new Error(
-      `Type with ID ${place.type} referenced by place ${place.id} does not exist in SDCPN`,
+      `Type with ID ${place.colorId} referenced by place ${place.id} does not exist in SDCPN`,
     );
   }
   return type.elements.length;
@@ -89,28 +89,19 @@ export function buildSimulation(input: SimulationInput): SimulationInstance {
   const differentialEquationFns = new Map<string, DifferentialEquationFn>();
   for (const place of sdcpn.places) {
     // Skip places without dynamics enabled or without differential equation code
-    if (!place.dynamicsEnabled || !place.differentialEquationCode) {
+    if (!place.dynamicsEnabled || !place.differentialEquationId) {
       continue;
     }
 
-    const diffEqCode = place.differentialEquationCode;
-
-    // Get the code - either directly or from a referenced differential equation
-    let code: string;
-    if (typeof diffEqCode === "string") {
-      code = diffEqCode;
-    } else {
-      // It's a reference to a differential equation
-      const deRef = sdcpn.differentialEquations.find(
-        (de) => de.id === diffEqCode.refId,
+    const differentialEquation = sdcpn.differentialEquations.find(
+      (de) => de.id === place.differentialEquationId,
+    );
+    if (!differentialEquation) {
+      throw new Error(
+        `Differential equation with ID ${place.differentialEquationId} referenced by place ${place.id} does not exist in SDCPN`,
       );
-      if (!deRef) {
-        throw new Error(
-          `Differential equation with ID ${diffEqCode.refId} referenced by place ${place.id} does not exist in SDCPN`,
-        );
-      }
-      code = deRef.code;
     }
+    const { code } = differentialEquation;
 
     try {
       const fn = compileUserCode<[Record<string, number>[], ParameterValues]>(
@@ -153,7 +144,7 @@ export function buildSimulation(input: SimulationInput): SimulationInstance {
     // (they won't need to generate token data)
     const hasTypedOutputPlace = transition.outputArcs.some((arc) => {
       const place = placesMap.get(arc.placeId);
-      return place && place.type;
+      return place && place.colorId;
     });
 
     if (!hasTypedOutputPlace) {
@@ -238,8 +229,6 @@ export function buildSimulation(input: SimulationInput): SimulationInstance {
 
   // Create the simulation instance (without frames initially)
   const simulationInstance: SimulationInstance = {
-    id: sdcpn.id,
-    title: sdcpn.title,
     places: placesMap,
     transitions: transitionsMap,
     types: typesMap,

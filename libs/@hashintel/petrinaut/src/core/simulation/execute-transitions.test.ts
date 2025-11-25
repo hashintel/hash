@@ -6,8 +6,6 @@ import { executeTransitions } from "./execute-transitions";
 describe("executeTransitions", () => {
   it("returns the original frame when no transitions can fire", () => {
     const simulation: SimulationInstance = {
-      id: "test-sdcpn",
-      title: "Test SDCPN",
       places: new Map(),
       transitions: new Map(),
       types: new Map(),
@@ -31,9 +29,9 @@ describe("executeTransitions", () => {
             instance: {
               id: "p1",
               name: "Place 1",
-              type: null,
+              colorId: null,
+              differentialEquationId: null,
               dynamicsEnabled: false,
-              differentialEquationCode: null,
               x: 0,
               y: 0,
             },
@@ -72,17 +70,15 @@ describe("executeTransitions", () => {
 
   it("removes tokens and adds new tokens when a single transition fires", () => {
     const simulation: SimulationInstance = {
-      id: "test-sdcpn",
-      title: "Test SDCPN",
       places: new Map([
         [
           "p1",
           {
             id: "p1",
             name: "Place 1",
-            type: "type1",
+            colorId: "type1",
             dynamicsEnabled: false,
-            differentialEquationCode: null,
+            differentialEquationId: null,
             x: 0,
             y: 0,
           },
@@ -92,9 +88,9 @@ describe("executeTransitions", () => {
           {
             id: "p2",
             name: "Place 2",
-            type: "type1",
+            colorId: "type1",
             dynamicsEnabled: false,
-            differentialEquationCode: null,
+            differentialEquationId: null,
             x: 0,
             y: 0,
           },
@@ -107,8 +103,8 @@ describe("executeTransitions", () => {
           {
             id: "type1",
             name: "Type1",
-            iconId: "circle",
-            colorCode: "#FF0000",
+            iconSlug: "circle",
+            displayColor: "#FF0000",
             elements: [{ id: "e1", name: "x", type: "real" }],
           },
         ],
@@ -135,9 +131,9 @@ describe("executeTransitions", () => {
             instance: {
               id: "p1",
               name: "Place 1",
-              type: "type1",
+              colorId: "type1",
               dynamicsEnabled: false,
-              differentialEquationCode: null,
+              differentialEquationId: null,
               x: 0,
               y: 0,
             },
@@ -152,9 +148,9 @@ describe("executeTransitions", () => {
             instance: {
               id: "p2",
               name: "Place 2",
-              type: "type1",
+              colorId: "type1",
               dynamicsEnabled: false,
-              differentialEquationCode: null,
+              differentialEquationId: null,
               x: 0,
               y: 0,
             },
@@ -205,17 +201,15 @@ describe("executeTransitions", () => {
 
   it("executes multiple transitions sequentially with proper token removal between each", () => {
     const simulation: SimulationInstance = {
-      id: "test-sdcpn",
-      title: "Test SDCPN",
       places: new Map([
         [
           "p1",
           {
             id: "p1",
             name: "Place 1",
-            type: "type1",
+            colorId: "type1",
             dynamicsEnabled: false,
-            differentialEquationCode: null,
+            differentialEquationId: null,
             x: 0,
             y: 0,
           },
@@ -225,9 +219,9 @@ describe("executeTransitions", () => {
           {
             id: "p2",
             name: "Place 2",
-            type: "type1",
+            colorId: "type1",
             dynamicsEnabled: false,
-            differentialEquationCode: null,
+            differentialEquationId: null,
             x: 0,
             y: 0,
           },
@@ -237,9 +231,9 @@ describe("executeTransitions", () => {
           {
             id: "p3",
             name: "Place 3",
-            type: "type1",
+            colorId: "type1",
             dynamicsEnabled: false,
-            differentialEquationCode: null,
+            differentialEquationId: null,
             x: 0,
             y: 0,
           },
@@ -252,8 +246,8 @@ describe("executeTransitions", () => {
           {
             id: "type1",
             name: "Type1",
-            iconId: "circle",
-            colorCode: "#FF0000",
+            iconSlug: "circle",
+            displayColor: "#FF0000",
             elements: [{ id: "e1", name: "x", type: "real" }],
           },
         ],
@@ -287,9 +281,9 @@ describe("executeTransitions", () => {
             instance: {
               id: "p1",
               name: "Place 1",
-              type: "type1",
+              colorId: "type1",
               dynamicsEnabled: false,
-              differentialEquationCode: null,
+              differentialEquationId: null,
               x: 0,
               y: 0,
             },
@@ -304,9 +298,9 @@ describe("executeTransitions", () => {
             instance: {
               id: "p2",
               name: "Place 2",
-              type: "type1",
+              colorId: "type1",
               dynamicsEnabled: false,
-              differentialEquationCode: null,
+              differentialEquationId: null,
               x: 0,
               y: 0,
             },
@@ -321,9 +315,9 @@ describe("executeTransitions", () => {
             instance: {
               id: "p3",
               name: "Place 3",
-              type: "type1",
+              colorId: "type1",
               dynamicsEnabled: false,
-              differentialEquationCode: null,
+              differentialEquationId: null,
               x: 0,
               y: 0,
             },
@@ -391,17 +385,15 @@ describe("executeTransitions", () => {
 
   it("handles transitions with multi-dimensional tokens", () => {
     const simulation: SimulationInstance = {
-      id: "test-sdcpn",
-      title: "Test SDCPN",
       places: new Map([
         [
           "p1",
           {
             id: "p1",
             name: "Place 1",
-            type: "type2",
+            colorId: "type2",
             dynamicsEnabled: false,
-            differentialEquationCode: null,
+            differentialEquationId: null,
             x: 0,
             y: 0,
           },
@@ -411,9 +403,9 @@ describe("executeTransitions", () => {
           {
             id: "p2",
             name: "Place 2",
-            type: "type2",
+            colorId: "type2",
             dynamicsEnabled: false,
-            differentialEquationCode: null,
+            differentialEquationId: null,
             x: 0,
             y: 0,
           },
@@ -426,8 +418,8 @@ describe("executeTransitions", () => {
           {
             id: "type2",
             name: "Type2",
-            iconId: "square",
-            colorCode: "#00FF00",
+            iconSlug: "square",
+            displayColor: "#00FF00",
             elements: [
               { id: "e1", name: "x", type: "real" },
               { id: "e2", name: "y", type: "real" },
@@ -463,9 +455,9 @@ describe("executeTransitions", () => {
             instance: {
               id: "p1",
               name: "Place 1",
-              type: "type2",
+              colorId: "type2",
               dynamicsEnabled: false,
-              differentialEquationCode: null,
+              differentialEquationId: null,
               x: 0,
               y: 0,
             },
@@ -480,9 +472,9 @@ describe("executeTransitions", () => {
             instance: {
               id: "p2",
               name: "Place 2",
-              type: "type2",
+              colorId: "type2",
               dynamicsEnabled: false,
-              differentialEquationCode: null,
+              differentialEquationId: null,
               x: 0,
               y: 0,
             },
@@ -527,17 +519,15 @@ describe("executeTransitions", () => {
 
   it("updates timeSinceLastFiring for transitions that did not fire", () => {
     const simulation: SimulationInstance = {
-      id: "test-sdcpn",
-      title: "Test SDCPN",
       places: new Map([
         [
           "p1",
           {
             id: "p1",
             name: "Place 1",
-            type: "type1",
+            colorId: "type1",
             dynamicsEnabled: false,
-            differentialEquationCode: null,
+            differentialEquationId: null,
             x: 0,
             y: 0,
           },
@@ -547,9 +537,9 @@ describe("executeTransitions", () => {
           {
             id: "p2",
             name: "Place 2",
-            type: "type1",
+            colorId: "type1",
             dynamicsEnabled: false,
-            differentialEquationCode: null,
+            differentialEquationId: null,
             x: 0,
             y: 0,
           },
@@ -562,8 +552,8 @@ describe("executeTransitions", () => {
           {
             id: "type1",
             name: "Type1",
-            iconId: "circle",
-            colorCode: "#FF0000",
+            iconSlug: "circle",
+            displayColor: "#FF0000",
             elements: [{ id: "e1", name: "x", type: "real" }],
           },
         ],
@@ -597,9 +587,9 @@ describe("executeTransitions", () => {
             instance: {
               id: "p1",
               name: "Place 1",
-              type: "type1",
+              colorId: "type1",
               dynamicsEnabled: false,
-              differentialEquationCode: null,
+              differentialEquationId: null,
               x: 0,
               y: 0,
             },
@@ -614,9 +604,9 @@ describe("executeTransitions", () => {
             instance: {
               id: "p2",
               name: "Place 2",
-              type: "type1",
+              colorId: "type1",
               dynamicsEnabled: false,
-              differentialEquationCode: null,
+              differentialEquationId: null,
               x: 0,
               y: 0,
             },

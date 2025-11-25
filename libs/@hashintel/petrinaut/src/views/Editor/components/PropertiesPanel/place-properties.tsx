@@ -21,7 +21,7 @@ import { compileVisualizer } from "../../../../core/simulation/compile-visualize
 import type {
   DifferentialEquation,
   Place,
-  SDCPNType,
+  Color,
 } from "../../../../core/types/sdcpn";
 import {
   mergeParameterValues,
@@ -35,7 +35,7 @@ import { VisualizerErrorBoundary } from "./visualizer-error-boundary";
 
 interface PlacePropertiesProps {
   place: Place;
-  types: SDCPNType[];
+  types: Color[];
   differentialEquations: DifferentialEquation[];
   globalMode: "edit" | "simulate";
   onUpdate: (id: string, updates: Partial<Place>) => void;
@@ -160,14 +160,14 @@ export const PlaceProperties: React.FC<PlacePropertiesProps> = ({
 
   // Get the currently selected differential equation ID
   const selectedDiffEqId =
-    place.differentialEquationCode &&
-    typeof place.differentialEquationCode === "object"
-      ? place.differentialEquationCode.refId
+    place.differentialEquationId &&
+    typeof place.differentialEquationId === "object"
+      ? place.differentialEquationId.refId
       : "";
 
   // Filter differential equations by place type
-  const availableDiffEqs = place.type
-    ? differentialEquations.filter((eq) => eq.typeId === place.type)
+  const availableDiffEqs = place.colorId
+    ? differentialEquations.filter((eq) => eq.typeId === place.colorId)
     : [];
 
   const removePlace = useSDCPNStore((state) => state.removePlace);
@@ -278,12 +278,12 @@ export const PlaceProperties: React.FC<PlacePropertiesProps> = ({
           />
         </div>
         <select
-          value={place.type ?? ""}
+          value={place.colorId ?? ""}
           onChange={(event) => {
             const value = event.target.value;
             const newType = value === "" ? null : value;
             onUpdate(place.id, {
-              type: newType,
+              colorId: newType,
               // Disable dynamics if type is being set to null
               ...(newType === null && place.dynamicsEnabled
                 ? { dynamicsEnabled: false }
@@ -301,7 +301,7 @@ export const PlaceProperties: React.FC<PlacePropertiesProps> = ({
             backgroundColor:
               globalMode === "simulate" ? "rgba(0, 0, 0, 0.05)" : "white",
             cursor: globalMode === "simulate" ? "not-allowed" : "pointer",
-            marginBottom: place.type ? 8 : 0,
+            marginBottom: place.colorId ? 8 : 0,
           }}
         >
           <option value="">None</option>
@@ -312,12 +312,12 @@ export const PlaceProperties: React.FC<PlacePropertiesProps> = ({
           ))}
         </select>
 
-        {place.type && (
+        {place.colorId && (
           <div style={{ textAlign: "right" }}>
             <button
               type="button"
               onClick={() => {
-                setSelectedResourceId(place.type);
+                setSelectedResourceId(place.colorId);
               }}
               style={{
                 fontSize: 12,
@@ -350,8 +350,8 @@ export const PlaceProperties: React.FC<PlacePropertiesProps> = ({
         >
           <div style={{ display: "flex", alignItems: "center" }}>
             <Switch
-              checked={!!place.type && place.dynamicsEnabled}
-              disabled={globalMode === "simulate" || place.type === null}
+              checked={!!place.colorId && place.dynamicsEnabled}
+              disabled={globalMode === "simulate" || place.colorId === null}
               onCheckedChange={(checked) => {
                 onUpdate(place.id, {
                   dynamicsEnabled: checked,
@@ -371,7 +371,7 @@ export const PlaceProperties: React.FC<PlacePropertiesProps> = ({
             <InfoIconTooltip tooltip="Token data can dynamically change over time when tokens remain in a place, governed by a differential equation." />
           </div>
         </div>
-        {(place.type === null || availableDiffEqs.length === 0) && (
+        {(place.colorId === null || availableDiffEqs.length === 0) && (
           <div
             style={{
               fontSize: 11,
@@ -380,7 +380,7 @@ export const PlaceProperties: React.FC<PlacePropertiesProps> = ({
               marginTop: 4,
             }}
           >
-            {place.type !== null
+            {place.colorId !== null
               ? "Create a differential equation for the selected type in the left-hand sidebar first"
               : availableTypes.length === 0
                 ? "Create a type in the left-hand sidebar first, then select it to enable dynamics."
@@ -389,82 +389,84 @@ export const PlaceProperties: React.FC<PlacePropertiesProps> = ({
         )}
       </div>
 
-      {place.type && place.dynamicsEnabled && availableDiffEqs.length > 0 && (
-        <div style={{ marginBottom: 25 }}>
-          <div style={{ fontWeight: 500, fontSize: 12, marginBottom: 4 }}>
-            Differential Equation
-          </div>
-          <select
-            value={selectedDiffEqId}
-            onChange={(event) => {
-              const value = event.target.value;
-              if (value === "") {
-                // No differential equation selected
-                onUpdate(place.id, {
-                  differentialEquationCode: null,
-                });
-              } else {
-                // Reference a differential equation
-                onUpdate(place.id, {
-                  differentialEquationCode: { refId: value },
-                });
-              }
-            }}
-            disabled={globalMode === "simulate"}
-            style={{
-              fontSize: 14,
-              padding: "6px 8px",
-              border: "1px solid rgba(0, 0, 0, 0.1)",
-              borderRadius: 4,
-              width: "100%",
-              boxSizing: "border-box",
-              backgroundColor:
-                globalMode === "simulate" ? "rgba(0, 0, 0, 0.05)" : "white",
-              cursor: globalMode === "simulate" ? "not-allowed" : "pointer",
-              marginBottom: 8,
-            }}
-          >
-            <option value="">None</option>
-            {availableDiffEqs.map((eq) => (
-              <option key={eq.id} value={eq.id}>
-                {eq.name}
-              </option>
-            ))}
-          </select>
-
-          {selectedDiffEqId && (
-            <div style={{ textAlign: "right" }}>
-              <button
-                type="button"
-                onClick={() => {
-                  setSelectedResourceId(selectedDiffEqId);
-                }}
-                style={{
-                  fontSize: 12,
-                  padding: "4px 8px",
-                  border: "1px solid rgba(0, 0, 0, 0.2)",
-                  borderRadius: 4,
-                  backgroundColor: "white",
-                  cursor: "pointer",
-                  color: "#333",
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: 6,
-                }}
-              >
-                Jump to Differential Equation
-                <TbArrowRight style={{ fontSize: 14 }} />
-              </button>
+      {place.colorId &&
+        place.dynamicsEnabled &&
+        availableDiffEqs.length > 0 && (
+          <div style={{ marginBottom: 25 }}>
+            <div style={{ fontWeight: 500, fontSize: 12, marginBottom: 4 }}>
+              Differential Equation
             </div>
-          )}
-        </div>
-      )}
+            <select
+              value={selectedDiffEqId}
+              onChange={(event) => {
+                const value = event.target.value;
+                if (value === "") {
+                  // No differential equation selected
+                  onUpdate(place.id, {
+                    differentialEquationId: null,
+                  });
+                } else {
+                  // Reference a differential equation
+                  onUpdate(place.id, {
+                    differentialEquationId: { refId: value },
+                  });
+                }
+              }}
+              disabled={globalMode === "simulate"}
+              style={{
+                fontSize: 14,
+                padding: "6px 8px",
+                border: "1px solid rgba(0, 0, 0, 0.1)",
+                borderRadius: 4,
+                width: "100%",
+                boxSizing: "border-box",
+                backgroundColor:
+                  globalMode === "simulate" ? "rgba(0, 0, 0, 0.05)" : "white",
+                cursor: globalMode === "simulate" ? "not-allowed" : "pointer",
+                marginBottom: 8,
+              }}
+            >
+              <option value="">None</option>
+              {availableDiffEqs.map((eq) => (
+                <option key={eq.id} value={eq.id}>
+                  {eq.name}
+                </option>
+              ))}
+            </select>
+
+            {selectedDiffEqId && (
+              <div style={{ textAlign: "right" }}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectedResourceId(selectedDiffEqId);
+                  }}
+                  style={{
+                    fontSize: 12,
+                    padding: "4px 8px",
+                    border: "1px solid rgba(0, 0, 0, 0.2)",
+                    borderRadius: 4,
+                    backgroundColor: "white",
+                    cursor: "pointer",
+                    color: "#333",
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 6,
+                  }}
+                >
+                  Jump to Differential Equation
+                  <TbArrowRight style={{ fontSize: 14 }} />
+                </button>
+              </div>
+            )}
+          </div>
+        )}
 
       {/* Initial State section - only in Simulate mode */}
       {globalMode === "simulate" &&
         (() => {
-          const placeType = place.type
-            ? types.find((tp) => tp.id === place.type)
+          const placeType = place.colorId
+            ? types.find((tp) => tp.id === place.colorId)
             : null;
 
           // If no type or type has 0 dimensions, show simple number input
@@ -634,8 +636,8 @@ export const PlaceProperties: React.FC<PlacePropertiesProps> = ({
                     label: "Load default template",
                     onClick: () => {
                       // Get the place's type to generate appropriate default code
-                      const placeType = place.type
-                        ? types.find((t) => t.id === place.type)
+                      const placeType = place.colorId
+                        ? types.find((t) => t.id === place.colorId)
                         : null;
 
                       onUpdate(place.id, {
@@ -681,8 +683,8 @@ export const PlaceProperties: React.FC<PlacePropertiesProps> = ({
               // Show live token values and parameters during simulation
               (() => {
                 // Get place type to determine dimensions
-                const placeType = place.type
-                  ? types.find((tp) => tp.id === place.type)
+                const placeType = place.colorId
+                  ? types.find((tp) => tp.id === place.colorId)
                   : null;
 
                 if (!placeType) {
@@ -789,7 +791,7 @@ export const PlaceProperties: React.FC<PlacePropertiesProps> = ({
             ) : (
               // Show code editor in edit mode
               <MonacoEditor
-                key={`visualizer-${place.type ?? "no-type"}`}
+                key={`visualizer-${place.colorId ?? "no-type"}`}
                 language="typescript"
                 path={`inmemory://sdcpn/places/${place.id}/visualizer.tsx`}
                 height={400}

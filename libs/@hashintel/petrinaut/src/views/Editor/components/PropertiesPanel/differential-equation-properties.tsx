@@ -14,12 +14,12 @@ import {
 import type {
   DifferentialEquation,
   Place,
-  SDCPNType,
+  Color,
 } from "../../../../core/types/sdcpn";
 
 interface DifferentialEquationPropertiesProps {
   differentialEquation: DifferentialEquation;
-  types: SDCPNType[];
+  types: Color[];
   places: Place[];
   globalMode: "edit" | "simulate";
   onUpdate: (
@@ -41,13 +41,13 @@ export const DifferentialEquationProperties: React.FC<
 
   // Find places that use this differential equation
   const placesUsingEquation = places.filter((place) => {
-    if (!place.differentialEquationCode) {
+    if (!place.differentialEquationId) {
       return false;
     }
-    if (typeof place.differentialEquationCode === "object") {
+    if (typeof place.differentialEquationId === "object") {
       return (
-        "refId" in place.differentialEquationCode &&
-        place.differentialEquationCode.refId === differentialEquation.id
+        "refId" in place.differentialEquationId &&
+        place.differentialEquationId.refId === differentialEquation.id
       );
     }
     return false;
@@ -152,7 +152,7 @@ export const DifferentialEquationProperties: React.FC<
                     width: 12,
                     height: 12,
                     borderRadius: "50%",
-                    backgroundColor: associatedType.colorCode,
+                    backgroundColor: associatedType.displayColor,
                     flexShrink: 0,
                   }}
                 />
@@ -217,7 +217,7 @@ export const DifferentialEquationProperties: React.FC<
                       width: 12,
                       height: 12,
                       borderRadius: "50%",
-                      backgroundColor: type.colorCode,
+                      backgroundColor: type.displayColor,
                       flexShrink: 0,
                     }}
                   />

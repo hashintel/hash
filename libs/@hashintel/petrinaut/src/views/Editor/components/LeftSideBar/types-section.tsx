@@ -112,7 +112,7 @@ export const TypesSection: React.FC = () => {
         <button
           type="button"
           onClick={() => {
-            const existingColors = types.map((type) => type.colorCode);
+            const existingColors = types.map((type) => type.displayColor);
             const existingNames = types.map((type) => type.name);
             const nextNumber = getNextTypeNumber(existingNames);
             const nextColor = getNextAvailableColor(existingColors);
@@ -210,7 +210,7 @@ export const TypesSection: React.FC = () => {
                     width: 12,
                     height: 12,
                     borderRadius: "50%",
-                    backgroundColor: type.colorCode,
+                    backgroundColor: type.displayColor,
                     flexShrink: 0,
                   }}
                 />

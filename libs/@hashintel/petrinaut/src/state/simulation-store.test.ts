@@ -12,8 +12,8 @@ describe("SimulationStore", () => {
       {
         id: "type1",
         name: "Type 1",
-        iconId: "circle",
-        colorCode: "#FF0000",
+        iconSlug: "circle",
+        displayColor: "#FF0000",
         elements: [
           { id: "e1", name: "x", type: "real" },
           { id: "e2", name: "y", type: "real" },
@@ -35,9 +35,9 @@ describe("SimulationStore", () => {
       {
         id: "p1",
         name: "Place 1",
-        type: "type1",
+        colorId: "type1",
         dynamicsEnabled: true,
-        differentialEquationCode: { refId: "diffeq1" },
+        differentialEquationId: { refId: "diffeq1" },
         x: 0,
         y: 0,
       },

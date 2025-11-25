@@ -6,8 +6,6 @@ import { removeTokensFromSimulationFrame } from "./remove-tokens-from-simulation
 describe("removeTokensFromSimulationFrame", () => {
   it("throws error when place ID is not found", () => {
     const simulation: SimulationInstance = {
-      id: "test-sdcpn",
-      title: "Test SDCPN",
       types: new Map(),
       places: new Map(),
       transitions: new Map(),
@@ -39,8 +37,6 @@ describe("removeTokensFromSimulationFrame", () => {
 
   it("returns frame unchanged when tokens map is empty", () => {
     const simulation: SimulationInstance = {
-      id: "test-sdcpn",
-      title: "Test SDCPN",
       types: new Map(),
       places: new Map(),
       transitions: new Map(),
@@ -64,9 +60,9 @@ describe("removeTokensFromSimulationFrame", () => {
             instance: {
               id: "p1",
               name: "Place 1",
-              type: null,
+              colorId: null,
+              differentialEquationId: null,
               dynamicsEnabled: false,
-              differentialEquationCode: null,
               x: 0,
               y: 0,
             },
@@ -87,8 +83,6 @@ describe("removeTokensFromSimulationFrame", () => {
 
   it("throws error when token index is out of bounds", () => {
     const simulation: SimulationInstance = {
-      id: "test-sdcpn",
-      title: "Test SDCPN",
       types: new Map(),
       places: new Map(),
       transitions: new Map(),
@@ -112,9 +106,9 @@ describe("removeTokensFromSimulationFrame", () => {
             instance: {
               id: "p1",
               name: "Place 1",
-              type: null,
+              colorId: null,
+              differentialEquationId: null,
               dynamicsEnabled: false,
-              differentialEquationCode: null,
               x: 0,
               y: 0,
             },
@@ -135,8 +129,6 @@ describe("removeTokensFromSimulationFrame", () => {
 
   it("returns frame unchanged when place has empty set of indices", () => {
     const simulation: SimulationInstance = {
-      id: "test-sdcpn",
-      title: "Test SDCPN",
       types: new Map(),
       places: new Map(),
       transitions: new Map(),
@@ -160,9 +152,9 @@ describe("removeTokensFromSimulationFrame", () => {
             instance: {
               id: "p1",
               name: "Place 1",
-              type: null,
+              colorId: null,
+              differentialEquationId: null,
               dynamicsEnabled: false,
-              differentialEquationCode: null,
               x: 0,
               y: 0,
             },
@@ -187,8 +179,6 @@ describe("removeTokensFromSimulationFrame", () => {
 
   it("removes a single token from a place with 1D tokens", () => {
     const simulation: SimulationInstance = {
-      id: "test-sdcpn",
-      title: "Test SDCPN",
       types: new Map(),
       places: new Map(),
       transitions: new Map(),
@@ -212,9 +202,9 @@ describe("removeTokensFromSimulationFrame", () => {
             instance: {
               id: "p1",
               name: "Place 1",
-              type: null,
+              colorId: null,
+              differentialEquationId: null,
               dynamicsEnabled: false,
-              differentialEquationCode: null,
               x: 0,
               y: 0,
             },
@@ -240,8 +230,6 @@ describe("removeTokensFromSimulationFrame", () => {
 
   it("removes multiple tokens from a place with 1D tokens", () => {
     const simulation: SimulationInstance = {
-      id: "test-sdcpn",
-      title: "Test SDCPN",
       types: new Map(),
       places: new Map(),
       transitions: new Map(),
@@ -265,9 +253,9 @@ describe("removeTokensFromSimulationFrame", () => {
             instance: {
               id: "p1",
               name: "Place 1",
-              type: null,
+              colorId: null,
+              differentialEquationId: null,
               dynamicsEnabled: false,
-              differentialEquationCode: null,
               x: 0,
               y: 0,
             },
@@ -293,8 +281,6 @@ describe("removeTokensFromSimulationFrame", () => {
 
   it("removes tokens from a place with multi-dimensional tokens", () => {
     const simulation: SimulationInstance = {
-      id: "test-sdcpn",
-      title: "Test SDCPN",
       types: new Map(),
       places: new Map(),
       transitions: new Map(),
@@ -318,9 +304,9 @@ describe("removeTokensFromSimulationFrame", () => {
             instance: {
               id: "p1",
               name: "Place 1",
-              type: null,
+              colorId: null,
+              differentialEquationId: null,
               dynamicsEnabled: false,
-              differentialEquationCode: null,
               x: 0,
               y: 0,
             },
@@ -350,8 +336,6 @@ describe("removeTokensFromSimulationFrame", () => {
 
   it("adjusts offsets for subsequent places after removal", () => {
     const simulation: SimulationInstance = {
-      id: "test-sdcpn",
-      title: "Test SDCPN",
       types: new Map(),
       places: new Map(),
       transitions: new Map(),
@@ -375,9 +359,9 @@ describe("removeTokensFromSimulationFrame", () => {
             instance: {
               id: "p1",
               name: "Place 1",
-              type: null,
+              colorId: null,
+              differentialEquationId: null,
               dynamicsEnabled: false,
-              differentialEquationCode: null,
               x: 0,
               y: 0,
             },
@@ -392,9 +376,9 @@ describe("removeTokensFromSimulationFrame", () => {
             instance: {
               id: "p2",
               name: "Place 2",
-              type: null,
+              colorId: null,
+              differentialEquationId: null,
               dynamicsEnabled: false,
-              differentialEquationCode: null,
               x: 0,
               y: 0,
             },
@@ -426,8 +410,6 @@ describe("removeTokensFromSimulationFrame", () => {
 
   it("removes all tokens from a place", () => {
     const simulation: SimulationInstance = {
-      id: "test-sdcpn",
-      title: "Test SDCPN",
       types: new Map(),
       places: new Map(),
       transitions: new Map(),
@@ -451,9 +433,9 @@ describe("removeTokensFromSimulationFrame", () => {
             instance: {
               id: "p1",
               name: "Place 1",
-              type: null,
+              colorId: null,
+              differentialEquationId: null,
               dynamicsEnabled: false,
-              differentialEquationCode: null,
               x: 0,
               y: 0,
             },
@@ -468,9 +450,9 @@ describe("removeTokensFromSimulationFrame", () => {
             instance: {
               id: "p2",
               name: "Place 2",
-              type: null,
+              colorId: null,
+              differentialEquationId: null,
               dynamicsEnabled: false,
-              differentialEquationCode: null,
               x: 0,
               y: 0,
             },
@@ -498,8 +480,6 @@ describe("removeTokensFromSimulationFrame", () => {
 
   it("handles removal from middle place with three places", () => {
     const simulation: SimulationInstance = {
-      id: "test-sdcpn",
-      title: "Test SDCPN",
       types: new Map(),
       places: new Map(),
       transitions: new Map(),
@@ -523,9 +503,9 @@ describe("removeTokensFromSimulationFrame", () => {
             instance: {
               id: "p1",
               name: "Place 1",
-              type: null,
+              colorId: null,
+              differentialEquationId: null,
               dynamicsEnabled: false,
-              differentialEquationCode: null,
               x: 0,
               y: 0,
             },
@@ -540,9 +520,9 @@ describe("removeTokensFromSimulationFrame", () => {
             instance: {
               id: "p2",
               name: "Place 2",
-              type: null,
+              colorId: null,
+              differentialEquationId: null,
               dynamicsEnabled: false,
-              differentialEquationCode: null,
               x: 0,
               y: 0,
             },
@@ -557,9 +537,9 @@ describe("removeTokensFromSimulationFrame", () => {
             instance: {
               id: "p3",
               name: "Place 3",
-              type: null,
+              colorId: null,
+              differentialEquationId: null,
               dynamicsEnabled: false,
-              differentialEquationCode: null,
               x: 0,
               y: 0,
             },
@@ -595,8 +575,6 @@ describe("removeTokensFromSimulationFrame", () => {
 
   it("removes tokens from multiple places simultaneously", () => {
     const simulation: SimulationInstance = {
-      id: "test-sdcpn",
-      title: "Test SDCPN",
       types: new Map(),
       places: new Map(),
       transitions: new Map(),
@@ -620,9 +598,9 @@ describe("removeTokensFromSimulationFrame", () => {
             instance: {
               id: "p1",
               name: "Place 1",
-              type: null,
+              colorId: null,
+              differentialEquationId: null,
               dynamicsEnabled: false,
-              differentialEquationCode: null,
               x: 0,
               y: 0,
             },
@@ -637,9 +615,9 @@ describe("removeTokensFromSimulationFrame", () => {
             instance: {
               id: "p2",
               name: "Place 2",
-              type: null,
+              colorId: null,
+              differentialEquationId: null,
               dynamicsEnabled: false,
-              differentialEquationCode: null,
               x: 0,
               y: 0,
             },
@@ -654,9 +632,9 @@ describe("removeTokensFromSimulationFrame", () => {
             instance: {
               id: "p3",
               name: "Place 3",
-              type: null,
+              colorId: null,
+              differentialEquationId: null,
               dynamicsEnabled: false,
-              differentialEquationCode: null,
               x: 0,
               y: 0,
             },

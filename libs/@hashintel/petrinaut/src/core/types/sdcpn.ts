@@ -18,11 +18,9 @@ export type Transition = {
 export type Place = {
   id: ID;
   name: string;
-  type: null | ID; // refers to types.id
+  colorId: null | ID;
   dynamicsEnabled: boolean;
-  differentialEquationCode: null | {
-    refId: ID; // refers to differentialEquations.id
-  };
+  differentialEquationId: null | ID;
   visualizerCode?: string;
   // UI positioning
   x: number;
@@ -31,11 +29,11 @@ export type Place = {
   height?: number;
 };
 
-export type SDCPNType = {
+export type Color = {
   id: ID;
   name: string;
-  iconId: string; // e.g., "circle", "square"
-  colorCode: string; // e.g., "#FF0000"
+  iconSlug: string; // e.g., "circle", "square"
+  displayColor: string; // e.g., "#FF0000"
   elements: {
     id: string;
     name: string;
@@ -59,11 +57,16 @@ export type DifferentialEquation = {
 };
 
 export type SDCPN = {
-  id: ID;
-  title: string;
   places: Place[];
   transitions: Transition[];
-  types: SDCPNType[];
+  types: Color[];
   differentialEquations: DifferentialEquation[];
   parameters: Parameter[];
 };
+
+export type MinimalNetMetadata = {
+  netId: string;
+  title: string;
+};
+
+export type MutateSDCPN = (mutateFn: (sdcpn: SDCPN) => void) => void;

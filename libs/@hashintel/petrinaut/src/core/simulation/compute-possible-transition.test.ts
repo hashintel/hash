@@ -7,8 +7,6 @@ describe("computePossibleTransition", () => {
   it("returns null when transition is not enabled due to insufficient tokens", () => {
     // GIVEN a frame with a place that doesn't have enough tokens
     const simulation: SimulationInstance = {
-      id: "test-sdcpn",
-      title: "Test SDCPN",
       places: new Map(),
       transitions: new Map(),
       types: new Map(),
@@ -32,8 +30,8 @@ describe("computePossibleTransition", () => {
             instance: {
               id: "p1",
               name: "Place 1",
-              differentialEquationCode: null,
-              type: null,
+              differentialEquationId: null,
+              colorId: null,
               dynamicsEnabled: false,
               x: 0,
               y: 0,
@@ -76,17 +74,15 @@ describe("computePossibleTransition", () => {
   it("returns token combinations when transition is enabled and fires", () => {
     // GIVEN a frame with sufficient tokens and favorable random conditions
     const simulation: SimulationInstance = {
-      id: "test-sdcpn",
-      title: "Test SDCPN",
       places: new Map([
         [
           "p1",
           {
             id: "p1",
             name: "Place 1",
-            type: "type1",
+            colorId: "type1",
             dynamicsEnabled: false,
-            differentialEquationCode: null,
+            differentialEquationId: null,
             x: 0,
             y: 0,
           },
@@ -96,9 +92,9 @@ describe("computePossibleTransition", () => {
           {
             id: "p2",
             name: "Place 2",
-            type: "type1",
+            colorId: "type1",
             dynamicsEnabled: false,
-            differentialEquationCode: null,
+            differentialEquationId: null,
             x: 0,
             y: 0,
           },
@@ -111,8 +107,8 @@ describe("computePossibleTransition", () => {
           {
             id: "type1",
             name: "Type1",
-            iconId: "circle",
-            colorCode: "#FF0000",
+            iconSlug: "circle",
+            displayColor: "#FF0000",
             elements: [{ id: "e1", name: "x", type: "real" }],
           },
         ],
@@ -147,8 +143,8 @@ describe("computePossibleTransition", () => {
             instance: {
               id: "p1",
               name: "Place 1",
-              differentialEquationCode: null,
-              type: "type1",
+              differentialEquationId: null,
+              colorId: "type1",
               dynamicsEnabled: false,
               x: 0,
               y: 0,
@@ -164,8 +160,8 @@ describe("computePossibleTransition", () => {
             instance: {
               id: "p2",
               name: "Place 2",
-              differentialEquationCode: null,
-              type: "type1",
+              differentialEquationId: null,
+              colorId: "type1",
               dynamicsEnabled: false,
               x: 0,
               y: 0,

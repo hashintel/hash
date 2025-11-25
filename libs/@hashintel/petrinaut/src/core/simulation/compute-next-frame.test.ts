@@ -8,14 +8,12 @@ describe("computeNextFrame", () => {
   it("should compute next frame with dynamics and transitions", () => {
     // GIVEN a simple SDCPN with one place and one transition
     const sdcpn: SDCPN = {
-      id: "test-sdcpn",
-      title: "Test SDCPN",
       types: [
         {
           id: "type1",
           name: "Type 1",
-          iconId: "circle",
-          colorCode: "#000000",
+          iconSlug: "circle",
+          displayColor: "#000000",
           elements: [
             { id: "elem1", name: "x", type: "real" },
             { id: "elem2", name: "y", type: "real" },
@@ -35,9 +33,9 @@ describe("computeNextFrame", () => {
         {
           id: "p1",
           name: "Place1",
-          type: "type1",
+          colorId: "type1",
           dynamicsEnabled: true,
-          differentialEquationCode: { refId: "diffeq1" },
+          differentialEquationId: "diffeq1",
           x: 0,
           y: 0,
         },
@@ -92,8 +90,6 @@ describe("computeNextFrame", () => {
   it("should skip dynamics for places without type", () => {
     // GIVEN a place without a type
     const sdcpn: SDCPN = {
-      id: "test-sdcpn",
-      title: "Test SDCPN",
       types: [],
       differentialEquations: [],
       parameters: [],
@@ -101,9 +97,9 @@ describe("computeNextFrame", () => {
         {
           id: "p1",
           name: "Place1",
-          type: null,
+          colorId: null,
           dynamicsEnabled: true,
-          differentialEquationCode: null,
+          differentialEquationId: null,
           x: 0,
           y: 0,
         },
@@ -132,14 +128,12 @@ describe("computeNextFrame", () => {
   it("should skip dynamics for places with dynamics disabled", () => {
     // GIVEN a place with dynamics disabled
     const sdcpn: SDCPN = {
-      id: "test-sdcpn",
-      title: "Test SDCPN",
       types: [
         {
           id: "type1",
           name: "Type 1",
-          iconId: "circle",
-          colorCode: "#000000",
+          iconSlug: "circle",
+          displayColor: "#000000",
           elements: [{ id: "elem1", name: "x", type: "real" }],
         },
       ],
@@ -156,9 +150,9 @@ describe("computeNextFrame", () => {
         {
           id: "p1",
           name: "Place1",
-          type: "type1",
+          colorId: "type1",
           dynamicsEnabled: false,
-          differentialEquationCode: { refId: "diffeq1" },
+          differentialEquationId: "diffeq1",
           x: 0,
           y: 0,
         },

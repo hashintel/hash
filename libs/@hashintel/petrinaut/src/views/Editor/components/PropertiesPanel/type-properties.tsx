@@ -2,7 +2,7 @@ import { css } from "@hashintel/ds-helpers/css";
 import { useState } from "react";
 import { v4 as uuidv4 } from "uuid";
 
-import type { SDCPNType } from "../../../../core/types/sdcpn";
+import type { Color } from "../../../../core/types/sdcpn";
 import { ColorSelect } from "./color-select";
 
 /**
@@ -37,8 +37,8 @@ const slugifyToIdentifier = (input: string): string => {
 };
 
 interface TypePropertiesProps {
-  type: SDCPNType;
-  onUpdate: (typeId: string, updates: Partial<SDCPNType>) => void;
+  type: Color;
+  onUpdate: (typeId: string, updates: Partial<Color>) => void;
   globalMode: "edit" | "simulate";
 }
 
@@ -207,9 +207,9 @@ export const TypeProperties: React.FC<TypePropertiesProps> = ({
             Color
           </div>
           <ColorSelect
-            value={type.colorCode}
+            value={type.displayColor}
             onChange={(color) => {
-              onUpdate(type.id, { colorCode: color });
+              onUpdate(type.id, { displayColor: color });
             }}
             disabled={isDisabled}
           />

@@ -7,14 +7,12 @@ describe("buildSimulation", () => {
   it("builds a simulation with a single place and initial tokens", () => {
     const input: SimulationInput = {
       sdcpn: {
-        id: "test-sdcpn",
-        title: "Test SDCPN",
         types: [
           {
             id: "type1",
             name: "Type 1",
-            iconId: "circle",
-            colorCode: "#FF0000",
+            iconSlug: "circle",
+            displayColor: "#FF0000",
             elements: [
               { id: "e1", name: "x", type: "real" },
               { id: "e2", name: "y", type: "real" },
@@ -34,9 +32,9 @@ describe("buildSimulation", () => {
           {
             id: "p1",
             name: "Place 1",
-            type: "type1",
+            colorId: "type1",
             dynamicsEnabled: true,
-            differentialEquationCode: { refId: "diffeq1" },
+            differentialEquationId: "diffeq1",
             x: 0,
             y: 0,
           },
@@ -76,7 +74,7 @@ describe("buildSimulation", () => {
     expect(p1State).toBeDefined();
     expect(p1State?.count).toBe(2);
     expect(p1State?.offset).toBe(0);
-    const p1Type = simulationInstance.places.get("p1")?.type;
+    const p1Type = simulationInstance.places.get("p1")?.colorId;
     expect(p1Type).toBe("type1");
     const typeDefinition = input.sdcpn.types.find((tp) => tp.id === p1Type);
     expect(typeDefinition?.elements.length).toBe(2);
@@ -91,21 +89,19 @@ describe("buildSimulation", () => {
   it("builds a simulation with multiple places, transitions, and proper buffer layout", () => {
     const input: SimulationInput = {
       sdcpn: {
-        id: "test-sdcpn",
-        title: "Test SDCPN",
         types: [
           {
             id: "type1",
             name: "Type 1",
-            iconId: "circle",
-            colorCode: "#FF0000",
+            iconSlug: "circle",
+            displayColor: "#FF0000",
             elements: [{ id: "e1", name: "x", type: "real" }],
           },
           {
             id: "type2",
             name: "Type 2",
-            iconId: "square",
-            colorCode: "#00FF00",
+            iconSlug: "square",
+            displayColor: "#00FF00",
             elements: [
               { id: "e1", name: "x", type: "real" },
               { id: "e2", name: "y", type: "real" },
@@ -131,27 +127,27 @@ describe("buildSimulation", () => {
           {
             id: "p1",
             name: "Place 1",
-            type: "type1",
+            colorId: "type1",
             dynamicsEnabled: true,
-            differentialEquationCode: { refId: "diffeq1" },
+            differentialEquationId: "diffeq1",
             x: 0,
             y: 0,
           },
           {
             id: "p2",
             name: "Place 2",
-            type: "type2",
+            colorId: "type2",
             dynamicsEnabled: true,
-            differentialEquationCode: { refId: "diffeq2" },
+            differentialEquationId: "diffeq2",
             x: 100,
             y: 0,
           },
           {
             id: "p3",
             name: "Place 3",
-            type: "type1",
+            colorId: "type1",
             dynamicsEnabled: true,
-            differentialEquationCode: { refId: "diffeq1" },
+            differentialEquationId: "diffeq1",
             x: 200,
             y: 0,
           },
@@ -218,7 +214,7 @@ describe("buildSimulation", () => {
     const p1State = frame.places.get("p1");
     expect(p1State?.count).toBe(3);
     expect(p1State?.offset).toBe(0);
-    const p1Type = simulationInstance.places.get("p1")?.type;
+    const p1Type = simulationInstance.places.get("p1")?.colorId;
     expect(p1Type).toBe("type1");
     const p1TypeDef = input.sdcpn.types.find((tp) => tp.id === p1Type);
     expect(p1TypeDef?.elements.length).toBe(1);
@@ -227,7 +223,7 @@ describe("buildSimulation", () => {
     const p2State = frame.places.get("p2");
     expect(p2State?.count).toBe(1);
     expect(p2State?.offset).toBe(3); // After p1's 3 tokens
-    const p2Type = simulationInstance.places.get("p2")?.type;
+    const p2Type = simulationInstance.places.get("p2")?.colorId;
     expect(p2Type).toBe("type2");
     const p2TypeDef = input.sdcpn.types.find((tp) => tp.id === p2Type);
     expect(p2TypeDef?.elements.length).toBe(2);
@@ -236,7 +232,7 @@ describe("buildSimulation", () => {
     const p3State = frame.places.get("p3");
     expect(p3State?.count).toBe(0);
     expect(p3State?.offset).toBe(5); // After p1's 3 values + p2's 2 values
-    const p3Type = simulationInstance.places.get("p3")?.type;
+    const p3Type = simulationInstance.places.get("p3")?.colorId;
     expect(p3Type).toBe("type1");
     const p3TypeDef = input.sdcpn.types.find((tp) => tp.id === p3Type);
     expect(p3TypeDef?.elements.length).toBe(1);
@@ -269,14 +265,12 @@ describe("buildSimulation", () => {
   it("throws error when initialMarking references non-existent place", () => {
     const input: SimulationInput = {
       sdcpn: {
-        id: "test-sdcpn",
-        title: "Test SDCPN",
         types: [
           {
             id: "type1",
             name: "Type 1",
-            iconId: "circle",
-            colorCode: "#FF0000",
+            iconSlug: "circle",
+            displayColor: "#FF0000",
             elements: [{ id: "e1", name: "x", type: "real" }],
           },
         ],
@@ -293,9 +287,9 @@ describe("buildSimulation", () => {
           {
             id: "p1",
             name: "Place 1",
-            type: "type1",
+            colorId: "type1",
             dynamicsEnabled: true,
-            differentialEquationCode: { refId: "diffeq1" },
+            differentialEquationId: "diffeq1",
             x: 0,
             y: 0,
           },
@@ -323,14 +317,12 @@ describe("buildSimulation", () => {
   it("throws error when token dimensions don't match place dimensions", () => {
     const input: SimulationInput = {
       sdcpn: {
-        id: "test-sdcpn",
-        title: "Test SDCPN",
         types: [
           {
             id: "type1",
             name: "Type 1",
-            iconId: "circle",
-            colorCode: "#FF0000",
+            iconSlug: "circle",
+            displayColor: "#FF0000",
             elements: [
               { id: "e1", name: "x", type: "real" },
               { id: "e2", name: "y", type: "real" },
@@ -350,9 +342,9 @@ describe("buildSimulation", () => {
           {
             id: "p1",
             name: "Place 1",
-            type: "type1", // Type has 2 dimensions
+            colorId: "type1", // Type has 2 dimensions
             dynamicsEnabled: true,
-            differentialEquationCode: { refId: "diffeq1" },
+            differentialEquationId: "diffeq1",
             x: 0,
             y: 0,
           },

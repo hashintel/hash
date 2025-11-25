@@ -27,18 +27,14 @@ import {
   generateDefaultLambdaCode,
   generateDefaultTransitionKernelCode,
 } from "../../../../core/default-codes";
-import type {
-  Place,
-  SDCPNType,
-  Transition,
-} from "../../../../core/types/sdcpn";
-import { useSDCPNStore } from "../../../../state/sdcpn-provider";
+import type { Color, Place, Transition } from "../../../../core/types/sdcpn";
+import { useSDCPNContext } from "../../../../state/sdcpn-provider";
 import { SortableArcItem } from "./sortable-arc-item";
 
 interface TransitionPropertiesProps {
   transition: Transition;
   places: Place[];
-  types: SDCPNType[];
+  types: Color[];
   globalMode: "edit" | "simulate";
   onUpdate: (id: string, updates: Partial<Transition>) => void;
   onArcWeightUpdate: (
@@ -126,10 +122,10 @@ export const TransitionProperties: React.FC<TransitionPropertiesProps> = ({
 
   const hasOutputPlaceWithType = transition.outputArcs.some((arc) => {
     const place = places.find((p) => p.id === arc.placeId);
-    return place && place.type;
+    return place && place.colorId;
   });
 
-  const removeTransition = useSDCPNStore((state) => state.removeTransition);
+  const { removeTransition } = useSDCPNContext();
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
@@ -517,8 +513,10 @@ export const TransitionProperties: React.FC<TransitionPropertiesProps> = ({
                           const place = places.find(
                             (p) => p.id === arc.placeId,
                           );
-                          if (!place || !place.type) return null;
-                          const type = types.find((t) => t.id === place.type);
+                          if (!place || !place.colorId) return null;
+                          const type = types.find(
+                            (t) => t.id === place.colorId,
+                          );
                           if (!type) return null;
                           return {
                             placeName: place.name,
@@ -533,8 +531,10 @@ export const TransitionProperties: React.FC<TransitionPropertiesProps> = ({
                           const place = places.find(
                             (p) => p.id === arc.placeId,
                           );
-                          if (!place || !place.type) return null;
-                          const type = types.find((t) => t.id === place.type);
+                          if (!place || !place.colorId) return null;
+                          const type = types.find(
+                            (t) => t.id === place.colorId,
+                          );
                           if (!type) return null;
                           return {
                             placeName: place.name,

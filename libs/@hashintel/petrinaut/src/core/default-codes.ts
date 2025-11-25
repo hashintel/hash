@@ -1,6 +1,6 @@
-import type { SDCPNType } from "./types/sdcpn";
+import type { Color } from "./types/sdcpn";
 
-export function generateDefaultVisualizerCode(type: SDCPNType): string {
+export function generateDefaultVisualizerCode(type: Color): string {
   return `// This function defines how to visualize the tokens in the place of type "${type.name}".
 // It receives the current tokens and parameters.
 export default Visualization(({ tokens, parameters }) => {
@@ -22,9 +22,7 @@ export default Visualization(({ tokens, parameters }) => {
   </svg>
 });`;
 
-export function generateDefaultDifferentialEquationCode(
-  type: SDCPNType,
-): string {
+export function generateDefaultDifferentialEquationCode(type: Color): string {
   return `// This function defines the differential equation for the place of type "${type.name}".
 // The function receives the current tokens in all places and the parameters.
 // It should return the derivative of the token value in this place.
@@ -74,8 +72,8 @@ export default Lambda((tokensByPlace, parameters) => {
 });`;
 
 export function generateDefaultTransitionKernelCode(
-  _inputs: { placeName: string; type: SDCPNType; weight: number }[],
-  outputs: { placeName: string; type: SDCPNType; weight: number }[],
+  _inputs: { placeName: string; type: Color; weight: number }[],
+  outputs: { placeName: string; type: Color; weight: number }[],
 ): string {
   return `/**
 * This function defines the kernel for the transition.
