@@ -1,7 +1,6 @@
 import type { ImageData } from "canvas";
-import type { MotionValue } from "motion/react";
-import { motion, useTransform } from "motion/react";
-import { memo } from "react";
+import { motion, MotionValue, useTransform } from "motion/react";
+import { memo, useLayoutEffect, useState } from "react";
 
 import { getDevicePixelRatio } from "./get-device-pixel-ratio";
 import { imageDataToUrl } from "./image-data-to-url";
@@ -12,6 +11,7 @@ import {
 import { calculateSpecularImage } from "./maps/specular";
 import { CONVEX } from "./surface-equations";
 import { useToMotion } from "./use-to-motion";
+import { getValueOrMotion } from "./use-value-or-motion";
 
 const LATERAL_PART_SIZE = 1; // 1 pixel for top/left/right/bottom parts
 
@@ -21,6 +21,7 @@ type Parts = {
   top: string;
   topRight: string;
   left: string;
+  center: string;
   right: string;
   bottomLeft: string;
   bottom: string;
@@ -70,6 +71,13 @@ function splitImageDataToParts(props: {
     0,
     cornerWidth,
   );
+  const center = imageDataToUrl(
+    imageData,
+    lateralPartSize,
+    lateralPartSize,
+    cornerWidth,
+    cornerWidth,
+  );
   const right = imageDataToUrl(
     imageData,
     cornerWidth,
@@ -104,12 +112,65 @@ function splitImageDataToParts(props: {
     top,
     topRight,
     left,
+    center,
     right,
     bottomLeft,
     bottom,
     bottomRight,
   };
 }
+
+/**
+ * feImage that accepts MotionValue props for x, y, width, and height, but re-renders as a normal React component.
+ * Motion does not accept attrX/attrY for feImage:
+ * https://motion.dev/docs/react-svg-animation#x-y-scale-attributes
+ *
+ * This is UGLY WORKAROUND, and should be re-thought.
+ */
+const CustomFeImage: React.FC<{
+  href: MotionValue<string>;
+  x: number | MotionValue<number>;
+  y: number | MotionValue<number>;
+  width: MotionValue<number>;
+  height: MotionValue<number>;
+  result: string;
+}> = ({ href, x, y, width, height, result }) => {
+  const [_, setRerenderCount] = useState(0);
+
+  function rerender() {
+    setRerenderCount((count) => count + 1);
+  }
+
+  // Rerender when x or y change
+  useLayoutEffect(() => {
+    rerender();
+    const us1 = href.on("change", rerender);
+    const us2 = x instanceof MotionValue ? x.on("change", rerender) : () => {};
+    const us3 = y instanceof MotionValue ? y.on("change", rerender) : () => {};
+    const us4 = width.on("change", rerender);
+    const us5 = height.on("change", rerender);
+
+    return () => {
+      us1();
+      us2();
+      us3();
+      us4();
+      us5();
+    };
+  }, [href, x, y, width, height, result]);
+
+  return (
+    <feImage
+      href={href.get()}
+      x={getValueOrMotion(x)}
+      y={getValueOrMotion(y)}
+      width={width.get()}
+      height={height.get()}
+      result={result}
+      preserveAspectRatio="none"
+    />
+  );
+};
 
 //
 // Component that renders the 8 parts of an image and composites them together.
@@ -157,88 +218,92 @@ const CompositeParts: React.FC<CompositePartsProps> = memo(
       }),
     );
 
+    const widthMinusCorner = useTransform(
+      () => width.get() - cornerWidth.get(),
+    );
+    const heightMinusCorner = useTransform(
+      () => height.get() - cornerWidth.get(),
+    );
+
     return (
       <>
         {/* Image Parts */}
-        <motion.feImage
+        <CustomFeImage
           href={useTransform(parts, (_) => _.topLeft)}
           x={0}
           y={0}
           width={cornerWidth}
           height={cornerWidth}
           result={`${result}_topLeft`}
-          preserveAspectRatio="none"
         />
-        <motion.feImage
+        <CustomFeImage
           href={useTransform(parts, (_) => _.top)}
           x={0}
           y={0}
           width={width}
           height={cornerWidth}
           result={`${result}_top`}
-          preserveAspectRatio="none"
         />
-        <motion.feImage
+        <CustomFeImage
           href={useTransform(parts, (_) => _.topRight)}
-          x={useTransform(() => width.get() - cornerWidth.get())}
+          x={widthMinusCorner}
           y={0}
           width={cornerWidth}
           height={cornerWidth}
           result={`${result}_topRight`}
-          preserveAspectRatio="none"
         />
-        <motion.feImage
+        <CustomFeImage
           href={useTransform(parts, (_) => _.left)}
           x={0}
           y={0}
           width={cornerWidth}
           height={height}
           result={`${result}_left`}
-          preserveAspectRatio="none"
         />
-        <motion.feImage
+        <CustomFeImage
           href={useTransform(parts, (_) => _.right)}
-          x={useTransform(() => width.get() - cornerWidth.get())}
           y={0}
+          x={widthMinusCorner}
           width={cornerWidth}
           height={height}
           result={`${result}_right`}
-          preserveAspectRatio="none"
         />
-        <motion.feImage
+        <CustomFeImage
           href={useTransform(parts, (_) => _.bottomLeft)}
           x={0}
-          y={useTransform(() => height.get() - cornerWidth.get())}
+          y={heightMinusCorner}
           width={cornerWidth}
           height={cornerWidth}
           result={`${result}_bottomLeft`}
-          preserveAspectRatio="none"
         />
-        <motion.feImage
+        <CustomFeImage
           href={useTransform(parts, (_) => _.bottom)}
           x={0}
-          y={useTransform(() => height.get() - cornerWidth.get())}
+          y={heightMinusCorner}
           width={width}
           height={cornerWidth}
           result={`${result}_bottom`}
-          preserveAspectRatio="none"
         />
-        <motion.feImage
+        <CustomFeImage
           href={useTransform(parts, (_) => _.bottomRight)}
-          x={useTransform(() => width.get() - cornerWidth.get())}
-          y={useTransform(() => height.get() - cornerWidth.get())}
+          x={widthMinusCorner}
+          y={heightMinusCorner}
           width={cornerWidth}
           height={cornerWidth}
           result={`${result}_bottomRight`}
-          preserveAspectRatio="none"
         />
 
         {/* Composite parts together */}
 
-        <motion.feFlood
-          floodColor="rgb(128,128,128)"
-          floodOpacity="1"
+        {/* Center is used as base and is stretched all over the filter */}
+        <motion.feImage
+          href={useTransform(parts, (_) => _.center)}
+          x={0}
+          y={0}
+          width={width}
+          height={height}
           result={`${result}_base`}
+          preserveAspectRatio="none"
         />
 
         {[
