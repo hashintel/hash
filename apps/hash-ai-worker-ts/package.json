@@ -55,7 +55,7 @@
     "@local/hash-graph-sdk": "0.0.0-private",
     "@local/hash-isomorphic-utils": "0.0.0-private",
     "@local/status": "0.0.0-private",
-    "@sentry/node": "10.22.0",
+    "@sentry/node": "10.27.0",
     "@temporalio/activity": "1.12.1",
     "@temporalio/common": "1.12.1",
     "@temporalio/proto": "1.12.1",
