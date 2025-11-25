@@ -21,13 +21,22 @@ pub type FastHashSetEntry<'map, T, A = Global> =
 
 #[inline]
 #[must_use]
-pub fn fast_hash_map<K, V>(capacity: usize) -> FastHashMap<K, V> {
-    FastHashMap::with_capacity_and_hasher(capacity, foldhash::fast::RandomState::default())
+pub fn fast_hash_map_in<K, V, A: Allocator>(allocator: A) -> FastHashMap<K, V, A> {
+    FastHashMap::with_hasher_in(foldhash::fast::RandomState::default(), allocator)
 }
 
 #[inline]
 #[must_use]
-pub fn fast_hash_map_in<K, V, A: Allocator>(capacity: usize, allocator: A) -> FastHashMap<K, V, A> {
+pub fn fast_hash_map<K, V>() -> FastHashMap<K, V> {
+    fast_hash_map_in(Global)
+}
+
+#[inline]
+#[must_use]
+pub fn fast_hash_map_with_capacity_in<K, V, A: Allocator>(
+    capacity: usize,
+    allocator: A,
+) -> FastHashMap<K, V, A> {
     FastHashMap::with_capacity_and_hasher_in(
         capacity,
         foldhash::fast::RandomState::default(),
@@ -37,25 +46,39 @@ pub fn fast_hash_map_in<K, V, A: Allocator>(capacity: usize, allocator: A) -> Fa
 
 #[inline]
 #[must_use]
-pub fn fast_hash_set<T>(capacity: usize) -> FastHashSet<T> {
-    FastHashSet::with_capacity_and_hasher(capacity, foldhash::fast::RandomState::default())
+pub fn fast_hash_map_with_capacity<K, V>(capacity: usize) -> FastHashMap<K, V> {
+    fast_hash_map_with_capacity_in(capacity, Global)
 }
 
 #[inline]
 #[must_use]
-pub fn fast_hash_set_in<T, A: Allocator>(
-    capacity: Option<usize>,
+pub fn fast_hash_set_with_capacity_in<T, A: Allocator>(
+    capacity: usize,
     allocator: A,
 ) -> FastHashSet<T, A> {
-    let Some(capacity) = capacity else {
-        return FastHashSet::with_hasher_in(foldhash::fast::RandomState::default(), allocator);
-    };
-
     FastHashSet::with_capacity_and_hasher_in(
         capacity,
         foldhash::fast::RandomState::default(),
         allocator,
     )
+}
+
+#[inline]
+#[must_use]
+pub fn fast_hash_set_in<T, A: Allocator>(allocator: A) -> FastHashSet<T, A> {
+    FastHashSet::with_hasher_in(foldhash::fast::RandomState::default(), allocator)
+}
+
+#[inline]
+#[must_use]
+pub fn fast_hash_set_with_capacity<T>(capacity: usize) -> FastHashSet<T> {
+    fast_hash_set_with_capacity_in(capacity, Global)
+}
+
+#[inline]
+#[must_use]
+pub fn fast_hash_set<T>() -> FastHashSet<T> {
+    fast_hash_set_in(Global)
 }
 
 pub type TinyVec<T> = smallvec::SmallVec<T, 4>;

@@ -44,7 +44,7 @@ use bumpalo::Bump;
 use hashbrown::HashSet;
 
 use crate::{
-    collections::{FastHashSet, fast_hash_set},
+    collections::{FastHashSet, fast_hash_set_with_capacity},
     symbol::{Symbol, sym::TABLES},
 };
 
@@ -140,7 +140,7 @@ impl Heap {
     #[must_use]
     #[inline]
     pub fn new() -> Self {
-        let mut strings = fast_hash_set(0);
+        let mut strings = fast_hash_set_with_capacity(0);
         Self::prime_symbols(&mut strings);
 
         Self {
@@ -157,7 +157,7 @@ impl Heap {
     /// The heap is immediately primed with common symbols.
     #[must_use]
     pub fn with_capacity(capacity: usize) -> Self {
-        let mut strings = fast_hash_set(0);
+        let mut strings = fast_hash_set_with_capacity(0);
         Self::prime_symbols(&mut strings);
 
         Self {

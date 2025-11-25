@@ -89,7 +89,7 @@ impl<'heap> Interner<'heap> {
     ) -> Interned<'heap, [StructField<'heap>]> {
         if cfg!(debug_assertions) {
             // Ensure that struct fields do not have duplicate field names
-            let mut seen = hashql_core::collections::fast_hash_set(fields.len());
+            let mut seen = hashql_core::collections::fast_hash_set_with_capacity(fields.len());
             for field in &*fields {
                 assert!(
                     seen.insert(field.name.value),

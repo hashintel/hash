@@ -335,7 +335,7 @@ where
             dfs_stack: Vec::new_in(alloc.clone()),
             scc_stack: Vec::new_in(alloc.clone()),
             successor_stack: Vec::new_in(alloc.clone()),
-            deduplicated_successors: fast_hash_set_in(None, alloc.clone()),
+            deduplicated_successors: fast_hash_set_in(alloc.clone()),
 
             discovery_time: DiscoveryTime::MIN,
             data: Data {

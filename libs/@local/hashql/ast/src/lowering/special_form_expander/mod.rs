@@ -6,7 +6,7 @@ use core::{
 };
 
 use hashql_core::{
-    collections::{FastHashMap, fast_hash_map},
+    collections::{FastHashMap, fast_hash_map_with_capacity},
     heap::{self, Heap},
     span::SpanId,
     symbol::{Ident, IdentKind},
@@ -520,7 +520,7 @@ impl<'heap> SpecialFormExpander<'heap> {
     ) -> Option<heap::Vec<'heap, GenericConstraint<'heap>>> {
         let mut constraints = self.heap.vec(Some(arguments.len()));
 
-        let mut seen = fast_hash_map(arguments.len());
+        let mut seen = fast_hash_map_with_capacity(arguments.len());
 
         for argument in arguments {
             match argument {
