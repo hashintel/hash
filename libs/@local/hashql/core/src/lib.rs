@@ -27,6 +27,7 @@
     iter_map_windows,
     slice_partition_dedup,
     slice_swap_unchecked,
+    step_trait,
     try_trait_v2,
     variant_count,
 )]

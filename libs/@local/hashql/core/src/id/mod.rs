@@ -118,6 +118,17 @@ pub trait Id:
         Self::from_usize(self.as_usize() + amount)
     }
 
+    /// Subtracts the given amount from this ID.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the resulting ID is outside the valid range.
+    #[inline]
+    #[must_use = "Use `decrement_by` to modify the id in place"]
+    fn minus(self, amount: usize) -> Self {
+        Self::from_usize(self.as_usize() - amount)
+    }
+
     /// Mutably adds the given amount to this ID.
     ///
     /// # Panics
@@ -128,6 +139,16 @@ pub trait Id:
         *self = self.plus(amount);
     }
 
+    /// Mutably subtracts the given amount from this ID.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the resulting ID is outside the valid range.
+    #[inline]
+    fn decrement_by(&mut self, amount: usize) {
+        *self = self.minus(amount);
+    }
+
     /// Returns the previous ID in sequence, if it exists.
     ///
     /// Returns `None` if this ID is already at the minimum value.
@@ -135,9 +156,31 @@ pub trait Id:
 }
 
 /// Marker trait for types that have an associated ID.
+///
+/// This trait allows types to expose their identifier in a uniform way.
+///
+/// # Examples
+///
+/// ```
+/// # use hashql_core::{id::{HasId, Id}, newtype};
+/// # newtype!(struct UserId(u32 is 0..=100));
+/// struct User {
+///     id: UserId,
+///     name: String,
+/// }
+///
+/// impl HasId for User {
+///     type Id = UserId;
+///
+///     fn id(&self) -> Self::Id {
+///         self.id
+///     }
+/// }
+/// ```
 pub trait HasId {
     type Id: Id;
 
+    /// Returns the ID of this entity.
     fn id(&self) -> Self::Id;
 }
 
@@ -162,6 +205,18 @@ where
 /// ```
 ///
 /// This creates a newtype wrapper around [`u32`] with the Id trait fully implemented.
+///
+/// # Optional Attributes
+///
+/// - `#[steppable]` - Implements `core::iter::Step` for the ID type, enabling range iteration
+///
+/// ```
+/// # #![feature(step_trait)]
+/// hashql_core::id::newtype!(
+///     #[steppable]
+///     pub struct NodeId(u32 is 0..=100)
+/// );
+/// ```
 #[macro_export]
 macro_rules! newtype {
     (@internal in_bounds; $value:ident, $type:ty, $min:literal, $max:expr) => {
@@ -172,7 +227,28 @@ macro_rules! newtype {
         concat!("ID value must be between ", stringify!($min), " and ", stringify!($max))
     };
 
-    ($(#[$attr:meta])* $vis:vis struct $name:ident($type:ident is $min:literal..=$max:expr)) => {
+    // Entry point: separate steppable from other attributes
+    ($(#[$($attr:tt)*])* $vis:vis struct $name:ident($type:ident is $min:literal..=$max:expr)) => {
+        $crate::id::newtype!(@parse_attrs [] [] ; $(#[$($attr)*])* ; $vis struct $name($type is $min..=$max));
+    };
+
+    // Parse attributes: found steppable
+    (@parse_attrs [$($other:tt)*] [] ; #[steppable] $(#[$rest:meta])* ; $($tail:tt)*) => {
+        $crate::id::newtype!(@parse_attrs [$($other)*] [steppable] ; $(#[$rest])* ; $($tail)*);
+    };
+
+    // Parse attributes: other attribute
+    (@parse_attrs [$($other:tt)*] [$($step:tt)*] ; #[$attr:meta] $(#[$rest:meta])* ; $($tail:tt)*) => {
+        $crate::id::newtype!(@parse_attrs [$($other)* #[$attr]] [$($step)*] ; $(#[$rest])* ; $($tail)*);
+    };
+
+    // Parse attributes: done parsing
+    (@parse_attrs [$($other:tt)*] [$($step:tt)*] ; ; $vis:vis struct $name:ident($type:ident is $min:literal..=$max:expr)) => {
+        $crate::id::newtype!(@impl [$($other)*] [$($step)*] $vis struct $name($type is $min..=$max));
+    };
+
+    // Implementation
+    (@impl [$(#[$attr:meta])*] [$($step:tt)*] $vis:vis struct $name:ident($type:ident is $min:literal..=$max:expr)) => {
         $(#[$attr])*
         #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
         $vis struct $name($type);
@@ -323,9 +399,59 @@ macro_rules! newtype {
                 *self
             }
         }
+
+        $crate::id::newtype!(@maybe_step $name ; $($step)*);
     };
+
+    // Generate Step implementation if steppable was specified
+    (@maybe_step $name:ident ; steppable) => {
+        impl ::core::iter::Step for $name {
+            #[inline]
+            fn steps_between(start: &Self, end: &Self) -> (usize, Option<usize>) {
+                <usize as ::core::iter::Step>::steps_between(
+                    &$crate::id::Id::as_usize(*start),
+                    &$crate::id::Id::as_usize(*end),
+                )
+            }
+
+            #[inline]
+            fn forward_checked(start: Self, count: usize) -> Option<Self> {
+                $crate::id::Id::as_usize(start)
+                    .checked_add(count)
+                    .map($crate::id::Id::from_usize)
+            }
+
+            #[inline]
+            fn backward_checked(start: Self, count: usize) -> Option<Self> {
+                $crate::id::Id::as_usize(start)
+                    .checked_sub(count)
+                    .map($crate::id::Id::from_usize)
+            }
+        }
+    };
+
+    // No Step implementation if steppable was not specified
+    (@maybe_step $name:ident ; ) => {};
 }
 
+/// Thread-safe ID generator that produces unique IDs.
+///
+/// Uses an atomic counter to generate sequential IDs, making it safe to use
+/// across multiple threads without external synchronization. IDs are generated
+/// starting from 0 and incrementing by 1 for each call to [`next`].
+///
+/// # Examples
+///
+/// ```
+/// # use hashql_core::{id::IdProducer, newtype};
+/// # newtype!(struct NodeId(u32 is 0..=1000));
+/// let producer = IdProducer::<NodeId>::new();
+/// let id1 = producer.next();
+/// let id2 = producer.next();
+/// assert_ne!(id1, id2);
+/// ```
+///
+/// [`next`]: IdProducer::next
 #[derive(Debug)]
 pub struct IdProducer<I> {
     next: AtomicU32,
@@ -333,6 +459,7 @@ pub struct IdProducer<I> {
 }
 
 impl<I> IdProducer<I> {
+    /// Creates a new `IdProducer` starting from ID 0.
     #[must_use]
     pub const fn new() -> Self {
         Self {
@@ -341,6 +468,14 @@ impl<I> IdProducer<I> {
         }
     }
 
+    /// Generates and returns the next unique ID.
+    ///
+    /// This method is thread-safe and can be called concurrently from multiple
+    /// threads. Each call returns a unique ID in sequential order.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the counter overflows the valid range for the ID type.
     #[inline]
     pub fn next(&self) -> I
     where
@@ -360,12 +495,31 @@ impl<I> Default for IdProducer<I> {
     }
 }
 
+/// Non-thread-safe ID counter that generates sequential IDs.
+///
+/// Unlike [`IdProducer`], this counter is not thread-safe but provides a simpler
+/// interface for single-threaded scenarios. IDs are generated starting from
+/// [`Id::MIN`] and incrementing by 1 for each call to [`next`].
+///
+/// # Examples
+///
+/// ```
+/// # use hashql_core::{id::IdCounter, newtype};
+/// # newtype!(struct NodeId(u32 is 0..=1000));
+/// let mut counter = IdCounter::<NodeId>::new();
+/// let id1 = counter.next();
+/// let id2 = counter.next();
+/// assert_eq!(counter.size(), 2);
+/// ```
+///
+/// [`next`]: IdCounter::next
 #[derive(Debug)]
 pub struct IdCounter<I> {
     next: I,
 }
 
 impl<I> IdCounter<I> {
+    /// Creates a new `IdCounter` starting from [`Id::MIN`].
     #[must_use]
     pub const fn new() -> Self
     where
@@ -374,6 +528,9 @@ impl<I> IdCounter<I> {
         Self { next: I::MIN }
     }
 
+    /// Returns the number of IDs that have been generated so far.
+    ///
+    /// This is equal to the value of the next ID that will be generated.
     #[must_use]
     pub fn size(&self) -> usize
     where
@@ -382,6 +539,9 @@ impl<I> IdCounter<I> {
         self.next.as_usize()
     }
 
+    /// Returns the next ID that will be generated without incrementing the counter.
+    ///
+    /// This represents the upper bound (exclusive) of IDs that have been generated.
     #[must_use]
     pub const fn bound(&self) -> I
     where
@@ -390,6 +550,13 @@ impl<I> IdCounter<I> {
         self.next
     }
 
+    /// Generates and returns the next sequential ID.
+    ///
+    /// Increments the internal counter and returns the previous value.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the counter overflows the valid range for the ID type.
     #[inline]
     #[expect(
         clippy::should_implement_trait,
@@ -416,6 +583,15 @@ where
     }
 }
 
+/// Creates a type alias for an [`IdProducer`] for the given ID type.
+///
+/// # Examples
+///
+/// ```
+/// # use hashql_core::{newtype, newtype_producer};
+/// # newtype!(struct NodeId(u32 is 0..=1000));
+/// newtype_producer!(pub struct NodeIdProducer(NodeId));
+/// ```
 #[macro_export]
 macro_rules! newtype_producer {
     ($vis:vis struct $name:ident($id:ty)) => {
@@ -423,6 +599,15 @@ macro_rules! newtype_producer {
     };
 }
 
+/// Creates a type alias for an [`IdCounter`] for the given ID type.
+///
+/// # Examples
+///
+/// ```
+/// # use hashql_core::{newtype, newtype_counter};
+/// # newtype!(struct NodeId(u32 is 0..=1000));
+/// newtype_counter!(pub struct NodeIdCounter(NodeId));
+/// ```
 #[macro_export]
 macro_rules! newtype_counter {
     ($vis:vis struct $name:ident($id:ty)) => {
@@ -430,6 +615,33 @@ macro_rules! newtype_counter {
     };
 }
 
+/// Creates type aliases for ID-indexed collections for the given ID type.
+///
+/// This macro generates a family of collection types that use the specified ID
+/// type for indexing, including slices, vectors, union-find structures, sets,
+/// and maps.
+///
+/// # Generated Types
+///
+/// For an ID type `Foo`, this generates:
+/// - `{Name}Slice<T>` - ID-indexed slice
+/// - `{Name}Vec<T, A>` - ID-indexed vector
+/// - `{Name}UnionFind<A>` - Union-find data structure
+/// - `{Name}Set<A>` - Hash set of IDs
+/// - `{Name}SetEntry<'set, A>` - Entry in the hash set
+/// - `{Name}Map<V, A>` - Hash map from IDs to values
+/// - `{Name}MapEntry<'map, V, A>` - Entry in the hash map
+///
+/// # Examples
+///
+/// ```
+/// # #![feature(allocator_api, macro_metavar_expr_concat)]
+/// # extern crate alloc;
+/// # use hashql_core::{newtype, newtype_collections};
+/// # newtype!(struct NodeId(u32 is 0..=1000));
+/// newtype_collections!(pub type Node* from NodeId);
+/// // Creates: NodeSlice, NodeVec, NodeUnionFind, NodeSet, NodeMap, etc.
+/// ```
 #[macro_export]
 macro_rules! newtype_collections {
     ($vis:vis type $name:ident* from $id:ty) => {
