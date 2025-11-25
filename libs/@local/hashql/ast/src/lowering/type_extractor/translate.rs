@@ -8,7 +8,7 @@
 use alloc::borrow::Cow;
 
 use hashql_core::{
-    collections::{FastHashMap, FastHashSet, SmallVec, TinyVec, fast_hash_set},
+    collections::{FastHashMap, FastHashSet, SmallVec, TinyVec, fast_hash_set_with_capacity},
     intern::Provisioned,
     module::{
         ModuleRegistry, Universe,
@@ -56,7 +56,7 @@ impl<'env, 'heap> GenericArgumentVisitor<'env, 'heap> {
     fn new(scope: &'env [GenericArgumentReference<'heap>]) -> Self {
         Self {
             scope,
-            used: fast_hash_set(scope.len()),
+            used: fast_hash_set_with_capacity(scope.len()),
         }
     }
 }

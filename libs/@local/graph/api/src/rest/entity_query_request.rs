@@ -39,7 +39,7 @@ use hash_graph_store::{
 };
 use hashql_ast::error::AstDiagnosticCategory;
 use hashql_core::{
-    collections::fast_hash_map,
+    collections::fast_hash_map_with_capacity,
     heap::Heap,
     module::ModuleRegistry,
     span::{SpanId, SpanTable},
@@ -399,7 +399,7 @@ impl<'q> EntityQuery<'q> {
 
         // Evaluate the HIR
         // TODO: https://linear.app/hash/issue/BE-41/hashql-expose-input-in-graph-api
-        let inputs = fast_hash_map(0);
+        let inputs = fast_hash_map_with_capacity(0);
         let mut compiler = hashql_eval::graph::read::GraphReadCompiler::new(heap, &inputs);
 
         compiler.visit_node(hir);

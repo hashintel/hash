@@ -2,7 +2,7 @@ use alloc::borrow::Cow;
 use core::mem;
 
 use hashql_core::{
-    collections::{FastHashMap, TinyVec, fast_hash_map},
+    collections::{FastHashMap, TinyVec, fast_hash_map_with_capacity},
     module::{
         ModuleRegistry,
         locals::{Local, Locals, TypeLocals},
@@ -154,7 +154,7 @@ impl<'env, 'heap> TypeDefinitionExtractor<'env, 'heap> {
             }
         }
 
-        let mut constraints = fast_hash_map(allocated_generic_constraints);
+        let mut constraints = fast_hash_map_with_capacity(allocated_generic_constraints);
 
         let mut unit = TranslationUnit {
             env: self.environment,

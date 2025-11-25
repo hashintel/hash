@@ -117,7 +117,7 @@ impl<'heap> Struct<'heap> {
         // This is an assert, as previous stages in the compilation should have ensured that there
         // are no duplicate fields.
         if cfg!(debug_assertions) {
-            let mut seen = crate::collections::fast_hash_set(fields.len());
+            let mut seen = crate::collections::fast_hash_set_with_capacity(fields.len());
             for field in &fields {
                 assert!(seen.insert(*field), "Duplicate field: {field}");
             }

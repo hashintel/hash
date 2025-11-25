@@ -40,7 +40,9 @@ use super::{
     variable::{VariableId, VariableLookup, VariableProvenance},
 };
 use crate::{
-    collections::{FastHashMap, SmallVec, fast_hash_map, fast_hash_map_in},
+    collections::{
+        FastHashMap, SmallVec, fast_hash_map_with_capacity, fast_hash_map_with_capacity_in,
+    },
     r#type::{
         PartialType, TypeId,
         environment::{InferenceEnvironment, LatticeEnvironment, Variance},
@@ -650,8 +652,10 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
         graph: &Graph,
         variables: &FastHashMap<VariableKind, (Variable, VariableConstraint)>,
     ) -> Substitution {
-        let mut substitution =
-            Substitution::new(self.unification.lookup(), fast_hash_map(variables.len()));
+        let mut substitution = Substitution::new(
+            self.unification.lookup(),
+            fast_hash_map_with_capacity(variables.len()),
+        );
 
         for node in graph.nodes() {
             let kind = self.unification.variables[node.into_usize()];
@@ -679,7 +683,7 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
         heap: &'bump Bump,
     ) -> FastHashMap<VariableId, Vec<VariableOrdering, &'bump Bump>, &'bump Bump> {
         let mut lookup: FastHashMap<VariableId, Vec<VariableOrdering, &'bump Bump>, &'bump Bump> =
-            fast_hash_map_in(self.unification.variables.len(), heap);
+            fast_hash_map_with_capacity_in(self.unification.variables.len(), heap);
 
         for &constraint in &self.constraints {
             let Constraint::Ordering { lower, upper } = constraint else {
@@ -1603,8 +1607,8 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
         let mut graph = Graph::new(&mut self.unification);
 
         // These need to be initialized *after* upsert, to ensure that the capacity is correct
-        let mut variables = fast_hash_map(self.unification.lookup.len());
-        let mut substitution = fast_hash_map(self.unification.lookup.len());
+        let mut variables = fast_hash_map_with_capacity(self.unification.lookup.len());
+        let mut substitution = fast_hash_map_with_capacity(self.unification.lookup.len());
         let mut selections = Vec::with_capacity(self.unification.lookup.len());
 
         let mut lookup = VariableLookup::new(FastHashMap::default());

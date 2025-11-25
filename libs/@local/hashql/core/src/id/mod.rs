@@ -46,6 +46,8 @@ pub trait Id:
     Copy
     + PartialEq
     + Eq
+    + PartialOrd
+    + Ord
     + Hash
     + Debug
     + Display
@@ -137,6 +139,17 @@ pub trait HasId {
     type Id: Id;
 
     fn id(&self) -> Self::Id;
+}
+
+impl<T> HasId for &T
+where
+    T: HasId,
+{
+    type Id = T::Id;
+
+    fn id(&self) -> Self::Id {
+        (**self).id()
+    }
 }
 
 /// Creates a new ID type with a specified valid range.
@@ -302,6 +315,14 @@ macro_rules! newtype {
                 }
             }
         }
+
+        impl $crate::id::HasId for $name {
+            type Id = $name;
+
+            fn id(&self) -> Self::Id {
+                *self
+            }
+        }
     };
 }
 
@@ -423,8 +444,6 @@ macro_rules! newtype_collections {
         $vis type ${concat($name, MapEntry)}<'map, V, A = ::alloc::alloc::Global> = $crate::collections::FastHashMapEntry<'map, $id, V, A>;
     };
 }
-
-// TODO: we might want a macro that also defines type aliases to e.g. `HashMap` and such
 
 pub use newtype;
 pub use newtype_collections;

@@ -1,5 +1,5 @@
 use hashql_core::{
-    collections::{FastHashSet, fast_hash_set},
+    collections::{FastHashSet, fast_hash_set_with_capacity},
     intern::Interned,
     span::SpanId,
     r#type::{
@@ -112,7 +112,7 @@ pub(crate) fn is_contractive<'heap>(
     root: Interned<'heap, TypeKind<'heap>>,
 ) -> Result<(), SpanId> {
     // if this ever becomes a bottleneck, consider using the temporary heap
-    let mut visited = fast_hash_set(4);
+    let mut visited = fast_hash_set_with_capacity(4);
 
     is_contractive_kind(env, root, root, &mut visited)
 }
