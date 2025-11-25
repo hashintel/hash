@@ -19,7 +19,7 @@
     "prepublishOnly": "PACKAGE_DIR=$(pwd) yarn workspace @local/repo-chores exe scripts/prepublish.ts",
     "preview": "vite preview",
     "postpublish": "PACKAGE_DIR=$(pwd) yarn workspace @local/repo-chores exe scripts/postpublish.ts",
-    "test": "vitest"
+    "test:unit": "vitest"
   },
   "dependencies": {
     "@ark-ui/react": "5.26.2",
