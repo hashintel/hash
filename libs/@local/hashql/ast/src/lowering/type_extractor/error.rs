@@ -2,9 +2,9 @@ use alloc::borrow::Cow;
 use core::cmp::Ordering;
 
 use hashql_core::{
+    algorithms::did_you_mean,
     heap::Heap,
     module::{Universe, error::ResolutionError, item::ItemKind},
-    similarity::did_you_mean,
     span::SpanId,
     symbol::Symbol,
     r#type::{error::TypeCheckDiagnosticCategory, kind::generic::GenericArgumentReference},

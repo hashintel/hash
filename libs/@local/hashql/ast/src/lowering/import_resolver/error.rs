@@ -5,6 +5,7 @@ use core::{
 };
 
 use hashql_core::{
+    algorithms::did_you_mean,
     collections::FastHashSet,
     module::{
         ModuleRegistry, Universe,
@@ -12,7 +13,6 @@ use hashql_core::{
         import::Import,
         item::Item,
     },
-    similarity::did_you_mean,
     span::SpanId,
     symbol::{Ident, Symbol},
 };

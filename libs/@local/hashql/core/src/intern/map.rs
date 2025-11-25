@@ -1,15 +1,17 @@
 use core::{
     borrow::Borrow,
-    hash::Hash,
-    hint::cold_path,
+    hash::{BuildHasher as _, Hash},
     sync::atomic::{AtomicU32, Ordering},
 };
 
+use hashbrown::hash_map::RawEntryMut;
+
 use super::Interned;
 use crate::{
-    collections::ConcurrentHashMap,
+    collections::{FastHashMap, fast_hash_map_with_capacity},
     heap::Heap,
     id::{HasId, Id},
+    sync::lock::LocalLock,
 };
 
 /// A trait for types that can be constructed from an ID and a partial representation.
@@ -98,68 +100,52 @@ where
 ///
 /// ```compile_fail
 /// # use hashql_core::{heap::Heap, intern::{InternMap, Decompose, Interned}, id::{HasId, Id}};
+/// # // Type definitions hidden for brevity
 /// # #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 /// # struct ValueId(u32);
-/// # impl Id for ValueId {
-/// #     fn from_u32(id: u32) -> Self { Self(id) }
-/// # }
+/// # impl Id for ValueId { fn from_u32(id: u32) -> Self { Self(id) } }
 /// # #[derive(Debug, PartialEq, Eq, Hash)]
-/// # struct Value {
-/// #     id: ValueId,
-/// #     value: (),  // Zero-sized type!
-/// # }
-/// # impl HasId for Value {
-/// #     type Id = ValueId;
-/// #     fn id(&self) -> Self::Id { self.id }
-/// # }
+/// # struct Value { id: ValueId, value: () }
+/// # impl HasId for Value { type Id = ValueId; fn id(&self) -> Self::Id { self.id } }
 /// # impl<'heap> Decompose<'heap> for Value {
-/// #     type Partial = ();  // Zero-sized type!
-/// #     fn from_parts(id: ValueId, partial: Interned<'heap, ()>) -> Self {
-/// #         Self { id, value: *partial.as_ref() }
-/// #     }
+/// #     type Partial = ();
+/// #     fn from_parts(id: ValueId, p: Interned<'heap, ()>) -> Self { Self { id, value: *p.as_ref() } }
 /// # }
 /// let heap = Heap::new();
 /// let map = InternMap::<Value>::new(&heap);
 ///
-/// // This will fail to compile - cannot intern a zero-sized type
-/// let obj = map.intern_partial(());
+/// let obj = map.intern_partial(()); // Error: cannot intern ZST
 /// ```
 ///
 /// Types that implement `Drop` will also cause a compile error:
 ///
 /// ```compile_fail
 /// # use hashql_core::{heap::Heap, intern::{InternMap, Decompose, Interned}, id::{HasId, Id}};
+/// # // Type definitions hidden for brevity
 /// # #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 /// # struct ValueId(u32);
-/// # impl Id for ValueId {
-/// #     fn from_u32(id: u32) -> Self { Self(id) }
-/// # }
+/// # impl Id for ValueId { fn from_u32(id: u32) -> Self { Self(id) } }
 /// # #[derive(Debug, PartialEq, Eq, Hash)]
-/// # struct Value {
-/// #     id: ValueId,
-/// #     value: Vec<i32>,  // Type that implements Drop!
-/// # }
-/// # impl HasId for Value {
-/// #     type Id = ValueId;
-/// #     fn id(&self) -> Self::Id { self.id }
-/// # }
+/// # struct Value { id: ValueId, value: Vec<i32> }
+/// # impl HasId for Value { type Id = ValueId; fn id(&self) -> Self::Id { self.id } }
 /// # impl<'heap> Decompose<'heap> for Value {
-/// #     type Partial = Vec<i32>;  // Type that implements Drop!
-/// #     fn from_parts(id: ValueId, partial: Interned<'heap, Vec<i32>>) -> Self {
-/// #         Self { id, value: partial.as_ref().clone() }
-/// #     }
+/// #     type Partial = Vec<i32>;
+/// #     fn from_parts(id: ValueId, p: Interned<'heap, Vec<i32>>) -> Self { Self { id, value: p.as_ref().clone() } }
 /// # }
 /// let heap = Heap::new();
 /// let map = InternMap::<Value>::new(&heap);
 ///
-/// // This will fail to compile - cannot intern a type that implements Drop
-/// let obj = map.intern_partial(vec![1, 2, 3]);
+/// let obj = map.intern_partial(vec![1, 2, 3]); // Error: cannot intern Drop type
 /// ```
 ///
 /// # Thread Safety
 ///
-/// This implementation is built with thread-safety in mind, but is currently not thread-safe due to
-/// the use of `bumpalo` in [`Heap`].
+/// This implementation uses [`LocalLock`] and is **not thread-safe**. The architecture supports
+/// upgrading to [`SharedLock`] for thread-safety, but the underlying [`Heap`] allocator would
+/// also need to become thread-safe first.
+///
+/// [`LocalLock`]: crate::sync::lock::LocalLock
+/// [`SharedLock`]: crate::sync::lock::SharedLock
 ///
 /// # Examples
 ///
@@ -197,9 +183,9 @@ where
 pub struct InternMap<'heap, T: Decompose<'heap>> {
     heap: &'heap Heap,
 
-    // For more information about the tradeoff and decision on the use of `ConcurrentHashMap`, see
+    // For more information about the tradeoff and decision on the use of `LocalLock`, see
     // the documentation on `InternSet`.
-    inner: ConcurrentHashMap<&'heap T::Partial, T::Id>,
+    inner: LocalLock<FastHashMap<&'heap T::Partial, T::Id>>,
 
     // In theory, this isn't as efficient as it could be, but it makes the implementation simpler.
     // A more optimized approach would be to:
@@ -216,7 +202,7 @@ pub struct InternMap<'heap, T: Decompose<'heap>> {
     // - Each map entry requires ~24 bytes (12 bytes per hashmap entry × 2 maps).
     // - The entire ID space would require ~96GB just for the map structures.
     // - Memory constraints will be hit long before ID exhaustion.
-    lookup: ConcurrentHashMap<T::Id, &'heap T::Partial>,
+    lookup: LocalLock<FastHashMap<T::Id, &'heap T::Partial>>,
 
     next: AtomicU32,
 }
@@ -233,10 +219,93 @@ where
     pub fn new(heap: &'heap Heap) -> Self {
         Self {
             heap,
-            inner: ConcurrentHashMap::default(),
+            inner: LocalLock::default(),
 
-            lookup: ConcurrentHashMap::default(),
+            lookup: LocalLock::default(),
 
+            next: AtomicU32::new(0),
+        }
+    }
+
+    /// Creates a new `InternMap` with the specified initial capacity.
+    ///
+    /// Pre-allocates memory for both the forward (partial → ID) and reverse (ID → partial)
+    /// mappings to avoid rehashing when the approximate number of unique values is known
+    /// in advance. This can significantly improve performance during bulk interning operations,
+    /// particularly during AST construction or type system initialization.
+    ///
+    /// The capacity represents the number of unique values the map can hold before needing
+    /// to reallocate its internal hash tables.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use hashql_core::{heap::Heap, intern::{InternMap, Decompose, Interned}, id::{HasId, Id}, newtype};
+    /// # newtype!(struct TypeId(u32 is 0..=0xFFFF_FF00));
+    /// # #[derive(Debug, PartialEq, Eq, Hash)]
+    /// # struct TypeInfo {
+    /// #     id: TypeId,
+    /// #     name: &'static str,
+    /// # }
+    /// # impl HasId for TypeInfo {
+    /// #     type Id = TypeId;
+    /// #     fn id(&self) -> Self::Id { self.id }
+    /// # }
+    /// # impl<'heap> Decompose<'heap> for TypeInfo {
+    /// #     type Partial = &'static str;
+    /// #     fn from_parts(id: TypeId, partial: Interned<'heap, &'static str>) -> Self {
+    /// #         Self { id, name: *partial.as_ref() }
+    /// #     }
+    /// # }
+    /// let heap = Heap::new();
+    ///
+    /// // Pre-allocate space for approximately 100 types
+    /// let type_map = InternMap::<TypeInfo>::with_capacity(100, &heap);
+    ///
+    /// // Now intern many types without triggering rehashes
+    /// for i in 0..100 {
+    ///     type_map.intern_partial("SomeType");
+    /// }
+    /// ```
+    ///
+    /// Use case for compiler type systems:
+    ///
+    /// ```
+    /// # use hashql_core::{heap::Heap, intern::{InternMap, Decompose, Interned}, id::{HasId, Id}, newtype};
+    /// # newtype!(struct TypeId(u32 is 0..=0xFFFF_FF00));
+    /// # #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+    /// # enum PrimitiveType { I32, I64, F32, F64, Bool, String }
+    /// # #[derive(Debug, PartialEq, Eq, Hash)]
+    /// # struct Type {
+    /// #     id: TypeId,
+    /// #     primitive: PrimitiveType,
+    /// # }
+    /// # impl HasId for Type {
+    /// #     type Id = TypeId;
+    /// #     fn id(&self) -> Self::Id { self.id }
+    /// # }
+    /// # impl<'heap> Decompose<'heap> for Type {
+    /// #     type Partial = PrimitiveType;
+    /// #     fn from_parts(id: TypeId, partial: Interned<'heap, PrimitiveType>) -> Self {
+    /// #         Self { id, primitive: *partial.as_ref() }
+    /// #     }
+    /// # }
+    /// let heap = Heap::new();
+    ///
+    /// // Pre-allocate for primitive types (we know there are 6)
+    /// let type_map = InternMap::<Type>::with_capacity(6, &heap);
+    ///
+    /// // Intern all primitive types
+    /// use PrimitiveType::*;
+    /// for prim in [I32, I64, F32, F64, Bool, String] {
+    ///     type_map.intern_partial(prim);
+    /// }
+    /// ```
+    pub fn with_capacity(capacity: usize, heap: &'heap Heap) -> Self {
+        Self {
+            heap,
+            inner: LocalLock::new(fast_hash_map_with_capacity(capacity)),
+            lookup: LocalLock::new(fast_hash_map_with_capacity(capacity)),
             next: AtomicU32::new(0),
         }
     }
@@ -261,43 +330,6 @@ impl<'heap, T> InternMap<'heap, T>
 where
     T: Decompose<'heap, Partial: Eq + Hash>,
 {
-    /// Inserts a new ID-partial pair into the map.
-    ///
-    /// This method is used internally to add new entries to both the forward and reverse
-    /// maps. It handles potential concurrent insertions by detecting if another thread
-    /// has already inserted the same partial value.
-    fn insert(&self, id: T::Id, partial: &'heap T::Partial) -> Interned<'heap, T::Partial> {
-        // When this is called, we expect that the partial is unique and hasn't been inserted
-        // before.
-        let interned = if self.inner.insert(partial, id) == Ok(()) {
-            Interned::new_unchecked(partial)
-        } else {
-            // Due to the fact that this is essentially single-threaded, the concurrent insertion is
-            // unlikely to *ever* occur.
-            cold_path();
-
-            tracing::debug!(%id, "concurrent insertion detected, using existing partial");
-
-            // We never remove so we know this is going to work
-            let partial = self
-                .inner
-                .read(partial, |&key, _| key)
-                .unwrap_or_else(|| unreachable!());
-
-            Interned::new_unchecked(partial)
-        };
-
-        // Result indicated that a value of the same key already exists
-        if let Err((key, _)) = self.lookup.insert(id, partial) {
-            tracing::warn!(
-                %key,
-                "Attempted to insert a duplicate key into the intern map"
-            );
-        }
-
-        interned
-    }
-
     /// Core interning function that handles both provisioned and non-provisioned cases.
     ///
     /// This method performs the actual interning logic, looking up existing values
@@ -322,16 +354,38 @@ where
             );
         };
 
-        if let Some((id, partial)) = self.inner.read(&partial, |&partial, &id| (id, partial)) {
+        self.inner.map(|inner| {
+            // The use of the raw API here is safe, the hash we compare to is *only* ever the one of
+            // the partial (so the key). For the lookup we still hash the id of the id instead.
+            let hash_partial = inner.hasher().hash_one(&partial);
+
+            let (partial, id) = match inner
+                .raw_entry_mut()
+                .from_key_hashed_nocheck(hash_partial, &partial)
+            {
+                RawEntryMut::Vacant(entry) => {
+                    let id = id.unwrap_or_else(|| self.next_id());
+
+                    let partial = self.heap.alloc(partial);
+                    let (key, value) = entry.insert_hashed_nocheck(hash_partial, &*partial, id);
+
+                    let lookup_ret = self.lookup.map(|lookup| lookup.insert(id, partial));
+                    debug_assert!(
+                        lookup_ret.is_none(),
+                        "lookup should not have duplicate items associated with an id"
+                    );
+
+                    (*key, *value)
+                }
+                RawEntryMut::Occupied(entry) => {
+                    let (key, value) = entry.get_key_value();
+
+                    (*key, *value)
+                }
+            };
+
             T::from_parts(id, Interned::new_unchecked(partial))
-        } else {
-            let id = id.unwrap_or_else(|| self.next_id());
-
-            let partial = self.heap.alloc(partial);
-            let partial = self.insert(id, partial);
-
-            T::from_parts(id, partial)
-        }
+        })
     }
 
     /// Interns a partial representation and returns the complete object.
@@ -460,44 +514,64 @@ where
     /// 2. Passes that ID to the provided closure
     /// 3. Interns the partial representation returned by the closure with the provisioned ID
     ///
+    /// This is the most convenient way to create self-referential structures, as you can
+    /// use the provisioned ID within the closure to reference the very object you're creating.
+    ///
     /// # Note
     ///
-    /// The returned `T` might not have the provisioned ID, and instead may be interned, for more
-    /// information as to why this is the case and why this is correct, see the note on
+    /// The returned `T` might not have the provisioned ID if the partial representation matches
+    /// an existing entry. For more information on why this is correct, see the note on
     /// [`Self::intern_provisioned`].
-    ///
-    /// # Returns
-    ///
-    /// The complete reconstructed object of type `T`
     ///
     /// # Examples
     ///
+    /// Creating a self-referential linked list node:
+    ///
     /// ```
     /// # use hashql_core::{heap::Heap, intern::{InternMap, Decompose, Interned, Provisioned}, id::{HasId, Id}, newtype};
-    /// # newtype!(struct ValueId(u32 is 0..=0xFFFF_FF00));
+    /// # newtype!(struct NodeId(u32 is 0..=0xFFFF_FF00));
+    /// # #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+    /// # struct PartialNode { value: i32, next: Option<NodeId> }
     /// # #[derive(Debug, PartialEq, Eq, Hash)]
-    /// # struct Value {
-    /// #     id: ValueId,
-    /// #     value: usize,
-    /// # }
-    /// # impl HasId for Value {
-    /// #     type Id = ValueId;
+    /// # struct Node { id: NodeId, value: i32, next: Option<NodeId> }
+    /// # impl HasId for Node {
+    /// #     type Id = NodeId;
     /// #     fn id(&self) -> Self::Id { self.id }
     /// # }
-    /// # impl<'heap> Decompose<'heap> for Value {
-    /// #     type Partial = usize;
-    /// #     fn from_parts(id: ValueId, partial: Interned<'heap, usize>) -> Self {
-    /// #         Self { id, value: *partial.as_ref() }
+    /// # impl<'heap> Decompose<'heap> for Node {
+    /// #     type Partial = PartialNode;
+    /// #     fn from_parts(id: NodeId, partial: Interned<'heap, PartialNode>) -> Self {
+    /// #         Self { id, value: partial.value, next: partial.next }
     /// #     }
     /// # }
-    /// # let heap = Heap::new();
-    /// # let map = InternMap::<Value>::new(&heap);
-    /// // Create a value using the provisioned ID
-    /// let obj = map.intern(|id| {
-    ///     let id_value = id.value();
-    ///     // Use the ID to create a partial representation
-    ///     id_value.as_usize() * 2
+    /// let heap = Heap::new();
+    /// let map = InternMap::<Node>::new(&heap);
+    ///
+    /// // Create a circular linked list: head -> middle -> tail -> head
+    /// let head = map.intern(|head_id| {
+    ///     // First create the tail that points back to head (not yet created)
+    ///     let tail = map.intern(|tail_id| PartialNode {
+    ///         value: 3,
+    ///         next: Some(head_id.value()), // References the head we're creating!
+    ///     });
+    ///
+    ///     // Then create middle that points to tail
+    ///     let middle = map.intern_partial(PartialNode {
+    ///         value: 2,
+    ///         next: Some(tail.id()),
+    ///     });
+    ///
+    ///     // Finally return head's partial that points to middle
+    ///     PartialNode {
+    ///         value: 1,
+    ///         next: Some(middle.id()),
+    ///     }
     /// });
+    ///
+    /// // Verify the circular structure
+    /// let middle = map.index(head.next.unwrap());
+    /// let tail = map.index(middle.next.unwrap());
+    /// assert_eq!(tail.next, Some(head.id())); // Tail points back to head!
     /// ```
     pub fn intern(&self, closure: impl FnOnce(Provisioned<T::Id>) -> T::Partial) -> T {
         let id = self.provision();
@@ -546,7 +620,7 @@ where
     /// assert!(non_existent.is_none());
     /// ```
     pub fn get(&self, id: T::Id) -> Option<T> {
-        let partial = self.lookup.read(&id, |_, &partial| partial)?;
+        let partial = self.lookup.map(|lookup| lookup.get(&id).copied())?;
 
         Some(T::from_parts(id, Interned::new_unchecked(partial)))
     }
@@ -588,7 +662,7 @@ where
     /// assert!(!map.contains(ValueId::from_u32(999)));
     /// ```
     pub fn contains(&self, id: T::Id) -> bool {
-        self.lookup.contains(&id)
+        self.lookup.map(|lookup| lookup.contains_key(&id))
     }
 
     /// Returns the interned value for the given ID.
@@ -689,7 +763,7 @@ where
     pub fn index_partial(&self, id: T::Id) -> Interned<'heap, T::Partial> {
         let partial = self
             .lookup
-            .read(&id, |_, &partial| partial)
+            .map(|lookup| lookup.get(&id).copied())
             .expect("id should exist in map");
 
         Interned::new_unchecked(partial)
