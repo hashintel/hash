@@ -25,6 +25,7 @@
 //! # assert_eq!(visited, [n1, n2]);
 //! ```
 
+pub mod dominators;
 pub mod tarjan;
 
 use alloc::collections::VecDeque;
