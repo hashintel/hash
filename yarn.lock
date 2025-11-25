@@ -8222,7 +8222,6 @@ __metadata:
     "@hashintel/design-system": "npm:0.0.9-canary.2"
     "@local/eslint": "npm:0.0.0-private"
     "@mantine/hooks": "npm:8.3.5"
-    "@monaco-editor/react": "npm:4.7.0"
     "@mui/material": "npm:5.18.0"
     "@mui/system": "npm:5.18.0"
     "@types/react": "npm:19.2.2"
@@ -8260,7 +8259,7 @@ __metadata:
     "@hashintel/ds-helpers": "npm:0.0.1"
     "@local/eslint": "npm:0.0.0-private"
     "@mantine/hooks": "npm:8.3.5"
-    "@monaco-editor/react": "npm:4.7.0"
+    "@monaco-editor/react": "npm:4.8.0-rc.3"
     "@mui/material": "npm:5.18.0"
     "@pandacss/dev": "npm:1.4.3"
     "@types/babel__standalone": "npm:7.1.9"
@@ -8271,7 +8270,6 @@ __metadata:
     elkjs: "npm:0.11.0"
     eslint: "npm:9.38.0"
     immer: "npm:10.1.3"
-    monaco-editor: "npm:0.55.1"
     react: "npm:19.2.0"
     react-dom: "npm:19.2.0"
     react-icons: "npm:5.5.0"
@@ -10536,25 +10534,25 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@monaco-editor/loader@npm:^1.5.0":
-  version: 1.6.1
-  resolution: "@monaco-editor/loader@npm:1.6.1"
+"@monaco-editor/loader@npm:^1.7.0":
+  version: 1.7.0
+  resolution: "@monaco-editor/loader@npm:1.7.0"
   dependencies:
     state-local: "npm:^1.0.6"
-  checksum: 10c0/88fed11f7e5892c2221b649328490512591b3eca432c9613c5a0b737d624b741fcc774197b119e681360454931a19de26b271ede567ddb226ab63f0d1ec67c89
+  checksum: 10c0/1fd3579cb09b669493cf553dfc0723a93483140a44353ce9a739827edfa7b2c6541b254024d15c48176ece749ef666b6d16cce6cf0e4396c7fa1c5a48012d08a
   languageName: node
   linkType: hard
 
-"@monaco-editor/react@npm:4.7.0":
-  version: 4.7.0
-  resolution: "@monaco-editor/react@npm:4.7.0"
+"@monaco-editor/react@npm:4.8.0-rc.3":
+  version: 4.8.0-rc.3
+  resolution: "@monaco-editor/react@npm:4.8.0-rc.3"
   dependencies:
-    "@monaco-editor/loader": "npm:^1.5.0"
+    "@monaco-editor/loader": "npm:^1.7.0"
   peerDependencies:
     monaco-editor: ">= 0.25.0 < 1"
     react: ^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0
     react-dom: ^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0
-  checksum: 10c0/a4e91c6eda1a71f5fd23871bd801de435490ccbc43934d23cba65cefe2be7e9d02c9a57c4ef80fc9fe99e4d4deea51e5db19cb4e0ecf3f51818dda0eb9cdbf12
+  checksum: 10c0/4af93cf42a91b8ddd1275c175c4841570cc519d6b9c8ae3bfb066669979ead897b453be5edca3a1e0e76eea053d8899dc99624fbffcd693baf28b8a68f4f682c
   languageName: node
   linkType: hard
 
@@ -19409,7 +19407,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/trusted-types@npm:^2.0.2, @types/trusted-types@npm:^2.0.7":
+"@types/trusted-types@npm:^2.0.2":
   version: 2.0.7
   resolution: "@types/trusted-types@npm:2.0.7"
   checksum: 10c0/4c4855f10de7c6c135e0d32ce462419d8abbbc33713b31d294596c0cc34ae1fa6112a2f9da729c8f7a20707782b0d69da3b1f8df6645b0366d08825ca1522e0c
@@ -26306,18 +26304,6 @@ __metadata:
   dependencies:
     domelementtype: "npm:^2.3.0"
   checksum: 10c0/bba1e5932b3e196ad6862286d76adc89a0dbf0c773e5ced1eb01f9af930c50093a084eff14b8de5ea60b895c56a04d5de8bbc4930c5543d029091916770b2d2a
-  languageName: node
-  linkType: hard
-
-"dompurify@npm:3.2.7":
-  version: 3.2.7
-  resolution: "dompurify@npm:3.2.7"
-  dependencies:
-    "@types/trusted-types": "npm:^2.0.7"
-  dependenciesMeta:
-    "@types/trusted-types":
-      optional: true
-  checksum: 10c0/d41bb31a72f1acdf9b84c56723c549924b05d92a39a15bd8c40bec9007ff80d5fccf844bc53ee12af5b69044f9a7ce24a1e71c267a4f49cf38711379ed8c1363
   languageName: node
   linkType: hard
 
@@ -34633,15 +34619,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"marked@npm:14.0.0":
-  version: 14.0.0
-  resolution: "marked@npm:14.0.0"
-  bin:
-    marked: bin/marked.js
-  checksum: 10c0/57a47cb110f7b1a10f398b0a7236f9183aad2dcd5345ee73f2732b6387e585d04cef472bc655d2f84c542296be9728e179aebe3ed7f2f8666b8a0a9dae592876
-  languageName: node
-  linkType: hard
-
 "marked@npm:4.3.0":
   version: 4.3.0
   resolution: "marked@npm:4.3.0"
@@ -35847,16 +35824,6 @@ __metadata:
   version: 2.30.1
   resolution: "moment@npm:2.30.1"
   checksum: 10c0/865e4279418c6de666fca7786607705fd0189d8a7b7624e2e56be99290ac846f90878a6f602e34b4e0455c549b85385b1baf9966845962b313699e7cb847543a
-  languageName: node
-  linkType: hard
-
-"monaco-editor@npm:0.55.1":
-  version: 0.55.1
-  resolution: "monaco-editor@npm:0.55.1"
-  dependencies:
-    dompurify: "npm:3.2.7"
-    marked: "npm:14.0.0"
-  checksum: 10c0/c1a0cf887657b42c8996518bc5ee96bbd39c977f862d2a2b2018427c45f14b0dd25d1452278202056f6b1ead97981282ccacd7d7ad918d8f0ef084159f974a25
   languageName: node
   linkType: hard
 

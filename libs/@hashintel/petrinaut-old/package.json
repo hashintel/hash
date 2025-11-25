@@ -29,7 +29,6 @@
     "@hashintel/block-design-system": "0.0.5",
     "@hashintel/design-system": "0.0.9-canary.2",
     "@mantine/hooks": "8.3.5",
-    "@monaco-editor/react": "4.7.0",
     "@mui/material": "5.18.0",
     "@mui/system": "5.18.0",
     "elkjs": "0.11.0",
