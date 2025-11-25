@@ -16,11 +16,12 @@ import {
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import MonacoEditor from "@monaco-editor/react";
-import { TbDotsVertical, TbSparkles } from "react-icons/tb";
+import { TbDotsVertical, TbSparkles, TbTrash } from "react-icons/tb";
 
 import { Menu } from "../../../../components/menu";
 import { SegmentGroup } from "../../../../components/segment-group";
 import { InfoIconTooltip, Tooltip } from "../../../../components/tooltip";
+import { useSDCPNStore } from "../../../../state/sdcpn-provider";
 import { UI_MESSAGES } from "../../../../constants/ui-messages";
 import {
   generateDefaultLambdaCode,
@@ -127,11 +128,53 @@ export const TransitionProperties: React.FC<TransitionPropertiesProps> = ({
     return place && place.type;
   });
 
+  const removeTransition = useSDCPNStore((state) => state.removeTransition);
+
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
       <div>
-        <div style={{ fontWeight: 600, fontSize: 16, marginBottom: 8 }}>
-          Transition
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+          <div style={{ fontWeight: 600, fontSize: 16 }}>
+            Transition
+          </div>
+          <Tooltip content="Delete">
+            <button
+              type="button"
+              onClick={() => {
+                if (
+                  // eslint-disable-next-line no-alert
+                  window.confirm(
+                    `Are you sure you want to delete "${transition.name}"? All arcs connected to this transition will also be removed.`,
+                  )
+                ) {
+                  removeTransition(transition.id);
+                }
+              }}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                width: 24,
+                height: 24,
+                padding: 0,
+                border: "none",
+                background: "transparent",
+                cursor: "pointer",
+                color: "#6b7280",
+                borderRadius: 4,
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.color = "#ef4444";
+                e.currentTarget.style.backgroundColor = "rgba(239, 68, 68, 0.1)";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.color = "#6b7280";
+                e.currentTarget.style.backgroundColor = "transparent";
+              }}
+            >
+              <TbTrash size={16} />
+            </button>
+          </Tooltip>
         </div>
       </div>
 
