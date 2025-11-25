@@ -1,7 +1,13 @@
 /* eslint-disable id-length */
+import { css } from "@hashintel/ds-helpers/css";
 import MonacoEditor from "@monaco-editor/react";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { TbArrowRight, TbDotsVertical, TbSparkles, TbTrash } from "react-icons/tb";
+import {
+  TbArrowRight,
+  TbDotsVertical,
+  TbSparkles,
+  TbTrash,
+} from "react-icons/tb";
 
 import { Menu } from "../../../../components/menu";
 import { Switch } from "../../../../components/switch";
@@ -172,10 +178,15 @@ export const PlaceProperties: React.FC<PlacePropertiesProps> = ({
       style={{ display: "flex", flexDirection: "column", gap: 12 }}
     >
       <div>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-          <div style={{ fontWeight: 600, fontSize: 16 }}>
-            Place
-          </div>
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            marginBottom: 8,
+          }}
+        >
+          <div style={{ fontWeight: 600, fontSize: 16 }}>Place</div>
           <Tooltip content="Delete">
             <button
               type="button"
@@ -189,27 +200,23 @@ export const PlaceProperties: React.FC<PlacePropertiesProps> = ({
                   removePlace(place.id);
                 }
               }}
-              style={{
+              className={css({
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
-                width: 24,
-                height: 24,
-                padding: 0,
+                width: "[24px]",
+                height: "[24px]",
+                padding: "spacing.0",
                 border: "none",
-                background: "transparent",
+                background: "[transparent]",
                 cursor: "pointer",
-                color: "#6b7280",
-                borderRadius: 4,
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.color = "#ef4444";
-                e.currentTarget.style.backgroundColor = "rgba(239, 68, 68, 0.1)";
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.color = "#6b7280";
-                e.currentTarget.style.backgroundColor = "transparent";
-              }}
+                color: "core.gray.60",
+                borderRadius: "radius.4",
+                _hover: {
+                  color: "core.red.60",
+                  backgroundColor: "core.red.10",
+                },
+              })}
             >
               <TbTrash size={16} />
             </button>
