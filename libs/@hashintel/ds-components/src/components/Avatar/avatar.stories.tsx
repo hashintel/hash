@@ -38,7 +38,7 @@ Displays user profile images with fallback support for initials or icons.
 ## Types
 
 - **Image**: Displays a profile photo
-- **Initials**: Shows user initials as fallback
+- **Initials**: Shows account name initials as fallback
 - **Icon**: Displays an icon as fallback
 
 ## Indicator
