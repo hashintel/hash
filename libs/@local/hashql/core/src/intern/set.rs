@@ -5,7 +5,7 @@ use hashbrown::hash_map::RawEntryMut;
 
 use super::Interned;
 use crate::{
-    collections::{FastHashMap, fast_hash_map},
+    collections::{FastHashMap, fast_hash_map_with_capacity},
     heap::Heap,
     sync::lock::LocalLock,
 };
@@ -164,7 +164,7 @@ impl<'heap, T: ?Sized> InternSet<'heap, T> {
     /// ```
     pub fn with_capacity(capacity: usize, heap: &'heap Heap) -> Self {
         Self {
-            inner: LocalLock::new(fast_hash_map(capacity)),
+            inner: LocalLock::new(fast_hash_map_with_capacity(capacity)),
             heap,
         }
     }

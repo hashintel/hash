@@ -8,7 +8,7 @@ use hashbrown::hash_map::RawEntryMut;
 
 use super::Interned;
 use crate::{
-    collections::FastHashMap,
+    collections::{FastHashMap, fast_hash_map_with_capacity},
     heap::Heap,
     id::{HasId, Id},
     sync::lock::LocalLock,
@@ -302,12 +302,10 @@ where
     /// }
     /// ```
     pub fn with_capacity(capacity: usize, heap: &'heap Heap) -> Self {
-        use crate::collections::fast_hash_map;
-
         Self {
             heap,
-            inner: LocalLock::new(fast_hash_map(capacity)),
-            lookup: LocalLock::new(fast_hash_map(capacity)),
+            inner: LocalLock::new(fast_hash_map_with_capacity(capacity)),
+            lookup: LocalLock::new(fast_hash_map_with_capacity(capacity)),
             next: AtomicU32::new(0),
         }
     }
