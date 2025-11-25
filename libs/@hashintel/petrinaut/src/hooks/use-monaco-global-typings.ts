@@ -259,28 +259,30 @@ declare function Visualization<PlaceId extends SDCPNPlaceID = __SelectedPlaceID>
  * Configure Monaco TypeScript compiler options
  */
 function configureMonacoCompilerOptions(monaco: typeof Monaco): void {
-  monaco.languages.typescript.typescriptDefaults.setCompilerOptions({
-    target: monaco.languages.typescript.ScriptTarget.ES2020,
+  const ts = monaco.typescript;
+
+  ts.typescriptDefaults.setCompilerOptions({
+    target: ts.ScriptTarget.ES2020,
     allowNonTsExtensions: true,
-    moduleResolution: monaco.languages.typescript.ModuleResolutionKind.NodeJs,
-    module: monaco.languages.typescript.ModuleKind.ESNext,
+    moduleResolution: ts.ModuleResolutionKind.NodeJs,
+    module: ts.ModuleKind.ESNext,
     noEmit: true,
     esModuleInterop: true,
-    jsx: monaco.languages.typescript.JsxEmit.ReactJSX,
+    jsx: ts.JsxEmit.ReactJSX,
     allowJs: false,
     checkJs: false,
     typeRoots: ["node_modules/@types"],
   });
 
-  monaco.languages.typescript.javascriptDefaults.setCompilerOptions({
-    target: monaco.languages.typescript.ScriptTarget.ES2020,
+  ts.javascriptDefaults.setCompilerOptions({
+    target: ts.ScriptTarget.ES2020,
     allowNonTsExtensions: true,
     noEmit: true,
     allowJs: true,
     checkJs: false,
   });
 
-  monaco.languages.typescript.typescriptDefaults.setDiagnosticsOptions({
+  ts.typescriptDefaults.setDiagnosticsOptions({
     noSemanticValidation: false,
     noSyntaxValidation: false,
   });
@@ -309,7 +311,7 @@ export function useMonacoGlobalTypings() {
 
   // Configure Monaco and load React types once at startup
   useEffect(() => {
-    void loader.init().then((monaco) => {
+    void loader.init().then((monaco: typeof Monaco) => {
       // Configure compiler options
       configureMonacoCompilerOptions(monaco);
 
@@ -318,7 +320,7 @@ export function useMonacoGlobalTypings() {
         setReactTypes(rTypes);
 
         // Set React types as base extra libs - this is done only once
-        monaco.languages.typescript.typescriptDefaults.setExtraLibs([
+        monaco.typescript.typescriptDefaults.setExtraLibs([
           {
             content: rTypes.react,
             filePath: "inmemory://sdcpn/node_modules/@types/react/index.d.ts",
@@ -344,7 +346,7 @@ export function useMonacoGlobalTypings() {
       return; // Wait for React types to load first
     }
 
-    void loader.init().then((monaco) => {
+    void loader.init().then((monaco: typeof Monaco) => {
       const sdcpnTypings = generateSDCPNTypings(
         types,
         places,
