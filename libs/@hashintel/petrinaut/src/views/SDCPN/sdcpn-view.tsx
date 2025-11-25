@@ -48,7 +48,6 @@ export const SDCPNView: React.FC = () => {
   const addTransition = useSDCPNStore((state) => state.addTransition);
   const addArc = useSDCPNStore((state) => state.addArc);
   const deleteItemsByIds = useSDCPNStore((state) => state.deleteItemsByIds);
-  const clearSelection = useEditorStore((state) => state.clearSelection);
 
   // Hook for applying node changes
   const applyNodeChanges = useApplyNodeChanges();
@@ -60,15 +59,14 @@ export const SDCPNView: React.FC = () => {
   const mode = useEditorStore((state) => state.globalMode);
   const editionMode = useEditorStore((state) => state.editionMode);
   const setEditionMode = useEditorStore((state) => state.setEditionMode);
-  const removeSelectedItemId = useEditorStore(
-    (state) => state.removeSelectedItemId,
-  );
+  const selectedItemIds = useEditorStore((state) => state.selectedItemIds);
   const setSelectedItemIds = useEditorStore(
     (state) => state.setSelectedItemIds,
   );
   const setSelectedResourceId = useEditorStore(
     (state) => state.setSelectedResourceId,
   );
+  const clearSelection = useEditorStore((state) => state.clearSelection);
 
   // Center viewport on SDCPN load
   useEffect(() => {
@@ -169,7 +167,7 @@ export const SDCPNView: React.FC = () => {
   function onNodeClick(_event: React.MouseEvent, node: Node<NodeData>) {
     // Set the selected resource ID for properties panel
     setSelectedResourceId(node.id);
-    clearSelection();
+    setSelectedItemIds(new Set([node.id]));
   }
 
   function onPaneClick(event: React.MouseEvent) {
@@ -178,13 +176,14 @@ export const SDCPNView: React.FC = () => {
     }
 
     // Clear selection when clicking empty canvas in select mode
-    if (editionMode === "select") {
+    if (editionMode === "select" || editionMode === "pan") {
       setSelectedItemIds(new Set());
       setSelectedResourceId(null);
       return;
     }
 
     // Only create nodes in add modes
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
     if (editionMode !== "add-place" && editionMode !== "add-transition") {
       return;
     }
@@ -283,6 +282,7 @@ export const SDCPNView: React.FC = () => {
   };
 
   return (
+    // eslint-disable-next-line jsx-a11y/no-static-element-interactions
     <div
       ref={canvasContainer}
       style={{
@@ -297,30 +297,31 @@ export const SDCPNView: React.FC = () => {
           cursor: `var(--pane-cursor) !important`,
         },
       })}
+      onKeyDown={({ key }) => {
+        // Quick-and-dirty way to delete selected items with keyboard
+        // with two different keys (Delete and Backspace), not possible with ReactFlow `deleteKeyCode` prop
+        if (key === "Delete" || key === "Backspace") {
+          setSelectedResourceId(null);
+          clearSelection();
+          deleteItemsByIds(selectedItemIds);
+        }
+      }}
     >
       <ReactFlow
         nodes={nodes}
         edges={arcs}
         nodeTypes={REACTFLOW_NODE_TYPES}
-        onNodesDelete={(rfNodes) => {
-          for (const node of rfNodes) {
-            removeSelectedItemId(node.id);
-          }
-          deleteItemsByIds(new Set(rfNodes.map((node) => node.id)));
-        }}
         edgeTypes={REACTFLOW_EDGE_TYPES}
-        onEdgesDelete={(rfEdges) => {
-          for (const edge of rfEdges) {
-            removeSelectedItemId(edge.id);
-          }
-          deleteItemsByIds(new Set(rfEdges.map((edge) => edge.id)));
-        }}
         onNodesChange={isReadonly ? undefined : applyNodeChanges}
         onEdgesChange={isReadonly ? undefined : applyNodeChanges}
         onConnect={isReadonly ? undefined : onConnect}
         onInit={onInit}
         onNodeClick={onNodeClick}
         onPaneClick={onPaneClick}
+        onEdgeClick={(_e, edge) => {
+          setSelectedResourceId(null);
+          setSelectedItemIds(new Set([edge.id]));
+        }}
         onDrop={isReadonly ? undefined : onDrop}
         onDragOver={isReadonly ? undefined : onDragOver}
         defaultViewport={{ x: 0, y: 0, zoom: 1 }}
@@ -332,8 +333,7 @@ export const SDCPNView: React.FC = () => {
         nodesDraggable={!isReadonly}
         nodesConnectable={!isReadonly}
         elementsSelectable={!isReadonly && !isAddMode}
-        selectionOnDrag={editionMode === "select"}
-        multiSelectionKeyCode={isReadonly ? null : undefined}
+        selectNodesOnDrag={false}
         panOnScroll={false}
         zoomOnScroll
       >
