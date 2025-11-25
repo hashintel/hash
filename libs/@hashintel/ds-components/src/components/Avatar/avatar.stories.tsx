@@ -41,18 +41,9 @@ Displays user profile images with fallback support for initials or icons.
 - **Initials**: Shows user initials as fallback
 - **Icon**: Displays an icon as fallback
 
-## Usage
+## Indicator
 
-\`\`\`tsx
-// With image
-<Avatar src="https://i.pravatar.cc/300" alt="User" size="32" />
-
-// With initials fallback
-<Avatar fallback="JD" size="40" />
-
-// With icon fallback
-<Avatar fallback={<UserIcon />} size="24" shape="square" />
-\`\`\`
+The showIndicator prop displays a status badge in the bottom-right corner of the avatar, useful for showing online/active status.
         `,
       },
     },
@@ -75,6 +66,10 @@ Displays user profile images with fallback support for initials or icons.
     fallback: {
       control: "text",
       description: "Fallback content (initials or icon)",
+    },
+    showIndicator: {
+      control: "boolean",
+      description: "Show status indicator badge",
     },
   },
   args: {
@@ -266,4 +261,99 @@ export const BrokenImageFallback: Story = {
     fallback: "FB",
     size: "48",
   },
+};
+
+export const WithIndicator: Story = {
+  args: {
+    src: "https://i.pravatar.cc/300",
+    size: "32",
+    showIndicator: true,
+  },
+};
+
+export const IndicatorCircle: Story = {
+  render: () => (
+    <div style={{ display: "flex", gap: "16px", alignItems: "center" }}>
+      <Avatar src="https://i.pravatar.cc/300" size="16" showIndicator />
+      <Avatar src="https://i.pravatar.cc/300" size="20" showIndicator />
+      <Avatar src="https://i.pravatar.cc/300" size="24" showIndicator />
+      <Avatar src="https://i.pravatar.cc/300" size="32" showIndicator />
+      <Avatar src="https://i.pravatar.cc/300" size="40" showIndicator />
+      <Avatar src="https://i.pravatar.cc/300" size="48" showIndicator />
+      <Avatar src="https://i.pravatar.cc/300" size="64" showIndicator />
+    </div>
+  ),
+};
+
+export const IndicatorSquare: Story = {
+  render: () => (
+    <div style={{ display: "flex", gap: "16px", alignItems: "center" }}>
+      <Avatar
+        src="https://i.pravatar.cc/300"
+        size="16"
+        shape="square"
+        showIndicator
+      />
+      <Avatar
+        src="https://i.pravatar.cc/300"
+        size="20"
+        shape="square"
+        showIndicator
+      />
+      <Avatar
+        src="https://i.pravatar.cc/300"
+        size="24"
+        shape="square"
+        showIndicator
+      />
+      <Avatar
+        src="https://i.pravatar.cc/300"
+        size="32"
+        shape="square"
+        showIndicator
+      />
+      <Avatar
+        src="https://i.pravatar.cc/300"
+        size="40"
+        shape="square"
+        showIndicator
+      />
+      <Avatar
+        src="https://i.pravatar.cc/300"
+        size="48"
+        shape="square"
+        showIndicator
+      />
+      <Avatar
+        src="https://i.pravatar.cc/300"
+        size="64"
+        shape="square"
+        showIndicator
+      />
+    </div>
+  ),
+};
+
+export const IndicatorWithInitials: Story = {
+  render: () => (
+    <div style={{ display: "flex", gap: "16px", alignItems: "center" }}>
+      <Avatar fallback="JD" size="16" showIndicator />
+      <Avatar fallback="AT" size="24" showIndicator />
+      <Avatar fallback="MK" size="32" showIndicator />
+      <Avatar fallback="RP" size="48" showIndicator />
+      <Avatar fallback="SL" size="64" showIndicator />
+    </div>
+  ),
+};
+
+export const IndicatorWithIcon: Story = {
+  render: () => (
+    <div style={{ display: "flex", gap: "16px", alignItems: "center" }}>
+      <Avatar fallback={UserIcon} size="16" showIndicator />
+      <Avatar fallback={UserIcon} size="24" showIndicator />
+      <Avatar fallback={UserIcon} size="32" showIndicator />
+      <Avatar fallback={UserIcon} size="48" showIndicator />
+      <Avatar fallback={UserIcon} size="64" showIndicator />
+    </div>
+  ),
 };

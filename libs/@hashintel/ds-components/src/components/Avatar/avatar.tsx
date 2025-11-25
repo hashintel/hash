@@ -14,6 +14,8 @@ export interface AvatarProps {
   size?: "16" | "20" | "24" | "32" | "40" | "48" | "64";
   /** Shape of the avatar */
   shape?: "circle" | "square";
+  /** Show status indicator badge */
+  showIndicator?: boolean;
   /** Callback when image loading status changes */
   onStatusChange?: (details: {
     status: "error" | "loaded" | "loading";
@@ -50,9 +52,31 @@ const SQUARE_RADIUS: Record<string, string> = {
   "20": "radius.2", // 4px
   "24": "radius.3", // 6px
   "32": "radius.4", // 8px
-  "40": "[10px]",
-  "48": "[12px]",
-  "64": "[16px]",
+  "40": "radius.5", // 10px
+  "48": "radius.6", // 12px
+  "64": "radius.7", // 16px
+};
+
+// Size to indicator size mapping
+const INDICATOR_SIZE: Record<string, string> = {
+  "16": "[8px]",
+  "20": "[8px]",
+  "24": "[12px]",
+  "32": "[12px]",
+  "40": "[16px]",
+  "48": "[16px]",
+  "64": "[20px]",
+};
+
+// Size to indicator border radius mapping
+const INDICATOR_RADIUS: Record<string, string> = {
+  "16": "radius.1", // 2px
+  "20": "radius.1", // 2px
+  "24": "radius.1", // 2px
+  "32": "radius.1", // 2px
+  "40": "radius.2", // 4px
+  "48": "radius.2", // 4px
+  "64": "radius.3", // 6px
 };
 
 export const Avatar: React.FC<AvatarProps> = ({
@@ -61,6 +85,7 @@ export const Avatar: React.FC<AvatarProps> = ({
   fallback = "?",
   size = "32",
   shape = "circle",
+  showIndicator = false,
   onStatusChange,
   id,
 }) => {
@@ -117,7 +142,7 @@ export const Avatar: React.FC<AvatarProps> = ({
           height: "[100%]",
           fontSize,
           fontWeight: "medium",
-          color: "text.secondary",
+          color: "text.primary",
           textAlign: "center",
 
           // Handle icon fallback sizing
@@ -129,6 +154,21 @@ export const Avatar: React.FC<AvatarProps> = ({
       >
         {fallback}
       </BaseAvatar.Fallback>
+      {showIndicator && (
+        <div
+          className={css({
+            position: "absolute",
+            bottom: "[-1px]",
+            right: "[-1px]",
+            width: INDICATOR_SIZE[size] as any,
+            height: INDICATOR_SIZE[size] as any,
+            backgroundColor: "bg.status.success.subtle.default",
+            border: "1px solid",
+            borderColor: "border.neutral.default",
+            borderRadius: INDICATOR_RADIUS[size] as any,
+          })}
+        />
+      )}
     </BaseAvatar.Root>
   );
 };
