@@ -150,7 +150,7 @@
     "@welldone-software/why-did-you-render": "10.0.1",
     "eslint": "9.38.0",
     "graphology-types": "0.24.8",
-    "rimraf": "6.0.1",
+    "rimraf": "6.1.2",
     "sass": "1.93.2",
     "typescript": "5.9.3",
     "wait-on": "9.0.1",
