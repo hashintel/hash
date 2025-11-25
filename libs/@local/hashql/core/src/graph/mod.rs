@@ -221,8 +221,8 @@ pub trait Traverse: DirectedGraph + Successors {
     ) -> impl Iterator<Item = Self::NodeId> {
         let mut traversal = DepthFirstTraversal::new(self);
 
-        for start in start {
-            traversal.push_start_node(start);
+        for node in start {
+            traversal.push_start_node(node);
         }
 
         traversal
@@ -262,8 +262,8 @@ pub trait Traverse: DirectedGraph + Successors {
     ) -> impl Iterator<Item = Self::NodeId> {
         let mut traversal = DepthFirstTraversalPostOrder::new(self);
 
-        for start in start {
-            traversal.push_start_node(start);
+        for node in start {
+            traversal.push_start_node(node);
         }
 
         traversal
@@ -297,12 +297,12 @@ pub trait Traverse: DirectedGraph + Successors {
     /// ```
     fn breadth_first_traversal(
         &self,
-        node: impl IntoIterator<Item = Self::NodeId>,
+        start: impl IntoIterator<Item = Self::NodeId>,
     ) -> impl Iterator<Item = Self::NodeId> {
         let mut traversal = BreadthFirstTraversal::new(self);
 
-        for start in node {
-            traversal.push_start_node(start);
+        for node in start {
+            traversal.push_start_node(node);
         }
 
         traversal
