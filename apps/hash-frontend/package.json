@@ -53,7 +53,7 @@
     "@ory/integrations": "1.3.1",
     "@popperjs/core": "2.11.8",
     "@react-sigma/core": "4.0.3",
-    "@sentry/nextjs": "10.22.0",
+    "@sentry/nextjs": "10.27.0",
     "@sentry/react": "10.22.0",
     "@sentry/webpack-plugin": "4.6.0",
     "@sigma/edge-curve": "patch:@sigma/edge-curve@npm%3A3.0.0-beta.16#~/.yarn/patches/@sigma-edge-curve-npm-3.0.0-beta.16-3d8b985284.patch",
