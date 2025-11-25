@@ -47,9 +47,9 @@ function getPlaceDimensions(
  *
  * @param input - The simulation input configuration
  * @returns The initial simulation frame ready for execution
- * @throws Error if place IDs in initialMarking don't match places in SDCPN
- * @throws Error if token dimensions don't match place dimensions
- * @throws Error if user code fails to compile
+ * @throws {Error} if place IDs in initialMarking don't match places in SDCPN
+ * @throws {Error} if token dimensions don't match place dimensions
+ * @throws {Error} if user code fails to compile
  */
 export function buildSimulation(input: SimulationInput): SimulationInstance {
   const { sdcpn, initialMarking, seed, dt } = input;
