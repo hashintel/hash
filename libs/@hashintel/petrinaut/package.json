@@ -32,7 +32,7 @@
     "@hashintel/ds-components": "0.0.1",
     "@hashintel/ds-helpers": "0.0.1",
     "@mantine/hooks": "8.3.5",
-    "@monaco-editor/react": "4.7.0",
+    "@monaco-editor/react": "4.8.0-rc.3",
     "@mui/material": "5.18.0",
     "elkjs": "0.11.0",
     "monaco-editor": "0.55.1",
