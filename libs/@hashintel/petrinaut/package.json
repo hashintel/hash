@@ -46,7 +46,7 @@
     "@emotion/react": "11.14.0",
     "@local/eslint": "0.0.0-private",
     "@pandacss/dev": "1.4.3",
-    "@types/babel__standalone": "^7",
+    "@types/babel__standalone": "7.1.9",
     "@types/react": "19.2.2",
     "@types/react-dom": "19.2.2",
     "@vitejs/plugin-react": "5.0.4",
