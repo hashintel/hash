@@ -1,6 +1,5 @@
-/* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-explicit-any */
 import { Avatar as BaseAvatar } from "@ark-ui/react/avatar";
-import { css } from "@hashintel/ds-helpers/css";
+import { css, cva } from "@hashintel/ds-helpers/css";
 import type { ReactNode } from "react";
 
 export interface AvatarProps {
@@ -14,8 +13,24 @@ export interface AvatarProps {
   size?: "16" | "20" | "24" | "32" | "40" | "48" | "64";
   /** Shape of the avatar */
   shape?: "circle" | "square";
-  /** Show status indicator badge */
-  showIndicator?: boolean;
+  /** Indicator configuration */
+  indicator?: {
+    /** Color scheme of the indicator */
+    colorScheme?:
+      | "red"
+      | "orange"
+      | "yellow"
+      | "green"
+      | "blue"
+      | "purple"
+      | "pink"
+      | "gray"
+      | "white";
+    /** Whether the indicator is squared (with border and rounded corners) */
+    squared?: boolean;
+    /** Optional image to display in the indicator */
+    image?: string;
+  };
   /** Callback when image loading status changes */
   onStatusChange?: (details: {
     status: "error" | "loaded" | "loading";
@@ -24,60 +39,313 @@ export interface AvatarProps {
   id?: string;
 }
 
-// Size to font size mapping for initials
-const INITIALS_FONT_SIZE: Record<string, string> = {
-  "16": "[7px]",
-  "20": "[8px]",
-  "24": "[10px]",
-  "32": "[14px]",
-  "40": "[18px]",
-  "48": "[20px]",
-  "64": "[24px]",
-};
+const avatarRootRecipe = cva({
+  base: {
+    position: "relative",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    flexShrink: "0",
+    backgroundColor: "border.neutral.muted",
+    border: "1px solid",
+    borderColor: "border.neutral.subtle",
+    overflow: "hidden",
+  },
+  variants: {
+    size: {
+      "16": {
+        width: "[16px]",
+        height: "[16px]",
+      },
+      "20": {
+        width: "[20px]",
+        height: "[20px]",
+      },
+      "24": {
+        width: "[24px]",
+        height: "[24px]",
+      },
+      "32": {
+        width: "[32px]",
+        height: "[32px]",
+      },
+      "40": {
+        width: "[40px]",
+        height: "[40px]",
+      },
+      "48": {
+        width: "[48px]",
+        height: "[48px]",
+      },
+      "64": {
+        width: "[64px]",
+        height: "[64px]",
+      },
+    },
+    shape: {
+      circle: {
+        borderRadius: "radius.full",
+      },
+      square: {},
+    },
+  },
+  compoundVariants: [
+    // Square border radius by size
+    { shape: "square", size: "16", css: { borderRadius: "radius.2" } },
+    { shape: "square", size: "20", css: { borderRadius: "radius.2" } },
+    { shape: "square", size: "24", css: { borderRadius: "radius.3" } },
+    { shape: "square", size: "32", css: { borderRadius: "radius.4" } },
+    { shape: "square", size: "40", css: { borderRadius: "radius.5" } },
+    { shape: "square", size: "48", css: { borderRadius: "radius.6" } },
+    { shape: "square", size: "64", css: { borderRadius: "radius.7" } },
+  ],
+  defaultVariants: {
+    size: "32",
+    shape: "circle",
+  },
+});
 
-// Size to icon size mapping
-const ICON_SIZE: Record<string, string> = {
-  "16": "[10px]",
-  "20": "[10px]",
-  "24": "[12px]",
-  "32": "[18px]",
-  "40": "[24px]",
-  "48": "[28px]",
-  "64": "[32px]",
-};
+const avatarImageRecipe = cva({
+  base: {
+    position: "absolute",
+    inset: "[0]",
+    width: "[100%]",
+    height: "[100%]",
+    objectFit: "cover",
+    objectPosition: "center",
+  },
+});
 
-// Size to border radius mapping for square shape
-const SQUARE_RADIUS: Record<string, string> = {
-  "16": "radius.2", // 4px
-  "20": "radius.2", // 4px
-  "24": "radius.3", // 6px
-  "32": "radius.4", // 8px
-  "40": "radius.5", // 10px
-  "48": "radius.6", // 12px
-  "64": "radius.7", // 16px
-};
+const avatarFallbackRecipe = cva({
+  base: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    width: "[100%]",
+    height: "[100%]",
+    fontWeight: "medium",
+    color: "text.primary",
+    textAlign: "center",
+  },
+  variants: {
+    size: {
+      "16": {
+        fontSize: "[7px]",
+        "& svg": {
+          width: "[10px]",
+          height: "[10px]",
+        },
+      },
+      "20": {
+        fontSize: "[8px]",
+        "& svg": {
+          width: "[10px]",
+          height: "[10px]",
+        },
+      },
+      "24": {
+        fontSize: "[10px]",
+        "& svg": {
+          width: "[12px]",
+          height: "[12px]",
+        },
+      },
+      "32": {
+        fontSize: "[14px]",
+        "& svg": {
+          width: "[18px]",
+          height: "[18px]",
+        },
+      },
+      "40": {
+        fontSize: "[18px]",
+        "& svg": {
+          width: "[24px]",
+          height: "[24px]",
+        },
+      },
+      "48": {
+        fontSize: "[20px]",
+        "& svg": {
+          width: "[28px]",
+          height: "[28px]",
+        },
+      },
+      "64": {
+        fontSize: "[24px]",
+        "& svg": {
+          width: "[32px]",
+          height: "[32px]",
+        },
+      },
+    },
+  },
+  defaultVariants: {
+    size: "32",
+  },
+});
 
-// Size to indicator size mapping
-const INDICATOR_SIZE: Record<string, string> = {
-  "16": "[8px]",
-  "20": "[8px]",
-  "24": "[12px]",
-  "32": "[12px]",
-  "40": "[16px]",
-  "48": "[16px]",
-  "64": "[20px]",
-};
+const avatarIndicatorRootRecipe = cva({
+  base: {
+    position: "absolute",
+    bottom: "[-2px]",
+    right: "[-2px]",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    flexShrink: "0",
+    overflow: "hidden",
+  },
+  variants: {
+    size: {
+      "16": {
+        width: "[8px]",
+        height: "[8px]",
+      },
+      "20": {
+        width: "[8px]",
+        height: "[8px]",
+      },
+      "24": {
+        width: "[12px]",
+        height: "[12px]",
+      },
+      "32": {
+        width: "[12px]",
+        height: "[12px]",
+      },
+      "40": {
+        width: "[16px]",
+        height: "[16px]",
+      },
+      "48": {
+        width: "[16px]",
+        height: "[16px]",
+      },
+      "64": {
+        width: "[20px]",
+        height: "[20px]",
+      },
+    },
+    colorScheme: {
+      red: {
+        backgroundColor: "core.red.50",
+      },
+      orange: {
+        backgroundColor: "core.orange.50",
+      },
+      yellow: {
+        backgroundColor: "core.yellow.50",
+      },
+      green: {
+        backgroundColor: "core.green.50",
+      },
+      blue: {
+        backgroundColor: "core.blue.50",
+      },
+      purple: {
+        backgroundColor: "core.purple.50",
+      },
+      pink: {
+        backgroundColor: "core.pink.50",
+      },
+      gray: {
+        backgroundColor: "core.gray.50",
+      },
+      white: {
+        backgroundColor: "surface.default",
+      },
+    },
+    squared: {
+      true: {},
+      false: {
+        borderRadius: "radius.full",
+      },
+    },
+  },
+  compoundVariants: [
+    // Squared indicators with border and radius by size
+    {
+      squared: true,
+      size: "16",
+      css: {
+        border: "1px solid",
+        borderColor: "border.neutral.default",
+        borderRadius: "radius.1",
+      },
+    },
+    {
+      squared: true,
+      size: "20",
+      css: {
+        border: "1px solid",
+        borderColor: "border.neutral.default",
+        borderRadius: "radius.1",
+      },
+    },
+    {
+      squared: true,
+      size: "24",
+      css: {
+        border: "1px solid",
+        borderColor: "border.neutral.default",
+        borderRadius: "radius.1",
+      },
+    },
+    {
+      squared: true,
+      size: "32",
+      css: {
+        border: "1px solid",
+        borderColor: "border.neutral.default",
+        borderRadius: "radius.1",
+      },
+    },
+    {
+      squared: true,
+      size: "40",
+      css: {
+        border: "1px solid",
+        borderColor: "border.neutral.default",
+        borderRadius: "radius.2",
+      },
+    },
+    {
+      squared: true,
+      size: "48",
+      css: {
+        border: "1px solid",
+        borderColor: "border.neutral.default",
+        borderRadius: "radius.2",
+      },
+    },
+    {
+      squared: true,
+      size: "64",
+      css: {
+        border: "1px solid",
+        borderColor: "border.neutral.default",
+        borderRadius: "radius.3",
+      },
+    },
+  ],
+  defaultVariants: {
+    size: "32",
+    colorScheme: "green",
+    squared: false,
+  },
+});
 
-// Size to indicator border radius mapping
-const INDICATOR_RADIUS: Record<string, string> = {
-  "16": "radius.1", // 2px
-  "20": "radius.1", // 2px
-  "24": "radius.1", // 2px
-  "32": "radius.1", // 2px
-  "40": "radius.2", // 4px
-  "48": "radius.2", // 4px
-  "64": "radius.3", // 6px
-};
+const avatarIndicatorImageRecipe = cva({
+  base: {
+    position: "absolute",
+    inset: "[0]",
+    width: "[100%]",
+    height: "[100%]",
+    objectFit: "cover",
+    objectPosition: "center",
+  },
+});
 
 export const Avatar: React.FC<AvatarProps> = ({
   src,
@@ -85,90 +353,38 @@ export const Avatar: React.FC<AvatarProps> = ({
   fallback = "?",
   size = "32",
   shape = "circle",
-  showIndicator = false,
+  indicator,
   onStatusChange,
   id,
 }) => {
-  const isCircle = shape === "circle";
-
-  // Get border radius
-  const borderRadius = isCircle
-    ? ("radius.full" as const)
-    : (SQUARE_RADIUS[size] as any);
-
-  // Get font size for initials
-  const fontSize = INITIALS_FONT_SIZE[size] as any;
-
-  // Get icon size
-  const iconSize = ICON_SIZE[size] as any;
-
   return (
-    <BaseAvatar.Root
-      onStatusChange={onStatusChange}
-      id={id}
-      className={css({
-        position: "relative",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        flexShrink: "0",
-        width: `[${size}px]` as any,
-        height: `[${size}px]` as any,
-        backgroundColor: "border.neutral.muted",
-        border: "1px solid",
-        borderColor: "border.neutral.subtle",
-        borderRadius,
-        overflow: "hidden",
-      })}
-    >
-      <BaseAvatar.Image
-        src={src}
-        alt={alt}
-        className={css({
-          position: "absolute",
-          inset: "[0]",
-          width: "[100%]",
-          height: "[100%]",
-          objectFit: "cover",
-          objectPosition: "center",
-        })}
-      />
-      <BaseAvatar.Fallback
-        className={css({
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          width: "[100%]",
-          height: "[100%]",
-          fontSize,
-          fontWeight: "medium",
-          color: "text.primary",
-          textAlign: "center",
-
-          // Handle icon fallback sizing
-          "& svg": {
-            width: iconSize,
-            height: iconSize,
-          },
-        })}
+    <div className={css({ position: "relative", display: "inline-flex" })}>
+      <BaseAvatar.Root
+        onStatusChange={onStatusChange}
+        id={id}
+        className={avatarRootRecipe({ size, shape })}
       >
-        {fallback}
-      </BaseAvatar.Fallback>
-      {showIndicator && (
-        <div
-          className={css({
-            position: "absolute",
-            bottom: "[-1px]",
-            right: "[-1px]",
-            width: INDICATOR_SIZE[size] as any,
-            height: INDICATOR_SIZE[size] as any,
-            backgroundColor: "bg.status.success.subtle.default",
-            border: "1px solid",
-            borderColor: "border.neutral.default",
-            borderRadius: INDICATOR_RADIUS[size] as any,
+        <BaseAvatar.Image src={src} alt={alt} className={avatarImageRecipe()} />
+        <BaseAvatar.Fallback className={avatarFallbackRecipe({ size })}>
+          {fallback}
+        </BaseAvatar.Fallback>
+      </BaseAvatar.Root>
+      {indicator && (
+        <BaseAvatar.Root
+          className={avatarIndicatorRootRecipe({
+            size,
+            colorScheme: indicator.colorScheme ?? "green",
+            squared: indicator.squared ?? false,
           })}
-        />
+        >
+          {indicator.image && (
+            <BaseAvatar.Image
+              src={indicator.image}
+              className={avatarIndicatorImageRecipe()}
+            />
+          )}
+        </BaseAvatar.Root>
       )}
-    </BaseAvatar.Root>
+    </div>
   );
 };
