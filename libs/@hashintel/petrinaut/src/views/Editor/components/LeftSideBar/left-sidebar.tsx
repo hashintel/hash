@@ -16,6 +16,7 @@ import { SimulationStateSection } from "./simulation-state-section";
 import { TypesSection } from "./types-section";
 
 interface LeftSideBarProps {
+  hideNetManagementControls: boolean;
   menuItems: MenuItem[];
   title: string;
   onTitleChange: (value: string) => void;
@@ -27,6 +28,7 @@ interface LeftSideBarProps {
  * When open: shows the full sidebar with tools and content.
  */
 export const LeftSideBar: React.FC<LeftSideBarProps> = ({
+  hideNetManagementControls,
   menuItems,
   title,
   onTitleChange,
@@ -94,18 +96,20 @@ export const LeftSideBar: React.FC<LeftSideBarProps> = ({
             }}
           >
             <HamburgerMenu menuItems={menuItems} />
-            <div
-              style={{
-                flex: isOpen ? 1 : "0 0 auto",
-                minWidth: isOpen ? 0 : 120,
-              }}
-            >
-              <FloatingTitle
-                value={title}
-                onChange={onTitleChange}
-                placeholder="Process"
-              />
-            </div>
+            {!hideNetManagementControls && (
+              <div
+                style={{
+                  flex: isOpen ? 1 : "0 0 auto",
+                  minWidth: isOpen ? 0 : 120,
+                }}
+              >
+                <FloatingTitle
+                  value={title}
+                  onChange={onTitleChange}
+                  placeholder="Process"
+                />
+              </div>
+            )}
             <button
               type="button"
               onClick={() => setLeftSidebarOpen(!isOpen)}

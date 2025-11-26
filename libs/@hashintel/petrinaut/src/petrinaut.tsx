@@ -34,7 +34,7 @@ export type PetrinautProps = {
     title: string;
   }) => void;
   /**
-   * Whether to hide controls relating to net loading, creation and title setting.
+   * Whether to hide controls relating to net loading, creation and title.
    */
   hideNetManagementControls: boolean;
   /**
@@ -82,13 +82,16 @@ export type PetrinautProps = {
   title: string;
 };
 
-export const Petrinaut = (props: PetrinautProps) => {
+export const Petrinaut = ({
+  hideNetManagementControls,
+  ...rest
+}: PetrinautProps) => {
   return (
-    <SDCPNProvider {...props}>
+    <SDCPNProvider {...rest}>
       <EditorProvider>
         <SimulationProvider>
           <MonacoSetup />
-          <EditorView />
+          <EditorView hideNetManagementControls={hideNetManagementControls} />
         </SimulationProvider>
       </EditorProvider>
     </SDCPNProvider>

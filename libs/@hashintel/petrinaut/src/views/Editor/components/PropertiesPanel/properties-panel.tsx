@@ -19,10 +19,10 @@ export const PropertiesPanel: React.FC = () => {
   const selectedResourceId = useEditorStore(
     (state) => state.selectedResourceId,
   );
-  const getItemType = useEditorStore((state) => state.getItemType);
   const globalMode = useEditorStore((state) => state.globalMode);
 
   const {
+    getItemType,
     petriNetDefinition,
     updatePlace,
     updateTransition,

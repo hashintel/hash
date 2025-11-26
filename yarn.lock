@@ -29882,7 +29882,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"glob@npm:11.0.3, glob@npm:^11.0.2":
+"glob@npm:11.0.3":
   version: 11.0.3
   resolution: "glob@npm:11.0.3"
   dependencies:
@@ -29914,7 +29914,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"glob@npm:^11.0.0":
+"glob@npm:^11.0.0, glob@npm:^11.0.2":
   version: 11.1.0
   resolution: "glob@npm:11.1.0"
   dependencies:

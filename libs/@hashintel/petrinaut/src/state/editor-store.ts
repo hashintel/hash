@@ -30,17 +30,6 @@ export type EditorState = {
   addSelectedItemId: (id: string) => void;
   removeSelectedItemId: (id: string) => void;
   clearSelection: () => void;
-  deleteSelection: () => void;
-  getItemType: (
-    id: string,
-  ) =>
-    | "place"
-    | "transition"
-    | "arc"
-    | "type"
-    | "differentialEquation"
-    | "parameter"
-    | null;
 
   // Dragging state
   draggingStateByNodeId: DraggingStateByNodeId;
@@ -60,95 +49,96 @@ export type EditorState = {
 export function createEditorStore() {
   return create<EditorState>()(
     devtools(
-      (set) => ({
-        globalMode: "edit",
-        setGlobalMode: (mode) =>
-          set({ globalMode: mode }, false, { type: "setGlobalMode", mode }),
+      (set) =>
+        ({
+          globalMode: "edit",
+          setGlobalMode: (mode) =>
+            set({ globalMode: mode }, false, { type: "setGlobalMode", mode }),
 
-        editionMode: "select",
-        setEditionMode: (mode) =>
-          set({ editionMode: mode }, false, { type: "setEditionMode", mode }),
+          editionMode: "select",
+          setEditionMode: (mode) =>
+            set({ editionMode: mode }, false, { type: "setEditionMode", mode }),
 
-        // UI state
-        isLeftSidebarOpen: true,
-        setLeftSidebarOpen: (isOpen) =>
-          set({ isLeftSidebarOpen: isOpen }, false, {
-            type: "setLeftSidebarOpen",
-            isOpen,
-          }),
-
-        // Selected Resource ID
-        selectedResourceId: null,
-        setSelectedResourceId: (id) =>
-          set({ selectedResourceId: id }, false, {
-            type: "setSelectedResourceId",
-            id,
-          }),
-
-        // Selection
-        selectedItemIds: new Set(),
-        setSelectedItemIds: (ids) =>
-          set({ selectedItemIds: ids }, false, {
-            type: "setSelectedItemIds",
-            ids,
-          }),
-        addSelectedItemId: (id) =>
-          set(
-            (state) => {
-              const newSet = new Set(state.selectedItemIds);
-              newSet.add(id);
-              return { selectedItemIds: newSet };
-            },
-            false,
-            { type: "addSelectedItemId", id },
-          ),
-        removeSelectedItemId: (id) =>
-          set(
-            (state) => {
-              const newSet = new Set(state.selectedItemIds);
-              newSet.delete(id);
-              return { selectedItemIds: newSet };
-            },
-            false,
-            { type: "removeSelectedItemId", id },
-          ),
-        clearSelection: () =>
-          set({ selectedItemIds: new Set() }, false, "clearSelection"),
-
-        // Dragging state
-        draggingStateByNodeId: {},
-        setDraggingStateByNodeId: (state) =>
-          set(
-            { draggingStateByNodeId: state },
-            false,
-            "setDraggingStateByNodeId",
-          ),
-        updateDraggingStateByNodeId: (updater) =>
-          set(
-            (state) => ({
-              draggingStateByNodeId: updater(state.draggingStateByNodeId),
+          // UI state
+          isLeftSidebarOpen: true,
+          setLeftSidebarOpen: (isOpen) =>
+            set({ isLeftSidebarOpen: isOpen }, false, {
+              type: "setLeftSidebarOpen",
+              isOpen,
             }),
-            false,
-            "updateDraggingStateByNodeId",
-          ),
-        resetDraggingState: () =>
-          set({ draggingStateByNodeId: {} }, false, "resetDraggingState"),
 
-        __reinitialize: () => {
-          set(
-            {
-              globalMode: "edit",
-              editionMode: "select",
-              isLeftSidebarOpen: true,
-              selectedResourceId: null,
-              selectedItemIds: new Set(),
-              draggingStateByNodeId: {},
-            },
-            false,
-            { type: "initializeEditorStore" },
-          );
-        },
-      }),
+          // Selected Resource ID
+          selectedResourceId: null,
+          setSelectedResourceId: (id) =>
+            set({ selectedResourceId: id }, false, {
+              type: "setSelectedResourceId",
+              id,
+            }),
+
+          // Selection
+          selectedItemIds: new Set(),
+          setSelectedItemIds: (ids) =>
+            set({ selectedItemIds: ids }, false, {
+              type: "setSelectedItemIds",
+              ids,
+            }),
+          addSelectedItemId: (id) =>
+            set(
+              (state) => {
+                const newSet = new Set(state.selectedItemIds);
+                newSet.add(id);
+                return { selectedItemIds: newSet };
+              },
+              false,
+              { type: "addSelectedItemId", id },
+            ),
+          removeSelectedItemId: (id) =>
+            set(
+              (state) => {
+                const newSet = new Set(state.selectedItemIds);
+                newSet.delete(id);
+                return { selectedItemIds: newSet };
+              },
+              false,
+              { type: "removeSelectedItemId", id },
+            ),
+          clearSelection: () =>
+            set({ selectedItemIds: new Set() }, false, "clearSelection"),
+
+          // Dragging state
+          draggingStateByNodeId: {},
+          setDraggingStateByNodeId: (state) =>
+            set(
+              { draggingStateByNodeId: state },
+              false,
+              "setDraggingStateByNodeId",
+            ),
+          updateDraggingStateByNodeId: (updater) =>
+            set(
+              (state) => ({
+                draggingStateByNodeId: updater(state.draggingStateByNodeId),
+              }),
+              false,
+              "updateDraggingStateByNodeId",
+            ),
+          resetDraggingState: () =>
+            set({ draggingStateByNodeId: {} }, false, "resetDraggingState"),
+
+          __reinitialize: () => {
+            set(
+              {
+                globalMode: "edit",
+                editionMode: "select",
+                isLeftSidebarOpen: true,
+                selectedResourceId: null,
+                selectedItemIds: new Set(),
+                draggingStateByNodeId: {},
+              },
+              false,
+              { type: "initializeEditorStore" },
+            );
+          },
+        }) satisfies EditorState,
       { name: "Editor Store" },
     ),
   );

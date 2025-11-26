@@ -5,6 +5,7 @@ import { satellitesSDCPN } from "../../examples/satellites";
 import { sirModel } from "../../examples/sir-model";
 import { supplyChainSDCPN } from "../../examples/supply-chain";
 import { supplyChainStochasticSDCPN } from "../../examples/supply-chain-stochastic";
+import { convertOldFormatToSDCPN } from "../../old-formats/convert-old-format";
 import { useEditorStore } from "../../state/editor-provider";
 import { useSDCPNContext } from "../../state/sdcpn-provider";
 import { useSimulationStore } from "../../state/simulation-provider";
@@ -20,7 +21,9 @@ import { importSDCPN } from "./lib/import-sdcpn";
  * EditorView is responsible for the overall editor UI layout and controls.
  * It relies on sdcpn-store and editor-store for state, and uses SDCPNView for visualization.
  */
-export const EditorView: React.FC = () => {
+export const EditorView = ({
+  hideNetManagementControls,
+}: { hideNetManagementControls: boolean }) => {
   // Get data from sdcpn-store
   const {
     createNewNet,
@@ -75,9 +78,11 @@ export const EditorView: React.FC = () => {
 
   function handleImport() {
     importSDCPN((loadedSDCPN) => {
+      const convertedSdcpn = convertOldFormatToSDCPN(loadedSDCPN);
+
       createNewNet({
         title: loadedSDCPN.title,
-        petriNetDefinition: loadedSDCPN,
+        petriNetDefinition: convertedSdcpn ?? loadedSDCPN,
       });
       clearSelection();
     });
@@ -108,13 +113,15 @@ export const EditorView: React.FC = () => {
 
           {/* Left Sidebar with Menu, Title, and Tools */}
           <LeftSideBar
+            hideNetManagementControls={hideNetManagementControls}
             menuItems={[
               {
                 id: "new",
                 label: "New",
                 onClick: handleNew,
               },
-              ...(Object.keys(existingNets).length > 0
+              ...(!hideNetManagementControls &&
+              Object.keys(existingNets).length > 0
                 ? [
                     {
                       id: "open",
@@ -149,14 +156,20 @@ export const EditorView: React.FC = () => {
                 id: "load-example",
                 label: "Load example",
                 submenu: [
-                  {
-                    id: "load-example-supply-chain",
-                    label: "Supply Chain",
-                    onClick: () => {
-                      createNewNet(supplyChainSDCPN);
-                      clearSelection();
-                    },
-                  },
+                  /**
+                   * @todo H-5641: once probabilistic transition kernel available,
+                   *       update this example so that the Manufacture step probabilistically
+                   *       produces either good or bad product, then enable a 'Dispose' or 'Dispatch'
+                   *       transition depending on which was randomly selected.
+                   */
+                  // {
+                  //   id: "load-example-supply-chain",
+                  //   label: "Supply Chain",
+                  //   onClick: () => {
+                  //     createNewNet(supplyChainSDCPN);
+                  //     clearSelection();
+                  //   },
+                  // },
                   {
                     id: "load-example-supply-chain-stochastic",
                     label: "Supply Chain (Stochastic)",

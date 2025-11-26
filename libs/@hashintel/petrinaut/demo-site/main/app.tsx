@@ -2,6 +2,7 @@ import { produce } from "immer";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import type { MinimalNetMetadata, SDCPN } from "../../src/core/types/sdcpn";
+import { convertOldFormatToSDCPN } from "../../src/old-formats/convert-old-format";
 import { Petrinaut } from "../../src/petrinaut";
 import {
   type SDCPNInLocalStorage,
@@ -88,9 +89,31 @@ export const DevApp = () => {
 
   // Initialize with a default net if none exists
   useEffect(() => {
-    const nets = Object.values(storedSDCPNs);
+    const sdcpnsInStorage = Object.values(storedSDCPNs);
 
-    if (!nets[0]) {
+    const convertedNets: Record<string, SDCPNInLocalStorage> = {};
+
+    for (const sdcpnInStorage of sdcpnsInStorage) {
+      const convertedSdcpn = convertOldFormatToSDCPN(sdcpnInStorage.sdcpn);
+      if (!convertedSdcpn) {
+        continue;
+      }
+
+      convertedNets[sdcpnInStorage.id] = {
+        ...sdcpnInStorage,
+        sdcpn: convertedSdcpn,
+      };
+    }
+
+    if (Object.keys(convertedNets).length > 0) {
+      setStoredSDCPNs((existingSDCPNs) => ({
+        ...existingSDCPNs,
+        ...convertedNets,
+      }));
+      return;
+    }
+
+    if (!sdcpnsInStorage[0]) {
       createNewNet({
         petriNetDefinition: {
           places: [],
@@ -102,9 +125,9 @@ export const DevApp = () => {
         title: "New Process",
       });
     } else if (!currentNetId) {
-      setCurrentNetId(nets[0].id);
+      setCurrentNetId(sdcpnsInStorage[0].id);
     }
-  }, [currentNetId, createNewNet, storedSDCPNs]);
+  }, [currentNetId, createNewNet, setStoredSDCPNs, storedSDCPNs]);
 
   if (!currentNet) {
     return null;
@@ -115,7 +138,7 @@ export const DevApp = () => {
       <Petrinaut
         existingNets={existingNets}
         createNewNet={createNewNet}
-        hideNetManagementControls={false}
+        hideNetManagementControls
         loadPetriNet={loadPetriNet}
         petriNetId={currentNetId}
         petriNetDefinition={currentNet.sdcpn}

@@ -10,7 +10,8 @@ import { useSDCPNContext } from "../../../state/sdcpn-provider";
  * @see https://github.com/xyflow/xyflow/blob/04055c9625cbd92cf83a2f4c340d6fae5199bfa3/packages/react/src/utils/changes.ts#L107
  */
 export function useApplyNodeChanges() {
-  const getItemType = useEditorStore((state) => state.getItemType);
+  const { getItemType } = useSDCPNContext();
+
   const draggingStateByNodeId = useEditorStore(
     (state) => state.draggingStateByNodeId,
   );
