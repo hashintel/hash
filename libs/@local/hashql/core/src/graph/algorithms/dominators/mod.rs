@@ -36,8 +36,8 @@ use core::{cmp, ops};
 use smallvec::{SmallVec, smallvec};
 
 pub use self::{
-    frontier::{DominatorFrontiers, dominance_frontiers},
-    iterated_frontier::iterated_dominance_frontier,
+    frontier::{DominanceFrontier, DominatorFrontiers, dominance_frontiers},
+    iterated_frontier::{IteratedDominanceFrontier, iterated_dominance_frontier},
 };
 use crate::{
     graph::{DirectedGraph, Predecessors, Successors},
