@@ -434,6 +434,7 @@ export function createSimulationStore(getSDCPN: () => { sdcpn: SDCPN }) {
               "reinitialize",
             );
           },
+          // for some reason 'create' doesn't raise an error if a function in the type is missing
         }) satisfies SimulationStoreState,
       { name: "Simulation Store" },
     ),

@@ -138,6 +138,7 @@ export function createEditorStore() {
               { type: "initializeEditorStore" },
             );
           },
+          // for some reason 'create' doesn't raise an error if a function in the type is missing
         }) satisfies EditorState,
       { name: "Editor Store" },
     ),
