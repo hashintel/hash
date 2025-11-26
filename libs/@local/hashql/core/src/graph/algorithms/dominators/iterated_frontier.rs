@@ -1,7 +1,3 @@
-use core::slice;
-
-use smallvec::SmallVec;
-
 use super::DominatorFrontiers;
 use crate::{
     collections::WorkQueue,
@@ -59,8 +55,8 @@ use crate::{
 ///
 /// # Complexity
 ///
-/// - Time: O(|S| × |DF_max|) where |DF_max| is the maximum frontier size
-/// - Space: O(|V|) for the visited set
+/// - Time: `O(|S| × |DF_max|)` where `|DF_max|` is the maximum frontier size
+/// - Space: `O(|V|)` for the visited set
 ///
 /// # Arguments
 ///

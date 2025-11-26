@@ -1,5 +1,3 @@
-use core::ops::Index;
-
 use super::Dominators;
 use crate::{
     graph::{DirectedGraph, Predecessors},
