@@ -39,8 +39,7 @@ use crate::{
 ///
 /// # Returns
 ///
-/// An [`IdVec`] indexed by node ID, where each entry contains a [`SmallVec`] of node IDs
-/// representing that node's dominance frontier. Nodes not in any frontier will have empty vectors.
+/// A [`DominatorFrontiers`] structure that can be queried for the dominance frontier of any node.
 ///
 /// # Complexity
 ///
@@ -115,6 +114,12 @@ pub fn dominance_frontiers<G: DirectedGraph + Predecessors>(
     DominatorFrontiers { frontiers }
 }
 
+/// Pre-computed dominance frontiers for all nodes in a control-flow graph.
+///
+/// Created by [`dominance_frontiers`] and provides efficient lookup of the dominance frontier
+/// for any node via the [`frontier`] method.
+///
+/// [`frontier`]: Self::frontier
 pub struct DominatorFrontiers<N> {
     frontiers: SparseBitMatrix<N, N>,
 }
@@ -150,6 +155,11 @@ where
         self.inner.is_none_or(DenseBitSet::is_empty)
     }
 
+    /// Returns the number of nodes in this dominance frontier.
+    pub fn count(&self) -> usize {
+        self.inner.map_or(0, DenseBitSet::count)
+    }
+
     /// Returns `true` if `frontier_node` is in this dominance frontier.
     ///
     /// This indicates that the node's dominance "ends" at `frontier_node`.
@@ -162,6 +172,7 @@ where
         self.into_iter()
     }
 
+    /// Returns the underlying [`DenseBitSet`] if the frontier is non-empty.
     pub const fn as_inner(&self) -> Option<&DenseBitSet<N>> {
         self.inner
     }

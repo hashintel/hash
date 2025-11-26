@@ -92,6 +92,10 @@ pub fn iterated_dominance_frontier<G: DirectedGraph>(
     IteratedDominanceFrontier { inner: result }
 }
 
+/// The iterated dominance frontier of a set of nodes.
+///
+/// Created by [`iterated_dominance_frontier`] and contains all nodes where φ-functions
+/// may need to be inserted during SSA construction.
 pub struct IteratedDominanceFrontier<N> {
     inner: MixedBitSet<N>,
 }
@@ -100,18 +104,22 @@ impl<N> IteratedDominanceFrontier<N>
 where
     N: Id,
 {
+    /// Returns `true` if the iterated dominance frontier is empty.
     pub fn is_empty(&self) -> bool {
         self.inner.is_empty()
     }
 
+    /// Returns the number of nodes in the iterated dominance frontier.
     pub fn count(&self) -> usize {
         self.inner.count()
     }
 
-    pub const fn as_set(&self) -> &MixedBitSet<N> {
+    /// Returns the underlying [`MixedBitSet`].
+    pub const fn as_inner(&self) -> &MixedBitSet<N> {
         &self.inner
     }
 
+    /// Returns an iterator over the nodes in this iterated dominance frontier.
     pub fn iter(&self) -> impl Iterator<Item = N> {
         self.inner.iter()
     }
