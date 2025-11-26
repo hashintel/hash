@@ -3,7 +3,6 @@ import { Stack } from "../../components/stack";
 import { productionMachines } from "../../examples/broken-machines";
 import { satellitesSDCPN } from "../../examples/satellites";
 import { sirModel } from "../../examples/sir-model";
-import { supplyChainSDCPN } from "../../examples/supply-chain";
 import { supplyChainStochasticSDCPN } from "../../examples/supply-chain-stochastic";
 import { convertOldFormatToSDCPN } from "../../old-formats/convert-old-format";
 import { useEditorStore } from "../../state/editor-provider";
