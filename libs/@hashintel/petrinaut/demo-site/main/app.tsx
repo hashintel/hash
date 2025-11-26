@@ -100,8 +100,14 @@ export const DevApp = () => {
       }
 
       convertedNets[sdcpnInStorage.id] = {
-        ...sdcpnInStorage,
+        /**
+         * The id and title used to be in the SDCPN definition itself, so we add them back here.
+         * A legacy provision only which can probably be removed once 2025 is over.
+         */
+        id: sdcpnInStorage.id,
+        title: sdcpnInStorage.title,
         sdcpn: convertedSdcpn,
+        lastUpdated: sdcpnInStorage.lastUpdated,
       };
     }
 
