@@ -1,8 +1,8 @@
 import type { SDCPN } from "../core/types/sdcpn";
 
-export const satellitesSDCPN: { title: string; sdcpn: SDCPN } = {
+export const satellitesSDCPN: { title: string; petriNetDefinition: SDCPN } = {
   title: "Satellites in Orbit",
-  sdcpn: {
+  petriNetDefinition: {
     places: [
       {
         id: "3cbc7944-34cb-4eeb-b779-4e392a171fe1",
@@ -224,22 +224,22 @@ export default TransitionKernel((tokens) => {
         displayColor: "#1E90FF",
         elements: [
           {
-            id: "2b3c4d5e-6f7a-8b9c-0d1e-2f3a4b5c6d7e",
+            elementId: "2b3c4d5e-6f7a-8b9c-0d1e-2f3a4b5c6d7e",
             name: "x",
             type: "real",
           },
           {
-            id: "3c4d5e6f-7a8b-9c0d-1e2f-3a4b5c6d7e8f",
+            elementId: "3c4d5e6f-7a8b-9c0d-1e2f-3a4b5c6d7e8f",
             name: "y",
             type: "real",
           },
           {
-            id: "4d5e6f7a-8b9c-0d1e-2f3a-4b5c6d7e8f9a",
+            elementId: "4d5e6f7a-8b9c-0d1e-2f3a-4b5c6d7e8f9a",
             name: "direction",
             type: "real",
           },
           {
-            id: "5e6f7a8b-9c0d-1e2f-3a4b-5c6d7e8f9a0b",
+            elementId: "5e6f7a8b-9c0d-1e2f-3a4b-5c6d7e8f9a0b",
             name: "velocity",
             type: "real",
           },
@@ -249,7 +249,7 @@ export default TransitionKernel((tokens) => {
     differentialEquations: [
       {
         id: "1a2b3c4d-5e6f-7890-abcd-1234567890ab",
-        typeId: "f8e9d7c6-b5a4-3210-fedc-ba9876543210",
+        colorId: "f8e9d7c6-b5a4-3210-fedc-ba9876543210",
         name: "Satellite Orbit Dynamics",
         code: `// Example of ODE for Satellite in orbit (simplified)
 export default Dynamics((tokens, parameters) => {

@@ -109,7 +109,7 @@ describe("computePossibleTransition", () => {
             name: "Type1",
             iconSlug: "circle",
             displayColor: "#FF0000",
-            elements: [{ id: "e1", name: "x", type: "real" }],
+            elements: [{ elementId: "e1", name: "x", type: "real" }],
           },
         ],
       ]),

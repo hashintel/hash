@@ -1,6 +1,6 @@
 {
   "extends": "../tsconfig.json",
-  "include": ["./*.tsx", "./*.ts"],
+  "include": ["./*.tsx", "./*.ts", "main/app.tsx"],
   "compilerOptions": {
     "moduleResolution": "bundler",
     "jsx": "react-jsx"

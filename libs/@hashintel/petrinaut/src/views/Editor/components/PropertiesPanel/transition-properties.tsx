@@ -36,7 +36,10 @@ interface TransitionPropertiesProps {
   places: Place[];
   types: Color[];
   globalMode: "edit" | "simulate";
-  onUpdate: (id: string, updates: Partial<Transition>) => void;
+  updateTransition: (
+    id: string,
+    updateFn: (existingTransition: Transition) => void,
+  ) => void;
   onArcWeightUpdate: (
     transitionId: string,
     arcType: "input" | "output",
@@ -50,7 +53,7 @@ export const TransitionProperties: React.FC<TransitionPropertiesProps> = ({
   places,
   types,
   globalMode,
-  onUpdate,
+  updateTransition,
   onArcWeightUpdate,
 }) => {
   const sensors = useSensors(
@@ -71,10 +74,12 @@ export const TransitionProperties: React.FC<TransitionPropertiesProps> = ({
         (arc) => arc.placeId === over.id,
       );
 
-      const newInputArcs = arrayMove(transition.inputArcs, oldIndex, newIndex);
-
-      onUpdate(transition.id, {
-        inputArcs: newInputArcs,
+      updateTransition(transition.id, (existingTransition) => {
+        existingTransition.inputArcs = arrayMove(
+          existingTransition.inputArcs,
+          oldIndex,
+          newIndex,
+        );
       });
     }
   };
@@ -90,33 +95,35 @@ export const TransitionProperties: React.FC<TransitionPropertiesProps> = ({
         (arc) => arc.placeId === over.id,
       );
 
-      const newOutputArcs = arrayMove(
-        transition.outputArcs,
-        oldIndex,
-        newIndex,
-      );
-
-      onUpdate(transition.id, {
-        outputArcs: newOutputArcs,
+      updateTransition(transition.id, (existingTransition) => {
+        existingTransition.outputArcs = arrayMove(
+          existingTransition.outputArcs,
+          oldIndex,
+          newIndex,
+        );
       });
     }
   };
 
   const handleDeleteInputArc = (placeId: string) => {
-    const newInputArcs = transition.inputArcs.filter(
-      (arc) => arc.placeId !== placeId,
-    );
-    onUpdate(transition.id, {
-      inputArcs: newInputArcs,
+    updateTransition(transition.id, (existingTransition) => {
+      const index = existingTransition.inputArcs.findIndex(
+        (arc) => arc.placeId === placeId,
+      );
+      if (index !== -1) {
+        existingTransition.inputArcs.splice(index, 1);
+      }
     });
   };
 
   const handleDeleteOutputArc = (placeId: string) => {
-    const newOutputArcs = transition.outputArcs.filter(
-      (arc) => arc.placeId !== placeId,
-    );
-    onUpdate(transition.id, {
-      outputArcs: newOutputArcs,
+    updateTransition(transition.id, (existingTransition) => {
+      const index = existingTransition.outputArcs.findIndex(
+        (arc) => arc.placeId === placeId,
+      );
+      if (index !== -1) {
+        existingTransition.outputArcs.splice(index, 1);
+      }
     });
   };
 
@@ -184,8 +191,8 @@ export const TransitionProperties: React.FC<TransitionPropertiesProps> = ({
           type="text"
           value={transition.name}
           onChange={(event) => {
-            onUpdate(transition.id, {
-              name: event.target.value,
+            updateTransition(transition.id, (existingTransition) => {
+              existingTransition.name = event.target.value;
             });
           }}
           disabled={globalMode === "simulate"}
@@ -330,8 +337,10 @@ export const TransitionProperties: React.FC<TransitionPropertiesProps> = ({
             ]}
             onChange={(value) => {
               if (globalMode !== "simulate") {
-                onUpdate(transition.id, {
-                  lambdaType: value as "predicate" | "stochastic",
+                updateTransition(transition.id, (existingTransition) => {
+                  existingTransition.lambdaType = value as
+                    | "predicate"
+                    | "stochastic";
                 });
               }
             }}
@@ -399,10 +408,10 @@ export const TransitionProperties: React.FC<TransitionPropertiesProps> = ({
                   id: "load-default",
                   label: "Load default template",
                   onClick: () => {
-                    onUpdate(transition.id, {
-                      lambdaCode: generateDefaultLambdaCode(
-                        transition.lambdaType,
-                      ),
+                    updateTransition(transition.id, (existingTransition) => {
+                      existingTransition.lambdaCode = generateDefaultLambdaCode(
+                        existingTransition.lambdaType,
+                      );
                     });
                   },
                 },
@@ -445,8 +454,8 @@ export const TransitionProperties: React.FC<TransitionPropertiesProps> = ({
             value={transition.lambdaCode || ""}
             path={`inmemory://sdcpn/transitions/${transition.id}/lambda.ts`}
             onChange={(value) => {
-              onUpdate(transition.id, {
-                lambdaCode: value ?? "",
+              updateTransition(transition.id, (existingTransition) => {
+                existingTransition.lambdaCode = value ?? "";
               });
             }}
             theme="vs-light"
@@ -544,9 +553,9 @@ export const TransitionProperties: React.FC<TransitionPropertiesProps> = ({
                         })
                         .filter((o) => o !== null);
 
-                      onUpdate(transition.id, {
-                        transitionKernelCode:
-                          generateDefaultTransitionKernelCode(inputs, outputs),
+                      updateTransition(transition.id, (existingTransition) => {
+                        existingTransition.transitionKernelCode =
+                          generateDefaultTransitionKernelCode(inputs, outputs);
                       });
                     },
                   },
@@ -589,8 +598,8 @@ export const TransitionProperties: React.FC<TransitionPropertiesProps> = ({
               value={transition.transitionKernelCode || ""}
               path={`inmemory://sdcpn/transitions/${transition.id}/transition-kernel.ts`}
               onChange={(value) => {
-                onUpdate(transition.id, {
-                  transitionKernelCode: value ?? "",
+                updateTransition(transition.id, (existingTransition) => {
+                  existingTransition.transitionKernelCode = value ?? "";
                 });
               }}
               theme="vs-light"

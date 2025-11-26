@@ -150,8 +150,8 @@ function generateDifferentialEquationsDefinition(
       .map(
         (diffEq) => `"${diffEq.id}": {
         name: ${JSON.stringify(diffEq.name)};
-        typeId: "${diffEq.typeId}";
-        type: SDCPNTypes["${diffEq.typeId}"];
+        typeId: "${diffEq.colorId}";
+        type: SDCPNTypes["${diffEq.colorId}"];
       };`,
       )
       .join("\n")}

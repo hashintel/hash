@@ -1,9 +1,12 @@
 import type { SDCPN } from "../core/types/sdcpn";
 import { nodeDimensions } from "../views/SDCPN/styles/styling";
 
-export const supplyChainStochasticSDCPN: { title: string; sdcpn: SDCPN } = {
+export const supplyChainStochasticSDCPN: {
+  title: string;
+  petriNetDefinition: SDCPN;
+} = {
   title: "Drug Production (Stochastic)",
-  sdcpn: {
+  petriNetDefinition: {
     places: [
       {
         id: "place__0",

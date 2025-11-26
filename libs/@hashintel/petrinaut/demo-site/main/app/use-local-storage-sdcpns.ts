@@ -1,12 +1,14 @@
 import { useLocalStorage } from "@mantine/hooks";
 
-import type { SDCPN } from "../core/types/sdcpn";
+import type { SDCPN } from "../../../src/core/types/sdcpn";
 
 const rootLocalStorageKey = "petrinaut-sdcpn";
 
-type SDCPNInLocalStorage = {
+export type SDCPNInLocalStorage = {
+  id: string;
   lastUpdated: string; // ISO timestamp
   sdcpn: SDCPN;
+  title: string;
 };
 
 type LocalStorageSDCPNsStore = Record<string, SDCPNInLocalStorage>;

@@ -15,8 +15,8 @@ describe("computeNextFrame", () => {
           iconSlug: "circle",
           displayColor: "#000000",
           elements: [
-            { id: "elem1", name: "x", type: "real" },
-            { id: "elem2", name: "y", type: "real" },
+            { elementId: "elem1", name: "x", type: "real" },
+            { elementId: "elem2", name: "y", type: "real" },
           ],
         },
       ],
@@ -24,7 +24,7 @@ describe("computeNextFrame", () => {
         {
           id: "diffeq1",
           name: "Differential Equation 1",
-          typeId: "type1",
+          colorId: "type1",
           code: "export default Dynamics((tokens, parameters) => { return tokens.map(token => ({ x: 1, y: 1 })); });",
         },
       ],
@@ -134,14 +134,14 @@ describe("computeNextFrame", () => {
           name: "Type 1",
           iconSlug: "circle",
           displayColor: "#000000",
-          elements: [{ id: "elem1", name: "x", type: "real" }],
+          elements: [{ elementId: "elem1", name: "x", type: "real" }],
         },
       ],
       differentialEquations: [
         {
           id: "diffeq1",
           name: "Differential Equation 1",
-          typeId: "type1",
+          colorId: "type1",
           code: "export default Dynamics((tokens, parameters) => { return tokens.map(token => ({ x: 1 })); });",
         },
       ],

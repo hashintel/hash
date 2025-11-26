@@ -1,9 +1,9 @@
 import type { SDCPN } from "../core/types/sdcpn";
 import { nodeDimensions } from "../views/SDCPN/styles/styling";
 
-export const supplyChainSDCPN: { title: string; sdcpn: SDCPN } = {
+export const supplyChainSDCPN: { title: string; petriNetDefinition: SDCPN } = {
   title: "Drug Production",
-  sdcpn: {
+  petriNetDefinition: {
     places: [
       {
         id: "place__0",

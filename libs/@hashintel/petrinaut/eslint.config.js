@@ -18,16 +18,16 @@ export default [
     },
   },
   {
-    files: ["dev/**/*"],
+    files: ["demo-site/**/*"],
     languageOptions: {
       parserOptions: {
-        project: "./dev/tsconfig.json",
+        project: "./demo-site/tsconfig.json",
         tsconfigRootDir: import.meta.dirname,
       },
     },
   },
   {
-    files: ["dev/*.tsx"],
+    files: ["demo-site/**/*.tsx"],
     rules: {
       "import/no-extraneous-dependencies": ["error", { devDependencies: true }],
     },
@@ -50,6 +50,13 @@ export default [
                 "You cannot use unpublished local packages in a published package.",
             },
           ],
+        },
+      ],
+      "no-param-reassign": [
+        "error",
+        {
+          props: true,
+          ignorePropertyModificationsForRegex: ["^existing", "draft"],
         },
       ],
     },

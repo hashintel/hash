@@ -9,12 +9,13 @@ import {
 
 import { InfoIconTooltip } from "../../../../components/tooltip";
 import { useEditorStore } from "../../../../state/editor-provider";
-import { useSDCPNStore } from "../../../../state/sdcpn-provider";
+import { useSDCPNContext } from "../../../../state/sdcpn-provider";
 
 export const NodesSection: React.FC = () => {
   const [isExpanded, setIsExpanded] = useState(true);
-  const places = useSDCPNStore((state) => state.sdcpn.places);
-  const transitions = useSDCPNStore((state) => state.sdcpn.transitions);
+  const {
+    petriNetDefinition: { places, transitions },
+  } = useSDCPNContext();
   const selectedResourceId = useEditorStore(
     (state) => state.selectedResourceId,
   );

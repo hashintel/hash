@@ -19,16 +19,16 @@ import {
 } from "../../../../core/default-codes";
 import { compileVisualizer } from "../../../../core/simulation/compile-visualizer";
 import type {
+  Color,
   DifferentialEquation,
   Place,
-  Color,
 } from "../../../../core/types/sdcpn";
 import {
   mergeParameterValues,
   useDefaultParameterValues,
 } from "../../../../hooks/use-default-parameter-values";
 import { useEditorStore } from "../../../../state/editor-provider";
-import { useSDCPNStore } from "../../../../state/sdcpn-provider";
+import { useSDCPNContext } from "../../../../state/sdcpn-provider";
 import { useSimulationStore } from "../../../../state/simulation-provider";
 import { InitialStateEditor } from "./initial-state-editor";
 import { VisualizerErrorBoundary } from "./visualizer-error-boundary";
@@ -38,7 +38,7 @@ interface PlacePropertiesProps {
   types: Color[];
   differentialEquations: DifferentialEquation[];
   globalMode: "edit" | "simulate";
-  onUpdate: (id: string, updates: Partial<Place>) => void;
+  updatePlace: (placeId: string, updateFn: (place: Place) => void) => void;
 }
 
 export const PlaceProperties: React.FC<PlacePropertiesProps> = ({
@@ -46,7 +46,7 @@ export const PlaceProperties: React.FC<PlacePropertiesProps> = ({
   types,
   differentialEquations,
   globalMode,
-  onUpdate,
+  updatePlace,
 }) => {
   const isSimulationNotRun = useSimulationStore(
     (state) => state.state === "NotRun",
@@ -65,7 +65,9 @@ export const PlaceProperties: React.FC<PlacePropertiesProps> = ({
     (state) => state.setSelectedResourceId,
   );
 
-  const availableTypes = useSDCPNStore((state) => state.sdcpn.types);
+  const {
+    petriNetDefinition: { types: availableTypes },
+  } = useSDCPNContext();
 
   // Store previous visualizer code when toggling off (in case user toggled off by mistake)
   const [savedVisualizerCode, setSavedVisualizerCode] = useState<
@@ -136,7 +138,9 @@ export const PlaceProperties: React.FC<PlacePropertiesProps> = ({
     // Valid name - update and clear error
     setNameError(null);
     if (nameInputValue !== place.name) {
-      onUpdate(place.id, { name: nameInputValue });
+      updatePlace(place.id, (existingPlace) => {
+        existingPlace.name = nameInputValue;
+      });
     }
   };
 
@@ -158,19 +162,12 @@ export const PlaceProperties: React.FC<PlacePropertiesProps> = ({
     }
   }, [place.visualizerCode]);
 
-  // Get the currently selected differential equation ID
-  const selectedDiffEqId =
-    place.differentialEquationId &&
-    typeof place.differentialEquationId === "object"
-      ? place.differentialEquationId.refId
-      : "";
-
   // Filter differential equations by place type
   const availableDiffEqs = place.colorId
-    ? differentialEquations.filter((eq) => eq.typeId === place.colorId)
+    ? differentialEquations.filter((eq) => eq.colorId === place.colorId)
     : [];
 
-  const removePlace = useSDCPNStore((state) => state.removePlace);
+  const { removePlace } = useSDCPNContext();
 
   return (
     <div
@@ -282,12 +279,12 @@ export const PlaceProperties: React.FC<PlacePropertiesProps> = ({
           onChange={(event) => {
             const value = event.target.value;
             const newType = value === "" ? null : value;
-            onUpdate(place.id, {
-              colorId: newType,
+            updatePlace(place.id, (existingPlace) => {
+              existingPlace.colorId = newType;
               // Disable dynamics if type is being set to null
-              ...(newType === null && place.dynamicsEnabled
-                ? { dynamicsEnabled: false }
-                : {}),
+              if (newType === null && existingPlace.dynamicsEnabled) {
+                existingPlace.dynamicsEnabled = false;
+              }
             });
           }}
           disabled={globalMode === "simulate"}
@@ -353,8 +350,8 @@ export const PlaceProperties: React.FC<PlacePropertiesProps> = ({
               checked={!!place.colorId && place.dynamicsEnabled}
               disabled={globalMode === "simulate" || place.colorId === null}
               onCheckedChange={(checked) => {
-                onUpdate(place.id, {
-                  dynamicsEnabled: checked,
+                updatePlace(place.id, (existingPlace) => {
+                  existingPlace.dynamicsEnabled = checked;
                 });
               }}
             />
@@ -397,20 +394,13 @@ export const PlaceProperties: React.FC<PlacePropertiesProps> = ({
               Differential Equation
             </div>
             <select
-              value={selectedDiffEqId}
+              value={place.differentialEquationId ?? undefined}
               onChange={(event) => {
                 const value = event.target.value;
-                if (value === "") {
-                  // No differential equation selected
-                  onUpdate(place.id, {
-                    differentialEquationId: null,
-                  });
-                } else {
-                  // Reference a differential equation
-                  onUpdate(place.id, {
-                    differentialEquationId: { refId: value },
-                  });
-                }
+
+                updatePlace(place.id, (existingPlace) => {
+                  existingPlace.differentialEquationId = value || null;
+                });
               }}
               disabled={globalMode === "simulate"}
               style={{
@@ -434,12 +424,12 @@ export const PlaceProperties: React.FC<PlacePropertiesProps> = ({
               ))}
             </select>
 
-            {selectedDiffEqId && (
+            {place.differentialEquationId && (
               <div style={{ textAlign: "right" }}>
                 <button
                   type="button"
                   onClick={() => {
-                    setSelectedResourceId(selectedDiffEqId);
+                    setSelectedResourceId(place.differentialEquationId);
                   }}
                   style={{
                     fontSize: 12,
@@ -565,17 +555,17 @@ export const PlaceProperties: React.FC<PlacePropertiesProps> = ({
                 onCheckedChange={(checked) => {
                   if (checked) {
                     // Turning on: use saved code if available, otherwise default
-                    onUpdate(place.id, {
-                      visualizerCode:
-                        savedVisualizerCode ?? DEFAULT_VISUALIZER_CODE,
+                    updatePlace(place.id, (existingPlace) => {
+                      existingPlace.visualizerCode =
+                        savedVisualizerCode ?? DEFAULT_VISUALIZER_CODE;
                     });
                   } else {
                     // Turning off: save current code and set to undefined
                     if (place.visualizerCode) {
                       setSavedVisualizerCode(place.visualizerCode);
                     }
-                    onUpdate(place.id, {
-                      visualizerCode: undefined,
+                    updatePlace(place.id, (existingPlace) => {
+                      existingPlace.visualizerCode = undefined;
                     });
                   }
                 }}
@@ -640,10 +630,10 @@ export const PlaceProperties: React.FC<PlacePropertiesProps> = ({
                         ? types.find((t) => t.id === place.colorId)
                         : null;
 
-                      onUpdate(place.id, {
-                        visualizerCode: placeType
+                      updatePlace(place.id, (existingPlace) => {
+                        existingPlace.visualizerCode = placeType
                           ? generateDefaultVisualizerCode(placeType)
-                          : DEFAULT_VISUALIZER_CODE,
+                          : DEFAULT_VISUALIZER_CODE;
                       });
                     },
                   },
@@ -797,8 +787,8 @@ export const PlaceProperties: React.FC<PlacePropertiesProps> = ({
                 height={400}
                 value={place.visualizerCode}
                 onChange={(value) => {
-                  onUpdate(place.id, {
-                    visualizerCode: value ?? "",
+                  updatePlace(place.id, (existingPlace) => {
+                    existingPlace.visualizerCode = value ?? "";
                   });
                 }}
                 theme="vs-light"

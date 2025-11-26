@@ -4,7 +4,7 @@ import { FaChevronDown, FaChevronRight } from "react-icons/fa6";
 
 import { InfoIconTooltip } from "../../../../components/tooltip";
 import { useEditorStore } from "../../../../state/editor-provider";
-import { useSDCPNStore } from "../../../../state/sdcpn-provider";
+import { useSDCPNContext } from "../../../../state/sdcpn-provider";
 
 // Pool of 10 well-differentiated colors for types
 const TYPE_COLOR_POOL = [
@@ -52,9 +52,13 @@ const getNextTypeNumber = (existingNames: string[]): number => {
 
 export const TypesSection: React.FC = () => {
   const [isExpanded, setIsExpanded] = useState(true);
-  const types = useSDCPNStore((state) => state.sdcpn.types);
-  const addType = useSDCPNStore((state) => state.addType);
-  const removeType = useSDCPNStore((state) => state.removeType);
+
+  const {
+    petriNetDefinition: { types },
+    addType,
+    removeType,
+  } = useSDCPNContext();
+
   const selectedResourceId = useEditorStore(
     (state) => state.selectedResourceId,
   );
@@ -120,11 +124,11 @@ export const TypesSection: React.FC = () => {
             const newType = {
               id: `type__${Date.now()}`,
               name: `Type ${nextNumber}`,
-              iconId: "circle",
-              colorCode: nextColor,
+              iconSlug: "circle",
+              displayColor: nextColor,
               elements: [
                 {
-                  id: `element__${Date.now()}`,
+                  elementId: `element__${Date.now()}`,
                   name: "dimension_1",
                   type: "real" as const,
                 },

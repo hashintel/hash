@@ -14,8 +14,8 @@ describe("buildSimulation", () => {
             iconSlug: "circle",
             displayColor: "#FF0000",
             elements: [
-              { id: "e1", name: "x", type: "real" },
-              { id: "e2", name: "y", type: "real" },
+              { elementId: "e1", name: "x", type: "real" },
+              { elementId: "e2", name: "y", type: "real" },
             ],
           },
         ],
@@ -23,7 +23,7 @@ describe("buildSimulation", () => {
           {
             id: "diffeq1",
             name: "Differential Equation 1",
-            typeId: "type1",
+            colorId: "type1",
             code: "export default Dynamics((placeValues, t) => { return new Float64Array([0, 0]); });",
           },
         ],
@@ -95,7 +95,7 @@ describe("buildSimulation", () => {
             name: "Type 1",
             iconSlug: "circle",
             displayColor: "#FF0000",
-            elements: [{ id: "e1", name: "x", type: "real" }],
+            elements: [{ elementId: "e1", name: "x", type: "real" }],
           },
           {
             id: "type2",
@@ -103,8 +103,8 @@ describe("buildSimulation", () => {
             iconSlug: "square",
             displayColor: "#00FF00",
             elements: [
-              { id: "e1", name: "x", type: "real" },
-              { id: "e2", name: "y", type: "real" },
+              { elementId: "e1", name: "x", type: "real" },
+              { elementId: "e2", name: "y", type: "real" },
             ],
           },
         ],
@@ -112,13 +112,13 @@ describe("buildSimulation", () => {
           {
             id: "diffeq1",
             name: "Differential Equation 1",
-            typeId: "type1",
+            colorId: "type1",
             code: "export default Dynamics((placeValues, t) => { return new Float64Array([0]); });",
           },
           {
             id: "diffeq2",
             name: "Differential Equation 2",
-            typeId: "type2",
+            colorId: "type2",
             code: "export default Dynamics((placeValues, t) => { return new Float64Array([0, 0]); });",
           },
         ],
@@ -271,14 +271,14 @@ describe("buildSimulation", () => {
             name: "Type 1",
             iconSlug: "circle",
             displayColor: "#FF0000",
-            elements: [{ id: "e1", name: "x", type: "real" }],
+            elements: [{ elementId: "e1", name: "x", type: "real" }],
           },
         ],
         differentialEquations: [
           {
             id: "diffeq1",
             name: "Differential Equation 1",
-            typeId: "type1",
+            colorId: "type1",
             code: "export default Dynamics((placeValues, t) => { return new Float64Array([0]); });",
           },
         ],
@@ -324,8 +324,8 @@ describe("buildSimulation", () => {
             iconSlug: "circle",
             displayColor: "#FF0000",
             elements: [
-              { id: "e1", name: "x", type: "real" },
-              { id: "e2", name: "y", type: "real" },
+              { elementId: "e1", name: "x", type: "real" },
+              { elementId: "e2", name: "y", type: "real" },
             ],
           },
         ],
@@ -333,7 +333,7 @@ describe("buildSimulation", () => {
           {
             id: "diffeq1",
             name: "Differential Equation 1",
-            typeId: "type1",
+            colorId: "type1",
             code: "export default Dynamics((placeValues, t) => { return new Float64Array([0, 0]); });",
           },
         ],

@@ -4,9 +4,9 @@ import { devtools } from "zustand/middleware";
 import { SDCPNItemError } from "../core/errors";
 import { buildSimulation } from "../core/simulation/build-simulation";
 import { computeNextFrame } from "../core/simulation/compute-next-frame";
+import type { SDCPN } from "../core/types/sdcpn";
 import type { SimulationInstance } from "../core/types/simulation";
 import { deriveDefaultParameterValues } from "../hooks/use-default-parameter-values";
-import type { SDCPNState } from "./sdcpn-store";
 
 export type SimulationState =
   | "NotRun"
@@ -95,9 +95,7 @@ export type SimulationStoreState = {
  * Creates a Zustand store for managing simulation execution.
  * This store manages the simulation instance and execution state.
  */
-export function createSimulationStore(sdcpnStore: {
-  getState: () => SDCPNState;
-}) {
+export function createSimulationStore(getSDCPN: () => { sdcpn: SDCPN }) {
   const store = create<SimulationStoreState>()(
     devtools(
       (set, get) => ({
@@ -139,7 +137,7 @@ export function createSimulationStore(sdcpnStore: {
         initializeParameterValuesFromDefaults: () =>
           set(
             () => {
-              const { sdcpn } = sdcpnStore.getState();
+              const { sdcpn } = getSDCPN();
               const defaultValues = deriveDefaultParameterValues(
                 sdcpn.parameters,
               );
@@ -167,7 +165,7 @@ export function createSimulationStore(sdcpnStore: {
               }
 
               try {
-                const { sdcpn } = sdcpnStore.getState();
+                const { sdcpn } = getSDCPN();
 
                 // Build the simulation instance using stored initialMarking
                 const simulationInstance = buildSimulation({
@@ -346,7 +344,7 @@ export function createSimulationStore(sdcpnStore: {
               }
 
               // Get default parameter values from SDCPN
-              const { sdcpn } = sdcpnStore.getState();
+              const { sdcpn } = getSDCPN();
               const defaultValues = deriveDefaultParameterValues(
                 sdcpn.parameters,
               );

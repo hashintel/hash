@@ -6,9 +6,8 @@ import { sirModel } from "../../examples/sir-model";
 import { supplyChainSDCPN } from "../../examples/supply-chain";
 import { supplyChainStochasticSDCPN } from "../../examples/supply-chain-stochastic";
 import { useEditorStore } from "../../state/editor-provider";
-import { useSDCPNStore } from "../../state/sdcpn-provider";
+import { useSDCPNContext } from "../../state/sdcpn-provider";
 import { useSimulationStore } from "../../state/simulation-provider";
-import { useLocalStorageSDCPNs } from "../../state/use-local-storage-sdcpns";
 import { SDCPNView } from "../SDCPN/sdcpn-view";
 import { BottomBar } from "./components/BottomBar/bottom-bar";
 import { LeftSideBar } from "./components/LeftSideBar/left-sidebar";
@@ -23,11 +22,15 @@ import { importSDCPN } from "./lib/import-sdcpn";
  */
 export const EditorView: React.FC = () => {
   // Get data from sdcpn-store
-  const sdcpn = useSDCPNStore((state) => state.sdcpn);
-  const title = useSDCPNStore((state) => state.sdcpn.title);
-  const updateTitle = useSDCPNStore((state) => state.updateTitle);
-  const setSDCPN = useSDCPNStore((state) => state.setSDCPN);
-  const layoutGraph = useSDCPNStore((state) => state.layoutGraph);
+  const {
+    createNewNet,
+    existingNets,
+    layoutGraph,
+    loadPetriNet,
+    petriNetDefinition,
+    title,
+    setTitle,
+  } = useSDCPNContext();
 
   // Get editor store methods
   const mode = useEditorStore((state) => state.globalMode);
@@ -41,8 +44,6 @@ export const EditorView: React.FC = () => {
     (state) => state.initializeParameterValuesFromDefaults,
   );
 
-  const { storedSDCPNs } = useLocalStorageSDCPNs();
-
   // Handler for mode change that initializes parameter values when switching to simulate mode
   function handleModeChange(newMode: "edit" | "simulate") {
     if (newMode === "simulate" && mode !== "simulate") {
@@ -55,25 +56,29 @@ export const EditorView: React.FC = () => {
   }
 
   function handleNew() {
-    setSDCPN({
-      id: `sdcpn-${Date.now()}`,
+    createNewNet({
       title: "Untitled",
-      places: [],
-      transitions: [],
-      types: [],
-      differentialEquations: [],
-      parameters: [],
+      petriNetDefinition: {
+        places: [],
+        transitions: [],
+        types: [],
+        differentialEquations: [],
+        parameters: [],
+      },
     });
     clearSelection();
   }
 
   function handleExport() {
-    exportSDCPN(sdcpn);
+    exportSDCPN({ petriNetDefinition, title });
   }
 
   function handleImport() {
     importSDCPN((loadedSDCPN) => {
-      setSDCPN(loadedSDCPN);
+      createNewNet({
+        title: loadedSDCPN.title,
+        petriNetDefinition: loadedSDCPN,
+      });
       clearSelection();
     });
   }
@@ -109,23 +114,19 @@ export const EditorView: React.FC = () => {
                 label: "New",
                 onClick: handleNew,
               },
-              ...(Object.keys(storedSDCPNs).length > 0
+              ...(Object.keys(existingNets).length > 0
                 ? [
                     {
                       id: "open",
                       label: "Open",
-                      submenu: Object.entries(storedSDCPNs)
-                        .sort((a, b) =>
-                          b[1].lastUpdated.localeCompare(a[1].lastUpdated),
-                        )
-                        .map(([id, storedRecord]) => ({
-                          id: `open-${id}`,
-                          label: storedRecord.sdcpn.title,
-                          onClick: () => {
-                            setSDCPN(storedRecord.sdcpn);
-                            clearSelection();
-                          },
-                        })),
+                      submenu: existingNets.map((net) => ({
+                        id: `open-${net.netId}`,
+                        label: net.title,
+                        onClick: () => {
+                          loadPetriNet(net.netId);
+                          clearSelection();
+                        },
+                      })),
                     },
                   ]
                 : []),
@@ -152,7 +153,7 @@ export const EditorView: React.FC = () => {
                     id: "load-example-supply-chain",
                     label: "Supply Chain",
                     onClick: () => {
-                      setSDCPN(supplyChainSDCPN);
+                      createNewNet(supplyChainSDCPN);
                       clearSelection();
                     },
                   },
@@ -160,7 +161,7 @@ export const EditorView: React.FC = () => {
                     id: "load-example-supply-chain-stochastic",
                     label: "Supply Chain (Stochastic)",
                     onClick: () => {
-                      setSDCPN(supplyChainStochasticSDCPN);
+                      createNewNet(supplyChainStochasticSDCPN);
                       clearSelection();
                     },
                   },
@@ -168,7 +169,7 @@ export const EditorView: React.FC = () => {
                     id: "load-example-satellites",
                     label: "Satellites",
                     onClick: () => {
-                      setSDCPN(satellitesSDCPN);
+                      createNewNet(satellitesSDCPN);
                       clearSelection();
                     },
                   },
@@ -176,7 +177,7 @@ export const EditorView: React.FC = () => {
                     id: "load-example-production-machines",
                     label: "Production Machines",
                     onClick: () => {
-                      setSDCPN(productionMachines);
+                      createNewNet(productionMachines);
                       clearSelection();
                     },
                   },
@@ -184,7 +185,7 @@ export const EditorView: React.FC = () => {
                     id: "load-example-sir-model",
                     label: "SIR Model",
                     onClick: () => {
-                      setSDCPN(sirModel);
+                      createNewNet(sirModel);
                       clearSelection();
                     },
                   },
@@ -192,7 +193,7 @@ export const EditorView: React.FC = () => {
               },
             ]}
             title={title}
-            onTitleChange={updateTitle}
+            onTitleChange={setTitle}
           />
 
           {/* Properties Panel - Right Side */}

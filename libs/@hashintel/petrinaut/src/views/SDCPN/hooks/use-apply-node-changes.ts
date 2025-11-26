@@ -1,7 +1,7 @@
 import type { EdgeChange, NodeChange } from "reactflow";
 
 import { useEditorStore } from "../../../state/editor-provider";
-import { useSDCPNStore } from "../../../state/sdcpn-provider";
+import { useSDCPNContext } from "../../../state/sdcpn-provider";
 
 /**
  * A hook that provides a callback to apply ReactFlow node changes to the SDCPN store.
@@ -21,12 +21,7 @@ export function useApplyNodeChanges() {
     (state) => state.setSelectedItemIds,
   );
   const selectedItemIds = useEditorStore((state) => state.selectedItemIds);
-  const updatePlacePosition = useSDCPNStore(
-    (state) => state.updatePlacePosition,
-  );
-  const updateTransitionPosition = useSDCPNStore(
-    (state) => state.updateTransitionPosition,
-  );
+  const { updatePlacePosition, updateTransitionPosition } = useSDCPNContext();
 
   return (changes: (NodeChange | EdgeChange)[]) => {
     const positionUpdates: Array<{
@@ -117,9 +112,9 @@ export function useApplyNodeChanges() {
       const itemType = getItemType(id);
 
       if (itemType === "place") {
-        updatePlacePosition(id, position.x, position.y);
+        updatePlacePosition(id, { x: position.x, y: position.y });
       } else if (itemType === "transition") {
-        updateTransitionPosition(id, position.x, position.y);
+        updateTransitionPosition(id, { x: position.x, y: position.y });
       }
     }
   };

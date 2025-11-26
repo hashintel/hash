@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { TbTrash } from "react-icons/tb";
 
 import { InfoIconTooltip } from "../../../../components/tooltip";
+import type { Color } from "../../../../core/types/sdcpn";
 import { useSimulationStore } from "../../../../state/simulation-provider";
 
 /**
@@ -55,15 +56,7 @@ const useResizable = (initialHeight: number) => {
  */
 interface InitialStateEditorProps {
   placeId: string;
-  placeType: {
-    id: string;
-    name: string;
-    elements: {
-      id: string;
-      name: string;
-      type: "real" | "integer" | "boolean";
-    }[];
-  };
+  placeType: Color;
 }
 
 export const InitialStateEditor: React.FC<InitialStateEditorProps> = ({
@@ -642,7 +635,7 @@ export const InitialStateEditor: React.FC<InitialStateEditorProps> = ({
               />
               {placeType.elements.map((element) => (
                 <th
-                  key={element.id}
+                  key={element.elementId}
                   style={{
                     position: "sticky",
                     top: 0,

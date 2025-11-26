@@ -35,7 +35,7 @@ export type Color = {
   iconSlug: string; // e.g., "circle", "square"
   displayColor: string; // e.g., "#FF0000"
   elements: {
-    id: string;
+    elementId: string;
     name: string;
     type: "real" | "integer" | "boolean";
   }[];
@@ -52,7 +52,7 @@ export type Parameter = {
 export type DifferentialEquation = {
   id: ID;
   name: string;
-  typeId: ID; // refers to types.id
+  colorId: ID;
   code: string;
 };
 

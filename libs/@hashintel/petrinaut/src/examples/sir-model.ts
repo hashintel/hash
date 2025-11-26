@@ -1,8 +1,8 @@
 import type { SDCPN } from "../core/types/sdcpn";
 
-export const sirModel: { title: string; sdcpn: SDCPN } = {
+export const sirModel: { title: string; petriNetDefinition: SDCPN } = {
   title: "SIR Epidemic Model",
-  sdcpn: {
+  petriNetDefinition: {
     places: [
       {
         id: "place__susceptible",
