@@ -19,6 +19,50 @@ const TRAVEL = SLIDER_WIDTH - THUMB_WIDTH - PADDING * 2;
 
 const THUMB_SCALE_ACTIVE = 2.5;
 
+const switchControlStyles = (disabled: boolean) =>
+  css({
+    position: "relative",
+    display: "inline-block",
+    cursor: disabled ? "not-allowed" : "pointer",
+    transition: "[all 0.2s ease]",
+    backgroundColor: "core.gray.40",
+    _checked: {
+      backgroundColor: "core.green.40",
+    },
+  });
+
+const switchThumbStyles = css({
+  position: "absolute",
+  top: "[50%]",
+  left: `[${PADDING}px]`,
+  transition: "[all 0.2s ease]",
+  "&[data-state='checked']": {
+    transform: `translateY(-50%) translateX(${TRAVEL}px)`,
+  },
+  "&[data-state='unchecked']": {
+    top: "[50%]",
+    transform: "translateY(-50%)",
+  },
+  "& > div": {
+    backgroundColor: "[rgba(255, 255, 255, 1)]",
+  },
+  "&[data-active] > div": {
+    transform: `scale(${THUMB_SCALE_ACTIVE})`,
+    backgroundColor: "[rgba(255, 255, 255, 0.1)]",
+    shadow:
+      "[0 2px 4px rgba(0,0,0,0.1), inset 0 1px 3px rgba(0,0,0,0.1), inset 0 -1px 3px rgba(255,255,255,0.1)]",
+  },
+});
+
+const switchThumbInnerStyles = css({
+  display: "block",
+  width: `[${THUMB_WIDTH}px]`,
+  height: `[${THUMB_HEIGHT}px]`,
+  borderRadius: `[${THUMB_RADIUS}px]`,
+  boxShadow: "[0 4px 22px rgba(0,0,0,0.1)]",
+  transition: "[all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)]",
+});
+
 export interface SwitchProps {
   specularOpacity?: number;
   specularSaturation?: number;
@@ -70,51 +114,11 @@ export const Switch: React.FC<SwitchProps> = ({
             height: SLIDER_HEIGHT,
             borderRadius: SLIDER_RADIUS,
           }}
-          className={css({
-            position: "relative",
-            display: "inline-block",
-            cursor: disabled ? "not-allowed" : "pointer",
-            transition: "[all 0.2s ease]",
-            backgroundColor: "core.gray.40",
-            _checked: {
-              backgroundColor: "core.green.40",
-            },
-          })}
+          className={switchControlStyles(disabled)}
         >
-          <BaseSwitch.Thumb
-            className={css({
-              position: "absolute",
-              top: "[50%]",
-              left: `[${PADDING}px]`,
-              transition: "[all 0.2s ease]",
-              "&[data-state='checked']": {
-                transform: `translateY(-50%) translateX(${TRAVEL}px)`,
-              },
-              "&[data-state='unchecked']": {
-                top: "[50%]",
-                transform: "translateY(-50%)",
-              },
-              "& > div": {
-                backgroundColor: "[rgba(255, 255, 255, 1)]",
-              },
-              "&[data-active] > div": {
-                transform: `scale(${THUMB_SCALE_ACTIVE})`,
-                backgroundColor: "[rgba(255, 255, 255, 0.1)]",
-                shadow:
-                  "[0 2px 4px rgba(0,0,0,0.1), inset 0 1px 3px rgba(0,0,0,0.1), inset 0 -1px 3px rgba(255,255,255,0.1)]",
-              },
-            })}
-          >
+          <BaseSwitch.Thumb className={switchThumbStyles}>
             <div
-              className={css({
-                display: "block",
-                width: `[${THUMB_WIDTH}px]`,
-                height: `[${THUMB_HEIGHT}px]`,
-                borderRadius: `[${THUMB_RADIUS}px]`,
-                boxShadow: "[0 4px 22px rgba(0,0,0,0.1)]",
-                transition:
-                  "[all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)]",
-              })}
+              className={switchThumbInnerStyles}
               style={{ backdropFilter: `url(#${filterId})` }}
             />
           </BaseSwitch.Thumb>

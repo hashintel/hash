@@ -38,6 +38,87 @@ const INDETERMINATE_ICON = (
   </svg>
 );
 
+const checkboxRootStyles = (disabled: boolean) =>
+  css({
+    display: "inline-flex",
+    alignItems: "center",
+    gap: "spacing.4",
+    cursor: disabled ? "not-allowed" : "pointer",
+  });
+
+const checkboxControlStyles = css({
+  position: "relative",
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  width: "[16px]",
+  height: "[16px]",
+  borderRadius: "radius.2",
+  border: "1px solid",
+  borderColor: "border.neutral.default",
+  backgroundColor: "bg.neutral.subtle.default",
+  transition: "[all 0.2s ease]",
+  flexShrink: "0",
+
+  // Hover state (unchecked)
+  "&[data-state='unchecked']:hover:not([data-disabled])": {
+    borderColor: "border.neutral.hover",
+  },
+
+  // Focus state
+  "&[data-focus-visible]": {
+    boxShadow: "[0px 0px 0px 2px rgba(0, 0, 0, 0.15)]",
+  },
+
+  // Checked and indeterminate states
+  "&[data-state='checked'], &[data-state='indeterminate']": {
+    borderColor: "border.neutral.active",
+    backgroundColor: "bg.neutral.bold.default",
+    color: "text.inverted",
+  },
+
+  // Hover on checked/indeterminate states
+  "&[data-state='checked']:hover:not([data-disabled]), &[data-state='indeterminate']:hover:not([data-disabled])":
+    {
+      backgroundColor: "bg.neutral.bold.hover",
+      borderColor: "bg.neutral.bold.hover",
+    },
+
+  // Disabled state
+  "&[data-disabled]": {
+    cursor: "not-allowed",
+    opacity: "[0.5]",
+  },
+
+  // Invalid state
+  "&[data-invalid]": {
+    borderColor: "border.status.critical",
+  },
+});
+
+const checkboxIndicatorStyles = css({
+  position: "absolute",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  width: "[100%]",
+  height: "[100%]",
+});
+
+const checkboxLabelStyles = (disabled: boolean) =>
+  css({
+    fontSize: "[14px]",
+    fontWeight: "medium",
+    color: "text.primary",
+    cursor: disabled ? "not-allowed" : "pointer",
+    userSelect: "none",
+    whiteSpace: "nowrap",
+
+    "&[data-disabled]": {
+      opacity: "[0.5]",
+    },
+  });
+
 export interface CheckboxProps {
   checked?: boolean | "indeterminate";
   defaultChecked?: boolean | "indeterminate";
@@ -81,109 +162,25 @@ export const Checkbox: React.FC<CheckboxProps> = ({
         onCheckedChange?.(details.checked);
       }}
       id={id}
-      className={css({
-        display: "inline-flex",
-        alignItems: "center",
-        gap: "spacing.4",
-        cursor: disabled ? "not-allowed" : "pointer",
-      })}
+      className={checkboxRootStyles(disabled)}
     >
-      <BaseCheckbox.Control
-        className={css({
-          position: "relative",
-          display: "inline-flex",
-          alignItems: "center",
-          justifyContent: "center",
-          width: "[16px]",
-          height: "[16px]",
-          borderRadius: "radius.2",
-          border: "1px solid",
-          borderColor: "border.neutral.default",
-          backgroundColor: "bg.neutral.subtle.default",
-          transition: "[all 0.2s ease]",
-          flexShrink: "0",
-
-          // Hover state (unchecked)
-          "&[data-state='unchecked']:hover:not([data-disabled])": {
-            borderColor: "border.neutral.hover",
-          },
-
-          // Focus state
-          "&[data-focus-visible]": {
-            boxShadow: "[0px 0px 0px 2px rgba(0, 0, 0, 0.15)]",
-          },
-
-          // Checked and indeterminate states
-          "&[data-state='checked'], &[data-state='indeterminate']": {
-            borderColor: "border.neutral.active",
-            backgroundColor: "bg.neutral.bold.default",
-            color: "text.inverted",
-          },
-
-          // Hover on checked/indeterminate states
-          "&[data-state='checked']:hover:not([data-disabled]), &[data-state='indeterminate']:hover:not([data-disabled])":
-            {
-              backgroundColor: "bg.neutral.bold.hover",
-              borderColor: "bg.neutral.bold.hover",
-            },
-
-          // Disabled state
-          "&[data-disabled]": {
-            cursor: "not-allowed",
-            opacity: "[0.5]",
-          },
-
-          // Invalid state
-          "&[data-invalid]": {
-            borderColor: "border.status.critical",
-          },
-        })}
-      >
+      <BaseCheckbox.Control className={checkboxControlStyles}>
         {/* Checked indicator */}
-        <BaseCheckbox.Indicator
-          className={css({
-            position: "absolute",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            width: "[100%]",
-            height: "[100%]",
-          })}
-        >
+        <BaseCheckbox.Indicator className={checkboxIndicatorStyles}>
           {CHECK_ICON}
         </BaseCheckbox.Indicator>
 
         {/* Indeterminate indicator */}
         <BaseCheckbox.Indicator
           indeterminate
-          className={css({
-            position: "absolute",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            width: "[100%]",
-            height: "[100%]",
-          })}
+          className={checkboxIndicatorStyles}
         >
           {INDETERMINATE_ICON}
         </BaseCheckbox.Indicator>
       </BaseCheckbox.Control>
 
       {label && (
-        <BaseCheckbox.Label
-          className={css({
-            fontSize: "[14px]",
-            fontWeight: "medium",
-            color: "text.primary",
-            cursor: disabled ? "not-allowed" : "pointer",
-            userSelect: "none",
-            whiteSpace: "nowrap",
-
-            "&[data-disabled]": {
-              opacity: "[0.5]",
-            },
-          })}
-        >
+        <BaseCheckbox.Label className={checkboxLabelStyles(disabled)}>
           {label}
         </BaseCheckbox.Label>
       )}
