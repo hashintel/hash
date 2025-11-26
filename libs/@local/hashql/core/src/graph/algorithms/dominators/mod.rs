@@ -35,7 +35,10 @@ use core::{cmp, ops};
 
 use smallvec::{SmallVec, smallvec};
 
-pub use self::frontier::{DominatorFrontiers, dominance_frontiers};
+pub use self::{
+    frontier::{DominatorFrontiers, dominance_frontiers},
+    iterated_frontier::iterated_dominance_frontier,
+};
 use crate::{
     graph::{DirectedGraph, Predecessors, Successors},
     id::{Id, IdSlice, IdVec},
@@ -43,6 +46,7 @@ use crate::{
 };
 
 mod frontier;
+mod iterated_frontier;
 #[cfg(test)]
 mod tests;
 

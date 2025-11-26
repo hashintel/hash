@@ -144,3 +144,19 @@ where
         Some(element)
     }
 }
+
+impl<I, A> Extend<I> for WorkQueue<I, A>
+where
+    I: Id,
+    A: Allocator,
+{
+    fn extend<T: IntoIterator<Item = I>>(&mut self, iter: T) {
+        let iter = iter.into_iter();
+        let (low, _) = iter.size_hint();
+        self.queue.reserve(low);
+
+        for item in iter {
+            self.enqueue(item);
+        }
+    }
+}

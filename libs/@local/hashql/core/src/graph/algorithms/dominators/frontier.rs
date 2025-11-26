@@ -1,9 +1,12 @@
-use smallvec::SmallVec;
+use core::ops::Index;
 
 use super::Dominators;
 use crate::{
     graph::{DirectedGraph, Predecessors},
-    id::{HasId as _, Id, IdVec},
+    id::{
+        HasId as _, Id,
+        bit_vec::{DenseBitSet, SparseBitMatrix},
+    },
 };
 
 /// Computes the dominance frontier for each node in a control-flow graph.
@@ -68,8 +71,7 @@ pub fn dominance_frontiers<G: DirectedGraph + Predecessors>(
     start_id: G::NodeId,
     dominators: &Dominators<G::NodeId>,
 ) -> DominatorFrontiers<G::NodeId> {
-    let mut frontiers: IdVec<G::NodeId, SmallVec<G::NodeId, 4>> =
-        IdVec::from_elem(SmallVec::new(), graph.node_count());
+    let mut frontiers = SparseBitMatrix::new(graph.node_count());
 
     for node in graph.iter_nodes() {
         let node_id = node.id();
@@ -99,9 +101,7 @@ pub fn dominance_frontiers<G: DirectedGraph + Predecessors>(
             let idom_node = dominators.immediate_dominator(node_id);
 
             while Some(runner) != idom_node {
-                if !frontiers[runner].contains(&node_id) {
-                    frontiers[runner].push(node_id);
-                }
+                frontiers.insert(runner, node_id);
 
                 // Move up the dominator tree (if possible)
                 let Some(idom_runner) = dominators.immediate_dominator(runner) else {
@@ -114,27 +114,84 @@ pub fn dominance_frontiers<G: DirectedGraph + Predecessors>(
         }
     }
 
-    for frontier in frontiers.as_mut_slice() {
-        frontier.sort_unstable();
-    }
-
     DominatorFrontiers { frontiers }
 }
 
 pub struct DominatorFrontiers<N> {
-    frontiers: IdVec<N, SmallVec<N, 4>>,
+    frontiers: SparseBitMatrix<N, N>,
 }
 
 impl<N> DominatorFrontiers<N>
 where
     N: Id,
 {
-    pub fn of(&self, node: N) -> &[N] {
-        &self.frontiers[node]
+    /// Returns the dominance frontier of the given node.
+    ///
+    /// The returned [`DominanceFrontier`] provides methods to iterate over frontier nodes,
+    /// check containment, and query emptiness.
+    pub fn frontier(&self, node: N) -> DominanceFrontier<'_, N> {
+        DominanceFrontier {
+            inner: self.frontiers.row(node),
+        }
+    }
+}
+
+/// The dominance frontier of a single node.
+///
+/// This is a view into the frontier data, providing iteration and query methods.
+pub struct DominanceFrontier<'a, N> {
+    inner: Option<&'a DenseBitSet<N>>,
+}
+
+impl<N> DominanceFrontier<'_, N>
+where
+    N: Id,
+{
+    /// Returns `true` if the dominance frontier is empty.
+    pub fn is_empty(&self) -> bool {
+        self.inner.is_none_or(DenseBitSet::is_empty)
     }
 
-    pub fn dominance_ends_at(&self, node: N, frontier_node: N) -> bool {
-        self.frontiers[node].contains(&frontier_node)
+    /// Returns `true` if `frontier_node` is in this dominance frontier.
+    ///
+    /// This indicates that the node's dominance "ends" at `frontier_node`.
+    pub fn contains(&self, frontier_node: N) -> bool {
+        self.inner.is_some_and(|set| set.contains(frontier_node))
+    }
+
+    /// Returns an iterator over the nodes in this dominance frontier.
+    pub fn iter(&self) -> impl Iterator<Item = N> {
+        self.into_iter()
+    }
+
+    pub const fn as_inner(&self) -> Option<&DenseBitSet<N>> {
+        self.inner
+    }
+}
+
+impl<N> IntoIterator for &DominanceFrontier<'_, N>
+where
+    N: Id,
+{
+    type Item = N;
+
+    type IntoIter = impl Iterator<Item = N>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.inner.into_iter().flatten()
+    }
+}
+
+impl<N> IntoIterator for DominanceFrontier<'_, N>
+where
+    N: Id,
+{
+    type Item = N;
+
+    type IntoIter = impl Iterator<Item = N>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.inner.into_iter().flatten()
     }
 }
 
@@ -159,7 +216,10 @@ mod tests {
         let frontiers = dominance_frontiers(&graph, n!(0), &doms);
 
         for i in 0..5 {
-            assert!(frontiers.of(n!(i)).is_empty(), "DF({i}) should be empty");
+            assert!(
+                frontiers.frontier(n!(i)).is_empty(),
+                "DF({i}) should be empty"
+            );
         }
     }
 
@@ -178,7 +238,11 @@ mod tests {
         let frontiers = dominance_frontiers(&graph, n!(0), &doms);
 
         for i in 0..5 {
-            assert_eq!(frontiers.of(n!(i)), [n!(0)], "DF({i}) should be {{0}}");
+            assert_eq!(
+                frontiers.frontier(n!(i)).iter().collect::<Vec<_>>(),
+                [n!(0)],
+                "DF({i}) should be {{0}}"
+            );
         }
     }
 
@@ -200,11 +264,23 @@ mod tests {
         let doms = dominators(&graph, n!(0));
         let frontiers = dominance_frontiers(&graph, n!(0), &doms);
 
-        assert!(frontiers.of(n!(0)).is_empty());
-        assert_eq!(frontiers.of(n!(1)), [n!(2)]);
-        assert_eq!(frontiers.of(n!(2)), [n!(1)]);
-        assert_eq!(frontiers.of(n!(3)), [n!(2)]);
-        assert_eq!(frontiers.of(n!(4)), [n!(1)]);
+        assert!(frontiers.frontier(n!(0)).is_empty());
+        assert_eq!(
+            frontiers.frontier(n!(1)).iter().collect::<Vec<_>>(),
+            [n!(2)]
+        );
+        assert_eq!(
+            frontiers.frontier(n!(2)).iter().collect::<Vec<_>>(),
+            [n!(1)]
+        );
+        assert_eq!(
+            frontiers.frontier(n!(3)).iter().collect::<Vec<_>>(),
+            [n!(2)]
+        );
+        assert_eq!(
+            frontiers.frontier(n!(4)).iter().collect::<Vec<_>>(),
+            [n!(1)]
+        );
     }
 
     #[test]
@@ -238,12 +314,27 @@ mod tests {
         let doms = dominators(&graph, n!(0));
         let frontiers = dominance_frontiers(&graph, n!(0), &doms);
 
-        assert!(frontiers.of(n!(0)).is_empty());
-        assert_eq!(frontiers.of(n!(1)), [n!(5)]);
-        assert_eq!(frontiers.of(n!(2)), [n!(3), n!(4)]);
-        assert_eq!(frontiers.of(n!(3)), [n!(4)]);
-        assert_eq!(frontiers.of(n!(4)), [n!(3), n!(5)]);
-        assert_eq!(frontiers.of(n!(5)), [n!(4)]);
+        assert!(frontiers.frontier(n!(0)).is_empty());
+        assert_eq!(
+            frontiers.frontier(n!(1)).iter().collect::<Vec<_>>(),
+            [n!(5)]
+        );
+        assert_eq!(
+            frontiers.frontier(n!(2)).iter().collect::<Vec<_>>(),
+            [n!(3), n!(4)]
+        );
+        assert_eq!(
+            frontiers.frontier(n!(3)).iter().collect::<Vec<_>>(),
+            [n!(4)]
+        );
+        assert_eq!(
+            frontiers.frontier(n!(4)).iter().collect::<Vec<_>>(),
+            [n!(3), n!(5)]
+        );
+        assert_eq!(
+            frontiers.frontier(n!(5)).iter().collect::<Vec<_>>(),
+            [n!(4)]
+        );
     }
 
     #[test]
@@ -266,12 +357,24 @@ mod tests {
         let doms = dominators(&graph, n!(0));
         let frontiers = dominance_frontiers(&graph, n!(0), &doms);
 
-        assert!(frontiers.of(n!(0)).is_empty());
-        assert_eq!(frontiers.of(n!(1)), [n!(1)]);
-        assert_eq!(frontiers.of(n!(2)), [n!(4)]);
-        assert_eq!(frontiers.of(n!(3)), [n!(4)]);
-        assert_eq!(frontiers.of(n!(4)), [n!(1)]);
-        assert!(frontiers.of(n!(5)).is_empty());
+        assert!(frontiers.frontier(n!(0)).is_empty());
+        assert_eq!(
+            frontiers.frontier(n!(1)).iter().collect::<Vec<_>>(),
+            [n!(1)]
+        );
+        assert_eq!(
+            frontiers.frontier(n!(2)).iter().collect::<Vec<_>>(),
+            [n!(4)]
+        );
+        assert_eq!(
+            frontiers.frontier(n!(3)).iter().collect::<Vec<_>>(),
+            [n!(4)]
+        );
+        assert_eq!(
+            frontiers.frontier(n!(4)).iter().collect::<Vec<_>>(),
+            [n!(1)]
+        );
+        assert!(frontiers.frontier(n!(5)).is_empty());
     }
 
     #[test]
@@ -305,14 +408,29 @@ mod tests {
         let doms = dominators(&graph, n!(0));
         let frontiers = dominance_frontiers(&graph, n!(0), &doms);
 
-        assert!(frontiers.of(n!(0)).is_empty());
-        assert!(frontiers.of(n!(1)).is_empty());
-        assert_eq!(frontiers.of(n!(2)), [n!(7)]);
-        assert_eq!(frontiers.of(n!(3)), [n!(7)]);
-        assert_eq!(frontiers.of(n!(4)), [n!(4), n!(7)]);
-        assert_eq!(frontiers.of(n!(5)), [n!(7)]);
-        assert_eq!(frontiers.of(n!(6)), [n!(4)]);
-        assert!(frontiers.of(n!(7)).is_empty());
+        assert!(frontiers.frontier(n!(0)).is_empty());
+        assert!(frontiers.frontier(n!(1)).is_empty());
+        assert_eq!(
+            frontiers.frontier(n!(2)).iter().collect::<Vec<_>>(),
+            [n!(7)]
+        );
+        assert_eq!(
+            frontiers.frontier(n!(3)).iter().collect::<Vec<_>>(),
+            [n!(7)]
+        );
+        assert_eq!(
+            frontiers.frontier(n!(4)).iter().collect::<Vec<_>>(),
+            [n!(4), n!(7)]
+        );
+        assert_eq!(
+            frontiers.frontier(n!(5)).iter().collect::<Vec<_>>(),
+            [n!(7)]
+        );
+        assert_eq!(
+            frontiers.frontier(n!(6)).iter().collect::<Vec<_>>(),
+            [n!(4)]
+        );
+        assert!(frontiers.frontier(n!(7)).is_empty());
     }
 
     #[test]
@@ -329,9 +447,15 @@ mod tests {
         let doms = dominators(&graph, n!(0));
         let frontiers = dominance_frontiers(&graph, n!(0), &doms);
 
-        assert_eq!(frontiers.of(n!(0)), [n!(0)]);
-        assert_eq!(frontiers.of(n!(1)), [n!(0)]);
-        assert!(frontiers.of(n!(2)).is_empty());
+        assert_eq!(
+            frontiers.frontier(n!(0)).iter().collect::<Vec<_>>(),
+            [n!(0)]
+        );
+        assert_eq!(
+            frontiers.frontier(n!(1)).iter().collect::<Vec<_>>(),
+            [n!(0)]
+        );
+        assert!(frontiers.frontier(n!(2)).is_empty());
     }
 
     #[test]
@@ -374,14 +498,32 @@ mod tests {
         let doms = dominators(&graph, n!(0));
         let frontiers = dominance_frontiers(&graph, n!(0), &doms);
 
-        assert!(frontiers.of(n!(0)).is_empty());
-        assert_eq!(frontiers.of(n!(1)), [n!(7)]);
-        assert_eq!(frontiers.of(n!(2)), [n!(2), n!(7)]);
-        assert_eq!(frontiers.of(n!(3)), [n!(2), n!(3), n!(7)]);
-        assert_eq!(frontiers.of(n!(4)), [n!(2), n!(3), n!(4), n!(7)]);
-        assert_eq!(frontiers.of(n!(5)), [n!(2), n!(3), n!(7)]);
-        assert_eq!(frontiers.of(n!(6)), [n!(2), n!(7)]);
-        assert!(frontiers.of(n!(7)).is_empty());
+        assert!(frontiers.frontier(n!(0)).is_empty());
+        assert_eq!(
+            frontiers.frontier(n!(1)).iter().collect::<Vec<_>>(),
+            [n!(7)]
+        );
+        assert_eq!(
+            frontiers.frontier(n!(2)).iter().collect::<Vec<_>>(),
+            [n!(2), n!(7)]
+        );
+        assert_eq!(
+            frontiers.frontier(n!(3)).iter().collect::<Vec<_>>(),
+            [n!(2), n!(3), n!(7)]
+        );
+        assert_eq!(
+            frontiers.frontier(n!(4)).iter().collect::<Vec<_>>(),
+            [n!(2), n!(3), n!(4), n!(7)]
+        );
+        assert_eq!(
+            frontiers.frontier(n!(5)).iter().collect::<Vec<_>>(),
+            [n!(2), n!(3), n!(7)]
+        );
+        assert_eq!(
+            frontiers.frontier(n!(6)).iter().collect::<Vec<_>>(),
+            [n!(2), n!(7)]
+        );
+        assert!(frontiers.frontier(n!(7)).is_empty());
     }
 
     #[test]
@@ -421,14 +563,35 @@ mod tests {
         let doms = dominators(&graph, n!(0));
         let frontiers = dominance_frontiers(&graph, n!(0), &doms);
 
-        assert!(frontiers.of(n!(0)).is_empty());
-        assert_eq!(frontiers.of(n!(1)), [n!(1)]);
-        assert_eq!(frontiers.of(n!(2)), [n!(3)]);
-        assert_eq!(frontiers.of(n!(3)), [n!(1)]);
-        assert!(frontiers.of(n!(4)).is_empty());
-        assert_eq!(frontiers.of(n!(5)), [n!(3)]);
-        assert_eq!(frontiers.of(n!(6)), [n!(7)]);
-        assert_eq!(frontiers.of(n!(7)), [n!(3)]);
-        assert_eq!(frontiers.of(n!(8)), [n!(7)]);
+        assert!(frontiers.frontier(n!(0)).is_empty());
+        assert_eq!(
+            frontiers.frontier(n!(1)).iter().collect::<Vec<_>>(),
+            [n!(1)]
+        );
+        assert_eq!(
+            frontiers.frontier(n!(2)).iter().collect::<Vec<_>>(),
+            [n!(3)]
+        );
+        assert_eq!(
+            frontiers.frontier(n!(3)).iter().collect::<Vec<_>>(),
+            [n!(1)]
+        );
+        assert!(frontiers.frontier(n!(4)).is_empty());
+        assert_eq!(
+            frontiers.frontier(n!(5)).iter().collect::<Vec<_>>(),
+            [n!(3)]
+        );
+        assert_eq!(
+            frontiers.frontier(n!(6)).iter().collect::<Vec<_>>(),
+            [n!(7)]
+        );
+        assert_eq!(
+            frontiers.frontier(n!(7)).iter().collect::<Vec<_>>(),
+            [n!(3)]
+        );
+        assert_eq!(
+            frontiers.frontier(n!(8)).iter().collect::<Vec<_>>(),
+            [n!(7)]
+        );
     }
 }
