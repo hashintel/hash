@@ -35,12 +35,14 @@ use core::{cmp, ops};
 
 use smallvec::{SmallVec, smallvec};
 
+pub use self::frontier::{DominatorFrontiers, dominance_frontiers};
 use crate::{
     graph::{DirectedGraph, Predecessors, Successors},
     id::{Id, IdSlice, IdVec},
     newtype,
 };
 
+mod frontier;
 #[cfg(test)]
 mod tests;
 
