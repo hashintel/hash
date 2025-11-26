@@ -105,16 +105,19 @@ where
     N: Id,
 {
     /// Returns `true` if the iterated dominance frontier is empty.
+    #[must_use]
     pub fn is_empty(&self) -> bool {
         self.inner.is_empty()
     }
 
     /// Returns the number of nodes in the iterated dominance frontier.
+    #[must_use]
     pub fn count(&self) -> usize {
         self.inner.count()
     }
 
     /// Returns the underlying [`MixedBitSet`].
+    #[must_use]
     pub const fn as_inner(&self) -> &MixedBitSet<N> {
         &self.inner
     }
