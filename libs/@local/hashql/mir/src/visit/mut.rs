@@ -714,7 +714,11 @@ pub fn walk_projection<'heap, T: VisitorMut<'heap> + ?Sized>(
     match &mut kind {
         ProjectionKind::Field(_) => {}
         ProjectionKind::FieldByName(name) => visitor.visit_symbol(location, name)?,
-        ProjectionKind::Index(local) => visitor.visit_local(location, context, local)?,
+        ProjectionKind::Index(local) => visitor.visit_local(
+            location,
+            PlaceContext::Read(PlaceReadContext::Load),
+            local
+        )?,
     }
 
     T::Result::from_output(Projection { r#type, kind })
