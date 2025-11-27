@@ -96,20 +96,20 @@ export const LeftSideBar: React.FC<LeftSideBarProps> = ({
             }}
           >
             <HamburgerMenu menuItems={menuItems} />
-            {!hideNetManagementControls && (
-              <div
-                style={{
-                  flex: isOpen ? 1 : "0 0 auto",
-                  minWidth: isOpen ? 0 : 120,
-                }}
-              >
+            <div
+              style={{
+                flex: isOpen ? 1 : "0 0 auto",
+                minWidth: isOpen ? 0 : 120,
+              }}
+            >
+              {!hideNetManagementControls && (
                 <FloatingTitle
                   value={title}
                   onChange={onTitleChange}
                   placeholder="Process"
                 />
-              </div>
-            )}
+              )}
+            </div>
             <button
               type="button"
               onClick={() => setLeftSidebarOpen(!isOpen)}

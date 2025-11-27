@@ -144,7 +144,7 @@ export const DevApp = () => {
       <Petrinaut
         existingNets={existingNets}
         createNewNet={createNewNet}
-        hideNetManagementControls
+        hideNetManagementControls={false}
         loadPetriNet={loadPetriNet}
         petriNetId={currentNetId}
         petriNetDefinition={currentNet.sdcpn}
