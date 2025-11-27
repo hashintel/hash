@@ -824,7 +824,11 @@ pub fn walk_statement_assign<'heap, T: VisitorMut<'heap> + ?Sized>(
     location: Location,
     Assign { lhs, rhs }: &mut Assign<'heap>,
 ) -> T::Result<()> {
-    visitor.visit_place(location, PlaceContext::Read(PlaceReadContext::Load), lhs)?;
+    visitor.visit_place(
+        location,
+        PlaceContext::Write(PlaceWriteContext::Assign),
+        lhs,
+    )?;
     visitor.visit_rvalue(location, rhs)?;
 
     Ok!()
