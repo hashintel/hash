@@ -17,6 +17,7 @@ use hashql_core::{
 use hashql_hir::{context::HirContext, node::NodeData};
 use hashql_mir::{
     body::Body,
+    context::MirContext,
     def::{DefId, DefIdVec},
     intern::Interner,
     pretty::{D2Buffer, D2Format, TextFormat},
@@ -34,22 +35,27 @@ pub(crate) fn mir_reify<'heap>(
 ) -> Result<(DefId, DefIdVec<Body<'heap>>), SuiteDiagnostic> {
     let registry = ModuleRegistry::new(environment);
     let hir_interner = hashql_hir::intern::Interner::new(heap);
-    let mut context = HirContext::new(&hir_interner, &registry);
+    let mut hir_context = HirContext::new(&hir_interner, &registry);
 
     let result = hashql_ast::lowering::lower(
         heap.intern_symbol("::main"),
         &mut expr,
         environment,
-        context.modules,
+        hir_context.modules,
     );
     let types = process_status(diagnostics, result)?;
 
-    let node = process_status(diagnostics, NodeData::from_ast(expr, &mut context, &types))?;
+    let node = process_status(
+        diagnostics,
+        NodeData::from_ast(expr, &mut hir_context, &types),
+    )?;
 
     let node = process_status(
         diagnostics,
-        hashql_hir::lower::lower(node, &types, environment, &mut context),
+        hashql_hir::lower::lower(node, &types, environment, &mut hir_context),
     )?;
+
+    let mut mir_context = MirContext::new(environment, interner);
 
     let mut bodies = IdVec::new();
     let root = process_status(
@@ -58,10 +64,8 @@ pub(crate) fn mir_reify<'heap>(
             node,
             &mut hashql_mir::reify::ReifyContext {
                 bodies: &mut bodies,
-                interner,
-                environment,
-                hir: &context,
-                heap,
+                mir: &mut mir_context,
+                hir: &hir_context,
             },
         ),
     )?;

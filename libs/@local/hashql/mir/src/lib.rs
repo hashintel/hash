@@ -25,7 +25,7 @@
 extern crate alloc;
 
 pub mod body;
-mod context;
+pub mod context;
 pub mod def;
 pub mod error;
 pub mod intern;
