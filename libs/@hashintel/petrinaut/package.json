@@ -1,6 +1,6 @@
 {
   "name": "@hashintel/petrinaut",
-  "version": "0.0.5",
+  "version": "0.0.6-canary.0",
   "description": "A visual editor for Petri nets",
   "repository": {
     "type": "git",
@@ -13,7 +13,7 @@
   "main": "src/main.ts",
   "types": "src/main.ts",
   "scripts": {
-    "build": "rimraf dist && tsc -p tsconfig.build.json",
+    "build": "vite build",
     "build:site": "vite build --config demo-site/vite.config.ts",
     "dev": "vite --config demo-site/vite.config.ts",
     "fix:eslint": "eslint --fix .",
@@ -56,7 +56,6 @@
     "immer": "10.1.3",
     "react": "19.2.0",
     "react-dom": "19.2.0",
-    "rimraf": "6.1.2",
     "typescript": "5.9.3",
     "vite": "7.1.11",
     "vitest": "4.0.13",
