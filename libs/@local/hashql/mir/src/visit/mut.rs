@@ -702,7 +702,7 @@ pub fn walk_basic_block<'heap, T: VisitorMut<'heap> + ?Sized>(
 pub fn walk_projection<'heap, T: VisitorMut<'heap> + ?Sized>(
     visitor: &mut T,
     location: Location,
-    context: PlaceContext,
+    _context: PlaceContext,
     _base: PlaceRef<'_, 'heap>,
     Projection {
         mut r#type,
@@ -714,11 +714,9 @@ pub fn walk_projection<'heap, T: VisitorMut<'heap> + ?Sized>(
     match &mut kind {
         ProjectionKind::Field(_) => {}
         ProjectionKind::FieldByName(name) => visitor.visit_symbol(location, name)?,
-        ProjectionKind::Index(local) => visitor.visit_local(
-            location,
-            PlaceContext::Read(PlaceReadContext::Load),
-            local
-        )?,
+        ProjectionKind::Index(local) => {
+            visitor.visit_local(location, PlaceContext::Read(PlaceReadContext::Load), local)?;
+        }
     }
 
     T::Result::from_output(Projection { r#type, kind })
