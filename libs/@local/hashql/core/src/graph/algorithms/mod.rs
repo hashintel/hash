@@ -30,7 +30,13 @@ pub mod tarjan;
 
 use alloc::collections::VecDeque;
 
-pub use self::tarjan::Tarjan;
+pub use self::{
+    dominators::{
+        DominanceFrontier, DominatorFrontiers, Dominators, IteratedDominanceFrontier,
+        dominance_frontiers, dominators, iterated_dominance_frontier,
+    },
+    tarjan::Tarjan,
+};
 use super::{DirectedGraph, Successors};
 use crate::id::{Id, bit_vec::MixedBitSet};
 
