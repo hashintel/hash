@@ -91,12 +91,12 @@ pub trait DirectedGraph {
         Self: 'this;
 
     /// Type of edge identifiers.
-    type EdgeId: Id;
+    type EdgeId;
 
     /// Type of edge references returned by iterators.
     ///
     /// This is typically `&Edge` or a wrapper type that implements [`HasId`].
-    type Edge<'this>: HasId<Id = Self::EdgeId>
+    type Edge<'this>
     where
         Self: 'this;
 

@@ -49,6 +49,7 @@ use crate::{
     body::{
         Body, Source,
         basic_block::{BasicBlock, BasicBlockVec},
+        basic_blocks::BasicBlocks,
         constant::Constant,
         local::{Local, LocalDecl, LocalVec},
         operand::Operand,
@@ -285,7 +286,7 @@ impl<'ctx, 'mir, 'hir, 'env, 'heap> Reifier<'ctx, 'mir, 'hir, 'env, 'heap> {
             return_type: returns,
             source,
             local_decls: self.local_decls,
-            basic_blocks: self.blocks,
+            basic_blocks: BasicBlocks::new(self.blocks),
             args,
         };
 

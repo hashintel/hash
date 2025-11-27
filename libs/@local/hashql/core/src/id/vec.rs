@@ -335,6 +335,11 @@ where
 
         &mut self[index]
     }
+
+    #[inline]
+    pub fn clear(&mut self) {
+        self.raw.clear();
+    }
 }
 
 // Map-like APIs for IdVec<I, Option<T>>

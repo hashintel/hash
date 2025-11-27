@@ -12,12 +12,13 @@ use hashql_core::{heap::Heap, span::SpanId, symbol::Symbol, r#type::TypeId};
 use hashql_hir::node::{HirId, r#let::Binder};
 
 use self::{
-    basic_block::{BasicBlock, BasicBlockVec},
+    basic_blocks::BasicBlocks,
     local::{LocalDecl, LocalVec},
 };
 use crate::def::DefId;
 
 pub mod basic_block;
+pub mod basic_blocks;
 pub mod constant;
 pub mod local;
 pub mod location;
@@ -130,7 +131,7 @@ pub struct Body<'heap> {
     /// where execution begins.
     ///
     /// [`BasicBlockId`]: crate::body::basic_block::BasicBlockId
-    pub basic_blocks: BasicBlockVec<BasicBlock<'heap>, &'heap Heap>,
+    pub basic_blocks: BasicBlocks<'heap>,
 
     /// The number of arguments this function takes.
     ///

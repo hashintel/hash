@@ -236,6 +236,10 @@ pub trait VisitorMut<'heap> {
         walk_body(self, body)
     }
 
+    fn visit_body_preserving_cfg(&mut self, body: &mut Body<'heap>) -> Self::Result<()> {
+        walk_body_preserving_cfg(self, body)
+    }
+
     fn visit_local_decl(&mut self, local: Local, decl: &mut LocalDecl<'heap>) -> Self::Result<()> {
         walk_local_decl(self, local, decl)
     }
@@ -598,7 +602,33 @@ pub fn walk_body<'heap, T: VisitorMut<'heap> + ?Sized>(
         visitor.visit_local_decl(id, local_decl)?;
     }
 
-    for (id, basic_block) in basic_blocks.iter_enumerated_mut() {
+    for (id, basic_block) in basic_blocks.as_mut().iter_enumerated_mut() {
+        visitor.visit_basic_block(id, basic_block)?;
+    }
+
+    Ok!()
+}
+
+pub fn walk_body_preserving_cfg<'heap, T: VisitorMut<'heap> + ?Sized>(
+    visitor: &mut T,
+    Body {
+        span,
+        return_type: r#type,
+        source,
+        local_decls,
+        basic_blocks,
+        args: _,
+    }: &mut Body<'heap>,
+) -> T::Result<()> {
+    visitor.visit_span(span)?;
+    visitor.visit_type_id(r#type)?;
+    visitor.visit_source(source)?;
+
+    for (id, local_decl) in local_decls.iter_enumerated_mut() {
+        visitor.visit_local_decl(id, local_decl)?;
+    }
+
+    for (id, basic_block) in basic_blocks.as_mut_preserving_cfg().iter_enumerated_mut() {
         visitor.visit_basic_block(id, basic_block)?;
     }
 

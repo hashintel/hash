@@ -24,6 +24,7 @@ id::newtype!(
 
 impl BasicBlockId {
     pub const PLACEHOLDER: Self = Self(0xFFFF_FF00);
+    pub const START: Self = Self(0);
 }
 
 id::newtype_collections!(pub type BasicBlock* from BasicBlockId);
