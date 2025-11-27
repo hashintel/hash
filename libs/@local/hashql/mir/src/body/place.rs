@@ -26,6 +26,70 @@ id::newtype!(
     pub struct FieldIndex(usize is 0..=usize::MAX)
 );
 
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+pub enum PlaceReadContext {
+    Load,
+    Projection,
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+pub enum PlaceWriteContext {
+    Assign,
+    Projection,
+    BlockParam, // same as an assign, because we assign to the incoming value
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+pub enum PlaceLivenessContext {
+    /// Corresponds to `StorageLive`
+    Begin,
+    /// Corresponds to `StorageDead`
+    End,
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+pub enum PlaceContext {
+    Read(PlaceReadContext),
+    Write(PlaceWriteContext),
+    Liveness(PlaceLivenessContext),
+}
+
+impl PlaceContext {
+    #[must_use]
+    pub const fn is_use(self) -> bool {
+        matches!(self, Self::Read(_) | Self::Write(_))
+    }
+
+    #[must_use]
+    pub const fn is_write(self) -> bool {
+        matches!(self, Self::Write(_))
+    }
+
+    #[must_use]
+    pub const fn is_read(self) -> bool {
+        matches!(self, Self::Read(_))
+    }
+
+    #[must_use]
+    pub const fn into_def_use(self) -> Option<DefUse> {
+        match self {
+            Self::Read(_) => Some(DefUse::Use),
+            Self::Write(PlaceWriteContext::Projection) => Some(DefUse::PartialWrite),
+            Self::Write(PlaceWriteContext::Assign | PlaceWriteContext::BlockParam) => {
+                Some(DefUse::Def)
+            }
+            Self::Liveness(_) => None,
+        }
+    }
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub enum DefUse {
+    Def,
+    Use,
+    PartialWrite,
+}
+
 /// A borrowed reference to a place at a specific projection depth.
 ///
 /// [`PlaceRef`] represents an intermediate point in a place's projection chain,
