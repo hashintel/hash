@@ -72,7 +72,7 @@
     "agentkeepalive": "4.6.0",
     "app-root-path": "3.1.0",
     "axios": "1.12.2",
-    "body-parser": "2.2.0",
+    "body-parser": "2.2.1",
     "clipboardy": "5.0.0",
     "cors": "2.8.5",
     "dedent": "1.7.0",
