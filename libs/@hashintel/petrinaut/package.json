@@ -4,14 +4,14 @@
   "description": "A visual editor for Petri nets",
   "repository": {
     "type": "git",
-    "url": "https://github.com/hashintel/hash.git",
+    "url": "git+https://github.com/hashintel/hash.git",
     "directory": "libs/@hashintel/petrinaut"
   },
   "license": "(MIT OR Apache-2.0)",
   "sideEffects": false,
   "type": "module",
-  "main": "src/main.ts",
-  "types": "src/main.ts",
+  "main": "dist/main.js",
+  "types": "dist/main.d.ts",
   "scripts": {
     "build": "vite build",
     "build:site": "vite build --config demo-site/vite.config.ts",
@@ -19,9 +19,7 @@
     "fix:eslint": "eslint --fix .",
     "lint:eslint": "eslint --report-unused-disable-directives .",
     "lint:tsc": "tsc --noEmit",
-    "prepublishOnly": "PACKAGE_DIR=$(pwd) yarn workspace @local/repo-chores exe scripts/prepublish.ts",
     "preview": "vite preview --config demo-site/vite.config.ts",
-    "postpublish": "PACKAGE_DIR=$(pwd) yarn workspace @local/repo-chores exe scripts/postpublish.ts",
     "test:unit": "vitest"
   },
   "dependencies": {
