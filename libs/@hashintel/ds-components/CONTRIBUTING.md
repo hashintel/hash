@@ -176,6 +176,7 @@ libs/@hashintel/ds-theme/src/figma-to-panda-mapping.json
 Use bracket notation: `[10px]`, `[316px]`, `[#ffffff]`
 
 **Styling with PandaCSS:**
+
 - Use `css()` for one-off styles or base component styling
 - Use `cva()` (PandaCSS Recipes) for components with variants
   - Reference: https://panda-css.com/docs/concepts/recipes
