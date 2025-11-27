@@ -27,7 +27,7 @@ export interface RadioGroupProps {
 const radioGroupRootStyles = css({
   display: "flex",
   flexDirection: "column",
-  gap: "spacing.1", // 4px gap between items
+  gap: "spacing.3", // 4px gap between items
 });
 
 // Recipe for radio group items with variant support
@@ -35,21 +35,28 @@ const radioItemRecipe = cva({
   base: {
     display: "flex",
     alignItems: "center",
-    transition: "[all 0.2s ease]",
+    outline: "none",
     "&[data-disabled]": {
       cursor: "not-allowed",
       opacity: "[0.5]",
     },
+    // Focus visible state: light blue outline
+    "&:focus-visible": {
+      outline: "[2px solid #A8C5F0]",
+      outlineOffset: "[2px]",
+    },
     // Hover state for radio control when hovering Item - target only item-control
-    "&:hover:not([data-disabled]) [data-part='item-control'][data-state='unchecked']": {
-      borderColor: "[#C7C7C7]",
-      transform: "[scale(0.8)]",
-    },
-    "&:hover:not([data-disabled]) [data-part='item-control'][data-state='checked']": {
-      backgroundColor: "[#1567E0]",
-      borderColor: "[#1567E0]",
-      transform: "[scale(0.8)]",
-    },
+    "&:hover:not([data-disabled]) [data-part='item-control'][data-state='unchecked']":
+      {
+        borderColor: "[#C7C7C7]",
+        transform: "[scale(0.8)]",
+      },
+    "&:hover:not([data-disabled]) [data-part='item-control'][data-state='checked']":
+      {
+        backgroundColor: "[#1567E0]",
+        borderColor: "[#1567E0]",
+        transform: "[scale(0.8)]",
+      },
   },
   variants: {
     variant: {
@@ -93,7 +100,7 @@ const radioOuterCircleStyles = css({
   borderRadius: "[100px]",
   border: "[1px solid #E5E5E5]",
   backgroundColor: "[transparent]",
-  transition: "[all 0.2s ease]",
+  transition: "[all 0.1s ease]",
   flexShrink: "0",
   transform: "[scale(1)]",
   // Checked state: blue filled
@@ -101,11 +108,9 @@ const radioOuterCircleStyles = css({
     backgroundColor: "[#2070E6]",
     borderColor: "[#2070E6]",
   },
-  // Focus state (checked): blue with white outline
-  "&[data-state='checked']:focus-visible": {
-    backgroundColor: "[#2070E6]",
-    borderColor: "[#ffffff]",
-    borderWidth: "[2px]",
+  // Focus state on Item: keep normal appearance, outline is on Item
+  ":focus-visible &": {
+    // No changes to control itself, just maintain state
   },
   // Disabled state (unchecked): light gray filled
   "&[data-disabled][data-state='unchecked']": {
@@ -195,6 +200,29 @@ const descriptionTextStyles = css({
   width: "[100%]",
 });
 
+// Radio control wrapper styles
+const radioControlWrapperStyles = css({
+  position: "relative",
+});
+
+// Radio inner white dot styles
+const radioInnerWhiteDotStyles = css({
+  position: "absolute",
+  top: "[50%]",
+  left: "[50%]",
+  transform: "[translate(-50%, -50%)]",
+  width: "[8px]",
+  height: "[8px]",
+  borderRadius: "[100px]",
+  backgroundColor: "[#ffffff]",
+  transition: "[all 0.1s ease]",
+  pointerEvents: "none",
+  opacity: "0",
+  "[data-state='checked'] ~ &": {
+    opacity: "1",
+  },
+});
+
 export const RadioGroup: React.FC<RadioGroupProps> = ({
   options,
   value,
@@ -233,28 +261,11 @@ export const RadioGroup: React.FC<RadioGroupProps> = ({
 
           {variant === "default" ? (
             <>
-              <div className={css({ position: "relative" })}>
+              <div className={radioControlWrapperStyles}>
                 <BaseRadioGroup.ItemControl className={radioOuterCircleStyles}>
                   <BaseRadioGroup.ItemHiddenInput />
                 </BaseRadioGroup.ItemControl>
-                <div
-                  className={css({
-                    position: "absolute",
-                    top: "[50%]",
-                    left: "[50%]",
-                    transform: "[translate(-50%, -50%)]",
-                    width: "[8px]",
-                    height: "[8px]",
-                    borderRadius: "[100px]",
-                    backgroundColor: "[#ffffff]",
-                    transition: "[all 0.2s ease]",
-                    pointerEvents: "none",
-                    opacity: "0",
-                    "[data-state='checked'] ~ &": {
-                      opacity: "1",
-                    },
-                  })}
-                />
+                <div className={radioInnerWhiteDotStyles} />
               </div>
 
               <BaseRadioGroup.ItemText className={labelTextStyles}>
@@ -277,28 +288,11 @@ export const RadioGroup: React.FC<RadioGroupProps> = ({
                 </div>
               </div>
 
-              <div className={css({ position: "relative" })}>
+              <div className={radioControlWrapperStyles}>
                 <BaseRadioGroup.ItemControl className={radioOuterCircleStyles}>
                   <BaseRadioGroup.ItemHiddenInput />
                 </BaseRadioGroup.ItemControl>
-                <div
-                  className={css({
-                    position: "absolute",
-                    top: "[50%]",
-                    left: "[50%]",
-                    transform: "[translate(-50%, -50%)]",
-                    width: "[8px]",
-                    height: "[8px]",
-                    borderRadius: "[100px]",
-                    backgroundColor: "[#ffffff]",
-                    transition: "[all 0.2s ease]",
-                    pointerEvents: "none",
-                    opacity: "0",
-                    "[data-state='checked'] ~ &": {
-                      opacity: "1",
-                    },
-                  })}
-                />
+                <div className={radioInnerWhiteDotStyles} />
               </div>
             </>
           )}
