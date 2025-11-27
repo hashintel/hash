@@ -24,7 +24,7 @@ impl DiagnosticCategory for MirDiagnosticCategory {
 
     fn subcategory(&self) -> Option<&dyn DiagnosticCategory> {
         match self {
-            MirDiagnosticCategory::Transformation(category) => Some(category),
+            Self::Transformation(category) => Some(category),
         }
     }
 }
