@@ -1,5 +1,5 @@
 import { RadioGroup as BaseRadioGroup } from "@ark-ui/react/radio-group";
-import { css } from "@hashintel/ds-helpers/css";
+import { css, cva } from "@hashintel/ds-helpers/css";
 import type { ReactNode } from "react";
 
 export interface RadioGroupOption {
@@ -22,6 +22,178 @@ export interface RadioGroupProps {
   variant?: "default" | "card";
   id?: string;
 }
+
+// Root container styles
+const radioGroupRootStyles = css({
+  display: "flex",
+  flexDirection: "column",
+  gap: "spacing.1", // 4px gap between items
+});
+
+// Recipe for radio group items with variant support
+const radioItemRecipe = cva({
+  base: {
+    display: "flex",
+    alignItems: "center",
+    transition: "[all 0.2s ease]",
+    "&[data-disabled]": {
+      cursor: "not-allowed",
+      opacity: "[0.5]",
+    },
+    // Hover state for radio control when hovering Item - target only item-control
+    "&:hover:not([data-disabled]) [data-part='item-control'][data-state='unchecked']": {
+      borderColor: "[#C7C7C7]",
+      transform: "[scale(0.8)]",
+    },
+    "&:hover:not([data-disabled]) [data-part='item-control'][data-state='checked']": {
+      backgroundColor: "[#1567E0]",
+      borderColor: "[#1567E0]",
+      transform: "[scale(0.8)]",
+    },
+  },
+  variants: {
+    variant: {
+      default: {
+        cursor: "pointer",
+        padding: "spacing.3", // 6px
+        borderRadius: "radius.4", // 8px
+        gap: "spacing.5", // 8px
+        "&:hover:not([data-disabled])": {
+          backgroundColor: "bg.neutral.subtle.hover",
+        },
+      },
+      card: {
+        gap: "spacing.6", // 12px
+        padding: "spacing.6", // 12px
+        backgroundColor: "bg.neutral.subtle.default",
+        border: "1px solid",
+        borderColor: "border.neutral.subtle",
+        borderRadius: "[10px]",
+        cursor: "pointer",
+        width: "[316px]",
+        "&:hover:not([data-disabled])": {
+          borderColor: "border.neutral.default",
+        },
+      },
+    },
+  },
+  defaultVariants: {
+    variant: "default",
+  },
+});
+
+// Radio outer circle (div-based)
+const radioOuterCircleStyles = css({
+  position: "relative",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  width: "[20px]",
+  height: "[20px]",
+  borderRadius: "[100px]",
+  border: "[1px solid #E5E5E5]",
+  backgroundColor: "[transparent]",
+  transition: "[all 0.2s ease]",
+  flexShrink: "0",
+  transform: "[scale(1)]",
+  // Checked state: blue filled
+  "&[data-state='checked']": {
+    backgroundColor: "[#2070E6]",
+    borderColor: "[#2070E6]",
+  },
+  // Focus state (checked): blue with white outline
+  "&[data-state='checked']:focus-visible": {
+    backgroundColor: "[#2070E6]",
+    borderColor: "[#ffffff]",
+    borderWidth: "[2px]",
+  },
+  // Disabled state (unchecked): light gray filled
+  "&[data-disabled][data-state='unchecked']": {
+    backgroundColor: "[#F5F5F5]",
+    borderColor: "[#E5E5E5]",
+  },
+  // Disabled state (checked): opacity applied
+  "&[data-disabled][data-state='checked']": {
+    opacity: "[0.5]",
+  },
+});
+
+// Card icon badge styles
+const cardIconBadgeStyles = css({
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  width: "[32px]",
+  height: "[32px]",
+  backgroundColor: "bg.neutral.subtle.default",
+  borderRadius: "radius.4", // 8px
+  paddingX: "spacing.5", // 8px
+  paddingY: "spacing.0",
+  overflow: "clip",
+  flexShrink: "0",
+});
+
+// Card content wrapper styles
+const cardContentWrapperStyles = css({
+  display: "flex",
+  flex: "1",
+  gap: "spacing.6", // 12px
+  alignItems: "center",
+  minWidth: "[0]",
+  minHeight: "[0]",
+});
+
+// Card text group styles
+const cardTextGroupStyles = css({
+  display: "flex",
+  flex: "1",
+  flexDirection: "column",
+  gap: "spacing.1", // 4px
+  alignItems: "flex-start",
+  justifyContent: "center",
+  height: "[38px]",
+  minWidth: "[0]",
+  minHeight: "[0]",
+});
+
+// Label text styles
+const labelTextStyles = css({
+  fontSize: "size.textsm", // 14px
+  fontWeight: "medium",
+  lineHeight: "leading.none.textsm", // 14px
+  color: "text.primary",
+  whiteSpace: "nowrap",
+  "&[data-disabled]": {
+    opacity: "[0.5]",
+  },
+});
+
+// Card label text styles (with ellipsis)
+const cardLabelTextStyles = css({
+  fontSize: "size.textsm", // 14px
+  fontWeight: "medium",
+  lineHeight: "leading.none.textsm", // 14px
+  color: "text.primary",
+  overflow: "hidden",
+  textOverflow: "ellipsis",
+  whiteSpace: "nowrap",
+  width: "[100%]",
+  "&[data-disabled]": {
+    opacity: "[0.5]",
+  },
+});
+
+// Description text styles
+const descriptionTextStyles = css({
+  fontSize: "size.textxs", // 12px
+  fontWeight: "normal",
+  lineHeight: "[1.5]",
+  color: "text.secondary",
+  overflow: "hidden",
+  textOverflow: "ellipsis",
+  whiteSpace: "nowrap",
+  width: "[100%]",
+});
 
 export const RadioGroup: React.FC<RadioGroupProps> = ({
   options,
@@ -46,220 +218,88 @@ export const RadioGroup: React.FC<RadioGroupProps> = ({
         }
       }}
       id={id}
-      className={css({
-        display: "flex",
-        flexDirection: "column",
-        gap: "spacing.1", // 4px gap between items
-      })}
+      className={radioGroupRootStyles}
     >
       {options.map((option) => (
         <BaseRadioGroup.Item
           key={option.value}
           value={option.value}
           disabled={option.disabled}
-          className={css(
-            variant === "default"
-              ? {
-                  display: "flex",
-                  alignItems: "center",
-                  cursor: option.disabled ? "not-allowed" : "pointer",
-                  padding: "spacing.3", // 6px
-                  borderRadius: "radius.4", // 8px (rounded-lg)
-                  transition: "[all 0.2s ease]",
-
-                  "&:hover:not([data-disabled])": {
-                    backgroundColor: "bg.neutral.subtle.hover",
-                  },
-
-                  "&[data-disabled]": {
-                    cursor: "not-allowed",
-                    opacity: "[0.5]",
-                  },
-                }
-              : {
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "spacing.6", // 12px
-                  padding: "spacing.6", // 12px
-                  backgroundColor: "bg.neutral.subtle.default",
-                  border: "1px solid",
-                  borderColor: "border.neutral.subtle",
-                  borderRadius: "[10px]",
-                  cursor: option.disabled ? "not-allowed" : "pointer",
-                  transition: "[all 0.2s ease]",
-                  width: "[316px]",
-
-                  "&:hover:not([data-disabled])": {
-                    borderColor: "border.neutral.default",
-                  },
-
-                  "&[data-disabled]": {
-                    cursor: "not-allowed",
-                    opacity: "[0.5]",
-                  },
-                },
-          )}
+          className={radioItemRecipe({ variant })}
         >
           {variant === "card" && option.icon && (
-            <div
-              className={css({
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                width: "[32px]",
-                height: "[32px]",
-                backgroundColor: "bg.neutral.subtle.default",
-                borderRadius: "radius.4", // 8px
-                paddingX: "spacing.5", // 8px
-                paddingY: "spacing.0",
-                overflow: "clip",
-                flexShrink: "0",
-              })}
-            >
-              {option.icon}
-            </div>
+            <div className={cardIconBadgeStyles}>{option.icon}</div>
           )}
 
           {variant === "default" ? (
             <>
-              <BaseRadioGroup.ItemControl
-                className={css({
-                  position: "relative",
-                  display: "inline-flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  width: "[20px]",
-                  height: "[20px]",
-                  borderRadius: "radius.full", // 100px (fully rounded)
-                  flexShrink: "0",
-                  color: "border.neutral.default",
-                  transition: "[all 0.2s ease]",
-
-                  "&[data-state='checked']": {
-                    color: "bg.neutral.bold.default",
-                  },
-
-                  "&[data-disabled]": {
-                    opacity: "[0.5]",
-                  },
-                })}
-              >
-                <BaseRadioGroup.ItemHiddenInput />
-              </BaseRadioGroup.ItemControl>
-
-              <div
-                className={css({
-                  display: "flex",
-                  gap: "spacing.4", // 6px
-                  alignItems: "center",
-                  flexShrink: "0",
-                })}
-              >
-                <BaseRadioGroup.ItemText
+              <div className={css({ position: "relative" })}>
+                <BaseRadioGroup.ItemControl className={radioOuterCircleStyles}>
+                  <BaseRadioGroup.ItemHiddenInput />
+                </BaseRadioGroup.ItemControl>
+                <div
                   className={css({
-                    fontSize: "size.textsm", // 14px
-                    fontWeight: "medium",
-                    lineHeight: "leading.none.textsm", // 14px
-                    color: "text.primary",
-                    whiteSpace: "nowrap",
-
-                    "&[data-disabled]": {
-                      opacity: "[0.5]",
+                    position: "absolute",
+                    top: "[50%]",
+                    left: "[50%]",
+                    transform: "[translate(-50%, -50%)]",
+                    width: "[8px]",
+                    height: "[8px]",
+                    borderRadius: "[100px]",
+                    backgroundColor: "[#ffffff]",
+                    transition: "[all 0.2s ease]",
+                    pointerEvents: "none",
+                    opacity: "0",
+                    "[data-state='checked'] ~ &": {
+                      opacity: "1",
                     },
                   })}
-                >
-                  {option.label}
-                </BaseRadioGroup.ItemText>
+                />
               </div>
+
+              <BaseRadioGroup.ItemText className={labelTextStyles}>
+                {option.label}
+              </BaseRadioGroup.ItemText>
             </>
           ) : (
             <>
-              <div
-                className={css({
-                  display: "flex",
-                  flex: "1",
-                  flexDirection: "column",
-                  gap: "spacing.6", // 12px
-                  alignItems: "center",
-                  minWidth: "[0]",
-                  minHeight: "[0]",
-                })}
-              >
-                <div
-                  className={css({
-                    display: "flex",
-                    flex: "1",
-                    flexDirection: "column",
-                    gap: "spacing.1", // 4px
-                    alignItems: "flex-start",
-                    justifyContent: "center",
-                    height: "[38px]",
-                    minWidth: "[0]",
-                    minHeight: "[0]",
-                  })}
-                >
-                  <BaseRadioGroup.ItemText
-                    className={css({
-                      fontSize: "size.textsm", // 14px
-                      fontWeight: "medium",
-                      lineHeight: "leading.none.textsm", // 14px
-                      color: "text.primary",
-                      overflow: "hidden",
-                      textOverflow: "ellipsis",
-                      whiteSpace: "nowrap",
-                      width: "[100%]",
-
-                      "&[data-disabled]": {
-                        opacity: "[0.5]",
-                      },
-                    })}
-                  >
+              <div className={cardContentWrapperStyles}>
+                <div className={cardTextGroupStyles}>
+                  <BaseRadioGroup.ItemText className={cardLabelTextStyles}>
                     {option.label}
                   </BaseRadioGroup.ItemText>
 
                   {option.description && (
-                    <p
-                      className={css({
-                        fontSize: "size.textxs", // 12px
-                        fontWeight: "normal",
-                        lineHeight: "[1.5]",
-                        color: "text.secondary",
-                        overflow: "hidden",
-                        textOverflow: "ellipsis",
-                        whiteSpace: "nowrap",
-                        width: "[100%]",
-                      })}
-                    >
+                    <p className={descriptionTextStyles}>
                       {option.description}
                     </p>
                   )}
                 </div>
               </div>
 
-              <BaseRadioGroup.ItemControl
-                className={css({
-                  position: "relative",
-                  display: "inline-flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  width: "[20px]",
-                  height: "[20px]",
-                  borderRadius: "radius.full", // 100px (fully rounded)
-                  flexShrink: "0",
-                  color: "border.neutral.default",
-                  transition: "[all 0.2s ease]",
-
-                  "&[data-state='checked']": {
-                    color: "bg.neutral.bold.default",
-                  },
-
-                  "&[data-disabled]": {
-                    opacity: "[0.5]",
-                  },
-                })}
-              >
-                <BaseRadioGroup.ItemHiddenInput />
-              </BaseRadioGroup.ItemControl>
+              <div className={css({ position: "relative" })}>
+                <BaseRadioGroup.ItemControl className={radioOuterCircleStyles}>
+                  <BaseRadioGroup.ItemHiddenInput />
+                </BaseRadioGroup.ItemControl>
+                <div
+                  className={css({
+                    position: "absolute",
+                    top: "[50%]",
+                    left: "[50%]",
+                    transform: "[translate(-50%, -50%)]",
+                    width: "[8px]",
+                    height: "[8px]",
+                    borderRadius: "[100px]",
+                    backgroundColor: "[#ffffff]",
+                    transition: "[all 0.2s ease]",
+                    pointerEvents: "none",
+                    opacity: "0",
+                    "[data-state='checked'] ~ &": {
+                      opacity: "1",
+                    },
+                  })}
+                />
+              </div>
             </>
           )}
         </BaseRadioGroup.Item>
