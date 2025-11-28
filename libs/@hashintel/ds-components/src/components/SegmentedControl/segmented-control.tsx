@@ -8,6 +8,70 @@ import { useMotionResizeObserver } from "../../lib/use-motion-resize-observer";
 
 const ROOT_PADDING = 4;
 
+const rootStyles = css({
+  position: "relative",
+  display: "flex",
+  alignItems: "center",
+  gap: "spacing.1",
+  userSelect: "none",
+});
+
+const rootBackdropStyles = css({
+  position: "absolute",
+  display: "flex",
+  alignItems: "center",
+  backgroundColor: "core.gray.10/20",
+  left: "spacing.0",
+  top: "spacing.0",
+  right: "spacing.0",
+  bottom: "spacing.0",
+  shadow: "[inset 1px 1px 1px rgba(0, 0, 0, 0.05)]",
+});
+
+const indicatorStyles = css({
+  width: "var(--width)",
+  height: "var(--height)",
+  left: "var(--left)",
+  top: "var(--top)",
+  boxShadow: "sm",
+  backgroundColor: "core.whitealpha.20",
+  "[data-part='root']:active &": {
+    backgroundColor: "core.whitealpha.10",
+  },
+});
+
+const itemStyles = css({
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  position: "relative",
+  paddingX: "spacing.4",
+  paddingY: "spacing.2",
+  width: "auto",
+  textAlign: "center",
+  cursor: "pointer",
+  transition: "all",
+  transitionDuration: "200ms",
+  _disabled: {
+    cursor: "not-allowed",
+    opacity: "0.6",
+  },
+  _focus: {
+    shadow: "lg",
+  },
+  _hover: {
+    backgroundColor: "core.grayalpha.40",
+  },
+});
+
+const itemTextStyles = css({
+  fontSize: "size.textsm",
+  fontWeight: "medium",
+  _disabled: {
+    opacity: "0.4",
+  },
+});
+
 export type SegmentedControlProps = React.PropsWithChildren<{
   className?: string;
   style?: React.CSSProperties;
@@ -61,71 +125,6 @@ export const SegmentedControl: React.FC<SegmentedControlProps> = ({
   } = useMotionResizeObserver<HTMLDivElement>({
     initialWidth: 10,
     initialHeight: 10,
-  });
-
-  // Define PandaCSS styles for the segment group components
-  const rootStyles = css({
-    position: "relative",
-    display: "flex",
-    alignItems: "center",
-    gap: "spacing.1",
-    userSelect: "none",
-  });
-
-  const rootBackdropStyles = css({
-    position: "absolute",
-    display: "flex",
-    alignItems: "center",
-    backgroundColor: "core.gray.10/20",
-    left: "spacing.0",
-    top: "spacing.0",
-    right: "spacing.0",
-    bottom: "spacing.0",
-    shadow: "[inset 1px 1px 1px rgba(0, 0, 0, 0.05)]",
-  });
-
-  const indicatorStyles = css({
-    width: "var(--width)",
-    height: "var(--height)",
-    left: "var(--left)",
-    top: "var(--top)",
-    boxShadow: "sm",
-    backgroundColor: "core.whitealpha.20",
-    "[data-part='root']:active &": {
-      backgroundColor: "core.whitealpha.10",
-    },
-  });
-
-  const itemStyles = css({
-    display: "inline-flex",
-    alignItems: "center",
-    justifyContent: "center",
-    position: "relative",
-    paddingX: "spacing.4",
-    paddingY: "spacing.2",
-    width: "auto",
-    textAlign: "center",
-    cursor: "pointer",
-    transition: "all",
-    transitionDuration: "200ms",
-    _disabled: {
-      cursor: "not-allowed",
-      opacity: "0.6",
-    },
-    _focus: {
-      shadow: "lg",
-    },
-    _hover: {
-      backgroundColor: "core.grayalpha.40",
-    },
-  });
-
-  const itemTextStyles = css({
-    fontSize: "size.textsm",
-    fontWeight: "medium",
-    _disabled: {
-      opacity: "0.4",
-    },
   });
 
   return (

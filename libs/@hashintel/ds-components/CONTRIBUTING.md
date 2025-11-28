@@ -31,6 +31,8 @@ This document provides technical instructions for adding or updating components 
 - **React & TypeScript** - Component framework
 - **Ark UI** - Base component library for accessibility and behavior
 - **PandaCSS** - CSS-in-JS styling system with design tokens
+  - Reference the LLM documentation: https://panda-css.com/llms.txt
+  - Use PandaCSS Recipes (cva) for component variants: https://panda-css.com/docs/concepts/recipes
 - **Storybook** - Component documentation and testing
 
 ### Design System Context
@@ -173,6 +175,12 @@ libs/@hashintel/ds-theme/src/figma-to-panda-mapping.json
 **For custom values not in token system:**
 Use bracket notation: `[10px]`, `[316px]`, `[#ffffff]`
 
+**Styling with PandaCSS:**
+
+- Use `css()` for one-off styles or base component styling
+- Use `cva()` (PandaCSS Recipes) for components with variants
+  - Reference: https://panda-css.com/docs/concepts/recipes
+
 ### Step 4: Create Component Files
 
 Create a new directory under `src/components/` with the component name in PascalCase:
@@ -190,9 +198,11 @@ libs/@hashintel/ds-components/src/components/ComponentName/
 
 **Template structure:**
 
+**For components with variants, use PandaCSS Recipes (cva):**
+
 ```tsx
 import { ComponentName as BaseComponentName } from "@ark-ui/react/component-name";
-import { css } from "@hashintel/ds-helpers/css";
+import { cva } from "@hashintel/ds-helpers/css";
 import type { ReactNode } from "react";
 
 export interface ComponentNameProps {
@@ -213,6 +223,45 @@ export interface ComponentNameProps {
   variant?: "default" | "alternative";
   size?: "sm" | "md" | "lg";
 }
+
+// Define recipes for styling variants
+const componentRootRecipe = cva({
+  base: {
+    display: "flex",
+    flexDirection: "column",
+    gap: "spacing.4",
+  },
+  variants: {
+    variant: {
+      default: {
+        backgroundColor: "bg.neutral.subtle.default",
+        borderColor: "border.neutral.default",
+      },
+      alternative: {
+        backgroundColor: "bg.neutral.bold.default",
+        borderColor: "border.neutral.bold",
+      },
+    },
+    size: {
+      sm: {
+        padding: "spacing.2",
+        fontSize: "size.textxs",
+      },
+      md: {
+        padding: "spacing.4",
+        fontSize: "size.textsm",
+      },
+      lg: {
+        padding: "spacing.6",
+        fontSize: "size.textmd",
+      },
+    },
+  },
+  defaultVariants: {
+    variant: "default",
+    size: "md",
+  },
+});
 
 export const ComponentName: React.FC<ComponentNameProps> = ({
   value,
@@ -237,10 +286,27 @@ export const ComponentName: React.FC<ComponentNameProps> = ({
           onChange?.(details.value);
         }
       }}
+      className={componentRootRecipe({ variant, size })}
+    >
+      {/* Component children */}
+    </BaseComponentName.Root>
+  );
+};
+```
+
+**For simple components without variants, use css():**
+
+```tsx
+import { ComponentName as BaseComponentName } from "@ark-ui/react/component-name";
+import { css } from "@hashintel/ds-helpers/css";
+
+export const ComponentName: React.FC<ComponentNameProps> = (props) => {
+  return (
+    <BaseComponentName.Root
       className={css({
         display: "flex",
-        flexDirection: "column",
-        gap: "spacing.4",
+        padding: "spacing.4",
+        borderRadius: "radius.4",
       })}
     >
       {/* Component children */}

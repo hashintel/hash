@@ -1,4 +1,4 @@
-import { css } from "@hashintel/ds-helpers/css";
+import { css, cva } from "@hashintel/ds-helpers/css";
 import type { ReactNode } from "react";
 
 export interface BadgeProps {
@@ -24,6 +24,164 @@ export interface BadgeProps {
   iconRight?: ReactNode;
 }
 
+// Define recipe for badge styling variants
+const badgeRecipe = cva({
+  base: {
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    fontWeight: "medium",
+    textAlign: "center",
+    whiteSpace: "nowrap",
+    userSelect: "none",
+    overflow: "clip",
+    paddingY: "spacing.0",
+  },
+  variants: {
+    colorScheme: {
+      gray: {
+        backgroundColor: "core.gray.20",
+        color: "core.gray.80",
+      },
+      brand: {
+        backgroundColor: "core.blue.10",
+        color: "core.blue.80",
+      },
+      green: {
+        backgroundColor: "core.green.10",
+        color: "core.green.80",
+      },
+      orange: {
+        backgroundColor: "core.orange.10",
+        color: "core.orange.80",
+      },
+      red: {
+        backgroundColor: "core.red.00",
+        color: "core.red.80",
+      },
+      purple: {
+        backgroundColor: "core.purple.00",
+        color: "core.purple.80",
+      },
+      pink: {
+        backgroundColor: "core.pink.10",
+        color: "core.pink.80",
+      },
+      yellow: {
+        backgroundColor: "core.yellow.10",
+        color: "core.yellow.80",
+      },
+    },
+    size: {
+      xs: {
+        fontSize: "[9px]",
+        lineHeight: "[12px]",
+        gap: "spacing.3",
+        height: "[14px]",
+      },
+      sm: {
+        fontSize: "size.textxs",
+        lineHeight: "leading.none.textxs",
+        gap: "spacing.3",
+        height: "[16px]",
+      },
+      md: {
+        fontSize: "size.textsm",
+        lineHeight: "leading.none.textsm",
+        gap: "spacing.3",
+        height: "[20px]",
+      },
+      lg: {
+        fontSize: "size.textbase",
+        lineHeight: "leading.none.textbase",
+        gap: "spacing.3",
+        height: "[24px]",
+      },
+    },
+    isSquare: {
+      true: {},
+      false: {},
+    },
+  },
+  compoundVariants: [
+    // Rounded badges - padding and border radius
+    {
+      isSquare: false,
+      size: "xs",
+      css: {
+        paddingX: "spacing.3",
+        borderRadius: "radius.2",
+      },
+    },
+    {
+      isSquare: false,
+      size: "sm",
+      css: {
+        paddingX: "spacing.3",
+        borderRadius: "radius.2",
+      },
+    },
+    {
+      isSquare: false,
+      size: "md",
+      css: {
+        paddingX: "spacing.5",
+        borderRadius: "radius.3",
+      },
+    },
+    {
+      isSquare: false,
+      size: "lg",
+      css: {
+        paddingX: "spacing.5",
+        borderRadius: "radius.3",
+      },
+    },
+    // Square badges - fixed width and border radius
+    {
+      isSquare: true,
+      size: "xs",
+      css: {
+        paddingX: "spacing.3",
+        width: "[14px]",
+        borderRadius: "radius.2",
+      },
+    },
+    {
+      isSquare: true,
+      size: "sm",
+      css: {
+        paddingX: "spacing.3",
+        width: "[16px]",
+        borderRadius: "radius.2",
+      },
+    },
+    {
+      isSquare: true,
+      size: "md",
+      css: {
+        paddingX: "spacing.0",
+        width: "[20px]",
+        borderRadius: "radius.3",
+      },
+    },
+    {
+      isSquare: true,
+      size: "lg",
+      css: {
+        paddingX: "spacing.5",
+        width: "[24px]",
+        borderRadius: "radius.3",
+      },
+    },
+  ],
+  defaultVariants: {
+    colorScheme: "gray",
+    size: "xs",
+    isSquare: false,
+  },
+});
+
 export const Badge: React.FC<BadgeProps> = ({
   children,
   colorScheme = "gray",
@@ -33,131 +191,7 @@ export const Badge: React.FC<BadgeProps> = ({
   iconRight,
 }) => {
   return (
-    <span
-      data-color-scheme={colorScheme}
-      data-size={size}
-      data-square={isSquare}
-      className={css({
-        display: "inline-flex",
-        alignItems: "center",
-        justifyContent: "center",
-        fontWeight: "medium",
-        textAlign: "center",
-        whiteSpace: "nowrap",
-        userSelect: "none",
-        overflow: "clip",
-
-        // Color schemes - using design tokens from Figma
-        "&[data-color-scheme='gray']": {
-          backgroundColor: "core.gray.20",
-          color: "core.gray.80",
-        },
-        "&[data-color-scheme='brand']": {
-          backgroundColor: "core.blue.10",
-          color: "core.blue.80",
-        },
-        "&[data-color-scheme='green']": {
-          backgroundColor: "core.green.10",
-          color: "core.green.80",
-        },
-        "&[data-color-scheme='orange']": {
-          backgroundColor: "core.orange.10",
-          color: "core.orange.80",
-        },
-        "&[data-color-scheme='red']": {
-          backgroundColor: "core.red.00",
-          color: "core.red.80",
-        },
-        "&[data-color-scheme='purple']": {
-          backgroundColor: "core.purple.00",
-          color: "core.purple.80",
-        },
-        "&[data-color-scheme='pink']": {
-          backgroundColor: "core.pink.10",
-          color: "core.pink.80",
-        },
-        "&[data-color-scheme='yellow']": {
-          backgroundColor: "core.yellow.10",
-          color: "core.yellow.80",
-        },
-
-        // Sizes - rounded badges (based on Figma specs)
-        "&[data-square='false'][data-size='xs']": {
-          fontSize: "[9px]",
-          lineHeight: "[12px]",
-          paddingX: "spacing.3", // 4px
-          paddingY: "spacing.0", // 0px
-          gap: "spacing.3", // 4px
-          height: "[14px]",
-          borderRadius: "radius.2", // 4px
-        },
-        "&[data-square='false'][data-size='sm']": {
-          fontSize: "size.textxs", // 12px
-          lineHeight: "leading.none.textxs", // 12px
-          paddingX: "spacing.3", // 4px
-          paddingY: "spacing.0", // 0px
-          gap: "spacing.3", // 4px
-          height: "[16px]",
-          borderRadius: "radius.2", // 4px
-        },
-        "&[data-square='false'][data-size='md']": {
-          fontSize: "size.textsm", // 14px
-          lineHeight: "leading.none.textsm", // 14px
-          paddingX: "spacing.5", // 8px
-          paddingY: "spacing.0", // 0px
-          gap: "spacing.3", // 4px
-          height: "[20px]",
-          borderRadius: "radius.3", // 6px
-        },
-        "&[data-square='false'][data-size='lg']": {
-          fontSize: "size.textbase", // 16px
-          lineHeight: "leading.none.textbase", // 16px
-          paddingX: "spacing.5", // 8px
-          paddingY: "spacing.0", // 0px
-          gap: "spacing.3", // 4px
-          height: "[24px]",
-          borderRadius: "radius.3", // 6px
-        },
-
-        // Sizes - square badges (based on Figma specs)
-        "&[data-square='true'][data-size='xs']": {
-          fontSize: "[9px]",
-          lineHeight: "[12px]",
-          paddingX: "spacing.3", // 4px
-          paddingY: "spacing.0", // 0px
-          width: "[14px]",
-          height: "[14px]",
-          borderRadius: "radius.2", // 4px
-        },
-        "&[data-square='true'][data-size='sm']": {
-          fontSize: "size.textxs", // 12px
-          lineHeight: "leading.none.textxs", // 12px
-          paddingX: "spacing.3", // 4px
-          paddingY: "spacing.0", // 0px
-          width: "[16px]",
-          height: "[16px]",
-          borderRadius: "radius.2", // 4px
-        },
-        "&[data-square='true'][data-size='md']": {
-          fontSize: "size.textsm", // 14px
-          lineHeight: "leading.none.textsm", // 14px
-          paddingX: "spacing.0", // 0px
-          paddingY: "spacing.0", // 0px
-          width: "[20px]",
-          height: "[20px]",
-          borderRadius: "radius.3", // 6px
-        },
-        "&[data-square='true'][data-size='lg']": {
-          fontSize: "size.textbase", // 16px
-          lineHeight: "leading.none.textbase", // 16px
-          paddingX: "spacing.5", // 8px
-          paddingY: "spacing.0", // 0px
-          width: "[24px]",
-          height: "[24px]",
-          borderRadius: "radius.3", // 6px
-        },
-      })}
-    >
+    <span className={badgeRecipe({ colorScheme, size, isSquare })}>
       {iconLeft && (
         <span
           className={css({
