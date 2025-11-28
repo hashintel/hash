@@ -400,7 +400,7 @@ impl<'heap> VisitorMut<'heap> for RewireBody<'_, 'heap> {
         // We are part of a DF+ and need to add our param, subsequent visits will use that value to
         // further recurse.
         if let FindDefFromTop::Param(param) = def {
-            let mut new_params = TinyVec::from_slice(params);
+            let mut new_params = TinyVec::from_slice_copy(params);
             new_params.push(param);
 
             *params = self.interner.locals.intern_slice(&new_params);
@@ -437,7 +437,7 @@ impl<'heap> VisitorMut<'heap> for RewireBody<'_, 'heap> {
         debug_assert_eq!(Some(current_local), self.last_def);
         let operand = Operand::Place(Place::local(current_local, self.interner));
 
-        let mut args = TinyVec::from_slice(&target.args);
+        let mut args = TinyVec::from_slice_copy(&target.args);
         args.push(operand);
 
         target.args = self.interner.operands.intern_slice(&args);
