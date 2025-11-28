@@ -131,7 +131,7 @@ where
 
                     if value != mapped {
                         // Transition to a smallvec, then use that smallvec in the final iteration
-                        let mut owned = SmallVec::from_slice(interned.0);
+                        let mut owned = SmallVec::from_slice_copy(interned.0);
                         owned[index] = mapped;
                         self.0 = BeefData::Owned(owned);
 
@@ -250,7 +250,7 @@ where
 
                     if value != mapped {
                         // Transition to a smallvec, then use that smallvec in the final iteration
-                        let mut owned = SmallVec::from_slice(interned.0);
+                        let mut owned = SmallVec::from_slice_copy(interned.0);
                         owned[index] = mapped;
                         self.0 = BeefData::Owned(owned);
 
@@ -437,7 +437,7 @@ where
 
                     if value != mapped {
                         // Transition to a smallvec, then use that smallvec in the final iteration
-                        let mut owned = SmallVec::from_slice(interned.0);
+                        let mut owned = SmallVec::from_slice_copy(interned.0);
                         owned[index] = mapped;
                         self.0 = BeefData::Owned(owned);
 

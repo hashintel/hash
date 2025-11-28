@@ -42,7 +42,7 @@ impl<'heap> TupleType<'heap> {
 
             // If we have a single variant, it's guaranteed that it's the same type, due to
             // distribution rules
-            return SmallVec::from_slice(&[self.id]);
+            return SmallVec::from_slice_copy(&[self.id]);
         }
 
         // Create a new type kind for each
@@ -73,7 +73,7 @@ impl<'heap> TupleType<'heap> {
             kind,
         });
 
-        SmallVec::from_slice(&[id])
+        SmallVec::from_slice_copy(&[id])
     }
 }
 
@@ -84,7 +84,7 @@ impl<'heap> Lattice<'heap> for TupleType<'heap> {
         env: &mut LatticeEnvironment<'_, 'heap>,
     ) -> SmallVec<TypeId, 4> {
         if self.kind.fields.len() != other.kind.fields.len() {
-            return SmallVec::from_slice(&[self.id, other.id]);
+            return SmallVec::from_slice_copy(&[self.id, other.id]);
         }
 
         // join pointwise
@@ -181,7 +181,7 @@ impl<'heap> Lattice<'heap> for TupleType<'heap> {
         env: &mut AnalysisEnvironment<'_, 'heap>,
     ) -> SmallVec<TypeId, 16> {
         if self.kind.fields.is_empty() {
-            return SmallVec::from_slice(&[self.id]);
+            return SmallVec::from_slice_copy(&[self.id]);
         }
 
         let fields: Vec<_> = self
@@ -199,7 +199,7 @@ impl<'heap> Lattice<'heap> for TupleType<'heap> {
         env: &mut AnalysisEnvironment<'_, 'heap>,
     ) -> SmallVec<TypeId, 16> {
         if self.kind.fields.is_empty() {
-            return SmallVec::from_slice(&[self.id]);
+            return SmallVec::from_slice_copy(&[self.id]);
         }
 
         let fields: Vec<_> = self

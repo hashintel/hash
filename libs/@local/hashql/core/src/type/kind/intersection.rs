@@ -118,7 +118,7 @@ impl<'heap> IntersectionType<'heap> {
             })),
         });
 
-        SmallVec::from_slice(&[id])
+        SmallVec::from_slice_copy(&[id])
     }
 
     pub(crate) fn meet_variants(
@@ -129,7 +129,7 @@ impl<'heap> IntersectionType<'heap> {
     ) -> SmallVec<TypeId, 4> {
         // 1) Top ∧ Top = Top
         if lhs_variants.is_empty() && rhs_variants.is_empty() {
-            return SmallVec::from_slice(&[env.intern_type(PartialType {
+            return SmallVec::from_slice_copy(&[env.intern_type(PartialType {
                 span: lhs_span,
                 kind: env.intern_kind(TypeKind::Unknown),
             })]);
@@ -137,12 +137,12 @@ impl<'heap> IntersectionType<'heap> {
 
         // 2) Top ∧ X = X
         if lhs_variants.is_empty() {
-            return SmallVec::from_slice(rhs_variants);
+            return SmallVec::from_slice_copy(rhs_variants);
         }
 
         // 3) X ∧ Top = X
         if rhs_variants.is_empty() {
-            return SmallVec::from_slice(lhs_variants);
+            return SmallVec::from_slice_copy(lhs_variants);
         }
 
         let mut variants =
@@ -516,7 +516,7 @@ impl<'heap> Lattice<'heap> for IntersectionType<'heap> {
         self: Type<'heap, Self>,
         _: &mut AnalysisEnvironment<'_, 'heap>,
     ) -> SmallVec<TypeId, 16> {
-        SmallVec::from_slice(&[self.id])
+        SmallVec::from_slice_copy(&[self.id])
     }
 
     fn distribute_intersection(
@@ -601,7 +601,7 @@ impl<'heap> Lattice<'heap> for IntersectionType<'heap> {
 
         // Sort, dedup, drop top
         let mut variants = variants.finish();
-        variants.retain(|&mut variant| !env.is_top(variant));
+        variants.retain(|&variant| !env.is_top(variant));
 
         // Propagate bottom type
         if variants.iter().any(|&variant| env.is_bottom(variant)) {
@@ -634,7 +634,7 @@ impl<'heap> Lattice<'heap> for IntersectionType<'heap> {
 
         // Drop supertypes of other variants
         let backup = variants.clone();
-        variants.retain(|&mut supertype| {
+        variants.retain(|&supertype| {
             // keep `supertype` only if it is not a supertype of any other variant
             !backup.iter().any(|&subtype| {
                 subtype != supertype && env.is_subtype_of(Variance::Covariant, subtype, supertype)

@@ -36,7 +36,7 @@ impl<'heap> Lattice<'heap> for ListType {
     ) -> SmallVec<TypeId, 4> {
         let element = env.join(self.kind.element, other.kind.element);
 
-        SmallVec::from_slice(&[env.intern_type(PartialType {
+        SmallVec::from_slice_copy(&[env.intern_type(PartialType {
             span: self.span,
             kind: env.intern_kind(TypeKind::Intrinsic(IntrinsicType::List(Self { element }))),
         })])
@@ -49,7 +49,7 @@ impl<'heap> Lattice<'heap> for ListType {
     ) -> SmallVec<TypeId, 4> {
         let element = env.meet(self.kind.element, other.kind.element);
 
-        SmallVec::from_slice(&[env.intern_type(PartialType {
+        SmallVec::from_slice_copy(&[env.intern_type(PartialType {
             span: self.span,
             kind: env.intern_kind(TypeKind::Intrinsic(IntrinsicType::List(Self { element }))),
         })])
@@ -124,7 +124,7 @@ impl<'heap> Lattice<'heap> for ListType {
         // Due to distribution rules, we know if there's a single element, it's the same as the
         // original type.
         if elements.len() == 1 {
-            return SmallVec::from_slice(&[self.id]);
+            return SmallVec::from_slice_copy(&[self.id]);
         }
 
         elements
@@ -148,7 +148,7 @@ impl<'heap> Lattice<'heap> for ListType {
         // Due to distribution rules, we know if there's a single element, it's the same as the
         // original type.
         if elements.len() == 1 {
-            return SmallVec::from_slice(&[self.id]);
+            return SmallVec::from_slice_copy(&[self.id]);
         }
 
         elements
@@ -265,9 +265,9 @@ impl DictType {
         // Check if the result is the same as the original types, if that is the case we can
         // return the original type id, instead of allocating a new one.
         if value == self.kind.value && keys == [self.kind.key] {
-            SmallVec::from_slice(&[self.id])
+            SmallVec::from_slice_copy(&[self.id])
         } else if value == other.kind.value && keys == [other.kind.key] {
-            SmallVec::from_slice(&[other.id])
+            SmallVec::from_slice_copy(&[other.id])
         } else {
             keys.iter()
                 .map(|&key| {
@@ -309,7 +309,7 @@ impl<'heap> Lattice<'heap> for DictType {
         } else if env.is_equivalent(self.kind.key, other.kind.key) {
             let value = env.join(self.kind.value, other.kind.value);
 
-            SmallVec::from_slice(&[env.intern_type(PartialType {
+            SmallVec::from_slice_copy(&[env.intern_type(PartialType {
                 span: self.span,
                 kind: env.intern_kind(TypeKind::Intrinsic(IntrinsicType::Dict(Self {
                     key: self.kind.key,
@@ -318,7 +318,7 @@ impl<'heap> Lattice<'heap> for DictType {
             })])
         } else {
             // keys are not equivalent, cannot join
-            SmallVec::from_slice(&[self.id, other.id])
+            SmallVec::from_slice_copy(&[self.id, other.id])
         }
     }
 
@@ -347,7 +347,7 @@ impl<'heap> Lattice<'heap> for DictType {
         } else if env.is_equivalent(self.kind.key, other.kind.key) {
             let value = env.meet(self.kind.value, other.kind.value);
 
-            SmallVec::from_slice(&[env.intern_type(PartialType {
+            SmallVec::from_slice_copy(&[env.intern_type(PartialType {
                 span: self.span,
                 kind: env.intern_kind(TypeKind::Intrinsic(IntrinsicType::Dict(Self {
                     key: self.kind.key,
@@ -424,7 +424,7 @@ impl<'heap> Lattice<'heap> for DictType {
 
         if value.len() == 1 {
             // Distribution rules - if the returned value is a single type it must be the same type
-            return SmallVec::from_slice(&[self.id]);
+            return SmallVec::from_slice_copy(&[self.id]);
         }
 
         value
@@ -451,7 +451,7 @@ impl<'heap> Lattice<'heap> for DictType {
 
         if value.len() == 1 {
             // Distribution rules - if the returned value is a single type it must be the same type
-            return SmallVec::from_slice(&[self.id]);
+            return SmallVec::from_slice_copy(&[self.id]);
         }
 
         value
@@ -595,7 +595,7 @@ impl<'heap> Lattice<'heap> for IntrinsicType {
             (Self::List(lhs), Self::List(rhs)) => self.with(lhs).join(other.with(rhs), env),
             (Self::Dict(lhs), Self::Dict(rhs)) => self.with(lhs).join(other.with(rhs), env),
             (Self::List(_), Self::Dict(_)) | (Self::Dict(_), Self::List(_)) => {
-                SmallVec::from_slice(&[self.id, other.id])
+                SmallVec::from_slice_copy(&[self.id, other.id])
             }
         }
     }

@@ -335,7 +335,7 @@ impl<'env, 'heap> AnalysisEnvironment<'env, 'heap> {
         if self.boundary.enter(r#type, r#type).is_break() {
             // We have found a recursive type, due to coinductive reasoning, this means it can no
             // longer be distributed
-            return SmallVec::from_slice(&[id]);
+            return SmallVec::from_slice_copy(&[id]);
         }
 
         let result = r#type.distribute_union(self);
@@ -351,7 +351,7 @@ impl<'env, 'heap> AnalysisEnvironment<'env, 'heap> {
         if self.boundary.enter(r#type, r#type).is_break() {
             // We have found a recursive type, due to coinductive reasoning, this means it can no
             // longer be distributed
-            return SmallVec::from_slice(&[id]);
+            return SmallVec::from_slice_copy(&[id]);
         }
 
         let result = r#type.distribute_intersection(self);

@@ -110,7 +110,7 @@ impl<'heap> StructType<'heap> {
 
             // If we have a single variant, it's guaranteed that it's the same type, due to
             // distribution rules
-            return SmallVec::from_slice(&[self.id]);
+            return SmallVec::from_slice_copy(&[self.id]);
         }
 
         // Create a new type kind for each
@@ -137,12 +137,12 @@ impl<'heap> StructType<'heap> {
     ) -> SmallVec<TypeId, 4> {
         // Check if we can opt-out into allocating a new type
         if *self.kind.fields == *fields {
-            return SmallVec::from_slice(&[self.id]);
+            return SmallVec::from_slice_copy(&[self.id]);
         }
 
         // Check if we can opt-out into allocating a new type
         if *other.kind.fields == *fields {
-            return SmallVec::from_slice(&[other.id]);
+            return SmallVec::from_slice_copy(&[other.id]);
         }
 
         let id = env.intern_type(PartialType {
@@ -155,7 +155,7 @@ impl<'heap> StructType<'heap> {
             })),
         });
 
-        SmallVec::from_slice(&[id])
+        SmallVec::from_slice_copy(&[id])
     }
 }
 
@@ -302,7 +302,7 @@ impl<'heap> Lattice<'heap> for StructType<'heap> {
         env: &mut AnalysisEnvironment<'_, 'heap>,
     ) -> SmallVec<TypeId, 16> {
         if self.kind.fields.is_empty() {
-            return SmallVec::from_slice(&[self.id]);
+            return SmallVec::from_slice_copy(&[self.id]);
         }
 
         let fields: Vec<_> = self
@@ -328,7 +328,7 @@ impl<'heap> Lattice<'heap> for StructType<'heap> {
         env: &mut AnalysisEnvironment<'_, 'heap>,
     ) -> SmallVec<TypeId, 16> {
         if self.kind.fields.is_empty() {
-            return SmallVec::from_slice(&[self.id]);
+            return SmallVec::from_slice_copy(&[self.id]);
         }
 
         let fields: Vec<_> = self

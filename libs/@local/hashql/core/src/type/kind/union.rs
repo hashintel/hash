@@ -73,7 +73,7 @@ impl<'heap> UnionType<'heap> {
             .unnest_impl(env, &mut variants, &mut visited)
             .is_break()
         {
-            SmallVec::from_slice(&[env.intern_type(PartialType {
+            SmallVec::from_slice_copy(&[env.intern_type(PartialType {
                 span: self.span,
                 kind: env.intern_kind(TypeKind::Unknown),
             })])
@@ -88,11 +88,11 @@ impl<'heap> UnionType<'heap> {
         env: &Environment,
     ) -> SmallVec<TypeId, 4> {
         if lhs_variants.is_empty() {
-            return SmallVec::from_slice(rhs_variants);
+            return SmallVec::from_slice_copy(rhs_variants);
         }
 
         if rhs_variants.is_empty() {
-            return SmallVec::from_slice(lhs_variants);
+            return SmallVec::from_slice_copy(lhs_variants);
         }
 
         let mut variants = TypeIdSet::with_capacity(env, lhs_variants.len() + rhs_variants.len());
@@ -133,7 +133,7 @@ impl<'heap> UnionType<'heap> {
             })),
         });
 
-        SmallVec::from_slice(&[id])
+        SmallVec::from_slice_copy(&[id])
     }
 
     pub(crate) fn is_subtype_of_variants<'env, T, U>(
@@ -552,7 +552,7 @@ impl<'heap> Lattice<'heap> for UnionType<'heap> {
         self: Type<'heap, Self>,
         _: &mut AnalysisEnvironment<'_, 'heap>,
     ) -> SmallVec<TypeId, 16> {
-        SmallVec::from_slice(&[self.id])
+        SmallVec::from_slice_copy(&[self.id])
     }
 
     /// Checks if this union type is a subtype of the given supertype.
@@ -632,7 +632,7 @@ impl<'heap> Lattice<'heap> for UnionType<'heap> {
 
         // Sort, dedupe, drop bottom
         let mut variants = variants.finish();
-        variants.retain(|&mut variant| !env.is_bottom(variant));
+        variants.retain(|&variant| !env.is_bottom(variant));
 
         // Propagate top type
         if variants.iter().any(|&variant| env.is_top(variant)) {
@@ -650,7 +650,7 @@ impl<'heap> Lattice<'heap> for UnionType<'heap> {
 
         // Collapse via subsumption
         let backup = variants.clone();
-        variants.retain(|&mut subtype| {
+        variants.retain(|&subtype| {
             // keep v only if it is *not* a subtype of any other distinct u
             !backup.iter().any(|&supertype| {
                 subtype != supertype && env.is_subtype_of(Variance::Covariant, subtype, supertype)

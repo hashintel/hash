@@ -36,15 +36,15 @@ impl<'heap> Lattice<'heap> for PrimitiveType {
         _: &mut LatticeEnvironment<'_, 'heap>,
     ) -> SmallVec<TypeId, 4> {
         if self.kind == other.kind {
-            return SmallVec::from_slice(&[self.id]);
+            return SmallVec::from_slice_copy(&[self.id]);
         }
 
         match (*self.kind, *other.kind) {
             // `Integer <: Number`
-            (Self::Number, Self::Integer) => SmallVec::from_slice(&[self.id]),
-            (Self::Integer, Self::Number) => SmallVec::from_slice(&[other.id]),
+            (Self::Number, Self::Integer) => SmallVec::from_slice_copy(&[self.id]),
+            (Self::Integer, Self::Number) => SmallVec::from_slice_copy(&[other.id]),
 
-            _ => SmallVec::from_slice(&[self.id, other.id]),
+            _ => SmallVec::from_slice_copy(&[self.id, other.id]),
         }
     }
 
@@ -54,15 +54,15 @@ impl<'heap> Lattice<'heap> for PrimitiveType {
         _: &mut LatticeEnvironment<'_, 'heap>,
     ) -> SmallVec<TypeId, 4> {
         if self.kind == other.kind {
-            return SmallVec::from_slice(&[self.id]);
+            return SmallVec::from_slice_copy(&[self.id]);
         }
 
         match (*self.kind, *other.kind) {
             // `Integer <: Number`
-            (Self::Number, Self::Integer) => SmallVec::from_slice(&[other.id]),
-            (Self::Integer, Self::Number) => SmallVec::from_slice(&[self.id]),
+            (Self::Number, Self::Integer) => SmallVec::from_slice_copy(&[other.id]),
+            (Self::Integer, Self::Number) => SmallVec::from_slice_copy(&[self.id]),
 
-            _ => SmallVec::from_slice(&[self.id, other.id]),
+            _ => SmallVec::from_slice_copy(&[self.id, other.id]),
         }
     }
 
@@ -117,14 +117,14 @@ impl<'heap> Lattice<'heap> for PrimitiveType {
         self: Type<'heap, Self>,
         _: &mut AnalysisEnvironment<'_, 'heap>,
     ) -> SmallVec<TypeId, 16> {
-        SmallVec::from_slice(&[self.id])
+        SmallVec::from_slice_copy(&[self.id])
     }
 
     fn distribute_intersection(
         self: Type<'heap, Self>,
         _: &mut AnalysisEnvironment<'_, 'heap>,
     ) -> SmallVec<TypeId, 16> {
-        SmallVec::from_slice(&[self.id])
+        SmallVec::from_slice_copy(&[self.id])
     }
 
     fn is_subtype_of(

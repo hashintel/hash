@@ -40,7 +40,7 @@ use core::{
     slice,
 };
 
-use smallvec::SmallVec;
+use smallvec::{SmallVec, smallvec};
 
 use super::{Id, IdVec};
 
@@ -133,7 +133,7 @@ impl<T: Id> DenseBitSet<T> {
         let num_words = num_words(domain_size);
         Self {
             domain_size,
-            words: SmallVec::from_elem(Word::MIN, num_words),
+            words: smallvec![Word::MIN; num_words],
             marker: PhantomData,
         }
     }
@@ -145,7 +145,7 @@ impl<T: Id> DenseBitSet<T> {
         let num_words = num_words(domain_size);
         let mut result = Self {
             domain_size,
-            words: SmallVec::from_elem(Word::MAX, num_words),
+            words: smallvec![Word::MAX; num_words],
             marker: PhantomData,
         };
         result.clear_excess_bits();
@@ -1526,7 +1526,7 @@ impl<R: Id, C: Id> BitMatrix<R, C> {
         Self {
             num_rows,
             num_columns,
-            words: SmallVec::from_elem(0, num_rows * words_per_row),
+            words: smallvec![0; num_rows * words_per_row],
             marker: PhantomData,
         }
     }
