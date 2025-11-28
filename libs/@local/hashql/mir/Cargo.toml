@@ -23,6 +23,7 @@ simple-mermaid = { workspace = true }
 
 [dev-dependencies]
 hashql-compiletest = { workspace = true }
+insta.workspace    = true
 
 [lints]
 workspace = true

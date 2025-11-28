@@ -110,6 +110,12 @@ where
         self.inner.is_empty()
     }
 
+    /// Returns `true` if the iterated dominance frontier contains the given node.
+    #[must_use]
+    pub fn contains(&self, node: N) -> bool {
+        self.inner.contains(node)
+    }
+
     /// Returns the number of nodes in the iterated dominance frontier.
     #[must_use]
     pub fn count(&self) -> usize {
