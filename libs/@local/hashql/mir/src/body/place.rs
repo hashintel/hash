@@ -115,10 +115,10 @@ pub enum PlaceLivenessContext {
 ///
 /// # Example
 ///
-/// ```ignore
-/// // In the statement: x.field = y
-/// // - `x` is accessed with Write(Projection) - partial write through projection
-/// // - `y` is accessed with Read(Load) - full value read
+/// ```text
+/// In the statement: x.field = y
+/// - `x` is accessed with Write(Projection) - partial write through projection
+/// - `y` is accessed with Read(Load) - full value read
 /// ```
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum PlaceContext {
