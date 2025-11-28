@@ -49,6 +49,12 @@ impl<'heap> SourceLookup<'heap> for DefIdSlice<Body<'heap>> {
     }
 }
 
+impl<'heap> SourceLookup<'heap> for () {
+    fn source(&self, _: DefId) -> Option<Source<'heap>> {
+        None
+    }
+}
+
 /// A trait for providing data flow analysis information during formatting.
 ///
 /// This trait allows formatters to augment their output with additional analysis data,
