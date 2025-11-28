@@ -1740,12 +1740,8 @@ impl<R: Id, C: Id> fmt::Debug for BitMatrix<R, C> {
 ///
 /// `R` and `C` are index types used to identify rows and columns respectively;
 /// typically newtyped `usize` wrappers, but they can also just be `usize`.
-#[derive(Clone, Debug)]
-pub struct SparseBitMatrix<R, C>
-where
-    R: Id,
-    C: Id,
-{
+#[derive(Clone)]
+pub struct SparseBitMatrix<R, C> {
     num_columns: usize,
     rows: IdVec<R, Option<DenseBitSet<C>>>,
 }
@@ -1879,6 +1875,15 @@ impl<R: Id, C: Id> SparseBitMatrix<R, C> {
         DenseBitSet<C>: BitRelations<Set>,
     {
         self.ensure_row(row).union(set)
+    }
+}
+
+impl<R, C: Id> fmt::Debug for SparseBitMatrix<R, C> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("SparseBitMatrix")
+            .field("num_columns", &self.num_columns)
+            .field("rows", &self.rows)
+            .finish()
     }
 }
 
