@@ -241,7 +241,9 @@ export const RadioGroup: React.FC<RadioGroupProps> = ({
       name={name}
       form={form}
       onValueChange={(details) => {
-        onValueChange?.(details.value);
+        if (details.value !== null) {
+          onValueChange?.(details.value);
+        }
       }}
       id={id}
       className={radioGroupRootStyles}
