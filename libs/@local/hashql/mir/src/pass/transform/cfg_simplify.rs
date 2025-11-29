@@ -2,6 +2,7 @@ use core::{iter::ExactSizeIterator as _, mem};
 
 use hashql_core::{collections::WorkQueue, graph::Predecessors as _};
 
+use super::ssa_repair::SsaRepairPass;
 use crate::{
     body::{
         Body,
@@ -319,5 +320,8 @@ impl<'env, 'heap> Pass<'env, 'heap> for CfgSimplify {
                 self.queue.enqueue(pred);
             }
         }
+
+        // Some of the optimizations may break SSA, therefore we need to repair it
+        SsaRepairPass.run(context, body);
     }
 }
