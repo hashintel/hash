@@ -1,6 +1,6 @@
 import type { ImageData } from "canvas";
 import { motion, MotionValue, useTransform } from "motion/react";
-import { memo, useLayoutEffect, useState } from "react";
+import { useLayoutEffect, useState } from "react";
 
 import { getDevicePixelRatio } from "../get-device-pixel-ratio";
 import { imageDataToUrl } from "../image-data-to-url";
@@ -197,145 +197,139 @@ type CompositePartsProps = {
  *
  * @private
  */
-const CompositeParts: React.FC<CompositePartsProps> = memo(
-  ({
-    imageData,
-    cornerWidth,
-    width,
-    height,
-    pixelRatio,
-    result,
-    hideTop,
-    hideBottom,
-    hideLeft,
-    hideRight,
-  }) => {
-    const parts = useTransform(() =>
-      splitImageDataToParts({
-        imageData: imageData.get(),
-        cornerWidth: cornerWidth.get(),
-        pixelRatio,
-      }),
-    );
+const CompositeParts: React.FC<CompositePartsProps> = ({
+  imageData,
+  cornerWidth,
+  width,
+  height,
+  pixelRatio,
+  result,
+  hideTop,
+  hideBottom,
+  hideLeft,
+  hideRight,
+}) => {
+  const parts = useTransform(() =>
+    splitImageDataToParts({
+      imageData: imageData.get(),
+      cornerWidth: cornerWidth.get(),
+      pixelRatio,
+    }),
+  );
 
-    const widthMinusCorner = useTransform(
-      () => width.get() - cornerWidth.get(),
-    );
-    const heightMinusCorner = useTransform(
-      () => height.get() - cornerWidth.get(),
-    );
+  const widthMinusCorner = useTransform(() => width.get() - cornerWidth.get());
+  const heightMinusCorner = useTransform(
+    () => height.get() - cornerWidth.get(),
+  );
 
-    return (
-      <>
-        {/* Image Parts */}
-        <CustomFeImage
-          href={useTransform(parts, (_) => _.topLeft)}
-          x={0}
-          y={0}
-          width={cornerWidth}
-          height={cornerWidth}
-          result={`${result}_topLeft`}
-        />
-        <CustomFeImage
-          href={useTransform(parts, (_) => _.top)}
-          x={0}
-          y={0}
-          width={width}
-          height={cornerWidth}
-          result={`${result}_top`}
-        />
-        <CustomFeImage
-          href={useTransform(parts, (_) => _.topRight)}
-          x={widthMinusCorner}
-          y={0}
-          width={cornerWidth}
-          height={cornerWidth}
-          result={`${result}_topRight`}
-        />
-        <CustomFeImage
-          href={useTransform(parts, (_) => _.left)}
-          x={0}
-          y={0}
-          width={cornerWidth}
-          height={height}
-          result={`${result}_left`}
-        />
-        <CustomFeImage
-          href={useTransform(parts, (_) => _.right)}
-          y={0}
-          x={widthMinusCorner}
-          width={cornerWidth}
-          height={height}
-          result={`${result}_right`}
-        />
-        <CustomFeImage
-          href={useTransform(parts, (_) => _.bottomLeft)}
-          x={0}
-          y={heightMinusCorner}
-          width={cornerWidth}
-          height={cornerWidth}
-          result={`${result}_bottomLeft`}
-        />
-        <CustomFeImage
-          href={useTransform(parts, (_) => _.bottom)}
-          x={0}
-          y={heightMinusCorner}
-          width={width}
-          height={cornerWidth}
-          result={`${result}_bottom`}
-        />
-        <CustomFeImage
-          href={useTransform(parts, (_) => _.bottomRight)}
-          x={widthMinusCorner}
-          y={heightMinusCorner}
-          width={cornerWidth}
-          height={cornerWidth}
-          result={`${result}_bottomRight`}
-        />
+  return (
+    <>
+      {/* Image Parts */}
+      <CustomFeImage
+        href={useTransform(parts, (_) => _.topLeft)}
+        x={0}
+        y={0}
+        width={cornerWidth}
+        height={cornerWidth}
+        result={`${result}_topLeft`}
+      />
+      <CustomFeImage
+        href={useTransform(parts, (_) => _.top)}
+        x={0}
+        y={0}
+        width={width}
+        height={cornerWidth}
+        result={`${result}_top`}
+      />
+      <CustomFeImage
+        href={useTransform(parts, (_) => _.topRight)}
+        x={widthMinusCorner}
+        y={0}
+        width={cornerWidth}
+        height={cornerWidth}
+        result={`${result}_topRight`}
+      />
+      <CustomFeImage
+        href={useTransform(parts, (_) => _.left)}
+        x={0}
+        y={0}
+        width={cornerWidth}
+        height={height}
+        result={`${result}_left`}
+      />
+      <CustomFeImage
+        href={useTransform(parts, (_) => _.right)}
+        y={0}
+        x={widthMinusCorner}
+        width={cornerWidth}
+        height={height}
+        result={`${result}_right`}
+      />
+      <CustomFeImage
+        href={useTransform(parts, (_) => _.bottomLeft)}
+        x={0}
+        y={heightMinusCorner}
+        width={cornerWidth}
+        height={cornerWidth}
+        result={`${result}_bottomLeft`}
+      />
+      <CustomFeImage
+        href={useTransform(parts, (_) => _.bottom)}
+        x={0}
+        y={heightMinusCorner}
+        width={width}
+        height={cornerWidth}
+        result={`${result}_bottom`}
+      />
+      <CustomFeImage
+        href={useTransform(parts, (_) => _.bottomRight)}
+        x={widthMinusCorner}
+        y={heightMinusCorner}
+        width={cornerWidth}
+        height={cornerWidth}
+        result={`${result}_bottomRight`}
+      />
 
-        {/* Composite parts together */}
+      {/* Composite parts together */}
 
-        {/* Center is used as base and is stretched all over the filter */}
-        <motion.feImage
-          href={useTransform(parts, (_) => _.center)}
-          x={0}
-          y={0}
-          width={width}
-          height={height}
-          result={`${result}_base`}
-          preserveAspectRatio="none"
-        />
+      {/* Center is used as base and is stretched all over the filter */}
+      <motion.feImage
+        href={useTransform(parts, (_) => _.center)}
+        x={0}
+        y={0}
+        width={width}
+        height={height}
+        result={`${result}_base`}
+        preserveAspectRatio="none"
+      />
 
-        {[
-          !hideTop && "top",
-          !hideLeft && "left",
-          !hideRight && "right",
-          !hideBottom && "bottom",
-          !hideTop && !hideLeft && "topLeft",
-          !hideTop && !hideRight && "topRight",
-          !hideBottom && !hideLeft && "bottomLeft",
-          !hideBottom && !hideRight && "bottomRight",
-        ]
-          .filter((_) => typeof _ === "string")
-          .map((partName, index, arr) => (
-            <motion.feComposite
-              key={partName}
-              operator="over"
-              in={`${result}_${partName}`}
-              in2={
-                index === 0 ? `${result}_base` : `${result}_composite_${index}`
-              }
-              result={
-                index === arr.length - 1
-                  ? result
-                  : `${result}_composite_${index}`
-              }
-            />
-          ))}
-      </>
-    );
-  },
-);
+      {[
+        !hideTop && "top",
+        !hideLeft && "left",
+        !hideRight && "right",
+        !hideBottom && "bottom",
+        !hideTop && !hideLeft && "topLeft",
+        !hideTop && !hideRight && "topRight",
+        !hideBottom && !hideLeft && "bottomLeft",
+        !hideBottom && !hideRight && "bottomRight",
+      ]
+        .filter((_) => typeof _ === "string")
+        .map((partName, index, arr) => (
+          <motion.feComposite
+            key={partName}
+            operator="over"
+            in={`${result}_${partName}`}
+            in2={
+              index === 0 ? `${result}_base` : `${result}_composite_${index}`
+            }
+            result={
+              index === arr.length - 1 ? result : `${result}_composite_${index}`
+            }
+          />
+        ))}
+    </>
+  );
+};
 
 //
 // Internal Filter implementation.
@@ -362,156 +356,154 @@ type FILTER_PROPS = {
   hideRight?: boolean;
 };
 
-const FILTER: React.FC<FILTER_PROPS> = memo(
-  ({
-    id,
-    width,
-    height,
-    radius,
-    blur,
-    glassThickness,
-    bezelWidth,
-    refractiveIndex,
-    scaleRatio,
-    specularOpacity,
-    bezelHeightFn,
-    pixelRatio,
-    hideTop,
-    hideBottom,
-    hideLeft,
-    hideRight,
-  }) => {
-    // Size of each corner area
-    // If bezelWidth < radius, corners will be in a circle shape
-    // If bezelWidth >= radius, corners will be in a rounded square shape
-    const cornerWidth = useTransform(() =>
-      Math.max(radius.get(), bezelWidth.get()),
-    );
+const FILTER: React.FC<FILTER_PROPS> = ({
+  id,
+  width,
+  height,
+  radius,
+  blur,
+  glassThickness,
+  bezelWidth,
+  refractiveIndex,
+  scaleRatio,
+  specularOpacity,
+  bezelHeightFn,
+  pixelRatio,
+  hideTop,
+  hideBottom,
+  hideLeft,
+  hideRight,
+}) => {
+  // Size of each corner area
+  // If bezelWidth < radius, corners will be in a circle shape
+  // If bezelWidth >= radius, corners will be in a rounded square shape
+  const cornerWidth = useTransform(() =>
+    Math.max(radius.get(), bezelWidth.get()),
+  );
 
-    /** Calculated image will always be a square that contains 4 corners + {@link LATERAL_PART_SIZE} pixel for middle * */
-    const imageSide = useTransform(
-      () => cornerWidth.get() * 2 + LATERAL_PART_SIZE,
-    );
+  /** Calculated image will always be a square that contains 4 corners + {@link LATERAL_PART_SIZE} pixel for middle * */
+  const imageSide = useTransform(
+    () => cornerWidth.get() * 2 + LATERAL_PART_SIZE,
+  );
 
-    const map = useTransform(() => {
-      return calculateDisplacementMapRadius(
-        glassThickness.get(),
-        bezelWidth.get(),
-        bezelHeightFn,
-        refractiveIndex.get(),
-      );
+  const map = useTransform(() => {
+    return calculateDisplacementMapRadius(
+      glassThickness.get(),
+      bezelWidth.get(),
+      bezelHeightFn,
+      refractiveIndex.get(),
+    );
+  });
+
+  const maximumDisplacement = useTransform(() =>
+    Math.max(...map.get().map(Math.abs)),
+  );
+
+  const displacementMap = useTransform(() => {
+    return calculateDisplacementMap({
+      width: imageSide.get(),
+      height: imageSide.get(),
+      radius: radius.get(),
+      bezelWidth: bezelWidth.get(),
+      precomputedDisplacementMap: map.get(),
+      maximumDisplacement: maximumDisplacement.get(),
+      pixelRatio,
     });
+  });
 
-    const maximumDisplacement = useTransform(() =>
-      Math.max(...map.get().map(Math.abs)),
-    );
-
-    const displacementMap = useTransform(() => {
-      return calculateDisplacementMap({
-        width: imageSide.get(),
-        height: imageSide.get(),
-        radius: radius.get(),
-        bezelWidth: bezelWidth.get(),
-        precomputedDisplacementMap: map.get(),
-        maximumDisplacement: maximumDisplacement.get(),
-        pixelRatio,
-      });
+  const specularMap = useTransform(() => {
+    return calculateSpecularImage({
+      width: imageSide.get(),
+      height: imageSide.get(),
+      radius: radius.get(),
+      specularAngle: Math.PI / 4, // Default angle, could be made configurable
+      pixelRatio,
     });
+  });
 
-    const specularMap = useTransform(() => {
-      return calculateSpecularImage({
-        width: imageSide.get(),
-        height: imageSide.get(),
-        radius: radius.get(),
-        specularAngle: Math.PI / 4, // Default angle, could be made configurable
-        pixelRatio,
-      });
-    });
+  const scale = useTransform(
+    () => maximumDisplacement.get() * scaleRatio.get(),
+  );
 
-    const scale = useTransform(
-      () => maximumDisplacement.get() * scaleRatio.get(),
-    );
+  const content = (
+    <filter id={id}>
+      <motion.feGaussianBlur
+        in="SourceGraphic"
+        stdDeviation={blur}
+        result="blurred_source"
+      />
 
-    const content = (
-      <filter id={id}>
-        <motion.feGaussianBlur
-          in="SourceGraphic"
-          stdDeviation={blur}
-          result="blurred_source"
-        />
+      <CompositeParts
+        imageData={displacementMap}
+        width={width}
+        height={height}
+        cornerWidth={cornerWidth}
+        pixelRatio={pixelRatio}
+        result="displacement_map"
+        hideTop={hideTop}
+        hideBottom={hideBottom}
+        hideLeft={hideLeft}
+        hideRight={hideRight}
+      />
 
-        <CompositeParts
-          imageData={displacementMap}
-          width={width}
-          height={height}
-          cornerWidth={cornerWidth}
-          pixelRatio={pixelRatio}
-          result="displacement_map"
-          hideTop={hideTop}
-          hideBottom={hideBottom}
-          hideLeft={hideLeft}
-          hideRight={hideRight}
-        />
+      <CompositeParts
+        imageData={specularMap}
+        width={width}
+        height={height}
+        cornerWidth={cornerWidth}
+        pixelRatio={pixelRatio}
+        result="specular_map"
+        hideTop={hideTop}
+        hideBottom={hideBottom}
+        hideLeft={hideLeft}
+        hideRight={hideRight}
+      />
 
-        <CompositeParts
-          imageData={specularMap}
-          width={width}
-          height={height}
-          cornerWidth={cornerWidth}
-          pixelRatio={pixelRatio}
-          result="specular_map"
-          hideTop={hideTop}
-          hideBottom={hideBottom}
-          hideLeft={hideLeft}
-          hideRight={hideRight}
-        />
+      <motion.feDisplacementMap
+        in="blurred_source"
+        in2="displacement_map"
+        scale={scale}
+        xChannelSelector="R"
+        yChannelSelector="G"
+        result="displaced_source"
+      />
 
-        <motion.feDisplacementMap
-          in="blurred_source"
-          in2="displacement_map"
-          scale={scale}
-          xChannelSelector="R"
-          yChannelSelector="G"
-          result="displaced_source"
-        />
+      <motion.feColorMatrix
+        in="specular_map"
+        type="luminanceToAlpha"
+        result="specular_alpha"
+      />
 
-        <motion.feColorMatrix
-          in="specular_map"
-          type="luminanceToAlpha"
-          result="specular_alpha"
-        />
+      <motion.feComponentTransfer
+        in="specular_alpha"
+        result="specular_with_opacity"
+      >
+        <motion.feFuncA type="linear" slope={specularOpacity} />
+      </motion.feComponentTransfer>
 
-        <motion.feComponentTransfer
-          in="specular_alpha"
-          result="specular_with_opacity"
-        >
-          <motion.feFuncA type="linear" slope={specularOpacity} />
-        </motion.feComponentTransfer>
+      <motion.feFlood floodColor="white" result="white_layer" />
 
-        <motion.feFlood floodColor="white" result="white_layer" />
+      <motion.feComposite
+        in="white_layer"
+        in2="specular_with_opacity"
+        operator="in"
+        result="masked_specular"
+      />
 
-        <motion.feComposite
-          in="white_layer"
-          in2="specular_with_opacity"
-          operator="in"
-          result="masked_specular"
-        />
+      <motion.feComposite
+        in="masked_specular"
+        in2="displaced_source"
+        operator="over"
+      />
+    </filter>
+  );
 
-        <motion.feComposite
-          in="masked_specular"
-          in2="displaced_source"
-          operator="over"
-        />
-      </filter>
-    );
-
-    return (
-      <svg colorInterpolationFilters="sRGB" style={{ display: "none" }}>
-        <defs>{content}</defs>
-      </svg>
-    );
-  },
-);
+  return (
+    <svg colorInterpolationFilters="sRGB" style={{ display: "none" }}>
+      <defs>{content}</defs>
+    </svg>
+  );
+};
 
 //
 // Exposed Filter API
@@ -550,44 +542,42 @@ type FilterProps = {
  * </>
  * ```
  */
-export const Filter: React.FC<FilterProps> = memo(
-  ({
-    id,
-    width,
-    height,
-    radius,
-    blur,
-    glassThickness,
-    bezelWidth,
-    refractiveIndex,
-    scaleRatio = 1,
-    specularOpacity,
-    specularAngle = Math.PI / 4,
-    bezelHeightFn = CONVEX,
-    pixelRatio,
-    hideTop,
-    hideBottom,
-    hideLeft,
-    hideRight,
-  }) => (
-    <FILTER
-      id={id}
-      width={useToMotion(width)}
-      height={useToMotion(height)}
-      radius={useToMotion(radius)}
-      blur={useToMotion(blur)}
-      glassThickness={useToMotion(glassThickness)}
-      bezelWidth={useToMotion(bezelWidth)}
-      refractiveIndex={useToMotion(refractiveIndex)}
-      scaleRatio={useToMotion(scaleRatio)}
-      specularOpacity={useToMotion(specularOpacity)}
-      specularAngle={useToMotion(specularAngle)}
-      bezelHeightFn={bezelHeightFn}
-      pixelRatio={pixelRatio ?? getDevicePixelRatio()}
-      hideBottom={hideBottom}
-      hideLeft={hideLeft}
-      hideRight={hideRight}
-      hideTop={hideTop}
-    />
-  ),
+export const Filter: React.FC<FilterProps> = ({
+  id,
+  width,
+  height,
+  radius,
+  blur,
+  glassThickness,
+  bezelWidth,
+  refractiveIndex,
+  scaleRatio = 1,
+  specularOpacity,
+  specularAngle = Math.PI / 4,
+  bezelHeightFn = CONVEX,
+  pixelRatio,
+  hideTop,
+  hideBottom,
+  hideLeft,
+  hideRight,
+}) => (
+  <FILTER
+    id={id}
+    width={useToMotion(width)}
+    height={useToMotion(height)}
+    radius={useToMotion(radius)}
+    blur={useToMotion(blur)}
+    glassThickness={useToMotion(glassThickness)}
+    bezelWidth={useToMotion(bezelWidth)}
+    refractiveIndex={useToMotion(refractiveIndex)}
+    scaleRatio={useToMotion(scaleRatio)}
+    specularOpacity={useToMotion(specularOpacity)}
+    specularAngle={useToMotion(specularAngle)}
+    bezelHeightFn={bezelHeightFn}
+    pixelRatio={pixelRatio ?? getDevicePixelRatio()}
+    hideBottom={hideBottom}
+    hideLeft={hideLeft}
+    hideRight={hideRight}
+    hideTop={hideTop}
+  />
 );
