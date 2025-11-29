@@ -1,3 +1,30 @@
+//! SSA repair pass for restoring SSA form after transformations.
+//!
+//! This module implements an SSA reconstruction algorithm that repairs SSA violations introduced
+//! by optimization passes. When a transformation creates multiple definitions for the same local
+//! variable, this pass restores proper SSA form by:
+//!
+//! 1. Detecting locals with multiple definition sites
+//! 2. Computing the iterated dominance frontier for those definitions
+//! 3. Inserting block parameters (φ-functions) at join points
+//! 4. Renaming definitions and uses to maintain SSA invariants
+//!
+//! # Algorithm
+//!
+//! The implementation follows the reconstruction algorithm described in:
+//!
+//! > Rastello, F., & Bouchez Tichadou, F. (Eds.). (2022). *SSA-based Compiler Design*.
+//! > Springer. <https://doi.org/10.1007/978-3-030-80515-9>
+//! >
+//! > Chapter 5: SSA Reconstruction, Section 5.2: Reconstruction Based on the Dominance Frontier.
+//!
+//! The key insight is that rather than computing minimal SSA form from scratch, we can
+//! incrementally repair violations by focusing only on the affected variables and their
+//! dominance frontiers. This is more efficient when only a small number of variables
+//! violate SSA form.
+//!
+//! See [`SsaRepairPass`] for the public entry point.
+
 #[cfg(test)]
 mod tests;
 
@@ -39,6 +66,12 @@ const _: () = {
     assert!(size_of::<Vec<Location>>() == size_of::<LocationVec>());
 };
 
+/// Collects all definition sites for each local variable in the body.
+///
+/// This visitor walks the MIR body and records the location of every definition. After visiting,
+/// use [`iter_violations`] to find locals with multiple definitions that violate SSA form.
+///
+/// [`iter_violations`]: DefSites::iter_violations
 struct DefSites {
     // The majority of cases will only have a single def site, in that case we don't need to
     // allocate a vector.
@@ -60,6 +93,9 @@ impl DefSites {
         }
     }
 
+    /// Returns an iterator over locals that have more than one definition site.
+    ///
+    /// Each yielded item contains the local and all locations where it is defined.
     fn iter_violations(&self) -> impl Iterator<Item = (Local, &[Location])> {
         self.sites
             .iter_enumerated()
@@ -89,10 +125,20 @@ impl Visitor<'_> for DefSites {
     }
 }
 
+/// MIR pass that repairs SSA violations by renaming and inserting block parameters.
+///
+/// This pass should be run after any transformation that may introduce multiple
+/// definitions for the same local variable. It restores proper SSA form by:
+///
+/// - Creating fresh locals for each additional definition
+/// - Inserting block parameters at dominance frontier join points
+/// - Rewiring all uses to reference the correct reaching definition
+///
+/// The pass is idempotent: running it on already-valid SSA form is a no-op.
 pub struct SsaRepairPass;
 
-impl SsaRepairPass {
-    fn repair<'heap>(context: &mut MirContext<'_, 'heap>, body: &mut Body<'heap>) {
+impl<'env, 'heap> Pass<'env, 'heap> for SsaRepairPass {
+    fn run(&mut self, context: &mut MirContext<'env, 'heap>, body: &mut Body<'heap>) {
         let mut sites = DefSites::new(body);
         sites.visit_body(body);
 
@@ -129,19 +175,24 @@ impl SsaRepairPass {
     }
 }
 
-impl<'env, 'heap> Pass<'env, 'heap> for SsaRepairPass {
-    fn run(&mut self, context: &mut MirContext<'env, 'heap>, body: &mut Body<'heap>) {
-        Self::repair(context, body);
-    }
-}
-
+/// Describes how a block obtains the reaching definition for a local at its entry.
+///
+/// When processing a block that uses a local before defining it, we need to determine
+/// where the value comes from. This enum captures the two possibilities:
+///
+/// - `Idom`: The value is inherited from the immediate dominator (no φ-function needed)
+/// - `Param`: The block is in the iterated dominance frontier and receives the value as a block
+///   parameter (φ-function)
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 enum FindDefFromTop {
+    /// The reaching definition comes from the immediate dominator.
     Idom(Local),
+    /// A new block parameter was inserted to merge reaching definitions from predecessors.
     Param(Local),
 }
 
 impl FindDefFromTop {
+    /// Extracts the local from either variant.
     const fn into_local(self) -> Local {
         let (Self::Idom(local) | Self::Param(local)) = self;
 
@@ -149,15 +200,28 @@ impl FindDefFromTop {
     }
 }
 
+/// Performs SSA repair for a single local variable with multiple definitions.
+///
+/// This struct holds the state needed to rename definitions, compute reaching definitions,
+/// and insert block parameters. It can be reused across multiple violated locals via
+/// [`reuse`] to avoid repeated allocations.
+///
+/// [`reuse`]: SsaRepair::reuse
 struct SsaRepair<'ctx, 'mir, 'env, 'heap> {
+    /// The original local being repaired.
     local: Local,
 
+    /// All definition sites for this local.
     locations: &'ctx [Location],
+    /// Fresh locals created for each definition site (indexed parallel to `locations`).
     locals: TinyVec<Local>,
 
+    /// Maps each block to the local that is "live out" (the last definition in that block).
     block_defs: BasicBlockVec<Option<Local>>,
+    /// Maps each block to how it obtains the reaching definition at entry.
     block_top: BasicBlockVec<Option<FindDefFromTop>>,
 
+    /// The iterated dominance frontier for the definition sites.
     iterated: IteratedDominanceFrontier<BasicBlockId>,
 
     context: &'mir mut MirContext<'env, 'heap>,
@@ -183,6 +247,7 @@ impl<'ctx, 'mir, 'env, 'heap> SsaRepair<'ctx, 'mir, 'env, 'heap> {
         }
     }
 
+    /// Resets this repair state for a new local, reusing allocated buffers.
     fn reuse(
         &mut self,
         local: Local,
@@ -208,12 +273,17 @@ impl<'ctx, 'mir, 'env, 'heap> SsaRepair<'ctx, 'mir, 'env, 'heap> {
         block_top.clear();
     }
 
+    /// Executes the full repair: rename, compute reaching definitions, and apply rewrites.
     fn run(&mut self, body: &mut Body<'heap>) {
         self.rename(body);
         self.precompute_find_def(body);
         self.apply(body);
     }
 
+    /// Creates fresh locals for each definition site except the last.
+    ///
+    /// The last definition reuses the original local name to minimize pollution of the
+    /// local declarations.
     fn rename(&mut self, body: &mut Body<'heap>) {
         let local_decl = body.local_decls[self.local];
 
@@ -231,6 +301,17 @@ impl<'ctx, 'mir, 'env, 'heap> SsaRepair<'ctx, 'mir, 'env, 'heap> {
         self.locals.push(self.local);
     }
 
+    /// Computes the reaching definition for a block, recursively processing predecessors.
+    ///
+    /// This prepares and implements both the `FindDefFromTop` and `FindDefFromBottom` algorithm
+    /// outlined in 5.1 of the book. Crucially, we do this pre-computation only where the result of
+    /// either would be required.
+    ///
+    /// For blocks which have a use before def, this means the computation of the `FindDefFromTop`
+    /// value. If there is any use, then the value for `FindDefFromBottom` is computed.
+    ///
+    /// Populates `block_defs` (the "live out" local for each block) and `block_top` (how each
+    /// block obtains its entry value — if required).
     fn determine_block_def(
         &mut self,
         basic_blocks: &BasicBlocks<'heap>,
@@ -282,10 +363,11 @@ impl<'ctx, 'mir, 'env, 'heap> SsaRepair<'ctx, 'mir, 'env, 'heap> {
             self.block_top.insert(id, FindDefFromTop::Param(local));
 
             // It's important that we set the block def *before* we recurse, otherwise a loop will
-            // create an infinite recursion case. The output (aka the block def) is always the last
-            // applicable use, in case there is already a use (per previous statement) we keep that
-            // determined local, otherwise we use the local we've just determined for the head. This
-            // will only be the case if there are no defs, and this block is "passthrough".
+            // create an infinite recursion case. The live-out (aka the block def) is always the
+            // last applicable use, in case there is already a use (per previous statement) we keep
+            // that determined local, otherwise we use the local we've just determined
+            // for the head. This will only be the case if there are no defs, and this
+            // block is "passthrough".
             let output = *self.block_defs.get_or_insert_with(id, || local);
 
             // Important: even though we don't use the result, we must compute the resulting value
@@ -298,9 +380,9 @@ impl<'ctx, 'mir, 'env, 'heap> SsaRepair<'ctx, 'mir, 'env, 'heap> {
 
             output
         } else {
-            // The simple case, if it is not part of the DF+ we simply take the name of the local of
-            // the immediate dominator, because we assume that the CFG is well formed we know that
-            // there will always be an immediate dominator.
+            // The simple case. If it is not part of the DF+, we simply take the name of the local
+            // of the immediate dominator, because we assume that the CFG is well formed
+            // we know that there will always be an immediate dominator.
             let Some(idom) = basic_blocks.dominators().immediate_dominator(id) else {
                 unreachable!(
                     "block {id} has a use of {local} but no immediate dominator; this suggests \
@@ -314,7 +396,7 @@ impl<'ctx, 'mir, 'env, 'heap> SsaRepair<'ctx, 'mir, 'env, 'heap> {
 
             self.block_top.insert(id, FindDefFromTop::Idom(output));
 
-            // The output (aka the block def) is always the last applicable use, in case there is
+            // The live-out (aka the block def) is always the last applicable use, in case there is
             // already a use (per previous statement) we keep that determined local,
             // otherwise we use the local we've just determined for the head. This
             // will only be the case if there are no defs, and this block is "passthrough".
@@ -322,6 +404,12 @@ impl<'ctx, 'mir, 'env, 'heap> SsaRepair<'ctx, 'mir, 'env, 'heap> {
         }
     }
 
+    /// Identifies all blocks that need reaching definition information and computes it.
+    ///
+    /// Iterates over all blocks, and for any block with a use-before-def of the target local,
+    /// triggers [`determine_block_def`] to compute how that block obtains its value.
+    ///
+    /// [`determine_block_def`]: SsaRepair::determine_block_def
     fn precompute_find_def(&mut self, body: &mut Body<'heap>) {
         for (id, block) in body.basic_blocks.iter_enumerated() {
             // Our starting point are any blocks which have uses before any definitions.
@@ -333,6 +421,10 @@ impl<'ctx, 'mir, 'env, 'heap> SsaRepair<'ctx, 'mir, 'env, 'heap> {
         }
     }
 
+    /// Applies the computed renaming and block parameter insertions to the body.
+    ///
+    /// Uses [`RewireBody`] to walk the MIR and rewrite all definitions and uses of the
+    /// target local according to the precomputed `block_defs` and `block_top` information.
     fn apply(&self, body: &mut Body<'heap>) {
         let mut visitor = RewireBody {
             local: self.local,
@@ -349,17 +441,34 @@ impl<'ctx, 'mir, 'env, 'heap> SsaRepair<'ctx, 'mir, 'env, 'heap> {
     }
 }
 
+/// Visitor that rewrites definitions and uses of a local according to precomputed SSA information.
+///
+/// This visitor performs three transformations during its walk:
+///
+/// 1. **Block parameters**: For blocks in DF+, adds the new block parameter
+/// 2. **Targets**: For branches to DF+ blocks, adds the reaching definition as an argument
+/// 3. **Locals**: Rewrites each def to its renamed local, and each use to the current reaching
+///    definition
+///
+/// The `last_def` field tracks the most recent definition seen while walking a block, enabling
+/// correct rewiring of uses to their reaching definition.
 struct RewireBody<'ctx, 'heap> {
+    /// The original local being repaired.
     local: Local,
 
     interner: &'ctx Interner<'heap>,
 
+    /// All definition sites for this local.
     locations: &'ctx [Location],
+    /// Fresh locals created for each definition site (indexed parallel to `locations`).
     locals: &'ctx [Local],
 
+    /// Maps each block to the local that is "live out".
     block_defs: &'ctx BasicBlockSlice<Option<Local>>,
+    /// Maps each block to how it obtains the reaching definition at entry.
     block_top: &'ctx BasicBlockSlice<Option<FindDefFromTop>>,
 
+    /// The most recent definition seen while walking the current block.
     last_def: Option<Local>,
 }
 
@@ -433,7 +542,7 @@ impl<'heap> VisitorMut<'heap> for RewireBody<'_, 'heap> {
             )
         });
 
-        // sanity check to ensure that our previous analysis step isn't divergent
+        // Sanity check to ensure that our previous analysis step isn't divergent
         debug_assert_eq!(Some(current_local), self.last_def);
         let operand = Operand::Place(Place::local(current_local, self.interner));
 
@@ -493,13 +602,25 @@ impl<'heap> VisitorMut<'heap> for RewireBody<'_, 'heap> {
     }
 }
 
+/// Detects whether a block has any use of a local before its first definition.
+///
+/// This is used to determine which blocks need to receive a value from predecessors
+/// (via block parameters or dominator inheritance) versus blocks where all uses are
+/// covered by a local definition within the same block.
 struct UseBeforeDef {
+    /// The local being checked.
     local: Local,
+    /// The statement index of the first definition in this block (or `usize::MAX` if none).
     def_statement_index: usize,
+    /// Set to `true` if a use is found before `def_statement_index`.
     result: bool,
 }
 
 impl UseBeforeDef {
+    /// Creates a new checker for the given `local` in the specified block.
+    ///
+    /// Finds the first definition of `local` in `locations` that belongs to block `id`,
+    /// which determines the boundary for detecting use-before-def.
     fn new(local: Local, locations: &[Location], id: BasicBlockId) -> Self {
         let first_def_location = locations
             .iter()
@@ -531,6 +652,7 @@ impl UseBeforeDef {
         }
     }
 
+    /// Checks whether the given `block` has any use of `local` before its first definition.
     fn run(local: Local, locations: &[Location], id: BasicBlockId, block: &BasicBlock<'_>) -> bool {
         let mut this = Self::new(local, locations, id);
 
