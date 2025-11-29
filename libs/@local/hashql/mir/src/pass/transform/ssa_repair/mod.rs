@@ -162,6 +162,9 @@ impl<'env, 'heap> Pass<'env, 'heap> for SsaRepairPass {
             );
 
             let mut repair = if let Some(mut prev) = prev_repair.take() {
+                // TODO: due to its iterative nature, we may be able to ditch the use of `reuse`
+                // once the allocator API is available in `SmallVec`, as it would enable us to make
+                // the bitsets allocator aware.
                 prev.reuse(violation, locations, iterated);
                 prev
             } else {
