@@ -1,7 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { useEffect, useRef } from "react";
 
-import { calculateSpecularImage } from "../lib/maps/specular";
+import { calculateSpecularImage } from "../../../refractive/src/maps/specular";
 
 // Define the args type for the specular function parameters
 interface SpecularArgs {

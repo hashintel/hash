@@ -1,4 +1,5 @@
 import { css } from "@hashintel/ds-helpers/css";
+import { RefractivePane } from "@hashintel/refractive/refractive-pane";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import {
   ArrowUpRightIcon,
@@ -14,7 +15,6 @@ import { AnimatePresence, motion } from "motion/react";
 import { useState } from "react";
 
 import { Button } from "../components/Button/button";
-import { RefractivePane } from "../components/RefractivePane/refractive-pane";
 import { SegmentedControl } from "../components/SegmentedControl/segmented-control";
 import { Slider } from "../components/Slider/slider";
 import { Switch } from "../components/Switch/switch";

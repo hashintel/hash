@@ -1,10 +1,9 @@
 import { SegmentGroup } from "@ark-ui/react/segment-group";
 import { css, cx } from "@hashintel/ds-helpers/css";
+import { Filter } from "@hashintel/refractive/flexible-filter";
+import { CONVEX, LIP } from "@hashintel/refractive/surface-equations";
+import { useMotionResizeObserver } from "@hashintel/refractive/use-motion-resize-observer";
 import { useId } from "react";
-
-import { Filter } from "../../lib/flexible-filter";
-import { CONVEX, LIP } from "../../lib/surface-equations";
-import { useMotionResizeObserver } from "../../lib/use-motion-resize-observer";
 
 const ROOT_PADDING = 4;
 

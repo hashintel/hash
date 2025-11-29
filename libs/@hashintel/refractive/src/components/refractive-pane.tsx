@@ -1,6 +1,6 @@
 import { css, cx } from "@hashintel/ds-helpers/css";
 
-import { useMotionResizeObserver } from "../../lib/use-motion-resize-observer";
+import { useMotionResizeObserver } from "../use-motion-resize-observer";
 
 export type RefractivePaneProps = React.PropsWithChildren<{
   className?: string;

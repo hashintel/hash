@@ -4,13 +4,13 @@ import { useEffect, useRef } from "react";
 import {
   calculateDisplacementMap,
   calculateDisplacementMapRadius,
-} from "../lib/maps/displacement-map";
+} from "../../../refractive/src/maps/displacement-map";
 import {
   CONCAVE,
   CONVEX,
   LIP,
   type SurfaceFnDef,
-} from "../lib/surface-equations";
+} from "../../../refractive/src/surface-equations";
 
 type BezelHeightType = "CONVEX" | "CONCAVE" | "LIP";
 

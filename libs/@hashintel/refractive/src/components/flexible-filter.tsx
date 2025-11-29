@@ -2,16 +2,16 @@ import type { ImageData } from "canvas";
 import { motion, MotionValue, useTransform } from "motion/react";
 import { memo, useLayoutEffect, useState } from "react";
 
-import { getDevicePixelRatio } from "./get-device-pixel-ratio";
-import { imageDataToUrl } from "./image-data-to-url";
+import { getDevicePixelRatio } from "../get-device-pixel-ratio";
+import { imageDataToUrl } from "../image-data-to-url";
 import {
   calculateDisplacementMap,
   calculateDisplacementMapRadius,
-} from "./maps/displacement-map";
-import { calculateSpecularImage } from "./maps/specular";
-import { CONVEX } from "./surface-equations";
-import { useToMotion } from "./use-to-motion";
-import { getValueOrMotion } from "./use-value-or-motion";
+} from "../maps/displacement-map";
+import { calculateSpecularImage } from "../maps/specular";
+import { CONVEX } from "../surface-equations";
+import { useToMotion } from "../use-to-motion";
+import { getValueOrMotion } from "../use-value-or-motion";
 
 const LATERAL_PART_SIZE = 1; // 1 pixel for top/left/right/bottom parts
 

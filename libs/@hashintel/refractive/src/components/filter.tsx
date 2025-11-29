@@ -2,16 +2,16 @@ import type { MotionValue } from "motion/react";
 import { motion, useTransform } from "motion/react";
 import { memo } from "react";
 
-import { getDevicePixelRatio } from "./get-device-pixel-ratio";
-import { imageDataToUrl } from "./image-data-to-url";
+import { getDevicePixelRatio } from "../get-device-pixel-ratio";
+import { imageDataToUrl } from "../image-data-to-url";
 import {
   calculateDisplacementMap,
   calculateDisplacementMapRadius,
-} from "./maps/displacement-map";
-import { calculateSpecularImage } from "./maps/specular";
-import { CONVEX } from "./surface-equations";
-import { useDebounceMotionValue } from "./use-debounce-motion-value";
-import { useToMotion } from "./use-to-motion";
+} from "../maps/displacement-map";
+import { calculateSpecularImage } from "../maps/specular";
+import { CONVEX } from "../surface-equations";
+import { useDebounceMotionValue } from "../use-debounce-motion-value";
+import { useToMotion } from "../use-to-motion";
 
 //
 // Internal Filter implementation.

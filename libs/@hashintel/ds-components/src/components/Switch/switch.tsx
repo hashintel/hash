@@ -1,9 +1,8 @@
 import { Switch as BaseSwitch } from "@ark-ui/react/switch";
 import { css } from "@hashintel/ds-helpers/css";
+import { Filter } from "@hashintel/refractive/filter";
+import { LIP } from "@hashintel/refractive/surface-equations";
 import { useId } from "react";
-
-import { Filter } from "../../lib/filter";
-import { LIP } from "../../lib/surface-equations";
 
 // Layout constants
 const SLIDER_HEIGHT = 20;

@@ -1,10 +1,9 @@
 import { Slider as BaseSlider } from "@ark-ui/react/slider";
 import { css, cx } from "@hashintel/ds-helpers/css";
+import { Filter } from "@hashintel/refractive/filter";
+import { CONVEX } from "@hashintel/refractive/surface-equations";
 import { motion } from "motion/react";
 import { useId } from "react";
-
-import { Filter } from "../../lib/filter";
-import { CONVEX } from "../../lib/surface-equations";
 
 const BaseSliderThumb = motion.create(BaseSlider.Thumb);
 const BaseSliderRange = motion.create(BaseSlider.Range);
