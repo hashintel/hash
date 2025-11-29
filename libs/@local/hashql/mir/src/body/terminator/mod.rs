@@ -106,6 +106,15 @@ pub struct Terminator<'heap> {
     pub kind: TerminatorKind<'heap>,
 }
 
+impl<'heap> Terminator<'heap> {
+    pub fn unreachable(span: SpanId) -> Self {
+        Self {
+            span,
+            kind: TerminatorKind::Unreachable,
+        }
+    }
+}
+
 /// The specific kind of control flow operation performed by a terminator.
 ///
 /// Terminator kinds represent the different types of control flow operations

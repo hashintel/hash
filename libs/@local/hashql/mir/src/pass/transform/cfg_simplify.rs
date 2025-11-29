@@ -22,62 +22,6 @@ use crate::{
     visit::{Visitor, VisitorMut, r#mut::filter::Deep},
 };
 
-struct FindLocal<'local> {
-    locals: &'local [Local],
-}
-
-impl Visitor<'_> for FindLocal<'_> {
-    type Result = ControlFlow<(), ()>;
-
-    fn visit_local(&mut self, _: Location, local: Local) -> Self::Result {
-        if self.locals.contains(&local) {
-            ControlFlow::Break(())
-        } else {
-            ControlFlow::Continue(())
-        }
-    }
-}
-
-struct ReplaceLocals<'local, 'heap> {
-    source: &'local [Local],
-    replacements: &'local [Local],
-    interner: &'local Interner<'heap>,
-}
-
-impl<'heap> VisitorMut<'heap> for ReplaceLocals<'_, 'heap> {
-    type Filter = Deep;
-    type Residual = Result<Infallible, !>;
-    type Result<T>
-        = Result<T, !>
-    where
-        T: 'heap;
-
-    fn interner(&self) -> &Interner<'heap> {
-        self.interner
-    }
-
-    fn visit_basic_block_params(
-        &mut self,
-        _: Location,
-        _: &mut Interned<'heap, [Local]>,
-    ) -> Self::Result<()> {
-        // We do not walk params, as they are immediately discarded, allows us to save on interning
-        Ok(())
-    }
-
-    fn visit_local(&mut self, _: Location, local: &mut Local) -> Self::Result<()> {
-        let needle = *local;
-
-        let Some(position) = self.source.iter().position(|&source| source == needle) else {
-            return Ok(());
-        };
-
-        let replacement = self.replacements[position];
-        *local = replacement;
-        Ok(())
-    }
-}
-
 pub struct CfgSimplify {
     queue: WorkQueue<BasicBlockId>,
 }
@@ -111,177 +55,65 @@ impl CfgSimplify {
             return false;
         }
 
-        // check the predecessors of the successor
+        // Check the amount of predecessors of the successor block, depending on the amount we can
+        // do more optimizations.
         let target_predecessors_len = body.basic_blocks.predecessors(goto.target.block).len();
 
-        match target_predecessors_len {
-            0 => unreachable!(),
-            1 => {
-                // We're the single predecessor, we can assume the whole contents of it. It's safe
-                // for us to just assign the SSA variables given directly, as we're the only
-                // predecessor, and therefore are the only way to reach these block params.
-                let [block, target] = body
-                    .basic_blocks
-                    .as_mut()
-                    .get_disjoint_mut([id, goto.target.block])
-                    .unwrap_or_else(|_err| unreachable!("we just verified that they're disjoint"));
-
-                debug_assert_eq!(target.params.len(), goto.target.args.len()); // sanity check
-                let block_terminator_span = block.terminator.span;
-
-                for (&param, &arg) in target.params.iter().zip(goto.target.args.iter()) {
-                    block.statements.push(Statement {
-                        span: block_terminator_span,
-                        kind: StatementKind::Assign(Assign {
-                            lhs: Place::local(param, context.interner),
-                            rhs: RValue::Load(arg),
-                        }),
-                    });
-                }
-
-                block.statements.append(&mut target.statements);
-
-                // Remove any parameters from the block as they are no longer used, otherwise we
-                // would violate the SSA property, essentially we're creating an unreachable empty
-                // block.
-                target.params = context.interner.locals.intern_slice(&[]);
-
-                // Replacing with unreachable is correct here, because the basic block we've
-                // "stolen" the instructions from is now unreachable.
-                let kind = mem::replace(&mut target.terminator.kind, TerminatorKind::Unreachable);
-                block.terminator = Terminator {
-                    span: target.terminator.span,
-                    kind,
-                };
-
-                true
-            }
-            _ => {
-                // There are multiple predecessors, we can only re-target if the successor block has
-                // no statements (or is a no-op)
-                let target = &body.basic_blocks[goto.target.block];
-
-                if !Self::is_noop(target) {
-                    // We cannot simplify, because multiple blocks depend on the value (leading to
-                    // value duplication) and we cannot re-target the successor block without
-                    // removing logic, which would be unsound.
-                    return false;
-                }
-
-                // In case the target is empty, the replacement is trivial, we simply replace the
-                // terminator block, no other operations need to be performed.
-                if target.params.is_empty() {
-                    let [block, target] = body
-                        .basic_blocks
-                        .as_mut()
-                        .get_disjoint_mut([id, goto.target.block])
-                        .expect("we have verified previously that they're not the same");
-
-                    block.terminator = target.terminator.clone();
-                    return true;
-                }
-
-                // If there are parameters associated with this operation, it becomes more
-                // complicated. Parameters passed may be live-out. This means that
-                // they are used *after* this block. This becomes a problem down the
-                // line, if we were to assign the parameter just like that in the block we would
-                // break SSA, multiple places would define the same variable multiple times.
-                // To be able to do this, we would first need an SSA repair step / updater, which
-                // pushes down these operations down. Even in that case this operation would still
-                // be unsafe.
-                //
-                // There is an easy version that is still safe, if the variable is just live inside
-                // of the body of the basic block we can still continue, albeit that every name
-                // would require rebinding (otherwise we would break SSA).
-                //
-                // This is an easy optimization option, and goes hand in hand with a future SSA
-                // updater / repair step.
-                let mut bfs = body
-                    .basic_blocks
-                    .breadth_first_traversal([goto.target.block]);
-
-                let first = bfs.next();
-                debug_assert_eq!(first, Some(goto.target.block)); // Skip the first block, as we're only interested in it's successors
-
-                let mut find_local = FindLocal {
-                    locals: &target.params,
-                };
-                if bfs.any(|block| {
-                    find_local
-                        .visit_basic_block(block, &body.basic_blocks[block])
-                        .is_break()
-                }) {
-                    // The value is used inside of a block, that is not the target, therefore it's
-                    // live-out and the local is *not* safe to inline.
-                    return false;
-                }
-                drop(bfs);
-
-                let replacements: TinyVec<_> = target
-                    .params
-                    .iter()
-                    .map(|&target| {
-                        let decl = body.local_decls[target];
-
-                        body.local_decls.push(decl)
-                    })
-                    .collect();
-
-                // We're not the only one, so we cannot consume the target (aka `mem::take` it),
-                // instead we need to clone here
-                let mut terminator = target.terminator.clone();
-
-                let mut replace_local = ReplaceLocals {
-                    source: &target.params,
-                    replacements: &replacements,
-                    interner: context.interner,
-                };
-                let Ok(()) = replace_local.visit_terminator(
-                    Location {
-                        block: goto.target.block,
-                        // + 2 to account for the params and the terminator
-                        statement_index: target.statements.len() + 2,
-                    },
-                    &mut terminator,
-                );
-
-                // We have successfully replaced all the local variables in the block with the new
-                // variables
-
-                debug_assert_eq!(target.params.len(), goto.target.args.len()); // sanity check
-
-                // Now that we have verified everything, assign the values given into the block with
-                // ours and append the terminator
-                let block = &mut body.basic_blocks.as_mut()[id];
-                let block_terminator_span = block.terminator.span;
-
-                // This is safe, because we just replaced all the local variables in the block with
-                // the new variables, therefore not breaking SSA
-                for (&param, &args) in replacements.iter().zip(goto.target.args) {
-                    block.statements.push(Statement {
-                        span: block_terminator_span,
-                        kind: StatementKind::Assign(Assign {
-                            lhs: Place::local(param, context.interner),
-                            rhs: RValue::Load(args),
-                        }),
-                    });
-                }
-
-                block.terminator = terminator;
-
-                // Now that we've changed the target block we need to not only notify our parents
-                // (which is done through the simplify loop). We also need to notify any
-                // predecessors from target – this is because they may benefit from
-                // any of the changes we've done (such as further inlining) – see the previous match
-                // arm.
-                // We do not need to filter for ourselves, because we're no longer a predecessor of
-                // the target block.
-                self.queue
-                    .extend(body.basic_blocks.predecessors(goto.target.block));
-
-                true
-            }
+        // We do not need to worry about breaking SSA, as we invoke SSA repair pass after this.
+        // In the case of multiple predecessors, we must first check if the target block is a nop,
+        // if it isn't we cannot easily merge it. This is because otherwise we would be creating
+        // statement duplication. Which is unintended, and might lead to excessive inflation of
+        // statements.
+        if target_predecessors_len > 1 && !Self::is_noop(&body.basic_blocks[goto.target.block]) {
+            // We cannot simplify, because multiple blocks depend on the value, therefore leading to
+            // duplication.
+            return false;
         }
+
+        let [block, target] = body
+            .basic_blocks
+            .as_mut()
+            .get_disjoint_mut([id, goto.target.block])
+            .unwrap_or_else(|_err| {
+                unreachable!("self loops are not possible per previous statement")
+            });
+
+        // We do not need to worry about keeping the SSA invariants here, because we run the SSA
+        // repair pass afterwards.
+
+        // The subsumption is very straightforward, we simply:
+
+        // 1. Assign the SSA variables their values from the predecessor block. This must happen
+        //    before any statements are moved, so we don't have any use before def.
+        debug_assert_eq!(target.params.len(), goto.target.args.len());
+        for (&param, &args) in target.params.iter().zip(goto.target.args) {
+            block.statements.push(Statement {
+                span: block.terminator.span,
+                kind: StatementKind::Assign(Assign {
+                    lhs: Place::local(param, context.interner),
+                    rhs: RValue::Load(args),
+                }),
+            });
+        }
+
+        // 2. Move all statements from the target block into the current block. We do this via
+        //    draining. This is safe, because in the case of multiple predecessors we check that the
+        //    target block is empty of statements or full of nops. Moving the nops from one block to
+        //    another doesn't change any of the invariants.
+        block.statements.append(&mut target.statements);
+
+        // 3. Replace the terminator with the target block's terminator, depending on the amount of
+        //    predecessors, we either need to clone, or can simply take the target block's
+        //    terminator.
+        block.terminator = if target_predecessors_len == 1 {
+            let src = Terminator::unreachable(target.terminator.span);
+
+            mem::replace(&mut target.terminator, src)
+        } else {
+            target.terminator.clone()
+        };
+
+        true
     }
 
     fn simplify_switch_int<'heap>(
