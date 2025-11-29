@@ -2,11 +2,7 @@ import { Slider as BaseSlider } from "@ark-ui/react/slider";
 import { css, cx } from "@hashintel/ds-helpers/css";
 import { Filter } from "@hashintel/refractive/filter";
 import { CONVEX } from "@hashintel/refractive/surface-equations";
-import { motion } from "motion/react";
 import { useId } from "react";
-
-const BaseSliderThumb = motion.create(BaseSlider.Thumb);
-const BaseSliderRange = motion.create(BaseSlider.Range);
 
 const THUMB_WIDTH = 18;
 const THUMB_HEIGHT = 16;
@@ -134,7 +130,7 @@ export const Slider: React.FC<SliderProps> = ({
               backgroundColor: "core.gray.40",
             })}
           >
-            <BaseSliderRange
+            <BaseSlider.Range
               className={css({
                 top: "[0px]",
                 bottom: "[0px]",
@@ -144,7 +140,7 @@ export const Slider: React.FC<SliderProps> = ({
             />
           </BaseSlider.Track>
 
-          <BaseSliderThumb
+          <BaseSlider.Thumb
             index={0}
             className={css({
               outline: "none",
@@ -162,7 +158,7 @@ export const Slider: React.FC<SliderProps> = ({
               },
             })}
           >
-            <motion.div
+            <div
               style={{
                 height: THUMB_HEIGHT,
                 width: THUMB_WIDTH,
@@ -171,7 +167,7 @@ export const Slider: React.FC<SliderProps> = ({
               }}
             />
             <BaseSlider.HiddenInput />
-          </BaseSliderThumb>
+          </BaseSlider.Thumb>
         </BaseSlider.Control>
       </BaseSlider.Root>
     </>
