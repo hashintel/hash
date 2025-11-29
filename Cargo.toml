@@ -119,7 +119,7 @@ clap                               = { version = "4.5.51", features = ["color", 
 clap_builder                       = { version = "4.5.51", default-features = false, features = ["std"] }
 clap_complete                      = { version = "4.5.60", default-features = false }
 console_error_panic_hook           = { version = "0.1.7", default-features = false }
-convert_case                       = { version = "0.8.0", default-features = false }
+convert_case                       = { version = "0.10.0", default-features = false }
 criterion                          = { version = "0.7.0" }
 criterion-macro                    = { version = "0.4.0", default-features = false }
 dashu-base                         = { version = "0.4.1", default-features = false }
