@@ -311,6 +311,7 @@ mod test {
         invalid_exponent("1e") => "Invalid exponent format",
         plus_prefix("+42") => "Number with plus prefix",
         double_minus("--42") => "Number with double minus",
+        leading_zero("042") => "Number with leading zero",
 
         // Structure errors
         unrecognized_character(r#"{"ferris": 🦀}"#) => "Unrecognized emoji character",

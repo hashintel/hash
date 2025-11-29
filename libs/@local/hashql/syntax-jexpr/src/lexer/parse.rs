@@ -1,7 +1,7 @@
 use alloc::{borrow::Cow, sync::Arc};
 
 use hashql_core::span::{TextRange, TextSize};
-use hifijson::{SliceLexer, num::LexWrite as _, str::LexAlloc as _};
+use hifijson::{SliceLexer, num::Lex as _, str::LexAlloc as _, token::Lex as _};
 use json_number::Number;
 use logos::Lexer;
 
@@ -41,17 +41,30 @@ pub(crate) fn parse_string<'source>(
 
 #[expect(
     clippy::cast_possible_truncation,
-    reason = "4GiB limit enforced by lexer "
+    reason = "4GiB limit enforced by lexer"
 )]
 pub(crate) fn parse_number<'source>(
     lexer: &mut Lexer<'source, TokenKind<'source>>,
 ) -> Result<Cow<'source, Number>, LexerError> {
     let span = lexer.span();
-    // this time we cannot automatically exclude the first character
+    // This time we cannot automatically exclude the first character
     let slice = &lexer.source()[span.start..];
+    let mut consumed = 0;
     let mut lex = SliceLexer::new(slice);
-    let (value, _) = lex.num_string().map_err(|error| {
-        let consumed = ptr_offset(slice.as_ptr(), lex.as_slice().as_ptr());
+
+    // The lexer doesn't check for `-` as the first character.
+    if slice[0] == b'-' {
+        consumed += 1;
+        lex.discarded();
+    }
+
+    lex.num_foreach(
+        #[inline]
+        |_| {
+            consumed += 1;
+        },
+    )
+    .map_err(|error| {
         let range = TextRange::empty(TextSize::from((span.start + consumed) as u32));
 
         LexerError::Number {
@@ -60,14 +73,14 @@ pub(crate) fn parse_number<'source>(
         }
     })?;
 
-    let consumed = ptr_offset(slice.as_ptr(), lex.as_slice().as_ptr());
-
-    // the first character is already consumed
+    // The first character is already consumed
     lexer.bump(consumed - 1);
+
+    debug_assert!(Number::new(&slice[..consumed]).is_ok());
 
     #[expect(unsafe_code, reason = "already validated to be valid number")]
     // SAFETY: The number is guaranteed to be a valid number
-    let number = unsafe { Number::new_unchecked(value) };
+    let number = unsafe { Number::new_unchecked(&slice[..consumed]) };
 
     Ok(Cow::Borrowed(number))
 }

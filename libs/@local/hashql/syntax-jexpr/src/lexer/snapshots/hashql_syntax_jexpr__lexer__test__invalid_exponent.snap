@@ -6,6 +6,6 @@ expression: 1e
 error[lexer::invalid-number]: Invalid number literal
   ╭▸ 
 1 │ 1e
-  │ ━ Missing digit in number
+  │   ━ Missing digit in number
   │
   ╰ help: JSON numbers must contain digits and follow the format: `[-]digits[.digits][(e|E)[+|-]digits]`
