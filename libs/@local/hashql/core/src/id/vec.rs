@@ -340,6 +340,18 @@ where
     pub fn clear(&mut self) {
         self.raw.clear();
     }
+
+    pub fn swap_remove(&mut self, index: I) -> T {
+        self.raw.swap_remove(index.as_usize())
+    }
+
+    pub fn swap(&mut self, lhs: I, rhs: I) {
+        self.raw.swap(lhs.as_usize(), rhs.as_usize());
+    }
+
+    pub fn truncate(&mut self, index: I) {
+        self.raw.truncate(index.as_usize());
+    }
 }
 
 // Map-like APIs for IdVec<I, Option<T>>
