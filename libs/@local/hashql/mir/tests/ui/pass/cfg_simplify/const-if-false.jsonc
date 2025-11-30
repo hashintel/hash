@@ -3,9 +3,4 @@
 // The condition is a constant `false`, so the switch should fold to just the else-branch.
 // Before: switch_int(false) -> [0: bb_else, 1: bb_then]
 // After: goto bb_else (inlined to return)
-[
-  "if",
-  { "#literal": false },
-  { "#literal": "then" },
-  { "#literal": "else" }
-]
+["if", { "#literal": false }, { "#literal": "then" }, { "#literal": "else" }]

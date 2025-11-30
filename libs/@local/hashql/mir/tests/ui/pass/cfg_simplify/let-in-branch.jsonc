@@ -4,11 +4,6 @@
 [
   "if",
   { "#literal": true },
-  [
-    "let",
-    "x",
-    { "#literal": 42 },
-    ["<=", "x", { "#literal": 100 }]
-  ],
+  ["let", "x", { "#literal": 42 }, ["<=", "x", { "#literal": 100 }]],
   { "#literal": false }
 ]
