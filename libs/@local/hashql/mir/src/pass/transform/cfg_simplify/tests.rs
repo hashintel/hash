@@ -331,6 +331,48 @@ fn self_loop_preservation() {
     );
 }
 
+/// Tests that goto self-loops with parameters are preserved.
+///
+/// A goto that targets its own block with parameters cannot be optimized away—it
+/// represents an infinite loop that passes values to each iteration. The block
+/// body is empty (noop) but the self-loop must still be preserved.
+///
+/// Before & After:
+/// ```text
+/// bb0: goto bb1(0)
+/// bb1(p): goto bb1(p)  // noop self-loop with params preserved
+/// ```
+#[test]
+fn self_loop_preservation_with_params() {
+    scaffold!(heap, interner, builder);
+    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+    let param = builder.local("p", TypeBuilder::synthetic(&env).integer());
+    let const_0 = builder.const_int(0);
+
+    let bb0 = builder.reserve_block([]);
+    let bb1 = builder.reserve_block([param]);
+
+    builder.build_block(bb0).goto(bb1, [const_0]);
+
+    // Self-loop: bb1 is a noop block that jumps to itself passing its param
+    let param_place = builder.place_local(param);
+    builder.build_block(bb1).goto(bb1, [param_place.into()]);
+
+    let body = builder.finish(0, TypeBuilder::synthetic(&env).null());
+
+    assert_cfg_simplify_pass(
+        "self_loop_preservation_with_params",
+        body,
+        &mut MirContext {
+            heap: &heap,
+            env: &env,
+            interner: &interner,
+            diagnostics: DiagnosticIssues::new(),
+        },
+    );
+}
+
 /// Tests that goto through a noop block with multiple predecessors is simplified.
 ///
 /// When multiple blocks jump to an empty (noop) block that just forwards to another

@@ -143,6 +143,15 @@ impl CfgSimplify {
             .get_disjoint_mut([id, goto.target.block])
             .unwrap_or_else(|_err| unreachable!("self-loops excluded by check above"));
 
+        // This is the only special case, if there are multiple predecessors, and the target itself
+        // is a self-loop we cannot safely merge them. The reason is that in that case we wouldn't
+        // be able to make any progress, as expansion would be infinite.
+        if let TerminatorKind::Goto(target_goto) = target.terminator.kind
+            && target_goto.target.block == goto.target.block
+        {
+            return false;
+        }
+
         // Step 1: Assign block parameters before moving statements to maintain def-before-use.
         debug_assert_eq!(target.params.len(), goto.target.args.len());
         for (&param, &arg) in target.params.iter().zip(goto.target.args) {
@@ -168,12 +177,6 @@ impl CfgSimplify {
         } else {
             target.terminator.clone()
         };
-
-        if block.terminator.kind == next_terminator.kind {
-            // We *could* replace the terminator with the next terminator, but this results in a
-            // no-op, therefore no change to the CFG is happening.
-            return false;
-        }
 
         block.terminator = next_terminator;
 
