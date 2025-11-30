@@ -23,7 +23,7 @@
 //! dominance frontiers. This is more efficient when only a small number of variables
 //! violate SSA form.
 //!
-//! See [`SsaRepairPass`] for the public entry point.
+//! See [`SsaRepair`] for the public entry point.
 
 #[cfg(test)]
 mod tests;
@@ -207,9 +207,7 @@ impl FindDefFromTop {
 ///
 /// This struct holds the state needed to rename definitions, compute reaching definitions,
 /// and insert block parameters. It can be reused across multiple violated locals via
-/// [`reuse`] to avoid repeated allocations.
-///
-/// [`reuse`]: SsaRepair::reuse
+/// [`Self::reuse`] to avoid repeated allocations.
 struct SsaViolationRepair<'ctx, 'mir, 'env, 'heap> {
     /// The original local being repaired.
     local: Local,
@@ -410,9 +408,7 @@ impl<'ctx, 'mir, 'env, 'heap> SsaViolationRepair<'ctx, 'mir, 'env, 'heap> {
     /// Identifies all blocks that need reaching definition information and computes it.
     ///
     /// Iterates over all blocks, and for any block with a use-before-def of the target local,
-    /// triggers [`determine_block_def`] to compute how that block obtains its value.
-    ///
-    /// [`determine_block_def`]: SsaRepair::determine_block_def
+    /// triggers [`Self::determine_block_def`] to compute how that block obtains its value.
     fn precompute_find_def(&mut self, body: &mut Body<'heap>) {
         for (id, block) in body.basic_blocks.iter_enumerated() {
             // Our starting point are any blocks which have uses before any definitions.

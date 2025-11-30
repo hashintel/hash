@@ -69,7 +69,6 @@ use crate::{
 /// Control-flow graph simplification pass.
 ///
 /// Simplifies the CFG by merging blocks, constant-folding switches, and eliminating dead blocks.
-/// See the [module documentation](self) for details on the optimizations performed.
 pub struct CfgSimplify {
     /// Snapshot of reachable blocks before a simplification, used to detect newly dead blocks.
     previous_reverse_postorder: Vec<BasicBlockId>,
@@ -118,7 +117,7 @@ impl CfgSimplify {
     /// 2. Append all statements from `B` to `A`
     /// 3. Replace `A`'s terminator with `B`'s terminator
     ///
-    /// SSA invariants may be temporarily broken; the [`SsaRepairPass`] runs afterward to fix them.
+    /// SSA invariants may be temporarily broken; the [`SsaRepair`] runs afterward to fix them.
     fn simplify_goto<'heap>(
         context: &MirContext<'_, 'heap>,
         body: &mut Body<'heap>,
