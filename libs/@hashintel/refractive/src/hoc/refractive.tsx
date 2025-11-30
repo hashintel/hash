@@ -32,9 +32,15 @@ function createRefractiveComponent<P extends { style: React.CSSProperties }>(
 
       const resizeObserver = new ResizeObserver((entries) => {
         for (const entry of entries) {
-          const { width: newWidth, height: newHeight } = entry.contentRect;
-          setWidth(newWidth);
-          setHeight(newHeight);
+          const borderBox = entry.borderBoxSize[0];
+
+          if (borderBox) {
+            setWidth(borderBox.inlineSize);
+            setHeight(borderBox.blockSize);
+          } else {
+            setWidth(entry.contentRect.width);
+            setHeight(entry.contentRect.height);
+          }
         }
       });
 
