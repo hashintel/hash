@@ -17,6 +17,7 @@
     assert_matches,
     const_type_name,
     formatting_options,
+    int_roundings,
     iter_array_chunks,
     iter_collect_into,
     try_trait_v2,

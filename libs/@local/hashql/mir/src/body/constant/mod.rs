@@ -3,6 +3,8 @@
 //! Constants represent compile-time known values that can be used directly
 //! in MIR operations without requiring memory access or computation.
 
+mod int;
+
 use hashql_core::value::Primitive;
 
 use crate::def::DefId;
