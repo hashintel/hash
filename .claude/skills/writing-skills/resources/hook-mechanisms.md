@@ -172,7 +172,7 @@ Claude receives this message and understands it needs to use the skill before re
 ### Exit Code Reference Table
 
 | Exit Code | stdout | stderr | Tool Execution | Claude Sees |
-|-----------|--------|--------|----------------|-------------|
+| --------- | ------ | ------ | -------------- | ----------- |
 | 0 (UserPromptSubmit) | → Context | → User only | N/A | stdout content |
 | 0 (PreToolUse) | → User only | → User only | **Proceeds** | Nothing |
 | 2 (PreToolUse) | → User only | → **CLAUDE** | **BLOCKED** | stderr content |
