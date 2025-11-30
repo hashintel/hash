@@ -47,7 +47,7 @@ use hashql_core::{
     graph::Predecessors as _,
 };
 
-use super::{error::unreachable_switch_arm, ssa_repair::SsaRepairPass};
+use super::{error::unreachable_switch_arm, ssa_repair::SsaRepair};
 use crate::{
     body::{
         Body,
@@ -466,6 +466,6 @@ impl<'env, 'heap> Pass<'env, 'heap> for CfgSimplify {
         }
 
         // Simplifications may break SSA (e.g., merged blocks with conflicting definitions).
-        SsaRepairPass.run(context, body);
+        SsaRepair.run(context, body);
     }
 }

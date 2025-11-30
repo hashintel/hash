@@ -135,9 +135,9 @@ impl Visitor<'_> for DefSites {
 /// - Rewiring all uses to reference the correct reaching definition
 ///
 /// The pass is idempotent: running it on already-valid SSA form is a no-op.
-pub struct SsaRepairPass;
+pub struct SsaRepair;
 
-impl<'env, 'heap> Pass<'env, 'heap> for SsaRepairPass {
+impl<'env, 'heap> Pass<'env, 'heap> for SsaRepair {
     fn run(&mut self, context: &mut MirContext<'env, 'heap>, body: &mut Body<'heap>) {
         let mut sites = DefSites::new(body);
         sites.visit_body(body);
@@ -148,7 +148,7 @@ impl<'env, 'heap> Pass<'env, 'heap> for SsaRepairPass {
             body.basic_blocks.dominators(),
         );
 
-        let mut prev_repair: Option<SsaRepair<'_, '_, '_, 'heap>> = None;
+        let mut prev_repair: Option<SsaViolationRepair<'_, '_, '_, 'heap>> = None;
         for (violation, locations) in sites.iter_violations() {
             let iterated = iterated_dominance_frontier(
                 &body.basic_blocks,
@@ -168,7 +168,7 @@ impl<'env, 'heap> Pass<'env, 'heap> for SsaRepairPass {
                 prev.reuse(violation, locations, iterated);
                 prev
             } else {
-                SsaRepair::new(violation, locations, iterated, context)
+                SsaViolationRepair::new(violation, locations, iterated, context)
             };
 
             repair.run(body);
@@ -210,7 +210,7 @@ impl FindDefFromTop {
 /// [`reuse`] to avoid repeated allocations.
 ///
 /// [`reuse`]: SsaRepair::reuse
-struct SsaRepair<'ctx, 'mir, 'env, 'heap> {
+struct SsaViolationRepair<'ctx, 'mir, 'env, 'heap> {
     /// The original local being repaired.
     local: Local,
 
@@ -230,7 +230,7 @@ struct SsaRepair<'ctx, 'mir, 'env, 'heap> {
     context: &'mir mut MirContext<'env, 'heap>,
 }
 
-impl<'ctx, 'mir, 'env, 'heap> SsaRepair<'ctx, 'mir, 'env, 'heap> {
+impl<'ctx, 'mir, 'env, 'heap> SsaViolationRepair<'ctx, 'mir, 'env, 'heap> {
     const fn new(
         local: Local,
         locations: &'ctx [Location],
