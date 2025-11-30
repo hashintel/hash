@@ -1,0 +1,11 @@
+//@ run: pass
+//@ description: Switch constant folding with true condition
+// The condition is a constant `true`, so the switch should fold to just the then-branch.
+// Before: switch_int(true) -> [0: bb_else, 1: bb_then]
+// After: goto bb_then (inlined to return)
+[
+  "if",
+  { "#literal": true },
+  { "#literal": "then" },
+  { "#literal": "else" }
+]

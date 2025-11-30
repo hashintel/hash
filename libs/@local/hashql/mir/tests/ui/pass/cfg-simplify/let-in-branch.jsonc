@@ -1,0 +1,14 @@
+//@ run: pass
+//@ description: Let binding inside branch with constant condition
+// The constant if folds, and the let block in the taken branch gets merged.
+[
+  "if",
+  { "#literal": true },
+  [
+    "let",
+    "x",
+    { "#literal": 42 },
+    ["<=", "x", { "#literal": 100 }]
+  ],
+  { "#literal": false }
+]

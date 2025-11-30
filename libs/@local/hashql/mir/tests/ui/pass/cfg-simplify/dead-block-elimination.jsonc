@@ -1,0 +1,15 @@
+//@ run: pass
+//@ description: Dead block elimination after constant switch folding
+// After folding `if true`, the else-branch block becomes unreachable and is marked dead.
+// This tests that unreachable blocks are properly eliminated from the CFG.
+[
+  "let",
+  "result",
+  [
+    "if",
+    { "#literal": true },
+    { "#literal": "alive" },
+    ["<=", { "#literal": 1 }, { "#literal": 2 }]
+  ],
+  "result"
+]

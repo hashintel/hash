@@ -1,0 +1,11 @@
+//@ run: pass
+//@ description: Goto chaining with single predecessor block
+// A let binding creates an intermediate block that can be merged.
+// Before: bb0 -> bb1 (let x = ...) -> bb2 (return x)
+// After: single block with inlined statements
+[
+  "let",
+  "x",
+  { "#literal": 42 },
+  "x"
+]

@@ -1,0 +1,19 @@
+//@ run: pass
+//@ description: Deeply nested constant conditions all fold away
+// Multiple levels of constant ifs should cascade-simplify to a single return.
+[
+  "if",
+  { "#literal": true },
+  [
+    "if",
+    { "#literal": true },
+    [
+      "if",
+      { "#literal": false },
+      { "#literal": "unreachable" },
+      { "#literal": "result" }
+    ],
+    { "#literal": "unreachable" }
+  ],
+  { "#literal": "unreachable" }
+]
