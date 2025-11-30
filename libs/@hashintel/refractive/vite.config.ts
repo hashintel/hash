@@ -45,7 +45,6 @@ export default defineConfig(({ command }) => ({
           rollupOptions: {
             external,
             output: {
-              exports: "named",
               globals: {
                 react: "React",
                 "react-dom": "ReactDOM",
