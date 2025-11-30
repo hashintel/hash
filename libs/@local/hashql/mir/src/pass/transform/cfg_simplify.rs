@@ -1,3 +1,45 @@
+//! Control-flow graph simplification pass.
+//!
+//! This pass performs several CFG optimizations to reduce the number of basic blocks and simplify
+//! control flow:
+//!
+//! - **Goto chaining**: Merges blocks connected by unconditional jumps when safe
+//! - **Switch constant folding**: Replaces `SwitchInt` with known discriminants by direct `Goto`
+//! - **Switch degeneration**: Converts `SwitchInt` with identical targets to `Goto`
+//! - **Dead block elimination**: Marks unreachable blocks to enable further optimizations
+//!
+//! # Algorithm
+//!
+//! The pass uses a worklist-based fixed-point iteration:
+//!
+//! 1. Initialize the worklist with all blocks in reverse postorder
+//! 2. For each block, repeatedly apply simplifications until no more changes occur
+//! 3. After each simplification, mark newly unreachable blocks as dead
+//! 4. Enqueue predecessors of modified blocks to propagate optimization opportunities
+//! 5. Run SSA repair to fix any broken phi nodes
+//!
+//! Marking dead blocks immediately after each simplification (rather than at the end) enables
+//! cascading optimizations. For example, constant-folding a `SwitchInt` may make one arm
+//! unreachable, reducing the predecessor count of subsequent blocks, which then enables inlining.
+//!
+//! # Example
+//!
+//! Before:
+//! ```text
+//! bb0: switch_int(const 1) -> [0: bb1, 1: bb2]
+//! bb1: /* dead code */
+//! bb2: goto bb3
+//! bb3: return
+//! ```
+//!
+//! After:
+//! ```text
+//! bb0: return
+//! bb1: unreachable
+//! bb2: unreachable
+//! bb3: unreachable
+//! ```
+
 use core::{iter::ExactSizeIterator as _, mem};
 
 use hashql_core::{
@@ -21,12 +63,21 @@ use crate::{
     pass::Pass,
 };
 
+/// Control-flow graph simplification pass.
+///
+/// Simplifies the CFG by merging blocks, constant-folding switches, and eliminating dead blocks.
+/// See the [module documentation](self) for details on the optimizations performed.
 pub struct CfgSimplify {
+    /// Snapshot of reachable blocks before a simplification, used to detect newly dead blocks.
     previous_reverse_postorder: Vec<BasicBlockId>,
+    /// Current reachable blocks
     reverse_postorder: FastHashSet<BasicBlockId>,
 }
 
 impl CfgSimplify {
+    /// Returns `true` if the block contains only no-op statements.
+    ///
+    /// A block with only no-ops can be safely bypassed or merged without affecting semantics.
     fn is_noop(block: &BasicBlock<'_>) -> bool {
         block
             .statements
@@ -34,38 +85,44 @@ impl CfgSimplify {
             .all(|statement| matches!(statement.kind, StatementKind::Nop))
     }
 
+    /// Attempts to simplify a `Goto` terminator by merging with its target block.
+    ///
+    /// # Simplification Cases
+    ///
+    /// 1. **Single predecessor**: The target block has only one predecessor (this block), so we can
+    ///    fully merge by moving all statements and assuming the target's terminator.
+    ///
+    /// 2. **Multiple predecessors with no-op target**: The target block has multiple predecessors
+    ///    but contains only no-ops, so we can safely assume its terminator without duplicating
+    ///    meaningful work.
+    ///
+    /// Self-loops (`goto` to the same block) cannot be simplified and are skipped.
+    ///
+    /// # Merging Process
+    ///
+    /// When merging block `A` into block `B` (where `A: goto B`):
+    ///
+    /// 1. Generate assignments for `B`'s block parameters using the arguments from the `Goto`
+    /// 2. Append all statements from `B` to `A`
+    /// 3. Replace `A`'s terminator with `B`'s terminator
+    ///
+    /// SSA invariants may be temporarily broken; the [`SsaRepairPass`] runs afterward to fix them.
     fn simplify_goto<'heap>(
         context: &MirContext<'_, 'heap>,
         body: &mut Body<'heap>,
         id: BasicBlockId,
         goto: Goto<'heap>,
     ) -> bool {
-        // There are two scenarios in which we simplify:
-        // 1. The successor block has no statements (or just no-ops), in this case we just assume
-        //    the terminator of said block.
-        // 2. The successor block has a single predecessor, in this case we can merge the blocks,
-        //    important is that we need to also add an assignment to the argument of said blocks to
-        //    the ones chosen by the target. We assume the successor block terminator as the
-        //    terminator.
-        // 3. Self loops are excluded, as they (logically) cannot be simplified
-
-        // self loops cannot be optimized
+        // Self-loops cannot be optimized as there's no simplification possible.
         if goto.target.block == id {
             return false;
         }
 
-        // Check the amount of predecessors of the successor block, depending on the amount we can
-        // do more optimizations.
         let target_predecessors_len = body.basic_blocks.predecessors(goto.target.block).len();
 
-        // We do not need to worry about breaking SSA, as we invoke SSA repair pass after this.
-        // In the case of multiple predecessors, we must first check if the target block is a nop,
-        // if it isn't we cannot easily merge it. This is because otherwise we would be creating
-        // statement duplication. Which is unintended, and might lead to excessive inflation of
-        // statements.
+        // With multiple predecessors, we can only merge if the target is effectively empty.
+        // Otherwise we'd duplicate statements across all predecessor paths.
         if target_predecessors_len > 1 && !Self::is_noop(&body.basic_blocks[goto.target.block]) {
-            // We cannot simplify, because multiple blocks depend on the value, therefore leading to
-            // duplication.
             return false;
         }
 
@@ -73,37 +130,26 @@ impl CfgSimplify {
             .basic_blocks
             .as_mut()
             .get_disjoint_mut([id, goto.target.block])
-            .unwrap_or_else(|_err| {
-                unreachable!("self loops are not possible per previous statement")
-            });
+            .unwrap_or_else(|_err| unreachable!("self-loops excluded by check above"));
 
-        // We do not need to worry about keeping the SSA invariants here, because we run the SSA
-        // repair pass afterwards.
-
-        // The subsumption is very straightforward, we simply:
-
-        // 1. Assign the SSA variables their values from the predecessor block. This must happen
-        //    before any statements are moved, so we don't have any use before def.
+        // Step 1: Assign block parameters before moving statements to maintain def-before-use.
         debug_assert_eq!(target.params.len(), goto.target.args.len());
-        for (&param, &args) in target.params.iter().zip(goto.target.args) {
+        for (&param, &arg) in target.params.iter().zip(goto.target.args) {
             block.statements.push(Statement {
                 span: block.terminator.span,
                 kind: StatementKind::Assign(Assign {
                     lhs: Place::local(param, context.interner),
-                    rhs: RValue::Load(args),
+                    rhs: RValue::Load(arg),
                 }),
             });
         }
 
-        // 2. Move all statements from the target block into the current block. We do this via
-        //    draining. This is safe, because in the case of multiple predecessors we check that the
-        //    target block is empty of statements or full of nops. Moving the nops from one block to
-        //    another doesn't change any of the invariants.
+        // Step 2: Move statements from target to current block.
+        // Safe even with multiple predecessors since we verified the target only has no-ops.
         block.statements.append(&mut target.statements);
 
-        // 3. Replace the terminator with the target block's terminator, depending on the amount of
-        //    predecessors, we either need to clone, or can simply take the target block's
-        //    terminator.
+        // Step 3: Assume the target's terminator.
+        // With a single predecessor we can take ownership; otherwise we must clone.
         block.terminator = if target_predecessors_len == 1 {
             let src = Terminator::unreachable(target.terminator.span);
 
@@ -115,27 +161,37 @@ impl CfgSimplify {
         true
     }
 
+    /// Attempts to simplify a `SwitchInt` terminator.
+    ///
+    /// # Simplification Cases
+    ///
+    /// 1. **Constant discriminant**: The switch value is a compile-time constant, so we replace the
+    ///    switch with a direct `Goto` to the matching arm (or `otherwise`).
+    ///
+    /// 2. **All targets identical**: Every arm jumps to the same block, so the switch degenerates
+    ///    to a simple `Goto`.
+    ///
+    /// 3. **Only otherwise**: No explicit cases, just a default arm—degenerates to `Goto`.
+    ///
+    /// 4. **Redundant cases**: Cases that jump to the same target as `otherwise` are removed.
+    ///
+    /// 5. **Target promotion**: When a switch arm targets an empty block with a `Goto` terminator,
+    ///    we can redirect the switch directly to that `Goto`'s target.
     fn simplify_switch_int<'heap>(
         context: &mut MirContext<'_, 'heap>,
         body: &mut Body<'heap>,
         id: BasicBlockId,
     ) -> bool {
-        // SwitchInt is very similar to any optimization that we're doing on a goto, except that we
-        // do not inline, only re-point, this is because we always have multiple statements inside
-        // of a switch target.
-        // Except in the case that the SwitchInt is just an otherwise with no other cases, in this
-        // case we degenerate to a goto, requeue and retry again.
         let terminator = &body.basic_blocks[id].terminator;
         let TerminatorKind::SwitchInt(switch) = &terminator.kind else {
             unreachable!()
         };
 
-        // If the discriminant is an integer constant, take the value (or otherwise). We issue an
-        // ICE in the case that the discriminant is not one of the switch targets. As this would be
-        // a violation of the invariants provided by the compiler.
+        // Case 1: Constant discriminant - select the matching arm directly.
         if let Operand::Constant(Constant::Int(int)) = switch.discriminant {
             let discriminant = int.as_uint();
 
+            // Look for an explicit case matching the discriminant.
             if let Some(index) = switch
                 .targets
                 .values()
@@ -149,6 +205,7 @@ impl CfgSimplify {
                 return true;
             }
 
+            // Fall back to the otherwise branch if present.
             if let Some(otherwise) = switch.targets.otherwise() {
                 body.basic_blocks.as_mut()[id].terminator.kind =
                     TerminatorKind::Goto(Goto { target: otherwise });
@@ -156,12 +213,13 @@ impl CfgSimplify {
                 return true;
             }
 
-            // TODO: issue diagnostic (as ICE), and move to unreachable
+            // No matching case and no otherwise - this is unreachable code.
+            // TODO: Emit an ICE diagnostic here.
             body.basic_blocks.as_mut()[id].terminator.kind = TerminatorKind::Unreachable;
             return true;
         }
 
-        // In the case that *every* target is the same, we can degenerate to a goto
+        // Case 2: All targets are identical - degenerate to Goto.
         if switch
             .targets
             .targets()
@@ -169,14 +227,12 @@ impl CfgSimplify {
             .all(|[lhs, rhs]| lhs == rhs)
         {
             let target = switch.targets.targets()[0];
-
-            // We can de-generate to a goto
             body.basic_blocks.as_mut()[id].terminator.kind = TerminatorKind::Goto(Goto { target });
 
             return true;
         }
 
-        // If there is only a single otherwise target, we can also de-generate to a goto
+        // Case 3: Only an otherwise target with no explicit cases.
         if switch.targets.values().is_empty()
             && let Some(otherwise) = switch.targets.otherwise()
         {
@@ -186,43 +242,38 @@ impl CfgSimplify {
             return true;
         }
 
-        // If we have an otherwise target, remove any discriminant that points to the same target
+        // Case 4: Remove cases that are redundant with otherwise.
         if let Some(otherwise) = switch.targets.otherwise() {
-            let mut values = Vec::new();
+            let redundant_values: Vec<_> = switch
+                .targets
+                .iter()
+                .filter_map(|(value, target)| (target == otherwise).then_some(value))
+                .collect();
 
-            for (value, target) in switch.targets.iter() {
-                if target == otherwise {
-                    values.push(value);
-                }
-            }
-
-            if !values.is_empty() {
+            if !redundant_values.is_empty() {
                 let TerminatorKind::SwitchInt(switch) =
                     &mut body.basic_blocks.as_mut()[id].terminator.kind
                 else {
                     unreachable!()
                 };
 
-                for target in values {
-                    switch.targets.remove_target(target);
+                for value in redundant_values {
+                    switch.targets.remove_target(value);
                 }
 
                 return true;
             }
         }
 
-        // There are only some other cases in which we can inline. All of these are only possible
-        // iff the successor block is empty. This is because otherwise we would change execution
-        // order, as we would need to move code into a different execution path. Which is in most
-        // cases unsound.
-
-        // In the large majority of cases, there are no targets that we can promote/inline.
-        // Therefore we first do a quick scan to check if there is the possibility of promotion. If
-        // that is not the case, we return early.
-        let target_len = switch.targets.targets().len();
+        // Case 5: Promote targets that point to empty blocks with Goto terminators.
+        // This lets us skip intermediate blocks and potentially enable further simplifications.
+        //
+        // We can only promote when the target block is effectively empty (only no-ops).
+        // Otherwise, we'd change execution order by skipping those statements.
 
         // We don't use `InlineVec` or similar here, because it doesn't make sense – most of the
         // time they are going to be empty.
+        let target_len = switch.targets.targets().len();
         let mut promotion_goto = Vec::new();
 
         // To circumvent borrowing rules, and rule out modifications in most cases, we first check
@@ -231,13 +282,12 @@ impl CfgSimplify {
             let is_last = index == target_len - 1;
             let is_otherwise = switch.targets.has_otherwise() && is_last;
 
-            // We cannot promote a goto or target to ourselves (aka self loops).
+            // Skip self-loops.
             if target.block == id {
                 continue;
             }
 
             let target_block = &body.basic_blocks[target.block];
-
             if !Self::is_noop(target_block) {
                 continue;
             }
@@ -246,16 +296,14 @@ impl CfgSimplify {
                 TerminatorKind::Goto(_) => {
                     promotion_goto.push((index, target));
                 }
-                // We can only promote a SwitchInt that isn't otherwise, and whenever the switch
-                // doesn't have an otherwise branch (both the target and the source).
-                // Otherwise we would create incorrect otherwise branches.
+                // SwitchInt promotion is more complex and not yet implemented.
+                // See: https://linear.app/hash/issue/BE-219/hashql-implement-switchint-simplification
                 TerminatorKind::SwitchInt(target_switch)
                     if !is_otherwise
                         && !switch.targets.has_otherwise()
                         && !target_switch.targets.has_otherwise() =>
                 {
-                    // This optimization is not yet implemented.
-                    // see: https://linear.app/hash/issue/BE-219/hashql-implement-switchint-simplification
+                    // Requires discriminant folding with arithmetic operations.
                 }
                 TerminatorKind::SwitchInt(_)
                 | TerminatorKind::Return(_)
@@ -270,32 +318,26 @@ impl CfgSimplify {
             return false;
         }
 
-        // We go over each eligible target that can be promoted.
+        // Apply promotions: redirect switch targets through their Goto destinations.
         for (target_index, target) in promotion_goto {
-            // We know from the previous step that:
-            // 1. The terminator is goto
-            // 2. The target is not ourselves (disjoint)
-
-            let [block, target] = body
+            let [block, target_block] = body
                 .basic_blocks
                 .as_mut()
                 .get_disjoint_mut([id, target.block])
-                .unwrap_or_else(|_err| {
-                    unreachable!("previous step has verified that these two are distinct")
-                });
+                .unwrap_or_else(|_err| unreachable!("self-loops excluded above"));
 
             let TerminatorKind::SwitchInt(switch) = &mut block.terminator.kind else {
-                unreachable!("previous step has verified that the terminator is a switch int")
+                unreachable!("we're simplifying a SwitchInt")
             };
 
-            let TerminatorKind::Goto(goto) = target.terminator.kind else {
-                unreachable!("previous step has verified that the terminator is a goto")
+            let TerminatorKind::Goto(goto) = target_block.terminator.kind else {
+                unreachable!("promotion candidates are Goto blocks")
             };
 
             switch.targets.targets_mut()[target_index] = goto.target;
 
-            // We cannot just take the target, and set it unreachable, because multiple switch
-            // targets may point to it.
+            // Note: We don't mark the target as unreachable here because other switch arms
+            // may still reference it.
         }
 
         // for (target_index, target, _) in promotion_switch {
@@ -320,18 +362,21 @@ impl CfgSimplify {
         true
     }
 
+    /// Dispatches to the appropriate simplification based on terminator kind.
+    ///
+    /// After a successful simplification, marks any newly unreachable blocks as dead.
+    /// Returns `true` if any simplification was applied.
     fn simplify<'heap>(
         &mut self,
         context: &mut MirContext<'_, 'heap>,
         body: &mut Body<'heap>,
         id: BasicBlockId,
     ) -> bool {
-        // save the current reverse postorder
+        // Snapshot reachable blocks before modification to detect newly dead blocks.
         self.previous_reverse_postorder.clear();
         self.previous_reverse_postorder
             .extend_from_slice(body.basic_blocks.reverse_postorder());
 
-        // Check the type of the terminator, we're only able to simplify Goto and SwitchInt
         let changed = match &body.basic_blocks[id].terminator.kind {
             &TerminatorKind::Goto(goto) => Self::simplify_goto(context, body, id, goto),
             TerminatorKind::SwitchInt(_) => Self::simplify_switch_int(context, body, id),
@@ -347,25 +392,28 @@ impl CfgSimplify {
         changed
     }
 
+    /// Marks blocks that became unreachable after a simplification.
+    ///
+    /// Compares the current reachable blocks (via reverse postorder) against the snapshot taken
+    /// before simplification. Any block that was previously reachable but is no longer in the
+    /// traversal is marked with an `Unreachable` terminator.
+    ///
+    /// This enables cascading optimizations: marking a block dead removes it from predecessor
+    /// counts, potentially allowing previously blocked merges to proceed.
     fn mark_dead_blocks(&mut self, body: &mut Body<'_>) {
-        // We mark dead blocks as unreachable. We do this to allow for more optimizations. This is
-        // done by moving the terminator to unreachable. Another pass (dead block elimination)
-        // compacts the graph to then remove the dead blocks.
-
-        // Given that we know that the reverse postorder is unique, we can use unchecked here
         let reverse_postorder = body.basic_blocks.reverse_postorder();
         self.reverse_postorder.clear();
         self.reverse_postorder.reserve(reverse_postorder.len());
 
         #[expect(unsafe_code)]
         for &block in reverse_postorder {
-            // SAFETY: Reverse postorder is unique
+            // SAFETY: Reverse postorder contains each block at most once.
             unsafe {
                 self.reverse_postorder.insert_unique_unchecked(block);
             }
         }
 
-        // Check if there are any blocks, which have changed
+        // Mark blocks that disappeared from the reachable set.
         for block in self.previous_reverse_postorder.drain(..) {
             if !self.reverse_postorder.contains(&block) {
                 body.basic_blocks.as_mut()[block].terminator.kind = TerminatorKind::Unreachable;
@@ -375,32 +423,38 @@ impl CfgSimplify {
 }
 
 impl<'env, 'heap> Pass<'env, 'heap> for CfgSimplify {
+    /// Runs the CFG simplification pass on the given body.
+    ///
+    /// Uses a worklist algorithm that processes blocks in reverse postorder and re-enqueues
+    /// predecessors when changes occur. This ensures optimization opportunities propagate
+    /// backward through the CFG until a fixed point is reached.
     fn run(&mut self, context: &mut MirContext<'env, 'heap>, body: &mut Body<'heap>) {
         let mut queue = WorkQueue::new(body.basic_blocks.len());
+
+        // Process in reverse of reverse-postorder (i.e., roughly postorder) to handle
+        // successors before predecessors, maximizing optimization opportunities.
         queue.extend(body.basic_blocks.reverse_postorder().iter().copied().rev());
 
         while let Some(block) = queue.dequeue() {
             let mut simplified = false;
 
-            // re-run multiple times to potentially catch multiple simplifications
+            // Repeatedly simplify until no more changes—catches cascading opportunities
+            // like SwitchInt → Goto → inline.
             while self.simplify(context, body, block) {
                 simplified = true;
             }
 
             if !simplified {
-                // We couldn't simplify so we don't need to enqueue the predecessors to notify
                 continue;
             }
 
-            // Enqueue the predecessors to notify them of the change
-            // This is the heart of our fixed-point iteration algorithm which is resistant against
-            // loops. We simply simplify until there are no more changes.
+            // Notify predecessors that this block changed; they may have new opportunities.
             for pred in body.basic_blocks.predecessors(block) {
                 queue.enqueue(pred);
             }
         }
 
-        // Some of the optimizations may break SSA, therefore we need to repair it
+        // Simplifications may break SSA (e.g., merged blocks with conflicting definitions).
         SsaRepairPass.run(context, body);
     }
 }
