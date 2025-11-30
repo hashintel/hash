@@ -23,26 +23,10 @@
 
 *thunk {thunk#0}() -> String {
     let %0: String
-    let %1: String
-    let %2: String
 
     bb0(): {
-        %1 = "else"
+        %0 = "else"
 
-        return %1
-    }
-
-    bb1(): {
-        %2 = "then"
-
-        unreachable
-    }
-
-    bb2(): {
-        unreachable
-    }
-
-    bb3(%0): {
-        unreachable
+        return %0
     }
 }

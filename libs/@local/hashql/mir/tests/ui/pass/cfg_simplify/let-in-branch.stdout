@@ -30,28 +30,12 @@
     let %0: Boolean
     let %1: Integer
     let %2: Boolean
-    let %3: Boolean
-    let %4: Boolean
 
     bb0(): {
         %1 = 42
         %2 = %1 <= 100
-        %3 = %2
+        %0 = %2
 
-        return %3
-    }
-
-    bb1(): {
-        unreachable
-    }
-
-    bb2(): {
-        %4 = 0
-
-        unreachable
-    }
-
-    bb3(%0): {
-        unreachable
+        return %0
     }
 }

@@ -49,30 +49,12 @@ thunk x:0() -> Integer {
     let %2: Boolean
     let %3: Integer
     let %4: Boolean
-    let %5: Boolean
-    let %6: Boolean
 
     bb0(): {
         %1 = apply (x:0 as FnPtr)
         %2 = %1 <= 100
-        %5 = %2
+        %0 = %2
 
-        return %5
-    }
-
-    bb1(): {
-        unreachable
-    }
-
-    bb2(): {
-        %3 = apply (x:0 as FnPtr)
-        %4 = %3 >= 100
-        %6 = %4
-
-        unreachable
-    }
-
-    bb3(%0): {
-        unreachable
+        return %0
     }
 }

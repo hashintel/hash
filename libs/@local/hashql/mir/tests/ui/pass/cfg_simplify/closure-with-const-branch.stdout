@@ -55,29 +55,12 @@ fn {closure#6}(%0: (), %1: Integer) -> Boolean {
     let %2: Boolean
     let %3: Boolean
     let %4: Boolean
-    let %5: Boolean
-    let %6: Boolean
 
     bb0(): {
         %3 = %1 <= 100
-        %5 = %3
+        %2 = %3
 
-        return %5
-    }
-
-    bb1(): {
-        unreachable
-    }
-
-    bb2(): {
-        %4 = %1 >= 0
-        %6 = %4
-
-        unreachable
-    }
-
-    bb3(%2): {
-        unreachable
+        return %2
     }
 }
 
