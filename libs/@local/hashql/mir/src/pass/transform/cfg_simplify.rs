@@ -75,6 +75,15 @@ pub struct CfgSimplify {
 }
 
 impl CfgSimplify {
+    /// Creates a new instance of the control-flow graph simplification pass.
+    #[must_use]
+    pub fn new() -> Self {
+        Self {
+            previous_reverse_postorder: Vec::new(),
+            reverse_postorder: FastHashSet::default(),
+        }
+    }
+
     /// Returns `true` if the block contains only no-op statements.
     ///
     /// A block with only no-ops can be safely bypassed or merged without affecting semantics.
@@ -430,6 +439,12 @@ impl CfgSimplify {
                 body.basic_blocks.as_mut()[block].terminator.kind = TerminatorKind::Unreachable;
             }
         }
+    }
+}
+
+impl Default for CfgSimplify {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
