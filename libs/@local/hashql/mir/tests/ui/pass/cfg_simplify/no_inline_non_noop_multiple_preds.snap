@@ -4,21 +4,27 @@ expression: value
 ---
 fn {intrinsic#4294967040}(%0: Integer) -> Null {
     let %1: Integer
+    let %2: Integer
+    let %3: Integer
 
     bb0(): {
         switchInt(%0) -> [0: bb1(), 1: bb2()]
     }
 
     bb1(): {
+        %1 = 1
+
         goto -> bb3()
     }
 
     bb2(): {
+        %2 = 2
+
         goto -> bb3()
     }
 
     bb3(): {
-        %1 = 1
+        %3 = 3
 
         return ()
     }
@@ -28,22 +34,28 @@ fn {intrinsic#4294967040}(%0: Integer) -> Null {
 
 fn {intrinsic#4294967040}(%0: Integer) -> Null {
     let %1: Integer
+    let %2: Integer
+    let %3: Integer
 
     bb0(): {
-        %1 = 1
-
-        return ()
+        switchInt(%0) -> [0: bb1(), 1: bb2()]
     }
 
     bb1(): {
-        unreachable
+        %1 = 1
+
+        goto -> bb3()
     }
 
     bb2(): {
-        unreachable
+        %2 = 2
+
+        goto -> bb3()
     }
 
     bb3(): {
-        unreachable
+        %3 = 3
+
+        return ()
     }
 }

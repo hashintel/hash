@@ -1,5 +1,6 @@
 //@ run: pass
 //@ description: Dead subtree elimination after constant switch folding
+//@ suite#d2: true
 // After folding `if false`, the then-branch with its entire nested structure becomes
 // unreachable. This tests that a whole subtree of blocks is marked dead, not just
 // the immediate successor.

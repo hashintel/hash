@@ -233,19 +233,24 @@ fn redundant_cases_removal() {
 /// Before & After (bb3 preserved - has statements and multiple preds):
 /// ```text
 /// bb0: switch_int(x) -> [0: bb1, 1: bb2]  // runtime value, not constant-folded
-/// bb1: goto bb3
-/// bb2: goto bb3
-/// bb3: y = 1; return  // has statements, multiple preds - cannot inline
+/// bb1: a = 1; goto bb3  // non-noop, cannot be promoted through
+/// bb2: b = 2; goto bb3  // non-noop, cannot be promoted through
+/// bb3: c = 3; return    // has statements, multiple preds - cannot inline
 /// ```
 #[test]
+#[expect(clippy::min_ident_chars)]
 fn no_inline_non_noop_multiple_preds() {
     scaffold!(heap, interner, builder);
     let env = Environment::new(SpanId::SYNTHETIC, &heap);
 
     let x = builder.local("x", TypeBuilder::synthetic(&env).integer());
     let x_place = builder.place_local(x);
-    let y = builder.local("y", TypeBuilder::synthetic(&env).integer());
+    let a = builder.local("a", TypeBuilder::synthetic(&env).integer());
+    let b = builder.local("b", TypeBuilder::synthetic(&env).integer());
+    let c = builder.local("c", TypeBuilder::synthetic(&env).integer());
     let const_1 = builder.const_int(1);
+    let const_2 = builder.const_int(2);
+    let const_3 = builder.const_int(3);
     let const_unit = builder.const_unit();
 
     let bb0 = builder.reserve_block([]);
@@ -258,13 +263,21 @@ fn no_inline_non_noop_multiple_preds() {
         .build_block(bb0)
         .switch(x_place, |switch| switch.case(0, bb1, []).case(1, bb2, []));
 
-    builder.build_block(bb1).goto(bb3, []);
-    builder.build_block(bb2).goto(bb3, []);
+    // bb1 and bb2 have statements - they're not noop, so switch can't promote through them
+    builder
+        .build_block(bb1)
+        .assign_local(a, |rv| rv.load(const_1))
+        .goto(bb3, []);
 
-    // bb3 has actual statements - cannot be inlined into bb1/bb2
+    builder
+        .build_block(bb2)
+        .assign_local(b, |rv| rv.load(const_2))
+        .goto(bb3, []);
+
+    // bb3 has actual statements and multiple predecessors - cannot be inlined
     builder
         .build_block(bb3)
-        .assign_local(y, |rv| rv.load(const_1))
+        .assign_local(c, |rv| rv.load(const_3))
         .ret(const_unit);
 
     let body = builder.finish(1, TypeBuilder::synthetic(&env).null());
