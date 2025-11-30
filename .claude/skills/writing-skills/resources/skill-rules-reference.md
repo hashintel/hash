@@ -63,14 +63,14 @@ interface SkillRule {
 ### Top Level
 
 | Field | Type | Required | Description |
-|-------|------|----------|-------------|
+| ----- | ---- | -------- | ----------- |
 | `version` | string | Yes | Schema version (currently "1.0") |
 | `skills` | object | Yes | Map of skill name → SkillRule |
 
 ### SkillRule Fields
 
 | Field | Type | Required | Description |
-|-------|------|----------|-------------|
+| ----- | ---- | -------- | ----------- |
 | `type` | string | Yes | "guardrail" (enforced) or "domain" (advisory) |
 | `enforcement` | string | Yes | "block" (PreToolUse), "suggest" (UserPromptSubmit), or "warn" |
 | `priority` | string | Yes | "critical", "high", "medium", or "low" |
@@ -84,14 +84,14 @@ interface SkillRule {
 ### promptTriggers Fields
 
 | Field | Type | Required | Description |
-|-------|------|----------|-------------|
+| ----- | ---- | -------- | ----------- |
 | `keywords` | string[] | Optional | Exact substring matches (case-insensitive) |
 | `intentPatterns` | string[] | Optional | Regex patterns for intent detection |
 
 ### fileTriggers Fields
 
 | Field | Type | Required | Description |
-|-------|------|----------|-------------|
+| ----- | ---- | -------- | ----------- |
 | `pathPatterns` | string[] | Yes* | Glob patterns for file paths |
 | `pathExclusions` | string[] | Optional | Glob patterns to exclude (e.g., test files) |
 | `contentPatterns` | string[] | Optional | Regex patterns to match file content |
@@ -102,7 +102,7 @@ interface SkillRule {
 ### skipConditions Fields
 
 | Field | Type | Required | Description |
-|-------|------|----------|-------------|
+| ----- | ---- | -------- | ----------- |
 | `sessionSkillUsed` | boolean | Optional | Skip if skill already used this session |
 | `fileMarkers` | string[] | Optional | Skip if file contains comment marker |
 | `envOverride` | string | Optional | Environment variable name to disable skill |
