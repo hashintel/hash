@@ -1,11 +1,10 @@
 import { SegmentGroup } from "@ark-ui/react/segment-group";
 import { css, cx } from "@hashintel/ds-helpers/css";
-import { Filter } from "@hashintel/refractive/flexible-filter";
-import { CONVEX, LIP } from "@hashintel/refractive/surface-equations";
-import { useMotionResizeObserver } from "@hashintel/refractive/use-motion-resize-observer";
-import { useId } from "react";
+import { refractive } from "@hashintel/refractive";
 
 const ROOT_PADDING = 4;
+
+const RefractiveSegmentGroupIndicator = refractive(SegmentGroup.Indicator);
 
 const rootStyles = css({
   position: "relative",
@@ -33,9 +32,9 @@ const indicatorStyles = css({
   left: "var(--left)",
   top: "var(--top)",
   boxShadow: "sm",
-  backgroundColor: "core.whitealpha.20",
+  backgroundColor: "core.neutral.white/20",
   "[data-part='root']:active &": {
-    backgroundColor: "core.whitealpha.10",
+    backgroundColor: "core.neutral.white/10",
   },
 });
 
@@ -105,105 +104,67 @@ export const SegmentedControl: React.FC<SegmentedControlProps> = ({
   disabled = false,
   onValueChange,
 }) => {
-  const rootFilterId = `segmented-control-filter-${useId()}`;
-  const indicatorFilterId = `segmented-control-indicator-filter-${useId()}`;
-
-  const {
-    ref: rootRef,
-    width: rootMotionWidth,
-    height: rootMotionHeight,
-  } = useMotionResizeObserver<HTMLDivElement>({
-    initialWidth: 10,
-    initialHeight: 10,
-  });
-
-  const {
-    ref: indicatorRef,
-    width: indicatorMotionWidth,
-    height: indicatorMotionHeight,
-  } = useMotionResizeObserver<HTMLDivElement>({
-    initialWidth: 10,
-    initialHeight: 10,
-  });
-
   return (
-    <>
-      <Filter
-        id={rootFilterId}
-        blur={blur}
-        scaleRatio={scaleRatio}
-        specularOpacity={specularOpacity}
-        width={rootMotionWidth}
-        height={rootMotionHeight}
-        radius={radius}
-        bezelWidth={bezelWidth}
-        glassThickness={glassThickness}
-        refractiveIndex={refractiveIndex}
-        bezelHeightFn={CONVEX}
-      />
-      <Filter
-        id={indicatorFilterId}
-        blur={0}
-        scaleRatio={scaleRatio}
-        specularOpacity={specularOpacity}
-        width={indicatorMotionWidth}
-        height={indicatorMotionHeight}
-        radius={radius - ROOT_PADDING}
-        bezelWidth={bezelWidth - ROOT_PADDING}
-        glassThickness={glassThickness}
-        refractiveIndex={refractiveIndex}
-        bezelHeightFn={LIP}
-      />
-
-      <SegmentGroup.Root
-        ref={rootRef}
-        value={value}
-        onValueChange={(details) => {
-          if (details.value) {
-            onValueChange?.(details.value);
-          }
-        }}
-        disabled={disabled}
-        defaultValue={defaultValue}
-        className={cx(rootStyles, className)}
+    <SegmentGroup.Root
+      value={value}
+      onValueChange={(details) => {
+        if (details.value) {
+          onValueChange?.(details.value);
+        }
+      }}
+      disabled={disabled}
+      defaultValue={defaultValue}
+      className={cx(rootStyles, className)}
+      style={{
+        padding: ROOT_PADDING,
+        borderRadius: radius,
+        ...style,
+      }}
+    >
+      <refractive.div
+        className={rootBackdropStyles}
         style={{
-          padding: ROOT_PADDING,
           borderRadius: radius,
-          ...style,
         }}
-      >
-        <div
-          className={rootBackdropStyles}
-          style={{
-            borderRadius: radius,
-            backdropFilter: `url(#${rootFilterId})`,
-          }}
-        />
+        refraction={{
+          blur,
+          specularOpacity,
+          radius,
+          bezelWidth,
+          glassThickness,
+          refractiveIndex,
+        }}
+      />
 
-        {options.map((option) => (
-          <SegmentGroup.Item
-            key={option.value}
-            value={option.value}
-            className={itemStyles}
-            style={{ borderRadius: radius - ROOT_PADDING }}
-          >
-            <SegmentGroup.ItemText className={itemTextStyles}>
-              {option.name}
-            </SegmentGroup.ItemText>
-            <SegmentGroup.ItemControl />
-            <SegmentGroup.ItemHiddenInput />
-          </SegmentGroup.Item>
-        ))}
+      {options.map((option) => (
+        <SegmentGroup.Item
+          key={option.value}
+          value={option.value}
+          className={itemStyles}
+          style={{ borderRadius: radius - ROOT_PADDING }}
+        >
+          <SegmentGroup.ItemText className={itemTextStyles}>
+            {option.name}
+          </SegmentGroup.ItemText>
+          <SegmentGroup.ItemControl />
+          <SegmentGroup.ItemHiddenInput />
+        </SegmentGroup.Item>
+      ))}
 
-        <SegmentGroup.Indicator
-          ref={indicatorRef}
-          className={indicatorStyles}
-          style={{
-            borderRadius: radius - ROOT_PADDING,
-            backdropFilter: `url(#${indicatorFilterId})`,
-          }}
-        />
-      </SegmentGroup.Root>
-    </>
+      <RefractiveSegmentGroupIndicator
+        className={indicatorStyles}
+        style={{
+          borderRadius: radius - ROOT_PADDING,
+        }}
+        refraction={{
+          blur: 0,
+          specularOpacity,
+          radius: radius - ROOT_PADDING,
+          bezelWidth: bezelWidth - ROOT_PADDING,
+          glassThickness,
+          refractiveIndex,
+        }}
+      />
+    </SegmentGroup.Root>
   );
 };

@@ -9,7 +9,7 @@
     "noEmit": true,
     "isolatedModules": true
   },
-  "include": ["src/**/*"],
+  "include": ["src/**/*", "playground/**/*"],
   "exclude": [
     "node_modules",
     "dist",

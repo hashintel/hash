@@ -10,28 +10,9 @@
   "license": "(MIT OR Apache-2.0)",
   "sideEffects": false,
   "type": "module",
-  "exports": {
-    "./filter": {
-      "import": "./dist/filter.js",
-      "types": "./dist/filter.d.ts"
-    },
-    "./flexible-filter": {
-      "import": "./dist/flexible-filter.js",
-      "types": "./dist/flexible-filter.d.ts"
-    },
-    "./refractive-pane": {
-      "import": "./dist/refractive-pane.js",
-      "types": "./dist/refractive-pane.d.ts"
-    },
-    "./surface-equations": {
-      "import": "./dist/surface-equations.js",
-      "types": "./dist/surface-equations.d.ts"
-    },
-    "./use-motion-resize-observer": {
-      "import": "./dist/use-motion-resize-observer.js",
-      "types": "./dist/use-motion-resize-observer.d.ts"
-    }
-  },
+  "main": "./dist/refractive.cjs",
+  "module": "./dist/refractive.js",
+  "types": "./dist/index.d.ts",
   "files": [
     "dist",
     "CHANGELOG.md",
@@ -43,14 +24,14 @@
   "scripts": {
     "build": "vite build",
     "clean": "rm -rf dist",
-    "dev": "vite build --watch",
+    "dev": "vite",
+    "dev:lib": "vite build --watch",
     "fix:eslint": "eslint --fix .",
     "lint:eslint": "eslint --report-unused-disable-directives .",
     "lint:tsc": "tsc --noEmit"
   },
   "dependencies": {
-    "canvas": "3.2.0",
-    "motion": "12.23.24"
+    "canvas": "3.2.0"
   },
   "devDependencies": {
     "@local/eslint": "0.0.0-private",
