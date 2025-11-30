@@ -22,12 +22,4 @@ fn {intrinsic#4294967040}() -> Null {
     bb0(): {
         unreachable
     }
-
-    bb1(): {
-        unreachable
-    }
-
-    bb2(): {
-        unreachable
-    }
 }
