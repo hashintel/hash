@@ -1,7 +1,31 @@
 //! Constant value representation for HashQL MIR.
 //!
-//! Constants represent compile-time known values that can be used directly
-//! in MIR operations without requiring memory access or computation.
+//! This module defines the [`Constant`] enum and supporting types for representing
+//! compile-time known values in the MIR. Constants can be used directly in MIR
+//! operations without requiring memory access or runtime computation.
+//!
+//! # Constant Variants
+//!
+//! - [`Constant::Int`] - Finite-precision integers that participate in constant evaluation
+//! - [`Constant::Primitive`] - Opaque primitive values (not evaluated)
+//! - [`Constant::Unit`] - The unit value `()`
+//! - [`Constant::FnPtr`] - Function pointer references
+//!
+//! # Constant Evaluation
+//!
+//! The MIR distinguishes between values that participate in constant evaluation and
+//! those that are treated as opaque:
+//!
+//! - **[`Int`]** values are used for constant evaluation. Operations like `SwitchInt` can inspect
+//!   and branch on these values at compile time.
+//!
+//! - **[`Primitive`]** values are treated as opaque by the MIR. Even though a [`Primitive`] may
+//!   contain an integer or boolean, the MIR will not inspect or evaluate it. These values pass
+//!   through unchanged until runtime.
+//!
+//! This separation allows the compiler to perform optimizations on [`Int`] values
+//! while preserving the semantics of complex primitive types that should not be
+//! evaluated at compile time.
 
 mod int;
 
@@ -24,15 +48,32 @@ use crate::def::DefId;
 /// - Default values for variables and parameters
 /// - Comparison targets in conditional operations
 /// - Function references for direct and indirect calls
+///
+/// # Constant Evaluation
+///
+/// Only [`Int`] values participate in constant evaluation. [`Primitive`] values
+/// are treated as opaque and pass through the MIR unchanged. See the
+/// [module documentation](self) for details.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum Constant<'heap> {
+    /// A finite-precision integer constant.
+    ///
+    /// This variant holds integers that participate in constant evaluation.
+    /// Operations like [`SwitchInt`] can inspect and branch on these values
+    /// at compile time.
+    ///
+    /// [`SwitchInt`]: crate::body::terminator::SwitchInt
     Int(Int),
 
-    /// A primitive constant value.
+    /// An opaque primitive constant value.
     ///
-    /// This variant contains immediate primitive values such as integers,
-    /// floating-point numbers, strings, booleans, and other literal types
-    /// supported by the HashQL type system.
+    /// This variant contains primitive values such as integers, floating-point
+    /// numbers, strings, booleans, and null. Unlike [`Int`], these values are
+    /// treated as **opaque** by the MIR and do not participate in constant
+    /// evaluation.
+    ///
+    /// Even if a [`Primitive`] contains an integer or boolean, the MIR will not
+    /// inspect or evaluate it. These values pass through unchanged until runtime.
     Primitive(Primitive<'heap>),
 
     /// The unit constant representing a zero-sized type (ZST).

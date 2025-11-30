@@ -692,7 +692,7 @@ impl<'heap> SwitchTargets<'heap> {
 ///
 /// // Create the switch with an integer discriminant
 /// let switch = SwitchInt {
-///     discriminant: Operand::Constant(Constant::Primitive(Primitive::Boolean(true))),
+///     discriminant: Operand::Constant(Constant::Int(true.into())),
 ///     targets,
 /// };
 /// ```

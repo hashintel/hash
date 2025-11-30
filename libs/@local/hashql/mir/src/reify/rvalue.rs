@@ -21,7 +21,7 @@ use super::{
     error::{fat_call_on_constant, nested_let_bindings_in_anf, unexpected_assertion},
 };
 use crate::body::{
-    constant::Constant,
+    constant::{Constant, Int, TryFromPrimitiveError},
     local::Local,
     operand::Operand,
     place::{FieldIndex, Place, ProjectionKind},
@@ -32,7 +32,13 @@ impl<'mir, 'heap> Reifier<'_, 'mir, '_, '_, 'heap> {
     fn rvalue_data(&mut self, data: Data<'heap>) -> RValue<'heap> {
         match data {
             Data::Primitive(primitive) => {
-                RValue::Load(Operand::Constant(Constant::Primitive(primitive)))
+                // First try if we can promote the primitive to a non-opaque constant:
+                let constant = match Int::try_from(primitive) {
+                    Ok(int) => Constant::Int(int),
+                    Err(TryFromPrimitiveError { value, .. }) => Constant::Primitive(value),
+                };
+
+                RValue::Load(Operand::Constant(constant))
             }
             Data::Struct(Struct { fields }) => {
                 let mut operands = IdVec::with_capacity_in(fields.len(), self.context.mir.heap);

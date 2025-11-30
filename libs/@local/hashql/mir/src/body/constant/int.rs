@@ -58,7 +58,7 @@ impl Int {
 
     /// Converts this integer to a boolean if the value is 0 or 1.
     ///
-    /// Returns [`Some(false)`] for 0, [`Some(true)`] for 1, or [`None`] for any other value.
+    /// Returns `Some(false)` for 0, `Some(true)` for 1, or [`None`] for any other value.
     ///
     /// # Examples
     ///
@@ -397,7 +397,7 @@ impl Int {
     /// This is primarily useful for operations like [`SwitchInt`] that work with
     /// unsigned discriminant values.
     ///
-    /// [`SwitchInt`]: crate::terminator::SwitchInt
+    /// [`SwitchInt`]: crate::body::terminator::SwitchInt
     ///
     /// # Sign Overflow Behavior
     ///
@@ -548,14 +548,12 @@ enum TryFromPrimitiveErrorKind {
 /// Error returned when converting a [`Primitive`] to [`Int`] fails.
 ///
 /// This error occurs in two scenarios:
-/// - [`OutOfRange`]: The primitive is an integer but exceeds [`i128`] range
-/// - [`InvalidType`]: The primitive is not a boolean or integer (e.g., float, null, string)
+/// - **Out of range**: The primitive is an integer but exceeds [`i128`] range
+/// - **Invalid type**: The primitive is not a boolean or integer (e.g., float, null, string)
 ///
-/// The original [`Primitive`] value is preserved in the [`value`] field for re-use.
-///
-/// [`OutOfRange`]: TryFromPrimitiveErrorKind::OutOfRange
-/// [`InvalidType`]: TryFromPrimitiveErrorKind::InvalidType
-/// [`value`]: Self::value
+/// Use [`is_out_of_range`](Self::is_out_of_range) and [`is_invalid_type`](Self::is_invalid_type)
+/// to determine the cause. The original [`Primitive`] value is preserved in the
+/// [`value`](Self::value) field.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct TryFromPrimitiveError<'heap> {
     kind: TryFromPrimitiveErrorKind,

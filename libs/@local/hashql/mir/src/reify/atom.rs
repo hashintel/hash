@@ -13,7 +13,7 @@ use super::{
 };
 use crate::{
     body::{
-        constant::Constant,
+        constant::{Constant, Int, TryFromPrimitiveError},
         local::Local,
         operand::Operand,
         place::{FieldIndex, Place, Projection, ProjectionKind},
@@ -163,7 +163,13 @@ impl<'heap> Reifier<'_, '_, '_, '_, 'heap> {
                 Operand::Constant(Constant::Unit)
             }
             NodeKind::Data(Data::Primitive(primitive)) => {
-                Operand::Constant(Constant::Primitive(primitive))
+                // First try if we can promote the primitive to a non-opaque constant:
+                let constant = match Int::try_from(primitive) {
+                    Ok(int) => Constant::Int(int),
+                    Err(TryFromPrimitiveError { value, .. }) => Constant::Primitive(value),
+                };
+
+                Operand::Constant(constant)
             }
             NodeKind::Variable(Variable::Local(local))
                 if let Some(&ptr) = self
