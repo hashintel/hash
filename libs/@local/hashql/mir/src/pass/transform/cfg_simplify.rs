@@ -7,6 +7,8 @@ use crate::{
     body::{
         Body,
         basic_block::{BasicBlock, BasicBlockId},
+        constant::Constant,
+        operand::Operand,
         place::Place,
         rvalue::RValue,
         statement::{Assign, Statement, StatementKind},
@@ -109,7 +111,11 @@ impl CfgSimplify {
         true
     }
 
-    fn simplify_switch_int(body: &mut Body<'_>, id: BasicBlockId) -> bool {
+    fn simplify_switch_int<'heap>(
+        context: &mut MirContext<'_, 'heap>,
+        body: &mut Body<'heap>,
+        id: BasicBlockId,
+    ) -> bool {
         // SwitchInt is very similar to any optimization that we're doing on a goto, except that we
         // do not inline, only re-point, this is because we always have multiple statements inside
         // of a switch target.
@@ -119,6 +125,37 @@ impl CfgSimplify {
         let TerminatorKind::SwitchInt(switch) = &terminator.kind else {
             unreachable!()
         };
+
+        // If the discriminant is an integer constant, take the value (or otherwise). We issue an
+        // ICE in the case that the discriminant is not one of the switch targets. As this would be
+        // a violation of the invariants provided by the compiler.
+        if let Operand::Constant(Constant::Int(int)) = switch.discriminant {
+            let discriminant = int.as_uint();
+
+            if let Some(index) = switch
+                .targets
+                .values()
+                .iter()
+                .position(|&value| value == discriminant)
+            {
+                let target = switch.targets.targets()[index];
+                body.basic_blocks.as_mut()[id].terminator.kind =
+                    TerminatorKind::Goto(Goto { target });
+
+                return true;
+            }
+
+            if let Some(otherwise) = switch.targets.otherwise() {
+                body.basic_blocks.as_mut()[id].terminator.kind =
+                    TerminatorKind::Goto(Goto { target: otherwise });
+
+                return true;
+            }
+
+            // TODO: issue diagnostic (as ICE), and move to unreachable
+            body.basic_blocks.as_mut()[id].terminator.kind = TerminatorKind::Unreachable;
+            return true;
+        }
 
         // In the case that *every* target is the same, we can degenerate to a goto
         if switch
@@ -280,14 +317,14 @@ impl CfgSimplify {
     }
 
     fn simplify<'heap>(
-        context: &MirContext<'_, 'heap>,
+        context: &mut MirContext<'_, 'heap>,
         body: &mut Body<'heap>,
         id: BasicBlockId,
     ) -> bool {
         // Check the type of the terminator, we're only able to simplify Goto and SwitchInt
         match &body.basic_blocks[id].terminator.kind {
             &TerminatorKind::Goto(goto) => Self::simplify_goto(context, body, id, goto),
-            TerminatorKind::SwitchInt(_) => Self::simplify_switch_int(body, id),
+            TerminatorKind::SwitchInt(_) => Self::simplify_switch_int(context, body, id),
             TerminatorKind::Return(_)
             | TerminatorKind::GraphRead(_)
             | TerminatorKind::Unreachable => false,
