@@ -3,7 +3,7 @@ _.file = [".env", ".env.local"]
 
 [tools]
 # Basic tools
-node        = { version = "22.19.0", postinstall = "corepack enable" }
+node        = { version = "22.21.1", postinstall = "corepack enable" }
 "npm:turbo" = "2.6.1"
 
 # Helper to install tools
