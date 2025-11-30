@@ -293,7 +293,11 @@ impl CfgSimplify {
             }
 
             match &target_block.terminator.kind {
-                TerminatorKind::Goto(_) => {
+                // We can only promote goto terminators if we don't pass any arguments. Otherwise,
+                // we'd need to assign parameters before the switch, which would affect all arms.
+                // If two arms point to the same block, this corrupts the other arm's semantics.
+                // We could insert an intermediate block, but that negates the optimization.
+                TerminatorKind::Goto(_) if target.args.is_empty() => {
                     promotion_goto.push((index, target));
                 }
                 // SwitchInt promotion is more complex and not yet implemented.
@@ -305,7 +309,8 @@ impl CfgSimplify {
                 {
                     // Requires discriminant folding with arithmetic operations.
                 }
-                TerminatorKind::SwitchInt(_)
+                TerminatorKind::Goto(_)
+                | TerminatorKind::SwitchInt(_)
                 | TerminatorKind::Return(_)
                 | TerminatorKind::GraphRead(_)
                 | TerminatorKind::Unreachable => {}
