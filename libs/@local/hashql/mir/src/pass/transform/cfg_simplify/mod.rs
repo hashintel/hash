@@ -40,6 +40,9 @@
 //! bb3: unreachable
 //! ```
 
+#[cfg(test)]
+mod tests;
+
 use core::{iter::ExactSizeIterator as _, mem};
 
 use hashql_core::{
