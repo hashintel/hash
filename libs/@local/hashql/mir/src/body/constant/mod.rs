@@ -7,7 +7,7 @@ mod int;
 
 use hashql_core::value::Primitive;
 
-pub use self::int::Int;
+pub use self::int::{Int, TryFromIntegerError, TryFromPrimitiveError};
 use crate::def::DefId;
 
 /// A constant value in the HashQL MIR.

@@ -1,17 +1,44 @@
-use core::{
-    error::Error,
-    fmt,
-    num::{NonZero, TryFromIntError},
-};
+use core::{error::Error, fmt, num::TryFromIntError};
 
 use hashql_core::value::{Integer, Primitive};
 
-// Unlike rust we cannot differentiate between signed and unsigned integers, therefore all values
-// are signed.
+/// A finite-precision integer constant in the MIR.
+///
+/// Unlike Rust, HashQL cannot differentiate between signed and unsigned integers at the type
+/// level, so all values are stored as signed [`i128`].
+///
+/// # Conversion Methods
+///
+/// **Range-checked conversions** (`as_i8`, `as_u8`, `as_i16`, etc.) return [`Some`] only if
+/// the value fits in the target type's range.
+///
+/// **Unchecked conversions** (`as_int`, `as_uint`) return the raw value without range checks.
+///
+/// # Examples
+///
+/// ```
+/// use hashql_mir::body::constant::Int;
+///
+/// // Values that fit in the target range succeed
+/// let small = Int::from(42_i64);
+/// assert_eq!(small.as_i8(), Some(42));
+/// assert_eq!(small.as_i16(), Some(42));
+///
+/// // Values outside the target range return None
+/// let large = Int::from(1000_i64);
+/// assert_eq!(large.as_i8(), None); // 1000 > i8::MAX
+/// assert_eq!(large.as_i16(), Some(1000));
+///
+/// // Unsigned conversions require non-negative values
+/// let negative = Int::from(-1_i8);
+/// assert_eq!(negative.as_i8(), Some(-1));
+/// assert_eq!(negative.as_u8(), None);
+///
+/// // Raw value access always succeeds
+/// assert_eq!(large.as_int(), 1000);
+/// ```
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub struct Int {
-    size: NonZero<u8>,
-
     value: i128,
 }
 
@@ -21,163 +48,272 @@ pub struct Int {
     clippy::cast_sign_loss
 )]
 impl Int {
-    const fn from_value_unchecked(size: NonZero<u8>, value: i128) -> Self {
-        Self { size, value }
+    const fn from_value_unchecked(value: i128) -> Self {
+        Self { value }
     }
 
-    #[inline]
-    const fn bits(&self) -> u64 {
-        (self.size.get() * 8) as u64
-    }
-
-    #[inline]
-    const fn truncate(&self) -> i128 {
-        self.value & ((1 << self.bits()) - 1)
-    }
-
+    /// Converts this integer to a boolean if the value is 0 or 1.
+    ///
+    /// Returns [`Some(false)`] for 0, [`Some(true)`] for 1, or [`None`] for any other value.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use hashql_mir::body::constant::Int;
+    ///
+    /// assert_eq!(Int::from(true).as_bool(), Some(true));
+    /// assert_eq!(Int::from(false).as_bool(), Some(false));
+    /// assert_eq!(Int::from(1_i32).as_bool(), Some(true));
+    /// assert_eq!(Int::from(0_i64).as_bool(), Some(false));
+    ///
+    /// // Values other than 0 or 1 return None
+    /// assert_eq!(Int::from(2_i8).as_bool(), None);
+    /// assert_eq!(Int::from(-1_i8).as_bool(), None);
+    /// ```
     #[inline]
     #[must_use]
     pub const fn as_bool(self) -> Option<bool> {
-        if let Some(value) = self.as_i8() {
-            Some(value != 0)
-        } else {
-            None
+        match self.value {
+            0 => Some(false),
+            1 => Some(true),
+            _ => None,
         }
     }
 
+    /// Converts this integer to [`i8`] if the value fits in the range `-128..=127`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use hashql_mir::body::constant::Int;
+    ///
+    /// assert_eq!(Int::from(42_i8).as_i8(), Some(42));
+    /// assert_eq!(Int::from(42_i64).as_i8(), Some(42));
+    /// assert_eq!(Int::from(-128_i32).as_i8(), Some(-128));
+    /// assert_eq!(Int::from(127_u8).as_i8(), Some(127));
+    ///
+    /// // Value out of i8 range returns None
+    /// assert_eq!(Int::from(128_i32).as_i8(), None);
+    /// assert_eq!(Int::from(-129_i32).as_i8(), None);
+    /// ```
     #[inline]
     #[must_use]
     pub const fn as_i8(self) -> Option<i8> {
-        if self.size.get() == 1 {
-            Some(self.truncate() as i8)
+        if self.value >= i8::MIN as i128 && self.value <= i8::MAX as i128 {
+            Some(self.value as i8)
         } else {
             None
         }
     }
 
+    /// Converts this integer to [`u8`] if the value fits in the range `0..=255`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use hashql_mir::body::constant::Int;
+    ///
+    /// assert_eq!(Int::from(42_i8).as_u8(), Some(42));
+    /// assert_eq!(Int::from(255_u8).as_u8(), Some(255));
+    /// assert_eq!(Int::from(200_i64).as_u8(), Some(200));
+    ///
+    /// // Negative or too large values return None
+    /// assert_eq!(Int::from(-1_i8).as_u8(), None);
+    /// assert_eq!(Int::from(256_i32).as_u8(), None);
+    /// ```
     #[inline]
     #[must_use]
     pub const fn as_u8(self) -> Option<u8> {
-        if self.size.get() == 1 && self.value >= 0 {
-            Some(self.truncate() as u8)
+        if self.value >= 0 && self.value <= u8::MAX as i128 {
+            Some(self.value as u8)
         } else {
             None
         }
     }
 
+    /// Converts this integer to [`i16`] if the value fits in the range `-32768..=32767`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use hashql_mir::body::constant::Int;
+    ///
+    /// assert_eq!(Int::from(1000_i16).as_i16(), Some(1000));
+    /// assert_eq!(Int::from(1000_i64).as_i16(), Some(1000));
+    /// assert_eq!(Int::from(-1000_i32).as_i16(), Some(-1000));
+    ///
+    /// // Value out of i16 range returns None
+    /// assert_eq!(Int::from(40000_i64).as_i16(), None);
+    /// ```
     #[inline]
     #[must_use]
     pub const fn as_i16(self) -> Option<i16> {
-        if self.size.get() == 2 {
-            Some(self.truncate() as i16)
+        if self.value >= i16::MIN as i128 && self.value <= i16::MAX as i128 {
+            Some(self.value as i16)
         } else {
             None
         }
     }
 
+    /// Converts this integer to [`u16`] if the value fits in the range `0..=65535`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use hashql_mir::body::constant::Int;
+    ///
+    /// assert_eq!(Int::from(1000_i16).as_u16(), Some(1000));
+    /// assert_eq!(Int::from(65535_u16).as_u16(), Some(65535));
+    /// assert_eq!(Int::from(50000_i64).as_u16(), Some(50000));
+    ///
+    /// // Negative or too large values return None
+    /// assert_eq!(Int::from(-1_i16).as_u16(), None);
+    /// assert_eq!(Int::from(70000_i64).as_u16(), None);
+    /// ```
     #[inline]
     #[must_use]
     pub const fn as_u16(self) -> Option<u16> {
-        if self.size.get() == 2 && self.value >= 0 {
-            Some(self.truncate() as u16)
+        if self.value >= 0 && self.value <= u16::MAX as i128 {
+            Some(self.value as u16)
         } else {
             None
         }
     }
 
+    /// Converts this integer to [`i32`] if the value fits in the [`i32`] range.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use hashql_mir::body::constant::Int;
+    ///
+    /// assert_eq!(Int::from(100_000_i32).as_i32(), Some(100_000));
+    /// assert_eq!(Int::from(100_000_i64).as_i32(), Some(100_000));
+    /// assert_eq!(Int::from(-100_000_i64).as_i32(), Some(-100_000));
+    ///
+    /// // Value out of i32 range returns None
+    /// assert_eq!(Int::from(3_000_000_000_i64).as_i32(), None);
+    /// ```
     #[inline]
     #[must_use]
     pub const fn as_i32(self) -> Option<i32> {
-        if self.size.get() == 4 {
-            Some(self.truncate() as i32)
+        if self.value >= i32::MIN as i128 && self.value <= i32::MAX as i128 {
+            Some(self.value as i32)
         } else {
             None
         }
     }
 
+    /// Converts this integer to [`u32`] if the value fits in the [`u32`] range.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use hashql_mir::body::constant::Int;
+    ///
+    /// assert_eq!(Int::from(100_000_i32).as_u32(), Some(100_000));
+    /// assert_eq!(Int::from(3_000_000_000_u32).as_u32(), Some(3_000_000_000));
+    /// assert_eq!(Int::from(100_000_i64).as_u32(), Some(100_000));
+    ///
+    /// // Negative or too large values return None
+    /// assert_eq!(Int::from(-1_i32).as_u32(), None);
+    /// assert_eq!(Int::from(5_000_000_000_i64).as_u32(), None);
+    /// ```
     #[inline]
     #[must_use]
     pub const fn as_u32(self) -> Option<u32> {
-        if self.size.get() == 4 && self.value >= 0 {
-            Some(self.truncate() as u32)
+        if self.value >= 0 && self.value <= u32::MAX as i128 {
+            Some(self.value as u32)
         } else {
             None
         }
     }
 
+    /// Converts this integer to [`i64`] if the value fits in the [`i64`] range.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use hashql_mir::body::constant::Int;
+    ///
+    /// assert_eq!(Int::from(10_000_000_000_i64).as_i64(), Some(10_000_000_000));
+    /// assert_eq!(
+    ///     Int::from(-10_000_000_000_i64).as_i64(),
+    ///     Some(-10_000_000_000)
+    /// );
+    /// assert_eq!(Int::from(100_i32).as_i64(), Some(100));
+    ///
+    /// // Value out of i64 range returns None
+    /// assert_eq!(Int::from(10_000_000_000_000_000_000_u64).as_i64(), None);
+    /// ```
     #[inline]
     #[must_use]
     pub const fn as_i64(self) -> Option<i64> {
-        if self.size.get() == 8 {
-            Some(self.truncate() as i64)
+        if self.value >= i64::MIN as i128 && self.value <= i64::MAX as i128 {
+            Some(self.value as i64)
         } else {
             None
         }
     }
 
+    /// Converts this integer to [`u64`] if the value fits in the [`u64`] range.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use hashql_mir::body::constant::Int;
+    ///
+    /// assert_eq!(Int::from(10_000_000_000_i64).as_u64(), Some(10_000_000_000));
+    /// assert_eq!(Int::from(100_i32).as_u64(), Some(100));
+    ///
+    /// // Negative or too large values return None
+    /// assert_eq!(Int::from(-1_i64).as_u64(), None);
+    /// ```
     #[inline]
     #[must_use]
     pub const fn as_u64(self) -> Option<u64> {
-        if self.size.get() == 8 && self.value >= 0 {
-            Some(self.truncate() as u64)
+        if self.value >= 0 && self.value <= u64::MAX as i128 {
+            Some(self.value as u64)
         } else {
             None
         }
     }
 
+    /// Returns the value as [`i128`].
+    ///
+    /// This always succeeds since the internal representation is [`i128`].
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use hashql_mir::body::constant::Int;
+    ///
+    /// assert_eq!(Int::from(i128::MAX).as_i128(), i128::MAX);
+    /// assert_eq!(Int::from(i128::MIN).as_i128(), i128::MIN);
+    /// assert_eq!(Int::from(42_i8).as_i128(), 42);
+    /// ```
     #[inline]
     #[must_use]
-    pub const fn as_i128(self) -> Option<i128> {
-        if self.size.get() == 16 {
-            Some(self.value)
-        } else {
-            None
-        }
+    pub const fn as_i128(self) -> i128 {
+        self.value
     }
 
+    /// Converts this integer to [`u128`] if the value is non-negative.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use hashql_mir::body::constant::Int;
+    ///
+    /// assert_eq!(Int::from(i128::MAX).as_u128(), Some(i128::MAX as u128));
+    /// assert_eq!(Int::from(42_i8).as_u128(), Some(42));
+    ///
+    /// // Negative values return None
+    /// assert_eq!(Int::from(-1_i128).as_u128(), None);
+    /// ```
     #[inline]
     #[must_use]
     pub const fn as_u128(self) -> Option<u128> {
-        if self.size.get() == 16 && self.value >= 0 {
-            Some(self.value as u128)
-        } else {
-            None
-        }
-    }
-
-    #[inline]
-    #[must_use]
-    pub const fn as_isize(self) -> Option<isize> {
-        const BYTES: u8 = size_of::<isize>() as u8;
-
-        if self.size.get() == BYTES {
-            Some(self.truncate() as isize)
-        } else {
-            None
-        }
-    }
-
-    #[inline]
-    #[must_use]
-    pub const fn as_usize(self) -> Option<usize> {
-        const BYTES: u8 = size_of::<usize>() as u8;
-
-        if self.size.get() == BYTES && self.value >= 0 {
-            Some(self.truncate() as usize)
-        } else {
-            None
-        }
-    }
-
-    #[inline]
-    #[must_use]
-    pub const fn as_int(self) -> i128 {
-        self.truncate()
-    }
-
-    #[inline]
-    #[must_use]
-    pub const fn as_uint(self) -> Option<u128> {
         if self.value >= 0 {
             Some(self.value as u128)
         } else {
@@ -185,12 +321,139 @@ impl Int {
         }
     }
 
+    /// Converts this integer to [`isize`] if the value fits in the platform's [`isize`] range.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use hashql_mir::body::constant::Int;
+    ///
+    /// assert_eq!(Int::from(42_isize).as_isize(), Some(42));
+    /// assert_eq!(Int::from(-42_i32).as_isize(), Some(-42));
+    /// assert_eq!(Int::from(1000_i64).as_isize(), Some(1000));
+    /// ```
+    #[inline]
+    #[must_use]
+    pub const fn as_isize(self) -> Option<isize> {
+        if self.value >= isize::MIN as i128 && self.value <= isize::MAX as i128 {
+            Some(self.value as isize)
+        } else {
+            None
+        }
+    }
+
+    /// Converts this integer to [`usize`] if the value fits in the platform's [`usize`] range.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use hashql_mir::body::constant::Int;
+    ///
+    /// assert_eq!(Int::from(42_usize).as_usize(), Some(42));
+    /// assert_eq!(Int::from(1000_i64).as_usize(), Some(1000));
+    ///
+    /// // Negative values return None
+    /// assert_eq!(Int::from(-1_isize).as_usize(), None);
+    /// ```
+    #[inline]
+    #[must_use]
+    pub const fn as_usize(self) -> Option<usize> {
+        if self.value >= 0 && self.value <= usize::MAX as i128 {
+            Some(self.value as usize)
+        } else {
+            None
+        }
+    }
+
+    /// Returns the raw signed value.
+    ///
+    /// This always succeeds and returns the internal [`i128`] representation directly.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use hashql_mir::body::constant::Int;
+    ///
+    /// assert_eq!(Int::from(42_i8).as_int(), 42);
+    /// assert_eq!(Int::from(-1_i64).as_int(), -1);
+    /// assert_eq!(Int::from(i128::MAX).as_int(), i128::MAX);
+    /// ```
+    #[inline]
+    #[must_use]
+    pub const fn as_int(self) -> i128 {
+        self.value
+    }
+
+    /// Returns the raw value reinterpreted as unsigned.
+    ///
+    /// This performs a direct bit-cast from [`i128`] to [`u128`], preserving the
+    /// two's complement representation. For negative values, this produces the
+    /// corresponding unsigned value with the sign bit set.
+    ///
+    /// This is primarily useful for operations like [`SwitchInt`] that work with
+    /// unsigned discriminant values.
+    ///
+    /// [`SwitchInt`]: crate::terminator::SwitchInt
+    ///
+    /// # Sign Overflow Behavior
+    ///
+    /// Negative signed values wrap around to large unsigned values:
+    /// - `-1_i8` becomes `u128::MAX` (all bits set)
+    /// - `-128_i8` becomes `u128::MAX - 127`
+    ///
+    /// This is intentional and matches Rust's `as` cast semantics for signed-to-unsigned
+    /// conversions.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use hashql_mir::body::constant::Int;
+    ///
+    /// // Positive values convert directly
+    /// assert_eq!(Int::from(42_i8).as_uint(), 42);
+    ///
+    /// // Negative values wrap (two's complement)
+    /// assert_eq!(Int::from(-1_i8).as_uint(), u128::MAX);
+    /// assert_eq!(Int::from(-1_i128).as_uint(), u128::MAX);
+    /// ```
+    #[inline]
+    #[must_use]
+    pub const fn as_uint(self) -> u128 {
+        self.value as u128
+    }
+
+    /// Converts this integer to [`f32`].
+    ///
+    /// This may lose precision for values that cannot be exactly represented
+    /// as a 32-bit floating point number.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use hashql_mir::body::constant::Int;
+    ///
+    /// assert_eq!(Int::from(42_i32).as_f32(), 42.0_f32);
+    /// assert_eq!(Int::from(-1_i8).as_f32(), -1.0_f32);
+    /// ```
     #[inline]
     #[must_use]
     pub const fn as_f32(self) -> f32 {
         self.as_int() as f32
     }
 
+    /// Converts this integer to [`f64`].
+    ///
+    /// This may lose precision for values that cannot be exactly represented
+    /// as a 64-bit floating point number.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use hashql_mir::body::constant::Int;
+    ///
+    /// assert_eq!(Int::from(42_i64).as_f64(), 42.0_f64);
+    /// assert_eq!(Int::from(-1_i8).as_f64(), -1.0_f64);
+    /// ```
     #[inline]
     #[must_use]
     pub const fn as_f64(self) -> f64 {
@@ -204,14 +467,10 @@ macro_rules! impl_from {
     };
 
     (@impl $ty:ty) => {
-        #[expect(unsafe_code, clippy::cast_possible_truncation)]
         impl From<$ty> for Int {
             #[inline]
             fn from(value: $ty) -> Self {
-                const { assert!(size_of::<$ty>() != 0) }
-
-                // SAFETY: compile time assert ensures that size_of::<$ty>() != 0
-                Self::from_value_unchecked(unsafe { NonZero::new_unchecked(size_of::<$ty>() as u8) }, i128::from(value))
+                Self::from_value_unchecked(i128::from(value))
             }
         }
     };
@@ -219,20 +478,34 @@ macro_rules! impl_from {
 
 impl_from!(bool, u8, u16, u32, u64, i8, i16, i32, i64, i128);
 
-#[expect(unsafe_code, clippy::cast_possible_truncation)]
+// `usize` and `isize` cannot use the macro because `i128::from()` doesn't accept
+// platform-dependent types.
+impl From<usize> for Int {
+    #[inline]
+    fn from(value: usize) -> Self {
+        Self::from_value_unchecked(value as i128)
+    }
+}
+
+impl From<isize> for Int {
+    #[inline]
+    fn from(value: isize) -> Self {
+        Self::from_value_unchecked(value as i128)
+    }
+}
+
 impl TryFrom<u128> for Int {
     type Error = TryFromIntError;
 
     #[inline]
     fn try_from(value: u128) -> Result<Self, Self::Error> {
-        // SAFETY: 16 != 0
-        Ok(Self::from_value_unchecked(
-            unsafe { NonZero::new_unchecked(size_of::<u128>() as u8) },
-            i128::try_from(value)?,
-        ))
+        Ok(Self::from_value_unchecked(i128::try_from(value)?))
     }
 }
 
+/// Error returned when converting an [`Integer`] to [`Int`] fails.
+///
+/// This error occurs when the [`Integer`] value exceeds the range of [`i128`].
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct TryFromIntegerError(());
 
@@ -262,10 +535,36 @@ enum TryFromPrimitiveErrorKind {
     InvalidType,
 }
 
+/// Error returned when converting a [`Primitive`] to [`Int`] fails.
+///
+/// This error occurs in two scenarios:
+/// - [`OutOfRange`]: The primitive is an integer but exceeds [`i128`] range
+/// - [`InvalidType`]: The primitive is not a boolean or integer (e.g., float, null, string)
+///
+/// The original [`Primitive`] value is preserved in the [`value`] field for re-use.
+///
+/// [`OutOfRange`]: TryFromPrimitiveErrorKind::OutOfRange
+/// [`InvalidType`]: TryFromPrimitiveErrorKind::InvalidType
+/// [`value`]: Self::value
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct TryFromPrimitiveError<'heap> {
     kind: TryFromPrimitiveErrorKind,
+    /// The original primitive value that could not be converted.
     pub value: Primitive<'heap>,
+}
+
+impl TryFromPrimitiveError<'_> {
+    /// Returns `true` if the error was caused by an out-of-range integer.
+    #[must_use]
+    pub const fn is_out_of_range(&self) -> bool {
+        matches!(self.kind, TryFromPrimitiveErrorKind::OutOfRange)
+    }
+
+    /// Returns `true` if the error was caused by an invalid type.
+    #[must_use]
+    pub const fn is_invalid_type(&self) -> bool {
+        matches!(self.kind, TryFromPrimitiveErrorKind::InvalidType)
+    }
 }
 
 impl fmt::Display for TryFromPrimitiveError<'_> {
