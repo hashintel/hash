@@ -1,6 +1,9 @@
 use core::{iter::ExactSizeIterator as _, mem};
 
-use hashql_core::{collections::WorkQueue, graph::Predecessors as _};
+use hashql_core::{
+    collections::{FastHashSet, WorkQueue},
+    graph::Predecessors as _,
+};
 
 use super::ssa_repair::SsaRepairPass;
 use crate::{
@@ -19,7 +22,8 @@ use crate::{
 };
 
 pub struct CfgSimplify {
-    queue: WorkQueue<BasicBlockId>,
+    previous_reverse_postorder: Vec<BasicBlockId>,
+    reverse_postorder: FastHashSet<BasicBlockId>,
 }
 
 impl CfgSimplify {
@@ -317,31 +321,69 @@ impl CfgSimplify {
     }
 
     fn simplify<'heap>(
+        &mut self,
         context: &mut MirContext<'_, 'heap>,
         body: &mut Body<'heap>,
         id: BasicBlockId,
     ) -> bool {
+        // save the current reverse postorder
+        self.previous_reverse_postorder.clear();
+        self.previous_reverse_postorder
+            .extend_from_slice(body.basic_blocks.reverse_postorder());
+
         // Check the type of the terminator, we're only able to simplify Goto and SwitchInt
-        match &body.basic_blocks[id].terminator.kind {
+        let changed = match &body.basic_blocks[id].terminator.kind {
             &TerminatorKind::Goto(goto) => Self::simplify_goto(context, body, id, goto),
             TerminatorKind::SwitchInt(_) => Self::simplify_switch_int(context, body, id),
             TerminatorKind::Return(_)
             | TerminatorKind::GraphRead(_)
             | TerminatorKind::Unreachable => false,
+        };
+
+        if changed {
+            self.mark_dead_blocks(body);
+        }
+
+        changed
+    }
+
+    fn mark_dead_blocks(&mut self, body: &mut Body<'_>) {
+        // We mark dead blocks as unreachable. We do this to allow for more optimizations. This is
+        // done by moving the terminator to unreachable. Another pass (dead block elimination)
+        // compacts the graph to then remove the dead blocks.
+
+        // Given that we know that the reverse postorder is unique, we can use unchecked here
+        let reverse_postorder = body.basic_blocks.reverse_postorder();
+        self.reverse_postorder.clear();
+        self.reverse_postorder.reserve(reverse_postorder.len());
+
+        #[expect(unsafe_code)]
+        for &block in reverse_postorder {
+            // SAFETY: Reverse postorder is unique
+            unsafe {
+                self.reverse_postorder.insert_unique_unchecked(block);
+            }
+        }
+
+        // Check if there are any blocks, which have changed
+        for block in self.previous_reverse_postorder.drain(..) {
+            if !self.reverse_postorder.contains(&block) {
+                body.basic_blocks.as_mut()[block].terminator.kind = TerminatorKind::Unreachable;
+            }
         }
     }
 }
 
 impl<'env, 'heap> Pass<'env, 'heap> for CfgSimplify {
     fn run(&mut self, context: &mut MirContext<'env, 'heap>, body: &mut Body<'heap>) {
-        self.queue
-            .extend(body.basic_blocks.reverse_postorder().iter().copied().rev());
+        let mut queue = WorkQueue::new(body.basic_blocks.len());
+        queue.extend(body.basic_blocks.reverse_postorder().iter().copied().rev());
 
-        while let Some(block) = self.queue.dequeue() {
+        while let Some(block) = queue.dequeue() {
             let mut simplified = false;
 
             // re-run multiple times to potentially catch multiple simplifications
-            while Self::simplify(context, body, block) {
+            while self.simplify(context, body, block) {
                 simplified = true;
             }
 
@@ -354,7 +396,7 @@ impl<'env, 'heap> Pass<'env, 'heap> for CfgSimplify {
             // This is the heart of our fixed-point iteration algorithm which is resistant against
             // loops. We simply simplify until there are no more changes.
             for pred in body.basic_blocks.predecessors(block) {
-                self.queue.enqueue(pred);
+                queue.enqueue(pred);
             }
         }
 
