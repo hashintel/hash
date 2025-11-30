@@ -8329,7 +8329,6 @@ __metadata:
     babel-plugin-react-compiler: "npm:1.0.0"
     canvas: "npm:3.2.0"
     eslint: "npm:9.38.0"
-    motion: "npm:12.23.24"
     typescript: "npm:5.9.3"
     vite: "npm:7.1.11"
     vite-plugin-dts: "npm:4.5.4"
