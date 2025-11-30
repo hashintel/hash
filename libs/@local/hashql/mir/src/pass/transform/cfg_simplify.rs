@@ -47,7 +47,7 @@ use hashql_core::{
     graph::Predecessors as _,
 };
 
-use super::ssa_repair::SsaRepairPass;
+use super::{error::unreachable_switch_arm, ssa_repair::SsaRepairPass};
 use crate::{
     body::{
         Body,
@@ -177,6 +177,7 @@ impl CfgSimplify {
     ///
     /// 5. **Target promotion**: When a switch arm targets an empty block with a `Goto` terminator,
     ///    we can redirect the switch directly to that `Goto`'s target.
+    #[expect(clippy::too_many_lines, reason = "mostly documentation")]
     fn simplify_switch_int<'heap>(
         context: &mut MirContext<'_, 'heap>,
         body: &mut Body<'heap>,
@@ -213,8 +214,10 @@ impl CfgSimplify {
                 return true;
             }
 
-            // No matching case and no otherwise - this is unreachable code.
-            // TODO: Emit an ICE diagnostic here.
+            // No matching case and no otherwise—this violates compiler invariants.
+            context
+                .diagnostics
+                .push(unreachable_switch_arm(terminator.span));
             body.basic_blocks.as_mut()[id].terminator.kind = TerminatorKind::Unreachable;
             return true;
         }
@@ -287,17 +290,21 @@ impl CfgSimplify {
                 continue;
             }
 
+            // We can only promote terminators if we don't pass any arguments. Otherwise,
+            // we'd need to assign parameters before the switch, which would affect all arms.
+            // If two arms point to the same block, this corrupts the other arm's semantics.
+            // We could insert an intermediate block, but that negates the optimization.
+            if !target.args.is_empty() {
+                continue;
+            }
+
             let target_block = &body.basic_blocks[target.block];
             if !Self::is_noop(target_block) {
                 continue;
             }
 
             match &target_block.terminator.kind {
-                // We can only promote goto terminators if we don't pass any arguments. Otherwise,
-                // we'd need to assign parameters before the switch, which would affect all arms.
-                // If two arms point to the same block, this corrupts the other arm's semantics.
-                // We could insert an intermediate block, but that negates the optimization.
-                TerminatorKind::Goto(_) if target.args.is_empty() => {
+                TerminatorKind::Goto(_) => {
                     promotion_goto.push((index, target));
                 }
                 // SwitchInt promotion is more complex and not yet implemented.
@@ -309,8 +316,7 @@ impl CfgSimplify {
                 {
                     // Requires discriminant folding with arithmetic operations.
                 }
-                TerminatorKind::Goto(_)
-                | TerminatorKind::SwitchInt(_)
+                TerminatorKind::SwitchInt(_)
                 | TerminatorKind::Return(_)
                 | TerminatorKind::GraphRead(_)
                 | TerminatorKind::Unreachable => {}
