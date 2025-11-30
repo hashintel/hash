@@ -1,0 +1,57 @@
+---
+source: libs/@local/hashql/mir/src/pass/transform/cfg_simplify/tests.rs
+expression: value
+---
+fn {intrinsic#4294967040}() -> Null {
+    let %0: Integer
+
+    bb0(): {
+        %0 = 0
+
+        switchInt(%0) -> [0: bb1(), 1: bb2(), otherwise: bb3()]
+    }
+
+    bb1(): {
+        goto -> bb4()
+    }
+
+    bb2(): {
+        goto -> bb4()
+    }
+
+    bb3(): {
+        return ()
+    }
+
+    bb4(): {
+        return ()
+    }
+}
+
+------------------------------------
+
+fn {intrinsic#4294967040}() -> Null {
+    let %0: Integer
+
+    bb0(): {
+        %0 = 0
+
+        switchInt(%0) -> [0: bb1(), 1: bb2(), otherwise: bb3()]
+    }
+
+    bb1(): {
+        return ()
+    }
+
+    bb2(): {
+        return ()
+    }
+
+    bb3(): {
+        return ()
+    }
+
+    bb4(): {
+        unreachable
+    }
+}

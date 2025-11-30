@@ -162,13 +162,21 @@ impl CfgSimplify {
 
         // Step 3: Assume the target's terminator.
         // With a single predecessor we can take ownership; otherwise we must clone.
-        block.terminator = if target_predecessors_len == 1 {
+        let next_terminator = if target_predecessors_len == 1 {
             let src = Terminator::unreachable(target.terminator.span);
 
             mem::replace(&mut target.terminator, src)
         } else {
             target.terminator.clone()
         };
+
+        if block.terminator.kind == next_terminator.kind {
+            // We *could* replace the terminator with the next terminator, but this results in a
+            // no-op, therefore no change to the CFG is happening.
+            return false;
+        }
+
+        block.terminator = next_terminator;
 
         true
     }

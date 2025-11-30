@@ -142,9 +142,7 @@ impl<'env, 'heap> BaseBuilder<'env, 'heap> {
     /// Creates an integer constant operand.
     #[must_use]
     pub(crate) fn const_int(self, value: i64) -> Operand<'heap> {
-        Operand::Constant(Constant::Primitive(Primitive::Integer(
-            Integer::new_unchecked(self.interner.heap.intern_symbol(&value.to_string())),
-        )))
+        Operand::Constant(Constant::Int(value.into()))
     }
 
     /// Creates a float constant operand.
@@ -158,7 +156,7 @@ impl<'env, 'heap> BaseBuilder<'env, 'heap> {
     /// Creates a boolean constant operand.
     #[must_use]
     pub(crate) fn const_bool(self, value: bool) -> Operand<'heap> {
-        Operand::Constant(Constant::Primitive(Primitive::Boolean(value)))
+        Operand::Constant(Constant::Int(value.into()))
     }
 
     /// Creates a unit constant operand.
