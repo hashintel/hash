@@ -31,6 +31,7 @@
 
 <!-- Confirm you have taken the necessary action to record a changeset or publish a change, as appropriate -->
 <!-- Tick AT LEAST ONE box and delete the rest. Do not delete this section! see libs/README.md for info on publishing -->
+<!-- Libraries inside of the `@local` directory are always internal libraries which have no need for publishing -->
 
 This PR:
 
