@@ -8,7 +8,7 @@ use crate::{
     body::{
         Body, Source,
         basic_block::{BasicBlock, BasicBlockId},
-        constant::Constant,
+        constant::{Constant, Int},
         local::{Local, LocalDecl},
         location::Location,
         operand::Operand,
@@ -159,6 +159,12 @@ pub trait Visitor<'heap> {
         place: &Place<'heap>,
     ) -> Self::Result {
         walk_place(self, location, context, place)
+    }
+
+    #[expect(unused_variables, reason = "trait definition")]
+    fn visit_int(&mut self, location: Location, int: &Int) -> Self::Result {
+        // leaf, nothing to do
+        Ok!()
     }
 
     #[expect(unused_variables, reason = "trait definition")]
@@ -475,6 +481,7 @@ pub fn walk_constant<'heap, T: Visitor<'heap> + ?Sized>(
     constant: &Constant<'heap>,
 ) -> T::Result {
     match constant {
+        Constant::Int(int) => visitor.visit_int(location, int),
         Constant::Primitive(primitive) => visitor.visit_primitive(location, primitive),
         Constant::Unit => visitor.visit_unit(location),
         Constant::FnPtr(def_id) => visitor.visit_def_id(location, *def_id),

@@ -26,6 +26,8 @@ use crate::def::DefId;
 /// - Function references for direct and indirect calls
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum Constant<'heap> {
+    Int(Int),
+
     /// A primitive constant value.
     ///
     /// This variant contains immediate primitive values such as integers,

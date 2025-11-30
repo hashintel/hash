@@ -1,4 +1,8 @@
-use core::{error::Error, fmt, num::TryFromIntError};
+use core::{
+    error::Error,
+    fmt::{self, Display},
+    num::TryFromIntError,
+};
 
 use hashql_core::value::{Integer, Primitive};
 
@@ -458,6 +462,12 @@ impl Int {
     #[must_use]
     pub const fn as_f64(self) -> f64 {
         self.as_int() as f64
+    }
+}
+
+impl Display for Int {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        Display::fmt(&self.value, fmt)
     }
 }
 
