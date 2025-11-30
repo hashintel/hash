@@ -220,9 +220,8 @@ impl<'heap> Lattice<'heap> for TupleType<'heap> {
         // Tuples are width invariant
         if self.kind.fields.len() != supertype.kind.fields.len() {
             // We always fail-fast here
-            let _: ControlFlow<()> = env.record_diagnostic(|env| {
+            let _: ControlFlow<()> = env.record_diagnostic(|_| {
                 tuple_length_mismatch(
-                    env.source,
                     self,
                     supertype,
                     self.kind.fields.len(),
@@ -257,14 +256,8 @@ impl<'heap> Lattice<'heap> for TupleType<'heap> {
         // Tuples must have the same number of fields for equivalence
         if self.kind.fields.len() != other.kind.fields.len() {
             // We always fail-fast here
-            let _: ControlFlow<()> = env.record_diagnostic(|env| {
-                tuple_length_mismatch(
-                    env.source,
-                    self,
-                    other,
-                    self.kind.fields.len(),
-                    other.kind.fields.len(),
-                )
+            let _: ControlFlow<()> = env.record_diagnostic(|_| {
+                tuple_length_mismatch(self, other, self.kind.fields.len(), other.kind.fields.len())
             });
 
             return false;

@@ -149,7 +149,6 @@ mod test {
     #![expect(clippy::min_ident_chars)]
     use crate::{
         heap::Heap,
-        span::SpanId,
         r#type::{
             collections::TypeIdSet,
             environment::Environment,
@@ -161,7 +160,7 @@ mod test {
     #[test]
     fn empty_set() {
         let heap = Heap::new();
-        let env = Environment::new_empty(SpanId::SYNTHETIC, &heap);
+        let env = Environment::new_empty(&heap);
 
         let set = TypeIdSet::<16>::new(&env);
         let result = set.finish();
@@ -171,7 +170,7 @@ mod test {
     #[test]
     fn single_item() {
         let heap = Heap::new();
-        let env = Environment::new_empty(SpanId::SYNTHETIC, &heap);
+        let env = Environment::new_empty(&heap);
 
         let boolean = primitive!(env, PrimitiveType::Boolean);
 
@@ -186,7 +185,7 @@ mod test {
     #[test]
     fn multiple_items() {
         let heap = Heap::new();
-        let env = Environment::new_empty(SpanId::SYNTHETIC, &heap);
+        let env = Environment::new_empty(&heap);
 
         let boolean = primitive!(env, PrimitiveType::Boolean);
         let integer = primitive!(env, PrimitiveType::Integer);
@@ -204,7 +203,7 @@ mod test {
     #[test]
     fn deduplication() {
         let heap = Heap::new();
-        let env = Environment::new_empty(SpanId::SYNTHETIC, &heap);
+        let env = Environment::new_empty(&heap);
 
         let a = primitive!(env, PrimitiveType::Boolean);
         let b = primitive!(env, PrimitiveType::Boolean);
@@ -222,7 +221,7 @@ mod test {
     #[test]
     fn extend_from_slice() {
         let heap = Heap::new();
-        let env = Environment::new_empty(SpanId::SYNTHETIC, &heap);
+        let env = Environment::new_empty(&heap);
 
         let boolean = primitive!(env, PrimitiveType::Boolean);
         let integer = primitive!(env, PrimitiveType::Integer);
@@ -237,7 +236,7 @@ mod test {
     #[test]
     fn with_capacity() {
         let heap = Heap::new();
-        let env = Environment::new_empty(SpanId::SYNTHETIC, &heap);
+        let env = Environment::new_empty(&heap);
 
         // Create a set with specific capacity
         let set = TypeIdSet::<16>::with_capacity(&env, 32);
@@ -250,7 +249,7 @@ mod test {
     #[test]
     fn extend_trait() {
         let heap = Heap::new();
-        let env = Environment::new_empty(SpanId::SYNTHETIC, &heap);
+        let env = Environment::new_empty(&heap);
 
         let boolean = primitive!(env, PrimitiveType::Boolean);
         let integer = primitive!(env, PrimitiveType::Integer);
@@ -265,7 +264,7 @@ mod test {
     #[test]
     fn mixed_provisioned_and_materialized() {
         let heap = Heap::new();
-        let env = Environment::new_empty(SpanId::SYNTHETIC, &heap);
+        let env = Environment::new_empty(&heap);
 
         // Create materialized types
         let boolean = primitive!(env, PrimitiveType::Boolean);
@@ -293,7 +292,7 @@ mod test {
     #[test]
     fn deduplication_of_provisioned() {
         let heap = Heap::new();
-        let env = Environment::new_empty(SpanId::SYNTHETIC, &heap);
+        let env = Environment::new_empty(&heap);
 
         // Create a provisioned type and use it twice
         let provisioned = env.types.provision();
@@ -312,7 +311,7 @@ mod test {
     #[test]
     fn mixed_with_duplicates() {
         let heap = Heap::new();
-        let env = Environment::new_empty(SpanId::SYNTHETIC, &heap);
+        let env = Environment::new_empty(&heap);
 
         // Create materialized types with some duplicates
         let boolean1 = primitive!(env, PrimitiveType::Boolean);
@@ -349,7 +348,7 @@ mod test {
     #[test]
     fn mostly_empty_with_few_types() {
         let heap = Heap::new();
-        let env = Environment::new_empty(SpanId::SYNTHETIC, &heap);
+        let env = Environment::new_empty(&heap);
 
         // Just one materialized and one provisioned
         let boolean = primitive!(env, PrimitiveType::Boolean);
@@ -369,7 +368,7 @@ mod test {
     #[test]
     fn larger_collection() {
         let heap = Heap::new();
-        let env = Environment::new_empty(SpanId::SYNTHETIC, &heap);
+        let env = Environment::new_empty(&heap);
 
         // Create various materialized types
         let types = [

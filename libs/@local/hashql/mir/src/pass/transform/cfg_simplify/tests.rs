@@ -3,7 +3,6 @@ use std::path::PathBuf;
 use bstr::ByteVec as _;
 use hashql_core::{
     pretty::Formatter,
-    span::SpanId,
     r#type::{TypeBuilder, TypeFormatter, TypeFormatterOptions, environment::Environment},
 };
 use hashql_diagnostics::DiagnosticIssues;
@@ -83,7 +82,7 @@ fn assert_cfg_simplify_pass<'heap>(
 #[test]
 fn identical_switch_targets() {
     scaffold!(heap, interner, builder);
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     let selector = builder.local("selector", TypeBuilder::synthetic(&env).integer());
     let selector = builder.place_local(selector);
@@ -133,7 +132,7 @@ fn identical_switch_targets() {
 #[test]
 fn only_otherwise_switch() {
     scaffold!(heap, interner, builder);
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     let selector = builder.local("selector", TypeBuilder::synthetic(&env).integer());
     let selector = builder.place_local(selector);
@@ -185,7 +184,7 @@ fn only_otherwise_switch() {
 #[test]
 fn redundant_cases_removal() {
     scaffold!(heap, interner, builder);
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     let selector = builder.local("selector", TypeBuilder::synthetic(&env).integer());
     let selector = builder.place_local(selector);
@@ -241,7 +240,7 @@ fn redundant_cases_removal() {
 #[expect(clippy::min_ident_chars)]
 fn no_inline_non_noop_multiple_preds() {
     scaffold!(heap, interner, builder);
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     let x = builder.local("x", TypeBuilder::synthetic(&env).integer());
     let x_place = builder.place_local(x);
@@ -307,7 +306,7 @@ fn no_inline_non_noop_multiple_preds() {
 #[test]
 fn self_loop_preservation() {
     scaffold!(heap, interner, builder);
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     let bb0 = builder.reserve_block([]);
     let bb1 = builder.reserve_block([]);
@@ -398,7 +397,7 @@ fn self_loop_preservation_with_params() {
 #[test]
 fn noop_block_multiple_predecessors() {
     scaffold!(heap, interner, builder);
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     let cond = builder.local("cond", TypeBuilder::synthetic(&env).boolean());
     let cond = builder.place_local(cond);
@@ -463,7 +462,7 @@ fn noop_block_multiple_predecessors() {
 #[test]
 fn switch_target_promotion() {
     scaffold!(heap, interner, builder);
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     let selector = builder.local("selector", TypeBuilder::synthetic(&env).integer());
     let selector = builder.place_local(selector);
@@ -517,7 +516,7 @@ fn switch_target_promotion() {
 #[test]
 fn switch_self_loop_preservation() {
     scaffold!(heap, interner, builder);
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     let selector = builder.local("selector", TypeBuilder::synthetic(&env).integer());
     let selector = builder.place_local(selector);
@@ -575,7 +574,7 @@ fn switch_self_loop_preservation() {
 #[test]
 fn unreachable_switch_arm_ice() {
     scaffold!(heap, interner, builder);
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     let const_5 = builder.const_int(5);
     let const_unit = builder.const_unit();
@@ -639,7 +638,7 @@ fn unreachable_switch_arm_ice() {
 #[test]
 fn switch_promotion_with_goto_params() {
     scaffold!(heap, interner, builder);
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     let selector = builder.local("selector", TypeBuilder::synthetic(&env).integer());
     let selector_place = builder.place_local(selector);

@@ -465,14 +465,13 @@ mod tests {
             item::{IntrinsicItem, IntrinsicTypeItem, IntrinsicValueItem, Item, ItemKind},
             namespace::{ImportOptions, ResolutionMode, ResolveOptions},
         },
-        span::SpanId,
         r#type::environment::Environment,
     };
 
     #[test]
     fn resolve_relative_value() {
         let heap = Heap::new();
-        let environment = Environment::new(SpanId::SYNTHETIC, &heap);
+        let environment = Environment::new(&heap);
         let registry = ModuleRegistry::new(&environment);
 
         let mut namespace = ModuleNamespace::new(&registry);
@@ -504,7 +503,7 @@ mod tests {
     #[test]
     fn resolve_relative_type() {
         let heap = Heap::new();
-        let environment = Environment::new(SpanId::SYNTHETIC, &heap);
+        let environment = Environment::new(&heap);
         let registry = ModuleRegistry::new(&environment);
 
         let mut namespace = ModuleNamespace::new(&registry);
@@ -535,7 +534,7 @@ mod tests {
     #[test]
     fn resolve_absolute_value() {
         let heap = Heap::new();
-        let environment = Environment::new(SpanId::SYNTHETIC, &heap);
+        let environment = Environment::new(&heap);
         let registry = ModuleRegistry::new(&environment);
 
         let mut namespace = ModuleNamespace::new(&registry);
@@ -571,7 +570,7 @@ mod tests {
     #[test]
     fn resolve_absolute_type() {
         let heap = Heap::new();
-        let environment = Environment::new(SpanId::SYNTHETIC, &heap);
+        let environment = Environment::new(&heap);
         let registry = ModuleRegistry::new(&environment);
 
         let mut namespace = ModuleNamespace::new(&registry);
@@ -606,7 +605,7 @@ mod tests {
     #[test]
     fn resolve_relative_nested() {
         let heap = Heap::new();
-        let environment = Environment::new(SpanId::SYNTHETIC, &heap);
+        let environment = Environment::new(&heap);
         let registry = ModuleRegistry::new(&environment);
 
         let mut namespace = ModuleNamespace::new(&registry);
@@ -656,7 +655,7 @@ mod tests {
     #[test]
     fn shadowed_import() {
         let heap = Heap::new();
-        let environment = Environment::new(SpanId::SYNTHETIC, &heap);
+        let environment = Environment::new(&heap);
         let registry = ModuleRegistry::new(&environment);
 
         let mut namespace = ModuleNamespace::new(&registry);
@@ -734,7 +733,7 @@ mod tests {
     #[test]
     fn relative_import() {
         let heap = Heap::new();
-        let environment = Environment::new(SpanId::SYNTHETIC, &heap);
+        let environment = Environment::new(&heap);
         let registry = ModuleRegistry::new(&environment);
 
         let mut namespace = ModuleNamespace::new(&registry);
@@ -784,7 +783,7 @@ mod tests {
     #[test]
     fn relative_import_renamed() {
         let heap = Heap::new();
-        let environment = Environment::new(SpanId::SYNTHETIC, &heap);
+        let environment = Environment::new(&heap);
         let registry = ModuleRegistry::new(&environment);
 
         let mut namespace = ModuleNamespace::new(&registry);
@@ -819,7 +818,7 @@ mod tests {
     #[test]
     fn import_glob() {
         let heap = Heap::new();
-        let environment = Environment::new(SpanId::SYNTHETIC, &heap);
+        let environment = Environment::new(&heap);
         let registry = ModuleRegistry::new(&environment);
 
         let mut namespace = ModuleNamespace::new(&registry);
@@ -856,7 +855,7 @@ mod tests {
     #[test]
     fn import_glob_does_not_exist() {
         let heap = Heap::new();
-        let environment = Environment::new(SpanId::SYNTHETIC, &heap);
+        let environment = Environment::new(&heap);
         let registry = ModuleRegistry::new(&environment);
 
         let mut namespace = ModuleNamespace::new(&registry);
@@ -886,7 +885,7 @@ mod tests {
     #[test]
     fn import_local() {
         let heap = Heap::new();
-        let environment = Environment::new(SpanId::SYNTHETIC, &heap);
+        let environment = Environment::new(&heap);
         let registry = ModuleRegistry::new(&environment);
 
         let mut namespace = ModuleNamespace::new(&registry);

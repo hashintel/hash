@@ -27,7 +27,7 @@ use crate::{
 #[test]
 fn join_same_name_different_repr() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     // Create two opaque types with the same name but different representations
     let a_repr = primitive!(env, PrimitiveType::Number);
@@ -47,7 +47,7 @@ fn join_same_name_different_repr() {
 #[test]
 fn join_same_name_inference() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     let hole = HoleId::new(0);
     let infer = instantiate_infer(&env, hole);
@@ -65,7 +65,7 @@ fn join_same_name_inference() {
 #[test]
 fn join_same_name_subtype() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     opaque!(env, a, "MyType", primitive!(env, PrimitiveType::Number));
     opaque!(env, b, "MyType", primitive!(env, PrimitiveType::Integer));
@@ -78,7 +78,7 @@ fn join_same_name_subtype() {
 #[test]
 fn join_different_names() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     // Create two opaque types with different names
     let a_repr = primitive!(env, PrimitiveType::Number);
@@ -96,7 +96,7 @@ fn join_different_names() {
 #[test]
 fn meet_same_name_different_repr() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     opaque!(env, a, "MyType", primitive!(env, PrimitiveType::Number));
     opaque!(
@@ -122,7 +122,7 @@ fn meet_same_name_different_repr() {
 #[test]
 fn meet_same_name_inference() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     let hole = HoleId::new(0);
     let infer = instantiate_infer(&env, hole);
@@ -140,7 +140,7 @@ fn meet_same_name_inference() {
 #[test]
 fn meet_different_names() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     // Create two opaque types with different names
     let a_repr = primitive!(env, PrimitiveType::Number);
@@ -158,7 +158,7 @@ fn meet_different_names() {
 #[test]
 fn is_subtype_of() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     // Create an opaque type for numbers
     let a_repr = primitive!(env, PrimitiveType::Number);
@@ -193,7 +193,7 @@ fn is_subtype_of() {
 #[test]
 fn is_equivalent() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     // Create two identical opaque types
     let a_repr = primitive!(env, PrimitiveType::Number);
@@ -223,7 +223,7 @@ fn is_equivalent() {
 #[test]
 fn simplify() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     // Create an opaque type with a union that contains duplicates
     let repr = union!(
@@ -252,7 +252,7 @@ fn simplify() {
 #[test]
 fn nested_opaque_types() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     opaque!(
         env,
@@ -291,7 +291,7 @@ fn nested_opaque_types() {
 #[test]
 fn lattice_laws() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     // Create various opaque types for testing lattice laws
     let number_repr = primitive!(env, PrimitiveType::Number);
@@ -309,7 +309,7 @@ fn lattice_laws() {
 #[test]
 fn is_concrete() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
     let mut analysis_env = AnalysisEnvironment::new(&env);
 
     // Concrete opaque type (with primitive representation)
@@ -333,7 +333,7 @@ fn is_concrete() {
 #[test]
 fn collect_constraints_same_name() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     // Create an opaque type with a concrete representation
     let number = primitive!(env, PrimitiveType::Number);
@@ -365,7 +365,7 @@ fn collect_constraints_same_name() {
 #[test]
 fn collect_constraints_different_names() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     // Create an opaque type with a concrete representation
     let number = primitive!(env, PrimitiveType::Number);
@@ -391,7 +391,7 @@ fn collect_constraints_different_names() {
 #[test]
 fn collect_constraints_nested() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     // Create a nested opaque type with an inference variable
     let hole = HoleId::new(0);
@@ -422,7 +422,7 @@ fn collect_constraints_nested() {
 #[test]
 fn collect_constraints_concrete() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     // Create two opaque types with concrete but different representations
     let number = primitive!(env, PrimitiveType::Number);
@@ -447,7 +447,7 @@ fn collect_constraints_concrete() {
 #[test]
 fn collect_constraints_generic_params() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     let arg1 = GenericArgumentId::new(0);
     let arg2 = GenericArgumentId::new(1);
@@ -504,7 +504,7 @@ fn collect_constraints_generic_params() {
 #[test]
 fn collect_constraints_multiple_infer_vars() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     // Create an opaque type with an inference variable
     let hole_var1 = HoleId::new(0);
@@ -543,7 +543,7 @@ fn collect_constraints_multiple_infer_vars() {
 #[test]
 fn collect_constraints_infer_and_generic_var() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     // Create an opaque type with an inference variable
     let hole_var1 = HoleId::new(0);
@@ -582,7 +582,7 @@ fn collect_constraints_infer_and_generic_var() {
 #[test]
 fn collect_dependencies() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     // Create an inference variable
     let hole = HoleId::new(0);
@@ -610,7 +610,7 @@ fn collect_dependencies() {
 #[test]
 fn simplify_recursive_opaque() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     let r#type = env.types.intern(|id| PartialType {
         span: SpanId::SYNTHETIC,
@@ -635,7 +635,7 @@ fn simplify_recursive_opaque() {
 #[test]
 fn instantiate_opaque() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     let argument = env.counter.generic_argument.next();
     let param = instantiate_param(&env, argument);

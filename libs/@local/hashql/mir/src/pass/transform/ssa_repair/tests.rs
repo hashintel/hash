@@ -3,7 +3,6 @@ use std::path::PathBuf;
 use bstr::ByteVec as _;
 use hashql_core::{
     pretty::Formatter,
-    span::SpanId,
     r#type::{TypeBuilder, TypeFormatter, TypeFormatterOptions, environment::Environment},
 };
 use hashql_diagnostics::DiagnosticIssues;
@@ -68,7 +67,7 @@ fn assert_ssa_pass<'heap>(
 #[test]
 fn linear() {
     scaffold!(heap, interner, builder);
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     let x = builder.local("x", TypeBuilder::synthetic(&env).integer());
     let y = builder.local("y", TypeBuilder::synthetic(&env).integer());
@@ -111,7 +110,7 @@ fn linear() {
 #[test]
 fn single_def_use() {
     scaffold!(heap, interner, builder);
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     let x = builder.local("x", TypeBuilder::synthetic(&env).integer());
     let y = builder.local("y", TypeBuilder::synthetic(&env).integer());
@@ -147,7 +146,7 @@ fn single_def_use() {
 #[test]
 fn diamond_both_branches_define() {
     scaffold!(heap, interner, builder);
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     let x = builder.local("x", TypeBuilder::synthetic(&env).integer());
     let cond = builder.local("cond", TypeBuilder::synthetic(&env).boolean());
@@ -203,7 +202,7 @@ fn diamond_both_branches_define() {
 #[test]
 fn diamond_one_branch_redefines() {
     scaffold!(heap, interner, builder);
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     let x = builder.local("x", TypeBuilder::synthetic(&env).integer());
     let cond = builder.local("cond", TypeBuilder::synthetic(&env).boolean());
@@ -260,7 +259,7 @@ fn diamond_one_branch_redefines() {
 #[test]
 fn simple_loop() {
     scaffold!(heap, interner, builder);
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     let x = builder.local("x", TypeBuilder::synthetic(&env).integer());
     let cond = builder.local("cond", TypeBuilder::synthetic(&env).boolean());
@@ -310,7 +309,7 @@ fn simple_loop() {
 #[test]
 fn passthrough_chain() {
     scaffold!(heap, interner, builder);
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     let x = builder.local("x", TypeBuilder::synthetic(&env).integer());
     let y = builder.local("y", TypeBuilder::synthetic(&env).integer());
@@ -361,7 +360,7 @@ fn passthrough_chain() {
 #[test]
 fn use_before_def_in_block() {
     scaffold!(heap, interner, builder);
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     let x = builder.local("x", TypeBuilder::synthetic(&env).integer());
     let y = builder.local("y", TypeBuilder::synthetic(&env).integer());
@@ -404,7 +403,7 @@ fn use_before_def_in_block() {
 #[test]
 fn multiple_defs_same_block() {
     scaffold!(heap, interner, builder);
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     let x = builder.local("x", TypeBuilder::synthetic(&env).integer());
     let y = builder.local("y", TypeBuilder::synthetic(&env).integer());
@@ -444,7 +443,7 @@ fn multiple_defs_same_block() {
 #[test]
 fn three_way_merge() {
     scaffold!(heap, interner, builder);
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     let x = builder.local("x", TypeBuilder::synthetic(&env).integer());
     let y = builder.local("y", TypeBuilder::synthetic(&env).integer());
@@ -510,7 +509,7 @@ fn three_way_merge() {
 #[test]
 fn nested_loop() {
     scaffold!(heap, interner, builder);
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     let x = builder.local("x", TypeBuilder::synthetic(&env).integer());
     let outer_cond = builder.local("outer_cond", TypeBuilder::synthetic(&env).boolean());
@@ -572,7 +571,7 @@ fn nested_loop() {
 #[test]
 fn multiple_variables_violated() {
     scaffold!(heap, interner, builder);
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     let x = builder.local("x", TypeBuilder::synthetic(&env).integer());
     let y = builder.local("y", TypeBuilder::synthetic(&env).integer());
@@ -636,7 +635,7 @@ fn multiple_variables_violated() {
 #[test]
 fn loop_with_conditional_def() {
     scaffold!(heap, interner, builder);
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     let x = builder.local("x", TypeBuilder::synthetic(&env).integer());
     let y = builder.local("y", TypeBuilder::synthetic(&env).integer());
@@ -704,7 +703,7 @@ fn loop_with_conditional_def() {
 #[test]
 fn irreducible() {
     scaffold!(heap, interner, builder);
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     let x = builder.local("x", TypeBuilder::synthetic(&env).integer());
     let y = builder.local("y", TypeBuilder::synthetic(&env).integer());
