@@ -344,7 +344,7 @@ fn self_loop_preservation() {
 #[test]
 fn self_loop_preservation_with_params() {
     scaffold!(heap, interner, builder);
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     let param = builder.local("p", TypeBuilder::synthetic(&env).integer());
     let const_0 = builder.const_int(0);
