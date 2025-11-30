@@ -44,24 +44,13 @@ export default defineConfig(({ command }) => ({
           },
           rollupOptions: {
             external,
-            output: [
-              {
-                format: "es",
-                exports: "named",
-                globals: {
-                  react: "React",
-                  "react-dom": "ReactDOM",
-                },
+            output: {
+              exports: "named",
+              globals: {
+                react: "React",
+                "react-dom": "ReactDOM",
               },
-              {
-                format: "cjs",
-                exports: "named",
-                globals: {
-                  react: "React",
-                  "react-dom": "ReactDOM",
-                },
-              },
-            ],
+            },
           },
           sourcemap: true,
           emptyOutDir: true,
