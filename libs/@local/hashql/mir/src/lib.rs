@@ -7,6 +7,7 @@
     associated_type_defaults,
     coverage_attribute,
     if_let_guard,
+    impl_trait_in_assoc_type,
     macro_metavar_expr_concat,
     never_type,
 
@@ -14,6 +15,7 @@
     allocator_api,
     array_windows,
     assert_matches,
+    const_type_name,
     formatting_options,
     iter_array_chunks,
     iter_collect_into,
@@ -23,8 +25,11 @@
 extern crate alloc;
 
 pub mod body;
+pub mod context;
 pub mod def;
+pub mod error;
 pub mod intern;
+pub mod pass;
 pub mod pretty;
 pub mod reify;
 pub mod visit;

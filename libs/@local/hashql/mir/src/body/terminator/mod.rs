@@ -10,6 +10,8 @@ mod r#return;
 mod switch_int;
 mod target;
 
+use core::iter;
+
 use hashql_core::span::SpanId;
 
 pub use self::{
@@ -19,6 +21,59 @@ pub use self::{
     switch_int::{SwitchIf, SwitchInt, SwitchTargets},
     target::Target,
 };
+use super::basic_block::BasicBlockId;
+
+macro_rules! for_both {
+    ($value:ident; $name:ident => $expr:expr) => {
+        match $value {
+            EitherIter::Left($name) => $expr,
+            EitherIter::Right($name) => $expr,
+        }
+    };
+}
+
+// We could also contemplate implementing more API surface of iterator, but this should be
+// sufficient for now
+enum EitherIter<L, R> {
+    Left(L),
+    Right(R),
+}
+
+impl<L, R> Iterator for EitherIter<L, R>
+where
+    L: Iterator,
+    R: Iterator<Item = L::Item>,
+{
+    type Item = L::Item;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        for_both!(self; value => value.next())
+    }
+
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        for_both!(self; value => value.size_hint())
+    }
+}
+
+impl<L, R> DoubleEndedIterator for EitherIter<L, R>
+where
+    L: DoubleEndedIterator,
+    R: DoubleEndedIterator<Item = L::Item>,
+{
+    fn next_back(&mut self) -> Option<Self::Item> {
+        for_both!(self; value => value.next_back())
+    }
+}
+
+impl<L, R> ExactSizeIterator for EitherIter<L, R>
+where
+    L: ExactSizeIterator,
+    R: ExactSizeIterator<Item = L::Item>,
+{
+    fn len(&self) -> usize {
+        for_both!(self; value => value.len())
+    }
+}
 
 /// A terminator in the HashQL MIR.
 ///
@@ -89,4 +144,60 @@ pub enum TerminatorKind<'heap> {
     /// point in the code. It is used for optimization and verification purposes,
     /// and reaching it at runtime typically indicates a bug or invalid state.
     Unreachable,
+}
+
+impl<'heap> TerminatorKind<'heap> {
+    #[must_use]
+    pub fn successor_blocks(
+        &self,
+    ) -> impl DoubleEndedIterator<Item = BasicBlockId> + ExactSizeIterator {
+        match self {
+            Self::Goto(goto) => EitherIter::Left(iter::once(goto.target.block)),
+            Self::SwitchInt(switch) => EitherIter::Right(EitherIter::Left(
+                switch.targets.targets().iter().map(|target| target.block),
+            )),
+            Self::GraphRead(read) => EitherIter::Left(iter::once(read.target)),
+            Self::Return(_) | Self::Unreachable => {
+                EitherIter::Right(EitherIter::Right(iter::empty()))
+            }
+        }
+    }
+
+    pub fn successor_blocks_mut(
+        &mut self,
+    ) -> impl DoubleEndedIterator<Item = &mut BasicBlockId> + ExactSizeIterator {
+        match self {
+            Self::Goto(goto) => EitherIter::Left(iter::once(&mut goto.target.block)),
+            Self::SwitchInt(switch) => EitherIter::Right(EitherIter::Left(
+                switch
+                    .targets
+                    .targets_mut()
+                    .iter_mut()
+                    .map(|target| &mut target.block),
+            )),
+            Self::GraphRead(read) => EitherIter::Left(iter::once(&mut read.target)),
+            Self::Return(_) | Self::Unreachable => {
+                EitherIter::Right(EitherIter::Right(iter::empty()))
+            }
+        }
+    }
+
+    #[must_use]
+    pub fn successor_targets(&self) -> &[Target<'heap>] {
+        match self {
+            Self::Goto(goto) => core::slice::from_ref(&goto.target),
+            Self::SwitchInt(switch) => switch.targets.targets(),
+            // There is no successor target for `GraphRead`, as `GraphRead` injects its own target
+            Self::Return(_) | Self::GraphRead(_) | Self::Unreachable => &[],
+        }
+    }
+
+    pub fn successor_targets_mut(&mut self) -> Option<&mut [Target<'heap>]> {
+        match self {
+            Self::Goto(goto) => Some(core::slice::from_mut(&mut goto.target)),
+            Self::SwitchInt(switch) => Some(switch.targets.targets_mut()),
+            // There is no successor target for `GraphRead`, as `GraphRead` injects its own target
+            Self::Return(_) | Self::GraphRead(_) | Self::Unreachable => None,
+        }
+    }
 }

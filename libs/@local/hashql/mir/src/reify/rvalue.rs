@@ -35,7 +35,7 @@ impl<'mir, 'heap> Reifier<'_, 'mir, '_, '_, 'heap> {
                 RValue::Load(Operand::Constant(Constant::Primitive(primitive)))
             }
             Data::Struct(Struct { fields }) => {
-                let mut operands = IdVec::with_capacity_in(fields.len(), self.context.heap);
+                let mut operands = IdVec::with_capacity_in(fields.len(), self.context.mir.heap);
                 let mut field_names = Vec::with_capacity(fields.len());
 
                 for field in fields {
@@ -45,13 +45,13 @@ impl<'mir, 'heap> Reifier<'_, 'mir, '_, '_, 'heap> {
 
                 RValue::Aggregate(Aggregate {
                     kind: AggregateKind::Struct {
-                        fields: self.context.interner.symbols.intern_slice(&field_names),
+                        fields: self.context.mir.interner.symbols.intern_slice(&field_names),
                     },
                     operands,
                 })
             }
             Data::Dict(Dict { fields }) => {
-                let mut operands = IdVec::with_capacity_in(fields.len() * 2, self.context.heap);
+                let mut operands = IdVec::with_capacity_in(fields.len() * 2, self.context.mir.heap);
                 for field in fields {
                     operands.push(self.operand(field.key));
                     operands.push(self.operand(field.value));
@@ -63,7 +63,7 @@ impl<'mir, 'heap> Reifier<'_, 'mir, '_, '_, 'heap> {
                 })
             }
             Data::Tuple(Tuple { fields }) => {
-                let mut operands = IdVec::with_capacity_in(fields.len(), self.context.heap);
+                let mut operands = IdVec::with_capacity_in(fields.len(), self.context.mir.heap);
                 for &field in fields {
                     operands.push(self.operand(field));
                 }
@@ -74,7 +74,7 @@ impl<'mir, 'heap> Reifier<'_, 'mir, '_, '_, 'heap> {
                 })
             }
             Data::List(List { elements }) => {
-                let mut operands = IdVec::with_capacity_in(elements.len(), self.context.heap);
+                let mut operands = IdVec::with_capacity_in(elements.len(), self.context.mir.heap);
                 for &element in elements {
                     operands.push(self.operand(element));
                 }
@@ -110,7 +110,7 @@ impl<'mir, 'heap> Reifier<'_, 'mir, '_, '_, 'heap> {
 
                 let ptr = Operand::Constant(Constant::FnPtr(ptr));
                 let env = Operand::Constant(Constant::Unit);
-                let mut operands = IdVec::with_capacity_in(2, self.context.heap);
+                let mut operands = IdVec::with_capacity_in(2, self.context.mir.heap);
                 operands.push(ptr);
                 operands.push(env);
 
@@ -179,7 +179,7 @@ impl<'mir, 'heap> Reifier<'_, 'mir, '_, '_, 'heap> {
         function: Node<'heap>,
         call_arguments: &[CallArgument<'heap>],
     ) -> RValue<'heap> {
-        let mut arguments = IdVec::with_capacity_in(call_arguments.len(), self.context.heap);
+        let mut arguments = IdVec::with_capacity_in(call_arguments.len(), self.context.mir.heap);
 
         for CallArgument { span: _, value } in call_arguments {
             arguments.push(self.operand(*value));
@@ -209,19 +209,19 @@ impl<'mir, 'heap> Reifier<'_, 'mir, '_, '_, 'heap> {
                     .push(fat_call_on_constant(function.span));
 
                 // Return a bogus value / place that can be used to continue lowering
-                Place::local(Local::MAX, self.context.interner)
+                Place::local(Local::MAX, self.context.mir.interner)
             }
         };
 
         // To the function we add two projections, one for the function pointer, and one for the
         // captured environment
         let function_pointer = function.project(
-            self.context.interner,
+            self.context.mir.interner,
             function.type_id(&self.local_decls),
             ProjectionKind::Field(FieldIndex::new(0)),
         );
         let environment = function.project(
-            self.context.interner,
+            self.context.mir.interner,
             // The environment is intentionally opaque because:
             // 1. It should never be inspected outside of the call boundary
             // 2. For closures nested inside of values, the type will always be represented as a
@@ -229,14 +229,15 @@ impl<'mir, 'heap> Reifier<'_, 'mir, '_, '_, 'heap> {
             //    the environment isn't possible.
             // 3. The environment is immediately destructured at function entry, this projection
             //    exists only to pass it as an argument
-            TypeBuilder::spanned(function_span, self.context.environment).opaque(
+            TypeBuilder::spanned(function_span, self.context.mir.env).opaque(
                 sym::internal::ClosureEnv,
                 builder::lazy(|_, builder| builder.unknown()),
             ),
             ProjectionKind::Field(FieldIndex::new(1)),
         );
 
-        let mut arguments = IdVec::with_capacity_in(call_arguments.len() + 1, self.context.heap);
+        let mut arguments =
+            IdVec::with_capacity_in(call_arguments.len() + 1, self.context.mir.heap);
 
         arguments.push(Operand::Place(environment));
 
@@ -284,9 +285,9 @@ impl<'mir, 'heap> Reifier<'_, 'mir, '_, '_, 'heap> {
 
         // We first need to figure out the environment that we need to capture, these are variables
         // that are referenced out of scope (upvars).
-        let mut closure_operands = IdVec::with_capacity_in(2, self.context.heap);
+        let mut closure_operands = IdVec::with_capacity_in(2, self.context.mir.heap);
         closure_operands.push(Operand::Constant(Constant::FnPtr(ptr)));
-        closure_operands.push(Operand::Place(Place::local(env, self.context.interner)));
+        closure_operands.push(Operand::Place(Place::local(env, self.context.mir.interner)));
 
         RValue::Aggregate(Aggregate {
             kind: AggregateKind::Closure,

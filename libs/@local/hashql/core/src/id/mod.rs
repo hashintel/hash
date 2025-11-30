@@ -195,6 +195,17 @@ where
     }
 }
 
+impl<I, T> HasId for (I, T)
+where
+    I: Id,
+{
+    type Id = I;
+
+    fn id(&self) -> Self::Id {
+        self.0
+    }
+}
+
 /// Creates a new ID type with a specified valid range.
 ///
 /// This uses the experimental pattern type syntax to define the minimum and maximum values.

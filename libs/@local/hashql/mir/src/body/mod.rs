@@ -7,17 +7,20 @@
 //!
 //! The main entry point is the [`Body`] structure, which contains a collection of [`BasicBlock`]s
 //! that form the control-flow graph of the function.
+//!
+//! [`BasicBlock`]: self::basic_block::BasicBlock
 
 use hashql_core::{heap::Heap, span::SpanId, symbol::Symbol, r#type::TypeId};
 use hashql_hir::node::{HirId, r#let::Binder};
 
 use self::{
-    basic_block::{BasicBlock, BasicBlockVec},
+    basic_blocks::BasicBlocks,
     local::{LocalDecl, LocalVec},
 };
 use crate::def::DefId;
 
 pub mod basic_block;
+pub mod basic_blocks;
 pub mod constant;
 pub mod local;
 pub mod location;
@@ -125,12 +128,8 @@ pub struct Body<'heap> {
 
     /// The collection of basic blocks that make up this body's control-flow graph.
     ///
-    /// This [`BasicBlockVec`] contains all the basic blocks in this body, indexed
-    /// by [`BasicBlockId`]. The first block (index 0) is always the entry point
-    /// where execution begins.
-    ///
     /// [`BasicBlockId`]: crate::body::basic_block::BasicBlockId
-    pub basic_blocks: BasicBlockVec<BasicBlock<'heap>, &'heap Heap>,
+    pub basic_blocks: BasicBlocks<'heap>,
 
     /// The number of arguments this function takes.
     ///

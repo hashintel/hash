@@ -19,7 +19,6 @@ use hashql_core::{
     symbol::Symbol,
     r#type::{
         TypeBuilder, TypeId, Typed,
-        environment::Environment,
         kind::{ClosureType, TypeKind},
     },
 };
@@ -49,6 +48,7 @@ use crate::{
     body::{
         Body, Source,
         basic_block::{BasicBlock, BasicBlockVec},
+        basic_blocks::BasicBlocks,
         constant::Constant,
         local::{Local, LocalDecl, LocalVec},
         operand::Operand,
@@ -57,8 +57,8 @@ use crate::{
         statement::{Assign, Statement, StatementKind},
         terminator::{Return, Terminator, TerminatorKind},
     },
+    context::MirContext,
     def::{DefId, DefIdVec},
-    intern::Interner,
 };
 
 /// Context for the reification process, providing access to all necessary compiler state.
@@ -69,18 +69,10 @@ use crate::{
 pub struct ReifyContext<'mir, 'hir, 'env, 'heap> {
     /// Mutable reference to the collection of MIR bodies being generated.
     pub bodies: &'mir mut DefIdVec<Body<'heap>>,
-
-    /// Symbol and projection interner for efficient string and data structure reuse.
-    pub interner: &'mir Interner<'heap>,
-
-    /// Type environment containing all type definitions and constraints.
-    pub environment: &'env Environment<'heap>,
-
+    /// MIR context
+    pub mir: &'mir mut MirContext<'env, 'heap>,
     /// HIR context containing the source nodes and variable mappings.
     pub hir: &'hir HirContext<'hir, 'heap>,
-
-    /// Memory allocator for heap-allocated MIR structures.
-    pub heap: &'heap Heap,
 }
 
 /// Tracks the mapping between variable IDs and their corresponding thunk definition IDs.
@@ -147,8 +139,8 @@ impl<'ctx, 'mir, 'hir, 'env, 'heap> Reifier<'ctx, 'mir, 'hir, 'env, 'heap> {
         context: &'ctx mut ReifyContext<'mir, 'hir, 'env, 'heap>,
         state: &'ctx mut CrossCompileState<'heap>,
     ) -> Self {
-        let blocks = BasicBlockVec::new_in(context.heap);
-        let local_decls = LocalVec::new_in(context.heap);
+        let blocks = BasicBlockVec::new_in(context.mir.heap);
+        let local_decls = LocalVec::new_in(context.mir.heap);
 
         Self {
             context,
@@ -200,7 +192,7 @@ impl<'ctx, 'mir, 'hir, 'env, 'heap> Reifier<'ctx, 'mir, 'hir, 'env, 'heap> {
                 // In case there are no captures, the environment will always be a unit type (aka
                 // Tuple).
                 debug_assert_matches!(source, Source::Ctor(..));
-                TypeBuilder::spanned(span, self.context.environment).tuple([] as [TypeId; 0])
+                TypeBuilder::spanned(span, self.context.mir.env).tuple([] as [TypeId; 0])
             };
 
             let local = self.local_decls.push(LocalDecl {
@@ -230,13 +222,13 @@ impl<'ctx, 'mir, 'hir, 'env, 'heap> Reifier<'ctx, 'mir, 'hir, 'env, 'heap> {
             self.locals.insert(id, local);
         }
 
-        let mut block = CurrentBlock::new(self.context.heap, self.context.interner);
+        let mut block = CurrentBlock::new(self.context.mir.heap, self.context.mir.interner);
 
         // For each of the variables mentioned, create a local variable statement, which is a
         // projection inside of a tuple.
         if let Some((captures, env_type)) = captures {
             // `env_type` is guaranteed to be a tuple type
-            let TypeKind::Tuple(env_type) = *self.context.environment.r#type(env_type).kind else {
+            let TypeKind::Tuple(env_type) = *self.context.mir.env.r#type(env_type).kind else {
                 // We do not ICE here (as a diagnostic), because there's no real replacement here,
                 // and it's completely internal to the reification process.
                 unreachable!("the caller always provides a tuple type for the environment");
@@ -255,10 +247,10 @@ impl<'ctx, 'mir, 'hir, 'env, 'heap> Reifier<'ctx, 'mir, 'hir, 'env, 'heap> {
                 block.push_statement(Statement {
                     span,
                     kind: StatementKind::Assign(Assign {
-                        lhs: Place::local(local, self.context.interner),
+                        lhs: Place::local(local, self.context.mir.interner),
                         rhs: RValue::Load(Operand::Place(Place {
                             local: env,
-                            projections: self.context.interner.projections.intern_slice(&[
+                            projections: self.context.mir.interner.projections.intern_slice(&[
                                 Projection {
                                     r#type: env_type.fields[index],
                                     kind: ProjectionKind::Field(FieldIndex::new(index)),
@@ -285,7 +277,7 @@ impl<'ctx, 'mir, 'hir, 'env, 'heap> Reifier<'ctx, 'mir, 'hir, 'env, 'heap> {
             return_type: returns,
             source,
             local_decls: self.local_decls,
-            basic_blocks: self.blocks,
+            basic_blocks: BasicBlocks::new(self.blocks),
             args,
         };
 
@@ -332,7 +324,7 @@ impl<'ctx, 'mir, 'hir, 'env, 'heap> Reifier<'ctx, 'mir, 'hir, 'env, 'heap> {
     fn lower_thunk(self, hir: HirPtr, binder: Binder<'heap>, thunk: Thunk<'heap>) -> DefId {
         let r#type = unwrap_closure_type(
             self.context.hir.map.monomorphized_type_id(hir.id),
-            self.context.environment,
+            self.context.mir.env,
         );
 
         self.lower_impl(
@@ -352,7 +344,7 @@ impl<'ctx, 'mir, 'hir, 'env, 'heap> Reifier<'ctx, 'mir, 'hir, 'env, 'heap> {
     fn lower_ctor(self, hir: HirPtr, ctor: TypeConstructor<'heap>) -> DefId {
         let closure_type = unwrap_closure_type(
             self.context.hir.map.monomorphized_type_id(hir.id),
-            self.context.environment,
+            self.context.mir.env,
         );
 
         let param = if closure_type.params.is_empty() {
@@ -382,19 +374,19 @@ impl<'ctx, 'mir, 'hir, 'env, 'heap> Reifier<'ctx, 'mir, 'hir, 'env, 'heap> {
                     r#type: closure_type.returns,
                     name: None,
                 });
-                let lhs = Place::local(output, this.context.interner);
+                let lhs = Place::local(output, this.context.mir.interner);
 
                 let operand = if let Some(param) = param {
                     Operand::Place(Place::local(
                         this.locals[param.id]
                             .unwrap_or_else(|| unreachable!("We just verified this local exists")),
-                        this.context.interner,
+                        this.context.mir.interner,
                     ))
                 } else {
                     Operand::Constant(Constant::Unit)
                 };
 
-                let mut operands = IdVec::with_capacity_in(1, this.context.heap);
+                let mut operands = IdVec::with_capacity_in(1, this.context.mir.heap);
                 operands.push(operand);
 
                 let rhs = RValue::Aggregate(Aggregate {
