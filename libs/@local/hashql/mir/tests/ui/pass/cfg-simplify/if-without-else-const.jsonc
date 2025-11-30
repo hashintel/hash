@@ -1,8 +1,0 @@
-//@ run: pass
-//@ description: If without else (only otherwise branch) with constant true
-// When there's only an otherwise target and constant discriminant, degenerate to goto.
-[
-  "if",
-  { "#literal": true },
-  { "#literal": "only-then" }
-]

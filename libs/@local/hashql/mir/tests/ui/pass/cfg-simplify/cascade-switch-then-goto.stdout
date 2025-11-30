@@ -1,0 +1,78 @@
+════ Initial MIR ═══════════════════════════════════════════════════════════════
+
+thunk x:0() -> Integer {
+    bb0(): {
+        return 10
+    }
+}
+
+*thunk y:0() -> Boolean {
+    let %0: Boolean
+    let %1: Integer
+    let %2: Boolean
+    let %3: Integer
+    let %4: Boolean
+
+    bb0(): {
+        switchInt(1) -> [0: bb2(), 1: bb1()]
+    }
+
+    bb1(): {
+        %1 = apply (x:0 as FnPtr)
+        %2 = %1 <= 100
+
+        goto -> bb3(%2)
+    }
+
+    bb2(): {
+        %3 = apply (x:0 as FnPtr)
+        %4 = %3 >= 100
+
+        goto -> bb3(%4)
+    }
+
+    bb3(%0): {
+        return %0
+    }
+}
+════ MIR after CFG Simplification ══════════════════════════════════════════════
+
+thunk x:0() -> Integer {
+    bb0(): {
+        return 10
+    }
+}
+
+*thunk y:0() -> Boolean {
+    let %0: Boolean
+    let %1: Integer
+    let %2: Boolean
+    let %3: Integer
+    let %4: Boolean
+    let %5: Boolean
+    let %6: Boolean
+
+    bb0(): {
+        %1 = apply (x:0 as FnPtr)
+        %2 = %1 <= 100
+        %5 = %2
+
+        return %5
+    }
+
+    bb1(): {
+        unreachable
+    }
+
+    bb2(): {
+        %3 = apply (x:0 as FnPtr)
+        %4 = %3 >= 100
+        %6 = %4
+
+        unreachable
+    }
+
+    bb3(%0): {
+        unreachable
+    }
+}

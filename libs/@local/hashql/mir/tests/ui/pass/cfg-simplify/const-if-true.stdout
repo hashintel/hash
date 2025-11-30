@@ -1,0 +1,48 @@
+════ Initial MIR ═══════════════════════════════════════════════════════════════
+
+*thunk {thunk#0}() -> String {
+    let %0: String
+
+    bb0(): {
+        switchInt(1) -> [0: bb2(), 1: bb1()]
+    }
+
+    bb1(): {
+        goto -> bb3("then")
+    }
+
+    bb2(): {
+        goto -> bb3("else")
+    }
+
+    bb3(%0): {
+        return %0
+    }
+}
+════ MIR after CFG Simplification ══════════════════════════════════════════════
+
+*thunk {thunk#0}() -> String {
+    let %0: String
+    let %1: String
+    let %2: String
+
+    bb0(): {
+        %1 = "then"
+
+        return %1
+    }
+
+    bb1(): {
+        unreachable
+    }
+
+    bb2(): {
+        %2 = "else"
+
+        unreachable
+    }
+
+    bb3(%0): {
+        unreachable
+    }
+}

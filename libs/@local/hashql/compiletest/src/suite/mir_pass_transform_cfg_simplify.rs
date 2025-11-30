@@ -112,7 +112,11 @@ impl Suite for MirPassTransformCfgSimplify {
             diagnostics,
         )?;
 
-        let _ = writeln!(buffer, "{}\n", Header::new("MIR after CFG Simplification"));
+        let _ = writeln!(
+            buffer,
+            "\n{}\n",
+            Header::new("MIR after CFG Simplification")
+        );
         mir_format_text(heap, &environment, &mut buffer, root, &bodies);
 
         if let Some((mut writer, handle)) = d2 {

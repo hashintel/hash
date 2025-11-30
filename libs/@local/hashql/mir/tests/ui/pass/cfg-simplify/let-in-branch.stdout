@@ -1,0 +1,57 @@
+════ Initial MIR ═══════════════════════════════════════════════════════════════
+
+*thunk {thunk#2}() -> Boolean {
+    let %0: Boolean
+    let %1: Integer
+    let %2: Boolean
+
+    bb0(): {
+        switchInt(1) -> [0: bb2(), 1: bb1()]
+    }
+
+    bb1(): {
+        %1 = 42
+        %2 = %1 <= 100
+
+        goto -> bb3(%2)
+    }
+
+    bb2(): {
+        goto -> bb3(0)
+    }
+
+    bb3(%0): {
+        return %0
+    }
+}
+════ MIR after CFG Simplification ══════════════════════════════════════════════
+
+*thunk {thunk#2}() -> Boolean {
+    let %0: Boolean
+    let %1: Integer
+    let %2: Boolean
+    let %3: Boolean
+    let %4: Boolean
+
+    bb0(): {
+        %1 = 42
+        %2 = %1 <= 100
+        %3 = %2
+
+        return %3
+    }
+
+    bb1(): {
+        unreachable
+    }
+
+    bb2(): {
+        %4 = 0
+
+        unreachable
+    }
+
+    bb3(%0): {
+        unreachable
+    }
+}
