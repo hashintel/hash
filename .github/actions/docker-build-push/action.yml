@@ -80,7 +80,10 @@ runs:
         build-args: ${{ inputs.BUILD_ARGS }}
         secrets: |
           GITHUB_TOKEN=${{ inputs.GITHUB_TOKEN }}
-        tags: ${{ inputs.AWS_ECR_URL }}/${{ inputs.IMAGE_NAME }}:${{ inputs.IMAGE_TAG }} , ${{ inputs.AWS_ECR_URL }}/${{ inputs.IMAGE_NAME }}:run-${{ env.GH_RUN_ID }}
+        tags: |
+          ${{ inputs.AWS_ECR_URL }}/${{ inputs.IMAGE_NAME }}:${{ inputs.IMAGE_TAG }}
+          ${{ inputs.AWS_ECR_URL }}/${{ inputs.IMAGE_NAME }}:sha-${{ github.sha }}
+          ${{ inputs.AWS_ECR_URL }}/${{ inputs.IMAGE_NAME }}:run-${{ env.GH_RUN_ID }}
         cache-from: type=local,src=/tmp/.buildx-cache
         cache-to: type=local,mode=max,dest=/tmp/.buildx-cache-new
 
