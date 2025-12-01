@@ -140,20 +140,28 @@ impl CfgSimplify {
             return false;
         }
 
+        // This is the only special case, if there are multiple predecessors, and the target itself
+        // is a self-loop we cannot safely merge them. The reason is that in that case we wouldn't
+        // be able to make any progress upon expansion, as we would replace our own terminator with
+        // the exact same one. We could broaden the search to also check params (which would still
+        // be correct), this case alone leads to more code generation as we're generating a
+        // superfluous assignment.
+        // The `target_predecessors_len` check isn't 100% necessary, as this case can only happen
+        // iff the target is a self-loop, hence has multiple predecessors, but allows us to be a bit
+        // more defensive about that fact.
+        if target_predecessors_len > 1
+            && let TerminatorKind::Goto(target_goto) =
+                body.basic_blocks[goto.target.block].terminator.kind
+            && target_goto.target.block == goto.target.block
+        {
+            return false;
+        }
+
         let [block, target] = body
             .basic_blocks
             .as_mut()
             .get_disjoint_mut([id, goto.target.block])
             .unwrap_or_else(|_err| unreachable!("self-loops excluded by check above"));
-
-        // This is the only special case, if there are multiple predecessors, and the target itself
-        // is a self-loop we cannot safely merge them. The reason is that in that case we wouldn't
-        // be able to make any progress, as expansion would be infinite.
-        if let TerminatorKind::Goto(target_goto) = target.terminator.kind
-            && target_goto.target.block == goto.target.block
-        {
-            return false;
-        }
 
         // Step 1: Assign block parameters before moving statements to maintain def-before-use.
         debug_assert_eq!(target.params.len(), goto.target.args.len());
