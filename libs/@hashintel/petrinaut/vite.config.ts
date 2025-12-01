@@ -13,6 +13,7 @@ export default defineConfig({
     },
     rollupOptions: {
       external: [
+        "@hashintel/ds-components",
         "@hashintel/ds-helpers",
         "elkjs",
         "react",
