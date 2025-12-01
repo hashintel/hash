@@ -65,7 +65,6 @@ use crate::{
 ///
 /// This structure contains the essential components needed to transform HIR(ANF) into MIR,
 /// including symbol tables, type information, and memory management.
-// TODO: in the future this will be replaced by the MirContext
 pub struct ReifyContext<'mir, 'hir, 'env, 'heap> {
     /// Mutable reference to the collection of MIR bodies being generated.
     pub bodies: &'mir mut DefIdVec<Body<'heap>>,
