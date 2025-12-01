@@ -175,11 +175,6 @@ const Playground = () => {
                     </h2>
 
                     <SegmentedControl
-                      radius={22}
-                      specularOpacity={0.8}
-                      glassThickness={20}
-                      bezelWidth={11}
-                      blur={1.7}
                       options={[
                         { name: "Design", value: "design" },
                         { name: "Actions", value: "actions" },

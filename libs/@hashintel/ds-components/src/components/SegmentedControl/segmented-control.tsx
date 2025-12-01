@@ -2,9 +2,10 @@ import { SegmentGroup } from "@ark-ui/react/segment-group";
 import { css, cx } from "@hashintel/ds-helpers/css";
 import { refractive } from "@hashintel/refractive";
 
-const ROOT_PADDING = 4;
-
 const RefractiveSegmentGroupIndicator = refractive(SegmentGroup.Indicator);
+
+const ROOT_PADDING = 4;
+const ROOT_RADIUS = 10;
 
 const rootStyles = css({
   position: "relative",
@@ -19,10 +20,10 @@ const rootBackdropStyles = css({
   display: "flex",
   alignItems: "center",
   backgroundColor: "core.gray.10/20",
-  left: "spacing.0",
-  top: "spacing.0",
-  right: "spacing.0",
-  bottom: "spacing.0",
+  left: "[0px]",
+  top: "[0px]",
+  right: "[0px]",
+  bottom: "[0px]",
   shadow: "[inset 1px 1px 1px rgba(0, 0, 0, 0.05)]",
 });
 
@@ -58,7 +59,7 @@ const itemStyles = css({
     shadow: "lg",
   },
   _hover: {
-    backgroundColor: "core.grayalpha.40",
+    backgroundColor: "core.neutral.white/60",
   },
 });
 
@@ -73,14 +74,6 @@ const itemTextStyles = css({
 export type SegmentedControlProps = React.PropsWithChildren<{
   className?: string;
   style?: React.CSSProperties;
-  radius?: number;
-  blur?: number;
-  specularOpacity?: number;
-  specularSaturation?: number;
-  scaleRatio?: number;
-  bezelWidth?: number;
-  glassThickness?: number;
-  refractiveIndex?: number;
   options: { name: string; value: string }[];
   value?: string;
   defaultValue?: string;
@@ -91,13 +84,6 @@ export type SegmentedControlProps = React.PropsWithChildren<{
 export const SegmentedControl: React.FC<SegmentedControlProps> = ({
   className,
   style,
-  radius = 22,
-  blur = 2,
-  specularOpacity = 0.4,
-  scaleRatio = 1,
-  bezelWidth = 20,
-  glassThickness = 16,
-  refractiveIndex = 1.5,
   options,
   value,
   defaultValue,
@@ -116,23 +102,17 @@ export const SegmentedControl: React.FC<SegmentedControlProps> = ({
       defaultValue={defaultValue}
       className={cx(rootStyles, className)}
       style={{
-        padding: ROOT_PADDING,
-        borderRadius: radius,
         ...style,
+        padding: ROOT_PADDING,
+        borderRadius: ROOT_RADIUS,
       }}
     >
       <refractive.div
         className={rootBackdropStyles}
-        style={{
-          borderRadius: radius,
-        }}
         refraction={{
-          blur,
-          specularOpacity,
-          radius,
-          bezelWidth,
-          glassThickness,
-          refractiveIndex,
+          radius: ROOT_RADIUS,
+          blur: 2,
+          bezelWidth: 22,
         }}
       />
 
@@ -141,7 +121,7 @@ export const SegmentedControl: React.FC<SegmentedControlProps> = ({
           key={option.value}
           value={option.value}
           className={itemStyles}
-          style={{ borderRadius: radius - ROOT_PADDING }}
+          style={{ borderRadius: ROOT_RADIUS - ROOT_PADDING }}
         >
           <SegmentGroup.ItemText className={itemTextStyles}>
             {option.name}
@@ -153,16 +133,10 @@ export const SegmentedControl: React.FC<SegmentedControlProps> = ({
 
       <RefractiveSegmentGroupIndicator
         className={indicatorStyles}
-        style={{
-          borderRadius: radius - ROOT_PADDING,
-        }}
         refraction={{
-          blur: 0,
-          specularOpacity,
-          radius: radius - ROOT_PADDING,
-          bezelWidth: bezelWidth - ROOT_PADDING,
-          glassThickness,
-          refractiveIndex,
+          radius: ROOT_RADIUS - ROOT_PADDING,
+          bezelWidth: 9,
+          glassThickness: 9,
         }}
       />
     </SegmentGroup.Root>

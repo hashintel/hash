@@ -1,18 +1,19 @@
 import type { ComponentType } from "react";
-import { createElement, useEffect, useRef, useState } from "react";
+import { createElement, useEffect, useId, useRef, useState } from "react";
 import type { JSX } from "react/jsx-runtime";
 import { Filter } from "../components/filter";
+import { CONVEX } from "../helpers/surface-equations";
 
 type RefractionProps = {
   refraction: {
     radius: number;
-    blur: number;
-    glassThickness: number;
-    bezelWidth: number;
-    refractiveIndex: number;
-    specularOpacity: number;
-    specularAngle: number;
-    bezelHeightFn: (x: number) => number;
+    blur?: number;
+    glassThickness?: number;
+    bezelWidth?: number;
+    refractiveIndex?: number;
+    specularOpacity?: number;
+    specularAngle?: number;
+    bezelHeightFn?: (x: number) => number;
   };
 };
 
@@ -21,7 +22,7 @@ function createRefractiveComponent<P extends { style: React.CSSProperties }>(
 ): ComponentType<P & RefractionProps> {
   return function RefractiveWrapper(props: P & RefractionProps) {
     const { refraction, ...componentProps } = props;
-    const filterId = "Example";
+    const filterId = useId();
     const elementRef = useRef<HTMLElement>(null);
     const [width, setWidth] = useState(0);
     const [height, setHeight] = useState(0);
@@ -59,14 +60,14 @@ function createRefractiveComponent<P extends { style: React.CSSProperties }>(
           pixelRatio={2} // Always 2 for now, could be configurable in the future
           width={width}
           height={height}
-          blur={refraction.blur}
-          radius={refraction.radius}
-          glassThickness={refraction.glassThickness}
-          bezelWidth={refraction.bezelWidth}
-          refractiveIndex={refraction.refractiveIndex}
-          specularOpacity={refraction.specularOpacity}
-          specularAngle={refraction.specularAngle}
-          bezelHeightFn={refraction.bezelHeightFn}
+          blur={refraction.blur ?? 0}
+          radius={refraction.radius ?? 4}
+          glassThickness={refraction.glassThickness ?? 70}
+          bezelWidth={refraction.bezelWidth ?? 0}
+          refractiveIndex={refraction.refractiveIndex ?? 1.5}
+          specularOpacity={refraction.specularOpacity ?? 0}
+          specularAngle={refraction.specularAngle ?? 0}
+          bezelHeightFn={refraction.bezelHeightFn ?? CONVEX}
         />
 
         {createElement(Component, {

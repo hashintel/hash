@@ -71,9 +71,6 @@ export interface SwitchProps {
 }
 
 export const Switch: React.FC<SwitchProps> = ({
-  specularOpacity = 0.5,
-  specularSaturation = 6,
-  blurLevel = 0.2,
   checked,
   defaultChecked = false,
   disabled = false,
@@ -99,9 +96,7 @@ export const Switch: React.FC<SwitchProps> = ({
           <refractive.div
             className={switchThumbInnerStyles}
             refraction={{
-              blur: blurLevel,
-              specularOpacity,
-              // specularSaturation,
+              specularOpacity: 0.5,
               radius: THUMB_RADIUS,
               bezelWidth: THUMB_RADIUS * 0.42,
               glassThickness: 12,
