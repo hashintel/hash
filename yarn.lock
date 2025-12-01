@@ -8278,6 +8278,7 @@ __metadata:
     typescript: "npm:5.9.3"
     uuid: "npm:13.0.0"
     vite: "npm:7.1.11"
+    vite-plugin-dts: "npm:4.5.4"
     vitest: "npm:4.0.13"
     web-worker: "npm:1.4.1"
     zustand: "npm:5.0.8"

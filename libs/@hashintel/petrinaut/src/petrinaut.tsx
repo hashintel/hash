@@ -2,15 +2,31 @@ import "reactflow/dist/style.css";
 import "./index.css";
 
 import type {
+  Color,
+  DifferentialEquation,
   MinimalNetMetadata,
   MutateSDCPN,
+  Parameter,
+  Place,
   SDCPN,
+  Transition,
 } from "./core/types/sdcpn";
 import { useMonacoGlobalTypings } from "./hooks/use-monaco-global-typings";
 import { EditorProvider } from "./state/editor-provider";
 import { SDCPNProvider } from "./state/sdcpn-provider";
 import { SimulationProvider } from "./state/simulation-provider";
 import { EditorView } from "./views/Editor/editor-view";
+
+export type {
+  Color,
+  DifferentialEquation,
+  MinimalNetMetadata,
+  MutateSDCPN,
+  Parameter,
+  Place,
+  SDCPN,
+  Transition,
+};
 
 /**
  * Internal component to initialize Monaco global typings.
