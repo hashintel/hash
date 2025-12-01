@@ -57,7 +57,7 @@ function createRefractiveComponent<
         <Filter
           id={filterId}
           scaleRatio={1} // Always 1 for now, could be animatable in the future
-          pixelRatio={2} // Always 2 for now, could be configurable in the future
+          pixelRatio={6} // Always 4 for now, could be configurable in the future
           width={width}
           height={height}
           blur={refraction.blur ?? 0}
