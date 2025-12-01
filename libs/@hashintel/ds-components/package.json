@@ -1,6 +1,6 @@
 {
   "name": "@hashintel/ds-components",
-  "version": "0.0.1",
+  "version": "0.0.1-b",
   "description": "HASH Component Library built with React, Ark UI, and PandaCSS",
   "repository": {
     "type": "git",
