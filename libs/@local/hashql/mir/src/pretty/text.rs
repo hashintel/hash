@@ -530,6 +530,10 @@ where
                         .iter()
                         .map(|(value, target)| KeyValuePair(value, target)),
                 )?;
+                if let Some(otherwise) = targets.otherwise() {
+                    write!(self.writer, ", otherwise: ")?;
+                    self.format_part(otherwise)?;
+                }
                 write!(self.writer, "]")
             }
             &TerminatorKind::Return(_) | TerminatorKind::Unreachable => Ok(()),
