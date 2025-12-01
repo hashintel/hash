@@ -1,6 +1,6 @@
 {
   "name": "@hashintel/petrinaut",
-  "version": "0.0.6-canary.2",
+  "version": "0.0.6-canary.3",
   "description": "A visual editor for Petri nets",
   "repository": {
     "type": "git",
