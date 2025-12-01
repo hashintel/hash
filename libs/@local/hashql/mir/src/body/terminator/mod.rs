@@ -106,6 +106,20 @@ pub struct Terminator<'heap> {
     pub kind: TerminatorKind<'heap>,
 }
 
+impl Terminator<'_> {
+    /// Creates an unreachable terminator at the given source location.
+    ///
+    /// Unreachable terminators indicate that control flow should never reach this point.
+    /// Useful as a placeholder during MIR construction or for marking provably dead code.
+    #[must_use]
+    pub const fn unreachable(span: SpanId) -> Self {
+        Self {
+            span,
+            kind: TerminatorKind::Unreachable,
+        }
+    }
+}
+
 /// The specific kind of control flow operation performed by a terminator.
 ///
 /// Terminator kinds represent the different types of control flow operations
@@ -147,6 +161,11 @@ pub enum TerminatorKind<'heap> {
 }
 
 impl<'heap> TerminatorKind<'heap> {
+    /// Returns an iterator over the basic block IDs of all possible successors.
+    ///
+    /// The returned iterator yields the [`BasicBlockId`] of each block that control
+    /// flow could transfer to from this terminator. For terminators with no successors
+    /// (such as [`Return`] or [`Unreachable`](Self::Unreachable)), the iterator is empty.
     #[must_use]
     pub fn successor_blocks(
         &self,
@@ -163,6 +182,10 @@ impl<'heap> TerminatorKind<'heap> {
         }
     }
 
+    /// Returns an iterator over mutable references to successor basic block IDs.
+    ///
+    /// This allows rewriting the control flow targets of this terminator, such as
+    /// during block renumbering or CFG transformations.
     pub fn successor_blocks_mut(
         &mut self,
     ) -> impl DoubleEndedIterator<Item = &mut BasicBlockId> + ExactSizeIterator {
@@ -182,6 +205,14 @@ impl<'heap> TerminatorKind<'heap> {
         }
     }
 
+    /// Returns a slice of all successor [`Target`]s.
+    ///
+    /// Unlike [`successor_blocks`](Self::successor_blocks), this returns the full [`Target`]
+    /// including any arguments passed to the successor block. Returns an empty slice for
+    /// terminators without targets ([`Return`], [`GraphRead`], [`Unreachable`](Self::Unreachable)).
+    ///
+    /// Note that [`GraphRead`] returns an empty slice because it injects its own target
+    /// rather than using the standard target mechanism.
     #[must_use]
     pub fn successor_targets(&self) -> &[Target<'heap>] {
         match self {
@@ -192,6 +223,11 @@ impl<'heap> TerminatorKind<'heap> {
         }
     }
 
+    /// Returns a mutable slice of all successor [`Target`]s, if any exist.
+    ///
+    /// Returns [`Some`] with a mutable slice for terminators that have modifiable targets
+    /// ([`Goto`], [`SwitchInt`]), or [`None`] for terminators without modifiable targets
+    /// ([`Return`], [`GraphRead`], [`Unreachable`](Self::Unreachable)).
     pub fn successor_targets_mut(&mut self) -> Option<&mut [Target<'heap>]> {
         match self {
             Self::Goto(goto) => Some(core::slice::from_mut(&mut goto.target)),

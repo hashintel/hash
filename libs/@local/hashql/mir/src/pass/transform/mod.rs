@@ -1,2 +1,5 @@
+mod cfg_simplify;
 pub mod error;
-pub mod ssa_repair;
+mod ssa_repair;
+
+pub use self::{cfg_simplify::CfgSimplify, ssa_repair::SsaRepair};

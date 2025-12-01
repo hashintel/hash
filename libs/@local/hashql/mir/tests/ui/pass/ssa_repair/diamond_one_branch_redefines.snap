@@ -7,7 +7,7 @@ fn {intrinsic#4294967040}() -> Null {
     let %1: Boolean
 
     bb0(): {
-        %1 = true
+        %1 = 1
         %0 = 1
 
         switchInt(%1) -> [0: bb2(), 1: bb1()]
@@ -40,7 +40,7 @@ fn {intrinsic#4294967040}() -> Null {
     let %4: Boolean
 
     bb0(): {
-        %4 = true
+        %4 = 1
         %2 = 1
 
         switchInt(%4) -> [0: bb2(), 1: bb1()]

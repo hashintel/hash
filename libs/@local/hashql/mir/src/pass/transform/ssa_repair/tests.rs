@@ -14,7 +14,7 @@ use crate::{
     context::MirContext,
     def::DefIdSlice,
     op,
-    pass::{Pass as _, transform::ssa_repair::SsaRepairPass},
+    pass::{Pass as _, transform::ssa_repair::SsaRepair},
     pretty::TextFormat,
     scaffold,
 };
@@ -48,7 +48,7 @@ fn assert_ssa_pass<'heap>(
         .writer
         .extend(b"\n\n------------------------------------\n\n");
 
-    SsaRepairPass.run(&mut context, &mut bodies[0]);
+    SsaRepair.run(&mut context, &mut bodies[0]);
 
     text_format
         .format(DefIdSlice::from_raw(&bodies), &[])

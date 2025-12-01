@@ -1,0 +1,15 @@
+//@ run: pass
+//@ description: Diamond CFG pattern with non-constant condition preserved
+// A runtime condition creates a diamond shape that cannot be simplified.
+// Both branches have statements, so they cannot be merged despite sharing a successor.
+[
+  "let",
+  "x",
+  { "#literal": 5 },
+  [
+    "if",
+    ["<=", "x", { "#literal": 10 }],
+    ["<=", "x", { "#literal": 20 }],
+    [">=", "x", { "#literal": 0 }]
+  ]
+]

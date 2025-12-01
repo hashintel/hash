@@ -9,8 +9,8 @@ fn {intrinsic#4294967040}() -> Null {
 
     bb0(): {
         %0 = 0
-        %1 = true
-        %2 = true
+        %1 = 1
+        %2 = 1
 
         goto -> bb1()
     }
@@ -48,8 +48,8 @@ fn {intrinsic#4294967040}() -> Null {
 
     bb0(): {
         %3 = 0
-        %6 = true
-        %2 = true
+        %6 = 1
+        %2 = 1
 
         goto -> bb1(%3)
     }

@@ -1,0 +1,108 @@
+════ Initial MIR ═══════════════════════════════════════════════════════════════
+
+thunk x:0() -> Integer {
+    bb0(): {
+        return 5
+    }
+}
+
+thunk {thunk#3}() -> Boolean {
+    let %0: Integer
+    let %1: Boolean
+
+    bb0(): {
+        %0 = apply (x:0 as FnPtr)
+        %1 = %0 <= 10
+
+        return %1
+    }
+}
+
+*thunk {thunk#4}() -> Boolean {
+    let %0: Boolean
+    let %1: Boolean
+    let %2: Integer
+    let %3: Boolean
+    let %4: Integer
+    let %5: Boolean
+
+    bb0(): {
+        %0 = apply ({thunk#3} as FnPtr)
+
+        switchInt(%0) -> [0: bb2(), 1: bb1()]
+    }
+
+    bb1(): {
+        %2 = apply (x:0 as FnPtr)
+        %3 = %2 <= 20
+
+        goto -> bb3(%3)
+    }
+
+    bb2(): {
+        %4 = apply (x:0 as FnPtr)
+        %5 = %4 >= 0
+
+        goto -> bb3(%5)
+    }
+
+    bb3(%1): {
+        return %1
+    }
+}
+════ MIR after CFG Simplification ══════════════════════════════════════════════
+
+thunk x:0() -> Integer {
+    bb0(): {
+        return 5
+    }
+}
+
+thunk {thunk#3}() -> Boolean {
+    let %0: Integer
+    let %1: Boolean
+
+    bb0(): {
+        %0 = apply (x:0 as FnPtr)
+        %1 = %0 <= 10
+
+        return %1
+    }
+}
+
+*thunk {thunk#4}() -> Boolean {
+    let %0: Boolean
+    let %1: Boolean
+    let %2: Integer
+    let %3: Boolean
+    let %4: Integer
+    let %5: Boolean
+    let %6: Boolean
+    let %7: Boolean
+
+    bb0(): {
+        %0 = apply ({thunk#3} as FnPtr)
+
+        switchInt(%0) -> [0: bb2(), 1: bb1()]
+    }
+
+    bb1(): {
+        %2 = apply (x:0 as FnPtr)
+        %3 = %2 <= 20
+        %6 = %3
+
+        return %6
+    }
+
+    bb2(): {
+        %4 = apply (x:0 as FnPtr)
+        %5 = %4 >= 0
+        %7 = %5
+
+        return %7
+    }
+
+    bb3(%1): {
+        unreachable
+    }
+}
