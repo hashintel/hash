@@ -1,5 +1,5 @@
 use alloc::borrow::Cow;
-use core::fmt::Write as _;
+use core::{cmp::Ordering, fmt::Write as _};
 
 use hashql_diagnostics::{
     Diagnostic, DiagnosticIssues, Label, Status,
@@ -12,7 +12,7 @@ use super::{
     Type, TypeId,
     environment::Environment,
     inference::{SelectionConstraint, Variable},
-    kind::{generic::GenericArgumentId, intrinsic::DictType},
+    kind::{StructType, generic::GenericArgumentId, intrinsic::DictType},
     pretty::{FormatType, TypeFormatter},
 };
 use crate::{
@@ -332,43 +332,29 @@ pub(crate) fn no_type_inference<K>(infer_type: Type<'_, K>) -> TypeCheckDiagnost
 
 /// Creates a circular type reference diagnostic
 pub(crate) fn circular_type_reference<'heap, K>(
-    span: SpanId,
     lhs: Type<'heap, K>,
     rhs: Type<'heap, K>,
 ) -> TypeCheckDiagnostic {
     let mut diagnostic =
-        Diagnostic::new(TypeCheckDiagnosticCategory::CircularType, Severity::Warning).primary(
-            Label::new(span, "Circular type reference detected in this expression"),
-        );
+        Diagnostic::new(TypeCheckDiagnosticCategory::CircularType, Severity::Warning)
+            .primary(Label::new(lhs.span, "circular type reference detected"));
 
     diagnostic
         .labels
-        .push(Label::new(lhs.span, "This type depends on itself"));
-
-    diagnostic
-        .labels
-        .push(Label::new(rhs.span, "... through this reference"));
-
-    diagnostic.add_message(Message::help(
-        "While circular type references are allowed, they can lead to infinite type expansion and \
-         potential issues with type checking and serialization. Consider removing the circular \
-         dependency.",
-    ));
+        .push(Label::new(rhs.span, "cycle continues through this type"));
 
     diagnostic.add_message(Message::note(
-        "Circular type references create types that can expand infinitely. This may lead to \
-         unpredictable behavior in some contexts like serialization, code generation, or when \
-         working with external systems. While supported, use circular types with caution and \
-         ensure you understand their implications.",
+        "circular types can cause infinite expansion during serialization or code generation",
     ));
+
     diagnostic
 }
 
 /// Creates a diagnostic for when tuple types have a different number of fields
 pub(crate) fn tuple_length_mismatch<'heap, K>(
-    span: SpanId,
     lhs: Type<'heap, K>,
     rhs: Type<'heap, K>,
+
     lhs_len: usize,
     rhs_len: usize,
 ) -> TypeCheckDiagnostic {
@@ -377,36 +363,22 @@ pub(crate) fn tuple_length_mismatch<'heap, K>(
         Severity::Error,
     )
     .primary(Label::new(
-        span,
-        "The tuples have different numbers of elements",
-    ));
-
-    diagnostic.labels.push(Label::new(
         lhs.span,
         format!(
-            "This tuple has {} element{}",
+            "expected tuple with {} element{}, found {}",
             lhs_len,
-            if lhs_len == 1 { "" } else { "s" }
+            if lhs_len == 1 { "" } else { "s" },
+            rhs_len
         ),
     ));
 
     diagnostic.labels.push(Label::new(
         rhs.span,
         format!(
-            "This tuple has {} element{}",
+            "this tuple has {} element{}",
             rhs_len,
             if rhs_len == 1 { "" } else { "s" }
         ),
-    ));
-
-    diagnostic.add_message(Message::help(
-        "Tuples must have the same number of elements to be compatible. You need to adjust one of \
-         the tuples to match the other's length.",
-    ));
-
-    diagnostic.add_message(Message::note(
-        "Unlike some collections, tuples have a fixed length that is part of their type. This \
-         means (String, Number) and (String, Number, Boolean) are completely different types.",
     ));
 
     diagnostic
@@ -414,8 +386,6 @@ pub(crate) fn tuple_length_mismatch<'heap, K>(
 
 /// Creates a diagnostic for when opaque types have different names
 pub(crate) fn opaque_type_name_mismatch<'heap, K>(
-    span: SpanId,
-
     lhs: Type<'heap, K>,
     rhs: Type<'heap, K>,
 
@@ -427,27 +397,16 @@ pub(crate) fn opaque_type_name_mismatch<'heap, K>(
         Severity::Error,
     )
     .primary(Label::new(
-        span,
-        "These named types are different and cannot be used interchangeably",
+        lhs.span,
+        format!("expected `{lhs_name}`, found `{rhs_name}`"),
     ));
 
     diagnostic
         .labels
-        .push(Label::new(lhs.span, format!("This is type '{lhs_name}'")));
-
-    diagnostic
-        .labels
-        .push(Label::new(rhs.span, format!("This is type '{rhs_name}'")));
-
-    diagnostic.add_message(Message::help(
-        "Named types can only be used with other instances of the exact same type. This is \
-         similar to how 'UserId' and 'PostId' would be different types even if they're both \
-         numbers underneath.",
-    ));
+        .push(Label::new(rhs.span, format!("this has type `{rhs_name}`")));
 
     diagnostic.add_message(Message::note(
-        "This distinction prevents accidentally mixing up different types that happen to have the \
-         same internal structure, helping catch logical errors in your code.",
+        "named types with different names are distinct, even if they have the same structure",
     ));
 
     diagnostic
@@ -509,8 +468,6 @@ where
 /// This is used when a function type has a different number of parameters than expected,
 /// which is an invariant property of function types.
 pub(crate) fn function_parameter_count_mismatch<'heap, K>(
-    span: SpanId,
-
     lhs: Type<'heap, K>,
     rhs: Type<'heap, K>,
 
@@ -521,34 +478,23 @@ pub(crate) fn function_parameter_count_mismatch<'heap, K>(
         TypeCheckDiagnosticCategory::FunctionParameterCountMismatch,
         Severity::Error,
     )
-    .primary(Label::new(span, "Function has wrong number of parameters"));
-
-    diagnostic.labels.push(Label::new(
+    .primary(Label::new(
         lhs.span,
         format!(
-            "This function type expects {} parameter{}",
+            "expected function with {} parameter{}, found {}",
             lhs_param_count,
-            if lhs_param_count == 1 { "" } else { "s" }
+            if lhs_param_count == 1 { "" } else { "s" },
+            rhs_param_count
         ),
     ));
 
     diagnostic.labels.push(Label::new(
         rhs.span,
         format!(
-            "This function has {} parameter{}",
+            "this function has {} parameter{}",
             rhs_param_count,
             if rhs_param_count == 1 { "" } else { "s" }
         ),
-    ));
-
-    diagnostic.add_message(Message::help(
-        "Function types must have the same number of parameters to be compatible. Check that \
-         you're using the correct function type with the right number of parameters.",
-    ));
-
-    diagnostic.add_message(Message::note(
-        "In strongly typed languages, functions with different numbers of parameters are \
-         considered different types, even if the parameters they do have are compatible.",
     ));
 
     diagnostic
@@ -688,36 +634,69 @@ where
 ///
 /// This is used when two structs being compared have different fields,
 /// which violates structural equivalence requirements.
-pub(crate) fn struct_field_mismatch<'heap, K>(
-    span: SpanId,
-    lhs: Type<'heap, K>,
-    rhs: Type<'heap, K>,
+pub(crate) fn struct_field_mismatch<'heap>(
+    lhs: Type<'heap, StructType<'heap>>,
+    rhs: Type<'heap, StructType<'heap>>,
 ) -> TypeCheckDiagnostic {
+    let mut missing_in_rhs = Vec::new();
+    let mut missing_in_lhs = Vec::new();
+
+    let mut lhs_iter = lhs.kind.fields.iter().peekable();
+    let mut rhs_iter = rhs.kind.fields.iter().peekable();
+
+    while let (Some(&lhs_field), Some(&rhs_field)) = (lhs_iter.peek(), rhs_iter.peek()) {
+        match lhs_field.name.cmp(&rhs_field.name) {
+            Ordering::Less => {
+                missing_in_rhs.push(lhs_field.name);
+                lhs_iter.next();
+            }
+            Ordering::Greater => {
+                missing_in_lhs.push(rhs_field.name);
+                rhs_iter.next();
+            }
+            Ordering::Equal => {
+                lhs_iter.next();
+                rhs_iter.next();
+            }
+        }
+    }
+
+    missing_in_rhs.extend(lhs_iter.map(|field| field.name));
+    missing_in_lhs.extend(rhs_iter.map(|field| field.name));
+
     let mut diagnostic = Diagnostic::new(
         TypeCheckDiagnosticCategory::StructFieldMismatch,
         Severity::Error,
     )
-    .primary(Label::new(span, "Structs have different field names"));
-
-    diagnostic.labels.push(Label::new(
-        lhs.span,
-        "This struct has a different set of fields",
-    ));
+    .primary(Label::new(lhs.span, "structs have different fields"));
 
     diagnostic
         .labels
-        .push(Label::new(rhs.span, "... than this struct"));
+        .push(Label::new(rhs.span, "this struct has different fields"));
 
-    diagnostic.add_message(Message::help(
-        "For structs to be equivalent, they must have exactly the same field names. Check that \
-         both structs define the same set of fields.",
-    ));
+    if !missing_in_rhs.is_empty() {
+        diagnostic.add_message(Message::note(format!(
+            "field{} {} missing in second struct",
+            if missing_in_rhs.len() == 1 { "" } else { "s" },
+            missing_in_rhs
+                .iter()
+                .flat_map(|name| ["`", name.as_str(), "`"])
+                .intersperse(", ")
+                .collect::<String>()
+        )));
+    }
 
-    diagnostic.add_message(Message::note(
-        "When comparing structs for equivalence, they must have the exact same field names. \
-         Subtyping allows a struct with more fields to be a subtype of one with fewer fields, but \
-         for equivalence they must match exactly.",
-    ));
+    if !missing_in_lhs.is_empty() {
+        diagnostic.add_message(Message::note(format!(
+            "field{} {} missing in first struct",
+            if missing_in_lhs.len() == 1 { "" } else { "s" },
+            missing_in_lhs
+                .iter()
+                .flat_map(|name| ["`", name.as_str(), "`"])
+                .intersperse(", ")
+                .collect::<String>()
+        )));
+    }
 
     diagnostic
 }
@@ -761,10 +740,9 @@ pub fn duplicate_struct_field<'heap, K>(
 ///
 /// This is used when a struct being checked for subtyping relationship is missing
 /// a field that is present in the supertype, violating the subtyping requirements.
-pub(crate) fn missing_struct_field<'heap, K>(
-    span: SpanId,
-    subtype: Type<'heap, K>,
-    supertype: Type<'heap, K>,
+pub(crate) fn missing_struct_field<'heap>(
+    subtype: Type<'heap, StructType<'heap>>,
+    supertype: Type<'heap, StructType<'heap>>,
     field_name: Symbol<'heap>,
 ) -> TypeCheckDiagnostic {
     let mut diagnostic = Diagnostic::new(
@@ -772,54 +750,34 @@ pub(crate) fn missing_struct_field<'heap, K>(
         Severity::Error,
     )
     .primary(Label::new(
-        span,
-        format!("Missing required field '{field_name}'"),
-    ));
-
-    diagnostic.labels.push(Label::new(
         subtype.span,
-        "This struct is missing a required field",
+        format!("missing field `{field_name}`"),
     ));
 
     diagnostic.labels.push(Label::new(
         supertype.span,
-        format!("The field '{field_name}' is required by this type"),
+        format!("field `{field_name}` required by this type"),
     ));
 
-    diagnostic.add_message(Message::help(
-        "For a struct to be a subtype of another, it must contain all fields from the supertype. \
-         Add the missing field to fix this error.",
-    ));
-
-    diagnostic.add_message(Message::note(
-        "In structural subtyping, a subtype can have more fields than its supertype (width \
-         subtyping), but it must include all fields from the supertype with compatible types.",
-    ));
+    diagnostic.add_message(Message::help(format!(
+        "add field `{field_name}` to the struct"
+    )));
 
     diagnostic
 }
 
-pub(crate) fn unconstrained_type_variable_floating(env: &Environment) -> TypeCheckDiagnostic {
+pub(crate) fn unconstrained_type_variable_floating() -> TypeCheckDiagnostic {
     let mut diagnostic = Diagnostic::new(
         TypeCheckDiagnosticCategory::UnconstrainedTypeVariable,
         Severity::Bug,
     )
     .primary(Label::new(
-        env.source,
-        "Found unconstrained type variable with no source location information",
-    ));
-
-    diagnostic.add_message(Message::help(
-        "The type system encountered a variable that has no constraints, but also lacks source \
-         location information to properly report the error.",
+        SpanId::SYNTHETIC,
+        "unconstrained type variable has no source location",
     ));
 
     diagnostic.add_message(Message::note(
-        "During type inference, the compiler manages variables that represent unknown types. \
-         These variables should either be resolved to concrete types or be reported with specific \
-         source locations when unconstrained. This error indicates a bug in the type inference \
-         system where a variable was neither resolved nor properly tracked back to its source \
-         location.",
+        "this is a compiler bug: type variable was neither resolved nor tracked to its origin",
     ));
 
     diagnostic

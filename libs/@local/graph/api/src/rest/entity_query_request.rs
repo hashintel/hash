@@ -362,7 +362,7 @@ impl<'q> EntityQuery<'q> {
                 )
             })?;
 
-        let mut env = Environment::new(ast.span, heap);
+        let mut env = Environment::new(heap);
         let modules = ModuleRegistry::new(&env);
 
         // Lower the AST

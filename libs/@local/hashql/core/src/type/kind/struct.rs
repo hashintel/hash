@@ -368,9 +368,7 @@ impl<'heap> Lattice<'heap> for StructType<'heap> {
         for &super_field in &*supertype.kind.fields {
             let Some(self_field) = self_fields_by_key.get(&super_field.name) else {
                 if env
-                    .record_diagnostic(|env| {
-                        missing_struct_field(env.source, self, supertype, super_field.name)
-                    })
+                    .record_diagnostic(|_| missing_struct_field(self, supertype, super_field.name))
                     .is_break()
                 {
                     return false;
@@ -399,16 +397,14 @@ impl<'heap> Lattice<'heap> for StructType<'heap> {
         // Structs have the same number of fields for equivalence
         if self.kind.fields.len() != other.kind.fields.len() {
             // We always fail-fast here
-            let _: ControlFlow<()> =
-                env.record_diagnostic(|env| struct_field_mismatch(env.source, self, other));
+            let _: ControlFlow<()> = env.record_diagnostic(|_| struct_field_mismatch(self, other));
 
             return false;
         }
 
         if self.is_disjoint_by_keys(other) {
             // We always fail-fast here
-            let _: ControlFlow<()> =
-                env.record_diagnostic(|env| struct_field_mismatch(env.source, self, other));
+            let _: ControlFlow<()> = env.record_diagnostic(|_| struct_field_mismatch(self, other));
 
             return false;
         }

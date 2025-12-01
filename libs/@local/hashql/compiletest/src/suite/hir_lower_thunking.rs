@@ -57,7 +57,7 @@ impl Suite for HirLowerThunkingSuite {
         }: RunContext<'_, 'heap>,
         expr: Expr<'heap>,
     ) -> Result<String, SuiteDiagnostic> {
-        let mut environment = Environment::new(expr.span, heap);
+        let mut environment = Environment::new(heap);
         let registry = ModuleRegistry::new(&environment);
         let interner = Interner::new(heap);
         let mut context = HirContext::new(&interner, &registry);

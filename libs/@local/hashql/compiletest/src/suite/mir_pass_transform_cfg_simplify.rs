@@ -4,7 +4,7 @@ use std::{
 };
 
 use hashql_ast::node::expr::Expr;
-use hashql_core::{heap::Heap, span::SpanId, r#type::environment::Environment};
+use hashql_core::{heap::Heap, r#type::environment::Environment};
 use hashql_diagnostics::DiagnosticIssues;
 use hashql_mir::{
     body::Body,
@@ -94,7 +94,7 @@ impl Suite for MirPassTransformCfgSimplify {
         }: RunContext<'_, 'heap>,
         expr: Expr<'heap>,
     ) -> Result<String, SuiteDiagnostic> {
-        let mut environment = Environment::new(SpanId::SYNTHETIC, heap);
+        let mut environment = Environment::new(heap);
         let interner = Interner::new(heap);
 
         let mut buffer = Vec::new();

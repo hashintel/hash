@@ -29,7 +29,7 @@ use crate::{
 #[test]
 fn lattice_laws() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     let number = apply!(env, primitive!(env, PrimitiveType::Number), []);
     let string = apply!(env, primitive!(env, PrimitiveType::String), []);
@@ -42,7 +42,7 @@ fn lattice_laws() {
 fn meet() {
     // Meet should wrap the result of the underlying operation
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     let mut lattice = LatticeEnvironment::new(&env);
 
@@ -75,7 +75,7 @@ fn meet() {
 fn join() {
     // Join should wrap the result of the underlying operation
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     let mut lattice = LatticeEnvironment::new(&env);
 
@@ -107,7 +107,7 @@ fn join() {
 #[test]
 fn join_generic_argument_merging() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     let mut lattice = LatticeEnvironment::new(&env);
     lattice.without_simplify();
@@ -159,7 +159,7 @@ fn join_generic_argument_merging() {
 #[test]
 fn join_same_generic_arguments() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     let mut lattice = LatticeEnvironment::new(&env);
     lattice.without_simplify();
@@ -210,7 +210,7 @@ fn join_same_generic_arguments() {
 #[test]
 fn join_identical_generic_arguments() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     let mut lattice = LatticeEnvironment::new(&env);
     lattice.without_simplify();
@@ -258,7 +258,7 @@ fn join_identical_generic_arguments() {
 #[test]
 fn join_complex_substitution_merging() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     let mut lattice = LatticeEnvironment::new(&env);
     lattice.without_simplify();
@@ -363,7 +363,7 @@ fn join_complex_substitution_merging() {
 #[test]
 fn bottom() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     // Verify that `is_bottom` simply delegates to the base type
     let apply_never = apply!(env, instantiate(&env, TypeKind::Never), []);
@@ -377,7 +377,7 @@ fn bottom() {
 #[test]
 fn top() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     // Verify that `is_top` simply delegates to the base type
     let apply_unknown = apply!(env, instantiate(&env, TypeKind::Unknown), []);
@@ -391,7 +391,7 @@ fn top() {
 #[test]
 fn concrete() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     // Verify that `is_concrete` simply delegates to the base type
     let apply_never = apply!(env, instantiate(&env, TypeKind::Never), []);
@@ -405,7 +405,7 @@ fn concrete() {
 #[test]
 fn recursive() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     // type that's `type A = Apply<(name: A), []>`
     let recursive = env.types.intern(|id| PartialType {
@@ -425,7 +425,7 @@ fn recursive() {
 #[test]
 fn distribute_union() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     // If the inner type is just a single type, we should just return ourselves
     let string = apply!(env, primitive!(env, PrimitiveType::String), []);
@@ -458,7 +458,7 @@ fn distribute_union() {
 #[test]
 fn distribute_intersection() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     // If the inner type is just a single type, we should just return ourselves
     let string = apply!(env, primitive!(env, PrimitiveType::String), []);
@@ -491,7 +491,7 @@ fn distribute_intersection() {
 #[test]
 fn is_subtype_of() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     // Apply should be transparent in is_subtype_of checks
     let integer = apply!(env, primitive!(env, PrimitiveType::Integer), []);
@@ -505,7 +505,7 @@ fn is_subtype_of() {
 #[test]
 fn is_equivalent() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     // Apply should be transparent in is_subtype_of checks
     let integer = apply!(env, primitive!(env, PrimitiveType::Integer), []);
@@ -520,7 +520,7 @@ fn is_equivalent() {
 fn simplify() {
     // Simplify should be transparent if the type is not concrete
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     let mut simplify = SimplifyEnvironment::new(&env);
     let infer = apply!(env, instantiate_infer(&env, 0_u32), []);
@@ -537,7 +537,7 @@ fn simplify() {
 #[test]
 fn simplify_instantiate_recursive() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     let t = env.counter.generic_argument.next();
 
@@ -580,7 +580,7 @@ fn simplify_instantiate_recursive() {
 #[test]
 fn collect_constraints() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     let mut infer = InferenceEnvironment::new(&env);
 
@@ -610,7 +610,7 @@ fn collect_constraints() {
 #[test]
 fn collect_dependencies() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     let mut infer = InferenceEnvironment::new(&env);
 
@@ -641,7 +641,7 @@ fn collect_dependencies() {
 #[test]
 fn instantiate_generic() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     let argument = env.counter.generic_argument.next();
 
@@ -697,7 +697,7 @@ fn instantiate_generic() {
 #[test]
 fn instantiate_distinct() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     let argument = env.counter.generic_argument.next();
 
@@ -771,7 +771,7 @@ fn instantiate_distinct() {
 #[test]
 fn instantiate_recursive() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     // type Foo<T> = Foo<T> where<T = T>
     // a purely recursive type drops the apply wrapper
@@ -830,7 +830,7 @@ fn instantiate_recursive() {
 #[test]
 fn instantiated_nested() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     let foo_argument = env.counter.generic_argument.next();
     let bar_argument = env.counter.generic_argument.next();
@@ -911,7 +911,7 @@ fn instantiated_nested() {
 #[test]
 fn instantiate_mutually_recursive() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     let a = env.types.intern(|a_id| {
         let t = env.counter.generic_argument.next(); // T
@@ -996,7 +996,7 @@ fn instantiate_mutually_recursive() {
 #[test]
 fn simplify_recursive_unused() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     let a = env.types.intern(|a_id| {
         let t = env.counter.generic_argument.next(); // T
@@ -1076,7 +1076,7 @@ fn simplify_recursive_unused() {
 #[test]
 fn instantiate_different_substitutions() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     let foo_argument = env.counter.generic_argument.next();
 
@@ -1148,7 +1148,7 @@ fn instantiate_different_substitutions() {
 #[test]
 fn instantiate_partial() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     let t = env.counter.generic_argument.next();
     let u = env.counter.generic_argument.next();

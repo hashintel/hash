@@ -12,7 +12,6 @@ use hashql_core::{
     id::IdVec,
     module::ModuleRegistry,
     pretty::Formatter,
-    span::SpanId,
     r#type::{TypeFormatter, TypeFormatterOptions, environment::Environment},
 };
 use hashql_hir::{context::HirContext, node::NodeData};
@@ -198,7 +197,7 @@ impl Suite for MirReifySuite {
         }: RunContext<'_, 'heap>,
         expr: Expr<'heap>,
     ) -> Result<String, SuiteDiagnostic> {
-        let mut environment = Environment::new(SpanId::SYNTHETIC, heap);
+        let mut environment = Environment::new(heap);
         let interner = Interner::new(heap);
 
         let (root, bodies) = mir_reify(heap, expr, &interner, &mut environment, diagnostics)?;

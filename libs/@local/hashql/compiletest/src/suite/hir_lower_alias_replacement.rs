@@ -5,7 +5,6 @@ use hashql_core::{
     heap::Heap,
     module::ModuleRegistry,
     pretty::{Formatter, RenderOptions},
-    span::SpanId,
     r#type::environment::Environment,
 };
 use hashql_diagnostics::DiagnosticIssues;
@@ -67,7 +66,7 @@ impl Suite for HirLowerAliasReplacementSuite {
         }: RunContext<'_, 'heap>,
         expr: Expr<'heap>,
     ) -> Result<String, SuiteDiagnostic> {
-        let environment = Environment::new(SpanId::SYNTHETIC, heap);
+        let environment = Environment::new(heap);
         let registry = ModuleRegistry::new(&environment);
         let interner = Interner::new(heap);
         let mut context = HirContext::new(&interner, &registry);

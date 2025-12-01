@@ -27,7 +27,6 @@ use super::{
 use crate::{
     heap::Heap,
     intern::{InternMap, InternSet, Interned},
-    span::SpanId,
 };
 
 #[derive(Debug, Default)]
@@ -38,8 +37,6 @@ pub struct Counter {
 
 #[derive(Debug)]
 pub struct Environment<'heap> {
-    pub source: SpanId,
-
     pub heap: &'heap Heap,
 
     pub types: InternMap<'heap, Type<'heap>>,
@@ -56,18 +53,16 @@ pub struct Environment<'heap> {
 
 impl<'heap> Environment<'heap> {
     #[must_use]
-    pub fn new(source: SpanId, heap: &'heap Heap) -> Self {
-        let this = Self::new_empty(source, heap);
+    pub fn new(heap: &'heap Heap) -> Self {
+        let this = Self::new_empty(heap);
         prefill_environment(&this);
 
         this
     }
 
     #[must_use]
-    pub fn new_empty(source: SpanId, heap: &'heap Heap) -> Self {
+    pub fn new_empty(heap: &'heap Heap) -> Self {
         Self {
-            source,
-
             heap,
 
             types: InternMap::new(heap),

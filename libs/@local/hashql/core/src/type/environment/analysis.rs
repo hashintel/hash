@@ -490,7 +490,7 @@ impl<'env, 'heap> AnalysisEnvironment<'env, 'heap> {
         // Issue a non-fatal diagnostic to inform that a cycle was detected, but don't treat
         // it as an error for subtyping.
         let _: ControlFlow<()> =
-            self.record_diagnostic(|env| circular_type_reference(env.source, subtype, supertype));
+            self.record_diagnostic(|_| circular_type_reference(subtype, supertype));
 
         cycle.should_discharge()
     }
@@ -592,8 +592,7 @@ impl<'env, 'heap> AnalysisEnvironment<'env, 'heap> {
     ) -> bool {
         // Issue a non-fatal diagnostic to inform that a cycle was detected, but don't treat
         // it as an error for subtyping.
-        let _: ControlFlow<()> =
-            self.record_diagnostic(|env| circular_type_reference(env.source, lhs, rhs));
+        let _: ControlFlow<()> = self.record_diagnostic(|_| circular_type_reference(lhs, rhs));
 
         cycle.should_discharge()
     }
