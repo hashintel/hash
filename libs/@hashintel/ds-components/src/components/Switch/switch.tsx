@@ -1,6 +1,6 @@
 import { Switch as BaseSwitch } from "@ark-ui/react/switch";
 import { css } from "@hashintel/ds-helpers/css";
-import { refractive } from "@hashintel/refractive";
+import { LIP, refractive } from "@hashintel/refractive";
 
 // Layout constants
 const SLIDER_HEIGHT = 20;
@@ -96,12 +96,11 @@ export const Switch: React.FC<SwitchProps> = ({
           <refractive.div
             className={switchThumbInnerStyles}
             refraction={{
-              specularOpacity: 0.5,
               radius: THUMB_RADIUS,
               bezelWidth: THUMB_RADIUS * 0.42,
+              bezelHeightFn: LIP,
               glassThickness: 12,
-              // bezelHeightFn: LIP,
-              refractiveIndex: 1.5,
+              specularOpacity: 0.5,
             }}
           />
         </BaseSwitch.Thumb>
