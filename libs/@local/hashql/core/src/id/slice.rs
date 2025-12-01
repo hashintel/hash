@@ -190,6 +190,90 @@ where
     }
 }
 
+impl<I, T> IdSlice<I, Option<T>>
+where
+    I: Id,
+{
+    /// Removes and returns the value at the given ID index.
+    ///
+    /// Returns `None` if the index is out of bounds or if the value was already `None`.
+    /// The vector is not shrunk after removal.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use hashql_core::{id::{IdVec, Id as _}, newtype};
+    /// # newtype!(struct MyId(u32 is 0..=0xFFFF_FF00));
+    /// let mut vec = IdVec::<MyId, Option<String>>::new();
+    /// vec.insert(MyId::from_usize(0), "hello".to_string());
+    /// let removed = vec.remove(MyId::from_usize(0));
+    /// assert_eq!(removed, Some("hello".to_string()));
+    /// assert!(vec[MyId::from_usize(0)].is_none());
+    /// ```
+    pub fn remove(&mut self, index: I) -> Option<T> {
+        self.get_mut(index)?.take()
+    }
+
+    /// Returns `true` if the vector contains a value (not `None`) at the given ID index.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use hashql_core::{id::{IdVec, Id as _}, newtype};
+    /// # newtype!(struct MyId(u32 is 0..=0xFFFF_FF00));
+    /// let mut vec = IdVec::<MyId, Option<String>>::new();
+    /// vec.insert(MyId::from_usize(0), "hello".to_string());
+    /// assert!(vec.contains(MyId::from_usize(0)));
+    /// assert!(!vec.contains(MyId::from_usize(1)));
+    /// ```
+    pub fn contains(&self, index: I) -> bool {
+        self.get(index).and_then(Option::as_ref).is_some()
+    }
+
+    /// Gets a reference to the inner value at `index`, if present.
+    ///
+    /// Returns [`None`] if the index is out of bounds or if the value at that index is [`None`].
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use hashql_core::{id::{IdVec, Id as _}, newtype};
+    /// # newtype!(struct MyId(u32 is 0..=0xFFFF_FF00));
+    /// let mut vec = IdVec::<MyId, Option<String>>::new();
+    /// vec.insert(MyId::from_usize(0), "hello".to_string());
+    ///
+    /// assert_eq!(vec.lookup(MyId::from_usize(0)), Some(&"hello".to_string()));
+    /// assert_eq!(vec.lookup(MyId::from_usize(1)), None); // out of bounds
+    /// ```
+    pub fn lookup(&self, index: I) -> Option<&T> {
+        self.get(index).and_then(Option::as_ref)
+    }
+
+    /// Gets a mutable reference to the inner value at `index`, if present.
+    ///
+    /// Returns [`None`] if the index is out of bounds or if the value at that index is [`None`].
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use hashql_core::{id::{IdVec, Id as _}, newtype};
+    /// # newtype!(struct MyId(u32 is 0..=0xFFFF_FF00));
+    /// let mut vec = IdVec::<MyId, Option<String>>::new();
+    /// vec.insert(MyId::from_usize(0), "hello".to_string());
+    ///
+    /// if let Some(value) = vec.lookup_mut(MyId::from_usize(0)) {
+    ///     value.push_str(" world");
+    /// }
+    /// assert_eq!(
+    ///     vec.lookup(MyId::from_usize(0)),
+    ///     Some(&"hello world".to_string())
+    /// );
+    /// ```
+    pub fn lookup_mut(&mut self, index: I) -> Option<&mut T> {
+        self.get_mut(index).and_then(Option::as_mut)
+    }
+}
+
 impl<I, T> Debug for IdSlice<I, T>
 where
     I: Id,

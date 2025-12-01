@@ -367,42 +367,6 @@ where
         self.fill_until(index, || None).replace(value)
     }
 
-    /// Removes and returns the value at the given ID index.
-    ///
-    /// Returns `None` if the index is out of bounds or if the value was already `None`.
-    /// The vector is not shrunk after removal.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// # use hashql_core::{id::{IdVec, Id as _}, newtype};
-    /// # newtype!(struct MyId(u32 is 0..=0xFFFF_FF00));
-    /// let mut vec = IdVec::<MyId, Option<String>>::new();
-    /// vec.insert(MyId::from_usize(0), "hello".to_string());
-    /// let removed = vec.remove(MyId::from_usize(0));
-    /// assert_eq!(removed, Some("hello".to_string()));
-    /// assert!(vec[MyId::from_usize(0)].is_none());
-    /// ```
-    pub fn remove(&mut self, index: I) -> Option<T> {
-        self.get_mut(index)?.take()
-    }
-
-    /// Returns `true` if the vector contains a value (not `None`) at the given ID index.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// # use hashql_core::{id::{IdVec, Id as _}, newtype};
-    /// # newtype!(struct MyId(u32 is 0..=0xFFFF_FF00));
-    /// let mut vec = IdVec::<MyId, Option<String>>::new();
-    /// vec.insert(MyId::from_usize(0), "hello".to_string());
-    /// assert!(vec.contains(MyId::from_usize(0)));
-    /// assert!(!vec.contains(MyId::from_usize(1)));
-    /// ```
-    pub fn contains(&self, index: I) -> bool {
-        self.get(index).and_then(Option::as_ref).is_some()
-    }
-
     /// Gets the value at `index`, or inserts one by calling `value` if it doesn't exist.
     ///
     /// This method works on `IdVec<I, Option<T>>` to provide map-like semantics.

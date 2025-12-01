@@ -1,0 +1,81 @@
+---
+source: libs/@local/hashql/mir/src/pass/transform/ssa_repair/tests.rs
+expression: value
+---
+fn {intrinsic#4294967040}() -> Null {
+    let %0: Integer
+    let %1: Integer
+    let %2: Boolean
+    let %3: Boolean
+
+    bb0(): {
+        %0 = 0
+        %2 = true
+        %3 = true
+
+        switchInt(%2) -> [0: bb2(), 1: bb1()]
+    }
+
+    bb1(): {
+        %1 = %0 == %0
+        %0 = 1
+
+        goto -> bb2()
+    }
+
+    bb2(): {
+        %1 = %0 == %0
+        %0 = 2
+
+        switchInt(%3) -> [0: bb3(), 1: bb1()]
+    }
+
+    bb3(): {
+        %1 = %0 == %0
+
+        return ()
+    }
+}
+
+------------------------------------
+
+fn {intrinsic#4294967040}() -> Null {
+    let %0: Integer
+    let %1: Integer
+    let %2: Boolean
+    let %3: Boolean
+    let %4: Integer
+    let %5: Integer
+    let %6: Integer
+    let %7: Integer
+    let %8: Integer
+    let %9: Integer
+
+    bb0(): {
+        %4 = 0
+        %2 = true
+        %3 = true
+
+        switchInt(%2) -> [0: bb2(%4), 1: bb1(%4)]
+    }
+
+    bb1(%6): {
+        %8 = %6 == %6
+        %5 = 1
+
+        goto -> bb2(%5)
+    }
+
+    bb2(%7): {
+        %9 = %7 == %7
+        %0 = 2
+
+        switchInt(%3) -> [0: bb3(), 1: bb1(%0)]
+    }
+
+    bb3(): {
+        %1 = %0 == %0
+
+        return ()
+    }
+}
