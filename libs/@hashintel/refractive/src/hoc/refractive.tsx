@@ -70,7 +70,7 @@ function createRefractiveComponent<
           bezelHeightFn={refraction.bezelHeightFn ?? CONVEX}
         />
 
-        {/* @ts-ignore Need to fix types in this file */}
+        {/* @ts-expect-error Need to fix types in this file */}
         <Component
           {...componentProps}
           ref={elementRef}
