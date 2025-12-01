@@ -45,6 +45,8 @@ function createRefractiveComponent<
     // If the passed ref is updated later, it will trigger a re-render.
     const elementRef = props.ref ?? internalRef;
 
+    // TODO: (FE-43) Remove ResizeObserver and rely on `objectBoundingBox` to automatically size the filter.
+    // This will removed the need of `useState` here.
     useEffect(() => {
       const element = elementRef.current;
       if (!element) return;
