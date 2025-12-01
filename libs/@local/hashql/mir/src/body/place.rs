@@ -26,6 +26,174 @@ id::newtype!(
     pub struct FieldIndex(usize is 0..=usize::MAX)
 );
 
+/// Context for reading from a [`Place`].
+///
+/// Describes how a place is being read during MIR execution. This distinction is important
+/// for dataflow analysis, as reading a base local through a projection differs semantically
+/// from loading the entire value.
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+pub enum PlaceReadContext {
+    /// The place's value is being loaded directly.
+    ///
+    /// This represents a full read of the value at the place, such as using a variable
+    /// as an operand: `let y = x;` reads `x` with `Load` context.
+    Load,
+
+    /// The place is being read as the base of a projection.
+    ///
+    /// When accessing `x.field`, the local `x` is read with `Projection` context,
+    /// indicating that only part of the value is being accessed. This is relevant
+    /// for analyses that track partial vs. full uses of values.
+    Projection,
+}
+
+/// Context for writing to a [`Place`].
+///
+/// Describes how a place is being written during MIR execution. The distinction between
+/// full assignment and partial writes through projections is critical for dataflow analysis,
+/// particularly for determining when a value is fully defined vs. partially modified.
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+pub enum PlaceWriteContext {
+    /// The place is being fully assigned a new value.
+    ///
+    /// This represents a complete definition of the place, such as the left-hand side
+    /// of an assignment statement: `x = value;` writes to `x` with `Assign` context.
+    Assign,
+
+    /// The place is being written through as the base of a projection.
+    ///
+    /// When assigning to `x.field = value`, the local `x` is accessed with `Projection`
+    /// context. This indicates a partial write: the local `x` must already be initialized,
+    /// and only part of its value is being modified.
+    Projection,
+
+    /// The place is receiving a value as a basic block parameter.
+    ///
+    /// When control flow enters a basic block with parameters, those parameters are
+    /// assigned values from the predecessor's target arguments. Semantically equivalent
+    /// to [`Assign`](Self::Assign) for dataflow purposes, but distinguished to allow
+    /// tracking of inter-block value flow.
+    BlockParam,
+}
+
+/// Context for liveness markers on a [`Place`].
+///
+/// Liveness markers indicate when storage for a local variable becomes active or inactive.
+/// These are not uses or definitions in the dataflow sense, but rather metadata about
+/// the storage lifetime that enables memory optimization and borrow checking.
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+pub enum PlaceLivenessContext {
+    /// Storage for the place becomes live.
+    ///
+    /// Corresponds to [`StatementKind::StorageLive`]. After this point, the storage
+    /// is allocated and the place can be written to. The value is not yet initialized.
+    ///
+    /// [`StatementKind::StorageLive`]: crate::body::statement::StatementKind::StorageLive
+    Begin,
+
+    /// Storage for the place becomes dead.
+    ///
+    /// Corresponds to [`StatementKind::StorageDead`]. After this point, the storage
+    /// may be deallocated or reused. Any subsequent access to this place before another
+    /// `Begin` is undefined behavior.
+    ///
+    /// [`StatementKind::StorageDead`]: crate::body::statement::StatementKind::StorageDead
+    End,
+}
+
+/// The context in which a [`Place`] is accessed during MIR traversal.
+///
+/// [`PlaceContext`] categorizes every place access into one of three categories:
+/// reading, writing, or liveness tracking. This information is essential for
+/// dataflow analysis, optimization passes, and correctness checking.
+///
+/// # Dataflow Analysis
+///
+/// Use [`into_def_use`](Self::into_def_use) to convert a context into its dataflow
+/// classification for def-use analysis. Liveness contexts return `None` as they
+/// don't participate in value flow.
+///
+/// # Example
+///
+/// ```text
+/// In the statement: x.field = y
+/// - `x` is accessed with Write(Projection) - partial write through projection
+/// - `y` is accessed with Read(Load) - full value read
+/// ```
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+pub enum PlaceContext {
+    /// The place is being read from.
+    Read(PlaceReadContext),
+
+    /// The place is being written to.
+    Write(PlaceWriteContext),
+
+    /// The place's storage liveness is being marked.
+    Liveness(PlaceLivenessContext),
+}
+
+impl PlaceContext {
+    #[must_use]
+    pub const fn is_use(self) -> bool {
+        matches!(self, Self::Read(_) | Self::Write(_))
+    }
+
+    #[must_use]
+    pub const fn is_write(self) -> bool {
+        matches!(self, Self::Write(_))
+    }
+
+    #[must_use]
+    pub const fn is_read(self) -> bool {
+        matches!(self, Self::Read(_))
+    }
+
+    /// Converts this context to its def-use classification for dataflow analysis.
+    ///
+    /// Returns `None` for liveness markers, which don't participate in value flow.
+    #[must_use]
+    pub const fn into_def_use(self) -> Option<DefUse> {
+        match self {
+            Self::Read(_) => Some(DefUse::Use),
+            Self::Write(PlaceWriteContext::Projection) => Some(DefUse::PartialDef),
+            Self::Write(PlaceWriteContext::Assign | PlaceWriteContext::BlockParam) => {
+                Some(DefUse::Def)
+            }
+            Self::Liveness(_) => None,
+        }
+    }
+}
+
+/// Classification of place accesses for def-use analysis.
+///
+/// This enum represents the three fundamental categories of place access in dataflow analysis:
+/// definitions (writes that fully initialize), uses (reads), and partial writes (modifications
+/// to part of an already-initialized value).
+///
+/// Obtained via [`PlaceContext::into_def_use`]. Liveness markers don't participate in
+/// def-use analysis and return `None`.
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub enum DefUse {
+    /// A full definition of the place.
+    ///
+    /// The place is being assigned a complete new value, making any previous value irrelevant.
+    /// This corresponds to [`PlaceWriteContext::Assign`] and [`PlaceWriteContext::BlockParam`].
+    Def,
+
+    /// A partial modification of the place.
+    ///
+    /// Part of the place's value is being written through a projection (e.g., `x.field = v`).
+    /// The place must already be initialized, and only a portion is being modified.
+    /// This corresponds to [`PlaceWriteContext::Projection`].
+    PartialDef,
+
+    /// A use of the place's value.
+    ///
+    /// The place's current value is being read. This corresponds to all [`PlaceReadContext`]
+    /// variants, as both direct loads and projection-based reads consume the value.
+    Use,
+}
+
 /// A borrowed reference to a place at a specific projection depth.
 ///
 /// [`PlaceRef`] represents an intermediate point in a place's projection chain,
