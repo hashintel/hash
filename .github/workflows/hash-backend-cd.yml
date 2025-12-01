@@ -21,6 +21,11 @@ env:
   AWS_REGION: ${{ secrets.AWS_REGION }}
   AWS_ECR_URL: ${{ secrets.AWS_ECR_URL }}
 
+  # New artifacts account ECR (cross-account)
+  ARTIFACTS_ECR_URL: 469596578827.dkr.ecr.eu-central-1.amazonaws.com
+  ARTIFACTS_ECR_ROLE_ARN: arn:aws:iam::469596578827:role/h-artifacts-euc1-ecr-push
+  ARTIFACTS_AWS_REGION: eu-central-1
+
   GH_RUN_ID: ${{ github.run_id }}
 
   GOOGLE_CLOUD_WORKLOAD_IDENTITY_FEDERATION_CONFIG_JSON: ${{ secrets.GOOGLE_CLOUD_WORKLOAD_IDENTITY_FEDERATION_CONFIG_JSON }}
@@ -85,6 +90,21 @@ jobs:
           IMAGE_NAME: ${{ env.HASH_GRAPH_RESOURCE_NAME }}
           GITHUB_TOKEN: ${{ github.token }}
 
+      - name: Push to artifacts ECR
+        uses: ./.github/actions/docker-build-push
+        with:
+          SHORTNAME: "graph"
+          CONTEXT_PATH: ${{ github.workspace }}/
+          DOCKERFILE_LOCATION: ${{ github.workspace }}/apps/hash-graph/docker/Dockerfile
+          AWS_ACCESS_KEY_ID: ${{ steps.secrets.outputs.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ steps.secrets.outputs.AWS_SECRET_ACCESS_KEY }}
+          AWS_SESSION_TOKEN: ${{ steps.secrets.outputs.AWS_SESSION_TOKEN }}
+          AWS_REGION: ${{ env.ARTIFACTS_AWS_REGION }}
+          AWS_ECR_URL: ${{ env.ARTIFACTS_ECR_URL }}
+          ROLE_ARN: ${{ env.ARTIFACTS_ECR_ROLE_ARN }}
+          IMAGE_NAME: hashintel/hash/graph
+          GITHUB_TOKEN: ${{ github.token }}
+
   build-api:
     name: Build and push HASH api image
     runs-on: ubuntu-24.04-arm
@@ -124,6 +144,21 @@ jobs:
           IMAGE_NAME: ${{ env.HASH_API_RESOURCE_NAME }}
           GITHUB_TOKEN: ${{ github.token }}
 
+      - name: Push to artifacts ECR
+        uses: ./.github/actions/docker-build-push
+        with:
+          SHORTNAME: "api"
+          CONTEXT_PATH: ${{ github.workspace }}
+          DOCKERFILE_LOCATION: ${{ github.workspace }}/infra/docker/api/prod/Dockerfile
+          AWS_ACCESS_KEY_ID: ${{ steps.secrets.outputs.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ steps.secrets.outputs.AWS_SECRET_ACCESS_KEY }}
+          AWS_SESSION_TOKEN: ${{ steps.secrets.outputs.AWS_SESSION_TOKEN }}
+          AWS_REGION: ${{ env.ARTIFACTS_AWS_REGION }}
+          AWS_ECR_URL: ${{ env.ARTIFACTS_ECR_URL }}
+          ROLE_ARN: ${{ env.ARTIFACTS_ECR_ROLE_ARN }}
+          IMAGE_NAME: hashintel/hash/api
+          GITHUB_TOKEN: ${{ github.token }}
+
   build-kratos:
     name: Build and push Kratos image
     runs-on: ubuntu-24.04-arm
@@ -161,6 +196,24 @@ jobs:
           AWS_REGION: ${{ env.AWS_REGION }}
           AWS_ECR_URL: ${{ env.AWS_ECR_URL }}
           IMAGE_NAME: ${{ env.HASH_KRATOS_RESOURCE_NAME }}
+          GITHUB_TOKEN: ${{ github.token }}
+          BUILD_ARGS: |
+            ENV=prod
+            API_SECRET=${{ secrets.HASH_KRATOS_API_SECRET }}
+
+      - name: Push to artifacts ECR
+        uses: ./.github/actions/docker-build-push
+        with:
+          SHORTNAME: "kratos"
+          CONTEXT_PATH: ${{ github.workspace }}/apps/hash-external-services/kratos
+          DOCKERFILE_LOCATION: ${{ github.workspace }}/apps/hash-external-services/kratos/Dockerfile
+          AWS_ACCESS_KEY_ID: ${{ steps.secrets.outputs.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ steps.secrets.outputs.AWS_SECRET_ACCESS_KEY }}
+          AWS_SESSION_TOKEN: ${{ steps.secrets.outputs.AWS_SESSION_TOKEN }}
+          AWS_REGION: ${{ env.ARTIFACTS_AWS_REGION }}
+          AWS_ECR_URL: ${{ env.ARTIFACTS_ECR_URL }}
+          ROLE_ARN: ${{ env.ARTIFACTS_ECR_ROLE_ARN }}
+          IMAGE_NAME: hashintel/hash/kratos
           GITHUB_TOKEN: ${{ github.token }}
           BUILD_ARGS: |
             ENV=prod
@@ -207,6 +260,23 @@ jobs:
           BUILD_ARGS: |
             ENV=prod
 
+      - name: Push to artifacts ECR
+        uses: ./.github/actions/docker-build-push
+        with:
+          SHORTNAME: "hydra"
+          CONTEXT_PATH: ${{ github.workspace }}/apps/hash-external-services/hydra
+          DOCKERFILE_LOCATION: ${{ github.workspace }}/apps/hash-external-services/hydra/Dockerfile
+          AWS_ACCESS_KEY_ID: ${{ steps.secrets.outputs.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ steps.secrets.outputs.AWS_SECRET_ACCESS_KEY }}
+          AWS_SESSION_TOKEN: ${{ steps.secrets.outputs.AWS_SESSION_TOKEN }}
+          AWS_REGION: ${{ env.ARTIFACTS_AWS_REGION }}
+          AWS_ECR_URL: ${{ env.ARTIFACTS_ECR_URL }}
+          ROLE_ARN: ${{ env.ARTIFACTS_ECR_ROLE_ARN }}
+          IMAGE_NAME: hashintel/hash/hydra
+          GITHUB_TOKEN: ${{ github.token }}
+          BUILD_ARGS: |
+            ENV=prod
+
   build-ts-worker:
     name: Build and push Temporal TS AI Worker
     runs-on: ubuntu-24.04-arm
@@ -248,6 +318,23 @@ jobs:
           BUILD_ARGS: |
             GOOGLE_CLOUD_WORKLOAD_IDENTITY_FEDERATION_CONFIG_JSON: ${{ secrets.GOOGLE_CLOUD_WORKLOAD_IDENTITY_FEDERATION_CONFIG_JSON }}
 
+      - name: Push to artifacts ECR
+        uses: ./.github/actions/docker-build-push
+        with:
+          SHORTNAME: "temporal-worker-ai-ts"
+          CONTEXT_PATH: ${{ github.workspace }}
+          DOCKERFILE_LOCATION: ${{ github.workspace }}/apps/hash-ai-worker-ts/docker/Dockerfile
+          AWS_ACCESS_KEY_ID: ${{ steps.secrets.outputs.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ steps.secrets.outputs.AWS_SECRET_ACCESS_KEY }}
+          AWS_SESSION_TOKEN: ${{ steps.secrets.outputs.AWS_SESSION_TOKEN }}
+          AWS_REGION: ${{ env.ARTIFACTS_AWS_REGION }}
+          AWS_ECR_URL: ${{ env.ARTIFACTS_ECR_URL }}
+          ROLE_ARN: ${{ env.ARTIFACTS_ECR_ROLE_ARN }}
+          IMAGE_NAME: hashintel/hash/ai-worker-ts
+          GITHUB_TOKEN: ${{ github.token }}
+          BUILD_ARGS: |
+            GOOGLE_CLOUD_WORKLOAD_IDENTITY_FEDERATION_CONFIG_JSON: ${{ secrets.GOOGLE_CLOUD_WORKLOAD_IDENTITY_FEDERATION_CONFIG_JSON }}
+
   build-integration-worker:
     name: Build and push Temporal integration Worker
     runs-on: ubuntu-24.04-arm
@@ -285,6 +372,21 @@ jobs:
           AWS_REGION: ${{ env.AWS_REGION }}
           AWS_ECR_URL: ${{ env.AWS_ECR_URL }}
           IMAGE_NAME: ${{ env.HASH_TEMPORAL_INTEGRATION_WORKER_RESOURCE_NAME }}
+          GITHUB_TOKEN: ${{ github.token }}
+
+      - name: Push to artifacts ECR
+        uses: ./.github/actions/docker-build-push
+        with:
+          SHORTNAME: "temporal-integration-worker"
+          CONTEXT_PATH: ${{ github.workspace }}
+          DOCKERFILE_LOCATION: ${{ github.workspace }}/apps/hash-integration-worker/docker/Dockerfile
+          AWS_ACCESS_KEY_ID: ${{ steps.secrets.outputs.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ steps.secrets.outputs.AWS_SECRET_ACCESS_KEY }}
+          AWS_SESSION_TOKEN: ${{ steps.secrets.outputs.AWS_SESSION_TOKEN }}
+          AWS_REGION: ${{ env.ARTIFACTS_AWS_REGION }}
+          AWS_ECR_URL: ${{ env.ARTIFACTS_ECR_URL }}
+          ROLE_ARN: ${{ env.ARTIFACTS_ECR_ROLE_ARN }}
+          IMAGE_NAME: hashintel/hash/integration-worker
           GITHUB_TOKEN: ${{ github.token }}
 
   build-temporal-migrate:
@@ -329,6 +431,24 @@ jobs:
           BUILD_ARGS: |
             TEMPORAL_VERSION=${{ env.HASH_TEMPORAL_VERSION }}
 
+      - name: Push to artifacts ECR
+        uses: ./.github/actions/docker-build-push
+        with:
+          SHORTNAME: "temporal-migrate"
+          CONTEXT_PATH: ${{ github.workspace }}//apps/hash-external-services/temporal
+          DOCKERFILE_LOCATION: ${{ github.workspace }}/apps/hash-external-services/temporal/migrate.Dockerfile
+          AWS_ACCESS_KEY_ID: ${{ steps.secrets.outputs.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ steps.secrets.outputs.AWS_SECRET_ACCESS_KEY }}
+          AWS_SESSION_TOKEN: ${{ steps.secrets.outputs.AWS_SESSION_TOKEN }}
+          AWS_REGION: ${{ env.ARTIFACTS_AWS_REGION }}
+          AWS_ECR_URL: ${{ env.ARTIFACTS_ECR_URL }}
+          ROLE_ARN: ${{ env.ARTIFACTS_ECR_ROLE_ARN }}
+          IMAGE_NAME: hashintel/hash/temporal-migrate
+          GITHUB_TOKEN: ${{ github.token }}
+          IMAGE_TAG: ${{ env.HASH_TEMPORAL_VERSION }}
+          BUILD_ARGS: |
+            TEMPORAL_VERSION=${{ env.HASH_TEMPORAL_VERSION }}
+
   build-temporal-setup:
     name: Build and push Temporal Setup image
     runs-on: ubuntu-24.04-arm
@@ -366,6 +486,24 @@ jobs:
           AWS_REGION: ${{ env.AWS_REGION }}
           AWS_ECR_URL: ${{ env.AWS_ECR_URL }}
           IMAGE_NAME: ${{ env.HASH_TEMPORAL_SETUP_RESOURCE_NAME }}
+          GITHUB_TOKEN: ${{ github.token }}
+          IMAGE_TAG: ${{ env.HASH_TEMPORAL_VERSION }}
+          BUILD_ARGS: |
+            TEMPORAL_VERSION=${{ env.HASH_TEMPORAL_VERSION }}
+
+      - name: Push to artifacts ECR
+        uses: ./.github/actions/docker-build-push
+        with:
+          SHORTNAME: "temporal-setup"
+          CONTEXT_PATH: ${{ github.workspace }}//apps/hash-external-services/temporal
+          DOCKERFILE_LOCATION: ${{ github.workspace }}/apps/hash-external-services/temporal/setup.Dockerfile
+          AWS_ACCESS_KEY_ID: ${{ steps.secrets.outputs.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ steps.secrets.outputs.AWS_SECRET_ACCESS_KEY }}
+          AWS_SESSION_TOKEN: ${{ steps.secrets.outputs.AWS_SESSION_TOKEN }}
+          AWS_REGION: ${{ env.ARTIFACTS_AWS_REGION }}
+          AWS_ECR_URL: ${{ env.ARTIFACTS_ECR_URL }}
+          ROLE_ARN: ${{ env.ARTIFACTS_ECR_ROLE_ARN }}
+          IMAGE_NAME: hashintel/hash/temporal-setup
           GITHUB_TOKEN: ${{ github.token }}
           IMAGE_TAG: ${{ env.HASH_TEMPORAL_VERSION }}
           BUILD_ARGS: |
