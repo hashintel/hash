@@ -37,40 +37,11 @@
 *thunk {thunk#1}() -> String {
     let %0: String
     let %1: String
-    let %2: String
-    let %3: String
-    let %4: String
 
     bb0(): {
-        %4 = "inner-else"
-        %2 = %4
+        %1 = "inner-else"
+        %0 = %1
 
-        return %2
-    }
-
-    bb1(): {
-        unreachable
-    }
-
-    bb2(): {
-        unreachable
-    }
-
-    bb3(): {
-        unreachable
-    }
-
-    bb4(%1): {
-        unreachable
-    }
-
-    bb5(): {
-        %3 = "outer-else"
-
-        unreachable
-    }
-
-    bb6(%0): {
-        unreachable
+        return %0
     }
 }

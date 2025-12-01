@@ -1,18 +1,22 @@
 ---
-source: libs/@local/hashql/mir/src/pass/transform/cfg_simplify/tests.rs
+source: libs/@local/hashql/mir/src/pass/transform/dbe/tests.rs
 expression: value
 ---
 fn {intrinsic#4294967040}() -> Null {
     bb0(): {
-        switchInt(5) -> [0: bb1(), 1: bb2()]
+        return ()
     }
 
     bb1(): {
-        return ()
+        unreachable
     }
 
     bb2(): {
-        return ()
+        unreachable
+    }
+
+    bb3(): {
+        unreachable
     }
 }
 
@@ -20,6 +24,6 @@ fn {intrinsic#4294967040}() -> Null {
 
 fn {intrinsic#4294967040}() -> Null {
     bb0(): {
-        unreachable
+        return ()
     }
 }

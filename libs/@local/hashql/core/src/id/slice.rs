@@ -188,6 +188,20 @@ where
             .enumerate()
             .map(|(index, value)| (I::from_usize(index), value))
     }
+
+    /// Swaps two elements in the vector.
+    ///
+    /// See [`slice::swap`] for details.
+    ///
+    /// # Panics
+    ///
+    /// Panics if either `lhs` or `rhs` is out of bounds.
+    ///
+    /// [`slice::swap`]: slice::swap
+    #[inline]
+    pub fn swap(&mut self, lhs: I, rhs: I) {
+        self.raw.swap(lhs.as_usize(), rhs.as_usize());
+    }
 }
 
 impl<I, T> IdSlice<I, Option<T>>

@@ -78,7 +78,6 @@ thunk {thunk#3}() -> Boolean {
     let %4: Integer
     let %5: Boolean
     let %6: Boolean
-    let %7: Boolean
 
     bb0(): {
         %0 = apply ({thunk#3} as FnPtr)
@@ -97,12 +96,8 @@ thunk {thunk#3}() -> Boolean {
     bb2(): {
         %4 = apply (x:0 as FnPtr)
         %5 = %4 >= 0
-        %7 = %5
+        %1 = %5
 
-        return %7
-    }
-
-    bb3(%1): {
-        unreachable
+        return %1
     }
 }

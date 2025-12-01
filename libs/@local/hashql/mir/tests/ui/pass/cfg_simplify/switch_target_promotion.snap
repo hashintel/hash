@@ -50,8 +50,4 @@ fn {intrinsic#4294967040}() -> Null {
     bb3(): {
         return ()
     }
-
-    bb4(): {
-        unreachable
-    }
 }

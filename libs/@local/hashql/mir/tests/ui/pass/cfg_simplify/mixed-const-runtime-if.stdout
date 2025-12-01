@@ -56,41 +56,17 @@ thunk x:0() -> Integer {
     let %1: Integer
     let %2: Boolean
     let %3: String
-    let %4: String
-    let %5: String
 
     bb0(): {
         %1 = apply (x:0 as FnPtr)
         %2 = %1 <= 10
 
-        switchInt(%2) -> [0: bb4("large"), 1: bb4("small")]
+        switchInt(%2) -> [0: bb1("large"), 1: bb1("small")]
     }
 
-    bb1(): {
-        unreachable
-    }
+    bb1(%3): {
+        %0 = %3
 
-    bb2(): {
-        unreachable
-    }
-
-    bb3(): {
-        unreachable
-    }
-
-    bb4(%3): {
-        %4 = %3
-
-        return %4
-    }
-
-    bb5(): {
-        %5 = "unreachable"
-
-        unreachable
-    }
-
-    bb6(%0): {
-        unreachable
+        return %0
     }
 }

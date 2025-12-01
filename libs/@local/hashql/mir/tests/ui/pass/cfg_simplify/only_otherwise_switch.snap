@@ -26,8 +26,4 @@ fn {intrinsic#4294967040}() -> Null {
 
         return ()
     }
-
-    bb1(): {
-        unreachable
-    }
 }

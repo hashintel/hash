@@ -59,60 +59,10 @@
     let %2: String
     let %3: Boolean
     let %4: String
-    let %5: String
-    let %6: String
-    let %7: String
-    let %8: String
 
     bb0(): {
-        %5 = "taken"
+        %0 = "taken"
 
-        return %5
-    }
-
-    bb1(): {
-        %1 = 1 <= 2
-
-        unreachable
-    }
-
-    bb2(): {
-        %3 = 3 >= 4
-
-        unreachable
-    }
-
-    bb3(): {
-        %7 = "deeply-nested-then"
-
-        unreachable
-    }
-
-    bb4(): {
-        %8 = "deeply-nested-else"
-
-        unreachable
-    }
-
-    bb5(%4): {
-        unreachable
-    }
-
-    bb6(): {
-        unreachable
-    }
-
-    bb7(%2): {
-        %6 = %2
-
-        unreachable
-    }
-
-    bb8(): {
-        unreachable
-    }
-
-    bb9(%0): {
-        unreachable
+        return %0
     }
 }

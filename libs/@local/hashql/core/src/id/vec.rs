@@ -336,9 +336,36 @@ where
         &mut self[index]
     }
 
+    /// Clears the vector, removing all elements.
+    ///
+    /// See [`Vec::clear`] for details.
     #[inline]
     pub fn clear(&mut self) {
         self.raw.clear();
+    }
+
+    /// Removes an element from the vector and returns it, replacing it with the last element.
+    ///
+    /// This does not preserve ordering, but runs in *O*(1) time.
+    ///
+    /// See [`Vec::swap_remove`] for details.
+    ///
+    /// # Panics
+    ///
+    /// Panics if `index` is out of bounds.
+    #[inline]
+    pub fn swap_remove(&mut self, index: I) -> T {
+        self.raw.swap_remove(index.as_usize())
+    }
+
+    /// Shortens the vector, keeping only the first `index` elements.
+    ///
+    /// If `index` is greater than or equal to the vector's current length, this has no effect.
+    ///
+    /// See [`Vec::truncate`] for details.
+    #[inline]
+    pub fn truncate(&mut self, index: I) {
+        self.raw.truncate(index.as_usize());
     }
 }
 

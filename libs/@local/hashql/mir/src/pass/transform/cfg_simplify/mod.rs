@@ -50,7 +50,7 @@ use hashql_core::{
     graph::Predecessors as _,
 };
 
-use super::{error::unreachable_switch_arm, ssa_repair::SsaRepair};
+use super::{DeadBlockElimination, error::unreachable_switch_arm, ssa_repair::SsaRepair};
 use crate::{
     body::{
         Body,
@@ -74,6 +74,8 @@ pub struct CfgSimplify {
     previous_reverse_postorder: Vec<BasicBlockId>,
     /// Current reachable blocks
     reverse_postorder: FastHashSet<BasicBlockId>,
+    /// Dead block elimination pass
+    dbe: DeadBlockElimination,
 }
 
 impl CfgSimplify {
@@ -83,6 +85,7 @@ impl CfgSimplify {
         Self {
             previous_reverse_postorder: Vec::new(),
             reverse_postorder: FastHashSet::default(),
+            dbe: DeadBlockElimination::new(),
         }
     }
 
@@ -492,6 +495,9 @@ impl<'env, 'heap> Pass<'env, 'heap> for CfgSimplify {
                 queue.enqueue(pred);
             }
         }
+
+        // Unreachable blocks will be dead, therefore must be removed
+        self.dbe.run(context, body);
 
         // Simplifications may break SSA (e.g., merged blocks with conflicting definitions).
         SsaRepair.run(context, body);
