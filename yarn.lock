@@ -8282,6 +8282,7 @@ __metadata:
     web-worker: "npm:1.4.1"
     zustand: "npm:5.0.8"
   peerDependencies:
+    "@hashintel/ds-helpers": 0.0.1
     react: ^19.0.0
     react-dom: ^19.0.0
   languageName: unknown

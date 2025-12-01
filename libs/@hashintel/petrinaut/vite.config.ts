@@ -12,7 +12,13 @@ export default defineConfig({
       formats: ["es"],
     },
     rollupOptions: {
-      external: ["react", "react-dom"],
+      external: [
+        "@hashintel/ds-helpers",
+        "elkjs",
+        "react",
+        "react-dom",
+        "reactflow",
+      ],
       output: {
         globals: {
           react: "React",
