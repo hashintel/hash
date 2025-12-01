@@ -17,9 +17,9 @@ type RefractionProps = {
   };
 };
 
-function createRefractiveComponent<P extends { style: React.CSSProperties }>(
-  Component: ComponentType<P> | string,
-): ComponentType<P & RefractionProps> {
+function createRefractiveComponent<
+  P extends { children?: React.ReactNode; style?: React.CSSProperties },
+>(Component: ComponentType<P>): ComponentType<P & RefractionProps> {
   return function RefractiveWrapper(props: P & RefractionProps) {
     const { refraction, ...componentProps } = props;
     const filterId = useId();
@@ -70,15 +70,16 @@ function createRefractiveComponent<P extends { style: React.CSSProperties }>(
           bezelHeightFn={refraction.bezelHeightFn ?? CONVEX}
         />
 
-        {createElement(Component, {
-          ...componentProps,
-          ref: elementRef,
-          style: {
+        {/* @ts-ignore Need to fix types in this file */}
+        <Component
+          {...componentProps}
+          ref={elementRef}
+          style={{
             ...componentProps.style,
             backdropFilter: `url(#${filterId})`,
             borderRadius: refraction.radius,
-          },
-        } as P)}
+          }}
+        />
       </>
     );
   };
@@ -95,9 +96,19 @@ type RefractiveFunction = (<P extends object>(
 ) => ComponentType<P & RefractionProps>) &
   HTMLElements;
 
+const CACHE = new Map<string, ComponentType<any>>();
+
 export const refractive = new Proxy(createRefractiveComponent as any, {
-  get: (_target, prop: string) => {
-    return createRefractiveComponent(prop);
+  get: (_target, elementName: keyof JSX.IntrinsicElements) => {
+    if (CACHE.has(elementName)) {
+      return CACHE.get(elementName);
+    }
+    const refractiveComponent = createRefractiveComponent(
+      ({ children, ...props }: any) =>
+        createElement(elementName, props, children),
+    );
+    CACHE.set(elementName, refractiveComponent);
+    return refractiveComponent;
   },
   apply: (target, _thisArg, argArray) => {
     return target(...argArray);
