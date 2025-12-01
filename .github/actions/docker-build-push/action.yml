@@ -20,6 +20,9 @@ inputs:
   AWS_ECR_URL:
     description: AWS ECR url
     required: true
+  ROLE_ARN:
+    description: IAM role ARN to assume for ECR access (cross-account)
+    required: false
   SHORTNAME:
     description: Name of the thing that is being built. Keep path-friendly, please don't use special characters or spaces.
     required: true
@@ -51,6 +54,7 @@ runs:
         AWS_SECRET_ACCESS_KEY: ${{ inputs.AWS_SECRET_ACCESS_KEY }}
         AWS_SESSION_TOKEN: ${{ inputs.AWS_SESSION_TOKEN }}
         AWS_REGION: ${{ inputs.AWS_REGION }}
+        ROLE_ARN: ${{ inputs.ROLE_ARN }}
 
     - name: Cache Docker layers
       uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
@@ -76,7 +80,10 @@ runs:
         build-args: ${{ inputs.BUILD_ARGS }}
         secrets: |
           GITHUB_TOKEN=${{ inputs.GITHUB_TOKEN }}
-        tags: ${{ inputs.AWS_ECR_URL }}/${{ inputs.IMAGE_NAME }}:${{ inputs.IMAGE_TAG }} , ${{ inputs.AWS_ECR_URL }}/${{ inputs.IMAGE_NAME }}:run-${{ env.GH_RUN_ID }}
+        tags: |
+          ${{ inputs.AWS_ECR_URL }}/${{ inputs.IMAGE_NAME }}:${{ inputs.IMAGE_TAG }}
+          ${{ inputs.AWS_ECR_URL }}/${{ inputs.IMAGE_NAME }}:sha-${{ github.sha }}
+          ${{ inputs.AWS_ECR_URL }}/${{ inputs.IMAGE_NAME }}:run-${{ env.GH_RUN_ID }}
         cache-from: type=local,src=/tmp/.buildx-cache
         cache-to: type=local,mode=max,dest=/tmp/.buildx-cache-new
 
