@@ -126,7 +126,7 @@ const Playground = () => {
               >
                 <refractive.div
                   className={css({
-                    shadow: "xl",
+                    shadow: "[0 7px 29px 0 rgba(13, 13, 42, 0.37)]",
                     display: "flex",
                     flexDirection: "column",
                     gap: "spacing.1",
@@ -141,7 +141,7 @@ const Playground = () => {
                     radius: RADIUS,
                     blur: 1,
                     specularOpacity: 0.7,
-                    bezelWidth: RADIUS * 6,
+                    bezelWidth: RADIUS * 3,
                     glassThickness: 70,
                     refractiveIndex: 1.5,
                   }}
@@ -412,24 +412,21 @@ const Playground = () => {
             display: "flex",
             alignItems: "center",
             gap: "spacing.1",
-            shadow: "md",
-            backgroundColor: "[rgba(255,255,255,0.3)]",
+            shadow: "[0 7px 29px 0 rgba(13, 13, 54, 0.37)]",
+            backgroundColor: "[rgba(255,255,255,0.4)]",
             transition: "[all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)]",
             _hover: {
               transform: "scale(1.03)",
-              shadow: "lg",
-              backgroundColor: "[rgba(255,255,255,0.5)]",
+              shadow: "[0 9px 34px 0 rgba(13, 13, 54, 0.47)]",
+              backgroundColor: "[rgba(255,255,255,0.6)]",
             },
             pointerEvents: "auto",
+            padding: "spacing.4",
           })}
-          style={{
-            borderRadius: 22,
-            padding: 8,
-          }}
           refraction={{
             radius: 13,
             bezelWidth: 25,
-            blur: 0.5,
+            blur: 1,
             specularOpacity: 0.5,
             glassThickness: 40,
             refractiveIndex: 1.5,
@@ -442,7 +439,10 @@ const Playground = () => {
                 key={id}
                 type="button"
                 className={getButtonStyle(isSelected)}
-                style={{ borderRadius: 20 - 4 }}
+                style={{
+                  borderRadius: 13,
+                  padding: 6,
+                }}
                 title={title}
                 onClick={() => setSelectedButton(id)}
               >

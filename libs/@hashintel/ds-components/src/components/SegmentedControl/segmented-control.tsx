@@ -2,7 +2,8 @@ import { SegmentGroup } from "@ark-ui/react/segment-group";
 import { css, cx } from "@hashintel/ds-helpers/css";
 import { refractive } from "@hashintel/refractive";
 
-const RefractiveSegmentGroupIndicator = refractive(SegmentGroup.Indicator);
+// TODO: Segmented Control should just be implemented as in the Figma, without refractive effects.
+// This version is just legacy for demo purposes.
 
 const ROOT_PADDING = 4;
 const ROOT_RADIUS = 10;
@@ -33,9 +34,9 @@ const indicatorStyles = css({
   left: "var(--left)",
   top: "var(--top)",
   boxShadow: "sm",
-  backgroundColor: "core.neutral.white/20",
+  backgroundColor: "core.neutral.white/60",
   "[data-part='root']:active &": {
-    backgroundColor: "core.neutral.white/10",
+    backgroundColor: "core.neutral.white/60",
   },
 });
 
@@ -116,6 +117,11 @@ export const SegmentedControl: React.FC<SegmentedControlProps> = ({
         }}
       />
 
+      <SegmentGroup.Indicator
+        className={indicatorStyles}
+        style={{ borderRadius: ROOT_RADIUS - ROOT_PADDING }}
+      />
+
       {options.map((option) => (
         <SegmentGroup.Item
           key={option.value}
@@ -130,15 +136,6 @@ export const SegmentedControl: React.FC<SegmentedControlProps> = ({
           <SegmentGroup.ItemHiddenInput />
         </SegmentGroup.Item>
       ))}
-
-      <RefractiveSegmentGroupIndicator
-        className={indicatorStyles}
-        refraction={{
-          radius: ROOT_RADIUS - ROOT_PADDING,
-          bezelWidth: 9,
-          glassThickness: 9,
-        }}
-      />
     </SegmentGroup.Root>
   );
 };
