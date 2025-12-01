@@ -15,11 +15,12 @@ type CompositePartsProps = {
 };
 
 /**
+ * @private
  * Component that renders the 8 parts of an image and composites them together.
  *
  * Used internally by the Filter component, for DisplacementMap and SpecularMap.
  *
- * @private
+ * @return {JSX.Element} Fragment containing all image parts for the refractive effect, along with compositing.
  */
 export const CompositeParts: React.FC<CompositePartsProps> = ({
   imageData,

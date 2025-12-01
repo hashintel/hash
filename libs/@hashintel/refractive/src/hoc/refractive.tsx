@@ -17,6 +17,12 @@ type RefractionProps = {
   };
 };
 
+/**
+ * @private
+ * Higher-order component (HOC) that wraps a given component to apply a refractive glass effect.
+ *
+ * Exposed in `refractive` proxy, which also exposes JSXIntrinsicElements as keys.
+ */
 function createRefractiveComponent<
   P extends { children?: React.ReactNode; style?: React.CSSProperties },
 >(Component: ComponentType<P>): ComponentType<P & RefractionProps> {
@@ -96,8 +102,46 @@ type RefractiveFunction = (<P extends object>(
 ) => ComponentType<P & RefractionProps>) &
   HTMLElements;
 
+/**
+ * Cache for JSX intrinsic elements refractive components, created on demand.
+ */
 const CACHE = new Map<string, ComponentType<any>>();
 
+/**
+ * Refractive is a higher-order component (HOC) that can wrap any HTML element or custom React component
+ * to apply a refractive glass effect using SVG filters.
+ *
+ * The wrapped component must accept a `ref` prop to reference the underlying DOM element.
+ *
+ * Refractive will override:
+ * - `borderRadius` based on the provided `radius` in the `refraction` prop.
+ * - `backdropFilter` to apply the SVG filter for the refractive effect.
+ *
+ * Usage with HTML elements:
+ *
+ * ```tsx
+ * <refractive.div
+ *   refraction={{ radius: 8, blur: 2 }}
+ *   style={{ width: 200, height: 100, backgroundColor: 'rgba(255, 255, 255, 0.2)' }}
+ * />
+ * ```
+ *
+ * Usage with existing components:
+ *
+ * ```tsx
+ * import { refractive } from "@hashintel/refractive";
+ *
+ * const MyRefractiveButton = refractive(MyButton);
+ *
+ * <MyRefractiveButton
+ *   refraction={{ radius: 8, blur: 2 }}
+ *   style={{ width: 200, height: 100, backgroundColor: 'rgba(255, 255, 255, 0.2)' }}
+ * />
+ * ```
+ *
+ * @param Component - The React component or HTML element to wrap.
+ * @returns Same component with refraction props.
+ */
 export const refractive = new Proxy(createRefractiveComponent as any, {
   get: (_target, elementName: keyof JSX.IntrinsicElements) => {
     if (CACHE.has(elementName)) {

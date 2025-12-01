@@ -25,6 +25,23 @@ type FilterProps = {
   hideRight?: boolean;
 };
 
+/**
+ * @private
+ * Creates an SVG containing a filter that can be used as `backdrop-filter`to create a refractive effect.
+ *
+ * At the moment, width and height need to be explicitly provided to match the size of element it will be applied to.
+ *
+ * Usage:
+ * ```tsx
+ * const filterId = "my-refractive-filter";
+ *
+ * <Filter id={filterId} {...otherProps} />
+ * <div style={{ backdropFilter: `url(#${filterId})` }} />
+ * ```
+ *
+ * @param props - The properties for the Filter component.
+ * @returns An SVG element containing the filter definition.
+ */
 export const Filter: React.FC<FilterProps> = ({
   id,
   width,
