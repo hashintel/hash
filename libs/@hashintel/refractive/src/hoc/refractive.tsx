@@ -24,14 +24,26 @@ type RefractionProps = {
  * Exposed in `refractive` proxy, which also exposes JSXIntrinsicElements as keys.
  */
 function createRefractiveComponent<
-  P extends { children?: React.ReactNode; style?: React.CSSProperties },
+  P extends {
+    children?: React.ReactElement;
+    style?: React.CSSProperties;
+    ref?: React.RefObject<HTMLElement>;
+  },
 >(Component: ComponentType<P>): ComponentType<P & RefractionProps> {
   return function RefractiveWrapper(props: P & RefractionProps) {
-    const { refraction, ...componentProps } = props;
+    const {
+      refraction,
+      ref: externalRef,
+      ...componentProps
+    } = props as P & RefractionProps & { ref?: React.Ref<HTMLElement> };
     const filterId = useId();
-    const elementRef = useRef<HTMLElement>(null);
+    const internalRef = useRef<HTMLElement>(null);
     const [width, setWidth] = useState(0);
     const [height, setHeight] = useState(0);
+
+    // If a ref is passed in props, use it; otherwise, use internalRef.
+    // If the passed ref is updated later, it will trigger a re-render.
+    const elementRef = props.ref ?? internalRef;
 
     useEffect(() => {
       const element = elementRef.current;
@@ -56,7 +68,7 @@ function createRefractiveComponent<
       return () => {
         resizeObserver.disconnect();
       };
-    }, []);
+    }, [elementRef]);
 
     return (
       <>
