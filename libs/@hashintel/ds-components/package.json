@@ -26,7 +26,6 @@
   ],
   "scripts": {
     "build": "vite build",
-    "clean": "rm -rf dist",
     "dev": "vite build --watch",
     "fix:eslint": "eslint --fix .",
     "lint:eslint": "eslint --report-unused-disable-directives .",

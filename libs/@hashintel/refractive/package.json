@@ -23,7 +23,6 @@
   ],
   "scripts": {
     "build": "vite build",
-    "clean": "rm -rf dist",
     "dev": "vite",
     "dev:lib": "vite build --watch",
     "fix:eslint": "eslint --fix .",
