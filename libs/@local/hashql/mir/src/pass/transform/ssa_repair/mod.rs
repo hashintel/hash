@@ -51,8 +51,8 @@ use crate::{
         local::{Local, LocalDecl, LocalVec},
         location::Location,
         operand::Operand,
-        place::{DefUse, Place, PlaceContext},
-        statement::Statement,
+        place::{DefUse, Place, PlaceContext, PlaceWriteContext},
+        statement::{Assign, Statement},
         terminator::Target,
     },
     context::MirContext,
@@ -192,12 +192,14 @@ enum FindDefFromTop {
     Idom(Local),
     /// A new block parameter was inserted to merge reaching definitions from predecessors.
     Param(Local),
+    /// The reaching definition is already present in the block parameter.
+    Existing(Local),
 }
 
 impl FindDefFromTop {
     /// Extracts the local from either variant.
     const fn into_local(self) -> Local {
-        let (Self::Idom(local) | Self::Param(local)) = self;
+        let (Self::Idom(local) | Self::Param(local) | Self::Existing(local)) = self;
 
         local
     }
@@ -355,13 +357,26 @@ impl<'ctx, 'mir, 'env, 'heap> SsaViolationRepair<'ctx, 'mir, 'env, 'heap> {
         // def to unify each calling site.
         // The calling sites are then wired up in the next step.
         if self.iterated.contains(id) {
-            // We create a new local declaration for the block param.
-            let local_decl = local_decls[self.local];
-            let local = local_decls.push(local_decl);
+            // Check if we already have a local declaration for the block param
+            let local = if let Some(index) = self.locations.iter().position(
+                |&Location {
+                     block,
+                     statement_index,
+                 }| block == id && statement_index == 0,
+            ) {
+                let local = self.locals[index];
+                self.block_top.insert(id, FindDefFromTop::Existing(local));
+                local
+            } else {
+                // We must create a new local declaration for the block param.
+                let local_decl = local_decls[self.local];
+                let local = local_decls.push(local_decl);
 
-            // If we're part of the DF+ then we will have a new local declaration for the block
-            // param.
-            self.block_top.insert(id, FindDefFromTop::Param(local));
+                // If we're part of the DF+ then we will have a new local declaration for the block
+                // param.
+                self.block_top.insert(id, FindDefFromTop::Param(local));
+                local
+            };
 
             // It's important that we set the block def *before* we recurse, otherwise a loop will
             // create an infinite recursion case. The live-out (aka the block def) is always the
@@ -553,6 +568,25 @@ impl<'heap> VisitorMut<'heap> for RewireBody<'_, 'heap> {
         Ok(())
     }
 
+    fn visit_statement_assign(
+        &mut self,
+        location: Location,
+        Assign { lhs, rhs }: &mut Assign<'heap>,
+    ) -> Self::Result<()> {
+        {
+            // We must visit the rvalue BEFORE the lvalue, to not pollute the namespace.
+            self.visit_rvalue(location, rhs)?;
+
+            self.visit_place(
+                location,
+                PlaceContext::Write(PlaceWriteContext::Assign),
+                lhs,
+            )?;
+
+            Ok(())
+        }
+    }
+
     fn visit_local(
         &mut self,
         location: Location,
@@ -683,6 +717,24 @@ impl<'heap> Visitor<'heap> for UseBeforeDef {
         }
 
         visit::r#ref::walk_statement(self, location, statement)
+    }
+
+    fn visit_statement_assign(
+        &mut self,
+        location: Location,
+        Assign { lhs, rhs }: &Assign<'heap>,
+    ) -> Self::Result {
+        // We must visit the right-hand side first to ensure that all the values are defined before
+        // we use them.
+        self.visit_rvalue(location, rhs)?;
+
+        self.visit_place(
+            location,
+            PlaceContext::Write(PlaceWriteContext::Assign),
+            lhs,
+        )?;
+
+        ControlFlow::Continue(())
     }
 
     fn visit_local(&mut self, _: Location, context: PlaceContext, local: Local) -> Self::Result {

@@ -772,3 +772,38 @@ fn irreducible() {
         },
     );
 }
+
+#[test]
+fn reassign_rodeo() {
+    scaffold!(heap, interner, builder);
+    let env = Environment::new(&heap);
+
+    let x = builder.local("x", TypeBuilder::synthetic(&env).integer());
+    let const_0 = builder.const_int(0);
+
+    let bb0 = builder.reserve_block([]);
+    let bb1 = builder.reserve_block([x]);
+
+    let x = builder.place_local(x);
+
+    builder
+        .build_block(bb0)
+        .assign_place(x, |rv| rv.load(const_0))
+        .assign_place(x, |rv| rv.load(x))
+        .goto(bb1, [x.into()]);
+
+    builder.build_block(bb1).goto(bb1, [x.into()]);
+
+    let body = builder.finish(0, TypeBuilder::synthetic(&env).null());
+
+    assert_ssa_pass(
+        "reassign_rodeo",
+        body,
+        MirContext {
+            heap: &heap,
+            env: &env,
+            interner: &interner,
+            diagnostics: DiagnosticIssues::new(),
+        },
+    );
+}
