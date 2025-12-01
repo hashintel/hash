@@ -103,6 +103,7 @@ jobs:
           AWS_ECR_URL: ${{ env.ARTIFACTS_ECR_URL }}
           ROLE_ARN: ${{ env.ARTIFACTS_ECR_ROLE_ARN }}
           IMAGE_NAME: hashintel/hash/graph
+          IMAGE_TAG: sha-${{ github.sha }}
           GITHUB_TOKEN: ${{ github.token }}
 
   build-api:
@@ -157,6 +158,7 @@ jobs:
           AWS_ECR_URL: ${{ env.ARTIFACTS_ECR_URL }}
           ROLE_ARN: ${{ env.ARTIFACTS_ECR_ROLE_ARN }}
           IMAGE_NAME: hashintel/hash/api
+          IMAGE_TAG: sha-${{ github.sha }}
           GITHUB_TOKEN: ${{ github.token }}
 
   build-kratos:
@@ -214,6 +216,7 @@ jobs:
           AWS_ECR_URL: ${{ env.ARTIFACTS_ECR_URL }}
           ROLE_ARN: ${{ env.ARTIFACTS_ECR_ROLE_ARN }}
           IMAGE_NAME: hashintel/hash/kratos
+          IMAGE_TAG: sha-${{ github.sha }}
           GITHUB_TOKEN: ${{ github.token }}
           BUILD_ARGS: |
             ENV=prod
@@ -273,6 +276,7 @@ jobs:
           AWS_ECR_URL: ${{ env.ARTIFACTS_ECR_URL }}
           ROLE_ARN: ${{ env.ARTIFACTS_ECR_ROLE_ARN }}
           IMAGE_NAME: hashintel/hash/hydra
+          IMAGE_TAG: sha-${{ github.sha }}
           GITHUB_TOKEN: ${{ github.token }}
           BUILD_ARGS: |
             ENV=prod
@@ -331,6 +335,7 @@ jobs:
           AWS_ECR_URL: ${{ env.ARTIFACTS_ECR_URL }}
           ROLE_ARN: ${{ env.ARTIFACTS_ECR_ROLE_ARN }}
           IMAGE_NAME: hashintel/hash/ai-worker-ts
+          IMAGE_TAG: sha-${{ github.sha }}
           GITHUB_TOKEN: ${{ github.token }}
           BUILD_ARGS: |
             GOOGLE_CLOUD_WORKLOAD_IDENTITY_FEDERATION_CONFIG_JSON: ${{ secrets.GOOGLE_CLOUD_WORKLOAD_IDENTITY_FEDERATION_CONFIG_JSON }}
@@ -387,6 +392,7 @@ jobs:
           AWS_ECR_URL: ${{ env.ARTIFACTS_ECR_URL }}
           ROLE_ARN: ${{ env.ARTIFACTS_ECR_ROLE_ARN }}
           IMAGE_NAME: hashintel/hash/integration-worker
+          IMAGE_TAG: sha-${{ github.sha }}
           GITHUB_TOKEN: ${{ github.token }}
 
   build-temporal-migrate:
