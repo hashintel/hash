@@ -101,7 +101,7 @@
     "md5": "2.3.0",
     "mime-types": "2.1.35",
     "nanoid": "3.3.11",
-    "nodemailer": "7.0.7",
+    "nodemailer": "7.0.11",
     "oembed-providers": "1.0.20250926",
     "openai": "6.6.0",
     "ts-json-schema-generator": "1.5.1",

@@ -535,7 +535,7 @@ __metadata:
     md5: "npm:2.3.0"
     mime-types: "npm:2.1.35"
     nanoid: "npm:3.3.11"
-    nodemailer: "npm:7.0.7"
+    nodemailer: "npm:7.0.11"
     oembed-providers: "npm:1.0.20250926"
     openai: "npm:6.6.0"
     rimraf: "npm:6.1.2"
@@ -36711,10 +36711,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"nodemailer@npm:7.0.7":
-  version: 7.0.7
-  resolution: "nodemailer@npm:7.0.7"
-  checksum: 10c0/9f7215f3c76b0db3e76a9a6a10fa4fdca3e3ea907fa82430498b6598b40700df287efd586e1d5bc56fe4b903144e5d70413e01f621106e4417e7af7eb1dccaee
+"nodemailer@npm:7.0.11":
+  version: 7.0.11
+  resolution: "nodemailer@npm:7.0.11"
+  checksum: 10c0/208f108fdb4c5dd0e3a2f013578d53dad505cf1b9c7a084f6d22fc9d6f3912daafb4a23793ca568ff848afc35f15f4eb24382d3f6f9fb8ede4a8410d4ca63618
   languageName: node
   linkType: hard
 
