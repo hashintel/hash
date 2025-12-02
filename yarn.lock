@@ -512,7 +512,7 @@ __metadata:
     effect: "npm:3.18.4"
     eslint: "npm:9.38.0"
     exponential-backoff: "npm:3.1.3"
-    express: "npm:5.1.0"
+    express: "npm:5.2.0"
     express-handlebars: "npm:8.0.4"
     express-rate-limit: "npm:8.2.1"
     fractional-indexing: "npm:3.2.0"
@@ -10227,7 +10227,7 @@ __metadata:
     "@vitest/coverage-istanbul": "npm:3.2.4"
     big.js: "npm:7.0.1"
     eslint: "npm:9.38.0"
-    express: "npm:5.1.0"
+    express: "npm:5.2.0"
     fix-esm-import-path: "npm:1.10.3"
     fractional-indexing: "npm:3.2.0"
     graphql: "npm:16.11.0"
@@ -23217,7 +23217,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"body-parser@npm:2.2.1, body-parser@npm:^2.2.0":
+"body-parser@npm:2.2.1, body-parser@npm:^2.2.0, body-parser@npm:^2.2.1":
   version: 2.2.1
   resolution: "body-parser@npm:2.2.1"
   dependencies:
@@ -28404,17 +28404,18 @@ __metadata:
   languageName: node
   linkType: hard
 
-"express@npm:5.1.0, express@npm:^5.0.1":
-  version: 5.1.0
-  resolution: "express@npm:5.1.0"
+"express@npm:5.2.0, express@npm:^5.0.1":
+  version: 5.2.0
+  resolution: "express@npm:5.2.0"
   dependencies:
     accepts: "npm:^2.0.0"
-    body-parser: "npm:^2.2.0"
+    body-parser: "npm:^2.2.1"
     content-disposition: "npm:^1.0.0"
     content-type: "npm:^1.0.5"
     cookie: "npm:^0.7.1"
     cookie-signature: "npm:^1.2.1"
     debug: "npm:^4.4.0"
+    depd: "npm:^2.0.0"
     encodeurl: "npm:^2.0.0"
     escape-html: "npm:^1.0.3"
     etag: "npm:^1.8.1"
@@ -28435,7 +28436,7 @@ __metadata:
     statuses: "npm:^2.0.1"
     type-is: "npm:^2.0.1"
     vary: "npm:^1.1.2"
-  checksum: 10c0/80ce7c53c5f56887d759b94c3f2283e2e51066c98d4b72a4cc1338e832b77f1e54f30d0239cc10815a0f849bdb753e6a284d2fa48d4ab56faf9c501f55d751d6
+  checksum: 10c0/be184dbd5eadffd899811bcd91b22df96d968b29e31076e8bbafcaa5c25dafd0012b8daece4135b876e4576407e4ca811c089ead2bb45f9e08df812ba0966a82
   languageName: node
   linkType: hard
 

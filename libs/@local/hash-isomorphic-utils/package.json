@@ -34,7 +34,7 @@
     "@sentry/browser": "10.22.0",
     "@sindresorhus/slugify": "3.0.0",
     "big.js": "7.0.1",
-    "express": "5.1.0",
+    "express": "5.2.0",
     "fix-esm-import-path": "1.10.3",
     "fractional-indexing": "3.2.0",
     "graphql-tag": "2.12.6",
