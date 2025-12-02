@@ -75,6 +75,10 @@ export const EditorView = ({
     exportSDCPN({ petriNetDefinition, title });
   }
 
+  function handleExportWithoutVisualInfo() {
+    exportSDCPN({ petriNetDefinition, title, removeVisualInfo: true });
+  }
+
   function handleImport() {
     importSDCPN((loadedSDCPN) => {
       const convertedSdcpn = convertOldFormatToSDCPN(loadedSDCPN);
@@ -140,6 +144,11 @@ export const EditorView = ({
                 id: "export",
                 label: "Export",
                 onClick: handleExport,
+              },
+              {
+                id: "export-without-visuals",
+                label: "Export without Visual Info",
+                onClick: handleExportWithoutVisualInfo,
               },
               {
                 id: "import",
