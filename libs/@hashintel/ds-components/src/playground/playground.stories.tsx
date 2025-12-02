@@ -1,4 +1,5 @@
 import { css } from "@hashintel/ds-helpers/css";
+import { refractive } from "@hashintel/refractive";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import {
   ArrowUpRightIcon,
@@ -14,7 +15,6 @@ import { AnimatePresence, motion } from "motion/react";
 import { useState } from "react";
 
 import { Button } from "../components/Button/button";
-import { RefractivePane } from "../components/RefractivePane/refractive-pane";
 import { SegmentedControl } from "../components/SegmentedControl/segmented-control";
 import { Slider } from "../components/Slider/slider";
 import { Switch } from "../components/Switch/switch";
@@ -124,16 +124,9 @@ const Playground = () => {
                 exit={{ opacity: 0, scale: 0.8, y: 90 }}
                 transition={{ duration: 0.16, ease: "easeInOut" }}
               >
-                <RefractivePane
-                  radius={RADIUS}
-                  blur={1}
-                  specularOpacity={0.7}
-                  scaleRatio={1}
-                  bezelWidth={RADIUS * 6}
-                  glassThickness={70}
-                  refractiveIndex={1.5}
+                <refractive.div
                   className={css({
-                    shadow: "xl",
+                    shadow: "[0 7px 29px 0 rgba(13, 13, 42, 0.37)]",
                     display: "flex",
                     flexDirection: "column",
                     gap: "spacing.1",
@@ -143,6 +136,14 @@ const Playground = () => {
                   })}
                   style={{
                     padding: PADDING,
+                  }}
+                  refraction={{
+                    radius: RADIUS,
+                    blur: 1,
+                    specularOpacity: 0.7,
+                    bezelWidth: RADIUS * 3,
+                    glassThickness: 70,
+                    refractiveIndex: 1.5,
                   }}
                 >
                   <div
@@ -174,11 +175,6 @@ const Playground = () => {
                     </h2>
 
                     <SegmentedControl
-                      radius={22}
-                      specularOpacity={0.8}
-                      glassThickness={20}
-                      bezelWidth={11}
-                      blur={1.7}
                       options={[
                         { name: "Design", value: "design" },
                         { name: "Actions", value: "actions" },
@@ -405,37 +401,35 @@ const Playground = () => {
                       Confirm
                     </Button>
                   </div>
-                </RefractivePane>
+                </refractive.div>
               </motion.div>
             )}
           </AnimatePresence>
         </div>
 
-        <RefractivePane
+        <refractive.div
           className={css({
             display: "flex",
             alignItems: "center",
             gap: "spacing.1",
-            shadow: "md",
-            backgroundColor: "[rgba(255,255,255,0.3)]",
+            shadow: "[0 7px 29px 0 rgba(13, 13, 54, 0.37)]",
+            backgroundColor: "[rgba(255,255,255,0.4)]",
             transition: "[all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)]",
             _hover: {
               transform: "scale(1.03)",
-              shadow: "lg",
-              backgroundColor: "[rgba(255,255,255,0.5)]",
+              shadow: "[0 9px 34px 0 rgba(13, 13, 54, 0.47)]",
+              backgroundColor: "[rgba(255,255,255,0.6)]",
             },
             pointerEvents: "auto",
+            padding: "spacing.4",
           })}
-          radius={13}
-          bezelWidth={25}
-          blur={0.5}
-          specularOpacity={0.5}
-          glassThickness={40}
-          refractiveIndex={1.5}
-          scaleRatio={1}
-          style={{
-            borderRadius: 22,
-            padding: 8,
+          refraction={{
+            radius: 13,
+            bezelWidth: 25,
+            blur: 1,
+            specularOpacity: 0.5,
+            glassThickness: 40,
+            refractiveIndex: 1.5,
           }}
         >
           {buttons.map(({ icon: Icon, title, id }) => {
@@ -445,7 +439,10 @@ const Playground = () => {
                 key={id}
                 type="button"
                 className={getButtonStyle(isSelected)}
-                style={{ borderRadius: 20 - 4 }}
+                style={{
+                  borderRadius: 13,
+                  padding: 6,
+                }}
                 title={title}
                 onClick={() => setSelectedButton(id)}
               >
@@ -453,7 +450,7 @@ const Playground = () => {
               </button>
             );
           })}
-        </RefractivePane>
+        </refractive.div>
       </div>
     </div>
   );

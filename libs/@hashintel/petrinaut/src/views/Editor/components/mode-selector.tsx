@@ -1,5 +1,4 @@
 import { SegmentGroup } from "@ark-ui/react/segment-group";
-import { RefractivePane } from "@hashintel/ds-components/refractive-pane";
 import { css } from "@hashintel/ds-helpers/css";
 
 export interface ModeSelectorProps {
@@ -18,19 +17,13 @@ export const ModeSelector: React.FC<ModeSelectorProps> = ({
 
   return (
     <div>
-      <RefractivePane
-        radius={12}
-        blur={7}
-        specularOpacity={0}
-        scaleRatio={1}
-        bezelWidth={20}
-        glassThickness={120}
-        refractiveIndex={1.5}
+      <div
         className={css({
-          // padding: "[12px]",
+          padding: "[12px]",
           borderRadius: "[12px]",
           backgroundColor: "[rgba(255, 255, 255, 0.8)]",
           boxShadow: "0 4px 16px rgba(0, 0, 0, 0.15)",
+          backdropFilter: "[blur(8px)]",
         })}
         style={{
           padding: "4px",
@@ -100,7 +93,7 @@ export const ModeSelector: React.FC<ModeSelectorProps> = ({
             </SegmentGroup.Item>
           ))}
         </SegmentGroup.Root>
-      </RefractivePane>
+      </div>
     </div>
   );
 };

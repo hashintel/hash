@@ -1,12 +1,12 @@
 import { SegmentGroup } from "@ark-ui/react/segment-group";
 import { css, cx } from "@hashintel/ds-helpers/css";
-import { useId } from "react";
+import { refractive } from "@hashintel/refractive";
 
-import { Filter } from "../../lib/flexible-filter";
-import { CONVEX, LIP } from "../../lib/surface-equations";
-import { useMotionResizeObserver } from "../../lib/use-motion-resize-observer";
+// TODO: Segmented Control should just be implemented as in the Figma, without refractive effects.
+// This version is just legacy for demo purposes.
 
 const ROOT_PADDING = 4;
+const ROOT_RADIUS = 10;
 
 const rootStyles = css({
   position: "relative",
@@ -21,10 +21,10 @@ const rootBackdropStyles = css({
   display: "flex",
   alignItems: "center",
   backgroundColor: "core.gray.10/20",
-  left: "spacing.0",
-  top: "spacing.0",
-  right: "spacing.0",
-  bottom: "spacing.0",
+  left: "[0px]",
+  top: "[0px]",
+  right: "[0px]",
+  bottom: "[0px]",
   shadow: "[inset 1px 1px 1px rgba(0, 0, 0, 0.05)]",
 });
 
@@ -34,9 +34,9 @@ const indicatorStyles = css({
   left: "var(--left)",
   top: "var(--top)",
   boxShadow: "sm",
-  backgroundColor: "core.whitealpha.20",
+  backgroundColor: "core.neutral.white/60",
   "[data-part='root']:active &": {
-    backgroundColor: "core.whitealpha.10",
+    backgroundColor: "core.neutral.white/60",
   },
 });
 
@@ -60,7 +60,7 @@ const itemStyles = css({
     shadow: "lg",
   },
   _hover: {
-    backgroundColor: "core.grayalpha.40",
+    backgroundColor: "core.neutral.white/60",
   },
 });
 
@@ -75,14 +75,6 @@ const itemTextStyles = css({
 export type SegmentedControlProps = React.PropsWithChildren<{
   className?: string;
   style?: React.CSSProperties;
-  radius?: number;
-  blur?: number;
-  specularOpacity?: number;
-  specularSaturation?: number;
-  scaleRatio?: number;
-  bezelWidth?: number;
-  glassThickness?: number;
-  refractiveIndex?: number;
   options: { name: string; value: string }[];
   value?: string;
   defaultValue?: string;
@@ -93,118 +85,57 @@ export type SegmentedControlProps = React.PropsWithChildren<{
 export const SegmentedControl: React.FC<SegmentedControlProps> = ({
   className,
   style,
-  radius = 22,
-  blur = 2,
-  specularOpacity = 0.4,
-  scaleRatio = 1,
-  bezelWidth = 20,
-  glassThickness = 16,
-  refractiveIndex = 1.5,
   options,
   value,
   defaultValue,
   disabled = false,
   onValueChange,
 }) => {
-  const rootFilterId = `segmented-control-filter-${useId()}`;
-  const indicatorFilterId = `segmented-control-indicator-filter-${useId()}`;
-
-  const {
-    ref: rootRef,
-    width: rootMotionWidth,
-    height: rootMotionHeight,
-  } = useMotionResizeObserver<HTMLDivElement>({
-    initialWidth: 10,
-    initialHeight: 10,
-  });
-
-  const {
-    ref: indicatorRef,
-    width: indicatorMotionWidth,
-    height: indicatorMotionHeight,
-  } = useMotionResizeObserver<HTMLDivElement>({
-    initialWidth: 10,
-    initialHeight: 10,
-  });
-
   return (
-    <>
-      <Filter
-        id={rootFilterId}
-        blur={blur}
-        scaleRatio={scaleRatio}
-        specularOpacity={specularOpacity}
-        width={rootMotionWidth}
-        height={rootMotionHeight}
-        radius={radius}
-        bezelWidth={bezelWidth}
-        glassThickness={glassThickness}
-        refractiveIndex={refractiveIndex}
-        bezelHeightFn={CONVEX}
-      />
-      <Filter
-        id={indicatorFilterId}
-        blur={0}
-        scaleRatio={scaleRatio}
-        specularOpacity={specularOpacity}
-        width={indicatorMotionWidth}
-        height={indicatorMotionHeight}
-        radius={radius - ROOT_PADDING}
-        bezelWidth={bezelWidth - ROOT_PADDING}
-        glassThickness={glassThickness}
-        refractiveIndex={refractiveIndex}
-        bezelHeightFn={LIP}
+    <SegmentGroup.Root
+      value={value}
+      onValueChange={(details) => {
+        if (details.value) {
+          onValueChange?.(details.value);
+        }
+      }}
+      disabled={disabled}
+      defaultValue={defaultValue}
+      className={cx(rootStyles, className)}
+      style={{
+        ...style,
+        padding: ROOT_PADDING,
+        borderRadius: ROOT_RADIUS,
+      }}
+    >
+      <refractive.div
+        className={rootBackdropStyles}
+        refraction={{
+          radius: ROOT_RADIUS,
+          blur: 2,
+          bezelWidth: 22,
+        }}
       />
 
-      <SegmentGroup.Root
-        ref={rootRef}
-        value={value}
-        onValueChange={(details) => {
-          if (details.value) {
-            onValueChange?.(details.value);
-          }
-        }}
-        disabled={disabled}
-        defaultValue={defaultValue}
-        className={cx(rootStyles, className)}
-        style={{
-          padding: ROOT_PADDING,
-          borderRadius: radius,
-          ...style,
-        }}
-      >
-        <div
-          className={rootBackdropStyles}
-          style={{
-            borderRadius: radius,
-            backdropFilter: `url(#${rootFilterId})`,
-          }}
-        />
+      <SegmentGroup.Indicator
+        className={indicatorStyles}
+        style={{ borderRadius: ROOT_RADIUS - ROOT_PADDING }}
+      />
 
-        {options.map((option) => (
-          <SegmentGroup.Item
-            key={option.value}
-            value={option.value}
-            className={itemStyles}
-            style={{ borderRadius: radius - ROOT_PADDING }}
-          >
-            <SegmentGroup.ItemText className={itemTextStyles}>
-              {option.name}
-            </SegmentGroup.ItemText>
-            <SegmentGroup.ItemControl />
-            <SegmentGroup.ItemHiddenInput />
-          </SegmentGroup.Item>
-        ))}
-
-        <SegmentGroup.Indicator
-          ref={indicatorRef}
-          className={indicatorStyles}
-          style={{
-            borderRadius: radius - ROOT_PADDING,
-            backdropFilter: `url(#${indicatorFilterId})`,
-          }}
-        />
-      </SegmentGroup.Root>
-    </>
+      {options.map((option) => (
+        <SegmentGroup.Item
+          key={option.value}
+          value={option.value}
+          className={itemStyles}
+          style={{ borderRadius: ROOT_RADIUS - ROOT_PADDING }}
+        >
+          <SegmentGroup.ItemText className={itemTextStyles}>
+            {option.name}
+          </SegmentGroup.ItemText>
+          <SegmentGroup.ItemControl />
+          <SegmentGroup.ItemHiddenInput />
+        </SegmentGroup.Item>
+      ))}
+    </SegmentGroup.Root>
   );
 };
