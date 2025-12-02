@@ -1,5 +1,4 @@
-@hashintel/refractive
-=======================
+# @hashintel/refractive
 
 ## Install
 
