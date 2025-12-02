@@ -395,10 +395,6 @@ entry: {
     __dirname,
     "src/components/RadioGroup/radio-group.tsx",
   ),
-  "refractive-pane": path.resolve(
-    __dirname,
-    "src/components/RefractivePane/refractive-pane.tsx",
-  ),
   // ... rest of entries
 }
 ```
