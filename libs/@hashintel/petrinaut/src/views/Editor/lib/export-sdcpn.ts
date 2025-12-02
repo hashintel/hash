@@ -1,16 +1,28 @@
 import type { SDCPN } from "../../../core/types/sdcpn";
+import { removeVisualInformation } from "./remove-visual-info";
 
 /**
  * Saves the SDCPN to a JSON file by triggering a browser download.
  * @param petriNetDefinition - The SDCPN to save
  * @param title - The title of the SDCPN
+ * @param removeVisualInfo - If true, removes visual positioning information (x, y, width, height) from places and transitions
  */
 export function exportSDCPN({
   petriNetDefinition,
   title,
-}: { petriNetDefinition: SDCPN; title: string }): void {
+  removeVisualInfo,
+}: {
+  petriNetDefinition: SDCPN;
+  title: string;
+  removeVisualInfo?: boolean;
+}): void {
+  // Optionally remove visual information
+  const sdcpnToExport = removeVisualInfo
+    ? removeVisualInformation(petriNetDefinition)
+    : petriNetDefinition;
+
   // Convert SDCPN to JSON string
-  const jsonString = JSON.stringify({ title, ...petriNetDefinition }, null, 2);
+  const jsonString = JSON.stringify({ title, ...sdcpnToExport }, null, 2);
 
   // Create a blob from the JSON string
   const blob = new Blob([jsonString], { type: "application/json" });
