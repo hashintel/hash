@@ -43,10 +43,6 @@ export default defineConfig({
           __dirname,
           "src/components/Checkbox/checkbox.tsx",
         ),
-        "refractive-pane": path.resolve(
-          __dirname,
-          "src/components/RefractivePane/refractive-pane.tsx",
-        ),
         "segmented-control": path.resolve(
           __dirname,
           "src/components/SegmentedControl/segmented-control.tsx",
