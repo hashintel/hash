@@ -8168,7 +8168,7 @@ __metadata:
     "@ark-ui/react": "npm:5.26.2"
     "@figma/code-connect": "npm:1.3.8"
     "@hashintel/ds-helpers": "npm:0.0.1"
-    "@hashintel/refractive": "npm:0.0.1"
+    "@hashintel/refractive": "npm:0.0.0"
     "@local/eslint": "npm:0.0.0-private"
     "@local/tsconfig": "npm:0.0.0-private"
     "@pandacss/dev": "npm:1.4.3"
@@ -8317,7 +8317,7 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@hashintel/refractive@npm:0.0.1, @hashintel/refractive@workspace:libs/@hashintel/refractive":
+"@hashintel/refractive@npm:0.0.0, @hashintel/refractive@workspace:libs/@hashintel/refractive":
   version: 0.0.0-use.local
   resolution: "@hashintel/refractive@workspace:libs/@hashintel/refractive"
   dependencies:
