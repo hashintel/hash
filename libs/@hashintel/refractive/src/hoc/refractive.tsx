@@ -1,6 +1,7 @@
 import type { ComponentType } from "react";
 import { createElement, useEffect, useId, useRef, useState } from "react";
 import type { JSX } from "react/jsx-runtime";
+
 import { Filter } from "../components/filter";
 import { CONVEX } from "../helpers/surface-equations";
 
@@ -30,7 +31,7 @@ function createRefractiveComponent<
     ref?: React.RefObject<HTMLElement>;
   },
 >(Component: ComponentType<P>): ComponentType<P & RefractionProps> {
-  return function RefractiveWrapper(props: P & RefractionProps) {
+  return (props: P & RefractionProps) => {
     const {
       refraction,
       ref: externalRef,
@@ -43,13 +44,15 @@ function createRefractiveComponent<
 
     // If a ref is passed in props, use it; otherwise, use internalRef.
     // If the passed ref is updated later, it will trigger a re-render.
-    const elementRef = props.ref ?? internalRef;
+    const elementRef = externalRef ?? internalRef;
 
     // TODO: (FE-43) Remove ResizeObserver and rely on `objectBoundingBox` to automatically size the filter.
     // This will removed the need of `useState` here.
     useEffect(() => {
       const element = elementRef.current;
-      if (!element) return;
+      if (!element) {
+        return;
+      }
 
       const resizeObserver = new ResizeObserver((entries) => {
         for (const entry of entries) {
@@ -80,8 +83,8 @@ function createRefractiveComponent<
           pixelRatio={6} // Always 6 for now, could be configurable in the future
           width={width}
           height={height}
+          radius={refraction.radius}
           blur={refraction.blur ?? 0}
-          radius={refraction.radius ?? 4}
           glassThickness={refraction.glassThickness ?? 70}
           bezelWidth={refraction.bezelWidth ?? 0}
           refractiveIndex={refraction.refractiveIndex ?? 1.5}
@@ -119,7 +122,7 @@ type RefractiveFunction = (<P extends object>(
 /**
  * Cache for JSX intrinsic elements refractive components, created on demand.
  */
-const CACHE = new Map<string, ComponentType<any>>();
+const CACHE = new Map<string, ComponentType<any>>(); // eslint-disable-line @typescript-eslint/no-explicit-any
 
 /**
  * Refractive is a higher-order component (HOC) that can wrap any HTML element or custom React component
@@ -156,19 +159,18 @@ const CACHE = new Map<string, ComponentType<any>>();
  * @param Component - The React component or HTML element to wrap.
  * @returns Same component with refraction props.
  */
-export const refractive = new Proxy(createRefractiveComponent as any, {
+export const refractive = new Proxy(createRefractiveComponent, {
   get: (_target, elementName: keyof JSX.IntrinsicElements) => {
     if (CACHE.has(elementName)) {
       return CACHE.get(elementName);
     }
     const refractiveComponent = createRefractiveComponent(
-      ({ children, ...props }: any) =>
-        createElement(elementName, props, children),
+      ({ children, ...props }) => createElement(elementName, props, children),
     );
     CACHE.set(elementName, refractiveComponent);
     return refractiveComponent;
   },
-  apply: (target, _thisArg, argArray) => {
+  apply: (target, _thisArg, argArray: Parameters<RefractiveFunction>) => {
     return target(...argArray);
   },
 }) as RefractiveFunction;

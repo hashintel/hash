@@ -81,17 +81,17 @@ export const Filter: React.FC<FilterProps> = ({
   const displacementMap = calculateDisplacementMap({
     width: imageSide,
     height: imageSide,
-    radius: radius,
-    bezelWidth: bezelWidth,
+    radius,
+    bezelWidth,
     precomputedDisplacementMap: map,
-    maximumDisplacement: maximumDisplacement,
+    maximumDisplacement,
     pixelRatio,
   });
 
   const specularMap = calculateSpecularImage({
     width: imageSide,
     height: imageSide,
-    radius: radius,
+    radius,
     specularAngle: Math.PI / 4, // Default angle, could be made configurable
     pixelRatio,
   });

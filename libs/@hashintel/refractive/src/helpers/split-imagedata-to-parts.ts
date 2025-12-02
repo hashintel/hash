@@ -1,4 +1,5 @@
 import type { ImageData } from "canvas";
+
 import { imageDataToUrl } from "./image-data-to-url";
 
 // Each part is a Base64-encoded PNG image

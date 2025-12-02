@@ -1,4 +1,5 @@
 import type { ImageData } from "canvas";
+
 import { splitImageDataToParts } from "../helpers/split-imagedata-to-parts";
 
 type CompositePartsProps = {
@@ -35,8 +36,8 @@ export const CompositeParts: React.FC<CompositePartsProps> = ({
   hideRight,
 }) => {
   const parts = splitImageDataToParts({
-    imageData: imageData,
-    cornerWidth: cornerWidth,
+    imageData,
+    cornerWidth,
     pixelRatio,
   });
 

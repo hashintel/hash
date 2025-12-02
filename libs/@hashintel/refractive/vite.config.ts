@@ -38,7 +38,7 @@ export default defineConfig(({ command }) => ({
     command === "build"
       ? {
           lib: {
-            entry: path.resolve(__dirname, "src/index.ts"),
+            entry: path.resolve(__dirname, "src/main.ts"),
             formats: ["es", "cjs"],
             fileName: (format) => `index.${format === "es" ? "js" : "cjs"}`,
           },
