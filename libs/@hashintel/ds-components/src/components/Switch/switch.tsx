@@ -33,7 +33,7 @@ const switchThumbStyles = css({
   top: "[50%]",
   left: `[${PADDING}px]`,
   transition: "[all 0.2s ease]",
-  "&[data-state='checked']": {
+  _checked: {
     transform: `translateY(-50%) translateX(${TRAVEL}px)`,
   },
   "&[data-state='unchecked']": {

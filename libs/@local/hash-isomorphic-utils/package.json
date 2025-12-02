@@ -63,7 +63,7 @@
     "@local/tsconfig": "0.0.0-private",
     "@temporalio/workflow": "1.12.1",
     "@types/big.js": "6.2.2",
-    "@types/express": "5.0.3",
+    "@types/express": "5.0.5",
     "@types/lodash-es": "4.17.12",
     "@types/node": "22.18.13",
     "@types/pluralize": "0.0.33",

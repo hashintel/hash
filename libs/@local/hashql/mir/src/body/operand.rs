@@ -34,3 +34,15 @@ pub enum Operand<'heap> {
     /// value.
     Constant(Constant<'heap>),
 }
+
+impl<'heap> From<Place<'heap>> for Operand<'heap> {
+    fn from(place: Place<'heap>) -> Self {
+        Operand::Place(place)
+    }
+}
+
+impl<'heap> From<Constant<'heap>> for Operand<'heap> {
+    fn from(constant: Constant<'heap>) -> Self {
+        Operand::Constant(constant)
+    }
+}

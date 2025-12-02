@@ -241,14 +241,8 @@ impl<'heap> Lattice<'heap> for OpaqueType<'heap> {
         env: &mut AnalysisEnvironment<'_, 'heap>,
     ) -> bool {
         if self.kind.name != supertype.kind.name {
-            let _: ControlFlow<()> = env.record_diagnostic(|env| {
-                opaque_type_name_mismatch(
-                    env.source,
-                    self,
-                    supertype,
-                    self.kind.name,
-                    supertype.kind.name,
-                )
+            let _: ControlFlow<()> = env.record_diagnostic(|_| {
+                opaque_type_name_mismatch(self, supertype, self.kind.name, supertype.kind.name)
             });
 
             return false;
@@ -263,8 +257,8 @@ impl<'heap> Lattice<'heap> for OpaqueType<'heap> {
         env: &mut AnalysisEnvironment<'_, 'heap>,
     ) -> bool {
         if self.kind.name != other.kind.name {
-            let _: ControlFlow<()> = env.record_diagnostic(|env| {
-                opaque_type_name_mismatch(env.source, self, other, self.kind.name, other.kind.name)
+            let _: ControlFlow<()> = env.record_diagnostic(|_| {
+                opaque_type_name_mismatch(self, other, self.kind.name, other.kind.name)
             });
 
             return false;

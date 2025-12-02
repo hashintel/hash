@@ -57,7 +57,7 @@ impl<'mir, 'heap> Reifier<'_, 'mir, '_, '_, 'heap> {
             name: None,
         });
 
-        let mut tuple_elements = IdVec::with_capacity_in(captures.count(), self.context.heap);
+        let mut tuple_elements = IdVec::with_capacity_in(captures.count(), self.context.mir.heap);
         let mut tuple_element_ty = TinyVec::with_capacity(captures.count());
 
         for var in &captures {
@@ -71,25 +71,24 @@ impl<'mir, 'heap> Reifier<'_, 'mir, '_, '_, 'heap> {
 
             tuple_elements.push(Operand::Place(Place::local(
                 capture_local,
-                self.context.interner,
+                self.context.mir.interner,
             )));
 
             tuple_element_ty.push(self.local_decls[capture_local].r#type);
         }
 
-        let env_type =
-            TypeBuilder::spanned(hir.span, self.context.environment).tuple(tuple_element_ty);
+        let env_type = TypeBuilder::spanned(hir.span, self.context.mir.env).tuple(tuple_element_ty);
         self.local_decls[env_local].r#type = env_type;
 
         let closure_type_id = self.context.hir.map.monomorphized_type_id(hir.id);
-        let closure_type = unwrap_closure_type(closure_type_id, self.context.environment);
+        let closure_type = unwrap_closure_type(closure_type_id, self.context.mir.env);
         let compiler = Reifier::new(self.context, self.state);
         let ptr = compiler.lower_closure(hir, &captures, env_type, binder, closure, closure_type);
 
         block.push_statement(Statement {
             span: hir.span,
             kind: StatementKind::Assign(Assign {
-                lhs: Place::local(env_local, self.context.interner),
+                lhs: Place::local(env_local, self.context.mir.interner),
                 rhs: RValue::Aggregate(Aggregate {
                     kind: AggregateKind::Tuple,
                     operands: tuple_elements,
@@ -127,7 +126,7 @@ impl<'mir, 'heap> Reifier<'_, 'mir, '_, '_, 'heap> {
             block.push_statement(Statement {
                 span: binding.span,
                 kind: StatementKind::Assign(Assign {
-                    lhs: Place::local(local, self.context.interner),
+                    lhs: Place::local(local, self.context.mir.interner),
                     rhs: rvalue,
                 }),
             });
@@ -161,7 +160,7 @@ impl<'mir, 'heap> Reifier<'_, 'mir, '_, '_, 'heap> {
         &mut self,
         node: Node<'heap>,
     ) -> (CurrentBlock<'mir, 'heap>, Spanned<Operand<'heap>>) {
-        let mut block = CurrentBlock::new(self.context.heap, self.context.interner);
+        let mut block = CurrentBlock::new(self.context.mir.heap, self.context.mir.interner);
         let body = self.transform_body(&mut block, node);
 
         (block, body)

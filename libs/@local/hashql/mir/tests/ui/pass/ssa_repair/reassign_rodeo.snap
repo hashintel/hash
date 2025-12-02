@@ -1,0 +1,37 @@
+---
+source: libs/@local/hashql/mir/src/pass/transform/ssa_repair/tests.rs
+expression: value
+---
+fn {intrinsic#4294967040}() -> Null {
+    let %0: Integer
+
+    bb0(): {
+        %0 = 0
+        %0 = %0
+
+        goto -> bb1(%0)
+    }
+
+    bb1(%0): {
+        goto -> bb1(%0)
+    }
+}
+
+------------------------------------
+
+fn {intrinsic#4294967040}() -> Null {
+    let %0: Integer
+    let %1: Integer
+    let %2: Integer
+
+    bb0(): {
+        %1 = 0
+        %2 = %1
+
+        goto -> bb1(%2)
+    }
+
+    bb1(%0): {
+        goto -> bb1(%0)
+    }
+}

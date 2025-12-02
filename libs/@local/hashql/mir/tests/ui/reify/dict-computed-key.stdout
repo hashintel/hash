@@ -16,7 +16,7 @@ thunk foo:0() -> Boolean {
     bb0(): {
         %0 = apply (foo:0 as FnPtr)
         %1 = apply (foo:0 as FnPtr)
-        %2 = dict(%0: 42, true: %1)
+        %2 = dict(%0: 42, 1: %1)
 
         return %2
     }

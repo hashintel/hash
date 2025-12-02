@@ -66,7 +66,7 @@ const checkboxControlStyles = css({
   },
 
   // Focus state
-  "&[data-focus-visible]": {
+  _focusVisible: {
     boxShadow: "[0px 0px 0px 2px rgba(0, 0, 0, 0.15)]",
   },
 
@@ -85,13 +85,13 @@ const checkboxControlStyles = css({
     },
 
   // Disabled state
-  "&[data-disabled]": {
+  _disabled: {
     cursor: "not-allowed",
     opacity: "[0.5]",
   },
 
   // Invalid state
-  "&[data-invalid]": {
+  _invalid: {
     borderColor: "border.status.critical",
   },
 });
@@ -114,7 +114,7 @@ const checkboxLabelStyles = (disabled: boolean) =>
     userSelect: "none",
     whiteSpace: "nowrap",
 
-    "&[data-disabled]": {
+    _disabled: {
       opacity: "[0.5]",
     },
   });

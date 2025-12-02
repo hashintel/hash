@@ -67,7 +67,7 @@ impl<'mir, 'heap> Reifier<'_, 'mir, '_, '_, 'heap> {
         block: &mut CurrentBlock<'mir, 'heap>,
         bodies: &[graph::GraphReadBody<'heap>],
     ) -> heap::Vec<'heap, GraphReadBody> {
-        let mut result = heap::Vec::with_capacity_in(bodies.len(), self.context.heap);
+        let mut result = heap::Vec::with_capacity_in(bodies.len(), self.context.mir.heap);
 
         result.extend(
             bodies
@@ -158,9 +158,9 @@ impl<'mir, 'heap> Reifier<'_, 'mir, '_, '_, 'heap> {
                 kind: TerminatorKind::SwitchInt(SwitchInt {
                     discriminant: test,
                     targets: SwitchTargets::new_if(
-                        self.context.heap,
-                        Target::block(then_entry, self.context.interner),
-                        Target::block(else_entry, self.context.interner),
+                        self.context.mir.heap,
+                        Target::block(then_entry, self.context.mir.interner),
+                        Target::block(else_entry, self.context.mir.interner),
                     ),
                 }),
             },

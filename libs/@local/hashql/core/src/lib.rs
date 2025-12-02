@@ -23,6 +23,7 @@
     debug_closure_helpers,
     formatting_options,
     get_disjoint_mut_helpers,
+    iter_intersperse,
     iter_map_windows,
     iter_next_chunk,
     slice_partition_dedup,

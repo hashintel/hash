@@ -9,7 +9,6 @@ use hashql_ast::{
 };
 use hashql_core::{
     module::{ModuleRegistry, namespace::ModuleNamespace},
-    span::SpanId,
     r#type::environment::Environment,
 };
 
@@ -29,7 +28,7 @@ impl Suite for AstLoweringImportResolverSuite {
         }: RunContext<'_, 'heap>,
         mut expr: Expr<'heap>,
     ) -> Result<String, SuiteDiagnostic> {
-        let environment = Environment::new(SpanId::SYNTHETIC, heap);
+        let environment = Environment::new(heap);
         let registry = ModuleRegistry::new(&environment);
 
         let mut resolver = PreExpansionNameResolver::new(&registry);

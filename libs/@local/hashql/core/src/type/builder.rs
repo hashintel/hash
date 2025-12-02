@@ -12,7 +12,7 @@
 //! # use hashql_core::span::SpanId;
 //! # use hashql_core::heap::Heap;
 //! # let heap = Heap::new();
-//! # let env = Environment::new(SpanId::SYNTHETIC, &heap);
+//! # let env = Environment::new(&heap);
 //! let builder = TypeBuilder::synthetic(&env);
 //!
 //! // Build primitive types
@@ -71,7 +71,7 @@ use crate::{
 /// # use hashql_core::span::SpanId;
 /// # use hashql_core::heap::Heap;
 /// # let heap = Heap::new();
-/// # let env = Environment::new(SpanId::SYNTHETIC, &heap);
+/// # let env = Environment::new(&heap);
 /// # let mut builder = TypeBuilder::synthetic(&env);
 /// // Defer computation of generic arguments
 /// let t_arg = builder.fresh_argument("T");
@@ -98,7 +98,7 @@ where
 /// # use hashql_core::r#type::{environment::Environment, builder::{TypeBuilder, IntoGenericArgument}};
 /// # use hashql_core::{span::SpanId, heap::Heap, intern::Provisioned};
 /// # let heap = Heap::new();
-/// # let env = Environment::new(SpanId::SYNTHETIC, &heap);
+/// # let env = Environment::new(&heap);
 /// # let mut builder = TypeBuilder::synthetic(&env);
 /// let arg_id = builder.fresh_argument("T");
 ///
@@ -223,7 +223,7 @@ impl<'heap> IntoSymbol<'heap> for Symbol<'heap> {
 /// # use hashql_core::r#type::{environment::Environment, builder::{TypeBuilder, IntoGenericArguments, lazy}};
 /// # use hashql_core::{span::SpanId, heap::Heap, intern::Provisioned};
 /// # let heap = Heap::new();
-/// # let env = Environment::new(SpanId::SYNTHETIC, &heap);
+/// # let env = Environment::new(&heap);
 /// # let mut builder = TypeBuilder::synthetic(&env);
 /// let t_arg = builder.fresh_argument("T");
 /// let u_arg = builder.fresh_argument("U");
@@ -302,7 +302,7 @@ where
 /// # use hashql_core::r#type::{environment::Environment, builder::{TypeBuilder, IntoGenericSubstitution}};
 /// # use hashql_core::{span::SpanId, heap::Heap, intern::Provisioned};
 /// # let heap = Heap::new();
-/// # let env = Environment::new(SpanId::SYNTHETIC, &heap);
+/// # let env = Environment::new(&heap);
 /// # let mut builder = TypeBuilder::synthetic(&env);
 /// let arg_id = builder.fresh_argument("T");
 ///
@@ -369,7 +369,7 @@ where
 /// # use hashql_core::r#type::{environment::Environment, builder::{TypeBuilder, IntoGenericSubstitutions, lazy}};
 /// # use hashql_core::{span::SpanId, heap::Heap, intern::Provisioned};
 /// # let heap = Heap::new();
-/// # let env = Environment::new(SpanId::SYNTHETIC, &heap);
+/// # let env = Environment::new(&heap);
 /// # let mut builder = TypeBuilder::synthetic(&env);
 /// let t_arg = builder.fresh_argument("T");
 /// let u_arg = builder.fresh_argument("U");
@@ -460,7 +460,7 @@ where
 /// # use hashql_core::r#type::{environment::Environment, builder::{TypeBuilder, IntoStructField}};
 /// # use hashql_core::{span::SpanId, heap::Heap, intern::Provisioned};
 /// # let heap = Heap::new();
-/// # let env = Environment::new(SpanId::SYNTHETIC, &heap);
+/// # let env = Environment::new(&heap);
 /// # let builder = TypeBuilder::synthetic(&env);
 ///
 /// // From a string name and type
@@ -534,7 +534,7 @@ where
 /// # use hashql_core::r#type::{environment::Environment, builder::{TypeBuilder, IntoStructFields, lazy}};
 /// # use hashql_core::{span::SpanId, heap::Heap, intern::Provisioned};
 /// # let heap = Heap::new();
-/// # let env = Environment::new(SpanId::SYNTHETIC, &heap);
+/// # let env = Environment::new(&heap);
 /// # let builder = TypeBuilder::synthetic(&env);
 ///
 /// // From an array of field tuples
@@ -723,7 +723,7 @@ where
 /// # use hashql_core::span::SpanId;
 /// # use hashql_core::intern::Provisioned;
 /// # let heap = Heap::new();
-/// # let env = Environment::new(SpanId::SYNTHETIC, &heap);
+/// # let env = Environment::new(&heap);
 /// let builder = TypeBuilder::synthetic(&env);
 ///
 /// // Primitive types
@@ -768,7 +768,7 @@ impl<'env, 'heap> TypeBuilder<'env, 'heap> {
     /// # use hashql_core::heap::Heap;
     /// # use hashql_core::span::SpanId;
     /// # let heap = Heap::new();
-    /// # let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    /// # let env = Environment::new(&heap);
     /// let builder = TypeBuilder::synthetic(&env);
     /// let string_type = builder.string();
     /// ```
@@ -800,7 +800,7 @@ impl<'env, 'heap> TypeBuilder<'env, 'heap> {
     /// # use hashql_core::span::SpanId;
     /// # use hashql_core::heap::Heap;
     /// # let heap = Heap::new();
-    /// # let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    /// # let env = Environment::new(&heap);
     /// # let builder = TypeBuilder::synthetic(&env);
     /// let string_type = builder.partial(|_| TypeKind::Primitive(PrimitiveType::String));
     /// ```
@@ -830,7 +830,7 @@ impl<'env, 'heap> TypeBuilder<'env, 'heap> {
     /// # use hashql_core::heap::Heap;
     /// # use hashql_core::span::SpanId;
     /// # let heap = Heap::new();
-    /// # let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    /// # let env = Environment::new(&heap);
     /// # let builder = TypeBuilder::synthetic(&env);
     /// let user_id = builder.opaque("UserId", builder.string());
     /// let product_id = builder.opaque("ProductId", builder.integer());
@@ -860,7 +860,7 @@ impl<'env, 'heap> TypeBuilder<'env, 'heap> {
     /// # use hashql_core::heap::Heap;
     /// # use hashql_core::span::SpanId;
     /// # let heap = Heap::new();
-    /// # let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    /// # let env = Environment::new(&heap);
     /// # let builder = TypeBuilder::synthetic(&env);
     /// let price_type = builder.number();
     /// ```
@@ -881,7 +881,7 @@ impl<'env, 'heap> TypeBuilder<'env, 'heap> {
     /// # use hashql_core::heap::Heap;
     /// # use hashql_core::span::SpanId;
     /// # let heap = Heap::new();
-    /// # let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    /// # let env = Environment::new(&heap);
     /// # let builder = TypeBuilder::synthetic(&env);
     /// let count_type = builder.integer();
     /// ```
@@ -899,7 +899,7 @@ impl<'env, 'heap> TypeBuilder<'env, 'heap> {
     /// # use hashql_core::heap::Heap;
     /// # use hashql_core::span::SpanId;
     /// # let heap = Heap::new();
-    /// # let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    /// # let env = Environment::new(&heap);
     /// # let builder = TypeBuilder::synthetic(&env);
     /// let name_type = builder.string();
     /// ```
@@ -917,7 +917,7 @@ impl<'env, 'heap> TypeBuilder<'env, 'heap> {
     /// # use hashql_core::heap::Heap;
     /// # use hashql_core::span::SpanId;
     /// # let heap = Heap::new();
-    /// # let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    /// # let env = Environment::new(&heap);
     /// # let builder = TypeBuilder::synthetic(&env);
     /// let null_type = builder.null();
     /// let optional_string = builder.union([builder.string(), null_type]);
@@ -936,7 +936,7 @@ impl<'env, 'heap> TypeBuilder<'env, 'heap> {
     /// # use hashql_core::heap::Heap;
     /// # use hashql_core::span::SpanId;
     /// # let heap = Heap::new();
-    /// # let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    /// # let env = Environment::new(&heap);
     /// # let builder = TypeBuilder::synthetic(&env);
     /// let is_active_type = builder.boolean();
     /// ```
@@ -957,7 +957,7 @@ impl<'env, 'heap> TypeBuilder<'env, 'heap> {
     /// # use hashql_core::heap::Heap;
     /// # use hashql_core::span::SpanId;
     /// # let heap = Heap::new();
-    /// # let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    /// # let env = Environment::new(&heap);
     /// # let builder = TypeBuilder::synthetic(&env);
     /// let string_list = builder.list(builder.string());
     /// let number_list = builder.list(builder.number());
@@ -986,7 +986,7 @@ impl<'env, 'heap> TypeBuilder<'env, 'heap> {
     /// # use hashql_core::heap::Heap;
     /// # use hashql_core::span::SpanId;
     /// # let heap = Heap::new();
-    /// # let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    /// # let env = Environment::new(&heap);
     /// # let builder = TypeBuilder::synthetic(&env);
     /// let name_to_age = builder.dict(builder.string(), builder.integer());
     /// let id_to_user = builder.dict(
@@ -1020,7 +1020,7 @@ impl<'env, 'heap> TypeBuilder<'env, 'heap> {
     /// # use hashql_core::heap::Heap;
     /// # use hashql_core::span::SpanId;
     /// # let heap = Heap::new();
-    /// # let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    /// # let env = Environment::new(&heap);
     /// # let builder = TypeBuilder::synthetic(&env);
     /// let person = builder.r#struct([
     ///     ("name", builder.string()),
@@ -1060,7 +1060,7 @@ impl<'env, 'heap> TypeBuilder<'env, 'heap> {
     /// # use hashql_core::heap::Heap;
     /// # use hashql_core::span::SpanId;
     /// # let heap = Heap::new();
-    /// # let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    /// # let env = Environment::new(&heap);
     /// # let builder = TypeBuilder::synthetic(&env);
     /// let coordinate = builder.tuple([builder.number(), builder.number()]);
     /// let rgb_color = builder.tuple([builder.integer(), builder.integer(), builder.integer()]);
@@ -1092,7 +1092,7 @@ impl<'env, 'heap> TypeBuilder<'env, 'heap> {
     /// # use hashql_core::heap::Heap;
     /// # use hashql_core::span::SpanId;
     /// # let heap = Heap::new();
-    /// # let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    /// # let env = Environment::new(&heap);
     /// # let builder = TypeBuilder::synthetic(&env);
     /// // Optional string (string or null)
     /// let optional_string = builder.union([builder.string(), builder.null()]);
@@ -1124,7 +1124,7 @@ impl<'env, 'heap> TypeBuilder<'env, 'heap> {
     /// # use hashql_core::heap::Heap;
     /// # use hashql_core::span::SpanId;
     /// # let heap = Heap::new();
-    /// # let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    /// # let env = Environment::new(&heap);
     /// # let builder = TypeBuilder::synthetic(&env);
     /// let serializable = builder.r#struct([(
     ///     "serialize",
@@ -1164,7 +1164,7 @@ impl<'env, 'heap> TypeBuilder<'env, 'heap> {
     /// # use hashql_core::heap::Heap;
     /// # use hashql_core::span::SpanId;
     /// # let heap = Heap::new();
-    /// # let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    /// # let env = Environment::new(&heap);
     /// # let builder = TypeBuilder::synthetic(&env);
     /// // String length function: (string) -> number
     /// let string_length = builder.closure([builder.string()], builder.number());
@@ -1204,7 +1204,7 @@ impl<'env, 'heap> TypeBuilder<'env, 'heap> {
     /// # use hashql_core::heap::Heap;
     /// # use hashql_core::span::SpanId;
     /// # let heap = Heap::new();
-    /// # let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    /// # let env = Environment::new(&heap);
     /// # let mut builder = TypeBuilder::synthetic(&env);
     /// // Create a generic List<T> type
     /// let t_param = builder.fresh_argument("T");
@@ -1243,7 +1243,7 @@ impl<'env, 'heap> TypeBuilder<'env, 'heap> {
     /// # use hashql_core::heap::Heap;
     /// # use hashql_core::span::SpanId;
     /// # let heap = Heap::new();
-    /// # let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    /// # let env = Environment::new(&heap);
     /// # let mut builder = TypeBuilder::synthetic(&env);
     /// // Create List<T> where T can be any type
     /// let t_param = builder.fresh_argument("T");
@@ -1286,7 +1286,7 @@ impl<'env, 'heap> TypeBuilder<'env, 'heap> {
     /// # use hashql_core::heap::Heap;
     /// # use hashql_core::span::SpanId;
     /// # let heap = Heap::new();
-    /// # let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    /// # let env = Environment::new(&heap);
     /// # let mut builder = TypeBuilder::synthetic(&env);
     /// let t_param = builder.fresh_argument("T");
     /// let u_param = builder.fresh_argument("U");
@@ -1319,7 +1319,7 @@ impl<'env, 'heap> TypeBuilder<'env, 'heap> {
     /// # use hashql_core::heap::Heap;
     /// # use hashql_core::span::SpanId;
     /// # let heap = Heap::new();
-    /// # let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    /// # let env = Environment::new(&heap);
     /// # let builder = TypeBuilder::synthetic(&env);
     /// let hole = builder.fresh_hole();
     /// let infer_type = builder.infer(hole);
@@ -1345,7 +1345,7 @@ impl<'env, 'heap> TypeBuilder<'env, 'heap> {
     /// # use hashql_core::heap::Heap;
     /// # use hashql_core::span::SpanId;
     /// # let heap = Heap::new();
-    /// # let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    /// # let env = Environment::new(&heap);
     /// # let builder = TypeBuilder::synthetic(&env);
     /// let never_type = builder.never();
     ///
@@ -1370,7 +1370,7 @@ impl<'env, 'heap> TypeBuilder<'env, 'heap> {
     /// # use hashql_core::heap::Heap;
     /// # use hashql_core::span::SpanId;
     /// # let heap = Heap::new();
-    /// # let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    /// # let env = Environment::new(&heap);
     /// # let builder = TypeBuilder::synthetic(&env);
     /// let unknown_type = builder.unknown();
     ///
@@ -1395,7 +1395,7 @@ impl<'env, 'heap> TypeBuilder<'env, 'heap> {
     /// # use hashql_core::heap::Heap;
     /// # use hashql_core::span::SpanId;
     /// # let heap = Heap::new();
-    /// # let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    /// # let env = Environment::new(&heap);
     /// # let mut builder = TypeBuilder::synthetic(&env);
     /// let t_arg = builder.fresh_argument("T");
     /// let u_arg = builder.fresh_argument("U");
@@ -1429,7 +1429,7 @@ impl<'env, 'heap> TypeBuilder<'env, 'heap> {
     /// # use hashql_core::heap::Heap;
     /// # use hashql_core::span::SpanId;
     /// # let heap = Heap::new();
-    /// # let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    /// # let env = Environment::new(&heap);
     /// # let mut builder = TypeBuilder::synthetic(&env);
     /// let t_arg = builder.fresh_argument("T");
     /// let reference = builder.hydrate_argument(t_arg);
@@ -1461,7 +1461,7 @@ impl<'env, 'heap> TypeBuilder<'env, 'heap> {
     /// # use hashql_core::heap::Heap;
     /// # use hashql_core::span::SpanId;
     /// # let heap = Heap::new();
-    /// # let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    /// # let env = Environment::new(&heap);
     /// # let builder = TypeBuilder::synthetic(&env);
     /// let hole1 = builder.fresh_hole();
     /// let hole2 = builder.fresh_hole();

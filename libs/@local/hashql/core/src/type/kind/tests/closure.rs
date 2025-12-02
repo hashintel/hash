@@ -105,7 +105,7 @@ fn meet(
 #[test]
 fn is_bottom_and_is_top() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
     let mut analysis_env = AnalysisEnvironment::new(&env);
 
     // Create a normal closure
@@ -144,7 +144,7 @@ fn is_bottom_and_is_top() {
 #[test]
 fn is_concrete() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
     let mut analysis_env = AnalysisEnvironment::new(&env);
 
     // Create a concrete closure
@@ -183,7 +183,7 @@ fn is_concrete() {
 #[test]
 fn subtype_relationship() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
     let mut analysis_env = AnalysisEnvironment::new(&env);
 
     let number = primitive!(env, PrimitiveType::Number);
@@ -264,7 +264,7 @@ fn subtype_relationship() {
 #[test]
 fn equivalence_relationship() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
     let mut analysis_env = AnalysisEnvironment::new(&env);
 
     // Create identical closures semantically
@@ -322,7 +322,7 @@ fn equivalence_relationship() {
 #[test]
 fn distribute_union() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
     let mut analysis_env = AnalysisEnvironment::new(&env);
 
     // Create primitive types
@@ -346,7 +346,7 @@ fn distribute_union() {
 #[test]
 fn distribute_intersection() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
     let mut analysis_env = AnalysisEnvironment::new(&env);
 
     // Create primitive types
@@ -369,7 +369,7 @@ fn distribute_intersection() {
 #[test]
 fn simplify_closure() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     // Create a normal closure
     closure!(
@@ -389,7 +389,7 @@ fn simplify_closure() {
 #[test]
 fn lattice_laws() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     // Create three distinct closures for testing lattice laws
     let a = closure!(
@@ -417,7 +417,7 @@ fn lattice_laws() {
 #[test]
 fn collect_constraints_closure_parameters() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     // Create function types with an inference variable as parameter
     let hole = HoleId::new(0);
@@ -466,7 +466,7 @@ fn collect_constraints_closure_parameters() {
 #[test]
 fn collect_constraints_closure_return_type() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     // Create function types with an inference variable as return type
     let hole = HoleId::new(0);
@@ -515,7 +515,7 @@ fn collect_constraints_closure_return_type() {
 #[test]
 fn collect_constraints_closure_both_param_and_return() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     // Create inference variables
     let hole_param = HoleId::new(0);
@@ -558,7 +558,7 @@ fn collect_constraints_closure_both_param_and_return() {
 #[test]
 fn collect_constraints_closure_multiple_parameters() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     // Create a function with multiple parameters, some inference variables
     let hole1 = HoleId::new(0);
@@ -601,7 +601,7 @@ fn collect_constraints_closure_multiple_parameters() {
 #[test]
 fn collect_constraints_closure_with_different_param_count() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     // Create functions with different parameter counts
     let hole = HoleId::new(0);
@@ -655,7 +655,7 @@ fn collect_constraints_closure_with_different_param_count() {
 #[test]
 fn collect_constraints_nested_closure() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     // Create a nested closure with inference variable
     let hole = HoleId::new(0);
@@ -697,7 +697,7 @@ fn collect_constraints_nested_closure() {
 #[test]
 fn collect_constraints_concrete_closures() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     // Create concrete closures
     let number = primitive!(env, PrimitiveType::Number);
@@ -721,7 +721,7 @@ fn collect_constraints_concrete_closures() {
 #[test]
 fn collect_constraints_with_generic_args() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     // Set up generic arguments
     let arg1 = GenericArgumentId::new(0);
@@ -776,7 +776,7 @@ fn collect_constraints_with_generic_args() {
 #[test]
 fn collect_dependencies_param() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     // Create an inference variable
     let hole = HoleId::new(0);
@@ -809,7 +809,7 @@ fn collect_dependencies_param() {
 #[test]
 fn collect_dependencies_return() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     // Create an inference variable
     let hole = HoleId::new(0);
@@ -842,7 +842,7 @@ fn collect_dependencies_return() {
 #[test]
 fn collect_dependencies_both_param_and_return() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     // Create inference variables for param and return
     let hole_param = HoleId::new(0);
@@ -883,7 +883,7 @@ fn collect_dependencies_both_param_and_return() {
 #[test]
 fn collect_dependencies_multiple_params() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     // Create multiple inference variables for parameters
     let hole1 = HoleId::new(0);
@@ -927,7 +927,7 @@ fn collect_dependencies_multiple_params() {
 #[test]
 fn collect_dependencies_nested_closure() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     // Create inference variables
     let hole_inner = HoleId::new(0);
@@ -972,7 +972,7 @@ fn collect_dependencies_nested_closure() {
 #[test]
 fn collect_dependencies_invariant_context() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     // Create inference variables
     let hole = HoleId::new(0);
@@ -1005,7 +1005,7 @@ fn collect_dependencies_invariant_context() {
 #[test]
 fn simplify_recursive_closure() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     let r#type = env.types.intern(|id| PartialType {
         span: SpanId::SYNTHETIC,
@@ -1031,7 +1031,7 @@ fn simplify_recursive_closure() {
 #[test]
 fn instantiate_closure() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     let argument = env.counter.generic_argument.next();
     let param = instantiate_param(&env, argument);
@@ -1092,7 +1092,7 @@ fn instantiate_closure() {
 #[test]
 fn projection() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     let mut lattice = LatticeEnvironment::new(&env);
 
@@ -1113,7 +1113,7 @@ fn projection() {
 #[test]
 fn subscript() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     let mut lattice = LatticeEnvironment::new(&env);
     let mut inference = InferenceEnvironment::new(&env);

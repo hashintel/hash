@@ -480,7 +480,6 @@ mod test {
             namespace::{ImportOptions, ModuleNamespace, ResolutionMode},
             resolver::{Resolver, ResolverMode, ResolverOptions},
         },
-        span::SpanId,
         r#type::environment::Environment,
     };
 
@@ -497,7 +496,7 @@ mod test {
     #[test]
     fn single_mode_resolve_type() {
         let heap = Heap::new();
-        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+        let env = Environment::new(&heap);
         let registry = ModuleRegistry::new(&env);
 
         let resolver = Resolver {
@@ -527,7 +526,7 @@ mod test {
     #[test]
     fn single_mode_resolve_value() {
         let heap = Heap::new();
-        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+        let env = Environment::new(&heap);
         let registry = ModuleRegistry::new(&env);
 
         let resolver = Resolver {
@@ -557,7 +556,7 @@ mod test {
     #[test]
     fn single_mode_item_not_found() {
         let heap = Heap::new();
-        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+        let env = Environment::new(&heap);
         let registry = ModuleRegistry::new(&env);
 
         let resolver = Resolver {
@@ -582,7 +581,7 @@ mod test {
     #[test]
     fn multi_mode_resolution() {
         let heap = Heap::new();
-        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+        let env = Environment::new(&heap);
         let registry = ModuleRegistry::new(&env);
 
         let resolver = Resolver {
@@ -621,7 +620,7 @@ mod test {
     #[test]
     fn multi_mode_single_universe_item() {
         let heap = Heap::new();
-        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+        let env = Environment::new(&heap);
         let registry = ModuleRegistry::new(&env);
 
         let resolver = Resolver {
@@ -650,7 +649,7 @@ mod test {
     #[test]
     fn glob_mode_resolution() {
         let heap = Heap::new();
-        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+        let env = Environment::new(&heap);
         let registry = ModuleRegistry::new(&env);
 
         let resolver = Resolver {
@@ -677,7 +676,7 @@ mod test {
     #[test]
     fn glob_mode_first_level() {
         let heap = Heap::new();
-        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+        let env = Environment::new(&heap);
         let registry = ModuleRegistry::new(&env);
 
         let resolver = Resolver {
@@ -707,7 +706,7 @@ mod test {
     #[test]
     fn glob_mode_module_not_found() {
         let heap = Heap::new();
-        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+        let env = Environment::new(&heap);
         let registry = ModuleRegistry::new(&env);
 
         let resolver = Resolver {
@@ -731,7 +730,7 @@ mod test {
     #[test]
     fn invalid_query_length_absolute() {
         let heap = Heap::new();
-        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+        let env = Environment::new(&heap);
         let registry = ModuleRegistry::new(&env);
 
         let resolver = Resolver {
@@ -758,7 +757,7 @@ mod test {
     #[test]
     fn invalid_query_length_relative() {
         let heap = Heap::new();
-        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+        let env = Environment::new(&heap);
         let registry = ModuleRegistry::new(&env);
 
         let resolver = Resolver {
@@ -779,7 +778,7 @@ mod test {
     #[test]
     fn package_not_found() {
         let heap = Heap::new();
-        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+        let env = Environment::new(&heap);
         let registry = ModuleRegistry::new(&env);
 
         let resolver = Resolver {
@@ -800,7 +799,7 @@ mod test {
     #[test]
     fn module_required_error() {
         let heap = Heap::new();
-        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+        let env = Environment::new(&heap);
         let registry = ModuleRegistry::new(&env);
 
         let resolver = Resolver {
@@ -832,7 +831,7 @@ mod test {
     #[test]
     fn module_empty_error() {
         let heap = Heap::new();
-        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+        let env = Environment::new(&heap);
         let registry = ModuleRegistry::new(&env);
 
         // Create an empty module and register it
@@ -864,7 +863,7 @@ mod test {
     #[test]
     fn absolute_module_not_found() {
         let heap = Heap::new();
-        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+        let env = Environment::new(&heap);
         let registry = ModuleRegistry::new(&env);
 
         let resolver = Resolver {
@@ -889,7 +888,7 @@ mod test {
     #[test]
     fn relative_single_resolution() {
         let heap = Heap::new();
-        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+        let env = Environment::new(&heap);
         let registry = ModuleRegistry::new(&env);
 
         let mut namespace = ModuleNamespace::new(&registry);
@@ -932,7 +931,7 @@ mod test {
     #[test]
     fn relative_multi_resolution() {
         let heap = Heap::new();
-        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+        let env = Environment::new(&heap);
         let registry = ModuleRegistry::new(&env);
 
         let mut namespace = ModuleNamespace::new(&registry);
@@ -1004,7 +1003,7 @@ mod test {
     #[test]
     fn relative_module_not_found() {
         let heap = Heap::new();
-        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+        let env = Environment::new(&heap);
         let registry = ModuleRegistry::new(&env);
 
         let mut namespace = ModuleNamespace::new(&registry);
@@ -1047,7 +1046,7 @@ mod test {
     #[test]
     fn relative_glob_mode_first_level() {
         let heap = Heap::new();
-        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+        let env = Environment::new(&heap);
         let registry = ModuleRegistry::new(&env);
 
         let mut namespace = ModuleNamespace::new(&registry);

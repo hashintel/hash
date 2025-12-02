@@ -20,6 +20,7 @@ mod hir_lower_normalization;
 mod hir_lower_specialization;
 mod hir_lower_thunking;
 mod hir_reify;
+mod mir_pass_transform_cfg_simplify;
 mod mir_reify;
 mod parse_syntax_dump;
 
@@ -48,7 +49,8 @@ use self::{
     hir_lower_inference_intrinsics::HirLowerTypeInferenceIntrinsicsSuite,
     hir_lower_normalization::HirLowerNormalizationSuite,
     hir_lower_specialization::HirLowerSpecializationSuite,
-    hir_lower_thunking::HirLowerThunkingSuite, hir_reify::HirReifySuite, mir_reify::MirReifySuite,
+    hir_lower_thunking::HirLowerThunkingSuite, hir_reify::HirReifySuite,
+    mir_pass_transform_cfg_simplify::MirPassTransformCfgSimplify, mir_reify::MirReifySuite,
     parse_syntax_dump::ParseSyntaxDumpSuite,
 };
 use crate::executor::TrialError;
@@ -59,10 +61,12 @@ mod private {
     pub(crate) struct Private(pub ());
 }
 
+pub(crate) type SuiteDirectives = FastHashMap<String, toml::Value>;
+
 pub(crate) struct RunContextPartial<'ctx, 'heap> {
     pub heap: &'heap Heap,
     pub diagnostics: &'ctx mut Vec<SuiteDiagnostic>,
-    pub suite_directives: &'ctx FastHashMap<String, toml::Value>,
+    pub suite_directives: &'ctx SuiteDirectives,
     pub secondary_outputs: &'ctx mut FastHashMap<&'static str, String>,
     pub reports: &'ctx mut ReportSink<TrialError>,
 }
@@ -70,7 +74,7 @@ pub(crate) struct RunContextPartial<'ctx, 'heap> {
 pub(crate) struct RunContext<'ctx, 'heap> {
     pub heap: &'heap Heap,
     pub diagnostics: &'ctx mut Vec<SuiteDiagnostic>,
-    pub suite_directives: &'ctx FastHashMap<String, toml::Value>,
+    pub suite_directives: &'ctx SuiteDirectives,
     pub secondary_outputs: &'ctx mut FastHashMap<&'static str, String>,
     pub reports: &'ctx mut ReportSink<TrialError>,
 
@@ -140,6 +144,7 @@ const SUITES: &[&dyn Suite] = &[
     &HirLowerTypeInferenceIntrinsicsSuite,
     &HirLowerTypeInferenceSuite,
     &HirReifySuite,
+    &MirPassTransformCfgSimplify,
     &MirReifySuite,
     &ParseSyntaxDumpSuite,
 ];

@@ -192,9 +192,8 @@ impl<'heap> Lattice<'heap> for ClosureType<'heap> {
 
         // Invariant over the param-width
         if self.kind.params.len() != supertype.kind.params.len() {
-            let _: ControlFlow<()> = env.record_diagnostic(|env| {
+            let _: ControlFlow<()> = env.record_diagnostic(|_| {
                 function_parameter_count_mismatch(
-                    env.source,
                     self,
                     supertype,
                     self.kind.params.len(),
@@ -234,9 +233,8 @@ impl<'heap> Lattice<'heap> for ClosureType<'heap> {
     ) -> bool {
         // Invariant over the param-width
         if self.kind.params.len() != other.kind.params.len() {
-            let _: ControlFlow<()> = env.record_diagnostic(|env| {
+            let _: ControlFlow<()> = env.record_diagnostic(|_| {
                 function_parameter_count_mismatch(
-                    env.source,
                     self,
                     other,
                     self.kind.params.len(),
