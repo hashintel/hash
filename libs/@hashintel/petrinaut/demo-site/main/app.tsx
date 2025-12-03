@@ -23,10 +23,14 @@ export const DevApp = () => {
   }, [currentNetId, storedSDCPNs]);
 
   const existingNets: MinimalNetMetadata[] = useMemo(() => {
-    return Object.values(storedSDCPNs).map((net) => ({
-      netId: net.id,
-      title: net.title,
-    }));
+    return Object.values(storedSDCPNs)
+      .filter(
+        (net): net is SDCPNInLocalStorage => !isOldFormatInLocalStorage(net),
+      )
+      .map((net) => ({
+        netId: net.id,
+        title: net.title,
+      }));
   }, [storedSDCPNs]);
 
   const createNewNet = useCallback(
@@ -59,7 +63,7 @@ export const DevApp = () => {
 
       setStoredSDCPNs((prev) =>
         produce(prev, (draft) => {
-          if (draft[currentNetId]) {
+          if (draft[currentNetId] && "title" in draft[currentNetId]) {
             draft[currentNetId].title = title;
           }
         }),
