@@ -232,6 +232,7 @@ simple-mermaid                     = { version = "0.2.0", default-features = fal
 smallvec                           = { version = "2.0.0-alpha.11", default-features = false }
 smol_str                           = { version = "0.3.4" }
 specta                             = { version = "2.0.0-rc.22", default-features = false }
+stacker                            = { version = "0.1.22", default-features = false }
 supports-color                     = { version = "3.0.2", default-features = false }
 supports-unicode                   = { version = "3.0.0", default-features = false }
 syn                                = { version = "2.0.108", default-features = false }

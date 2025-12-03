@@ -139,8 +139,9 @@ impl PolicySet {
 
         let authorizer = Authorizer::new();
 
-        let response =
-            authorizer.is_authorized(request.to_cedar(), self.policies(), context.entities());
+        let response = stacker::maybe_grow(1024 * 1024, 32 * 1024 * 1024, || {
+            authorizer.is_authorized(request.to_cedar(), self.policies(), context.entities())
+        });
 
         response
             .diagnostics
