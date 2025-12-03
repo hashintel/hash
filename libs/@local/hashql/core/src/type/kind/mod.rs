@@ -320,13 +320,13 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
             if env.is_inference_enabled() {
                 // We cannot determine the join of an inferred type with another type, therefore we
                 // "delay" the join until the inferred type is resolved.
-                return SmallVec::from_slice(&[self.id, other.id]);
+                return SmallVec::from_slice_copy(&[self.id, other.id]);
             }
 
             // When inference is disabled, an unresolved type is considered as `Never` and an error
             // will be reported. Therefore if `Never`, the rule is: `Never ∨ T <=> T`
             env.diagnostics.push(no_type_inference(self));
-            return SmallVec::from_slice(&[other.id]);
+            return SmallVec::from_slice_copy(&[other.id]);
         };
 
         self = resolved;
@@ -335,13 +335,13 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
             if env.is_inference_enabled() {
                 // We cannot determine the join of an inferred type with another type, therefore we
                 // "delay" the join until the inferred type is resolved.
-                return SmallVec::from_slice(&[self.id, other.id]);
+                return SmallVec::from_slice_copy(&[self.id, other.id]);
             }
 
             // When inference is disabled, an unresolved type is considered as `Never` and an error
             // will be reported. Therefore if `Never`, the rule is: `T ∨ Never <=> T`
             env.diagnostics.push(no_type_inference(other));
-            return SmallVec::from_slice(&[self.id]);
+            return SmallVec::from_slice_copy(&[self.id]);
         };
 
         other = resolved;
@@ -349,7 +349,7 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
         // Short circuit if the types are the same (this can be done via pointer comparison as the
         // types are interned)
         if ptr::eq(self.kind, other.kind) {
-            return SmallVec::from_slice(&[self.id]);
+            return SmallVec::from_slice_copy(&[self.id]);
         }
 
         #[expect(
@@ -371,28 +371,28 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
             }
 
             // T ∨ Never <=> T
-            (_, Self::Never) => SmallVec::from_slice(&[self.id]),
+            (_, Self::Never) => SmallVec::from_slice_copy(&[self.id]),
             // Never ∨ T <=> T
-            (Self::Never, _) => SmallVec::from_slice(&[other.id]),
+            (Self::Never, _) => SmallVec::from_slice_copy(&[other.id]),
             // T ∨ Never <=> T (slow)
-            (_, _) if env.is_bottom(other.id) => SmallVec::from_slice(&[self.id]),
+            (_, _) if env.is_bottom(other.id) => SmallVec::from_slice_copy(&[self.id]),
             // Never ∨ T <=> T (slow)
-            (_, _) if env.is_bottom(self.id) => SmallVec::from_slice(&[other.id]),
+            (_, _) if env.is_bottom(self.id) => SmallVec::from_slice_copy(&[other.id]),
 
             // T ∨ Unknown <=> Unknown
-            (_, Self::Unknown) => SmallVec::from_slice(&[other.id]),
+            (_, Self::Unknown) => SmallVec::from_slice_copy(&[other.id]),
             // Unknown ∨ T <=> Unknown
-            (Self::Unknown, _) => SmallVec::from_slice(&[self.id]),
+            (Self::Unknown, _) => SmallVec::from_slice_copy(&[self.id]),
             // T ∨ Unknown <=> Unknown (slow)
             (_, _) if env.is_top(other.id) => {
-                SmallVec::from_slice(&[env.intern_type(PartialType {
+                SmallVec::from_slice_copy(&[env.intern_type(PartialType {
                     span: other.span,
                     kind: env.intern_kind(Self::Unknown),
                 })])
             }
             // Unknown ∨ T <=> Unknown (slow)
             (_, _) if env.is_top(self.id) => {
-                SmallVec::from_slice(&[env.intern_type(PartialType {
+                SmallVec::from_slice_copy(&[env.intern_type(PartialType {
                     span: other.span,
                     kind: env.intern_kind(Self::Unknown),
                 })])
@@ -407,7 +407,7 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
                 | Self::Struct(_)
                 | Self::Tuple(_)
                 | Self::Closure(_),
-            ) => SmallVec::from_slice(&[self.id, other.id]),
+            ) => SmallVec::from_slice_copy(&[self.id, other.id]),
 
             // Primitive ∨ _
             (Self::Primitive(lhs), Self::Primitive(rhs)) => {
@@ -420,7 +420,7 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
                 | Self::Struct(_)
                 | Self::Tuple(_)
                 | Self::Closure(_),
-            ) => SmallVec::from_slice(&[self.id, other.id]),
+            ) => SmallVec::from_slice_copy(&[self.id, other.id]),
 
             // Intrinsic ∨ _
             (Self::Intrinsic(lhs), Self::Intrinsic(rhs)) => {
@@ -433,7 +433,7 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
                 | Self::Struct(_)
                 | Self::Tuple(_)
                 | Self::Closure(_),
-            ) => SmallVec::from_slice(&[self.id, other.id]),
+            ) => SmallVec::from_slice_copy(&[self.id, other.id]),
 
             // Struct ∨ _
             (Self::Struct(lhs), Self::Struct(rhs)) => self.with(lhs).join(other.with(rhs), env),
@@ -444,7 +444,7 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
                 | Self::Intrinsic(_)
                 | Self::Tuple(_)
                 | Self::Closure(_),
-            ) => SmallVec::from_slice(&[self.id, other.id]),
+            ) => SmallVec::from_slice_copy(&[self.id, other.id]),
 
             // Tuple ∨ _
             (Self::Tuple(lhs), Self::Tuple(rhs)) => self.with(lhs).join(other.with(rhs), env),
@@ -455,7 +455,7 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
                 | Self::Intrinsic(_)
                 | Self::Struct(_)
                 | Self::Closure(_),
-            ) => SmallVec::from_slice(&[self.id, other.id]),
+            ) => SmallVec::from_slice_copy(&[self.id, other.id]),
 
             // Closure ∨ _
             (Self::Closure(lhs), Self::Closure(rhs)) => self.with(lhs).join(other.with(rhs), env),
@@ -466,7 +466,7 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
                 | Self::Intrinsic(_)
                 | Self::Struct(_)
                 | Self::Tuple(_),
-            ) => SmallVec::from_slice(&[self.id, other.id]),
+            ) => SmallVec::from_slice_copy(&[self.id, other.id]),
 
             // Apply ∨ _
             (Self::Apply(lhs), Self::Apply(rhs)) => self.with(lhs).join(other.with(rhs), env),
@@ -626,13 +626,13 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
             if env.is_inference_enabled() {
                 // When inference is enabled, the unresolved type is "propagated" as part of the
                 // meet until resolved
-                return SmallVec::from_slice(&[self.id, other.id]);
+                return SmallVec::from_slice_copy(&[self.id, other.id]);
             }
 
             // When inference is disabled, an unresolved type is considered as `Never` and an error
             // will be reported. Therefore if `Never`, the rule is: `T ∧ Never <=> Never`
             env.diagnostics.push(no_type_inference(self));
-            return SmallVec::from_slice(&[env.intern_type(PartialType {
+            return SmallVec::from_slice_copy(&[env.intern_type(PartialType {
                 span: self.span,
                 kind: env.intern_kind(Self::Never),
             })]);
@@ -644,13 +644,13 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
             if env.is_inference_enabled() {
                 // When inference is enabled, the unresolved type is "propagated" as part of the
                 // meet until resolved
-                return SmallVec::from_slice(&[self.id, other.id]);
+                return SmallVec::from_slice_copy(&[self.id, other.id]);
             }
 
             // When inference is disabled, an unresolved type is considered as `Never` and an error
             // will be reported. Therefore if `Never`, the rule is: `T ∧ Never <=> Never`
             env.diagnostics.push(no_type_inference(other));
-            return SmallVec::from_slice(&[env.intern_type(PartialType {
+            return SmallVec::from_slice_copy(&[env.intern_type(PartialType {
                 span: other.span,
                 kind: env.intern_kind(TypeKind::Never),
             })]);
@@ -661,7 +661,7 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
         // Short circuit if the types are the same (this can be done via pointer comparison as the
         // types are interned)
         if ptr::eq(self.kind, other.kind) {
-            return SmallVec::from_slice(&[self.id]);
+            return SmallVec::from_slice_copy(&[self.id]);
         }
 
         #[expect(clippy::match_same_arms)]
@@ -679,32 +679,32 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
             }
 
             // T ∧ Never <=> Never
-            (_, Self::Never) => SmallVec::from_slice(&[other.id]),
+            (_, Self::Never) => SmallVec::from_slice_copy(&[other.id]),
             // Never ∧ T <=> Never
-            (Self::Never, _) => SmallVec::from_slice(&[self.id]),
+            (Self::Never, _) => SmallVec::from_slice_copy(&[self.id]),
             // T ∧ Never <=> Never (slow)
             (_, _) if env.is_bottom(other.id) => {
-                SmallVec::from_slice(&[env.intern_type(PartialType {
+                SmallVec::from_slice_copy(&[env.intern_type(PartialType {
                     span: other.span,
                     kind: env.intern_kind(Self::Never),
                 })])
             }
             // Never ∧ T <=> Never (slow)
             (_, _) if env.is_bottom(self.id) => {
-                SmallVec::from_slice(&[env.intern_type(PartialType {
+                SmallVec::from_slice_copy(&[env.intern_type(PartialType {
                     span: self.span,
                     kind: env.intern_kind(Self::Never),
                 })])
             }
 
             // T ∧ Unknown <=> T
-            (_, Self::Unknown) => SmallVec::from_slice(&[self.id]),
+            (_, Self::Unknown) => SmallVec::from_slice_copy(&[self.id]),
             // Unknown ∧ T <=> T
-            (Self::Unknown, _) => SmallVec::from_slice(&[other.id]),
+            (Self::Unknown, _) => SmallVec::from_slice_copy(&[other.id]),
             // T ∧ Unknown <=> T (slow)
-            (_, _) if env.is_top(other.id) => SmallVec::from_slice(&[self.id]),
+            (_, _) if env.is_top(other.id) => SmallVec::from_slice_copy(&[self.id]),
             // Unknown ∧ T <=> T (slow)
-            (_, _) if env.is_top(self.id) => SmallVec::from_slice(&[other.id]),
+            (_, _) if env.is_top(self.id) => SmallVec::from_slice_copy(&[other.id]),
 
             // Opaque ∧ _
             (Self::Opaque(lhs), Self::Opaque(rhs)) => self.with(lhs).meet(other.with(rhs), env),
@@ -1148,7 +1148,7 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
         // If the type has already been resolved, substitute the resolved type
         let Some(this) = env.resolve_type(self) else {
             // We cannot distribute over an unresolved type
-            return SmallVec::from_slice(&[self.id]);
+            return SmallVec::from_slice_copy(&[self.id]);
         };
 
         self = this;
@@ -1167,7 +1167,7 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
             Self::Apply(apply_type) => self.with(apply_type).distribute_union(env),
             Self::Generic(generic_type) => self.with(generic_type).distribute_union(env),
             Self::Param(_) | Self::Infer(_) => unreachable!("should've been resolved"),
-            Self::Never | Self::Unknown => SmallVec::from_slice(&[self.id]),
+            Self::Never | Self::Unknown => SmallVec::from_slice_copy(&[self.id]),
         }
     }
 
@@ -1178,7 +1178,7 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
         // If the type has already been resolved, substitute the resolved type
         let Some(this) = env.resolve_type(self) else {
             // We cannot distribute over an unresolved type
-            return SmallVec::from_slice(&[self.id]);
+            return SmallVec::from_slice_copy(&[self.id]);
         };
 
         self = this;
@@ -1201,7 +1201,7 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
             Self::Apply(apply_type) => self.with(apply_type).distribute_intersection(env),
             Self::Generic(generic_type) => self.with(generic_type).distribute_intersection(env),
             Self::Param(_) | Self::Infer(_) => unreachable!("should've been resolved"),
-            Self::Never | Self::Unknown => SmallVec::from_slice(&[self.id]),
+            Self::Never | Self::Unknown => SmallVec::from_slice_copy(&[self.id]),
         }
     }
 

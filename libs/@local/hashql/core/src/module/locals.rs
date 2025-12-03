@@ -35,7 +35,7 @@ impl<'heap> TypeDef<'heap> {
             "Unexpected number of generics"
         );
 
-        let mut arguments = TinyVec::from_slice(&self.arguments);
+        let mut arguments = TinyVec::from_slice_copy(&self.arguments);
 
         for argument in &mut arguments {
             // Find the argument with the same name, for the small number of expected

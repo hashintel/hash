@@ -14,6 +14,9 @@ inputs:
   AWS_REGION:
     description: AWS region
     required: true
+  ROLE_ARN:
+    description: IAM role ARN to assume for ECR access (cross-account)
+    required: false
 
 runs:
   using: composite
@@ -26,6 +29,8 @@ runs:
         aws-secret-access-key: ${{ inputs.AWS_SECRET_ACCESS_KEY }}
         aws-session-token: ${{ inputs.AWS_SESSION_TOKEN }}
         aws-region: ${{ inputs.AWS_REGION }}
+        role-to-assume: ${{ inputs.ROLE_ARN }}
+        role-duration-seconds: 900
 
     - name: Login to Amazon ECR
       id: login-ecr

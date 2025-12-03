@@ -30,7 +30,7 @@ fn {ctor#::core::option::None}(%0: ()) -> ::core::option::None {
     let %8: ::core::option::None
 
     bb0(): {
-        switchInt(true) -> [0: bb8(), 1: bb1()]
+        switchInt(1) -> [0: bb8(), 1: bb1()]
     }
 
     bb1(): {

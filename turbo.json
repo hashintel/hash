@@ -123,5 +123,9 @@
     // External services
     "apps/hash-external-services/**"
   ],
-  "globalPassThroughEnv": ["CARGO_TERM_PROGRESS_WHEN"]
+  "globalPassThroughEnv": [
+    "CARGO_TERM_PROGRESS_WHEN",
+    "RUSTC_WRAPPER",
+    "CARGO_INCREMENTAL"
+  ]
 }

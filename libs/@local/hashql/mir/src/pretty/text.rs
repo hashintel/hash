@@ -204,6 +204,7 @@ where
 {
     fn format_part(&mut self, value: Constant<'heap>) -> io::Result<()> {
         match value {
+            Constant::Int(int) => write!(self.writer, "{int}"),
             Constant::Primitive(primitive) => write!(self.writer, "{primitive}"),
             Constant::Unit => self.writer.write_all(b"()"),
             Constant::FnPtr(def) => {
@@ -530,6 +531,10 @@ where
                         .iter()
                         .map(|(value, target)| KeyValuePair(value, target)),
                 )?;
+                if let Some(otherwise) = targets.otherwise() {
+                    write!(self.writer, ", otherwise: ")?;
+                    self.format_part(otherwise)?;
+                }
                 write!(self.writer, "]")
             }
             &TerminatorKind::Return(_) | TerminatorKind::Unreachable => Ok(()),

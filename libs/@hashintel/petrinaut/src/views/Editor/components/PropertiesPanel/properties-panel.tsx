@@ -1,4 +1,3 @@
-import { RefractivePane } from "@hashintel/ds-components/refractive-pane";
 import { css } from "@hashintel/ds-helpers/css";
 import { useCallback, useEffect, useRef, useState } from "react";
 
@@ -258,20 +257,15 @@ export const PropertiesPanel: React.FC = () => {
           }}
         />
 
-        <RefractivePane
-          radius={16}
-          blur={12}
-          specularOpacity={0.2}
-          scaleRatio={1}
-          bezelWidth={65}
-          glassThickness={120}
-          refractiveIndex={1.5}
+        <div
           className={css({
+            borderRadius: "[16px]",
             height: "[100%]",
             width: "[100%]",
             backgroundColor: "[rgba(255, 255, 255, 0.7)]",
             boxShadow: "0 4px 30px rgba(0, 0, 0, 0.15)",
             border: "1px solid rgba(255, 255, 255, 0.8)",
+            backdropFilter: "[blur(12px)]",
           })}
           style={{
             borderRadius: 16,
@@ -288,7 +282,7 @@ export const PropertiesPanel: React.FC = () => {
           >
             {content}
           </div>
-        </RefractivePane>
+        </div>
       </div>
     </div>
   );

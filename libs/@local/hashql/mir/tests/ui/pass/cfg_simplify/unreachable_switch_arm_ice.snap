@@ -1,0 +1,25 @@
+---
+source: libs/@local/hashql/mir/src/pass/transform/cfg_simplify/tests.rs
+expression: value
+---
+fn {intrinsic#4294967040}() -> Null {
+    bb0(): {
+        switchInt(5) -> [0: bb1(), 1: bb2()]
+    }
+
+    bb1(): {
+        return ()
+    }
+
+    bb2(): {
+        return ()
+    }
+}
+
+------------------------------------
+
+fn {intrinsic#4294967040}() -> Null {
+    bb0(): {
+        unreachable
+    }
+}

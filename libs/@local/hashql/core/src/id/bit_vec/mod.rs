@@ -40,7 +40,7 @@ use core::{
     slice,
 };
 
-use smallvec::SmallVec;
+use smallvec::{SmallVec, smallvec};
 
 use super::{Id, IdVec};
 
@@ -133,7 +133,7 @@ impl<T: Id> DenseBitSet<T> {
         let num_words = num_words(domain_size);
         Self {
             domain_size,
-            words: SmallVec::from_elem(Word::MIN, num_words),
+            words: smallvec![Word::MIN; num_words],
             marker: PhantomData,
         }
     }
@@ -145,7 +145,7 @@ impl<T: Id> DenseBitSet<T> {
         let num_words = num_words(domain_size);
         let mut result = Self {
             domain_size,
-            words: SmallVec::from_elem(Word::MAX, num_words),
+            words: smallvec![Word::MAX; num_words],
             marker: PhantomData,
         };
         result.clear_excess_bits();
@@ -1526,7 +1526,7 @@ impl<R: Id, C: Id> BitMatrix<R, C> {
         Self {
             num_rows,
             num_columns,
-            words: SmallVec::from_elem(0, num_rows * words_per_row),
+            words: smallvec![0; num_rows * words_per_row],
             marker: PhantomData,
         }
     }
@@ -1740,12 +1740,8 @@ impl<R: Id, C: Id> fmt::Debug for BitMatrix<R, C> {
 ///
 /// `R` and `C` are index types used to identify rows and columns respectively;
 /// typically newtyped `usize` wrappers, but they can also just be `usize`.
-#[derive(Clone, Debug)]
-pub struct SparseBitMatrix<R, C>
-where
-    R: Id,
-    C: Id,
-{
+#[derive(Clone)]
+pub struct SparseBitMatrix<R, C> {
     num_columns: usize,
     rows: IdVec<R, Option<DenseBitSet<C>>>,
 }
@@ -1879,6 +1875,15 @@ impl<R: Id, C: Id> SparseBitMatrix<R, C> {
         DenseBitSet<C>: BitRelations<Set>,
     {
         self.ensure_row(row).union(set)
+    }
+}
+
+impl<R, C: Id> fmt::Debug for SparseBitMatrix<R, C> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("SparseBitMatrix")
+            .field("num_columns", &self.num_columns)
+            .field("rows", &self.rows)
+            .finish()
     }
 }
 

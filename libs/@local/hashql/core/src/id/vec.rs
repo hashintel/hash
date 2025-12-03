@@ -335,6 +335,38 @@ where
 
         &mut self[index]
     }
+
+    /// Clears the vector, removing all elements.
+    ///
+    /// See [`Vec::clear`] for details.
+    #[inline]
+    pub fn clear(&mut self) {
+        self.raw.clear();
+    }
+
+    /// Removes an element from the vector and returns it, replacing it with the last element.
+    ///
+    /// This does not preserve ordering, but runs in *O*(1) time.
+    ///
+    /// See [`Vec::swap_remove`] for details.
+    ///
+    /// # Panics
+    ///
+    /// Panics if `index` is out of bounds.
+    #[inline]
+    pub fn swap_remove(&mut self, index: I) -> T {
+        self.raw.swap_remove(index.as_usize())
+    }
+
+    /// Shortens the vector, keeping only the first `index` elements.
+    ///
+    /// If `index` is greater than or equal to the vector's current length, this has no effect.
+    ///
+    /// See [`Vec::truncate`] for details.
+    #[inline]
+    pub fn truncate(&mut self, index: I) {
+        self.raw.truncate(index.as_usize());
+    }
 }
 
 // Map-like APIs for IdVec<I, Option<T>>
@@ -360,42 +392,6 @@ where
     /// ```
     pub fn insert(&mut self, index: I, value: T) -> Option<T> {
         self.fill_until(index, || None).replace(value)
-    }
-
-    /// Removes and returns the value at the given ID index.
-    ///
-    /// Returns `None` if the index is out of bounds or if the value was already `None`.
-    /// The vector is not shrunk after removal.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// # use hashql_core::{id::{IdVec, Id as _}, newtype};
-    /// # newtype!(struct MyId(u32 is 0..=0xFFFF_FF00));
-    /// let mut vec = IdVec::<MyId, Option<String>>::new();
-    /// vec.insert(MyId::from_usize(0), "hello".to_string());
-    /// let removed = vec.remove(MyId::from_usize(0));
-    /// assert_eq!(removed, Some("hello".to_string()));
-    /// assert!(vec[MyId::from_usize(0)].is_none());
-    /// ```
-    pub fn remove(&mut self, index: I) -> Option<T> {
-        self.get_mut(index)?.take()
-    }
-
-    /// Returns `true` if the vector contains a value (not `None`) at the given ID index.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// # use hashql_core::{id::{IdVec, Id as _}, newtype};
-    /// # newtype!(struct MyId(u32 is 0..=0xFFFF_FF00));
-    /// let mut vec = IdVec::<MyId, Option<String>>::new();
-    /// vec.insert(MyId::from_usize(0), "hello".to_string());
-    /// assert!(vec.contains(MyId::from_usize(0)));
-    /// assert!(!vec.contains(MyId::from_usize(1)));
-    /// ```
-    pub fn contains(&self, index: I) -> bool {
-        self.get(index).and_then(Option::as_ref).is_some()
     }
 
     /// Gets the value at `index`, or inserts one by calling `value` if it doesn't exist.

@@ -107,7 +107,7 @@ fn unification_lookup() {
 #[test]
 fn solve_anti_symmetry() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     let hole1 = HoleId::new(1);
     let hole2 = HoleId::new(2);
@@ -140,7 +140,7 @@ fn solve_anti_symmetry() {
 #[test]
 fn solve_anti_symmetry_with_cycles() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     let hole1 = HoleId::new(1);
     let hole2 = HoleId::new(2);
@@ -189,7 +189,7 @@ fn solve_anti_symmetry_with_cycles() {
 #[test]
 fn apply_constraints() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     let hole = HoleId::new(0);
     let string = primitive!(env, PrimitiveType::String);
@@ -232,7 +232,7 @@ fn apply_constraints() {
 #[test]
 fn apply_constraints_equality() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     let hole = HoleId::new(0);
     let string = primitive!(env, PrimitiveType::String);
@@ -273,7 +273,7 @@ fn apply_constraints_equality() {
 #[test]
 fn apply_constraints_with_unification() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     let number = primitive!(env, PrimitiveType::Number);
     let string = primitive!(env, PrimitiveType::String);
@@ -321,7 +321,7 @@ fn apply_constraints_with_unification() {
         VariableConstraint {
             equal: Some(string),
             lower: SmallVec::new(),
-            upper: SmallVec::from_slice(&[number]),
+            upper: SmallVec::from_slice_copy(&[number]),
             satisfiability: VariableConstraintSatisfiability::default(),
         }
     );
@@ -331,7 +331,7 @@ fn apply_constraints_with_unification() {
 fn solve_constraints() {
     let heap = Heap::new();
     let bump = Bump::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     let hole = HoleId::new(0);
     let string = primitive!(env, PrimitiveType::String);
@@ -343,8 +343,8 @@ fn solve_constraints() {
     let mut applied_constraints = FastHashMap::default();
     let constraint = VariableConstraint {
         equal: None,
-        lower: SmallVec::from_slice(&[string]),
-        upper: SmallVec::from_slice(&[unknown]),
+        lower: SmallVec::from_slice_copy(&[string]),
+        upper: SmallVec::from_slice_copy(&[unknown]),
         satisfiability: VariableConstraintSatisfiability::default(),
     };
     applied_constraints.insert(variable.kind, (variable, constraint));
@@ -373,7 +373,7 @@ fn solve_constraints() {
 fn solve_constraints_with_equality() {
     let heap = Heap::new();
     let bump = Bump::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     let hole = HoleId::new(0);
     let string = primitive!(env, PrimitiveType::String);
@@ -412,7 +412,7 @@ fn solve_constraints_with_equality() {
 fn solve_constraints_with_incompatible_bounds() {
     let heap = Heap::new();
     let bump = Bump::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     let hole = HoleId::new(0);
     let string = primitive!(env, PrimitiveType::String);
@@ -424,8 +424,8 @@ fn solve_constraints_with_incompatible_bounds() {
     let mut applied_constraints = FastHashMap::default();
     let vc = VariableConstraint {
         equal: None,
-        lower: SmallVec::from_slice(&[string]),
-        upper: SmallVec::from_slice(&[number]),
+        lower: SmallVec::from_slice_copy(&[string]),
+        upper: SmallVec::from_slice_copy(&[number]),
         satisfiability: VariableConstraintSatisfiability::default(),
     };
     applied_constraints.insert(var.kind, (var, vc));
@@ -458,7 +458,7 @@ fn solve_constraints_with_incompatible_bounds() {
 fn solve_constraints_with_incompatible_equality() {
     let heap = Heap::new();
     let bump = Bump::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     let hole = HoleId::new(0);
     let string = primitive!(env, PrimitiveType::String);
@@ -470,7 +470,7 @@ fn solve_constraints_with_incompatible_equality() {
     let mut applied_constraints = FastHashMap::default();
     let vc = VariableConstraint {
         equal: Some(string),
-        lower: SmallVec::from_slice(&[number]),
+        lower: SmallVec::from_slice_copy(&[number]),
         upper: SmallVec::new(),
         satisfiability: VariableConstraintSatisfiability::default(),
     };
@@ -502,7 +502,7 @@ fn solve_constraints_with_incompatible_equality() {
 fn solve_constraints_with_incompatible_upper_equal_constraint() {
     let heap = Heap::new();
     let bump = Bump::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     let hole = HoleId::new(0);
     let string = primitive!(env, PrimitiveType::String);
@@ -516,7 +516,7 @@ fn solve_constraints_with_incompatible_upper_equal_constraint() {
     let vc = VariableConstraint {
         equal: Some(string),
         lower: SmallVec::new(),
-        upper: SmallVec::from_slice(&[number]),
+        upper: SmallVec::from_slice_copy(&[number]),
         satisfiability: VariableConstraintSatisfiability::default(),
     };
     applied_constraints.insert(var.kind, (var, vc));
@@ -548,7 +548,7 @@ fn solve_constraints_with_incompatible_upper_equal_constraint() {
 #[test]
 fn simplify_substitutions() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     let hole = HoleId::new(0);
 
@@ -578,7 +578,7 @@ fn simplify_substitutions() {
 #[test]
 fn empty_constraint_set() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     let hole = HoleId::new(0);
 
@@ -598,7 +598,7 @@ fn empty_constraint_set() {
 #[test]
 fn redundant_constraints() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     let hole = HoleId::new(0);
     let string = primitive!(env, PrimitiveType::String);
@@ -640,7 +640,7 @@ fn redundant_constraints() {
 #[test]
 fn cyclic_ordering_constraints() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     let hole1 = HoleId::new(1);
     let hole2 = HoleId::new(2);
@@ -691,7 +691,7 @@ fn cyclic_ordering_constraints() {
 #[test]
 fn bounds_at_lattice_extremes() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     let unknown = instantiate(&env, TypeKind::Unknown);
     let never = instantiate(&env, TypeKind::Never);
@@ -747,7 +747,7 @@ fn bounds_at_lattice_extremes() {
 #[test]
 fn collect_constraints_with_structural_edge() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     let hole1 = HoleId::new(1);
     let hole2 = HoleId::new(2);
@@ -826,7 +826,7 @@ fn collect_constraints_skip_alias() {
 #[test]
 fn simple_equality_constraint() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     let hole = HoleId::new(0);
     let string = primitive!(env, PrimitiveType::String);
@@ -851,7 +851,7 @@ fn simple_equality_constraint() {
 #[test]
 fn anti_symmetry_integration() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     let hole1 = HoleId::new(1);
     let hole2 = HoleId::new(2);
@@ -900,7 +900,7 @@ fn anti_symmetry_integration() {
 #[test]
 fn conflicting_equality_constraints() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     let hole = HoleId::new(0);
     let string = primitive!(env, PrimitiveType::String);
@@ -932,7 +932,7 @@ fn conflicting_equality_constraints() {
 #[test]
 fn disconnected_constraint_graphs() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     let hole1 = HoleId::new(1);
     let hole2 = HoleId::new(2);
@@ -1000,7 +1000,7 @@ fn disconnected_constraint_graphs() {
 #[test]
 fn propagate() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     let hole1 = HoleId::new(1);
     let hole2 = HoleId::new(2);
@@ -1068,7 +1068,7 @@ fn propagate() {
 #[test]
 fn contract() {
     let heap = Heap::new();
-    let mut env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let mut env = Environment::new(&heap);
 
     // check if `_1 <: (name: _2)`, `_2 <: (name: _1)` yields `_1 = (name: _1)`
     let hole1 = HoleId::new(1);
@@ -1133,7 +1133,7 @@ fn contract() {
 #[test]
 fn do_not_double_emit_on_unconstrained_variables() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     let hole1 = HoleId::new(1);
     let hole2 = HoleId::new(2);
@@ -1167,7 +1167,7 @@ fn do_not_double_emit_on_unconstrained_variables() {
 fn pipeline_environment_to_solver() {
     // (_1 | String) <: Number
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     let hole1 = HoleId::new(1);
 
@@ -1205,7 +1205,7 @@ fn single_projection() {
     // given: `T = (a: String)`
     // do: `T.a`
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     let r#struct = r#struct!(
         env,
@@ -1244,7 +1244,7 @@ fn multi_projection() {
     // given: `T = (a: (b: String))`
     // do: `T.a.b`
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     let r#struct = r#struct!(
         env,
@@ -1297,7 +1297,7 @@ fn early_projection() {
     //  _1 = (a: String)
     //  T.a
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     let hole = env.counter.hole.next();
     let variable = instantiate_infer(&env, hole);
@@ -1346,7 +1346,7 @@ fn late_projection() {
     //  T.a
     //  _1 = (a: String)
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     let hole = env.counter.hole.next();
     let variable = instantiate_infer(&env, hole);
@@ -1394,7 +1394,7 @@ fn unconstrained_projection() {
     // T = _1
     // T.a
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     let hole = env.counter.hole.next();
     let variable = instantiate_infer(&env, hole);
@@ -1431,7 +1431,7 @@ fn recursive_projection() {
     // T = T
     // T.a
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     let circular = env.types.intern(|id| PartialType {
         span: SpanId::SYNTHETIC,
@@ -1473,7 +1473,7 @@ fn projection_equality_constraint() {
     // T.a
     // _2 = String
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     let hole1 = env.counter.hole.next();
     let hole1_type = instantiate_infer(&env, hole1);
@@ -1518,7 +1518,7 @@ fn projection_unify_variables_lower() {
     // _2 <: Integer
     // `_1 = _2 = Integer`
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     let hole1 = env.counter.hole.next();
     let hole1_type = instantiate_infer(&env, hole1);
@@ -1568,7 +1568,7 @@ fn projection_unify_variables_upper() {
     // Integer <: _2
     // `_1 = _2 = Number`
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     let hole1 = env.counter.hole.next();
     let hole1_type = instantiate_infer(&env, hole1);
@@ -1618,7 +1618,7 @@ fn projection_unify_variables_equal_is_equivalent() {
     // Number = _2
     // `_1 = _2 = Number`
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     let hole1 = env.counter.hole.next();
     let hole1_type = instantiate_infer(&env, hole1);
@@ -1669,7 +1669,7 @@ fn projection_unify_variables_equal_is_not_equivalent() {
     // Integer = _2
     // `_1 = _2 != Number`
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     let hole1 = env.counter.hole.next();
     let hole1_type = instantiate_infer(&env, hole1);
@@ -1713,7 +1713,7 @@ fn projection_simplify() {
     // T = ((a: String) | Null) & (a: String)
     // T.a
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     let r#struct = r#struct!(
         env,
@@ -1756,7 +1756,7 @@ fn single_subscript() {
     // T = Number[]
     // T[0]
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     let list = list!(env, primitive!(env, PrimitiveType::Number));
 
@@ -1795,7 +1795,7 @@ fn multi_subscript() {
     // T = List<List<String>>
     // T[0]?[0]
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     let list = list!(env, list!(env, primitive!(env, PrimitiveType::String)));
 
@@ -1849,7 +1849,7 @@ fn early_subscript() {
     //  _1 = List<String>
     //  T[0]
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     let hole = env.counter.hole.next();
     let variable = instantiate_infer(&env, hole);
@@ -1897,7 +1897,7 @@ fn late_subscript() {
     //  T[0]
     //  _1 = List<String>
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     let hole = env.counter.hole.next();
     let hole_type = instantiate_infer(&env, hole);
@@ -1944,7 +1944,7 @@ fn recursive_subscript() {
     // T = T
     // T[0]
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     let circular = env.types.intern(|id| PartialType {
         span: SpanId::SYNTHETIC,
@@ -1985,7 +1985,7 @@ fn unconstrained_element_subscript() {
     // T = _1
     // T[0]
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     let hole = env.counter.hole.next();
 
@@ -2020,7 +2020,7 @@ fn discharged_element_subscript() {
     // _1 <: String
     // T[0]
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     let hole = env.counter.hole.next();
 
@@ -2067,7 +2067,7 @@ fn discharged_index_subscript() {
     // T = Number[]
     // T[_1]
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     let hole = env.counter.hole.next();
 
@@ -2112,7 +2112,7 @@ fn multiple_upper_bounds() {
     // T <: Integer
     // then T should be `Integer`
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     let hole = env.counter.hole.next();
     let variable = Variable::synthetic(VariableKind::Hole(hole));
@@ -2149,7 +2149,7 @@ fn multiple_lower_bounds() {
     // Integer <: T
     // then T should be `Number`
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     let hole = env.counter.hole.next();
     let variable = Variable::synthetic(VariableKind::Hole(hole));
@@ -2183,7 +2183,7 @@ fn multiple_lower_bounds() {
 #[test]
 fn unconstrained_hole() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     let hole = env.counter.hole.next();
     let variable = Variable::synthetic(VariableKind::Hole(hole));
@@ -2208,7 +2208,7 @@ fn unconstrained_hole() {
 #[test]
 fn unconstrained_generic() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     let generic = env.counter.generic_argument.next();
     let variable = Variable::synthetic(VariableKind::Generic(generic));

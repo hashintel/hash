@@ -3,18 +3,18 @@ _.file = [".env", ".env.local"]
 
 [tools]
 # Basic tools
-node        = { version = "22.19.0", postinstall = "corepack enable" }
-"npm:turbo" = "2.5.8"
+node        = { version = "22.21.1", postinstall = "corepack enable" }
+"npm:turbo" = "2.6.1"
 
 # Helper to install tools
 cargo-binstall = "1.15.1"
-uv             = "0.8.14"
+uv             = "0.9.13"
 
 # Tools to compile the project
 'cargo:wasm-opt'  = "0.116.1"
 "cargo:wasm-pack" = "0.13.1"
 java              = "25"
-protoc            = "32.0"
+protoc            = "32.1"
 
 # CLI tools
 biome                  = "1.9.5-nightly.ff02a0b"
@@ -22,13 +22,13 @@ biome                  = "1.9.5-nightly.ff02a0b"
 "cargo:cargo-insta"    = "1.43.1"
 "cargo:cargo-llvm-cov" = "0.6.18"
 "cargo:cargo-nextest"  = "0.9.103"
-just                   = "1.42.4"
-markdownlint-cli2      = "0.18.1"
+just                   = "1.43.1"
+markdownlint-cli2      = "0.19.1"
 "npm:@napi-rs/cli"     = "2.18.4"
-"npm:@redocly/cli"     = "2.0.8"
-"npm:renovate"         = "41.138.5"
+"npm:@redocly/cli"     = "2.12.0"
+"npm:renovate"         = "42.27.0"
 "pipx:sqlfluff"        = "3.4.2"
 sentry-cli             = "2.52.0"
 taplo                  = "0.10.0"
 "ubi:terrastruct/d2"   = "0.7.1"
-yq                     = "4.47.2"
+yq                     = "4.49.2"

@@ -34,7 +34,7 @@ use crate::{
 #[test]
 fn unnest_flattens_nested_intersections() {
     let heap = Heap::new();
-    let env = Environment::new_empty(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new_empty(&heap);
 
     // Create an intersection type with a nested intersection
     let number = primitive!(env, PrimitiveType::Number);
@@ -56,7 +56,7 @@ fn unnest_flattens_nested_intersections() {
 #[test]
 fn unnest_nested_recursive_intersection() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     let r#type = env.types.intern(|id| PartialType {
         span: SpanId::SYNTHETIC,
@@ -82,7 +82,7 @@ fn unnest_nested_recursive_intersection() {
 #[test]
 fn join_identical_intersections() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     intersection!(
         env,
@@ -134,7 +134,7 @@ fn join_identical_intersections() {
 #[test]
 fn join_different_intersections() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     // Create different intersection types
     intersection!(
@@ -201,7 +201,7 @@ fn join_different_intersections() {
 #[test]
 fn join_with_empty_intersection() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     // Create an empty intersection (Unknown) and a non-empty intersection
     intersection!(env, empty, []);
@@ -227,7 +227,7 @@ fn join_with_empty_intersection() {
 #[test]
 fn meet_recursive_intersection() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     intersection!(env, a, [primitive!(env, PrimitiveType::Number)]);
 
@@ -249,7 +249,7 @@ fn meet_recursive_intersection() {
 #[test]
 fn meet_identical_intersections() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     intersection!(
         env,
@@ -284,7 +284,7 @@ fn meet_identical_intersections() {
 #[test]
 fn meet_different_intersections() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     // Create different intersection types
     intersection!(
@@ -322,7 +322,7 @@ fn meet_different_intersections() {
 #[test]
 fn meet_with_empty_intersection() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     // Create an empty intersection (Unknown/top type) and a non-empty intersection
     intersection!(env, empty, []);
@@ -361,7 +361,7 @@ fn meet_with_empty_intersection() {
 #[test]
 fn meet_empty_empty_intersection() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     intersection!(env, a, []);
     intersection!(env, b, []);
@@ -378,7 +378,7 @@ fn meet_empty_empty_intersection() {
 #[test]
 fn is_bottom() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     // Intersection with Never type
     let never = instantiate(&env, TypeKind::Never);
@@ -403,7 +403,7 @@ fn is_bottom() {
 #[test]
 fn is_top() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     // Empty intersection (Unknown)
     intersection!(env, empty, []);
@@ -423,7 +423,7 @@ fn is_top() {
 #[test]
 fn is_subtype_of_self() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     // Create an intersection type
     intersection!(
@@ -466,7 +466,7 @@ fn is_subtype_of_self() {
 #[test]
 fn subtype_supertype_relation() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     // Create intersections for testing subtype relationships
     let number = primitive!(env, PrimitiveType::Number);
@@ -500,7 +500,7 @@ fn subtype_supertype_relation() {
 #[test]
 fn empty_intersection_is_supertype_of_all() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     // Empty intersection (Unknown/top type)
     intersection!(env, empty, []);
@@ -520,7 +520,7 @@ fn empty_intersection_is_supertype_of_all() {
 #[test]
 fn is_equivalent() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     // Create identical intersections (but at different type IDs)
     intersection!(
@@ -576,7 +576,7 @@ fn is_equivalent() {
 fn is_equivalent_side() {
     // Check that we both check the left and the right sides for equivalence
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     intersection!(env, a, [primitive!(env, PrimitiveType::Boolean)]);
     intersection!(
@@ -597,7 +597,7 @@ fn is_equivalent_side() {
 #[test]
 fn empty_intersection_equivalence() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     // Create two empty intersections
     intersection!(env, a, []);
@@ -618,7 +618,7 @@ fn empty_intersection_equivalence() {
 #[test]
 fn simplify_identical_variants() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     // Create an intersection with duplicate variants
     intersection!(
@@ -643,7 +643,7 @@ fn simplify_identical_variants() {
 #[test]
 fn simplify_nested_intersections() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     // Create nested intersections
     let nested = intersection!(env, [primitive!(env, PrimitiveType::Number)]);
@@ -669,7 +669,7 @@ fn simplify_nested_intersections() {
 #[test]
 fn simplify_with_top() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     // Create an intersection with a top (Unknown) type
     intersection!(
@@ -694,7 +694,7 @@ fn simplify_with_top() {
 #[test]
 fn simplify_with_bottom() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     // Create an intersection with a never type
     intersection!(
@@ -719,7 +719,7 @@ fn simplify_with_bottom() {
 #[test]
 fn simplify_empty_intersection() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     // Create an empty intersection
     intersection!(env, intersection_type, []);
@@ -737,7 +737,7 @@ fn simplify_empty_intersection() {
 #[test]
 fn simplify_with_supertypes() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     // Create an intersection with a type and its supertype
     let number = primitive!(env, PrimitiveType::Number);
@@ -757,7 +757,7 @@ fn simplify_with_supertypes() {
 #[test]
 fn lattice_laws() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     // Create three distinct intersection types for testing lattice laws
     let a = intersection!(env, [primitive!(env, PrimitiveType::Number)]);
@@ -772,7 +772,7 @@ fn lattice_laws() {
 #[test]
 fn is_concrete() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
     let mut analysis_env = AnalysisEnvironment::new(&env);
 
     // Concrete intersection (with all concrete variants)
@@ -802,7 +802,7 @@ fn is_concrete() {
 #[test]
 fn disjoint_types_produce_never() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     // Create an intersection of disjoint types (e.g., number & string)
     intersection!(
@@ -827,7 +827,7 @@ fn disjoint_types_produce_never() {
 #[test]
 fn intersection_with_complex_types() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     // Create tuple types
     let tuple1 = tuple!(env, [primitive!(env, PrimitiveType::Number)]);
@@ -857,7 +857,7 @@ fn intersection_with_complex_types() {
 #[test]
 fn intersection_and_union_interaction() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     let number = primitive!(env, PrimitiveType::Number);
     let string = primitive!(env, PrimitiveType::String);
@@ -884,7 +884,7 @@ fn intersection_and_union_interaction() {
 #[test]
 fn intersection_equivalence_covariance() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     // Dict<Number, Boolean>
     let dict_number_boolean = dict!(
@@ -930,7 +930,7 @@ fn intersection_equivalence_covariance() {
 #[test]
 fn collect_constraints_empty() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     // Create two empty intersections (Unknown type)
     intersection!(env, empty_a, []);
@@ -949,7 +949,7 @@ fn collect_constraints_empty() {
 #[test]
 fn collect_constraints_empty_subtype() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     // Empty intersection (Unknown) as subtype
     intersection!(env, empty, []);
@@ -975,7 +975,7 @@ fn collect_constraints_empty_subtype() {
 #[test]
 fn collect_constraints_empty_supertype() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     let hole = HoleId::new(0);
     let infer = instantiate_infer(&env, hole);
@@ -1001,7 +1001,7 @@ fn collect_constraints_empty_supertype() {
 #[test]
 fn collect_constraints_inference_variable_subtype() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     // Create an inference variable
     let hole = HoleId::new(0);
@@ -1033,7 +1033,7 @@ fn collect_constraints_inference_variable_subtype() {
 #[test]
 fn collect_constraints_inference_variable_supertype() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     // Create an inference variable
     let hole = HoleId::new(0);
@@ -1065,7 +1065,7 @@ fn collect_constraints_inference_variable_supertype() {
 #[test]
 fn collect_constraints_multiple_variants() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     // Create inference variables
     let hole_a = HoleId::new(0);
@@ -1116,7 +1116,7 @@ fn collect_constraints_multiple_variants() {
 #[test]
 fn collect_constraints_nested_intersection() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     // Create inference variable
     let hole = HoleId::new(0);
@@ -1150,7 +1150,7 @@ fn collect_constraints_nested_intersection() {
 #[test]
 fn collect_constraints_generic_params() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     // Set up generic arguments
     let arg1 = GenericArgumentId::new(0);
@@ -1184,7 +1184,7 @@ fn collect_constraints_generic_params() {
 #[test]
 fn collect_constraints_concrete_types_only() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     // Create concrete types
     let number = primitive!(env, PrimitiveType::Number);
@@ -1206,7 +1206,7 @@ fn collect_constraints_concrete_types_only() {
 #[test]
 fn collect_dependencies() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     // Create an inference variable
     let hole = HoleId::new(0);
@@ -1242,7 +1242,7 @@ fn collect_dependencies() {
 #[test]
 fn collect_dependencies_multiple_infer_vars() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     // Create multiple inference variables
     let hole1 = HoleId::new(0);
@@ -1284,7 +1284,7 @@ fn collect_dependencies_multiple_infer_vars() {
 #[test]
 fn collect_dependencies_nested_intersection() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     // Create inference variables
     let hole_inner = HoleId::new(0);
@@ -1329,7 +1329,7 @@ fn collect_dependencies_nested_intersection() {
 #[test]
 fn collect_dependencies_empty_intersection() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     // Create an empty intersection (Unknown type)
     intersection!(env, empty_intersection, []);
@@ -1350,7 +1350,7 @@ fn collect_dependencies_empty_intersection() {
 #[test]
 fn collect_dependencies_mixed_types() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     // Create inference variables
     let hole1 = HoleId::new(0);
@@ -1395,7 +1395,7 @@ fn collect_dependencies_mixed_types() {
 #[test]
 fn simplify_recursive_intersection() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     let r#type = env.types.intern(|id| PartialType {
         span: SpanId::SYNTHETIC,
@@ -1415,7 +1415,7 @@ fn simplify_recursive_intersection() {
 #[test]
 fn simplify_recursive_intersection_multiple() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     let r#type = env.types.intern(|id| PartialType {
         span: SpanId::SYNTHETIC,
@@ -1435,7 +1435,7 @@ fn simplify_recursive_intersection_multiple() {
 #[test]
 fn is_bottom_recursive_intersection_multiple() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     let r#type = env.types.intern(|id| PartialType {
         span: SpanId::SYNTHETIC,
@@ -1463,7 +1463,7 @@ fn is_bottom_recursive_intersection_multiple() {
 #[test]
 fn instantiate_intersection() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     let argument1 = env.counter.generic_argument.next();
     let argument2 = env.counter.generic_argument.next();
@@ -1534,7 +1534,7 @@ fn instantiate_intersection() {
 #[test]
 fn projection_empty() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     let intersection = intersection!(env, []);
 
@@ -1553,7 +1553,7 @@ fn projection_empty() {
 #[test]
 fn projection_single_variant() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     let string = primitive!(env, PrimitiveType::String);
 
@@ -1569,7 +1569,7 @@ fn projection_single_variant() {
 #[test]
 fn projection_propagate_error() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     let string = primitive!(env, PrimitiveType::String);
     let integer = primitive!(env, PrimitiveType::Integer);
@@ -1585,7 +1585,7 @@ fn projection_propagate_error() {
 #[test]
 fn projection_propagate_pending() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     let string = primitive!(env, PrimitiveType::String);
     let hole = env.counter.hole.next();
@@ -1601,7 +1601,7 @@ fn projection_propagate_pending() {
 #[test]
 fn projection_intersection_values() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     let string = primitive!(env, PrimitiveType::String);
     let integer = primitive!(env, PrimitiveType::Integer);
@@ -1627,7 +1627,7 @@ fn projection_intersection_values() {
 #[test]
 fn subscript_empty() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     let intersection = intersection!(env, []);
 
@@ -1652,7 +1652,7 @@ fn subscript_empty() {
 #[test]
 fn subscript_single_variant() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     let string = primitive!(env, PrimitiveType::String);
 
@@ -1674,7 +1674,7 @@ fn subscript_single_variant() {
 #[test]
 fn subscript_propagate_error() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     let string = primitive!(env, PrimitiveType::String);
     let integer = primitive!(env, PrimitiveType::Integer);
@@ -1706,7 +1706,7 @@ fn subscript_propagate_error() {
 #[test]
 fn subscript_propagate_pending() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     let string = primitive!(env, PrimitiveType::String);
     let hole = env.counter.hole.next();
@@ -1734,7 +1734,7 @@ fn subscript_propagate_pending() {
 #[test]
 fn subscript_intersection_values() {
     let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    let env = Environment::new(&heap);
 
     let string = primitive!(env, PrimitiveType::String);
     let integer = primitive!(env, PrimitiveType::Integer);

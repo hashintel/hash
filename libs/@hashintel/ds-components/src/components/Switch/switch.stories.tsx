@@ -9,43 +9,6 @@ const meta = {
   parameters: {
     layout: "centered",
   },
-  argTypes: {
-    specularOpacity: {
-      name: "Specular Opacity",
-      control: {
-        type: "range",
-        min: 0,
-        max: 1,
-        step: 0.01,
-      },
-      description: "Controls the intensity of specular highlights",
-    },
-    specularSaturation: {
-      name: "Specular Saturation",
-      control: {
-        type: "range",
-        min: 0,
-        max: 50,
-        step: 1,
-      },
-      description: "Adjusts the color saturation of highlights",
-    },
-    blurLevel: {
-      name: "Blur",
-      control: {
-        type: "range",
-        min: 0,
-        max: 40,
-        step: 0.1,
-      },
-      description: "Adjusts the blur intensity of the backdrop filter",
-    },
-  },
-  args: {
-    specularOpacity: 0.5,
-    specularSaturation: 6,
-    blurLevel: 0.2,
-  },
 } satisfies Meta<typeof Switch>;
 
 export default meta;

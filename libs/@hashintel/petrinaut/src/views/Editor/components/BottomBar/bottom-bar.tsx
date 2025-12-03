@@ -1,4 +1,3 @@
-import { RefractivePane } from "@hashintel/ds-components/refractive-pane";
 import { css } from "@hashintel/ds-helpers/css";
 import { useEffect } from "react";
 
@@ -44,20 +43,14 @@ export const BottomBar: React.FC<BottomBarProps> = ({
         zIndex: 1000,
       }}
     >
-      <RefractivePane
-        radius={12}
-        blur={4}
-        specularOpacity={0}
-        scaleRatio={1}
-        bezelWidth={20}
-        glassThickness={120}
-        refractiveIndex={1.5}
+      <div
         className={css({
           padding: "spacing.4",
           paddingX: "spacing.6",
           borderRadius: "[12px]",
           backgroundColor: "[rgba(255, 255, 255, 0.8)]",
           boxShadow: "[0 4px 16px rgba(0, 0, 0, 0.15)]",
+          backdropFilter: "[blur(4px)]",
         })}
       >
         <div
@@ -74,7 +67,7 @@ export const BottomBar: React.FC<BottomBarProps> = ({
           />
           {mode === "simulate" && <SimulationControls />}
         </div>
-      </RefractivePane>
+      </div>
     </div>
   );
 };

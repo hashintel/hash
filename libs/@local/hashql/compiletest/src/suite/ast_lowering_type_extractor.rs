@@ -20,7 +20,6 @@ use hashql_core::{
         namespace::ModuleNamespace,
     },
     pretty::{Formatter, RenderOptions},
-    span::SpanId,
     r#type::{TypeFormatter, environment::Environment, kind::generic::GenericArgumentReference},
 };
 
@@ -41,7 +40,7 @@ impl Suite for AstLoweringTypeExtractorSuite {
         }: RunContext<'_, 'heap>,
         mut expr: Expr<'heap>,
     ) -> Result<String, SuiteDiagnostic> {
-        let environment = Environment::new(SpanId::SYNTHETIC, heap);
+        let environment = Environment::new(heap);
         let registry = ModuleRegistry::new(&environment);
 
         let mut resolver = PreExpansionNameResolver::new(&registry);

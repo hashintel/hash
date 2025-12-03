@@ -112,15 +112,15 @@ bumpalo                            = { version = "3.19.0", default-features = fa
 bytes                              = { version = "1.10.1" }
 bytes-utils                        = { version = "0.1.4", default-features = false }
 camino                             = { version = "1.1.12", default-features = false }
-cargo_metadata                     = { version = "0.22.0", default-features = false }
+cargo_metadata                     = { version = "0.23.0", default-features = false }
 cedar-policy-core                  = { version = "4.5.1", default-features = false, features = ["decimal"] }                                                                                       # FIXME: Remove `decimal`: https://github.com/cedar-policy/cedar/issues/1700
 circular-buffer                    = { version = "1.1.0", default-features = false }
 clap                               = { version = "4.5.51", features = ["color", "error-context", "help", "std", "suggestions", "usage"] }
 clap_builder                       = { version = "4.5.51", default-features = false, features = ["std"] }
 clap_complete                      = { version = "4.5.60", default-features = false }
 console_error_panic_hook           = { version = "0.1.7", default-features = false }
-convert_case                       = { version = "0.8.0", default-features = false }
-criterion                          = { version = "0.7.0" }
+convert_case                       = { version = "0.10.0", default-features = false }
+criterion                          = { version = "0.8.0" }
 criterion-macro                    = { version = "0.4.0", default-features = false }
 dashu-base                         = { version = "0.4.1", default-features = false }
 dashu-float                        = { version = "0.4.3", default-features = false }
@@ -183,7 +183,7 @@ multistream-select                 = { version = "0.13.0", default-features = fa
 napi                               = { version = "2.16.17", default-features = false }
 napi-build                         = { version = "2.2.4", default-features = false }
 napi-derive                        = { version = "2.16.13", default-features = false }
-nextest-filtering                  = { version = "0.16.0", default-features = false }
+nextest-filtering                  = { version = "0.17.0", default-features = false }
 nextest-metadata                   = { version = "0.12.2", default-features = false }
 opentelemetry                      = { version = "0.30.0", default-features = false }
 opentelemetry-appender-tracing     = { version = "0.30.1", default-features = false }
@@ -203,7 +203,7 @@ proc-macro2                        = { version = "1.0.103", default-features = f
 prometheus-client                  = { version = "0.24.0", default-features = false }
 proptest                           = { version = "1.7.0", default-features = false, features = ["alloc", "std"] }                                                                                  # `std` or `no_std` are required, `no_std` pulls in `libm`
 quote                              = { version = "1.0.41", default-features = false }
-radix_trie                         = { version = "0.2.1", default-features = false }
+radix_trie                         = { version = "0.3.0", default-features = false }
 rand                               = { version = "0.9.2", default-features = false }
 rand_distr                         = { version = "0.5.1", default-features = false }
 rapidfuzz                          = { version = "0.5.0", default-features = false }
@@ -219,9 +219,9 @@ rstest                             = { version = "0.26.1", default-features = fa
 rustc_version                      = { version = "0.4.1", default-features = false }
 scc                                = { version = "2.4.0", default-features = false }
 semver                             = { version = "1.0.27", default-features = false }
-sentry                             = { version = "0.42.0", default-features = false, features = ["backtrace", "contexts", "debug-images", "panic", "reqwest", "rustls", "tower-http", "tracing"] }
-sentry-core                        = { version = "0.42.0", default-features = false }
-sentry-types                       = { version = "0.42.0", default-features = false }
+sentry                             = { version = "0.46.0", default-features = false, features = ["backtrace", "contexts", "debug-images", "panic", "reqwest", "rustls", "tower-http", "tracing"] }
+sentry-core                        = { version = "0.46.0", default-features = false }
+sentry-types                       = { version = "0.46.0", default-features = false }
 serde                              = { version = "1.0.228", default-features = false }
 serde_core                         = { version = "1.0.228", default-features = false }
 serde_json                         = { version = "1.0.145" }

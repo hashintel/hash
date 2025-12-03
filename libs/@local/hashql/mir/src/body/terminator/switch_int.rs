@@ -273,7 +273,12 @@ impl<'heap> SwitchTargets<'heap> {
         None
     }
 
-    const fn has_otherwise(&self) -> bool {
+    /// Returns `true` if this switch has an otherwise (default) target.
+    ///
+    /// The otherwise target handles discriminant values that don't match any
+    /// explicit value in the switch.
+    #[must_use]
+    pub const fn has_otherwise(&self) -> bool {
         self.targets.len() > self.values.len()
     }
 
@@ -692,7 +697,7 @@ impl<'heap> SwitchTargets<'heap> {
 ///
 /// // Create the switch with an integer discriminant
 /// let switch = SwitchInt {
-///     discriminant: Operand::Constant(Constant::Primitive(Primitive::Boolean(true))),
+///     discriminant: Operand::Constant(Constant::Int(true.into())),
 ///     targets,
 /// };
 /// ```

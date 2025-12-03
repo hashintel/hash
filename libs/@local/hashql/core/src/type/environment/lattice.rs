@@ -150,8 +150,7 @@ impl<'env, 'heap> LatticeEnvironment<'env, 'heap> {
         cycle: RecursionCycle,
     ) -> TypeId {
         // Record diagnostic for awareness but don't treat as fatal
-        self.diagnostics
-            .push(circular_type_reference(self.source, lhs, rhs));
+        self.diagnostics.push(circular_type_reference(lhs, rhs));
 
         if cycle.should_discharge() && self.is_subtype_of(Variance::Covariant, lhs.id, rhs.id) {
             return rhs.id;
@@ -264,8 +263,7 @@ impl<'env, 'heap> LatticeEnvironment<'env, 'heap> {
         cycle: RecursionCycle,
     ) -> TypeId {
         // Record diagnostic for awareness but don't treat as fatal
-        self.diagnostics
-            .push(circular_type_reference(self.source, lhs, rhs));
+        self.diagnostics.push(circular_type_reference(lhs, rhs));
 
         // Check the subtyping relationship
         if cycle.should_discharge() && self.is_subtype_of(Variance::Covariant, lhs.id, rhs.id) {

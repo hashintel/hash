@@ -11,79 +11,6 @@ const meta: Meta<typeof SegmentedControl> = {
     layout: "centered",
   },
   argTypes: {
-    radius: {
-      control: {
-        type: "range",
-        min: 0,
-        max: 50,
-        step: 1,
-      },
-      description: "Border radius for rounded corners",
-    },
-    blur: {
-      control: {
-        type: "range",
-        min: 0,
-        max: 40,
-        step: 0.1,
-      },
-      description: "Blur intensity for the backdrop filter effect",
-    },
-    specularOpacity: {
-      control: {
-        type: "range",
-        min: 0,
-        max: 1,
-        step: 0.01,
-      },
-      description: "Controls the intensity of specular highlights",
-    },
-    specularSaturation: {
-      control: {
-        type: "range",
-        min: 0,
-        max: 50,
-        step: 1,
-      },
-      description: "Adjusts the color saturation of highlights",
-    },
-    scaleRatio: {
-      control: {
-        type: "range",
-        min: 0,
-        max: 2,
-        step: 0.1,
-      },
-      description: "Scale ratio for the refraction effect",
-    },
-    bezelWidth: {
-      control: {
-        type: "range",
-        min: 1,
-        max: 50,
-        step: 1,
-      },
-      description: "Width of the bezel frame around the glass element",
-    },
-    glassThickness: {
-      control: {
-        type: "range",
-        min: 20,
-        max: 200,
-        step: 5,
-      },
-      description: "Thickness of the glass material affecting refraction depth",
-    },
-    refractiveIndex: {
-      control: {
-        type: "range",
-        min: 1.0,
-        max: 2.5,
-        step: 0.01,
-      },
-      description:
-        "Refractive index of the glass material (1.0 = air, 1.5 = typical glass)",
-    },
     defaultValue: {
       control: "text",
       description: "Default selected value",
@@ -94,14 +21,6 @@ const meta: Meta<typeof SegmentedControl> = {
     },
   },
   args: {
-    radius: 8,
-    blur: 2,
-    specularOpacity: 0.4,
-    specularSaturation: 7,
-    scaleRatio: 1,
-    bezelWidth: 2,
-    glassThickness: 16,
-    refractiveIndex: 1.5,
     defaultValue: "option1",
     disabled: false,
   },
@@ -117,15 +36,6 @@ type Story = StoryObj<typeof meta>;
  * and shows how the optical properties create realistic lighting effects.
  */
 export const Interactive: Story = {
-  args: {
-    radius: 22,
-    blur: 1.7,
-    specularOpacity: 0.64,
-    bezelWidth: 11,
-    glassThickness: 20,
-    specularSaturation: 14,
-  },
-
   render: (args) => {
     const [selectedValue, setSelectedValue] = useState(
       args.defaultValue ?? "option1",

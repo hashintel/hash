@@ -48,7 +48,7 @@ impl<'heap> ClosureType<'heap> {
         params: &[TypeId],
         returns: TypeId,
     ) -> SmallVec<TypeId, 4> {
-        SmallVec::from_slice(&[env.intern_type(PartialType {
+        SmallVec::from_slice_copy(&[env.intern_type(PartialType {
             span: self.span,
             kind: env.intern_kind(TypeKind::Closure(Self {
                 params: env.intern_type_ids(params),
@@ -66,7 +66,7 @@ impl<'heap> Lattice<'heap> for ClosureType<'heap> {
     ) -> SmallVec<TypeId, 4> {
         // invariant over width
         if self.kind.params.len() != other.kind.params.len() {
-            return SmallVec::from_slice(&[self.id, other.id]);
+            return SmallVec::from_slice_copy(&[self.id, other.id]);
         }
 
         let mut params = SmallVec::<_, 16>::new();
@@ -159,7 +159,7 @@ impl<'heap> Lattice<'heap> for ClosureType<'heap> {
         self: Type<'heap, Self>,
         _: &mut AnalysisEnvironment<'_, 'heap>,
     ) -> SmallVec<TypeId, 16> {
-        SmallVec::from_slice(&[self.id])
+        SmallVec::from_slice_copy(&[self.id])
     }
 
     fn distribute_intersection(
@@ -179,7 +179,7 @@ impl<'heap> Lattice<'heap> for ClosureType<'heap> {
         //
         // As this is quite counter intuitive and breaks function selection down the line, we do not
         // distribute over closures.
-        SmallVec::from_slice(&[self.id])
+        SmallVec::from_slice_copy(&[self.id])
     }
 
     fn is_subtype_of(
@@ -192,9 +192,8 @@ impl<'heap> Lattice<'heap> for ClosureType<'heap> {
 
         // Invariant over the param-width
         if self.kind.params.len() != supertype.kind.params.len() {
-            let _: ControlFlow<()> = env.record_diagnostic(|env| {
+            let _: ControlFlow<()> = env.record_diagnostic(|_| {
                 function_parameter_count_mismatch(
-                    env.source,
                     self,
                     supertype,
                     self.kind.params.len(),
@@ -234,9 +233,8 @@ impl<'heap> Lattice<'heap> for ClosureType<'heap> {
     ) -> bool {
         // Invariant over the param-width
         if self.kind.params.len() != other.kind.params.len() {
-            let _: ControlFlow<()> = env.record_diagnostic(|env| {
+            let _: ControlFlow<()> = env.record_diagnostic(|_| {
                 function_parameter_count_mismatch(
-                    env.source,
                     self,
                     other,
                     self.kind.params.len(),

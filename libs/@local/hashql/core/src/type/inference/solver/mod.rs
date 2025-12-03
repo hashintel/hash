@@ -1269,7 +1269,7 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
 
             if !variables.contains_key(&kind) {
                 self.diagnostics
-                    .push(unconstrained_type_variable_floating(&self.lattice));
+                    .push(unconstrained_type_variable_floating());
             }
         }
     }

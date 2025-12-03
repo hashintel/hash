@@ -108,7 +108,7 @@ impl<'heap> Lattice<'heap> for OpaqueType<'heap> {
         env: &mut LatticeEnvironment<'_, 'heap>,
     ) -> SmallVec<TypeId, 4> {
         if self.kind.name != other.kind.name {
-            return SmallVec::from_slice(&[self.id, other.id]);
+            return SmallVec::from_slice_copy(&[self.id, other.id]);
         }
 
         if env.is_inference_enabled()
@@ -126,9 +126,9 @@ impl<'heap> Lattice<'heap> for OpaqueType<'heap> {
             // and postprocess the result.
             self.postprocess_lattice(result, env.environment)
         } else if env.is_equivalent(self.kind.repr, other.kind.repr) {
-            SmallVec::from_slice(&[self.id])
+            SmallVec::from_slice_copy(&[self.id])
         } else {
-            SmallVec::from_slice(&[self.id, other.id])
+            SmallVec::from_slice_copy(&[self.id, other.id])
         }
     }
 
@@ -174,7 +174,7 @@ impl<'heap> Lattice<'heap> for OpaqueType<'heap> {
             // and postprocess the result.
             self.postprocess_lattice(result, env.environment)
         } else if env.is_equivalent(self.kind.repr, other.kind.repr) {
-            SmallVec::from_slice(&[self.id])
+            SmallVec::from_slice_copy(&[self.id])
         } else {
             SmallVec::new()
         }
@@ -218,7 +218,7 @@ impl<'heap> Lattice<'heap> for OpaqueType<'heap> {
         _: &mut AnalysisEnvironment<'_, 'heap>,
     ) -> SmallVec<TypeId, 16> {
         // opaque type is invariant in regards to generic arguments, so we simply return ourselves
-        SmallVec::from_slice(&[self.id])
+        SmallVec::from_slice_copy(&[self.id])
     }
 
     fn distribute_intersection(
@@ -226,7 +226,7 @@ impl<'heap> Lattice<'heap> for OpaqueType<'heap> {
         _: &mut AnalysisEnvironment<'_, 'heap>,
     ) -> SmallVec<TypeId, 16> {
         // opaque type is invariant in regards to generic arguments, so we simply return ourselves
-        SmallVec::from_slice(&[self.id])
+        SmallVec::from_slice_copy(&[self.id])
     }
 
     /// Determines if one opaque type is a subtype of another.
@@ -241,14 +241,8 @@ impl<'heap> Lattice<'heap> for OpaqueType<'heap> {
         env: &mut AnalysisEnvironment<'_, 'heap>,
     ) -> bool {
         if self.kind.name != supertype.kind.name {
-            let _: ControlFlow<()> = env.record_diagnostic(|env| {
-                opaque_type_name_mismatch(
-                    env.source,
-                    self,
-                    supertype,
-                    self.kind.name,
-                    supertype.kind.name,
-                )
+            let _: ControlFlow<()> = env.record_diagnostic(|_| {
+                opaque_type_name_mismatch(self, supertype, self.kind.name, supertype.kind.name)
             });
 
             return false;
@@ -263,8 +257,8 @@ impl<'heap> Lattice<'heap> for OpaqueType<'heap> {
         env: &mut AnalysisEnvironment<'_, 'heap>,
     ) -> bool {
         if self.kind.name != other.kind.name {
-            let _: ControlFlow<()> = env.record_diagnostic(|env| {
-                opaque_type_name_mismatch(env.source, self, other, self.kind.name, other.kind.name)
+            let _: ControlFlow<()> = env.record_diagnostic(|_| {
+                opaque_type_name_mismatch(self, other, self.kind.name, other.kind.name)
             });
 
             return false;

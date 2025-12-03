@@ -13,7 +13,7 @@ use super::{
 };
 use crate::{
     body::{
-        constant::Constant,
+        constant::{Constant, Int, TryFromPrimitiveError},
         local::Local,
         operand::Operand,
         place::{FieldIndex, Place, Projection, ProjectionKind},
@@ -58,8 +58,7 @@ impl<'heap> Reifier<'_, '_, '_, '_, 'heap> {
                 NodeKind::Access(Access::Field(FieldAccess { expr, field })) => {
                     let type_id = self.context.hir.map.type_id(expr.id);
 
-                    let mut items =
-                        unwrap_union_type(type_id, self.context.environment).into_iter();
+                    let mut items = unwrap_union_type(type_id, self.context.mir.env).into_iter();
                     let first = items.next().unwrap_or_else(|| {
                         unreachable!(
                             "simplified unions are guaranteed to have at least one variant"
@@ -143,7 +142,12 @@ impl<'heap> Reifier<'_, '_, '_, '_, 'heap> {
 
         Place {
             local,
-            projections: self.context.interner.projections.intern_slice(&projections),
+            projections: self
+                .context
+                .mir
+                .interner
+                .projections
+                .intern_slice(&projections),
         }
     }
 
@@ -159,7 +163,13 @@ impl<'heap> Reifier<'_, '_, '_, '_, 'heap> {
                 Operand::Constant(Constant::Unit)
             }
             NodeKind::Data(Data::Primitive(primitive)) => {
-                Operand::Constant(Constant::Primitive(primitive))
+                // First try if we can promote the primitive to a non-opaque constant:
+                let constant = match Int::try_from(primitive) {
+                    Ok(int) => Constant::Int(int),
+                    Err(TryFromPrimitiveError { value, .. }) => Constant::Primitive(value),
+                };
+
+                Operand::Constant(constant)
             }
             NodeKind::Variable(Variable::Local(local))
                 if let Some(&ptr) = self

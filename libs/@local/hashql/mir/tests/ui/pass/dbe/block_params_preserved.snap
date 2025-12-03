@@ -1,0 +1,39 @@
+---
+source: libs/@local/hashql/mir/src/pass/transform/dbe/tests.rs
+expression: value
+---
+fn {intrinsic#4294967040}() -> Null {
+    let %0: Integer
+    let %1: Integer
+
+    bb0(): {
+        goto -> bb2(1)
+    }
+
+    bb1(): {
+        unreachable
+    }
+
+    bb2(%0): {
+        %1 = %0
+
+        return ()
+    }
+}
+
+------------------------------------
+
+fn {intrinsic#4294967040}() -> Null {
+    let %0: Integer
+    let %1: Integer
+
+    bb0(): {
+        goto -> bb1(1)
+    }
+
+    bb1(%0): {
+        %1 = %0
+
+        return ()
+    }
+}

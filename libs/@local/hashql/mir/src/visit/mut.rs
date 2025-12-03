@@ -17,11 +17,14 @@ use crate::{
     body::{
         Body, Source,
         basic_block::{BasicBlock, BasicBlockId},
-        constant::Constant,
+        constant::{Constant, Int},
         local::{Local, LocalDecl},
         location::Location,
         operand::Operand,
-        place::{Place, PlaceRef, Projection, ProjectionKind},
+        place::{
+            Place, PlaceContext, PlaceLivenessContext, PlaceReadContext, PlaceRef,
+            PlaceWriteContext, Projection, ProjectionKind,
+        },
         rvalue::{Aggregate, AggregateKind, Apply, Binary, Input, RValue, Unary},
         statement::{Assign, Statement, StatementKind},
         terminator::{
@@ -236,6 +239,10 @@ pub trait VisitorMut<'heap> {
         walk_body(self, body)
     }
 
+    fn visit_body_preserving_cfg(&mut self, body: &mut Body<'heap>) -> Self::Result<()> {
+        walk_body_preserving_cfg(self, body)
+    }
+
     fn visit_local_decl(&mut self, local: Local, decl: &mut LocalDecl<'heap>) -> Self::Result<()> {
         walk_local_decl(self, local, decl)
     }
@@ -255,7 +262,12 @@ pub trait VisitorMut<'heap> {
     }
 
     #[expect(unused_variables, reason = "trait definition")]
-    fn visit_local(&mut self, location: Location, local: &mut Local) -> Self::Result<()> {
+    fn visit_local(
+        &mut self,
+        location: Location,
+        context: PlaceContext,
+        local: &mut Local,
+    ) -> Self::Result<()> {
         // leaf: do nothing
         Ok!()
     }
@@ -272,14 +284,26 @@ pub trait VisitorMut<'heap> {
     fn fold_projection(
         &mut self,
         location: Location,
+        context: PlaceContext,
         base: PlaceRef<'_, 'heap>,
         projection: Projection<'heap>,
     ) -> Self::Result<Projection<'heap>> {
-        walk_projection(self, location, base, projection)
+        walk_projection(self, location, context, base, projection)
     }
 
-    fn visit_place(&mut self, location: Location, place: &mut Place<'heap>) -> Self::Result<()> {
-        walk_place(self, location, place)
+    fn visit_place(
+        &mut self,
+        location: Location,
+        context: PlaceContext,
+        place: &mut Place<'heap>,
+    ) -> Self::Result<()> {
+        walk_place(self, location, context, place)
+    }
+
+    #[expect(unused_variables, reason = "trait definition")]
+    fn visit_int(&mut self, location: Location, int: &mut Int) -> Self::Result<()> {
+        // leaf, nothing to do
+        Ok!()
     }
 
     #[expect(unused_variables, reason = "trait definition")]
@@ -572,7 +596,11 @@ pub fn walk_params<'heap, T: VisitorMut<'heap> + ?Sized>(
         |interner| &interner.locals,
         params,
         |visitor, mut local| {
-            visitor.visit_local(location, &mut local)?;
+            visitor.visit_local(
+                location,
+                PlaceContext::Write(PlaceWriteContext::BlockParam),
+                &mut local,
+            )?;
 
             Try::from_output(local)
         },
@@ -598,7 +626,33 @@ pub fn walk_body<'heap, T: VisitorMut<'heap> + ?Sized>(
         visitor.visit_local_decl(id, local_decl)?;
     }
 
-    for (id, basic_block) in basic_blocks.iter_enumerated_mut() {
+    for (id, basic_block) in basic_blocks.as_mut().iter_enumerated_mut() {
+        visitor.visit_basic_block(id, basic_block)?;
+    }
+
+    Ok!()
+}
+
+pub fn walk_body_preserving_cfg<'heap, T: VisitorMut<'heap> + ?Sized>(
+    visitor: &mut T,
+    Body {
+        span,
+        return_type: r#type,
+        source,
+        local_decls,
+        basic_blocks,
+        args: _,
+    }: &mut Body<'heap>,
+) -> T::Result<()> {
+    visitor.visit_span(span)?;
+    visitor.visit_type_id(r#type)?;
+    visitor.visit_source(source)?;
+
+    for (id, local_decl) in local_decls.iter_enumerated_mut() {
+        visitor.visit_local_decl(id, local_decl)?;
+    }
+
+    for (id, basic_block) in basic_blocks.as_mut_preserving_cfg().iter_enumerated_mut() {
         visitor.visit_basic_block(id, basic_block)?;
     }
 
@@ -654,6 +708,7 @@ pub fn walk_basic_block<'heap, T: VisitorMut<'heap> + ?Sized>(
 pub fn walk_projection<'heap, T: VisitorMut<'heap> + ?Sized>(
     visitor: &mut T,
     location: Location,
+    _context: PlaceContext,
     _base: PlaceRef<'_, 'heap>,
     Projection {
         mut r#type,
@@ -665,7 +720,9 @@ pub fn walk_projection<'heap, T: VisitorMut<'heap> + ?Sized>(
     match &mut kind {
         ProjectionKind::Field(_) => {}
         ProjectionKind::FieldByName(name) => visitor.visit_symbol(location, name)?,
-        ProjectionKind::Index(local) => visitor.visit_local(location, local)?,
+        ProjectionKind::Index(local) => {
+            visitor.visit_local(location, PlaceContext::Read(PlaceReadContext::Load), local)?;
+        }
     }
 
     T::Result::from_output(Projection { r#type, kind })
@@ -674,9 +731,20 @@ pub fn walk_projection<'heap, T: VisitorMut<'heap> + ?Sized>(
 pub fn walk_place<'heap, T: VisitorMut<'heap> + ?Sized>(
     visitor: &mut T,
     location: Location,
+    mut context: PlaceContext,
     Place { local, projections }: &mut Place<'heap>,
 ) -> T::Result<()> {
-    visitor.visit_local(location, local)?;
+    // If the context is a use (aka read or write) change to a projection (if it really is a
+    // projection)
+    if context.is_use() && !projections.is_empty() {
+        context = if context.is_write() {
+            PlaceContext::Write(PlaceWriteContext::Projection)
+        } else {
+            PlaceContext::Read(PlaceReadContext::Projection)
+        };
+    }
+
+    visitor.visit_local(location, context, local)?;
 
     if !T::Filter::FOLD_INTERNED {
         return Ok!();
@@ -692,7 +760,7 @@ pub fn walk_place<'heap, T: VisitorMut<'heap> + ?Sized>(
                 projections: prefix,
             };
 
-            visitor.fold_projection(location, base, projection)
+            visitor.fold_projection(location, context, base, projection)
         },
     )
 }
@@ -703,6 +771,7 @@ pub fn walk_constant<'heap, T: VisitorMut<'heap> + ?Sized>(
     constant: &mut Constant<'heap>,
 ) -> T::Result<()> {
     match constant {
+        Constant::Int(int) => visitor.visit_int(location, int),
         Constant::Primitive(primitive) => visitor.visit_primitive(location, primitive),
         Constant::Unit => visitor.visit_unit(location),
         Constant::FnPtr(def_id) => visitor.visit_def_id(location, def_id),
@@ -715,7 +784,9 @@ pub fn walk_operand<'heap, T: VisitorMut<'heap> + ?Sized>(
     operand: &mut Operand<'heap>,
 ) -> T::Result<()> {
     match operand {
-        Operand::Place(place) => visitor.visit_place(location, place),
+        Operand::Place(place) => {
+            visitor.visit_place(location, PlaceContext::Read(PlaceReadContext::Load), place)
+        }
         Operand::Constant(constant) => visitor.visit_constant(location, constant),
     }
 }
@@ -762,7 +833,11 @@ pub fn walk_statement_assign<'heap, T: VisitorMut<'heap> + ?Sized>(
     location: Location,
     Assign { lhs, rhs }: &mut Assign<'heap>,
 ) -> T::Result<()> {
-    visitor.visit_place(location, lhs)?;
+    visitor.visit_place(
+        location,
+        PlaceContext::Write(PlaceWriteContext::Assign),
+        lhs,
+    )?;
     visitor.visit_rvalue(location, rhs)?;
 
     Ok!()
@@ -773,7 +848,11 @@ pub fn walk_statement_storage_live<'heap, T: VisitorMut<'heap> + ?Sized>(
     location: Location,
     local: &mut Local,
 ) -> T::Result<()> {
-    visitor.visit_local(location, local)?;
+    visitor.visit_local(
+        location,
+        PlaceContext::Liveness(PlaceLivenessContext::Begin),
+        local,
+    )?;
 
     Ok!()
 }
@@ -783,7 +862,11 @@ pub fn walk_statement_storage_dead<'heap, T: VisitorMut<'heap> + ?Sized>(
     location: Location,
     local: &mut Local,
 ) -> T::Result<()> {
-    visitor.visit_local(location, local)?;
+    visitor.visit_local(
+        location,
+        PlaceContext::Liveness(PlaceLivenessContext::End),
+        local,
+    )?;
 
     Ok!()
 }
@@ -986,7 +1069,11 @@ pub fn walk_graph_read_body<'heap, T: VisitorMut<'heap> + ?Sized>(
     match body {
         GraphReadBody::Filter(func, env) => {
             visitor.visit_def_id(location.base, func)?;
-            visitor.visit_local(location.base, env)
+            visitor.visit_local(
+                location.base,
+                PlaceContext::Read(PlaceReadContext::Load),
+                env,
+            )
         }
     }
 }

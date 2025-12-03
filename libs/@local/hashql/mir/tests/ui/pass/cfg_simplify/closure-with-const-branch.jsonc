@@ -1,0 +1,20 @@
+//@ run: pass
+//@ description: Closure body with constant branch that folds
+// The closure contains a constant if that should be simplified during MIR optimization.
+[
+  "let",
+  "f",
+  [
+    "fn",
+    { "#tuple": [] },
+    { "#struct": { "x": "Integer" } },
+    "_",
+    [
+      "if",
+      { "#literal": true },
+      ["<=", "x", { "#literal": 100 }],
+      [">=", "x", { "#literal": 0 }]
+    ]
+  ],
+  ["f", { "#literal": 10 }]
+]

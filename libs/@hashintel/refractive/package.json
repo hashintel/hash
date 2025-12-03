@@ -1,0 +1,51 @@
+{
+  "name": "@hashintel/refractive",
+  "version": "0.0.0",
+  "description": "HASH Refractive Filter Components",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/hashintel/hash.git",
+    "directory": "libs/@hashintel/refractive"
+  },
+  "license": "(MIT OR Apache-2.0)",
+  "sideEffects": false,
+  "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist",
+    "CHANGELOG.md",
+    "LICENSE-APACHE.md",
+    "LICENSE-MIT.md",
+    "LICENSE",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "vite build",
+    "dev": "vite",
+    "dev:lib": "vite build --watch",
+    "fix:eslint": "eslint --fix .",
+    "lint:eslint": "eslint --report-unused-disable-directives .",
+    "lint:tsc": "tsc --noEmit"
+  },
+  "dependencies": {
+    "canvas": "3.2.0"
+  },
+  "devDependencies": {
+    "@local/eslint": "0.0.0-private",
+    "@local/tsconfig": "0.0.0-private",
+    "@types/react": "19.2.2",
+    "@types/react-dom": "19.2.2",
+    "@vitejs/plugin-react": "5.0.4",
+    "babel-plugin-react-compiler": "1.0.0",
+    "eslint": "9.38.0",
+    "typescript": "5.9.3",
+    "vite": "7.1.11",
+    "vite-plugin-dts": "4.5.4"
+  },
+  "peerDependencies": {
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  }
+}
