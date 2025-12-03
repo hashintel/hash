@@ -7,6 +7,10 @@ import type { Pre20251128SDCPN } from "./pre-2025-11-28/type";
 
 export type OldFormat = Pre20251128SDCPN;
 
+export const isOldFormat = (sdcpn: unknown): sdcpn is OldFormat => {
+  return isPre20251128SDCPN(sdcpn);
+};
+
 export const convertOldFormatToSDCPN = (
   sdcpn: SDCPN | OldFormat,
 ): SDCPN | null => {

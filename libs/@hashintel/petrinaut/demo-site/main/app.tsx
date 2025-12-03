@@ -5,6 +5,7 @@ import type { MinimalNetMetadata, SDCPN } from "../../src/core/types/sdcpn";
 import { convertOldFormatToSDCPN } from "../../src/old-formats/convert-old-format";
 import { Petrinaut } from "../../src/petrinaut";
 import {
+  isOldFormatInLocalStorage,
   type SDCPNInLocalStorage,
   useLocalStorageSDCPNs,
 } from "./app/use-local-storage-sdcpns";
@@ -94,18 +95,25 @@ export const DevApp = () => {
     const convertedNets: Record<string, SDCPNInLocalStorage> = {};
 
     for (const sdcpnInStorage of sdcpnsInStorage) {
-      const convertedSdcpn = convertOldFormatToSDCPN(sdcpnInStorage.sdcpn);
-      if (!convertedSdcpn) {
+      if (!isOldFormatInLocalStorage(sdcpnInStorage)) {
         continue;
       }
 
-      convertedNets[sdcpnInStorage.id] = {
+      const convertedSdcpn = convertOldFormatToSDCPN(sdcpnInStorage.sdcpn);
+
+      if (!convertedSdcpn) {
+        throw new Error(
+          "Couldn't convert old format to SDCPN, but should have been able to",
+        );
+      }
+
+      convertedNets[sdcpnInStorage.sdcpn.id] = {
         /**
          * The id and title used to be in the SDCPN definition itself, so we add them back here.
          * A legacy provision only which can probably be removed once 2025 is over.
          */
-        id: sdcpnInStorage.id,
-        title: sdcpnInStorage.title,
+        id: sdcpnInStorage.sdcpn.id,
+        title: sdcpnInStorage.sdcpn.title,
         sdcpn: convertedSdcpn,
         lastUpdated: sdcpnInStorage.lastUpdated,
       };
@@ -130,12 +138,16 @@ export const DevApp = () => {
         },
         title: "New Process",
       });
+    } else if (isOldFormatInLocalStorage(sdcpnsInStorage[0])) {
+      throw new Error(
+        "Old format SDCPN found in storage, but should have been converted",
+      );
     } else if (!currentNetId) {
       setCurrentNetId(sdcpnsInStorage[0].id);
     }
   }, [currentNetId, createNewNet, setStoredSDCPNs, storedSDCPNs]);
 
-  if (!currentNet) {
+  if (!currentNet || isOldFormatInLocalStorage(currentNet)) {
     return null;
   }
 

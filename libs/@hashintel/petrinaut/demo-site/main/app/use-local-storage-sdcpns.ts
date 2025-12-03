@@ -1,6 +1,10 @@
 import { useLocalStorage } from "@mantine/hooks";
 
 import type { SDCPN } from "../../../src/core/types/sdcpn";
+import {
+  isOldFormat,
+  type OldFormat,
+} from "../../../src/old-formats/convert-old-format";
 
 const rootLocalStorageKey = "petrinaut-sdcpn";
 
@@ -11,7 +15,21 @@ export type SDCPNInLocalStorage = {
   title: string;
 };
 
-type LocalStorageSDCPNsStore = Record<string, SDCPNInLocalStorage>;
+type OldFormatInLocalStorage = {
+  lastUpdated: string; // ISO timestamp
+  sdcpn: OldFormat;
+};
+
+type LocalStorageSDCPNsStore = Record<
+  string,
+  SDCPNInLocalStorage | OldFormatInLocalStorage
+>;
+
+export const isOldFormatInLocalStorage = (
+  stored: OldFormatInLocalStorage | SDCPNInLocalStorage,
+): stored is OldFormatInLocalStorage => {
+  return !("id" in stored) && isOldFormat(stored.sdcpn);
+};
 
 export const useLocalStorageSDCPNs = () => {
   const [storedSDCPNs, setStoredSDCPNs] =
