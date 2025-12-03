@@ -1,6 +1,6 @@
-export type ID = string;
+type ID = string;
 
-export type Transition = {
+type Transition = {
   id: ID;
   name: string;
   inputArcs: { placeId: string; weight: number }[];
@@ -15,12 +15,14 @@ export type Transition = {
   height?: number;
 };
 
-export type Place = {
+type Place = {
   id: ID;
   name: string;
-  colorId: null | ID;
+  type: null | ID; // refers to types.id
   dynamicsEnabled: boolean;
-  differentialEquationId: null | ID;
+  differentialEquationCode: null | {
+    refId: ID; // refers to differentialEquations.id
+  };
   visualizerCode?: string;
   // UI positioning
   x: number;
@@ -29,19 +31,19 @@ export type Place = {
   height?: number;
 };
 
-export type Color = {
+type SDCPNType = {
   id: ID;
   name: string;
-  iconSlug: string; // e.g., "circle", "square"
-  displayColor: string; // e.g., "#FF0000"
+  iconId: string; // e.g., "circle", "square"
+  colorCode: string; // e.g., "#FF0000"
   elements: {
-    elementId: string;
+    id: string;
     name: string;
     type: "real" | "integer" | "boolean";
   }[];
 };
 
-export type Parameter = {
+type Parameter = {
   id: ID;
   name: string;
   variableName: string;
@@ -49,24 +51,19 @@ export type Parameter = {
   defaultValue: string;
 };
 
-export type DifferentialEquation = {
+type DifferentialEquation = {
   id: ID;
   name: string;
-  colorId: ID;
+  typeId: ID; // refers to types.id
   code: string;
 };
 
-export type SDCPN = {
+export type Pre20251128SDCPN = {
+  id: ID;
+  title: string;
   places: Place[];
   transitions: Transition[];
-  types: Color[];
+  types: SDCPNType[];
   differentialEquations: DifferentialEquation[];
   parameters: Parameter[];
 };
-
-export type MinimalNetMetadata = {
-  netId: string;
-  title: string;
-};
-
-export type MutateSDCPN = (mutateFn: (sdcpn: SDCPN) => void) => void;

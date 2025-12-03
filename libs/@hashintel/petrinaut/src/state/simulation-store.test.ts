@@ -1,22 +1,19 @@
 import { describe, expect, it } from "vitest";
 
 import type { SDCPN } from "../core/types/sdcpn";
-import type { SDCPNState } from "./sdcpn-store";
 import { createSimulationStore } from "./simulation-store";
 
 describe("SimulationStore", () => {
   const mockSDCPN: SDCPN = {
-    id: "test-sdcpn",
-    title: "Test SDCPN",
     types: [
       {
         id: "type1",
         name: "Type 1",
-        iconId: "circle",
-        colorCode: "#FF0000",
+        iconSlug: "circle",
+        displayColor: "#FF0000",
         elements: [
-          { id: "e1", name: "x", type: "real" },
-          { id: "e2", name: "y", type: "real" },
+          { elementId: "e1", name: "x", type: "real" },
+          { elementId: "e2", name: "y", type: "real" },
         ],
       },
     ],
@@ -24,7 +21,7 @@ describe("SimulationStore", () => {
       {
         id: "diffeq1",
         name: "Differential Equation 1",
-        typeId: "type1",
+        colorId: "type1",
         code: `export default Dynamics((placeValues) => {
           return { x: 1, y: 1 };
         });`,
@@ -35,9 +32,9 @@ describe("SimulationStore", () => {
       {
         id: "p1",
         name: "Place 1",
-        type: "type1",
+        colorId: "type1",
         dynamicsEnabled: true,
-        differentialEquationCode: { refId: "diffeq1" },
+        differentialEquationId: "diffeq1",
         x: 0,
         y: 0,
       },
@@ -58,15 +55,12 @@ describe("SimulationStore", () => {
     ],
   };
 
-  const mockSDCPNStore = {
-    getState: (): SDCPNState =>
-      ({
-        sdcpn: mockSDCPN,
-      }) as SDCPNState,
-  };
+  const getSDCPN = () => ({
+    sdcpn: mockSDCPN,
+  });
 
   it("should initialize in NotRun state", () => {
-    const store = createSimulationStore(mockSDCPNStore);
+    const store = createSimulationStore(getSDCPN);
     const state = store.getState();
 
     expect(state.state).toBe("NotRun");
@@ -75,7 +69,7 @@ describe("SimulationStore", () => {
   });
 
   it("should initialize simulation successfully", () => {
-    const store = createSimulationStore(mockSDCPNStore);
+    const store = createSimulationStore(getSDCPN);
 
     // Set initial marking in store first
     store.getState().setInitialMarking("p1", {
@@ -98,7 +92,7 @@ describe("SimulationStore", () => {
   });
 
   it("should throw error when initializing while running", () => {
-    const store = createSimulationStore(mockSDCPNStore);
+    const store = createSimulationStore(getSDCPN);
 
     // Set initial marking
     store.getState().setInitialMarking("p1", {
@@ -122,7 +116,7 @@ describe("SimulationStore", () => {
   });
 
   it("should advance simulation by one step", () => {
-    const store = createSimulationStore(mockSDCPNStore);
+    const store = createSimulationStore(getSDCPN);
 
     // Set initial marking
     store.getState().setInitialMarking("p1", {
@@ -145,7 +139,7 @@ describe("SimulationStore", () => {
   });
 
   it("should throw error when stepping without initialization", () => {
-    const store = createSimulationStore(mockSDCPNStore);
+    const store = createSimulationStore(getSDCPN);
 
     expect(() => store.getState().step()).toThrow(
       "Cannot step simulation: No simulation initialized",
@@ -153,7 +147,7 @@ describe("SimulationStore", () => {
   });
 
   it("should reset simulation to NotRun state", () => {
-    const store = createSimulationStore(mockSDCPNStore);
+    const store = createSimulationStore(getSDCPN);
 
     // Set initial marking
     store.getState().setInitialMarking("p1", {
@@ -177,7 +171,7 @@ describe("SimulationStore", () => {
   });
 
   it("should change state from Paused to Running", () => {
-    const store = createSimulationStore(mockSDCPNStore);
+    const store = createSimulationStore(getSDCPN);
 
     // Set initial marking
     store.getState().setInitialMarking("p1", {
@@ -196,7 +190,7 @@ describe("SimulationStore", () => {
   });
 
   it("should handle errors during initialization", () => {
-    const store = createSimulationStore(mockSDCPNStore);
+    const store = createSimulationStore(getSDCPN);
 
     // Set invalid initial marking (place doesn't exist in SDCPN)
     store.getState().setInitialMarking("invalid_place", {
@@ -217,7 +211,7 @@ describe("SimulationStore", () => {
   });
 
   it("should set currently viewed frame", () => {
-    const store = createSimulationStore(mockSDCPNStore);
+    const store = createSimulationStore(getSDCPN);
 
     // Set initial marking
     store.getState().setInitialMarking("p1", {
@@ -243,7 +237,7 @@ describe("SimulationStore", () => {
   });
 
   it("should clamp viewed frame to valid range", () => {
-    const store = createSimulationStore(mockSDCPNStore);
+    const store = createSimulationStore(getSDCPN);
 
     // Set initial marking
     store.getState().setInitialMarking("p1", {
@@ -270,7 +264,7 @@ describe("SimulationStore", () => {
   });
 
   it("should throw error when setting viewed frame without simulation", () => {
-    const store = createSimulationStore(mockSDCPNStore);
+    const store = createSimulationStore(getSDCPN);
 
     expect(() => store.getState().setCurrentlyViewedFrame(0)).toThrow(
       "Cannot set viewed frame: No simulation initialized.",
@@ -278,7 +272,7 @@ describe("SimulationStore", () => {
   });
 
   it("should update currentlyViewedFrame when stepping", () => {
-    const store = createSimulationStore(mockSDCPNStore);
+    const store = createSimulationStore(getSDCPN);
 
     // Set initial marking
     store.getState().setInitialMarking("p1", {
@@ -303,7 +297,7 @@ describe("SimulationStore", () => {
   });
 
   it("should reset currentlyViewedFrame when resetting simulation", () => {
-    const store = createSimulationStore(mockSDCPNStore);
+    const store = createSimulationStore(getSDCPN);
 
     // Set initial marking
     store.getState().setInitialMarking("p1", {

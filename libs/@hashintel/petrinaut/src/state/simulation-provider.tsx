@@ -1,8 +1,8 @@
-import { createContext, useContext, useEffect } from "react";
+import { createContext, useContext, useEffect, useRef } from "react";
 import { useStore } from "zustand";
 
 import { EditorContext } from "./editor-provider";
-import { SDCPNContext } from "./sdcpn-provider";
+import { useSDCPNContext } from "./sdcpn-provider";
 import type { SimulationStoreState } from "./simulation-store";
 import { createSimulationStore } from "./simulation-store";
 
@@ -15,34 +15,43 @@ export type SimulationProviderProps = React.PropsWithChildren;
 export const SimulationProvider: React.FC<SimulationProviderProps> = ({
   children,
 }) => {
-  // Get the SDCPN store to pass to the simulation store
-  const sdcpnStore = useContext(SDCPNContext);
+  const sdcpnContext = useSDCPNContext();
+  const { petriNetId } = sdcpnContext;
+
   const editorStore = useContext(EditorContext);
 
-  if (!sdcpnStore || !editorStore) {
-    throw new Error(
-      "SimulationProvider must be used within SDCPNProvider and EditorProvider",
-    );
+  if (!editorStore) {
+    throw new Error("SimulationProvider must be used within EditorProvider");
   }
 
-  const simulationStore = createSimulationStore(sdcpnStore);
+  const sdcpnContextRef = useRef(sdcpnContext);
+  useEffect(() => {
+    sdcpnContextRef.current = sdcpnContext;
+  }, [sdcpnContext]);
+
+  // Allow the methods in the Zustand simulation store to access the latest value
+  const getSDCPN = () => ({
+    sdcpn: sdcpnContextRef.current.petriNetDefinition,
+  });
+
+  const simulationStore = createSimulationStore(getSDCPN);
 
   useEffect(() => {
-    const unsub1 = sdcpnStore.subscribe((prevState, newState) => {
-      if (prevState.sdcpn.id !== newState.sdcpn.id) {
-        simulationStore.getState().__reinitialize();
-      }
-    });
-    const unsub2 = editorStore.subscribe((prevState, newState) => {
+    const unsub = editorStore.subscribe((prevState, newState) => {
       if (prevState.globalMode !== newState.globalMode) {
         simulationStore.getState().__reinitialize();
       }
     });
     return () => {
-      unsub1();
-      unsub2();
+      unsub();
     };
-  }, [sdcpnStore, editorStore, simulationStore]);
+  }, [editorStore, simulationStore]);
+
+  useEffect(() => {
+    if (petriNetId) {
+      simulationStore.getState().__reinitialize();
+    }
+  }, [petriNetId, simulationStore]);
 
   return (
     <SimulationContext.Provider value={simulationStore}>

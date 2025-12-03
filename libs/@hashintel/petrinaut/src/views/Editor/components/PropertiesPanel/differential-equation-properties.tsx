@@ -12,43 +12,46 @@ import {
   generateDefaultDifferentialEquationCode,
 } from "../../../../core/default-codes";
 import type {
+  Color,
   DifferentialEquation,
   Place,
-  SDCPNType,
 } from "../../../../core/types/sdcpn";
 
 interface DifferentialEquationPropertiesProps {
   differentialEquation: DifferentialEquation;
-  types: SDCPNType[];
+  types: Color[];
   places: Place[];
   globalMode: "edit" | "simulate";
-  onUpdate: (
+  updateDifferentialEquation: (
     equationId: string,
-    updates: Partial<DifferentialEquation>,
+    updateFn: (equation: DifferentialEquation) => void,
   ) => void;
 }
 
 export const DifferentialEquationProperties: React.FC<
   DifferentialEquationPropertiesProps
-> = ({ differentialEquation, types, places, globalMode, onUpdate }) => {
+> = ({
+  differentialEquation,
+  types,
+  places,
+  globalMode,
+  updateDifferentialEquation,
+}) => {
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [pendingTypeId, setPendingTypeId] = useState<string | null>(null);
   const [showTypeDropdown, setShowTypeDropdown] = useState(false);
 
   const associatedType = types.find(
-    (type) => type.id === differentialEquation.typeId,
+    (type) => type.id === differentialEquation.colorId,
   );
 
   // Find places that use this differential equation
   const placesUsingEquation = places.filter((place) => {
-    if (!place.differentialEquationCode) {
+    if (!place.differentialEquationId) {
       return false;
     }
-    if (typeof place.differentialEquationCode === "object") {
-      return (
-        "refId" in place.differentialEquationCode &&
-        place.differentialEquationCode.refId === differentialEquation.id
-      );
+    if (typeof place.differentialEquationId === "object") {
+      return place.differentialEquationId === differentialEquation.id;
     }
     return false;
   });
@@ -61,13 +64,23 @@ export const DifferentialEquationProperties: React.FC<
       setShowConfirmDialog(true);
     } else {
       // No places using it, update directly
-      onUpdate(differentialEquation.id, { typeId: newTypeId });
+      updateDifferentialEquation(
+        differentialEquation.id,
+        (existingEquation) => {
+          existingEquation.colorId = newTypeId;
+        },
+      );
     }
   };
 
   const confirmTypeChange = () => {
     if (pendingTypeId !== null) {
-      onUpdate(differentialEquation.id, { typeId: pendingTypeId });
+      updateDifferentialEquation(
+        differentialEquation.id,
+        (existingEquation) => {
+          existingEquation.colorId = pendingTypeId;
+        },
+      );
     }
     setShowConfirmDialog(false);
     setPendingTypeId(null);
@@ -101,9 +114,12 @@ export const DifferentialEquationProperties: React.FC<
           type="text"
           value={differentialEquation.name}
           onChange={(event) => {
-            onUpdate(differentialEquation.id, {
-              name: event.target.value,
-            });
+            updateDifferentialEquation(
+              differentialEquation.id,
+              (existingEquation) => {
+                existingEquation.name = event.target.value;
+              },
+            );
           }}
           disabled={globalMode === "simulate"}
           style={{
@@ -152,7 +168,7 @@ export const DifferentialEquationProperties: React.FC<
                     width: 12,
                     height: 12,
                     borderRadius: "50%",
-                    backgroundColor: associatedType.colorCode,
+                    backgroundColor: associatedType.displayColor,
                     flexShrink: 0,
                   }}
                 />
@@ -190,7 +206,7 @@ export const DifferentialEquationProperties: React.FC<
                     padding: "8px 12px",
                     border: "none",
                     backgroundColor:
-                      type.id === differentialEquation.typeId
+                      type.id === differentialEquation.colorId
                         ? "rgba(0, 0, 0, 0.05)"
                         : "transparent",
 
@@ -201,13 +217,15 @@ export const DifferentialEquationProperties: React.FC<
                     fontSize: 14,
                     textAlign: "left",
                   }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.backgroundColor =
+                  onMouseEnter={(event) => {
+                    // eslint-disable-next-line no-param-reassign
+                    event.currentTarget.style.backgroundColor =
                       "rgba(0, 0, 0, 0.05)";
                   }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.backgroundColor =
-                      type.id === differentialEquation.typeId
+                  onMouseLeave={(event) => {
+                    // eslint-disable-next-line no-param-reassign
+                    event.currentTarget.style.backgroundColor =
+                      type.id === differentialEquation.colorId
                         ? "rgba(0, 0, 0, 0.05)"
                         : "transparent";
                   }}
@@ -217,7 +235,7 @@ export const DifferentialEquationProperties: React.FC<
                       width: 12,
                       height: 12,
                       borderRadius: "50%",
-                      backgroundColor: type.colorCode,
+                      backgroundColor: type.displayColor,
                       flexShrink: 0,
                     }}
                   />
@@ -370,14 +388,19 @@ export const DifferentialEquationProperties: React.FC<
                   onClick: () => {
                     // Get the associated type to generate appropriate default code
                     const equationType = types.find(
-                      (t) => t.id === differentialEquation.typeId,
+                      (t) => t.id === differentialEquation.colorId,
                     );
 
-                    onUpdate(differentialEquation.id, {
-                      code: equationType
-                        ? generateDefaultDifferentialEquationCode(equationType)
-                        : DEFAULT_DIFFERENTIAL_EQUATION_CODE,
-                    });
+                    updateDifferentialEquation(
+                      differentialEquation.id,
+                      (existingEquation) => {
+                        existingEquation.code = equationType
+                          ? generateDefaultDifferentialEquationCode(
+                              equationType,
+                            )
+                          : DEFAULT_DIFFERENTIAL_EQUATION_CODE;
+                      },
+                    );
                   },
                 },
                 {
@@ -418,9 +441,12 @@ export const DifferentialEquationProperties: React.FC<
             language="typescript"
             value={differentialEquation.code}
             onChange={(newCode) => {
-              onUpdate(differentialEquation.id, {
-                code: newCode ?? "",
-              });
+              updateDifferentialEquation(
+                differentialEquation.id,
+                (existingEquation) => {
+                  existingEquation.code = newCode ?? "";
+                },
+              );
             }}
             path={`inmemory://sdcpn/differential-equations/${differentialEquation.id}.ts`}
             theme="vs-light"

@@ -108,7 +108,7 @@ export function computePossibleTransition(
       const placeName = inputPlace.instance.name;
 
       // Get the type definition to access dimension names
-      const typeId = inputPlace.instance.type;
+      const typeId = inputPlace.instance.colorId;
       if (!typeId) {
         throw new SDCPNItemError(
           `Place \`${inputPlace.instance.name}\` has no type defined`,
@@ -206,7 +206,7 @@ export function computePossibleTransition(
         }
 
         const placeName = outputPlace.instance.name;
-        const typeId = outputPlace.instance.type;
+        const typeId = outputPlace.instance.colorId;
 
         // If place has no type, create n empty tuples where n is the arc weight
         if (!typeId) {

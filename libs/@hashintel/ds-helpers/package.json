@@ -1,6 +1,6 @@
 {
   "name": "@hashintel/ds-helpers",
-  "version": "0.0.1",
+  "version": "0.0.1-b",
   "description": "HASH PandaCSS Styled System",
   "repository": {
     "type": "git",
@@ -46,10 +46,8 @@
     "dev": "panda codegen --watch",
     "prepare": "panda codegen --clean"
   },
-  "dependencies": {
-    "@hashintel/ds-theme": "0.0.1"
-  },
   "devDependencies": {
+    "@hashintel/ds-theme": "0.0.1",
     "@pandacss/dev": "1.4.3"
   }
 }

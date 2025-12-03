@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 
 import type { Parameter } from "../core/types/sdcpn";
-import { useSDCPNStore } from "../state/sdcpn-provider";
+import { useSDCPNContext } from "../state/sdcpn-provider";
 
 /**
  * A type-safe representation of parameter values that can be used in the simulation.
@@ -70,7 +70,9 @@ export function mergeParameterValues(
  * @returns A record mapping parameter IDs to their default values as numbers or booleans
  */
 export function useDefaultParameterValues(): DefaultParameterValues {
-  const parameters = useSDCPNStore((state) => state.sdcpn.parameters);
+  const {
+    petriNetDefinition: { parameters },
+  } = useSDCPNContext();
 
   return useMemo(() => {
     return deriveDefaultParameterValues(parameters);

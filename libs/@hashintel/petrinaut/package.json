@@ -1,24 +1,25 @@
 {
   "name": "@hashintel/petrinaut",
-  "version": "0.0.5",
+  "version": "0.0.6-canary.6",
   "description": "A visual editor for Petri nets",
   "repository": {
     "type": "git",
-    "url": "https://github.com/hashintel/hash.git",
+    "url": "git+https://github.com/hashintel/hash.git",
     "directory": "libs/@hashintel/petrinaut"
   },
   "license": "(MIT OR Apache-2.0)",
   "sideEffects": false,
   "type": "module",
+  "main": "dist/main.js",
+  "types": "dist/main.d.ts",
   "scripts": {
     "build": "vite build",
-    "dev": "vite",
+    "build:site": "vite build --config demo-site/vite.config.ts",
+    "dev": "vite --config demo-site/vite.config.ts",
     "fix:eslint": "eslint --fix .",
     "lint:eslint": "eslint --report-unused-disable-directives .",
     "lint:tsc": "tsc --noEmit",
-    "prepublishOnly": "PACKAGE_DIR=$(pwd) yarn workspace @local/repo-chores exe scripts/prepublish.ts",
-    "preview": "vite preview",
-    "postpublish": "PACKAGE_DIR=$(pwd) yarn workspace @local/repo-chores exe scripts/postpublish.ts",
+    "preview": "vite preview --config demo-site/vite.config.ts",
     "test:unit": "vitest"
   },
   "dependencies": {
@@ -29,8 +30,7 @@
     "@dnd-kit/core": "6.3.1",
     "@dnd-kit/sortable": "10.0.0",
     "@dnd-kit/utilities": "3.2.2",
-    "@hashintel/ds-components": "0.0.1",
-    "@hashintel/ds-helpers": "0.0.1",
+    "@hashintel/ds-components": "0.0.1-c",
     "@mantine/hooks": "8.3.5",
     "@monaco-editor/react": "4.8.0-rc.3",
     "@mui/material": "5.18.0",
@@ -39,9 +39,11 @@
     "react-icons": "5.5.0",
     "reactflow": "11.11.4",
     "uuid": "13.0.0",
+    "web-worker": "1.4.1",
     "zustand": "5.0.8"
   },
   "devDependencies": {
+    "@hashintel/ds-helpers": "0.0.1-b",
     "@local/eslint": "0.0.0-private",
     "@pandacss/dev": "1.4.3",
     "@types/babel__standalone": "7.1.9",
@@ -55,10 +57,11 @@
     "react-dom": "19.2.0",
     "typescript": "5.9.3",
     "vite": "7.1.11",
-    "vitest": "4.0.14",
-    "web-worker": "1.4.1"
+    "vite-plugin-dts": "4.5.4",
+    "vitest": "4.0.14"
   },
   "peerDependencies": {
+    "@hashintel/ds-helpers": "0.0.1-b",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"
   }

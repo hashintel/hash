@@ -1,12 +1,26 @@
 import type { SDCPN } from "../../../core/types/sdcpn";
 
+type SDCPNWithTitle = SDCPN & { title: string };
+
+const isValidJson = (data: unknown): data is SDCPNWithTitle => {
+  return (
+    typeof data === "object" &&
+    data !== null &&
+    "title" in data &&
+    "places" in data &&
+    "transitions" in data &&
+    Array.isArray(data.places) &&
+    Array.isArray(data.transitions)
+  );
+};
+
 /**
  * Opens a file picker dialog and loads an SDCPN from a JSON file.
  * @param onLoad - Callback function called with the loaded SDCPN
  * @param onError - Callback function called if there's an error
  */
 export function importSDCPN(
-  onLoad: (sdcpn: SDCPN) => void,
+  onLoad: (sdcpn: SDCPNWithTitle) => void,
   onError?: (error: string) => void,
 ): void {
   // Create a file input element
@@ -28,17 +42,8 @@ export function importSDCPN(
         const loadedData: unknown = JSON.parse(content);
 
         // Type guard to validate SDCPN structure
-        if (
-          loadedData &&
-          typeof loadedData === "object" &&
-          "id" in loadedData &&
-          "title" in loadedData &&
-          "places" in loadedData &&
-          "transitions" in loadedData &&
-          Array.isArray(loadedData.places) &&
-          Array.isArray(loadedData.transitions)
-        ) {
-          onLoad(loadedData as SDCPN);
+        if (isValidJson(loadedData)) {
+          onLoad(loadedData);
         } else {
           const errorMessage = "Invalid SDCPN file format";
           if (onError) {

@@ -19,7 +19,6 @@
     "lint:eslint": "eslint --report-unused-disable-directives .",
     "lint:tsc": "tsc",
     "prepublishOnly": "PACKAGE_DIR=$(pwd) yarn workspace @local/repo-chores exe scripts/prepublish.ts",
-    "preview:sdcpn": "vite preview --config src/petrinaut-sdcpn/vite.config.ts",
     "postpublish": "PACKAGE_DIR=$(pwd) yarn workspace @local/repo-chores exe scripts/postpublish.ts"
   },
   "dependencies": {

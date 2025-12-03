@@ -1,12 +1,12 @@
 {
   "extends": "@local/tsconfig/legacy-base-tsconfig-to-refactor.json",
   "compilerOptions": {
-    "jsx": "preserve",
+    "jsx": "react-jsx",
     "lib": ["dom", "dom.iterable", "ESNext"],
-    "rootDir": "src/",
     "moduleResolution": "bundler",
     "noEmit": true,
     "skipLibCheck": true
   },
-  "include": ["./src/**/*"]
+  "include": ["src", "demo-site"],
+  "exclude": ["demo-site/dist/**/*"]
 }

@@ -3,12 +3,11 @@ import { Stack } from "../../components/stack";
 import { productionMachines } from "../../examples/broken-machines";
 import { satellitesSDCPN } from "../../examples/satellites";
 import { sirModel } from "../../examples/sir-model";
-import { supplyChainSDCPN } from "../../examples/supply-chain";
 import { supplyChainStochasticSDCPN } from "../../examples/supply-chain-stochastic";
+import { convertOldFormatToSDCPN } from "../../old-formats/convert-old-format";
 import { useEditorStore } from "../../state/editor-provider";
-import { useSDCPNStore } from "../../state/sdcpn-provider";
+import { useSDCPNContext } from "../../state/sdcpn-provider";
 import { useSimulationStore } from "../../state/simulation-provider";
-import { useLocalStorageSDCPNs } from "../../state/use-local-storage-sdcpns";
 import { SDCPNView } from "../SDCPN/sdcpn-view";
 import { BottomBar } from "./components/BottomBar/bottom-bar";
 import { LeftSideBar } from "./components/LeftSideBar/left-sidebar";
@@ -21,13 +20,19 @@ import { importSDCPN } from "./lib/import-sdcpn";
  * EditorView is responsible for the overall editor UI layout and controls.
  * It relies on sdcpn-store and editor-store for state, and uses SDCPNView for visualization.
  */
-export const EditorView: React.FC = () => {
+export const EditorView = ({
+  hideNetManagementControls,
+}: { hideNetManagementControls: boolean }) => {
   // Get data from sdcpn-store
-  const sdcpn = useSDCPNStore((state) => state.sdcpn);
-  const title = useSDCPNStore((state) => state.sdcpn.title);
-  const updateTitle = useSDCPNStore((state) => state.updateTitle);
-  const setSDCPN = useSDCPNStore((state) => state.setSDCPN);
-  const layoutGraph = useSDCPNStore((state) => state.layoutGraph);
+  const {
+    createNewNet,
+    existingNets,
+    layoutGraph,
+    loadPetriNet,
+    petriNetDefinition,
+    title,
+    setTitle,
+  } = useSDCPNContext();
 
   // Get editor store methods
   const mode = useEditorStore((state) => state.globalMode);
@@ -41,8 +46,6 @@ export const EditorView: React.FC = () => {
     (state) => state.initializeParameterValuesFromDefaults,
   );
 
-  const { storedSDCPNs } = useLocalStorageSDCPNs();
-
   // Handler for mode change that initializes parameter values when switching to simulate mode
   function handleModeChange(newMode: "edit" | "simulate") {
     if (newMode === "simulate" && mode !== "simulate") {
@@ -55,31 +58,37 @@ export const EditorView: React.FC = () => {
   }
 
   function handleNew() {
-    setSDCPN({
-      id: `sdcpn-${Date.now()}`,
+    createNewNet({
       title: "Untitled",
-      places: [],
-      transitions: [],
-      types: [],
-      differentialEquations: [],
-      parameters: [],
+      petriNetDefinition: {
+        places: [],
+        transitions: [],
+        types: [],
+        differentialEquations: [],
+        parameters: [],
+      },
     });
     clearSelection();
   }
 
   function handleExport() {
-    exportSDCPN(sdcpn);
+    exportSDCPN({ petriNetDefinition, title });
   }
 
   function handleImport() {
     importSDCPN((loadedSDCPN) => {
-      setSDCPN(loadedSDCPN);
+      const convertedSdcpn = convertOldFormatToSDCPN(loadedSDCPN);
+
+      createNewNet({
+        title: loadedSDCPN.title,
+        petriNetDefinition: convertedSdcpn ?? loadedSDCPN,
+      });
       clearSelection();
     });
   }
 
   return (
-    <Stack style={{ height: "100%" }}>
+    <Stack style={{ height: "100%" }} className="petrinaut-root">
       <Stack direction="row" style={{ height: "100%", userSelect: "none" }}>
         <Box
           style={{
@@ -103,29 +112,27 @@ export const EditorView: React.FC = () => {
 
           {/* Left Sidebar with Menu, Title, and Tools */}
           <LeftSideBar
+            hideNetManagementControls={hideNetManagementControls}
             menuItems={[
               {
                 id: "new",
                 label: "New",
                 onClick: handleNew,
               },
-              ...(Object.keys(storedSDCPNs).length > 0
+              ...(!hideNetManagementControls &&
+              Object.keys(existingNets).length > 0
                 ? [
                     {
                       id: "open",
                       label: "Open",
-                      submenu: Object.entries(storedSDCPNs)
-                        .sort((a, b) =>
-                          b[1].lastUpdated.localeCompare(a[1].lastUpdated),
-                        )
-                        .map(([id, storedRecord]) => ({
-                          id: `open-${id}`,
-                          label: storedRecord.sdcpn.title,
-                          onClick: () => {
-                            setSDCPN(storedRecord.sdcpn);
-                            clearSelection();
-                          },
-                        })),
+                      submenu: existingNets.map((net) => ({
+                        id: `open-${net.netId}`,
+                        label: net.title,
+                        onClick: () => {
+                          loadPetriNet(net.netId);
+                          clearSelection();
+                        },
+                      })),
                     },
                   ]
                 : []),
@@ -148,19 +155,25 @@ export const EditorView: React.FC = () => {
                 id: "load-example",
                 label: "Load example",
                 submenu: [
-                  {
-                    id: "load-example-supply-chain",
-                    label: "Supply Chain",
-                    onClick: () => {
-                      setSDCPN(supplyChainSDCPN);
-                      clearSelection();
-                    },
-                  },
+                  /**
+                   * @todo H-5641: once probabilistic transition kernel available,
+                   *       update this example so that the Manufacture step probabilistically
+                   *       produces either good or bad product, then enable a 'Dispose' or 'Dispatch'
+                   *       transition depending on which was randomly selected.
+                   */
+                  // {
+                  //   id: "load-example-supply-chain",
+                  //   label: "Supply Chain",
+                  //   onClick: () => {
+                  //     createNewNet(supplyChainSDCPN);
+                  //     clearSelection();
+                  //   },
+                  // },
                   {
                     id: "load-example-supply-chain-stochastic",
                     label: "Supply Chain (Stochastic)",
                     onClick: () => {
-                      setSDCPN(supplyChainStochasticSDCPN);
+                      createNewNet(supplyChainStochasticSDCPN);
                       clearSelection();
                     },
                   },
@@ -168,7 +181,7 @@ export const EditorView: React.FC = () => {
                     id: "load-example-satellites",
                     label: "Satellites",
                     onClick: () => {
-                      setSDCPN(satellitesSDCPN);
+                      createNewNet(satellitesSDCPN);
                       clearSelection();
                     },
                   },
@@ -176,7 +189,7 @@ export const EditorView: React.FC = () => {
                     id: "load-example-production-machines",
                     label: "Production Machines",
                     onClick: () => {
-                      setSDCPN(productionMachines);
+                      createNewNet(productionMachines);
                       clearSelection();
                     },
                   },
@@ -184,7 +197,7 @@ export const EditorView: React.FC = () => {
                     id: "load-example-sir-model",
                     label: "SIR Model",
                     onClick: () => {
-                      setSDCPN(sirModel);
+                      createNewNet(sirModel);
                       clearSelection();
                     },
                   },
@@ -192,7 +205,7 @@ export const EditorView: React.FC = () => {
               },
             ]}
             title={title}
-            onTitleChange={updateTitle}
+            onTitleChange={setTitle}
           />
 
           {/* Properties Panel - Right Side */}

@@ -2,7 +2,7 @@ import { css } from "@hashintel/ds-helpers/css";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { useEditorStore } from "../../../../state/editor-provider";
-import { useSDCPNStore } from "../../../../state/sdcpn-provider";
+import { useSDCPNContext } from "../../../../state/sdcpn-provider";
 import { DifferentialEquationProperties } from "./differential-equation-properties";
 import { ParameterProperties } from "./parameter-properties";
 import { PlaceProperties } from "./place-properties";
@@ -18,17 +18,18 @@ export const PropertiesPanel: React.FC = () => {
   const selectedResourceId = useEditorStore(
     (state) => state.selectedResourceId,
   );
-  const getItemType = useEditorStore((state) => state.getItemType);
   const globalMode = useEditorStore((state) => state.globalMode);
-  const sdcpn = useSDCPNStore((state) => state.sdcpn);
-  const updatePlace = useSDCPNStore((state) => state.updatePlace);
-  const updateTransition = useSDCPNStore((state) => state.updateTransition);
-  const updateArcWeight = useSDCPNStore((state) => state.updateArcWeight);
-  const updateType = useSDCPNStore((state) => state.updateType);
-  const updateDifferentialEquation = useSDCPNStore(
-    (state) => state.updateDifferentialEquation,
-  );
-  const updateParameter = useSDCPNStore((state) => state.updateParameter);
+
+  const {
+    getItemType,
+    petriNetDefinition,
+    updatePlace,
+    updateTransition,
+    updateArcWeight,
+    updateType,
+    updateDifferentialEquation,
+    updateParameter,
+  } = useSDCPNContext();
 
   // Resize functionality
   const [panelWidth, setPanelWidth] = useState(startingWidth);
@@ -102,15 +103,17 @@ export const PropertiesPanel: React.FC = () => {
 
   switch (itemType) {
     case "place": {
-      const placeData = sdcpn.places.find((place) => place.id === selectedId);
+      const placeData = petriNetDefinition.places.find(
+        (place) => place.id === selectedId,
+      );
       if (placeData) {
         content = (
           <PlaceProperties
             place={placeData}
-            types={sdcpn.types}
-            differentialEquations={sdcpn.differentialEquations}
+            types={petriNetDefinition.types}
+            differentialEquations={petriNetDefinition.differentialEquations}
             globalMode={globalMode}
-            onUpdate={updatePlace}
+            updatePlace={updatePlace}
           />
         );
       }
@@ -118,18 +121,18 @@ export const PropertiesPanel: React.FC = () => {
     }
 
     case "transition": {
-      const transitionData = sdcpn.transitions.find(
+      const transitionData = petriNetDefinition.transitions.find(
         (transition) => transition.id === selectedId,
       );
       if (transitionData) {
         content = (
           <TransitionProperties
             transition={transitionData}
-            places={sdcpn.places}
-            types={sdcpn.types}
+            places={petriNetDefinition.places}
+            types={petriNetDefinition.types}
             globalMode={globalMode}
-            onUpdate={updateTransition}
             onArcWeightUpdate={updateArcWeight}
+            updateTransition={updateTransition}
           />
         );
       }
@@ -137,12 +140,14 @@ export const PropertiesPanel: React.FC = () => {
     }
 
     case "type": {
-      const typeData = sdcpn.types.find((type) => type.id === selectedId);
+      const typeData = petriNetDefinition.types.find(
+        (type) => type.id === selectedId,
+      );
       if (typeData) {
         content = (
           <TypeProperties
             type={typeData}
-            onUpdate={updateType}
+            updateType={updateType}
             globalMode={globalMode}
           />
         );
@@ -151,17 +156,17 @@ export const PropertiesPanel: React.FC = () => {
     }
 
     case "differentialEquation": {
-      const equationData = sdcpn.differentialEquations.find(
+      const equationData = petriNetDefinition.differentialEquations.find(
         (equation) => equation.id === selectedId,
       );
       if (equationData) {
         content = (
           <DifferentialEquationProperties
             differentialEquation={equationData}
-            types={sdcpn.types}
-            places={sdcpn.places}
+            types={petriNetDefinition.types}
+            places={petriNetDefinition.places}
             globalMode={globalMode}
-            onUpdate={updateDifferentialEquation}
+            updateDifferentialEquation={updateDifferentialEquation}
           />
         );
       }
@@ -169,14 +174,14 @@ export const PropertiesPanel: React.FC = () => {
     }
 
     case "parameter": {
-      const parameterData = sdcpn.parameters.find(
+      const parameterData = petriNetDefinition.parameters.find(
         (parameter) => parameter.id === selectedId,
       );
       if (parameterData) {
         content = (
           <ParameterProperties
             parameter={parameterData}
-            onUpdate={updateParameter}
+            updateParameter={updateParameter}
             globalMode={globalMode}
           />
         );
