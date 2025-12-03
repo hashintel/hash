@@ -88,7 +88,7 @@ export const EditorView = ({
   }
 
   return (
-    <Stack style={{ height: "100%" }} className=".petrinaut-root">
+    <Stack style={{ height: "100%" }} className="petrinaut-root">
       <Stack direction="row" style={{ height: "100%", userSelect: "none" }}>
         <Box
           style={{
