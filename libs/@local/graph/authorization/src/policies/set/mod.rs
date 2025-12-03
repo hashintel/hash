@@ -130,6 +130,9 @@ impl PolicySet {
         request: &Request,
         context: &Context,
     ) -> Result<Authorized, Report<PolicyEvaluationError>> {
+        const STACK_SIZE_RED_ZONE: usize = 1024 * 1024; // 1 MiB
+        const STACK_SIZE_ALLOC: usize = 32 * 1024 * 1024; // 32 MiB
+
         if !self.tracked_actions.contains(&request.action) {
             return Err(Report::new(PolicyEvaluationError).attach(format!(
                 "Action `{}` is not tracked and cannot be evaluated",
@@ -139,7 +142,7 @@ impl PolicySet {
 
         let authorizer = Authorizer::new();
 
-        let response = stacker::maybe_grow(1024 * 1024, 32 * 1024 * 1024, || {
+        let response = stacker::maybe_grow(STACK_SIZE_RED_ZONE, STACK_SIZE_ALLOC, || {
             authorizer.is_authorized(request.to_cedar(), self.policies(), context.entities())
         });
 
