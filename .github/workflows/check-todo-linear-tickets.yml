@@ -6,7 +6,7 @@ on:
 
 jobs:
   check-todos:
-    name: Check for @todo comments with PR ticket IDs
+    name: Check for TODO comments with PR ticket IDs
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -36,32 +36,41 @@ jobs:
             echo "has_tickets=true" >> $GITHUB_OUTPUT
           fi
 
-      - name: Search for @todo comments with ticket IDs
+      - name: Search for TODO comments with ticket IDs
         id: search-todos
         if: steps.extract-tickets.outputs.has_tickets == 'true'
         env:
           TICKETS: ${{ steps.extract-tickets.outputs.tickets }}
         run: |
-          echo "Searching for @todo comments containing ticket IDs: $TICKETS"
+          echo "Searching for TODO comments containing ticket IDs: $TICKETS"
 
           FOUND_TODOS=""
           EXIT_CODE=0
 
           for TICKET in $TICKETS; do
             echo ""
-            echo "Searching for @todo comments with $TICKET..."
+            echo "=========================================="
+            echo "Searching for references to $TICKET..."
+            echo "=========================================="
 
             # Use ripgrep which respects .gitignore by default
-            # Search for @todo comments containing this ticket ID (case-insensitive)
-            MATCHES=$(rg -in "@todo.*${TICKET}|${TICKET}.*@todo" . 2>/dev/null || true)
+            # Search for multiple patterns (case-insensitive):
+            #   1. TODO/todo with ticket ID on same line (e.g., "@todo H-1234", "TODO: H-1234", "todo!(H-1234)")
+            #   2. Linear URL containing the ticket (e.g., "linear.app/hash/issue/H-1234")
+            # Using -e flag for each pattern to avoid shell escaping issues with |
+            MATCHES=$(rg -in \
+              -e "todo.*${TICKET}" \
+              -e "${TICKET}.*todo" \
+              -e "linear\.app/[^/]+/issue/${TICKET}" \
+              . 2>/dev/null || true)
 
             if [[ -n "$MATCHES" ]]; then
-              echo "::error::Found @todo comments referencing $TICKET:"
+              echo "::error::Found TODO comments or Linear URLs referencing $TICKET:"
               echo "$MATCHES"
-              FOUND_TODOS="${FOUND_TODOS}${MATCHES}"$'\n'
+              FOUND_TODOS="${FOUND_TODOS}### ${TICKET}"$'\n'"${MATCHES}"$'\n\n'
               EXIT_CODE=1
             else
-              echo "No @todo comments found for $TICKET"
+              echo "No TODO comments found for $TICKET"
             fi
           done
 
@@ -70,16 +79,15 @@ jobs:
             echo "::error::TODOs associated with tickets in this PR were found in the codebase."
             echo "::error::Please resolve these TODOs before merging, as the associated ticket(s) will be marked as done."
             echo ""
-            echo "### Found @todo comments" >> $GITHUB_STEP_SUMMARY
+            echo "## Found TODO comments" >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY
-            echo "The following @todo comments reference ticket IDs from this PR's title:" >> $GITHUB_STEP_SUMMARY
+            echo "The following TODO comments reference ticket IDs from this PR's title." >> $GITHUB_STEP_SUMMARY
+            echo "Please resolve these TODOs before merging, as the associated ticket(s) will be marked as done." >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY
             echo '```' >> $GITHUB_STEP_SUMMARY
             echo "$FOUND_TODOS" >> $GITHUB_STEP_SUMMARY
             echo '```' >> $GITHUB_STEP_SUMMARY
-            echo "" >> $GITHUB_STEP_SUMMARY
-            echo "Please resolve these TODOs before merging." >> $GITHUB_STEP_SUMMARY
             exit 1
           fi
 
-          echo "No @todo comments found for any ticket IDs in the PR title"
+          echo "No TODO comments found for any ticket IDs in the PR title"
