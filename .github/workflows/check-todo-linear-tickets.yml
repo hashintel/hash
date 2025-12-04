@@ -63,28 +63,18 @@ jobs:
             echo "=========================================="
 
             # Use ripgrep which respects .gitignore by default
-            # Search for multiple patterns (case-insensitive):
+            # Search for lines containing both "todo" (case-insensitive) and the ticket ID
+            # This catches all formats: @todo H-1234, TODO(H-1234), todo: H-1234, H-1234 TODO, etc.
             #
-            # Single-line patterns:
-            #   - TODO with ticket ID: "@todo H-1234", "TODO: H-1234", "TODO(H-1234)", "todo!(H-1234)"
-            #   - Ticket ID with TODO: "H-1234 @todo"
-            #
-            # Multiline patterns (using -U flag):
-            #   - TODO followed by Linear URL within 5 lines
-            #   - Linear URL followed by TODO within 5 lines
-            #
-            # This catches patterns like:
+            # Also search for Linear URLs containing the ticket within ~5 lines of a TODO
+            # This catches multiline patterns like:
             #   // TODO: fix this
             #   // see: https://linear.app/hash/issue/H-1234
 
-            # Single-line matches
-            SINGLE_LINE=$(rg -in \
-              -e "todo.*${TICKET}" \
-              -e "${TICKET}.*todo" \
-              . 2>/dev/null || true)
+            # Single-line: any line with both "todo" and the ticket ID
+            SINGLE_LINE=$(rg -in "todo.*${TICKET}|${TICKET}.*todo" . 2>/dev/null || true)
 
-            # Multiline matches: TODO within ~5 lines of Linear URL
-            # Using [\s\S] to match any character including newlines
+            # Multiline: TODO within ~5 lines of Linear URL containing the ticket
             MULTILINE=$(rg -inU \
               -e "todo[\s\S]{0,300}linear\.app/[^/]+/issue/${TICKET}" \
               -e "linear\.app/[^/]+/issue/${TICKET}[\s\S]{0,300}todo" \
