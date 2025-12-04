@@ -1,12 +1,11 @@
 ---
 source: libs/@local/hashql/syntax-jexpr/src/lexer/mod.rs
-assertion_line: 305
-description: Invalid number format (trailing decimal point)
-expression: "{\"number\": 42.}"
+description: Number with leading zero
+expression: "042"
 ---
 error[lexer::invalid-number]: Invalid number literal
   ╭▸ 
-1 │ {"number": 42.}
-  │               ━ expected digit
+1 │ 042
+  │  ━ unexpected digit '4'
   │
   ╰ help: JSON numbers must contain digits and follow the format: `[-]digits[.digits][(e|E)[+|-]digits]`

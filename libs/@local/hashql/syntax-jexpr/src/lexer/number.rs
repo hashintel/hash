@@ -24,7 +24,7 @@ use text_size::{TextRange, TextSize};
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub(crate) enum ParseNumberErrorKind {
     /// Input ended unexpectedly while parsing a number.
-    Eof,
+    UnexpectedEof,
     /// Expected a digit but found something else (e.g., `42.` with no digits after the dot).
     ExpectedDigit,
     /// Found an unexpected digit, typically a leading zero followed by more digits (e.g., `007`).
@@ -38,7 +38,7 @@ pub(crate) enum ParseNumberErrorKind {
 impl fmt::Display for ParseNumberErrorKind {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
         match self {
-            Self::Eof => fmt.write_str("unexpected end of input"),
+            Self::UnexpectedEof => fmt.write_str("unexpected end of input"),
             Self::ExpectedDigit => fmt.write_str("expected digit"),
             Self::UnexpectedDigit(digit) => write!(fmt, "unexpected digit '{}'", *digit as char),
             Self::UnexpectedDot => fmt.write_str("unexpected dot"),
@@ -63,7 +63,7 @@ impl ParseNumberError {
     /// Creates an EOF error at position 0.
     const fn eof() -> Self {
         Self {
-            kind: ParseNumberErrorKind::Eof,
+            kind: ParseNumberErrorKind::UnexpectedEof,
             range: TextRange::empty(TextSize::new(0)),
         }
     }
@@ -203,15 +203,15 @@ impl<'source> Number<'source> {
                 match lexer.peek_next() {
                     Some(digit @ b'0'..=b'9') => Err(ParseNumberError {
                         kind: ParseNumberErrorKind::UnexpectedDigit(digit),
-                        range: TextRange::empty(TextSize::new(consumed + 1)),
+                        range: TextRange::empty(TextSize::new(consumed)),
                     }),
                     Some(b'.') => Err(ParseNumberError {
                         kind: ParseNumberErrorKind::UnexpectedDot,
-                        range: TextRange::empty(TextSize::new(consumed + 1)),
+                        range: TextRange::empty(TextSize::new(consumed)),
                     }),
                     Some(b'e' | b'E') => Err(ParseNumberError {
                         kind: ParseNumberErrorKind::UnexpectedExponent,
-                        range: TextRange::empty(TextSize::new(consumed + 1)),
+                        range: TextRange::empty(TextSize::new(consumed)),
                     }),
                     _ => Ok(parts),
                 }
@@ -295,7 +295,7 @@ mod tests {
     }
 
     #[rstest]
-    #[case::empty_input(b"", ParseNumberErrorKind::Eof, 0)]
+    #[case::empty_input(b"", ParseNumberErrorKind::UnexpectedEof, 0)]
     #[case::leading_dot(b".5", ParseNumberErrorKind::ExpectedDigit, 0)]
     #[case::plus_sign(b"+42", ParseNumberErrorKind::ExpectedDigit, 0)]
     #[case::double_minus(b"--42", ParseNumberErrorKind::ExpectedDigit, 1)]
@@ -303,8 +303,8 @@ mod tests {
     #[case::invalid_exponent(b"1e", ParseNumberErrorKind::ExpectedDigit, 2)]
     #[case::invalid_exponent_with_sign(b"1e+", ParseNumberErrorKind::ExpectedDigit, 3)]
     #[case::trailing_dot(b"42.", ParseNumberErrorKind::ExpectedDigit, 3)]
-    #[case::multiple_dots(b"1.2.3", ParseNumberErrorKind::UnexpectedDot, 4)]
-    #[case::multiple_exponent(b"1e2e3", ParseNumberErrorKind::UnexpectedExponent, 4)]
+    #[case::multiple_dots(b"1.2.3", ParseNumberErrorKind::UnexpectedDot, 3)]
+    #[case::multiple_exponent(b"1e2e3", ParseNumberErrorKind::UnexpectedExponent, 3)]
     fn parse_invalid_numbers(
         #[case] input: &[u8],
         #[case] expected_kind: ParseNumberErrorKind,
