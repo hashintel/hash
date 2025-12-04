@@ -72,16 +72,29 @@ jobs:
             #   // see: https://linear.app/hash/issue/H-1234
 
             # Single-line: any line with both "todo" and the ticket ID
-            SINGLE_LINE=$(rg -in "todo.*${TICKET}|${TICKET}.*todo" . 2>/dev/null || true)
+            # rg exits with 0 if matches found, 1 if no matches, 2+ on error
+            SINGLE_LINE=$(rg -in "todo.*${TICKET}|${TICKET}.*todo" .) || {
+              rc=$?
+              if [[ $rc -ne 1 ]]; then
+                echo "::error::ripgrep failed with exit code $rc"
+                exit $rc
+              fi
+            }
 
             # Multiline: TODO within ~5 lines of Linear URL containing the ticket
             MULTILINE=$(rg -inU \
               -e "todo[\s\S]{0,300}linear\.app/[^/]+/issue/${TICKET}" \
               -e "linear\.app/[^/]+/issue/${TICKET}[\s\S]{0,300}todo" \
-              . 2>/dev/null || true)
+              .) || {
+              rc=$?
+              if [[ $rc -ne 1 ]]; then
+                echo "::error::ripgrep failed with exit code $rc"
+                exit $rc
+              fi
+            }
 
             # Combine and deduplicate results
-            MATCHES=$(echo -e "${SINGLE_LINE}\n${MULTILINE}" | grep -v '^$' | sort -u || true)
+            MATCHES=$(echo -e "${SINGLE_LINE}\n${MULTILINE}" | grep -v '^$' | sort -u) || true
 
             if [[ -n "$MATCHES" ]]; then
               echo "::error::Found TODO comments or Linear URLs referencing $TICKET:"
