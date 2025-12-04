@@ -2,10 +2,9 @@ use alloc::{borrow::Cow, sync::Arc};
 
 use hashql_core::span::{TextRange, TextSize};
 use hifijson::{SliceLexer, num::Lex as _, str::LexAlloc as _, token::Lex as _};
-use json_number::Number;
 use logos::Lexer;
 
-use super::{error::LexerError, token_kind::TokenKind};
+use super::{Number, error::LexerError, token_kind::TokenKind};
 
 fn ptr_offset(start: *const u8, current: *const u8) -> usize {
     debug_assert!(current >= start);
@@ -45,7 +44,7 @@ pub(crate) fn parse_string<'source>(
 )]
 pub(crate) fn parse_number<'source>(
     lexer: &mut Lexer<'source, TokenKind<'source>>,
-) -> Result<Cow<'source, Number>, LexerError> {
+) -> Result<Number<'source>, LexerError> {
     let span = lexer.span();
     // This time we cannot automatically exclude the first character
     let slice = &lexer.source()[span.start..];
@@ -58,29 +57,27 @@ pub(crate) fn parse_number<'source>(
         lex.discarded();
     }
 
-    lex.num_foreach(
-        #[inline]
-        |_| {
-            consumed += 1;
-        },
-    )
-    .map_err(|error| {
-        let range = TextRange::empty(TextSize::from((span.start + consumed) as u32));
+    let parts = lex
+        .num_foreach(
+            #[inline]
+            |_| {
+                consumed += 1;
+            },
+        )
+        .map_err(|error| {
+            let range = TextRange::empty(TextSize::from((span.start + consumed) as u32));
 
-        LexerError::Number {
-            error: Arc::new(error),
-            range,
-        }
-    })?;
+            LexerError::Number {
+                error: Arc::new(error),
+                range,
+            }
+        })?;
 
     // The first character is already consumed
     lexer.bump(consumed - 1);
 
-    debug_assert!(Number::new(&slice[..consumed]).is_ok());
-
-    #[expect(unsafe_code, reason = "already validated to be valid number")]
-    // SAFETY: The number is guaranteed to be a valid number
-    let number = unsafe { Number::new_unchecked(&slice[..consumed]) };
-
-    Ok(Cow::Borrowed(number))
+    // SAFETY: The lexer guarantees that the value is valid UTF-8, as a number can only contain
+    // ASCII characters
+    #[expect(unsafe_code)]
+    Ok(unsafe { Number::from_parts_unchecked(&slice[..consumed], parts.into()) })
 }

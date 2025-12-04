@@ -3,6 +3,7 @@ use hashql_diagnostics::Diagnostic;
 use logos::SpannedIter;
 use text_size::{TextRange, TextSize};
 
+pub(crate) use self::number::Number;
 use self::{
     error::{
         LexerDiagnosticCategory, LexerError, from_hifijson_num_error, from_hifijson_str_error,
@@ -14,6 +15,7 @@ use self::{
 use crate::span::Span;
 
 pub(crate) mod error;
+mod number;
 mod parse;
 pub(crate) mod syntax_kind;
 pub(crate) mod syntax_kind_set;
