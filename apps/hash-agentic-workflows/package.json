@@ -1,5 +1,5 @@
 {
-  "name": "hash-agentic-workflows",
+  "name": "@apps/hash-agentic-workflows",
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
