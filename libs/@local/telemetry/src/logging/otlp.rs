@@ -16,7 +16,7 @@ use tracing_subscriber::{Layer, registry::LookupSpan};
 
 use crate::OtlpConfig;
 
-/// Custom [`LogProcessor`] that enriches log records with trace context
+/// Custom [`LogProcessor`] that enriches log records with trace context.
 #[derive(Debug)]
 struct TraceContextEnrichmentProcessor;
 

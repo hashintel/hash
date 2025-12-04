@@ -1,4 +1,4 @@
-//! Ontology provenance module that contains types for tracking ownership and history
+//! Ontology provenance module that contains types for tracking ownership and history.
 //!
 //! This module provides types for managing the ownership and provenance of ontology types
 //! within the Block Protocol Type System. It defines structures for:
@@ -40,14 +40,14 @@ pub enum OntologyOwnership {
     /// The ontology type is owned by the specified web.
     #[serde(rename_all = "camelCase")]
     Local {
-        /// The ID of the web that owns this ontology type locally
+        /// The ID of the web that owns this ontology type locally.
         web_id: WebId,
     },
 
     /// The ontology type was fetched from a remote source.
     #[serde(rename_all = "camelCase")]
     Remote {
-        /// Timestamp when the ontology type was fetched from the remote source
+        /// Timestamp when the ontology type was fetched from the remote source.
         #[serde(with = "hash_codec::serde::time")]
         #[cfg_attr(target_arch = "wasm32", tsify(type = "Timestamp"))]
         fetched_at: OffsetDateTime,
@@ -61,7 +61,7 @@ pub enum OntologyOwnership {
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct OntologyProvenance {
-    /// The edition-specific provenance information
+    /// The edition-specific provenance information.
     pub edition: OntologyEditionProvenance,
 }
 

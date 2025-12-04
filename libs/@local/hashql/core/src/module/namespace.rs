@@ -173,7 +173,7 @@ impl<'env, 'heap> ModuleNamespace<'env, 'heap> {
         });
     }
 
-    /// Return all the locals that have been registered so far
+    /// Return all the locals that have been registered so far.
     #[must_use]
     pub fn locals(&self, universe: Universe) -> FastHashSet<Symbol<'heap>> {
         self.imports

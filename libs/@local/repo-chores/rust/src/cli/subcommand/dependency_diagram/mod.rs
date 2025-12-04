@@ -15,73 +15,73 @@ use crate::dependency_diagram::{
 #[derive(Debug, Parser)]
 #[expect(clippy::struct_excessive_bools, reason = "This is a CLI tool")]
 pub(crate) struct Args {
-    /// Output file path for the mermaid diagram
+    /// Output file path for the mermaid diagram.
     ///
     /// When specified, writes the diagram to this file path.
     /// When not specified, outputs to stdout.
     #[arg(short, long)]
     output: Option<PathBuf>,
 
-    /// Include only crates matching these patterns
+    /// Include only crates matching these patterns.
     ///
     /// Supports glob patterns like "*-graph*" to filter which crates are included.
     /// When multiple patterns are provided, crates matching any pattern are included.
     #[arg(short, long)]
     include: Vec<String>,
 
-    /// Crates to exclude from the diagram
+    /// Crates to exclude from the diagram.
     ///
     /// Supports glob patterns like "*-test*" to filter which crates are excluded.
     /// When multiple patterns are provided, crates matching any pattern are excluded.
     #[arg(short, long)]
     exclude: Vec<String>,
 
-    /// The root crate to highlight with a thicker border (if any)
+    /// The root crate to highlight with a thicker border (if any).
     ///
     /// When specified, this crate will be highlighted in the diagram with thicker borders.
     #[arg(short, long)]
     root: Option<String>,
 
-    /// Show only dependencies of the root crate
+    /// Show only dependencies of the root crate.
     ///
     /// When enabled, the diagram will only include the root crate and its
     /// dependencies (direct and transitive). Requires the `--root` option.
     #[arg(long, requires = "root", conflicts_with = "root_deps_and_dependents")]
     root_deps_only: bool,
 
-    /// Show both dependencies and dependents of the root crate
+    /// Show both dependencies and dependents of the root crate.
     ///
     /// When enabled, the diagram will include crates that depend on the root crate
     /// as well as the root crate's dependencies. Requires the `--root` option.
     #[arg(long, requires = "root", conflicts_with = "root_deps_only")]
     root_deps_and_dependents: bool,
 
-    /// Link generation mode
+    /// Link generation mode.
     ///
     /// Controls how documentation links are generated in the diagram.
     #[arg(long, value_enum)]
     link_mode: Option<LinkMode>,
 
-    /// Do not deduplicate transitive dependencies
+    /// Do not deduplicate transitive dependencies.
     ///
     /// By default, the diagram deduplicates transitive dependencies for clarity.
     /// Enable this flag to show all dependencies even if they're transitive.
     #[arg(short, long)]
     no_dedup_transitive: bool,
 
-    /// Include dev dependencies (used for tests and examples)
+    /// Include dev dependencies (used for tests and examples).
     ///
     /// When enabled, includes dev dependencies in the diagram with dotted arrow style.
     #[arg(short = 't', long)]
     include_dev_deps: bool,
 
-    /// Include build dependencies (used for build scripts)
+    /// Include build dependencies (used for build scripts).
     ///
     /// When enabled, includes build dependencies in the diagram with dashed arrow style.
     #[arg(short = 'b', long)]
     include_build_deps: bool,
 
-    /// Only include workspace dependencies
+    /// Only include workspace dependencies.
     ///
     /// When enabled, only includes dependencies that are part of the workspace.
     #[arg(short = 'w', long, default_value_t = true)]

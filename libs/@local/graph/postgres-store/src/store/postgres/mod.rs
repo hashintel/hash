@@ -98,7 +98,7 @@ impl Default for PostgresStoreSettings {
     }
 }
 
-/// A Postgres-backed store
+/// A Postgres-backed store.
 pub struct PostgresStore<C> {
     client: C,
     pub temporal_client: Option<Arc<TemporalClient>>,

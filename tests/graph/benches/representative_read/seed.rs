@@ -286,7 +286,7 @@ pub(crate) async fn seed_db(account_id: ActorEntityUuid, store_wrapper: &mut Sto
     );
 }
 
-/// DOC - TODO
+/// DOC - TODO.
 pub struct Samples {
     pub entities: HashMap<ActorEntityUuid, HashMap<VersionedUrl, Vec<EntityUuid>>>,
     pub entity_types: HashMap<ActorEntityUuid, Vec<VersionedUrl>>,

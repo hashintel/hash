@@ -229,28 +229,28 @@ impl<'heap> SelectionConstraint<'heap> {
 /// meaning the left type can be used wherever the right type is expected.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum Constraint<'heap> {
-    /// Unifies two variables (`lhs ≡ rhs`)
+    /// Unifies two variables (`lhs ≡ rhs`).
     Unify { lhs: Variable, rhs: Variable },
 
-    /// Constraints a variable with an upper bound (`variable <: bound`)
+    /// Constraints a variable with an upper bound (`variable <: bound`).
     UpperBound { variable: Variable, bound: TypeId },
 
-    /// Constraints a variable with a lower bound (`bound <: variable`)
+    /// Constraints a variable with a lower bound (`bound <: variable`).
     LowerBound { variable: Variable, bound: TypeId },
 
-    /// Constraints a variable to be equal to another type (`variable ≡ type`)
+    /// Constraints a variable to be equal to another type (`variable ≡ type`).
     Equals { variable: Variable, r#type: TypeId },
 
-    /// Establishes an ordering between two variables (`lower <: upper`)
+    /// Establishes an ordering between two variables (`lower <: upper`).
     Ordering { lower: Variable, upper: Variable },
 
-    /// Establishes a structural edge between two variables (`source -> target`)
+    /// Establishes a structural edge between two variables (`source -> target`).
     ///
     /// A structural edge is an edge, which explains that `source` flows into `target`, for example
     /// given: `_1 <: (name: _2)`, `_1` flows into `_2`.
     Dependency { source: Variable, target: Variable },
 
-    /// Constraints for component selection operations (`subject.field` or `subject[index]`)
+    /// Constraints for component selection operations (`subject.field` or `subject[index]`).
     ///
     /// Selection constraints handle field projection and subscript operations where the
     /// result type must be inferred. These constraints are deferred until sufficient

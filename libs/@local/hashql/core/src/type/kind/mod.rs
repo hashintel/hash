@@ -2368,7 +2368,7 @@ impl<'heap> Inference<'heap> for TypeKind<'heap> {
     /// "holes" in `τ` remain unchanged, ensuring that only the bound type parameters are
     /// freshly instantiated.
     ///
-    /// (Only the ∀-bound type parameters are replaced)
+    /// (Only the ∀-bound type parameters are replaced.)
     fn instantiate(self: Type<'heap, Self>, env: &mut InstantiateEnvironment<'_, 'heap>) -> TypeId {
         match self.kind {
             Self::Opaque(opaque) => self.with(opaque).instantiate(env),

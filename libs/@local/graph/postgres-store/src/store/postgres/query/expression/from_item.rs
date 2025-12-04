@@ -28,7 +28,7 @@ use crate::store::postgres::query::{Condition, SelectStatement, Transpile};
 #[derive(Clone, PartialEq)]
 pub enum FromItem<'id> {
     /// A table reference: `[ ONLY ] table_name [ AS alias [ ( column_alias [, ...] ) ] ] [
-    /// TABLESAMPLE ... ]`
+    /// TABLESAMPLE ... ]`.
     ///
     /// Transpiles to:
     /// ```sql
@@ -38,7 +38,7 @@ pub enum FromItem<'id> {
         /// Whether to query only this table, excluding inherited tables.
         ///
         /// When `true`, prevents querying child tables in table inheritance hierarchies.
-        /// Transpiles to: `ONLY table_name`
+        /// Transpiles to `ONLY table_name`.
         ///
         /// PostgreSQL table inheritance allows tables to inherit columns from parent tables.
         /// By default, queries on a parent table include rows from all child tables.
@@ -56,7 +56,7 @@ pub enum FromItem<'id> {
         /// When non-empty, renames the columns in order: first column gets first alias, etc.
         /// Requires `alias` to be set - PostgreSQL syntax is `AS table_alias(col1, col2, ...)`.
         ///
-        /// Transpiles to: `AS alias(column1, column2, ...)`
+        /// Transpiles to `AS alias(column1, column2, ...)`.
         ///
         /// Useful for:
         /// - Renaming columns from subqueries or functions with unclear names
@@ -71,12 +71,12 @@ pub enum FromItem<'id> {
         tablesample: Option<TableSample>,
     },
 
-    /// A subquery: `[ LATERAL ] ( SELECT ... ) [ AS alias [ ( column_alias [, ...] ) ] ]`
+    /// A subquery: `[ LATERAL ] ( SELECT ... ) [ AS alias [ ( column_alias [, ...] ) ] ]`.
     Subquery {
         /// Whether this is a LATERAL subquery.
         ///
         /// When `true`, the subquery can reference columns from preceding FROM items.
-        /// Transpiles to: `LATERAL (SELECT ...) AS alias`
+        /// Transpiles to `LATERAL (SELECT ...) AS alias`.
         ///
         /// LATERAL is particularly useful for:
         /// - Correlated subqueries that depend on values from earlier tables
@@ -95,12 +95,12 @@ pub enum FromItem<'id> {
         /// When non-empty, renames the columns in order: first column gets first alias, etc.
         /// Requires `alias` to be set - PostgreSQL syntax is `AS alias(col1, col2, ...)`.
         ///
-        /// Transpiles to: `AS alias(column1, column2, ...)`
+        /// Transpiles to `AS alias(column1, column2, ...)`.
         column_alias: Vec<ColumnName<'id>>,
     },
 
     /// A function call: `[ LATERAL ] function_name(...) [ WITH ORDINALITY ] [ AS alias [ (
-    /// column_alias [, ...] ) ] ]`
+    /// column_alias [, ...] ) ] ]`.
     ///
     /// Represents set-returning functions or table functions in the FROM clause.
     /// Common use cases include `unnest()`, `generate_series()`, and `json_to_recordset()`.
@@ -108,7 +108,7 @@ pub enum FromItem<'id> {
         /// Whether this is a LATERAL function call.
         ///
         /// When `true`, the function can reference columns from preceding FROM items.
-        /// Transpiles to: `LATERAL function_name(...) AS alias`
+        /// Transpiles to: `LATERAL function_name(...) AS alias`.
         ///
         /// LATERAL functions are useful for:
         /// - Unnesting arrays from preceding tables
@@ -120,7 +120,7 @@ pub enum FromItem<'id> {
         /// Whether to add an ordinality column (row number).
         ///
         /// When `true`, adds an additional column containing the row number (1-indexed).
-        /// Transpiles to: `function(...) WITH ORDINALITY`
+        /// Transpiles to: `function(...) WITH ORDINALITY`.
         ///
         /// The ordinality column is particularly useful for:
         /// - Getting the position/index of each element in set-returning functions
@@ -145,7 +145,7 @@ pub enum FromItem<'id> {
         /// When non-empty, renames the columns in order: first column gets first alias, etc.
         /// Requires `alias` to be set - PostgreSQL syntax is `AS alias(col1, col2, ...)`.
         ///
-        /// Transpiles to: `AS alias(column1, column2, ...)`
+        /// Transpiles to: `AS alias(column1, column2, ...)`.
         ///
         /// When combined with `with_ordinality`, the column aliases should include both
         /// the function result columns and the ordinality column.
@@ -205,13 +205,13 @@ pub enum FromItem<'id> {
         /// the USING clause. This does not hide the names of the joined tables from the rest
         /// of the query, and you cannot use this alias to reference other columns.
         ///
-        /// Transpiles to: `AS "join_alias"`
+        /// Transpiles to: `AS "join_alias"`.
         alias: Option<TableReference<'id>>,
     },
 
     /// A CROSS JOIN producing the cartesian product of both sides.
     ///
-    /// Transpiles to: `<left> CROSS JOIN <right>`
+    /// Transpiles to: `<left> CROSS JOIN <right>`.
     ///
     /// Equivalent to `<left> INNER JOIN <right> ON TRUE`.
     CrossJoin {
@@ -223,7 +223,7 @@ pub enum FromItem<'id> {
 
     /// A NATURAL JOIN implicitly using matching column names.
     ///
-    /// Transpiles to: `<left> NATURAL <JOIN TYPE> <right>`
+    /// Transpiles to: `<left> NATURAL <JOIN TYPE> <right>`.
     ///
     /// PostgreSQL automatically joins on columns with matching names in both tables.
     NaturalJoin {

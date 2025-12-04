@@ -99,14 +99,14 @@ use crate::{
 /// them in thunks and inserting calls at reference sites. It does not recurse
 /// into nested expressions or function bodies.
 pub struct Thunking<'ctx, 'env, 'hir, 'heap> {
-    /// Mutable reference to the HIR context for interning and variable generation
+    /// Mutable reference to the HIR context for interning and variable generation.
     context: &'ctx mut HirContext<'hir, 'heap>,
     env: &'env Environment<'heap>,
-    /// Set of top-level variable IDs that have been wrapped in thunks
+    /// Set of top-level variable IDs that have been wrapped in thunks.
     thunked: VarIdSet,
-    /// The currently processing node during folding operations
+    /// The currently processing node during folding operations.
     current_node: Option<Node<'heap>>,
-    /// Optional node replacement mechanism for call insertion
+    /// Optional node replacement mechanism for call insertion.
     trampoline: Option<Node<'heap>>,
 }
 
@@ -162,7 +162,7 @@ impl<'ctx, 'env, 'hir, 'heap> Thunking<'ctx, 'env, 'hir, 'heap> {
     /// # Panics
     ///
     /// This method includes debug assertions that will panic in debug builds if the input is not in
-    /// proper ANF form
+    /// proper ANF form.
     ///
     /// # Returns
     ///

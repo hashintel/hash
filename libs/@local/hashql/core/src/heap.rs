@@ -166,7 +166,7 @@ impl Heap {
         }
     }
 
-    /// Resets the heap
+    /// Resets the heap.
     ///
     /// Clears all allocations and re-primes with common symbols. The original capacity of the
     /// largest memory allocation is retained.

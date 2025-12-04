@@ -108,7 +108,7 @@ impl VariableReference<'_, '_> {
     }
 }
 
-/// Represents a reference to either a type variable or a type node
+/// Represents a reference to either a type variable or a type node.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub(crate) enum Reference<'ty, 'heap> {
     Variable(Ident<'heap>),
@@ -124,7 +124,7 @@ impl Reference<'_, '_> {
     }
 }
 
-/// Specifies whether a type has structural or nominal identity
+/// Specifies whether a type has structural or nominal identity.
 ///
 /// Types in the system can have either structural identity (compared by their structure)
 /// or nominal identity (compared by their name), which affects type checking.
@@ -134,7 +134,7 @@ pub(crate) enum Identity<'heap> {
     Nominal(Symbol<'heap>),
 }
 
-/// Structure of Arrays (`SoA`) of spanned generic arguments
+/// Structure of Arrays (`SoA`) of spanned generic arguments.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) struct SpannedGenericArguments<'heap> {
     value: TinyVec<GenericArgumentReference<'heap>>,
@@ -187,7 +187,7 @@ impl<'heap> FromIterator<(GenericArgumentReference<'heap>, SpanId)>
     }
 }
 
-/// Represents a local type variable with its associated type information
+/// Represents a local type variable with its associated type information.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) struct LocalVariable<'ty, 'heap> {
     pub id: Provisioned<TypeId>,
@@ -233,7 +233,7 @@ impl<'heap> LocalVariableResolver<'heap> for TypeLocals<'heap> {
     }
 }
 
-/// Main context for type translation operations
+/// Main context for type translation operations.
 ///
 /// The translation unit maintains all the context needed for translating AST type
 /// nodes into the core type system, including environment, registry access,
@@ -252,7 +252,7 @@ impl<'env, 'heap, L> TranslationUnit<'env, 'heap, L>
 where
     L: LocalVariableResolver<'heap>,
 {
-    /// Creates a nominal (named) type with its underlying representation
+    /// Creates a nominal (named) type with its underlying representation.
     ///
     /// Nominal types are identified by their name rather than structure, but still have an
     /// underlying representation.
@@ -264,7 +264,7 @@ where
         TypeKind::Opaque(kind)
     }
 
-    /// Looks up a local identifier to find its associated type and generic arguments
+    /// Looks up a local identifier to find its associated type and generic arguments.
     ///
     /// This method first checks if the identifier refers to a bound generic parameter, and if so,
     /// creates a parameter reference. Otherwise, it looks for a local variable with that name and
@@ -290,7 +290,7 @@ where
         self.locals.find_by_ident(ident)
     }
 
-    /// Converts a path segment argument into a type reference
+    /// Converts a path segment argument into a type reference.
     ///
     /// Path segment arguments can be either concrete type arguments or generic constraints. This
     /// method converts both forms into a uniform Reference type for further processing.
@@ -318,7 +318,7 @@ where
         }
     }
 
-    /// Applies generic arguments to a base type
+    /// Applies generic arguments to a base type.
     ///
     /// This creates a type application by substituting concrete types for the generic parameters of
     /// the base type. It maps the provided parameters to the expected arguments and creates the
@@ -368,7 +368,7 @@ where
         })
     }
 
-    /// Resolves a reference to a local variable or generic parameter
+    /// Resolves a reference to a local variable or generic parameter.
     ///
     /// This handles local identifiers by finding their corresponding type and applying any generic
     /// parameters provided at the reference site.
@@ -395,7 +395,7 @@ where
         )
     }
 
-    /// Handles intrinsic type references like List and Dict
+    /// Handles intrinsic type references like List and Dict.
     ///
     /// Intrinsic types are built-in parameterized types with special semantics. This method
     /// resolves references to intrinsic types and constructs the appropriate type representation
@@ -467,7 +467,7 @@ where
         }
     }
 
-    /// Resolves a global type reference from a path
+    /// Resolves a global type reference from a path.
     ///
     /// Global references are paths like `::module::Type<T>` that need to be resolved through the
     /// module registry. This method handles both normal types and intrinsic types, and applies any
@@ -605,7 +605,7 @@ where
         })
     }
 
-    /// Translates an AST type kind into the core type system representation
+    /// Translates an AST type kind into the core type system representation.
     ///
     /// This is the main translation function that handles all the different type kinds (infer,
     /// path, tuple, struct, union, intersection) and converts them to the corresponding core type
@@ -693,7 +693,7 @@ where
         }
     }
 
-    /// Translates a reference into a `TypeId`
+    /// Translates a reference into a `TypeId`.
     ///
     /// This is a dispatcher method that handles both variable references and type references,
     /// converting them to an interned `TypeId`.
@@ -758,7 +758,7 @@ where
         )
     }
 
-    /// Converts a local variable to its `TypeId` representation
+    /// Converts a local variable to its `TypeId` representation.
     ///
     /// This method handles creating the appropriate type for a local variable, taking into account
     /// whether it has nominal or structural identity.

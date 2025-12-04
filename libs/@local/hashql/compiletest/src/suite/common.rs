@@ -186,7 +186,7 @@ mod tests {
         }
     }
 
-    /// A simple single-line type for the annotation
+    /// A simple single-line type for the annotation.
     struct SimpleAnnotation;
 
     impl fmt::Display for SimpleAnnotation {

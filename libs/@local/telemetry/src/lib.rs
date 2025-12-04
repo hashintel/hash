@@ -42,7 +42,7 @@ use self::{
     traces::sentry::SentryConfig,
 };
 
-/// Arguments for configuring the logging setup
+/// Arguments for configuring the tracing setup.
 #[derive(Debug, Clone)]
 #[cfg_attr(feature = "clap", derive(clap::Args))]
 pub struct TracingConfig {

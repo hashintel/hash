@@ -1,6 +1,6 @@
-//! Vendored and modified from `axum::json::Json` to allow us to handle the rejection ourselves
+//! Vendored and modified from `axum::json::Json` to allow us to handle the rejection ourselves.
 //!
-//! As recommended per <https://github.com/tokio-rs/axum/discussions/1610#discussioncomment-4292449>
+//! As recommended per <https://github.com/tokio-rs/axum/discussions/1610#discussioncomment-4292449>.
 
 use std::collections::HashMap;
 

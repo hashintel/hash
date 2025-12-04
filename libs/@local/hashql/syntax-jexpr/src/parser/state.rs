@@ -265,7 +265,7 @@ impl<'heap, 'source, 'spans> ParserState<'heap, 'source, 'spans> {
     ///
     /// The argument `expected` is used to validate the next token. It can be a `SyntaxKind` or
     /// `SyntaxKindSet` directly, or `Expected::hint(...)` to accept any token regardless of
-    /// kind
+    /// kind.
     ///
     /// # Errors
     ///

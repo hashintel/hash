@@ -22,26 +22,26 @@ use type_system::principal::{
     role::{RoleId, RoleName},
 };
 
-/// Configuration for seeding benchmark data
+/// Configuration for seeding benchmark data.
 #[derive(Debug, Clone)]
 pub struct SeedConfig {
-    /// Number of webs (organizations) to create
+    /// Number of webs (organizations) to create.
     pub webs: usize,
-    /// Number of root teams per web
+    /// Number of root teams per web.
     pub teams_per_web: usize,
-    /// Nesting depth for team hierarchies (triggers recursive CTE)
+    /// Nesting depth for team hierarchies (triggers recursive CTE).
     pub team_nesting_depth: usize,
-    /// Teams per level in hierarchy
+    /// Teams per level in hierarchy.
     pub teams_per_level: usize,
-    /// Number of policies per team (tests team access patterns)
+    /// Number of policies per team (tests team access patterns).
     pub policies_per_team: usize,
-    /// Number of policies per role (tests role access patterns)
+    /// Number of policies per role (tests role access patterns).
     pub policies_per_role: usize,
-    /// Number of policies per user (tests user-specific access)
+    /// Number of policies per user (tests user-specific access).
     pub policies_per_user: usize,
-    /// Number of users to create and assign roles
+    /// Number of users to create and assign roles.
     pub users: usize,
-    /// Number of global policies (accessible to all users)
+    /// Number of global policies (accessible to all users).
     pub global_policies: usize,
 }
 
@@ -103,7 +103,7 @@ impl SeedConfig {
     }
 }
 
-/// Seeds realistic benchmark data according to config
+/// Seeds realistic benchmark data according to config.
 #[expect(clippy::significant_drop_tightening, clippy::too_many_lines)]
 pub async fn seed_benchmark_data(
     store: &mut PostgresStore<impl AsClient>,
@@ -338,8 +338,8 @@ pub async fn seed_benchmark_data(
     Ok(data)
 }
 
-/// Creates nested team hierarchy that triggers recursive CTE performance issues
-/// Returns (`all_teams`, `leaf_teams`) where `leaf_teams` are the deepest level teams
+/// Creates nested team hierarchy that triggers recursive CTE performance issues.
+/// Returns (`all_teams`, `leaf_teams`) where `leaf_teams` are the deepest level teams.
 async fn create_team_hierarchy(
     store: &mut PostgresStore<impl AsClient>,
     web_id: WebId,
@@ -389,7 +389,7 @@ async fn create_team_hierarchy(
     Ok((all_teams, current_level))
 }
 
-/// Contains all the IDs created during seeding for benchmark use
+/// Contains all the IDs created during seeding for benchmark use.
 #[derive(Debug, Default)]
 pub struct BenchmarkData {
     pub webs: Vec<WebId>,
@@ -401,7 +401,7 @@ pub struct BenchmarkData {
 }
 
 impl BenchmarkData {
-    /// Get a random user for benchmarking (deterministic based on index)
+    /// Get a random user for benchmarking (deterministic based on index).
     pub fn get_test_user(&self, index: usize) -> Option<ActorId> {
         self.users
             .get(index % self.users.len())

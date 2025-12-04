@@ -135,7 +135,7 @@ impl FusedStream for EventStream {
     }
 }
 
-/// Session Layer
+/// Session Layer.
 ///
 /// The session layer is responsible for accepting incoming connections, and splitting them up into
 /// dedicated sessions, these sessions are then used to form transactions.

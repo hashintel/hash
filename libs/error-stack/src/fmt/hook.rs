@@ -239,7 +239,7 @@ impl<T> HookContext<T> {
         self.inner().extra().color
     }
 
-    /// The requested [`Charset`] for this invocation of hooks
+    /// The requested [`Charset`] for this invocation of hooks.
     ///
     /// Hooks can be invoked in using different charsets, which reflect the capabilities of the
     /// terminal.

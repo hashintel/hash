@@ -171,6 +171,7 @@ impl Runner {
         }
     }
 
+    #[expect(clippy::unnecessary_unwrap, reason = "lifetime issues")]
     pub async fn ensure_db(&mut self) -> Result<&Pool, Report<ScenarioError>> {
         if self.pool.is_some() {
             return Ok(self.pool.as_ref().expect("pool set by setup_db"));

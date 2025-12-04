@@ -85,7 +85,7 @@ impl ClosedDataType {
     ///
     /// # Errors
     ///
-    /// Returns an error if
+    /// Returns an error if:
     /// - The metadata (such as description or label) is ambiguous, e.g. when two parents at the
     ///   same inheritance depth specify different metadata.
     /// - No description was found for the schema or any parent schema.

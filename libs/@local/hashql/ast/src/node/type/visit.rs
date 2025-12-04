@@ -18,7 +18,7 @@ use crate::node::{
 /// which handles recursively visiting child nodes. To create a custom visitor,
 /// override only the methods for the node types you're interested in.
 ///
-/// For more information see the expression [`Visitor`](crate::visit::Visitor)
+/// For more information see the expression [`Visitor`](crate::visit::Visitor).
 pub trait TypeVisitor<'heap> {
     #[expect(unused_variables, reason = "trait definition")]
     fn visit_name(&mut self, ident: Ident<'heap>) {

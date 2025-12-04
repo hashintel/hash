@@ -1519,7 +1519,7 @@ mod tests {
         use super::{Filter, FilterExpression, Parameter};
         use crate::entity::EntityQueryPath;
 
-        /// Helper to create a complete test policy
+        /// Helper to create a complete test policy.
         fn create_test_policy(
             effect: Effect,
             resource_constraint: Option<ResourceConstraint>,
@@ -1536,7 +1536,7 @@ mod tests {
         }
 
         /// Helper to extract (Effect, Option<ResourceConstraint>) tuples for
-        /// [`Filter::for_policies`]
+        /// [`Filter::for_policies`].
         fn policy_to_tuple(policy: &Policy) -> (Effect, Option<&ResourceConstraint>) {
             (policy.effect, policy.resource.as_ref())
         }

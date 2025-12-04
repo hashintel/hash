@@ -2,14 +2,14 @@ use core::{num::NonZero, time::Duration};
 
 use crate::macros::non_zero;
 
-/// Configuration for the client session layer
+/// Configuration for the client session layer.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct SessionConfig {
     /// Time limit for delivering a received response to the output stream of a call.
     /// If this limit is exceeded (the stream buffer is full and no progress has been made on the
     /// output stream), the call will be closed.
     ///
-    /// **Default:** `100ms`
+    /// **Default:** `100ms`.
     pub response_delivery_deadline: Duration,
 
     /// Maximum number of request packets that can be buffered before sending, per connection.
@@ -18,21 +18,21 @@ pub struct SessionConfig {
     /// latency. In some environments, this might mean that the task for sending a request to the
     /// server is not immediately awakened.
     ///
-    /// **Default:** `16`
+    /// **Default:** `16`.
     pub per_connection_request_buffer_size: NonZero<usize>,
 
     /// Interval for performing transaction garbage collection on a connection.
     /// A transaction is garbage collected only when it reaches a "zombie" state (i.e., it has been
     /// completed but wasn't removed). This is a safety measure and should not typically occur.
     ///
-    /// **Default:** `10s`
+    /// **Default:** `10s`.
     pub per_connection_transaction_garbage_collect_interval: Duration,
 
     /// Maximum number of response packets that can be buffered before being delivered to the
     /// output stream of a call. Increasing this value can enhance throughput but also
     /// increases memory usage.
     ///
-    /// **Default:** `16`
+    /// **Default:** `16`.
     pub per_transaction_response_buffer_size: NonZero<usize>,
 
     /// Maximum number of response byte packets that can be buffered before being delivered to the
@@ -43,9 +43,9 @@ pub struct SessionConfig {
     /// amount per transaction is the sum of `per_transaction_response_buffer_size` and
     /// `per_transaction_response_byte_stream_buffer_size`. In the worst case, this total can
     /// be: `(per_transaction_response_buffer_size +
-    /// per_transaction_response_byte_stream_buffer_size) * 64KiB`
+    /// per_transaction_response_byte_stream_buffer_size) * 64KiB`.
     ///
-    /// **Default:** `32`
+    /// **Default:** `32`.
     ///
     /// The default maximum memory usage per transaction is `16 + 32 = 48 * 64KiB = 3MiB`.
     pub per_transaction_response_byte_stream_buffer_size: NonZero<usize>,
@@ -55,7 +55,7 @@ pub struct SessionConfig {
     /// decrease throughput due to higher per-packet overhead.
     /// Disabling `no_delay` minimizes packet overhead but can increase latency due to buffering.
     ///
-    /// **Default:** `false`
+    /// **Default:** `false`.
     pub no_delay: bool,
 }
 

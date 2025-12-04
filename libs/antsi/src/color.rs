@@ -1,4 +1,4 @@
-/// Basic colors variants
+/// Basic color variants.
 ///
 /// ## Support
 ///
@@ -25,46 +25,46 @@
 /// | Reset                   | `ESC[39m`  | `ESC[49m`  |
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
 pub enum BasicColor {
-    /// Black foreground or background
+    /// Black foreground or background.
     // TODO: example
     Black,
-    /// Red foreground or background
+    /// Red foreground or background.
     // TODO: example
     Red,
-    /// Green foreground or background
+    /// Green foreground or background.
     // TODO: example
     Green,
-    /// Yellow foreground or background
+    /// Yellow foreground or background.
     // TODO: example
     Yellow,
-    /// Blue foreground or background
+    /// Blue foreground or background.
     // TODO: example
     Blue,
-    /// Magenta foreground or background
+    /// Magenta foreground or background.
     // TODO: example
     Magenta,
-    /// Cyan foreground or background
+    /// Cyan foreground or background.
     // TODO: example
     Cyan,
-    /// White foreground or background
+    /// White foreground or background.
     // TODO: example
     White,
 }
 
 impl BasicColor {
-    /// Convert the color into its bright variant
+    /// Converts the color into its bright variant.
     #[must_use]
     pub const fn bright(self) -> BrightColor {
         BrightColor(self)
     }
 }
 
-/// Bright color variants
+/// Bright color variants.
 ///
 /// ## History
 ///
 /// Nowadays every terminal emulator supports these colors. To programmatically check for
-/// support it is advised to use a crate similar to [`supports-color`](https://lib.rs/crates/supports-color)
+/// support it is advised to use a crate similar to [`supports-color`](https://lib.rs/crates/supports-color).
 ///
 /// ## Support
 ///
@@ -95,7 +95,7 @@ impl BasicColor {
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
 pub struct BrightColor(BasicColor);
 
-/// Extended color support
+/// Extended color support.
 ///
 /// Usually `0` - `7` correspond to the [`BasicColor`] variants, `8` - `15` correspond to their
 /// [`BrightColor`] counterpart, `232` - `255` are a grayscale from black to white while all others
@@ -144,7 +144,7 @@ pub struct BrightColor(BasicColor);
 pub struct IndexedColor(u8);
 
 impl IndexedColor {
-    /// Create a new color which indexes into a preset table
+    /// Creates a new color which indexes into a preset table.
     #[must_use]
     pub const fn new(index: u8) -> Self {
         Self(index)
@@ -181,9 +181,9 @@ impl From<BrightColor> for IndexedColor {
     }
 }
 
-/// Truecolor 24-bit RGB support
+/// Truecolor 24-bit RGB support.
 ///
-/// Allows to set the background and foreground color to any arbitrary color selected
+/// Allows to set the background and foreground color to any arbitrary color selected.
 ///
 /// ## Support
 ///
@@ -191,7 +191,7 @@ impl From<BrightColor> for IndexedColor {
 /// support RGB colors, this support is often not very well documented, but one can often use the
 /// `COLORTERM` environment variable to inspect if truecolor is supported. (the value of the
 /// variable will be `truecolor`). Most built-terminals, do **not** support true-color by default.
-/// To programmatically check for support it is advised to use a crate similar to [`supports-color`](https://lib.rs/crates/supports-color)
+/// To programmatically check for support it is advised to use a crate similar to [`supports-color`](https://lib.rs/crates/supports-color).
 ///
 /// ## Specification
 ///
@@ -216,8 +216,7 @@ impl From<BrightColor> for IndexedColor {
 /// parameters.
 ///
 /// The format for these true-colors can be distilled into:
-///
-/// `{color space id}:{color components}:{tolerance value}:{color space of the tolerance value}`
+/// `{color space id}:{color components}:{tolerance value}:{color space of the tolerance value}`.
 ///
 /// Where `color space id`, `tolerance value` and `color space of tolerance value` are considered
 /// optional and are left unspecified by the standard. Most terminal emulators that support these
@@ -255,14 +254,14 @@ pub struct RgbColor {
 }
 
 impl RgbColor {
-    /// Create a new RGB color
+    /// Creates a new RGB color.
     #[must_use]
     pub const fn new(red: u8, green: u8, blue: u8) -> Self {
         Self { red, green, blue }
     }
 }
 
-/// Truecolor 32-bit RGBA support
+/// Truecolor 32-bit RGBA support.
 ///
 /// Allows to set the background and foreground color to any arbitrary color (with alpha level)
 /// selected.
@@ -305,7 +304,7 @@ impl RgbaColor {
     }
 }
 
-/// Truecolor, 24-bit CMY colors
+/// Truecolor, 24-bit CMY colors.
 ///
 /// CMY is usually used for printers and stands for **C**yan, **M**agenta, **Y**ellow.
 ///
@@ -338,7 +337,7 @@ impl CmyColor {
     }
 }
 
-/// Truecolor, 32-bit CMYK colors
+/// Truecolor, 32-bit CMYK colors.
 ///
 /// CMYK is usually used for printers and stands for **C**yan, **M**agenta, **Y**ellow, **K**ey. Key
 /// is a bit misleading, but is the amount of black color used.
@@ -377,49 +376,49 @@ impl CmykColor {
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
 pub struct TransparentColor;
 
-/// Collection of every possible terminal color supported by `antsi`
+/// Collection of every possible terminal color supported by `antsi`.
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
 #[non_exhaustive]
 pub enum Color {
-    /// Basic 8 color palette
+    /// Basic 8 color palette.
     ///
-    /// Supported by pretty much every terminal, for more information see [`BasicColor`]
+    /// Supported by pretty much every terminal, for more information see [`BasicColor`].
     Basic(BasicColor),
 
-    /// Bright variant of the basic color palette
+    /// Bright variant of the basic color palette.
     ///
-    /// Supported by pretty much every terminal, for more information see [`BrightColor`]
+    /// Supported by pretty much every terminal, for more information see [`BrightColor`].
     Bright(BrightColor),
 
-    /// Indexed color, more commonly known as xterm-color
+    /// Indexed color, more commonly known as xterm-color.
     ///
     /// Supported by pretty much every terminal since the early 2000s, for more information see
-    /// [`IndexedColor`]
+    /// [`IndexedColor`].
     Indexed(IndexedColor),
 
     Transparent(TransparentColor),
 
-    /// 24bit color support, more commonly known as truecolor
+    /// 24bit color support, more commonly known as truecolor.
     ///
-    /// Supported by some modern terminals since 2015+, for more information see [`RgbColor`]
+    /// Supported by some modern terminals since 2015+, for more information see [`RgbColor`].
     Rgb(RgbColor),
 
-    /// 32-bit color support
+    /// 32-bit color support.
     ///
-    /// Supported by [wezterm] since August 2022, for more information see [`RgbaColor`]
+    /// Supported by [wezterm] since August 2022, for more information see [`RgbaColor`].
     ///
     /// [wezterm]: https://wezfurlong.org/wezterm/
     #[cfg(feature = "rgba")]
     Rgba(RgbaColor),
 
-    /// 24-bit CMY color support
+    /// 24-bit CMY color support.
     ///
-    /// Not supported by any major terminal emulator, for more information see [`CmyColor`]
+    /// Not supported by any major terminal emulator, for more information see [`CmyColor`].
     Cmy(CmyColor),
 
-    /// 32-bit CMYK color support
+    /// 32-bit CMYK color support.
     ///
-    /// Not supported by any major terminal emulator, for more information see [`CmykColor`]
+    /// Not supported by any major terminal emulator, for more information see [`CmykColor`].
     Cmyk(CmykColor),
 }
 

@@ -3,13 +3,13 @@ use crate::{
     fmt::r#override::{AtomicOverride, AtomicPreference},
 };
 
-/// The available supported charsets
+/// The available supported charsets.
 ///
 /// Can be accessed through [`crate::fmt::HookContext::charset`], and set via
 /// [`Report::set_charset`].
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Hash, Default)]
 pub enum Charset {
-    /// Terminal of the user supports utf-8
+    /// Terminal of the user supports UTF-8.
     ///
     /// This is the default if no charset has been explicitly set.
     // we assume that most fonts and terminals nowadays support Utf8, which is why this is
@@ -17,7 +17,7 @@ pub enum Charset {
     #[default]
     Utf8,
 
-    /// Terminal of the user supports ASCII
+    /// Terminal of the user supports ASCII.
     Ascii,
 }
 
@@ -28,10 +28,10 @@ impl Charset {
 }
 
 /// Value layout:
-/// `0x00`: `Charset::Ascii`
-/// `0x01`: `Charset::Utf8`
 ///
-/// all others: default to [`Self::default`]
+/// - `0x00`: `Charset::Ascii`
+/// - `0x01`: `Charset::Utf8`
+/// - all others: default to [`Self::default`]
 impl AtomicPreference for Charset {
     fn from_u8(value: u8) -> Self {
         match value {
@@ -52,7 +52,7 @@ impl AtomicPreference for Charset {
 static CHARSET_OVERRIDE: AtomicOverride<Charset> = AtomicOverride::new();
 
 impl Report<()> {
-    /// Set the charset preference
+    /// Sets the charset preference.
     ///
     /// The value defaults to [`Charset::Utf8`].
     ///

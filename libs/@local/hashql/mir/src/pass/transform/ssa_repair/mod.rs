@@ -14,7 +14,7 @@
 //! The implementation follows the reconstruction algorithm described in:
 //!
 //! > Rastello, F., & Bouchez Tichadou, F. (Eds.). (2022). *SSA-based Compiler Design*.
-//! > Springer. <https://doi.org/10.1007/978-3-030-80515-9>
+//! > Springer <https://doi.org/10.1007/978-3-030-80515-9>.
 //! >
 //! > Chapter 5: SSA Reconstruction, Section 5.2: Reconstruction Based on the Dominance Frontier.
 //!

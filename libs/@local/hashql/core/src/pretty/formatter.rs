@@ -370,8 +370,8 @@ impl<'alloc, 'heap> Formatter<'alloc, 'heap> {
 
     /// Formats delimited content with rustfmt-style breaking.
     ///
-    /// Compact: `(a, b, c)` - items separated by `, `
-    /// Expanded: `(\n    a,\n    b,\n    c\n)` - each item on own line with configured indent
+    /// - Compact: `(a, b, c)` - items separated by `, `.
+    /// - Expanded: `(\n    a,\n    b,\n    c\n)` - each item on own line with configured indent.
     pub fn delimited<I>(
         &'alloc self,
         open: &'alloc str,
@@ -406,9 +406,9 @@ impl<'alloc, 'heap> Formatter<'alloc, 'heap> {
 
     /// Formats a tuple with proper handling of empty and single-element cases.
     ///
-    /// - Empty: `()`
-    /// - Single: `(T, )`
-    /// - Multiple: `(A, B, C)`
+    /// - Empty: `()`.
+    /// - Single: `(T, )`.
+    /// - Multiple: `(A, B, C)`.
     pub fn tuple<I>(&'alloc self, items: I) -> Doc<'alloc>
     where
         I: IntoIterator<Item = Doc<'alloc>>,
@@ -429,7 +429,7 @@ impl<'alloc, 'heap> Formatter<'alloc, 'heap> {
 
     /// Formats key-value pairs with spaces around separator.
     ///
-    /// Example: `key = value` or `T = Integer`
+    /// Example: `key = value` or `T = Integer`.
     pub fn key_value(
         &'alloc self,
         key: Doc<'alloc>,
@@ -444,7 +444,7 @@ impl<'alloc, 'heap> Formatter<'alloc, 'heap> {
 
     /// Formats field-type pairs without space before separator.
     ///
-    /// Example: `foo: Type` or `bar: Integer`
+    /// Example: `foo: Type` or `bar: Integer`.
     pub fn field_type(&'alloc self, name: Doc<'alloc>, ty: Doc<'alloc>) -> Doc<'alloc> {
         name.append(self.punct_str(":"))
             .append(self.space())
@@ -496,7 +496,7 @@ impl<'alloc, 'heap> Formatter<'alloc, 'heap> {
 
     /// Formats generic type arguments.
     ///
-    /// Example: `<T, U, V>` or when broken: `<\n    T,\n    U,\n    V\n>`
+    /// Example: `<T, U, V>` or when broken: `<\n    T,\n    U,\n    V\n>`.
     pub fn generic_args<I>(&'alloc self, args: I) -> Doc<'alloc>
     where
         I: IntoIterator<Item = Doc<'alloc>>,
@@ -507,7 +507,7 @@ impl<'alloc, 'heap> Formatter<'alloc, 'heap> {
     /// Formats a generic application (substitutions applied to a base type).
     ///
     /// Uses square brackets to distinguish from generic args.
-    /// Example: `[T = Integer] (foo: T)` - space after to separate from base
+    /// Example: `[T = Integer] (foo: T)` - space after to separate from base.
     pub fn generic_apply<I>(&'alloc self, substitutions: I, base: Doc<'alloc>) -> Doc<'alloc>
     where
         I: IntoIterator<Item = Doc<'alloc>>,
@@ -536,7 +536,7 @@ impl<'alloc, 'heap> Formatter<'alloc, 'heap> {
 
     /// Formats a function type signature.
     ///
-    /// Example: `(a: A, b: B) -> C`
+    /// Example: `(a: A, b: B) -> C`.
     pub fn closure_signature<I>(&'alloc self, params: I, returns: Doc<'alloc>) -> Doc<'alloc>
     where
         I: IntoIterator<Item = (Doc<'alloc>, Doc<'alloc>)>,

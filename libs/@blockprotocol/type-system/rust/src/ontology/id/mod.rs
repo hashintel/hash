@@ -110,7 +110,7 @@ impl From<BaseUrl> for String {
 }
 
 impl BaseUrl {
-    /// Creates a new [`BaseUrl`] from a given URL string
+    /// Creates a new [`BaseUrl`] from a given URL string.
     ///
     /// # Errors
     ///
@@ -260,7 +260,7 @@ impl<'a> FromSql<'a> for BaseUrl {
 pub enum PreRelease {
     /// Draft pre-release with lane identifier and revision number.
     ///
-    /// Format: `lane.revision` (e.g., `abc123.5`)
+    /// Format: `lane.revision` (e.g., `abc123.5`).
     Draft {
         /// Lane identifier for isolating parallel draft work.
         ///
@@ -496,7 +496,7 @@ impl<'a> FromSql<'a> for OntologyTypeVersion {
 /// - `{base_url}` is a valid [`BaseUrl`] ending with a trailing slash
 /// - `{version}` is a positive integer version number
 ///
-/// Example: `https://example.com/types/data-type/text/v/1`
+/// Example: `https://example.com/types/data-type/text/v/1`.
 ///
 /// # Examples
 ///
@@ -531,10 +531,10 @@ impl<'a> FromSql<'a> for OntologyTypeVersion {
 #[derive(Debug, Clone, PartialEq, Eq, Ord, PartialOrd, Hash)]
 #[cfg_attr(feature = "codegen", derive(specta::Type), specta(export = false))]
 pub struct VersionedUrl {
-    /// The base URL component representing the unversioned part of the type identifier
+    /// The base URL component representing the unversioned part of the type identifier.
     pub base_url: BaseUrl,
 
-    /// The version number component specifying the exact version of the type
+    /// The version number component specifying the exact version of the type.
     pub version: OntologyTypeVersion,
 }
 
@@ -692,10 +692,10 @@ impl ToSchema<'_> for VersionedUrl {
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(rename_all = "camelCase")]
 pub struct OntologyTypeRecordId {
-    /// The base URL component representing the unversioned part of the type identifier
+    /// The base URL component representing the unversioned part of the type identifier.
     pub base_url: BaseUrl,
 
-    /// The version number component specifying the exact version of the type
+    /// The version number component specifying the exact version of the type.
     pub version: OntologyTypeVersion,
 }
 

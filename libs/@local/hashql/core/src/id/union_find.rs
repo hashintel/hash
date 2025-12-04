@@ -55,11 +55,11 @@ use core::{alloc::Allocator, mem};
 use super::{Id, IdVec};
 
 struct Entry<I> {
-    /// Parent node in the tree
+    /// Parent node in the tree.
     ///
     /// If the node is a root, it points to itself.
     parent: I,
-    /// Upper bound on the tree height (used for union by rank)
+    /// Upper bound on the tree height (used for union by rank).
     rank: u32,
     // We do not track the size of the set containing this element on purpose, if we would the size
     // of an entry go from 8 bytes to 12 bytes. While not significant at first, considering we
@@ -77,7 +77,7 @@ struct Entry<I> {
 /// the inverse Ackermann function. In practice, this is effectively constant time for
 /// any reasonable input size.
 ///
-/// See [doi/10.1145/62.2160](https://doi.org/10.1145/62.2160)
+/// See [doi/10.1145/62.2160](https://doi.org/10.1145/62.2160).
 ///
 /// The space complexity is O(n) where n is the number of elements.
 pub struct IdUnionFind<I, A: Allocator = Global> {

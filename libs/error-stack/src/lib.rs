@@ -2,7 +2,7 @@
 //!
 //! [![crates.io](https://img.shields.io/crates/v/error-stack)][crates.io]
 //! [![libs.rs](https://img.shields.io/badge/libs.rs-error--stack-orange)][libs.rs]
-//! [![rust-version](https://img.shields.io/static/v1?label=Rust&message=1.83.0/nightly-2025-11-24&color=blue)][rust-version]
+//! [![rust-version](https://img.shields.io/static/v1?label=Rust&message=1.83.0/nightly-2025-12-01&color=blue)][rust-version]
 //!
 //! [crates.io]: https://crates.io/crates/error-stack
 //! [libs.rs]: https://lib.rs/crates/error-stack
@@ -137,7 +137,7 @@
 //! when execution crosses between crates. At this point the [`Report`] should start to operate in a
 //! new context. To change the context, [`Report::change_context()`] is used:
 //!
-//! (Again, for convenience, using [`ResultExt`] will do that on the [`Err`] variant)
+//! (Again, for convenience, using [`ResultExt`] will do that on the [`Err`] variant.)
 //!
 //! ```rust
 //! # use std::{fmt, fs, io, path::Path};
@@ -487,6 +487,8 @@
     )))
 )]
 #![allow(unsafe_code)]
+// There is a false positive for the badge
+#![allow(clippy::doc_paragraphs_missing_punctuation)]
 // This is an error handling library producing Results, not Errors
 #![allow(clippy::missing_errors_doc)]
 

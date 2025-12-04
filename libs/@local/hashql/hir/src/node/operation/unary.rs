@@ -11,11 +11,11 @@ use crate::node::Node;
 /// Includes source span information for error reporting.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum UnOp {
-    /// The `!` operator (not)
+    /// The `!` operator (not).
     Not,
-    /// The `~` operator (bitwise not)
+    /// The `~` operator (bitwise not).
     BitNot,
-    /// The `-` operator (negation)
+    /// The `-` operator (negation).
     Neg,
 }
 

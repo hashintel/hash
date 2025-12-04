@@ -13,7 +13,7 @@ struct Cli {
     ///
     /// Uses nextest-compatible filter patterns to select which tests to run or list.
     /// For example: `--filter "test(some_namespace::specific_test)"`
-    /// or `--filter package(hashql-ast)`
+    /// or `--filter package(hashql-ast)`.
     #[clap(long, short)]
     filter: Option<String>,
 

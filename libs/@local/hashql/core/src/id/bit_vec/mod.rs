@@ -1,5 +1,5 @@
 //! This file is derived from the Rust compiler source code.
-//! Source: <https://github.com/rust-lang/rust/blob/f5242367f4acf0130c9b68e6956531b2cb73bd38/compiler/rustc_index/src/bit_set.rs>
+//! Source: <https://github.com/rust-lang/rust/blob/f5242367f4acf0130c9b68e6956531b2cb73bd38/compiler/rustc_index/src/bit_set.rs>.
 //!
 //! Originally dual-licensed under either of:
 //!   - Apache License, Version 2.0 (see LICENSE-APACHE.md or <https://www.apache.org/licenses/LICENSE-2.0>)

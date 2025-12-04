@@ -64,17 +64,17 @@ use crate::{
 /// of the same equivalence class and share constraints.
 ///
 /// Maintains:
-/// - Union-find table with path compression and union by rank
-/// - Bidirectional mapping between [`VariableKind`] and internal IDs
-/// - Canonical representatives for each equivalence class
+/// - Union-find table with path compression and union by rank.
+/// - Bidirectional mapping between [`VariableKind`] and internal IDs.
+/// - Canonical representatives for each equivalence class.
 #[derive(Debug)]
 pub(crate) struct Unification {
-    /// The underlying union-find data structure that tracks variable equivalence classes
+    /// The underlying union-find data structure that tracks variable equivalence classes.
     table: InPlaceUnificationTable<VariableId>,
 
-    /// All variable kinds in the system, indexed by their ID
+    /// All variable kinds in the system, indexed by their ID.
     variables: Vec<VariableKind>,
-    /// Maps variable kinds to their corresponding IDs for efficient lookup
+    /// Maps variable kinds to their corresponding IDs for efficient lookup.
     lookup: FastHashMap<VariableKind, VariableId>,
 }
 
@@ -187,21 +187,21 @@ enum Bound {
 /// unification data (IDs and canonical kinds).
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 struct ResolvedVariable {
-    /// Original variable from source code (for error reporting)
+    /// Original variable from source code (for error reporting).
     origin: Variable,
 
-    /// Internal unification system ID
+    /// Internal unification system ID.
     id: VariableId,
-    /// Canonical kind after unification
+    /// Canonical kind after unification.
     kind: VariableKind,
 }
 
 /// Subtyping constraint where `lower <: upper`.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 struct VariableOrdering {
-    /// Variable that must be a subtype
+    /// Variable that must be a subtype.
     lower: ResolvedVariable,
-    /// Variable that must be a supertype
+    /// Variable that must be a supertype.
     upper: ResolvedVariable,
 }
 
@@ -237,13 +237,13 @@ impl VariableConstraintSatisfiability {
 /// Multiple constraints of the same type are reduced using lattice operations.
 #[derive(Debug, PartialEq, Eq, Default)]
 struct VariableConstraint {
-    /// Exact type this variable must equal
+    /// Exact type this variable must equal.
     equal: Option<TypeId>,
-    /// Lower bound constraints (variable must be supertype of these)
+    /// Lower bound constraints (variable must be supertype of these).
     lower: SmallVec<TypeId>,
-    /// Upper bound constraints (variable must be subtype of these)
+    /// Upper bound constraints (variable must be subtype of these).
     upper: SmallVec<TypeId>,
-    /// The satisfiability of the variable constraint
+    /// The satisfiability of the variable constraint.
     satisfiability: VariableConstraintSatisfiability,
 }
 
@@ -279,11 +279,11 @@ impl VariableConstraint {
 /// that determine the variable's inferred type.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Default)]
 struct EvaluatedVariableConstraint {
-    /// Final equality constraint
+    /// Final equality constraint.
     equal: Option<TypeId>,
-    /// Final lower bound constraint
+    /// Final lower bound constraint.
     lower: Option<TypeId>,
-    /// Final upper bound constraint
+    /// Final upper bound constraint.
     upper: Option<TypeId>,
 }
 
@@ -312,18 +312,18 @@ struct EvaluatedVariableConstraint {
 /// 3. **Validation** of final constraint system
 /// 4. **Diagnostic collection** for error reporting
 pub struct InferenceSolver<'env, 'heap> {
-    /// Environment for lattice operations (meet, join, subtyping)
+    /// Environment for lattice operations (meet, join, subtyping).
     lattice: LatticeEnvironment<'env, 'heap>,
-    /// Environment to discharge additional constraints
+    /// Environment to discharge additional constraints.
     inference: InferenceEnvironment<'env, 'heap>,
 
-    /// Diagnostics for type error reporting
+    /// Diagnostics for type error reporting.
     diagnostics: TypeCheckDiagnosticIssues,
     persistent_diagnostics: TypeCheckDiagnosticIssues,
 
-    /// Constraints to be solved
+    /// Constraints to be solved.
     constraints: Vec<Constraint<'heap>>,
-    /// Unification system for tracking variable equivalence
+    /// Unification system for tracking variable equivalence.
     unification: Unification,
 }
 

@@ -5,19 +5,19 @@ use crate::{
     fmt::r#override::{AtomicOverride, AtomicPreference},
 };
 
-/// The available modes of color support
+/// The available modes of color support.
 ///
 /// Can be accessed through [`crate::fmt::HookContext::color_mode`], and set via
-/// [`Report::set_color_mode`]
+/// [`Report::set_color_mode`].
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Hash, Default)]
 pub enum ColorMode {
-    /// User preference to disable all colors
+    /// User preference to disable all colors.
     None,
 
-    /// User preference to enable colors
+    /// User preference to enable colors.
     Color,
 
-    /// User preference to enable styles, but discourage colors
+    /// User preference to enable styles, but discourage colors.
     ///
     /// This is the same as [`ColorMode::Color`], but signals to the user that while colors are
     /// supported, the user prefers instead the use of emphasis, like bold and italic text.
@@ -34,11 +34,11 @@ impl ColorMode {
 }
 
 /// Value layout:
-/// `0x00`: `ColorMode::None`
-/// `0x01`: `ColorMode::Color`
-/// `0x02`: `ColorMode::Emphasis`
 ///
-/// all others: [`Self::default`]
+/// - `0x00`: `ColorMode::None`
+/// - `0x01`: `ColorMode::Color`
+/// - `0x02`: `ColorMode::Emphasis`
+/// - all others: [`Self::default`]
 impl AtomicPreference for ColorMode {
     fn from_u8(value: u8) -> Self {
         match value {
@@ -61,7 +61,7 @@ impl AtomicPreference for ColorMode {
 static COLOR_OVERRIDE: AtomicOverride<ColorMode> = AtomicOverride::new();
 
 impl Report<()> {
-    /// Set the color mode preference
+    /// Sets the color mode preference.
     ///
     /// If no [`ColorMode`] is set, it defaults to [`ColorMode::Emphasis`].
     ///

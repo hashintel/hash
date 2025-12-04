@@ -64,7 +64,8 @@ fn build() -> Report<[Char]> {
     report_a
 }
 
-/// Try to verify if the topological sorting is working, by trying to verify that
+/// Try to verify if the topological sorting is working, by trying to verify that:
+///
 /// ```text
 ///     A     G
 ///    / \    |
@@ -73,7 +74,7 @@ fn build() -> Report<[Char]> {
 /// D   E F
 /// ```
 ///
-/// results in `ABDECFGH`
+/// results in `ABDECFGH`.
 #[test]
 fn iter() {
     let report = build();

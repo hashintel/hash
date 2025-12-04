@@ -39,15 +39,15 @@ use super::{
     reason = "We want to add `forbid` fields in the future as well"
 )]
 pub struct OptimizationData {
-    /// Entity UUIDs that can be optimized to IN clause for exact entity permits
+    /// Entity UUIDs that can be optimized to IN clause for exact entity permits.
     pub permitted_entity_uuids: Vec<EntityUuid>,
-    /// Entity Type UUIDs that can be optimized to IN clause for exact entity type permits
+    /// Entity Type UUIDs that can be optimized to IN clause for exact entity type permits.
     pub permitted_entity_type_uuids: Vec<EntityTypeUuid>,
-    /// Property Type UUIDs that can be optimized to IN clause for exact property type permits
+    /// Property Type UUIDs that can be optimized to IN clause for exact property type permits.
     pub permitted_property_type_uuids: Vec<PropertyTypeUuid>,
-    /// Data Type UUIDs that can be optimized to IN clause for exact data type permits
+    /// Data Type UUIDs that can be optimized to IN clause for exact data type permits.
     pub permitted_data_type_uuids: Vec<DataTypeUuid>,
-    /// Web IDs that can be optimized to IN clause for web resource permits
+    /// Web IDs that can be optimized to IN clause for web resource permits.
     pub permitted_web_ids: Vec<WebId>,
 }
 
@@ -117,9 +117,9 @@ impl PolicyComponents {
     ///
     /// This data contains vectors of identifiers that can be optimized from multiple
     /// OR conditions to efficient IN clauses. For example, multiple entity permits
-    /// for exact entity UUIDs can be converted from:
+    /// for exact entity UUIDs can be converted from
     /// `entity_uuid = a OR entity_uuid = b OR entity_uuid = c`
-    /// to: `entity_uuid = ANY([a, b, c])`
+    /// to `entity_uuid = ANY([a, b, c])`.
     #[must_use]
     pub fn optimization_data(&self, action: ActionName) -> &OptimizationData {
         const EMPTY_OPTIMIZATION_DATA: &OptimizationData = &OptimizationData {
