@@ -27,13 +27,13 @@ pub struct ReindexCacheArgs {
 #[derive(Debug, Parser)]
 #[clap(version, author, about, long_about = None, next_help_heading = Some("Reindex operations"))]
 pub struct ReindexOperations {
-    /// Reindex data types cache
+    /// Reindex data types cache.
     #[clap(long)]
     pub data_types: bool,
-    /// Reindex entity types cache
+    /// Reindex entity types cache.
     #[clap(long)]
     pub entity_types: bool,
-    /// Reindex entities cache
+    /// Reindex entities cache.
     #[clap(long)]
     pub entities: bool,
 }

@@ -1,4 +1,4 @@
-/// Font Weight
+/// Font weight.
 ///
 /// ## Support
 ///
@@ -22,21 +22,23 @@
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
 #[non_exhaustive]
 pub enum FontWeight {
-    /// Bold text
+    /// Bold text.
     ///
-    /// Sometimes known as: increased intensity
+    /// Sometimes known as: increased intensity.
     // TODO: example
     Bold,
-    /// Faint text
+    /// Faint text.
     ///
-    /// Somtimes known as: decreased intensity, second color or light (CSS)
+    /// Sometimes known as: decreased intensity, second color or light (CSS).
     // TODO: example
     Faint,
 }
 
-/// Alternative Font Family
+/// Alternative Font Family.
 ///
-/// [ISO 6429] only allows for up to 9 alternative fonts, therefore the value is clamped to `0..9`
+/// [ISO 6429] only allows for up to 9 alternative fonts, therefore the value is clamped to `0..9`.
+///
+/// [ISO 6429]: https://www.iso.org/standard/12782.html
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
 pub struct AlternativeFontFamily(u8);
 
@@ -46,7 +48,7 @@ impl AlternativeFontFamily {
     }
 }
 
-/// Font Family
+/// Font Family.
 ///
 /// ## Support
 ///
@@ -66,7 +68,7 @@ impl AlternativeFontFamily {
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
 #[non_exhaustive]
 pub enum FontFamily {
-    /// Fraktur
+    /// Fraktur.
     ///
     /// ## What is Fraktur?
     ///
@@ -80,7 +82,7 @@ pub enum FontFamily {
     /// [ISO 6429]: https://www.iso.org/standard/12782.html
     /// [ECMA-48]: https://www.ecma-international.org/publications-and-standards/standards/ecma-48/
     Fraktur,
-    /// Alternative font family
+    /// Alternative font family.
     Alternative(AlternativeFontFamily),
 }
 

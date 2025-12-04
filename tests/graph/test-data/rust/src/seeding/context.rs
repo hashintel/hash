@@ -18,7 +18,7 @@
 //! [`GlobalId::rng`]. Use [`ProduceContext::global_id`] to construct a [`GlobalId`] from the
 //! current context, a [`LocalId`], a [`Scope`], and a [`SubScope`].
 //!
-//! Local IDs
+//! Local IDs:
 //! - Create a new local counter with [`LocalId::default`].
 //! - Advance it per produced item with [`LocalId::take_and_advance`], which returns the previous
 //!   value and increments the counter.

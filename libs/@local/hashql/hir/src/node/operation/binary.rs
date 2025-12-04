@@ -11,45 +11,45 @@ use crate::node::Node;
 /// including arithmetic, comparison, logical, and bitwise operations.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum BinOp {
-    /// The `+` operator (addition)
+    /// The `+` operator (addition).
     Add(!),
-    /// The `-` operator (subtraction)
+    /// The `-` operator (subtraction).
     Sub(!),
-    /// The `*` operator (multiplication)
+    /// The `*` operator (multiplication).
     Mul(!),
-    /// The `/` operator (division)
+    /// The `/` operator (division).
     Div(!),
-    /// The `%` operator (remainder)
+    /// The `%` operator (remainder).
     Rem(!),
-    /// The `%%`/`⟲` operator (modulo)
+    /// The `%%`/`⟲` operator (modulo).
     Mod(!),
-    /// The `**`/`↑` operator (exponentiation)
+    /// The `**`/`↑` operator (exponentiation).
     Pow(!),
-    /// The `&&` operator (logical and)
+    /// The `&&` operator (logical and).
     And,
-    /// The `||` operator (logical or)
+    /// The `||` operator (logical or).
     Or,
-    /// The `^` operator (bitwise xor)
+    /// The `^` operator (bitwise xor).
     BitXor(!),
-    /// The `&` operator (bitwise and)
+    /// The `&` operator (bitwise and).
     BitAnd(!),
-    /// The `|` operator (bitwise or)
+    /// The `|` operator (bitwise or).
     BitOr(!),
-    /// The `<<` operator (shift left)
+    /// The `<<` operator (shift left).
     BitShl(!),
-    /// The `>>` operator (shift right)
+    /// The `>>` operator (shift right).
     BitShr(!),
-    /// The `==` operator (equality)
+    /// The `==` operator (equality).
     Eq,
-    /// The `!=` operator (not equal to)
+    /// The `!=` operator (not equal to).
     Ne,
-    /// The `<` operator (less than)
+    /// The `<` operator (less than).
     Lt,
-    /// The `<=` operator (less than or equal to)
+    /// The `<=` operator (less than or equal to).
     Lte,
-    /// The `>` operator (greater than)
+    /// The `>` operator (greater than).
     Gt,
-    /// The `>=` operator (greater than or equal to)
+    /// The `>=` operator (greater than or equal to).
     Gte,
 }
 

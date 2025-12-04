@@ -8,7 +8,7 @@ use bytes::Buf;
 
 use super::{Body, BodyState, Frame, empty::Empty};
 
-/// Boxed Body
+/// Boxed Body.
 ///
 /// This is a wrapper around a `Body` that erases the type of the body using a trait object.
 ///
@@ -74,7 +74,7 @@ where
     }
 }
 
-/// Boxed Body that is not Sync
+/// Boxed Body that is not Sync.
 ///
 /// This is a wrapper around a `Body` that erases the type of the body using a trait object.
 ///

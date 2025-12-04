@@ -161,7 +161,7 @@ fn prepare(suffix: bool) -> impl Drop {
 ///                         root error 4
 /// ```
 ///
-/// `P = Printable`, `C = Context`
+/// Legend: `P = Printable`, `C = Context`.
 fn create_sources_nested() -> Report<ContextA> {
     let r4 = create_report()
         .change_context(ContextA(5))

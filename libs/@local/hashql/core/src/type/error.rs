@@ -245,7 +245,7 @@ impl DiagnosticCategory for TypeCheckDiagnosticCategory {
     }
 }
 
-/// Creates a type mismatch diagnostic with specific labels for the left and right types
+/// Creates a type mismatch diagnostic with specific labels for the left and right types.
 pub(crate) fn type_mismatch<'env, 'heap, T, U>(
     env: &'env Environment<'heap>,
 
@@ -295,7 +295,7 @@ where
     diagnostic
 }
 
-/// Creates a diagnostic for when there's no substitution available for an inference variable
+/// Creates a diagnostic for when there's no substitution available for an inference variable.
 ///
 /// This error occurs when type inference cannot determine a concrete type for a variable
 /// because it wasn't constrained by any usage in the code.
@@ -330,7 +330,7 @@ pub(crate) fn no_type_inference<K>(infer_type: Type<'_, K>) -> TypeCheckDiagnost
     diagnostic
 }
 
-/// Creates a circular type reference diagnostic
+/// Creates a circular type reference diagnostic.
 pub(crate) fn circular_type_reference<'heap, K>(
     lhs: Type<'heap, K>,
     rhs: Type<'heap, K>,
@@ -350,7 +350,7 @@ pub(crate) fn circular_type_reference<'heap, K>(
     diagnostic
 }
 
-/// Creates a diagnostic for when tuple types have a different number of fields
+/// Creates a diagnostic for when tuple types have a different number of fields.
 pub(crate) fn tuple_length_mismatch<'heap, K>(
     lhs: Type<'heap, K>,
     rhs: Type<'heap, K>,
@@ -384,7 +384,7 @@ pub(crate) fn tuple_length_mismatch<'heap, K>(
     diagnostic
 }
 
-/// Creates a diagnostic for when opaque types have different names
+/// Creates a diagnostic for when opaque types have different names.
 pub(crate) fn opaque_type_name_mismatch<'heap, K>(
     lhs: Type<'heap, K>,
     rhs: Type<'heap, K>,
@@ -413,7 +413,7 @@ pub(crate) fn opaque_type_name_mismatch<'heap, K>(
 }
 
 /// Creates a diagnostic for when a union type variant doesn't match any variant in the expected
-/// union type
+/// union type.
 pub(crate) fn union_variant_mismatch<'env, 'heap, K1, K2>(
     env: &'env Environment<'heap>,
     bad_variant: Type<'heap, K1>,
@@ -630,7 +630,7 @@ where
     diagnostic
 }
 
-/// Creates a diagnostic for when structs have different field names or keys
+/// Creates a diagnostic for when structs have different field names or keys.
 ///
 /// This is used when two structs being compared have different fields,
 /// which violates structural equivalence requirements.
@@ -701,7 +701,7 @@ pub(crate) fn struct_field_mismatch<'heap>(
     diagnostic
 }
 
-/// Creates a diagnostic for when a struct has duplicate field names
+/// Creates a diagnostic for when a struct has duplicate field names.
 ///
 /// This is used when a struct declaration contains multiple fields with the same name,
 /// which is not allowed in the type system.
@@ -736,7 +736,7 @@ pub fn duplicate_struct_field<'heap, K>(
     diagnostic
 }
 
-/// Creates a diagnostic for when a struct is missing a required field for subtyping
+/// Creates a diagnostic for when a struct is missing a required field for subtyping.
 ///
 /// This is used when a struct being checked for subtyping relationship is missing
 /// a field that is present in the supertype, violating the subtyping requirements.
@@ -783,7 +783,7 @@ pub(crate) fn unconstrained_type_variable_floating() -> TypeCheckDiagnostic {
     diagnostic
 }
 
-/// Creates a diagnostic for when a type variable has no constraints, making inference impossible
+/// Creates a diagnostic for when a type variable has no constraints, making inference impossible.
 pub(crate) fn unconstrained_type_variable(variable: Variable) -> TypeCheckDiagnostic {
     let mut diagnostic = Diagnostic::new(
         TypeCheckDiagnosticCategory::UnconstrainedTypeVariable,
@@ -810,7 +810,7 @@ pub(crate) fn unconstrained_type_variable(variable: Variable) -> TypeCheckDiagno
     diagnostic
 }
 
-/// Creates a diagnostic for when a lower bound is incompatible with an equality constraint
+/// Creates a diagnostic for when a lower bound is incompatible with an equality constraint.
 pub(crate) fn incompatible_lower_equal_constraint<'heap>(
     env: &Environment<'heap>,
     variable: Variable,
@@ -866,7 +866,7 @@ pub(crate) fn incompatible_lower_equal_constraint<'heap>(
     diagnostic
 }
 
-/// Creates a diagnostic for when an upper bound is incompatible with an equality constraint
+/// Creates a diagnostic for when an upper bound is incompatible with an equality constraint.
 pub(crate) fn incompatible_upper_equal_constraint<'heap>(
     env: &Environment<'heap>,
     variable: Variable,
@@ -921,7 +921,7 @@ pub(crate) fn incompatible_upper_equal_constraint<'heap>(
     diagnostic
 }
 
-/// Creates a diagnostic for when a lower bound is not a subtype of an upper bound in a constraint
+/// Creates a diagnostic for when a lower bound is not a subtype of an upper bound in a constraint.
 pub(crate) fn bound_constraint_violation<'heap>(
     env: &Environment<'heap>,
     variable: Variable,
@@ -991,7 +991,7 @@ pub(crate) fn bound_constraint_violation<'heap>(
     diagnostic
 }
 
-/// Creates a diagnostic for when a type variable has incompatible equality constraints
+/// Creates a diagnostic for when a type variable has incompatible equality constraints.
 pub(crate) fn conflicting_equality_constraints<'heap>(
     env: &Environment<'heap>,
     variable: Variable,
@@ -1049,7 +1049,7 @@ pub(crate) fn conflicting_equality_constraints<'heap>(
     diagnostic
 }
 
-/// Creates a diagnostic for when a type parameter cannot be found during instantiation
+/// Creates a diagnostic for when a type parameter cannot be found during instantiation.
 ///
 /// This is used when instantiating a parameterized type, but one of the required type
 /// parameters is not available in the environment.
@@ -1788,7 +1788,7 @@ pub(crate) fn dict_subscript_mismatch<'heap>(
     diagnostic
 }
 
-/// Creates a diagnostic for when an upper constraint cannot be satisfied
+/// Creates a diagnostic for when an upper constraint cannot be satisfied.
 ///
 /// This occurs when the type system determines that no valid type can satisfy
 /// the upper bound constraint for an inference variable, typically indicating

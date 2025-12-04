@@ -111,7 +111,7 @@ where
     }
 }
 
-/// Enables the use of styles on target text
+/// Enables the use of styles on target text.
 ///
 /// Enables the use of all **S**elect **G**raphic **M**ode escaped initially defined by [`ISO 6429`]
 /// as well as:

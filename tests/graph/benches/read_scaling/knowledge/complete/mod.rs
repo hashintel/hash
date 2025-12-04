@@ -7,5 +7,5 @@
 ///
 /// As such, having every non-link entity connected via a link entity should be a very bad case
 /// scenario for queries with non-zero link-related depths. (It's likely not the worst, there may
-/// not be a finite academic "worst" case if you allow link entities between link entities)
+/// not be a finite academic "worst" case if you allow link entities between link entities).
 mod entity;

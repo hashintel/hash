@@ -8,7 +8,7 @@ pub trait ResultExt {
     /// The context type of the [`Result`] which becomes the `C` in `Report<C>`.
     type Context: ?Sized;
 
-    /// Type of the [`Ok`] value in the [`Result`]
+    /// Type of the [`Ok`] value in the [`Result`].
     type Ok;
 
     /// Adds a new printable attachment to the [`Report`] inside the [`Result`].

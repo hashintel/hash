@@ -4,19 +4,19 @@ use hashql_core::collections::FastHashMap;
 
 #[derive(Debug, Clone, PartialEq, Eq, derive_more::Display)]
 pub(crate) enum DirectiveParseError {
-    /// The annotation format is invalid (missing colon separator)
+    /// The annotation format is invalid (missing colon separator).
     #[display("invalid annotation format: {_0}, must be of form `//@<key>: <value>`")]
     InvalidFormat(String),
-    /// Unknown run mode specified
+    /// Unknown run mode specified.
     #[display("unknown run mode: {_0}, must be one of `pass`, `fail`, or `skip`")]
     UnknownRunMode(String),
-    /// Name cannot be empty
+    /// Name cannot be empty.
     #[display("name cannot be empty")]
     EmptyName,
-    /// Unknown property key
+    /// Unknown property key.
     #[display("unknown property key: {_0} with value: {_1}")]
     UnknownPropertyKey(String, String),
-    /// Invalid TOML value
+    /// Invalid TOML value.
     #[display("invalid TOML value: {_0} for key: {_1}")]
     InvalidToml(String, String, Box<toml::de::Error>),
 }

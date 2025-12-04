@@ -13,6 +13,6 @@ pub use self::r#if::If;
 /// expressions based on a test condition.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum Branch<'heap> {
-    /// Conditional branching with if/else
+    /// Conditional branching with if/else.
     If(If<'heap>),
 }

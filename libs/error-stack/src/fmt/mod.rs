@@ -214,7 +214,7 @@
 //! Using the aforementioned delimiters for lists and groups the end result would be:
 //!
 //! Overview Tree: `[0, 1] ([2] ([3], [4, 5]), [6, 7, 8])`
-//! Detailed Tree: `[Aᶜ] ([Dᶜ], [Hᶜ], [Iᶜ])`
+//! Detailed Tree: `[Aᶜ] ([Dᶜ], [Hᶜ], [Iᶜ])`.
 //!
 //! Attachments are not ordered by insertion order but by depth in the tree. The depth in the tree
 //! is the inverse of the insertion order, this means that the [`Debug`] output of all
@@ -460,12 +460,12 @@ enum Spacing {
 
 #[derive(Debug, Copy, Clone)]
 struct Indent {
-    /// Is this used in a group context, if that is the case, then add a single leading space
+    /// Is this used in a group context? If that is the case, then add a single leading space.
     group: bool,
-    /// Should the indent be visible, if that isn't the case it will render a space instead of
-    /// `|`
+    /// Should the indent be visible? If that isn't the case it will render a space instead of
+    /// `|`.
     visible: bool,
-    /// Should spacing included, this is the difference between `|   ` and `|`
+    /// Should spacing be included? This is the difference between `|   ` and `|`.
     spacing: Option<Spacing>,
 }
 
@@ -569,7 +569,7 @@ enum Instruction {
     Context {
         position: Position,
     },
-    /// `Position::Final` means *that nothing follows*
+    /// `Position::Final` means *that nothing follows*.
     Attachment {
         position: Position,
     },

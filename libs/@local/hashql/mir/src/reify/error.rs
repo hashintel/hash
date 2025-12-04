@@ -78,7 +78,7 @@ impl DiagnosticCategory for ReifyDiagnosticCategory {
 
 // User-facing errors
 
-/// Creates a diagnostic for external modules (not yet supported)
+/// Creates a diagnostic for external modules (not yet supported).
 pub(crate) fn external_modules_unsupported(span: SpanId) -> ReifyDiagnostic<Critical> {
     let mut diagnostic =
         Diagnostic::new(ReifyDiagnosticCategory::UnsupportedFeature, Critical::ERROR)
@@ -96,7 +96,7 @@ pub(crate) fn external_modules_unsupported(span: SpanId) -> ReifyDiagnostic<Crit
     diagnostic
 }
 
-/// Creates a diagnostic for field index parsing errors
+/// Creates a diagnostic for field index parsing errors.
 #[coverage(off)] // reason: constructing a tuple with that magnitude is infeasible in a test-case (or ever really)
 pub(crate) fn field_index_too_large(span: SpanId, field_name: Symbol) -> ReifyDiagnostic {
     let mut diagnostic =
@@ -115,7 +115,7 @@ pub(crate) fn field_index_too_large(span: SpanId, field_name: Symbol) -> ReifyDi
 
 // Variable Mapping ICEs
 
-/// ICE: Only local variables should be used in local context
+/// ICE: Only local variables should be used in local context.
 #[coverage(off)]
 pub(crate) fn expected_local_variable(span: SpanId) -> ReifyDiagnostic {
     let mut diagnostic = Diagnostic::new(ReifyDiagnosticCategory::VariableMapping, Severity::Bug)
@@ -128,7 +128,7 @@ pub(crate) fn expected_local_variable(span: SpanId) -> ReifyDiagnostic {
     diagnostic
 }
 
-/// ICE: Local exists verification failed
+/// ICE: Local exists verification failed.
 #[coverage(off)]
 pub(crate) fn local_variable_unmapped(span: SpanId) -> ReifyDiagnostic {
     let mut diagnostic = Diagnostic::new(ReifyDiagnosticCategory::VariableMapping, Severity::Bug)
@@ -143,7 +143,7 @@ pub(crate) fn local_variable_unmapped(span: SpanId) -> ReifyDiagnostic {
 
 // HIR Invariant ICEs
 
-/// ICE: HIR after thunking should have identifier as outer return
+/// ICE: HIR after thunking should have identifier as outer return.
 #[coverage(off)]
 pub(crate) fn expected_anf_variable(span: SpanId) -> ReifyDiagnostic<Critical> {
     let mut diagnostic = Diagnostic::new(ReifyDiagnosticCategory::HirInvariant, Critical::BUG)
@@ -156,7 +156,7 @@ pub(crate) fn expected_anf_variable(span: SpanId) -> ReifyDiagnostic<Critical> {
     diagnostic
 }
 
-/// ICE: HIR in ANF should not have nested let bindings
+/// ICE: HIR in ANF should not have nested let bindings.
 #[coverage(off)]
 pub(crate) fn nested_let_bindings_in_anf(span: SpanId) -> ReifyDiagnostic {
     let mut diagnostic = Diagnostic::new(ReifyDiagnosticCategory::HirInvariant, Severity::Bug)
@@ -169,7 +169,7 @@ pub(crate) fn nested_let_bindings_in_anf(span: SpanId) -> ReifyDiagnostic {
     diagnostic
 }
 
-/// ICE: Assertions should not exist in HIR after ANF conversion
+/// ICE: Assertions should not exist in HIR after ANF conversion.
 #[coverage(off)]
 pub(crate) fn unexpected_assertion(span: SpanId) -> ReifyDiagnostic {
     let mut diagnostic = Diagnostic::new(ReifyDiagnosticCategory::HirInvariant, Severity::Bug)
@@ -182,7 +182,7 @@ pub(crate) fn unexpected_assertion(span: SpanId) -> ReifyDiagnostic {
     diagnostic
 }
 
-/// ICE: All top-level bindings must be thunks
+/// ICE: All top-level bindings must be thunks.
 #[coverage(off)]
 pub(crate) fn expected_anf_thunk(span: SpanId) -> ReifyDiagnostic {
     let mut diagnostic = Diagnostic::new(ReifyDiagnosticCategory::HirInvariant, Severity::Bug)
@@ -195,7 +195,7 @@ pub(crate) fn expected_anf_thunk(span: SpanId) -> ReifyDiagnostic {
     diagnostic
 }
 
-/// ICE: Local variable must be mapped to a thunk
+/// ICE: Local variable must be mapped to a thunk.
 #[coverage(off)]
 pub(crate) fn local_not_thunk(span: SpanId) -> ReifyDiagnostic<Critical> {
     let mut diagnostic = Diagnostic::new(ReifyDiagnosticCategory::HirInvariant, Critical::BUG)
@@ -208,7 +208,7 @@ pub(crate) fn local_not_thunk(span: SpanId) -> ReifyDiagnostic<Critical> {
     diagnostic
 }
 
-/// ICE: Indexing non-indexable type should be caught by type checker
+/// ICE: Indexing non-indexable type should be caught by type checker.
 #[coverage(off)]
 pub(crate) fn type_cannot_be_indexed(span: SpanId) -> ReifyDiagnostic {
     let mut diagnostic = Diagnostic::new(ReifyDiagnosticCategory::TypeInvariant, Severity::Bug)
@@ -221,7 +221,7 @@ pub(crate) fn type_cannot_be_indexed(span: SpanId) -> ReifyDiagnostic {
     diagnostic
 }
 
-/// ICE: Expected closure filter in graph operations
+/// ICE: Expected closure filter in graph operations.
 #[coverage(off)]
 pub(crate) fn expected_closure_filter(span: SpanId) -> ReifyDiagnostic {
     let mut diagnostic = Diagnostic::new(ReifyDiagnosticCategory::TypeInvariant, Severity::Bug)
@@ -236,7 +236,7 @@ pub(crate) fn expected_closure_filter(span: SpanId) -> ReifyDiagnostic {
 
 // Call Convention ICEs
 
-/// ICE: Fat calls on constants are not supported
+/// ICE: Fat calls on constants are not supported.
 #[coverage(off)]
 pub(crate) fn fat_call_on_constant(span: SpanId) -> ReifyDiagnostic {
     let mut diagnostic = Diagnostic::new(ReifyDiagnosticCategory::CallConvention, Severity::Bug)

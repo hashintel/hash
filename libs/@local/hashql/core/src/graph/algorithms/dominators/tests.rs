@@ -1,5 +1,5 @@
 //! This file is derived from the Rust compiler source code.
-//! Source: <https://github.com/rust-lang/rust/blob/42ec52babac2cbf2bb2b9d794f980cbcb3ebe413/compiler/rustc_data_structures/src/graph/tests.rs>
+//! Source: <https://github.com/rust-lang/rust/blob/42ec52babac2cbf2bb2b9d794f980cbcb3ebe413/compiler/rustc_data_structures/src/graph/tests.rs>.
 //!
 //! Originally dual-licensed under either of:
 //!   - Apache License, Version 2.0 (see LICENSE-APACHE.md or <https://www.apache.org/licenses/LICENSE-2.0>)

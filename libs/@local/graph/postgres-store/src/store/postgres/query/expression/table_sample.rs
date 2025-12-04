@@ -55,7 +55,7 @@ impl Transpile for SamplingMethod {
 ///
 /// # Transpilation
 ///
-/// Transpiles to: `TABLESAMPLE method(percentage) [ REPEATABLE(seed) ]`
+/// Transpiles to: `TABLESAMPLE method(percentage) [ REPEATABLE(seed) ]`.
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub struct TableSample {
     /// The sampling method to use (BERNOULLI or SYSTEM).

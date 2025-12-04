@@ -13,13 +13,13 @@ pub struct Args {
     #[command(subcommand)]
     subcommand: subcommand::Subcommand,
 
-    /// Tracing/logging configuration
+    /// Tracing/logging configuration.
     #[clap(flatten)]
     tracing_config: TracingConfig,
 }
 
 impl Args {
-    /// Run the CLI
+    /// Run the CLI.
     ///
     /// # Errors
     ///

@@ -898,11 +898,11 @@ impl<'de> Visitor<'de> for EntityQuerySortingVisitor {
 }
 
 impl<'de: 'p, 'p> EntityQueryPath<'p> {
-    /// Deserializes an [`EntityQueryPath`] from a string sequence represeting sorting keys
+    /// Deserializes an [`EntityQueryPath`] from a string sequence represeting sorting keys.
     ///
     /// # Errors
     ///
-    /// If the sequence could not be deserialized
+    /// If the sequence could not be deserialized.
     pub fn deserialize_from_sorting_tokens<D>(deserializer: D) -> Result<Self, D::Error>
     where
         D: Deserializer<'de>,

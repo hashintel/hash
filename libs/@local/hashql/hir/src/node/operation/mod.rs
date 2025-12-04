@@ -17,12 +17,12 @@ mod unary;
 /// in HashQL, enabling computation and transformation of values.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum Operation<'heap> {
-    /// Operations related to types (assertions and constructors)
+    /// Operations related to types (assertions and constructors).
     Type(TypeOperation<'heap>),
-    /// Operations with two operands (arithmetic, comparison, logic)
+    /// Operations with two operands (arithmetic, comparison, logic).
     Binary(BinaryOperation<'heap>),
-    /// Operations with a single operand (negation, not)
+    /// Operations with a single operand (negation, not).
     Unary(UnaryOperation<'heap>, !),
-    /// Operations that work with externally supplied input values
+    /// Operations that work with externally supplied input values.
     Input(InputOperation<'heap>),
 }

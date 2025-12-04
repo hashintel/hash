@@ -1,4 +1,4 @@
-//! Hierarchical AST node formatter
+//! Hierarchical AST node formatter.
 //!
 //! Provides a structured, hierarchical text representation of AST nodes with detailed information
 //! about each node's properties, identifiers, and relationships. This format is designed for

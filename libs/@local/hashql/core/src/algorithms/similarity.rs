@@ -278,7 +278,7 @@ mod tests {
     use super::*;
     use crate::{heap::Heap, symbol::Symbol};
 
-    /// Helper function to create symbols from string literals for testing
+    /// Helper function to create symbols from string literals for testing.
     fn collect_symbols(
         heap: &Heap,
         strings: impl IntoIterator<Item: AsRef<str>>,
@@ -289,7 +289,7 @@ mod tests {
             .collect()
     }
 
-    /// Helper function to extract string representations from symbol results
+    /// Helper function to extract string representations from symbol results.
     fn collect_strings<'heap>(
         symbols: impl IntoIterator<Item: AsRef<Symbol<'heap>>>,
     ) -> Vec<&'heap str> {

@@ -54,15 +54,15 @@ impl D2Buffer {
 /// - `S`: A source lookup implementing [`SourceLookup`] for symbol resolution
 /// - `D`: A data flow lookup implementing [`DataFlowLookup`] for analysis data
 pub struct D2Format<'fmt, 'heap, W, S, D> {
-    /// The writer where D2 output will be written
+    /// The writer where D2 output will be written.
     pub writer: W,
-    /// Source lookup for resolving symbols and identifiers
+    /// Source lookup for resolving symbols and identifiers.
     pub sources: S,
-    /// Data flow analysis lookup for auxiliary columns
+    /// Data flow analysis lookup for auxiliary columns.
     pub dataflow: D,
-    /// Buffer used for text formatting
+    /// Buffer used for text formatting.
     pub buffer: D2Buffer,
-    /// Type formatter for formatting type information
+    /// Type formatter for formatting type information.
     pub types: TypeFormatter<'fmt, 'fmt, 'heap>,
 }
 

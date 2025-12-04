@@ -27,7 +27,7 @@ pub enum OriginType {
 pub struct OriginProvenance {
     #[serde(flatten)]
     pub ty: OriginType,
-    /// A unique identifier for the origin, if one is available
+    /// A unique identifier for the origin, if one is available.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub id: Option<String>,
     /// The origin version, in whatever format the origin natively provides.

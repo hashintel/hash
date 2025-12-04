@@ -137,7 +137,7 @@
 //! when execution crosses between crates. At this point the [`Report`] should start to operate in a
 //! new context. To change the context, [`Report::change_context()`] is used:
 //!
-//! (Again, for convenience, using [`ResultExt`] will do that on the [`Err`] variant)
+//! (Again, for convenience, using [`ResultExt`] will do that on the [`Err`] variant.)
 //!
 //! ```rust
 //! # use std::{fmt, fs, io, path::Path};
@@ -487,6 +487,8 @@
     )))
 )]
 #![allow(unsafe_code)]
+// There is a false positive for the badge
+#![allow(clippy::doc_paragraphs_missing_punctuation)]
 // This is an error handling library producing Results, not Errors
 #![allow(clippy::missing_errors_doc)]
 

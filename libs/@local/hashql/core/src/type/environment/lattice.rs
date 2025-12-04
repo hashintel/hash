@@ -142,7 +142,7 @@ impl<'env, 'heap> LatticeEnvironment<'env, 'heap> {
     /// - Otherwise, we form a union type (standard lattice behavior)
     ///
     /// See <https://en.wikipedia.org/wiki/Coinduction> and
-    /// Chapter 21.1 of "Types and Programming Languages" by Benjamin C. Pierce
+    /// Chapter 21.1 of "Types and Programming Languages" by Benjamin C. Pierce.
     fn join_recursive(
         &mut self,
         lhs: Type<'heap>,
@@ -255,7 +255,7 @@ impl<'env, 'heap> LatticeEnvironment<'env, 'heap> {
     /// - Otherwise, we form an intersection type (standard lattice behavior)
     ///
     /// See <https://en.wikipedia.org/wiki/Coinduction> and
-    /// Chapter 21.1 of "Types and Programming Languages" by Benjamin C. Pierce
+    /// Chapter 21.1 of "Types and Programming Languages" by Benjamin C. Pierce.
     fn meet_recursive(
         &mut self,
         lhs: Type<'heap>,

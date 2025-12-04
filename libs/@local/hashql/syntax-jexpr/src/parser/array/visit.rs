@@ -21,7 +21,7 @@ use crate::{
 const EXPECTED_ARRAY_SEP: SyntaxKindSet =
     SyntaxKindSet::from_slice(&[SyntaxKind::Comma, SyntaxKind::RBracket]);
 
-/// Parse an array from the lexer
+/// Parse an array from the lexer.
 ///
 /// Assumes that the lexer has already consumed the opening bracket.
 ///

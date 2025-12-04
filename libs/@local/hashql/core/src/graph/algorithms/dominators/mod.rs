@@ -1,5 +1,5 @@
 //! This file is derived from the Rust compiler source code.
-//! Source: <https://github.com/rust-lang/rust/blob/42ec52babac2cbf2bb2b9d794f980cbcb3ebe413/compiler/rustc_data_structures/src/graph/mod.rs>
+//! Source: <https://github.com/rust-lang/rust/blob/42ec52babac2cbf2bb2b9d794f980cbcb3ebe413/compiler/rustc_data_structures/src/graph/mod.rs>.
 //!
 //! Originally dual-licensed under either of:
 //!   - Apache License, Version 2.0 (see LICENSE-APACHE.md or <https://www.apache.org/licenses/LICENSE-2.0>)
@@ -23,12 +23,12 @@
 //!
 //! Algorithm based on Loukas Georgiadis,
 //! "Linear-Time Algorithms for Dominators and Related Problems",
-//! <https://www.cs.princeton.edu/techreports/2005/737.pdf>
+//! <https://www.cs.princeton.edu/techreports/2005/737.pdf>.
 //!
 //! Additionally useful is the original Lengauer-Tarjan paper on this subject,
 //! "A Fast Algorithm for Finding Dominators in a Flowgraph"
 //! Thomas Lengauer and Robert Endre Tarjan.
-//! <https://www.cs.princeton.edu/courses/archive/spr03/cs423/download/dominators.pdf>
+//! <https://www.cs.princeton.edu/courses/archive/spr03/cs423/download/dominators.pdf>.
 #![expect(clippy::min_ident_chars, reason = "vendored in code")]
 use alloc::alloc::Global;
 use core::{cmp, ops};

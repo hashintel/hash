@@ -99,7 +99,7 @@ pub enum PropertyTypeQueryPath<'p> {
     /// # Ok::<(), serde_json::Error>(())
     /// ```
     Title,
-    /// Corresponds to [`PropertyType::description()`]
+    /// Corresponds to [`PropertyType::description()`].
     ///
     /// [`PropertyType::description()`]: type_system::ontology::property_type::PropertyType::description
     ///

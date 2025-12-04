@@ -1,4 +1,4 @@
-//! TODO: DOC
+//! TODO: DOC.
 
 use core::{error::Error, fmt};
 

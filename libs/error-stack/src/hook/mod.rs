@@ -215,7 +215,7 @@ impl Report<()> {
         lock.insert(hook);
     }
 
-    /// Returns the hook that was previously set by [`install_debug_hook`]
+    /// Returns the hook that was previously set by [`install_debug_hook`].
     ///
     /// [`install_debug_hook`]: Self::install_debug_hook
     #[cfg(any(feature = "std", feature = "hooks"))]

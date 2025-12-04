@@ -166,7 +166,7 @@ impl PropertyWithMetadata {
     ///
     /// # Errors
     ///
-    /// Returns an error if the patch operation failed
+    /// Returns an error if the patch operation failed.
     pub fn patch(
         &mut self,
         operations: impl IntoIterator<Item = PropertyPatchOperation>,

@@ -42,7 +42,7 @@ use super::graph::{EdgeKind, Graph};
 ///
 /// Kahn, A. B. (1962). "Topological sorting of large networks".
 /// Communications of the ACM, 5(11), 558–562.
-/// DOI: [10.1145/368996.369025](https://doi.org/10.1145/368996.369025)
+/// DOI: [10.1145/368996.369025](https://doi.org/10.1145/368996.369025).
 #[expect(clippy::cast_possible_truncation)]
 pub(crate) fn topological_sort_in<A>(
     graph: &Graph,

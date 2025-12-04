@@ -392,7 +392,7 @@ where
     ///
     /// # Returns
     ///
-    /// The complete reconstructed object of type `T`
+    /// The complete reconstructed object of type `T`.
     ///
     /// # Examples
     ///
@@ -434,7 +434,7 @@ where
     ///
     /// # Returns
     ///
-    /// A provisioned ID that can be used with `intern_provisioned`
+    /// A provisioned ID that can be used with `intern_provisioned`.
     ///
     /// # Examples
     ///
@@ -502,7 +502,7 @@ where
     ///
     /// # Returns
     ///
-    /// The complete reconstructed object of type `T`
+    /// The complete reconstructed object of type `T`.
     pub fn intern_provisioned(&self, id: Provisioned<T::Id>, partial: T::Partial) -> T {
         self.intern_parts(Some(id.0), partial)
     }
@@ -672,7 +672,7 @@ where
     ///
     /// # Panics
     ///
-    /// Panics if no item with the given ID exists in the map
+    /// Panics if no item with the given ID exists in the map.
     ///
     /// # Examples
     ///

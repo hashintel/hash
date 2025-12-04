@@ -1,4 +1,4 @@
-//! Ontology module containing type definitions and validation logic
+//! Ontology module containing type definitions and validation logic.
 //!
 //! The ontology module is the core of the Block Protocol Type System, providing:
 //!

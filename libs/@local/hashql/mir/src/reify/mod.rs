@@ -68,7 +68,7 @@ use crate::{
 pub struct ReifyContext<'mir, 'hir, 'env, 'heap> {
     /// Mutable reference to the collection of MIR bodies being generated.
     pub bodies: &'mir mut DefIdVec<Body<'heap>>,
-    /// MIR context
+    /// MIR context.
     pub mir: &'mir mut MirContext<'env, 'heap>,
     /// HIR context containing the source nodes and variable mappings.
     pub hir: &'hir HirContext<'hir, 'heap>,

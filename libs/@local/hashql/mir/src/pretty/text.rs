@@ -62,13 +62,13 @@ pub(crate) struct HighlightBody<'def>(pub &'def [DefId]);
 /// - `S`: A source lookup implementing [`SourceLookup`] for symbol resolution
 /// - `T`: A type which implements [`AsMut<TypeFormatter>`] for type information
 pub struct TextFormat<W, S, T> {
-    /// The writer where formatted text will be written
+    /// The writer where formatted text will be written.
     pub writer: W,
-    /// Amount of indention per level
+    /// Amount of indention per level.
     pub indent: usize,
-    /// Source lookup for resolving symbols and identifiers
+    /// Source lookup for resolving symbols and identifiers.
     pub sources: S,
-    /// Type formatter for formatting type information
+    /// Type formatter for formatting type information.
     pub types: T,
 }
 

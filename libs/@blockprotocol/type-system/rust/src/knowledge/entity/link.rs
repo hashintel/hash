@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 use super::EntityId;
 use crate::knowledge::{Confidence, property::metadata::PropertyProvenance};
 
-/// The associated information for 'Link' entities
+/// The associated information for 'Link' entities.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[cfg_attr(target_arch = "wasm32", derive(tsify_next::Tsify))]
