@@ -1,5 +1,3 @@
-//! TODO: DOC.
-
 use core::{error::Error, fmt};
 
 use error_stack::{Report, ResultExt as _};
