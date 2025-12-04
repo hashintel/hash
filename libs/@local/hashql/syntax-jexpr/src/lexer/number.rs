@@ -29,9 +29,9 @@ pub(crate) enum ParseNumberErrorKind {
     ExpectedDigit,
     /// Found an unexpected digit, typically a leading zero followed by more digits (e.g., `007`).
     UnexpectedDigit(u8),
-    /// Found an unexpected dot
+    /// Found an unexpected dot.
     UnexpectedDot,
-    /// Found an unexpected exponent
+    /// Found an unexpected exponent.
     UnexpectedExponent,
 }
 
