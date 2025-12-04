@@ -167,10 +167,7 @@ impl<'source> Number<'source> {
     ///
     /// # Errors
     ///
-    /// - [`ParseNumberErrorKind::Eof`] if the input is empty
-    /// - [`ParseNumberErrorKind::ExpectedDigit`] if a digit was expected but not found
-    /// - [`ParseNumberErrorKind::UnexpectedDigit`] if an invalid digit sequence was found (e.g.,
-    ///   leading zeros)
+    /// If the input constitutes an invalid JSON number.
     pub(crate) fn parse(value: &'source [u8]) -> (u32, Result<Self, ParseNumberError>) {
         if value.is_empty() {
             return (0, Err(ParseNumberError::eof()));
