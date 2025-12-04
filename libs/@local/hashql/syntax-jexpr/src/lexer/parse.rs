@@ -1,7 +1,7 @@
 use alloc::{borrow::Cow, sync::Arc};
 
 use hashql_core::span::{TextRange, TextSize};
-use hifijson::{SliceLexer, num::Lex as _, str::LexAlloc as _, token::Lex as _};
+use hifijson::{SliceLexer, str::LexAlloc as _};
 use logos::Lexer;
 
 use super::{Number, error::LexerError, token_kind::TokenKind};
@@ -48,36 +48,15 @@ pub(crate) fn parse_number<'source>(
     let span = lexer.span();
     // This time we cannot automatically exclude the first character
     let slice = &lexer.source()[span.start..];
-    let mut consumed = 0;
-    let mut lex = SliceLexer::new(slice);
+    let (consumed, number) = Number::parse(slice);
 
-    // The lexer doesn't check for `-` as the first character.
-    if slice[0] == b'-' {
-        consumed += 1;
-        lex.discarded();
-    }
+    let number = number.map_err(|mut error| {
+        error.range += TextSize::new(span.start as u32);
 
-    let parts = lex
-        .num_foreach(
-            #[inline]
-            |_| {
-                consumed += 1;
-            },
-        )
-        .map_err(|error| {
-            let range = TextRange::empty(TextSize::from((span.start + consumed) as u32));
-
-            LexerError::Number {
-                error: Arc::new(error),
-                range,
-            }
-        })?;
+        LexerError::Number(error)
+    })?;
 
     // The first character is already consumed
-    lexer.bump(consumed - 1);
-
-    // SAFETY: The lexer guarantees that the value is valid UTF-8, as a number can only contain
-    // ASCII characters
-    #[expect(unsafe_code)]
-    Ok(unsafe { Number::from_parts_unchecked(&slice[..consumed], parts.into()) })
+    lexer.bump((consumed - 1) as usize);
+    Ok(number)
 }

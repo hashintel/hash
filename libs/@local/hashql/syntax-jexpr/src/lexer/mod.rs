@@ -6,9 +6,10 @@ use text_size::{TextRange, TextSize};
 pub(crate) use self::number::Number;
 use self::{
     error::{
-        LexerDiagnosticCategory, LexerError, from_hifijson_num_error, from_hifijson_str_error,
-        from_invalid_utf8_error, from_unrecognized_character_error,
+        LexerDiagnosticCategory, LexerError, from_hifijson_str_error, from_invalid_utf8_error,
+        from_number_error, from_unrecognized_character_error,
     },
+    number::ParseNumberError,
     token::Token,
     token_kind::TokenKind,
 };
@@ -75,10 +76,10 @@ impl<'source> Lexer<'source> {
 
         match kind {
             Ok(kind) => Some(Ok(Token { kind, span })),
-            Err(LexerError::Number { error, range }) => {
+            Err(LexerError::Number(ParseNumberError { kind, range })) => {
                 let span = context.spans.insert(Span::new(range), SpanAncestors::EMPTY);
 
-                Some(Err(from_hifijson_num_error(&error, span)))
+                Some(Err(from_number_error(kind, span)))
             }
             Err(LexerError::String { error, range }) => {
                 let span = context.spans.insert(Span::new(range), SpanAncestors::EMPTY);
