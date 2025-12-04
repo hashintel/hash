@@ -1,4 +1,5 @@
 import { css } from "@hashintel/ds-helpers/css";
+import { refractive } from "@hashintel/refractive";
 import { useEffect } from "react";
 
 import type { EditorState } from "../../../../state/editor-store";
@@ -43,15 +44,19 @@ export const BottomBar: React.FC<BottomBarProps> = ({
         zIndex: 1000,
       }}
     >
-      <div
+      <refractive.div
         className={css({
           padding: "spacing.4",
           paddingX: "spacing.6",
-          borderRadius: "[12px]",
-          backgroundColor: "[rgba(255, 255, 255, 0.8)]",
+          backgroundColor: "[rgba(255, 255, 255, 0.6)]",
           boxShadow: "[0 4px 16px rgba(0, 0, 0, 0.15)]",
-          backdropFilter: "[blur(4px)]",
         })}
+        refraction={{
+          radius: 12,
+          blur: 3,
+          bezelWidth: 22,
+          glassThickness: 100,
+        }}
       >
         <div
           className={css({
@@ -67,7 +72,7 @@ export const BottomBar: React.FC<BottomBarProps> = ({
           />
           {mode === "simulate" && <SimulationControls />}
         </div>
-      </div>
+      </refractive.div>
     </div>
   );
 };

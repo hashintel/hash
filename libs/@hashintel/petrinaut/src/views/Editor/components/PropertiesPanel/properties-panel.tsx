@@ -264,14 +264,28 @@ export const PropertiesPanel: React.FC = () => {
             width: "[100%]",
             backgroundColor: "[rgba(255, 255, 255, 0.7)]",
             boxShadow: "0 4px 30px rgba(0, 0, 0, 0.15)",
-            border: "1px solid rgba(255, 255, 255, 0.8)",
-            backdropFilter: "[blur(12px)]",
+            border: "1px solid rgba(255, 255, 255, 0.3)",
           })}
           style={{
             borderRadius: 16,
             overflow: "hidden",
           }}
         >
+          {/* Elements with backdrop-filter should not be parent of Monaco Editor,
+              otherwise Monaco's Hover Widget do not show */}
+          <div
+            style={{
+              borderRadius: 16,
+              position: "absolute",
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              pointerEvents: "none",
+              backdropFilter: "blur(24px)",
+            }}
+          />
+
           <div
             style={{
               position: "relative",

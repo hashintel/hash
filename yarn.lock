@@ -8258,6 +8258,7 @@ __metadata:
     "@dnd-kit/utilities": "npm:3.2.2"
     "@hashintel/ds-components": "npm:0.0.1-c"
     "@hashintel/ds-helpers": "npm:0.0.1-b"
+    "@hashintel/refractive": "npm:0.0.0"
     "@local/eslint": "npm:0.0.0-private"
     "@mantine/hooks": "npm:8.3.5"
     "@monaco-editor/react": "npm:4.8.0-rc.3"
