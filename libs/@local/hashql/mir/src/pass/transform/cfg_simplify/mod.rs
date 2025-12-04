@@ -72,9 +72,9 @@ use crate::{
 pub struct CfgSimplify {
     /// Snapshot of reachable blocks before a simplification, used to detect newly dead blocks.
     previous_reverse_postorder: Vec<BasicBlockId>,
-    /// Current reachable blocks
+    /// Current reachable blocks.
     reverse_postorder: FastHashSet<BasicBlockId>,
-    /// Dead block elimination pass
+    /// Dead block elimination pass.
     dbe: DeadBlockElimination,
 }
 

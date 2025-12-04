@@ -332,7 +332,7 @@ mod full {
         assert_snapshot!(format!("{report:#?}"));
     }
 
-    /// Generate the `Debug` for
+    /// Generate the `Debug` for:
     ///
     /// ```text
     ///         [A] B
