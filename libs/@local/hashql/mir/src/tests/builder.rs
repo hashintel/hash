@@ -656,7 +656,7 @@ impl<'env, 'heap> RValueBuilder<'env, 'heap> {
 
     /// Creates a unary operation r-value.
     ///
-    /// Use the [`op!`] macro for the operator: `rv.unary(op![!], operand)`
+    /// Use the [`op!`] macro for the operator: `rv.unary(op![!], operand)`.
     #[must_use]
     pub(crate) fn unary(self, op: UnOp, operand: impl Into<Operand<'heap>>) -> RValue<'heap> {
         RValue::Unary(Unary {
