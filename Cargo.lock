@@ -3756,9 +3756,9 @@ dependencies = [
  "hashql-diagnostics",
  "hifijson",
  "insta",
- "json-number",
  "jsonptr",
  "logos",
+ "rstest",
  "serde",
  "serde_json",
  "simple-mermaid",
@@ -3837,9 +3837,9 @@ dependencies = [
 
 [[package]]
 name = "hifijson"
-version = "0.2.3"
+version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0a7763b98ba8a24f59e698bf9ab197e7676c640d6455d1580b4ce7dc560f0f0d"
+checksum = "e31b7adc036c0d7e45ccaf90b90464df98bcf74b706ad5178750d442268ca17e"
 
 [[package]]
 name = "hkdf"
@@ -4456,15 +4456,6 @@ name = "json-escape-simd"
 version = "3.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a3c2a6c0b4b5637c41719973ef40c6a1cf564f9db6958350de6193fbee9c23f5"
-
-[[package]]
-name = "json-number"
-version = "0.4.9"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "66994b2bac615128d07a1e4527ad29e98b004dd1a1769e7b8fbc1173ccf43006"
-dependencies = [
- "lexical",
-]
 
 [[package]]
 name = "jsonptr"

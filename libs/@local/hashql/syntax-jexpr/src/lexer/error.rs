@@ -9,7 +9,11 @@ use hashql_diagnostics::{
 };
 use text_size::TextRange;
 
-use super::{syntax_kind::SyntaxKind, syntax_kind_set::SyntaxKindSet};
+use super::{
+    number::{ParseNumberError, ParseNumberErrorKind},
+    syntax_kind::SyntaxKind,
+    syntax_kind_set::SyntaxKindSet,
+};
 use crate::lexer::syntax_kind_set::Conjunction;
 
 pub(crate) type LexerDiagnostic = Diagnostic<LexerDiagnosticCategory, SpanId>;
@@ -192,16 +196,9 @@ pub(crate) fn unexpected_token(
 const INVALID_NUMBER_HELP: &str = "JSON numbers must contain digits and follow the format: \
                                    `[-]digits[.digits][(e|E)[+|-]digits]`";
 
-pub(crate) fn from_hifijson_num_error(
-    error: &hifijson::num::Error,
-    span: SpanId,
-) -> LexerDiagnostic {
-    let message = match error {
-        hifijson::num::Error::ExpectedDigit => "Missing digit in number",
-    };
-
+pub(crate) fn from_number_error(error: ParseNumberErrorKind, span: SpanId) -> LexerDiagnostic {
     let mut diagnostic = Diagnostic::new(LexerDiagnosticCategory::InvalidNumber, Severity::Error)
-        .primary(Label::new(span, message));
+        .primary(Label::new(span, error.to_string()));
     diagnostic.add_message(Message::help(INVALID_NUMBER_HELP));
 
     diagnostic
@@ -240,10 +237,7 @@ pub(crate) enum LexerError {
         range: TextRange,
     },
 
-    Number {
-        error: Arc<hifijson::num::Error>,
-        range: TextRange,
-    },
+    Number(ParseNumberError),
 
     #[default]
     UnrecognizedCharacter,

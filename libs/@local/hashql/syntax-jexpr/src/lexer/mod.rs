@@ -3,17 +3,20 @@ use hashql_diagnostics::Diagnostic;
 use logos::SpannedIter;
 use text_size::{TextRange, TextSize};
 
+pub(crate) use self::number::Number;
 use self::{
     error::{
-        LexerDiagnosticCategory, LexerError, from_hifijson_num_error, from_hifijson_str_error,
-        from_invalid_utf8_error, from_unrecognized_character_error,
+        LexerDiagnosticCategory, LexerError, from_hifijson_str_error, from_invalid_utf8_error,
+        from_number_error, from_unrecognized_character_error,
     },
+    number::ParseNumberError,
     token::Token,
     token_kind::TokenKind,
 };
 use crate::span::Span;
 
 pub(crate) mod error;
+mod number;
 mod parse;
 pub(crate) mod syntax_kind;
 pub(crate) mod syntax_kind_set;
@@ -73,10 +76,10 @@ impl<'source> Lexer<'source> {
 
         match kind {
             Ok(kind) => Some(Ok(Token { kind, span })),
-            Err(LexerError::Number { error, range }) => {
+            Err(LexerError::Number(ParseNumberError { kind, range })) => {
                 let span = context.spans.insert(Span::new(range), SpanAncestors::EMPTY);
 
-                Some(Err(from_hifijson_num_error(&error, span)))
+                Some(Err(from_number_error(kind, span)))
             }
             Err(LexerError::String { error, range }) => {
                 let span = context.spans.insert(Span::new(range), SpanAncestors::EMPTY);
@@ -311,6 +314,7 @@ mod test {
         invalid_exponent("1e") => "Invalid exponent format",
         plus_prefix("+42") => "Number with plus prefix",
         double_minus("--42") => "Number with double minus",
+        leading_zero("042") => "Number with leading zero",
 
         // Structure errors
         unrecognized_character(r#"{"ferris": 🦀}"#) => "Unrecognized emoji character",

@@ -70,7 +70,6 @@ impl<'heap, 'spans> Parser<'heap, 'spans> {
 
 #[cfg(test)]
 mod tests {
-
     use hashql_ast::format::SyntaxDump as _;
     use hashql_core::{heap::Heap, span::SpanTable};
     use hashql_diagnostics::source::SourceId;

@@ -6,6 +6,6 @@ expression: "\"\\uD800\""
 error[lexer::invalid-string]: Invalid string literal
   ╭▸ 
 1 │ "\uD800"
-  │         ━ Invalid escape sequence
+  │        ━ Invalid escape sequence
   │
   ╰ help: expected low surrogate
