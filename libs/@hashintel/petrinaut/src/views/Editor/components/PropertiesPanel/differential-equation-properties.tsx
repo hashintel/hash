@@ -435,6 +435,11 @@ export const DifferentialEquationProperties: React.FC<
             overflow: "hidden",
             flex: 1,
             minHeight: 0,
+            filter:
+              globalMode === "simulate"
+                ? "grayscale(20%) brightness(98%)"
+                : "none",
+            pointerEvents: globalMode === "simulate" ? "none" : "auto",
           }}
         >
           <MonacoEditor
