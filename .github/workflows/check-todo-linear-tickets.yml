@@ -36,6 +36,15 @@ jobs:
             echo "has_tickets=true" >> $GITHUB_OUTPUT
           fi
 
+      - name: Check ripgrep is installed
+        if: steps.extract-tickets.outputs.has_tickets == 'true'
+        run: |
+          if ! command -v rg &> /dev/null; then
+            echo "::error::ripgrep (rg) is not installed. Please install it to run this check."
+            exit 1
+          fi
+          echo "ripgrep version: $(rg --version | head -1)"
+
       - name: Search for TODO comments with ticket IDs
         id: search-todos
         if: steps.extract-tickets.outputs.has_tickets == 'true'
