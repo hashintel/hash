@@ -1,0 +1,108 @@
+name: Check TODO Linear Tickets
+
+on:
+  pull_request:
+    types: [opened, edited, synchronize]
+
+jobs:
+  check-todos:
+    name: Check for @todo comments with PR ticket IDs
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.1
+
+      - name: Extract Linear ticket IDs from PR title
+        id: extract-tickets
+        env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
+        run: |
+          echo "PR Title: $PR_TITLE"
+
+          # Extract all H-XXXX patterns from the PR title (case-insensitive)
+          TICKETS=$(echo "$PR_TITLE" | grep -oiE 'H-[0-9]+' | tr '[:lower:]' '[:upper:]' | sort -u | tr '\n' ' ')
+
+          if [[ -z "$TICKETS" ]]; then
+            echo "No Linear ticket IDs found in PR title"
+            echo "tickets=" >> $GITHUB_OUTPUT
+            echo "has_tickets=false" >> $GITHUB_OUTPUT
+          else
+            echo "Found Linear ticket IDs: $TICKETS"
+            echo "tickets=$TICKETS" >> $GITHUB_OUTPUT
+            echo "has_tickets=true" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Search for @todo comments with ticket IDs
+        id: search-todos
+        if: steps.extract-tickets.outputs.has_tickets == 'true'
+        env:
+          TICKETS: ${{ steps.extract-tickets.outputs.tickets }}
+        run: |
+          echo "Searching for @todo comments containing ticket IDs: $TICKETS"
+
+          FOUND_TODOS=""
+          EXIT_CODE=0
+
+          for TICKET in $TICKETS; do
+            echo ""
+            echo "Searching for @todo comments with $TICKET..."
+
+            # Search for @todo comments containing this ticket ID
+            # Using grep with case-insensitive matching for both @todo and the ticket
+            # Exclude the workflow file itself to avoid false positives
+            MATCHES=$(grep -rniE "@todo.*${TICKET}|${TICKET}.*@todo" \
+              --include="*.ts" \
+              --include="*.tsx" \
+              --include="*.js" \
+              --include="*.jsx" \
+              --include="*.rs" \
+              --include="*.py" \
+              --include="*.go" \
+              --include="*.java" \
+              --include="*.c" \
+              --include="*.cpp" \
+              --include="*.h" \
+              --include="*.hpp" \
+              --include="*.md" \
+              --include="*.yaml" \
+              --include="*.yml" \
+              --include="*.json" \
+              --include="*.toml" \
+              --include="*.sql" \
+              --include="*.env" \
+              --include="*.env.*" \
+              --exclude-dir=".git" \
+              --exclude-dir="node_modules" \
+              --exclude-dir="target" \
+              --exclude-dir="dist" \
+              --exclude-dir=".next" \
+              . 2>/dev/null || true)
+
+            if [[ -n "$MATCHES" ]]; then
+              echo "::error::Found @todo comments referencing $TICKET:"
+              echo "$MATCHES"
+              FOUND_TODOS="${FOUND_TODOS}${MATCHES}"$'\n'
+              EXIT_CODE=1
+            else
+              echo "No @todo comments found for $TICKET"
+            fi
+          done
+
+          if [[ $EXIT_CODE -eq 1 ]]; then
+            echo ""
+            echo "::error::TODOs associated with tickets in this PR were found in the codebase."
+            echo "::error::Please resolve these TODOs before merging, as the associated ticket(s) will be marked as done."
+            echo ""
+            echo "### Found @todo comments" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "The following @todo comments reference Linear tickets from this PR's title:" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+            echo "$FOUND_TODOS" >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "Please resolve these TODOs before merging." >> $GITHUB_STEP_SUMMARY
+            exit 1
+          fi
+
+          echo "No @todo comments found for any ticket IDs in the PR title"
