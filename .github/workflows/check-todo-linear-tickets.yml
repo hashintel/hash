@@ -55,14 +55,34 @@ jobs:
 
             # Use ripgrep which respects .gitignore by default
             # Search for multiple patterns (case-insensitive):
-            #   1. TODO/todo with ticket ID on same line (e.g., "@todo H-1234", "TODO: H-1234", "todo!(H-1234)")
-            #   2. Linear URL containing the ticket (e.g., "linear.app/hash/issue/H-1234")
-            # Using -e flag for each pattern to avoid shell escaping issues with |
-            MATCHES=$(rg -in \
+            #
+            # Single-line patterns:
+            #   - TODO with ticket ID: "@todo H-1234", "TODO: H-1234", "TODO(H-1234)", "todo!(H-1234)"
+            #   - Ticket ID with TODO: "H-1234 @todo"
+            #
+            # Multiline patterns (using -U flag):
+            #   - TODO followed by Linear URL within 5 lines
+            #   - Linear URL followed by TODO within 5 lines
+            #
+            # This catches patterns like:
+            #   // TODO: fix this
+            #   // see: https://linear.app/hash/issue/H-1234
+
+            # Single-line matches
+            SINGLE_LINE=$(rg -in \
               -e "todo.*${TICKET}" \
               -e "${TICKET}.*todo" \
-              -e "linear\.app/[^/]+/issue/${TICKET}" \
               . 2>/dev/null || true)
+
+            # Multiline matches: TODO within ~5 lines of Linear URL
+            # Using [\s\S] to match any character including newlines
+            MULTILINE=$(rg -inU \
+              -e "todo[\s\S]{0,300}linear\.app/[^/]+/issue/${TICKET}" \
+              -e "linear\.app/[^/]+/issue/${TICKET}[\s\S]{0,300}todo" \
+              . 2>/dev/null || true)
+
+            # Combine and deduplicate results
+            MATCHES=$(echo -e "${SINGLE_LINE}\n${MULTILINE}" | grep -v '^$' | sort -u || true)
 
             if [[ -n "$MATCHES" ]]; then
               echo "::error::Found TODO comments or Linear URLs referencing $TICKET:"
