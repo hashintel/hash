@@ -5752,7 +5752,7 @@
       },
       "LinkData": {
         "type": "object",
-        "description": "The associated information for 'Link' entities",
+        "description": "The associated information for 'Link' entities.",
         "required": [
           "leftEntityId",
           "rightEntityId"
