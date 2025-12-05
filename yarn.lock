@@ -544,9 +544,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@apps/hash-agentic-workflows@workspace:apps/hash-agentic-workflows":
+"@apps/hash-ai-agent@workspace:apps/hash-ai-agent":
   version: 0.0.0-use.local
-  resolution: "@apps/hash-agentic-workflows@workspace:apps/hash-agentic-workflows"
+  resolution: "@apps/hash-ai-agent@workspace:apps/hash-ai-agent"
   dependencies:
     "@mastra/core": "npm:1.0.0-beta.6"
     "@mastra/evals": "npm:1.0.0-beta.2"
