@@ -459,6 +459,11 @@ impl<N, E, A: Allocator> LinkedGraph<N, E, A> {
     pub fn outgoing_edges(&self, node: NodeId) -> IncidentEdges<'_, N, E, A> {
         IncidentEdges::new(self, Direction::Outgoing, node)
     }
+
+    pub fn clear(&mut self) {
+        self.nodes.clear();
+        self.edges.clear();
+    }
 }
 
 impl<N, E> Default for LinkedGraph<N, E> {
