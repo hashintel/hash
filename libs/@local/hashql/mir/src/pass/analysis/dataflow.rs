@@ -15,11 +15,11 @@ use crate::{
         operand::Operand,
         place::{FieldIndex, Place, PlaceContext, Projection},
         rvalue::{Aggregate, AggregateKind, Apply, ArgIndex, Binary, RValue, Unary},
-        statement::{Assign, Statement, StatementKind},
+        statement::Assign,
     },
     context::MirContext,
     pass::Pass,
-    visit::{self, Visitor},
+    visit::Visitor,
 };
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
