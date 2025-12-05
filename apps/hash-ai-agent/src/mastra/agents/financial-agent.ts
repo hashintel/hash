@@ -1,9 +1,10 @@
 import { Agent } from '@mastra/core/agent';
 import { Memory } from '@mastra/memory';
 import { LibSQLStore, LibSQLVector } from '@mastra/libsql';
-// Memory processors - uncomment when needed
-// import { TokenLimiter, ToolCallFilter } from '@mastra/memory/processors';
+// Memory processors for optimizing token usage
+import { TokenLimiter } from '@mastra/core/processors';
 import { getTransactionsTool } from '../tools/get-transactions-tool';
+import { mcpTools } from './mcp-config';
 
 import { createOpenAI } from '@ai-sdk/openai';
 
@@ -17,15 +18,17 @@ const embedder = openRouterOpenAI.embedding('google/gemini-embedding-001');
 export const financialAgent = new Agent({
   id: 'financial-agent-id',
   name: 'Financial Assistant Agent',
-  instructions: `ROLE DEFINITION
-- You are a financial assistant that helps users analyze their transaction data.
-- Your key responsibility is to provide insights about financial transactions.
-- Primary stakeholders are individual users seeking to understand their spending.
+  instructions: `
+
+ROLE DEFINITION
+- You are a financial assistant that helps users analyze their transaction data, or anything related to the tools you have access to.
+- Your key responsibility is to provide insights about the data returned from your tools.
 
 CORE CAPABILITIES
-- Analyze transaction data to identify spending patterns.
-- Answer questions about specific transactions or vendors.
-- Provide basic summaries of spending by category or time period.
+- Analyze data returned from your tools in accordance wiht the user's request
+- Answer questions about any of that data
+- Provide basic summaries of the data in accordance with the user's request
+- Use the tools you have access to to complete the user's request.
 
 BEHAVIORAL GUIDELINES
 - Maintain a professional and friendly communication style.
@@ -45,13 +48,13 @@ SUCCESS CRITERIA
 - Maintain user trust by ensuring data privacy and security.
 
 TOOLS
-- Use the getTransactions tool to fetch financial transaction data.
-- After calling getTransactions, you MUST analyze the CSV data returned and provide a helpful response to the user.
-- Parse the CSV data to extract transaction details (dates, amounts, vendors, categories).
-- Always provide insights, summaries, or answers based on the transaction data you retrieve.
-- Never just call the tool and stop - always follow up with analysis and a response.`,
+- You have access to various tools that extend your capabilities. Each tool has its own description that explains what it does and when to use it.
+- When using tools, always complete the full task - don't stop after just calling a tool. Analyze the results and provide a helpful response to the user.
+- For multi-step tasks (like composing emails with transaction data), use the appropriate tools in sequence to complete the entire request.
+
+`,
   model: 'openrouter/google/gemini-2.5-flash-lite',
-  tools: { getTransactionsTool },
+  tools: { getTransactionsTool, ...mcpTools }, // Add MCP tools to your agent
   memory: new Memory({
     // Storage adapter for persisting memory data
     storage: new LibSQLStore({
@@ -107,18 +110,15 @@ TOOLS
       // 4. THREAD TITLE GENERATION: Auto-generate conversation titles
       generateTitle: true,
     },
-
-    // 5. MEMORY PROCESSORS: Filter/transform messages before sending to LLM
-    // Uncomment and import processors when needed:
-    // processors: [
-    //   // Remove tool calls from memory to save tokens (optional - keeps memory cleaner)
-    //   // new ToolCallFilter({ exclude: ['getTransactionsTool'] }), // Exclude specific tools
-    //   // new ToolCallFilter(), // Or exclude all tool calls
-    //
-    //   // Limit total tokens from memory to prevent context window overflow
-    //   // Using o200k_base encoding (default, suitable for GPT-4o and similar models)
-    //   new TokenLimiter(127000), // Limit to ~127k tokens (adjust based on your model)
-    //   // Always place TokenLimiter LAST in the processors array
-    // ],
   }),
+  // Input processors: Run after memory processors load history
+  // TokenLimiter prevents context window overflow by limiting tokens from memory
+  inputProcessors: [
+    // Limit total tokens from memory to prevent context window overflow
+    // Using o200k_base encoding (default, suitable for GPT-4o and similar models)
+    // Adjust limit based on your model's context window (Gemini 2.5 Flash Lite has ~1M token context)
+    // Setting to 500k to leave room for the current conversation and tool calls
+    new TokenLimiter(500000), // Limit to ~500k tokens from memory
+    // Always place TokenLimiter LAST in the processors array
+  ],
 });

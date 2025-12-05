@@ -262,6 +262,17 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@apidevtools/json-schema-ref-parser@npm:^14.2.1":
+  version: 14.2.1
+  resolution: "@apidevtools/json-schema-ref-parser@npm:14.2.1"
+  dependencies:
+    js-yaml: "npm:^4.1.0"
+  peerDependencies:
+    "@types/json-schema": ^7.0.15
+  checksum: 10c0/ffc6d0df28c4a7da0b725cd916f92cfcef4efecb1c6054c67534886c7fb2ade7e6f77c3b5a0d6675020326280fe9bbca74e0e9da679590d9f78301cb6ffa0648
+  languageName: node
+  linkType: hard
+
 "@apm-js-collab/code-transformer@npm:^0.8.0":
   version: 0.8.2
   resolution: "@apm-js-collab/code-transformer@npm:0.8.2"
@@ -552,7 +563,9 @@ __metadata:
     "@mastra/evals": "npm:1.0.0-beta.2"
     "@mastra/libsql": "npm:1.0.0-beta.3"
     "@mastra/loggers": "npm:1.0.0-beta.1"
+    "@mastra/mcp": "npm:1.0.0-beta.5"
     "@mastra/memory": "npm:1.0.0-beta.3"
+    "@smithery/sdk": "npm:2.1.0"
     "@types/node": "npm:^24.10.1"
     mastra: "npm:1.0.0-beta.5"
     typescript: "npm:^5.9.3"
@@ -11165,6 +11178,24 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@mastra/mcp@npm:1.0.0-beta.5":
+  version: 1.0.0-beta.5
+  resolution: "@mastra/mcp@npm:1.0.0-beta.5"
+  dependencies:
+    "@apidevtools/json-schema-ref-parser": "npm:^14.2.1"
+    "@modelcontextprotocol/sdk": "npm:^1.17.5"
+    exit-hook: "npm:^4.0.0"
+    fast-deep-equal: "npm:^3.1.3"
+    uuid: "npm:^11.1.0"
+    zod-from-json-schema: "npm:^0.5.0"
+    zod-from-json-schema-v3: "npm:zod-from-json-schema@^0.0.5"
+  peerDependencies:
+    "@mastra/core": ">=1.0.0-0 <2.0.0-0"
+    zod: ^3.25.0 || ^4.0.0
+  checksum: 10c0/5f3b64963947d36d4ea2948496da36a833fa939b5813a7ec47e526327533607363229bbfee9a9e397471374b3bb6e38a20aec305b35f40be597e231977ae8685
+  languageName: node
+  linkType: hard
+
 "@mastra/memory@npm:1.0.0-beta.3":
   version: 1.0.0-beta.3
   resolution: "@mastra/memory@npm:1.0.0-beta.3"
@@ -11350,7 +11381,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@modelcontextprotocol/sdk@npm:^1.17.5":
+"@modelcontextprotocol/sdk@npm:^1.17.5, @modelcontextprotocol/sdk@npm:^1.20.0":
   version: 1.24.3
   resolution: "@modelcontextprotocol/sdk@npm:1.24.3"
   dependencies:
@@ -16844,6 +16875,25 @@ __metadata:
   version: 2.2.0
   resolution: "@sindresorhus/transliterate@npm:2.2.0"
   checksum: 10c0/f6bac130340bf6c4e73e4eb957ca2403e75ad7ce29ee96a2ab99bd68071176739c9f236629e1cf0284f27323a08547b3f8f1362b9d47a30c68ff77a61e456e3f
+  languageName: node
+  linkType: hard
+
+"@smithery/sdk@npm:2.1.0":
+  version: 2.1.0
+  resolution: "@smithery/sdk@npm:2.1.0"
+  dependencies:
+    "@modelcontextprotocol/sdk": "npm:^1.20.0"
+    chalk: "npm:^5.6.2"
+    express: "npm:^5.1.0"
+    jose: "npm:^6.1.0"
+    json-schema: "npm:^0.4.0"
+    lodash: "npm:^4.17.21"
+    okay-error: "npm:^1.0.3"
+    uuid: "npm:^11.0.3"
+    zod-to-json-schema: "npm:^3.24.1"
+  peerDependencies:
+    zod: ">=3.23.8 <4.0.0"
+  checksum: 10c0/766893a825ccf8004c0b6ee050d3540a430a5e796fc5a4edf26d6c1110d263c8cba8e5586d1de45cbe95793e376845c7bcebc1cd06ad10ab4a4a167b3c5c1644
   languageName: node
   linkType: hard
 
@@ -25016,7 +25066,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"chalk@npm:5.6.2, chalk@npm:^5.3.0":
+"chalk@npm:5.6.2, chalk@npm:^5.3.0, chalk@npm:^5.6.2":
   version: 5.6.2
   resolution: "chalk@npm:5.6.2"
   checksum: 10c0/99a4b0f0e7991796b1e7e3f52dceb9137cae2a9dfc8fc0784a550dc4c558e15ab32ed70b14b21b52beb2679b4892b41a0aa44249bcb996f01e125d58477c6976
@@ -29744,6 +29794,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"exit-hook@npm:^4.0.0":
+  version: 4.0.0
+  resolution: "exit-hook@npm:4.0.0"
+  checksum: 10c0/7fb33eaeb9050aee9479da9c93d42b796fb409c40e1d2b6ea2f40786ae7d7db6dc6a0f6ecc7bc24e479f957b7844bcb880044ded73320334743c64e3ecef48d7
+  languageName: node
+  linkType: hard
+
 "expand-template@npm:^2.0.3":
   version: 2.0.3
   resolution: "expand-template@npm:2.0.3"
@@ -29868,6 +29925,42 @@ __metadata:
     utils-merge: "npm:1.0.1"
     vary: "npm:~1.1.2"
   checksum: 10c0/38168fd0a32756600b56e6214afecf4fc79ec28eca7f7a91c2ab8d50df4f47562ca3f9dee412da7f5cea6b1a1544b33b40f9f8586dbacfbdada0fe90dbb10a1f
+  languageName: node
+  linkType: hard
+
+"express@npm:^5.1.0":
+  version: 5.2.1
+  resolution: "express@npm:5.2.1"
+  dependencies:
+    accepts: "npm:^2.0.0"
+    body-parser: "npm:^2.2.1"
+    content-disposition: "npm:^1.0.0"
+    content-type: "npm:^1.0.5"
+    cookie: "npm:^0.7.1"
+    cookie-signature: "npm:^1.2.1"
+    debug: "npm:^4.4.0"
+    depd: "npm:^2.0.0"
+    encodeurl: "npm:^2.0.0"
+    escape-html: "npm:^1.0.3"
+    etag: "npm:^1.8.1"
+    finalhandler: "npm:^2.1.0"
+    fresh: "npm:^2.0.0"
+    http-errors: "npm:^2.0.0"
+    merge-descriptors: "npm:^2.0.0"
+    mime-types: "npm:^3.0.0"
+    on-finished: "npm:^2.4.1"
+    once: "npm:^1.4.0"
+    parseurl: "npm:^1.3.3"
+    proxy-addr: "npm:^2.0.7"
+    qs: "npm:^6.14.0"
+    range-parser: "npm:^1.2.1"
+    router: "npm:^2.2.0"
+    send: "npm:^1.1.0"
+    serve-static: "npm:^2.2.0"
+    statuses: "npm:^2.0.1"
+    type-is: "npm:^2.0.1"
+    vary: "npm:^1.1.2"
+  checksum: 10c0/45e8c841ad188a41402ddcd1294901e861ee0819f632fb494f2ed344ef9c43315d294d443fb48d594e6586a3b779785120f43321417adaef8567316a55072949
   languageName: node
   linkType: hard
 
@@ -34405,7 +34498,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"jose@npm:^6.1.1":
+"jose@npm:^6.1.0, jose@npm:^6.1.1":
   version: 6.1.3
   resolution: "jose@npm:6.1.3"
   checksum: 10c0/b9577b4a7a5e84131011c23823db9f5951eae3ba796771a6a2401ae5dd50daf71104febc8ded9c38146aa5ebe94a92ac09c725e699e613ef26949b9f5a8bc30f
@@ -38707,6 +38800,13 @@ __metadata:
   bin:
     officeparser: officeParser.js
   checksum: 10c0/3cb5277ddd0b9a0ba67713708c6ed743ad9bfcb200ff3da922ba703a5e35684a03fa8fb7c5c9390a75803e79545e4114c759d3efdd8a30d009c318281f9043c6
+  languageName: node
+  linkType: hard
+
+"okay-error@npm:^1.0.3":
+  version: 1.0.3
+  resolution: "okay-error@npm:1.0.3"
+  checksum: 10c0/5cae30c7b62822ee2ca2307da321f68ba92085b1a5fb5dc21f16cce9987b724da7a1562bb24cef44e58b6c1155b3d1abfcaba6c6d06f47a2170a43e7fd07c4d8
   languageName: node
   linkType: hard
 
