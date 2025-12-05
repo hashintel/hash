@@ -4,7 +4,7 @@ _.file = [".env", ".env.local"]
 [tools]
 # Basic tools
 node        = { version = "22.21.1", postinstall = "corepack enable" }
-"npm:turbo" = "2.6.1"
+"npm:turbo" = "2.6.3"
 
 # Helper to install tools
 cargo-binstall = "1.15.1"
