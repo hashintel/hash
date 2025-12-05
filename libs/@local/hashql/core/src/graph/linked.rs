@@ -53,7 +53,7 @@ use core::alloc::Allocator;
 use super::{
     DIRECTIONS, DirectedGraph, Direction, EdgeId, NodeId, Predecessors, Successors, Traverse,
 };
-use crate::id::{HasId, IdSlice, IdVec};
+use crate::id::{HasId, Id, IdSlice, IdVec};
 
 /// Sentinel value indicating "no edge" in linked lists.
 ///
@@ -282,6 +282,19 @@ impl<N, E, A: Allocator> LinkedGraph<N, E, A> {
             // Start with empty edge lists
             edges: [TOMBSTONE; DIRECTIONS],
         })
+    }
+
+    pub fn derive<I, T>(&mut self, domain: &IdSlice<I, T>, mut data: impl FnMut(I, &T) -> N)
+    where
+        I: Id,
+    {
+        assert!(self.nodes.is_empty());
+
+        self.nodes.raw.reserve(domain.len());
+
+        for (id, item) in domain.iter_enumerated() {
+            self.add_node(data(id, item));
+        }
     }
 
     /// Returns a reference to the node with the given identifier.
