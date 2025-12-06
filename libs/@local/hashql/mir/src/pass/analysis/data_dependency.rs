@@ -1,3 +1,32 @@
+//! Data dependency analysis for MIR.
+//!
+//! This module provides [`DataDependencyAnalysis`], a pass that constructs a graph representing
+//! data dependencies between locals in the MIR. The resulting [`DataDependencyGraph`] can be used
+//! to trace which locals a given place ultimately depends on.
+//!
+//! # Graph Structure
+//!
+//! The dependency graph uses locals as nodes and tracks dependencies as directed edges. An edge
+//! from local `A` to local `B` means "A depends on B" (or equivalently, "A references B").
+//!
+//! For example, given the statement `_3 = (_1.field, _2)`:
+//! - An edge `_3 → _1` is created with slot [`Slot::Index(0)`] and the `.field` projection
+//! - An edge `_3 → _2` is created with slot [`Slot::Index(1)`]
+//!
+//! # Field Sensitivity
+//!
+//! The analysis is field-sensitive for structured types. When a tuple or struct is constructed,
+//! each component is tracked separately via [`Slot`] annotations on edges. This enables
+//! [`DataDependencyGraph::resolve`] to trace through projections and find the original source
+//! of a specific field access.
+//!
+//! # Requirements
+//!
+//! This analysis requires the MIR to be in SSA form. Assignments must target locals directly
+//! without projections (i.e., `_1 = ...` is valid, but `_1.field = ...` is not).
+//!
+//! [`Slot::Index(0)`]: Slot::Index
+
 use alloc::alloc::Global;
 use core::alloc::Allocator;
 
@@ -25,43 +54,135 @@ use crate::{
     visit::Visitor,
 };
 
-// We only save slots that have significance when traversing the graph
+/// Describes which component of a structured value an edge represents.
+///
+/// When constructing aggregates (tuples, structs, closures), each component gets its own edge
+/// with a [`Slot`] indicating its position. This enables field-sensitive dependency tracking,
+/// allowing [`DataDependencyGraph::resolve`] to trace projections back to their sources.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 enum Slot<'heap> {
+    /// A load operation that copies the entire value.
+    ///
+    /// Used for [`RValue::Load`] and block parameter passing, where the complete value flows
+    /// from source to destination without field decomposition.
     Load,
+
+    /// A positional component in a tuple aggregate.
+    ///
+    /// The [`FieldIndex`] corresponds to the tuple position (0, 1, 2, ...).
     Index(FieldIndex),
+
+    /// A named field in a struct aggregate.
+    ///
+    /// Stores both the positional index and the field name for matching against both
+    /// [`ProjectionKind::Field`] and [`ProjectionKind::FieldByName`].
     Field(FieldIndex, Symbol<'heap>),
+
+    /// The function pointer component of a closure (index 0).
     ClosurePtr,
+
+    /// The captured environment component of a closure (index 1).
     ClosureEnv,
 }
 
+/// An edge in the data dependency graph.
+///
+/// Each edge connects a local (the dependent) to another local (the dependency) and carries
+/// metadata about which component is being accessed and any remaining projections.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 struct Edge<'heap> {
+    /// Which component of the source this edge represents, if any.
+    ///
+    /// [`None`] indicates a dependency without specific field tracking (e.g., operands to
+    /// binary operations, list elements).
     slot: Option<Slot<'heap>>,
+
+    /// The projection path from the dependency local to the actual accessed value.
+    ///
+    /// For a place like `_1.field.0`, the edge target is `_1` and projections contains
+    /// `[.field, .0]`.
     projections: Interned<'heap, [Projection<'heap>]>,
 }
 
+/// A data dependency graph with resolved transitive dependencies.
+///
+/// Created by [`DataDependencyGraph::transient`], this graph has edges that point directly to
+/// the ultimate source locals rather than intermediate aggregates. This is useful for analyses
+/// that need to know the true origin of data without manually traversing through tuple/struct
+/// constructions.
 pub struct TransientDataDependencyGraph<'heap, A: Allocator = Global> {
     _graph: LinkedGraph<Local, Edge<'heap>, A>,
 }
 
+/// A graph representing data dependencies between locals in MIR.
+///
+/// Nodes are [`Local`]s and edges represent "depends on" relationships. Following outgoing edges
+/// from a local reveals what data it was constructed from.
+///
+/// # Edge Direction
+///
+/// Edges point from dependent to dependency: if local `_3` is assigned from `_1` and `_2`,
+/// there will be edges `_3 → _1` and `_3 → _2`.
+///
+/// # Usage
+///
+/// Use [`resolve`](Self::resolve) to trace a [`Place`] through the dependency graph and find
+/// the local that ultimately provides its value.
 pub struct DataDependencyGraph<'heap, A: Allocator = Global> {
     graph: LinkedGraph<Local, Edge<'heap>, A>,
 }
 
 impl<'heap, A: Allocator> DataDependencyGraph<'heap, A> {
+    /// Follows [`Slot::Load`] edges from a node until reaching a non-load definition.
+    ///
+    /// Load edges represent pure value copies, so following them transitively finds the
+    /// original definition site of a value.
     fn follow_load<'this>(&'this self, node: &mut &'this Node<Local>) {
+        let mut visited = 0;
+        let max_depth = self.graph.nodes().len();
+
         while let Some(edge) = self
             .graph
             .outgoing_edges(node.id())
             .find(|edge| matches!(edge.data.slot, Some(Slot::Load)))
         {
+            visited += 1;
+            debug_assert!(visited <= max_depth, "cycle detected in load chain");
+
             *node = &self.graph[edge.target()];
         }
     }
 
-    // resolve a projection where possible
-    pub fn resolve(&self, Place { local, projections }: Place<'heap>) -> (usize, Local) {
+    /// Resolves a place to its source local by following dependencies through the graph.
+    ///
+    /// Starting from the place's local, this method attempts to trace each projection in the
+    /// place through the dependency graph. For each field projection, it looks for an outgoing
+    /// edge with a matching [`Slot`] and follows it to find where that field's value originated.
+    ///
+    /// Returns a tuple of:
+    /// - The number of projections that were successfully resolved
+    /// - The [`Local`] that provides the value at that resolution depth
+    ///
+    /// Resolution stops early when:
+    /// - An [`Index`](ProjectionKind::Index) projection is encountered (dynamic indexing)
+    /// - No matching edge is found (opaque value, e.g., function return)
+    ///
+    /// # Examples
+    ///
+    /// Given MIR:
+    /// ```text
+    /// _2 = input()
+    /// _3 = (_1, _2)  // tuple construction
+    /// _4 = _3.1      // projection
+    /// ```
+    ///
+    /// Resolving `_4` (with no projections) returns `(0, _2)` because:
+    /// 1. `_4` has a [`Slot::Load`] edge to `_3`
+    /// 2. Following through `_3`, the `.1` projection matches [`Slot::Index(1)`] → `_2`
+    ///
+    /// Resolving `_3.1` returns `(1, _2)` because the `.1` projection resolves through the
+    /// tuple construction.
+    pub fn resolve(&self, local: Local, projections: &[Projection<'heap>]) -> (usize, Local) {
         let mut node = &self.graph[NodeId::from_usize(local.as_usize())];
 
         for (index, projection) in projections.iter().enumerate() {
@@ -115,6 +236,15 @@ impl<'heap, A: Allocator> DataDependencyGraph<'heap, A> {
         (projections.len(), node.data)
     }
 
+    /// Creates a transient graph with resolved dependencies.
+    ///
+    /// The transient graph "flattens" dependencies by resolving projections eagerly. Each edge
+    /// in the original graph is traced through [`resolve`](Self::resolve), and a new edge is
+    /// created pointing directly to the resolved target with only the unresolved projection
+    /// suffix remaining.
+    ///
+    /// This is useful for analyses that need direct access to ultimate data sources without
+    /// manually traversing intermediate aggregates.
     pub fn transient(&self, interner: &Interner<'heap>) -> TransientDataDependencyGraph<'heap, A>
     where
         A: Clone,
@@ -132,10 +262,7 @@ impl<'heap, A: Allocator> DataDependencyGraph<'heap, A> {
             // Creating the transient graph is straightforward, we simply resolve the edge, via the
             // projections, and given the resulting projections we add a new edge between the new
             // and old target.
-            let (traveled, target) = self.resolve(Place {
-                local: target,
-                projections: data.projections,
-            });
+            let (traveled, target) = self.resolve(target, &data.projections);
             let projections = interner
                 .projections
                 .intern_slice(&data.projections[traveled..]);
@@ -154,11 +281,21 @@ impl<'heap, A: Allocator> DataDependencyGraph<'heap, A> {
     }
 }
 
+/// A MIR pass that builds a [`DataDependencyGraph`].
+///
+/// This pass traverses the MIR body and records data dependencies between locals. After running,
+/// call [`finish`](Self::finish) to obtain the resulting [`DataDependencyGraph`].
+///
+/// # Reuse
+///
+/// To avoid repeated allocations, use [`new_with`](Self::new_with) to recycle a previously
+/// constructed graph's storage.
 pub struct DataDependencyAnalysis<'heap, A: Allocator = Global> {
     graph: LinkedGraph<Local, Edge<'heap>, A>,
 }
 
 impl<'heap, A: Allocator> DataDependencyAnalysis<'heap, A> {
+    /// Creates a new analysis pass using the specified allocator.
     pub fn new_in(alloc: A) -> Self
     where
         A: Clone,
@@ -168,18 +305,23 @@ impl<'heap, A: Allocator> DataDependencyAnalysis<'heap, A> {
         }
     }
 
+    /// Creates a new analysis pass, reusing storage from a previous graph.
+    ///
+    /// This avoids reallocation when running the analysis multiple times on different bodies.
     pub fn new_with(mut graph: DataDependencyGraph<'heap, A>) -> Self {
         graph.graph.clear();
 
         Self { graph: graph.graph }
     }
 
+    /// Completes the analysis and returns the constructed dependency graph.
     pub fn finish(self) -> DataDependencyGraph<'heap, A> {
         DataDependencyGraph { graph: self.graph }
     }
 }
 
 impl DataDependencyAnalysis<'_> {
+    /// Creates a new analysis pass using the global allocator.
     #[must_use]
     pub fn new() -> Self {
         Self::new_in(Global)
@@ -205,6 +347,7 @@ impl<'env, 'heap, A: Allocator> Pass<'env, 'heap> for DataDependencyAnalysis<'he
     }
 }
 
+/// Visitor that collects data dependencies during MIR traversal.
 struct DataDependencyAnalysisVisitor<'pass, 'env, 'heap, A: Allocator> {
     analysis: &'pass mut DataDependencyAnalysis<'heap, A>,
     context: &'pass mut MirContext<'env, 'heap>,
@@ -212,6 +355,7 @@ struct DataDependencyAnalysisVisitor<'pass, 'env, 'heap, A: Allocator> {
 }
 
 impl<'heap, A: Allocator> DataDependencyAnalysisVisitor<'_, '_, 'heap, A> {
+    /// Records a dependency edge from `source` to the local in `place`.
     fn collect_place(
         &mut self,
         source: Local,
@@ -225,6 +369,9 @@ impl<'heap, A: Allocator> DataDependencyAnalysisVisitor<'_, '_, 'heap, A> {
         );
     }
 
+    /// Records a dependency edge from `source` to the operand, if it's a place.
+    ///
+    /// Constants have no dependencies and are ignored.
     fn collect_operand(
         &mut self,
         source: Local,
@@ -266,8 +413,8 @@ impl<'heap, A: Allocator> Visitor<'heap> for DataDependencyAnalysisVisitor<'_, '
             target,
         }: &GraphRead<'heap>,
     ) -> Self::Result {
-        // graph read is a bit special, because any variable mentioned is a dependency to the
-        // terminator block output (which is always the first argument)
+        // Graph read is special: all referenced variables become dependencies of the target
+        // block's output parameter (which is always the first and only parameter).
         let params = self.body.basic_blocks[*target].params;
         debug_assert_eq!(params.len(), 1);
 
@@ -282,11 +429,10 @@ impl<'heap, A: Allocator> Visitor<'heap> for DataDependencyAnalysisVisitor<'_, '
         for body in body {
             match body {
                 &GraphReadBody::Filter(_, env) => {
-                    // this is just a materialized fat pointer, but we don't record the slot,
-                    // because scew the results. We're just dependent on the output of the filter,
-                    // **not** the pointer itself.
-                    // We're only interested in the local, the output of the graph read depends on
-                    // the environment captured by definition.
+                    // We record the environment local as a dependency but without a slot.
+                    // Recording the slot would skew results because we depend on the filter's
+                    // output semantically, not on the closure's internal structure. The captured
+                    // environment affects what data flows into the filter.
                     self.collect_operand(
                         source,
                         None,
@@ -311,10 +457,11 @@ impl<'heap, A: Allocator> Visitor<'heap> for DataDependencyAnalysisVisitor<'_, '
         let source = lhs.local;
         assert!(
             lhs.projections.is_empty(),
-            "dataflow analysis may only work while in SSA form"
+            "dataflow analysis requires SSA form: assignment to {:?} has projections",
+            lhs.local
         );
 
-        #[expect(clippy::match_same_arms, reason = "intention")]
+        #[expect(clippy::match_same_arms, reason = "clarity over conciseness")]
         match rhs {
             RValue::Load(operand) => {
                 self.collect_operand(source, Some(Slot::Load), operand);
@@ -348,7 +495,8 @@ impl<'heap, A: Allocator> Visitor<'heap> for DataDependencyAnalysisVisitor<'_, '
                 kind: AggregateKind::List,
                 operands,
             }) => {
-                // list and dict do not have accurate position by design
+                // List and dict elements are not position-tracked by design, as their
+                // indices are not meaningful for dependency resolution.
                 for operand in operands.iter() {
                     self.collect_operand(source, None, operand);
                 }
@@ -381,7 +529,7 @@ impl<'heap, A: Allocator> Visitor<'heap> for DataDependencyAnalysisVisitor<'_, '
                 self.collect_operand(source, Some(Slot::ClosureEnv), env);
             }
             RValue::Input(_) => {
-                // input has no dependencies
+                // Input has no dependencies; it's a source of external data.
             }
             RValue::Apply(Apply {
                 function,

@@ -396,6 +396,9 @@ impl<N, E, A: Allocator> LinkedGraph<N, E, A> {
 
     pub fn clear_edges(&mut self) {
         self.edges.clear();
+        for node in self.nodes.iter_mut() {
+            node.edges = [TOMBSTONE; DIRECTIONS];
+        }
     }
 
     /// Returns an iterator over edges incident to a node in the given direction.
