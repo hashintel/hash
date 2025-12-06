@@ -171,7 +171,7 @@ export const AccountDropdown: FunctionComponent<AccountDropdownProps> = ({
           >
             <ListItemText primary="Integrations" />
           </MenuItem>,
-          <Divider key="divider" />,
+          <Divider key="divider-admin" />,
           isInstanceAdmin ? (
             <MenuItem
               href="/admin"
