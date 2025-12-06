@@ -164,15 +164,6 @@ export const AccountDropdown: FunctionComponent<AccountDropdownProps> = ({
           >
             <ListItemText primary="Organizations" />
           </MenuItem>,
-          isInstanceAdmin ? (
-            <MenuItem
-              href="/admin"
-              key="admin"
-              onClick={() => popupState.close()}
-            >
-              <ListItemText primary="Instance Settings" />
-            </MenuItem>
-          ) : null,
           <MenuItem
             href="/settings/integrations"
             key="integrations"
@@ -180,6 +171,16 @@ export const AccountDropdown: FunctionComponent<AccountDropdownProps> = ({
           >
             <ListItemText primary="Integrations" />
           </MenuItem>,
+          <Divider key="divider" />,
+          isInstanceAdmin ? (
+            <MenuItem
+              href="/admin"
+              key="admin"
+              onClick={() => popupState.close()}
+            >
+              <ListItemText primary="Instance Admin" />
+            </MenuItem>
+          ) : null,
           <Divider key="divider" />,
         ]}
 
