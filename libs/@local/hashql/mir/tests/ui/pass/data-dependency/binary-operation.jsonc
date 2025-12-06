@@ -1,0 +1,9 @@
+//@ run: pass
+//@ description: Binary operations create BinaryL and BinaryR edges
+// a + b creates edges with BinaryL and BinaryR slots
+[
+  "let",
+  "a",
+  ["input", "left", "Integer"],
+  ["let", "b", ["input", "right", "Integer"], ["+", "a", "b"]]
+]

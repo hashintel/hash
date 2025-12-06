@@ -1,0 +1,14 @@
+//@ run: pass
+//@ description: Deeply nested tuple access resolves through all levels
+// (((a,),),) accessed at .0.0.0 should resolve to 'a'
+[
+  "let",
+  "a",
+  ["input", "value", "Integer"],
+  [
+    "let",
+    "nested",
+    { "#tuple": [{ "#tuple": [{ "#tuple": ["a"] }] }] },
+    "nested.0.0.0"
+  ]
+]

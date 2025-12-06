@@ -1,0 +1,15 @@
+//@ run: pass
+//@ description: Function application creates ApplyPtr and ApplyArg edges
+// f(a, b) creates edges for function pointer and each argument
+[
+  "let",
+  "add",
+  [
+    "fn",
+    { "#tuple": [] },
+    { "#struct": { "a": "Integer", "b": "Integer" } },
+    "_",
+    ["+", "a", "b"]
+  ],
+  ["add", { "#literal": 1 }, { "#literal": 2 }]
+]

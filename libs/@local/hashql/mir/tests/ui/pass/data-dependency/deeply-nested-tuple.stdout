@@ -1,0 +1,64 @@
+════ MIR ═══════════════════════════════════════════════════════════════════════
+
+thunk a:0() -> Integer {
+    let %0: Integer
+
+    bb0(): {
+        %0 = input LOAD value
+
+        return %0
+    }
+}
+
+thunk {thunk#2}() -> (Integer,) {
+    let %0: Integer
+    let %1: (Integer,)
+
+    bb0(): {
+        %0 = apply (a:0 as FnPtr)
+        %1 = (%0)
+
+        return %1
+    }
+}
+
+thunk {thunk#3}() -> ((Integer,),) {
+    let %0: (Integer,)
+    let %1: ((Integer,),)
+
+    bb0(): {
+        %0 = apply ({thunk#2} as FnPtr)
+        %1 = (%0)
+
+        return %1
+    }
+}
+
+thunk nested:0() -> (((Integer,),),) {
+    let %0: ((Integer,),)
+    let %1: (((Integer,),),)
+
+    bb0(): {
+        %0 = apply ({thunk#3} as FnPtr)
+        %1 = (%0)
+
+        return %1
+    }
+}
+
+*thunk {thunk#4}() -> Integer {
+    let %0: (((Integer,),),)
+
+    bb0(): {
+        %0 = apply (nested:0 as FnPtr)
+
+        return %0.0.0.0
+    }
+}
+════ Data Dependency Graph ═════════════════════════════════════════════════════
+
+
+
+════ Transient Data Dependency Graph ═══════════════════════════════════════════
+
+

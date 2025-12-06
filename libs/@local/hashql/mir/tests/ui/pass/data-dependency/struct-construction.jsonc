@@ -1,0 +1,13 @@
+//@ run: pass
+//@ description: Struct construction creates Field edges with names
+// { foo: a, bar: b } creates edges with Field slots
+[
+  "if",
+  { "#literal": true },
+  [
+    "let",
+    "a",
+    { "#literal": 1 },
+    ["let", "b", { "#literal": 2 }, { "#struct": { "foo": "a", "bar": "b" } }]
+  ]
+]

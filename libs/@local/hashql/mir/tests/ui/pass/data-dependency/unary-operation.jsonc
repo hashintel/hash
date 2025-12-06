@@ -1,0 +1,4 @@
+//@ run: pass
+//@ description: Unary operation creates Unary edge
+// -a creates edge with Unary slot
+["let", "a", ["input", "value", "Integer"], ["-", "a"]]

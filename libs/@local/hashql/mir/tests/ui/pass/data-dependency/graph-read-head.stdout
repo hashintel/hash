@@ -1,0 +1,36 @@
+════ MIR ═══════════════════════════════════════════════════════════════════════
+
+thunk {thunk#0}() -> ::graph::TimeAxis {
+    let %0: ::graph::TimeAxis
+
+    bb0(): {
+        %0 = input LOAD axis
+
+        return %0
+    }
+}
+
+*thunk {thunk#1}() -> List<::graph::types::knowledge::entity::Entity> {
+    let %0: ::graph::TimeAxis
+    let %1: List<::graph::types::knowledge::entity::Entity>
+
+    bb0(): {
+        %0 = apply ({thunk#0} as FnPtr)
+
+        graph read entities(%0)
+        |> collect -> bb1(_)
+    }
+
+    bb1(%1): {
+        return %1
+    }
+}
+════ Data Dependency Graph ═════════════════════════════════════════════════════
+
+%1 -> %0 [GraphReadHeadAxis]
+
+
+════ Transient Data Dependency Graph ═══════════════════════════════════════════
+
+%1 -> %0 [GraphReadHeadAxis]
+

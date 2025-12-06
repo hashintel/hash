@@ -1,0 +1,9 @@
+//@ run: pass
+//@ description: Comparison operators create BinaryL and BinaryR edges
+// All comparison ops (<=, <, >=, >, ==, !=) use binary slots
+[
+  "let",
+  "a",
+  ["input", "left", "Integer"],
+  ["let", "b", ["input", "right", "Integer"], ["<=", "a", "b"]]
+]

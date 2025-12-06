@@ -1,0 +1,18 @@
+//@ run: pass
+//@ description: Mixed struct and tuple projection chain
+// Resolving through alternating struct and tuple projections
+[
+  "if",
+  { "#literal": true },
+  [
+    "let",
+    "inner",
+    ["input", "value", "Integer"],
+    [
+      "let",
+      "tup",
+      { "#tuple": ["inner"] },
+      ["let", "s", { "#struct": { "field": "tup" } }, "s.field.0"]
+    ]
+  ]
+]

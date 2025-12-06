@@ -1,0 +1,18 @@
+//@ run: pass
+//@ description: List construction creates Aggregation edges for each element
+// [a, b, c] creates Aggregation edges without field-sensitive tracking
+[
+  "if",
+  { "#literal": true },
+  [
+    "let",
+    "a",
+    { "#literal": 1 },
+    [
+      "let",
+      "b",
+      { "#literal": 2 },
+      ["let", "c", { "#literal": 3 }, { "#list": ["a", "b", "c"] }]
+    ]
+  ]
+]

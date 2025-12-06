@@ -1,0 +1,73 @@
+════ MIR ═══════════════════════════════════════════════════════════════════════
+
+thunk threshold:0() -> Integer {
+    let %0: Integer
+
+    bb0(): {
+        %0 = input LOAD threshold
+
+        return %0
+    }
+}
+
+thunk {thunk#2}() -> ::graph::TimeAxis {
+    let %0: ::graph::TimeAxis
+
+    bb0(): {
+        %0 = input LOAD axis
+
+        return %0
+    }
+}
+
+thunk {thunk#3}() -> Boolean {
+    let %0: Integer
+    let %1: Boolean
+
+    bb0(): {
+        %0 = apply (threshold:0 as FnPtr)
+        %1 = %0 <= 10
+
+        return %1
+    }
+}
+
+fn {closure@9}(%0: (), %1: ::graph::types::knowledge::entity::Entity) -> Boolean {
+    let %2: Boolean
+
+    bb0(): {
+        %2 = apply ({thunk#3} as FnPtr)
+
+        return %2
+    }
+}
+
+*thunk {thunk#4}() -> List<::graph::types::knowledge::entity::Entity> {
+    let %0: ::graph::TimeAxis
+    let %1: List<::graph::types::knowledge::entity::Entity>
+    let %2: ()
+
+    bb0(): {
+        %0 = apply ({thunk#2} as FnPtr)
+        %2 = ()
+
+        graph read entities(%0)
+        |> filter({closure@9}, %2)
+        |> collect -> bb1(_)
+    }
+
+    bb1(%1): {
+        return %1
+    }
+}
+════ Data Dependency Graph ═════════════════════════════════════════════════════
+
+%1 -> %0 [GraphReadHeadAxis]
+%1 -> %2 [GraphReadBodyFilterEnv(0)]
+
+
+════ Transient Data Dependency Graph ═══════════════════════════════════════════
+
+%1 -> %0 [GraphReadHeadAxis]
+%1 -> %2 [GraphReadBodyFilterEnv(0)]
+

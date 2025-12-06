@@ -1,0 +1,46 @@
+════ MIR ═══════════════════════════════════════════════════════════════════════
+
+thunk a:0() -> Integer {
+    let %0: Integer
+
+    bb0(): {
+        %0 = input LOAD left
+
+        return %0
+    }
+}
+
+thunk b:0() -> Integer {
+    let %0: Integer
+
+    bb0(): {
+        %0 = input LOAD right
+
+        return %0
+    }
+}
+
+*thunk {thunk#2}() -> Boolean {
+    let %0: Integer
+    let %1: Integer
+    let %2: Boolean
+
+    bb0(): {
+        %0 = apply (a:0 as FnPtr)
+        %1 = apply (b:0 as FnPtr)
+        %2 = %0 <= %1
+
+        return %2
+    }
+}
+════ Data Dependency Graph ═════════════════════════════════════════════════════
+
+%2 -> %0 [BinaryL]
+%2 -> %1 [BinaryR]
+
+
+════ Transient Data Dependency Graph ═══════════════════════════════════════════
+
+%2 -> %0 [BinaryL]
+%2 -> %1 [BinaryR]
+

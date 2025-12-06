@@ -1,0 +1,42 @@
+════ MIR ═══════════════════════════════════════════════════════════════════════
+
+thunk captured:0() -> Integer {
+    let %0: Integer
+
+    bb0(): {
+        %0 = input LOAD value
+
+        return %0
+    }
+}
+
+fn {closure#4}(%0: ()) -> Integer {
+    let %1: Integer
+
+    bb0(): {
+        %1 = apply (captured:0 as FnPtr)
+
+        return %1
+    }
+}
+
+*thunk f:0() -> () -> Integer {
+    let %0: () -> Integer
+    let %1: ()
+
+    bb0(): {
+        %1 = ()
+        %0 = closure(({closure#4} as FnPtr), %1)
+
+        return %0
+    }
+}
+════ Data Dependency Graph ═════════════════════════════════════════════════════
+
+%0 -> %1 [ClosureEnv]
+
+
+════ Transient Data Dependency Graph ═══════════════════════════════════════════
+
+%0 -> %1 [ClosureEnv]
+

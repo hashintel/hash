@@ -1,0 +1,14 @@
+//@ run: pass
+//@ description: Closure construction creates ClosurePtr and ClosureEnv edges
+// A closure captures environment and has a function pointer component
+[
+  "let",
+  "captured",
+  ["input", "value", "Integer"],
+  [
+    "let",
+    "f",
+    ["fn", { "#tuple": [] }, { "#struct": {} }, "_", "captured"],
+    "f"
+  ]
+]

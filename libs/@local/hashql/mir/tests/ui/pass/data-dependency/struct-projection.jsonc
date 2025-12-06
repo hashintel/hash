@@ -1,0 +1,15 @@
+//@ run: pass
+//@ description: Struct field projection resolves through Field edges
+// _1 = { foo: a, bar: b }, _2 = _1.foo
+// resolve should trace through the struct to find 'a'
+[
+  "let",
+  "a",
+  ["input", "first", "Integer"],
+  [
+    "let",
+    "b",
+    ["input", "second", "Integer"],
+    ["let", "s", { "#struct": { "foo": "a", "bar": "b" } }, "s.foo"]
+  ]
+]

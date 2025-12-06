@@ -1,0 +1,4 @@
+//@ run: pass
+//@ description: Same local used multiple times creates multiple edges
+// Using 'a' twice in a binary op creates two edges from result to 'a'
+["let", "a", ["input", "value", "Integer"], ["+", "a", "a"]]

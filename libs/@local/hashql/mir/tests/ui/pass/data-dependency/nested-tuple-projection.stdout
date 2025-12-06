@@ -1,0 +1,90 @@
+════ MIR ═══════════════════════════════════════════════════════════════════════
+
+fn {ctor#::core::option::Some}(%0: (), %1: Integer) -> ::core::option::Some {
+    let %2: ::core::option::Some
+
+    bb0(): {
+        %2 = opaque(::core::option::Some, %1)
+
+        return %2
+    }
+}
+
+fn {ctor#::core::option::None}(%0: ()) -> ::core::option::None {
+    let %1: ::core::option::None
+
+    bb0(): {
+        %1 = opaque(::core::option::None, ())
+
+        return %1
+    }
+}
+
+*thunk {thunk#9}() -> ::core::option::None | ::core::option::Some {
+    let %0: ::core::option::None | ::core::option::Some
+    let %1: Integer
+    let %2: Integer
+    let %3: Integer
+    let %4: (Integer, Integer)
+    let %5: ((Integer, Integer), Integer)
+    let %6: (Integer) -> ::core::option::Some
+    let %7: ::core::option::Some
+    let %8: () -> ::core::option::None
+    let %9: ::core::option::None
+
+    bb0(): {
+        switchInt(1) -> [0: bb2(), 1: bb1()]
+    }
+
+    bb1(): {
+        %1 = 1
+        %2 = 2
+        %3 = 3
+        %4 = (%1, %2)
+        %5 = (%4, %3)
+        %6 = closure(({ctor#::core::option::Some} as FnPtr), ())
+        %7 = apply %6.0 %6.1 %5.0.1
+
+        goto -> bb3(%7)
+    }
+
+    bb2(): {
+        %8 = closure(({ctor#::core::option::None} as FnPtr), ())
+        %9 = apply %8.0 %8.1
+
+        goto -> bb3(%9)
+    }
+
+    bb3(%0): {
+        return %0
+    }
+}
+════ Data Dependency Graph ═════════════════════════════════════════════════════
+
+%4 -> %1 [Index(FieldIndex(0))]
+%4 -> %2 [Index(FieldIndex(1))]
+%5 -> %4 [Index(FieldIndex(0))]
+%5 -> %3 [Index(FieldIndex(1))]
+%7 -> %6 [ApplyPtr, projections: .0]
+%7 -> %6 [ApplyArg(ArgIndex(0)), projections: .1]
+%7 -> %5 [ApplyArg(ArgIndex(1)), projections: .0.1]
+%0 -> %7 [Param]
+%9 -> %8 [ApplyPtr, projections: .0]
+%9 -> %8 [ApplyArg(ArgIndex(0)), projections: .1]
+%0 -> %9 [Param]
+
+
+════ Transient Data Dependency Graph ═══════════════════════════════════════════
+
+%4 -> %1 [Index(FieldIndex(0))]
+%4 -> %2 [Index(FieldIndex(1))]
+%5 -> %4 [Index(FieldIndex(0))]
+%5 -> %3 [Index(FieldIndex(1))]
+%7 -> %6 [ApplyPtr, projections: .0]
+%7 -> %6 [ApplyArg(ArgIndex(0)), projections: .1]
+%7 -> %2 [ApplyArg(ArgIndex(1))]
+%0 -> %7 [Param]
+%9 -> %8 [ApplyPtr, projections: .0]
+%9 -> %8 [ApplyArg(ArgIndex(0)), projections: .1]
+%0 -> %9 [Param]
+
