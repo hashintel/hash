@@ -3,7 +3,7 @@
 //! Places represent storage locations in the MIR, including local variables and complex paths
 //! through data structures. Projections allow accessing nested data within structured types.
 
-use core::alloc::Allocator;
+use core::{alloc::Allocator, fmt};
 
 use hashql_core::{id, intern::Interned, symbol::Symbol, r#type::TypeId};
 
@@ -399,4 +399,14 @@ pub enum ProjectionKind<'heap> {
     /// This projection navigates to an element within a list or dictionary. The
     /// [`Local`] contains the index value that determines which element to access.
     Index(Local),
+}
+
+impl fmt::Display for ProjectionKind<'_> {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            ProjectionKind::Field(index) => write!(fmt, ".{index}"),
+            ProjectionKind::FieldByName(name) => write!(fmt, ".{name}"),
+            ProjectionKind::Index(index) => write!(fmt, "[%{index}]"),
+        }
+    }
 }

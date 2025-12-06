@@ -1,0 +1,18 @@
+//@ run: pass
+//@ description: Tuple field projection resolves through Index edges to source variable
+[
+  "if",
+  { "#literal": true },
+  [
+    "let",
+    "a",
+    { "#literal": 1 },
+    [
+      "let",
+      "b",
+      { "#literal": 2 },
+      ["let", "tup", { "#tuple": ["a", "b"] }, "tup.0"]
+    ]
+  ],
+  { "#literal": 0 }
+]

@@ -1,0 +1,19 @@
+//@ run: pass
+//@ description: Function with multiple arguments creates ApplyArg edge for each
+[
+  "if",
+  { "#literal": true },
+  [
+    "let",
+    "f",
+    [
+      "fn",
+      { "#tuple": [] },
+      { "#struct": { "a": "Integer", "b": "Integer", "c": "Integer" } },
+      "_",
+      ["if", ["<=", "a", "b"], ["if", ["<=", "b", "c"], "c", "b"], "a"]
+    ],
+    ["f", { "#literal": 1 }, { "#literal": 2 }, { "#literal": 3 }]
+  ],
+  { "#literal": 0 }
+]

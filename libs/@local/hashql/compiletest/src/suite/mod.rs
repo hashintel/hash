@@ -20,6 +20,7 @@ mod hir_lower_normalization;
 mod hir_lower_specialization;
 mod hir_lower_thunking;
 mod hir_reify;
+mod mir_pass_analysis_data_dependency;
 mod mir_pass_transform_cfg_simplify;
 mod mir_reify;
 mod parse_syntax_dump;
@@ -50,6 +51,7 @@ use self::{
     hir_lower_normalization::HirLowerNormalizationSuite,
     hir_lower_specialization::HirLowerSpecializationSuite,
     hir_lower_thunking::HirLowerThunkingSuite, hir_reify::HirReifySuite,
+    mir_pass_analysis_data_dependency::MirPassAnalysisDataDependency,
     mir_pass_transform_cfg_simplify::MirPassTransformCfgSimplify, mir_reify::MirReifySuite,
     parse_syntax_dump::ParseSyntaxDumpSuite,
 };
@@ -144,6 +146,7 @@ const SUITES: &[&dyn Suite] = &[
     &HirLowerTypeInferenceIntrinsicsSuite,
     &HirLowerTypeInferenceSuite,
     &HirReifySuite,
+    &MirPassAnalysisDataDependency,
     &MirPassTransformCfgSimplify,
     &MirReifySuite,
     &ParseSyntaxDumpSuite,

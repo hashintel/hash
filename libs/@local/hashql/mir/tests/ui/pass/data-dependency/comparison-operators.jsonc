@@ -1,0 +1,13 @@
+//@ run: pass
+//@ description: Comparison with variables creates BinaryL and BinaryR edges
+[
+  "if",
+  { "#literal": true },
+  [
+    "let",
+    "x",
+    { "#literal": 3 },
+    ["let", "y", { "#literal": 2 }, [">=", "x", "y"]]
+  ],
+  { "#literal": false }
+]

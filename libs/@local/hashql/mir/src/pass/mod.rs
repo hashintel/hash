@@ -12,6 +12,7 @@
 
 use crate::{body::Body, context::MirContext};
 
+pub mod analysis;
 pub mod transform;
 
 /// Extracts the simple type name from a fully qualified type path.
