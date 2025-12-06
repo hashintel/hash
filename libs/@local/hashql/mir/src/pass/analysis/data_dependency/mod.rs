@@ -26,6 +26,8 @@
 //! without projections (i.e., `_1 = ...` is valid, but `_1.field = ...` is not).
 //!
 //! [`Slot::Index(0)`]: Slot::Index
+#[cfg(test)]
+mod tests;
 
 use alloc::alloc::Global;
 use core::{alloc::Allocator, fmt};
