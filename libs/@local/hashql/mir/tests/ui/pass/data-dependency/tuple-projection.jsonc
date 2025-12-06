@@ -1,15 +1,18 @@
 //@ run: pass
-//@ description: Tuple field projection resolves through Index edges
-// _1 = (a, b), _2 = _1.0
-// resolve(_2) should trace through the tuple to find 'a'
+//@ description: Tuple field projection resolves through Index edges to source variable
 [
-  "let",
-  "a",
-  ["input", "first", "Integer"],
+  "if",
+  { "#literal": true },
   [
     "let",
-    "b",
-    ["input", "second", "Integer"],
-    ["let", "tup", { "#tuple": ["a", "b"] }, "tup.0"]
-  ]
+    "a",
+    { "#literal": 1 },
+    [
+      "let",
+      "b",
+      { "#literal": 2 },
+      ["let", "tup", { "#tuple": ["a", "b"] }, "tup.0"]
+    ]
+  ],
+  { "#literal": 0 }
 ]

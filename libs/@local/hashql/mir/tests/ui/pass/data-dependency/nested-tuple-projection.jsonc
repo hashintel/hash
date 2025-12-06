@@ -1,29 +1,18 @@
 //@ run: pass
-//@ description: Nested tuple projections resolve through multiple levels
-// _1 = ((a, b), c), _2 = _1.0.1
-// resolve should trace through both tuple levels
+//@ description: Nested tuple projections resolve through multiple levels to source variable
 [
   "if",
   { "#literal": true },
   [
     "let",
-    "a",
-    { "#literal": 1 },
+    "inner",
+    { "#literal": 42 },
     [
       "let",
-      "b",
-      { "#literal": 2 },
-      [
-        "let",
-        "c",
-        { "#literal": 3 },
-        [
-          "let",
-          "nested",
-          { "#tuple": [{ "#tuple": ["a", "b"] }, "c"] },
-          "nested.0.1"
-        ]
-      ]
+      "nested",
+      { "#tuple": [{ "#tuple": ["inner", { "#literal": 2 }] }, { "#literal": 3 }] },
+      "nested.0.0"
     ]
-  ]
+  ],
+  { "#literal": 0 }
 ]

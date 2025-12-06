@@ -1,4 +1,3 @@
 //@ run: pass
 //@ description: Input expressions have no dependencies (they are sources)
-// input creates a local with no outgoing dependency edges
 ["input", "value", "Integer"]

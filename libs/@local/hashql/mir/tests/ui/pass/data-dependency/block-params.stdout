@@ -60,12 +60,12 @@ thunk b:0() -> Integer {
 }
 ════ Data Dependency Graph ═════════════════════════════════════════════════════
 
-%1 -> %2 [Param]
-%1 -> %3 [Param]
+%1 -> %2 [Param(BasicBlockId(1))]
+%1 -> %3 [Param(BasicBlockId(2))]
 
 
 ════ Transient Data Dependency Graph ═══════════════════════════════════════════
 
-%1 -> %2 [Param]
-%1 -> %3 [Param]
+%1 -> %2 [Param(BasicBlockId(1))]
+%1 -> %3 [Param(BasicBlockId(2))]
 

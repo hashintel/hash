@@ -1,6 +1,5 @@
 //@ run: pass
-//@ description: List construction creates Aggregation edges for each element
-// [a, b, c] creates Aggregation edges without field-sensitive tracking
+//@ description: List construction with variables creates Aggregation edges for each element
 [
   "if",
   { "#literal": true },
@@ -14,5 +13,6 @@
       { "#literal": 2 },
       ["let", "c", { "#literal": 3 }, { "#list": ["a", "b", "c"] }]
     ]
-  ]
+  ],
+  { "#literal": 0 }
 ]

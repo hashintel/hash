@@ -1,25 +1,19 @@
 //@ run: pass
 //@ description: Function with multiple arguments creates ApplyArg edge for each
-// Each argument position gets its own ApplyArg(index) slot
 [
-  "let",
-  "f",
-  [
-    "fn",
-    { "#tuple": [] },
-    { "#struct": { "a": "Integer", "b": "Integer", "c": "Integer" } },
-    "_",
-    ["+", ["+", "a", "b"], "c"]
-  ],
+  "if",
+  { "#literal": true },
   [
     "let",
-    "x",
-    ["input", "x", "Integer"],
+    "f",
     [
-      "let",
-      "y",
-      ["input", "y", "Integer"],
-      ["let", "z", ["input", "z", "Integer"], ["f", "x", "y", "z"]]
-    ]
-  ]
+      "fn",
+      { "#tuple": [] },
+      { "#struct": { "a": "Integer", "b": "Integer", "c": "Integer" } },
+      "_",
+      ["if", ["<=", "a", "b"], ["if", ["<=", "b", "c"], "c", "b"], "a"]
+    ],
+    ["f", { "#literal": 1 }, { "#literal": 2 }, { "#literal": 3 }]
+  ],
+  { "#literal": 0 }
 ]

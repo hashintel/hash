@@ -1,4 +1,8 @@
-//@ run: pass
-//@ description: Unary operation creates Unary edge
-// -a creates edge with Unary slot
-["let", "a", ["input", "value", "Integer"], ["-", "a"]]
+//@ run: skip reason="not supported in the MIR yet"
+//@ description: Unary not with variable operand creates Unary edge
+[
+  "if",
+  { "#literal": true },
+  ["let", "flag", { "#literal": true }, ["!", "flag"]],
+  { "#literal": false }
+]

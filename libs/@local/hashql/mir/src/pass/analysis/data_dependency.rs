@@ -40,6 +40,7 @@ use hashql_core::{
 use crate::{
     body::{
         Body,
+        basic_block::BasicBlockId,
         local::Local,
         location::Location,
         operand::Operand,
@@ -83,7 +84,7 @@ enum Slot<'heap> {
     /// Unlike [`Load`](Self::Load), a block can have multiple parameters, so this slot
     /// cannot be followed transitively during resolution (it would be ambiguous which
     /// parameter to follow).
-    Param,
+    Param(BasicBlockId),
 
     /// A positional component in a tuple aggregate.
     ///
@@ -275,7 +276,7 @@ impl<'heap, A: Allocator> DataDependencyGraph<'heap, A> {
                                 Slot::ClosurePtr if field_index.as_usize() == 0 => true,
                                 Slot::ClosureEnv if field_index.as_usize() == 1 => true,
                                 Slot::Load
-                                | Slot::Param
+                                | Slot::Param(_)
                                 | Slot::Index(_)
                                 | Slot::Field(..)
                                 | Slot::ClosurePtr
@@ -474,14 +475,14 @@ impl<'heap, A: Allocator> Visitor<'heap> for DataDependencyAnalysisVisitor<'_, '
 
     fn visit_target(
         &mut self,
-        _: Location,
+        location: Location,
         &Target { block, args }: &Target<'heap>,
     ) -> Self::Result {
         let params = self.body.basic_blocks[block].params;
         debug_assert_eq!(params.len(), args.len());
 
         for (&param, arg) in params.iter().zip(args.iter()) {
-            self.collect_operand(param, Slot::Param, arg);
+            self.collect_operand(param, Slot::Param(location.block), arg);
         }
 
         Ok(())

@@ -1,25 +1,29 @@
 //@ run: pass
 //@ description: Graph read filter creates GraphReadBodyFilterEnv edge for captured environment
-// Filter closures capture environment that becomes a dependency
 [
-  "let",
-  "threshold",
-  ["input", "threshold", "Integer"],
+  "if",
+  { "#literal": true },
   [
-    "::graph::tail::collect",
+    "let",
+    "threshold",
+    { "#literal": 10 },
     [
-      "::graph::body::filter",
+      "::graph::tail::collect",
       [
-        "::graph::head::entities",
-        ["input", "axis", "::graph::QueryTemporalAxes"]
-      ],
-      [
-        "fn",
-        { "#tuple": [] },
-        { "#struct": { "vertex": "_" } },
-        "_",
-        ["<=", "threshold", { "#literal": 10 }]
+        "::graph::body::filter",
+        [
+          "::graph::head::entities",
+          ["input", "axis", "::graph::QueryTemporalAxes"]
+        ],
+        [
+          "fn",
+          { "#tuple": [] },
+          { "#struct": { "vertex": "_" } },
+          "_",
+          ["<=", "threshold", { "#literal": 100 }]
+        ]
       ]
     ]
-  ]
+  ],
+  { "#literal": 0 }
 ]

@@ -1,9 +1,13 @@
 //@ run: pass
-//@ description: Binary operations create BinaryL and BinaryR edges
-// a + b creates edges with BinaryL and BinaryR slots
+//@ description: Binary comparison with variable operands creates BinaryL and BinaryR edges
 [
-  "let",
-  "a",
-  ["input", "left", "Integer"],
-  ["let", "b", ["input", "right", "Integer"], ["+", "a", "b"]]
+  "if",
+  { "#literal": true },
+  [
+    "let",
+    "a",
+    { "#literal": 1 },
+    ["let", "b", { "#literal": 2 }, ["<=", "a", "b"]]
+  ],
+  { "#literal": false }
 ]

@@ -1,46 +1,41 @@
 ════ MIR ═══════════════════════════════════════════════════════════════════════
 
-thunk a:0() -> Integer {
-    let %0: Integer
-
-    bb0(): {
-        %0 = input LOAD first
-
-        return %0
-    }
-}
-
-thunk b:0() -> Integer {
-    let %0: Integer
-
-    bb0(): {
-        %0 = input LOAD second
-
-        return %0
-    }
-}
-
-*thunk {thunk#2}() -> (bar: Integer, foo: Integer) {
-    let %0: Integer
+*thunk {thunk#3}() -> (bar: Integer, foo: Integer) | Integer {
+    let %0: (bar: Integer, foo: Integer) | Integer
     let %1: Integer
-    let %2: (bar: Integer, foo: Integer)
+    let %2: Integer
+    let %3: (bar: Integer, foo: Integer)
 
     bb0(): {
-        %0 = apply (b:0 as FnPtr)
-        %1 = apply (a:0 as FnPtr)
-        %2 = (bar: %0, foo: %1)
+        switchInt(1) -> [0: bb2(), 1: bb1()]
+    }
 
-        return %2
+    bb1(): {
+        %1 = 1
+        %2 = 2
+        %3 = (bar: %2, foo: %1)
+
+        goto -> bb3(%3)
+    }
+
+    bb2(): {
+        goto -> bb3(0)
+    }
+
+    bb3(%0): {
+        return %0
     }
 }
 ════ Data Dependency Graph ═════════════════════════════════════════════════════
 
-%2 -> %0 [Field(FieldIndex(0), Symbol("bar"))]
-%2 -> %1 [Field(FieldIndex(1), Symbol("foo"))]
+%3 -> %2 [Field(FieldIndex(0), Symbol("bar"))]
+%3 -> %1 [Field(FieldIndex(1), Symbol("foo"))]
+%0 -> %3 [Param(BasicBlockId(1))]
 
 
 ════ Transient Data Dependency Graph ═══════════════════════════════════════════
 
-%2 -> %0 [Field(FieldIndex(0), Symbol("bar"))]
-%2 -> %1 [Field(FieldIndex(1), Symbol("foo"))]
+%3 -> %2 [Field(FieldIndex(0), Symbol("bar"))]
+%3 -> %1 [Field(FieldIndex(1), Symbol("foo"))]
+%0 -> %3 [Param(BasicBlockId(1))]
 

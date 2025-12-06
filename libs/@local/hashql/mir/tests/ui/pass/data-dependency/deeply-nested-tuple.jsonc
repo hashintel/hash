@@ -1,14 +1,18 @@
 //@ run: pass
-//@ description: Deeply nested tuple access resolves through all levels
-// (((a,),),) accessed at .0.0.0 should resolve to 'a'
+//@ description: Deeply nested tuple access resolves through all levels to source variable
 [
-  "let",
-  "a",
-  ["input", "value", "Integer"],
+  "if",
+  { "#literal": true },
   [
     "let",
-    "nested",
-    { "#tuple": [{ "#tuple": [{ "#tuple": ["a"] }] }] },
-    "nested.0.0.0"
-  ]
+    "value",
+    { "#literal": 42 },
+    [
+      "let",
+      "nested",
+      { "#tuple": [{ "#tuple": [{ "#tuple": ["value"] }] }] },
+      "nested.0.0.0"
+    ]
+  ],
+  { "#literal": 0 }
 ]

@@ -1,0 +1,82 @@
+════ MIR ═══════════════════════════════════════════════════════════════════════
+
+fn f:0(%0: (), %1: Integer, %2: Integer, %3: Integer) -> Integer {
+    let %4: Boolean
+    let %5: Integer
+    let %6: Boolean
+    let %7: Integer
+
+    bb0(): {
+        %4 = %1 <= %2
+
+        switchInt(%4) -> [0: bb5(), 1: bb1()]
+    }
+
+    bb1(): {
+        %6 = %2 <= %3
+
+        switchInt(%6) -> [0: bb3(), 1: bb2()]
+    }
+
+    bb2(): {
+        goto -> bb4(%3)
+    }
+
+    bb3(): {
+        goto -> bb4(%2)
+    }
+
+    bb4(%7): {
+        goto -> bb6(%7)
+    }
+
+    bb5(): {
+        goto -> bb6(%1)
+    }
+
+    bb6(%5): {
+        return %5
+    }
+}
+
+*thunk {thunk#9}() -> Integer {
+    let %0: Integer
+    let %1: (Integer, Integer, Integer) -> Integer
+    let %2: ()
+    let %3: Integer
+
+    bb0(): {
+        switchInt(1) -> [0: bb2(), 1: bb1()]
+    }
+
+    bb1(): {
+        %2 = ()
+        %1 = closure((f:0 as FnPtr), %2)
+        %3 = apply %1.0 %1.1 1 2 3
+
+        goto -> bb3(%3)
+    }
+
+    bb2(): {
+        goto -> bb3(0)
+    }
+
+    bb3(%0): {
+        return %0
+    }
+}
+════ Data Dependency Graph ═════════════════════════════════════════════════════
+
+%1 -> %2 [ClosureEnv]
+%3 -> %1 [ApplyPtr, projections: .0]
+%3 -> %1 [ApplyArg(ArgIndex(0)), projections: .1]
+%0 -> %3 [Param(BasicBlockId(1))]
+
+
+════ Transient Data Dependency Graph ═══════════════════════════════════════════
+
+%1 -> %2 [ClosureEnv]
+%3 -> %1 [ApplyPtr, projections: .0]
+%3 -> %2 [ApplyArg(ArgIndex(0))]
+%0 -> %3 [Param(BasicBlockId(1))]
+

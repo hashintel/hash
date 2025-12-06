@@ -1,9 +1,13 @@
 //@ run: pass
-//@ description: Tuple construction creates Index edges for each component
-// _1 = (a, b) should create edges _1 -> a [Index(0)] and _1 -> b [Index(1)]
+//@ description: Tuple construction with variables creates Index edges for each component
 [
-  "let",
-  "a",
-  ["input", "first", "Integer"],
-  ["let", "b", ["input", "second", "Integer"], { "#tuple": ["a", "b"] }]
+  "if",
+  { "#literal": true },
+  [
+    "let",
+    "a",
+    { "#literal": 1 },
+    ["let", "b", { "#literal": 2 }, { "#tuple": ["a", "b"] }]
+  ],
+  { "#literal": 0 }
 ]

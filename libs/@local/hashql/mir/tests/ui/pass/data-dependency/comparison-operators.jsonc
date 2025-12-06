@@ -1,9 +1,13 @@
 //@ run: pass
-//@ description: Comparison operators create BinaryL and BinaryR edges
-// All comparison ops (<=, <, >=, >, ==, !=) use binary slots
+//@ description: Comparison with variables creates BinaryL and BinaryR edges
 [
-  "let",
-  "a",
-  ["input", "left", "Integer"],
-  ["let", "b", ["input", "right", "Integer"], ["<=", "a", "b"]]
+  "if",
+  { "#literal": true },
+  [
+    "let",
+    "x",
+    { "#literal": 3 },
+    ["let", "y", { "#literal": 2 }, [">=", "x", "y"]]
+  ],
+  { "#literal": false }
 ]

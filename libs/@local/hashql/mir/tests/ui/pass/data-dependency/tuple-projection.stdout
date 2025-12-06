@@ -1,52 +1,41 @@
 ════ MIR ═══════════════════════════════════════════════════════════════════════
 
-thunk a:0() -> Integer {
-    let %0: Integer
-
-    bb0(): {
-        %0 = input LOAD first
-
-        return %0
-    }
-}
-
-thunk b:0() -> Integer {
-    let %0: Integer
-
-    bb0(): {
-        %0 = input LOAD second
-
-        return %0
-    }
-}
-
-thunk tup:0() -> (Integer, Integer) {
+*thunk {thunk#3}() -> Integer {
     let %0: Integer
     let %1: Integer
-    let %2: (Integer, Integer)
+    let %2: Integer
+    let %3: (Integer, Integer)
 
     bb0(): {
-        %0 = apply (a:0 as FnPtr)
-        %1 = apply (b:0 as FnPtr)
-        %2 = (%0, %1)
-
-        return %2
+        switchInt(1) -> [0: bb2(), 1: bb1()]
     }
-}
 
-*thunk {thunk#3}() -> Integer {
-    let %0: (Integer, Integer)
+    bb1(): {
+        %1 = 1
+        %2 = 2
+        %3 = (%1, %2)
 
-    bb0(): {
-        %0 = apply (tup:0 as FnPtr)
+        goto -> bb3(%3.0)
+    }
 
-        return %0.0
+    bb2(): {
+        goto -> bb3(0)
+    }
+
+    bb3(%0): {
+        return %0
     }
 }
 ════ Data Dependency Graph ═════════════════════════════════════════════════════
 
+%3 -> %1 [Index(FieldIndex(0))]
+%3 -> %2 [Index(FieldIndex(1))]
+%0 -> %3 [Param(BasicBlockId(1)), projections: .0]
 
 
 ════ Transient Data Dependency Graph ═══════════════════════════════════════════
 
+%3 -> %1 [Index(FieldIndex(0))]
+%3 -> %2 [Index(FieldIndex(1))]
+%0 -> %1 [Param(BasicBlockId(1))]
 

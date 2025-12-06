@@ -1,7 +1,9 @@
 //@ run: pass
 //@ description: Graph read head creates GraphReadHeadAxis edge
-// The axis operand in graph read head is tracked
 [
   "::graph::tail::collect",
-  ["::graph::head::entities", ["input", "axis", "::graph::QueryTemporalAxes"]]
+  [
+    "::graph::head::entities",
+    ["input", "axis", "::graph::QueryTemporalAxes"]
+  ]
 ]

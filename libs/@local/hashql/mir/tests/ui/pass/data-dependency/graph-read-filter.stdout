@@ -1,73 +1,64 @@
 ════ MIR ═══════════════════════════════════════════════════════════════════════
 
-thunk threshold:0() -> Integer {
-    let %0: Integer
-
-    bb0(): {
-        %0 = input LOAD threshold
-
-        return %0
-    }
-}
-
-thunk {thunk#2}() -> ::graph::TimeAxis {
-    let %0: ::graph::TimeAxis
-
-    bb0(): {
-        %0 = input LOAD axis
-
-        return %0
-    }
-}
-
-thunk {thunk#3}() -> Boolean {
-    let %0: Integer
-    let %1: Boolean
-
-    bb0(): {
-        %0 = apply (threshold:0 as FnPtr)
-        %1 = %0 <= 10
-
-        return %1
-    }
-}
-
-fn {closure@9}(%0: (), %1: ::graph::types::knowledge::entity::Entity) -> Boolean {
+fn {closure@11}(%0: (Boolean,), %1: ::graph::types::knowledge::entity::Entity) -> Boolean {
     let %2: Boolean
 
     bb0(): {
-        %2 = apply ({thunk#3} as FnPtr)
+        %2 = %0.0
 
         return %2
     }
 }
 
-*thunk {thunk#4}() -> List<::graph::types::knowledge::entity::Entity> {
-    let %0: ::graph::TimeAxis
-    let %1: List<::graph::types::knowledge::entity::Entity>
-    let %2: ()
+*thunk {thunk#5}() -> Integer | List<::graph::types::knowledge::entity::Entity> {
+    let %0: Integer | List<::graph::types::knowledge::entity::Entity>
+    let %1: Integer
+    let %2: ::graph::TimeAxis
+    let %3: Boolean
+    let %4: List<::graph::types::knowledge::entity::Entity>
+    let %5: (Boolean,)
 
     bb0(): {
-        %0 = apply ({thunk#2} as FnPtr)
-        %2 = ()
-
-        graph read entities(%0)
-        |> filter({closure@9}, %2)
-        |> collect -> bb1(_)
+        switchInt(1) -> [0: bb3(), 1: bb1()]
     }
 
-    bb1(%1): {
-        return %1
+    bb1(): {
+        %1 = 10
+        %2 = input LOAD axis
+        %3 = %1 <= 100
+        %5 = (%3)
+
+        graph read entities(%2)
+        |> filter({closure@11}, %5)
+        |> collect -> bb2(_)
+    }
+
+    bb2(%4): {
+        goto -> bb4(%4)
+    }
+
+    bb3(): {
+        goto -> bb4(0)
+    }
+
+    bb4(%0): {
+        return %0
     }
 }
 ════ Data Dependency Graph ═════════════════════════════════════════════════════
 
-%1 -> %0 [GraphReadHeadAxis]
-%1 -> %2 [GraphReadBodyFilterEnv(0)]
+%3 -> %1 [BinaryL]
+%5 -> %3 [Index(FieldIndex(0))]
+%4 -> %2 [GraphReadHeadAxis]
+%4 -> %5 [GraphReadBodyFilterEnv(0)]
+%0 -> %4 [Param(BasicBlockId(2))]
 
 
 ════ Transient Data Dependency Graph ═══════════════════════════════════════════
 
-%1 -> %0 [GraphReadHeadAxis]
-%1 -> %2 [GraphReadBodyFilterEnv(0)]
+%3 -> %1 [BinaryL]
+%5 -> %3 [Index(FieldIndex(0))]
+%4 -> %2 [GraphReadHeadAxis]
+%4 -> %5 [GraphReadBodyFilterEnv(0)]
+%0 -> %4 [Param(BasicBlockId(2))]
 
