@@ -48,7 +48,7 @@
 //! ```
 
 use alloc::alloc::Global;
-use core::alloc::Allocator;
+use core::{alloc::Allocator, ops::Index};
 
 use super::{
     DIRECTIONS, DirectedGraph, Direction, EdgeId, NodeId, Predecessors, Successors, Traverse,
@@ -69,6 +69,7 @@ const TOMBSTONE: EdgeId = EdgeId(usize::MAX);
 /// - Two linked list heads (outgoing and incoming edges)
 ///
 /// The `edges` array stores the head of each linked list, indexed by [`Direction`].
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub struct Node<N> {
     /// Unique identifier for this node.
     id: NodeId,
@@ -102,6 +103,7 @@ impl<N> HasId for Node<N> {
 /// The edge participates in two separate linked lists simultaneously:
 /// 1. The source node's outgoing edge list
 /// 2. The target node's incoming edge list
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub struct Edge<E> {
     /// Unique identifier for this edge.
     id: EdgeId,
@@ -207,6 +209,7 @@ impl<E> Edge<E> {
 /// }
 /// # else { unreachable!() }
 /// ```
+#[derive(Debug, Clone)]
 pub struct LinkedGraph<N, E, A: Allocator = Global> {
     /// All nodes in the graph, indexed by [`NodeId`].
     nodes: IdVec<NodeId, Node<N>, A>,
@@ -391,6 +394,10 @@ impl<N, E, A: Allocator> LinkedGraph<N, E, A> {
         self.edges.as_slice()
     }
 
+    pub fn clear_edges(&mut self) {
+        self.edges.clear();
+    }
+
     /// Returns an iterator over edges incident to a node in the given direction.
     ///
     /// For [`Direction::Outgoing`], iterates edges where `node` is the source.
@@ -482,6 +489,22 @@ impl<N, E, A: Allocator> LinkedGraph<N, E, A> {
 impl<N, E> Default for LinkedGraph<N, E> {
     fn default() -> Self {
         Self::new()
+    }
+}
+
+impl<N, E, A: Allocator> Index<NodeId> for LinkedGraph<N, E, A> {
+    type Output = Node<N>;
+
+    fn index(&self, index: NodeId) -> &Self::Output {
+        &self.nodes[index]
+    }
+}
+
+impl<N, E, A: Allocator> Index<EdgeId> for LinkedGraph<N, E, A> {
+    type Output = Edge<E>;
+
+    fn index(&self, index: EdgeId) -> &Self::Output {
+        &self.edges[index]
     }
 }
 
