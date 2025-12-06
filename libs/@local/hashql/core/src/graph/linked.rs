@@ -287,6 +287,36 @@ impl<N, E, A: Allocator> LinkedGraph<N, E, A> {
         })
     }
 
+    /// Populates the graph with nodes derived from an existing indexed collection.
+    ///
+    /// For each element in `domain`, calls `data` to produce the node data and adds a
+    /// corresponding node to the graph. The resulting [`NodeId`]s will have the same
+    /// numeric values as the source collection's indices, enabling direct ID translation
+    /// between the domain and the graph.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the graph already contains nodes. This method is intended for initial
+    /// population only.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// # use hashql_core::graph::LinkedGraph;
+    /// # use hashql_core::id::{Id, IdVec};
+    /// #
+    /// # hashql_core::id::newtype!(struct MyId(usize is 0..=usize::MAX));
+    /// #
+    /// let mut items: IdVec<MyId, &str> = IdVec::new();
+    /// items.push("first");
+    /// items.push("second");
+    ///
+    /// let mut graph: LinkedGraph<&str, ()> = LinkedGraph::new();
+    /// graph.derive(&items, |_id, &value| value);
+    ///
+    /// // Node 0 corresponds to items[0], etc.
+    /// assert_eq!(graph.nodes().len(), 2);
+    /// ```
     pub fn derive<I, T>(&mut self, domain: &IdSlice<I, T>, mut data: impl FnMut(I, &T) -> N)
     where
         I: Id,
@@ -394,6 +424,7 @@ impl<N, E, A: Allocator> LinkedGraph<N, E, A> {
         self.edges.as_slice()
     }
 
+    /// Removes all edges from the graph while preserving nodes.
     pub fn clear_edges(&mut self) {
         self.edges.clear();
         for node in self.nodes.iter_mut() {
@@ -483,6 +514,7 @@ impl<N, E, A: Allocator> LinkedGraph<N, E, A> {
         IncidentEdges::new(self, Direction::Outgoing, node)
     }
 
+    /// Removes all nodes and edges from the graph.
     pub fn clear(&mut self) {
         self.nodes.clear();
         self.edges.clear();

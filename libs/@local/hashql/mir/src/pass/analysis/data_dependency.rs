@@ -44,7 +44,7 @@ use crate::{
         location::Location,
         operand::Operand,
         place::{FieldIndex, Place, Projection, ProjectionKind},
-        rvalue::{Aggregate, AggregateKind, Apply, Binary, RValue, Unary},
+        rvalue::{Aggregate, AggregateKind, Apply, ArgIndex, Binary, RValue, Unary},
         statement::Assign,
         terminator::{GraphRead, GraphReadBody, GraphReadHead, GraphReadTail, Target},
     },
@@ -56,16 +56,34 @@ use crate::{
 
 /// Describes which component of a structured value an edge represents.
 ///
-/// When constructing aggregates (tuples, structs, closures), each component gets its own edge
-/// with a [`Slot`] indicating its position. This enables field-sensitive dependency tracking,
-/// allowing [`DataDependencyGraph::resolve`] to trace projections back to their sources.
+/// Every dependency edge has a slot identifying its role in the source expression. This enables
+/// precise 1:1 mapping during alias replacement or value reconstruction - given a slot, you know
+/// exactly which operand position it corresponds to.
+///
+/// # Structural vs Non-Structural Slots
+///
+/// Some slots are *structural* and participate in [`DataDependencyGraph::resolve`]:
+/// - [`Load`](Self::Load) - followed transitively to find the original definition
+/// - [`Index`](Self::Index), [`Field`](Self::Field) - matched against projections
+/// - [`ClosurePtr`](Self::ClosurePtr), [`ClosureEnv`](Self::ClosureEnv) - matched by position
+///
+/// Other slots are *non-structural* and exist only for reconstruction/replacement purposes.
+/// They cannot be resolved through because their values don't have addressable subcomponents.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 enum Slot<'heap> {
     /// A load operation that copies the entire value.
     ///
-    /// Used for [`RValue::Load`] and block parameter passing, where the complete value flows
-    /// from source to destination without field decomposition.
+    /// Used for [`RValue::Load`], where the complete value flows from source to destination.
+    /// This is the only slot that [`DataDependencyGraph::resolve`] follows transitively,
+    /// because a load always has exactly one source.
     Load,
+
+    /// A block parameter receiving a value from a predecessor.
+    ///
+    /// Unlike [`Load`](Self::Load), a block can have multiple parameters, so this slot
+    /// cannot be followed transitively during resolution (it would be ambiguous which
+    /// parameter to follow).
+    Param,
 
     /// A positional component in a tuple aggregate.
     ///
@@ -83,6 +101,35 @@ enum Slot<'heap> {
 
     /// The captured environment component of a closure (index 1).
     ClosureEnv,
+
+    /// The function operand of an [`RValue::Apply`].
+    ApplyPtr,
+
+    /// An argument operand of an [`RValue::Apply`] at the given index.
+    ApplyArg(ArgIndex),
+
+    /// An element in a list, dict, or opaque aggregate at the given index.
+    ///
+    /// These aggregates don't support field projection, so this slot exists purely for
+    /// reconstruction purposes (e.g., rebuilding the aggregate with substituted operands).
+    Aggregation(FieldIndex),
+
+    /// The left operand of a binary operation.
+    BinaryL,
+
+    /// The right operand of a binary operation.
+    BinaryR,
+
+    /// The operand of a unary operation.
+    Unary,
+
+    /// The axis operand of a [`GraphReadHead::Entity`].
+    GraphReadHeadAxis,
+
+    /// The captured environment of a filter in a graph read body.
+    ///
+    /// The index corresponds to the position in the `body` vector of the [`GraphRead`].
+    GraphReadBodyFilterEnv(usize),
 }
 
 /// An edge in the data dependency graph.
@@ -91,11 +138,11 @@ enum Slot<'heap> {
 /// metadata about which component is being accessed and any remaining projections.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 struct Edge<'heap> {
-    /// Which component of the source this edge represents, if any.
+    /// Which component of the source expression this edge represents.
     ///
-    /// [`None`] indicates a dependency without specific field tracking (e.g., operands to
-    /// binary operations, list elements).
-    slot: Option<Slot<'heap>>,
+    /// Every edge has a slot identifying its exact position in the source expression,
+    /// enabling precise reconstruction or replacement of operands.
+    slot: Slot<'heap>,
 
     /// The projection path from the dependency local to the actual accessed value.
     ///
@@ -144,7 +191,7 @@ impl<'heap, A: Allocator> DataDependencyGraph<'heap, A> {
         while let Some(edge) = self
             .graph
             .outgoing_edges(node.id())
-            .find(|edge| matches!(edge.data.slot, Some(Slot::Load)))
+            .find(|edge| matches!(edge.data.slot, Slot::Load))
         {
             visited += 1;
             debug_assert!(visited <= max_depth, "cycle detected in load chain");
@@ -190,23 +237,30 @@ impl<'heap, A: Allocator> DataDependencyGraph<'heap, A> {
 
             match projection.kind {
                 ProjectionKind::Field(field_index) => {
-                    let Some(edge) = self.graph.outgoing_edges(node.id()).find(|edge| {
-                        let Some(slot) = edge.data.slot else {
-                            return false;
-                        };
-
-                        match slot {
-                            Slot::Index(index) if index == field_index => true,
-                            Slot::Field(index, _) if index == field_index => true,
-                            Slot::ClosurePtr if field_index.as_usize() == 0 => true,
-                            Slot::ClosureEnv if field_index.as_usize() == 1 => true,
-                            Slot::Load
-                            | Slot::Index(_)
-                            | Slot::Field(..)
-                            | Slot::ClosurePtr
-                            | Slot::ClosureEnv => false,
-                        }
-                    }) else {
+                    let Some(edge) =
+                        self.graph
+                            .outgoing_edges(node.id())
+                            .find(|edge| match edge.data.slot {
+                                Slot::Index(index) if index == field_index => true,
+                                Slot::Field(index, _) if index == field_index => true,
+                                Slot::ClosurePtr if field_index.as_usize() == 0 => true,
+                                Slot::ClosureEnv if field_index.as_usize() == 1 => true,
+                                Slot::Load
+                                | Slot::Param
+                                | Slot::Index(_)
+                                | Slot::Field(..)
+                                | Slot::ClosurePtr
+                                | Slot::ClosureEnv
+                                | Slot::ApplyPtr
+                                | Slot::ApplyArg(_)
+                                | Slot::Aggregation(_)
+                                | Slot::BinaryL
+                                | Slot::BinaryR
+                                | Slot::Unary
+                                | Slot::GraphReadHeadAxis
+                                | Slot::GraphReadBodyFilterEnv(_) => false,
+                            })
+                    else {
                         // This is not an error, it simply means that we weren't able to determine
                         // the projection, this may be the case due to an opaque field, such as a
                         // result from a function call.
@@ -217,7 +271,7 @@ impl<'heap, A: Allocator> DataDependencyGraph<'heap, A> {
                 }
                 ProjectionKind::FieldByName(symbol) => {
                     let Some(edge) = self.graph.outgoing_edges(node.id()).find(
-                        |edge| matches!(edge.data.slot, Some(Slot::Field(_, field)) if field == symbol),
+                        |edge| matches!(edge.data.slot, Slot::Field(_, field) if field == symbol),
                     ) else {
                         // This is not an error, it simply means that we weren't able to determine
                         // the projection, this may be the case due to an opaque field, such as a
@@ -359,7 +413,7 @@ impl<'heap, A: Allocator> DataDependencyAnalysisVisitor<'_, '_, 'heap, A> {
     fn collect_place(
         &mut self,
         source: Local,
-        slot: Option<Slot<'heap>>,
+        slot: Slot<'heap>,
         &Place { local, projections }: &Place<'heap>,
     ) {
         self.analysis.graph.add_edge(
@@ -372,12 +426,7 @@ impl<'heap, A: Allocator> DataDependencyAnalysisVisitor<'_, '_, 'heap, A> {
     /// Records a dependency edge from `source` to the operand, if it's a place.
     ///
     /// Constants have no dependencies and are ignored.
-    fn collect_operand(
-        &mut self,
-        source: Local,
-        slot: Option<Slot<'heap>>,
-        operand: &Operand<'heap>,
-    ) {
+    fn collect_operand(&mut self, source: Local, slot: Slot<'heap>, operand: &Operand<'heap>) {
         match operand {
             Operand::Place(place) => self.collect_place(source, slot, place),
             Operand::Constant(_) => {}
@@ -397,7 +446,7 @@ impl<'heap, A: Allocator> Visitor<'heap> for DataDependencyAnalysisVisitor<'_, '
         debug_assert_eq!(params.len(), args.len());
 
         for (&param, arg) in params.iter().zip(args.iter()) {
-            self.collect_operand(param, Some(Slot::Load), arg);
+            self.collect_operand(param, Slot::Param, arg);
         }
 
         Ok(())
@@ -422,11 +471,11 @@ impl<'heap, A: Allocator> Visitor<'heap> for DataDependencyAnalysisVisitor<'_, '
 
         match head {
             GraphReadHead::Entity { axis } => {
-                self.collect_operand(source, None, axis);
+                self.collect_operand(source, Slot::GraphReadHeadAxis, axis);
             }
         }
 
-        for body in body {
+        for (index, body) in body.iter().enumerate() {
             match body {
                 &GraphReadBody::Filter(_, env) => {
                     // We record the environment local as a dependency but without a slot.
@@ -435,7 +484,7 @@ impl<'heap, A: Allocator> Visitor<'heap> for DataDependencyAnalysisVisitor<'_, '
                     // environment affects what data flows into the filter.
                     self.collect_operand(
                         source,
-                        None,
+                        Slot::GraphReadBodyFilterEnv(index),
                         &Operand::Place(Place::local(env, self.context.interner)),
                     );
                 }
@@ -461,24 +510,23 @@ impl<'heap, A: Allocator> Visitor<'heap> for DataDependencyAnalysisVisitor<'_, '
             lhs.local
         );
 
-        #[expect(clippy::match_same_arms, reason = "clarity over conciseness")]
         match rhs {
             RValue::Load(operand) => {
-                self.collect_operand(source, Some(Slot::Load), operand);
+                self.collect_operand(source, Slot::Load, operand);
             }
             RValue::Binary(Binary { op: _, left, right }) => {
-                self.collect_operand(source, None, left);
-                self.collect_operand(source, None, right);
+                self.collect_operand(source, Slot::BinaryL, left);
+                self.collect_operand(source, Slot::BinaryR, right);
             }
             RValue::Unary(Unary { op: _, operand }) => {
-                self.collect_operand(source, None, operand);
+                self.collect_operand(source, Slot::Unary, operand);
             }
             RValue::Aggregate(Aggregate {
                 kind: AggregateKind::Tuple,
                 operands,
             }) => {
                 for (index, operand) in operands.iter_enumerated() {
-                    self.collect_operand(source, Some(Slot::Index(index)), operand);
+                    self.collect_operand(source, Slot::Index(index), operand);
                 }
             }
             RValue::Aggregate(Aggregate {
@@ -488,33 +536,15 @@ impl<'heap, A: Allocator> Visitor<'heap> for DataDependencyAnalysisVisitor<'_, '
                 debug_assert_eq!(fields.len(), operands.len());
 
                 for (&field, (index, operand)) in fields.iter().zip(operands.iter_enumerated()) {
-                    self.collect_operand(source, Some(Slot::Field(index, field)), operand);
+                    self.collect_operand(source, Slot::Field(index, field), operand);
                 }
             }
             RValue::Aggregate(Aggregate {
-                kind: AggregateKind::List,
+                kind: AggregateKind::List | AggregateKind::Dict | AggregateKind::Opaque(_),
                 operands,
             }) => {
-                // List and dict elements are not position-tracked by design, as their
-                // indices are not meaningful for dependency resolution.
-                for operand in operands.iter() {
-                    self.collect_operand(source, None, operand);
-                }
-            }
-            RValue::Aggregate(Aggregate {
-                kind: AggregateKind::Dict,
-                operands,
-            }) => {
-                for operand in operands.iter() {
-                    self.collect_operand(source, None, operand);
-                }
-            }
-            RValue::Aggregate(Aggregate {
-                kind: AggregateKind::Opaque(_),
-                operands,
-            }) => {
-                for operand in operands.iter() {
-                    self.collect_operand(source, None, operand);
+                for (index, operand) in operands.iter_enumerated() {
+                    self.collect_operand(source, Slot::Aggregation(index), operand);
                 }
             }
             RValue::Aggregate(Aggregate {
@@ -525,8 +555,8 @@ impl<'heap, A: Allocator> Visitor<'heap> for DataDependencyAnalysisVisitor<'_, '
                 let ptr = &operands[FieldIndex::new(0)];
                 let env = &operands[FieldIndex::new(1)];
 
-                self.collect_operand(source, Some(Slot::ClosurePtr), ptr);
-                self.collect_operand(source, Some(Slot::ClosureEnv), env);
+                self.collect_operand(source, Slot::ClosurePtr, ptr);
+                self.collect_operand(source, Slot::ClosureEnv, env);
             }
             RValue::Input(_) => {
                 // Input has no dependencies; it's a source of external data.
@@ -535,10 +565,10 @@ impl<'heap, A: Allocator> Visitor<'heap> for DataDependencyAnalysisVisitor<'_, '
                 function,
                 arguments,
             }) => {
-                self.collect_operand(source, None, function);
+                self.collect_operand(source, Slot::ApplyPtr, function);
 
-                for (_, argument) in arguments.iter_enumerated() {
-                    self.collect_operand(source, None, argument);
+                for (index, argument) in arguments.iter_enumerated() {
+                    self.collect_operand(source, Slot::ApplyArg(index), argument);
                 }
             }
         }
