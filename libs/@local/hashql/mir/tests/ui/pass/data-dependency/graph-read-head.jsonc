@@ -2,8 +2,5 @@
 //@ description: Graph read head creates GraphReadHeadAxis edge
 [
   "::graph::tail::collect",
-  [
-    "::graph::head::entities",
-    ["input", "axis", "::graph::QueryTemporalAxes"]
-  ]
+  ["::graph::head::entities", ["input", "axis", "::graph::QueryTemporalAxes"]]
 ]

@@ -10,7 +10,12 @@
     [
       "let",
       "nested",
-      { "#tuple": [{ "#tuple": ["inner", { "#literal": 2 }] }, { "#literal": 3 }] },
+      {
+        "#tuple": [
+          { "#tuple": ["inner", { "#literal": 2 }] },
+          { "#literal": 3 }
+        ]
+      },
       "nested.0.0"
     ]
   ],

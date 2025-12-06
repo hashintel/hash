@@ -26,6 +26,7 @@
 //! without projections (i.e., `_1 = ...` is valid, but `_1.field = ...` is not).
 //!
 //! [`Slot::Index(0)`]: Slot::Index
+//! [`Slot::Index(1)`]: Slot::Index
 #[cfg(test)]
 mod tests;
 
@@ -236,7 +237,7 @@ impl<'heap, A: Allocator> DataDependencyGraph<'heap, A> {
     ///
     /// Starting from the place's local, this method attempts to trace each projection in the
     /// place through the dependency graph. For each field projection, it looks for an outgoing
-    /// edge with a matching [`Slot`] and follows it to find where that field's value originated.
+    /// edge with a matching slot and follows it to find where that field's value originated.
     ///
     /// Returns a tuple of:
     /// - The number of projections that were successfully resolved
@@ -256,8 +257,8 @@ impl<'heap, A: Allocator> DataDependencyGraph<'heap, A> {
     /// ```
     ///
     /// Resolving `_4` (with no projections) returns `(0, _2)` because:
-    /// 1. `_4` has a [`Slot::Load`] edge to `_3`
-    /// 2. Following through `_3`, the `.1` projection matches [`Slot::Index(1)`] → `_2`
+    /// 1. `_4` has a `Load` edge to `_3`
+    /// 2. Following through `_3`, the `.1` projection matches `Index(1)` → `_2`
     ///
     /// Resolving `_3.1` returns `(1, _2)` because the `.1` projection resolves through the
     /// tuple construction.
