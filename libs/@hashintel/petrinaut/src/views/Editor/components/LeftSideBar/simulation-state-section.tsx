@@ -6,6 +6,7 @@ import { useEditorStore } from "../../../../state/editor-provider";
 import { useSimulationStore } from "../../../../state/simulation-provider";
 
 export const SimulationStateSection: React.FC = () => {
+  const setGlobalMode = useEditorStore((state) => state.setGlobalMode);
   const simulationState = useSimulationStore((state) => state.state);
   const simulationError = useSimulationStore((state) => state.error);
   const errorItemId = useSimulationStore((state) => state.errorItemId);
@@ -92,6 +93,7 @@ export const SimulationStateSection: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => {
+                    setGlobalMode("edit");
                     setSelectedResourceId(errorItemId);
                   }}
                   style={{
@@ -109,7 +111,7 @@ export const SimulationStateSection: React.FC = () => {
                     alignSelf: "flex-start",
                   }}
                 >
-                  Jump to Item
+                  Edit Item
                   <TbArrowRight style={{ fontSize: 12 }} />
                 </button>
               )}

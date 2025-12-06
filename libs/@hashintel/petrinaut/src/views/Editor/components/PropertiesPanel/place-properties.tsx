@@ -130,7 +130,7 @@ export const PlaceProperties: React.FC<PlacePropertiesProps> = ({
 
     if (!isPascalCase(nameInputValue)) {
       setNameError(
-        "Name must be in PascalCase (e.g., MyPlaceName or Place2). Numbers must appear at the end.",
+        "Name must be in PascalCase (e.g., MyPlaceName or Place2). Any numbers must appear at the end.",
       );
       return;
     }

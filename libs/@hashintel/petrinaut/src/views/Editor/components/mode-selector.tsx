@@ -1,5 +1,6 @@
 import { SegmentGroup } from "@ark-ui/react/segment-group";
 import { css } from "@hashintel/ds-helpers/css";
+import { refractive } from "@hashintel/refractive";
 
 export interface ModeSelectorProps {
   mode: "edit" | "simulate";
@@ -17,16 +18,20 @@ export const ModeSelector: React.FC<ModeSelectorProps> = ({
 
   return (
     <div>
-      <div
+      <refractive.div
         className={css({
-          padding: "[12px]",
           borderRadius: "[12px]",
-          backgroundColor: "[rgba(255, 255, 255, 0.8)]",
+          backgroundColor: "[rgba(255, 255, 255, 0.6)]",
           boxShadow: "0 4px 16px rgba(0, 0, 0, 0.15)",
-          backdropFilter: "[blur(8px)]",
         })}
         style={{
           padding: "4px",
+        }}
+        refraction={{
+          radius: 12,
+          blur: 3,
+          bezelWidth: 18,
+          glassThickness: 100,
         }}
       >
         <SegmentGroup.Root
@@ -93,7 +98,7 @@ export const ModeSelector: React.FC<ModeSelectorProps> = ({
             </SegmentGroup.Item>
           ))}
         </SegmentGroup.Root>
-      </div>
+      </refractive.div>
     </div>
   );
 };

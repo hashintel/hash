@@ -63,6 +63,12 @@ describe("splitPascalCase", () => {
     expect(result).toEqual(["HTML"]);
   });
 
+  it("should handle only uppercase letters (acronym) with numbers", () => {
+    const result = splitPascalCase("HTML42");
+
+    expect(result).toEqual(["HTML", "42"]);
+  });
+
   it("should handle empty string", () => {
     const result = splitPascalCase("");
 
