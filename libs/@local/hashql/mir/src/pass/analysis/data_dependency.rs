@@ -28,7 +28,7 @@
 //! [`Slot::Index(0)`]: Slot::Index
 
 use alloc::alloc::Global;
-use core::alloc::Allocator;
+use core::{alloc::Allocator, fmt};
 
 use hashql_core::{
     graph::{LinkedGraph, NodeId, linked::Node},
@@ -120,7 +120,7 @@ enum Slot<'heap> {
     /// The right operand of a binary operation.
     BinaryR,
 
-    /// The operand of a unary operation.
+    /// The operand of an unary operation.
     Unary,
 
     /// The axis operand of a [`GraphReadHead::Entity`].
@@ -151,6 +151,29 @@ struct Edge<'heap> {
     projections: Interned<'heap, [Projection<'heap>]>,
 }
 
+#[expect(clippy::use_debug)]
+fn write_graph<A: Allocator>(
+    graph: &LinkedGraph<Local, Edge<'_>, A>,
+    mut writer: impl fmt::Write,
+) -> fmt::Result {
+    for edge in graph.edges() {
+        let source = edge.source();
+        let target = edge.target();
+        let Edge { slot, projections } = &edge.data;
+
+        write!(writer, "%{source} -> %{target} [{slot:?}")?;
+        if !projections.is_empty() {
+            write!(writer, ", projections: ")?;
+        }
+        for projection in projections {
+            write!(writer, "{}", projection.kind)?;
+        }
+        writeln!(writer, "]")?;
+    }
+
+    Ok(())
+}
+
 /// A data dependency graph with resolved transitive dependencies.
 ///
 /// Created by [`DataDependencyGraph::transient`], this graph has edges that point directly to
@@ -158,7 +181,13 @@ struct Edge<'heap> {
 /// that need to know the true origin of data without manually traversing through tuple/struct
 /// constructions.
 pub struct TransientDataDependencyGraph<'heap, A: Allocator = Global> {
-    _graph: LinkedGraph<Local, Edge<'heap>, A>,
+    graph: LinkedGraph<Local, Edge<'heap>, A>,
+}
+
+impl<A: Allocator> fmt::Display for TransientDataDependencyGraph<'_, A> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write_graph(&self.graph, f)
+    }
 }
 
 /// A graph representing data dependencies between locals in MIR.
@@ -331,7 +360,13 @@ impl<'heap, A: Allocator> DataDependencyGraph<'heap, A> {
             );
         }
 
-        TransientDataDependencyGraph { _graph: graph }
+        TransientDataDependencyGraph { graph }
+    }
+}
+
+impl<A: Allocator> fmt::Display for DataDependencyGraph<'_, A> {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write_graph(&self.graph, fmt)
     }
 }
 
