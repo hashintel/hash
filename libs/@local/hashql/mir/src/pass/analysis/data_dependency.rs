@@ -2,7 +2,7 @@ use alloc::alloc::Global;
 use core::alloc::Allocator;
 
 use hashql_core::{
-    graph::{LinkedGraph, NodeId},
+    graph::{LinkedGraph, NodeId, linked::Node},
     id::{HasId as _, Id as _},
     intern::Interned,
     symbol::Symbol,
@@ -14,8 +14,8 @@ use crate::{
         local::Local,
         location::Location,
         operand::Operand,
-        place::{FieldIndex, Place, PlaceContext, Projection, ProjectionKind},
-        rvalue::{Aggregate, AggregateKind, Apply, ArgIndex, Binary, RValue, Unary},
+        place::{FieldIndex, Place, Projection, ProjectionKind},
+        rvalue::{Aggregate, AggregateKind, Apply, Binary, RValue, Unary},
         statement::Assign,
         terminator::{GraphRead, GraphReadBody, GraphReadHead, GraphReadTail, Target},
     },
@@ -25,14 +25,14 @@ use crate::{
     visit::Visitor,
 };
 
+// We only save slots that have significance when traversing the graph
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 enum Slot<'heap> {
+    Load,
     Index(FieldIndex),
     Field(FieldIndex, Symbol<'heap>),
     ClosurePtr,
     ClosureEnv,
-    ApplyPtr,
-    ApplyArg(ArgIndex),
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
@@ -42,7 +42,7 @@ struct Edge<'heap> {
 }
 
 pub struct TransientDataDependencyGraph<'heap, A: Allocator = Global> {
-    graph: LinkedGraph<Local, Edge<'heap>, A>,
+    _graph: LinkedGraph<Local, Edge<'heap>, A>,
 }
 
 pub struct DataDependencyGraph<'heap, A: Allocator = Global> {
@@ -50,11 +50,23 @@ pub struct DataDependencyGraph<'heap, A: Allocator = Global> {
 }
 
 impl<'heap, A: Allocator> DataDependencyGraph<'heap, A> {
+    fn follow_load<'this>(&'this self, node: &mut &'this Node<Local>) {
+        while let Some(edge) = self
+            .graph
+            .outgoing_edges(node.id())
+            .find(|edge| matches!(edge.data.slot, Some(Slot::Load)))
+        {
+            *node = &self.graph[edge.target()];
+        }
+    }
+
     // resolve a projection where possible
     pub fn resolve(&self, Place { local, projections }: Place<'heap>) -> (usize, Local) {
         let mut node = &self.graph[NodeId::from_usize(local.as_usize())];
 
         for (index, projection) in projections.iter().enumerate() {
+            self.follow_load(&mut node);
+
             match projection.kind {
                 ProjectionKind::Field(field_index) => {
                     let Some(edge) = self.graph.outgoing_edges(node.id()).find(|edge| {
@@ -67,12 +79,11 @@ impl<'heap, A: Allocator> DataDependencyGraph<'heap, A> {
                             Slot::Field(index, _) if index == field_index => true,
                             Slot::ClosurePtr if field_index.as_usize() == 0 => true,
                             Slot::ClosureEnv if field_index.as_usize() == 1 => true,
-                            Slot::Index(_)
+                            Slot::Load
+                            | Slot::Index(_)
                             | Slot::Field(..)
                             | Slot::ClosurePtr
-                            | Slot::ClosureEnv
-                            | Slot::ApplyPtr
-                            | Slot::ApplyArg(_) => false,
+                            | Slot::ClosureEnv => false,
                         }
                     }) else {
                         // This is not an error, it simply means that we weren't able to determine
@@ -100,6 +111,7 @@ impl<'heap, A: Allocator> DataDependencyGraph<'heap, A> {
             }
         }
 
+        self.follow_load(&mut node);
         (projections.len(), node.data)
     }
 
@@ -138,7 +150,7 @@ impl<'heap, A: Allocator> DataDependencyGraph<'heap, A> {
             );
         }
 
-        TransientDataDependencyGraph { graph }
+        TransientDataDependencyGraph { _graph: graph }
     }
 }
 
@@ -200,21 +212,29 @@ struct DataDependencyAnalysisVisitor<'pass, 'env, 'heap, A: Allocator> {
 }
 
 impl<'heap, A: Allocator> DataDependencyAnalysisVisitor<'_, '_, 'heap, A> {
-    fn collect(
+    fn collect_place(
         &mut self,
-        location: Location,
         source: Local,
         slot: Option<Slot<'heap>>,
+        &Place { local, projections }: &Place<'heap>,
+    ) {
+        self.analysis.graph.add_edge(
+            NodeId::from_usize(source.as_usize()),
+            NodeId::from_usize(local.as_usize()),
+            Edge { slot, projections },
+        );
+    }
 
+    fn collect_operand(
+        &mut self,
+        source: Local,
+        slot: Option<Slot<'heap>>,
         operand: &Operand<'heap>,
     ) {
-        Ok(()) = DataDependencyCollectVisitor {
-            analysis: self.analysis,
-
-            source,
-            slot,
+        match operand {
+            Operand::Place(place) => self.collect_place(source, slot, place),
+            Operand::Constant(_) => {}
         }
-        .visit_operand(location, operand);
     }
 }
 
@@ -223,14 +243,14 @@ impl<'heap, A: Allocator> Visitor<'heap> for DataDependencyAnalysisVisitor<'_, '
 
     fn visit_target(
         &mut self,
-        location: Location,
+        _: Location,
         &Target { block, args }: &Target<'heap>,
     ) -> Self::Result {
         let params = self.body.basic_blocks[block].params;
         debug_assert_eq!(params.len(), args.len());
 
         for (&param, arg) in params.iter().zip(args.iter()) {
-            self.collect(location, param, None, arg);
+            self.collect_operand(param, Some(Slot::Load), arg);
         }
 
         Ok(())
@@ -238,7 +258,7 @@ impl<'heap, A: Allocator> Visitor<'heap> for DataDependencyAnalysisVisitor<'_, '
 
     fn visit_terminator_graph_read(
         &mut self,
-        location: Location,
+        _: Location,
         GraphRead {
             head,
             body,
@@ -255,7 +275,7 @@ impl<'heap, A: Allocator> Visitor<'heap> for DataDependencyAnalysisVisitor<'_, '
 
         match head {
             GraphReadHead::Entity { axis } => {
-                self.collect(location, source, None, axis);
+                self.collect_operand(source, None, axis);
             }
         }
 
@@ -267,8 +287,7 @@ impl<'heap, A: Allocator> Visitor<'heap> for DataDependencyAnalysisVisitor<'_, '
                     // **not** the pointer itself.
                     // We're only interested in the local, the output of the graph read depends on
                     // the environment captured by definition.
-                    self.collect(
-                        location,
+                    self.collect_operand(
                         source,
                         None,
                         &Operand::Place(Place::local(env, self.context.interner)),
@@ -286,7 +305,7 @@ impl<'heap, A: Allocator> Visitor<'heap> for DataDependencyAnalysisVisitor<'_, '
 
     fn visit_statement_assign(
         &mut self,
-        location: Location,
+        _: Location,
         Assign { lhs, rhs }: &Assign<'heap>,
     ) -> Self::Result {
         let source = lhs.local;
@@ -298,21 +317,21 @@ impl<'heap, A: Allocator> Visitor<'heap> for DataDependencyAnalysisVisitor<'_, '
         #[expect(clippy::match_same_arms, reason = "intention")]
         match rhs {
             RValue::Load(operand) => {
-                self.collect(location, source, None, operand);
+                self.collect_operand(source, Some(Slot::Load), operand);
             }
             RValue::Binary(Binary { op: _, left, right }) => {
-                self.collect(location, source, None, left);
-                self.collect(location, source, None, right);
+                self.collect_operand(source, None, left);
+                self.collect_operand(source, None, right);
             }
             RValue::Unary(Unary { op: _, operand }) => {
-                self.collect(location, source, None, operand);
+                self.collect_operand(source, None, operand);
             }
             RValue::Aggregate(Aggregate {
                 kind: AggregateKind::Tuple,
                 operands,
             }) => {
                 for (index, operand) in operands.iter_enumerated() {
-                    self.collect(location, source, Some(Slot::Index(index)), operand);
+                    self.collect_operand(source, Some(Slot::Index(index)), operand);
                 }
             }
             RValue::Aggregate(Aggregate {
@@ -322,7 +341,7 @@ impl<'heap, A: Allocator> Visitor<'heap> for DataDependencyAnalysisVisitor<'_, '
                 debug_assert_eq!(fields.len(), operands.len());
 
                 for (&field, (index, operand)) in fields.iter().zip(operands.iter_enumerated()) {
-                    self.collect(location, source, Some(Slot::Field(index, field)), operand);
+                    self.collect_operand(source, Some(Slot::Field(index, field)), operand);
                 }
             }
             RValue::Aggregate(Aggregate {
@@ -331,7 +350,7 @@ impl<'heap, A: Allocator> Visitor<'heap> for DataDependencyAnalysisVisitor<'_, '
             }) => {
                 // list and dict do not have accurate position by design
                 for operand in operands.iter() {
-                    self.collect(location, source, None, operand);
+                    self.collect_operand(source, None, operand);
                 }
             }
             RValue::Aggregate(Aggregate {
@@ -339,7 +358,7 @@ impl<'heap, A: Allocator> Visitor<'heap> for DataDependencyAnalysisVisitor<'_, '
                 operands,
             }) => {
                 for operand in operands.iter() {
-                    self.collect(location, source, None, operand);
+                    self.collect_operand(source, None, operand);
                 }
             }
             RValue::Aggregate(Aggregate {
@@ -347,7 +366,7 @@ impl<'heap, A: Allocator> Visitor<'heap> for DataDependencyAnalysisVisitor<'_, '
                 operands,
             }) => {
                 for operand in operands.iter() {
-                    self.collect(location, source, None, operand);
+                    self.collect_operand(source, None, operand);
                 }
             }
             RValue::Aggregate(Aggregate {
@@ -358,8 +377,8 @@ impl<'heap, A: Allocator> Visitor<'heap> for DataDependencyAnalysisVisitor<'_, '
                 let ptr = &operands[FieldIndex::new(0)];
                 let env = &operands[FieldIndex::new(1)];
 
-                self.collect(location, source, Some(Slot::ClosurePtr), ptr);
-                self.collect(location, source, Some(Slot::ClosureEnv), env);
+                self.collect_operand(source, Some(Slot::ClosurePtr), ptr);
+                self.collect_operand(source, Some(Slot::ClosureEnv), env);
             }
             RValue::Input(_) => {
                 // input has no dependencies
@@ -368,42 +387,13 @@ impl<'heap, A: Allocator> Visitor<'heap> for DataDependencyAnalysisVisitor<'_, '
                 function,
                 arguments,
             }) => {
-                self.collect(location, source, Some(Slot::ApplyPtr), function);
+                self.collect_operand(source, None, function);
 
-                for (index, argument) in arguments.iter_enumerated() {
-                    self.collect(location, source, Some(Slot::ApplyArg(index)), argument);
+                for (_, argument) in arguments.iter_enumerated() {
+                    self.collect_operand(source, None, argument);
                 }
             }
         }
-
-        Ok(())
-    }
-}
-
-struct DataDependencyCollectVisitor<'pass, 'heap, A: Allocator> {
-    analysis: &'pass mut DataDependencyAnalysis<'heap, A>,
-
-    source: Local,
-    slot: Option<Slot<'heap>>,
-}
-
-impl<'heap, A: Allocator> Visitor<'heap> for DataDependencyCollectVisitor<'_, 'heap, A> {
-    type Result = Result<(), !>;
-
-    fn visit_place(
-        &mut self,
-        _: Location,
-        _: PlaceContext,
-        &Place { local, projections }: &Place<'heap>,
-    ) -> Self::Result {
-        self.analysis.graph.add_edge(
-            NodeId::from_usize(self.source.as_usize()),
-            NodeId::from_usize(local.as_usize()),
-            Edge {
-                slot: self.slot,
-                projections,
-            },
-        );
 
         Ok(())
     }
