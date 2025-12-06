@@ -70,7 +70,7 @@
     "@vitest/coverage-istanbul": "3.2.4",
     "eslint": "9.38.0",
     "graphql": "16.11.0",
-    "next": "15.4.8",
+    "next": "15.5.7",
     "react": "19.2.0",
     "rimraf": "6.1.2",
     "typescript": "5.9.3",
