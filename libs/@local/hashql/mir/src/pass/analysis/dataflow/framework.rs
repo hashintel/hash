@@ -16,13 +16,16 @@ use crate::{
             Goto, GraphRead, SwitchInt, SwitchIntValue, SwitchTargets, Terminator, TerminatorKind,
         },
     },
-    context::MirContext,
     pass::simplify_type_name,
 };
 
 pub enum Direction {
     Forward,
     Backward,
+}
+
+pub struct DataflowResults<'heap, D: DataflowAnalysis<'heap> + ?Sized, A: Allocator = Global> {
+    pub states: IdVec<BasicBlockId, D::Domain<A>, A>,
 }
 
 pub trait DataflowAnalysis<'heap> {
@@ -109,9 +112,9 @@ pub trait DataflowAnalysis<'heap> {
     fn iterate_to_fixpoint_in<A>(
         &mut self,
         body: &Body<'heap>,
-        context: &mut MirContext<'_, 'heap>,
         alloc: A,
-    ) where
+    ) -> DataflowResults<'heap, Self, A>
+    where
         A: Allocator + Clone,
     {
         let lattice = self.lattice_in(body, alloc.clone());
@@ -176,10 +179,12 @@ pub trait DataflowAnalysis<'heap> {
                 }
             }
         }
+
+        DataflowResults { states }
     }
 
-    fn iterate_to_fixpoint(&mut self, body: &Body<'heap>, context: &mut MirContext<'_, 'heap>) {
-        self.iterate_to_fixpoint_in(body, context, Global);
+    fn iterate_to_fixpoint(&mut self, body: &Body<'heap>) -> DataflowResults<'heap, Self> {
+        self.iterate_to_fixpoint_in(body, Global)
     }
 }
 
