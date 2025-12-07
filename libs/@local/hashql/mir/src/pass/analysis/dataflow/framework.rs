@@ -1,8 +1,9 @@
-use std::alloc::{Allocator, Global};
+use alloc::alloc::Global;
+use core::alloc::Allocator;
 
-use hashql_core::{collections::WorkQueue, id::IdVec};
+use hashql_core::{collections::WorkQueue, graph::Predecessors as _, id::IdVec};
 
-use super::lattice::{BoundedJoinSemiLattice, HasBottom, JoinSemiLattice};
+use super::lattice::{BoundedJoinSemiLattice, HasBottom as _, JoinSemiLattice as _};
 use crate::{
     body::{
         Body,
@@ -40,8 +41,9 @@ pub trait DataflowAnalysis<'heap> {
     }
 
     fn lattice_in<A: Allocator>(&self, body: &Body<'heap>, alloc: A) -> Self::Lattice<A>;
-    fn initialize_start<A: Allocator>(&self, body: &Body<'heap>, domain: &mut Self::Domain<A>);
+    fn initialize_boundary<A: Allocator>(&self, body: &Body<'heap>, domain: &mut Self::Domain<A>);
 
+    #[expect(unused_variables, reason = "trait definition")]
     fn switch_int_data(
         &self,
         block: BasicBlockId,
@@ -50,6 +52,7 @@ pub trait DataflowAnalysis<'heap> {
         None
     }
 
+    #[expect(unused_variables, reason = "trait definition")]
     fn apply_switch_int_edge_effect<A: Allocator>(
         &self,
         targets: &SwitchTargets,
@@ -60,6 +63,7 @@ pub trait DataflowAnalysis<'heap> {
         unreachable!();
     }
 
+    #[expect(unused_variables, reason = "trait definition")]
     fn transfer_statement<A: Allocator>(
         &self,
         location: Location,
@@ -68,6 +72,7 @@ pub trait DataflowAnalysis<'heap> {
     ) {
     }
 
+    #[expect(unused_variables, reason = "trait definition")]
     fn transfer_terminator<A: Allocator>(
         &self,
         location: Location,
@@ -76,13 +81,26 @@ pub trait DataflowAnalysis<'heap> {
     ) {
     }
 
+    #[expect(unused_variables, reason = "trait definition")]
     fn transfer_edge<A: Allocator>(
         &self,
-        block: BasicBlockId,
-        params: &[Local],
+        source_block: BasicBlockId,
+        source_args: &[Operand<'heap>],
 
-        from: BasicBlockId,
-        args: &[Operand<'heap>],
+        target_block: BasicBlockId,
+        target_params: &[Local],
+
+        state: &mut Self::Domain<A>,
+    ) {
+    }
+
+    #[expect(unused_variables, reason = "trait definition")]
+    fn transfer_graph_read_edge<A: Allocator>(
+        &self,
+        source_block: BasicBlockId,
+
+        target_block: BasicBlockId,
+        target_params: &[Local],
 
         state: &mut Self::Domain<A>,
     ) {
@@ -97,14 +115,26 @@ pub trait DataflowAnalysis<'heap> {
         A: Allocator + Clone,
     {
         let lattice = self.lattice_in(body, alloc.clone());
+
+        let mut queue = WorkQueue::new_in(body.basic_blocks.len(), alloc.clone());
         let mut states = IdVec::from_fn_in(
             body.basic_blocks.len(),
             |_: BasicBlockId| lattice.bottom(),
-            alloc.clone(),
+            alloc,
         );
-        self.initialize_start(body, &mut states[BasicBlockId::START]);
 
-        let mut queue = WorkQueue::new_in(body.basic_blocks.len(), alloc);
+        match Self::DIRECTION {
+            Direction::Forward => {
+                self.initialize_boundary(body, &mut states[BasicBlockId::START]);
+            }
+            Direction::Backward => {
+                for (bb, block) in body.basic_blocks.iter_enumerated() {
+                    if matches!(block.terminator.kind, TerminatorKind::Return(_)) {
+                        self.initialize_boundary(body, &mut states[bb]);
+                    }
+                }
+            }
+        }
 
         match Self::DIRECTION {
             Direction::Forward => {
@@ -120,6 +150,31 @@ pub trait DataflowAnalysis<'heap> {
         let mut state = lattice.bottom();
         while let Some(bb) = queue.dequeue() {
             state.clone_from(&states[bb]);
+
+            let driver = Driver {
+                analysis: &*self,
+                lattice: &lattice,
+
+                body,
+                state: &mut state,
+                id: bb,
+                block: &body.basic_blocks[bb],
+                propagate: |target: BasicBlockId, state: &Self::Domain<A>| {
+                    let changed = lattice.join(&mut states[target], state);
+                    if changed {
+                        queue.enqueue(target);
+                    }
+                },
+            };
+
+            match Self::DIRECTION {
+                Direction::Forward => {
+                    driver.forward();
+                }
+                Direction::Backward => {
+                    driver.backward();
+                }
+            }
         }
     }
 
@@ -128,11 +183,9 @@ pub trait DataflowAnalysis<'heap> {
     }
 }
 
-struct Driver<'analysis, 'mir, 'env, 'heap, D: DataflowAnalysis<'heap>, A: Allocator, F> {
+struct Driver<'analysis, 'heap, D: DataflowAnalysis<'heap> + ?Sized, A: Allocator, F> {
     analysis: &'analysis D,
     lattice: &'analysis D::Lattice<A>,
-    context: &'mir mut MirContext<'env, 'heap>,
-    alloc: A,
 
     body: &'analysis Body<'heap>,
     state: &'analysis mut D::Domain<A>,
@@ -143,15 +196,19 @@ struct Driver<'analysis, 'mir, 'env, 'heap, D: DataflowAnalysis<'heap>, A: Alloc
     propagate: F,
 }
 
-impl<'heap, D: DataflowAnalysis<'heap>, A: Allocator, F: FnMut(BasicBlockId, &D::Domain<A>)>
-    Driver<'_, '_, '_, 'heap, D, A, F>
+impl<
+    'heap,
+    D: DataflowAnalysis<'heap> + ?Sized,
+    A: Allocator,
+    F: FnMut(BasicBlockId, &D::Domain<A>),
+> Driver<'_, 'heap, D, A, F>
 {
+    #[expect(clippy::too_many_lines, reason = "minimal amount")]
     fn forward(self) {
         let Self {
             analysis,
             lattice,
-            context: _,
-            alloc: _,
+
             body,
             state,
             id,
@@ -178,13 +235,11 @@ impl<'heap, D: DataflowAnalysis<'heap>, A: Allocator, F: FnMut(BasicBlockId, &D:
         let exit_state = state;
         match &block.terminator.kind {
             TerminatorKind::Goto(Goto { target }) => {
-                let target_block = &body.basic_blocks[target.block];
-
                 analysis.transfer_edge(
-                    target.block,
-                    &target_block.params,
                     id,
                     &target.args,
+                    target.block,
+                    &body.basic_blocks[target.block].params,
                     exit_state,
                 );
 
@@ -196,9 +251,12 @@ impl<'heap, D: DataflowAnalysis<'heap>, A: Allocator, F: FnMut(BasicBlockId, &D:
                 tail: _,
                 target,
             }) => {
-                let target_block = &body.basic_blocks[target];
-
-                analysis.transfer_edge(target, &target_block.params, id, &target.args, exit_state);
+                analysis.transfer_graph_read_edge(
+                    id,
+                    target,
+                    &body.basic_blocks[target].params,
+                    exit_state,
+                );
 
                 propagate(target, exit_state);
             }
@@ -217,12 +275,11 @@ impl<'heap, D: DataflowAnalysis<'heap>, A: Allocator, F: FnMut(BasicBlockId, &D:
                             &mut data,
                         );
 
-                        let target_block = &body.basic_blocks[target.block];
                         analysis.transfer_edge(
-                            target.block,
-                            &target_block.params,
                             id,
                             &target.args,
+                            target.block,
+                            &body.basic_blocks[target.block].params,
                             &mut switch_data,
                         );
 
@@ -238,12 +295,11 @@ impl<'heap, D: DataflowAnalysis<'heap>, A: Allocator, F: FnMut(BasicBlockId, &D:
                             &mut data,
                         );
 
-                        let target_block = &body.basic_blocks[otherwise.block];
                         analysis.transfer_edge(
-                            otherwise.block,
-                            &target_block.params,
                             id,
                             &otherwise.args,
+                            otherwise.block,
+                            &body.basic_blocks[otherwise.block].params,
                             exit_state,
                         );
 
@@ -254,12 +310,11 @@ impl<'heap, D: DataflowAnalysis<'heap>, A: Allocator, F: FnMut(BasicBlockId, &D:
                     for &target in targets.targets() {
                         switch_data.clone_from(exit_state);
 
-                        let target_block = &body.basic_blocks[target.block];
                         analysis.transfer_edge(
-                            target.block,
-                            &target_block.params,
                             id,
                             &target.args,
+                            target.block,
+                            &body.basic_blocks[target.block].params,
                             &mut switch_data,
                         );
 
@@ -270,37 +325,96 @@ impl<'heap, D: DataflowAnalysis<'heap>, A: Allocator, F: FnMut(BasicBlockId, &D:
             TerminatorKind::Return(_) | TerminatorKind::Unreachable => {}
         }
     }
-}
 
-fn iterate_backward<'heap, D, A>(
-    analysis: &D,
-    context: &mut MirContext<'_, 'heap>,
-    alloc: A,
+    fn backward(self) {
+        let Self {
+            analysis,
+            lattice,
+            body,
+            state,
+            id,
+            block,
+            mut propagate,
+        } = self;
 
-    body: &Body<'heap>,
-    state: &mut D::Domain<A>,
-
-    id: BasicBlockId,
-    block: &BasicBlock<'heap>,
-) where
-    D: DataflowAnalysis<'heap>,
-    A: Allocator + Clone,
-{
-    let location = Location {
-        block: id,
-        statement_index: block.statements.len() + 1, // 0 is always the head, so `+1`
-    };
-
-    analysis.transfer_terminator(location, &block.terminator, state);
-
-    for (index, statement) in block.statements.iter().enumerate().rev() {
         let location = Location {
             block: id,
-            statement_index: index + 1, // `0` are the params
+            statement_index: block.statements.len() + 1, // 0 is always the head, so `+1`
         };
 
-        analysis.transfer_statement(location, statement, state);
-    }
+        analysis.transfer_terminator(location, &block.terminator, state);
 
-    // join from all predecessors(?)
+        for (index, statement) in block.statements.iter().enumerate().rev() {
+            let location = Location {
+                block: id,
+                statement_index: index + 1, // `0` are the params
+            };
+
+            analysis.transfer_statement(location, statement, state);
+        }
+
+        let entry_state = state;
+
+        for predecessor in body.basic_blocks.predecessors(id) {
+            match &body.basic_blocks[predecessor].terminator.kind {
+                TerminatorKind::Goto(Goto { target }) => {
+                    debug_assert_eq!(target.block, id);
+
+                    let mut state = entry_state.clone();
+                    analysis.transfer_edge(
+                        predecessor,
+                        &target.args,
+                        id,
+                        &block.params,
+                        &mut state,
+                    );
+                    propagate(predecessor, &state);
+                }
+                TerminatorKind::SwitchInt(SwitchInt {
+                    discriminant,
+                    targets,
+                }) => {
+                    if let Some(_data) = analysis.switch_int_data(predecessor, discriminant) {
+                        unimplemented!("switch_int_data is not supported for backward analyses");
+                    } else {
+                        let mut combined = lattice.bottom();
+
+                        for &target in targets.targets() {
+                            if target.block != id {
+                                continue;
+                            }
+
+                            let mut edge_state = entry_state.clone();
+                            analysis.transfer_edge(
+                                predecessor,
+                                &target.args,
+                                id,
+                                &block.params,
+                                &mut edge_state,
+                            );
+                            lattice.join(&mut combined, &edge_state);
+                        }
+
+                        propagate(predecessor, &combined);
+                    }
+                }
+                TerminatorKind::GraphRead(GraphRead {
+                    head: _,
+                    body: _,
+                    tail: _,
+                    target,
+                }) => {
+                    debug_assert_eq!(*target, id);
+
+                    let mut state = entry_state.clone();
+                    analysis.transfer_graph_read_edge(predecessor, id, &block.params, &mut state);
+                    propagate(predecessor, &state);
+                }
+
+                TerminatorKind::Return(_) | TerminatorKind::Unreachable => {
+                    unreachable!("predecessor {predecessor} has no edge to {id}")
+                }
+            }
+        }
+    }
 }
