@@ -50,7 +50,7 @@ use crate::{
         place::{FieldIndex, Place, Projection, ProjectionKind},
         rvalue::{Aggregate, AggregateKind, Apply, ArgIndex, Binary, RValue, Unary},
         statement::Assign,
-        terminator::{GraphRead, GraphReadBody, GraphReadHead, GraphReadTail, Target},
+        terminator::{GraphRead, GraphReadBody, GraphReadHead, GraphReadTail, SwitchInt, Target},
     },
     context::MirContext,
     intern::Interner,
@@ -87,7 +87,7 @@ enum Slot<'heap> {
     /// Unlike [`Load`](Self::Load), a block can have multiple parameters, so this slot
     /// cannot be followed transitively during resolution (it would be ambiguous which
     /// parameter to follow).
-    Param(BasicBlockId),
+    Param(BasicBlockId, Option<u128>),
 
     /// A positional component in a tuple aggregate.
     ///
@@ -279,7 +279,7 @@ impl<'heap, A: Allocator> DataDependencyGraph<'heap, A> {
                                 Slot::ClosurePtr if field_index.as_usize() == 0 => true,
                                 Slot::ClosureEnv if field_index.as_usize() == 1 => true,
                                 Slot::Load
-                                | Slot::Param(_)
+                                | Slot::Param(..)
                                 | Slot::Index(_)
                                 | Slot::Field(..)
                                 | Slot::ClosurePtr
@@ -434,6 +434,7 @@ impl<'env, 'heap, A: Allocator> Pass<'env, 'heap> for DataDependencyAnalysis<'he
         let Ok(()) = DataDependencyAnalysisVisitor {
             analysis: self,
             context,
+            terminator_value: None,
             body,
         }
         .visit_body(body);
@@ -445,6 +446,7 @@ struct DataDependencyAnalysisVisitor<'pass, 'env, 'heap, A: Allocator> {
     analysis: &'pass mut DataDependencyAnalysis<'heap, A>,
     context: &'pass mut MirContext<'env, 'heap>,
     body: &'pass Body<'heap>,
+    terminator_value: Option<u128>,
 }
 
 impl<'heap, A: Allocator> DataDependencyAnalysisVisitor<'_, '_, 'heap, A> {
@@ -476,6 +478,29 @@ impl<'heap, A: Allocator> DataDependencyAnalysisVisitor<'_, '_, 'heap, A> {
 impl<'heap, A: Allocator> Visitor<'heap> for DataDependencyAnalysisVisitor<'_, '_, 'heap, A> {
     type Result = Result<(), !>;
 
+    fn visit_terminator_switch_int(
+        &mut self,
+        location: Location,
+        SwitchInt {
+            discriminant,
+            targets,
+        }: &SwitchInt<'heap>,
+    ) -> Self::Result {
+        self.visit_operand(location, discriminant)?;
+
+        for (value, target) in targets.iter() {
+            self.terminator_value = Some(value);
+            self.visit_target(location, &target)?;
+        }
+
+        self.terminator_value = None;
+        if let Some(target) = targets.otherwise() {
+            self.visit_target(location, &target)?;
+        }
+
+        Ok(())
+    }
+
     fn visit_target(
         &mut self,
         location: Location,
@@ -485,7 +510,11 @@ impl<'heap, A: Allocator> Visitor<'heap> for DataDependencyAnalysisVisitor<'_, '
         debug_assert_eq!(params.len(), args.len());
 
         for (&param, arg) in params.iter().zip(args.iter()) {
-            self.collect_operand(param, Slot::Param(location.block), arg);
+            self.collect_operand(
+                param,
+                Slot::Param(location.block, self.terminator_value),
+                arg,
+            );
         }
 
         Ok(())
