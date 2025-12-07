@@ -24,7 +24,8 @@ pub enum Direction {
     Backward,
 }
 
-pub struct DataflowResults<'heap, D: DataflowAnalysis<'heap> + ?Sized, A: Allocator = Global> {
+pub struct DataflowResults<'heap, D: DataflowAnalysis<'heap>, A: Allocator = Global> {
+    pub analysis: D,
     pub states: IdVec<BasicBlockId, D::Domain<A>, A>,
 }
 
@@ -110,11 +111,12 @@ pub trait DataflowAnalysis<'heap> {
     }
 
     fn iterate_to_fixpoint_in<A>(
-        &mut self,
+        self,
         body: &Body<'heap>,
         alloc: A,
     ) -> DataflowResults<'heap, Self, A>
     where
+        Self: Sized,
         A: Allocator + Clone,
     {
         let lattice = self.lattice_in(body, alloc.clone());
@@ -155,7 +157,7 @@ pub trait DataflowAnalysis<'heap> {
             state.clone_from(&states[bb]);
 
             let driver = Driver {
-                analysis: &*self,
+                analysis: &self,
                 lattice: &lattice,
 
                 body,
@@ -180,10 +182,16 @@ pub trait DataflowAnalysis<'heap> {
             }
         }
 
-        DataflowResults { states }
+        DataflowResults {
+            analysis: self,
+            states,
+        }
     }
 
-    fn iterate_to_fixpoint(&mut self, body: &Body<'heap>) -> DataflowResults<'heap, Self> {
+    fn iterate_to_fixpoint(self, body: &Body<'heap>) -> DataflowResults<'heap, Self>
+    where
+        Self: Sized,
+    {
         self.iterate_to_fixpoint_in(body, Global)
     }
 }
@@ -383,13 +391,14 @@ impl<
                         unimplemented!("switch_int_data is not supported for backward analyses");
                     } else {
                         let mut combined = lattice.bottom();
+                        let mut edge_state = lattice.bottom();
 
                         for &target in targets.targets() {
                             if target.block != id {
                                 continue;
                             }
 
-                            let mut edge_state = entry_state.clone();
+                            edge_state.clone_from(entry_state);
                             analysis.transfer_edge(
                                 predecessor,
                                 &target.args,
