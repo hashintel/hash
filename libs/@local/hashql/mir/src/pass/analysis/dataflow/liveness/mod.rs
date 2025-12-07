@@ -1,3 +1,27 @@
+//! Liveness analysis for HashQL MIR.
+//!
+//! Liveness analysis determines which variables may be read before being written at each
+//! program point. A variable is *live* at a point if there exists a path from that point to a
+//! use of the variable that does not pass through a definition.
+//!
+//! # Transfer Function
+//!
+//! For each instruction, the transfer function:
+//! - **Kills** (removes from live set): variables that are defined
+//! - **Gens** (adds to live set): variables that are used
+//!
+//! # Example
+//!
+//! ```text
+//! bb0:
+//!     x = 5       // x is defined, kills x
+//!     y = x + 1   // x is used, gens x; y is defined, kills y
+//!     return y    // y is used, gens y
+//!
+//! Live at entry of bb0: {}
+//! Live at exit of bb0: {}
+//! ```
+
 #[cfg(test)]
 mod tests;
 
@@ -21,6 +45,10 @@ use crate::{
     visit::Visitor,
 };
 
+/// Computes liveness information for all locals in a MIR body.
+///
+/// A local is live at a program point if its current value may be read along some
+/// path before being overwritten.
 pub struct LivenessAnalysis;
 
 impl<'heap> DataflowAnalysis<'heap> for LivenessAnalysis {
@@ -66,7 +94,7 @@ impl<'heap> DataflowAnalysis<'heap> for LivenessAnalysis {
     }
 }
 
-struct TransferFunction<'mir>(pub &'mir mut DenseBitSet<Local>);
+struct TransferFunction<'mir>(&'mir mut DenseBitSet<Local>);
 
 impl Visitor<'_> for TransferFunction<'_> {
     type Result = Result<(), !>;
@@ -77,7 +105,9 @@ impl Visitor<'_> for TransferFunction<'_> {
         };
 
         match def_use {
+            // Full definition kills liveness - the variable gets a new value
             DefUse::Def => self.0.remove(local),
+            // Partial definitions and uses generate liveness - the current value is needed
             DefUse::PartialDef | DefUse::Use => self.0.insert(local),
         };
 
