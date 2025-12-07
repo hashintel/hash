@@ -180,7 +180,7 @@ export const AccountDropdown: FunctionComponent<AccountDropdownProps> = ({
                   onClick={() => popupState.close()}
                 >
                   <ListItemText primary="Instance Admin" />
-                </MenuItem>
+                </MenuItem>,
               ]
             : null,
           <Divider key="divider" />,
