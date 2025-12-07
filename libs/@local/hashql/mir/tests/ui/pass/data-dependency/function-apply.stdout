@@ -54,7 +54,7 @@ fn max:0(%0: (), %1: Integer, %2: Integer) -> Integer {
 %1 -> %2 [ClosureEnv]
 %3 -> %1 [ApplyPtr, projections: .0]
 %3 -> %1 [ApplyArg(ArgIndex(0)), projections: .1]
-%0 -> %3 [Param(BasicBlockId(1))]
+%0 -> %3 [Param(BasicBlockId(1), None)]
 
 
 ════ Transient Data Dependency Graph ═══════════════════════════════════════════
@@ -62,5 +62,5 @@ fn max:0(%0: (), %1: Integer, %2: Integer) -> Integer {
 %1 -> %2 [ClosureEnv]
 %3 -> %1 [ApplyPtr, projections: .0]
 %3 -> %2 [ApplyArg(ArgIndex(0))]
-%0 -> %3 [Param(BasicBlockId(1))]
+%0 -> %3 [Param(BasicBlockId(1), None)]
 

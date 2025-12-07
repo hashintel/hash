@@ -33,7 +33,7 @@
 %2 -> %1 [Index(FieldIndex(0))]
 %3 -> %2 [Index(FieldIndex(0))]
 %4 -> %3 [Index(FieldIndex(0))]
-%0 -> %4 [Param(BasicBlockId(1)), projections: .0.0.0]
+%0 -> %4 [Param(BasicBlockId(1), None), projections: .0.0.0]
 
 
 ════ Transient Data Dependency Graph ═══════════════════════════════════════════
@@ -41,5 +41,5 @@
 %2 -> %1 [Index(FieldIndex(0))]
 %3 -> %2 [Index(FieldIndex(0))]
 %4 -> %3 [Index(FieldIndex(0))]
-%0 -> %1 [Param(BasicBlockId(1))]
+%0 -> %1 [Param(BasicBlockId(1), None)]
 

@@ -28,12 +28,12 @@
 
 %2 -> %1 [BinaryL]
 %2 -> %1 [BinaryR]
-%0 -> %2 [Param(BasicBlockId(1))]
+%0 -> %2 [Param(BasicBlockId(1), None)]
 
 
 ════ Transient Data Dependency Graph ═══════════════════════════════════════════
 
 %2 -> %1 [BinaryL]
 %2 -> %1 [BinaryR]
-%0 -> %2 [Param(BasicBlockId(1))]
+%0 -> %2 [Param(BasicBlockId(1), None)]
 

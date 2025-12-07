@@ -33,7 +33,7 @@
 %4 -> %1 [Aggregation(FieldIndex(0))]
 %4 -> %2 [Aggregation(FieldIndex(1))]
 %4 -> %3 [Aggregation(FieldIndex(2))]
-%0 -> %4 [Param(BasicBlockId(1))]
+%0 -> %4 [Param(BasicBlockId(1), None)]
 
 
 ════ Transient Data Dependency Graph ═══════════════════════════════════════════
@@ -41,5 +41,5 @@
 %4 -> %1 [Aggregation(FieldIndex(0))]
 %4 -> %2 [Aggregation(FieldIndex(1))]
 %4 -> %3 [Aggregation(FieldIndex(2))]
-%0 -> %4 [Param(BasicBlockId(1))]
+%0 -> %4 [Param(BasicBlockId(1), None)]
 

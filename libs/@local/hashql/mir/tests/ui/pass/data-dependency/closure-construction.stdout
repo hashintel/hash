@@ -40,12 +40,12 @@ fn f:0(%0: (Integer,)) -> Integer {
 
 %3 -> %1 [Index(FieldIndex(0))]
 %2 -> %3 [ClosureEnv]
-%0 -> %2 [Param(BasicBlockId(1))]
+%0 -> %2 [Param(BasicBlockId(1), None)]
 
 
 ════ Transient Data Dependency Graph ═══════════════════════════════════════════
 
 %3 -> %1 [Index(FieldIndex(0))]
 %2 -> %3 [ClosureEnv]
-%0 -> %2 [Param(BasicBlockId(1))]
+%0 -> %2 [Param(BasicBlockId(1), None)]
 

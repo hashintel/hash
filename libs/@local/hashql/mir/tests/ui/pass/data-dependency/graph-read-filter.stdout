@@ -51,7 +51,7 @@ fn {closure@11}(%0: (Boolean,), %1: ::graph::types::knowledge::entity::Entity) -
 %5 -> %3 [Index(FieldIndex(0))]
 %4 -> %2 [GraphReadHeadAxis]
 %4 -> %5 [GraphReadBodyFilterEnv(0)]
-%0 -> %4 [Param(BasicBlockId(2))]
+%0 -> %4 [Param(BasicBlockId(2), None)]
 
 
 ════ Transient Data Dependency Graph ═══════════════════════════════════════════
@@ -60,5 +60,5 @@ fn {closure@11}(%0: (Boolean,), %1: ::graph::types::knowledge::entity::Entity) -
 %5 -> %3 [Index(FieldIndex(0))]
 %4 -> %2 [GraphReadHeadAxis]
 %4 -> %5 [GraphReadBodyFilterEnv(0)]
-%0 -> %4 [Param(BasicBlockId(2))]
+%0 -> %4 [Param(BasicBlockId(2), None)]
 
