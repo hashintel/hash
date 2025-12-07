@@ -326,7 +326,9 @@ fn loop_liveness() {
     builder
         .build_block(bb1)
         .assign_place(cond, |rv| rv.binary(x, op![<], const_10))
-        .assign_place(x, |rv| rv.load(x)) // reassign x to itself
+        .assign_place(x, |rv|
+            // reassign x to itself
+            rv.load(x))
         .switch(cond, |switch| switch.case(1, bb1, []).otherwise(bb2, []));
 
     builder.build_block(bb2).ret(x);
