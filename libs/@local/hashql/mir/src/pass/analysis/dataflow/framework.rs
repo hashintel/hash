@@ -18,7 +18,7 @@
 use alloc::alloc::Global;
 use core::alloc::Allocator;
 
-use hashql_core::{collections::WorkQueue, graph::Predecessors as _, id::IdVec};
+use hashql_core::{collections::WorkQueue, graph::Predecessors as _, id::IdVec, intern::Interned};
 
 use super::lattice::{BoundedJoinSemiLattice, HasBottom as _, JoinSemiLattice as _};
 use crate::{
@@ -169,6 +169,26 @@ pub trait DataflowAnalysis<'heap> {
         data: &mut Self::SwitchIntData,
     ) {
         unreachable!();
+    }
+
+    /// Applies the transfer function for block parameters.
+    ///
+    /// Called at the entry point of each block (statement index 0) to handle the block's
+    /// parameters. Parameters are the locals that receive values from incoming edges.
+    ///
+    /// This is distinct from [`transfer_edge`](Self::transfer_edge), which handles the
+    /// argument-to-parameter binding at each edge. Use this method for effects that depend
+    /// only on the parameters themselves (e.g., marking them as defined for reaching
+    /// definitions analysis).
+    ///
+    /// The default implementation does nothing.
+    #[expect(unused_variables, reason = "trait definition")]
+    fn transfer_block_params<A: Allocator>(
+        &self,
+        location: Location,
+        params: Interned<'heap, [Local]>,
+        state: &mut Self::Domain<A>,
+    ) {
     }
 
     /// Applies the transfer function for a statement.
@@ -402,6 +422,15 @@ impl<
             mut propagate,
         } = self;
 
+        analysis.transfer_block_params(
+            Location {
+                block: id,
+                statement_index: 0,
+            },
+            block.params,
+            state,
+        );
+
         // Apply transfer functions to each statement in program order.
         // Statement indices start at 1 because index 0 represents the block parameters.
         for (index, statement) in block.statements.iter().enumerate() {
@@ -560,6 +589,15 @@ impl<
 
             analysis.transfer_statement(location, statement, state);
         }
+
+        analysis.transfer_block_params(
+            Location {
+                block: id,
+                statement_index: 0,
+            },
+            block.params,
+            state,
+        );
 
         // After processing all instructions in reverse, `state` holds the entry state.
         let entry_state = state;
