@@ -18,7 +18,12 @@
 use alloc::alloc::Global;
 use core::alloc::Allocator;
 
-use hashql_core::{collections::WorkQueue, graph::Predecessors as _, id::IdVec, intern::Interned};
+use hashql_core::{
+    collections::WorkQueue,
+    graph::Predecessors as _,
+    id::{IdSlice, IdVec},
+    intern::Interned,
+};
 
 use super::lattice::{BoundedJoinSemiLattice, HasBottom as _, JoinSemiLattice as _};
 use crate::{
@@ -59,9 +64,7 @@ pub enum Direction {
 
 /// The results of a dataflow analysis after reaching a fixed point.
 ///
-/// Contains the computed abstract state for each basic block, representing the dataflow
-/// facts that hold at the entry (for forward analyses) or exit (for backward analyses)
-/// of each block.
+/// Contains the computed abstract state at both entry and exit of each basic block.
 pub struct DataflowResults<'heap, D: DataflowAnalysis<'heap>, A: Allocator = Global> {
     /// The analysis that produced these results.
     ///
@@ -69,11 +72,11 @@ pub struct DataflowResults<'heap, D: DataflowAnalysis<'heap>, A: Allocator = Glo
     /// on the same analysis state.
     pub analysis: D,
 
-    /// The computed state for each basic block.
-    ///
-    /// For forward analyses, this is the state at block entry (before any statements).
-    /// For backward analyses, this is the state at block exit (after the terminator).
-    pub states: IdVec<BasicBlockId, D::Domain<A>, A>,
+    /// The state at entry of each basic block (before block parameters and statements).
+    pub entry_states: IdVec<BasicBlockId, D::Domain<A>, A>,
+
+    /// The state at exit of each basic block (after the terminator, before edge effects).
+    pub exit_states: IdVec<BasicBlockId, D::Domain<A>, A>,
 }
 
 /// A dataflow analysis over the MIR control-flow graph.
@@ -174,12 +177,11 @@ pub trait DataflowAnalysis<'heap> {
     /// Applies the transfer function for block parameters.
     ///
     /// Called at the entry point of each block (statement index 0) to handle the block's
-    /// parameters. Parameters are the locals that receive values from incoming edges.
+    /// `params`. Parameters are the locals that receive values from incoming edges.
     ///
     /// This is distinct from [`transfer_edge`](Self::transfer_edge), which handles the
     /// argument-to-parameter binding at each edge. Use this method for effects that depend
-    /// only on the parameters themselves (e.g., marking them as defined for reaching
-    /// definitions analysis).
+    /// only on the parameters themselves (e.g., marking them as defined for liveness analysis).
     ///
     /// The default implementation does nothing.
     #[expect(unused_variables, reason = "trait definition")]
@@ -285,7 +287,19 @@ pub trait DataflowAnalysis<'heap> {
         let lattice = self.lattice_in(body, alloc.clone());
 
         let mut queue = WorkQueue::new_in(body.basic_blocks.len(), alloc.clone());
-        let mut states = IdVec::from_fn_in(
+
+        // We maintain two state vectors:
+        // the state that gets joined into during propagation (entry states for forward, exit states
+        // for backward)
+        let mut join_states = IdVec::from_fn_in(
+            body.basic_blocks.len(),
+            |_: BasicBlockId| lattice.bottom(),
+            alloc.clone(),
+        );
+
+        // the state computed by applying transfers (exit states for forward, entry states for
+        // backward)
+        let mut derived_states = IdVec::from_fn_in(
             body.basic_blocks.len(),
             |_: BasicBlockId| lattice.bottom(),
             alloc,
@@ -294,12 +308,14 @@ pub trait DataflowAnalysis<'heap> {
         // Initialize boundary conditions based on analysis direction
         match Self::DIRECTION {
             Direction::Forward => {
-                self.initialize_boundary(body, &mut states[BasicBlockId::START]);
+                // For forward: boundary is entry state of START block
+                self.initialize_boundary(body, &mut join_states[BasicBlockId::START]);
             }
             Direction::Backward => {
+                // For backward: boundary is exit state of return blocks
                 for (bb, block) in body.basic_blocks.iter_enumerated() {
                     if matches!(block.terminator.kind, TerminatorKind::Return(_)) {
-                        self.initialize_boundary(body, &mut states[bb]);
+                        self.initialize_boundary(body, &mut join_states[bb]);
                     }
                 }
             }
@@ -323,24 +339,25 @@ pub trait DataflowAnalysis<'heap> {
         let mut state = lattice.bottom();
 
         while let Some(bb) = queue.dequeue() {
-            // Load the current state for this block. Using `clone_from` instead of
+            // Load the current join state for this block. Using `clone_from` instead of
             // `clone` allows reusing the existing allocation in `state`.
-            // Using a cloned state here allows us to liberally modify the exit state inside of the
+            // Using a cloned state here allows us to liberally modify the state inside of the
             // driver, as the value isn't persisted.
-            state.clone_from(&states[bb]);
+            state.clone_from(&join_states[bb]);
 
             let driver = Driver {
                 analysis: &self,
                 lattice: &lattice,
+                derived_states: &mut derived_states,
 
                 body,
                 state: &mut state,
                 id: bb,
                 block: &body.basic_blocks[bb],
                 propagate: |target: BasicBlockId, state: &Self::Domain<A>| {
-                    // Join the propagated state into the target's state.
+                    // Join the propagated state into the target's join state.
                     // If this changed the target's state, re-queue it for processing.
-                    let changed = lattice.join(&mut states[target], state);
+                    let changed = lattice.join(&mut join_states[target], state);
                     if changed {
                         queue.enqueue(target);
                     }
@@ -357,9 +374,16 @@ pub trait DataflowAnalysis<'heap> {
             }
         }
 
+        // Assign to the correct result fields based on direction
+        let (entry_states, exit_states) = match Self::DIRECTION {
+            Direction::Forward => (join_states, derived_states),
+            Direction::Backward => (derived_states, join_states),
+        };
+
         DataflowResults {
             analysis: self,
-            states,
+            entry_states,
+            exit_states,
         }
     }
 
@@ -385,6 +409,7 @@ struct Driver<'analysis, 'heap, D: DataflowAnalysis<'heap> + ?Sized, A: Allocato
 
     body: &'analysis Body<'heap>,
     state: &'analysis mut D::Domain<A>,
+    derived_states: &'analysis mut IdSlice<BasicBlockId, D::Domain<A>>,
 
     id: BasicBlockId,
     block: &'analysis BasicBlock<'heap>,
@@ -414,6 +439,7 @@ impl<
         let Self {
             analysis,
             lattice,
+            derived_states,
 
             body,
             state,
@@ -453,6 +479,8 @@ impl<
 
         // After processing all instructions, `state` holds the exit state of this block.
         let exit_state = state;
+        derived_states[id].clone_from(exit_state);
+
         match &block.terminator.kind {
             TerminatorKind::Goto(Goto { target }) => {
                 analysis.transfer_edge(
@@ -566,6 +594,7 @@ impl<
             lattice,
             body,
             state,
+            derived_states,
             id,
             block,
             mut propagate,
@@ -601,6 +630,7 @@ impl<
 
         // After processing all instructions in reverse, `state` holds the entry state.
         let entry_state = state;
+        derived_states[id].clone_from(entry_state);
 
         // Propagate to all predecessors. In backward analysis, we're computing what must
         // be true at the exit of predecessors for our entry requirements to be satisfied.

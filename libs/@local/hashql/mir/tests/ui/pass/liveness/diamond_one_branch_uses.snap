@@ -2,6 +2,6 @@
 source: libs/@local/hashql/mir/src/pass/analysis/dataflow/liveness/tests.rs
 expression: output
 ---
-bb0: {x}
-bb1: {}
+bb0: {}
+bb1: {x}
 bb2: {}

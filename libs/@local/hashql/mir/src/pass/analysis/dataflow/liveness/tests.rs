@@ -59,14 +59,14 @@ fn format_liveness(body: &Body<'_>, results: &[impl AsRef<[usize]>]) -> String {
 fn assert_liveness(name: &'static str, body: &Body<'_>) {
     let results = LivenessAnalysis.iterate_to_fixpoint(body);
 
-    // Convert DenseBitSet to Vec<usize> for formatting
-    let states: Vec<Vec<usize>> = results
-        .states
+    // Convert entry states to Vec<usize> for formatting
+    let entry_states: Vec<Vec<usize>> = results
+        .entry_states
         .iter()
         .map(|bitset| bitset.iter().map(Id::as_usize).collect())
         .collect();
 
-    let output = format_liveness(body, &states);
+    let output = format_liveness(body, &entry_states);
 
     let dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
     let mut settings = Settings::clone_current();
