@@ -20,6 +20,7 @@
     int_roundings,
     iter_array_chunks,
     iter_collect_into,
+    iter_intersperse,
     try_trait_v2,
 )]
 #![expect(clippy::indexing_slicing)]

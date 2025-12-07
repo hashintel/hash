@@ -1,3 +1,6 @@
+#[cfg(test)]
+mod tests;
+
 use core::alloc::Allocator;
 
 use hashql_core::{id::bit_vec::DenseBitSet, intern::Interned};
