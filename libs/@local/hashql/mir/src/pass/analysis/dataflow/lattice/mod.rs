@@ -45,8 +45,10 @@
 //! The [`laws`] module provides assertion functions for verifying algebraic properties.
 //! Each trait documents which assertion function should be used.
 
+mod impls;
 #[cfg(test)]
 pub(crate) mod laws;
+pub(crate) use impls::{SaturatingSemiring, WrappingSemiring};
 
 /// Additive monoid structure over a carrier type.
 ///
@@ -76,6 +78,11 @@ pub trait AdditiveMonoid<T> {
     /// Returns `true` if `lhs` was changed.
     fn plus(&self, lhs: &mut T, rhs: &T) -> bool;
 
+    /// Convenience method that takes ownership of `lhs` and returns the result.
+    ///
+    /// Equivalent to calling [`plus`] and returning the modified value.
+    ///
+    /// [`plus`]: AdditiveMonoid::plus
     fn plus_owned(&self, mut lhs: T, rhs: &T) -> T
     where
         T: Sized,
@@ -113,6 +120,11 @@ pub trait MultiplicativeMonoid<T> {
     /// Returns `true` if `lhs` was changed.
     fn times(&self, lhs: &mut T, rhs: &T) -> bool;
 
+    /// Convenience method that takes ownership of `lhs` and returns the result.
+    ///
+    /// Equivalent to calling [`times`] and returning the modified value.
+    ///
+    /// [`times`]: MultiplicativeMonoid::times
     fn times_owned(&self, mut lhs: T, rhs: &T) -> T
     where
         T: Sized,
@@ -160,7 +172,15 @@ impl<S, T> Semiring<T> for S where S: AdditiveMonoid<T> + MultiplicativeMonoid<T
 /// [`join`]: JoinSemiLattice::join
 pub trait JoinSemiLattice<T> {
     /// Computes the least upper bound (supremum) of two elements.
+    ///
+    /// Returns `true` if `lhs` was changed.
     fn join(&self, lhs: &mut T, rhs: &T) -> bool;
+
+    /// Convenience method that takes ownership of `lhs` and returns the result.
+    ///
+    /// Equivalent to calling [`join`] and returning the modified value.
+    ///
+    /// [`join`]: JoinSemiLattice::join
     fn join_owned(&self, mut lhs: T, rhs: &T) -> T
     where
         T: Sized,
@@ -188,7 +208,15 @@ pub trait JoinSemiLattice<T> {
 /// [`meet`]: MeetSemiLattice::meet
 pub trait MeetSemiLattice<T> {
     /// Computes the greatest lower bound (infimum) of two elements.
+    ///
+    /// Returns `true` if `lhs` was changed.
     fn meet(&self, lhs: &mut T, rhs: &T) -> bool;
+
+    /// Convenience method that takes ownership of `lhs` and returns the result.
+    ///
+    /// Equivalent to calling [`meet`] and returning the modified value.
+    ///
+    /// [`meet`]: MeetSemiLattice::meet
     fn meet_owned(&self, mut lhs: T, rhs: &T) -> T
     where
         T: Sized,
@@ -234,6 +262,8 @@ impl<S, T> Lattice<T> for S where S: JoinSemiLattice<T> + MeetSemiLattice<T> {}
 pub trait HasBottom<T> {
     /// Returns the bottom element (least element).
     fn bottom(&self) -> T;
+
+    /// Returns `true` if `value` is the bottom element.
     fn is_bottom(&self, value: &T) -> bool;
 }
 
@@ -251,6 +281,8 @@ pub trait HasBottom<T> {
 pub trait HasTop<T> {
     /// Returns the top element (greatest element).
     fn top(&self) -> T;
+
+    /// Returns `true` if `value` is the top element.
     fn is_top(&self, value: &T) -> bool;
 }
 
