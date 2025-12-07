@@ -1,0 +1,48 @@
+thread 'rustc' panicked at /rustc-dev/b84478a1c477756cd3e1974eda867a6bb31e8902/compiler/rustc_query_system/src/query/plumbing.rs:752:9:
+Found unstable fingerprints for shallow_lint_levels_on(hashql_mir[7a2c]::pass::analysis::dataflow::lattice::laws): ShallowLintLevelMap { expectations: [(Stable { hir_id: HirId(DefId(0:643 ~ hashql_mir[7a2c]::pass::analysis::dataflow::lattice::laws).0), attr_index: 1, lint_index: Some(0) }, LintExpectation { reason: None, emission_span: libs/@local/hashql/mir/src/pass/analysis/dataflow/lattice/laws.rs:2:11: 2:34 (#0), is_unfulfilled_lint_expectations: false, lint_tool: Some("clippy") })], specs: {0: {LintId { lint: Lint { name: "clippy::MIN_IDENT_CHARS", default_level: Allow, desc: "disallows idents that are too short", edition_lint_opts: None, report_in_external_macro: true, future_incompatible: None, is_externally_loaded: true, feature_gate: None, crate_level_only: false, eval_always: false } }: LevelAndSource { level: Expect, lint_id: Some(Stable { hir_id: HirId(DefId(0:643 ~ hashql_mir[7a2c]::pass::analysis::dataflow::lattice::laws).0), attr_index: 1, lint_index: Some(0) }), src: Node { name: "clippy::min_ident_chars", span: libs/@local/hashql/mir/src/pass/analysis/dataflow/lattice/laws.rs:2:11: 2:34 (#0), reason: None } }}} }
+stack backtrace:
+   0:        0x10f1813a4 - <std[a2736a610ecdd2db]::backtrace::Backtrace>::create
+   1:        0x10d1ccf70 - std[a2736a610ecdd2db]::panicking::update_hook::<alloc[5c9c1442fbf7fab0]::boxed::Box<rustc_driver_impl[4c17620181dfb5b2]::install_ice_hook::{closure#1}>>::{closure#0}
+   2:        0x10f192330 - std[a2736a610ecdd2db]::panicking::panic_with_hook
+   3:        0x10f176b00 - std[a2736a610ecdd2db]::panicking::panic_handler::{closure#0}
+   4:        0x10f16d830 - std[a2736a610ecdd2db]::sys::backtrace::__rust_end_short_backtrace::<std[a2736a610ecdd2db]::panicking::panic_handler::{closure#0}, !>
+   5:        0x10f178118 - __rustc[b9f14d25168a02b4]::rust_begin_unwind
+   6:        0x111eeb834 - core[d60e9e92b7ea731d]::panicking::panic_fmt
+   7:        0x111fc3ba4 - rustc_query_system[30e1b41f7915aed6]::query::plumbing::incremental_verify_ich_failed::<rustc_middle[49f29f5305a93828]::ty::context::TyCtxt>
+   8:        0x10e6f0744 - rustc_query_system[30e1b41f7915aed6]::query::plumbing::incremental_verify_ich::<rustc_middle[49f29f5305a93828]::ty::context::TyCtxt, rustc_middle[49f29f5305a93828]::query::erase::Erased<[u8; 8usize]>>
+   9:        0x10e6dbeac - rustc_query_system[30e1b41f7915aed6]::query::plumbing::try_execute_query::<rustc_query_impl[2198f275758aa9b4]::DynamicConfig<rustc_data_structures[6e634b94e86079f0]::vec_cache::VecCache<rustc_hir_id[52e71fd6ae02fb9c]::OwnerId, rustc_middle[49f29f5305a93828]::query::erase::Erased<[u8; 8usize]>, rustc_query_system[30e1b41f7915aed6]::dep_graph::graph::DepNodeIndex>, false, false, false>, rustc_query_impl[2198f275758aa9b4]::plumbing::QueryCtxt, true>
+  10:        0x10e7ca098 - rustc_query_impl[2198f275758aa9b4]::query_impl::shallow_lint_levels_on::get_query_incr::__rust_end_short_backtrace
+  11:        0x10dc0a880 - rustc_lint[9de6d1564874ea78]::levels::lints_that_dont_need_to_run
+  12:        0x10e621580 - rustc_query_impl[2198f275758aa9b4]::plumbing::__rust_begin_short_backtrace::<rustc_query_impl[2198f275758aa9b4]::query_impl::lints_that_dont_need_to_run::dynamic_query::{closure#2}::{closure#0}, rustc_middle[49f29f5305a93828]::query::erase::Erased<[u8; 8usize]>>
+  13:        0x10e671c24 - rustc_query_system[30e1b41f7915aed6]::query::plumbing::try_execute_query::<rustc_query_impl[2198f275758aa9b4]::DynamicConfig<rustc_query_system[30e1b41f7915aed6]::query::caches::SingleCache<rustc_middle[49f29f5305a93828]::query::erase::Erased<[u8; 8usize]>>, false, false, false>, rustc_query_impl[2198f275758aa9b4]::plumbing::QueryCtxt, true>
+  14:        0x10e611ef8 - rustc_query_impl[2198f275758aa9b4]::plumbing::force_from_dep_node::<rustc_query_impl[2198f275758aa9b4]::DynamicConfig<rustc_query_system[30e1b41f7915aed6]::query::caches::SingleCache<rustc_middle[49f29f5305a93828]::query::erase::Erased<[u8; 8usize]>>, false, false, false>>
+  15:        0x10e901f28 - <rustc_query_impl[2198f275758aa9b4]::plumbing::query_callback<rustc_query_impl[2198f275758aa9b4]::query_impl::lints_that_dont_need_to_run::QueryType>::{closure#0} as core[d60e9e92b7ea731d]::ops::function::FnOnce<(rustc_middle[49f29f5305a93828]::ty::context::TyCtxt, rustc_query_system[30e1b41f7915aed6]::dep_graph::dep_node::DepNode, rustc_query_system[30e1b41f7915aed6]::dep_graph::serialized::SerializedDepNodeIndex)>>::call_once
+  16:        0x10e602a08 - <rustc_query_system[30e1b41f7915aed6]::dep_graph::graph::DepGraphData<rustc_middle[49f29f5305a93828]::dep_graph::DepsType>>::try_mark_previous_green::<rustc_query_impl[2198f275758aa9b4]::plumbing::QueryCtxt>
+  17:        0x10e6029b4 - <rustc_query_system[30e1b41f7915aed6]::dep_graph::graph::DepGraphData<rustc_middle[49f29f5305a93828]::dep_graph::DepsType>>::try_mark_previous_green::<rustc_query_impl[2198f275758aa9b4]::plumbing::QueryCtxt>
+  18:        0x10e6029b4 - <rustc_query_system[30e1b41f7915aed6]::dep_graph::graph::DepGraphData<rustc_middle[49f29f5305a93828]::dep_graph::DepsType>>::try_mark_previous_green::<rustc_query_impl[2198f275758aa9b4]::plumbing::QueryCtxt>
+  19:        0x10e6029b4 - <rustc_query_system[30e1b41f7915aed6]::dep_graph::graph::DepGraphData<rustc_middle[49f29f5305a93828]::dep_graph::DepsType>>::try_mark_previous_green::<rustc_query_impl[2198f275758aa9b4]::plumbing::QueryCtxt>
+  20:        0x10e602860 - <rustc_query_system[30e1b41f7915aed6]::dep_graph::graph::DepGraphData<rustc_middle[49f29f5305a93828]::dep_graph::DepsType>>::try_mark_green::<rustc_query_impl[2198f275758aa9b4]::plumbing::QueryCtxt>
+  21:        0x10e64e11c - rustc_query_system[30e1b41f7915aed6]::query::plumbing::ensure_must_run::<rustc_query_impl[2198f275758aa9b4]::DynamicConfig<rustc_query_system[30e1b41f7915aed6]::query::caches::DefaultCache<rustc_middle[49f29f5305a93828]::ty::PseudoCanonicalInput<rustc_middle[49f29f5305a93828]::mir::interpret::GlobalId>, rustc_middle[49f29f5305a93828]::query::erase::Erased<[u8; 24usize]>>, false, true, false>, rustc_query_impl[2198f275758aa9b4]::plumbing::QueryCtxt>
+  22:        0x10e7cb964 - rustc_query_impl[2198f275758aa9b4]::query_impl::eval_to_const_value_raw::get_query_incr::__rust_end_short_backtrace
+  23:        0x10d47f730 - <rustc_middle[49f29f5305a93828]::ty::context::TyCtxt>::par_hir_body_owners::<rustc_hir_analysis[f69a142e0e7e213b]::check_crate::{closure#2}>::{closure#0}
+  24:        0x10d4afc04 - rustc_hir_analysis[f69a142e0e7e213b]::check_crate
+  25:        0x10dab5758 - rustc_interface[6daaf4177d4b95ad]::passes::analysis
+  26:        0x10e622300 - rustc_query_impl[2198f275758aa9b4]::plumbing::__rust_begin_short_backtrace::<rustc_query_impl[2198f275758aa9b4]::query_impl::analysis::dynamic_query::{closure#2}::{closure#0}, rustc_middle[49f29f5305a93828]::query::erase::Erased<[u8; 0usize]>>
+  27:        0x10e6683bc - rustc_query_system[30e1b41f7915aed6]::query::plumbing::try_execute_query::<rustc_query_impl[2198f275758aa9b4]::DynamicConfig<rustc_query_system[30e1b41f7915aed6]::query::caches::SingleCache<rustc_middle[49f29f5305a93828]::query::erase::Erased<[u8; 0usize]>>, false, false, false>, rustc_query_impl[2198f275758aa9b4]::plumbing::QueryCtxt, true>
+  28:        0x10e7dd48c - rustc_query_impl[2198f275758aa9b4]::query_impl::analysis::get_query_incr::__rust_end_short_backtrace
+  29:        0x10d1816f4 - rustc_interface[6daaf4177d4b95ad]::passes::create_and_enter_global_ctxt::<core[d60e9e92b7ea731d]::option::Option<rustc_interface[6daaf4177d4b95ad]::queries::Linker>, rustc_driver_impl[4c17620181dfb5b2]::run_compiler::{closure#0}::{closure#2}>
+  30:        0x10d1cb448 - rustc_interface[6daaf4177d4b95ad]::interface::run_compiler::<(), rustc_driver_impl[4c17620181dfb5b2]::run_compiler::{closure#0}>::{closure#1}
+  31:        0x10d1bfcdc - std[a2736a610ecdd2db]::sys::backtrace::__rust_begin_short_backtrace::<rustc_interface[6daaf4177d4b95ad]::util::run_in_thread_with_globals<rustc_interface[6daaf4177d4b95ad]::util::run_in_thread_pool_with_globals<rustc_interface[6daaf4177d4b95ad]::interface::run_compiler<(), rustc_driver_impl[4c17620181dfb5b2]::run_compiler::{closure#0}>::{closure#1}, ()>::{closure#0}, ()>::{closure#0}::{closure#0}, ()>
+  32:        0x10d1d2784 - <std[a2736a610ecdd2db]::thread::lifecycle::spawn_unchecked<rustc_interface[6daaf4177d4b95ad]::util::run_in_thread_with_globals<rustc_interface[6daaf4177d4b95ad]::util::run_in_thread_pool_with_globals<rustc_interface[6daaf4177d4b95ad]::interface::run_compiler<(), rustc_driver_impl[4c17620181dfb5b2]::run_compiler::{closure#0}>::{closure#1}, ()>::{closure#0}, ()>::{closure#0}::{closure#0}, ()>::{closure#1} as core[d60e9e92b7ea731d]::ops::function::FnOnce<()>>::call_once::{shim:vtable#0}
+  33:        0x10f19c990 - <std[a2736a610ecdd2db]::sys::thread::unix::Thread>::new::thread_start
+  34:        0x191e15c08 - __pthread_cond_wait
+
+
+rustc version: 1.93.0-nightly (b84478a1c 2025-11-30)
+platform: aarch64-apple-darwin
+
+query stack during panic:
+#0 [shallow_lint_levels_on] looking up lint levels for `pass::analysis::dataflow::lattice::laws`
+#1 [lints_that_dont_need_to_run] Computing all lints that are explicitly enabled or with a default level greater than Allow
+#2 [analysis] running analysis passes on crate `hashql_mir`
+end of query stack

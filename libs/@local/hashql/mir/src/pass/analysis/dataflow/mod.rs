@@ -1,2 +1,2 @@
-mod framework;
-mod lattice;
+pub mod framework;
+pub mod lattice;

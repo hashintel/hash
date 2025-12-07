@@ -10,14 +10,6 @@
 //! multiple algebraic structures. For example, `u32` can be used with both a tropical
 //! min-plus semiring and a standard arithmetic semiring.
 //!
-//! ```ignore
-//! struct TropicalMinPlus;
-//! struct RegularArithmetic;
-//!
-//! impl Semiring<u32> for TropicalMinPlus { /* min-plus operations */ }
-//! impl Semiring<u32> for RegularArithmetic { /* standard +/* operations */ }
-//! ```
-//!
 //! # Trait Hierarchy
 //!
 //! ## Semiring traits
@@ -46,9 +38,8 @@
 //! Each trait documents which assertion function should be used.
 
 mod impls;
-#[cfg(test)]
-pub(crate) mod laws;
-pub(crate) use impls::{SaturatingSemiring, WrappingSemiring};
+pub mod laws;
+pub use impls::{PowersetLattice, SaturatingSemiring, WrappingSemiring};
 
 /// Additive monoid structure over a carrier type.
 ///
@@ -70,7 +61,7 @@ pub(crate) use impls::{SaturatingSemiring, WrappingSemiring};
 pub trait AdditiveMonoid<T> {
     /// Returns the additive identity element.
     ///
-    /// For any element `a`: `plus(zero(), a) = plus(a, zero()) = a`
+    /// For any element `a`: `plus(zero(), a) = plus(a, zero()) = a`.
     fn zero(&self) -> T;
 
     /// Combines two elements using the additive operation.
@@ -83,6 +74,7 @@ pub trait AdditiveMonoid<T> {
     /// Equivalent to calling [`plus`] and returning the modified value.
     ///
     /// [`plus`]: AdditiveMonoid::plus
+    #[inline]
     fn plus_owned(&self, mut lhs: T, rhs: &T) -> T
     where
         T: Sized,
@@ -112,7 +104,7 @@ pub trait AdditiveMonoid<T> {
 pub trait MultiplicativeMonoid<T> {
     /// Returns the multiplicative identity element.
     ///
-    /// For any element `a`: `times(one(), a) = times(a, one()) = a`
+    /// For any element `a`: `times(one(), a) = times(a, one()) = a`.
     fn one(&self) -> T;
 
     /// Combines two elements using the multiplicative operation.
@@ -125,6 +117,7 @@ pub trait MultiplicativeMonoid<T> {
     /// Equivalent to calling [`times`] and returning the modified value.
     ///
     /// [`times`]: MultiplicativeMonoid::times
+    #[inline]
     fn times_owned(&self, mut lhs: T, rhs: &T) -> T
     where
         T: Sized,
@@ -181,6 +174,7 @@ pub trait JoinSemiLattice<T> {
     /// Equivalent to calling [`join`] and returning the modified value.
     ///
     /// [`join`]: JoinSemiLattice::join
+    #[inline]
     fn join_owned(&self, mut lhs: T, rhs: &T) -> T
     where
         T: Sized,
@@ -217,6 +211,7 @@ pub trait MeetSemiLattice<T> {
     /// Equivalent to calling [`meet`] and returning the modified value.
     ///
     /// [`meet`]: MeetSemiLattice::meet
+    #[inline]
     fn meet_owned(&self, mut lhs: T, rhs: &T) -> T
     where
         T: Sized,

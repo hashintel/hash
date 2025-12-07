@@ -1,5 +1,9 @@
 //! Testing utilities for verifying algebraic properties.
-#![expect(clippy::min_ident_chars)]
+#![expect(
+    clippy::min_ident_chars,
+    clippy::missing_panics_doc,
+    clippy::needless_pass_by_value
+)]
 
 use super::{
     AdditiveMonoid, BoundedJoinSemiLattice, BoundedLattice, BoundedMeetSemiLattice, HasBottom,
@@ -10,7 +14,7 @@ use super::{
 // Additive Monoid Laws
 // ========================================================================
 
-/// Verifies left identity: `plus(zero(), a) = a`
+/// Verifies left identity: `plus(zero(), a) = a`.
 fn additive_left_identity<S, T>(structure: &S, a: T) -> bool
 where
     S: AdditiveMonoid<T>,
@@ -21,7 +25,7 @@ where
     result == a
 }
 
-/// Verifies right identity: `plus(a, zero()) = a`
+/// Verifies right identity: `plus(a, zero()) = a`.
 fn additive_right_identity<S, T>(structure: &S, a: T) -> bool
 where
     S: AdditiveMonoid<T>,
@@ -32,7 +36,7 @@ where
     result == a
 }
 
-/// Verifies associativity: `plus(plus(a, b), c) = plus(a, plus(b, c))`
+/// Verifies associativity: `plus(plus(a, b), c) = plus(a, plus(b, c))`.
 fn additive_associativity<S, T>(structure: &S, a: T, b: T, c: T) -> bool
 where
     S: AdditiveMonoid<T>,
@@ -43,7 +47,7 @@ where
     left == right
 }
 
-/// Verifies commutativity: `plus(a, b) = plus(b, a)`
+/// Verifies commutativity: `plus(a, b) = plus(b, a)`.
 fn additive_commutativity<S, T>(structure: &S, a: T, b: T) -> bool
 where
     S: AdditiveMonoid<T>,
@@ -54,8 +58,15 @@ where
     left == right
 }
 
+/// Asserts that `structure` satisfies all [`AdditiveMonoid`] laws for the given test values.
+///
+/// Verifies:
+/// - Left identity: `plus(zero(), a) = a`
+/// - Right identity: `plus(a, zero()) = a`
+/// - Associativity: `plus(plus(a, b), c) = plus(a, plus(b, c))`
+/// - Commutativity: `plus(a, b) = plus(b, a)`
 #[track_caller]
-pub(crate) fn assert_additive_monoid<S, T>(structure: &S, a: T, b: T, c: T)
+pub fn assert_additive_monoid<S, T>(structure: &S, a: T, b: T, c: T)
 where
     S: AdditiveMonoid<T>,
     T: Clone + PartialEq,
@@ -70,7 +81,7 @@ where
 // Multiplicative Monoid Laws
 // ========================================================================
 
-/// Verifies left identity: `times(one(), a) = a`
+/// Verifies left identity: `times(one(), a) = a`.
 fn multiplicative_left_identity<S, T>(structure: &S, a: T) -> bool
 where
     S: MultiplicativeMonoid<T>,
@@ -81,7 +92,7 @@ where
     result == a
 }
 
-/// Verifies right identity: `times(a, one()) = a`
+/// Verifies right identity: `times(a, one()) = a`.
 fn multiplicative_right_identity<S, T>(structure: &S, a: T) -> bool
 where
     S: MultiplicativeMonoid<T>,
@@ -92,7 +103,7 @@ where
     result == a
 }
 
-/// Verifies associativity: `times(times(a, b), c) = times(a, times(b, c))`
+/// Verifies associativity: `times(times(a, b), c) = times(a, times(b, c))`.
 fn multiplicative_associativity<S, T>(structure: &S, a: T, b: T, c: T) -> bool
 where
     S: MultiplicativeMonoid<T>,
@@ -103,8 +114,14 @@ where
     left == right
 }
 
+/// Asserts that `structure` satisfies all [`MultiplicativeMonoid`] laws for the given test values.
+///
+/// Verifies:
+/// - Left identity: `times(one(), a) = a`
+/// - Right identity: `times(a, one()) = a`
+/// - Associativity: `times(times(a, b), c) = times(a, times(b, c))`
 #[track_caller]
-pub(crate) fn assert_multiplicative_monoid<S, T>(structure: &S, a: T, b: T, c: T)
+pub fn assert_multiplicative_monoid<S, T>(structure: &S, a: T, b: T, c: T)
 where
     S: MultiplicativeMonoid<T>,
     T: Clone + PartialEq,
@@ -118,7 +135,7 @@ where
 // Semiring Laws
 // ========================================================================
 
-/// Verifies left distributivity: `times(a, plus(b, c)) = plus(times(a, b), times(a, c))`
+/// Verifies left distributivity: `times(a, plus(b, c)) = plus(times(a, b), times(a, c))`.
 fn left_distributivity<S, T>(structure: &S, a: T, b: T, c: T) -> bool
 where
     S: Semiring<T>,
@@ -132,7 +149,7 @@ where
     left == right
 }
 
-/// Verifies right distributivity: `times(plus(a, b), c) = plus(times(a, c), times(b, c))`
+/// Verifies right distributivity: `times(plus(a, b), c) = plus(times(a, c), times(b, c))`.
 fn right_distributivity<S, T>(structure: &S, a: T, b: T, c: T) -> bool
 where
     S: Semiring<T>,
@@ -143,7 +160,7 @@ where
     left == right
 }
 
-/// Verifies zero annihilation: `times(zero(), a) = zero()` and `times(a, zero()) = zero()`
+/// Verifies zero annihilation: `times(zero(), a) = zero()` and `times(a, zero()) = zero()`.
 fn zero_annihilates<S, T>(structure: &S, a: T) -> bool
 where
     S: Semiring<T>,
@@ -155,8 +172,14 @@ where
     left == zero && right == zero
 }
 
+/// Asserts that `structure` satisfies all [`Semiring`] laws for the given test values.
+///
+/// Verifies all [`AdditiveMonoid`] and [`MultiplicativeMonoid`] laws, plus:
+/// - Left distributivity: `times(a, plus(b, c)) = plus(times(a, b), times(a, c))`
+/// - Right distributivity: `times(plus(a, b), c) = plus(times(a, c), times(b, c))`
+/// - Zero annihilation: `times(zero(), a) = times(a, zero()) = zero()`
 #[track_caller]
-pub(crate) fn assert_semiring<S, T>(structure: &S, a: T, b: T, c: T)
+pub fn assert_semiring<S, T>(structure: &S, a: T, b: T, c: T)
 where
     S: Semiring<T>,
     T: Clone + PartialEq,
@@ -177,7 +200,7 @@ where
 // Join-Semilattice Laws
 // ========================================================================
 
-/// Verifies idempotency: `join(a, a) = a`
+/// Verifies idempotency: `join(a, a) = a`.
 fn join_idempotency<S, T>(structure: &S, a: T) -> bool
 where
     S: JoinSemiLattice<T>,
@@ -187,7 +210,7 @@ where
     result == a
 }
 
-/// Verifies commutativity: `join(a, b) = join(b, a)`
+/// Verifies commutativity: `join(a, b) = join(b, a)`.
 fn join_commutativity<S, T>(structure: &S, a: T, b: T) -> bool
 where
     S: JoinSemiLattice<T>,
@@ -198,7 +221,7 @@ where
     left == right
 }
 
-/// Verifies associativity: `join(join(a, b), c) = join(a, join(b, c))`
+/// Verifies associativity: `join(join(a, b), c) = join(a, join(b, c))`.
 fn join_associativity<S, T>(structure: &S, a: T, b: T, c: T) -> bool
 where
     S: JoinSemiLattice<T>,
@@ -209,8 +232,14 @@ where
     left == right
 }
 
+/// Asserts that `structure` satisfies all [`JoinSemiLattice`] laws for the given test values.
+///
+/// Verifies:
+/// - Idempotency: `join(a, a) = a`
+/// - Commutativity: `join(a, b) = join(b, a)`
+/// - Associativity: `join(join(a, b), c) = join(a, join(b, c))`
 #[track_caller]
-pub(crate) fn assert_join_semilattice<S, T>(structure: &S, a: T, b: T, c: T)
+pub fn assert_join_semilattice<S, T>(structure: &S, a: T, b: T, c: T)
 where
     S: JoinSemiLattice<T>,
     T: Clone + PartialEq,
@@ -224,7 +253,7 @@ where
 // Meet-Semilattice Laws
 // ========================================================================
 
-/// Verifies idempotency: `meet(a, a) = a`
+/// Verifies idempotency: `meet(a, a) = a`.
 fn meet_idempotency<S, T>(structure: &S, a: T) -> bool
 where
     S: MeetSemiLattice<T>,
@@ -234,7 +263,7 @@ where
     result == a
 }
 
-/// Verifies commutativity: `meet(a, b) = meet(b, a)`
+/// Verifies commutativity: `meet(a, b) = meet(b, a)`.
 fn meet_commutativity<S, T>(structure: &S, a: T, b: T) -> bool
 where
     S: MeetSemiLattice<T>,
@@ -245,7 +274,7 @@ where
     left == right
 }
 
-/// Verifies associativity: `meet(meet(a, b), c) = meet(a, meet(b, c))`
+/// Verifies associativity: `meet(meet(a, b), c) = meet(a, meet(b, c))`.
 fn meet_associativity<S, T>(structure: &S, a: T, b: T, c: T) -> bool
 where
     S: MeetSemiLattice<T>,
@@ -256,8 +285,14 @@ where
     left == right
 }
 
+/// Asserts that `structure` satisfies all [`MeetSemiLattice`] laws for the given test values.
+///
+/// Verifies:
+/// - Idempotency: `meet(a, a) = a`
+/// - Commutativity: `meet(a, b) = meet(b, a)`
+/// - Associativity: `meet(meet(a, b), c) = meet(a, meet(b, c))`
 #[track_caller]
-pub(crate) fn assert_meet_semilattice<S, T>(structure: &S, a: T, b: T, c: T)
+pub fn assert_meet_semilattice<S, T>(structure: &S, a: T, b: T, c: T)
 where
     S: MeetSemiLattice<T>,
     T: Clone + PartialEq,
@@ -271,7 +306,7 @@ where
 // Lattice Absorption Laws
 // ========================================================================
 
-/// Verifies join absorption: `join(a, meet(a, b)) = a`
+/// Verifies join absorption: `join(a, meet(a, b)) = a`.
 fn join_absorption<S, T>(structure: &S, a: T, b: T) -> bool
 where
     S: Lattice<T>,
@@ -282,7 +317,7 @@ where
     result == a
 }
 
-/// Verifies meet absorption: `meet(a, join(a, b)) = a`
+/// Verifies meet absorption: `meet(a, join(a, b)) = a`.
 fn meet_absorption<S, T>(structure: &S, a: T, b: T) -> bool
 where
     S: Lattice<T>,
@@ -293,8 +328,13 @@ where
     result == a
 }
 
+/// Asserts that `structure` satisfies all [`Lattice`] laws for the given test values.
+///
+/// Verifies all [`JoinSemiLattice`] and [`MeetSemiLattice`] laws, plus absorption:
+/// - Join absorption: `join(a, meet(a, b)) = a`
+/// - Meet absorption: `meet(a, join(a, b)) = a`
 #[track_caller]
-pub(crate) fn assert_lattice<S, T>(structure: &S, a: T, b: T, c: T)
+pub fn assert_lattice<S, T>(structure: &S, a: T, b: T, c: T)
 where
     S: Lattice<T>,
     T: Clone + PartialEq,
@@ -309,7 +349,7 @@ where
 // Bounded Lattice Laws
 // ========================================================================
 
-/// Verifies bottom is identity for join: `join(bottom(), a) = a`
+/// Verifies bottom is identity for join: `join(bottom(), a) = a`.
 fn bottom_join_identity<S, T>(structure: &S, a: T) -> bool
 where
     S: BoundedJoinSemiLattice<T>,
@@ -320,8 +360,13 @@ where
     result == a
 }
 
+/// Asserts that `structure` satisfies all [`BoundedJoinSemiLattice`] laws for the given test
+/// values.
+///
+/// Verifies all [`JoinSemiLattice`] laws, plus:
+/// - Bottom identity: `join(bottom(), a) = a`
 #[track_caller]
-pub(crate) fn assert_bounded_join_semilattice<S, T>(structure: &S, a: T, b: T, c: T)
+pub fn assert_bounded_join_semilattice<S, T>(structure: &S, a: T, b: T, c: T)
 where
     S: BoundedJoinSemiLattice<T>,
     T: Clone + PartialEq,
@@ -330,7 +375,7 @@ where
     assert!(bottom_join_identity(structure, a));
 }
 
-/// Verifies top is identity for meet: `meet(top(), a) = a`
+/// Verifies top is identity for meet: `meet(top(), a) = a`.
 fn top_meet_identity<S, T>(structure: &S, a: T) -> bool
 where
     S: BoundedMeetSemiLattice<T>,
@@ -341,8 +386,13 @@ where
     result == a
 }
 
+/// Asserts that `structure` satisfies all [`BoundedMeetSemiLattice`] laws for the given test
+/// values.
+///
+/// Verifies all [`MeetSemiLattice`] laws, plus:
+/// - Top identity: `meet(top(), a) = a`
 #[track_caller]
-pub(crate) fn assert_bounded_meet_semilattice<S, T>(structure: &S, a: T, b: T, c: T)
+pub fn assert_bounded_meet_semilattice<S, T>(structure: &S, a: T, b: T, c: T)
 where
     S: BoundedMeetSemiLattice<T>,
     T: Clone + PartialEq,
@@ -351,9 +401,9 @@ where
     assert!(top_meet_identity(structure, a));
 }
 
-/// Verifies bottom annihilates meet: `meet(bottom(), a) = bottom()`
+/// Asserts that bottom annihilates meet: `meet(bottom(), a) = bottom()`.
 #[track_caller]
-pub(crate) fn assert_bottom_meet_annihilates<S, T>(structure: &S, a: T)
+pub fn assert_bottom_meet_annihilates<S, T>(structure: &S, a: T)
 where
     S: BoundedJoinSemiLattice<T> + MeetSemiLattice<T>,
     T: Clone + PartialEq,
@@ -363,9 +413,9 @@ where
     assert!(result == bottom);
 }
 
-/// Verifies top annihilates join: `join(top(), a) = top()`
+/// Asserts that top annihilates join: `join(top(), a) = top()`.
 #[track_caller]
-pub(crate) fn assert_top_join_annihilates<S, T>(structure: &S, a: T)
+pub fn assert_top_join_annihilates<S, T>(structure: &S, a: T)
 where
     S: BoundedMeetSemiLattice<T> + JoinSemiLattice<T>,
     T: Clone + PartialEq,
@@ -375,9 +425,11 @@ where
     assert!(result == top);
 }
 
-/// Verifies `is_bottom` consistency: `is_bottom(bottom()) = true`
+/// Asserts that [`is_bottom`] is consistent: `is_bottom(bottom()) = true`.
+///
+/// [`is_bottom`]: HasBottom::is_bottom
 #[track_caller]
-pub(crate) fn assert_is_bottom_consistent<S, T>(structure: &S)
+pub fn assert_is_bottom_consistent<S, T>(structure: &S)
 where
     S: HasBottom<T>,
 {
@@ -385,9 +437,11 @@ where
     assert!(structure.is_bottom(&bottom));
 }
 
-/// Verifies `is_top` consistency: `is_top(top()) = true`
+/// Asserts that [`is_top`] is consistent: `is_top(top()) = true`.
+///
+/// [`is_top`]: HasTop::is_top
 #[track_caller]
-pub(crate) fn assert_is_top_consistent<S, T>(structure: &S)
+pub fn assert_is_top_consistent<S, T>(structure: &S)
 where
     S: HasTop<T>,
 {
@@ -395,8 +449,15 @@ where
     assert!(structure.is_top(&top));
 }
 
+/// Asserts that `structure` satisfies all [`BoundedLattice`] laws for the given test values.
+///
+/// Verifies all [`BoundedJoinSemiLattice`] and [`BoundedMeetSemiLattice`] laws, plus:
+/// - Bottom annihilates meet: `meet(bottom(), a) = bottom()`
+/// - Top annihilates join: `join(top(), a) = top()`
+/// - `is_bottom` consistency: `is_bottom(bottom()) = true`
+/// - `is_top` consistency: `is_top(top()) = true`
 #[track_caller]
-pub(crate) fn assert_bounded_lattice<S, T>(structure: &S, a: T, b: T, c: T)
+pub fn assert_bounded_lattice<S, T>(structure: &S, a: T, b: T, c: T)
 where
     S: BoundedLattice<T>,
     T: Clone + PartialEq,
