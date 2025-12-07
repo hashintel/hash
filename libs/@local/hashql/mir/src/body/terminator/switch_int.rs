@@ -26,9 +26,17 @@ pub struct SwitchIf<'heap> {
     pub r#else: Target<'heap>,
 }
 
+/// Represents which branch of a [`SwitchInt`] terminator is being taken.
+///
+/// Used by dataflow analyses to apply edge-specific effects when propagating
+/// state through switch branches. See
+/// [`apply_switch_int_edge_effect`](crate::pass::analysis::dataflow::framework::DataflowAnalysis::apply_switch_int_edge_effect).
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum SwitchIntValue {
+    /// An explicit case with the given discriminant value.
     Direct(u128),
+
+    /// The default/otherwise branch for unmatched values.
     Otherwise,
 }
 
