@@ -74,12 +74,28 @@ const fn simplify_type_name(name: &'static str) -> &'static str {
 /// and debugging purposes. Override it if you need a custom name.
 ///
 /// [`name`]: Pass::name
-pub trait Pass<'env, 'heap> {
+pub trait TransformPass<'env, 'heap> {
     /// Executes the pass on the given `body`.
     ///
     /// The `context` provides access to the heap allocator, type environment, interner, and
     /// diagnostic collection. The `body` can be read and modified in place.
     fn run(&mut self, context: &mut MirContext<'env, 'heap>, body: &mut Body<'heap>);
+
+    /// Returns a human-readable name for this pass.
+    ///
+    /// The default implementation extracts the type name without module path or generic
+    /// parameters. Override this method to provide a custom name.
+    fn name(&self) -> &'static str {
+        const { simplify_type_name(core::any::type_name::<Self>()) }
+    }
+}
+
+pub trait AnalysisPass<'env, 'heap> {
+    /// Executes the pass on the given `body`.
+    ///
+    /// The `context` provides access to the heap allocator, type environment, interner, and
+    /// diagnostic collection. The `body` can be read and modified in place.
+    fn run(&mut self, context: &mut MirContext<'env, 'heap>, body: &Body<'heap>);
 
     /// Returns a human-readable name for this pass.
     ///

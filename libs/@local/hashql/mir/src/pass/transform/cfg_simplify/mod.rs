@@ -63,7 +63,7 @@ use crate::{
         terminator::{Goto, Terminator, TerminatorKind},
     },
     context::MirContext,
-    pass::Pass,
+    pass::TransformPass,
 };
 
 /// Control-flow graph simplification pass.
@@ -472,7 +472,7 @@ impl Default for CfgSimplify {
     }
 }
 
-impl<'env, 'heap> Pass<'env, 'heap> for CfgSimplify {
+impl<'env, 'heap> TransformPass<'env, 'heap> for CfgSimplify {
     /// Runs the CFG simplification pass on the given body.
     ///
     /// Uses a worklist algorithm that processes blocks in reverse postorder and re-enqueues

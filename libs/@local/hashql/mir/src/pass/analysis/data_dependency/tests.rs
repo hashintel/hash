@@ -7,7 +7,7 @@ use hashql_hir::node::operation::InputOp;
 use insta::{Settings, assert_snapshot};
 
 use super::DataDependencyAnalysis;
-use crate::{body::Body, context::MirContext, pass::Pass as _, scaffold};
+use crate::{body::Body, context::MirContext, pass::TransformPass as _, scaffold};
 
 #[track_caller]
 fn assert_data_dependency<'heap>(

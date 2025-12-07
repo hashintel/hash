@@ -57,7 +57,7 @@ use crate::{
     },
     context::MirContext,
     intern::Interner,
-    pass::Pass,
+    pass::TransformPass,
     visit::{self, Visitor, VisitorMut, r#mut::filter},
 };
 
@@ -137,7 +137,7 @@ impl Visitor<'_> for DefSites {
 /// The pass is idempotent: running it on already-valid SSA form is a no-op.
 pub struct SsaRepair;
 
-impl<'env, 'heap> Pass<'env, 'heap> for SsaRepair {
+impl<'env, 'heap> TransformPass<'env, 'heap> for SsaRepair {
     fn run(&mut self, context: &mut MirContext<'env, 'heap>, body: &mut Body<'heap>) {
         let mut sites = DefSites::new(body);
         sites.visit_body(body);

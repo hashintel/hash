@@ -26,6 +26,12 @@ pub struct SwitchIf<'heap> {
     pub r#else: Target<'heap>,
 }
 
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+pub enum SwitchIntValue {
+    Direct(u128),
+    Otherwise,
+}
+
 /// A mapping from integer discriminant values to control flow targets.
 ///
 /// Maps integer discriminant values to [`Target`]s for multi-way control flow.

@@ -36,7 +36,7 @@ use crate::{
     },
     context::MirContext,
     intern::Interner,
-    pass::Pass,
+    pass::TransformPass,
     visit::{VisitorMut, r#mut::filter},
 };
 
@@ -68,7 +68,7 @@ impl Default for DeadBlockElimination {
     }
 }
 
-impl<'env, 'heap> Pass<'env, 'heap> for DeadBlockElimination {
+impl<'env, 'heap> TransformPass<'env, 'heap> for DeadBlockElimination {
     fn run(&mut self, context: &mut MirContext<'env, 'heap>, body: &mut Body<'heap>) {
         self.reachable.clear();
 

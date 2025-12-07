@@ -11,7 +11,7 @@ use hashql_mir::{
     context::MirContext,
     def::{DefId, DefIdSlice, DefIdVec},
     intern::Interner,
-    pass::{Pass as _, transform::CfgSimplify},
+    pass::{TransformPass as _, transform::CfgSimplify},
 };
 
 use super::{RunContext, Suite, SuiteDiagnostic, common::process_issues, mir_reify::mir_reify};

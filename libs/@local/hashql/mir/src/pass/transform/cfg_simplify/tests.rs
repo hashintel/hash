@@ -15,7 +15,7 @@ use crate::{
     def::DefIdSlice,
     error::MirDiagnosticCategory,
     op,
-    pass::{Pass as _, transform::error::TransformationDiagnosticCategory},
+    pass::{TransformPass as _, transform::error::TransformationDiagnosticCategory},
     pretty::TextFormat,
     scaffold,
 };

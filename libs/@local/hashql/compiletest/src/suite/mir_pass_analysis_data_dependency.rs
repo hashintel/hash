@@ -6,7 +6,7 @@ use hashql_diagnostics::DiagnosticIssues;
 use hashql_mir::{
     context::MirContext,
     intern::Interner,
-    pass::{Pass as _, analysis::DataDependencyAnalysis},
+    pass::{TransformPass as _, analysis::DataDependencyAnalysis},
 };
 
 use super::{RunContext, Suite, SuiteDiagnostic};
