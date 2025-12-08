@@ -54,6 +54,11 @@ env:
   STAGING_APP_DEPLOY_ROLE_ARN: arn:aws:iam::054238437032:role/h-stage-euc1-app-deploy
   STAGING_APP_GRAPH_SERVICE_NAME: h-stage-euc1-app-graph
   STAGING_APP_TYPE_FETCHER_SERVICE_NAME: h-stage-euc1-app-type-fetcher
+  STAGING_APP_API_SERVICE_NAME: h-stage-euc1-app-api
+  STAGING_WORKER_CLUSTER_NAME: h-stage-euc1-worker
+  STAGING_WORKER_DEPLOY_ROLE_ARN: arn:aws:iam::054238437032:role/h-stage-euc1-worker-deploy
+  STAGING_WORKER_AI_TS_SERVICE_NAME: h-stage-euc1-worker-ai-ts
+  STAGING_WORKER_INTEGRATION_SERVICE_NAME: h-stage-euc1-worker-integration
   STAGING_AUTH_CLUSTER_NAME: h-stage-euc1-auth
   STAGING_AUTH_DEPLOY_ROLE_ARN: arn:aws:iam::054238437032:role/h-stage-euc1-auth-deploy
   STAGING_AUTH_KRATOS_SERVICE_NAME: h-stage-euc1-auth-kratos
@@ -64,6 +69,11 @@ env:
   PRODUCTION_APP_DEPLOY_ROLE_ARN: arn:aws:iam::597482567121:role/h-prod-euc1-app-deploy
   PRODUCTION_APP_GRAPH_SERVICE_NAME: h-prod-euc1-app-graph
   PRODUCTION_APP_TYPE_FETCHER_SERVICE_NAME: h-prod-euc1-app-type-fetcher
+  PRODUCTION_APP_API_SERVICE_NAME: h-prod-euc1-app-api
+  PRODUCTION_WORKER_CLUSTER_NAME: h-prod-euc1-worker
+  PRODUCTION_WORKER_DEPLOY_ROLE_ARN: arn:aws:iam::054238437032:role/h-prod-euc1-worker-deploy
+  PRODUCTION_WORKER_AI_TS_SERVICE_NAME: h-prod-euc1-worker-ai-ts
+  PRODUCTION_WORKER_INTEGRATION_SERVICE_NAME: h-prod-euc1-worker-integration
   PRODUCTION_AUTH_CLUSTER_NAME: h-prod-euc1-auth
   PRODUCTION_AUTH_DEPLOY_ROLE_ARN: arn:aws:iam::597482567121:role/h-prod-euc1-auth-deploy
   PRODUCTION_AUTH_KRATOS_SERVICE_NAME: h-prod-euc1-auth-kratos
@@ -496,8 +506,8 @@ jobs:
   deploy-graph:
     name: Deploy HASH graph images
     runs-on: ubuntu-latest
-    # needs:
-    # - build-graph
+    needs:
+      - build-graph
     permissions:
       id-token: write
       contents: read
@@ -577,9 +587,9 @@ jobs:
     name: Deploy HASH app images
     runs-on: ubuntu-latest
     needs:
-      # - build-api
-      # - build-kratos
-      # - build-hydra
+      - build-api
+      - build-kratos
+      - build-hydra
       # Technically not needed but it's good if the graph has been finished already
       - deploy-graph
     permissions:
@@ -613,6 +623,17 @@ jobs:
           ECS_CLUSTER_NAME: ${{ env.HASH_ECS_CLUSTER_NAME }}
           ECS_SERVICE_NAME: ${{ env.HASH_APP_SERVICE_NAME }}
 
+      - name: Redeploy API staging service
+        uses: ./.github/actions/redeploy-ecs-service
+        with:
+          AWS_ACCESS_KEY_ID: ${{ steps.secrets.outputs.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ steps.secrets.outputs.AWS_SECRET_ACCESS_KEY }}
+          AWS_SESSION_TOKEN: ${{ steps.secrets.outputs.AWS_SESSION_TOKEN }}
+          AWS_REGION: ${{ env.STAGING_AWS_REGION }}
+          ECS_CLUSTER_NAME: ${{ env.STAGING_APP_CLUSTER_NAME }}
+          ECS_SERVICE_NAME: ${{ env.STAGING_APP_API_SERVICE_NAME }}
+          ROLE_ARN: ${{ env.STAGING_APP_DEPLOY_ROLE_ARN }}
+
       - name: Redeploy kratos staging service
         uses: ./.github/actions/redeploy-ecs-service
         with:
@@ -634,6 +655,17 @@ jobs:
           ECS_CLUSTER_NAME: ${{ env.STAGING_AUTH_CLUSTER_NAME }}
           ECS_SERVICE_NAME: ${{ env.STAGING_AUTH_HYDRA_SERVICE_NAME }}
           ROLE_ARN: ${{ env.STAGING_AUTH_DEPLOY_ROLE_ARN }}
+
+      - name: Redeploy API production service
+        uses: ./.github/actions/redeploy-ecs-service
+        with:
+          AWS_ACCESS_KEY_ID: ${{ steps.secrets.outputs.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ steps.secrets.outputs.AWS_SECRET_ACCESS_KEY }}
+          AWS_SESSION_TOKEN: ${{ steps.secrets.outputs.AWS_SESSION_TOKEN }}
+          AWS_REGION: ${{ env.PRODUCTION_AWS_REGION }}
+          ECS_CLUSTER_NAME: ${{ env.PRODUCTION_APP_CLUSTER_NAME }}
+          ECS_SERVICE_NAME: ${{ env.PRODUCTION_APP_API_SERVICE_NAME }}
+          ROLE_ARN: ${{ env.PRODUCTION_APP_DEPLOY_ROLE_ARN }}
 
       - name: Redeploy kratos production service
         uses: ./.github/actions/redeploy-ecs-service
@@ -661,8 +693,8 @@ jobs:
     name: Deploy HASH worker images
     runs-on: ubuntu-latest
     needs:
-      # - build-ts-worker
-      # - build-integration-worker
+      - build-ts-worker
+      - build-integration-worker
       # Technically not needed but it's good if the graph has been finished already
       - deploy-graph
     permissions:
@@ -696,12 +728,56 @@ jobs:
           ECS_CLUSTER_NAME: ${{ env.HASH_ECS_CLUSTER_NAME }}
           ECS_SERVICE_NAME: ${{ env.HASH_WORKER_SERVICE_NAME }}
 
+      - name: Redeploy AI-TS staging service
+        uses: ./.github/actions/redeploy-ecs-service
+        with:
+          AWS_ACCESS_KEY_ID: ${{ steps.secrets.outputs.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ steps.secrets.outputs.AWS_SECRET_ACCESS_KEY }}
+          AWS_SESSION_TOKEN: ${{ steps.secrets.outputs.AWS_SESSION_TOKEN }}
+          AWS_REGION: ${{ env.STAGING_AWS_REGION }}
+          ECS_CLUSTER_NAME: ${{ env.STAGING_WORKER_CLUSTER_NAME }}
+          ECS_SERVICE_NAME: ${{ env.STAGING_WORKER_AI_TS_SERVICE_NAME }}
+          ROLE_ARN: ${{ env.STAGING_WORKER_DEPLOY_ROLE_ARN }}
+
+      - name: Redeploy Integration staging service
+        uses: ./.github/actions/redeploy-ecs-service
+        with:
+          AWS_ACCESS_KEY_ID: ${{ steps.secrets.outputs.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ steps.secrets.outputs.AWS_SECRET_ACCESS_KEY }}
+          AWS_SESSION_TOKEN: ${{ steps.secrets.outputs.AWS_SESSION_TOKEN }}
+          AWS_REGION: ${{ env.STAGING_AWS_REGION }}
+          ECS_CLUSTER_NAME: ${{ env.STAGING_WORKER_CLUSTER_NAME }}
+          ECS_SERVICE_NAME: ${{ env.STAGING_WORKER_INTEGRATION_SERVICE_NAME }}
+          ROLE_ARN: ${{ env.STAGING_WORKER_DEPLOY_ROLE_ARN }}
+
+      - name: Redeploy AI-TS production service
+        uses: ./.github/actions/redeploy-ecs-service
+        with:
+          AWS_ACCESS_KEY_ID: ${{ steps.secrets.outputs.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ steps.secrets.outputs.AWS_SECRET_ACCESS_KEY }}
+          AWS_SESSION_TOKEN: ${{ steps.secrets.outputs.AWS_SESSION_TOKEN }}
+          AWS_REGION: ${{ env.PRODUCTION_AWS_REGION }}
+          ECS_CLUSTER_NAME: ${{ env.PRODUCTION_WORKER_CLUSTER_NAME }}
+          ECS_SERVICE_NAME: ${{ env.PRODUCTION_WORKER_AI_TS_SERVICE_NAME }}
+          ROLE_ARN: ${{ env.PRODUCTION_WORKER_DEPLOY_ROLE_ARN }}
+
+      - name: Redeploy Integration production service
+        uses: ./.github/actions/redeploy-ecs-service
+        with:
+          AWS_ACCESS_KEY_ID: ${{ steps.secrets.outputs.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ steps.secrets.outputs.AWS_SECRET_ACCESS_KEY }}
+          AWS_SESSION_TOKEN: ${{ steps.secrets.outputs.AWS_SESSION_TOKEN }}
+          AWS_REGION: ${{ env.PRODUCTION_AWS_REGION }}
+          ECS_CLUSTER_NAME: ${{ env.PRODUCTION_WORKER_CLUSTER_NAME }}
+          ECS_SERVICE_NAME: ${{ env.PRODUCTION_WORKER_INTEGRATION_SERVICE_NAME }}
+          ROLE_ARN: ${{ env.PRODUCTION_WORKER_DEPLOY_ROLE_ARN }}
+
   deploy-temporal:
     name: Deploy Temporal images
     runs-on: ubuntu-latest
-    # needs:
-    #   - build-temporal-migrate
-    #   - build-temporal-setup
+    needs:
+      - build-temporal-migrate
+      - build-temporal-setup
     permissions:
       id-token: write
       contents: read
@@ -733,23 +809,23 @@ jobs:
           ECS_CLUSTER_NAME: ${{ env.HASH_TEMPORAL_ECS_CLUSTER_NAME }}
           ECS_SERVICE_NAME: ${{ env.HASH_TEMPORAL_SERVICE_NAME }}
 
-  # notify-slack:
-  #   name: Notify Slack on failure
-  #   needs:
-  #     - deploy-app
-  #     - deploy-graph
-  #     - deploy-workers
-  #     - deploy-temporal
-  #   runs-on: ubuntu-latest
-  #   if: ${{ failure() }}
-  #   steps:
-  #     - name: Slack Notification
-  #       uses: rtCamp/action-slack-notify@07cbdbfd6c6190970778d8f98f11d073b2932aae
-  #       env:
-  #         SLACK_LINK_NAMES: true
-  #         SLACK_MESSAGE: "Error deploying the HASH backend <!subteam^S09KH99698T>" # Notifies @devops
-  #         SLACK_TITLE: Backend deployment failed
-  #         SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK_URL }}
-  #         SLACK_USERNAME: GitHub
-  #         VAULT_ADDR: ""
-  #         VAULT_TOKEN: ""
+  notify-slack:
+    name: Notify Slack on failure
+    needs:
+      - deploy-app
+      - deploy-graph
+      - deploy-workers
+      - deploy-temporal
+    runs-on: ubuntu-latest
+    if: ${{ failure() }}
+    steps:
+      - name: Slack Notification
+        uses: rtCamp/action-slack-notify@07cbdbfd6c6190970778d8f98f11d073b2932aae
+        env:
+          SLACK_LINK_NAMES: true
+          SLACK_MESSAGE: "Error deploying the HASH backend <!subteam^S09KH99698T>" # Notifies @devops
+          SLACK_TITLE: Backend deployment failed
+          SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK_URL }}
+          SLACK_USERNAME: GitHub
+          VAULT_ADDR: ""
+          VAULT_TOKEN: ""
