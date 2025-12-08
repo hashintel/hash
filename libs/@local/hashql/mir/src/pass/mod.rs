@@ -1,14 +1,21 @@
-//! MIR transformation passes.
+//! MIR transformation and analysis passes.
 //!
-//! This module provides the infrastructure for defining and running transformation passes over
-//! HashQL MIR bodies. Passes are used to analyze, optimize, and transform the control-flow graph
-//! representation of HashQL functions.
+//! This module provides the infrastructure for defining and running passes over HashQL MIR bodies.
+//! Passes are used to analyze, optimize, and transform the control-flow graph representation of
+//! HashQL functions.
 //!
 //! # Overview
 //!
-//! A pass is a self-contained transformation or analysis that operates on a [`Body`]. Passes can
-//! modify the MIR in place (transformation passes) or collect information without modification
-//! (analysis passes). The [`Pass`] trait provides a uniform interface for both kinds.
+//! A pass is a self-contained transformation or analysis that operates on a [`Body`]. There are
+//! two kinds of passes:
+//!
+//! - **Transform passes** ([`TransformPass`]): Modify the MIR in place (optimization, lowering)
+//! - **Analysis passes** ([`AnalysisPass`]): Collect information without modification
+//!
+//! # Submodules
+//!
+//! - [`analysis`]: Static analysis infrastructure including dataflow analysis framework
+//! - [`transform`]: MIR transformation passes
 
 use crate::{body::Body, context::MirContext};
 
@@ -90,11 +97,32 @@ pub trait TransformPass<'env, 'heap> {
     }
 }
 
+/// An analysis pass over MIR.
+///
+/// Analysis passes inspect a [`Body`] without modifying it, typically to collect information
+/// for diagnostics, optimization decisions, or validation.
+///
+/// # Implementing an Analysis Pass
+///
+/// ```ignore
+/// struct UnusedVariableAnalysis;
+///
+/// impl<'env, 'heap> AnalysisPass<'env, 'heap> for UnusedVariableAnalysis {
+///     fn run(&mut self, context: &mut MirContext<'env, 'heap>, body: &Body<'heap>) {
+///         // Analyze `body` and report diagnostics via `context`
+///     }
+/// }
+/// ```
+///
+/// For dataflow analyses, consider using the [`analysis::dataflow`] framework instead,
+/// which provides fixed-point iteration and handles control-flow automatically.
+///
+/// [`analysis::dataflow`]: crate::pass::analysis::dataflow
 pub trait AnalysisPass<'env, 'heap> {
-    /// Executes the pass on the given `body`.
+    /// Executes the analysis pass on the given `body`.
     ///
     /// The `context` provides access to the heap allocator, type environment, interner, and
-    /// diagnostic collection. The `body` can be read and modified in place.
+    /// diagnostic collection. The `body` is read-only.
     fn run(&mut self, context: &mut MirContext<'env, 'heap>, body: &Body<'heap>);
 
     /// Returns a human-readable name for this pass.

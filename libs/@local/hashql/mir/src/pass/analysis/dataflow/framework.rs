@@ -289,7 +289,7 @@ pub trait DataflowAnalysis<'heap> {
         let mut queue = WorkQueue::new_in(body.basic_blocks.len(), alloc.clone());
 
         // We maintain two state vectors:
-        // the state that gets joined into during propagation (entry states for forward, exit states
+        // The state that gets joined into during propagation (entry states for forward, exit states
         // for backward)
         let mut join_states = IdVec::from_fn_in(
             body.basic_blocks.len(),
@@ -297,7 +297,7 @@ pub trait DataflowAnalysis<'heap> {
             alloc.clone(),
         );
 
-        // the state computed by applying transfers (exit states for forward, entry states for
+        // The state computed by applying transfers (exit states for forward, entry states for
         // backward)
         let mut derived_states = IdVec::from_fn_in(
             body.basic_blocks.len(),
@@ -305,14 +305,13 @@ pub trait DataflowAnalysis<'heap> {
             alloc,
         );
 
-        // Initialize boundary conditions based on analysis direction
         match Self::DIRECTION {
             Direction::Forward => {
-                // For forward: boundary is entry state of START block
+                // Boundary is entry state of START block
                 self.initialize_boundary(body, &mut join_states[BasicBlockId::START]);
             }
             Direction::Backward => {
-                // For backward: boundary is exit state of return blocks
+                // Boundary is exit state of return blocks
                 for (bb, block) in body.basic_blocks.iter_enumerated() {
                     if matches!(block.terminator.kind, TerminatorKind::Return(_)) {
                         self.initialize_boundary(body, &mut join_states[bb]);
@@ -321,7 +320,6 @@ pub trait DataflowAnalysis<'heap> {
             }
         }
 
-        // Seed the work queue
         match Self::DIRECTION {
             Direction::Forward => {
                 // reverse postorder ensures predecessors are processed before successors
@@ -339,8 +337,6 @@ pub trait DataflowAnalysis<'heap> {
         let mut state = lattice.bottom();
 
         while let Some(bb) = queue.dequeue() {
-            // Load the current join state for this block. Using `clone_from` instead of
-            // `clone` allows reusing the existing allocation in `state`.
             // Using a cloned state here allows us to liberally modify the state inside of the
             // driver, as the value isn't persisted.
             state.clone_from(&join_states[bb]);
@@ -374,7 +370,6 @@ pub trait DataflowAnalysis<'heap> {
             }
         }
 
-        // Assign to the correct result fields based on direction
         let (entry_states, exit_states) = match Self::DIRECTION {
             Direction::Forward => (join_states, derived_states),
             Direction::Backward => (derived_states, join_states),
@@ -414,10 +409,6 @@ struct Driver<'analysis, 'heap, D: DataflowAnalysis<'heap> + ?Sized, A: Allocato
     id: BasicBlockId,
     block: &'analysis BasicBlock<'heap>,
 
-    /// Callback to propagate state to a neighboring block.
-    ///
-    /// Called with `(target_block, state)` after applying edge transfer functions.
-    /// Should join the state into the target and re-queue if changed.
     propagate: F,
 }
 
@@ -431,7 +422,8 @@ impl<
     /// Processes the block in forward direction.
     ///
     /// Applies transfer functions in program order:
-    /// 1. Statements (in order)
+    /// 1. Block parameters
+    /// 2. Statements (in order)
     /// 2. Terminator
     /// 3. Edge effects (propagate to successors)
     #[expect(clippy::too_many_lines, reason = "minimal amount")]
@@ -457,7 +449,6 @@ impl<
             state,
         );
 
-        // Apply transfer functions to each statement in program order.
         // Statement indices start at 1 because index 0 represents the block parameters.
         for (index, statement) in block.statements.iter().enumerate() {
             let location = Location {
@@ -468,8 +459,6 @@ impl<
             analysis.transfer_statement(location, statement, state);
         }
 
-        // Apply the terminator transfer function.
-        // The terminator's statement index follows all statements.
         let location = Location {
             block: id,
             statement_index: block.statements.len() + 1,
@@ -587,7 +576,8 @@ impl<
     /// Applies transfer functions in reverse program order:
     /// 1. Terminator
     /// 2. Statements (in reverse order)
-    /// 3. Edge effects (propagate to predecessors)
+    /// 3. Block parameters
+    /// 4. Edge effects (propagate to predecessors)
     fn backward(self) {
         let Self {
             analysis,
@@ -600,8 +590,6 @@ impl<
             mut propagate,
         } = self;
 
-        // In backward analysis, we start from the exit and work toward the entry.
-        // First, apply the terminator transfer function.
         let location = Location {
             block: id,
             statement_index: block.statements.len() + 1,
@@ -609,7 +597,6 @@ impl<
 
         analysis.transfer_terminator(location, &block.terminator, state);
 
-        // Apply statement transfer functions in reverse order.
         for (index, statement) in block.statements.iter().enumerate().rev() {
             let location = Location {
                 block: id,
@@ -668,10 +655,10 @@ impl<
 
                     for &target in targets.targets() {
                         if target.block != id {
+                            // Does not contribute to the combined state.
                             continue;
                         }
 
-                        // Each matching edge contributes to the combined state.
                         edge_state.clone_from(entry_state);
                         analysis.transfer_edge(
                             predecessor,
@@ -699,7 +686,6 @@ impl<
                 }
 
                 TerminatorKind::Return(_) | TerminatorKind::Unreachable => {
-                    // These terminators have no successors, so they can't be predecessors.
                     unreachable!("predecessor {predecessor} has no edge to {id}")
                 }
             }
