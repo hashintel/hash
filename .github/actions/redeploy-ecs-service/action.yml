@@ -1,0 +1,46 @@
+name: Redeploy ECS service
+description: Force a new ECS service deployment with optional role assumption
+
+inputs:
+  AWS_ACCESS_KEY_ID:
+    description: AWS access key id
+    required: true
+  AWS_SECRET_ACCESS_KEY:
+    description: AWS secret access key
+    required: true
+  AWS_SESSION_TOKEN:
+    description: AWS session token
+    required: true
+  AWS_REGION:
+    description: AWS region
+    required: true
+  ECS_CLUSTER_NAME:
+    description: ECS cluster name
+    required: true
+  ECS_SERVICE_NAME:
+    description: ECS service name
+    required: true
+  ROLE_ARN:
+    description: IAM role ARN to assume for deployment (cross-account)
+    required: false
+
+runs:
+  using: composite
+  steps:
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@7474bc4690e29a8392af63c5b98e7449536d5c3a # v4.3.1
+      with:
+        aws-access-key-id: ${{ inputs.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ inputs.AWS_SECRET_ACCESS_KEY }}
+        aws-session-token: ${{ inputs.AWS_SESSION_TOKEN }}
+        aws-region: ${{ inputs.AWS_REGION }}
+        role-to-assume: ${{ inputs.ROLE_ARN }}
+        role-duration-seconds: ${{ inputs.ROLE_DURATION_SECONDS }}
+
+    - name: Redeploy ECS service
+      shell: bash
+      run: |
+        aws ecs update-service \
+          --cluster "${{ inputs.ECS_CLUSTER_NAME }}" \
+          --service "${{ inputs.ECS_SERVICE_NAME }}" \
+          --force-new-deployment 1> /dev/null

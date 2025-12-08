@@ -49,6 +49,24 @@ env:
   HASH_TEMPORAL_ECS_CLUSTER_NAME: h-temporal-prod-usea1-ecs
   HASH_TEMPORAL_SERVICE_NAME: h-temporal-prod-usea1-svc
 
+  STAGING_DEPLOY_ROLE_ARN: arn:aws:iam::054238437032:role/h-stage-euc1-terraform-apply
+  STAGING_AWS_REGION: eu-central-1
+  STAGING_APP_CLUSTER_NAME: h-stage-euc1-app
+  STAGING_APP_GRAPH_SERVICE_NAME: h-stage-euc1-app-graph
+  STAGING_APP_TYPE_FETCHER_SERVICE_NAME: h-stage-euc1-app-type-fetcher
+  STAGING_AUTH_CLUSTER_NAME: h-stage-euc1-auth
+  STAGING_AUTH_KRATOS_SERVICE_NAME: h-stage-euc1-auth-kratos
+  STAGING_AUTH_HYDRA_SERVICE_NAME: h-stage-euc1-auth-hydra
+
+  PRODUCTION_DEPLOY_ROLE_ARN: arn:aws:iam::597482567121:role/h-prod-euc1-terraform-apply
+  PRODUCTION_AWS_REGION: eu-central-1
+  PRODUCTION_APP_CLUSTER_NAME: h-prod-euc1-app
+  PRODUCTION_APP_GRAPH_SERVICE_NAME: h-prod-euc1-app-graph
+  PRODUCTION_APP_TYPE_FETCHER_SERVICE_NAME: h-prod-euc1-app-type-fetcher
+  PRODUCTION_AUTH_CLUSTER_NAME: h-prod-euc1-auth
+  PRODUCTION_AUTH_KRATOS_SERVICE_NAME: h-prod-euc1-auth-kratos
+  PRODUCTION_AUTH_HYDRA_SERVICE_NAME: h-prod-euc1-auth-hydra
+
 name: HASH backend deployment
 jobs:
   build-graph:
@@ -431,24 +449,6 @@ jobs:
           BUILD_ARGS: |
             TEMPORAL_VERSION=${{ env.HASH_TEMPORAL_VERSION }}
 
-      - name: Push to artifacts ECR
-        uses: ./.github/actions/docker-build-push
-        with:
-          SHORTNAME: "temporal-migrate"
-          CONTEXT_PATH: ${{ github.workspace }}/apps/hash-external-services/temporal
-          DOCKERFILE_LOCATION: ${{ github.workspace }}/apps/hash-external-services/temporal/migrate.Dockerfile
-          AWS_ACCESS_KEY_ID: ${{ steps.secrets.outputs.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ steps.secrets.outputs.AWS_SECRET_ACCESS_KEY }}
-          AWS_SESSION_TOKEN: ${{ steps.secrets.outputs.AWS_SESSION_TOKEN }}
-          AWS_REGION: ${{ env.ARTIFACTS_AWS_REGION }}
-          AWS_ECR_URL: ${{ env.ARTIFACTS_ECR_URL }}
-          ROLE_ARN: ${{ env.ARTIFACTS_ECR_ROLE_ARN }}
-          IMAGE_NAME: ${{ github.repository }}/temporal-migrate
-          GITHUB_TOKEN: ${{ github.token }}
-          IMAGE_TAG: ${{ env.HASH_TEMPORAL_VERSION }}
-          BUILD_ARGS: |
-            TEMPORAL_VERSION=${{ env.HASH_TEMPORAL_VERSION }}
-
   build-temporal-setup:
     name: Build and push Temporal Setup image
     runs-on: ubuntu-24.04-arm
@@ -491,24 +491,6 @@ jobs:
           BUILD_ARGS: |
             TEMPORAL_VERSION=${{ env.HASH_TEMPORAL_VERSION }}
 
-      - name: Push to artifacts ECR
-        uses: ./.github/actions/docker-build-push
-        with:
-          SHORTNAME: "temporal-setup"
-          CONTEXT_PATH: ${{ github.workspace }}/apps/hash-external-services/temporal
-          DOCKERFILE_LOCATION: ${{ github.workspace }}/apps/hash-external-services/temporal/setup.Dockerfile
-          AWS_ACCESS_KEY_ID: ${{ steps.secrets.outputs.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ steps.secrets.outputs.AWS_SECRET_ACCESS_KEY }}
-          AWS_SESSION_TOKEN: ${{ steps.secrets.outputs.AWS_SESSION_TOKEN }}
-          AWS_REGION: ${{ env.ARTIFACTS_AWS_REGION }}
-          AWS_ECR_URL: ${{ env.ARTIFACTS_ECR_URL }}
-          ROLE_ARN: ${{ env.ARTIFACTS_ECR_ROLE_ARN }}
-          IMAGE_NAME: ${{ github.repository }}/temporal-setup
-          GITHUB_TOKEN: ${{ github.token }}
-          IMAGE_TAG: ${{ env.HASH_TEMPORAL_VERSION }}
-          BUILD_ARGS: |
-            TEMPORAL_VERSION=${{ env.HASH_TEMPORAL_VERSION }}
-
   deploy-graph:
     name: Deploy HASH graph images
     runs-on: ubuntu-latest
@@ -535,16 +517,59 @@ jobs:
             aws/creds/prod-deploy secret_key | AWS_SECRET_ACCESS_KEY ;
             aws/creds/prod-deploy security_token | AWS_SESSION_TOKEN
 
-      - uses: ./.github/actions/docker-ecr-login
+      - name: Redeploy service
+        uses: ./.github/actions/redeploy-ecs-service
         with:
           AWS_ACCESS_KEY_ID: ${{ steps.secrets.outputs.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ steps.secrets.outputs.AWS_SECRET_ACCESS_KEY }}
           AWS_SESSION_TOKEN: ${{ steps.secrets.outputs.AWS_SESSION_TOKEN }}
           AWS_REGION: ${{ env.AWS_REGION }}
+          ECS_CLUSTER_NAME: ${{ env.HASH_ECS_CLUSTER_NAME }}
+          ECS_SERVICE_NAME: ${{ env.HASH_GRAPH_SERVICE_NAME }}
 
-      - name: Redeploy HASH graph service
-        run: |
-          aws ecs update-service --cluster ${{ env.HASH_ECS_CLUSTER_NAME }} --service ${{ env.HASH_GRAPH_SERVICE_NAME }} --force-new-deployment 1> /dev/null
+      - name: Redeploy graph staging service
+        uses: ./.github/actions/redeploy-ecs-service
+        with:
+          AWS_ACCESS_KEY_ID: ${{ steps.secrets.outputs.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ steps.secrets.outputs.AWS_SECRET_ACCESS_KEY }}
+          AWS_SESSION_TOKEN: ${{ steps.secrets.outputs.AWS_SESSION_TOKEN }}
+          AWS_REGION: ${{ env.STAGING_AWS_REGION }}
+          ECS_CLUSTER_NAME: ${{ env.STAGING_APP_CLUSTER_NAME }}
+          ECS_SERVICE_NAME: ${{ env.STAGING_APP_GRAPH_SERVICE_NAME }}
+          ROLE_ARN: ${{ env.STAGING_DEPLOY_ROLE_ARN }}
+
+      - name: Redeploy type-fetcher staging service
+        uses: ./.github/actions/redeploy-ecs-service
+        with:
+          AWS_ACCESS_KEY_ID: ${{ steps.secrets.outputs.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ steps.secrets.outputs.AWS_SECRET_ACCESS_KEY }}
+          AWS_SESSION_TOKEN: ${{ steps.secrets.outputs.AWS_SESSION_TOKEN }}
+          AWS_REGION: ${{ env.STAGING_AWS_REGION }}
+          ECS_CLUSTER_NAME: ${{ env.STAGING_APP_CLUSTER_NAME }}
+          ECS_SERVICE_NAME: ${{ env.STAGING_APP_TYPE_FETCHER_SERVICE_NAME }}
+          ROLE_ARN: ${{ env.STAGING_DEPLOY_ROLE_ARN }}
+
+      - name: Redeploy graph production service
+        uses: ./.github/actions/redeploy-ecs-service
+        with:
+          AWS_ACCESS_KEY_ID: ${{ steps.secrets.outputs.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ steps.secrets.outputs.AWS_SECRET_ACCESS_KEY }}
+          AWS_SESSION_TOKEN: ${{ steps.secrets.outputs.AWS_SESSION_TOKEN }}
+          AWS_REGION: ${{ env.PRODUCTION_AWS_REGION }}
+          ECS_CLUSTER_NAME: ${{ env.PRODUCTION_APP_CLUSTER_NAME }}
+          ECS_SERVICE_NAME: ${{ env.PRODUCTION_APP_GRAPH_SERVICE_NAME }}
+          ROLE_ARN: ${{ env.PRODUCTION_DEPLOY_ROLE_ARN }}
+
+      - name: Redeploy type-fetcher production service
+        uses: ./.github/actions/redeploy-ecs-service
+        with:
+          AWS_ACCESS_KEY_ID: ${{ steps.secrets.outputs.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ steps.secrets.outputs.AWS_SECRET_ACCESS_KEY }}
+          AWS_SESSION_TOKEN: ${{ steps.secrets.outputs.AWS_SESSION_TOKEN }}
+          AWS_REGION: ${{ env.PRODUCTION_AWS_REGION }}
+          ECS_CLUSTER_NAME: ${{ env.PRODUCTION_APP_CLUSTER_NAME }}
+          ECS_SERVICE_NAME: ${{ env.PRODUCTION_APP_TYPE_FETCHER_SERVICE_NAME }}
+          ROLE_ARN: ${{ env.PRODUCTION_DEPLOY_ROLE_ARN }}
 
   deploy-app:
     name: Deploy HASH app images
@@ -576,16 +601,59 @@ jobs:
             aws/creds/prod-deploy secret_key | AWS_SECRET_ACCESS_KEY ;
             aws/creds/prod-deploy security_token | AWS_SESSION_TOKEN
 
-      - uses: ./.github/actions/docker-ecr-login
+      - name: Redeploy service
+        uses: ./.github/actions/redeploy-ecs-service
         with:
           AWS_ACCESS_KEY_ID: ${{ steps.secrets.outputs.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ steps.secrets.outputs.AWS_SECRET_ACCESS_KEY }}
           AWS_SESSION_TOKEN: ${{ steps.secrets.outputs.AWS_SESSION_TOKEN }}
           AWS_REGION: ${{ env.AWS_REGION }}
+          ECS_CLUSTER_NAME: ${{ env.HASH_ECS_CLUSTER_NAME }}
+          ECS_SERVICE_NAME: ${{ env.HASH_APP_SERVICE_NAME }}
 
-      - name: Redeploy HASH backend service
-        run: |
-          aws ecs update-service --cluster ${{ env.HASH_ECS_CLUSTER_NAME }} --service ${{ env.HASH_APP_SERVICE_NAME }} --force-new-deployment 1> /dev/null
+      - name: Redeploy kratos staging service
+        uses: ./.github/actions/redeploy-ecs-service
+        with:
+          AWS_ACCESS_KEY_ID: ${{ steps.secrets.outputs.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ steps.secrets.outputs.AWS_SECRET_ACCESS_KEY }}
+          AWS_SESSION_TOKEN: ${{ steps.secrets.outputs.AWS_SESSION_TOKEN }}
+          AWS_REGION: ${{ env.STAGING_AWS_REGION }}
+          ECS_CLUSTER_NAME: ${{ env.STAGING_AUTH_CLUSTER_NAME }}
+          ECS_SERVICE_NAME: ${{ env.STAGING_AUTH_KRATOS_SERVICE_NAME }}
+          ROLE_ARN: ${{ env.STAGING_DEPLOY_ROLE_ARN }}
+
+      - name: Redeploy hydra staging service
+        uses: ./.github/actions/redeploy-ecs-service
+        with:
+          AWS_ACCESS_KEY_ID: ${{ steps.secrets.outputs.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ steps.secrets.outputs.AWS_SECRET_ACCESS_KEY }}
+          AWS_SESSION_TOKEN: ${{ steps.secrets.outputs.AWS_SESSION_TOKEN }}
+          AWS_REGION: ${{ env.STAGING_AWS_REGION }}
+          ECS_CLUSTER_NAME: ${{ env.STAGING_AUTH_CLUSTER_NAME }}
+          ECS_SERVICE_NAME: ${{ env.STAGING_AUTH_HYDRA_SERVICE_NAME }}
+          ROLE_ARN: ${{ env.STAGING_DEPLOY_ROLE_ARN }}
+
+      - name: Redeploy kratos production service
+        uses: ./.github/actions/redeploy-ecs-service
+        with:
+          AWS_ACCESS_KEY_ID: ${{ steps.secrets.outputs.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ steps.secrets.outputs.AWS_SECRET_ACCESS_KEY }}
+          AWS_SESSION_TOKEN: ${{ steps.secrets.outputs.AWS_SESSION_TOKEN }}
+          AWS_REGION: ${{ env.PRODUCTION_AWS_REGION }}
+          ECS_CLUSTER_NAME: ${{ env.PRODUCTION_AUTH_CLUSTER_NAME }}
+          ECS_SERVICE_NAME: ${{ env.PRODUCTION_AUTH_KRATOS_SERVICE_NAME }}
+          ROLE_ARN: ${{ env.PRODUCTION_DEPLOY_ROLE_ARN }}
+
+      - name: Redeploy hydra production service
+        uses: ./.github/actions/redeploy-ecs-service
+        with:
+          AWS_ACCESS_KEY_ID: ${{ steps.secrets.outputs.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ steps.secrets.outputs.AWS_SECRET_ACCESS_KEY }}
+          AWS_SESSION_TOKEN: ${{ steps.secrets.outputs.AWS_SESSION_TOKEN }}
+          AWS_REGION: ${{ env.PRODUCTION_AWS_REGION }}
+          ECS_CLUSTER_NAME: ${{ env.PRODUCTION_AUTH_CLUSTER_NAME }}
+          ECS_SERVICE_NAME: ${{ env.PRODUCTION_AUTH_HYDRA_SERVICE_NAME }}
+          ROLE_ARN: ${{ env.PRODUCTION_DEPLOY_ROLE_ARN }}
 
   deploy-workers:
     name: Deploy HASH worker images
@@ -616,16 +684,15 @@ jobs:
             aws/creds/prod-deploy secret_key | AWS_SECRET_ACCESS_KEY ;
             aws/creds/prod-deploy security_token | AWS_SESSION_TOKEN
 
-      - uses: ./.github/actions/docker-ecr-login
+      - name: Redeploy service
+        uses: ./.github/actions/redeploy-ecs-service
         with:
           AWS_ACCESS_KEY_ID: ${{ steps.secrets.outputs.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ steps.secrets.outputs.AWS_SECRET_ACCESS_KEY }}
           AWS_SESSION_TOKEN: ${{ steps.secrets.outputs.AWS_SESSION_TOKEN }}
           AWS_REGION: ${{ env.AWS_REGION }}
-
-      - name: Redeploy HASH worker service
-        run: |
-          aws ecs update-service --cluster ${{ env.HASH_ECS_CLUSTER_NAME }} --service ${{ env.HASH_WORKER_SERVICE_NAME }} --force-new-deployment 1> /dev/null
+          ECS_CLUSTER_NAME: ${{ env.HASH_ECS_CLUSTER_NAME }}
+          ECS_SERVICE_NAME: ${{ env.HASH_WORKER_SERVICE_NAME }}
 
   deploy-temporal:
     name: Deploy Temporal images
@@ -654,16 +721,15 @@ jobs:
             aws/creds/prod-deploy secret_key | AWS_SECRET_ACCESS_KEY ;
             aws/creds/prod-deploy security_token | AWS_SESSION_TOKEN
 
-      - uses: ./.github/actions/docker-ecr-login
+      - name: Redeploy service
+        uses: ./.github/actions/redeploy-ecs-service
         with:
           AWS_ACCESS_KEY_ID: ${{ steps.secrets.outputs.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ steps.secrets.outputs.AWS_SECRET_ACCESS_KEY }}
           AWS_SESSION_TOKEN: ${{ steps.secrets.outputs.AWS_SESSION_TOKEN }}
           AWS_REGION: ${{ env.AWS_REGION }}
-
-      - name: Redeploy Temporal service
-        run: |
-          aws ecs update-service --cluster ${{ env.HASH_TEMPORAL_ECS_CLUSTER_NAME }} --service ${{ env.HASH_TEMPORAL_SERVICE_NAME }} --force-new-deployment 1> /dev/null
+          ECS_CLUSTER_NAME: ${{ env.HASH_TEMPORAL_ECS_CLUSTER_NAME }}
+          ECS_SERVICE_NAME: ${{ env.HASH_TEMPORAL_SERVICE_NAME }}
 
   notify-slack:
     name: Notify Slack on failure
