@@ -1,194 +1,157 @@
-# Next Session: Phase 2 Implementation
+# Next Session: Phase 3 - Testing and Evaluation
 
 ## Current Status
 
-✅ **Phase 1 Foundation Complete**
+✅ **Phase 2 Implementation Complete** (see `SESSION_HANDOFF.md`)
 
-We've successfully:
+The full NER pipeline has been implemented:
 
-1. Mapped hash-ai-worker-ts architecture to Mastra concepts
-2. Created entity type schemas with Zod validation
-3. Ported test data (4 focused test cases)
-4. Copied entity type dereferencing utility (pure TS logic)
-5. Created baseline entity summary extraction agent
-6. Created entity recall scorer
-7. Registered everything in Mastra instance
-8. Created test scripts
+- Fixtures system for testing without Graph API
+- 3 agents (entity summary, claim extraction, entity proposal)
+- 5-step workflow (get types → extract → dedupe → claims → propose)
+- Integration test script ready
 
-## Phase 2: Claims-Based Extraction
+## Immediate Next Step: Test the Implementation
 
-The next phase focuses on implementing the **modern claims-based approach** from hash-ai-worker-ts:
-
-### Step 1: Create Claim Extraction Agent
-
-**File**: `src/mastra/agents/claim-extraction-agent.ts`
-
-**Source**: Port from `/apps/hash-ai-worker-ts/src/activities/flow-activities/shared/infer-summaries-then-claims-from-text/infer-entity-claims-from-text-agent.ts`
-
-**What to port**:
-
-- System prompt for claim extraction
-- `submitClaims` tool definition
-- Claim validation logic (3 retry max)
-- Temperature setting (0.5 for claim variation)
-
-**Agent structure**:
-
-```typescript
-export const claimExtractionAgent = new Agent({
-  id: 'claim-extraction-agent',
-  name: 'Claim Extraction Agent',
-  instructions: '...', // Port system prompt
-  model: 'openrouter/google/gemini-2.0-flash-exp:free',
-  tools: {
-    submitClaims: submitClaimsTool,
-  },
-});
+```bash
+cd apps/hash-ai-agent
+pnpm tsx src/mastra/evals/test-ner-workflow.ts
 ```
 
-### Step 2: Create Entity Proposal Agent
+**Expected behavior**:
 
-**File**: `src/mastra/agents/entity-proposal-agent.ts`
+1. Loads Person and Organization fixtures
+2. Extracts entities from sample text (OpenAI, Sam Altman, Elon Musk, etc.)
+3. Deduplicates by name similarity
+4. Extracts claims about entities
+5. Proposes entities with properties and provenance
 
-**Source**: Port from `/apps/hash-ai-worker-ts/src/activities/flow-activities/shared/propose-entities-from-claims/propose-entity-from-claims-agent.ts`
+**If it fails**, debug in this order:
 
-**What to port**:
+1. Check TypeScript compilation: `pnpm tsc --noEmit`
+2. Check agent tool registration in `index.ts`
+3. Check step imports in `workflows/ner-workflow.ts`
+4. Add console.log statements to trace execution
 
-- System prompt for entity proposal
-- `proposeEntity` and `abandonEntity` tools
-- Property value + claim ID tracking
-- Entity type schema integration
+## Phase 3: Evaluation and Optimization
 
-### Step 3: Create Three-Step Workflow
+Once the workflow runs successfully:
 
-**File**: `src/mastra/workflows/entity-extraction-workflow.ts`
+### Step 1: Validate Output Quality
 
-**Structure**:
+Compare NER workflow output against expected entities:
 
-```typescript
-const extractSummariesStep = createStep({
-  id: 'extract-summaries',
-  execute: async ({ inputData }) => {
-    const result = await entitySummaryAgent.generate(...)
-    return { summaries: [...] }
-  }
-})
+- Are all expected entities found? (recall)
+- Are there false positives? (precision)
+- Are properties correctly populated?
+- Are claims accurate?
 
-const extractClaimsStep = createStep({
-  id: 'extract-claims',
-  execute: async ({ inputData }) => {
-    const { summaries } = inputData
-    const result = await claimExtractionAgent.generate(...)
-    return { claims: [...] }
-  }
-})
+### Step 2: Add More Test Cases
 
-const proposeEntitiesStep = createStep({
-  id: 'propose-entities',
-  execute: async ({ inputData }) => {
-    const { summaries, claims } = inputData
-    // For each summary, propose entity from claims
-    const entities = await Promise.all(...)
-    return { entities: [...] }
-  }
-})
+Expand `evals/test-ner-workflow.ts` with:
 
-export const entityExtractionWorkflow = createWorkflow({
-  id: 'entity-extraction-workflow',
-  inputSchema: z.object({ text: z.string(), ... }),
-  outputSchema: z.object({ entities: z.array(...), claims: z.array(...) })
-})
-  .then(extractSummariesStep)
-  .then(extractClaimsStep)
-  .then(proposeEntitiesStep)
-  .commit()
-```
+- Edge cases (ambiguous names, partial information)
+- Different domains (tech, finance, healthcare)
+- Longer documents
 
-### Step 4: Add More Scorers
-
-**Files to create**:
-
-- `src/mastra/scorers/claim-accuracy-scorer.ts`
-- `src/mastra/scorers/entity-property-scorer.ts`
-
-### Step 5: Comparative Evaluation
+### Step 3: Create Comparison Evaluation
 
 **File**: `src/mastra/evals/compare-approaches.ts`
 
 Compare:
 
-- Baseline (single-pass) approach
-- Claims-based (three-step) approach
+- Baseline (single-pass entity extraction)
+- Full pipeline (5-step workflow)
 
 Metrics:
 
-- Entity recall
-- Entity precision
+- Entity recall / precision
 - Property accuracy
 - Token usage / cost
 - Latency
 
-## Key Files to Reference
+### Step 4: Tune Agent Prompts
 
-### Source Files (hash-ai-worker-ts)
+Based on evaluation results:
 
-**Claim Extraction**:
+- Adjust temperature settings
+- Refine system prompts for edge cases
+- Tune deduplication similarity threshold
 
-- `/apps/hash-ai-worker-ts/src/activities/flow-activities/shared/claims.ts` - Type definitions
-- `/apps/hash-ai-worker-ts/src/activities/flow-activities/shared/infer-summaries-then-claims-from-text/infer-entity-claims-from-text-agent.ts` - Agent implementation
+### Step 5: Add Graph API Integration (Future)
 
-**Entity Proposal**:
+Replace fixtures with live Graph API calls:
 
-- `/apps/hash-ai-worker-ts/src/activities/flow-activities/shared/propose-entities-from-claims/propose-entity-from-claims-agent.ts` - Agent implementation
-
-**Orchestration**:
-
-- `/apps/hash-ai-worker-ts/src/activities/flow-activities/shared/infer-summaries-then-claims-from-text.ts` - Workflow orchestration
-
-### Target Files (hash-ai-agent)
-
-**Already Created**:
-
-- `src/mastra/types/entities.ts` - Has Claim and ProposedEntity schemas
-- `src/mastra/agents/entity-summary-agent.ts` - Step 1 complete
-- `src/mastra/evals/test-data/ner-test-cases.ts` - Test data ready
-
-**To Create**:
-
-- `src/mastra/agents/claim-extraction-agent.ts`
-- `src/mastra/agents/entity-proposal-agent.ts`
-- `src/mastra/workflows/entity-extraction-workflow.ts`
+- Create `getDereferencedEntityTypesFromGraph()` function
+- Add authentication/context handling
+- Test with real entity types from the database
 
 ## Quick Commands
 
 ```bash
-# Test current baseline
+# Navigate to project
 cd apps/hash-ai-agent
+
+# Run the NER workflow test (START HERE)
+pnpm tsx src/mastra/evals/test-ner-workflow.ts
+
+# Test baseline entity extraction (for comparison)
 pnpm tsx src/mastra/evals/test-entity-extraction.ts
 
-# Run full evaluation
+# Run full evaluation suite
 pnpm tsx src/mastra/evals/run-entity-extraction-eval.ts
 
 # Type check
 pnpm tsc --noEmit
 ```
 
-## Migration Principles (Reminder)
+## Key Architecture Reminders
 
-1. **Fixture data first** - Use stable test data, no external URLs
-2. **Copy pure TS logic** - Import directly from hash-ai-worker-ts
-3. **Extract LLM logic to agents** - System prompts + tool definitions
-4. **Work within Mastra** - Use workflows, not Temporal
+### Step as Type Boundary
 
-## Questions to Resolve (Future)
+- Workflow steps have Zod schemas for input/output
+- Agents receive string prompts, respond via tool calls
+- Parse tool call `args` to extract structured data
 
-- How to handle entity type dereferencing with fixture data?
-- Should we create mock Graph API or use real client?
-- How to handle provenance tracking without Graph?
-- Entity matching: Phase 3 or Phase 4?
+### Tool Response Pattern
 
-## Resources
+```typescript
+const toolCalls = result.toolCalls ?? [];
+const registerCall = toolCalls.find(
+  (tc) => tc.name === "register-entity-summaries"
+);
+const entities = registerCall?.args?.entitySummaries ?? [];
+```
 
-- [Mastra Docs](https://mastra.ai/docs)
-- [Migration Plan](mastra-migration-plan.md)
-- [Original NER Plan](ner-optimization-plan.md)
+### Per-Type Processing
+
+- Large schemas can overflow context
+- Process one entity type at a time
+- Accumulate results across iterations
+
+### Extract Then Deduplicate
+
+- LLMs are better at extraction than filtering
+- Extract all possible entities first
+- Merge duplicates in a separate deterministic step
+
+## Files Reference
+
+### Core Implementation
+
+- `workflows/ner-workflow.ts` - Main 5-step pipeline
+- `workflows/steps/` - Individual step implementations
+- `agents/` - Agent definitions (entity-summary, claim-extraction, entity-proposal)
+
+### Fixtures
+
+- `fixtures/entity-types/` - Dereferenced Person and Organization types
+
+### Testing
+
+- `evals/test-ner-workflow.ts` - Integration test (run this first!)
+- `evals/test-entity-extraction.ts` - Baseline test
+
+## Continuation Prompt
+
+"Run the NER workflow test with `pnpm tsx src/mastra/evals/test-ner-workflow.ts` and debug any issues. Then evaluate output quality and compare against baseline extraction."

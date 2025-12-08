@@ -27,7 +27,7 @@ import type { DistributiveOmit } from "@local/advanced-types/distribute";
 import { typedEntries } from "@local/advanced-types/typed-entries";
 import { blockProtocolEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 
-import { generateSimplifiedTypeId } from "../infer-entities/shared/generate-simplified-type-id.js";
+import { generateSimplifiedTypeId } from "./generate-simplified-type-id.js";
 
 type MinimalDataType = DistributiveOmit<DataType, "$schema" | "kind" | "allOf">;
 
