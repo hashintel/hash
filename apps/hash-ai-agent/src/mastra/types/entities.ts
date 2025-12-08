@@ -7,7 +7,7 @@
  * - /libs/@local/hash-isomorphic-utils/src/flows/types.ts (ProposedEntity)
  */
 
-import { z } from 'zod';
+import { z } from "zod";
 
 /**
  * Source provenance tracking for entity data
@@ -69,8 +69,8 @@ export type Claim = z.infer<typeof ClaimSchema>;
 export const claimTextualContent = (claim: Claim): string =>
   `${claim.text}${
     claim.prepositionalPhrases.length
-      ? `– ${claim.prepositionalPhrases.join(', ')}`
-      : ''
+      ? `– ${claim.prepositionalPhrases.join(", ")}`
+      : ""
   }`;
 
 /**
@@ -81,11 +81,13 @@ export const PropertyMetadataSchema = z.object({
     z.object({
       metadata: z.object({
         dataTypeId: z.string().nullable().optional(),
-        provenance: z.object({
-          sources: z.array(SourceProvenanceSchema),
-        }).optional(),
+        provenance: z
+          .object({
+            sources: z.array(SourceProvenanceSchema),
+          })
+          .optional(),
       }),
-    })
+    }),
   ),
 });
 
@@ -97,30 +99,34 @@ export type PropertyMetadata = z.infer<typeof PropertyMetadataSchema>;
  */
 export const LocalOrExistingEntityIdSchema = z.union([
   z.object({
-    kind: z.literal('proposed-entity'),
+    kind: z.literal("proposed-entity"),
     localId: z.string(),
   }),
   z.object({
-    kind: z.literal('existing-entity'),
+    kind: z.literal("existing-entity"),
     entityId: z.string(),
   }),
 ]);
 
-export type LocalOrExistingEntityId = z.infer<typeof LocalOrExistingEntityIdSchema>;
+export type LocalOrExistingEntityId = z.infer<
+  typeof LocalOrExistingEntityIdSchema
+>;
 
 /**
  * Entity edition provenance
  */
 export const ProvidedEntityEditionProvenanceSchema = z.object({
-  actorType: z.enum(['ai', 'human', 'machine']),
+  actorType: z.enum(["ai", "human", "machine"]),
   origin: z.object({
-    type: z.enum(['flow', 'api', 'migration']),
+    type: z.enum(["flow", "api", "migration"]),
     id: z.string().optional(),
   }),
   sources: z.array(SourceProvenanceSchema).optional(),
 });
 
-export type ProvidedEntityEditionProvenance = z.infer<typeof ProvidedEntityEditionProvenanceSchema>;
+export type ProvidedEntityEditionProvenance = z.infer<
+  typeof ProvidedEntityEditionProvenanceSchema
+>;
 
 /**
  * Proposed Entity (Step 3: Full Entity with Properties)
@@ -156,13 +162,17 @@ export const ProposedEntityWithResolvedLinksSchema = ProposedEntitySchema.omit({
   sourceEntityId: true,
   targetEntityId: true,
 }).extend({
-  linkData: z.object({
-    leftEntityId: z.string(),
-    rightEntityId: z.string(),
-  }).optional(),
+  linkData: z
+    .object({
+      leftEntityId: z.string(),
+      rightEntityId: z.string(),
+    })
+    .optional(),
 });
 
-export type ProposedEntityWithResolvedLinks = z.infer<typeof ProposedEntityWithResolvedLinksSchema>;
+export type ProposedEntityWithResolvedLinks = z.infer<
+  typeof ProposedEntityWithResolvedLinksSchema
+>;
 
 /**
  * Persisted entity result
@@ -170,7 +180,7 @@ export type ProposedEntityWithResolvedLinks = z.infer<typeof ProposedEntityWithR
 export const PersistedEntitySchema = z.object({
   entity: z.unknown().optional(), // SerializedEntity from hash-graph-sdk
   existingEntity: z.unknown().optional(), // SerializedEntity
-  operation: z.enum(['create', 'update', 'already-exists-as-proposed']),
+  operation: z.enum(["create", "update", "already-exists-as-proposed"]),
 });
 
 export type PersistedEntity = z.infer<typeof PersistedEntitySchema>;
@@ -180,7 +190,9 @@ export type PersistedEntity = z.infer<typeof PersistedEntitySchema>;
  */
 export const FailedEntityProposalSchema = z.object({
   existingEntity: z.unknown().optional(),
-  operation: z.enum(['create', 'update', 'already-exists-as-proposed']).optional(),
+  operation: z
+    .enum(["create", "update", "already-exists-as-proposed"])
+    .optional(),
   proposedEntity: ProposedEntityWithResolvedLinksSchema,
   message: z.string(),
 });

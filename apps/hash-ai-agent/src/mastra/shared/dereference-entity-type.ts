@@ -467,7 +467,7 @@ export const dereferenceEntityType = <
     }
   }
 
-  const entityType = entityTypeWithAncestors[0]!;
+  const entityType = entityTypeWithAncestors[0];
   if (entityType.schema.$id !== entityTypeId) {
     throw new Error(
       `Expected the entity type with id ${entityTypeId} in the first position in the entityTypeWithAncestors array, got ${entityType.schema.$id}.`,

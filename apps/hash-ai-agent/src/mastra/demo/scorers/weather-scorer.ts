@@ -1,7 +1,6 @@
-import { z } from 'zod';
-import { createToolCallAccuracyScorerCode } from '@mastra/evals/scorers/prebuilt';
-import { createCompletenessScorer } from '@mastra/evals/scorers/prebuilt';
 import { createScorer } from '@mastra/core/evals';
+import { createCompletenessScorer,createToolCallAccuracyScorerCode  } from '@mastra/evals/scorers/prebuilt';
+import { z } from 'zod';
 
 export const toolCallAppropriatenessScorer = createToolCallAccuracyScorerCode({
   expectedTool: 'weatherTool',
@@ -63,8 +62,8 @@ export const translationScorer = createScorer({
   })
   .generateScore(({ results }) => {
     const r = (results as any)?.analyzeStepResult || {};
-    if (!r.nonEnglish) return 1; // If not applicable, full credit
-    if (r.translated) return Math.max(0, Math.min(1, 0.7 + 0.3 * (r.confidence ?? 1)));
+    if (!r.nonEnglish) {return 1;} // If not applicable, full credit
+    if (r.translated) {return Math.max(0, Math.min(1, 0.7 + 0.3 * (r.confidence ?? 1)));}
     return 0; // Non-English but not translated
   })
   .generateReason(({ results, score }) => {

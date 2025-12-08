@@ -10,40 +10,9 @@
  * This is a baseline agent for Phase 1 evaluation.
  */
 
-import { Agent } from '@mastra/core/agent';
-import { createTool } from '@mastra/core/tools';
-import { z } from 'zod';
+import { Agent } from "@mastra/core/agent";
 
-/**
- * Tool for agent to report discovered entity summaries
- */
-export const registerEntitySummariesTool = createTool({
-  id: 'register-entity-summaries',
-  description: 'Register entity summaries for all entities relevant to the research goal.',
-  inputSchema: z.object({
-    entitySummaries: z.array(
-      z.object({
-        name: z.string().describe('The name of the entity'),
-        summary: z.string().describe('The summary of the entity'),
-        type: z.string().describe(
-          'The type of entity – either the entityTypeId of a type provided to you, or the name of a new type you suggest'
-        ),
-      })
-    ),
-  }),
-  outputSchema: z.object({
-    registered: z.boolean(),
-    count: z.number(),
-  }),
-  execute: async ({ entitySummaries }) => {
-    // Tool execution is handled by the workflow step
-    // This tool just provides the schema for the agent to call
-    return {
-      registered: true,
-      count: entitySummaries.length,
-    };
-  },
-});
+import { registerEntitySummariesTool } from "../tools/register-entity-summaries";
 
 /**
  * Entity Summary Extraction Agent
@@ -54,8 +23,8 @@ export const registerEntitySummariesTool = createTool({
  * 3. Provide brief summaries
  */
 export const entitySummaryAgent = new Agent({
-  id: 'entity-summary-agent',
-  name: 'Entity Summary Agent',
+  id: "entity-summary-agent",
+  name: "Entity Summary Agent",
   instructions: `You are an entity recognizing specialist, working as part of a research team.
 You identify all the entities relevant to a research goal mentioned in content provided to you, and provide a summary and type for each.
 The entities you recognize will be taken as the authoritative list of relevant entities present in the text, and you therefore focus on accuracy and completeness.
@@ -98,7 +67,7 @@ Use the registerEntitySummaries tool like this:
     }
   ]
 }`,
-  model: 'openrouter/google/gemini-2.0-flash-exp:free',
+  model: "openrouter/google/gemini-2.5-flash-lite",
   tools: {
     registerEntitySummaries: registerEntitySummariesTool,
   },

@@ -16,10 +16,11 @@
  *   - Identifying wrong-type entities (correct name, wrong classification)
  */
 
-import { createScorer } from '@mastra/evals';
-import { z } from 'zod';
-import type { NERTestCase } from '../evals/test-data/ner-test-cases';
-import { calculateNERScore } from '../evals/test-data/ner-test-cases';
+import { createScorer } from "@mastra/evals";
+import { z } from "zod";
+
+import type { NERTestCase } from "../evals/test-data/ner-test-cases";
+import { calculateNERScore } from "../evals/test-data/ner-test-cases";
 
 /**
  * Entity Recall Scorer
@@ -31,16 +32,19 @@ import { calculateNERScore } from '../evals/test-data/ner-test-cases';
  * 4. GenerateReason: Provide natural language explanation
  */
 export const entityRecallScorer = createScorer({
-  name: 'Entity Recall',
-  description: 'Measures percentage of expected entities found and accuracy of extraction',
-  type: 'agent',
+  name: "Entity Recall",
+  description:
+    "Measures percentage of expected entities found and accuracy of extraction",
+  type: "agent",
 })
   .preprocess(({ run }) => {
     // Extract entity names from the agent's output
     // Assumes the agent used registerEntitySummaries tool
     const toolCalls = run.output?.toolCalls ?? [];
     const registerCall = toolCalls.find(
-      (tc: any) => tc.name === 'register-entity-summaries' || tc.name === 'registerEntitySummaries'
+      (tc: any) =>
+        tc.name === "register-entity-summaries" ||
+        tc.name === "registerEntitySummaries",
     );
 
     const entitySummaries = registerCall?.input?.entitySummaries ?? [];
@@ -51,7 +55,7 @@ export const entityRecallScorer = createScorer({
     const testCase = run.metadata?.testCase as NERTestCase | undefined;
 
     if (!testCase) {
-      throw new Error('Test case not found in run metadata');
+      throw new Error("Test case not found in run metadata");
     }
 
     return {
@@ -60,14 +64,21 @@ export const entityRecallScorer = createScorer({
     };
   })
   .analyze({
-    description: 'Compare extracted entities against ground truth to identify matches and misses',
+    description:
+      "Compare extracted entities against ground truth to identify matches and misses",
     outputSchema: z.object({
-      foundGold: z.array(z.string()).describe('Gold entities that were found'),
-      missedGold: z.array(z.string()).describe('Gold entities that were missed'),
-      foundIrrelevant: z.array(z.string()).describe('Irrelevant entities incorrectly identified'),
-      foundWrongType: z.array(z.string()).describe('Entities with correct name but wrong type'),
-      totalExtracted: z.number().describe('Total number of entities extracted'),
-      totalGold: z.number().describe('Total number of gold entities'),
+      foundGold: z.array(z.string()).describe("Gold entities that were found"),
+      missedGold: z
+        .array(z.string())
+        .describe("Gold entities that were missed"),
+      foundIrrelevant: z
+        .array(z.string())
+        .describe("Irrelevant entities incorrectly identified"),
+      foundWrongType: z
+        .array(z.string())
+        .describe("Entities with correct name but wrong type"),
+      totalExtracted: z.number().describe("Total number of entities extracted"),
+      totalGold: z.number().describe("Total number of gold entities"),
     }),
     createPrompt: ({ results }) => {
       const { extractedEntityNames, testCase } = results.preprocessStepResult;
@@ -75,18 +86,18 @@ export const entityRecallScorer = createScorer({
       return `Compare the extracted entity names against the ground truth.
 
 EXTRACTED ENTITIES:
-${extractedEntityNames.join(', ')}
+${extractedEntityNames.join(", ")}
 
 GROUND TRUTH:
 
 Gold Entities (must find these):
-${testCase.goldEntities.map(e => e.name).join(', ')}
+${testCase.goldEntities.map((e) => e.name).join(", ")}
 
 Irrelevant Entities (should ignore these):
-${testCase.irrelevantEntities.map(e => e.name).join(', ')}
+${testCase.irrelevantEntities.map((e) => e.name).join(", ")}
 
 Wrong-Type Entities (correct name but wrong entity type):
-${testCase.wrongTypeEntities.map(e => e.name).join(', ')}
+${testCase.wrongTypeEntities.map((e) => e.name).join(", ")}
 
 Identify:
 1. Which gold entities were found vs. missed
@@ -106,13 +117,16 @@ Return the analysis in the specified schema.`;
   })
   .generateReason(({ results }) => {
     const { extractedEntityNames, testCase } = results.preprocessStepResult;
-    const { report, breakdown } = calculateNERScore(testCase, extractedEntityNames);
+    const { report, breakdown } = calculateNERScore(
+      testCase,
+      extractedEntityNames,
+    );
 
     return `${report}
 
 BREAKDOWN:
-- Found gold entities: ${breakdown.foundGold.join(', ') || 'none'}
-- Missed gold entities: ${breakdown.missedGold.join(', ') || 'none'}
-- Found irrelevant entities: ${breakdown.foundIrrelevant.join(', ') || 'none'}
-- Found wrong-type entities: ${breakdown.foundWrongType.join(', ') || 'none'}`;
+- Found gold entities: ${breakdown.foundGold.join(", ") || "none"}
+- Missed gold entities: ${breakdown.missedGold.join(", ") || "none"}
+- Found irrelevant entities: ${breakdown.foundIrrelevant.join(", ") || "none"}
+- Found wrong-type entities: ${breakdown.foundWrongType.join(", ") || "none"}`;
   });

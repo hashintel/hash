@@ -1,16 +1,18 @@
-import { Mastra } from '@mastra/core/mastra';
-import { PinoLogger } from '@mastra/loggers';
-import { LibSQLStore } from '@mastra/libsql';
-import { weatherWorkflow } from './workflows/weather-workflow';
-import { weatherAgent } from './agents/weather-agent';
-import { financialAgent } from './agents/financial-agent';
-import { entitySummaryAgent } from './agents/entity-summary-agent';
+/* eslint-disable canonical/filename-no-index */
+import { Mastra } from "@mastra/core/mastra";
+import { LibSQLStore } from "@mastra/libsql";
+import { PinoLogger } from "@mastra/loggers";
+
+import { entitySummaryAgent } from "./agents/entity-summary-agent";
+import { financialAgent } from "./demo/agents/financial-agent";
+import { weatherAgent } from "./demo/agents/weather-agent";
 import {
-  toolCallAppropriatenessScorer,
   completenessScorer,
+  toolCallAppropriatenessScorer,
   translationScorer,
-} from './scorers/weather-scorer';
-import { entityRecallScorer } from './scorers/entity-recall-scorer';
+} from "./demo/scorers/weather-scorer";
+import { entityRecallScorer } from "./scorers/entity-recall-scorer";
+import { weatherWorkflow } from "./workflows/weather-workflow";
 
 export const mastra = new Mastra({
   workflows: { weatherWorkflow },
@@ -22,12 +24,12 @@ export const mastra = new Mastra({
     entityRecallScorer,
   },
   storage: new LibSQLStore({
-    id: 'mastra-memory-id',
-    url: ':memory:',
+    id: "mastra-memory-id",
+    url: ":memory:",
   }),
   logger: new PinoLogger({
-    name: 'Mastra',
-    level: 'info',
+    name: "Mastra",
+    level: "info",
   }),
   // telemetry: {
   //   // Telemetry is deprecated and will be removed in the Nov 4th release

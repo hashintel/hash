@@ -1,23 +1,23 @@
-import { Agent } from '@mastra/core/agent';
-import { Memory } from '@mastra/memory';
-import { LibSQLStore, LibSQLVector } from '@mastra/libsql';
+import { createOpenAI } from "@ai-sdk/openai";
+import { Agent } from "@mastra/core/agent";
 // Memory processors for optimizing token usage
-import { TokenLimiter } from '@mastra/core/processors';
-import { getTransactionsTool } from '../tools/get-transactions-tool';
-import { mcpTools } from './mcp-config';
+import { TokenLimiter } from "@mastra/core/processors";
+import { LibSQLStore, LibSQLVector } from "@mastra/libsql";
+import { Memory } from "@mastra/memory";
 
-import { createOpenAI } from '@ai-sdk/openai';
+import { mcpTools } from "../mcp";
+import { getTransactionsTool } from "../tools/get-transactions-tool";
 
 const openRouterOpenAI = createOpenAI({
   apiKey: process.env.OPENROUTER_API_KEY!,
-  baseURL: 'https://openrouter.ai/api/v1',
+  baseURL: "https://openrouter.ai/api/v1",
 });
 
-const embedder = openRouterOpenAI.embedding('google/gemini-embedding-001');
+const embedder = openRouterOpenAI.embedding("google/gemini-embedding-001");
 
 export const financialAgent = new Agent({
-  id: 'financial-agent-id',
-  name: 'Financial Assistant Agent',
+  id: "financial-agent-id",
+  name: "Financial Assistant Agent",
   instructions: `
 
 ROLE DEFINITION
@@ -53,18 +53,18 @@ TOOLS
 - For multi-step tasks (like composing emails with transaction data), use the appropriate tools in sequence to complete the entire request.
 
 `,
-  model: 'openrouter/google/gemini-2.5-flash-lite',
+  model: "openrouter/google/gemini-2.5-flash-lite",
   tools: { getTransactionsTool, ...mcpTools }, // Add MCP tools to your agent
   memory: new Memory({
     // Storage adapter for persisting memory data
     storage: new LibSQLStore({
-      id: 'financial-agent-memory-id',
-      url: 'file:../financial-memory.db', // path is relative to the .mastra/output directory
+      id: "financial-agent-memory-id",
+      url: "file:../financial-memory.db", // path is relative to the .mastra/output directory
     }),
     // Vector store for semantic recall (enables RAG-based memory search)
     vector: new LibSQLVector({
-      id: 'financial-agent-vector-id',
-      connectionUrl: 'file:../financial-memory.db', // Can use same DB or separate
+      id: "financial-agent-vector-id",
+      connectionUrl: "file:../financial-memory.db", // Can use same DB or separate
     }),
     // Embedder for converting messages to vectors (using OpenRouter-compatible model string)
     // Note: Using Google embedding model which works well with OpenRouter
@@ -78,13 +78,13 @@ TOOLS
       semanticRecall: {
         topK: 5, // Retrieve 5 most semantically similar messages
         messageRange: { before: 2, after: 2 }, // Include 2 messages before and after each match
-        scope: 'resource', // 'thread' (current conversation only) or 'resource' (all user conversations)
+        scope: "resource", // 'thread' (current conversation only) or 'resource' (all user conversations)
       },
 
       // 3. WORKING MEMORY: Persistent user information across conversations
       workingMemory: {
         enabled: true,
-        scope: 'resource', // 'thread' (per conversation) or 'resource' (across all conversations)
+        scope: "resource", // 'thread' (per conversation) or 'resource' (across all conversations)
         template: `# User Financial Profile
 
 ## Personal Information

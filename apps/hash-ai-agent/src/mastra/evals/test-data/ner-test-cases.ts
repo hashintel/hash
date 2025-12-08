@@ -37,12 +37,12 @@ export const nerTestCases: NERTestCase[] = [
   {
     name: "AI companies from tech news",
     entityType: {
-      $id: 'https://hash.ai/@h/types/entity-type/company/v/1',
-      title: 'Company',
+      $id: "https://hash.ai/@h/types/entity-type/company/v/1",
+      title: "Company",
       description:
-        'A legal entity representing an association of people with a specific objective.',
+        "A legal entity representing an association of people with a specific objective.",
     },
-    relevantEntitiesPrompt: 'AI companies',
+    relevantEntitiesPrompt: "AI companies",
     context: `Elon Musk drops lawsuit after OpenAI published his emails
 
 Lawyers for Elon Musk on Tuesday moved to dismiss the billionaire's lawsuit against OpenAI and CEO Sam Altman, ending a months-long legal battle between co-founders of the artificial intelligence startup.
@@ -62,54 +62,54 @@ After days of uncertainty and an intervention by Microsoft, a major investor in 
 More recently, multiple high-profile OpenAI safety leaders exited the company, with several publicly claiming the company had prioritized quickly rolling out new products over safety.`,
     goldEntities: [
       {
-        name: 'OpenAI',
+        name: "OpenAI",
         description:
-          'Artificial Intelligence startup co-founded by Elon Musk, involved in a lawsuit with Musk over its profit-driven direction.',
+          "Artificial Intelligence startup co-founded by Elon Musk, involved in a lawsuit with Musk over its profit-driven direction.",
       },
       {
-        name: 'Tesla',
+        name: "Tesla",
         description:
-          'Company founded by Elon Musk, which Musk wanted to integrate with OpenAI.',
+          "Company founded by Elon Musk, which Musk wanted to integrate with OpenAI.",
       },
       {
-        name: 'Microsoft',
+        name: "Microsoft",
         description:
-          'Major investor in OpenAI, involved in resolving a leadership crisis within the company.',
+          "Major investor in OpenAI, involved in resolving a leadership crisis within the company.",
       },
       {
-        name: 'Apple',
+        name: "Apple",
         description:
-          'Company partnered with OpenAI to integrate ChatGPT with Siri.',
+          "Company partnered with OpenAI to integrate ChatGPT with Siri.",
       },
     ],
     irrelevantEntities: [],
     wrongTypeEntities: [
       {
-        name: 'Elon Musk',
+        name: "Elon Musk",
         description:
-          'CEO and entrepreneur involved in the lawsuit against OpenAI.',
+          "CEO and entrepreneur involved in the lawsuit against OpenAI.",
       },
       {
-        name: 'Sam Altman',
+        name: "Sam Altman",
         description:
-          'CEO of OpenAI, involved in the legal dispute with Elon Musk.',
+          "CEO of OpenAI, involved in the legal dispute with Elon Musk.",
       },
       {
-        name: 'Greg Brockman',
+        name: "Greg Brockman",
         description:
-          'Co-founder and president of OpenAI, mentioned in Elon Musk lawsuit.',
+          "Co-founder and president of OpenAI, mentioned in Elon Musk lawsuit.",
       },
     ],
   },
   {
-    name: 'People from AI research context',
+    name: "People from AI research context",
     entityType: {
-      $id: 'https://hash.ai/@h/types/entity-type/person/v/1',
-      title: 'Person',
-      description: 'A human person',
+      $id: "https://hash.ai/@h/types/entity-type/person/v/1",
+      title: "Person",
+      description: "A human person",
     },
     relevantEntitiesPrompt:
-      'People who are researchers, executives, or key figures in AI companies',
+      "People who are researchers, executives, or key figures in AI companies",
     context: `The rise of large language models has been driven by several key figures in the AI industry.
 
 Geoffrey Hinton, often called the "godfather of AI," recently left Google to speak more freely about AI risks. His pioneering work on neural networks laid the foundation for modern deep learning.
@@ -123,69 +123,70 @@ Yann LeCun serves as Chief AI Scientist at Meta, where he advocates for open-sou
 Anthropic, founded by former OpenAI researchers Dario Amodei and Daniela Amodei, focuses on AI safety. Their Claude model emphasizes helpful, harmless, and honest AI.`,
     goldEntities: [
       {
-        name: 'Geoffrey Hinton',
+        name: "Geoffrey Hinton",
         description:
           'AI researcher known as the "godfather of AI," pioneered neural networks, recently left Google.',
       },
       {
-        name: 'Sam Altman',
-        description: 'CEO of OpenAI, leads development of GPT-4 and ChatGPT.',
+        name: "Sam Altman",
+        description: "CEO of OpenAI, leads development of GPT-4 and ChatGPT.",
       },
       {
-        name: 'Demis Hassabis',
-        description: 'Co-founder of DeepMind (acquired by Google), led AlphaGo development.',
-      },
-      {
-        name: 'Yann LeCun',
+        name: "Demis Hassabis",
         description:
-          'Chief AI Scientist at Meta, known for convolutional neural networks.',
+          "Co-founder of DeepMind (acquired by Google), led AlphaGo development.",
       },
       {
-        name: 'Dario Amodei',
-        description: 'Co-founder of Anthropic, former OpenAI researcher.',
+        name: "Yann LeCun",
+        description:
+          "Chief AI Scientist at Meta, known for convolutional neural networks.",
       },
       {
-        name: 'Daniela Amodei',
-        description: 'Co-founder of Anthropic, former OpenAI researcher.',
+        name: "Dario Amodei",
+        description: "Co-founder of Anthropic, former OpenAI researcher.",
       },
       {
-        name: 'Lee Sedol',
-        description: 'World Go champion defeated by AlphaGo in 2016.',
+        name: "Daniela Amodei",
+        description: "Co-founder of Anthropic, former OpenAI researcher.",
+      },
+      {
+        name: "Lee Sedol",
+        description: "World Go champion defeated by AlphaGo in 2016.",
       },
     ],
     irrelevantEntities: [],
     wrongTypeEntities: [
       {
-        name: 'Google',
-        description: 'Company where Geoffrey Hinton worked, acquired DeepMind.',
+        name: "Google",
+        description: "Company where Geoffrey Hinton worked, acquired DeepMind.",
       },
       {
-        name: 'OpenAI',
-        description: 'AI company led by Sam Altman.',
+        name: "OpenAI",
+        description: "AI company led by Sam Altman.",
       },
       {
-        name: 'DeepMind',
-        description: 'AI research company co-founded by Demis Hassabis.',
+        name: "DeepMind",
+        description: "AI research company co-founded by Demis Hassabis.",
       },
       {
-        name: 'Meta',
-        description: 'Company where Yann LeCun serves as Chief AI Scientist.',
+        name: "Meta",
+        description: "Company where Yann LeCun serves as Chief AI Scientist.",
       },
       {
-        name: 'Anthropic',
-        description: 'AI safety company founded by Dario and Daniela Amodei.',
+        name: "Anthropic",
+        description: "AI safety company founded by Dario and Daniela Amodei.",
       },
     ],
   },
   {
-    name: 'Organizations from funding announcement',
+    name: "Organizations from funding announcement",
     entityType: {
-      $id: 'https://hash.ai/@h/types/entity-type/organization/v/1',
-      title: 'Organization',
-      description: 'An organized group of people with a particular purpose',
+      $id: "https://hash.ai/@h/types/entity-type/organization/v/1",
+      title: "Organization",
+      description: "An organized group of people with a particular purpose",
     },
     relevantEntitiesPrompt:
-      'Organizations involved in AI funding, investment, or regulation',
+      "Organizations involved in AI funding, investment, or regulation",
     context: `The National Science Foundation announced $140 million in funding for seven new AI research institutes across the United States.
 
 The institutes will be led by universities including MIT, Carnegie Mellon University, and Stanford University. Each institute will partner with industry leaders and government agencies.
@@ -197,59 +198,63 @@ The European Union has also taken action, with the European Commission proposing
 In the private sector, venture capital firms like Sequoia Capital and Andreessen Horowitz have invested billions in AI startups. Y Combinator has accelerated dozens of AI companies through its program.`,
     goldEntities: [
       {
-        name: 'National Science Foundation',
-        description: 'US agency providing $140M in funding for AI research institutes.',
-      },
-      {
-        name: 'MIT',
-        description: 'University leading one of the new AI research institutes.',
-      },
-      {
-        name: 'Carnegie Mellon University',
-        description: 'University leading one of the new AI research institutes.',
-      },
-      {
-        name: 'Stanford University',
-        description: 'University leading one of the new AI research institutes.',
-      },
-      {
-        name: 'DARPA',
+        name: "National Science Foundation",
         description:
-          'Defense Advanced Research Projects Agency, collaborating on AI safety.',
+          "US agency providing $140M in funding for AI research institutes.",
       },
       {
-        name: 'European Commission',
-        description: 'EU body proposing comprehensive AI regulations.',
+        name: "MIT",
+        description:
+          "University leading one of the new AI research institutes.",
       },
       {
-        name: 'UNESCO',
-        description: 'Provided input on ethical AI development.',
+        name: "Carnegie Mellon University",
+        description:
+          "University leading one of the new AI research institutes.",
       },
       {
-        name: 'Sequoia Capital',
-        description: 'Venture capital firm investing billions in AI startups.',
+        name: "Stanford University",
+        description:
+          "University leading one of the new AI research institutes.",
       },
       {
-        name: 'Andreessen Horowitz',
-        description: 'Venture capital firm investing billions in AI startups.',
+        name: "DARPA",
+        description:
+          "Defense Advanced Research Projects Agency, collaborating on AI safety.",
       },
       {
-        name: 'Y Combinator',
-        description: 'Startup accelerator for AI companies.',
+        name: "European Commission",
+        description: "EU body proposing comprehensive AI regulations.",
+      },
+      {
+        name: "UNESCO",
+        description: "Provided input on ethical AI development.",
+      },
+      {
+        name: "Sequoia Capital",
+        description: "Venture capital firm investing billions in AI startups.",
+      },
+      {
+        name: "Andreessen Horowitz",
+        description: "Venture capital firm investing billions in AI startups.",
+      },
+      {
+        name: "Y Combinator",
+        description: "Startup accelerator for AI companies.",
       },
     ],
     irrelevantEntities: [],
     wrongTypeEntities: [],
   },
   {
-    name: 'Misleading prompt - seeking people but context has companies',
+    name: "Misleading prompt - seeking people but context has companies",
     entityType: {
-      $id: 'https://hash.ai/@h/types/entity-type/person/v/1',
-      title: 'Person',
-      description: 'A human person',
+      $id: "https://hash.ai/@h/types/entity-type/person/v/1",
+      title: "Person",
+      description: "A human person",
     },
     relevantEntitiesPrompt:
-      'People working on large language models and AI research',
+      "People working on large language models and AI research",
     context: `Major tech companies are racing to develop the most powerful large language models.
 
 OpenAI's GPT-4 and GPT-3.5 have set benchmarks for language generation capabilities. The company's ChatGPT product has attracted millions of users worldwide.
@@ -266,23 +271,26 @@ Microsoft, through its partnership with OpenAI, has integrated GPT models into i
     goldEntities: [],
     irrelevantEntities: [],
     wrongTypeEntities: [
-      { name: 'OpenAI', description: 'Developer of GPT-4 and ChatGPT' },
-      { name: 'Google', description: 'Developer of Gemini and PaLM models' },
-      { name: 'Anthropic', description: 'Developer of Claude' },
-      { name: 'Meta', description: 'Developer of Llama 2' },
-      { name: 'Cohere', description: 'Provider of enterprise language models' },
-      { name: 'Microsoft', description: 'Partner of OpenAI, integrating GPT models' },
+      { name: "OpenAI", description: "Developer of GPT-4 and ChatGPT" },
+      { name: "Google", description: "Developer of Gemini and PaLM models" },
+      { name: "Anthropic", description: "Developer of Claude" },
+      { name: "Meta", description: "Developer of Llama 2" },
+      { name: "Cohere", description: "Provider of enterprise language models" },
+      {
+        name: "Microsoft",
+        description: "Partner of OpenAI, integrating GPT models",
+      },
     ],
   },
   {
-    name: 'Complex entity disambiguation - similar names',
+    name: "Complex entity disambiguation - similar names",
     entityType: {
-      $id: 'https://hash.ai/@h/types/entity-type/company/v/1',
-      title: 'Company',
+      $id: "https://hash.ai/@h/types/entity-type/company/v/1",
+      title: "Company",
       description:
-        'A legal entity representing an association of people with a specific objective.',
+        "A legal entity representing an association of people with a specific objective.",
     },
-    relevantEntitiesPrompt: 'Technology companies',
+    relevantEntitiesPrompt: "Technology companies",
     context: `Nintendo of America announced strong sales for the Nintendo Switch console in North America. The subsidiary, based in Redmond, Washington, reported that the Switch has outsold previous Nintendo consoles in the region.
 
 Meanwhile, Nintendo Co., Ltd., the parent company headquartered in Kyoto, Japan, revealed global financial results showing revenue growth across all markets.
@@ -292,23 +300,22 @@ Nintendo of Europe, another regional subsidiary, confirmed similar trends in Eur
 The success comes as Meta Platforms continues to invest in VR gaming through its Meta Quest devices, competing in the gaming hardware space.`,
     goldEntities: [
       {
-        name: 'Nintendo of America',
+        name: "Nintendo of America",
         description:
-          'Regional subsidiary of Nintendo based in Redmond, Washington, handling North American operations.',
+          "Regional subsidiary of Nintendo based in Redmond, Washington, handling North American operations.",
       },
       {
-        name: 'Nintendo Co., Ltd.',
+        name: "Nintendo Co., Ltd.",
         description:
-          'Parent company headquartered in Kyoto, Japan, global gaming company.',
+          "Parent company headquartered in Kyoto, Japan, global gaming company.",
       },
       {
-        name: 'Nintendo of Europe',
-        description:
-          'Regional subsidiary handling European market operations.',
+        name: "Nintendo of Europe",
+        description: "Regional subsidiary handling European market operations.",
       },
       {
-        name: 'Meta Platforms',
-        description: 'Company investing in VR gaming with Meta Quest devices.',
+        name: "Meta Platforms",
+        description: "Company investing in VR gaming with Meta Quest devices.",
       },
     ],
     irrelevantEntities: [],
@@ -328,9 +335,15 @@ export const evaluationWeights = {
    * - If all three categories: 0.5
    */
   missingGoldEntities: (hasWrongType: boolean, hasIrrelevant: boolean) => {
-    if (hasWrongType && hasIrrelevant) return 0.5;
-    if (hasWrongType) return 0.7;
-    if (hasIrrelevant) return 0.8;
+    if (hasWrongType && hasIrrelevant) {
+      return 0.5;
+    }
+    if (hasWrongType) {
+      return 0.7;
+    }
+    if (hasIrrelevant) {
+      return 0.8;
+    }
     return 1.0;
   },
 
@@ -343,10 +356,8 @@ export const evaluationWeights = {
    * Penalty multiplier for wrong-type entities
    * Calculated as: 1 - missingWeight - irrelevantWeight
    */
-  wrongTypeEntities: (
-    missingWeight: number,
-    irrelevantWeight: number
-  ) => 1 - missingWeight - irrelevantWeight,
+  wrongTypeEntities: (missingWeight: number, irrelevantWeight: number) =>
+    1 - missingWeight - irrelevantWeight,
 };
 
 /**
@@ -361,7 +372,7 @@ export const evaluationWeights = {
  */
 export function calculateNERScore(
   testCase: NERTestCase,
-  extractedEntityNames: string[]
+  extractedEntityNames: string[],
 ): {
   score: number;
   report: string;
@@ -394,7 +405,7 @@ export function calculateNERScore(
   if (hasGold) {
     const missingWeight = evaluationWeights.missingGoldEntities(
       hasWrongType,
-      hasIrrelevant
+      hasIrrelevant,
     );
     const missingPenalty = missingWeight * (missedGold.size / goldSet.size);
     score -= missingPenalty;
@@ -412,18 +423,19 @@ export function calculateNERScore(
   if (hasWrongType) {
     const missingWeight = evaluationWeights.missingGoldEntities(
       hasWrongType,
-      hasIrrelevant
+      hasIrrelevant,
     );
     const wrongTypeWeight = evaluationWeights.wrongTypeEntities(
       missingWeight,
-      evaluationWeights.irrelevantEntities
+      evaluationWeights.irrelevantEntities,
     );
     const wrongTypePenalty =
       wrongTypeWeight * (foundWrongType.size / wrongTypeSet.size);
     score -= wrongTypePenalty;
   }
 
-  const report = `Extracted ${extractedEntityNames.length} entities total. ` +
+  const report =
+    `Extracted ${extractedEntityNames.length} entities total. ` +
     `Found ${foundGold.size}/${goldSet.size} gold entities. ` +
     `Incorrectly identified ${foundWrongType.size} wrong-type entities. ` +
     `Incorrectly identified ${foundIrrelevant.size} irrelevant entities.`;

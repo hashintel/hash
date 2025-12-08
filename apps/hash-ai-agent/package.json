@@ -7,7 +7,10 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "dev": "mastra dev",
     "build": "mastra build",
-    "start": "mastra start"
+    "start": "mastra start",
+    "fix:eslint": "eslint --fix .",
+    "lint:eslint": "eslint --report-unused-disable-directives .",
+    "lint:tsc": "tsc --noEmit"
   },
   "keywords": [],
   "author": "",
@@ -18,18 +21,33 @@
     "node": ">=22.13.0"
   },
   "dependencies": {
-    "@mastra/core": "1.0.0-beta.6",
+    "@ai-sdk/openai": "2.0.80",
+    "@mastra/core": "1.0.0-beta.8",
     "@mastra/evals": "1.0.0-beta.2",
-    "@mastra/libsql": "1.0.0-beta.3",
-    "@mastra/loggers": "1.0.0-beta.1",
+    "@mastra/libsql": "1.0.0-beta.5",
+    "@mastra/loggers": "1.0.0-beta.3",
     "@mastra/mcp": "1.0.0-beta.5",
-    "@mastra/memory": "1.0.0-beta.3",
+    "@mastra/memory": "1.0.0-beta.4",
     "zod": "^4.1.13"
   },
   "devDependencies": {
-    "@smithery/sdk": "2.1.0",
-    "@types/node": "^24.10.1",
+    "@local/eslint": "0.0.0-private",
+    "@local/tsconfig": "0.0.0-private",
+    "@types/dedent": "0.7.2",
+    "@types/dotenv-flow": "3.3.3",
+    "@types/jsdom": "21.1.7",
+    "@types/lodash": "4.17.20",
+    "@types/md5": "2.3.6",
+    "@types/mime-types": "2.1.4",
+    "@types/node": "22.18.13",
+    "@types/papaparse": "5.3.16",
+    "@types/sanitize-html": "2.16.0",
+    "@vitest/coverage-istanbul": "3.2.4",
+    "eslint": "9.38.0",
     "mastra": "1.0.0-beta.5",
-    "typescript": "^5.9.3"
+    "rimraf": "6.1.2",
+    "typescript": "^5.9.3",
+    "vitest": "3.2.4",
+    "wait-on": "9.0.1"
   }
 }
