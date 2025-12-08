@@ -372,6 +372,7 @@ export const TransitionProperties: React.FC<TransitionPropertiesProps> = ({
             alignItems: "center",
             justifyContent: "space-between",
             marginBottom: 4,
+            height: 30,
           }}
         >
           <div
@@ -446,6 +447,11 @@ export const TransitionProperties: React.FC<TransitionPropertiesProps> = ({
             borderRadius: 4,
             overflow: "hidden",
             height: 340,
+            filter:
+              globalMode === "simulate"
+                ? "grayscale(20%) brightness(98%)"
+                : "none",
+            pointerEvents: globalMode === "simulate" ? "none" : "auto",
           }}
         >
           <MonacoEditor
@@ -486,6 +492,7 @@ export const TransitionProperties: React.FC<TransitionPropertiesProps> = ({
               justifyContent: "space-between",
               marginBottom: 4,
               marginTop: 20,
+              height: 30,
             }}
           >
             <div style={{ fontWeight: 500, fontSize: 13 }}>
@@ -590,6 +597,11 @@ export const TransitionProperties: React.FC<TransitionPropertiesProps> = ({
               borderRadius: 4,
               overflow: "hidden",
               height: 400,
+              filter:
+                globalMode === "simulate"
+                  ? "grayscale(20%) brightness(98%)"
+                  : "none",
+              pointerEvents: globalMode === "simulate" ? "none" : "auto",
             }}
           >
             <MonacoEditor
