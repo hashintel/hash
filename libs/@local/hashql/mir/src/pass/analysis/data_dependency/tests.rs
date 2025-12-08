@@ -7,18 +7,16 @@ use hashql_hir::node::operation::InputOp;
 use insta::{Settings, assert_snapshot};
 
 use super::DataDependencyAnalysis;
-use crate::{body::Body, context::MirContext, pass::Pass as _, scaffold};
+use crate::{body::Body, context::MirContext, pass::AnalysisPass as _, scaffold};
 
 #[track_caller]
 fn assert_data_dependency<'heap>(
     name: &'static str,
-    body: Body<'heap>,
+    body: &Body<'heap>,
     context: &mut MirContext<'_, 'heap>,
 ) {
-    let mut body = body;
-
     let mut analysis = DataDependencyAnalysis::new();
-    analysis.run(context, &mut body);
+    analysis.run(context, body);
     let graph = analysis.finish();
     let transient = graph.transient(context.interner);
 
@@ -63,7 +61,7 @@ fn load_simple() {
 
     assert_data_dependency(
         "load_simple",
-        body,
+        &body,
         &mut MirContext {
             heap: &heap,
             env: &env,
@@ -108,7 +106,7 @@ fn load_chain() {
 
     assert_data_dependency(
         "load_chain",
-        body,
+        &body,
         &mut MirContext {
             heap: &heap,
             env: &env,
@@ -156,7 +154,7 @@ fn load_with_projection() {
 
     assert_data_dependency(
         "load_with_projection",
-        body,
+        &body,
         &mut MirContext {
             heap: &heap,
             env: &env,
@@ -211,7 +209,7 @@ fn load_then_projection() {
 
     assert_data_dependency(
         "load_then_projection",
-        body,
+        &body,
         &mut MirContext {
             heap: &heap,
             env: &env,

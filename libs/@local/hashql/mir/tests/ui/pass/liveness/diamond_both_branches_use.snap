@@ -1,0 +1,39 @@
+---
+source: libs/@local/hashql/mir/src/pass/analysis/dataflow/liveness/tests.rs
+expression: "format!(\"{}\\n\\n========\\n\\n{}\", format_body(env, body),\nformat_liveness(body, &results))"
+---
+fn {intrinsic#4294967040}() -> Integer {
+    let %0: Integer
+    let %1: Integer
+    let %2: Integer
+    let %3: Integer
+
+    bb0(): {
+        %0 = 5
+
+        switchInt(%0) -> [0: bb2(), 1: bb1()]
+    }
+
+    bb1(): {
+        %1 = %0
+
+        goto -> bb3(%1)
+    }
+
+    bb2(): {
+        %2 = %0
+
+        goto -> bb3(%2)
+    }
+
+    bb3(%3): {
+        return %3
+    }
+}
+
+========
+
+bb0: {} -> {%0}
+bb1: {%0} -> {}
+bb2: {%0} -> {}
+bb3: {} -> {}

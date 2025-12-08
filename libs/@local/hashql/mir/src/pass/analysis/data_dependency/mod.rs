@@ -54,7 +54,7 @@ use crate::{
     },
     context::MirContext,
     intern::Interner,
-    pass::Pass,
+    pass::AnalysisPass,
     visit::Visitor,
 };
 
@@ -427,8 +427,8 @@ impl Default for DataDependencyAnalysis<'_> {
     }
 }
 
-impl<'env, 'heap, A: Allocator> Pass<'env, 'heap> for DataDependencyAnalysis<'heap, A> {
-    fn run(&mut self, context: &mut MirContext<'env, 'heap>, body: &mut Body<'heap>) {
+impl<'env, 'heap, A: Allocator> AnalysisPass<'env, 'heap> for DataDependencyAnalysis<'heap, A> {
+    fn run(&mut self, context: &mut MirContext<'env, 'heap>, body: &Body<'heap>) {
         self.graph.derive(&body.local_decls, |id, _| id);
 
         let Ok(()) = DataDependencyAnalysisVisitor {

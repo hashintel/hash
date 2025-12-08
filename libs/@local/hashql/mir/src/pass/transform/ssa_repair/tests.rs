@@ -13,7 +13,7 @@ use crate::{
     context::MirContext,
     def::DefIdSlice,
     op,
-    pass::{Pass as _, transform::ssa_repair::SsaRepair},
+    pass::{TransformPass as _, transform::ssa_repair::SsaRepair},
     pretty::TextFormat,
     scaffold,
 };

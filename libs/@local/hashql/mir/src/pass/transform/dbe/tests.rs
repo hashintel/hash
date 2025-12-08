@@ -10,7 +10,8 @@ use insta::{Settings, assert_snapshot};
 
 use super::DeadBlockElimination;
 use crate::{
-    body::Body, context::MirContext, def::DefIdSlice, pass::Pass as _, pretty::TextFormat, scaffold,
+    body::Body, context::MirContext, def::DefIdSlice, pass::TransformPass as _, pretty::TextFormat,
+    scaffold,
 };
 
 #[track_caller]

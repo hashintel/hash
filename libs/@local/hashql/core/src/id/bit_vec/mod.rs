@@ -1253,6 +1253,16 @@ impl<T: Id> MixedBitSet<T> {
 
     #[inline]
     #[must_use]
+    pub fn new_filled(domain_size: usize) -> Self {
+        if domain_size <= CHUNK_BITS {
+            Self::Small(DenseBitSet::new_filled(domain_size))
+        } else {
+            Self::Large(ChunkedBitSet::new_filled(domain_size))
+        }
+    }
+
+    #[inline]
+    #[must_use]
     pub fn is_empty(&self) -> bool {
         match self {
             Self::Small(set) => set.is_empty(),
