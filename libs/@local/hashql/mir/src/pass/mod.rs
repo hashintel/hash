@@ -80,7 +80,7 @@ const fn simplify_type_name(name: &'static str) -> &'static str {
 /// The [`name`] method provides a default implementation that extracts the type name for logging
 /// and debugging purposes. Override it if you need a custom name.
 ///
-/// [`name`]: Pass::name
+/// [`name`]: TransformPass::name
 pub trait TransformPass<'env, 'heap> {
     /// Executes the pass on the given `body`.
     ///
