@@ -49,21 +49,23 @@ env:
   HASH_TEMPORAL_ECS_CLUSTER_NAME: h-temporal-prod-usea1-ecs
   HASH_TEMPORAL_SERVICE_NAME: h-temporal-prod-usea1-svc
 
-  STAGING_DEPLOY_ROLE_ARN: arn:aws:iam::054238437032:role/h-stage-euc1-terraform-apply
   STAGING_AWS_REGION: eu-central-1
   STAGING_APP_CLUSTER_NAME: h-stage-euc1-app
+  STAGING_APP_DEPLOY_ROLE_ARN: arn:aws:iam::054238437032:role/h-stage-euc1-app-deploy
   STAGING_APP_GRAPH_SERVICE_NAME: h-stage-euc1-app-graph
   STAGING_APP_TYPE_FETCHER_SERVICE_NAME: h-stage-euc1-app-type-fetcher
   STAGING_AUTH_CLUSTER_NAME: h-stage-euc1-auth
+  STAGING_AUTH_DEPLOY_ROLE_ARN: arn:aws:iam::054238437032:role/h-stage-euc1-auth-deploy
   STAGING_AUTH_KRATOS_SERVICE_NAME: h-stage-euc1-auth-kratos
   STAGING_AUTH_HYDRA_SERVICE_NAME: h-stage-euc1-auth-hydra
 
-  PRODUCTION_DEPLOY_ROLE_ARN: arn:aws:iam::597482567121:role/h-prod-euc1-terraform-apply
   PRODUCTION_AWS_REGION: eu-central-1
   PRODUCTION_APP_CLUSTER_NAME: h-prod-euc1-app
+  PRODUCTION_APP_DEPLOY_ROLE_ARN: arn:aws:iam::597482567121:role/h-prod-euc1-app-deploy
   PRODUCTION_APP_GRAPH_SERVICE_NAME: h-prod-euc1-app-graph
   PRODUCTION_APP_TYPE_FETCHER_SERVICE_NAME: h-prod-euc1-app-type-fetcher
   PRODUCTION_AUTH_CLUSTER_NAME: h-prod-euc1-auth
+  PRODUCTION_AUTH_DEPLOY_ROLE_ARN: arn:aws:iam::597482567121:role/h-prod-euc1-auth-deploy
   PRODUCTION_AUTH_KRATOS_SERVICE_NAME: h-prod-euc1-auth-kratos
   PRODUCTION_AUTH_HYDRA_SERVICE_NAME: h-prod-euc1-auth-hydra
 
@@ -536,7 +538,7 @@ jobs:
           AWS_REGION: ${{ env.STAGING_AWS_REGION }}
           ECS_CLUSTER_NAME: ${{ env.STAGING_APP_CLUSTER_NAME }}
           ECS_SERVICE_NAME: ${{ env.STAGING_APP_GRAPH_SERVICE_NAME }}
-          ROLE_ARN: ${{ env.STAGING_DEPLOY_ROLE_ARN }}
+          ROLE_ARN: ${{ env.STAGING_APP_DEPLOY_ROLE_ARN }}
 
       - name: Redeploy type-fetcher staging service
         uses: ./.github/actions/redeploy-ecs-service
@@ -547,7 +549,7 @@ jobs:
           AWS_REGION: ${{ env.STAGING_AWS_REGION }}
           ECS_CLUSTER_NAME: ${{ env.STAGING_APP_CLUSTER_NAME }}
           ECS_SERVICE_NAME: ${{ env.STAGING_APP_TYPE_FETCHER_SERVICE_NAME }}
-          ROLE_ARN: ${{ env.STAGING_DEPLOY_ROLE_ARN }}
+          ROLE_ARN: ${{ env.STAGING_APP_DEPLOY_ROLE_ARN }}
 
       - name: Redeploy graph production service
         uses: ./.github/actions/redeploy-ecs-service
@@ -558,7 +560,7 @@ jobs:
           AWS_REGION: ${{ env.PRODUCTION_AWS_REGION }}
           ECS_CLUSTER_NAME: ${{ env.PRODUCTION_APP_CLUSTER_NAME }}
           ECS_SERVICE_NAME: ${{ env.PRODUCTION_APP_GRAPH_SERVICE_NAME }}
-          ROLE_ARN: ${{ env.PRODUCTION_DEPLOY_ROLE_ARN }}
+          ROLE_ARN: ${{ env.PRODUCTION_APP_DEPLOY_ROLE_ARN }}
 
       - name: Redeploy type-fetcher production service
         uses: ./.github/actions/redeploy-ecs-service
@@ -569,7 +571,7 @@ jobs:
           AWS_REGION: ${{ env.PRODUCTION_AWS_REGION }}
           ECS_CLUSTER_NAME: ${{ env.PRODUCTION_APP_CLUSTER_NAME }}
           ECS_SERVICE_NAME: ${{ env.PRODUCTION_APP_TYPE_FETCHER_SERVICE_NAME }}
-          ROLE_ARN: ${{ env.PRODUCTION_DEPLOY_ROLE_ARN }}
+          ROLE_ARN: ${{ env.PRODUCTION_APP_DEPLOY_ROLE_ARN }}
 
   deploy-app:
     name: Deploy HASH app images
@@ -620,7 +622,7 @@ jobs:
           AWS_REGION: ${{ env.STAGING_AWS_REGION }}
           ECS_CLUSTER_NAME: ${{ env.STAGING_AUTH_CLUSTER_NAME }}
           ECS_SERVICE_NAME: ${{ env.STAGING_AUTH_KRATOS_SERVICE_NAME }}
-          ROLE_ARN: ${{ env.STAGING_DEPLOY_ROLE_ARN }}
+          ROLE_ARN: ${{ env.STAGING_AUTH_DEPLOY_ROLE_ARN }}
 
       - name: Redeploy hydra staging service
         uses: ./.github/actions/redeploy-ecs-service
@@ -631,7 +633,7 @@ jobs:
           AWS_REGION: ${{ env.STAGING_AWS_REGION }}
           ECS_CLUSTER_NAME: ${{ env.STAGING_AUTH_CLUSTER_NAME }}
           ECS_SERVICE_NAME: ${{ env.STAGING_AUTH_HYDRA_SERVICE_NAME }}
-          ROLE_ARN: ${{ env.STAGING_DEPLOY_ROLE_ARN }}
+          ROLE_ARN: ${{ env.STAGING_AUTH_DEPLOY_ROLE_ARN }}
 
       - name: Redeploy kratos production service
         uses: ./.github/actions/redeploy-ecs-service
@@ -642,7 +644,7 @@ jobs:
           AWS_REGION: ${{ env.PRODUCTION_AWS_REGION }}
           ECS_CLUSTER_NAME: ${{ env.PRODUCTION_AUTH_CLUSTER_NAME }}
           ECS_SERVICE_NAME: ${{ env.PRODUCTION_AUTH_KRATOS_SERVICE_NAME }}
-          ROLE_ARN: ${{ env.PRODUCTION_DEPLOY_ROLE_ARN }}
+          ROLE_ARN: ${{ env.PRODUCTION_AUTH_DEPLOY_ROLE_ARN }}
 
       - name: Redeploy hydra production service
         uses: ./.github/actions/redeploy-ecs-service
@@ -653,7 +655,7 @@ jobs:
           AWS_REGION: ${{ env.PRODUCTION_AWS_REGION }}
           ECS_CLUSTER_NAME: ${{ env.PRODUCTION_AUTH_CLUSTER_NAME }}
           ECS_SERVICE_NAME: ${{ env.PRODUCTION_AUTH_HYDRA_SERVICE_NAME }}
-          ROLE_ARN: ${{ env.PRODUCTION_DEPLOY_ROLE_ARN }}
+          ROLE_ARN: ${{ env.PRODUCTION_AUTH_DEPLOY_ROLE_ARN }}
 
   deploy-workers:
     name: Deploy HASH worker images
