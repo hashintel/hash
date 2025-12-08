@@ -1,0 +1,23 @@
+//@ run: pass
+//@ description: Nested tuple projections resolve through multiple levels to source variable
+[
+  "if",
+  { "#literal": true },
+  [
+    "let",
+    "inner",
+    { "#literal": 42 },
+    [
+      "let",
+      "nested",
+      {
+        "#tuple": [
+          { "#tuple": ["inner", { "#literal": 2 }] },
+          { "#literal": 3 }
+        ]
+      },
+      "nested.0.0"
+    ]
+  ],
+  { "#literal": 0 }
+]

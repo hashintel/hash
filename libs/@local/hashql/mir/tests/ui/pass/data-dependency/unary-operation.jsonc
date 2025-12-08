@@ -1,0 +1,8 @@
+//@ run: skip reason="not supported in the MIR yet"
+//@ description: Unary not with variable operand creates Unary edge
+[
+  "if",
+  { "#literal": true },
+  ["let", "flag", { "#literal": true }, ["!", "flag"]],
+  { "#literal": false }
+]

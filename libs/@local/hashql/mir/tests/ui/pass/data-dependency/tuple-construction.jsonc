@@ -1,0 +1,13 @@
+//@ run: pass
+//@ description: Tuple construction with variables creates Index edges for each component
+[
+  "if",
+  { "#literal": true },
+  [
+    "let",
+    "a",
+    { "#literal": 1 },
+    ["let", "b", { "#literal": 2 }, { "#tuple": ["a", "b"] }]
+  ],
+  { "#literal": 0 }
+]

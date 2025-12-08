@@ -1,0 +1,45 @@
+════ MIR ═══════════════════════════════════════════════════════════════════════
+
+*thunk {thunk#4}() -> Integer | List<Integer> {
+    let %0: Integer | List<Integer>
+    let %1: Integer
+    let %2: Integer
+    let %3: Integer
+    let %4: List<Integer>
+
+    bb0(): {
+        switchInt(1) -> [0: bb2(), 1: bb1()]
+    }
+
+    bb1(): {
+        %1 = 1
+        %2 = 2
+        %3 = 3
+        %4 = list(%1, %2, %3)
+
+        goto -> bb3(%4)
+    }
+
+    bb2(): {
+        goto -> bb3(0)
+    }
+
+    bb3(%0): {
+        return %0
+    }
+}
+════ Data Dependency Graph ═════════════════════════════════════════════════════
+
+%4 -> %1 [Aggregation(FieldIndex(0))]
+%4 -> %2 [Aggregation(FieldIndex(1))]
+%4 -> %3 [Aggregation(FieldIndex(2))]
+%0 -> %4 [Param(BasicBlockId(1), None)]
+
+
+════ Transient Data Dependency Graph ═══════════════════════════════════════════
+
+%4 -> %1 [Aggregation(FieldIndex(0))]
+%4 -> %2 [Aggregation(FieldIndex(1))]
+%4 -> %3 [Aggregation(FieldIndex(2))]
+%0 -> %4 [Param(BasicBlockId(1), None)]
+

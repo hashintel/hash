@@ -1,0 +1,18 @@
+//@ run: pass
+//@ description: Struct field projection resolves through Field edges
+[
+  "if",
+  { "#literal": true },
+  [
+    "let",
+    "a",
+    { "#literal": 1 },
+    [
+      "let",
+      "b",
+      { "#literal": 2 },
+      ["let", "s", { "#struct": { "foo": "a", "bar": "b" } }, "s.foo"]
+    ]
+  ],
+  { "#literal": 0 }
+]

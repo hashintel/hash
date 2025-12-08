@@ -1,0 +1,41 @@
+════ MIR ═══════════════════════════════════════════════════════════════════════
+
+*thunk {thunk#3}() -> Integer {
+    let %0: Integer
+    let %1: Integer
+    let %2: (Integer, Integer)
+    let %3: ((Integer, Integer), Integer)
+
+    bb0(): {
+        switchInt(1) -> [0: bb2(), 1: bb1()]
+    }
+
+    bb1(): {
+        %1 = 42
+        %2 = (%1, 2)
+        %3 = (%2, 3)
+
+        goto -> bb3(%3.0.0)
+    }
+
+    bb2(): {
+        goto -> bb3(0)
+    }
+
+    bb3(%0): {
+        return %0
+    }
+}
+════ Data Dependency Graph ═════════════════════════════════════════════════════
+
+%2 -> %1 [Index(FieldIndex(0))]
+%3 -> %2 [Index(FieldIndex(0))]
+%0 -> %3 [Param(BasicBlockId(1), None), projections: .0.0]
+
+
+════ Transient Data Dependency Graph ═══════════════════════════════════════════
+
+%2 -> %1 [Index(FieldIndex(0))]
+%3 -> %2 [Index(FieldIndex(0))]
+%0 -> %1 [Param(BasicBlockId(1), None)]
+

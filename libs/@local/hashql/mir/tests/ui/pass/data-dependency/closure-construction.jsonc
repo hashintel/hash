@@ -1,0 +1,18 @@
+//@ run: pass
+//@ description: Closure construction creates ClosurePtr and ClosureEnv edges
+[
+  "if",
+  { "#literal": true },
+  [
+    "let",
+    "captured",
+    { "#literal": 42 },
+    [
+      "let",
+      "f",
+      ["fn", { "#tuple": [] }, { "#struct": {} }, "_", "captured"],
+      "f"
+    ]
+  ],
+  { "#literal": 0 }
+]

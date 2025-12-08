@@ -1,0 +1,71 @@
+════ MIR ═══════════════════════════════════════════════════════════════════════
+
+thunk cond:0() -> Boolean {
+    let %0: Boolean
+
+    bb0(): {
+        %0 = input LOAD cond
+
+        return %0
+    }
+}
+
+thunk a:0() -> Integer {
+    let %0: Integer
+
+    bb0(): {
+        %0 = input LOAD a
+
+        return %0
+    }
+}
+
+thunk b:0() -> Integer {
+    let %0: Integer
+
+    bb0(): {
+        %0 = input LOAD b
+
+        return %0
+    }
+}
+
+*thunk {thunk#3}() -> Integer {
+    let %0: Boolean
+    let %1: Integer
+    let %2: Integer
+    let %3: Integer
+
+    bb0(): {
+        %0 = apply (cond:0 as FnPtr)
+
+        switchInt(%0) -> [0: bb2(), 1: bb1()]
+    }
+
+    bb1(): {
+        %2 = apply (a:0 as FnPtr)
+
+        goto -> bb3(%2)
+    }
+
+    bb2(): {
+        %3 = apply (b:0 as FnPtr)
+
+        goto -> bb3(%3)
+    }
+
+    bb3(%1): {
+        return %1
+    }
+}
+════ Data Dependency Graph ═════════════════════════════════════════════════════
+
+%1 -> %2 [Param(BasicBlockId(1), None)]
+%1 -> %3 [Param(BasicBlockId(2), None)]
+
+
+════ Transient Data Dependency Graph ═══════════════════════════════════════════
+
+%1 -> %2 [Param(BasicBlockId(1), None)]
+%1 -> %3 [Param(BasicBlockId(2), None)]
+
