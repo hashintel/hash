@@ -71,7 +71,7 @@ env:
   PRODUCTION_APP_TYPE_FETCHER_SERVICE_NAME: h-prod-euc1-app-type-fetcher
   PRODUCTION_APP_API_SERVICE_NAME: h-prod-euc1-app-api
   PRODUCTION_WORKER_CLUSTER_NAME: h-prod-euc1-worker
-  PRODUCTION_WORKER_DEPLOY_ROLE_ARN: arn:aws:iam::054238437032:role/h-prod-euc1-worker-deploy
+  PRODUCTION_WORKER_DEPLOY_ROLE_ARN: arn:aws:iam::597482567121:role/h-prod-euc1-worker-deploy
   PRODUCTION_WORKER_AI_TS_SERVICE_NAME: h-prod-euc1-worker-ai-ts
   PRODUCTION_WORKER_INTEGRATION_SERVICE_NAME: h-prod-euc1-worker-integration
   PRODUCTION_AUTH_CLUSTER_NAME: h-prod-euc1-auth
