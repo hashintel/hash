@@ -1,5 +1,17 @@
 ---
 source: libs/@local/hashql/mir/src/pass/analysis/dataflow/liveness/tests.rs
-expression: output
+expression: "format!(\"{}\\n\\n========\\n\\n{}\", format_body(env, body),\nformat_liveness(body, &results))"
 ---
-bb0: {}
+fn {intrinsic#4294967040}() -> Integer {
+    let %0: Integer
+
+    bb0(): {
+        %0 = 5
+
+        return %0
+    }
+}
+
+========
+
+bb0: {} -> {}

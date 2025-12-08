@@ -97,6 +97,17 @@ where
         self.format_part((bodies, HighlightBody(highlight)))
     }
 
+    pub fn format_body<'fmt, 'env, 'heap: 'fmt + 'env>(
+        &mut self,
+        body: &Body<'heap>,
+    ) -> io::Result<()>
+    where
+        S: SourceLookup<'heap>,
+        T: AsMut<TypeFormatter<'fmt, 'env, 'heap>>,
+    {
+        self.format_part((body, BodyRenderOptions { highlight: false }))
+    }
+
     fn separated_list<V>(
         &mut self,
         sep: &[u8],

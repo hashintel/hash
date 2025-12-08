@@ -1,72 +1,82 @@
 //! Tests for liveness analysis.
 
-use alloc::borrow::Cow;
-use core::fmt::Write as _;
+use core::fmt::{self, Display};
 use std::path::PathBuf;
 
 use hashql_core::{
-    id::Id,
-    r#type::{TypeBuilder, environment::Environment},
+    id::bit_vec::DenseBitSet,
+    pretty::Formatter,
+    r#type::{TypeBuilder, TypeFormatter, TypeFormatterOptions, environment::Environment},
 };
 use insta::{Settings, assert_snapshot};
 
 use super::LivenessAnalysis;
 use crate::{
-    body::{Body, local::Local},
-    pass::analysis::dataflow::framework::{DataflowAnalysis as _, Direction},
+    body::{Body, basic_block::BasicBlockId, local::Local},
+    pass::analysis::dataflow::framework::{DataflowAnalysis as _, DataflowResults, Direction},
+    pretty::TextFormat,
     scaffold,
     tests::op,
 };
 
-/// Formats liveness results for snapshot testing.
-///
-/// Output format:
-/// ```text
-/// bb0: {x, y}
-/// bb1: {}
-/// bb2: {z}
-/// ```
-fn format_liveness(body: &Body<'_>, results: &[impl AsRef<[usize]>]) -> String {
-    let mut output = String::new();
+fn format_liveness_state(mut write: impl fmt::Write, state: &DenseBitSet<Local>) -> fmt::Result {
+    for (index, local) in state.iter().enumerate() {
+        if index > 0 {
+            write!(write, ", ")?;
+        }
 
-    for (idx, state) in results.iter().enumerate() {
-        let _ = write!(output, "bb{idx}: {{");
-
-        let live: String = state
-            .as_ref()
-            .iter()
-            .copied()
-            .map(Local::from_usize)
-            .map(|local| {
-                body.local_decls
-                    .get(local)
-                    .and_then(|decl| decl.name)
-                    .map_or_else(
-                        || Cow::Owned(format!("_{local}")),
-                        |name| Cow::Borrowed(name.unwrap()),
-                    )
-            })
-            .intersperse(Cow::Borrowed(", "))
-            .collect();
-
-        let _ = writeln!(output, "{live}}}");
+        write!(write, "%{local}")?;
     }
 
-    output
+    Ok(())
+}
+
+fn format_liveness_result(
+    mut write: impl fmt::Write,
+    bb: BasicBlockId,
+    results: &DataflowResults<'_, LivenessAnalysis>,
+) -> fmt::Result {
+    let entry = &results.entry_states[bb];
+    let exit = &results.exit_states[bb];
+
+    write!(write, "bb{bb}: {{")?;
+    format_liveness_state(&mut write, entry)?;
+    write!(write, "}} -> {{")?;
+    format_liveness_state(&mut write, exit)?;
+    write!(write, "}}")?;
+    writeln!(write)
+}
+
+fn format_liveness(
+    body: &Body<'_>,
+    results: &DataflowResults<'_, LivenessAnalysis>,
+) -> impl Display {
+    core::fmt::from_fn(|fmt| {
+        for bb in body.basic_blocks.ids() {
+            format_liveness_result(&mut *fmt, bb, results)?;
+        }
+
+        Ok(())
+    })
+}
+
+fn format_body<'heap>(env: &Environment<'heap>, body: &Body<'heap>) -> impl Display {
+    let formatter = Formatter::new(env.heap);
+    let mut text_formatter = TextFormat {
+        writer: Vec::<u8>::new(),
+        indent: 4,
+        sources: (),
+        types: TypeFormatter::new(&formatter, env, TypeFormatterOptions::terse()),
+    };
+
+    text_formatter.format_body(body).expect("infallible");
+
+    String::from_utf8_lossy_owned(text_formatter.writer)
 }
 
 #[track_caller]
-fn assert_liveness(name: &'static str, body: &Body<'_>) {
+fn assert_liveness<'heap>(name: &'static str, env: &Environment<'heap>, body: &Body<'heap>) {
     let results = LivenessAnalysis.iterate_to_fixpoint(body);
-
-    // Convert entry states to Vec<usize> for formatting
-    let entry_states: Vec<Vec<usize>> = results
-        .entry_states
-        .iter()
-        .map(|bitset| bitset.iter().map(Id::as_usize).collect())
-        .collect();
-
-    let output = format_liveness(body, &entry_states);
 
     let dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
     let mut settings = Settings::clone_current();
@@ -75,13 +85,19 @@ fn assert_liveness(name: &'static str, body: &Body<'_>) {
 
     let _drop = settings.bind_to_scope();
 
-    assert_snapshot!(name, output);
+    assert_snapshot!(
+        name,
+        format!(
+            "{}\n\n========\n\n{}",
+            format_body(env, body),
+            format_liveness(body, &results)
+        )
+    );
 }
 
-/// Verifies that liveness is a backward analysis.
 #[test]
 fn direction_is_backward() {
-    assert!(matches!(LivenessAnalysis::DIRECTION, Direction::Backward));
+    assert_eq!(LivenessAnalysis::DIRECTION, Direction::Backward);
 }
 
 /// Simple straight-line code: `x = 5; return x`.
@@ -106,7 +122,7 @@ fn use_after_def() {
         .ret(x);
 
     let body = builder.finish(0, int_ty);
-    assert_liveness("use_after_def", &body);
+    assert_liveness("use_after_def", &env, &body);
 }
 
 /// Dead variable: `x = 5; return 0`.
@@ -130,7 +146,7 @@ fn dead_variable() {
         .ret(const_0);
 
     let body = builder.finish(0, int_ty);
-    assert_liveness("dead_variable", &body);
+    assert_liveness("dead_variable", &env, &body);
 }
 
 /// Use before def in same block: `y = x; x = 5; return y`.
@@ -158,7 +174,7 @@ fn use_before_def() {
         .ret(y);
 
     let body = builder.finish(0, int_ty);
-    assert_liveness("use_before_def", &body);
+    assert_liveness("use_before_def", &env, &body);
 }
 
 /// Cross-block liveness: bb0 defines x, bb1 uses x.
@@ -192,7 +208,7 @@ fn cross_block() {
     builder.build_block(bb1).ret(x);
 
     let body = builder.finish(0, int_ty);
-    assert_liveness("cross_block", &body);
+    assert_liveness("cross_block", &env, &body);
 }
 
 /// Diamond CFG where variable is used in both branches.
@@ -253,7 +269,7 @@ fn diamond_both_branches_use() {
     builder.build_block(bb3).ret(result);
 
     let body = builder.finish(0, int_ty);
-    assert_liveness("diamond_both_branches_use", &body);
+    assert_liveness("diamond_both_branches_use", &env, &body);
 }
 
 /// Block parameters kill liveness.
@@ -282,7 +298,7 @@ fn block_parameter_kills() {
     builder.build_block(bb1).ret(x);
 
     let body = builder.finish(0, int_ty);
-    assert_liveness("block_parameter_kills", &body);
+    assert_liveness("block_parameter_kills", &env, &body);
 }
 
 /// Loop: variable used in loop body.
@@ -336,7 +352,7 @@ fn loop_liveness() {
     builder.build_block(bb2).ret(x);
 
     let body = builder.finish(0, int_ty);
-    assert_liveness("loop_liveness", &body);
+    assert_liveness("loop_liveness", &env, &body);
 }
 
 /// Multiple definitions: only the last one before use matters.
@@ -370,7 +386,7 @@ fn multiple_definitions() {
         .ret(x);
 
     let body = builder.finish(0, int_ty);
-    assert_liveness("multiple_definitions", &body);
+    assert_liveness("multiple_definitions", &env, &body);
 }
 
 /// Binary operation: both operands should be live.
@@ -404,7 +420,7 @@ fn binary_op_both_operands_live() {
         .ret(z);
 
     let body = builder.finish(0, bool_ty);
-    assert_liveness("binary_op_both_operands_live", &body);
+    assert_liveness("binary_op_both_operands_live", &env, &body);
 }
 
 /// Only one branch uses variable.
@@ -443,5 +459,5 @@ fn diamond_one_branch_uses() {
     builder.build_block(bb2).ret(const_0);
 
     let body = builder.finish(0, int_ty);
-    assert_liveness("diamond_one_branch_uses", &body);
+    assert_liveness("diamond_one_branch_uses", &env, &body);
 }

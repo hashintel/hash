@@ -47,6 +47,7 @@ use crate::{
 /// - Which blocks are initialized as boundary conditions
 /// - The order in which transfer functions are applied within a block
 /// - How information flows between blocks
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum Direction {
     /// Information flows from predecessors to successors.
     ///
