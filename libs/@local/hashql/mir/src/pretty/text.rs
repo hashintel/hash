@@ -97,6 +97,16 @@ where
         self.format_part((bodies, HighlightBody(highlight)))
     }
 
+    /// Formats a single MIR body as human-readable text.
+    ///
+    /// Unlike [`format`], which processes multiple bodies and supports highlighting,
+    /// this method formats a single `body` without any highlighting applied.
+    ///
+    /// # Errors
+    ///
+    /// Returns an [`io::Error`] if writing to the underlying writer fails.
+    ///
+    /// [`format`]: Self::format
     pub fn format_body<'fmt, 'env, 'heap: 'fmt + 'env>(
         &mut self,
         body: &Body<'heap>,
