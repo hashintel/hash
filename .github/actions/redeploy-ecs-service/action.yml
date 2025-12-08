@@ -35,12 +35,14 @@ runs:
         aws-session-token: ${{ inputs.AWS_SESSION_TOKEN }}
         aws-region: ${{ inputs.AWS_REGION }}
         role-to-assume: ${{ inputs.ROLE_ARN }}
-        role-duration-seconds: ${{ inputs.ROLE_DURATION_SECONDS }}
 
     - name: Redeploy ECS service
+      env:
+        ECS_CLUSTER_NAME: ${{ inputs.ECS_CLUSTER_NAME }}
+        ECS_SERVICE_NAME: ${{ inputs.ECS_SERVICE_NAME }}
       shell: bash
       run: |
         aws ecs update-service \
-          --cluster "${{ inputs.ECS_CLUSTER_NAME }}" \
-          --service "${{ inputs.ECS_SERVICE_NAME }}" \
+          --cluster "${ECS_CLUSTER_NAME}" \
+          --service "${ECS_SERVICE_NAME}" \
           --force-new-deployment 1> /dev/null
