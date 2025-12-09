@@ -72,9 +72,6 @@ describe("createSDCPNLanguageService", () => {
 
     it("returns an error when accessing undefined token property", () => {
       // GIVEN
-      const code = `export default Dynamics((tokens, parameters) => {
-        const value = tokens[0].undefinedProperty;
-      });`;
       const sdcpn = createSDCPN({
         types: [
           {
@@ -85,7 +82,9 @@ describe("createSDCPNLanguageService", () => {
         differentialEquations: [
           {
             colorId: "color1",
-            code,
+            code: `export default Dynamics((tokens, parameters) => {
+              const value = tokens[0].undefinedProperty;
+            });`,
           },
         ],
       });
@@ -104,15 +103,12 @@ describe("createSDCPNLanguageService", () => {
       const errorStart = diagnostics[0]?.start ?? -1;
       const errorEnd = errorStart + (diagnostics[0]?.length ?? 0);
       expect(errorStart).toBeGreaterThanOrEqual(0);
-      expect(errorEnd).toBeLessThanOrEqual(code.length);
-      expect(code.slice(errorStart, errorEnd)).toBe("undefinedProperty");
+      expect(errorEnd).toBeLessThanOrEqual(de.code.length);
+      expect(de.code.slice(errorStart, errorEnd)).toBe("undefinedProperty");
     });
 
     it("returns an error when accessing undefined parameter", () => {
       // GIVEN
-      const code = `export default Dynamics((tokens, parameters) => {
-        const value = parameters.undefinedParam;
-      });`;
       const sdcpn = createSDCPN({
         types: [
           {
@@ -120,13 +116,13 @@ describe("createSDCPNLanguageService", () => {
             elements: [{ elementId: "x", name: "x", type: "real" }],
           },
         ],
-        parameters: [
-          { id: "p1", name: "Alpha", variableName: "alpha", type: "real" },
-        ],
+        parameters: [{ id: "p1", variableName: "alpha", type: "real" }],
         differentialEquations: [
           {
             colorId: "color1",
-            code,
+            code: `export default Dynamics((tokens, parameters) => {
+              const value = parameters.undefinedParam;
+            });`,
           },
         ],
       });
@@ -145,21 +141,20 @@ describe("createSDCPNLanguageService", () => {
       const errorStart = diagnostics[0]?.start ?? -1;
       const errorEnd = errorStart + (diagnostics[0]?.length ?? 0);
       expect(errorStart).toBeGreaterThanOrEqual(0);
-      expect(errorEnd).toBeLessThanOrEqual(code.length);
-      expect(code.slice(errorStart, errorEnd)).toBe("undefinedParam");
+      expect(errorEnd).toBeLessThanOrEqual(de.code.length);
+      expect(de.code.slice(errorStart, errorEnd)).toBe("undefinedParam");
     });
 
     it("returns a syntax error for invalid TypeScript code", () => {
       // GIVEN
-      const code = `export default Dynamics((tokens, parameters) => {
-        const x = ;
-      });`;
       const sdcpn = createSDCPN({
         types: [{ id: "color1" }],
         differentialEquations: [
           {
             colorId: "color1",
-            code,
+            code: `export default Dynamics((tokens, parameters) => {
+              const x = ;
+            });`,
           },
         ],
       });
@@ -176,7 +171,7 @@ describe("createSDCPNLanguageService", () => {
       // Verify error position is relative to user code, not including prefix
       const errorStart = diagnostics[0]?.start ?? -1;
       expect(errorStart).toBeGreaterThanOrEqual(0);
-      expect(errorStart).toBeLessThan(code.length);
+      expect(errorStart).toBeLessThan(de.code.length);
     });
   });
 
