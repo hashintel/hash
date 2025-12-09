@@ -7,11 +7,15 @@ import type {
   Transition,
 } from "../../types/sdcpn";
 
+type PartialColor = Omit<Partial<Color>, "elements"> & {
+  elements?: Array<Partial<Color["elements"][number]>>;
+};
+
 /**
  * Helper to simplify writing of initial state for tests
  */
 export function createSDCPN(options?: {
-  types?: Array<Partial<Color>>;
+  types?: Array<PartialColor>;
   differentialEquations?: Array<Partial<DifferentialEquation>>;
   places?: Array<Partial<Place>>;
   transitions?: Array<Partial<Transition>>;
@@ -31,7 +35,11 @@ export function createSDCPN(options?: {
       name: type.name ?? `Color${index + 1}`,
       iconSlug: type.iconSlug ?? "circle",
       displayColor: type.displayColor ?? "#FF0000",
-      elements: type.elements ?? [],
+      elements: (type.elements ?? []).map((el, elIndex) => ({
+        elementId: el.elementId ?? `element_${elIndex + 1}`,
+        name: el.name ?? `element${elIndex + 1}`,
+        type: el.type ?? "real",
+      })),
     })),
     differentialEquations: differentialEquations.map((de, index) => ({
       id: de.id ?? `de_${index + 1}`,

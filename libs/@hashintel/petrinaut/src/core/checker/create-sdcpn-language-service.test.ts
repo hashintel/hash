@@ -8,12 +8,7 @@ describe("createSDCPNLanguageService", () => {
     it("returns no errors for valid code accessing defined token properties", () => {
       // GIVEN
       const sdcpn = createSDCPN({
-        types: [
-          {
-            id: "color1",
-            elements: [{ elementId: "x", name: "x", type: "real" }],
-          },
-        ],
+        types: [{ id: "color1", elements: [{ elementId: "x", type: "real" }] }],
         differentialEquations: [
           {
             colorId: "color1",
@@ -41,7 +36,7 @@ describe("createSDCPNLanguageService", () => {
         types: [
           {
             id: "color1",
-            elements: [{ elementId: "x", name: "x", type: "real" }],
+            elements: [{ elementId: "x", type: "real" }],
           },
         ],
         parameters: [
@@ -76,7 +71,7 @@ describe("createSDCPNLanguageService", () => {
         types: [
           {
             id: "color1",
-            elements: [{ elementId: "x", name: "x", type: "real" }],
+            elements: [{ elementId: "x", type: "real" }],
           },
         ],
         differentialEquations: [
@@ -113,7 +108,7 @@ describe("createSDCPNLanguageService", () => {
         types: [
           {
             id: "color1",
-            elements: [{ elementId: "x", name: "x", type: "real" }],
+            elements: [{ elementId: "x", type: "real" }],
           },
         ],
         parameters: [{ id: "p1", variableName: "alpha", type: "real" }],
@@ -183,8 +178,8 @@ describe("createSDCPNLanguageService", () => {
           {
             id: "color1",
             elements: [
-              { elementId: "x", name: "x", type: "real" },
-              { elementId: "y", name: "y", type: "real" },
+              { elementId: "x", type: "real" },
+              { elementId: "y", type: "real" },
             ],
           },
         ],
@@ -218,7 +213,7 @@ describe("createSDCPNLanguageService", () => {
         types: [
           {
             id: "color1",
-            elements: [{ elementId: "x", name: "x", type: "real" }],
+            elements: [{ elementId: "x", type: "real" }],
           },
         ],
         parameters: [
