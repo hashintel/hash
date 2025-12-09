@@ -1,112 +1,57 @@
-/**
- * Claim Extraction Agent
- *
- * Extracts structured claims about entities from text.
- * Claims follow subject-predicate-object format with prepositional phrases.
- *
- * Ported from: hash-ai-worker-ts/src/activities/flow-activities/shared/
- *   infer-summaries-then-claims-from-text/infer-entity-claims-from-text-agent.ts
- */
-
 import { Agent } from "@mastra/core/agent";
-import { createTool } from "@mastra/core/tools";
-import { z } from "zod";
+import dedent from "dedent";
 
-/**
- * Tool for agent to submit extracted claims
- */
-export const submitClaimsTool = createTool({
-  id: "submit-claims",
-  description:
-    "Submit an exhaustive list of claims based on the information provided in the text, ensuring no information about the entity is missed.",
-  inputSchema: z.object({
-    claims: z.array(
-      z.object({
-        subjectEntityLocalId: z
-          .string()
-          .nullable()
-          .describe(
-            "The localId of the subject entity of the claim. If you don't have a relevant subject entity, pass null.",
-          ),
-        text: z.string().describe(
-          `The text containing the claim, which:
-- must follow a consistent sentence structure with a single subject, predicate, and object
-- must have one of the subject entities as the singular subject of the claim
-- must be concise statements that are true based on the information in the text
-- must be standalone and not depend on contextual information
-- must not contain pronouns - refer to all entities by name
-- must not be lists or contain multiple pieces of information
-- must not include prepositional phrases (provide those separately)`,
-        ),
-        prepositionalPhrases: z
-          .array(z.string())
-          .describe(
-            "A list of prepositional phrases providing additional context. Examples: 'on January 1, 2022', 'for $8.5 billion'",
-          ),
-        objectEntityLocalId: z
-          .string()
-          .nullable()
-          .describe(
-            "The local ID of the entity that the claim is related to. If the claim does not have another entity as its object, provide null.",
-          ),
-      }),
-    ),
-  }),
-  outputSchema: z.object({
-    submitted: z.boolean(),
-    count: z.number(),
-  }),
-  execute: async ({ claims }) => {
-    return Promise.resolve({
-      submitted: true,
-      count: claims.length,
-    });
-  },
-});
+import { submitClaims } from "../tools/submit-claims-tool";
 
-/**
- * Claim Extraction Agent
- *
- * Uses LLM reasoning to extract structured claims about entities.
- * Each claim follows subject-predicate-object format.
- */
-export const claimExtractionAgent = new Agent({
-  id: "claim-extraction-agent",
-  name: "Claim Extraction Agent",
-  instructions: `You are a claim extracting agent. Your job is to consider content and identify claims about entities from within it.
+export const claimExtractionsAgent = new Agent({
+  id: "infer-entity-claims",
+  name: "Infer Entity Claims",
+  instructions: dedent(`
+  You are a claim extracting agent. Your job is to consider some content, and identify claims about entities from within it.
 
-The user will provide you with:
-- Text: the text from which you should extract claims
-- Goal: A prompt specifying what entities or claims you should focus on
-- Subject Entities: the entities that claims should be about (with localId, name, summary)
-- Entity Type Properties: the properties of interest for these entities
-- Potential Object Entities: other entities that may be the object of claims
+  The user may be focused on particular entities and/or particular attributes of those entities to extract claims about.
 
-CLAIM FORMAT:
-Each claim should be in the format: <subject> <predicate> <object>
-Example: { text: "Company X acquired Company Y.", prepositionalPhrases: ["in 2019", "for $10 million"], subjectEntityLocalId: "companyX-123", objectEntityLocalId: "companyY-456" }
+  The user will provide you with:
+    - Text: the text from which you should extract claims.
+    - URL: the URL the text was taken from, if any.
+    - Title: The title of the text, if any.
+    - Goal: A prompt specifying what entities or claims about entities you should focus on.
+    - Subject Entities: the subject entities of claims that the user is looking for, each of which are of the same type (i.e. have the same properties and outgoing links).
+    - Relevant Properties: a list of properties the user is looking for in the text. Pay particular attention to these properties when extracting claims.
+    - Relevant Outgoing Links: a definition of the possible outgoing links the user is looking for in the text. Pay particular attention to relationships (links) with other entities of these kinds.
+    - Potential Object Entities: a list of other entities mentioned in the text, which may be the object of claims. Include their id as the object of the claim if they are the object of the claim.
 
-IMPORTANT RULES:
-1. Each claim MUST start with one of the subject entities' names, exactly as provided
-2. Don't include claims without a valid subject entity - omit them instead
-3. If a claim relates to another entity, include its objectEntityLocalId
-4. Prepositional phrases provide context (dates, amounts, locations) - don't include them in the main claim text
+  You must provide an exhaustive list of claims about the provided subject entities based on the information provided in the text
+  For example, if you are provided with data from a table where the entity is a row of the table,
+    all the information in each cell of the row should be represented in the claims.
 
-DON'T include claims like:
-- "Bill Gates has a LinkedIn URL" (no value provided)
-- "Bill Gates's LinkedIn URL is <UNKNOWN>" (unknown value)
-- "Bill Gates's LinkedIn URL is not in the text" (missing information)
+  These claims will be later used to construct the entities with the properties and links which the user will specify.
+  If any information in the text is relevant for constructing the relevant properties or outgoing links, you must include them as claims.
 
-DO include claims like:
-- "Bill Gates's LinkedIn URL is https://www.linkedin.com/in/williamhgates" (actual value from text)
+  Each claim should be in the format <subject> <predicate> <object>, where the subject is the singular subject of the claim.
+  Example:
+  [{ text: "Company X acquired Company Y.", prepositionalPhrases: ["in 2019", "for $10 million"], subjectEntityLocalId: "companyXabc", objectEntityLocalId: "companyYdef" }]
+  Don't include claims which start with a subject you can't provide an id for.
+  Omit any claims that don't start with one of the subject entities provided.
 
-Or simply omit the claim if the value is not known.
+  IMPORTANT: pay attention to the name of each SubjectEntity – each claim MUST start with one of these names, exactly as it is expressed in the <SubjectEntity>
+             If this is slightly different to how the entity is named in the text, use the name of the SubjectEntity!
 
-Be exhaustive - if information about a subject entity's properties exists in the text, include it as a claim.
+  Remember to particularly focus on the entities and the properties the user is looking for, guided by the prompt.
 
-Use the submitClaims tool to submit all extracted claims.`,
+  If an attribute isn't present, don't include a claim about it. Don't say 'X's attribute Y is unknown', or 'X's attribute Y is not in the text' – just omit it.
+  If an attribute IS present, mention the value in the claim, i.e. say 'X's attribute Y is <value>'
+  – don't say 'X's attribute Y is in the text', or 'X has an attribute Y' without providing the value.
+
+  INCORRECT: 'Bill Gates has a LinkedIn URL'
+  INCORRECT: 'Bill Gates's LinkedURL is <UNKNOWN>'
+  INCORRECT: 'Bill Gates's LinkedUrl is not in the text'
+  CORRECT: 'Bill Gate's LinkedIn URL is https://www.linkedin.com/in/williamhgates', IF this URL is present in the text.
+
+  Or omit the claim if the value is not known.
+`),
   model: "openrouter/google/gemini-2.5-flash-lite",
   tools: {
-    submitClaims: submitClaimsTool,
+    submitClaims,
   },
 });

@@ -30,12 +30,14 @@
     "@local/hash-graph-sdk": "0.0.0-private",
     "@local/hash-isomorphic-utils": "0.0.0-private",
     "@local/status": "0.0.0-private",
-    "@mastra/core": "1.0.0-beta.8",
+    "@mastra/core": "1.0.0-beta.9",
     "@mastra/evals": "1.0.0-beta.2",
-    "@mastra/libsql": "1.0.0-beta.5",
+    "@mastra/libsql": "1.0.0-beta.6",
     "@mastra/loggers": "1.0.0-beta.3",
-    "@mastra/mcp": "1.0.0-beta.5",
+    "@mastra/mcp": "1.0.0-beta.6",
     "@mastra/memory": "1.0.0-beta.4",
+    "dedent": "1.7.0",
+    "es-toolkit": "1.42.0",
     "zod": "^4.1.13"
   },
   "devDependencies": {
