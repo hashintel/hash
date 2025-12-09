@@ -13,9 +13,9 @@ import {
   toolCallAppropriatenessScorer,
   translationScorer,
 } from "./demo/scorers/weather-scorer";
+import { weatherWorkflow } from "./demo/workflows/weather-workflow";
 import { entityRecallScorer } from "./scorers/entity-recall-scorer";
 import { nerWorkflow } from "./workflows/ner-workflow";
-import { weatherWorkflow } from "./workflows/weather-workflow";
 
 export const mastra = new Mastra({
   workflows: { weatherWorkflow, nerWorkflow },

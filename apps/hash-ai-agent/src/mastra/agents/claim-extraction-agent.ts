@@ -57,10 +57,10 @@ export const submitClaimsTool = createTool({
     count: z.number(),
   }),
   execute: async ({ claims }) => {
-    return {
+    return Promise.resolve({
       submitted: true,
       count: claims.length,
-    };
+    });
   },
 });
 

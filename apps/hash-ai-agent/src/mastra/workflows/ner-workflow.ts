@@ -15,19 +15,19 @@
 import { createStep, createWorkflow } from "@mastra/core/workflows";
 import { z } from "zod";
 
-import {
-  getDereferencedEntityTypes,
-  getAvailableFixtureEntityTypeIds,
-} from "../tools/get-dereferenced-entity-types.js";
-import type { DereferencedEntityTypeWithSimplifiedKeys } from "../shared/dereference-entity-type.js";
-import type {
-  LocalEntitySummary,
-  Claim,
-  ProposedEntity,
-} from "../types/entities.js";
-import { entitySummaryAgent } from "../agents/entity-summary-agent.js";
 import { claimExtractionAgent } from "../agents/claim-extraction-agent.js";
 import { entityProposalAgent } from "../agents/entity-proposal-agent.js";
+import { entitySummaryAgent } from "../agents/entity-summary-agent.js";
+import type { DereferencedEntityTypeWithSimplifiedKeys } from "../shared/dereference-entity-type.js";
+import {
+  getAvailableFixtureEntityTypeIds,
+  getDereferencedEntityTypes,
+} from "../tools/get-dereferenced-entity-types.js";
+import type {
+  Claim,
+  LocalEntitySummary,
+  ProposedEntity,
+} from "../types/entities.js";
 
 /**
  * Workflow input schema
@@ -247,7 +247,9 @@ const parseEntitySummaries = (
       tc.name === "registerEntitySummaries",
   );
 
-  if (!registerCall) return [];
+  if (!registerCall) {
+    return [];
+  }
 
   const rawSummaries = registerCall.args?.entitySummaries ?? [];
   return rawSummaries.map((raw: any, index: number) => ({
@@ -271,7 +273,9 @@ const parseClaims = (
     (tc: any) => tc.name === "submit-claims" || tc.name === "submitClaims",
   );
 
-  if (!submitCall) return [];
+  if (!submitCall) {
+    return [];
+  }
 
   const rawClaims = submitCall.args?.claims ?? [];
   const allKnownEntities = [...subjectEntities, ...potentialObjectEntities];
@@ -279,21 +283,28 @@ const parseClaims = (
 
   for (let index = 0; index < rawClaims.length; index++) {
     const raw = rawClaims[index];
-    if (!raw.subjectEntityLocalId) continue;
+    if (!raw.subjectEntityLocalId) {
+      continue;
+    }
 
     const subjectEntity = subjectEntities.find(
       (e) => e.localId === raw.subjectEntityLocalId,
     );
-    if (!subjectEntity) continue;
-
-    if (!raw.text.toLowerCase().includes(subjectEntity.name.toLowerCase()))
+    if (!subjectEntity) {
       continue;
+    }
+
+    if (!raw.text.toLowerCase().includes(subjectEntity.name.toLowerCase())) {
+      continue;
+    }
 
     if (raw.objectEntityLocalId) {
       const objectEntity = allKnownEntities.find(
         (e) => e.localId === raw.objectEntityLocalId,
       );
-      if (!objectEntity) continue;
+      if (!objectEntity) {
+        continue;
+      }
     }
 
     validClaims.push({
@@ -456,8 +467,12 @@ export const nerPipelineStep = createStep({
     let allEntities: LocalEntitySummary[] = [];
 
     for (const typeId of foundTypeIds) {
-      const entityType = dereferencedTypes[typeId]!;
-      const prompt = buildEntityExtractionPrompt(text, researchGoal, entityType);
+      const entityType = dereferencedTypes[typeId];
+      const prompt = buildEntityExtractionPrompt(
+        text,
+        researchGoal,
+        entityType,
+      );
       const result = await entitySummaryAgent.generate(prompt);
       const entities = parseEntitySummaries(result, typeId);
       allEntities = allEntities.concat(entities);
@@ -470,7 +485,7 @@ export const nerPipelineStep = createStep({
     let allClaims: Claim[] = [];
 
     for (const typeId of foundTypeIds) {
-      const entityType = dereferencedTypes[typeId]!;
+      const entityType = dereferencedTypes[typeId];
       const subjectEntities = uniqueEntities.filter((e) =>
         e.entityTypeIds.includes(typeId),
       );
@@ -478,7 +493,9 @@ export const nerPipelineStep = createStep({
         (e) => !e.entityTypeIds.includes(typeId),
       );
 
-      if (subjectEntities.length === 0) continue;
+      if (subjectEntities.length === 0) {
+        continue;
+      }
 
       const prompt = buildClaimExtractionPrompt(
         text,
@@ -498,8 +515,10 @@ export const nerPipelineStep = createStep({
 
     for (const entity of uniqueEntities) {
       const typeId = entity.entityTypeIds[0];
-      const entityType = dereferencedTypes[typeId!];
-      if (!entityType) continue;
+      const entityType = dereferencedTypes[typeId];
+      if (!entityType) {
+        continue;
+      }
 
       const prompt = buildEntityProposalPrompt(entity, allClaims, entityType);
       const result = await entityProposalAgent.generate(prompt);

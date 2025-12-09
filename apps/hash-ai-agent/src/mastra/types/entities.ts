@@ -1,3 +1,5 @@
+import { z } from "zod";
+
 /**
  * Entity types for Mastra-based entity extraction
  *
@@ -7,65 +9,82 @@
  * - /libs/@local/hash-isomorphic-utils/src/flows/types.ts (ProposedEntity)
  */
 
-import { z } from "zod";
+export const zSourceProvenance = z
+  .object({
+    location: z.object({
+      uri: z.url().meta({ description: "URI of the source location" }),
+      name: z.string().optional().meta({ description: "Name of the source" }),
+    }),
+    loadedAt: z
+      .iso.datetime()
+      .optional()
+      .meta({ description: "Timestamp when the source was loaded" }),
+    contentType: z
+      .string()
+      .optional()
+      .meta({ description: "MIME type of the source file/document" }),
+  })
+  .meta({ description: "Source provenance tracking for entity data" });
 
-/**
- * Source provenance tracking for entity data
- */
-export const SourceProvenanceSchema = z.object({
-  location: z.object({
-    uri: z.string().url(),
-    name: z.string().optional(),
-  }),
-  loadedAt: z.string().datetime().optional(),
-  /**
-   * The MIME type of the source file/document
-   */
-  contentType: z.string().optional(),
-});
+export type SourceProvenance = z.infer<typeof zSourceProvenance>;
 
-export type SourceProvenance = z.infer<typeof SourceProvenanceSchema>;
+export const zLocalEntitySummary = z
+  .object({
+    localId: z.string().meta({ description: "Local identifier for the entity" }),
+    name: z
+      .string()
+      .meta({ description: "The entity name as it appears in text" }),
+    summary: z
+      .string()
+      .meta({ description: "Brief one-sentence description of the entity" }),
+    entityTypeIds: z
+      .array(z.string())
+      .min(1)
+      .meta({
+        description: "One or more entity type identifiers (versioned URLs)",
+      }),
+  })
+  .meta({
+    description:
+      "Local entity summary from Named Entity Recognition (Step 1). Represents an entity identified in text.",
+  });
 
-/**
- * Local entity summary (Step 1: Named Entity Recognition)
- *
- * Represents an entity identified in text with:
- * - name: The entity name as it appears in text
- * - summary: Brief one-sentence description
- * - entityTypeIds: One or more entity type identifiers (versioned URLs)
- */
-export const LocalEntitySummarySchema = z.object({
-  localId: z.string(),
-  name: z.string(),
-  summary: z.string(),
-  entityTypeIds: z.array(z.string()).min(1),
-});
+export type LocalEntitySummary = z.infer<typeof zLocalEntitySummary>;
 
-export type LocalEntitySummary = z.infer<typeof LocalEntitySummarySchema>;
+export const zClaim = z
+  .object({
+    claimId: z.string().meta({ description: "Unique identifier for the claim" }),
+    subjectEntityLocalId: z
+      .string()
+      .meta({ description: "The entity this claim is about" }),
+    objectEntityLocalId: z
+      .string()
+      .nullable()
+      .optional()
+      .meta({ description: "Optional target entity for relationships" }),
+    text: z.string().meta({
+      description:
+        'Claim in "Subject predicate object" form (e.g., "OpenAI released GPT-4")',
+    }),
+    prepositionalPhrases: z
+      .array(z.string())
+      .meta({
+        description:
+          'Additional context phrases (e.g., ["in March 2023", "for research"])',
+      }),
+    sources: z
+      .array(zSourceProvenance)
+      .optional()
+      .meta({ description: "Source provenance for the claim" }),
+  })
+  .meta({
+    description:
+      "Claim from Claim Extraction (Step 2). Represents a fact/assertion about an entity.",
+  });
 
-/**
- * Claim (Step 2: Claim Extraction)
- *
- * Represents a fact/assertion about an entity:
- * - text: "Subject predicate object" form (e.g., "OpenAI released GPT-4")
- * - prepositionalPhrases: Additional context (e.g., ["in March 2023", "for research"])
- * - subjectEntityLocalId: The entity this claim is about
- * - objectEntityLocalId: Optional target entity (for relationships)
- */
-export const ClaimSchema = z.object({
-  claimId: z.string(),
-  subjectEntityLocalId: z.string(),
-  objectEntityLocalId: z.string().nullable().optional(),
-  text: z.string(),
-  prepositionalPhrases: z.array(z.string()),
-  sources: z.array(SourceProvenanceSchema).optional(),
-});
+export type Claim = z.infer<typeof zClaim>;
 
-export type Claim = z.infer<typeof ClaimSchema>;
-
-/**
- * Helper to format claim text with prepositional phrases
- */
+/** Helper to format claim text with prepositional phrases */
 export const claimTextualContent = (claim: Claim): string =>
   `${claim.text}${
     claim.prepositionalPhrases.length
@@ -73,138 +92,192 @@ export const claimTextualContent = (claim: Claim): string =>
       : ""
   }`;
 
-/**
- * Property metadata for tracking provenance per property
- */
-export const PropertyMetadataSchema = z.object({
-  value: z.record(
-    z.object({
-      metadata: z.object({
-        dataTypeId: z.string().nullable().optional(),
-        provenance: z
-          .object({
-            sources: z.array(SourceProvenanceSchema),
-          })
-          .optional(),
+export const zPropertyMetadata = z
+  .object({
+    value: z.record(
+      z.string(),
+      z.object({
+        metadata: z.object({
+          dataTypeId: z
+            .string()
+            .nullable()
+            .optional()
+            .meta({ description: "Data type identifier for the property" }),
+          provenance: z
+            .object({
+              sources: z
+                .array(zSourceProvenance)
+                .meta({ description: "Sources for this property value" }),
+            })
+            .optional()
+            .meta({ description: "Provenance information for the property" }),
+        }),
       }),
+    ),
+  })
+  .meta({ description: "Property metadata for tracking provenance per property" });
+
+export type PropertyMetadata = z.infer<typeof zPropertyMetadata>;
+
+export const zLocalOrExistingEntityId = z
+  .union([
+    z.object({
+      kind: z.literal("proposed-entity"),
+      localId: z
+        .string()
+        .meta({ description: "Local ID of the proposed entity" }),
     }),
-  ),
-});
+    z.object({
+      kind: z.literal("existing-entity"),
+      entityId: z
+        .string()
+        .meta({ description: "ID of the existing entity" }),
+    }),
+  ])
+  .meta({
+    description:
+      "Local or existing entity ID reference. Used for link entities (source/target).",
+  });
 
-export type PropertyMetadata = z.infer<typeof PropertyMetadataSchema>;
+export type LocalOrExistingEntityId = z.infer<typeof zLocalOrExistingEntityId>;
 
-/**
- * Local or existing entity ID reference
- * Used for link entities (source/target)
- */
-export const LocalOrExistingEntityIdSchema = z.union([
-  z.object({
-    kind: z.literal("proposed-entity"),
-    localId: z.string(),
-  }),
-  z.object({
-    kind: z.literal("existing-entity"),
-    entityId: z.string(),
-  }),
-]);
-
-export type LocalOrExistingEntityId = z.infer<
-  typeof LocalOrExistingEntityIdSchema
->;
-
-/**
- * Entity edition provenance
- */
-export const ProvidedEntityEditionProvenanceSchema = z.object({
-  actorType: z.enum(["ai", "human", "machine"]),
-  origin: z.object({
-    type: z.enum(["flow", "api", "migration"]),
-    id: z.string().optional(),
-  }),
-  sources: z.array(SourceProvenanceSchema).optional(),
-});
+export const zProvidedEntityEditionProvenance = z
+  .object({
+    actorType: z
+      .enum(["ai", "human", "machine"])
+      .meta({ description: "Type of actor that created/modified this entity" }),
+    origin: z.object({
+      type: z
+        .enum(["flow", "api", "migration"])
+        .meta({ description: "Origin type of the entity edition" }),
+      id: z
+        .string()
+        .optional()
+        .meta({ description: "Identifier for the origin" }),
+    }),
+    sources: z
+      .array(zSourceProvenance)
+      .optional()
+      .meta({ description: "Source provenance for this edition" }),
+  })
+  .meta({ description: "Entity edition provenance information" });
 
 export type ProvidedEntityEditionProvenance = z.infer<
-  typeof ProvidedEntityEditionProvenanceSchema
+  typeof zProvidedEntityEditionProvenance
 >;
 
-/**
- * Proposed Entity (Step 3: Full Entity with Properties)
- *
- * Represents a complete entity with:
- * - properties: Key-value property data
- * - propertyMetadata: Provenance tracking per property
- * - claims: Associated claims (with provenance to source)
- * - entityTypeIds: One or more entity types
- * - sourceEntityId/targetEntityId: For link entities
- */
-export const ProposedEntitySchema = z.object({
-  localEntityId: z.string(),
-  entityTypeIds: z.array(z.string()).min(1),
-  properties: z.record(z.unknown()),
-  propertyMetadata: PropertyMetadataSchema,
-  provenance: ProvidedEntityEditionProvenanceSchema,
-  claims: z.object({
-    isSubjectOf: z.array(z.string()),
-    isObjectOf: z.array(z.string()),
-  }),
-  summary: z.string().optional(),
-  sourceEntityId: LocalOrExistingEntityIdSchema.optional(),
-  targetEntityId: LocalOrExistingEntityIdSchema.optional(),
-});
+export const zProposedEntity = z
+  .object({
+    localEntityId: z
+      .string()
+      .meta({ description: "Local identifier for this proposed entity" }),
+    entityTypeIds: z
+      .array(z.string())
+      .min(1)
+      .meta({ description: "One or more entity type identifiers" }),
+    properties: z
+      .record(z.string(), z.unknown())
+      .meta({ description: "Key-value property data" }),
+    propertyMetadata: zPropertyMetadata.meta({
+      description: "Provenance tracking per property",
+    }),
+    provenance: zProvidedEntityEditionProvenance,
+    claims: z.object({
+      isSubjectOf: z
+        .array(z.string())
+        .meta({ description: "Claim IDs where this entity is the subject" }),
+      isObjectOf: z
+        .array(z.string())
+        .meta({ description: "Claim IDs where this entity is the object" }),
+    }),
+    summary: z
+      .string()
+      .optional()
+      .meta({ description: "Brief summary of the entity" }),
+    sourceEntityId: zLocalOrExistingEntityId
+      .optional()
+      .meta({ description: "Source entity ID for link entities" }),
+    targetEntityId: zLocalOrExistingEntityId
+      .optional()
+      .meta({ description: "Target entity ID for link entities" }),
+  })
+  .meta({
+    description:
+      "Proposed Entity (Step 3). A complete entity with properties, metadata, claims, and optional link data.",
+  });
 
-export type ProposedEntity = z.infer<typeof ProposedEntitySchema>;
+export type ProposedEntity = z.infer<typeof zProposedEntity>;
 
-/**
- * Proposed entity with resolved link data
- */
-export const ProposedEntityWithResolvedLinksSchema = ProposedEntitySchema.omit({
-  sourceEntityId: true,
-  targetEntityId: true,
-}).extend({
-  linkData: z
-    .object({
-      leftEntityId: z.string(),
-      rightEntityId: z.string(),
-    })
-    .optional(),
-});
+export const zProposedEntityWithResolvedLinks = zProposedEntity
+  .omit({
+    sourceEntityId: true,
+    targetEntityId: true,
+  })
+  .extend({
+    linkData: z
+      .object({
+        leftEntityId: z
+          .string()
+          .meta({ description: "Resolved left entity ID" }),
+        rightEntityId: z
+          .string()
+          .meta({ description: "Resolved right entity ID" }),
+      })
+      .optional()
+      .meta({ description: "Resolved link data with actual entity IDs" }),
+  })
+  .meta({ description: "Proposed entity with resolved link data" });
 
 export type ProposedEntityWithResolvedLinks = z.infer<
-  typeof ProposedEntityWithResolvedLinksSchema
+  typeof zProposedEntityWithResolvedLinks
 >;
 
-/**
- * Persisted entity result
- */
-export const PersistedEntitySchema = z.object({
-  entity: z.unknown().optional(), // SerializedEntity from hash-graph-sdk
-  existingEntity: z.unknown().optional(), // SerializedEntity
-  operation: z.enum(["create", "update", "already-exists-as-proposed"]),
-});
+export const zPersistedEntity = z
+  .object({
+    entity: z
+      .unknown()
+      .optional()
+      .meta({ description: "The persisted entity (SerializedEntity)" }),
+    existingEntity: z
+      .unknown()
+      .optional()
+      .meta({ description: "Existing entity if found (SerializedEntity)" }),
+    operation: z
+      .enum(["create", "update", "already-exists-as-proposed"])
+      .meta({ description: "Operation performed on the entity" }),
+  })
+  .meta({ description: "Result of persisting an entity" });
 
-export type PersistedEntity = z.infer<typeof PersistedEntitySchema>;
+export type PersistedEntity = z.infer<typeof zPersistedEntity>;
 
-/**
- * Failed entity proposal
- */
-export const FailedEntityProposalSchema = z.object({
-  existingEntity: z.unknown().optional(),
-  operation: z
-    .enum(["create", "update", "already-exists-as-proposed"])
-    .optional(),
-  proposedEntity: ProposedEntityWithResolvedLinksSchema,
-  message: z.string(),
-});
+export const zFailedEntityProposal = z
+  .object({
+    existingEntity: z
+      .unknown()
+      .optional()
+      .meta({ description: "Existing entity if found" }),
+    operation: z
+      .enum(["create", "update", "already-exists-as-proposed"])
+      .optional()
+      .meta({ description: "Attempted operation" }),
+    proposedEntity: zProposedEntityWithResolvedLinks.meta({
+      description: "The entity that failed to persist",
+    }),
+    message: z.string().meta({ description: "Error message explaining failure" }),
+  })
+  .meta({ description: "Failed entity proposal with error details" });
 
-export type FailedEntityProposal = z.infer<typeof FailedEntityProposalSchema>;
+export type FailedEntityProposal = z.infer<typeof zFailedEntityProposal>;
 
-/**
- * Batch result of persisted entities
- */
-export const PersistedEntitiesSchema = z.object({
-  persistedEntities: z.array(PersistedEntitySchema),
-  failedEntityProposals: z.array(FailedEntityProposalSchema),
-});
+export const zPersistedEntities = z
+  .object({
+    persistedEntities: z
+      .array(zPersistedEntity)
+      .meta({ description: "Successfully persisted entities" }),
+    failedEntityProposals: z
+      .array(zFailedEntityProposal)
+      .meta({ description: "Entity proposals that failed to persist" }),
+  })
+  .meta({ description: "Batch result of entity persistence operations" });
 
-export type PersistedEntities = z.infer<typeof PersistedEntitiesSchema>;
+export type PersistedEntities = z.infer<typeof zPersistedEntities>;
