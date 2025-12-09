@@ -22,8 +22,8 @@ describe("SimulationStore", () => {
         id: "diffeq1",
         name: "Differential Equation 1",
         colorId: "type1",
-        code: `export default Dynamics((placeValues) => {
-          return { x: 1, y: 1 };
+        code: `export default Dynamics((tokens, parameters) => {
+          return tokens;
         });`,
       },
     ],
@@ -31,7 +31,7 @@ describe("SimulationStore", () => {
     places: [
       {
         id: "p1",
-        name: "Place 1",
+        name: "Place1",
         colorId: "type1",
         dynamicsEnabled: true,
         differentialEquationId: "diffeq1",
@@ -42,13 +42,16 @@ describe("SimulationStore", () => {
     transitions: [
       {
         id: "t1",
-        name: "Transition 1",
+        name: "TransitionOne",
         inputArcs: [{ placeId: "p1", weight: 1 }],
         outputArcs: [{ placeId: "p1", weight: 1 }],
         lambdaType: "stochastic",
-        lambdaCode: "export default Lambda((tokens) => { return 0.5; });",
-        transitionKernelCode:
-          "export default TransitionKernel((tokens) => { return [[[10.0, 20.0]]]; });",
+        lambdaCode: `export default Lambda((input, parameters) => { return 0.5; });`,
+        transitionKernelCode: `export default TransitionKernel((input, parameters) => {
+          return {
+            Place1: [input.Place1[0]]
+          };
+        });`,
         x: 100,
         y: 0,
       },

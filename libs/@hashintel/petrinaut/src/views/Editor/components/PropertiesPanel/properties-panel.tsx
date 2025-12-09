@@ -10,6 +10,7 @@ import { TransitionProperties } from "./transition-properties";
 import { TypeProperties } from "./type-properties";
 
 const startingWidth = 450;
+const PANEL_MARGIN = 12;
 
 /**
  * PropertiesPanel displays properties and controls for the selected node/edge.
@@ -19,6 +20,15 @@ export const PropertiesPanel: React.FC = () => {
     (state) => state.selectedResourceId,
   );
   const globalMode = useEditorStore((state) => state.globalMode);
+  const setPropertiesPanelWidth = useEditorStore(
+    (state) => state.setPropertiesPanelWidth,
+  );
+  const isDiagnosticsPanelOpen = useEditorStore(
+    (state) => state.isDiagnosticsPanelOpen,
+  );
+  const diagnosticsPanelHeight = useEditorStore(
+    (state) => state.diagnosticsPanelHeight,
+  );
 
   const {
     getItemType,
@@ -32,10 +42,27 @@ export const PropertiesPanel: React.FC = () => {
   } = useSDCPNContext();
 
   // Resize functionality
-  const [panelWidth, setPanelWidth] = useState(startingWidth);
+  const [panelWidth, setPanelWidthLocal] = useState(startingWidth);
   const [isResizing, setIsResizing] = useState(false);
   const resizeStartXRef = useRef(0);
   const resizeStartWidthRef = useRef(startingWidth);
+
+  // Sync panel width with global store
+  const setPanelWidth = useCallback(
+    (width: number | ((prev: number) => number)) => {
+      setPanelWidthLocal((prev) => {
+        const newWidth = typeof width === "function" ? width(prev) : width;
+        setPropertiesPanelWidth(newWidth);
+        return newWidth;
+      });
+    },
+    [setPropertiesPanelWidth],
+  );
+
+  // Initialize store with starting width
+  useEffect(() => {
+    setPropertiesPanelWidth(startingWidth);
+  }, [setPropertiesPanelWidth]);
 
   const handleResizeStart = useCallback(
     (event: React.MouseEvent) => {
@@ -60,7 +87,7 @@ export const PropertiesPanel: React.FC = () => {
       );
       setPanelWidth(newWidth);
     },
-    [isResizing],
+    [isResizing, setPanelWidth],
   );
 
   const handleResizeEnd = useCallback(() => {
@@ -205,6 +232,12 @@ export const PropertiesPanel: React.FC = () => {
       );
   }
 
+  // Calculate bottom offset based on diagnostics panel visibility
+  // Gap between PropertiesPanel and DiagnosticsPanel matches gap between LeftSideBar and DiagnosticsPanel
+  const bottomOffset = isDiagnosticsPanelOpen
+    ? diagnosticsPanelHeight + PANEL_MARGIN
+    : 0;
+
   return (
     <div
       style={{
@@ -212,9 +245,8 @@ export const PropertiesPanel: React.FC = () => {
         position: "fixed",
         top: 0,
         right: 0,
-        bottom: 0,
+        bottom: bottomOffset,
         padding: "12px",
-        height: "100%",
         zIndex: 1000,
         pointerEvents: "none",
       }}
@@ -250,7 +282,7 @@ export const PropertiesPanel: React.FC = () => {
             background: "transparent",
             border: "none",
             padding: 0,
-            borderRadius: "16px 0 0 16px",
+            borderRadius: "12px 0 0 12px",
             backgroundColor: "transparent",
             transition: "background-color 0.4s",
             transitionDelay: "0.2s",
@@ -259,15 +291,15 @@ export const PropertiesPanel: React.FC = () => {
 
         <div
           className={css({
-            borderRadius: "[16px]",
+            borderRadius: "[12px]",
             height: "[100%]",
             width: "[100%]",
             backgroundColor: "[rgba(255, 255, 255, 0.7)]",
-            boxShadow: "0 4px 30px rgba(0, 0, 0, 0.15)",
-            border: "1px solid rgba(255, 255, 255, 0.3)",
+            boxShadow: "[0 3px 13px rgba(0, 0, 0, 0.1)]",
+            border: "[1px solid rgba(255, 255, 255, 0.8)]",
           })}
           style={{
-            borderRadius: 16,
+            borderRadius: 12,
             overflow: "hidden",
           }}
         >
@@ -275,7 +307,7 @@ export const PropertiesPanel: React.FC = () => {
               otherwise Monaco's Hover Widget do not show */}
           <div
             style={{
-              borderRadius: 16,
+              borderRadius: 12,
               position: "absolute",
               top: 0,
               left: 0,

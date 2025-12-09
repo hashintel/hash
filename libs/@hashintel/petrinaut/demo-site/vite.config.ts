@@ -9,6 +9,10 @@ export default defineConfig({
       },
     }),
   ],
+  define: {
+    // Provide minimal process shim for TypeScript language service in browser
+    "process.versions": JSON.stringify({ pnp: undefined }),
+  },
   optimizeDeps: {
     include: ["@babel/standalone"],
   },
