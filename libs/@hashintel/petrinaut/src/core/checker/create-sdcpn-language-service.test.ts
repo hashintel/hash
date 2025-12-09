@@ -8,12 +8,13 @@ describe("createSDCPNLanguageService", () => {
     it("returns no errors for valid code accessing defined token properties", () => {
       // GIVEN
       const sdcpn = createSDCPN({
-        types: [{ id: "color1", elements: [{ elementId: "x", type: "real" }] }],
+        types: [{ id: "color1", elements: [{ name: "x", type: "real" }] }],
         differentialEquations: [
           {
             colorId: "color1",
             code: `export default Dynamics((tokens, parameters) => {
               const value = tokens[0].x;
+              return tokens;
             });`,
           },
         ],
@@ -36,7 +37,7 @@ describe("createSDCPNLanguageService", () => {
         types: [
           {
             id: "color1",
-            elements: [{ elementId: "x", type: "real" }],
+            elements: [{ name: "x", type: "real" }],
           },
         ],
         parameters: [
@@ -49,6 +50,7 @@ describe("createSDCPNLanguageService", () => {
             code: `export default Dynamics((tokens, parameters) => {
               const a = parameters.alpha;
               const e = parameters.enabled;
+              return tokens;
             });`,
           },
         ],
@@ -71,7 +73,7 @@ describe("createSDCPNLanguageService", () => {
         types: [
           {
             id: "color1",
-            elements: [{ elementId: "x", type: "real" }],
+            elements: [{ name: "x", type: "real" }],
           },
         ],
         differentialEquations: [
@@ -79,6 +81,7 @@ describe("createSDCPNLanguageService", () => {
             colorId: "color1",
             code: `export default Dynamics((tokens, parameters) => {
               const value = tokens[0].undefinedProperty;
+              return tokens;
             });`,
           },
         ],
@@ -108,7 +111,7 @@ describe("createSDCPNLanguageService", () => {
         types: [
           {
             id: "color1",
-            elements: [{ elementId: "x", type: "real" }],
+            elements: [{ name: "x", type: "real" }],
           },
         ],
         parameters: [{ id: "p1", variableName: "alpha", type: "real" }],
@@ -117,6 +120,7 @@ describe("createSDCPNLanguageService", () => {
             colorId: "color1",
             code: `export default Dynamics((tokens, parameters) => {
               const value = parameters.undefinedParam;
+              return tokens;
             });`,
           },
         ],
@@ -178,8 +182,8 @@ describe("createSDCPNLanguageService", () => {
           {
             id: "color1",
             elements: [
-              { elementId: "x", type: "real" },
-              { elementId: "y", type: "real" },
+              { name: "x", type: "real" },
+              { name: "y", type: "real" },
             ],
           },
         ],
@@ -213,7 +217,7 @@ describe("createSDCPNLanguageService", () => {
         types: [
           {
             id: "color1",
-            elements: [{ elementId: "x", type: "real" }],
+            elements: [{ name: "x", type: "real" }],
           },
         ],
         parameters: [

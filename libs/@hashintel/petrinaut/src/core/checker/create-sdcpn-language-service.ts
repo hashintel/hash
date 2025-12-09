@@ -46,18 +46,20 @@ function generateVirtualFiles(sdcpn: SDCPN): Map<string, VirtualFile> {
     // Type definitions file
     files.set(`differential_equations/${de.id}/defs.d.ts`, {
       content: [
+        `import type { Parameters } from "../../parameters/defs.d.ts";`,
         `import type { Color_${de.colorId} } from "../../colors/${de.colorId}/defs.d.ts";`,
-        `export type Tokens = Array<Color_${de.colorId}>;`,
+        ``,
+        `type Tokens = Array<Color_${de.colorId}>;`,
+        `export type Dynamics = (fn: (tokens: Tokens, parameters: Parameters) => Tokens) => void;`,
       ].join("\n"),
     });
 
     // User code file with injected declarations
     files.set(`differential_equations/${de.id}/code.ts`, {
       prefix: [
-        `import type { Parameters } from "../../parameters/defs.d.ts";`,
-        `import type { Tokens } from "./defs.d.ts";`,
-        // TODO: Directly wrap user code in Dynamics call to remove need for user to do it.
-        `declare function Dynamics(fn: (tokens: Tokens, parameters: Parameters) => void ): void;`,
+        `import type { Dynamics } from "./defs.d.ts";`,
+        // TODO: Directly wrap user code in Dynamics call to remove need for user to write it.
+        `declare const Dynamics: Dynamics;`,
         "",
       ].join("\n"),
       content: de.code,
