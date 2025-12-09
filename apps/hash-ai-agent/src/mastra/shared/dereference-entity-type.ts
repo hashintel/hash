@@ -31,16 +31,16 @@ import { generateSimplifiedTypeId } from "./generate-simplified-type-id.js";
 
 type MinimalDataType = DistributiveOmit<DataType, "$schema" | "kind" | "allOf">;
 
-export type MinimalPropertyObject = PropertyValueObject<
+type MinimalPropertyObject = PropertyValueObject<
   ValueOrArray<DereferencedPropertyType>
 > & { additionalProperties: false };
 
-export type MinimalPropertyTypeValue =
+type MinimalPropertyTypeValue =
   | MinimalDataType
   | MinimalPropertyObject
   | PropertyValueArray<OneOfSchema<MinimalPropertyTypeValue>>;
 
-export type DereferencedPropertyType = Pick<
+type DereferencedPropertyType = Pick<
   PropertyType,
   "$id" | "description" | "title"
 > &
@@ -52,18 +52,17 @@ export type DereferencedPropertyType = Pick<
  * If the dereference function is called with `simplifyPropertyKeys` set to `true`, the property keys in the schema
  * will be simplified from BaseUrls to simple strings. The mapping back to BaseUrls is returned from the function
  */
-export type DereferencedEntityType<
-  PropertyTypeKey extends string | BaseUrl = BaseUrl,
-> = Pick<
-  EntityType,
-  "$id" | "description" | "links" | "required" | "title" | "labelProperty"
-> & {
+interface DereferencedEntityType<K extends string | BaseUrl = BaseUrl>
+  extends Pick<
+    EntityType,
+    "$id" | "description" | "links" | "required" | "title" | "labelProperty"
+  > {
   properties: Record<
-    PropertyTypeKey,
+    K,
     DereferencedPropertyType | PropertyValueArray<DereferencedPropertyType>
   >;
   additionalProperties: false;
-};
+}
 
 export type DereferencedEntityTypeWithSimplifiedKeys = {
   isLink: boolean;

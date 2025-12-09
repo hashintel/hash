@@ -1,3 +1,12 @@
+import { createTool } from "@mastra/core/tools";
+import { z } from "zod";
+
+import {
+  availableEntityTypeIds,
+  getDereferencedEntityTypes as getFromFixtures,
+} from "../fixtures/entity-types/index.js";
+import type { DereferencedEntityTypeWithSimplifiedKeys } from "../shared/dereference-entity-type.js";
+
 /**
  * Tool: Get Dereferenced Entity Types
  *
@@ -8,58 +17,78 @@
  * a self-contained schema that LLMs can understand without external references.
  */
 
-import { createTool } from "@mastra/core/tools";
-import { z } from "zod";
+const zDereferencedPropertyType = z
+  .object({
+    $id: z.string().meta({ description: "Property type identifier URL" }),
+    title: z.string().meta({ description: "Human-readable property name" }),
+    description: z
+      .string()
+      .optional()
+      .meta({ description: "Property description" }),
+    oneOf: z
+      .array(z.unknown())
+      .meta({ description: "Allowed data type variants for this property" }),
+  })
+  .meta({ description: "A dereferenced property type schema" });
 
-import {
-  getDereferencedEntityTypes as getFromFixtures,
-  availableEntityTypeIds,
-} from "../fixtures/entity-types/index.js";
-import type { DereferencedEntityTypeWithSimplifiedKeys } from "../shared/dereference-entity-type.js";
+const zDereferencedEntityType = z
+  .object({
+    $id: z.string().meta({ description: "Entity type identifier URL" }),
+    title: z.string().meta({ description: "Human-readable entity type name" }),
+    description: z
+      .string()
+      .optional()
+      .meta({ description: "Entity type description" }),
+    labelProperty: z
+      .string()
+      .optional()
+      .meta({ description: "Property key used as the entity label" }),
+    links: z
+      .record(z.string(), z.unknown())
+      .optional()
+      .meta({ description: "Link type definitions for this entity type" }),
+    properties: z
+      .record(
+        z.string(),
+        z.union([
+          zDereferencedPropertyType,
+          z.object({
+            type: z.literal("array"),
+            items: zDereferencedPropertyType,
+            minItems: z.number().optional(),
+            maxItems: z.number().optional(),
+          }),
+        ]),
+      )
+      .meta({ description: "Property definitions (single or array)" }),
+    additionalProperties: z.literal(false),
+  })
+  .meta({ description: "Schema portion of a dereferenced entity type" });
 
-/**
- * Zod schema for a dereferenced property type
- */
-const DereferencedPropertyTypeSchema = z.object({
-  $id: z.string(),
-  title: z.string(),
-  description: z.string().optional(),
-  oneOf: z.array(z.unknown()),
-});
-
-/**
- * Zod schema for a dereferenced entity type's schema portion
- */
-const DereferencedEntityTypeSchemaSchema = z.object({
-  $id: z.string(),
-  title: z.string(),
-  description: z.string().optional(),
-  labelProperty: z.string().optional(),
-  links: z.record(z.unknown()).optional(),
-  properties: z.record(
-    z.union([
-      DereferencedPropertyTypeSchema,
-      z.object({
-        type: z.literal("array"),
-        items: DereferencedPropertyTypeSchema,
-        minItems: z.number().optional(),
-        maxItems: z.number().optional(),
+export const zDereferencedEntityTypeWithSimplifiedKeys = z
+  .object({
+    isLink: z
+      .boolean()
+      .meta({ description: "Whether this entity type is a link type" }),
+    parentIds: z
+      .array(z.string())
+      .meta({ description: "Parent entity type IDs this type inherits from" }),
+    schema: zDereferencedEntityType.meta({
+      description: "The dereferenced entity type schema",
+    }),
+    simplifiedPropertyTypeMappings: z.record(z.string(), z.string()).meta({
+      description: "Map from simplified property keys to full property URLs",
+    }),
+    reverseSimplifiedPropertyTypeMappings: z
+      .record(z.string(), z.string())
+      .meta({
+        description: "Map from full property URLs to simplified property keys",
       }),
-    ]),
-  ),
-  additionalProperties: z.literal(false),
-});
-
-/**
- * Zod schema for the full dereferenced entity type with mappings
- */
-export const DereferencedEntityTypeWithSimplifiedKeysSchema = z.object({
-  isLink: z.boolean(),
-  parentIds: z.array(z.string()),
-  schema: DereferencedEntityTypeSchemaSchema,
-  simplifiedPropertyTypeMappings: z.record(z.string()),
-  reverseSimplifiedPropertyTypeMappings: z.record(z.string()),
-});
+  })
+  .meta({
+    description:
+      "Full dereferenced entity type with simplified key mappings for LLM consumption",
+  });
 
 /**
  * Tool to retrieve dereferenced entity types by their IDs
@@ -73,23 +102,25 @@ export const getDereferencedEntityTypesTool = createTool({
   description:
     "Retrieve dereferenced entity type schemas for a list of entity type IDs. Returns self-contained JSON schemas with all $ref pointers resolved.",
   inputSchema: z.object({
-    entityTypeIds: z
-      .array(z.string())
-      .min(1)
-      .describe(
+    entityTypeIds: z.array(z.string()).min(1).meta({
+      description:
         "Array of versioned entity type URLs (e.g., https://hash.ai/@h/types/entity-type/person/v/1)",
-      ),
-    useFixtures: z
-      .boolean()
-      .default(true)
-      .describe(
+    }),
+    useFixtures: z.boolean().default(true).meta({
+      description:
         "Whether to use fixture data (default: true). Set to false for production Graph API calls.",
-      ),
+    }),
   }),
   outputSchema: z.object({
-    dereferencedTypes: z.record(DereferencedEntityTypeWithSimplifiedKeysSchema),
-    foundTypeIds: z.array(z.string()),
-    missingTypeIds: z.array(z.string()),
+    dereferencedTypes: z
+      .record(z.string(), zDereferencedEntityTypeWithSimplifiedKeys)
+      .meta({ description: "Map of entity type ID to dereferenced schema" }),
+    foundTypeIds: z
+      .array(z.string())
+      .meta({ description: "Entity type IDs that were found" }),
+    missingTypeIds: z
+      .array(z.string())
+      .meta({ description: "Entity type IDs that were not found" }),
   }),
   execute: async ({ entityTypeIds, useFixtures = true }) => {
     if (useFixtures) {
@@ -97,14 +128,15 @@ export const getDereferencedEntityTypesTool = createTool({
       const dereferencedTypes = getFromFixtures(entityTypeIds);
       const foundTypeIds = Object.keys(dereferencedTypes);
       const missingTypeIds = entityTypeIds.filter(
+        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
         (id) => !dereferencedTypes[id],
       );
 
-      return {
+      return Promise.resolve({
         dereferencedTypes,
         foundTypeIds,
         missingTypeIds,
-      };
+      });
     }
 
     // Production mode: would call Graph API here
