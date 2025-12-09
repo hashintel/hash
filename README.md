@@ -26,6 +26,9 @@
 
 # HASH
 
+[![Run in Smithery](https://smithery.ai/badge/skills/hashintel)](https://smithery.ai/skills?ns=hashintel&utm_source=github&utm_medium=badge)
+
+
 This is HASH's _public monorepo_ which contains our public code, docs, and other key resources.
 
 ## [![a](/.github/assets/gh_icon_what-is-hash_20px-base.svg)][gh-what-is-hash] &nbsp; What is HASH?
