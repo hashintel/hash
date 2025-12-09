@@ -21,6 +21,15 @@ function toTsType(type: "real" | "integer" | "boolean"): string {
 function generateVirtualFiles(sdcpn: SDCPN): Map<string, VirtualFile> {
   const files = new Map<string, VirtualFile>();
 
+  // Generate parameters type definition
+  const parametersProperties = sdcpn.parameters
+    .map((param) => `  "${param.variableName}": ${toTsType(param.type)};`)
+    .join("\n");
+
+  files.set("parameters/defs.d.ts", {
+    content: `export type Parameters = {\n${parametersProperties}\n};`,
+  });
+
   // Generate type definitions for each color
   for (const color of sdcpn.types) {
     const properties = color.elements
@@ -45,8 +54,10 @@ function generateVirtualFiles(sdcpn: SDCPN): Map<string, VirtualFile> {
     // User code file with injected declarations
     files.set(`differential_equations/${de.id}/code.ts`, {
       prefix: [
+        `import type { Parameters } from "../../parameters/defs.d.ts";`,
         `import type { Tokens } from "./defs.d.ts";`,
-        `declare const tokens: Tokens;`,
+        // TODO: Directly wrap user code in Dynamics call to remove need for user to do it.
+        `declare function Dynamics(fn: (tokens: Tokens, parameters: Parameters) => void ): void;`,
         "",
       ].join("\n"),
       content: de.code,
@@ -80,7 +91,7 @@ export function createSDCPNLanguageService(sdcpn: SDCPN): SDCPNLanguageService {
   const host = createLanguageServiceHost(files);
   const baseService = ts.createLanguageService(host);
 
-  // Wrap service to adjust positions for injected prefixes
+  // Proxy service to adjust positions for injected prefixes
   return {
     ...baseService,
 

@@ -2,7 +2,7 @@ import * as ts from "typescript";
 import libEs2015Core from "typescript/lib/lib.es2015.core.d.ts?raw";
 import libEs5 from "typescript/lib/lib.es5.d.ts?raw";
 
-/** Bundled TypeScript lib files for browser compatibility */
+/** Bundled TypeScript lib files */
 const BUNDLED_LIBS: Record<string, string> = {
   "lib.es5.d.ts": libEs5,
   "lib.es2015.core.d.ts": libEs2015Core,
@@ -23,7 +23,11 @@ export type VirtualFile = {
   content: string;
 };
 
-/** Creates a TypeScript LanguageServiceHost for virtual SDCPN files */
+/**
+ * @private Used by `createSDCPNLanguageService`.
+ *
+ * Creates a TypeScript LanguageServiceHost for virtual SDCPN files
+ */
 export function createLanguageServiceHost(
   files: Map<string, VirtualFile>,
 ): ts.LanguageServiceHost {
@@ -55,36 +59,6 @@ export function createLanguageServiceHost(
 
     readFile(path: string) {
       return getFileContent(path);
-    },
-
-    // Custom module resolution for virtual files
-    resolveModuleNames(moduleNames: string[], containingFile: string) {
-      return moduleNames.map((moduleName) => {
-        if (!moduleName.startsWith(".")) {
-          return undefined;
-        }
-
-        // Resolve relative path
-        const dir = containingFile.substring(
-          0,
-          containingFile.lastIndexOf("/"),
-        );
-        const parts = [...dir.split("/"), ...moduleName.split("/")];
-        const resolved: string[] = [];
-
-        for (const part of parts) {
-          if (part === "..") {
-            resolved.pop();
-          } else if (part !== ".") {
-            resolved.push(part);
-          }
-        }
-
-        const resolvedPath = resolved.join("/");
-        return files.has(resolvedPath)
-          ? { resolvedFileName: resolvedPath, isExternalLibraryImport: false }
-          : undefined;
-      });
     },
   };
 }
