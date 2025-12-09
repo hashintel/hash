@@ -21,6 +21,10 @@ function toTsType(type: "real" | "integer" | "boolean"): string {
 function generateVirtualFiles(sdcpn: SDCPN): Map<string, VirtualFile> {
   const files = new Map<string, VirtualFile>();
 
+  // Build lookup maps for places and types
+  const placeById = new Map(sdcpn.places.map((place) => [place.id, place]));
+  const colorById = new Map(sdcpn.types.map((color) => [color.id, color]));
+
   // Generate parameters type definition
   const parametersProperties = sdcpn.parameters
     .map((param) => `  "${param.variableName}": ${toTsType(param.type)};`)
@@ -63,6 +67,112 @@ function generateVirtualFiles(sdcpn: SDCPN): Map<string, VirtualFile> {
         "",
       ].join("\n"),
       content: de.code,
+    });
+  }
+
+  // Generate files for each transition
+  for (const transition of sdcpn.transitions) {
+    // Build input type: { [placeName]: [Token, Token, ...] } based on input arcs
+    const inputTypeImports: string[] = [];
+    const inputTypeProperties: string[] = [];
+
+    for (const arc of transition.inputArcs) {
+      const place = placeById.get(arc.placeId);
+      if (!place?.colorId) {
+        continue;
+      }
+      const color = colorById.get(place.colorId);
+      if (!color) {
+        continue;
+      }
+
+      inputTypeImports.push(
+        `import type { Color_${color.id} } from "../../colors/${color.id}/defs.d.ts";`,
+      );
+      const tokenTuple = Array.from({ length: arc.weight })
+        .fill(`Color_${color.id}`)
+        .join(", ");
+      inputTypeProperties.push(`  "${place.name}": [${tokenTuple}];`);
+    }
+
+    // Build output type: { [placeName]: [Token, Token, ...] } based on output arcs
+    const outputTypeImports: string[] = [];
+    const outputTypeProperties: string[] = [];
+
+    for (const arc of transition.outputArcs) {
+      const place = placeById.get(arc.placeId);
+      if (!place?.colorId) {
+        continue;
+      }
+      const color = colorById.get(place.colorId);
+      if (!color) {
+        continue;
+      }
+
+      // Only add import if not already present from input arcs
+      const importStatement = `import type { Color_${color.id} } from "../../colors/${color.id}/defs.d.ts";`;
+      if (!inputTypeImports.includes(importStatement)) {
+        outputTypeImports.push(importStatement);
+      }
+      const tokenTuple = Array.from({ length: arc.weight })
+        .fill(`Color_${color.id}`)
+        .join(", ");
+      outputTypeProperties.push(`  "${place.name}": [${tokenTuple}];`);
+    }
+
+    const allImports = [...inputTypeImports, ...outputTypeImports];
+    const inputType =
+      inputTypeProperties.length > 0
+        ? `{\n${inputTypeProperties.join("\n")}\n}`
+        : "Record<string, never>";
+    const outputType =
+      outputTypeProperties.length > 0
+        ? `{\n${outputTypeProperties.join("\n")}\n}`
+        : "Record<string, never>";
+    const lambdaReturnType =
+      transition.lambdaType === "predicate" ? "boolean" : "number";
+
+    // Lambda definitions file
+    files.set(`transitions/${transition.id}/lambda/defs.d.ts`, {
+      content: [
+        `import type { Parameters } from "../../../parameters/defs.d.ts";`,
+        ...allImports,
+        ``,
+        `export type Input = ${inputType};`,
+        `export type Lambda = (fn: (input: Input, parameters: Parameters) => ${lambdaReturnType}) => void;`,
+      ].join("\n"),
+    });
+
+    // Lambda code file
+    files.set(`transitions/${transition.id}/lambda/code.ts`, {
+      prefix: [
+        `import type { Lambda } from "./defs.d.ts";`,
+        `declare const Lambda: Lambda;`,
+        "",
+      ].join("\n"),
+      content: transition.lambdaCode,
+    });
+
+    // TransitionKernel definitions file
+    files.set(`transitions/${transition.id}/kernel/defs.d.ts`, {
+      content: [
+        `import type { Parameters } from "../../../parameters/defs.d.ts";`,
+        ...allImports,
+        ``,
+        `export type Input = ${inputType};`,
+        `export type Output = ${outputType};`,
+        `export type TransitionKernel = (fn: (input: Input, parameters: Parameters) => Output) => void;`,
+      ].join("\n"),
+    });
+
+    // TransitionKernel code file
+    files.set(`transitions/${transition.id}/kernel/code.ts`, {
+      prefix: [
+        `import type { TransitionKernel } from "./defs.d.ts";`,
+        `declare const TransitionKernel: TransitionKernel;`,
+        "",
+      ].join("\n"),
+      content: transition.transitionKernelCode,
     });
   }
 
