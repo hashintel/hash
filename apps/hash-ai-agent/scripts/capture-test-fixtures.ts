@@ -94,7 +94,7 @@ function sanitizeHtmlForLlmConsumption(params: {
 
   // Cut repeated newlines and tabs
   result = result.replace(/\n{3,}/g, "\n\n");
-  result = result.replace(/\t{3,}$/g, "\t\t");
+  result = result.replace(/\t{3,}/g, "\t\t");
 
   // Slice to token limit (assume 4 chars per token)
   return result.slice(0, maximumNumberOfTokens * 4);

@@ -157,19 +157,12 @@ function extractEntitiesFromOutput(
     const entityUuid = generateUuid() as EntityUuid;
     const entityId = entityIdFromComponents(webId, entityUuid);
 
-    // Check if type matches one of the known entity types
-    const isKnownType = entityTypes.some(
-      (entityType) => entityType.$id === type,
-    );
-
-    if (isKnownType) {
-      entities.push({
-        localId: entityId,
-        name,
-        summary,
-        entityTypeIds: [type as VersionedUrl],
-      });
-    }
+    entities.push({
+      localId: entityId,
+      name,
+      summary,
+      entityTypeIds: [type as VersionedUrl],
+    });
   }
 
   return entities;
