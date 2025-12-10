@@ -8,8 +8,7 @@
     "noUncheckedIndexedAccess": true,
     "strict": true,
     "skipLibCheck": true,
-    "noEmit": true,
-    "outDir": "dist"
+    "noEmit": true
   },
-  "include": ["src/**/*"]
+  "include": ["src/**/*", "scripts/**/*","eslint.config.js"]
 }

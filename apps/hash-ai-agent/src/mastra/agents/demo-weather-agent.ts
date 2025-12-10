@@ -2,8 +2,8 @@ import { Agent } from "@mastra/core/agent";
 import { LibSQLStore } from "@mastra/libsql";
 import { Memory } from "@mastra/memory";
 
-import { scorers } from "../scorers/weather-scorer";
-import { weatherTool } from "../tools/weather-tool";
+import { scorers } from "../scorers/demo-weather-scorer";
+import { weatherTool } from "../tools/demo-weather-tool";
 
 export const weatherAgent = new Agent({
   id: "weather-agent-id",

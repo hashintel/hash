@@ -1,3 +1,9 @@
+/* eslint-disable import/no-extraneous-dependencies */
+import { mkdirSync, writeFileSync } from "node:fs";
+
+import { JSDOM } from "jsdom";
+import sanitizeHtml from "sanitize-html";
+
 /**
  * Script to capture and sanitize HTML from web pages for test fixtures.
  *
@@ -6,10 +12,6 @@
  * This script fetches web pages and sanitizes them for LLM consumption,
  * then outputs the results to fixture files that can be used in tests.
  */
-
-import { writeFileSync, mkdirSync } from "node:fs";
-import { JSDOM } from "jsdom";
-import sanitizeHtml from "sanitize-html";
 
 // Target URLs to capture
 const targets = [
@@ -119,11 +121,12 @@ async function fetchAndSanitize(url: string): Promise<string> {
   const sanitized = sanitizeHtmlForLlmConsumption({ htmlContent: html });
   console.log(`  Sanitized length: ${sanitized.length}`);
 
+  return html;
   return sanitized;
 }
 
 async function main() {
-  const outputDir = "src/mastra/fixtures/html";
+  const outputDir = "src/mastra/fixtures/raw";
 
   // Ensure output directory exists
   mkdirSync(outputDir, { recursive: true });
@@ -140,7 +143,9 @@ async function main() {
     }
   }
 
-  console.log("\nDone! Now update infer-claims-fixtures.ts to import these files.");
+  console.log(
+    "\nDone! Now update infer-claims-fixtures.ts to import these files.",
+  );
 }
 
 main().catch(console.error);

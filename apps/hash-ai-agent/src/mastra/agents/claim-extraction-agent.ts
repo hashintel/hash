@@ -1,11 +1,12 @@
 import { Agent } from "@mastra/core/agent";
 import dedent from "dedent";
 
+import { claimsStructureScorer } from "../scorers/claims-scorer";
 import { submitClaims } from "../tools/submit-claims-tool";
 
 export const claimExtractionsAgent = new Agent({
-  id: "infer-entity-claims",
-  name: "Infer Entity Claims",
+  id: "claim-extraction-agent",
+  name: "Claim Extraction Agent",
   instructions: dedent(`
   You are a claim extracting agent. Your job is to consider some content, and identify claims about entities from within it.
 
@@ -54,4 +55,5 @@ export const claimExtractionsAgent = new Agent({
   tools: {
     submitClaims,
   },
+  scorers: { structure: { scorer: claimsStructureScorer } },
 });

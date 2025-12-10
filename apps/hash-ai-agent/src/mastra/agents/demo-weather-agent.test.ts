@@ -1,8 +1,8 @@
 import { runEvals } from "@mastra/core/evals";
 import { describe, expect, it } from "vitest";
 
-import { completenessScorer } from "../scorers/weather-scorer";
-import { weatherAgent } from "./weather-agent";
+import { completenessScorer } from "../scorers/demo-weather-scorer";
+import { weatherAgent } from "./demo-weather-agent";
 
 describe.skip("Weather Agent Tests", () => {
   it("should correctly extract locations from queries", async () => {

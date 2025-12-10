@@ -92,7 +92,7 @@ Be strict: claims must properly reference entities by their IDs and include enti
     if (submitCall?.args) {
       const args = submitCall.args as { claims?: unknown[] };
       if (Array.isArray(args.claims)) {
-        claims = args.claims.map((c) => zClaim.parse(c));
+        claims = args.claims.map((claim) => zClaim.parse(claim));
       }
     }
 
@@ -105,8 +105,7 @@ Be strict: claims must properly reference entities by their IDs and include enti
     };
   })
   .analyze({
-    description:
-      "Validate each claim's structure against discovered entities",
+    description: "Validate each claim's structure against discovered entities",
     outputSchema: zAnalysisResult,
     createPrompt: ({ results }) => {
       const { claims, discoveredEntities } = results.preprocessStepResult as {
@@ -155,7 +154,7 @@ Return JSON with:
       invalidClaims.length > 0
         ? ` Errors: ${invalidClaims
             .slice(0, 3)
-            .map((c) => c.errors.join(", "))
+            .map((claim) => claim.errors.join(", "))
             .join("; ")}${invalidClaims.length > 3 ? "..." : ""}`
         : "";
 

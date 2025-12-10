@@ -8,16 +8,16 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 // Load HTML fixtures
 const soraPaperHtml = readFileSync(
-  path.join(__dirname, "html/sora-paper.html"),
+  path.join(__dirname, "raw/sora-paper.html"),
   "utf-8",
 );
 // TODO: Re-capture these fixtures - current captures are incomplete
 // const ftse350Html = readFileSync(
-//   path.join(__dirname, "html/ftse350.html"),
+//   path.join(__dirname, "raw/ftse350.html"),
 //   "utf-8",
 // );
 // const openaiModelsHtml = readFileSync(
-//   path.join(__dirname, "html/openai-models.html"),
+//   path.join(__dirname, "raw/openai-models.html"),
 //   "utf-8",
 // );
 
