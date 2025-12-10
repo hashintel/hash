@@ -78,7 +78,6 @@ blocks/**/.env
 .env.*.local
 **/mise*.local.toml
 **/mise/config*.local.toml
-CLAUDE.local.md
 
 # macOS directory file
 **/.DS_Store
@@ -135,7 +134,9 @@ seed-users.json
 # Block Protocol
 .blockprotocolrc
 
-# Claude Code
+# Claude and AGENTS
+AGENTS.local.md
+CLAUDE.local.md
 .claude/settings.local.json
 
 # Terraform
