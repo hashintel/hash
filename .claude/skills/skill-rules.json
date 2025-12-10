@@ -162,6 +162,134 @@
           "\\b(snapshot|insta)\\b.*?\\btest\\b"
         ]
       }
+    },
+    "writing-hashql-diagnostics": {
+      "type": "domain",
+      "enforcement": "suggest",
+      "priority": "high",
+      "description": "HashQL diagnostic writing patterns using hashql-diagnostics crate",
+      "promptTriggers": {
+        "keywords": [
+          "diagnostic",
+          "diagnostics",
+          "hashql-diagnostics",
+          "Label",
+          "Message",
+          "Severity",
+          "Patch",
+          "Suggestions",
+          "error message",
+          "warning message"
+        ],
+        "intentPatterns": [
+          "\\b(create|write|add|improve|fix)\\b.*?\\bdiagnostic(s)?\\b",
+          "\\bdiagnostic(s)?\\b.*?\\b(message|label|severity|suggestion|patch)\\b",
+          "\\b(error|warning)\\b.*?\\bmessage\\b.*?\\b(hashql|compiler)\\b",
+          "\\bhashql\\b.*?\\b(error|warning|diagnostic)\\b"
+        ]
+      }
+    },
+    "writing-hashql-jexpr": {
+      "type": "domain",
+      "enforcement": "suggest",
+      "priority": "high",
+      "description": "HashQL J-Expr syntax patterns for writing JSON Expression Language queries",
+      "promptTriggers": {
+        "keywords": [
+          "J-Expr",
+          "jexpr",
+          "hashql syntax",
+          "hashql query",
+          "#literal",
+          "function call",
+          "S-Expr",
+          "JSON Expression"
+        ],
+        "intentPatterns": [
+          "\\b(write|read|understand|create|parse)\\b.*?\\b(j-?expr|hashql)\\b.*?\\b(query|syntax)\\b",
+          "\\bj-?expr\\b.*?\\b(syntax|function|symbol|literal|call)\\b",
+          "\\bhashql\\b.*?\\b(query|syntax|expression)\\b",
+          "\\b(json|s-?expr)\\b.*?\\bexpression\\b.*?\\b(language|syntax)\\b"
+        ]
+      }
+    },
+    "testing-hashql": {
+      "type": "domain",
+      "enforcement": "suggest",
+      "priority": "high",
+      "description": "HashQL testing strategies including compiletest, unit tests, and snapshot tests",
+      "promptTriggers": {
+        "keywords": [
+          "compiletest",
+          "hashql test",
+          "ui test",
+          ".spec.toml",
+          "//~",
+          "--bless",
+          "snapshot test",
+          "insta",
+          "hashql-compiletest",
+          ".stdout",
+          ".stderr"
+        ],
+        "intentPatterns": [
+          "\\b(write|create|add|run|debug|fix)\\b.*?\\b(hashql|compiletest)\\b.*?\\btest\\b",
+          "\\btest(s|ing)?\\b.*?\\b(hashql|compiletest|ui)\\b",
+          "\\b(compiletest|ui test)\\b.*?\\b(run|filter|bless|fail|pass)\\b",
+          "\\bdiagnostic\\b.*?\\bannotation\\b",
+          "\\b(snapshot|insta)\\b.*?\\btest\\b"
+        ]
+      }
+    },
+    "exploring-rust-crates": {
+      "type": "domain",
+      "enforcement": "suggest",
+      "priority": "medium",
+      "description": "Generating Rust documentation to understand crate APIs and structure",
+      "promptTriggers": {
+        "keywords": [
+          "cargo doc",
+          "rust crate",
+          "crate API",
+          "understand crate",
+          "explore crate",
+          "rust package"
+        ],
+        "intentPatterns": [
+          "\\b(understand|explore|learn|investigate|check)\\b.*?\\b(crate|package|rust)\\b",
+          "\\b(what|how)\\b.*?\\b(crate|package)\\b.*?\\b(do|work|provide|contain)\\b",
+          "\\bcargo\\s+doc\\b",
+          "\\b(generate|build)\\b.*?\\bdoc(s|umentation)?\\b.*?\\b(rust|crate)\\b"
+        ]
+      }
+    },
+    "managing-git-workflow": {
+      "type": "domain",
+      "enforcement": "suggest",
+      "priority": "high",
+      "description": "Git workflow for HASH including branch naming, PR creation, and PR reviews",
+      "promptTriggers": {
+        "keywords": [
+          "branch",
+          "pull request",
+          "PR",
+          "commit",
+          "git",
+          "H-",
+          "Linear",
+          "review PR",
+          "create PR",
+          "gh pr"
+        ],
+        "intentPatterns": [
+          "\\b(create|make|open|submit)\\b.*?\\b(branch|PR|pull request)\\b",
+          "\\b(review|check|look at)\\b.*?\\b(PR|pull request)\\b",
+          "\\bbranch\\b.*?\\b(name|naming|convention)\\b",
+          "\\b(PR|pull request)\\b.*?\\b(title|template|format)\\b",
+          "\\bLinear\\b.*?\\b(issue|ticket)\\b",
+          "\\bH-\\d{4}\\b"
+        ]
+      }
     }
   },
   "notes": {
