@@ -50,7 +50,7 @@ function buildUserMessage({
     Here is the research goal – please identify all entities in the text which may be relevant to this goal, including entities with relationships to relevant entities.
     <ResearchGoal>
     ${relevantEntitiesPrompt}
-    </ResearchGOal>
+    </ResearchGoal>
 
     ${
       existingSummaries.length

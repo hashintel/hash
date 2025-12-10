@@ -121,7 +121,6 @@ async function fetchAndSanitize(url: string): Promise<string> {
   const sanitized = sanitizeHtmlForLlmConsumption({ htmlContent: html });
   console.log(`  Sanitized length: ${sanitized.length}`);
 
-  return html;
   return sanitized;
 }
 

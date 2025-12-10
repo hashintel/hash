@@ -25,12 +25,11 @@ export const entitySummaryAgent = new Agent({
     3. Type: the type of entity, either the entityTypeId of one already known about, or a new type you suggest
 
     <ImportantGuidelines>
-    1. Be extremely thorough in your extraction, ensuring you don't miss any entities which may be useful to the research goal, or entities related to them.
+    1. Be extremely thorough in your extraction, ensuring you don't miss any entities which may be related to the research goal.
     2. Pay special attention to structured data (e.g., tables, lists) to extract all relevant entities from them.
     3. After extracting all entities of the correct type, filter them based on the relevance prompt. Include all entities that could potentially be relevant, even if you're not certain.
-    4. If there are relevant entities are in the content, it's okay to return an empty list.
-    5. Stick strictly to the information provided in the text for – don't use any prior knowledge. You're providing a list of relevant entities mentioned in the text.
-    6. Provide your response in the format specified in the input schema – don't escape the JSON braces and quotes, unless they appear within a JSON value.
+    4. Stick strictly to the information provided in the text--don't use any prior knowledge. You're providing a list of relevant entities mentioned in the text.
+    5. Provide your response in the format specified in the input schema. Don't escape the JSON braces and quotes, unless they appear within a JSON value.
     </ImportantGuidelines>
 
     <ExampleResponse>
