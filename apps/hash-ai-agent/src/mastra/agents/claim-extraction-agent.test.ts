@@ -104,6 +104,10 @@ function buildClaimExtractionMessage(
  * Extract discovered entities from agent output (as provided by runEvals).
  */
 function extractEntitiesFromOutput(output: unknown): LocalEntitySummary[] {
+  if (output == null) {
+    return [];
+  }
+
   const webId = generateUuid() as WebId;
 
   // Cast the output to access toolCalls with proper typing
