@@ -1,7 +1,7 @@
 import type { EntityId, VersionedUrl } from "@blockprotocol/type-system";
 import { runEvals } from "@mastra/core/evals";
 import dedent from "dedent";
-import { describe, expect, it } from "vitest";
+import { describe, expect, test } from "vitest";
 
 import { entitySummaryFixtures } from "../fixtures/entity-summary-fixtures";
 import { entitySummariesCompositeScorer } from "../scorers/entity-summaries-scorer";
@@ -72,20 +72,20 @@ function buildUserMessage({
 }
 
 describe("Entity Summaries Agent", () => {
-  it(
-    "should correctly extract entity summaries from text",
+  test.for(entitySummaryFixtures)(
+    "$name",
     { timeout: 5 * 60 * 1000 }, // 5 minutes - LLM calls take time
-    async () => {
+    async ({
+      entityType,
+      relevantEntitiesPrompt,
+      context,
+      goldEntities,
+      irrelevantEntities,
+      wrongTypeEntities,
+    }) => {
       const result = await runEvals({
-        data: entitySummaryFixtures.map(
-          ({
-            entityType, // entityType – the target entity type to extract (e.g., Person, Company)
-            relevantEntitiesPrompt, // relevantEntitiesPrompt – the "research goal" guiding extraction
-            context, // context – raw text content (often messy HTML-stripped web content)
-            goldEntities, // goldEntities – entities that should be found
-            irrelevantEntities, // irrelevantEntities – entities of the correct type but irrelevant to the prompt
-            wrongTypeEntities, // wrongTypeEntities – entities mentioned but of a different type than requested
-          }) => ({
+        data: [
+          {
             input: buildUserMessage({
               dereferencedEntityTypes: [entityType],
               existingSummaries: [],
@@ -97,8 +97,8 @@ describe("Entity Summaries Agent", () => {
               irrelevantEntities,
               wrongTypeEntities,
             },
-          }),
-        ),
+          },
+        ],
         target: entitySummaryAgent,
         scorers: [entitySummariesCompositeScorer],
       });
