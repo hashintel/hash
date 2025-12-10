@@ -1,6 +1,9 @@
 import { createBase, defineConfig } from "@local/eslint/deprecated";
 
 export default [
+  {
+    ignores: ["_temp/**", ".mastra/**", "node_modules/**"],
+  },
   ...createBase(import.meta.dirname),
   ...defineConfig([
     {

@@ -1,25 +1,9 @@
-import { readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 import type { VersionedUrl } from "@blockprotocol/type-system";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-
-// Load HTML fixtures
-const soraPaperHtml = readFileSync(
-  path.join(__dirname, "raw/sora-paper.html"),
-  "utf-8",
-);
-// TODO: Re-capture these fixtures - current captures are incomplete
-// const ftse350Html = readFileSync(
-//   path.join(__dirname, "raw/ftse350.html"),
-//   "utf-8",
-// );
-// const openaiModelsHtml = readFileSync(
-//   path.join(__dirname, "raw/openai-models.html"),
-//   "utf-8",
-// );
 
 /**
  * Fixtures for testing the infer-summaries-then-claims pipeline.
@@ -100,17 +84,17 @@ export const inferClaimsFixtures: InferClaimsFixture[] = [
     contentType: "webpage",
     entityTypes: [companyEntityType],
   },
-  {
-    name: "Sora paper authors",
-    content: soraPaperHtml,
-    url: "https://arxiv.org/html/2402.17177v1",
-    title:
-      "Sora: A Review on Background, Technology, Limitations, and Opportunities of Large Vision Models",
-    goal: "Find the authors of the Sora paper",
-    contentType: "webpage",
-    entityTypes: [personEntityType],
-  },
   // TODO: Re-enable once HTML fixtures are properly captured
+  // {
+  //   name: "Sora paper authors",
+  //   content: soraPaperHtml,
+  //   url: "https://arxiv.org/html/2402.17177v1",
+  //   title:
+  //     "Sora: A Review on Background, Technology, Limitations, and Opportunities of Large Vision Models",
+  //   goal: "Find the authors of the Sora paper",
+  //   contentType: "webpage",
+  //   entityTypes: [personEntityType],
+  // },
   // The current captures are incomplete (FTSE350 is empty, OpenAI is nav-only)
   // {
   //   name: "FTSE350 constituents",
