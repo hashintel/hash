@@ -103,10 +103,7 @@ function buildClaimExtractionMessage(
 /**
  * Extract discovered entities from agent output (as provided by runEvals).
  */
-function extractEntitiesFromOutput(
-  output: unknown,
-  entityTypes: InferClaimsFixture["entityTypes"],
-): LocalEntitySummary[] {
+function extractEntitiesFromOutput(output: unknown): LocalEntitySummary[] {
   const webId = generateUuid() as WebId;
 
   // Cast the output to access toolCalls with proper typing
@@ -195,10 +192,7 @@ describe("Claim Extraction Agent", () => {
       });
 
       // Extract discovered entities from the captured output
-      const discoveredEntities = extractEntitiesFromOutput(
-        entitySummaryOutput,
-        fixture.entityTypes,
-      );
+      const discoveredEntities = extractEntitiesFromOutput(entitySummaryOutput);
 
       // Verify we found some entities
       expect(discoveredEntities.length).toBeGreaterThan(0);
