@@ -59,6 +59,7 @@
     "mastra": "1.0.0-beta.5",
     "rimraf": "6.1.2",
     "sanitize-html": "2.17.0",
+    "tsx": "4.21.0",
     "typescript": "^5.9.3",
     "vitest": "3.2.4",
     "wait-on": "9.0.1"

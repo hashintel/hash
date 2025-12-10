@@ -1,0 +1,1097 @@
+Sora: A Review on Background, Technology, Limitations, and Opportunities of Large Vision Models
+
+<nav><nav><ol><li><a href="https://arxiv.org/html/2402.17177v1#S1" title="1 Introduction ‣ Sora: A Review on Background, Technology, Limitations, and Opportunities of Large Vision Models">1 Introduction</a></li><li><a href="https://arxiv.org/html/2402.17177v1#S2" title="2 Background ‣ Sora: A Review on Background, Technology, Limitations, and Opportunities of Large Vision Models">2 Background</a><ol><li><a href="https://arxiv.org/html/2402.17177v1#S2.SS1" title="2.1 History ‣ 2 Background ‣ Sora: A Review on Background, Technology, Limitations, and Opportunities of Large Vision Models">2.1 History</a></li><li><a href="https://arxiv.org/html/2402.17177v1#S2.SS2" title="2.2 Advanced Concepts ‣ 2 Background ‣ Sora: A Review on Background, Technology, Limitations, and Opportunities of Large Vision Models">2.2 Advanced Concepts</a></li></ol></li><li><a href="https://arxiv.org/html/2402.17177v1#S3" title="3 Technology ‣ Sora: A Review on Background, Technology, Limitations, and Opportunities of Large Vision Models">3 Technology</a><ol><li><a href="https://arxiv.org/html/2402.17177v1#S3.SS1" title="3.1 Overview of Sora ‣ 3 Technology ‣ Sora: A Review on Background, Technology, Limitations, and Opportunities of Large Vision Models">3.1 Overview of Sora</a></li><li><a href="https://arxiv.org/html/2402.17177v1#S3.SS2" title="3.2 Data Pre-processing ‣ 3 Technology ‣ Sora: A Review on Background, Technology, Limitations, and Opportunities of Large Vision Models">3.2 Data Pre-processing</a><ol><li><a href="https://arxiv.org/html/2402.17177v1#S3.SS2.SSS1" title="3.2.1 Variable Durations, Resolutions, Aspect Ratios ‣ 3.2 Data Pre-processing ‣ 3 Technology ‣ Sora: A Review on Background, Technology, Limitations, and Opportunities of Large Vision Models">3.2.1 Variable Durations, Resolutions, Aspect Ratios</a></li><li><a href="https://arxiv.org/html/2402.17177v1#S3.SS2.SSS2" title="3.2.2 Unified Visual Representation ‣ 3.2 Data Pre-processing ‣ 3 Technology ‣ Sora: A Review on Background, Technology, Limitations, and Opportunities of Large Vision Models">3.2.2 Unified Visual Representation</a></li><li><a href="https://arxiv.org/html/2402.17177v1#S3.SS2.SSS3" title="3.2.3 Video Compression Network ‣ 3.2 Data Pre-processing ‣ 3 Technology ‣ Sora: A Review on Background, Technology, Limitations, and Opportunities of Large Vision Models">3.2.3 Video Compression Network</a></li><li><a href="https://arxiv.org/html/2402.17177v1#S3.SS2.SSS4" title="3.2.4 Spacetime Latent Patches ‣ 3.2 Data Pre-processing ‣ 3 Technology ‣ Sora: A Review on Background, Technology, Limitations, and Opportunities of Large Vision Models">3.2.4 Spacetime Latent Patches</a></li><li><a href="https://arxiv.org/html/2402.17177v1#S3.SS2.SSS5" title="3.2.5 Discussion ‣ 3.2 Data Pre-processing ‣ 3 Technology ‣ Sora: A Review on Background, Technology, Limitations, and Opportunities of Large Vision Models">3.2.5 Discussion</a></li><li><a href="https://arxiv.org/html/2402.17177v1#S3.SS2.SSS6" title="3.2.6 Diffusion Transformer ‣ 3.2 Data Pre-processing ‣ 3 Technology ‣ Sora: A Review on Background, Technology, Limitations, and Opportunities of Large Vision Models">3.2.6 Diffusion Transformer</a></li></ol></li><li><a href="https://arxiv.org/html/2402.17177v1#S3.SS3" title="3.3 Modeling ‣ 3 Technology ‣ Sora: A Review on Background, Technology, Limitations, and Opportunities of Large Vision Models">3.3 Modeling</a><ol><li><a href="https://arxiv.org/html/2402.17177v1#S3.SS3.SSS1" title="3.3.1 Discussion ‣ 3.3 Modeling ‣ 3 Technology ‣ Sora: A Review on Background, Technology, Limitations, and Opportunities of Large Vision Models">3.3.1 Discussion</a></li></ol></li><li><a href="https://arxiv.org/html/2402.17177v1#S3.SS4" title="3.4 Language Instruction Following ‣ 3 Technology ‣ Sora: A Review on Background, Technology, Limitations, and Opportunities of Large Vision Models">3.4 Language Instruction Following</a><ol><li><a href="https://arxiv.org/html/2402.17177v1#S3.SS4.SSS1" title="3.4.1 Large Language Models ‣ 3.4 Language Instruction Following ‣ 3 Technology ‣ Sora: A Review on Background, Technology, Limitations, and Opportunities of Large Vision Models">3.4.1 Large Language Models</a></li><li><a href="https://arxiv.org/html/2402.17177v1#S3.SS4.SSS2" title="3.4.2 Text-to-Image ‣ 3.4 Language Instruction Following ‣ 3 Technology ‣ Sora: A Review on Background, Technology, Limitations, and Opportunities of Large Vision Models">3.4.2 Text-to-Image</a></li><li><a href="https://arxiv.org/html/2402.17177v1#S3.SS4.SSS3" title="3.4.3 Text-to-Video ‣ 3.4 Language Instruction Following ‣ 3 Technology ‣ Sora: A Review on Background, Technology, Limitations, and Opportunities of Large Vision Models">3.4.3 Text-to-Video</a></li><li><a href="https://arxiv.org/html/2402.17177v1#S3.SS4.SSS4" title="3.4.4 Discussion ‣ 3.4 Language Instruction Following ‣ 3 Technology ‣ Sora: A Review on Background, Technology, Limitations, and Opportunities of Large Vision Models">3.4.4 Discussion</a></li></ol></li><li><a href="https://arxiv.org/html/2402.17177v1#S3.SS5" title="3.5 Prompt Engineering ‣ 3 Technology ‣ Sora: A Review on Background, Technology, Limitations, and Opportunities of Large Vision Models">3.5 Prompt Engineering</a><ol><li><a href="https://arxiv.org/html/2402.17177v1#S3.SS5.SSS1" title="3.5.1 Text Prompt ‣ 3.5 Prompt Engineering ‣ 3 Technology ‣ Sora: A Review on Background, Technology, Limitations, and Opportunities of Large Vision Models">3.5.1 Text Prompt</a></li><li><a href="https://arxiv.org/html/2402.17177v1#S3.SS5.SSS2" title="3.5.2 Image Prompt ‣ 3.5 Prompt Engineering ‣ 3 Technology ‣ Sora: A Review on Background, Technology, Limitations, and Opportunities of Large Vision Models">3.5.2 Image Prompt</a></li><li><a href="https://arxiv.org/html/2402.17177v1#S3.SS5.SSS3" title="3.5.3 Video Prompt ‣ 3.5 Prompt Engineering ‣ 3 Technology ‣ Sora: A Review on Background, Technology, Limitations, and Opportunities of Large Vision Models">3.5.3 Video Prompt</a></li><li><a href="https://arxiv.org/html/2402.17177v1#S3.SS5.SSS4" title="3.5.4 Discussion ‣ 3.5 Prompt Engineering ‣ 3 Technology ‣ Sora: A Review on Background, Technology, Limitations, and Opportunities of Large Vision Models">3.5.4 Discussion</a></li></ol></li><li><a href="https://arxiv.org/html/2402.17177v1#S3.SS6" title="3.6 Trustworthiness ‣ 3 Technology ‣ Sora: A Review on Background, Technology, Limitations, and Opportunities of Large Vision Models">3.6 Trustworthiness</a><ol><li><a href="https://arxiv.org/html/2402.17177v1#S3.SS6.SSS1" title="3.6.1 Safety Concern ‣ 3.6 Trustworthiness ‣ 3 Technology ‣ Sora: A Review on Background, Technology, Limitations, and Opportunities of Large Vision Models">3.6.1 Safety Concern</a></li><li><a href="https://arxiv.org/html/2402.17177v1#S3.SS6.SSS2" title="3.6.2 Other Exploitation ‣ 3.6 Trustworthiness ‣ 3 Technology ‣ Sora: A Review on Background, Technology, Limitations, and Opportunities of Large Vision Models">3.6.2 Other Exploitation</a></li><li><a href="https://arxiv.org/html/2402.17177v1#S3.SS6.SSS3" title="3.6.3 Alignment ‣ 3.6 Trustworthiness ‣ 3 Technology ‣ Sora: A Review on Background, Technology, Limitations, and Opportunities of Large Vision Models">3.6.3 Alignment</a></li><li><a href="https://arxiv.org/html/2402.17177v1#S3.SS6.SSS4" title="3.6.4 Discussion ‣ 3.6 Trustworthiness ‣ 3 Technology ‣ Sora: A Review on Background, Technology, Limitations, and Opportunities of Large Vision Models">3.6.4 Discussion</a></li></ol></li></ol></li><li><a href="https://arxiv.org/html/2402.17177v1#S4" title="4 Applications ‣ Sora: A Review on Background, Technology, Limitations, and Opportunities of Large Vision Models">4 Applications</a><ol><li><a href="https://arxiv.org/html/2402.17177v1#S4.SS1" title="4.1 Movie ‣ 4 Applications ‣ Sora: A Review on Background, Technology, Limitations, and Opportunities of Large Vision Models">4.1 Movie</a></li><li><a href="https://arxiv.org/html/2402.17177v1#S4.SS2" title="4.2 Education ‣ 4 Applications ‣ Sora: A Review on Background, Technology, Limitations, and Opportunities of Large Vision Models">4.2 Education</a></li><li><a href="https://arxiv.org/html/2402.17177v1#S4.SS3" title="4.3 Gaming ‣ 4 Applications ‣ Sora: A Review on Background, Technology, Limitations, and Opportunities of Large Vision Models">4.3 Gaming</a></li><li><a href="https://arxiv.org/html/2402.17177v1#S4.SS4" title="4.4 Healthcare ‣ 4 Applications ‣ Sora: A Review on Background, Technology, Limitations, and Opportunities of Large Vision Models">4.4 Healthcare</a></li><li><a href="https://arxiv.org/html/2402.17177v1#S4.SS5" title="4.5 Robotics ‣ 4 Applications ‣ Sora: A Review on Background, Technology, Limitations, and Opportunities of Large Vision Models">4.5 Robotics</a></li></ol></li><li><a href="https://arxiv.org/html/2402.17177v1#S5" title="5 Discussion ‣ Sora: A Review on Background, Technology, Limitations, and Opportunities of Large Vision Models">5 Discussion</a><ol><li><a href="https://arxiv.org/html/2402.17177v1#S5.SS1" title="5.1 Limitations ‣ 5 Discussion ‣ Sora: A Review on Background, Technology, Limitations, and Opportunities of Large Vision Models">5.1 Limitations</a></li><li><a href="https://arxiv.org/html/2402.17177v1#S5.SS2" title="5.2 Opportunities ‣ 5 Discussion ‣ Sora: A Review on Background, Technology, Limitations, and Opportunities of Large Vision Models">5.2 Opportunities</a></li></ol></li><li><a href="https://arxiv.org/html/2402.17177v1#S6" title="6 Conclusion ‣ Sora: A Review on Background, Technology, Limitations, and Opportunities of Large Vision Models">6 Conclusion</a></li><li><a href="https://arxiv.org/html/2402.17177v1#A1" title="Appendix A Related Works ‣ Sora: A Review on Background, Technology, Limitations, and Opportunities of Large Vision Models">A Related Works</a></li></ol></nav></nav><div aria-label="Conversion errors have been found"><span aria-hidden="true"></span><p>HTML conversions <a href="https://info.dev.arxiv.org/about/accessibility_html_error_messages.html">sometimes display errors</a> due to content that did not convert correctly from the source. This paper uses the following packages that are not yet supported by the HTML conversion tool. Feedback on these issues are not necessary; they are known and are being worked on.</p><ul><li>failed: titletoc</li></ul><p>Authors: achieve the best HTML results from your LaTeX submissions by following these <a href="https://info.arxiv.org/help/submit_latex_best_practices.html">best practices</a>.</p></div>License: arXiv.org perpetual non-exclusive licensearXiv:2402.17177v1 [cs.CV] 27 Feb 2024
+
+<article><h1>
+Sora: A Review on Background, Technology, Limitations, and Opportunities of Large Vision Models</h1>
+
+Yixin Liu11{}^{1}start_FLOATSUPERSCRIPT 1 end_FLOATSUPERSCRIPT<sup>1</sup><sup>1</sup>1Equal contributions. The order was determined by rolling dice. Chujie, Ruoxi, Yuan, Yue, and Zhengqing are visiting students in the LAIR lab at Lehigh University. The GitHub link is <a href="https://github.com/lichao-sun/SoraReview">https://github.com/lichao-sun/SoraReview</a>  Kai Zhang11{}^{1}start_FLOATSUPERSCRIPT 1 end_FLOATSUPERSCRIPT<sup>1</sup><sup>1</sup>1Equal contributions. The order was determined by rolling dice. Chujie, Ruoxi, Yuan, Yue, and Zhengqing are visiting students in the LAIR lab at Lehigh University. The GitHub link is <a href="https://github.com/lichao-sun/SoraReview">https://github.com/lichao-sun/SoraReview</a>  Yuan Li11{}^{1}start_FLOATSUPERSCRIPT 1 end_FLOATSUPERSCRIPT<sup>1</sup><sup>1</sup>1Equal contributions. The order was determined by rolling dice. Chujie, Ruoxi, Yuan, Yue, and Zhengqing are visiting students in the LAIR lab at Lehigh University. The GitHub link is <a href="https://github.com/lichao-sun/SoraReview">https://github.com/lichao-sun/SoraReview</a>  Zhiling Yan11{}^{1}start_FLOATSUPERSCRIPT 1 end_FLOATSUPERSCRIPT<sup>1</sup><sup>1</sup>1Equal contributions. The order was determined by rolling dice. Chujie, Ruoxi, Yuan, Yue, and Zhengqing are visiting students in the LAIR lab at Lehigh University. The GitHub link is <a href="https://github.com/lichao-sun/SoraReview">https://github.com/lichao-sun/SoraReview</a>  Chujie Gao11{}^{1}start_FLOATSUPERSCRIPT 1 end_FLOATSUPERSCRIPT<sup>1</sup><sup>1</sup>1Equal contributions. The order was determined by rolling dice. Chujie, Ruoxi, Yuan, Yue, and Zhengqing are visiting students in the LAIR lab at Lehigh University. The GitHub link is <a href="https://github.com/lichao-sun/SoraReview">https://github.com/lichao-sun/SoraReview</a><br>Ruoxi Chen11{}^{1}start_FLOATSUPERSCRIPT 1 end_FLOATSUPERSCRIPT<sup>1</sup><sup>1</sup>1Equal contributions. The order was determined by rolling dice. Chujie, Ruoxi, Yuan, Yue, and Zhengqing are visiting students in the LAIR lab at Lehigh University. The GitHub link is <a href="https://github.com/lichao-sun/SoraReview">https://github.com/lichao-sun/SoraReview</a>  Zhengqing Yuan11{}^{1}start_FLOATSUPERSCRIPT 1 end_FLOATSUPERSCRIPT<sup>1</sup><sup>1</sup>1Equal contributions. The order was determined by rolling dice. Chujie, Ruoxi, Yuan, Yue, and Zhengqing are visiting students in the LAIR lab at Lehigh University. The GitHub link is <a href="https://github.com/lichao-sun/SoraReview">https://github.com/lichao-sun/SoraReview</a>  Yue Huang11{}^{1}start_FLOATSUPERSCRIPT 1 end_FLOATSUPERSCRIPT<sup>1</sup><sup>1</sup>1Equal contributions. The order was determined by rolling dice. Chujie, Ruoxi, Yuan, Yue, and Zhengqing are visiting students in the LAIR lab at Lehigh University. The GitHub link is <a href="https://github.com/lichao-sun/SoraReview">https://github.com/lichao-sun/SoraReview</a>  Hanchi Sun11{}^{1}start_FLOATSUPERSCRIPT 1 end_FLOATSUPERSCRIPT<sup>1</sup><sup>1</sup>1Equal contributions. The order was determined by rolling dice. Chujie, Ruoxi, Yuan, Yue, and Zhengqing are visiting students in the LAIR lab at Lehigh University. The GitHub link is <a href="https://github.com/lichao-sun/SoraReview">https://github.com/lichao-sun/SoraReview</a><br>Jianfeng Gao22{}^{2}start_FLOATSUPERSCRIPT 2 end_FLOATSUPERSCRIPT  Lifang He11{}^{1}start_FLOATSUPERSCRIPT 1 end_FLOATSUPERSCRIPT  Lichao Sun11{}^{1}start_FLOATSUPERSCRIPT 1 end_FLOATSUPERSCRIPT<sup>2</sup><sup>2</sup>2Lichao Sun is co-corresponding author: <a href="mailto:lis221@lehigh.edu">lis221@lehigh.edu</a><br><br>11{}^{1}start_FLOATSUPERSCRIPT 1 end_FLOATSUPERSCRIPTLehigh University 22{}^{2}start_FLOATSUPERSCRIPT 2 end_FLOATSUPERSCRIPTMicrosoft Research 
+<br><h6>Abstract</h6><p>Sora is a text-to-video generative AI model, released by OpenAI in February 2024.
+The model is trained to generate videos of realistic or imaginative scenes from text instructions and show potential in simulating the physical world.
+Based on public technical reports and reverse engineering, this paper presents a comprehensive review of the model’s background, related technologies, applications, remaining challenges, and future directions of text-to-video AI models.
+We first trace Sora’s development and investigate the underlying technologies used to build this “world simulator”.
+Then, we describe in detail the applications and potential impact of Sora in multiple industries ranging from film-making and education to marketing.
+We discuss the main challenges and limitations that need to be addressed to widely deploy Sora, such as ensuring safe and unbiased video generation.
+Lastly, we discuss the future development of Sora and video generation models in general, and how advancements in the field could enable new ways of human-AI interaction, boosting productivity and creativity of video generation.
+
+Figure 1: Sora: A Breakthrough in AI-Powered Vision Generation.
+</p><nav><h6>Contents</h6><ol><li><a href="https://arxiv.org/html/2402.17177v1#S1" title="1 Introduction ‣ Sora: A Review on Background, Technology, Limitations, and Opportunities of Large Vision Models">1 Introduction</a></li><li><a href="https://arxiv.org/html/2402.17177v1#S2" title="2 Background ‣ Sora: A Review on Background, Technology, Limitations, and Opportunities of Large Vision Models">2 Background</a><ol><li><a href="https://arxiv.org/html/2402.17177v1#S2.SS1" title="2.1 History ‣ 2 Background ‣ Sora: A Review on Background, Technology, Limitations, and Opportunities of Large Vision Models">2.1 History</a></li><li><a href="https://arxiv.org/html/2402.17177v1#S2.SS2" title="2.2 Advanced Concepts ‣ 2 Background ‣ Sora: A Review on Background, Technology, Limitations, and Opportunities of Large Vision Models">2.2 Advanced Concepts</a></li></ol></li><li><a href="https://arxiv.org/html/2402.17177v1#S3" title="3 Technology ‣ Sora: A Review on Background, Technology, Limitations, and Opportunities of Large Vision Models">3 Technology</a><ol><li><a href="https://arxiv.org/html/2402.17177v1#S3.SS1" title="3.1 Overview of Sora ‣ 3 Technology ‣ Sora: A Review on Background, Technology, Limitations, and Opportunities of Large Vision Models">3.1 Overview of Sora</a></li><li><a href="https://arxiv.org/html/2402.17177v1#S3.SS2" title="3.2 Data Pre-processing ‣ 3 Technology ‣ Sora: A Review on Background, Technology, Limitations, and Opportunities of Large Vision Models">3.2 Data Pre-processing</a><ol><li><a href="https://arxiv.org/html/2402.17177v1#S3.SS2.SSS1" title="3.2.1 Variable Durations, Resolutions, Aspect Ratios ‣ 3.2 Data Pre-processing ‣ 3 Technology ‣ Sora: A Review on Background, Technology, Limitations, and Opportunities of Large Vision Models">3.2.1 Variable Durations, Resolutions, Aspect Ratios</a></li><li><a href="https://arxiv.org/html/2402.17177v1#S3.SS2.SSS2" title="3.2.2 Unified Visual Representation ‣ 3.2 Data Pre-processing ‣ 3 Technology ‣ Sora: A Review on Background, Technology, Limitations, and Opportunities of Large Vision Models">3.2.2 Unified Visual Representation</a></li><li><a href="https://arxiv.org/html/2402.17177v1#S3.SS2.SSS3" title="3.2.3 Video Compression Network ‣ 3.2 Data Pre-processing ‣ 3 Technology ‣ Sora: A Review on Background, Technology, Limitations, and Opportunities of Large Vision Models">3.2.3 Video Compression Network</a></li><li><a href="https://arxiv.org/html/2402.17177v1#S3.SS2.SSS4" title="3.2.4 Spacetime Latent Patches ‣ 3.2 Data Pre-processing ‣ 3 Technology ‣ Sora: A Review on Background, Technology, Limitations, and Opportunities of Large Vision Models">3.2.4 Spacetime Latent Patches</a></li><li><a href="https://arxiv.org/html/2402.17177v1#S3.SS2.SSS5" title="3.2.5 Discussion ‣ 3.2 Data Pre-processing ‣ 3 Technology ‣ Sora: A Review on Background, Technology, Limitations, and Opportunities of Large Vision Models">3.2.5 Discussion</a></li><li><a href="https://arxiv.org/html/2402.17177v1#S3.SS2.SSS6" title="3.2.6 Diffusion Transformer ‣ 3.2 Data Pre-processing ‣ 3 Technology ‣ Sora: A Review on Background, Technology, Limitations, and Opportunities of Large Vision Models">3.2.6 Diffusion Transformer</a></li></ol></li><li><a href="https://arxiv.org/html/2402.17177v1#S3.SS3" title="3.3 Modeling ‣ 3 Technology ‣ Sora: A Review on Background, Technology, Limitations, and Opportunities of Large Vision Models">3.3 Modeling</a><ol><li><a href="https://arxiv.org/html/2402.17177v1#S3.SS3.SSS1" title="3.3.1 Discussion ‣ 3.3 Modeling ‣ 3 Technology ‣ Sora: A Review on Background, Technology, Limitations, and Opportunities of Large Vision Models">3.3.1 Discussion</a></li></ol></li><li><a href="https://arxiv.org/html/2402.17177v1#S3.SS4" title="3.4 Language Instruction Following ‣ 3 Technology ‣ Sora: A Review on Background, Technology, Limitations, and Opportunities of Large Vision Models">3.4 Language Instruction Following</a><ol><li><a href="https://arxiv.org/html/2402.17177v1#S3.SS4.SSS1" title="3.4.1 Large Language Models ‣ 3.4 Language Instruction Following ‣ 3 Technology ‣ Sora: A Review on Background, Technology, Limitations, and Opportunities of Large Vision Models">3.4.1 Large Language Models</a></li><li><a href="https://arxiv.org/html/2402.17177v1#S3.SS4.SSS2" title="3.4.2 Text-to-Image ‣ 3.4 Language Instruction Following ‣ 3 Technology ‣ Sora: A Review on Background, Technology, Limitations, and Opportunities of Large Vision Models">3.4.2 Text-to-Image</a></li><li><a href="https://arxiv.org/html/2402.17177v1#S3.SS4.SSS3" title="3.4.3 Text-to-Video ‣ 3.4 Language Instruction Following ‣ 3 Technology ‣ Sora: A Review on Background, Technology, Limitations, and Opportunities of Large Vision Models">3.4.3 Text-to-Video</a></li><li><a href="https://arxiv.org/html/2402.17177v1#S3.SS4.SSS4" title="3.4.4 Discussion ‣ 3.4 Language Instruction Following ‣ 3 Technology ‣ Sora: A Review on Background, Technology, Limitations, and Opportunities of Large Vision Models">3.4.4 Discussion</a></li></ol></li><li><a href="https://arxiv.org/html/2402.17177v1#S3.SS5" title="3.5 Prompt Engineering ‣ 3 Technology ‣ Sora: A Review on Background, Technology, Limitations, and Opportunities of Large Vision Models">3.5 Prompt Engineering</a><ol><li><a href="https://arxiv.org/html/2402.17177v1#S3.SS5.SSS1" title="3.5.1 Text Prompt ‣ 3.5 Prompt Engineering ‣ 3 Technology ‣ Sora: A Review on Background, Technology, Limitations, and Opportunities of Large Vision Models">3.5.1 Text Prompt</a></li><li><a href="https://arxiv.org/html/2402.17177v1#S3.SS5.SSS2" title="3.5.2 Image Prompt ‣ 3.5 Prompt Engineering ‣ 3 Technology ‣ Sora: A Review on Background, Technology, Limitations, and Opportunities of Large Vision Models">3.5.2 Image Prompt</a></li><li><a href="https://arxiv.org/html/2402.17177v1#S3.SS5.SSS3" title="3.5.3 Video Prompt ‣ 3.5 Prompt Engineering ‣ 3 Technology ‣ Sora: A Review on Background, Technology, Limitations, and Opportunities of Large Vision Models">3.5.3 Video Prompt</a></li><li><a href="https://arxiv.org/html/2402.17177v1#S3.SS5.SSS4" title="3.5.4 Discussion ‣ 3.5 Prompt Engineering ‣ 3 Technology ‣ Sora: A Review on Background, Technology, Limitations, and Opportunities of Large Vision Models">3.5.4 Discussion</a></li></ol></li><li><a href="https://arxiv.org/html/2402.17177v1#S3.SS6" title="3.6 Trustworthiness ‣ 3 Technology ‣ Sora: A Review on Background, Technology, Limitations, and Opportunities of Large Vision Models">3.6 Trustworthiness</a><ol><li><a href="https://arxiv.org/html/2402.17177v1#S3.SS6.SSS1" title="3.6.1 Safety Concern ‣ 3.6 Trustworthiness ‣ 3 Technology ‣ Sora: A Review on Background, Technology, Limitations, and Opportunities of Large Vision Models">3.6.1 Safety Concern</a></li><li><a href="https://arxiv.org/html/2402.17177v1#S3.SS6.SSS2" title="3.6.2 Other Exploitation ‣ 3.6 Trustworthiness ‣ 3 Technology ‣ Sora: A Review on Background, Technology, Limitations, and Opportunities of Large Vision Models">3.6.2 Other Exploitation</a></li><li><a href="https://arxiv.org/html/2402.17177v1#S3.SS6.SSS3" title="3.6.3 Alignment ‣ 3.6 Trustworthiness ‣ 3 Technology ‣ Sora: A Review on Background, Technology, Limitations, and Opportunities of Large Vision Models">3.6.3 Alignment</a></li><li><a href="https://arxiv.org/html/2402.17177v1#S3.SS6.SSS4" title="3.6.4 Discussion ‣ 3.6 Trustworthiness ‣ 3 Technology ‣ Sora: A Review on Background, Technology, Limitations, and Opportunities of Large Vision Models">3.6.4 Discussion</a></li></ol></li></ol></li><li><a href="https://arxiv.org/html/2402.17177v1#S4" title="4 Applications ‣ Sora: A Review on Background, Technology, Limitations, and Opportunities of Large Vision Models">4 Applications</a><ol><li><a href="https://arxiv.org/html/2402.17177v1#S4.SS1" title="4.1 Movie ‣ 4 Applications ‣ Sora: A Review on Background, Technology, Limitations, and Opportunities of Large Vision Models">4.1 Movie</a></li><li><a href="https://arxiv.org/html/2402.17177v1#S4.SS2" title="4.2 Education ‣ 4 Applications ‣ Sora: A Review on Background, Technology, Limitations, and Opportunities of Large Vision Models">4.2 Education</a></li><li><a href="https://arxiv.org/html/2402.17177v1#S4.SS3" title="4.3 Gaming ‣ 4 Applications ‣ Sora: A Review on Background, Technology, Limitations, and Opportunities of Large Vision Models">4.3 Gaming</a></li><li><a href="https://arxiv.org/html/2402.17177v1#S4.SS4" title="4.4 Healthcare ‣ 4 Applications ‣ Sora: A Review on Background, Technology, Limitations, and Opportunities of Large Vision Models">4.4 Healthcare</a></li><li><a href="https://arxiv.org/html/2402.17177v1#S4.SS5" title="4.5 Robotics ‣ 4 Applications ‣ Sora: A Review on Background, Technology, Limitations, and Opportunities of Large Vision Models">4.5 Robotics</a></li></ol></li><li><a href="https://arxiv.org/html/2402.17177v1#S5" title="5 Discussion ‣ Sora: A Review on Background, Technology, Limitations, and Opportunities of Large Vision Models">5 Discussion</a><ol><li><a href="https://arxiv.org/html/2402.17177v1#S5.SS1" title="5.1 Limitations ‣ 5 Discussion ‣ Sora: A Review on Background, Technology, Limitations, and Opportunities of Large Vision Models">5.1 Limitations</a></li><li><a href="https://arxiv.org/html/2402.17177v1#S5.SS2" title="5.2 Opportunities ‣ 5 Discussion ‣ Sora: A Review on Background, Technology, Limitations, and Opportunities of Large Vision Models">5.2 Opportunities</a></li></ol></li><li><a href="https://arxiv.org/html/2402.17177v1#S6" title="6 Conclusion ‣ Sora: A Review on Background, Technology, Limitations, and Opportunities of Large Vision Models">6 Conclusion</a></li><li><a href="https://arxiv.org/html/2402.17177v1#A1" title="Appendix A Related Works ‣ Sora: A Review on Background, Technology, Limitations, and Opportunities of Large Vision Models">A Related Works</a></li></ol></nav><section><h2>
+1 Introduction</h2><p>Since the release of ChatGPT in November 2022, the advent of AI technologies has marked a significant transformation, reshaping interactions and integrating deeply into various facets of daily life and industry&nbsp;<cite>[<a href="https://arxiv.org/html/2402.17177v1#bib.bib1">1</a>, <a href="https://arxiv.org/html/2402.17177v1#bib.bib2">2</a>]</cite>. Building on this momentum, OpenAI released, in February 2024, Sora, a text-to-video generative AI model that can generate videos of realistic or imaginative scenes from text prompts.
+Compared to previous video generation models, Sora is distinguished by its ability to produce up to 1-minute long videos with high quality while maintaining adherence to user’s text instructions <cite>[<a href="https://arxiv.org/html/2402.17177v1#bib.bib3">3</a>]</cite>.
+This progression of Sora is the embodiment of the long-standing AI research mission of equipping AI systems (or AI Agents) with the capability of understanding and interacting with the physical world in motion. This involves developing AI models that are capable of not only interpreting complex user instructions but also applying this understanding to solve real-world problems through dynamic and contextually rich simulations.</p><figure><figcaption>Figure 2: Examples of Sora in text-to-video generation. Text instructions are given to the OpenAI Sora model, and it generates three videos according to the instructions.</figcaption></figure><p>Sora demonstrates a remarkable ability to accurately interpret and execute complex human instructions, as illustrated in Figure&nbsp;<a href="https://arxiv.org/html/2402.17177v1#S1.F2" title="Figure 2 ‣ 1 Introduction ‣ Sora: A Review on Background, Technology, Limitations, and Opportunities of Large Vision Models">2</a>. The model can generate detailed scenes that include multiple characters that perform specific actions against intricate backgrounds. Researchers attribute Sora’s proficiency to not only processing user-generated textual prompts but also discerning the complicated interplay of elements within a scenario. One of the most striking aspects of Sora is its capacity for up to a minute-long video while maintaining high visual quality and compelling visual coherency. Unlike earlier models that can only generate short video clips, Sora’s minute-long video creation possesses a sense of progression and a visually consistent journey from its first frame to the last. In addition, Sora’s advancements are evident in its ability to produce extended video sequences with nuanced depictions of motion and interaction, overcoming the constraints of shorter clips and simpler visual renderings that characterized earlier video generation models. This capability represents a leap forward in AI-driven creative tools, allowing users to convert text narratives to rich visual stories. Overall, these advances show the potential of Sora as a world simulator to provide nuanced insights into the physical and contextual dynamics of the depicted scenes. <cite>[<a href="https://arxiv.org/html/2402.17177v1#bib.bib3">3</a>]</cite>.
+</p><p>Technology. At the heart of Sora is a pre-trained diffusion transformer <cite>[<a href="https://arxiv.org/html/2402.17177v1#bib.bib4">4</a>]</cite>. Transformer models have proven scalable and effective for many natural language tasks. Similar to powerful large language models (LLMs) such as GPT-4, Sora can parse text and comprehend complex user instructions. To make video generation computationally efficient, Sora employs spacetime latent patches as its building blocks. Specifically,
+Sora compresses a raw input video into a latent spacetime representation.
+Then, a sequence of latent spacetime patches is extracted from the compressed video to
+encapsulate both the visual appearance and motion dynamics over brief intervals.
+These patches, analogous to word tokens in language models, provide Sora with detailed visual phrases to be used to construct videos.
+Sora’s text-to-video generation is performed by a diffusion transformer model. Starting with a frame filled with visual noise, the model iteratively denoises the image and introduces specific details according to the provided text prompt. In essence, the generated video emerges through a multi-step refinement process, with each step refining the video to be more aligned with the desired content and quality.</p><p>Highlights of Sora. Sora’s capabilities have profound implications in various aspects: </p><ul><li>
+•
+
+<p>Improving simulation abilities: Training Sora at scale is attributed to its remarkable ability to simulate various aspects of the physical world. Despite lacking explicit 3D modeling, Sora exhibits 3D consistency with dynamic camera motion and long-range coherence that includes object persistence and simulates simple interactions with the world. Moreover, Sora intriguingly simulates digital environments like Minecraft, controlled by a basic policy while maintaining visual fidelity. These emergent abilities suggest that scaling video models is effective in creating AI models to simulate the complexity of physical and digital worlds.</p></li><li>
+•
+
+<p>Boosting creativity:
+Imagine outlining a concept through text, whether a simple object or a full scene, and seeing a realistic or highly stylized video rendered within seconds. Sora allows an accelerated design process for faster exploration and refinement of ideas, thus significantly boosting the creativity of artists, filmmakers, and designers.</p></li><li>
+•
+
+<p>Driving educational innovations: Visual aids have long been integral to understanding important concepts in education. With Sora, educators can easily turn a class plan from text to videos
+to captivate students’ attention and improve learning efficiency. From scientific simulations to historical dramatizations, the possibilities are boundless.</p></li><li>
+•
+
+<p>Enhancing Accessibility: Enhancing accessibility in the visual domain is paramount. Sora offers an innovative solution by converting textual descriptions to visual content. This capability empowers all individuals, including those with visual impairments, to actively engage in content creation and interact with others in more effective ways. Consequently, it allows for a more inclusive environment where everyone has the opportunity to express his or her ideas through videos.</p></li><li>
+•
+
+<p>Fostering emerging applications: The applications of Sora are vast. For example, marketers might use it to create dynamic advertisements tailored to specific audience descriptions. Game developers might use it to generate customized visuals or even character actions from player narratives.</p></li></ul><p>Limitations and Opportunities. While Sora’s achievements highlight significant advancements in AI, challenges remain. Depicting complex actions or capturing subtle facial expressions are among the areas where the model could be enhanced. In addition, ethical considerations such as mitigating biases in generated content and preventing harmful visual outputs underscore the importance of responsible usage by developers, researchers, and the broader community. Ensuring that Sora’s outputs are consistently safe and unbiased is a principal challenge.
+The field of video generation is advancing swiftly, with academic and industry research teams making relentless strides. The advent of competing text-to-video models suggests that Sora may soon be part of a dynamic ecosystem. This collaborative and competitive environment fosters innovation, leading to improved video quality and new applications that help improve the productivity of workers and make people’s lives more entertaining.</p><p>Our Contributions.
+Based on published technical reports and our reverse engineering, this paper presents the first comprehensive review of Sora’s background, related technologies, emerging applications, current limitations, and future opportunities.</p></section><section><h2>
+2 Background</h2><section><h3>
+2.1 History</h3><p>In the realm of computer vision (CV), prior to the deep learning revolution, traditional image generation techniques relied on methods like texture synthesis&nbsp;<cite>[<a href="https://arxiv.org/html/2402.17177v1#bib.bib5">5</a>]</cite> and texture mapping&nbsp;<cite>[<a href="https://arxiv.org/html/2402.17177v1#bib.bib6">6</a>]</cite>, based on hand-crafted features. However, these methods were limited in their capacity to produce complex and vivid images. The introduction of Generative Adversarial Networks (GANs)&nbsp;<cite>[<a href="https://arxiv.org/html/2402.17177v1#bib.bib7">7</a>]</cite> and Variational Autoencoders (VAEs)&nbsp;<cite>[<a href="https://arxiv.org/html/2402.17177v1#bib.bib8">8</a>]</cite> marked a significant turning point due to its remarkable capabilities across various applications. Subsequent developments, such as flow models&nbsp;<cite>[<a href="https://arxiv.org/html/2402.17177v1#bib.bib9">9</a>]</cite> and diffusion models&nbsp;<cite>[<a href="https://arxiv.org/html/2402.17177v1#bib.bib10">10</a>]</cite>, further enhanced image generation with greater detail and quality. The recent progress in Artificial Intelligence Generated Content (AIGC) technologies has democratized content creation, enabling users to generate desired content through simple textual instructions&nbsp;<cite>[<a href="https://arxiv.org/html/2402.17177v1#bib.bib11">11</a>]</cite>.</p><p>Over the past decade, the development of generative CV models has taken various routes, as shown in Figure&nbsp;<a href="https://arxiv.org/html/2402.17177v1#S2.F3" title="Figure 3 ‣ 2.1 History ‣ 2 Background ‣ Sora: A Review on Background, Technology, Limitations, and Opportunities of Large Vision Models">3</a>. This landscape began to shift notably following the successful application of the transformer architecture&nbsp;<cite>[<a href="https://arxiv.org/html/2402.17177v1#bib.bib12">12</a>]</cite> in NLP, as demonstrated by BERT&nbsp;<cite>[<a href="https://arxiv.org/html/2402.17177v1#bib.bib13">13</a>]</cite> and GPT&nbsp;<cite>[<a href="https://arxiv.org/html/2402.17177v1#bib.bib14">14</a>]</cite>. In CV, researchers take this concept even further by combining the transformer architecture with visual components, allowing it to be applied to downstream CV tasks, such as Vision Transformer (ViT)&nbsp;<cite>[<a href="https://arxiv.org/html/2402.17177v1#bib.bib15">15</a>]</cite> and Swin Transformer&nbsp;<cite>[<a href="https://arxiv.org/html/2402.17177v1#bib.bib16">16</a>]</cite>. Parallel to the transformer’s success, diffusion models have also made significant strides in the fields of image and video generation&nbsp;<cite>[<a href="https://arxiv.org/html/2402.17177v1#bib.bib10">10</a>]</cite>. Diffusion models offer a mathematically sound framework for converting noise into images with U-Nets&nbsp;<cite>[<a href="https://arxiv.org/html/2402.17177v1#bib.bib17">17</a>]</cite>, where U-Nets facilitate this process by learning to predict and mitigate noise at each step. Since 2021, a paramount focus in AI has been on generative language and vision models that are capable of interpreting human instructions, known as multimodal models. For example, CLIP&nbsp;<cite>[<a href="https://arxiv.org/html/2402.17177v1#bib.bib18">18</a>]</cite> is a pioneering vision-language model that combines transformer architecture with visual elements, facilitating its training on vast datasets of text and images. By integrating visual and linguistic knowledge from the outset, CLIP can function as an image encoder within multimodal generation frameworks. Another notable example is Stable Diffusion&nbsp;<cite>[<a href="https://arxiv.org/html/2402.17177v1#bib.bib19">19</a>]</cite>, a versatile text-to-image AI model celebrated for its adaptability and ease of use. It employs transformer architecture and latent diffusion techniques to decode textual inputs and produce images of a wide array of styles, further illustrating the advancements in multimodal AI.</p><figure><figcaption>Figure 3: History of Generative AI in Vision Domain.</figcaption></figure><p>Following the release of ChatGPT in November 2022, we have witnessed the emergence of commercial text-to-image products in 2023, such as Stable Diffusion&nbsp;<cite>[<a href="https://arxiv.org/html/2402.17177v1#bib.bib19">19</a>]</cite>, Midjourney&nbsp;<cite>[<a href="https://arxiv.org/html/2402.17177v1#bib.bib20">20</a>]</cite>, DALL-E 3&nbsp;<cite>[<a href="https://arxiv.org/html/2402.17177v1#bib.bib21">21</a>]</cite>. These tools enable users to generate new images of high resolution and quality with simple text prompts, showcasing the potential of AI in creative image generation. However, transitioning from text-to-image to text-to-video is challenging due to the temporal complexity of videos. Despite numerous efforts in industry and academia, most existing video generation tools, such as Pika&nbsp;<cite>[<a href="https://arxiv.org/html/2402.17177v1#bib.bib22">22</a>]</cite> and Gen-2&nbsp;<cite>[<a href="https://arxiv.org/html/2402.17177v1#bib.bib23">23</a>]</cite>, are limited to producing only short video clips of a few seconds. In this context, Sora represents a significant breakthrough, akin to ChatGPT’s impact in the NLP domain. Sora is the first model that is capable of generating videos up to one minute long based on human instructions, marking a milestone that profoundly influences research and development in generative AI. To facilitate easy access to the latest advancements in vision generation models, the most recent works have been compiled and provided in the Appendix and our GitHub. </p></section><section><h3>
+2.2 Advanced Concepts</h3><p>Scaling Laws for Vision Models.&nbsp;&nbsp; With scaling laws for LLMs, it is natural to ask whether the development of vision models follows similar scaling laws.
+Recently, Zhai et al.&nbsp;<cite>[<a href="https://arxiv.org/html/2402.17177v1#bib.bib24">24</a>]</cite> have demonstrated that the performance-compute frontier for ViT models with enough training data roughly follows a (saturating) power law. Following them, Google Research&nbsp;<cite>[<a href="https://arxiv.org/html/2402.17177v1#bib.bib25">25</a>]</cite> presented a recipe for highly efficient and stable training of a 22B-parameter ViT. Results show that great performance can be achieved using the frozen model to produce embeddings, and then training thin layers on top. Sora, as a large vision model (LVM), aligns with these scaling principles, uncovering several emergent abilities in text-to-video generation. This significant progression underscores the potential for LVMs to achieve advancements like those seen in LLMs.</p><p>Emergent Abilities.&nbsp;&nbsp;Emergent abilities in LLMs are sophisticated behaviors or functions that manifest at certain scales—often linked to the size of the model’s parameters—that were not explicitly programmed or anticipated by their developers. These abilities are termed "emergent" because they emerge from the model’s comprehensive training across varied datasets, coupled with its extensive parameter count. This combination enables the model to form connections and draw inferences that surpass mere pattern recognition or rote memorization. Typically, the emergence of these abilities cannot be straightforwardly predicted by extrapolating from the performance of smaller-scale models. While numerous LLMs, such as ChatGPT and GPT-4, exhibit emergent abilities, vision models demonstrating comparable capabilities have been scarce until the advent of Sora. According to Sora’s technical report, it is the first vision model to exhibit confirmed emergent abilities, marking a significant milestone in the field of computer vision.</p><p>In addition to its emergent abilities, Sora exhibits other notable capabilities, including instruction following, visual prompt engineering, and video understanding. These aspects of Sora’s functionality represent significant advancements in the vision domain and will be explored and discussed in the rest sections.</p></section></section><section><h2>
+3 Technology</h2><section><h3>
+3.1 Overview of Sora
+</h3><figure><figcaption>Figure 4: Reverse Engineering: Overview of Sora framework</figcaption></figure><p>In the core essence, Sora is a diffusion transformer <cite>[<a href="https://arxiv.org/html/2402.17177v1#bib.bib4">4</a>]</cite> with flexible sampling dimensions as shown in Figure <a href="https://arxiv.org/html/2402.17177v1#S3.F4" title="Figure 4 ‣ 3.1 Overview of Sora ‣ 3 Technology ‣ Sora: A Review on Background, Technology, Limitations, and Opportunities of Large Vision Models">4</a>. It has three parts: (1) A time-space compressor first maps the original video into latent space. (2) A ViT then processes the tokenized latent representation and outputs the denoised latent representation. (3) A CLIP-like <cite>[<a href="https://arxiv.org/html/2402.17177v1#bib.bib26">26</a>]</cite> conditioning mechanism receives LLM-augmented user instructions and potentially visual prompts to guide the diffusion model to generate styled or themed videos. After many denoising steps, the latent representation of the generated video is obtained and then mapped back to pixel space with the corresponding decoder. In this section, we aim to reverse engineer the technology used by Sora and discuss a wide range of related works.</p></section><section><h3>
+3.2 Data Pre-processing</h3><section><h4>
+3.2.1 Variable Durations, Resolutions, Aspect Ratios</h4><p>One distinguishing feature of Sora is its ability to train on, understand, and generate videos and images at their native sizes <cite>[<a href="https://arxiv.org/html/2402.17177v1#bib.bib3">3</a>]</cite> as illustrated in Figure <a href="https://arxiv.org/html/2402.17177v1#S3.F5" title="Figure 5 ‣ 3.2.1 Variable Durations, Resolutions, Aspect Ratios ‣ 3.2 Data Pre-processing ‣ 3 Technology ‣ Sora: A Review on Background, Technology, Limitations, and Opportunities of Large Vision Models">5</a>. Traditional methods often resize, crop, or adjust the aspect ratios of videos to fit a uniform standard—typically short clips with square frames at fixed low resolutions <cite>[<a href="https://arxiv.org/html/2402.17177v1#bib.bib27">27</a>]</cite><cite>[<a href="https://arxiv.org/html/2402.17177v1#bib.bib28">28</a>]</cite><cite>[<a href="https://arxiv.org/html/2402.17177v1#bib.bib29">29</a>]</cite>. Those samples are often generated at a wider temporal stride and rely on separately trained frame-insertion and resolution-rendering models as the final step, creating inconsistency across the video. Utilizing the diffusion transformer architecture <cite>[<a href="https://arxiv.org/html/2402.17177v1#bib.bib4">4</a>]</cite> (see Section <a href="https://arxiv.org/html/2402.17177v1#S3.SS2.SSS4" title="3.2.4 Spacetime Latent Patches ‣ 3.2 Data Pre-processing ‣ 3 Technology ‣ Sora: A Review on Background, Technology, Limitations, and Opportunities of Large Vision Models">3.2.4</a>), Sora is the first model to embrace the diversity of visual data and can sample in a wide array of video and image formats, ranging from widescreen 1920x1080p videos to vertical 1080x1920p videos and everything in between without compromising their original dimensions.</p><figure><figcaption>Figure 5: Sora can generate images in flexible sizes or resolutions ranging from 1920x1080p to 1080x1920p and anything in between. </figcaption></figure><figure><figcaption>Figure 6: A comparison between Sora (right) and a modified version of the model (left), which crops videos to square shapes—a common practice in model training—highlights the advantages.</figcaption></figure><p>Training on data in their native sizes significantly improves composition and framing in the generated videos. Empirical findings suggest that by maintaining the original aspect ratios, Sora achieves a more natural and coherent visual narrative. The comparison between Sora and a model trained on uniformly cropped square videos demonstrates a clear advantage as shown in Figure <a href="https://arxiv.org/html/2402.17177v1#S3.F6" title="Figure 6 ‣ 3.2.1 Variable Durations, Resolutions, Aspect Ratios ‣ 3.2 Data Pre-processing ‣ 3 Technology ‣ Sora: A Review on Background, Technology, Limitations, and Opportunities of Large Vision Models">6</a>. Videos produced by Sora exhibit better framing, ensuring subjects are fully captured in the scene, as opposed to the sometimes truncated views resulting from square cropping.</p><p>This nuanced understanding and preservation of original video and image characteristics mark a significant advancement in the field of generative models. Sora’s approach not only showcases the potential for more authentic and engaging video generation but also highlights the importance of diversity in training data for achieving high-quality results in generative AI. The training approach of Sora aligns with the core tenet of Richard Sutton’s The Bitter Lesson<cite>[<a href="https://arxiv.org/html/2402.17177v1#bib.bib30">30</a>]</cite>, which states that leveraging computation over human-designed features leads to more effective and flexible AI systems. Just as the original design of diffusion transformers seeks simplicity and scalability <cite>[<a href="https://arxiv.org/html/2402.17177v1#bib.bib31">31</a>]</cite>, Sora’s strategy of training on data at their native sizes eschews traditional AI reliance on human-derived abstractions, favoring instead a generalist method that scales with computational power. In the rest of this section, we try to reverse engineer the architecture design of Sora and discuss related technologies to achieve this amazing feature.</p></section><section><h4>
+3.2.2 Unified Visual Representation</h4><p>To effectively process diverse visual inputs including images and videos with varying durations, resolutions, and aspect ratios, a crucial approach involves transforming all forms of visual data into a unified representation, which facilitates the large-scale training of generative models. Specifically, Sora patchifies videos by initially compressing videos into a lower-dimensional latent space, followed by decomposing the representation into spacetime patches. However, Sora’s technical report <cite>[<a href="https://arxiv.org/html/2402.17177v1#bib.bib3">3</a>]</cite> merely presents a high-level idea, making reproduction challenging for the research community. In this section, we try to reverse-engineer the potential ingredients and technical pathways. Additionally, we will discuss viable alternatives that could replicate Sora’s functionalities, drawing upon insights from existing literature.</p><figure><figcaption>Figure 7: At a high level, Sora turns videos into patches by first compressing videos into a lower-dimensional latent space, and subsequently decomposing the representation into spacetime patches. Source: Sora’s technical report <cite>[<a href="https://arxiv.org/html/2402.17177v1#bib.bib3">3</a>]</cite>.</figcaption></figure></section><section><h4>
+3.2.3 Video Compression Network</h4><figure><figcaption>Figure 8: ViT splits an image into fixed-size patches, linearly embeds each of them, adds position embeddings, and feeds the resulting sequence of vectors to a standard Transformer encoder.</figcaption></figure><p>Sora’s video compression network (or visual encoder) aims to reduce the dimensionality of input data, especially a raw video, and output a latent representation that is compressed both temporally and spatially as shown in Figure <a href="https://arxiv.org/html/2402.17177v1#S3.F7" title="Figure 7 ‣ 3.2.2 Unified Visual Representation ‣ 3.2 Data Pre-processing ‣ 3 Technology ‣ Sora: A Review on Background, Technology, Limitations, and Opportunities of Large Vision Models">7</a>. According to the references in the technical report, the compression network is built upon VAE or Vector Quantised-VAE (VQ-VAE) <cite>[<a href="https://arxiv.org/html/2402.17177v1#bib.bib32">32</a>]</cite>. However, it is challenging for VAE to map visual data of any size to a unified and fixed-sized latent space if resizing and cropping are not used as mentioned in the technical report. We summarize two distinct implementations
+to address this issue:</p><p>Spatial-patch Compression.&nbsp;&nbsp;This involves transforming video frames into fixed-size patches, akin to the methodologies employed in ViT <cite>[<a href="https://arxiv.org/html/2402.17177v1#bib.bib15">15</a>]</cite> and MAE <cite>[<a href="https://arxiv.org/html/2402.17177v1#bib.bib33">33</a>]</cite> (see Figure <a href="https://arxiv.org/html/2402.17177v1#S3.F8" title="Figure 8 ‣ 3.2.3 Video Compression Network ‣ 3.2 Data Pre-processing ‣ 3 Technology ‣ Sora: A Review on Background, Technology, Limitations, and Opportunities of Large Vision Models">8</a>), before encoding them into a latent space. This approach is particularly effective for accommodating videos of varying resolutions and aspect ratios, as it encodes entire frames through the processing of individual patches. Subsequently, these spatial tokens are organized in a temporal sequence to create a spatial-temporal latent representation. This technique highlights several critical considerations: Temporal dimension variability – given the varying durations of training videos, the temporal dimension of the latent space representation cannot be fixed. To address this, one can either sample a specific number of frames (padding or temporal interpolation <cite>[<a href="https://arxiv.org/html/2402.17177v1#bib.bib34">34</a>]</cite> may be needed for much shorter videos) or define a universally extended (super long) input length for subsequent processing (more details are described in Section <a href="https://arxiv.org/html/2402.17177v1#S3.SS2.SSS4" title="3.2.4 Spacetime Latent Patches ‣ 3.2 Data Pre-processing ‣ 3 Technology ‣ Sora: A Review on Background, Technology, Limitations, and Opportunities of Large Vision Models">3.2.4</a>); Utilization of pre-trained visual encoders – for processing videos of high resolution, leveraging existing pre-trained visual encoders, such as the VAE encoder from Stable Diffusion <cite>[<a href="https://arxiv.org/html/2402.17177v1#bib.bib19">19</a>]</cite>, is advisable for most researchers while Sora’s team is expected to train their own compression network with a decoder (the video generator) from scratch via the manner employed in training latent diffusion models <cite>[<a href="https://arxiv.org/html/2402.17177v1#bib.bib19">19</a>, <a href="https://arxiv.org/html/2402.17177v1#bib.bib35">35</a>, <a href="https://arxiv.org/html/2402.17177v1#bib.bib36">36</a>]</cite>. These encoders can efficiently compress large-size patches (e.g., 256×256256256256\times 256256 × 256), facilitating the management of large-scale data; Temporal information aggregation – since this method primarily focuses on spatial patch compression, it necessitates an additional mechanism for aggregating temporal information within the model. This aspect is crucial for capturing dynamic changes over time and is further elaborated in subsequent sections (see details in Section <a href="https://arxiv.org/html/2402.17177v1#S3.SS2.SSS6" title="3.2.6 Diffusion Transformer ‣ 3.2 Data Pre-processing ‣ 3 Technology ‣ Sora: A Review on Background, Technology, Limitations, and Opportunities of Large Vision Models">3.2.6</a> and Figure <a href="https://arxiv.org/html/2402.17177v1#S3.F14" title="Figure 14 ‣ 3.3 Modeling ‣ 3 Technology ‣ Sora: A Review on Background, Technology, Limitations, and Opportunities of Large Vision Models">14</a>).
+</p><p>Spatial-temporal-patch Compression.&nbsp;&nbsp;This technique is designed to encapsulate both spatial and temporal dimensions of video data, offering a comprehensive representation. This technique extends beyond merely analyzing static frames by considering the movement and changes across frames, thereby capturing the video’s dynamic aspects. The utilization of 3D convolution emerges as a straightforward and potent method for achieving this integration <cite>[<a href="https://arxiv.org/html/2402.17177v1#bib.bib37">37</a>]</cite>. The graphical illustration and the comparison against pure spatial-pachifying are depicted in Figure <a href="https://arxiv.org/html/2402.17177v1#S3.F9" title="Figure 9 ‣ 3.2.3 Video Compression Network ‣ 3.2 Data Pre-processing ‣ 3 Technology ‣ Sora: A Review on Background, Technology, Limitations, and Opportunities of Large Vision Models">9</a>. Similar to spatial-patch compression, employing spatial-temporal-patch compression with predetermined convolution kernel parameters – such as fixed kernel sizes, strides, and output channels – results in variations in the dimensions of the latent space due to the differing characteristics of video inputs. This variability is primarily driven by the diverse durations and resolutions of the videos being processed. To mitigate this challenge, the approaches adopted for spatial patchification are equally applicable and effective in this context.</p><figure><figcaption>Figure 9: Comparison between different patchification for video compression. Source: ViViT <cite>[<a href="https://arxiv.org/html/2402.17177v1#bib.bib38">38</a>]</cite>. (Left) Spatial patchification simply samples ntsubscript𝑛𝑡n_{t}italic_n start_POSTSUBSCRIPT italic_t end_POSTSUBSCRIPT frames and embeds each 2D frame independently following ViT. (Right) Spatial-temporal patchification extracts and linearly embeds non-overlapping or overlapping tubelets that span the spatiotemporal input volume.</figcaption></figure><p>In summary, we reverse engineer the two patch-level compression approaches based on VAE or its variant like VQ-VQE because operations on patches are more flexible to process different types of videos. Since Sora aims to generate high-fidelity videos, a large patch size or kernel size is used for efficient compression. Here, we expect that fixed-size patches are used for simplicity, scalability, and training stability. But varying-size patches could also be used <cite>[<a href="https://arxiv.org/html/2402.17177v1#bib.bib39">39</a>]</cite> to make the dimension of the whole frames or videos in latent space consistent. However, it may result in invalid positional encoding, and cause challenges for the decoder to generate videos with varying-size latent patches.</p></section><section><h4>
+3.2.4 Spacetime Latent Patches</h4><p>There is a pivotal concern remaining in the compression network part: How to handle the variability in latent space dimensions (i.e., the number of latent feature chunks or patches from different video types) before feeding patches into the input layers of the diffusion transformer. Here, we discuss several solutions.
+</p><p>Based on Sora’s technical report and the corresponding references, patch n’ pack (PNP) <cite>[<a href="https://arxiv.org/html/2402.17177v1#bib.bib40">40</a>]</cite> is likely the solution. PNP packs multiple patches from different images in a single sequence as shown in Figure <a href="https://arxiv.org/html/2402.17177v1#S3.F10" title="Figure 10 ‣ 3.2.4 Spacetime Latent Patches ‣ 3.2 Data Pre-processing ‣ 3 Technology ‣ Sora: A Review on Background, Technology, Limitations, and Opportunities of Large Vision Models">10</a>. This method is inspired by example packing used in natural language processing <cite>[<a href="https://arxiv.org/html/2402.17177v1#bib.bib41">41</a>]</cite> that accommodates efficient training on variable length inputs by dropping tokens. Here the patchification and token embedding steps need to be completed in the compression network, but Sora may further patchify the latent for transformer token as Diffusion Transformer does <cite>[<a href="https://arxiv.org/html/2402.17177v1#bib.bib4">4</a>]</cite>.
+Regardless there is a second-round patchification or not,
+we need to address two concerns, how to pack those tokens in a compact manner and how to control which tokens should be dropped. For the first concern, a simple greedy approach is used which adds examples to the first sequence with enough remaining space. Once no more example can fit, sequences are filled with padding tokens, yielding the fixed sequence lengths needed for batched operations. Such a simple packing algorithm can lead to significant padding, depending on the distribution of the length of inputs. On the other hand, we can control the resolutions and frames we sample to ensure efficient packing by tuning the sequence length and limiting padding. For the second concern, an intuitive approach is to drop the similar tokens <cite>[<a href="https://arxiv.org/html/2402.17177v1#bib.bib42">42</a>, <a href="https://arxiv.org/html/2402.17177v1#bib.bib43">43</a>, <a href="https://arxiv.org/html/2402.17177v1#bib.bib33">33</a>, <a href="https://arxiv.org/html/2402.17177v1#bib.bib44">44</a>]</cite> or, like PNP, apply dropping rate schedulers. However, it is worth noting that 3D Consistency is one of the nice properties of Sora. Dropping tokens may ignore fine-grained details during training. Thus, we believe that OpenAI is likely to use a super long context window and pack all tokens from videos although doing so is computationally expensive e.g., the multi-head attention <cite>[<a href="https://arxiv.org/html/2402.17177v1#bib.bib45">45</a>, <a href="https://arxiv.org/html/2402.17177v1#bib.bib46">46</a>]</cite> operator exhibits quadratic cost in sequence length.
+Specifically, spacetime latent patches from a long-duration video can be packed in one sequence while the ones from several short-duration videos are concatenated in the other sequence.</p><figure><figcaption>Figure 10: Patch packing enables variable resolution images or videos with preserved aspect ratio.6 Token dropping somehow could be treated as data augmentation. Source: NaViT <cite>[<a href="https://arxiv.org/html/2402.17177v1#bib.bib40">40</a>]</cite>.</figcaption></figure></section><section><h4>
+3.2.5 Discussion</h4><p>We discuss two technical solutions to data pre-processing that Sora may use. Both solutions are performed at the patch level due to the characteristics of flexibility and scalability for modeling. Different from previous approaches where videos are resized, cropped, or trimmed to a standard size, Sora trains on data at its native size. Although there are several benefits (see detailed analysis in Section <a href="https://arxiv.org/html/2402.17177v1#S3.SS2.SSS1" title="3.2.1 Variable Durations, Resolutions, Aspect Ratios ‣ 3.2 Data Pre-processing ‣ 3 Technology ‣ Sora: A Review on Background, Technology, Limitations, and Opportunities of Large Vision Models">3.2.1</a>), it brings some technical challenges, among which one of the most significant is that neural networks cannot inherently process visual data of variable durations, resolutions, and aspect ratios. Through reverse engineering, we believe that Sora firstly compresses visual patches into low-dimensional latent representations, and arranges such latent patches or further patchified latent patches in a sequence, then injects noise into these latent patches before feeding them to the input layer of diffusion transformer. Spatial-temporal patchification is adopted by Sora because it is simple to implement, and it can effectively reduce the context length with high-information-density tokens and decrease the complexity of subsequent modeling of temporal information.</p><p>To the research community, we recommend using cost-efficient alternative solutions for video compression and representation, including utilizing pre-trained checkpoints (e.g., compression network) <cite>[<a href="https://arxiv.org/html/2402.17177v1#bib.bib47">47</a>]</cite>, shortening the context window, using light-weight modeling mechanisms such as (grouped) multi-query attention <cite>[<a href="https://arxiv.org/html/2402.17177v1#bib.bib48">48</a>, <a href="https://arxiv.org/html/2402.17177v1#bib.bib49">49</a>]</cite> or efficient architectures (e.g. Mamba <cite>[<a href="https://arxiv.org/html/2402.17177v1#bib.bib50">50</a>]</cite>), downsampling data and dropping tokens if necessary. The trade-off between effectiveness and efficiency for video modeling is an important research topic to be explored.</p></section><section><h4>
+3.2.6 Diffusion Transformer</h4><figure><figcaption>Figure 11: The overall framework of DiT (left) and U-ViT (right)</figcaption><p>.
+</p><figcaption>Figure 11: The overall framework of DiT (left) and U-ViT (right)</figcaption></figure></section></section><section><h3>
+3.3 Modeling</h3><p>Image Diffusion Transformer. Traditional diffusion models <cite>[<a href="https://arxiv.org/html/2402.17177v1#bib.bib51">51</a>, <a href="https://arxiv.org/html/2402.17177v1#bib.bib52">52</a>, <a href="https://arxiv.org/html/2402.17177v1#bib.bib53">53</a>]</cite> mainly leverage convolutional U-Nets that include downsampling and upsampling blocks for the denoising network backbone. However, recent studies show that the U-Net architecture is not crucial to the good performance of the diffusion model. By incorporating a more flexible transformer architecture, the transformer-based diffusion models can use more training data and larger model parameters. Along this line,
+DiT <cite>[<a href="https://arxiv.org/html/2402.17177v1#bib.bib4">4</a>]</cite> and U-ViT <cite>[<a href="https://arxiv.org/html/2402.17177v1#bib.bib54">54</a>]</cite> are among the first works to employ vision transformers for latent diffusion models.
+As in ViT, DiT employs a multi-head self-attention layer and a pointwise feed-forward network interlaced with some layer norm and scaling layers. Moreover, as shown in Figure <a href="https://arxiv.org/html/2402.17177v1#S3.F11" title="Figure 11 ‣ 3.2.6 Diffusion Transformer ‣ 3.2 Data Pre-processing ‣ 3 Technology ‣ Sora: A Review on Background, Technology, Limitations, and Opportunities of Large Vision Models">11</a>, DiT incorporates conditioning via adaptive layer norm (AdaLN) with an additional MLP layer for zero-initializing, which initializes each residual block as an identity function and thus greatly stabilizes the training process. The scalability and flexibility of DiT is empirically validated. DiT becomes the new backbone for diffusion models.
+In U-ViT, as shown in Figure <a href="https://arxiv.org/html/2402.17177v1#S3.F11" title="Figure 11 ‣ 3.2.6 Diffusion Transformer ‣ 3.2 Data Pre-processing ‣ 3 Technology ‣ Sora: A Review on Background, Technology, Limitations, and Opportunities of Large Vision Models">11</a>, they treat all inputs, including time, condition, and noisy image patches, as tokens and propose long skip connections between the shallow and deep transformer layers. The results suggest that the downsampling and upsampling operators in CNN-based U-Net are not always necessary, and U-ViT achieves record-breaking FID scores in image and text-to-image generation.</p><p>Like Masked AutoEncoder (MAE) <cite>[<a href="https://arxiv.org/html/2402.17177v1#bib.bib33">33</a>]</cite>,
+Masked Diffusion Transformer (MDT) <cite>[<a href="https://arxiv.org/html/2402.17177v1#bib.bib55">55</a>]</cite> incorporates mask latent modeling into the diffusion process to explicitly enhance contextual relation learning among object semantic parts in image synthesis. Specifically, as shown in Figure <a href="https://arxiv.org/html/2402.17177v1#S3.F12" title="Figure 12 ‣ 3.3 Modeling ‣ 3 Technology ‣ Sora: A Review on Background, Technology, Limitations, and Opportunities of Large Vision Models">12</a>, MDT uses a side-interpolated for an additional masked token reconstruction task during training to boost the training efficiency and learn powerful context-aware positional embedding for inference. Compared to DiT <cite>[<a href="https://arxiv.org/html/2402.17177v1#bib.bib4">4</a>]</cite>, MDT achieves better performance and faster learning speed. Instead of using AdaLN (i.e., shifting and scaling) for time-conditioning modeling, Hatamizadeh et al.&nbsp;<cite>[<a href="https://arxiv.org/html/2402.17177v1#bib.bib56">56</a>]</cite> introduce Diffusion Vision Transformers (DiffiT), which uses a time-dependent self-attention (TMSA) module to model dynamic denoising behavior over sampling time steps. Besides, DiffiT uses two hybrid hierarchical architectures for efficient denoising in the pixel space and the latent space, respectively, and achieves new state-of-the-art results across various generation tasks. Overall, these studies show promising results in employing vision transformers for image latent diffusion, paving the way for future studies for other modalities.</p><figure><figcaption>Figure 12: The overall framework of Masked Diffusion Transformer (MDT). A solid/dotted line indicates the training/inference process for each time step. Masking and side-interpolater are only used during training and are removed during inference.</figcaption></figure><p>Video Diffusion Transformer. Building upon the foundational works in text-to-image (T2I) diffusion models, recent research has been focused on realizing the potential of diffusion transformers for text-to-video (T2V) generation tasks. Due to the temporal nature of videos, key challenges for applying DiTs in the video domain are: i) how to compress the video spatially and temporally to a latent space for efficient denoising; ii) how to convert the compressed latent to patches and feed them to the transformer; and iii) how to handle long-range temporal and spatial dependencies and ensure content consistency. Please refer to Section <a href="https://arxiv.org/html/2402.17177v1#S3.SS2.SSS3" title="3.2.3 Video Compression Network ‣ 3.2 Data Pre-processing ‣ 3 Technology ‣ Sora: A Review on Background, Technology, Limitations, and Opportunities of Large Vision Models">3.2.3</a> for the first challenge. In this Section, we focus our discussion on transformer-based denoising network architectures designed to operate in the spatially and temporally compressed latent space. We give a detailed review of the two important works (Imagen Video <cite>[<a href="https://arxiv.org/html/2402.17177v1#bib.bib29">29</a>]</cite> and Video LDM <cite>[<a href="https://arxiv.org/html/2402.17177v1#bib.bib36">36</a>]</cite>) described in the reference list of the OpenAI Sora technique report.
+</p><p>Imagen Video <cite>[<a href="https://arxiv.org/html/2402.17177v1#bib.bib29">29</a>]</cite>, a text-to-video generation system developed by Google Research, utilizes a cascade of diffusion models, which consists of 7 sub-models that perform text-conditional video generation, spatial super-resolution, and temporal super-resolution, to transform textual prompts into high-definition videos. As shown in Figure <a href="https://arxiv.org/html/2402.17177v1#S3.F13" title="Figure 13 ‣ 3.3 Modeling ‣ 3 Technology ‣ Sora: A Review on Background, Technology, Limitations, and Opportunities of Large Vision Models">13</a>, firstly, a frozen T5 text encoder generates contextual embeddings from the input text prompt. These embeddings are critical for aligning the generated video with the text prompt and are injected into all models in the cascade, in addition to the base model. Subsequently, the embedding is fed to the base model for low-resolution video generation, which is then refined by cascaded diffusion models to increase the resolution. The base video and super-resolution models use a 3D U-Net architecture in a space-time separable fashion. This architecture weaves temporal attention and convolution layers with spatial counterparts to efficiently capture inter-frame dependencies. It employs v-prediction parameterization for numerical stability and conditioning augmentation to facilitate parallel training across models. The process involves joint training on both images and videos, treating each image as a frame to leverage larger datasets, and using classifier-free guidance <cite>[<a href="https://arxiv.org/html/2402.17177v1#bib.bib57">57</a>]</cite> to enhance prompt fidelity. Progressive distillation <cite>[<a href="https://arxiv.org/html/2402.17177v1#bib.bib58">58</a>]</cite> is applied to streamline the sampling process, significantly reducing the computational load while maintaining perceptual quality. Combining these methods and techniques allows Imagen Video to generate videos with not only high fidelity but also remarkable controllability, as demonstrated by its ability to produce diverse videos, text animations, and content in various artistic styles.</p><figure><figcaption>Figure 13: The overall framework of Imagen Video. Source: Imagen Video <cite>[<a href="https://arxiv.org/html/2402.17177v1#bib.bib29">29</a>]</cite>.</figcaption></figure><figure><figure><figcaption>(a) Additional temporal layer. A pre-trained LDM is turned into a video generator by inserting temporal layers that learn to align frames into temporally consistent sequences. During optimization, the image backbone θ𝜃\thetaitalic_θ remains fixed and only the parameters ϕitalic-ϕ\phiitalic_ϕ of the temporal layers lϕisuperscriptsubscript𝑙italic-ϕ𝑖l_{\phi}^{i}italic_l start_POSTSUBSCRIPT italic_ϕ end_POSTSUBSCRIPT start_POSTSUPERSCRIPT italic_i end_POSTSUPERSCRIPT are trained.
+</figcaption></figure><figure><figcaption>(b) Video LDM stack. Video LDM first generates sparse key frames and then temporally interpolates twice with the same latent diffusion models to achieve a high frame rate. Finally, the latent video is decoded to pixel space, and optionally, a video upsampler diffusion model is applied.</figcaption></figure><figcaption>Figure 14: The overall framework of Video LDM. Source: Video LDM <cite>[<a href="https://arxiv.org/html/2402.17177v1#bib.bib36">36</a>]</cite>.</figcaption></figure><p>Blattmann et al. <cite>[<a href="https://arxiv.org/html/2402.17177v1#bib.bib36">36</a>]</cite> propose to turn a 2D Latent Diffusion Model into a Video Latent Diffusion Model (Video LDM). They achieve this by adding some post-hoc temporal layers among the existing spatial layers into both the U-Net backbone and the VAE decoder that learns to align individual frames. These temporal layers are trained on encoded video data, while the spatial layers remain fixed, allowing the model to leverage large image datasets for pre-training. The LDM’s decoder is fine-tuned for temporal consistency in pixel space and temporally aligning diffusion model upsamplers for enhanced spatial resolution. To generate very long videos, models are trained to predict a future frame given a number of context frames, allowing for classifier-free guidance during sampling.
+To achieve high temporal resolution, the video synthesis process is divided into key frame generation and interpolation between these key frames. Following cascaded LDMs, a DM is used to further scale up the Video LDM outputs by 4 times, ensuring high spatial resolution while maintaining temporal consistency. This approach enables the generation of globally coherent long videos in a computationally efficient manner. Additionally, the authors demonstrate the ability to transform pre-trained image LDMs (e.g., Stable Diffusion) into text-to-video models by training only the temporal alignment layers, achieving video synthesis with resolutions up to 1280 × 2048.</p><section><h4>
+3.3.1 Discussion</h4><p>Cascade diffusion models for spatial and temporal up-sampling. Sora can generate high-resolution videos. By reviewing existing works and our reverse engineering, we speculate that Sora also leverages cascade diffusion model architecture <cite>[<a href="https://arxiv.org/html/2402.17177v1#bib.bib59">59</a>]</cite> which is composed of a base model and many space-time refiner models.
+The attention modules are unlikely to be heavily used in the based diffusion model and low-resolution diffusion model, considering the high computation cost and limited performance gain of using attention machines in high-resolution cases.
+For spatial and temporal scene consistency, as previous works show that temporal consistency is more important than spatial consistency for video/scene generation, Sora is likely to leverage an efficient training strategy by using longer video (for temporal consistency) with lower resolution.
+Moreover, Sora is likely to use a v𝑣vitalic_v-parameterization diffusion model <cite>[<a href="https://arxiv.org/html/2402.17177v1#bib.bib58">58</a>]</cite>, considering its superior performance compared to other variants that predict the original latent x𝑥xitalic_x or the noise ϵitalic-ϵ\epsilonitalic_ϵ.</p><p>On the latent encoder. For training efficiency, most of the existing works leverage the pre-trained VAE encoder of Stable Diffusions <cite>[<a href="https://arxiv.org/html/2402.17177v1#bib.bib60">60</a>, <a href="https://arxiv.org/html/2402.17177v1#bib.bib61">61</a>]</cite>, a pre-trained 2D diffusion model, as an initialized model checkpoint. However, the encoder lacks the temporal compression ability. Even though some works propose to only fine-tune the decoder for handling temporal information, the decoder’s performance of dealing with video temporal data in the compressed latent space remains sub-optimal. Based on the technique report, our reverse engineering shows that, instead of using an existing pre-trained VAE encoder, it is likely that Sora uses a space-time VAE encoder, trained from scratch on video data, which performs better than existing ones with a video-orient compressed latent space.</p></section></section><section><h3>
+3.4 Language Instruction Following</h3><p>Users primarily engage with generative AI models through natural language instructions, known as text prompts&nbsp;<cite>[<a href="https://arxiv.org/html/2402.17177v1#bib.bib62">62</a>, <a href="https://arxiv.org/html/2402.17177v1#bib.bib63">63</a>]</cite>.
+Model instruction tuning aims to enhance AI models’ capability to follow prompts accurately. This improved capability in prompt following enables models to generate output that more closely resembles human responses to natural language queries.
+We start our discussion with a review of instruction following techniques for large language models (LLMs) and text-to-image models such as DALL·E 3.
+To enhance the text-to-video model’s ability to follow text instructions, Sora utilizes an approach similar to that of DALL·E 3. The approach involves training a descriptive captioner and utilizing the captioner’s generated data for fine-tuning.
+As a result of instruction tuning, Sora is able to accommodate a wide range of user requests, ensuring meticulous attention to the details in the instructions and generating videos that precisely meet users’ needs.</p><section><h4>
+3.4.1 Large Language Models</h4><p>The capability of LLMs to follow instructions has been extensively explored&nbsp;<cite>[<a href="https://arxiv.org/html/2402.17177v1#bib.bib64">64</a>, <a href="https://arxiv.org/html/2402.17177v1#bib.bib65">65</a>, <a href="https://arxiv.org/html/2402.17177v1#bib.bib66">66</a>]</cite>. This ability allows LLMs to read, understand, and respond appropriately to instructions describing an unseen task without examples. Prompt following ability is obtained and enhanced by fine-tuning LLMs on a mixture of tasks formatted as instructions<cite>[<a href="https://arxiv.org/html/2402.17177v1#bib.bib64">64</a>, <a href="https://arxiv.org/html/2402.17177v1#bib.bib66">66</a>]</cite>, known as instruction tuning. Wei et al.&nbsp;<cite>[<a href="https://arxiv.org/html/2402.17177v1#bib.bib65">65</a>]</cite> showed that instruction-tuned LLMs significantly outperform the untuned ones on unseen tasks. The instruction-following ability transforms LLMs into general-purpose task solvers, marking a paradigm shift in the history of AI development. </p></section><section><h4>
+3.4.2 Text-to-Image</h4><p>The instruction following in DALL·E 3 is addressed by a caption improvement method with a hypothesis that the quality of text-image pairs that the model is trained on determines the performance of the resultant text-to-image model&nbsp;<cite>[<a href="https://arxiv.org/html/2402.17177v1#bib.bib67">67</a>]</cite>. The poor quality of data, particularly the prevalence of noisy data and short captions that omit a large amount of visual information, leads to many issues such as neglecting keywords and word order, and misunderstanding the user intentions&nbsp;<cite>[<a href="https://arxiv.org/html/2402.17177v1#bib.bib21">21</a>]</cite>. The caption improvement approach addresses these issues by re-captioning existing images with detailed, descriptive captions. The approach first trains an image captioner, which is a vision-language model, to generate precise and descriptive image captions. The resulting descriptive image captions by the captioner are then used to fine-tune text-to-image models. Specifically, DALL·E 3 follows contrastive captioners (CoCa)&nbsp;<cite>[<a href="https://arxiv.org/html/2402.17177v1#bib.bib68">68</a>]</cite> to jointly train an image captioner with a CLIP&nbsp;<cite>[<a href="https://arxiv.org/html/2402.17177v1#bib.bib26">26</a>]</cite> architecture and a language model objective.
+This image captioner incorporates an image encoder a unimodal text encoder for extracting language information, and a multimodal text decoder. It first employs a contrastive loss between unimodal image and text embeddings, followed by a captioning loss for the multimodal decoder’s outputs. The resulting image captioner is further fine-tuned on a highly detailed description of images covering main objects, surroundings, backgrounds, texts, styles, and colorations. With this step, the image captioner is able to generate detailed descriptive captions for the images. The training dataset for the text-to-image model is a mixture of the re-captioned dataset generated by the image captioner and ground-truth human-written data to ensure that the model captures user inputs. This image caption improvement method introduces a potential issue: a mismatch between the actual user prompts and descriptive image descriptions from the training data. DALL·E 3 addresses this by upsampling, where LLMs are used to re-write short user prompts into detailed and lengthy instructions. This ensures that the model’s text inputs received in inference time are consistent with those in model training.</p></section><section><h4>
+3.4.3 Text-to-Video</h4><p>To enhance the ability of instruction following, Sora adopts a similar caption improvement approach. This method is achieved by first training a video captioner capable of producing detailed descriptions for videos. Then, this video captioner is applied to all videos in the training data to generate high-quality (video, descriptive caption) pairs, which are used to fine-tune Sora to improve its instruction following ability.</p><p>Sora’s technical report&nbsp;<cite>[<a href="https://arxiv.org/html/2402.17177v1#bib.bib3">3</a>]</cite> does not reveal the details about how the video captioner is trained. Given that the video captioner is a video-to-text model, there are many approaches to building it. A straightforward approach is to utilize CoCa architecture for video captioning by taking multiple frames of a video and feeding each frame into the image encoder&nbsp;<cite>[<a href="https://arxiv.org/html/2402.17177v1#bib.bib68">68</a>]</cite>, known as VideoCoCa&nbsp;<cite>[<a href="https://arxiv.org/html/2402.17177v1#bib.bib69">69</a>]</cite>. VideoCoCa builds upon CoCa and re-uses the image encoder pre-trained weights and applies it independently on sampled video frames. The resulting frame token embeddings are flattened and concatenated into a long sequence of video representations. These flattened frame tokens are then processed by a generative pooler and a contrastive pooler, which are jointly trained with the contrastive loss and captioning loss. Other alternatives to building video captioners include mPLUG-2&nbsp;<cite>[<a href="https://arxiv.org/html/2402.17177v1#bib.bib70">70</a>]</cite>, GIT&nbsp;<cite>[<a href="https://arxiv.org/html/2402.17177v1#bib.bib71">71</a>]</cite>, FrozenBiLM&nbsp;<cite>[<a href="https://arxiv.org/html/2402.17177v1#bib.bib72">72</a>]</cite>, and more. Finally, to ensure that user prompts align with the format of those descriptive captions in training data, Sora performs an additional prompt extension step, where GPT-4V is used to expand user inputs to detailed descriptive prompts.</p></section><section><h4>
+3.4.4 Discussion</h4><p>The instruction-following ability is critical for Sora to generate one-minute-long videos with intricate scenes that are faithful to user intents. According to Sora’s technical report&nbsp;<cite>[<a href="https://arxiv.org/html/2402.17177v1#bib.bib3">3</a>]</cite>, this ability is obtained by developing a captioner that can generate long and detailed captions, which are then used to train the model. However, the process of collecting data for training such a captioner is unknown and likely labor-intensive, as it may require detailed descriptions of videos. Moreover, the descriptive video captioner might hallucinate important details of the videos. We believe that how to improve the video captioner warrants further investigation and is critical to enhance the instruction-following ability of text-to-image models.</p></section></section><section><h3>
+3.5 Prompt Engineering</h3><p>Prompt engineering refers to the process of designing and refining the input given to an AI system, particularly in the context of generative models, to achieve specific or optimized outputs&nbsp;<cite>[<a href="https://arxiv.org/html/2402.17177v1#bib.bib73">73</a>, <a href="https://arxiv.org/html/2402.17177v1#bib.bib74">74</a>, <a href="https://arxiv.org/html/2402.17177v1#bib.bib75">75</a>]</cite>. The art and science of prompt engineering involve crafting these inputs in a way that guides the model to produce the most accurate, relevant, and coherent responses possible.</p><section><h4>
+3.5.1 Text Prompt</h4><p>Text prompt engineering is vital in directing text-to-video models (e.g., Sora <cite>[<a href="https://arxiv.org/html/2402.17177v1#bib.bib3">3</a>]</cite>) to produce videos that are visually striking while precisely meeting user specifications. This involves crafting detailed descriptions
+to instruct the model to effectively bridge the gap between human creativity and AI’s execution capabilities&nbsp;<cite>[<a href="https://arxiv.org/html/2402.17177v1#bib.bib76">76</a>]</cite>. The prompts for Sora cover a wide range of scenarios. Recent works (e.g., VoP&nbsp;<cite>[<a href="https://arxiv.org/html/2402.17177v1#bib.bib77">77</a>]</cite>, Make-A-Video&nbsp;<cite>[<a href="https://arxiv.org/html/2402.17177v1#bib.bib28">28</a>]</cite>, and Tune-A-Video&nbsp;<cite>[<a href="https://arxiv.org/html/2402.17177v1#bib.bib78">78</a>]</cite>) have shown how prompt engineering leverages model’s natural language understanding ability to decode complex instructions and render them into cohesive, lively, and high-quality video narratives. As shown in Figure&nbsp;<a href="https://arxiv.org/html/2402.17177v1#S3.F15" title="Figure 15 ‣ 3.5.1 Text Prompt ‣ 3.5 Prompt Engineering ‣ 3 Technology ‣ Sora: A Review on Background, Technology, Limitations, and Opportunities of Large Vision Models">15</a>, “a stylish woman walking down a neon-lit Tokyo street…” is such a meticulously crafted text prompt that it ensures Sora to generate a video that aligns well with the expected vision. The quality of prompt engineering depends on the careful selection of words, the specificity of the details provided, and comprehension of their impact on the model’s output. For example, the prompt in Figure&nbsp;<a href="https://arxiv.org/html/2402.17177v1#S3.F15" title="Figure 15 ‣ 3.5.1 Text Prompt ‣ 3.5 Prompt Engineering ‣ 3 Technology ‣ Sora: A Review on Background, Technology, Limitations, and Opportunities of Large Vision Models">15</a> specifies in detail the actions, settings, character appearances, and even the desired mood and atmosphere of the scene.
+</p><figure><figcaption>Figure 15: A case study on prompt engineering for text-to-video generation, employing color coding to delineate the creative process. The text highlighted in blue describes the elements generated by Sora, such as the depiction of a stylish woman. In contrast, the text in yellow accentuates the model’s interpretation of actions, settings, and character appearances, demonstrating how a meticulously crafted prompt is transformed into a vivid and dynamic video narrative.</figcaption></figure></section><section><h4>
+3.5.2 Image Prompt</h4><p>An image prompt serves as a visual anchor for the to-be-generated video’s content and other elements such as
+characters, setting, and mood <cite>[<a href="https://arxiv.org/html/2402.17177v1#bib.bib79">79</a>]</cite>.
+In addition, a text prompt can instruct the model to animate these elements by e.g., adding layers of movement, interaction, and narrative progression that bring the static image to life &nbsp;<cite>[<a href="https://arxiv.org/html/2402.17177v1#bib.bib27">27</a>, <a href="https://arxiv.org/html/2402.17177v1#bib.bib80">80</a>, <a href="https://arxiv.org/html/2402.17177v1#bib.bib81">81</a>]</cite>.
+The use of image prompts allows Sora to convert static images into dynamic, narrative-driven videos by leveraging both visual and textual information.
+In Figure&nbsp;<a href="https://arxiv.org/html/2402.17177v1#S3.F16" title="Figure 16 ‣ 3.5.2 Image Prompt ‣ 3.5 Prompt Engineering ‣ 3 Technology ‣ Sora: A Review on Background, Technology, Limitations, and Opportunities of Large Vision Models">16</a>, we show AI-generated videos of “a Shiba Inu wearing a beret and turtleneck”, “a unique monster family”, “a cloud forming the word ‘SORA”’ and “surfers navigating a tidal wave inside a historic hall”. These examples demonstrate what can be achieved by prompting Sora with DALL·E-generated images.
+</p><figure><figcaption>Figure 16: This example illustrates the image prompts to guide Sora’s text-to-video model to generation. The red boxes visually anchor the key elements of each scene—monsters of varied designs, a cloud formation spelling “SORA”, and surfers in an ornate hall facing a massive tidal wave.</figcaption></figure></section><section><h4>
+3.5.3 Video Prompt</h4><p>Video prompts can also be used for video generation
+as demonstrated in &nbsp;<cite>[<a href="https://arxiv.org/html/2402.17177v1#bib.bib82">82</a>, <a href="https://arxiv.org/html/2402.17177v1#bib.bib83">83</a>]</cite>.
+Recent works (e.g., Moonshot&nbsp;<cite>[<a href="https://arxiv.org/html/2402.17177v1#bib.bib84">84</a>]</cite> and Fast-Vid2Vid&nbsp;<cite>[<a href="https://arxiv.org/html/2402.17177v1#bib.bib85">85</a>]</cite>) show that good video prompts need to be specific and flexible.
+This ensures that the model receives clear direction on specific objectives, like the portrayal of particular objects and visual themes, and also allows for imaginative variations in the final output. For example, in the video extension tasks, a prompt could specify the direction (forward or backward in time) and the context or theme of the extension.
+In Figure&nbsp;<a href="https://arxiv.org/html/2402.17177v1#S3.F17" title="Figure 17 ‣ 3.5.3 Video Prompt ‣ 3.5 Prompt Engineering ‣ 3 Technology ‣ Sora: A Review on Background, Technology, Limitations, and Opportunities of Large Vision Models">17</a>(a), the video prompt instructs Sora to extend a video backward in time to explore the events leading up to the original starting point.
+When performing video-to-video editing through video prompts, as shown in Figure&nbsp;<a href="https://arxiv.org/html/2402.17177v1#S3.F17" title="Figure 17 ‣ 3.5.3 Video Prompt ‣ 3.5 Prompt Engineering ‣ 3 Technology ‣ Sora: A Review on Background, Technology, Limitations, and Opportunities of Large Vision Models">17</a>(b), the model needs to clearly understand the desired transformation, such as changing the video’s style, setting or atmosphere, or altering subtle aspects like lighting or mood.
+In Figure&nbsp;<a href="https://arxiv.org/html/2402.17177v1#S3.F17" title="Figure 17 ‣ 3.5.3 Video Prompt ‣ 3.5 Prompt Engineering ‣ 3 Technology ‣ Sora: A Review on Background, Technology, Limitations, and Opportunities of Large Vision Models">17</a>(c), the prompt instructs Sora to connect videos while ensuring smooth transitions between objects in different scenes across videos.</p><figure><figcaption>Figure 17: These examples illustrate the video prompt techniques for Sora models: (a) Video Extension, where the model extrapolates the sequence backward the original footage, (b) Video Editing, where specific elements like the setting are transformed as per the text prompt, and (c) Video Connection, where two distinct video prompts are seamlessly blended to create a coherent narrative. Each process is guided by a visual anchor, marked by a red box, ensuring continuity and precision in the generated video content.</figcaption></figure></section><section><h4>
+3.5.4 Discussion</h4><p>Prompt engineering allows users to guide AI models to generate content that aligns with their intent. As an example, the combined use of text, image, and video prompts enables Sora to create content that is not only visually compelling but also aligned well with users’ expectations and intent.
+While previous studies on prompt engineering have been focused on text and image prompts for LLMs and LVMs&nbsp;<cite>[<a href="https://arxiv.org/html/2402.17177v1#bib.bib86">86</a>, <a href="https://arxiv.org/html/2402.17177v1#bib.bib87">87</a>, <a href="https://arxiv.org/html/2402.17177v1#bib.bib88">88</a>]</cite>,
+we expect that there will be a growing interest in video prompts for video generation models.
+</p></section></section><section><h3>
+3.6 Trustworthiness</h3><p>With the rapid advancement of sophisticated models such as ChatGPT <cite>[<a href="https://arxiv.org/html/2402.17177v1#bib.bib89">89</a>]</cite>, GPT4-V <cite>[<a href="https://arxiv.org/html/2402.17177v1#bib.bib90">90</a>]</cite>, and Sora <cite>[<a href="https://arxiv.org/html/2402.17177v1#bib.bib3">3</a>]</cite>, the capabilities of these models have seen remarkable enhancements. These developments have made significant contributions to improving work efficiency and propelling technological progress. However, these advancements also raise concerns about the potential for misuse of these technologies, including the generation of fake news <cite>[<a href="https://arxiv.org/html/2402.17177v1#bib.bib91">91</a>, <a href="https://arxiv.org/html/2402.17177v1#bib.bib92">92</a>]</cite>, privacy breaches <cite>[<a href="https://arxiv.org/html/2402.17177v1#bib.bib93">93</a>]</cite>, and ethical dilemmas <cite>[<a href="https://arxiv.org/html/2402.17177v1#bib.bib94">94</a>, <a href="https://arxiv.org/html/2402.17177v1#bib.bib95">95</a>]</cite>. Consequently, the issue of trustworthiness in large models has garnered extensive attention from both the academic and industrial spheres, emerging as a focal point of contemporary research discussions.</p><section><h4>
+3.6.1 Safety Concern</h4><p>One primary area of focus is the model’s safety, specifically its resilience against misuse and so-called “jailbreak” attacks, where users attempt to exploit vulnerabilities to generate prohibited or harmful content <cite>[<a href="https://arxiv.org/html/2402.17177v1#bib.bib96">96</a>, <a href="https://arxiv.org/html/2402.17177v1#bib.bib97">97</a>, <a href="https://arxiv.org/html/2402.17177v1#bib.bib98">98</a>, <a href="https://arxiv.org/html/2402.17177v1#bib.bib99">99</a>, <a href="https://arxiv.org/html/2402.17177v1#bib.bib100">100</a>, <a href="https://arxiv.org/html/2402.17177v1#bib.bib101">101</a>, <a href="https://arxiv.org/html/2402.17177v1#bib.bib102">102</a>, <a href="https://arxiv.org/html/2402.17177v1#bib.bib103">103</a>, <a href="https://arxiv.org/html/2402.17177v1#bib.bib104">104</a>, <a href="https://arxiv.org/html/2402.17177v1#bib.bib105">105</a>]</cite>. For instance, AutoDAN <cite>[<a href="https://arxiv.org/html/2402.17177v1#bib.bib103">103</a>]</cite>, a novel and interpretable adversarial attack method based on gradient techniques, is introduced to enable system bypass. In a recent study, researchers explore two reasons why LLMs struggle to resist jailbreak attacks: competing objectives and mismatched generalization <cite>[<a href="https://arxiv.org/html/2402.17177v1#bib.bib106">106</a>]</cite>. Besides textual attacks, visual jailbreak also threatens the safety of multimodal models (e.g., GPT-4V <cite>[<a href="https://arxiv.org/html/2402.17177v1#bib.bib90">90</a>]</cite>, and Sora <cite>[<a href="https://arxiv.org/html/2402.17177v1#bib.bib3">3</a>]</cite>). A recent study <cite>[<a href="https://arxiv.org/html/2402.17177v1#bib.bib107">107</a>]</cite> found that large multimodal models are more vulnerable since the continuous and high-dimensional nature of the additional visual input makes it weaker against adversarial attacks, representing an expanded attack surface.</p></section><section><h4>
+3.6.2 Other Exploitation</h4><p>Due to the large scale of the training dataset and training methodology of large foundation models (e.g., ChatGPT <cite>[<a href="https://arxiv.org/html/2402.17177v1#bib.bib89">89</a>]</cite> and Sora <cite>[<a href="https://arxiv.org/html/2402.17177v1#bib.bib3">3</a>]</cite>), the truthfulness of these models needs to be enhanced as the related issues like hallucination have been discussed widely <cite>[<a href="https://arxiv.org/html/2402.17177v1#bib.bib108">108</a>]</cite>. Hallucination in this context refers to the models’ tendency to generate responses that may appear convincing but are unfounded or false <cite>[<a href="https://arxiv.org/html/2402.17177v1#bib.bib96">96</a>]</cite>. This phenomenon raises critical questions about the reliability and trustworthiness of model outputs, necessitating a comprehensive approach to both evaluate and address the issue. Amount of studies have been dedicated to dissecting the problem of hallucination from various angles. This includes efforts aimed at evaluating the extent and nature of hallucination across different models and scenarios <cite>[<a href="https://arxiv.org/html/2402.17177v1#bib.bib109">109</a>, <a href="https://arxiv.org/html/2402.17177v1#bib.bib96">96</a>, <a href="https://arxiv.org/html/2402.17177v1#bib.bib110">110</a>, <a href="https://arxiv.org/html/2402.17177v1#bib.bib111">111</a>]</cite>. These evaluations provide invaluable insights into how and why hallucinations occur, laying the groundwork for developing strategies to mitigate their incidence. Concurrently, a significant body of research is focused on devising and implementing methods to reduce hallucinations in these large models <cite>[<a href="https://arxiv.org/html/2402.17177v1#bib.bib112">112</a>, <a href="https://arxiv.org/html/2402.17177v1#bib.bib113">113</a>, <a href="https://arxiv.org/html/2402.17177v1#bib.bib114">114</a>]</cite>.</p><p>Another vital aspect of trustworthiness is fairness and bias. The critical importance of developing models that do not perpetuate or exacerbate societal biases is a paramount concern. This priority stems from the recognition that biases encoded within these models can reinforce existing social inequities, leading to discriminatory outcomes. Studies in this area, as evidenced by the work of Gallegos et al. <cite>[<a href="https://arxiv.org/html/2402.17177v1#bib.bib115">115</a>]</cite>, Zhang et al. <cite>[<a href="https://arxiv.org/html/2402.17177v1#bib.bib116">116</a>]</cite>, Liang et al. <cite>[<a href="https://arxiv.org/html/2402.17177v1#bib.bib117">117</a>]</cite>, and Friedrich et al. <cite>[<a href="https://arxiv.org/html/2402.17177v1#bib.bib118">118</a>]</cite>, are dedicated to the meticulous identification and rectification of these inherent biases. The goal is to cultivate models that operate fairly, treating all individuals equitably without bias towards race, gender, or other sensitive attributes. This involves not only detecting and mitigating bias in datasets but also designing algorithms that can actively counteract the propagation of such biases <cite>[<a href="https://arxiv.org/html/2402.17177v1#bib.bib119">119</a>, <a href="https://arxiv.org/html/2402.17177v1#bib.bib120">120</a>]</cite>.</p><p>Privacy preservation emerges as another foundational pillar when these models are deployed. In an era where data privacy concerns are escalating, the emphasis on protecting user data has never been more critical. The increasing public awareness and concern over how personal data is handled have prompted more rigorous evaluations of large models. These evaluations focus on the models’ capacity to protect user data, ensuring that personal information remains confidential and is not inadvertently disclosed. Research by Mireshghallah et al. <cite>[<a href="https://arxiv.org/html/2402.17177v1#bib.bib121">121</a>]</cite>, Plant et al. <cite>[<a href="https://arxiv.org/html/2402.17177v1#bib.bib122">122</a>]</cite>, and Li et al. <cite>[<a href="https://arxiv.org/html/2402.17177v1#bib.bib123">123</a>]</cite> exemplify efforts to advance methodologies and technologies that safeguard privacy.</p></section><section><h4>
+3.6.3 Alignment</h4><p>In addressing these challenges, ensuring the trustworthiness of large models has become one of the primary concerns for researchers <cite>[<a href="https://arxiv.org/html/2402.17177v1#bib.bib124">124</a>, <a href="https://arxiv.org/html/2402.17177v1#bib.bib96">96</a>, <a href="https://arxiv.org/html/2402.17177v1#bib.bib99">99</a>, <a href="https://arxiv.org/html/2402.17177v1#bib.bib125">125</a>]</cite>. Among the most important technologies is model alignment <cite>[<a href="https://arxiv.org/html/2402.17177v1#bib.bib125">125</a>, <a href="https://arxiv.org/html/2402.17177v1#bib.bib126">126</a>]</cite>, which refers to the process and goal of ensuring that the behavior and outputs of models are consistent with the intentions and ethical standards of human designers. This concerns the development of technology, its moral responsibilities, and social values. In the domain of LLMs, the method of Reinforcement Learning with Human Feedback (RLHF) <cite>[<a href="https://arxiv.org/html/2402.17177v1#bib.bib127">127</a>, <a href="https://arxiv.org/html/2402.17177v1#bib.bib128">128</a>]</cite> has been widely applied for model alignment. This method combines Reinforcement Learning (RL) with direct human feedback, allowing models to better align with human expectations and standards in understanding and performing tasks.</p></section><section><h4>
+3.6.4 Discussion</h4><p>From Sora (specifically its technical report), we summarize some insightful findings that potentially offer an informative guideline for future work:</p><p>(1) Integrated Protection of Model and External Security: As models become more powerful, especially in generating content, ensuring that they are not misused to produce harmful content (such as hate speech <cite>[<a href="https://arxiv.org/html/2402.17177v1#bib.bib129">129</a>]</cite> and false information <cite>[<a href="https://arxiv.org/html/2402.17177v1#bib.bib92">92</a>, <a href="https://arxiv.org/html/2402.17177v1#bib.bib91">91</a>]</cite>) has become a serious challenge. In addition to aligning the model itself, external security protections are equally important. This includes content filtering and review mechanisms, usage permissions and access control, data privacy protection, as well as enhancements in transparency and explainability. For instance, OpenAI now uses a detection classifier to tell whether a given video is generated by Sora <cite>[<a href="https://arxiv.org/html/2402.17177v1#bib.bib130">130</a>]</cite>. Moreover, a text classifier is deployed to detect the potentially harmful textual input <cite>[<a href="https://arxiv.org/html/2402.17177v1#bib.bib130">130</a>]</cite>.</p><p>(2) Security Challenges of Multimodal Models: Multimodal models, such as text-to-video models like Sora bring additional complexity to security due to their ability to understand and generate various types of content (text, images, videos, etc.). Multimodal models can produce content in various forms, increasing the ways and scope of misuse and copyright issues. As the content generated by multimodal models is more complex and diverse, traditional methods of content verification and authenticity may no longer be effective. This requires the development of new technologies and methods to identify and filter harmful content generated by these models, increasing the difficulty of regulation and management.</p><p>(3) The Need for Interdisciplinary Collaboration: Ensuring the safety of models is not just a technical issue but also requires cross-disciplinary cooperation. To address these challenges, experts from various fields such as law <cite>[<a href="https://arxiv.org/html/2402.17177v1#bib.bib131">131</a>]</cite> and psychology <cite>[<a href="https://arxiv.org/html/2402.17177v1#bib.bib132">132</a>]</cite> need to work together to develop appropriate norms (e.g., what’s the safety and what’s unsafe?), policies, and technological solutions. The need for interdisciplinary collaboration significantly increases the complexity of solving these issues.</p></section></section></section><section><h2>
+4 Applications</h2><p>As video diffusion models, exemplified by Sora, emerge as a forefront technology, their adoption across diverse research fields and industries is rapidly accelerating. The implications of this technology extend far beyond mere video creation, offering transformative potential for tasks ranging from automated content generation to complex decision-making processes. In this section, we delve into a comprehensive examination of the current applications of video diffusion models, highlighting key areas where Sora has not only demonstrated its capabilities but also revolutionized the approach to solving complex problems. We aim to offer a broad perspective for the practical deployment scenarios (see Figure <a href="https://arxiv.org/html/2402.17177v1#S4.F18" title="Figure 18 ‣ 4 Applications ‣ Sora: A Review on Background, Technology, Limitations, and Opportunities of Large Vision Models">18</a>).</p><figure><figcaption>Figure 18: Applications of Sora.</figcaption></figure><section><h3>
+4.1 Movie</h3><p>Traditionally, creating cinematic masterpieces has been an arduous and expensive process, often requiring decades of effort, cutting-edge equipment, and substantial financial investments. However, the advent of advanced video generation technologies heralds a new era in film-making, one where the dream of autonomously producing movies from simple text inputs is becoming a reality. Researchers have ventured into the realm of movie generation by extending video generation models into creating movies. MovieFactory&nbsp;<cite>[<a href="https://arxiv.org/html/2402.17177v1#bib.bib133">133</a>]</cite> applies diffusion models to generate film-style videos from elaborate scripts produced by ChatGPT <cite>[<a href="https://arxiv.org/html/2402.17177v1#bib.bib89">89</a>]</cite>, representing a significant leap forward. In the follow-up, MobileVidFactory&nbsp;<cite>[<a href="https://arxiv.org/html/2402.17177v1#bib.bib134">134</a>]</cite> can automatically generate vertical mobile videos with only simple texts provided by users. Vlogger&nbsp;<cite>[<a href="https://arxiv.org/html/2402.17177v1#bib.bib135">135</a>]</cite> makes it feasible for users to compose a minute-long vlog. These developments, epitomized by Sora’s ability to generate captivating movie content effortlessly, mark a pivotal moment in the democratization of movie production. They offer a glimpse into a future where anyone can be a filmmaker, significantly lowering the barriers to entry in the film industry and introducing a novel dimension to movie production that blends traditional storytelling with AI-driven creativity. The implications of these technologies extend beyond simplification. They promise to reshape the landscape of film production, making it more accessible and versatile in the face of evolving viewer preferences and distribution channels.</p></section><section><h3>
+4.2 Education</h3><p>The landscape of educational content has long been dominated by static resources, which, despite their value, often fall short of catering to the diverse needs and learning styles of today’s students. Video diffusion models stand at the forefront of an educational revolution, offering unprecedented opportunities to customize and animate educational materials in ways that significantly enhance learner engagement and understanding. These advanced technologies enable educators to transform text descriptions or curriculum outlines into dynamic, engaging video content tailored to the specific style, and interests of individual learners&nbsp;<cite>[<a href="https://arxiv.org/html/2402.17177v1#bib.bib136">136</a>, <a href="https://arxiv.org/html/2402.17177v1#bib.bib137">137</a>, <a href="https://arxiv.org/html/2402.17177v1#bib.bib138">138</a>, <a href="https://arxiv.org/html/2402.17177v1#bib.bib139">139</a>]</cite>. Moreover, image-to-video editing techniques&nbsp;<cite>[<a href="https://arxiv.org/html/2402.17177v1#bib.bib140">140</a>, <a href="https://arxiv.org/html/2402.17177v1#bib.bib141">141</a>, <a href="https://arxiv.org/html/2402.17177v1#bib.bib142">142</a>]</cite> present innovative avenues for converting static educational assets into interactive videos, thereby supporting a range of learning preferences and potentially increasing student engagement. By integrating these models into educational content creation, educators can produce videos on a myriad of subjects, making complex concepts more accessible and captivating for students. The use of Sora in revolutionizing the educational domain exemplifies the transformative potential of these technologies. This shift towards personalized, dynamic educational content heralds a new era in education.</p></section><section><h3>
+4.3 Gaming</h3><p>The gaming industry constantly seeks ways to push the boundaries of realism and immersion, yet traditional game development often grapples with the limitations of pre-rendered environments and scripted events. The generation of dynamic, high-fidelity video content and realistic sound by diffusion models effects in real-time, promise to overcome existing constraints, offering developers the tools to create evolving game environments that respond organically to player actions and game events&nbsp;<cite>[<a href="https://arxiv.org/html/2402.17177v1#bib.bib143">143</a>, <a href="https://arxiv.org/html/2402.17177v1#bib.bib144">144</a>]</cite>. This could include generating changing weather conditions, transforming landscapes, or even creating entirely new settings on the fly, making game worlds more immersive and responsive.
+Some methods&nbsp;<cite>[<a href="https://arxiv.org/html/2402.17177v1#bib.bib145">145</a>, <a href="https://arxiv.org/html/2402.17177v1#bib.bib146">146</a>]</cite> also synthesize realistic impact sounds from video inputs, enhancing game audio experiences. With the integration of Sora within the gaming domain, unparalleled immersive experiences that captivate and engage players can be created. How games are developed, played, and experienced will be innovated, as well as opening new possibilities for storytelling, interaction, and immersion.</p></section><section><h3>
+4.4 Healthcare</h3><p>Despite generative capabilities, video diffusion models excel in understanding and generating complex video sequences, making them particularly suited for identifying dynamic anomalies within the body, such as early cellular apoptosis&nbsp;<cite>[<a href="https://arxiv.org/html/2402.17177v1#bib.bib147">147</a>]</cite>, skin lesion progression&nbsp;<cite>[<a href="https://arxiv.org/html/2402.17177v1#bib.bib148">148</a>]</cite>, and irregular human movements&nbsp;<cite>[<a href="https://arxiv.org/html/2402.17177v1#bib.bib149">149</a>]</cite>, which are crucial for early disease detection and intervention strategies. Additionally, models like MedSegDiff-V2&nbsp;<cite>[<a href="https://arxiv.org/html/2402.17177v1#bib.bib150">150</a>]</cite> and <cite>[<a href="https://arxiv.org/html/2402.17177v1#bib.bib151">151</a>]</cite> leverage the power of transformers to segment medical images with unprecedented precision, enabling clinicians to pinpoint areas of interest across various imaging modalities with enhanced accuracy.
+The integration of Sora into clinical practice promises not only to refine diagnostic processes but also to personalize patient care, offering tailored treatment plans based on precise medical imaging analysis. However, this technological integration comes with its own set of challenges, including the need for robust data privacy measures and addressing ethical considerations in healthcare.</p></section><section><h3>
+4.5 Robotics</h3><p>Video diffusion models now play important roles in robotics, showing a new era where robots can generate and interpret complex video sequences for enhanced perception&nbsp;<cite>[<a href="https://arxiv.org/html/2402.17177v1#bib.bib152">152</a>, <a href="https://arxiv.org/html/2402.17177v1#bib.bib153">153</a>]</cite> and decision-making&nbsp;<cite>[<a href="https://arxiv.org/html/2402.17177v1#bib.bib154">154</a>, <a href="https://arxiv.org/html/2402.17177v1#bib.bib155">155</a>, <a href="https://arxiv.org/html/2402.17177v1#bib.bib156">156</a>]</cite>. These models unlock new capabilities in robots, enabling them to interact with their environment and execute tasks with unprecedented complexity and precision. The introduction of web-scale diffusion models to robotics&nbsp;<cite>[<a href="https://arxiv.org/html/2402.17177v1#bib.bib152">152</a>]</cite> showcases the potential for leveraging large-scale models to enhance robotic vision and understanding. Latent diffusion models are employed for language-instructed video prediction&nbsp;<cite>[<a href="https://arxiv.org/html/2402.17177v1#bib.bib157">157</a>]</cite>, allowing robots to understand and execute tasks by predicting the outcome of actions in video format.
+Furthermore, the reliance on simulated environments for robotics research has been innovatively addressed by video diffusion models capable of creating highly realistic video sequences&nbsp;<cite>[<a href="https://arxiv.org/html/2402.17177v1#bib.bib158">158</a>, <a href="https://arxiv.org/html/2402.17177v1#bib.bib159">159</a>]</cite>. This enables the generation of diverse training scenarios for robots, mitigating the limitations imposed by the scarcity of real-world data.
+We believe, the integration of technologies like Sora into the robotics field holds the promise of groundbreaking developments. By harnessing the power of Sora, the future of robotics is poised for unprecedented advancements, where robots can seamlessly navigate and interact with their environments.</p></section></section><section><h2>
+5 Discussion</h2><p>Sora shows a remarkable talent for precisely understanding and implementing complex instructions from humans. This model excels at creating detailed videos with various characters, all set within elaborately crafted settings. A particularly impressive attribute of Sora is its ability to produce videos up to one minute in length while ensuring consistent and engaging storytelling. This marks a significant improvement over previous attempts that focused on shorter video pieces, as Sora’s extended sequences exhibit a clear narrative flow and maintain visual consistency from start to finish. Furthermore, Sora distinguishes itself by generating longer video sequences that capture complex movements and interactions, advancing past the restrictions of earlier models that could only handle short clips and basic images. This advancement signifies a major step forward in AI-powered creative tools, enabling users to transform written stories into vivid videos with a level of detail and sophistication that was previously unattainable.</p><section><h3>
+5.1 Limitations</h3><p>Challenges in Physical Realism. Sora, as a simulation platform, exhibits a range of limitations that undermine its effectiveness in accurately depicting complex scenarios. Most important is its inconsistent handling of physical principles within complex scenes, leading to a failure in accurately copying specific examples of cause and effect. For instance, consuming a portion of a cookie might not result in a corresponding bite mark, illustrating the system’s occasional departure from physical plausibility. This issue extends to the simulation of motion, where Sora generates movements that challenge realistic physical modeling, such as unnatural transformations of objects or the incorrect simulation of rigid structures like chairs, leading to unrealistic physical interactions. The challenge further increases when simulating complex interactions among objects and characters, occasionally producing outcomes that lean towards the humorous.</p><p>Spatial and Temporal Complexities. Sora occasionally misunderstands instructions related to the placement or arrangement of objects and characters within a given prompt, leading to confusion about directions (e.g., confusing left for right). Additionally, it faces challenges in maintaining the temporal accuracy of events, particularly when it comes to adhering to designated camera movements or sequences. This can result in deviating from the intended temporal flow of scenes. In complex scenarios that involve a multitude of characters or elements, Sora has a tendency to insert irrelevant animals or people. Such additions can significantly change the originally envisioned composition and atmosphere of the scene, moving away from the planned narrative or visual layout. This issue not only affects the model’s ability to accurately recreate specific scenes or narratives but also impacts its reliability in generating content that closely aligns with the user’s expectations and the coherence of the generated output.</p><p>Limitations in Human-computer Interaction (HCI). Sora, while showing potential in the video generation domain, faces significant limitations in HCI. These limitations are primarily evident in the coherence and efficiency of user-system interactions, especially when making detailed modifications or optimizations to generated content. For instance, users might find it difficult to precisely specify or adjust the presentation of specific elements within a video, such as action details and scene transitions. Additionally, Sora’s limitations in understanding complex language instructions or capturing subtle semantic differences could result in video content that does not fully meet user expectations or needs. These shortcomings restrict Sora’s potential in video editing and enhancement, also impacting the overall satisfaction of the user experience.</p><p>Usage Limitation.
+Regarding usage limitations, OpenAI has not yet set a specific release date for public access to Sora, emphasizing a cautious approach towards safety and readiness before broad deployment. This indicates that further improvements and testing in areas such as security, privacy protection, and content review may still be necessary for Sora. Moreover, at present, Sora can only generate videos up to one minute in length, and according to published cases, most generated videos are only a few dozen seconds long. This limitation restricts its use in applications requiring longer content display, such as detailed instructional videos or in-depth storytelling. This limitation reduces Sora’s flexibility in the content creation.</p></section><section><h3>
+5.2 Opportunities</h3><p>Academy.
+(1) The introduction of Sora by OpenAI marks a strategic shift towards encouraging the broader AI community to delve deeper into the exploration of text-to-video models, leveraging both diffusion and transformer technologies. This initiative aims to redirect the focus toward the potential of creating highly sophisticated and nuanced video content directly from textual descriptions, a frontier that promises to revolutionize content creation, storytelling, and information sharing. (2) The innovative approach of training Sora on data at its native size, as opposed to the traditional methods of resizing or cropping, serves as a groundbreaking inspiration for the academic community. It opens up new pathways by highlighting the benefits of utilizing unmodified datasets, which leads to the creation of more advanced generative models.</p><p>Industry.
+(1) The current capabilities of Sora signal a promising path for the advancement of video simulation technologies, highlighting the potential to significantly enhance realism within both physical and digital areas. The prospect of Sora enabling the creation of highly realistic environments through textual descriptions presents a promising future for content creation. This potential extends to revolutionizing game development, offering a glimpse into a future where immersive-generated worlds can be crafted with unprecedented ease and accuracy. (2) Companies may leverage Sora to produce advertising videos that swiftly adapt to market changes and create customized marketing content. This not only reduces production costs but also enhances the appeal and effectiveness of advertisements. The ability of Sora to generate highly realistic video content from textual descriptions alone could revolutionize how brands engage with their audience, allowing for the creation of immersive and compelling videos that capture the essence of their products or services in unprecedented ways.</p><p>Society.
+(1) While the prospect of utilizing text-to-video technology to replace traditional filmmaking remains distant, Sora and similar platforms hold transformative potential for content creation on social media. The constraints of current video lengths do not diminish the impact these tools can have in making high-quality video production accessible to everyone, enabling individuals to produce compelling content without the need for expensive equipment. It represents a significant shift towards empowering content creators across platforms like TikTok and Reels, bringing in a new age of creativity and engagement. (2) Screenwriters and creative professionals can use Sora to transform written scripts into videos, assisting them in better showing and sharing their creative concepts, and even in producing short films and animations. The ability to create detailed, vivid videos from scripts can fundamentally change the pre-production process of filmmaking and animation, offering a glimpse into how future storytellers might pitch, develop, and refine their narratives. This technology opens up possibilities for a more dynamic and interactive form of script development, where ideas can be visualized and assessed in real time, providing a powerful tool for creativity and collaboration. (3) Journalists and news organizations can also utilize Sora to quickly generate news reports or explanatory videos, making the news content more vivid and engaging. This can significantly increase the coverage and audience engagement of news reports. By providing a tool that can simulate realistic environments and scenarios, Sora offers a powerful solution for visual storytelling, enabling journalists to convey complex stories through engaging videos that were previously difficult or expensive to produce. In summary, Sora’s potential to revolutionize content creation across marketing, journalism, and entertainment is immense.
+</p></section></section><section><h2>
+6 Conclusion</h2><p>We present a comprehensive review of Sora to help developers and researchers study the capabilities and related works of Sora.
+The review is based on our survey of published technical reports and reverse engineering based on existing literature.
+We will continue to update the paper when Sora’s API is available and further details about Sora are revealed.
+We hope that this review paper will prove a valuable resource for the open-source research community and lay a foundation for the community to jointly develop an open-source version of Sora in the near future to democratize video auto-creation in the era of AIGC. To achieve this goal, we invite discussions, suggestions, and collaborations on all fronts.</p></section><section><h2>References</h2><ul><li>
+[1]
+
+OpenAI, “Chatgpt: Get instant answers, find creative inspiration, learn something new..” <a href="https://openai.com/chatgpt">https://openai.com/chatgpt</a>, 2022.
+
+</li><li>
+[2]
+
+OpenAI, “Gpt-4 technical report,” 2023.
+
+</li><li>
+[3]
+
+OpenAI, “Sora: Creating video from text.” <a href="https://openai.com/sora">https://openai.com/sora</a>, 2024.
+
+</li><li>
+[4]
+
+W.&nbsp;Peebles and S.&nbsp;Xie, “Scalable diffusion models with transformers,” in Proceedings of the IEEE/CVF International Conference on Computer Vision, pp.&nbsp;4195–4205, 2023.
+
+</li><li>
+[5]
+
+A.&nbsp;A. Efros and T.&nbsp;K. Leung, “Texture synthesis by non-parametric sampling,” in Proceedings of the seventh IEEE international conference on computer vision, vol.&nbsp;2, pp.&nbsp;1033–1038, IEEE, 1999.
+
+</li><li>
+[6]
+
+P.&nbsp;S. Heckbert, “Survey of texture mapping,” IEEE computer graphics and applications, vol.&nbsp;6, no.&nbsp;11, pp.&nbsp;56–67, 1986.
+
+</li><li>
+[7]
+
+I.&nbsp;J. Goodfellow, J.&nbsp;Pouget-Abadie, M.&nbsp;Mirza, B.&nbsp;Xu, D.&nbsp;Warde-Farley, S.&nbsp;Ozair, A.&nbsp;Courville, and Y.&nbsp;Bengio, “Generative adversarial networks,” arXiv, 2014.
+
+</li><li>
+[8]
+
+D.&nbsp;P. Kingma and M.&nbsp;Welling, “Auto-encoding variational bayes,” arXiv preprint arXiv:1312.6114, 2013.
+
+</li><li>
+[9]
+
+L.&nbsp;Dinh, D.&nbsp;Krueger, and Y.&nbsp;Bengio, “Nice: Non-linear independent components estimation,” arXiv preprint arXiv:1410.8516, 2014.
+
+</li><li>
+[10]
+
+Y.&nbsp;Song and S.&nbsp;Ermon, “Generative modeling by estimating gradients of the data distribution,” Advances in Neural Information Processing Systems, vol.&nbsp;32, 2019.
+
+</li><li>
+[11]
+
+Y.&nbsp;Cao, S.&nbsp;Li, Y.&nbsp;Liu, Z.&nbsp;Yan, Y.&nbsp;Dai, P.&nbsp;S. Yu, and L.&nbsp;Sun, “A comprehensive survey of ai-generated content (aigc): A history of generative ai from gan to chatgpt,” arXiv preprint arXiv:2303.04226, 2023.
+
+</li><li>
+[12]
+
+A.&nbsp;Vaswani, N.&nbsp;Shazeer, N.&nbsp;Parmar, J.&nbsp;Uszkoreit, L.&nbsp;Jones, A.&nbsp;N. Gomez, L.&nbsp;u. Kaiser, and I.&nbsp;Polosukhin, “Attention is all you need,” in Advances in Neural Information Processing Systems (I.&nbsp;Guyon, U.&nbsp;V. Luxburg, S.&nbsp;Bengio, H.&nbsp;Wallach, R.&nbsp;Fergus, S.&nbsp;Vishwanathan, and R.&nbsp;Garnett, eds.), vol.&nbsp;30, Curran Associates, Inc., 2017.
+
+</li><li>
+[13]
+
+J.&nbsp;Devlin, M.-W. Chang, K.&nbsp;Lee, and K.&nbsp;Toutanova, “Bert: Pre-training of deep bidirectional transformers for language understanding,” arXiv preprint arXiv:1810.04805, 2018.
+
+</li><li>
+[14]
+
+A.&nbsp;Radford, K.&nbsp;Narasimhan, T.&nbsp;Salimans, I.&nbsp;Sutskever, et&nbsp;al., “Improving language understanding by generative pre-training,” 2018.
+
+</li><li>
+[15]
+
+A.&nbsp;Dosovitskiy, L.&nbsp;Beyer, A.&nbsp;Kolesnikov, D.&nbsp;Weissenborn, X.&nbsp;Zhai, T.&nbsp;Unterthiner, M.&nbsp;Dehghani, M.&nbsp;Minderer, G.&nbsp;Heigold, S.&nbsp;Gelly, et&nbsp;al., “An image is worth 16x16 words: Transformers for image recognition at scale,” arXiv preprint arXiv:2010.11929, 2020.
+
+</li><li>
+[16]
+
+Z.&nbsp;Liu, Y.&nbsp;Lin, Y.&nbsp;Cao, H.&nbsp;Hu, Y.&nbsp;Wei, Z.&nbsp;Zhang, S.&nbsp;Lin, and B.&nbsp;Guo, “Swin transformer: Hierarchical vision transformer using shifted windows,” in Proceedings of the IEEE/CVF international conference on computer vision, pp.&nbsp;10012–10022, 2021.
+
+</li><li>
+[17]
+
+O.&nbsp;Ronneberger, P.&nbsp;Fischer, and T.&nbsp;Brox, “U-net: Convolutional networks for biomedical image segmentation,” in Medical Image Computing and Computer-Assisted Intervention–MICCAI 2015: 18th International Conference, Munich, Germany, October 5-9, 2015, Proceedings, Part III 18, pp.&nbsp;234–241, Springer, 2015.
+
+</li><li>
+[18]
+
+A.&nbsp;Radford, J.&nbsp;W. Kim, C.&nbsp;Hallacy, A.&nbsp;Ramesh, G.&nbsp;Goh, S.&nbsp;Agarwal, G.&nbsp;Sastry, A.&nbsp;Askell, P.&nbsp;Mishkin, J.&nbsp;Clark, G.&nbsp;Krueger, and I.&nbsp;Sutskever, “Learning transferable visual models from natural language supervision,” 2021.
+
+</li><li>
+[19]
+
+R.&nbsp;Rombach, A.&nbsp;Blattmann, D.&nbsp;Lorenz, P.&nbsp;Esser, and B.&nbsp;Ommer, “High-resolution image synthesis with latent diffusion models,” in Proceedings of the IEEE/CVF conference on computer vision and pattern recognition, pp.&nbsp;10684–10695, 2022.
+
+</li><li>
+[20]
+
+M.&nbsp;AI, “Midjourney: Text to image with ai art generator.” <a href="https://www.midjourneyai.ai/en">https://www.midjourneyai.ai/en</a>, 2023.
+
+</li><li>
+[21]
+
+J.&nbsp;Betker, G.&nbsp;Goh, L.&nbsp;Jing, T.&nbsp;Brooks, J.&nbsp;Wang, L.&nbsp;Li, L.&nbsp;Ouyang, J.&nbsp;Zhuang, J.&nbsp;Lee, Y.&nbsp;Guo, et&nbsp;al., “Improving image generation with better captions,” Computer Science. https://cdn. openai. com/papers/dall-e-3. pdf, vol.&nbsp;2, p.&nbsp;3, 2023.
+
+</li><li>
+[22]
+
+P.&nbsp;AI, “Pika is the idea-to-video platform that sets your creativity in motion..” <a href="https://pika.art/home">https://pika.art/home</a>, 2023.
+
+</li><li>
+[23]
+
+R.&nbsp;AI, “Gen-2: Gen-2: The next step forward for generative ai.” <a href="https://research.runwayml.com/gen2">https://research.runwayml.com/gen2</a>, 2023.
+
+</li><li>
+[24]
+
+X.&nbsp;Zhai, A.&nbsp;Kolesnikov, N.&nbsp;Houlsby, and L.&nbsp;Beyer, “Scaling vision transformers,” in Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition, pp.&nbsp;12104–12113, 2022.
+
+</li><li>
+[25]
+
+M.&nbsp;Dehghani, J.&nbsp;Djolonga, B.&nbsp;Mustafa, P.&nbsp;Padlewski, J.&nbsp;Heek, J.&nbsp;Gilmer, A.&nbsp;P. Steiner, M.&nbsp;Caron, R.&nbsp;Geirhos, I.&nbsp;Alabdulmohsin, et&nbsp;al., “Scaling vision transformers to 22 billion parameters,” in International Conference on Machine Learning, pp.&nbsp;7480–7512, PMLR, 2023.
+
+</li><li>
+[26]
+
+A.&nbsp;Radford, J.&nbsp;W. Kim, C.&nbsp;Hallacy, A.&nbsp;Ramesh, G.&nbsp;Goh, S.&nbsp;Agarwal, G.&nbsp;Sastry, A.&nbsp;Askell, P.&nbsp;Mishkin, J.&nbsp;Clark, et&nbsp;al., “Learning transferable visual models from natural language supervision,” in International conference on machine learning, pp.&nbsp;8748–8763, PMLR, 2021.
+
+</li><li>
+[27]
+
+A.&nbsp;Blattmann, T.&nbsp;Dockhorn, S.&nbsp;Kulal, D.&nbsp;Mendelevitch, M.&nbsp;Kilian, D.&nbsp;Lorenz, Y.&nbsp;Levi, Z.&nbsp;English, V.&nbsp;Voleti, A.&nbsp;Letts, et&nbsp;al., “Stable video diffusion: Scaling latent video diffusion models to large datasets,” arXiv preprint arXiv:2311.15127, 2023.
+
+</li><li>
+[28]
+
+U.&nbsp;Singer, A.&nbsp;Polyak, T.&nbsp;Hayes, X.&nbsp;Yin, J.&nbsp;An, S.&nbsp;Zhang, Q.&nbsp;Hu, H.&nbsp;Yang, O.&nbsp;Ashual, O.&nbsp;Gafni, D.&nbsp;Parikh, S.&nbsp;Gupta, and Y.&nbsp;Taigman, “Make-a-video: Text-to-video generation without text-video data,” 2022.
+
+</li><li>
+[29]
+
+J.&nbsp;Ho, W.&nbsp;Chan, C.&nbsp;Saharia, J.&nbsp;Whang, R.&nbsp;Gao, A.&nbsp;Gritsenko, D.&nbsp;P. Kingma, B.&nbsp;Poole, M.&nbsp;Norouzi, D.&nbsp;J. Fleet, et&nbsp;al., “Imagen video: High definition video generation with diffusion models,” arXiv preprint arXiv:2210.02303, 2022.
+
+</li><li>
+[30]
+
+R.&nbsp;Sutton, “The bitter lesson.” <a href="http://www.incompleteideas.net/IncIdeas/BitterLesson.html">http://www.incompleteideas.net/IncIdeas/BitterLesson.html</a>, March 2019.
+
+Accessed: Your Access Date Here.
+
+</li><li>
+[31]
+
+S.&nbsp;Xie, “Take on sora technical report.” <a href="https://twitter.com/sainingxie/status/1758433676105310543">https://twitter.com/sainingxie/status/1758433676105310543</a>, 2024.
+
+</li><li>
+[32]
+
+A.&nbsp;Van Den&nbsp;Oord, O.&nbsp;Vinyals, et&nbsp;al., “Neural discrete representation learning,” Advances in neural information processing systems, vol.&nbsp;30, 2017.
+
+</li><li>
+[33]
+
+K.&nbsp;He, X.&nbsp;Chen, S.&nbsp;Xie, Y.&nbsp;Li, P.&nbsp;Dollár, and R.&nbsp;Girshick, “Masked autoencoders are scalable vision learners,” in Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition, pp.&nbsp;16000–16009, 2022.
+
+</li><li>
+[34]
+
+S.&nbsp;Ge, S.&nbsp;Nah, G.&nbsp;Liu, T.&nbsp;Poon, A.&nbsp;Tao, B.&nbsp;Catanzaro, D.&nbsp;Jacobs, J.-B. Huang, M.-Y. Liu, and Y.&nbsp;Balaji, “Preserve your own correlation: A noise prior for video diffusion models,” in Proceedings of the IEEE/CVF International Conference on Computer Vision, pp.&nbsp;22930–22941, 2023.
+
+</li><li>
+[35]
+
+A.&nbsp;Sauer, D.&nbsp;Lorenz, A.&nbsp;Blattmann, and R.&nbsp;Rombach, “Adversarial diffusion distillation,” arXiv preprint arXiv:2311.17042, 2023.
+
+</li><li>
+[36]
+
+A.&nbsp;Blattmann, R.&nbsp;Rombach, H.&nbsp;Ling, T.&nbsp;Dockhorn, S.&nbsp;W. Kim, S.&nbsp;Fidler, and K.&nbsp;Kreis, “Align your latents: High-resolution video synthesis with latent diffusion models,” in Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition, pp.&nbsp;22563–22575, 2023.
+
+</li><li>
+[37]
+
+M.&nbsp;Ryoo, A.&nbsp;Piergiovanni, A.&nbsp;Arnab, M.&nbsp;Dehghani, and A.&nbsp;Angelova, “Tokenlearner: Adaptive space-time tokenization for videos,” Advances in Neural Information Processing Systems, vol.&nbsp;34, pp.&nbsp;12786–12797, 2021.
+
+</li><li>
+[38]
+
+A.&nbsp;Arnab, M.&nbsp;Dehghani, G.&nbsp;Heigold, C.&nbsp;Sun, M.&nbsp;Lučić, and C.&nbsp;Schmid, “Vivit: A video vision transformer,” arXiv preprint arXiv:2103.15691, 2021.
+
+</li><li>
+[39]
+
+L.&nbsp;Beyer, P.&nbsp;Izmailov, A.&nbsp;Kolesnikov, M.&nbsp;Caron, S.&nbsp;Kornblith, X.&nbsp;Zhai, M.&nbsp;Minderer, M.&nbsp;Tschannen, I.&nbsp;Alabdulmohsin, and F.&nbsp;Pavetic, “Flexivit: One model for all patch sizes,” in Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition, pp.&nbsp;14496–14506, 2023.
+
+</li><li>
+[40]
+
+M.&nbsp;Dehghani, B.&nbsp;Mustafa, J.&nbsp;Djolonga, J.&nbsp;Heek, M.&nbsp;Minderer, M.&nbsp;Caron, A.&nbsp;Steiner, J.&nbsp;Puigcerver, R.&nbsp;Geirhos, I.&nbsp;M. Alabdulmohsin, et&nbsp;al., “Patch n’pack: Navit, a vision transformer for any aspect ratio and resolution,” Advances in Neural Information Processing Systems, vol.&nbsp;36, 2024.
+
+</li><li>
+[41]
+
+M.&nbsp;M. Krell, M.&nbsp;Kosec, S.&nbsp;P. Perez, and A.&nbsp;Fitzgibbon, “Efficient sequence packing without cross-contamination: Accelerating large language models without impacting performance,” arXiv preprint arXiv:2107.02027, 2021.
+
+</li><li>
+[42]
+
+H.&nbsp;Yin, A.&nbsp;Vahdat, J.&nbsp;M. Alvarez, A.&nbsp;Mallya, J.&nbsp;Kautz, and P.&nbsp;Molchanov, “A-vit: Adaptive tokens for efficient vision transformer,” in Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition, pp.&nbsp;10809–10818, 2022.
+
+</li><li>
+[43]
+
+D.&nbsp;Bolya, C.-Y. Fu, X.&nbsp;Dai, P.&nbsp;Zhang, C.&nbsp;Feichtenhofer, and J.&nbsp;Hoffman, “Token merging: Your vit but faster,” in The Eleventh International Conference on Learning Representations, 2022.
+
+</li><li>
+[44]
+
+M.&nbsp;Fayyaz, S.&nbsp;A. Koohpayegani, F.&nbsp;R. Jafari, S.&nbsp;Sengupta, H.&nbsp;R.&nbsp;V. Joze, E.&nbsp;Sommerlade, H.&nbsp;Pirsiavash, and J.&nbsp;Gall, “Adaptive token sampling for efficient vision transformers,” in European Conference on Computer Vision, pp.&nbsp;396–414, Springer, 2022.
+
+</li><li>
+[45]
+
+A.&nbsp;Vaswani, N.&nbsp;Shazeer, N.&nbsp;Parmar, J.&nbsp;Uszkoreit, L.&nbsp;Jones, A.&nbsp;N. Gomez, Ł.&nbsp;Kaiser, and I.&nbsp;Polosukhin, “Attention is all you need,” Advances in neural information processing systems, vol.&nbsp;30, 2017.
+
+</li><li>
+[46]
+
+G.&nbsp;Bertasius, H.&nbsp;Wang, and L.&nbsp;Torresani, “Is space-time attention all you need for video understanding?,” in ICML, vol.&nbsp;2, p.&nbsp;4, 2021.
+
+</li><li>
+[47]
+
+L.&nbsp;Yu, J.&nbsp;Lezama, N.&nbsp;B. Gundavarapu, L.&nbsp;Versari, K.&nbsp;Sohn, D.&nbsp;Minnen, Y.&nbsp;Cheng, A.&nbsp;Gupta, X.&nbsp;Gu, A.&nbsp;G. Hauptmann, et&nbsp;al., “Language model beats diffusion–tokenizer is key to visual generation,” arXiv preprint arXiv:2310.05737, 2023.
+
+</li><li>
+[48]
+
+N.&nbsp;Shazeer, “Fast transformer decoding: One write-head is all you need,” 2019.
+
+</li><li>
+[49]
+
+J.&nbsp;Ainslie, J.&nbsp;Lee-Thorp, M.&nbsp;de&nbsp;Jong, Y.&nbsp;Zemlyanskiy, F.&nbsp;Lebrón, and S.&nbsp;Sanghai, “Gqa: Training generalized multi-query transformer models from multi-head checkpoints,” arXiv preprint arXiv:2305.13245, 2023.
+
+</li><li>
+[50]
+
+A.&nbsp;Gu and T.&nbsp;Dao, “Mamba: Linear-time sequence modeling with selective state spaces,” arXiv preprint arXiv:2312.00752, 2023.
+
+</li><li>
+[51]
+
+J.&nbsp;Sohl-Dickstein, E.&nbsp;A. Weiss, N.&nbsp;Maheswaranathan, and S.&nbsp;Ganguli, “Deep unsupervised learning using nonequilibrium thermodynamics,” arXiv preprint arXiv:1503.03585, 2015.
+
+</li><li>
+[52]
+
+J.&nbsp;Ho, A.&nbsp;Jain, and P.&nbsp;Abbeel, “Denoising diffusion probabilistic models,” Advances in Neural Information Processing Systems, vol.&nbsp;33, pp.&nbsp;6840–6851, 2020.
+
+</li><li>
+[53]
+
+Y.&nbsp;Song, J.&nbsp;Sohl-Dickstein, D.&nbsp;P. Kingma, A.&nbsp;Kumar, S.&nbsp;Ermon, and B.&nbsp;Poole, “Score-based generative modeling through stochastic differential equations,” arXiv preprint arXiv:2011.13456, 2020.
+
+</li><li>
+[54]
+
+F.&nbsp;Bao, S.&nbsp;Nie, K.&nbsp;Xue, Y.&nbsp;Cao, C.&nbsp;Li, H.&nbsp;Su, and J.&nbsp;Zhu, “All are worth words: A vit backbone for diffusion models,” in Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR), 2023.
+
+</li><li>
+[55]
+
+S.&nbsp;Gao, P.&nbsp;Zhou, M.-M. Cheng, and S.&nbsp;Yan, “Masked diffusion transformer is a strong image synthesizer,” arXiv preprint arXiv:2303.14389, 2023.
+
+</li><li>
+[56]
+
+A.&nbsp;Hatamizadeh, J.&nbsp;Song, G.&nbsp;Liu, J.&nbsp;Kautz, and A.&nbsp;Vahdat, “Diffit: Diffusion vision transformers for image generation,” arXiv preprint arXiv:2312.02139, 2023.
+
+</li><li>
+[57]
+
+J.&nbsp;Ho and T.&nbsp;Salimans, “Classifier-free diffusion guidance,” arXiv preprint arXiv:2207.12598, 2022.
+
+</li><li>
+[58]
+
+T.&nbsp;Salimans and J.&nbsp;Ho, “Progressive distillation for fast sampling of diffusion models,” arXiv preprint arXiv:2202.00512, 2022.
+
+</li><li>
+[59]
+
+J.&nbsp;Ho, C.&nbsp;Saharia, W.&nbsp;Chan, D.&nbsp;J. Fleet, M.&nbsp;Norouzi, and T.&nbsp;Salimans, “Cascaded diffusion models for high fidelity image generation,” The Journal of Machine Learning Research, vol.&nbsp;23, no.&nbsp;1, pp.&nbsp;2249–2281, 2022.
+
+</li><li>
+[60]
+
+R.&nbsp;Rombach, A.&nbsp;Blattmann, D.&nbsp;Lorenz, P.&nbsp;Esser, and B.&nbsp;Ommer, “High-resolution image synthesis with latent diffusion models,” 2021.
+
+</li><li>
+[61]
+
+D.&nbsp;Podell, Z.&nbsp;English, K.&nbsp;Lacey, A.&nbsp;Blattmann, T.&nbsp;Dockhorn, J.&nbsp;Müller, J.&nbsp;Penna, and R.&nbsp;Rombach, “Sdxl: Improving latent diffusion models for high-resolution image synthesis,” arXiv preprint arXiv:2307.01952, 2023.
+
+</li><li>
+[62]
+
+T.&nbsp;B. Brown, B.&nbsp;Mann, N.&nbsp;Ryder, M.&nbsp;Subbiah, J.&nbsp;Kaplan, P.&nbsp;Dhariwal, A.&nbsp;Neelakantan, P.&nbsp;Shyam, G.&nbsp;Sastry, A.&nbsp;Askell, et&nbsp;al., “Language models are few-shot learners,” arXiv, 2020.
+
+</li><li>
+[63]
+
+K.&nbsp;Zhou, J.&nbsp;Yang, C.&nbsp;C. Loy, and Z.&nbsp;Liu, “Conditional prompt learning for vision-language models,” in Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition, pp.&nbsp;16816–16825, 2022.
+
+</li><li>
+[64]
+
+V.&nbsp;Sanh, A.&nbsp;Webson, C.&nbsp;Raffel, S.&nbsp;H. Bach, L.&nbsp;Sutawika, Z.&nbsp;Alyafeai, A.&nbsp;Chaffin, A.&nbsp;Stiegler, T.&nbsp;L. Scao, A.&nbsp;Raja, et&nbsp;al., “Multitask prompted training enables zero-shot task generalization,” arXiv preprint arXiv:2110.08207, 2021.
+
+</li><li>
+[65]
+
+J.&nbsp;Wei, M.&nbsp;Bosma, V.&nbsp;Y. Zhao, K.&nbsp;Guu, A.&nbsp;W. Yu, B.&nbsp;Lester, N.&nbsp;Du, A.&nbsp;M. Dai, and Q.&nbsp;V. Le, “Finetuned language models are zero-shot learners,” arXiv preprint arXiv:2109.01652, 2021.
+
+</li><li>
+[66]
+
+L.&nbsp;Ouyang, J.&nbsp;Wu, X.&nbsp;Jiang, D.&nbsp;Almeida, C.&nbsp;Wainwright, P.&nbsp;Mishkin, C.&nbsp;Zhang, S.&nbsp;Agarwal, K.&nbsp;Slama, A.&nbsp;Ray, et&nbsp;al., “Training language models to follow instructions with human feedback,” Advances in Neural Information Processing Systems, vol.&nbsp;35, pp.&nbsp;27730–27744, 2022.
+
+</li><li>
+[67]
+
+C.&nbsp;Jia, Y.&nbsp;Yang, Y.&nbsp;Xia, Y.-T. Chen, Z.&nbsp;Parekh, H.&nbsp;Pham, Q.&nbsp;Le, Y.-H. Sung, Z.&nbsp;Li, and T.&nbsp;Duerig, “Scaling up visual and vision-language representation learning with noisy text supervision,” in International conference on machine learning, pp.&nbsp;4904–4916, PMLR, 2021.
+
+</li><li>
+[68]
+
+J.&nbsp;Yu, Z.&nbsp;Wang, V.&nbsp;Vasudevan, L.&nbsp;Yeung, M.&nbsp;Seyedhosseini, and Y.&nbsp;Wu, “Coca: Contrastive captioners are image-text foundation models,” arXiv preprint arXiv:2205.01917, 2022.
+
+</li><li>
+[69]
+
+S.&nbsp;Yan, T.&nbsp;Zhu, Z.&nbsp;Wang, Y.&nbsp;Cao, M.&nbsp;Zhang, S.&nbsp;Ghosh, Y.&nbsp;Wu, and J.&nbsp;Yu, “Video-text modeling with zero-shot transfer from contrastive captioners,” arXiv preprint arXiv:2212.04979, 2022.
+
+</li><li>
+[70]
+
+H.&nbsp;Xu, Q.&nbsp;Ye, M.&nbsp;Yan, Y.&nbsp;Shi, J.&nbsp;Ye, Y.&nbsp;Xu, C.&nbsp;Li, B.&nbsp;Bi, Q.&nbsp;Qian, W.&nbsp;Wang, et&nbsp;al., “mplug-2: A modularized multi-modal foundation model across text, image and video,” arXiv preprint arXiv:2302.00402, 2023.
+
+</li><li>
+[71]
+
+J.&nbsp;Wang, Z.&nbsp;Yang, X.&nbsp;Hu, L.&nbsp;Li, K.&nbsp;Lin, Z.&nbsp;Gan, Z.&nbsp;Liu, C.&nbsp;Liu, and L.&nbsp;Wang, “Git: A generative image-to-text transformer for vision and language,” arXiv preprint arXiv:2205.14100, 2022.
+
+</li><li>
+[72]
+
+A.&nbsp;Yang, A.&nbsp;Miech, J.&nbsp;Sivic, I.&nbsp;Laptev, and C.&nbsp;Schmid, “Zero-shot video question answering via frozen bidirectional language models,” Advances in Neural Information Processing Systems, vol.&nbsp;35, pp.&nbsp;124–141, 2022.
+
+</li><li>
+[73]
+
+Y.&nbsp;Li, “A practical survey on zero-shot prompt design for in-context learning,” in Proceedings of the Conference Recent Advances in Natural Language Processing - Large Language Models for Natural Language Processings, RANLP, INCOMA Ltd., Shoumen, BULGARIA, 2023.
+
+</li><li>
+[74]
+
+B.&nbsp;Chen, Z.&nbsp;Zhang, N.&nbsp;Langrené, and S.&nbsp;Zhu, “Unleashing the potential of prompt engineering in large language models: a comprehensive review,” arXiv preprint arXiv:2310.14735, 2023.
+
+</li><li>
+[75]
+
+S.&nbsp;Pitis, M.&nbsp;R. Zhang, A.&nbsp;Wang, and J.&nbsp;Ba, “Boosted prompt ensembles for large language models,” 2023.
+
+</li><li>
+[76]
+
+Y.&nbsp;Hao, Z.&nbsp;Chi, L.&nbsp;Dong, and F.&nbsp;Wei, “Optimizing prompts for text-to-image generation,” 2023.
+
+</li><li>
+[77]
+
+S.&nbsp;Huang, B.&nbsp;Gong, Y.&nbsp;Pan, J.&nbsp;Jiang, Y.&nbsp;Lv, Y.&nbsp;Li, and D.&nbsp;Wang, “Vop: Text-video co-operative prompt tuning for cross-modal retrieval,” 2023.
+
+</li><li>
+[78]
+
+J.&nbsp;Z. Wu, Y.&nbsp;Ge, X.&nbsp;Wang, W.&nbsp;Lei, Y.&nbsp;Gu, Y.&nbsp;Shi, W.&nbsp;Hsu, Y.&nbsp;Shan, X.&nbsp;Qie, and M.&nbsp;Z. Shou, “Tune-a-video: One-shot tuning of image diffusion models for text-to-video generation,” 2023.
+
+</li><li>
+[79]
+
+T.&nbsp;Lüddecke and A.&nbsp;Ecker, “Image segmentation using text and image prompts,” in Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR), pp.&nbsp;7086–7096, June 2022.
+
+</li><li>
+[80]
+
+X.&nbsp;Chen, Y.&nbsp;Wang, L.&nbsp;Zhang, S.&nbsp;Zhuang, X.&nbsp;Ma, J.&nbsp;Yu, Y.&nbsp;Wang, D.&nbsp;Lin, Y.&nbsp;Qiao, and Z.&nbsp;Liu, “Seine: Short-to-long video diffusion model for generative transition and prediction,” 2023.
+
+</li><li>
+[81]
+
+H.&nbsp;Chen, Y.&nbsp;Zhang, X.&nbsp;Cun, M.&nbsp;Xia, X.&nbsp;Wang, C.&nbsp;Weng, and Y.&nbsp;Shan, “Videocrafter2: Overcoming data limitations for high-quality video diffusion models,” 2024.
+
+</li><li>
+[82]
+
+T.-C. Wang, M.-Y. Liu, J.-Y. Zhu, G.&nbsp;Liu, A.&nbsp;Tao, J.&nbsp;Kautz, and B.&nbsp;Catanzaro, “Video-to-video synthesis,” 2018.
+
+</li><li>
+[83]
+
+T.-C. Wang, M.-Y. Liu, A.&nbsp;Tao, G.&nbsp;Liu, J.&nbsp;Kautz, and B.&nbsp;Catanzaro, “Few-shot video-to-video synthesis,” 2019.
+
+</li><li>
+[84]
+
+D.&nbsp;J. Zhang, D.&nbsp;Li, H.&nbsp;Le, M.&nbsp;Z. Shou, C.&nbsp;Xiong, and D.&nbsp;Sahoo, “Moonshot: Towards controllable video generation and editing with multimodal conditions,” 2024.
+
+</li><li>
+[85]
+
+L.&nbsp;Zhuo, G.&nbsp;Wang, S.&nbsp;Li, W.&nbsp;Wu, and Z.&nbsp;Liu, “Fast-vid2vid: Spatial-temporal compression for video-to-video synthesis,” 2022.
+
+</li><li>
+[86]
+
+P.&nbsp;Liu, W.&nbsp;Yuan, J.&nbsp;Fu, Z.&nbsp;Jiang, H.&nbsp;Hayashi, and G.&nbsp;Neubig, “Pre-train, prompt, and predict: A systematic survey of prompting methods in natural language processing,” 2021.
+
+</li><li>
+[87]
+
+B.&nbsp;Lester, R.&nbsp;Al-Rfou, and N.&nbsp;Constant, “The power of scale for parameter-efficient prompt tuning,” in Proceedings of the 2021 Conference on Empirical Methods in Natural Language Processing, pp.&nbsp;3045–3059, 2021.
+
+</li><li>
+[88]
+
+M.&nbsp;Jia, L.&nbsp;Tang, B.-C. Chen, C.&nbsp;Cardie, S.&nbsp;Belongie, B.&nbsp;Hariharan, and S.-N. Lim, “Visual prompt tuning,” in European Conference on Computer Vision, pp.&nbsp;709–727, Springer, 2022.
+
+</li><li>
+[89]
+
+OpenAI, “Introducing chatgpt,” 2023.
+
+</li><li>
+[90]
+
+OpenAI, “Gpt-4v(ision) system card,” 2023.
+
+</li><li>
+[91]
+
+Y.&nbsp;Huang and L.&nbsp;Sun, “Harnessing the power of chatgpt in fake news: An in-depth exploration in generation, detection and explanation,” 2023.
+
+</li><li>
+[92]
+
+C.&nbsp;Chen and K.&nbsp;Shu, “Can llm-generated misinformation be detected?,” 2023.
+
+</li><li>
+[93]
+
+Z.&nbsp;Liu, Y.&nbsp;Huang, X.&nbsp;Yu, L.&nbsp;Zhang, Z.&nbsp;Wu, C.&nbsp;Cao, H.&nbsp;Dai, L.&nbsp;Zhao, Y.&nbsp;Li, P.&nbsp;Shu, F.&nbsp;Zeng, L.&nbsp;Sun, W.&nbsp;Liu, D.&nbsp;Shen, Q.&nbsp;Li, T.&nbsp;Liu, D.&nbsp;Zhu, and X.&nbsp;Li, “Deid-gpt: Zero-shot medical text de-identification by gpt-4,” 2023.
+
+</li><li>
+[94]
+
+J.&nbsp;Yao, X.&nbsp;Yi, X.&nbsp;Wang, Y.&nbsp;Gong, and X.&nbsp;Xie, “Value fulcra: Mapping large language models to the multidimensional spectrum of basic human values,” 2023.
+
+</li><li>
+[95]
+
+Y.&nbsp;Huang, Q.&nbsp;Zhang, P.&nbsp;S. Y, and L.&nbsp;Sun, “Trustgpt: A benchmark for trustworthy and responsible large language models,” 2023.
+
+</li><li>
+[96]
+
+L.&nbsp;Sun, Y.&nbsp;Huang, H.&nbsp;Wang, S.&nbsp;Wu, Q.&nbsp;Zhang, C.&nbsp;Gao, Y.&nbsp;Huang, W.&nbsp;Lyu, Y.&nbsp;Zhang, X.&nbsp;Li, Z.&nbsp;Liu, Y.&nbsp;Liu, Y.&nbsp;Wang, Z.&nbsp;Zhang, B.&nbsp;Kailkhura, C.&nbsp;Xiong, C.&nbsp;Xiao, C.&nbsp;Li, E.&nbsp;Xing, F.&nbsp;Huang, H.&nbsp;Liu, H.&nbsp;Ji, H.&nbsp;Wang, H.&nbsp;Zhang, H.&nbsp;Yao, M.&nbsp;Kellis, M.&nbsp;Zitnik, M.&nbsp;Jiang, M.&nbsp;Bansal, J.&nbsp;Zou, J.&nbsp;Pei, J.&nbsp;Liu, J.&nbsp;Gao, J.&nbsp;Han, J.&nbsp;Zhao, J.&nbsp;Tang, J.&nbsp;Wang, J.&nbsp;Mitchell, K.&nbsp;Shu, K.&nbsp;Xu, K.-W. Chang, L.&nbsp;He, L.&nbsp;Huang, M.&nbsp;Backes, N.&nbsp;Z. Gong, P.&nbsp;S. Yu, P.-Y. Chen, Q.&nbsp;Gu, R.&nbsp;Xu, R.&nbsp;Ying, S.&nbsp;Ji, S.&nbsp;Jana, T.&nbsp;Chen, T.&nbsp;Liu, T.&nbsp;Zhou, W.&nbsp;Wang, X.&nbsp;Li, X.&nbsp;Zhang, X.&nbsp;Wang, X.&nbsp;Xie, X.&nbsp;Chen, X.&nbsp;Wang, Y.&nbsp;Liu, Y.&nbsp;Ye, Y.&nbsp;Cao, Y.&nbsp;Chen, and Y.&nbsp;Zhao, “Trustllm: Trustworthiness in large language models,” 2024.
+
+</li><li>
+[97]
+
+M.&nbsp;Mazeika, L.&nbsp;Phan, X.&nbsp;Yin, A.&nbsp;Zou, Z.&nbsp;Wang, N.&nbsp;Mu, E.&nbsp;Sakhaee, N.&nbsp;Li, S.&nbsp;Basart, B.&nbsp;Li, D.&nbsp;Forsyth, and D.&nbsp;Hendrycks, “Harmbench: A standardized evaluation framework for automated red teaming and robust refusal,” 2024.
+
+</li><li>
+[98]
+
+Y.&nbsp;Wang, H.&nbsp;Li, X.&nbsp;Han, P.&nbsp;Nakov, and T.&nbsp;Baldwin, “Do-not-answer: A dataset for evaluating safeguards in llms,” 2023.
+
+</li><li>
+[99]
+
+B.&nbsp;Wang, W.&nbsp;Chen, H.&nbsp;Pei, C.&nbsp;Xie, M.&nbsp;Kang, C.&nbsp;Zhang, C.&nbsp;Xu, Z.&nbsp;Xiong, R.&nbsp;Dutta, R.&nbsp;Schaeffer, et&nbsp;al., “Decodingtrust: A comprehensive assessment of trustworthiness in gpt models,” arXiv preprint arXiv:2306.11698, 2023.
+
+</li><li>
+[100]
+
+Z.&nbsp;Zhang, L.&nbsp;Lei, L.&nbsp;Wu, R.&nbsp;Sun, Y.&nbsp;Huang, C.&nbsp;Long, X.&nbsp;Liu, X.&nbsp;Lei, J.&nbsp;Tang, and M.&nbsp;Huang, “Safetybench: Evaluating the safety of large language models with multiple choice questions,” 2023.
+
+</li><li>
+[101]
+
+X.&nbsp;Shen, Z.&nbsp;Chen, M.&nbsp;Backes, Y.&nbsp;Shen, and Y.&nbsp;Zhang, “" do anything now": Characterizing and evaluating in-the-wild jailbreak prompts on large language models,” arXiv preprint arXiv:2308.03825, 2023.
+
+</li><li>
+[102]
+
+X.&nbsp;Liu, N.&nbsp;Xu, M.&nbsp;Chen, and C.&nbsp;Xiao, “Autodan: Generating stealthy jailbreak prompts on aligned large language models,” arXiv preprint arXiv:2310.04451, 2023.
+
+</li><li>
+[103]
+
+S.&nbsp;Zhu, R.&nbsp;Zhang, B.&nbsp;An, G.&nbsp;Wu, J.&nbsp;Barrow, Z.&nbsp;Wang, F.&nbsp;Huang, A.&nbsp;Nenkova, and T.&nbsp;Sun, “Autodan: Interpretable gradient-based adversarial attacks on large language models,” 2023.
+
+</li><li>
+[104]
+
+A.&nbsp;Zhou, B.&nbsp;Li, and H.&nbsp;Wang, “Robust prompt optimization for defending language models against jailbreaking attacks,” arXiv preprint arXiv:2401.17263, 2024.
+
+</li><li>
+[105]
+
+X.&nbsp;Guo, F.&nbsp;Yu, H.&nbsp;Zhang, L.&nbsp;Qin, and B.&nbsp;Hu, “Cold-attack: Jailbreaking llms with stealthiness and controllability,” 2024.
+
+</li><li>
+[106]
+
+A.&nbsp;Wei, N.&nbsp;Haghtalab, and J.&nbsp;Steinhardt, “Jailbroken: How does llm safety training fail?,” arXiv preprint arXiv:2307.02483, 2023.
+
+</li><li>
+[107]
+
+Z.&nbsp;Niu, H.&nbsp;Ren, X.&nbsp;Gao, G.&nbsp;Hua, and R.&nbsp;Jin, “Jailbreaking attack against multimodal large language model,” 2024.
+
+</li><li>
+[108]
+
+H.&nbsp;Liu, W.&nbsp;Xue, Y.&nbsp;Chen, D.&nbsp;Chen, X.&nbsp;Zhao, K.&nbsp;Wang, L.&nbsp;Hou, R.&nbsp;Li, and W.&nbsp;Peng, “A survey on hallucination in large vision-language models,” 2024.
+
+</li><li>
+[109]
+
+T.&nbsp;Guan, F.&nbsp;Liu, X.&nbsp;Wu, R.&nbsp;Xian, Z.&nbsp;Li, X.&nbsp;Liu, X.&nbsp;Wang, L.&nbsp;Chen, F.&nbsp;Huang, Y.&nbsp;Yacoob, D.&nbsp;Manocha, and T.&nbsp;Zhou, “Hallusionbench: An advanced diagnostic suite for entangled language hallucination &amp; visual illusion in large vision-language models,” 2023.
+
+</li><li>
+[110]
+
+Y.&nbsp;Li, Y.&nbsp;Du, K.&nbsp;Zhou, J.&nbsp;Wang, W.&nbsp;X. Zhao, and J.-R. Wen, “Evaluating object hallucination in large vision-language models,” 2023.
+
+</li><li>
+[111]
+
+Y.&nbsp;Huang, J.&nbsp;Shi, Y.&nbsp;Li, C.&nbsp;Fan, S.&nbsp;Wu, Q.&nbsp;Zhang, Y.&nbsp;Liu, P.&nbsp;Zhou, Y.&nbsp;Wan, N.&nbsp;Z. Gong, et&nbsp;al., “Metatool benchmark for large language models: Deciding whether to use tools and which to use,” arXiv preprint arXiv:2310.03128, 2023.
+
+</li><li>
+[112]
+
+F.&nbsp;Liu, K.&nbsp;Lin, L.&nbsp;Li, J.&nbsp;Wang, Y.&nbsp;Yacoob, and L.&nbsp;Wang, “Mitigating hallucination in large multi-modal models via robust instruction tuning,” 2023.
+
+</li><li>
+[113]
+
+L.&nbsp;Wang, J.&nbsp;He, S.&nbsp;Li, N.&nbsp;Liu, and E.-P. Lim, “Mitigating fine-grained hallucination by fine-tuning large vision-language models with caption rewrites,” in International Conference on Multimedia Modeling, pp.&nbsp;32–45, Springer, 2024.
+
+</li><li>
+[114]
+
+Y.&nbsp;Zhou, C.&nbsp;Cui, J.&nbsp;Yoon, L.&nbsp;Zhang, Z.&nbsp;Deng, C.&nbsp;Finn, M.&nbsp;Bansal, and H.&nbsp;Yao, “Analyzing and mitigating object hallucination in large vision-language models,” arXiv preprint arXiv:2310.00754, 2023.
+
+</li><li>
+[115]
+
+I.&nbsp;O. Gallegos, R.&nbsp;A. Rossi, J.&nbsp;Barrow, M.&nbsp;M. Tanjim, S.&nbsp;Kim, F.&nbsp;Dernoncourt, T.&nbsp;Yu, R.&nbsp;Zhang, and N.&nbsp;K. Ahmed, “Bias and fairness in large language models: A survey,” arXiv preprint arXiv:2309.00770, 2023.
+
+</li><li>
+[116]
+
+J.&nbsp;Zhang, K.&nbsp;Bao, Y.&nbsp;Zhang, W.&nbsp;Wang, F.&nbsp;Feng, and X.&nbsp;He, “Is chatgpt fair for recommendation? evaluating fairness in large language model recommendation,” arXiv preprint arXiv:2305.07609, 2023.
+
+</li><li>
+[117]
+
+Y.&nbsp;Liang, L.&nbsp;Cheng, A.&nbsp;Payani, and K.&nbsp;Shu, “Beyond detection: Unveiling fairness vulnerabilities in abusive language models,” 2023.
+
+</li><li>
+[118]
+
+F.&nbsp;Friedrich, P.&nbsp;Schramowski, M.&nbsp;Brack, L.&nbsp;Struppek, D.&nbsp;Hintersdorf, S.&nbsp;Luccioni, and K.&nbsp;Kersting, “Fair diffusion: Instructing text-to-image generation models on fairness,” arXiv preprint arXiv:2302.10893, 2023.
+
+</li><li>
+[119]
+
+R.&nbsp;Liu, C.&nbsp;Jia, J.&nbsp;Wei, G.&nbsp;Xu, L.&nbsp;Wang, and S.&nbsp;Vosoughi, “Mitigating political bias in language models through reinforced calibration,” Proceedings of the AAAI Conference on Artificial Intelligence, vol.&nbsp;35, pp.&nbsp;14857–14866, May 2021.
+
+</li><li>
+[120]
+
+R.&nbsp;K. Mahabadi, Y.&nbsp;Belinkov, and J.&nbsp;Henderson, “End-to-end bias mitigation by modelling biases in corpora,” 2020.
+
+</li><li>
+[121]
+
+N.&nbsp;Mireshghallah, H.&nbsp;Kim, X.&nbsp;Zhou, Y.&nbsp;Tsvetkov, M.&nbsp;Sap, R.&nbsp;Shokri, and Y.&nbsp;Choi, “Can llms keep a secret? testing privacy implications of language models via contextual integrity theory,” arXiv preprint arXiv:2310.17884, 2023.
+
+</li><li>
+[122]
+
+R.&nbsp;Plant, V.&nbsp;Giuffrida, and D.&nbsp;Gkatzia, “You are what you write: Preserving privacy in the era of large language models,” arXiv preprint arXiv:2204.09391, 2022.
+
+</li><li>
+[123]
+
+H.&nbsp;Li, Y.&nbsp;Chen, J.&nbsp;Luo, Y.&nbsp;Kang, X.&nbsp;Zhang, Q.&nbsp;Hu, C.&nbsp;Chan, and Y.&nbsp;Song, “Privacy in large language models: Attacks, defenses and future directions,” 2023.
+
+</li><li>
+[124]
+
+R.&nbsp;Bommasani, D.&nbsp;A. Hudson, E.&nbsp;Adeli, R.&nbsp;Altman, S.&nbsp;Arora, S.&nbsp;von Arx, M.&nbsp;S. Bernstein, J.&nbsp;Bohg, A.&nbsp;Bosselut, E.&nbsp;Brunskill, E.&nbsp;Brynjolfsson, S.&nbsp;Buch, D.&nbsp;Card, R.&nbsp;Castellon, N.&nbsp;Chatterji, A.&nbsp;Chen, K.&nbsp;Creel, J.&nbsp;Q. Davis, D.&nbsp;Demszky, C.&nbsp;Donahue, M.&nbsp;Doumbouya, E.&nbsp;Durmus, S.&nbsp;Ermon, J.&nbsp;Etchemendy, K.&nbsp;Ethayarajh, L.&nbsp;Fei-Fei, C.&nbsp;Finn, T.&nbsp;Gale, L.&nbsp;Gillespie, K.&nbsp;Goel, N.&nbsp;Goodman, S.&nbsp;Grossman, N.&nbsp;Guha, T.&nbsp;Hashimoto, P.&nbsp;Henderson, J.&nbsp;Hewitt, D.&nbsp;E. Ho, J.&nbsp;Hong, K.&nbsp;Hsu, J.&nbsp;Huang, T.&nbsp;Icard, S.&nbsp;Jain, D.&nbsp;Jurafsky, P.&nbsp;Kalluri, S.&nbsp;Karamcheti, G.&nbsp;Keeling, F.&nbsp;Khani, O.&nbsp;Khattab, P.&nbsp;W. Koh, M.&nbsp;Krass, R.&nbsp;Krishna, R.&nbsp;Kuditipudi, A.&nbsp;Kumar, F.&nbsp;Ladhak, M.&nbsp;Lee, T.&nbsp;Lee, J.&nbsp;Leskovec, I.&nbsp;Levent, X.&nbsp;L. Li, X.&nbsp;Li, T.&nbsp;Ma, A.&nbsp;Malik, C.&nbsp;D. Manning, S.&nbsp;Mirchandani, E.&nbsp;Mitchell, Z.&nbsp;Munyikwa, S.&nbsp;Nair, A.&nbsp;Narayan, D.&nbsp;Narayanan, B.&nbsp;Newman, A.&nbsp;Nie, J.&nbsp;C. Niebles, H.&nbsp;Nilforoshan, J.&nbsp;Nyarko, G.&nbsp;Ogut, L.&nbsp;Orr, I.&nbsp;Papadimitriou, J.&nbsp;S. Park, C.&nbsp;Piech, E.&nbsp;Portelance, C.&nbsp;Potts, A.&nbsp;Raghunathan, R.&nbsp;Reich, H.&nbsp;Ren, F.&nbsp;Rong, Y.&nbsp;Roohani, C.&nbsp;Ruiz, J.&nbsp;Ryan, C.&nbsp;Ré,
+D.&nbsp;Sadigh, S.&nbsp;Sagawa, K.&nbsp;Santhanam, A.&nbsp;Shih, K.&nbsp;Srinivasan, A.&nbsp;Tamkin, R.&nbsp;Taori, A.&nbsp;W. Thomas, F.&nbsp;Tramèr, R.&nbsp;E. Wang, W.&nbsp;Wang, B.&nbsp;Wu, J.&nbsp;Wu, Y.&nbsp;Wu, S.&nbsp;M. Xie, M.&nbsp;Yasunaga, J.&nbsp;You, M.&nbsp;Zaharia, M.&nbsp;Zhang, T.&nbsp;Zhang, X.&nbsp;Zhang, Y.&nbsp;Zhang, L.&nbsp;Zheng, K.&nbsp;Zhou, and P.&nbsp;Liang, “On the opportunities and risks of foundation models,” 2022.
+
+</li><li>
+[125]
+
+T.&nbsp;Shen, R.&nbsp;Jin, Y.&nbsp;Huang, C.&nbsp;Liu, W.&nbsp;Dong, Z.&nbsp;Guo, X.&nbsp;Wu, Y.&nbsp;Liu, and D.&nbsp;Xiong, “Large language model alignment: A survey,” arXiv preprint arXiv:2309.15025, 2023.
+
+</li><li>
+[126]
+
+X.&nbsp;Liu, X.&nbsp;Lei, S.&nbsp;Wang, Y.&nbsp;Huang, Z.&nbsp;Feng, B.&nbsp;Wen, J.&nbsp;Cheng, P.&nbsp;Ke, Y.&nbsp;Xu, W.&nbsp;L. Tam, X.&nbsp;Zhang, L.&nbsp;Sun, H.&nbsp;Wang, J.&nbsp;Zhang, M.&nbsp;Huang, Y.&nbsp;Dong, and J.&nbsp;Tang, “Alignbench: Benchmarking chinese alignment of large language models,” 2023.
+
+</li><li>
+[127]
+
+P.&nbsp;Christiano, J.&nbsp;Leike, T.&nbsp;B. Brown, M.&nbsp;Martic, S.&nbsp;Legg, and D.&nbsp;Amodei, “Deep reinforcement learning from human preferences,” 2023.
+
+</li><li>
+[128]
+
+T.&nbsp;Yu, Y.&nbsp;Yao, H.&nbsp;Zhang, T.&nbsp;He, Y.&nbsp;Han, G.&nbsp;Cui, J.&nbsp;Hu, Z.&nbsp;Liu, H.-T. Zheng, M.&nbsp;Sun, and T.-S. Chua, “Rlhf-v: Towards trustworthy mllms via behavior alignment from fine-grained correctional human feedback,” 2023.
+
+</li><li>
+[129]
+
+M.&nbsp;S. Jahan and M.&nbsp;Oussalah, “A systematic review of hate speech automatic detection using natural language processing.,” Neurocomputing, p.&nbsp;126232, 2023.
+
+</li><li>
+[130]
+
+OpenAI, “Sora safety.” <a href="https://openai.com/sora#safety">https://openai.com/sora#safety</a>, 2024.
+
+</li><li>
+[131]
+
+Z.&nbsp;Fei, X.&nbsp;Shen, D.&nbsp;Zhu, F.&nbsp;Zhou, Z.&nbsp;Han, S.&nbsp;Zhang, K.&nbsp;Chen, Z.&nbsp;Shen, and J.&nbsp;Ge, “Lawbench: Benchmarking legal knowledge of large language models,” arXiv preprint arXiv:2309.16289, 2023.
+
+</li><li>
+[132]
+
+Y.&nbsp;Li, Y.&nbsp;Huang, Y.&nbsp;Lin, S.&nbsp;Wu, Y.&nbsp;Wan, and L.&nbsp;Sun, “I think, therefore i am: Benchmarking awareness of large language models using awarebench,” 2024.
+
+</li><li>
+[133]
+
+J.&nbsp;Zhu, H.&nbsp;Yang, H.&nbsp;He, W.&nbsp;Wang, Z.&nbsp;Tuo, W.-H. Cheng, L.&nbsp;Gao, J.&nbsp;Song, and J.&nbsp;Fu, “Moviefactory: Automatic movie creation from text using large generative models for language and images,” arXiv preprint arXiv:2306.07257, 2023.
+
+</li><li>
+[134]
+
+J.&nbsp;Zhu, H.&nbsp;Yang, W.&nbsp;Wang, H.&nbsp;He, Z.&nbsp;Tuo, Y.&nbsp;Yu, W.-H. Cheng, L.&nbsp;Gao, J.&nbsp;Song, J.&nbsp;Fu, et&nbsp;al., “Mobilevidfactory: Automatic diffusion-based social media video generation for mobile devices from text,” in Proceedings of the 31st ACM International Conference on Multimedia, pp.&nbsp;9371–9373, 2023.
+
+</li><li>
+[135]
+
+S.&nbsp;Zhuang, K.&nbsp;Li, X.&nbsp;Chen, Y.&nbsp;Wang, Z.&nbsp;Liu, Y.&nbsp;Qiao, and Y.&nbsp;Wang, “Vlogger: Make your dream a vlog,” arXiv preprint arXiv:2401.09414, 2024.
+
+</li><li>
+[136]
+
+R.&nbsp;Feng, W.&nbsp;Weng, Y.&nbsp;Wang, Y.&nbsp;Yuan, J.&nbsp;Bao, C.&nbsp;Luo, Z.&nbsp;Chen, and B.&nbsp;Guo, “Ccedit: Creative and controllable video editing via diffusion models,” arXiv preprint arXiv:2309.16496, 2023.
+
+</li><li>
+[137]
+
+J.&nbsp;Xing, M.&nbsp;Xia, Y.&nbsp;Liu, Y.&nbsp;Zhang, Y.&nbsp;Zhang, Y.&nbsp;He, H.&nbsp;Liu, H.&nbsp;Chen, X.&nbsp;Cun, X.&nbsp;Wang, et&nbsp;al., “Make-your-video: Customized video generation using textual and structural guidance,” arXiv preprint arXiv:2306.00943, 2023.
+
+</li><li>
+[138]
+
+Y.&nbsp;Guo, C.&nbsp;Yang, A.&nbsp;Rao, Y.&nbsp;Wang, Y.&nbsp;Qiao, D.&nbsp;Lin, and B.&nbsp;Dai, “Animatediff: Animate your personalized text-to-image diffusion models without specific tuning,” arXiv preprint arXiv:2307.04725, 2023.
+
+</li><li>
+[139]
+
+Y.&nbsp;He, M.&nbsp;Xia, H.&nbsp;Chen, X.&nbsp;Cun, Y.&nbsp;Gong, J.&nbsp;Xing, Y.&nbsp;Zhang, X.&nbsp;Wang, C.&nbsp;Weng, Y.&nbsp;Shan, et&nbsp;al., “Animate-a-story: Storytelling with retrieval-augmented video generation,” arXiv preprint arXiv:2307.06940, 2023.
+
+</li><li>
+[140]
+
+H.&nbsp;Ni, C.&nbsp;Shi, K.&nbsp;Li, S.&nbsp;X. Huang, and M.&nbsp;R. Min, “Conditional image-to-video generation with latent flow diffusion models,” in Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition, pp.&nbsp;18444–18455, 2023.
+
+</li><li>
+[141]
+
+L.&nbsp;Hu, X.&nbsp;Gao, P.&nbsp;Zhang, K.&nbsp;Sun, B.&nbsp;Zhang, and L.&nbsp;Bo, “Animate anyone: Consistent and controllable image-to-video synthesis for character animation,” arXiv preprint arXiv:2311.17117, 2023.
+
+</li><li>
+[142]
+
+Y.&nbsp;Hu, C.&nbsp;Luo, and Z.&nbsp;Chen, “Make it move: controllable image-to-video generation with text descriptions,” in Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition, pp.&nbsp;18219–18228, 2022.
+
+</li><li>
+[143]
+
+K.&nbsp;Mei and V.&nbsp;Patel, “Vidm: Video implicit diffusion models,” in Proceedings of the AAAI Conference on Artificial Intelligence, vol.&nbsp;37, pp.&nbsp;9117–9125, 2023.
+
+</li><li>
+[144]
+
+S.&nbsp;Yu, K.&nbsp;Sohn, S.&nbsp;Kim, and J.&nbsp;Shin, “Video probabilistic diffusion models in projected latent space,” in Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition, pp.&nbsp;18456–18466, 2023.
+
+</li><li>
+[145]
+
+K.&nbsp;Su, K.&nbsp;Qian, E.&nbsp;Shlizerman, A.&nbsp;Torralba, and C.&nbsp;Gan, “Physics-driven diffusion models for impact sound synthesis from videos,” in Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition, pp.&nbsp;9749–9759, 2023.
+
+</li><li>
+[146]
+
+S.&nbsp;Li, W.&nbsp;Dong, Y.&nbsp;Zhang, F.&nbsp;Tang, C.&nbsp;Ma, O.&nbsp;Deussen, T.-Y. Lee, and C.&nbsp;Xu, “Dance-to-music generation with encoder-based textual inversion of diffusion models,” arXiv preprint arXiv:2401.17800, 2024.
+
+</li><li>
+[147]
+
+A.&nbsp;Awasthi, J.&nbsp;Nizam, S.&nbsp;Zare, S.&nbsp;Ahmad, M.&nbsp;J. Montalvo, N.&nbsp;Varadarajan, B.&nbsp;Roysam, and H.&nbsp;V. Nguyen, “Video diffusion models for the apoptosis forcasting,” bioRxiv, pp.&nbsp;2023–11, 2023.
+
+</li><li>
+[148]
+
+A.&nbsp;Bozorgpour, Y.&nbsp;Sadegheih, A.&nbsp;Kazerouni, R.&nbsp;Azad, and D.&nbsp;Merhof, “Dermosegdiff: A boundary-aware segmentation diffusion model for skin lesion delineation,” in International Workshop on PRedictive Intelligence In MEdicine, pp.&nbsp;146–158, Springer, 2023.
+
+</li><li>
+[149]
+
+A.&nbsp;Flaborea, L.&nbsp;Collorone, G.&nbsp;M.&nbsp;D. di&nbsp;Melendugno, S.&nbsp;D’Arrigo, B.&nbsp;Prenkaj, and F.&nbsp;Galasso, “Multimodal motion conditioned diffusion model for skeleton-based video anomaly detection,” in Proceedings of the IEEE/CVF International Conference on Computer Vision, pp.&nbsp;10318–10329, 2023.
+
+</li><li>
+[150]
+
+J.&nbsp;Wu, R.&nbsp;Fu, H.&nbsp;Fang, Y.&nbsp;Zhang, and Y.&nbsp;Xu, “Medsegdiff-v2: Diffusion based medical image segmentation with transformer,” arXiv preprint arXiv:2301.11798, 2023.
+
+</li><li>
+[151]
+
+G.&nbsp;J. Chowdary and Z.&nbsp;Yin, “Diffusion transformer u-net for medical image segmentation,” in International Conference on Medical Image Computing and Computer-Assisted Intervention, pp.&nbsp;622–631, Springer, 2023.
+
+</li><li>
+[152]
+
+I.&nbsp;Kapelyukh, V.&nbsp;Vosylius, and E.&nbsp;Johns, “Dall-e-bot: Introducing web-scale diffusion models to robotics,” IEEE Robotics and Automation Letters, 2023.
+
+</li><li>
+[153]
+
+W.&nbsp;Liu, T.&nbsp;Hermans, S.&nbsp;Chernova, and C.&nbsp;Paxton, “Structdiffusion: Object-centric diffusion for semantic rearrangement of novel objects,” in Workshop on Language and Robotics at CoRL 2022, 2022.
+
+</li><li>
+[154]
+
+M.&nbsp;Janner, Y.&nbsp;Du, J.&nbsp;B. Tenenbaum, and S.&nbsp;Levine, “Planning with diffusion for flexible behavior synthesis,” arXiv preprint arXiv:2205.09991, 2022.
+
+</li><li>
+[155]
+
+A.&nbsp;Ajay, Y.&nbsp;Du, A.&nbsp;Gupta, J.&nbsp;Tenenbaum, T.&nbsp;Jaakkola, and P.&nbsp;Agrawal, “Is conditional generative modeling all you need for decision-making?,” arXiv preprint arXiv:2211.15657, 2022.
+
+</li><li>
+[156]
+
+J.&nbsp;Carvalho, A.&nbsp;T. Le, M.&nbsp;Baierl, D.&nbsp;Koert, and J.&nbsp;Peters, “Motion planning diffusion: Learning and planning of robot motions with diffusion models,” in 2023 IEEE/RSJ International Conference on Intelligent Robots and Systems (IROS), pp.&nbsp;1916–1923, IEEE, 2023.
+
+</li><li>
+[157]
+
+X.&nbsp;Gu, C.&nbsp;Wen, J.&nbsp;Song, and Y.&nbsp;Gao, “Seer: Language instructed video prediction with latent diffusion models,” arXiv preprint arXiv:2303.14897, 2023.
+
+</li><li>
+[158]
+
+Z.&nbsp;Chen, S.&nbsp;Kiami, A.&nbsp;Gupta, and V.&nbsp;Kumar, “Genaug: Retargeting behaviors to unseen situations via generative augmentation,” arXiv preprint arXiv:2302.06671, 2023.
+
+</li><li>
+[159]
+
+Z.&nbsp;Mandi, H.&nbsp;Bharadhwaj, V.&nbsp;Moens, S.&nbsp;Song, A.&nbsp;Rajeswaran, and V.&nbsp;Kumar, “Cacti: A framework for scalable multi-task multi-scene visual imitation learning,” arXiv preprint arXiv:2212.05711, 2022.
+
+</li><li>
+[160]
+
+T.&nbsp;Chen, L.&nbsp;Li, S.&nbsp;Saxena, G.&nbsp;Hinton, and D.&nbsp;J. Fleet, “A generalist framework for panoptic segmentation of images and videos,” in Proceedings of the IEEE/CVF International Conference on Computer Vision, pp.&nbsp;909–919, 2023.
+
+</li><li>
+[161]
+
+W.&nbsp;Harvey, S.&nbsp;Naderiparizi, V.&nbsp;Masrani, C.&nbsp;Weilbach, and F.&nbsp;Wood, “Flexible diffusion modeling of long videos,” Advances in Neural Information Processing Systems, vol.&nbsp;35, pp.&nbsp;27953–27965, 2022.
+
+</li><li>
+[162]
+
+A.&nbsp;Gupta, S.&nbsp;Tian, Y.&nbsp;Zhang, J.&nbsp;Wu, R.&nbsp;Martín-Martín, and L.&nbsp;Fei-Fei, “Maskvit: Masked visual pre-training for video prediction,” arXiv preprint arXiv:2206.11894, 2022.
+
+</li><li>
+[163]
+
+W.&nbsp;Hong, M.&nbsp;Ding, W.&nbsp;Zheng, X.&nbsp;Liu, and J.&nbsp;Tang, “Cogvideo: Large-scale pretraining for text-to-video generation via transformers,” arXiv preprint arXiv:2205.15868, 2022.
+
+</li><li>
+[164]
+
+U.&nbsp;Singer, A.&nbsp;Polyak, T.&nbsp;Hayes, X.&nbsp;Yin, J.&nbsp;An, S.&nbsp;Zhang, Q.&nbsp;Hu, H.&nbsp;Yang, O.&nbsp;Ashual, O.&nbsp;Gafni, et&nbsp;al., “Make-a-video: Text-to-video generation without text-video data,” arXiv preprint arXiv:2209.14792, 2022.
+
+</li><li>
+[165]
+
+D.&nbsp;Zhou, W.&nbsp;Wang, H.&nbsp;Yan, W.&nbsp;Lv, Y.&nbsp;Zhu, and J.&nbsp;Feng, “Magicvideo: Efficient video generation with latent diffusion models,” arXiv preprint arXiv:2211.11018, 2022.
+
+</li><li>
+[166]
+
+S.&nbsp;Ge, T.&nbsp;Hayes, H.&nbsp;Yang, X.&nbsp;Yin, G.&nbsp;Pang, D.&nbsp;Jacobs, J.-B. Huang, and D.&nbsp;Parikh, “Long video generation with time-agnostic vqgan and time-sensitive transformer,” in European Conference on Computer Vision, pp.&nbsp;102–118, Springer, 2022.
+
+</li><li>
+[167]
+
+R.&nbsp;Villegas, M.&nbsp;Babaeizadeh, P.-J. Kindermans, H.&nbsp;Moraldo, H.&nbsp;Zhang, M.&nbsp;T. Saffar, S.&nbsp;Castro, J.&nbsp;Kunze, and D.&nbsp;Erhan, “Phenaki: Variable length video generation from open domain textual description,” arXiv preprint arXiv:2210.02399, 2022.
+
+</li><li>
+[168]
+
+P.&nbsp;Esser, J.&nbsp;Chiu, P.&nbsp;Atighehchian, J.&nbsp;Granskog, and A.&nbsp;Germanidis, “Structure and content-guided video synthesis with diffusion models,” in Proceedings of the IEEE/CVF International Conference on Computer Vision, pp.&nbsp;7346–7356, 2023.
+
+</li><li>
+[169]
+
+L.&nbsp;Khachatryan, A.&nbsp;Movsisyan, V.&nbsp;Tadevosyan, R.&nbsp;Henschel, Z.&nbsp;Wang, S.&nbsp;Navasardyan, and H.&nbsp;Shi, “Text2video-zero: Text-to-image diffusion models are zero-shot video generators,” arXiv preprint arXiv:2303.13439, 2023.
+
+</li><li>
+[170]
+
+Z.&nbsp;Luo, D.&nbsp;Chen, Y.&nbsp;Zhang, Y.&nbsp;Huang, L.&nbsp;Wang, Y.&nbsp;Shen, D.&nbsp;Zhao, J.&nbsp;Zhou, and T.&nbsp;Tan, “Videofusion: Decomposed diffusion models for high-quality video generation,” in Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition, pp.&nbsp;10209–10218, 2023.
+
+</li><li>
+[171]
+
+A.&nbsp;Jabri, D.&nbsp;Fleet, and T.&nbsp;Chen, “Scalable adaptive computation for iterative generation,” arXiv preprint arXiv:2212.11972, 2022.
+
+</li><li>
+[172]
+
+L.&nbsp;Lian, B.&nbsp;Shi, A.&nbsp;Yala, T.&nbsp;Darrell, and B.&nbsp;Li, “Llm-grounded video diffusion models,” arXiv preprint arXiv:2309.17444, 2023.
+
+</li><li>
+[173]
+
+E.&nbsp;Molad, E.&nbsp;Horwitz, D.&nbsp;Valevski, A.&nbsp;R. Acha, Y.&nbsp;Matias, Y.&nbsp;Pritch, Y.&nbsp;Leviathan, and Y.&nbsp;Hoshen, “Dreamix: Video diffusion models are general video editors,” arXiv preprint arXiv:2302.01329, 2023.
+
+</li><li>
+[174]
+
+J.&nbsp;H. Liew, H.&nbsp;Yan, J.&nbsp;Zhang, Z.&nbsp;Xu, and J.&nbsp;Feng, “Magicedit: High-fidelity and temporally coherent video editing,” arXiv preprint arXiv:2308.14749, 2023.
+
+</li><li>
+[175]
+
+W.&nbsp;Chen, J.&nbsp;Wu, P.&nbsp;Xie, H.&nbsp;Wu, J.&nbsp;Li, X.&nbsp;Xia, X.&nbsp;Xiao, and L.&nbsp;Lin, “Control-a-video: Controllable text-to-video generation with diffusion models,” arXiv preprint arXiv:2305.13840, 2023.
+
+</li><li>
+[176]
+
+W.&nbsp;Chai, X.&nbsp;Guo, G.&nbsp;Wang, and Y.&nbsp;Lu, “Stablevideo: Text-driven consistency-aware diffusion video editing,” in Proceedings of the IEEE/CVF International Conference on Computer Vision, pp.&nbsp;23040–23050, 2023.
+
+</li><li>
+[177]
+
+S.&nbsp;Yang, Y.&nbsp;Zhou, Z.&nbsp;Liu, and C.&nbsp;C. Loy, “Rerender a video: Zero-shot text-guided video-to-video translation,” arXiv preprint arXiv:2306.07954, 2023.
+
+</li><li>
+[178]
+
+D.&nbsp;Ceylan, C.-H.&nbsp;P. Huang, and N.&nbsp;J. Mitra, “Pix2video: Video editing using image diffusion,” in Proceedings of the IEEE/CVF International Conference on Computer Vision, pp.&nbsp;23206–23217, 2023.
+
+</li><li>
+[179]
+
+B.&nbsp;Qin, J.&nbsp;Li, S.&nbsp;Tang, T.-S. Chua, and Y.&nbsp;Zhuang, “Instructvid2vid: Controllable video editing with natural language instructions,” arXiv preprint arXiv:2305.12328, 2023.
+
+</li><li>
+[180]
+
+D.&nbsp;Liu, Q.&nbsp;Li, A.-D. Dinh, T.&nbsp;Jiang, M.&nbsp;Shah, and C.&nbsp;Xu, “Diffusion action segmentation,” in Proceedings of the IEEE/CVF International Conference on Computer Vision, pp.&nbsp;10139–10149, 2023.
+
+</li><li>
+[181]
+
+R.&nbsp;Feng, Y.&nbsp;Gao, T.&nbsp;H.&nbsp;E. Tse, X.&nbsp;Ma, and H.&nbsp;J. Chang, “Diffpose: Spatiotemporal diffusion model for video-based human pose estimation,” in Proceedings of the IEEE/CVF International Conference on Computer Vision, pp.&nbsp;14861–14872, 2023.
+
+</li><li>
+[182]
+
+L.&nbsp;Yu, Y.&nbsp;Cheng, K.&nbsp;Sohn, J.&nbsp;Lezama, H.&nbsp;Zhang, H.&nbsp;Chang, A.&nbsp;G. Hauptmann, M.-H. Yang, Y.&nbsp;Hao, I.&nbsp;Essa, et&nbsp;al., “Magvit: Masked generative video transformer,” in Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition, pp.&nbsp;10459–10469, 2023.
+
+</li><li>
+[183]
+
+Z.&nbsp;Li, R.&nbsp;Tucker, N.&nbsp;Snavely, and A.&nbsp;Holynski, “Generative image dynamics,” arXiv preprint arXiv:2309.07906, 2023.
+
+</li><li>
+[184]
+
+EasyWithAI, “Zeroscope - ai text-to-video model.” <a href="https://easywithai.com/ai-video-generators/zeroscope/">https://easywithai.com/ai-video-generators/zeroscope/</a>, 2023.
+
+</li><li>
+[185]
+
+R.&nbsp;Girdhar, M.&nbsp;Singh, A.&nbsp;Brown, Q.&nbsp;Duval, S.&nbsp;Azadi, S.&nbsp;S. Rambhatla, A.&nbsp;Shah, X.&nbsp;Yin, D.&nbsp;Parikh, and I.&nbsp;Misra, “Emu video: Factorizing text-to-video generation by explicit image conditioning,” arXiv preprint arXiv:2311.10709, 2023.
+
+</li><li>
+[186]
+
+Y.&nbsp;Zeng, G.&nbsp;Wei, J.&nbsp;Zheng, J.&nbsp;Zou, Y.&nbsp;Wei, Y.&nbsp;Zhang, and H.&nbsp;Li, “Make pixels dance: High-dynamic video generation,” arXiv preprint arXiv:2311.10982, 2023.
+
+</li><li>
+[187]
+
+A.&nbsp;Gupta, L.&nbsp;Yu, K.&nbsp;Sohn, X.&nbsp;Gu, M.&nbsp;Hahn, L.&nbsp;Fei-Fei, I.&nbsp;Essa, L.&nbsp;Jiang, and J.&nbsp;Lezama, “Photorealistic video generation with diffusion models,” arXiv preprint arXiv:2312.06662, 2023.
+
+</li><li>
+[188]
+
+B.&nbsp;Wu, C.-Y. Chuang, X.&nbsp;Wang, Y.&nbsp;Jia, K.&nbsp;Krishnakumar, T.&nbsp;Xiao, F.&nbsp;Liang, L.&nbsp;Yu, and P.&nbsp;Vajda, “Fairy: Fast parallelized instruction-guided video-to-video synthesis,” arXiv preprint arXiv:2312.13834, 2023.
+
+</li><li>
+[189]
+
+D.&nbsp;Kondratyuk, L.&nbsp;Yu, X.&nbsp;Gu, J.&nbsp;Lezama, J.&nbsp;Huang, R.&nbsp;Hornung, H.&nbsp;Adam, H.&nbsp;Akbari, Y.&nbsp;Alon, V.&nbsp;Birodkar, et&nbsp;al., “Videopoet: A large language model for zero-shot video generation,” arXiv preprint arXiv:2312.14125, 2023.
+
+</li><li>
+[190]
+
+J.&nbsp;Wu, X.&nbsp;Li, C.&nbsp;Si, S.&nbsp;Zhou, J.&nbsp;Yang, J.&nbsp;Zhang, Y.&nbsp;Li, K.&nbsp;Chen, Y.&nbsp;Tong, Z.&nbsp;Liu, et&nbsp;al., “Towards language-driven video inpainting via multimodal large language models,” arXiv preprint arXiv:2401.10226, 2024.
+
+</li><li>
+[191]
+
+O.&nbsp;Bar-Tal, H.&nbsp;Chefer, O.&nbsp;Tov, C.&nbsp;Herrmann, R.&nbsp;Paiss, S.&nbsp;Zada, A.&nbsp;Ephrat, J.&nbsp;Hur, Y.&nbsp;Li, T.&nbsp;Michaeli, et&nbsp;al., “Lumiere: A space-time diffusion model for video generation,” arXiv preprint arXiv:2401.12945, 2024.
+
+</li></ul></section><section><h2>
+Appendix A Related Works</h2><p>We show some related works about the video generation tasks in Table <a href="https://arxiv.org/html/2402.17177v1#A1.T1" title="Table 1 ‣ Appendix A Related Works ‣ Sora: A Review on Background, Technology, Limitations, and Opportunities of Large Vision Models">1</a>.</p><figure><figcaption>Table 1: Summary of Video Generation.</figcaption><table><tbody><tr><td>Model name</td><td>Year</td><td>Backbone</td><td>Task</td><td>Group</td></tr><tr><td>Imagen Video<cite>[<a href="https://arxiv.org/html/2402.17177v1#bib.bib29">29</a>]</cite></td><td>2022</td><td>Diffusion</td><td>Generation</td><td>Google</td></tr><tr><td>Pix2Seq-D<cite>[<a href="https://arxiv.org/html/2402.17177v1#bib.bib160">160</a>]</cite></td><td>2022</td><td>Diffusion</td><td>Segmentation</td><td>Google Deepmind</td></tr><tr><td>FDM<cite>[<a href="https://arxiv.org/html/2402.17177v1#bib.bib161">161</a>]</cite></td><td>2022</td><td>Diffusion</td><td>Prediction</td><td>UBC</td></tr><tr><td>MaskViT<cite>[<a href="https://arxiv.org/html/2402.17177v1#bib.bib162">162</a>]</cite></td><td>2022</td><td>Masked Vision Models</td><td>Prediction</td><td>Stanford, Salesforce</td></tr><tr><td>CogVideo<cite>[<a href="https://arxiv.org/html/2402.17177v1#bib.bib163">163</a>]</cite></td><td>2022</td><td>Auto-regressive</td><td>Generation</td><td>THU</td></tr><tr><td>Make-a-video<cite>[<a href="https://arxiv.org/html/2402.17177v1#bib.bib164">164</a>]</cite></td><td>2022</td><td>Diffusion</td><td>Generation</td><td>Meta</td></tr><tr><td>MagicVideo<cite>[<a href="https://arxiv.org/html/2402.17177v1#bib.bib165">165</a>]</cite></td><td>2022</td><td>Diffusion</td><td>Generation</td><td>ByteDance</td></tr><tr><td>TATS<cite>[<a href="https://arxiv.org/html/2402.17177v1#bib.bib166">166</a>]</cite></td><td>2022</td><td>Auto-regressive</td><td>Generation</td><td>University of Maryland, Meta</td></tr><tr><td>Phenaki<cite>[<a href="https://arxiv.org/html/2402.17177v1#bib.bib167">167</a>]</cite></td><td>2022</td><td>Masked Vision Models</td><td>Generation</td><td>Google Brain</td></tr><tr><td>Gen-1<cite>[<a href="https://arxiv.org/html/2402.17177v1#bib.bib168">168</a>]</cite></td><td>2023</td><td>Diffusion</td><td>Generation, Editing</td><td>RunwayML</td></tr><tr><td>LFDM<cite>[<a href="https://arxiv.org/html/2402.17177v1#bib.bib140">140</a>]</cite></td><td>2023</td><td>Diffusion</td><td>Generation</td><td>PSU, UCSD</td></tr><tr><td>Text2video-Zero<cite>[<a href="https://arxiv.org/html/2402.17177v1#bib.bib169">169</a>]</cite></td><td>2023</td><td>Diffusion</td><td>Generation</td><td>Picsart</td></tr><tr><td>Video Fusion<cite>[<a href="https://arxiv.org/html/2402.17177v1#bib.bib170">170</a>]</cite></td><td>2023</td><td>Diffusion</td><td>Generation</td><td>USAC, Alibaba</td></tr><tr><td>PYoCo<cite>[<a href="https://arxiv.org/html/2402.17177v1#bib.bib34">34</a>]</cite></td><td>2023</td><td>Diffusion</td><td>Generation</td><td>Nvidia</td></tr><tr><td>Video LDM<cite>[<a href="https://arxiv.org/html/2402.17177v1#bib.bib36">36</a>]</cite></td><td>2023</td><td>Diffusion</td><td>Generation</td><td>University of Maryland, Nvidia</td></tr><tr><td>RIN<cite>[<a href="https://arxiv.org/html/2402.17177v1#bib.bib171">171</a>]</cite></td><td>2023</td><td>Diffusion</td><td>Generation</td><td>Google Brain</td></tr><tr><td>LVD<cite>[<a href="https://arxiv.org/html/2402.17177v1#bib.bib172">172</a>]</cite></td><td>2023</td><td>Diffusion</td><td>Generation</td><td>UCB</td></tr><tr><td>Dreamix<cite>[<a href="https://arxiv.org/html/2402.17177v1#bib.bib173">173</a>]</cite></td><td>2023</td><td>Diffusion</td><td>Editing</td><td>Google</td></tr><tr><td>MagicEdit<cite>[<a href="https://arxiv.org/html/2402.17177v1#bib.bib174">174</a>]</cite></td><td>2023</td><td>Diffusion</td><td>Editing</td><td>ByteDance</td></tr><tr><td>Control-A-Video<cite>[<a href="https://arxiv.org/html/2402.17177v1#bib.bib175">175</a>]</cite></td><td>2023</td><td>Diffusion</td><td>Editing</td><td>Sun Yat-Sen University</td></tr><tr><td>StableVideo<cite>[<a href="https://arxiv.org/html/2402.17177v1#bib.bib176">176</a>]</cite></td><td>2023</td><td>Diffusion</td><td>Editing</td><td>ZJU, MSRA</td></tr><tr><td>Tune-A-Video<cite>[<a href="https://arxiv.org/html/2402.17177v1#bib.bib78">78</a>]</cite></td><td>2023</td><td>Diffusion</td><td>Editing</td><td>NUS</td></tr><tr><td>Rerender-A-Video<cite>[<a href="https://arxiv.org/html/2402.17177v1#bib.bib177">177</a>]</cite></td><td>2023</td><td>Diffusion</td><td>Editing</td><td>NTU</td></tr><tr><td>Pix2Video<cite>[<a href="https://arxiv.org/html/2402.17177v1#bib.bib178">178</a>]</cite></td><td>2023</td><td>Diffusion</td><td>Editing</td><td>Adobe, UCL</td></tr><tr><td>InstructVid2Vid<cite>[<a href="https://arxiv.org/html/2402.17177v1#bib.bib179">179</a>]</cite></td><td>2023</td><td>Diffusion</td><td>Editing</td><td>ZJU</td></tr><tr><td>DiffAct<cite>[<a href="https://arxiv.org/html/2402.17177v1#bib.bib180">180</a>]</cite></td><td>2023</td><td>Diffusion</td><td>Action Detection</td><td>University of Sydney</td></tr><tr><td>DiffPose<cite>[<a href="https://arxiv.org/html/2402.17177v1#bib.bib181">181</a>]</cite></td><td>2023</td><td>Diffusion</td><td>Pose Estimation</td><td>Jilin University</td></tr><tr><td>MAGVIT<cite>[<a href="https://arxiv.org/html/2402.17177v1#bib.bib182">182</a>]</cite></td><td>2023</td><td>Masked Vision Models</td><td>Generation</td><td>Google</td></tr><tr><td>AnimateDiff<cite>[<a href="https://arxiv.org/html/2402.17177v1#bib.bib138">138</a>]</cite></td><td>2023</td><td>Diffusion</td><td>Generation</td><td>CUHK</td></tr><tr><td>MAGVIT V2<cite>[<a href="https://arxiv.org/html/2402.17177v1#bib.bib47">47</a>]</cite></td><td>2023</td><td>Masked Vision Models</td><td>Generation</td><td>Google</td></tr><tr><td>Generative Dynamics<cite>[<a href="https://arxiv.org/html/2402.17177v1#bib.bib183">183</a>]</cite></td><td>2023</td><td>Diffusion</td><td>Generation</td><td>Google</td></tr><tr><td>VideoCrafter<cite>[<a href="https://arxiv.org/html/2402.17177v1#bib.bib81">81</a>]</cite></td><td>2023</td><td>Diffusion</td><td>Generation</td><td>Tencent</td></tr><tr><td>Zeroscope<cite>[<a href="https://arxiv.org/html/2402.17177v1#bib.bib184">184</a>]</cite></td><td>2023</td><td>-</td><td>Generation</td><td>EasyWithAI</td></tr><tr><td>ModelScope</td><td>2023</td><td>-</td><td>Generation</td><td>Damo</td></tr><tr><td>Gen-2<cite>[<a href="https://arxiv.org/html/2402.17177v1#bib.bib23">23</a>]</cite></td><td>2023</td><td>-</td><td>Generation</td><td>RunwayML</td></tr><tr><td>Pika<cite>[<a href="https://arxiv.org/html/2402.17177v1#bib.bib22">22</a>]</cite></td><td>2023</td><td>-</td><td>Generation</td><td>Pika Labs</td></tr><tr><td>Emu Video<cite>[<a href="https://arxiv.org/html/2402.17177v1#bib.bib185">185</a>]</cite></td><td>2023</td><td>Diffusion</td><td>Generation</td><td>Meta</td></tr><tr><td>PixelDance<cite>[<a href="https://arxiv.org/html/2402.17177v1#bib.bib186">186</a>]</cite></td><td>2023</td><td>Diffusion</td><td>Generation</td><td>ByteDance</td></tr><tr><td>Stable Video Diffusion<cite>[<a href="https://arxiv.org/html/2402.17177v1#bib.bib27">27</a>]</cite></td><td>2023</td><td>Diffusion</td><td>Generation</td><td>Stability AI</td></tr><tr><td>W.A.L.T<cite>[<a href="https://arxiv.org/html/2402.17177v1#bib.bib187">187</a>]</cite></td><td>2023</td><td>Diffusion</td><td>Generation</td><td>Stanford, Google</td></tr><tr><td>Fairy<cite>[<a href="https://arxiv.org/html/2402.17177v1#bib.bib188">188</a>]</cite></td><td>2023</td><td>Diffusion</td><td>Generation, Editing</td><td>Meta</td></tr><tr><td>VideoPoet<cite>[<a href="https://arxiv.org/html/2402.17177v1#bib.bib189">189</a>]</cite></td><td>2023</td><td>Auto-regressive</td><td>Generation, Editing</td><td>Google</td></tr><tr><td>LGVI<cite>[<a href="https://arxiv.org/html/2402.17177v1#bib.bib190">190</a>]</cite></td><td>2024</td><td>Diffusion</td><td>Editing</td><td>PKU, NTU</td></tr><tr><td>Lumiere<cite>[<a href="https://arxiv.org/html/2402.17177v1#bib.bib191">191</a>]</cite></td><td>2024</td><td>Diffusion</td><td>Generation</td><td>Google</td></tr><tr><td>Sora<cite>[<a href="https://arxiv.org/html/2402.17177v1#bib.bib3">3</a>]</cite></td><td>2024</td><td>Diffusion</td><td>Generation, Editing</td><td>OpenAI</td></tr></tbody></table></figure></section></article><footer>
+Generated  on Mon Feb 26 20:42:26 2024 by <a href="http://dlmf.nist.gov/LaTeXML/">LATExml</a></footer>

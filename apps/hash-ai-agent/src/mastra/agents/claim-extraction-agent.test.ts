@@ -7,6 +7,7 @@ import type {
 import { entityIdFromComponents } from "@blockprotocol/type-system";
 import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
 import { runEvals } from "@mastra/core/evals";
+import { createCompletenessScorer } from "@mastra/evals/scorers/prebuilt";
 import dedent from "dedent";
 import { describe, expect, test } from "vitest";
 
@@ -100,21 +101,37 @@ function buildClaimExtractionMessage(
 }
 
 /**
- * Extract discovered entities from agent result.
+ * Extract discovered entities from agent output (as provided by runEvals).
  */
-function extractEntitiesFromResult(
-  result: Awaited<ReturnType<typeof entitySummaryAgent.generate>>,
+function extractEntitiesFromOutput(
+  output: unknown,
   entityTypes: InferClaimsFixture["entityTypes"],
 ): LocalEntitySummary[] {
   const webId = generateUuid() as WebId;
 
-  // Cast the result to access toolCalls with proper typing
-  // (Mastra returns toolCalls but the type definition is incomplete)
-  const output = result as unknown as Record<string, unknown>;
+  // Cast the output to access toolCalls with proper typing
+  // (same pattern as entity-summaries-scorer.ts)
+  const outputRecord = output as Record<string, unknown>;
 
   let toolCalls: { toolName: string; args: unknown }[] = [];
-  if (Array.isArray(output.toolCalls)) {
-    toolCalls = output.toolCalls as { toolName: string; args: unknown }[];
+  if (Array.isArray(outputRecord.toolCalls)) {
+    toolCalls = outputRecord.toolCalls as { toolName: string; args: unknown }[];
+  } else if (Array.isArray(outputRecord)) {
+    // Output might be an array of steps/messages
+    for (const item of outputRecord) {
+      if (
+        typeof item === "object" &&
+        item !== null &&
+        "toolCalls" in item &&
+        Array.isArray((item as Record<string, unknown>).toolCalls)
+      ) {
+        toolCalls = (item as Record<string, unknown>).toolCalls as {
+          toolName: string;
+          args: unknown;
+        }[];
+        break;
+      }
+    }
   }
 
   // Find the register call
@@ -141,7 +158,9 @@ function extractEntitiesFromResult(
     const entityId = entityIdFromComponents(webId, entityUuid);
 
     // Check if type matches one of the known entity types
-    const isKnownType = entityTypes.some((entityType) => entityType.$id === type);
+    const isKnownType = entityTypes.some(
+      (entityType) => entityType.$id === type,
+    );
 
     if (isKnownType) {
       entities.push({
@@ -156,35 +175,47 @@ function extractEntitiesFromResult(
   return entities;
 }
 
+// Simple pass-through scorer to run the entity summary agent
+const passThroughScorer = createCompletenessScorer();
+
 describe("Claim Extraction Agent", () => {
   test.for(inferClaimsFixtures)(
     "$name",
     { timeout: 10 * 60 * 1000 }, // 10 minutes - two LLM calls
     async (fixture) => {
       // Step 1: Run entity summary agent to discover entities
-      const summaryMessage = buildEntitySummaryMessage(fixture);
-      const summaryResult = await entitySummaryAgent.generate(summaryMessage);
+      // Use runEvals with onItemComplete to capture the agent output
+      let entitySummaryOutput: unknown;
 
-      // Extract discovered entities from the tool call
-      const discoveredEntities = extractEntitiesFromResult(
-        summaryResult,
+      await runEvals({
+        data: [
+          {
+            input: buildEntitySummaryMessage(fixture),
+            groundTruth: {},
+          },
+        ],
+        target: entitySummaryAgent,
+        scorers: [passThroughScorer],
+        onItemComplete: ({ targetResult }) => {
+          entitySummaryOutput = targetResult;
+        },
+      });
+
+      // Extract discovered entities from the captured output
+      const discoveredEntities = extractEntitiesFromOutput(
+        entitySummaryOutput,
         fixture.entityTypes,
       );
 
       // Verify we found some entities
       expect(discoveredEntities.length).toBeGreaterThan(0);
 
-      // Step 2: Run claim extraction agent on discovered entities
+      // Step 2: Run claim extraction agent and score the results
       const claimsMessage = buildClaimExtractionMessage(
         fixture,
         discoveredEntities,
       );
-      const claimsResult = await claimExtractionsAgent.generate(claimsMessage);
 
-      // Verify tool was called
-      expect(claimsResult.toolCalls.length).toBeGreaterThan(0);
-
-      // Step 3: Score the claims using the structure scorer
       const evalResult = await runEvals({
         data: [
           {
