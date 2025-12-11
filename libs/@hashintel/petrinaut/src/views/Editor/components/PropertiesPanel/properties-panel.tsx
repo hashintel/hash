@@ -19,6 +19,9 @@ export const PropertiesPanel: React.FC = () => {
     (state) => state.selectedResourceId,
   );
   const globalMode = useEditorStore((state) => state.globalMode);
+  const setPropertiesPanelWidth = useEditorStore(
+    (state) => state.setPropertiesPanelWidth,
+  );
 
   const {
     getItemType,
@@ -32,10 +35,27 @@ export const PropertiesPanel: React.FC = () => {
   } = useSDCPNContext();
 
   // Resize functionality
-  const [panelWidth, setPanelWidth] = useState(startingWidth);
+  const [panelWidth, setPanelWidthLocal] = useState(startingWidth);
   const [isResizing, setIsResizing] = useState(false);
   const resizeStartXRef = useRef(0);
   const resizeStartWidthRef = useRef(startingWidth);
+
+  // Sync panel width with global store
+  const setPanelWidth = useCallback(
+    (width: number | ((prev: number) => number)) => {
+      setPanelWidthLocal((prev) => {
+        const newWidth = typeof width === "function" ? width(prev) : width;
+        setPropertiesPanelWidth(newWidth);
+        return newWidth;
+      });
+    },
+    [setPropertiesPanelWidth],
+  );
+
+  // Initialize store with starting width
+  useEffect(() => {
+    setPropertiesPanelWidth(startingWidth);
+  }, [setPropertiesPanelWidth]);
 
   const handleResizeStart = useCallback(
     (event: React.MouseEvent) => {

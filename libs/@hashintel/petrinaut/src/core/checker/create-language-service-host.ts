@@ -15,6 +15,9 @@ const COMPILER_OPTIONS: ts.CompilerOptions = {
   moduleResolution: ts.ModuleResolutionKind.NodeNext,
   strict: true,
   lib: ["lib.es5.d.ts", "lib.es2015.core.d.ts"],
+  // Disable automatic type resolution to avoid Node.js-specific APIs in browser
+  typeRoots: [],
+  types: [],
 };
 
 /** Virtual file entry with optional prefix (for injected declarations) */
@@ -46,7 +49,7 @@ export function createLanguageServiceHost(
     getCompilationSettings: () => COMPILER_OPTIONS,
     getScriptVersion: () => "0",
     getCurrentDirectory: () => "",
-    getDefaultLibFileName: () => ts.getDefaultLibFilePath(COMPILER_OPTIONS),
+    getDefaultLibFileName: () => "lib.es5.d.ts",
 
     getScriptSnapshot(fileName: string) {
       const content = getFileContent(fileName);

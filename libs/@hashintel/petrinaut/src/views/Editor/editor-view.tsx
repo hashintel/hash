@@ -1,3 +1,5 @@
+import { useState } from "react";
+
 import { Box } from "../../components/box";
 import { Stack } from "../../components/stack";
 import { productionMachines } from "../../examples/broken-machines";
@@ -10,6 +12,7 @@ import { useSDCPNContext } from "../../state/sdcpn-provider";
 import { useSimulationStore } from "../../state/simulation-provider";
 import { SDCPNView } from "../SDCPN/sdcpn-view";
 import { BottomBar } from "./components/BottomBar/bottom-bar";
+import { DiagnosticsPanel } from "./components/DiagnosticsPanel/diagnostics-panel";
 import { LeftSideBar } from "./components/LeftSideBar/left-sidebar";
 import { ModeSelector } from "./components/mode-selector";
 import { PropertiesPanel } from "./components/PropertiesPanel/properties-panel";
@@ -23,6 +26,9 @@ import { importSDCPN } from "./lib/import-sdcpn";
 export const EditorView = ({
   hideNetManagementControls,
 }: { hideNetManagementControls: boolean }) => {
+  // State for diagnostics panel visibility
+  const [isDiagnosticsOpen, setIsDiagnosticsOpen] = useState(false);
+
   // Get data from sdcpn-store
   const {
     createNewNet,
@@ -40,6 +46,9 @@ export const EditorView = ({
   const editionMode = useEditorStore((state) => state.editionMode);
   const setEditionMode = useEditorStore((state) => state.setEditionMode);
   const clearSelection = useEditorStore((state) => state.clearSelection);
+  const propertiesPanelWidth = useEditorStore(
+    (state) => state.propertiesPanelWidth,
+  );
 
   // Get simulation store method to initialize parameter values
   const initializeParameterValuesFromDefaults = useSimulationStore(
@@ -214,10 +223,18 @@ export const EditorView = ({
           {/* SDCPN Visualization */}
           <SDCPNView />
 
+          {/* Diagnostics Panel - Bottom, between sidebars */}
+          <DiagnosticsPanel
+            isOpen={isDiagnosticsOpen}
+            propertiesPanelWidth={propertiesPanelWidth}
+          />
+
           <BottomBar
             mode={mode}
             editionMode={editionMode}
             onEditionModeChange={setEditionMode}
+            isDiagnosticsOpen={isDiagnosticsOpen}
+            onToggleDiagnostics={() => setIsDiagnosticsOpen((prev) => !prev)}
           />
         </Box>
       </Stack>
