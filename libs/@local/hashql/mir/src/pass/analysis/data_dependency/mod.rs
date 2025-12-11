@@ -27,6 +27,7 @@
 //!
 //! [`Slot::Index(0)`]: Slot::Index
 //! [`Slot::Index(1)`]: Slot::Index
+mod graph;
 #[cfg(test)]
 mod tests;
 
@@ -38,7 +39,7 @@ use hashql_core::{
     id::Id as _,
 };
 
-use super::graph::{Edge, resolve, write_graph};
+use self::graph::{Edge, Slot, resolve, write_graph};
 use crate::{
     body::{
         Body,
@@ -53,7 +54,7 @@ use crate::{
     },
     context::MirContext,
     intern::Interner,
-    pass::{AnalysisPass, analysis::data::graph::Slot},
+    pass::AnalysisPass,
     visit::Visitor,
 };
 
