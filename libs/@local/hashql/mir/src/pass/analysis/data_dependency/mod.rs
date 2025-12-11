@@ -152,12 +152,7 @@ pub struct DataDependencyGraph<'heap, A: Allocator = Global> {
 
 impl<'heap, A: Allocator> DataDependencyGraph<'heap, A> {
     pub fn resolve(&self, interner: &Interner<'heap>, place: Place<'heap>) -> Place<'heap> {
-        let (traveled, local) = resolve_place(&self.graph, place.local, &place.projections);
-        let projections = interner
-            .projections
-            .intern_slice(&place.projections[traveled..]);
-
-        Place { local, projections }
+        resolve_place(&self.graph, interner, place)
     }
 
     /// Creates a transient graph with resolved dependencies.
