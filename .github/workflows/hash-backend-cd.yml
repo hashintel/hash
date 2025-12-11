@@ -134,6 +134,8 @@ jobs:
           ROLE_ARN: ${{ env.ARTIFACTS_ECR_ROLE_ARN }}
           IMAGE_NAME: ${{ github.repository }}/graph
           GITHUB_TOKEN: ${{ github.token }}
+          BUILD_ARGS: |
+            ENABLE_TEST_SERVER=yes
 
   build-api:
     name: Build and push HASH api image

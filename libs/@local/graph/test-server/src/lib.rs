@@ -12,8 +12,8 @@ use std::collections::HashMap;
 use axum::{
     Extension, Router,
     body::Body,
-    response::Response,
-    routing::{delete, post},
+    response::{IntoResponse as _, Response},
+    routing::{delete, get, post},
 };
 use error_stack::Report;
 use futures::TryStreamExt as _;
@@ -32,6 +32,7 @@ use uuid::Uuid;
 pub fn routes(store_pool: PostgresStorePool) -> Router {
     Router::new()
         .layer(http_tracing_layer::HttpTracingLayer)
+        .route("/health", get(async || "Healthy".into_response()))
         .route("/snapshot", post(restore_snapshot))
         .route("/accounts", delete(delete_accounts))
         .route("/data-types", delete(delete_data_types))
