@@ -8,12 +8,12 @@ Heavily influenced by the Rust compiler's [compiletest](https://github.com/rust-
 
 - [Running Tests](#running-tests)
 - [Directory Structure](#directory-structure)
-- [Authoring Test Cases](#authoring-test-cases)
 - [Test Directives](#test-directives)
 - [Diagnostic Annotations](#diagnostic-annotations)
-- [Available Test Suites](#available-test-suites)
+- [Discovering Test Suites](#discovering-test-suites)
+- [Adding New Tests](#adding-new-tests)
+- [Updating Expected Output](#updating-expected-output)
 - [Debugging Failures](#debugging-failures)
-- [Extending Test Suites](#extending-test-suites)
 - [Best Practices](#best-practices)
 
 ---
@@ -35,8 +35,8 @@ cargo run -p hashql-compiletest list
 Uses [nextest filter syntax](https://nexte.st/docs/filtersets/):
 
 ```bash
-# Run tests in a specific namespace
-cargo run -p hashql-compiletest run --filter "test(some_namespace::test_name)"
+# Run tests matching a name pattern
+cargo run -p hashql-compiletest run --filter "test(some_test_name)"
 
 # Run all tests in a package
 cargo run -p hashql-compiletest run --filter "package(some_package)"
@@ -50,10 +50,14 @@ cargo run -p hashql-compiletest run --filter "package(some_package) & test(error
 When you make intentional changes that affect test outputs:
 
 ```bash
+# Update all tests
 cargo run -p hashql-compiletest run --bless
+
+# Update specific test
+cargo run -p hashql-compiletest run --filter "test(name)" --bless
 ```
 
-This updates `.stdout` and `.stderr` files for all tests with their actual outputs.
+This updates `.stdout` and `.stderr` files to match actual outputs.
 
 ---
 
@@ -86,55 +90,25 @@ package_name/
 | `.stdout` | Expected standard output | Optional (empty if none) |
 | `.stderr` | Expected diagnostics | Optional (empty if none) |
 
----
-
-## Authoring Test Cases
-
-### Step 1: Create the Test File
-
-Create a `.jsonc` file with your test code:
-
-```jsonc
-// example_test.jsonc
-["let", "x", {"#literal": 42},
-  "x"
-]
-```
-
-### Step 2: Create or Verify .spec.toml
-
-Ensure there's a `.spec.toml` file in the directory or a parent:
-
-```toml
-suite = "parse/syntax-dump"
-```
-
-The harness searches upward from the test file to find `.spec.toml`, stopping at `tests/ui/`. This allows:
-
-- Shared specs at directory roots
-- Overrides for specific subdirectories
-
-### Step 3: Generate Expected Outputs
-
-Run with `--bless` to generate initial reference files:
-
-```bash
-cargo run -p hashql-compiletest run --filter "test(example_test)" --bless
-```
+The harness searches upward from the test file to find `.spec.toml`, stopping at `tests/ui/`. This allows shared specs at directory roots with overrides for specific subdirectories.
 
 ---
 
 ## Test Directives
 
-Directives control test behavior. They **must** be at the start of the file.
+Directives control test behavior. They **must** be at the start of the file, before any test code.
+
+### Supported Directives
 
 ```jsonc
-//@ run: pass      // Test should pass (no errors expected)
-//@ run: fail      // Test should fail (default if omitted)
-//@ run: skip      // Skip this test
+//@ run: pass                      // Test should pass (no errors expected)
+//@ run: fail                      // Test should fail with errors (DEFAULT)
+//@ run: skip                      // Skip this test
 //@ run: skip reason=Not implemented yet
 
-//@ name: custom_test_name  // Override the default name
+//@ name: custom_test_name         // Override the default test name
+//@ description: Tests that...     // Describe test purpose (ENCOURAGED)
+//@ suite#key: value               // Suite-specific directive (TOML value)
 ```
 
 ### Run Modes
@@ -142,10 +116,19 @@ Directives control test behavior. They **must** be at the start of the file.
 | Mode | Behavior |
 |------|----------|
 | `pass` | Test must succeed with no errors |
-| `fail` | Test must produce errors (default) |
+| `fail` | Test must produce errors (**default if omitted**) |
 | `skip` | Test is skipped entirely |
 
-**Important:** If you don't specify `//@ run:`, the test defaults to `fail` mode.
+**Important:** If you don't specify `//@ run:`, the test defaults to `fail` mode. Always use `//@ run: pass` explicitly for tests that should succeed.
+
+### Suite-Specific Directives
+
+The `//@ suite#key: value` syntax passes configuration to specific suites. Values are parsed as TOML:
+
+```jsonc
+//@ suite#timeout: 30
+//@ suite#features: ["experimental"]
+```
 
 ---
 
@@ -162,29 +145,32 @@ Annotations verify that specific diagnostics appear at expected locations.
 ### Components
 
 - `//~` - Annotation marker
-- Severity: `ERROR`, `WARNING`, `INFO`, `DEBUG`, or `CRITICAL`
-- Optional error code: `[ast:typchk::mismatch]`
+- Line reference (optional): `^`, `v`, `|`, `?`
+- Severity: `ERROR`, `WARNING`, `NOTE`, `DEBUG`, or `CRITICAL`
+- Optional error code: `[category::subcategory]`
 - Message fragment to match
 
-### Full Example
+### Line Reference Types
+
+| Syntax | Meaning | Example |
+|--------|---------|---------|
+| `//~ ERROR msg` | Current line | Error on this exact line |
+| `//~^ ERROR msg` | Previous line (1 up) | Error on line above |
+| `//~^^ ERROR msg` | 2 lines above | |
+| `//~^^^ ERROR msg` | 3 lines above | |
+| `//~v ERROR msg` | Next line (1 down) | Error on line below |
+| `//~vv ERROR msg` | 2 lines below | |
+| `//~vvv ERROR msg` | 3 lines below | |
+| `//~\| ERROR msg` | Same line as previous | Multiple errors, same location |
+| `//~? ERROR msg` | Unknown/any line | Use sparingly |
+
+### Error Codes
+
+Include optional error codes in brackets:
 
 ```jsonc
-["+", {"#literal": "string"}, {"#literal": 42}] //~ ERROR[ast:typchk::mismatch] cannot add
+["+", "string", 42] //~ ERROR[category::subcategory] cannot add
 ```
-
-### Line References
-
-| Syntax | Meaning |
-|--------|---------|
-| `//~ ERROR msg` | Current line |
-| `//~^ ERROR msg` | Previous line (1 line above) |
-| `//~^^ ERROR msg` | 2 lines above |
-| `//~^^^ ERROR msg` | 3 lines above |
-| `//~v ERROR msg` | Next line (1 line below) |
-| `//~vv ERROR msg` | 2 lines below |
-| `//~vvv ERROR msg` | 3 lines below |
-| `//~\| ERROR msg` | Same line as previous annotation |
-| `//~? ERROR msg` | Unknown/any line |
 
 ### Multi-Annotation Example
 
@@ -192,21 +178,111 @@ Annotations verify that specific diagnostics appear at expected locations.
 ["let", "x",          //~^ ERROR first error on the let line
   ["invalid"]         //~ ERROR error on this line
 ]                     //~| ERROR another error on same line as previous
+                      //~| NOTE additional context
 ```
+
+### Severity Levels
+
+| Level | Use Case |
+|-------|----------|
+| `CRITICAL` | Unrecoverable errors |
+| `ERROR` | Standard errors |
+| `WARNING` | Non-fatal warnings |
+| `NOTE` | Informational notes |
+| `DEBUG` | Debug output |
 
 ---
 
-## Available Test Suites
+## Discovering Test Suites
 
-| Suite Name | Description |
-|------------|-------------|
-| `parse/syntax-dump` | Parses input and dumps AST structure |
+There are many test suites (24+). Rather than maintaining a static list, discover them dynamically:
 
-Specify the suite in `.spec.toml`:
+```bash
+# Find suite names in the codebase
+grep -r 'fn name(&self)' libs/@local/hashql/compiletest/src/suite/*.rs
+
+# See what suites existing tests use
+find libs/@local/hashql -name '.spec.toml' -exec cat {} \;
+```
+
+### Suite Categories
+
+- `parse/*` - Parsing tests (e.g., `parse/syntax-dump`)
+- `ast-lowering/*` - AST lowering phases
+- `hir-lower/*` - HIR lowering phases
+- `mir-*` - MIR passes
+- `eval/*` - Evaluation tests
+
+### Specifying a Suite
+
+In `.spec.toml`:
 
 ```toml
 suite = "parse/syntax-dump"
 ```
+
+---
+
+## Adding New Tests
+
+### Step 1: Create the Test File
+
+Create a `.jsonc` file with your test code and directives:
+
+```jsonc
+//@ description: Verifies that undefined variables produce an error
+//@ run: fail
+
+["let", "x", {"#literal": 42},
+  "undefined_var"  //~ ERROR unknown variable
+]
+```
+
+### Step 2: Create or Verify .spec.toml
+
+Ensure there's a `.spec.toml` file in the directory or a parent:
+
+```toml
+suite = "parse/syntax-dump"
+```
+
+### Step 3: Generate Expected Outputs
+
+Run with `--bless` to generate initial reference files:
+
+```bash
+cargo run -p hashql-compiletest run --filter "test(your_test)" --bless
+```
+
+### Step 4: Review Generated Files
+
+Check the generated `.stdout` and `.stderr` files to ensure they contain expected output.
+
+---
+
+## Updating Expected Output
+
+When intentional changes affect test outputs, use `--bless`:
+
+```bash
+# Update all failing tests
+cargo run -p hashql-compiletest run --bless
+
+# Update specific test
+cargo run -p hashql-compiletest run --filter "test(name)" --bless
+```
+
+**When to use --bless:**
+
+- After intentionally changing error messages
+- After adding new diagnostic information
+- When output format changes
+- When adding new test cases
+
+**When NOT to use --bless:**
+
+- When debugging unexpected failures (investigate first)
+- Without reviewing the diff
 
 ---
 
@@ -219,54 +295,46 @@ When a test fails, the harness shows:
 3. Unfulfilled annotations (expected errors that didn't appear)
 4. Unexpected diagnostics (errors that appeared but weren't expected)
 
+### Common Failure Types
+
+**Output mismatch:**
+
+- Compare diff between expected and actual
+- Check if the change is intentional → use `--bless`
+- Check if it's a bug → fix the code
+
+**Unfulfilled annotation:**
+
+- Expected error didn't appear at the specified location
+- Check line references (`^`, `v`, `|`) are correct
+- Verify the error message fragment matches
+
+**Unexpected diagnostic:**
+
+- An error appeared that wasn't annotated
+- Add missing `//~` annotation
+- Or fix the code if the error is a bug
+
 ### Resolution Steps
 
-1. **Real bug:** Fix the code
+1. **Real bug:** Fix the implementation code
 2. **Intentional change:** Run `--bless` to update expected outputs
-3. **Annotation mismatch:** Update `//~` annotations to match new messages
-
----
-
-## Extending Test Suites
-
-To add a new test suite:
-
-1. Create a struct implementing `Suite` trait
-2. Add to `SUITES` array in `suite/mod.rs`
-3. Implement the `run` method
-
-```rust
-struct MyTestSuite;
-
-impl Suite for MyTestSuite {
-    fn name(&self) -> &'static str {
-        "my/test-suite"
-    }
-
-    fn run(
-        &self,
-        expr: Expr<'_>,
-        diagnostics: &mut Vec<SuiteDiagnostic>
-    ) -> Result<String, SuiteDiagnostic> {
-        // Process expression
-        // Return Ok(String) for stdout
-        // Return Err(diagnostic) for fatal errors
-        // Add non-fatal diagnostics to the vector
-    }
-}
-```
+3. **Annotation mismatch:** Update `//~` annotations to match new messages/locations
+4. **Missing annotation:** Add `//~` for legitimate new diagnostics
 
 ---
 
 ## Best Practices
 
-1. **Keep tests focused** - Each test should verify a specific behavior
-2. **Use descriptive file names** - Names should indicate what's being tested
-3. **Group related tests** - Use directories to organize by feature
-4. **Test error conditions** - Include tests that verify error messages
-5. **Run --bless after changes** - Update expected outputs for intentional changes
-6. **Structure specs wisely** - Place common `.spec.toml` at roots, override where needed
-7. **Use annotations** - Verify specific error messages, not just failure
+1. **Always include `//@ description:`** - Document what behavior is being tested
+2. **Default is `fail` mode** - Explicitly use `//@ run: pass` for passing tests
+3. **Keep tests focused** - Each test should verify a specific behavior
+4. **Use descriptive file names** - Names should indicate what's being tested
+5. **Group related tests** - Use directories to organize by feature
+6. **Use annotations precisely** - Verify specific error messages, not just failure
+7. **Avoid `//~?`** - Unknown line annotations make tests brittle
+8. **Review --bless changes** - Don't blindly accept new outputs
+9. **Structure specs wisely** - Place common `.spec.toml` at roots, override where needed
 
 ---
 

@@ -1,6 +1,6 @@
 ---
 name: testing-hashql
-description: HashQL testing strategies including compiletest (UI tests), unit tests, and snapshot tests. Use when writing tests for HashQL code, working with .spec.toml files, using //~ annotations, running --bless, or debugging test failures.
+description: HashQL testing strategies including compiletest (UI tests), unit tests, and snapshot tests. Use when writing tests for HashQL code, using //~ annotations, running --bless, debugging test failures, or choosing the right testing approach.
 ---
 
 # HashQL Testing Strategies
@@ -19,7 +19,7 @@ Automatically activates when:
 
 - Writing or modifying HashQL tests
 - Working with `tests/ui/` directories
-- Using `.spec.toml` files or `//~` diagnostic annotations
+- Using diagnostic annotations (`//~`) or directives (`//@`)
 - Running `--bless` to update expected outputs
 - Debugging test failures in HashQL crates
 
@@ -61,28 +61,33 @@ cargo run -p hashql-compiletest run --filter "package(pkg) & test(name)"
 cargo run -p hashql-compiletest run --bless
 ```
 
-**Test Directives:**
+**Test Directives (must be at file start):**
 
 ```jsonc
-//@ run: pass      // Should pass (no errors)
-//@ run: fail      // Should fail with errors (default)
-//@ run: skip      // Skip this test
-//@ run: skip reason=Not implemented yet
-//@ name: custom_name
+//@ run: pass                  // Should pass (no errors)
+//@ run: fail                  // Should fail with errors (DEFAULT)
+//@ run: skip                  // Skip this test
+//@ run: skip reason=...       // Skip with reason
+//@ name: custom_name          // Custom test name
+//@ description: ...           // Test description (ENCOURAGED)
+//@ suite#key: value           // Suite-specific directive (TOML value)
 ```
 
 **Diagnostic Annotations:**
 
 ```jsonc
 "undefined_var"  //~ ERROR unknown variable
-["bad", "expr"]  //~ ERROR[ast:typchk::mismatch] type error
+["bad", "expr"]  //~ ERROR[category::subcategory] type error
 
-//~^ ERROR message   // Previous line
-//~^^^ ERROR message // 3 lines above
-//~vvv ERROR message // 3 lines below
-//~| ERROR message   // Same line as previous annotation
-//~? ERROR message   // Unknown line
+//~^ ERROR message    // Previous line
+//~^^ ERROR message   // 2 lines above
+//~v ERROR message    // Next line
+//~vvv ERROR message  // 3 lines below
+//~| ERROR message    // Same line as previous annotation
+//~? ERROR message    // Unknown line (use sparingly)
 ```
+
+**Severity levels:** `ERROR`, `WARNING`, `NOTE`, `DEBUG`, `CRITICAL`
 
 📖 **Full Guide:** [resources/compiletest-guide.md](resources/compiletest-guide.md)
 
@@ -107,27 +112,6 @@ cargo test --package hashql-<package> --doc
 cargo nextest run --all-features --package hashql-<package>
 ```
 
-**Pattern:**
-
-```rust
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_specific_behavior() {
-        // Arrange
-        let input = ...;
-        
-        // Act
-        let result = function_under_test(input);
-        
-        // Assert
-        assert_eq!(result, expected);
-    }
-}
-```
-
 ---
 
 ### 3. Snapshot Tests
@@ -149,23 +133,27 @@ cargo insta review
 cargo insta accept
 ```
 
-**Pattern:**
+---
 
-```rust
-use insta::assert_snapshot;
+## Discovering Available Suites
 
-#[test]
-fn test_complex_output() {
-    let result = generate_output();
-    assert_snapshot!(result);
-}
+Rather than relying on a hardcoded list (suites change), discover them:
 
-#[test]
-fn test_with_name() {
-    let result = generate_output();
-    assert_snapshot!("descriptive_name", result);
-}
+```bash
+# List suite names from the codebase
+grep -r 'fn name(&self)' libs/@local/hashql/compiletest/src/suite/*.rs
+
+# Or check existing .spec.toml files for examples
+find libs/@local/hashql -name '.spec.toml' -exec cat {} \;
 ```
+
+**Suite categories:**
+
+- `parse/*` - Parsing tests (e.g., `parse/syntax-dump`)
+- `ast-lowering/*` - AST lowering phases
+- `hir-lower/*` - HIR lowering phases
+- `mir-*` - MIR passes
+- `eval/*` - Evaluation tests
 
 ---
 
@@ -174,9 +162,11 @@ fn test_with_name() {
 ### Creating a New UI Test
 
 1. Create `.jsonc` file with test code
-2. Ensure `.spec.toml` exists in directory (or parent)
-3. Run `cargo run -p hashql-compiletest run --filter "test(name)" --bless`
-4. Review generated `.stdout` and `.stderr` files
+2. Add `//@ description: ...` explaining what's being tested
+3. Use `//@ run: pass` for passing tests (default is `fail`)
+4. Ensure `.spec.toml` exists in directory (or parent)
+5. Run `cargo run -p hashql-compiletest run --filter "test(name)" --bless`
+6. Review generated `.stdout` and `.stderr` files
 
 ### Updating Tests After Changes
 
@@ -188,11 +178,15 @@ cargo run -p hashql-compiletest run --bless
 cargo insta test && cargo insta review
 ```
 
-### Debugging Test Failures
+---
 
-1. Check the diff between expected and actual output
-2. For UI tests: verify `//~` annotations match diagnostics
-3. For snapshots: use `cargo insta review` to see differences
+## Best Practices
+
+1. **Always include `//@ description:`** - Document what behavior is being tested
+2. **Default is `fail` mode** - Explicitly use `//@ run: pass` for passing tests
+3. **Keep tests focused** - One behavior per test file
+4. **Use descriptive file names** - Names should indicate what's being tested
+5. **Use annotations** - Verify specific error messages with `//~`, not just failure
 
 ---
 
@@ -205,16 +199,10 @@ cargo insta test && cargo insta review
 | Error message formatting | Compiletest |
 | Internal logic/functions | Unit tests |
 | Complex output structures | Snapshot tests |
-| Edge cases and boundaries | Unit tests |
 
 ---
 
 ## Need More Details?
 
+- **Choosing the right testing approach** → See [resources/testing-strategies.md](resources/testing-strategies.md)
 - **Compiletest deep dive** → See [resources/compiletest-guide.md](resources/compiletest-guide.md)
-
----
-
-**Skill Status**: Production-ready ✅
-**Line Count**: ~140 (following 500-line rule) ✅
-**Progressive Disclosure**: 1 detailed resource file ✅
