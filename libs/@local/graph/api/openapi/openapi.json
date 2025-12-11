@@ -3261,6 +3261,39 @@
           }
         }
       }
+    },
+    "/types/is-local": {
+      "post": {
+        "tags": [
+          "Graph",
+          "Domain"
+        ],
+        "summary": "Check if the provided type URLs are local to this Graph instance.",
+        "description": "A type URL is considered \"local\" if it matches the domain pattern configured\nfor this Graph instance. This allows frontend code to determine whether a type\nbelongs to the local system or is an external type without duplicating\nURL-based checks.",
+        "operationId": "check_is_local_type",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CheckIsLocalTypeParams"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Map from URL to whether it is a local type",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CheckIsLocalTypeResponse"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -3534,6 +3567,40 @@
       "BaseUrl": {
         "type": "string",
         "format": "uri"
+      },
+      "CheckIsLocalTypeParams": {
+        "type": "object",
+        "description": "Request body for checking if type URLs are local.",
+        "required": [
+          "urls"
+        ],
+        "properties": {
+          "urls": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/BaseUrl"
+            },
+            "description": "List of type URLs to check."
+          }
+        },
+        "additionalProperties": false
+      },
+      "CheckIsLocalTypeResponse": {
+        "type": "object",
+        "description": "Response indicating whether each URL is a local type.",
+        "required": [
+          "results"
+        ],
+        "properties": {
+          "results": {
+            "type": "object",
+            "description": "Map from URL to whether it is a local type.\n\nA type is considered \"local\" if its URL matches the domain pattern\nconfigured for this Graph instance.",
+            "additionalProperties": {
+              "type": "boolean"
+            }
+          }
+        },
+        "additionalProperties": false
       },
       "ClosedDataType": {
         "$ref": "./models/closed_data_type.json"
@@ -9608,6 +9675,10 @@
     {
       "name": "Principal",
       "description": "Principal management API"
+    },
+    {
+      "name": "Domain",
+      "description": "Domain validation API"
     }
   ]
 }
