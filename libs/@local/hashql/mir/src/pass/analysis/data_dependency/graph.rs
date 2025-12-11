@@ -9,42 +9,35 @@ use hashql_core::{
 };
 
 use crate::body::{
-    basic_block::BasicBlockId,
     local::Local,
     place::{FieldIndex, Projection, ProjectionKind},
-    rvalue::ArgIndex,
 };
 
 /// Describes which component of a structured value an edge represents.
 ///
-/// Every dependency edge has a slot identifying its role in the source expression. This enables
-/// precise 1:1 mapping during alias replacement or value reconstruction - given a slot, you know
-/// exactly which operand position it corresponds to.
+/// Every dependency edge has an [`EdgeKind`] identifying its structural role. This enables
+/// [`DataDependencyGraph::resolve`] to trace projections through aggregate constructions
+/// and find the original source of a field access.
 ///
-/// # Structural vs Non-Structural Slots
-///
-/// Some slots are *structural* and participate in [`DataDependencyGraph::resolve`]:
-/// - [`Load`](Self::Load) - followed transitively to find the original definition
-/// - [`Index`](Self::Index), [`Field`](Self::Field) - matched against projections
-/// - [`ClosurePtr`](Self::ClosurePtr), [`ClosureEnv`](Self::ClosureEnv) - matched by position
-///
-/// Other slots are *non-structural* and exist only for reconstruction/replacement purposes.
-/// They cannot be resolved through because their values don't have addressable subcomponents.
+/// Only *structural* edges are tracked — those that can be resolved through via projections.
+/// Non-structural dependencies (binary operands, function arguments, etc.) are not tracked
+/// in the graph since they cannot be projected into and are better handled by inspecting
+/// the [`RValue`] directly or using dataflow analysis.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub(crate) enum Slot<'heap> {
+pub(crate) enum EdgeKind<'heap> {
     /// A load operation that copies the entire value.
     ///
     /// Used for [`RValue::Load`], where the complete value flows from source to destination.
-    /// This is the only slot that [`DataDependencyGraph::resolve`] follows transitively,
+    /// This is the only edge kind that [`DataDependencyGraph::resolve`] follows transitively,
     /// because a load always has exactly one source.
     Load,
 
     /// A block parameter receiving a value from a predecessor.
     ///
-    /// Unlike [`Load`](Self::Load), a block can have multiple parameters, so this slot
-    /// cannot be followed transitively during resolution (it would be ambiguous which
-    /// parameter to follow).
-    Param(BasicBlockId, Option<u128>),
+    /// Unlike other edge kinds, a block parameter may have multiple incoming edges (one per
+    /// predecessor). Resolution through `Param` edges requires all predecessors to agree
+    /// on the same source value.
+    Param,
 
     /// A positional component in a tuple aggregate.
     ///
@@ -62,35 +55,6 @@ pub(crate) enum Slot<'heap> {
 
     /// The captured environment component of a closure (index 1).
     ClosureEnv,
-
-    /// The function operand of an [`RValue::Apply`].
-    ApplyPtr,
-
-    /// An argument operand of an [`RValue::Apply`] at the given index.
-    ApplyArg(ArgIndex),
-
-    /// An element in a list, dict, or opaque aggregate at the given index.
-    ///
-    /// These aggregates don't support field projection, so this slot exists purely for
-    /// reconstruction purposes (e.g., rebuilding the aggregate with substituted operands).
-    Aggregation(FieldIndex),
-
-    /// The left operand of a binary operation.
-    BinaryL,
-
-    /// The right operand of a binary operation.
-    BinaryR,
-
-    /// The operand of an unary operation.
-    Unary,
-
-    /// The axis operand of a [`GraphReadHead::Entity`].
-    GraphReadHeadAxis,
-
-    /// The captured environment of a filter in a graph read body.
-    ///
-    /// The index corresponds to the position in the `body` vector of the [`GraphRead`].
-    GraphReadBodyFilterEnv(usize),
 }
 
 /// An edge in the data dependency graph.
@@ -99,11 +63,11 @@ pub(crate) enum Slot<'heap> {
 /// metadata about which component is being accessed and any remaining projections.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub(crate) struct Edge<'heap> {
-    /// Which component of the source expression this edge represents.
+    /// Which structural component this edge represents.
     ///
-    /// Every edge has a slot identifying its exact position in the source expression,
-    /// enabling precise reconstruction or replacement of operands.
-    pub slot: Slot<'heap>,
+    /// Identifies the edge's role in aggregate construction, enabling resolution
+    /// to trace projections back to their source.
+    pub kind: EdgeKind<'heap>,
 
     /// The projection path from the dependency local to the actual accessed value.
     ///
@@ -120,9 +84,9 @@ pub(crate) fn write_graph<A: Allocator>(
     for edge in graph.edges() {
         let source = edge.source();
         let target = edge.target();
-        let Edge { slot, projections } = &edge.data;
+        let Edge { kind, projections } = &edge.data;
 
-        write!(writer, "%{source} -> %{target} [{slot:?}")?;
+        write!(writer, "%{source} -> %{target} [{kind:?}")?;
         if !projections.is_empty() {
             write!(writer, ", projections: ")?;
         }
@@ -135,7 +99,7 @@ pub(crate) fn write_graph<A: Allocator>(
     Ok(())
 }
 
-/// Follows [`Slot::Load`] edges from a node until reaching a non-load definition.
+/// Follows [`EdgeKind::Load`] edges from a node until reaching a non-load definition.
 ///
 /// Load edges represent pure value copies, so following them transitively finds the
 /// original definition site of a value.
@@ -148,7 +112,7 @@ fn follow_load<'this, 'heap, A: Allocator>(
 
     while let Some(edge) = graph
         .outgoing_edges(node.id())
-        .find(|edge| matches!(edge.data.slot, Slot::Load))
+        .find(|edge| matches!(edge.data.kind, EdgeKind::Load))
     {
         visited += 1;
         debug_assert!(visited <= max_depth, "cycle detected in load chain");
@@ -161,7 +125,7 @@ fn follow_load<'this, 'heap, A: Allocator>(
 ///
 /// Starting from the place's local, this method attempts to trace each projection in the
 /// place through the dependency graph. For each field projection, it looks for an outgoing
-/// edge with a matching slot and follows it to find where that field's value originated.
+/// edge with a matching [`EdgeKind`] and follows it to find where that field's value originated.
 ///
 /// Returns a tuple of:
 /// - The number of projections that were successfully resolved
@@ -186,7 +150,7 @@ fn follow_load<'this, 'heap, A: Allocator>(
 ///
 /// Resolving `_3.1` returns `(1, _2)` because the `.1` projection resolves through the
 /// tuple construction.
-pub fn resolve<'heap, A: Allocator>(
+pub(crate) fn resolve<'heap, A: Allocator>(
     graph: &LinkedGraph<Local, Edge<'heap>, A>,
     local: Local,
     projections: &[Projection<'heap>],
@@ -201,25 +165,17 @@ pub fn resolve<'heap, A: Allocator>(
                 let Some(edge) =
                     graph
                         .outgoing_edges(node.id())
-                        .find(|edge| match edge.data.slot {
-                            Slot::Index(index) if index == field_index => true,
-                            Slot::Field(index, _) if index == field_index => true,
-                            Slot::ClosurePtr if field_index.as_usize() == 0 => true,
-                            Slot::ClosureEnv if field_index.as_usize() == 1 => true,
-                            Slot::Load
-                            | Slot::Param(..)
-                            | Slot::Index(_)
-                            | Slot::Field(..)
-                            | Slot::ClosurePtr
-                            | Slot::ClosureEnv
-                            | Slot::ApplyPtr
-                            | Slot::ApplyArg(_)
-                            | Slot::Aggregation(_)
-                            | Slot::BinaryL
-                            | Slot::BinaryR
-                            | Slot::Unary
-                            | Slot::GraphReadHeadAxis
-                            | Slot::GraphReadBodyFilterEnv(_) => false,
+                        .find(|edge| match edge.data.kind {
+                            EdgeKind::Index(idx) if idx == field_index => true,
+                            EdgeKind::Field(idx, _) if idx == field_index => true,
+                            EdgeKind::ClosurePtr if field_index.as_usize() == 0 => true,
+                            EdgeKind::ClosureEnv if field_index.as_usize() == 1 => true,
+                            EdgeKind::Load
+                            | EdgeKind::Param
+                            | EdgeKind::Index(_)
+                            | EdgeKind::Field(..)
+                            | EdgeKind::ClosurePtr
+                            | EdgeKind::ClosureEnv => false,
                         })
                 else {
                     // This is not an error, it simply means that we weren't able to determine
@@ -232,7 +188,7 @@ pub fn resolve<'heap, A: Allocator>(
             }
             ProjectionKind::FieldByName(symbol) => {
                 let Some(edge) = graph.outgoing_edges(node.id()).find(
-                    |edge| matches!(edge.data.slot, Slot::Field(_, field) if field == symbol),
+                    |edge| matches!(edge.data.kind, EdgeKind::Field(_, field) if field == symbol),
                 ) else {
                     // This is not an error, it simply means that we weren't able to determine
                     // the projection, this may be the case due to an opaque field, such as a
