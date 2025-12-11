@@ -2,23 +2,19 @@
   "name": "@apps/hash-ai-agent",
   "version": "1.0.0",
   "description": "",
+  "keywords": [],
+  "license": "ISC",
+  "author": "",
+  "type": "module",
   "scripts": {
-    "test": "vitest",
-    "dev": "mastra dev",
     "build": "mastra build",
-    "start": "mastra start",
+    "dev": "mastra dev",
     "fix:eslint": "eslint --fix .",
     "lint:eslint": "eslint --report-unused-disable-directives .",
     "lint:tsc": "tsc --noEmit",
-    "ugi": "yarn upgrade-interactive"
-  },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "packageManager": "pnpm@10.24.0",
-  "type": "module",
-  "engines": {
-    "node": ">=22.13.0"
+    "start": "mastra start",
+    "test": "vitest",
+    "ug": "yarn upgrade-interactive"
   },
   "dependencies": {
     "@ai-sdk/openai": "2.0.80",
@@ -62,5 +58,8 @@
     "typescript": "^5.9.3",
     "vitest": "3.2.4",
     "wait-on": "9.0.1"
+  },
+  "engines": {
+    "node": ">=22.13.0"
   }
 }
