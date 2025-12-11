@@ -210,6 +210,7 @@ pub enum DefUse {
 /// For a place like `local_0.field_1.field_2`:
 /// - At projection 0: `PlaceRef { local: local_0, projections: [] }`
 /// - At projection 1: `PlaceRef { local: local_0, projections: [field_1] }`
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub struct PlaceRef<'proj, 'heap> {
     /// The root local variable that this place reference starts from.
     pub local: Local,
@@ -219,6 +220,15 @@ pub struct PlaceRef<'proj, 'heap> {
     /// This slice contains all projections applied before the current projection
     /// being examined during iteration.
     pub projections: &'proj [Projection<'heap>],
+}
+
+impl<'proj, 'heap> PlaceRef<'proj, 'heap> {
+    pub fn intern(&self, interner: &Interner<'heap>) -> Place<'heap> {
+        Place {
+            local: self.local,
+            projections: interner.projections.intern_slice(self.projections),
+        }
+    }
 }
 
 /// A storage location that can be read from or written to in the MIR.

@@ -1,7 +1,6 @@
-use core::fmt;
+use core::{fmt, ops::ControlFlow};
 use std::alloc::Allocator;
 
-use hashbrown::HashSet;
 use hashql_core::{
     graph::{LinkedGraph, NodeId, linked::Node},
     id::{HasId as _, Id as _},
@@ -12,7 +11,7 @@ use hashql_core::{
 use crate::{
     body::{
         local::Local,
-        place::{FieldIndex, Place, Projection, ProjectionKind},
+        place::{FieldIndex, Place, PlaceRef, Projection, ProjectionKind},
     },
     intern::Interner,
 };
@@ -194,118 +193,282 @@ fn matches_field_index(kind: EdgeKind<'_>, field_index: FieldIndex) -> bool {
     }
 }
 
-/// Resolves a place to its source by following dependencies through the graph.
-///
-/// Starting from the place's local, this method traces each projection through the dependency
-/// graph. When following an edge, the edge's own projections are prepended to the remaining
-/// projections, ensuring correct resolution through nested aggregates.
-///
-/// Returns the resolved [`Place`] with any unresolved projections remaining.
-///
-/// Resolution stops when:
-/// - A dynamic [`Index`](ProjectionKind::Index) projection is encountered
-/// - No matching edge is found (opaque value, e.g., function return)
-/// - All projections are resolved
-///
-/// # Examples
-///
-/// Given MIR:
-/// ```text
-/// _1 = input.field
-/// _2 = (_1, other)  // Edge: _2 --[Index(0), projections: [.field]]--> input
-/// _3 = _2.0.bar     // Should resolve through to input.field.bar
-/// ```
-///
-/// Resolving `_3` traces: `_3` → load to `_2.0.bar` → `Index(0)` edge prepends `.field`
-/// → resolving `input.field.bar`.
-pub(crate) fn resolve_place<'heap, A: Allocator>(
+fn resolve_should_continue<'heap>(
+    interner: &Interner<'heap>,
+    current: PlaceRef<'heap, 'heap>,
+    next: ControlFlow<Place<'heap>, PlaceRef<'heap, 'heap>>,
+) -> ControlFlow<Place<'heap>, PlaceRef<'heap, 'heap>> {
+    let next = match next {
+        ControlFlow::Break(next) => {
+            // We're currently in the process of "breaking" out, meaning we need to add our own
+            // projection, before continuing
+            let mut vec = Vec::with_capacity(next.projections.len() + current.projections.len());
+
+            vec.extend_from_slice(next.projections.0);
+            vec.extend_from_slice(current.projections);
+            let place = Place {
+                local: next.local,
+                projections: interner.projections.intern_slice(&vec),
+            };
+
+            return ControlFlow::Break(place);
+        }
+        ControlFlow::Continue(next) => next,
+    };
+
+    // Check if the next place has any field projections, if yes, then it is opaque and
+    // loading cannot continue.
+    if next.projections.is_empty() {
+        return ControlFlow::Continue(PlaceRef {
+            local: next.local,
+            projections: current.projections,
+        });
+    }
+
+    let mut vec = Vec::with_capacity(next.projections.len() + current.projections.len());
+
+    vec.extend_from_slice(next.projections);
+    vec.extend_from_slice(current.projections);
+    let place = Place {
+        local: next.local,
+        projections: interner.projections.intern_slice(&vec),
+    };
+
+    return ControlFlow::Break(place);
+}
+
+fn follow<'heap, A: Allocator>(
     graph: &LinkedGraph<Local, Edge<'heap>, A>,
     interner: &Interner<'heap>,
-    place: Place<'heap>,
-) -> Place<'heap> {
-    let mut local = place.local;
-    let mut projections: Vec<Projection<'heap>> = place.projections.to_vec();
-    let mut index = 0;
+    place: PlaceRef<'heap, 'heap>,
+) -> ControlFlow<Place<'heap>, PlaceRef<'heap, 'heap>> {
+    let mut edges = 0_usize;
+    let mut params = 0;
+    let node_id = NodeId::new(place.local.as_usize());
 
-    let max_iterations = graph.nodes().len() * (projections.len() + 1).max(16);
-    let mut iterations = 0;
+    for edge in graph.outgoing_edges(node_id) {
+        edges += 1;
 
-    loop {
-        iterations += 1;
-        debug_assert!(
-            iterations <= max_iterations,
-            "infinite loop in resolve_place"
-        );
+        match edge.data.kind {
+            EdgeKind::Load => {
+                let next_place = resolve_place(
+                    graph,
+                    interner,
+                    PlaceRef {
+                        local: Local::new(edge.target().as_usize()),
+                        projections: edge.data.projections.0,
+                    },
+                );
 
-        let mut node = &graph[NodeId::from_usize(local.as_usize())];
-        follow_load(graph, &mut node);
-        local = node.data;
-
-        let Some(projection) = projections.get(index) else {
-            break;
-        };
-
-        match projection.kind {
-            ProjectionKind::Field(field_index) => {
-                let Some(edge) = graph
-                    .outgoing_edges(node.id())
-                    .find(|edge| matches_field_index(edge.data.kind, field_index))
-                else {
-                    break;
-                };
-
-                local = graph[edge.target()].data;
-
-                if edge.data.projections.is_empty() {
-                    index += 1;
-                } else {
-                    let remaining = &projections[index + 1..];
-                    projections = edge
-                        .data
-                        .projections
-                        .iter()
-                        .copied()
-                        .chain(remaining.iter().copied())
-                        .collect();
-                    index = 0;
-                }
+                return resolve_should_continue(interner, place, next_place);
             }
-            ProjectionKind::FieldByName(symbol) => {
-                let Some(edge) = graph.outgoing_edges(node.id()).find(
-                    |edge| matches!(edge.data.kind, EdgeKind::Field(_, field) if field == symbol),
-                ) else {
-                    break;
-                };
-
-                local = graph[edge.target()].data;
-
-                if edge.data.projections.is_empty() {
-                    index += 1;
-                } else {
-                    let remaining = &projections[index + 1..];
-                    projections = edge
-                        .data
-                        .projections
-                        .iter()
-                        .copied()
-                        .chain(remaining.iter().copied())
-                        .collect();
-                    index = 0;
-                }
-            }
-            ProjectionKind::Index(_) => break,
+            EdgeKind::Param => params += 1,
+            _ => {}
         }
     }
 
-    let remaining_projections = &projections[index..];
+    if edges == params && params > 0 {
+        // We can try to follow params, this means that each arm *must* have consensus.
+        let mut outgoing = graph.outgoing_edges(node_id);
+        let Some(first) = outgoing.next() else {
+            unreachable!()
+        };
 
-    if remaining_projections.is_empty() {
-        let mut visited = HashSet::new();
-        local = resolve_through_params(graph, local, &mut visited);
+        let candidate = resolve_place(
+            graph,
+            interner,
+            PlaceRef {
+                local: Local::new(first.target().as_usize()),
+                projections: first.data.projections.0,
+            },
+        );
+
+        if outgoing.all(|edge| {
+            resolve_place(
+                graph,
+                interner,
+                PlaceRef {
+                    local: Local::new(edge.target().as_usize()),
+                    projections: edge.data.projections.0,
+                },
+            ) == candidate
+        }) {
+            // We verified the output, we must now decide *what* to do with the output
+            return resolve_should_continue(interner, place, candidate);
+        }
     }
 
-    Place {
-        local,
-        projections: interner.projections.intern_slice(remaining_projections),
-    }
+    // We weren't able to advance, so just continue with the current place
+    ControlFlow::Continue(place)
 }
+
+pub(super) fn resolve_place<'heap, A: Allocator>(
+    graph: &LinkedGraph<Local, Edge<'heap>, A>,
+    interner: &Interner<'heap>,
+    place: PlaceRef<'heap, 'heap>,
+) -> ControlFlow<Place<'heap>, PlaceRef<'heap, 'heap>> {
+    let place = follow(graph, interner, place)?;
+    let node_id = NodeId::new(place.local.as_usize());
+
+    let edge = match place.projections {
+        [] => {
+            // Nothing anymore to do, so we can just return as is, we can safely continue any chain
+            return ControlFlow::Continue(place);
+        }
+        [current, rest @ ..] => match current.kind {
+            ProjectionKind::Field(field_index) => {
+                let Some(edge) = graph
+                    .outgoing_edges(node_id)
+                    .find(|edge| matches_field_index(edge.data.kind, field_index))
+                else {
+                    return ControlFlow::Continue(place);
+                };
+
+                edge
+            }
+            ProjectionKind::FieldByName(symbol) => {
+                let Some(edge) = graph.outgoing_edges(node_id).find(
+                    |edge| matches!(edge.data.kind, EdgeKind::Field(_, field) if field == symbol),
+                ) else {
+                    return ControlFlow::Continue(place);
+                };
+
+                edge
+            }
+            ProjectionKind::Index(_) => {
+                // there's nothing we can do here
+                return ControlFlow::Continue(place);
+            }
+        },
+    };
+
+    let target = Local::new(edge.target().as_usize());
+
+    let next = resolve_place(
+        graph,
+        interner,
+        PlaceRef {
+            local: target,
+            projections: edge.data.projections.0,
+        },
+    );
+    let mut next = resolve_should_continue(interner, place, next)?;
+    next.projections = &next.projections[1..]; // remove the first, as we've just processed it
+    resolve_place(graph, interner, next)
+}
+
+// /// Resolves a place to its source by following dependencies through the graph.
+// ///
+// /// Starting from the place's local, this method traces each projection through the dependency
+// /// graph. When following an edge, the edge's own projections are prepended to the remaining
+// /// projections, ensuring correct resolution through nested aggregates.
+// ///
+// /// Returns the resolved [`Place`] with any unresolved projections remaining.
+// ///
+// /// Resolution stops when:
+// /// - A dynamic [`Index`](ProjectionKind::Index) projection is encountered
+// /// - No matching edge is found (opaque value, e.g., function return)
+// /// - All projections are resolved
+// ///
+// /// # Examples
+// ///
+// /// Given MIR:
+// /// ```text
+// /// _1 = input.field
+// /// _2 = (_1, other)  // Edge: _2 --[Index(0), projections: [.field]]--> input
+// /// _3 = _2.0.bar     // Should resolve through to input.field.bar
+// /// ```
+// ///
+// /// Resolving `_3` traces: `_3` → load to `_2.0.bar` → `Index(0)` edge prepends `.field`
+// /// → resolving `input.field.bar`.
+// pub(crate) fn resolve_place<'heap, A: Allocator>(
+//     graph: &LinkedGraph<Local, Edge<'heap>, A>,
+//     interner: &Interner<'heap>,
+//     place: Place<'heap>,
+// ) -> Place<'heap> {
+//     let mut local = place.local;
+//     let mut projections: Vec<Projection<'heap>> = place.projections.to_vec();
+//     let mut index = 0;
+
+//     let max_iterations = graph.nodes().len() * (projections.len() + 1).max(16);
+//     let mut iterations = 0;
+
+//     loop {
+//         iterations += 1;
+//         debug_assert!(
+//             iterations <= max_iterations,
+//             "infinite loop in resolve_place"
+//         );
+
+//         let mut node = &graph[NodeId::from_usize(local.as_usize())];
+//         follow_load(graph, &mut node);
+//         local = node.data;
+
+//         let Some(projection) = projections.get(index) else {
+//             break;
+//         };
+
+//         match projection.kind {
+//             ProjectionKind::Field(field_index) => {
+//                 let Some(edge) = graph
+//                     .outgoing_edges(node.id())
+//                     .find(|edge| matches_field_index(edge.data.kind, field_index))
+//                 else {
+//                     break;
+//                 };
+
+//                 local = graph[edge.target()].data;
+
+//                 if edge.data.projections.is_empty() {
+//                     index += 1;
+//                 } else {
+//                     let remaining = &projections[index + 1..];
+//                     projections = edge
+//                         .data
+//                         .projections
+//                         .iter()
+//                         .copied()
+//                         .chain(remaining.iter().copied())
+//                         .collect();
+//                     index = 0;
+//                 }
+//             }
+//             ProjectionKind::FieldByName(symbol) => {
+// let Some(edge) = graph.outgoing_edges(node.id()).find(
+//     |edge| matches!(edge.data.kind, EdgeKind::Field(_, field) if field == symbol),
+// ) else {
+//     break;
+// };
+
+//                 local = graph[edge.target()].data;
+
+//                 if edge.data.projections.is_empty() {
+//                     index += 1;
+//                 } else {
+//                     let remaining = &projections[index + 1..];
+//                     projections = edge
+//                         .data
+//                         .projections
+//                         .iter()
+//                         .copied()
+//                         .chain(remaining.iter().copied())
+//                         .collect();
+//                     index = 0;
+//                 }
+//             }
+//             ProjectionKind::Index(_) => break,
+//         }
+//     }
+
+//     let remaining_projections = &projections[index..];
+
+//     if remaining_projections.is_empty() {
+//         let mut visited = HashSet::new();
+//         local = resolve_through_params(graph, local, &mut visited);
+//     }
+
+//     Place {
+//         local,
+//         projections: interner.projections.intern_slice(remaining_projections),
+//     }
+// }
