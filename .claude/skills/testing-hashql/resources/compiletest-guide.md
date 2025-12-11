@@ -1,4 +1,4 @@
-# HashQL Compiletest Guide
+# HashQL compiletest Guide
 
 A comprehensive test harness for HashQL that executes test cases and verifies their behavior against expected outputs. This tool helps ensure that the HashQL language implementation behaves correctly by testing parsing, type checking, execution, and error reporting.
 
@@ -89,8 +89,35 @@ package_name/
 | `.spec.toml` | Test suite specification | ✅ Yes (in dir or parent) |
 | `.stdout` | Expected standard output | Optional (empty if none) |
 | `.stderr` | Expected diagnostics | Optional (empty if none) |
+| `.aux.<ext>` | Auxiliary/secondary output | Suite-dependent |
 
 The harness searches upward from the test file to find `.spec.toml`, stopping at `tests/ui/`. This allows shared specs at directory roots with overrides for specific subdirectories.
+
+### Auxiliary Files
+
+Some test suites produce **auxiliary outputs** beyond stdout/stderr. These are stored with the pattern `test_name.aux.<extension>`.
+
+**Example:** The `mir/reify` suite generates SVG diagrams:
+
+```text
+mir/tests/ui/reify/
+  nested-if.jsonc
+  nested-if.stdout
+  nested-if.aux.svg     # CFG diagram
+```
+
+Suites declare their auxiliary extensions via the `secondary_file_extensions()` method:
+
+```rust
+impl Suite for MirReifySuite {
+    fn secondary_file_extensions(&self) -> &[&str] {
+        &["svg"]
+    }
+    // ...
+}
+```
+
+When running `--bless`, auxiliary files are also updated alongside stdout/stderr.
 
 ---
 

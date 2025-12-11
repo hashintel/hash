@@ -1,25 +1,25 @@
 # HashQL Testing Strategies Guide
 
-This guide helps you choose the right testing approach for HashQL code. Each strategy has specific strengths and ideal use cases.
+This guide helps you choose the right testing approach for HashQL code.
 
 ---
 
 ## Decision Matrix
 
-| Question | Compiletest | Unit Tests | Insta Snapshots |
+| Question | compiletest | Unit Tests | insta Snapshots |
 |----------|-------------|------------|-----------------|
 | Testing error messages/diagnostics? | ✅ **Best** | ❌ | ⚠️ Possible |
 | Testing compiler pipeline stages? | ✅ **Best** | ❌ | ⚠️ Possible |
 | Testing internal function logic? | ❌ | ✅ **Best** | ❌ |
+| MIR/HIR pass integration (end-to-end)? | ✅ **Best** | ❌ | ❌ |
+| MIR/HIR pass edge cases (isolated)? | ⚠️ Noisy | ❌ | ✅ **Best** |
 | Testing parser output structure? | ⚠️ Possible | ⚠️ Possible | ✅ **Best** |
 | Need to verify exact output format? | ✅ **Best** | ❌ | ✅ **Best** |
 | Testing edge cases in isolation? | ❌ | ✅ **Best** | ⚠️ Possible |
-| Files live in source directory? | ❌ | ✅ | ✅ |
-| Files live in `tests/ui/` directory? | ✅ | ❌ | ❌ |
 
 ---
 
-## 1. Compiletest (UI Tests)
+## 1. compiletest (UI Tests)
 
 **The default for HashQL**. Use for testing the complete compiler pipeline with emphasis on diagnostics.
 
@@ -29,7 +29,6 @@ This guide helps you choose the right testing approach for HashQL code. Each str
 - Testing **multi-stage compilation** (parsing → lowering → type checking → evaluation)
 - Verifying **user-facing compiler output**
 - Testing **error recovery** and multiple errors in one file
-- Testing behavior across **compilation phases** (AST, HIR, MIR, eval)
 
 ### Structure
 
@@ -40,11 +39,12 @@ crate/tests/ui/
     test-name.jsonc   # Test input (J-Expr)
     test-name.stderr  # Expected errors (if run: fail)
     test-name.stdout  # Expected output (if run: pass)
+    test-name.aux.svg # Auxiliary output (some suites)
 ```
 
 ### Example: Error Message Test
 
-From [`libs/@local/hashql/ast/tests/ui/lowering/type-extractor/definition/duplicate-fields.jsonc`](file:///Users/bmahmoud/Sync/projects/contribution/hash/libs/@local/hashql/ast/tests/ui/lowering/type-extractor/definition/duplicate-fields.jsonc):
+From `libs/@local/hashql/ast/tests/ui/lowering/type-extractor/definition/duplicate-fields.jsonc`:
 
 ```jsonc
 //@ run: fail
@@ -71,30 +71,30 @@ The `//~^` annotations verify that specific errors appear at specific locations.
 
 ### Example: Pipeline Output Test
 
-From [`libs/@local/hashql/hir/tests/ui/lower/graph-hoisting/hoist.jsonc`](file:///Users/bmahmoud/Sync/projects/contribution/hash/libs/@local/hashql/hir/tests/ui/lower/graph-hoisting/hoist.jsonc):
+From `libs/@local/hashql/hir/tests/ui/lower/graph-hoisting/hoist.jsonc`:
 
 ```jsonc
 //@ run: pass
-//@ description: Tests graph hoisting transformation
+//@ description: TODO
 [
   "let", "a", { "#literal": true },
-  ["::graph::tail::collect", ...]
+  ["let", "b", { "#literal": true },
+    ["::graph::tail::collect",
+      ["::graph::body::filter",
+        ["::graph::head::entities", ["::graph::tmp::decision_time_now"]],
+        ["fn", { "#tuple": [] }, { "#struct": { "vertex": "_" } }, "_",
+          ["==", "a", "b"]]]]]
 ]
 ```
 
-The corresponding `.stdout` file captures the HIR before and after transformations, verifying the compiler pass behavior.
+The corresponding `.stdout` file captures the HIR before and after transformations.
 
 ### Commands
 
 ```bash
-# Run all UI tests
-cargo run -p hashql-compiletest run
-
-# Filter by test name
-cargo run -p hashql-compiletest run --filter "test(duplicate-fields)"
-
-# Update expected outputs
-cargo run -p hashql-compiletest run --bless
+cargo run -p hashql-compiletest run                              # Run all
+cargo run -p hashql-compiletest run --filter "test(duplicate-fields)"  # Filter
+cargo run -p hashql-compiletest run --bless                      # Update expected
 ```
 
 ---
@@ -116,7 +116,6 @@ Standard Rust `#[test]` functions for testing isolated components.
 Unit tests live alongside the code in `#[cfg(test)]` modules:
 
 ```rust
-// In src/component.rs
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -130,7 +129,7 @@ mod tests {
 
 ### Example: State Machine Testing
 
-From [`libs/@local/hashql/syntax-jexpr/src/parser/state.rs`](file:///Users/bmahmoud/Sync/projects/contribution/hash/libs/@local/hashql/syntax-jexpr/src/parser/state.rs#L362-L405):
+From `libs/@local/hashql/syntax-jexpr/src/parser/state.rs`:
 
 ```rust
 #[test]
@@ -166,141 +165,90 @@ fn advance_consumes_token() {
 }
 ```
 
-These tests verify specific state machine behavior with explicit assertions.
-
 ### Commands
 
 ```bash
-# Run unit tests for a package
 cargo nextest run --package hashql-syntax-jexpr
-
-# Run specific test
 cargo nextest run --package hashql-syntax-jexpr -- state::tests::peek_returns_token
-
-# Run doc tests
 cargo test --package hashql-syntax-jexpr --doc
 ```
 
 ---
 
-## 3. Insta Snapshot Tests
+## 3. insta Snapshot Tests
 
-Uses the `insta` crate to capture and compare structured output.
+Uses the `insta` crate for snapshot-based output when compiletest is infeasible. **Three categories exist:**
 
-### When to Use
+| Category | Crates | Snapshot Location | Rationale |
+|----------|--------|-------------------|-----------|
+| **Pipeline Crates** | mir, hir, ast | `tests/ui/<category>/*.snap` | Colocate with compiletest tests |
+| **Core** | hashql-core | Default insta (`src/**/snapshots/`) | Separate from pipeline; prefer unit tests |
+| **Syntax** | syntax-jexpr | `src/*/snapshots/` | Macro-based for parser fragments |
 
-- Testing **parser output** (AST structure, syntax dumps)
-- Testing **formatter output**
-- When output is **complex but deterministic**
-- When you want **easy visual diffing** of changes
-- When tests should **live near the source code**
+### Pipeline Crates (mir, hir, ast)
 
-### Structure
+Snapshots colocate with compiletest UI tests. Test code lives in `src/**/tests.rs`, snapshots go in the appropriate `tests/ui/<category>/` directory.
 
-Snapshots are stored in `snapshots/` directories adjacent to test files:
+**Example from** `libs/@local/hashql/mir/src/pass/transform/ssa_repair/tests.rs`:
 
-```text
-src/parser/
-  string/
-    type.rs           # Contains tests
-    snapshots/        # Snapshot files
-      hashql_...__tests__single_field_struct.snap
+```rust
+let dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+let mut settings = Settings::clone_current();
+settings.set_snapshot_path(dir.join("tests/ui/pass/ssa_repair")); // matches test category
+settings.set_prepend_module_to_snapshot(false);
+
+let _drop = settings.bind_to_scope();
+assert_snapshot!(name, value);
 ```
 
-### Example: Parser Output Testing
+Categories vary: `reify/`, `lower/`, `pass/ssa_repair/`, etc.
 
-From [`libs/@local/hashql/syntax-jexpr/src/parser/string/type.rs`](file:///Users/bmahmoud/Sync/projects/contribution/hash/libs/@local/hashql/syntax-jexpr/src/parser/string/type.rs#L430-L512):
+### Core
+
+`hashql-core` is separate from the compilation pipeline, so it uses default insta directories. Prefer unit tests; only use snapshots where necessary.
+
+### Syntax (syntax-jexpr)
+
+Syntax crates predate compiletest and use macro-based test harnesses for testing parser fragments directly.
+
+**Example from** `libs/@local/hashql/syntax-jexpr/src/parser/string/test.rs`:
+
+```rust
+pub(crate) macro test_cases($parser:ident; $($name:ident($source:expr) => $description:expr,)*) {
+    $(
+        #[test]
+        fn $name() {
+            assert_parse!($parser, $source, $description);
+        }
+    )*
+}
+```
+
+Snapshots stored at: `hashql-syntax-jexpr/src/parser/*/snapshots/*.snap`
+
+**Usage in** `libs/@local/hashql/syntax-jexpr/src/parser/string/type.rs`:
 
 ```rust
 #[cfg(test)]
 mod tests {
-    use super::*;
-    use crate::parser::string::test::{bind_parser, test_cases};
-
     bind_parser!(SyntaxDump; fn parse_type_test(parse_type));
 
     test_cases!(parse_type_test;
-        // Tuple types
         empty_tuple("()") => "Empty tuple",
         single_element_tuple("(Int,)") => "Single-element tuple with trailing comma",
-        
-        // Struct types
         single_field_struct("(name: String)") => "Single-field struct",
-        
-        // Error cases
         unclosed_tuple("(Int, String") => "Unclosed tuple",
-        missing_colon("(name: String, age Int)") => "Missing field type",
     );
 }
-```
-
-The `test_cases!` macro generates individual tests that capture output as snapshots.
-
-### Example: Manual Snapshot Test
-
-From [`libs/@local/hashql/syntax-jexpr/src/parser/array/mod.rs`](file:///Users/bmahmoud/Sync/projects/contribution/hash/libs/@local/hashql/syntax-jexpr/src/parser/array/mod.rs#L253-L275):
-
-```rust
-#[test]
-fn parse_basic_function_call() {
-    let result = run_array(r##"["add", {"#literal": 1}, {"#literal": 2}]"##)
-        .expect("should parse successfully");
-
-    with_settings!({
-        description => "Parses a basic function call with proper literal syntax"
-    }, {
-        assert_snapshot!(insta::_macro_support::AutoName, result.dump, &result.input);
-    });
-}
-
-#[test]
-fn parse_empty_array() {
-    let error = run_array("[]").expect_err("should fail on empty array");
-
-    with_settings!({
-        description => "Empty arrays are not valid J-Expr function calls"
-    }, {
-        assert_snapshot!(insta::_macro_support::AutoName, error.diagnostic, &error.input);
-    });
-}
-```
-
-### Snapshot File Format
-
-From a snapshot file:
-
-```yaml
----
-source: libs/@local/hashql/syntax-jexpr/src/parser/string/type.rs
-description: Single-field struct
-expression: "(name: String)"
-info:
-  kind: Ok
----
-Type#4294967040@6
-  TypeKind (Struct)
-    StructType#4294967040@6
-      StructField#4294967040@5 (name: name)
-        Type#4294967040@4
-          TypeKind (Path)
-            Path#4294967040@4 (rooted: false)
-              PathSegment#4294967040@3 (name: String)
 ```
 
 ### Commands
 
 ```bash
-# Run tests (will show diff for failing snapshots)
-cargo insta test --package hashql-syntax-jexpr
-
-# Review pending snapshot changes interactively
-cargo insta review
-
-# Accept all pending changes
-cargo insta accept
-
-# Reject all pending changes
-cargo insta reject
+cargo insta test --package hashql-mir
+cargo insta review     # Interactive review
+cargo insta accept     # Accept all pending
+cargo insta reject     # Reject all pending
 ```
 
 ---
@@ -309,7 +257,7 @@ cargo insta reject
 
 ### Scenario 1: New error message for invalid syntax
 
-**Use Compiletest.** You want to verify:
+**Use compiletest.** You want to verify:
 
 - The error message is user-friendly
 - The span points to the correct location
@@ -334,9 +282,30 @@ fn symbol_table_lookup_returns_none_for_undefined() {
 }
 ```
 
-### Scenario 3: New parser production rule
+### Scenario 3: New MIR transformation pass
 
-**Use Insta Snapshots.** You want to verify AST structure:
+**Use compiletest for pipeline integration** — verifying the pass works end-to-end:
+
+```jsonc
+//@ run: pass
+//@ description: Tests new optimization pass integrates correctly
+["let", "x", {"#literal": 1}, ["add", "x", "x"]]
+```
+
+**Use insta for isolated edge cases** — exercising specific scenarios that are rarely hit in normal pipeline tests, or where compiletest would create too much noise:
+
+```rust
+#[test]
+fn edge_case_irreducible_cfg() {
+    scaffold!(heap, interner, builder);
+    // ... construct specific edge case MIR ...
+    assert_pass("irreducible_cfg", body, context);
+}
+```
+
+### Scenario 4: New parser production rule
+
+**Use insta snapshots (syntax-jexpr pattern).** You want to verify AST structure:
 
 ```rust
 test_cases!(parse_new_syntax;
@@ -345,36 +314,16 @@ test_cases!(parse_new_syntax;
 );
 ```
 
-### Scenario 4: Testing a compiler transformation
-
-**Use Compiletest with `run: pass`.** You want to verify transformation output:
-
-```jsonc
-//@ run: pass
-//@ description: Tests new optimization pass
-["let", "x", {"#literal": 1}, ["add", "x", "x"]]
-```
-
-The `.stdout` captures the before/after transformation.
-
----
-
-## Hybrid Approaches
-
-Sometimes you need multiple approaches:
-
-1. **Insta for parser + Compiletest for errors**: Parser tests use snapshots for valid syntax, but error message tests use compiletest for invalid syntax.
-
-2. **Unit tests for logic + Compiletest for integration**: Test helper functions in isolation, but test their integration into the compiler pipeline with compiletest.
-
 ---
 
 ## Summary
 
-| Approach | Files Location | Update Command | Best For |
-|----------|---------------|----------------|----------|
-| Compiletest | `tests/ui/` | `--bless` | Diagnostics, pipeline testing |
-| Unit Tests | `src/*.rs` | N/A | Isolated logic |
-| Insta | `src/*/snapshots/` | `cargo insta accept` | Parser output, complex structures |
+| Approach | Test Location | Snapshot Location | Update Command | Best For |
+|----------|--------------|-------------------|----------------|----------|
+| compiletest | `tests/ui/*.jsonc` | `tests/ui/*.stdout/stderr` | `--bless` | Diagnostics, pipeline, pass integration |
+| Unit tests | `src/*.rs` | N/A | N/A | Isolated logic |
+| insta (pipeline) | `src/**/tests.rs` | `tests/ui/<category>/` | `cargo insta accept` | Pass edge cases |
+| insta (core) | `src/**/tests` | `src/**/snapshots/` | `cargo insta accept` | Core crate |
+| insta (syntax-jexpr) | `src/*/tests` | `src/*/snapshots/` | `cargo insta accept` | Parser fragments |
 
-**Default choice for HashQL: Compiletest** — unless you're testing internal functions (unit tests) or parser output structure (insta).
+**Default choice: compiletest** for end-to-end pipeline testing; **insta** for isolated edge cases where compiletest would be noisy.

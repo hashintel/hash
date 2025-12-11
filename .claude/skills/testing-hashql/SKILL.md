@@ -5,204 +5,158 @@ description: HashQL testing strategies including compiletest (UI tests), unit te
 
 # HashQL Testing Strategies
 
-## Purpose
-
-This skill covers the three main testing approaches used in HashQL:
-
-1. **Compiletest (UI Tests)** - Testing parser, type checker, and error messages
-2. **Unit Tests** - Standard Rust `#[test]` functions
-3. **Snapshot Tests** - Using `insta` crate for output comparison
-
-## When This Skill Activates
-
-Automatically activates when:
-
-- Writing or modifying HashQL tests
-- Working with `tests/ui/` directories
-- Using diagnostic annotations (`//~`) or directives (`//@`)
-- Running `--bless` to update expected outputs
-- Debugging test failures in HashQL crates
-
----
+HashQL uses three testing approaches. **compiletest is the default** for testing compiler behavior.
 
 ## Quick Reference
 
-### 1. Compiletest (UI Tests)
+| Scenario | Test Type | Location |
+|----------|-----------|----------|
+| Diagnostics/error messages | compiletest | `tests/ui/` |
+| Compiler pipeline phases | compiletest | `tests/ui/` |
+| MIR/HIR/AST pass integration | compiletest | `tests/ui/` |
+| MIR/HIR/AST pass edge cases | insta | `tests/ui/<category>/` |
+| Core crate (where needed) | insta | `src/**/snapshots/` |
+| Parser fragments (syntax-jexpr) | insta | `src/*/snapshots/` |
+| Internal functions/logic | Unit tests | `src/*.rs` |
 
-UI tests verify HashQL parsing, type checking, and error reporting using J-Expr files.
+## 1. compiletest (UI Tests)
 
-**Location:** `tests/ui/` directories in HashQL crates
+Tests parsing, type checking, and error reporting using J-Expr files with diagnostic annotations.
 
 **Structure:**
 
 ```text
 package/tests/ui/
-  namespace/
-    .spec.toml        # Test suite specification
-    test.jsonc        # J-Expr test file
-    test.stdout       # Expected output
-    test.stderr       # Expected diagnostics
+  category/
+    .spec.toml        # Suite specification (required)
+    test.jsonc        # Test input
+    test.stdout       # Expected output (run: pass)
+    test.stderr       # Expected errors (run: fail)
+    test.aux.svg      # Auxiliary output (some suites)
 ```
 
 **Commands:**
 
 ```bash
-# Run all UI tests
-cargo run -p hashql-compiletest run
-
-# List tests without running
-cargo run -p hashql-compiletest list
-
-# Filter tests (nextest filter syntax)
-cargo run -p hashql-compiletest run --filter "test(name)"
-cargo run -p hashql-compiletest run --filter "package(pkg) & test(name)"
-
-# Update expected outputs
-cargo run -p hashql-compiletest run --bless
+cargo run -p hashql-compiletest run                           # Run all
+cargo run -p hashql-compiletest run --filter "test(name)"     # Filter
+cargo run -p hashql-compiletest run --bless                   # Update expected
 ```
 
-**Test Directives (must be at file start):**
+**Test file example:**
 
 ```jsonc
-//@ run: pass                  // Should pass (no errors)
-//@ run: fail                  // Should fail with errors (DEFAULT)
-//@ run: skip                  // Skip this test
-//@ run: skip reason=...       // Skip with reason
-//@ name: custom_name          // Custom test name
-//@ description: ...           // Test description (ENCOURAGED)
-//@ suite#key: value           // Suite-specific directive (TOML value)
+//@ run: fail
+//@ description: Tests duplicate field detection
+["type", "Bad", {"#struct": {"x": "Int", "x": "String"}}, "_"]
+//~^ ERROR Field `x` first defined here
 ```
 
-**Diagnostic Annotations:**
+**Directives** (`//@` at file start):
 
-```jsonc
-"undefined_var"  //~ ERROR unknown variable
-["bad", "expr"]  //~ ERROR[category::subcategory] type error
+- `run: pass` / `run: fail` (default) / `run: skip`
+- `description: ...` (encouraged)
+- `name: custom_name`
 
-//~^ ERROR message    // Previous line
-//~^^ ERROR message   // 2 lines above
-//~v ERROR message    // Next line
-//~vvv ERROR message  // 3 lines below
-//~| ERROR message    // Same line as previous annotation
-//~? ERROR message    // Unknown line (use sparingly)
-```
+**Annotations** (`//~` for expected diagnostics):
 
-**Severity levels:** `ERROR`, `WARNING`, `NOTE`, `DEBUG`, `CRITICAL`
+- `//~ ERROR msg` - current line
+- `//~^ ERROR msg` - previous line
+- `//~v ERROR msg` - next line
+- `//~| ERROR msg` - same as previous annotation
 
 📖 **Full Guide:** [resources/compiletest-guide.md](resources/compiletest-guide.md)
 
 ---
 
-### 2. Unit Tests
+## 2. Unit Tests
 
-Standard Rust unit tests for isolated component testing.
+Standard Rust `#[test]` functions for testing internal logic.
 
-**Location:** `tests.rs` or `test.rs` modules, or `#[cfg(test)]` blocks
+**Location:** `#[cfg(test)]` modules in source files
+
+**Example from** `hashql-syntax-jexpr/src/parser/state.rs`:
+
+```rust
+#[test]
+fn peek_returns_token_without_consuming() {
+    bind_context!(let context = "42");
+    bind_state!(let mut state from context);
+
+    let token = state.peek().expect("should not fail").expect("should have token");
+    assert_eq!(token.kind, number("42"));
+}
+```
 
 **Commands:**
 
 ```bash
-# Run unit tests for a package
 cargo nextest run --package hashql-<package>
-
-# Run doc tests
-cargo test --package hashql-<package> --doc
-
-# Run with all features
-cargo nextest run --all-features --package hashql-<package>
+cargo test --package hashql-<package> --doc    # Doc tests
 ```
 
 ---
 
-### 3. Snapshot Tests
+## 3. insta Snapshot Tests
 
-Uses `insta` crate for snapshot-based testing.
+Uses `insta` crate for snapshot-based output when compiletest (the preferred method) is infeasible. Three categories exist:
 
-**Location:** `snapshots/` directories alongside test modules
+| Category | Crates | Snapshot Location | Rationale |
+|----------|--------|-------------------|-----------|
+| **Pipeline Crates** | mir, hir, ast | `tests/ui/<category>/*.snap` | Colocate with compiletest tests |
+| **Core** | hashql-core | Default insta (`src/**/snapshots/`) | Separate from pipeline; prefer unit tests |
+| **Syntax** | syntax-jexpr | `src/*/snapshots/` | Macro-based for parser fragments |
 
-**Commands:**
+### Pipeline Crates (mir, hir, ast)
+
+Snapshots colocate with compiletest UI tests. Test code lives in `src/**/tests.rs`, snapshots go in the appropriate `tests/ui/<category>/` directory.
+
+```rust
+// Example: hashql-mir/src/pass/transform/ssa_repair/tests.rs
+let dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+let mut settings = Settings::clone_current();
+settings.set_snapshot_path(dir.join("tests/ui/pass/ssa_repair")); // matches test category
+settings.set_prepend_module_to_snapshot(false);
+
+let _drop = settings.bind_to_scope();
+assert_snapshot!(name, value);
+```
+
+Categories vary: `reify/`, `lower/`, `pass/ssa_repair/`, etc.
+
+### Core
+
+`hashql-core` is separate from the compilation pipeline, so it uses default insta directories. Prefer unit tests; only use snapshots where necessary.
+
+### Syntax (syntax-jexpr)
+
+Syntax crates predate compiletest and use macro-based test harnesses for testing parser fragments directly.
+
+```rust
+// hashql-syntax-jexpr/src/parser/string/test.rs
+pub(crate) macro test_cases($parser:ident; $($name:ident($source:expr) => $description:expr,)*) {
+    $(
+        #[test]
+        fn $name() {
+            assert_parse!($parser, $source, $description);
+        }
+    )*
+}
+```
+
+Snapshots: `hashql-syntax-jexpr/src/parser/*/snapshots/*.snap`
+
+### Commands
 
 ```bash
-# Run tests and review snapshots
 cargo insta test --package hashql-<package>
-
-# Review pending snapshots
-cargo insta review
-
-# Accept all pending snapshots
-cargo insta accept
+cargo insta review     # Interactive review
+cargo insta accept     # Accept all pending
 ```
 
 ---
 
-## Discovering Available Suites
+## Resources
 
-Rather than relying on a hardcoded list (suites change), discover them:
-
-```bash
-# List suite names from the codebase
-grep -r 'fn name(&self)' libs/@local/hashql/compiletest/src/suite/*.rs
-
-# Or check existing .spec.toml files for examples
-find libs/@local/hashql -name '.spec.toml' -exec cat {} \;
-```
-
-**Suite categories:**
-
-- `parse/*` - Parsing tests (e.g., `parse/syntax-dump`)
-- `ast-lowering/*` - AST lowering phases
-- `hir-lower/*` - HIR lowering phases
-- `mir-*` - MIR passes
-- `eval/*` - Evaluation tests
-
----
-
-## Common Workflows
-
-### Creating a New UI Test
-
-1. Create `.jsonc` file with test code
-2. Add `//@ description: ...` explaining what's being tested
-3. Use `//@ run: pass` for passing tests (default is `fail`)
-4. Ensure `.spec.toml` exists in directory (or parent)
-5. Run `cargo run -p hashql-compiletest run --filter "test(name)" --bless`
-6. Review generated `.stdout` and `.stderr` files
-
-### Updating Tests After Changes
-
-```bash
-# UI tests - update expected outputs
-cargo run -p hashql-compiletest run --bless
-
-# Snapshot tests - review and accept
-cargo insta test && cargo insta review
-```
-
----
-
-## Best Practices
-
-1. **Always include `//@ description:`** - Document what behavior is being tested
-2. **Default is `fail` mode** - Explicitly use `//@ run: pass` for passing tests
-3. **Keep tests focused** - One behavior per test file
-4. **Use descriptive file names** - Names should indicate what's being tested
-5. **Use annotations** - Verify specific error messages with `//~`, not just failure
-
----
-
-## Test Selection Guide
-
-| Scenario | Test Type |
-|----------|-----------|
-| Parser/syntax errors | Compiletest |
-| Type checker errors | Compiletest |
-| Error message formatting | Compiletest |
-| Internal logic/functions | Unit tests |
-| Complex output structures | Snapshot tests |
-
----
-
-## Need More Details?
-
-- **Choosing the right testing approach** → See [resources/testing-strategies.md](resources/testing-strategies.md)
-- **Compiletest deep dive** → See [resources/compiletest-guide.md](resources/compiletest-guide.md)
+- [compiletest Guide](resources/compiletest-guide.md) - Detailed UI test documentation
+- [Testing Strategies](resources/testing-strategies.md) - Choosing the right approach
