@@ -7,7 +7,7 @@ This guide helps you choose the right testing approach for HashQL code.
 ## Decision Matrix
 
 | Question | compiletest | Unit Tests | insta Snapshots |
-|----------|-------------|------------|-----------------|
+| -------- | ----------- | ---------- | --------------- |
 | Testing error messages/diagnostics? | ✅ **Best** | ❌ | ⚠️ Possible |
 | Testing compiler pipeline stages? | ✅ **Best** | ❌ | ⚠️ Possible |
 | Testing internal function logic? | ❌ | ✅ **Best** | ❌ |
@@ -180,7 +180,7 @@ cargo test --package hashql-syntax-jexpr --doc
 Uses the `insta` crate for snapshot-based output when compiletest is infeasible. **Three categories exist:**
 
 | Category | Crates | Snapshot Location | Rationale |
-|----------|--------|-------------------|-----------|
+| -------- | ------ | ----------------- | --------- |
 | **Pipeline Crates** | mir, hir, ast | `tests/ui/<category>/*.snap` | Colocate with compiletest tests |
 | **Core** | hashql-core | Default insta (`src/**/snapshots/`) | Separate from pipeline; prefer unit tests |
 | **Syntax** | syntax-jexpr | `src/*/snapshots/` | Macro-based for parser fragments |
@@ -319,7 +319,7 @@ test_cases!(parse_new_syntax;
 ## Summary
 
 | Approach | Test Location | Snapshot Location | Update Command | Best For |
-|----------|--------------|-------------------|----------------|----------|
+| -------- | ------------ | ----------------- | -------------- | -------- |
 | compiletest | `tests/ui/*.jsonc` | `tests/ui/*.stdout/stderr` | `--bless` | Diagnostics, pipeline, pass integration |
 | Unit tests | `src/*.rs` | N/A | N/A | Isolated logic |
 | insta (pipeline) | `src/**/tests.rs` | `tests/ui/<category>/` | `cargo insta accept` | Pass edge cases |

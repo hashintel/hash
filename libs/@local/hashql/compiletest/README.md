@@ -35,7 +35,7 @@ package_name/
 ### Test Components
 
 | File | Purpose | Required |
-|------|---------|----------|
+| ---- | ------- | -------- |
 | `.jsonc` | J-Expr test code | ✅ Yes |
 | `.spec.toml` | Test suite specification | ✅ Yes (in dir or parent) |
 | `.stdout` | Expected standard output | Optional |
@@ -86,7 +86,7 @@ Annotations verify that specific diagnostics appear at expected locations:
 ### Line References
 
 | Syntax | Meaning |
-|--------|---------|
+| ------ | ------- |
 | `//~ ERROR msg` | Current line |
 | `//~^ ERROR msg` | Previous line (1 up) |
 | `//~^^ ERROR msg` | 2 lines above |
@@ -145,7 +145,7 @@ When a test fails, the harness shows:
 ### Resolution
 
 | Failure Type | Action |
-|--------------|--------|
+| ------------ | ------ |
 | Real bug | Fix the implementation code |
 | Intentional change | Run `--bless` to update expected outputs |
 | Annotation mismatch | Update `//~` annotations to match new messages/locations |

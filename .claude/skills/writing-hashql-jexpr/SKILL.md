@@ -12,7 +12,7 @@ J-Expr is a JSON-based expression syntax for HashQL. It represents typed express
 J-Expr has three expression types:
 
 | JSON Type | J-Expr Meaning |
-|-----------|----------------|
+| --------- | -------------- |
 | String | Path/identifier/symbol |
 | Array | Function call |
 | Object | Data constructor (with `#` keys) |
@@ -51,7 +51,7 @@ Arrays represent function calls: `[function, arg1, arg2, ...]`
 Objects with special `#` keys construct data:
 
 | Key | Purpose | Example |
-|-----|---------|---------|
+| --- | ------- | ------- |
 | `#literal` | Primitive values | `{"#literal": 42}` |
 | `#struct` | Named fields | `{"#struct": {"x": ...}}` |
 | `#list` | Variable-size ordered | `{"#list": [...]}` |

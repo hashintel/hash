@@ -7,7 +7,7 @@ Special forms are syntactic constructs with special evaluation semantics. Unlike
 HashQL has 10 special forms:
 
 | Form | Arity | Purpose |
-|------|-------|---------|
+| ---- | ----- | ------- |
 | `if` | 2, 3 | Conditional branching |
 | `let` | 3, 4 | Variable binding |
 | `fn` | 4 | Function/closure definition |
@@ -353,7 +353,7 @@ Accesses an element by index. Alias: `[]`
 Special forms bind names in different namespaces:
 
 | Form | Value Namespace | Type Namespace |
-|------|-----------------|----------------|
+| ---- | --------------- | -------------- |
 | `let` | ✓ | - |
 | `type` | - | ✓ |
 | `newtype` | ✓ (constructor) | ✓ (type) |

@@ -84,7 +84,7 @@ package_name/
 ### Test Components
 
 | File | Purpose | Required |
-|------|---------|----------|
+| ---- | ------- | -------- |
 | `.jsonc` | J-Expr test code | ✅ Yes |
 | `.spec.toml` | Test suite specification | ✅ Yes (in dir or parent) |
 | `.stdout` | Expected standard output | Optional (empty if none) |
@@ -141,7 +141,7 @@ Directives control test behavior. They **must** be at the start of the file, bef
 ### Run Modes
 
 | Mode | Behavior |
-|------|----------|
+| ---- | -------- |
 | `pass` | Test must succeed with no errors |
 | `fail` | Test must produce errors (**default if omitted**) |
 | `skip` | Test is skipped entirely |
@@ -180,7 +180,7 @@ Annotations verify that specific diagnostics appear at expected locations.
 ### Line Reference Types
 
 | Syntax | Meaning | Example |
-|--------|---------|---------|
+| ------ | ------- | ------- |
 | `//~ ERROR msg` | Current line | Error on this exact line |
 | `//~^ ERROR msg` | Previous line (1 up) | Error on line above |
 | `//~^^ ERROR msg` | 2 lines above | |
@@ -211,7 +211,7 @@ Include optional error codes in brackets:
 ### Severity Levels
 
 | Level | Use Case |
-|-------|----------|
+| ----- | -------- |
 | `CRITICAL` | Unrecoverable errors |
 | `ERROR` | Standard errors |
 | `WARNING` | Non-fatal warnings |

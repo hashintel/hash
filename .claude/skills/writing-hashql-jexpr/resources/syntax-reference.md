@@ -6,11 +6,11 @@ Core syntax reference for J-Expr, the JSON expression syntax for HashQL.
 
 J-Expr maps JSON types to expression semantics:
 
-| JSON Type | J-Expr Meaning |
-|-----------|----------------|
-| String | Path/identifier |
-| Array | Function call |
-| Object | Data constructor (with `#` keys) |
+| JSON Type | J-Expr Meaning                     |
+| --------- | ---------------------------------- |
+| String    | Path/identifier                    |
+| Array     | Function call                      |
+| Object    | Data constructor (with `#` keys)   |
 
 ## Paths (String Expressions)
 

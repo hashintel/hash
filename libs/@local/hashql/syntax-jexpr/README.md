@@ -7,7 +7,7 @@ J-Expr (JSON Expression Language) is a JSON-based syntax for writing HashQL quer
 J-Expr maps JSON types to expression semantics:
 
 | JSON Type | J-Expr Meaning |
-|-----------|----------------|
+| --------- | -------------- |
 | String | Path/identifier |
 | Array | Function call |
 | Object | Data constructor (with `#` keys) |
@@ -58,7 +58,7 @@ Use `:` prefix for named arguments:
 Objects with special `#` keys construct typed data:
 
 | Key | Purpose | Example |
-|-----|---------|---------|
+| --- | ------- | ------- |
 | `#literal` | Primitive values | `{"#literal": 42}` |
 | `#struct` | Named fields | `{"#struct": {"x": ...}}` |
 | `#list` | Variable-size ordered | `{"#list": [...]}` |
@@ -89,7 +89,7 @@ Objects with special `#` keys construct typed data:
 Special forms are syntactic constructs with special evaluation semantics:
 
 | Form | Arity | Purpose |
-|------|-------|---------|
+| ---- | ----- | ------- |
 | `if` | 2, 3 | Conditional branching |
 | `let` | 3, 4 | Variable binding |
 | `fn` | 4 | Function definition |

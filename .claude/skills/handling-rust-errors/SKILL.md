@@ -54,10 +54,10 @@ Code in `libs/@local/hashql/*` uses the `hashql-diagnostics` crate instead of `e
 
 **Which approach to use:**
 
-| Location | Error Handling |
-|----------|----------------|
-| `libs/@local/hashql/*` (compiler code) | Use `hashql-diagnostics` → See [writing-hashql-diagnostics](../writing-hashql-diagnostics/SKILL.md) skill |
-| Everywhere else | Use `error-stack` patterns from this skill |
+| Location                                | Error Handling                                                                                            |
+|-----------------------------------------|-----------------------------------------------------------------------------------------------------------|
+| `libs/@local/hashql/*` (compiler code)  | Use `hashql-diagnostics` → See [writing-hashql-diagnostics](../writing-hashql-diagnostics/SKILL.md) skill |
+| Everywhere else                         | Use `error-stack` patterns from this skill                                                                |
 
 Traditional `error-stack` patterns still apply for HashQL infrastructure code (CLI, file I/O, configuration) that doesn't involve compiler diagnostics.
 

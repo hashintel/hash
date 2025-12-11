@@ -4,14 +4,14 @@ Data constructors are JSON objects with `#` prefixed keys that construct typed d
 
 ## Overview
 
-| Special Form | Purpose | Value Type |
-|-------------|---------|------------|
-| `#literal` | Primitive values | JSON primitive |
-| `#struct` | Named fields (record) | JSON object |
-| `#tuple` | Fixed-size ordered collection | JSON array |
-| `#list` | Variable-size ordered collection | JSON array |
-| `#dict` | Key-value map | JSON object or array |
-| `#type` | Type annotation (modifier) | String (type DSL) |
+| Special Form | Purpose                          | Value Type           |
+| ------------ | -------------------------------- | -------------------- |
+| `#literal`   | Primitive values                 | JSON primitive       |
+| `#struct`    | Named fields (record)            | JSON object          |
+| `#tuple`     | Fixed-size ordered collection    | JSON array           |
+| `#list`      | Variable-size ordered collection | JSON array           |
+| `#dict`      | Key-value map                    | JSON object or array |
+| `#type`      | Type annotation (modifier)       | String (type DSL)    |
 
 ## #literal - Primitive Values
 

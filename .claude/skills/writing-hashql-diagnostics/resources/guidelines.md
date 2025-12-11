@@ -13,7 +13,7 @@ This guide provides standards for creating high-quality diagnostics using the `h
 7. [Labels](#labels)
 8. [Help and Note Messages](#help-and-note-messages)
 9. [Suggestions and Patches](#suggestions-and-patches)
-10. [Testing with Compiletest](#testing-with-compiletest)
+10. [Testing Diagnostics](#testing-diagnostics)
 11. [Review Checklist](#review-checklist)
 
 ## Philosophy
@@ -58,14 +58,14 @@ A complete diagnostic tells a story:
 
 ### Core Rules
 
-| Rule | Example |
-|------|---------|
-| Start with lowercase | `"expected semicolon"` not `"Expected semicolon"` |
-| No trailing punctuation | `"missing field"` not `"missing field."` |
-| Use backticks for code | `"expected \`bool\`, found \`String\`"` |
-| Use "invalid" not "illegal" | `"invalid identifier"` not `"illegal identifier"` |
-| Be matter-of-fact | `"type mismatch"` not `"sorry, types don't match"` |
-| Be specific | `"cannot find variable \`x\`"` not `"variable not found"` |
+| Rule                        | Example                                                   |
+| --------------------------- | --------------------------------------------------------- |
+| Start with lowercase        | `"expected semicolon"` not `"Expected semicolon"`         |
+| No trailing punctuation     | `"missing field"` not `"missing field."`                  |
+| Use backticks for code      | `"expected \`bool\`, found \`String\`"`                   |
+| Use "invalid" not "illegal" | `"invalid identifier"` not `"illegal identifier"`         |
+| Be matter-of-fact           | `"type mismatch"` not `"sorry, types don't match"`        |
+| Be specific                 | `"cannot find variable \`x\`"` not `"variable not found"` |
 
 ### Good vs Bad Messages
 
@@ -113,14 +113,14 @@ Always use backticks when referring to code elements:
 
 ## Severity Levels
 
-| Severity | Code | When to Use | Color |
-|----------|------|-------------|-------|
-| `Bug` | 600 | Internal compiler error - indicates a bug in HashQL itself | Red |
-| `Fatal` | 500 | Unrecoverable error preventing further processing | Red |
-| `Error` | 400 | Code cannot compile - must be fixed | Red |
-| `Warning` | 300 | Suspicious code that should be reviewed | Yellow |
-| `Note` | 200 | Informational context | Purple |
-| `Debug` | 100 | Low-level compiler information | Blue |
+| Severity  | Code | When to Use                                                | Color  |
+| --------- | ---- | ---------------------------------------------------------- | ------ |
+| `Bug`     | 600  | Internal compiler error - indicates a bug in HashQL itself | Red    |
+| `Fatal`   | 500  | Unrecoverable error preventing further processing          | Red    |
+| `Error`   | 400  | Code cannot compile - must be fixed                        | Red    |
+| `Warning` | 300  | Suspicious code that should be reviewed                    | Yellow |
+| `Note`    | 200  | Informational context                                      | Purple |
+| `Debug`   | 100  | Low-level compiler information                             | Blue   |
 
 **Critical** severities (code ≥ 400) prevent compilation. **Advisory** severities (code < 400) allow compilation to continue.
 

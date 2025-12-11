@@ -58,13 +58,13 @@ diagnostic.add_message(Message::help("try using a comparison"));
 
 ### Severity Levels
 
-| Severity | When to Use |
-|----------|-------------|
-| `Bug` | Internal compiler error |
-| `Fatal` | Unrecoverable error |
-| `Error` | Must be fixed to compile |
-| `Warning` | Suspicious code to review |
-| `Note` | Informational context |
+| Severity   | When to Use                |
+| ---------- | -------------------------- |
+| `Bug`      | Internal compiler error    |
+| `Fatal`    | Unrecoverable error        |
+| `Error`    | Must be fixed to compile   |
+| `Warning`  | Suspicious code to review  |
+| `Note`     | Informational context      |
 
 ### Message Style
 
