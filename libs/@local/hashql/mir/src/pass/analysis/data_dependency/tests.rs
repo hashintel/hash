@@ -218,3 +218,72 @@ fn load_then_projection() {
         },
     );
 }
+
+/// Tests that nested projections resolve correctly through edge projections.
+///
+/// When a tuple element is constructed from a place with projections (e.g., `a.field`),
+/// accessing that element should prepend the edge's projections to any remaining projections.
+///
+/// ```text
+/// _0 = input (nested tuple: ((int, int), int))
+/// _1 = (_0.0, other)         // tuple with Index(0) edge to _0 with projections [.0]
+/// _2 = _1.0.1                // should resolve to _0.0.1
+/// return _2
+/// ```
+///
+/// The key insight: resolving `_1.0` gives us `_0.0`, then we must resolve `_0.0.1`,
+/// not just look for `.1` edges from `_0`.
+#[test]
+fn nested_projection_through_edge() {
+    scaffold!(heap, interner, builder);
+    let env = Environment::new(&heap);
+
+    let int_ty = TypeBuilder::synthetic(&env).integer();
+    let inner_tuple_ty = TypeBuilder::synthetic(&env).tuple([int_ty, int_ty]);
+    let outer_tuple_ty = TypeBuilder::synthetic(&env).tuple([inner_tuple_ty, int_ty]);
+
+    let input = builder.local("input", outer_tuple_ty);
+    let other = builder.local("other", int_ty);
+    let wrapped = builder.local(
+        "wrapped",
+        TypeBuilder::synthetic(&env).tuple([inner_tuple_ty, int_ty]),
+    );
+    let result = builder.local("result", int_ty);
+    let result_place = builder.place_local(result);
+
+    let input_field_0 = builder.place(|place| place.local(input).field(0, inner_tuple_ty));
+    let other_place = builder.place_local(other);
+    let wrapped_0_1 = builder.place(|place| {
+        place
+            .local(wrapped)
+            .field(0, inner_tuple_ty)
+            .field(1, int_ty)
+    });
+
+    let bb0 = builder.reserve_block([]);
+
+    builder
+        .build_block(bb0)
+        .assign_local(input, |rv| {
+            rv.input(InputOp::Load { required: true }, "input")
+        })
+        .assign_local(other, |rv| {
+            rv.input(InputOp::Load { required: true }, "other")
+        })
+        .assign_local(wrapped, |rv| rv.tuple([input_field_0, other_place]))
+        .assign_place(result_place, |rv| rv.load(wrapped_0_1))
+        .ret(result_place);
+
+    let body = builder.finish(0, int_ty);
+
+    assert_data_dependency(
+        "nested_projection_through_edge",
+        &body,
+        &mut MirContext {
+            heap: &heap,
+            env: &env,
+            interner: &interner,
+            diagnostics: DiagnosticIssues::new(),
+        },
+    );
+}

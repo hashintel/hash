@@ -1,6 +1,7 @@
 use core::fmt;
 use std::alloc::Allocator;
 
+use hashbrown::HashSet;
 use hashql_core::{
     graph::{LinkedGraph, NodeId, linked::Node},
     id::{HasId as _, Id as _},
@@ -8,9 +9,12 @@ use hashql_core::{
     symbol::Symbol,
 };
 
-use crate::body::{
-    local::Local,
-    place::{FieldIndex, Projection, ProjectionKind},
+use crate::{
+    body::{
+        local::Local,
+        place::{FieldIndex, Place, Projection, ProjectionKind},
+    },
+    intern::Interner,
 };
 
 /// Describes which component of a structured value an edge represents.
@@ -121,129 +125,187 @@ fn follow_load<'this, 'heap, A: Allocator>(
     }
 }
 
-fn recurse<'this, 'heap, A: Allocator, T>(
-    graph: &'this LinkedGraph<Local, Edge<'heap>, A>,
-    mut node: &'this Node<Local>,
-    mut next: impl FnMut(&'this Node<Local>) -> T,
-) -> T
-where
-    T: PartialEq,
-{
-    let mut visited = 0;
-    let max_depth = graph.nodes().len();
-
-    while let Some(edge) = graph
-        .outgoing_edges(node.id())
-        .find(|edge| matches!(edge.data.kind, EdgeKind::Load))
-    {
-        visited += 1;
-        debug_assert!(visited <= max_depth, "cycle detected in load chain");
-
-        node = &graph[edge.target()];
+/// Attempts to resolve through Param edges when all predecessors agree on the same source.
+///
+/// If a node's outgoing edges are all `Param` edges and they all resolve to the same local,
+/// returns that local. Otherwise returns the input local unchanged.
+///
+/// Uses a visited set to detect cycles through Param edges.
+fn resolve_through_params<'heap, A: Allocator>(
+    graph: &LinkedGraph<Local, Edge<'heap>, A>,
+    local: Local,
+    visited: &mut HashSet<Local>,
+) -> Local {
+    if !visited.insert(local) {
+        return local;
     }
 
-    // Check if all the edges are params, if that is the case, we properly recurse
-    if graph
-        .outgoing_edges(node.id())
+    let node = &graph[NodeId::from_usize(local.as_usize())];
+    let outgoing: Vec<_> = graph.outgoing_edges(node.id()).collect();
+
+    if outgoing.is_empty() {
+        return local;
+    }
+
+    if !outgoing
+        .iter()
         .all(|edge| matches!(edge.data.kind, EdgeKind::Param))
     {
-        let mut outgoing = graph.outgoing_edges(node.id());
-        let Some(first) = outgoing.next() else {
-            return next(node);
-        };
+        return local;
+    }
 
-        // All the nodes are param, so we must check if they result in the same value.
-        let target = next(&graph[first.target()]);
-        if outgoing.all(|edge| next(&graph[edge.target()]) == target) {
-            return target;
+    let first_edge = &outgoing[0];
+    if !first_edge.data.projections.is_empty() {
+        return local;
+    }
+
+    let first_target = graph[first_edge.target()].data;
+    let resolved_first = resolve_through_params(graph, first_target, visited);
+
+    for edge in &outgoing[1..] {
+        if !edge.data.projections.is_empty() {
+            return local;
+        }
+
+        let target = graph[edge.target()].data;
+        let resolved = resolve_through_params(graph, target, visited);
+
+        if resolved != resolved_first {
+            return local;
         }
     }
 
-    next(node)
+    resolved_first
 }
 
-/// Resolves a place to its source local by following dependencies through the graph.
+/// Checks if an edge kind matches a field projection by index.
+fn matches_field_index(kind: EdgeKind<'_>, field_index: FieldIndex) -> bool {
+    match kind {
+        EdgeKind::Index(idx) if idx == field_index => true,
+        EdgeKind::Field(idx, _) if idx == field_index => true,
+        EdgeKind::ClosurePtr if field_index.as_usize() == 0 => true,
+        EdgeKind::ClosureEnv if field_index.as_usize() == 1 => true,
+        EdgeKind::Load
+        | EdgeKind::Param
+        | EdgeKind::Index(_)
+        | EdgeKind::Field(..)
+        | EdgeKind::ClosurePtr
+        | EdgeKind::ClosureEnv => false,
+    }
+}
+
+/// Resolves a place to its source by following dependencies through the graph.
 ///
-/// Starting from the place's local, this method attempts to trace each projection in the
-/// place through the dependency graph. For each field projection, it looks for an outgoing
-/// edge with a matching [`EdgeKind`] and follows it to find where that field's value originated.
+/// Starting from the place's local, this method traces each projection through the dependency
+/// graph. When following an edge, the edge's own projections are prepended to the remaining
+/// projections, ensuring correct resolution through nested aggregates.
 ///
-/// Returns a tuple of:
-/// - The number of projections that were successfully resolved
-/// - The [`Local`] that provides the value at that resolution depth
+/// Returns the resolved [`Place`] with any unresolved projections remaining.
 ///
-/// Resolution stops early when:
-/// - An [`Index`](ProjectionKind::Index) projection is encountered (dynamic indexing)
+/// Resolution stops when:
+/// - A dynamic [`Index`](ProjectionKind::Index) projection is encountered
 /// - No matching edge is found (opaque value, e.g., function return)
+/// - All projections are resolved
 ///
 /// # Examples
 ///
 /// Given MIR:
 /// ```text
-/// _2 = input()
-/// _3 = (_1, _2)  // tuple construction
-/// _4 = _3.1      // projection
+/// _1 = input.field
+/// _2 = (_1, other)  // Edge: _2 --[Index(0), projections: [.field]]--> input
+/// _3 = _2.0.bar     // Should resolve through to input.field.bar
 /// ```
 ///
-/// Resolving `_4` (with no projections) returns `(0, _2)` because:
-/// 1. `_4` has a `Load` edge to `_3`
-/// 2. Following through `_3`, the `.1` projection matches `Index(1)` → `_2`
-///
-/// Resolving `_3.1` returns `(1, _2)` because the `.1` projection resolves through the
-/// tuple construction.
+/// Resolving `_3` traces: `_3` → load to `_2.0.bar` → `Index(0)` edge prepends `.field`
+/// → resolving `input.field.bar`.
 pub(crate) fn resolve_place<'heap, A: Allocator>(
     graph: &LinkedGraph<Local, Edge<'heap>, A>,
-    local: Local,
-    projections: &[Projection<'heap>],
-) -> (usize, Local) {
-    let mut node = &graph[NodeId::from_usize(local.as_usize())];
+    interner: &Interner<'heap>,
+    place: Place<'heap>,
+) -> Place<'heap> {
+    let mut local = place.local;
+    let mut projections: Vec<Projection<'heap>> = place.projections.to_vec();
+    let mut index = 0;
 
-    for (index, projection) in projections.iter().enumerate() {
+    let max_iterations = graph.nodes().len() * (projections.len() + 1).max(16);
+    let mut iterations = 0;
+
+    loop {
+        iterations += 1;
+        debug_assert!(
+            iterations <= max_iterations,
+            "infinite loop in resolve_place"
+        );
+
+        let mut node = &graph[NodeId::from_usize(local.as_usize())];
         follow_load(graph, &mut node);
+        local = node.data;
+
+        let Some(projection) = projections.get(index) else {
+            break;
+        };
 
         match projection.kind {
             ProjectionKind::Field(field_index) => {
-                let Some(edge) =
-                    graph
-                        .outgoing_edges(node.id())
-                        .find(|edge| match edge.data.kind {
-                            EdgeKind::Index(idx) if idx == field_index => true,
-                            EdgeKind::Field(idx, _) if idx == field_index => true,
-                            EdgeKind::ClosurePtr if field_index.as_usize() == 0 => true,
-                            EdgeKind::ClosureEnv if field_index.as_usize() == 1 => true,
-                            EdgeKind::Load
-                            | EdgeKind::Param
-                            | EdgeKind::Index(_)
-                            | EdgeKind::Field(..)
-                            | EdgeKind::ClosurePtr
-                            | EdgeKind::ClosureEnv => false,
-                        })
+                let Some(edge) = graph
+                    .outgoing_edges(node.id())
+                    .find(|edge| matches_field_index(edge.data.kind, field_index))
                 else {
-                    // This is not an error, it simply means that we weren't able to determine
-                    // the projection, this may be the case due to an opaque field, such as a
-                    // result from a function call.
-                    return (index, node.data);
+                    break;
                 };
 
-                node = &graph[edge.target()];
+                local = graph[edge.target()].data;
+
+                if edge.data.projections.is_empty() {
+                    index += 1;
+                } else {
+                    let remaining = &projections[index + 1..];
+                    projections = edge
+                        .data
+                        .projections
+                        .iter()
+                        .copied()
+                        .chain(remaining.iter().copied())
+                        .collect();
+                    index = 0;
+                }
             }
             ProjectionKind::FieldByName(symbol) => {
                 let Some(edge) = graph.outgoing_edges(node.id()).find(
                     |edge| matches!(edge.data.kind, EdgeKind::Field(_, field) if field == symbol),
                 ) else {
-                    // This is not an error, it simply means that we weren't able to determine
-                    // the projection, this may be the case due to an opaque field, such as a
-                    // result from a function call.
-                    return (index, node.data);
+                    break;
                 };
 
-                node = &graph[edge.target()];
+                local = graph[edge.target()].data;
+
+                if edge.data.projections.is_empty() {
+                    index += 1;
+                } else {
+                    let remaining = &projections[index + 1..];
+                    projections = edge
+                        .data
+                        .projections
+                        .iter()
+                        .copied()
+                        .chain(remaining.iter().copied())
+                        .collect();
+                    index = 0;
+                }
             }
-            // We cannot advance, therefore terminate the resolution
-            ProjectionKind::Index(_) => return (index, node.data),
+            ProjectionKind::Index(_) => break,
         }
     }
 
-    follow_load(graph, &mut node);
-    (projections.len(), node.data)
+    let remaining_projections = &projections[index..];
+
+    if remaining_projections.is_empty() {
+        let mut visited = HashSet::new();
+        local = resolve_through_params(graph, local, &mut visited);
+    }
+
+    Place {
+        local,
+        projections: interner.projections.intern_slice(remaining_projections),
+    }
 }
