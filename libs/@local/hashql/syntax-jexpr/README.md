@@ -1,41 +1,28 @@
-# Frontend
+# hashql-syntax-jexpr
 
-Collection of HQL frontends, which are languages, that are compiled into HQL-CST queries.
-These frontends are used to provide a more user-friendly way to write queries, than writing HQL-CST queries directly.
+J-Expr (JSON Expression Language) is a JSON-based syntax for writing HashQL queries. It represents typed expressions using JSON primitives.
 
-In the future, frontends may implement traits from a `hql-frontend-core`, more research needs to be done on the subject, as it is unclear, if using the same I/O for all frontends is even possible.
+## Expression Types
 
-Currently supported frontends:
+J-Expr maps JSON types to expression semantics:
 
-- J-Expr: JSON Expression Language - a simple S-Expr like language, based on JSON syntax
+| JSON Type | J-Expr Meaning |
+|-----------|----------------|
+| String | Path/identifier |
+| Array | Function call |
+| Object | Data constructor (with `#` keys) |
 
-Due to a limitation of cargo, we're unable to nest libraries, see: <https://github.com/rust-lang/cargo/issues/6745>, therefore this documentation is in `frontend-jexpr` not in `frontend`.
+## Paths (Strings)
 
-# J-Expr - JSON Expression Language
+Strings are parsed as paths or identifiers:
 
-J-Expr is a simple S-Expr like language, based on JSON syntax.
-
-## Syntax
-
-### Function Call
-
-A function call is represented as a non-zero JSON array, where the first element is the function to be invoked, and the rest of the elements are the arguments to the function.
-
-```ts
-[function, ...args]
+```jsonc
+"x"                           // Simple variable
+"vertex.id.entity_id"         // Dotted path access
+"::core::types::String"       // Namespaced/rooted path
 ```
 
-The S-Expr equivalent is `(function ...args)`.
-
-#### Example
-
-```json
-["+", "x", "y"]
-```
-
-### Symbol
-
-A symbol is a simple string, that conforms to the following ABNF:
+### Symbol Grammar
 
 ```abnf
 symbol = symbol-safe / operator
@@ -45,50 +32,132 @@ regular = XID_START *XID_CONTINUE
 ignore = "_" *XID_CONTINUE
 
 operator = "+" / "-" / "*" / "/" / "|" / "&" / "^" / "==" / "!=" / ">" / ">=" / "<" / "<="
-operatorSafe = "`" operators "`"
+operatorSafe = "`" operator "`"
 ```
 
-Symbols are grouped into safe symbols, and unsafe identifiers, safe identifiers are always allowed, but in some cases, parsing may be restricted to only safe symbols, safe symbols are the groups: `regular`, `ignore`, `operatorSafe`.
-Any safe operator is equivalent to the corresponding operator, for example: `+` is equivalent to `\`+\``.
+## Function Calls (Arrays)
+
+Arrays represent function calls: `[function, arg1, arg2, ...]`
+
+```jsonc
+["add", {"#literal": 1}, {"#literal": 2}]
+["::graph::head::entities", ["::graph::tmp::decision_time_now"]]
+```
+
+### Labeled Arguments
+
+Use `:` prefix for named arguments:
+
+```jsonc
+["greet", {":name": {"#literal": "Alice"}}]
+["func", ":varName"]  // Shorthand: references variable as labeled argument
+```
+
+## Data Constructors (Objects with # Keys)
+
+Objects with special `#` keys construct typed data:
+
+| Key | Purpose | Example |
+|-----|---------|---------|
+| `#literal` | Primitive values | `{"#literal": 42}` |
+| `#struct` | Named fields | `{"#struct": {"x": ...}}` |
+| `#list` | Variable-size ordered | `{"#list": [...]}` |
+| `#tuple` | Fixed-size ordered | `{"#tuple": [...]}` |
+| `#dict` | Key-value map | `{"#dict": {"k": ...}}` |
+| `#type` | Type annotation | Used with other keys |
+
+### Examples
+
+```jsonc
+// Literals
+{"#literal": 42}
+{"#literal": "hello"}
+{"#literal": 3.14, "#type": "Float"}
+
+// Struct with type
+{"#struct": {"name": {"#literal": "Alice"}}, "#type": "Person"}
+
+// List and tuple
+{"#list": [{"#literal": 1}, {"#literal": 2}]}
+{"#tuple": [{"#literal": 1}, {"#literal": "text"}]}
+```
+
+**Important:** Use `#literal` for all primitive values—bare JSON numbers/booleans are not allowed.
+
+## Special Forms
+
+Special forms are syntactic constructs with special evaluation semantics:
+
+| Form | Arity | Purpose |
+|------|-------|---------|
+| `if` | 2, 3 | Conditional branching |
+| `let` | 3, 4 | Variable binding |
+| `fn` | 4 | Function definition |
+| `as` | 2 | Type assertion |
+| `type` | 3 | Type alias definition |
+| `newtype` | 3 | Nominal type wrapper |
+| `use` | 3 | Module imports |
+| `input` | 2, 3 | Host input declaration |
+| `access` / `.` | 2 | Field access |
+| `index` / `[]` | 2 | Index access |
+
+### Common Patterns
+
+```jsonc
+// Let binding
+["let", "x", {"#literal": 10}, ["add", "x", {"#literal": 5}]]
+
+// Function definition
+["fn", {"#tuple": []}, {"#struct": {"x": "_", "y": "_"}}, "_",
+  ["add", "x", "y"]]
+
+// Conditional
+["if", [">", "x", {"#literal": 0}],
+  {"#literal": "positive"},
+  {"#literal": "non-positive"}]
+
+// Entity query with filter
+["let", "entities",
+  ["::graph::head::entities", ["::graph::tmp::decision_time_now"]],
+  ["filter", "entities",
+    ["fn", {"#tuple": []}, {"#struct": {"e": "_"}}, "_",
+      ["==", "e.archived", {"#literal": false}]]]]
+```
+
+## Testing
+
+This crate uses a macro-based test harness for testing parser fragments, with insta snapshots stored alongside the parser code.
+
+### Structure
+
+```text
+src/parser/
+  string/
+    test.rs           # Test harness macros
+    type.rs           # Parser with tests
+    snapshots/        # insta snapshots
+      *.snap
+```
 
 ### Example
 
-```json
-"x"
-"+"
-"`+`"
+```rust
+#[cfg(test)]
+mod tests {
+    bind_parser!(SyntaxDump; fn parse_type_test(parse_type));
+
+    test_cases!(parse_type_test;
+        empty_tuple("()") => "Empty tuple",
+        single_field_struct("(name: String)") => "Single-field struct",
+        unclosed_tuple("(Int, String") => "Unclosed tuple",
+    );
+}
 ```
 
-### Signature
+### Commands
 
-A signature is a simple string, that conforms to a specific ABNF, they are only used in type annotations (specifically to define functions):
-
-```abnf
-signature = [generics] "(" [ argument *("," argument) ] ")" "->" type
-generics = "<" symbol-safe [":" type ] ">"
-argument = symbol-safe ":" type
-```
-
-### Constant
-
-A constant is represented through an object with a the key `const` and the value being the constant, an optional `type` key can be used to specify the type of the constant.
-
-```json
-{"const": value, "type": type}
-```
-
-Where `value` is any JSON value, and `type` is an expression, evaluating to a type that can be instantiated, using the value provided.
-
-#### Reasoning
-
-The reason that we need to have a construct for constants is that we need to be able to distinguish between a J-Expr construct, and any constant value that might be passed. The idea is simple: constants in general are used less frequently than any other construct, so we can afford to have a more verbose syntax for them.
-The other reason is that it is hard to disambiguate between a constant and expression, specifically the constructs that are used by the language itself, including: arrays, objects and strings. Parsing would need to be able to be very context aware, which isn't even possible in some cases, for example: are we calling a function, or are we simply passing an array as an argument to another function?
-While certain types, like `number`, `boolean` or `null` could be used directly, as they are not used in a J-Expr, it was chosen that these are not allowed, to make the language more consistent. Otherwise it would be confusing, why some constants are allowed, and others are not.
-
-Because it imposes additional syntactical burden, an alternative syntax has been proposed, called _Special Form Values_, these are strings, that start with a `#` character, then with a name (like a function) to be invoked, and then a value, for example, for constants this could be: `#value(42)`, or `#value(Int, 42)`, because this is additional complexity, and it is not clear if it is worth it, it has been decided to not use it, and instead use the more verbose syntax (for now).
-
-#### Example
-
-```json
-{ "const": 42, "type": "int" }
+```bash
+cargo nextest run --package hashql-syntax-jexpr
+cargo insta test --package hashql-syntax-jexpr
+cargo insta review  # Interactive review
 ```
