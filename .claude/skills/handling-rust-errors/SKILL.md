@@ -41,6 +41,28 @@ Automatically activates when:
 
 ---
 
+## HashQL Compiler Exception
+
+**HashQL compiler code uses a different error handling approach.**
+
+Code in `libs/@local/hashql/*` uses the `hashql-diagnostics` crate instead of `error-stack`. This is because compiler errors require rich formatting capabilities:
+
+- Source spans pointing to exact code locations
+- Multiple labeled regions within the same diagnostic
+- Fix suggestions with replacement text
+- Severity levels (error, warning, hint)
+
+**Which approach to use:**
+
+| Location | Error Handling |
+|----------|----------------|
+| `libs/@local/hashql/*` (compiler code) | Use `hashql-diagnostics` → See [writing-hashql-diagnostics](../writing-hashql-diagnostics/SKILL.md) skill |
+| Everywhere else | Use `error-stack` patterns from this skill |
+
+Traditional `error-stack` patterns still apply for HashQL infrastructure code (CLI, file I/O, configuration) that doesn't involve compiler diagnostics.
+
+---
+
 ## Quick Start Guide
 
 Choose the resource that matches your current task:
