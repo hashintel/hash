@@ -5,6 +5,7 @@
 //! Handler methods are grouped by routes that make up the REST API.
 
 pub mod data_type;
+pub mod domain;
 pub mod entity;
 pub mod entity_type;
 pub mod permissions;
@@ -226,6 +227,7 @@ where
         entity::EntityResource::routes::<S>(),
         permissions::PermissionResource::routes::<S>(),
         principal::PrincipalResource::routes::<S>(),
+        domain::DomainResource::routes(),
     ]
 }
 
@@ -237,6 +239,7 @@ fn api_documentation() -> Vec<openapi::OpenApi> {
         entity::EntityResource::openapi(),
         permissions::PermissionResource::openapi(),
         principal::PrincipalResource::openapi(),
+        domain::DomainResource::openapi(),
     ]
 }
 

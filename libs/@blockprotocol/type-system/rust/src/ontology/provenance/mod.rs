@@ -54,48 +54,6 @@ pub enum OntologyOwnership {
     },
 }
 
-impl OntologyOwnership {
-    /// Returns `true` if the ontology type is locally owned.
-    ///
-    /// A type is considered local if it was created within the current system and has
-    /// an associated [`WebId`] owner. Remote types, which were fetched from external
-    /// sources, will return `false`.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use type_system::{
-    ///     ontology::provenance::OntologyOwnership,
-    ///     principal::actor_group::WebId,
-    /// };
-    /// use uuid::Uuid;
-    ///
-    /// let web_id = WebId::new(Uuid::nil());
-    /// let local = OntologyOwnership::Local { web_id };
-    /// assert!(local.is_local());
-    ///
-    /// use time::OffsetDateTime;
-    /// let remote = OntologyOwnership::Remote {
-    ///     fetched_at: OffsetDateTime::now_utc(),
-    /// };
-    /// assert!(!remote.is_local());
-    /// ```
-    #[must_use]
-    pub const fn is_local(&self) -> bool {
-        matches!(self, Self::Local { .. })
-    }
-
-    /// Returns the [`WebId`] of the local owner, if this type is locally owned.
-    ///
-    /// Returns `None` for remote types that were fetched from external sources.
-    #[must_use]
-    pub const fn web_id(&self) -> Option<WebId> {
-        match self {
-            Self::Local { web_id } => Some(*web_id),
-            Self::Remote { .. } => None,
-        }
-    }
-}
 /// Provenance information for an ontology type.
 ///
 /// Contains tracking information about the creation, modification, and origin of an ontology type.
