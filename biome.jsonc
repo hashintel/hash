@@ -23,6 +23,8 @@
     "ignore": [
       // Biome 1 doesn't support nested gitignores yet (Biome 2 will gain support)
       // see: https://github.com/biomejs/biome/issues/2312
+      "**/_temp/**",
+      "**/.mastra/**",
       "@local/graph/api/openapi/**",
       "@local/graph/client/typescript/*.ts",
       "**/*.snap",

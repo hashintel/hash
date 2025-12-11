@@ -9,7 +9,10 @@
   "scripts": {
     "build": "mastra build",
     "dev": "mastra dev",
+    "fix": "npm-run-all --continue-on-error \"fix:*\"",
     "fix:eslint": "eslint --fix .",
+    "fix:format": "biome format --write",
+    "lint": "npm-run-all --continue-on-error \"lint:*\"",
     "lint:eslint": "eslint --report-unused-disable-directives .",
     "lint:tsc": "tsc --noEmit",
     "start": "mastra start",
@@ -52,6 +55,7 @@
     "eslint": "9.38.0",
     "jsdom": "27.3.0",
     "mastra": "1.0.0-beta.5",
+    "npm-run-all2": "8.0.4",
     "rimraf": "6.1.2",
     "sanitize-html": "2.17.0",
     "tsx": "4.21.0",
