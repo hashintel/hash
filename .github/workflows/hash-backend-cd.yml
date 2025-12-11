@@ -53,6 +53,7 @@ env:
   STAGING_APP_CLUSTER_NAME: h-stage-euc1-app
   STAGING_APP_DEPLOY_ROLE_ARN: arn:aws:iam::054238437032:role/h-stage-euc1-app-deploy
   STAGING_APP_GRAPH_SERVICE_NAME: h-stage-euc1-app-graph
+  STAGING_APP_GRAPH_TEST_SERVICE_NAME: h-stage-euc1-app-graph-test
   STAGING_APP_TYPE_FETCHER_SERVICE_NAME: h-stage-euc1-app-type-fetcher
   STAGING_APP_API_SERVICE_NAME: h-stage-euc1-app-api
   STAGING_WORKER_CLUSTER_NAME: h-stage-euc1-worker
@@ -550,6 +551,17 @@ jobs:
           AWS_REGION: ${{ env.STAGING_AWS_REGION }}
           ECS_CLUSTER_NAME: ${{ env.STAGING_APP_CLUSTER_NAME }}
           ECS_SERVICE_NAME: ${{ env.STAGING_APP_GRAPH_SERVICE_NAME }}
+          ROLE_ARN: ${{ env.STAGING_APP_DEPLOY_ROLE_ARN }}
+
+      - name: Redeploy graph-test staging service
+        uses: ./.github/actions/redeploy-ecs-service
+        with:
+          AWS_ACCESS_KEY_ID: ${{ steps.secrets.outputs.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ steps.secrets.outputs.AWS_SECRET_ACCESS_KEY }}
+          AWS_SESSION_TOKEN: ${{ steps.secrets.outputs.AWS_SESSION_TOKEN }}
+          AWS_REGION: ${{ env.STAGING_AWS_REGION }}
+          ECS_CLUSTER_NAME: ${{ env.STAGING_APP_CLUSTER_NAME }}
+          ECS_SERVICE_NAME: ${{ env.STAGING_APP_GRAPH_TEST_SERVICE_NAME }}
           ROLE_ARN: ${{ env.STAGING_APP_DEPLOY_ROLE_ARN }}
 
       - name: Redeploy type-fetcher staging service
