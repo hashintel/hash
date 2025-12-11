@@ -1,15 +1,6 @@
-import {
-  createContext,
-  useContext,
-  useEffect,
-  useMemo,
-  useState,
-} from "react";
+import { createContext, useContext, useEffect, useMemo, useState } from "react";
 
-import {
-  checkSDCPN,
-  type SDCPNCheckResult,
-} from "../core/checker/checker";
+import { checkSDCPN, type SDCPNCheckResult } from "../core/checker/checker";
 import { useSDCPNContext } from "./sdcpn-provider";
 
 export type CheckResult = SDCPNCheckResult;
