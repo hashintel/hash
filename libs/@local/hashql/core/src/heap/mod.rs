@@ -37,12 +37,15 @@
 //! - `heap::VecDeque<'heap, T>`: A double-ended queue allocated on the heap
 //! - `heap::HashMap<'heap, K, V, S>`: A hash map allocated on the heap
 
+mod scratch;
+
 use core::{alloc::Allocator, ptr};
 use std::sync::Mutex;
 
 use bumpalo::Bump;
 use hashbrown::HashSet;
 
+pub use self::scratch::Scratch;
 use crate::{
     collections::{FastHashSet, fast_hash_set_with_capacity},
     symbol::{Symbol, sym::TABLES},
