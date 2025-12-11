@@ -25,7 +25,6 @@ hashql-syntax-jexpr            = { workspace = true }
 
 # Private third-party dependencies
 anstream           = { workspace = true }
-bstr               = { workspace = true }
 camino             = { workspace = true }
 clap               = { workspace = true, features = ["derive", "env"] }
 derive_more        = { workspace = true, features = ["display"] }
