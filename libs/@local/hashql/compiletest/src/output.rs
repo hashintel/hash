@@ -14,7 +14,7 @@ pub(crate) fn escape_json(mut write: impl io::Write, value: &str) -> io::Result<
     // character, both lookup tables and unsafe code versions will result in worse performance.
     while let Some(pos) = slice
         .iter()
-        .position(|&byte| (byte == 0x22) || (byte == 0x2F) || (byte == 0x5C) || (byte < 0x20))
+        .position(|&byte| (byte == 0x22) || (byte == 0x5C) || (byte < 0x20))
     {
         let (head, tail) = slice.split_at(pos);
         write.write_all(head)?;
@@ -26,7 +26,6 @@ pub(crate) fn escape_json(mut write: impl io::Write, value: &str) -> io::Result<
         match escape {
             0x22 => write.write_all(b"\\\"")?,
             0x5C => write.write_all(b"\\\\")?,
-            0x2F => write.write_all(b"\\/")?,
             0x08 => write.write_all(b"\\b")?,
             0x09 => write.write_all(b"\\t")?,
             0x0A => write.write_all(b"\\n")?,
