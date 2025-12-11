@@ -19,7 +19,7 @@
  */
 export const dereferencedPersonType = {
   isLink: false,
-  parentIds: ["https://hash.ai/@h/types/entity-type/person/v/1"],
+  parentIds: ["https://hash.ai/@h/types/entity-type/person/v/1"], // list of parents including self
   schema: {
     $id: "https://hash.ai/@h/types/entity-type/person/v/1",
     title: "Person",
