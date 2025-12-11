@@ -4,7 +4,7 @@ Mastra-based implementation of HASH's AI inference capabilities, focusing on Nam
 
 ## Project Structure
 
-```
+```sh
 src/mastra/
 ├── agents/
 │   └── entity-summary-agent.ts      # NER agent (baseline)
