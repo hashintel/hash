@@ -1,56 +1,68 @@
 //! Data dependency analysis for MIR.
 //!
 //! This module provides [`DataDependencyAnalysis`], a pass that constructs a graph representing
-//! data dependencies between locals in the MIR. The resulting [`DataDependencyGraph`] can be used
-//! to trace which locals a given place ultimately depends on.
+//! structural data dependencies between locals in the MIR. The resulting [`DataDependencyGraph`]
+//! can be used to trace which locals a given place ultimately depends on via projections.
 //!
 //! # Graph Structure
 //!
-//! The dependency graph uses locals as nodes and tracks dependencies as directed edges. An edge
-//! from local `A` to local `B` means "A depends on B" (or equivalently, "A references B").
+//! The dependency graph uses locals as nodes and tracks structural dependencies as directed edges.
+//! An edge from local `A` to local `B` means "A structurally depends on B" (i.e., A was
+//! constructed from B in a way that can be resolved through field projections).
 //!
 //! For example, given the statement `_3 = (_1.field, _2)`:
-//! - An edge `_3 → _1` is created with slot [`Slot::Index(0)`] and the `.field` projection
-//! - An edge `_3 → _2` is created with slot [`Slot::Index(1)`]
+//! - An edge `_3 → _1` is created with kind [`EdgeKind::Index(0)`] and the `.field` projection
+//! - An edge `_3 → _2` is created with kind [`EdgeKind::Index(1)`]
 //!
 //! # Field Sensitivity
 //!
 //! The analysis is field-sensitive for structured types. When a tuple or struct is constructed,
-//! each component is tracked separately via [`Slot`] annotations on edges. This enables
+//! each component is tracked separately via [`EdgeKind`] annotations on edges. This enables
 //! [`DataDependencyGraph::resolve`] to trace through projections and find the original source
 //! of a specific field access.
+//!
+//! # Structural vs Non-Structural Dependencies
+//!
+//! Only *structural* dependencies are tracked — those that can be resolved through via
+//! projections (tuples, structs, closures, loads). Non-structural dependencies (binary
+//! operations, function calls, etc.) are not tracked since they cannot be projected into.
+//! Use dataflow analysis or inspect the [`RValue`] directly for those cases.
 //!
 //! # Requirements
 //!
 //! This analysis requires the MIR to be in SSA form. Assignments must target locals directly
 //! without projections (i.e., `_1 = ...` is valid, but `_1.field = ...` is not).
 //!
-//! [`Slot::Index(0)`]: Slot::Index
-//! [`Slot::Index(1)`]: Slot::Index
+//! [`EdgeKind::Index(0)`]: graph::EdgeKind::Index
+//! [`EdgeKind::Index(1)`]: graph::EdgeKind::Index
 mod graph;
 #[cfg(test)]
 mod tests;
 
 use alloc::alloc::Global;
-use core::{alloc::Allocator, fmt};
+use core::{
+    alloc::Allocator,
+    fmt,
+    ops::{Index, IndexMut},
+};
 
 use hashql_core::{
     graph::{LinkedGraph, NodeId},
     id::Id as _,
 };
 
-use self::graph::{Edge, Slot, resolve, write_graph};
+use self::graph::{Edge, EdgeKind, resolve, write_graph};
 use crate::{
     body::{
         Body,
         constant::Constant,
-        local::{Local, LocalVec},
+        local::{Local, LocalSlice, LocalVec},
         location::Location,
         operand::Operand,
         place::{FieldIndex, Place},
-        rvalue::{Aggregate, AggregateKind, Apply, Binary, RValue, Unary},
+        rvalue::{Aggregate, AggregateKind, RValue},
         statement::Assign,
-        terminator::{GraphRead, GraphReadBody, GraphReadHead, GraphReadTail, SwitchInt, Target},
+        terminator::Target,
     },
     context::MirContext,
     intern::Interner,
@@ -75,9 +87,47 @@ impl<A: Allocator> fmt::Display for TransientDataDependencyGraph<'_, A> {
 }
 
 #[derive(Debug, Clone)]
-struct SlotConst<'heap> {
-    slot: Slot<'heap>,
+struct ConstantBinding<'heap> {
+    kind: EdgeKind<'heap>,
     constant: Constant<'heap>,
+}
+
+/// Maps each local to its constant bindings.
+///
+/// A constant binding records when a structural position (identified by [`EdgeKind`]) contains
+/// a constant value rather than a reference to another local. This enables resolution to
+/// return constants when tracing through aggregate constructions.
+#[derive(Debug)]
+struct ConstantBindings<'heap, A: Allocator = Global> {
+    inner: LocalVec<Vec<ConstantBinding<'heap>, A>, A>,
+}
+
+impl<A: Allocator + Clone> ConstantBindings<'_, A> {
+    const fn empty_in(alloc: A) -> Self {
+        Self {
+            inner: LocalVec::new_in(alloc),
+        }
+    }
+
+    fn from_domain_in(local_decls: &LocalSlice<impl Sized>, alloc: A) -> Self {
+        Self {
+            inner: LocalVec::from_domain_in(Vec::new_in(alloc.clone()), local_decls, alloc),
+        }
+    }
+}
+
+impl<'heap, A: Allocator> Index<Local> for ConstantBindings<'heap, A> {
+    type Output = Vec<ConstantBinding<'heap>, A>;
+
+    fn index(&self, index: Local) -> &Self::Output {
+        &self.inner[index]
+    }
+}
+
+impl<A: Allocator> IndexMut<Local> for ConstantBindings<'_, A> {
+    fn index_mut(&mut self, index: Local) -> &mut Self::Output {
+        &mut self.inner[index]
+    }
 }
 
 /// A graph representing data dependencies between locals in MIR.
@@ -97,7 +147,7 @@ struct SlotConst<'heap> {
 #[derive(Debug)]
 pub struct DataDependencyGraph<'heap, A: Allocator = Global> {
     graph: LinkedGraph<Local, Edge<'heap>, A>,
-    constants: LocalVec<Vec<SlotConst<'heap>, A>, A>,
+    constant_bindings: ConstantBindings<'heap, A>,
 }
 
 impl<'heap, A: Allocator> DataDependencyGraph<'heap, A> {
@@ -151,7 +201,7 @@ impl<'heap, A: Allocator> DataDependencyGraph<'heap, A> {
                 source,
                 NodeId::new(target.as_usize()),
                 Edge {
-                    slot: data.slot,
+                    kind: data.kind,
                     projections,
                 },
             );
@@ -179,7 +229,7 @@ impl<A: Allocator> fmt::Display for DataDependencyGraph<'_, A> {
 pub struct DataDependencyAnalysis<'heap, A: Allocator = Global> {
     alloc: A,
     graph: LinkedGraph<Local, Edge<'heap>, A>,
-    constants: LocalVec<Vec<SlotConst<'heap>, A>, A>,
+    constant_bindings: ConstantBindings<'heap, A>,
 }
 
 impl<'heap, A: Allocator> DataDependencyAnalysis<'heap, A> {
@@ -191,7 +241,7 @@ impl<'heap, A: Allocator> DataDependencyAnalysis<'heap, A> {
         Self {
             alloc: alloc.clone(),
             graph: LinkedGraph::new_in(alloc.clone()),
-            constants: LocalVec::new_in(alloc),
+            constant_bindings: ConstantBindings::empty_in(alloc),
         }
     }
 
@@ -199,7 +249,7 @@ impl<'heap, A: Allocator> DataDependencyAnalysis<'heap, A> {
     pub fn finish(self) -> DataDependencyGraph<'heap, A> {
         DataDependencyGraph {
             graph: self.graph,
-            constants: self.constants,
+            constant_bindings: self.constant_bindings,
         }
     }
 }
@@ -223,60 +273,57 @@ impl<'env, 'heap, A: Allocator + Clone> AnalysisPass<'env, 'heap>
 {
     fn run(&mut self, context: &mut MirContext<'env, 'heap>, body: &Body<'heap>) {
         let mut graph = LinkedGraph::new_in(self.alloc.clone());
-        let mut constants = LocalVec::from_domain_in(
-            Vec::new_in(self.alloc.clone()),
-            &body.local_decls,
-            self.alloc.clone(),
-        );
+        let mut constant_bindings =
+            ConstantBindings::from_domain_in(&body.local_decls, self.alloc.clone());
 
         graph.derive(&body.local_decls, |id, _| id);
 
         let Ok(()) = DataDependencyAnalysisVisitor {
             graph: &mut graph,
-            constants: &mut constants,
+            constant_bindings: &mut constant_bindings,
             context,
-            terminator_value: None,
             body,
         }
         .visit_body(body);
 
         self.graph = graph;
-        self.constants = constants;
+        self.constant_bindings = constant_bindings;
     }
 }
 
 /// Visitor that collects data dependencies during MIR traversal.
 struct DataDependencyAnalysisVisitor<'pass, 'env, 'heap, A: Allocator> {
     graph: &'pass mut LinkedGraph<Local, Edge<'heap>, A>,
-    constants: &'pass mut LocalVec<Vec<SlotConst<'heap>, A>, A>,
+    constant_bindings: &'pass mut ConstantBindings<'heap, A>,
+    #[expect(dead_code, reason = "will be used in future")]
     context: &'pass mut MirContext<'env, 'heap>,
     body: &'pass Body<'heap>,
-    terminator_value: Option<u128>,
 }
 
 impl<'heap, A: Allocator> DataDependencyAnalysisVisitor<'_, '_, 'heap, A> {
-    /// Records a dependency edge from `source` to the local in `place`.
+    /// Records a structural dependency edge from `source` to the local in `place`.
     fn collect_place(
         &mut self,
         source: Local,
-        slot: Slot<'heap>,
+        kind: EdgeKind<'heap>,
         &Place { local, projections }: &Place<'heap>,
     ) {
         self.graph.add_edge(
             NodeId::from_usize(source.as_usize()),
             NodeId::from_usize(local.as_usize()),
-            Edge { slot, projections },
+            Edge { kind, projections },
         );
     }
 
-    /// Records a dependency edge from `source` to the operand, if it's a place.
+    /// Records a structural dependency from `source` to the operand.
     ///
-    /// Constants have no dependencies and are ignored.
-    fn collect_operand(&mut self, source: Local, slot: Slot<'heap>, operand: &Operand<'heap>) {
+    /// For places, creates an edge in the graph.
+    /// For constants, records a constant binding for later resolution.
+    fn collect_operand(&mut self, source: Local, kind: EdgeKind<'heap>, operand: &Operand<'heap>) {
         match operand {
-            Operand::Place(place) => self.collect_place(source, slot, place),
+            Operand::Place(place) => self.collect_place(source, kind, place),
             &Operand::Constant(constant) => {
-                self.constants[source].push(SlotConst { slot, constant });
+                self.constant_bindings[source].push(ConstantBinding { kind, constant });
             }
         }
     }
@@ -285,89 +332,16 @@ impl<'heap, A: Allocator> DataDependencyAnalysisVisitor<'_, '_, 'heap, A> {
 impl<'heap, A: Allocator> Visitor<'heap> for DataDependencyAnalysisVisitor<'_, '_, 'heap, A> {
     type Result = Result<(), !>;
 
-    fn visit_terminator_switch_int(
-        &mut self,
-        location: Location,
-        SwitchInt {
-            discriminant,
-            targets,
-        }: &SwitchInt<'heap>,
-    ) -> Self::Result {
-        self.visit_operand(location, discriminant)?;
-
-        for (value, target) in targets.iter() {
-            self.terminator_value = Some(value);
-            self.visit_target(location, &target)?;
-        }
-
-        self.terminator_value = None;
-        if let Some(target) = targets.otherwise() {
-            self.visit_target(location, &target)?;
-        }
-
-        Ok(())
-    }
-
     fn visit_target(
         &mut self,
-        location: Location,
+        _: Location,
         &Target { block, args }: &Target<'heap>,
     ) -> Self::Result {
         let params = self.body.basic_blocks[block].params;
         debug_assert_eq!(params.len(), args.len());
 
         for (&param, arg) in params.iter().zip(args.iter()) {
-            self.collect_operand(
-                param,
-                Slot::Param(location.block, self.terminator_value),
-                arg,
-            );
-        }
-
-        Ok(())
-    }
-
-    fn visit_terminator_graph_read(
-        &mut self,
-        _: Location,
-        GraphRead {
-            head,
-            body,
-            tail,
-            target,
-        }: &GraphRead<'heap>,
-    ) -> Self::Result {
-        // Graph read is special: all referenced variables become dependencies of the target
-        // block's output parameter (which is always the first and only parameter).
-        let params = self.body.basic_blocks[*target].params;
-        debug_assert_eq!(params.len(), 1);
-
-        let source = params[0];
-
-        match head {
-            GraphReadHead::Entity { axis } => {
-                self.collect_operand(source, Slot::GraphReadHeadAxis, axis);
-            }
-        }
-
-        for (index, body) in body.iter().enumerate() {
-            match body {
-                &GraphReadBody::Filter(_, env) => {
-                    // We record the environment local as a dependency but without a slot.
-                    // Recording the slot would skew results because we depend on the filter's
-                    // output semantically, not on the closure's internal structure. The captured
-                    // environment affects what data flows into the filter.
-                    self.collect_operand(
-                        source,
-                        Slot::GraphReadBodyFilterEnv(index),
-                        &Operand::Place(Place::local(env, self.context.interner)),
-                    );
-                }
-            }
-        }
-
-        match tail {
-            GraphReadTail::Collect => {}
+            self.collect_operand(param, EdgeKind::Param, arg);
         }
 
         Ok(())
@@ -387,21 +361,14 @@ impl<'heap, A: Allocator> Visitor<'heap> for DataDependencyAnalysisVisitor<'_, '
 
         match rhs {
             RValue::Load(operand) => {
-                self.collect_operand(source, Slot::Load, operand);
-            }
-            RValue::Binary(Binary { op: _, left, right }) => {
-                self.collect_operand(source, Slot::BinaryL, left);
-                self.collect_operand(source, Slot::BinaryR, right);
-            }
-            RValue::Unary(Unary { op: _, operand }) => {
-                self.collect_operand(source, Slot::Unary, operand);
+                self.collect_operand(source, EdgeKind::Load, operand);
             }
             RValue::Aggregate(Aggregate {
                 kind: AggregateKind::Tuple,
                 operands,
             }) => {
                 for (index, operand) in operands.iter_enumerated() {
-                    self.collect_operand(source, Slot::Index(index), operand);
+                    self.collect_operand(source, EdgeKind::Index(index), operand);
                 }
             }
             RValue::Aggregate(Aggregate {
@@ -411,15 +378,7 @@ impl<'heap, A: Allocator> Visitor<'heap> for DataDependencyAnalysisVisitor<'_, '
                 debug_assert_eq!(fields.len(), operands.len());
 
                 for (&field, (index, operand)) in fields.iter().zip(operands.iter_enumerated()) {
-                    self.collect_operand(source, Slot::Field(index, field), operand);
-                }
-            }
-            RValue::Aggregate(Aggregate {
-                kind: AggregateKind::List | AggregateKind::Dict | AggregateKind::Opaque(_),
-                operands,
-            }) => {
-                for (index, operand) in operands.iter_enumerated() {
-                    self.collect_operand(source, Slot::Aggregation(index), operand);
+                    self.collect_operand(source, EdgeKind::Field(index, field), operand);
                 }
             }
             RValue::Aggregate(Aggregate {
@@ -430,22 +389,18 @@ impl<'heap, A: Allocator> Visitor<'heap> for DataDependencyAnalysisVisitor<'_, '
                 let ptr = &operands[FieldIndex::new(0)];
                 let env = &operands[FieldIndex::new(1)];
 
-                self.collect_operand(source, Slot::ClosurePtr, ptr);
-                self.collect_operand(source, Slot::ClosureEnv, env);
+                self.collect_operand(source, EdgeKind::ClosurePtr, ptr);
+                self.collect_operand(source, EdgeKind::ClosureEnv, env);
             }
-            RValue::Input(_) => {
-                // Input has no dependencies; it's a source of external data.
-            }
-            RValue::Apply(Apply {
-                function,
-                arguments,
-            }) => {
-                self.collect_operand(source, Slot::ApplyPtr, function);
-
-                for (index, argument) in arguments.iter_enumerated() {
-                    self.collect_operand(source, Slot::ApplyArg(index), argument);
-                }
-            }
+            // Non-structural: no edges created, dependencies handled via dataflow/RValue inspection
+            RValue::Binary(_)
+            | RValue::Unary(_)
+            | RValue::Apply(_)
+            | RValue::Input(_)
+            | RValue::Aggregate(Aggregate {
+                kind: AggregateKind::List | AggregateKind::Dict | AggregateKind::Opaque(_),
+                ..
+            }) => {}
         }
 
         Ok(())
