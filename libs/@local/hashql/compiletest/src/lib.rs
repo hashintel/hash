@@ -40,6 +40,7 @@ use self::{
     reporter::{Reporter, Statistics, Summary, setup_progress_header},
     suite::Suite,
 };
+use crate::styles::{CYAN, GRAY};
 
 mod annotation;
 mod executor;
@@ -202,8 +203,6 @@ impl Options {
                 }
             }
             OutputFormat::Human => {
-                use crate::styles::{CYAN, GRAY};
-
                 for suite in suites {
                     writeln!(stdout, "  {CYAN}{}{CYAN:#}", suite.name())
                         .expect("should be able to write to stdout");
