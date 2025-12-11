@@ -3,9 +3,9 @@ import { runEvals } from "@mastra/core/evals";
 import dedent from "dedent";
 import { describe, expect, test } from "vitest";
 
-import { entitySummaryFixtures } from "../fixtures/entity-summary-fixtures";
-import { entitySummariesCompositeScorer } from "../scorers/entity-summaries-scorer";
-import type { DereferencedEntityType } from "../utils/dereference-entity-type";
+import { entitySummaryFixtures } from "../../fixtures/entity-summary-fixtures";
+import { entitySummariesCompositeScorer } from "../../scorers/entity-summaries-scorer";
+import type { DereferencedEntityType } from "../../utils/dereference-entity-type";
 import { entitySummaryAgent } from "./entity-summary-agent";
 
 export type LocalEntitySummary = {

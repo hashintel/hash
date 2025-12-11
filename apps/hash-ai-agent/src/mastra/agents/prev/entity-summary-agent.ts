@@ -1,8 +1,8 @@
 import { Agent } from "@mastra/core/agent";
 import dedent from "dedent";
 
-import { entitySummariesCompositeScorer } from "../scorers/entity-summaries-scorer";
-import { registerEntitySummariesTool } from "../tools/register-summaries-tool";
+import { entitySummariesCompositeScorer } from "../../scorers/entity-summaries-scorer";
+import { registerEntitySummariesTool } from "../../tools/register-summaries-tool";
 
 export const entitySummaryAgent = new Agent({
   id: "entity-summaries-agent",

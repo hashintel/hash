@@ -1,0 +1,29 @@
+{
+  "$id": "https://hash.ai/@h/types/entity-type/person/v/1",
+  "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/entity-type",
+  "description": "A human being",
+  "icon": "👤",
+  "kind": "entityType",
+  "labelProperty": "https://blockprotocol.org/@blockprotocol/types/property-type/name/",
+  "links": {
+    "https://hash.ai/@h/types/entity-type/affiliated-with/v/1": {
+      "items": { "oneOf": [{ "$ref": "https://hash.ai/@h/types/entity-type/institution/v/1" }] },
+      "type": "array"
+    }
+  },
+  "properties": {
+    "https://blockprotocol.org/@blockprotocol/types/property-type/description/": {
+      "$ref": "https://blockprotocol.org/@blockprotocol/types/property-type/description/v/1"
+    },
+    "https://blockprotocol.org/@blockprotocol/types/property-type/name/": {
+      "$ref": "https://blockprotocol.org/@blockprotocol/types/property-type/name/v/1"
+    },
+    "https://hash.ai/@h/types/property-type/email/": {
+      "items": { "$ref": "https://hash.ai/@h/types/property-type/email/v/1" },
+      "type": "array"
+    }
+  },
+  "required": ["https://blockprotocol.org/@blockprotocol/types/property-type/name/"],
+  "title": "Person",
+  "type": "object"
+}

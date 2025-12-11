@@ -1,8 +1,8 @@
 import { Agent } from "@mastra/core/agent";
 import dedent from "dedent";
 
-import { claimsStructureScorer } from "../scorers/claims-scorer";
-import { submitClaims } from "../tools/submit-claims-tool";
+import { claimsStructureScorer } from "../../scorers/claims-scorer";
+import { submitClaims } from "../../tools/submit-claims-tool";
 
 export const claimExtractionsAgent = new Agent({
   id: "claim-extraction-agent",
