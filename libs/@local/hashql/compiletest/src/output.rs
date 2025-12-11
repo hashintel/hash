@@ -1,7 +1,5 @@
 use std::io;
 
-use bstr::ByteSlice as _;
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum OutputFormat {
     #[default]
@@ -12,7 +10,12 @@ pub enum OutputFormat {
 pub(crate) fn escape_json(mut write: impl io::Write, value: &str) -> io::Result<()> {
     let mut slice = value.as_bytes();
 
-    while let Some(pos) = slice.find_byteset([0x22, 0x5C, 0x2F, 0x08, 0x09, 0x0A, 0x0C, 0x0D]) {
+    // Using `iter().position()` here is actually the most efficient way to find the next escape
+    // character, both lookup tables and unsafe code versions will result in worse performance.
+    while let Some(pos) = slice
+        .iter()
+        .position(|&byte| (byte == 0x22) || (byte == 0x2F) || (byte == 0x5C) || (byte < 0x20))
+    {
         let (head, tail) = slice.split_at(pos);
         write.write_all(head)?;
 
@@ -29,7 +32,7 @@ pub(crate) fn escape_json(mut write: impl io::Write, value: &str) -> io::Result<
             0x0A => write.write_all(b"\\n")?,
             0x0C => write.write_all(b"\\f")?,
             0x0D => write.write_all(b"\\r")?,
-            _ => unreachable!(),
+            byte => write!(write, "\\u{byte:04X}")?,
         }
 
         slice = rest;
