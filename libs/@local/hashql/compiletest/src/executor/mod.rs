@@ -18,7 +18,9 @@ use nextest_filtering::{CompiledExpr, EvalContext, Filterset, FiltersetKind, Par
 
 pub(crate) use self::trial::TrialDescription;
 use self::trial_group::TrialGroup;
-use crate::{TestGroup, annotation::diagnostic::DiagnosticAnnotation, reporter::Statistics};
+use crate::{
+    OutputFormat, TestGroup, annotation::diagnostic::DiagnosticAnnotation, reporter::Statistics,
+};
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, derive_more::Display)]
 pub(crate) enum TrialError {
@@ -149,9 +151,9 @@ impl<'graph, 'stats> TrialSet<'graph, 'stats> {
         self.groups.iter().map(TrialGroup::ignored).sum()
     }
 
-    pub(crate) fn list(&self, mut output: impl io::Write) -> io::Result<()> {
+    pub(crate) fn list(&self, mut output: impl io::Write, format: OutputFormat) -> io::Result<()> {
         for group in &self.groups {
-            group.list(&mut output)?;
+            group.list(&mut output, format)?;
         }
 
         Ok(())

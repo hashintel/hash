@@ -82,6 +82,10 @@ impl Suite for MirPassTransformCfgSimplify {
         "mir/pass/transform/cfg-simplify"
     }
 
+    fn description(&self) -> &'static str {
+        "Control flow graph simplification in the MIR"
+    }
+
     fn run<'heap>(
         &self,
         RunContext {

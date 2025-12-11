@@ -33,6 +33,10 @@ impl Suite for AstLoweringTypeExtractorSuite {
         "ast/lowering/type-extractor"
     }
 
+    fn description(&self) -> &'static str {
+        "Type information extraction from AST nodes"
+    }
+
     fn run<'heap>(
         &self,
         RunContext {

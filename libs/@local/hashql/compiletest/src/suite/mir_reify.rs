@@ -185,6 +185,10 @@ impl Suite for MirReifySuite {
         "mir/reify"
     }
 
+    fn description(&self) -> &'static str {
+        "MIR generation from HIR"
+    }
+
     fn run<'heap>(
         &self,
         RunContext {

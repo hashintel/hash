@@ -22,6 +22,10 @@ impl Suite for AstLoweringImportResolverContinueSuite {
         "ast/lowering/import-resolver/continue"
     }
 
+    fn description(&self) -> &'static str {
+        "Import resolution with non-fatal error handling"
+    }
+
     fn run<'heap>(
         &self,
         RunContext {
