@@ -51,7 +51,7 @@ use hashql_core::{
     id::Id as _,
 };
 
-use self::graph::{Edge, EdgeKind, resolve, write_graph};
+use self::graph::{Edge, EdgeKind, resolve_place, write_graph};
 use crate::{
     body::{
         Body,
@@ -152,7 +152,7 @@ pub struct DataDependencyGraph<'heap, A: Allocator = Global> {
 
 impl<'heap, A: Allocator> DataDependencyGraph<'heap, A> {
     pub fn resolve(&self, interner: &Interner<'heap>, place: Place<'heap>) -> Place<'heap> {
-        let (traveled, local) = resolve(&self.graph, place.local, &place.projections);
+        let (traveled, local) = resolve_place(&self.graph, place.local, &place.projections);
         let projections = interner
             .projections
             .intern_slice(&place.projections[traveled..]);

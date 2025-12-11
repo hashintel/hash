@@ -121,6 +121,47 @@ fn follow_load<'this, 'heap, A: Allocator>(
     }
 }
 
+fn recurse<'this, 'heap, A: Allocator, T>(
+    graph: &'this LinkedGraph<Local, Edge<'heap>, A>,
+    mut node: &'this Node<Local>,
+    mut next: impl FnMut(&'this Node<Local>) -> T,
+) -> T
+where
+    T: PartialEq,
+{
+    let mut visited = 0;
+    let max_depth = graph.nodes().len();
+
+    while let Some(edge) = graph
+        .outgoing_edges(node.id())
+        .find(|edge| matches!(edge.data.kind, EdgeKind::Load))
+    {
+        visited += 1;
+        debug_assert!(visited <= max_depth, "cycle detected in load chain");
+
+        node = &graph[edge.target()];
+    }
+
+    // Check if all the edges are params, if that is the case, we properly recurse
+    if graph
+        .outgoing_edges(node.id())
+        .all(|edge| matches!(edge.data.kind, EdgeKind::Param))
+    {
+        let mut outgoing = graph.outgoing_edges(node.id());
+        let Some(first) = outgoing.next() else {
+            return next(node);
+        };
+
+        // All the nodes are param, so we must check if they result in the same value.
+        let target = next(&graph[first.target()]);
+        if outgoing.all(|edge| next(&graph[edge.target()]) == target) {
+            return target;
+        }
+    }
+
+    next(node)
+}
+
 /// Resolves a place to its source local by following dependencies through the graph.
 ///
 /// Starting from the place's local, this method attempts to trace each projection in the
@@ -150,7 +191,7 @@ fn follow_load<'this, 'heap, A: Allocator>(
 ///
 /// Resolving `_3.1` returns `(1, _2)` because the `.1` projection resolves through the
 /// tuple construction.
-pub(crate) fn resolve<'heap, A: Allocator>(
+pub(crate) fn resolve_place<'heap, A: Allocator>(
     graph: &LinkedGraph<Local, Edge<'heap>, A>,
     local: Local,
     projections: &[Projection<'heap>],
