@@ -62,6 +62,103 @@ export type AffiliatedWithPropertiesWithMetadata =
   };
 
 /**
+ * A vehicle designed for air travel, such as an airplane or helicopter.
+ */
+export type Aircraft = {
+  entityTypeIds: ["https://hash.ai/@h/types/entity-type/aircraft/v/1"];
+  properties: AircraftProperties;
+  propertiesWithMetadata: AircraftPropertiesWithMetadata;
+};
+
+export type AircraftOutgoingLinkAndTarget = never;
+
+export type AircraftOutgoingLinksByLinkEntityTypeId = {};
+
+/**
+ * A vehicle designed for air travel, such as an airplane or helicopter.
+ */
+export type AircraftProperties = {
+  "https://hash.ai/@h/types/property-type/iata-code/"?: IATACodePropertyValue;
+  "https://hash.ai/@h/types/property-type/icao-code/"?: ICAOCodePropertyValue;
+  "https://hash.ai/@h/types/property-type/icao24-address/"?: ICAO24AddressPropertyValue;
+  "https://hash.ai/@h/types/property-type/registration-number/": RegistrationNumberPropertyValue;
+};
+
+export type AircraftPropertiesWithMetadata = {
+  metadata?: ObjectMetadata;
+  value: {
+    "https://hash.ai/@h/types/property-type/iata-code/"?: IATACodePropertyValueWithMetadata;
+    "https://hash.ai/@h/types/property-type/icao-code/"?: ICAOCodePropertyValueWithMetadata;
+    "https://hash.ai/@h/types/property-type/icao24-address/"?: ICAO24AddressPropertyValueWithMetadata;
+    "https://hash.ai/@h/types/property-type/registration-number/": RegistrationNumberPropertyValueWithMetadata;
+  };
+};
+
+/**
+ * A company that provides air transport services for passengers and/or cargo.
+ */
+export type Airline = {
+  entityTypeIds: ["https://hash.ai/@h/types/entity-type/airline/v/1"];
+  properties: AirlineProperties;
+  propertiesWithMetadata: AirlinePropertiesWithMetadata;
+};
+
+export type AirlineOutgoingLinkAndTarget = never;
+
+export type AirlineOutgoingLinksByLinkEntityTypeId = {};
+
+/**
+ * A company that provides air transport services for passengers and/or cargo.
+ */
+export type AirlineProperties = {
+  "https://blockprotocol.org/@blockprotocol/types/property-type/name/": NamePropertyValue;
+  "https://hash.ai/@h/types/property-type/iata-code/"?: IATACodePropertyValue;
+  "https://hash.ai/@h/types/property-type/icao-code/"?: ICAOCodePropertyValue;
+};
+
+export type AirlinePropertiesWithMetadata = {
+  metadata?: ObjectMetadata;
+  value: {
+    "https://blockprotocol.org/@blockprotocol/types/property-type/name/": NamePropertyValueWithMetadata;
+    "https://hash.ai/@h/types/property-type/iata-code/"?: IATACodePropertyValueWithMetadata;
+    "https://hash.ai/@h/types/property-type/icao-code/"?: ICAOCodePropertyValueWithMetadata;
+  };
+};
+
+/**
+ * A facility where aircraft take off and land, with infrastructure for passenger and cargo services.
+ */
+export type Airport = {
+  entityTypeIds: ["https://hash.ai/@h/types/entity-type/airport/v/1"];
+  properties: AirportProperties;
+  propertiesWithMetadata: AirportPropertiesWithMetadata;
+};
+
+export type AirportOutgoingLinkAndTarget = never;
+
+export type AirportOutgoingLinksByLinkEntityTypeId = {};
+
+/**
+ * A facility where aircraft take off and land, with infrastructure for passenger and cargo services.
+ */
+export type AirportProperties = {
+  "https://blockprotocol.org/@blockprotocol/types/property-type/name/": NamePropertyValue;
+  "https://hash.ai/@h/types/property-type/iata-code/"?: IATACodePropertyValue;
+  "https://hash.ai/@h/types/property-type/icao-code/"?: ICAOCodePropertyValue;
+  "https://hash.ai/@h/types/property-type/timezone/"?: TimezonePropertyValue;
+};
+
+export type AirportPropertiesWithMetadata = {
+  metadata?: ObjectMetadata;
+  value: {
+    "https://blockprotocol.org/@blockprotocol/types/property-type/name/": NamePropertyValueWithMetadata;
+    "https://hash.ai/@h/types/property-type/iata-code/"?: IATACodePropertyValueWithMetadata;
+    "https://hash.ai/@h/types/property-type/icao-code/"?: ICAOCodePropertyValueWithMetadata;
+    "https://hash.ai/@h/types/property-type/timezone/"?: TimezonePropertyValueWithMetadata;
+  };
+};
+
+/**
  * A user or other entity's preferences for how an application should behave or appear
  */
 export type ApplicationPreferencesPropertyValue = ObjectDataType;
@@ -340,6 +437,21 @@ export type DOILinkPropertyValueWithMetadata = URIDataTypeWithMetadata;
 export type DOIPropertyValue = DOIDataType;
 
 export type DOIPropertyValueWithMetadata = DOIDataTypeWithMetadata;
+
+/**
+ * A reference to a particular day represented within a calendar system, formatted according to RFC 3339.
+ */
+export type DateDataType = TextDataType;
+
+export type DateDataTypeWithMetadata = {
+  value: DateDataType;
+  metadata: DateDataTypeMetadata;
+};
+export type DateDataTypeMetadata = {
+  provenance?: PropertyProvenance;
+  confidence?: Confidence;
+  dataTypeId: "https://hash.ai/@h/types/data-type/date/v/1";
+};
 
 /**
  * A reference to a particular date and time, formatted according to RFC 3339.
@@ -927,6 +1039,27 @@ export type HasTextPropertiesWithMetadata = LinkPropertiesWithMetadata & {
   metadata?: ObjectMetadata;
   value: {};
 };
+
+/**
+ * A code assigned by the International Air Transport Association (IATA) to identify airports, airlines, or aircraft types.
+ */
+export type IATACodePropertyValue = TextDataType;
+
+export type IATACodePropertyValueWithMetadata = TextDataTypeWithMetadata;
+
+/**
+ * A unique 24-bit transponder address assigned to an aircraft, represented in hexadecimal format.
+ */
+export type ICAO24AddressPropertyValue = TextDataType;
+
+export type ICAO24AddressPropertyValueWithMetadata = TextDataTypeWithMetadata;
+
+/**
+ * A code assigned by the International Civil Aviation Organization (ICAO) to identify airports, airlines, or aircraft types.
+ */
+export type ICAOCodePropertyValue = TextDataType;
+
+export type ICAOCodePropertyValueWithMetadata = TextDataTypeWithMetadata;
 
 /**
  * An emoji icon.
@@ -1667,6 +1800,14 @@ export type ReadAtPropertyValue = DateTimeDataType;
 export type ReadAtPropertyValueWithMetadata = DateTimeDataTypeWithMetadata;
 
 /**
+ * A unique alphanumeric code assigned to an aircraft, also known as a tail number (e.g. 'N123AB').
+ */
+export type RegistrationNumberPropertyValue = TextDataType;
+
+export type RegistrationNumberPropertyValueWithMetadata =
+  TextDataTypeWithMetadata;
+
+/**
  * Stringified timestamp of when something was resolved.
  */
 export type ResolvedAtPropertyValue = DateTimeDataType;
@@ -1838,6 +1979,13 @@ export type TextualContentPropertyValueWithMetadata =
       value: ObjectDataTypeWithMetadata[];
       metadata?: ArrayMetadata;
     };
+
+/**
+ * A time zone identifier (e.g. 'America/Los_Angeles', 'Europe/London').
+ */
+export type TimezonePropertyValue = TextDataType;
+
+export type TimezonePropertyValueWithMetadata = TextDataTypeWithMetadata;
 
 /**
  * The title of something.

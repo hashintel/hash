@@ -18,7 +18,133 @@ const migrate: MigrationFunction = async ({
   migrationState,
 }) => {
   /**
-   * Step 1: Create property types for aviation-related data
+   * Step 1: Create data types
+   */
+
+  /**
+   * Angle data type hierarchy: Angle → Degree → Latitude/Longitude
+   */
+
+  const angleDataType = await createSystemDataTypeIfNotExists(
+    context,
+    authentication,
+    {
+      dataTypeDefinition: {
+        allOf: [{ $ref: blockProtocolDataTypes.number.dataTypeId }],
+        abstract: true,
+        title: "Angle",
+        description:
+          "A measure of rotation or the space between two intersecting lines.",
+        type: "number",
+      },
+      conversions: {},
+      migrationState,
+      webShortname: "h",
+    },
+  );
+
+  const degreeDataType = await createSystemDataTypeIfNotExists(
+    context,
+    authentication,
+    {
+      dataTypeDefinition: {
+        allOf: [{ $ref: angleDataType.schema.$id }],
+        title: "Degree",
+        description:
+          "A unit of angular measure equal to 1/360 of a full rotation.",
+        label: {
+          right: "°",
+        },
+        type: "number",
+      },
+      conversions: {},
+      migrationState,
+      webShortname: "h",
+    },
+  );
+
+  const latitudeDataType = await createSystemDataTypeIfNotExists(
+    context,
+    authentication,
+    {
+      dataTypeDefinition: {
+        allOf: [{ $ref: degreeDataType.schema.$id }],
+        title: "Latitude",
+        description:
+          "The angular distance of a position north or south of the equator, ranging from -90° (South Pole) to +90° (North Pole).",
+        minimum: -90,
+        maximum: 90,
+        type: "number",
+      },
+      conversions: {},
+      migrationState,
+      webShortname: "h",
+    },
+  );
+
+  const longitudeDataType = await createSystemDataTypeIfNotExists(
+    context,
+    authentication,
+    {
+      dataTypeDefinition: {
+        allOf: [{ $ref: degreeDataType.schema.$id }],
+        title: "Longitude",
+        description:
+          "The angular distance of a position east or west of the prime meridian, ranging from -180° to +180°.",
+        minimum: -180,
+        maximum: 180,
+        type: "number",
+      },
+      conversions: {},
+      migrationState,
+      webShortname: "h",
+    },
+  );
+
+  /**
+   * Speed data type hierarchy: Speed → Kilometers per Hour
+   */
+
+  const speedDataType = await createSystemDataTypeIfNotExists(
+    context,
+    authentication,
+    {
+      dataTypeDefinition: {
+        allOf: [{ $ref: blockProtocolDataTypes.number.dataTypeId }],
+        abstract: true,
+        title: "Speed",
+        description:
+          "A measure of the rate of movement or change in position over time.",
+        type: "number",
+      },
+      conversions: {},
+      migrationState,
+      webShortname: "h",
+    },
+  );
+
+  const kilometersPerHourDataType = await createSystemDataTypeIfNotExists(
+    context,
+    authentication,
+    {
+      dataTypeDefinition: {
+        allOf: [{ $ref: speedDataType.schema.$id }],
+        title: "Kilometers per Hour",
+        description:
+          "A unit of speed expressing the number of kilometers traveled in one hour.",
+        label: {
+          right: "km/h",
+        },
+        type: "number",
+      },
+      conversions: {},
+      migrationState,
+      webShortname: "h",
+    },
+  );
+
+  /**
+   * Step 2: Create property types
    */
 
   const iataCodePropertyType = await createSystemPropertyTypeIfNotExists(
@@ -281,6 +407,113 @@ const migrate: MigrationFunction = async ({
     },
   );
 
+  const metersDataTypeId = getCurrentHashDataTypeId({
+    dataTypeKey: "meters",
+    migrationState,
+  });
+
+  const latitudePropertyType = await createSystemPropertyTypeIfNotExists(
+    context,
+    authentication,
+    {
+      propertyTypeDefinition: {
+        title: "Latitude",
+        description:
+          "The angular distance of a position north or south of the equator.",
+        possibleValues: [{ dataTypeId: latitudeDataType.schema.$id }],
+      },
+      migrationState,
+      webShortname: "h",
+    },
+  );
+
+  const longitudePropertyType = await createSystemPropertyTypeIfNotExists(
+    context,
+    authentication,
+    {
+      propertyTypeDefinition: {
+        title: "Longitude",
+        description:
+          "The angular distance of a position east or west of the prime meridian.",
+        possibleValues: [{ dataTypeId: longitudeDataType.schema.$id }],
+      },
+      migrationState,
+      webShortname: "h",
+    },
+  );
+
+  const altitudePropertyType = await createSystemPropertyTypeIfNotExists(
+    context,
+    authentication,
+    {
+      propertyTypeDefinition: {
+        title: "Altitude",
+        description:
+          "The height of an object above a reference point, such as sea level or the ground.",
+        possibleValues: [{ dataTypeId: metersDataTypeId }],
+      },
+      migrationState,
+      webShortname: "h",
+    },
+  );
+
+  const directionPropertyType = await createSystemPropertyTypeIfNotExists(
+    context,
+    authentication,
+    {
+      propertyTypeDefinition: {
+        title: "Direction",
+        description:
+          "The heading or bearing of something, measured in degrees from true north.",
+        possibleValues: [{ dataTypeId: degreeDataType.schema.$id }],
+      },
+      migrationState,
+      webShortname: "h",
+    },
+  );
+
+  const horizontalSpeedPropertyType = await createSystemPropertyTypeIfNotExists(
+    context,
+    authentication,
+    {
+      propertyTypeDefinition: {
+        title: "Horizontal Speed",
+        description: "The rate of horizontal movement.",
+        possibleValues: [{ dataTypeId: kilometersPerHourDataType.schema.$id }],
+      },
+      migrationState,
+      webShortname: "h",
+    },
+  );
+
+  const verticalSpeedPropertyType = await createSystemPropertyTypeIfNotExists(
+    context,
+    authentication,
+    {
+      propertyTypeDefinition: {
+        title: "Vertical Speed",
+        description: "The rate of vertical movement (climb or descent).",
+        possibleValues: [{ dataTypeId: kilometersPerHourDataType.schema.$id }],
+      },
+      migrationState,
+      webShortname: "h",
+    },
+  );
+
+  const isOnGroundPropertyType = await createSystemPropertyTypeIfNotExists(
+    context,
+    authentication,
+    {
+      propertyTypeDefinition: {
+        title: "Is On Ground",
+        description: "Whether something is currently on the ground.",
+        possibleValues: [{ primitiveDataType: "boolean" }],
+      },
+      migrationState,
+      webShortname: "h",
+    },
+  );
+
   /**
    * Step 2: Create entity types
    */
@@ -503,6 +736,27 @@ const migrate: MigrationFunction = async ({
           },
           {
             propertyType: flightDatePropertyType,
+          },
+          {
+            propertyType: latitudePropertyType,
+          },
+          {
+            propertyType: longitudePropertyType,
+          },
+          {
+            propertyType: altitudePropertyType,
+          },
+          {
+            propertyType: directionPropertyType,
+          },
+          {
+            propertyType: horizontalSpeedPropertyType,
+          },
+          {
+            propertyType: verticalSpeedPropertyType,
+          },
+          {
+            propertyType: isOnGroundPropertyType,
           },
         ],
         outgoingLinks: [
