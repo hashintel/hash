@@ -119,6 +119,7 @@ const extractPeopleInputSchema = z.object({
 //   foundEntities: z.array(z.object({})),
 // });
 const extractPeopleOutputSchema = z.string();
+
 const extractPeopleStep = createStep({
   id: 'extract-people-step',
   inputSchema: extractPeopleInputSchema,

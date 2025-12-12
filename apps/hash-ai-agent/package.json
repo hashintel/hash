@@ -35,8 +35,10 @@
     "@mastra/loggers": "1.0.0-beta.3",
     "@mastra/mcp": "1.0.0-beta.6",
     "@mastra/memory": "1.0.0-beta.4",
+    "@mastra/observability": "1.0.0-beta.4",
     "dedent": "1.7.0",
     "es-toolkit": "1.41.0",
+    "vitest": "4.0.15",
     "zod": "4.1.12"
   },
   "devDependencies": {
@@ -58,8 +60,7 @@
     "npm-run-all2": "8.0.4",
     "sanitize-html": "2.17.0",
     "tsx": "4.20.6",
-    "typescript": "5.9.3",
-    "vitest": "3.2.4"
+    "typescript": "5.9.3"
   },
   "engines": {
     "node": ">=22.13.0"
