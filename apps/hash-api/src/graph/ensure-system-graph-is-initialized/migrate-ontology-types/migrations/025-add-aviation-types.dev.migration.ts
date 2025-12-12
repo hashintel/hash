@@ -322,7 +322,7 @@ const migrate: MigrationFunction = async ({
           "The current operational status of a flight, indicating whether it is scheduled, in progress, completed, or has encountered issues.",
         enum: [
           "Scheduled",
-          "Aactive",
+          "Active",
           "Landed",
           "Cancelled",
           "Incident",

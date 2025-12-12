@@ -76,7 +76,7 @@ export type FlightDepartureOrArrivalDetails = {
   actual_runway: string | null;
 };
 
-type Airline = {
+export type Airline = {
   /** The full name of the airline (e.g., "American Airlines") */
   name: string;
   /** The IATA code of the airline (e.g., "AA") */
