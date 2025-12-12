@@ -114,29 +114,6 @@ pub(crate) struct EdgeData<'heap> {
     pub projections: Interned<'heap, [Projection<'heap>]>,
 }
 
-#[expect(clippy::use_debug)]
-pub(crate) fn write_graph<A: Allocator>(
-    graph: &LinkedGraph<Local, EdgeData<'_>, A>,
-    mut writer: impl fmt::Write,
-) -> fmt::Result {
-    for edge in graph.edges() {
-        let source = edge.source();
-        let target = edge.target();
-        let EdgeData { kind, projections } = &edge.data;
-
-        write!(writer, "%{source} -> %{target} [{kind:?}")?;
-        if !projections.is_empty() {
-            write!(writer, ", projections: ")?;
-        }
-        for projection in projections {
-            write!(writer, "{}", projection.kind)?;
-        }
-        writeln!(writer, "]")?;
-    }
-
-    Ok(())
-}
-
 #[derive(Debug, Clone)]
 struct ConstantBinding<'heap> {
     kind: EdgeKind<'heap>,
@@ -199,6 +176,22 @@ impl<'heap, A: Allocator> ConstantBindings<'heap, A> {
     }
 }
 
+/// A data dependency graph with resolved transitive dependencies.
+///
+/// Created by [`DataDependencyGraph::transient`], this graph has edges that point directly to
+/// the ultimate source locals rather than intermediate aggregates. This is useful for analyses
+/// that need to know the true origin of data without manually traversing through tuple/struct
+/// constructions.
+pub struct TransientDataDependencyGraph<'heap, A: Allocator = Global> {
+    graph: DataDependencyGraph<'heap, A>,
+}
+
+impl<A: Allocator> fmt::Display for TransientDataDependencyGraph<'_, A> {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        fmt::Display::fmt(&self.graph, fmt)
+    }
+}
+
 #[expect(
     clippy::field_scoped_visibility_modifiers,
     reason = "required in resolve"
@@ -211,6 +204,28 @@ pub struct DataDependencyGraph<'heap, A: Allocator = Global> {
 }
 
 impl<'heap, A: Allocator> DataDependencyGraph<'heap, A> {
+    pub fn transient(&self, interner: &Interner<'heap>) -> TransientDataDependencyGraph<'heap, A>
+    where
+        A: Clone,
+    {
+        let mut graph = LinkedGraph::new_in(self.alloc.clone());
+        graph.derive(&self.constant_bindings.inner, |local, _| local);
+
+        let constant_bindings =
+            ConstantBindings::from_domain_in(&self.constant_bindings.inner, self.alloc.clone());
+
+        // transient graph construction is very straight forward, we simply create a new graph (and
+        // bindings)
+
+        TransientDataDependencyGraph {
+            graph: DataDependencyGraph {
+                alloc: self.alloc.clone(),
+                graph,
+                constant_bindings,
+            },
+        }
+    }
+
     pub fn replace(&self, interner: &Interner<'heap>, place: Place<'heap>) -> Operand<'heap>
     where
         A: Clone,
@@ -264,5 +279,32 @@ impl<'heap, A: Allocator> DataDependencyGraph<'heap, A> {
         let node_id = NodeId::new(local.as_usize());
 
         self.graph.outgoing_edges(node_id)
+    }
+}
+
+impl<A: Allocator> fmt::Display for DataDependencyGraph<'_, A> {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        for edge in self.graph.edges() {
+            let source = edge.source();
+            let target = edge.target();
+            let EdgeData { kind, projections } = &edge.data;
+
+            write!(fmt, "%{source} -> %{target} [{kind:?}")?;
+            if !projections.is_empty() {
+                write!(fmt, ", projections: ")?;
+            }
+            for projection in projections {
+                write!(fmt, "{}", projection.kind)?;
+            }
+            writeln!(fmt, "]")?;
+        }
+
+        for (local, bindings) in self.constant_bindings.inner.iter_enumerated() {
+            for ConstantBinding { kind, constant } in bindings {
+                write!(fmt, "%{local} -> {constant} [{kind:?}]")?;
+            }
+        }
+
+        Ok(())
     }
 }
