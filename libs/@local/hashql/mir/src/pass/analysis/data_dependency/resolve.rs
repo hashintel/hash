@@ -142,8 +142,8 @@ fn traverse<'heap, A: Allocator + Clone>(
                 projections.len() + place.projections.len(),
                 state.alloc,
             );
-            dequeue.extend(projections);
             dequeue.extend(place.projections);
+            dequeue.extend(projections);
 
             let place = PlaceMut {
                 local: place.local,
@@ -156,6 +156,69 @@ fn traverse<'heap, A: Allocator + Clone>(
     }
 }
 
+fn resolve_params<'heap, A: Allocator + Clone>(
+    mut state: ResolutionState<'_, '_, 'heap, A>,
+    place: PlaceRef<'_, 'heap>,
+) -> ControlFlow<ResolutionResult<'heap, A>, Local> {
+    // We can **only** check propagation in the case that:
+    // A) we have more than 0 edges
+    // B) all edges are params
+    // C) there is no constant, because otherwise we would know that we're divergent
+    let mut edges = state.graph.outgoing_edges(place.local);
+    let Some(head) = edges.next() else {
+        unreachable!("we just verified there are more than 0");
+    };
+
+    if let Some(visited) = &mut state.visited
+        && !visited.insert(place.local)
+    {
+        // We found a cycle, which we must break.
+        return ControlFlow::Break(ResolutionResult::Backtrack);
+    }
+
+    let mut visited = None;
+    let visited_state = state.visited.as_deref_mut().or_else(|| {
+        visited = Some(DenseBitSet::new_empty(state.graph.graph.node_count()));
+        visited.as_mut()
+    });
+
+    let mut rec_state = ResolutionState {
+        graph: state.graph,
+        interner: state.interner,
+        alloc: state.alloc.clone(),
+        visited: visited_state,
+    };
+
+    let first = traverse(rec_state.cloned(), place, head);
+
+    // We check if there is a consensus amongst all others
+    if edges.all(|edge| traverse(rec_state.cloned(), place, edge) == first) {
+        if first == ControlFlow::Break(ResolutionResult::Backtrack) && visited.is_some() {
+            // We are the initiator of the backtrack (as `visited` is initialized) and therefore the
+            // stopping point. If not true we can just propagate the overall result.
+        } else {
+            if let Some(visited) = state.visited {
+                visited.remove(place.local);
+            }
+
+            return first;
+        }
+    }
+
+    if let Some(visited) = &mut state.visited {
+        visited.remove(place.local);
+    }
+
+    // At least one of the edges is divergent *or* recursion has occurred.
+    let mut dequeue = VecDeque::new_in(state.alloc.clone());
+    dequeue.extend(place.projections);
+
+    ControlFlow::Break(ResolutionResult::Incomplete(PlaceMut {
+        local: place.local,
+        projections: dequeue,
+    }))
+}
+
 pub(crate) fn resolve<'heap, A: Allocator + Clone>(
     mut state: ResolutionState<'_, '_, 'heap, A>,
     mut place: PlaceRef<'_, 'heap>,
@@ -164,19 +227,19 @@ pub(crate) fn resolve<'heap, A: Allocator + Clone>(
     let mut load = None;
     for edge in state.graph.outgoing_edges(place.local) {
         match edge.data.kind {
-            // load can only be there alone
-            EdgeKind::Load => load = Some(edge),
+            EdgeKind::Load => load = Some(edge), // Load can only be there alone
             EdgeKind::Param => params += 1,
-            _ => {}
+            EdgeKind::Index(_)
+            | EdgeKind::Field(..)
+            | EdgeKind::ClosurePtr
+            | EdgeKind::ClosureEnv => {}
         }
     }
 
     if let Some(load) = load {
         // We have a load edge that we need to follow, following it is *very* similar to the
         // existing implementation.
-        let result = traverse(state.cloned(), place, load);
-
-        place.local = tri!(result);
+        place.local = tri!(traverse(state.cloned(), place, load));
     }
 
     if params > 0
@@ -186,77 +249,7 @@ pub(crate) fn resolve<'heap, A: Allocator + Clone>(
             .find_by_kind(place.local, EdgeKind::Param)
             .is_none()
     {
-        // We can **only** check propagation in the case that:
-        // A) we have more than 0 edges
-        // B) all edges are params
-        // C) there is no constant, because otherwise we would know that we're divergent
-        let mut edges = state.graph.outgoing_edges(place.local);
-        let Some(head) = edges.next() else {
-            unreachable!("we just verified there are more than 0");
-        };
-
-        if let Some(visited) = &mut state.visited
-            && !visited.insert(place.local)
-        {
-            // We found a cycle, which we must break.
-            return ResolutionResult::Backtrack;
-        }
-
-        let mut visited = None;
-        let visited_state = state.visited.as_deref_mut().or_else(|| {
-            visited = Some(DenseBitSet::new_empty(state.graph.graph.node_count()));
-            visited.as_mut()
-        });
-
-        let mut rec_state = ResolutionState {
-            graph: state.graph,
-            interner: state.interner,
-            alloc: state.alloc.clone(),
-            visited: visited_state,
-        };
-
-        let first = traverse(rec_state.cloned(), place, head);
-        let mut incomplete = false;
-
-        // We check if there is a consensus amongst all others
-        if edges.all(|edge| traverse(rec_state.cloned(), place, edge) == first) {
-            drop(rec_state);
-
-            // We have found our consensus
-            match first {
-                ControlFlow::Continue(local) => {
-                    place.local = local;
-                }
-                ControlFlow::Break(ResolutionResult::Backtrack) if visited.is_some() => {
-                    incomplete = true;
-                }
-                ControlFlow::Break(result) => {
-                    // We haven't initiated the recursion, and therefore simply propagate it
-                    if let Some(visited) = state.visited {
-                        visited.remove(place.local);
-                    }
-
-                    return result;
-                }
-            }
-        } else {
-            incomplete = true;
-        }
-
-        if let Some(visited) = &mut state.visited {
-            visited.remove(place.local);
-        }
-
-        if incomplete {
-            // At least one of the edges is divergent *or* recursion has occurred.
-            let mut dequeue = VecDeque::new_in(state.alloc.clone());
-            dequeue.extend(place.projections);
-
-            return ResolutionResult::Incomplete(PlaceMut {
-                local: place.local,
-                projections: dequeue,
-            });
-        }
+        place.local = tri!(resolve_params(state.cloned(), place));
     }
 
     let (projection, rest) = match place.projections {
@@ -277,7 +270,7 @@ pub(crate) fn resolve<'heap, A: Allocator + Clone>(
         [projection, rest @ ..] => (projection, rest),
     };
 
-    // Check if we point to a constant, in that case we can resolve it immediately
+    // Check if we directly point to a constant, in that case we can resolve it immediately
     if rest.is_empty()
         && let Some(constant) = state
             .graph

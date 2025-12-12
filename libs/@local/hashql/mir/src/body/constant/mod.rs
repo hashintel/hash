@@ -29,6 +29,8 @@
 
 mod int;
 
+use core::fmt;
+
 use hashql_core::value::Primitive;
 
 pub use self::int::{Int, TryFromIntegerError, TryFromPrimitiveError};
@@ -96,4 +98,15 @@ pub enum Constant<'heap> {
     /// calls and higher-order programming patterns where functions are treated
     /// as first-class values.
     FnPtr(DefId),
+}
+
+impl fmt::Display for Constant<'_> {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Int(int) => fmt::Display::fmt(int, fmt),
+            Self::Primitive(primitive) => fmt::Display::fmt(primitive, fmt),
+            Self::Unit => fmt.write_str("()"),
+            Self::FnPtr(def_id) => write!(fmt, "fn({def_id})"),
+        }
+    }
 }
