@@ -70,7 +70,6 @@ use crate::{
 ///
 /// This pass traverses the MIR body and records data dependencies between locals. After running,
 /// call [`finish`](Self::finish) to obtain the resulting [`DataDependencyGraph`].
-
 pub struct DataDependencyAnalysis<'heap, A: Allocator = Global> {
     alloc: A,
     graph: LinkedGraph<Local, EdgeData<'heap>, A>,
