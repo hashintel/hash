@@ -2,15 +2,15 @@
 /* eslint-disable import/first */
 
 /* eslint-disable @typescript-eslint/ban-ts-comment */
-import { dereferencedOrganizationType } from '../fixtures/entity-types/organization.js';
-import { dereferencedPersonType } from '../fixtures/entity-types/person.js';
+import { dereferencedOrganizationSchema } from '../fixtures/entity-schemas/organization.js';
+import { dereferencedPersonSchema } from '../fixtures/entity-schemas/person.js';
 import { entityTypesToYaml } from './entity-type-to-yaml.js';
 
 // @ts-expect-error Test code
-entityTypesToYaml([dereferencedPersonType, dereferencedOrganizationType]);
+entityTypesToYaml([dereferencedPersonSchema, dereferencedOrganizationSchema]);
 
-import organizationJson from '../fixtures/entity-types/raw/organization.json';
-import personJson from '../fixtures/entity-types/raw/person.json';
+import organizationJson from '../fixtures/entity-schemas/raw/organization.json';
+import personJson from '../fixtures/entity-schemas/raw/person.json';
 
 // console.log("Fetched person type JSON:", personJson);
 // console.log("Fetched organization type JSON:", organizationJson);
