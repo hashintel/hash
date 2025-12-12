@@ -47,6 +47,13 @@ impl<'heap, A: Allocator> ConstantBindings<'heap, A> {
             .find(|binding| binding.kind.matches_projection(projection))
             .map(|binding| binding.constant)
     }
+
+    fn find_by_kind(&self, local: Local, kind: EdgeKind<'heap>) -> Option<Constant<'heap>> {
+        self.inner[local]
+            .iter()
+            .find(|binding| binding.kind == kind)
+            .map(|binding| binding.constant)
+    }
 }
 
 #[derive(Debug)]
@@ -115,7 +122,7 @@ fn traverse<'heap, A: Allocator + Clone>(
         projections,
     }: PlaceRef<'_, 'heap>,
     edge: &Edge<EdgeData<'heap>>,
-    on_backtrack: impl FnOnce() -> ControlFlow<ResolutionResult<'heap, A>, Local>,
+
     on_constant: impl FnOnce(Constant<'heap>) -> ControlFlow<ResolutionResult<'heap, A>, Local>,
 ) -> ControlFlow<ResolutionResult<'heap, A>, Local> {
     // We found a matching edge, which means we can continue resolution (using the rest). The
@@ -131,7 +138,7 @@ fn traverse<'heap, A: Allocator + Clone>(
     let result = resolve(state.cloned(), target);
 
     match result {
-        ResolutionResult::Backtrack => on_backtrack(),
+        ResolutionResult::Backtrack => ControlFlow::Break(ResolutionResult::Backtrack),
         ResolutionResult::Incomplete(mut place) => {
             // We weren't able to resolve the place, therefore terminate with our incomplete state
             place.projections.extend_front(projections.iter().copied());
@@ -166,7 +173,7 @@ fn traverse<'heap, A: Allocator + Clone>(
 }
 
 fn resolve<'heap, A: Allocator + Clone>(
-    state: ResolutionState<'_, '_, 'heap, A>,
+    mut state: ResolutionState<'_, '_, 'heap, A>,
     mut place: PlaceRef<'_, 'heap>,
 ) -> ResolutionResult<'heap, A> {
     // The first implementation is without follow semantics (for now)
@@ -188,12 +195,42 @@ fn resolve<'heap, A: Allocator + Clone>(
     if let Some(load) = load {
         // We have a load edge that we need to follow, following it is *very* similar to the
         // existing implementation.
-        //
+        let result = traverse(state.cloned(), place, load, |constant| {
+            debug_assert!(
+                place.projections.is_empty(),
+                "constant can only be propagated in the case that projections are empty"
+            );
+
+            ControlFlow::Break(ResolutionResult::Resolved(Operand::Constant(constant)))
+        });
+
+        match result {
+            ControlFlow::Break(result) => return result,
+            ControlFlow::Continue(target) => {
+                place.local = target;
+            }
+        }
+    }
+
+    if edges > 0
+        && edges == params
+        && state
+            .graph
+            .constant_bindings
+            .find_by_kind(local, EdgeKind::Param)
+            .is_none()
+    {
+        // We can **only** check propagation in the case that:
+        // A) we have more than 0 edges
+        // B) all edges are params
+        // C) there is no constant, because otherwise we would know that we're divergent
     }
 
     let (projection, rest) = match projections {
         // There is nothing more to do, we have completed resolution
         [] => {
+            // TODO: check if there are loads/params that give us a constant
+
             return ResolutionResult::Resolved(Operand::Place(Place::local(local, state.interner)));
         }
         [projection, rest @ ..] => (projection, rest),
@@ -226,13 +263,9 @@ fn resolve<'heap, A: Allocator + Clone>(
 
     // We start to resolve the target place recursively, but *without* our state, this is
     // important so that we don't backtrack early if we don't need to.
-    let result = traverse(
-        state.cloned().without_visited(),
-        place,
-        edge,
-        || unreachable!("state is only valid in case we initiated backtracking, which we didn't."),
-        |_| unreachable!("type-check makes it so that we wouldn't traverse into a constant"),
-    );
+    let result = traverse(state.cloned().without_visited(), place, edge, |_| {
+        unreachable!("type-check makes it so that we wouldn't traverse into a constant")
+    });
 
     let target = match result {
         ControlFlow::Continue(target) => target,
