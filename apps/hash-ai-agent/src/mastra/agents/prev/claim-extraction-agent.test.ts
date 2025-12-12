@@ -14,8 +14,8 @@ import { describe, expect, test } from "vitest";
 import {
   type InferClaimsFixture,
   inferClaimsFixtures,
-} from "../fixtures/infer-claims-fixtures";
-import { claimsStructureScorer } from "../scorers/claims-scorer";
+} from "../../fixtures/infer-claims-fixtures";
+import { claimsStructureScorer } from "../../scorers/claims-scorer";
 import { claimExtractionsAgent } from "./claim-extraction-agent";
 import { entitySummaryAgent } from "./entity-summary-agent";
 

@@ -1,0 +1,65 @@
+{
+  "$id": "https://hash.ai/@h/types/entity-type/organization/v/3",
+  "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/entity-type",
+  "description": "An organization. Organizations are root-level objects that contain user accounts and teams.",
+  "icon": "/icons/types/people-group.svg",
+  "kind": "entityType",
+  "labelProperty": "https://hash.ai/@h/types/property-type/organization-name/",
+  "links": {
+    "https://hash.ai/@h/types/entity-type/has-avatar/v/1": {
+      "items": { "oneOf": [{ "$ref": "https://hash.ai/@h/types/entity-type/image-file/v/2" }] },
+      "maxItems": 1,
+      "minItems": 0,
+      "type": "array"
+    },
+    "https://hash.ai/@h/types/entity-type/has-bio/v/1": {
+      "items": { "oneOf": [{ "$ref": "https://hash.ai/@h/types/entity-type/profile-bio/v/1" }] },
+      "maxItems": 1,
+      "minItems": 0,
+      "type": "array"
+    },
+    "https://hash.ai/@h/types/entity-type/has-cover-image/v/1": {
+      "items": { "oneOf": [{ "$ref": "https://hash.ai/@h/types/entity-type/image-file/v/2" }] },
+      "maxItems": 1,
+      "minItems": 0,
+      "type": "array"
+    },
+    "https://hash.ai/@h/types/entity-type/has-issued-invitation/v/1": {
+      "items": {
+        "oneOf": [
+          { "$ref": "https://hash.ai/@h/types/entity-type/invitation-via-email/v/1" },
+          { "$ref": "https://hash.ai/@h/types/entity-type/invitation-via-shortname/v/1" }
+        ]
+      },
+      "type": "array"
+    }
+  },
+  "properties": {
+    "https://blockprotocol.org/@blockprotocol/types/property-type/description/": {
+      "$ref": "https://blockprotocol.org/@blockprotocol/types/property-type/description/v/1"
+    },
+    "https://hash.ai/@h/types/property-type/location/": {
+      "$ref": "https://hash.ai/@h/types/property-type/location/v/1"
+    },
+    "https://hash.ai/@h/types/property-type/organization-name/": {
+      "$ref": "https://hash.ai/@h/types/property-type/organization-name/v/1"
+    },
+    "https://hash.ai/@h/types/property-type/pinned-entity-type-base-url/": {
+      "items": { "$ref": "https://hash.ai/@h/types/property-type/pinned-entity-type-base-url/v/1" },
+      "maxItems": 5,
+      "type": "array"
+    },
+    "https://hash.ai/@h/types/property-type/shortname/": {
+      "$ref": "https://hash.ai/@h/types/property-type/shortname/v/1"
+    },
+    "https://hash.ai/@h/types/property-type/website-url/": {
+      "$ref": "https://hash.ai/@h/types/property-type/website-url/v/1"
+    }
+  },
+  "required": [
+    "https://hash.ai/@h/types/property-type/organization-name/",
+    "https://hash.ai/@h/types/property-type/shortname/"
+  ],
+  "title": "Organization",
+  "type": "object"
+}
