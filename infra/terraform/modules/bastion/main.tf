@@ -18,21 +18,18 @@ data "aws_ami" "amazon_linux" {
   owners      = ["amazon"]
 
   filter {
-    name = "name"
-
-    # list with the following command to update:
-    # `aws ec2 describe-images --owners amazon --filters "Name=name,Values=al2023-ami-ecs-hvm-*-x86_64" | jq '.Images | sort_by(.CreationDate) | reverse'`
-    # We don't wildcard here to not accidentally update to a non-functioning image.
-    values = [
-      "al2023-ami-ecs-hvm-2023.0.20250610-kernel-6.1-x86_64",
-    ]
+    name   = "name"
+    values = ["al2023-ami-2023.*-kernel-6.1-arm64"]
   }
 
   filter {
-    name = "owner-alias"
-    values = [
-      "amazon",
-    ]
+    name   = "virtualization-type"
+    values = ["hvm"]
+  }
+
+  filter {
+    name   = "architecture"
+    values = ["arm64"]
   }
 }
 
