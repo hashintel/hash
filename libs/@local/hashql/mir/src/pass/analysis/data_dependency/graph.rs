@@ -1,5 +1,5 @@
-use core::fmt;
-use std::alloc::{Allocator, Global};
+use alloc::alloc::Global;
+use core::{alloc::Allocator, fmt};
 
 use hashql_core::{
     graph::{LinkedGraph, NodeId, linked::IncidentEdges},
@@ -8,10 +8,15 @@ use hashql_core::{
     symbol::Symbol,
 };
 
-use crate::body::{
-    constant::Constant,
-    local::{Local, LocalSlice, LocalVec},
-    place::{FieldIndex, Projection, ProjectionKind},
+use super::resolve::{ResolutionResult, ResolutionState};
+use crate::{
+    body::{
+        constant::Constant,
+        local::{Local, LocalSlice, LocalVec},
+        operand::Operand,
+        place::{FieldIndex, Place, PlaceMut, Projection, ProjectionKind},
+    },
+    intern::Interner,
 };
 
 /// Describes which component of a structured value an edge represents.
@@ -64,7 +69,7 @@ impl<'heap> EdgeKind<'heap> {
             &EdgeKind::Field(field_index, _) | &EdgeKind::Index(field_index) => field_index,
             EdgeKind::ClosurePtr => FieldIndex::new(0),
             EdgeKind::ClosureEnv => FieldIndex::new(1),
-            _ => return false,
+            EdgeKind::Load | EdgeKind::Param => return false,
         };
 
         index == expected
@@ -73,7 +78,11 @@ impl<'heap> EdgeKind<'heap> {
     fn matches_projection_field_name(&self, name: Symbol<'heap>) -> bool {
         match self {
             &EdgeKind::Field(_, field_name) => field_name == name,
-            _ => false,
+            EdgeKind::Load
+            | EdgeKind::Param
+            | EdgeKind::Index(_)
+            | EdgeKind::ClosurePtr
+            | EdgeKind::ClosureEnv => false,
         }
     }
 
@@ -190,18 +199,59 @@ impl<'heap, A: Allocator> ConstantBindings<'heap, A> {
     }
 }
 
+#[expect(
+    clippy::field_scoped_visibility_modifiers,
+    reason = "required in resolve"
+)]
 #[derive(Debug)]
 pub struct DataDependencyGraph<'heap, A: Allocator = Global> {
+    alloc: A,
     pub(super) graph: LinkedGraph<Local, EdgeData<'heap>, A>,
     pub(super) constant_bindings: ConstantBindings<'heap, A>,
 }
 
 impl<'heap, A: Allocator> DataDependencyGraph<'heap, A> {
+    pub fn replace(&self, interner: &Interner<'heap>, place: Place<'heap>) -> Operand<'heap>
+    where
+        A: Clone,
+    {
+        let result = super::resolve::resolve(
+            ResolutionState {
+                graph: self,
+                interner,
+                alloc: self.alloc.clone(),
+                visited: None,
+            },
+            place.as_ref(),
+        );
+
+        match result {
+            ResolutionResult::Backtrack => {
+                unreachable!("we didn't start it, therefore not reachable")
+            }
+            ResolutionResult::Resolved(operand) => operand,
+            ResolutionResult::Incomplete(PlaceMut {
+                local,
+                mut projections,
+            }) => {
+                // We weren't able to fully resolve the place, so need to materialize a new one
+                Operand::Place(Place {
+                    local,
+                    projections: interner
+                        .projections
+                        .intern_slice(projections.make_contiguous()),
+                })
+            }
+        }
+    }
+
     pub(crate) const fn new(
+        alloc: A,
         graph: LinkedGraph<Local, EdgeData<'heap>, A>,
         constant_bindings: ConstantBindings<'heap, A>,
     ) -> Self {
         Self {
+            alloc,
             graph,
             constant_bindings,
         }

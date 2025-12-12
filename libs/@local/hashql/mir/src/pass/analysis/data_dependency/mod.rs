@@ -194,7 +194,7 @@ impl<'heap, A: Allocator> DataDependencyAnalysis<'heap, A> {
 
     /// Completes the analysis and returns the constructed dependency graph.
     pub fn finish(self) -> DataDependencyGraph<'heap, A> {
-        DataDependencyGraph::new(self.graph, self.constant_bindings)
+        DataDependencyGraph::new(self.alloc, self.graph, self.constant_bindings)
     }
 }
 
