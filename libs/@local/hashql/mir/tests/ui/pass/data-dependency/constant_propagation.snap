@@ -9,4 +9,6 @@ expression: "format!(\"{graph}\\n\\n=====\\n\\n{transient}\")"
 
 =====
 
+%0 -> 42 [Index(FieldIndex(0))]
+%0 -> 100 [Index(FieldIndex(1))]
 %1 -> 42 [Load]

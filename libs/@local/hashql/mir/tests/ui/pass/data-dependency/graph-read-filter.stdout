@@ -49,10 +49,14 @@ fn {closure@11}(%0: (Boolean,), %1: ::graph::types::knowledge::entity::Entity) -
 
 %5 -> %3 [Index(FieldIndex(0))]
 %0 -> %4 [Param]
+%0 -> 0 [Param]
+%1 -> 10 [Load]
 
 
 ════ Transient Data Dependency Graph ═══════════════════════════════════════════
 
 %5 -> %3 [Index(FieldIndex(0))]
 %0 -> %4 [Param]
+%0 -> 0 [Param]
+%1 -> 10 [Load]
 

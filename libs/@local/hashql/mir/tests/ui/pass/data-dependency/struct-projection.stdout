@@ -31,11 +31,17 @@
 %3 -> %2 [Field(FieldIndex(0), Symbol("bar"))]
 %3 -> %1 [Field(FieldIndex(1), Symbol("foo"))]
 %0 -> %3 [Param, projections: .foo]
+%0 -> 0 [Param]
+%1 -> 1 [Load]
+%2 -> 2 [Load]
 
 
 ════ Transient Data Dependency Graph ═══════════════════════════════════════════
 
-%3 -> %2 [Field(FieldIndex(0), Symbol("bar"))]
-%3 -> %1 [Field(FieldIndex(1), Symbol("foo"))]
-%0 -> %1 [Param]
+%0 -> 0 [Param]
+%0 -> 1 [Param]
+%1 -> 1 [Load]
+%2 -> 2 [Load]
+%3 -> 2 [Field(FieldIndex(0), Symbol("bar"))]
+%3 -> 1 [Field(FieldIndex(1), Symbol("foo"))]
 

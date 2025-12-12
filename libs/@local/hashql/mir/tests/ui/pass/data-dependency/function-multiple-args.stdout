@@ -69,10 +69,14 @@ fn f:0(%0: (), %1: Integer, %2: Integer, %3: Integer) -> Integer {
 
 %1 -> %2 [ClosureEnv]
 %0 -> %3 [Param]
+%0 -> 0 [Param]
+%1 -> fn(0) [ClosurePtr]
 
 
 ════ Transient Data Dependency Graph ═══════════════════════════════════════════
 
 %1 -> %2 [ClosureEnv]
 %0 -> %3 [Param]
+%0 -> 0 [Param]
+%1 -> fn(0) [ClosurePtr]
 
