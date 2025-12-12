@@ -21,14 +21,14 @@ use crate::{
     pass::analysis::data_dependency::graph::EdgeKind,
 };
 
-struct ResolutionState<'state, 'env, 'heap, A: Allocator> {
-    graph: &'env DataDependencyGraph<'heap, A>,
-    interner: &'env Interner<'heap>,
-    alloc: A,
-    visited: Option<&'state mut DenseBitSet<Local>>,
+pub(crate) struct ResolutionState<'state, 'env, 'heap, A: Allocator> {
+    pub graph: &'env DataDependencyGraph<'heap, A>,
+    pub interner: &'env Interner<'heap>,
+    pub alloc: A,
+    pub visited: Option<&'state mut DenseBitSet<Local>>,
 }
 
-impl<'state, 'env, 'heap, A: Allocator> ResolutionState<'state, 'env, 'heap, A> {
+impl<'env, 'heap, A: Allocator> ResolutionState<'_, 'env, 'heap, A> {
     fn cloned(&mut self) -> ResolutionState<'_, 'env, 'heap, A>
     where
         A: Clone,
@@ -41,7 +41,7 @@ impl<'state, 'env, 'heap, A: Allocator> ResolutionState<'state, 'env, 'heap, A> 
         }
     }
 
-    fn without_visited<'this>(self) -> ResolutionState<'this, 'env, 'heap, A> {
+    fn without_visited<'state>(self) -> ResolutionState<'state, 'env, 'heap, A> {
         ResolutionState {
             graph: self.graph,
             interner: self.interner,
@@ -61,7 +61,7 @@ macro_rules! tri {
 }
 
 #[derive(Debug, Clone)]
-enum ResolutionResult<'heap, A: Allocator> {
+pub(crate) enum ResolutionResult<'heap, A: Allocator> {
     // We're currently in a recursive resolution, hit a cycle and must backtrack until we're at
     // the place that initiated it
     Backtrack,
