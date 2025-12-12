@@ -29,11 +29,14 @@ use crate::{
 /// Non-structural dependencies (binary operands, function arguments, etc.) are not tracked
 /// in the graph since they cannot be projected into and are better handled by inspecting
 /// the [`RValue`] directly or using dataflow analysis.
+///
+/// [`RValue`]: crate::body::rvalue::RValue
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub(crate) enum EdgeKind<'heap> {
     /// A load operation that copies the entire value.
     ///
-    /// Used for [`RValue::Load`], where the complete value flows from source to destination.
+    /// Used for [`RValue::Load`](crate::body::rvalue::RValue::Load), where the complete value
+    /// flows from source to destination.
     /// This is the only edge kind that [`DataDependencyGraph::resolve`] follows transitively,
     /// because a load always has exactly one source.
     Load,
@@ -279,12 +282,10 @@ impl<'heap, A: Allocator> DataDependencyGraph<'heap, A> {
 
     /// Resolves a place to its ultimate source operand.
     ///
-    /// Traces the place through the dependency graph, following [`Load`] edges transitively
-    /// and [`Param`] edges when all predecessors are in consensus. Returns either the resolved
+    /// Traces the place through the dependency graph, following `Load` edges transitively
+    /// and `Param` edges when all predecessors are in consensus. Returns either the resolved
     /// [`Place`] (possibly with remaining projections) or a propagated [`Constant`].
     ///
-    /// [`Load`]: EdgeKind::Load
-    /// [`Param`]: EdgeKind::Param
     /// [`Place`]: crate::body::place::Place
     /// [`Constant`]: crate::body::constant::Constant
     pub fn resolve(&self, interner: &Interner<'heap>, place: PlaceRef<'_, 'heap>) -> Operand<'heap>
