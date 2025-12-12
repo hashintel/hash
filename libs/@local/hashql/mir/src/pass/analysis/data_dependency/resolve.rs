@@ -1,80 +1,25 @@
-// When we try to resolve, there are the following cases:
-// - We're inside of something that can be recursive, and recursion has happened, in which case we
-//   backtrack
-// - We initiate a recursive resolution, which may fail or not
-// - We're resolving, but resolution has stopped, because it is incomplete, this happens when we get
-//   a `Place` with projections back.
-// - We're resolving, but resolution can continue, in that case the projections that we're carrying
-//   must be empty, as otherwise we cannot continue
-
+use alloc::collections::VecDeque;
 use core::{
+    alloc::Allocator,
     hash::{Hash, Hasher},
     ops::ControlFlow,
 };
-use std::{
-    alloc::{Allocator, Global},
-    collections::VecDeque,
-};
 
 use hashql_core::{
-    graph::{
-        DirectedGraph, LinkedGraph, NodeId,
-        linked::{Edge, IncidentEdges},
-    },
-    id::{Id, bit_vec::DenseBitSet},
+    graph::{DirectedGraph as _, linked::Edge},
+    id::{Id as _, bit_vec::DenseBitSet},
 };
 
-use super::{
-    ConstantBinding,
-    graph::{EdgeData, EdgeKind},
-};
+use super::graph::{DataDependencyGraph, EdgeData};
 use crate::{
     body::{
-        constant::Constant,
-        local::{Local, LocalVec},
+        local::Local,
         operand::Operand,
-        place::{Place, PlaceMut, PlaceRef, ProjectionKind},
+        place::{Place, PlaceMut, PlaceRef},
     },
     intern::Interner,
+    pass::analysis::data_dependency::graph::EdgeKind,
 };
-
-#[derive(Debug)]
-struct ConstantBindings<'heap, A: Allocator = Global> {
-    inner: LocalVec<Vec<ConstantBinding<'heap>, A>, A>,
-}
-
-impl<'heap, A: Allocator> ConstantBindings<'heap, A> {
-    fn find(&self, local: Local, projection: ProjectionKind<'heap>) -> Option<Constant<'heap>> {
-        self.inner[local]
-            .iter()
-            .find(|binding| binding.kind.matches_projection(projection))
-            .map(|binding| binding.constant)
-    }
-
-    fn find_by_kind(&self, local: Local, kind: EdgeKind<'heap>) -> Option<Constant<'heap>> {
-        self.inner[local]
-            .iter()
-            .find(|binding| binding.kind == kind)
-            .map(|binding| binding.constant)
-    }
-}
-
-#[derive(Debug)]
-struct DataDependencyGraph<'heap, A: Allocator = Global> {
-    graph: LinkedGraph<Local, EdgeData<'heap>, A>,
-    constant_bindings: ConstantBindings<'heap, A>,
-}
-
-impl<'heap, A: Allocator> DataDependencyGraph<'heap, A> {
-    fn outgoing_edges<'this>(
-        &'this self,
-        local: Local,
-    ) -> IncidentEdges<'this, Local, EdgeData<'heap>, A> {
-        let node_id = NodeId::new(local.as_usize());
-
-        self.graph.outgoing_edges(node_id)
-    }
-}
 
 struct ResolutionState<'state, 'env, 'heap, A: Allocator> {
     graph: &'env DataDependencyGraph<'heap, A>,
@@ -92,10 +37,7 @@ impl<'state, 'env, 'heap, A: Allocator> ResolutionState<'state, 'env, 'heap, A> 
             graph: self.graph,
             interner: self.interner,
             alloc: self.alloc.clone(),
-            visited: match &mut self.visited {
-                Some(visited) => Some(visited),
-                None => None,
-            },
+            visited: self.visited.as_deref_mut(),
         }
     }
 
@@ -214,7 +156,7 @@ fn traverse<'heap, A: Allocator + Clone>(
     }
 }
 
-fn resolve<'heap, A: Allocator + Clone>(
+pub(crate) fn resolve<'heap, A: Allocator + Clone>(
     mut state: ResolutionState<'_, '_, 'heap, A>,
     mut place: PlaceRef<'_, 'heap>,
 ) -> ResolutionResult<'heap, A> {
@@ -308,7 +250,7 @@ fn resolve<'heap, A: Allocator + Clone>(
         if incomplete {
             // At least one of the edges is divergent *or* recursion has occurred.
             let mut dequeue = VecDeque::new_in(state.alloc.clone());
-            dequeue.extend(&*place.projections);
+            dequeue.extend(place.projections);
 
             return ResolutionResult::Incomplete(PlaceMut {
                 local: place.local,
@@ -368,11 +310,11 @@ fn resolve<'heap, A: Allocator + Clone>(
     let target = traverse(state.cloned().without_visited(), place, edge);
 
     // Given the new target, we can continue with the resolution
-    return resolve(
+    resolve(
         state,
         PlaceRef {
             local: tri!(target),
             projections: rest,
         },
-    );
+    )
 }

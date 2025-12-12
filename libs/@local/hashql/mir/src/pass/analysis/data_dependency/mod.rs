@@ -36,28 +36,24 @@
 //! [`EdgeKind::Index(0)`]: graph::EdgeKind::Index
 //! [`EdgeKind::Index(1)`]: graph::EdgeKind::Index
 mod graph;
-mod graph2;
+mod resolve;
 #[cfg(test)]
 mod tests;
 
 use alloc::alloc::Global;
-use core::{
-    alloc::Allocator,
-    fmt,
-    ops::{Index, IndexMut},
-};
+use core::{alloc::Allocator, fmt};
 
 use hashql_core::{
     graph::{LinkedGraph, NodeId},
     id::Id as _,
 };
 
-use self::graph::{EdgeData, EdgeKind, resolve_place, write_graph};
+pub use self::graph::DataDependencyGraph;
+use self::graph::{ConstantBindings, EdgeData, EdgeKind, write_graph};
 use crate::{
     body::{
         Body,
-        constant::Constant,
-        local::{Local, LocalSlice, LocalVec},
+        local::Local,
         location::Location,
         operand::Operand,
         place::{FieldIndex, Place},
@@ -66,7 +62,6 @@ use crate::{
         terminator::Target,
     },
     context::MirContext,
-    intern::Interner,
     pass::AnalysisPass,
     visit::Visitor,
 };
@@ -87,131 +82,87 @@ impl<A: Allocator> fmt::Display for TransientDataDependencyGraph<'_, A> {
     }
 }
 
-#[derive(Debug, Clone)]
-struct ConstantBinding<'heap> {
-    kind: EdgeKind<'heap>,
-    constant: Constant<'heap>,
-}
+// /// A graph representing data dependencies between locals in MIR.
+// ///
+// /// Nodes are [`Local`]s and edges represent "depends on" relationships. Following outgoing edges
+// /// from a local reveals what data it was constructed from.
+// ///
+// /// # Edge Direction
+// ///
+// /// Edges point from dependent to dependency: if local `_3` is assigned from `_1` and `_2`,
+// /// there will be edges `_3 → _1` and `_3 → _2`.
+// ///
+// /// # Usage
+// ///
+// /// Use [`resolve`](Self::resolve) to trace a [`Place`] through the dependency graph and find
+// /// the local that ultimately provides its value.
+// #[derive(Debug)]
+// pub struct DataDependencyGraph<'heap, A: Allocator = Global> {
+//     graph: LinkedGraph<Local, EdgeData<'heap>, A>,
+//     constant_bindings: ConstantBindings<'heap, A>,
+// }
 
-/// Maps each local to its constant bindings.
-///
-/// A constant binding records when a structural position (identified by [`EdgeKind`]) contains
-/// a constant value rather than a reference to another local. This enables resolution to
-/// return constants when tracing through aggregate constructions.
-#[derive(Debug)]
-struct ConstantBindings<'heap, A: Allocator = Global> {
-    inner: LocalVec<Vec<ConstantBinding<'heap>, A>, A>,
-}
+// impl<'heap, A: Allocator> DataDependencyGraph<'heap, A> {
+//     pub fn resolve(&self, interner: &Interner<'heap>, place: Place<'heap>) -> Place<'heap> {
+//         resolve_place(&self.graph, interner, place)
+//     }
 
-impl<A: Allocator + Clone> ConstantBindings<'_, A> {
-    const fn empty_in(alloc: A) -> Self {
-        Self {
-            inner: LocalVec::new_in(alloc),
-        }
-    }
+//     /// Creates a transient graph with resolved dependencies.
+//     ///
+//     /// The transient graph "flattens" dependencies by resolving projections eagerly. Each edge
+//     /// in the original graph is traced through [`resolve`](Self::resolve), and a new edge is
+//     /// created pointing directly to the resolved target with only the unresolved projection
+//     /// suffix remaining.
+//     ///
+//     /// This is useful for analyses that need direct access to ultimate data sources without
+//     /// manually traversing intermediate aggregates.
+//     pub fn transient(&self, interner: &Interner<'heap>) -> TransientDataDependencyGraph<'heap, A>
+//     where
+//         A: Clone,
+//     {
+//         // We know the estimate required of data via the previous graph, therefore clone and then
+//         // clear the edges, this automatically gives us an estimate of the data required.
+//         let mut graph = self.graph.clone();
+//         graph.clear_edges();
 
-    fn from_domain_in(local_decls: &LocalSlice<impl Sized>, alloc: A) -> Self {
-        Self {
-            inner: LocalVec::from_domain_in(Vec::new_in(alloc.clone()), local_decls, alloc),
-        }
-    }
-}
+//         for edge in self.graph.edges() {
+//             let source = edge.source();
+//             let target = Local::new(edge.target().as_usize());
+//             let data = &edge.data;
 
-impl<'heap, A: Allocator> Index<Local> for ConstantBindings<'heap, A> {
-    type Output = Vec<ConstantBinding<'heap>, A>;
+//             // Creating the transient graph is straightforward, we simply resolve the edge, via
+// the             // projections, and given the resulting projections we add a new edge between the
+// new             // and old target.
+//             let Place {
+//                 local: target,
+//                 projections,
+//             } = self.resolve(
+//                 interner,
+//                 Place {
+//                     local: target,
+//                     projections: data.projections,
+//                 },
+//             );
 
-    fn index(&self, index: Local) -> &Self::Output {
-        &self.inner[index]
-    }
-}
+//             graph.add_edge(
+//                 source,
+//                 NodeId::new(target.as_usize()),
+//                 EdgeData {
+//                     kind: data.kind,
+//                     projections,
+//                 },
+//             );
+//         }
 
-impl<A: Allocator> IndexMut<Local> for ConstantBindings<'_, A> {
-    fn index_mut(&mut self, index: Local) -> &mut Self::Output {
-        &mut self.inner[index]
-    }
-}
+//         TransientDataDependencyGraph { graph }
+//     }
+// }
 
-/// A graph representing data dependencies between locals in MIR.
-///
-/// Nodes are [`Local`]s and edges represent "depends on" relationships. Following outgoing edges
-/// from a local reveals what data it was constructed from.
-///
-/// # Edge Direction
-///
-/// Edges point from dependent to dependency: if local `_3` is assigned from `_1` and `_2`,
-/// there will be edges `_3 → _1` and `_3 → _2`.
-///
-/// # Usage
-///
-/// Use [`resolve`](Self::resolve) to trace a [`Place`] through the dependency graph and find
-/// the local that ultimately provides its value.
-#[derive(Debug)]
-pub struct DataDependencyGraph<'heap, A: Allocator = Global> {
-    graph: LinkedGraph<Local, EdgeData<'heap>, A>,
-    constant_bindings: ConstantBindings<'heap, A>,
-}
-
-impl<'heap, A: Allocator> DataDependencyGraph<'heap, A> {
-    pub fn resolve(&self, interner: &Interner<'heap>, place: Place<'heap>) -> Place<'heap> {
-        resolve_place(&self.graph, interner, place)
-    }
-
-    /// Creates a transient graph with resolved dependencies.
-    ///
-    /// The transient graph "flattens" dependencies by resolving projections eagerly. Each edge
-    /// in the original graph is traced through [`resolve`](Self::resolve), and a new edge is
-    /// created pointing directly to the resolved target with only the unresolved projection
-    /// suffix remaining.
-    ///
-    /// This is useful for analyses that need direct access to ultimate data sources without
-    /// manually traversing intermediate aggregates.
-    pub fn transient(&self, interner: &Interner<'heap>) -> TransientDataDependencyGraph<'heap, A>
-    where
-        A: Clone,
-    {
-        // We know the estimate required of data via the previous graph, therefore clone and then
-        // clear the edges, this automatically gives us an estimate of the data required.
-        let mut graph = self.graph.clone();
-        graph.clear_edges();
-
-        for edge in self.graph.edges() {
-            let source = edge.source();
-            let target = Local::new(edge.target().as_usize());
-            let data = &edge.data;
-
-            // Creating the transient graph is straightforward, we simply resolve the edge, via the
-            // projections, and given the resulting projections we add a new edge between the new
-            // and old target.
-            let Place {
-                local: target,
-                projections,
-            } = self.resolve(
-                interner,
-                Place {
-                    local: target,
-                    projections: data.projections,
-                },
-            );
-
-            graph.add_edge(
-                source,
-                NodeId::new(target.as_usize()),
-                EdgeData {
-                    kind: data.kind,
-                    projections,
-                },
-            );
-        }
-
-        TransientDataDependencyGraph { graph }
-    }
-}
-
-impl<A: Allocator> fmt::Display for DataDependencyGraph<'_, A> {
-    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write_graph(&self.graph, fmt)
-    }
-}
+// impl<A: Allocator> fmt::Display for DataDependencyGraph<'_, A> {
+//     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+//         write_graph(&self.graph, fmt)
+//     }
+// }
 
 /// A MIR pass that builds a [`DataDependencyGraph`].
 ///
@@ -243,10 +194,7 @@ impl<'heap, A: Allocator> DataDependencyAnalysis<'heap, A> {
 
     /// Completes the analysis and returns the constructed dependency graph.
     pub fn finish(self) -> DataDependencyGraph<'heap, A> {
-        DataDependencyGraph {
-            graph: self.graph,
-            constant_bindings: self.constant_bindings,
-        }
+        DataDependencyGraph::new(self.graph, self.constant_bindings)
     }
 }
 
@@ -319,7 +267,7 @@ impl<'heap, A: Allocator> DataDependencyAnalysisVisitor<'_, '_, 'heap, A> {
         match operand {
             Operand::Place(place) => self.collect_place(source, kind, place),
             &Operand::Constant(constant) => {
-                self.constant_bindings[source].push(ConstantBinding { kind, constant });
+                self.constant_bindings.insert(source, kind, constant);
             }
         }
     }
