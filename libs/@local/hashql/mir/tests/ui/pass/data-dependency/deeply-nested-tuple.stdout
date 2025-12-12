@@ -34,12 +34,16 @@
 %3 -> %2 [Index(FieldIndex(0))]
 %4 -> %3 [Index(FieldIndex(0))]
 %0 -> %4 [Param, projections: .0.0.0]
+%0 -> 0 [Param]
+%1 -> 42 [Load]
 
 
 ════ Transient Data Dependency Graph ═══════════════════════════════════════════
 
-%2 -> %1 [Index(FieldIndex(0))]
 %3 -> %2 [Index(FieldIndex(0))]
 %4 -> %3 [Index(FieldIndex(0))]
-%0 -> %1 [Param]
+%0 -> 0 [Param]
+%0 -> 42 [Param]
+%1 -> 42 [Load]
+%2 -> 42 [Index(FieldIndex(0))]
 

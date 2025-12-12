@@ -120,7 +120,7 @@ struct ConstantBinding<'heap> {
     constant: Constant<'heap>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub(crate) struct ConstantBindings<'heap, A: Allocator = Global> {
     inner: LocalVec<Vec<ConstantBinding<'heap>, A>, A>,
 }
@@ -220,8 +220,7 @@ impl<'heap, A: Allocator> DataDependencyGraph<'heap, A> {
         let mut graph = LinkedGraph::new_in(self.alloc.clone());
         graph.derive(&self.constant_bindings.inner, |local, _| local);
 
-        let mut constant_bindings =
-            ConstantBindings::from_domain_in(&self.constant_bindings.inner, self.alloc.clone());
+        let mut constant_bindings = self.constant_bindings.clone(); // We only add constant bindings, therefore it's safe to just clone
 
         // Transient graph construction is very straight forward, we simply create a new graph (and
         // bindings)

@@ -31,11 +31,17 @@
 %3 -> %1 [Index(FieldIndex(0))]
 %3 -> %2 [Index(FieldIndex(1))]
 %0 -> %3 [Param]
+%0 -> 0 [Param]
+%1 -> 1 [Load]
+%2 -> 2 [Load]
 
 
 ════ Transient Data Dependency Graph ═══════════════════════════════════════════
 
-%3 -> %1 [Index(FieldIndex(0))]
-%3 -> %2 [Index(FieldIndex(1))]
 %0 -> %3 [Param]
+%0 -> 0 [Param]
+%1 -> 1 [Load]
+%2 -> 2 [Load]
+%3 -> 1 [Index(FieldIndex(0))]
+%3 -> 2 [Index(FieldIndex(1))]
 

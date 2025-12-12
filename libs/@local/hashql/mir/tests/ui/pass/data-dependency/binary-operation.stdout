@@ -29,9 +29,15 @@
 ════ Data Dependency Graph ═════════════════════════════════════════════════════
 
 %0 -> %3 [Param]
+%0 -> 0 [Param]
+%1 -> 1 [Load]
+%2 -> 2 [Load]
 
 
 ════ Transient Data Dependency Graph ═══════════════════════════════════════════
 
 %0 -> %3 [Param]
+%0 -> 0 [Param]
+%1 -> 1 [Load]
+%2 -> 2 [Load]
 
