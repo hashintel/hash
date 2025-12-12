@@ -376,7 +376,7 @@ pub async fn server(args: ServerArgs) -> Result<(), Report<GraphError>> {
 }
 
 pub async fn healthcheck(address: HttpAddress) -> Result<(), Report<HealthcheckError>> {
-    let request_url = format!("http://{address}/api-doc/openapi.json");
+    let request_url = format!("http://{address}/health");
 
     timeout(
         Duration::from_secs(10),

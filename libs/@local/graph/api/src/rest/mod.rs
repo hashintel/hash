@@ -336,12 +336,14 @@ where
 pub fn openapi_only_router() -> Router {
     let open_api_doc = OpenApiDocumentation::openapi();
 
-    Router::new().nest(
-        "/api-doc",
-        Router::new()
-            .route("/openapi.json", get(|| async { Json(open_api_doc) }))
-            .route("/models/{*path}", get(serve_static_schema)),
-    )
+    Router::new()
+        .route("/health", get(async || "Healthy".into_response()))
+        .nest(
+            "/api-doc",
+            Router::new()
+                .route("/openapi.json", get(|| async { Json(open_api_doc) }))
+                .route("/models/{*path}", get(serve_static_schema)),
+        )
 }
 
 /// A [`Router`] that serves all of the REST API routes, and the `OpenAPI` specification.
