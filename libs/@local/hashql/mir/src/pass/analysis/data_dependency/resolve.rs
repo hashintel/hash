@@ -117,8 +117,8 @@ fn traverse<'heap, A: Allocator + Clone>(
     match result {
         ResolutionResult::Backtrack => ControlFlow::Break(ResolutionResult::Backtrack),
         ResolutionResult::Incomplete(mut place) => {
-            // We weren't able to resolve the place, therefore terminate with our incomplete state
-            place.projections.extend_front(projections.iter().copied());
+            // We weren't able to resolve the place, therefore terminate with our incomplete state.
+            place.projections.extend(projections.iter().copied());
 
             ControlFlow::Break(ResolutionResult::Incomplete(place))
         }
@@ -143,7 +143,7 @@ fn traverse<'heap, A: Allocator + Clone>(
                 state.alloc,
             );
             dequeue.extend(place.projections);
-            dequeue.extend(projections);
+            dequeue.extend(projections.iter().copied());
 
             let place = PlaceMut {
                 local: place.local,
@@ -300,7 +300,14 @@ pub(crate) fn resolve<'heap, A: Allocator + Clone>(
 
     // We start to resolve the target place recursively, but *without* our state, this is
     // important so that we don't backtrack early if we don't need to.
-    let target = traverse(state.cloned().without_visited(), place, edge);
+    let target = traverse(
+        state.cloned().without_visited(),
+        PlaceRef {
+            local: place.local,
+            projections: rest,
+        },
+        edge,
+    );
 
     // Given the new target, we can continue with the resolution
     resolve(

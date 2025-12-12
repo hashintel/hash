@@ -14,7 +14,7 @@ use crate::{
         constant::Constant,
         local::{Local, LocalSlice, LocalVec},
         operand::Operand,
-        place::{FieldIndex, Place, PlaceMut, Projection, ProjectionKind},
+        place::{FieldIndex, Place, PlaceMut, PlaceRef, Projection, ProjectionKind},
     },
     intern::Interner,
 };
@@ -186,6 +186,15 @@ pub struct TransientDataDependencyGraph<'heap, A: Allocator = Global> {
     graph: DataDependencyGraph<'heap, A>,
 }
 
+impl<'heap, A: Allocator> TransientDataDependencyGraph<'heap, A> {
+    pub fn resolve(&self, interner: &Interner<'heap>, place: PlaceRef<'_, 'heap>) -> Operand<'heap>
+    where
+        A: Clone,
+    {
+        self.graph.resolve(interner, place)
+    }
+}
+
 impl<A: Allocator> fmt::Display for TransientDataDependencyGraph<'_, A> {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         fmt::Display::fmt(&self.graph, fmt)
@@ -211,11 +220,38 @@ impl<'heap, A: Allocator> DataDependencyGraph<'heap, A> {
         let mut graph = LinkedGraph::new_in(self.alloc.clone());
         graph.derive(&self.constant_bindings.inner, |local, _| local);
 
-        let constant_bindings =
+        let mut constant_bindings =
             ConstantBindings::from_domain_in(&self.constant_bindings.inner, self.alloc.clone());
 
-        // transient graph construction is very straight forward, we simply create a new graph (and
+        // Transient graph construction is very straight forward, we simply create a new graph (and
         // bindings)
+        for edge in self.graph.edges() {
+            let place = PlaceRef {
+                local: Local::new(edge.target().as_usize()),
+                projections: &edge.data.projections,
+            };
+
+            let operand = self.resolve(interner, place);
+            match operand {
+                Operand::Place(place) => {
+                    graph.add_edge(
+                        edge.source(),
+                        NodeId::new(place.local.as_usize()),
+                        EdgeData {
+                            kind: edge.data.kind,
+                            projections: place.projections,
+                        },
+                    );
+                }
+                Operand::Constant(constant) => {
+                    constant_bindings.insert(
+                        Local::new(edge.source().as_usize()),
+                        edge.data.kind,
+                        constant,
+                    );
+                }
+            }
+        }
 
         TransientDataDependencyGraph {
             graph: DataDependencyGraph {
@@ -226,7 +262,7 @@ impl<'heap, A: Allocator> DataDependencyGraph<'heap, A> {
         }
     }
 
-    pub fn replace(&self, interner: &Interner<'heap>, place: Place<'heap>) -> Operand<'heap>
+    pub fn resolve(&self, interner: &Interner<'heap>, place: PlaceRef<'_, 'heap>) -> Operand<'heap>
     where
         A: Clone,
     {
@@ -237,7 +273,7 @@ impl<'heap, A: Allocator> DataDependencyGraph<'heap, A> {
                 alloc: self.alloc.clone(),
                 visited: None,
             },
-            place.as_ref(),
+            place,
         );
 
         match result {
@@ -283,6 +319,7 @@ impl<'heap, A: Allocator> DataDependencyGraph<'heap, A> {
 }
 
 impl<A: Allocator> fmt::Display for DataDependencyGraph<'_, A> {
+    #[expect(clippy::use_debug)]
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         for edge in self.graph.edges() {
             let source = edge.source();

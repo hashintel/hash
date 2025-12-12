@@ -48,8 +48,8 @@ use hashql_core::{
     id::Id as _,
 };
 
-pub use self::graph::DataDependencyGraph;
 use self::graph::{ConstantBindings, EdgeData, EdgeKind};
+pub use self::graph::{DataDependencyGraph, TransientDataDependencyGraph};
 use crate::{
     body::{
         Body,
