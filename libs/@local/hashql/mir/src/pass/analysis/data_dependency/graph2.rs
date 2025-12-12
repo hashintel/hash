@@ -106,6 +106,15 @@ impl<'state, 'env, 'heap, A: Allocator> ResolutionState<'state, 'env, 'heap, A> 
     }
 }
 
+macro_rules! tri {
+    ($expr:expr) => {
+        match $expr {
+            ControlFlow::Continue(value) => value,
+            ControlFlow::Break(value) => return value,
+        }
+    };
+}
+
 enum ResolutionResult<'heap, A: Allocator> {
     // We're currently in a recursive resolution, hit a cycle and must backtrack until we're at
     // the place that initiated it
@@ -179,11 +188,9 @@ fn resolve<'heap, A: Allocator + Clone>(
     // The first implementation is without follow semantics (for now)
     let PlaceRef { local, projections } = place;
 
-    let mut edges = 0_usize;
     let mut params = 0_usize;
     let mut load = None;
     for edge in state.graph.outgoing_edges(place.local) {
-        edges += 1;
         match edge.data.kind {
             // load can only be there alone
             EdgeKind::Load => load = Some(edge),
@@ -204,16 +211,10 @@ fn resolve<'heap, A: Allocator + Clone>(
             ControlFlow::Break(ResolutionResult::Resolved(Operand::Constant(constant)))
         });
 
-        match result {
-            ControlFlow::Break(result) => return result,
-            ControlFlow::Continue(target) => {
-                place.local = target;
-            }
-        }
+        place.local = tri!(result);
     }
 
-    if edges > 0
-        && edges == params
+    if params > 0
         && state
             .graph
             .constant_bindings
@@ -224,6 +225,10 @@ fn resolve<'heap, A: Allocator + Clone>(
         // A) we have more than 0 edges
         // B) all edges are params
         // C) there is no constant, because otherwise we would know that we're divergent
+        let mut edges = state.graph.outgoing_edges(local);
+        let Some(head) = edges.next() else {
+            unreachable!("we just verified there are more than 0");
+        };
     }
 
     let (projection, rest) = match projections {
@@ -263,20 +268,15 @@ fn resolve<'heap, A: Allocator + Clone>(
 
     // We start to resolve the target place recursively, but *without* our state, this is
     // important so that we don't backtrack early if we don't need to.
-    let result = traverse(state.cloned().without_visited(), place, edge, |_| {
+    let target = traverse(state.cloned().without_visited(), place, edge, |_| {
         unreachable!("type-check makes it so that we wouldn't traverse into a constant")
     });
-
-    let target = match result {
-        ControlFlow::Continue(target) => target,
-        ControlFlow::Break(result) => return result,
-    };
 
     // Given the new target, we can continue with the resolution
     return resolve(
         state,
         PlaceRef {
-            local: target,
+            local: tri!(target),
             projections: rest,
         },
     );
