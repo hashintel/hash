@@ -14,6 +14,7 @@ const nerPeopleInputSchema = z.object({
 const nerPeopleOutputSchema = z.array(
   z.object({
     name: z.string().optional().describe('Full name of the person'),
+    'website-url': z.httpUrl().optional().describe('The website URL of the person'),
     university: z.string().optional().describe('The university the person is affiliated with'),
     location: z.string().optional().describe('The primary location of the person'),
   })

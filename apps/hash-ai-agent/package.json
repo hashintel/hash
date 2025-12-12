@@ -23,6 +23,7 @@
     "@ai-sdk/openai": "2.0.80",
     "@blockprotocol/graph": "0.4.0-canary.2",
     "@blockprotocol/type-system": "0.1.2-canary.1",
+    "@dmitryrechkin/json-schema-to-zod": "1.0.1",
     "@local/advanced-types": "0.0.0-private",
     "@local/hash-backend-utils": "0.0.0-private",
     "@local/hash-graph-client": "0.0.0-private",
@@ -39,7 +40,8 @@
     "dedent": "1.7.0",
     "es-toolkit": "1.41.0",
     "vitest": "4.0.15",
-    "zod": "4.1.12"
+    "zod": "4.1.12",
+    "zod-from-json-schema": "0.5.2"
   },
   "devDependencies": {
     "@local/eslint": "0.0.0-private",
