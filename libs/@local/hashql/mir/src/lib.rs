@@ -16,6 +16,7 @@
     array_windows,
     assert_matches,
     const_type_name,
+    deque_extend_front,
     formatting_options,
     int_roundings,
     iter_array_chunks,

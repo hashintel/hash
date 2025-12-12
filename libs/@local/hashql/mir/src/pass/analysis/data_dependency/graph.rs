@@ -60,6 +60,34 @@ pub(crate) enum EdgeKind<'heap> {
     ClosureEnv,
 }
 
+impl<'heap> EdgeKind<'heap> {
+    fn matches_projection_field_index(&self, index: FieldIndex) -> bool {
+        let expected = match self {
+            &EdgeKind::Field(field_index, _) | &EdgeKind::Index(field_index) => field_index,
+            EdgeKind::ClosurePtr => FieldIndex::new(0),
+            EdgeKind::ClosureEnv => FieldIndex::new(1),
+            _ => return false,
+        };
+
+        index == expected
+    }
+
+    fn matches_projection_field_name(&self, name: Symbol<'heap>) -> bool {
+        match self {
+            &EdgeKind::Field(_, field_name) => field_name == name,
+            _ => false,
+        }
+    }
+
+    pub(crate) fn matches_projection(&self, projection: ProjectionKind<'heap>) -> bool {
+        match projection {
+            ProjectionKind::Field(index) => self.matches_projection_field_index(index),
+            ProjectionKind::FieldByName(name) => self.matches_projection_field_name(name),
+            ProjectionKind::Index(_) => false,
+        }
+    }
+}
+
 /// An edge in the data dependency graph.
 ///
 /// Each edge connects a local (the dependent) to another local (the dependency) and carries
