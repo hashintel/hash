@@ -52,7 +52,7 @@ use hashql_core::{
     id::Id as _,
 };
 
-use self::graph::{Edge, EdgeKind, resolve_place, write_graph};
+use self::graph::{EdgeData, EdgeKind, resolve_place, write_graph};
 use crate::{
     body::{
         Body,
@@ -78,7 +78,7 @@ use crate::{
 /// that need to know the true origin of data without manually traversing through tuple/struct
 /// constructions.
 pub struct TransientDataDependencyGraph<'heap, A: Allocator = Global> {
-    graph: LinkedGraph<Local, Edge<'heap>, A>,
+    graph: LinkedGraph<Local, EdgeData<'heap>, A>,
 }
 
 impl<A: Allocator> fmt::Display for TransientDataDependencyGraph<'_, A> {
@@ -147,7 +147,7 @@ impl<A: Allocator> IndexMut<Local> for ConstantBindings<'_, A> {
 /// the local that ultimately provides its value.
 #[derive(Debug)]
 pub struct DataDependencyGraph<'heap, A: Allocator = Global> {
-    graph: LinkedGraph<Local, Edge<'heap>, A>,
+    graph: LinkedGraph<Local, EdgeData<'heap>, A>,
     constant_bindings: ConstantBindings<'heap, A>,
 }
 
@@ -196,7 +196,7 @@ impl<'heap, A: Allocator> DataDependencyGraph<'heap, A> {
             graph.add_edge(
                 source,
                 NodeId::new(target.as_usize()),
-                Edge {
+                EdgeData {
                     kind: data.kind,
                     projections,
                 },
@@ -224,7 +224,7 @@ impl<A: Allocator> fmt::Display for DataDependencyGraph<'_, A> {
 /// constructed graph's storage.
 pub struct DataDependencyAnalysis<'heap, A: Allocator = Global> {
     alloc: A,
-    graph: LinkedGraph<Local, Edge<'heap>, A>,
+    graph: LinkedGraph<Local, EdgeData<'heap>, A>,
     constant_bindings: ConstantBindings<'heap, A>,
 }
 
@@ -289,7 +289,7 @@ impl<'env, 'heap, A: Allocator + Clone> AnalysisPass<'env, 'heap>
 
 /// Visitor that collects data dependencies during MIR traversal.
 struct DataDependencyAnalysisVisitor<'pass, 'env, 'heap, A: Allocator> {
-    graph: &'pass mut LinkedGraph<Local, Edge<'heap>, A>,
+    graph: &'pass mut LinkedGraph<Local, EdgeData<'heap>, A>,
     constant_bindings: &'pass mut ConstantBindings<'heap, A>,
     #[expect(dead_code, reason = "will be used in future")]
     context: &'pass mut MirContext<'env, 'heap>,
@@ -307,7 +307,7 @@ impl<'heap, A: Allocator> DataDependencyAnalysisVisitor<'_, '_, 'heap, A> {
         self.graph.add_edge(
             NodeId::from_usize(source.as_usize()),
             NodeId::from_usize(local.as_usize()),
-            Edge { kind, projections },
+            EdgeData { kind, projections },
         );
     }
 

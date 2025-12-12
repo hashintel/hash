@@ -93,7 +93,7 @@ impl<'heap> EdgeKind<'heap> {
 /// Each edge connects a local (the dependent) to another local (the dependency) and carries
 /// metadata about which component is being accessed and any remaining projections.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub(crate) struct Edge<'heap> {
+pub(crate) struct EdgeData<'heap> {
     /// Which structural component this edge represents.
     ///
     /// Identifies the edge's role in aggregate construction, enabling resolution
@@ -109,13 +109,13 @@ pub(crate) struct Edge<'heap> {
 
 #[expect(clippy::use_debug)]
 pub(crate) fn write_graph<A: Allocator>(
-    graph: &LinkedGraph<Local, Edge<'_>, A>,
+    graph: &LinkedGraph<Local, EdgeData<'_>, A>,
     mut writer: impl fmt::Write,
 ) -> fmt::Result {
     for edge in graph.edges() {
         let source = edge.source();
         let target = edge.target();
-        let Edge { kind, projections } = &edge.data;
+        let EdgeData { kind, projections } = &edge.data;
 
         write!(writer, "%{source} -> %{target} [{kind:?}")?;
         if !projections.is_empty() {
@@ -135,7 +135,7 @@ pub(crate) fn write_graph<A: Allocator>(
 /// Load edges represent pure value copies, so following them transitively finds the
 /// original definition site of a value.
 fn follow_load<'this, 'heap, A: Allocator>(
-    graph: &'this LinkedGraph<Local, Edge<'heap>, A>,
+    graph: &'this LinkedGraph<Local, EdgeData<'heap>, A>,
     node: &mut &'this Node<Local>,
 ) {
     let mut visited = 0;
@@ -159,7 +159,7 @@ fn follow_load<'this, 'heap, A: Allocator>(
 ///
 /// Uses a visited set to detect cycles through Param edges.
 fn resolve_through_params<'heap, A: Allocator>(
-    graph: &LinkedGraph<Local, Edge<'heap>, A>,
+    graph: &LinkedGraph<Local, EdgeData<'heap>, A>,
     local: Local,
     visited: &mut HashSet<Local>,
 ) -> Local {
@@ -266,7 +266,7 @@ fn resolve_should_continue<'heap>(
 }
 
 fn follow<'heap, A: Allocator>(
-    graph: &LinkedGraph<Local, Edge<'heap>, A>,
+    graph: &LinkedGraph<Local, EdgeData<'heap>, A>,
     interner: &Interner<'heap>,
     place: PlaceRef<'heap, 'heap>,
 ) -> ControlFlow<Place<'heap>, PlaceRef<'heap, 'heap>> {
@@ -331,7 +331,7 @@ fn follow<'heap, A: Allocator>(
 }
 
 pub(super) fn resolve_place<'heap, A: Allocator>(
-    graph: &LinkedGraph<Local, Edge<'heap>, A>,
+    graph: &LinkedGraph<Local, EdgeData<'heap>, A>,
     interner: &Interner<'heap>,
     place: PlaceRef<'heap, 'heap>,
 ) -> ControlFlow<Place<'heap>, PlaceRef<'heap, 'heap>> {
