@@ -11,7 +11,8 @@ import { entityExtractionAgent } from './agents/entity-extraction-agent';
 import { genericAgent } from './agents/generic-agent';
 import { nerAgent } from './agents/ner-agent';
 import { relevancyScorer } from './scorers/demo-relevancy-scorer';
-import { extractPeopleWorkflow, nerWorkflow } from './workflows/ner-workflow';
+import { nerPeopleWorkflow } from './workflows/ner-people-workflow';
+import { nerWorkflow } from './workflows/ner-workflow';
 
 const metaFilename = fileURLToPath(import.meta.url);
 const metaDirname = path.dirname(metaFilename);
@@ -21,7 +22,7 @@ const dbFilePath = path.resolve(metaDirname, '../../data/mastra.db');
 const dbUrl = pathToFileURL(dbFilePath).toString();
 
 export const mastra = new Mastra({
-  workflows: { nerWorkflow, extractPeopleWorkflow },
+  workflows: { nerWorkflow, nerPeopleWorkflow },
   agents: {
     // agents
     entityExtractionAgent,
