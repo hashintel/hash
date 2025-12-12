@@ -70,11 +70,7 @@ use crate::{
 ///
 /// This pass traverses the MIR body and records data dependencies between locals. After running,
 /// call [`finish`](Self::finish) to obtain the resulting [`DataDependencyGraph`].
-///
-/// # Reuse
-///
-/// To avoid repeated allocations, use [`new_with`](Self::new_with) to recycle a previously
-/// constructed graph's storage.
+
 pub struct DataDependencyAnalysis<'heap, A: Allocator = Global> {
     alloc: A,
     graph: LinkedGraph<Local, EdgeData<'heap>, A>,
