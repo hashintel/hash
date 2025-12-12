@@ -17,7 +17,10 @@ use hashql_core::{
     id::{Id, bit_vec::DenseBitSet},
 };
 
-use super::{ConstantBinding, graph::Edge};
+use super::{
+    ConstantBinding,
+    graph::{Edge, EdgeKind},
+};
 use crate::{
     body::{
         constant::Constant,
@@ -89,6 +92,20 @@ fn resolve<'heap, A: Allocator + Clone>(
     // The first implementation is without follow semantics (for now)
     let PlaceRef { local, projections } = place;
 
+    let mut edges = 0_usize;
+    let mut params = 0_usize;
+    let mut loads = 0_usize;
+    for edge in graph.outgoing_edges(place.local) {
+        edges += 1;
+
+        match edge.data.kind {
+            // load can only be there alone
+            EdgeKind::Load => loads += 1,
+            EdgeKind::Param => params += 1,
+            _ => {}
+        }
+    }
+
     let (projection, rest) = match projections {
         // There is nothing more to do, we have completed resolution
         [] => {
@@ -141,12 +158,13 @@ fn resolve<'heap, A: Allocator + Clone>(
         target,
     );
 
+    // TODO: reconcile
     let target = match result {
         ResolutionResult::Backtrack => {
             unreachable!("state is only valid in case we initiated backtracking, which we didn't.")
         }
         ResolutionResult::Incomplete(mut place) => {
-            // we weren't able to resolve the place, therefore terminate with our incomplete state
+            // We weren't able to resolve the place, therefore terminate with our incomplete state
             place.projections.extend_front(projections.iter().copied());
             return ResolutionResult::Incomplete(place);
         }
@@ -154,12 +172,12 @@ fn resolve<'heap, A: Allocator + Clone>(
             unreachable!("type-check makes it so that we wouldn't traverse into a constant")
         }
         ResolutionResult::Resolved(Operand::Place(place)) if place.projections.is_empty() => {
-            // in the case that the place returned as any projections we promote to unresolved,
+            // In the case that the place returned as any projections we promote to unresolved,
             // because we cannot continue.
             place.local
         }
         ResolutionResult::Resolved(Operand::Place(place)) => {
-            // in the case that the place returned as any projections we promote to unresolved,
+            // In the case that the place returned as any projections we promote to unresolved,
             // because we cannot continue.
             let mut dequeue =
                 VecDeque::with_capacity_in(projections.len() + place.projections.len(), alloc);
