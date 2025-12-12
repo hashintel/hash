@@ -3,7 +3,11 @@
 //! Places represent storage locations in the MIR, including local variables and complex paths
 //! through data structures. Projections allow accessing nested data within structured types.
 
-use core::{alloc::Allocator, fmt};
+use core::{
+    alloc::Allocator,
+    fmt,
+    hash::{Hash, Hasher},
+};
 use std::{alloc::Global, collections::VecDeque};
 
 use hashql_core::{id, intern::Interned, symbol::Symbol, r#type::TypeId};
@@ -232,11 +236,28 @@ impl<'proj, 'heap> PlaceRef<'proj, 'heap> {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone)]
 pub struct PlaceMut<'heap, A: Allocator = Global> {
     pub local: Local,
 
     pub projections: VecDeque<Projection<'heap>, A>,
+}
+
+impl<A: Allocator> PartialEq for PlaceMut<'_, A> {
+    fn eq(&self, other: &Self) -> bool {
+        let Self { local, projections } = self;
+
+        *local == other.local && *projections == other.projections
+    }
+}
+
+impl<A: Allocator> Eq for PlaceMut<'_, A> {}
+
+impl<A: Allocator> Hash for PlaceMut<'_, A> {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.local.hash(state);
+        self.projections.hash(state);
+    }
 }
 
 /// A storage location that can be read from or written to in the MIR.
