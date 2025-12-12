@@ -228,6 +228,9 @@ pub struct PlaceRef<'proj, 'heap> {
 }
 
 impl<'heap> PlaceRef<'_, 'heap> {
+    /// Interns the borrowed projection slice and returns an owned [`Place`].
+    ///
+    /// Converts this borrowed reference into an interned place suitable for storage in MIR.
     pub fn intern(&self, interner: &Interner<'heap>) -> Place<'heap> {
         Place {
             local: self.local,
@@ -236,10 +239,20 @@ impl<'heap> PlaceRef<'_, 'heap> {
     }
 }
 
+/// An intermediate place representation used during dependency resolution.
+///
+/// Represents a partially-resolved place where the projection sequence may still grow
+/// as resolution traverses through the dependency graph. Convert to [`Place`] via
+/// [`PlaceRef::intern`] once resolution completes.
 #[derive(Debug, Clone)]
 pub struct PlaceMut<'heap, A: Allocator = Global> {
+    /// The current root local after partial resolution.
     pub local: Local,
 
+    /// Accumulated projections that could not yet be resolved.
+    ///
+    /// During resolution, projections are prepended from edge targets and appended
+    /// from the original place being resolved.
     pub projections: VecDeque<Projection<'heap>, A>,
 }
 
@@ -371,6 +384,7 @@ impl<'heap> Place<'heap> {
             .map_or_else(|| decl[self.local].r#type, |projection| projection.r#type)
     }
 
+    /// Returns a borrowed reference to this place.
     #[must_use]
     pub const fn as_ref(&self) -> PlaceRef<'heap, 'heap> {
         PlaceRef {

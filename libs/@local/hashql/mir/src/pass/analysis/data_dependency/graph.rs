@@ -114,12 +114,18 @@ pub(crate) struct EdgeData<'heap> {
     pub projections: Interned<'heap, [Projection<'heap>]>,
 }
 
+/// A single constant value bound to a local via a specific edge kind.
 #[derive(Debug, Clone)]
 struct ConstantBinding<'heap> {
     kind: EdgeKind<'heap>,
     constant: Constant<'heap>,
 }
 
+/// Tracks constant values that flow into locals through structural edges.
+///
+/// When an aggregate is constructed with constant operands, those constants are recorded
+/// here indexed by the local and [`EdgeKind`]. This allows for constant propagation through
+/// projections.
 #[derive(Debug, Clone)]
 pub(crate) struct ConstantBindings<'heap, A: Allocator = Global> {
     inner: LocalVec<Vec<ConstantBinding<'heap>, A>, A>,
@@ -187,6 +193,9 @@ pub struct TransientDataDependencyGraph<'heap, A: Allocator = Global> {
 }
 
 impl<'heap, A: Allocator> TransientDataDependencyGraph<'heap, A> {
+    /// Resolves a place to its source operand.
+    ///
+    /// See [`DataDependencyGraph::resolve`] for details on the resolution algorithm.
     pub fn resolve(&self, interner: &Interner<'heap>, place: PlaceRef<'_, 'heap>) -> Operand<'heap>
     where
         A: Clone,
@@ -213,6 +222,14 @@ pub struct DataDependencyGraph<'heap, A: Allocator = Global> {
 }
 
 impl<'heap, A: Allocator> DataDependencyGraph<'heap, A> {
+    /// Creates a transient graph with all edges resolved to their ultimate sources.
+    ///
+    /// Each edge in the original graph is traced through [`resolve`](Self::resolve), producing
+    /// a new graph where edges point directly to canonical source locals. Constants discovered
+    /// during resolution are recorded as constant bindings rather than edges.
+    ///
+    /// This is useful for analyses that need direct access to data origins without manually
+    /// traversing intermediate aggregates.
     pub fn transient(&self, interner: &Interner<'heap>) -> TransientDataDependencyGraph<'heap, A>
     where
         A: Clone,
@@ -220,25 +237,24 @@ impl<'heap, A: Allocator> DataDependencyGraph<'heap, A> {
         let mut graph = LinkedGraph::new_in(self.alloc.clone());
         graph.derive(&self.constant_bindings.inner, |local, _| local);
 
-        let mut constant_bindings = self.constant_bindings.clone(); // We only add constant bindings, therefore it's safe to just clone
+        // Clone bindings since we only add to them during transient construction.
+        let mut constant_bindings = self.constant_bindings.clone();
 
-        // Transient graph construction is very straight forward, we simply create a new graph (and
-        // bindings)
+        // Resolve each edge and add to the new graph or constant bindings.
         for edge in self.graph.edges() {
             let place = PlaceRef {
                 local: Local::new(edge.target().as_usize()),
                 projections: &edge.data.projections,
             };
 
-            let operand = self.resolve(interner, place);
-            match operand {
-                Operand::Place(place) => {
+            match self.resolve(interner, place) {
+                Operand::Place(resolved) => {
                     graph.add_edge(
                         edge.source(),
-                        NodeId::new(place.local.as_usize()),
+                        NodeId::new(resolved.local.as_usize()),
                         EdgeData {
                             kind: edge.data.kind,
-                            projections: place.projections,
+                            projections: resolved.projections,
                         },
                     );
                 }
@@ -261,6 +277,16 @@ impl<'heap, A: Allocator> DataDependencyGraph<'heap, A> {
         }
     }
 
+    /// Resolves a place to its ultimate source operand.
+    ///
+    /// Traces the place through the dependency graph, following [`Load`] edges transitively
+    /// and [`Param`] edges when all predecessors are in consensus. Returns either the resolved
+    /// [`Place`] (possibly with remaining projections) or a propagated [`Constant`].
+    ///
+    /// [`Load`]: EdgeKind::Load
+    /// [`Param`]: EdgeKind::Param
+    /// [`Place`]: crate::body::place::Place
+    /// [`Constant`]: crate::body::constant::Constant
     pub fn resolve(&self, interner: &Interner<'heap>, place: PlaceRef<'_, 'heap>) -> Operand<'heap>
     where
         A: Clone,
@@ -277,14 +303,14 @@ impl<'heap, A: Allocator> DataDependencyGraph<'heap, A> {
 
         match result {
             ResolutionResult::Backtrack => {
-                unreachable!("we didn't start it, therefore not reachable")
+                unreachable!("Backtrack returned at top level; cycle detection should be internal")
             }
             ResolutionResult::Resolved(operand) => operand,
             ResolutionResult::Incomplete(PlaceMut {
                 local,
                 mut projections,
             }) => {
-                // We weren't able to fully resolve the place, so need to materialize a new one
+                // Materialize a Place with the remaining unresolved projections.
                 Operand::Place(Place {
                     local,
                     projections: interner
