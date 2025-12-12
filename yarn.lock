@@ -587,6 +587,7 @@ __metadata:
     "@ai-sdk/openai": "npm:2.0.80"
     "@blockprotocol/graph": "npm:0.4.0-canary.2"
     "@blockprotocol/type-system": "npm:0.1.2-canary.1"
+    "@dmitryrechkin/json-schema-to-zod": "npm:1.0.1"
     "@local/advanced-types": "npm:0.0.0-private"
     "@local/eslint": "npm:0.0.0-private"
     "@local/hash-backend-utils": "npm:0.0.0-private"
@@ -623,6 +624,7 @@ __metadata:
     typescript: "npm:5.9.3"
     vitest: "npm:4.0.15"
     zod: "npm:4.1.12"
+    zod-from-json-schema: "npm:0.5.2"
   languageName: unknown
   linkType: soft
 
@@ -6273,6 +6275,15 @@ __metadata:
   version: 0.6.3
   resolution: "@discoveryjs/json-ext@npm:0.6.3"
   checksum: 10c0/778a9f9d5c3696da3c1f9fa4186613db95a1090abbfb6c2601430645c0d0158cd5e4ba4f32c05904e2dd2747d57710f6aab22bd2f8aa3c4e8feab9b247c65d85
+  languageName: node
+  linkType: hard
+
+"@dmitryrechkin/json-schema-to-zod@npm:1.0.1":
+  version: 1.0.1
+  resolution: "@dmitryrechkin/json-schema-to-zod@npm:1.0.1"
+  dependencies:
+    zod: "npm:^3.23.8"
+  checksum: 10c0/d8e82142d52b5ce9302439049cbae2f5bf2ff0ccb8299c4f92d1ad355088c018b08907a2aa0934875201ff62948aaecea33d1ab14d8b43c52ff1c1448aff733c
   languageName: node
   linkType: hard
 
@@ -48784,7 +48795,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"zod-from-json-schema@npm:^0.5.0":
+"zod-from-json-schema@npm:0.5.2, zod-from-json-schema@npm:^0.5.0":
   version: 0.5.2
   resolution: "zod-from-json-schema@npm:0.5.2"
   dependencies:
