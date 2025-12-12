@@ -3,7 +3,12 @@
 //! Operands represent the inputs to MIR operations. They can either reference
 //! a storage location (place) or contain an immediate constant value.
 
-use super::{constant::Constant, place::Place};
+use std::alloc::{Allocator, Global};
+
+use super::{
+    constant::Constant,
+    place::{Place, PlaceMut},
+};
 
 /// An operand in a HashQL MIR operation.
 ///
@@ -45,4 +50,20 @@ impl<'heap> From<Constant<'heap>> for Operand<'heap> {
     fn from(constant: Constant<'heap>) -> Self {
         Operand::Constant(constant)
     }
+}
+
+pub enum OperandMut<'heap, A: Allocator = Global> {
+    /// References a [`PlaceMut`] that can be read to obtain a value.
+    ///
+    /// This variant represents an operand that reads from a mutable storage location, such as a
+    /// local variable or a field of a struct. The place may include projections to access
+    /// nested data.
+    Place(PlaceMut<'heap, A>),
+
+    /// Contains a [`Constant`] immediate value.
+    ///
+    /// This variant represents an operand that provides an immediate constant value, such as a
+    /// literal number, string, or function pointer. No memory access is required to obtain the
+    /// value.
+    Constant(Constant<'heap>),
 }

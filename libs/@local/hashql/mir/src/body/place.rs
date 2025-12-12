@@ -4,6 +4,7 @@
 //! through data structures. Projections allow accessing nested data within structured types.
 
 use core::{alloc::Allocator, fmt};
+use std::{alloc::Global, collections::VecDeque};
 
 use hashql_core::{id, intern::Interned, symbol::Symbol, r#type::TypeId};
 
@@ -229,6 +230,13 @@ impl<'proj, 'heap> PlaceRef<'proj, 'heap> {
             projections: interner.projections.intern_slice(self.projections),
         }
     }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct PlaceMut<'heap, A: Allocator = Global> {
+    pub local: Local,
+
+    pub projections: VecDeque<Projection<'heap>, A>,
 }
 
 /// A storage location that can be read from or written to in the MIR.

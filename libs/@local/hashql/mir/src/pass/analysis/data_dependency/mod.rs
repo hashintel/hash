@@ -36,6 +36,7 @@
 //! [`EdgeKind::Index(0)`]: graph::EdgeKind::Index
 //! [`EdgeKind::Index(1)`]: graph::EdgeKind::Index
 mod graph;
+mod graph2;
 #[cfg(test)]
 mod tests;
 
