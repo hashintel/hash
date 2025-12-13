@@ -26,7 +26,7 @@ jobs:
     steps:
       - name: Optimize CI
         id: check_skip
-        uses: withgraphite/graphite-ci-action@6213dcfab02da542aaf534e087282a928ff4374a
+        uses: withgraphite/graphite-ci-action@ee395f3a78254c006d11339669c6cabddf196f72
         with:
           graphite_token: ${{ secrets.GRAPHITE_CI_OPTIMIZER_TOKEN }}
 
