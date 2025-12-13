@@ -659,6 +659,48 @@ fn load_chain_with_projections() {
     );
 }
 
+/// Tests that wrapping a param in a tuple and then projecting back out resolves correctly.
+///
+/// ```text
+/// bb0(x):
+///   wrapped = (x,)
+///   goto bb0(wrapped.0)
+/// ```
+#[test]
+fn param_wrap_and_project() {
+    scaffold!(heap, interner, builder);
+    let env = Environment::new(&heap);
+
+    let int_ty = TypeBuilder::synthetic(&env).integer();
+    let tuple_ty = TypeBuilder::synthetic(&env).tuple([int_ty]);
+
+    let x = builder.local("x", int_ty);
+    let wrapped = builder.local("wrapped", tuple_ty);
+
+    let bb0 = builder.reserve_block([x]);
+
+    let x = builder.place_local(x);
+    let wrapped_0 = builder.place(|p| p.local(wrapped).field(0, int_ty));
+
+    builder
+        .build_block(bb0)
+        .assign_local(wrapped, |rv| rv.tuple([x]))
+        .goto(bb0, [wrapped_0.into()]);
+
+    let body = builder.finish(0, int_ty);
+
+    assert_data_dependency(
+        "param_wrap_and_project",
+        &body,
+        &mut MirContext {
+            heap: &heap,
+            env: &env,
+            interner: &interner,
+            diagnostics: DiagnosticIssues::new(),
+        },
+    );
+}
+
 /// Tests projection prepending when the source is opaque (no edges to traverse).
 ///
 /// When resolving through an Index edge whose target has projections, and there are
