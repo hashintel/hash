@@ -260,6 +260,23 @@ fn resolve_params<'heap, A: Allocator + Clone>(
     }))
 }
 
+/// Attempts to resolve a block parameter by checking constant bindings from all predecessors.
+///
+/// This handles the case where a block parameter receives constant values from predecessor
+/// blocks, but has no graph edges (only constant bindings with [`Param`] kind). The function
+/// checks whether all predecessors provide the same constant value.
+///
+/// Unlike [`resolve_params`], this function does not need cycle detection because it only
+/// examines constant bindings, not graph edges that could form back-edges.
+///
+/// # Returns
+///
+/// - [`Resolved(Constant)`] if all predecessor constants agree on the same value
+/// - [`Resolved(Place)`] if predecessors diverge (the place remains valid but has no constant)
+///
+/// [`Param`]: EdgeKind::Param
+/// [`Resolved(Constant)`]: ResolutionResult::Resolved
+/// [`Resolved(Place)`]: ResolutionResult::Resolved
 fn resolve_params_const<'heap, A: Allocator + Clone>(
     state: &ResolutionState<'_, '_, 'heap, A>,
     place: PlaceRef<'_, 'heap>,
