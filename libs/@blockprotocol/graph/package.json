@@ -81,7 +81,7 @@
     "@local/tsconfig": "0.0.0-private",
     "@types/lodash.isequal": "4.5.8",
     "@types/node": "22.18.13",
-    "@types/react": "19.2.2",
+    "@types/react": "19.2.7",
     "eslint": "9.38.0",
     "rimraf": "6.1.2",
     "tsx": "4.20.6",
