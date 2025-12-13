@@ -26,7 +26,7 @@ pub struct Location {
 }
 
 impl Location {
-    pub const PLACEHOLDER: Location = Location {
+    pub const PLACEHOLDER: Self = Self {
         block: BasicBlockId::PLACEHOLDER,
         statement_index: usize::MAX,
     };
