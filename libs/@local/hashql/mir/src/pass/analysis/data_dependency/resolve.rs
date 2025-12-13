@@ -49,15 +49,6 @@ impl<'env, 'heap, A: Allocator> ResolutionState<'_, 'env, 'heap, A> {
             visited: self.visited.as_deref_mut(),
         }
     }
-
-    fn without_visited<'state>(self) -> ResolutionState<'state, 'env, 'heap, A> {
-        ResolutionState {
-            graph: self.graph,
-            interner: self.interner,
-            alloc: self.alloc,
-            visited: None,
-        }
-    }
 }
 
 macro_rules! tri {
@@ -374,7 +365,7 @@ pub(crate) fn resolve<'heap, A: Allocator + Clone>(
     };
 
     let target = traverse(
-        state.cloned().without_visited(),
+        state.cloned(),
         PlaceRef {
             local: place.local,
             projections: rest,
