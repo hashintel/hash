@@ -26,14 +26,14 @@
 }
 ════ Data Dependency Graph ═════════════════════════════════════════════════════
 
-%2 -> %1 [BinaryL]
-%2 -> %1 [BinaryR]
-%0 -> %2 [Param(BasicBlockId(1), None)]
+%0 -> %2 [Param]
+%0 -> 0 [Param]
+%1 -> 5 [Load]
 
 
 ════ Transient Data Dependency Graph ═══════════════════════════════════════════
 
-%2 -> %1 [BinaryL]
-%2 -> %1 [BinaryR]
-%0 -> %2 [Param(BasicBlockId(1), None)]
+%0 -> %2 [Param]
+%0 -> 0 [Param]
+%1 -> 5 [Load]
 

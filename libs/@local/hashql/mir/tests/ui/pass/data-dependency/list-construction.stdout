@@ -30,16 +30,18 @@
 }
 ════ Data Dependency Graph ═════════════════════════════════════════════════════
 
-%4 -> %1 [Aggregation(FieldIndex(0))]
-%4 -> %2 [Aggregation(FieldIndex(1))]
-%4 -> %3 [Aggregation(FieldIndex(2))]
-%0 -> %4 [Param(BasicBlockId(1), None)]
+%0 -> %4 [Param]
+%0 -> 0 [Param]
+%1 -> 1 [Load]
+%2 -> 2 [Load]
+%3 -> 3 [Load]
 
 
 ════ Transient Data Dependency Graph ═══════════════════════════════════════════
 
-%4 -> %1 [Aggregation(FieldIndex(0))]
-%4 -> %2 [Aggregation(FieldIndex(1))]
-%4 -> %3 [Aggregation(FieldIndex(2))]
-%0 -> %4 [Param(BasicBlockId(1), None)]
+%0 -> %4 [Param]
+%0 -> 0 [Param]
+%1 -> 1 [Load]
+%2 -> 2 [Load]
+%3 -> 3 [Load]
 

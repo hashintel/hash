@@ -1,0 +1,12 @@
+---
+source: libs/@local/hashql/mir/src/pass/analysis/data_dependency/tests.rs
+expression: "format!(\"{graph}\\n\\n=====\\n\\n{transient}\")"
+---
+%3 -> %0 [Param]
+%3 -> %1 [Param]
+
+
+=====
+
+%3 -> %0 [Param]
+%3 -> %1 [Param]
