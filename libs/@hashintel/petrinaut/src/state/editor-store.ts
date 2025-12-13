@@ -20,6 +20,10 @@ export type EditorState = {
   isLeftSidebarOpen: boolean;
   setLeftSidebarOpen: (isOpen: boolean) => void;
 
+  // Properties panel width (for DiagnosticsPanel positioning)
+  propertiesPanelWidth: number;
+  setPropertiesPanelWidth: (width: number) => void;
+
   // Selected Resource ID (for properties panel)
   selectedResourceId: string | null;
   setSelectedResourceId: (id: string | null) => void;
@@ -65,6 +69,14 @@ export function createEditorStore() {
             set({ isLeftSidebarOpen: isOpen }, false, {
               type: "setLeftSidebarOpen",
               isOpen,
+            }),
+
+          // Properties panel width
+          propertiesPanelWidth: 450,
+          setPropertiesPanelWidth: (width) =>
+            set({ propertiesPanelWidth: width }, false, {
+              type: "setPropertiesPanelWidth",
+              width,
             }),
 
           // Selected Resource ID
@@ -130,6 +142,7 @@ export function createEditorStore() {
                 globalMode: "edit",
                 editionMode: "select",
                 isLeftSidebarOpen: true,
+                propertiesPanelWidth: 450,
                 selectedResourceId: null,
                 selectedItemIds: new Set(),
                 draggingStateByNodeId: {},

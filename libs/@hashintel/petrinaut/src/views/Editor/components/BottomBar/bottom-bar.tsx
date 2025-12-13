@@ -3,6 +3,7 @@ import { refractive } from "@hashintel/refractive";
 import { useEffect } from "react";
 
 import type { EditorState } from "../../../../state/editor-store";
+import { DiagnosticsIndicator } from "./diagnostics-indicator";
 import { SimulationControls } from "./simulation-controls";
 import { ToolbarModes } from "./toolbar-modes";
 import { useKeyboardShortcuts } from "./use-keyboard-shortcuts";
@@ -14,12 +15,16 @@ interface BottomBarProps {
   mode: EditorMode;
   editionMode: EditorEditionMode;
   onEditionModeChange: (mode: EditorEditionMode) => void;
+  isDiagnosticsOpen: boolean;
+  onToggleDiagnostics: () => void;
 }
 
 export const BottomBar: React.FC<BottomBarProps> = ({
   mode,
   editionMode,
   onEditionModeChange,
+  isDiagnosticsOpen,
+  onToggleDiagnostics,
 }) => {
   // Fallback to 'pan' mode when switching to simulate mode if mutative mode
   useEffect(() => {
@@ -65,11 +70,24 @@ export const BottomBar: React.FC<BottomBarProps> = ({
             gap: "spacing.4",
           })}
         >
+          <DiagnosticsIndicator
+            onClick={onToggleDiagnostics}
+            isExpanded={isDiagnosticsOpen}
+          />
+          <div
+            className={css({
+              background: "core.gray.20",
+              width: "[1px]",
+              height: "[40px]",
+            })}
+            style={{ margin: "0 4px" }}
+          />
           <ToolbarModes
             mode={mode}
             editionMode={editionMode}
             onEditionModeChange={onEditionModeChange}
           />
+
           {mode === "simulate" && <SimulationControls />}
         </div>
       </refractive.div>
