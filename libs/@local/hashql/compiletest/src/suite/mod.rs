@@ -117,6 +117,7 @@ pub(crate) trait Suite: RefUnwindSafe + Send + Sync + 'static {
     }
 
     fn name(&self) -> &'static str;
+    fn description(&self) -> &'static str;
 
     fn run<'heap>(
         &self,
@@ -154,4 +155,8 @@ const SUITES: &[&dyn Suite] = &[
 
 pub(crate) fn find_suite(name: &str) -> Option<&'static dyn Suite> {
     SUITES.iter().find(|&suite| suite.name() == name).copied()
+}
+
+pub(crate) fn iter() -> &'static [&'static dyn Suite] {
+    SUITES
 }

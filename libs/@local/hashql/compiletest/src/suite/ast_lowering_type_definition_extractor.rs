@@ -30,6 +30,10 @@ impl Suite for AstLoweringTypeDefinitionExtractorSuite {
         "ast/lowering/type-definition-extractor"
     }
 
+    fn description(&self) -> &'static str {
+        "Type definition extraction from the AST"
+    }
+
     fn run<'heap>(
         &self,
         RunContext {

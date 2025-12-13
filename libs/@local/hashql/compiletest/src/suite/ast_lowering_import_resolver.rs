@@ -21,6 +21,10 @@ impl Suite for AstLoweringImportResolverSuite {
         "ast/lowering/import-resolver"
     }
 
+    fn description(&self) -> &'static str {
+        "Import and module resolution in the AST"
+    }
+
     fn run<'heap>(
         &self,
         RunContext {

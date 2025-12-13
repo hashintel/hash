@@ -22,6 +22,10 @@ impl Suite for MirPassAnalysisDataDependency {
         "mir/pass/analysis/data-dependency"
     }
 
+    fn description(&self) -> &'static str {
+        "Data dependency analysis on the MIR"
+    }
+
     fn run<'heap>(
         &self,
         RunContext {

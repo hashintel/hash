@@ -50,6 +50,10 @@ impl Suite for HirLowerThunkingSuite {
         "hir/lower/thunking"
     }
 
+    fn description(&self) -> &'static str {
+        "Thunk insertion for lazy evaluation in the HIR"
+    }
+
     fn run<'heap>(
         &self,
         RunContext {

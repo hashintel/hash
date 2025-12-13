@@ -9,6 +9,10 @@ impl Suite for ParseSyntaxDumpSuite {
         "parse/syntax-dump"
     }
 
+    fn description(&self) -> &'static str {
+        "Parser output as a syntax dump"
+    }
+
     fn run<'heap>(
         &self,
         _: RunContext<'_, 'heap>,

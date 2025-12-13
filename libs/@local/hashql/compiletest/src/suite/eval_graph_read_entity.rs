@@ -27,6 +27,10 @@ impl Suite for EvalGraphReadEntitySuite {
         "eval/graph/read/entity"
     }
 
+    fn description(&self) -> &'static str {
+        "Entity read operations in graph evaluation"
+    }
+
     fn run<'heap>(
         &self,
         RunContext {

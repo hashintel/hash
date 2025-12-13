@@ -52,6 +52,10 @@ impl Suite for HirLowerTypeCheckingSuite {
         "hir/lower/type-checking"
     }
 
+    fn description(&self) -> &'static str {
+        "Type checking pass on the HIR"
+    }
+
     fn run<'heap>(
         &self,
         RunContext {

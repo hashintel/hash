@@ -43,6 +43,10 @@ impl Suite for HirLowerGraphHoistingSuite {
         "hir/lower/graph-hoisting"
     }
 
+    fn description(&self) -> &'static str {
+        "Graph operation hoisting in the HIR"
+    }
+
     fn run<'heap>(
         &self,
         RunContext {

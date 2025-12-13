@@ -18,6 +18,10 @@ impl Suite for AstLoweringNameManglerSuite {
         "ast/lowering/name-mangler"
     }
 
+    fn description(&self) -> &'static str {
+        "Name mangling for unique identification"
+    }
+
     fn run<'heap>(
         &self,
         RunContext {

@@ -9,6 +9,7 @@ Heavily influenced by the Rust compiler's [compiletest](https://github.com/rust-
 ```bash
 cargo run -p hashql-compiletest run                           # Run all tests
 cargo run -p hashql-compiletest list                          # List tests
+cargo run -p hashql-compiletest suites                        # List available suites
 cargo run -p hashql-compiletest run --filter "test(name)"     # Filter by name
 cargo run -p hashql-compiletest run --filter "package(pkg)"   # Filter by package
 cargo run -p hashql-compiletest run --bless                   # Update expected outputs
@@ -108,14 +109,11 @@ Annotations verify that specific diagnostics appear at expected locations:
 
 ## Discovering Test Suites
 
-There are many test suites (24+). Discover them dynamically:
+List all available suites and their descriptions:
 
 ```bash
-# Find suite names
-grep -r 'fn name(&self)' libs/@local/hashql/compiletest/src/suite/*.rs
-
-# See what suites existing tests use
-find libs/@local/hashql -name '.spec.toml' -exec cat {} \;
+cargo run -p hashql-compiletest suites           # Human-readable
+cargo run -p hashql-compiletest suites --json    # NDJSON output
 ```
 
 ### Specifying a Suite

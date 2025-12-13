@@ -12,6 +12,10 @@ impl Suite for AstLoweringSpecialFormExpanderSuite {
         "ast/lowering/special-form-expander"
     }
 
+    fn description(&self) -> &'static str {
+        "Special form and macro expansion in the AST"
+    }
+
     fn run<'heap>(
         &self,
         RunContext {

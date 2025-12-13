@@ -18,6 +18,10 @@ impl Suite for AstLoweringNodeRenumbererSuite {
         "ast/lowering/node-renumberer"
     }
 
+    fn description(&self) -> &'static str {
+        "Sequential node ID assignment in the AST"
+    }
+
     fn run<'heap>(
         &self,
         RunContext {

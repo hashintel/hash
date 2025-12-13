@@ -222,22 +222,23 @@ Include optional error codes in brackets:
 
 ## Discovering Test Suites
 
-There are many test suites (24+). Rather than maintaining a static list, discover them dynamically:
+List all available suites and their descriptions:
 
 ```bash
-# Find suite names in the codebase
-grep -r 'fn name(&self)' libs/@local/hashql/compiletest/src/suite/*.rs
+# Human-readable list with descriptions
+cargo run -p hashql-compiletest suites
 
-# See what suites existing tests use
-find libs/@local/hashql -name '.spec.toml' -exec cat {} \;
+# Machine-readable NDJSON output
+cargo run -p hashql-compiletest suites --json
 ```
 
 ### Suite Categories
 
 - `parse/*` - Parsing tests (e.g., `parse/syntax-dump`)
-- `ast-lowering/*` - AST lowering phases
-- `hir-lower/*` - HIR lowering phases
-- `mir-*` - MIR passes
+- `ast/lowering/*` - AST lowering phases
+- `hir/lower/*` - HIR lowering phases
+- `hir/reify` - HIR generation from AST
+- `mir/*` - MIR passes and generation
 - `eval/*` - Evaluation tests
 
 ### Specifying a Suite
@@ -373,6 +374,9 @@ cargo run -p hashql-compiletest run
 
 # List tests
 cargo run -p hashql-compiletest list
+
+# List available suites
+cargo run -p hashql-compiletest suites
 
 # Filter by test name
 cargo run -p hashql-compiletest run --filter "test(name)"

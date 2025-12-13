@@ -46,6 +46,10 @@ impl Suite for HirLowerCtorSuite {
         "hir/lower/ctor"
     }
 
+    fn description(&self) -> &'static str {
+        "Type constructor conversion in the HIR"
+    }
+
     fn run<'heap>(
         &self,
         RunContext {

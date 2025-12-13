@@ -40,13 +40,17 @@ use self::{
     reporter::{Reporter, Statistics, Summary, setup_progress_header},
     suite::Suite,
 };
+use crate::styles::{CYAN, GRAY};
 
 mod annotation;
 mod executor;
 mod find;
+mod output;
 mod reporter;
 mod styles;
 mod suite;
+
+pub use self::output::OutputFormat;
 
 static PANICKED: AtomicBool = AtomicBool::new(false);
 
@@ -89,7 +93,8 @@ struct EntryPoint<'graph> {
 
 pub enum Command {
     Run { bless: bool },
-    List,
+    List { format: OutputFormat },
+    Suites { format: OutputFormat },
 }
 
 pub struct Options {
@@ -108,6 +113,11 @@ impl Options {
     /// - Unable to write to stdout or stderr
     /// - Unable to report errors
     pub fn run(self) {
+        if let Command::Suites { format } = self.command {
+            Self::list_suites(format);
+            return;
+        }
+
         let reporter = Reporter::install();
 
         let mut command = MetadataCommand::new();
@@ -164,10 +174,41 @@ impl Options {
                     exit(1);
                 }
             }
-            Command::List => {
+            Command::List { format } => {
                 trials
-                    .list(&stdout())
+                    .list(&stdout(), format)
                     .expect("should be able to write to stdout");
+            }
+            Command::Suites { .. } => unreachable!(),
+        }
+    }
+
+    fn list_suites(format: OutputFormat) {
+        use output::escape_json;
+
+        let mut stdout = stdout();
+        let suites = suite::iter();
+
+        match format {
+            OutputFormat::Json => {
+                for suite in suites {
+                    write!(stdout, r#"{{"name":""#).expect("should be able to write to stdout");
+                    escape_json(&mut stdout, suite.name())
+                        .expect("should be able to write to stdout");
+                    write!(stdout, r#"","description":""#)
+                        .expect("should be able to write to stdout");
+                    escape_json(&mut stdout, suite.description())
+                        .expect("should be able to write to stdout");
+                    writeln!(stdout, r#""}}"#).expect("should be able to write to stdout");
+                }
+            }
+            OutputFormat::Human => {
+                for suite in suites {
+                    writeln!(stdout, "  {CYAN}{}{CYAN:#}", suite.name())
+                        .expect("should be able to write to stdout");
+                    writeln!(stdout, "      {GRAY}{}{GRAY:#}", suite.description())
+                        .expect("should be able to write to stdout");
+                }
             }
         }
     }

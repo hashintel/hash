@@ -11,7 +11,7 @@ use nextest_metadata::{RustBinaryId, RustTestBinaryKind};
 use rayon::iter::{IntoParallelRefIterator as _, ParallelIterator as _};
 
 use super::{TrialContext, TrialDescription, TrialError, trial::Trial};
-use crate::{TestGroup, reporter::Statistics};
+use crate::{OutputFormat, TestGroup, reporter::Statistics};
 
 // Adapted from: https://github.com/rust-lang/rust/blob/6c8138de8f1c96b2f66adbbc0e37c73525444750/library/std/src/panicking.rs#L779-L787
 fn panic_payload_as_str(payload: Box<dyn Any + Send + 'static>) -> String {
@@ -75,9 +75,9 @@ impl<'graph, 'stats> TrialGroup<'graph, 'stats> {
         }
     }
 
-    pub(crate) fn list(&self, mut output: impl io::Write) -> io::Result<()> {
+    pub(crate) fn list(&self, mut output: impl io::Write, format: OutputFormat) -> io::Result<()> {
         for trial in &self.trials {
-            trial.list(&mut output, self.metadata.name(), self.ignore)?;
+            trial.list(&mut output, self.metadata.name(), self.ignore, format)?;
             writeln!(output)?;
         }
 
