@@ -260,6 +260,29 @@ fn resolve_params<'heap, A: Allocator + Clone>(
     }))
 }
 
+fn resolve_params_const<'heap, A: Allocator + Clone>(
+    state: &ResolutionState<'_, '_, 'heap, A>,
+    place: PlaceRef<'_, 'heap>,
+) -> ResolutionResult<'heap, A> {
+    debug_assert!(place.projections.is_empty());
+    let mut constants = state
+        .graph
+        .constant_bindings
+        .iter_by_kind(place.local, EdgeKind::Param);
+    let Some(head) = constants.next() else {
+        unreachable!("caller must guarantee that at least one Param edge exists")
+    };
+
+    let all_agree = constants.all(|constant| constant == head);
+    if all_agree {
+        ResolutionResult::Resolved(Operand::Constant(head))
+    } else {
+        // We have finished (we have terminated on a param, which is divergent, therefore the place
+        // is still valid, just doesn't have a constant value)
+        ResolutionResult::Resolved(Operand::Place(Place::local(place.local, state.interner)))
+    }
+}
+
 /// Resolves a place to its ultimate data source by traversing the dependency graph.
 ///
 /// Starting from `place`, this function follows edges in the dependency graph to find where
@@ -289,9 +312,13 @@ pub(crate) fn resolve<'heap, A: Allocator + Clone>(
     mut place: PlaceRef<'_, 'heap>,
 ) -> ResolutionResult<'heap, A> {
     // Scan outgoing edges to find Load and count Param edges.
+    let mut edges = 0_usize;
     let mut params = 0_usize;
     let mut load_edge = None;
+
     for edge in state.graph.outgoing_edges(place.local) {
+        edges += 1;
+
         match edge.data.kind {
             EdgeKind::Load => load_edge = Some(edge),
             EdgeKind::Param => params += 1,
@@ -307,8 +334,20 @@ pub(crate) fn resolve<'heap, A: Allocator + Clone>(
         place.local = tri!(traverse(state.cloned(), place, load));
     }
 
-    // Attempt to resolve through Param edges if all predecessors agree.
-    // Skip if a constant binding exists (divergent by definition).
+    // Attempt to resolve through Param edges, if all predecessors agree.
+    // There are fundamentally two cases:
+    // - Either all graph edges are Param edges, or
+    // - all constant bindings are Param edges
+    if edges == 0
+        && state
+            .graph
+            .constant_bindings
+            .find_by_kind(place.local, EdgeKind::Param)
+            .is_some()
+    {
+        return resolve_params_const(&state, place);
+    }
+
     if params > 0
         && state
             .graph

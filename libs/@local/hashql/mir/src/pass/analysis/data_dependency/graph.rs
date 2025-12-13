@@ -183,6 +183,17 @@ impl<'heap, A: Allocator> ConstantBindings<'heap, A> {
             .find(|binding| binding.kind == kind)
             .map(|binding| binding.constant)
     }
+
+    pub(crate) fn iter_by_kind(
+        &self,
+        local: Local,
+        kind: EdgeKind<'heap>,
+    ) -> impl Iterator<Item = Constant<'heap>> {
+        self.inner[local]
+            .iter()
+            .filter(move |binding| binding.kind == kind)
+            .map(|binding| binding.constant)
+    }
 }
 
 /// A data dependency graph with resolved transitive dependencies.

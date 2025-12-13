@@ -701,6 +701,151 @@ fn param_wrap_and_project() {
     );
 }
 
+/// Tests resolving through a tuple projection to a constant param where predecessors agree.
+///
+/// ```text
+/// bb0:
+///   switch cond -> bb1 | bb2
+///
+/// bb1:
+///   goto bb3(0)
+///
+/// bb2:
+///   goto bb3(0)
+///
+/// bb3(x):
+///   wrapped = (x,)
+///   y = wrapped.0   // Should resolve through wrapped.0 -> x -> 0
+///   return y
+/// ```
+#[test]
+fn param_const_through_projection_agree() {
+    scaffold!(heap, interner, builder);
+    let env = Environment::new(&heap);
+
+    let int_ty = TypeBuilder::synthetic(&env).integer();
+    let tuple_ty = TypeBuilder::synthetic(&env).tuple([int_ty]);
+
+    let cond = builder.local("cond", int_ty);
+    let cond = builder.place_local(cond);
+    let x = builder.local("x", int_ty);
+    let wrapped = builder.local("wrapped", tuple_ty);
+    let y = builder.local("y", int_ty);
+    let y = builder.place_local(y);
+
+    let bb0 = builder.reserve_block([]);
+    let bb1 = builder.reserve_block([]);
+    let bb2 = builder.reserve_block([]);
+    let bb3 = builder.reserve_block([x]);
+
+    let x = builder.place_local(x);
+    let wrapped_0 = builder.place(|p| p.local(wrapped).field(0, int_ty));
+
+    let const_0 = builder.const_int(0);
+
+    builder
+        .build_block(bb0)
+        .assign_place(cond, |rv| {
+            rv.input(InputOp::Load { required: true }, "cond")
+        })
+        .if_else(cond, bb1, [], bb2, []);
+
+    builder.build_block(bb1).goto(bb3, [const_0]);
+    builder.build_block(bb2).goto(bb3, [const_0]);
+
+    builder
+        .build_block(bb3)
+        .assign_local(wrapped, |rv| rv.tuple([x]))
+        .assign_place(y, |rv| rv.load(wrapped_0))
+        .ret(y);
+
+    let body = builder.finish(0, int_ty);
+
+    assert_data_dependency(
+        "param_const_through_projection_agree",
+        &body,
+        &mut MirContext {
+            heap: &heap,
+            env: &env,
+            interner: &interner,
+            diagnostics: DiagnosticIssues::new(),
+        },
+    );
+}
+
+/// Tests resolving through a tuple projection to a constant param where predecessors diverge.
+///
+/// ```text
+/// bb0:
+///   switch cond -> bb1 | bb2
+///
+/// bb1:
+///   goto bb3(0)
+///
+/// bb2:
+///   goto bb3(1)
+///
+/// bb3(x):
+///   wrapped = (x,)
+///   y = wrapped.0   // Should resolve to x (not constant, since predecessors diverge)
+///   return y
+/// ```
+#[test]
+fn param_const_through_projection_diverge() {
+    scaffold!(heap, interner, builder);
+    let env = Environment::new(&heap);
+
+    let int_ty = TypeBuilder::synthetic(&env).integer();
+    let tuple_ty = TypeBuilder::synthetic(&env).tuple([int_ty]);
+
+    let cond = builder.local("cond", int_ty);
+    let cond = builder.place_local(cond);
+    let x = builder.local("x", int_ty);
+    let wrapped = builder.local("wrapped", tuple_ty);
+    let y = builder.local("y", int_ty);
+    let y = builder.place_local(y);
+
+    let bb0 = builder.reserve_block([]);
+    let bb1 = builder.reserve_block([]);
+    let bb2 = builder.reserve_block([]);
+    let bb3 = builder.reserve_block([x]);
+
+    let x = builder.place_local(x);
+    let wrapped_0 = builder.place(|p| p.local(wrapped).field(0, int_ty));
+
+    let const_0 = builder.const_int(0);
+    let const_1 = builder.const_int(1);
+
+    builder
+        .build_block(bb0)
+        .assign_place(cond, |rv| {
+            rv.input(InputOp::Load { required: true }, "cond")
+        })
+        .if_else(cond, bb1, [], bb2, []);
+
+    builder.build_block(bb1).goto(bb3, [const_0]);
+    builder.build_block(bb2).goto(bb3, [const_1]);
+
+    builder
+        .build_block(bb3)
+        .assign_local(wrapped, |rv| rv.tuple([x]))
+        .assign_place(y, |rv| rv.load(wrapped_0))
+        .ret(y);
+
+    let body = builder.finish(0, int_ty);
+
+    assert_data_dependency(
+        "param_const_through_projection_diverge",
+        &body,
+        &mut MirContext {
+            heap: &heap,
+            env: &env,
+            interner: &interner,
+            diagnostics: DiagnosticIssues::new(),
+        },
+    );
+}
+
 /// Tests projection prepending when the source is opaque (no edges to traverse).
 ///
 /// When resolving through an Index edge whose target has projections, and there are
