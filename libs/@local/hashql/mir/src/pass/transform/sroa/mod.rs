@@ -31,7 +31,8 @@ impl<'heap> VisitorMut<'heap> for PlaceVisitor<'_, 'heap, '_> {
     }
 
     fn visit_operand(&mut self, _: Location, operand: &mut Operand<'heap>) -> Self::Result<()> {
-        // We don't traverse by default, as any traversal wouldn't help much.
+        // We do not walk the operand, as we're only interested in operands themselves, with cannot
+        // be nested.
         if let Operand::Place(place) = operand {
             *operand = self.graph.resolve(self.interner, place.as_ref());
         }
