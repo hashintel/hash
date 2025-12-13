@@ -1,0 +1,18 @@
+//@ run: pass
+//@ description: SROA resolves nested conditionals with constant outer condition
+[
+  "if",
+  { "#literal": false },
+  [
+    "if",
+    ["<=", { "#literal": 1 }, { "#literal": 2 }],
+    [
+      "if",
+      [">=", { "#literal": 3 }, { "#literal": 4 }],
+      { "#literal": "deeply-nested-then" },
+      { "#literal": "deeply-nested-else" }
+    ],
+    { "#literal": "inner-else" }
+  ],
+  { "#literal": "taken" }
+]
