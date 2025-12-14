@@ -6,5 +6,6 @@ mod sroa;
 mod ssa_repair;
 
 pub use self::{
-    cfg_simplify::CfgSimplify, dbe::DeadBlockElimination, sroa::Sroa, ssa_repair::SsaRepair,
+    cfg_simplify::CfgSimplify, dbe::DeadBlockElimination, dse::DeadStoreElimination, sroa::Sroa,
+    ssa_repair::SsaRepair,
 };
