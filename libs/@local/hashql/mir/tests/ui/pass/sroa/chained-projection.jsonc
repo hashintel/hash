@@ -7,12 +7,7 @@
     "let",
     "inner",
     { "#tuple": [{ "#literal": 1 }, { "#literal": 2 }] },
-    [
-      "let",
-      "outer",
-      { "#tuple": ["inner", { "#literal": 3 }] },
-      "outer.0.1"
-    ]
+    ["let", "outer", { "#tuple": ["inner", { "#literal": 3 }] }, "outer.0.1"]
   ],
   { "#literal": 0 }
 ]
