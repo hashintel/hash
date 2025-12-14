@@ -1,18 +1,46 @@
+//! Scratch allocator for temporary allocations.
+//!
+//! This module provides [`Scratch`], a resettable bump allocator designed for
+//! temporary allocations that can be bulk-freed by calling [`Scratch::reset`].
+
 use core::alloc::Allocator;
 
 use bumpalo::Bump;
 
+/// A resettable scratch allocator for temporary allocations.
+///
+/// `Scratch` wraps a [`Bump`] allocator, providing a simple interface for
+/// allocating memory that can be efficiently freed in bulk. This is useful
+/// for temporary allocations during query processing where individual
+/// deallocations are unnecessary.
+///
+/// # Usage
+///
+/// The allocator can be used directly with collections via the [`Allocator`] trait:
+///
+/// ```
+/// # #![feature(allocator_api)]
+/// # use hashql_core::heap::Scratch;
+/// let mut scratch = Scratch::new();
+/// let mut vec: Vec<u32, &Scratch> = Vec::new_in(&scratch);
+/// vec.push(42);
+/// # drop(vec);
+/// // When done, reset to free all allocations at once
+/// scratch.reset();
+/// ```
 #[derive(Debug)]
 pub struct Scratch {
     bump: Bump,
 }
 
 impl Scratch {
+    /// Creates a new scratch allocator with an empty arena.
     #[must_use]
     pub fn new() -> Self {
         Self { bump: Bump::new() }
     }
 
+    /// Resets the allocator, freeing all allocations at once.
     pub fn reset(&mut self) {
         self.bump.reset();
     }
