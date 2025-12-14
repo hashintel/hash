@@ -360,6 +360,11 @@ impl<T: Id> DenseBitSet<T> {
         // out-of-domain bits, so we need to clear them.
         self.clear_excess_bits();
     }
+
+    pub fn negate(&mut self) {
+        self.words.iter_mut().for_each(|word| *word = !*word);
+        self.clear_excess_bits();
+    }
 }
 
 // dense REL dense

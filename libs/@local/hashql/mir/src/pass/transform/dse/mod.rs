@@ -12,7 +12,7 @@ use crate::{
     body::{
         Body,
         basic_block::{BasicBlock, BasicBlockId, BasicBlockVec},
-        local::{Local, LocalVec},
+        local::Local,
         location::Location,
         operand::Operand,
         place::{DefUse, PlaceContext},
@@ -25,50 +25,66 @@ use crate::{
     visit::{self, Visitor, VisitorMut, r#mut::filter},
 };
 
-pub struct DeadStatementElimination {
+pub struct DeadStoreElimination {
     scratch: Scratch,
 }
 
-impl<'env, 'heap> TransformPass<'env, 'heap> for DeadStatementElimination {
-    fn run(&mut self, context: &mut MirContext<'env, 'heap>, body: &mut Body<'heap>) {
-        let mut dependencies = DependencyVisitor::new_in(&body, &self.scratch);
+impl DeadStoreElimination {
+    fn dead_locals(&self, body: &Body<'_>) -> DenseBitSet<Local> {
+        let mut dependencies = DependencyVisitor::new_in(body, &self.scratch);
         dependencies.visit_body(body);
 
-        let mut dead = DenseBitSet::new_empty(body.local_decls.len());
-        let mut queue = WorkQueue::new_in(body.local_decls.len(), &self.scratch);
-        for (local, &count) in dependencies.uses.iter_enumerated() {
-            if count != 0 {
-                continue;
-            }
-
-            dead.insert(local);
-            queue.enqueue(local);
-        }
+        let DependencyVisitor {
+            body: _,
+            graph,
+            mut live,
+            roots: mut queue,
+            current_def: _,
+        } = dependencies;
 
         while let Some(local) = queue.dequeue() {
-            for edge in dependencies
-                .graph
-                .outgoing_edges(NodeId::new(local.as_usize()))
-            {
-                let dependent = Local::new(edge.target().as_usize());
-
-                dependencies.uses[dependent] -= 1;
-
-                if dependencies.uses[dependent] == 0 {
-                    dead.insert(dependent);
-                    queue.enqueue(dependent);
+            for edge in graph.outgoing_edges(NodeId::new(local.as_usize())) {
+                let dependency = Local::new(edge.target().as_usize());
+                if live.insert(dependency) {
+                    queue.enqueue(dependency);
                 }
             }
         }
 
-        todo!()
+        live.negate();
+        live
+    }
+}
+
+impl<'env, 'heap> TransformPass<'env, 'heap> for DeadStoreElimination {
+    fn run(&mut self, context: &mut MirContext<'env, 'heap>, body: &mut Body<'heap>) {
+        let dead = self.dead_locals(body);
+        let mut visitor = EliminationVisitor {
+            dead,
+            params: BasicBlockVec::from_fn_in(
+                body.basic_blocks.len(),
+                |block| body.basic_blocks[block].params,
+                &self.scratch,
+            ),
+            interner: context.interner,
+            scratch_locals: Vec::new_in(&self.scratch),
+            scratch_operands: Vec::new_in(&self.scratch),
+        };
+
+        Ok(()) = visitor.visit_body_preserving_cfg(body);
+
+        drop(visitor);
+        self.scratch.reset();
     }
 }
 
 struct DependencyVisitor<'body, 'heap, A: Allocator> {
     body: &'body Body<'heap>,
     graph: LinkedGraph<(), (), A>,
-    uses: LocalVec<usize, A>,
+
+    live: DenseBitSet<Local>,
+    roots: WorkQueue<Local, A>,
+
     current_def: Local,
 }
 
@@ -83,7 +99,10 @@ impl<'body, 'heap, A: Allocator> DependencyVisitor<'body, 'heap, A> {
         Self {
             body,
             graph,
-            uses: LocalVec::from_domain_in(0, &body.local_decls, alloc),
+
+            live: DenseBitSet::new_empty(body.local_decls.len()),
+            roots: WorkQueue::new_in(body.local_decls.len(), alloc),
+
             current_def: Local::MAX,
         }
     }
@@ -127,15 +146,21 @@ impl<'heap, A: Allocator> Visitor<'heap> for DependencyVisitor<'_, 'heap, A> {
             DefUse::Def => self.current_def = local,
             DefUse::PartialDef => unimplemented!("MIR must be in SSA"),
             DefUse::Use => {
-                if self.current_def != Local::MAX {
+                if self.current_def == Local::MAX {
+                    // We have a use of a local that is considered a root, a root is any local that
+                    // is used inside of a terminator that isn't directly part of a target, such as
+                    // a condition or return value.
+                    self.roots.enqueue(local);
+                    self.live.insert(local);
+                } else {
+                    // The edge is considered a dataflow edge, meaning we have a variable that flows
+                    // into another.
                     self.graph.add_edge(
                         NodeId::new(self.current_def.as_usize()),
                         NodeId::new(local.as_usize()),
                         (),
                     );
                 }
-
-                self.uses[local] = self.uses[local].saturating_add(1);
             }
         }
 
@@ -157,15 +182,16 @@ impl<'heap, A: Allocator> Visitor<'heap> for DependencyVisitor<'_, 'heap, A> {
 
         let param = target_block.params[0];
 
-        // We do this in a simple fashion, we simply say that the target param has "infinite" uses
-        self.uses[param] = usize::MAX;
+        // We do this by marking it as a root use
+        self.roots.enqueue(param);
+        self.live.insert(param);
         Ok(())
     }
 }
 
 struct EliminationVisitor<'env, 'heap, A: Allocator> {
     dead: DenseBitSet<Local>,
-    params: BasicBlockVec<Interned<'heap, [Local]>>,
+    params: BasicBlockVec<Interned<'heap, [Local]>, A>,
     interner: &'env Interner<'heap>,
     scratch_locals: Vec<Local, A>,
     scratch_operands: Vec<Operand<'heap>, A>,
