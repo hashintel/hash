@@ -2,7 +2,7 @@ use alloc::alloc::Global;
 use core::{alloc::Allocator, fmt};
 
 use hashql_core::{
-    graph::{LinkedGraph, NodeId, linked::IncidentEdges},
+    graph::{DirectedGraph, LinkedGraph, NodeId, Successors, linked::IncidentEdges},
     id::Id as _,
     intern::Interned,
     symbol::Symbol,
@@ -215,6 +215,13 @@ impl<'heap, A: Allocator> TransientDataDependencyGraph<'heap, A> {
         A: Clone,
     {
         self.graph.resolve(interner, place)
+    }
+
+    pub fn depends_on(&self, local: Local) -> impl Iterator<Item = Local> {
+        self.graph
+            .graph
+            .successors(NodeId::new(local.as_usize()))
+            .map(|node| Local::new(node.as_usize()))
     }
 }
 

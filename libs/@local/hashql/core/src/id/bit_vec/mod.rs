@@ -39,6 +39,7 @@ use core::{
     ops::{BitAnd, BitAndAssign, BitOrAssign, Bound, Not, Range, RangeBounds, Shl},
     slice,
 };
+use std::alloc::{Allocator, Global};
 
 use smallvec::{SmallVec, smallvec};
 
@@ -1751,9 +1752,9 @@ impl<R: Id, C: Id> fmt::Debug for BitMatrix<R, C> {
 /// `R` and `C` are index types used to identify rows and columns respectively;
 /// typically newtyped `usize` wrappers, but they can also just be `usize`.
 #[derive(Clone)]
-pub struct SparseBitMatrix<R, C> {
+pub struct SparseBitMatrix<R, C, A: Allocator = Global> {
     num_columns: usize,
-    rows: IdVec<R, Option<DenseBitSet<C>>>,
+    rows: IdVec<R, Option<DenseBitSet<C>>, A>,
 }
 
 impl<R: Id, C: Id> SparseBitMatrix<R, C> {
@@ -1763,6 +1764,17 @@ impl<R: Id, C: Id> SparseBitMatrix<R, C> {
         Self {
             num_columns,
             rows: IdVec::new(),
+        }
+    }
+}
+
+impl<R: Id, C: Id, A: Allocator> SparseBitMatrix<R, C, A> {
+    /// Creates a new empty sparse bit matrix with no rows or columns.
+    #[must_use]
+    pub const fn new_in(num_columns: usize, alloc: A) -> Self {
+        Self {
+            num_columns,
+            rows: IdVec::new_in(alloc),
         }
     }
 
@@ -1846,6 +1858,20 @@ impl<R: Id, C: Id> SparseBitMatrix<R, C> {
 
     pub fn row(&self, row: R) -> Option<&DenseBitSet<C>> {
         self.rows.get(row)?.as_ref()
+    }
+
+    pub fn superset_row(&self, row: R, other: &DenseBitSet<C>) -> Option<bool> {
+        match self.rows.get(row) {
+            Some(Some(row)) => Some(row.superset(other)),
+            _ => None,
+        }
+    }
+
+    pub fn subset_row(&self, row: R, other: &DenseBitSet<C>) -> Option<bool> {
+        match self.rows.get(row) {
+            Some(Some(row)) => Some(other.superset(row)),
+            _ => None,
+        }
     }
 
     /// Intersects `row` with `set`. `set` can be either `DenseBitSet` or
