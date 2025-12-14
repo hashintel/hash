@@ -96,12 +96,10 @@ impl<A: Allocator> Visitor<'_> for DependencyVisitor<A> {
             DefUse::Def => self.current_def = local,
             DefUse::PartialDef => unimplemented!("MIR must be in SSA"),
             DefUse::Use => {
-                if self.current_def == Local::MAX {
-                    // We're in a use that isn't part of a definition
-                    return Ok(());
+                if self.current_def != Local::MAX {
+                    self.matrix.insert(self.current_def, local);
                 }
 
-                self.matrix.insert(self.current_def, local);
                 self.uses[local] += 1;
             }
         }
