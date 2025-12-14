@@ -2,7 +2,9 @@ use alloc::alloc::Global;
 use core::{alloc::Allocator, fmt};
 
 use hashql_core::{
-    graph::{DirectedGraph, LinkedGraph, NodeId, Successors, linked::IncidentEdges},
+    graph::{
+        DirectedGraph, LinkedGraph, NodeId, Predecessors as _, Successors, linked::IncidentEdges,
+    },
     id::Id as _,
     intern::Interned,
     symbol::Symbol,
@@ -218,10 +220,11 @@ impl<'heap, A: Allocator> TransientDataDependencyGraph<'heap, A> {
     }
 
     pub fn depends_on(&self, local: Local) -> impl Iterator<Item = Local> {
-        self.graph
-            .graph
-            .successors(NodeId::new(local.as_usize()))
-            .map(|node| Local::new(node.as_usize()))
+        self.graph.depends_on(local)
+    }
+
+    pub fn dependent_on(&self, local: Local) -> impl Iterator<Item = Local> {
+        self.graph.dependent_on(local)
     }
 }
 
@@ -243,6 +246,18 @@ pub struct DataDependencyGraph<'heap, A: Allocator = Global> {
 }
 
 impl<'heap, A: Allocator> DataDependencyGraph<'heap, A> {
+    pub fn depends_on(&self, local: Local) -> impl Iterator<Item = Local> {
+        self.graph
+            .successors(NodeId::new(local.as_usize()))
+            .map(|node| Local::new(node.as_usize()))
+    }
+
+    pub fn dependent_on(&self, local: Local) -> impl Iterator<Item = Local> {
+        self.graph
+            .predecessors(NodeId::new(local.as_usize()))
+            .map(|node| Local::new(node.as_usize()))
+    }
+
     /// Creates a transient graph with all edges resolved to their ultimate sources.
     ///
     /// Each edge in the original graph is traced through [`resolve`](Self::resolve), producing
