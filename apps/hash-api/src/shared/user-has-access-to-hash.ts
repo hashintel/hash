@@ -6,9 +6,32 @@ import {
   type User,
 } from "../graph/knowledge/system-types/user";
 
-const userEmailAllowList = process.env.USER_EMAIL_ALLOW_LIST
-  ? (JSON.parse(process.env.USER_EMAIL_ALLOW_LIST) as string[])
-  : undefined;
+const isArrayOfStrings = (value: unknown): value is string[] => {
+  return (
+    Array.isArray(value) && value.every((item) => typeof item === "string")
+  );
+};
+
+let userEmailAllowList: string[] | undefined;
+if (process.env.USER_EMAIL_ALLOW_LIST) {
+  try {
+    const uncheckedUserEmailAllowList = JSON.parse(
+      process.env.USER_EMAIL_ALLOW_LIST,
+    ) as unknown;
+
+    if (!isArrayOfStrings(uncheckedUserEmailAllowList)) {
+      throw new Error(
+        `USER_EMAIL_ALLOW_LIST was not parsed to an array of strings. Raw value: ${process.env.USER_EMAIL_ALLOW_LIST}`,
+      );
+    }
+
+    userEmailAllowList = uncheckedUserEmailAllowList;
+  } catch {
+    throw new Error(
+      `Could not parse USER_EMAIL_ALLOW_LIST as JSON. Value: ${process.env.USER_EMAIL_ALLOW_LIST}`,
+    );
+  }
+}
 
 /**
  * Whether or not the user has access to the HASH instance. They do if:
