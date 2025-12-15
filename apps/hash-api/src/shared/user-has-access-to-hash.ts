@@ -26,10 +26,13 @@ if (process.env.USER_EMAIL_ALLOW_LIST) {
     }
 
     userEmailAllowList = uncheckedUserEmailAllowList;
-  } catch {
-    throw new Error(
-      `Could not parse USER_EMAIL_ALLOW_LIST as JSON. Value: ${process.env.USER_EMAIL_ALLOW_LIST}`,
-    );
+  } catch (error) {
+    if (error instanceof SyntaxError) {
+      throw new Error(
+        `Could not parse USER_EMAIL_ALLOW_LIST as JSON. Value: ${process.env.USER_EMAIL_ALLOW_LIST}`,
+      );
+    }
+    throw error;
   }
 }
 
