@@ -31,7 +31,7 @@ export type FlightsRequestParams = {
   flight_iata?: string;
   /** Filter by flight ICAO code (e.g., "AAL2557") */
   flight_icao?: string;
-  /** Limit the number of results (max depends on subscription) */
+  /** Limit the number of results (max 1000 for Professional plan, 100 otherwise) */
   limit?: number;
   /** Offset for pagination */
   offset?: number;
@@ -47,6 +47,9 @@ export type FlightsRequestParams = {
   max_delay_arr?: number;
 };
 
+/**
+ * Details of the departure or arrival of a flight – all times are local to the relevant airport.
+ */
 export type FlightDepartureOrArrivalDetails = {
   /** The name of the airport (e.g., "San Francisco International") */
   airport: string;
