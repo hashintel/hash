@@ -1,12 +1,7 @@
 import type { Server } from "node:http";
 import { performance } from "node:perf_hooks";
 
-import {
-  ApolloServer,
-  type ApolloServerPlugin,
-  type BaseContext,
-  type GraphQLRequestContext,
-} from "@apollo/server";
+import { ApolloServer, type ApolloServerPlugin } from "@apollo/server";
 import { ApolloServerPluginDrainHttpServer } from "@apollo/server/plugin/drainHttpServer";
 import { ApolloServerPluginLandingPageGraphQLPlayground } from "@apollo/server-plugin-landing-page-graphql-playground";
 import { KeyvAdapter } from "@apollo/utils.keyvadapter";
@@ -17,7 +12,10 @@ import type { Logger } from "@local/hash-backend-utils/logger";
 import type { TemporalClient } from "@local/hash-backend-utils/temporal";
 import type { VaultClient } from "@local/hash-backend-utils/vault";
 import { schema } from "@local/hash-isomorphic-utils/graphql/type-defs/schema";
-import { getHashClientTypeFromRequest } from "@local/hash-isomorphic-utils/http-requests";
+import {
+  getHashClientTypeFromRequest,
+  hashClientHeaderKey,
+} from "@local/hash-isomorphic-utils/http-requests";
 import * as Sentry from "@sentry/node";
 import type { StatsD } from "hot-shots";
 import type Keyv from "keyv";
@@ -27,33 +25,6 @@ import type { EmailTransporter } from "../email/transporters";
 import type { GraphApi } from "../graph/context-types";
 import type { GraphQLContext } from "./context";
 import { resolvers } from "./resolvers";
-
-// Taken from: https://github.com/apollographql/apollo-server/blob/17bf8639e84dda42d7a2b524a44b2123abcc7917/packages/server/src/plugin/usageReporting/plugin.ts#L847-L871
-function defaultGenerateClientInfo<TContext extends BaseContext>({
-  request,
-}: GraphQLRequestContext<TContext>) {
-  const clientNameHeaderKey = "apollographql-client-name";
-  const clientVersionHeaderKey = "apollographql-client-version";
-
-  // Default to using the `apollo-client-x` header fields if present.
-  // If none are present, fallback on the `clientInfo` query extension
-  // for backwards compatibility.
-  // The default value if neither header values nor query extension is
-  // set is the empty String for all fields (as per protobuf defaults)
-  if (
-    request.http?.headers.get(clientNameHeaderKey) ||
-    request.http?.headers.get(clientVersionHeaderKey)
-  ) {
-    return {
-      clientName: request.http.headers.get(clientNameHeaderKey),
-      clientVersion: request.http.headers.get(clientVersionHeaderKey),
-    };
-  } else if (request.extensions?.clientInfo) {
-    return request.extensions.clientInfo;
-  } else {
-    return {};
-  }
-}
 
 const statsPlugin = ({
   statsd,
@@ -112,23 +83,22 @@ const statsPlugin = ({
         const msg = {
           operation: ctx.operationName,
           elapsed: `${elapsed.toFixed(2)}ms`,
-          clientInfo: defaultGenerateClientInfo(ctx),
+          clientInfo: {
+            clientName: ctx.request.http?.headers.get(hashClientHeaderKey),
+          },
           userAgent,
         };
         if (ctx.errors) {
-          ctx.logger.error(
-            JSON.stringify({
-              ...msg,
-              errors: ctx.errors,
-              stack: ctx.errors
-                .map((err) => err.stack)
-                // Filter stacks caused by an apollo Forbidden error to prevent cluttering logs
-                // with errors caused by a user being logged out.
-                .filter(
-                  (stack) => stack && !stack.startsWith("ForbiddenError"),
-                ),
-            }),
-          );
+          if (ctx.errors[0]?.extensions.code !== "FORBIDDEN") {
+            /** Log errors unrelated to auth failures */
+            ctx.logger.error(
+              JSON.stringify({
+                ...msg,
+                errors: ctx.errors,
+                stack: ctx.errors.map((err) => err.stack),
+              }),
+            );
+          }
         } else {
           ctx.logger.info(JSON.stringify(msg));
           if (ctx.operationName) {
