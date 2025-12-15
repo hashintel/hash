@@ -47,9 +47,8 @@ use core::{alloc::Allocator, convert::Infallible};
 
 use hashql_core::{
     collections::WorkQueue,
-    graph::{LinkedGraph, NodeId},
     heap::Scratch,
-    id::{Id as _, bit_vec::DenseBitSet},
+    id::bit_vec::{BitMatrix, DenseBitSet},
     intern::Interned,
 };
 
@@ -91,15 +90,14 @@ impl DeadStoreElimination {
 
         let DependencyVisitor {
             body: _,
-            graph,
+            matrix,
             mut live,
             roots: mut queue,
             current_def: _,
         } = dependencies;
 
         while let Some(local) = queue.dequeue() {
-            for edge in graph.outgoing_edges(NodeId::new(local.as_usize())) {
-                let dependency = Local::new(edge.target().as_usize());
+            for dependency in matrix.iter(local) {
                 if live.insert(dependency) {
                     queue.enqueue(dependency);
                 }
@@ -133,13 +131,13 @@ impl<'env, 'heap> TransformPass<'env, 'heap> for DeadStoreElimination {
     }
 }
 
-/// Visitor that builds the dependency graph and identifies root uses.
+/// Visitor that builds the dependency matrix and identifies root uses.
 ///
 /// This visitor traverses the MIR body once, collecting:
 ///
 /// - **Dependency edges** (`def → operand`): Created for each use within an assignment RHS or
-///   target argument. Multiple uses of the same operand create multiple edges (preserving
-///   multiplicity for correct use-count propagation).
+///   target argument. Stored in a bit matrix where `matrix[def, operand]` indicates that `def`
+///   depends on `operand`.
 ///
 /// - **Root uses**: Uses outside of any definition context (e.g., return values, branch
 ///   conditions). These are immediately marked live and enqueued for propagation.
@@ -150,8 +148,8 @@ impl<'env, 'heap> TransformPass<'env, 'heap> for DeadStoreElimination {
 struct DependencyVisitor<'body, 'heap, A: Allocator> {
     body: &'body Body<'heap>,
 
-    /// Dependency graph where edges point from definitions to their operands.
-    graph: LinkedGraph<(), (), A>,
+    /// Dependency matrix where `matrix[def, operand]` indicates `def` depends on `operand`.
+    matrix: BitMatrix<Local, Local>,
 
     /// Bitset of locals known to be live.
     live: DenseBitSet<Local>,
@@ -168,12 +166,9 @@ impl<'body, 'heap, A: Allocator> DependencyVisitor<'body, 'heap, A> {
     where
         A: Clone,
     {
-        let mut graph = LinkedGraph::new_in(alloc.clone());
-        graph.derive(&body.local_decls, |_, _| ());
-
         Self {
             body,
-            graph,
+            matrix: BitMatrix::new(body.local_decls.len(), body.local_decls.len()),
 
             live: DenseBitSet::new_empty(body.local_decls.len()),
             roots: WorkQueue::new_in(body.local_decls.len(), alloc),
@@ -240,11 +235,7 @@ impl<'heap, A: Allocator> Visitor<'heap> for DependencyVisitor<'_, 'heap, A> {
                 } else {
                     // Dataflow use: the current definition depends on this local. Create an edge
                     // from the definition to its operand.
-                    self.graph.add_edge(
-                        NodeId::new(self.current_def.as_usize()),
-                        NodeId::new(local.as_usize()),
-                        (),
-                    );
+                    self.matrix.insert(self.current_def, local);
                 }
             }
         }
