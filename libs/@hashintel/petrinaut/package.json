@@ -14,12 +14,12 @@
   "types": "dist/main.d.ts",
   "scripts": {
     "build": "vite build",
-    "build:site": "vite build --config demo-site/vite.config.ts",
-    "dev": "vite --config demo-site/vite.config.ts",
+    "build:site": "vite build --mode=site",
+    "dev": "vite",
     "fix:eslint": "eslint --fix .",
     "lint:eslint": "eslint --report-unused-disable-directives .",
     "lint:tsc": "tsc --noEmit",
-    "preview": "vite preview --config demo-site/vite.config.ts",
+    "preview": "vite preview --mode=site",
     "test:unit": "vitest"
   },
   "dependencies": {
