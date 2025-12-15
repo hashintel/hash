@@ -11,12 +11,7 @@
       "let",
       "b",
       { "#literal": 2 },
-      [
-        "let",
-        "tup",
-        { "#tuple": ["a", "b"] },
-        "tup.0"
-      ]
+      ["let", "tup", { "#tuple": ["a", "b"] }, "tup.0"]
     ]
   ],
   { "#literal": 0 }

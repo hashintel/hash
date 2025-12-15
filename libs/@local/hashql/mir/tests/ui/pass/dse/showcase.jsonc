@@ -28,12 +28,7 @@
               "let",
               "dead_unused",
               { "#literal": 999 },
-              [
-                "if",
-                "live_cmp",
-                { "#literal": 1 },
-                { "#literal": 0 }
-              ]
+              ["if", "live_cmp", { "#literal": 1 }, { "#literal": 0 }]
             ]
           ]
         ]
