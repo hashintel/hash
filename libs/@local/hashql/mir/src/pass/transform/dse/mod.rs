@@ -82,6 +82,14 @@ pub struct DeadStoreElimination {
 }
 
 impl DeadStoreElimination {
+    /// Creates a new [`DeadStoreElimination`].
+    #[must_use]
+    pub fn new() -> Self {
+        Self {
+            scratch: Scratch::new(),
+        }
+    }
+
     /// Computes the set of dead locals in the body.
     ///
     /// Uses a backwards "mark-live" algorithm: starting from root uses (observable uses like
@@ -109,6 +117,12 @@ impl DeadStoreElimination {
 
         live.negate();
         live
+    }
+}
+
+impl Default for DeadStoreElimination {
+    fn default() -> Self {
+        Self::new()
     }
 }
 

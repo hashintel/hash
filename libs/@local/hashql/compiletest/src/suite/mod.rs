@@ -22,6 +22,7 @@ mod hir_lower_thunking;
 mod hir_reify;
 mod mir_pass_analysis_data_dependency;
 mod mir_pass_transform_cfg_simplify;
+mod mir_pass_transform_dse;
 mod mir_pass_transform_sroa;
 mod mir_reify;
 mod parse_syntax_dump;
@@ -54,8 +55,8 @@ use self::{
     hir_lower_thunking::HirLowerThunkingSuite, hir_reify::HirReifySuite,
     mir_pass_analysis_data_dependency::MirPassAnalysisDataDependency,
     mir_pass_transform_cfg_simplify::MirPassTransformCfgSimplify,
-    mir_pass_transform_sroa::MirPassTransformSroa, mir_reify::MirReifySuite,
-    parse_syntax_dump::ParseSyntaxDumpSuite,
+    mir_pass_transform_dse::MirPassTransformDse, mir_pass_transform_sroa::MirPassTransformSroa,
+    mir_reify::MirReifySuite, parse_syntax_dump::ParseSyntaxDumpSuite,
 };
 use crate::executor::TrialError;
 
@@ -151,6 +152,7 @@ const SUITES: &[&dyn Suite] = &[
     &HirReifySuite,
     &MirPassAnalysisDataDependency,
     &MirPassTransformCfgSimplify,
+    &MirPassTransformDse,
     &MirPassTransformSroa,
     &MirReifySuite,
     &ParseSyntaxDumpSuite,

@@ -25,6 +25,7 @@
 //! - Removed used of `static_assert_size` macro in favor of `assert_eq!`.
 //! - Removed mentions of `IntervalSet`.
 //! - Implement `MixedBitSet::intersect`.
+//! - Implement `DenseBitSet::negate`
 #![expect(
     clippy::integer_division,
     clippy::integer_division_remainder_used,
@@ -32,14 +33,14 @@
     clippy::too_long_first_doc_paragraph
 )]
 
-use alloc::rc::Rc;
+use alloc::{alloc::Global, rc::Rc};
 use core::{
+    alloc::Allocator,
     fmt, iter,
     marker::PhantomData,
     ops::{BitAnd, BitAndAssign, BitOrAssign, Bound, Not, Range, RangeBounds, Shl},
     slice,
 };
-use std::alloc::{Allocator, Global};
 
 use smallvec::{SmallVec, smallvec};
 
