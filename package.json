@@ -16,7 +16,7 @@
     ]
   },
   "scripts": {
-    "agents:symlink-rules": "npx tsx .config/agents/symlink-rules.ts",
+    "agents:symlink-rules": "yarn workspace @local/repo-chores exe scripts/symlink-agent-rules.ts",
     "bench": "npm-run-all --continue-on-error \"bench:*\"",
     "bench:integration": "CARGO_TERM_PROGRESS_WHEN=never turbo run bench:integration --env-mode=loose --",
     "bench:unit": "CARGO_TERM_PROGRESS_WHEN=never turbo run bench:unit --env-mode=loose --",

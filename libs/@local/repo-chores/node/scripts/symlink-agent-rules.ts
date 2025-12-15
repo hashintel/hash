@@ -7,64 +7,82 @@
  * - `.cursor/rules/{rule}.mdc`
  * - `.augment/rules/{rule}.md`
  * - `.claude/skills/{rule}/SKILL.md`
+ * - `.codex/skills/{rule}/SKILL.md`
  * - `.clinerules/{rule}.md` // NOTE: no conditional loading
  * - `.windsurf/rules/{rule}.md` // NOTE: no conditional loading
  *
  */
 
-import { readdirSync, lstatSync, unlinkSync, symlinkSync, mkdirSync, existsSync, rmdirSync } from 'node:fs';
-import { join, basename, relative, dirname } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import {
+  readdirSync,
+  lstatSync,
+  unlinkSync,
+  symlinkSync,
+  mkdirSync,
+  existsSync,
+  rmdirSync,
+} from "node:fs";
+import { join, basename, relative, dirname } from "node:path";
 
-const __dirname = dirname(fileURLToPath(import.meta.url));
-const ROOT = join(__dirname, '../..');
-const RULES_DIR = join(ROOT, '.config/agents/rules');
+import { monorepoRootDirPath } from "./shared/monorepo";
+
+const ROOT = monorepoRootDirPath;
+const RULES_DIR = join(ROOT, ".config/agents/rules");
 
 type TargetConfig = {
   dir: string;
   getTargetPath: (ruleBasename: string) => string;
-  isClaude?: boolean;
+  isSkillStyle?: boolean; // Claude and Codex use {rule}/SKILL.md pattern
 };
 
 const targets: TargetConfig[] = [
   {
-    dir: join(ROOT, '.cursor/rules'),
+    dir: join(ROOT, ".cursor/rules"),
     getTargetPath: (name) => `${name}.mdc`,
   },
   {
-    dir: join(ROOT, '.augment/rules'),
+    dir: join(ROOT, ".augment/rules"),
     getTargetPath: (name) => `${name}.md`,
   },
   {
-    dir: join(ROOT, '.claude/skills'),
+    dir: join(ROOT, ".claude/skills"),
     getTargetPath: (name) => `${name}/SKILL.md`,
-    isClaude: true,
+    isSkillStyle: true,
   },
   {
-    dir: join(ROOT, '.clinerules'),
+    dir: join(ROOT, ".codex/skills"),
+    getTargetPath: (name) => `${name}/SKILL.md`,
+    isSkillStyle: true,
+  },
+  {
+    dir: join(ROOT, ".clinerules"),
     getTargetPath: (name) => `${name}.md`,
   },
   {
-    dir: join(ROOT, '.windsurf/rules'),
+    dir: join(ROOT, ".windsurf/rules"),
     getTargetPath: (name) => `${name}.md`,
   },
 ];
 
 // Only run on macOS / Unix-like platforms where symlinks are well-supported.
-if (process.platform === 'win32') {
-  console.warn('Symlink rules script is only supported on macOS / Unix-like platforms. Skipping.');
+if (process.platform === "win32") {
+  console.warn(
+    "Symlink rules script is only supported on macOS / Unix-like platforms. Skipping.",
+  );
   process.exit(0);
 }
 
 // Ensure the source rules directory exists before proceeding.
 if (!existsSync(RULES_DIR)) {
-  console.warn(`Rules directory does not exist at ${RULES_DIR}. Nothing to symlink.`);
+  console.warn(
+    `Rules directory does not exist at ${RULES_DIR}. Nothing to symlink.`,
+  );
   process.exit(0);
 }
 
 const rules = readdirSync(RULES_DIR)
-  .filter((f) => f.endsWith('.md'))
-  .map((f) => basename(f, '.md'));
+  .filter((f) => f.endsWith(".md"))
+  .map((f) => basename(f, ".md"));
 
 for (const target of targets) {
   mkdirSync(target.dir, { recursive: true });
@@ -75,7 +93,6 @@ for (const target of targets) {
 
   // First pass: clean up existing symlinks we own, and detect conflicts.
   for (const rule of rules) {
-    const sourcePath = join(RULES_DIR, `${rule}.md`);
     const targetPath = join(target.dir, target.getTargetPath(rule));
     const targetDir = dirname(targetPath);
 
@@ -89,9 +106,10 @@ for (const target of targets) {
       // Remove existing symlink managed by this script.
       unlinkSync(targetPath);
 
-      // Special handling for Claude: if we just removed .claude/skills/{rule}/SKILL.md
-      // and the directory is now empty, remove the directory as well.
-      if (target.isClaude) {
+      // Special handling for skill-style targets (Claude/Codex): if we just
+      // removed {skills}/{rule}/SKILL.md and the directory is now empty,
+      // remove the directory as well.
+      if (target.isSkillStyle) {
         const skillDir = targetDir;
         const remaining = readdirSync(skillDir);
         if (remaining.length === 0) {
@@ -123,3 +141,4 @@ for (const target of targets) {
 }
 
 console.log(`Symlinked ${rules.length} rules to ${targets.length} agent configs`);
+

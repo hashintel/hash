@@ -52,6 +52,7 @@ From the `rules/` directory, the `symlink-rules` script creates symlinks into th
 - Cursor: `.cursor/rules/{rule}.mdc`
 - Augment: `.augment/rules/{rule}.md`
 - Claude: `.claude/skills/{rule}/SKILL.md`
+- Codex: `.codex/skills/{rule}/SKILL.md`
 - Cline: `.clinerules/{rule}.md`
 - Windsurf: `.windsurf/rules/{rule}.md`
 
@@ -66,11 +67,7 @@ From the repo root, run:
 yarn agents:symlink-rules
 ```
 
-This executes:
-
-```bash
-npx tsx .config/agents/symlink-rules.ts
-```
+This executes the script at `libs/@local/repo-chores/node/scripts/symlink-agent-rules.ts`.
 
 The script will:
 
@@ -78,7 +75,7 @@ The script will:
 2. Check that `.config/agents/rules` exists; if not, it logs a warning and exits.
 3. For each `*.md` file in `rules/`, compute the rule basename.
 4. For each target configuration:
-   - If the expected target path for a rule is a **symlink**, delete it (and for Claude, delete the now-empty `skills/{rule}` directory).
+   - If the expected target path for a rule is a **symlink**, delete it (and for Claude/Codex, delete the now-empty `skills/{rule}` directory).
    - If the expected target path is a **real file or directory**, mark that rule as **disqualified** for that target and skip it (nothing is deleted or overwritten).
    - For all non-disqualified rules, create a new relative symlink from the target path back to the source rule in `rules/`.
 
@@ -94,7 +91,7 @@ You can work with rules in two main ways:
 
 In both cases, ensure all YAML frontmatter values remain **double-quoted** to avoid the UIs corrupting values when saving.
 
-Implementation detail: the files in `.cursor/rules/`, `.augment/rules/`, `.claude/skills/*/SKILL.md`, `.clinerules/`, and `.windsurf/rules/` are symlinks pointing back to `.config/agents/rules/*.md`, so editing them through those UIs still updates the canonical source.
+Implementation detail: the files in `.cursor/rules/`, `.augment/rules/`, `.claude/skills/*/SKILL.md`, `.codex/skills/*/SKILL.md`, `.clinerules/`, and `.windsurf/rules/` are symlinks pointing back to `.config/agents/rules/*.md`, so editing them through those UIs still updates the canonical source.
 
 If you manually create a real (non-symlink) file in a target location where the script expects to place a symlink, that rule will be marked as disqualified for that target and will no longer be auto-synced there.
 

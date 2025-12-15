@@ -1,0 +1,1 @@
+../../../.config/agents/rules/mastra.md

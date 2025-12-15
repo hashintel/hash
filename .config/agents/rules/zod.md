@@ -1,5 +1,4 @@
 ---
-name: "zod"
 type: "agent_requested"
 description: "Use when working in TypeScript with the `zod` package"
 ---

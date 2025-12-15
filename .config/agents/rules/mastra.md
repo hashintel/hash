@@ -1,7 +1,6 @@
 ---
-name: "mastra"
 type: "agent_requested"
-description: "Use when working with Mastra (any package starting with `@mastra/*`"
+description: "Use when working with Mastra (any package starting with `@mastra/*`)"
 ---
 
 Mastra is an open-source TypeScript framework for building AI agents with memory, tools, workflows, and RAG capabilities.

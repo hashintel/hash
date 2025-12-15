@@ -1,7 +1,6 @@
 ---
-name: "panda-css"
 type: "agent_requested"
-description: "Use when working with Panda CSS (any package starting with `@pandacss/*`"
+description: "Use when working with Panda CSS (any package starting with `@pandacss/*`)"
 ---
 
 Panda CSS is a CSS-in-JS framework.
