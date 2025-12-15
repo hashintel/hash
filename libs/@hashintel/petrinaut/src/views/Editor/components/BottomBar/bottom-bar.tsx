@@ -10,10 +10,10 @@ import { ToolbarModes } from "./toolbar-modes";
 import { useKeyboardShortcuts } from "./use-keyboard-shortcuts";
 
 const refractiveContainerStyle = css({
-  padding: "spacing.4",
-  paddingX: "spacing.6",
+  paddingX: "spacing.2",
+  paddingY: "spacing.1",
   backgroundColor: "[rgba(255, 255, 255, 0.6)]",
-  boxShadow: "[0 4px 16px rgba(0, 0, 0, 0.15)]",
+  boxShadow: "[0 4px 13px rgba(0, 0, 0, 0.15)]",
 });
 
 const toolbarContainerStyle = css({
@@ -26,6 +26,14 @@ const dividerStyle = css({
   background: "core.gray.20",
   width: "[1px]",
   height: "[40px]",
+  margin: "[0 4px]",
+});
+
+const bottomBarPositionStyle = css({
+  position: "fixed",
+  left: "[50%]",
+  transform: "translateX(-50%)",
+  zIndex: "1000",
 });
 
 type EditorMode = EditorState["globalMode"];
@@ -43,13 +51,13 @@ export const BottomBar: React.FC<BottomBarProps> = ({
   onEditionModeChange,
 }) => {
   const isDiagnosticsPanelOpen = useEditorStore(
-    (state) => state.isDiagnosticsPanelOpen,
+    (state) => state.isDiagnosticsPanelOpen
   );
   const toggleDiagnosticsPanel = useEditorStore(
-    (state) => state.toggleDiagnosticsPanel,
+    (state) => state.toggleDiagnosticsPanel
   );
   const diagnosticsPanelHeight = useEditorStore(
-    (state) => state.diagnosticsPanelHeight,
+    (state) => state.diagnosticsPanelHeight
   );
 
   // Fallback to 'pan' mode when switching to simulate mode if mutative mode
@@ -71,15 +79,7 @@ export const BottomBar: React.FC<BottomBarProps> = ({
     : 24;
 
   return (
-    <div
-      style={{
-        position: "fixed",
-        bottom: bottomOffset,
-        left: "50%",
-        transform: "translateX(-50%)",
-        zIndex: 1000,
-      }}
-    >
+    <div className={bottomBarPositionStyle} style={{ bottom: bottomOffset }}>
       <refractive.div
         className={refractiveContainerStyle}
         refraction={{
@@ -94,7 +94,7 @@ export const BottomBar: React.FC<BottomBarProps> = ({
             onClick={toggleDiagnosticsPanel}
             isExpanded={isDiagnosticsPanelOpen}
           />
-          <div className={dividerStyle} style={{ margin: "0 4px" }} />
+          <div className={dividerStyle} />
           <ToolbarModes
             mode={mode}
             editionMode={editionMode}
