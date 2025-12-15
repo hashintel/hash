@@ -164,3 +164,6 @@ out/
 **/_trash/
 **/_scratch/
 **/_holding/
+
+# Jujutsu
+.jj/
