@@ -2,9 +2,7 @@ use alloc::alloc::Global;
 use core::{alloc::Allocator, fmt};
 
 use hashql_core::{
-    graph::{
-        DirectedGraph, LinkedGraph, NodeId, Predecessors as _, Successors, linked::IncidentEdges,
-    },
+    graph::{LinkedGraph, NodeId, Predecessors as _, Successors as _, linked::IncidentEdges},
     id::Id as _,
     intern::Interned,
     symbol::Symbol,
