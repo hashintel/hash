@@ -13,21 +13,14 @@
  *
  */
 
-import {
-  readdirSync,
-  lstatSync,
-  unlinkSync,
-  symlinkSync,
-  mkdirSync,
-  existsSync,
-  rmdirSync,
-} from "node:fs";
-import { join, basename, relative, dirname } from "node:path";
+import { existsSync, lstatSync, mkdirSync, readdirSync, rmdirSync, symlinkSync, unlinkSync } from 'node:fs';
+// eslint-disable-next-line unicorn/import-style
+import { basename, dirname, join, relative } from 'node:path';
 
-import { monorepoRootDirPath } from "./shared/monorepo";
+import { monorepoRootDirPath } from './shared/monorepo';
 
 const ROOT = monorepoRootDirPath;
-const RULES_DIR = join(ROOT, ".config/agents/rules");
+const RULES_DIR = join(ROOT, '.config/agents/rules');
 
 type TargetConfig = {
   dir: string;
@@ -37,52 +30,48 @@ type TargetConfig = {
 
 const targets: TargetConfig[] = [
   {
-    dir: join(ROOT, ".cursor/rules"),
+    dir: join(ROOT, '.cursor/rules'),
     getTargetPath: (name) => `${name}.mdc`,
   },
   {
-    dir: join(ROOT, ".augment/rules"),
+    dir: join(ROOT, '.augment/rules'),
     getTargetPath: (name) => `${name}.md`,
   },
   {
-    dir: join(ROOT, ".claude/skills"),
+    dir: join(ROOT, '.claude/skills'),
     getTargetPath: (name) => `${name}/SKILL.md`,
     isSkillStyle: true,
   },
   {
-    dir: join(ROOT, ".codex/skills"),
+    dir: join(ROOT, '.codex/skills'),
     getTargetPath: (name) => `${name}/SKILL.md`,
     isSkillStyle: true,
   },
   {
-    dir: join(ROOT, ".clinerules"),
+    dir: join(ROOT, '.clinerules'),
     getTargetPath: (name) => `${name}.md`,
   },
   {
-    dir: join(ROOT, ".windsurf/rules"),
+    dir: join(ROOT, '.windsurf/rules'),
     getTargetPath: (name) => `${name}.md`,
   },
 ];
 
 // Only run on macOS / Unix-like platforms where symlinks are well-supported.
-if (process.platform === "win32") {
-  console.warn(
-    "Symlink rules script is only supported on macOS / Unix-like platforms. Skipping.",
-  );
+if (process.platform === 'win32') {
+  console.warn('Symlink rules script is only supported on macOS / Unix-like platforms. Skipping.');
   process.exit(0);
 }
 
 // Ensure the source rules directory exists before proceeding.
 if (!existsSync(RULES_DIR)) {
-  console.warn(
-    `Rules directory does not exist at ${RULES_DIR}. Nothing to symlink.`,
-  );
+  console.warn(`Rules directory does not exist at ${RULES_DIR}. Nothing to symlink.`);
   process.exit(0);
 }
 
 const rules = readdirSync(RULES_DIR)
-  .filter((f) => f.endsWith(".md"))
-  .map((f) => basename(f, ".md"));
+  .filter((filename) => filename.endsWith('.md'))
+  .map((filename) => basename(filename, '.md'));
 
 for (const target of targets) {
   mkdirSync(target.dir, { recursive: true });
@@ -127,7 +116,9 @@ for (const target of targets) {
   // Second pass: create symlinks for each rule, skipping any that were
   // disqualified due to existing real files.
   for (const rule of rules) {
-    if (disqualified.has(rule)) continue;
+    if (disqualified.has(rule)) {
+      continue;
+    }
 
     const sourcePath = join(RULES_DIR, `${rule}.md`);
     const targetPath = join(target.dir, target.getTargetPath(rule));
@@ -140,6 +131,4 @@ for (const target of targets) {
   }
 }
 
-console.log(
-  `Symlinked ${rules.length} rules to ${targets.length} agent configs`,
-);
+console.log(`Symlinked ${rules.length} rules to ${targets.length} agent configs`);
