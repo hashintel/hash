@@ -48,16 +48,16 @@ const OrgMembersPage: NextPageWithLayout = () => {
     ({ org: orgOption }) => orgOption.shortname === shortname,
   )?.org;
 
+  const { userPermissions } = useUserPermissionsOnEntity(org?.entity);
+  const readonly = !userPermissions?.editMembers;
+
   useEffect(() => {
     const [_, anchorTag] = router.asPath.split("#");
 
-    if (anchorTag && anchorTag === "invite") {
+    if (anchorTag && anchorTag === "invite" && !readonly) {
       setShowAddMemberForm(true);
     }
-  }, [router]);
-
-  const { userPermissions } = useUserPermissionsOnEntity(org?.entity);
-  const readonly = !userPermissions?.editMembers;
+  }, [router, readonly]);
 
   if (!org) {
     // @todo show a 404 page
