@@ -48,7 +48,10 @@ use core::{alloc::Allocator, convert::Infallible};
 use hashql_core::{
     collections::WorkQueue,
     heap::Scratch,
-    id::bit_vec::{BitMatrix, DenseBitSet},
+    id::{
+        Id as _,
+        bit_vec::{BitMatrix, DenseBitSet},
+    },
     intern::Interned,
 };
 
