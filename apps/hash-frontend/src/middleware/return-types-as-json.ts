@@ -8,6 +8,10 @@ import {
   apiGraphQLEndpoint,
   frontendUrl,
 } from "@local/hash-isomorphic-utils/environment";
+import {
+  type SystemTypeWebShortname,
+  systemTypeWebShortnames,
+} from "@local/hash-isomorphic-utils/ontology-types";
 import type { GraphQLError } from "graphql";
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
@@ -73,13 +77,21 @@ export const returnTypeAsJson = async (request: NextRequest) => {
     );
   }
 
-  // To be removed in H-1172: Temporary provision until app is migrated to https://hash.ai
   const urlObject = new URL(url);
+
   const shouldServeHashAiType =
+    /**
+     * @todo H-1172 – Once app is migrated to https://hash.ai, remove the https://app.hash.ai condition
+     */
     frontendUrl === "https://app.hash.ai" ||
+    /**
+     * This is required for the TS type generation in generate-system-types.ts,
+     * to allow system types (which always have a https://hash.ai typeId)
+     * to be generated from the local development environment.
+     */
     (frontendUrl === "http://localhost:3000" &&
-      ["h", "google", "linear"].includes(
-        urlObject.pathname.split("/")[1]!.slice(1),
+      systemTypeWebShortnames.includes(
+        urlObject.pathname.split("/")[1]!.slice(1) as SystemTypeWebShortname,
       ));
 
   const urlToRequest = shouldServeHashAiType
