@@ -389,6 +389,7 @@ describe("Entity type CRU", () => {
       ),
     );
     assert(allOf !== undefined);
+    allOf.sort((a, b) => a.$id.localeCompare(b.$id));
 
     expect(closedMultiEntityType).toEqual({
       allOf,
