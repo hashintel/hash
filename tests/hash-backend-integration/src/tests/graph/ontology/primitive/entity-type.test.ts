@@ -372,6 +372,8 @@ describe("Entity type CRU", () => {
       ],
     );
 
+    closedMultiEntityType.allOf.sort((a, b) => a.$id.localeCompare(b.$id));
+
     // It's not specified how `required` is ordered, so we need to sort it before comparing
     if (closedMultiEntityType.required) {
       closedMultiEntityType.required.sort();
