@@ -17,7 +17,10 @@ import { GracefulShutdown } from "@local/hash-backend-utils/shutdown";
 import { createTemporalClient } from "@local/hash-backend-utils/temporal";
 import { createVaultClient } from "@local/hash-backend-utils/vault";
 import { EchoSubsystem } from "@local/hash-graph-sdk/harpc";
-import { getHashClientTypeFromRequest } from "@local/hash-isomorphic-utils/http-requests";
+import {
+  getHashClientTypeFromRequest,
+  hashClientHeaderKey,
+} from "@local/hash-isomorphic-utils/http-requests";
 import { isSelfHostedInstance } from "@local/hash-isomorphic-utils/instance";
 import * as Sentry from "@sentry/node";
 import bodyParser from "body-parser";
@@ -212,6 +215,23 @@ const main = async () => {
 
   app.use(cors(CORS_CONFIG));
 
+  if (isProdEnv && !isSelfHostedInstance) {
+    /**
+     * In production, hosted HASH, take the client IP from the Cloudflare-set header.
+     */
+    Object.defineProperty(app.request, "ip", {
+      configurable: true,
+      enumerable: true,
+      get() {
+        return this.get("cf-connecting-ip");
+      },
+    });
+  }
+
+  app.get("/my-ip", (req, res) => {
+    res.send(req.ip);
+  });
+
   // Add logging of requests
   app.use((req, res, next) => {
     const requestId = nanoid();
@@ -220,10 +240,13 @@ const main = async () => {
       JSON.stringify({
         requestId,
         method: req.method,
+        origin: req.headers.origin,
         ip: req.ip,
         path: req.path,
         userAgent: req.headers["user-agent"],
-        graphqlClient: req.headers["apollographql-client-name"],
+        graphqlClient:
+          req.headers[hashClientHeaderKey] ??
+          req.headers["apollographql-client-name"],
       }),
     );
 
@@ -323,19 +346,6 @@ const main = async () => {
   app.use(helmet({ contentSecurityPolicy: false }));
 
   app.use(express.static("public"));
-
-  if (isProdEnv && !isSelfHostedInstance) {
-    /**
-     * In production, hosted HASH, take the client IP from the Cloudflare-set header.
-     */
-    Object.defineProperty(app.request, "ip", {
-      configurable: true,
-      enumerable: true,
-      get() {
-        return this.get("cf-connecting-ip");
-      },
-    });
-  }
 
   const jsonParser = bodyParser.json({
     // default is 100kb
@@ -564,26 +574,6 @@ const main = async () => {
 
   // Used by AWS Application Load Balancer (ALB) for health checks
   app.get("/health-check", (_, res) => res.status(200).send("Hello World!"));
-
-  app.use((req, res, next) => {
-    const requestId = nanoid();
-    res.set("x-hash-request-id", requestId);
-    if (isProdEnv) {
-      logger.info(
-        JSON.stringify({
-          requestId,
-          method: req.method,
-          origin: req.headers.origin,
-          ip: req.ip,
-          path: req.path,
-          message: "request",
-          userAgent: req.headers["user-agent"],
-          graphqlClient: req.headers["apollographql-client-name"],
-        }),
-      );
-    }
-    next();
-  });
 
   app.use((req, _res, next) => {
     if (req.path !== "/graphql") {
