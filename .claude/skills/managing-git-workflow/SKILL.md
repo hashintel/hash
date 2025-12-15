@@ -120,10 +120,10 @@ Use the Linear issue requirements as baseline for your review.
 
 ## Quick Reference
 
-| Action | Format |
-|--------|--------|
-| Branch name | `<shortname>/h-XXXX-description` |
-| PR title | `H-XXXX: Description` |
-| View PR | `gh pr view <NUMBER> --comments` |
-| View diff | `gh pr diff <NUMBER>` |
+| Action        | Format                                                 |
+| ------------- | ------------------------------------------------------ |
+| Branch name   | `<shortname>/h-XXXX-description`                       |
+| PR title      | `H-XXXX: Description`                                  |
+| View PR       | `gh pr view <NUMBER> --comments`                       |
+| View diff     | `gh pr diff <NUMBER>`                                  |
 | View comments | `gh api /repos/hashintel/hash/pulls/<NUMBER>/comments` |

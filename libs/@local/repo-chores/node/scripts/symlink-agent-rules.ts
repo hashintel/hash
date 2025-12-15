@@ -140,5 +140,6 @@ for (const target of targets) {
   }
 }
 
-console.log(`Symlinked ${rules.length} rules to ${targets.length} agent configs`);
-
+console.log(
+  `Symlinked ${rules.length} rules to ${targets.length} agent configs`,
+);

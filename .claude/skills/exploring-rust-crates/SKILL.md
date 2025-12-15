@@ -51,7 +51,7 @@ cargo doc --no-deps --all-features --workspace
 
 After generation, docs are available at:
 
-```
+```txt
 target/doc/<crate_name>/index.html
 ```
 

@@ -23,6 +23,7 @@ z.string().meta({ description: "Lost!" }).optional()
 ```
 
 **Annotating object properties:**
+
 ```typescript
 const userSchema = z.object({
   email: z.string().email().meta({ 
@@ -35,6 +36,7 @@ const userSchema = z.object({
 ```
 
 **API guidance:**
+
 - Use `.meta(obj)` for structured metadata (title, description, examples, UI hints)
 - Use `.describe(text)` as shorthand when only a description string is needed
 - Read `.description` for backwards compatibility with v3 tooling
@@ -53,6 +55,7 @@ const userSchema = z.object({
 For complete API reference: https://zod.dev/llms.txt
 
 Key pages:
+
 - Schema types: https://zod.dev/api
 - Metadata/registries: https://zod.dev/metadata
 - JSON Schema conversion: https://zod.dev/json-schema
