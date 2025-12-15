@@ -8,7 +8,14 @@
       "priority": "high",
       "description": "Error handling patterns using error-stack crate for HASH Rust code",
       "promptTriggers": {
-        "keywords": ["error", "Result", "Report", "attach", "change_context", "error-stack"],
+        "keywords": [
+          "error",
+          "Result",
+          "Report",
+          "attach",
+          "change_context",
+          "error-stack"
+        ],
         "intentPatterns": [
           "\\b(handle|create|define|propagate|add|implement|fix|verbessern|erweitern|hinzufügen|beheben)\\b.*?\\berror\\b",
           "\\berror(s)?\\b.*?\\b(handling|propagation|definition|documentation|context|type|behandlung|behandeln)\\b",
