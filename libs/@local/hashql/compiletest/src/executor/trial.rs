@@ -17,8 +17,9 @@ use similar_asserts::SimpleDiff;
 
 use super::{TrialContext, TrialError, annotations::verify_annotations, render_stderr};
 use crate::{
-    FileAnnotations, Suite, TestCase,
+    FileAnnotations, OutputFormat, Suite, TestCase,
     annotation::directive::RunMode,
+    output::escape_json,
     reporter::Statistics,
     styles::{BLUE, CYAN, GRAY, GREEN, RED, YELLOW},
     suite::{RunContext, RunContextPartial, SuiteDiagnostic, find_suite},
@@ -155,6 +156,19 @@ impl<'stats> Trial<'stats> {
         mut output: impl io::Write,
         parent: &str,
         parent_ignore: bool,
+        format: OutputFormat,
+    ) -> io::Result<()> {
+        match format {
+            OutputFormat::Human => self.list_human(&mut output, parent, parent_ignore),
+            OutputFormat::Json => self.list_json(&mut output, parent, parent_ignore),
+        }
+    }
+
+    fn list_human(
+        &self,
+        mut output: impl io::Write,
+        parent: &str,
+        parent_ignore: bool,
     ) -> io::Result<()> {
         match self.annotations.directive.run {
             RunMode::Pass => write!(output, "[{GREEN}PASS{GREEN:#}]"),
@@ -186,6 +200,41 @@ impl<'stats> Trial<'stats> {
             writeln!(output)?;
             write!(output, "    {GRAY}{description}{GRAY:#}")?;
         }
+
+        Ok(())
+    }
+
+    fn list_json(
+        &self,
+        mut output: impl io::Write,
+        parent: &str,
+        parent_ignore: bool,
+    ) -> io::Result<()> {
+        let status = match self.annotations.directive.run {
+            RunMode::Pass => "pass",
+            RunMode::Fail => "fail",
+            RunMode::Skip { .. } => "skip",
+        };
+
+        write!(output, r#"{{"name":""#)?;
+        escape_json(&mut output, parent)?;
+        write!(output, "::")?;
+        for segment in &self.namespace {
+            escape_json(&mut output, segment)?;
+            write!(output, "::")?;
+        }
+        escape_json(&mut output, &self.annotations.directive.name)?;
+
+        let ignored = parent_ignore || self.ignore;
+        write!(output, r#"","status":"{status}","ignored":{ignored}"#)?;
+
+        if let Some(description) = &self.annotations.directive.description {
+            write!(output, r#","description":""#)?;
+            escape_json(&mut output, description)?;
+            write!(output, r#"""#)?;
+        }
+
+        write!(output, "}}")?;
 
         Ok(())
     }

@@ -44,6 +44,10 @@ impl Suite for HirLowerNormalizationSuite {
         "hir/lower/normalization"
     }
 
+    fn description(&self) -> &'static str {
+        "HIR normalization into canonical form"
+    }
+
     fn run<'heap>(
         &self,
         RunContext {

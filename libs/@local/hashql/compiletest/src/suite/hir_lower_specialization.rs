@@ -45,6 +45,10 @@ impl Suite for HirLowerSpecializationSuite {
         "hir/lower/specialization"
     }
 
+    fn description(&self) -> &'static str {
+        "Generic type and intrinsic specialization in the HIR"
+    }
+
     fn run<'heap>(
         &self,
         RunContext {

@@ -59,6 +59,10 @@ impl Suite for HirLowerAliasReplacementSuite {
         "hir/lower/alias-replacement"
     }
 
+    fn description(&self) -> &'static str {
+        "Type alias replacement in the HIR"
+    }
+
     fn run<'heap>(
         &self,
         RunContext {

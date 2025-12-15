@@ -18,6 +18,10 @@ impl Suite for AstLoweringSanitizerSuite {
         "ast/lowering/sanitizer"
     }
 
+    fn description(&self) -> &'static str {
+        "AST structure validation and sanitization"
+    }
+
     fn run<'heap>(
         &self,
         RunContext {

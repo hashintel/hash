@@ -13,6 +13,10 @@ impl Suite for AstLoweringNameResolverSuite {
         "ast/lowering/pre-expansion-name-resolver"
     }
 
+    fn description(&self) -> &'static str {
+        "Name resolution before macro expansion"
+    }
+
     fn run<'heap>(
         &self,
         RunContext { heap, .. }: RunContext<'_, 'heap>,

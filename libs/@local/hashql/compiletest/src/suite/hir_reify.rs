@@ -43,6 +43,10 @@ impl Suite for HirReifySuite {
         "hir/reify"
     }
 
+    fn description(&self) -> &'static str {
+        "HIR generation from AST"
+    }
+
     fn run<'heap>(
         &self,
         RunContext {
