@@ -6,6 +6,105 @@ import { Tooltip } from "../../../../components/tooltip";
 import { FEATURE_FLAGS } from "../../../../feature-flags";
 import { useSimulationStore } from "../../../../state/simulation-provider";
 
+const containerStyle = css({
+  display: "flex",
+  alignItems: "center",
+  padding: "[0 12px]",
+  gap: "[12px]",
+});
+
+const playPauseButtonStyle = css({
+  cursor: "pointer",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  width: "[32px]",
+  height: "[32px]",
+  borderRadius: "[50%]",
+  border: "none",
+  background: "core.red.50",
+  color: "[white]",
+  fontSize: "[20px]",
+  transition: "[all 0.2s ease]",
+  "&:hover:not(:disabled)": {
+    background: "core.red.60",
+    transform: "[scale(1.05)]",
+  },
+  "&:disabled": {
+    opacity: "[0.5]",
+    cursor: "not-allowed",
+  },
+});
+
+const frameInfoStyle = css({
+  display: "flex",
+  flexDirection: "column",
+  alignItems: "center",
+  fontSize: "[11px]",
+  color: "core.gray.60",
+  fontWeight: "[500]",
+  minWidth: "[80px]",
+});
+
+const elapsedTimeStyle = css({
+  fontSize: "[10px]",
+  color: "core.gray.50",
+  marginTop: "[2px]",
+});
+
+const sliderStyle = css({
+  width: "[400px]",
+  height: "[4px]",
+  appearance: "none",
+  background: "core.gray.30",
+  borderRadius: "[2px]",
+  outline: "none",
+  cursor: "pointer",
+  "&:disabled": {
+    opacity: "[0.5]",
+    cursor: "not-allowed",
+  },
+  "&::-webkit-slider-thumb": {
+    appearance: "none",
+    width: "[12px]",
+    height: "[12px]",
+    borderRadius: "[50%]",
+    background: "core.blue.50",
+    cursor: "pointer",
+  },
+  "&::-moz-range-thumb": {
+    width: "[12px]",
+    height: "[12px]",
+    borderRadius: "[50%]",
+    background: "core.blue.50",
+    cursor: "pointer",
+    border: "none",
+  },
+});
+
+const resetButtonStyle = css({
+  cursor: "pointer",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  width: "[36px]",
+  height: "[36px]",
+  borderRadius: "[6px]",
+  border: "none",
+  background: "[transparent]",
+  color: "core.gray.80",
+  fontSize: "[18px]",
+  transition: "[all 0.2s ease]",
+  "&:hover:not(:disabled)": {
+    background: "core.gray.10",
+    transform: "[scale(1.05)]",
+  },
+  "&:disabled": {
+    opacity: "[0.5]",
+    cursor: "not-allowed",
+  },
+});
+
 interface SimulationControlsProps {
   disabled?: boolean;
 }
@@ -59,13 +158,7 @@ export const SimulationControls: React.FC<SimulationControlsProps> = ({
   };
 
   return (
-    <div
-      className={css({
-        display: "flex",
-        alignItems: "center",
-      })}
-      style={{ padding: "0 12px", gap: 12 }}
-    >
+    <div className={containerStyle}>
       {/* Record/Stop button - always visible */}
       <Tooltip
         content={
@@ -82,28 +175,7 @@ export const SimulationControls: React.FC<SimulationControlsProps> = ({
           type="button"
           onClick={handlePlayPause}
           disabled={isDisabled}
-          className={css({
-            cursor: "pointer",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            width: "[32px]",
-            height: "[32px]",
-            borderRadius: "[50%]",
-            border: "none",
-            background: "core.red.50",
-            color: "[white]",
-            fontSize: "[20px]",
-            transition: "[all 0.2s ease]",
-            "&:hover:not(:disabled)": {
-              background: "core.red.60",
-              transform: "[scale(1.05)]",
-            },
-            "&:disabled": {
-              opacity: "[0.5]",
-              cursor: "not-allowed",
-            },
-          })}
+          className={playPauseButtonStyle}
           aria-label={
             simulationState === "NotRun"
               ? "Run simulation"
@@ -125,30 +197,12 @@ export const SimulationControls: React.FC<SimulationControlsProps> = ({
       {/* Frame controls - only visible when simulation exists */}
       {hasSimulation && (
         <>
-          <span
-            className={css({
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center",
-              fontSize: "[11px]",
-              color: "core.gray.60",
-              fontWeight: "[500]",
-              minWidth: "[80px]",
-            })}
-          >
+          <span className={frameInfoStyle}>
             <div>Frame</div>
             <div>
               {currentlyViewedFrame + 1} / {totalFrames}
             </div>
-            <div
-              className={css({
-                fontSize: "[10px]",
-                color: "core.gray.50",
-                marginTop: "[2px]",
-              })}
-            >
-              {elapsedTime.toFixed(3)}s
-            </div>
+            <div className={elapsedTimeStyle}>{elapsedTime.toFixed(3)}s</div>
           </span>
           <input
             type="range"
@@ -159,35 +213,7 @@ export const SimulationControls: React.FC<SimulationControlsProps> = ({
             onChange={(event) =>
               setCurrentlyViewedFrame(Number(event.target.value))
             }
-            className={css({
-              width: "[400px]",
-              height: "[4px]",
-              appearance: "none",
-              background: "core.gray.30",
-              borderRadius: "[2px]",
-              outline: "none",
-              cursor: "pointer",
-              "&:disabled": {
-                opacity: "[0.5]",
-                cursor: "not-allowed",
-              },
-              "&::-webkit-slider-thumb": {
-                appearance: "none",
-                width: "[12px]",
-                height: "[12px]",
-                borderRadius: "[50%]",
-                background: "core.blue.50",
-                cursor: "pointer",
-              },
-              "&::-moz-range-thumb": {
-                width: "[12px]",
-                height: "[12px]",
-                borderRadius: "[50%]",
-                background: "core.blue.50",
-                cursor: "pointer",
-                border: "none",
-              },
-            })}
+            className={sliderStyle}
           />
         </>
       )}
@@ -199,28 +225,7 @@ export const SimulationControls: React.FC<SimulationControlsProps> = ({
             type="button"
             onClick={handleReset}
             disabled={isDisabled}
-            className={css({
-              cursor: "pointer",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              width: "[36px]",
-              height: "[36px]",
-              borderRadius: "[6px]",
-              border: "none",
-              background: "[transparent]",
-              color: "core.gray.80",
-              fontSize: "[18px]",
-              transition: "[all 0.2s ease]",
-              "&:hover:not(:disabled)": {
-                background: "core.gray.10",
-                transform: "[scale(1.05)]",
-              },
-              "&:disabled": {
-                opacity: "[0.5]",
-                cursor: "not-allowed",
-              },
-            })}
+            className={resetButtonStyle}
             aria-label="Reset simulation"
           >
             <TbRefresh />
