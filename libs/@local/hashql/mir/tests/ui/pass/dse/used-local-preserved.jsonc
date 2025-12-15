@@ -1,0 +1,18 @@
+//@ run: pass
+//@ description: DSE preserves locals that are used in the return value
+[
+  "if",
+  { "#literal": true },
+  [
+    "let",
+    "x",
+    { "#literal": 42 },
+    [
+      "let",
+      "y",
+      "x",
+      "y"
+    ]
+  ],
+  { "#literal": 0 }
+]

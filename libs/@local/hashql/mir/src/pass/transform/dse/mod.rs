@@ -43,6 +43,9 @@
 //! - No `PartialDef` contexts exist
 //! - No aliasing or mutation through references
 
+#[cfg(test)]
+mod tests;
+
 use core::{alloc::Allocator, convert::Infallible};
 
 use hashql_core::{
