@@ -2,6 +2,8 @@ import { SegmentGroup } from "@ark-ui/react/segment-group";
 import { css, cva } from "@hashintel/ds-helpers/css";
 import { refractive } from "@hashintel/refractive";
 
+import { Tooltip } from "../../../components/tooltip";
+
 export interface ModeSelectorProps {
   mode: "edit" | "simulate";
   onChange: (mode: "edit" | "simulate") => void;
@@ -32,19 +34,30 @@ const segmentIndicatorStyle = css({
   zIndex: 0,
 });
 
-const segmentItemStyle = css({
-  position: "relative",
-  zIndex: 1,
-  padding: "spacing.3",
-  fontSize: "size.textsm",
-  fontWeight: "medium",
-  cursor: "pointer",
-  transition: "[color 200ms]",
-  borderRadius: "[8px]",
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-  minWidth: "[80px]",
+const segmentItemStyle = cva({
+  base: {
+    position: "relative",
+    zIndex: 1,
+    padding: "spacing.3",
+    fontSize: "size.textsm",
+    fontWeight: "medium",
+    cursor: "pointer",
+    transition: "[color 200ms]",
+    borderRadius: "[8px]",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    minWidth: "[80px]",
+  },
+  variants: {
+    disabled: {
+      true: {
+        cursor: "not-allowed",
+        opacity: "[0.5]",
+        pointerEvents: "none",
+      },
+    },
+  },
 });
 
 const segmentItemTextStyle = cva({
@@ -68,8 +81,8 @@ export const ModeSelector: React.FC<ModeSelectorProps> = ({
   onChange,
 }) => {
   const options = [
-    { name: "Edit", value: "edit" },
-    { name: "Simulate", value: "simulate" },
+    { name: "Edit", value: "edit", disabled: false },
+    { name: "Simulate", value: "simulate", disabled: true },
   ];
 
   return (
@@ -87,31 +100,51 @@ export const ModeSelector: React.FC<ModeSelectorProps> = ({
           value={mode}
           onValueChange={(details) => {
             if (details.value) {
-              onChange(details.value as "edit" | "simulate");
+              const selectedOption = options.find(
+                (opt) => opt.value === details.value
+              );
+              if (selectedOption && !selectedOption.disabled) {
+                onChange(details.value as "edit" | "simulate");
+              }
             }
           }}
           className={segmentRootStyle}
         >
           <SegmentGroup.Indicator className={segmentIndicatorStyle} />
 
-          {options.map((option) => (
-            // Ark UI uses string values; our mode union matches these option values.
-            <SegmentGroup.Item
-              key={option.value}
-              value={option.value}
-              className={segmentItemStyle}
-            >
-              <SegmentGroup.ItemText
-                className={segmentItemTextStyle({
-                  selected: mode === option.value,
-                })}
+          {options.map((option) => {
+            const item = (
+              <SegmentGroup.Item
+                key={option.value}
+                value={option.value}
+                disabled={option.disabled}
+                className={segmentItemStyle({ disabled: option.disabled })}
               >
-                {option.name}
-              </SegmentGroup.ItemText>
-              <SegmentGroup.ItemControl />
-              <SegmentGroup.ItemHiddenInput />
-            </SegmentGroup.Item>
-          ))}
+                <SegmentGroup.ItemText
+                  className={segmentItemTextStyle({
+                    selected: mode === option.value,
+                  })}
+                >
+                  {option.name}
+                </SegmentGroup.ItemText>
+                <SegmentGroup.ItemControl />
+                <SegmentGroup.ItemHiddenInput />
+              </SegmentGroup.Item>
+            );
+
+            if (option.disabled) {
+              return (
+                <Tooltip
+                  key={option.value}
+                  content="Simulate tab is disabled temporarily. Simulation is available in Edit Mode."
+                >
+                  <span>{item}</span>
+                </Tooltip>
+              );
+            }
+
+            return item;
+          })}
         </SegmentGroup.Root>
       </refractive.div>
     </div>
