@@ -2,6 +2,7 @@ import { css } from "@hashintel/ds-helpers/css";
 import { refractive } from "@hashintel/refractive";
 import { useEffect } from "react";
 
+import { useCheckerContext } from "../../../../state/checker-provider";
 import { useEditorStore } from "../../../../state/editor-provider";
 import type { EditorState } from "../../../../state/editor-store";
 import { DiagnosticsIndicator } from "./diagnostics-indicator";
@@ -60,6 +61,9 @@ export const BottomBar: React.FC<BottomBarProps> = ({
     (state) => state.diagnosticsPanelHeight,
   );
 
+  const { totalDiagnosticsCount } = useCheckerContext();
+  const hasDiagnostics = totalDiagnosticsCount > 0;
+
   // Fallback to 'pan' mode when switching to simulate mode if mutative mode
   useEffect(() => {
     if (
@@ -100,8 +104,8 @@ export const BottomBar: React.FC<BottomBarProps> = ({
             editionMode={editionMode}
             onEditionModeChange={onEditionModeChange}
           />
-
-          {mode === "simulate" && <SimulationControls />}
+          <div className={dividerStyle} />
+          <SimulationControls disabled={hasDiagnostics} />
         </div>
       </refractive.div>
     </div>

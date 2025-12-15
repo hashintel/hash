@@ -6,7 +6,13 @@ import { Tooltip } from "../../../../components/tooltip";
 import { FEATURE_FLAGS } from "../../../../feature-flags";
 import { useSimulationStore } from "../../../../state/simulation-provider";
 
-export const SimulationControls: React.FC = () => {
+interface SimulationControlsProps {
+  disabled?: boolean;
+}
+
+export const SimulationControls: React.FC<SimulationControlsProps> = ({
+  disabled = false,
+}) => {
   const simulation = useSimulationStore((state) => state.simulation);
   const simulationState = useSimulationStore((state) => state.state);
   const reset = useSimulationStore((state) => state.reset);
@@ -15,11 +21,13 @@ export const SimulationControls: React.FC = () => {
   const pause = useSimulationStore((state) => state.pause);
   const dt = useSimulationStore((state) => state.dt);
   const currentlyViewedFrame = useSimulationStore(
-    (state) => state.currentlyViewedFrame,
+    (state) => state.currentlyViewedFrame
   );
   const setCurrentlyViewedFrame = useSimulationStore(
-    (state) => state.setCurrentlyViewedFrame,
+    (state) => state.setCurrentlyViewedFrame
   );
+
+  const isDisabled = disabled;
 
   const totalFrames = simulation?.frames.length ?? 0;
   const hasSimulation = simulation !== null;
@@ -51,50 +59,161 @@ export const SimulationControls: React.FC = () => {
   };
 
   return (
-    <>
-      <div
-        className={css({
-          background: "core.gray.20",
-          width: "[1px]",
-          height: "[40px]",
-        })}
-        style={{ margin: "0 4px" }}
-      />
-      <div
-        className={css({
-          display: "flex",
-          alignItems: "center",
-        })}
-        style={{ padding: "0 12px", gap: 12 }}
+    <div
+      className={css({
+        display: "flex",
+        alignItems: "center",
+      })}
+      style={{ padding: "0 12px", gap: 12 }}
+    >
+      {/* Record/Stop button - always visible */}
+      <Tooltip
+        content={
+          isDisabled
+            ? "Fix diagnostics to run simulation"
+            : simulationState === "NotRun"
+            ? "Start Simulation"
+            : isRunning
+            ? "Pause Simulation"
+            : "Continue Simulation"
+        }
       >
-        {/* Record/Stop button - always visible */}
-        <Tooltip
-          content={
+        <button
+          type="button"
+          onClick={handlePlayPause}
+          disabled={isDisabled}
+          className={css({
+            cursor: "pointer",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            width: "[32px]",
+            height: "[32px]",
+            borderRadius: "[50%]",
+            border: "none",
+            background: "core.red.50",
+            color: "[white]",
+            fontSize: "[20px]",
+            transition: "[all 0.2s ease]",
+            "&:hover:not(:disabled)": {
+              background: "core.red.60",
+              transform: "[scale(1.05)]",
+            },
+            "&:disabled": {
+              opacity: "[0.5]",
+              cursor: "not-allowed",
+            },
+          })}
+          aria-label={
             simulationState === "NotRun"
-              ? "Start Simulation"
+              ? "Run simulation"
               : isRunning
-                ? "Pause Simulation"
-                : "Continue Simulation"
+              ? "Pause simulation"
+              : "Continue simulation"
           }
         >
+          {isRunning ? (
+            <TbSquare style={{ fontSize: "14px" }} />
+          ) : FEATURE_FLAGS.RUNNING_MAN_ICON ? (
+            <BiRun style={{ fontSize: "20px", marginRight: 2 }} />
+          ) : (
+            <TbCircle style={{ fontSize: "14px" }} />
+          )}
+        </button>
+      </Tooltip>
+
+      {/* Frame controls - only visible when simulation exists */}
+      {hasSimulation && (
+        <>
+          <span
+            className={css({
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              fontSize: "[11px]",
+              color: "core.gray.60",
+              fontWeight: "[500]",
+              minWidth: "[80px]",
+            })}
+          >
+            <div>Frame</div>
+            <div>
+              {currentlyViewedFrame + 1} / {totalFrames}
+            </div>
+            <div
+              className={css({
+                fontSize: "[10px]",
+                color: "core.gray.50",
+                marginTop: "[2px]",
+              })}
+            >
+              {elapsedTime.toFixed(3)}s
+            </div>
+          </span>
+          <input
+            type="range"
+            min="0"
+            max={Math.max(0, totalFrames - 1)}
+            value={currentlyViewedFrame}
+            disabled={isDisabled}
+            onChange={(event) =>
+              setCurrentlyViewedFrame(Number(event.target.value))
+            }
+            className={css({
+              width: "[400px]",
+              height: "[4px]",
+              appearance: "none",
+              background: "core.gray.30",
+              borderRadius: "[2px]",
+              outline: "none",
+              cursor: "pointer",
+              "&:disabled": {
+                opacity: "[0.5]",
+                cursor: "not-allowed",
+              },
+              "&::-webkit-slider-thumb": {
+                appearance: "none",
+                width: "[12px]",
+                height: "[12px]",
+                borderRadius: "[50%]",
+                background: "core.blue.50",
+                cursor: "pointer",
+              },
+              "&::-moz-range-thumb": {
+                width: "[12px]",
+                height: "[12px]",
+                borderRadius: "[50%]",
+                background: "core.blue.50",
+                cursor: "pointer",
+                border: "none",
+              },
+            })}
+          />
+        </>
+      )}
+
+      {/* Reset button - only visible when simulation exists */}
+      {hasSimulation && (
+        <Tooltip content="Reset">
           <button
             type="button"
-            onClick={handlePlayPause}
+            onClick={handleReset}
+            disabled={isDisabled}
             className={css({
               cursor: "pointer",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              width: "[32px]",
-              height: "[32px]",
-              borderRadius: "[50%]",
+              width: "[36px]",
+              height: "[36px]",
+              borderRadius: "[6px]",
               border: "none",
-              background: "core.red.50",
-              color: "[white]",
-              fontSize: "[20px]",
+              background: "[transparent]",
+              color: "core.gray.80",
+              fontSize: "[18px]",
               transition: "[all 0.2s ease]",
               "&:hover:not(:disabled)": {
-                background: "core.red.60",
+                background: "core.gray.10",
                 transform: "[scale(1.05)]",
               },
               "&:disabled": {
@@ -102,120 +221,12 @@ export const SimulationControls: React.FC = () => {
                 cursor: "not-allowed",
               },
             })}
-            aria-label={
-              simulationState === "NotRun"
-                ? "Run simulation"
-                : isRunning
-                  ? "Pause simulation"
-                  : "Continue simulation"
-            }
+            aria-label="Reset simulation"
           >
-            {isRunning ? (
-              <TbSquare style={{ fontSize: "14px" }} />
-            ) : FEATURE_FLAGS.RUNNING_MAN_ICON ? (
-              <BiRun style={{ fontSize: "20px", marginRight: 2 }} />
-            ) : (
-              <TbCircle style={{ fontSize: "14px" }} />
-            )}
+            <TbRefresh />
           </button>
         </Tooltip>
-
-        {/* Frame controls - only visible when simulation exists */}
-        {hasSimulation && (
-          <>
-            <span
-              className={css({
-                display: "flex",
-                flexDirection: "column",
-                alignItems: "center",
-                fontSize: "[11px]",
-                color: "core.gray.60",
-                fontWeight: "[500]",
-                minWidth: "[80px]",
-              })}
-            >
-              <div>Frame</div>
-              <div>
-                {currentlyViewedFrame + 1} / {totalFrames}
-              </div>
-              <div
-                className={css({
-                  fontSize: "[10px]",
-                  color: "core.gray.50",
-                  marginTop: "[2px]",
-                })}
-              >
-                {elapsedTime.toFixed(3)}s
-              </div>
-            </span>
-            <input
-              type="range"
-              min="0"
-              max={Math.max(0, totalFrames - 1)}
-              value={currentlyViewedFrame}
-              onChange={(event) =>
-                setCurrentlyViewedFrame(Number(event.target.value))
-              }
-              className={css({
-                width: "[400px]",
-                height: "[4px]",
-                appearance: "none",
-                background: "core.gray.30",
-                borderRadius: "[2px]",
-                outline: "none",
-                cursor: "pointer",
-                "&::-webkit-slider-thumb": {
-                  appearance: "none",
-                  width: "[12px]",
-                  height: "[12px]",
-                  borderRadius: "[50%]",
-                  background: "core.blue.50",
-                  cursor: "pointer",
-                },
-                "&::-moz-range-thumb": {
-                  width: "[12px]",
-                  height: "[12px]",
-                  borderRadius: "[50%]",
-                  background: "core.blue.50",
-                  cursor: "pointer",
-                  border: "none",
-                },
-              })}
-            />
-          </>
-        )}
-
-        {/* Reset button - only visible when simulation exists */}
-        {hasSimulation && (
-          <Tooltip content="Reset">
-            <button
-              type="button"
-              onClick={handleReset}
-              className={css({
-                cursor: "pointer",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                width: "[36px]",
-                height: "[36px]",
-                borderRadius: "[6px]",
-                border: "none",
-                background: "[transparent]",
-                color: "core.gray.80",
-                fontSize: "[18px]",
-                transition: "[all 0.2s ease]",
-                "&:hover": {
-                  background: "core.gray.10",
-                  transform: "[scale(1.05)]",
-                },
-              })}
-              aria-label="Reset simulation"
-            >
-              <TbRefresh />
-            </button>
-          </Tooltip>
-        )}
-      </div>
-    </>
+      )}
+    </div>
   );
 };
