@@ -1,12 +1,7 @@
 import type { Server } from "node:http";
 import { performance } from "node:perf_hooks";
 
-import {
-  ApolloServer,
-  type ApolloServerPlugin,
-  type BaseContext,
-  type GraphQLRequestContext,
-} from "@apollo/server";
+import { ApolloServer, type ApolloServerPlugin } from "@apollo/server";
 import { ApolloServerPluginDrainHttpServer } from "@apollo/server/plugin/drainHttpServer";
 import { ApolloServerPluginLandingPageGraphQLPlayground } from "@apollo/server-plugin-landing-page-graphql-playground";
 import { KeyvAdapter } from "@apollo/utils.keyvadapter";
