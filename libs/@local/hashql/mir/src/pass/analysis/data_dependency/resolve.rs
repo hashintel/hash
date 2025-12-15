@@ -213,7 +213,10 @@ fn resolve_params<'heap, A: Allocator + Clone>(
     // Initialize cycle tracking if this is the first Param traversal.
     let mut owned_visited = None;
     let visited_ref = state.visited.as_deref_mut().or_else(|| {
-        owned_visited = Some(DenseBitSet::new_empty(state.graph.graph.node_count()));
+        let mut set = DenseBitSet::new_empty(state.graph.graph.node_count());
+        set.insert(place.local);
+
+        owned_visited = Some(set);
         owned_visited.as_mut()
     });
 
