@@ -1,6 +1,9 @@
 mod cfg_simplify;
 mod dbe;
 pub mod error;
+mod sroa;
 mod ssa_repair;
 
-pub use self::{cfg_simplify::CfgSimplify, dbe::DeadBlockElimination, ssa_repair::SsaRepair};
+pub use self::{
+    cfg_simplify::CfgSimplify, dbe::DeadBlockElimination, sroa::Sroa, ssa_repair::SsaRepair,
+};

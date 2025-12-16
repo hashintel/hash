@@ -24,3 +24,10 @@ pub struct Location {
     /// complete (terminator).
     pub statement_index: usize,
 }
+
+impl Location {
+    pub const PLACEHOLDER: Self = Self {
+        block: BasicBlockId::PLACEHOLDER,
+        statement_index: usize::MAX,
+    };
+}

@@ -1,0 +1,68 @@
+════ Initial MIR ═══════════════════════════════════════════════════════════════
+
+*thunk {thunk#4}() -> String {
+    let %0: String
+    let %1: Boolean
+    let %2: String
+    let %3: Boolean
+    let %4: String
+
+    bb0(): {
+        switchInt(0) -> [0: bb8(), 1: bb1()]
+    }
+
+    bb1(): {
+        %1 = 1 <= 2
+
+        switchInt(%1) -> [0: bb6(), 1: bb2()]
+    }
+
+    bb2(): {
+        %3 = 3 >= 4
+
+        switchInt(%3) -> [0: bb4(), 1: bb3()]
+    }
+
+    bb3(): {
+        goto -> bb5("deeply-nested-then")
+    }
+
+    bb4(): {
+        goto -> bb5("deeply-nested-else")
+    }
+
+    bb5(%4): {
+        goto -> bb7(%4)
+    }
+
+    bb6(): {
+        goto -> bb7("inner-else")
+    }
+
+    bb7(%2): {
+        goto -> bb9(%2)
+    }
+
+    bb8(): {
+        goto -> bb9("taken")
+    }
+
+    bb9(%0): {
+        return %0
+    }
+}
+════ MIR after SROA ════════════════════════════════════════════════════════════
+
+*thunk {thunk#4}() -> String {
+    let %0: String
+    let %1: Boolean
+    let %2: String
+    let %3: Boolean
+    let %4: String
+
+    bb0(): {
+        %0 = "taken"
+
+        return "taken"
+    }
+}
