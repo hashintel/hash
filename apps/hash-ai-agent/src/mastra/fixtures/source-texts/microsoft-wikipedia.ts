@@ -29,10 +29,22 @@ Microsoft has been criticized for its monopolistic practices and the company's s
 
   /** Expected Person entities to extract */
   expectedPersons: [
-    "Bill Gates",
-    "Paul Allen",
-    "Steve Ballmer",
-    "Satya Nadella",
+    {
+      "https://blockprotocol.org/@blockprotocol/types/property-type/name/":
+        "Bill Gates",
+    },
+    {
+      "https://blockprotocol.org/@blockprotocol/types/property-type/name/":
+        "Paul Allen",
+    },
+    {
+      "https://blockprotocol.org/@blockprotocol/types/property-type/name/":
+        "Steve Ballmer",
+    },
+    {
+      "https://blockprotocol.org/@blockprotocol/types/property-type/name/":
+        "Satya Nadella",
+    },
   ],
 
   /** Expected Organization entities to extract */
@@ -53,6 +65,6 @@ Microsoft has been criticized for its monopolistic practices and the company's s
   ],
 
   /** Research goal for testing */
-  researchGoal: "Find information about Microsoft, its founders, executives, and acquisitions",
+  researchGoal:
+    "Find information about Microsoft, its founders, executives, and acquisitions",
 } as const;
-
