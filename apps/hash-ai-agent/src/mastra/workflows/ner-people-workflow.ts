@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { createStep, createWorkflow } from '@mastra/core/workflows';
 import { type TSchema, Type } from '@sinclair/typebox';
 import dedent from 'dedent';
@@ -5,6 +6,7 @@ import { z } from 'zod';
 
 import { nerAgent } from '../agents/ner-agent';
 import { dereferencedPersonSchema } from '../fixtures/entity-schemas/person';
+import personSchemaBundled from '../fixtures/entity-schemas/person.bundled.json';
 import personSchemaDereferenced from '../fixtures/entity-schemas/person.dereferenced.json';
 import { entityTypesToYaml } from '../utils/entity-type-to-yaml';
 
