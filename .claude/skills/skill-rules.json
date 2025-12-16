@@ -162,6 +162,55 @@
           "\\b(snapshot|insta)\\b.*?\\btest\\b"
         ]
       }
+    },
+    "exploring-rust-crates": {
+      "type": "domain",
+      "enforcement": "suggest",
+      "priority": "medium",
+      "description": "Generating Rust documentation to understand crate APIs and structure",
+      "promptTriggers": {
+        "keywords": [
+          "cargo doc",
+          "rust crate",
+          "crate API",
+          "understand crate",
+          "explore crate",
+          "rust package"
+        ],
+        "intentPatterns": [
+          "\\b(understand|explore|learn|investigate|check)\\b.*?\\b(crate|package|rust)\\b",
+          "\\b(what|how)\\b.*?\\b(crate|package)\\b.*?\\b(do|work|provide|contain)\\b",
+          "\\bcargo\\s+doc\\b",
+          "\\b(generate|build)\\b.*?\\bdoc(s|umentation)?\\b.*?\\b(rust|crate)\\b"
+        ]
+      }
+    },
+    "managing-git-workflow": {
+      "type": "domain",
+      "enforcement": "suggest",
+      "priority": "high",
+      "description": "Git workflow for HASH including branch naming, PR creation, and PR reviews",
+      "promptTriggers": {
+        "keywords": [
+          "branch",
+          "pull request",
+          "commit",
+          "git",
+          "H-",
+          "Linear",
+          "review PR",
+          "create PR",
+          "gh pr"
+        ],
+        "intentPatterns": [
+          "\\b(create|make|open|submit)\\b.*?\\b(branch|PR|pull request)\\b",
+          "\\b(review|check|look at)\\b.*?\\b(PR|pull request)\\b",
+          "\\bbranch\\b.*?\\b(name|naming|convention)\\b",
+          "\\b(PR|pull request)\\b.*?\\b(title|template|format)\\b",
+          "\\bLinear\\b.*?\\b(issue|ticket)\\b",
+          "\\bH-\\d{4}\\b"
+        ]
+      }
     }
   },
   "notes": {
