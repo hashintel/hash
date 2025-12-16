@@ -1,12 +1,12 @@
-import { Agent } from "@mastra/core/agent";
-import dedent from "dedent";
+import { Agent } from '@mastra/core/agent';
+import dedent from 'dedent';
 
-import { claimsStructureScorer } from "../../scorers/claims-scorer";
-import { submitClaims } from "../../tools/submit-claims-tool";
+import { claimsStructureScorer } from '../../scorers/claims-scorer';
+import { submitClaims } from '../../tools/_old/submit-claims-tool';
 
 export const claimExtractionsAgent = new Agent({
-  id: "claim-extraction-agent",
-  name: "Claim Extraction Agent",
+  id: 'claim-extraction-agent',
+  name: 'Claim Extraction Agent',
   instructions: dedent(`
   You are a claim extracting agent. Your job is to consider some content, and identify claims about entities from within it.
 
@@ -51,7 +51,7 @@ export const claimExtractionsAgent = new Agent({
 
   Or omit the claim if the value is not known.
 `),
-  model: "openrouter/google/gemini-2.5-flash-lite",
+  model: 'openrouter/google/gemini-2.5-flash-lite',
   tools: {
     submitClaims,
   },

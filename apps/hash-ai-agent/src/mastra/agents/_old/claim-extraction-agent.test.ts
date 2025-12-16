@@ -1,23 +1,15 @@
-import type {
-  EntityId,
-  EntityUuid,
-  VersionedUrl,
-  WebId,
-} from "@blockprotocol/type-system";
-import { entityIdFromComponents } from "@blockprotocol/type-system";
-import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
-import { runEvals } from "@mastra/core/evals";
-import { createCompletenessScorer } from "@mastra/evals/scorers/prebuilt";
-import dedent from "dedent";
-import { describe, expect, test } from "vitest";
+import type { EntityId, EntityUuid, VersionedUrl, WebId } from '@blockprotocol/type-system';
+import { entityIdFromComponents } from '@blockprotocol/type-system';
+import { generateUuid } from '@local/hash-isomorphic-utils/generate-uuid';
+import { runEvals } from '@mastra/core/evals';
+import { createCompletenessScorer } from '@mastra/evals/scorers/prebuilt';
+import dedent from 'dedent';
+import { describe, expect, test } from 'vitest';
 
-import {
-  type InferClaimsFixture,
-  inferClaimsFixtures,
-} from "../../fixtures/infer-claims-fixtures";
-import { claimsStructureScorer } from "../../scorers/claims-scorer";
-import { claimExtractionsAgent } from "./claim-extraction-agent";
-import { entitySummaryAgent } from "./entity-summary-agent";
+import { type InferClaimsFixture, inferClaimsFixtures } from '../../fixtures/_old/infer-claims-fixtures';
+import { claimsStructureScorer } from '../../scorers/claims-scorer';
+import { claimExtractionsAgent } from './claim-extraction-agent';
+import { entitySummaryAgent } from './entity-summary-agent';
 
 /**
  * Type for entity summaries extracted by the entity summary agent.
@@ -45,9 +37,9 @@ function buildEntitySummaryMessage(fixture: InferClaimsFixture): string {
       EntityTypeId: ${type.$id}
       Title: ${type.title}
       Description: ${type.description}
-    </EntityType>`,
+    </EntityType>`
       )
-      .join("\n")}
+      .join('\n')}
     </KnownEntityTypes>
 
     Here is the research goal – please identify all entities in the text which may be relevant to this goal, including entities with relationships to relevant entities.
@@ -62,14 +54,14 @@ function buildEntitySummaryMessage(fixture: InferClaimsFixture): string {
  */
 function buildClaimExtractionMessage(
   fixture: InferClaimsFixture,
-  discoveredEntities: LocalEntitySummary[],
+  discoveredEntities: LocalEntitySummary[]
 ): string {
   return dedent`
     Here is the text from which to extract claims:
     <Text>${fixture.content}</Text>
 
-    ${fixture.url ? `<URL>${fixture.url}</URL>` : ""}
-    ${fixture.title ? `<Title>${fixture.title}</Title>` : ""}
+    ${fixture.url ? `<URL>${fixture.url}</URL>` : ''}
+    ${fixture.title ? `<Title>${fixture.title}</Title>` : ''}
 
     <Goal>${fixture.goal}</Goal>
 
@@ -80,9 +72,9 @@ function buildClaimExtractionMessage(
       LocalId: ${entity.localId}
       Name: ${entity.name}
       Summary: ${entity.summary}
-    </SubjectEntity>`,
+    </SubjectEntity>`
       )
-      .join("\n")}
+      .join('\n')}
     </SubjectEntities>
 
     <PotentialObjectEntities>
@@ -91,9 +83,9 @@ function buildClaimExtractionMessage(
         (entity) => `<ObjectEntity>
       LocalId: ${entity.localId}
       Name: ${entity.name}
-    </ObjectEntity>`,
+    </ObjectEntity>`
       )
-      .join("\n")}
+      .join('\n')}
     </PotentialObjectEntities>
 
     Extract all claims about the subject entities from the text.
@@ -121,9 +113,9 @@ function extractEntitiesFromOutput(output: unknown): LocalEntitySummary[] {
     // Output might be an array of steps/messages
     for (const item of outputRecord) {
       if (
-        typeof item === "object" &&
+        typeof item === 'object' &&
         item !== null &&
-        "toolCalls" in item &&
+        'toolCalls' in item &&
         Array.isArray((item as Record<string, unknown>).toolCalls)
       ) {
         toolCalls = (item as Record<string, unknown>).toolCalls as {
@@ -136,9 +128,7 @@ function extractEntitiesFromOutput(output: unknown): LocalEntitySummary[] {
   }
 
   // Find the register call
-  const registerCall = toolCalls.find(
-    (toolCall) => toolCall.toolName === "register-entity-summaries",
-  );
+  const registerCall = toolCalls.find((toolCall) => toolCall.toolName === 'register-entity-summaries');
 
   if (!registerCall?.args) {
     return [];
@@ -172,9 +162,9 @@ function extractEntitiesFromOutput(output: unknown): LocalEntitySummary[] {
 // Simple pass-through scorer to run the entity summary agent
 const passThroughScorer = createCompletenessScorer();
 
-describe("Claim Extraction Agent", () => {
+describe('Claim Extraction Agent', () => {
   test.for(inferClaimsFixtures)(
-    "$name",
+    '$name',
     { timeout: 10 * 60 * 1000 }, // 10 minutes - two LLM calls
     async (fixture) => {
       // Step 1: Run entity summary agent to discover entities
@@ -202,10 +192,7 @@ describe("Claim Extraction Agent", () => {
       expect(discoveredEntities.length).toBeGreaterThan(0);
 
       // Step 2: Run claim extraction agent and score the results
-      const claimsMessage = buildClaimExtractionMessage(
-        fixture,
-        discoveredEntities,
-      );
+      const claimsMessage = buildClaimExtractionMessage(fixture, discoveredEntities);
 
       const evalResult = await runEvals({
         data: [
@@ -224,7 +211,7 @@ describe("Claim Extraction Agent", () => {
       });
 
       // Assert score meets threshold
-      expect(evalResult.scores["claims-structure"]).toBeGreaterThan(0.5);
-    },
+      expect(evalResult.scores['claims-structure']).toBeGreaterThan(0.5);
+    }
   );
 });

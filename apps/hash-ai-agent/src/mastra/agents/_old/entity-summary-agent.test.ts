@@ -1,12 +1,12 @@
-import type { EntityId, VersionedUrl } from "@blockprotocol/type-system";
-import { runEvals } from "@mastra/core/evals";
-import dedent from "dedent";
-import { describe, expect, test } from "vitest";
+import type { EntityId, VersionedUrl } from '@blockprotocol/type-system';
+import { runEvals } from '@mastra/core/evals';
+import dedent from 'dedent';
+import { describe, expect, test } from 'vitest';
 
-import { entitySummaryFixtures } from "../../fixtures/entity-summary-fixtures";
-import { entitySummariesCompositeScorer } from "../../scorers/entity-summaries-scorer";
-import type { DereferencedEntityType } from "../../utils/dereference-entity-type";
-import { entitySummaryAgent } from "./entity-summary-agent";
+import { entitySummaryFixtures } from '../../fixtures/_old/entity-summary-fixtures';
+import { entitySummariesCompositeScorer } from '../../scorers/entity-summaries-scorer';
+import type { DereferencedEntityType } from '../../utils/dereference-entity-type';
+import { entitySummaryAgent } from './entity-summary-agent';
 
 export type LocalEntitySummary = {
   localId: EntityId;
@@ -23,10 +23,7 @@ function buildUserMessage({
 }: {
   text: string;
   existingSummaries: LocalEntitySummary[];
-  dereferencedEntityTypes: Pick<
-    DereferencedEntityType,
-    "$id" | "title" | "description"
-  >[];
+  dereferencedEntityTypes: Pick<DereferencedEntityType, '$id' | 'title' | 'description'>[];
   relevantEntitiesPrompt: string;
 }) {
   return dedent(`
@@ -42,9 +39,9 @@ function buildUserMessage({
             EntityTypeId: ${dereferencedEntityType.$id}
             Title: ${dereferencedEntityType.title}
             Description: ${dereferencedEntityType.description}
-          </EntityType>`,
+          </EntityType>`
       )
-      .join("\n")}
+      .join('\n')}
     </KnownEntityTypes>
 
     Here is the research goal – please identify all entities in the text which may be relevant to this goal, including entities with relationships to relevant entities.
@@ -61,19 +58,19 @@ function buildUserMessage({
         dedent(`<ExistingEntity>
         Name: ${summary.name}
         Summary: ${summary.summary}
-        ${summary.entityTypeIds.length > 1 ? "Types" : "Type"}: ${summary.entityTypeIds.join(", ")}
-      </ExistingEntity>`),
+        ${summary.entityTypeIds.length > 1 ? 'Types' : 'Type'}: ${summary.entityTypeIds.join(', ')}
+      </ExistingEntity>`)
       )
-      .join("\n")}
+      .join('\n')}
     </ExistingEntities>`)
-        : ""
+        : ''
     }
   `);
 }
 
-describe("Entity Summaries Agent", () => {
+describe('Entity Summaries Agent', () => {
   test.for(entitySummaryFixtures)(
-    "$name",
+    '$name',
     { timeout: 5 * 60 * 1000 }, // 5 minutes - LLM calls take time
     async ({
       entityType,
@@ -104,7 +101,7 @@ describe("Entity Summaries Agent", () => {
       });
 
       // Assert aggregate score meets threshold
-      expect(result.scores["entity-summaries"]).toBeGreaterThan(0.5);
-    },
+      expect(result.scores['entity-summaries']).toBeGreaterThan(0.5);
+    }
   );
 });

@@ -1,12 +1,12 @@
-import { Agent } from "@mastra/core/agent";
-import dedent from "dedent";
+import { Agent } from '@mastra/core/agent';
+import dedent from 'dedent';
 
-import { entitySummariesCompositeScorer } from "../../scorers/entity-summaries-scorer";
-import { registerEntitySummariesTool } from "../../tools/register-summaries-tool";
+import { entitySummariesCompositeScorer } from '../../scorers/entity-summaries-scorer';
+import { registerEntitySummariesTool } from '../../tools/_old/register-summaries-tool';
 
 export const entitySummaryAgent = new Agent({
-  id: "entity-summaries-agent",
-  name: "Entity Summaries Agent",
+  id: 'entity-summaries-agent',
+  name: 'Entity Summaries Agent',
   instructions: dedent(`
     You are an entity recognizing specialist, working as part of a research term.
     You identify all the entities relevant to a research goal mentioned in content provided to you, and provide a summary and type for each.
@@ -49,7 +49,7 @@ export const entitySummaryAgent = new Agent({
     }
     </ExampleResponse>
   `),
-  model: "openrouter/google/gemini-2.5-flash-lite",
+  model: 'openrouter/google/gemini-2.5-flash-lite',
   tools: {
     registerEntitySummaries: registerEntitySummariesTool,
   },
