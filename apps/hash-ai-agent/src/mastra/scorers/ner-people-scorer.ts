@@ -1,7 +1,7 @@
-import { createScorer } from '@mastra/core/evals';
-import { z } from 'zod';
+import { createScorer } from "@mastra/core/evals";
+import { z } from "zod";
 
-import { DEFAULT_MODEL, NAME_PROPERTY } from '../constants';
+import { DEFAULT_MODEL, NAME_PROPERTY } from "../constants";
 
 /** Schema for extracted person entity */
 const zPersonEntity = z
@@ -41,8 +41,8 @@ const zAnalysisResult = z.object({
  * (e.g., "Bill Gates" matches "William Gates").
  */
 export const nerPeopleScorer = createScorer({
-  id: 'ner-people',
-  description: 'Evaluates NER people extraction against expected persons list',
+  id: "ner-people",
+  description: "Evaluates NER people extraction against expected persons list",
   judge: {
     model: DEFAULT_MODEL,
     instructions: `You are an expert at comparing person names for semantic equivalence.
@@ -59,12 +59,15 @@ Be precise: only match names that clearly refer to the same real-world person.`,
 
     if (!Array.isArray(output)) {
       // eslint-disable-next-line no-console
-      console.warn('[nerPeopleScorer] Expected run.output to be an array, got:', typeof output);
+      console.warn(
+        "[nerPeopleScorer] Expected run.output to be an array, got:",
+        typeof output,
+      );
     } else {
       for (const person of output) {
         const personObj = person as Record<string, unknown>;
         const name = personObj[NAME_PROPERTY];
-        if (typeof name === 'string') {
+        if (typeof name === "string") {
           extractedNames.push(name);
         }
       }
@@ -72,18 +75,22 @@ Be precise: only match names that clearly refer to the same real-world person.`,
 
     // Parse ground truth
     const groundTruth = zGroundTruth.parse(run.groundTruth);
-    const expectedNames = groundTruth.expectedPersons.map((person) => person[NAME_PROPERTY]);
+    const expectedNames = groundTruth.expectedPersons.map(
+      (person) => person[NAME_PROPERTY],
+    );
 
     return { extractedNames, expectedNames };
   })
   .analyze({
-    description: 'Match extracted person names against expected persons using fuzzy matching',
+    description:
+      "Match extracted person names against expected persons using fuzzy matching",
     outputSchema: zAnalysisResult,
     createPrompt: ({ results }) => {
-      const { extractedNames, expectedNames } = results.preprocessStepResult as {
-        extractedNames: string[];
-        expectedNames: string[];
-      };
+      const { extractedNames, expectedNames } =
+        results.preprocessStepResult as {
+          extractedNames: string[];
+          expectedNames: string[];
+        };
       return `Compare extracted person names against expected names.
 
 EXTRACTED PERSONS (from NER step):
@@ -113,18 +120,24 @@ Return JSON with:
     // - Recall (finding expected persons): 70% weight
     // - Precision (not having false positives): 30% weight
     const recall = matchedPersons.length / totalExpected;
-    const precision = totalExtracted > 0 ? matchedPersons.length / totalExtracted : 1;
+    const precision =
+      totalExtracted > 0 ? matchedPersons.length / totalExtracted : 1;
 
     return 0.7 * recall + 0.3 * precision;
   })
   .generateReason(({ results, score }) => {
-    const { matchedPersons, missingPersons, extraPersons, totalExtracted, totalExpected } =
-      results.analyzeStepResult;
+    const {
+      matchedPersons,
+      missingPersons,
+      extraPersons,
+      totalExtracted,
+      totalExpected,
+    } = results.analyzeStepResult;
 
     return (
       `Score: ${score.toFixed(2)}. Found ${matchedPersons.length}/${totalExpected} expected persons. ` +
-      `${missingPersons.length > 0 ? `Missing: ${missingPersons.join(', ')}. ` : ''}` +
-      `${extraPersons.length > 0 ? `Extra: ${extraPersons.join(', ')}. ` : ''}` +
+      `${missingPersons.length > 0 ? `Missing: ${missingPersons.join(", ")}. ` : ""}` +
+      `${extraPersons.length > 0 ? `Extra: ${extraPersons.join(", ")}. ` : ""}` +
       `Total extracted: ${totalExtracted}.`
     );
   });

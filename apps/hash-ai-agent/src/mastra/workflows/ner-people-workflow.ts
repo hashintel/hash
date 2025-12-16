@@ -1,11 +1,11 @@
-import { createStep, createWorkflow } from '@mastra/core/workflows';
-import { type TSchema, Type } from '@sinclair/typebox';
-import dedent from 'dedent';
-import { z } from 'zod';
+import { createStep, createWorkflow } from "@mastra/core/workflows";
+import { type TSchema, Type } from "@sinclair/typebox";
+import dedent from "dedent";
+import { z } from "zod";
 
-import { nerAgent } from '../agents/ner-agent';
-import personSchemaDereferenced from '../fixtures/entity-schemas/person.dereferenced.json';
-import { schemaToPromptSummary } from '../utils/schema-to-prompt-summary';
+import { nerAgent } from "../agents/ner-agent";
+import personSchemaDereferenced from "../fixtures/entity-schemas/person.dereferenced.json";
+import { schemaToPromptSummary } from "../utils/schema-to-prompt-summary";
 
 const nerPeopleInputSchema = z.object({
   sourceText: z.string(),
@@ -16,7 +16,7 @@ const nerPeopleInputSchema = z.object({
 const nerPeopleOutputSchema = z.array(z.any());
 
 export const nerPeopleStep = createStep({
-  id: 'ner-people-step',
+  id: "ner-people-step",
 
   inputSchema: nerPeopleInputSchema,
   outputSchema: nerPeopleOutputSchema,
@@ -47,11 +47,11 @@ ${sourceText}
       {
         structuredOutput: {
           schema: Type.Array(personSchemaDereferenced as unknown as TSchema, {
-            $id: 'https://my-internal/wrapper-array',
-            title: 'EntityArray',
+            $id: "https://my-internal/wrapper-array",
+            title: "EntityArray",
           }),
         },
-      }
+      },
     );
     // eslint-disable-next-line @typescript-eslint/no-unsafe-return
     return response.object;
@@ -59,8 +59,8 @@ ${sourceText}
 });
 
 export const nerPeopleWorkflow = createWorkflow({
-  id: 'ner-people-workflow',
-  description: 'Workflow to extract people entities from text using NER.',
+  id: "ner-people-workflow",
+  description: "Workflow to extract people entities from text using NER.",
   inputSchema: nerPeopleInputSchema,
   outputSchema: nerPeopleOutputSchema,
 })

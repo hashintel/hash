@@ -258,17 +258,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@apidevtools/json-schema-ref-parser@npm:11.9.3, @apidevtools/json-schema-ref-parser@npm:^11.5.5":
-  version: 11.9.3
-  resolution: "@apidevtools/json-schema-ref-parser@npm:11.9.3"
-  dependencies:
-    "@jsdevtools/ono": "npm:^7.1.3"
-    "@types/json-schema": "npm:^7.0.15"
-    js-yaml: "npm:^4.1.0"
-  checksum: 10c0/5745813b3d964279f387677b7a903ba6634cdeaf879ff3a331a694392cbc923763f398506df190be114f2574b8b570baab3e367c2194bb35f50147ff6cf27d7a
-  languageName: node
-  linkType: hard
-
 "@apidevtools/json-schema-ref-parser@npm:15.1.3":
   version: 15.1.3
   resolution: "@apidevtools/json-schema-ref-parser@npm:15.1.3"
@@ -277,6 +266,17 @@ __metadata:
   peerDependencies:
     "@types/json-schema": ^7.0.15
   checksum: 10c0/76930156575c3855359334848129924ac30d3e6d1d7f43a6fe558b792ee759c9425683e5babe135e04e75547f526b6546188016377f4da35553d6873cb2d2c32
+  languageName: node
+  linkType: hard
+
+"@apidevtools/json-schema-ref-parser@npm:^11.5.5":
+  version: 11.9.3
+  resolution: "@apidevtools/json-schema-ref-parser@npm:11.9.3"
+  dependencies:
+    "@jsdevtools/ono": "npm:^7.1.3"
+    "@types/json-schema": "npm:^7.0.15"
+    js-yaml: "npm:^4.1.0"
+  checksum: 10c0/5745813b3d964279f387677b7a903ba6634cdeaf879ff3a331a694392cbc923763f398506df190be114f2574b8b570baab3e367c2194bb35f50147ff6cf27d7a
   languageName: node
   linkType: hard
 
@@ -5606,7 +5606,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@blockprotocol/graph@workspace:libs/@blockprotocol/graph"
   dependencies:
-    "@apidevtools/json-schema-ref-parser": "npm:11.9.3"
+    "@apidevtools/json-schema-ref-parser": "npm:15.1.3"
     "@blockprotocol/core": "npm:0.1.4"
     "@blockprotocol/type-system": "npm:0.1.2-canary.1"
     "@local/eslint": "npm:0.0.0-private"
