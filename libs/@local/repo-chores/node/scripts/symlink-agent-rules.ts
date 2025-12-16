@@ -97,11 +97,13 @@ for (const target of targets) {
     const targetPath = join(target.dir, target.getTargetPath(rule));
     const targetDir = dirname(targetPath);
 
-    if (!existsSync(targetPath)) {
+    let stat;
+    try {
+      stat = lstatSync(targetPath);
+    } catch {
+      // targetPath does not exist (including broken symlinks would be caught here)
       continue;
     }
-
-    const stat = lstatSync(targetPath);
 
     if (stat.isSymbolicLink()) {
       // Remove existing symlink managed by this script.
