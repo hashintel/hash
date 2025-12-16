@@ -136,6 +136,6 @@ Sora represents a significant breakthrough in text-to-video generation, marking 
   },
 
   /** Research goal for testing */
-  researchGoal: "Extract all people and organizations mentioned in the Sora paper",
+  researchGoal:
+    "Extract all people and organizations mentioned in the Sora paper",
 } as const;
-

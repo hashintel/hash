@@ -26,16 +26,18 @@ export const nerPeopleStep = createStep({
       dedent(`
 Your task is to
 
-1. identify occurences of _entities_ within the <source-text>, which correspond to the <entity-schema>s described below and are relevant to the <research-goal>; then
+1. identify occurrences of _entities_ within the <source-text>, which correspond to the <entity-schema>s described below and are relevant to the <research-goal>; then
 2. collect these entities in terms of their names, and their attributes (per <entity-schema> definition); and then
 3. return these as a structured collection.
+
+Return ONLY entities that match the provided schemas. Each entity MUST include a "https://blockprotocol.org/@blockprotocol/types/property-type/name/" property containing the entity's name.
 
 The parameters for this task are as follows:
 
 <entity-schemas syntax="yaml">
 ${schemaToPromptSummary(personSchemaDereferenced)}
 </entity-schemas>
-<research-goal syntax="markdown>
+<research-goal syntax="markdown">
 ${researchGoal}
 </research-goal>
 <source-text syntax="markdown">

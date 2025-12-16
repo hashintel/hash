@@ -113,6 +113,6 @@ A recent Bank of America analyst report put it this way: "If Netflix acquires Wa
   ],
 
   /** Research goal for testing */
-  researchGoal: "Find all the companies and executives involved in the Warner Bros. Discovery bidding war",
+  researchGoal:
+    "Find all the companies and executives involved in the Warner Bros. Discovery bidding war",
 } as const;
-

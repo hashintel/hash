@@ -7,93 +7,93 @@ Mastra-based implementation of HASH's AI inference capabilities, focusing on Nam
 ```sh
 src/mastra/
 ├── agents/
-│   └── entity-summary-agent.ts      # NER agent (baseline)
-├── evals/
-│   ├── test-data/
-│   │   └── ner-test-cases.ts        # Test dataset with scoring logic
-│   ├── test-entity-extraction.ts    # Simple smoke test
-│   └── run-entity-extraction-eval.ts # Full evaluation runner
+│   ├── generic-agent.ts             # General-purpose agent
+│   └── ner-agent.ts                 # Named Entity Recognition agent
+├── fixtures/
+│   ├── entity-schemas/              # Dereferenced JSON schemas for entity types
+│   │   ├── person.dereferenced.json
+│   │   └── organization.dereferenced.json
+│   ├── source-texts/                # Test source texts with ground truth
+│   │   └── microsoft-wikipedia.ts   # Example fixture with expectedPersons
+│   └── generate-schemas.ts          # Script to generate schema fixtures
 ├── scorers/
-│   └── entity-recall-scorer.ts      # Entity recall/precision scorer
-├── shared/
-│   ├── dereference-entity-type.ts   # Entity type schema utilities
-│   └── generate-simplified-type-id.ts # Helper for type dereferencing
-├── types/
-│   └── entities.ts                  # Core entity type definitions
+│   └── ner-people-scorer.ts         # NER people extraction scorer (recall + precision)
+├── utils/
+│   ├── schema-to-prompt-summary.ts  # Convert JSON schemas to LLM-friendly summaries
+│   └── entity-type-to-yaml.ts       # (deprecated) YAML schema converter
+├── workflows/
+│   ├── ner-people-workflow.ts       # NER workflow for extracting people entities
+│   └── ner-people-workflow.test.ts  # Eval test using runEvals + scorer
+├── constants.ts                     # Shared constants (model ID, property URLs)
 └── index.ts                         # Mastra instance registration
 ```
 
+> **Note:** `_old/` directories contain archived/experimental code from earlier iterations.
+
 ## Quick Start
 
-### 1. Simple Test
+### Run the NER Evaluation
 
-Run a single test case to verify the agent works:
+Run the NER people workflow evaluation using Vitest:
 
 ```bash
-pnpm tsx src/mastra/evals/test-entity-extraction.ts
+pnpm vitest src/mastra/workflows/ner-people-workflow.test.ts
 ```
 
 This will:
 
-- Load the first test case from `ner-test-cases.ts`
-- Run the entity summary agent
-- Display extracted entities vs. expected entities
-
-### 2. Full Evaluation
-
-Run all test cases with scoring:
-
-```bash
-pnpm tsx src/mastra/evals/run-entity-extraction-eval.ts
-```
-
-This will:
-
-- Run all NER test cases
-- Calculate entity recall, precision, and type accuracy
-- Display average scores and detailed breakdowns
+- Execute the NER workflow on the Microsoft Wikipedia fixture
+- Use the `nerPeopleScorer` to evaluate recall and precision
+- Assert the overall score meets the threshold (> 0.7)
 
 ## Architecture
 
 ### Agents
 
-**Entity Summary Agent** (`agents/entity-summary-agent.ts`)
+**NER Agent** (`agents/ner-agent.ts`)
 
 - **Purpose**: Named Entity Recognition (NER) - identify entities in text
-- **Model**: `google/gemini-2.0-flash-exp:free` (via OpenRouter)
-- **Tool**: `registerEntitySummaries` for reporting found entities
-- **Input**: Text + research goal + entity types
-- **Output**: Array of entity summaries (name, summary, type)
+- **Model**: `google/gemini-2.5-flash-lite` (via OpenRouter)
+- **Input**: Source text + research goal + entity schemas
+- **Output**: Structured array of entities matching provided schemas
+
+**Generic Agent** (`agents/generic-agent.ts`)
+
+- **Purpose**: General-purpose agent for ad-hoc tasks
+- **Model**: Same as NER agent (shared via `constants.ts`)
+
+### Workflows
+
+**NER People Workflow** (`workflows/ner-people-workflow.ts`)
+
+- **Purpose**: Extract person entities from source text
+- **Steps**: Single step using `nerAgent` with structured output
+- **Schema**: Uses dereferenced `person.json` schema from Block Protocol
+- **Prompt**: Includes research goal and schema summary for context
 
 ### Scorers
 
-**Entity Recall Scorer** (`scorers/entity-recall-scorer.ts`)
+**NER People Scorer** (`scorers/ner-people-scorer.ts`)
 
-- **Purpose**: Measure extraction quality (recall, precision, type accuracy)
-- **Methodology**: Ported from hash-ai-worker-ts optimization tests
+- **Purpose**: Evaluate NER extraction quality for people
+- **Methodology**: LLM-assisted fuzzy name matching for variations
 - **Metrics**:
-  - Gold entities found vs. missed (recall)
-  - Irrelevant entities identified (false positives)
-  - Wrong-type entities (type confusion)
+  - Recall (70% weight): Expected persons found
+  - Precision (30% weight): No false positives
 - **Score**: 0-1 (1 = perfect extraction)
 
-### Test Data
+### Fixtures
 
-**NER Test Cases** (`evals/test-data/ner-test-cases.ts`)
+**Entity Schemas** (`fixtures/entity-schemas/`)
 
-- **Source**: Ported from hash-ai-worker-ts
-- **Format**: Stable fixtures (no external dependencies)
-- **Coverage**: AI companies, people, organizations, edge cases
-- **Ground Truth**: Gold entities, irrelevant entities, wrong-type entities
+- Dereferenced JSON schemas for `Person` and `Organization` entity types
+- Generated from Block Protocol / HASH type definitions
+- Used for structured output and prompt generation
 
-### Type Definitions
+**Source Texts** (`fixtures/source-texts/`)
 
-**Entity Types** (`types/entities.ts`)
-
-- `LocalEntitySummary` - Step 1: Entity name + summary + types
-- `Claim` - Step 2: Facts about entities (for future phases)
-- `ProposedEntity` - Step 3: Full entity with properties (for future phases)
-- `SourceProvenance` - Provenance tracking
+- Test documents with ground truth (`expectedPersons`, `expectedOrganizations`)
+- Examples: Microsoft Wikipedia article, news articles, research papers
 
 ## Migration from hash-ai-worker-ts
 
@@ -126,17 +126,22 @@ See `docs/mastra-migration-plan.md` for complete architectural mapping.
 ### Environment Variables
 
 ```bash
+# Required for LLM inference
 OPENROUTER_API_KEY=your_api_key_here
+
+# Optional: custom path to Mastra storage database
+# Defaults to data/mastra.db relative to compiled entrypoint
+MASTRA_DB_PATH=/path/to/custom/mastra.db
 ```
 
 ### Running Tests
 
 ```bash
-# Quick smoke test
-pnpm tsx src/mastra/evals/test-entity-extraction.ts
+# Run unit tests (excludes LLM-dependent evals)
+pnpm test
 
-# Full evaluation suite
-pnpm tsx src/mastra/evals/run-entity-extraction-eval.ts
+# Run LLM-dependent evaluations (requires OPENROUTER_API_KEY)
+pnpm test:evals
 ```
 
 ### Type Checking

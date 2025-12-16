@@ -413,9 +413,7 @@
           "$ref": "#/$defs/hash_ai__h_types_property-type_component-id_v_1"
         }
       },
-      "required": [
-        "https://hash.ai/@h/types/property-type/component-id/"
-      ],
+      "required": ["https://hash.ai/@h/types/property-type/component-id/"],
       "title": "Block",
       "type": "object"
     },
@@ -469,9 +467,7 @@
           "$ref": "#/$defs/hash_ai__h_types_property-type_expired-at_v_1"
         }
       },
-      "required": [
-        "https://hash.ai/@h/types/property-type/expired-at/"
-      ],
+      "required": ["https://hash.ai/@h/types/property-type/expired-at/"],
       "title": "Invitation",
       "type": "object"
     },
@@ -517,9 +513,7 @@
           "$ref": "#/$defs/hash_ai__h_types_property-type_email_v_1"
         }
       },
-      "required": [
-        "https://hash.ai/@h/types/property-type/email/"
-      ],
+      "required": ["https://hash.ai/@h/types/property-type/email/"],
       "title": "Invitation Via Email",
       "type": "object"
     },
@@ -550,9 +544,7 @@
           "$ref": "#/$defs/hash_ai__h_types_property-type_shortname_v_1"
         }
       },
-      "required": [
-        "https://hash.ai/@h/types/property-type/shortname/"
-      ],
+      "required": ["https://hash.ai/@h/types/property-type/shortname/"],
       "title": "Invitation Via Shortname",
       "type": "object"
     },

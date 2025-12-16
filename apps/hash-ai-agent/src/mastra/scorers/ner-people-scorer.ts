@@ -1,8 +1,7 @@
 import { createScorer } from '@mastra/core/evals';
 import { z } from 'zod';
 
-/** Property type URL for name */
-const NAME_PROPERTY = 'https://blockprotocol.org/@blockprotocol/types/property-type/name/';
+import { DEFAULT_MODEL, NAME_PROPERTY } from '../constants';
 
 /** Schema for extracted person entity */
 const zPersonEntity = z
@@ -45,7 +44,7 @@ export const nerPeopleScorer = createScorer({
   id: 'ner-people',
   description: 'Evaluates NER people extraction against expected persons list',
   judge: {
-    model: 'openrouter/google/gemini-2.5-flash-lite',
+    model: DEFAULT_MODEL,
     instructions: `You are an expert at comparing person names for semantic equivalence.
 Match extracted person names against reference lists.
 Consider name variations (e.g., "Bill Gates" matches "William Gates", "Gates").
@@ -53,11 +52,15 @@ Be precise: only match names that clearly refer to the same real-world person.`,
   },
 })
   .preprocess(({ run }) => {
-    // Extract person names from step output (which is an array)
-    const output = run.output as unknown[];
+    // Extract person names from step output (which should be an array)
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+    const output = run.output;
     const extractedNames: string[] = [];
 
-    if (Array.isArray(output)) {
+    if (!Array.isArray(output)) {
+      // eslint-disable-next-line no-console
+      console.warn('[nerPeopleScorer] Expected run.output to be an array, got:', typeof output);
+    } else {
       for (const person of output) {
         const personObj = person as Record<string, unknown>;
         const name = personObj[NAME_PROPERTY];

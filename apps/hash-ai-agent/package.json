@@ -17,7 +17,8 @@
     "lint:eslint": "eslint --report-unused-disable-directives .",
     "lint:tsc": "tsc --noEmit",
     "start": "mastra start",
-    "test": "vitest",
+    "test": "vitest --exclude '**/*.eval.test.ts' --exclude '**/workflows/*.test.ts'",
+    "test:evals": "vitest --testNamePattern='' 'src/mastra/workflows/*.test.ts'",
     "ug": "yarn upgrade-interactive"
   },
   "dependencies": {

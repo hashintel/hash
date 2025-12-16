@@ -50,14 +50,8 @@ Jay`,
   expectedPersons: ["Jay Kreps"],
 
   /** Expected Organization entities to extract */
-  expectedOrganizations: [
-    "IBM",
-    "Confluent",
-    "Red Hat",
-    "HashiCorp",
-  ],
+  expectedOrganizations: ["IBM", "Confluent", "Red Hat", "HashiCorp"],
 
   /** Research goal for testing */
   researchGoal: "Find details about the IBM acquisition of Confluent",
 } as const;
-
