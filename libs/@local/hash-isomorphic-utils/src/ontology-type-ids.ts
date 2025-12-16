@@ -99,7 +99,7 @@ export const systemEntityTypes = {
       "https://hash.ai/@h/types/entity-type/graph-change-notification/" as BaseUrl,
   },
   hashInstance: {
-    entityTypeId: "https://hash.ai/@h/types/entity-type/hash-instance/v/1",
+    entityTypeId: "https://hash.ai/@h/types/entity-type/hash-instance/v/2",
     entityTypeBaseUrl:
       "https://hash.ai/@h/types/entity-type/hash-instance/" as BaseUrl,
   },
@@ -797,6 +797,12 @@ export const systemPropertyTypes = {
     propertyTypeId: "https://hash.ai/@h/types/property-type/methodology/v/1",
     propertyTypeBaseUrl:
       "https://hash.ai/@h/types/property-type/methodology/" as BaseUrl,
+  },
+  migrationsCompleted: {
+    propertyTypeId:
+      "https://hash.ai/@h/types/property-type/migrations-completed/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@h/types/property-type/migrations-completed/" as BaseUrl,
   },
   nctId: {
     propertyTypeId: "https://hash.ai/@h/types/property-type/nct-id/v/1",
@@ -1999,9 +2005,9 @@ export const blockProtocolEntityTypes = {
 export const blockProtocolLinkEntityTypes = {
   hasQuery: {
     linkEntityTypeId:
-      "https://blockprotocol.org/@h/types/entity-type/has-query/v/1",
+      "https://blockprotocol.org/@hash/types/entity-type/has-query/v/1",
     linkEntityTypeBaseUrl:
-      "https://blockprotocol.org/@h/types/entity-type/has-query/" as BaseUrl,
+      "https://blockprotocol.org/@hash/types/entity-type/has-query/" as BaseUrl,
   },
 } as const satisfies Record<
   string,
@@ -2077,9 +2083,9 @@ export const blockProtocolPropertyTypes = {
   },
   query: {
     propertyTypeId:
-      "https://blockprotocol.org/@h/types/property-type/query/v/1",
+      "https://blockprotocol.org/@hash/types/property-type/query/v/1",
     propertyTypeBaseUrl:
-      "https://blockprotocol.org/@h/types/property-type/query/" as BaseUrl,
+      "https://blockprotocol.org/@hash/types/property-type/query/" as BaseUrl,
   },
   textualContent: {
     propertyTypeId:
