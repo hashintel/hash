@@ -1,9 +1,11 @@
 import { createStep, createWorkflow } from '@mastra/core/workflows';
+import { type TSchema, Type } from '@sinclair/typebox';
 import dedent from 'dedent';
 import { z } from 'zod';
 
 import { nerAgent } from '../agents/ner-agent';
 import { dereferencedPersonSchema } from '../fixtures/entity-schemas/person';
+import personSchemaDereferenced from '../fixtures/entity-schemas/person.dereferenced.json';
 import { entityTypesToYaml } from '../utils/entity-type-to-yaml';
 
 const nerPeopleInputSchema = z.object({
@@ -22,6 +24,7 @@ const nerPeopleOutputSchema = z.array(
 
 export const nerPeopleStep = createStep({
   id: 'ner-people-step',
+
   inputSchema: nerPeopleInputSchema,
   outputSchema: nerPeopleOutputSchema,
   execute: async ({ inputData: { researchGoal, sourceText } }) => {
@@ -51,16 +54,22 @@ ${sourceText}
       `),
       {
         structuredOutput: {
-          schema: nerPeopleOutputSchema,
+          // schema: personSchemaDereferenced as JSONSchema7,
+          schema: Type.Array(personSchemaDereferenced as unknown as TSchema, {
+            $id: 'https://my-internal/wrapper-array',
+            title: 'EntityArray',
+          }),
         },
       }
     );
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-return
     return response.object;
   },
 });
 
 export const nerPeopleWorkflow = createWorkflow({
   id: 'ner-people-workflow',
+  description: 'Workflow to extract people entities from text using NER.',
   inputSchema: nerPeopleInputSchema,
   outputSchema: nerPeopleOutputSchema,
 })

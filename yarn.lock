@@ -597,6 +597,7 @@ __metadata:
     "@mastra/mcp": "npm:1.0.0-beta.6"
     "@mastra/memory": "npm:1.0.0-beta.4"
     "@mastra/observability": "npm:1.0.0-beta.4"
+    "@sinclair/typebox": "npm:0.34.41"
     "@types/dedent": "npm:0.7.2"
     "@types/dotenv-flow": "npm:3.3.3"
     "@types/jsdom": "npm:21.1.7"
@@ -611,6 +612,7 @@ __metadata:
     es-toolkit: "npm:1.41.0"
     eslint: "npm:9.38.0"
     jsdom: "npm:24.1.3"
+    json-schema: "npm:0.4.0"
     mastra: "npm:1.0.0-beta.5"
     npm-run-all2: "npm:8.0.4"
     sanitize-html: "npm:2.17.0"
@@ -16649,6 +16651,13 @@ __metadata:
   peerDependencies:
     sigma: ">=3.0.0-beta.10"
   checksum: 10c0/1af4bf4805011a4713db0eaa48424ef74afde837c819471f18b154e7bd64cd7ebecae49b9ba041ac6183c81d8f55b30107b0150a2a32a5da6524faf73ebe12b2
+  languageName: node
+  linkType: hard
+
+"@sinclair/typebox@npm:0.34.41":
+  version: 0.34.41
+  resolution: "@sinclair/typebox@npm:0.34.41"
+  checksum: 10c0/0fb61fc2f90c25e30b19b0096eb8ab3ccef401d3e2acfce42168ff0ee877ba5981c8243fa6b1035ac756cde95316724e978b2837dd642d7e4e095de03a999c90
   languageName: node
   linkType: hard
 
@@ -34427,7 +34436,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"json-schema@npm:^0.4.0":
+"json-schema@npm:0.4.0, json-schema@npm:^0.4.0":
   version: 0.4.0
   resolution: "json-schema@npm:0.4.0"
   checksum: 10c0/d4a637ec1d83544857c1c163232f3da46912e971d5bf054ba44fdb88f07d8d359a462b4aec46f2745efbc57053365608d88bc1d7b1729f7b4fc3369765639ed3

@@ -39,8 +39,10 @@
     "@mastra/mcp": "1.0.0-beta.6",
     "@mastra/memory": "1.0.0-beta.4",
     "@mastra/observability": "1.0.0-beta.4",
+    "@sinclair/typebox": "0.34.41",
     "dedent": "1.7.0",
     "es-toolkit": "1.41.0",
+    "json-schema": "0.4.0",
     "vitest": "4.0.15",
     "zod": "4.1.12",
     "zod-from-json-schema": "0.5.2"
