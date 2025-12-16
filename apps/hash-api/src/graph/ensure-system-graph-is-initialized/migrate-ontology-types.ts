@@ -3,9 +3,19 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 import type { ProvidedEntityEditionProvenance } from "@blockprotocol/type-system";
+import { componentsFromVersionedUrl } from "@blockprotocol/type-system";
 import { getHashInstance } from "@local/hash-backend-utils/hash-instance";
 import type { Logger } from "@local/hash-backend-utils/logger";
-import { systemPropertyTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
+import { queryDataTypes } from "@local/hash-graph-sdk/data-type";
+import { queryEntityTypes } from "@local/hash-graph-sdk/entity-type";
+import { queryPropertyTypes } from "@local/hash-graph-sdk/property-type";
+import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
+import {
+  systemDataTypes,
+  systemEntityTypes,
+  systemLinkEntityTypes,
+  systemPropertyTypes,
+} from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type { MigrationsCompletedPropertyValueWithMetadata } from "@local/hash-isomorphic-utils/system-types/hashinstance";
 
 import { isProdEnv } from "../../lib/env-config";
@@ -43,6 +53,133 @@ export const migrateOntologyTypes = async (params: {
     dataTypeVersions: {},
   };
 
+  /**
+   * `migrationState` is used as a cache for "current" ontology type versions while applying
+   * migrations. Historically this cache was only populated by the migrations that create/update
+   * ontology types. When migrations are skipped on an existing instance, the cache would be empty
+   * and later migrations that rely on `getCurrentHashSystemEntityTypeId` (etc.) would fail.
+   *
+   * To make migrations idempotent across fresh installs and existing deployments, we hydrate the
+   * cache from the graph before running any migration functions.
+   */
+  const hydrateMigrationStateFromGraph = async () => {
+    const entityTypeBaseUrls = [
+      ...Object.values(systemEntityTypes).map(({ entityTypeBaseUrl }) =>
+        entityTypeBaseUrl,
+      ),
+      ...Object.values(systemLinkEntityTypes).map(({ linkEntityTypeBaseUrl }) =>
+        linkEntityTypeBaseUrl,
+      ),
+    ];
+
+    const propertyTypeBaseUrls = Object.values(systemPropertyTypes).map(
+      ({ propertyTypeBaseUrl }) => propertyTypeBaseUrl,
+    );
+
+    const dataTypeBaseUrls = Object.values(systemDataTypes).map(
+      ({ dataTypeBaseUrl }) => dataTypeBaseUrl,
+    );
+
+    await Promise.all([
+      ...entityTypeBaseUrls.map(async (baseUrl) => {
+        if (migrationState.entityTypeVersions[baseUrl]) {
+          return;
+        }
+
+        const { entityTypes } = await queryEntityTypes(
+          params.context.graphApi,
+          authentication,
+          {
+            filter: {
+              all: [
+                {
+                  equal: [{ path: ["baseUrl"] }, { parameter: baseUrl }],
+                },
+                {
+                  equal: [{ path: ["version"] }, { parameter: "latest" }],
+                },
+              ],
+            },
+            temporalAxes: currentTimeInstantTemporalAxes,
+            limit: 1,
+          },
+        );
+
+        const existing = entityTypes[0];
+        if (!existing) {
+          return;
+        }
+
+        const { version } = componentsFromVersionedUrl(existing.schema.$id);
+        migrationState.entityTypeVersions[baseUrl] = version;
+      }),
+      ...propertyTypeBaseUrls.map(async (baseUrl) => {
+        if (migrationState.propertyTypeVersions[baseUrl]) {
+          return;
+        }
+
+        const { propertyTypes } = await queryPropertyTypes(
+          params.context.graphApi,
+          authentication,
+          {
+            filter: {
+              all: [
+                {
+                  equal: [{ path: ["baseUrl"] }, { parameter: baseUrl }],
+                },
+                {
+                  equal: [{ path: ["version"] }, { parameter: "latest" }],
+                },
+              ],
+            },
+            temporalAxes: currentTimeInstantTemporalAxes,
+            limit: 1,
+          },
+        );
+
+        const existing = propertyTypes[0];
+        if (!existing) {
+          return;
+        }
+
+        const { version } = componentsFromVersionedUrl(existing.schema.$id);
+        migrationState.propertyTypeVersions[baseUrl] = version;
+      }),
+      ...dataTypeBaseUrls.map(async (baseUrl) => {
+        if (migrationState.dataTypeVersions[baseUrl]) {
+          return;
+        }
+
+        const { dataTypes } = await queryDataTypes(
+          params.context.graphApi,
+          authentication,
+          {
+            filter: {
+              all: [
+                {
+                  equal: [{ path: ["baseUrl"] }, { parameter: baseUrl }],
+                },
+                {
+                  equal: [{ path: ["version"] }, { parameter: "latest" }],
+                },
+              ],
+            },
+            temporalAxes: currentTimeInstantTemporalAxes,
+            limit: 1,
+          },
+        );
+
+        const existing = dataTypes[0];
+        if (!existing) {
+          return;
+        }
+
+        const { version } = componentsFromVersionedUrl(existing.schema.$id);
+        migrationState.dataTypeVersions[baseUrl] = version;
+      }),
+    ]);
+  };
+
   const migrationsCompleted: string[] = [];
 
   try {
@@ -51,6 +188,8 @@ export const migrateOntologyTypes = async (params: {
   } catch {
     // HASH Instance entity not available, this may be the first time the instance is being initialized
   }
+
+  await hydrateMigrationStateFromGraph();
 
   for (const migrationFileName of migrationFileNames) {
     if (migrationFileName.endsWith(".migration.ts")) {
