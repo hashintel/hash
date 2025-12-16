@@ -1,0 +1,31 @@
+---
+source: libs/@local/hashql/mir/src/pass/transform/dse/tests.rs
+expression: value
+---
+fn {intrinsic#4294967040}() -> Integer {
+    let %0: Integer
+    let %1: Integer
+
+    bb0(): {
+        goto -> bb1(1, 2)
+    }
+
+    bb1(%0, %1): {
+        return %1
+    }
+}
+
+------------------------------------
+
+fn {intrinsic#4294967040}() -> Integer {
+    let %0: Integer
+    let %1: Integer
+
+    bb0(): {
+        goto -> bb1(2)
+    }
+
+    bb1(%1): {
+        return %1
+    }
+}

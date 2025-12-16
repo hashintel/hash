@@ -25,6 +25,7 @@
 //! - Removed used of `static_assert_size` macro in favor of `assert_eq!`.
 //! - Removed mentions of `IntervalSet`.
 //! - Implement `MixedBitSet::intersect`.
+//! - Implement `DenseBitSet::negate`
 #![expect(
     clippy::integer_division,
     clippy::integer_division_remainder_used,
@@ -32,8 +33,9 @@
     clippy::too_long_first_doc_paragraph
 )]
 
-use alloc::rc::Rc;
+use alloc::{alloc::Global, rc::Rc};
 use core::{
+    alloc::Allocator,
     fmt, iter,
     marker::PhantomData,
     ops::{BitAnd, BitAndAssign, BitOrAssign, Bound, Not, Range, RangeBounds, Shl},
@@ -357,6 +359,11 @@ impl<T: Id> DenseBitSet<T> {
         bitwise(&mut self.words, &other.words, |lhs, rhs| lhs | !rhs);
         // The bitwise update `a | !b` can result in the last word containing
         // out-of-domain bits, so we need to clear them.
+        self.clear_excess_bits();
+    }
+
+    pub fn negate(&mut self) {
+        self.words.iter_mut().for_each(|word| *word = !*word);
         self.clear_excess_bits();
     }
 }
@@ -1751,9 +1758,9 @@ impl<R: Id, C: Id> fmt::Debug for BitMatrix<R, C> {
 /// `R` and `C` are index types used to identify rows and columns respectively;
 /// typically newtyped `usize` wrappers, but they can also just be `usize`.
 #[derive(Clone)]
-pub struct SparseBitMatrix<R, C> {
+pub struct SparseBitMatrix<R, C, A: Allocator = Global> {
     num_columns: usize,
-    rows: IdVec<R, Option<DenseBitSet<C>>>,
+    rows: IdVec<R, Option<DenseBitSet<C>>, A>,
 }
 
 impl<R: Id, C: Id> SparseBitMatrix<R, C> {
@@ -1763,6 +1770,17 @@ impl<R: Id, C: Id> SparseBitMatrix<R, C> {
         Self {
             num_columns,
             rows: IdVec::new(),
+        }
+    }
+}
+
+impl<R: Id, C: Id, A: Allocator> SparseBitMatrix<R, C, A> {
+    /// Creates a new empty sparse bit matrix with no rows or columns.
+    #[must_use]
+    pub const fn new_in(num_columns: usize, alloc: A) -> Self {
+        Self {
+            num_columns,
+            rows: IdVec::new_in(alloc),
         }
     }
 
@@ -1846,6 +1864,20 @@ impl<R: Id, C: Id> SparseBitMatrix<R, C> {
 
     pub fn row(&self, row: R) -> Option<&DenseBitSet<C>> {
         self.rows.get(row)?.as_ref()
+    }
+
+    pub fn superset_row(&self, row: R, other: &DenseBitSet<C>) -> Option<bool> {
+        match self.rows.get(row) {
+            Some(Some(row)) => Some(row.superset(other)),
+            _ => None,
+        }
+    }
+
+    pub fn subset_row(&self, row: R, other: &DenseBitSet<C>) -> Option<bool> {
+        match self.rows.get(row) {
+            Some(Some(row)) => Some(other.superset(row)),
+            _ => None,
+        }
     }
 
     /// Intersects `row` with `set`. `set` can be either `DenseBitSet` or

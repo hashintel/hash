@@ -455,20 +455,15 @@ impl<'env, 'heap> BasicBlockBuilder<'_, 'env, 'heap> {
             block: target,
             args: self.body.interner.operands.intern_slice(&args),
         };
-        self.finish_with_terminator(Terminator {
-            span: SpanId::SYNTHETIC,
-            kind: TerminatorKind::Goto(Goto { target }),
-        });
+
+        self.finish_with_terminator(TerminatorKind::Goto(Goto { target }));
     }
 
     /// Terminates the block with a return.
     pub(crate) fn ret(self, value: impl Into<Operand<'heap>>) {
-        self.finish_with_terminator(Terminator {
-            span: SpanId::SYNTHETIC,
-            kind: TerminatorKind::Return(Return {
-                value: value.into(),
-            }),
-        });
+        self.finish_with_terminator(TerminatorKind::Return(Return {
+            value: value.into(),
+        }));
     }
 
     /// Terminates the block with a switch on an integer value.
@@ -480,13 +475,10 @@ impl<'env, 'heap> BasicBlockBuilder<'_, 'env, 'heap> {
         let switch = build_switch(SwitchBuilder::new(self.base));
         let targets = SwitchTargets::new(self.body.interner.heap, switch.cases, switch.otherwise);
 
-        self.finish_with_terminator(Terminator {
-            span: SpanId::SYNTHETIC,
-            kind: TerminatorKind::SwitchInt(SwitchInt {
-                discriminant: discriminant.into(),
-                targets,
-            }),
-        });
+        self.finish_with_terminator(TerminatorKind::SwitchInt(SwitchInt {
+            discriminant: discriminant.into(),
+            targets,
+        }));
     }
 
     /// Terminates the block with a boolean if-else branch.
@@ -507,13 +499,14 @@ impl<'env, 'heap> BasicBlockBuilder<'_, 'env, 'heap> {
 
     /// Terminates the block as unreachable.
     pub(crate) fn unreachable(self) {
-        self.finish_with_terminator(Terminator {
-            span: SpanId::SYNTHETIC,
-            kind: TerminatorKind::Unreachable,
-        });
+        self.finish_with_terminator(TerminatorKind::Unreachable);
     }
 
-    fn finish_with_terminator(self, terminator: Terminator<'heap>) {
+    pub(crate) fn finish_with_terminator(self, terminator: TerminatorKind<'heap>) {
+        let terminator = Terminator {
+            span: SpanId::SYNTHETIC,
+            kind: terminator,
+        };
         self.body.finished[self.block.as_usize()] = true;
 
         let block = &mut self.body.blocks[self.block];
