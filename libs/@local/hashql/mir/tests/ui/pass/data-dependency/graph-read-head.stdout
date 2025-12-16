@@ -27,10 +27,8 @@ thunk {thunk#0}() -> ::graph::TimeAxis {
 }
 ════ Data Dependency Graph ═════════════════════════════════════════════════════
 
-%1 -> %0 [GraphReadHeadAxis]
 
 
 ════ Transient Data Dependency Graph ═══════════════════════════════════════════
 
-%1 -> %0 [GraphReadHeadAxis]
 
