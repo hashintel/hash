@@ -1,3 +1,9 @@
+/**
+ * @deprecated Use `schemaToPromptSummary` from `./schema-to-prompt-summary.ts` instead.
+ * This module used a custom dereferenced schema format that is no longer maintained.
+ * The new utility works with standard JSON Schema (dereferenced) files.
+ */
+
 import type {
   BaseUrl,
   DataType,
@@ -86,6 +92,8 @@ function entityTypeToYaml(
  * Converts dereferenced entity types to a compact YAML representation
  * suitable for LLM prompts. Strips away type-system machinery and keeps
  * only what the LLM needs: type name, description, and property definitions.
+ *
+ * @deprecated Use `schemaToPromptSummary` from `./schema-to-prompt-summary.ts` instead.
  */
 export function entityTypesToYaml(
   types: DereferencedEntityTypeWithSimplifiedKeys[],

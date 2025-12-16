@@ -1,28 +1,19 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 import { createStep, createWorkflow } from '@mastra/core/workflows';
 import { type TSchema, Type } from '@sinclair/typebox';
 import dedent from 'dedent';
 import { z } from 'zod';
 
 import { nerAgent } from '../agents/ner-agent';
-import { dereferencedPersonSchema } from '../fixtures/entity-schemas/person';
-import personSchemaBundled from '../fixtures/entity-schemas/person.bundled.json';
 import personSchemaDereferenced from '../fixtures/entity-schemas/person.dereferenced.json';
-import { entityTypesToYaml } from '../utils/entity-type-to-yaml';
+import { schemaToPromptSummary } from '../utils/schema-to-prompt-summary';
 
 const nerPeopleInputSchema = z.object({
   sourceText: z.string(),
   researchGoal: z.string(),
 });
 
-const nerPeopleOutputSchema = z.array(
-  z.object({
-    name: z.string().optional().describe('Full name of the person'),
-    'website-url': z.httpUrl().optional().describe('The website URL of the person'),
-    university: z.string().optional().describe('The university the person is affiliated with'),
-    location: z.string().optional().describe('The primary location of the person'),
-  })
-);
+/* TODO: replace this with the actual dereferenced person schema */
+const nerPeopleOutputSchema = z.array(z.any());
 
 export const nerPeopleStep = createStep({
   id: 'ner-people-step',
@@ -42,10 +33,7 @@ Your task is to
 The parameters for this task are as follows:
 
 <entity-schemas syntax="yaml">
-${entityTypesToYaml([
-  /* @ts-expect-error -- can't get this type */
-  dereferencedPersonSchema,
-])}
+${schemaToPromptSummary(personSchemaDereferenced)}
 </entity-schemas>
 <research-goal syntax="markdown>
 ${researchGoal}
@@ -56,7 +44,6 @@ ${sourceText}
       `),
       {
         structuredOutput: {
-          // schema: personSchemaDereferenced as JSONSchema7,
           schema: Type.Array(personSchemaDereferenced as unknown as TSchema, {
             $id: 'https://my-internal/wrapper-array',
             title: 'EntityArray',
