@@ -1,0 +1,3 @@
+import { defineSemanticTokens } from "@pandacss/dev";
+
+export const yellow = defineSemanticTokens.colors({ "10": { value: { _light: "#fef9c3", _dark: "#854d0e" } }, "20": { value: { _light: "#fef08a", _dark: "#a16207" } }, "30": { value: { _light: "#fde047", _dark: "#ca8a04" } }, "40": { value: { _light: "#facc15", _dark: "#eab308" } }, "50": { value: { _light: "#eab308", _dark: "#facc15" } }, "60": { value: { _light: "#ca8a04", _dark: "#fde047" } }, "70": { value: { _light: "#a16207", _dark: "#fef08a" } }, "80": { value: { _light: "#854d0e", _dark: "#fef9c3" } }, "90": { value: { _light: "#713f12", _dark: "#fefce8" } }, "00": { value: { _light: "#fefce8", _dark: "#713f12" } } });

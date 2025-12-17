@@ -8250,8 +8250,10 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@hashintel/ds-theme@workspace:libs/@hashintel/ds-theme"
   dependencies:
-    es-toolkit: "npm:1.41.0"
+    "@pandacss/dev": "npm:1.4.3"
+    case-anything: "npm:3.1.0"
     tsx: "npm:4.20.6"
+    typescript: "npm:5.9.3"
   languageName: unknown
   linkType: soft
 
@@ -23855,6 +23857,13 @@ __metadata:
   bin:
     cargo-cp-artifact: bin/cargo-cp-artifact.js
   checksum: 10c0/60eb1845917cfb021920fcf600a72379890b385396f9c69107face3b16b347960b66cd3d82cc169c6ac8b1212cf0706584125bc36fbc08353b033310c17ca0a6
+  languageName: node
+  linkType: hard
+
+"case-anything@npm:3.1.0":
+  version: 3.1.0
+  resolution: "case-anything@npm:3.1.0"
+  checksum: 10c0/b913c530169f2ff9a1046f604855593095a9ea2674121a6a8323ecd226ef983e2b908b5e3c7adbeb349656a299ab60a4f3e51dda38cfef970acaba3af25a4208
   languageName: node
   linkType: hard
 
