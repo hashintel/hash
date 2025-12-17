@@ -1,6 +1,7 @@
 import { css, cva } from "@hashintel/ds-helpers/css";
 import { useCallback, useRef, useState } from "react";
 
+import { GlassPanel } from "../../../../components/glass-panel";
 import { useEditorStore } from "../../../../state/editor-provider";
 import { DiagnosticsContent } from "./diagnostics-content";
 import { ParametersContent } from "./parameters-content";
@@ -15,11 +16,6 @@ const PANEL_MARGIN = 12;
 type BottomPanelTab = "diagnostics" | "simulation-settings" | "parameters";
 
 const panelContainerStyle = css({
-  borderRadius: "[12px]",
-  backgroundColor: "[rgba(255, 255, 255, 0.7)]",
-  boxShadow: "[0 3px 13px rgba(0, 0, 0, 0.1)]",
-  border: "[1px solid rgba(255, 255, 255, 0.8)]",
-  backdropFilter: "[blur(12px)]",
   display: "flex",
   flexDirection: "column",
 });
@@ -140,7 +136,7 @@ export const BottomPanel: React.FC = () => {
   };
 
   return (
-    <div
+    <GlassPanel
       style={{
         position: "fixed",
         bottom: PANEL_MARGIN,
@@ -150,7 +146,7 @@ export const BottomPanel: React.FC = () => {
         zIndex: 999,
         padding: 4,
       }}
-      className={panelContainerStyle}
+      contentClassName={panelContainerStyle}
     >
       {/* Resize handle at top */}
       <button
@@ -195,6 +191,6 @@ export const BottomPanel: React.FC = () => {
 
       {/* Scrollable content */}
       <div className={contentStyle}>{renderContent()}</div>
-    </div>
+    </GlassPanel>
   );
 };

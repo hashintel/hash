@@ -1,6 +1,7 @@
 import { css } from "@hashintel/ds-helpers/css";
 import { useCallback, useEffect, useRef, useState } from "react";
 
+import { GlassPanel } from "../../../../components/glass-panel";
 import { useEditorStore } from "../../../../state/editor-provider";
 import { useSDCPNContext } from "../../../../state/sdcpn-provider";
 import { DifferentialEquationProperties } from "./differential-equation-properties";
@@ -17,17 +18,17 @@ const PANEL_MARGIN = 12;
  */
 export const PropertiesPanel: React.FC = () => {
   const selectedResourceId = useEditorStore(
-    (state) => state.selectedResourceId,
+    (state) => state.selectedResourceId
   );
   const globalMode = useEditorStore((state) => state.globalMode);
   const setPropertiesPanelWidth = useEditorStore(
-    (state) => state.setPropertiesPanelWidth,
+    (state) => state.setPropertiesPanelWidth
   );
   const isDiagnosticsPanelOpen = useEditorStore(
-    (state) => state.isDiagnosticsPanelOpen,
+    (state) => state.isDiagnosticsPanelOpen
   );
   const diagnosticsPanelHeight = useEditorStore(
-    (state) => state.diagnosticsPanelHeight,
+    (state) => state.diagnosticsPanelHeight
   );
 
   const {
@@ -56,7 +57,7 @@ export const PropertiesPanel: React.FC = () => {
         return newWidth;
       });
     },
-    [setPropertiesPanelWidth],
+    [setPropertiesPanelWidth]
   );
 
   // Initialize store with starting width
@@ -71,7 +72,7 @@ export const PropertiesPanel: React.FC = () => {
       resizeStartXRef.current = event.clientX;
       resizeStartWidthRef.current = panelWidth;
     },
-    [panelWidth],
+    [panelWidth]
   );
 
   const handleResizeMove = useCallback(
@@ -83,11 +84,11 @@ export const PropertiesPanel: React.FC = () => {
       const deltaX = resizeStartXRef.current - event.clientX;
       const newWidth = Math.max(
         250,
-        Math.min(800, resizeStartWidthRef.current + deltaX),
+        Math.min(800, resizeStartWidthRef.current + deltaX)
       );
       setPanelWidth(newWidth);
     },
-    [isResizing, setPanelWidth],
+    [isResizing, setPanelWidth]
   );
 
   const handleResizeEnd = useCallback(() => {
@@ -131,7 +132,7 @@ export const PropertiesPanel: React.FC = () => {
   switch (itemType) {
     case "place": {
       const placeData = petriNetDefinition.places.find(
-        (place) => place.id === selectedId,
+        (place) => place.id === selectedId
       );
       if (placeData) {
         content = (
@@ -149,7 +150,7 @@ export const PropertiesPanel: React.FC = () => {
 
     case "transition": {
       const transitionData = petriNetDefinition.transitions.find(
-        (transition) => transition.id === selectedId,
+        (transition) => transition.id === selectedId
       );
       if (transitionData) {
         content = (
@@ -168,7 +169,7 @@ export const PropertiesPanel: React.FC = () => {
 
     case "type": {
       const typeData = petriNetDefinition.types.find(
-        (type) => type.id === selectedId,
+        (type) => type.id === selectedId
       );
       if (typeData) {
         content = (
@@ -184,7 +185,7 @@ export const PropertiesPanel: React.FC = () => {
 
     case "differentialEquation": {
       const equationData = petriNetDefinition.differentialEquations.find(
-        (equation) => equation.id === selectedId,
+        (equation) => equation.id === selectedId
       );
       if (equationData) {
         content = (
@@ -202,7 +203,7 @@ export const PropertiesPanel: React.FC = () => {
 
     case "parameter": {
       const parameterData = petriNetDefinition.parameters.find(
-        (parameter) => parameter.id === selectedId,
+        (parameter) => parameter.id === selectedId
       );
       if (parameterData) {
         content = (
@@ -289,46 +290,18 @@ export const PropertiesPanel: React.FC = () => {
           }}
         />
 
-        <div
+        <GlassPanel
           className={css({
-            borderRadius: "[12px]",
             height: "[100%]",
             width: "[100%]",
-            backgroundColor: "[rgba(255, 255, 255, 0.7)]",
-            boxShadow: "[0 3px 13px rgba(0, 0, 0, 0.1)]",
-            border: "[1px solid rgba(255, 255, 255, 0.8)]",
           })}
-          style={{
-            borderRadius: 12,
-            overflow: "hidden",
+          contentStyle={{
+            padding: 16,
+            overflowY: "auto",
           }}
         >
-          {/* Elements with backdrop-filter should not be parent of Monaco Editor,
-              otherwise Monaco's Hover Widget do not show */}
-          <div
-            style={{
-              borderRadius: 12,
-              position: "absolute",
-              top: 0,
-              left: 0,
-              right: 0,
-              bottom: 0,
-              pointerEvents: "none",
-              backdropFilter: "blur(24px)",
-            }}
-          />
-
-          <div
-            style={{
-              position: "relative",
-              height: "100%",
-              padding: 16,
-              overflowY: "auto",
-            }}
-          >
-            {content}
-          </div>
-        </div>
+          {content}
+        </GlassPanel>
       </div>
     </div>
   );
