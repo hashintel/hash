@@ -27,7 +27,7 @@
  *   yarn workspace @apps/hash-ai-agent generate-schemas
  */
 
-import { writeFile } from "node:fs/promises";
+import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -195,6 +195,8 @@ function normalizeToDefsStructure(
 
 async function generateSchemas() {
   const outputDir = path.join(__dirname, "entity-schemas");
+
+  await mkdir(outputDir, { recursive: true });
 
   console.log("Generating type schema fixtures...\n");
 

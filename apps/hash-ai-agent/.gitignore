@@ -8,7 +8,7 @@ dist
 *.db-*
 
 # Fixtures
-src/mastra/fixtures/entity-schemas/*
+src/mastra/fixtures/entity-schemas/*.json
 
 # Quokka files
 *.quokka.*
