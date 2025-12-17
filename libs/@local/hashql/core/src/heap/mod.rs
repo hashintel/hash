@@ -41,6 +41,7 @@ mod clone;
 mod convert;
 mod iter;
 mod scratch;
+mod transfer;
 
 use alloc::alloc;
 use core::ptr;
@@ -202,7 +203,7 @@ impl Heap {
     pub fn alloc<T>(&self, value: T) -> &mut T {
         const { assert!(!core::mem::needs_drop::<T>()) };
 
-        self.inner.alloc(value)
+        self.inner.alloc_with(|| value)
     }
 
     fn prime_symbols(strings: &mut FastHashSet<&'static str>) {

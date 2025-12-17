@@ -23,6 +23,10 @@ impl Allocator {
     pub fn reset(&mut self) {
         self.0.reset();
     }
+
+    pub fn alloc_with<T>(&self, func: impl FnOnce() -> T) -> &mut T {
+        self.0.alloc_with(func)
+    }
 }
 
 #[expect(unsafe_code, reason = "proxy to bump")]
