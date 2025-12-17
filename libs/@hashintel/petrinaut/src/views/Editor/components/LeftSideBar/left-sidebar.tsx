@@ -10,8 +10,6 @@ import { DifferentialEquationsSection } from "./differential-equations-section";
 import { FloatingTitle } from "./floating-title";
 import { HamburgerMenu } from "./hamburger-menu";
 import { NodesSection } from "./nodes-section";
-import { ParametersSection } from "./parameters-section";
-import { SimulationStateSection } from "./simulation-state-section";
 import { TypesSection } from "./types-section";
 
 const outerContainerStyle = cva({
@@ -190,17 +188,11 @@ export const LeftSideBar: React.FC<LeftSideBarProps> = ({
         {/* Content sections - only visible when open */}
         {isOpen && (
           <>
-            {/* Simulation State Section - only in Simulate mode */}
-            <SimulationStateSection />
-
             {/* Types Section - only in Edit mode */}
             <TypesSection />
 
             {/* Differential Equations Section - only in Edit mode */}
             <DifferentialEquationsSection />
-
-            {/* Parameters Section */}
-            <ParametersSection />
 
             {/* Nodes Section */}
             <NodesSection />

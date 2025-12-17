@@ -10,7 +10,7 @@ import { useSDCPNContext } from "../../state/sdcpn-provider";
 import { useSimulationStore } from "../../state/simulation-provider";
 import { SDCPNView } from "../SDCPN/sdcpn-view";
 import { BottomBar } from "./components/BottomBar/bottom-bar";
-import { DiagnosticsPanel } from "./components/DiagnosticsPanel/diagnostics-panel";
+import { BottomPanel } from "./components/BottomPanel/bottom-panel";
 import { LeftSideBar } from "./components/LeftSideBar/left-sidebar";
 import { ModeSelector } from "./components/mode-selector";
 import { PropertiesPanel } from "./components/PropertiesPanel/properties-panel";
@@ -23,7 +23,9 @@ import { importSDCPN } from "./lib/import-sdcpn";
  */
 export const EditorView = ({
   hideNetManagementControls,
-}: { hideNetManagementControls: boolean }) => {
+}: {
+  hideNetManagementControls: boolean;
+}) => {
   // Get data from sdcpn-store
   const {
     createNewNet,
@@ -44,7 +46,7 @@ export const EditorView = ({
 
   // Get simulation store method to initialize parameter values
   const initializeParameterValuesFromDefaults = useSimulationStore(
-    (state) => state.initializeParameterValuesFromDefaults,
+    (state) => state.initializeParameterValuesFromDefaults
   );
 
   // Handler for mode change that initializes parameter values when switching to simulate mode
@@ -224,8 +226,8 @@ export const EditorView = ({
           {/* SDCPN Visualization */}
           <SDCPNView />
 
-          {/* Diagnostics Panel - Bottom of viewport */}
-          <DiagnosticsPanel />
+          {/* Bottom Panel - Diagnostics, Simulation Settings, Parameters */}
+          <BottomPanel />
 
           <BottomBar
             mode={mode}
