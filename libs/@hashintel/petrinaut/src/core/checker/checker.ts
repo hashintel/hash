@@ -2,6 +2,7 @@ import type ts from "typescript";
 
 import type { SDCPN } from "../types/sdcpn";
 import { createSDCPNLanguageService } from "./create-sdcpn-language-service";
+import { getItemFilePath } from "./file-paths";
 
 export type SDCPNDiagnostic = {
   /** The ID of the SDCPN item (transition or differential equation) */
@@ -34,7 +35,9 @@ export function checkSDCPN(sdcpn: SDCPN): SDCPNCheckResult {
 
   // Check all differential equations
   for (const de of sdcpn.differentialEquations) {
-    const filePath = `differential_equations/${de.id}/code.ts`;
+    const filePath = getItemFilePath("differential-equation-code", {
+      id: de.id,
+    });
     const semanticDiagnostics =
       languageService.getSemanticDiagnostics(filePath);
     const syntacticDiagnostics =
@@ -54,7 +57,9 @@ export function checkSDCPN(sdcpn: SDCPN): SDCPNCheckResult {
   // Check all functions in transitions (both lambda and kernel)
   for (const transition of sdcpn.transitions) {
     // Check Lambda code
-    const lambdaFilePath = `transitions/${transition.id}/lambda/code.ts`;
+    const lambdaFilePath = getItemFilePath("transition-lambda-code", {
+      transitionId: transition.id,
+    });
     const lambdaSemanticDiagnostics =
       languageService.getSemanticDiagnostics(lambdaFilePath);
     const lambdaSyntacticDiagnostics =
@@ -81,7 +86,9 @@ export function checkSDCPN(sdcpn: SDCPN): SDCPNCheckResult {
     });
 
     if (hasColouredOutputPlaces) {
-      const kernelFilePath = `transitions/${transition.id}/kernel/code.ts`;
+      const kernelFilePath = getItemFilePath("transition-kernel-code", {
+        transitionId: transition.id,
+      });
       const kernelSemanticDiagnostics =
         languageService.getSemanticDiagnostics(kernelFilePath);
       const kernelSyntacticDiagnostics =
