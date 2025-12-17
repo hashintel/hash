@@ -163,7 +163,7 @@ export const SimulationControls: React.FC<SimulationControlsProps> = ({
       <Tooltip
         content={
           isDisabled
-            ? "Fix diagnostics to run simulation"
+            ? "Fix errors to run simulation"
             : simulationState === "NotRun"
             ? "Start Simulation"
             : isRunning

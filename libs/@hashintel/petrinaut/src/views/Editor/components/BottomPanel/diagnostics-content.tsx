@@ -166,7 +166,9 @@ export const DiagnosticsContent: React.FC = () => {
   }, []);
 
   if (totalDiagnosticsCount === 0) {
-    return <div className={emptyMessageStyle}>No diagnostics</div>;
+    return (
+      <div className={emptyMessageStyle}>No errors detected in your model</div>
+    );
   }
 
   return (
