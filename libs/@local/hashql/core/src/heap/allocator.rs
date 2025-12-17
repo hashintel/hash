@@ -4,32 +4,37 @@ use core::{alloc, ptr};
 
 use bumpalo::Bump;
 
-/// Internal bump allocator wrapper.
+/// Internal arena allocator.
 #[derive(Debug)]
 pub(super) struct Allocator(Bump);
 
 impl Allocator {
+    /// Creates a new allocator with default capacity.
     #[must_use]
     #[inline]
     pub(crate) fn new() -> Self {
         Self(Bump::new())
     }
 
+    /// Creates a new allocator with at least `capacity` bytes pre-allocated.
     #[inline]
     pub(crate) fn with_capacity(capacity: usize) -> Self {
         Self(Bump::with_capacity(capacity))
     }
 
+    /// Resets the allocator, invalidating all allocations but retaining capacity.
     #[inline]
     pub(crate) fn reset(&mut self) {
         self.0.reset();
     }
 
+    /// Allocates a value using a closure to avoid moving before allocation.
     #[inline]
     pub(crate) fn alloc_with<T>(&self, func: impl FnOnce() -> T) -> &mut T {
         self.0.alloc_with(func)
     }
 
+    /// Copies a slice into the arena.
     #[inline]
     pub(crate) fn try_alloc_slice_copy<T>(&self, slice: &[T]) -> Result<&mut [T], alloc::AllocError>
     where
@@ -40,6 +45,7 @@ impl Allocator {
             .map_err(|_err| alloc::AllocError)
     }
 
+    /// Copies a string into the arena.
     #[inline]
     pub(crate) fn try_alloc_str(&self, string: &str) -> Result<&mut str, alloc::AllocError> {
         self.0
