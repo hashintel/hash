@@ -127,9 +127,11 @@ function generateVirtualFiles(sdcpn: SDCPN): Map<string, VirtualFile> {
       const colorDefsPath = getItemFilePath("color-defs", {
         colorId: color.id,
       });
-      inputTypeImports.push(
-        `import type { Color_${sanitizedColorId} } from "${colorDefsPath}";`
-      );
+      // Only add import if not already present (multiple arcs may share the same color)
+      const importStatement = `import type { Color_${sanitizedColorId} } from "${colorDefsPath}";`;
+      if (!inputTypeImports.includes(importStatement)) {
+        inputTypeImports.push(importStatement);
+      }
       const tokenTuple = Array.from({ length: arc.weight })
         .fill(`Color_${sanitizedColorId}`)
         .join(", ");
@@ -154,9 +156,12 @@ function generateVirtualFiles(sdcpn: SDCPN): Map<string, VirtualFile> {
       const colorDefsPath = getItemFilePath("color-defs", {
         colorId: color.id,
       });
-      // Only add import if not already present from input arcs
+      // Only add import if not already present from input arcs or previous output arcs
       const importStatement = `import type { Color_${sanitizedColorId} } from "${colorDefsPath}";`;
-      if (!inputTypeImports.includes(importStatement)) {
+      if (
+        !inputTypeImports.includes(importStatement) &&
+        !outputTypeImports.includes(importStatement)
+      ) {
         outputTypeImports.push(importStatement);
       }
       const tokenTuple = Array.from({ length: arc.weight })
