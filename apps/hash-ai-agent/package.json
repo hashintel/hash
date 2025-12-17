@@ -8,11 +8,11 @@
   "type": "module",
   "scripts": {
     "build": "mastra build",
+    "codegen": "tsx src/mastra/fixtures/generate-schemas.ts",
     "dev": "mastra dev",
     "fix": "npm-run-all --continue-on-error \"fix:*\"",
     "fix:eslint": "eslint --fix .",
     "fix:format": "biome format --write",
-    "codegen": "tsx src/mastra/fixtures/generate-schemas.ts",
     "lint": "npm-run-all --continue-on-error \"lint:*\"",
     "lint:eslint": "eslint --report-unused-disable-directives .",
     "lint:tsc": "tsc --noEmit",

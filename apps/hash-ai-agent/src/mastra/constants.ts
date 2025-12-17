@@ -4,14 +4,14 @@
  * Centralizes configuration values used across agents, scorers, and workflows.
  */
 
-import type { ModelRouterModelId } from '@mastra/core/llm/model';
+import type { ModelRouterModelId } from "@mastra/core/llm/model";
 
 /**
  * Default LLM model identifier for agent inference.
  *
  * Uses OpenRouter routing to Google's Gemini 2.5 Flash Lite model.
  */
-export const DEFAULT_MODEL = 'openrouter/google/gemini-2.5-flash-lite';
+export const DEFAULT_MODEL = "openrouter/google/gemini-2.5-flash-lite";
 
 /**
  * Block Protocol property type URL for entity names.
@@ -20,4 +20,4 @@ export const DEFAULT_MODEL = 'openrouter/google/gemini-2.5-flash-lite';
  * in structured entity output.
  */
 export const NAME_PROPERTY =
-  'https://blockprotocol.org/@blockprotocol/types/property-type/name/' as const satisfies ModelRouterModelId;
+  "https://blockprotocol.org/@blockprotocol/types/property-type/name/" as const satisfies ModelRouterModelId;
