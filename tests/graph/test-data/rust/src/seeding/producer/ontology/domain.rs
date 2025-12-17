@@ -328,11 +328,6 @@ impl DomainPolicy {
                 let (remote_domain, fetched_at) = bind_remote(remote)?;
                 let local_sampler = local.source.bind(user_catalog, org_catalog)?;
 
-                #[expect(
-                    clippy::tuple_array_conversions,
-                    reason = "constructing WeightedIndex from a fixed-size array is concise and \
-                              intentional here"
-                )]
                 let chooser = WeightedIndex::new([remote_weight, local_weight])
                     .change_context(DomainBindingError::InvalidWeights)?;
                 Ok(BoundDomainSampler::Mixed {
