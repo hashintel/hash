@@ -93,6 +93,7 @@
 //! ```
 #![expect(unsafe_code)]
 mod allocator;
+mod bump;
 mod clone;
 mod convert;
 mod iter;
@@ -107,6 +108,7 @@ use hashbrown::HashSet;
 
 use self::allocator::Allocator;
 pub use self::{
+    bump::BumpAllocator,
     clone::{CloneIn, TryCloneIn},
     convert::{FromIn, IntoIn},
     iter::{CollectIn, FromIteratorIn},

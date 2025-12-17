@@ -46,8 +46,9 @@ mod tests;
 use core::{iter::ExactSizeIterator as _, mem};
 
 use hashql_core::{
-    collections::{FastHashSet, WorkQueue},
+    collections::{WorkQueue, fast_hash_set_with_capacity_in},
     graph::Predecessors as _,
+    heap::{Scratch, TransferInto as _},
 };
 
 use super::{DeadBlockElimination, error::unreachable_switch_arm, ssa_repair::SsaRepair};
@@ -70,12 +71,7 @@ use crate::{
 ///
 /// Simplifies the CFG by merging blocks, constant-folding switches, and eliminating dead blocks.
 pub struct CfgSimplify {
-    /// Snapshot of reachable blocks before a simplification, used to detect newly dead blocks.
-    previous_reverse_postorder: Vec<BasicBlockId>,
-    /// Current reachable blocks.
-    reverse_postorder: FastHashSet<BasicBlockId>,
-    /// Dead block elimination pass.
-    dbe: DeadBlockElimination,
+    scratch: Scratch,
 }
 
 impl CfgSimplify {
@@ -83,9 +79,7 @@ impl CfgSimplify {
     #[must_use]
     pub fn new() -> Self {
         Self {
-            previous_reverse_postorder: Vec::new(),
-            reverse_postorder: FastHashSet::default(),
-            dbe: DeadBlockElimination::new(),
+            scratch: Scratch::new(),
         }
     }
 
@@ -411,15 +405,16 @@ impl CfgSimplify {
     /// After a successful simplification, marks any newly unreachable blocks as dead.
     /// Returns `true` if any simplification was applied.
     fn simplify<'heap>(
-        &mut self,
+        &self,
         context: &mut MirContext<'_, 'heap>,
         body: &mut Body<'heap>,
         id: BasicBlockId,
     ) -> bool {
         // Snapshot reachable blocks before modification to detect newly dead blocks.
-        self.previous_reverse_postorder.clear();
-        self.previous_reverse_postorder
-            .extend_from_slice(body.basic_blocks.reverse_postorder());
+        let previous_reverse_postorder = body
+            .basic_blocks
+            .reverse_postorder()
+            .transfer_into(&self.scratch);
 
         let changed = match &body.basic_blocks[id].terminator.kind {
             &TerminatorKind::Goto(goto) => Self::simplify_goto(context, body, id, goto),
@@ -430,7 +425,7 @@ impl CfgSimplify {
         };
 
         if changed {
-            self.mark_dead_blocks(body);
+            self.mark_dead_blocks(body, previous_reverse_postorder);
         }
 
         changed
@@ -444,22 +439,21 @@ impl CfgSimplify {
     ///
     /// This enables cascading optimizations: marking a block dead removes it from predecessor
     /// counts, potentially allowing previously blocked merges to proceed.
-    fn mark_dead_blocks(&mut self, body: &mut Body<'_>) {
-        let reverse_postorder = body.basic_blocks.reverse_postorder();
-        self.reverse_postorder.clear();
-        self.reverse_postorder.reserve(reverse_postorder.len());
+    fn mark_dead_blocks(&self, body: &mut Body<'_>, previous_reverse_postorder: &[BasicBlockId]) {
+        let mut reverse_postorder =
+            fast_hash_set_with_capacity_in(body.basic_blocks.len(), &self.scratch);
 
         #[expect(unsafe_code)]
-        for &block in reverse_postorder {
+        for &block in body.basic_blocks.reverse_postorder() {
             // SAFETY: Reverse postorder contains each block at most once.
             unsafe {
-                self.reverse_postorder.insert_unique_unchecked(block);
+                reverse_postorder.insert_unique_unchecked(block);
             }
         }
 
         // Mark blocks that disappeared from the reachable set.
-        for block in self.previous_reverse_postorder.drain(..) {
-            if !self.reverse_postorder.contains(&block) {
+        for &block in previous_reverse_postorder {
+            if !reverse_postorder.contains(&block) {
                 body.basic_blocks.as_mut()[block].terminator.kind = TerminatorKind::Unreachable;
             }
         }
@@ -490,7 +484,12 @@ impl<'env, 'heap> TransformPass<'env, 'heap> for CfgSimplify {
 
             // Repeatedly simplify until no more changes—catches cascading opportunities
             // like SwitchInt → Goto → inline.
-            while self.simplify(context, body, block) {
+            loop {
+                self.scratch.reset();
+                if !self.simplify(context, body, block) {
+                    break;
+                }
+
                 simplified = true;
             }
 
@@ -505,7 +504,9 @@ impl<'env, 'heap> TransformPass<'env, 'heap> for CfgSimplify {
         }
 
         // Unreachable blocks will be dead, therefore must be removed
-        self.dbe.run(context, body);
+        self.scratch.reset(); // TODO: move this inside once Allocator is implemented on &mut A
+        let mut dbe = DeadBlockElimination::new_in(&self.scratch);
+        dbe.run(context, body);
 
         // Simplifications may break SSA (e.g., merged blocks with conflicting definitions).
         SsaRepair.run(context, body);

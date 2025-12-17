@@ -2,6 +2,7 @@ use std::path::PathBuf;
 
 use bstr::ByteVec as _;
 use hashql_core::{
+    heap::Scratch,
     pretty::Formatter,
     r#type::{TypeBuilder, TypeFormatter, TypeFormatterOptions, environment::Environment},
 };
@@ -43,7 +44,7 @@ fn assert_dbe_pass<'heap>(
         .writer
         .extend(b"\n\n------------------------------------\n\n");
 
-    DeadBlockElimination::new().run(context, &mut bodies[0]);
+    DeadBlockElimination::new_in(Scratch::new()).run(context, &mut bodies[0]);
 
     text_format
         .format(DefIdSlice::from_raw(&bodies), &[])
