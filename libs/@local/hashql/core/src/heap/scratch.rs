@@ -3,9 +3,9 @@
 //! This module provides [`Scratch`], a resettable bump allocator designed for
 //! temporary allocations that can be bulk-freed by calling [`Scratch::reset`].
 
-use core::alloc::Allocator;
+use core::alloc;
 
-use bumpalo::Bump;
+use super::allocator::Allocator;
 
 /// A resettable scratch allocator for temporary allocations.
 ///
@@ -30,19 +30,21 @@ use bumpalo::Bump;
 /// ```
 #[derive(Debug)]
 pub struct Scratch {
-    bump: Bump,
+    inner: Allocator,
 }
 
 impl Scratch {
     /// Creates a new scratch allocator with an empty arena.
     #[must_use]
     pub fn new() -> Self {
-        Self { bump: Bump::new() }
+        Self {
+            inner: Allocator::new(),
+        }
     }
 
     /// Resets the allocator, freeing all allocations at once.
     pub fn reset(&mut self) {
-        self.bump.reset();
+        self.inner.reset();
     }
 }
 
@@ -52,14 +54,21 @@ impl Default for Scratch {
     }
 }
 
-#[expect(unsafe_code, reason = "proxy to bump")]
+#[expect(unsafe_code, reason = "proxy to internal allocator")]
 // SAFETY: this simply delegates to the bump allocator
-unsafe impl Allocator for &Scratch {
+unsafe impl alloc::Allocator for Scratch {
+    fn allocate(
+        &self,
+        layout: core::alloc::Layout,
+    ) -> Result<core::ptr::NonNull<[u8]>, core::alloc::AllocError> {
+        self.inner.allocate(layout)
+    }
+
     fn allocate_zeroed(
         &self,
         layout: core::alloc::Layout,
     ) -> Result<core::ptr::NonNull<[u8]>, core::alloc::AllocError> {
-        (&self.bump).allocate_zeroed(layout)
+        self.inner.allocate_zeroed(layout)
     }
 
     unsafe fn grow(
@@ -69,7 +78,7 @@ unsafe impl Allocator for &Scratch {
         new_layout: core::alloc::Layout,
     ) -> Result<core::ptr::NonNull<[u8]>, core::alloc::AllocError> {
         // SAFETY: this simply delegates to the bump allocator
-        unsafe { (&self.bump).grow(ptr, old_layout, new_layout) }
+        unsafe { self.inner.grow(ptr, old_layout, new_layout) }
     }
 
     unsafe fn grow_zeroed(
@@ -79,7 +88,7 @@ unsafe impl Allocator for &Scratch {
         new_layout: core::alloc::Layout,
     ) -> Result<core::ptr::NonNull<[u8]>, core::alloc::AllocError> {
         // SAFETY: this simply delegates to the bump allocator
-        unsafe { (&self.bump).grow_zeroed(ptr, old_layout, new_layout) }
+        unsafe { self.inner.grow_zeroed(ptr, old_layout, new_layout) }
     }
 
     unsafe fn shrink(
@@ -89,18 +98,11 @@ unsafe impl Allocator for &Scratch {
         new_layout: core::alloc::Layout,
     ) -> Result<core::ptr::NonNull<[u8]>, core::alloc::AllocError> {
         // SAFETY: this simply delegates to the bump allocator
-        unsafe { (&self.bump).shrink(ptr, old_layout, new_layout) }
-    }
-
-    fn allocate(
-        &self,
-        layout: core::alloc::Layout,
-    ) -> Result<core::ptr::NonNull<[u8]>, core::alloc::AllocError> {
-        (&self.bump).allocate(layout)
+        unsafe { self.inner.shrink(ptr, old_layout, new_layout) }
     }
 
     unsafe fn deallocate(&self, ptr: core::ptr::NonNull<u8>, layout: core::alloc::Layout) {
         // SAFETY: this simply delegates to the bump allocator
-        unsafe { (&self.bump).deallocate(ptr, layout) }
+        unsafe { self.inner.deallocate(ptr, layout) }
     }
 }

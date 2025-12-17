@@ -36,16 +36,20 @@
 //! - `heap::Vec<'heap, T>`: A vector allocated on the heap
 //! - `heap::VecDeque<'heap, T>`: A double-ended queue allocated on the heap
 //! - `heap::HashMap<'heap, K, V, S>`: A hash map allocated on the heap
-
 mod allocator;
+mod clone;
+mod convert;
+mod iter;
 mod scratch;
 
-use core::{alloc::Allocator, ptr};
-use std::sync::Mutex;
+use alloc::alloc;
+use core::ptr;
+use std::{boxed, collections::vec_deque, sync::Mutex, vec};
 
 use bumpalo::Bump;
 use hashbrown::HashSet;
 
+use self::allocator::Allocator;
 pub use self::scratch::Scratch;
 use crate::{
     collections::{FastHashSet, fast_hash_set_with_capacity},
@@ -56,19 +60,19 @@ use crate::{
 ///
 /// This type should always be used with the `heap::` prefix to avoid confusion
 /// with the standard library [`Box`](alloc::boxed::Box) type.
-pub type Box<'heap, T> = alloc::boxed::Box<T, &'heap Heap>;
+pub type Box<'heap, T> = boxed::Box<T, &'heap Heap>;
 
 /// A vector allocated on the `Heap`.
 ///
 /// This type should always be used with the `heap::` prefix to avoid confusion
 /// with the standard library [`Vec`](alloc::vec::Vec) type.
-pub type Vec<'heap, T> = alloc::vec::Vec<T, &'heap Heap>;
+pub type Vec<'heap, T> = vec::Vec<T, &'heap Heap>;
 
 /// A double-ended queue allocated on the `Heap`.
 ///
 /// This type should always be used with the `heap::` prefix to avoid confusion
 /// with the standard library [`VecDeque`](alloc::collections::vec_deque::VecDeque) type.
-pub type VecDeque<'heap, T> = alloc::collections::vec_deque::VecDeque<T, &'heap Heap>;
+pub type VecDeque<'heap, T> = vec_deque::VecDeque<T, &'heap Heap>;
 
 /// A hash map allocated on the `Heap` with an optional custom hasher.
 ///
@@ -84,7 +88,7 @@ pub type HashMap<'heap, K, V, S = foldhash::fast::RandomState> =
 /// [module level documentation]: crate::heap
 #[derive(Debug)]
 pub struct Heap {
-    bump: Bump,
+    inner: Allocator,
     // `&'static str` here because they point in the actual arena. These strings are never dangling
     // and are only ever available for the lifetime of the heap.
     strings: Mutex<HashSet<&'static str, foldhash::fast::RandomState>>,
@@ -105,9 +109,10 @@ impl Heap {
     /// for any allocations or symbol interning operations. Using an unprimed heap may
     /// result in missing essential symbols that other parts of the system expect to exist.
     #[must_use]
+    #[inline]
     pub fn uninitialized() -> Self {
         Self {
-            bump: Bump::new(),
+            inner: Allocator::new(),
             strings: Mutex::default(),
         }
     }
@@ -148,7 +153,7 @@ impl Heap {
         Self::prime_symbols(&mut strings);
 
         Self {
-            bump: Bump::new(),
+            inner: Allocator::new(),
             strings: Mutex::new(strings),
         }
     }
@@ -160,12 +165,13 @@ impl Heap {
     ///
     /// The heap is immediately primed with common symbols.
     #[must_use]
+    #[inline]
     pub fn with_capacity(capacity: usize) -> Self {
         let mut strings = fast_hash_set_with_capacity(0);
         Self::prime_symbols(&mut strings);
 
         Self {
-            bump: Bump::with_capacity(capacity),
+            inner: Allocator::with_capacity(capacity),
             strings: Mutex::new(strings),
         }
     }
@@ -189,13 +195,14 @@ impl Heap {
             drop(strings);
         }
 
-        self.bump.reset();
+        self.inner.reset();
     }
 
+    #[inline]
     pub fn alloc<T>(&self, value: T) -> &mut T {
         const { assert!(!core::mem::needs_drop::<T>()) };
 
-        self.bump.alloc(value)
+        self.inner.alloc(value)
     }
 
     fn prime_symbols(strings: &mut FastHashSet<&'static str>) {
@@ -220,7 +227,7 @@ impl Heap {
             return Symbol::new_unchecked(string);
         }
 
-        let string = &*self.bump.alloc_str(value);
+        let string = &*self.inner.alloc_str(value);
 
         // SAFETY: we can extend the arena allocation to `'static` because we
         // only access these while the arena is still alive, and the container is cleared before the
@@ -238,65 +245,21 @@ impl Heap {
     where
         T: Copy,
     {
-        self.bump.alloc_slice_copy(slice)
+        self.inner.alloc_slice_copy(slice)
     }
 
     pub fn slice_with<T>(&self, length: usize, item: impl FnMut(usize) -> T) -> &mut [T] {
-        self.bump.alloc_slice_fill_with(length, item)
-    }
-
-    /// Creates a new vector allocated on this heap.
-    ///
-    /// The capacity is an optional initial capacity for the vector, a value of [`None`] indicates
-    /// that the vector should be allocated with a default capacity.
-    pub fn vec<T>(&self, capacity: Option<usize>) -> Vec<'_, T> {
-        capacity.map_or_else(
-            || Vec::new_in(self),
-            |capacity| Vec::with_capacity_in(capacity, self),
-        )
+        self.inner.alloc_slice_fill_with(length, item)
     }
 
     /// Moves a vector allocated on the heap into this heap.
     ///
     /// The vector is moved into this heap, and the original vector is dropped.
-    pub fn transfer_vec<T>(&self, vec: alloc::vec::Vec<T>) -> Vec<'_, T> {
+    pub fn transfer_vec<T>(&self, vec: ::alloc::vec::Vec<T>) -> Vec<'_, T> {
         let mut target = Vec::with_capacity_in(vec.len(), self);
         target.extend(vec);
 
         target
-    }
-
-    /// Creates a new hash map allocated on this heap.
-    ///
-    /// The capacity is an optional initial capacity for the hash map, a value of [`None`] indicates
-    /// that the hash map should be allocated with a default capacity.
-    pub fn hash_map<K, V>(&self, capacity: Option<usize>) -> HashMap<'_, K, V> {
-        capacity.map_or_else(
-            || HashMap::with_hasher_in(foldhash::fast::RandomState::default(), self),
-            |capacity| {
-                HashMap::with_capacity_and_hasher_in(
-                    capacity,
-                    foldhash::fast::RandomState::default(),
-                    self,
-                )
-            },
-        )
-    }
-
-    /// Creates a new deque allocated on this heap.
-    ///
-    /// The capacity is an optional initial capacity for the deque, a value of [`None`] indicates
-    /// that the deque should be allocated with a default capacity.
-    pub fn dequeue<T>(&self, capacity: Option<usize>) -> VecDeque<'_, T> {
-        capacity.map_or_else(
-            || VecDeque::new_in(self),
-            |capacity| VecDeque::with_capacity_in(capacity, self),
-        )
-    }
-
-    /// Creates a new boxed value allocated on this heap.
-    pub fn boxed<T>(&self, value: T) -> Box<'_, T> {
-        alloc::boxed::Box::new_in(value, self)
     }
 }
 
@@ -306,14 +269,21 @@ impl Default for Heap {
     }
 }
 
-#[expect(unsafe_code, reason = "proxy to bump")]
+#[expect(unsafe_code, reason = "proxy to internal allocator")]
 // SAFETY: this simply delegates to the bump allocator
-unsafe impl Allocator for &Heap {
+unsafe impl alloc::Allocator for Heap {
+    fn allocate(
+        &self,
+        layout: core::alloc::Layout,
+    ) -> Result<core::ptr::NonNull<[u8]>, core::alloc::AllocError> {
+        self.inner.allocate(layout)
+    }
+
     fn allocate_zeroed(
         &self,
         layout: core::alloc::Layout,
     ) -> Result<core::ptr::NonNull<[u8]>, core::alloc::AllocError> {
-        (&self.bump).allocate_zeroed(layout)
+        self.inner.allocate_zeroed(layout)
     }
 
     unsafe fn grow(
@@ -323,7 +293,7 @@ unsafe impl Allocator for &Heap {
         new_layout: core::alloc::Layout,
     ) -> Result<core::ptr::NonNull<[u8]>, core::alloc::AllocError> {
         // SAFETY: this simply delegates to the bump allocator
-        unsafe { (&self.bump).grow(ptr, old_layout, new_layout) }
+        unsafe { self.inner.grow(ptr, old_layout, new_layout) }
     }
 
     unsafe fn grow_zeroed(
@@ -333,7 +303,7 @@ unsafe impl Allocator for &Heap {
         new_layout: core::alloc::Layout,
     ) -> Result<core::ptr::NonNull<[u8]>, core::alloc::AllocError> {
         // SAFETY: this simply delegates to the bump allocator
-        unsafe { (&self.bump).grow_zeroed(ptr, old_layout, new_layout) }
+        unsafe { self.inner.grow_zeroed(ptr, old_layout, new_layout) }
     }
 
     unsafe fn shrink(
@@ -343,18 +313,11 @@ unsafe impl Allocator for &Heap {
         new_layout: core::alloc::Layout,
     ) -> Result<core::ptr::NonNull<[u8]>, core::alloc::AllocError> {
         // SAFETY: this simply delegates to the bump allocator
-        unsafe { (&self.bump).shrink(ptr, old_layout, new_layout) }
-    }
-
-    fn allocate(
-        &self,
-        layout: core::alloc::Layout,
-    ) -> Result<core::ptr::NonNull<[u8]>, core::alloc::AllocError> {
-        (&self.bump).allocate(layout)
+        unsafe { self.inner.shrink(ptr, old_layout, new_layout) }
     }
 
     unsafe fn deallocate(&self, ptr: core::ptr::NonNull<u8>, layout: core::alloc::Layout) {
         // SAFETY: this simply delegates to the bump allocator
-        unsafe { (&self.bump).deallocate(ptr, layout) }
+        unsafe { self.inner.deallocate(ptr, layout) }
     }
 }
