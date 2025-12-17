@@ -104,7 +104,8 @@ impl<T: Clone, A: Allocator, B: Allocator> TryCloneIn<A> for Vec<T, B> {
 
     #[inline]
     fn try_clone_into(&self, into: &mut Self::Cloned, _: A) -> Result<(), AllocError> {
-        into.clone_from_slice(self);
+        into.clear();
+        into.extend_from_slice(self);
         Ok(())
     }
 }

@@ -121,19 +121,19 @@ use crate::{
 /// A boxed value allocated on the `Heap`.
 ///
 /// This type should always be used with the `heap::` prefix to avoid confusion
-/// with the standard library [`Box`](alloc::boxed::Box) type.
+/// with the standard library [`Box`](::alloc::boxed::Box) type.
 pub type Box<'heap, T> = boxed::Box<T, &'heap Heap>;
 
 /// A vector allocated on the `Heap`.
 ///
 /// This type should always be used with the `heap::` prefix to avoid confusion
-/// with the standard library [`Vec`](alloc::vec::Vec) type.
+/// with the standard library [`Vec`](::alloc::vec::Vec) type.
 pub type Vec<'heap, T> = vec::Vec<T, &'heap Heap>;
 
 /// A double-ended queue allocated on the `Heap`.
 ///
 /// This type should always be used with the `heap::` prefix to avoid confusion
-/// with the standard library [`VecDeque`](alloc::collections::vec_deque::VecDeque) type.
+/// with the standard library [`VecDeque`](::alloc::collections::vec_deque::VecDeque) type.
 pub type VecDeque<'heap, T> = vec_deque::VecDeque<T, &'heap Heap>;
 
 /// A hash map allocated on the `Heap` with an optional custom hasher.
