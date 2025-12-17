@@ -3,28 +3,28 @@ use core::{alloc, ptr};
 use bumpalo::Bump;
 
 #[derive(Debug)]
-pub struct Allocator(Bump);
+pub(super) struct Allocator(Bump);
 
 impl Allocator {
     /// Creates a new scratch allocator with an empty arena.
     #[must_use]
     #[inline]
-    pub fn new() -> Self {
+    pub(crate) fn new() -> Self {
         Self(Bump::new())
     }
 
     #[inline]
-    pub fn with_capacity(capacity: usize) -> Self {
+    pub(crate) fn with_capacity(capacity: usize) -> Self {
         Self(Bump::with_capacity(capacity))
     }
 
     /// Resets the allocator, freeing all allocations at once.
     #[inline]
-    pub fn reset(&mut self) {
+    pub(crate) fn reset(&mut self) {
         self.0.reset();
     }
 
-    pub fn alloc_with<T>(&self, func: impl FnOnce() -> T) -> &mut T {
+    pub(crate) fn alloc_with<T>(&self, func: impl FnOnce() -> T) -> &mut T {
         self.0.alloc_with(func)
     }
 }
@@ -32,18 +32,15 @@ impl Allocator {
 #[expect(unsafe_code, reason = "proxy to bump")]
 // SAFETY: this simply delegates to the bump allocator
 unsafe impl alloc::Allocator for Allocator {
-    fn allocate(
-        &self,
-        layout: std::alloc::Layout,
-    ) -> Result<std::ptr::NonNull<[u8]>, std::alloc::AllocError> {
+    fn allocate(&self, layout: alloc::Layout) -> Result<ptr::NonNull<[u8]>, alloc::AllocError> {
         allocator_api2::alloc::Allocator::allocate(&&self.0, layout)
             .map_err(|_err| alloc::AllocError)
     }
 
     fn allocate_zeroed(
         &self,
-        layout: std::alloc::Layout,
-    ) -> Result<ptr::NonNull<[u8]>, std::alloc::AllocError> {
+        layout: alloc::Layout,
+    ) -> Result<ptr::NonNull<[u8]>, alloc::AllocError> {
         allocator_api2::alloc::Allocator::allocate_zeroed(&&self.0, layout)
             .map_err(|_err| alloc::AllocError)
     }

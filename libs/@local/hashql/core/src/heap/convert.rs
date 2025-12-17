@@ -1,4 +1,4 @@
-use std::alloc::Allocator;
+use core::alloc::Allocator;
 
 pub trait FromIn<T, A: Allocator>: Sized {
     fn from_in(value: T, allocator: A) -> Self;
@@ -21,5 +21,11 @@ where
 {
     fn into_in(self, allocator: A) -> U {
         U::from_in(self, allocator)
+    }
+}
+
+impl<T, A: Allocator> FromIn<T, A> for Box<T, A> {
+    fn from_in(value: T, allocator: A) -> Self {
+        Box::new_in(value, allocator)
     }
 }

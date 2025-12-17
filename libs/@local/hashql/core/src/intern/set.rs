@@ -6,7 +6,7 @@ use hashbrown::hash_map::RawEntryMut;
 use super::Interned;
 use crate::{
     collections::{FastHashMap, fast_hash_map_with_capacity},
-    heap::Heap,
+    heap::{Heap, TransferInto as _},
     sync::lock::LocalLock,
 };
 
@@ -383,7 +383,7 @@ where
                 .from_key_hashed_nocheck(hash_value, value)
             {
                 RawEntryMut::Vacant(entry) => {
-                    let value = heap.slice(value);
+                    let value = value.transfer_into(heap);
 
                     let (key, ()) = entry.insert_hashed_nocheck(hash_value, &*value, ());
                     *key

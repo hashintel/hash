@@ -2,6 +2,7 @@ use hashql_ast::node::{
     expr::{Expr, ExprKind, ListExpr, list::ListElement},
     id::NodeId,
 };
+use hashql_core::heap::CloneIn as _;
 use text_size::TextRange;
 
 use super::{
@@ -95,7 +96,7 @@ fn parse_list<'heap>(
         let element = ListElement {
             id: NodeId::PLACEHOLDER,
             span: expr.span,
-            value: state.heap().boxed(expr),
+            value: Box::new_in(expr, state.heap()),
         };
 
         elements.push(element);
@@ -106,7 +107,7 @@ fn parse_list<'heap>(
     Ok(ListExpr {
         id: NodeId::PLACEHOLDER,
         span: state.insert_range(range),
-        elements: state.heap().transfer_vec(elements),
+        elements: elements.clone_in(state.heap()),
         r#type: None,
     })
 }

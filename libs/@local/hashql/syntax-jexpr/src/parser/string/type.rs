@@ -6,7 +6,7 @@ use hashql_ast::node::{
         IntersectionType, StructField, StructType, TupleField, TupleType, Type, TypeKind, UnionType,
     },
 };
-use hashql_core::symbol::Ident;
+use hashql_core::{heap::CloneIn as _, symbol::Ident};
 use winnow::{
     ModalParser, ModalResult, Parser as _,
     ascii::multispace0,
@@ -99,7 +99,7 @@ where
             kind: TypeKind::Tuple(TupleType {
                 id: NodeId::PLACEHOLDER,
                 span,
-                fields: input.state.heap.vec(None),
+                fields: Vec::new_in(input.state.heap),
             }),
         })
     }
@@ -129,7 +129,7 @@ where
             kind: TypeKind::Struct(StructType {
                 id: NodeId::PLACEHOLDER,
                 span,
-                fields: input.state.heap.vec(None),
+                fields: Vec::new_in(input.state.heap),
             }),
         })
     }
@@ -184,7 +184,7 @@ where
             kind: TypeKind::Struct(StructType {
                 id: NodeId::PLACEHOLDER,
                 span,
-                fields: input.state.heap.transfer_vec(fields),
+                fields: fields.clone_in(input.state.heap),
             }),
         })
     }
@@ -237,7 +237,7 @@ where
             kind: TypeKind::Tuple(TupleType {
                 id: NodeId::PLACEHOLDER,
                 span,
-                fields: input.state.heap.transfer_vec(fields),
+                fields: fields.clone_in(input.state.heap),
             }),
         })
     }
@@ -359,7 +359,7 @@ where
 
     let span = input.state.span(span);
 
-    let mut types = input.state.heap.vec(Some(parsed.len()));
+    let mut types = Vec::with_capacity_in(parsed.len(), input.state.heap);
     types.extend(parsed);
 
     Ok(Type {
@@ -390,7 +390,7 @@ where
 
     let span = input.state.span(span);
 
-    let mut types = input.state.heap.vec(Some(parsed.len()));
+    let mut types = Vec::with_capacity_in(parsed.len(), input.state.heap);
     types.extend(parsed);
 
     Ok(Type {

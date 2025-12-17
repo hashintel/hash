@@ -289,7 +289,7 @@ impl<'heap> Visitor<'heap> for ImportResolver<'_, 'heap> {
                         value: ident,
                         kind: IdentKind::Lexical,
                     },
-                    arguments: self.heap.vec(None),
+                    arguments: Vec::new_in(self.heap),
                 }),
         );
 

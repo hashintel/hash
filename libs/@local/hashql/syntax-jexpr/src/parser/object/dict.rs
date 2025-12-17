@@ -2,7 +2,10 @@ use hashql_ast::node::{
     expr::{DictExpr, Expr, ExprKind, LiteralExpr, dict::DictEntry},
     id::NodeId,
 };
-use hashql_core::value::{self, Primitive};
+use hashql_core::{
+    heap::CloneIn as _,
+    value::{self, Primitive},
+};
 use text_size::TextRange;
 
 use super::{
@@ -104,8 +107,8 @@ fn parse_dict_object<'heap, 'source>(
         entries.push(DictEntry {
             id: NodeId::PLACEHOLDER,
             span: state.insert_range(entry_span),
-            key: state.heap().boxed(key),
-            value: state.heap().boxed(value),
+            key: Box::new_in(key, state.heap()),
+            value: Box::new_in(value, state.heap()),
         });
 
         Ok(())
@@ -114,7 +117,7 @@ fn parse_dict_object<'heap, 'source>(
     Ok(DictExpr {
         id: NodeId::PLACEHOLDER,
         span: state.insert_range(span),
-        entries: state.heap().transfer_vec(entries),
+        entries: entries.clone_in(state.heap()),
         r#type: None,
     })
 }
@@ -178,8 +181,8 @@ fn parse_dict_array<'heap, 'source>(
         entries.push(DictEntry {
             id: NodeId::PLACEHOLDER,
             span: state.insert_range(span),
-            key: state.heap().boxed(key),
-            value: state.heap().boxed(value),
+            key: Box::new_in(key, state.heap()),
+            value: Box::new_in(value, state.heap()),
         });
 
         Ok(())
@@ -188,7 +191,7 @@ fn parse_dict_array<'heap, 'source>(
     Ok(DictExpr {
         id: NodeId::PLACEHOLDER,
         span: state.insert_range(span),
-        entries: state.heap().transfer_vec(entries),
+        entries: entries.clone_in(state.heap()),
         r#type: None,
     })
 }

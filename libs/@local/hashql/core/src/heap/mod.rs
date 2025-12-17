@@ -36,6 +36,7 @@
 //! - `heap::Vec<'heap, T>`: A vector allocated on the heap
 //! - `heap::VecDeque<'heap, T>`: A double-ended queue allocated on the heap
 //! - `heap::HashMap<'heap, K, V, S>`: A hash map allocated on the heap
+#![expect(unsafe_code)]
 mod allocator;
 mod clone;
 mod convert;
@@ -43,15 +44,20 @@ mod iter;
 mod scratch;
 mod transfer;
 
-use alloc::alloc;
 use core::ptr;
-use std::{boxed, collections::vec_deque, sync::Mutex, vec};
+use std::sync::Mutex;
 
-use bumpalo::Bump;
+use ::alloc::{alloc, boxed, collections::vec_deque, vec};
 use hashbrown::HashSet;
 
 use self::allocator::Allocator;
-pub use self::scratch::Scratch;
+pub use self::{
+    clone::{CloneIn, TryCloneIn},
+    convert::{FromIn, IntoIn},
+    iter::{CollectIn, FromIteratorIn},
+    scratch::Scratch,
+    transfer::{TransferInto, TryTransferInto},
+};
 use crate::{
     collections::{FastHashSet, fast_hash_set_with_capacity},
     symbol::{Symbol, sym::TABLES},
@@ -228,7 +234,7 @@ impl Heap {
             return Symbol::new_unchecked(string);
         }
 
-        let string = &*self.inner.alloc_str(value);
+        let string = &*value.transfer_into(self);
 
         // SAFETY: we can extend the arena allocation to `'static` because we
         // only access these while the arena is still alive, and the container is cleared before the
@@ -240,27 +246,6 @@ impl Heap {
         drop(strings);
 
         Symbol::new_unchecked(string)
-    }
-
-    pub fn slice<T>(&self, slice: &[T]) -> &mut [T]
-    where
-        T: Copy,
-    {
-        self.inner.alloc_slice_copy(slice)
-    }
-
-    pub fn slice_with<T>(&self, length: usize, item: impl FnMut(usize) -> T) -> &mut [T] {
-        self.inner.alloc_slice_fill_with(length, item)
-    }
-
-    /// Moves a vector allocated on the heap into this heap.
-    ///
-    /// The vector is moved into this heap, and the original vector is dropped.
-    pub fn transfer_vec<T>(&self, vec: ::alloc::vec::Vec<T>) -> Vec<'_, T> {
-        let mut target = Vec::with_capacity_in(vec.len(), self);
-        target.extend(vec);
-
-        target
     }
 }
 
