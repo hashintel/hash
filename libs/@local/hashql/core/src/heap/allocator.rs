@@ -57,11 +57,13 @@ impl Allocator {
 // SAFETY: Delegates to bumpalo::Bump via allocator_api2.
 #[expect(unsafe_code, reason = "proxy to bump")]
 unsafe impl alloc::Allocator for Allocator {
+    #[inline]
     fn allocate(&self, layout: alloc::Layout) -> Result<ptr::NonNull<[u8]>, alloc::AllocError> {
         allocator_api2::alloc::Allocator::allocate(&&self.0, layout)
             .map_err(|_err| alloc::AllocError)
     }
 
+    #[inline]
     fn allocate_zeroed(
         &self,
         layout: alloc::Layout,
@@ -106,6 +108,7 @@ unsafe impl alloc::Allocator for Allocator {
         }
     }
 
+    #[inline]
     unsafe fn shrink(
         &self,
         ptr: ptr::NonNull<u8>,

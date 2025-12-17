@@ -1,6 +1,6 @@
 //! Scratch allocator for temporary allocations.
 
-use core::alloc;
+use core::{alloc, ptr};
 
 use super::allocator::Allocator;
 
@@ -48,51 +48,54 @@ impl Default for Scratch {
 // SAFETY: Delegates to bumpalo::Bump via the internal Allocator.
 #[expect(unsafe_code, reason = "proxy to internal allocator")]
 unsafe impl alloc::Allocator for Scratch {
-    fn allocate(
-        &self,
-        layout: core::alloc::Layout,
-    ) -> Result<core::ptr::NonNull<[u8]>, core::alloc::AllocError> {
+    #[inline]
+    fn allocate(&self, layout: alloc::Layout) -> Result<ptr::NonNull<[u8]>, alloc::AllocError> {
         self.inner.allocate(layout)
     }
 
+    #[inline]
     fn allocate_zeroed(
         &self,
-        layout: core::alloc::Layout,
-    ) -> Result<core::ptr::NonNull<[u8]>, core::alloc::AllocError> {
+        layout: alloc::Layout,
+    ) -> Result<ptr::NonNull<[u8]>, alloc::AllocError> {
         self.inner.allocate_zeroed(layout)
     }
 
+    #[inline]
     unsafe fn grow(
         &self,
-        ptr: core::ptr::NonNull<u8>,
-        old_layout: core::alloc::Layout,
-        new_layout: core::alloc::Layout,
-    ) -> Result<core::ptr::NonNull<[u8]>, core::alloc::AllocError> {
+        ptr: ptr::NonNull<u8>,
+        old_layout: alloc::Layout,
+        new_layout: alloc::Layout,
+    ) -> Result<ptr::NonNull<[u8]>, alloc::AllocError> {
         // SAFETY: Caller upholds Allocator contract.
         unsafe { self.inner.grow(ptr, old_layout, new_layout) }
     }
 
+    #[inline]
     unsafe fn grow_zeroed(
         &self,
-        ptr: core::ptr::NonNull<u8>,
-        old_layout: core::alloc::Layout,
-        new_layout: core::alloc::Layout,
-    ) -> Result<core::ptr::NonNull<[u8]>, core::alloc::AllocError> {
+        ptr: ptr::NonNull<u8>,
+        old_layout: alloc::Layout,
+        new_layout: alloc::Layout,
+    ) -> Result<ptr::NonNull<[u8]>, alloc::AllocError> {
         // SAFETY: Caller upholds Allocator contract.
         unsafe { self.inner.grow_zeroed(ptr, old_layout, new_layout) }
     }
 
+    #[inline]
     unsafe fn shrink(
         &self,
-        ptr: core::ptr::NonNull<u8>,
-        old_layout: core::alloc::Layout,
-        new_layout: core::alloc::Layout,
-    ) -> Result<core::ptr::NonNull<[u8]>, core::alloc::AllocError> {
+        ptr: ptr::NonNull<u8>,
+        old_layout: alloc::Layout,
+        new_layout: alloc::Layout,
+    ) -> Result<ptr::NonNull<[u8]>, alloc::AllocError> {
         // SAFETY: Caller upholds Allocator contract.
         unsafe { self.inner.shrink(ptr, old_layout, new_layout) }
     }
 
-    unsafe fn deallocate(&self, ptr: core::ptr::NonNull<u8>, layout: core::alloc::Layout) {
+    #[inline]
+    unsafe fn deallocate(&self, ptr: ptr::NonNull<u8>, layout: alloc::Layout) {
         // SAFETY: Caller upholds Allocator contract.
         unsafe { self.inner.deallocate(ptr, layout) }
     }
