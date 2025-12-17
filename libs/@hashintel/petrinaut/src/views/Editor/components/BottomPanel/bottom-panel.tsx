@@ -1,5 +1,5 @@
 import { css, cva } from "@hashintel/ds-helpers/css";
-import { useCallback, useRef, useState } from "react";
+import { useState } from "react";
 
 import { GlassPanel } from "../../../../components/glass-panel";
 import { useEditorStore } from "../../../../state/editor-provider";
@@ -86,37 +86,6 @@ export const BottomPanel: React.FC = () => {
 
   const [activeTab, setActiveTab] = useState<BottomPanelTab>("diagnostics");
 
-  // Resize handling
-  const resizeStartYRef = useRef(0);
-  const resizeStartHeightRef = useRef(panelHeight);
-
-  const handleResizeMouseDown = useCallback(
-    (event: React.MouseEvent) => {
-      event.preventDefault();
-      resizeStartYRef.current = event.clientY;
-      resizeStartHeightRef.current = panelHeight;
-
-      const handleMouseMove = (moveEvent: MouseEvent) => {
-        // Dragging up increases height (negative deltaY = increase)
-        const deltaY = resizeStartYRef.current - moveEvent.clientY;
-        const newHeight = Math.max(
-          MIN_HEIGHT,
-          Math.min(MAX_HEIGHT, resizeStartHeightRef.current + deltaY)
-        );
-        setDiagnosticsPanelHeight(newHeight);
-      };
-
-      const handleMouseUp = () => {
-        document.removeEventListener("mousemove", handleMouseMove);
-        document.removeEventListener("mouseup", handleMouseUp);
-      };
-
-      document.addEventListener("mousemove", handleMouseMove);
-      document.addEventListener("mouseup", handleMouseUp);
-    },
-    [panelHeight, setDiagnosticsPanelHeight]
-  );
-
   if (!isOpen) {
     return null;
   }
@@ -124,7 +93,7 @@ export const BottomPanel: React.FC = () => {
   // Calculate left position based on left sidebar state
   const leftOffset = isLeftSidebarOpen ? LEFT_SIDEBAR_WIDTH : PANEL_MARGIN;
 
-  const renderContent = () => {
+  function renderContent() {
     switch (activeTab) {
       case "diagnostics":
         return <DiagnosticsContent />;
@@ -133,7 +102,7 @@ export const BottomPanel: React.FC = () => {
       case "parameters":
         return <ParametersContent />;
     }
-  };
+  }
 
   return (
     <GlassPanel
@@ -147,34 +116,14 @@ export const BottomPanel: React.FC = () => {
         padding: 4,
       }}
       contentClassName={panelContainerStyle}
+      resizable={{
+        edge: "top",
+        size: panelHeight,
+        onResize: setDiagnosticsPanelHeight,
+        minSize: MIN_HEIGHT,
+        maxSize: MAX_HEIGHT,
+      }}
     >
-      {/* Resize handle at top */}
-      <button
-        type="button"
-        aria-label="Resize panel"
-        onMouseDown={handleResizeMouseDown}
-        onKeyDown={(event) => {
-          if (event.key === "ArrowUp") {
-            setDiagnosticsPanelHeight(Math.min(MAX_HEIGHT, panelHeight + 10));
-          } else if (event.key === "ArrowDown") {
-            setDiagnosticsPanelHeight(Math.max(MIN_HEIGHT, panelHeight - 10));
-          }
-        }}
-        style={{
-          position: "absolute",
-          top: 0,
-          left: 0,
-          right: 0,
-          height: 9,
-          cursor: "ns-resize",
-          zIndex: 1001,
-          background: "transparent",
-          border: "none",
-          padding: 0,
-          borderRadius: "12px 12px 0 0",
-        }}
-      />
-
       {/* Tab Header */}
       <div className={headerStyle}>
         {tabs.map((tab) => (
