@@ -87,14 +87,14 @@ const labelSegmentStyle = css({
 const tokenCountBadgeStyle = css({
   position: "absolute",
   top: "[70%]",
-  fontSize: "[11px]",
+  fontSize: "[16px]",
   display: "flex",
   alignItems: "center",
   justifyContent: "center",
   color: "[white]",
   backgroundColor: "[black]",
-  width: "[20px]",
-  height: "[20px]",
+  width: "[27px]",
+  height: "[27px]",
   borderRadius: "[50%]",
   fontWeight: "semibold",
 });
