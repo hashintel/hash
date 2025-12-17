@@ -4,6 +4,7 @@ import {
   TbLayoutSidebarRightCollapse,
 } from "react-icons/tb";
 
+import { GlassPanel } from "../../../../components/glass-panel";
 import type { MenuItem } from "../../../../components/menu";
 import { useEditorStore } from "../../../../state/editor-provider";
 import { DifferentialEquationsSection } from "./differential-equations-section";
@@ -37,14 +38,8 @@ const outerContainerStyle = cva({
   },
 });
 
-const panelStyle = cva({
+const panelContentStyle = cva({
   base: {
-    borderRadius: "[12px]",
-    backgroundColor: "[rgba(255, 255, 255, 0.7)]",
-    boxShadow: "[0 3px 13px rgba(0, 0, 0, 0.1)]",
-    border: "[1px solid rgba(255, 255, 255, 0.8)]",
-    backdropFilter: "[blur(12px)]",
-    position: "relative",
     display: "flex",
   },
   variants: {
@@ -156,7 +151,7 @@ export const LeftSideBar: React.FC<LeftSideBarProps> = ({
 
   return (
     <div className={outerContainerStyle({ isOpen })}>
-      <div className={panelStyle({ isOpen })}>
+      <GlassPanel contentClassName={panelContentStyle({ isOpen })}>
         {/* Header with Menu, Title, and Toggle button */}
         <div className={headerStyle({ isOpen })}>
           <div className={headerInnerStyle}>
@@ -198,7 +193,7 @@ export const LeftSideBar: React.FC<LeftSideBarProps> = ({
             <NodesSection />
           </>
         )}
-      </div>
+      </GlassPanel>
     </div>
   );
 };
