@@ -1,0 +1,678 @@
+My Take on Your Planning Session
+
+What's Strong
+
+1. The "compiler front-end" metaphor is apt — treating decomposition as producing an IR that can be validated/scored separately from execution is exactly the right separation of concerns. This avoids the common trap of conflating "did the plan look good" with "did execution succeed."
+2. Step type taxonomy evolved well — the distinction between strategic steps (Research, Hypothesize, Synthesize, Assess) and tactical steps (Experiment, Develop, Transform) captures real workflow patterns. The recognition that Research and Experiment are parallelizable while Synthesize/Assess are not is important.
+3. Hypotheses as first-class citizens — making hypotheses explicit (not just buried in experiment descriptions) is crucial for research-oriented workflows. This enables tracking hypothesis status across experiments.
+4. The "workflow within workflow" insight for dynamism — this is exactly how you'd achieve bounded dynamism in Mastra. A static dountil loop where the loop body interprets state and decides next actions.
+
+Areas I'd Probe Further
+
+
+## 1. The PlanSpec schema may be too rich to start
+
+1. The schema has 7 step types, 3 decision types, synthesis modes, hypothesis tracking, etc. For a first iteration, you might want to:
+  - Start with 3-4 step types (Research, Synthesize, Experiment, Develop)
+  - Defer decision points entirely until the basic flow works
+  - Get the planner generating valid-but-simple plans before adding complexity
+
+Question: Would you prefer a "minimal viable schema" first, then extend? Or build the full schema and let the planner underutilize it initially?
+
+## 2. The "interpreter" vs "compiled" framing might be a false dichotomy
+
+2. You could potentially do both:
+  - Use topology analysis to identify "stable" portions of the plan that can be compiled to static Mastra workflow shapes
+  - Use the interpreter pattern only for portions with decision points or uncertain outcomes
+
+Question: Is this hybrid approach interesting, or do you want to commit fully to interpreted execution for simplicity?
+
+## 3. The fixture evaluation approach (manual inspection) is fine for exploration, but...
+
+3. Without some automated checks, it's easy to regress. Even if you can't define "correct" plans, you can define "invalid" plans:
+  - Plans that reference non-existent steps
+  - Plans with cycles
+  - Plans where experiments don't reference hypotheses
+
+Question: Should the fixtures include some "negative tests" — goals that should trigger specific failure modes?
+
+## 4. The "Assess" step type feels underspecified
+
+4. Research → Hypothesize → Experiment is clear. But what exactly does Assess do that Synthesize doesn't? Is it specifically about evaluating against success criteria? Or is it about deciding next steps?
+
+4. Question: Can you give a concrete example of an Assess step that isn't just a Synthesize with a different label?
+
+## 5. The available agents list is placeholder-y (intentionally)
+
+5. But the planner agent will need something to ground its executor assignments. If the descriptions are too vague, the planner will assign arbitrarily.
+
+5. Question: For the initial implementation, should we give each agent a more detailed "capability profile" that the planner can reason about? Or keep it simple and iterate?
+
+## Refinement Suggestions
+
+1. Add a "phase" concept to the PlanSpec
+
+1. Your taxonomy already distinguishes strategic vs tactical steps. Making "phase" explicit (e.g., exploration, hypothesis-formation, experimentation, synthesis, development) could help:
+  - Validate that steps are in sensible order
+  - Guide the planner's decomposition
+  - Enable phase-level decision points ("are we done with exploration?")
+2. Consider "compound steps" for common patterns
+
+2. Patterns like "research multiple topics in parallel → synthesize" or "experiment → assess → decide" are likely to recur. A compound step could encapsulate these, making plans more readable and easier to validate.
+3. The CT-database fixture is great, but add a simpler one for initial development
+
+3. Something like "Summarize 3 papers on topic X and produce a comparison table" — minimal steps, no experiments, no decision points. This would let you validate the basic flow before tackling the full complexity.
+
+---
+Questions for You
+
+Before we proceed, I'd like to understand:
+
+1. What's your priority for today's session? Options:
+  - Continue refining the plan (brainstorming more)
+  - Start implementing Phase 1 (schema + validation)
+  - Something else
+2. On schema complexity: Start minimal and extend, or build the full schema as designed?
+3. On the "Assess" step type: Can you clarify how it differs from Synthesize?
+4. Any reactions to my probing questions above?
+
+> Let me respond to your observations point by point:
+
+> ## 1. The PlanSpec schema may be too rich to start
+>
+> 2. The schema has 7 step types, 3 decision types, synthesis modes,
+hypothesis tracking, etc. For a first iteration, you might want to:
+>   - Start with 3-4 step types (Research, Synthesize, Experiment, Develop)
+>   - Defer decision points entirely until the basic flow works
+>   - Get the planner generating valid-but-simple plans before adding
+complexity
+>
+> Question: Would you prefer a "minimal viable schema" first, then extend?
+Or build the full schema and let the planner underutilize it initially?
+
+I agree with this observation, I think we could start with whatever smaller
+set of types we consider to be "minimum viable"
+
+> ## 2. The "interpreter" vs "compiled" framing might be a false dichotomy
+>
+> 2. You could potentially do both:
+>   - Use topology analysis to identify "stable" portions of the plan that
+can be compiled to static Mastra workflow shapes
+>   - Use the interpreter pattern only for portions with decision points or
+uncertain outcomes
+>
+> Question: Is this hybrid approach interesting, or do you want to commit
+fully to interpreted execution for simplicity?
+
+I'm not quite sure about this, perhaps we can answer when we come to it
+
+> ## 3. The fixture evaluation approach (manual inspection) is fine for
+exploration, but...
+>
+> 3. Without some automated checks, it's easy to regress. Even if you can't
+define "correct" plans, you can define "invalid" plans:
+>   - Plans that reference non-existent steps
+>   - Plans with cycles
+>   - Plans where experiments don't reference hypotheses
+>
+> Question: Should the fixtures include some "negative tests" — goals that
+should trigger specific failure modes?
+
+Yes, wherever we can add relevant and consequent checking, we should.
+Figuring out what and how to check is precisely also part of this
+exploration
+
+> ## 4. The "Assess" step type feels underspecified
+>
+> 4. Research → Hypothesize → Experiment is clear. But what exactly does
+Assess do that Synthesize doesn't? Is it specifically about evaluating
+against success criteria? Or is it about deciding next steps?
+>
+> 4. Question: Can you give a concrete example of an Assess step that isn't
+just a Synthesize with a different label?
+
+I also had this impression at the time. I think we could consider for now
+that Synthesize implicitly includes "Assess", and I would note that there
+are potentially various sub-types here of how one could asesss/synthesize,
+especially when dealing with multiple inputs
+>
+> ## 5. The available agents list is placeholder-y (intentionally)
+>
+> 5. But the planner agent will need something to ground its executor
+assignments. If the descriptions are too vague, the planner will assign
+arbitrarily.
+>
+> 5. Question: For the initial implementation, should we give each agent a
+more detailed "capability profile" that the planner can reason about? Or
+keep it simple and iterate?
+
+I like this point, as I think the semantic descriptions of the agents will
+be important to how the executor would work, so we should give attention to
+this
+
+> Refinement Suggestions
+>
+> ## 1. Add a "phase" concept to the PlanSpec
+>
+> 1. Your taxonomy already distinguishes strategic vs tactical steps. Making
+"phase" explicit (e.g., exploration, hypothesis-formation, experimentation,
+synthesis, development) could help:
+>   - Validate that steps are in sensible order
+>   - Guide the planner's decomposition
+>   - Enable phase-level decision points ("are we done with exploration?")
+
+I like that, I think it's very good
+
+> 2. ## Consider "compound steps" for common patterns
+>
+> 2. Patterns like "research multiple topics in parallel → synthesize" or
+"experiment → assess → decide" are likely to recur. A compound step could
+encapsulate these, making plans more readable and easier to validate.
+
+Let's note that as a potential emergence, and capture it when it happens
+
+> 3. ## The CT-database fixture is great, but add a simpler one for initial
+development
+>
+> 3. Something like "Summarize 3 papers on topic X and produce a comparison
+table" — minimal steps, no experiments, no decision points. This would let
+you validate the basic flow before tackling the full complexity.
+
+Agreed.
+⎿  ⧉ Selected 72 lines from Untitled-2 in Visual Studio Code
+
+⏺ Excellent responses. Let me synthesize these refinements into a revised minimal viable plan.
+
+---
+Revised Minimal Viable Schema
+
+Based on your feedback, here's what we're reducing to:
+
+Step Types (4, down from 7)
+
+| Type       | Description                 | Notes                                         |
+|------------|-----------------------------|-----------------------------------------------|
+| research   | Gather existing knowledge   | Parallelizable                                |
+| synthesize | Combine/assess results      | Includes assessment; has mode for sub-types   |
+| experiment | Test hypothesis empirically | Parallelizable; requires hypothesis reference |
+| develop    | Build/implement             | May be part of experiment setup               |
+
+Dropped for now: hypothesize, assess, transform
+- Hypothesize → implicit in the transition from research to experiment (hypotheses still exist as top-level entities)
+- Assess → folded into synthesize
+- Transform → can be modeled as a simple develop step if needed
+
+Decision Points (deferred)
+
+For MVP, no explicit decision points. The plan is assumed to be linear/DAG with parallelism but no runtime branching. We can add decision points when we tackle the interpreter.
+
+Phase Concept (new)
+
+const zPhase = z.enum([
+  "exploration",      // Research phase
+  "hypothesis",       // Forming hypotheses from research
+  "experimentation",  // Testing hypotheses
+  "synthesis",        // Combining/assessing results
+  "development",      // Building based on validated findings
+]);
+
+// Each step belongs to a phase
+const zBaseStep = z.object({
+  // ...existing fields...
+  phase: zPhase,
+});
+
+Synthesize Modes (refined)
+
+const zSynthesizeMode = z.enum([
+  "compare",       // Side-by-side comparison, no judgment
+  "choose-best",   // Pick winner from candidates
+  "merge",         // Combine compatible elements
+  "distill",       // Extract core insights
+  "evaluate",      // Assess against criteria (the "assess" function)
+]);
+
+Agent Capability Profiles (enriched)
+
+Instead of just name: description, each agent gets:
+
+const zAgentProfile = z.object({
+  id: z.string(),
+  name: z.string(),
+  description: z.string(),
+  capabilities: z.array(z.string()),      // What it can do
+  inputTypes: z.array(z.string()),        // What kinds of inputs it handles
+  outputTypes: z.array(z.string()),       // What kinds of outputs it produces
+  suitableFor: z.array(zPhase),           // Which phases it's appropriate for
+});
+
+Example:
+{
+  id: "literature-searcher",
+  name: "Literature Searcher",
+  description: "Searches academic databases and archives for relevant papers",
+  capabilities: ["query-formulation", "relevance-ranking", "citation-extraction"],
+  inputTypes: ["research-query", "topic-description"],
+  outputTypes: ["paper-list", "search-summary"],
+  suitableFor: ["exploration"],
+}
+
+---
+Revised Implementation Order
+
+1. schemas/plan-spec.ts — Minimal schema (4 step types, phases, no decision points)
+2. constants.ts — Agent profiles with capabilities
+3. tools/plan-validator.ts — Structural checks (DAG, refs, phase ordering)
+4. fixtures/ — Start with simple fixture ("summarize 3 papers")
+5. agents/planner-agent.ts — Core planner with agent profiles in context
+6. scorers/ — Structure scorer first, then coverage
+7. Manual testing and iteration
+
+---
+Simple Starter Fixture
+
+export const simplePaperSummary = {
+  id: "paper-summary",
+  goal: `Find and summarize 3 recent papers on "attention mechanisms in transformers"
+          and produce a comparison table highlighting key innovations, publication date,
+          and practical applicability.`,
+  context: `This is a literature review task. No experiments needed, just research
+            and synthesis.`,
+  expectedCharacteristics: {
+    shouldHaveHypotheses: false,
+    shouldHaveExperiments: false,
+    shouldHaveParallelResearch: true,  // 3 papers can be researched in parallel
+    minSteps: 4,  // search → 3x summarize (parallel) → synthesize
+    maxSteps: 8,
+    expectedStepTypes: ["research", "synthesize"],
+    expectedPhases: ["exploration", "synthesis"],
+  },
+};
+
+---
+What's Next?
+
+You've given clear direction. We can now:
+
+Option A: Start implementing Phase 1 (schema + constants + validator)
+
+Option B: Continue refining — if there are other aspects of the plan you want to discuss first
+
+Option C: Something else (e.g., review the existing hash-ai-agent code to understand current patterns better)
+
+Which would you prefer?
+
+> Let's think about the plan a bit further.
+
+Another LLM raised the following concerns:
+
+> Schema complexity — The PlanSpec is quite large for structured output.
+LLMs struggle with deeply nested discriminated unions. Consider whether the
+full schema should be generated in one shot, or in phases (requirements →
+steps → decision points).
+>
+> Step type proliferation — 7 step types with different shapes may be
+overkill initially. You could start with 3-4 core types (research,
+synthesize, develop, assess) and add experiment/hypothesize once the basics
+work.
+>
+> Missing: input bootstrapping — The availableExecutors field exists, but
+the planner prompt strategy for injecting this context isn't detailed. This
+is often where quality issues hide.
+>
+> Stub execution ROI — Template-based mock executors prove control flow, but
+don't test whether the plan makes sense. The real value is in the scoring
+step before execution.
+
+And in some reflection yesterday, I did some researching about
+'meta-cognitive recipes' for this use-case, and came up with the following:
+
+---
+
+Meta-cognitive “recipes” for LLM instruction can be made much more rigorous
+by explicitly forcing (a) an uncertainty-aware research plan and (b) an
+experimental design plan that bakes in controls against bias and nuisance
+variation. Science doesn’t have a single fixed checklist, but it does share
+recurring principles (hypotheses/theory + evidence + reasoning +
+communication + uncertainty reporting) that translate cleanly into reusable
+LLM prompt structures.[1]
+
+## Research-planning recipe
+A good instruction should require the model to propose a plan that is meant
+to be scrutinized and improved over repeated testing, and to surface
+uncertainty rather than hide it.[1]
+- State the research goal as one of: describe / explain / predict /
+intervene, because those are common “aim types” that shape what evidence
+counts and what success looks like.[1]
+- Require explicit hypotheses (even if tentative) and the evidence that
+would raise/lower confidence, because inquiry is organized around
+ideas/hypotheses tested against observations/measurements.[1]
+
+## Unknowns-first mapping
+A strong “unknowns” map is essentially an uncertainty inventory plus a plan
+to shrink the highest-impact uncertainty first, since characterizing
+uncertainty is central to interpreting results and replication claims.[1]
+- Force a partition into: known-knowns, known-unknowns, unknown-unknowns
+(with “how would we notice?” triggers), because scientific progress depends
+on making uncertainty legible to others.[1]
+- Require a “community check” step (what others must see to scrutinize the
+claim), since confidence accrues via communal scrutiny over time, not
+private conviction.[1]
+
+## Experimental-design recipe
+Your LLM instructions should always include a “nuisance factors” step,
+because experiments inevitably have variables that affect outcomes but
+aren’t the target of interest.[2]
+- “Block what you can, randomize what you cannot”: block controllable
+nuisance factors to reduce their contribution to experimental error, and
+randomize within blocks to limit bias from what can’t be controlled.[2]
+- Specify replication intent (what gets repeated, at what level), because
+interpreting effects requires separating signal from
+variability/uncertainty.[1]
+
+## Bias-control & transparency
+Add a confirmatory vs exploratory split and force the model to label which
+is which, since selective reporting and flexible analysis choices can
+mislead even when the work looks “scientific” on the surface.[3]
+- Require preregistration-style commitments for confirmatory work (design +
+analysis plan before outcomes), because preregistration reduces “researcher
+degrees of freedom” by locking decisions in advance.[3]
+- Require reporting uncertainty alongside claims (not just point estimates),
+because uncertainty reporting is a central tenet of credible scientific
+reporting and is necessary for replication assessment.[1]
+
+## Prompt templates
+Use these as “system or developer message” building blocks; they’re designed
+to make the model police its own reasoning.
+
+```text
+RESEARCH-PLANNING MODE (uncertainty-first)
+
+Task: <topic/question>
+
+1) Aim type: {describe|explain|predict|intervene}
+2) Definitions: key terms + boundary conditions
+3) Current map:
+  - Known-knowns (high confidence)
+  - Known-unknowns (explicit questions)
+  - Unknown-unknowns (what would surprise us; detection signals)
+4) Hypothesis set:
+  - H1...Hn with competing alternatives
+  - For each: what evidence would increase/decrease confidence?
+5) Plan:
+  - Fast reconnaissance (highest signal/lowest cost)
+  - Deep dives (primary sources, canonical references)
+  - Stopping rule (what “done” means)
+6) Output:
+  - A short, critique-friendly plan with assumptions + uncertainty notes
+```
+
+```text
+EXPERIMENT-DESIGN MODE (confirmatory)
+
+Goal: estimate/compare <effect> on <outcome>
+
+1) Outcome definition + measurement protocol
+2) Factors:
+  - Primary factor(s) to vary
+  - Nuisance factors (known/likely)
+3) Design choices:
+  - Blocking plan (if nuisance factors controllable)
+  - Randomization plan (what is randomized; when)
+  - Replication plan (unit of replication; sample size rationale if
+possible)
+4) Threats:
+  - Confounds, leakage, missing data, instrumentation drift
+5) Analysis plan:
+  - Model/stat test family; exclusion criteria
+  - Primary metric + uncertainty reporting
+6) Integrity:
+  - Confirmatory vs exploratory labeling
+  - “Preregistered commitments” list (decisions locked before seeing
+outcomes)
+```
+
+- Findings (terse)
+- Research planning: no single fixed steps, but common
+principles—hypotheses/theory + evidence + reasoning + communication +
+uncertainty; communal scrutiny over repeated testing[1]
+- Unknowns mapping: make uncertainty explicit; include “community check”
+for critique/replication interpretability[1]
+- Experiment design: identify nuisance factors; block controllables;
+randomize within what remains; add replication to separate effects from
+variability[2][1]
+- Bias control: preregister confirmatory design/analysis to reduce
+researcher degrees of freedom; label exploratory vs confirmatory[3]
+⎿  ⧉ Selected 91 lines from Untitled-3 in Visual Studio Code
+
+⏺ This is excellent input. The meta-cognitive recipes provide a much more rigorous foundation for the planning agent's instructions. Let me address both the concerns and integrate the recipes into our approach.
+
+---
+Addressing the Concerns
+
+1. Schema complexity for structured output
+
+The concern is valid. Deeply nested discriminated unions are hard for LLMs. Two mitigation strategies:
+
+Option A: Phased generation
+Goal → Requirements → Steps → (Decision Points if needed)
+Each phase uses a simpler schema. The planner makes multiple calls, each building on the previous.
+
+Option B: Flattened schema
+Instead of discriminated unions for step types, use a single step shape with optional fields:
+const zStep = z.object({
+  id: z.string(),
+  type: z.enum(["research", "synthesize", "experiment", "develop"]),
+  description: z.string(),
+  // Common fields
+  dependsOn: z.array(z.string()),
+  phase: zPhase,
+  // Type-specific fields (all optional, validated by type)
+  query: z.string().optional(),           // research
+  synthesizeMode: zSynthesizeMode.optional(), // synthesize
+  hypothesisIds: z.array(z.string()).optional(), // experiment
+  // ...etc
+});
+
+My recommendation: Start with phased generation. It's more natural anyway — humans don't design plans in one shot either.
+
+2. Step type proliferation
+
+Already addressed in our last exchange — we're down to 4 types: research, synthesize, experiment, develop.
+
+3. Input bootstrapping (executor context injection)
+
+This is crucial. The planner prompt needs:
+1. The goal and context
+2. The available agents (with capability profiles)
+3. The schema expectations
+4. Examples of good decomposition
+
+Proposed structure for planner system prompt:
+
+## Available Agents
+
+You have access to the following agents. Each step you create must reference one of these:
+
+### Research Agents
+- `literature-searcher`: Searches academic databases. Outputs: paper lists, search summaries. Best for: exploration phase.
+- `paper-summarizer`: Summarizes papers. Inputs: paper reference. Outputs: structured summary.
+
+### Synthesis Agents
+- `result-synthesizer`: Combines findings. Modes: compare, choose-best, merge, distill, evaluate.
+
+### Implementation Agents
+- `code-writer`: Implements algorithms. Inputs: specification. Outputs: code + tests.
+- `experiment-runner`: Executes experimental procedures. Inputs: design. Outputs: measurements.
+
+## Schema Requirements
+
+[Schema description]
+
+## Example Decomposition
+
+[One worked example showing good structure]
+
+4. Stub execution ROI
+
+The point is well-taken: scoring before execution is where the value is. Stub execution proves the plumbing works, but doesn't validate plan quality.
+
+Revised priority:
+1. Schema + validation
+2. Planner agent with good prompting
+3. Scorers (this is where we invest heavily)
+4. Stub execution (proof of concept, lower priority)
+
+---
+Integrating the Meta-Cognitive Recipes
+
+The recipes you found are excellent. They should inform two things:
+
+A. The Planner's Own Reasoning
+
+The planner agent should be instructed to follow these recipes when decomposing goals. This means the planner's system prompt should include:
+
+## Planning Methodology
+
+When decomposing a goal, follow this structure:
+
+### 1. Aim Classification
+Classify the goal as one of:
+- **Describe**: Characterize what exists (surveys, inventories)
+- **Explain**: Understand why/how something works (causal analysis)
+- **Predict**: Forecast outcomes (modeling, simulation)
+- **Intervene**: Change something in the world (engineering, development)
+
+### 2. Unknowns Mapping
+Before planning steps, map:
+- **Known-knowns**: What we're confident about
+- **Known-unknowns**: Explicit questions we need to answer
+- **Unknown-unknowns**: What would surprise us? How would we notice?
+
+### 3. Hypothesis Formation (for explain/predict/intervene goals)
+For each key unknown:
+- State a testable hypothesis
+- Specify what evidence would increase/decrease confidence
+- Note competing alternatives
+
+### 4. Step Planning
+Based on the above, create steps that:
+- Address unknowns in priority order (highest impact first)
+- Include explicit stopping conditions
+- Label confirmatory vs exploratory work
+
+B. The PlanSpec Schema
+
+The schema should capture outputs from these recipes:
+
+// Enhanced PlanSpec with meta-cognitive structure
+const zPlanSpec = z.object({
+  id: z.string(),
+  goalSummary: z.string(),
+
+  // NEW: Aim classification
+  aimType: z.enum(["describe", "explain", "predict", "intervene"]),
+
+  // NEW: Unknowns map (replaces simple "unknowns" array)
+  unknownsMap: z.object({
+    knownKnowns: z.array(z.object({
+      statement: z.string(),
+      confidence: z.enum(["high", "medium"]),
+    })),
+    knownUnknowns: z.array(z.object({
+      question: z.string(),
+      priority: z.enum(["critical", "important", "nice-to-have"]),
+      addressedByStepIds: z.array(z.string()),
+    })),
+    unknownUnknowns: z.array(z.object({
+      domain: z.string(),  // "performance", "compatibility", etc.
+      detectionSignals: z.array(z.string()),  // How would we notice?
+    })),
+  }),
+
+  // Hypotheses with evidence criteria
+  hypotheses: z.array(z.object({
+    id: z.string(),
+    statement: z.string(),
+    evidenceFor: z.array(z.string()),    // What would increase confidence
+    evidenceAgainst: z.array(z.string()), // What would decrease confidence
+    alternatives: z.array(z.string()),    // Competing hypotheses
+    status: z.enum(["untested", "testing", "supported", "refuted", "inconclusive"]),
+  })),
+
+  // Steps with confirmatory/exploratory labeling
+  steps: z.array(z.object({
+    // ...existing fields...
+    researchMode: z.enum(["confirmatory", "exploratory"]),
+    stoppingCondition: z.string().optional(),
+  })),
+
+  // ...rest of schema
+});
+
+---
+Revised Minimal Schema (Incorporating Recipes)
+
+Given the schema complexity concern, let me propose a two-phase generation approach:
+
+Phase 1: Goal Analysis (simpler schema)
+
+const zGoalAnalysis = z.object({
+  goalSummary: z.string(),
+  aimType: z.enum(["describe", "explain", "predict", "intervene"]),
+
+  knownKnowns: z.array(z.string()),
+  knownUnknowns: z.array(z.object({
+    question: z.string(),
+    priority: z.enum(["critical", "important", "nice-to-have"]),
+  })),
+
+  hypotheses: z.array(z.object({
+    statement: z.string(),
+    evidenceFor: z.array(z.string()),
+    evidenceAgainst: z.array(z.string()),
+  })),
+
+  suggestedPhases: z.array(zPhase),
+});
+
+Phase 2: Step Planning (builds on Phase 1)
+
+const zStepPlan = z.object({
+  // Reference to Phase 1 output
+  goalAnalysisId: z.string(),
+
+  steps: z.array(z.object({
+    id: z.string(),
+    type: z.enum(["research", "synthesize", "experiment", "develop"]),
+    description: z.string(),
+    phase: zPhase,
+    dependsOn: z.array(z.string()),
+    addressesUnknowns: z.array(z.string()),  // References to knownUnknowns
+    researchMode: z.enum(["confirmatory", "exploratory"]),
+    executor: z.object({
+      agentRef: z.string(),
+      // Type-specific config
+    }),
+  })),
+});
+
+---
+Questions Before Finalizing
+
+1. Phased generation: Does the two-phase approach (Goal Analysis → Step Planning) make sense? Or would you prefer a single-shot with a flattened schema?
+2. Meta-cognitive depth: The recipes add rigor but also complexity. Should we:
+  - Full integration: Include unknowns map, aim type, confirmatory/exploratory labeling
+  - Partial integration: Just aim type + hypotheses, defer unknowns map
+  - Defer entirely: Get basic planning working first, add meta-cognitive structure later
+3. Experimental design recipe: The recipes include detailed experimental design (nuisance factors, blocking, randomization). For MVP, should experiment steps:
+  - Just have a free-form design.procedure field
+  - Have structured fields for nuisance factors, controls, etc.
+  - Something in between
+4. Priority reordering: Given the "scoring is where the value is" insight, should we reorder to:
+  a. Schema (minimal)
+  b. Fixtures
+  c. Planner agent
+  d. Scorers (invest here)
+  e. Planning workflow
+  f. Stub execution (if time)
