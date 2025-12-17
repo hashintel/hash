@@ -37,6 +37,7 @@
 //! - `heap::VecDeque<'heap, T>`: A double-ended queue allocated on the heap
 //! - `heap::HashMap<'heap, K, V, S>`: A hash map allocated on the heap
 
+mod allocator;
 mod scratch;
 
 use core::{alloc::Allocator, ptr};
