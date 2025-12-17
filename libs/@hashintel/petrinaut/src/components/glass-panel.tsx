@@ -10,18 +10,18 @@ import {
 
 const panelContainerStyle = css({
   position: "relative",
-  borderRadius: "[12px]",
+  borderRadius: "[7px]",
   backgroundColor: "[rgba(255, 255, 255, 0.7)]",
-  boxShadow: "[0 3px 13px rgba(0, 0, 0, 0.1)]",
+  boxShadow: "[0 2px 11px rgba(0, 0, 0, 0.1)]",
   border: "[1px solid rgba(255, 255, 255, 0.8)]",
 });
 
 const blurOverlayStyle = css({
   position: "absolute",
   inset: "[0]",
-  borderRadius: "[12px]",
+  borderRadius: "[7px]",
   pointerEvents: "none",
-  backdropFilter: "[blur(24px)]",
+  backdropFilter: "[blur(27px)]",
 });
 
 const contentContainerStyle = css({
