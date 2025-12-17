@@ -128,7 +128,6 @@ unsafe impl<'alloc> TryTransferInto<'alloc, Scratch> for str {
 
 #[cfg(test)]
 mod tests {
-
     use super::*;
     use crate::heap::Heap;
 
