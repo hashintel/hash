@@ -22,7 +22,7 @@ text-size = { workspace = true, public = true }
 # Private workspace dependencies
 
 # Private third-party dependencies
-allocator-api2       = { version = "0.2.8", default-features = false }
+allocator-api2       = { workspace = true }
 anstyle-lossy        = { workspace = true }
 bitvec               = { workspace = true, features = ["alloc"] }
 bumpalo              = { workspace = true }
