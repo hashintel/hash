@@ -1849,32 +1849,34 @@ where
             ])
             .change_context(UpdateError)?;
 
-        match policy_set
-            .evaluate(
-                &Request {
-                    actor: policy_components.actor_id(),
-                    action: ActionName::UpdateEntity,
-                    resource: &ResourceId::Entity(params.entity_id.entity_uuid),
-                    context: RequestContext::default(),
-                },
-                policy_components.context(),
-            )
-            .change_context(UpdateError)?
-        {
-            Authorized::Always => {}
-            Authorized::Never => {
-                return Err(Report::new(UpdateError)
-                    .attach_opaque(StatusCode::PermissionDenied)
-                    .attach("The actor does not have permission to update the entity")
-                    .attach(
-                        previous_entity
-                            .metadata
-                            .entity_type_ids
-                            .iter()
-                            .map(VersionedUrl::to_string)
-                            .collect::<Vec<_>>()
-                            .join(", "),
-                    ));
+        if params.is_update() {
+            match policy_set
+                .evaluate(
+                    &Request {
+                        actor: policy_components.actor_id(),
+                        action: ActionName::UpdateEntity,
+                        resource: &ResourceId::Entity(params.entity_id.entity_uuid),
+                        context: RequestContext::default(),
+                    },
+                    policy_components.context(),
+                )
+                .change_context(UpdateError)?
+            {
+                Authorized::Always => {}
+                Authorized::Never => {
+                    return Err(Report::new(UpdateError)
+                        .attach_opaque(StatusCode::PermissionDenied)
+                        .attach("The actor does not have permission to update the entity")
+                        .attach(
+                            previous_entity
+                                .metadata
+                                .entity_type_ids
+                                .iter()
+                                .map(VersionedUrl::to_string)
+                                .collect::<Vec<_>>()
+                                .join(", "),
+                        ));
+                }
             }
         }
 
