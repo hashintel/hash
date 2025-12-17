@@ -15,7 +15,7 @@
 
 import type { PlanSpec, PlanStep, StepType } from "../schemas/plan-spec";
 import { validatePlan } from "../tools/plan-validator";
-import { analyzePlanTopology, type TopologyAnalysis } from "../tools/topology-analyzer";
+import { analyzePlanTopology } from "../tools/topology-analyzer";
 
 // =============================================================================
 // SCORER RESULT TYPES
@@ -108,13 +108,17 @@ export function scorePlanStructure(plan: PlanSpec): ScorerResult {
   details.criticalPathLength = topology.criticalPath.length;
   details.maxParallelism = Math.max(
     1,
-    ...topology.parallelGroups.map((g) => g.parallelizableStepIds.length),
+    ...topology.parallelGroups.map((group) => group.parallelizableStepIds.length),
   );
 
   // Calculate parallelism ratio
   const parallelizableSteps = plan.steps.filter((step) => {
-    if (step.type === "research") return true;
-    if (step.type === "synthesize") return false;
+    if (step.type === "research") {
+      return true;
+    }
+    if (step.type === "synthesize") {
+      return false;
+    }
     return step.parallelizable;
   });
   details.parallelismRatio =
@@ -132,7 +136,7 @@ export function scorePlanStructure(plan: PlanSpec): ScorerResult {
   const parallelismScore = Math.min(1, details.maxParallelism / Math.max(3, plan.steps.length / 2));
 
   // Balance score: reward step type diversity
-  const usedTypes = Object.values(details.stepTypeDistribution).filter((c) => c > 0).length;
+  const usedTypes = Object.values(details.stepTypeDistribution).filter((count) => count > 0).length;
   const balanceScore = usedTypes / 4; // 4 possible step types
 
   // Weighted combination
@@ -205,15 +209,15 @@ export function scorePlanCoverage(plan: PlanSpec): ScorerResult {
   }
 
   // Categorize requirements by priority and coverage
-  const mustReqs = plan.requirements.filter((r) => r.priority === "must");
-  const shouldReqs = plan.requirements.filter((r) => r.priority === "should");
-  const coveredMustCount = mustReqs.filter((r) => coveredReqIds.has(r.id)).length;
-  const coveredShouldCount = shouldReqs.filter((r) => coveredReqIds.has(r.id)).length;
+  const mustReqs = plan.requirements.filter((req) => req.priority === "must");
+  const shouldReqs = plan.requirements.filter((req) => req.priority === "should");
+  const coveredMustCount = mustReqs.filter((req) => coveredReqIds.has(req.id)).length;
+  const coveredShouldCount = shouldReqs.filter((req) => coveredReqIds.has(req.id)).length;
 
   details.coveredRequirementCount = coveredReqIds.size;
   details.uncoveredRequirements = plan.requirements
-    .filter((r) => !coveredReqIds.has(r.id))
-    .map((r) => r.id);
+    .filter((req) => !coveredReqIds.has(req.id))
+    .map((req) => req.id);
   details.mustCoverageRatio = mustReqs.length > 0 ? coveredMustCount / mustReqs.length : 1;
   details.shouldCoverageRatio = shouldReqs.length > 0 ? coveredShouldCount / shouldReqs.length : 1;
 
@@ -229,8 +233,8 @@ export function scorePlanCoverage(plan: PlanSpec): ScorerResult {
 
   details.testedHypothesisCount = testedHypIds.size;
   details.untestedHypotheses = plan.hypotheses
-    .filter((h) => !testedHypIds.has(h.id))
-    .map((h) => h.id);
+    .filter((hyp) => !testedHypIds.has(hyp.id))
+    .map((hyp) => hyp.id);
 
   // Calculate hypothesis coverage ratio
   const hypothesisCoverageRatio =
@@ -311,7 +315,7 @@ export function scoreExperimentRigor(plan: PlanSpec): ScorerResult {
   }
 
   // Analyze experiments
-  const confirmatory = experiments.filter((e) => e.mode === "confirmatory");
+  const confirmatory = experiments.filter((exp) => exp.mode === "confirmatory");
   let totalPreregCommitments = 0;
 
   for (const exp of experiments) {
@@ -473,7 +477,7 @@ export function scorePlanComposite(
     unknownsCoverage?: number;
   },
 ): CompositePlanScore {
-  const w = {
+  const resolvedWeights = {
     structure: weights?.structure ?? 0.25,
     coverage: weights?.coverage ?? 0.3,
     experimentRigor: weights?.experimentRigor ?? 0.25,
@@ -486,10 +490,10 @@ export function scorePlanComposite(
   const unknownsCoverage = scoreUnknownsCoverage(plan);
 
   const overall =
-    w.structure * structure.score +
-    w.coverage * coverage.score +
-    w.experimentRigor * experimentRigor.score +
-    w.unknownsCoverage * unknownsCoverage.score;
+    resolvedWeights.structure * structure.score +
+    resolvedWeights.coverage * coverage.score +
+    resolvedWeights.experimentRigor * experimentRigor.score +
+    resolvedWeights.unknownsCoverage * unknownsCoverage.score;
 
   return {
     overall,

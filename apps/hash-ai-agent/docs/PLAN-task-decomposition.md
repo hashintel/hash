@@ -4,7 +4,7 @@
 
 - **Created**: 2024-12-16
 - **Updated**: 2024-12-17
-- **Status**: Planning Phase (Revised after review feedback)
+- **Status**: Implementation Phase — Core infrastructure complete, E2E validation next
 - **Location**: `apps/hash-ai-agent/docs/PLAN-task-decomposition.md`
 
 ---
@@ -975,21 +975,88 @@ See `docs/PROMPTS-meta-cognitive.md` for research-planning and experiment-design
 
 ---
 
-## 17. Next Steps
+## 17. Implementation Status
 
-When resuming implementation:
+### Completed (Phase 1-4)
 
-1. Create `schemas/plan-spec.ts` with MVP Zod schema
-2. Create/update `constants.ts` with agent capability profiles
-3. Create `tools/plan-validator.ts` with structural checks
-4. Create positive test fixtures (start with `summarize-papers.ts`)
-5. Create negative test fixtures
-6. Create `agents/planner-agent.ts` with structured output
-7. Create deterministic scorers
-8. Create `workflows/planning-workflow.ts`
-9. Test manually and iterate on prompt strategy
-10. Add LLM judge scorers
-11. (Optional) Create stub execution workflow if needed
+| Component | File | Status | Tests |
+|-----------|------|--------|-------|
+| PlanSpec schema | `schemas/plan-spec.ts` | ✅ Complete | — |
+| Agent profiles | `constants.ts` | ✅ Complete | — |
+| Plan validator | `tools/plan-validator.ts` | ✅ Complete | 25 tests |
+| Topology analyzer | `tools/topology-analyzer.ts` | ✅ Complete | — |
+| Planner agent | `agents/planner-agent.ts` | ✅ Complete | — |
+| Positive fixtures (4) | `fixtures/decomposition-prompts/` | ✅ Complete | — |
+| Negative fixtures | `tools/plan-validator.test.ts` | ✅ Complete | 25 tests |
+| Deterministic scorers (4) | `scorers/plan-scorers.ts` | ✅ Complete | 23 tests |
+| LLM judge scorers (3) | `scorers/plan-llm-scorers.ts` | ✅ Complete | 6 tests |
+
+### Not Yet Implemented
+
+| Component | File | Status | Notes |
+|-----------|------|--------|-------|
+| Planning workflow loop | `workflows/planning-workflow.ts` | ⚠️ Stub only | No `.dountil()` revision logic |
+| Supervisor agent | `agents/supervisor-agent.ts` | ❌ Not started | LLM approval gate |
+| End-to-end tests | `workflows/planning-workflow.test.ts` | ⚠️ Partial | Uses hand-crafted plans, not generated |
+| Stub execution (Level 1) | — | ❌ Not started | Low priority |
+
+---
+
+## 18. Next Steps
+
+### Phase 5A: End-to-End Validation Test
+
+Before implementing the full workflow loop, validate that `generatePlan()` works reliably with the full schema:
+
+1. **Create E2E test** (`workflows/planning-workflow.test.ts`):
+   - Call `generatePlan()` with each of the 4 fixtures
+   - Run `validatePlan()` on the output
+   - Run deterministic scorers on valid plans
+   - Optionally run LLM scorers (controlled by config flag)
+   - Log results for manual inspection
+
+2. **Config flag for LLM scorers**:
+   ```typescript
+   const RUN_LLM_SCORERS = process.env.RUN_LLM_SCORERS === "true";
+   ```
+   This allows quick iteration with deterministic scorers only, then full scoring when needed.
+
+3. **Expected outcomes**:
+   - Identify schema-vs-LLM-output mismatches
+   - Surface any structured output reliability issues
+   - May incidentally fix the ct-database-goal preregistration issue
+
+### Phase 5B: Planning Workflow with Revision Loop
+
+Once E2E validation passes reliably:
+
+4. **Implement `agents/supervisor-agent.ts`**:
+   - Reviews generated plans against goal
+   - Returns approval/rejection with feedback
+   - Structured output: `{ approved: boolean, feedback?: string, issues?: string[] }`
+
+5. **Implement full `workflows/planning-workflow.ts`**:
+   - `extractRequirementsStep` → `generatePlanStep` → `validatePlanStep` → `supervisorReviewStep`
+   - `.dountil()` loop with max 3 revision attempts
+   - Pass feedback to planner on rejection
+
+6. **End-to-end workflow tests**:
+   - Test full loop with fixtures
+   - Verify revision improves plan quality
+   - Test max-attempts bailout
+
+### Phase 6: Stub Execution (Deferred)
+
+Low priority. Only implement if needed to prove control flow patterns.
+
+---
+
+## 19. Test Conventions
+
+- **Colocated tests**: Tests live alongside source files (e.g., `plan-validator.test.ts`)
+- **Standard vitest naming**: Use `.test.ts` suffix (not `.ai.test.ts`)
+- **LLM scorer toggle**: Use `RUN_LLM_SCORERS` env var to control expensive LLM evaluation
+- **Timeouts**: LLM-calling tests should set appropriate timeouts (60-180s)
 
 ---
 
