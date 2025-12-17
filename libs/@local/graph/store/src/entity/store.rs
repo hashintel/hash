@@ -464,6 +464,7 @@ impl PatchEntityParams {
     /// only the confidence is updated without changing the archive-state, this is also considered
     /// an update. On the counterary, if only the confidence is updated along with an archive-state
     /// change, the confidence is used for the new entity edition.
+    // TODO(BE-224): Fix edge-case that the confidence could be updated by archiving/unarchiving.
     #[must_use]
     pub fn is_update(&self) -> bool {
         !self.entity_type_ids.is_empty()
