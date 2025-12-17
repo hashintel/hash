@@ -1,28 +1,22 @@
-use core::alloc::Allocator;
+#![expect(clippy::mut_from_ref, reason = "allocator")]
+use core::alloc::{AllocError, Allocator};
 
-use super::{Heap, Scratch};
+pub trait BumpAllocator: Allocator {
+    fn allocate_slice_copy<T: Copy>(&self, slice: &[T]) -> Result<&mut [T], AllocError>;
 
-// TODO: in 2025-12-17 move to Allocator trait
-pub trait BumpAllocator {
     fn reset(&mut self);
-}
-
-impl BumpAllocator for Heap {
-    fn reset(&mut self) {
-        self.reset();
-    }
-}
-
-impl BumpAllocator for Scratch {
-    fn reset(&mut self) {
-        self.reset();
-    }
 }
 
 impl<A> BumpAllocator for &mut A
 where
     A: BumpAllocator,
 {
+    #[inline]
+    fn allocate_slice_copy<T: Copy>(&self, slice: &[T]) -> Result<&mut [T], AllocError> {
+        A::allocate_slice_copy(self, slice)
+    }
+
+    #[inline]
     fn reset(&mut self) {
         A::reset(self);
     }

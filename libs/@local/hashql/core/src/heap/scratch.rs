@@ -2,7 +2,7 @@
 
 use core::{alloc, ptr};
 
-use super::allocator::Allocator;
+use super::{BumpAllocator, allocator::Allocator};
 
 /// A resettable scratch allocator for temporary allocations.
 ///
@@ -35,16 +35,23 @@ impl Scratch {
             inner: Allocator::new(),
         }
     }
-
-    /// Resets the allocator, freeing all allocations at once.
-    pub fn reset(&mut self) {
-        self.inner.reset();
-    }
 }
 
 impl Default for Scratch {
     fn default() -> Self {
         Self::new()
+    }
+}
+
+impl BumpAllocator for Scratch {
+    #[inline]
+    fn allocate_slice_copy<T: Copy>(&self, slice: &[T]) -> Result<&mut [T], alloc::AllocError> {
+        self.inner.try_alloc_slice_copy(slice)
+    }
+
+    #[inline]
+    fn reset(&mut self) {
+        self.inner.reset();
     }
 }
 

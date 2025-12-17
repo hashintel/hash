@@ -241,27 +241,6 @@ impl Heap {
         }
     }
 
-    /// Resets the heap, invalidating all previous allocations.
-    ///
-    /// Clears all allocations and re-primes with common symbols.
-    /// The allocator retains its current capacity.
-    ///
-    /// # Panics
-    ///
-    /// Panics if the internal mutex is poisoned.
-    pub fn reset(&mut self) {
-        // IMPORTANT: Clear strings BEFORE resetting the arena to prevent dangling references.
-        // The HashSet stores `&'static str` that actually point into arena memory.
-        {
-            let mut strings = self.strings.lock().expect("lock should not be poisoned");
-            strings.clear();
-            Self::prime_symbols(&mut strings);
-            drop(strings);
-        }
-
-        self.inner.reset();
-    }
-
     /// Allocates a value in the arena, returning a mutable reference.
     ///
     /// Only accepts types that do **not** require [`Drop`]. Types requiring destructors
@@ -320,6 +299,35 @@ impl Heap {
 impl Default for Heap {
     fn default() -> Self {
         Self::new()
+    }
+}
+
+impl BumpAllocator for Heap {
+    #[inline]
+    fn allocate_slice_copy<T: Copy>(&self, slice: &[T]) -> Result<&mut [T], alloc::AllocError> {
+        self.inner.try_alloc_slice_copy(slice)
+    }
+
+    /// Resets the heap, invalidating all previous allocations.
+    ///
+    /// Clears all allocations and re-primes with common symbols.
+    /// The allocator retains its current capacity.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the internal mutex is poisoned.
+    #[inline]
+    fn reset(&mut self) {
+        // IMPORTANT: Clear strings BEFORE resetting the arena to prevent dangling references.
+        // The HashSet stores `&'static str` that actually point into arena memory.
+        {
+            let mut strings = self.strings.lock().expect("lock should not be poisoned");
+            strings.clear();
+            Self::prime_symbols(&mut strings);
+            drop(strings);
+        }
+
+        self.inner.reset();
     }
 }
 

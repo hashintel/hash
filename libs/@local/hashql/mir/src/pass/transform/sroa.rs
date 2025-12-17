@@ -57,9 +57,9 @@
 //! [`DataDependencyAnalysis`]: crate::pass::analysis::DataDependencyAnalysis
 //! [`CfgSimplify`]: super::CfgSimplify
 
-use core::convert::Infallible;
+use core::{alloc::Allocator, convert::Infallible};
 
-use hashql_core::heap::Scratch;
+use hashql_core::heap::{BumpAllocator, Scratch};
 
 use crate::{
     body::{Body, location::Location, operand::Operand},
@@ -73,12 +73,12 @@ use crate::{
 };
 
 /// Visitor that resolves place operands to their ultimate sources.
-struct PlaceVisitor<'env, 'heap, 'scratch> {
+struct PlaceVisitor<'env, 'heap, A: Allocator> {
     interner: &'env Interner<'heap>,
-    graph: TransientDataDependencyGraph<'heap, &'scratch Scratch>,
+    graph: TransientDataDependencyGraph<'heap, A>,
 }
 
-impl<'heap> VisitorMut<'heap> for PlaceVisitor<'_, 'heap, '_> {
+impl<'heap, A: Allocator + Clone> VisitorMut<'heap> for PlaceVisitor<'_, 'heap, A> {
     type Filter = filter::Deep;
     type Residual = Result<Infallible, !>;
     type Result<T>
@@ -106,22 +106,31 @@ impl<'heap> VisitorMut<'heap> for PlaceVisitor<'_, 'heap, '_> {
 /// Resolves place operands to their ultimate sources by tracing data dependencies. This enables
 /// downstream passes to work with simplified operands and can expose constant propagation
 /// opportunities.
-pub struct Sroa {
-    scratch: Scratch,
+pub struct Sroa<A: BumpAllocator = Scratch> {
+    alloc: A,
 }
 
 impl Sroa {
     #[must_use]
     pub fn new() -> Self {
         Self {
-            scratch: Scratch::new(),
+            alloc: Scratch::new(),
         }
     }
 }
 
-impl<'env, 'heap> TransformPass<'env, 'heap> for Sroa {
+impl<A: BumpAllocator> Sroa<A> {
+    #[must_use]
+    pub const fn new_in(alloc: A) -> Self {
+        Self { alloc }
+    }
+}
+
+impl<'env, 'heap, A: BumpAllocator> TransformPass<'env, 'heap> for Sroa<A> {
     fn run(&mut self, context: &mut MirContext<'env, 'heap>, body: &mut Body<'heap>) {
-        let mut analysis = DataDependencyAnalysis::new_in(&self.scratch);
+        self.alloc.reset();
+
+        let mut analysis = DataDependencyAnalysis::new_in(&self.alloc);
         analysis.run(context, body);
         let analysis = analysis.finish();
         let transient = analysis.transient(context.interner);
@@ -132,8 +141,6 @@ impl<'env, 'heap> TransformPass<'env, 'heap> for Sroa {
         }
         .visit_body_preserving_cfg(body);
         drop(analysis);
-
-        self.scratch.reset();
     }
 }
 

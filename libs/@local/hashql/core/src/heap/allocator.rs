@@ -4,6 +4,8 @@ use core::{alloc, ptr};
 
 use bumpalo::Bump;
 
+use super::BumpAllocator;
+
 /// Internal arena allocator.
 #[derive(Debug)]
 pub(super) struct Allocator(Bump);
@@ -22,12 +24,6 @@ impl Allocator {
         Self(Bump::with_capacity(capacity))
     }
 
-    /// Resets the allocator, invalidating all allocations but retaining capacity.
-    #[inline]
-    pub(crate) fn reset(&mut self) {
-        self.0.reset();
-    }
-
     /// Allocates a value using a closure to avoid moving before allocation.
     #[inline]
     pub(crate) fn alloc_with<T>(&self, func: impl FnOnce() -> T) -> &mut T {
@@ -44,13 +40,17 @@ impl Allocator {
             .try_alloc_slice_copy(slice)
             .map_err(|_err| alloc::AllocError)
     }
+}
 
-    /// Copies a string into the arena.
+impl BumpAllocator for Allocator {
     #[inline]
-    pub(crate) fn try_alloc_str(&self, string: &str) -> Result<&mut str, alloc::AllocError> {
-        self.0
-            .try_alloc_str(string)
-            .map_err(|_err| alloc::AllocError)
+    fn allocate_slice_copy<T: Copy>(&self, slice: &[T]) -> Result<&mut [T], alloc::AllocError> {
+        self.try_alloc_slice_copy(slice)
+    }
+
+    #[inline]
+    fn reset(&mut self) {
+        self.0.reset();
     }
 }
 

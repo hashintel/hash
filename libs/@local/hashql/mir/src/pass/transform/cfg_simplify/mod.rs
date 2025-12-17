@@ -48,7 +48,7 @@ use core::{iter::ExactSizeIterator as _, mem};
 use hashql_core::{
     collections::{WorkQueue, fast_hash_set_with_capacity_in},
     graph::Predecessors as _,
-    heap::{Scratch, TransferInto as _},
+    heap::{BumpAllocator, Scratch, TransferInto as _},
 };
 
 use super::{DeadBlockElimination, error::unreachable_switch_arm, ssa_repair::SsaRepair};
@@ -70,8 +70,8 @@ use crate::{
 /// Control-flow graph simplification pass.
 ///
 /// Simplifies the CFG by merging blocks, constant-folding switches, and eliminating dead blocks.
-pub struct CfgSimplify {
-    scratch: Scratch,
+pub struct CfgSimplify<A: BumpAllocator = Scratch> {
+    alloc: A,
 }
 
 impl CfgSimplify {
@@ -79,8 +79,15 @@ impl CfgSimplify {
     #[must_use]
     pub fn new() -> Self {
         Self {
-            scratch: Scratch::new(),
+            alloc: Scratch::new(),
         }
+    }
+}
+
+impl<A: BumpAllocator> CfgSimplify<A> {
+    #[must_use]
+    pub const fn new_in(alloc: A) -> Self {
+        Self { alloc }
     }
 
     /// Returns `true` if the block contains only no-op statements.
@@ -414,7 +421,7 @@ impl CfgSimplify {
         let previous_reverse_postorder = body
             .basic_blocks
             .reverse_postorder()
-            .transfer_into(&self.scratch);
+            .transfer_into(&self.alloc);
 
         let changed = match &body.basic_blocks[id].terminator.kind {
             &TerminatorKind::Goto(goto) => Self::simplify_goto(context, body, id, goto),
@@ -441,7 +448,7 @@ impl CfgSimplify {
     /// counts, potentially allowing previously blocked merges to proceed.
     fn mark_dead_blocks(&self, body: &mut Body<'_>, previous_reverse_postorder: &[BasicBlockId]) {
         let mut reverse_postorder =
-            fast_hash_set_with_capacity_in(body.basic_blocks.len(), &self.scratch);
+            fast_hash_set_with_capacity_in(body.basic_blocks.len(), &self.alloc);
 
         #[expect(unsafe_code)]
         for &block in body.basic_blocks.reverse_postorder() {
@@ -485,7 +492,7 @@ impl<'env, 'heap> TransformPass<'env, 'heap> for CfgSimplify {
             // Repeatedly simplify until no more changes—catches cascading opportunities
             // like SwitchInt → Goto → inline.
             loop {
-                self.scratch.reset();
+                self.alloc.reset();
                 if !self.simplify(context, body, block) {
                     break;
                 }
@@ -504,11 +511,10 @@ impl<'env, 'heap> TransformPass<'env, 'heap> for CfgSimplify {
         }
 
         // Unreachable blocks will be dead, therefore must be removed
-        self.scratch.reset(); // TODO: move this inside once Allocator is implemented on &mut A
-        let mut dbe = DeadBlockElimination::new_in(&self.scratch);
+        let mut dbe = DeadBlockElimination::new_in(&mut self.alloc);
         dbe.run(context, body);
 
         // Simplifications may break SSA (e.g., merged blocks with conflicting definitions).
-        SsaRepair.run(context, body);
+        SsaRepair::new_in(&mut self.alloc).run(context, body);
     }
 }

@@ -24,9 +24,9 @@
 #[cfg(test)]
 mod tests;
 
-use core::{alloc::Allocator, convert::Infallible};
+use core::convert::Infallible;
 
-use hashql_core::{collections::fast_hash_set_with_capacity_in, id::Id as _};
+use hashql_core::{collections::fast_hash_set_with_capacity_in, heap::BumpAllocator, id::Id as _};
 
 use crate::{
     body::{
@@ -43,11 +43,11 @@ use crate::{
 /// Dead block elimination pass.
 ///
 /// Removes unreachable blocks and compacts the block ID space.
-pub struct DeadBlockElimination<A: Allocator> {
+pub struct DeadBlockElimination<A: BumpAllocator> {
     alloc: A,
 }
 
-impl<A: Allocator> DeadBlockElimination<A> {
+impl<A: BumpAllocator> DeadBlockElimination<A> {
     /// Creates a new dead block elimination pass.
     #[must_use]
     pub const fn new_in(alloc: A) -> Self {
@@ -55,8 +55,10 @@ impl<A: Allocator> DeadBlockElimination<A> {
     }
 }
 
-impl<'env, 'heap, A: Allocator> TransformPass<'env, 'heap> for DeadBlockElimination<A> {
+impl<'env, 'heap, A: BumpAllocator> TransformPass<'env, 'heap> for DeadBlockElimination<A> {
     fn run(&mut self, context: &mut MirContext<'env, 'heap>, body: &mut Body<'heap>) {
+        self.alloc.reset();
+
         let mut reachable = fast_hash_set_with_capacity_in(
             body.basic_blocks.reverse_postorder().len(),
             &self.alloc,

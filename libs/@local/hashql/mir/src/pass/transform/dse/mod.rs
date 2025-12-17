@@ -50,7 +50,7 @@ use core::{alloc::Allocator, convert::Infallible};
 
 use hashql_core::{
     collections::WorkQueue,
-    heap::Scratch,
+    heap::{BumpAllocator, Scratch},
     id::{
         Id as _,
         bit_vec::{BitMatrix, DenseBitSet},
@@ -81,8 +81,8 @@ use crate::{
 /// Dead stores are assignments, storage statements, and block parameters whose values are never
 /// used in any observable way. This includes locals that are only used by other dead locals,
 /// even in cyclic dependency patterns.
-pub struct DeadStoreElimination {
-    scratch: Scratch,
+pub struct DeadStoreElimination<A: BumpAllocator = Scratch> {
+    alloc: A,
 }
 
 impl DeadStoreElimination {
@@ -90,8 +90,15 @@ impl DeadStoreElimination {
     #[must_use]
     pub fn new() -> Self {
         Self {
-            scratch: Scratch::new(),
+            alloc: Scratch::new(),
         }
+    }
+}
+
+impl<A: BumpAllocator> DeadStoreElimination<A> {
+    #[must_use]
+    pub const fn new_in(alloc: A) -> Self {
+        Self { alloc }
     }
 
     /// Computes the set of dead locals in the body.
@@ -100,7 +107,7 @@ impl DeadStoreElimination {
     /// return values and branch conditions), propagates liveness through the dependency graph.
     /// Returns the complement (all locals not marked live).
     fn dead_locals(&self, body: &Body<'_>) -> DenseBitSet<Local> {
-        let mut dependencies = DependencyVisitor::new_in(body, &self.scratch);
+        let mut dependencies = DependencyVisitor::new_in(body, &self.alloc);
         dependencies.visit_body(body);
 
         let DependencyVisitor {
@@ -130,29 +137,28 @@ impl Default for DeadStoreElimination {
     }
 }
 
-impl<'env, 'heap> TransformPass<'env, 'heap> for DeadStoreElimination {
+impl<'env, 'heap, A: BumpAllocator> TransformPass<'env, 'heap> for DeadStoreElimination<A> {
     fn run(&mut self, context: &mut MirContext<'env, 'heap>, body: &mut Body<'heap>) {
+        self.alloc.reset();
         let dead = self.dead_locals(body);
         let mut visitor = EliminationVisitor {
             dead: &dead,
             params: BasicBlockVec::from_fn_in(
                 body.basic_blocks.len(),
                 |block| body.basic_blocks[block].params,
-                &self.scratch,
+                &self.alloc,
             ),
             interner: context.interner,
-            scratch_locals: Vec::new_in(&self.scratch),
-            scratch_operands: Vec::new_in(&self.scratch),
+            scratch_locals: Vec::new_in(&self.alloc),
+            scratch_operands: Vec::new_in(&self.alloc),
         };
 
         Ok(()) = visitor.visit_body_preserving_cfg(body);
 
         drop(visitor);
-        self.scratch.reset();
 
-        let mut dle = DeadLocalElimination::new_in(&self.scratch).with_dead(dead);
+        let mut dle = DeadLocalElimination::new_in(&mut self.alloc).with_dead(dead);
         dle.run(context, body);
-        self.scratch.reset();
     }
 }
 

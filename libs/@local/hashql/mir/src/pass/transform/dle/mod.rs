@@ -1,6 +1,9 @@
-use core::{alloc::Allocator, convert::Infallible};
+use core::convert::Infallible;
 
-use hashql_core::id::{Id as _, bit_vec::DenseBitSet};
+use hashql_core::{
+    heap::BumpAllocator,
+    id::{Id as _, bit_vec::DenseBitSet},
+};
 
 use crate::{
     body::{
@@ -16,12 +19,12 @@ use crate::{
 };
 
 #[derive(Debug)]
-pub struct DeadLocalElimination<A: Allocator> {
-    dead: Option<DenseBitSet<Local>>,
+pub struct DeadLocalElimination<A: BumpAllocator> {
     alloc: A,
+    dead: Option<DenseBitSet<Local>>,
 }
 
-impl<A: Allocator> DeadLocalElimination<A> {
+impl<A: BumpAllocator> DeadLocalElimination<A> {
     #[must_use]
     pub const fn new_in(alloc: A) -> Self {
         Self { dead: None, alloc }
@@ -36,8 +39,10 @@ impl<A: Allocator> DeadLocalElimination<A> {
     }
 }
 
-impl<'env, 'heap, A: Allocator> TransformPass<'env, 'heap> for DeadLocalElimination<A> {
+impl<'env, 'heap, A: BumpAllocator> TransformPass<'env, 'heap> for DeadLocalElimination<A> {
     fn run(&mut self, context: &mut MirContext<'env, 'heap>, body: &mut Body<'heap>) {
+        self.alloc.reset();
+
         let dead = if let Some(dead) = self.dead.take() {
             dead
         } else {
