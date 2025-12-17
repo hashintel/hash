@@ -1,4 +1,4 @@
-import { css } from "@hashintel/ds-helpers/css";
+import { css, cva } from "@hashintel/ds-helpers/css";
 import { TbMathFunction } from "react-icons/tb";
 import { Handle, type NodeProps, Position } from "reactflow";
 
@@ -8,6 +8,97 @@ import { useSimulationStore } from "../../../state/simulation-provider";
 import type { PlaceNodeData } from "../../../state/types-for-editor-to-remove";
 import { handleStyling } from "../styles/styling";
 
+const containerStyle = css({
+  position: "relative",
+});
+
+const placeCircleStyle = cva({
+  base: {
+    padding: "spacing.4",
+    borderRadius: "[50%]",
+    width: "[130px]",
+    height: "[130px]",
+    display: "flex",
+    justifyContent: "center",
+    alignItems: "center",
+    border: "2px solid",
+    fontSize: "[15px]",
+    boxSizing: "border-box",
+    position: "relative",
+    textAlign: "center",
+    lineHeight: "[1.3]",
+    cursor: "default",
+    transition: "[all 0.2s ease]",
+    _hover: {
+      boxShadow: "0 0 0 4px rgba(59, 130, 246, 0.1)",
+    },
+  },
+  variants: {
+    selection: {
+      resource: {
+        boxShadow:
+          "0 0 0 3px rgba(59, 178, 246, 0.4), 0 0 0 5px rgba(59, 190, 246, 0.2)",
+      },
+      reactflow: {
+        boxShadow:
+          "0 0 0 4px rgba(249, 115, 22, 0.4), 0 0 0 6px rgba(249, 115, 22, 0.2)",
+      },
+      none: {},
+    },
+  },
+  defaultVariants: {
+    selection: "none",
+  },
+});
+
+const dynamicsIconStyle = css({
+  position: "absolute",
+  top: "[25px]",
+  left: "[0px]",
+  width: "[100%]",
+  display: "flex",
+  alignItems: "center",
+  gap: "spacing.4",
+  justifyContent: "center",
+  color: "core.blue.60",
+  fontSize: "[18px]",
+});
+
+const contentWrapperStyle = css({
+  display: "flex",
+  flexDirection: "column",
+  alignItems: "center",
+  gap: "spacing.2",
+});
+
+const labelContainerStyle = css({
+  textAlign: "center",
+  display: "flex",
+  flexWrap: "wrap",
+  justifyContent: "center",
+  padding: "[12px]",
+});
+
+const labelSegmentStyle = css({
+  display: "inline-block",
+  whiteSpace: "nowrap",
+});
+
+const tokenCountBadgeStyle = css({
+  position: "absolute",
+  top: "[70%]",
+  fontSize: "[11px]",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  color: "[white]",
+  backgroundColor: "[black]",
+  width: "[20px]",
+  height: "[20px]",
+  borderRadius: "[50%]",
+  fontWeight: "semibold",
+});
+
 export const PlaceNode: React.FC<NodeProps<PlaceNodeData>> = ({
   id,
   data,
@@ -15,14 +106,14 @@ export const PlaceNode: React.FC<NodeProps<PlaceNodeData>> = ({
   selected,
 }: NodeProps<PlaceNodeData>) => {
   const isSimulateMode = useEditorStore(
-    (state) => state.globalMode === "simulate",
+    (state) => state.globalMode === "simulate"
   );
   const selectedResourceId = useEditorStore(
-    (state) => state.selectedResourceId,
+    (state) => state.selectedResourceId
   );
   const simulation = useSimulationStore((state) => state.simulation);
   const currentlyViewedFrame = useSimulationStore(
-    (state) => state.currentlyViewedFrame,
+    (state) => state.currentlyViewedFrame
   );
   const initialMarking = useSimulationStore((state) => state.initialMarking);
 
@@ -50,13 +141,14 @@ export const PlaceNode: React.FC<NodeProps<PlaceNodeData>> = ({
 
   // Determine selection state
   const isSelectedByResource = selectedResourceId === id;
+  const selectionVariant = isSelectedByResource
+    ? "resource"
+    : selected
+    ? "reactflow"
+    : "none";
 
   return (
-    <div
-      className={css({
-        position: "relative",
-      })}
-    >
+    <div className={containerStyle}>
       <Handle
         type="target"
         position={Position.Left}
@@ -64,83 +156,25 @@ export const PlaceNode: React.FC<NodeProps<PlaceNodeData>> = ({
         style={handleStyling}
       />
       <div
-        className={css({
-          padding: "spacing.4",
-          borderRadius: "[50%]",
-          width: "[130px]",
-          height: "[130px]",
-          display: "flex",
-          justifyContent: "center",
-          alignItems: "center",
-          border: "2px solid",
-          fontSize: "[15px]",
-          boxSizing: "border-box",
-          position: "relative",
-          textAlign: "center",
-          lineHeight: "[1.3]",
-          cursor: "default",
-          _hover: {
-            boxShadow: "0 0 0 4px rgba(59, 130, 246, 0.1)",
-          },
-        })}
+        className={placeCircleStyle({ selection: selectionVariant })}
         style={{
-          transition: "all 0.2s ease",
           borderColor: data.typeColor ?? undefined,
           backgroundColor: data.typeColor
             ? hexToRgba(data.typeColor, 0.1)
             : undefined,
-          // Selection indicator:
-          // - Blue glow for selectedResourceId (properties panel selection)
-          // - Orange glow for ReactFlow selection (when not selected by resource)
-          boxShadow: isSelectedByResource
-            ? "0 0 0 3px rgba(59, 178, 246, 0.4), 0 0 0 5px rgba(59, 190, 246, 0.2)"
-            : selected
-              ? "0 0 0 4px rgba(249, 115, 22, 0.4), 0 0 0 6px rgba(249, 115, 22, 0.2)"
-              : undefined,
         }}
       >
         {data.dynamicsEnabled && (
-          <div
-            className={css({
-              position: "absolute",
-              top: "[25px]",
-              left: "[0px]",
-              width: "[100%]",
-              display: "flex",
-              alignItems: "center",
-              gap: "spacing.4",
-              justifyContent: "center",
-              color: "core.blue.60",
-              fontSize: "[18px]",
-            })}
-          >
+          <div className={dynamicsIconStyle}>
             <TbMathFunction />
           </div>
         )}
-        <div
-          className={css({
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            gap: "spacing.2",
-          })}
-        >
-          <div
-            className={css({
-              textAlign: "center",
-              display: "flex",
-              flexWrap: "wrap",
-              justifyContent: "center",
-            })}
-            style={{ padding: 12 }}
-          >
+        <div className={contentWrapperStyle}>
+          <div className={labelContainerStyle}>
             {splitPascalCase(data.label).map((segment, index) => (
               <span
                 key={segment + index.toString()}
-                className={css({
-                  display: "inline-block",
-                  whiteSpace: "nowrap",
-                })}
+                className={labelSegmentStyle}
               >
                 {segment}
               </span>
@@ -148,24 +182,7 @@ export const PlaceNode: React.FC<NodeProps<PlaceNodeData>> = ({
           </div>
 
           {tokenCount !== null && (
-            <div
-              className={css({
-                position: "absolute",
-                top: "[70%]",
-                fontSize: "[11px]",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                color: "[white]",
-                backgroundColor: "[black]",
-                width: "[20px]",
-                height: "[20px]",
-                borderRadius: "[50%]",
-                fontWeight: "semibold",
-              })}
-            >
-              {tokenCount}
-            </div>
+            <div className={tokenCountBadgeStyle}>{tokenCount}</div>
           )}
         </div>
       </div>
