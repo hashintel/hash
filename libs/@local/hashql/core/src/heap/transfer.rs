@@ -1,94 +1,58 @@
-//! Zero-copy data transfer into allocators.
-//!
-//! This module provides traits for transferring data into a target allocator,
-//! creating a new allocation and copying the source data. Unlike [`Clone`], which
-//! uses the global allocator, these traits allow specifying a custom allocator
-//! for the destination.
-//!
-//! # Lifetime Safety
-//!
-//! The key safety property of this module is the lifetime binding between the
-//! allocator reference and the returned data:
-//!
-//! ```text
-//! fn try_transfer_into(&self, allocator: &'alloc A) -> Result<&'alloc mut T, AllocError>
-//!                                        ^^^^^^                ^^^^^^
-//!                                        └──────────────────────┘
-//!                                        Output lifetime bound to allocator borrow
-//! ```
-//!
-//! This ensures returned references cannot outlive the allocator borrow. Since
-//! arena `reset()` requires `&mut self` and `drop()` requires ownership, Rust's
-//! borrow checker prevents arena invalidation while any transferred references exist.
+//! Zero-copy data transfer into arena allocators.
 #![expect(clippy::option_if_let_else)]
 
 use alloc::alloc::handle_alloc_error;
-use core::{
-    alloc::{AllocError, Allocator, Layout},
-    ptr, slice,
-};
+use core::alloc::{AllocError, Allocator, Layout};
 
-/// Fallibly transfers data into an allocator, returning a reference tied to the allocator's
-/// lifetime.
+use super::{Heap, Scratch, allocator};
+
+/// Fallibly transfers data into an arena allocator, returning a reference
+/// tied to the allocator's lifetime.
 ///
-/// This trait enables copying data into arena allocators while maintaining proper lifetime
-/// bounds. The returned reference is guaranteed to be valid for as long as the allocator
-/// borrow exists.
+/// # Why Arena-Only?
+///
+/// This trait is intentionally **not** implemented for arbitrary allocators like `Global`.
+/// The returned reference has lifetime `'alloc`, which is sound for arena allocators
+/// because their memory remains valid until explicit `reset()` or `drop()`. For `Global`,
+/// this would allow creating `&'static` references to heap memory, causing memory leaks.
 ///
 /// # Safety
 ///
 /// Implementors must guarantee:
 ///
-/// - **Correct layout**: Allocations must use the correct [`Layout`] for the data being
-///   transferred, including proper size and alignment.
-/// - **Valid initialization**: The allocated memory must be fully initialized with valid data
-///   before returning.
-/// - **No aliasing**: When returning `&mut` references, no other references to the same memory may
-///   exist.
-/// - **Lifetime correctness**: The returned reference must point to memory that remains valid for
-///   the entire `'alloc` lifetime.
-///
-/// # Lifetime Guarantee
-///
-/// The allocator is taken by reference (`&'alloc A`), binding the output lifetime to `'alloc`.
-/// This prevents use-after-free: you cannot call `reset()` (requires `&mut self`) or drop the
-/// allocator (requires ownership) while references to transferred data exist.
-pub unsafe trait TryTransferInto<A: Allocator> {
-    /// The type of the transferred data.
+/// - Allocations use the correct [`Layout`] for the data being transferred
+/// - The allocated memory is fully initialized before returning
+/// - No aliasing violations when returning `&mut` references
+/// - The allocator keeps memory valid for the full `'alloc` lifetime
+pub unsafe trait TryTransferInto<'alloc, A: Allocator> {
     type Output;
 
     /// Attempts to transfer `self` into the given allocator.
     ///
     /// # Errors
     ///
-    /// Returns [`AllocError`] if the allocator cannot fulfill the allocation request.
-    fn try_transfer_into(&self, allocator: A) -> Result<Self::Output, AllocError>;
+    /// Returns [`AllocError`] if allocation fails.
+    fn try_transfer_into(&self, allocator: &'alloc A) -> Result<Self::Output, AllocError>;
 }
 
-/// Infallibly transfers data into an allocator.
+/// Infallibly transfers data into an arena allocator.
 ///
-/// This is the infallible counterpart to [`TryTransferInto`]. On allocation failure,
-/// it invokes the global allocation error handler (typically aborting the process).
-///
-/// # Panics
-///
-/// Panics (or aborts) if the underlying allocation fails, via [`handle_alloc_error`].
-pub trait TransferInto<A: Allocator> {
-    /// The type of the transferred data.
+/// Panics on allocation failure via [`handle_alloc_error`].
+pub trait TransferInto<'alloc, A: Allocator> {
     type Output;
 
     /// Transfers `self` into the given allocator.
-    fn transfer_into(&self, allocator: A) -> Self::Output;
+    fn transfer_into(&self, allocator: &'alloc A) -> Self::Output;
 }
 
-impl<T, A: Allocator> TransferInto<A> for T
+impl<'alloc, T, A: Allocator> TransferInto<'alloc, A> for T
 where
-    T: ?Sized + TryTransferInto<A>,
+    T: ?Sized + TryTransferInto<'alloc, A>,
 {
     type Output = T::Output;
 
     #[inline]
-    fn transfer_into(&self, allocator: A) -> Self::Output {
+    fn transfer_into(&self, allocator: &'alloc A) -> Self::Output {
         match self.try_transfer_into(allocator) {
             Ok(output) => output,
             Err(_) => handle_alloc_error(Layout::for_value::<T>(self)),
@@ -96,60 +60,138 @@ where
     }
 }
 
-/// Transfers a slice into an allocator by copying its contents.
-///
-/// # Safety
-///
-/// This implementation is safe because:
-/// - `Layout::for_value(self)` produces the correct layout for the slice
-/// - `T: Copy` ensures bitwise copying is valid (no drop flags, no ownership transfer issues)
-/// - The destination is freshly allocated, guaranteeing non-overlap with the source
-/// - The returned lifetime `'alloc` is bound to the allocator borrow
-// SAFETY: All invariants documented on `TryTransferInto` are upheld:
-// - Layout is computed via `Layout::for_value`, which is correct for slices
-// - Memory is fully initialized via `copy_nonoverlapping` before returning
-// - Fresh allocation ensures no aliasing
-// - Lifetime bound to allocator reference prevents use-after-free
-unsafe impl<'alloc, T: Copy + 'alloc, A: Allocator> TryTransferInto<&'alloc A> for [T] {
+// SAFETY: Arena memory remains valid for 'alloc. Bumpalo handles layout/initialization.
+unsafe impl<'alloc, T: Copy + 'alloc> TryTransferInto<'alloc, allocator::Allocator> for [T] {
     type Output = &'alloc mut Self;
 
     #[inline]
-    fn try_transfer_into(&self, allocator: &'alloc A) -> Result<Self::Output, AllocError> {
-        let layout = Layout::for_value(self);
-        let dst = allocator.allocate(layout)?.cast::<T>();
-
-        // SAFETY:
-        // - `self.as_ptr()` is valid for reads of `self.len()` elements (slice guarantee)
-        // - `dst.as_ptr()` points to freshly allocated memory with correct size and alignment
-        // - Source and destination do not overlap (fresh allocation)
-        // - `T: Copy` ensures no drop flags or ownership concerns
-        let result = unsafe {
-            ptr::copy_nonoverlapping(self.as_ptr(), dst.as_ptr(), self.len());
-            slice::from_raw_parts_mut(dst.as_ptr(), self.len())
-        };
-
-        Ok(result)
+    fn try_transfer_into(
+        &self,
+        allocator: &'alloc allocator::Allocator,
+    ) -> Result<Self::Output, AllocError> {
+        allocator.try_alloc_slice_copy(self)
     }
 }
 
-/// Transfers a string slice into an allocator by copying its UTF-8 bytes.
-///
-/// # Safety
-///
-/// This implementation is safe because:
-/// - Delegates to `[u8]::try_transfer_into` for the actual copy
-/// - Source `&str` guarantees valid UTF-8, which is preserved by the byte copy
-/// - `from_utf8_unchecked_mut` is valid because the copied bytes are identical to the source
-// SAFETY: UTF-8 validity is preserved because we copy the exact bytes from a valid `&str`.
-// The `[u8]` implementation handles all allocation safety concerns.
-unsafe impl<'alloc, A: Allocator> TryTransferInto<&'alloc A> for str {
+// SAFETY: Arena memory remains valid for 'alloc. Bumpalo handles layout/initialization.
+unsafe impl<'alloc, T: Copy + 'alloc> TryTransferInto<'alloc, Heap> for [T] {
     type Output = &'alloc mut Self;
 
-    fn try_transfer_into(&self, allocator: &'alloc A) -> Result<Self::Output, AllocError> {
-        let bytes = self.as_bytes().try_transfer_into(allocator)?;
+    #[inline]
+    fn try_transfer_into(&self, allocator: &'alloc Heap) -> Result<Self::Output, AllocError> {
+        allocator.inner.try_alloc_slice_copy(self)
+    }
+}
 
-        // SAFETY: `self` is a valid `&str`, so `self.as_bytes()` is valid UTF-8.
-        // We copied those exact bytes, so `bytes` is also valid UTF-8.
-        Ok(unsafe { core::str::from_utf8_unchecked_mut(bytes) })
+// SAFETY: Arena memory remains valid for 'alloc. Bumpalo handles layout/initialization.
+unsafe impl<'alloc, T: Copy + 'alloc> TryTransferInto<'alloc, Scratch> for [T] {
+    type Output = &'alloc mut Self;
+
+    #[inline]
+    fn try_transfer_into(&self, allocator: &'alloc Scratch) -> Result<Self::Output, AllocError> {
+        allocator.inner.try_alloc_slice_copy(self)
+    }
+}
+
+// SAFETY: Arena memory remains valid for 'alloc. Bumpalo handles layout/initialization.
+unsafe impl<'alloc> TryTransferInto<'alloc, allocator::Allocator> for str {
+    type Output = &'alloc mut Self;
+
+    #[inline]
+    fn try_transfer_into(
+        &self,
+        allocator: &'alloc allocator::Allocator,
+    ) -> Result<Self::Output, AllocError> {
+        allocator.try_alloc_str(self)
+    }
+}
+
+// SAFETY: Arena memory remains valid for 'alloc. Bumpalo handles layout/initialization.
+unsafe impl<'alloc> TryTransferInto<'alloc, Heap> for str {
+    type Output = &'alloc mut Self;
+
+    #[inline]
+    fn try_transfer_into(&self, allocator: &'alloc Heap) -> Result<Self::Output, AllocError> {
+        allocator.inner.try_alloc_str(self)
+    }
+}
+
+// SAFETY: Arena memory remains valid for 'alloc. Bumpalo handles layout/initialization.
+unsafe impl<'alloc> TryTransferInto<'alloc, Scratch> for str {
+    type Output = &'alloc mut Self;
+
+    #[inline]
+    fn try_transfer_into(&self, allocator: &'alloc Scratch) -> Result<Self::Output, AllocError> {
+        allocator.inner.try_alloc_str(self)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+
+    use super::*;
+    use crate::heap::Heap;
+
+    #[test]
+    fn transfer_slice() {
+        let heap = Heap::new();
+        let original: &[u32] = &[1, 2, 3, 4, 5];
+        let transferred = original.transfer_into(&heap);
+
+        assert_eq!(transferred, &[1, 2, 3, 4, 5]);
+
+        // Verify it's a copy, not the same memory
+        transferred[0] = 999;
+        assert_eq!(original[0], 1);
+    }
+
+    #[test]
+    fn transfer_str() {
+        let heap = Heap::new();
+        let original = "hello world";
+        let transferred = original.transfer_into(&heap);
+
+        assert_eq!(transferred, "hello world");
+    }
+
+    #[test]
+    fn transfer_empty_slice() {
+        let heap = Heap::new();
+        let original: &[u8] = &[];
+        let transferred = original.transfer_into(&heap);
+
+        assert!(transferred.is_empty());
+    }
+
+    #[test]
+    fn transfer_empty_str() {
+        let heap = Heap::new();
+        let original = "";
+        let transferred = original.transfer_into(&heap);
+
+        assert!(transferred.is_empty());
+    }
+
+    #[test]
+    fn try_transfer_returns_ok() {
+        let heap = Heap::new();
+        let original: &[i64] = &[100, 200, 300];
+        let result = original.try_transfer_into(&heap);
+
+        assert!(result.is_ok());
+        assert_eq!(
+            result.expect("should be able to allocate"),
+            &[100, 200, 300]
+        );
+    }
+
+    #[expect(clippy::non_ascii_literal)]
+    #[test]
+    fn transfer_unicode_str() {
+        let heap = Heap::new();
+        let original = "日本語 🎉 émojis";
+        let transferred = original.transfer_into(&heap);
+
+        assert_eq!(transferred, "日本語 🎉 émojis");
     }
 }

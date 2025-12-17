@@ -1,32 +1,10 @@
-//! Iterator collection with custom allocators.
-//!
-//! This module provides allocator-aware versions of [`FromIterator`] and the
-//! [`Iterator::collect`] method. These enable collecting iterator results into
-//! containers that use a specific allocator.
-//!
-//! # Relationship to Standard Traits
-//!
-//! | Standard Trait/Method       | Allocator-Aware Equivalent |
-//! |-----------------------------|---------------------------|
-//! | [`FromIterator<T>`]         | [`FromIteratorIn<T, A>`]  |
-//! | [`Iterator::collect`]       | [`CollectIn::collect_in`] |
-//!
-//! # Example
-//!
-//! ```ignore
-//! use hashql_core::heap::{Heap, CollectIn, Vec};
-//!
-//! let heap = Heap::new();
-//! let numbers: Vec<'_, i32> = (0..10).collect_in(&heap);
-//! ```
+//! Allocator-aware iterator collection.
 
 use core::alloc::Allocator;
 
 /// Construct a collection from an iterator using the provided allocator.
 ///
-/// This is the allocator-aware equivalent of [`FromIterator`]. Implement this
-/// trait for collection types that can be built from an iterator using a
-/// custom allocator.
+/// Allocator-aware equivalent of [`FromIterator`].
 pub trait FromIteratorIn<T, A: Allocator> {
     /// Creates a collection from an iterator, allocating in `alloc`.
     fn from_iter_in<I>(iter: I, alloc: A) -> Self
@@ -34,9 +12,6 @@ pub trait FromIteratorIn<T, A: Allocator> {
         I: IntoIterator<Item = T>;
 }
 
-/// Collects an [`Vec`] from an iterator using the provided allocator.
-///
-/// The vector is created empty and then extended with the iterator's elements.
 impl<T, A: Allocator> FromIteratorIn<T, A> for Vec<T, A> {
     fn from_iter_in<I>(iter: I, alloc: A) -> Self
     where
@@ -50,33 +25,65 @@ impl<T, A: Allocator> FromIteratorIn<T, A> for Vec<T, A> {
 
 /// Extension trait for collecting iterators into allocator-aware containers.
 ///
-/// This provides the [`collect_in`](Self::collect_in) method, which is analogous
-/// to [`Iterator::collect`] but takes an explicit allocator parameter.
-///
-/// # Example
-///
-/// ```ignore
-/// use hashql_core::heap::{Heap, CollectIn};
-///
-/// let heap = Heap::new();
-///
-/// // Collect into a heap-allocated Vec
-/// let squared: heap::Vec<'_, i32> = (1..=5)
-///     .map(|x| x * x)
-///     .collect_in(&heap);
-/// ```
+/// Provides [`collect_in`](Self::collect_in), analogous to [`Iterator::collect`]
+/// but with an explicit allocator parameter.
 pub trait CollectIn<C, A: Allocator> {
     /// Collects the iterator into a container using the given allocator.
     fn collect_in(self, alloc: A) -> C;
 }
 
-/// Blanket implementation: any iterator can be collected into any container
-/// that implements [`FromIteratorIn`].
 impl<I, C: FromIteratorIn<T, A>, T, A: Allocator> CollectIn<C, A> for I
 where
     I: IntoIterator<Item = T>,
 {
     fn collect_in(self, alloc: A) -> C {
         C::from_iter_in(self, alloc)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::heap::Heap;
+
+    #[test]
+    fn collect_range_into_vec() {
+        let heap = Heap::new();
+        let vec: Vec<i32, &Heap> = (0..5).collect_in(&heap);
+
+        assert_eq!(vec.as_slice(), &[0, 1, 2, 3, 4]);
+    }
+
+    #[test]
+    fn collect_mapped_iterator() {
+        let heap = Heap::new();
+        let vec: Vec<i32, &Heap> = [1, 2, 3].iter().map(|x| x * 2).collect_in(&heap);
+
+        assert_eq!(vec.as_slice(), &[2, 4, 6]);
+    }
+
+    #[expect(clippy::integer_division_remainder_used)]
+    #[test]
+    fn collect_filtered_iterator() {
+        let heap = Heap::new();
+        let vec: Vec<i32, &Heap> = (0..10).filter(|x| x % 2 == 0).collect_in(&heap);
+
+        assert_eq!(vec.as_slice(), &[0, 2, 4, 6, 8]);
+    }
+
+    #[test]
+    fn from_iter_in_directly() {
+        let heap = Heap::new();
+        let vec: Vec<char, &Heap> = Vec::from_iter_in(['a', 'b', 'c'], &heap);
+
+        assert_eq!(vec.as_slice(), &['a', 'b', 'c']);
+    }
+
+    #[test]
+    fn collect_empty_iterator() {
+        let heap = Heap::new();
+        let vec: Vec<u8, &Heap> = core::iter::empty().collect_in(&heap);
+
+        assert!(vec.is_empty());
     }
 }
