@@ -25,7 +25,6 @@ mod tarjan;
 mod tests;
 mod topo;
 
-use bumpalo::Bump;
 use ena::unify::{InPlaceUnificationTable, NoError, UnifyKey as _};
 use hashql_diagnostics::DiagnosticIssues;
 
@@ -43,6 +42,7 @@ use crate::{
     collections::{
         FastHashMap, SmallVec, fast_hash_map_with_capacity, fast_hash_map_with_capacity_in,
     },
+    heap::Scratch,
     r#type::{
         PartialType, TypeId,
         environment::{InferenceEnvironment, LatticeEnvironment, Variance},
@@ -440,7 +440,7 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
         &mut self,
         graph: &mut Graph,
         variables: &mut FastHashMap<VariableKind, (Variable, VariableConstraint)>,
-        bump: &Bump,
+        scratch: &Scratch,
     ) {
         // We first create a graph of all the inference variables, that's then used to see if there
         // are any variables that can be equalized.
@@ -481,7 +481,7 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
         }
 
         // Run Tarjan's SCC algorithm to find strongly connected components
-        let tarjan = Tarjan::new_in(graph, EdgeKind::SubtypeOf, bump);
+        let tarjan = Tarjan::new_in(graph, EdgeKind::SubtypeOf, scratch);
 
         // For each strongly connected component, unify all variables in the component
         // since they must be equal due to anti-symmetry of the subtyping relation
@@ -677,13 +677,12 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
     ///
     /// Creates lookup table for efficient retrieval of transitive constraints during
     /// forward and backward passes.
-    fn apply_constraints_prepare_constraints<'bump>(
+    fn apply_constraints_prepare_constraints<'scratch>(
         &mut self,
         lookup_by: Bound,
-        heap: &'bump Bump,
-    ) -> FastHashMap<VariableId, Vec<VariableOrdering, &'bump Bump>, &'bump Bump> {
-        let mut lookup: FastHashMap<VariableId, Vec<VariableOrdering, &'bump Bump>, &'bump Bump> =
-            fast_hash_map_with_capacity_in(self.unification.variables.len(), heap);
+        scratch: &'scratch Scratch,
+    ) -> FastHashMap<VariableId, Vec<VariableOrdering, &'scratch Scratch>, &'scratch Scratch> {
+        let mut lookup = fast_hash_map_with_capacity_in(self.unification.variables.len(), scratch);
 
         for &constraint in &self.constraints {
             let Constraint::Ordering { lower, upper } = constraint else {
@@ -708,7 +707,7 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
                     Bound::Lower => lower_id,
                     Bound::Upper => upper_id,
                 })
-                .or_insert_with(|| Vec::new_in(heap));
+                .or_insert_with(|| Vec::new_in(scratch));
 
             entry.push(VariableOrdering {
                 lower: ResolvedVariable {
@@ -739,7 +738,7 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
     fn apply_constraints_forwards(
         &mut self,
         graph: &Graph,
-        bump: &Bump,
+        scratch: &Scratch,
         variables: &mut FastHashMap<VariableKind, (Variable, VariableConstraint)>,
     ) {
         // Create a substitution from known equality constraints
@@ -748,11 +747,11 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
 
         // We're currently looking through `lower`, therefore, look for any variables for which
         // `a <: b`, where `b` is the current node.
-        let lookup = self.apply_constraints_prepare_constraints(Bound::Upper, bump);
+        let lookup = self.apply_constraints_prepare_constraints(Bound::Upper, scratch);
 
         // Does a forwards pass over the graph to apply any lower constraints in order
         // Process nodes in topological order to ensure dependencies are resolved first
-        let topo = topological_sort_in(graph, EdgeKind::SubtypeOf, bump)
+        let topo = topological_sort_in(graph, EdgeKind::SubtypeOf, scratch)
             .expect("expected dag after anti-symmetry run");
 
         for index in topo {
@@ -841,7 +840,7 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
     fn apply_constraints_backwards(
         &mut self,
         graph: &Graph,
-        bump: &Bump,
+        scratch: &Scratch,
         variables: &mut FastHashMap<VariableKind, (Variable, VariableConstraint)>,
     ) {
         // Create a substitution from known equality and lower bound constraints
@@ -850,9 +849,9 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
 
         // We're currently looking through `upper`, therefore, look for any variables for which
         // `a <: b`, where `a` is the current node.
-        let lookup = self.apply_constraints_prepare_constraints(Bound::Lower, bump);
+        let lookup = self.apply_constraints_prepare_constraints(Bound::Lower, scratch);
 
-        let topo = topological_sort_in(graph, EdgeKind::Any, bump)
+        let topo = topological_sort_in(graph, EdgeKind::Any, scratch)
             .expect("expected dag after anti-symmetry run");
 
         for index in topo.into_iter().rev() {
@@ -950,7 +949,7 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
     fn apply_constraints(
         &mut self,
         graph: &Graph,
-        bump: &Bump,
+        scratch: &Scratch,
         variables: &mut FastHashMap<VariableKind, (Variable, VariableConstraint)>,
         selections: &mut Vec<(
             SelectionConstraint<'heap>,
@@ -962,10 +961,10 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
         self.collect_constraints(variables, selections);
 
         // Step 1.5: Perform the forward pass to resolve lower bounds
-        self.apply_constraints_forwards(graph, bump, variables);
+        self.apply_constraints_forwards(graph, scratch, variables);
 
         // Step 1.6: Perform the backward pass to resolve upper bounds
-        self.apply_constraints_backwards(graph, bump, variables);
+        self.apply_constraints_backwards(graph, scratch, variables);
     }
 
     /// Validates that the given constraint is satisfiable for the specified variable.
@@ -1080,10 +1079,10 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
     fn solve_constraints(
         &mut self,
         graph: &Graph,
-        bump: &Bump,
+        scratch: &Scratch,
         constraints: &FastHashMap<VariableKind, (Variable, VariableConstraint)>,
         substitutions: &mut FastHashMap<VariableKind, TypeId>,
-        unconstrained: &mut Vec<Variable, &Bump>,
+        unconstrained: &mut Vec<Variable, &Scratch>,
     ) {
         // Prepare a substitution map using the existing equality constraints
         // This allows us to use these equalities when verifying other constraints
@@ -1106,7 +1105,7 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
         // Because we substitute during the forward passes, we do not need to verify the constraints
         // again *or* do it in a specific order. The substitutions have already been applied for the
         // lower and upper bounds respectively.
-        let scc = Tarjan::new_in(graph, EdgeKind::Any, bump).compute(); // The scc are in reverse topological order
+        let scc = Tarjan::new_in(graph, EdgeKind::Any, scratch).compute(); // The scc are in reverse topological order
         let topo = scc.into_iter().flatten();
 
         for index in topo {
@@ -1540,7 +1539,7 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
         &mut self,
         graph: &Graph,
         substitution: &FastHashMap<VariableKind, TypeId>,
-        unconstrained: Vec<Variable, &Bump>,
+        unconstrained: Vec<Variable, &Scratch>,
     ) -> bool {
         let mut made_progress = false;
 
@@ -1602,7 +1601,7 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
         // reclaim and re-use, reducing memory usage. The bump allocator's memory consumption
         // stabilizes after the first iteration since each pass uses approximately
         // the same amount of memory.
-        let mut bump = Bump::new();
+        let mut scratch = Scratch::new();
 
         let mut graph = Graph::new(&mut self.unification);
 
@@ -1631,7 +1630,7 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
             self.upsert_variables(&mut graph);
 
             // Step 1.2: Solve anti-symmetry constraints (A <: B and B <: A implies A = B)
-            self.solve_anti_symmetry(&mut graph, &mut variables, &bump);
+            self.solve_anti_symmetry(&mut graph, &mut variables, &scratch);
 
             lookup = self.unification.lookup();
             // Step 1.3: Set the variable substitutions in the lattice
@@ -1640,17 +1639,17 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
 
             // Steps 1.4, 1.5, 1.6: Apply constraints through collection, forward, and backward
             // passes
-            self.apply_constraints(&graph, &bump, &mut variables, &mut selections);
+            self.apply_constraints(&graph, &scratch, &mut variables, &mut selections);
 
             // Step 1.7: Verify that all variables have been constrained
             self.verify_constrained(&graph, &variables);
 
             // Step 1.8: Validate constraints and determine final types
             substitution.clear();
-            let mut unconstrained = Vec::new_in(&bump);
+            let mut unconstrained = Vec::new_in(&scratch);
             self.solve_constraints(
                 &graph,
-                &bump,
+                &scratch,
                 &variables,
                 &mut substitution,
                 &mut unconstrained,
@@ -1672,7 +1671,7 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
             }
 
             // Reset the bump allocator for the next iteration to avoid memory growth
-            bump.reset();
+            scratch.reset();
         }
 
         // Step 2: Simplify the final substitutions
