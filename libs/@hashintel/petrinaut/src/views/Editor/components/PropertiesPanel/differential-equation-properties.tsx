@@ -16,6 +16,7 @@ import type {
   DifferentialEquation,
   Place,
 } from "../../../../core/types/sdcpn";
+import { useSimulationStore } from "../../../../state/simulation-provider";
 
 interface DifferentialEquationPropertiesProps {
   differentialEquation: DifferentialEquation;
@@ -24,7 +25,7 @@ interface DifferentialEquationPropertiesProps {
   globalMode: "edit" | "simulate";
   updateDifferentialEquation: (
     equationId: string,
-    updateFn: (equation: DifferentialEquation) => void,
+    updateFn: (equation: DifferentialEquation) => void
   ) => void;
 }
 
@@ -41,8 +42,13 @@ export const DifferentialEquationProperties: React.FC<
   const [pendingTypeId, setPendingTypeId] = useState<string | null>(null);
   const [showTypeDropdown, setShowTypeDropdown] = useState(false);
 
+  const simulationState = useSimulationStore((state) => state.state);
+  const isSimulationRunning =
+    simulationState === "Running" || simulationState === "Paused";
+  const isReadOnly = globalMode === "simulate" || isSimulationRunning;
+
   const associatedType = types.find(
-    (type) => type.id === differentialEquation.colorId,
+    (type) => type.id === differentialEquation.colorId
   );
 
   // Find places that use this differential equation
@@ -68,7 +74,7 @@ export const DifferentialEquationProperties: React.FC<
         differentialEquation.id,
         (existingEquation) => {
           existingEquation.colorId = newTypeId;
-        },
+        }
       );
     }
   };
@@ -79,7 +85,7 @@ export const DifferentialEquationProperties: React.FC<
         differentialEquation.id,
         (existingEquation) => {
           existingEquation.colorId = pendingTypeId;
-        },
+        }
       );
     }
     setShowConfirmDialog(false);
@@ -118,10 +124,10 @@ export const DifferentialEquationProperties: React.FC<
               differentialEquation.id,
               (existingEquation) => {
                 existingEquation.name = event.target.value;
-              },
+              }
             );
           }}
-          disabled={globalMode === "simulate"}
+          disabled={isReadOnly}
           style={{
             fontSize: 14,
             padding: "6px 8px",
@@ -129,9 +135,8 @@ export const DifferentialEquationProperties: React.FC<
             borderRadius: 4,
             width: "100%",
             boxSizing: "border-box",
-            backgroundColor:
-              globalMode === "simulate" ? "rgba(0, 0, 0, 0.05)" : "white",
-            cursor: globalMode === "simulate" ? "not-allowed" : "text",
+            backgroundColor: isReadOnly ? "rgba(0, 0, 0, 0.05)" : "white",
+            cursor: isReadOnly ? "not-allowed" : "text",
           }}
         />
       </div>
@@ -145,16 +150,15 @@ export const DifferentialEquationProperties: React.FC<
             type="button"
             onClick={() => setShowTypeDropdown(!showTypeDropdown)}
             onBlur={() => setTimeout(() => setShowTypeDropdown(false), 200)}
-            disabled={globalMode === "simulate"}
+            disabled={isReadOnly}
             style={{
               width: "100%",
               fontSize: 14,
               padding: "6px 8px",
               border: "1px solid rgba(0, 0, 0, 0.1)",
               borderRadius: 4,
-              backgroundColor:
-                globalMode === "simulate" ? "rgba(0, 0, 0, 0.05)" : "white",
-              cursor: globalMode === "simulate" ? "not-allowed" : "pointer",
+              backgroundColor: isReadOnly ? "rgba(0, 0, 0, 0.05)" : "white",
+              cursor: isReadOnly ? "not-allowed" : "pointer",
               display: "flex",
               alignItems: "center",
               gap: 8,
@@ -176,7 +180,7 @@ export const DifferentialEquationProperties: React.FC<
               </>
             )}
           </button>
-          {showTypeDropdown && globalMode === "edit" && (
+          {showTypeDropdown && !isReadOnly && (
             <div
               style={{
                 position: "absolute",
@@ -362,7 +366,7 @@ export const DifferentialEquationProperties: React.FC<
           }}
         >
           <div style={{ fontWeight: 500, fontSize: 12 }}>Code</div>
-          {globalMode === "edit" && (
+          {!isReadOnly && (
             <Menu
               trigger={
                 <button
@@ -388,7 +392,7 @@ export const DifferentialEquationProperties: React.FC<
                   onClick: () => {
                     // Get the associated type to generate appropriate default code
                     const equationType = types.find(
-                      (t) => t.id === differentialEquation.colorId,
+                      (t) => t.id === differentialEquation.colorId
                     );
 
                     updateDifferentialEquation(
@@ -396,10 +400,10 @@ export const DifferentialEquationProperties: React.FC<
                       (existingEquation) => {
                         existingEquation.code = equationType
                           ? generateDefaultDifferentialEquationCode(
-                              equationType,
+                              equationType
                             )
                           : DEFAULT_DIFFERENTIAL_EQUATION_CODE;
-                      },
+                      }
                     );
                   },
                 },
@@ -435,11 +439,8 @@ export const DifferentialEquationProperties: React.FC<
             overflow: "hidden",
             flex: 1,
             minHeight: 0,
-            filter:
-              globalMode === "simulate"
-                ? "grayscale(20%) brightness(98%)"
-                : "none",
-            pointerEvents: globalMode === "simulate" ? "none" : "auto",
+            filter: isReadOnly ? "grayscale(20%) brightness(98%)" : "none",
+            pointerEvents: isReadOnly ? "none" : "auto",
           }}
         >
           <MonacoEditor
@@ -450,7 +451,7 @@ export const DifferentialEquationProperties: React.FC<
                 differentialEquation.id,
                 (existingEquation) => {
                   existingEquation.code = newCode ?? "";
-                },
+                }
               );
             }}
             path={`inmemory://sdcpn/differential-equations/${differentialEquation.id}.ts`}
@@ -466,7 +467,7 @@ export const DifferentialEquationProperties: React.FC<
               lineNumbersMinChars: 3,
               padding: { top: 8, bottom: 8 },
               fixedOverflowWidgets: true,
-              readOnly: globalMode === "simulate",
+              readOnly: isReadOnly,
             }}
           />
         </div>
