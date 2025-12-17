@@ -457,6 +457,13 @@ pub struct PatchEntityParams {
     pub provenance: ProvidedEntityEditionProvenance,
 }
 
+impl PatchEntityParams {
+    #[must_use]
+    pub fn has_update_params(&self) -> bool {
+        !self.entity_type_ids.is_empty() || !self.properties.is_empty() || self.draft.is_some()
+    }
+}
+
 #[derive(Debug, Deserialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
