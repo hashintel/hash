@@ -29,6 +29,68 @@
 //! - [`heap::Vec<'heap, T>`](Vec)
 //! - [`heap::VecDeque<'heap, T>`](VecDeque)
 //! - [`heap::HashMap<'heap, K, V, S>`](HashMap)
+//!
+//! # Allocator-Aware Traits
+//!
+//! This module provides traits that mirror standard library traits but accept an allocator:
+//!
+//! | Trait | Std Equivalent | Use When |
+//! |-------|----------------|----------|
+//! | [`CloneIn`] | [`Clone`] | Cloning a value into an arena |
+//! | [`FromIn`] / [`IntoIn`] | [`From`] / [`Into`] | Converting types with allocation |
+//! | [`FromIteratorIn`] / [`CollectIn`] | [`FromIterator`] / [`Iterator::collect`] | Collecting iterators into arena containers |
+//! | [`TransferInto`] | — | Copying `&[T]` or `&str` into an arena |
+//!
+//! ## CloneIn
+//!
+//! Clone a value into an allocator:
+//!
+//! ```
+//! # #![feature(allocator_api)]
+//! use hashql_core::heap::{CloneIn, Heap};
+//!
+//! let heap = Heap::new();
+//! let original: Vec<u32> = vec![1, 2, 3];
+//! let cloned: hashql_core::heap::Vec<'_, u32> = original.clone_in(&heap);
+//! ```
+//!
+//! ## FromIn / IntoIn
+//!
+//! Convert values with allocation:
+//!
+//! ```
+//! # #![feature(allocator_api)]
+//! use hashql_core::heap::{Heap, IntoIn};
+//!
+//! let heap = Heap::new();
+//! let boxed: hashql_core::heap::Box<'_, i32> = 42_i32.into_in(&heap);
+//! ```
+//!
+//! ## CollectIn
+//!
+//! Collect iterators into arena containers:
+//!
+//! ```
+//! # #![feature(allocator_api)]
+//! use hashql_core::heap::{CollectIn, Heap};
+//!
+//! let heap = Heap::new();
+//! let vec: hashql_core::heap::Vec<'_, i32> = (0..5).collect_in(&heap);
+//! ```
+//!
+//! ## TransferInto
+//!
+//! Copy borrowed data (`&[T]` or `&str`) into the arena. Only implemented for arena allocators
+//! to prevent memory leaks from creating `&'static` references:
+//!
+//! ```
+//! # #![feature(allocator_api)]
+//! use hashql_core::heap::{Heap, TransferInto};
+//!
+//! let heap = Heap::new();
+//! let slice: &[u32] = &[1, 2, 3];
+//! let arena_slice: &mut [u32] = slice.transfer_into(&heap);
+//! ```
 #![expect(unsafe_code)]
 mod allocator;
 mod clone;
