@@ -9,7 +9,7 @@ use hashql_ast::node::{
     id::NodeId,
     path::{Path, PathSegment},
 };
-use hashql_core::heap::CloneIn;
+use hashql_core::heap::CloneIn as _;
 
 use self::{
     error::{
