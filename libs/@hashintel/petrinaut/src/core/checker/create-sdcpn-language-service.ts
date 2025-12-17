@@ -10,10 +10,11 @@ export type SDCPNLanguageService = ts.LanguageService;
 
 /**
  * Sanitizes a color ID to be a valid TypeScript identifier.
- * Removes dashes and other invalid characters.
+ * Removes all characters that are not valid suffixes for TypeScript identifiers
+ * (keeps only letters, digits, and underscores).
  */
 function sanitizeColorId(colorId: string): string {
-  return colorId.replace(/-/g, "");
+  return colorId.replace(/[^a-zA-Z0-9_]/g, "");
 }
 
 /**
@@ -98,7 +99,7 @@ function generateVirtualFiles(sdcpn: SDCPN): Map<string, VirtualFile> {
 
       const sanitizedColorId = sanitizeColorId(color.id);
       inputTypeImports.push(
-        `import type { Color_${sanitizedColorId} } from "../../../colors/${color.id}/defs.d.ts";`,
+        `import type { Color_${sanitizedColorId} } from "../../../colors/${color.id}/defs.d.ts";`
       );
       const tokenTuple = Array.from({ length: arc.weight })
         .fill(`Color_${sanitizedColorId}`)
@@ -196,7 +197,7 @@ function generateVirtualFiles(sdcpn: SDCPN): Map<string, VirtualFile> {
  */
 function adjustDiagnostics<T extends ts.Diagnostic>(
   diagnostics: readonly T[],
-  prefixLength: number,
+  prefixLength: number
 ): T[] {
   return diagnostics.map((diag) => ({
     ...diag,
@@ -239,7 +240,7 @@ export function createSDCPNLanguageService(sdcpn: SDCPN): SDCPNLanguageService {
       return baseService.getCompletionsAtPosition(
         fileName,
         position + prefixLength,
-        options,
+        options
       );
     },
   };
