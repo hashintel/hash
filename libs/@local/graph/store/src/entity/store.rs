@@ -458,9 +458,18 @@ pub struct PatchEntityParams {
 }
 
 impl PatchEntityParams {
+    /// Returns `true` if the parameters represents an update.
+    ///
+    /// An update is defined as any change to the entity's type IDs, properties, or draft status. If
+    /// only the confidence is updated without changing the archive-state, this is also considered
+    /// an update. On the counterary, if only the confidence is updated along with an archive-state
+    /// change, the confidence is used for the new entity edition.
     #[must_use]
-    pub fn has_update_params(&self) -> bool {
-        !self.entity_type_ids.is_empty() || !self.properties.is_empty() || self.draft.is_some()
+    pub fn is_update(&self) -> bool {
+        !self.entity_type_ids.is_empty()
+            || !self.properties.is_empty()
+            || self.draft.is_some()
+            || (self.archived.is_none() && self.confidence.is_some())
     }
 }
 

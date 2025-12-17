@@ -1849,7 +1849,7 @@ where
             ])
             .change_context(UpdateError)?;
 
-        if params.has_update_params() {
+        if params.is_update() {
             match policy_set
                 .evaluate(
                     &Request {
