@@ -24,13 +24,13 @@ import { analyzePlanTopology } from "../tools/topology-analyzer";
 /**
  * Common result structure for all scorers.
  */
-export interface ScorerResult {
+export interface ScorerResult<TDetails = Record<string, unknown>> {
   /** Normalized score [0, 1] */
   score: number;
   /** Human-readable explanation */
   reason: string;
   /** Detailed breakdown of scoring factors */
-  details: Record<string, unknown>;
+  details: TDetails;
 }
 
 // =============================================================================
@@ -73,7 +73,9 @@ export interface PlanStructureDetails {
  * - Parallelism opportunity: 20%
  * - Step type balance: 20%
  */
-export function scorePlanStructure(plan: PlanSpec): ScorerResult {
+export function scorePlanStructure(
+  plan: PlanSpec,
+): ScorerResult<PlanStructureDetails> {
   const validation = validatePlan(plan);
   const details: PlanStructureDetails = {
     isValidDag: validation.valid,
@@ -84,7 +86,12 @@ export function scorePlanStructure(plan: PlanSpec): ScorerResult {
     criticalPathLength: 0,
     maxParallelism: 0,
     parallelismRatio: 0,
-    stepTypeDistribution: { research: 0, synthesize: 0, experiment: 0, develop: 0 },
+    stepTypeDistribution: {
+      research: 0,
+      synthesize: 0,
+      experiment: 0,
+      develop: 0,
+    },
   };
 
   // Count step types
@@ -108,7 +115,9 @@ export function scorePlanStructure(plan: PlanSpec): ScorerResult {
   details.criticalPathLength = topology.criticalPath.length;
   details.maxParallelism = Math.max(
     1,
-    ...topology.parallelGroups.map((group) => group.parallelizableStepIds.length),
+    ...topology.parallelGroups.map(
+      (group) => group.parallelizableStepIds.length,
+    ),
   );
 
   // Calculate parallelism ratio
@@ -133,15 +142,23 @@ export function scorePlanStructure(plan: PlanSpec): ScorerResult {
   const structureScore = Math.max(0, 1 - entryPenalty - exitPenalty);
 
   // Parallelism score: reward parallel opportunity
-  const parallelismScore = Math.min(1, details.maxParallelism / Math.max(3, plan.steps.length / 2));
+  const parallelismScore = Math.min(
+    1,
+    details.maxParallelism / Math.max(3, plan.steps.length / 2),
+  );
 
   // Balance score: reward step type diversity
-  const usedTypes = Object.values(details.stepTypeDistribution).filter((count) => count > 0).length;
+  const usedTypes = Object.values(details.stepTypeDistribution).filter(
+    (count) => count > 0,
+  ).length;
   const balanceScore = usedTypes / 4; // 4 possible step types
 
   // Weighted combination
   const score =
-    0.4 * dagScore + 0.2 * structureScore + 0.2 * parallelismScore + 0.2 * balanceScore;
+    0.4 * dagScore +
+    0.2 * structureScore +
+    0.2 * parallelismScore +
+    0.2 * balanceScore;
 
   const reason =
     `Valid DAG with ${details.stepCount} steps. ` +
@@ -188,7 +205,9 @@ export interface PlanCoverageDetails {
  * - Should/could requirements: 20%
  * - Hypothesis coverage: 30%
  */
-export function scorePlanCoverage(plan: PlanSpec): ScorerResult {
+export function scorePlanCoverage(
+  plan: PlanSpec,
+): ScorerResult<PlanCoverageDetails> {
   const details: PlanCoverageDetails = {
     requirementCount: plan.requirements.length,
     coveredRequirementCount: 0,
@@ -210,16 +229,24 @@ export function scorePlanCoverage(plan: PlanSpec): ScorerResult {
 
   // Categorize requirements by priority and coverage
   const mustReqs = plan.requirements.filter((req) => req.priority === "must");
-  const shouldReqs = plan.requirements.filter((req) => req.priority === "should");
-  const coveredMustCount = mustReqs.filter((req) => coveredReqIds.has(req.id)).length;
-  const coveredShouldCount = shouldReqs.filter((req) => coveredReqIds.has(req.id)).length;
+  const shouldReqs = plan.requirements.filter(
+    (req) => req.priority === "should",
+  );
+  const coveredMustCount = mustReqs.filter((req) =>
+    coveredReqIds.has(req.id),
+  ).length;
+  const coveredShouldCount = shouldReqs.filter((req) =>
+    coveredReqIds.has(req.id),
+  ).length;
 
   details.coveredRequirementCount = coveredReqIds.size;
   details.uncoveredRequirements = plan.requirements
     .filter((req) => !coveredReqIds.has(req.id))
     .map((req) => req.id);
-  details.mustCoverageRatio = mustReqs.length > 0 ? coveredMustCount / mustReqs.length : 1;
-  details.shouldCoverageRatio = shouldReqs.length > 0 ? coveredShouldCount / shouldReqs.length : 1;
+  details.mustCoverageRatio =
+    mustReqs.length > 0 ? coveredMustCount / mustReqs.length : 1;
+  details.shouldCoverageRatio =
+    shouldReqs.length > 0 ? coveredShouldCount / shouldReqs.length : 1;
 
   // Find tested hypotheses
   const testedHypIds = new Set<string>();
@@ -291,9 +318,12 @@ export interface ExperimentRigorDetails {
  * - Expected outcomes: 20%
  * - Confirmatory balance: 15%
  */
-export function scoreExperimentRigor(plan: PlanSpec): ScorerResult {
+export function scoreExperimentRigor(
+  plan: PlanSpec,
+): ScorerResult<ExperimentRigorDetails> {
   const experiments = plan.steps.filter(
-    (step): step is PlanStep & { type: "experiment" } => step.type === "experiment",
+    (step): step is PlanStep & { type: "experiment" } =>
+      step.type === "experiment",
   );
 
   const details: ExperimentRigorDetails = {
@@ -325,7 +355,11 @@ export function scoreExperimentRigor(plan: PlanSpec): ScorerResult {
     if (exp.expectedOutcomes.length > 0) {
       details.withExpectedOutcomesCount++;
     }
-    if (exp.mode === "confirmatory" && exp.preregisteredCommitments && exp.preregisteredCommitments.length > 0) {
+    if (
+      exp.mode === "confirmatory" &&
+      exp.preregisteredCommitments &&
+      exp.preregisteredCommitments.length > 0
+    ) {
       details.preregisteredCount++;
       totalPreregCommitments += exp.preregisteredCommitments.length;
     }
@@ -338,10 +372,13 @@ export function scoreExperimentRigor(plan: PlanSpec): ScorerResult {
   // Calculate component scores
   // Preregistration: confirmatory experiments should have it
   const preregScore =
-    confirmatory.length > 0 ? details.preregisteredCount / confirmatory.length : 1;
+    confirmatory.length > 0
+      ? details.preregisteredCount / confirmatory.length
+      : 1;
 
   // Success criteria: all experiments should have them
-  const successCriteriaScore = details.withSuccessCriteriaCount / experiments.length;
+  const successCriteriaScore =
+    details.withSuccessCriteriaCount / experiments.length;
 
   // Expected outcomes: all experiments should have them
   const outcomesScore = details.withExpectedOutcomesCount / experiments.length;
@@ -400,7 +437,9 @@ export interface UnknownsCoverageDetails {
  * - Unknown-unknowns with signals: 30%
  * - Community check quality: 25%
  */
-export function scoreUnknownsCoverage(plan: PlanSpec): ScorerResult {
+export function scoreUnknownsCoverage(
+  plan: PlanSpec,
+): ScorerResult<UnknownsCoverageDetails> {
   const { unknownsMap } = plan;
 
   const details: UnknownsCoverageDetails = {
@@ -453,10 +492,10 @@ export interface CompositePlanScore {
   /** Overall weighted score */
   overall: number;
   /** Individual scorer results */
-  structure: ScorerResult;
-  coverage: ScorerResult;
-  experimentRigor: ScorerResult;
-  unknownsCoverage: ScorerResult;
+  structure: ScorerResult<PlanStructureDetails>;
+  coverage: ScorerResult<PlanCoverageDetails>;
+  experimentRigor: ScorerResult<ExperimentRigorDetails>;
+  unknownsCoverage: ScorerResult<UnknownsCoverageDetails>;
 }
 
 /**
