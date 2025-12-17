@@ -12,7 +12,7 @@
     "fix": "npm-run-all --continue-on-error \"fix:*\"",
     "fix:eslint": "eslint --fix .",
     "fix:format": "biome format --write",
-    "generate-schemas": "tsx src/mastra/fixtures/generate-schemas.ts",
+    "codegen": "tsx src/mastra/fixtures/generate-schemas.ts",
     "lint": "npm-run-all --continue-on-error \"lint:*\"",
     "lint:eslint": "eslint --report-unused-disable-directives .",
     "lint:tsc": "tsc --noEmit",

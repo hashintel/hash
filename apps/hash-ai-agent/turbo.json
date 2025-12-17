@@ -3,6 +3,9 @@
   "tasks": {
     "build": {
       "outputs": ["./.mastra/**"]
+    },
+    "codegen": {
+      "outputs": ["./src/mastra/fixtures/entity-schemas/**"]
     }
   }
 }
