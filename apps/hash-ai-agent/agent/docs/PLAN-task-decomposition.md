@@ -610,13 +610,13 @@ apps/hash-ai-agent/src/mastra/
 
 ### Phase 2: Fixtures
 
-5. **Positive fixtures** (ordered by complexity):
+1. **Positive fixtures** (ordered by complexity):
    - `summarize-papers.ts` — Linear flow, no experiments
    - `explore-and-recommend.ts` — Parallel research → synthesize
    - `hypothesis-validation.ts` — Research → experiment → evaluative synthesize
    - `ct-database-goal.ts` — Full R&D cycle (aspirational target)
 
-6. **Negative fixtures** (validation tests):
+2. **Negative fixtures** (validation tests):
    - `invalid-cycle.ts` — Steps that form a cycle
    - `invalid-missing-ref.ts` — dependsOn references non-existent step
    - `invalid-orphan-experiment.ts` — Experiment without hypothesis reference
@@ -624,7 +624,7 @@ apps/hash-ai-agent/src/mastra/
 
 ### Phase 3: Planner Agent
 
-7. **`agents/planner-agent.ts`** — Core planning agent:
+1. **`agents/planner-agent.ts`** — Core planning agent:
    - Instructions explaining step types, agents, patterns
    - Structured output with `zPlanSpec`
    - Available agents with capability profiles in system prompt
@@ -632,32 +632,32 @@ apps/hash-ai-agent/src/mastra/
 
 ### Phase 4: Scorers
 
-8. **Deterministic scorers**:
+1. **Deterministic scorers**:
    - `plan-structure-scorer.ts` — DAG valid, refs exist, no orphans
    - `plan-coverage-scorer.ts` — All requirements addressed
    - `experiment-rigor-scorer.ts` — Confirmatory experiments have preregistration
    - `unknowns-coverage-scorer.ts` — All unknown categories populated
 
-9. **LLM judge scorers**:
+2. **LLM judge scorers**:
    - `plan-testability-scorer.ts` — Hypotheses can actually be tested
    - `plan-granularity-scorer.ts` — Steps appropriately scoped
 
 ### Phase 5: Planning Workflow
 
-10. **`steps/extract-requirements-step.ts`**
-11. **`steps/generate-plan-step.ts`**
-12. **`steps/validate-plan-step.ts`**
-13. **`steps/supervisor-review-step.ts`**
-14. **`agents/supervisor-agent.ts`**
-15. **`workflows/planning-workflow.ts`**
+1. **`steps/extract-requirements-step.ts`**
+2. **`steps/generate-plan-step.ts`**
+3. **`steps/validate-plan-step.ts`**
+4. **`steps/supervisor-review-step.ts`**
+5. **`agents/supervisor-agent.ts`**
+6. **`workflows/planning-workflow.ts`**
 
 ### Phase 6: Stub Execution (Deferred — Low Priority)
 
 **Note**: Per reviewer feedback, stub execution has limited ROI. The real value is in plan quality scoring, not proving control flow with mocks. Implement only if needed.
 
-16. **`steps/execution/stub-executors.ts`** — Template-based mocks
-17. **`steps/execution/interpreter-step.ts`** — Core loop body
-18. **`workflows/stub-execution-workflow.ts`** — Interpreted execution
+1. **`steps/execution/stub-executors.ts`** — Template-based mocks
+2. **`steps/execution/interpreter-step.ts`** — Core loop body
+3. **`workflows/stub-execution-workflow.ts`** — Interpreted execution
 
 ---
 
@@ -951,6 +951,7 @@ DEVELOP:
 ### 15.3 Few-Shot Examples
 
 None initially. Add if quality issues emerge. When added, use simple examples that demonstrate:
+
 - Correct step type usage
 - Proper dependency structure
 - Hypothesis → experiment linking
@@ -1016,9 +1017,11 @@ Before implementing the full workflow loop, validate that `generatePlan()` works
    - Log results for manual inspection
 
 2. **Config flag for LLM scorers**:
+
    ```typescript
    const RUN_LLM_SCORERS = process.env.RUN_LLM_SCORERS === "true";
    ```
+
    This allows quick iteration with deterministic scorers only, then full scoring when needed.
 
 3. **Expected outcomes**:
@@ -1030,17 +1033,17 @@ Before implementing the full workflow loop, validate that `generatePlan()` works
 
 Once E2E validation passes reliably:
 
-4. **Implement `agents/supervisor-agent.ts`**:
+1. **Implement `agents/supervisor-agent.ts`**:
    - Reviews generated plans against goal
    - Returns approval/rejection with feedback
    - Structured output: `{ approved: boolean, feedback?: string, issues?: string[] }`
 
-5. **Implement full `workflows/planning-workflow.ts`**:
+2. **Implement full `workflows/planning-workflow.ts`**:
    - `extractRequirementsStep` → `generatePlanStep` → `validatePlanStep` → `supervisorReviewStep`
    - `.dountil()` loop with max 3 revision attempts
    - Pass feedback to planner on rejection
 
-6. **End-to-end workflow tests**:
+3. **End-to-end workflow tests**:
    - Test full loop with fixtures
    - Verify revision improves plan quality
    - Test max-attempts bailout

@@ -232,6 +232,7 @@ The `ct-database-goal` fixture fails due to **MISSING_PREREGISTERED_COMMITMENTS*
 **Root cause**: The prompt instruction about preregisteredCommitments may not be prominent enough for complex plans.
 
 **Potential fixes**:
+
 1. Strengthen prompt wording around preregisteredCommitments requirement
 2. Implement revision workflow loop (validator feedback → regenerate)
 3. Add few-shot example showing proper confirmatory experiment structure

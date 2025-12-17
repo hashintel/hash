@@ -5,6 +5,7 @@
 These templates encode rigorous scientific reasoning patterns for LLM instruction. They are captured here for future incorporation into the task decomposition planning framework.
 
 The templates are designed to make the model "police its own reasoning" by explicitly requiring:
+
 - Uncertainty-aware research planning
 - Experimental design with controls against bias and nuisance variation
 - Clear separation of confirmatory vs exploratory work
@@ -102,7 +103,7 @@ Goal: estimate/compare <effect> on <outcome>
   - Specify what gets repeated, at what level
   - Provide sample size rationale when possible
 
-- **Confirmatory vs exploratory split**: 
+- **Confirmatory vs exploratory split**:
   - Exploratory: hypothesis generation, flexible analysis, pattern discovery
   - Confirmatory: preregistered design, locked analysis plan, testing specific predictions
   - Selective reporting and flexible analysis choices can mislead even when work looks "scientific"
@@ -124,18 +125,21 @@ These templates could be incorporated into the planning framework in several way
 ### Option A: Sub-Modes
 
 The planner agent invokes these as "sub-modes" when generating specific step types:
+
 - Research steps trigger research-planning mode
 - Confirmatory experiment steps trigger experiment-design mode
 
 ### Option B: Step-Type Prompts
 
 Each step type has a specialized prompt that incorporates relevant principles:
+
 - `zResearchStep` generation uses research-planning principles
 - `zExperimentStep` generation uses experiment-design principles
 
 ### Option C: Supervisor Review
 
 The supervisor agent uses these templates to evaluate plan quality:
+
 - Does the research plan have stopping rules?
 - Do confirmatory experiments have preregistration?
 - Is the unknowns map properly partitioned?
@@ -143,6 +147,7 @@ The supervisor agent uses these templates to evaluate plan quality:
 ### Option D: Enrichment Step
 
 A post-generation enrichment step that prompts for missing rigor:
+
 - "This experiment is marked confirmatory but lacks preregistered commitments. What decisions should be locked?"
 - "This research step lacks a stopping rule. What would 'done' mean?"
 
@@ -177,6 +182,7 @@ These templates are grounded in core scientific methodology:
 ## References
 
 These templates synthesize principles from:
+
 - Philosophy of science (hypothesis testing, falsifiability)
 - Experimental design methodology (blocking, randomization, replication)
 - Meta-science and replication crisis literature (preregistration, researcher degrees of freedom)
