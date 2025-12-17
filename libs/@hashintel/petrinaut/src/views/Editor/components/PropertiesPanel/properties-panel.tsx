@@ -1,5 +1,5 @@
 import { css } from "@hashintel/ds-helpers/css";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 import { GlassPanel } from "../../../../components/glass-panel";
 import { useEditorStore } from "../../../../state/editor-provider";
@@ -11,6 +11,8 @@ import { TransitionProperties } from "./transition-properties";
 import { TypeProperties } from "./type-properties";
 
 const startingWidth = 450;
+const MIN_WIDTH = 250;
+const MAX_WIDTH = 800;
 const PANEL_MARGIN = 12;
 
 /**
@@ -42,20 +44,13 @@ export const PropertiesPanel: React.FC = () => {
     updateParameter,
   } = useSDCPNContext();
 
-  // Resize functionality
   const [panelWidth, setPanelWidthLocal] = useState(startingWidth);
-  const [isResizing, setIsResizing] = useState(false);
-  const resizeStartXRef = useRef(0);
-  const resizeStartWidthRef = useRef(startingWidth);
 
   // Sync panel width with global store
-  const setPanelWidth = useCallback(
-    (width: number | ((prev: number) => number)) => {
-      setPanelWidthLocal((prev) => {
-        const newWidth = typeof width === "function" ? width(prev) : width;
-        setPropertiesPanelWidth(newWidth);
-        return newWidth;
-      });
+  const handleResize = useCallback(
+    (newWidth: number) => {
+      setPanelWidthLocal(newWidth);
+      setPropertiesPanelWidth(newWidth);
     },
     [setPropertiesPanelWidth]
   );
@@ -64,52 +59,6 @@ export const PropertiesPanel: React.FC = () => {
   useEffect(() => {
     setPropertiesPanelWidth(startingWidth);
   }, [setPropertiesPanelWidth]);
-
-  const handleResizeStart = useCallback(
-    (event: React.MouseEvent) => {
-      event.preventDefault();
-      setIsResizing(true);
-      resizeStartXRef.current = event.clientX;
-      resizeStartWidthRef.current = panelWidth;
-    },
-    [panelWidth]
-  );
-
-  const handleResizeMove = useCallback(
-    (event: MouseEvent) => {
-      if (!isResizing) {
-        return;
-      }
-
-      const deltaX = resizeStartXRef.current - event.clientX;
-      const newWidth = Math.max(
-        250,
-        Math.min(800, resizeStartWidthRef.current + deltaX)
-      );
-      setPanelWidth(newWidth);
-    },
-    [isResizing, setPanelWidth]
-  );
-
-  const handleResizeEnd = useCallback(() => {
-    setIsResizing(false);
-  }, []);
-
-  useEffect(() => {
-    if (isResizing) {
-      document.addEventListener("mousemove", handleResizeMove);
-      document.addEventListener("mouseup", handleResizeEnd);
-      document.body.style.cursor = "ew-resize";
-      document.body.style.userSelect = "none";
-
-      return () => {
-        document.removeEventListener("mousemove", handleResizeMove);
-        document.removeEventListener("mouseup", handleResizeEnd);
-        document.body.style.cursor = "";
-        document.body.style.userSelect = "";
-      };
-    }
-  }, [isResizing, handleResizeMove, handleResizeEnd]);
 
   // Don't show panel if nothing is selected
   if (!selectedResourceId) {
@@ -247,62 +196,33 @@ export const PropertiesPanel: React.FC = () => {
         top: 0,
         right: 0,
         bottom: bottomOffset,
-        padding: "12px",
+        padding: PANEL_MARGIN,
         zIndex: 1000,
         pointerEvents: "none",
       }}
     >
-      <div
+      <GlassPanel
+        className={css({
+          height: "[100%]",
+        })}
         style={{
-          position: "relative",
-          display: "flex",
           width: panelWidth,
           pointerEvents: "auto",
         }}
+        contentStyle={{
+          padding: 16,
+          overflowY: "auto",
+        }}
+        resizable={{
+          edge: "left",
+          size: panelWidth,
+          onResize: handleResize,
+          minSize: MIN_WIDTH,
+          maxSize: MAX_WIDTH,
+        }}
       >
-        {/* Resize Handle */}
-        <button
-          type="button"
-          aria-label="Resize properties panel"
-          onMouseDown={handleResizeStart}
-          onKeyDown={(event) => {
-            if (event.key === "ArrowLeft") {
-              setPanelWidth((prev) => Math.max(250, prev - 10));
-            } else if (event.key === "ArrowRight") {
-              setPanelWidth((prev) => Math.min(800, prev + 10));
-            }
-          }}
-          style={{
-            position: "absolute",
-            left: 0,
-            top: 0,
-            bottom: 0,
-            width: 9,
-            cursor: "ew-resize",
-            zIndex: 1001,
-            background: "transparent",
-            border: "none",
-            padding: 0,
-            borderRadius: "12px 0 0 12px",
-            backgroundColor: "transparent",
-            transition: "background-color 0.4s",
-            transitionDelay: "0.2s",
-          }}
-        />
-
-        <GlassPanel
-          className={css({
-            height: "[100%]",
-            width: "[100%]",
-          })}
-          contentStyle={{
-            padding: 16,
-            overflowY: "auto",
-          }}
-        >
-          {content}
-        </GlassPanel>
-      </div>
+        {content}
+      </GlassPanel>
     </div>
   );
 };
