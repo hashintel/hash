@@ -253,7 +253,9 @@ export const zResearchStep = zBaseStep.extend({
   query: z.string().describe("The research question or search query"),
   stoppingRule: z
     .string()
-    .describe('What "done" means for this research (e.g., "3 relevant papers found")'),
+    .describe(
+      'What "done" means for this research (e.g., "3 relevant papers found")',
+    ),
   parallelizable: z
     .literal(true)
     .default(true)
@@ -328,9 +330,7 @@ export type ExperimentMode = z.infer<typeof zExperimentMode>;
 export const zExperimentStep = zBaseStep.extend({
   type: z.literal("experiment"),
   mode: zExperimentMode.describe("exploratory or confirmatory"),
-  hypothesisIds: z
-    .array(z.string())
-    .describe("Hypothesis IDs being tested"),
+  hypothesisIds: z.array(z.string()).describe("Hypothesis IDs being tested"),
   procedure: z.string().describe("How the experiment will be conducted"),
   expectedOutcomes: z
     .array(z.string())
@@ -341,7 +341,9 @@ export const zExperimentStep = zBaseStep.extend({
   preregisteredCommitments: z
     .array(z.string())
     .optional()
-    .describe("Decisions locked before seeing outcomes (required for confirmatory)"),
+    .describe(
+      "Decisions locked before seeing outcomes (required for confirmatory)",
+    ),
   parallelizable: z
     .boolean()
     .default(true)
@@ -387,7 +389,12 @@ export type PlanStep = z.infer<typeof zPlanStep>;
 /**
  * Step type literals for type-safe checks.
  */
-export const STEP_TYPES = ["research", "synthesize", "experiment", "develop"] as const;
+export const STEP_TYPES = [
+  "research",
+  "synthesize",
+  "experiment",
+  "develop",
+] as const;
 export type StepType = (typeof STEP_TYPES)[number];
 
 // =============================================================================
@@ -416,7 +423,9 @@ export type Complexity = z.infer<typeof zComplexity>;
  */
 export const zPlanSpec = z.object({
   id: z.string().describe("Unique identifier for this plan"),
-  goalSummary: z.string().describe("Concise summary of the goal being addressed"),
+  goalSummary: z
+    .string()
+    .describe("Concise summary of the goal being addressed"),
 
   // Optional enrichment — aim type classification
   aimType: zAimType
@@ -430,10 +439,10 @@ export const zPlanSpec = z.object({
   hypotheses: z
     .array(zHypothesis)
     .describe("Hypotheses to be tested (may be empty for pure research)"),
-  steps: z
-    .array(zPlanStep)
-    .describe("Steps forming a DAG"),
-  unknownsMap: zUnknownsMap.describe("Epistemically rigorous unknowns partition"),
+  steps: z.array(zPlanStep).describe("Steps forming a DAG"),
+  unknownsMap: zUnknownsMap.describe(
+    "Epistemically rigorous unknowns partition",
+  ),
 
   // Metadata
   estimatedComplexity: zComplexity

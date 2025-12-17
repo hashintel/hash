@@ -4,18 +4,19 @@
  * Centralizes configuration values used across agents, scorers, and workflows.
  */
 
-import type { ModelForProvider } from '@mastra/core/llm/model';
+import type { ModelForProvider } from "@mastra/core/llm/model";
 
-import type { StepType } from './schemas/plan-spec';
+import type { StepType } from "./schemas/plan-spec";
 
-export type OpenRouterModelId = `openrouter/${ModelForProvider<'openrouter'>}`;
+export type OpenRouterModelId = `openrouter/${ModelForProvider<"openrouter">}`;
 
 /**
  * Default LLM model identifier for agent inference.
  *
  * Uses OpenRouter routing to Google's Gemini 2.5 Flash Lite model.
  */
-export const DEFAULT_MODEL = 'openrouter/google/gemini-2.5-flash-lite' as const satisfies OpenRouterModelId;
+export const DEFAULT_MODEL =
+  "openrouter/google/gemini-2.5-flash-lite" as const satisfies OpenRouterModelId;
 
 /**
  * Block Protocol property type URL for entity names.
@@ -23,7 +24,8 @@ export const DEFAULT_MODEL = 'openrouter/google/gemini-2.5-flash-lite' as const 
  * Used as the canonical key for extracting/matching person and organization names
  * in structured entity output.
  */
-export const NAME_PROPERTY = 'https://blockprotocol.org/@blockprotocol/types/property-type/name/';
+export const NAME_PROPERTY =
+  "https://blockprotocol.org/@blockprotocol/types/property-type/name/";
 
 // =============================================================================
 // AVAILABLE AGENTS (for Task Decomposition Planning)
@@ -62,100 +64,101 @@ export const AVAILABLE_AGENTS = {
   // Research & Discovery
   // ---------------------------------------------------------------------------
 
-  'literature-searcher': {
-    description: 'Searches academic papers and technical documentation',
-    canHandle: ['research'],
-    inputs: ['query', 'sources?'],
-    outputs: ['papers', 'summaries'],
+  "literature-searcher": {
+    description: "Searches academic papers and technical documentation",
+    canHandle: ["research"],
+    inputs: ["query", "sources?"],
+    outputs: ["papers", "summaries"],
   },
 
-  'paper-summarizer': {
-    description: 'Reads and summarizes academic papers',
-    canHandle: ['research'],
-    inputs: ['paper'],
-    outputs: ['summary', 'keyFindings'],
+  "paper-summarizer": {
+    description: "Reads and summarizes academic papers",
+    canHandle: ["research"],
+    inputs: ["paper"],
+    outputs: ["summary", "keyFindings"],
   },
 
-  'concept-explainer': {
-    description: 'Explains technical concepts at varying depths',
-    canHandle: ['research', 'synthesize'],
-    inputs: ['concept', 'targetAudience?'],
-    outputs: ['explanation'],
+  "concept-explainer": {
+    description: "Explains technical concepts at varying depths",
+    canHandle: ["research", "synthesize"],
+    inputs: ["concept", "targetAudience?"],
+    outputs: ["explanation"],
   },
 
   // ---------------------------------------------------------------------------
   // Analysis & Synthesis
   // ---------------------------------------------------------------------------
 
-  'result-synthesizer': {
-    description: 'Combines findings from multiple sources into coherent understanding',
-    canHandle: ['synthesize'],
-    inputs: ['findings[]'],
-    outputs: ['synthesis', 'comparison?'],
+  "result-synthesizer": {
+    description:
+      "Combines findings from multiple sources into coherent understanding",
+    canHandle: ["synthesize"],
+    inputs: ["findings[]"],
+    outputs: ["synthesis", "comparison?"],
   },
 
-  'hypothesis-generator': {
-    description: 'Generates testable hypotheses from findings',
-    canHandle: ['synthesize'], // integrative mode leading to hypotheses
-    inputs: ['findings', 'constraints'],
-    outputs: ['hypotheses'],
+  "hypothesis-generator": {
+    description: "Generates testable hypotheses from findings",
+    canHandle: ["synthesize"], // integrative mode leading to hypotheses
+    inputs: ["findings", "constraints"],
+    outputs: ["hypotheses"],
   },
 
-  'progress-evaluator': {
-    description: 'Assesses current state against goals and criteria',
-    canHandle: ['synthesize'], // evaluative mode
-    inputs: ['results', 'criteria'],
-    outputs: ['assessment', 'gaps', 'recommendations'],
+  "progress-evaluator": {
+    description: "Assesses current state against goals and criteria",
+    canHandle: ["synthesize"], // evaluative mode
+    inputs: ["results", "criteria"],
+    outputs: ["assessment", "gaps", "recommendations"],
   },
 
   // ---------------------------------------------------------------------------
   // Experimentation
   // ---------------------------------------------------------------------------
 
-  'experiment-designer': {
-    description: 'Designs experimental procedures with controls',
-    canHandle: ['experiment'],
-    inputs: ['hypothesis', 'constraints'],
-    outputs: ['experimentDesign', 'protocol'],
+  "experiment-designer": {
+    description: "Designs experimental procedures with controls",
+    canHandle: ["experiment"],
+    inputs: ["hypothesis", "constraints"],
+    outputs: ["experimentDesign", "protocol"],
   },
 
-  'experiment-runner': {
-    description: 'Executes experiments and collects results',
-    canHandle: ['experiment'],
-    inputs: ['experimentDesign', 'protocol'],
-    outputs: ['results', 'observations'],
+  "experiment-runner": {
+    description: "Executes experiments and collects results",
+    canHandle: ["experiment"],
+    inputs: ["experimentDesign", "protocol"],
+    outputs: ["results", "observations"],
   },
 
   // ---------------------------------------------------------------------------
   // Implementation
   // ---------------------------------------------------------------------------
 
-  'code-explorer': {
-    description: 'Navigates and explains existing codebases',
-    canHandle: ['research'],
-    inputs: ['codebase', 'query'],
-    outputs: ['explanation', 'relevantFiles'],
+  "code-explorer": {
+    description: "Navigates and explains existing codebases",
+    canHandle: ["research"],
+    inputs: ["codebase", "query"],
+    outputs: ["explanation", "relevantFiles"],
   },
 
-  'code-writer': {
-    description: 'Implements algorithms and prototypes',
-    canHandle: ['develop', 'experiment'],
-    inputs: ['spec', 'context'],
-    outputs: ['code', 'tests?'],
+  "code-writer": {
+    description: "Implements algorithms and prototypes",
+    canHandle: ["develop", "experiment"],
+    inputs: ["spec", "context"],
+    outputs: ["code", "tests?"],
   },
 
-  'code-reviewer': {
-    description: 'Reviews code for correctness and quality',
-    canHandle: ['synthesize'], // evaluative mode
-    inputs: ['code', 'criteria'],
-    outputs: ['review', 'issues'],
+  "code-reviewer": {
+    description: "Reviews code for correctness and quality",
+    canHandle: ["synthesize"], // evaluative mode
+    inputs: ["code", "criteria"],
+    outputs: ["review", "issues"],
   },
 
-  'documentation-writer': {
-    description: 'Writes technical documentation',
-    canHandle: ['develop'],
-    inputs: ['code', 'context'],
-    outputs: ['documentation'],
+  "documentation-writer": {
+    description: "Writes technical documentation",
+    canHandle: ["develop"],
+    inputs: ["code", "context"],
+    outputs: ["documentation"],
   },
 } as const satisfies Record<string, AgentCapabilityProfile>;
 
@@ -184,7 +187,9 @@ export function canAgentHandle(ref: AgentRef, stepType: StepType): boolean {
  * Get all agents that can handle a given step type.
  */
 export function getAgentsForStepType(stepType: StepType): AgentRef[] {
-  return (Object.keys(AVAILABLE_AGENTS) as AgentRef[]).filter((ref) => canAgentHandle(ref, stepType));
+  return (Object.keys(AVAILABLE_AGENTS) as AgentRef[]).filter((ref) =>
+    canAgentHandle(ref, stepType),
+  );
 }
 
 /**
@@ -202,10 +207,10 @@ export function formatAgentsForPrompt(): string {
 
   for (const [ref, profile] of Object.entries(AVAILABLE_AGENTS)) {
     for (const stepType of profile.canHandle) {
-      const inputsStr = profile.inputs.join(', ');
-      const outputsStr = profile.outputs.join(', ');
+      const inputsStr = profile.inputs.join(", ");
+      const outputsStr = profile.outputs.join(", ");
       byStepType[stepType].push(
-        `  - ${ref}: ${profile.description}. Inputs: [${inputsStr}]. Outputs: [${outputsStr}].`
+        `  - ${ref}: ${profile.description}. Inputs: [${inputsStr}]. Outputs: [${outputsStr}].`,
       );
     }
   }
@@ -213,9 +218,9 @@ export function formatAgentsForPrompt(): string {
   const sections: string[] = [];
   for (const [stepType, agents] of Object.entries(byStepType)) {
     if (agents.length > 0) {
-      sections.push(`${stepType.toUpperCase()}:\n${agents.join('\n')}`);
+      sections.push(`${stepType.toUpperCase()}:\n${agents.join("\n")}`);
     }
   }
 
-  return `Available executors for your plan:\n\n${sections.join('\n\n')}`;
+  return `Available executors for your plan:\n\n${sections.join("\n\n")}`;
 }

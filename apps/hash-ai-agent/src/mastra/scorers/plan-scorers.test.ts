@@ -138,7 +138,9 @@ function createComplexPlan(): PlanSpec {
         description: "Test hypothesis",
         dependsOn: ["S3"],
         requirementIds: ["R1"],
-        inputs: [{ name: "synthesis", description: "From S3", fromStepId: "S3" }],
+        inputs: [
+          { name: "synthesis", description: "From S3", fromStepId: "S3" },
+        ],
         outputs: [{ name: "results", description: "Experiment results" }],
         mode: "confirmatory",
         hypothesisIds: ["H1"],
@@ -568,7 +570,8 @@ describe("scorePlanComposite", () => {
       unknownsCoverage: 0,
     });
 
-    const expectedOverall = 0.5 * result.structure.score + 0.5 * result.coverage.score;
+    const expectedOverall =
+      0.5 * result.structure.score + 0.5 * result.coverage.score;
 
     expect(result.overall).toBeCloseTo(expectedOverall, 5);
   });

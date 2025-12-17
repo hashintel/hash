@@ -68,7 +68,8 @@ function createMinimalTestPlan(): PlanSpec {
       knownUnknowns: ["Which papers are most relevant"],
       unknownUnknowns: [
         {
-          potentialSurprise: "RAG approaches may have fundamentally changed recently",
+          potentialSurprise:
+            "RAG approaches may have fundamentally changed recently",
           detectionSignal: "Papers describe paradigm shifts",
         },
       ],
@@ -83,17 +84,25 @@ function createMinimalTestPlan(): PlanSpec {
 function createPlanWithHypotheses(): PlanSpec {
   return {
     id: "hypothesis-plan",
-    goalSummary: "Test whether fine-tuning beats prompting for entity extraction",
+    goalSummary:
+      "Test whether fine-tuning beats prompting for entity extraction",
     aimType: "explain",
     requirements: [
-      { id: "R1", description: "Compare fine-tuned vs prompted models", priority: "must" },
+      {
+        id: "R1",
+        description: "Compare fine-tuned vs prompted models",
+        priority: "must",
+      },
     ],
     hypotheses: [
       {
         id: "H1",
         statement:
           "Fine-tuned Llama 3 8B will achieve >10% higher F1 than GPT-4 few-shot on our entity extraction task",
-        assumptions: ["Domain data is representative", "F1 is appropriate metric"],
+        assumptions: [
+          "Domain data is representative",
+          "F1 is appropriate metric",
+        ],
         testableVia: "Controlled experiment with held-out test set",
         status: "untested",
       },
@@ -130,8 +139,14 @@ function createPlanWithHypotheses(): PlanSpec {
         mode: "confirmatory",
         hypothesisIds: ["H1"],
         procedure: "Fine-tune Llama, run both models on test set, compare F1",
-        expectedOutcomes: ["H1 supported (fine-tuned wins)", "H1 refuted (prompting wins)"],
-        successCriteria: ["Statistical significance p<0.05", "Effect size >10%"],
+        expectedOutcomes: [
+          "H1 supported (fine-tuned wins)",
+          "H1 refuted (prompting wins)",
+        ],
+        successCriteria: [
+          "Statistical significance p<0.05",
+          "Effect size >10%",
+        ],
         preregisteredCommitments: [
           "Test set: 500 entities",
           "Primary metric: F1 score",
@@ -162,48 +177,41 @@ function createPlanWithHypotheses(): PlanSpec {
 describe("goalAlignmentScorer", () => {
   const TIMEOUT = 60_000; // 60 seconds for LLM calls
 
-  test(
-    "scores well-aligned plan highly",
-    { timeout: TIMEOUT },
-    async () => {
-      const goal = "Summarize 3 recent papers on RAG and create a comparison table";
-      const plan = createMinimalTestPlan();
+  test("scores well-aligned plan highly", { timeout: TIMEOUT }, async () => {
+    const goal =
+      "Summarize 3 recent papers on RAG and create a comparison table";
+    const plan = createMinimalTestPlan();
 
-      // Run the scorer using v1 API
-      const result = await goalAlignmentScorer.run({
-        input: { goal, plan },
-        output: { text: JSON.stringify(plan) },
-      });
+    // Run the scorer using v1 API
+    const result = await goalAlignmentScorer.run({
+      input: { goal, plan },
+      output: { text: JSON.stringify(plan) },
+    });
 
-      console.log("\n=== Goal Alignment Score ===");
-      console.log(`Score: ${result.score}`);
-      console.log(`Reason: ${result.reason}`);
+    console.log("\n=== Goal Alignment Score ===");
+    console.log(`Score: ${result.score}`);
+    console.log(`Reason: ${result.reason}`);
 
-      // Well-aligned plan should score > 0.6
-      expect(result.score).toBeGreaterThan(0.6);
-    },
-  );
+    // Well-aligned plan should score > 0.6
+    expect(result.score).toBeGreaterThan(0.6);
+  });
 
-  test(
-    "scores misaligned plan lower",
-    { timeout: TIMEOUT },
-    async () => {
-      const goal = "Build a machine learning model to predict stock prices";
-      const plan = createMinimalTestPlan(); // This plan is about RAG papers, not stocks
+  test("scores misaligned plan lower", { timeout: TIMEOUT }, async () => {
+    const goal = "Build a machine learning model to predict stock prices";
+    const plan = createMinimalTestPlan(); // This plan is about RAG papers, not stocks
 
-      const result = await goalAlignmentScorer.run({
-        input: { goal, plan },
-        output: { text: JSON.stringify(plan) },
-      });
+    const result = await goalAlignmentScorer.run({
+      input: { goal, plan },
+      output: { text: JSON.stringify(plan) },
+    });
 
-      console.log("\n=== Misaligned Plan Score ===");
-      console.log(`Score: ${result.score}`);
-      console.log(`Reason: ${result.reason}`);
+    console.log("\n=== Misaligned Plan Score ===");
+    console.log(`Score: ${result.score}`);
+    console.log(`Reason: ${result.reason}`);
 
-      // Misaligned plan should score < 0.5
-      expect(result.score).toBeLessThan(0.5);
-    },
-  );
+    // Misaligned plan should score < 0.5
+    expect(result.score).toBeLessThan(0.5);
+  });
 });
 
 // =============================================================================
@@ -213,27 +221,23 @@ describe("goalAlignmentScorer", () => {
 describe("planGranularityScorer", () => {
   const TIMEOUT = 60_000;
 
-  test(
-    "evaluates step granularity",
-    { timeout: TIMEOUT },
-    async () => {
-      const goal = "Summarize 3 recent papers on RAG";
-      const plan = createMinimalTestPlan();
+  test("evaluates step granularity", { timeout: TIMEOUT }, async () => {
+    const goal = "Summarize 3 recent papers on RAG";
+    const plan = createMinimalTestPlan();
 
-      const result = await planGranularityScorer.run({
-        input: { goal, plan },
-        output: { text: JSON.stringify(plan) },
-      });
+    const result = await planGranularityScorer.run({
+      input: { goal, plan },
+      output: { text: JSON.stringify(plan) },
+    });
 
-      console.log("\n=== Granularity Score ===");
-      console.log(`Score: ${result.score}`);
-      console.log(`Reason: ${result.reason}`);
+    console.log("\n=== Granularity Score ===");
+    console.log(`Score: ${result.score}`);
+    console.log(`Reason: ${result.reason}`);
 
-      // Score should be reasonable (0-1)
-      expect(result.score).toBeGreaterThanOrEqual(0);
-      expect(result.score).toBeLessThanOrEqual(1);
-    },
-  );
+    // Score should be reasonable (0-1)
+    expect(result.score).toBeGreaterThanOrEqual(0);
+    expect(result.score).toBeLessThanOrEqual(1);
+  });
 });
 
 // =============================================================================
@@ -264,29 +268,25 @@ describe("hypothesisTestabilityScorer", () => {
     },
   );
 
-  test(
-    "evaluates hypothesis testability",
-    { timeout: TIMEOUT },
-    async () => {
-      const goal = "Test whether fine-tuning beats prompting";
-      const plan = createPlanWithHypotheses();
+  test("evaluates hypothesis testability", { timeout: TIMEOUT }, async () => {
+    const goal = "Test whether fine-tuning beats prompting";
+    const plan = createPlanWithHypotheses();
 
-      const result = await hypothesisTestabilityScorer.run({
-        input: { goal, plan },
-        output: { text: JSON.stringify(plan) },
-      });
+    const result = await hypothesisTestabilityScorer.run({
+      input: { goal, plan },
+      output: { text: JSON.stringify(plan) },
+    });
 
-      console.log("\n=== Testability (With Hypotheses) ===");
-      console.log(`Score: ${result.score}`);
-      console.log(`Reason: ${result.reason}`);
+    console.log("\n=== Testability (With Hypotheses) ===");
+    console.log(`Score: ${result.score}`);
+    console.log(`Reason: ${result.reason}`);
 
-      // Should be able to evaluate testability
-      expect(result.score).toBeGreaterThanOrEqual(0);
-      expect(result.score).toBeLessThanOrEqual(1);
-      // H1 is testable, H2 is not — score should be moderate
-      expect(result.score).toBeLessThan(1.0);
-    },
-  );
+    // Should be able to evaluate testability
+    expect(result.score).toBeGreaterThanOrEqual(0);
+    expect(result.score).toBeLessThanOrEqual(1);
+    // H1 is testable, H2 is not — score should be moderate
+    expect(result.score).toBeLessThan(1.0);
+  });
 });
 
 // =============================================================================
@@ -296,53 +296,49 @@ describe("hypothesisTestabilityScorer", () => {
 describe("LLM Scorers with Generated Plan", () => {
   const TIMEOUT = 120_000; // 2 minutes for generation + scoring
 
-  test(
-    "scores a generated plan",
-    { timeout: TIMEOUT },
-    async () => {
-      const goal =
-        "Research the latest advances in retrieval-augmented generation and identify the top 3 most promising approaches for improving response accuracy";
+  test("scores a generated plan", { timeout: TIMEOUT }, async () => {
+    const goal =
+      "Research the latest advances in retrieval-augmented generation and identify the top 3 most promising approaches for improving response accuracy";
 
-      console.log("\n=== Generating Plan ===");
-      const { plan } = await generatePlan({ goal });
+    console.log("\n=== Generating Plan ===");
+    const { plan } = await generatePlan({ goal });
 
-      const validation = validatePlan(plan);
-      console.log(`Validation: ${validation.valid ? "PASSED" : "FAILED"}`);
+    const validation = validatePlan(plan);
+    console.log(`Validation: ${validation.valid ? "PASSED" : "FAILED"}`);
 
-      if (!validation.valid) {
-        console.log(
-          "Errors:",
-          validation.errors.map((err) => err.message),
-        );
-        // Still try to score even if validation fails
-      }
+    if (!validation.valid) {
+      console.log(
+        "Errors:",
+        validation.errors.map((err) => err.message),
+      );
+      // Still try to score even if validation fails
+    }
 
-      console.log(`Plan has ${plan.steps.length} steps`);
+    console.log(`Plan has ${plan.steps.length} steps`);
 
-      // Run all LLM scorers
-      console.log("\n=== Running LLM Scorers ===");
+    // Run all LLM scorers
+    console.log("\n=== Running LLM Scorers ===");
 
-      const [alignmentResult, granularityResult] = await Promise.all([
-        goalAlignmentScorer.run({
-          input: { goal, plan },
-          output: { text: JSON.stringify(plan) },
-        }),
-        planGranularityScorer.run({
-          input: { goal, plan },
-          output: { text: JSON.stringify(plan) },
-        }),
-      ]);
+    const [alignmentResult, granularityResult] = await Promise.all([
+      goalAlignmentScorer.run({
+        input: { goal, plan },
+        output: { text: JSON.stringify(plan) },
+      }),
+      planGranularityScorer.run({
+        input: { goal, plan },
+        output: { text: JSON.stringify(plan) },
+      }),
+    ]);
 
-      console.log("\nGoal Alignment:");
-      console.log(`  Score: ${alignmentResult.score.toFixed(2)}`);
-      console.log(`  Reason: ${alignmentResult.reason}`);
+    console.log("\nGoal Alignment:");
+    console.log(`  Score: ${alignmentResult.score.toFixed(2)}`);
+    console.log(`  Reason: ${alignmentResult.reason}`);
 
-      console.log("\nGranularity:");
-      console.log(`  Score: ${granularityResult.score.toFixed(2)}`);
-      console.log(`  Reason: ${granularityResult.reason}`);
+    console.log("\nGranularity:");
+    console.log(`  Score: ${granularityResult.score.toFixed(2)}`);
+    console.log(`  Reason: ${granularityResult.reason}`);
 
-      // Generated plan should be reasonably aligned
-      expect(alignmentResult.score).toBeGreaterThan(0.5);
-    },
-  );
+    // Generated plan should be reasonably aligned
+    expect(alignmentResult.score).toBeGreaterThan(0.5);
+  });
 });

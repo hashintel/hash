@@ -67,7 +67,9 @@ export const goalAlignmentScorer = createScorer({
     outputSchema: zGoalAlignmentAnalysis,
     createPrompt: ({ run }) => {
       // Input contains goal and plan
-      const input = run.input as { goal?: string; plan?: unknown } | Array<{ content: string }>;
+      const input = run.input as
+        | { goal?: string; plan?: unknown }
+        | Array<{ content: string }>;
       let goal: string;
       let plan: unknown;
 
@@ -81,7 +83,8 @@ export const goalAlignmentScorer = createScorer({
         plan = input.plan ?? run.output;
       }
 
-      const planJson = typeof plan === "string" ? plan : JSON.stringify(plan, null, 2);
+      const planJson =
+        typeof plan === "string" ? plan : JSON.stringify(plan, null, 2);
 
       return `Evaluate how well this plan addresses its goal.
 
@@ -179,7 +182,9 @@ export const planGranularityScorer = createScorer({
     description: "Analyze step granularity",
     outputSchema: zGranularityAnalysis,
     createPrompt: ({ run }) => {
-      const input = run.input as { goal?: string; plan?: unknown } | Array<{ content: string }>;
+      const input = run.input as
+        | { goal?: string; plan?: unknown }
+        | Array<{ content: string }>;
       let goal: string;
       let plan: unknown;
 
@@ -192,7 +197,8 @@ export const planGranularityScorer = createScorer({
         plan = input.plan ?? run.output;
       }
 
-      const planJson = typeof plan === "string" ? plan : JSON.stringify(plan, null, 2);
+      const planJson =
+        typeof plan === "string" ? plan : JSON.stringify(plan, null, 2);
 
       return `Evaluate the granularity of steps in this plan.
 
@@ -285,14 +291,17 @@ const zTestabilityAnalysis = z.object({
  */
 export const hypothesisTestabilityScorer = createScorer({
   id: "hypothesis-testability",
-  description: "Evaluates whether hypotheses are testable and experiments are well-designed",
+  description:
+    "Evaluates whether hypotheses are testable and experiments are well-designed",
   judge: {
     model: DEFAULT_MODEL,
     instructions: TESTABILITY_INSTRUCTIONS,
   },
 })
   .preprocess(({ run }) => {
-    const input = run.input as { goal?: string; plan?: unknown } | Array<{ content: string }>;
+    const input = run.input as
+      | { goal?: string; plan?: unknown }
+      | Array<{ content: string }>;
     let goal: string;
     let plan: unknown;
 
@@ -311,7 +320,8 @@ export const hypothesisTestabilityScorer = createScorer({
       steps?: Array<{ type: string; id: string }>;
     };
     const hasHypotheses = planObj.hypotheses && planObj.hypotheses.length > 0;
-    const hasExperiments = planObj.steps?.some((step) => step.type === "experiment") ?? false;
+    const hasExperiments =
+      planObj.steps?.some((step) => step.type === "experiment") ?? false;
 
     return {
       goal,
@@ -325,12 +335,13 @@ export const hypothesisTestabilityScorer = createScorer({
     description: "Analyze hypothesis testability and experiment design",
     outputSchema: zTestabilityAnalysis,
     createPrompt: ({ results }) => {
-      const { goal, planJson, hasHypotheses, hasExperiments } = results.preprocessStepResult as {
-        goal: string;
-        planJson: string;
-        hasHypotheses: boolean;
-        hasExperiments: boolean;
-      };
+      const { goal, planJson, hasHypotheses, hasExperiments } =
+        results.preprocessStepResult as {
+          goal: string;
+          planJson: string;
+          hasHypotheses: boolean;
+          hasExperiments: boolean;
+        };
 
       if (!hasHypotheses) {
         // Return a prompt that will produce a "not applicable" result
@@ -371,7 +382,8 @@ Provide your analysis as JSON.`;
     return analysis.testabilityScore / 10;
   })
   .generateReason(({ results, score }) => {
-    const { hypothesisAnalysis, experimentQuality, explanation } = results.analyzeStepResult;
+    const { hypothesisAnalysis, experimentQuality, explanation } =
+      results.analyzeStepResult;
 
     const testableCount = hypothesisAnalysis.filter(
       (hyp: { isTestable: boolean }) => hyp.isTestable,

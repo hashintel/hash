@@ -28,4 +28,7 @@ export {
 } from "./hypothesis-validation";
 
 // Simple: Linear research → synthesize
-export { summarizePapersFixture, summarizePapersGoal } from "./summarize-papers";
+export {
+  summarizePapersFixture,
+  summarizePapersGoal,
+} from "./summarize-papers";

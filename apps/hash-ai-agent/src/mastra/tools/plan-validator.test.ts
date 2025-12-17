@@ -758,7 +758,9 @@ describe("Plan Validator — Negative Fixtures", () => {
             description: "Summarize findings",
             dependsOn: ["S1"],
             requirementIds: ["R1"],
-            inputs: [{ name: "papers", description: "Papers", fromStepId: "S1" }],
+            inputs: [
+              { name: "papers", description: "Papers", fromStepId: "S1" },
+            ],
             outputs: [{ name: "summary", description: "Literature summary" }],
             mode: "integrative",
             inputStepIds: ["S1"],
@@ -771,7 +773,9 @@ describe("Plan Validator — Negative Fixtures", () => {
             description: "Test hypothesis",
             dependsOn: ["S2"],
             requirementIds: ["R2"],
-            inputs: [{ name: "summary", description: "Summary", fromStepId: "S2" }],
+            inputs: [
+              { name: "summary", description: "Summary", fromStepId: "S2" },
+            ],
             outputs: [{ name: "results", description: "Experiment results" }],
             mode: "confirmatory",
             hypothesisIds: ["H1"],
@@ -792,7 +796,9 @@ describe("Plan Validator — Negative Fixtures", () => {
             description: "Evaluate results",
             dependsOn: ["S3"],
             requirementIds: ["R1", "R2"],
-            inputs: [{ name: "results", description: "Results", fromStepId: "S3" }],
+            inputs: [
+              { name: "results", description: "Results", fromStepId: "S3" },
+            ],
             outputs: [{ name: "conclusion", description: "Final conclusion" }],
             mode: "evaluative",
             inputStepIds: ["S3"],

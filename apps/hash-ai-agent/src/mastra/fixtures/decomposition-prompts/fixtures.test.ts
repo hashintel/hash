@@ -49,8 +49,11 @@ async function runFixtureTest(fixture: PlanningFixture): Promise<void> {
   // Log steps
   console.log(`\nSteps:`);
   for (const step of plan.steps) {
-    const deps = step.dependsOn.length > 0 ? ` (deps: ${step.dependsOn.join(", ")})` : "";
-    console.log(`  ${step.id}: [${step.type}] ${step.description.slice(0, 50)}...${deps}`);
+    const deps =
+      step.dependsOn.length > 0 ? ` (deps: ${step.dependsOn.join(", ")})` : "";
+    console.log(
+      `  ${step.id}: [${step.type}] ${step.description.slice(0, 50)}...${deps}`,
+    );
   }
 
   // Validate
@@ -71,7 +74,9 @@ async function runFixtureTest(fixture: PlanningFixture): Promise<void> {
     console.log(`  Entry points: [${topology.entryPoints.join(", ")}]`);
     console.log(`  Exit points: [${topology.exitPoints.join(", ")}]`);
     console.log(`  Critical path: ${topology.criticalPath.length} steps`);
-    console.log(`  Max parallelism: ${Math.max(...topology.parallelGroups.map((group) => group.parallelizableStepIds.length))}`);
+    console.log(
+      `  Max parallelism: ${Math.max(...topology.parallelGroups.map((group) => group.parallelizableStepIds.length))}`,
+    );
   }
 
   // Assertions
@@ -149,13 +154,18 @@ describe("Planning Fixtures", () => {
         await runFixtureTest(ctDatabaseGoalFixture);
       } catch (error) {
         // If it's a validation error about preregistration, log and skip
-        const errorMessage = error instanceof Error ? error.message : String(error);
+        const errorMessage =
+          error instanceof Error ? error.message : String(error);
         if (errorMessage.includes("MISSING_PREREGISTERED_COMMITMENTS")) {
           console.log(
             "\n⚠️ CT-database fixture failed due to missing preregistration.",
           );
-          console.log("This is a known LLM consistency issue. Plan was otherwise valid.");
-          console.log("Consider this a soft failure — the planner prompt may need tuning.");
+          console.log(
+            "This is a known LLM consistency issue. Plan was otherwise valid.",
+          );
+          console.log(
+            "Consider this a soft failure — the planner prompt may need tuning.",
+          );
           // Re-throw to mark test as failed but with context
         }
         throw error;
