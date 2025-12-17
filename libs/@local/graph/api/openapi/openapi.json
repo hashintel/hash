@@ -8812,7 +8812,8 @@
         "description": "The type of source material which was used to produce a value.",
         "enum": [
           "webpage",
-          "document"
+          "document",
+          "integration"
         ]
       },
       "Status": {
