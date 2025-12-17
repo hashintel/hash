@@ -19,7 +19,10 @@ use super::allocator::Allocator;
 /// scratch.reset();
 /// ```
 #[derive(Debug)]
-#[expect(clippy::field_scoped_visibility_modifiers)]
+#[expect(
+    clippy::field_scoped_visibility_modifiers,
+    reason = "TransferInto impl"
+)]
 pub struct Scratch {
     pub(super) inner: Allocator,
 }
