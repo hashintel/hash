@@ -29,6 +29,7 @@ import {
   analyzePlanTopology,
   type TopologyAnalysis,
 } from "../tools/topology-analyzer";
+import { planningWorkflow } from "./planning-workflow";
 
 // =============================================================================
 // CONFIGURATION
@@ -455,4 +456,187 @@ describe("Planning Pipeline E2E", () => {
       ALL_FIXTURES.length * FIXTURE_TIMEOUT,
     );
   });
+});
+
+// =============================================================================
+// REVISION WORKFLOW TESTS
+// =============================================================================
+
+describe("Planning Workflow with Revision Loop", () => {
+  // Timeout for workflow with potential revisions: 4 minutes
+  const WORKFLOW_TIMEOUT = 4 * 60 * 1000;
+
+  test(
+    "ct-database-goal passes after revision",
+    async () => {
+      logSectionHeader("REVISION WORKFLOW: ct-database-goal");
+      console.log(`Goal: ${ctDatabaseGoalFixture.input.goal.slice(0, 100)}...`);
+
+      const run = await planningWorkflow.createRun();
+      const result = await run.start({
+        inputData: {
+          goal: ctDatabaseGoalFixture.input.goal,
+          context: ctDatabaseGoalFixture.input.context,
+          maxAttempts: 3,
+        },
+      });
+
+      console.log("\n=== Workflow Result ===");
+      console.log(`  Status: ${result.status}`);
+
+      // Assert workflow completed successfully
+      expect(result.status).toBe("success");
+
+      if (result.status === "success") {
+        const output = result.result;
+        console.log(`  Valid: ${output.valid}`);
+        console.log(`  Attempts: ${output.attempts}`);
+        console.log(`  Plan steps: ${output.plan.steps.length}`);
+
+        if (output.errors && output.errors.length > 0) {
+          console.log(`  Errors: ${output.errors.length}`);
+          for (const error of output.errors.slice(0, 3)) {
+            console.log(`    - [${error.code}] ${error.message}`);
+          }
+        }
+
+        // Assertions
+        expect(output.valid).toBe(true);
+        expect(output.attempts).toBeLessThanOrEqual(3);
+        expect(output.plan.steps.length).toBeGreaterThan(0);
+      }
+    },
+    WORKFLOW_TIMEOUT,
+  );
+
+  test(
+    "simple fixture passes on first attempt",
+    async () => {
+      logSectionHeader("REVISION WORKFLOW: summarize-papers");
+      console.log(
+        `Goal: ${summarizePapersFixture.input.goal.slice(0, 100)}...`,
+      );
+
+      const run = await planningWorkflow.createRun();
+      const result = await run.start({
+        inputData: {
+          goal: summarizePapersFixture.input.goal,
+          context: summarizePapersFixture.input.context,
+          maxAttempts: 3,
+        },
+      });
+
+      console.log("\n=== Workflow Result ===");
+      console.log(`  Status: ${result.status}`);
+
+      if (result.status === "success") {
+        const output = result.result;
+        console.log(`  Valid: ${output.valid}`);
+        console.log(`  Attempts: ${output.attempts}`);
+        console.log(`  Plan steps: ${output.plan.steps.length}`);
+
+        // Simple fixture should pass on first attempt
+        expect(output.valid).toBe(true);
+        expect(output.attempts).toBe(1);
+      } else {
+        expect(result.status).toBe("success");
+      }
+    },
+    WORKFLOW_TIMEOUT,
+  );
+
+  test(
+    "runs all fixtures through revision workflow",
+    async () => {
+      logSectionHeader("REVISION WORKFLOW: All Fixtures");
+
+      interface WorkflowResult {
+        fixtureId: string;
+        valid: boolean;
+        attempts: number;
+        stepCount: number;
+        errors?: Array<{ code: string; message: string }>;
+        durationMs: number;
+      }
+
+      const results: WorkflowResult[] = [];
+
+      for (const fixture of ALL_FIXTURES) {
+        console.log(`\n--- ${fixture.input.id} ---`);
+        const startTime = Date.now();
+
+        const run = await planningWorkflow.createRun();
+        const result = await run.start({
+          inputData: {
+            goal: fixture.input.goal,
+            context: fixture.input.context,
+            maxAttempts: 3,
+          },
+        });
+
+        const durationMs = Date.now() - startTime;
+
+        if (result.status === "success") {
+          const output = result.result;
+          results.push({
+            fixtureId: fixture.input.id,
+            valid: output.valid,
+            attempts: output.attempts,
+            stepCount: output.plan.steps.length,
+            errors: output.errors?.map((err) => ({
+              code: String(err.code),
+              message: err.message,
+            })),
+            durationMs,
+          });
+          console.log(
+            `  Valid: ${output.valid}, Attempts: ${output.attempts}, Steps: ${output.plan.steps.length}, Duration: ${(durationMs / 1000).toFixed(1)}s`,
+          );
+        } else {
+          results.push({
+            fixtureId: fixture.input.id,
+            valid: false,
+            attempts: 0,
+            stepCount: 0,
+            errors: [
+              { code: "WORKFLOW_FAILED", message: "Workflow did not complete" },
+            ],
+            durationMs,
+          });
+          console.log(`  FAILED: Workflow did not complete`);
+        }
+      }
+
+      // Summary
+      logSectionHeader("REVISION WORKFLOW SUMMARY");
+      console.log(
+        "\n  Fixture                     | Valid | Attempts | Steps | Duration",
+      );
+      console.log(`  ${"-".repeat(70)}`);
+
+      for (const result of results) {
+        const row = [
+          result.fixtureId.padEnd(28),
+          (result.valid ? "YES" : "NO").padStart(5),
+          String(result.attempts).padStart(8),
+          String(result.stepCount).padStart(5),
+          `${(result.durationMs / 1000).toFixed(1)}s`.padStart(8),
+        ];
+        console.log(`  ${row.join(" | ")}`);
+      }
+
+      const totalDuration = results.reduce(
+        (sum, res) => sum + res.durationMs,
+        0,
+      );
+      const validCount = results.filter((res) => res.valid).length;
+      console.log(
+        `\n  Total: ${validCount}/${results.length} valid, ${(totalDuration / 1000).toFixed(1)}s`,
+      );
+
+      // All fixtures should eventually pass
+      expect(validCount).toBe(results.length);
+    },
+    ALL_FIXTURES.length * WORKFLOW_TIMEOUT,
+  );
 });

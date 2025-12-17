@@ -60,9 +60,33 @@ const PLANNER_INSTRUCTIONS = dedent`
   - Modes:
     - "exploratory": Hypothesis generation, flexible analysis
     - "confirmatory": Preregistered design, locked analysis plan
-  - IMPORTANT: If mode is "confirmatory", you MUST include preregisteredCommitments array
-    - preregisteredCommitments are decisions locked before seeing outcomes
-    - Examples: "Primary metric is F1 score", "Sample size is 100", "Threshold for success is >0.8"
+  
+  **CRITICAL FOR CONFIRMATORY EXPERIMENTS:**
+  If mode is "confirmatory", you MUST include a preregisteredCommitments array with 2-3 items.
+  This field is REQUIRED and the plan will fail validation without it!
+  
+  preregisteredCommitments = decisions locked BEFORE seeing outcomes:
+  - "Primary metric: <specific metric name>"
+  - "Sample size: <specific number>"  
+  - "Success threshold: <specific criterion>"
+  
+  Example confirmatory experiment:
+  \`\`\`json
+  {
+    "id": "S5",
+    "type": "experiment",
+    "mode": "confirmatory",
+    "hypothesisIds": ["H1"],
+    "successCriteria": "The experiment passes if accuracy exceeds baseline",
+    "preregisteredCommitments": [
+      "Primary metric: F1 score",
+      "Test set size: 500 examples",
+      "Success threshold: >0.85 accuracy"
+    ],
+    ...
+  }
+  \`\`\`
+  
   - Must reference hypothesis IDs being tested
 
   ### develop

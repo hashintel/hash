@@ -257,9 +257,9 @@ export const zResearchStep = zBaseStep.extend({
       'What "done" means for this research (e.g., "3 relevant papers found")',
     ),
   parallelizable: z
-    .literal(true)
+    .boolean()
     .default(true)
-    .describe("Research steps are always parallelizable"),
+    .describe("Research steps are typically parallelizable (defaults to true)"),
 });
 export type ResearchStep = z.infer<typeof zResearchStep>;
 
@@ -295,9 +295,9 @@ export const zSynthesizeStep = zBaseStep.extend({
     .optional()
     .describe("Criteria to evaluate against (required if mode is evaluative)"),
   parallelizable: z
-    .literal(false)
+    .boolean()
     .default(false)
-    .describe("Synthesize steps are never parallelizable"),
+    .describe("Synthesize steps typically wait for inputs (defaults to false)"),
 });
 export type SynthesizeStep = z.infer<typeof zSynthesizeStep>;
 
