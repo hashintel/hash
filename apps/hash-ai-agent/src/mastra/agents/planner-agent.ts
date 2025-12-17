@@ -56,11 +56,13 @@ const PLANNER_INSTRUCTIONS = dedent`
 
   ### experiment
   - Use for: Testing hypotheses empirically, running prototypes, benchmarking
-  - Parallelizable: YES - independent experiments can run concurrently
+  - Parallelizable: Can be parallel (independent experiments) or sequential
   - Modes:
     - "exploratory": Hypothesis generation, flexible analysis
     - "confirmatory": Preregistered design, locked analysis plan
-  - If mode is "confirmatory", must include preregisteredCommitments
+  - IMPORTANT: If mode is "confirmatory", you MUST include preregisteredCommitments array
+    - preregisteredCommitments are decisions locked before seeing outcomes
+    - Examples: "Primary metric is F1 score", "Sample size is 100", "Threshold for success is >0.8"
   - Must reference hypothesis IDs being tested
 
   ### develop

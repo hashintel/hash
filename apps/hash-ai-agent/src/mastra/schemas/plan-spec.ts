@@ -319,8 +319,8 @@ export type ExperimentMode = z.infer<typeof zExperimentMode>;
 /**
  * An experiment step for testing hypotheses.
  *
- * Experiment steps are parallelizable — multiple independent experiments
- * can run concurrently.
+ * Experiment steps can be parallelizable — multiple independent experiments
+ * can run concurrently, but sequential experiments are also valid.
  *
  * Confirmatory experiments SHOULD have preregisteredCommitments — decisions
  * locked before seeing outcomes. This is validated by the experiment-rigor scorer.
@@ -343,9 +343,9 @@ export const zExperimentStep = zBaseStep.extend({
     .optional()
     .describe("Decisions locked before seeing outcomes (required for confirmatory)"),
   parallelizable: z
-    .literal(true)
+    .boolean()
     .default(true)
-    .describe("Experiment steps are parallelizable"),
+    .describe("Whether this experiment can run in parallel with others"),
 });
 export type ExperimentStep = z.infer<typeof zExperimentStep>;
 
@@ -452,10 +452,10 @@ export type PlanSpec = z.infer<typeof zPlanSpec>;
 export function isParallelizable(step: PlanStep): boolean {
   switch (step.type) {
     case "research":
-    case "experiment":
       return true;
     case "synthesize":
       return false;
+    case "experiment":
     case "develop":
       return step.parallelizable;
   }

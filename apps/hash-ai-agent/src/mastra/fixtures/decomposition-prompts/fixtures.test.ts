@@ -1,0 +1,165 @@
+/* eslint-disable no-console */
+/**
+ * Planning Fixtures Test Suite
+ *
+ * Tests the planner agent against fixtures of increasing complexity.
+ * Each test validates that the generated plan:
+ * 1. Passes structural validation
+ * 2. Contains expected step types
+ * 3. Meets minimum/maximum step count expectations
+ * 4. Has appropriate characteristics (hypotheses, experiments, etc.)
+ */
+
+import { describe, expect, test } from "vitest";
+
+import { generatePlan } from "../../agents/planner-agent";
+import type { PlanningFixture } from "../../schemas/planning-fixture";
+import { validatePlan } from "../../tools/plan-validator";
+import { analyzePlanTopology } from "../../tools/topology-analyzer";
+import { ctDatabaseGoalFixture } from "./ct-database-goal";
+import { exploreAndRecommendFixture } from "./explore-and-recommend";
+import { hypothesisValidationFixture } from "./hypothesis-validation";
+import { summarizePapersFixture } from "./summarize-papers";
+
+/**
+ * Helper to run a fixture through the planning pipeline and validate results.
+ */
+async function runFixtureTest(fixture: PlanningFixture): Promise<void> {
+  const { input, expected } = fixture;
+
+  console.log(`\n${"=".repeat(60)}`);
+  console.log(`Fixture: ${input.id}`);
+  console.log(`${"=".repeat(60)}`);
+  console.log(`Goal: ${input.goal.slice(0, 100)}...`);
+
+  // Generate plan
+  const result = await generatePlan({
+    goal: input.goal,
+    context: input.context,
+  });
+
+  const { plan } = result;
+
+  console.log(`\nGenerated Plan:`);
+  console.log(`  ID: ${plan.id}`);
+  console.log(`  Steps: ${plan.steps.length}`);
+  console.log(`  Requirements: ${plan.requirements.length}`);
+  console.log(`  Hypotheses: ${plan.hypotheses.length}`);
+
+  // Log steps
+  console.log(`\nSteps:`);
+  for (const step of plan.steps) {
+    const deps = step.dependsOn.length > 0 ? ` (deps: ${step.dependsOn.join(", ")})` : "";
+    console.log(`  ${step.id}: [${step.type}] ${step.description.slice(0, 50)}...${deps}`);
+  }
+
+  // Validate
+  const validation = validatePlan(plan);
+  console.log(`\nValidation: ${validation.valid ? "PASSED" : "FAILED"}`);
+
+  if (!validation.valid) {
+    console.log("Errors:");
+    for (const error of validation.errors) {
+      console.log(`  [${error.code}] ${error.message}`);
+    }
+  }
+
+  // Topology
+  if (validation.valid) {
+    const topology = analyzePlanTopology(plan);
+    console.log(`\nTopology:`);
+    console.log(`  Entry points: [${topology.entryPoints.join(", ")}]`);
+    console.log(`  Exit points: [${topology.exitPoints.join(", ")}]`);
+    console.log(`  Critical path: ${topology.criticalPath.length} steps`);
+    console.log(`  Max parallelism: ${Math.max(...topology.parallelGroups.map((group) => group.parallelizableStepIds.length))}`);
+  }
+
+  // Assertions
+  expect(validation.valid).toBe(true);
+  expect(validation.errors).toHaveLength(0);
+
+  // Step count bounds
+  expect(plan.steps.length).toBeGreaterThanOrEqual(expected.minSteps);
+  if (expected.maxSteps !== undefined) {
+    expect(plan.steps.length).toBeLessThanOrEqual(expected.maxSteps);
+  }
+
+  // Expected step types
+  const stepTypes = new Set(plan.steps.map((step) => step.type));
+  for (const expectedType of expected.expectedStepTypes) {
+    expect(stepTypes.has(expectedType)).toBe(true);
+  }
+
+  // Hypotheses expectation
+  if (expected.shouldHaveHypotheses) {
+    expect(plan.hypotheses.length).toBeGreaterThan(0);
+  }
+
+  // Experiments expectation
+  if (expected.shouldHaveExperiments) {
+    const hasExperiment = plan.steps.some((step) => step.type === "experiment");
+    expect(hasExperiment).toBe(true);
+  }
+
+  // Parallel research expectation
+  if (expected.shouldHaveParallelResearch) {
+    const researchSteps = plan.steps.filter((step) => step.type === "research");
+    // Should have at least one research step (all research steps are parallelizable by design)
+    expect(researchSteps.length).toBeGreaterThan(0);
+  }
+
+  console.log(`\n✓ Fixture ${input.id} passed all assertions`);
+}
+
+describe("Planning Fixtures", () => {
+  // Timeout for LLM calls
+  const LLM_TIMEOUT = 3 * 60 * 1000; // 3 minutes
+
+  test(
+    "summarize-papers: simple linear research → synthesize",
+    { timeout: LLM_TIMEOUT },
+    async () => {
+      await runFixtureTest(summarizePapersFixture);
+    },
+  );
+
+  test(
+    "explore-and-recommend: parallel research → evaluative synthesize",
+    { timeout: LLM_TIMEOUT },
+    async () => {
+      await runFixtureTest(exploreAndRecommendFixture);
+    },
+  );
+
+  test(
+    "hypothesis-validation: research → experiment → synthesize",
+    { timeout: LLM_TIMEOUT },
+    async () => {
+      await runFixtureTest(hypothesisValidationFixture);
+    },
+  );
+
+  test(
+    "ct-database-goal: full R&D cycle (research, experiment, develop)",
+    { timeout: LLM_TIMEOUT },
+    async () => {
+      // This complex fixture sometimes fails validation due to LLM inconsistency
+      // with preregistered commitments. Log the result but don't fail hard.
+      try {
+        await runFixtureTest(ctDatabaseGoalFixture);
+      } catch (error) {
+        // If it's a validation error about preregistration, log and skip
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        if (errorMessage.includes("MISSING_PREREGISTERED_COMMITMENTS")) {
+          console.log(
+            "\n⚠️ CT-database fixture failed due to missing preregistration.",
+          );
+          console.log("This is a known LLM consistency issue. Plan was otherwise valid.");
+          console.log("Consider this a soft failure — the planner prompt may need tuning.");
+          // Re-throw to mark test as failed but with context
+        }
+        throw error;
+      }
+    },
+  );
+});
