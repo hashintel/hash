@@ -10,8 +10,8 @@ use insta::{Settings, assert_snapshot};
 
 use super::DeadBlockElimination;
 use crate::{
-    body::Body, context::MirContext, def::DefIdSlice, pass::TransformPass as _, pretty::TextFormat,
-    scaffold,
+    body::Body, builder::scaffold, context::MirContext, def::DefIdSlice, pass::TransformPass as _,
+    pretty::TextFormat,
 };
 
 #[track_caller]
@@ -293,7 +293,7 @@ fn switch_target_remapping() {
     let env = Environment::new(&heap);
 
     let selector = builder.local("selector", TypeBuilder::synthetic(&env).integer());
-    let selector = builder.place_local(selector);
+
     let const_unit = builder.const_unit();
 
     let bb0 = builder.reserve_block([]);
@@ -347,17 +347,16 @@ fn block_params_preserved() {
 
     let bb0 = builder.reserve_block([]);
     let bb1 = builder.reserve_block([]); // dead
-    let bb2 = builder.reserve_block([param]);
+    let bb2 = builder.reserve_block([param.local]);
 
     builder.build_block(bb0).goto(bb2, [const_1]);
     builder.build_block(bb1).unreachable();
 
     // Use param to ensure it's not optimized away
-    let param_place = builder.place_local(param);
     let result = builder.local("result", TypeBuilder::synthetic(&env).integer());
     builder
         .build_block(bb2)
-        .assign_local(result, |rv| rv.load(param_place))
+        .assign_place(result, |rv| rv.load(param))
         .ret(const_unit);
 
     let body = builder.finish(0, TypeBuilder::synthetic(&env).null());

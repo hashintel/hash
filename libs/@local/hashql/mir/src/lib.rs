@@ -10,6 +10,7 @@
     impl_trait_in_assoc_type,
     macro_metavar_expr_concat,
     never_type,
+    test,
 
     // Library Features
     allocator_api,
@@ -35,5 +36,6 @@ pub mod pretty;
 pub mod reify;
 pub mod visit;
 
+pub mod builder;
 #[cfg(test)]
 pub(crate) mod tests;

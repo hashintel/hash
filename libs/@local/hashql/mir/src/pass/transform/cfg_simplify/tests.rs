@@ -1,3 +1,5 @@
+extern crate test;
+
 use std::path::PathBuf;
 
 use bstr::ByteVec as _;
@@ -11,13 +13,12 @@ use insta::{Settings, assert_snapshot};
 use super::CfgSimplify;
 use crate::{
     body::Body,
+    builder::{op, scaffold},
     context::MirContext,
     def::DefIdSlice,
     error::MirDiagnosticCategory,
-    op,
     pass::{TransformPass as _, transform::error::TransformationDiagnosticCategory},
     pretty::TextFormat,
-    scaffold,
 };
 
 #[track_caller]
@@ -85,7 +86,6 @@ fn identical_switch_targets() {
     let env = Environment::new(&heap);
 
     let selector = builder.local("selector", TypeBuilder::synthetic(&env).integer());
-    let selector = builder.place_local(selector);
     let const_0 = builder.const_int(0);
     let const_unit = builder.const_unit();
 
@@ -135,7 +135,7 @@ fn only_otherwise_switch() {
     let env = Environment::new(&heap);
 
     let selector = builder.local("selector", TypeBuilder::synthetic(&env).integer());
-    let selector = builder.place_local(selector);
+
     let const_0 = builder.const_int(0);
     let const_unit = builder.const_unit();
 
@@ -187,7 +187,7 @@ fn redundant_cases_removal() {
     let env = Environment::new(&heap);
 
     let selector = builder.local("selector", TypeBuilder::synthetic(&env).integer());
-    let selector = builder.place_local(selector);
+
     let const_0 = builder.const_int(0);
     let const_unit = builder.const_unit();
 
@@ -243,10 +243,10 @@ fn no_inline_non_noop_multiple_preds() {
     let env = Environment::new(&heap);
 
     let x = builder.local("x", TypeBuilder::synthetic(&env).integer());
-    let x_place = builder.place_local(x);
     let a = builder.local("a", TypeBuilder::synthetic(&env).integer());
     let b = builder.local("b", TypeBuilder::synthetic(&env).integer());
     let c = builder.local("c", TypeBuilder::synthetic(&env).integer());
+
     let const_1 = builder.const_int(1);
     let const_2 = builder.const_int(2);
     let const_3 = builder.const_int(3);
@@ -260,23 +260,23 @@ fn no_inline_non_noop_multiple_preds() {
     // Use x (a runtime variable) as discriminant so switch isn't constant-folded
     builder
         .build_block(bb0)
-        .switch(x_place, |switch| switch.case(0, bb1, []).case(1, bb2, []));
+        .switch(x, |switch| switch.case(0, bb1, []).case(1, bb2, []));
 
     // bb1 and bb2 have statements - they're not noop, so switch can't promote through them
     builder
         .build_block(bb1)
-        .assign_local(a, |rv| rv.load(const_1))
+        .assign_place(a, |rv| rv.load(const_1))
         .goto(bb3, []);
 
     builder
         .build_block(bb2)
-        .assign_local(b, |rv| rv.load(const_2))
+        .assign_place(b, |rv| rv.load(const_2))
         .goto(bb3, []);
 
     // bb3 has actual statements and multiple predecessors - cannot be inlined
     builder
         .build_block(bb3)
-        .assign_local(c, |rv| rv.load(const_3))
+        .assign_place(c, |rv| rv.load(const_3))
         .ret(const_unit);
 
     let body = builder.finish(1, TypeBuilder::synthetic(&env).null());
@@ -350,13 +350,12 @@ fn self_loop_preservation_with_params() {
     let const_0 = builder.const_int(0);
 
     let bb0 = builder.reserve_block([]);
-    let bb1 = builder.reserve_block([param]);
+    let bb1 = builder.reserve_block([param.local]);
 
     builder.build_block(bb0).goto(bb1, [const_0]);
 
     // Self-loop: bb1 is a noop block that jumps to itself passing its param
-    let param_place = builder.place_local(param);
-    builder.build_block(bb1).goto(bb1, [param_place.into()]);
+    builder.build_block(bb1).goto(bb1, [param.into()]);
 
     let body = builder.finish(0, TypeBuilder::synthetic(&env).null());
 
@@ -400,7 +399,7 @@ fn noop_block_multiple_predecessors() {
     let env = Environment::new(&heap);
 
     let cond = builder.local("cond", TypeBuilder::synthetic(&env).boolean());
-    let cond = builder.place_local(cond);
+
     let const_true = builder.const_bool(true);
     let const_unit = builder.const_unit();
 
@@ -465,7 +464,7 @@ fn switch_target_promotion() {
     let env = Environment::new(&heap);
 
     let selector = builder.local("selector", TypeBuilder::synthetic(&env).integer());
-    let selector = builder.place_local(selector);
+
     let const_0 = builder.const_int(0);
     let const_unit = builder.const_unit();
 
@@ -519,7 +518,7 @@ fn switch_self_loop_preservation() {
     let env = Environment::new(&heap);
 
     let selector = builder.local("selector", TypeBuilder::synthetic(&env).integer());
-    let selector = builder.place_local(selector);
+
     let const_0 = builder.const_int(0);
     let const_unit = builder.const_unit();
 
@@ -641,9 +640,9 @@ fn switch_promotion_with_goto_params() {
     let env = Environment::new(&heap);
 
     let selector = builder.local("selector", TypeBuilder::synthetic(&env).integer());
-    let selector_place = builder.place_local(selector);
     let result = builder.local("result", TypeBuilder::synthetic(&env).integer());
     let param = builder.local("p", TypeBuilder::synthetic(&env).integer());
+
     let const_0 = builder.const_int(0);
     let const_1 = builder.const_int(1);
     let const_2 = builder.const_int(2);
@@ -653,12 +652,12 @@ fn switch_promotion_with_goto_params() {
     let bb1 = builder.reserve_block([]); // noop with goto that passes args
     let bb2 = builder.reserve_block([]); // noop with goto that passes args
     let bb3 = builder.reserve_block([]); // otherwise
-    let bb4 = builder.reserve_block([param]); // has block parameter
+    let bb4 = builder.reserve_block([param.local]); // has block parameter
 
     builder
         .build_block(bb0)
-        .assign_place(selector_place, |rv| rv.load(const_0))
-        .switch(selector_place, |switch| {
+        .assign_place(selector, |rv| rv.load(const_0))
+        .switch(selector, |switch| {
             switch.case(0, bb1, []).case(1, bb2, []).otherwise(bb3, [])
         });
 
@@ -668,10 +667,9 @@ fn switch_promotion_with_goto_params() {
     builder.build_block(bb3).ret(const_unit);
 
     // bb4 has a block parameter and uses it
-    let param_place = builder.place_local(param);
     builder
         .build_block(bb4)
-        .assign_local(result, |rv| rv.binary(param_place, op![==], param_place))
+        .assign_place(result, |rv| rv.binary(param, op![==], param))
         .ret(const_unit);
 
     let body = builder.finish(0, TypeBuilder::synthetic(&env).null());
@@ -687,3 +685,66 @@ fn switch_promotion_with_goto_params() {
         },
     );
 }
+
+// #[bench]
+// fn bench_cfg_simplify_linear(bencher: &mut Bencher) {
+//     scaffold!(heap, interner, _builder);
+//     let env = Environment::new(&heap);
+//     let mut body = create_linear_cfg(&env, &interner);
+
+//     let mut pass = CfgSimplify::new();
+//     let mut context = MirContext {
+//         heap: &heap,
+//         env: &env,
+//         interner: &interner,
+//         diagnostics: DiagnosticIssues::new(),
+//     };
+
+//     bencher.iter(|| {
+//         pass.run(&mut context, &mut body);
+//     });
+// }
+
+// #[bench]
+// fn bench_cfg_simplify_diamond(bencher: &mut Bencher) {
+//     scaffold!(heap, interner, builder);
+//     let env = Environment::new(&heap);
+//     let body = create_diamond_body(&mut builder, &env);
+
+//     bencher.iter(|| {
+//         let mut body = body.clone();
+//         let mut pass = CfgSimplify::new();
+//         pass.run(
+//             &mut MirContext {
+//                 heap: &heap,
+//                 env: &env,
+//                 interner: &interner,
+//                 diagnostics: DiagnosticIssues::new(),
+//             },
+//             &mut body,
+//         );
+//         body
+//     });
+// }
+
+// #[bench]
+// fn bench_cfg_simplify_complex(bencher: &mut Bencher) {
+//     scaffold!(heap, interner, builder);
+//     let env = Environment::new(&heap);
+//     let body = create_complex_cfg_body(&mut builder, &env);
+
+//     bencher.iter(|| {
+//         let mut body = body.clone();
+//         let mut pass = CfgSimplify::new();
+//         pass.run(
+//             &mut MirContext {
+//                 heap: &heap,
+//                 env: &env,
+//                 interner: &interner,
+//                 diagnostics: DiagnosticIssues::new(),
+//             },
+//             &mut body,
+//         );
+//         body
+//     });
+// }
