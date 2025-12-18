@@ -10648,7 +10648,10 @@ __metadata:
     "@local/hash-backend-utils": "npm:0.0.0-private"
     "@local/hash-isomorphic-utils": "npm:0.0.0-private"
     "@local/tsconfig": "npm:0.0.0-private"
+    "@types/archiver": "npm:^6.0.3"
     "@types/fs-extra": "npm:11.0.4"
+    "@types/js-yaml": "npm:^4.0.0"
+    archiver: "npm:^5.3.2"
     chalk: "npm:5.6.2"
     dotenv-flow: "npm:3.3.0"
     envalid: "npm:8.1.0"
@@ -10658,6 +10661,7 @@ __metadata:
     fs-extra: "npm:11.3.2"
     globby: "npm:15.0.0"
     ignore: "npm:7.0.5"
+    js-yaml: "npm:^4.1.0"
     regex-parser: "npm:2.3.1"
     sort-package-json: "npm:3.4.0"
     tsx: "npm:4.20.6"
@@ -19053,6 +19057,15 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@types/archiver@npm:^6.0.3":
+  version: 6.0.4
+  resolution: "@types/archiver@npm:6.0.4"
+  dependencies:
+    "@types/readdir-glob": "npm:*"
+  checksum: 10c0/ac971a5a72d55064b0a62ccebff643f220c957f109a68486c48b51c566df3a7fdbf5ddce8eb1bbd644c4c6486f882cf90044f5ebb08ce16dfe0b1cbb491f8c2c
+  languageName: node
+  linkType: hard
+
 "@types/argparse@npm:1.0.38":
   version: 1.0.38
   resolution: "@types/argparse@npm:1.0.38"
@@ -20133,6 +20146,15 @@ __metadata:
     "@types/node": "npm:*"
     safe-buffer: "npm:~5.1.1"
   checksum: 10c0/641e0e91b9ecfeed72f7509089f25923e06e19e79ed36f962785c41c07b0c9ecb2ecfdf6d290a101b9b5a669a3b89ee3aff0cad57b66a05e2a30cd199052e3e1
+  languageName: node
+  linkType: hard
+
+"@types/readdir-glob@npm:*":
+  version: 1.1.5
+  resolution: "@types/readdir-glob@npm:1.1.5"
+  dependencies:
+    "@types/node": "npm:*"
+  checksum: 10c0/46849136a3b5246105bca0303aab80552a9ff67e024e77ef1845a806a24c1a621dfcba0e4ee5a00ebad17f51edb80928f2dd6dc510a1d9897f3bc22ed64e5cbd
   languageName: node
   linkType: hard
 
