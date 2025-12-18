@@ -14,6 +14,10 @@ export type DraggingStateByNodeId = Record<
 
 type EditorGlobalMode = "edit" | "simulate";
 type EditorEditionMode = "select" | "pan" | "add-place" | "add-transition";
+export type BottomPanelTab =
+  | "diagnostics"
+  | "simulation-settings"
+  | "parameters";
 
 export type EditorState = {
   globalMode: EditorGlobalMode;
@@ -32,12 +36,14 @@ export type EditorState = {
   propertiesPanelWidth: number;
   setPropertiesPanelWidth: (width: number) => void;
 
-  // Diagnostics panel visibility and height
+  // Diagnostics/Bottom panel visibility, height, and active tab
   isDiagnosticsPanelOpen: boolean;
   setDiagnosticsPanelOpen: (isOpen: boolean) => void;
   toggleDiagnosticsPanel: () => void;
   diagnosticsPanelHeight: number;
   setDiagnosticsPanelHeight: (height: number) => void;
+  activeBottomPanelTab: BottomPanelTab;
+  setActiveBottomPanelTab: (tab: BottomPanelTab) => void;
 
   // Selected Resource ID (for properties panel)
   selectedResourceId: string | null;
@@ -121,6 +127,12 @@ export function createEditorStore() {
               type: "setDiagnosticsPanelHeight",
               height,
             }),
+          activeBottomPanelTab: "diagnostics",
+          setActiveBottomPanelTab: (tab) =>
+            set({ activeBottomPanelTab: tab }, false, {
+              type: "setActiveBottomPanelTab",
+              tab,
+            }),
 
           // Selected Resource ID
           selectedResourceId: null,
@@ -189,6 +201,7 @@ export function createEditorStore() {
                 propertiesPanelWidth: DEFAULT_PROPERTIES_PANEL_WIDTH,
                 isDiagnosticsPanelOpen: false,
                 diagnosticsPanelHeight: DEFAULT_DIAGNOSTICS_PANEL_HEIGHT,
+                activeBottomPanelTab: "diagnostics",
                 selectedResourceId: null,
                 selectedItemIds: new Set(),
                 draggingStateByNodeId: {},
