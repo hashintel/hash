@@ -24,7 +24,7 @@ const headerStyle = css({
   alignItems: "center",
   gap: "[4px]",
   borderBottom: "[1px solid rgba(0, 0, 0, 0.1)]",
-  padding: "[4px 8px]",
+  padding: "[2px 2px 6px 2px]",
   flexShrink: 0,
 });
 
@@ -32,8 +32,8 @@ const tabButtonStyle = cva({
   base: {
     fontSize: "[12px]",
     fontWeight: "[500]",
-    padding: "[6px 12px]",
-    borderRadius: "[6px]",
+    padding: "[4px 12px]",
+    borderRadius: "[3px]",
     border: "none",
     cursor: "pointer",
     transition: "[all 0.15s ease]",
