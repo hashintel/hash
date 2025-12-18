@@ -102,7 +102,7 @@ macro_rules! scaffold {
 /// Comparison and logical operators are supported:
 ///
 /// ```
-/// use hashql_hir::node::operation::BinOp;
+/// use hashql_mir::body::rvalue::BinOp::Add;
 /// use hashql_mir::op;
 ///
 /// // Comparison
@@ -114,8 +114,8 @@ macro_rules! scaffold {
 /// assert!(matches!(op![>=], BinOp::Gte));
 ///
 /// // Logical
-/// assert!(matches!(op![&&], BinOp::And));
-/// assert!(matches!(op![||], BinOp::Or));
+/// assert!(matches!(op![&], BinOp::BitAnd));
+/// assert!(matches!(op![|], BinOp::BitOr));
 /// ```
 ///
 /// Arithmetic operators are also available (`op![+]`, `op![-]`, `op![*]`, `op![/]`),
