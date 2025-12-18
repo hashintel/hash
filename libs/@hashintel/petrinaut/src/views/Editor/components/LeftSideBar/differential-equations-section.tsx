@@ -7,6 +7,7 @@ import { InfoIconTooltip } from "../../../../components/tooltip";
 import { DEFAULT_DIFFERENTIAL_EQUATION_CODE } from "../../../../core/default-codes";
 import { useEditorStore } from "../../../../state/editor-provider";
 import { useSDCPNContext } from "../../../../state/sdcpn-provider";
+import { useSimulationStore } from "../../../../state/simulation-provider";
 
 export const DifferentialEquationsSection: React.FC = () => {
   const [isExpanded, setIsExpanded] = useState(true);
@@ -23,6 +24,11 @@ export const DifferentialEquationsSection: React.FC = () => {
   const setSelectedResourceId = useEditorStore(
     (state) => state.setSelectedResourceId,
   );
+
+  // Check if simulation is running or paused
+  const simulationState = useSimulationStore((state) => state.state);
+  const isSimulationActive =
+    simulationState === "Running" || simulationState === "Paused";
 
   return (
     <div
@@ -74,6 +80,7 @@ export const DifferentialEquationsSection: React.FC = () => {
         </button>
         <button
           type="button"
+          disabled={isSimulationActive}
           onClick={() => {
             const name = `Equation ${differentialEquations.length + 1}`;
             const id = uuidv4();
@@ -97,6 +104,14 @@ export const DifferentialEquationsSection: React.FC = () => {
             _hover: {
               backgroundColor: "[rgba(0, 0, 0, 0.05)]",
               color: "core.gray.90",
+            },
+            _disabled: {
+              cursor: "not-allowed",
+              opacity: "[0.4]",
+              _hover: {
+                backgroundColor: "[transparent]",
+                color: "core.gray.60",
+              },
             },
           })}
           style={{ width: 24, height: 24 }}
@@ -155,6 +170,7 @@ export const DifferentialEquationsSection: React.FC = () => {
                 </div>
                 <button
                   type="button"
+                  disabled={isSimulationActive}
                   onClick={() => {
                     if (
                       // eslint-disable-next-line no-alert
@@ -177,6 +193,14 @@ export const DifferentialEquationsSection: React.FC = () => {
                     _hover: {
                       backgroundColor: "[rgba(239, 68, 68, 0.1)]",
                       color: "core.red.60",
+                    },
+                    _disabled: {
+                      cursor: "not-allowed",
+                      opacity: "[0.3]",
+                      _hover: {
+                        backgroundColor: "[transparent]",
+                        color: "core.gray.40",
+                      },
                     },
                   })}
                   style={{ width: 20, height: 20 }}
