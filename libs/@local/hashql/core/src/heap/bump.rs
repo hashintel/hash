@@ -50,7 +50,6 @@
 //!
 //! [`Heap`]: super::Heap
 //! [`Scratch`]: super::Scratch
-
 #![expect(clippy::mut_from_ref, reason = "allocator")]
 use core::alloc::{AllocError, Allocator};
 
