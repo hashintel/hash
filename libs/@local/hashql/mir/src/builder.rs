@@ -143,8 +143,8 @@ macro_rules! op {
     [<=] => { $crate::body::rvalue::BinOp::Lte };
     [>] => { $crate::body::rvalue::BinOp::Gt };
     [>=] => { $crate::body::rvalue::BinOp::Gte };
-    [&&] => { $crate::body::rvalue::BinOp::And };
-    [||] => { $crate::body::rvalue::BinOp::Or };
+    [&] => { $crate::body::rvalue::BinOp::BitAnd };
+    [|] => { $crate::body::rvalue::BinOp::BitOr };
 
     // Unary operators
     [!] => { hashql_hir::node::operation::UnOp::Not };
