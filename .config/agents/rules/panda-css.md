@@ -1,13 +1,29 @@
 ---
-type: "agent_requested"
-description: "Use when working with Panda CSS (any package starting with `@pandacss/*`)"
+name: panda-css
+description: Panda CSS styling framework guidance. Use when working with @pandacss packages, styled components, design tokens, or responsive/conditional styles.
+license: AGPL-3.0
+metadata:
+  triggers:
+    type: domain
+    enforcement: suggest
+    priority: medium
+    keywords:
+      - panda-css
+      - panda css
+      - pandacss
+      - "@pandacss"
+    intentPatterns:
+      - "\\b(use|style|create|configure)\\b.*?\\bpanda(-| )?css\\b"
+      - "\\bcss\\b.*?\\b(recipe|pattern|token)s?\\b"
 ---
 
-Panda CSS is a CSS-in-JS framework.
+# Panda CSS
 
-## LLM-Optimized Documentation (Aggregated)
+CSS-in-JS framework with static analysis and atomic CSS output for type-safe, optimized styling.
 
-These pre-compiled docs contain full content for each topic area:
+## LLM-Optimized Documentation
+
+Fetch these pre-compiled docs for comprehensive topic coverage:
 
 | Topic         | URL                                          | Covers                                                                           |
 | ------------- | -------------------------------------------- | -------------------------------------------------------------------------------- |
@@ -22,48 +38,37 @@ These pre-compiled docs contain full content for each topic area:
 | Migration     | https://panda-css.com/llms.txt/migration     | Migrating from other CSS-in-JS libraries                                         |
 | References    | https://panda-css.com/llms.txt/references    | CLI commands, configuration reference                                            |
 
-## Usage of documentation
-
-1. For broad topic understanding: fetch the aggregated /llms.txt/topic URL
-2. For specific page details: fetch /docs/path/page.mdx
-
-### Individual Page MDX Source
-
-For specific pages, append .mdx to get raw MDX source:
-
-- https://panda-css.com/docs/concepts/recipes.mdx
-- https://panda-css.com/docs/concepts/patterns.mdx
-- https://panda-css.com/docs/theming/tokens.mdx
+For broad topic understanding, fetch the aggregated `/llms.txt/topic` URL. For specific page details, fetch `/docs/path/page.mdx`.
 
 ## Key Concepts
 
 ### Cascade Layers (specificity order)
 
-1. reset - CSS reset/preflight
-2. base - Global base styles
-3. tokens - Design token CSS variables
-4. recipes - Component recipe styles
-5. utilities - Atomic utility classes
+1. `reset` - CSS reset/preflight
+2. `base` - Global base styles
+3. `tokens` - Design token CSS variables
+4. `recipes` - Component recipe styles
+5. `utilities` - Atomic utility classes
 
 ### Styling Approaches
 
-- css() function - Inline atomic styles
-- Recipes (cva) - Multi-variant component styles with base, variants, compoundVariants
+- `css()` function - Inline atomic styles
+- Recipes (`cva`) - Multi-variant component styles with base, variants, compoundVariants
 - Config recipes - JIT generation, only used variants compiled
 - Patterns - Layout primitives (Stack, Flex, Grid, Container)
 
 ### Conditional Styling
 
-- Pseudo-classes: _hover,_focus, _active,_disabled
-- Pseudo-elements: _before,_after
-- Responsive: sm, md, lg, xl, 2xl breakpoints
-- Color opacity: color/opacity syntax (e.g., blue.500/50)
+- Pseudo-classes: `_hover`, `_focus`, `_active`, `_disabled`
+- Pseudo-elements: `_before`, `_after`
+- Responsive: `sm`, `md`, `lg`, `xl`, `2xl` breakpoints
+- Color opacity: `color/opacity` syntax (e.g., `blue.500/50`)
 
 ### Design Tokens
 
 - Semantic tokens with light/dark mode support
 - Token categories: colors, spacing, sizes, fonts, radii, shadows
-- Access via token() function or curly brace syntax
+- Access via `token()` function or curly brace syntax
 
 ## Key Patterns
 
@@ -71,4 +76,4 @@ For specific pages, append .mdx to get raw MDX source:
 - JIT CSS generation - only used styles are compiled
 - Type-safe APIs with generated TypeScript types
 - Atomic CSS output for optimal caching
-- extend keyword for customizing without losing defaults
+- `extend` keyword for customizing without losing defaults

@@ -1,6 +1,24 @@
 ---
 name: writing-hashql-jexpr
 description: HashQL J-Expr syntax for writing queries. Use when writing J-Expr code, using #literal/#struct/#list constructs, understanding function call syntax, or working with HashQL query files (.jsonc).
+license: AGPL-3.0
+metadata:
+  triggers:
+    type: domain
+    enforcement: suggest
+    priority: high
+    keywords:
+      - J-Expr
+      - jexpr
+      - hashql query
+      - hashql syntax
+      - "#literal"
+      - "#struct"
+      - "#list"
+      - "#tuple"
+    intentPatterns:
+      - "\\b(write|read|create|parse)\\b.*?\\b(j-?expr|hashql)\\b"
+      - "\\b(hashql|jexpr)\\b.*?\\b(query|syntax|expression)\\b"
 ---
 
 # Writing HashQL J-Expr
@@ -152,15 +170,12 @@ Objects with special `#` keys construct data:
 {"#struct": {"value": {"#literal": 100}}, "#type": "Amount"}
 ```
 
-## Resources
+## References
 
-- [Syntax Reference](resources/syntax-reference.md) - Paths, function calls, operators
-- [Special Forms](resources/special-forms.md) - Language constructs (`if`, `let`, `fn`, `type`, `use`, etc.)
-- [Data Constructors](resources/data-constructors.md) - Typed data (`#literal`, `#struct`, `#tuple`, `#list`, `#dict`, `#type`)
-- [Type DSL](resources/type-dsl.md) - Embedded type annotation syntax
-
-## Source Files
-
+- [Syntax Reference](references/syntax-reference.md) - Paths, function calls, operators
+- [Special Forms](references/special-forms.md) - Language constructs (`if`, `let`, `fn`, `type`, `use`, etc.)
+- [Data Constructors](references/data-constructors.md) - Typed data (`#literal`, `#struct`, `#tuple`, `#list`, `#dict`, `#type`)
+- [Type DSL](references/type-dsl.md) - Embedded type annotation syntax
 - Parser: `libs/@local/hashql/syntax-jexpr/src/parser/`
 - Object forms: `libs/@local/hashql/syntax-jexpr/src/parser/object/`
 - Type DSL: `libs/@local/hashql/syntax-jexpr/src/parser/string/type.rs`

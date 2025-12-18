@@ -271,7 +271,7 @@ fn error_with_report() {
 
 ---
 
-## Related Resources
+## Related References
 
-- [Propagating Errors](propagating-errors.md) - How to handle and propagate these errors
-- [Documenting Errors](documenting-errors.md) - How to document these in functions
+- [Propagating Errors](./propagating-errors.md) - Handle and propagate these errors
+- [Documenting Errors](./documenting-errors.md) - Document these in functions

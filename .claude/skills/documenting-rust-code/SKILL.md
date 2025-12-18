@@ -1,31 +1,30 @@
 ---
 name: documenting-rust-code
-description: Rust documentation practices for HASH codebase. Use when writing doc comments, documenting functions and types, creating error documentation sections, using intra-doc links, documenting traits and modules, writing examples, or following rustdoc conventions.
+description: Rust documentation practices for HASH codebase. Use when writing doc comments, documenting functions/types/traits/modules, creating error sections, using intra-doc links, or following rustdoc conventions.
+license: AGPL-3.0
+metadata:
+  triggers:
+    type: domain
+    enforcement: suggest
+    priority: medium
+    keywords:
+      - rustdoc
+      - doc comment
+      - documentation
+      - intra-doc link
+    intentPatterns:
+      - "\\bdocument(ing|ation)?\\b.*?\\b(rust|function|type|struct|enum|trait|module)\\b"
+      - "\\b(write|add|create)\\b.*?\\bdoc\\s*comment\\b"
+      - "\\b#\\s*(Errors|Panics|Examples|Arguments)\\b"
 ---
 
 # Rust Documentation Practices
 
-## Purpose
-
-This skill provides comprehensive guidance on documenting Rust code in the HASH repository, following rustdoc conventions and best practices for clear, maintainable API documentation.
-
-## When This Skill Activates
-
-Automatically activates when:
-
-- Writing or updating doc comments in Rust
-- Documenting public APIs (functions, types, traits, modules)
-- Creating `# Errors`, `# Panics`, or `# Examples` sections
-- Using intra-doc links
-- Writing module-level documentation
-- Documenting error conditions
-- Adding code examples to documentation
-
----
+Comprehensive guidance on documenting Rust code in the HASH repository following rustdoc conventions.
 
 ## Core Principles
 
-**HASH documentation follows high-quality standards like `time`, `jiff`, and `serde`:**
+**Follow high-quality standards like `time`, `jiff`, and `serde`:**
 
 ✅ **DO:**
 
@@ -44,8 +43,6 @@ Automatically activates when:
 - Mention variable types already in signatures
 - Use comments on same line as code
 - Skip error documentation for fallible functions
-
----
 
 ## Quick Reference
 
@@ -77,13 +74,11 @@ pub fn get_entity(&self, id: EntityId) -> Result<Entity, Report<EntityError>> {
 /// [`validation::user`]: crate::validation::user
 ```
 
----
-
 ## Documentation Patterns
 
-### For Simple Functions (0-2 params)
+### Simple Functions (0-2 params)
 
-Describe parameters inline in the main description:
+Describe parameters inline:
 
 ```rust
 /// Processes the `input` elements and returns filtered results.
@@ -92,7 +87,7 @@ Describe parameters inline in the main description:
 /// and returns a [`Vec`] containing only matching elements.
 ```
 
-### For Complex Functions (3+ params)
+### Complex Functions (3+ params)
 
 Use explicit `# Arguments` section:
 
@@ -106,55 +101,6 @@ Use explicit `# Arguments` section:
 /// * `options` - Configuration controlling merge behavior
 /// * `callback` - Optional function for each merged item
 ```
-
----
-
-## Detailed Guides
-
-Choose the guide matching your documentation task:
-
-### [function-documentation.md](resources/function-documentation.md)
-
-**Use when:** Documenting functions and methods
-
-- Single-line summaries and descriptions
-- Parameter documentation (inline vs. explicit)
-- Return value descriptions
-- Async function documentation
-- When to document vs. skip
-
-### [type-documentation.md](resources/type-documentation.md)
-
-**Use when:** Documenting types, structs, enums, traits
-
-- Struct and enum documentation
-- Field-level doc comments
-- Trait documentation and contracts
-- When to skip trait implementations
-- Type invariants
-
-### [error-documentation.md](resources/error-documentation.md)
-
-**Use when:** Documenting error conditions
-
-- `# Errors` section format
-- Linking error variants with intra-doc links
-- Runtime errors vs. error enums
-- Panic documentation with `# Panics`
-
-### [examples-and-links.md](resources/examples-and-links.md)
-
-**Use when:** Adding examples or using intra-doc links
-
-- Writing compilable examples
-- Hiding setup code with `#`
-- Intra-doc link syntax and patterns
-- Module-level documentation
-- Performance notes
-
----
-
-## Common Patterns
 
 ### Error Documentation
 
@@ -196,26 +142,15 @@ Choose the guide matching your documentation task:
 /// ```
 ```
 
----
-
 ## Verification
-
-Check documentation builds correctly:
 
 ```bash
 cargo doc --no-deps --all-features
 ```
 
----
+## References
 
-## Related
-
-- `.cursor/rules/rust-documentation.mdc` - Full documentation guidelines
-- [rust-error-stack](../rust-error-stack/SKILL.md) - Error handling patterns
-- [rust-coding-style](../rust-coding-style/SKILL.md) - Coding conventions
-
----
-
-**Skill Status**: Production-ready following Anthropic best practices ✅
-**Line Count**: < 200 (following 500-line rule) ✅
-**Progressive Disclosure**: 4 detailed resource files ✅
+- **[references/function-documentation.md](references/function-documentation.md)**: Functions and methods documentation patterns
+- **[references/type-documentation.md](references/type-documentation.md)**: Types, structs, enums, and traits documentation
+- **[references/error-documentation.md](references/error-documentation.md)**: Error conditions and panics documentation
+- **[references/examples-and-links.md](references/examples-and-links.md)**: Examples and intra-doc links usage

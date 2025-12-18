@@ -1,6 +1,23 @@
 ---
 name: testing-hashql
 description: HashQL testing strategies including compiletest (UI tests), unit tests, and snapshot tests. Use when writing tests for HashQL code, using //~ annotations, running --bless, debugging test failures, or choosing the right testing approach.
+license: AGPL-3.0
+metadata:
+  triggers:
+    type: domain
+    enforcement: suggest
+    priority: high
+    keywords:
+      - hashql test
+      - compiletest
+      - ui test
+      - snapshot test
+      - insta test
+      - //~ annotation
+      - --bless
+    intentPatterns:
+      - "\\b(write|create|run|debug|add|fix)\\b.*?\\b(hashql|compiletest)\\b.*?\\btest\\b"
+      - "\\b(test|verify)\\b.*?\\b(diagnostic|error message|mir|hir|ast)\\b"
 ---
 
 # HashQL Testing Strategies
@@ -19,9 +36,9 @@ HashQL uses three testing approaches. **compiletest is the default** for testing
 | Parser fragments (syntax-jexpr) | insta | `src/*/snapshots/` |
 | Internal functions/logic | Unit tests | `src/*.rs` |
 
-## 1. compiletest (UI Tests)
+## compiletest (UI Tests)
 
-Tests parsing, type checking, and error reporting using J-Expr files with diagnostic annotations.
+Test parsing, type checking, and error reporting using J-Expr files with diagnostic annotations.
 
 **Structure:**
 
@@ -65,11 +82,9 @@ cargo run -p hashql-compiletest run --bless                   # Update expected
 - `//~v ERROR msg` - next line
 - `//~| ERROR msg` - same as previous annotation
 
-📖 **Full Guide:** [resources/compiletest-guide.md](resources/compiletest-guide.md)
+📖 **Full Guide:** [references/compiletest-guide.md](references/compiletest-guide.md)
 
----
-
-## 2. Unit Tests
+## Unit Tests
 
 Standard Rust `#[test]` functions for testing internal logic.
 
@@ -95,11 +110,9 @@ cargo nextest run --package hashql-<package>
 cargo test --package hashql-<package> --doc    # Doc tests
 ```
 
----
+## insta Snapshot Tests
 
-## 3. insta Snapshot Tests
-
-Uses `insta` crate for snapshot-based output when compiletest (the preferred method) is infeasible. Three categories exist:
+Use `insta` crate for snapshot-based output when compiletest (the preferred method) is infeasible. Three categories exist:
 
 | Category | Crates | Snapshot Location | Rationale |
 | -------- | ------ | ----------------- | --------- |
@@ -154,9 +167,7 @@ cargo insta review     # Interactive review
 cargo insta accept     # Accept all pending
 ```
 
----
+## References
 
-## Resources
-
-- [compiletest Guide](resources/compiletest-guide.md) - Detailed UI test documentation
-- [Testing Strategies](resources/testing-strategies.md) - Choosing the right approach
+- [compiletest Guide](references/compiletest-guide.md) - Detailed UI test documentation
+- [Testing Strategies](references/testing-strategies.md) - Choosing the right approach

@@ -1,7 +1,7 @@
 ---
 name: skill-creator
 description: Guide for creating effective Agent Skills. Use when users want to create a new skill (or update an existing skill) that extends an AI agent's capabilities with specialized knowledge, workflows, or tool integrations. Covers skill structure, YAML frontmatter, trigger configuration, and the 500-line rule.
-license: Apache-2.0
+license: AGPL-3.0
 metadata:
   triggers:
     type: domain

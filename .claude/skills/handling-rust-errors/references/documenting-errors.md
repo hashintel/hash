@@ -343,12 +343,7 @@ pub fn register_user(email: &str, password: &str) -> Result<UserId, Report<Regis
 
 ---
 
-## Related Resources
+## Related References
 
-- [Defining Errors](./defining-errors.md) - How to create error types
-- [Propagating Errors](./propagating-errors.md) - Adding context and converting errors
-
-## Related Guidelines
-
-- See `.cursor/rules/rust-documentation.mdc` for full documentation guidelines
-- See `.cursor/rules/rust-testing-strategy.mdc` for testing strategies
+- [Defining Errors](./defining-errors.md) - Create error types
+- [Propagating Errors](./propagating-errors.md) - Add context and convert errors

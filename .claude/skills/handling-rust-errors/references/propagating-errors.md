@@ -306,7 +306,7 @@ fn process_config(path: &Path) -> Result<Config, Report<ConfigError>> {
 
 ---
 
-## Related Resources
+## Related References
 
-- [Defining Errors](./defining-errors.md) - How to create error types
+- [Defining Errors](./defining-errors.md) - Create error types
 - [Documenting Errors](./documenting-errors.md) - Document error conditions

@@ -1,11 +1,26 @@
 ---
-type: "agent_requested"
-description: "Use when working with Mastra (any package starting with `@mastra/*`)"
+name: mastra
+description: Mastra TypeScript framework for AI agents with memory, tools, workflows, and RAG. Use when working with @mastra/* packages or building AI agents.
+license: AGPL-3.0
+metadata:
+  triggers:
+    type: domain
+    enforcement: suggest
+    priority: medium
+    keywords:
+      - mastra
+      - "@mastra/"
+      - mastra.ai
+    intentPatterns:
+      - "\\b(use|build|create|implement)\\b.*?\\bmastra\\b"
+      - "\\b(agent|workflow|rag)\\b.*?\\bmastra\\b"
 ---
 
-Mastra is an open-source TypeScript framework for building AI agents with memory, tools, workflows, and RAG capabilities.
+# Mastra Framework
 
-## Documentation Entry Points by Context
+Open-source TypeScript framework for building AI agents with memory, tools, workflows, and RAG capabilities. Fetch the relevant documentation URL below to get current API details.
+
+## Documentation Entry Points
 
 ### Getting Started and Installation
 
@@ -85,10 +100,6 @@ Covers: Structured logging with trace correlation, AI tracing (LLM calls, agent 
 | createTool()     | https://mastra.ai/reference/v1/tools/create-tool       |
 | MCPClient        | https://mastra.ai/reference/v1/tools/mcp-client        |
 | MCPServer        | https://mastra.ai/reference/v1/tools/mcp-server        |
-
-## Usage
-
-Use WebFetch to retrieve the entry point URL matching your task. The fetched page contains links to related topics and deeper documentation.
 
 ## Gotchas
 
