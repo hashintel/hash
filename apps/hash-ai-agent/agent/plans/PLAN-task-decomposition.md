@@ -115,19 +115,19 @@ This enables bounded dynamism — the loop structure is static, but the step fun
 
 ### 3.1 MVP Step Types (v1)
 
-| Type        | Category  | Description                                      | Parallelizable |
-| ----------- | --------- | ------------------------------------------------ | -------------- |
-| `research`  | Strategic | Gather existing knowledge                        | Yes            |
-| `synthesize`| Strategic | Combine results OR evaluate against criteria     | No             |
-| `experiment`| Tactical  | Test hypothesis empirically                      | Yes            |
-| `develop`   | Tactical  | Build/implement something                        | Sometimes      |
+| Type         | Category  | Description                                  | Parallelizable |
+| ------------ | --------- | -------------------------------------------- | -------------- |
+| `research`   | Strategic | Gather existing knowledge                    | Yes            |
+| `synthesize` | Strategic | Combine results OR evaluate against criteria | No             |
+| `experiment` | Tactical  | Test hypothesis empirically                  | Yes            |
+| `develop`    | Tactical  | Build/implement something                    | Sometimes      |
 
 ### 3.2 Future Step Types
 
-| Type          | Category  | Description                                      | Notes                           |
-| ------------- | --------- | ------------------------------------------------ | ------------------------------- |
-| `hypothesize` | Strategic | Generate testable hypotheses from findings       | Currently implicit in workflow  |
-| `transform`   | Tactical  | Pure data manipulation                           | Can be done via `develop`       |
+| Type          | Category  | Description                                | Notes                          |
+| ------------- | --------- | ------------------------------------------ | ------------------------------ |
+| `hypothesize` | Strategic | Generate testable hypotheses from findings | Currently implicit in workflow |
+| `transform`   | Tactical  | Pure data manipulation                     | Can be done via `develop`      |
 
 ### 3.3 Subsumed Types
 
@@ -663,17 +663,17 @@ apps/hash-ai-agent/src/mastra/
 
 ## 8. Key Design Decisions
 
-| Decision | Choice | Rationale |
-| -------- | ------ | --------- |
-| Schema complexity | MVP-first (4 step types) | LLMs struggle with deeply nested discriminated unions |
-| Execution mode | Interpreted (deferred) | Supports dynamism, but plan quality is primary focus |
-| Stub executors | Low priority | Plan quality scoring is the real signal |
-| Plan evaluation | LLM judge + structural | No single "correct" decomposition |
-| Hypotheses | Explicit top-level + referenced | Makes scientific structure visible |
-| Unknowns | Epistemically rigorous partition | Surfaces uncertainty rather than hiding it |
-| Experiment modes | Exploratory vs confirmatory | Reduces researcher degrees of freedom |
-| Synthesis modes | Integrative vs evaluative | Subsumes "assess" step type |
-| Decision points | Deferred to v2 | Simplifies MVP |
+| Decision          | Choice                           | Rationale                                             |
+| ----------------- | -------------------------------- | ----------------------------------------------------- |
+| Schema complexity | MVP-first (4 step types)         | LLMs struggle with deeply nested discriminated unions |
+| Execution mode    | Interpreted (deferred)           | Supports dynamism, but plan quality is primary focus  |
+| Stub executors    | Low priority                     | Plan quality scoring is the real signal               |
+| Plan evaluation   | LLM judge + structural           | No single "correct" decomposition                     |
+| Hypotheses        | Explicit top-level + referenced  | Makes scientific structure visible                    |
+| Unknowns          | Epistemically rigorous partition | Surfaces uncertainty rather than hiding it            |
+| Experiment modes  | Exploratory vs confirmatory      | Reduces researcher degrees of freedom                 |
+| Synthesis modes   | Integrative vs evaluative        | Subsumes "assess" step type                           |
+| Decision points   | Deferred to v2                   | Simplifies MVP                                        |
 
 ---
 
@@ -698,21 +698,21 @@ interface ExecutionState {
 
 ### 10.1 Deterministic Scorers
 
-| Scorer | Measures |
-| ------ | -------- |
-| `plan-structure` | DAG valid, refs exist, no orphans |
-| `plan-coverage` | All requirements addressed by steps |
-| `experiment-rigor` | Confirmatory experiments have preregistration |
+| Scorer              | Measures                                                        |
+| ------------------- | --------------------------------------------------------------- |
+| `plan-structure`    | DAG valid, refs exist, no orphans                               |
+| `plan-coverage`     | All requirements addressed by steps                             |
+| `experiment-rigor`  | Confirmatory experiments have preregistration                   |
 | `unknowns-coverage` | All three unknown categories populated, community check present |
 
 ### 10.2 LLM Judge Scorers
 
-| Scorer | Measures |
-| ------ | -------- |
-| `plan-testability` | Hypotheses can actually be tested |
-| `plan-granularity` | Steps appropriately scoped (not too broad, not too narrow) |
-| `plan-coherence` | Steps make sense together |
-| `plan-completeness` | No obvious gaps for the goal |
+| Scorer              | Measures                                                   |
+| ------------------- | ---------------------------------------------------------- |
+| `plan-testability`  | Hypotheses can actually be tested                          |
+| `plan-granularity`  | Steps appropriately scoped (not too broad, not too narrow) |
+| `plan-coherence`    | Steps make sense together                                  |
+| `plan-completeness` | No obvious gaps for the goal                               |
 
 ### 10.3 Phase 1 Approach
 
@@ -918,13 +918,13 @@ Validation is deterministic (DAG acyclic, refs exist). Scoring is evaluative (pl
 
 ### 15.1 Input Injection
 
-| Element | Location | Rationale |
-| ------- | -------- | --------- |
-| Goal | User message | Primary input, should be prominent |
-| Context | User message (after goal) | Supplements goal |
-| Available agents | System prompt | Static context the planner reasons about |
-| Constraints | User message (after context) | Goal-specific constraints |
-| Schema description | System prompt | Defines output structure |
+| Element            | Location                     | Rationale                                |
+| ------------------ | ---------------------------- | ---------------------------------------- |
+| Goal               | User message                 | Primary input, should be prominent       |
+| Context            | User message (after goal)    | Supplements goal                         |
+| Available agents   | System prompt                | Static context the planner reasons about |
+| Constraints        | User message (after context) | Goal-specific constraints                |
+| Schema description | System prompt                | Defines output structure                 |
 
 ### 15.2 Agent Presentation
 
@@ -980,26 +980,26 @@ See `docs/PROMPTS-meta-cognitive.md` for research-planning and experiment-design
 
 ### Completed (Phase 1-4)
 
-| Component | File | Status | Tests |
-|-----------|------|--------|-------|
-| PlanSpec schema | `schemas/plan-spec.ts` | ✅ Complete | — |
-| Agent profiles | `constants.ts` | ✅ Complete | — |
-| Plan validator | `tools/plan-validator.ts` | ✅ Complete | 25 tests |
-| Topology analyzer | `tools/topology-analyzer.ts` | ✅ Complete | — |
-| Planner agent | `agents/planner-agent.ts` | ✅ Complete | — |
-| Positive fixtures (4) | `fixtures/decomposition-prompts/` | ✅ Complete | — |
-| Negative fixtures | `tools/plan-validator.test.ts` | ✅ Complete | 25 tests |
-| Deterministic scorers (4) | `scorers/plan-scorers.ts` | ✅ Complete | 23 tests |
-| LLM judge scorers (3) | `scorers/plan-llm-scorers.ts` | ✅ Complete | 6 tests |
+| Component                 | File                              | Status     | Tests    |
+| ------------------------- | --------------------------------- | ---------- | -------- |
+| PlanSpec schema           | `schemas/plan-spec.ts`            | ✅ Complete | —        |
+| Agent profiles            | `constants.ts`                    | ✅ Complete | —        |
+| Plan validator            | `tools/plan-validator.ts`         | ✅ Complete | 25 tests |
+| Topology analyzer         | `tools/topology-analyzer.ts`      | ✅ Complete | —        |
+| Planner agent             | `agents/planner-agent.ts`         | ✅ Complete | —        |
+| Positive fixtures (4)     | `fixtures/decomposition-prompts/` | ✅ Complete | —        |
+| Negative fixtures         | `tools/plan-validator.test.ts`    | ✅ Complete | 25 tests |
+| Deterministic scorers (4) | `scorers/plan-scorers.ts`         | ✅ Complete | 23 tests |
+| LLM judge scorers (3)     | `scorers/plan-llm-scorers.ts`     | ✅ Complete | 6 tests  |
 
 ### Not Yet Implemented
 
-| Component | File | Status | Notes |
-|-----------|------|--------|-------|
-| Planning workflow loop | `workflows/planning-workflow.ts` | ⚠️ Stub only | No `.dountil()` revision logic |
-| Supervisor agent | `agents/supervisor-agent.ts` | ❌ Not started | LLM approval gate |
-| End-to-end tests | `workflows/planning-workflow.test.ts` | ⚠️ Partial | Uses hand-crafted plans, not generated |
-| Stub execution (Level 1) | — | ❌ Not started | Low priority |
+| Component                | File                                  | Status        | Notes                                  |
+| ------------------------ | ------------------------------------- | ------------- | -------------------------------------- |
+| Planning workflow loop   | `workflows/planning-workflow.ts`      | ⚠️ Stub only   | No `.dountil()` revision logic         |
+| Supervisor agent         | `agents/supervisor-agent.ts`          | ❌ Not started | LLM approval gate                      |
+| End-to-end tests         | `workflows/planning-workflow.test.ts` | ⚠️ Partial     | Uses hand-crafted plans, not generated |
+| Stub execution (Level 1) | —                                     | ❌ Not started | Low priority                           |
 
 ---
 
