@@ -5,6 +5,10 @@
 // Panel margin (spacing around panels)
 export const PANEL_MARGIN = 10;
 
+// Resize handle
+export const RESIZE_HANDLE_SIZE = 20;
+export const RESIZE_HANDLE_OFFSET = -Math.floor(RESIZE_HANDLE_SIZE / 2);
+
 // Left Sidebar
 export const DEFAULT_LEFT_SIDEBAR_WIDTH = 320;
 export const MIN_LEFT_SIDEBAR_WIDTH = 280;
