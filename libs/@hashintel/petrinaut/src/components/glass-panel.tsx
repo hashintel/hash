@@ -62,7 +62,8 @@ interface GlassPanelProps {
   resizable?: ResizeConfig;
 }
 
-const RESIZE_HANDLE_SIZE = 9;
+const RESIZE_HANDLE_SIZE = 20;
+const RESIZE_HANDLE_OFFSET = -Math.floor(RESIZE_HANDLE_SIZE / 2);
 
 const getResizeHandleStyle = (edge: ResizableEdge): CSSProperties => {
   const base: CSSProperties = {
@@ -77,42 +78,38 @@ const getResizeHandleStyle = (edge: ResizableEdge): CSSProperties => {
     case "top":
       return {
         ...base,
-        top: 0,
+        top: RESIZE_HANDLE_OFFSET,
         left: 0,
         right: 0,
         height: RESIZE_HANDLE_SIZE,
         cursor: "ns-resize",
-        borderRadius: "12px 12px 0 0",
       };
     case "bottom":
       return {
         ...base,
-        bottom: 0,
+        bottom: RESIZE_HANDLE_OFFSET,
         left: 0,
         right: 0,
         height: RESIZE_HANDLE_SIZE,
         cursor: "ns-resize",
-        borderRadius: "0 0 12px 12px",
       };
     case "left":
       return {
         ...base,
         top: 0,
-        left: 0,
+        left: RESIZE_HANDLE_OFFSET,
         bottom: 0,
         width: RESIZE_HANDLE_SIZE,
         cursor: "ew-resize",
-        borderRadius: "12px 0 0 12px",
       };
     case "right":
       return {
         ...base,
         top: 0,
-        right: 0,
+        right: RESIZE_HANDLE_OFFSET,
         bottom: 0,
         width: RESIZE_HANDLE_SIZE,
         cursor: "ew-resize",
-        borderRadius: "0 12px 12px 0",
       };
   }
 };
