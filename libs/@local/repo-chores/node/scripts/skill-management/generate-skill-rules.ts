@@ -6,8 +6,9 @@ import * as o from "@optique/core";
 import chalk from "chalk";
 import { execa } from "execa";
 import { pathExists } from "fs-extra";
+import z from "zod";
 
-import type { Frontmatter, SkillRules, SkillTrigger } from "./schemas";
+import { type Frontmatter, SkillRules, type SkillTrigger } from "./schemas";
 import { findSkillsDir, scanSkills } from "./shared";
 
 const convert = (frontmatters: Iterable<Frontmatter>): SkillRules => {
@@ -88,7 +89,31 @@ export const generateSkillRules = async () => {
   return await run(skillsDir);
 };
 
+export const skillRulesSchema = () => {
+  console.log(
+    JSON.stringify(
+      z.toJSONSchema(SkillRules, {
+        unrepresentable: "any",
+        override: (context) => {
+          const schema = z.globalRegistry.get(context.zodSchema);
+          if (schema?.id === "intentPattern") {
+            context.jsonSchema.type = "string";
+          }
+        },
+      }),
+      null,
+      4,
+    ),
+  );
+  return true;
+};
+
 export const generateSkillRulesParser = o.command(
   "generate-skill-rules",
   o.object({ action: o.constant("generate-skill-rules") }),
+);
+
+export const skillRulesSchemaParser = o.command(
+  "skill-rules-schema",
+  o.object({ action: o.constant("skill-rules-schema") }),
 );

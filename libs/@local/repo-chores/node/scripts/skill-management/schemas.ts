@@ -48,7 +48,10 @@ const AllowedTools = z
   .transform((value) => value.split(" "))
   .pipe(z.string().array())
   .optional()
-  .describe("Space-delimited list of tools this skill is allowed to use.");
+  .meta({
+    id: "allowedTools",
+    description: "Space-delimited list of tools this skill is allowed to use.",
+  });
 
 const DomainTrigger = z
   .literal("domain")
@@ -99,6 +102,7 @@ const Keywords = z
 const IntentPatterns = z
   .string()
   .transform((value) => new RegExp(value))
+  .meta({ id: "intentPattern" })
   .array()
   .default(() => [])
   .describe("Regex patterns to match user intent in prompts.");
