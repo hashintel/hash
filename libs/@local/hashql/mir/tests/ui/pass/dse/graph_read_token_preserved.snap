@@ -22,7 +22,6 @@ fn {intrinsic#4294967040}(%0: ?) -> Integer {
 
 fn {intrinsic#4294967040}(%0: ?) -> Integer {
     let %1: GraphToken
-    let %2: Integer
 
     bb0(): {
         graph read entities(%0)

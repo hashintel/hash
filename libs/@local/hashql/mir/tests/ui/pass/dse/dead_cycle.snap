@@ -20,9 +20,6 @@ fn {intrinsic#4294967040}(%0: Integer) -> Integer {
 ------------------------------------
 
 fn {intrinsic#4294967040}(%0: Integer) -> Integer {
-    let %1: Integer
-    let %2: Integer
-
     bb0(): {
         goto -> bb0()
     }

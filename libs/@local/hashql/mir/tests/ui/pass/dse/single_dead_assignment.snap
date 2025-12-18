@@ -18,7 +18,6 @@ fn {intrinsic#4294967040}() -> Integer {
 
 fn {intrinsic#4294967040}() -> Integer {
     let %0: Integer
-    let %1: Integer
 
     bb0(): {
         %0 = input LOAD input

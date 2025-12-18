@@ -27,10 +27,6 @@
 ════ MIR after DSE ═════════════════════════════════════════════════════════════
 
 *thunk {thunk#2}() -> Integer {
-    let %0: Integer
-    let %1: Integer
-    let %2: Integer
-
     bb0(): {
         return 42
     }

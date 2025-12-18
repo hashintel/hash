@@ -43,7 +43,7 @@ impl<'env, 'heap, A: BumpAllocator> TransformPass<'env, 'heap> for DeadLocalElim
     fn run(&mut self, context: &mut MirContext<'env, 'heap>, body: &mut Body<'heap>) {
         self.alloc.reset();
 
-        let dead = if let Some(dead) = self.dead.take() {
+        let mut dead = if let Some(dead) = self.dead.take() {
             dead
         } else {
             let mut visitor = FindDeadLocals::new(body.local_decls.len());
@@ -51,6 +51,11 @@ impl<'env, 'heap, A: BumpAllocator> TransformPass<'env, 'heap> for DeadLocalElim
 
             visitor.dead
         };
+
+        // The function args cannot be dead
+        for index in 0..body.args {
+            dead.remove(Local::new(index));
+        }
 
         let mut remap = LocalVec::new_in(&self.alloc);
         let mut new_id = Local::new(0);
