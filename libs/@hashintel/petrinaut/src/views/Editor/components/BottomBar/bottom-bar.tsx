@@ -1,7 +1,9 @@
 import { css } from "@hashintel/ds-helpers/css";
 import { refractive } from "@hashintel/refractive";
 import { useCallback, useEffect } from "react";
+import { FaChevronDown, FaChevronUp } from "react-icons/fa6";
 
+import { Tooltip } from "../../../../components/tooltip";
 import { useCheckerContext } from "../../../../state/checker-provider";
 import { useEditorStore } from "../../../../state/editor-provider";
 import type { EditorState } from "../../../../state/editor-store";
@@ -28,6 +30,25 @@ const dividerStyle = css({
   width: "[1px]",
   height: "[16px]",
   margin: "[0 4px]",
+});
+
+const panelToggleButtonStyle = css({
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  width: "[32px]",
+  height: "[32px]",
+  border: "none",
+  borderRadius: "[8px]",
+  backgroundColor: "[transparent]",
+  color: "core.gray.70",
+  cursor: "pointer",
+  transition: "[all 0.2s ease]",
+  marginLeft: "[4px]",
+  _hover: {
+    backgroundColor: "[rgba(0, 0, 0, 0.05)]",
+    color: "core.gray.90",
+  },
 });
 
 const bottomBarPositionStyle = css({
@@ -68,6 +89,10 @@ export const BottomBar: React.FC<BottomBarProps> = ({
     setActiveBottomPanelTab("diagnostics");
   }, [setBottomPanelOpen, setActiveBottomPanelTab]);
 
+  const toggleBottomPanel = useCallback(() => {
+    setBottomPanelOpen(!isBottomPanelOpen);
+  }, [setBottomPanelOpen, isBottomPanelOpen]);
+
   // Fallback to 'pan' mode when switching to simulate mode if mutative mode
   useEffect(() => {
     if (
@@ -98,6 +123,21 @@ export const BottomBar: React.FC<BottomBarProps> = ({
         }}
       >
         <div className={toolbarContainerStyle}>
+          <Tooltip content={isBottomPanelOpen ? "Hide Panel" : "Show Panel"}>
+            <button
+              type="button"
+              onClick={toggleBottomPanel}
+              className={panelToggleButtonStyle}
+              aria-label={isBottomPanelOpen ? "Hide panel" : "Show panel"}
+              aria-expanded={isBottomPanelOpen}
+            >
+              {isBottomPanelOpen ? (
+                <FaChevronDown size={14} />
+              ) : (
+                <FaChevronUp size={14} />
+              )}
+            </button>
+          </Tooltip>
           <DiagnosticsIndicator
             onClick={showDiagnostics}
             isExpanded={isBottomPanelOpen}
