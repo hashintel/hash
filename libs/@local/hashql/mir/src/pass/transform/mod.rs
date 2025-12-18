@@ -3,6 +3,7 @@ mod dbe;
 mod dle;
 mod dse;
 pub mod error;
+mod inst_simplify;
 mod sroa;
 mod ssa_repair;
 
