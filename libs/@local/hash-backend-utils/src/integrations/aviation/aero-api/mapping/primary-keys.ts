@@ -7,36 +7,31 @@ import type {
 
 export const generatePrimaryKey = {
   flight: (input: FlightProperties) => {
-    const iataCode = input["https://hash.ai/@h/types/property-type/iata-code/"];
+    const icaoCode = input["https://hash.ai/@h/types/property-type/icao-code/"];
     const flightNumber =
       input["https://hash.ai/@h/types/property-type/flight-number/"];
     const flightDate =
       input["https://hash.ai/@h/types/property-type/flight-date/"];
 
-    return `${iataCode}-${flightNumber}-${flightDate}`;
-  },
-  airport: (input: AirportProperties) => {
-    const iataCode = input["https://hash.ai/@h/types/property-type/iata-code/"];
-    const name =
-      input[
-        "https://blockprotocol.org/@blockprotocol/types/property-type/name/"
-      ];
-
-    return `airport-${iataCode}-${name}`;
-  },
-  airline: (input: AirlineProperties) => {
-    const iataCode = input["https://hash.ai/@h/types/property-type/iata-code/"];
-    const name =
-      input[
-        "https://blockprotocol.org/@blockprotocol/types/property-type/name/"
-      ];
-    return `airline-${iataCode}-${name}`;
+    return `${icaoCode}-${flightNumber}-${flightDate}`;
   },
   aircraft: (input: AircraftProperties) => {
-    const iataCode = input["https://hash.ai/@h/types/property-type/iata-code/"];
+    const icaoCode = input["https://hash.ai/@h/types/property-type/icao-code/"];
     const registrationNumber =
       input["https://hash.ai/@h/types/property-type/registration-number/"];
 
-    return `aircraft-${iataCode}-${registrationNumber}`;
+    return `aircraft-${icaoCode}-${registrationNumber}`;
+  },
+  airport: (input: AirportProperties) => {
+    const icaoCode = input["https://hash.ai/@h/types/property-type/icao-code/"];
+    const iataCode = input["https://hash.ai/@h/types/property-type/iata-code/"];
+
+    return `airport-${icaoCode ?? iataCode}`;
+  },
+  airline: (input: AirlineProperties) => {
+    const icaoCode = input["https://hash.ai/@h/types/property-type/icao-code/"];
+    const iataCode = input["https://hash.ai/@h/types/property-type/iata-code/"];
+
+    return `airline-${icaoCode ?? iataCode}`;
   },
 };

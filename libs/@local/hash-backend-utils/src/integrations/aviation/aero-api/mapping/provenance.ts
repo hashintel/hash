@@ -4,16 +4,16 @@ import {
   type Url,
 } from "@blockprotocol/type-system";
 
-export const generateAviationstackProvenance: Pick<
+export const generateAeroApiProvenance: Pick<
   ProvidedEntityEditionProvenance,
   "sources"
 > = {
   sources: [
     {
-      type: "integration" /** @todo make this a valid option in @blockprotocol/type-system */,
+      type: "integration",
       location: {
-        name: "Aviationstack API",
-        uri: "https://api.aviationstack.com/v1/" as Url,
+        name: "FlightAware AeroAPI",
+        uri: "https://aeroapi.flightaware.com/aeroapi/" as Url,
       },
       loadedAt: currentTimestamp(),
     },

@@ -143,6 +143,7 @@ export type AirportOutgoingLinksByLinkEntityTypeId = {};
  */
 export type AirportProperties = {
   "https://blockprotocol.org/@blockprotocol/types/property-type/name/": NamePropertyValue;
+  "https://hash.ai/@h/types/property-type/city/"?: CityPropertyValue;
   "https://hash.ai/@h/types/property-type/iata-code/"?: IATACodePropertyValue;
   "https://hash.ai/@h/types/property-type/icao-code/"?: ICAOCodePropertyValue;
   "https://hash.ai/@h/types/property-type/timezone/"?: TimezonePropertyValue;
@@ -152,6 +153,7 @@ export type AirportPropertiesWithMetadata = {
   metadata?: ObjectMetadata;
   value: {
     "https://blockprotocol.org/@blockprotocol/types/property-type/name/": NamePropertyValueWithMetadata;
+    "https://hash.ai/@h/types/property-type/city/"?: CityPropertyValueWithMetadata;
     "https://hash.ai/@h/types/property-type/iata-code/"?: IATACodePropertyValueWithMetadata;
     "https://hash.ai/@h/types/property-type/icao-code/"?: ICAOCodePropertyValueWithMetadata;
     "https://hash.ai/@h/types/property-type/timezone/"?: TimezonePropertyValueWithMetadata;
@@ -345,6 +347,13 @@ export type BytesDataTypeMetadata = {
   confidence?: Confidence;
   dataTypeId: "https://hash.ai/@h/types/data-type/bytes/v/1";
 };
+
+/**
+ * The city where something is located, occurred, etc.
+ */
+export type CityPropertyValue = TextDataType;
+
+export type CityPropertyValueWithMetadata = TextDataTypeWithMetadata;
 
 /**
  * Comment associated with the issue.

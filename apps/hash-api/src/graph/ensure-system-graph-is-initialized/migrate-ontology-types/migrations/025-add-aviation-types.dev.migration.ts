@@ -102,7 +102,7 @@ const migrate: MigrationFunction = async ({
   );
 
   /**
-   * Speed data type hierarchy: Speed → Kilometers per Hour
+   * Speed data type hierarchy: Speed → Meters per Second (canonical) → km/h, knots, ft/min
    */
 
   const speedDataType = await createSystemDataTypeIfNotExists(
@@ -123,7 +123,27 @@ const migrate: MigrationFunction = async ({
     },
   );
 
-  const kilometersPerHourDataType = await createSystemDataTypeIfNotExists(
+  const metersPerSecondDataType = await createSystemDataTypeIfNotExists(
+    context,
+    authentication,
+    {
+      dataTypeDefinition: {
+        allOf: [{ $ref: speedDataType.schema.$id }],
+        title: "Meters per Second",
+        description:
+          "The SI unit of speed, expressing the number of meters traveled in one second.",
+        label: {
+          right: "m/s",
+        },
+        type: "number",
+      },
+      conversions: {},
+      migrationState,
+      webShortname: "h",
+    },
+  );
+
+  const _kilometersPerHourDataType = await createSystemDataTypeIfNotExists(
     context,
     authentication,
     {
@@ -137,7 +157,107 @@ const migrate: MigrationFunction = async ({
         },
         type: "number",
       },
-      conversions: {},
+      conversions: {
+        [metersPerSecondDataType.metadata.recordId.baseUrl]: {
+          // 1 km/h = 1000m / 3600s = 5/18 m/s
+          // m/s → km/h: self * 18 / 5
+          from: {
+            expression: [
+              "/",
+              ["*", "self", { const: 18, type: "number" }],
+              { const: 5, type: "number" },
+            ],
+          },
+          // km/h → m/s: self * 5 / 18
+          to: {
+            expression: [
+              "/",
+              ["*", "self", { const: 5, type: "number" }],
+              { const: 18, type: "number" },
+            ],
+          },
+        },
+      },
+      migrationState,
+      webShortname: "h",
+    },
+  );
+
+  const knotsDataType = await createSystemDataTypeIfNotExists(
+    context,
+    authentication,
+    {
+      dataTypeDefinition: {
+        allOf: [{ $ref: speedDataType.schema.$id }],
+        title: "Knots",
+        description:
+          "A unit of speed equal to one nautical mile per hour, commonly used in aviation and maritime contexts.",
+        label: {
+          right: "kn",
+        },
+        type: "number",
+      },
+      conversions: {
+        [metersPerSecondDataType.metadata.recordId.baseUrl]: {
+          // 1 knot = 1852m / 3600s (1 nautical mile = 1852m exactly)
+          // m/s → knots: self * 3600 / 1852
+          from: {
+            expression: [
+              "/",
+              ["*", "self", { const: 3600, type: "number" }],
+              { const: 1852, type: "number" },
+            ],
+          },
+          // knots → m/s: self * 1852 / 3600
+          to: {
+            expression: [
+              "/",
+              ["*", "self", { const: 1852, type: "number" }],
+              { const: 3600, type: "number" },
+            ],
+          },
+        },
+      },
+      migrationState,
+      webShortname: "h",
+    },
+  );
+
+  const feetPerMinuteDataType = await createSystemDataTypeIfNotExists(
+    context,
+    authentication,
+    {
+      dataTypeDefinition: {
+        allOf: [{ $ref: speedDataType.schema.$id }],
+        title: "Feet per Minute",
+        description:
+          "A unit of vertical speed commonly used in aviation to measure rate of climb or descent.",
+        label: {
+          right: "ft/min",
+        },
+        type: "number",
+      },
+      conversions: {
+        [metersPerSecondDataType.metadata.recordId.baseUrl]: {
+          // 1 ft/min = 0.3048m / 60s (1 foot = 0.3048m exactly)
+          // m/s → ft/min: self * 60 / 0.3048
+          from: {
+            expression: [
+              "/",
+              ["*", "self", { const: 60, type: "number" }],
+              { const: 0.3048, type: "number" },
+            ],
+          },
+          // ft/min → m/s: self * 0.3048 / 60
+          to: {
+            expression: [
+              "/",
+              ["*", "self", { const: 0.3048, type: "number" }],
+              { const: 60, type: "number" },
+            ],
+          },
+        },
+      },
       migrationState,
       webShortname: "h",
     },
@@ -237,14 +357,14 @@ const migrate: MigrationFunction = async ({
     migrationState,
   });
 
-  const delayInMinutesPropertyType = await createSystemPropertyTypeIfNotExists(
+  const delayInSecondsPropertyType = await createSystemPropertyTypeIfNotExists(
     context,
     authentication,
     {
       propertyTypeDefinition: {
-        title: "Delay In Minutes",
+        title: "Delay In Seconds",
         description:
-          "The amount of delay in minutes for a scheduled event such as a flight departure or arrival.",
+          "The amount of delay in seconds for a scheduled event such as a flight departure or arrival.",
         possibleValues: [{ dataTypeId: integerDataTypeId }],
       },
       migrationState,
@@ -252,14 +372,41 @@ const migrate: MigrationFunction = async ({
     },
   );
 
-  const scheduledTimePropertyType = await createSystemPropertyTypeIfNotExists(
+  /**
+   * Gate times (pushback/arrival at gate)
+   */
+  const scheduledGateTimePropertyType =
+    await createSystemPropertyTypeIfNotExists(context, authentication, {
+      propertyTypeDefinition: {
+        title: "Scheduled Gate Time",
+        description:
+          "The originally planned date and time for gate departure (pushback) or arrival.",
+        possibleValues: [{ dataTypeId: datetimeDataTypeId }],
+      },
+      migrationState,
+      webShortname: "h",
+    });
+
+  const estimatedGateTimePropertyType =
+    await createSystemPropertyTypeIfNotExists(context, authentication, {
+      propertyTypeDefinition: {
+        title: "Estimated Gate Time",
+        description:
+          "The predicted date and time for gate departure (pushback) or arrival.",
+        possibleValues: [{ dataTypeId: datetimeDataTypeId }],
+      },
+      migrationState,
+      webShortname: "h",
+    });
+
+  const actualGateTimePropertyType = await createSystemPropertyTypeIfNotExists(
     context,
     authentication,
     {
       propertyTypeDefinition: {
-        title: "Scheduled Time",
+        title: "Actual Gate Time",
         description:
-          "The originally planned date and time for an event to occur.",
+          "The actual date and time of gate departure (pushback) or arrival.",
         possibleValues: [{ dataTypeId: datetimeDataTypeId }],
       },
       migrationState,
@@ -267,34 +414,44 @@ const migrate: MigrationFunction = async ({
     },
   );
 
-  const estimatedTimePropertyType = await createSystemPropertyTypeIfNotExists(
-    context,
-    authentication,
-    {
+  /**
+   * Runway times (takeoff/touchdown)
+   */
+  const scheduledRunwayTimePropertyType =
+    await createSystemPropertyTypeIfNotExists(context, authentication, {
       propertyTypeDefinition: {
-        title: "Estimated Time",
+        title: "Scheduled Runway Time",
         description:
-          "The predicted date and time for an event to occur, which may differ from the scheduled time.",
+          "The originally planned date and time for runway departure (takeoff) or arrival (touchdown).",
         possibleValues: [{ dataTypeId: datetimeDataTypeId }],
       },
       migrationState,
       webShortname: "h",
-    },
-  );
+    });
 
-  const actualTimePropertyType = await createSystemPropertyTypeIfNotExists(
-    context,
-    authentication,
-    {
+  const estimatedRunwayTimePropertyType =
+    await createSystemPropertyTypeIfNotExists(context, authentication, {
       propertyTypeDefinition: {
-        title: "Actual Time",
-        description: "The date and time when an event actually occurred.",
+        title: "Estimated Runway Time",
+        description:
+          "The predicted date and time for runway departure (takeoff) or arrival (touchdown).",
         possibleValues: [{ dataTypeId: datetimeDataTypeId }],
       },
       migrationState,
       webShortname: "h",
-    },
-  );
+    });
+
+  const actualRunwayTimePropertyType =
+    await createSystemPropertyTypeIfNotExists(context, authentication, {
+      propertyTypeDefinition: {
+        title: "Actual Runway Time",
+        description:
+          "The actual date and time of runway departure (takeoff) or arrival (touchdown).",
+        possibleValues: [{ dataTypeId: datetimeDataTypeId }],
+      },
+      migrationState,
+      webShortname: "h",
+    });
 
   const flightNumberPropertyType = await createSystemPropertyTypeIfNotExists(
     context,
@@ -374,6 +531,90 @@ const migrate: MigrationFunction = async ({
         description:
           "A time zone identifier (e.g. 'America/Los_Angeles', 'Europe/London').",
         possibleValues: [{ primitiveDataType: "text" }],
+      },
+      migrationState,
+      webShortname: "h",
+    },
+  );
+
+  const cityPropertyType = await createSystemPropertyTypeIfNotExists(
+    context,
+    authentication,
+    {
+      propertyTypeDefinition: {
+        title: "City",
+        description: "The city where something is located, occurred, etc.",
+        possibleValues: [{ primitiveDataType: "text" }],
+      },
+      migrationState,
+      webShortname: "h",
+    },
+  );
+
+  const runwayPropertyType = await createSystemPropertyTypeIfNotExists(
+    context,
+    authentication,
+    {
+      propertyTypeDefinition: {
+        title: "Runway",
+        description: "The runway identifier used for takeoff or landing.",
+        possibleValues: [{ primitiveDataType: "text" }],
+      },
+      migrationState,
+      webShortname: "h",
+    },
+  );
+
+  const callsignPropertyType = await createSystemPropertyTypeIfNotExists(
+    context,
+    authentication,
+    {
+      propertyTypeDefinition: {
+        title: "Callsign",
+        description:
+          "The radio callsign used by air traffic control to identify an aircraft (e.g., 'DLH8VM').",
+        possibleValues: [{ primitiveDataType: "text" }],
+      },
+      migrationState,
+      webShortname: "h",
+    },
+  );
+
+  const flightTypePropertyType = await createSystemPropertyTypeIfNotExists(
+    context,
+    authentication,
+    {
+      propertyTypeDefinition: {
+        title: "Flight Type",
+        description: "The category of flight operation.",
+        possibleValues: [{ primitiveDataType: "text" }],
+      },
+      migrationState,
+      webShortname: "h",
+    },
+  );
+
+  const codesharePropertyType = await createSystemPropertyTypeIfNotExists(
+    context,
+    authentication,
+    {
+      propertyTypeDefinition: {
+        title: "Codeshare",
+        description:
+          "A codeshare flight number, where multiple airlines sell seats on the same flight under their own flight numbers.",
+        possibleValues: [
+          {
+            propertyTypeObjectProperties: {
+              [iataCodePropertyType.metadata.recordId.baseUrl]: {
+                $ref: iataCodePropertyType.schema.$id,
+              },
+              [icaoCodePropertyType.metadata.recordId.baseUrl]: {
+                $ref: icaoCodePropertyType.schema.$id,
+              },
+            },
+            propertyTypeObjectRequiredProperties: [],
+          },
+        ],
       },
       migrationState,
       webShortname: "h",
@@ -472,14 +713,15 @@ const migrate: MigrationFunction = async ({
     },
   );
 
-  const horizontalSpeedPropertyType = await createSystemPropertyTypeIfNotExists(
+  const groundSpeedPropertyType = await createSystemPropertyTypeIfNotExists(
     context,
     authentication,
     {
       propertyTypeDefinition: {
-        title: "Horizontal Speed",
-        description: "The rate of horizontal movement.",
-        possibleValues: [{ dataTypeId: kilometersPerHourDataType.schema.$id }],
+        title: "Ground Speed",
+        description:
+          "The horizontal speed of an aircraft relative to the ground.",
+        possibleValues: [{ dataTypeId: knotsDataType.schema.$id }],
       },
       migrationState,
       webShortname: "h",
@@ -493,7 +735,7 @@ const migrate: MigrationFunction = async ({
       propertyTypeDefinition: {
         title: "Vertical Speed",
         description: "The rate of vertical movement (climb or descent).",
-        possibleValues: [{ dataTypeId: kilometersPerHourDataType.schema.$id }],
+        possibleValues: [{ dataTypeId: feetPerMinuteDataType.schema.$id }],
       },
       migrationState,
       webShortname: "h",
@@ -542,6 +784,9 @@ const migrate: MigrationFunction = async ({
           },
           {
             propertyType: timezonePropertyType,
+          },
+          {
+            propertyType: cityPropertyType,
           },
         ],
       },
@@ -631,10 +876,14 @@ const migrate: MigrationFunction = async ({
         properties: [
           { propertyType: gatePropertyType },
           { propertyType: terminalPropertyType },
-          { propertyType: delayInMinutesPropertyType },
-          { propertyType: scheduledTimePropertyType },
-          { propertyType: estimatedTimePropertyType },
-          { propertyType: actualTimePropertyType },
+          { propertyType: runwayPropertyType },
+          { propertyType: delayInSecondsPropertyType },
+          { propertyType: scheduledGateTimePropertyType },
+          { propertyType: estimatedGateTimePropertyType },
+          { propertyType: actualGateTimePropertyType },
+          { propertyType: scheduledRunwayTimePropertyType },
+          { propertyType: estimatedRunwayTimePropertyType },
+          { propertyType: actualRunwayTimePropertyType },
         ],
       },
       migrationState,
@@ -658,11 +907,15 @@ const migrate: MigrationFunction = async ({
         properties: [
           { propertyType: gatePropertyType },
           { propertyType: terminalPropertyType },
+          { propertyType: runwayPropertyType },
           { propertyType: baggageClaimPropertyType },
-          { propertyType: delayInMinutesPropertyType },
-          { propertyType: scheduledTimePropertyType },
-          { propertyType: estimatedTimePropertyType },
-          { propertyType: actualTimePropertyType },
+          { propertyType: delayInSecondsPropertyType },
+          { propertyType: scheduledGateTimePropertyType },
+          { propertyType: estimatedGateTimePropertyType },
+          { propertyType: actualGateTimePropertyType },
+          { propertyType: scheduledRunwayTimePropertyType },
+          { propertyType: estimatedRunwayTimePropertyType },
+          { propertyType: actualRunwayTimePropertyType },
         ],
       },
       migrationState,
@@ -732,10 +985,20 @@ const migrate: MigrationFunction = async ({
             propertyType: icaoCodePropertyType,
           },
           {
+            propertyType: callsignPropertyType,
+          },
+          {
+            propertyType: flightTypePropertyType,
+          },
+          {
             propertyType: flightStatusPropertyType,
           },
           {
             propertyType: flightDatePropertyType,
+          },
+          {
+            propertyType: codesharePropertyType,
+            array: true,
           },
           {
             propertyType: latitudePropertyType,
@@ -750,7 +1013,7 @@ const migrate: MigrationFunction = async ({
             propertyType: directionPropertyType,
           },
           {
-            propertyType: horizontalSpeedPropertyType,
+            propertyType: groundSpeedPropertyType,
           },
           {
             propertyType: verticalSpeedPropertyType,
