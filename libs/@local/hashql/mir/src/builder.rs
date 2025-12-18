@@ -113,7 +113,7 @@ macro_rules! scaffold {
 /// assert!(matches!(op![>], BinOp::Gt));
 /// assert!(matches!(op![>=], BinOp::Gte));
 ///
-/// // Logical
+/// // Bitwise
 /// assert!(matches!(op![&], BinOp::BitAnd));
 /// assert!(matches!(op![|], BinOp::BitOr));
 /// ```
