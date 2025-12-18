@@ -76,7 +76,14 @@ const run = async (skillsDir: string) => {
   const skillRules = convert(validSkills);
   const outputPath = path.join(resolvedSkillsDir, "skill-rules.json");
 
-  await writeFile(outputPath, JSON.stringify(skillRules));
+  const replacer = (_key: string, value: unknown) => {
+    if (value instanceof RegExp) {
+      return value.source;
+    }
+    return value;
+  };
+
+  await writeFile(outputPath, JSON.stringify(skillRules, replacer));
   await execa("biome", ["format", "--write", `${outputPath}`]);
 
   console.log(chalk.green(`Generated ${validSkills.length} skill rule(s)`));

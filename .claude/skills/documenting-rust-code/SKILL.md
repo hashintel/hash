@@ -6,7 +6,7 @@ metadata:
   triggers:
     type: domain
     enforcement: suggest
-    priority: medium
+    priority: high
     keywords:
       - rustdoc
       - doc comment
