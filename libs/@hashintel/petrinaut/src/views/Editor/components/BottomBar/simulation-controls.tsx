@@ -2,6 +2,7 @@ import { css } from "@hashintel/ds-helpers/css";
 import { IoMdPause, IoMdPlay, IoMdSquare } from "react-icons/io";
 
 import { Tooltip } from "../../../../components/tooltip";
+import { useEditorStore } from "../../../../state/editor-provider";
 import { useSimulationStore } from "../../../../state/simulation-provider";
 
 const containerStyle = css({
@@ -19,12 +20,11 @@ const playPauseButtonStyle = css({
   justifyContent: "center",
   border: "none",
   transition: "[all 0.2s ease]",
-  "&:hover:not(:disabled)": {
+  "&:hover:not([data-disabled])": {
     transform: "[scale(1.05)]",
   },
-  "&:disabled": {
+  "&[data-disabled]": {
     opacity: "[0.5]",
-    cursor: "not-allowed",
   },
 });
 
@@ -117,7 +117,19 @@ export const SimulationControls: React.FC<SimulationControlsProps> = ({
     (state) => state.setCurrentlyViewedFrame
   );
 
+  const setBottomPanelOpen = useEditorStore(
+    (state) => state.setBottomPanelOpen
+  );
+  const setActiveBottomPanelTab = useEditorStore(
+    (state) => state.setActiveBottomPanelTab
+  );
+
   const isDisabled = disabled;
+
+  function openDiagnosticsPanel() {
+    setActiveBottomPanelTab("diagnostics");
+    setBottomPanelOpen(true);
+  }
 
   const totalFrames = simulation?.frames.length ?? 0;
   const hasSimulation = simulation !== null;
@@ -125,6 +137,12 @@ export const SimulationControls: React.FC<SimulationControlsProps> = ({
   const elapsedTime = simulation ? currentlyViewedFrame * simulation.dt : 0;
 
   const handlePlayPause = () => {
+    // If disabled due to errors, open diagnostics panel instead
+    if (isDisabled) {
+      openDiagnosticsPanel();
+      return;
+    }
+
     if (simulationState === "NotRun") {
       // Initialize and start continuous simulation
       initialize({
@@ -165,10 +183,12 @@ export const SimulationControls: React.FC<SimulationControlsProps> = ({
         <button
           type="button"
           onClick={handlePlayPause}
-          disabled={isDisabled}
           className={playPauseButtonStyle}
+          data-disabled={isDisabled || undefined}
           aria-label={
-            simulationState === "NotRun"
+            isDisabled
+              ? "Fix errors to run simulation"
+              : simulationState === "NotRun"
               ? "Run simulation"
               : isRunning
               ? "Pause simulation"
