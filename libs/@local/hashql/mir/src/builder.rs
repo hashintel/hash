@@ -46,7 +46,7 @@ use hashql_core::{
     r#type::{TypeId, builder::IntoSymbol},
     value::{Float, Primitive},
 };
-use hashql_hir::node::operation::{BinOp, InputOp, UnOp};
+use hashql_hir::node::operation::{InputOp, UnOp};
 
 use crate::{
     body::{
@@ -57,7 +57,7 @@ use crate::{
         local::{Local, LocalDecl, LocalVec},
         operand::Operand,
         place::{FieldIndex, Place, Projection, ProjectionKind},
-        rvalue::{Aggregate, AggregateKind, Apply, Binary, Input, RValue, Unary},
+        rvalue::{Aggregate, AggregateKind, Apply, BinOp, Binary, Input, RValue, Unary},
         statement::{Assign, Statement, StatementKind},
         terminator::{Goto, Return, SwitchInt, SwitchTargets, Target, Terminator, TerminatorKind},
     },
@@ -133,18 +133,18 @@ macro_rules! scaffold {
 #[macro_export]
 macro_rules! op {
     // Binary operators
-    [+] => { hashql_hir::node::operation::BinOp::Add };
-    [-] => { hashql_hir::node::operation::BinOp::Sub };
-    [*] => { hashql_hir::node::operation::BinOp::Mul };
-    [/] => { hashql_hir::node::operation::BinOp::Div };
-    [==] => { hashql_hir::node::operation::BinOp::Eq };
-    [!=] => { hashql_hir::node::operation::BinOp::Ne };
-    [<] => { hashql_hir::node::operation::BinOp::Lt };
-    [<=] => { hashql_hir::node::operation::BinOp::Lte };
-    [>] => { hashql_hir::node::operation::BinOp::Gt };
-    [>=] => { hashql_hir::node::operation::BinOp::Gte };
-    [&&] => { hashql_hir::node::operation::BinOp::And };
-    [||] => { hashql_hir::node::operation::BinOp::Or };
+    [+] => { $crate::body::rvalue::BinOp::Add };
+    [-] => { $crate::body::rvalue::BinOp::Sub };
+    [*] => { $crate::body::rvalue::BinOp::Mul };
+    [/] => { $crate::body::rvalue::BinOp::Div };
+    [==] => { $crate::body::rvalue::BinOp::Eq };
+    [!=] => { $crate::body::rvalue::BinOp::Ne };
+    [<] => { $crate::body::rvalue::BinOp::Lt };
+    [<=] => { $crate::body::rvalue::BinOp::Lte };
+    [>] => { $crate::body::rvalue::BinOp::Gt };
+    [>=] => { $crate::body::rvalue::BinOp::Gte };
+    [&&] => { $crate::body::rvalue::BinOp::And };
+    [||] => { $crate::body::rvalue::BinOp::Or };
 
     // Unary operators
     [!] => { hashql_hir::node::operation::UnOp::Not };
