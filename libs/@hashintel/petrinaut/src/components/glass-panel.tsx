@@ -8,6 +8,8 @@ import {
   useState,
 } from "react";
 
+import { RESIZE_HANDLE_OFFSET, RESIZE_HANDLE_SIZE } from "../constants/ui";
+
 const panelContainerStyle = css({
   position: "relative",
   borderRadius: "[7px]",
@@ -61,9 +63,6 @@ interface GlassPanelProps {
   /** Configuration for making the panel resizable */
   resizable?: ResizeConfig;
 }
-
-const RESIZE_HANDLE_SIZE = 20;
-const RESIZE_HANDLE_OFFSET = -Math.floor(RESIZE_HANDLE_SIZE / 2);
 
 const getResizeHandleStyle = (edge: ResizableEdge): CSSProperties => {
   const base: CSSProperties = {
