@@ -118,40 +118,9 @@ const editButtonStyle = css({
   alignSelf: "flex-start",
 });
 
-const resetButtonStyle = css({
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-  background: "[transparent]",
-  border: "1px solid",
-  borderColor: "core.gray.30",
-  borderRadius: "radius.4",
-  cursor: "pointer",
-  color: "core.gray.70",
+const editButtonIconStyle = css({
   fontSize: "[12px]",
-  fontWeight: "[500]",
-  padding: "[4px 12px]",
-  alignSelf: "flex-start",
-  _hover: {
-    backgroundColor: "core.gray.10",
-    borderColor: "core.gray.40",
-  },
 });
-
-const getStateColor = (state: string): string => {
-  switch (state) {
-    case "Running":
-      return "#1976d2";
-    case "Complete":
-      return "#2e7d32";
-    case "Error":
-      return "#d32f2f";
-    case "Paused":
-      return "#ed6c02";
-    default:
-      return "rgba(0, 0, 0, 0.7)";
-  }
-};
 
 /**
  * SimulationSettingsContent displays simulation settings in the BottomPanel.
@@ -161,7 +130,6 @@ export const SimulationSettingsContent: React.FC = () => {
   const simulationState = useSimulationStore((state) => state.state);
   const simulationError = useSimulationStore((state) => state.error);
   const errorItemId = useSimulationStore((state) => state.errorItemId);
-  const reset = useSimulationStore((state) => state.reset);
   const dt = useSimulationStore((state) => state.dt);
   const setDt = useSimulationStore((state) => state.setDt);
   const setSelectedResourceId = useEditorStore(
@@ -200,7 +168,6 @@ export const SimulationSettingsContent: React.FC = () => {
             className={isSimulationActive ? inputDisabledStyle : inputStyle}
           />
         </div>
-
         {/* ODE Solver Method Select */}
         <div className={settingGroupStyle}>
           {/* eslint-disable-next-line jsx-a11y/label-has-associated-control -- it can't tell it's the same ID */}
@@ -217,32 +184,6 @@ export const SimulationSettingsContent: React.FC = () => {
             <option value="euler">Euler</option>
           </select>
         </div>
-
-        {/* Simulation State */}
-        <div className={stateContainerStyle}>
-          <span className={stateLabelStyle}>Simulation State</span>
-          <span
-            style={{
-              fontSize: 13,
-              fontWeight: 500,
-              color: getStateColor(simulationState),
-            }}
-          >
-            {simulationState === "NotRun" ? "Not Started" : simulationState}
-          </span>
-        </div>
-
-        {/* Reset Button */}
-        {simulationState !== "NotRun" && (
-          <button
-            type="button"
-            onClick={() => reset()}
-            className={resetButtonStyle}
-            style={{ alignSelf: "flex-end" }}
-          >
-            Reset Simulation
-          </button>
-        )}
       </div>
 
       {/* Error Display */}
@@ -259,7 +200,7 @@ export const SimulationSettingsContent: React.FC = () => {
               className={editButtonStyle}
             >
               Edit Item
-              <TbArrowRight style={{ fontSize: 12 }} />
+              <TbArrowRight className={editButtonIconStyle} />
             </button>
           )}
         </div>
