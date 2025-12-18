@@ -12,7 +12,7 @@ metadata:
       - doc comment
       - documentation
       - intra-doc link
-    intentPatterns:
+    intent-patterns:
       - "\\bdocument(ing|ation)?\\b.*?\\b(rust|function|type|struct|enum|trait|module)\\b"
       - "\\b(write|add|create)\\b.*?\\bdoc\\s*comment\\b"
       - "\\b#\\s*(Errors|Panics|Examples|Arguments)\\b"

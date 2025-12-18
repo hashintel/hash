@@ -15,7 +15,7 @@ metadata:
       - z.array
       - schema validation
       - z.infer
-    intentPatterns:
+    intent-patterns:
       - "\\b(validate|create|define|add)\\b.*?\\b(schema|zod)\\b"
       - "\\bzod\\s+(v4|version|migration)\\b"
 ---

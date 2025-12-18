@@ -13,7 +13,7 @@ metadata:
       - SKILL.md
       - creating skill
       - writing skill
-    intentPatterns:
+    intent-patterns:
       - "\\b(how do|how does|explain)\\b.*?\\bskill\\b"
       - "\\b(create|add|modify|build|write)\\b.*?\\bskill\\b"
       - "\\bskill\\b.*?\\b(work|trigger|activate|system|structure|template|pattern)\\b"
@@ -99,7 +99,7 @@ metadata:
       - error
       - Result
       - error-stack
-    intentPatterns:        # Regex patterns for intent detection
+    intent-patterns:        # Regex patterns for intent detection
       - "\\b(handle|create)\\b.*?\\berror\\b"
       - "\\berror\\b.*?\\bhandling\\b"
     fileTriggers:          # Optional: file-based triggers
@@ -229,7 +229,7 @@ metadata:
     keywords:
       - keyword1
       - keyword2
-    intentPatterns:
+    intent-patterns:
       - "\\b(create|add)\\b.*?\\bsomething\\b"
 ---
 ```

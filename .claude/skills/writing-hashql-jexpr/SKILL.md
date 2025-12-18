@@ -16,7 +16,7 @@ metadata:
       - "#struct"
       - "#list"
       - "#tuple"
-    intentPatterns:
+    intent-patterns:
       - "\\b(write|read|create|parse)\\b.*?\\b(j-?expr|hashql)\\b"
       - "\\b(hashql|jexpr)\\b.*?\\b(query|syntax|expression)\\b"
 ---

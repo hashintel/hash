@@ -15,7 +15,7 @@ metadata:
       - commit
       - merge
       - review
-    intentPatterns:
+    intent-patterns:
       - "\\b(create|open|submit|review)\\b.*?\\b(PR|pull request|branch)\\b"
       - "\\b(name|naming)\\b.*?\\bbranch\\b"
       - "\\bH-\\d+\\b"

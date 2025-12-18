@@ -11,7 +11,7 @@ metadata:
       - mastra
       - "@mastra/"
       - mastra.ai
-    intentPatterns:
+    intent-patterns:
       - "\\b(use|build|create|implement)\\b.*?\\bmastra\\b"
       - "\\b(agent|workflow|rag)\\b.*?\\bmastra\\b"
 ---

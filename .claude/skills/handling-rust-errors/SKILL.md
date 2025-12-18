@@ -15,7 +15,7 @@ metadata:
       - change_context
       - attach
       - ResultExt
-    intentPatterns:
+    intent-patterns:
       - "\\b(handle|create|define|propagate|convert)\\b.*?\\berror\\b"
       - "\\bReport<.*>\\b"
 ---

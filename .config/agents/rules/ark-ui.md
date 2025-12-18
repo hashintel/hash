@@ -11,7 +11,7 @@ metadata:
       - ark-ui
       - "@ark-ui/react"
       - headless components
-    intentPatterns:
+    intent-patterns:
       - "\\b(use|create|build|implement)\\b.*?\\bark[-\\s]?ui\\b"
       - "\\b(checkbox|combobox|dialog|popover|tooltip)\\b.*?\\b(headless|ark)\\b"
 ---

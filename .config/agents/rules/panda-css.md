@@ -12,7 +12,7 @@ metadata:
       - panda css
       - pandacss
       - "@pandacss"
-    intentPatterns:
+    intent-patterns:
       - "\\b(use|style|create|configure)\\b.*?\\bpanda(-| )?css\\b"
       - "\\bcss\\b.*?\\b(recipe|pattern|token)s?\\b"
 ---

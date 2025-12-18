@@ -15,7 +15,7 @@ metadata:
       - insta test
       - //~ annotation
       - --bless
-    intentPatterns:
+    intent-patterns:
       - "\\b(write|create|run|debug|add|fix)\\b.*?\\b(hashql|compiletest)\\b.*?\\btest\\b"
       - "\\b(test|verify)\\b.*?\\b(diagnostic|error message|mir|hir|ast)\\b"
 ---

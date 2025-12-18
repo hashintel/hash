@@ -13,7 +13,7 @@ metadata:
       - crate api
       - rust crate
       - module hierarchy
-    intentPatterns:
+    intent-patterns:
       - "\\b(explore|understand|learn)\\b.*?\\b(rust|crate|package)\\b"
       - "\\b(what|how)\\b.*?\\b(functions|types|traits|api)\\b.*?\\bcrate\\b"
       - "\\bdocument(ation)?\\b.*?\\brust\\b"

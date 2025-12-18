@@ -15,7 +15,7 @@ metadata:
       - Severity
       - Patch
       - Suggestions
-    intentPatterns:
+    intent-patterns:
       - "\\b(create|write|add|improve)\\b.*?\\bdiagnostic\\b"
       - "\\b(error|warning)\\b.*?\\bmessage\\b"
 ---

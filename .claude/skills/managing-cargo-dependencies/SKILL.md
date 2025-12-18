@@ -14,7 +14,7 @@ metadata:
       - crate
       - workspace.dependencies
       - default-features
-    intentPatterns:
+    intent-patterns:
       - "\\b(add|update|remove|manage)\\b.*?\\b(dependency|dependencies|crate|crates)\\b"
       - "\\bCargo\\.toml\\b"
       - "\\b(public|private)\\s+dependency\\b"
