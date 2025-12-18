@@ -9,12 +9,12 @@ metadata:
     priority: medium       # "critical", "high", "medium", or "low"
     keywords:
       - [TODO: Add keywords that should trigger this skill]
-    intentPatterns:
+    intent-patterns:
       - "[TODO: Add regex patterns, e.g., \\b(create|add)\\b.*?\\bsomething\\b]"
-    # fileTriggers:        # Uncomment if needed
-    #   pathPatterns:
+    # files:               # Uncomment if needed
+    #   include:
     #     - "**/src/**/*.ts"
-    #   pathExclusions:
+    #   exclude:
     #     - "**/*.test.ts"
 ---
 

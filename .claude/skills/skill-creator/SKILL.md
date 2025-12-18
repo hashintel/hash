@@ -102,22 +102,22 @@ metadata:
     intent-patterns:        # Regex patterns for intent detection
       - "\\b(handle|create)\\b.*?\\berror\\b"
       - "\\berror\\b.*?\\bhandling\\b"
-    fileTriggers:          # Optional: file-based triggers
-      pathPatterns:
+    files:                  # Optional: file-based triggers
+      include:
         - "**/src/**/*.rs"
-      pathExclusions:
+      exclude:
         - "**/*.test.rs"
-      contentPatterns:
+      content:
         - "use error_stack"
 ```
 
 **Trigger Types:**
 
 - **keywords**: Case-insensitive substring matching in user's prompt
-- **intentPatterns**: Regex patterns to detect user intent (use `\\b` for word boundaries, `.*?` for non-greedy matching)
-- **fileTriggers.pathPatterns**: Glob patterns for file paths
-- **fileTriggers.pathExclusions**: Glob patterns to exclude (e.g., test files)
-- **fileTriggers.contentPatterns**: Regex patterns to match file content
+- **intent-patterns**: Regex patterns to detect user intent (use `\\b` for word boundaries, `.*?` for non-greedy matching)
+- **files.include**: Glob patterns for file paths
+- **files.exclude**: Glob patterns to exclude (e.g., test files)
+- **files.content**: Regex patterns to match file content
 
 **Enforcement Levels:**
 

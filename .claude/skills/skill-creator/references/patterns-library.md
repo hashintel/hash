@@ -4,7 +4,7 @@ Ready-to-use regex and glob patterns for skill triggers. Copy and customize for 
 
 ## Intent Patterns (Regex)
 
-Use in `metadata.triggers.intentPatterns`. Remember to escape backslashes in YAML (`\\b` not `\b`).
+Use in `metadata.triggers.intent-patterns`. Remember to escape backslashes in YAML (`\\b` not `\b`).
 
 ### Error Handling
 
@@ -63,7 +63,7 @@ workspace.*?dependency
 
 ## File Path Patterns (Glob)
 
-Use in `metadata.triggers.fileTriggers.pathPatterns`.
+Use in `metadata.triggers.files.include`.
 
 ### By Language
 
@@ -86,7 +86,7 @@ libs/**/*                   # Shared libraries
 
 ### Test Exclusions
 
-Use in `metadata.triggers.fileTriggers.pathExclusions`:
+Use in `metadata.triggers.files.exclude`:
 
 ```glob
 **/*.test.ts                # TypeScript tests
@@ -109,7 +109,7 @@ Use in `metadata.triggers.fileTriggers.pathExclusions`:
 
 ## Content Patterns (Regex)
 
-Use in `metadata.triggers.fileTriggers.contentPatterns`. These match against file contents.
+Use in `metadata.triggers.files.content`. These match against file contents.
 
 ### Rust
 
@@ -150,15 +150,15 @@ metadata:
     keywords:
       - error
       - error handling
-    intentPatterns:
+    intent-patterns:
       - "\\b(handle|create|fix)\\b.*?\\berror\\b"
       - "\\berror\\b.*?\\b(handling|propagation)\\b"
-    fileTriggers:
-      pathPatterns:
+    files:
+      include:
         - "**/*.rs"
-      pathExclusions:
+      exclude:
         - "**/*.test.rs"
-      contentPatterns:
+      content:
         - "Result<"
         - "Report<"
 ```

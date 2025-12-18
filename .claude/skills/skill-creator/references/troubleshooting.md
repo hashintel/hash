@@ -32,14 +32,14 @@ keywords:
 
 **Check:**
 
-- Look at `metadata.triggers.intentPatterns`
+- Look at `metadata.triggers.intent-patterns`
 - Test regex at https://regex101.com/
 - May need broader patterns
 
 **Example:**
 
 ```yaml
-intentPatterns:
+intent-patterns:
   - "(create|add).*?(database.*?table)"  # Too specific
 ```
 
@@ -49,7 +49,7 @@ intentPatterns:
 **Fix:** Broaden the pattern:
 
 ```yaml
-intentPatterns:
+intent-patterns:
   - "(create|add).*?(table|database)"  # Better
 ```
 
@@ -68,7 +68,7 @@ intentPatterns:
 **Check:**
 
 ```bash
-./scripts/generate_skill_rules.py --skills-dir .claude/skills --validate
+yarn agents:skill-management validate
 ```
 
 **Common errors:**
@@ -108,14 +108,14 @@ keywords:
 **Problem:**
 
 ```yaml
-intentPatterns:
+intent-patterns:
   - "(create)"  # Matches everything with "create"
 ```
 
 **Solution:** Add context:
 
 ```yaml
-intentPatterns:
+intent-patterns:
   - "(create|add).*?(database|table|feature)"
 ```
 
@@ -124,16 +124,16 @@ intentPatterns:
 **Problem:**
 
 ```yaml
-fileTriggers:
-  pathPatterns:
+files:
+  include:
     - "src/**"  # Matches everything in src/
 ```
 
 **Solution:** Use narrower patterns:
 
 ```yaml
-fileTriggers:
-  pathPatterns:
+files:
+  include:
     - "src/services/**/*.ts"
     - "src/controllers/**/*.ts"
 ```
@@ -143,19 +143,13 @@ fileTriggers:
 ### Validate Configuration
 
 ```bash
-./scripts/generate_skill_rules.py --skills-dir .claude/skills --validate
+yarn agents:skill-management validate
 ```
 
 ### Regenerate Rules
 
 ```bash
-./scripts/generate_skill_rules.py --skills-dir .claude/skills --output .claude/skills/skill-rules.json
-```
-
-### Test Individual Skill
-
-```bash
-./scripts/quick_validate.py .claude/skills/my-skill
+yarn agents:skill-management generate-skill-rules
 ```
 
 ### Check Generated Output
@@ -176,7 +170,7 @@ skill-creator/SKILL.md
 name: skill-creator  # Must match directory name
 ```
 
-### "Invalid regex in intentPatterns"
+### "Invalid regex in intent-patterns"
 
 Test your regex at https://regex101.com/ first.
 

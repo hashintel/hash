@@ -29,7 +29,7 @@ This skill is based on and incorporates content from:
 3. **Trigger Configuration in Frontmatter**
    - Triggers now defined in `metadata.triggers` within each SKILL.md
    - Single source of truth - no separate configuration file to maintain
-   - Supports: `type`, `enforcement`, `priority`, `keywords`, `intentPatterns`, `fileTriggers`
+   - Supports: `type`, `enforcement`, `priority`, `keywords`, `intent-patterns`, `files`
 
 4. **New Commands**
    - `yarn agents:skill-management` - TypeScript-based skill management CLI
@@ -54,7 +54,7 @@ To migrate existing skills to the new format:
        priority: medium
        keywords:
          - keyword1
-       intentPatterns:
+       intent-patterns:
          - "\\b(pattern)\\b"
    ```
 
