@@ -157,6 +157,13 @@ export class MockAgent {
       await this.delay(this.simulatedDelayMs);
     }
 
+    // Check for __THROW__ pattern to simulate step failures
+    if (prompt.includes("__THROW__")) {
+      throw new Error(
+        "Simulated step failure: __THROW__ pattern detected in prompt",
+      );
+    }
+
     // Extract step info from prompt
     const stepInfo = this.extractStepInfo(prompt);
 
@@ -368,7 +375,9 @@ export class MockAgent {
    * Delay helper for simulating processing time.
    */
   private delay(ms: number): Promise<void> {
-    return new Promise((resolve) => setTimeout(resolve, ms));
+    return new Promise((resolve) => {
+      setTimeout(resolve, ms);
+    });
   }
 }
 

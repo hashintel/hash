@@ -14,11 +14,11 @@
 import { describe, expect, test } from "vitest";
 
 import type { PlanSpec } from "../schemas/plan-spec";
-import { validatePlan } from "./plan-validator";
 import {
   compilePlanToWorkflow,
   type PlanExecutionEvent,
 } from "./plan-compiler";
+import { validatePlan } from "./plan-validator";
 import { analyzePlanTopology } from "./topology-analyzer";
 
 // =============================================================================
@@ -375,6 +375,243 @@ function createMixedParallelismPlan(): PlanSpec {
   };
 }
 
+/**
+ * Creates a deep DAG plan with 5 depth levels and multiple fan-in/fan-out.
+ *
+ *        S1 (research)           depth 0
+ *       / | \
+ *     S2  S3  S4 (research)      depth 1, parallel
+ *      \  |  /
+ *        S5 (synthesize)         depth 2, fan-in
+ *       /   \
+ *     S6     S7 (develop)        depth 3, parallel
+ *      \   /
+ *        S8 (synthesize)         depth 4, final evaluation
+ */
+function createDeepDagPlan(): PlanSpec {
+  return {
+    id: "deep-dag-plan",
+    goalSummary: "Deep DAG with multiple fan-in/fan-out patterns",
+    requirements: [
+      { id: "R1", description: "Research phase", priority: "must" },
+      { id: "R2", description: "Synthesis phase", priority: "must" },
+      { id: "R3", description: "Development phase", priority: "must" },
+    ],
+    hypotheses: [],
+    steps: [
+      // Depth 0: Initial research
+      {
+        type: "research",
+        id: "S1",
+        description: "Initial exploration of the problem space",
+        dependsOn: [],
+        requirementIds: ["R1"],
+        inputs: [],
+        outputs: [
+          { name: "initial_findings", description: "Initial findings" },
+        ],
+        query: "Explore problem space",
+        stoppingRule: "Identify 3 key areas",
+        parallelizable: true,
+        executor: { kind: "agent", ref: "literature-searcher" },
+      },
+      // Depth 1: Parallel deep-dives
+      {
+        type: "research",
+        id: "S2",
+        description: "Deep dive into area A",
+        dependsOn: ["S1"],
+        requirementIds: ["R1"],
+        inputs: [{ name: "context", description: "From S1", fromStepId: "S1" }],
+        outputs: [{ name: "area_a_findings", description: "Area A findings" }],
+        query: "Research area A in depth",
+        stoppingRule: "Find 5 relevant sources",
+        parallelizable: true,
+        executor: { kind: "agent", ref: "literature-searcher" },
+      },
+      {
+        type: "research",
+        id: "S3",
+        description: "Deep dive into area B",
+        dependsOn: ["S1"],
+        requirementIds: ["R1"],
+        inputs: [{ name: "context", description: "From S1", fromStepId: "S1" }],
+        outputs: [{ name: "area_b_findings", description: "Area B findings" }],
+        query: "Research area B in depth",
+        stoppingRule: "Find 5 relevant sources",
+        parallelizable: true,
+        executor: { kind: "agent", ref: "literature-searcher" },
+      },
+      {
+        type: "research",
+        id: "S4",
+        description: "Deep dive into area C",
+        dependsOn: ["S1"],
+        requirementIds: ["R1"],
+        inputs: [{ name: "context", description: "From S1", fromStepId: "S1" }],
+        outputs: [{ name: "area_c_findings", description: "Area C findings" }],
+        query: "Research area C in depth",
+        stoppingRule: "Find 5 relevant sources",
+        parallelizable: true,
+        executor: { kind: "agent", ref: "literature-searcher" },
+      },
+      // Depth 2: Synthesis fan-in
+      {
+        type: "synthesize",
+        id: "S5",
+        description: "Combine findings from all research areas",
+        dependsOn: ["S2", "S3", "S4"],
+        requirementIds: ["R2"],
+        inputs: [
+          { name: "area_a", description: "From S2", fromStepId: "S2" },
+          { name: "area_b", description: "From S3", fromStepId: "S3" },
+          { name: "area_c", description: "From S4", fromStepId: "S4" },
+        ],
+        outputs: [{ name: "synthesis", description: "Combined synthesis" }],
+        mode: "integrative",
+        inputStepIds: ["S2", "S3", "S4"],
+        parallelizable: false,
+        executor: { kind: "agent", ref: "result-synthesizer" },
+      },
+      // Depth 3: Parallel development
+      {
+        type: "develop",
+        id: "S6",
+        description: "Develop component X based on synthesis",
+        dependsOn: ["S5"],
+        requirementIds: ["R3"],
+        inputs: [
+          { name: "synthesis", description: "From S5", fromStepId: "S5" },
+        ],
+        outputs: [{ name: "component_x", description: "Component X" }],
+        specification: "Build component X",
+        deliverables: ["Component X implementation"],
+        parallelizable: true,
+        executor: { kind: "agent", ref: "code-writer" },
+      },
+      {
+        type: "develop",
+        id: "S7",
+        description: "Develop component Y based on synthesis",
+        dependsOn: ["S5"],
+        requirementIds: ["R3"],
+        inputs: [
+          { name: "synthesis", description: "From S5", fromStepId: "S5" },
+        ],
+        outputs: [{ name: "component_y", description: "Component Y" }],
+        specification: "Build component Y",
+        deliverables: ["Component Y implementation"],
+        parallelizable: true,
+        executor: { kind: "agent", ref: "code-writer" },
+      },
+      // Depth 4: Final synthesis/evaluation
+      {
+        type: "synthesize",
+        id: "S8",
+        description: "Evaluate and combine both components",
+        dependsOn: ["S6", "S7"],
+        requirementIds: ["R2", "R3"],
+        inputs: [
+          { name: "component_x", description: "From S6", fromStepId: "S6" },
+          { name: "component_y", description: "From S7", fromStepId: "S7" },
+        ],
+        outputs: [
+          { name: "final_evaluation", description: "Final evaluation" },
+        ],
+        mode: "evaluative",
+        inputStepIds: ["S6", "S7"],
+        evaluateAgainst: [
+          "Do components integrate correctly?",
+          "Are requirements met?",
+        ],
+        parallelizable: false,
+        executor: { kind: "agent", ref: "progress-evaluator" },
+      },
+    ],
+    unknownsMap: {
+      knownKnowns: ["DAG structure is valid", "All step types are supported"],
+      knownUnknowns: ["Optimal parallelization", "Integration complexity"],
+      unknownUnknowns: [
+        {
+          potentialSurprise: "Unexpected dependencies between areas",
+          detectionSignal: "Synthesis step fails to integrate",
+        },
+      ],
+      communityCheck: "Review DAG structure and data flow",
+    },
+  };
+}
+
+/**
+ * Creates a plan with an invalid executor reference for error testing.
+ */
+function createPlanWithInvalidExecutor(): PlanSpec {
+  return {
+    id: "invalid-executor-plan",
+    goalSummary: "Plan with invalid executor reference",
+    requirements: [
+      { id: "R1", description: "Test requirement", priority: "must" },
+    ],
+    hypotheses: [],
+    steps: [
+      {
+        type: "research",
+        id: "S1",
+        description: "Step with nonexistent executor",
+        dependsOn: [],
+        requirementIds: ["R1"],
+        inputs: [],
+        outputs: [{ name: "findings", description: "Findings" }],
+        query: "Test query",
+        stoppingRule: "Find sources",
+        parallelizable: true,
+        executor: { kind: "agent", ref: "nonexistent-agent" }, // Invalid!
+      },
+    ],
+    unknownsMap: {
+      knownKnowns: [],
+      knownUnknowns: [],
+      unknownUnknowns: [],
+      communityCheck: "",
+    },
+  };
+}
+
+/**
+ * Creates a plan where a step will throw an error (via __THROW__ in description).
+ */
+function createPlanWithThrowingStep(): PlanSpec {
+  return {
+    id: "throwing-step-plan",
+    goalSummary: "Plan where a step throws an error",
+    requirements: [
+      { id: "R1", description: "Test requirement", priority: "must" },
+    ],
+    hypotheses: [],
+    steps: [
+      {
+        type: "research",
+        id: "S1",
+        description: "__THROW__ This step should fail",
+        dependsOn: [],
+        requirementIds: ["R1"],
+        inputs: [],
+        outputs: [{ name: "findings", description: "Findings" }],
+        query: "__THROW__ trigger error",
+        stoppingRule: "Find sources",
+        parallelizable: true,
+        executor: { kind: "agent", ref: "literature-searcher" },
+      },
+    ],
+    unknownsMap: {
+      knownKnowns: [],
+      knownUnknowns: [],
+      unknownUnknowns: [],
+      communityCheck: "",
+    },
+  };
+}
+
 // =============================================================================
 // COMPILATION TESTS
 // =============================================================================
@@ -433,6 +670,16 @@ describe("Plan Compiler — Compilation", () => {
       const workflow = compilePlanToWorkflow(plan, { useMockAgents: true });
       expect(workflow).toBeDefined();
     });
+
+    test("compiles a deep DAG plan with 5 depth levels", () => {
+      const plan = createDeepDagPlan();
+
+      const validation = validatePlan(plan);
+      expect(validation.valid).toBe(true);
+
+      const workflow = compilePlanToWorkflow(plan, { useMockAgents: true });
+      expect(workflow).toBeDefined();
+    });
   });
 });
 
@@ -469,8 +716,8 @@ describe("Plan Compiler — Topology Analysis", () => {
     // Depth 1: S4
     expect(topology.parallelGroups.length).toBe(2);
 
-    const depth0 = topology.parallelGroups.find((g) => g.depth === 0);
-    const depth1 = topology.parallelGroups.find((g) => g.depth === 1);
+    const depth0 = topology.parallelGroups.find((grp) => grp.depth === 0);
+    const depth1 = topology.parallelGroups.find((grp) => grp.depth === 1);
 
     expect(depth0?.stepIds).toHaveLength(3);
     expect(depth0?.stepIds).toContain("S1");
@@ -491,9 +738,9 @@ describe("Plan Compiler — Topology Analysis", () => {
     // Depth 2: S4
     expect(topology.parallelGroups.length).toBe(3);
 
-    const depth0 = topology.parallelGroups.find((g) => g.depth === 0);
-    const depth1 = topology.parallelGroups.find((g) => g.depth === 1);
-    const depth2 = topology.parallelGroups.find((g) => g.depth === 2);
+    const depth0 = topology.parallelGroups.find((grp) => grp.depth === 0);
+    const depth1 = topology.parallelGroups.find((grp) => grp.depth === 1);
+    const depth2 = topology.parallelGroups.find((grp) => grp.depth === 2);
 
     expect(depth0?.stepIds).toEqual(["S1"]);
     expect(depth1?.stepIds).toHaveLength(2);
@@ -524,11 +771,59 @@ describe("Plan Compiler — Topology Analysis", () => {
     const plan = createMixedParallelismPlan();
     const topology = analyzePlanTopology(plan);
 
-    const depth0 = topology.parallelGroups.find((g) => g.depth === 0);
+    const depth0 = topology.parallelGroups.find((grp) => grp.depth === 0);
 
     // S1 is parallelizable, S2 is not
     expect(depth0?.parallelizableStepIds).toContain("S1");
     expect(depth0?.parallelizableStepIds).not.toContain("S2");
+  });
+
+  test("correctly computes 5 depth levels for deep DAG", () => {
+    const plan = createDeepDagPlan();
+    const topology = analyzePlanTopology(plan);
+
+    // Should have 5 parallel groups (depths 0-4)
+    expect(topology.parallelGroups.length).toBe(5);
+
+    // Verify each depth level
+    const depth0 = topology.parallelGroups.find((grp) => grp.depth === 0);
+    const depth1 = topology.parallelGroups.find((grp) => grp.depth === 1);
+    const depth2 = topology.parallelGroups.find((grp) => grp.depth === 2);
+    const depth3 = topology.parallelGroups.find((grp) => grp.depth === 3);
+    const depth4 = topology.parallelGroups.find((grp) => grp.depth === 4);
+
+    expect(depth0?.stepIds).toEqual(["S1"]);
+    expect(depth1?.stepIds).toHaveLength(3);
+    expect(depth1?.stepIds).toContain("S2");
+    expect(depth1?.stepIds).toContain("S3");
+    expect(depth1?.stepIds).toContain("S4");
+    expect(depth2?.stepIds).toEqual(["S5"]);
+    expect(depth3?.stepIds).toHaveLength(2);
+    expect(depth3?.stepIds).toContain("S6");
+    expect(depth3?.stepIds).toContain("S7");
+    expect(depth4?.stepIds).toEqual(["S8"]);
+  });
+
+  test("correctly identifies fan-in points in deep DAG", () => {
+    const plan = createDeepDagPlan();
+    const topology = analyzePlanTopology(plan);
+
+    // S5 is a fan-in (depends on S2, S3, S4)
+    // S8 is a fan-in (depends on S6, S7)
+    // These should have higher dependent counts in predecessor steps
+
+    // Entry point is S1
+    expect(topology.entryPoints).toEqual(["S1"]);
+
+    // Exit point is S8
+    expect(topology.exitPoints).toEqual(["S8"]);
+
+    // Check that fan-in steps are at correct depths
+    const depth2 = topology.parallelGroups.find((grp) => grp.depth === 2);
+    const depth4 = topology.parallelGroups.find((grp) => grp.depth === 4);
+
+    expect(depth2?.stepIds).toContain("S5"); // Fan-in from S2, S3, S4
+    expect(depth4?.stepIds).toContain("S8"); // Fan-in from S6, S7
   });
 });
 
@@ -586,7 +881,7 @@ describe("Plan Compiler — Execution", () => {
     if (result.status === "success") {
       expect(result.result.success).toBe(true);
       // S4 should be last (depends on S1, S2, S3)
-      const order = result.result.executionOrder as string[];
+      const order = result.result.executionOrder;
       expect(order[order.length - 1]).toBe("S4");
     }
   }, 10000);
@@ -604,7 +899,7 @@ describe("Plan Compiler — Execution", () => {
     expect(result.status).toBe("success");
     if (result.status === "success") {
       expect(result.result.success).toBe(true);
-      const order = result.result.executionOrder as string[];
+      const order = result.result.executionOrder;
 
       // S1 should be first
       expect(order[0]).toBe("S1");
@@ -619,6 +914,54 @@ describe("Plan Compiler — Execution", () => {
       expect(s3Index).toBeLessThan(order.length - 1);
     }
   }, 10000);
+
+  test("executes deep DAG respecting all dependencies", async () => {
+    const plan = createDeepDagPlan();
+    const workflow = compilePlanToWorkflow(plan, {
+      useMockAgents: true,
+      mockDelayMs: 10,
+    });
+
+    const run = await workflow.createRun();
+    const result = await run.start({ inputData: { context: {} } });
+
+    expect(result.status).toBe("success");
+    if (result.status === "success") {
+      expect(result.result.success).toBe(true);
+      const order = result.result.executionOrder;
+
+      // Verify execution order respects dependencies
+      // S1 must be first
+      expect(order[0]).toBe("S1");
+
+      // S8 must be last
+      expect(order[order.length - 1]).toBe("S8");
+
+      // S2, S3, S4 must come after S1 and before S5
+      const s1Index = order.indexOf("S1");
+      const s2Index = order.indexOf("S2");
+      const s3Index = order.indexOf("S3");
+      const s4Index = order.indexOf("S4");
+      const s5Index = order.indexOf("S5");
+
+      expect(s2Index).toBeGreaterThan(s1Index);
+      expect(s3Index).toBeGreaterThan(s1Index);
+      expect(s4Index).toBeGreaterThan(s1Index);
+      expect(s5Index).toBeGreaterThan(s2Index);
+      expect(s5Index).toBeGreaterThan(s3Index);
+      expect(s5Index).toBeGreaterThan(s4Index);
+
+      // S6, S7 must come after S5 and before S8
+      const s6Index = order.indexOf("S6");
+      const s7Index = order.indexOf("S7");
+      const s8Index = order.indexOf("S8");
+
+      expect(s6Index).toBeGreaterThan(s5Index);
+      expect(s7Index).toBeGreaterThan(s5Index);
+      expect(s8Index).toBeGreaterThan(s6Index);
+      expect(s8Index).toBeGreaterThan(s7Index);
+    }
+  }, 15000);
 });
 
 // =============================================================================
@@ -637,7 +980,7 @@ describe("Plan Compiler — Streaming Events", () => {
     const run = await workflow.createRun();
 
     // Use stream to capture events
-    const stream = await run.stream({ inputData: { context: {} } });
+    const stream = run.stream({ inputData: { context: {} } });
 
     for await (const chunk of stream.fullStream) {
       if (chunk.type.startsWith("data-plan-")) {
@@ -645,7 +988,7 @@ describe("Plan Compiler — Streaming Events", () => {
       }
     }
 
-    const startEvent = events.find((e) => e.type === "data-plan-start");
+    const startEvent = events.find((evt) => evt.type === "data-plan-start");
     expect(startEvent).toBeDefined();
     expect(startEvent?.data.planId).toBe("minimal-plan");
     expect(startEvent?.data.totalSteps).toBe(1);
@@ -660,7 +1003,7 @@ describe("Plan Compiler — Streaming Events", () => {
 
     const events: PlanExecutionEvent[] = [];
     const run = await workflow.createRun();
-    const stream = await run.stream({ inputData: { context: {} } });
+    const stream = run.stream({ inputData: { context: {} } });
 
     for await (const chunk of stream.fullStream) {
       if (chunk.type.startsWith("data-plan-")) {
@@ -669,10 +1012,10 @@ describe("Plan Compiler — Streaming Events", () => {
     }
 
     const stepStartEvents = events.filter(
-      (e) => e.type === "data-plan-step-start",
+      (evt) => evt.type === "data-plan-step-start",
     );
     const stepCompleteEvents = events.filter(
-      (e) => e.type === "data-plan-step-complete",
+      (evt) => evt.type === "data-plan-step-complete",
     );
 
     expect(stepStartEvents).toHaveLength(1);
@@ -691,7 +1034,7 @@ describe("Plan Compiler — Streaming Events", () => {
 
     const events: PlanExecutionEvent[] = [];
     const run = await workflow.createRun();
-    const stream = await run.stream({ inputData: { context: {} } });
+    const stream = run.stream({ inputData: { context: {} } });
 
     for await (const chunk of stream.fullStream) {
       if (chunk.type.startsWith("data-plan-")) {
@@ -700,7 +1043,7 @@ describe("Plan Compiler — Streaming Events", () => {
     }
 
     const progressEvents = events.filter(
-      (e) => e.type === "data-plan-progress",
+      (evt) => evt.type === "data-plan-progress",
     );
 
     // Should have progress events after each depth
@@ -721,7 +1064,7 @@ describe("Plan Compiler — Streaming Events", () => {
 
     const events: PlanExecutionEvent[] = [];
     const run = await workflow.createRun();
-    const stream = await run.stream({ inputData: { context: {} } });
+    const stream = run.stream({ inputData: { context: {} } });
 
     for await (const chunk of stream.fullStream) {
       if (chunk.type.startsWith("data-plan-")) {
@@ -729,11 +1072,76 @@ describe("Plan Compiler — Streaming Events", () => {
       }
     }
 
-    const completeEvent = events.find((e) => e.type === "data-plan-complete");
+    const completeEvent = events.find(
+      (evt) => evt.type === "data-plan-complete",
+    );
     expect(completeEvent).toBeDefined();
     expect(completeEvent?.data.planId).toBe("minimal-plan");
     expect(completeEvent?.data.success).toBe(true);
     expect(completeEvent?.data.stepsCompleted).toBe(1);
     expect(completeEvent?.data.stepsFailed).toBe(0);
+  }, 10000);
+});
+
+// =============================================================================
+// ERROR HANDLING TESTS
+// =============================================================================
+
+describe("Plan Compiler — Error Handling", () => {
+  test("throws when executor ref not found in registry", async () => {
+    const plan = createPlanWithInvalidExecutor();
+    const workflow = compilePlanToWorkflow(plan, {
+      useMockAgents: true,
+      mockDelayMs: 10,
+    });
+
+    const run = await workflow.createRun();
+    const result = await run.start({ inputData: { context: {} } });
+
+    // Workflow should fail due to missing executor
+    expect(result.status).toBe("failed");
+  }, 10000);
+
+  test("emits step-error event when step execution fails", async () => {
+    const plan = createPlanWithThrowingStep();
+    const workflow = compilePlanToWorkflow(plan, {
+      useMockAgents: true,
+      mockDelayMs: 10,
+    });
+
+    const events: PlanExecutionEvent[] = [];
+    const run = await workflow.createRun();
+    const stream = run.stream({ inputData: { context: {} } });
+
+    for await (const chunk of stream.fullStream) {
+      if (chunk.type.startsWith("data-plan-")) {
+        events.push(chunk as unknown as PlanExecutionEvent);
+      }
+    }
+
+    // Should have emitted a step-error event
+    const errorEvents = events.filter(
+      (evt) => evt.type === "data-plan-step-error",
+    );
+    expect(errorEvents.length).toBeGreaterThan(0);
+
+    // Error event should contain the step ID and error message
+    const errorEvent = errorEvents[0];
+    expect(errorEvent?.data.stepId).toBe("S1");
+    expect(errorEvent?.data.error).toContain("__THROW__");
+  }, 10000);
+
+  test("workflow status is failed when step throws", async () => {
+    const plan = createPlanWithThrowingStep();
+    const workflow = compilePlanToWorkflow(plan, {
+      useMockAgents: true,
+      mockDelayMs: 10,
+    });
+
+    const run = await workflow.createRun();
+    const result = await run.start({ inputData: { context: {} } });
+
+    // Workflow should have failed status
+    expect(result.status).toBe("failed");
   }, 10000);
 });
