@@ -1,5 +1,4 @@
 import { css, cva } from "@hashintel/ds-helpers/css";
-import { useState } from "react";
 
 import { GlassPanel } from "../../../../components/glass-panel";
 import {
@@ -8,11 +7,10 @@ import {
   PANEL_MARGIN,
 } from "../../../../constants/ui";
 import { useEditorStore } from "../../../../state/editor-provider";
+import type { BottomPanelTab } from "../../../../state/editor-store";
 import { DiagnosticsContent } from "./diagnostics-content";
 import { ParametersContent } from "./parameters-content";
 import { SimulationSettingsContent } from "./simulation-settings-content";
-
-type BottomPanelTab = "diagnostics" | "simulation-settings" | "parameters";
 
 const panelContainerStyle = css({
   display: "flex",
@@ -83,8 +81,8 @@ export const BottomPanel: React.FC = () => {
   const setDiagnosticsPanelHeight = useEditorStore(
     (state) => state.setDiagnosticsPanelHeight
   );
-
-  const [activeTab, setActiveTab] = useState<BottomPanelTab>("diagnostics");
+  const activeTab = useEditorStore((state) => state.activeBottomPanelTab);
+  const setActiveTab = useEditorStore((state) => state.setActiveBottomPanelTab);
 
   if (!isOpen) {
     return null;
