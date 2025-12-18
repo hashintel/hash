@@ -5,13 +5,15 @@ import chalk from "chalk";
 import { findSkillsDir, scanSkills } from "./shared";
 
 const run = async (skillsDir: string) => {
+  console.log(chalk.blue(`Validating skills in ${skillsDir}\n`));
+
   const { skills, errors } = await scanSkills(skillsDir);
 
   for (const skill of skills) {
     if (!skill.frontmatter) {
       errors.push({
         path: skill.path,
-        error: `Skill is missing a frontmatter`,
+        error: `Missing frontmatter`,
       });
 
       continue;
@@ -28,16 +30,23 @@ const run = async (skillsDir: string) => {
   }
 
   if (errors.length > 0) {
-    console.log(chalk.red("\n❌ Validation errors:"));
+    console.log(
+      chalk.red(`Validation failed with ${errors.length} error(s):\n`),
+    );
 
-    // eslint-disable-next-line @typescript-eslint/no-shadow
-    for (const { path, error } of errors) {
+    for (const { path: errorPath, error } of errors) {
+      console.log(chalk.red(`  ${errorPath}`));
       // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
-      console.log(chalk.red(`   • ${path}: ${error}`));
+      console.log(chalk.red(`    └─ ${error}\n`));
     }
 
     return false;
   }
+
+  const validCount = skills.filter(
+    (skill) => skill.frontmatter !== null,
+  ).length;
+  console.log(chalk.green(`Validated ${validCount} skill(s) successfully`));
 
   return true;
 };

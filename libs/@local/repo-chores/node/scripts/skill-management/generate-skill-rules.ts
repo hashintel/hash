@@ -42,45 +42,43 @@ const run = async (skillsDir: string) => {
   const resolvedSkillsDir = path.resolve(skillsDir);
 
   if (!(await pathExists(resolvedSkillsDir))) {
-    console.log(
-      chalk.red(`❌ Skills directory not found: ${resolvedSkillsDir}`),
-    );
+    console.log(chalk.red(`Skills directory not found: ${resolvedSkillsDir}`));
     return false;
   }
 
-  console.log(chalk.blue(`📂 Scanning skills in: ${resolvedSkillsDir}`));
+  console.log(chalk.blue(`Generating skill rules from ${resolvedSkillsDir}\n`));
 
   const { skills, errors } = await scanSkills(resolvedSkillsDir);
 
   if (errors.length > 0) {
-    console.log(chalk.red("\n❌ Validation errors:"));
+    console.log(chalk.red(`Failed with ${errors.length} error(s):\n`));
 
-    // eslint-disable-next-line @typescript-eslint/no-shadow
-    for (const { path, error } of errors) {
+    for (const { path: errorPath, error } of errors) {
+      console.log(chalk.red(`  ${errorPath}`));
       // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
-      console.log(chalk.red(`   • ${path}: ${error}`));
+      console.log(chalk.red(`    └─ ${error}\n`));
     }
 
     return false;
   }
 
-  const skillCount = Object.keys(skills).length;
-  if (skillCount === 0) {
-    console.log(chalk.yellow("⚠️  No skills with triggers found"));
+  const validSkills = skills
+    .map(({ frontmatter }) => frontmatter)
+    .filter((frontmatter) => frontmatter !== null);
+
+  if (validSkills.length === 0) {
+    console.log(chalk.yellow("No skills with triggers found"));
     return true;
   }
 
-  const skill = convert(
-    skills
-      .map(({ frontmatter }) => frontmatter)
-      .filter((frontmatter) => frontmatter !== null),
-  );
-
+  const skillRules = convert(validSkills);
   const outputPath = path.join(resolvedSkillsDir, "skill-rules.json");
 
-  await writeFile(outputPath, JSON.stringify(skill));
+  await writeFile(outputPath, JSON.stringify(skillRules));
   await execa("biome", ["format", "--write", `${outputPath}`]);
-  console.log(chalk.green(`\n✅ Generated: ${outputPath}`));
+
+  console.log(chalk.green(`Generated ${validSkills.length} skill rule(s)`));
+  console.log(chalk.dim(`  Output: ${outputPath}`));
 
   return true;
 };
