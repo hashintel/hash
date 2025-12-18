@@ -1,0 +1,685 @@
+#!/usr/bin/env tsx
+/**
+ * Plan Execution TUI Demo
+ *
+ * A terminal UI for visualizing plan generation and execution.
+ * Uses @clack/prompts to display streaming events in real-time.
+ *
+ * Modes:
+ * - Real mode (default): Uses LLM to generate plans from fixture goals
+ * - Mock mode (--mock): Uses cached plans for fast iteration
+ *
+ * Usage:
+ *   npx tsx src/mastra/scripts/demo-plan-execution.ts
+ *   npx tsx src/mastra/scripts/demo-plan-execution.ts --mock
+ *   npx tsx src/mastra/scripts/demo-plan-execution.ts --fixture=summarize-papers
+ *   npx tsx src/mastra/scripts/demo-plan-execution.ts --mock --fixture=ct-database-goal
+ *   npx tsx src/mastra/scripts/demo-plan-execution.ts --mock --fast  # 100ms delay for testing
+ */
+
+// eslint-disable-next-line id-length -- clack convention
+import * as p from "@clack/prompts";
+import color from "picocolors";
+
+import {
+  ctDatabaseGoalFixture,
+  exploreAndRecommendFixture,
+  hypothesisValidationFixture,
+  type PlanningFixture,
+  summarizePapersFixture,
+} from "../fixtures/decomposition-prompts/fixtures";
+import { getMockPlan } from "../fixtures/decomposition-prompts/mock-plans";
+import type {
+  Executor,
+  PlanSpec,
+  PlanStep,
+  StepType,
+} from "../schemas/plan-spec";
+import {
+  compilePlanToWorkflow,
+  type PlanExecutionEvent,
+} from "../tools/plan-compiler";
+import { planningWorkflow } from "../workflows/planning-workflow";
+
+// =============================================================================
+// FIXTURES
+// =============================================================================
+
+/**
+ * All available fixtures with display metadata.
+ */
+const FIXTURES: Array<{
+  fixture: PlanningFixture;
+  label: string;
+  hint: string;
+}> = [
+  {
+    fixture: summarizePapersFixture,
+    label: "Summarize Papers",
+    hint: "Simplest — parallel research → synthesize (3-6 steps)",
+  },
+  {
+    fixture: exploreAndRecommendFixture,
+    label: "Explore & Recommend",
+    hint: "Medium — parallel research → evaluative synthesis (4-8 steps)",
+  },
+  {
+    fixture: hypothesisValidationFixture,
+    label: "Hypothesis Validation",
+    hint: "Complex — research → experiment → synthesize (5-10 steps)",
+  },
+  {
+    fixture: ctDatabaseGoalFixture,
+    label: "CT Database Goal",
+    hint: "Full R&D cycle — all step types (8-15+ steps)",
+  },
+];
+
+// =============================================================================
+// CLI ARGUMENT PARSING
+// =============================================================================
+
+interface CliArgs {
+  mock: boolean;
+  fast: boolean;
+  fixture?: string;
+  delay?: number;
+}
+
+function parseCliArgs(): CliArgs {
+  const args = process.argv.slice(2);
+  const result: CliArgs = {
+    mock: false,
+    fast: false,
+  };
+
+  for (const arg of args) {
+    if (arg === "--mock") {
+      result.mock = true;
+    } else if (arg === "--fast") {
+      result.fast = true;
+    } else if (arg.startsWith("--fixture=")) {
+      result.fixture = arg.split("=")[1];
+    } else if (arg.startsWith("--delay=")) {
+      result.delay = parseInt(arg.split("=")[1]!, 10);
+    }
+  }
+
+  return result;
+}
+
+// =============================================================================
+// HELPERS
+// =============================================================================
+
+function delay(ms: number): Promise<void> {
+  return new Promise((resolve) => {
+    setTimeout(resolve, ms);
+  });
+}
+
+// =============================================================================
+// UI HELPERS
+// =============================================================================
+
+const STEP_TYPE_ICONS: Record<StepType, string> = {
+  research: "🔍",
+  synthesize: "🔗",
+  experiment: "🧪",
+  develop: "🛠️",
+};
+
+const STEP_TYPE_COLORS: Record<StepType, (s: string) => string> = {
+  research: color.blue,
+  synthesize: color.magenta,
+  experiment: color.yellow,
+  develop: color.green,
+};
+
+function formatStepType(stepType: StepType): string {
+  const icon = STEP_TYPE_ICONS[stepType];
+  const colorFn = STEP_TYPE_COLORS[stepType];
+  return `${icon} ${colorFn(stepType)}`;
+}
+
+function formatDuration(ms: number): string {
+  if (ms < 1000) {
+    return `${ms}ms`;
+  }
+  return `${(ms / 1000).toFixed(2)}s`;
+}
+
+function getExecutorRef(executor: Executor): string {
+  if (executor.kind === "human") {
+    return "human";
+  }
+  return executor.ref;
+}
+
+/**
+ * Write a line to stdout without extra spacing.
+ * Clack's p.log.message() adds blank lines between messages,
+ * which is too verbose for streaming output.
+ */
+function writeLine(line: string): void {
+  process.stdout.write(`${color.gray("│")}  ${line}\n`);
+}
+
+/**
+ * Format a step for display in the plan visualization.
+ */
+function formatStepForDisplay(step: PlanStep, depth: number): string[] {
+  const lines: string[] = [];
+  const indent = "  ".repeat(depth);
+  const icon = STEP_TYPE_ICONS[step.type];
+  const colorFn = STEP_TYPE_COLORS[step.type];
+
+  // Main step line
+  lines.push(`${indent}${icon} ${colorFn(step.id)} — ${step.description}`);
+
+  // Dependencies
+  if (step.dependsOn.length > 0) {
+    lines.push(
+      `${indent}   ${color.dim(`depends on: ${step.dependsOn.join(", ")}`)}`,
+    );
+  }
+
+  // Executor
+  lines.push(
+    `${indent}   ${color.dim(`executor: ${getExecutorRef(step.executor)}`)}`,
+  );
+
+  return lines;
+}
+
+/**
+ * Display a nicely formatted visualization of the generated plan.
+ * Uses direct stdout writes to avoid extra blank lines from p.log.message().
+ */
+function displayPlanVisualization(plan: PlanSpec): void {
+  p.log.step("Generated Plan Structure:");
+
+  // Goal summary
+  writeLine(`${color.bold("Goal:")} ${plan.goalSummary}`);
+
+  // Requirements
+  if (plan.requirements.length > 0) {
+    writeLine("");
+    writeLine(color.bold("Requirements:"));
+    for (const req of plan.requirements) {
+      const priorityColor =
+        req.priority === "must"
+          ? color.red
+          : req.priority === "should"
+            ? color.yellow
+            : color.dim;
+      writeLine(
+        `  ${priorityColor(`[${req.priority}]`)} ${req.id}: ${req.description}`,
+      );
+    }
+  }
+
+  // Hypotheses
+  if (plan.hypotheses.length > 0) {
+    writeLine("");
+    writeLine(color.bold("Hypotheses:"));
+    for (const hyp of plan.hypotheses) {
+      writeLine(`  ${color.cyan(hyp.id)}: ${hyp.statement}`);
+      writeLine(`    ${color.dim(`testable via: ${hyp.testableVia}`)}`);
+    }
+  }
+
+  // Steps organized by depth
+  writeLine("");
+  writeLine(color.bold("Execution Steps:"));
+
+  // Group steps by their dependencies to show structure
+  const entrySteps = plan.steps.filter((step) => step.dependsOn.length === 0);
+  const otherSteps = plan.steps.filter((step) => step.dependsOn.length > 0);
+
+  // Show entry points (depth 0)
+  if (entrySteps.length > 0) {
+    writeLine(color.dim("  ┌─ Entry points (parallel):"));
+    for (const step of entrySteps) {
+      for (const line of formatStepForDisplay(step, 1)) {
+        writeLine(line);
+      }
+    }
+  }
+
+  // Show dependent steps
+  if (otherSteps.length > 0) {
+    writeLine(color.dim("  │"));
+    writeLine(color.dim("  └─ Dependent steps:"));
+    for (const step of otherSteps) {
+      for (const line of formatStepForDisplay(step, 1)) {
+        writeLine(line);
+      }
+    }
+  }
+
+  // Unknowns map summary
+  writeLine("");
+  writeLine(color.bold("Unknowns Map:"));
+  writeLine(
+    `  ${color.green("Known knowns:")} ${plan.unknownsMap.knownKnowns.length} items`,
+  );
+  writeLine(
+    `  ${color.yellow("Known unknowns:")} ${plan.unknownsMap.knownUnknowns.length} items`,
+  );
+  writeLine(
+    `  ${color.red("Unknown unknowns:")} ${plan.unknownsMap.unknownUnknowns.length} items`,
+  );
+}
+
+// =============================================================================
+// PLAN GENERATION
+// =============================================================================
+
+/**
+ * Generate a plan from a fixture goal.
+ * In mock mode, returns the cached plan. Otherwise, uses the LLM.
+ */
+async function generatePlanFromFixture(
+  fixture: PlanningFixture,
+  useMock: boolean,
+  spinner: ReturnType<typeof p.spinner>,
+): Promise<{ plan: PlanSpec; fromCache: boolean }> {
+  const fixtureId = fixture.input.id;
+
+  if (useMock) {
+    spinner.message(`Loading cached plan for ${fixtureId}...`);
+    await delay(300); // Brief delay for visual feedback
+
+    const mockPlan = getMockPlan(fixtureId);
+    if (!mockPlan) {
+      throw new Error(`No mock plan found for fixture: ${fixtureId}`);
+    }
+    return { plan: mockPlan, fromCache: true };
+  }
+
+  // Real LLM generation
+  spinner.message(`Generating plan from goal (this may take 30-60s)...`);
+
+  const run = await planningWorkflow.createRun();
+  const result = await run.start({
+    inputData: {
+      goal: fixture.input.goal,
+      context: fixture.input.context,
+      maxAttempts: 3,
+    },
+  });
+
+  if (result.status !== "success") {
+    throw new Error(`Planning workflow failed: ${result.status}`);
+  }
+
+  // The result includes the output with plan, valid, attempts
+  const output = result.result as {
+    plan: PlanSpec;
+    valid: boolean;
+    attempts: number;
+  };
+
+  if (!output.valid) {
+    p.log.warn(
+      `Plan generated but validation failed after ${output.attempts} attempts`,
+    );
+  }
+
+  return { plan: output.plan, fromCache: false };
+}
+
+// =============================================================================
+// PLAN EXECUTION
+// =============================================================================
+/**
+ * Execute a plan and stream progress to the TUI.
+ *
+ * NOTE: We intentionally avoid using spinners during streaming because
+ * spinners use cursor positioning (ANSI escape codes) that can interfere
+ * with log output, causing display corruption. Instead, we use plain
+ * stdout writes which are append-only and don't move the cursor.
+ */
+async function executePlan(
+  plan: PlanSpec,
+  delayMs: number,
+): Promise<{ success: boolean; completedSteps: number; errorCount: number }> {
+  // Track state for UI updates
+  const stepStates = new Map<
+    string,
+    { status: "pending" | "running" | "done" | "error"; startTime?: number }
+  >();
+  for (const step of plan.steps) {
+    stepStates.set(step.id, { status: "pending" });
+  }
+
+  let completedSteps = 0;
+  let errorCount = 0;
+
+  // Compile the plan with mock agents
+  const workflow = compilePlanToWorkflow(plan, {
+    useMockAgents: true,
+    mockDelayMs: delayMs,
+  });
+
+  // Create workflow run and stream
+  const run = await workflow.createRun();
+  const stream = run.stream({ inputData: { context: {} } });
+
+  // Process streaming events using direct stdout writes (no spinner, no extra spacing)
+  for await (const chunk of stream.fullStream) {
+    if (!chunk.type.startsWith("data-plan-")) {
+      continue;
+    }
+
+    const event = chunk as unknown as PlanExecutionEvent;
+
+    switch (event.type) {
+      case "data-plan-start": {
+        writeLine(
+          `${color.dim("┌")} Plan started: ${color.cyan(event.data.planId)}`,
+        );
+        writeLine(
+          `${color.dim("│")} Steps: ${event.data.totalSteps}, Critical path: ${event.data.criticalPathLength}, Parallel groups: ${event.data.parallelGroups}`,
+        );
+        break;
+      }
+
+      case "data-plan-step-start": {
+        const { stepId, stepType, description, depth } = event.data;
+        stepStates.set(stepId, { status: "running", startTime: Date.now() });
+
+        const stepInfo = plan.steps.find((step) => step.id === stepId);
+        const depthIndicator = color.dim(`d${depth}`);
+
+        writeLine(
+          `${color.dim("│")} ${color.yellow("▶")} ${formatStepType(stepType)} ${color.bold(stepId)} ${depthIndicator} — ${color.dim(description)}`,
+        );
+
+        if (stepInfo?.executor) {
+          writeLine(
+            `${color.dim("│")}   executor: ${color.cyan(getExecutorRef(stepInfo.executor))}`,
+          );
+        }
+        break;
+      }
+
+      case "data-plan-step-complete": {
+        const { stepId, stepType, durationMs } = event.data;
+        stepStates.set(stepId, { status: "done" });
+        completedSteps++;
+
+        writeLine(
+          `${color.dim("│")} ${color.green("✓")} ${formatStepType(stepType)} ${color.bold(stepId)} ${color.dim(`(${formatDuration(durationMs)})`)} ${color.dim(`[${completedSteps}/${plan.steps.length}]`)}`,
+        );
+        break;
+      }
+
+      case "data-plan-step-error": {
+        const { stepId, stepType, error, durationMs } = event.data;
+        stepStates.set(stepId, { status: "error" });
+        errorCount++;
+
+        writeLine(
+          `${color.dim("│")} ${color.red("✗")} ${formatStepType(stepType)} ${color.bold(stepId)} ${color.dim(`(${formatDuration(durationMs)})`)}`,
+        );
+        writeLine(`${color.dim("│")}   ${color.red(error)}`);
+        break;
+      }
+
+      case "data-plan-depth-transition": {
+        const {
+          fromDepth,
+          toDepth,
+          stepsCompletedAtDepth,
+          stepsStartingAtDepth,
+        } = event.data;
+
+        writeLine(
+          `${color.dim("├──")} Depth ${fromDepth} → ${toDepth} ${color.dim(`(${stepsCompletedAtDepth} done, ${stepsStartingAtDepth} starting)`)}`,
+        );
+        break;
+      }
+
+      case "data-plan-progress": {
+        // Progress is shown inline with step completion
+        break;
+      }
+
+      case "data-plan-complete": {
+        const {
+          planId,
+          success,
+          totalDurationMs,
+          stepsCompleted,
+          stepsFailed,
+        } = event.data;
+
+        writeLine(
+          `${color.dim("└")} ${success ? color.green("Done") : color.red("Failed")}: ${planId} — ${color.cyan(formatDuration(totalDurationMs))}, ${stepsCompleted} completed, ${stepsFailed} failed`,
+        );
+        break;
+      }
+    }
+  }
+
+  return {
+    success: errorCount === 0,
+    completedSteps,
+    errorCount,
+  };
+}
+
+// =============================================================================
+// MAIN LOOP
+// =============================================================================
+
+/**
+ * Run a single demo iteration.
+ * Returns true to continue looping, false to exit.
+ */
+async function runDemoIteration(cliArgs: CliArgs): Promise<boolean> {
+  // Fixture selection - use CLI arg or prompt
+  let selectedFixture: PlanningFixture;
+
+  if (cliArgs.fixture) {
+    const found = FIXTURES.find(
+      (item) => item.fixture.input.id === cliArgs.fixture,
+    );
+    if (!found) {
+      p.log.error(`Unknown fixture: ${cliArgs.fixture}`);
+      p.log.info(
+        `Available: ${FIXTURES.map((item) => item.fixture.input.id).join(", ")}`,
+      );
+      return false;
+    }
+    selectedFixture = found.fixture;
+    p.log.info(`Fixture: ${color.cyan(found.label)} (from CLI)`);
+  } else {
+    const fixtureChoice = await p.select({
+      message: "Select a fixture:",
+      options: [
+        ...FIXTURES.map((item) => ({
+          value: item.fixture.input.id,
+          label: item.label,
+          hint: item.hint,
+        })),
+        { value: "__exit__", label: "Exit", hint: "Quit the demo" },
+      ],
+    });
+
+    if (p.isCancel(fixtureChoice) || fixtureChoice === "__exit__") {
+      return false;
+    }
+
+    selectedFixture = FIXTURES.find(
+      (item) => item.fixture.input.id === fixtureChoice,
+    )!.fixture;
+  }
+
+  // Delay selection - use CLI arg, --fast flag, or prompt
+  let delayMs: number;
+
+  if (cliArgs.fast) {
+    delayMs = 100;
+    p.log.info(`Mock agent delay: ${color.cyan("100ms")} (--fast mode)`);
+  } else if (cliArgs.delay !== undefined) {
+    delayMs = cliArgs.delay;
+    p.log.info(`Mock agent delay: ${color.cyan(String(delayMs))}ms (from CLI)`);
+  } else {
+    const delayChoice = await p.select({
+      message: "Select mock agent delay:",
+      options: [
+        { value: 1000, label: "Normal (1s)", hint: "Comfortable pace" },
+        { value: 2000, label: "Slow (2s)", hint: "Easy to follow" },
+        { value: 3000, label: "Very slow (3s)", hint: "Step by step" },
+      ],
+    });
+
+    if (p.isCancel(delayChoice)) {
+      return false;
+    }
+
+    delayMs = delayChoice as number;
+  }
+
+  // Display goal
+  p.log.step("Goal:");
+  p.log.message(color.dim(selectedFixture.input.goal.trim()));
+
+  if (selectedFixture.input.context) {
+    p.log.step("Context:");
+    p.log.message(color.dim(selectedFixture.input.context.trim()));
+  }
+
+  // Phase 1: Generate plan
+  p.log.step("Phase 1: Plan Generation");
+
+  const genSpinner = p.spinner();
+  genSpinner.start(
+    cliArgs.mock ? "Loading cached plan..." : "Generating plan...",
+  );
+
+  let plan: PlanSpec;
+  let fromCache: boolean;
+  try {
+    const result = await generatePlanFromFixture(
+      selectedFixture,
+      cliArgs.mock,
+      genSpinner,
+    );
+    plan = result.plan;
+    fromCache = result.fromCache;
+    genSpinner.stop(
+      `Plan ${fromCache ? "loaded" : "generated"}: ${color.cyan(plan.id)} (${plan.steps.length} steps)`,
+    );
+  } catch (error) {
+    // spinner.stop(msg, code) - code 2 is error
+    genSpinner.stop(
+      `Plan generation failed: ${error instanceof Error ? error.message : String(error)}`,
+      2,
+    );
+    return !cliArgs.fixture; // Continue loop if interactive, exit if CLI-specified fixture
+  }
+
+  // Show plan visualization (especially important for non-mock mode)
+  if (!fromCache) {
+    displayPlanVisualization(plan);
+  } else {
+    // Brief summary for cached plans
+    p.log.info(`Goal summary: ${color.cyan(plan.goalSummary)}`);
+    p.log.info(
+      `Steps: ${color.yellow(String(plan.steps.length))}, ` +
+        `Requirements: ${plan.requirements.length}, ` +
+        `Hypotheses: ${plan.hypotheses.length}`,
+    );
+  }
+
+  // Brief pause before execution
+  await delay(500);
+
+  // Phase 2: Execute plan
+  p.log.step("Phase 2: Plan Execution");
+
+  const { success, completedSteps, errorCount } = await executePlan(
+    plan,
+    delayMs,
+  );
+
+  // Summary
+  p.log.message("");
+  if (success) {
+    p.log.success(`All ${completedSteps} steps completed successfully!`);
+  } else {
+    p.log.error(
+      `Completed with errors: ${completedSteps} done, ${errorCount} failed`,
+    );
+  }
+
+  // If fixture was specified via CLI, don't loop
+  if (cliArgs.fixture) {
+    return false;
+  }
+
+  // Wait for user to acknowledge before continuing
+  // This ensures they can read/scroll the output
+  p.log.message("");
+  p.log.message(color.dim("─".repeat(50)));
+
+  const runAnother = await p.confirm({
+    message: "Run another demo?",
+    initialValue: false,
+  });
+
+  if (p.isCancel(runAnother) || !runAnother) {
+    return false;
+  }
+
+  // Add visual separator before next run
+  p.log.message("");
+  p.log.message(color.bgCyan(color.black(" Next Demo ")));
+  p.log.message("");
+
+  return true; // Continue looping
+}
+
+// =============================================================================
+// MAIN
+// =============================================================================
+
+async function main() {
+  const cliArgs = parseCliArgs();
+
+  console.clear();
+
+  const modeLabel = cliArgs.mock
+    ? color.yellow(" MOCK MODE ")
+    : color.green(" REAL MODE ");
+  p.intro(`${color.bgCyan(color.black(" Plan Execution Demo "))} ${modeLabel}`);
+
+  if (cliArgs.mock) {
+    p.log.info(
+      color.dim(
+        "Using cached plans for fast iteration. Remove --mock for real LLM calls.",
+      ),
+    );
+  }
+
+  if (cliArgs.fast) {
+    p.log.info(color.dim("Fast mode enabled (100ms delays)."));
+  }
+
+  // Main loop - the runDemoIteration function handles continue/exit logic
+  let continueLoop = true;
+  while (continueLoop) {
+    continueLoop = await runDemoIteration(cliArgs);
+  }
+
+  p.outro(color.dim("Thanks for using the Plan Execution Demo!"));
+}
+
+main().catch((err) => {
+  p.log.error(String(err));
+  process.exit(1);
+});

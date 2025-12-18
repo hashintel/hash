@@ -581,6 +581,7 @@ __metadata:
     "@apidevtools/json-schema-ref-parser": "npm:15.1.3"
     "@blockprotocol/graph": "npm:0.4.0-canary.2"
     "@blockprotocol/type-system": "npm:0.1.2-canary.1"
+    "@clack/prompts": "npm:0.11.0"
     "@dmitryrechkin/json-schema-to-zod": "npm:1.0.1"
     "@local/advanced-types": "npm:0.0.0-private"
     "@local/eslint": "npm:0.0.0-private"
@@ -616,6 +617,7 @@ __metadata:
     json-schema: "npm:0.4.0"
     mastra: "npm:1.0.0-beta.5"
     npm-run-all2: "npm:8.0.4"
+    picocolors: "npm:1.1.1"
     sanitize-html: "npm:2.17.0"
     tsx: "npm:4.20.6"
     typescript: "npm:5.9.3"
@@ -6135,6 +6137,17 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@clack/prompts@npm:0.11.0, @clack/prompts@npm:^0.11.0":
+  version: 0.11.0
+  resolution: "@clack/prompts@npm:0.11.0"
+  dependencies:
+    "@clack/core": "npm:0.5.0"
+    picocolors: "npm:^1.0.0"
+    sisteransi: "npm:^1.0.5"
+  checksum: 10c0/4c573f2adec3b9109fe861e36312be8ae7cc6e80a5128aa784b9aeafeda5001b23f66c08eca50f4491119b435d9587ec9862956be8c5be472ec3373275003ba8
+  languageName: node
+  linkType: hard
+
 "@clack/prompts@npm:0.9.1":
   version: 0.9.1
   resolution: "@clack/prompts@npm:0.9.1"
@@ -6143,17 +6156,6 @@ __metadata:
     picocolors: "npm:^1.0.0"
     sisteransi: "npm:^1.0.5"
   checksum: 10c0/6cda9f56963dcbbfca4d9a64c82cf57e7f00dd563cd9e9ad28973b10ac761723fc21453254effbf08d5862efd57bad41d48008316c345202b74035ae905329cf
-  languageName: node
-  linkType: hard
-
-"@clack/prompts@npm:^0.11.0":
-  version: 0.11.0
-  resolution: "@clack/prompts@npm:0.11.0"
-  dependencies:
-    "@clack/core": "npm:0.5.0"
-    picocolors: "npm:^1.0.0"
-    sisteransi: "npm:^1.0.5"
-  checksum: 10c0/4c573f2adec3b9109fe861e36312be8ae7cc6e80a5128aa784b9aeafeda5001b23f66c08eca50f4491119b435d9587ec9862956be8c5be472ec3373275003ba8
   languageName: node
   linkType: hard
 
@@ -39704,7 +39706,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"picocolors@npm:^1.0.0, picocolors@npm:^1.1.1":
+"picocolors@npm:1.1.1, picocolors@npm:^1.0.0, picocolors@npm:^1.1.1":
   version: 1.1.1
   resolution: "picocolors@npm:1.1.1"
   checksum: 10c0/e2e3e8170ab9d7c7421969adaa7e1b31434f789afb9b3f115f6b96d91945041ac3ceb02e9ec6fe6510ff036bcc0bf91e69a1772edc0b707e12b19c0f2d6bcf58
