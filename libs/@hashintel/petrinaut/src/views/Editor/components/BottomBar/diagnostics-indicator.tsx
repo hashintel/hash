@@ -1,6 +1,7 @@
 import { css, cva } from "@hashintel/ds-helpers/css";
 import { FaCheck, FaXmark } from "react-icons/fa6";
 
+import { Tooltip } from "../../../../components/tooltip";
 import { useCheckerContext } from "../../../../state/checker-provider";
 
 const buttonStyle = cva({
@@ -60,25 +61,27 @@ export const DiagnosticsIndicator: React.FC<DiagnosticsIndicatorProps> = ({
   const hasErrors = totalDiagnosticsCount > 0;
 
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={buttonStyle({ status: hasErrors ? "error" : "success" })}
-      aria-label={
-        hasErrors
-          ? `${totalDiagnosticsCount} diagnostic issues found`
-          : "No diagnostic issues"
-      }
-      aria-expanded={isExpanded}
-    >
-      {hasErrors ? (
-        <>
-          <FaXmark size={16} />
-          <span className={countStyle}>{totalDiagnosticsCount}</span>
-        </>
-      ) : (
-        <FaCheck size={16} />
-      )}
-    </button>
+    <Tooltip content="Show Diagnostics">
+      <button
+        type="button"
+        onClick={onClick}
+        className={buttonStyle({ status: hasErrors ? "error" : "success" })}
+        aria-label={
+          hasErrors
+            ? `${totalDiagnosticsCount} diagnostic issues found`
+            : "No diagnostic issues"
+        }
+        aria-expanded={isExpanded}
+      >
+        {hasErrors ? (
+          <>
+            <FaXmark size={16} />
+            <span className={countStyle}>{totalDiagnosticsCount}</span>
+          </>
+        ) : (
+          <FaCheck size={16} />
+        )}
+      </button>
+    </Tooltip>
   );
 };

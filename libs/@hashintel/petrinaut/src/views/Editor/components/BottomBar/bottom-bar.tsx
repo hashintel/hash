@@ -1,6 +1,6 @@
 import { css } from "@hashintel/ds-helpers/css";
 import { refractive } from "@hashintel/refractive";
-import { useEffect } from "react";
+import { useCallback, useEffect } from "react";
 
 import { useCheckerContext } from "../../../../state/checker-provider";
 import { useEditorStore } from "../../../../state/editor-provider";
@@ -52,11 +52,21 @@ export const BottomBar: React.FC<BottomBarProps> = ({
   onEditionModeChange,
 }) => {
   const isBottomPanelOpen = useEditorStore((state) => state.isBottomPanelOpen);
-  const toggleBottomPanel = useEditorStore((state) => state.toggleBottomPanel);
+  const setBottomPanelOpen = useEditorStore(
+    (state) => state.setBottomPanelOpen
+  );
+  const setActiveBottomPanelTab = useEditorStore(
+    (state) => state.setActiveBottomPanelTab
+  );
   const bottomPanelHeight = useEditorStore((state) => state.bottomPanelHeight);
 
   const { totalDiagnosticsCount } = useCheckerContext();
   const hasDiagnostics = totalDiagnosticsCount > 0;
+
+  const showDiagnostics = useCallback(() => {
+    setBottomPanelOpen(true);
+    setActiveBottomPanelTab("diagnostics");
+  }, [setBottomPanelOpen, setActiveBottomPanelTab]);
 
   // Fallback to 'pan' mode when switching to simulate mode if mutative mode
   useEffect(() => {
@@ -89,7 +99,7 @@ export const BottomBar: React.FC<BottomBarProps> = ({
       >
         <div className={toolbarContainerStyle}>
           <DiagnosticsIndicator
-            onClick={toggleBottomPanel}
+            onClick={showDiagnostics}
             isExpanded={isBottomPanelOpen}
           />
           <div className={dividerStyle} />
