@@ -4,6 +4,7 @@ import { fileURLToPath } from "node:url";
 
 import { pathExists } from "fs-extra";
 import yaml from "js-yaml";
+import { z } from "zod";
 
 import { Frontmatter } from "./schemas";
 
@@ -12,6 +13,23 @@ export interface Skill {
   frontmatter: Frontmatter | null;
   body: string;
 }
+
+export const formatError = (error: unknown): string => {
+  if (error instanceof z.ZodError) {
+    return error.issues
+      .map((issue) => {
+        const errorPath = issue.path.length > 0 ? issue.path.join(".") : "root";
+        return `${errorPath}: ${issue.message}`;
+      })
+      .join("; ");
+  }
+
+  if (error instanceof Error) {
+    return error.message;
+  }
+
+  return String(error);
+};
 
 export const parseSkill = async (skillPath: string): Promise<Skill> => {
   const content = await readFile(skillPath, "utf-8");

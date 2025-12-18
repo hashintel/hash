@@ -6,10 +6,10 @@ import * as o from "@optique/core";
 import chalk from "chalk";
 import { execa } from "execa";
 import { pathExists } from "fs-extra";
-import z from "zod";
+import { z } from "zod";
 
 import { type Frontmatter, SkillRules, type SkillTrigger } from "./schemas";
-import { findSkillsDir, scanSkills } from "./shared";
+import { findSkillsDir, formatError, scanSkills } from "./shared";
 
 const convert = (frontmatters: Iterable<Frontmatter>): SkillRules => {
   const skills: Record<string, SkillTrigger> = {};
@@ -55,9 +55,10 @@ const run = async (skillsDir: string) => {
     console.log(chalk.red(`Failed with ${errors.length} error(s):\n`));
 
     for (const { path: errorPath, error } of errors) {
-      console.log(chalk.red(`  ${errorPath}`));
-      // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
-      console.log(chalk.red(`    └─ ${error}\n`));
+      const skillName = path.basename(path.dirname(errorPath));
+      console.log(chalk.red(`  ${skillName}`));
+      console.log(chalk.dim(`    ${errorPath}`));
+      console.log(chalk.red(`    → ${formatError(error)}\n`));
     }
 
     return false;

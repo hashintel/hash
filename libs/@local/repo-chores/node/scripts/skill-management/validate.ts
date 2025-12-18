@@ -4,7 +4,7 @@ import path from "node:path";
 import * as o from "@optique/core";
 import chalk from "chalk";
 
-import { findSkillsDir, scanSkills } from "./shared";
+import { findSkillsDir, formatError, scanSkills } from "./shared";
 
 const run = async (skillsDir: string) => {
   console.log(chalk.blue(`Validating skills in ${skillsDir}\n`));
@@ -15,7 +15,7 @@ const run = async (skillsDir: string) => {
     if (!skill.frontmatter) {
       errors.push({
         path: skill.path,
-        error: `Missing frontmatter`,
+        error: "Missing frontmatter",
       });
 
       continue;
@@ -37,9 +37,10 @@ const run = async (skillsDir: string) => {
     );
 
     for (const { path: errorPath, error } of errors) {
-      console.log(chalk.red(`  ${errorPath}`));
-      // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
-      console.log(chalk.red(`    └─ ${error}\n`));
+      const skillName = path.basename(path.dirname(errorPath));
+      console.log(chalk.red(`  ${skillName}`));
+      console.log(chalk.dim(`    ${errorPath}`));
+      console.log(chalk.red(`    → ${formatError(error)}\n`));
     }
 
     return false;

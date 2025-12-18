@@ -146,7 +146,7 @@ const FileTriggersCreateOnly = z
   );
 
 const FileTriggers = z
-  .object({
+  .strictObject({
     include: FileTriggersIncludes,
     exclude: FileTriggersExcludes,
     content: FileTriggersContent,
@@ -161,7 +161,7 @@ const FileTriggers = z
   .describe("File-based trigger conditions.");
 
 const FrontmatterTriggers = z
-  .object({
+  .strictObject({
     type: Trigger,
     enforcement: Enforcement,
     priority: Priority,
@@ -174,10 +174,9 @@ const FrontmatterTriggers = z
   .describe("Trigger configuration for automatic skill activation.");
 
 const FrontmatterMetadata = z
-  .object({
+  .looseObject({
     triggers: FrontmatterTriggers,
   })
-  .loose()
   .describe("Skill metadata including trigger configuration.");
 
 export const Frontmatter = z
