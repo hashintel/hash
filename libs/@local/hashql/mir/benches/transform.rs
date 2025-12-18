@@ -90,8 +90,8 @@ fn create_diamond_cfg<'heap>(env: &Environment<'heap>, interner: &Interner<'heap
 
     let bb0 = builder.reserve_block([]);
     let bb1 = builder.reserve_block([]);
-    let bb2 = builder.reserve_block([p.local]);
-    let bb3 = builder.reserve_block([]);
+    let bb2 = builder.reserve_block([]);
+    let bb3 = builder.reserve_block([p.local]);
 
     builder
         .build_block(bb0)
