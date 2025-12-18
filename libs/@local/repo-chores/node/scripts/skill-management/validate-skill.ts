@@ -3,7 +3,7 @@ import path from "node:path";
 
 import chalk from "chalk";
 
-import { frontmatterSchema } from "./schemas";
+import { Frontmatter } from "./schemas";
 import { extractFrontmatter } from "./utils";
 
 export type ValidationResult = {
@@ -48,7 +48,7 @@ export const validateSkill = (skillPath: string): ValidationResult => {
     };
   }
 
-  const parseResult = frontmatterSchema.safeParse(frontmatter);
+  const parseResult = Frontmatter.safeParse(frontmatter);
 
   if (!parseResult.success) {
     const errorMessages = parseResult.error.issues
@@ -59,13 +59,6 @@ export const validateSkill = (skillPath: string): ValidationResult => {
 
   const data = parseResult.data;
   const skillDirName = path.basename(resolvedPath);
-
-  if (!/^[a-z0-9-]+$/.test(data.name)) {
-    return {
-      valid: false,
-      message: `Name '${data.name}' should be hyphen-case (lowercase letters, digits, and hyphens only)`,
-    };
-  }
 
   if (data.name.startsWith("-") || data.name.endsWith("-")) {
     return {
