@@ -27,24 +27,28 @@ const headerStyle = css({
 
 const tabButtonStyle = cva({
   base: {
-    fontSize: "[12px]",
+    fontSize: "[11px]",
     fontWeight: "[500]",
     padding: "[4px 10px]",
+    textTransform: "uppercase",
     borderRadius: "[3px]",
     border: "none",
     cursor: "pointer",
-    transition: "[all 0.15s ease]",
+    transition: "[all 0.3s ease]",
     background: "[transparent]",
   },
   variants: {
     active: {
       true: {
+        opacity: "[1]",
         backgroundColor: "[rgba(0, 0, 0, 0.08)]",
         color: "core.gray.90",
       },
       false: {
+        opacity: "[0.6]",
         color: "core.gray.60",
         _hover: {
+          opacity: "[1]",
           backgroundColor: "[rgba(0, 0, 0, 0.04)]",
           color: "core.gray.80",
         },
@@ -55,7 +59,7 @@ const tabButtonStyle = cva({
 
 const contentStyle = css({
   fontSize: "[12px]",
-  padding: "[12px 10px]",
+  padding: "[12px 12px]",
   flex: "[1]",
   overflowY: "auto",
 });
