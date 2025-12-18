@@ -36,7 +36,7 @@
 //!
 //! # Pass Pattern
 //!
-//! Compiler passes commonly reset the allocator at the start of [`run()`] to reuse
+//! Compiler passes commonly reset the allocator at the start of `run()` to reuse
 //! memory from previous invocations:
 //!
 //! ```ignore
