@@ -204,13 +204,13 @@ Analyze each example to identify what scripts, references, and assets would be h
 
 ### Step 3: Initializing the Skill
 
-When creating a new skill from scratch, run the `init_skill.py` script:
+When creating a new skill from scratch, run the init command:
 
 ```bash
-scripts/init_skill.py <skill-name> --path <output-directory>
+yarn agents:skill-management init <skill-name>
 ```
 
-The script creates the skill directory with a SKILL.md template and example resource directories.
+The command creates the skill directory in `.claude/skills/` with a SKILL.md template and example resource directories.
 
 ### Step 4: Edit the Skill
 
@@ -246,16 +246,11 @@ Write instructions for using the skill. Keep under 500 lines.
 
 ### Step 5: Generate and Validate Skill Rules
 
-After creating/modifying skills, regenerate the skill-rules.json:
+After creating/modifying skills, validate and regenerate the skill-rules.json:
 
 ```bash
-scripts/generate_skill_rules.py --skills-dir .claude/skills --output .claude/skills/skill-rules.json
-```
-
-Validate the configuration:
-
-```bash
-scripts/generate_skill_rules.py --skills-dir .claude/skills --validate
+yarn agents:skill-management validate
+yarn agents:skill-management generate-skill-rules
 ```
 
 ### Step 6: Test the Skill
@@ -272,14 +267,6 @@ Debug matching logic:
 ```bash
 echo '{"session_id":"test","prompt":"your test prompt","cwd":"."}' | \
   yarn workspace @local/claude-hooks dev:skill
-```
-
-### Step 7: Package the Skill (Optional)
-
-For distribution, package the skill:
-
-```bash
-scripts/package_skill.py <path/to/skill-folder>
 ```
 
 ## Reference Files

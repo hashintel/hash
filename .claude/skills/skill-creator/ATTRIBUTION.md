@@ -14,7 +14,7 @@ This skill is based on and incorporates content from:
 **Breaking Changes:**
 
 - Trigger configuration moved from `skill-rules.json` to `metadata.triggers` in each skill's SKILL.md frontmatter
-- Must regenerate `skill-rules.json` using `generate_skill_rules.py` after modifying skills
+- Must regenerate `skill-rules.json` using `yarn agents:skill-management generate-skill-rules` after modifying skills
 
 **Changes:**
 
@@ -31,9 +31,9 @@ This skill is based on and incorporates content from:
    - Single source of truth - no separate configuration file to maintain
    - Supports: `type`, `enforcement`, `priority`, `keywords`, `intentPatterns`, `fileTriggers`
 
-4. **New Scripts**
-   - `generate_skill_rules.py` - Generates `skill-rules.json` from all SKILL.md files
-   - All scripts now use `uv run --script` for dependency management
+4. **New Commands**
+   - `yarn agents:skill-management` - TypeScript-based skill management CLI
+   - Commands: `init`, `validate`, `generate-skill-rules`
 
 5. **Merged Content from writing-skills**
    - Incorporated trigger type documentation
@@ -61,5 +61,5 @@ To migrate existing skills to the new format:
 2. Regenerate skill-rules.json:
 
    ```bash
-   ./scripts/generate_skill_rules.py --skills-dir .claude/skills --output .claude/skills/skill-rules.json
+   yarn agents:skill-management generate-skill-rules
    ```
