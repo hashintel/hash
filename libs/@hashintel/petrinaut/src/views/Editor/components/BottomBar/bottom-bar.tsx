@@ -26,7 +26,7 @@ const toolbarContainerStyle = css({
 const dividerStyle = css({
   background: "core.gray.20",
   width: "[1px]",
-  height: "[40px]",
+  height: "[16px]",
   margin: "[0 4px]",
 });
 

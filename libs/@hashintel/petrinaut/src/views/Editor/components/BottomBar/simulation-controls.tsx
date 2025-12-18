@@ -1,9 +1,7 @@
 import { css } from "@hashintel/ds-helpers/css";
-import { BiRun } from "react-icons/bi";
-import { TbCircle, TbRefresh, TbSquare } from "react-icons/tb";
+import { IoMdPause, IoMdPlay, IoMdSquare } from "react-icons/io";
 
 import { Tooltip } from "../../../../components/tooltip";
-import { FEATURE_FLAGS } from "../../../../feature-flags";
 import { useSimulationStore } from "../../../../state/simulation-provider";
 
 const containerStyle = css({
@@ -11,6 +9,7 @@ const containerStyle = css({
   alignItems: "center",
   padding: "[0 12px]",
   gap: "[12px]",
+  fontSize: "[24px]",
 });
 
 const playPauseButtonStyle = css({
@@ -18,16 +17,9 @@ const playPauseButtonStyle = css({
   display: "flex",
   alignItems: "center",
   justifyContent: "center",
-  width: "[32px]",
-  height: "[32px]",
-  borderRadius: "[50%]",
   border: "none",
-  background: "core.red.50",
-  color: "[white]",
-  fontSize: "[20px]",
   transition: "[all 0.2s ease]",
   "&:hover:not(:disabled)": {
-    background: "core.red.60",
     transform: "[scale(1.05)]",
   },
   "&:disabled": {
@@ -93,7 +85,6 @@ const resetButtonStyle = css({
   border: "none",
   background: "[transparent]",
   color: "core.gray.80",
-  fontSize: "[18px]",
   transition: "[all 0.2s ease]",
   "&:hover:not(:disabled)": {
     background: "core.gray.10",
@@ -184,15 +175,24 @@ export const SimulationControls: React.FC<SimulationControlsProps> = ({
               : "Continue simulation"
           }
         >
-          {isRunning ? (
-            <TbSquare style={{ fontSize: "14px" }} />
-          ) : FEATURE_FLAGS.RUNNING_MAN_ICON ? (
-            <BiRun style={{ fontSize: "20px", marginRight: 2 }} />
-          ) : (
-            <TbCircle style={{ fontSize: "14px" }} />
-          )}
+          {isRunning ? <IoMdPause /> : <IoMdPlay />}
         </button>
       </Tooltip>
+
+      {/* Reset button - only visible when simulation exists */}
+      {hasSimulation && (
+        <Tooltip content="Reset">
+          <button
+            type="button"
+            onClick={handleReset}
+            disabled={isDisabled}
+            className={resetButtonStyle}
+            aria-label="Reset simulation"
+          >
+            <IoMdSquare />
+          </button>
+        </Tooltip>
+      )}
 
       {/* Frame controls - only visible when simulation exists */}
       {hasSimulation && (
@@ -216,21 +216,6 @@ export const SimulationControls: React.FC<SimulationControlsProps> = ({
             className={sliderStyle}
           />
         </>
-      )}
-
-      {/* Reset button - only visible when simulation exists */}
-      {hasSimulation && (
-        <Tooltip content="Reset">
-          <button
-            type="button"
-            onClick={handleReset}
-            disabled={isDisabled}
-            className={resetButtonStyle}
-            aria-label="Reset simulation"
-          >
-            <TbRefresh />
-          </button>
-        </Tooltip>
       )}
     </div>
   );
