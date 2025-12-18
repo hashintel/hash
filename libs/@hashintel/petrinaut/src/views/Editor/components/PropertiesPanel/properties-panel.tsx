@@ -2,6 +2,12 @@ import { css } from "@hashintel/ds-helpers/css";
 import { useCallback, useEffect, useState } from "react";
 
 import { GlassPanel } from "../../../../components/glass-panel";
+import {
+  DEFAULT_PROPERTIES_PANEL_WIDTH,
+  MAX_PROPERTIES_PANEL_WIDTH,
+  MIN_PROPERTIES_PANEL_WIDTH,
+  PANEL_MARGIN,
+} from "../../../../constants/ui";
 import { useEditorStore } from "../../../../state/editor-provider";
 import { useSDCPNContext } from "../../../../state/sdcpn-provider";
 import { DifferentialEquationProperties } from "./differential-equation-properties";
@@ -9,11 +15,6 @@ import { ParameterProperties } from "./parameter-properties";
 import { PlaceProperties } from "./place-properties";
 import { TransitionProperties } from "./transition-properties";
 import { TypeProperties } from "./type-properties";
-
-const startingWidth = 450;
-const MIN_WIDTH = 250;
-const MAX_WIDTH = 800;
-const PANEL_MARGIN = 12;
 
 /**
  * PropertiesPanel displays properties and controls for the selected node/edge.
@@ -44,7 +45,9 @@ export const PropertiesPanel: React.FC = () => {
     updateParameter,
   } = useSDCPNContext();
 
-  const [panelWidth, setPanelWidthLocal] = useState(startingWidth);
+  const [panelWidth, setPanelWidthLocal] = useState(
+    DEFAULT_PROPERTIES_PANEL_WIDTH
+  );
 
   // Sync panel width with global store
   const handleResize = useCallback(
@@ -57,7 +60,7 @@ export const PropertiesPanel: React.FC = () => {
 
   // Initialize store with starting width
   useEffect(() => {
-    setPropertiesPanelWidth(startingWidth);
+    setPropertiesPanelWidth(DEFAULT_PROPERTIES_PANEL_WIDTH);
   }, [setPropertiesPanelWidth]);
 
   // Don't show panel if nothing is selected
@@ -217,8 +220,8 @@ export const PropertiesPanel: React.FC = () => {
           edge: "left",
           size: panelWidth,
           onResize: handleResize,
-          minSize: MIN_WIDTH,
-          maxSize: MAX_WIDTH,
+          minSize: MIN_PROPERTIES_PANEL_WIDTH,
+          maxSize: MAX_PROPERTIES_PANEL_WIDTH,
         }}
       >
         {content}

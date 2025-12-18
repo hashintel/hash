@@ -2,16 +2,15 @@ import { css, cva } from "@hashintel/ds-helpers/css";
 import { useState } from "react";
 
 import { GlassPanel } from "../../../../components/glass-panel";
+import {
+  MAX_DIAGNOSTICS_PANEL_HEIGHT,
+  MIN_DIAGNOSTICS_PANEL_HEIGHT,
+  PANEL_MARGIN,
+} from "../../../../constants/ui";
 import { useEditorStore } from "../../../../state/editor-provider";
 import { DiagnosticsContent } from "./diagnostics-content";
 import { ParametersContent } from "./parameters-content";
 import { SimulationSettingsContent } from "./simulation-settings-content";
-
-// Position offsets (accounting for sidebar padding/margins)
-const MIN_HEIGHT = 100;
-const MAX_HEIGHT = 600;
-const LEFT_SIDEBAR_WIDTH = 344; // 320px + 24px padding
-const PANEL_MARGIN = 12;
 
 type BottomPanelTab = "diagnostics" | "simulation-settings" | "parameters";
 
@@ -79,6 +78,7 @@ const tabs: { id: BottomPanelTab; label: string }[] = [
 export const BottomPanel: React.FC = () => {
   const isOpen = useEditorStore((state) => state.isDiagnosticsPanelOpen);
   const isLeftSidebarOpen = useEditorStore((state) => state.isLeftSidebarOpen);
+  const leftSidebarWidth = useEditorStore((state) => state.leftSidebarWidth);
   const panelHeight = useEditorStore((state) => state.diagnosticsPanelHeight);
   const setDiagnosticsPanelHeight = useEditorStore(
     (state) => state.setDiagnosticsPanelHeight
@@ -91,7 +91,10 @@ export const BottomPanel: React.FC = () => {
   }
 
   // Calculate left position based on left sidebar state
-  const leftOffset = isLeftSidebarOpen ? LEFT_SIDEBAR_WIDTH : PANEL_MARGIN;
+  // Add sidebar padding (12px each side) when sidebar is open
+  const leftOffset = isLeftSidebarOpen
+    ? leftSidebarWidth + PANEL_MARGIN * 2
+    : PANEL_MARGIN;
 
   function renderContent() {
     switch (activeTab) {
@@ -120,8 +123,8 @@ export const BottomPanel: React.FC = () => {
         edge: "top",
         size: panelHeight,
         onResize: setDiagnosticsPanelHeight,
-        minSize: MIN_HEIGHT,
-        maxSize: MAX_HEIGHT,
+        minSize: MIN_DIAGNOSTICS_PANEL_HEIGHT,
+        maxSize: MAX_DIAGNOSTICS_PANEL_HEIGHT,
       }}
     >
       {/* Tab Header */}

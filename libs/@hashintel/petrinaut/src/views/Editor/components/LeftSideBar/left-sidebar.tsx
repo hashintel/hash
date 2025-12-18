@@ -6,6 +6,11 @@ import {
 
 import { GlassPanel } from "../../../../components/glass-panel";
 import type { MenuItem } from "../../../../components/menu";
+import {
+  MAX_LEFT_SIDEBAR_WIDTH,
+  MIN_LEFT_SIDEBAR_WIDTH,
+  PANEL_MARGIN,
+} from "../../../../constants/ui";
 import { useEditorStore } from "../../../../state/editor-provider";
 import { DifferentialEquationsSection } from "./differential-equations-section";
 import { FloatingTitle } from "./floating-title";
@@ -16,7 +21,6 @@ import { TypesSection } from "./types-section";
 const outerContainerStyle = cva({
   base: {
     position: "fixed",
-    padding: "[12px]",
     zIndex: 1000,
     display: "flex",
   },
@@ -29,8 +33,6 @@ const outerContainerStyle = cva({
         height: "[100%]",
       },
       false: {
-        top: "[12px]",
-        left: "[12px]",
         bottom: "[auto]",
         height: "[auto]",
       },
@@ -46,7 +48,6 @@ const panelContentStyle = cva({
     isOpen: {
       true: {
         height: "[100%]",
-        width: "[320px]",
         padding: "[16px]",
         flexDirection: "column",
         gap: "[16px]",
@@ -137,6 +138,7 @@ interface LeftSideBarProps {
  * LeftSideBar displays the menu, title, and tools.
  * When collapsed: shows a horizontal bar with menu, title, and toggle button.
  * When open: shows the full sidebar with tools and content.
+ * Resizable from the right edge when open.
  */
 export const LeftSideBar: React.FC<LeftSideBarProps> = ({
   hideNetManagementControls,
@@ -148,10 +150,34 @@ export const LeftSideBar: React.FC<LeftSideBarProps> = ({
   const setLeftSidebarOpen = useEditorStore(
     (state) => state.setLeftSidebarOpen
   );
+  const leftSidebarWidth = useEditorStore((state) => state.leftSidebarWidth);
+  const setLeftSidebarWidth = useEditorStore(
+    (state) => state.setLeftSidebarWidth
+  );
 
   return (
-    <div className={outerContainerStyle({ isOpen })}>
-      <GlassPanel contentClassName={panelContentStyle({ isOpen })}>
+    <div
+      className={outerContainerStyle({ isOpen })}
+      style={{
+        padding: PANEL_MARGIN,
+        ...(isOpen ? {} : { top: PANEL_MARGIN, left: PANEL_MARGIN }),
+      }}
+    >
+      <GlassPanel
+        style={isOpen ? { width: leftSidebarWidth } : undefined}
+        contentClassName={panelContentStyle({ isOpen })}
+        resizable={
+          isOpen
+            ? {
+                edge: "right",
+                size: leftSidebarWidth,
+                onResize: setLeftSidebarWidth,
+                minSize: MIN_LEFT_SIDEBAR_WIDTH,
+                maxSize: MAX_LEFT_SIDEBAR_WIDTH,
+              }
+            : undefined
+        }
+      >
         {/* Header with Menu, Title, and Toggle button */}
         <div className={headerStyle({ isOpen })}>
           <div className={headerInnerStyle}>
