@@ -3,6 +3,7 @@ import { useState } from "react";
 import { v4 as uuidv4 } from "uuid";
 
 import type { Color } from "../../../../core/types/sdcpn";
+import { useSimulationStore } from "../../../../state/simulation-provider";
 import { ColorSelect } from "./color-select";
 
 /**
@@ -47,7 +48,12 @@ export const TypeProperties: React.FC<TypePropertiesProps> = ({
   updateType,
   globalMode,
 }) => {
-  const isDisabled = globalMode === "simulate";
+  const simulationState = useSimulationStore((state) => state.state);
+
+  // Check if simulation is running or paused
+  const isSimulationActive =
+    simulationState === "Running" || simulationState === "Paused";
+  const isDisabled = globalMode === "simulate" || isSimulationActive;
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
 
@@ -95,13 +101,13 @@ export const TypeProperties: React.FC<TypePropertiesProps> = ({
 
     // Check for duplicates (excluding the current element)
     const isDuplicate = type.elements.some(
-      (elem) => elem.elementId !== elementId && elem.name === slugifiedName,
+      (elem) => elem.elementId !== elementId && elem.name === slugifiedName
     );
 
     if (isDuplicate) {
       // eslint-disable-next-line no-alert
       alert(
-        `Warning: An element named "${slugifiedName}" already exists. Please use a unique name.`,
+        `Warning: An element named "${slugifiedName}" already exists. Please use a unique name.`
       );
       return;
     }
@@ -123,7 +129,7 @@ export const TypeProperties: React.FC<TypePropertiesProps> = ({
     // Confirmation dialog using browser API
     // eslint-disable-next-line no-alert
     const confirmed = window.confirm(
-      `Delete element "${elementName}"?\n\nThis cannot be undone.`,
+      `Delete element "${elementName}"?\n\nThis cannot be undone.`
     );
 
     if (!confirmed) {
@@ -132,7 +138,7 @@ export const TypeProperties: React.FC<TypePropertiesProps> = ({
 
     updateType(type.id, (existingType) => {
       const index = existingType.elements.findIndex(
-        (elem) => elem.elementId === elementId,
+        (elem) => elem.elementId === elementId
       );
       if (index !== -1) {
         existingType.elements.splice(index, 1);
@@ -314,8 +320,8 @@ export const TypeProperties: React.FC<TypePropertiesProps> = ({
                       draggedIndex === index
                         ? "rgba(59, 130, 246, 0.1)"
                         : dragOverIndex === index
-                          ? "rgba(59, 130, 246, 0.05)"
-                          : "rgba(0, 0, 0, 0.03)",
+                        ? "rgba(59, 130, 246, 0.05)"
+                        : "rgba(0, 0, 0, 0.03)",
                     borderRadius: 3,
                     border:
                       dragOverIndex === index
@@ -387,13 +393,13 @@ export const TypeProperties: React.FC<TypePropertiesProps> = ({
                     onChange={(event) => {
                       handleUpdateElementName(
                         element.elementId,
-                        event.target.value,
+                        event.target.value
                       );
                     }}
                     onBlur={(event) => {
                       handleBlurElementName(
                         element.elementId,
-                        event.target.value,
+                        event.target.value
                       );
                     }}
                     disabled={isDisabled}

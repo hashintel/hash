@@ -49,6 +49,12 @@ export const PlaceProperties: React.FC<PlacePropertiesProps> = ({
   updatePlace,
 }) => {
   const simulation = useSimulationStore((state) => state.simulation);
+  const simulationState = useSimulationStore((state) => state.state);
+
+  // Check if simulation is running or paused
+  const isSimulationActive =
+    simulationState === "Running" || simulationState === "Paused";
+  const isReadOnly = globalMode === "simulate" || isSimulationActive;
   const initialMarking = useSimulationStore((state) => state.initialMarking);
   const setInitialMarking = useSimulationStore(
     (state) => state.setInitialMarking
@@ -238,7 +244,7 @@ export const PlaceProperties: React.FC<PlacePropertiesProps> = ({
             setIsNameInputFocused(false);
             handleNameBlur();
           }}
-          disabled={globalMode === "simulate"}
+          disabled={isReadOnly}
           style={{
             fontSize: 14,
             padding: "6px 8px",
@@ -246,9 +252,8 @@ export const PlaceProperties: React.FC<PlacePropertiesProps> = ({
             borderRadius: 4,
             width: "100%",
             boxSizing: "border-box",
-            backgroundColor:
-              globalMode === "simulate" ? "rgba(0, 0, 0, 0.05)" : "white",
-            cursor: globalMode === "simulate" ? "not-allowed" : "text",
+            backgroundColor: isReadOnly ? "rgba(0, 0, 0, 0.05)" : "white",
+            cursor: isReadOnly ? "not-allowed" : "text",
           }}
         />
         {nameError && (
@@ -288,7 +293,7 @@ export const PlaceProperties: React.FC<PlacePropertiesProps> = ({
               }
             });
           }}
-          disabled={globalMode === "simulate"}
+          disabled={isReadOnly}
           style={{
             fontSize: 14,
             padding: "6px 8px",
@@ -296,9 +301,8 @@ export const PlaceProperties: React.FC<PlacePropertiesProps> = ({
             borderRadius: 4,
             width: "100%",
             boxSizing: "border-box",
-            backgroundColor:
-              globalMode === "simulate" ? "rgba(0, 0, 0, 0.05)" : "white",
-            cursor: globalMode === "simulate" ? "not-allowed" : "pointer",
+            backgroundColor: isReadOnly ? "rgba(0, 0, 0, 0.05)" : "white",
+            cursor: isReadOnly ? "not-allowed" : "pointer",
             marginBottom: place.colorId ? 8 : 0,
           }}
         >
@@ -349,7 +353,7 @@ export const PlaceProperties: React.FC<PlacePropertiesProps> = ({
           <div style={{ display: "flex", alignItems: "center" }}>
             <Switch
               checked={!!place.colorId && place.dynamicsEnabled}
-              disabled={globalMode === "simulate" || place.colorId === null}
+              disabled={isReadOnly || place.colorId === null}
               onCheckedChange={(checked) => {
                 updatePlace(place.id, (existingPlace) => {
                   existingPlace.dynamicsEnabled = checked;
@@ -403,7 +407,7 @@ export const PlaceProperties: React.FC<PlacePropertiesProps> = ({
                   existingPlace.differentialEquationId = value || null;
                 });
               }}
-              disabled={globalMode === "simulate"}
+              disabled={isReadOnly}
               style={{
                 fontSize: 14,
                 padding: "6px 8px",
@@ -411,9 +415,8 @@ export const PlaceProperties: React.FC<PlacePropertiesProps> = ({
                 borderRadius: 4,
                 width: "100%",
                 boxSizing: "border-box",
-                backgroundColor:
-                  globalMode === "simulate" ? "rgba(0, 0, 0, 0.05)" : "white",
-                cursor: globalMode === "simulate" ? "not-allowed" : "pointer",
+                backgroundColor: isReadOnly ? "rgba(0, 0, 0, 0.05)" : "white",
+                cursor: isReadOnly ? "not-allowed" : "pointer",
                 marginBottom: 8,
               }}
             >
@@ -590,8 +593,7 @@ export const PlaceProperties: React.FC<PlacePropertiesProps> = ({
             // Determine if we should show visualization (when simulation has frames)
             const hasSimulationFrames =
               simulation !== null && simulation.frames.length > 0;
-            const showVisualization =
-              globalMode === "simulate" || hasSimulationFrames;
+            const showVisualization = isReadOnly || hasSimulationFrames;
 
             return (
               <>

@@ -38,6 +38,14 @@ const addButtonStyle = css({
     backgroundColor: "[rgba(0, 0, 0, 0.05)]",
     color: "core.gray.90",
   },
+  _disabled: {
+    cursor: "not-allowed",
+    opacity: "[0.4]",
+    _hover: {
+      backgroundColor: "[transparent]",
+      color: "core.gray.60",
+    },
+  },
 });
 
 const parameterRowStyle = css({
@@ -84,6 +92,14 @@ const deleteButtonStyle = css({
     backgroundColor: "[rgba(255, 0, 0, 0.1)]",
     color: "[#ef4444]",
   },
+  _disabled: {
+    cursor: "not-allowed",
+    opacity: "[0.3]",
+    _hover: {
+      backgroundColor: "[transparent]",
+      color: "core.gray.50",
+    },
+  },
 });
 
 const emptyMessageStyle = css({
@@ -119,6 +135,10 @@ export const ParametersContent: React.FC = () => {
     globalMode === "simulate" && simulationState === "NotRun";
   const isSimulationMode = globalMode === "simulate";
 
+  // Check if simulation is running or paused
+  const isSimulationActive =
+    simulationState === "Running" || simulationState === "Paused";
+
   const handleAddParameter = () => {
     const name = `param${parameters.length + 1}`;
     const id = uuidv4();
@@ -141,6 +161,7 @@ export const ParametersContent: React.FC = () => {
         {!isSimulationMode && (
           <button
             type="button"
+            disabled={isSimulationActive}
             onClick={handleAddParameter}
             className={addButtonStyle}
             aria-label="Add parameter"
@@ -221,6 +242,7 @@ export const ParametersContent: React.FC = () => {
                 ) : (
                   <button
                     type="button"
+                    disabled={isSimulationActive}
                     onClick={() => {
                       if (
                         // eslint-disable-next-line no-alert

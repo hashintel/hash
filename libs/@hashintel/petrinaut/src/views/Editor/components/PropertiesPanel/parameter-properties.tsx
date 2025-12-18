@@ -1,4 +1,5 @@
 import type { Parameter } from "../../../../core/types/sdcpn";
+import { useSimulationStore } from "../../../../state/simulation-provider";
 
 /**
  * Slugifies a string to a valid JavaScript identifier.
@@ -36,7 +37,12 @@ export const ParameterProperties: React.FC<ParameterPropertiesProps> = ({
   updateParameter,
   globalMode,
 }) => {
-  const isDisabled = globalMode === "simulate";
+  const simulationState = useSimulationStore((state) => state.state);
+
+  // Check if simulation is running or paused
+  const isSimulationActive =
+    simulationState === "Running" || simulationState === "Paused";
+  const isDisabled = globalMode === "simulate" || isSimulationActive;
 
   const handleUpdateName = (event: React.ChangeEvent<HTMLInputElement>) => {
     updateParameter(parameter.id, (existingParameter) => {
