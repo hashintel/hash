@@ -1,6 +1,12 @@
 import { create } from "zustand";
 import { devtools } from "zustand/middleware";
 
+import {
+  DEFAULT_DIAGNOSTICS_PANEL_HEIGHT,
+  DEFAULT_LEFT_SIDEBAR_WIDTH,
+  DEFAULT_PROPERTIES_PANEL_WIDTH,
+} from "../constants/ui";
+
 export type DraggingStateByNodeId = Record<
   string,
   { dragging: boolean; position: { x: number; y: number } }
@@ -19,6 +25,8 @@ export type EditorState = {
   // UI state
   isLeftSidebarOpen: boolean;
   setLeftSidebarOpen: (isOpen: boolean) => void;
+  leftSidebarWidth: number;
+  setLeftSidebarWidth: (width: number) => void;
 
   // Properties panel width (for DiagnosticsPanel positioning)
   propertiesPanelWidth: number;
@@ -46,7 +54,7 @@ export type EditorState = {
   draggingStateByNodeId: DraggingStateByNodeId;
   setDraggingStateByNodeId: (state: DraggingStateByNodeId) => void;
   updateDraggingStateByNodeId: (
-    updater: (state: DraggingStateByNodeId) => DraggingStateByNodeId,
+    updater: (state: DraggingStateByNodeId) => DraggingStateByNodeId
   ) => void;
   resetDraggingState: () => void;
 
@@ -77,9 +85,15 @@ export function createEditorStore() {
               type: "setLeftSidebarOpen",
               isOpen,
             }),
+          leftSidebarWidth: DEFAULT_LEFT_SIDEBAR_WIDTH,
+          setLeftSidebarWidth: (width) =>
+            set({ leftSidebarWidth: width }, false, {
+              type: "setLeftSidebarWidth",
+              width,
+            }),
 
           // Properties panel width
-          propertiesPanelWidth: 450,
+          propertiesPanelWidth: DEFAULT_PROPERTIES_PANEL_WIDTH,
           setPropertiesPanelWidth: (width) =>
             set({ propertiesPanelWidth: width }, false, {
               type: "setPropertiesPanelWidth",
@@ -99,9 +113,9 @@ export function createEditorStore() {
                 isDiagnosticsPanelOpen: !state.isDiagnosticsPanelOpen,
               }),
               false,
-              "toggleDiagnosticsPanel",
+              "toggleDiagnosticsPanel"
             ),
-          diagnosticsPanelHeight: 180,
+          diagnosticsPanelHeight: DEFAULT_DIAGNOSTICS_PANEL_HEIGHT,
           setDiagnosticsPanelHeight: (height) =>
             set({ diagnosticsPanelHeight: height }, false, {
               type: "setDiagnosticsPanelHeight",
@@ -131,7 +145,7 @@ export function createEditorStore() {
                 return { selectedItemIds: newSet };
               },
               false,
-              { type: "addSelectedItemId", id },
+              { type: "addSelectedItemId", id }
             ),
           removeSelectedItemId: (id) =>
             set(
@@ -141,7 +155,7 @@ export function createEditorStore() {
                 return { selectedItemIds: newSet };
               },
               false,
-              { type: "removeSelectedItemId", id },
+              { type: "removeSelectedItemId", id }
             ),
           clearSelection: () =>
             set({ selectedItemIds: new Set() }, false, "clearSelection"),
@@ -152,7 +166,7 @@ export function createEditorStore() {
             set(
               { draggingStateByNodeId: state },
               false,
-              "setDraggingStateByNodeId",
+              "setDraggingStateByNodeId"
             ),
           updateDraggingStateByNodeId: (updater) =>
             set(
@@ -160,7 +174,7 @@ export function createEditorStore() {
                 draggingStateByNodeId: updater(state.draggingStateByNodeId),
               }),
               false,
-              "updateDraggingStateByNodeId",
+              "updateDraggingStateByNodeId"
             ),
           resetDraggingState: () =>
             set({ draggingStateByNodeId: {} }, false, "resetDraggingState"),
@@ -171,20 +185,21 @@ export function createEditorStore() {
                 globalMode: "edit",
                 editionMode: "select",
                 isLeftSidebarOpen: true,
-                propertiesPanelWidth: 450,
+                leftSidebarWidth: DEFAULT_LEFT_SIDEBAR_WIDTH,
+                propertiesPanelWidth: DEFAULT_PROPERTIES_PANEL_WIDTH,
                 isDiagnosticsPanelOpen: false,
-                diagnosticsPanelHeight: 180,
+                diagnosticsPanelHeight: DEFAULT_DIAGNOSTICS_PANEL_HEIGHT,
                 selectedResourceId: null,
                 selectedItemIds: new Set(),
                 draggingStateByNodeId: {},
               },
               false,
-              { type: "initializeEditorStore" },
+              { type: "initializeEditorStore" }
             );
           },
           // for some reason 'create' doesn't raise an error if a function in the type is missing
-        }) satisfies EditorState,
-      { name: "Editor Store" },
-    ),
+        } satisfies EditorState),
+      { name: "Editor Store" }
+    )
   );
 }
