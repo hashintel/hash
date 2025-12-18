@@ -11,7 +11,7 @@ use super::{BumpAllocator, allocator::Allocator};
 ///
 /// ```
 /// # #![feature(allocator_api)]
-/// # use hashql_core::heap::Scratch;
+/// # use hashql_core::heap::{Scratch, BumpAllocator};
 /// let mut scratch = Scratch::new();
 /// let mut vec: Vec<u32, &Scratch> = Vec::new_in(&scratch);
 /// vec.push(42);
