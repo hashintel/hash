@@ -13,8 +13,7 @@ const buttonStyle = cva({
     cursor: "pointer",
     transition: "[all 0.2s ease]",
     padding: "[2px 6px]",
-    marginLeft: "[12px]",
-    marginRight: "[3px]",
+    marginY: "[3px]",
     gap: "[2px]",
   },
   variants: {
