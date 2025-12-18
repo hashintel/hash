@@ -93,7 +93,8 @@ export const DiagnosticsContent: React.FC = () => {
   const setSelectedResourceId = useEditorStore(
     (state) => state.setSelectedResourceId
   );
-  const [expandedEntities, setExpandedEntities] = useState<Set<string>>(
+  // Track collapsed entities (all expanded by default)
+  const [collapsedEntities, setCollapsedEntities] = useState<Set<string>>(
     new Set()
   );
 
@@ -154,7 +155,7 @@ export const DiagnosticsContent: React.FC = () => {
   }, [checkResult, petriNetDefinition]);
 
   const toggleEntity = useCallback((entityKey: string) => {
-    setExpandedEntities((prev) => {
+    setCollapsedEntities((prev) => {
       const next = new Set(prev);
       if (next.has(entityKey)) {
         next.delete(entityKey);
@@ -175,7 +176,7 @@ export const DiagnosticsContent: React.FC = () => {
     <>
       {groupedDiagnostics.map((group) => {
         const entityKey = `${group.entityType}:${group.entityId}`;
-        const isExpanded = expandedEntities.has(entityKey);
+        const isExpanded = !collapsedEntities.has(entityKey);
         const entityLabel =
           group.entityType === "transition"
             ? `Transition: ${group.entityName}`
