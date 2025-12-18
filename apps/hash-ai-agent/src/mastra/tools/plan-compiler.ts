@@ -14,13 +14,11 @@
  * @see docs/PLAN-task-decomposition.md for design documentation
  */
 
-import { createStep, createWorkflow } from "@mastra/core/workflows";
 import type { Step, Workflow } from "@mastra/core/workflows";
-import dedent from "dedent";
+import { createStep, createWorkflow } from "@mastra/core/workflows";
 import { z } from "zod";
 
 import type {
-  DataContract,
   Executor,
   PlanSpec,
   PlanStep,
@@ -30,7 +28,6 @@ import type { MockAgent, MockResponse } from "./mock-agent";
 import { createMockAgentRegistry } from "./mock-agent";
 import {
   analyzePlanTopology,
-  type ParallelGroup,
   type TopologyAnalysis,
 } from "./topology-analyzer";
 
@@ -181,18 +178,8 @@ interface CompilerContext {
   topology: TopologyAnalysis;
   options: Required<CompilerOptions>;
   agentRegistry: Map<string, MockAgent>;
-  steps: Map<
-    string,
-    Step<
-      z.ZodTypeAny,
-      z.ZodTypeAny,
-      z.ZodTypeAny,
-      z.ZodTypeAny,
-      z.ZodTypeAny,
-      z.ZodTypeAny,
-      z.ZodTypeAny
-    >
-  >;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  steps: Map<string, Step<string, any, any, any, any, any>>;
 }
 
 /**
@@ -200,7 +187,7 @@ interface CompilerContext {
  */
 const compiledWorkflowInputSchema = z.object({
   /** Runtime context to pass to steps */
-  context: z.record(z.unknown()).optional(),
+  context: z.record(z.string(), z.unknown()).optional(),
   /** Whether to emit streaming progress events */
   streamProgress: z.boolean().optional().default(true),
 });
@@ -211,7 +198,7 @@ const compiledWorkflowInputSchema = z.object({
 const compiledWorkflowOutputSchema = z.object({
   planId: z.string(),
   success: z.boolean(),
-  results: z.record(z.unknown()),
+  results: z.record(z.string(), z.unknown()),
   errors: z
     .array(
       z.object({
@@ -230,406 +217,7 @@ export type CompiledWorkflowOutput = z.infer<
 >;
 
 // =============================================================================
-// MAIN COMPILER FUNCTION
-// =============================================================================
-
-/**
- * Compiles a validated PlanSpec into a Mastra Workflow.
- *
- * The compilation strategy:
- * 1. Analyze topology to get parallel groups and execution order
- * 2. Create Mastra steps for each PlanStep with streaming instrumentation
- * 3. Build workflow using parallel groups:
- *    - Single step at a depth → .then()
- *    - Multiple parallelizable steps at same depth → .parallel()
- *
- * @param plan - A validated PlanSpec (call validatePlan first!)
- * @param options - Compilation options
- * @returns Compiled Mastra workflow ready for execution
- *
- * @example
- * ```typescript
- * const plan = await generatePlan({ goal: "..." });
- * const validation = validatePlan(plan);
- * if (!validation.valid) throw new Error("Invalid plan");
- *
- * const workflow = compilePlanToWorkflow(plan, { useMockAgents: true });
- * const run = workflow.createRun();
- * const result = await run.start({ context: {} });
- * ```
- */
-export function compilePlanToWorkflow(
-  plan: PlanSpec,
-  options: CompilerOptions = {},
-): Workflow<
-  typeof compiledWorkflowInputSchema,
-  typeof compiledWorkflowOutputSchema,
-  z.ZodTypeAny,
-  z.ZodTypeAny,
-  z.ZodTypeAny,
-  z.ZodTypeAny,
-  z.ZodTypeAny
-> {
-  // Normalize options
-  const normalizedOptions: Required<CompilerOptions> = {
-    useMockAgents: options.useMockAgents ?? true,
-    mockDelayMs: options.mockDelayMs ?? 100,
-    agentRegistry:
-      options.agentRegistry ??
-      createMockAgentRegistry({ simulatedDelayMs: options.mockDelayMs ?? 100 }),
-  };
-
-  // Analyze topology
-  const topology = analyzePlanTopology(plan);
-
-  // Build compiler context
-  const ctx: CompilerContext = {
-    plan,
-    topology,
-    options: normalizedOptions,
-    agentRegistry: normalizedOptions.agentRegistry,
-    steps: new Map(),
-  };
-
-  // Phase 1: Create Mastra steps for each PlanStep
-  for (const planStep of plan.steps) {
-    const mastraStep = createMastraStep(planStep, ctx);
-    ctx.steps.set(planStep.id, mastraStep);
-  }
-
-  // Phase 2: Create workflow
-  const workflow = createWorkflow({
-    id: `compiled-plan-${plan.id}`,
-    inputSchema: compiledWorkflowInputSchema,
-    outputSchema: compiledWorkflowOutputSchema,
-  });
-
-  // Phase 3: Build workflow from parallel groups
-  buildWorkflowFromGroups(workflow, ctx);
-
-  // Phase 4: Commit and return
-  workflow.commit();
-
-  return workflow;
-}
-
-// =============================================================================
-// STEP CREATION
-// =============================================================================
-
-/**
- * Creates a Mastra step from a PlanStep with streaming instrumentation.
- */
-function createMastraStep(
-  planStep: PlanStep,
-  ctx: CompilerContext,
-): Step<
-  z.ZodTypeAny,
-  z.ZodTypeAny,
-  z.ZodTypeAny,
-  z.ZodTypeAny,
-  z.ZodTypeAny,
-  z.ZodTypeAny,
-  z.ZodTypeAny
-> {
-  const depth = ctx.topology.depthMap.get(planStep.id) ?? 0;
-
-  // Build input/output schemas from data contracts
-  const inputSchema = buildInputSchema(planStep);
-  const outputSchema = buildOutputSchema(planStep);
-
-  return createStep({
-    id: planStep.id,
-    description: planStep.description,
-    inputSchema,
-    outputSchema,
-    execute: async ({ inputData, writer }) => {
-      const startTime = Date.now();
-
-      // Emit step start event
-      await writer?.custom({
-        type: "data-plan-step-start",
-        data: {
-          stepId: planStep.id,
-          stepType: planStep.type,
-          description: planStep.description,
-          depth,
-          executor: planStep.executor,
-          dependsOn: planStep.dependsOn,
-        },
-      } satisfies PlanStepStartEvent);
-
-      try {
-        // Execute based on executor type
-        const result = await executeStep(planStep, inputData, ctx);
-
-        const durationMs = Date.now() - startTime;
-
-        // Emit step complete event
-        await writer?.custom({
-          type: "data-plan-step-complete",
-          data: {
-            stepId: planStep.id,
-            stepType: planStep.type,
-            durationMs,
-            outputSummary: summarizeOutput(result),
-          },
-        } satisfies PlanStepCompleteEvent);
-
-        return {
-          stepId: planStep.id,
-          result,
-          durationMs,
-        };
-      } catch (error) {
-        const durationMs = Date.now() - startTime;
-
-        // Emit step error event
-        await writer?.custom({
-          type: "data-plan-step-error",
-          data: {
-            stepId: planStep.id,
-            stepType: planStep.type,
-            error: error instanceof Error ? error.message : String(error),
-            durationMs,
-          },
-        } satisfies PlanStepErrorEvent);
-
-        // Re-throw for fail-fast behavior
-        throw error;
-      }
-    },
-  });
-}
-
-/**
- * Executes a step based on its executor binding.
- */
-async function executeStep(
-  planStep: PlanStep,
-  inputData: unknown,
-  ctx: CompilerContext,
-): Promise<MockResponse | unknown> {
-  const { executor } = planStep;
-
-  switch (executor.kind) {
-    case "agent": {
-      const agent = ctx.agentRegistry.get(executor.ref);
-      if (!agent) {
-        throw new Error(
-          `Agent "${executor.ref}" not found in registry. ` +
-            `Available agents: ${Array.from(ctx.agentRegistry.keys()).join(", ")}`,
-        );
-      }
-
-      // Build prompt from step configuration
-      const prompt = buildPromptForStep(planStep, inputData, ctx);
-
-      // Execute via mock agent
-      const response = await agent.generate(prompt);
-      return response.object;
-    }
-
-    case "tool": {
-      // Stub for future implementation
-      throw new Error(
-        `Tool executor not yet implemented. Step "${planStep.id}" uses tool "${executor.ref}".`,
-      );
-    }
-
-    case "workflow": {
-      // Stub for future implementation
-      throw new Error(
-        `Workflow executor not yet implemented. Step "${planStep.id}" uses workflow "${executor.ref}".`,
-      );
-    }
-
-    case "human": {
-      // Stub for future HITL implementation
-      throw new Error(
-        `Human executor not yet implemented. Step "${planStep.id}" requires human intervention. ` +
-          `Instructions: ${executor.instructions ?? "None provided"}`,
-      );
-    }
-
-    default: {
-      const exhaustiveCheck: never = executor;
-      throw new Error(
-        `Unknown executor kind: ${JSON.stringify(exhaustiveCheck)}`,
-      );
-    }
-  }
-}
-
-// =============================================================================
-// WORKFLOW FLOW BUILDING
-// =============================================================================
-
-/**
- * Builds the workflow execution flow from parallel groups.
- *
- * Strategy:
- * - Process parallel groups in order (by depth)
- * - Single step at a depth → .then()
- * - Multiple parallelizable steps → .parallel()
- * - Wrap with entry/exit handlers for streaming events
- */
-function buildWorkflowFromGroups(
-  workflow: Workflow<
-    typeof compiledWorkflowInputSchema,
-    typeof compiledWorkflowOutputSchema,
-    z.ZodTypeAny,
-    z.ZodTypeAny,
-    z.ZodTypeAny,
-    z.ZodTypeAny,
-    z.ZodTypeAny
-  >,
-  ctx: CompilerContext,
-): void {
-  const { plan, topology } = ctx;
-
-  // Track execution for final output
-  const executionState = {
-    startTime: 0,
-    completedStepIds: [] as string[],
-    results: {} as Record<string, unknown>,
-    errors: [] as Array<{ stepId: string; error: string }>,
-  };
-
-  // Entry: Emit plan start event and initialize state
-  workflow.map(async ({ inputData, writer }) => {
-    executionState.startTime = Date.now();
-
-    await writer?.custom({
-      type: "data-plan-start",
-      data: {
-        planId: plan.id,
-        goalSummary: plan.goalSummary,
-        totalSteps: plan.steps.length,
-        criticalPathLength: topology.criticalPath.length,
-        entryPoints: topology.entryPoints,
-        parallelGroups: topology.parallelGroups.length,
-      },
-    } satisfies PlanStartEvent);
-
-    return inputData;
-  });
-
-  // Process each parallel group
-  let previousDepth = -1;
-
-  for (const group of topology.parallelGroups) {
-    const stepsInGroup = group.stepIds
-      .map((id) => ctx.steps.get(id))
-      .filter((s): s is NonNullable<typeof s> => s !== undefined);
-
-    if (stepsInGroup.length === 0) continue;
-
-    // Emit depth transition event if depth changed
-    if (group.depth !== previousDepth && previousDepth >= 0) {
-      const fromDepth = previousDepth;
-      const toDepth = group.depth;
-      const stepsCompletedAtDepth =
-        topology.parallelGroups.find((g) => g.depth === fromDepth)?.stepIds
-          .length ?? 0;
-
-      workflow.map(async ({ inputData, writer }) => {
-        await writer?.custom({
-          type: "data-plan-depth-transition",
-          data: {
-            fromDepth,
-            toDepth,
-            stepsCompletedAtDepth,
-            stepsStartingAtDepth: stepsInGroup.length,
-          },
-        } satisfies PlanDepthTransitionEvent);
-
-        return inputData;
-      });
-    }
-
-    previousDepth = group.depth;
-
-    // Add steps based on parallelizability
-    if (stepsInGroup.length === 1) {
-      // Single step - use .then()
-      workflow.then(stepsInGroup[0]!);
-    } else {
-      // Multiple steps - check if all are parallelizable
-      const parallelizableSteps = group.parallelizableStepIds
-        .map((id) => ctx.steps.get(id))
-        .filter((s): s is NonNullable<typeof s> => s !== undefined);
-
-      if (parallelizableSteps.length === stepsInGroup.length) {
-        // All parallelizable - use .parallel()
-        workflow.parallel(parallelizableSteps);
-      } else if (parallelizableSteps.length > 1) {
-        // Mixed: parallel first, then sequential
-        workflow.parallel(parallelizableSteps);
-        const sequentialSteps = stepsInGroup.filter(
-          (s) => !parallelizableSteps.includes(s),
-        );
-        for (const step of sequentialSteps) {
-          workflow.then(step);
-        }
-      } else {
-        // All sequential
-        for (const step of stepsInGroup) {
-          workflow.then(step);
-        }
-      }
-    }
-
-    // Emit progress after each group
-    const currentDepth = group.depth;
-    const completedAtThisPoint = topology.parallelGroups
-      .filter((g) => g.depth <= currentDepth)
-      .flatMap((g) => g.stepIds);
-
-    workflow.map(async ({ inputData, writer }) => {
-      await writer?.custom({
-        type: "data-plan-progress",
-        data: {
-          completedSteps: completedAtThisPoint.length,
-          totalSteps: plan.steps.length,
-          currentDepth,
-          totalDepths: topology.parallelGroups.length,
-        },
-      } satisfies PlanProgressEvent);
-
-      return inputData;
-    });
-  }
-
-  // Exit: Emit plan complete event and collect results
-  workflow.map(async ({ inputData, writer }) => {
-    const totalDurationMs = Date.now() - executionState.startTime;
-
-    await writer?.custom({
-      type: "data-plan-complete",
-      data: {
-        planId: plan.id,
-        success: executionState.errors.length === 0,
-        totalDurationMs,
-        stepsCompleted: plan.steps.length - executionState.errors.length,
-        stepsFailed: executionState.errors.length,
-      },
-    } satisfies PlanCompleteEvent);
-
-    return {
-      planId: plan.id,
-      success: executionState.errors.length === 0,
-      results: inputData as Record<string, unknown>,
-      errors:
-        executionState.errors.length > 0 ? executionState.errors : undefined,
-      executionOrder: topology.topologicalOrder,
-      totalDurationMs,
-    };
-  });
-}
-
-// =============================================================================
-// HELPER FUNCTIONS
+// HELPER FUNCTIONS (defined first to avoid no-use-before-define)
 // =============================================================================
 
 /**
@@ -651,7 +239,7 @@ function buildInputSchema(planStep: PlanStep): z.ZodType<unknown> {
 /**
  * Build output schema from step's data contracts.
  */
-function buildOutputSchema(planStep: PlanStep): z.ZodType<unknown> {
+function buildOutputSchema(_planStep: PlanStep): z.ZodType<unknown> {
   return z
     .object({
       stepId: z.string(),
@@ -690,21 +278,22 @@ function buildPromptForStep(
       }
       break;
 
-    case "experiment":
+    case "experiment": {
       parts.push(`Mode: ${planStep.mode}`);
       parts.push(`Procedure: ${planStep.procedure}`);
       parts.push(`Success Criteria: ${planStep.successCriteria.join(", ")}`);
       // Reference hypotheses
       const hypotheses = planStep.hypothesisIds
-        .map((id) => ctx.plan.hypotheses.find((h) => h.id === id))
-        .filter((h): h is NonNullable<typeof h> => h !== undefined);
+        .map((id) => ctx.plan.hypotheses.find((hyp) => hyp.id === id))
+        .filter((hyp): hyp is NonNullable<typeof hyp> => hyp !== undefined);
       if (hypotheses.length > 0) {
         parts.push(`Hypotheses to Test:`);
-        for (const h of hypotheses) {
-          parts.push(`  - ${h.id}: ${h.statement}`);
+        for (const hyp of hypotheses) {
+          parts.push(`  - ${hyp.id}: ${hyp.statement}`);
         }
       }
       break;
+    }
 
     case "develop":
       parts.push(`Specification: ${planStep.specification}`);
@@ -761,7 +350,385 @@ function summarizeOutput(result: unknown): string {
     return json.slice(0, 200) + (json.length > 200 ? "..." : "");
   }
 
-  return String(result).slice(0, 200);
+  return JSON.stringify(result).slice(0, 200);
+}
+
+/**
+ * Executes a step based on its executor binding.
+ */
+async function executeStep(
+  planStep: PlanStep,
+  inputData: unknown,
+  ctx: CompilerContext,
+): Promise<unknown> {
+  const { executor } = planStep;
+
+  switch (executor.kind) {
+    case "agent": {
+      const agent = ctx.agentRegistry.get(executor.ref);
+      if (!agent) {
+        throw new Error(
+          `Agent "${executor.ref}" not found in registry. ` +
+            `Available agents: ${Array.from(ctx.agentRegistry.keys()).join(", ")}`,
+        );
+      }
+
+      // Build prompt from step configuration
+      const prompt = buildPromptForStep(planStep, inputData, ctx);
+
+      // Execute via mock agent
+      const response = await agent.generate(prompt);
+      return response.object;
+    }
+
+    case "tool": {
+      // Stub for future implementation
+      throw new Error(
+        `Tool executor not yet implemented. Step "${planStep.id}" uses tool "${executor.ref}".`,
+      );
+    }
+
+    case "workflow": {
+      // Stub for future implementation
+      throw new Error(
+        `Workflow executor not yet implemented. Step "${planStep.id}" uses workflow "${executor.ref}".`,
+      );
+    }
+
+    case "human": {
+      // Stub for future HITL implementation
+      throw new Error(
+        `Human executor not yet implemented. Step "${planStep.id}" requires human intervention. ` +
+          `Instructions: ${executor.instructions ?? "None provided"}`,
+      );
+    }
+
+    default: {
+      const exhaustiveCheck: never = executor;
+      throw new Error(
+        `Unknown executor kind: ${JSON.stringify(exhaustiveCheck)}`,
+      );
+    }
+  }
+}
+
+// =============================================================================
+// STEP CREATION
+// =============================================================================
+
+/**
+ * Creates a Mastra step from a PlanStep with streaming instrumentation.
+ */
+function createMastraStep(planStep: PlanStep, ctx: CompilerContext) {
+  const depth = ctx.topology.depthMap.get(planStep.id) ?? 0;
+
+  // Build input/output schemas from data contracts
+  const inputSchema = buildInputSchema(planStep);
+  const outputSchema = buildOutputSchema(planStep);
+
+  return createStep({
+    id: planStep.id,
+    description: planStep.description,
+    inputSchema,
+    outputSchema,
+    execute: async ({ inputData, writer }) => {
+      const startTime = Date.now();
+
+      // Emit step start event
+      await writer.custom({
+        type: "data-plan-step-start",
+        data: {
+          stepId: planStep.id,
+          stepType: planStep.type,
+          description: planStep.description,
+          depth,
+          executor: planStep.executor,
+          dependsOn: planStep.dependsOn,
+        },
+      } satisfies PlanStepStartEvent);
+
+      try {
+        // Execute based on executor type
+        const result = await executeStep(planStep, inputData, ctx);
+
+        const durationMs = Date.now() - startTime;
+
+        // Emit step complete event
+        await writer.custom({
+          type: "data-plan-step-complete",
+          data: {
+            stepId: planStep.id,
+            stepType: planStep.type,
+            durationMs,
+            outputSummary: summarizeOutput(result),
+          },
+        } satisfies PlanStepCompleteEvent);
+
+        return {
+          stepId: planStep.id,
+          result,
+          durationMs,
+        };
+      } catch (error) {
+        const durationMs = Date.now() - startTime;
+
+        // Emit step error event
+        await writer.custom({
+          type: "data-plan-step-error",
+          data: {
+            stepId: planStep.id,
+            stepType: planStep.type,
+            error: error instanceof Error ? error.message : String(error),
+            durationMs,
+          },
+        } satisfies PlanStepErrorEvent);
+
+        // Re-throw for fail-fast behavior
+        throw error;
+      }
+    },
+  });
+}
+
+// =============================================================================
+// WORKFLOW FLOW BUILDING
+// =============================================================================
+
+/**
+ * Builds the workflow execution flow from parallel groups.
+ *
+ * Strategy:
+ * - Process parallel groups in order (by depth)
+ * - Single step at a depth → .then()
+ * - Multiple parallelizable steps → .parallel()
+ * - Wrap with entry/exit handlers for streaming events
+ */
+function buildWorkflowFromGroups(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  workflow: Workflow<any, any, any, any, any, any, any>,
+  ctx: CompilerContext,
+): void {
+  const { plan, topology } = ctx;
+
+  // Track execution for final output
+  const executionState = {
+    startTime: 0,
+    completedStepIds: [] as string[],
+    results: {} as Record<string, unknown>,
+    errors: [] as Array<{ stepId: string; error: string }>,
+  };
+
+  // Entry: Emit plan start event and initialize state
+  workflow.map(async ({ inputData, writer }) => {
+    executionState.startTime = Date.now();
+
+    await writer.custom({
+      type: "data-plan-start",
+      data: {
+        planId: plan.id,
+        goalSummary: plan.goalSummary,
+        totalSteps: plan.steps.length,
+        criticalPathLength: topology.criticalPath.length,
+        entryPoints: topology.entryPoints,
+        parallelGroups: topology.parallelGroups.length,
+      },
+    } satisfies PlanStartEvent);
+
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+    return inputData;
+  });
+
+  // Process each parallel group
+  let previousDepth = -1;
+
+  for (const group of topology.parallelGroups) {
+    const stepsInGroup = group.stepIds
+      .map((id) => ctx.steps.get(id))
+      .filter((step): step is NonNullable<typeof step> => step !== undefined);
+
+    if (stepsInGroup.length === 0) {
+      continue;
+    }
+
+    // Emit depth transition event if depth changed
+    if (group.depth !== previousDepth && previousDepth >= 0) {
+      const fromDepth = previousDepth;
+      const toDepth = group.depth;
+      const stepsCompletedAtDepth =
+        topology.parallelGroups.find((grp) => grp.depth === fromDepth)?.stepIds
+          .length ?? 0;
+
+      workflow.map(async ({ inputData, writer }) => {
+        await writer.custom({
+          type: "data-plan-depth-transition",
+          data: {
+            fromDepth,
+            toDepth,
+            stepsCompletedAtDepth,
+            stepsStartingAtDepth: stepsInGroup.length,
+          },
+        } satisfies PlanDepthTransitionEvent);
+
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+        return inputData;
+      });
+    }
+
+    previousDepth = group.depth;
+
+    // Add steps based on parallelizability
+    if (stepsInGroup.length === 1) {
+      // Single step - use .then()
+      workflow.then(stepsInGroup[0]!);
+    } else {
+      // Multiple steps - check if all are parallelizable
+      const parallelizableSteps = group.parallelizableStepIds
+        .map((id) => ctx.steps.get(id))
+        .filter((step): step is NonNullable<typeof step> => step !== undefined);
+
+      if (parallelizableSteps.length === stepsInGroup.length) {
+        // All parallelizable - use .parallel()
+        workflow.parallel(parallelizableSteps);
+      } else if (parallelizableSteps.length > 1) {
+        // Mixed: parallel first, then sequential
+        workflow.parallel(parallelizableSteps);
+        const sequentialSteps = stepsInGroup.filter(
+          (step) => !parallelizableSteps.includes(step),
+        );
+        for (const step of sequentialSteps) {
+          workflow.then(step);
+        }
+      } else {
+        // All sequential
+        for (const step of stepsInGroup) {
+          workflow.then(step);
+        }
+      }
+    }
+
+    // Emit progress after each group
+    const currentDepth = group.depth;
+    const completedAtThisPoint = topology.parallelGroups
+      .filter((grp) => grp.depth <= currentDepth)
+      .flatMap((grp) => grp.stepIds);
+
+    workflow.map(async ({ inputData, writer }) => {
+      await writer.custom({
+        type: "data-plan-progress",
+        data: {
+          completedSteps: completedAtThisPoint.length,
+          totalSteps: plan.steps.length,
+          currentDepth,
+          totalDepths: topology.parallelGroups.length,
+        },
+      } satisfies PlanProgressEvent);
+
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+      return inputData;
+    });
+  }
+
+  // Exit: Emit plan complete event and collect results
+  workflow.map(async ({ inputData, writer }) => {
+    const totalDurationMs = Date.now() - executionState.startTime;
+
+    await writer.custom({
+      type: "data-plan-complete",
+      data: {
+        planId: plan.id,
+        success: executionState.errors.length === 0,
+        totalDurationMs,
+        stepsCompleted: plan.steps.length - executionState.errors.length,
+        stepsFailed: executionState.errors.length,
+      },
+    } satisfies PlanCompleteEvent);
+
+    return {
+      planId: plan.id,
+      success: executionState.errors.length === 0,
+      results: inputData as Record<string, unknown>,
+      errors:
+        executionState.errors.length > 0 ? executionState.errors : undefined,
+      executionOrder: topology.topologicalOrder,
+      totalDurationMs,
+    };
+  });
+}
+
+// =============================================================================
+// MAIN COMPILER FUNCTION
+// =============================================================================
+
+/**
+ * Compiles a validated PlanSpec into a Mastra Workflow.
+ *
+ * The compilation strategy:
+ * 1. Analyze topology to get parallel groups and execution order
+ * 2. Create Mastra steps for each PlanStep with streaming instrumentation
+ * 3. Build workflow using parallel groups:
+ *    - Single step at a depth → .then()
+ *    - Multiple parallelizable steps at same depth → .parallel()
+ *
+ * @param plan - A validated PlanSpec (call validatePlan first!)
+ * @param options - Compilation options
+ * @returns Compiled Mastra workflow ready for execution
+ *
+ * @example
+ * ```typescript
+ * const plan = await generatePlan({ goal: "..." });
+ * const validation = validatePlan(plan);
+ * if (!validation.valid) throw new Error("Invalid plan");
+ *
+ * const workflow = compilePlanToWorkflow(plan, { useMockAgents: true });
+ * const run = workflow.createRun();
+ * const result = await run.start({ context: {} });
+ * ```
+ */
+export function compilePlanToWorkflow(
+  plan: PlanSpec,
+  options: CompilerOptions = {},
+) {
+  // Normalize options
+  const normalizedOptions: Required<CompilerOptions> = {
+    useMockAgents: options.useMockAgents ?? true,
+    mockDelayMs: options.mockDelayMs ?? 100,
+    agentRegistry:
+      options.agentRegistry ??
+      createMockAgentRegistry({ simulatedDelayMs: options.mockDelayMs ?? 100 }),
+  };
+
+  // Analyze topology
+  const topology = analyzePlanTopology(plan);
+
+  // Build compiler context
+  const ctx: CompilerContext = {
+    plan,
+    topology,
+    options: normalizedOptions,
+    agentRegistry: normalizedOptions.agentRegistry,
+    steps: new Map(),
+  };
+
+  // Phase 1: Create Mastra steps for each PlanStep
+  for (const planStep of plan.steps) {
+    const mastraStep = createMastraStep(planStep, ctx);
+    ctx.steps.set(planStep.id, mastraStep);
+  }
+
+  // Phase 2: Create workflow
+  const workflow = createWorkflow({
+    id: `compiled-plan-${plan.id}`,
+    inputSchema: compiledWorkflowInputSchema,
+    outputSchema: compiledWorkflowOutputSchema,
+  });
+
+  // Phase 3: Build workflow from parallel groups
+  buildWorkflowFromGroups(workflow, ctx);
+
+  // Phase 4: Commit and return
+  workflow.commit();
+
+  return workflow;
 }
 
 // =============================================================================
