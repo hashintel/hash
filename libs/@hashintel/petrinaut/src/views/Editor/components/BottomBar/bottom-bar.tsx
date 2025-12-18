@@ -51,15 +51,9 @@ export const BottomBar: React.FC<BottomBarProps> = ({
   editionMode,
   onEditionModeChange,
 }) => {
-  const isDiagnosticsPanelOpen = useEditorStore(
-    (state) => state.isDiagnosticsPanelOpen,
-  );
-  const toggleDiagnosticsPanel = useEditorStore(
-    (state) => state.toggleDiagnosticsPanel,
-  );
-  const diagnosticsPanelHeight = useEditorStore(
-    (state) => state.diagnosticsPanelHeight,
-  );
+  const isBottomPanelOpen = useEditorStore((state) => state.isBottomPanelOpen);
+  const toggleBottomPanel = useEditorStore((state) => state.toggleBottomPanel);
+  const bottomPanelHeight = useEditorStore((state) => state.bottomPanelHeight);
 
   const { totalDiagnosticsCount } = useCheckerContext();
   const hasDiagnostics = totalDiagnosticsCount > 0;
@@ -77,9 +71,9 @@ export const BottomBar: React.FC<BottomBarProps> = ({
   // Setup keyboard shortcuts
   useKeyboardShortcuts(mode, onEditionModeChange);
 
-  // Calculate bottom offset based on diagnostics panel visibility
-  const bottomOffset = isDiagnosticsPanelOpen
-    ? diagnosticsPanelHeight + 12 + 24 // panel height + margin + spacing
+  // Calculate bottom offset based on bottom panel visibility
+  const bottomOffset = isBottomPanelOpen
+    ? bottomPanelHeight + 12 + 24 // panel height + margin + spacing
     : 24;
 
   return (
@@ -95,8 +89,8 @@ export const BottomBar: React.FC<BottomBarProps> = ({
       >
         <div className={toolbarContainerStyle}>
           <DiagnosticsIndicator
-            onClick={toggleDiagnosticsPanel}
-            isExpanded={isDiagnosticsPanelOpen}
+            onClick={toggleBottomPanel}
+            isExpanded={isBottomPanelOpen}
           />
           <div className={dividerStyle} />
           <ToolbarModes

@@ -27,12 +27,8 @@ export const PropertiesPanel: React.FC = () => {
   const setPropertiesPanelWidth = useEditorStore(
     (state) => state.setPropertiesPanelWidth
   );
-  const isDiagnosticsPanelOpen = useEditorStore(
-    (state) => state.isDiagnosticsPanelOpen
-  );
-  const diagnosticsPanelHeight = useEditorStore(
-    (state) => state.diagnosticsPanelHeight
-  );
+  const isBottomPanelOpen = useEditorStore((state) => state.isBottomPanelOpen);
+  const bottomPanelHeight = useEditorStore((state) => state.bottomPanelHeight);
 
   const {
     getItemType,
@@ -185,10 +181,10 @@ export const PropertiesPanel: React.FC = () => {
       );
   }
 
-  // Calculate bottom offset based on diagnostics panel visibility
-  // Gap between PropertiesPanel and DiagnosticsPanel matches gap between LeftSideBar and DiagnosticsPanel
-  const bottomOffset = isDiagnosticsPanelOpen
-    ? diagnosticsPanelHeight + PANEL_MARGIN
+  // Calculate bottom offset based on bottom panel visibility
+  // Gap between PropertiesPanel and BottomPanel matches gap between LeftSideBar and BottomPanel
+  const bottomOffset = isBottomPanelOpen
+    ? bottomPanelHeight + PANEL_MARGIN
     : 0;
 
   return (
