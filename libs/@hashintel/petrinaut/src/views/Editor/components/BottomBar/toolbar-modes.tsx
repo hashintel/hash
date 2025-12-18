@@ -3,6 +3,7 @@ import { FaArrowPointer, FaCircle, FaHand, FaSquare } from "react-icons/fa6";
 
 import { Tooltip } from "../../../../components/tooltip";
 import type { EditorState } from "../../../../state/editor-store";
+import { useSimulationStore } from "../../../../state/simulation-provider";
 
 type EditorMode = EditorState["globalMode"];
 type EditorEditionMode = EditorState["editionMode"];
@@ -62,9 +63,16 @@ export const ToolbarModes: React.FC<ToolbarModesProps> = ({
   editionMode,
   onEditionModeChange,
 }) => {
+  const simulationState = useSimulationStore((state) => state.state);
+  const isSimulationRunning =
+    simulationState === "Running" || simulationState === "Paused";
+
+  // Show Place/Transition buttons only in edit mode and when simulation is not running
+  const showMutativeButtons = mode === "edit" && !isSimulationRunning;
+
   return (
     <>
-      {mode === "edit" && (
+      {showMutativeButtons && (
         <>
           <Tooltip content="Add Place (N)">
             <div
