@@ -21,8 +21,7 @@ const headerStyle = css({
   display: "flex",
   alignItems: "center",
   gap: "[4px]",
-  borderBottom: "[1px solid rgba(0, 0, 0, 0.1)]",
-  padding: "[2px 2px 6px 2px]",
+  padding: "[2px]",
   flexShrink: 0,
 });
 
@@ -30,7 +29,7 @@ const tabButtonStyle = cva({
   base: {
     fontSize: "[12px]",
     fontWeight: "[500]",
-    padding: "[4px 12px]",
+    padding: "[4px 10px]",
     borderRadius: "[3px]",
     border: "none",
     cursor: "pointer",
@@ -56,7 +55,7 @@ const tabButtonStyle = cva({
 
 const contentStyle = css({
   fontSize: "[12px]",
-  padding: "[8px 16px]",
+  padding: "[12px 10px]",
   flex: "[1]",
   overflowY: "auto",
 });
