@@ -72,6 +72,7 @@ use crate::{
 /// builder.build_block(entry).ret(place_x);
 /// let body = builder.finish(0, TypeId::MAX);
 /// ```
+#[macro_export]
 macro_rules! scaffold {
     ($heap:ident, $interner:ident, $builder:ident) => {
         let $heap = hashql_core::heap::Heap::new();
@@ -105,6 +106,7 @@ macro_rules! scaffold {
 /// rv.unary(op![!], operand)    // Not
 /// rv.unary(op![neg], operand)  // Neg (can't use `-` alone)
 /// ```
+#[macro_export]
 macro_rules! op {
     // Binary operators
     [+] => { hashql_hir::node::operation::BinOp::Add };
@@ -778,5 +780,5 @@ impl<'env, 'heap> Deref for SwitchBuilder<'env, 'heap> {
     }
 }
 
-pub(crate) use op;
-pub(crate) use scaffold;
+pub use op;
+pub use scaffold;

@@ -47,7 +47,7 @@ fn load_simple() {
     let x = builder.local("x", ty);
     let y = builder.local("y", ty);
 
-    let bb0 = builder.reserve_block(&[]);
+    let bb0 = builder.reserve_block([]);
 
     builder
         .build_block(bb0)

@@ -1,5 +1,3 @@
-extern crate test;
-
 use std::path::PathBuf;
 
 use bstr::ByteVec as _;
@@ -685,66 +683,3 @@ fn switch_promotion_with_goto_params() {
         },
     );
 }
-
-// #[bench]
-// fn bench_cfg_simplify_linear(bencher: &mut Bencher) {
-//     scaffold!(heap, interner, _builder);
-//     let env = Environment::new(&heap);
-//     let mut body = create_linear_cfg(&env, &interner);
-
-//     let mut pass = CfgSimplify::new();
-//     let mut context = MirContext {
-//         heap: &heap,
-//         env: &env,
-//         interner: &interner,
-//         diagnostics: DiagnosticIssues::new(),
-//     };
-
-//     bencher.iter(|| {
-//         pass.run(&mut context, &mut body);
-//     });
-// }
-
-// #[bench]
-// fn bench_cfg_simplify_diamond(bencher: &mut Bencher) {
-//     scaffold!(heap, interner, builder);
-//     let env = Environment::new(&heap);
-//     let body = create_diamond_body(&mut builder, &env);
-
-//     bencher.iter(|| {
-//         let mut body = body.clone();
-//         let mut pass = CfgSimplify::new();
-//         pass.run(
-//             &mut MirContext {
-//                 heap: &heap,
-//                 env: &env,
-//                 interner: &interner,
-//                 diagnostics: DiagnosticIssues::new(),
-//             },
-//             &mut body,
-//         );
-//         body
-//     });
-// }
-
-// #[bench]
-// fn bench_cfg_simplify_complex(bencher: &mut Bencher) {
-//     scaffold!(heap, interner, builder);
-//     let env = Environment::new(&heap);
-//     let body = create_complex_cfg_body(&mut builder, &env);
-
-//     bencher.iter(|| {
-//         let mut body = body.clone();
-//         let mut pass = CfgSimplify::new();
-//         pass.run(
-//             &mut MirContext {
-//                 heap: &heap,
-//                 env: &env,
-//                 interner: &interner,
-//                 diagnostics: DiagnosticIssues::new(),
-//             },
-//             &mut body,
-//         );
-//         body
-//     });
-// }

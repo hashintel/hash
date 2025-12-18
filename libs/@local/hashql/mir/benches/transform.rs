@@ -1,10 +1,27 @@
+#![feature(custom_test_frameworks)]
+#![test_runner(criterion::runner)]
 #![expect(clippy::min_ident_chars, clippy::many_single_char_names)]
-use hashql_core::r#type::{TypeBuilder, environment::Environment};
 
-use crate::{
+use core::{hint::black_box, time::Duration};
+use std::time::Instant;
+
+use criterion::Criterion;
+use criterion_macro::criterion;
+use hashql_core::{
+    heap::Heap,
+    r#type::{TypeBuilder, environment::Environment},
+};
+use hashql_diagnostics::DiagnosticIssues;
+use hashql_mir::{
     body::Body,
-    builder::{BodyBuilder, op},
+    builder::BodyBuilder,
+    context::MirContext,
     intern::Interner,
+    op,
+    pass::{
+        TransformPass,
+        transform::{CfgSimplify, DeadStoreElimination},
+    },
 };
 
 /// Creates a simple linear CFG body for benchmarking.
@@ -15,10 +32,7 @@ use crate::{
 /// bb1: y = x == 2; goto bb2
 /// bb2: z = y == 3; return z
 /// ```
-pub(super) fn create_linear_cfg<'heap>(
-    env: &Environment<'heap>,
-    interner: &Interner<'heap>,
-) -> Body<'heap> {
+fn create_linear_cfg<'heap>(env: &Environment<'heap>, interner: &Interner<'heap>) -> Body<'heap> {
     let mut builder = BodyBuilder::new(interner);
     let int_ty = TypeBuilder::synthetic(env).integer();
 
@@ -61,10 +75,7 @@ pub(super) fn create_linear_cfg<'heap>(
 /// bb2: b = 20; goto bb3
 /// bb3(p): result = p; return result
 /// ```
-pub(super) fn create_diamond_cfg<'heap>(
-    env: &Environment<'heap>,
-    interner: &Interner<'heap>,
-) -> Body<'heap> {
+fn create_diamond_cfg<'heap>(env: &Environment<'heap>, interner: &Interner<'heap>) -> Body<'heap> {
     let mut builder = BodyBuilder::new(interner);
     let int_ty = TypeBuilder::synthetic(env).integer();
 
@@ -110,7 +121,7 @@ pub(super) fn create_diamond_cfg<'heap>(
 /// ```text
 /// bb0: x = 1; dead1 = 100; dead2 = 200; y = x == 2; return y
 /// ```
-pub(super) fn create_dead_store_cfg<'heap>(
+fn create_dead_store_cfg<'heap>(
     env: &Environment<'heap>,
     interner: &Interner<'heap>,
 ) -> Body<'heap> {
@@ -153,10 +164,7 @@ pub(super) fn create_dead_store_cfg<'heap>(
 /// bb6(p2): f = p2 == 20; goto bb7
 /// bb7(p3): result = p3; return result
 /// ```
-pub(super) fn create_complex_cfg<'heap>(
-    env: &Environment<'heap>,
-    interner: &Interner<'heap>,
-) -> Body<'heap> {
+fn create_complex_cfg<'heap>(env: &Environment<'heap>, interner: &Interner<'heap>) -> Body<'heap> {
     let mut builder = BodyBuilder::new(interner);
     let int_ty = TypeBuilder::synthetic(env).integer();
 
@@ -232,4 +240,120 @@ pub(super) fn create_complex_cfg<'heap>(
         .ret(result);
 
     builder.finish(1, TypeBuilder::synthetic(env).integer())
+}
+
+fn run_fn(
+    iters: u64,
+    body: for<'heap> fn(&Environment<'heap>, &Interner<'heap>) -> Body<'heap>,
+    mut func: impl for<'env, 'heap> FnMut(&mut MirContext<'env, 'heap>, &mut Body<'heap>),
+) -> Duration {
+    let mut heap = Heap::new();
+    let mut total = Duration::ZERO;
+
+    for _ in 0..iters {
+        heap.reset();
+        let env = Environment::new(&heap);
+        let interner = Interner::new(&heap);
+        let mut body = black_box(body(&env, &interner));
+
+        let mut context = MirContext {
+            heap: &heap,
+            env: &env,
+            interner: &interner,
+            diagnostics: DiagnosticIssues::new(),
+        };
+
+        let start = Instant::now();
+        func(&mut context, &mut body);
+        total += start.elapsed();
+
+        drop(black_box(body));
+    }
+
+    total
+}
+
+fn run(
+    iters: u64,
+    body: for<'heap> fn(&Environment<'heap>, &Interner<'heap>) -> Body<'heap>,
+    mut pass: impl for<'env, 'heap> TransformPass<'env, 'heap>,
+) -> Duration {
+    run_fn(
+        iters,
+        body,
+        #[inline]
+        |context, body| pass.run(context, body),
+    )
+}
+
+#[criterion]
+fn cfg_simplify(criterion: &mut Criterion) {
+    let mut group = criterion.benchmark_group("cfg_simplify");
+
+    group.bench_function("linear", |bencher| {
+        bencher.iter_custom(|iters| run(iters, create_linear_cfg, CfgSimplify::new()));
+    });
+    group.bench_function("diamond", |bencher| {
+        bencher.iter_custom(|iters| run(iters, create_diamond_cfg, CfgSimplify::new()));
+    });
+    group.bench_function("complex", |bencher| {
+        bencher.iter_custom(|iters| run(iters, create_complex_cfg, CfgSimplify::new()));
+    });
+}
+
+#[criterion]
+fn dse(criterion: &mut Criterion) {
+    let mut group = criterion.benchmark_group("dse");
+
+    group.bench_function("dead stores", |bencher| {
+        bencher.iter_custom(|iters| run(iters, create_dead_store_cfg, DeadStoreElimination::new()));
+    });
+    group.bench_function("linear", |bencher| {
+        bencher.iter_custom(|iters| run(iters, create_linear_cfg, DeadStoreElimination::new()));
+    });
+    group.bench_function("diamond", |bencher| {
+        bencher.iter_custom(|iters| run(iters, create_diamond_cfg, DeadStoreElimination::new()));
+    });
+    group.bench_function("complex", |bencher| {
+        bencher.iter_custom(|iters| run(iters, create_complex_cfg, DeadStoreElimination::new()));
+    });
+}
+
+#[criterion]
+fn pipeline(criterion: &mut Criterion) {
+    let mut group = criterion.benchmark_group("pipeline");
+
+    group.bench_function("linear", |bencher| {
+        let mut cfg = CfgSimplify::new();
+        let mut dse = DeadStoreElimination::new();
+
+        bencher.iter_custom(|iters| {
+            run_fn(iters, create_linear_cfg, |context, body| {
+                cfg.run(context, body);
+                dse.run(context, body);
+            })
+        });
+    });
+    group.bench_function("diamond", |bencher| {
+        let mut cfg = CfgSimplify::new();
+        let mut dse = DeadStoreElimination::new();
+
+        bencher.iter_custom(|iters| {
+            run_fn(iters, create_diamond_cfg, |context, body| {
+                cfg.run(context, body);
+                dse.run(context, body);
+            })
+        });
+    });
+    group.bench_function("complex", |bencher| {
+        let mut cfg = CfgSimplify::new();
+        let mut dse = DeadStoreElimination::new();
+
+        bencher.iter_custom(|iters| {
+            run_fn(iters, create_complex_cfg, |context, body| {
+                cfg.run(context, body);
+                dse.run(context, body);
+            })
+        });
+    });
 }
