@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-const Name = z
+export const Name = z
   .string()
   .regex(/^[a-z0-9-]{1,64}$/)
   .describe(
