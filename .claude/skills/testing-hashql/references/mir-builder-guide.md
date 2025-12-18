@@ -322,7 +322,7 @@ fn test_case() {
 ## RValue Types
 
 | Method | Creates | Example |
-|--------|---------|---------|
+| ------ | ------- | ------- |
 | `load(operand)` | Copy/move | `rv.load(x)` |
 | `binary(l, op, r)` | Binary op | `rv.binary(x, op![+], y)` |
 | `unary(op, val)` | Unary op | `rv.unary(op![!], cond)` |
