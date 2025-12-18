@@ -102,7 +102,7 @@ macro_rules! scaffold {
 /// Comparison and logical operators are supported:
 ///
 /// ```
-/// use hashql_mir::body::rvalue::BinOp::Add;
+/// use hashql_mir::body::rvalue::BinOp;
 /// use hashql_mir::op;
 ///
 /// // Comparison
