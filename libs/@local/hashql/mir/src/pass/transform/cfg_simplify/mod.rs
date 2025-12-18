@@ -473,7 +473,7 @@ impl Default for CfgSimplify {
     }
 }
 
-impl<'env, 'heap> TransformPass<'env, 'heap> for CfgSimplify {
+impl<'env, 'heap, A: BumpAllocator> TransformPass<'env, 'heap> for CfgSimplify<A> {
     /// Runs the CFG simplification pass on the given body.
     ///
     /// Uses a worklist algorithm that processes blocks in reverse postorder and re-enqueues

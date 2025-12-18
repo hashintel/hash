@@ -157,8 +157,8 @@ impl<'env, 'heap, A: BumpAllocator> TransformPass<'env, 'heap> for DeadStoreElim
 
         drop(visitor);
 
-        let mut dle = DeadLocalElimination::new_in(&mut self.alloc).with_dead(dead);
-        dle.run(context, body);
+        // let mut dle = DeadLocalElimination::new_in(&mut self.alloc).with_dead(dead);
+        // dle.run(context, body);
     }
 }
 
