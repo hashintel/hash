@@ -34,7 +34,7 @@ const copyTemplate = async (
   }
 };
 
-const initRun = async (unverifiedName: string) => {
+const run = async (unverifiedName: string) => {
   const skillsDir = await findSkillsDir();
   const templateDir = path.join(skillsDir, "skill-creator/assets");
 
@@ -94,7 +94,7 @@ const initRun = async (unverifiedName: string) => {
     "1. Edit SKILL.md to complete the TODO items and update the description",
   );
   console.log(
-    "2. Customize or delete the example files in scripts/, references/, and assets/",
+    "2. Customize or delete the example files in references/, and assets/",
   );
   console.log("3. Run the validator when ready to check the skill structure");
 
@@ -102,7 +102,7 @@ const initRun = async (unverifiedName: string) => {
 };
 
 export const init = async (name: string) => {
-  return await initRun(name);
+  return await run(name);
 };
 
 export const initParser = o.command(

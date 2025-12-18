@@ -3,6 +3,17 @@ import { z } from "zod";
 export const Name = z
   .string()
   .regex(/^[a-z0-9-]{1,64}$/)
+  .check(
+    z.refine((value) => !value.includes("--"), {
+      error: "Name cannot contain consecutive hyphens",
+    }),
+    z.refine((value) => !value.startsWith("-"), {
+      error: "Name cannot start with a hyphen",
+    }),
+    z.refine((value) => !value.endsWith("-"), {
+      error: "Name cannot end with a hyphen",
+    }),
+  )
   .describe(
     "Hyphen-case skill identifier (e.g., 'my-skill'). Max 64 chars, lowercase letters, digits, and hyphens only.",
   );
@@ -10,6 +21,14 @@ const Description = z
   .string()
   .min(1)
   .max(1024)
+  .check(
+    z.refine((value) => !value.includes(">"), {
+      error: "Description cannot contain '>'",
+    }),
+    z.refine((value) => !value.includes("<"), {
+      error: "Description cannot contain '<'",
+    }),
+  )
   .describe(
     "Informative explanation of what the skill does and when to use it. Max 1024 chars.",
   );

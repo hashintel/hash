@@ -1,4 +1,4 @@
-import { readdir, readFile, writeFile } from "node:fs/promises";
+import { writeFile } from "node:fs/promises";
 import path from "node:path";
 
 // eslint-disable-next-line id-length
@@ -8,7 +8,7 @@ import { execa } from "execa";
 import { pathExists } from "fs-extra";
 
 import type { Frontmatter, SkillRules, SkillTrigger } from "./schemas";
-import { findSkillsDir, parseSkill, type Skill } from "./shared";
+import { findSkillsDir, scanSkills } from "./shared";
 
 const convert = (frontmatters: Iterable<Frontmatter>): SkillRules => {
   const skills: Record<string, SkillTrigger> = {};
@@ -38,33 +38,7 @@ const convert = (frontmatters: Iterable<Frontmatter>): SkillRules => {
   };
 };
 
-const scanSkills = async (skillsDir: string) => {
-  const skills: Skill[] = [];
-  const errors: { readonly path: string; readonly error: unknown }[] = [];
-
-  for (const entry of await readdir(skillsDir, { withFileTypes: true })) {
-    if (!entry.isDirectory()) {
-      continue;
-    }
-
-    const skillPath = path.join(skillsDir, entry.name, "SKILL.md");
-    if (!(await pathExists(skillPath))) {
-      continue;
-    }
-
-    try {
-      const content = await readFile(skillPath, "utf-8");
-      const skill = await parseSkill(content);
-      skills.push(skill);
-    } catch (error) {
-      errors.push({ path: skillPath, error });
-    }
-  }
-
-  return { skills, errors };
-};
-
-export const generateSkillRulesRun = async (skillsDir: string) => {
+const run = async (skillsDir: string) => {
   const resolvedSkillsDir = path.resolve(skillsDir);
 
   if (!(await pathExists(resolvedSkillsDir))) {
@@ -113,9 +87,7 @@ export const generateSkillRulesRun = async (skillsDir: string) => {
 
 export const generateSkillRules = async () => {
   const skillsDir = await findSkillsDir();
-  const success = await generateSkillRulesRun(skillsDir);
-
-  process.exit(success ? 0 : 1);
+  return await run(skillsDir);
 };
 
 export const generateSkillRulesParser = o.command(
