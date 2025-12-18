@@ -10649,7 +10649,6 @@ __metadata:
     "@local/hash-isomorphic-utils": "npm:0.0.0-private"
     "@local/tsconfig": "npm:0.0.0-private"
     "@optique/core": "npm:0.8.1"
-    "@optique/run": "npm:0.8.1"
     "@types/fs-extra": "npm:11.0.4"
     "@types/js-yaml": "npm:^4"
     chalk: "npm:5.6.2"
@@ -12986,15 +12985,6 @@ __metadata:
   version: 0.8.1
   resolution: "@optique/core@npm:0.8.1"
   checksum: 10c0/1d959e846e7fcea606df009a3164f9f7d854dcce05b9d59b7f787b1119cfac2a428d773b80efb76eaa96dcbeff97def519325d117c66f403ef53428e8ec4eb6e
-  languageName: node
-  linkType: hard
-
-"@optique/run@npm:0.8.1":
-  version: 0.8.1
-  resolution: "@optique/run@npm:0.8.1"
-  dependencies:
-    "@optique/core": "npm:0.8.1"
-  checksum: 10c0/afa4444e1866f8ef22e8ba01c04439aaac62f64ba505f5d9ca4191b0e1fcda84172bf276e26c95b3f397ec9b3bf926952410451359ce483846c4a77d34a9b524
   languageName: node
   linkType: hard
 
