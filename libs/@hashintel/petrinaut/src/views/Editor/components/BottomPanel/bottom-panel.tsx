@@ -1,4 +1,5 @@
 import { css, cva } from "@hashintel/ds-helpers/css";
+import { FaXmark } from "react-icons/fa6";
 
 import { GlassPanel } from "../../../../components/glass-panel";
 import {
@@ -20,9 +21,33 @@ const panelContainerStyle = css({
 const headerStyle = css({
   display: "flex",
   alignItems: "center",
-  gap: "[4px]",
+  justifyContent: "space-between",
   padding: "[2px]",
   flexShrink: 0,
+});
+
+const tabsContainerStyle = css({
+  display: "flex",
+  alignItems: "center",
+  gap: "[4px]",
+});
+
+const closeButtonStyle = css({
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  width: "[22px]",
+  height: "[22px]",
+  border: "none",
+  borderRadius: "[5px]",
+  background: "[transparent]",
+  color: "core.gray.50",
+  cursor: "pointer",
+  transition: "[all 0.15s ease]",
+  _hover: {
+    backgroundColor: "[rgba(0, 0, 0, 0.08)]",
+    color: "core.gray.80",
+  },
 });
 
 const tabButtonStyle = cva({
@@ -86,6 +111,7 @@ export const BottomPanel: React.FC = () => {
   );
   const activeTab = useEditorStore((state) => state.activeBottomPanelTab);
   const setActiveTab = useEditorStore((state) => state.setActiveBottomPanelTab);
+  const toggleBottomPanel = useEditorStore((state) => state.toggleBottomPanel);
 
   if (!isOpen) {
     return null;
@@ -130,16 +156,26 @@ export const BottomPanel: React.FC = () => {
     >
       {/* Tab Header */}
       <div className={headerStyle}>
-        {tabs.map((tab) => (
-          <button
-            key={tab.id}
-            type="button"
-            onClick={() => setActiveTab(tab.id)}
-            className={tabButtonStyle({ active: activeTab === tab.id })}
-          >
-            {tab.label}
-          </button>
-        ))}
+        <div className={tabsContainerStyle}>
+          {tabs.map((tab) => (
+            <button
+              key={tab.id}
+              type="button"
+              onClick={() => setActiveTab(tab.id)}
+              className={tabButtonStyle({ active: activeTab === tab.id })}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+        <button
+          type="button"
+          onClick={toggleBottomPanel}
+          className={closeButtonStyle}
+          aria-label="Close panel"
+        >
+          <FaXmark size={14} />
+        </button>
       </div>
 
       {/* Scrollable content */}
