@@ -4,8 +4,9 @@
  *
  * Tests for LLM-based plan evaluation scorers using Mastra v1 API.
  * These tests make actual LLM calls and are slower than deterministic tests.
+ * Set RUN_LLM_SCORERS=true to enable.
  *
- * Run with: npx vitest run plan-llm-scorers.ai.test.ts
+ * Run with: RUN_LLM_SCORERS=true npx vitest run apps/hash-ai-agent/src/mastra/scorers/plan-llm-scorers.test.ts
  */
 
 import { describe, expect, test } from "vitest";
@@ -18,6 +19,13 @@ import {
   hypothesisTestabilityScorer,
   planGranularityScorer,
 } from "./plan-llm-scorers";
+
+const RUN_LLM_SCORERS = process.env.RUN_LLM_SCORERS === "true";
+const describeIfLlm = RUN_LLM_SCORERS ? describe : describe.skip;
+
+if (!RUN_LLM_SCORERS) {
+  console.warn("Skipping plan LLM scorer tests; set RUN_LLM_SCORERS=true.");
+}
 
 // =============================================================================
 // TEST HELPERS
@@ -174,7 +182,7 @@ function createPlanWithHypotheses(): PlanSpec {
 // GOAL ALIGNMENT SCORER TESTS
 // =============================================================================
 
-describe("goalAlignmentScorer", () => {
+describeIfLlm("goalAlignmentScorer", () => {
   const TIMEOUT = 60_000; // 60 seconds for LLM calls
 
   test("scores well-aligned plan highly", { timeout: TIMEOUT }, async () => {
@@ -218,7 +226,7 @@ describe("goalAlignmentScorer", () => {
 // PLAN GRANULARITY SCORER TESTS
 // =============================================================================
 
-describe("planGranularityScorer", () => {
+describeIfLlm("planGranularityScorer", () => {
   const TIMEOUT = 60_000;
 
   test("evaluates step granularity", { timeout: TIMEOUT }, async () => {
@@ -244,7 +252,7 @@ describe("planGranularityScorer", () => {
 // HYPOTHESIS TESTABILITY SCORER TESTS
 // =============================================================================
 
-describe("hypothesisTestabilityScorer", () => {
+describeIfLlm("hypothesisTestabilityScorer", () => {
   const TIMEOUT = 60_000;
 
   test(
@@ -293,7 +301,7 @@ describe("hypothesisTestabilityScorer", () => {
 // INTEGRATION TEST WITH GENERATED PLAN
 // =============================================================================
 
-describe("LLM Scorers with Generated Plan", () => {
+describeIfLlm("LLM Scorers with Generated Plan", () => {
   const TIMEOUT = 120_000; // 2 minutes for generation + scoring
 
   test("scores a generated plan", { timeout: TIMEOUT }, async () => {
