@@ -1,7 +1,6 @@
 import { css } from "@hashintel/ds-helpers/css";
 import { v4 as uuidv4 } from "uuid";
 
-import { InfoIconTooltip } from "../../../../components/tooltip";
 import { useEditorStore } from "../../../../state/editor-provider";
 import { useSDCPNContext } from "../../../../state/sdcpn-provider";
 import { useSimulationStore } from "../../../../state/simulation-provider";
@@ -106,14 +105,14 @@ export const ParametersContent: React.FC = () => {
   const globalMode = useEditorStore((state) => state.globalMode);
   const simulationState = useSimulationStore((state) => state.state);
   const selectedResourceId = useEditorStore(
-    (state) => state.selectedResourceId,
+    (state) => state.selectedResourceId
   );
   const setSelectedResourceId = useEditorStore(
-    (state) => state.setSelectedResourceId,
+    (state) => state.setSelectedResourceId
   );
   const parameterValues = useSimulationStore((state) => state.parameterValues);
   const setParameterValue = useSimulationStore(
-    (state) => state.setParameterValue,
+    (state) => state.setParameterValue
   );
 
   const isSimulationNotRun =
@@ -137,8 +136,7 @@ export const ParametersContent: React.FC = () => {
     <div>
       <div className={headerStyle}>
         <div className={titleStyle}>
-          <span>Global Parameters</span>
-          <InfoIconTooltip tooltip="Parameters are injected into functions which govern dynamics, transition firing rate, and transition results. You can use them to define important values which you can re-use in multiple functions." />
+          Parameters are injected into dynamics, lambda, and kernel functions.
         </div>
         {!isSimulationMode && (
           <button
@@ -248,5 +246,3 @@ export const ParametersContent: React.FC = () => {
     </div>
   );
 };
-
-
