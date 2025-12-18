@@ -170,7 +170,7 @@ cat .claude/skills/skill-rules.json | jq '.skills["my-skill"]'
 
 The `name` field in SKILL.md must exactly match the directory name.
 
-```
+```yaml
 skill-creator/SKILL.md
 ---
 name: skill-creator  # Must match directory name

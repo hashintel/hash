@@ -9,7 +9,7 @@ This skill is based on and incorporates content from:
 
 ## Changelog
 
-### 2024-12-18 - Vendor-Agnostic Rewrite
+### 2025-06-18 - Vendor-Agnostic Rewrite
 
 **Breaking Changes:**
 

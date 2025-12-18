@@ -58,7 +58,7 @@ Match the level of specificity to the task's fragility and variability:
 
 Every skill consists of a required SKILL.md file and optional bundled resources:
 
-```
+```text
 skill-name/
 ├── SKILL.md (required)
 │   ├── YAML frontmatter metadata (required)
@@ -77,7 +77,7 @@ skill-name/
 Every SKILL.md must have YAML frontmatter with required and optional fields:
 
 | Field | Required | Description |
-|-------|----------|-------------|
+| ----- | -------- | ----------- |
 | `name` | Yes | Max 64 chars. Lowercase letters, numbers, hyphens only. Must match directory name. |
 | `description` | Yes | Max 1024 chars. Describes what the skill does and when to use it. |
 | `license` | No | License name or reference to a bundled license file. |
@@ -175,7 +175,7 @@ Extract text with pdfplumber: [code example]
 
 **Pattern: Domain-specific organization**
 
-```
+```text
 bigquery-skill/
 ├── SKILL.md (overview and navigation)
 └── references/
