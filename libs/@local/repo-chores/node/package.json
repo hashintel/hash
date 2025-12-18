@@ -16,7 +16,6 @@
     "@local/hash-backend-utils": "0.0.0-private",
     "@local/hash-isomorphic-utils": "0.0.0-private",
     "@optique/core": "0.8.1",
-    "@optique/run": "0.8.1",
     "chalk": "5.6.2",
     "dotenv-flow": "3.3.0",
     "envalid": "8.1.0",

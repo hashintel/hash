@@ -1,5 +1,7 @@
 import path from "node:path";
 
+// eslint-disable-next-line id-length
+import * as o from "@optique/core";
 import chalk from "chalk";
 
 import { findSkillsDir, scanSkills } from "./shared";
@@ -56,3 +58,8 @@ export const validate = async () => {
   const success = await run(skillsDir);
   return success;
 };
+
+export const validateParser = o.command(
+  "validate",
+  o.object({ action: o.constant("validate") }),
+);
