@@ -2,8 +2,8 @@ import { css, cva } from "@hashintel/ds-helpers/css";
 
 import { GlassPanel } from "../../../../components/glass-panel";
 import {
-  MAX_DIAGNOSTICS_PANEL_HEIGHT,
-  MIN_DIAGNOSTICS_PANEL_HEIGHT,
+  MAX_BOTTOM_PANEL_HEIGHT,
+  MIN_BOTTOM_PANEL_HEIGHT,
   PANEL_MARGIN,
 } from "../../../../constants/ui";
 import { useEditorStore } from "../../../../state/editor-provider";
@@ -74,12 +74,12 @@ const tabs: { id: BottomPanelTab; label: string }[] = [
  * Resizable from the top edge.
  */
 export const BottomPanel: React.FC = () => {
-  const isOpen = useEditorStore((state) => state.isDiagnosticsPanelOpen);
+  const isOpen = useEditorStore((state) => state.isBottomPanelOpen);
   const isLeftSidebarOpen = useEditorStore((state) => state.isLeftSidebarOpen);
   const leftSidebarWidth = useEditorStore((state) => state.leftSidebarWidth);
-  const panelHeight = useEditorStore((state) => state.diagnosticsPanelHeight);
-  const setDiagnosticsPanelHeight = useEditorStore(
-    (state) => state.setDiagnosticsPanelHeight
+  const panelHeight = useEditorStore((state) => state.bottomPanelHeight);
+  const setBottomPanelHeight = useEditorStore(
+    (state) => state.setBottomPanelHeight
   );
   const activeTab = useEditorStore((state) => state.activeBottomPanelTab);
   const setActiveTab = useEditorStore((state) => state.setActiveBottomPanelTab);
@@ -120,9 +120,9 @@ export const BottomPanel: React.FC = () => {
       resizable={{
         edge: "top",
         size: panelHeight,
-        onResize: setDiagnosticsPanelHeight,
-        minSize: MIN_DIAGNOSTICS_PANEL_HEIGHT,
-        maxSize: MAX_DIAGNOSTICS_PANEL_HEIGHT,
+        onResize: setBottomPanelHeight,
+        minSize: MIN_BOTTOM_PANEL_HEIGHT,
+        maxSize: MAX_BOTTOM_PANEL_HEIGHT,
       }}
     >
       {/* Tab Header */}

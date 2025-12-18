@@ -2,7 +2,7 @@ import { create } from "zustand";
 import { devtools } from "zustand/middleware";
 
 import {
-  DEFAULT_DIAGNOSTICS_PANEL_HEIGHT,
+  DEFAULT_BOTTOM_PANEL_HEIGHT,
   DEFAULT_LEFT_SIDEBAR_WIDTH,
   DEFAULT_PROPERTIES_PANEL_WIDTH,
 } from "../constants/ui";
@@ -32,16 +32,16 @@ export type EditorState = {
   leftSidebarWidth: number;
   setLeftSidebarWidth: (width: number) => void;
 
-  // Properties panel width (for DiagnosticsPanel positioning)
+  // Properties panel width (for BottomPanel positioning)
   propertiesPanelWidth: number;
   setPropertiesPanelWidth: (width: number) => void;
 
-  // Diagnostics/Bottom panel visibility, height, and active tab
-  isDiagnosticsPanelOpen: boolean;
-  setDiagnosticsPanelOpen: (isOpen: boolean) => void;
-  toggleDiagnosticsPanel: () => void;
-  diagnosticsPanelHeight: number;
-  setDiagnosticsPanelHeight: (height: number) => void;
+  // Bottom panel visibility, height, and active tab
+  isBottomPanelOpen: boolean;
+  setBottomPanelOpen: (isOpen: boolean) => void;
+  toggleBottomPanel: () => void;
+  bottomPanelHeight: number;
+  setBottomPanelHeight: (height: number) => void;
   activeBottomPanelTab: BottomPanelTab;
   setActiveBottomPanelTab: (tab: BottomPanelTab) => void;
 
@@ -106,25 +106,25 @@ export function createEditorStore() {
               width,
             }),
 
-          // Diagnostics panel visibility and height
-          isDiagnosticsPanelOpen: false,
-          setDiagnosticsPanelOpen: (isOpen) =>
-            set({ isDiagnosticsPanelOpen: isOpen }, false, {
-              type: "setDiagnosticsPanelOpen",
+          // Bottom panel visibility and height
+          isBottomPanelOpen: false,
+          setBottomPanelOpen: (isOpen) =>
+            set({ isBottomPanelOpen: isOpen }, false, {
+              type: "setBottomPanelOpen",
               isOpen,
             }),
-          toggleDiagnosticsPanel: () =>
+          toggleBottomPanel: () =>
             set(
               (state) => ({
-                isDiagnosticsPanelOpen: !state.isDiagnosticsPanelOpen,
+                isBottomPanelOpen: !state.isBottomPanelOpen,
               }),
               false,
-              "toggleDiagnosticsPanel"
+              "toggleBottomPanel"
             ),
-          diagnosticsPanelHeight: DEFAULT_DIAGNOSTICS_PANEL_HEIGHT,
-          setDiagnosticsPanelHeight: (height) =>
-            set({ diagnosticsPanelHeight: height }, false, {
-              type: "setDiagnosticsPanelHeight",
+          bottomPanelHeight: DEFAULT_BOTTOM_PANEL_HEIGHT,
+          setBottomPanelHeight: (height) =>
+            set({ bottomPanelHeight: height }, false, {
+              type: "setBottomPanelHeight",
               height,
             }),
           activeBottomPanelTab: "diagnostics",
@@ -199,8 +199,8 @@ export function createEditorStore() {
                 isLeftSidebarOpen: true,
                 leftSidebarWidth: DEFAULT_LEFT_SIDEBAR_WIDTH,
                 propertiesPanelWidth: DEFAULT_PROPERTIES_PANEL_WIDTH,
-                isDiagnosticsPanelOpen: false,
-                diagnosticsPanelHeight: DEFAULT_DIAGNOSTICS_PANEL_HEIGHT,
+                isBottomPanelOpen: false,
+                bottomPanelHeight: DEFAULT_BOTTOM_PANEL_HEIGHT,
                 activeBottomPanelTab: "diagnostics",
                 selectedResourceId: null,
                 selectedItemIds: new Set(),
