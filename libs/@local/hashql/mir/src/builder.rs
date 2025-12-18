@@ -1,31 +1,39 @@
-//! Ergonomic builder for constructing MIR in tests.
+//! Ergonomic builder for constructing MIR bodies.
 //!
 //! This module provides a fluent API for building MIR bodies without the boilerplate
-//! of manually constructing all the intermediate structures.
+//! of manually constructing all the intermediate structures. It is primarily useful
+//! for testing and benchmarking MIR passes.
 //!
 //! # Example
 //!
-//! ```ignore
-//! use hashql_mir::tests::builder::{scaffold, op};
+//! ```
+//! use hashql_core::{id::Id, r#type::TypeId};
+//! use hashql_mir::{op, scaffold, builder::BodyBuilder};
 //!
+//! // Set up the heap, interner, and builder
 //! scaffold!(heap, interner, builder);
 //!
+//! // Declare local variables (using TypeId::MAX as a placeholder type)
 //! let x = builder.local("x", TypeId::MAX);
 //! let y = builder.local("y", TypeId::MAX);
+//! let z = builder.local("z", TypeId::MAX);
 //!
+//! // Reserve basic blocks
 //! let entry = builder.reserve_block([]);
 //!
+//! // Create constants
 //! let const_5 = builder.const_int(5);
 //! let const_3 = builder.const_int(3);
-//! let place_x = builder.place_local(x);
-//! let place_y = builder.place_local(y);
 //!
+//! // Build the entry block with statements and terminator
 //! builder
 //!     .build_block(entry)
 //!     .assign_place(x, |rv| rv.load(const_5))
-//!     .assign_place(y, |rv| rv.binary(place_x, op![+], const_3))
-//!     .ret(place_y);
+//!     .assign_place(y, |rv| rv.load(const_3))
+//!     .assign_place(z, |rv| rv.binary(x, op![==], y))
+//!     .ret(z);
 //!
+//! // Finalize the body
 //! let body = builder.finish(0, TypeId::MAX);
 //! ```
 
@@ -57,19 +65,22 @@ use crate::{
     intern::Interner,
 };
 
-/// Scaffold macro for setting up MIR test infrastructure.
+/// Scaffold macro for setting up MIR builder infrastructure.
 ///
-/// Creates the heap, interner, and body builder needed for constructing MIR in tests.
+/// Creates the heap, interner, and body builder needed for constructing MIR.
+/// This is the recommended way to initialize the builder for tests and benchmarks.
 ///
 /// # Example
 ///
-/// ```ignore
+/// ```
+/// use hashql_core::{id::Id, r#type::TypeId};
+/// use hashql_mir::{builder::BodyBuilder, scaffold};
+///
 /// scaffold!(heap, interner, builder);
 ///
 /// let x = builder.local("x", TypeId::MAX);
 /// let entry = builder.reserve_block([]);
-/// let place_x = builder.place_local(x);
-/// builder.build_block(entry).ret(place_x);
+/// builder.build_block(entry).ret(x);
 /// let body = builder.finish(0, TypeId::MAX);
 /// ```
 #[macro_export]
@@ -83,28 +94,41 @@ macro_rules! scaffold {
 
 /// Macro for creating binary and unary operators.
 ///
+/// This macro provides a convenient way to create operator values for use with
+/// [`RValueBuilder::binary`] and [`RValueBuilder::unary`].
+///
 /// # Binary Operators
 ///
-/// ```ignore
-/// rv.binary(lhs, op![+], rhs)   // Add
-/// rv.binary(lhs, op![-], rhs)   // Sub
-/// rv.binary(lhs, op![*], rhs)   // Mul
-/// rv.binary(lhs, op![/], rhs)   // Div
-/// rv.binary(lhs, op![==], rhs)  // Eq
-/// rv.binary(lhs, op![!=], rhs)  // Ne
-/// rv.binary(lhs, op![<], rhs)   // Lt
-/// rv.binary(lhs, op![<=], rhs)  // Le
-/// rv.binary(lhs, op![>], rhs)   // Gt
-/// rv.binary(lhs, op![>=], rhs)  // Ge
-/// rv.binary(lhs, op![&&], rhs)  // And
-/// rv.binary(lhs, op![||], rhs)  // Or
+/// Comparison and logical operators are supported:
+///
 /// ```
+/// use hashql_hir::node::operation::BinOp;
+/// use hashql_mir::op;
+///
+/// // Comparison
+/// assert!(matches!(op![==], BinOp::Eq));
+/// assert!(matches!(op![!=], BinOp::Ne));
+/// assert!(matches!(op![<], BinOp::Lt));
+/// assert!(matches!(op![<=], BinOp::Lte));
+/// assert!(matches!(op![>], BinOp::Gt));
+/// assert!(matches!(op![>=], BinOp::Gte));
+///
+/// // Logical
+/// assert!(matches!(op![&&], BinOp::And));
+/// assert!(matches!(op![||], BinOp::Or));
+/// ```
+///
+/// Arithmetic operators are also available (`op![+]`, `op![-]`, `op![*]`, `op![/]`),
+/// though they use uninhabited marker types in the current type system.
 ///
 /// # Unary Operators
 ///
-/// ```ignore
-/// rv.unary(op![!], operand)    // Not
-/// rv.unary(op![neg], operand)  // Neg (can't use `-` alone)
+/// ```
+/// use hashql_hir::node::operation::UnOp;
+/// use hashql_mir::op;
+///
+/// assert!(matches!(op![!], UnOp::Not));
+/// assert!(matches!(op![neg], UnOp::Neg)); // `neg` is used since `-` alone is ambiguous
 /// ```
 #[macro_export]
 macro_rules! op {
@@ -116,9 +140,9 @@ macro_rules! op {
     [==] => { hashql_hir::node::operation::BinOp::Eq };
     [!=] => { hashql_hir::node::operation::BinOp::Ne };
     [<] => { hashql_hir::node::operation::BinOp::Lt };
-    [<=] => { hashql_hir::node::operation::BinOp::Le };
+    [<=] => { hashql_hir::node::operation::BinOp::Lte };
     [>] => { hashql_hir::node::operation::BinOp::Gt };
-    [>=] => { hashql_hir::node::operation::BinOp::Ge };
+    [>=] => { hashql_hir::node::operation::BinOp::Gte };
     [&&] => { hashql_hir::node::operation::BinOp::And };
     [||] => { hashql_hir::node::operation::BinOp::Or };
 
@@ -132,6 +156,10 @@ const PLACEHOLDER_TERMINATOR: Terminator<'static> = Terminator {
     kind: TerminatorKind::Unreachable,
 };
 
+/// Shared base builder providing common operations for creating constants and places.
+///
+/// This builder is accessible from [`BodyBuilder`], [`BasicBlockBuilder`], [`PlaceBuilder`],
+/// [`RValueBuilder`], and [`SwitchBuilder`] via [`Deref`].
 #[derive(Debug, Copy, Clone)]
 pub struct BaseBuilder<'env, 'heap> {
     interner: &'env Interner<'heap>,
@@ -188,12 +216,8 @@ impl<'env, 'heap> BaseBuilder<'env, 'heap> {
 
     /// Creates a target for control flow (block + arguments).
     ///
-    /// # Example
-    ///
-    /// ```ignore
-    /// let target = builder.target(block, []);  // No args
-    /// let target = builder.target(block, [builder.const_int(5)]);  // With args
-    /// ```
+    /// Targets are used for control flow terminators like `goto` to specify
+    /// both the destination block and any arguments to pass to block parameters.
     #[must_use]
     pub fn target(self, block: BasicBlockId, args: impl AsRef<[Operand<'heap>]>) -> Target<'heap> {
         Target {
@@ -205,11 +229,16 @@ impl<'env, 'heap> BaseBuilder<'env, 'heap> {
 
 /// Builder for constructing MIR bodies.
 ///
-/// Use this to declaratively build MIR for testing purposes. The workflow is:
-/// 1. Create locals with `local()` or `temp()`
-/// 2. Reserve blocks with `reserve_block(params)`
-/// 3. Build each block with `build_block()`, adding statements and a terminator
-/// 4. Finalize with `finish()`
+/// Use this to declaratively build MIR for testing and benchmarking purposes.
+///
+/// # Workflow
+///
+/// 1. Create locals with [`local`](Self::local)
+/// 2. Reserve blocks with [`reserve_block`](Self::reserve_block)
+/// 3. Build each block with [`build_block`](Self::build_block), adding statements and a terminator
+/// 4. Finalize with [`finish`](Self::finish)
+///
+/// Use the [`scaffold!`] macro to set up the required infrastructure.
 pub struct BodyBuilder<'env, 'heap> {
     base: BaseBuilder<'env, 'heap>,
     interner: &'env Interner<'heap>,
@@ -219,7 +248,9 @@ pub struct BodyBuilder<'env, 'heap> {
 }
 
 impl<'env, 'heap> BodyBuilder<'env, 'heap> {
-    /// Creates a new body builder.
+    /// Creates a new body builder with the given interner.
+    ///
+    /// Prefer using the [`scaffold!`] macro which sets up both the heap and interner.
     #[must_use]
     pub const fn new(interner: &'env Interner<'heap>) -> Self {
         Self {
@@ -232,6 +263,8 @@ impl<'env, 'heap> BodyBuilder<'env, 'heap> {
     }
 
     /// Declares a new local variable with the given name and type.
+    ///
+    /// Returns a [`Place`] that can be used in statements and as operands.
     pub fn local(&mut self, name: impl IntoSymbol<'heap>, ty: TypeId) -> Place<'heap> {
         let decl = LocalDecl {
             span: SpanId::SYNTHETIC,
@@ -245,15 +278,10 @@ impl<'env, 'heap> BodyBuilder<'env, 'heap> {
 
     /// Reserves a new basic block and returns its ID.
     ///
-    /// The block is initialized with a placeholder terminator. Use `build_block()`
-    /// to fill in the actual contents.
-    ///
-    /// # Example
-    ///
-    /// ```ignore
-    /// let entry = builder.reserve_block([]);  // No params
-    /// let join = builder.reserve_block([result]);  // With params
-    /// ```
+    /// The block is initialized with a placeholder terminator. Use
+    /// [`build_block`](Self::build_block) to fill in the actual contents. Blocks can optionally
+    /// have parameters (similar to function parameters) that receive values from predecessor
+    /// blocks.
     pub fn reserve_block(&mut self, params: impl AsRef<[Local]>) -> BasicBlockId {
         let params = self.interner.locals.intern_slice(params.as_ref());
 
@@ -315,6 +343,10 @@ impl<'env, 'heap> Deref for BodyBuilder<'env, 'heap> {
 }
 
 /// Builder for constructing a single basic block.
+///
+/// Obtained via [`BodyBuilder::build_block`]. Provides a fluent API for adding
+/// statements and setting the terminator. Each block must end with exactly one
+/// terminator (e.g., [`goto`](Self::goto), [`ret`](Self::ret), [`switch`](Self::switch)).
 pub struct BasicBlockBuilder<'ctx, 'env, 'heap> {
     base: BaseBuilder<'env, 'heap>,
     body: &'ctx mut BodyBuilder<'env, 'heap>,
@@ -396,12 +428,7 @@ impl<'env, 'heap> BasicBlockBuilder<'_, 'env, 'heap> {
 
     /// Terminates the block with an unconditional goto.
     ///
-    /// # Example
-    ///
-    /// ```ignore
-    /// builder.build_block(bb).goto(next, []);  // No args
-    /// builder.build_block(bb).goto(next, [builder.const_int(5)]);  // With args
-    /// ```
+    /// The `args` are passed to the target block's parameters (if any).
     pub fn goto(self, target: BasicBlockId, args: impl AsRef<[Operand<'heap>]>) {
         let target = Target {
             block: target,
@@ -576,7 +603,10 @@ impl<'env, 'heap, S> Deref for PlaceBuilder<'env, 'heap, S> {
     }
 }
 
-/// Builder for constructing r-values.
+/// Builder for constructing r-values (right-hand side of assignments).
+///
+/// Provides methods for creating loads, binary/unary operations, aggregates, and function
+/// applications. Used within [`BasicBlockBuilder::assign`] and [`BasicBlockBuilder::assign_place`].
 pub struct RValueBuilder<'env, 'heap> {
     base: BaseBuilder<'env, 'heap>,
 }
@@ -594,6 +624,8 @@ impl<'env, 'heap> RValueBuilder<'env, 'heap> {
     }
 
     /// Creates a binary operation r-value.
+    ///
+    /// Use the [`op!`] macro for the operator: `rv.binary(x, op![==], y)`.
     #[must_use]
     pub fn binary(
         self,
@@ -725,6 +757,8 @@ impl<'env, 'heap> Deref for RValueBuilder<'env, 'heap> {
 }
 
 /// Builder for constructing switch targets.
+///
+/// Used within [`BasicBlockBuilder::switch`] to define cases and an optional default target.
 pub struct SwitchBuilder<'env, 'heap> {
     base: BaseBuilder<'env, 'heap>,
     cases: Vec<(u128, Target<'heap>)>,
@@ -742,11 +776,8 @@ impl<'env, 'heap> SwitchBuilder<'env, 'heap> {
 
     /// Adds a case to the switch.
     ///
-    /// # Example
-    ///
-    /// ```ignore
-    /// .switch(disc, |s| s.case(0, block_a, []).case(1, block_b, [arg]))
-    /// ```
+    /// Each case maps a discriminant value to a target block with optional arguments.
+    /// Cases can be chained fluently.
     #[must_use]
     pub fn case(
         mut self,
@@ -760,11 +791,7 @@ impl<'env, 'heap> SwitchBuilder<'env, 'heap> {
 
     /// Sets the otherwise (default) case.
     ///
-    /// # Example
-    ///
-    /// ```ignore
-    /// .switch(disc, |s| s.case(0, block_a, []).otherwise(default, []))
-    /// ```
+    /// The otherwise case is taken when no explicit case matches the discriminant.
     #[must_use]
     pub fn otherwise(mut self, block: BasicBlockId, args: impl AsRef<[Operand<'heap>]>) -> Self {
         self.otherwise = Some(self.base.target(block, args));
