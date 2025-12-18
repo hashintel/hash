@@ -105,6 +105,10 @@ macro_rules! scaffold {
 /// use hashql_mir::body::rvalue::BinOp;
 /// use hashql_mir::op;
 ///
+/// // Bitwise
+/// assert!(matches!(op![&], BinOp::BitAnd));
+/// assert!(matches!(op![|], BinOp::BitOr));
+///
 /// // Comparison
 /// assert!(matches!(op![==], BinOp::Eq));
 /// assert!(matches!(op![!=], BinOp::Ne));
@@ -112,10 +116,6 @@ macro_rules! scaffold {
 /// assert!(matches!(op![<=], BinOp::Lte));
 /// assert!(matches!(op![>], BinOp::Gt));
 /// assert!(matches!(op![>=], BinOp::Gte));
-///
-/// // Bitwise
-/// assert!(matches!(op![&], BinOp::BitAnd));
-/// assert!(matches!(op![|], BinOp::BitOr));
 /// ```
 ///
 /// Arithmetic operators are also available (`op![+]`, `op![-]`, `op![*]`, `op![/]`),
