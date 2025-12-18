@@ -8,7 +8,7 @@ use std::time::Instant;
 use criterion::Criterion;
 use criterion_macro::criterion;
 use hashql_core::{
-    heap::Heap,
+    heap::{BumpAllocator as _, Heap, Scratch},
     r#type::{TypeBuilder, environment::Environment},
 };
 use hashql_diagnostics::DiagnosticIssues;
@@ -20,7 +20,7 @@ use hashql_mir::{
     op,
     pass::{
         TransformPass,
-        transform::{CfgSimplify, DeadStoreElimination},
+        transform::{CfgSimplify, DeadStoreElimination, Sroa},
     },
 };
 
@@ -302,6 +302,21 @@ fn cfg_simplify(criterion: &mut Criterion) {
 }
 
 #[criterion]
+fn sroa(criterion: &mut Criterion) {
+    let mut group = criterion.benchmark_group("sroa");
+
+    group.bench_function("linear", |bencher| {
+        bencher.iter_custom(|iters| run(iters, create_linear_cfg, Sroa::new()));
+    });
+    group.bench_function("diamond", |bencher| {
+        bencher.iter_custom(|iters| run(iters, create_diamond_cfg, Sroa::new()));
+    });
+    group.bench_function("complex", |bencher| {
+        bencher.iter_custom(|iters| run(iters, create_complex_cfg, Sroa::new()));
+    });
+}
+
+#[criterion]
 fn dse(criterion: &mut Criterion) {
     let mut group = criterion.benchmark_group("dse");
 
@@ -324,35 +339,35 @@ fn pipeline(criterion: &mut Criterion) {
     let mut group = criterion.benchmark_group("pipeline");
 
     group.bench_function("linear", |bencher| {
-        let mut cfg = CfgSimplify::new();
-        let mut dse = DeadStoreElimination::new();
+        let mut scratch = Scratch::new();
 
         bencher.iter_custom(|iters| {
             run_fn(iters, create_linear_cfg, |context, body| {
-                cfg.run(context, body);
-                dse.run(context, body);
+                CfgSimplify::new_in(&mut scratch).run(context, body);
+                Sroa::new_in(&mut scratch).run(context, body);
+                DeadStoreElimination::new_in(&mut scratch).run(context, body);
             })
         });
     });
     group.bench_function("diamond", |bencher| {
-        let mut cfg = CfgSimplify::new();
-        let mut dse = DeadStoreElimination::new();
+        let mut scratch = Scratch::new();
 
         bencher.iter_custom(|iters| {
             run_fn(iters, create_diamond_cfg, |context, body| {
-                cfg.run(context, body);
-                dse.run(context, body);
+                CfgSimplify::new_in(&mut scratch).run(context, body);
+                Sroa::new_in(&mut scratch).run(context, body);
+                DeadStoreElimination::new_in(&mut scratch).run(context, body);
             })
         });
     });
     group.bench_function("complex", |bencher| {
-        let mut cfg = CfgSimplify::new();
-        let mut dse = DeadStoreElimination::new();
+        let mut scratch = Scratch::new();
 
         bencher.iter_custom(|iters| {
             run_fn(iters, create_complex_cfg, |context, body| {
-                cfg.run(context, body);
-                dse.run(context, body);
+                CfgSimplify::new_in(&mut scratch).run(context, body);
+                Sroa::new_in(&mut scratch).run(context, body);
+                DeadStoreElimination::new_in(&mut scratch).run(context, body);
             })
         });
     });

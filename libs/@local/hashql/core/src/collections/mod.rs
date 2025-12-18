@@ -9,12 +9,13 @@ use hashbrown::{HashMap, HashSet};
 
 pub use self::{hash_map::HashMapExt, work_queue::WorkQueue};
 
-pub type FastHashMap<K, V, A = Global> = HashMap<K, V, foldhash::fast::RandomState, A>;
+pub type FastHasher = foldhash::fast::RandomState;
+
+pub type FastHashMap<K, V, A = Global> = HashMap<K, V, FastHasher, A>;
 pub type FastHashMapEntry<'map, K, V, A = Global> =
-    hashbrown::hash_map::Entry<'map, K, V, foldhash::fast::RandomState, A>;
-pub type FastHashSet<T, A = Global> = HashSet<T, foldhash::fast::RandomState, A>;
-pub type FastHashSetEntry<'map, T, A = Global> =
-    hashbrown::hash_set::Entry<'map, T, foldhash::fast::RandomState, A>;
+    hashbrown::hash_map::Entry<'map, K, V, FastHasher, A>;
+pub type FastHashSet<T, A = Global> = HashSet<T, FastHasher, A>;
+pub type FastHashSetEntry<'map, T, A = Global> = hashbrown::hash_set::Entry<'map, T, FastHasher, A>;
 
 #[inline]
 #[must_use]
