@@ -32,6 +32,7 @@
 #![expect(clippy::min_ident_chars, reason = "vendored in code")]
 use alloc::alloc::Global;
 use core::{cmp, ops};
+use std::alloc::Allocator;
 
 use smallvec::{SmallVec, smallvec};
 
@@ -41,6 +42,7 @@ pub use self::{
 };
 use crate::{
     graph::{DirectedGraph, Predecessors, Successors},
+    heap::Scratch,
     id::{Id, IdSlice, IdVec},
     newtype,
 };
@@ -106,18 +108,21 @@ fn dominators_impl<G: DirectedGraph + Successors + Predecessors>(
     graph: &G,
     start_node: G::NodeId,
 ) -> Inner<G::NodeId> {
+    let scratch = Scratch::new();
+
     // We allocate capacity for the full set of nodes, because most of the time
     // most of the nodes *are* reachable.
-    let mut parent: IdVec<PreorderIndex, PreorderIndex> = IdVec::with_capacity(graph.node_count());
+    let mut parent: IdVec<PreorderIndex, PreorderIndex, _> =
+        IdVec::with_capacity_in(graph.node_count(), &scratch);
 
     let mut stack = vec![PreOrderFrame {
         pre_order_idx: PreorderIndex::MIN,
         iter: graph.successors(start_node),
     }];
-    let mut pre_order_to_real: IdVec<PreorderIndex, G::NodeId> =
-        IdVec::with_capacity(graph.node_count());
-    let mut real_to_pre_order: IdVec<G::NodeId, Option<PreorderIndex>> =
-        IdVec::from_elem(None, graph.node_count());
+    let mut pre_order_to_real: IdVec<PreorderIndex, G::NodeId, _> =
+        IdVec::with_capacity_in(graph.node_count(), &scratch);
+    let mut real_to_pre_order: IdVec<G::NodeId, Option<PreorderIndex>, _> =
+        IdVec::from_elem_in(None, graph.node_count(), &scratch);
     pre_order_to_real.push(start_node);
 
     parent.push(PreorderIndex::MIN); // the parent of the root node is the root for now.
@@ -150,10 +155,10 @@ fn dominators_impl<G: DirectedGraph + Successors + Predecessors>(
 
     let reachable_vertices = pre_order_to_real.len();
 
-    let mut idom = IdVec::from_elem(PreorderIndex::MIN, reachable_vertices);
-    let mut semi = IdVec::from_fn(reachable_vertices, core::convert::identity);
+    let mut idom = IdVec::from_elem_in(PreorderIndex::MIN, reachable_vertices, &scratch);
+    let mut semi = IdVec::from_fn_in(reachable_vertices, core::convert::identity, &scratch);
     let mut label = semi.clone();
-    let mut bucket = IdVec::from_elem(vec![], reachable_vertices);
+    let mut bucket = IdVec::from_elem_in(vec![], reachable_vertices, &scratch);
     let mut lastlinked = None;
 
     // We loop over vertices in reverse preorder. This implements the pseudocode
@@ -318,7 +323,7 @@ fn dominators_impl<G: DirectedGraph + Successors + Predecessors>(
 
     immediate_dominators[start_node] = None;
 
-    let time = compute_access_time(start_node, &immediate_dominators);
+    let time = compute_access_time(start_node, &immediate_dominators, &scratch);
 
     Inner {
         immediate_dominators,
@@ -446,16 +451,17 @@ struct Time {
 
 newtype!(struct EdgeIndex(u32 is 0..=u32::MAX));
 
-fn compute_access_time<N: Id>(
+fn compute_access_time<N: Id, A: Allocator>(
     start_node: N,
     immediate_dominators: &IdSlice<N, Option<N>>,
+    alloc: A,
 ) -> IdVec<N, Time> {
     // Transpose the dominator tree edges, so that child nodes of vertex v are stored in
     // node[edges[v].start..edges[v].end].
-    let mut edges: IdVec<N, ops::Range<EdgeIndex>> = IdVec::from_domain_in(
+    let mut edges: IdVec<N, ops::Range<EdgeIndex>, A> = IdVec::from_domain_in(
         EdgeIndex::from_u32(0)..EdgeIndex::from_u32(0),
         immediate_dominators,
-        Global,
+        alloc,
     );
 
     for &idom in immediate_dominators {
