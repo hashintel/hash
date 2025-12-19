@@ -1,25 +1,28 @@
 ---
 name: writing-hashql-diagnostics
 description: HashQL diagnostic writing patterns using hashql-diagnostics crate. Use when creating error messages, warnings, Labels, Messages, Severity levels, Patches, Suggestions, or improving diagnostic quality in HashQL code.
+license: AGPL-3.0
+metadata:
+  triggers:
+    type: domain
+    enforcement: suggest
+    priority: high
+    keywords:
+      - diagnostic
+      - hashql-diagnostics
+      - Label
+      - Message
+      - Severity
+      - Patch
+      - Suggestions
+    intent-patterns:
+      - "\\b(create|write|add|improve)\\b.*?\\bdiagnostic\\b"
+      - "\\b(error|warning)\\b.*?\\bmessage\\b"
 ---
 
 # HashQL Diagnostic Writing
 
-## Purpose
-
-This skill provides HASH-specific patterns for writing high-quality diagnostics using the `hashql-diagnostics` crate. It ensures diagnostics are helpful, actionable, and follow consistent style conventions.
-
-## When This Skill Activates
-
-Automatically activates when:
-
-- Creating or modifying diagnostics in HashQL code
-- Working with `Diagnostic`, `Label`, `Message`, `Severity`
-- Writing error or warning messages
-- Adding suggestions with `Patch` or `Suggestions`
-- Reviewing diagnostic quality
-
----
+Provides HASH-specific patterns for writing high-quality diagnostics using the `hashql-diagnostics` crate, ensuring messages are helpful, actionable, and follow consistent style conventions.
 
 ## Core Principles
 
@@ -39,8 +42,6 @@ Automatically activates when:
 - Use apologetic language ("sorry", "unfortunately")
 - Write vague messages ("something went wrong")
 - Capitalize message starts (unless code identifier)
-
----
 
 ## Quick Reference
 
@@ -89,29 +90,7 @@ diagnostic.add_message(
 );
 ```
 
----
+## References
 
-## Need More Details?
-
-See the comprehensive guidelines: [resources/guidelines.md](resources/guidelines.md)
-
-Covers:
-
-- Complete message style guide
-- Span selection principles
-- Category design patterns
-- Label usage (primary vs secondary)
-- Help vs note messages
-- Suggestion quality guidelines
-- Review checklist
-
----
-
-## Related Guidelines
-
-- `DIAGNOSTICS.md` - Full diagnostic writing guidelines (root)
-- HashQL testing skill - For compiletest coverage
-
----
-
-**Skill Status**: Production-ready ✅
+- [Comprehensive guidelines](references/guidelines.md) - Complete message style guide, span selection, category design, label usage, help vs note, suggestion quality, review checklist
+- [HashQL testing skill](../testing-hashql/SKILL.md) - For compiletest coverage

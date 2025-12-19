@@ -1,22 +1,27 @@
 ---
 name: exploring-rust-crates
-description: Generating Rust documentation to understand crate APIs, structure, and usage. Use when exploring Rust code, understanding crate organization, finding functions/types/traits, or needing context about a Rust package in the HASH workspace. (project)
+description: Generate Rust documentation to understand crate APIs, structure, and usage. Use when exploring Rust code, understanding crate organization, finding functions/types/traits, or needing context about a Rust package in the HASH workspace.
+license: AGPL-3.0
+metadata:
+  triggers:
+    type: domain
+    enforcement: suggest
+    priority: medium
+    keywords:
+      - cargo doc
+      - rust documentation
+      - crate api
+      - rust crate
+      - module hierarchy
+    intent-patterns:
+      - "\\b(explore|understand|learn)\\b.*?\\b(rust|crate|package)\\b"
+      - "\\b(what|how)\\b.*?\\b(functions|types|traits|api)\\b.*?\\bcrate\\b"
+      - "\\bdocument(ation)?\\b.*?\\brust\\b"
 ---
 
 # Exploring Rust Crates
 
-## Purpose
-
-Guide for generating and using Rust documentation to understand crate APIs, structure, and code organization in the HASH workspace.
-
-## When to Use
-
-- Understanding a new Rust crate's API
-- Exploring available functions, types, and traits
-- Finding usage examples in doctest code blocks
-- Understanding crate organization and component relationships
-- Getting context about error conditions and handling
-- Generating test data based on documented structures
+Generate and use Rust documentation to understand crate APIs, structure, and code organization in the HASH workspace.
 
 ## Generating Documentation
 
@@ -34,10 +39,11 @@ cargo doc --no-deps --all-features --workspace
 
 ### Key Flags
 
-- `--no-deps`: Only document local code, not dependencies (faster, less noise)
+- `--no-deps`: Document local code only (faster, less noise)
 - `--all-features`: Include all feature-gated APIs
 - `--package <name>`: Target a specific crate
 - `--workspace`: Document all crates in the workspace
+- `--document-private-items`: Include internal implementation details
 
 ## What Generated Docs Provide
 
@@ -47,19 +53,16 @@ cargo doc --no-deps --all-features --workspace
 4. **Error documentation** - Documented error conditions and handling
 5. **Type relationships** - Trait implementations, type aliases, associated types
 
-## Viewing the Documentation
+## Viewing Documentation
 
-After generation, docs are available at:
+Docs are generated at:
 
 ```txt
 target/doc/<crate_name>/index.html
 ```
 
-Open in browser or use the content for understanding the API structure.
-
 ## Tips
 
 - Generate docs before diving into unfamiliar Rust code
-- Use `--document-private-items` if you need to understand internal implementation
-- Cross-reference with `# Errors` sections for error handling patterns
+- Cross-reference `# Errors` sections for error handling patterns
 - Look for `# Examples` sections for idiomatic usage patterns

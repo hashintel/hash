@@ -181,7 +181,7 @@ Use dotted paths:
       ["multiply", "z", {"#literal": 2}]]]]
 ```
 
-## See Also
+## Related References
 
 - [Special Forms](special-forms.md) - Control flow (`if`, `let`, `fn`, `type`, `use`, etc.)
 - [Data Constructors](data-constructors.md) - Typed data (`#literal`, `#struct`, `#tuple`, `#list`, `#dict`)

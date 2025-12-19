@@ -1,234 +1,357 @@
 {
-  "version": "1.0",
+  "version": "2.0",
   "description": "Skill activation triggers for HASH Claude Code. Controls when skills automatically suggest or block actions.",
   "skills": {
-    "handling-rust-errors": {
+    "ark-ui": {
       "type": "domain",
       "enforcement": "suggest",
-      "priority": "high",
-      "description": "Error handling patterns using error-stack crate for HASH Rust code",
+      "priority": "medium",
+      "description": "Headless component library for React. Use when building UI components with @ark-ui/react, implementing accessible form inputs, overlays, navigation patterns, or needing guidance on Ark UI's data attributes, composition (asChild), and state management patterns.",
       "promptTriggers": {
-        "keywords": [
-          "error",
-          "Result",
-          "Report",
-          "attach",
-          "change_context",
-          "error-stack"
-        ],
+        "keywords": ["ark-ui", "@ark-ui/react", "headless components"],
         "intentPatterns": [
-          "\\b(handle|create|define|propagate|add|implement|fix|verbessern|erweitern|hinzufügen|beheben)\\b.*?\\berror\\b",
-          "\\berror(s)?\\b.*?\\b(handling|propagation|definition|documentation|context|type|behandlung|behandeln)\\b",
-          "Result.*?Report"
+          "\\b(use|create|build|implement)\\b.*?\\bark[-\\s]?ui\\b",
+          "\\b(checkbox|combobox|dialog|popover|tooltip)\\b.*?\\b(headless|ark)\\b"
         ]
-      }
-    },
-    "managing-cargo-dependencies": {
-      "type": "domain",
-      "enforcement": "suggest",
-      "priority": "high",
-      "description": "Cargo.toml dependency management patterns for HASH workspace",
-      "promptTriggers": {
-        "keywords": [
-          "cargo",
-          "dependency",
-          "Cargo.toml",
-          "Cargo.lock",
-          "crate",
-          "workspace.dependencies",
-          "dev-dependencies",
-          "public dependency"
-        ],
-        "intentPatterns": [
-          "\\b(add|update|remove|upgrade|manage|hinzufügen|aktualisieren|entfernen|verwalten)\\b.*?\\b(dependency|dependencies|crate)\\b",
-          "\\b(cargo|Cargo\\.toml)\\b.*?\\b(dependency|dependencies)\\b",
-          "\\bworkspace\\b.*?\\bdependenc(y|ies)\\b"
-        ]
-      }
-    },
-    "writing-skills": {
-      "type": "domain",
-      "enforcement": "suggest",
-      "priority": "high",
-      "description": "Meta-skill for creating and managing Claude Code skills in HASH repository",
-      "promptTriggers": {
-        "keywords": ["skill", "skill-rules.json", "SKILL.md", "hook system"],
-        "intentPatterns": [
-          "\\b(how do|how does|explain|wie funktioniert)\\b.*?\\bskill\\b",
-          "\\b(create|add|modify|build|erstellen|hinzufügen|ändern)\\b.*?\\bskill\\b",
-          "\\bskill\\b.*?\\b(work|trigger|activate|system|structure|template|pattern|configuration|funktioniert)\\b",
-          "\\b(configure|setup|define|konfigurieren|einrichten)\\b.*?\\bskill\\b"
-        ]
-      }
+      },
+      "fileTriggers": {
+        "include": [],
+        "exclude": [],
+        "content": [],
+        "create-only": false
+      },
+      "blockMessage": "Skill is required to proceed",
+      "skipConditions": {}
     },
     "documenting-rust-code": {
       "type": "domain",
       "enforcement": "suggest",
       "priority": "high",
-      "description": "Rust documentation practices for HASH codebase following rustdoc conventions",
+      "description": "Rust documentation practices for HASH codebase. Use when writing doc comments, documenting functions/types/traits/modules, creating error sections, using intra-doc links, or following rustdoc conventions.",
       "promptTriggers": {
         "keywords": [
-          "documentation",
-          "doc comment",
           "rustdoc",
-          "intra-doc link",
-          "# Errors",
-          "# Examples",
-          "# Panics",
-          "dokumentation"
+          "doc comment",
+          "documentation",
+          "intra-doc link"
         ],
         "intentPatterns": [
-          "\\b(write|add|create|update|improve|fix|verbessern|erweitern)\\b.*?\\b(doc|documentation|docs)\\b",
-          "\\b(document|documenting)\\b.*?\\b(function|type|struct|enum|trait|module|error|rust)\\b",
-          "\\b(documentation|docs)\\b.*?\\b(verbessern|ändern|anpassen|erweitern|improve|fix|update)\\b",
-          "\\.rs\\b.*?\\b(documentation|docs|doc comment)\\b"
+          "\\bdocument(ing|ation)?\\b.*?\\b(rust|function|type|struct|enum|trait|module)\\b",
+          "\\b(write|add|create)\\b.*?\\bdoc\\s*comment\\b",
+          "\\b#\\s*(Errors|Panics|Examples|Arguments)\\b"
         ]
-      }
-    },
-    "writing-hashql-diagnostics": {
-      "type": "domain",
-      "enforcement": "suggest",
-      "priority": "high",
-      "description": "HashQL diagnostic writing patterns using hashql-diagnostics crate",
-      "promptTriggers": {
-        "keywords": [
-          "diagnostic",
-          "diagnostics",
-          "hashql-diagnostics",
-          "Label",
-          "Message",
-          "Severity",
-          "Patch",
-          "Suggestions",
-          "error message",
-          "warning message"
-        ],
-        "intentPatterns": [
-          "\\b(create|write|add|improve|fix)\\b.*?\\bdiagnostic(s)?\\b",
-          "\\bdiagnostic(s)?\\b.*?\\b(message|label|severity|suggestion|patch)\\b",
-          "\\b(error|warning)\\b.*?\\bmessage\\b.*?\\b(hashql|compiler)\\b",
-          "\\bhashql\\b.*?\\b(error|warning|diagnostic)\\b"
-        ]
-      }
-    },
-    "writing-hashql-jexpr": {
-      "type": "domain",
-      "enforcement": "suggest",
-      "priority": "high",
-      "description": "HashQL J-Expr syntax patterns for writing JSON Expression Language queries",
-      "promptTriggers": {
-        "keywords": [
-          "J-Expr",
-          "jexpr",
-          "hashql syntax",
-          "hashql query",
-          "#literal",
-          "function call",
-          "S-Expr",
-          "JSON Expression"
-        ],
-        "intentPatterns": [
-          "\\b(write|read|understand|create|parse)\\b.*?\\b(j-?expr|hashql)\\b.*?\\b(query|syntax)\\b",
-          "\\bj-?expr\\b.*?\\b(syntax|function|symbol|literal|call)\\b",
-          "\\bhashql\\b.*?\\b(query|syntax|expression)\\b",
-          "\\b(json|s-?expr)\\b.*?\\bexpression\\b.*?\\b(language|syntax)\\b"
-        ]
-      }
-    },
-    "testing-hashql": {
-      "type": "domain",
-      "enforcement": "suggest",
-      "priority": "high",
-      "description": "HashQL testing strategies including compiletest, unit tests, and snapshot tests",
-      "promptTriggers": {
-        "keywords": [
-          "compiletest",
-          "hashql test",
-          "ui test",
-          ".spec.toml",
-          "//~",
-          "--bless",
-          "snapshot test",
-          "insta",
-          "hashql-compiletest",
-          ".stdout",
-          ".stderr"
-        ],
-        "intentPatterns": [
-          "\\b(write|create|add|run|debug|fix)\\b.*?\\b(hashql|compiletest)\\b.*?\\btest\\b",
-          "\\btest(s|ing)?\\b.*?\\b(hashql|compiletest|ui)\\b",
-          "\\b(compiletest|ui test)\\b.*?\\b(run|filter|bless|fail|pass)\\b",
-          "\\bdiagnostic\\b.*?\\bannotation\\b",
-          "\\b(snapshot|insta)\\b.*?\\btest\\b"
-        ]
-      }
+      },
+      "fileTriggers": {
+        "include": [],
+        "exclude": [],
+        "content": [],
+        "create-only": false
+      },
+      "blockMessage": "Skill is required to proceed",
+      "skipConditions": {}
     },
     "exploring-rust-crates": {
       "type": "domain",
       "enforcement": "suggest",
       "priority": "medium",
-      "description": "Generating Rust documentation to understand crate APIs and structure",
+      "description": "Generate Rust documentation to understand crate APIs, structure, and usage. Use when exploring Rust code, understanding crate organization, finding functions/types/traits, or needing context about a Rust package in the HASH workspace.",
       "promptTriggers": {
         "keywords": [
           "cargo doc",
+          "rust documentation",
+          "crate api",
           "rust crate",
-          "crate API",
-          "understand crate",
-          "explore crate",
-          "rust package"
+          "module hierarchy"
         ],
         "intentPatterns": [
-          "\\b(understand|explore|learn|investigate|check)\\b.*?\\b(crate|package|rust)\\b",
-          "\\b(what|how)\\b.*?\\b(crate|package)\\b.*?\\b(do|work|provide|contain)\\b",
-          "\\bcargo\\s+doc\\b",
-          "\\b(generate|build)\\b.*?\\bdoc(s|umentation)?\\b.*?\\b(rust|crate)\\b"
+          "\\b(explore|understand|learn)\\b.*?\\b(rust|crate|package)\\b",
+          "\\b(what|how)\\b.*?\\b(functions|types|traits|api)\\b.*?\\bcrate\\b",
+          "\\bdocument(ation)?\\b.*?\\brust\\b"
         ]
-      }
+      },
+      "fileTriggers": {
+        "include": [],
+        "exclude": [],
+        "content": [],
+        "create-only": false
+      },
+      "blockMessage": "Skill is required to proceed",
+      "skipConditions": {}
+    },
+    "handling-rust-errors": {
+      "type": "domain",
+      "enforcement": "suggest",
+      "priority": "high",
+      "description": "HASH error handling patterns using error-stack crate. Use when working with Result types, Report types, defining custom errors, propagating errors with change_context, adding context with attach, implementing Error trait, or documenting error conditions in Rust code.",
+      "promptTriggers": {
+        "keywords": [
+          "error",
+          "Result",
+          "Report",
+          "error-stack",
+          "change_context",
+          "attach",
+          "ResultExt"
+        ],
+        "intentPatterns": [
+          "\\b(handle|create|define|propagate|convert)\\b.*?\\berror\\b",
+          "\\bReport<.*>\\b"
+        ]
+      },
+      "fileTriggers": {
+        "include": [],
+        "exclude": [],
+        "content": [],
+        "create-only": false
+      },
+      "blockMessage": "Skill is required to proceed",
+      "skipConditions": {}
+    },
+    "managing-cargo-dependencies": {
+      "type": "domain",
+      "enforcement": "suggest",
+      "priority": "high",
+      "description": "Cargo.toml dependency management patterns for HASH workspace. Use when adding, updating, or removing dependencies, organizing Cargo.toml sections, configuring version pinning and default features, or managing public dependencies.",
+      "promptTriggers": {
+        "keywords": [
+          "cargo",
+          "dependency",
+          "Cargo.toml",
+          "crate",
+          "workspace.dependencies",
+          "default-features"
+        ],
+        "intentPatterns": [
+          "\\b(add|update|remove|manage)\\b.*?\\b(dependency|dependencies|crate|crates)\\b",
+          "\\bCargo\\.toml\\b",
+          "\\b(public|private)\\s+dependency\\b"
+        ]
+      },
+      "fileTriggers": {
+        "include": [],
+        "exclude": [],
+        "content": [],
+        "create-only": false
+      },
+      "blockMessage": "Skill is required to proceed",
+      "skipConditions": {}
     },
     "managing-git-workflow": {
       "type": "domain",
       "enforcement": "suggest",
       "priority": "high",
-      "description": "Git workflow for HASH including branch naming, PR creation, and PR reviews",
+      "description": "Git workflow for HASH including branch naming, PR creation, and PR reviews. Use when creating branches, making commits, opening pull requests, or reviewing PRs.",
       "promptTriggers": {
         "keywords": [
+          "git",
           "branch",
           "pull request",
+          "PR",
           "commit",
-          "git",
-          "H-",
-          "Linear",
-          "review PR",
-          "create PR",
-          "gh pr"
+          "merge",
+          "review"
         ],
         "intentPatterns": [
-          "\\b(create|make|open|submit)\\b.*?\\b(branch|PR|pull request)\\b",
-          "\\b(review|check|look at)\\b.*?\\b(PR|pull request)\\b",
-          "\\bbranch\\b.*?\\b(name|naming|convention)\\b",
-          "\\b(PR|pull request)\\b.*?\\b(title|template|format)\\b",
-          "\\bLinear\\b.*?\\b(issue|ticket)\\b",
-          "\\bH-\\d{4}\\b"
+          "\\b(create|open|submit|review)\\b.*?\\b(PR|pull request|branch)\\b",
+          "\\b(name|naming)\\b.*?\\bbranch\\b",
+          "\\bH-\\d+\\b"
         ]
-      }
-    }
-  },
-  "notes": {
-    "enforcement_types": {
-      "suggest": "Skill suggestion appears but doesn't block execution",
-      "block": "Requires skill to be used before proceeding (guardrail)",
-      "warn": "Shows warning but allows proceeding"
+      },
+      "fileTriggers": {
+        "include": [],
+        "exclude": [],
+        "content": [],
+        "create-only": false
+      },
+      "blockMessage": "Skill is required to proceed",
+      "skipConditions": {}
     },
-    "priority_levels": {
-      "critical": "Highest - Always trigger when matched",
-      "high": "Important - Trigger for most matches",
-      "medium": "Moderate - Trigger for clear matches",
-      "low": "Optional - Trigger only for explicit matches"
+    "mastra": {
+      "type": "domain",
+      "enforcement": "suggest",
+      "priority": "medium",
+      "description": "Mastra TypeScript framework for AI agents with memory, tools, workflows, and RAG. Use when working with @mastra/* packages or building AI agents.",
+      "promptTriggers": {
+        "keywords": ["mastra", "@mastra/", "mastra.ai"],
+        "intentPatterns": [
+          "\\b(use|build|create|implement)\\b.*?\\bmastra\\b",
+          "\\b(agent|workflow|rag)\\b.*?\\bmastra\\b"
+        ]
+      },
+      "fileTriggers": {
+        "include": [],
+        "exclude": [],
+        "content": [],
+        "create-only": false
+      },
+      "blockMessage": "Skill is required to proceed",
+      "skipConditions": {}
     },
-    "customization": {
-      "pathPatterns": "Adjust to match HASH project structure (libs/@local, apps/hash-*, etc.)",
-      "keywords": "Add domain-specific terms relevant to HASH",
-      "intentPatterns": "Use regex for flexible user intent matching"
+    "panda-css": {
+      "type": "domain",
+      "enforcement": "suggest",
+      "priority": "medium",
+      "description": "Panda CSS styling framework guidance. Use when working with @pandacss packages, styled components, design tokens, or responsive/conditional styles.",
+      "promptTriggers": {
+        "keywords": ["panda-css", "panda css", "pandacss", "@pandacss"],
+        "intentPatterns": [
+          "\\b(use|style|create|configure)\\b.*?\\bpanda(-| )?css\\b",
+          "\\bcss\\b.*?\\b(recipe|pattern|token)s?\\b"
+        ]
+      },
+      "fileTriggers": {
+        "include": [],
+        "exclude": [],
+        "content": [],
+        "create-only": false
+      },
+      "blockMessage": "Skill is required to proceed",
+      "skipConditions": {}
+    },
+    "skill-creator": {
+      "type": "domain",
+      "enforcement": "suggest",
+      "priority": "high",
+      "description": "Guide for creating effective Agent Skills. Use when users want to create a new skill (or update an existing skill) that extends an AI agent's capabilities with specialized knowledge, workflows, or tool integrations. Covers skill structure, YAML frontmatter, trigger configuration, and the 500-line rule.",
+      "promptTriggers": {
+        "keywords": [
+          "skill",
+          "skill-rules",
+          "SKILL.md",
+          "creating skill",
+          "writing skill"
+        ],
+        "intentPatterns": [
+          "\\b(how do|how does|explain)\\b.*?\\bskill\\b",
+          "\\b(create|add|modify|build|write)\\b.*?\\bskill\\b",
+          "\\bskill\\b.*?\\b(work|trigger|activate|system|structure|template|pattern)\\b"
+        ]
+      },
+      "fileTriggers": {
+        "include": [],
+        "exclude": [],
+        "content": [],
+        "create-only": false
+      },
+      "blockMessage": "Skill is required to proceed",
+      "skipConditions": {}
+    },
+    "testing-hashql": {
+      "type": "domain",
+      "enforcement": "suggest",
+      "priority": "high",
+      "description": "HashQL testing strategies including compiletest (UI tests), unit tests, and snapshot tests. Use when writing tests for HashQL code, using //~ annotations, running --bless, debugging test failures, or choosing the right testing approach.",
+      "promptTriggers": {
+        "keywords": [
+          "hashql test",
+          "compiletest",
+          "ui test",
+          "snapshot test",
+          "insta test",
+          "//~ annotation",
+          "--bless"
+        ],
+        "intentPatterns": [
+          "\\b(write|create|run|debug|add|fix)\\b.*?\\b(hashql|compiletest)\\b.*?\\btest\\b",
+          "\\b(test|verify)\\b.*?\\b(diagnostic|error message|mir|hir|ast)\\b"
+        ]
+      },
+      "fileTriggers": {
+        "include": [],
+        "exclude": [],
+        "content": [],
+        "create-only": false
+      },
+      "blockMessage": "Skill is required to proceed",
+      "skipConditions": {}
+    },
+    "writing-hashql-diagnostics": {
+      "type": "domain",
+      "enforcement": "suggest",
+      "priority": "high",
+      "description": "HashQL diagnostic writing patterns using hashql-diagnostics crate. Use when creating error messages, warnings, Labels, Messages, Severity levels, Patches, Suggestions, or improving diagnostic quality in HashQL code.",
+      "promptTriggers": {
+        "keywords": [
+          "diagnostic",
+          "hashql-diagnostics",
+          "Label",
+          "Message",
+          "Severity",
+          "Patch",
+          "Suggestions"
+        ],
+        "intentPatterns": [
+          "\\b(create|write|add|improve)\\b.*?\\bdiagnostic\\b",
+          "\\b(error|warning)\\b.*?\\bmessage\\b"
+        ]
+      },
+      "fileTriggers": {
+        "include": [],
+        "exclude": [],
+        "content": [],
+        "create-only": false
+      },
+      "blockMessage": "Skill is required to proceed",
+      "skipConditions": {}
+    },
+    "writing-hashql-jexpr": {
+      "type": "domain",
+      "enforcement": "suggest",
+      "priority": "high",
+      "description": "HashQL J-Expr syntax for writing queries. Use when writing J-Expr code, using #literal/#struct/#list constructs, understanding function call syntax, or working with HashQL query files (.jsonc).",
+      "promptTriggers": {
+        "keywords": [
+          "J-Expr",
+          "jexpr",
+          "hashql query",
+          "hashql syntax",
+          "#literal",
+          "#struct",
+          "#list",
+          "#tuple"
+        ],
+        "intentPatterns": [
+          "\\b(write|read|create|parse)\\b.*?\\b(j-?expr|hashql)\\b",
+          "\\b(hashql|jexpr)\\b.*?\\b(query|syntax|expression)\\b"
+        ]
+      },
+      "fileTriggers": {
+        "include": [],
+        "exclude": [],
+        "content": [],
+        "create-only": false
+      },
+      "blockMessage": "Skill is required to proceed",
+      "skipConditions": {}
+    },
+    "zod": {
+      "type": "domain",
+      "enforcement": "suggest",
+      "priority": "medium",
+      "description": "Zod v4 TypeScript schema validation patterns and best practices. Use when writing or modifying Zod schemas, adding schema annotations/metadata, or validating data with Zod.",
+      "promptTriggers": {
+        "keywords": [
+          "zod",
+          "z.object",
+          "z.string",
+          "z.number",
+          "z.array",
+          "schema validation",
+          "z.infer"
+        ],
+        "intentPatterns": [
+          "\\b(validate|create|define|add)\\b.*?\\b(schema|zod)\\b",
+          "\\bzod\\s+(v4|version|migration)\\b"
+        ]
+      },
+      "fileTriggers": {
+        "include": [],
+        "exclude": [],
+        "content": [],
+        "create-only": false
+      },
+      "blockMessage": "Skill is required to proceed",
+      "skipConditions": {}
     }
   }
 }

@@ -1,28 +1,35 @@
 ---
 name: managing-git-workflow
-description: Git workflow for HASH including branch naming, PR creation, and PR reviews. Use when creating branches, making commits, opening pull requests, or reviewing PRs. Covers Linear issue integration (H-XXXX format), PR templates, and review procedures. (project)
+description: Git workflow for HASH including branch naming, PR creation, and PR reviews. Use when creating branches, making commits, opening pull requests, or reviewing PRs.
+license: AGPL-3.0
+metadata:
+  triggers:
+    type: domain
+    enforcement: suggest
+    priority: high
+    keywords:
+      - git
+      - branch
+      - pull request
+      - PR
+      - commit
+      - merge
+      - review
+    intent-patterns:
+      - "\\b(create|open|submit|review)\\b.*?\\b(PR|pull request|branch)\\b"
+      - "\\b(name|naming)\\b.*?\\bbranch\\b"
+      - "\\bH-\\d+\\b"
 ---
 
 # Managing Git Workflow
 
-## Purpose
-
-Standardized git workflow for HASH development, ensuring traceability between code changes and Linear issues.
-
-## When to Use
-
-- Creating a new branch for a feature or fix
-- Opening a pull request
-- Reviewing someone else's PR
-- Understanding PR conventions
-
----
+Standardize git workflow for HASH development, ensuring traceability between code changes and Linear issues.
 
 ## Branch Naming
 
 **Format:** `<shortname>/h-XXXX-description`
 
-- `shortname`: Your identifier (first initial, nickname, etc.)
+- `shortname`: Developer identifier (first initial, nickname, etc.)
 - `h-XXXX`: Linear ticket number (lowercase 'h')
 - `description`: Brief kebab-case description
 
@@ -38,8 +45,6 @@ Standardized git workflow for HASH development, ensuring traceability between co
 - Enables progress tracking on tickets
 - Maintains clear development history
 
----
-
 ## Pull Request Creation
 
 ### PR Title Format
@@ -47,11 +52,11 @@ Standardized git workflow for HASH development, ensuring traceability between co
 **Format:** `H-XXXX: Description`
 
 - Use uppercase 'H' in PR titles (unlike branch names)
-- Description should be clear and concise
+- Keep description clear and concise
 
 **Examples:**
 
-- `H-4922: Add branch naming instructions to CLAUDE.md`
+- `H-4922: Add branch naming instructions`
 - `H-1234: Implement user authentication system`
 - `H-5678: Fix database connection timeout`
 
@@ -68,11 +73,9 @@ Use the template at `.github/pull_request_template.md`. Key sections:
    - Turbo Graph impact
 5. **Known issues** - Intentional omissions or limitations
 6. **Next steps** - Planned follow-ups
-7. **Tests** - What automated tests cover this
+7. **Tests** - Automated test coverage
 8. **How to test** - Manual testing instructions
 9. **Demo** - Screenshots or videos
-
----
 
 ## PR Review Process
 
@@ -84,7 +87,7 @@ Run these commands to get full context:
 # View PR metadata, description, and comments
 gh pr view <PR_NUMBER> --comments
 
-# View ALL changes (don't truncate!)
+# View ALL changes (do not truncate)
 gh pr diff <PR_NUMBER>
 
 # View inline diff comments
@@ -94,20 +97,20 @@ gh api \
   /repos/hashintel/hash/pulls/<PR_NUMBER>/comments
 ```
 
-**Important:** Always view the FULL diff. Don't pipe into `head` or use `--name-only`.
+**Important:** Always view the FULL diff. Do not pipe into `head` or use `--name-only`.
 
 ### Step 2: Check Linear Issues
 
 Look for `H-XXXX` references in the PR title/description, then fetch the issue:
 
 ```bash
-# If you have Linear MCP configured:
+# If Linear MCP is configured:
 mcp__linear__get_issue --issueId "H-XXXX"
 
 # Or use Linear web UI
 ```
 
-Use the Linear issue requirements as baseline for your review.
+Use the Linear issue requirements as baseline for the review.
 
 ### Step 3: Provide Feedback
 
@@ -115,8 +118,6 @@ Use the Linear issue requirements as baseline for your review.
 - Include suggestions for improvement
 - Reference relevant code standards
 - Distinguish blocking issues from suggestions
-
----
 
 ## Quick Reference
 

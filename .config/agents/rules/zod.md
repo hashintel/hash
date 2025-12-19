@@ -1,9 +1,28 @@
 ---
-type: "agent_requested"
-description: "Use when working in TypeScript with the `zod` package"
+name: zod
+description: Zod v4 TypeScript schema validation patterns and best practices. Use when writing or modifying Zod schemas, adding schema annotations/metadata, or validating data with Zod.
+license: AGPL-3.0
+metadata:
+  triggers:
+    type: domain
+    enforcement: suggest
+    priority: medium
+    keywords:
+      - zod
+      - z.object
+      - z.string
+      - z.number
+      - z.array
+      - schema validation
+      - z.infer
+    intent-patterns:
+      - "\\b(validate|create|define|add)\\b.*?\\b(schema|zod)\\b"
+      - "\\bzod\\s+(v4|version|migration)\\b"
 ---
 
-Zod is a TypeScript-first schema validation library with static type inference. This skill assumes Zod v4.
+# Zod v4 Schema Validation
+
+TypeScript-first schema validation library with static type inference. This skill covers v4 patterns including the metadata registry system.
 
 ## Schema Annotations
 
@@ -44,18 +63,15 @@ const userSchema = z.object({
 
 ## Gotchas
 
-- **Metadata chain order**: `.meta()`/`.describe()` MUST be called last—schema methods return new instances, so metadata on intermediate schemas is lost
-- **Don't mutate .description**: Read `.description` for v3 compatibility, but always set via `.meta()` or `.describe()` to keep registries in sync
+- **Metadata chain order**: `.meta()`/`.describe()` MUST be called last—schema methods return new instances
+- **Don't mutate .description**: Read `.description` for v3 compatibility, but always set via `.meta()` or `.describe()`
 - **.email(), .uuid(), etc. are top-level**: Use `z.email()` not `z.string().email()` (latter deprecated)
 - **z.object() strips unknown keys**: Use `z.strictObject()` to reject unknown keys
 - **.merge() deprecated**: Use `.extend()` instead
 
-## Documentation
+## References
 
-For complete API reference: https://zod.dev/llms.txt
-
-Key pages:
-
+- Complete API reference: https://zod.dev/llms.txt
 - Schema types: https://zod.dev/api
 - Metadata/registries: https://zod.dev/metadata
 - JSON Schema conversion: https://zod.dev/json-schema

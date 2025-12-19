@@ -42,7 +42,7 @@ describe("Skill Activation Snapshots", () => {
   it("update Cargo.toml workspace dependencies", ({ task }) =>
     createSnapshot(task.name));
 
-  it("dokumentation verbessern", ({ task }) => createSnapshot(task.name));
+  it("improve documentation", ({ task }) => createSnapshot(task.name));
 
   it("fix documnetation", ({ task }) => createSnapshot(task.name));
 
@@ -50,8 +50,7 @@ describe("Skill Activation Snapshots", () => {
 
   it("how do skills work", ({ task }) => createSnapshot(task.name));
 
-  it("wie funktioniert das skill system", ({ task }) =>
-    createSnapshot(task.name));
+  it("how does the skill system work", ({ task }) => createSnapshot(task.name));
 
   it("what is the weather today", ({ task }) => createSnapshot(task.name));
 });

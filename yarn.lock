@@ -10760,7 +10760,9 @@ __metadata:
     "@local/hash-backend-utils": "npm:0.0.0-private"
     "@local/hash-isomorphic-utils": "npm:0.0.0-private"
     "@local/tsconfig": "npm:0.0.0-private"
+    "@optique/core": "npm:0.8.1"
     "@types/fs-extra": "npm:11.0.4"
+    "@types/js-yaml": "npm:^4"
     chalk: "npm:5.6.2"
     dotenv-flow: "npm:3.3.0"
     envalid: "npm:8.1.0"
@@ -10770,6 +10772,7 @@ __metadata:
     fs-extra: "npm:11.3.2"
     globby: "npm:15.0.0"
     ignore: "npm:7.0.5"
+    js-yaml: "npm:4.1.1"
     regex-parser: "npm:2.3.1"
     sort-package-json: "npm:3.4.0"
     tsx: "npm:4.20.6"
@@ -13098,6 +13101,13 @@ __metadata:
     estree-walker: "npm:^2.0.2"
     magic-string: "npm:~0.30.11"
   checksum: 10c0/48a877a41e8cb642daccd3a9d815b05c55ac63fc2fdeea6f3e60239e8dcf46a3cd56f6699d67dfd0aebb2e2bb0f019fde6dd7880fb13a7a6db99a53392273578
+  languageName: node
+  linkType: hard
+
+"@optique/core@npm:0.8.1":
+  version: 0.8.1
+  resolution: "@optique/core@npm:0.8.1"
+  checksum: 10c0/1d959e846e7fcea606df009a3164f9f7d854dcce05b9d59b7f787b1119cfac2a428d773b80efb76eaa96dcbeff97def519325d117c66f403ef53428e8ec4eb6e
   languageName: node
   linkType: hard
 
@@ -19848,7 +19858,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/js-yaml@npm:^4.0.0":
+"@types/js-yaml@npm:^4, @types/js-yaml@npm:^4.0.0":
   version: 4.0.9
   resolution: "@types/js-yaml@npm:4.0.9"
   checksum: 10c0/24de857aa8d61526bbfbbaa383aa538283ad17363fcd5bb5148e2c7f604547db36646440e739d78241ed008702a8920665d1add5618687b6743858fae00da211
