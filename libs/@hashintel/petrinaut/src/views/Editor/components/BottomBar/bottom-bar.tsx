@@ -104,7 +104,7 @@ export const BottomBar: React.FC<BottomBarProps> = ({
         refraction={{
           radius: 12,
           blur: 3,
-          bezelWidth: 22,
+          bezelWidth: 20,
           glassThickness: 100,
         }}
       >
