@@ -1,6 +1,8 @@
-#![feature(custom_test_frameworks)]
-#![test_runner(criterion::runner)]
-#![expect(clippy::min_ident_chars, clippy::many_single_char_names)]
+#![expect(
+    clippy::min_ident_chars,
+    clippy::many_single_char_names,
+    clippy::significant_drop_tightening
+)]
 
 use core::hint::black_box;
 
