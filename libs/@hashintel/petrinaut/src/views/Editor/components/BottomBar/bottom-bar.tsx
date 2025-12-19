@@ -33,7 +33,7 @@ const bottomBarPositionStyle = css({
   position: "fixed",
   left: "[50%]",
   transform: "translateX(-50%)",
-  zIndex: "1000",
+  zIndex: 1000,
 });
 
 type EditorMode = EditorState["globalMode"];
@@ -51,13 +51,13 @@ export const BottomBar: React.FC<BottomBarProps> = ({
   onEditionModeChange,
 }) => {
   const isDiagnosticsPanelOpen = useEditorStore(
-    (state) => state.isDiagnosticsPanelOpen,
+    (state) => state.isDiagnosticsPanelOpen
   );
   const toggleDiagnosticsPanel = useEditorStore(
-    (state) => state.toggleDiagnosticsPanel,
+    (state) => state.toggleDiagnosticsPanel
   );
   const diagnosticsPanelHeight = useEditorStore(
-    (state) => state.diagnosticsPanelHeight,
+    (state) => state.diagnosticsPanelHeight
   );
 
   // Fallback to 'pan' mode when switching to simulate mode if mutative mode
