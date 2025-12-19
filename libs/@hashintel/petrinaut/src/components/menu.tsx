@@ -111,7 +111,7 @@ export const Menu: React.FC<MenuProps> = ({ trigger, items }) => {
               >
                 {item.label}
               </ArkMenu.Item>
-            )
+            ),
           )}
         </ArkMenu.Content>
       </ArkMenu.Positioner>

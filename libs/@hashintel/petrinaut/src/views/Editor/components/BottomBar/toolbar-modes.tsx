@@ -109,7 +109,7 @@ export const ToolbarModes: React.FC<ToolbarModesProps> = ({
                 event.dataTransfer.effectAllowed = "move";
                 event.dataTransfer.setData(
                   "application/reactflow",
-                  "transition"
+                  "transition",
                 );
               }}
               role="button"
