@@ -57,15 +57,15 @@ export const PlaceProperties: React.FC<PlacePropertiesProps> = ({
   const isReadOnly = globalMode === "simulate" || isSimulationActive;
   const initialMarking = useSimulationStore((state) => state.initialMarking);
   const setInitialMarking = useSimulationStore(
-    (state) => state.setInitialMarking
+    (state) => state.setInitialMarking,
   );
   const parameterValues = useSimulationStore((state) => state.parameterValues);
   const currentlyViewedFrame = useSimulationStore(
-    (state) => state.currentlyViewedFrame
+    (state) => state.currentlyViewedFrame,
   );
 
   const setSelectedResourceId = useEditorStore(
-    (state) => state.setSelectedResourceId
+    (state) => state.setSelectedResourceId,
   );
 
   const {
@@ -133,7 +133,7 @@ export const PlaceProperties: React.FC<PlacePropertiesProps> = ({
 
     if (!isPascalCase(nameInputValue)) {
       setNameError(
-        "Name must be in PascalCase (e.g., MyPlaceName or Place2). Any numbers must appear at the end."
+        "Name must be in PascalCase (e.g., MyPlaceName or Place2). Any numbers must appear at the end.",
       );
       return;
     }
@@ -194,7 +194,7 @@ export const PlaceProperties: React.FC<PlacePropertiesProps> = ({
                 if (
                   // eslint-disable-next-line no-alert
                   window.confirm(
-                    `Are you sure you want to delete "${place.name}"? All arcs connected to this place will also be removed.`
+                    `Are you sure you want to delete "${place.name}"? All arcs connected to this place will also be removed.`,
                   )
                 ) {
                   removePlace(place.id);
@@ -385,8 +385,8 @@ export const PlaceProperties: React.FC<PlacePropertiesProps> = ({
             {place.colorId !== null
               ? "Create a differential equation for the selected type in the left-hand sidebar first"
               : availableTypes.length === 0
-              ? "Create a type in the left-hand sidebar first, then select it to enable dynamics."
-              : "Select a type to enable dynamics"}
+                ? "Create a type in the left-hand sidebar first, then select it to enable dynamics."
+                : "Select a type to enable dynamics"}
           </div>
         )}
       </div>
@@ -504,7 +504,7 @@ export const PlaceProperties: React.FC<PlacePropertiesProps> = ({
                   onChange={(event) => {
                     const count = Math.max(
                       0,
-                      Number.parseInt(event.target.value, 10) || 0
+                      Number.parseInt(event.target.value, 10) || 0,
                     );
                     setInitialMarking(place.id, {
                       values: new Float64Array(0), // Empty array for places without type
@@ -725,7 +725,7 @@ export const PlaceProperties: React.FC<PlacePropertiesProps> = ({
                         const { offset, count } = placeState;
                         const placeSize = count * dimensions;
                         const tokenValues = Array.from(
-                          currentFrame.buffer.slice(offset, offset + placeSize)
+                          currentFrame.buffer.slice(offset, offset + placeSize),
                         );
 
                         // Format tokens as array of objects with named dimensions
@@ -747,7 +747,7 @@ export const PlaceProperties: React.FC<PlacePropertiesProps> = ({
                         // Merge SimulationStore values with SDCPN defaults
                         parameters = mergeParameterValues(
                           parameterValues,
-                          defaultParameterValues
+                          defaultParameterValues,
                         );
                       } else {
                         // Use initial marking
@@ -772,7 +772,7 @@ export const PlaceProperties: React.FC<PlacePropertiesProps> = ({
                         // Merge SimulationStore values with SDCPN defaults
                         parameters = mergeParameterValues(
                           parameterValues,
-                          defaultParameterValues
+                          defaultParameterValues,
                         );
                       }
 

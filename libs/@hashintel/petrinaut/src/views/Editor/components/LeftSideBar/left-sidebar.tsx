@@ -148,11 +148,11 @@ export const LeftSideBar: React.FC<LeftSideBarProps> = ({
 }) => {
   const isOpen = useEditorStore((state) => state.isLeftSidebarOpen);
   const setLeftSidebarOpen = useEditorStore(
-    (state) => state.setLeftSidebarOpen
+    (state) => state.setLeftSidebarOpen,
   );
   const leftSidebarWidth = useEditorStore((state) => state.leftSidebarWidth);
   const setLeftSidebarWidth = useEditorStore(
-    (state) => state.setLeftSidebarWidth
+    (state) => state.setLeftSidebarWidth,
   );
 
   return (

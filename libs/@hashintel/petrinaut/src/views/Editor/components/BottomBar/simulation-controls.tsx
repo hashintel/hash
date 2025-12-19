@@ -68,17 +68,17 @@ export const SimulationControls: React.FC<SimulationControlsProps> = ({
   const pause = useSimulationStore((state) => state.pause);
   const dt = useSimulationStore((state) => state.dt);
   const currentlyViewedFrame = useSimulationStore(
-    (state) => state.currentlyViewedFrame
+    (state) => state.currentlyViewedFrame,
   );
   const setCurrentlyViewedFrame = useSimulationStore(
-    (state) => state.setCurrentlyViewedFrame
+    (state) => state.setCurrentlyViewedFrame,
   );
 
   const setBottomPanelOpen = useEditorStore(
-    (state) => state.setBottomPanelOpen
+    (state) => state.setBottomPanelOpen,
   );
   const setActiveBottomPanelTab = useEditorStore(
-    (state) => state.setActiveBottomPanelTab
+    (state) => state.setActiveBottomPanelTab,
   );
 
   const isDisabled = disabled;

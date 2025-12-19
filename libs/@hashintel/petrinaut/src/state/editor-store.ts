@@ -60,7 +60,7 @@ export type EditorState = {
   draggingStateByNodeId: DraggingStateByNodeId;
   setDraggingStateByNodeId: (state: DraggingStateByNodeId) => void;
   updateDraggingStateByNodeId: (
-    updater: (state: DraggingStateByNodeId) => DraggingStateByNodeId
+    updater: (state: DraggingStateByNodeId) => DraggingStateByNodeId,
   ) => void;
   resetDraggingState: () => void;
 
@@ -119,7 +119,7 @@ export function createEditorStore() {
                 isBottomPanelOpen: !state.isBottomPanelOpen,
               }),
               false,
-              "toggleBottomPanel"
+              "toggleBottomPanel",
             ),
           bottomPanelHeight: DEFAULT_BOTTOM_PANEL_HEIGHT,
           setBottomPanelHeight: (height) =>
@@ -157,7 +157,7 @@ export function createEditorStore() {
                 return { selectedItemIds: newSet };
               },
               false,
-              { type: "addSelectedItemId", id }
+              { type: "addSelectedItemId", id },
             ),
           removeSelectedItemId: (id) =>
             set(
@@ -167,7 +167,7 @@ export function createEditorStore() {
                 return { selectedItemIds: newSet };
               },
               false,
-              { type: "removeSelectedItemId", id }
+              { type: "removeSelectedItemId", id },
             ),
           clearSelection: () =>
             set({ selectedItemIds: new Set() }, false, "clearSelection"),
@@ -178,7 +178,7 @@ export function createEditorStore() {
             set(
               { draggingStateByNodeId: state },
               false,
-              "setDraggingStateByNodeId"
+              "setDraggingStateByNodeId",
             ),
           updateDraggingStateByNodeId: (updater) =>
             set(
@@ -186,7 +186,7 @@ export function createEditorStore() {
                 draggingStateByNodeId: updater(state.draggingStateByNodeId),
               }),
               false,
-              "updateDraggingStateByNodeId"
+              "updateDraggingStateByNodeId",
             ),
           resetDraggingState: () =>
             set({ draggingStateByNodeId: {} }, false, "resetDraggingState"),
@@ -207,12 +207,12 @@ export function createEditorStore() {
                 draggingStateByNodeId: {},
               },
               false,
-              { type: "initializeEditorStore" }
+              { type: "initializeEditorStore" },
             );
           },
           // for some reason 'create' doesn't raise an error if a function in the type is missing
-        } satisfies EditorState),
-      { name: "Editor Store" }
-    )
+        }) satisfies EditorState,
+      { name: "Editor Store" },
+    ),
   );
 }

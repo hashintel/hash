@@ -106,14 +106,14 @@ export const PlaceNode: React.FC<NodeProps<PlaceNodeData>> = ({
   selected,
 }: NodeProps<PlaceNodeData>) => {
   const isSimulateMode = useEditorStore(
-    (state) => state.globalMode === "simulate"
+    (state) => state.globalMode === "simulate",
   );
   const selectedResourceId = useEditorStore(
-    (state) => state.selectedResourceId
+    (state) => state.selectedResourceId,
   );
   const simulation = useSimulationStore((state) => state.simulation);
   const currentlyViewedFrame = useSimulationStore(
-    (state) => state.currentlyViewedFrame
+    (state) => state.currentlyViewedFrame,
   );
   const initialMarking = useSimulationStore((state) => state.initialMarking);
 
@@ -144,8 +144,8 @@ export const PlaceNode: React.FC<NodeProps<PlaceNodeData>> = ({
   const selectionVariant = isSelectedByResource
     ? "resource"
     : selected
-    ? "reactflow"
-    : "none";
+      ? "reactflow"
+      : "none";
 
   return (
     <div className={containerStyle}>

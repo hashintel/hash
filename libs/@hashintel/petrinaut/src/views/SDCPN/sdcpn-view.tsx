@@ -66,10 +66,10 @@ export const SDCPNView: React.FC = () => {
   const setEditionMode = useEditorStore((state) => state.setEditionMode);
   const selectedItemIds = useEditorStore((state) => state.selectedItemIds);
   const setSelectedItemIds = useEditorStore(
-    (state) => state.setSelectedItemIds
+    (state) => state.setSelectedItemIds,
   );
   const setSelectedResourceId = useEditorStore(
-    (state) => state.setSelectedResourceId
+    (state) => state.setSelectedResourceId,
   );
   const clearSelection = useEditorStore((state) => state.clearSelection);
 
@@ -135,7 +135,7 @@ export const SDCPNView: React.FC = () => {
   // Shared function to create a node at a given position
   function createNodeAtPosition(
     nodeType: "place" | "transition",
-    position: { x: number; y: number }
+    position: { x: number; y: number },
   ) {
     const { width, height } = nodeDimensions[nodeType];
 
