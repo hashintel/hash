@@ -10,6 +10,7 @@ import { useSDCPNContext } from "../../state/sdcpn-provider";
 import { useSimulationStore } from "../../state/simulation-provider";
 import { SDCPNView } from "../SDCPN/sdcpn-view";
 import { BottomBar } from "./components/BottomBar/bottom-bar";
+import { DiagnosticsPanel } from "./components/DiagnosticsPanel/diagnostics-panel";
 import { LeftSideBar } from "./components/LeftSideBar/left-sidebar";
 import { ModeSelector } from "./components/mode-selector";
 import { PropertiesPanel } from "./components/PropertiesPanel/properties-panel";
@@ -222,6 +223,9 @@ export const EditorView = ({
 
           {/* SDCPN Visualization */}
           <SDCPNView />
+
+          {/* Diagnostics Panel - Bottom of viewport */}
+          <DiagnosticsPanel />
 
           <BottomBar
             mode={mode}

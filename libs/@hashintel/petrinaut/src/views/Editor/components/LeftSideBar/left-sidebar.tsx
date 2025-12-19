@@ -53,12 +53,12 @@ export const LeftSideBar: React.FC<LeftSideBarProps> = ({
     >
       <div
         className={css({
-          borderRadius: "[16px]",
+          borderRadius: "[12px]",
           height: isOpen ? "[100%]" : "auto",
           width: isOpen ? "[320px]" : "auto",
           backgroundColor: "[rgba(255, 255, 255, 0.7)]",
-          boxShadow: "0 4px 30px rgba(0, 0, 0, 0.15)",
-          border: "1px solid rgba(255, 255, 255, 0.8)",
+          boxShadow: "[0 3px 13px rgba(0, 0, 0, 0.1)]",
+          border: "[1px solid rgba(255, 255, 255, 0.8)]",
           backdropFilter: "[blur(12px)]",
         })}
         style={{
