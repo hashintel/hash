@@ -2,6 +2,7 @@ import { css } from "@hashintel/ds-helpers/css";
 import { useState } from "react";
 import { TbArrowRight } from "react-icons/tb";
 
+import { InfoIconTooltip } from "../../../../components/tooltip";
 import { useEditorStore } from "../../../../state/editor-provider";
 import { useSDCPNContext } from "../../../../state/sdcpn-provider";
 import { useSimulationStore } from "../../../../state/simulation-provider";
@@ -262,6 +263,7 @@ export const SimulationSettingsContent: React.FC = () => {
               {/* eslint-disable-next-line jsx-a11y/label-has-associated-control */}
               <label htmlFor="time-step-input" className={labelStyle}>
                 Time Step <span className={smallLabelStyle}>(sec/frame)</span>
+                <InfoIconTooltip tooltip="Controls the resolution of the ODE solver. Smaller steps yield finer approximations but take longer to compute." />
               </label>
               <input
                 id="time-step-input"
