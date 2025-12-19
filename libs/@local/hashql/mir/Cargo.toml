@@ -22,7 +22,7 @@ bstr           = { workspace = true }
 simple-mermaid = { workspace = true }
 
 [dev-dependencies]
-codspeed-criterion-compat = "4.1.0"
+codspeed-criterion-compat = { workspace = true }
 hashql-compiletest        = { workspace = true }
 insta                     = { workspace = true }
 
