@@ -1,10 +1,9 @@
-use bumpalo::Bump;
 use hashql_diagnostics::Success;
 
 use super::{Constraint, InferenceSolver, VariableConstraint};
 use crate::{
     collections::{FastHashMap, SmallVec},
-    heap::Heap,
+    heap::{Heap, Scratch},
     span::SpanId,
     symbol::Ident,
     r#type::{
@@ -130,9 +129,9 @@ fn solve_anti_symmetry() {
         InferenceSolver::new(InferenceEnvironment::new(&env).with_constraints(constraints));
 
     let mut graph = Graph::new(&mut solver.unification);
-    let bump = Bump::new();
+    let scratch = Scratch::new();
     solver.upsert_variables(&mut graph);
-    solver.solve_anti_symmetry(&mut graph, &mut FastHashMap::default(), &bump);
+    solver.solve_anti_symmetry(&mut graph, &mut FastHashMap::default(), &scratch);
 
     assert!(solver.unification.is_unioned(kind1.kind, kind2.kind));
 }
@@ -169,9 +168,9 @@ fn solve_anti_symmetry_with_cycles() {
         InferenceSolver::new(InferenceEnvironment::new(&env).with_constraints(constraints));
 
     let mut graph = Graph::new(&mut solver.unification);
-    let bump = Bump::new();
+    let scratch = Scratch::new();
     solver.upsert_variables(&mut graph);
-    solver.solve_anti_symmetry(&mut graph, &mut FastHashMap::default(), &bump);
+    solver.solve_anti_symmetry(&mut graph, &mut FastHashMap::default(), &scratch);
 
     // All three variables should be unified
     assert!(
@@ -212,14 +211,14 @@ fn apply_constraints() {
         InferenceSolver::new(InferenceEnvironment::new(&env).with_constraints(constraints));
 
     let mut graph = Graph::new(&mut solver.unification);
-    let bump = Bump::new();
+    let scratch = Scratch::new();
     solver.upsert_variables(&mut graph);
-    solver.solve_anti_symmetry(&mut graph, &mut FastHashMap::default(), &bump);
+    solver.solve_anti_symmetry(&mut graph, &mut FastHashMap::default(), &scratch);
     solver.lattice.set_variables(solver.unification.lookup());
 
     let mut variables = FastHashMap::default();
-    let bump = Bump::new();
-    solver.apply_constraints(&graph, &bump, &mut variables, &mut Vec::new());
+    let scratch = Scratch::new();
+    solver.apply_constraints(&graph, &scratch, &mut variables, &mut Vec::new());
 
     assert_eq!(variables.len(), 1);
     let (_, (_, constraint)) = variables.iter().next().expect("Should have one constraint");
@@ -248,13 +247,13 @@ fn apply_constraints_equality() {
         InferenceSolver::new(InferenceEnvironment::new(&env).with_constraints(constraints));
 
     let mut graph = Graph::new(&mut solver.unification);
-    let bump = Bump::new();
+    let scratch = Scratch::new();
     solver.upsert_variables(&mut graph);
-    solver.solve_anti_symmetry(&mut graph, &mut FastHashMap::default(), &bump);
+    solver.solve_anti_symmetry(&mut graph, &mut FastHashMap::default(), &scratch);
     solver.lattice.set_variables(solver.unification.lookup());
 
     let mut variables = FastHashMap::default();
-    solver.apply_constraints(&graph, &bump, &mut variables, &mut Vec::new());
+    solver.apply_constraints(&graph, &scratch, &mut variables, &mut Vec::new());
 
     assert_eq!(variables.len(), 1);
     let (_, (_, constraint)) = variables.iter().next().expect("Should have one constraint");
@@ -303,13 +302,13 @@ fn apply_constraints_with_unification() {
         InferenceSolver::new(InferenceEnvironment::new(&env).with_constraints(constraints));
 
     let mut graph = Graph::new(&mut solver.unification);
-    let bump = Bump::new();
+    let scratch = Scratch::new();
     solver.upsert_variables(&mut graph);
-    solver.solve_anti_symmetry(&mut graph, &mut FastHashMap::default(), &bump);
+    solver.solve_anti_symmetry(&mut graph, &mut FastHashMap::default(), &scratch);
     solver.lattice.set_variables(solver.unification.lookup());
 
     let mut variables = FastHashMap::default();
-    solver.apply_constraints(&graph, &bump, &mut variables, &mut Vec::new());
+    solver.apply_constraints(&graph, &scratch, &mut variables, &mut Vec::new());
 
     // Only one entry since the variables are unified
     assert_eq!(variables.len(), 1);
@@ -330,7 +329,7 @@ fn apply_constraints_with_unification() {
 #[test]
 fn solve_constraints() {
     let heap = Heap::new();
-    let bump = Bump::new();
+    let scratch = Scratch::new();
     let env = Environment::new(&heap);
 
     let hole = HoleId::new(0);
@@ -358,10 +357,10 @@ fn solve_constraints() {
     let mut substitutions = FastHashMap::default();
     solver.solve_constraints(
         &graph,
-        &bump,
+        &scratch,
         &applied_constraints,
         &mut substitutions,
-        &mut Vec::new_in(&bump),
+        &mut Vec::new_in(&scratch),
     );
 
     // Verify the substitution
@@ -372,7 +371,7 @@ fn solve_constraints() {
 #[test]
 fn solve_constraints_with_equality() {
     let heap = Heap::new();
-    let bump = Bump::new();
+    let scratch = Scratch::new();
     let env = Environment::new(&heap);
 
     let hole = HoleId::new(0);
@@ -398,10 +397,10 @@ fn solve_constraints_with_equality() {
     let mut substitutions = FastHashMap::default();
     solver.solve_constraints(
         &graph,
-        &bump,
+        &scratch,
         &applied_constraints,
         &mut substitutions,
-        &mut Vec::new_in(&bump),
+        &mut Vec::new_in(&scratch),
     );
 
     assert_eq!(substitutions.len(), 1);
@@ -411,7 +410,7 @@ fn solve_constraints_with_equality() {
 #[test]
 fn solve_constraints_with_incompatible_bounds() {
     let heap = Heap::new();
-    let bump = Bump::new();
+    let scratch = Scratch::new();
     let env = Environment::new(&heap);
 
     let hole = HoleId::new(0);
@@ -439,10 +438,10 @@ fn solve_constraints_with_incompatible_bounds() {
     let mut substitutions = FastHashMap::default();
     solver.solve_constraints(
         &graph,
-        &bump,
+        &scratch,
         &applied_constraints,
         &mut substitutions,
-        &mut Vec::new_in(&bump),
+        &mut Vec::new_in(&scratch),
     );
 
     let diagnostics = solver.diagnostics.into_vec();
@@ -457,7 +456,7 @@ fn solve_constraints_with_incompatible_bounds() {
 #[test]
 fn solve_constraints_with_incompatible_equality() {
     let heap = Heap::new();
-    let bump = Bump::new();
+    let scratch = Scratch::new();
     let env = Environment::new(&heap);
 
     let hole = HoleId::new(0);
@@ -484,10 +483,10 @@ fn solve_constraints_with_incompatible_equality() {
     let mut substitutions = FastHashMap::default();
     solver.solve_constraints(
         &graph,
-        &bump,
+        &scratch,
         &applied_constraints,
         &mut substitutions,
-        &mut Vec::new_in(&bump),
+        &mut Vec::new_in(&scratch),
     );
 
     let diagnostics = solver.diagnostics.into_vec();
@@ -501,7 +500,7 @@ fn solve_constraints_with_incompatible_equality() {
 #[test]
 fn solve_constraints_with_incompatible_upper_equal_constraint() {
     let heap = Heap::new();
-    let bump = Bump::new();
+    let scratch = Scratch::new();
     let env = Environment::new(&heap);
 
     let hole = HoleId::new(0);
@@ -530,10 +529,10 @@ fn solve_constraints_with_incompatible_upper_equal_constraint() {
     let mut substitutions = FastHashMap::default();
     solver.solve_constraints(
         &graph,
-        &bump,
+        &scratch,
         &applied_constraints,
         &mut substitutions,
-        &mut Vec::new_in(&bump),
+        &mut Vec::new_in(&scratch),
     );
 
     // Should have a diagnostic for incompatible upper equal constraint
@@ -621,15 +620,15 @@ fn redundant_constraints() {
         InferenceSolver::new(InferenceEnvironment::new(&env).with_constraints(constraints));
 
     let mut graph = Graph::new(&mut solver.unification);
-    let bump = Bump::new();
+    let scratch = Scratch::new();
     solver.upsert_variables(&mut graph);
-    solver.solve_anti_symmetry(&mut graph, &mut FastHashMap::default(), &bump);
+    solver.solve_anti_symmetry(&mut graph, &mut FastHashMap::default(), &scratch);
     solver.lattice.set_variables(solver.unification.lookup());
 
     let mut variables = FastHashMap::default();
 
     // Apply the constraints
-    solver.apply_constraints(&graph, &bump, &mut variables, &mut Vec::new());
+    solver.apply_constraints(&graph, &scratch, &mut variables, &mut Vec::new());
 
     // Despite having duplicate constraints, there should be one entry with one equality
     assert_eq!(variables.len(), 1);
@@ -671,9 +670,9 @@ fn cyclic_ordering_constraints() {
 
     // Directly call the anti-symmetry solver
     let mut graph = Graph::new(&mut solver.unification);
-    let bump = Bump::new();
+    let scratch = Scratch::new();
     solver.upsert_variables(&mut graph);
-    solver.solve_anti_symmetry(&mut graph, &mut FastHashMap::default(), &bump);
+    solver.solve_anti_symmetry(&mut graph, &mut FastHashMap::default(), &scratch);
 
     // Verify all variables are unified
     assert!(
@@ -715,14 +714,14 @@ fn bounds_at_lattice_extremes() {
         InferenceSolver::new(InferenceEnvironment::new(&env).with_constraints(constraints));
 
     let mut graph = Graph::new(&mut solver.unification);
-    let bump = Bump::new();
+    let scratch = Scratch::new();
     solver.upsert_variables(&mut graph);
-    solver.solve_anti_symmetry(&mut graph, &mut FastHashMap::default(), &bump);
+    solver.solve_anti_symmetry(&mut graph, &mut FastHashMap::default(), &scratch);
     solver.lattice.set_variables(solver.unification.lookup());
 
     // Apply the constraints
     let mut variables = FastHashMap::default();
-    solver.apply_constraints(&graph, &bump, &mut variables, &mut Vec::new());
+    solver.apply_constraints(&graph, &scratch, &mut variables, &mut Vec::new());
 
     assert_eq!(variables.len(), 1);
     let (_, (_, constraint)) = variables.iter().next().expect("Should have one constraint");
@@ -733,10 +732,10 @@ fn bounds_at_lattice_extremes() {
     let mut substitutions = FastHashMap::default();
     solver.solve_constraints(
         &graph,
-        &bump,
+        &scratch,
         &variables,
         &mut substitutions,
-        &mut Vec::new_in(&bump),
+        &mut Vec::new_in(&scratch),
     );
     assert!(solver.diagnostics.is_empty());
 

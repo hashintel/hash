@@ -402,7 +402,7 @@ impl<'heap> ReificationContext<'_, '_, '_, 'heap> {
                         .last_mut()
                         .unwrap_or_else(|| unreachable!())
                         .arguments,
-                    self.context.heap.vec(Some(0)), // capacity of 0 does not allocate
+                    Vec::new_in(self.context.heap), // capacity of 0 does not allocate
                 );
 
                 let mut segments = SmallVec::with_capacity(path.segments.len());

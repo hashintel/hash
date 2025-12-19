@@ -1,22 +1,13 @@
 //! Scratch allocator for temporary allocations.
-//!
-//! This module provides [`Scratch`], a resettable bump allocator designed for
-//! temporary allocations that can be bulk-freed by calling [`Scratch::reset`].
 
-use core::alloc::Allocator;
+use core::{alloc, ptr};
 
-use bumpalo::Bump;
+use super::allocator::Allocator;
 
 /// A resettable scratch allocator for temporary allocations.
 ///
-/// `Scratch` wraps a [`Bump`] allocator, providing a simple interface for
-/// allocating memory that can be efficiently freed in bulk. This is useful
-/// for temporary allocations during query processing where individual
-/// deallocations are unnecessary.
-///
-/// # Usage
-///
-/// The allocator can be used directly with collections via the [`Allocator`] trait:
+/// Unlike [`Heap`](super::Heap), `Scratch` does not provide string interning.
+/// Use for short-lived temporary allocations that can be freed in bulk.
 ///
 /// ```
 /// # #![feature(allocator_api)]
@@ -25,24 +16,29 @@ use bumpalo::Bump;
 /// let mut vec: Vec<u32, &Scratch> = Vec::new_in(&scratch);
 /// vec.push(42);
 /// # drop(vec);
-/// // When done, reset to free all allocations at once
 /// scratch.reset();
 /// ```
 #[derive(Debug)]
+#[expect(
+    clippy::field_scoped_visibility_modifiers,
+    reason = "TransferInto impl"
+)]
 pub struct Scratch {
-    bump: Bump,
+    pub(super) inner: Allocator,
 }
 
 impl Scratch {
-    /// Creates a new scratch allocator with an empty arena.
+    /// Creates a new scratch allocator.
     #[must_use]
     pub fn new() -> Self {
-        Self { bump: Bump::new() }
+        Self {
+            inner: Allocator::new(),
+        }
     }
 
     /// Resets the allocator, freeing all allocations at once.
     pub fn reset(&mut self) {
-        self.bump.reset();
+        self.inner.reset();
     }
 }
 
@@ -52,55 +48,58 @@ impl Default for Scratch {
     }
 }
 
-#[expect(unsafe_code, reason = "proxy to bump")]
-// SAFETY: this simply delegates to the bump allocator
-unsafe impl Allocator for &Scratch {
+// SAFETY: Delegates to bumpalo::Bump via the internal Allocator.
+#[expect(unsafe_code, reason = "proxy to internal allocator")]
+unsafe impl alloc::Allocator for Scratch {
+    #[inline]
+    fn allocate(&self, layout: alloc::Layout) -> Result<ptr::NonNull<[u8]>, alloc::AllocError> {
+        self.inner.allocate(layout)
+    }
+
+    #[inline]
     fn allocate_zeroed(
         &self,
-        layout: core::alloc::Layout,
-    ) -> Result<core::ptr::NonNull<[u8]>, core::alloc::AllocError> {
-        (&self.bump).allocate_zeroed(layout)
+        layout: alloc::Layout,
+    ) -> Result<ptr::NonNull<[u8]>, alloc::AllocError> {
+        self.inner.allocate_zeroed(layout)
     }
 
+    #[inline]
     unsafe fn grow(
         &self,
-        ptr: core::ptr::NonNull<u8>,
-        old_layout: core::alloc::Layout,
-        new_layout: core::alloc::Layout,
-    ) -> Result<core::ptr::NonNull<[u8]>, core::alloc::AllocError> {
-        // SAFETY: this simply delegates to the bump allocator
-        unsafe { (&self.bump).grow(ptr, old_layout, new_layout) }
+        ptr: ptr::NonNull<u8>,
+        old_layout: alloc::Layout,
+        new_layout: alloc::Layout,
+    ) -> Result<ptr::NonNull<[u8]>, alloc::AllocError> {
+        // SAFETY: Caller upholds Allocator contract.
+        unsafe { self.inner.grow(ptr, old_layout, new_layout) }
     }
 
+    #[inline]
     unsafe fn grow_zeroed(
         &self,
-        ptr: core::ptr::NonNull<u8>,
-        old_layout: core::alloc::Layout,
-        new_layout: core::alloc::Layout,
-    ) -> Result<core::ptr::NonNull<[u8]>, core::alloc::AllocError> {
-        // SAFETY: this simply delegates to the bump allocator
-        unsafe { (&self.bump).grow_zeroed(ptr, old_layout, new_layout) }
+        ptr: ptr::NonNull<u8>,
+        old_layout: alloc::Layout,
+        new_layout: alloc::Layout,
+    ) -> Result<ptr::NonNull<[u8]>, alloc::AllocError> {
+        // SAFETY: Caller upholds Allocator contract.
+        unsafe { self.inner.grow_zeroed(ptr, old_layout, new_layout) }
     }
 
+    #[inline]
     unsafe fn shrink(
         &self,
-        ptr: core::ptr::NonNull<u8>,
-        old_layout: core::alloc::Layout,
-        new_layout: core::alloc::Layout,
-    ) -> Result<core::ptr::NonNull<[u8]>, core::alloc::AllocError> {
-        // SAFETY: this simply delegates to the bump allocator
-        unsafe { (&self.bump).shrink(ptr, old_layout, new_layout) }
+        ptr: ptr::NonNull<u8>,
+        old_layout: alloc::Layout,
+        new_layout: alloc::Layout,
+    ) -> Result<ptr::NonNull<[u8]>, alloc::AllocError> {
+        // SAFETY: Caller upholds Allocator contract.
+        unsafe { self.inner.shrink(ptr, old_layout, new_layout) }
     }
 
-    fn allocate(
-        &self,
-        layout: core::alloc::Layout,
-    ) -> Result<core::ptr::NonNull<[u8]>, core::alloc::AllocError> {
-        (&self.bump).allocate(layout)
-    }
-
-    unsafe fn deallocate(&self, ptr: core::ptr::NonNull<u8>, layout: core::alloc::Layout) {
-        // SAFETY: this simply delegates to the bump allocator
-        unsafe { (&self.bump).deallocate(ptr, layout) }
+    #[inline]
+    unsafe fn deallocate(&self, ptr: ptr::NonNull<u8>, layout: alloc::Layout) {
+        // SAFETY: Caller upholds Allocator contract.
+        unsafe { self.inner.deallocate(ptr, layout) }
     }
 }

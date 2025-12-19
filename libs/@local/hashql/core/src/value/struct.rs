@@ -1,7 +1,11 @@
 use core::ops::Index;
 
 use super::{Tuple, Value};
-use crate::{collections::SmallVec, heap::Heap, symbol::Symbol};
+use crate::{
+    collections::SmallVec,
+    heap::{Heap, TransferInto as _},
+    symbol::Symbol,
+};
 
 /// Errors that can occur when working with [`Struct`] fields.
 #[derive(Debug, Clone, PartialEq, Eq, Hash, derive_more::Display)]
@@ -123,7 +127,7 @@ impl<'heap> Struct<'heap> {
             }
         }
 
-        let fields = heap.slice(&fields);
+        let fields = fields.transfer_into(heap);
         let values = Tuple::from_values(values);
 
         Self { fields, values }

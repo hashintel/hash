@@ -9,6 +9,7 @@ use hashql_ast::node::{
     id::NodeId,
     path::{Path, PathSegment},
 };
+use hashql_core::heap::CollectIn as _;
 
 use self::{
     error::{
@@ -59,25 +60,28 @@ fn parse_labelled_argument_shorthand<'heap>(
         value: Argument {
             id: NodeId::PLACEHOLDER,
             span: token_span,
-            value: state.heap().boxed(Expr {
-                id: NodeId::PLACEHOLDER,
-                span: token_span,
-                kind: ExprKind::Path(Path {
+            value: Box::new_in(
+                Expr {
                     id: NodeId::PLACEHOLDER,
                     span: token_span,
-                    rooted: false,
-                    segments: {
-                        let mut segments = state.heap().vec(Some(1));
-                        segments.push(PathSegment {
-                            id: NodeId::PLACEHOLDER,
-                            span: token_span,
-                            name: key,
-                            arguments: state.heap().vec(Some(0)),
-                        });
-                        segments
-                    },
-                }),
-            }),
+                    kind: ExprKind::Path(Path {
+                        id: NodeId::PLACEHOLDER,
+                        span: token_span,
+                        rooted: false,
+                        segments: {
+                            let mut segments = Vec::with_capacity_in(1, state.heap());
+                            segments.push(PathSegment {
+                                id: NodeId::PLACEHOLDER,
+                                span: token_span,
+                                name: key,
+                                arguments: Vec::new_in(state.heap()),
+                            });
+                            segments
+                        },
+                    }),
+                },
+                state.heap(),
+            ),
         },
     }])
 }
@@ -159,7 +163,7 @@ fn parse_labelled_argument<'heap>(
             value: Argument {
                 id: NodeId::PLACEHOLDER,
                 span: value.span,
-                value: state.heap().boxed(value),
+                value: Box::new_in(value, state.heap()),
             },
         });
 
@@ -204,7 +208,7 @@ pub(crate) fn parse_array<'heap, 'source>(
                 arguments.push(Argument {
                     id: NodeId::PLACEHOLDER,
                     span: expr.span,
-                    value: state.heap().boxed(expr),
+                    value: Box::new_in(expr, state.heap()),
                 });
             }
             function @ None => *function = Some(parse_expr(state)?),
@@ -231,9 +235,9 @@ pub(crate) fn parse_array<'heap, 'source>(
         kind: ExprKind::Call(CallExpr {
             id: NodeId::PLACEHOLDER,
             span,
-            function: heap.boxed(function),
-            arguments: heap.transfer_vec(arguments),
-            labeled_arguments: heap.transfer_vec(labeled_arguments),
+            function: Box::new_in(function, heap),
+            arguments: arguments.into_iter().collect_in(heap),
+            labeled_arguments: labeled_arguments.into_iter().collect_in(heap),
         }),
     })
 }

@@ -92,7 +92,7 @@ use core::mem;
 
 use hashql_core::{
     collections::FastHashMap,
-    heap::Heap,
+    heap::{CollectIn as _, Heap},
     module::{
         ModuleRegistry, Reference, Universe,
         item::{IntrinsicItem, IntrinsicValueItem, ItemKind},
@@ -267,25 +267,25 @@ impl<'env, 'heap> PreExpansionNameResolver<'env, 'heap> {
             .strip_prefix("::")
             .map_or((false, path), |path| (true, path));
 
-        let segments = path.split("::").map(|name| PathSegment {
-            id: NodeId::PLACEHOLDER,
-            span: SpanId::SYNTHETIC,
-            name: Ident {
+        let segments = path
+            .split("::")
+            .map(|name| PathSegment {
+                id: NodeId::PLACEHOLDER,
                 span: SpanId::SYNTHETIC,
-                value: self.heap.intern_symbol(name),
-                kind: IdentKind::Lexical,
-            },
-            arguments: self.heap.vec(None),
-        });
-
-        let mut vec = self.heap.vec(None);
-        vec.extend(segments);
+                name: Ident {
+                    span: SpanId::SYNTHETIC,
+                    value: self.heap.intern_symbol(name),
+                    kind: IdentKind::Lexical,
+                },
+                arguments: Vec::new_in(self.heap),
+            })
+            .collect_in(self.heap);
 
         let path = Path {
             id: NodeId::PLACEHOLDER,
             span: SpanId::SYNTHETIC,
             rooted,
-            segments: vec,
+            segments,
         };
 
         self.namespace_cache.insert(name, path.clone());
@@ -319,7 +319,7 @@ impl<'heap> Visitor<'heap> for PreExpansionNameResolver<'_, 'heap> {
             return;
         };
 
-        let mut arguments = Some(mem::replace(&mut segment.arguments, self.heap.vec(None)));
+        let mut arguments = Some(mem::replace(&mut segment.arguments, Vec::new_in(self.heap)));
 
         let span = segment.span;
 
