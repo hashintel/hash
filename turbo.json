@@ -28,6 +28,9 @@
     "build:types": {
       "dependsOn": ["^build:types"]
     },
+    "build:codspeed": {
+      "cache": false
+    },
     "compile": {
       "cache": false
     },
