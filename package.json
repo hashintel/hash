@@ -69,13 +69,6 @@
     "test:unit": "CARGO_TERM_PROGRESS_WHEN=never turbo run test:unit --env-mode=loose --"
   },
   "resolutions": {
-    "@ai-sdk/azure": "2.0.79",
-    "@ai-sdk/gateway": "2.0.12",
-    "@ai-sdk/openai": "2.0.80",
-    "@ai-sdk/provider": "2.0.0",
-    "@ai-sdk/provider-utils": "3.0.18",
-    "@ai-sdk/react": "1.2.12",
-    "@ai-sdk/ui-utils": "1.2.11",
     "@artilleryio/int-commons@npm:2.11.0": "patch:@artilleryio/int-commons@npm%3A2.11.0#~/.yarn/patches/@artilleryio-int-commons-npm-2.11.0-5b69c05121.patch",
     "@changesets/assemble-release-plan@npm:^5.2.3": "patch:@changesets/assemble-release-plan@npm%3A5.2.4#~/.yarn/patches/@changesets-assemble-release-plan-npm-5.2.4-2920e4dc4c.patch",
     "@changesets/assemble-release-plan@npm:^5.2.4": "patch:@changesets/assemble-release-plan@npm%3A5.2.4#~/.yarn/patches/@changesets-assemble-release-plan-npm-5.2.4-2920e4dc4c.patch",
