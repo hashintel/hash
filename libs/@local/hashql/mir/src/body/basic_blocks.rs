@@ -341,6 +341,7 @@ impl graph::Successors for BasicBlocks<'_> {
     where
         Self: 'this;
 
+    #[inline]
     fn successors(&self, node: Self::NodeId) -> Self::SuccIter<'_> {
         self.blocks[node].terminator.kind.successor_blocks()
     }
