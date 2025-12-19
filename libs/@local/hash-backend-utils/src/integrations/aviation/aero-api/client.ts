@@ -1,5 +1,11 @@
+import {
+  type BatchFlightGraphResult,
+  buildFlightGraphBatch,
+} from "./client/build-graph.js";
+import { generateAeroApiProvenance } from "./client/provenance.js";
 import type {
   AeroApiScheduledArrivalsResponse,
+  AeroApiScheduledFlight,
   ScheduledArrivalsRequestParams,
 } from "./client/types.js";
 
@@ -54,11 +60,11 @@ const makeRequest = async <T>(url: string): Promise<T> => {
 };
 
 /**
- * Retrieve scheduled arrivals for an airport from FlightAware AeroAPI.
+ * Retrieve a single page of scheduled arrivals for an airport.
  *
- * @see https://flightaware.com/aeroapi/portal/documentation#get-/airports/-id-/flights/scheduled_arrivals
+ * @see https://www.flightaware.com/aeroapi/portal/documentation#get-/airports/-id-/flights/scheduled_arrivals
  */
-export const getScheduledArrivals = async (
+const getScheduledArrivals = async (
   params: ScheduledArrivalsRequestParams,
 ): Promise<AeroApiScheduledArrivalsResponse> => {
   const { airportIcao, ...queryParams } = params;
@@ -67,4 +73,48 @@ export const getScheduledArrivals = async (
     queryParams,
   );
   return makeRequest<AeroApiScheduledArrivalsResponse>(url);
+};
+
+/**
+ * Retrieve all scheduled arrivals for an airport, handling pagination automatically.
+ */
+const getAllScheduledArrivals = async (
+  params: Omit<ScheduledArrivalsRequestParams, "cursor">,
+): Promise<AeroApiScheduledFlight[]> => {
+  const allFlights: AeroApiScheduledFlight[] = [];
+
+  let response = await getScheduledArrivals(params);
+  allFlights.push(...response.scheduled_arrivals);
+
+  while (response.links?.next) {
+    response = await makeRequest<AeroApiScheduledArrivalsResponse>(
+      response.links.next,
+    );
+    allFlights.push(...response.scheduled_arrivals);
+  }
+
+  return allFlights;
+};
+
+/**
+ * Fetch scheduled arrivals for an airport on a given date and map them to HASH entities.
+ *
+ * @param airportIcao - ICAO airport code (e.g., "EGLL" for London Heathrow)
+ * @param date - Date string in YYYY-MM-DD format
+ * @returns Deduplicated entities and links ready for database insertion
+ */
+export const getScheduledArrivalEntities = async (
+  airportIcao: string,
+  date: string,
+): Promise<BatchFlightGraphResult> => {
+  const start = `${date}T00:00:00Z`;
+  const end = `${date}T23:59:59Z`;
+
+  const flights = await getAllScheduledArrivals({
+    airportIcao,
+    start,
+    end,
+  });
+
+  return buildFlightGraphBatch(flights, generateAeroApiProvenance());
 };

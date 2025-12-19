@@ -4,18 +4,18 @@ import {
   type Url,
 } from "@blockprotocol/type-system";
 
-export const generateAeroApiProvenance: Pick<
+export const generateFlightradar24Provenance = (): Pick<
   ProvidedEntityEditionProvenance,
   "sources"
-> = {
+> => ({
   sources: [
     {
       type: "integration",
       location: {
-        name: "FlightAware AeroAPI",
-        uri: "https://aeroapi.flightaware.com/aeroapi/" as Url,
+        name: "Flightradar24 API",
+        uri: "https://fr24api.flightradar24.com/api/" as Url,
       },
       loadedAt: currentTimestamp(),
     },
   ],
-};
+});

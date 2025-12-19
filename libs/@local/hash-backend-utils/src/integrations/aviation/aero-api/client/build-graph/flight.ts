@@ -1,9 +1,9 @@
 import type { ProvidedEntityEditionProvenance } from "@blockprotocol/type-system";
 import type { Flight as HashFlight } from "@local/hash-isomorphic-utils/system-types/flight";
 
-import type { AeroApiScheduledFlight } from "../client/types.js";
-import type { MappingFunction } from "./base.js";
-import { generatePrimaryKey } from "./primary-keys.js";
+import { generatePrimaryKey } from "../../../shared/primary-keys.js";
+import type { AeroApiScheduledFlight } from "../types.js";
+import type { MappingFunction } from "./mapping-types.js";
 
 export type AeroApiFlightInput = AeroApiScheduledFlight;
 
@@ -52,22 +52,35 @@ const extractFlightDate = (flight: AeroApiScheduledFlight): string | null => {
 
 /**
  * Maps AeroAPI scheduled flight data to a HASH Flight entity.
+ * Returns `null` if flight number or date is missing.
  *
- * Note: AeroAPI provides rich data including:
- * - ICAO/IATA flight identifiers
- * - ATC callsign
- * - Flight type
- * - Codeshares
- * - Detailed timestamps (handled by link mappings)
- *
- * Departure and arrival details (times, gates, runways) are mapped
- * via the departsFrom and arrivesAt link mappers.
+ * Departure and arrival details (times, gates, runways) are presented on the ArrivesAt and DepartsFrom link entities.
  */
 export const mapFlight: MappingFunction<AeroApiFlightInput, HashFlight> = (
   input: AeroApiFlightInput,
   provenance: Pick<ProvidedEntityEditionProvenance, "sources">,
 ) => {
   const flightDate = extractFlightDate(input);
+
+  /**
+   * The 2 letter IATA code of the airline and the flight number.
+   * This is the flight number presented to consumers, and also that used by the flightradar24 API.
+   * Standardising on this allows us to use the same primary key and reliably identify the same flight across sources.
+   */
+  const flightNumber =
+    input.operator_iata && input.flight_number
+      ? `${input.operator_iata}${input.flight_number}`
+      : null;
+
+  const primaryKey = generatePrimaryKey.flight({
+    flightNumber,
+    flightDate,
+  });
+
+  if (!primaryKey || !flightNumber) {
+    return null;
+  }
+
   const flightStatus = deriveFlightStatus(input);
 
   // Build codeshares array from both ICAO and IATA codes
@@ -75,14 +88,14 @@ export const mapFlight: MappingFunction<AeroApiFlightInput, HashFlight> = (
     "https://hash.ai/@h/types/property-type/icao-code/"?: {
       value: string;
       metadata: {
-        dataTypeId: string;
+        dataTypeId: "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1";
         provenance: Pick<ProvidedEntityEditionProvenance, "sources">;
       };
     };
     "https://hash.ai/@h/types/property-type/iata-code/"?: {
       value: string;
       metadata: {
-        dataTypeId: string;
+        dataTypeId: "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1";
         provenance: Pick<ProvidedEntityEditionProvenance, "sources">;
       };
     };
@@ -126,7 +139,7 @@ export const mapFlight: MappingFunction<AeroApiFlightInput, HashFlight> = (
   const properties: HashFlight["propertiesWithMetadata"] = {
     value: {
       "https://hash.ai/@h/types/property-type/flight-number/": {
-        value: input.flight_number ?? input.ident,
+        value: flightNumber,
         metadata: {
           dataTypeId:
             "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
@@ -153,16 +166,6 @@ export const mapFlight: MappingFunction<AeroApiFlightInput, HashFlight> = (
           },
         },
       }),
-      ...(input.atc_ident && {
-        "https://hash.ai/@h/types/property-type/callsign/": {
-          value: input.atc_ident,
-          metadata: {
-            dataTypeId:
-              "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
-            provenance,
-          },
-        },
-      }),
       ...(input.type && {
         "https://hash.ai/@h/types/property-type/flight-type/": {
           value: input.type,
@@ -182,36 +185,20 @@ export const mapFlight: MappingFunction<AeroApiFlightInput, HashFlight> = (
           },
         },
       }),
-      ...(flightDate && {
-        "https://hash.ai/@h/types/property-type/flight-date/": {
-          value: flightDate,
-          metadata: {
-            dataTypeId: "https://hash.ai/@h/types/data-type/date/v/1",
-            provenance,
-          },
+      "https://hash.ai/@h/types/property-type/flight-date/": {
+        value: flightDate!,
+        metadata: {
+          dataTypeId: "https://hash.ai/@h/types/data-type/date/v/1",
+          provenance,
         },
-      }),
+      },
       ...(codeshares.length > 0 && {
         "https://hash.ai/@h/types/property-type/codeshare/": {
           value: codeshares.map((codeshare) => ({ value: codeshare })),
-          metadata: {
-            dataTypeId:
-              "https://blockprotocol.org/@blockprotocol/types/data-type/object/v/1",
-            provenance,
-          },
         },
       }),
     },
   };
-
-  const primaryKey = generatePrimaryKey.flight({
-    "https://hash.ai/@h/types/property-type/icao-code/":
-      input.ident_icao ?? undefined,
-    "https://hash.ai/@h/types/property-type/flight-number/":
-      input.flight_number ?? input.ident,
-    "https://hash.ai/@h/types/property-type/flight-date/":
-      flightDate ?? undefined,
-  });
 
   return {
     primaryKey,

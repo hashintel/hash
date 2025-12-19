@@ -1,42 +1,43 @@
 import type { ProvidedEntityEditionProvenance } from "@blockprotocol/type-system";
-import type { DepartsFrom as HashDepartsFrom } from "@local/hash-isomorphic-utils/system-types/flight";
+import type { ArrivesAt as HashArrivesAt } from "@local/hash-isomorphic-utils/system-types/flight";
 
-import type { AeroApiScheduledFlight } from "../client/types.js";
-import type { MappingFunction } from "./base.js";
+import type { AeroApiScheduledFlight } from "../types.js";
+import type { MappingFunction } from "./mapping-types.js";
 
 /**
- * Input type for departure link mapping from AeroAPI data.
+ * Input type for arrival link mapping from AeroAPI data.
  */
-export type AeroApiDepartureInput = Pick<
+export type AeroApiArrivalInput = Pick<
   AeroApiScheduledFlight,
-  | "gate_origin"
-  | "terminal_origin"
-  | "actual_runway_off"
-  | "departure_delay"
-  | "scheduled_out"
-  | "estimated_out"
-  | "actual_out"
-  | "scheduled_off"
-  | "estimated_off"
-  | "actual_off"
+  | "gate_destination"
+  | "terminal_destination"
+  | "actual_runway_on"
+  | "baggage_claim"
+  | "arrival_delay"
+  | "scheduled_in"
+  | "estimated_in"
+  | "actual_in"
+  | "scheduled_on"
+  | "estimated_on"
+  | "actual_on"
 >;
 
 /**
- * Maps AeroAPI departure data to a HASH "Departs From" link entity.
+ * Maps AeroAPI arrival data to a HASH "Arrives At" link entity.
  */
-export const mapDepartsFrom: MappingFunction<
-  AeroApiDepartureInput,
-  HashDepartsFrom,
+export const mapArrivesAt: MappingFunction<
+  AeroApiArrivalInput,
+  HashArrivesAt,
   true
 > = (
-  input: AeroApiDepartureInput,
+  input: AeroApiArrivalInput,
   provenance: Pick<ProvidedEntityEditionProvenance, "sources">,
 ) => {
-  const properties: HashDepartsFrom["propertiesWithMetadata"] = {
+  const properties: HashArrivesAt["propertiesWithMetadata"] = {
     value: {
-      ...(input.gate_origin && {
+      ...(input.gate_destination && {
         "https://hash.ai/@h/types/property-type/gate/": {
-          value: input.gate_origin,
+          value: input.gate_destination,
           metadata: {
             dataTypeId:
               "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
@@ -44,9 +45,9 @@ export const mapDepartsFrom: MappingFunction<
           },
         },
       }),
-      ...(input.terminal_origin && {
+      ...(input.terminal_destination && {
         "https://hash.ai/@h/types/property-type/terminal/": {
-          value: input.terminal_origin,
+          value: input.terminal_destination,
           metadata: {
             dataTypeId:
               "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
@@ -54,9 +55,9 @@ export const mapDepartsFrom: MappingFunction<
           },
         },
       }),
-      ...(input.actual_runway_off && {
+      ...(input.actual_runway_on && {
         "https://hash.ai/@h/types/property-type/runway/": {
-          value: input.actual_runway_off,
+          value: input.actual_runway_on,
           metadata: {
             dataTypeId:
               "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
@@ -64,9 +65,19 @@ export const mapDepartsFrom: MappingFunction<
           },
         },
       }),
-      ...(input.departure_delay !== null && {
+      ...(input.baggage_claim && {
+        "https://hash.ai/@h/types/property-type/baggage-claim/": {
+          value: input.baggage_claim,
+          metadata: {
+            dataTypeId:
+              "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+            provenance,
+          },
+        },
+      }),
+      ...(input.arrival_delay !== null && {
         "https://hash.ai/@h/types/property-type/delay-in-seconds/": {
-          value: input.departure_delay,
+          value: input.arrival_delay,
           metadata: {
             dataTypeId: "https://hash.ai/@h/types/data-type/integer/v/1",
             provenance,
@@ -74,27 +85,27 @@ export const mapDepartsFrom: MappingFunction<
         },
       }),
       // Gate times
-      ...(input.scheduled_out && {
+      ...(input.scheduled_in && {
         "https://hash.ai/@h/types/property-type/scheduled-gate-time/": {
-          value: input.scheduled_out,
+          value: input.scheduled_in,
           metadata: {
             dataTypeId: "https://hash.ai/@h/types/data-type/datetime/v/1",
             provenance,
           },
         },
       }),
-      ...(input.estimated_out && {
+      ...(input.estimated_in && {
         "https://hash.ai/@h/types/property-type/estimated-gate-time/": {
-          value: input.estimated_out,
+          value: input.estimated_in,
           metadata: {
             dataTypeId: "https://hash.ai/@h/types/data-type/datetime/v/1",
             provenance,
           },
         },
       }),
-      ...(input.actual_out && {
+      ...(input.actual_in && {
         "https://hash.ai/@h/types/property-type/actual-gate-time/": {
-          value: input.actual_out,
+          value: input.actual_in,
           metadata: {
             dataTypeId: "https://hash.ai/@h/types/data-type/datetime/v/1",
             provenance,
@@ -102,27 +113,27 @@ export const mapDepartsFrom: MappingFunction<
         },
       }),
       // Runway times
-      ...(input.scheduled_off && {
+      ...(input.scheduled_on && {
         "https://hash.ai/@h/types/property-type/scheduled-runway-time/": {
-          value: input.scheduled_off,
+          value: input.scheduled_on,
           metadata: {
             dataTypeId: "https://hash.ai/@h/types/data-type/datetime/v/1",
             provenance,
           },
         },
       }),
-      ...(input.estimated_off && {
+      ...(input.estimated_on && {
         "https://hash.ai/@h/types/property-type/estimated-runway-time/": {
-          value: input.estimated_off,
+          value: input.estimated_on,
           metadata: {
             dataTypeId: "https://hash.ai/@h/types/data-type/datetime/v/1",
             provenance,
           },
         },
       }),
-      ...(input.actual_off && {
+      ...(input.actual_on && {
         "https://hash.ai/@h/types/property-type/actual-runway-time/": {
-          value: input.actual_off,
+          value: input.actual_on,
           metadata: {
             dataTypeId: "https://hash.ai/@h/types/data-type/datetime/v/1",
             provenance,
@@ -135,7 +146,7 @@ export const mapDepartsFrom: MappingFunction<
   return {
     primaryKey: null, // Links don't have primary keys
     typeIdsAndProperties: {
-      entityTypeIds: ["https://hash.ai/@h/types/entity-type/departs-from/v/1"],
+      entityTypeIds: ["https://hash.ai/@h/types/entity-type/arrives-at/v/1"],
       properties,
     },
   };

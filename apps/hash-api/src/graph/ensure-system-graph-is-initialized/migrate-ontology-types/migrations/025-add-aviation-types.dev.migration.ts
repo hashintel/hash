@@ -565,21 +565,6 @@ const migrate: MigrationFunction = async ({
     },
   );
 
-  const callsignPropertyType = await createSystemPropertyTypeIfNotExists(
-    context,
-    authentication,
-    {
-      propertyTypeDefinition: {
-        title: "Callsign",
-        description:
-          "The radio callsign used by air traffic control to identify an aircraft (e.g., 'DLH8VM').",
-        possibleValues: [{ primitiveDataType: "text" }],
-      },
-      migrationState,
-      webShortname: "h",
-    },
-  );
-
   const flightTypePropertyType = await createSystemPropertyTypeIfNotExists(
     context,
     authentication,
@@ -632,21 +617,6 @@ const migrate: MigrationFunction = async ({
       migrationState,
       webShortname: "h",
     });
-
-  const icao24AddressPropertyType = await createSystemPropertyTypeIfNotExists(
-    context,
-    authentication,
-    {
-      propertyTypeDefinition: {
-        title: "ICAO24 Address",
-        description:
-          "A unique 24-bit transponder address assigned to an aircraft, represented in hexadecimal format.",
-        possibleValues: [{ primitiveDataType: "text" }],
-      },
-      migrationState,
-      webShortname: "h",
-    },
-  );
 
   const metersDataTypeId = getCurrentHashDataTypeId({
     dataTypeKey: "meters",
@@ -841,13 +811,7 @@ const migrate: MigrationFunction = async ({
             required: true,
           },
           {
-            propertyType: iataCodePropertyType,
-          },
-          {
             propertyType: icaoCodePropertyType,
-          },
-          {
-            propertyType: icao24AddressPropertyType,
           },
         ],
       },
@@ -983,9 +947,6 @@ const migrate: MigrationFunction = async ({
           },
           {
             propertyType: icaoCodePropertyType,
-          },
-          {
-            propertyType: callsignPropertyType,
           },
           {
             propertyType: flightTypePropertyType,

@@ -427,8 +427,13 @@ export type FlightPropertiesWithMetadata = {
 /**
  * The current operational status of a flight, indicating whether it is scheduled, in progress, completed, or has encountered issues.
  */
-export type FlightStatusDataType = TextDataType &
-  ("Scheduled" | "Active" | "Landed" | "Cancelled" | "Incident" | "Diverted");
+export type FlightStatusDataType =
+  | "Scheduled"
+  | "Active"
+  | "Landed"
+  | "Cancelled"
+  | "Incident"
+  | "Diverted";
 
 export type FlightStatusDataTypeWithMetadata = {
   value: FlightStatusDataType;

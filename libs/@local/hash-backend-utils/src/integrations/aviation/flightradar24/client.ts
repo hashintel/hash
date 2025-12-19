@@ -1,8 +1,12 @@
+import type { Flight as HashFlight } from "@local/hash-isomorphic-utils/system-types/flight";
+
+import { mapFlight } from "./client/flight.js";
+import { generateFlightradar24Provenance } from "./client/provenance.js";
 import type {
   ErrorResponse,
   FlightPositionsLightRequestParams,
   FlightPositionsLightResponse,
-} from "./flightradar24-client/types.js";
+} from "./client/types.js";
 
 const baseUrl = "https://fr24api.flightradar24.com/api/";
 
@@ -26,7 +30,7 @@ const generateUrl = (path: string, params?: Record<string, unknown>) => {
   return url.toString();
 };
 
-const makeRequest = async <T>(url: string): Promise<T> => {
+const makeRequest = async <T extends object>(url: string): Promise<T> => {
   const apiToken = process.env.FLIGHTRADAR24_API_TOKEN;
 
   if (!apiToken) {
@@ -68,4 +72,25 @@ export const getFlightPositionsLight = async (
 ): Promise<FlightPositionsLightResponse> => {
   const url = generateUrl("live/flight-positions/light", params);
   return makeRequest<FlightPositionsLightResponse>(url);
+};
+
+/**
+ * Fetch live flight position by callsign and map to a HASH Flight entity.
+ *
+ * @param flightNumber - Flight number (e.g., "BAW123")
+ * @returns The flight entity if found, or null if no matching flight or missing data
+ */
+export const getFlightPositionProperties = async (
+  flightNumber: string,
+): Promise<{
+  properties: Partial<HashFlight["propertiesWithMetadata"]["value"]>;
+} | null> => {
+  const response = await getFlightPositionsLight({ flights: flightNumber });
+
+  const flight = response.data[0];
+  if (!flight) {
+    return null;
+  }
+
+  return mapFlight(flight, generateFlightradar24Provenance());
 };
