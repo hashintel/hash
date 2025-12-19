@@ -110,7 +110,13 @@ export const findSkillsDir = async (): Promise<string> => {
       break;
     }
 
-    cwd = path.dirname(cwd);
+    const parent = path.dirname(cwd);
+    if (parent === cwd) {
+      // We've reached the root of the filesystem without finding a .git directory
+      throw new Error("Not in a git repository");
+    }
+
+    cwd = parent;
   }
 
   const skillsDir = path.join(cwd, ".claude/skills");

@@ -298,7 +298,7 @@
       "type": "domain",
       "enforcement": "suggest",
       "priority": "high",
-      "description": "HashQL J-Expr syntax for writing queries. Use when writing J-Expr code, using",
+      "description": "HashQL J-Expr syntax for writing queries. Use when writing J-Expr code, using #literal/#struct/#list constructs, understanding function call syntax, or working with HashQL query files (.jsonc).",
       "promptTriggers": {
         "keywords": [
           "J-Expr",

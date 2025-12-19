@@ -1,6 +1,6 @@
 ---
 name: writing-hashql-jexpr
-description: HashQL J-Expr syntax for writing queries. Use when writing J-Expr code, using #literal/#struct/#list constructs, understanding function call syntax, or working with HashQL query files (.jsonc).
+description: 'HashQL J-Expr syntax for writing queries. Use when writing J-Expr code, using #literal/#struct/#list constructs, understanding function call syntax, or working with HashQL query files (.jsonc).'
 license: AGPL-3.0
 metadata:
   triggers:
