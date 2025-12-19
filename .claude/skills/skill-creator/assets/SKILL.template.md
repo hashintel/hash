@@ -1,6 +1,6 @@
 ---
 name: {{skill_name}}
-description: [TODO: Complete and informative explanation of what the skill does and when to use it. Include WHEN to use this skill - specific scenarios, file types, or tasks that trigger it.]
+description: "[TODO: Complete and informative explanation of what the skill does and when to use it. Include WHEN to use this skill - specific scenarios, file types, or tasks that trigger it.]"
 # license: Apache-2.0  # Uncomment and set license if needed
 metadata:
   triggers:
@@ -8,7 +8,7 @@ metadata:
     enforcement: suggest   # "suggest", "warn", or "block"
     priority: medium       # "critical", "high", "medium", or "low"
     keywords:
-      - [TODO: Add keywords that should trigger this skill]
+      - "[TODO: Add keywords that should trigger this skill]"
     intent-patterns:
       - "[TODO: Add regex patterns, e.g., \\b(create|add)\\b.*?\\bsomething\\b]"
     # files:               # Uncomment if needed
