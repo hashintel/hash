@@ -11,7 +11,7 @@ use crate::store::postgres::query::{Expression, Transpile};
 pub enum SelectExpression {
     /// A regular expression with an optional alias.
     ///
-    /// Transpiles to: `expression` or `expression AS "alias"`
+    /// Transpiles to: `expression` or `expression AS "alias"`.
     Expression {
         expression: Expression,
         alias: Option<&'static str>,

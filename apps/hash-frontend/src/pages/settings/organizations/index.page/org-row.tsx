@@ -8,12 +8,16 @@ import type {
 import { removeUserFromOrgMutation } from "../../../../graphql/queries/knowledge/org.queries";
 import type { Org } from "../../../../lib/user-and-org";
 import { Link } from "../../../../shared/ui/link";
+import { useUserPermissionsOnEntity } from "../../../../shared/use-user-permissions-on-entity";
 import { useAuthenticatedUser } from "../../../shared/auth-info-context";
 import { SettingsTableCell } from "../../shared/settings-table-cell";
 import { OrgContextMenu } from "./org-row/org-context-menu";
 
 export const OrgRow = ({ org }: { org: Org }) => {
   const { authenticatedUser, refetch } = useAuthenticatedUser();
+
+  const { userPermissions } = useUserPermissionsOnEntity(org.entity);
+  const readonly = !userPermissions?.editMembers;
 
   const [removeUserFromOrg] = useMutation<
     RemoveUserFromOrgMutation,
@@ -67,7 +71,7 @@ export const OrgRow = ({ org }: { org: Org }) => {
         </Typography>
       </TableCell>
       <TableCell>
-        <OrgContextMenu org={org} leaveOrg={leaveOrg} />
+        <OrgContextMenu org={org} leaveOrg={leaveOrg} readonly={readonly} />
       </TableCell>
     </TableRow>
   );

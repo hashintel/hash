@@ -4,7 +4,7 @@
 
 📚 RECOMMENDED SKILLS:
   → managing-cargo-dependencies
-    Cargo.toml dependency management patterns for HASH workspace
+    Cargo.toml dependency management patterns for HASH workspace. Use when adding, updating, or removing dependencies, organizing Cargo.toml sections, configuring version pinning and default features, or managing public dependencies.
 
 ACTION: Use Skill tool BEFORE responding
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━

@@ -321,10 +321,10 @@ trait StandardLibraryModule<'heap>: 'static {
 
 /// Declares a generic function type with parameters and return type.
 ///
-/// Syntax: `<generics>(params) -> return_type`
-/// - `generics`: Optional generic type parameters with optional bounds
-/// - `params`: Function parameters with their type bounds
-/// - `return_type`: The return type expression
+/// Syntax: `<generics>(params) -> return_type`:
+/// - `generics`: Optional generic type parameters with optional bounds.
+/// - `params`: Function parameters with their type bounds.
+/// - `return_type`: The return type expression.
 ///
 /// Creates a closure type that can be generic if type parameters are specified.
 macro_rules! decl {

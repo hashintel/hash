@@ -111,8 +111,8 @@ use crate::ontology::{
 pub struct PropertyType {
     /// The unique identifier for this property type.
     ///
-    /// This should be a versioned URL in the format:
-    /// `https://example.com/types/property-type/name/v/1`
+    /// This should be a versioned URL in the format
+    /// `https://example.com/types/property-type/name/v/1`.
     pub id: VersionedUrl,
 
     /// The human-readable name of the property type.

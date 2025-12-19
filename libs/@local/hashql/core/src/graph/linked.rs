@@ -48,12 +48,12 @@
 //! ```
 
 use alloc::alloc::Global;
-use core::alloc::Allocator;
+use core::{alloc::Allocator, ops::Index};
 
 use super::{
     DIRECTIONS, DirectedGraph, Direction, EdgeId, NodeId, Predecessors, Successors, Traverse,
 };
-use crate::id::{HasId, IdSlice, IdVec};
+use crate::id::{HasId, Id, IdSlice, IdVec};
 
 /// Sentinel value indicating "no edge" in linked lists.
 ///
@@ -69,6 +69,7 @@ const TOMBSTONE: EdgeId = EdgeId(usize::MAX);
 /// - Two linked list heads (outgoing and incoming edges)
 ///
 /// The `edges` array stores the head of each linked list, indexed by [`Direction`].
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub struct Node<N> {
     /// Unique identifier for this node.
     id: NodeId,
@@ -102,6 +103,7 @@ impl<N> HasId for Node<N> {
 /// The edge participates in two separate linked lists simultaneously:
 /// 1. The source node's outgoing edge list
 /// 2. The target node's incoming edge list
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub struct Edge<E> {
     /// Unique identifier for this edge.
     id: EdgeId,
@@ -207,6 +209,7 @@ impl<E> Edge<E> {
 /// }
 /// # else { unreachable!() }
 /// ```
+#[derive(Debug, Clone)]
 pub struct LinkedGraph<N, E, A: Allocator = Global> {
     /// All nodes in the graph, indexed by [`NodeId`].
     nodes: IdVec<NodeId, Node<N>, A>,
@@ -282,6 +285,49 @@ impl<N, E, A: Allocator> LinkedGraph<N, E, A> {
             // Start with empty edge lists
             edges: [TOMBSTONE; DIRECTIONS],
         })
+    }
+
+    /// Populates the graph with nodes derived from an existing indexed collection.
+    ///
+    /// For each element in `domain`, calls `data` to produce the node data and adds a
+    /// corresponding node to the graph. The resulting [`NodeId`]s will have the same
+    /// numeric values as the source collection's indices, enabling direct ID translation
+    /// between the domain and the graph.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the graph already contains nodes. This method is intended for initial
+    /// population only.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// # use hashql_core::graph::LinkedGraph;
+    /// # use hashql_core::id::{Id, IdVec};
+    /// #
+    /// # hashql_core::id::newtype!(struct MyId(usize is 0..=usize::MAX));
+    /// #
+    /// let mut items: IdVec<MyId, &str> = IdVec::new();
+    /// items.push("first");
+    /// items.push("second");
+    ///
+    /// let mut graph: LinkedGraph<&str, ()> = LinkedGraph::new();
+    /// graph.derive(&items, |_id, &value| value);
+    ///
+    /// // Node 0 corresponds to items[0], etc.
+    /// assert_eq!(graph.nodes().len(), 2);
+    /// ```
+    pub fn derive<I, T>(&mut self, domain: &IdSlice<I, T>, mut data: impl FnMut(I, &T) -> N)
+    where
+        I: Id,
+    {
+        assert!(self.nodes.is_empty());
+
+        self.nodes.raw.reserve(domain.len());
+
+        for (id, item) in domain.iter_enumerated() {
+            self.add_node(data(id, item));
+        }
     }
 
     /// Returns a reference to the node with the given identifier.
@@ -378,6 +424,14 @@ impl<N, E, A: Allocator> LinkedGraph<N, E, A> {
         self.edges.as_slice()
     }
 
+    /// Removes all edges from the graph while preserving nodes.
+    pub fn clear_edges(&mut self) {
+        self.edges.clear();
+        for node in self.nodes.iter_mut() {
+            node.edges = [TOMBSTONE; DIRECTIONS];
+        }
+    }
+
     /// Returns an iterator over edges incident to a node in the given direction.
     ///
     /// For [`Direction::Outgoing`], iterates edges where `node` is the source.
@@ -459,11 +513,33 @@ impl<N, E, A: Allocator> LinkedGraph<N, E, A> {
     pub fn outgoing_edges(&self, node: NodeId) -> IncidentEdges<'_, N, E, A> {
         IncidentEdges::new(self, Direction::Outgoing, node)
     }
+
+    /// Removes all nodes and edges from the graph.
+    pub fn clear(&mut self) {
+        self.nodes.clear();
+        self.edges.clear();
+    }
 }
 
 impl<N, E> Default for LinkedGraph<N, E> {
     fn default() -> Self {
         Self::new()
+    }
+}
+
+impl<N, E, A: Allocator> Index<NodeId> for LinkedGraph<N, E, A> {
+    type Output = Node<N>;
+
+    fn index(&self, index: NodeId) -> &Self::Output {
+        &self.nodes[index]
+    }
+}
+
+impl<N, E, A: Allocator> Index<EdgeId> for LinkedGraph<N, E, A> {
+    type Output = Edge<E>;
+
+    fn index(&self, index: EdgeId) -> &Self::Output {
+        &self.edges[index]
     }
 }
 

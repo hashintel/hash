@@ -78,7 +78,7 @@ impl DomainValidator {
         Ok(self.0.captures(url).ok_or(DomainValidationError)?)
     }
 
-    /// Returns the captures of the groups "shortname" and "kind"
+    /// Returns the captures of the groups "shortname" and "kind".
     ///
     /// # Errors
     ///

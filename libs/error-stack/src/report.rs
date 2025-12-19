@@ -384,8 +384,9 @@ impl<C> Report<C> {
         }
     }
 
-    /// Return the direct current frames of this report,
-    /// to get an iterator over the topological sorting of all frames refer to [`frames()`]
+    /// Returns the direct current frames of this report.
+    ///
+    /// To get an iterator over the topological sorting of all frames refer to [`frames()`].
     ///
     /// This is not the same as [`Report::current_context`], this function gets the underlying
     /// frames that make up this report, while [`Report::current_context`] traverses the stack of
@@ -393,7 +394,7 @@ impl<C> Report<C> {
     /// which stack on top of each other. Considering `PrintableA<PrintableA<Context>>`,
     /// [`Report::current_frame`] will return the "outer" layer `PrintableA`, while
     /// [`Report::current_context`] will return the underlying `Error` (the current type
-    /// parameter of this [`Report`])
+    /// parameter of this [`Report`]).
     ///
     /// A report can be made up of multiple stacks of frames and builds a "group" of them, this can
     /// be achieved through first calling [`Report::expand`] and then either using [`Extend`]
@@ -546,7 +547,7 @@ impl<C: ?Sized> Report<C> {
     /// Adds additional information to the [`Frame`] stack.
     ///
     /// This behaves like [`attach()`] but will not be shown when printing the [`Report`].
-    /// To benefit from seeing attachments in normal error outputs, use [`attach()`]
+    /// To benefit from seeing attachments in normal error outputs, use [`attach()`].
     ///
     /// **Note:** This will be deprecated in favor of [`attach()`] when specialization is
     /// stabilized it becomes possible to merge these two methods.
@@ -674,8 +675,9 @@ impl<C: ?Sized> Report<C> {
 }
 
 impl<C> Report<[C]> {
-    /// Return the direct current frames of this report,
-    /// to get an iterator over the topological sorting of all frames refer to [`frames()`]
+    /// Returns the direct current frames of this report.
+    ///
+    /// To get an iterator over the topological sorting of all frames refer to [`frames()`].
     ///
     /// This is not the same as [`Report::current_context`], this function gets the underlying
     /// frames that make up this report, while [`Report::current_context`] traverses the stack of
@@ -683,7 +685,7 @@ impl<C> Report<[C]> {
     /// which stack on top of each other. Considering `PrintableA<PrintableA<Context>>`,
     /// [`Report::current_frames`] will return the "outer" layer `PrintableA`, while
     /// [`Report::current_context`] will return the underlying `Error` (the current type
-    /// parameter of this [`Report`])
+    /// parameter of this [`Report`]).
     ///
     /// Using [`Extend`], [`push()`] and [`append()`], a [`Report`] can additionally be made up of
     /// multiple stacks of frames and builds a "group" of them, therefore this function returns a

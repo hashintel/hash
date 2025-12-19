@@ -14,7 +14,7 @@ use crate::{
     util::{StoreWrapper, setup, setup_subscriber},
 };
 
-/// User configuration for benchmarks
+/// User configuration for benchmarks.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum UserType {
     System,
@@ -32,7 +32,7 @@ impl UserType {
     }
 }
 
-/// Data seeding levels
+/// Data seeding levels.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum SeedLevel {
     None,
@@ -68,14 +68,14 @@ impl SeedLevel {
     }
 }
 
-/// Action combinations to test query patterns
+/// Action combinations to test query patterns.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum ActionSelectivity {
-    /// High selectivity - many policies match, query needs good optimization
+    /// High selectivity - many policies match, query needs good optimization.
     High,
-    /// Medium selectivity - moderate number of policies match
+    /// Medium selectivity - moderate number of policies match.
     Medium,
-    /// Low selectivity - few policies match, simpler queries
+    /// Low selectivity - few policies match, simpler queries.
     Low,
 }
 
@@ -97,7 +97,7 @@ impl ActionSelectivity {
     }
 }
 
-/// Complete benchmark configuration
+/// Complete benchmark configuration.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct BenchConfig {
     pub user: UserType,
@@ -105,7 +105,7 @@ pub struct BenchConfig {
     pub action_selectivity: ActionSelectivity,
 }
 
-/// Benchmark matrix definition
+/// Benchmark matrix definition.
 pub struct BenchmarkMatrix {
     pub users: Vec<UserType>,
     pub seeds: Vec<SeedLevel>,
@@ -113,7 +113,7 @@ pub struct BenchmarkMatrix {
 }
 
 impl BenchmarkMatrix {
-    /// Generate all possible combinations
+    /// Generate all possible combinations.
     pub fn generate_configs(&self) -> Vec<BenchConfig> {
         let mut configs = Vec::new();
 
@@ -137,7 +137,7 @@ impl BenchmarkMatrix {
         configs
     }
 
-    /// Full matrix for comprehensive benchmarking
+    /// Full matrix for comprehensive benchmarking.
     pub fn full() -> Self {
         Self {
             users: vec![UserType::System, UserType::Empty, UserType::Seeded],
@@ -159,7 +159,7 @@ impl BenchmarkMatrix {
     }
 }
 
-/// Get the actor ID for the given user config
+/// Get the actor ID for the given user config.
 fn get_test_actor(
     user_type: UserType,
     system_actor_id: ActorId,
@@ -176,7 +176,7 @@ fn get_test_actor(
     }
 }
 
-/// Run benchmark matrix
+/// Run benchmark matrix.
 pub fn run_benchmark_matrix(crit: &mut Criterion, matrix: &BenchmarkMatrix) {
     let configs = matrix.generate_configs();
 
@@ -199,7 +199,7 @@ pub fn run_benchmark_matrix(crit: &mut Criterion, matrix: &BenchmarkMatrix) {
     }
 }
 
-/// Run all benchmark configs for a single seed level (shared seeding)
+/// Run all benchmark configs for a single seed level (shared seeding).
 fn run_benchmark_seed_group(
     crit: &mut Criterion,
     seed_level: SeedLevel,
@@ -287,7 +287,7 @@ fn run_benchmark_seed_group(
     }
 }
 
-/// Setup database and return benchmark data for a specific seed level
+/// Setup database and return benchmark data for a specific seed level.
 async fn setup_benchmark_for_seed(
     seed_level: SeedLevel,
     store_wrapper: &mut StoreWrapper,

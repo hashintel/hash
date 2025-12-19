@@ -33,7 +33,7 @@ export function computeNextFrame(
       }
 
       // Skip places without a type (no dimensions to work with)
-      if (!placeState.instance.type) {
+      if (!placeState.instance.colorId) {
         continue;
       }
 
@@ -51,7 +51,7 @@ export function computeNextFrame(
       const placeBuffer = currentFrame.buffer.slice(offset, offset + placeSize);
 
       // Get the type definition to access dimension names
-      const typeId = placeState.instance.type;
+      const typeId = placeState.instance.colorId;
       if (!typeId) {
         continue; // This shouldn't happen due to earlier check, but be safe
       }

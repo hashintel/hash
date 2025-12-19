@@ -211,7 +211,10 @@ mod test {
     use core::ptr;
 
     use super::TABLES;
-    use crate::{heap::Heap, symbol::sym};
+    use crate::{
+        heap::{BumpAllocator as _, Heap},
+        symbol::sym,
+    };
 
     #[test]
     fn pointer_equality_from_heap() {

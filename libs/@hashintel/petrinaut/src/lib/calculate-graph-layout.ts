@@ -23,7 +23,6 @@ const elkLayoutOptions: ElkNode["layoutOptions"] = {
 };
 
 export type NodePosition = {
-  id: string;
   x: number;
   y: number;
 };
@@ -39,9 +38,9 @@ export type NodePosition = {
  */
 export const calculateGraphLayout = async (
   sdcpn: SDCPN,
-): Promise<NodePosition[]> => {
+): Promise<Record<string, NodePosition>> => {
   if (sdcpn.places.length === 0) {
-    return [];
+    return {};
   }
 
   // Build ELK nodes from places and transitions
@@ -91,16 +90,15 @@ export const calculateGraphLayout = async (
   /**
    * ELK inserts the calculated position as a root 'x' and 'y'.
    */
-  const positions: NodePosition[] = [];
+  const positionsByNodeId: Record<string, NodePosition> = {};
   for (const child of updatedElements.children ?? []) {
     if (child.x !== undefined && child.y !== undefined) {
-      positions.push({
-        id: child.id,
+      positionsByNodeId[child.id] = {
         x: child.x,
         y: child.y,
-      });
+      };
     }
   }
 
-  return positions;
+  return positionsByNodeId;
 };

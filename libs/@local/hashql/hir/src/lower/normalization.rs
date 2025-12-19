@@ -193,7 +193,7 @@ const fn is_projection(node: &NodeData<'_>) -> bool {
 /// unnecessary reallocations.
 #[derive(Debug)]
 pub struct NormalizationState<'heap> {
-    /// Pool of reusable binding vectors to reduce allocations
+    /// Pool of reusable binding vectors to reduce allocations.
     ///
     /// The normalization process frequently creates temporary vectors to accumulate
     /// `let` bindings at boundary points. To reduce allocation overhead, completed
@@ -217,21 +217,21 @@ impl Default for NormalizationState<'_> {
     }
 }
 
-/// HIR to HIR(ANF) normalization transformer.
+/// HIR to HIR (ANF) normalization transformer.
 ///
 /// This struct implements the [`Fold`] trait to transform HIR nodes into Administrative
 /// Normal Form (ANF). The transformation ensures that all complex expressions are
 /// broken down into sequences of simple bindings.
 pub struct Normalization<'ctx, 'env, 'hir, 'heap> {
-    /// Mutable reference to the HIR context for interning and variable generation
+    /// Mutable reference to the HIR context for interning and variable generation.
     context: &'ctx mut HirContext<'hir, 'heap>,
-    /// Type environment for type inference and resolution
+    /// Type environment for type inference and resolution.
     env: &'env Environment<'heap>,
-    /// Stack of accumulated `let` bindings within the current boundary
+    /// Stack of accumulated `let` bindings within the current boundary.
     bindings: Vec<Binding<'heap>>,
-    /// Optional node replacement mechanism for structural transformations
+    /// Optional node replacement mechanism for structural transformations.
     trampoline: Option<Node<'heap>>,
-    /// State that is shared during multiple normalization passes
+    /// State that is shared during multiple normalization passes.
     state: &'ctx mut NormalizationState<'heap>,
     // The current node being processed
     current: HirPtr,

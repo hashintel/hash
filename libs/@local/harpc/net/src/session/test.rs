@@ -51,7 +51,7 @@ enum PingError {
     Sink,
 }
 
-/// Simple Echo Subsystem
+/// Simple Echo Subsystem.
 ///
 /// Unlike the `EchoSystem` in `server/test.rs` this one doesn't keep track of statistics, to
 /// remove as many variables as possible from RTT measurements.

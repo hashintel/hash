@@ -19,14 +19,14 @@ pub use self::{
 /// the basic building blocks for more complex expressions.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum Data<'heap> {
-    /// A struct value with named fields
+    /// A struct value with named fields.
     Struct(Struct<'heap>),
-    /// A dictionary with dynamically computed keys
+    /// A dictionary with dynamically computed keys.
     Dict(Dict<'heap>),
-    /// A tuple with positionally-accessed elements
+    /// A tuple with positionally-accessed elements.
     Tuple(Tuple<'heap>),
-    /// A homogeneous list of elements
+    /// A homogeneous list of elements.
     List(List<'heap>),
-    /// A primitive literal value
+    /// A primitive literal value.
     Primitive(Primitive<'heap>),
 }

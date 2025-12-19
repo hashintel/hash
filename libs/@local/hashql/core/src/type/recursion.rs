@@ -3,7 +3,7 @@ use core::ops::ControlFlow;
 use super::{Type, kind::TypeKind};
 use crate::{collections::FastHashSet, intern::Interned};
 
-/// Recursive Cycle
+/// Recursive cycle.
 ///
 /// Represents whether both ends of a recursive subtype check have been seen in the current call
 /// stack, allowing coinductive discharge when a cycle is detected.

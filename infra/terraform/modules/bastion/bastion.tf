@@ -123,7 +123,7 @@ resource "aws_instance" "bastion" {
   depends_on    = [aws_key_pair.bastion_key]
   tags          = { Name = local.prefix }
   subnet_id     = var.subnet_ids[0]
-  instance_type = "t3a.nano"
+  instance_type = "t4g.nano"
 
   launch_template {
     name    = aws_launch_template.bastion.name

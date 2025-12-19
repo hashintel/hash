@@ -11,7 +11,7 @@ import {
   generateDefaultLambdaCode,
 } from "../../core/default-codes";
 import { useEditorStore } from "../../state/editor-provider";
-import { useSDCPNStore } from "../../state/sdcpn-provider";
+import { useSDCPNContext } from "../../state/sdcpn-provider";
 import type { ArcData, NodeData } from "../../state/types-for-editor-to-remove";
 import { Arc } from "./components/arc";
 import { PlaceNode } from "./components/place-node";
@@ -43,17 +43,21 @@ export const SDCPNView: React.FC = () => {
   > | null>(null);
 
   // SDCPN store
-  const sdcpn = useSDCPNStore((state) => state.sdcpn);
-  const addPlace = useSDCPNStore((state) => state.addPlace);
-  const addTransition = useSDCPNStore((state) => state.addTransition);
-  const addArc = useSDCPNStore((state) => state.addArc);
-  const deleteItemsByIds = useSDCPNStore((state) => state.deleteItemsByIds);
+  const {
+    petriNetId,
+    petriNetDefinition,
+    addPlace,
+    addTransition,
+    addArc,
+    deleteItemsByIds,
+    readonly,
+  } = useSDCPNContext();
 
   // Hook for applying node changes
   const applyNodeChanges = useApplyNodeChanges();
 
   // Convert SDCPN to ReactFlow format with dragging state
-  const { nodes, arcs } = useSdcpnToReactFlow(sdcpn);
+  const { nodes, arcs } = useSdcpnToReactFlow(petriNetDefinition);
 
   // Editor state
   const mode = useEditorStore((state) => state.globalMode);
@@ -73,10 +77,10 @@ export const SDCPNView: React.FC = () => {
     if (reactFlowInstance) {
       reactFlowInstance.fitView({ padding: 0.4, minZoom: 0.4, maxZoom: 1.1 });
     }
-  }, [reactFlowInstance, sdcpn.id]);
+  }, [reactFlowInstance, petriNetId]);
 
-  // Actual mode. When Simulate mode, edition mode is always "pan"
-  const isReadonly = mode === "simulate";
+  // Readonly if in simulate mode, or readonly has been provided by external consumer.
+  const isReadonly = mode === "simulate" || readonly;
 
   function isValidConnection(connection: Connection) {
     const sourceNode = nodes.find((node) => node.id === connection.source);
@@ -136,9 +140,9 @@ export const SDCPNView: React.FC = () => {
       addPlace({
         id,
         name: `Place${itemNumber}`,
-        type: null,
+        colorId: null,
         dynamicsEnabled: false,
-        differentialEquationCode: null,
+        differentialEquationId: null,
         x: position.x,
         y: position.y,
         width,

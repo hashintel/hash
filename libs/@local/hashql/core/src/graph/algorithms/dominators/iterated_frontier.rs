@@ -43,7 +43,7 @@ use crate::{
 /// - DF({0, 2, 3}) = {3} (fixed point reached)
 /// - Therefore IDF({0, 2}) = {3}
 ///
-/// A φ-function for `x` is needed at node 3: `x = φ(x_from_1, x_from_2)`
+/// A φ-function for `x` is needed at node 3: `x = φ(x_from_1, x_from_2)`.
 ///
 /// # Algorithm
 ///
@@ -56,7 +56,7 @@ use crate::{
 /// # Complexity
 ///
 /// - Time: `O(|S| × |DF_max|)` where `|DF_max|` is the maximum frontier size
-/// - Space: `O(|V|)` for the visited set
+/// - Space: `O(|V|)` for the visited set.
 ///
 /// # Arguments
 ///

@@ -6,20 +6,17 @@ import { v4 as uuidv4 } from "uuid";
 import { InfoIconTooltip } from "../../../../components/tooltip";
 import { DEFAULT_DIFFERENTIAL_EQUATION_CODE } from "../../../../core/default-codes";
 import { useEditorStore } from "../../../../state/editor-provider";
-import { useSDCPNStore } from "../../../../state/sdcpn-provider";
+import { useSDCPNContext } from "../../../../state/sdcpn-provider";
 
 export const DifferentialEquationsSection: React.FC = () => {
   const [isExpanded, setIsExpanded] = useState(true);
-  const differentialEquations = useSDCPNStore(
-    (state) => state.sdcpn.differentialEquations,
-  );
-  const types = useSDCPNStore((state) => state.sdcpn.types);
-  const addDifferentialEquation = useSDCPNStore(
-    (state) => state.addDifferentialEquation,
-  );
-  const removeDifferentialEquation = useSDCPNStore(
-    (state) => state.removeDifferentialEquation,
-  );
+
+  const {
+    petriNetDefinition: { types, differentialEquations },
+    addDifferentialEquation,
+    removeDifferentialEquation,
+  } = useSDCPNContext();
+
   const selectedResourceId = useEditorStore(
     (state) => state.selectedResourceId,
   );
@@ -83,7 +80,7 @@ export const DifferentialEquationsSection: React.FC = () => {
             addDifferentialEquation({
               id,
               name,
-              typeId: types.length > 0 ? types[0]!.id : "",
+              colorId: types.length > 0 ? types[0]!.id : "",
               code: DEFAULT_DIFFERENTIAL_EQUATION_CODE,
             });
             setSelectedResourceId(id);

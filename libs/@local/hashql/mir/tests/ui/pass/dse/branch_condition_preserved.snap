@@ -1,0 +1,45 @@
+---
+source: libs/@local/hashql/mir/src/pass/transform/dse/tests.rs
+expression: value
+---
+fn {intrinsic#4294967040}() -> Integer {
+    let %0: Integer
+    let %1: Boolean
+
+    bb0(): {
+        %0 = input LOAD input
+        %1 = %0 == %0
+
+        switchInt(%1) -> [0: bb2(), 1: bb1()]
+    }
+
+    bb1(): {
+        return 1
+    }
+
+    bb2(): {
+        return 2
+    }
+}
+
+------------------------------------
+
+fn {intrinsic#4294967040}() -> Integer {
+    let %0: Integer
+    let %1: Boolean
+
+    bb0(): {
+        %0 = input LOAD input
+        %1 = %0 == %0
+
+        switchInt(%1) -> [0: bb2(), 1: bb1()]
+    }
+
+    bb1(): {
+        return 1
+    }
+
+    bb2(): {
+        return 2
+    }
+}

@@ -9,12 +9,7 @@ import { getUserById } from "../../knowledge/system-types/user";
 
 export const isExternalTypeId = (typeId: VersionedUrl) =>
   !typeId.startsWith(frontendUrl) &&
-  // To be removed in H-1172: Temporary provision to serve types with a https://hash.ai URL from https://app.hash.ai
-  !(
-    !isSelfHostedInstance &&
-    ["https://app.hash.ai", "http://localhost:3000"].includes(frontendUrl) &&
-    new URL(typeId).hostname === "hash.ai"
-  );
+  !(!isSelfHostedInstance && new URL(typeId).hostname === "hash.ai");
 
 /**
  * Get the web shortname of an account or account group by its id

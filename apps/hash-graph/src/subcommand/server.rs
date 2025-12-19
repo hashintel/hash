@@ -131,15 +131,15 @@ pub struct ServerArgs {
     #[clap(long, default_value_t = false)]
     pub healthcheck: bool,
 
-    /// Waits for the healthcheck to become healthy
+    /// Waits for the healthcheck to become healthy.
     #[clap(long, default_value_t = false, requires = "healthcheck")]
     pub wait: bool,
 
-    /// Timeout for the wait flag in seconds
+    /// Timeout for the wait flag in seconds.
     #[clap(long, requires = "wait")]
     pub timeout: Option<u64>,
 
-    /// Starts a server without connecting to the type fetcher
+    /// Starts a server without connecting to the type fetcher.
     #[clap(long, default_value_t = false)]
     pub offline: bool,
 
@@ -376,7 +376,7 @@ pub async fn server(args: ServerArgs) -> Result<(), Report<GraphError>> {
 }
 
 pub async fn healthcheck(address: HttpAddress) -> Result<(), Report<HealthcheckError>> {
-    let request_url = format!("http://{address}/api-doc/openapi.json");
+    let request_url = format!("http://{address}/health");
 
     timeout(
         Duration::from_secs(10),

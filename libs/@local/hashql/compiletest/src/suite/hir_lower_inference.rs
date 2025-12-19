@@ -85,6 +85,10 @@ impl Suite for HirLowerTypeInferenceSuite {
         "hir/lower/type-inference"
     }
 
+    fn description(&self) -> &'static str {
+        "Type inference pass on the HIR"
+    }
+
     fn run<'heap>(
         &self,
         RunContext {

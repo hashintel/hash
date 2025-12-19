@@ -1,4 +1,4 @@
-import type { ID, Place, SDCPN, SDCPNType, Transition } from "./sdcpn";
+import type { Color, ID, Place, SDCPN, Transition } from "./sdcpn";
 
 export type ParameterValues = Record<string, number | boolean>;
 
@@ -25,11 +25,9 @@ export type SimulationInput = {
 };
 
 export type SimulationInstance = {
-  id: ID;
-  title: string;
   places: Map<string, Place>;
   transitions: Map<string, Transition>;
-  types: Map<string, SDCPNType>;
+  types: Map<string, Color>;
   differentialEquationFns: Map<string, DifferentialEquationFn>;
   lambdaFns: Map<string, LambdaFn>;
   transitionKernelFns: Map<string, TransitionKernelFn>;

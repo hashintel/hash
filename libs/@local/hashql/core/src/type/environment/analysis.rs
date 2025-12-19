@@ -447,7 +447,7 @@ impl<'env, 'heap> AnalysisEnvironment<'env, 'heap> {
         None
     }
 
-    /// Handling of recursive types on subtype checks
+    /// Handling of recursive types on subtype checks.
     ///
     /// For recursive types, we use coinductive reasoning when determining subtyping
     /// relationships. When we encounter the same subtyping check again during recursion,
@@ -479,7 +479,7 @@ impl<'env, 'heap> AnalysisEnvironment<'env, 'heap> {
     /// coinductive definitions of subtyping for recursive types.
     ///
     /// See <https://en.wikipedia.org/wiki/Coinduction> and
-    /// Chapter 21.1 of "Types and Programming Languages" by Benjamin C. Pierce
+    /// Chapter 21.1 of "Types and Programming Languages" by Benjamin C. Pierce.
     #[inline]
     fn is_subtype_of_recursive(
         &mut self,
@@ -582,7 +582,7 @@ impl<'env, 'heap> AnalysisEnvironment<'env, 'heap> {
     /// coinductive definitions of type equivalence for recursive types.
     ///
     /// See <https://en.wikipedia.org/wiki/Coinduction> and
-    /// Chapter 21.1 of "Types and Programming Languages" by Benjamin C. Pierce
+    /// Chapter 21.1 of "Types and Programming Languages" by Benjamin C. Pierce.
     #[inline]
     fn is_equivalent_recursive(
         &mut self,

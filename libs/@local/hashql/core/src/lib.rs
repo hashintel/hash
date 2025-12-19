@@ -17,7 +17,7 @@
 
     // Library Features
     allocator_api,
-    array_windows,
+
     assert_matches,
     binary_heap_into_iter_sorted,
     debug_closure_helpers,
@@ -31,6 +31,7 @@
     step_trait,
     try_trait_v2,
     variant_count,
+    clone_from_ref
 )]
 
 extern crate alloc;

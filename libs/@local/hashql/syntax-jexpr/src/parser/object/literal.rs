@@ -88,7 +88,7 @@ fn parse_literal<'heap>(
     let kind = match token.kind {
         TokenKind::Null => Primitive::Null,
         TokenKind::Number(number) => {
-            if number.has_fraction() || number.has_exponent() {
+            if number.has_dot() || number.has_exponent() {
                 Primitive::Float(value::Float::new_unchecked(
                     state.intern_symbol(number.as_str()),
                 ))

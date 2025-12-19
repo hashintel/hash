@@ -24,9 +24,9 @@ use super::graph::{EdgeKind, Graph};
 ///   Computing, 1(2), 146-160.
 #[derive(Debug, Clone)]
 pub(crate) struct Tarjan<'graph, A: Allocator = Global> {
-    /// The directed graph
+    /// The directed graph.
     graph: &'graph Graph,
-    /// The kind of edge to consider when computing SCCs
+    /// The kind of edge to consider when computing SCCs.
     kind: EdgeKind,
 
     /// Next discovery index to assign to newly visited nodes.
@@ -223,14 +223,14 @@ mod test {
         tarjan::Tarjan,
     };
 
-    /// Helper function to create a directed graph from an adjacency list
+    /// Helper function to create a directed graph from an adjacency list.
     fn create_graph(
         adjacency_list: impl IntoIterator<Item: AsRef<[u32]>, IntoIter: ExactSizeIterator>,
     ) -> Graph {
         Graph::from_edges(adjacency_list)
     }
 
-    /// Helper function to compare SCCs regardless of their order
+    /// Helper function to compare SCCs regardless of their order.
     fn assert_sccs_equal(
         actual: &[RoaringBitmap],
         expected: impl IntoIterator<Item: AsRef<[u32]>>,

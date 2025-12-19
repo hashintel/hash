@@ -265,7 +265,7 @@ impl<'heap, 'source, 'spans> ParserState<'heap, 'source, 'spans> {
     ///
     /// The argument `expected` is used to validate the next token. It can be a `SyntaxKind` or
     /// `SyntaxKindSet` directly, or `Expected::hint(...)` to accept any token regardless of
-    /// kind
+    /// kind.
     ///
     /// # Errors
     ///
@@ -343,20 +343,19 @@ mod tests {
     use alloc::borrow::Cow;
     use core::assert_matches::assert_matches;
 
-    use json_number::NumberBuf;
-
     use crate::{
-        lexer::{error::LexerDiagnosticCategory, syntax_kind::SyntaxKind, token_kind::TokenKind},
+        lexer::{
+            Number, error::LexerDiagnosticCategory, syntax_kind::SyntaxKind, token_kind::TokenKind,
+        },
         parser::{
             state::Expected,
             test::{bind_context, bind_state},
         },
     };
 
-    macro number($value:expr) {
-        TokenKind::Number(Cow::Owned(
-            NumberBuf::new(Vec::from($value)).expect("should be able to parse valid number"),
-        ))
+    fn number(value: &str) -> TokenKind<'_> {
+        let (_, number) = Number::parse(value.as_bytes());
+        TokenKind::Number(number.expect("should be able to parse valid number"))
     }
 
     // Basic peek functionality
@@ -369,14 +368,14 @@ mod tests {
             .peek()
             .expect("should not fail")
             .expect("should have token");
-        assert_eq!(token.kind, number!("42"));
+        assert_eq!(token.kind, number("42"));
 
         // Token should not be consumed
         let token2 = state
             .peek()
             .expect("should not fail")
             .expect("should have token");
-        assert_eq!(token2.kind, number!("42"));
+        assert_eq!(token2.kind, number("42"));
     }
 
     #[test]
@@ -395,7 +394,7 @@ mod tests {
         bind_state!(let mut state from context);
 
         let token = state.advance(SyntaxKind::Number).expect("should not fail");
-        assert_eq!(token.kind, number!("42"));
+        assert_eq!(token.kind, number("42"));
 
         // Next token should be available
         let token2 = state
@@ -514,7 +513,7 @@ mod tests {
             .peek()
             .expect("should not fail")
             .expect("should have token");
-        assert_eq!(first.kind, number!("42"));
+        assert_eq!(first.kind, number("42"));
     }
 
     #[test]
@@ -528,7 +527,7 @@ mod tests {
                 .peek_n(&mut state.context.lexer(), i)
                 .expect("should not fail")
                 .expect("should have token");
-            assert_eq!(token.kind, number!((i + 1).to_string()));
+            assert_eq!(token.kind, number(&(i + 1).to_string()));
         }
     }
 
@@ -544,14 +543,14 @@ mod tests {
             .peek_n(&mut state.context.lexer(), 3)
             .expect("should not fail")
             .expect("should have token");
-        assert_eq!(fourth.kind, number!("4"));
+        assert_eq!(fourth.kind, number("4"));
 
         // First token should still be accessible
         let first = state
             .peek()
             .expect("should not fail")
             .expect("should have token");
-        assert_eq!(first.kind, number!("1"));
+        assert_eq!(first.kind, number("1"));
     }
 
     #[test]
@@ -575,7 +574,7 @@ mod tests {
                 .peek_n(&mut state.context.lexer(), i)
                 .expect("should not fail")
                 .expect("should have token");
-            assert_eq!(token.kind, number!((i + 2).to_string()));
+            assert_eq!(token.kind, number(&(i + 2).to_string()));
         }
     }
 

@@ -3,14 +3,14 @@ import type * as Monaco from "monaco-editor";
 import { useEffect, useState } from "react";
 
 import type {
+  Color,
   DifferentialEquation,
   Parameter,
   Place,
-  SDCPNType,
   Transition,
 } from "../core/types/sdcpn";
 import { useEditorStore } from "../state/editor-provider";
-import { useSDCPNStore } from "../state/sdcpn-provider";
+import { useSDCPNContext } from "../state/sdcpn-provider";
 
 interface ReactTypeDefinitions {
   react: string;
@@ -43,7 +43,7 @@ async function fetchReactTypes(): Promise<ReactTypeDefinitions> {
 function transitionToTsDefinitionString(
   transition: Transition,
   placeIdToNameMap: Map<string, string>,
-  placeIdToTypeMap: Map<string, SDCPNType | undefined>,
+  placeIdToTypeMap: Map<string, Color | undefined>,
 ): string {
   const input =
     transition.inputArcs.length === 0
@@ -84,7 +84,7 @@ function transitionToTsDefinitionString(
 /**
  * Generate TypeScript type definitions for SDCPN types
  */
-function generateTypesDefinition(types: SDCPNType[]): string {
+function generateTypesDefinition(types: Color[]): string {
   return `declare interface SDCPNTypes {
     ${types
       .map(
@@ -114,7 +114,7 @@ function generatePlacesDefinition(places: Place[]): string {
       .map(
         (place) => `"${place.id}": {
         name: ${JSON.stringify(place.name)};
-        type: ${place.type ? `SDCPNTypes["${place.type}"]` : "null"};
+        type: ${place.colorId ? `SDCPNTypes["${place.colorId}"]` : "null"};
         dynamicsEnabled: ${place.dynamicsEnabled ? "true" : "false"};
       };`,
       )
@@ -127,7 +127,7 @@ function generatePlacesDefinition(places: Place[]): string {
 function generateTransitionsDefinition(
   transitions: Transition[],
   placeIdToNameMap: Map<string, string>,
-  placeIdToTypeMap: Map<string, SDCPNType | undefined>,
+  placeIdToTypeMap: Map<string, Color | undefined>,
 ): string {
   return `declare interface SDCPNTransitions {
       ${transitions
@@ -150,8 +150,8 @@ function generateDifferentialEquationsDefinition(
       .map(
         (diffEq) => `"${diffEq.id}": {
         name: ${JSON.stringify(diffEq.name)};
-        typeId: "${diffEq.typeId}";
-        type: SDCPNTypes["${diffEq.typeId}"];
+        typeId: "${diffEq.colorId}";
+        type: SDCPNTypes["${diffEq.colorId}"];
       };`,
       )
       .join("\n")}
@@ -171,7 +171,7 @@ function generateParametersDefinition(parameters: Parameter[]): string {
  * Generate complete SDCPN type definitions
  */
 function generateSDCPNTypings(
-  types: SDCPNType[],
+  types: Color[],
   places: Place[],
   transitions: Transition[],
   differentialEquations: DifferentialEquation[],
@@ -186,7 +186,7 @@ function generateSDCPNTypings(
   const placeIdToTypeMap = new Map(
     places.map((place) => [
       place.id,
-      place.type ? typeIdToTypeMap.get(place.type) : undefined,
+      place.colorId ? typeIdToTypeMap.get(place.colorId) : undefined,
     ]),
   );
 
@@ -293,13 +293,15 @@ function configureMonacoCompilerOptions(monaco: typeof Monaco): void {
  * Should be called once at the app level to avoid race conditions.
  */
 export function useMonacoGlobalTypings() {
-  const types = useSDCPNStore((state) => state.sdcpn.types);
-  const transitions = useSDCPNStore((state) => state.sdcpn.transitions);
-  const parameters = useSDCPNStore((state) => state.sdcpn.parameters);
-  const places = useSDCPNStore((state) => state.sdcpn.places);
-  const differentialEquations = useSDCPNStore(
-    (state) => state.sdcpn.differentialEquations,
-  );
+  const {
+    petriNetDefinition: {
+      types,
+      transitions,
+      parameters,
+      places,
+      differentialEquations,
+    },
+  } = useSDCPNContext();
 
   const currentlySelectedItemId = useEditorStore(
     (state) => state.selectedResourceId,

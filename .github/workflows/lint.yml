@@ -25,7 +25,7 @@ jobs:
       packages: ${{ steps.packages.outputs.packages }}
     steps:
       - name: Checkout source code
-        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.1
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
         with:
           fetch-depth: 2
 
@@ -59,7 +59,7 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - name: Checkout
-        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.1
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
         with:
           fetch-depth: 2
 
@@ -156,7 +156,7 @@ jobs:
           echo '```' >> $GITHUB_STEP_SUMMARY
 
       - name: Upload SARIF file
-        uses: github/codeql-action/upload-sarif@fdbfb4d2750291e159f0156def62b853c2798ca2 # v4.31.5
+        uses: github/codeql-action/upload-sarif@cf1bb45a277cb3c205638b2cd5c984db1c46a412 # v4.31.7
         if: always() && steps.lints.outputs.clippy == 'true'
         with:
           sarif_file: ${{ matrix.path }}/clippy.sarif
@@ -189,7 +189,7 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - name: Checkout repository
-        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.1
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
 
       - name: Clean up disk
         uses: ./.github/actions/clean-up-disk
@@ -281,17 +281,18 @@ jobs:
       - name: Validate Claude Code skills
         if: ${{ success() || failure() }}
         run: |
-          if ! yarn lint:skill; then
+          yarn lint:skill
+
+          yarn agents:skill-management generate-skill-rules
+          if ! git diff --exit-code .claude/skills/skill-rules.json; then
             echo ''
             echo ''
             echo 'ℹ️ ℹ️ ℹ️'
-            echo 'Claude Code skill validation failed. Common issues:'
-            echo '  • Invalid JSON in .claude/skills/skill-rules.json'
-            echo '  • Missing SKILL.md files'
-            echo '  • Invalid regex patterns in intentPatterns'
-            echo 'Try running `yarn lint:skill` locally to see details.'
+            echo 'Changes were detected in .claude/skills/skill-rules.json file after running `yarn agents:skill-management generate-skill-rules`.'
+            echo 'This indicates that there are changes inside of the skill files that haven not yet been upstreamed into the skill-rules.json file.'
+            echo 'Try running `yarn agents:skill-management generate-skill-rules` locally to apply autofixes.'
             echo 'ℹ️ ℹ️ ℹ️'
-            exit 1
+            exit 1;
           fi
 
       - name: Run yarn lint:taplo

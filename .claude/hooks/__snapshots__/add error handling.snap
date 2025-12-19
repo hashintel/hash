@@ -4,7 +4,7 @@
 
 📚 RECOMMENDED SKILLS:
   → handling-rust-errors
-    Error handling patterns using error-stack crate for HASH Rust code
+    HASH error handling patterns using error-stack crate. Use when working with Result types, Report types, defining custom errors, propagating errors with change_context, adding context with attach, implementing Error trait, or documenting error conditions in Rust code.
 
 ACTION: Use Skill tool BEFORE responding
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━

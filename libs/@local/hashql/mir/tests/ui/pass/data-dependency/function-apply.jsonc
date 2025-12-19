@@ -1,0 +1,19 @@
+//@ run: pass
+//@ description: Function application creates ApplyPtr and ApplyArg edges
+[
+  "if",
+  { "#literal": true },
+  [
+    "let",
+    "max",
+    [
+      "fn",
+      { "#tuple": [] },
+      { "#struct": { "a": "Integer", "b": "Integer" } },
+      "_",
+      ["if", ["<=", "a", "b"], "b", "a"]
+    ],
+    ["max", { "#literal": 1 }, { "#literal": 2 }]
+  ],
+  { "#literal": 0 }
+]

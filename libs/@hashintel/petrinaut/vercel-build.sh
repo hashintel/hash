@@ -16,4 +16,4 @@ cd ../../..
 rm .env
 
 echo "Building Petrinaut"
-turbo build --filter='@hashintel/petrinaut' --env-mode=loose
+turbo build:site --filter='@hashintel/petrinaut' --env-mode=loose

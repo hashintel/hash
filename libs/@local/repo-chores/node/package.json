@@ -10,11 +10,12 @@
     "lint:tsc": "tsc --noEmit"
   },
   "dependencies": {
-    "@anthropic-ai/sdk": "0.71.0",
+    "@anthropic-ai/sdk": "0.71.2",
     "@blockprotocol/core": "0.1.4",
     "@linear/sdk": "61.0.0",
     "@local/hash-backend-utils": "0.0.0-private",
     "@local/hash-isomorphic-utils": "0.0.0-private",
+    "@optique/core": "0.8.1",
     "chalk": "5.6.2",
     "dotenv-flow": "3.3.0",
     "envalid": "8.1.0",
@@ -23,6 +24,7 @@
     "fs-extra": "11.3.2",
     "globby": "15.0.0",
     "ignore": "7.0.5",
+    "js-yaml": "4.1.1",
     "regex-parser": "2.3.1",
     "sort-package-json": "3.4.0",
     "tsx": "4.20.6",
@@ -34,6 +36,7 @@
     "@local/eslint": "0.0.0-private",
     "@local/tsconfig": "0.0.0-private",
     "@types/fs-extra": "11.0.4",
+    "@types/js-yaml": "^4",
     "eslint": "9.38.0",
     "typescript": "5.9.3"
   }

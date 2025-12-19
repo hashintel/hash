@@ -428,8 +428,8 @@ pub struct DataType {
 
     /// The unique identifier for this data type.
     ///
-    /// This should be a versioned URL in the format:
-    /// `https://example.com/types/data-type/name/v/1`
+    /// This should be a versioned URL in the format
+    /// `https://example.com/types/data-type/name/v/1`.
     #[serde(rename = "$id")]
     pub id: VersionedUrl,
 

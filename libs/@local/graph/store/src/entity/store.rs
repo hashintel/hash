@@ -457,6 +457,23 @@ pub struct PatchEntityParams {
     pub provenance: ProvidedEntityEditionProvenance,
 }
 
+impl PatchEntityParams {
+    /// Returns `true` if the parameters represents an update.
+    ///
+    /// An update is defined as any change to the entity's type IDs, properties, or draft status. If
+    /// only the confidence is updated without changing the archive-state, this is also considered
+    /// an update. On the counterary, if only the confidence is updated along with an archive-state
+    /// change, the confidence is used for the new entity edition.
+    // TODO(BE-224): Fix edge-case that the confidence could be updated by archiving/unarchiving.
+    #[must_use]
+    pub fn is_update(&self) -> bool {
+        !self.entity_type_ids.is_empty()
+            || !self.properties.is_empty()
+            || self.draft.is_some()
+            || (self.archived.is_none() && self.confidence.is_some())
+    }
+}
+
 #[derive(Debug, Deserialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]

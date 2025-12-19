@@ -23,7 +23,7 @@ use uuid::Uuid;
 
 use crate::DatabaseTestWrapper;
 
-/// Struct to hold all the IDs created during test setup for easier reference
+/// Struct to hold all the IDs created during test setup for easier reference.
 #[expect(
     dead_code,
     reason = "It's easier to reference the IDs in the test code"
@@ -86,7 +86,7 @@ impl TestPolicyEnvironment {
     }
 }
 
-/// Struct to hold all policy IDs for easier reference
+/// Struct to hold all policy IDs for easier reference.
 struct TestPolicyIds {
     global: PolicyId,
     user_type: PolicyId,
@@ -98,7 +98,7 @@ struct TestPolicyIds {
     deny_user1: PolicyId,
 }
 
-/// Sets up a complete test environment with various principals and relationships
+/// Sets up a complete test environment with various principals and relationships.
 ///
 /// The test environment creates the following structure:
 ///

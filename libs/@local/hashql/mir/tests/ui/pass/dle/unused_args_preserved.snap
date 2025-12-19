@@ -1,0 +1,25 @@
+---
+source: libs/@local/hashql/mir/src/pass/transform/dle/tests.rs
+expression: value
+---
+fn {intrinsic#4294967040}(%0: Integer, %1: Integer) -> Integer {
+    let %2: Integer
+
+    bb0(): {
+        %2 = %0
+
+        return %2
+    }
+}
+
+------------------------------------
+
+fn {intrinsic#4294967040}(%0: Integer, %1: Integer) -> Integer {
+    let %2: Integer
+
+    bb0(): {
+        %2 = %0
+
+        return %2
+    }
+}

@@ -1,25 +1,28 @@
 ---
 name: managing-cargo-dependencies
-description: Cargo.toml dependency management patterns for HASH workspace. Use when adding dependencies, managing workspace dependencies, organizing Cargo.toml sections, setting version pinning, configuring default features, or working with public dependencies.
+description: Cargo.toml dependency management patterns for HASH workspace. Use when adding, updating, or removing dependencies, organizing Cargo.toml sections, configuring version pinning and default features, or managing public dependencies.
+license: AGPL-3.0
+metadata:
+  triggers:
+    type: domain
+    enforcement: suggest
+    priority: high
+    keywords:
+      - cargo
+      - dependency
+      - Cargo.toml
+      - crate
+      - workspace.dependencies
+      - default-features
+    intent-patterns:
+      - "\\b(add|update|remove|manage)\\b.*?\\b(dependency|dependencies|crate|crates)\\b"
+      - "\\bCargo\\.toml\\b"
+      - "\\b(public|private)\\s+dependency\\b"
 ---
 
 # Cargo Dependencies Management
 
-## Purpose
-
-This skill provides comprehensive guidance on adding and managing dependencies in Cargo.toml files within the HASH repository's workspace structure.
-
-## When This Skill Activates
-
-Automatically activates when:
-
-- Adding or updating dependencies
-- Working with Cargo.toml files
-- Managing workspace dependencies
-- Configuring dependency features
-- Setting up public dependencies
-
----
+Guidance for adding and managing dependencies in Cargo.toml files within the HASH repository's workspace structure.
 
 ## Core Principles
 
@@ -42,8 +45,6 @@ Automatically activates when:
 - Enable `default-features` without considering impact
 - Mix different dependency types without section comments
 - Forget `public = true` for dependencies exposed in public API
-
----
 
 ## Quick Reference
 
@@ -79,13 +80,11 @@ regex       = { workspace = true }
 3. **Determine section** - Public workspace/third-party or private?
 4. **Add to package** - Use `workspace = true` (+ `public = true` if needed)
 
----
-
 ## Detailed Guides
 
-Choose the guide that matches your task:
+Choose the guide that matches the task:
 
-### [workspace-setup.md](resources/workspace-setup.md)
+### [workspace-setup.md](references/workspace-setup.md)
 
 **Use when:** Adding new dependencies to workspace root
 
@@ -94,7 +93,7 @@ Choose the guide that matches your task:
 - Default features configuration
 - Workspace member paths
 
-### [package-dependencies.md](resources/package-dependencies.md)
+### [package-dependencies.md](references/package-dependencies.md)
 
 **Use when:** Adding dependencies to a package Cargo.toml
 
@@ -104,7 +103,7 @@ Choose the guide that matches your task:
 - Alignment and formatting rules
 - Feature configuration
 
-### [examples-reference.md](resources/examples-reference.md)
+### [examples-reference.md](references/examples-reference.md)
 
 **Use when:** Looking for real examples from HASH codebase
 
@@ -112,8 +111,6 @@ Choose the guide that matches your task:
 - Complete examples from `@local/hashql/core`
 - Optional dependencies pattern
 - dev-dependencies structure
-
----
 
 ## Common Patterns
 
@@ -148,16 +145,11 @@ serde = { workspace = true, optional = true, features = ["derive"] }
 serde = ["dep:serde", "other-dep/serde"]
 ```
 
----
+## References
 
-## Related Files
-
+- [workspace-setup.md](references/workspace-setup.md) - Workspace root configuration
+- [package-dependencies.md](references/package-dependencies.md) - Package dependency structure
+- [examples-reference.md](references/examples-reference.md) - Real codebase examples
 - [Workspace Cargo.toml](../../../Cargo.toml) - Root workspace configuration
 - [hash-codec/Cargo.toml](../../../libs/@local/codec/Cargo.toml) - Reference example
 - [hashql-core/Cargo.toml](../../../libs/@local/hashql/core/Cargo.toml) - Reference example
-
----
-
-**Skill Status**: Production-ready following Anthropic best practices ✅
-**Line Count**: < 150 (following 500-line rule) ✅
-**Progressive Disclosure**: 3 detailed resource files ✅

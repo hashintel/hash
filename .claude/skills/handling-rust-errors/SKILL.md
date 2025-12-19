@@ -1,25 +1,28 @@
 ---
 name: handling-rust-errors
 description: HASH error handling patterns using error-stack crate. Use when working with Result types, Report types, defining custom errors, propagating errors with change_context, adding context with attach, implementing Error trait, or documenting error conditions in Rust code.
+license: AGPL-3.0
+metadata:
+  triggers:
+    type: domain
+    enforcement: suggest
+    priority: high
+    keywords:
+      - error
+      - Result
+      - Report
+      - error-stack
+      - change_context
+      - attach
+      - ResultExt
+    intent-patterns:
+      - "\\b(handle|create|define|propagate|convert)\\b.*?\\berror\\b"
+      - "\\bReport<.*>\\b"
 ---
 
 # Rust Error-Stack Patterns
 
-## Purpose
-
-This skill provides HASH-specific error handling patterns using the `error-stack` crate. It ensures consistent, debuggable error handling across the Rust codebase.
-
-## When This Skill Activates
-
-Automatically activates when:
-
-- Working with `Result` types or error handling
-- Defining custom error types
-- Using `Report`, `attach`, `change_context`
-- Handling errors in async contexts
-- Documenting error conditions
-
----
+HASH-specific error handling patterns using the `error-stack` crate for consistent, debuggable error handling across the Rust codebase.
 
 ## Core Principles
 
@@ -30,7 +33,7 @@ Automatically activates when:
 - Use `Report<MyError>` for all error types
 - Use concrete error types: `Report<MyError>`
 - Import `Error` from `core::error::` (not `std::error::`)
-- Import `ResultExt` as `ResultExt as _` for trait methods
+- Import `ResultExt as _` for trait methods
 
 ❌ **DON'T:**
 
@@ -39,39 +42,55 @@ Automatically activates when:
 - Use `Report<Box<dyn Error>>`
 - Use `thiserror` (use `derive_more` instead)
 
----
+## HashQL Compiler Exception
+
+**HashQL compiler code uses a different error handling approach.**
+
+Code in `libs/@local/hashql/*` uses the `hashql-diagnostics` crate instead of `error-stack`. This is because compiler errors require rich formatting capabilities:
+
+- Source spans pointing to exact code locations
+- Multiple labeled regions within the same diagnostic
+- Fix suggestions with replacement text
+- Severity levels (error, warning, hint)
+
+**Which approach to use:**
+
+| Location                                | Error Handling                                                                                            |
+|-----------------------------------------|-----------------------------------------------------------------------------------------------------------|
+| `libs/@local/hashql/*` (compiler code)  | Use `hashql-diagnostics` → See [writing-hashql-diagnostics](../writing-hashql-diagnostics/SKILL.md) skill |
+| Everywhere else                         | Use `error-stack` patterns from this skill                                                                |
+
+Traditional `error-stack` patterns still apply for HashQL infrastructure code (CLI, file I/O, configuration) that doesn't involve compiler diagnostics.
 
 ## Quick Start Guide
 
-Choose the resource that matches your current task:
+Choose the reference that matches your current task:
 
-### 📝 [Defining Errors](resources/defining-errors.md)
+### Defining Errors
 
 **Use when:** Creating new error types or error enums
 
-- How to define error types with `derive_more`
+- Define error types with `derive_more`
 - Error enum patterns and variants
-- Implementing the `Error` trait
+- Implement the `Error` trait
 - Error type hierarchies
 
-### 🔄 [Propagating Errors](resources/propagating-errors.md)
+### Propagating Errors
 
 **Use when:** Handling `Result` types, using `?` operator
 
-- Converting errors with `.change_context()` and `.change_context_with()`
-- Adding context with `.attach()` and `.attach_with()`
+- Convert errors with `.change_context()` and `.change_context_with()`
+- Add context with `.attach()` and `.attach_with()`
 - Error conversion patterns
 
-### 📚 [Documenting Errors](resources/documenting-errors.md)
+### Documenting Errors
 
 **Use when:** Writing doc comments for fallible functions
 
 - `# Errors` section format
-- Linking error variants
-- Documenting runtime errors
-- Testing error conditions
-
----
+- Link error variants
+- Document runtime errors
+- Test error conditions
 
 ## Common Quick Patterns
 
@@ -104,26 +123,8 @@ expensive_operation()
     .attach_with(|| format!("Debug info: {:?}", expensive_computation()))?;
 ```
 
----
+## References
 
-## Need More Details?
-
-Load the specific resource file for your task:
-
-- **Defining errors?** → See [defining-errors.md](resources/defining-errors.md)
-- **Propagating errors?** → See [propagating-errors.md](resources/propagating-errors.md)
-- **Documenting errors?** → See [documenting-errors.md](resources/documenting-errors.md)
-
----
-
-## Related Guidelines
-
-- `.cursor/rules/rust-error-handling.mdc` - Full error handling guidelines
-- `.cursor/rules/rust-documentation.mdc` - Error documentation format
-- `.cursor/rules/rust-testing-strategy.mdc` - Testing error conditions
-
----
-
-**Skill Status**: Production-ready following Anthropic best practices ✅
-**Line Count**: 127 (following 500-line rule) ✅
-**Progressive Disclosure**: 3 detailed resource files ✅
+- [Defining Errors](references/defining-errors.md) - Creating new error types or error enums
+- [Propagating Errors](references/propagating-errors.md) - Handling `Result` types, using `?` operator
+- [Documenting Errors](references/documenting-errors.md) - Writing doc comments for fallible functions

@@ -11,19 +11,19 @@ use anstyle::{AnsiColor, Color, Style};
 /// rendering to apply appropriate visual styling.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum Semantic {
-    /// Language keywords (let, in, if, fn, etc.)
+    /// Language keywords (let, in, if, fn, etc.).
     Keyword,
-    /// Type names (Integer, String, List, etc.)
+    /// Type names (Integer, String, List, etc.).
     TypeName,
-    /// Variable and function names
+    /// Variable and function names.
     Variable,
-    /// Operators (+, ->, =>, |, &, etc.)
+    /// Operators (+, ->, =>, |, &, etc.).
     Operator,
-    /// Structural punctuation (parens, brackets, commas, colons, etc.)
+    /// Structural punctuation (parens, brackets, commas, colons, etc.).
     Punctuation,
-    /// Literal values (numbers, strings, booleans)
+    /// Literal values (numbers, strings, booleans).
     Literal,
-    /// Field and property names
+    /// Field and property names.
     Field,
     /// Comments, recursive indicators, etc.
     Comment,

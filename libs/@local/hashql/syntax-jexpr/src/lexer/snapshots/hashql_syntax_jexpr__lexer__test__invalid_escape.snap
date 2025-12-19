@@ -8,4 +8,4 @@ error[lexer::invalid-string]: Invalid string literal
 1 │ "\z"
   │    ━ Invalid escape sequence
   │
-  ╰ help: unknown escape sequence type
+  ╰ help: invalid escape character z

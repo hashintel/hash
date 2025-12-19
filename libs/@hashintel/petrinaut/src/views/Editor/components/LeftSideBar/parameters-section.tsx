@@ -5,14 +5,16 @@ import { v4 as uuidv4 } from "uuid";
 
 import { InfoIconTooltip } from "../../../../components/tooltip";
 import { useEditorStore } from "../../../../state/editor-provider";
-import { useSDCPNStore } from "../../../../state/sdcpn-provider";
+import { useSDCPNContext } from "../../../../state/sdcpn-provider";
 import { useSimulationStore } from "../../../../state/simulation-provider";
 
 export const ParametersSection: React.FC = () => {
   const [isExpanded, setIsExpanded] = useState(true);
-  const parameters = useSDCPNStore((state) => state.sdcpn.parameters);
-  const addParameter = useSDCPNStore((state) => state.addParameter);
-  const removeParameter = useSDCPNStore((state) => state.removeParameter);
+  const {
+    petriNetDefinition: { parameters },
+    addParameter,
+    removeParameter,
+  } = useSDCPNContext();
   const globalMode = useEditorStore((state) => state.globalMode);
   const simulationState = useSimulationStore((state) => state.state);
   const selectedResourceId = useEditorStore(

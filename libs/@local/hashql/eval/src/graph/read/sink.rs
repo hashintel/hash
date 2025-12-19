@@ -2,11 +2,11 @@ use hash_graph_store::filter::{Filter, QueryRecord};
 
 /// A mutable sink for building filter expressions during query evaluation.
 pub(crate) enum FilterSink<'a, 'b, R: QueryRecord> {
-    /// Collects filters that will be combined with AND logic
+    /// Collects filters that will be combined with AND logic.
     And(&'a mut Vec<Filter<'b, R>>),
-    /// Collects filters that will be combined with OR logic
+    /// Collects filters that will be combined with OR logic.
     Or(&'a mut Vec<Filter<'b, R>>),
-    /// Represents a failed state where filters are discarded
+    /// Represents a failed state where filters are discarded.
     Fail,
 }
 

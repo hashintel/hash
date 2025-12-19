@@ -15,7 +15,7 @@
 )]
 
 //! TODO: Introduce benchmarks testing the differing performance of operations as the graph's scale
-//!  changes
+//!  changes.
 
 #[path = "../util.rs"]
 mod util;

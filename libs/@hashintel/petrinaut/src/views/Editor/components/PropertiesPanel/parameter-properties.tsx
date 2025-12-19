@@ -24,26 +24,33 @@ function slugifyToIdentifier(str: string): string {
 
 interface ParameterPropertiesProps {
   parameter: Parameter;
-  onUpdate: (parameterId: string, updates: Partial<Parameter>) => void;
+  updateParameter: (
+    parameterId: string,
+    updateFn: (parameter: Parameter) => void,
+  ) => void;
   globalMode: "edit" | "simulate";
 }
 
 export const ParameterProperties: React.FC<ParameterPropertiesProps> = ({
   parameter,
-  onUpdate,
+  updateParameter,
   globalMode,
 }) => {
   const isDisabled = globalMode === "simulate";
 
   const handleUpdateName = (event: React.ChangeEvent<HTMLInputElement>) => {
-    onUpdate(parameter.id, { name: event.target.value });
+    updateParameter(parameter.id, (existingParameter) => {
+      existingParameter.name = event.target.value;
+    });
   };
 
   const handleUpdateVariableName = (
     event: React.ChangeEvent<HTMLInputElement>,
   ) => {
     // Allow free-form typing
-    onUpdate(parameter.id, { variableName: event.target.value });
+    updateParameter(parameter.id, (existingParameter) => {
+      existingParameter.variableName = event.target.value;
+    });
   };
 
   const handleBlurVariableName = (
@@ -52,12 +59,16 @@ export const ParameterProperties: React.FC<ParameterPropertiesProps> = ({
     const value = event.target.value.trim();
     if (value === "") {
       // Default to "param" if empty
-      onUpdate(parameter.id, { variableName: "param" });
+      updateParameter(parameter.id, (existingParameter) => {
+        existingParameter.variableName = "param";
+      });
     } else {
       // Apply slugification on blur
       const slugified = slugifyToIdentifier(value);
       if (slugified !== value) {
-        onUpdate(parameter.id, { variableName: slugified });
+        updateParameter(parameter.id, (existingParameter) => {
+          existingParameter.variableName = slugified;
+        });
       }
     }
   };
@@ -65,7 +76,9 @@ export const ParameterProperties: React.FC<ParameterPropertiesProps> = ({
   const handleUpdateDefaultValue = (
     event: React.ChangeEvent<HTMLInputElement>,
   ) => {
-    onUpdate(parameter.id, { defaultValue: event.target.value });
+    updateParameter(parameter.id, (existingParameter) => {
+      existingParameter.defaultValue = event.target.value;
+    });
   };
 
   return (

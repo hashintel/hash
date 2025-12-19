@@ -21,7 +21,6 @@ text-size = { workspace = true, public = true }
 # Private third-party dependencies
 circular-buffer       = { workspace = true }
 hifijson              = { workspace = true, features = ["alloc"] }
-json-number           = { workspace = true }
 logos                 = { workspace = true, features = ["export_derive"] }
 simple-mermaid        = { workspace = true }
 unicode-ident         = { workspace = true }
@@ -33,6 +32,7 @@ winnow                = { workspace = true, features = ["std"] }
 [dev-dependencies]
 hashql-diagnostics = { workspace = true, features = ["render"] }
 insta              = { workspace = true }
+rstest             = { workspace = true }
 serde              = { workspace = true }
 serde_json         = { workspace = true }
 

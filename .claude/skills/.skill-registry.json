@@ -1,0 +1,10 @@
+{
+  "version": 1,
+  "skills": {
+    "skill-creator": {
+      "name": "skill-creator",
+      "source": "anthropics/skills/skill-creator",
+      "installedAt": 1766088232484
+    }
+  }
+}

@@ -84,7 +84,7 @@ impl DiagnosticCategory for ImportResolverDiagnosticCategory {
     }
 }
 
-/// Error when generic arguments are used in a use path segment
+/// Error when generic arguments are used in a use path segment.
 pub(crate) fn generic_arguments_in_use_path(
     span: SpanId,
     use_span: SpanId,
@@ -112,7 +112,7 @@ pub(crate) fn generic_arguments_in_use_path(
     diagnostic
 }
 
-/// Error when a path has no segments
+/// Error when a path has no segments.
 pub(crate) fn empty_path(span: SpanId) -> ImportResolverDiagnostic {
     let mut diagnostic =
         Diagnostic::new(ImportResolverDiagnosticCategory::EmptyPath, Severity::Bug)
@@ -131,7 +131,7 @@ pub(crate) fn empty_path(span: SpanId) -> ImportResolverDiagnostic {
     diagnostic
 }
 
-/// Error when generic arguments are used in a module path segment
+/// Error when generic arguments are used in a module path segment.
 pub(crate) fn generic_arguments_in_module(
     spans: impl IntoIterator<Item = SpanId>,
 ) -> ImportResolverDiagnostic {

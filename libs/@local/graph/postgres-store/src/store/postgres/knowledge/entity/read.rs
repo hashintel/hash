@@ -107,9 +107,9 @@ pub struct EdgeHopMetadata {
 /// Result of traversing entity edges via recursive CTE.
 #[derive(Debug, Default)]
 pub struct EntityTraversalResult {
-    /// All entity edition IDs encountered during traversal (for permission filtering)
+    /// All entity edition IDs encountered during traversal (for permission filtering).
     pub entity_edition_ids: Vec<EntityEditionId>,
-    /// Edges grouped by hop in traversal order
+    /// Edges grouped by hop in traversal order.
     pub edge_hops: Vec<EdgeHopMetadata>,
 }
 

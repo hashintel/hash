@@ -54,7 +54,7 @@ impl<'heap> TypeNode<'heap> {
         state: &ParserState<'heap, '_, '_>,
     ) -> Option<heap::Box<'heap, Type<'heap>>> {
         node.map(Self::into_inner)
-            .map(|r#type| state.heap().boxed(r#type))
+            .map(|r#type| Box::new_in(r#type, state.heap()))
     }
 }
 

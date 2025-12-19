@@ -122,18 +122,19 @@ use crate::{
 ///
 /// [`Visitor`]: crate::visit::Visitor
 pub trait Fold<'heap> {
-    /// The residual type (e.g., [`Result<Infallible, E>`] for [`Result<T, E>`])
+    /// The residual type (e.g., [`Result<Infallible, E>`] for [`Result<T, E>`]).
     type Residual;
-    /// The output type that wraps a transformation (must implement [`Try`],
-    /// such as [`Result<T, E>`] or [`Option<T>`]).
+    /// The output type that wraps a transformation.
+    ///
+    /// Must implement [`Try`], such as [`Result<T, E>`] or [`Option<T>`].
     type Output<T>: Try<Output = T, Residual = Self::Residual> + FromResidual<Self::Residual>
     where
         T: 'heap;
 
-    /// Controls how deeply to process nested nodes
+    /// Controls how deeply to process nested nodes.
     type NestedFilter: NestedFilter = nested::Shallow;
 
-    /// Access the interner for re-interning modified structures
+    /// Access the interner for re-interning modified structures.
     fn interner(&self) -> &Interner<'heap>;
 
     fn fold_hir_id(&mut self, id: HirId) -> Self::Output<HirId> {
@@ -215,7 +216,7 @@ pub trait Fold<'heap> {
         walk_struct_field(self, field)
     }
 
-    /// Fold a struct
+    /// Fold a struct.
     ///
     /// The caller must ensure that the struct fields do not have duplicate field names.
     fn fold_struct(&mut self, r#struct: Struct<'heap>) -> Self::Output<Struct<'heap>> {

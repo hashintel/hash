@@ -1,4 +1,4 @@
-//! The entity-graph query-layer for the HASH datastore
+//! The entity-graph query-layer for the HASH datastore.
 //!
 //! ## Workspace dependencies
 #![cfg_attr(doc, doc = simple_mermaid::mermaid!("../docs/dependency-diagram.mmd"))]

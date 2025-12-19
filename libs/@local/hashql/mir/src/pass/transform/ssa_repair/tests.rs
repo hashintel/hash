@@ -10,12 +10,11 @@ use insta::{Settings, assert_snapshot};
 
 use crate::{
     body::Body,
+    builder::{op, scaffold},
     context::MirContext,
     def::DefIdSlice,
-    op,
-    pass::{Pass as _, transform::ssa_repair::SsaRepair},
+    pass::{TransformPass as _, transform::ssa_repair::SsaRepair},
     pretty::TextFormat,
-    scaffold,
 };
 
 #[track_caller]
@@ -47,7 +46,7 @@ fn assert_ssa_pass<'heap>(
         .writer
         .extend(b"\n\n------------------------------------\n\n");
 
-    SsaRepair.run(&mut context, &mut bodies[0]);
+    SsaRepair::new().run(&mut context, &mut bodies[0]);
 
     text_format
         .format(DefIdSlice::from_raw(&bodies), &[])
@@ -80,17 +79,13 @@ fn linear() {
 
     builder
         .build_block(bb0)
-        .assign_local(x, |rv| rv.load(const_1))
+        .assign_place(x, |rv| rv.load(const_1))
         .goto(bb1, []);
 
     builder
         .build_block(bb1)
-        .assign_local(x, |rv| rv.load(const_2))
-        .assign_local(y, |rv| {
-            let x = rv.place_local(x);
-
-            rv.binary(x, op![==], x)
-        })
+        .assign_place(x, |rv| rv.load(const_2))
+        .assign_place(y, |rv| rv.binary(x, op![==], x))
         .ret(const_unit);
 
     let body = builder.finish(0, TypeBuilder::synthetic(&env).null());
@@ -121,12 +116,8 @@ fn single_def_use() {
 
     builder
         .build_block(bb0)
-        .assign_local(x, |rv| rv.load(const_1))
-        .assign_local(y, |rv| {
-            let x = rv.place_local(x);
-
-            rv.binary(x, op![==], x)
-        })
+        .assign_place(x, |rv| rv.load(const_1))
+        .assign_place(y, |rv| rv.binary(x, op![==], x))
         .ret(const_unit);
 
     let body = builder.finish(0, TypeBuilder::synthetic(&env).null());
@@ -150,7 +141,7 @@ fn diamond_both_branches_define() {
 
     let x = builder.local("x", TypeBuilder::synthetic(&env).integer());
     let cond = builder.local("cond", TypeBuilder::synthetic(&env).boolean());
-    let cond = builder.place_local(cond);
+
     let const_true = builder.const_bool(true);
     let const_1 = builder.const_int(1);
     let const_2 = builder.const_int(2);
@@ -168,21 +159,18 @@ fn diamond_both_branches_define() {
 
     builder
         .build_block(bb1)
-        .assign_local(x, |rv| rv.load(const_1))
+        .assign_place(x, |rv| rv.load(const_1))
         .goto(bb3, []);
 
     builder
         .build_block(bb2)
-        .assign_local(x, |rv| rv.load(const_2))
+        .assign_place(x, |rv| rv.load(const_2))
         .goto(bb3, []);
 
     // Use of x here requires a block param after repair
     builder
         .build_block(bb3)
-        .assign_place(cond, |rv| {
-            let x = rv.place_local(x);
-            rv.binary(x, op![==], x)
-        })
+        .assign_place(cond, |rv| rv.binary(x, op![==], x))
         .ret(const_unit);
 
     let body = builder.finish(0, TypeBuilder::synthetic(&env).null());
@@ -206,7 +194,7 @@ fn diamond_one_branch_redefines() {
 
     let x = builder.local("x", TypeBuilder::synthetic(&env).integer());
     let cond = builder.local("cond", TypeBuilder::synthetic(&env).boolean());
-    let cond = builder.place_local(cond);
+
     let const_true = builder.const_bool(true);
     let const_1 = builder.const_int(1);
     let const_2 = builder.const_int(2);
@@ -221,13 +209,13 @@ fn diamond_one_branch_redefines() {
     builder
         .build_block(bb0)
         .assign_place(cond, |rv| rv.load(const_true))
-        .assign_local(x, |rv| rv.load(const_1))
+        .assign_place(x, |rv| rv.load(const_1))
         .if_else(cond, bb1, [], bb2, []);
 
     // Redefine x in one branch only
     builder
         .build_block(bb1)
-        .assign_local(x, |rv| rv.load(const_2))
+        .assign_place(x, |rv| rv.load(const_2))
         .goto(bb3, []);
 
     // No redefinition here - passthrough
@@ -236,10 +224,7 @@ fn diamond_one_branch_redefines() {
     // bb3 needs param: x0 from bb2, x1 from bb1
     builder
         .build_block(bb3)
-        .assign_place(cond, |rv| {
-            let x = rv.place_local(x);
-            rv.binary(x, op![==], x)
-        })
+        .assign_place(cond, |rv| rv.binary(x, op![==], x))
         .ret(const_unit);
 
     let body = builder.finish(0, TypeBuilder::synthetic(&env).null());
@@ -263,7 +248,6 @@ fn simple_loop() {
 
     let x = builder.local("x", TypeBuilder::synthetic(&env).integer());
     let cond = builder.local("cond", TypeBuilder::synthetic(&env).boolean());
-    let cond = builder.place_local(cond);
 
     let const_true = builder.const_bool(true);
     let const_0 = builder.const_int(0);
@@ -276,18 +260,15 @@ fn simple_loop() {
 
     builder
         .build_block(bb0)
-        .assign_local(x, |rv| rv.load(const_0))
+        .assign_place(x, |rv| rv.load(const_0))
         .assign_place(cond, |rv| rv.load(const_true))
         .goto(bb1, []);
 
     // Loop header: use x, redefine x, branch back or exit
     builder
         .build_block(bb1)
-        .assign_place(cond, |rv| {
-            let x = rv.place_local(x);
-            rv.binary(x, op![==], x)
-        })
-        .assign_local(x, |rv| rv.load(const_1))
+        .assign_place(cond, |rv| rv.binary(x, op![==], x))
+        .assign_place(x, |rv| rv.load(const_1))
         .if_else(cond, bb1, [], bb2, []);
 
     builder.build_block(bb2).ret(const_unit);
@@ -324,7 +305,7 @@ fn passthrough_chain() {
 
     builder
         .build_block(bb0)
-        .assign_local(x, |rv| rv.load(const_1))
+        .assign_place(x, |rv| rv.load(const_1))
         .goto(bb1, []);
 
     // Passthrough - no def of x
@@ -336,11 +317,10 @@ fn passthrough_chain() {
     // USE x first (from bb0 via passthrough), then redefine
     builder
         .build_block(bb3)
-        .assign_local(y, |rv| {
-            let x = rv.place_local(x);
+        .assign_place(y, |rv| {
             rv.binary(x, op![==], x) // use before def in this block
         })
-        .assign_local(x, |rv| rv.load(const_2))
+        .assign_place(x, |rv| rv.load(const_2))
         .ret(const_unit);
 
     let body = builder.finish(0, TypeBuilder::synthetic(&env).null());
@@ -373,17 +353,14 @@ fn use_before_def_in_block() {
 
     builder
         .build_block(bb0)
-        .assign_local(x, |rv| rv.load(const_1))
+        .assign_place(x, |rv| rv.load(const_1))
         .goto(bb1, []);
 
     // Use x (from bb0), then redefine x
     builder
         .build_block(bb1)
-        .assign_local(y, |rv| {
-            let x = rv.place_local(x);
-            rv.binary(x, op![==], x)
-        })
-        .assign_local(x, |rv| rv.load(const_2))
+        .assign_place(y, |rv| rv.binary(x, op![==], x))
+        .assign_place(x, |rv| rv.load(const_2))
         .ret(const_unit);
 
     let body = builder.finish(0, TypeBuilder::synthetic(&env).null());
@@ -417,13 +394,10 @@ fn multiple_defs_same_block() {
     // Three defs of x in the same block
     builder
         .build_block(bb0)
-        .assign_local(x, |rv| rv.load(const_1))
-        .assign_local(x, |rv| rv.load(const_2))
-        .assign_local(x, |rv| rv.load(const_3))
-        .assign_local(y, |rv| {
-            let x = rv.place_local(x);
-            rv.binary(x, op![==], x)
-        })
+        .assign_place(x, |rv| rv.load(const_1))
+        .assign_place(x, |rv| rv.load(const_2))
+        .assign_place(x, |rv| rv.load(const_3))
+        .assign_place(y, |rv| rv.binary(x, op![==], x))
         .ret(const_unit);
 
     let body = builder.finish(0, TypeBuilder::synthetic(&env).null());
@@ -448,7 +422,7 @@ fn three_way_merge() {
     let x = builder.local("x", TypeBuilder::synthetic(&env).integer());
     let y = builder.local("y", TypeBuilder::synthetic(&env).integer());
     let selector = builder.local("selector", TypeBuilder::synthetic(&env).integer());
-    let selector = builder.place_local(selector);
+
     let const_0 = builder.const_int(0);
     let const_1 = builder.const_int(1);
     let const_2 = builder.const_int(2);
@@ -470,26 +444,23 @@ fn three_way_merge() {
 
     builder
         .build_block(bb1)
-        .assign_local(x, |rv| rv.load(const_1))
+        .assign_place(x, |rv| rv.load(const_1))
         .goto(bb4, []);
 
     builder
         .build_block(bb2)
-        .assign_local(x, |rv| rv.load(const_2))
+        .assign_place(x, |rv| rv.load(const_2))
         .goto(bb4, []);
 
     builder
         .build_block(bb3)
-        .assign_local(x, |rv| rv.load(const_3))
+        .assign_place(x, |rv| rv.load(const_3))
         .goto(bb4, []);
 
     // Three predecessors, each with different def of x
     builder
         .build_block(bb4)
-        .assign_local(y, |rv| {
-            let x = rv.place_local(x);
-            rv.binary(x, op![==], x)
-        })
+        .assign_place(y, |rv| rv.binary(x, op![==], x))
         .ret(const_unit);
 
     let body = builder.finish(0, TypeBuilder::synthetic(&env).null());
@@ -513,9 +484,8 @@ fn nested_loop() {
 
     let x = builder.local("x", TypeBuilder::synthetic(&env).integer());
     let outer_cond = builder.local("outer_cond", TypeBuilder::synthetic(&env).boolean());
-    let outer_cond = builder.place_local(outer_cond);
     let inner_cond = builder.local("inner_cond", TypeBuilder::synthetic(&env).boolean());
-    let inner_cond = builder.place_local(inner_cond);
+
     let const_true = builder.const_bool(true);
     let const_0 = builder.const_int(0);
     let const_1 = builder.const_int(1);
@@ -529,7 +499,7 @@ fn nested_loop() {
 
     builder
         .build_block(bb0)
-        .assign_local(x, |rv| rv.load(const_0))
+        .assign_place(x, |rv| rv.load(const_0))
         .assign_place(outer_cond, |rv| rv.load(const_true))
         .assign_place(inner_cond, |rv| rv.load(const_true))
         .goto(bb1, []);
@@ -540,11 +510,8 @@ fn nested_loop() {
     // Inner loop: use and redefine x
     builder
         .build_block(bb2)
-        .assign_place(outer_cond, |rv| {
-            let x = rv.place_local(x);
-            rv.binary(x, op![==], x)
-        })
-        .assign_local(x, |rv| rv.load(const_1))
+        .assign_place(outer_cond, |rv| rv.binary(x, op![==], x))
+        .assign_place(x, |rv| rv.load(const_1))
         .if_else(inner_cond, bb2, [], bb3, []);
 
     // Outer latch
@@ -577,7 +544,7 @@ fn multiple_variables_violated() {
     let y = builder.local("y", TypeBuilder::synthetic(&env).integer());
     let z = builder.local("z", TypeBuilder::synthetic(&env).integer());
     let cond = builder.local("cond", TypeBuilder::synthetic(&env).boolean());
-    let cond = builder.place_local(cond);
+
     let const_true = builder.const_bool(true);
     let const_1 = builder.const_int(1);
     let const_2 = builder.const_int(2);
@@ -596,26 +563,21 @@ fn multiple_variables_violated() {
     // Both x and y defined here
     builder
         .build_block(bb1)
-        .assign_local(x, |rv| rv.load(const_1))
-        .assign_local(y, |rv| rv.load(const_1))
+        .assign_place(x, |rv| rv.load(const_1))
+        .assign_place(y, |rv| rv.load(const_1))
         .goto(bb3, []);
 
     // Both x and y defined here too
     builder
         .build_block(bb2)
-        .assign_local(x, |rv| rv.load(const_2))
-        .assign_local(y, |rv| rv.load(const_2))
+        .assign_place(x, |rv| rv.load(const_2))
+        .assign_place(y, |rv| rv.load(const_2))
         .goto(bb3, []);
 
     // Use both x and y - both need block params
     builder
         .build_block(bb3)
-        .assign_local(z, |rv| {
-            let x = rv.place_local(x);
-            let y = rv.place_local(y);
-
-            rv.binary(x, op![==], y)
-        })
+        .assign_place(z, |rv| rv.binary(x, op![==], y))
         .ret(const_unit);
 
     let body = builder.finish(0, TypeBuilder::synthetic(&env).null());
@@ -640,9 +602,8 @@ fn loop_with_conditional_def() {
     let x = builder.local("x", TypeBuilder::synthetic(&env).integer());
     let y = builder.local("y", TypeBuilder::synthetic(&env).integer());
     let loop_cond = builder.local("loop_cond", TypeBuilder::synthetic(&env).boolean());
-    let loop_cond = builder.place_local(loop_cond);
     let inner_cond = builder.local("inner_cond", TypeBuilder::synthetic(&env).boolean());
-    let inner_cond = builder.place_local(inner_cond);
+
     let const_true = builder.const_bool(true);
     let const_0 = builder.const_int(0);
     let const_1 = builder.const_int(1);
@@ -657,7 +618,7 @@ fn loop_with_conditional_def() {
 
     builder
         .build_block(bb0)
-        .assign_local(x, |rv| rv.load(const_0))
+        .assign_place(x, |rv| rv.load(const_0))
         .assign_place(loop_cond, |rv| rv.load(const_true))
         .assign_place(inner_cond, |rv| rv.load(const_true))
         .goto(bb1, []);
@@ -670,7 +631,7 @@ fn loop_with_conditional_def() {
     // Redefine x on some iterations
     builder
         .build_block(bb2)
-        .assign_local(x, |rv| rv.load(const_1))
+        .assign_place(x, |rv| rv.load(const_1))
         .goto(bb4, []);
 
     // Skip - no redef
@@ -679,10 +640,7 @@ fn loop_with_conditional_def() {
     // Use x, then loop or exit
     builder
         .build_block(bb4)
-        .assign_local(y, |rv| {
-            let x = rv.place_local(x);
-            rv.binary(x, op![==], x)
-        })
+        .assign_place(y, |rv| rv.binary(x, op![==], x))
         .if_else(loop_cond, bb1, [], bb5, []);
 
     builder.build_block(bb5).ret(const_unit);
@@ -708,9 +666,8 @@ fn irreducible() {
     let x = builder.local("x", TypeBuilder::synthetic(&env).integer());
     let y = builder.local("y", TypeBuilder::synthetic(&env).integer());
     let cond1 = builder.local("cond1", TypeBuilder::synthetic(&env).boolean());
-    let cond1 = builder.place_local(cond1);
     let cond2 = builder.local("cond2", TypeBuilder::synthetic(&env).boolean());
-    let cond2 = builder.place_local(cond2);
+
     let const_true = builder.const_bool(true);
     let const_0 = builder.const_int(0);
     let const_1 = builder.const_int(1);
@@ -725,7 +682,7 @@ fn irreducible() {
     // Entry: define x, branch into cycle at either point
     builder
         .build_block(bb0)
-        .assign_local(x, |rv| rv.load(const_0))
+        .assign_place(x, |rv| rv.load(const_0))
         .assign_place(cond1, |rv| rv.load(const_true))
         .assign_place(cond2, |rv| rv.load(const_true))
         .if_else(cond1, bb1, [], bb2, []);
@@ -733,30 +690,21 @@ fn irreducible() {
     // bb1: USE x first (needs value from bb0 or bb2), then define x
     builder
         .build_block(bb1)
-        .assign_local(y, |rv| {
-            let x = rv.place_local(x);
-            rv.binary(x, op![==], x)
-        })
-        .assign_local(x, |rv| rv.load(const_1))
+        .assign_place(y, |rv| rv.binary(x, op![==], x))
+        .assign_place(x, |rv| rv.load(const_1))
         .goto(bb2, []);
 
     // bb2: USE x first (needs value from bb0 or bb1), then define x, loop or exit
     builder
         .build_block(bb2)
-        .assign_local(y, |rv| {
-            let x = rv.place_local(x);
-            rv.binary(x, op![==], x)
-        })
-        .assign_local(x, |rv| rv.load(const_2))
+        .assign_place(y, |rv| rv.binary(x, op![==], x))
+        .assign_place(x, |rv| rv.load(const_2))
         .if_else(cond2, bb1, [], bb3, []);
 
     // bb3: use x
     builder
         .build_block(bb3)
-        .assign_local(y, |rv| {
-            let x = rv.place_local(x);
-            rv.binary(x, op![==], x)
-        })
+        .assign_place(y, |rv| rv.binary(x, op![==], x))
         .ret(const_unit);
 
     let body = builder.finish(0, TypeBuilder::synthetic(&env).null());
@@ -782,9 +730,7 @@ fn reassign_rodeo() {
     let const_0 = builder.const_int(0);
 
     let bb0 = builder.reserve_block([]);
-    let bb1 = builder.reserve_block([x]);
-
-    let x = builder.place_local(x);
+    let bb1 = builder.reserve_block([x.local]);
 
     builder
         .build_block(bb0)

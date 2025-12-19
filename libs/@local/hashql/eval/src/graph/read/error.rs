@@ -563,9 +563,9 @@ pub(super) fn nested_graph_read_unsupported(
 /// Context type for branch unsupported diagnostics.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum BranchContext {
-    /// Branch in a filter boolean expression context
+    /// Branch in a filter boolean expression context.
     Filter,
-    /// Branch in a filter expression context
+    /// Branch in a filter expression context.
     FilterExpression,
 }
 

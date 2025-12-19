@@ -1,7 +1,7 @@
 //! ## Workspace dependencies
 #![cfg_attr(doc, doc = simple_mermaid::mermaid!("../docs/dependency-diagram.mmd"))]
 use clap::Parser as _;
-use hashql_compiletest::Options;
+use hashql_compiletest::{Options, OutputFormat};
 
 /// A test harness for HashQL that executes tests in the `/tests/ui` directory structure.
 ///
@@ -13,7 +13,7 @@ struct Cli {
     ///
     /// Uses nextest-compatible filter patterns to select which tests to run or list.
     /// For example: `--filter "test(some_namespace::specific_test)"`
-    /// or `--filter package(hashql-ast)`
+    /// or `--filter package(hashql-ast)`.
     #[clap(long, short)]
     filter: Option<String>,
 
@@ -35,7 +35,11 @@ enum Command {
     /// List all available tests without running them.
     ///
     /// Displays test names and their expected status (pass/fail/skip).
-    List,
+    List {
+        /// Output in JSON format for machine-readable consumption.
+        #[clap(long, default_value_t = false)]
+        json: bool,
+    },
 
     /// Run the test suite.
     ///
@@ -51,13 +55,33 @@ enum Command {
         #[clap(long, short, default_value_t = false)]
         bless: bool,
     },
+
+    /// List all available test suites and their descriptions.
+    Suites {
+        /// Output in JSON format for machine-readable consumption.
+        #[clap(long, default_value_t = false)]
+        json: bool,
+    },
 }
 
 impl From<Command> for hashql_compiletest::Command {
     fn from(value: Command) -> Self {
         match value {
-            Command::List => Self::List,
+            Command::List { json } => Self::List {
+                format: if json {
+                    OutputFormat::Json
+                } else {
+                    OutputFormat::Human
+                },
+            },
             Command::Run { bless } => Self::Run { bless },
+            Command::Suites { json } => Self::Suites {
+                format: if json {
+                    OutputFormat::Json
+                } else {
+                    OutputFormat::Human
+                },
+            },
         }
     }
 }

@@ -2,7 +2,7 @@ import { css } from "@hashintel/ds-helpers/css";
 import { useState } from "react";
 import { v4 as uuidv4 } from "uuid";
 
-import type { SDCPNType } from "../../../../core/types/sdcpn";
+import type { Color } from "../../../../core/types/sdcpn";
 import { ColorSelect } from "./color-select";
 
 /**
@@ -37,14 +37,14 @@ const slugifyToIdentifier = (input: string): string => {
 };
 
 interface TypePropertiesProps {
-  type: SDCPNType;
-  onUpdate: (typeId: string, updates: Partial<SDCPNType>) => void;
+  type: Color;
+  updateType: (typeId: string, updateFn: (type: Color) => void) => void;
   globalMode: "edit" | "simulate";
 }
 
 export const TypeProperties: React.FC<TypePropertiesProps> = ({
   type,
-  onUpdate,
+  updateType,
   globalMode,
 }) => {
   const isDisabled = globalMode === "simulate";
@@ -68,21 +68,25 @@ export const TypeProperties: React.FC<TypePropertiesProps> = ({
     const nextNumber = maxNumber + 1;
 
     const newElement = {
-      id: uuidv4(),
+      elementId: uuidv4(),
       name: `dimension_${nextNumber}`,
       type: "real" as const,
     };
-    onUpdate(type.id, {
-      elements: [...type.elements, newElement],
+    updateType(type.id, (existingType) => {
+      existingType.elements.push(newElement);
     });
   };
 
   const handleUpdateElementName = (elementId: string, newName: string) => {
     // Allow free-form typing - just update the value directly
-    const updatedElements = type.elements.map((elem) =>
-      elem.id === elementId ? { ...elem, name: newName } : elem,
-    );
-    onUpdate(type.id, { elements: updatedElements });
+    updateType(type.id, (existingType) => {
+      for (const element of existingType.elements) {
+        if (element.elementId === elementId) {
+          element.name = newName;
+          break;
+        }
+      }
+    });
   };
 
   const handleBlurElementName = (elementId: string, currentName: string) => {
@@ -91,11 +95,10 @@ export const TypeProperties: React.FC<TypePropertiesProps> = ({
 
     // Check for duplicates (excluding the current element)
     const isDuplicate = type.elements.some(
-      (elem) => elem.id !== elementId && elem.name === slugifiedName,
+      (elem) => elem.elementId !== elementId && elem.name === slugifiedName,
     );
 
     if (isDuplicate) {
-      // Show warning but still allow the update - the user can fix it
       // eslint-disable-next-line no-alert
       alert(
         `Warning: An element named "${slugifiedName}" already exists. Please use a unique name.`,
@@ -105,10 +108,14 @@ export const TypeProperties: React.FC<TypePropertiesProps> = ({
 
     // Only update if the slugified version is different
     if (currentName !== slugifiedName) {
-      const updatedElements = type.elements.map((elem) =>
-        elem.id === elementId ? { ...elem, name: slugifiedName } : elem,
-      );
-      onUpdate(type.id, { elements: updatedElements });
+      updateType(type.id, (existingType) => {
+        for (const element of existingType.elements) {
+          if (element.elementId === elementId) {
+            element.name = slugifiedName;
+            break;
+          }
+        }
+      });
     }
   };
 
@@ -123,10 +130,14 @@ export const TypeProperties: React.FC<TypePropertiesProps> = ({
       return;
     }
 
-    const updatedElements = type.elements.filter(
-      (elem) => elem.id !== elementId,
-    );
-    onUpdate(type.id, { elements: updatedElements });
+    updateType(type.id, (existingType) => {
+      const index = existingType.elements.findIndex(
+        (elem) => elem.elementId === elementId,
+      );
+      if (index !== -1) {
+        existingType.elements.splice(index, 1);
+      }
+    });
   };
 
   // Drag and drop handlers for reordering
@@ -147,12 +158,12 @@ export const TypeProperties: React.FC<TypePropertiesProps> = ({
       return;
     }
 
-    const newElements = [...type.elements];
-    const [draggedElement] = newElements.splice(draggedIndex, 1);
-    if (draggedElement) {
-      newElements.splice(dropIndex, 0, draggedElement);
-      onUpdate(type.id, { elements: newElements });
-    }
+    updateType(type.id, (existingType) => {
+      const [draggedElement] = existingType.elements.splice(draggedIndex, 1);
+      if (draggedElement) {
+        existingType.elements.splice(dropIndex, 0, draggedElement);
+      }
+    });
     setDraggedIndex(null);
     setDragOverIndex(null);
   };
@@ -186,7 +197,9 @@ export const TypeProperties: React.FC<TypePropertiesProps> = ({
             type="text"
             value={type.name}
             onChange={(event) => {
-              onUpdate(type.id, { name: event.target.value });
+              updateType(type.id, (existingType) => {
+                existingType.name = event.target.value;
+              });
             }}
             disabled={isDisabled}
             style={{
@@ -207,9 +220,11 @@ export const TypeProperties: React.FC<TypePropertiesProps> = ({
             Color
           </div>
           <ColorSelect
-            value={type.colorCode}
+            value={type.displayColor}
             onChange={(color) => {
-              onUpdate(type.id, { colorCode: color });
+              updateType(type.id, (existingType) => {
+                existingType.displayColor = color;
+              });
             }}
             disabled={isDisabled}
           />
@@ -278,7 +293,7 @@ export const TypeProperties: React.FC<TypePropertiesProps> = ({
             <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
               {type.elements.map((element, index) => (
                 <div
-                  key={element.id}
+                  key={element.elementId}
                   draggable={!isDisabled}
                   onDragStart={() => {
                     handleDragStart(index);
@@ -370,10 +385,16 @@ export const TypeProperties: React.FC<TypePropertiesProps> = ({
                     type="text"
                     value={element.name}
                     onChange={(event) => {
-                      handleUpdateElementName(element.id, event.target.value);
+                      handleUpdateElementName(
+                        element.elementId,
+                        event.target.value,
+                      );
                     }}
                     onBlur={(event) => {
-                      handleBlurElementName(element.id, event.target.value);
+                      handleBlurElementName(
+                        element.elementId,
+                        event.target.value,
+                      );
                     }}
                     disabled={isDisabled}
                     placeholder="dimension_name"
@@ -394,7 +415,7 @@ export const TypeProperties: React.FC<TypePropertiesProps> = ({
                   <button
                     type="button"
                     onClick={() => {
-                      handleDeleteElement(element.id, element.name);
+                      handleDeleteElement(element.elementId, element.name);
                     }}
                     disabled={isDisabled || type.elements.length === 1}
                     className={css({

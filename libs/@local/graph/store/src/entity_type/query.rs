@@ -121,7 +121,7 @@ pub enum EntityTypeQueryPath<'p> {
     ///
     /// [`EntityType::title()`]: type_system::ontology::entity_type::EntityType::title
     Title,
-    /// Corresponds to [`EntityType::description()`]
+    /// Corresponds to [`EntityType::description()`].
     ///
     /// ```rust
     /// # use serde::Deserialize;

@@ -3,7 +3,12 @@
 //! Places represent storage locations in the MIR, including local variables and complex paths
 //! through data structures. Projections allow accessing nested data within structured types.
 
-use core::alloc::Allocator;
+use alloc::{alloc::Global, collections::VecDeque};
+use core::{
+    alloc::Allocator,
+    fmt,
+    hash::{Hash, Hasher},
+};
 
 use hashql_core::{id, intern::Interned, symbol::Symbol, r#type::TypeId};
 
@@ -210,6 +215,7 @@ pub enum DefUse {
 /// For a place like `local_0.field_1.field_2`:
 /// - At projection 0: `PlaceRef { local: local_0, projections: [] }`
 /// - At projection 1: `PlaceRef { local: local_0, projections: [field_1] }`
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub struct PlaceRef<'proj, 'heap> {
     /// The root local variable that this place reference starts from.
     pub local: Local,
@@ -219,6 +225,52 @@ pub struct PlaceRef<'proj, 'heap> {
     /// This slice contains all projections applied before the current projection
     /// being examined during iteration.
     pub projections: &'proj [Projection<'heap>],
+}
+
+impl<'heap> PlaceRef<'_, 'heap> {
+    /// Interns the borrowed projection slice and returns an owned [`Place`].
+    ///
+    /// Converts this borrowed reference into an interned place suitable for storage in MIR.
+    pub fn intern(&self, interner: &Interner<'heap>) -> Place<'heap> {
+        Place {
+            local: self.local,
+            projections: interner.projections.intern_slice(self.projections),
+        }
+    }
+}
+
+/// An intermediate place representation used during dependency resolution.
+///
+/// Represents a partially-resolved place where the projection sequence may still grow
+/// as resolution traverses through the dependency graph. Convert to [`Place`] via
+/// [`PlaceRef::intern`] once resolution completes.
+#[derive(Debug, Clone)]
+pub struct PlaceMut<'heap, A: Allocator = Global> {
+    /// The current root local after partial resolution.
+    pub local: Local,
+
+    /// Accumulated projections that could not yet be resolved.
+    ///
+    /// During resolution, projections are prepended from edge targets and appended
+    /// from the original place being resolved.
+    pub projections: VecDeque<Projection<'heap>, A>,
+}
+
+impl<A: Allocator> PartialEq for PlaceMut<'_, A> {
+    fn eq(&self, other: &Self) -> bool {
+        let Self { local, projections } = self;
+
+        *local == other.local && *projections == other.projections
+    }
+}
+
+impl<A: Allocator> Eq for PlaceMut<'_, A> {}
+
+impl<A: Allocator> Hash for PlaceMut<'_, A> {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.local.hash(state);
+        self.projections.hash(state);
+    }
 }
 
 /// A storage location that can be read from or written to in the MIR.
@@ -331,6 +383,15 @@ impl<'heap> Place<'heap> {
             .last()
             .map_or_else(|| decl[self.local].r#type, |projection| projection.r#type)
     }
+
+    /// Returns a borrowed reference to this place.
+    #[must_use]
+    pub const fn as_ref(&self) -> PlaceRef<'heap, 'heap> {
+        PlaceRef {
+            local: self.local,
+            projections: self.projections.0,
+        }
+    }
 }
 
 /// A single projection step that navigates into structured data, carrying its result type.
@@ -399,4 +460,14 @@ pub enum ProjectionKind<'heap> {
     /// This projection navigates to an element within a list or dictionary. The
     /// [`Local`] contains the index value that determines which element to access.
     Index(Local),
+}
+
+impl fmt::Display for ProjectionKind<'_> {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            ProjectionKind::Field(index) => write!(fmt, ".{index}"),
+            ProjectionKind::FieldByName(name) => write!(fmt, ".{name}"),
+            ProjectionKind::Index(index) => write!(fmt, "[%{index}]"),
+        }
+    }
 }

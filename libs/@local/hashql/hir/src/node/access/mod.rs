@@ -9,8 +9,8 @@ pub use self::{field::FieldAccess, index::IndexAccess};
 /// such as accessing a field in a struct or an element in a list or tuple.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum Access<'heap> {
-    /// Access a named field of a struct or object
+    /// Access a named field of a struct or object.
     Field(FieldAccess<'heap>),
-    /// Access an element by index in a collection
+    /// Access an element by index in a collection.
     Index(IndexAccess<'heap>),
 }

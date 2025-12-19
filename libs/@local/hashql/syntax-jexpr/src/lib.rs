@@ -9,6 +9,7 @@
     if_let_guard,
 
     // Library Features
+    allocator_api,
     ascii_char,
     assert_matches,
     box_into_boxed_slice,
@@ -70,7 +71,6 @@ impl<'heap, 'spans> Parser<'heap, 'spans> {
 
 #[cfg(test)]
 mod tests {
-
     use hashql_ast::format::SyntaxDump as _;
     use hashql_core::{heap::Heap, span::SpanTable};
     use hashql_diagnostics::source::SourceId;
@@ -78,16 +78,16 @@ mod tests {
 
     use crate::{Parser, test::render_diagnostic};
 
-    /// Helper struct to organize parsing test results
+    /// Helper struct to organize parsing test results.
     #[derive(Debug)]
     struct ParseTestResult {
-        /// String representation of the syntax tree
+        /// String representation of the syntax tree.
         dump: String,
-        /// Original input text that was parsed
+        /// Original input text that was parsed.
         input: &'static str,
     }
 
-    /// Attempt to parse an input string and return either a successful result or formatted error
+    /// Attempt to parse an input string and return either a successful result or formatted error.
     fn parse_input(input: &'static str) -> Result<ParseTestResult, String> {
         let heap = Heap::new();
         let mut spans = SpanTable::new(SourceId::new_unchecked(0x00));

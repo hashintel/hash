@@ -26,7 +26,7 @@ mod tests;
 
 use core::convert::Infallible;
 
-use hashql_core::{collections::FastHashSet, id::Id as _};
+use hashql_core::{collections::fast_hash_set_with_capacity_in, heap::BumpAllocator, id::Id as _};
 
 use crate::{
     body::{
@@ -36,73 +36,65 @@ use crate::{
     },
     context::MirContext,
     intern::Interner,
-    pass::Pass,
+    pass::TransformPass,
     visit::{VisitorMut, r#mut::filter},
 };
 
 /// Dead block elimination pass.
 ///
 /// Removes unreachable blocks and compacts the block ID space.
-pub struct DeadBlockElimination {
-    /// Set of blocks reachable from the entry block.
-    reachable: FastHashSet<BasicBlockId>,
-
-    /// Sparse mapping from old block IDs to new block IDs.
-    remap: BasicBlockVec<Option<BasicBlockId>>,
+pub struct DeadBlockElimination<A: BumpAllocator> {
+    alloc: A,
 }
 
-impl DeadBlockElimination {
+impl<A: BumpAllocator> DeadBlockElimination<A> {
     /// Creates a new dead block elimination pass.
     #[must_use]
-    pub fn new() -> Self {
-        Self {
-            reachable: FastHashSet::default(),
-            remap: BasicBlockVec::default(),
-        }
+    pub const fn new_in(alloc: A) -> Self {
+        Self { alloc }
     }
 }
 
-impl Default for DeadBlockElimination {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
-impl<'env, 'heap> Pass<'env, 'heap> for DeadBlockElimination {
+impl<'env, 'heap, A: BumpAllocator> TransformPass<'env, 'heap> for DeadBlockElimination<A> {
     fn run(&mut self, context: &mut MirContext<'env, 'heap>, body: &mut Body<'heap>) {
-        self.reachable.clear();
+        self.alloc.reset();
+
+        let mut reachable = fast_hash_set_with_capacity_in(
+            body.basic_blocks.reverse_postorder().len(),
+            &self.alloc,
+        );
 
         // Step 1: Collect reachable blocks
         #[expect(unsafe_code)]
         for &block in body.basic_blocks.reverse_postorder() {
             // SAFETY: The values are guaranteed to be present at most once.
             unsafe {
-                self.reachable.insert_unique_unchecked(block);
+                reachable.insert_unique_unchecked(block);
             }
         }
 
         // Early exit if all blocks are reachable
-        if self.reachable.len() == body.basic_blocks.len() {
+        if reachable.len() == body.basic_blocks.len() {
             return;
         }
 
         // Step 2: Build the remapping table
         // Iterate in order to preserve relative positions
-        self.remap.clear();
+        let mut remap = BasicBlockVec::new_in(&self.alloc);
         let mut new_id = BasicBlockId::new(0);
 
         for old_id in body.basic_blocks.ids() {
-            if !self.reachable.contains(&old_id) {
+            if !reachable.contains(&old_id) {
                 continue;
             }
 
-            self.remap.insert(old_id, new_id);
+            remap.insert(old_id, new_id);
             new_id.increment_by(1);
         }
 
         // Step 3: Update all terminator targets in reachable blocks
         let mut visitor = UpdateTerminator {
-            remap: &self.remap,
+            remap: &remap,
             interner: context.interner,
         };
         Ok(()) = visitor.visit_body_preserving_cfg(body);
@@ -128,7 +120,7 @@ impl<'env, 'heap> Pass<'env, 'heap> for DeadBlockElimination {
         //   read=4, write=2: R is reachable, swap(2,4) -> [R, R, R, U, U], write=3.
         //   truncate to 3 -> [R, R, R]
         let mut write_index = BasicBlockId::new(0);
-        let reachable_count = BasicBlockId::from_usize(self.reachable.len());
+        let reachable_count = BasicBlockId::from_usize(reachable.len());
 
         for read_index in body.basic_blocks.ids() {
             if write_index == reachable_count {
@@ -136,15 +128,13 @@ impl<'env, 'heap> Pass<'env, 'heap> for DeadBlockElimination {
                 break;
             }
 
-            if !self.reachable.contains(&read_index) {
+            if !reachable.contains(&read_index) {
                 continue;
             }
 
-            if write_index != read_index {
-                body.basic_blocks
-                    .as_mut_preserving_cfg()
-                    .swap(write_index, read_index);
-            }
+            body.basic_blocks
+                .as_mut_preserving_cfg()
+                .swap(write_index, read_index);
 
             write_index.increment_by(1);
         }

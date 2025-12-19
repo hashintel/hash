@@ -1,11 +1,10 @@
 use alloc::{borrow::Cow, sync::Arc};
 
 use hashql_core::span::{TextRange, TextSize};
-use hifijson::{SliceLexer, num::LexWrite as _, str::LexAlloc as _};
-use json_number::Number;
+use hifijson::{SliceLexer, str::LexAlloc as _};
 use logos::Lexer;
 
-use super::{error::LexerError, token_kind::TokenKind};
+use super::{Number, error::LexerError, token_kind::TokenKind};
 
 fn ptr_offset(start: *const u8, current: *const u8) -> usize {
     debug_assert!(current >= start);
@@ -41,33 +40,23 @@ pub(crate) fn parse_string<'source>(
 
 #[expect(
     clippy::cast_possible_truncation,
-    reason = "4GiB limit enforced by lexer "
+    reason = "4GiB limit enforced by lexer"
 )]
 pub(crate) fn parse_number<'source>(
     lexer: &mut Lexer<'source, TokenKind<'source>>,
-) -> Result<Cow<'source, Number>, LexerError> {
+) -> Result<Number<'source>, LexerError> {
     let span = lexer.span();
-    // this time we cannot automatically exclude the first character
+    // This time we cannot automatically exclude the first character
     let slice = &lexer.source()[span.start..];
-    let mut lex = SliceLexer::new(slice);
-    let (value, _) = lex.num_string().map_err(|error| {
-        let consumed = ptr_offset(slice.as_ptr(), lex.as_slice().as_ptr());
-        let range = TextRange::empty(TextSize::from((span.start + consumed) as u32));
+    let (consumed, number) = Number::parse(slice);
 
-        LexerError::Number {
-            error: Arc::new(error),
-            range,
-        }
+    let number = number.map_err(|mut error| {
+        error.range += TextSize::new(span.start as u32);
+
+        LexerError::Number(error)
     })?;
 
-    let consumed = ptr_offset(slice.as_ptr(), lex.as_slice().as_ptr());
-
-    // the first character is already consumed
-    lexer.bump(consumed - 1);
-
-    #[expect(unsafe_code, reason = "already validated to be valid number")]
-    // SAFETY: The number is guaranteed to be a valid number
-    let number = unsafe { Number::new_unchecked(value) };
-
-    Ok(Cow::Borrowed(number))
+    // The first character is already consumed
+    lexer.bump((consumed - 1) as usize);
+    Ok(number)
 }

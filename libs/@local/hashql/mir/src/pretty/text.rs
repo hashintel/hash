@@ -62,13 +62,13 @@ pub(crate) struct HighlightBody<'def>(pub &'def [DefId]);
 /// - `S`: A source lookup implementing [`SourceLookup`] for symbol resolution
 /// - `T`: A type which implements [`AsMut<TypeFormatter>`] for type information
 pub struct TextFormat<W, S, T> {
-    /// The writer where formatted text will be written
+    /// The writer where formatted text will be written.
     pub writer: W,
-    /// Amount of indention per level
+    /// Amount of indention per level.
     pub indent: usize,
-    /// Source lookup for resolving symbols and identifiers
+    /// Source lookup for resolving symbols and identifiers.
     pub sources: S,
-    /// Type formatter for formatting type information
+    /// Type formatter for formatting type information.
     pub types: T,
 }
 
@@ -95,6 +95,27 @@ where
         T: AsMut<TypeFormatter<'fmt, 'env, 'heap>>,
     {
         self.format_part((bodies, HighlightBody(highlight)))
+    }
+
+    /// Formats a single MIR body as human-readable text.
+    ///
+    /// Unlike [`format`], which processes multiple bodies and supports highlighting,
+    /// this method formats a single `body` without any highlighting applied.
+    ///
+    /// # Errors
+    ///
+    /// Returns an [`io::Error`] if writing to the underlying writer fails.
+    ///
+    /// [`format`]: Self::format
+    pub fn format_body<'fmt, 'env, 'heap: 'fmt + 'env>(
+        &mut self,
+        body: &Body<'heap>,
+    ) -> io::Result<()>
+    where
+        S: SourceLookup<'heap>,
+        T: AsMut<TypeFormatter<'fmt, 'env, 'heap>>,
+    {
+        self.format_part((body, BodyRenderOptions { highlight: false }))
     }
 
     fn separated_list<V>(

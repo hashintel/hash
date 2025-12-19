@@ -24,21 +24,21 @@ pub(crate) macro bind_state(let mut $name:ident from $context:ident) {
     let mut $name = ParserState::new(&$context.heap, lexer, &mut $context.spans);
 }
 
-/// Represents the successful result of parsing an expression
+/// Represents the successful result of parsing an expression.
 #[derive(Debug)]
 pub(crate) struct ParseTestOk {
-    /// String representation of the syntax tree
+    /// String representation of the syntax tree.
     pub dump: String,
-    /// Original input text that was parsed
+    /// Original input text that was parsed.
     pub input: &'static str,
 }
 
-/// Represents an error that occurred during expression parsing
+/// Represents an error that occurred during expression parsing.
 #[derive(Debug)]
 pub(crate) struct ParseTestErr {
-    /// Formatted diagnostic message
+    /// Formatted diagnostic message.
     pub diagnostic: String,
-    /// Original input text that caused the error
+    /// Original input text that caused the error.
     pub input: &'static str,
 }
 

@@ -56,7 +56,7 @@ pub struct PathSegment<'heap> {
     pub span: SpanId,
 
     pub name: Ident<'heap>,
-    /// Type parameters attached to this path segment
+    /// Type parameters attached to this path segment.
     pub arguments: heap::Vec<'heap, PathSegmentArgument<'heap>>,
 }
 
@@ -172,11 +172,11 @@ impl<'heap> Path<'heap> {
         Some(segment.name)
     }
 
-    /// Tries to turn this path into a generic identifier
+    /// Tries to turn this path into a generic identifier.
     ///
     /// # Errors
     ///
-    /// Returns the unmodified path
+    /// Returns the unmodified path.
     pub fn into_generic_ident(
         mut self,
     ) -> Result<(Ident<'heap>, heap::Vec<'heap, PathSegmentArgument<'heap>>), Self> {

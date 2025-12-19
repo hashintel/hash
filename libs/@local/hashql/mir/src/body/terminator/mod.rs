@@ -18,7 +18,7 @@ pub use self::{
     goto::Goto,
     graph::{GraphRead, GraphReadBody, GraphReadHead, GraphReadLocation, GraphReadTail},
     r#return::Return,
-    switch_int::{SwitchIf, SwitchInt, SwitchTargets},
+    switch_int::{SwitchIf, SwitchInt, SwitchIntValue, SwitchTargets},
     target::Target,
 };
 use super::basic_block::BasicBlockId;

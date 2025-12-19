@@ -2,7 +2,7 @@ import { css } from "@hashintel/ds-helpers/css";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { useEditorStore } from "../../../../state/editor-provider";
-import { useSDCPNStore } from "../../../../state/sdcpn-provider";
+import { useSDCPNContext } from "../../../../state/sdcpn-provider";
 import { DifferentialEquationProperties } from "./differential-equation-properties";
 import { ParameterProperties } from "./parameter-properties";
 import { PlaceProperties } from "./place-properties";
@@ -10,6 +10,7 @@ import { TransitionProperties } from "./transition-properties";
 import { TypeProperties } from "./type-properties";
 
 const startingWidth = 450;
+const PANEL_MARGIN = 12;
 
 /**
  * PropertiesPanel displays properties and controls for the selected node/edge.
@@ -18,23 +19,50 @@ export const PropertiesPanel: React.FC = () => {
   const selectedResourceId = useEditorStore(
     (state) => state.selectedResourceId,
   );
-  const getItemType = useEditorStore((state) => state.getItemType);
   const globalMode = useEditorStore((state) => state.globalMode);
-  const sdcpn = useSDCPNStore((state) => state.sdcpn);
-  const updatePlace = useSDCPNStore((state) => state.updatePlace);
-  const updateTransition = useSDCPNStore((state) => state.updateTransition);
-  const updateArcWeight = useSDCPNStore((state) => state.updateArcWeight);
-  const updateType = useSDCPNStore((state) => state.updateType);
-  const updateDifferentialEquation = useSDCPNStore(
-    (state) => state.updateDifferentialEquation,
+  const setPropertiesPanelWidth = useEditorStore(
+    (state) => state.setPropertiesPanelWidth,
   );
-  const updateParameter = useSDCPNStore((state) => state.updateParameter);
+  const isDiagnosticsPanelOpen = useEditorStore(
+    (state) => state.isDiagnosticsPanelOpen,
+  );
+  const diagnosticsPanelHeight = useEditorStore(
+    (state) => state.diagnosticsPanelHeight,
+  );
+
+  const {
+    getItemType,
+    petriNetDefinition,
+    updatePlace,
+    updateTransition,
+    updateArcWeight,
+    updateType,
+    updateDifferentialEquation,
+    updateParameter,
+  } = useSDCPNContext();
 
   // Resize functionality
-  const [panelWidth, setPanelWidth] = useState(startingWidth);
+  const [panelWidth, setPanelWidthLocal] = useState(startingWidth);
   const [isResizing, setIsResizing] = useState(false);
   const resizeStartXRef = useRef(0);
   const resizeStartWidthRef = useRef(startingWidth);
+
+  // Sync panel width with global store
+  const setPanelWidth = useCallback(
+    (width: number | ((prev: number) => number)) => {
+      setPanelWidthLocal((prev) => {
+        const newWidth = typeof width === "function" ? width(prev) : width;
+        setPropertiesPanelWidth(newWidth);
+        return newWidth;
+      });
+    },
+    [setPropertiesPanelWidth],
+  );
+
+  // Initialize store with starting width
+  useEffect(() => {
+    setPropertiesPanelWidth(startingWidth);
+  }, [setPropertiesPanelWidth]);
 
   const handleResizeStart = useCallback(
     (event: React.MouseEvent) => {
@@ -59,7 +87,7 @@ export const PropertiesPanel: React.FC = () => {
       );
       setPanelWidth(newWidth);
     },
-    [isResizing],
+    [isResizing, setPanelWidth],
   );
 
   const handleResizeEnd = useCallback(() => {
@@ -102,15 +130,17 @@ export const PropertiesPanel: React.FC = () => {
 
   switch (itemType) {
     case "place": {
-      const placeData = sdcpn.places.find((place) => place.id === selectedId);
+      const placeData = petriNetDefinition.places.find(
+        (place) => place.id === selectedId,
+      );
       if (placeData) {
         content = (
           <PlaceProperties
             place={placeData}
-            types={sdcpn.types}
-            differentialEquations={sdcpn.differentialEquations}
+            types={petriNetDefinition.types}
+            differentialEquations={petriNetDefinition.differentialEquations}
             globalMode={globalMode}
-            onUpdate={updatePlace}
+            updatePlace={updatePlace}
           />
         );
       }
@@ -118,18 +148,18 @@ export const PropertiesPanel: React.FC = () => {
     }
 
     case "transition": {
-      const transitionData = sdcpn.transitions.find(
+      const transitionData = petriNetDefinition.transitions.find(
         (transition) => transition.id === selectedId,
       );
       if (transitionData) {
         content = (
           <TransitionProperties
             transition={transitionData}
-            places={sdcpn.places}
-            types={sdcpn.types}
+            places={petriNetDefinition.places}
+            types={petriNetDefinition.types}
             globalMode={globalMode}
-            onUpdate={updateTransition}
             onArcWeightUpdate={updateArcWeight}
+            updateTransition={updateTransition}
           />
         );
       }
@@ -137,12 +167,14 @@ export const PropertiesPanel: React.FC = () => {
     }
 
     case "type": {
-      const typeData = sdcpn.types.find((type) => type.id === selectedId);
+      const typeData = petriNetDefinition.types.find(
+        (type) => type.id === selectedId,
+      );
       if (typeData) {
         content = (
           <TypeProperties
             type={typeData}
-            onUpdate={updateType}
+            updateType={updateType}
             globalMode={globalMode}
           />
         );
@@ -151,17 +183,17 @@ export const PropertiesPanel: React.FC = () => {
     }
 
     case "differentialEquation": {
-      const equationData = sdcpn.differentialEquations.find(
+      const equationData = petriNetDefinition.differentialEquations.find(
         (equation) => equation.id === selectedId,
       );
       if (equationData) {
         content = (
           <DifferentialEquationProperties
             differentialEquation={equationData}
-            types={sdcpn.types}
-            places={sdcpn.places}
+            types={petriNetDefinition.types}
+            places={petriNetDefinition.places}
             globalMode={globalMode}
-            onUpdate={updateDifferentialEquation}
+            updateDifferentialEquation={updateDifferentialEquation}
           />
         );
       }
@@ -169,14 +201,14 @@ export const PropertiesPanel: React.FC = () => {
     }
 
     case "parameter": {
-      const parameterData = sdcpn.parameters.find(
+      const parameterData = petriNetDefinition.parameters.find(
         (parameter) => parameter.id === selectedId,
       );
       if (parameterData) {
         content = (
           <ParameterProperties
             parameter={parameterData}
-            onUpdate={updateParameter}
+            updateParameter={updateParameter}
             globalMode={globalMode}
           />
         );
@@ -200,6 +232,12 @@ export const PropertiesPanel: React.FC = () => {
       );
   }
 
+  // Calculate bottom offset based on diagnostics panel visibility
+  // Gap between PropertiesPanel and DiagnosticsPanel matches gap between LeftSideBar and DiagnosticsPanel
+  const bottomOffset = isDiagnosticsPanelOpen
+    ? diagnosticsPanelHeight + PANEL_MARGIN
+    : 0;
+
   return (
     <div
       style={{
@@ -207,9 +245,8 @@ export const PropertiesPanel: React.FC = () => {
         position: "fixed",
         top: 0,
         right: 0,
-        bottom: 0,
+        bottom: bottomOffset,
         padding: "12px",
-        height: "100%",
         zIndex: 1000,
         pointerEvents: "none",
       }}
@@ -245,7 +282,7 @@ export const PropertiesPanel: React.FC = () => {
             background: "transparent",
             border: "none",
             padding: 0,
-            borderRadius: "16px 0 0 16px",
+            borderRadius: "12px 0 0 12px",
             backgroundColor: "transparent",
             transition: "background-color 0.4s",
             transitionDelay: "0.2s",
@@ -254,19 +291,33 @@ export const PropertiesPanel: React.FC = () => {
 
         <div
           className={css({
-            borderRadius: "[16px]",
+            borderRadius: "[12px]",
             height: "[100%]",
             width: "[100%]",
             backgroundColor: "[rgba(255, 255, 255, 0.7)]",
-            boxShadow: "0 4px 30px rgba(0, 0, 0, 0.15)",
-            border: "1px solid rgba(255, 255, 255, 0.8)",
-            backdropFilter: "[blur(12px)]",
+            boxShadow: "[0 3px 13px rgba(0, 0, 0, 0.1)]",
+            border: "[1px solid rgba(255, 255, 255, 0.8)]",
           })}
           style={{
-            borderRadius: 16,
+            borderRadius: 12,
             overflow: "hidden",
           }}
         >
+          {/* Elements with backdrop-filter should not be parent of Monaco Editor,
+              otherwise Monaco's Hover Widget do not show */}
+          <div
+            style={{
+              borderRadius: 12,
+              position: "absolute",
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              pointerEvents: "none",
+              backdropFilter: "blur(24px)",
+            }}
+          />
+
           <div
             style={{
               position: "relative",

@@ -1,0 +1,18 @@
+//@ run: pass
+//@ description: Deeply nested tuple access resolves through all levels to source variable
+[
+  "if",
+  { "#literal": true },
+  [
+    "let",
+    "value",
+    { "#literal": 42 },
+    [
+      "let",
+      "nested",
+      { "#tuple": [{ "#tuple": [{ "#tuple": ["value"] }] }] },
+      "nested.0.0.0"
+    ]
+  ],
+  { "#literal": 0 }
+]

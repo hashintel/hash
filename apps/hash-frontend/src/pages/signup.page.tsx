@@ -11,11 +11,13 @@ import type {
   AcceptOrgInvitationMutationVariables,
   GetPendingInvitationByEntityIdQuery,
   GetPendingInvitationByEntityIdQueryVariables,
+  HasAccessToHashQuery,
 } from "../graphql/api-types.gen";
 import {
   acceptOrgInvitationMutation,
   getPendingInvitationByEntityIdQuery,
 } from "../graphql/queries/knowledge/org.queries";
+import { hasAccessToHashQuery } from "../graphql/queries/user.queries";
 import type { NextPageWithLayout } from "../shared/layout";
 import { getPlainLayout } from "../shared/layout";
 import type { ButtonProps } from "../shared/ui";
@@ -66,6 +68,13 @@ const SignupPage: NextPageWithLayout = () => {
 
   const { authenticatedUser, refetch: refetchAuthenticatedUser } =
     useAuthInfo();
+
+  const { data: userHasAccessToHashData } = useQuery<HasAccessToHashQuery>(
+    hasAccessToHashQuery,
+    {
+      skip: !authenticatedUser,
+    },
+  );
 
   const { invitationId } = router.query;
 
@@ -168,7 +177,7 @@ const SignupPage: NextPageWithLayout = () => {
               invitation={invitation}
               onAccept={() => setShowInvitationStep(false)}
             />
-          ) : authenticatedUser ? (
+          ) : authenticatedUser && userHasAccessToHashData?.hasAccessToHash ? (
             // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- @todo improve logic or types to remove this comment
             userHasVerifiedEmail ? (
               <AccountSetupForm

@@ -163,34 +163,39 @@ export const getUserByEmail: ImpureGraphFunction<
 > = async (context, authentication, params) => {
   const {
     entities: [userEntity, ...unexpectedEntities],
-  } = await queryEntities(context, authentication, {
-    filter: {
-      all: [
-        generateVersionedUrlMatchingFilter(
-          systemEntityTypes.user.entityTypeId,
-          { ignoreParents: true },
-        ),
-        {
-          equal: [
-            {
-              /**
-               * @todo H-4936 update when users can have more than one email
-               */
-              path: [
-                "properties",
-                systemPropertyTypes.email.propertyTypeBaseUrl,
-                0,
-              ],
-            },
-            { parameter: params.email },
-          ],
-        },
-      ],
+  } = await queryEntities(
+    context,
+    authentication,
+    {
+      filter: {
+        all: [
+          generateVersionedUrlMatchingFilter(
+            systemEntityTypes.user.entityTypeId,
+            { ignoreParents: true },
+          ),
+          {
+            equal: [
+              {
+                /**
+                 * @todo H-4936 update when users can have more than one email
+                 */
+                path: [
+                  "properties",
+                  systemPropertyTypes.email.propertyTypeBaseUrl,
+                  0,
+                ],
+              },
+              { parameter: params.email },
+            ],
+          },
+        ],
+      },
+      temporalAxes: currentTimeInstantTemporalAxes,
+      includeDrafts: false,
+      includePermissions: false,
     },
-    temporalAxes: currentTimeInstantTemporalAxes,
-    includeDrafts: false,
-    includePermissions: false,
-  });
+    { preserveProperties: true },
+  );
 
   if (unexpectedEntities.length > 0) {
     throw new Error(
@@ -212,34 +217,39 @@ export const getUserByShortname: ImpureGraphFunction<
 > = async (context, authentication, params) => {
   const {
     entities: [userEntity, ...unexpectedEntities],
-  } = await queryEntities(context, authentication, {
-    filter: {
-      all: [
-        generateVersionedUrlMatchingFilter(
-          systemEntityTypes.user.entityTypeId,
-          { ignoreParents: true },
-        ),
-        {
-          equal: [
-            {
-              path: [
-                "properties",
-                systemPropertyTypes.shortname.propertyTypeBaseUrl,
-              ],
-            },
-            { parameter: params.shortname },
-          ],
-        },
-      ],
+  } = await queryEntities(
+    context,
+    authentication,
+    {
+      filter: {
+        all: [
+          generateVersionedUrlMatchingFilter(
+            systemEntityTypes.user.entityTypeId,
+            { ignoreParents: true },
+          ),
+          {
+            equal: [
+              {
+                path: [
+                  "properties",
+                  systemPropertyTypes.shortname.propertyTypeBaseUrl,
+                ],
+              },
+              { parameter: params.shortname },
+            ],
+          },
+        ],
+      },
+      // TODO: Should this be an all-time query? What happens if the user is
+      //       archived/deleted, do we want to allow users to replace their
+      //       shortname?
+      //   see https://linear.app/hash/issue/H-757
+      temporalAxes: currentTimeInstantTemporalAxes,
+      includeDrafts: params.includeDrafts ?? false,
+      includePermissions: false,
     },
-    // TODO: Should this be an all-time query? What happens if the user is
-    //       archived/deleted, do we want to allow users to replace their
-    //       shortname?
-    //   see https://linear.app/hash/issue/H-757
-    temporalAxes: currentTimeInstantTemporalAxes,
-    includeDrafts: params.includeDrafts ?? false,
-    includePermissions: false,
-  });
+    { preserveProperties: true },
+  );
 
   if (unexpectedEntities.length > 0) {
     throw new Error(

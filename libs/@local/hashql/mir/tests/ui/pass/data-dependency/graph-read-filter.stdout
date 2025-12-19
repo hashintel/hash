@@ -1,0 +1,62 @@
+════ MIR ═══════════════════════════════════════════════════════════════════════
+
+fn {closure@11}(%0: (Boolean,), %1: ::graph::types::knowledge::entity::Entity) -> Boolean {
+    let %2: Boolean
+
+    bb0(): {
+        %2 = %0.0
+
+        return %2
+    }
+}
+
+*thunk {thunk#5}() -> Integer | List<::graph::types::knowledge::entity::Entity> {
+    let %0: Integer | List<::graph::types::knowledge::entity::Entity>
+    let %1: Integer
+    let %2: ::graph::TimeAxis
+    let %3: Boolean
+    let %4: List<::graph::types::knowledge::entity::Entity>
+    let %5: (Boolean,)
+
+    bb0(): {
+        switchInt(1) -> [0: bb3(), 1: bb1()]
+    }
+
+    bb1(): {
+        %1 = 10
+        %2 = input LOAD axis
+        %3 = %1 <= 100
+        %5 = (%3)
+
+        graph read entities(%2)
+        |> filter({closure@11}, %5)
+        |> collect -> bb2(_)
+    }
+
+    bb2(%4): {
+        goto -> bb4(%4)
+    }
+
+    bb3(): {
+        goto -> bb4(0)
+    }
+
+    bb4(%0): {
+        return %0
+    }
+}
+════ Data Dependency Graph ═════════════════════════════════════════════════════
+
+%5 -> %3 [Index(FieldIndex(0))]
+%0 -> %4 [Param]
+%0 -> 0 [Param]
+%1 -> 10 [Load]
+
+
+════ Transient Data Dependency Graph ═══════════════════════════════════════════
+
+%5 -> %3 [Index(FieldIndex(0))]
+%0 -> %4 [Param]
+%0 -> 0 [Param]
+%1 -> 10 [Load]
+

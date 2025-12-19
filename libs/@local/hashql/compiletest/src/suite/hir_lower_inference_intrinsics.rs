@@ -25,6 +25,10 @@ impl Suite for HirLowerTypeInferenceIntrinsicsSuite {
         "hir/lower/type-inference/intrinsics"
     }
 
+    fn description(&self) -> &'static str {
+        "Type inference for intrinsic functions"
+    }
+
     fn run<'heap>(
         &self,
         RunContext {
