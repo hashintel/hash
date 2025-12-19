@@ -139,7 +139,7 @@ describe("checkSDCPN", () => {
       expect(result.itemDiagnostics[0]?.itemType).toBe("differential-equation");
       expect(result.itemDiagnostics[0]?.diagnostics.length).toBeGreaterThan(0);
       expect(result.itemDiagnostics[0]?.diagnostics[0]?.messageText).toContain(
-        "undefinedProperty"
+        "undefinedProperty",
       );
     });
 
@@ -173,7 +173,7 @@ describe("checkSDCPN", () => {
       expect(result.itemDiagnostics).toHaveLength(1);
       expect(result.itemDiagnostics[0]?.itemId).toBe(de.id);
       expect(result.itemDiagnostics[0]?.diagnostics[0]?.messageText).toContain(
-        "undefinedParam"
+        "undefinedParam",
       );
     });
 
@@ -261,7 +261,7 @@ describe("checkSDCPN", () => {
       expect(result.itemDiagnostics[0]?.itemId).toBe(transition.id);
       expect(result.itemDiagnostics[0]?.itemType).toBe("transition-lambda");
       expect(result.itemDiagnostics[0]?.diagnostics[0]?.messageText).toContain(
-        "UndefinedPlace"
+        "UndefinedPlace",
       );
     });
 
@@ -410,7 +410,7 @@ describe("checkSDCPN", () => {
       expect(result.itemDiagnostics).toHaveLength(1);
       expect(result.itemDiagnostics[0]?.itemId).toBe(transition.id);
       expect(
-        result.itemDiagnostics[0]?.diagnostics.map((diag) => diag.code)
+        result.itemDiagnostics[0]?.diagnostics.map((diag) => diag.code),
       ).toContain(2345);
     });
 
@@ -479,7 +479,7 @@ describe("checkSDCPN", () => {
       expect(result.itemDiagnostics).toHaveLength(1);
       expect(result.itemDiagnostics[0]?.itemId).toBe(transition.id);
       expect(result.itemDiagnostics[0]?.diagnostics[0]?.messageText).toContain(
-        "Untyped"
+        "Untyped",
       );
     });
 
@@ -552,7 +552,7 @@ describe("checkSDCPN", () => {
       expect(result.itemDiagnostics[0]?.itemId).toBe(transition.id);
       expect(result.itemDiagnostics[0]?.itemType).toBe("transition-kernel");
       expect(result.itemDiagnostics[0]?.diagnostics[0]?.messageText).toContain(
-        "nonExistentProperty"
+        "nonExistentProperty",
       );
     });
   });
@@ -593,10 +593,10 @@ describe("checkSDCPN", () => {
       expect(result.itemDiagnostics.length).toBeGreaterThanOrEqual(2);
 
       const deError = result.itemDiagnostics.find(
-        (diag) => diag.itemType === "differential-equation"
+        (diag) => diag.itemType === "differential-equation",
       );
       const lambdaError = result.itemDiagnostics.find(
-        (diag) => diag.itemType === "transition-lambda"
+        (diag) => diag.itemType === "transition-lambda",
       );
 
       expect(deError).toBeDefined();

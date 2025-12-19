@@ -11,7 +11,7 @@ import { useSDCPNContext } from "../../../../state/sdcpn-provider";
  * Formats a TypeScript diagnostic message to a readable string
  */
 function formatDiagnosticMessage(
-  messageText: string | ts.DiagnosticMessageChain
+  messageText: string | ts.DiagnosticMessageChain,
 ): string {
   if (typeof messageText === "string") {
     return messageText;
@@ -123,16 +123,16 @@ export const DiagnosticsPanel: React.FC = () => {
   const { checkResult, totalDiagnosticsCount } = useCheckerContext();
   const { petriNetDefinition } = useSDCPNContext();
   const setSelectedResourceId = useEditorStore(
-    (state) => state.setSelectedResourceId
+    (state) => state.setSelectedResourceId,
   );
   const isOpen = useEditorStore((state) => state.isDiagnosticsPanelOpen);
   const isLeftSidebarOpen = useEditorStore((state) => state.isLeftSidebarOpen);
   const panelHeight = useEditorStore((state) => state.diagnosticsPanelHeight);
   const setDiagnosticsPanelHeight = useEditorStore(
-    (state) => state.setDiagnosticsPanelHeight
+    (state) => state.setDiagnosticsPanelHeight,
   );
   const [expandedEntities, setExpandedEntities] = useState<Set<string>>(
-    new Set()
+    new Set(),
   );
 
   // Handler to select an entity when clicking on a diagnostic
@@ -140,7 +140,7 @@ export const DiagnosticsPanel: React.FC = () => {
     (entityId: string) => {
       setSelectedResourceId(entityId);
     },
-    [setSelectedResourceId]
+    [setSelectedResourceId],
   );
 
   // Group diagnostics by entity (transition or differential equation)
@@ -156,14 +156,14 @@ export const DiagnosticsPanel: React.FC = () => {
       if (item.itemType === "differential-equation") {
         entityType = "differential-equation";
         const de = petriNetDefinition.differentialEquations.find(
-          (deItem) => deItem.id === entityId
+          (deItem) => deItem.id === entityId,
         );
         entityName = de?.name ?? entityId;
         subType = null;
       } else {
         entityType = "transition";
         const transition = petriNetDefinition.transitions.find(
-          (tr) => tr.id === entityId
+          (tr) => tr.id === entityId,
         );
         entityName = transition?.name ?? entityId;
         subType = item.itemType === "transition-lambda" ? "lambda" : "kernel";
@@ -218,7 +218,7 @@ export const DiagnosticsPanel: React.FC = () => {
         const deltaY = resizeStartYRef.current - moveEvent.clientY;
         const newHeight = Math.max(
           MIN_HEIGHT,
-          Math.min(MAX_HEIGHT, resizeStartHeightRef.current + deltaY)
+          Math.min(MAX_HEIGHT, resizeStartHeightRef.current + deltaY),
         );
         setDiagnosticsPanelHeight(newHeight);
       };
@@ -231,7 +231,7 @@ export const DiagnosticsPanel: React.FC = () => {
       document.addEventListener("mousemove", handleMouseMove);
       document.addEventListener("mouseup", handleMouseUp);
     },
-    [panelHeight, setDiagnosticsPanelHeight]
+    [panelHeight, setDiagnosticsPanelHeight],
   );
 
   if (!isOpen) {
@@ -374,7 +374,7 @@ export const DiagnosticsPanel: React.FC = () => {
                               >
                                 <span style={{ marginRight: 4 }}>•</span>
                                 {formatDiagnosticMessage(
-                                  diagnostic.messageText
+                                  diagnostic.messageText,
                                 )}
                                 {diagnostic.start !== undefined && (
                                   <span

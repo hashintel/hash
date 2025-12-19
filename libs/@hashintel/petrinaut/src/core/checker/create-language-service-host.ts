@@ -43,7 +43,7 @@ export type VirtualFile = {
  * Creates a TypeScript LanguageServiceHost for virtual SDCPN files
  */
 export function createLanguageServiceHost(
-  files: Map<string, VirtualFile>
+  files: Map<string, VirtualFile>,
 ): ts.LanguageServiceHost {
   const getFileContent = (fileName: string): string | undefined => {
     const entry = files.get(fileName);

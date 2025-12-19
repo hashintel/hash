@@ -234,7 +234,7 @@ function generateVirtualFiles(sdcpn: SDCPN): Map<string, VirtualFile> {
  */
 function adjustDiagnostics<T extends ts.Diagnostic>(
   diagnostics: readonly T[],
-  prefixLength: number
+  prefixLength: number,
 ): T[] {
   return diagnostics.map((diag) => ({
     ...diag,
@@ -277,7 +277,7 @@ export function createSDCPNLanguageService(sdcpn: SDCPN): SDCPNLanguageService {
       return baseService.getCompletionsAtPosition(
         fileName,
         position + prefixLength,
-        options
+        options,
       );
     },
   };
