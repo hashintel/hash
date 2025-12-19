@@ -42,7 +42,7 @@ use crate::{
     collections::{
         FastHashMap, SmallVec, fast_hash_map_with_capacity, fast_hash_map_with_capacity_in,
     },
-    heap::Scratch,
+    heap::{BumpAllocator as _, Scratch},
     r#type::{
         PartialType, TypeId,
         environment::{InferenceEnvironment, LatticeEnvironment, Variance},

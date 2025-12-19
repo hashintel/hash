@@ -29,6 +29,7 @@
 mod tests;
 
 use core::{
+    alloc::Allocator,
     convert::Infallible,
     ops::{ControlFlow, Index},
 };
@@ -39,7 +40,7 @@ use hashql_core::{
         Predecessors as _,
         algorithms::{IteratedDominanceFrontier, dominance_frontiers, iterated_dominance_frontier},
     },
-    heap::Heap,
+    heap::{BumpAllocator, Heap, Scratch},
     intern::Interned,
 };
 
@@ -72,13 +73,13 @@ const _: () = {
 /// use [`iter_violations`] to find locals with multiple definitions that violate SSA form.
 ///
 /// [`iter_violations`]: DefSites::iter_violations
-struct DefSites {
+struct DefSites<A: Allocator> {
     // The majority of cases will only have a single def site, in that case we don't need to
     // allocate a vector.
-    sites: LocalVec<LocationVec>,
+    sites: LocalVec<LocationVec, A>,
 }
 
-impl Index<Local> for DefSites {
+impl<A: Allocator> Index<Local> for DefSites<A> {
     type Output = [Location];
 
     fn index(&self, index: Local) -> &Self::Output {
@@ -86,10 +87,10 @@ impl Index<Local> for DefSites {
     }
 }
 
-impl DefSites {
-    fn new(body: &Body<'_>) -> Self {
+impl<A: Allocator> DefSites<A> {
+    fn new_in(body: &Body<'_>, alloc: A) -> Self {
         Self {
-            sites: LocalVec::from_elem(InlineVec::new(), body.local_decls.len()),
+            sites: LocalVec::from_elem_in(InlineVec::new(), body.local_decls.len(), alloc),
         }
     }
 
@@ -104,7 +105,7 @@ impl DefSites {
     }
 }
 
-impl Visitor<'_> for DefSites {
+impl<A: Allocator> Visitor<'_> for DefSites<A> {
     type Result = Result<(), !>;
 
     fn visit_local(
@@ -135,11 +136,35 @@ impl Visitor<'_> for DefSites {
 /// - Rewiring all uses to reference the correct reaching definition
 ///
 /// The pass is idempotent: running it on already-valid SSA form is a no-op.
-pub struct SsaRepair;
+pub struct SsaRepair<A: BumpAllocator = Scratch> {
+    alloc: A,
+}
 
-impl<'env, 'heap> TransformPass<'env, 'heap> for SsaRepair {
+impl SsaRepair {
+    #[must_use]
+    pub fn new() -> Self {
+        Self {
+            alloc: Scratch::new(),
+        }
+    }
+}
+
+impl<A: BumpAllocator> SsaRepair<A> {
+    pub const fn new_in(alloc: A) -> Self {
+        Self { alloc }
+    }
+}
+
+impl Default for SsaRepair {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl<'env, 'heap, A: BumpAllocator> TransformPass<'env, 'heap> for SsaRepair<A> {
     fn run(&mut self, context: &mut MirContext<'env, 'heap>, body: &mut Body<'heap>) {
-        let mut sites = DefSites::new(body);
+        self.alloc.reset();
+        let mut sites = DefSites::new_in(body, &self.alloc);
         sites.visit_body(body);
 
         let frontiers = dominance_frontiers(
@@ -148,7 +173,7 @@ impl<'env, 'heap> TransformPass<'env, 'heap> for SsaRepair {
             body.basic_blocks.dominators(),
         );
 
-        let mut prev_repair: Option<SsaViolationRepair<'_, '_, '_, 'heap>> = None;
+        let mut prev_repair: Option<SsaViolationRepair<'_, '_, '_, 'heap, &A>> = None;
         for (violation, locations) in sites.iter_violations() {
             let iterated = iterated_dominance_frontier(
                 &body.basic_blocks,
@@ -168,7 +193,7 @@ impl<'env, 'heap> TransformPass<'env, 'heap> for SsaRepair {
                 prev.reuse(violation, locations, iterated);
                 prev
             } else {
-                SsaViolationRepair::new(violation, locations, iterated, context)
+                SsaViolationRepair::new_in(violation, locations, iterated, context, &self.alloc)
             };
 
             repair.run(body);
@@ -210,7 +235,7 @@ impl FindDefFromTop {
 /// This struct holds the state needed to rename definitions, compute reaching definitions,
 /// and insert block parameters. It can be reused across multiple violated locals via
 /// [`Self::reuse`] to avoid repeated allocations.
-struct SsaViolationRepair<'ctx, 'mir, 'env, 'heap> {
+struct SsaViolationRepair<'ctx, 'mir, 'env, 'heap, A: Allocator> {
     /// The original local being repaired.
     local: Local,
 
@@ -220,9 +245,9 @@ struct SsaViolationRepair<'ctx, 'mir, 'env, 'heap> {
     locals: TinyVec<Local>,
 
     /// Maps each block to the local that is "live out" (the last definition in that block).
-    block_defs: BasicBlockVec<Option<Local>>,
+    block_defs: BasicBlockVec<Option<Local>, A>,
     /// Maps each block to how it obtains the reaching definition at entry.
-    block_top: BasicBlockVec<Option<FindDefFromTop>>,
+    block_top: BasicBlockVec<Option<FindDefFromTop>, A>,
 
     /// The iterated dominance frontier for the definition sites.
     iterated: IteratedDominanceFrontier<BasicBlockId>,
@@ -230,21 +255,25 @@ struct SsaViolationRepair<'ctx, 'mir, 'env, 'heap> {
     context: &'mir mut MirContext<'env, 'heap>,
 }
 
-impl<'ctx, 'mir, 'env, 'heap> SsaViolationRepair<'ctx, 'mir, 'env, 'heap> {
-    const fn new(
+impl<'ctx, 'mir, 'env, 'heap, A: Allocator> SsaViolationRepair<'ctx, 'mir, 'env, 'heap, A> {
+    fn new_in(
         local: Local,
         locations: &'ctx [Location],
 
         iterated: IteratedDominanceFrontier<BasicBlockId>,
 
         context: &'mir mut MirContext<'env, 'heap>,
-    ) -> Self {
+        alloc: A,
+    ) -> Self
+    where
+        A: Clone,
+    {
         Self {
             local,
             locations,
             locals: TinyVec::new(),
-            block_defs: BasicBlockVec::new(),
-            block_top: BasicBlockVec::new(),
+            block_defs: BasicBlockVec::new_in(alloc.clone()),
+            block_top: BasicBlockVec::new_in(alloc),
             iterated,
             context,
         }

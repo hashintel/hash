@@ -1,5 +1,5 @@
 ---
-source: libs/@local/hashql/mir/src/pass/transform/dse/tests.rs
+source: libs/@local/hashql/mir/src/pass/transform/dle/tests.rs
 expression: value
 ---
 fn {intrinsic#4294967040}() -> Integer {
@@ -7,10 +7,7 @@ fn {intrinsic#4294967040}() -> Integer {
     let %1: Integer
 
     bb0(): {
-        let %1
-        %0 = input LOAD input
-        %1 = 42
-        drop %1
+        %0 = 1
 
         return %0
     }
@@ -22,7 +19,7 @@ fn {intrinsic#4294967040}() -> Integer {
     let %0: Integer
 
     bb0(): {
-        %0 = input LOAD input
+        %0 = 1
 
         return %0
     }

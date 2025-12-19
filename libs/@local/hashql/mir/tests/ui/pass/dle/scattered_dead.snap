@@ -1,5 +1,5 @@
 ---
-source: libs/@local/hashql/mir/src/pass/transform/dse/tests.rs
+source: libs/@local/hashql/mir/src/pass/transform/dle/tests.rs
 expression: value
 ---
 fn {intrinsic#4294967040}() -> Integer {
@@ -7,14 +7,14 @@ fn {intrinsic#4294967040}() -> Integer {
     let %1: Integer
     let %2: Integer
     let %3: Integer
+    let %4: Integer
 
     bb0(): {
-        %0 = input LOAD input
-        %1 = %0
-        %2 = %1
-        %3 = %2
+        %0 = 1
+        %2 = %0
+        %4 = %2
 
-        return %0
+        return %4
     }
 }
 
@@ -22,10 +22,14 @@ fn {intrinsic#4294967040}() -> Integer {
 
 fn {intrinsic#4294967040}() -> Integer {
     let %0: Integer
+    let %1: Integer
+    let %2: Integer
 
     bb0(): {
-        %0 = input LOAD input
+        %0 = 1
+        %1 = %0
+        %2 = %1
 
-        return %0
+        return %2
     }
 }

@@ -4,7 +4,10 @@ use std::{
 };
 
 use hashql_ast::node::expr::Expr;
-use hashql_core::{heap::Heap, r#type::environment::Environment};
+use hashql_core::{
+    heap::{Heap, Scratch},
+    r#type::environment::Environment,
+};
 use hashql_diagnostics::DiagnosticIssues;
 use hashql_mir::{
     body::Body,
@@ -45,7 +48,7 @@ pub(crate) fn mir_pass_transform_cfg_simplify<'heap>(
     render: impl FnOnce(&'heap Heap, &Environment<'heap>, DefId, &DefIdSlice<Body<'heap>>),
     environment: &mut Environment<'heap>,
     diagnostics: &mut Vec<SuiteDiagnostic>,
-) -> Result<(DefId, DefIdVec<Body<'heap>>), SuiteDiagnostic> {
+) -> Result<(DefId, DefIdVec<Body<'heap>>, Scratch), SuiteDiagnostic> {
     let (root, mut bodies) = mir_reify(heap, expr, interner, environment, diagnostics)?;
 
     render(heap, environment, root, &bodies);
@@ -56,15 +59,16 @@ pub(crate) fn mir_pass_transform_cfg_simplify<'heap>(
         interner,
         diagnostics: DiagnosticIssues::new(),
     };
+    let mut scratch = Scratch::new();
 
-    let mut pass = CfgSimplify::new();
+    let mut pass = CfgSimplify::new_in(&mut scratch);
     for body in bodies.as_mut_slice() {
         pass.run(&mut context, body);
     }
 
     process_issues(diagnostics, context.diagnostics)?;
 
-    Ok((root, bodies))
+    Ok((root, bodies, scratch))
 }
 
 pub(crate) struct MirPassTransformCfgSimplify;
@@ -104,7 +108,7 @@ impl Suite for MirPassTransformCfgSimplify {
         let mut buffer = Vec::new();
         let mut d2 = d2_output_enabled(self, suite_directives, reports).then(mir_spawn_d2);
 
-        let (root, bodies) = mir_pass_transform_cfg_simplify(
+        let (root, bodies, _) = mir_pass_transform_cfg_simplify(
             heap,
             expr,
             &interner,

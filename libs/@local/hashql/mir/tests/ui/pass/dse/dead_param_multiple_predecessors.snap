@@ -31,7 +31,6 @@ fn {intrinsic#4294967040}() -> Integer {
 fn {intrinsic#4294967040}() -> Integer {
     let %0: Boolean
     let %1: Integer
-    let %2: Integer
 
     bb0(): {
         %0 = input LOAD cond
@@ -47,7 +46,7 @@ fn {intrinsic#4294967040}() -> Integer {
         goto -> bb3(20)
     }
 
-    bb3(%2): {
-        return %2
+    bb3(%1): {
+        return %1
     }
 }

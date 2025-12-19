@@ -46,7 +46,7 @@ fn assert_ssa_pass<'heap>(
         .writer
         .extend(b"\n\n------------------------------------\n\n");
 
-    SsaRepair.run(&mut context, &mut bodies[0]);
+    SsaRepair::new().run(&mut context, &mut bodies[0]);
 
     text_format
         .format(DefIdSlice::from_raw(&bodies), &[])
