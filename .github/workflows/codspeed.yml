@@ -71,10 +71,10 @@ jobs:
           scope: ${{ matrix.name }}
 
       - name: Build the benchmark target
-        run: cargo codspeed build
+        run: turbo run build:codspeed --filter=${{ matrix.name }}
 
       - name: Run the benchmark
-        uses: CodSpeedHQ/action@v4
+        uses: CodSpeedHQ/action@346a2d8a8d9d38909abd0bc3d23f773110f076ad # v4.4.1
         with:
           mode: simulation
           run: cargo codspeed run
