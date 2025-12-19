@@ -32,6 +32,7 @@ HashQL uses three testing approaches. **compiletest is the default** for testing
 | Compiler pipeline phases | compiletest | `tests/ui/` |
 | MIR/HIR/AST pass integration | compiletest | `tests/ui/` |
 | MIR/HIR/AST pass edge cases | insta | `tests/ui/<category>/` |
+| MIR pass unit tests | MIR builder | `src/**/tests.rs` |
 | Core crate (where needed) | insta | `src/**/snapshots/` |
 | Parser fragments (syntax-jexpr) | insta | `src/*/snapshots/` |
 | Internal functions/logic | Unit tests | `src/*.rs` |
@@ -167,7 +168,43 @@ cargo insta review     # Interactive review
 cargo insta accept     # Accept all pending
 ```
 
+## MIR Builder Tests
+
+For testing MIR transformation and analysis passes directly with programmatically constructed MIR bodies.
+
+**Location:** `hashql-mir/src/pass/**/tests.rs`
+
+**When to use:**
+
+- Testing MIR passes in isolation with precise CFG control
+- Edge cases requiring specific MIR structures hard to produce from source
+- Benchmarking pass performance
+
+**Quick Example:**
+
+```rust
+use hashql_core::r#type::{TypeBuilder, environment::Environment};
+use hashql_mir::{builder::BodyBuilder, op, scaffold};
+
+scaffold!(heap, interner, builder);
+let env = Environment::new(&heap);
+
+let x = builder.local("x", TypeBuilder::synthetic(&env).integer());
+let const_1 = builder.const_int(1);
+
+let bb0 = builder.reserve_block([]);
+builder
+    .build_block(bb0)
+    .assign_place(x, |rv| rv.load(const_1))
+    .ret(x);
+
+let body = builder.finish(0, TypeBuilder::synthetic(&env).integer());
+```
+
+📖 **Full Guide:** [resources/mir-builder-guide.md](resources/mir-builder-guide.md)
+
 ## References
 
-- [compiletest Guide](references/compiletest-guide.md) - Detailed UI test documentation
-- [Testing Strategies](references/testing-strategies.md) - Choosing the right approach
+- [compiletest Guide](resources/compiletest-guide.md) - Detailed UI test documentation
+- [Testing Strategies](resources/testing-strategies.md) - Choosing the right approach
+- [MIR Builder Guide](resources/mir-builder-guide.md) - Programmatic MIR construction for tests
