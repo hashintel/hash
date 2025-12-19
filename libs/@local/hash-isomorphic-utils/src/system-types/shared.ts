@@ -78,18 +78,14 @@ export type AircraftOutgoingLinksByLinkEntityTypeId = {};
  * A vehicle designed for air travel, such as an airplane or helicopter.
  */
 export type AircraftProperties = {
-  "https://hash.ai/@h/types/property-type/iata-code/"?: IATACodePropertyValue;
   "https://hash.ai/@h/types/property-type/icao-code/"?: ICAOCodePropertyValue;
-  "https://hash.ai/@h/types/property-type/icao24-address/"?: ICAO24AddressPropertyValue;
   "https://hash.ai/@h/types/property-type/registration-number/": RegistrationNumberPropertyValue;
 };
 
 export type AircraftPropertiesWithMetadata = {
   metadata?: ObjectMetadata;
   value: {
-    "https://hash.ai/@h/types/property-type/iata-code/"?: IATACodePropertyValueWithMetadata;
     "https://hash.ai/@h/types/property-type/icao-code/"?: ICAOCodePropertyValueWithMetadata;
-    "https://hash.ai/@h/types/property-type/icao24-address/"?: ICAO24AddressPropertyValueWithMetadata;
     "https://hash.ai/@h/types/property-type/registration-number/": RegistrationNumberPropertyValueWithMetadata;
   };
 };
@@ -1055,13 +1051,6 @@ export type HasTextPropertiesWithMetadata = LinkPropertiesWithMetadata & {
 export type IATACodePropertyValue = TextDataType;
 
 export type IATACodePropertyValueWithMetadata = TextDataTypeWithMetadata;
-
-/**
- * A unique 24-bit transponder address assigned to an aircraft, represented in hexadecimal format.
- */
-export type ICAO24AddressPropertyValue = TextDataType;
-
-export type ICAO24AddressPropertyValueWithMetadata = TextDataTypeWithMetadata;
 
 /**
  * A code assigned by the International Civil Aviation Organization (ICAO) to identify airports, airlines, or aircraft types.

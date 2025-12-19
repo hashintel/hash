@@ -581,11 +581,6 @@ export const systemPropertyTypes = {
     propertyTypeBaseUrl:
       "https://hash.ai/@h/types/property-type/browser-plugin-tab/" as BaseUrl,
   },
-  callsign: {
-    propertyTypeId: "https://hash.ai/@h/types/property-type/callsign/v/1",
-    propertyTypeBaseUrl:
-      "https://hash.ai/@h/types/property-type/callsign/" as BaseUrl,
-  },
   city: {
     propertyTypeId: "https://hash.ai/@h/types/property-type/city/v/1",
     propertyTypeBaseUrl:
@@ -845,11 +840,6 @@ export const systemPropertyTypes = {
     propertyTypeId: "https://hash.ai/@h/types/property-type/icao-code/v/1",
     propertyTypeBaseUrl:
       "https://hash.ai/@h/types/property-type/icao-code/" as BaseUrl,
-  },
-  icao24Address: {
-    propertyTypeId: "https://hash.ai/@h/types/property-type/icao24-address/v/1",
-    propertyTypeBaseUrl:
-      "https://hash.ai/@h/types/property-type/icao24-address/" as BaseUrl,
   },
   icon: {
     propertyTypeId: "https://hash.ai/@h/types/property-type/icon/v/1",
@@ -2345,12 +2335,6 @@ export const blockProtocolPropertyTypes = {
       "https://blockprotocol.org/@blockprotocol/types/property-type/original-url/v/1",
     propertyTypeBaseUrl:
       "https://blockprotocol.org/@blockprotocol/types/property-type/original-url/" as BaseUrl,
-  },
-  query: {
-    propertyTypeId:
-      "https://blockprotocol.org/@h/types/property-type/query/v/1",
-    propertyTypeBaseUrl:
-      "https://blockprotocol.org/@h/types/property-type/query/" as BaseUrl,
   },
   textualContent: {
     propertyTypeId:

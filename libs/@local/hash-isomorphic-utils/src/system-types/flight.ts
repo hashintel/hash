@@ -35,8 +35,6 @@ import type {
   DateTimeDataTypeWithMetadata,
   IATACodePropertyValue,
   IATACodePropertyValueWithMetadata,
-  ICAO24AddressPropertyValue,
-  ICAO24AddressPropertyValueWithMetadata,
   ICAOCodePropertyValue,
   ICAOCodePropertyValueWithMetadata,
   IntegerDataType,
@@ -84,8 +82,6 @@ export type {
   DateTimeDataTypeWithMetadata,
   IATACodePropertyValue,
   IATACodePropertyValueWithMetadata,
-  ICAO24AddressPropertyValue,
-  ICAO24AddressPropertyValueWithMetadata,
   ICAOCodePropertyValue,
   ICAOCodePropertyValueWithMetadata,
   IntegerDataType,
@@ -198,13 +194,6 @@ export type ArrivesAtPropertiesWithMetadata = LinkPropertiesWithMetadata & {
 export type BaggageClaimPropertyValue = TextDataType;
 
 export type BaggageClaimPropertyValueWithMetadata = TextDataTypeWithMetadata;
-
-/**
- * The radio callsign used by air traffic control to identify an aircraft (e.g., 'DLH8VM').
- */
-export type CallsignPropertyValue = TextDataType;
-
-export type CallsignPropertyValueWithMetadata = TextDataTypeWithMetadata;
 
 /**
  * A codeshare flight number, where multiple airlines sell seats on the same flight under their own flight numbers.
@@ -384,7 +373,6 @@ export type FlightOutgoingLinksByLinkEntityTypeId = {
  */
 export type FlightProperties = {
   "https://hash.ai/@h/types/property-type/altitude/"?: AltitudePropertyValue;
-  "https://hash.ai/@h/types/property-type/callsign/"?: CallsignPropertyValue;
   "https://hash.ai/@h/types/property-type/codeshare/"?: CodesharePropertyValue[];
   "https://hash.ai/@h/types/property-type/direction/"?: DirectionPropertyValue;
   "https://hash.ai/@h/types/property-type/flight-date/"?: FlightDatePropertyValue;
@@ -404,7 +392,6 @@ export type FlightPropertiesWithMetadata = {
   metadata?: ObjectMetadata;
   value: {
     "https://hash.ai/@h/types/property-type/altitude/"?: AltitudePropertyValueWithMetadata;
-    "https://hash.ai/@h/types/property-type/callsign/"?: CallsignPropertyValueWithMetadata;
     "https://hash.ai/@h/types/property-type/codeshare/"?: {
       value: CodesharePropertyValueWithMetadata[];
       metadata?: ArrayMetadata;
