@@ -136,7 +136,7 @@ impl<'mir, 'heap> Reifier<'_, 'mir, '_, '_, 'heap> {
         let right = self.operand(right);
 
         RValue::Binary(Binary {
-            op: op.value,
+            op: op.value.into(),
             left,
             right,
         })
