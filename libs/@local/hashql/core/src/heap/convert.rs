@@ -2,7 +2,7 @@
 
 use core::alloc::Allocator;
 
-use super::CloneIn as _;
+use super::CollectIn as _;
 
 /// Construct a value of type `Self` from `T` using the provided allocator.
 ///
@@ -48,10 +48,10 @@ impl<T, A: Allocator> FromIn<T, A> for Box<T, A> {
 impl<A: Allocator> FromIn<String, A> for Box<str, A> {
     fn from_in(value: String, allocator: A) -> Self {
         // This is the same `as_boxed_str`, but with custom allocator support.
-        let bytes = value.into_bytes().clone_in(allocator).into_boxed_slice();
+        let bytes: Vec<u8, A> = value.into_bytes().into_iter().collect_in(allocator);
 
         // This is the same as `from_boxed_utf8_unchecked` but with a custom allocator.
-        let (ptr, alloc) = Box::into_raw_with_allocator(bytes);
+        let (ptr, alloc) = Box::into_raw_with_allocator(bytes.into_boxed_slice());
 
         // SAFETY: The bytes are guaranteed to be valid UTF-8 because they come from a String.
         unsafe { Self::from_raw_in(ptr as *mut str, alloc) }

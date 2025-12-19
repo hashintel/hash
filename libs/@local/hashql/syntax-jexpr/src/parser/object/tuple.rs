@@ -2,7 +2,7 @@ use hashql_ast::node::{
     expr::{Expr, ExprKind, TupleExpr, tuple::TupleElement},
     id::NodeId,
 };
-use hashql_core::heap::CloneIn as _;
+use hashql_core::heap::CollectIn as _;
 use text_size::TextRange;
 
 use super::{
@@ -107,7 +107,7 @@ fn parse_tuple<'heap>(
     Ok(TupleExpr {
         id: NodeId::PLACEHOLDER,
         span: state.insert_range(range),
-        elements: elements.clone_in(state.heap()),
+        elements: elements.into_iter().collect_in(state.heap()),
         r#type: None,
     })
 }

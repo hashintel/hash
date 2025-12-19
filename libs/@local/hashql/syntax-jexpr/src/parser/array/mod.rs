@@ -9,7 +9,7 @@ use hashql_ast::node::{
     id::NodeId,
     path::{Path, PathSegment},
 };
-use hashql_core::heap::CloneIn as _;
+use hashql_core::heap::CollectIn as _;
 
 use self::{
     error::{
@@ -236,8 +236,8 @@ pub(crate) fn parse_array<'heap, 'source>(
             id: NodeId::PLACEHOLDER,
             span,
             function: Box::new_in(function, heap),
-            arguments: arguments.clone_in(heap),
-            labeled_arguments: labeled_arguments.clone_in(heap),
+            arguments: arguments.into_iter().collect_in(heap),
+            labeled_arguments: labeled_arguments.into_iter().collect_in(heap),
         }),
     })
 }

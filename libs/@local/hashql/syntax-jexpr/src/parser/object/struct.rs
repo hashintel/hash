@@ -2,7 +2,7 @@ use hashql_ast::node::{
     expr::{Expr, ExprKind, StructExpr, r#struct::StructEntry},
     id::NodeId,
 };
-use hashql_core::heap::CloneIn as _;
+use hashql_core::heap::CollectIn as _;
 use text_size::TextRange;
 
 use super::{
@@ -124,7 +124,7 @@ fn parse_struct<'heap>(
     Ok(StructExpr {
         id: NodeId::PLACEHOLDER,
         span: state.insert_range(span),
-        entries: entries.clone_in(state.heap()),
+        entries: entries.into_iter().collect_in(state.heap()),
         r#type: None,
     })
 }

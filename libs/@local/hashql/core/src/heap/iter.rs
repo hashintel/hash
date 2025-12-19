@@ -13,6 +13,7 @@ pub trait FromIteratorIn<T, A: Allocator> {
 }
 
 impl<T, A: Allocator> FromIteratorIn<T, A> for Vec<T, A> {
+    #[inline]
     fn from_iter_in<I>(iter: I, alloc: A) -> Self
     where
         I: IntoIterator<Item = T>,
@@ -36,6 +37,7 @@ impl<I, C: FromIteratorIn<T, A>, T, A: Allocator> CollectIn<C, A> for I
 where
     I: IntoIterator<Item = T>,
 {
+    #[inline]
     fn collect_in(self, alloc: A) -> C {
         C::from_iter_in(self, alloc)
     }

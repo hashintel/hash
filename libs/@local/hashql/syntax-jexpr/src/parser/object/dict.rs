@@ -3,7 +3,7 @@ use hashql_ast::node::{
     id::NodeId,
 };
 use hashql_core::{
-    heap::CloneIn as _,
+    heap::CollectIn as _,
     value::{self, Primitive},
 };
 use text_size::TextRange;
@@ -117,7 +117,7 @@ fn parse_dict_object<'heap, 'source>(
     Ok(DictExpr {
         id: NodeId::PLACEHOLDER,
         span: state.insert_range(span),
-        entries: entries.clone_in(state.heap()),
+        entries: entries.into_iter().collect_in(state.heap()),
         r#type: None,
     })
 }
@@ -191,7 +191,7 @@ fn parse_dict_array<'heap, 'source>(
     Ok(DictExpr {
         id: NodeId::PLACEHOLDER,
         span: state.insert_range(span),
-        entries: entries.clone_in(state.heap()),
+        entries: entries.into_iter().collect_in(state.heap()),
         r#type: None,
     })
 }

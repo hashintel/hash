@@ -6,7 +6,7 @@ use hashql_ast::node::{
         IntersectionType, StructField, StructType, TupleField, TupleType, Type, TypeKind, UnionType,
     },
 };
-use hashql_core::{heap::CloneIn as _, symbol::Ident};
+use hashql_core::{heap::CollectIn as _, symbol::Ident};
 use winnow::{
     ModalParser, ModalResult, Parser as _,
     ascii::multispace0,
@@ -184,7 +184,7 @@ where
             kind: TypeKind::Struct(StructType {
                 id: NodeId::PLACEHOLDER,
                 span,
-                fields: fields.clone_in(input.state.heap),
+                fields: fields.into_iter().collect_in(input.state.heap),
             }),
         })
     }
@@ -237,7 +237,7 @@ where
             kind: TypeKind::Tuple(TupleType {
                 id: NodeId::PLACEHOLDER,
                 span,
-                fields: fields.clone_in(input.state.heap),
+                fields: fields.into_iter().collect_in(input.state.heap),
             }),
         })
     }
