@@ -60,10 +60,10 @@ export const BottomBar: React.FC<BottomBarProps> = ({
 }) => {
   const isBottomPanelOpen = useEditorStore((state) => state.isBottomPanelOpen);
   const setBottomPanelOpen = useEditorStore(
-    (state) => state.setBottomPanelOpen
+    (state) => state.setBottomPanelOpen,
   );
   const setActiveBottomPanelTab = useEditorStore(
-    (state) => state.setActiveBottomPanelTab
+    (state) => state.setActiveBottomPanelTab,
   );
   const bottomPanelHeight = useEditorStore((state) => state.bottomPanelHeight);
 

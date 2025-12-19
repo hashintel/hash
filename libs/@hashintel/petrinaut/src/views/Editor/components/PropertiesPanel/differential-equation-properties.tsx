@@ -25,7 +25,7 @@ interface DifferentialEquationPropertiesProps {
   globalMode: "edit" | "simulate";
   updateDifferentialEquation: (
     equationId: string,
-    updateFn: (equation: DifferentialEquation) => void
+    updateFn: (equation: DifferentialEquation) => void,
   ) => void;
 }
 
@@ -48,7 +48,7 @@ export const DifferentialEquationProperties: React.FC<
   const isReadOnly = globalMode === "simulate" || isSimulationRunning;
 
   const associatedType = types.find(
-    (type) => type.id === differentialEquation.colorId
+    (type) => type.id === differentialEquation.colorId,
   );
 
   // Find places that use this differential equation
@@ -74,7 +74,7 @@ export const DifferentialEquationProperties: React.FC<
         differentialEquation.id,
         (existingEquation) => {
           existingEquation.colorId = newTypeId;
-        }
+        },
       );
     }
   };
@@ -85,7 +85,7 @@ export const DifferentialEquationProperties: React.FC<
         differentialEquation.id,
         (existingEquation) => {
           existingEquation.colorId = pendingTypeId;
-        }
+        },
       );
     }
     setShowConfirmDialog(false);
@@ -124,7 +124,7 @@ export const DifferentialEquationProperties: React.FC<
               differentialEquation.id,
               (existingEquation) => {
                 existingEquation.name = event.target.value;
-              }
+              },
             );
           }}
           disabled={isReadOnly}
@@ -392,7 +392,7 @@ export const DifferentialEquationProperties: React.FC<
                   onClick: () => {
                     // Get the associated type to generate appropriate default code
                     const equationType = types.find(
-                      (t) => t.id === differentialEquation.colorId
+                      (t) => t.id === differentialEquation.colorId,
                     );
 
                     updateDifferentialEquation(
@@ -400,10 +400,10 @@ export const DifferentialEquationProperties: React.FC<
                       (existingEquation) => {
                         existingEquation.code = equationType
                           ? generateDefaultDifferentialEquationCode(
-                              equationType
+                              equationType,
                             )
                           : DEFAULT_DIFFERENTIAL_EQUATION_CODE;
-                      }
+                      },
                     );
                   },
                 },
@@ -451,7 +451,7 @@ export const DifferentialEquationProperties: React.FC<
                 differentialEquation.id,
                 (existingEquation) => {
                   existingEquation.code = newCode ?? "";
-                }
+                },
               );
             }}
             path={`inmemory://sdcpn/differential-equations/${differentialEquation.id}.ts`}

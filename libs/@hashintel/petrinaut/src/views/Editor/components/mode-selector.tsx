@@ -101,7 +101,7 @@ export const ModeSelector: React.FC<ModeSelectorProps> = ({
           onValueChange={(details) => {
             if (details.value) {
               const selectedOption = options.find(
-                (opt) => opt.value === details.value
+                (opt) => opt.value === details.value,
               );
               if (selectedOption && !selectedOption.disabled) {
                 onChange(details.value as "edit" | "simulate");

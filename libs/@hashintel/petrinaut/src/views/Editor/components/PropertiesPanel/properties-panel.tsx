@@ -21,11 +21,11 @@ import { TypeProperties } from "./type-properties";
  */
 export const PropertiesPanel: React.FC = () => {
   const selectedResourceId = useEditorStore(
-    (state) => state.selectedResourceId
+    (state) => state.selectedResourceId,
   );
   const globalMode = useEditorStore((state) => state.globalMode);
   const setPropertiesPanelWidth = useEditorStore(
-    (state) => state.setPropertiesPanelWidth
+    (state) => state.setPropertiesPanelWidth,
   );
   const isBottomPanelOpen = useEditorStore((state) => state.isBottomPanelOpen);
   const bottomPanelHeight = useEditorStore((state) => state.bottomPanelHeight);
@@ -42,7 +42,7 @@ export const PropertiesPanel: React.FC = () => {
   } = useSDCPNContext();
 
   const [panelWidth, setPanelWidthLocal] = useState(
-    DEFAULT_PROPERTIES_PANEL_WIDTH
+    DEFAULT_PROPERTIES_PANEL_WIDTH,
   );
 
   // Sync panel width with global store
@@ -51,7 +51,7 @@ export const PropertiesPanel: React.FC = () => {
       setPanelWidthLocal(newWidth);
       setPropertiesPanelWidth(newWidth);
     },
-    [setPropertiesPanelWidth]
+    [setPropertiesPanelWidth],
   );
 
   // Initialize store with starting width
@@ -80,7 +80,7 @@ export const PropertiesPanel: React.FC = () => {
   switch (itemType) {
     case "place": {
       const placeData = petriNetDefinition.places.find(
-        (place) => place.id === selectedId
+        (place) => place.id === selectedId,
       );
       if (placeData) {
         content = (
@@ -98,7 +98,7 @@ export const PropertiesPanel: React.FC = () => {
 
     case "transition": {
       const transitionData = petriNetDefinition.transitions.find(
-        (transition) => transition.id === selectedId
+        (transition) => transition.id === selectedId,
       );
       if (transitionData) {
         content = (
@@ -117,7 +117,7 @@ export const PropertiesPanel: React.FC = () => {
 
     case "type": {
       const typeData = petriNetDefinition.types.find(
-        (type) => type.id === selectedId
+        (type) => type.id === selectedId,
       );
       if (typeData) {
         content = (
@@ -133,7 +133,7 @@ export const PropertiesPanel: React.FC = () => {
 
     case "differentialEquation": {
       const equationData = petriNetDefinition.differentialEquations.find(
-        (equation) => equation.id === selectedId
+        (equation) => equation.id === selectedId,
       );
       if (equationData) {
         content = (
@@ -151,7 +151,7 @@ export const PropertiesPanel: React.FC = () => {
 
     case "parameter": {
       const parameterData = petriNetDefinition.parameters.find(
-        (parameter) => parameter.id === selectedId
+        (parameter) => parameter.id === selectedId,
       );
       if (parameterData) {
         content = (
@@ -183,9 +183,7 @@ export const PropertiesPanel: React.FC = () => {
 
   // Calculate bottom offset based on bottom panel visibility
   // Gap between PropertiesPanel and BottomPanel matches gap between LeftSideBar and BottomPanel
-  const bottomOffset = isBottomPanelOpen
-    ? bottomPanelHeight + PANEL_MARGIN
-    : 0;
+  const bottomOffset = isBottomPanelOpen ? bottomPanelHeight + PANEL_MARGIN : 0;
 
   return (
     <div

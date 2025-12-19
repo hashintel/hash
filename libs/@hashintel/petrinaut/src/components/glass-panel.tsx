@@ -153,7 +153,7 @@ export const GlassPanel: React.FC<GlassPanelProps> = ({
       resizeStartPosRef.current = isVertical ? event.clientY : event.clientX;
       resizeStartSizeRef.current = resizable.size;
     },
-    [resizable]
+    [resizable],
   );
 
   const handleResizeMove = useCallback(
@@ -178,12 +178,12 @@ export const GlassPanel: React.FC<GlassPanelProps> = ({
 
       const newSize = Math.max(
         minSize,
-        Math.min(maxSize, resizeStartSizeRef.current + delta)
+        Math.min(maxSize, resizeStartSizeRef.current + delta),
       );
 
       onResize(newSize);
     },
-    [isResizing, resizable]
+    [isResizing, resizable],
   );
 
   const handleResizeEnd = useCallback(() => {
@@ -218,7 +218,7 @@ export const GlassPanel: React.FC<GlassPanelProps> = ({
         onResize(newSize);
       }
     },
-    [resizable]
+    [resizable],
   );
 
   // Global cursor and event listeners during resize

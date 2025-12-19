@@ -39,13 +39,13 @@ interface TransitionPropertiesProps {
   globalMode: "edit" | "simulate";
   updateTransition: (
     id: string,
-    updateFn: (existingTransition: Transition) => void
+    updateFn: (existingTransition: Transition) => void,
   ) => void;
   onArcWeightUpdate: (
     transitionId: string,
     arcType: "input" | "output",
     placeId: string,
-    weight: number
+    weight: number,
   ) => void;
 }
 
@@ -68,7 +68,7 @@ export const TransitionProperties: React.FC<TransitionPropertiesProps> = ({
     useSensor(PointerSensor),
     useSensor(KeyboardSensor, {
       coordinateGetter: sortableKeyboardCoordinates,
-    })
+    }),
   );
 
   const handleInputArcDragEnd = (event: DragEndEvent) => {
@@ -76,17 +76,17 @@ export const TransitionProperties: React.FC<TransitionPropertiesProps> = ({
 
     if (over && active.id !== over.id) {
       const oldIndex = transition.inputArcs.findIndex(
-        (arc) => arc.placeId === active.id
+        (arc) => arc.placeId === active.id,
       );
       const newIndex = transition.inputArcs.findIndex(
-        (arc) => arc.placeId === over.id
+        (arc) => arc.placeId === over.id,
       );
 
       updateTransition(transition.id, (existingTransition) => {
         existingTransition.inputArcs = arrayMove(
           existingTransition.inputArcs,
           oldIndex,
-          newIndex
+          newIndex,
         );
       });
     }
@@ -97,17 +97,17 @@ export const TransitionProperties: React.FC<TransitionPropertiesProps> = ({
 
     if (over && active.id !== over.id) {
       const oldIndex = transition.outputArcs.findIndex(
-        (arc) => arc.placeId === active.id
+        (arc) => arc.placeId === active.id,
       );
       const newIndex = transition.outputArcs.findIndex(
-        (arc) => arc.placeId === over.id
+        (arc) => arc.placeId === over.id,
       );
 
       updateTransition(transition.id, (existingTransition) => {
         existingTransition.outputArcs = arrayMove(
           existingTransition.outputArcs,
           oldIndex,
-          newIndex
+          newIndex,
         );
       });
     }
@@ -116,7 +116,7 @@ export const TransitionProperties: React.FC<TransitionPropertiesProps> = ({
   const handleDeleteInputArc = (placeId: string) => {
     updateTransition(transition.id, (existingTransition) => {
       const index = existingTransition.inputArcs.findIndex(
-        (arc) => arc.placeId === placeId
+        (arc) => arc.placeId === placeId,
       );
       if (index !== -1) {
         existingTransition.inputArcs.splice(index, 1);
@@ -127,7 +127,7 @@ export const TransitionProperties: React.FC<TransitionPropertiesProps> = ({
   const handleDeleteOutputArc = (placeId: string) => {
     updateTransition(transition.id, (existingTransition) => {
       const index = existingTransition.outputArcs.findIndex(
-        (arc) => arc.placeId === placeId
+        (arc) => arc.placeId === placeId,
       );
       if (index !== -1) {
         existingTransition.outputArcs.splice(index, 1);
@@ -161,7 +161,7 @@ export const TransitionProperties: React.FC<TransitionPropertiesProps> = ({
                 if (
                   // eslint-disable-next-line no-alert
                   window.confirm(
-                    `Are you sure you want to delete "${transition.name}"? All arcs connected to this transition will also be removed.`
+                    `Are you sure you want to delete "${transition.name}"? All arcs connected to this transition will also be removed.`,
                   )
                 ) {
                   removeTransition(transition.id);
@@ -244,7 +244,7 @@ export const TransitionProperties: React.FC<TransitionPropertiesProps> = ({
               >
                 {transition.inputArcs.map((arc) => {
                   const place = places.find(
-                    (placeItem) => placeItem.id === arc.placeId
+                    (placeItem) => placeItem.id === arc.placeId,
                   );
                   return (
                     <SortableArcItem
@@ -258,7 +258,7 @@ export const TransitionProperties: React.FC<TransitionPropertiesProps> = ({
                           transition.id,
                           "input",
                           arc.placeId,
-                          weight
+                          weight,
                         );
                       }}
                       onDelete={() => handleDeleteInputArc(arc.placeId)}
@@ -298,7 +298,7 @@ export const TransitionProperties: React.FC<TransitionPropertiesProps> = ({
               >
                 {transition.outputArcs.map((arc) => {
                   const place = places.find(
-                    (placeItem) => placeItem.id === arc.placeId
+                    (placeItem) => placeItem.id === arc.placeId,
                   );
                   return (
                     <SortableArcItem
@@ -312,7 +312,7 @@ export const TransitionProperties: React.FC<TransitionPropertiesProps> = ({
                           transition.id,
                           "output",
                           arc.placeId,
-                          weight
+                          weight,
                         );
                       }}
                       onDelete={() => handleDeleteOutputArc(arc.placeId)}
@@ -418,7 +418,7 @@ export const TransitionProperties: React.FC<TransitionPropertiesProps> = ({
                   onClick: () => {
                     updateTransition(transition.id, (existingTransition) => {
                       existingTransition.lambdaCode = generateDefaultLambdaCode(
-                        existingTransition.lambdaType
+                        existingTransition.lambdaType,
                       );
                     });
                   },
@@ -533,11 +533,11 @@ export const TransitionProperties: React.FC<TransitionPropertiesProps> = ({
                       const inputs = transition.inputArcs
                         .map((arc) => {
                           const place = places.find(
-                            (p) => p.id === arc.placeId
+                            (p) => p.id === arc.placeId,
                           );
                           if (!place || !place.colorId) return null;
                           const type = types.find(
-                            (t) => t.id === place.colorId
+                            (t) => t.id === place.colorId,
                           );
                           if (!type) return null;
                           return {
@@ -551,11 +551,11 @@ export const TransitionProperties: React.FC<TransitionPropertiesProps> = ({
                       const outputs = transition.outputArcs
                         .map((arc) => {
                           const place = places.find(
-                            (p) => p.id === arc.placeId
+                            (p) => p.id === arc.placeId,
                           );
                           if (!place || !place.colorId) return null;
                           const type = types.find(
-                            (t) => t.id === place.colorId
+                            (t) => t.id === place.colorId,
                           );
                           if (!type) return null;
                           return {

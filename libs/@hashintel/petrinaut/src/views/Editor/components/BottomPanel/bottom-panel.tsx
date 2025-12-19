@@ -107,7 +107,7 @@ export const BottomPanel: React.FC = () => {
   const leftSidebarWidth = useEditorStore((state) => state.leftSidebarWidth);
   const panelHeight = useEditorStore((state) => state.bottomPanelHeight);
   const setBottomPanelHeight = useEditorStore(
-    (state) => state.setBottomPanelHeight
+    (state) => state.setBottomPanelHeight,
   );
   const activeTab = useEditorStore((state) => state.activeBottomPanelTab);
   const setActiveTab = useEditorStore((state) => state.setActiveBottomPanelTab);
