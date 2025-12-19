@@ -13,13 +13,13 @@
   "main": "dist/main.js",
   "types": "dist/main.d.ts",
   "scripts": {
-    "build": "vite build",
-    "build:site": "vite build --mode=site",
+    "build": "vite build --mode=lib",
+    "build:site": "vite build",
     "dev": "vite",
     "fix:eslint": "eslint --fix .",
     "lint:eslint": "eslint --report-unused-disable-directives .",
     "lint:tsc": "tsc --noEmit",
-    "preview": "vite preview --mode=site",
+    "preview": "vite preview",
     "test:unit": "vitest"
   },
   "dependencies": {

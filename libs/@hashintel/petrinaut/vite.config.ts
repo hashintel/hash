@@ -4,13 +4,13 @@ import react from "@vitejs/plugin-react";
 import { defineConfig } from "vite";
 import dts from "vite-plugin-dts";
 
-export default defineConfig(({ command, mode }) => {
-  const isLibBuild = command === "build" && mode !== "site";
+export default defineConfig(({ mode }) => {
+  const isLibMode = mode === "lib" || !!process.env.VITEST;
 
   return {
-    root: isLibBuild ? undefined : "demo-site",
+    root: isLibMode ? undefined : "demo-site",
 
-    build: isLibBuild
+    build: isLibMode
       ? {
           lib: {
             entry: path.resolve(__dirname, "src/main.ts"),
@@ -38,7 +38,7 @@ export default defineConfig(({ command, mode }) => {
           minify: false,
         }
       : {
-          outDir: "demo-site/dist",
+          outDir: "dist",
         },
 
     plugins: [
@@ -48,7 +48,7 @@ export default defineConfig(({ command, mode }) => {
         },
       }),
 
-      isLibBuild &&
+      isLibMode &&
         dts({
           rollupTypes: true,
           insertTypesEntry: true,
