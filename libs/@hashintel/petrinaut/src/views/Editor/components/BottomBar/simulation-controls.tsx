@@ -1,32 +1,10 @@
 import { css } from "@hashintel/ds-helpers/css";
-import { IoMdPause, IoMdPlay, IoMdSquare } from "react-icons/io";
+import { IoMdPause, IoMdPlay } from "react-icons/io";
+import { MdRotateLeft } from "react-icons/md";
 
-import { Tooltip } from "../../../../components/tooltip";
 import { useEditorStore } from "../../../../state/editor-provider";
 import { useSimulationStore } from "../../../../state/simulation-provider";
-
-const containerStyle = css({
-  display: "flex",
-  alignItems: "center",
-  padding: "[0 12px]",
-  gap: "[12px]",
-  fontSize: "[24px]",
-});
-
-const playPauseButtonStyle = css({
-  cursor: "pointer",
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-  border: "none",
-  transition: "[all 0.2s ease]",
-  "&:hover:not([data-disabled])": {
-    transform: "[scale(1.05)]",
-  },
-  "&[data-disabled]": {
-    opacity: "[0.5]",
-  },
-});
+import { ToolbarButton } from "./toolbar-button";
 
 const frameInfoStyle = css({
   display: "flex",
@@ -35,6 +13,7 @@ const frameInfoStyle = css({
   fontSize: "[11px]",
   color: "core.gray.60",
   fontWeight: "[500]",
+  lineHeight: "[1]",
   minWidth: "[80px]",
 });
 
@@ -74,28 +53,6 @@ const sliderStyle = css({
   },
 });
 
-const resetButtonStyle = css({
-  cursor: "pointer",
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-  width: "[36px]",
-  height: "[36px]",
-  borderRadius: "[6px]",
-  border: "none",
-  background: "[transparent]",
-  color: "core.gray.80",
-  transition: "[all 0.2s ease]",
-  "&:hover:not(:disabled)": {
-    background: "core.gray.10",
-    transform: "[scale(1.05)]",
-  },
-  "&:disabled": {
-    opacity: "[0.5]",
-    cursor: "not-allowed",
-  },
-});
-
 interface SimulationControlsProps {
   disabled?: boolean;
 }
@@ -126,15 +83,41 @@ export const SimulationControls: React.FC<SimulationControlsProps> = ({
 
   const isDisabled = disabled;
 
-  function openDiagnosticsPanel() {
+  const openDiagnosticsPanel = () => {
     setActiveBottomPanelTab("diagnostics");
     setBottomPanelOpen(true);
-  }
+  };
 
   const totalFrames = simulation?.frames.length ?? 0;
   const hasSimulation = simulation !== null;
   const isRunning = simulationState === "Running";
   const elapsedTime = simulation ? currentlyViewedFrame * simulation.dt : 0;
+
+  const getPlayPauseTooltip = () => {
+    if (isDisabled) {
+      return "Fix errors to run simulation";
+    }
+    if (simulationState === "NotRun") {
+      return "Start Simulation";
+    }
+    if (isRunning) {
+      return "Pause Simulation";
+    }
+    return "Continue Simulation";
+  };
+
+  const getPlayPauseAriaLabel = () => {
+    if (isDisabled) {
+      return "Fix errors to run simulation";
+    }
+    if (simulationState === "NotRun") {
+      return "Run simulation";
+    }
+    if (isRunning) {
+      return "Pause simulation";
+    }
+    return "Continue simulation";
+  };
 
   const handlePlayPause = () => {
     // If disabled due to errors, open diagnostics panel instead
@@ -167,63 +150,28 @@ export const SimulationControls: React.FC<SimulationControlsProps> = ({
   };
 
   return (
-    <div className={containerStyle}>
-      {/* Record/Stop button - always visible */}
-      <Tooltip
-        content={
-          isDisabled
-            ? "Fix errors to run simulation"
-            : simulationState === "NotRun"
-            ? "Start Simulation"
-            : isRunning
-            ? "Pause Simulation"
-            : "Continue Simulation"
-        }
+    <>
+      {/* Play/Pause button - always visible */}
+      <ToolbarButton
+        tooltip={getPlayPauseTooltip()}
+        onClick={handlePlayPause}
+        disabled={isDisabled}
+        ariaLabel={getPlayPauseAriaLabel()}
       >
-        <button
-          type="button"
-          onClick={handlePlayPause}
-          className={playPauseButtonStyle}
-          data-disabled={isDisabled || undefined}
-          aria-label={
-            isDisabled
-              ? "Fix errors to run simulation"
-              : simulationState === "NotRun"
-              ? "Run simulation"
-              : isRunning
-              ? "Pause simulation"
-              : "Continue simulation"
-          }
-        >
-          {isRunning ? <IoMdPause /> : <IoMdPlay />}
-        </button>
-      </Tooltip>
-
-      {/* Reset button - only visible when simulation exists */}
-      {hasSimulation && (
-        <Tooltip content="Reset">
-          <button
-            type="button"
-            onClick={handleReset}
-            disabled={isDisabled}
-            className={resetButtonStyle}
-            aria-label="Reset simulation"
-          >
-            <IoMdSquare />
-          </button>
-        </Tooltip>
-      )}
+        {isRunning ? <IoMdPause /> : <IoMdPlay />}
+      </ToolbarButton>
 
       {/* Frame controls - only visible when simulation exists */}
       {hasSimulation && (
         <>
-          <span className={frameInfoStyle}>
+          <div className={frameInfoStyle}>
             <div>Frame</div>
             <div>
               {currentlyViewedFrame + 1} / {totalFrames}
             </div>
             <div className={elapsedTimeStyle}>{elapsedTime.toFixed(3)}s</div>
-          </span>
+          </div>
+
           <input
             type="range"
             min="0"
@@ -237,6 +185,18 @@ export const SimulationControls: React.FC<SimulationControlsProps> = ({
           />
         </>
       )}
-    </div>
+
+      {/* Stop button - only visible when simulation exists */}
+      {hasSimulation && (
+        <ToolbarButton
+          tooltip="Stop simulation"
+          onClick={handleReset}
+          disabled={isDisabled}
+          ariaLabel="Reset simulation"
+        >
+          <MdRotateLeft />
+        </ToolbarButton>
+      )}
+    </>
   );
 };

@@ -3,12 +3,12 @@ import { refractive } from "@hashintel/refractive";
 import { useCallback, useEffect } from "react";
 import { FaChevronDown, FaChevronUp } from "react-icons/fa6";
 
-import { Tooltip } from "../../../../components/tooltip";
 import { useCheckerContext } from "../../../../state/checker-provider";
 import { useEditorStore } from "../../../../state/editor-provider";
 import type { EditorState } from "../../../../state/editor-store";
 import { DiagnosticsIndicator } from "./diagnostics-indicator";
 import { SimulationControls } from "./simulation-controls";
+import { ToolbarButton } from "./toolbar-button";
 import { ToolbarModes } from "./toolbar-modes";
 import { useKeyboardShortcuts } from "./use-keyboard-shortcuts";
 
@@ -16,7 +16,12 @@ const refractiveContainerStyle = css({
   paddingX: "spacing.2",
   paddingY: "spacing.1",
   backgroundColor: "[rgba(255, 255, 255, 0.6)]",
-  boxShadow: "[0 4px 13px rgba(0, 0, 0, 0.15)]",
+  boxShadow: "[0 3px 11px rgba(0, 0, 0, 0.1)]",
+  transition: "[all 0.3s ease]",
+  _hover: {
+    backgroundColor: "[rgba(255, 255, 255, 0.8)]",
+    boxShadow: "[0 4px 13px rgba(0, 0, 0, 0.15)]",
+  },
 });
 
 const toolbarContainerStyle = css({
@@ -30,25 +35,6 @@ const dividerStyle = css({
   width: "[1px]",
   height: "[16px]",
   margin: "[0 4px]",
-});
-
-const panelToggleButtonStyle = css({
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-  width: "[32px]",
-  height: "[32px]",
-  border: "none",
-  borderRadius: "[8px]",
-  backgroundColor: "[transparent]",
-  color: "core.gray.70",
-  cursor: "pointer",
-  transition: "[all 0.2s ease]",
-  marginLeft: "[4px]",
-  _hover: {
-    backgroundColor: "[rgba(0, 0, 0, 0.05)]",
-    color: "core.gray.90",
-  },
 });
 
 const bottomBarPositionStyle = css({
@@ -123,21 +109,18 @@ export const BottomBar: React.FC<BottomBarProps> = ({
         }}
       >
         <div className={toolbarContainerStyle}>
-          <Tooltip content={isBottomPanelOpen ? "Hide Panel" : "Show Panel"}>
-            <button
-              type="button"
-              onClick={toggleBottomPanel}
-              className={panelToggleButtonStyle}
-              aria-label={isBottomPanelOpen ? "Hide panel" : "Show panel"}
-              aria-expanded={isBottomPanelOpen}
-            >
-              {isBottomPanelOpen ? (
-                <FaChevronDown size={14} />
-              ) : (
-                <FaChevronUp size={14} />
-              )}
-            </button>
-          </Tooltip>
+          <ToolbarButton
+            tooltip={isBottomPanelOpen ? "Hide Panel" : "Show Panel"}
+            onClick={toggleBottomPanel}
+            ariaLabel={isBottomPanelOpen ? "Hide panel" : "Show panel"}
+            ariaExpanded={isBottomPanelOpen}
+          >
+            {isBottomPanelOpen ? (
+              <FaChevronDown size={14} />
+            ) : (
+              <FaChevronUp size={14} />
+            )}
+          </ToolbarButton>
           <DiagnosticsIndicator
             onClick={showDiagnostics}
             isExpanded={isBottomPanelOpen}

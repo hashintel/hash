@@ -1,36 +1,27 @@
 import { css, cva } from "@hashintel/ds-helpers/css";
 import { FaCheck, FaXmark } from "react-icons/fa6";
 
-import { Tooltip } from "../../../../components/tooltip";
 import { useCheckerContext } from "../../../../state/checker-provider";
+import { ToolbarButton } from "./toolbar-button";
 
-const buttonStyle = cva({
+const iconContainerStyle = cva({
   base: {
     display: "flex",
     alignItems: "center",
-    border: "none",
-    borderRadius: "[8px]",
-    cursor: "pointer",
-    transition: "[all 0.2s ease]",
-    padding: "[2px 6px]",
-    marginY: "[3px]",
     gap: "[2px]",
+    borderRadius: "[6px]",
+    padding: "[1px 6px]",
+    height: "[25px]",
   },
   variants: {
     status: {
       error: {
         backgroundColor: "[rgba(239, 68, 68, 0.1)]",
         color: "[#dc2626]",
-        _hover: {
-          backgroundColor: "[rgba(239, 68, 68, 0.2)]",
-        },
       },
       success: {
         backgroundColor: "[rgba(34, 197, 94, 0.1)]",
         color: "[#16a34a]",
-        _hover: {
-          backgroundColor: "[rgba(34, 197, 94, 0.2)]",
-        },
       },
     },
   },
@@ -60,17 +51,20 @@ export const DiagnosticsIndicator: React.FC<DiagnosticsIndicatorProps> = ({
   const hasErrors = totalDiagnosticsCount > 0;
 
   return (
-    <Tooltip content="Show Diagnostics">
-      <button
-        type="button"
-        onClick={onClick}
-        className={buttonStyle({ status: hasErrors ? "error" : "success" })}
-        aria-label={
-          hasErrors
-            ? `${totalDiagnosticsCount} diagnostic issues found`
-            : "No diagnostic issues"
-        }
-        aria-expanded={isExpanded}
+    <ToolbarButton
+      tooltip="Show Diagnostics"
+      onClick={onClick}
+      ariaLabel={
+        hasErrors
+          ? `${totalDiagnosticsCount} diagnostic issues found`
+          : "No diagnostic issues"
+      }
+      ariaExpanded={isExpanded}
+    >
+      <div
+        className={iconContainerStyle({
+          status: hasErrors ? "error" : "success",
+        })}
       >
         {hasErrors ? (
           <>
@@ -80,7 +74,7 @@ export const DiagnosticsIndicator: React.FC<DiagnosticsIndicatorProps> = ({
         ) : (
           <FaCheck size={16} />
         )}
-      </button>
-    </Tooltip>
+      </div>
+    </ToolbarButton>
   );
 };
