@@ -1,8 +1,9 @@
 # Conditional Branching in Plan Execution
 
-> **Status**: Deferred to Phase 4
+> **Status**: Deferred — see [gaps-and-next-steps.md](./gaps-and-next-steps.md)
 > **Created**: 2024-12-18
-> **Context**: Plan compilation and execution infrastructure
+> **Moved to wiki**: 2024-12-19
+> **Context**: Design options for runtime branching in plan execution
 
 ## Overview
 
