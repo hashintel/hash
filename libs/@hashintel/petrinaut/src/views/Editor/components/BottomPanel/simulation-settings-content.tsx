@@ -216,6 +216,43 @@ export const SimulationSettingsContent: React.FC = () => {
   return (
     <div>
       <div className={containerStyle}>
+        {/* Parameters Section */}
+        <div className={sectionStyle}>
+          <div className={sectionTitleStyle}>Parameters</div>
+          {parameters.length > 0 ? (
+            <div className={parametersListStyle}>
+              {parameters.map((param) => (
+                <div key={param.id} className={parameterRowStyle}>
+                  <div>
+                    <div className={parameterNameStyle}>{param.name}</div>
+                    <div className={parameterVarNameStyle}>
+                      {param.variableName}
+                    </div>
+                  </div>
+                  <input
+                    type="number"
+                    value={
+                      parameterValues[param.variableName] ?? param.defaultValue
+                    }
+                    onChange={(event) =>
+                      setParameterValue(param.variableName, event.target.value)
+                    }
+                    placeholder={param.defaultValue}
+                    disabled={isSimulationActive}
+                    className={
+                      isSimulationActive
+                        ? parameterInputDisabledStyle
+                        : parameterInputStyle
+                    }
+                  />
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className={emptyMessageStyle}>No parameters defined</div>
+          )}
+        </div>
+
         {/* Computation Section */}
         <div className={sectionStyle}>
           <div className={sectionTitleStyle}>Computation</div>
@@ -261,43 +298,6 @@ export const SimulationSettingsContent: React.FC = () => {
               </select>
             </div>
           </div>
-        </div>
-
-        {/* Parameters Section */}
-        <div className={sectionStyle}>
-          <div className={sectionTitleStyle}>Parameters</div>
-          {parameters.length > 0 ? (
-            <div className={parametersListStyle}>
-              {parameters.map((param) => (
-                <div key={param.id} className={parameterRowStyle}>
-                  <div>
-                    <div className={parameterNameStyle}>{param.name}</div>
-                    <div className={parameterVarNameStyle}>
-                      {param.variableName}
-                    </div>
-                  </div>
-                  <input
-                    type="number"
-                    value={
-                      parameterValues[param.variableName] ?? param.defaultValue
-                    }
-                    onChange={(event) =>
-                      setParameterValue(param.variableName, event.target.value)
-                    }
-                    placeholder={param.defaultValue}
-                    disabled={isSimulationActive}
-                    className={
-                      isSimulationActive
-                        ? parameterInputDisabledStyle
-                        : parameterInputStyle
-                    }
-                  />
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className={emptyMessageStyle}>No parameters defined</div>
-          )}
         </div>
       </div>
 
