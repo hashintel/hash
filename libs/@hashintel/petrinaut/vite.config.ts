@@ -11,7 +11,8 @@ export default defineConfig(({ mode }) => {
     root: isLibMode ? undefined : "demo-site",
 
     build: isLibMode
-      ? {
+      ? // Library build
+        {
           lib: {
             entry: path.resolve(__dirname, "src/main.ts"),
             name: "Petrinaut",
@@ -21,6 +22,7 @@ export default defineConfig(({ mode }) => {
           rollupOptions: {
             external: [
               "@hashintel/ds-components",
+              "@hashintel/ds-helpers",
               "elkjs",
               "react",
               "react-dom",
@@ -37,7 +39,8 @@ export default defineConfig(({ mode }) => {
           emptyOutDir: true,
           minify: false,
         }
-      : {
+      : // Website build
+        {
           outDir: "dist",
         },
 
