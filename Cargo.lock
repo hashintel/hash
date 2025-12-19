@@ -1219,17 +1219,16 @@ dependencies = [
 
 [[package]]
 name = "cedar-policy-core"
-version = "4.8.2"
+version = "4.5.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8011d10d2ffa8ee4497d4d7234d0d4e97f52a6e6e66a1150c5c3409ba7fe1b5c"
+checksum = "02b45be5c965ce63bec3d284fefe0e042342f4e77f149a1e7aafc045119df738"
 dependencies = [
  "educe 0.6.0",
  "either",
  "itertools 0.14.0",
  "lalrpop",
  "lalrpop-util",
- "linked-hash-map",
- "linked_hash_set",
+ "lazy_static",
  "miette",
  "nonempty",
  "ref-cast",
@@ -4985,24 +4984,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "linked-hash-map"
-version = "0.5.6"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0717cef1bc8b636c6e1c1bbdefc09e6322da8a9321966e8928ef80d20f7f770f"
-dependencies = [
- "serde",
-]
-
-[[package]]
-name = "linked_hash_set"
-version = "0.1.6"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "984fb35d06508d1e69fc91050cceba9c0b748f983e6739fa2c7a9237154c52c8"
-dependencies = [
- "linked-hash-map",
-]
-
-[[package]]
 name = "linux-raw-sys"
 version = "0.11.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5515,9 +5496,9 @@ dependencies = [
 
 [[package]]
 name = "nonempty"
-version = "0.12.0"
+version = "0.10.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9737e026353e5cd0736f98eddae28665118eb6f6600902a7f50db585621fecb6"
+checksum = "303e8749c804ccd6ca3b428de7fe0d86cb86bc7606bc15291f100fd487960bb8"
 dependencies = [
  "serde",
 ]
