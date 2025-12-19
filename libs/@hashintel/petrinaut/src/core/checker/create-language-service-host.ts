@@ -1,8 +1,8 @@
 import * as ts from "typescript";
+import libEs5 from "typescript/lib/lib.es5.d.ts?raw";
 import libEs2015Core from "typescript/lib/lib.es2015.core.d.ts?raw";
 import libEs2015Iterable from "typescript/lib/lib.es2015.iterable.d.ts?raw";
 import libEs2015Symbol from "typescript/lib/lib.es2015.symbol.d.ts?raw";
-import libEs5 from "typescript/lib/lib.es5.d.ts?raw";
 
 /** Bundled TypeScript lib files (with absolute paths) */
 const BUNDLED_LIBS: Record<string, string> = {
