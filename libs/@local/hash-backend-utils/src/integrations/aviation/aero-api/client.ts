@@ -1,3 +1,5 @@
+import type { ProvidedEntityEditionProvenance } from "@blockprotocol/type-system";
+
 import {
   type BatchFlightGraphResult,
   buildFlightGraphBatch,
@@ -88,7 +90,7 @@ const getAllScheduledArrivals = async (
 
   while (response.links?.next) {
     response = await makeRequest<AeroApiScheduledArrivalsResponse>(
-      response.links.next,
+      `${baseUrl}${response.links.next}`,
     );
     allFlights.push(...response.scheduled_arrivals);
   }
@@ -106,9 +108,17 @@ const getAllScheduledArrivals = async (
 export const getScheduledArrivalEntities = async (
   airportIcao: string,
   date: string,
-): Promise<BatchFlightGraphResult> => {
-  const start = `${date}T00:00:00Z`;
-  const end = `${date}T23:59:59Z`;
+): Promise<
+  BatchFlightGraphResult & {
+    provenance: Pick<ProvidedEntityEditionProvenance, "sources">;
+  }
+> => {
+  const start = `${date}T04:00:00Z`;
+
+  const dateObj = new Date(date);
+  dateObj.setUTCDate(dateObj.getUTCDate() + 1);
+  const tomorrow = dateObj.toISOString().slice(0, 10);
+  const end = `${tomorrow}T03:59:59Z`;
 
   const flights = await getAllScheduledArrivals({
     airportIcao,
@@ -116,5 +126,13 @@ export const getScheduledArrivalEntities = async (
     end,
   });
 
-  return buildFlightGraphBatch(flights, generateAeroApiProvenance());
+  const provenance = generateAeroApiProvenance();
+
+  return {
+    ...buildFlightGraphBatch(flights, provenance),
+    provenance,
+  };
 };
+await getScheduledArrivalEntities("EDDS", "2025-12-19").then((data) =>
+  console.log(JSON.stringify(data, null, 2)),
+);

@@ -4,8 +4,10 @@ import type {
 } from "@blockprotocol/type-system";
 import type { CreateEntityParameters } from "@local/hash-graph-sdk/entity";
 
+import type { EntityPrimaryKey } from "../../../shared/primary-keys.js";
+
 export type MappingResult<OutputType extends TypeIdsAndPropertiesForEntity> = {
-  primaryKey: string;
+  primaryKey: EntityPrimaryKey;
   typeIdsAndProperties: Pick<
     CreateEntityParameters<OutputType>,
     "entityTypeIds" | "properties"

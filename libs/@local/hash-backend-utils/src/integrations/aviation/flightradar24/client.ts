@@ -1,3 +1,4 @@
+import type { ProvidedEntityEditionProvenance } from "@blockprotocol/type-system";
 import type { Flight as HashFlight } from "@local/hash-isomorphic-utils/system-types/flight";
 
 import { mapFlight } from "./client/flight.js";
@@ -83,6 +84,7 @@ export const getFlightPositionsLight = async (
 export const getFlightPositionProperties = async (
   flightNumber: string,
 ): Promise<{
+  provenance: Pick<ProvidedEntityEditionProvenance, "sources">;
   properties: Partial<HashFlight["propertiesWithMetadata"]["value"]>;
 } | null> => {
   const response = await getFlightPositionsLight({ flights: flightNumber });
@@ -92,5 +94,10 @@ export const getFlightPositionProperties = async (
     return null;
   }
 
-  return mapFlight(flight, generateFlightradar24Provenance());
+  const provenance = generateFlightradar24Provenance();
+
+  return {
+    ...mapFlight(flight, provenance),
+    provenance,
+  };
 };

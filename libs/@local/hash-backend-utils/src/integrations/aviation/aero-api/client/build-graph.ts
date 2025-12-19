@@ -15,12 +15,15 @@ import type {
   Airport as HashAirport,
 } from "@local/hash-isomorphic-utils/system-types/shared";
 
+import type { EntityPrimaryKey } from "../../shared/primary-keys.js";
 import { mapAirline } from "./build-graph/airline.js";
 import { mapAirport } from "./build-graph/airport.js";
 import { mapArrivesAt } from "./build-graph/arrives-at.js";
 import { mapDepartsFrom } from "./build-graph/departs-from.js";
 import { mapFlight } from "./build-graph/flight.js";
 import type { AeroApiScheduledFlight } from "./types.js";
+
+export type { EntityPrimaryKey } from "../../shared/primary-keys.js";
 
 /**
  * A proposed entity to be created or matched against existing entities.
@@ -30,9 +33,10 @@ export type ProposedEntity<
 > = {
   kind: "entity";
   /**
-   * A unique key for matching against existing entities.
+   * The primary key for matching against existing entities.
+   * Contains both a string key (for in-memory dedup) and property filters (for DB queries).
    */
-  primaryKey: string;
+  primaryKey: EntityPrimaryKey;
   /**
    * The entity type IDs for this entity.
    */
@@ -54,11 +58,11 @@ export type ProposedLink<
   /**
    * The primary key of the source (left) entity.
    */
-  leftEntityPrimaryKey: string;
+  leftEntityPrimaryKey: EntityPrimaryKey;
   /**
    * The primary key of the target (right) entity.
    */
-  rightEntityPrimaryKey: string;
+  rightEntityPrimaryKey: EntityPrimaryKey;
   /**
    * The link entity type IDs.
    */
@@ -202,8 +206,8 @@ export const buildSingleFlightGraph = (
  */
 export type BatchFlightGraphResult = {
   /**
-   * Deduplicated entities by primary key.
-   * The key is the primary key, the value is the proposed entity.
+   * Deduplicated entities by primary key string.
+   * The key is the primaryKey.key string, the value is the proposed entity.
    */
   entities: Map<string, ProposedEntity>;
   /**
@@ -238,8 +242,8 @@ export const buildFlightGraphBatch = (
     }
 
     const addEntity = (entity: ProposedEntity) => {
-      if (!entities.has(entity.primaryKey)) {
-        entities.set(entity.primaryKey, entity);
+      if (!entities.has(entity.primaryKey.key)) {
+        entities.set(entity.primaryKey.key, entity);
       }
     };
 

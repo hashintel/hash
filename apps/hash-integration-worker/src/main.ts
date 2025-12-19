@@ -22,6 +22,7 @@ import type { WorkflowTypeMap } from "@local/hash-backend-utils/temporal-integra
 import { defaultSinks, NativeConnection, Worker } from "@temporalio/worker";
 import { config } from "dotenv-flow";
 
+import * as aviationActivities from "./aviation-activities";
 import * as linearActivities from "./linear-activities";
 import * as workflows from "./workflows";
 
@@ -91,6 +92,9 @@ async function run() {
     ...workflowOption(),
     activities: {
       ...linearActivities.createLinearIntegrationActivities({
+        graphApiClient,
+      }),
+      ...aviationActivities.createAviationActivities({
         graphApiClient,
       }),
     },

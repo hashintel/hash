@@ -2,11 +2,20 @@ import type {
   Entity,
   EntityId,
   MachineId,
+  ProvidedEntityEditionProvenance,
   VersionedUrl,
   WebId,
 } from "@blockprotocol/type-system";
 import type { Team } from "@linear/sdk";
 import type { SerializedEntity } from "@local/hash-graph-sdk/entity";
+
+import type {
+  EntityPrimaryKey,
+  ProposedEntity,
+  ProposedLink,
+} from "./integrations/aviation/aero-api/client/build-graph.js";
+
+export type { EntityPrimaryKey, ProposedEntity, ProposedLink };
 
 export type PartialEntity = {
   properties: Entity["properties"];
@@ -61,6 +70,29 @@ export type SyncQueryToGoogleSheetWorkflow = (params: {
   userAccountId: MachineId;
 }) => Promise<void>;
 
+/**
+ * Result of fetching scheduled flights from AeroAPI.
+ */
+export type GetScheduledFlightsResult = {
+  entities: ProposedEntity[];
+  links: ProposedLink[];
+  provenance: Pick<ProvidedEntityEditionProvenance, "sources">;
+};
+
+/**
+ * Workflow to sync scheduled flights from AeroAPI to HASH.
+ */
+export type SyncScheduledFlightsWorkflow = (params: {
+  authentication: { actorId: MachineId };
+  airportIcao: string;
+  date: string;
+  webId: WebId;
+}) => Promise<{
+  entitiesCreated: number;
+  entitiesUpdated: number;
+  linksCreated: number;
+}>;
+
 export type WorkflowTypeMap = {
   syncLinearToWeb: SyncWebWorkflow;
   readLinearTeams: ReadLinearTeamsWorkflow;
@@ -70,4 +102,6 @@ export type WorkflowTypeMap = {
 
   updateLinearData: UpdateLinearDataWorkflow;
   /** @todo: add `createLinearData` */
+
+  syncScheduledFlights: SyncScheduledFlightsWorkflow;
 };
