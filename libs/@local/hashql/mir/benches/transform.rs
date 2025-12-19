@@ -2,8 +2,9 @@
 #![test_runner(criterion::runner)]
 #![expect(clippy::min_ident_chars, clippy::many_single_char_names)]
 
-use criterion::{BatchSize, Bencher, Criterion};
-use criterion_macro::criterion;
+use core::hint::black_box;
+
+use codspeed_criterion_compat::{BatchSize, Bencher, Criterion, criterion_group, criterion_main};
 use hashql_core::{
     heap::{BumpAllocator as _, Heap, Scratch},
     r#type::{TypeBuilder, environment::Environment},
@@ -256,7 +257,7 @@ fn run_bencher(
     // IMPORTANT: `BatchSize::PerIteration` is critical for soundness. Do NOT change this to
     // `SmallInput`, `LargeInput`, or any other batch size. Doing so will cause undefined
     // behavior (use-after-free of arena allocations).
-    bencher.iter_batched(
+    bencher.iter_batched_ref(
         || {
             // SAFETY: We create a `&mut Heap` from the raw pointer to call `reset()` and build
             // the environment/interner/body. This is sound because:
@@ -274,7 +275,7 @@ fn run_bencher(
 
             (env, interner, body)
         },
-        |(env, interner, mut body)| {
+        |(env, interner, body)| {
             // SAFETY: We create a shared `&Heap` reference. This is sound because:
             // - The `&mut Heap` from setup no longer exists (setup closure has returned)
             // - The `env`, `interner`, and `body` already hold shared borrows of `heap`
@@ -283,13 +284,13 @@ fn run_bencher(
 
             let mut context = MirContext {
                 heap,
-                env: &env,
-                interner: &interner,
+                env,
+                interner,
                 diagnostics: DiagnosticIssues::new(),
             };
 
-            func(&mut context, &mut body);
-            (env, interner, body)
+            func(black_box(&mut context), black_box(body));
+            context.diagnostics
         },
         BatchSize::PerIteration,
     );
@@ -309,7 +310,6 @@ fn run(
     );
 }
 
-#[criterion]
 fn cfg_simplify(criterion: &mut Criterion) {
     let mut group = criterion.benchmark_group("cfg_simplify");
 
@@ -326,7 +326,6 @@ fn cfg_simplify(criterion: &mut Criterion) {
     });
 }
 
-#[criterion]
 fn sroa(criterion: &mut Criterion) {
     let mut group = criterion.benchmark_group("sroa");
 
@@ -341,7 +340,6 @@ fn sroa(criterion: &mut Criterion) {
     });
 }
 
-#[criterion]
 fn dse(criterion: &mut Criterion) {
     let mut group = criterion.benchmark_group("dse");
 
@@ -359,7 +357,6 @@ fn dse(criterion: &mut Criterion) {
     });
 }
 
-#[criterion]
 fn pipeline(criterion: &mut Criterion) {
     let mut group = criterion.benchmark_group("pipeline");
 
@@ -391,3 +388,6 @@ fn pipeline(criterion: &mut Criterion) {
         });
     });
 }
+
+criterion_group!(benches, cfg_simplify, sroa, dse, pipeline);
+criterion_main!(benches);

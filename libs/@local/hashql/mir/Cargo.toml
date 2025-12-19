@@ -22,10 +22,9 @@ bstr           = { workspace = true }
 simple-mermaid = { workspace = true }
 
 [dev-dependencies]
-criterion          = { workspace = true }
-criterion-macro    = { workspace = true }
-hashql-compiletest = { workspace = true }
-insta              = { workspace = true }
+codspeed-criterion-compat = "4.1.0"
+hashql-compiletest        = { workspace = true }
+insta                     = { workspace = true }
 
 
 [lints]
@@ -33,6 +32,10 @@ workspace = true
 
 [[test]]
 name    = "compiletest"
+harness = false
+
+[[bench]]
+name    = "transform"
 harness = false
 
 [package.metadata.sync.turborepo]
