@@ -289,7 +289,7 @@ jobs:
             echo ''
             echo 'ℹ️ ℹ️ ℹ️'
             echo 'Changes were detected in .claude/skills/skill-rules.json file after running `yarn agents:skill-management generate-skill-rules`.'
-            echo 'This indicates that there are changes inside of the skill files that haven\'t yet been upstreamed into the skill-rules.json file.'
+            echo 'This indicates that there are changes inside of the skill files that haven not yet been upstreamed into the skill-rules.json file.'
             echo 'Try running `yarn agents:skill-management generate-skill-rules` locally to apply autofixes.'
             echo 'ℹ️ ℹ️ ℹ️'
             exit 1;
