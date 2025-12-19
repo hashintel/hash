@@ -3739,6 +3739,8 @@ version = "0.0.0"
 dependencies = [
  "anstyle-svg",
  "bstr",
+ "criterion",
+ "criterion-macro",
  "hashql-compiletest",
  "hashql-core",
  "hashql-diagnostics",

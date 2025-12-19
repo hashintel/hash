@@ -17,12 +17,11 @@ use crate::{
         operand::Operand,
         terminator::{GraphRead, GraphReadHead, GraphReadTail, TerminatorKind},
     },
+    builder::{op, scaffold},
     context::MirContext,
     def::DefIdSlice,
-    op,
     pass::TransformPass as _,
     pretty::TextFormat,
-    scaffold,
 };
 
 #[track_caller]
@@ -86,9 +85,7 @@ fn all_live() {
     let ty = TypeBuilder::synthetic(&env).integer();
 
     let x = builder.local("x", ty);
-    let x = builder.place_local(x);
     let y = builder.local("y", ty);
-    let y = builder.place_local(y);
 
     let bb0 = builder.reserve_block([]);
 
@@ -127,8 +124,8 @@ fn single_dead_assignment() {
     let ty = TypeBuilder::synthetic(&env).integer();
 
     let x = builder.local("x", ty);
-    let x = builder.place_local(x);
     let dead = builder.local("dead", ty);
+
     let const_42 = builder.const_int(42);
 
     let bb0 = builder.reserve_block([]);
@@ -136,7 +133,7 @@ fn single_dead_assignment() {
     builder
         .build_block(bb0)
         .assign_place(x, |rv| rv.input(InputOp::Load { required: true }, "input"))
-        .assign_local(dead, |rv| rv.load(const_42))
+        .assign_place(dead, |rv| rv.load(const_42))
         .ret(x);
 
     let body = builder.finish(0, ty);
@@ -172,11 +169,8 @@ fn dead_chain() {
     let ty = TypeBuilder::synthetic(&env).integer();
 
     let x = builder.local("x", ty);
-    let x = builder.place_local(x);
     let a = builder.local("a", ty);
-    let a_place = builder.place_local(a);
     let b = builder.local("b", ty);
-    let b_place = builder.place_local(b);
     let c = builder.local("c", ty);
 
     let bb0 = builder.reserve_block([]);
@@ -184,9 +178,9 @@ fn dead_chain() {
     builder
         .build_block(bb0)
         .assign_place(x, |rv| rv.input(InputOp::Load { required: true }, "input"))
-        .assign_local(a, |rv| rv.load(x))
-        .assign_local(b, |rv| rv.load(a_place))
-        .assign_local(c, |rv| rv.load(b_place))
+        .assign_place(a, |rv| rv.load(x))
+        .assign_place(b, |rv| rv.load(a))
+        .assign_place(c, |rv| rv.load(b))
         .ret(x);
 
     let body = builder.finish(0, ty);
@@ -222,19 +216,13 @@ fn dead_cycle() {
     let ty = TypeBuilder::synthetic(&env).integer();
 
     let x = builder.local("x", ty);
-    let x = builder.place_local(x);
     let a = builder.local("a", ty);
     let b = builder.local("b", ty);
 
-    let bb0 = builder.reserve_block([a, b]);
+    let bb0 = builder.reserve_block([a.local, b.local]);
     let bb1 = builder.reserve_block([]);
 
-    let a_place = builder.place_local(a);
-    let b_place = builder.place_local(b);
-
-    builder
-        .build_block(bb0)
-        .goto(bb0, [b_place.into(), a_place.into()]);
+    builder.build_block(bb0).goto(bb0, [b.into(), a.into()]);
 
     builder
         .build_block(bb1)
@@ -279,12 +267,9 @@ fn dead_param_with_live_sibling() {
     let const_2 = builder.const_int(2);
 
     let bb0 = builder.reserve_block([]);
-    let bb1 = builder.reserve_block([dead, live]);
-
-    let live = builder.place_local(live);
+    let bb1 = builder.reserve_block([dead.local, live.local]);
 
     builder.build_block(bb0).goto(bb1, [const_1, const_2]);
-
     builder.build_block(bb1).ret(live);
 
     let body = builder.finish(0, ty);
@@ -319,9 +304,7 @@ fn branch_condition_preserved() {
     let bool_ty = TypeBuilder::synthetic(&env).boolean();
 
     let x = builder.local("x", int_ty);
-    let x = builder.place_local(x);
     let cond = builder.local("cond", bool_ty);
-    let cond = builder.place_local(cond);
 
     let const_1 = builder.const_int(1);
     let const_2 = builder.const_int(2);
@@ -373,18 +356,18 @@ fn dead_storage_statements() {
     let ty = TypeBuilder::synthetic(&env).integer();
 
     let x = builder.local("x", ty);
-    let x = builder.place_local(x);
     let dead = builder.local("dead", ty);
+
     let const_42 = builder.const_int(42);
 
     let bb0 = builder.reserve_block([]);
 
     builder
         .build_block(bb0)
-        .storage_live(dead)
+        .storage_live(dead.local)
         .assign_place(x, |rv| rv.input(InputOp::Load { required: true }, "input"))
-        .assign_local(dead, |rv| rv.load(const_42))
-        .storage_dead(dead)
+        .assign_place(dead, |rv| rv.load(const_42))
+        .storage_dead(dead.local)
         .ret(x);
 
     let body = builder.finish(0, ty);
@@ -425,7 +408,6 @@ fn dead_param_multiple_predecessors() {
     let bool_ty = TypeBuilder::synthetic(&env).boolean();
 
     let cond = builder.local("cond", bool_ty);
-    let cond = builder.place_local(cond);
     let dead = builder.local("dead", int_ty);
     let live = builder.local("live", int_ty);
 
@@ -437,9 +419,7 @@ fn dead_param_multiple_predecessors() {
     let bb0 = builder.reserve_block([]);
     let bb1 = builder.reserve_block([]);
     let bb2 = builder.reserve_block([]);
-    let bb3 = builder.reserve_block([dead, live]);
-
-    let live = builder.place_local(live);
+    let bb3 = builder.reserve_block([dead.local, live.local]);
 
     builder
         .build_block(bb0)
@@ -488,8 +468,6 @@ fn graph_read_token_preserved() {
         TypeBuilder::synthetic(&env).opaque("GraphToken", TypeBuilder::synthetic(&env).unknown());
 
     let axis = builder.local("axis", TypeBuilder::synthetic(&env).unknown());
-    let axis = builder.place_local(axis);
-
     let token = builder.local("token", token_ty);
     let dead = builder.local("dead", int_ty);
 
@@ -497,7 +475,7 @@ fn graph_read_token_preserved() {
     let const_42 = builder.const_int(42);
 
     let bb0 = builder.reserve_block([]);
-    let bb1 = builder.reserve_block([token]);
+    let bb1 = builder.reserve_block([token.local]);
 
     builder
         .build_block(bb0)
@@ -512,7 +490,7 @@ fn graph_read_token_preserved() {
 
     builder
         .build_block(bb1)
-        .assign_local(dead, |rv| rv.load(const_42))
+        .assign_place(dead, |rv| rv.load(const_42))
         .ret(const_0);
 
     let body = builder.finish(1, int_ty);

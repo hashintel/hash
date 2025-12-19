@@ -1,31 +1,39 @@
-//! Ergonomic builder for constructing MIR in tests.
+//! Ergonomic builder for constructing MIR bodies.
 //!
 //! This module provides a fluent API for building MIR bodies without the boilerplate
-//! of manually constructing all the intermediate structures.
+//! of manually constructing all the intermediate structures. It is primarily useful
+//! for testing and benchmarking MIR passes.
 //!
 //! # Example
 //!
-//! ```ignore
-//! use hashql_mir::tests::builder::{scaffold, op};
+//! ```
+//! use hashql_core::{id::Id, r#type::TypeId};
+//! use hashql_mir::{op, scaffold, builder::BodyBuilder};
 //!
+//! // Set up the heap, interner, and builder
 //! scaffold!(heap, interner, builder);
 //!
+//! // Declare local variables (using TypeId::MAX as a placeholder type)
 //! let x = builder.local("x", TypeId::MAX);
 //! let y = builder.local("y", TypeId::MAX);
+//! let z = builder.local("z", TypeId::MAX);
 //!
+//! // Reserve basic blocks
 //! let entry = builder.reserve_block([]);
 //!
+//! // Create constants
 //! let const_5 = builder.const_int(5);
 //! let const_3 = builder.const_int(3);
-//! let place_x = builder.place_local(x);
-//! let place_y = builder.place_local(y);
 //!
+//! // Build the entry block with statements and terminator
 //! builder
 //!     .build_block(entry)
-//!     .assign_local(x, |rv| rv.load(const_5))
-//!     .assign_local(y, |rv| rv.binary(place_x, op![+], const_3))
-//!     .ret(place_y);
+//!     .assign_place(x, |rv| rv.load(const_5))
+//!     .assign_place(y, |rv| rv.load(const_3))
+//!     .assign_place(z, |rv| rv.binary(x, op![==], y))
+//!     .ret(z);
 //!
+//! // Finalize the body
 //! let body = builder.finish(0, TypeId::MAX);
 //! ```
 
@@ -36,7 +44,7 @@ use hashql_core::{
     id::{Id as _, IdVec},
     span::SpanId,
     r#type::{TypeId, builder::IntoSymbol},
-    value::{Float, Integer, Primitive},
+    value::{Float, Primitive},
 };
 use hashql_hir::node::operation::{BinOp, InputOp, UnOp};
 
@@ -57,19 +65,22 @@ use crate::{
     intern::Interner,
 };
 
-/// Scaffold macro for setting up MIR test infrastructure.
+/// Scaffold macro for setting up MIR builder infrastructure.
 ///
-/// Creates the heap, interner, and body builder needed for constructing MIR in tests.
+/// Creates the heap, interner, and body builder needed for constructing MIR.
+/// This is the recommended way to initialize the builder for tests and benchmarks.
 ///
 /// # Example
 ///
-/// ```ignore
+/// ```
+/// use hashql_core::{id::Id, r#type::TypeId};
+/// use hashql_mir::{builder::BodyBuilder, scaffold};
+///
 /// scaffold!(heap, interner, builder);
 ///
 /// let x = builder.local("x", TypeId::MAX);
 /// let entry = builder.reserve_block([]);
-/// let place_x = builder.place_local(x);
-/// builder.build_block(entry).ret(place_x);
+/// builder.build_block(entry).ret(x);
 /// let body = builder.finish(0, TypeId::MAX);
 /// ```
 #[macro_export]
@@ -77,34 +88,47 @@ macro_rules! scaffold {
     ($heap:ident, $interner:ident, $builder:ident) => {
         let $heap = hashql_core::heap::Heap::new();
         let $interner = $crate::intern::Interner::new(&$heap);
-        let mut $builder = $crate::tests::BodyBuilder::new(&$interner);
+        let mut $builder = $crate::builder::BodyBuilder::new(&$interner);
     };
 }
 
 /// Macro for creating binary and unary operators.
 ///
+/// This macro provides a convenient way to create operator values for use with
+/// [`RValueBuilder::binary`] and [`RValueBuilder::unary`].
+///
 /// # Binary Operators
 ///
-/// ```ignore
-/// rv.binary(lhs, op![+], rhs)   // Add
-/// rv.binary(lhs, op![-], rhs)   // Sub
-/// rv.binary(lhs, op![*], rhs)   // Mul
-/// rv.binary(lhs, op![/], rhs)   // Div
-/// rv.binary(lhs, op![==], rhs)  // Eq
-/// rv.binary(lhs, op![!=], rhs)  // Ne
-/// rv.binary(lhs, op![<], rhs)   // Lt
-/// rv.binary(lhs, op![<=], rhs)  // Le
-/// rv.binary(lhs, op![>], rhs)   // Gt
-/// rv.binary(lhs, op![>=], rhs)  // Ge
-/// rv.binary(lhs, op![&&], rhs)  // And
-/// rv.binary(lhs, op![||], rhs)  // Or
+/// Comparison and logical operators are supported:
+///
 /// ```
+/// use hashql_hir::node::operation::BinOp;
+/// use hashql_mir::op;
+///
+/// // Comparison
+/// assert!(matches!(op![==], BinOp::Eq));
+/// assert!(matches!(op![!=], BinOp::Ne));
+/// assert!(matches!(op![<], BinOp::Lt));
+/// assert!(matches!(op![<=], BinOp::Lte));
+/// assert!(matches!(op![>], BinOp::Gt));
+/// assert!(matches!(op![>=], BinOp::Gte));
+///
+/// // Logical
+/// assert!(matches!(op![&&], BinOp::And));
+/// assert!(matches!(op![||], BinOp::Or));
+/// ```
+///
+/// Arithmetic operators are also available (`op![+]`, `op![-]`, `op![*]`, `op![/]`),
+/// though they use uninhabited marker types in the current type system.
 ///
 /// # Unary Operators
 ///
-/// ```ignore
-/// rv.unary(op![!], operand)    // Not
-/// rv.unary(op![neg], operand)  // Neg (can't use `-` alone)
+/// ```
+/// use hashql_hir::node::operation::UnOp;
+/// use hashql_mir::op;
+///
+/// assert!(matches!(op![!], UnOp::Not));
+/// assert!(matches!(op![neg], UnOp::Neg)); // `neg` is used since `-` alone is ambiguous
 /// ```
 #[macro_export]
 macro_rules! op {
@@ -116,9 +140,9 @@ macro_rules! op {
     [==] => { hashql_hir::node::operation::BinOp::Eq };
     [!=] => { hashql_hir::node::operation::BinOp::Ne };
     [<] => { hashql_hir::node::operation::BinOp::Lt };
-    [<=] => { hashql_hir::node::operation::BinOp::Le };
+    [<=] => { hashql_hir::node::operation::BinOp::Lte };
     [>] => { hashql_hir::node::operation::BinOp::Gt };
-    [>=] => { hashql_hir::node::operation::BinOp::Ge };
+    [>=] => { hashql_hir::node::operation::BinOp::Gte };
     [&&] => { hashql_hir::node::operation::BinOp::And };
     [||] => { hashql_hir::node::operation::BinOp::Or };
 
@@ -132,8 +156,12 @@ const PLACEHOLDER_TERMINATOR: Terminator<'static> = Terminator {
     kind: TerminatorKind::Unreachable,
 };
 
+/// Shared base builder providing common operations for creating constants and places.
+///
+/// This builder is accessible from [`BodyBuilder`], [`BasicBlockBuilder`], [`PlaceBuilder`],
+/// [`RValueBuilder`], and [`SwitchBuilder`] via [`Deref`].
 #[derive(Debug, Copy, Clone)]
-pub(crate) struct BaseBuilder<'env, 'heap> {
+pub struct BaseBuilder<'env, 'heap> {
     interner: &'env Interner<'heap>,
 }
 
@@ -141,13 +169,13 @@ pub(crate) struct BaseBuilder<'env, 'heap> {
 impl<'env, 'heap> BaseBuilder<'env, 'heap> {
     /// Creates an integer constant operand.
     #[must_use]
-    pub(crate) fn const_int(self, value: i64) -> Operand<'heap> {
+    pub fn const_int(self, value: i64) -> Operand<'heap> {
         Operand::Constant(Constant::Int(value.into()))
     }
 
     /// Creates a float constant operand.
     #[must_use]
-    pub(crate) fn const_float(self, value: f64) -> Operand<'heap> {
+    pub fn const_float(self, value: f64) -> Operand<'heap> {
         Operand::Constant(Constant::Primitive(Primitive::Float(Float::new_unchecked(
             self.interner.heap.intern_symbol(&value.to_string()),
         ))))
@@ -155,37 +183,31 @@ impl<'env, 'heap> BaseBuilder<'env, 'heap> {
 
     /// Creates a boolean constant operand.
     #[must_use]
-    pub(crate) fn const_bool(self, value: bool) -> Operand<'heap> {
+    pub fn const_bool(self, value: bool) -> Operand<'heap> {
         Operand::Constant(Constant::Int(value.into()))
     }
 
     /// Creates a unit constant operand.
     #[must_use]
-    pub(crate) fn const_unit(self) -> Operand<'heap> {
+    pub const fn const_unit(self) -> Operand<'heap> {
         Operand::Constant(Constant::Unit)
     }
 
     /// Creates a null constant operand.
     #[must_use]
-    pub(crate) fn const_null(self) -> Operand<'heap> {
+    pub const fn const_null(self) -> Operand<'heap> {
         Operand::Constant(Constant::Primitive(Primitive::Null))
     }
 
     /// Creates a function pointer constant operand.
     #[must_use]
-    pub(crate) fn const_fn(self, def_id: DefId) -> Operand<'heap> {
+    pub const fn const_fn(self, def_id: DefId) -> Operand<'heap> {
         Operand::Constant(Constant::FnPtr(def_id))
-    }
-
-    /// Creates a place referencing just a local variable (no projections).
-    #[must_use]
-    pub(crate) fn place_local(self, local: Local) -> Place<'heap> {
-        Place::local(local, self.interner)
     }
 
     /// Creates a place using the place builder for projections.
     #[must_use]
-    pub(crate) fn place(
+    pub fn place(
         self,
         func: impl FnOnce(PlaceBuilder<'env, 'heap, NoLocal>) -> PlaceBuilder<'env, 'heap, HasLocal>,
     ) -> Place<'heap> {
@@ -194,35 +216,30 @@ impl<'env, 'heap> BaseBuilder<'env, 'heap> {
 
     /// Creates a target for control flow (block + arguments).
     ///
-    /// # Example
-    ///
-    /// ```ignore
-    /// let target = builder.target(block, []);  // No args
-    /// let target = builder.target(block, [builder.const_int(5)]);  // With args
-    /// ```
+    /// Targets are used for control flow terminators like `goto` to specify
+    /// both the destination block and any arguments to pass to block parameters.
     #[must_use]
-    pub(crate) fn target(
-        self,
-        block: BasicBlockId,
-        args: impl IntoIterator<Item = Operand<'heap>>,
-    ) -> Target<'heap> {
-        let args: Vec<_> = args.into_iter().collect();
-
+    pub fn target(self, block: BasicBlockId, args: impl AsRef<[Operand<'heap>]>) -> Target<'heap> {
         Target {
             block,
-            args: self.interner.operands.intern_slice(&args),
+            args: self.interner.operands.intern_slice(args.as_ref()),
         }
     }
 }
 
 /// Builder for constructing MIR bodies.
 ///
-/// Use this to declaratively build MIR for testing purposes. The workflow is:
-/// 1. Create locals with `local()` or `temp()`
-/// 2. Reserve blocks with `reserve_block(params)`
-/// 3. Build each block with `build_block()`, adding statements and a terminator
-/// 4. Finalize with `finish()`
-pub(crate) struct BodyBuilder<'env, 'heap> {
+/// Use this to declaratively build MIR for testing and benchmarking purposes.
+///
+/// # Workflow
+///
+/// 1. Create locals with [`local`](Self::local)
+/// 2. Reserve blocks with [`reserve_block`](Self::reserve_block)
+/// 3. Build each block with [`build_block`](Self::build_block), adding statements and a terminator
+/// 4. Finalize with [`finish`](Self::finish)
+///
+/// Use the [`scaffold!`] macro to set up the required infrastructure.
+pub struct BodyBuilder<'env, 'heap> {
     base: BaseBuilder<'env, 'heap>,
     interner: &'env Interner<'heap>,
     local_decls: LocalVec<LocalDecl<'heap>, &'heap Heap>,
@@ -231,9 +248,11 @@ pub(crate) struct BodyBuilder<'env, 'heap> {
 }
 
 impl<'env, 'heap> BodyBuilder<'env, 'heap> {
-    /// Creates a new body builder.
+    /// Creates a new body builder with the given interner.
+    ///
+    /// Prefer using the [`scaffold!`] macro which sets up both the heap and interner.
     #[must_use]
-    pub(crate) fn new(interner: &'env Interner<'heap>) -> Self {
+    pub const fn new(interner: &'env Interner<'heap>) -> Self {
         Self {
             base: BaseBuilder { interner },
             interner,
@@ -244,42 +263,27 @@ impl<'env, 'heap> BodyBuilder<'env, 'heap> {
     }
 
     /// Declares a new local variable with the given name and type.
-    pub(crate) fn local(&mut self, name: impl IntoSymbol<'heap>, ty: TypeId) -> Local {
+    ///
+    /// Returns a [`Place`] that can be used in statements and as operands.
+    pub fn local(&mut self, name: impl IntoSymbol<'heap>, ty: TypeId) -> Place<'heap> {
         let decl = LocalDecl {
             span: SpanId::SYNTHETIC,
             r#type: ty,
             name: Some(name.intern_into_symbol(self.interner.heap)),
         };
-        self.local_decls.push(decl)
-    }
+        let local = self.local_decls.push(decl);
 
-    /// Declares a new anonymous (temporary) local variable.
-    pub(crate) fn temp(&mut self, ty: TypeId) -> Local {
-        let decl = LocalDecl {
-            span: SpanId::SYNTHETIC,
-            r#type: ty,
-            name: None,
-        };
-        self.local_decls.push(decl)
+        Place::local(local, self.interner)
     }
 
     /// Reserves a new basic block and returns its ID.
     ///
-    /// The block is initialized with a placeholder terminator. Use `build_block()`
-    /// to fill in the actual contents.
-    ///
-    /// # Example
-    ///
-    /// ```ignore
-    /// let entry = builder.reserve_block([]);  // No params
-    /// let join = builder.reserve_block([result]);  // With params
-    /// ```
-    pub(crate) fn reserve_block(
-        &mut self,
-        params: impl IntoIterator<Item = Local>,
-    ) -> BasicBlockId {
-        let params_vec: Vec<_> = params.into_iter().collect();
-        let params = self.interner.locals.intern_slice(&params_vec);
+    /// The block is initialized with a placeholder terminator. Use
+    /// [`build_block`](Self::build_block) to fill in the actual contents. Blocks can optionally
+    /// have parameters (similar to function parameters) that receive values from predecessor
+    /// blocks.
+    pub fn reserve_block(&mut self, params: impl AsRef<[Local]>) -> BasicBlockId {
+        let params = self.interner.locals.intern_slice(params.as_ref());
 
         self.finished.push(false);
         self.blocks.push(BasicBlock {
@@ -295,10 +299,7 @@ impl<'env, 'heap> BodyBuilder<'env, 'heap> {
     ///
     /// Panics if the block ID is invalid.
     #[must_use]
-    pub(crate) fn build_block(
-        &mut self,
-        block: BasicBlockId,
-    ) -> BasicBlockBuilder<'_, 'env, 'heap> {
+    pub const fn build_block(&mut self, block: BasicBlockId) -> BasicBlockBuilder<'_, 'env, 'heap> {
         let statements = heap::Vec::new_in(self.interner.heap);
 
         BasicBlockBuilder {
@@ -315,7 +316,7 @@ impl<'env, 'heap> BodyBuilder<'env, 'heap> {
     ///
     /// Panics if any block still has a placeholder terminator (wasn't built).
     #[must_use]
-    pub(crate) fn finish(self, args: usize, return_ty: TypeId) -> Body<'heap> {
+    pub fn finish(self, args: usize, return_ty: TypeId) -> Body<'heap> {
         // Validate all blocks have been built
         assert!(
             self.finished.iter().all(|&finished| finished),
@@ -342,7 +343,11 @@ impl<'env, 'heap> Deref for BodyBuilder<'env, 'heap> {
 }
 
 /// Builder for constructing a single basic block.
-pub(crate) struct BasicBlockBuilder<'ctx, 'env, 'heap> {
+///
+/// Obtained via [`BodyBuilder::build_block`]. Provides a fluent API for adding
+/// statements and setting the terminator. Each block must end with exactly one
+/// terminator (e.g., [`goto`](Self::goto), [`ret`](Self::ret), [`switch`](Self::switch)).
+pub struct BasicBlockBuilder<'ctx, 'env, 'heap> {
     base: BaseBuilder<'env, 'heap>,
     body: &'ctx mut BodyBuilder<'env, 'heap>,
 
@@ -353,7 +358,7 @@ pub(crate) struct BasicBlockBuilder<'ctx, 'env, 'heap> {
 impl<'env, 'heap> BasicBlockBuilder<'_, 'env, 'heap> {
     /// Adds an assignment statement with inline place and rvalue building.
     #[must_use]
-    pub(crate) fn assign(
+    pub fn assign(
         mut self,
         place: impl FnOnce(PlaceBuilder<'env, 'heap, NoLocal>) -> PlaceBuilder<'env, 'heap, HasLocal>,
         rvalue: impl FnOnce(RValueBuilder<'env, 'heap>) -> RValue<'heap>,
@@ -371,29 +376,9 @@ impl<'env, 'heap> BasicBlockBuilder<'_, 'env, 'heap> {
         self
     }
 
-    /// Adds an assignment to a local variable (convenience method).
-    #[must_use]
-    pub(crate) fn assign_local(
-        mut self,
-        local: Local,
-        rvalue: impl FnOnce(RValueBuilder<'env, 'heap>) -> RValue<'heap>,
-    ) -> Self {
-        let place = Place::local(local, self.body.interner);
-        let rvalue = rvalue(RValueBuilder::new(self.base));
-
-        self.statements.push(Statement {
-            span: SpanId::SYNTHETIC,
-            kind: StatementKind::Assign(Assign {
-                lhs: place,
-                rhs: rvalue,
-            }),
-        });
-        self
-    }
-
     /// Adds an assignment to a place (convenience method).
     #[must_use]
-    pub(crate) fn assign_place(
+    pub fn assign_place(
         mut self,
         place: Place<'heap>,
         rvalue: impl FnOnce(RValueBuilder<'env, 'heap>) -> RValue<'heap>,
@@ -413,7 +398,7 @@ impl<'env, 'heap> BasicBlockBuilder<'_, 'env, 'heap> {
 
     /// Marks a local variable as live.
     #[must_use]
-    pub(crate) fn storage_live(mut self, local: Local) -> Self {
+    pub fn storage_live(mut self, local: Local) -> Self {
         self.statements.push(Statement {
             span: SpanId::SYNTHETIC,
             kind: StatementKind::StorageLive(local),
@@ -423,7 +408,7 @@ impl<'env, 'heap> BasicBlockBuilder<'_, 'env, 'heap> {
 
     /// Marks a local variable as dead.
     #[must_use]
-    pub(crate) fn storage_dead(mut self, local: Local) -> Self {
+    pub fn storage_dead(mut self, local: Local) -> Self {
         self.statements.push(Statement {
             span: SpanId::SYNTHETIC,
             kind: StatementKind::StorageDead(local),
@@ -433,7 +418,7 @@ impl<'env, 'heap> BasicBlockBuilder<'_, 'env, 'heap> {
 
     /// Adds a no-op statement.
     #[must_use]
-    pub(crate) fn nop(mut self) -> Self {
+    pub fn nop(mut self) -> Self {
         self.statements.push(Statement {
             span: SpanId::SYNTHETIC,
             kind: StatementKind::Nop,
@@ -443,31 +428,25 @@ impl<'env, 'heap> BasicBlockBuilder<'_, 'env, 'heap> {
 
     /// Terminates the block with an unconditional goto.
     ///
-    /// # Example
-    ///
-    /// ```ignore
-    /// builder.build_block(bb).goto(next, []);  // No args
-    /// builder.build_block(bb).goto(next, [builder.const_int(5)]);  // With args
-    /// ```
-    pub(crate) fn goto(self, target: BasicBlockId, args: impl IntoIterator<Item = Operand<'heap>>) {
-        let args: Vec<_> = args.into_iter().collect();
+    /// The `args` are passed to the target block's parameters (if any).
+    pub fn goto(self, target: BasicBlockId, args: impl AsRef<[Operand<'heap>]>) {
         let target = Target {
             block: target,
-            args: self.body.interner.operands.intern_slice(&args),
+            args: self.body.interner.operands.intern_slice(args.as_ref()),
         };
 
         self.finish_with_terminator(TerminatorKind::Goto(Goto { target }));
     }
 
     /// Terminates the block with a return.
-    pub(crate) fn ret(self, value: impl Into<Operand<'heap>>) {
+    pub fn ret(self, value: impl Into<Operand<'heap>>) {
         self.finish_with_terminator(TerminatorKind::Return(Return {
             value: value.into(),
         }));
     }
 
     /// Terminates the block with a switch on an integer value.
-    pub(crate) fn switch(
+    pub fn switch(
         self,
         discriminant: impl Into<Operand<'heap>>,
         build_switch: impl FnOnce(SwitchBuilder<'env, 'heap>) -> SwitchBuilder<'env, 'heap>,
@@ -482,13 +461,13 @@ impl<'env, 'heap> BasicBlockBuilder<'_, 'env, 'heap> {
     }
 
     /// Terminates the block with a boolean if-else branch.
-    pub(crate) fn if_else(
+    pub fn if_else(
         self,
         cond: impl Into<Operand<'heap>>,
         then_block: BasicBlockId,
-        then_args: impl IntoIterator<Item = Operand<'heap>>,
+        then_args: impl AsRef<[Operand<'heap>]>,
         else_block: BasicBlockId,
-        else_args: impl IntoIterator<Item = Operand<'heap>>,
+        else_args: impl AsRef<[Operand<'heap>]>,
     ) {
         self.switch(cond, |builder| {
             builder
@@ -498,11 +477,11 @@ impl<'env, 'heap> BasicBlockBuilder<'_, 'env, 'heap> {
     }
 
     /// Terminates the block as unreachable.
-    pub(crate) fn unreachable(self) {
+    pub fn unreachable(self) {
         self.finish_with_terminator(TerminatorKind::Unreachable);
     }
 
-    pub(crate) fn finish_with_terminator(self, terminator: TerminatorKind<'heap>) {
+    pub fn finish_with_terminator(self, terminator: TerminatorKind<'heap>) {
         let terminator = Terminator {
             span: SpanId::SYNTHETIC,
             kind: terminator,
@@ -524,17 +503,17 @@ impl<'env, 'heap> Deref for BasicBlockBuilder<'_, 'env, 'heap> {
 }
 
 /// Typestate marker: no local has been set yet.
-pub(crate) struct NoLocal;
+pub struct NoLocal;
 
 /// Typestate marker: a local has been set.
-pub(crate) struct HasLocal(Local);
+pub struct HasLocal(Local);
 
 /// Builder for constructing places with projections.
 ///
 /// Uses typestate to ensure a local is set before building:
 /// - `PlaceBuilder<'env, 'heap, NoLocal>`: Initial state, must call `.local()` first
 /// - `PlaceBuilder<'env, 'heap, HasLocal>`: Local set, can add projections and build
-pub(crate) struct PlaceBuilder<'env, 'heap, State = NoLocal> {
+pub struct PlaceBuilder<'env, 'heap, State = NoLocal> {
     base: BaseBuilder<'env, 'heap>,
 
     state: State,
@@ -542,7 +521,7 @@ pub(crate) struct PlaceBuilder<'env, 'heap, State = NoLocal> {
 }
 
 impl<'env, 'heap> PlaceBuilder<'env, 'heap, NoLocal> {
-    fn new(base: BaseBuilder<'env, 'heap>) -> Self {
+    const fn new(base: BaseBuilder<'env, 'heap>) -> Self {
         Self {
             base,
 
@@ -553,7 +532,7 @@ impl<'env, 'heap> PlaceBuilder<'env, 'heap, NoLocal> {
 
     /// Sets the base local for this place.
     #[must_use]
-    pub(crate) fn local(self, local: Local) -> PlaceBuilder<'env, 'heap, HasLocal> {
+    pub fn local(self, local: Local) -> PlaceBuilder<'env, 'heap, HasLocal> {
         PlaceBuilder {
             base: self.base,
 
@@ -561,12 +540,21 @@ impl<'env, 'heap> PlaceBuilder<'env, 'heap, NoLocal> {
             projections: self.projections,
         }
     }
+
+    #[must_use]
+    pub fn from(self, place: Place<'heap>) -> PlaceBuilder<'env, 'heap, HasLocal> {
+        PlaceBuilder {
+            base: self.base,
+            state: HasLocal(place.local),
+            projections: place.projections.to_vec(),
+        }
+    }
 }
 
 impl<'heap> PlaceBuilder<'_, 'heap, HasLocal> {
     /// Adds a field projection by index.
     #[must_use]
-    pub(crate) fn field(mut self, index: usize, ty: TypeId) -> Self {
+    pub fn field(mut self, index: usize, ty: TypeId) -> Self {
         self.projections.push(Projection {
             r#type: ty,
             kind: ProjectionKind::Field(FieldIndex::new(index)),
@@ -577,7 +565,7 @@ impl<'heap> PlaceBuilder<'_, 'heap, HasLocal> {
 
     /// Adds a field projection by name.
     #[must_use]
-    pub(crate) fn field_by_name(mut self, name: impl IntoSymbol<'heap>, ty: TypeId) -> Self {
+    pub fn field_by_name(mut self, name: impl IntoSymbol<'heap>, ty: TypeId) -> Self {
         self.projections.push(Projection {
             r#type: ty,
             kind: ProjectionKind::FieldByName(name.intern_into_symbol(self.interner.heap)),
@@ -588,7 +576,7 @@ impl<'heap> PlaceBuilder<'_, 'heap, HasLocal> {
 
     /// Adds an index projection.
     #[must_use]
-    pub(crate) fn index(mut self, index_local: Local, ty: TypeId) -> Self {
+    pub fn index(mut self, index_local: Local, ty: TypeId) -> Self {
         self.projections.push(Projection {
             r#type: ty,
             kind: ProjectionKind::Index(index_local),
@@ -599,7 +587,7 @@ impl<'heap> PlaceBuilder<'_, 'heap, HasLocal> {
 
     /// Builds the final place.
     #[must_use]
-    pub(crate) fn build(self) -> Place<'heap> {
+    pub fn build(self) -> Place<'heap> {
         Place {
             local: self.state.0,
             projections: self.interner.projections.intern_slice(&self.projections),
@@ -615,26 +603,31 @@ impl<'env, 'heap, S> Deref for PlaceBuilder<'env, 'heap, S> {
     }
 }
 
-/// Builder for constructing r-values.
-pub(crate) struct RValueBuilder<'env, 'heap> {
+/// Builder for constructing r-values (right-hand side of assignments).
+///
+/// Provides methods for creating loads, binary/unary operations, aggregates, and function
+/// applications. Used within [`BasicBlockBuilder::assign`] and [`BasicBlockBuilder::assign_place`].
+pub struct RValueBuilder<'env, 'heap> {
     base: BaseBuilder<'env, 'heap>,
 }
 
 #[expect(clippy::unused_self, reason = "builder methods 'mimic' ownership")]
 impl<'env, 'heap> RValueBuilder<'env, 'heap> {
-    fn new(base: BaseBuilder<'env, 'heap>) -> Self {
+    const fn new(base: BaseBuilder<'env, 'heap>) -> Self {
         Self { base }
     }
 
     /// Creates a load r-value from an operand.
     #[must_use]
-    pub(crate) fn load(self, operand: impl Into<Operand<'heap>>) -> RValue<'heap> {
+    pub fn load(self, operand: impl Into<Operand<'heap>>) -> RValue<'heap> {
         RValue::Load(operand.into())
     }
 
     /// Creates a binary operation r-value.
+    ///
+    /// Use the [`op!`] macro for the operator: `rv.binary(x, op![==], y)`.
     #[must_use]
-    pub(crate) fn binary(
+    pub fn binary(
         self,
         lhs: impl Into<Operand<'heap>>,
         op: BinOp,
@@ -651,7 +644,7 @@ impl<'env, 'heap> RValueBuilder<'env, 'heap> {
     ///
     /// Use the [`op!`] macro for the operator: `rv.unary(op![!], operand)`.
     #[must_use]
-    pub(crate) fn unary(self, op: UnOp, operand: impl Into<Operand<'heap>>) -> RValue<'heap> {
+    pub fn unary(self, op: UnOp, operand: impl Into<Operand<'heap>>) -> RValue<'heap> {
         RValue::Unary(Unary {
             op,
             operand: operand.into(),
@@ -660,7 +653,7 @@ impl<'env, 'heap> RValueBuilder<'env, 'heap> {
 
     /// Creates a tuple aggregate r-value.
     #[must_use]
-    pub(crate) fn tuple(
+    pub fn tuple(
         self,
         operands: impl IntoIterator<Item = impl Into<Operand<'heap>>>,
     ) -> RValue<'heap> {
@@ -675,7 +668,7 @@ impl<'env, 'heap> RValueBuilder<'env, 'heap> {
 
     /// Creates a list aggregate r-value.
     #[must_use]
-    pub(crate) fn list(
+    pub fn list(
         self,
         operands: impl IntoIterator<Item = impl Into<Operand<'heap>>>,
     ) -> RValue<'heap> {
@@ -690,7 +683,7 @@ impl<'env, 'heap> RValueBuilder<'env, 'heap> {
 
     /// Creates a struct aggregate r-value.
     #[must_use]
-    pub(crate) fn r#struct(
+    pub fn r#struct(
         self,
         fields: impl IntoIterator<Item = (impl IntoSymbol<'heap>, impl Into<Operand<'heap>>)>,
     ) -> RValue<'heap> {
@@ -712,7 +705,7 @@ impl<'env, 'heap> RValueBuilder<'env, 'heap> {
 
     /// Creates a dict aggregate r-value (alternating keys and values).
     #[must_use]
-    pub(crate) fn dict(
+    pub fn dict(
         self,
         pairs: impl IntoIterator<Item = (impl Into<Operand<'heap>>, impl Into<Operand<'heap>>)>,
     ) -> RValue<'heap> {
@@ -731,7 +724,7 @@ impl<'env, 'heap> RValueBuilder<'env, 'heap> {
 
     /// Creates a function application r-value.
     #[must_use]
-    pub(crate) fn apply(
+    pub fn apply(
         self,
         func: impl Into<Operand<'heap>>,
         args: impl IntoIterator<Item = impl Into<Operand<'heap>>>,
@@ -747,7 +740,7 @@ impl<'env, 'heap> RValueBuilder<'env, 'heap> {
 
     /// Creates an input r-value.
     #[must_use]
-    pub(crate) fn input(self, op: InputOp, name: impl IntoSymbol<'heap>) -> RValue<'heap> {
+    pub fn input(self, op: InputOp, name: impl IntoSymbol<'heap>) -> RValue<'heap> {
         RValue::Input(Input {
             op,
             name: name.intern_into_symbol(self.interner.heap),
@@ -764,14 +757,16 @@ impl<'env, 'heap> Deref for RValueBuilder<'env, 'heap> {
 }
 
 /// Builder for constructing switch targets.
-pub(crate) struct SwitchBuilder<'env, 'heap> {
+///
+/// Used within [`BasicBlockBuilder::switch`] to define cases and an optional default target.
+pub struct SwitchBuilder<'env, 'heap> {
     base: BaseBuilder<'env, 'heap>,
     cases: Vec<(u128, Target<'heap>)>,
     otherwise: Option<Target<'heap>>,
 }
 
 impl<'env, 'heap> SwitchBuilder<'env, 'heap> {
-    fn new(base: BaseBuilder<'env, 'heap>) -> Self {
+    const fn new(base: BaseBuilder<'env, 'heap>) -> Self {
         Self {
             base,
             cases: Vec::new(),
@@ -781,17 +776,14 @@ impl<'env, 'heap> SwitchBuilder<'env, 'heap> {
 
     /// Adds a case to the switch.
     ///
-    /// # Example
-    ///
-    /// ```ignore
-    /// .switch(disc, |s| s.case(0, block_a, []).case(1, block_b, [arg]))
-    /// ```
+    /// Each case maps a discriminant value to a target block with optional arguments.
+    /// Cases can be chained fluently.
     #[must_use]
-    pub(crate) fn case(
+    pub fn case(
         mut self,
         value: u128,
         block: BasicBlockId,
-        args: impl IntoIterator<Item = Operand<'heap>>,
+        args: impl AsRef<[Operand<'heap>]>,
     ) -> Self {
         self.cases.push((value, self.base.target(block, args)));
         self
@@ -799,17 +791,9 @@ impl<'env, 'heap> SwitchBuilder<'env, 'heap> {
 
     /// Sets the otherwise (default) case.
     ///
-    /// # Example
-    ///
-    /// ```ignore
-    /// .switch(disc, |s| s.case(0, block_a, []).otherwise(default, []))
-    /// ```
+    /// The otherwise case is taken when no explicit case matches the discriminant.
     #[must_use]
-    pub(crate) fn otherwise(
-        mut self,
-        block: BasicBlockId,
-        args: impl IntoIterator<Item = Operand<'heap>>,
-    ) -> Self {
+    pub fn otherwise(mut self, block: BasicBlockId, args: impl AsRef<[Operand<'heap>]>) -> Self {
         self.otherwise = Some(self.base.target(block, args));
         self
     }
@@ -823,5 +807,5 @@ impl<'env, 'heap> Deref for SwitchBuilder<'env, 'heap> {
     }
 }
 
-pub(crate) use op;
-pub(crate) use scaffold;
+pub use op;
+pub use scaffold;

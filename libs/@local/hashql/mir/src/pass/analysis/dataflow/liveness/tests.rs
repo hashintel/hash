@@ -13,10 +13,9 @@ use insta::{Settings, assert_snapshot};
 use super::LivenessAnalysis;
 use crate::{
     body::{Body, basic_block::BasicBlockId, local::Local},
+    builder::{op, scaffold},
     pass::analysis::dataflow::framework::{DataflowAnalysis as _, DataflowResults, Direction},
     pretty::TextFormat,
-    scaffold,
-    tests::op,
 };
 
 fn format_liveness_state(mut write: impl fmt::Write, state: &DenseBitSet<Local>) -> fmt::Result {
@@ -110,7 +109,6 @@ fn use_after_def() {
     let int_ty = TypeBuilder::synthetic(&env).integer();
 
     let x = builder.local("x", int_ty);
-    let x = builder.place_local(x);
 
     let bb0 = builder.reserve_block([]);
 
@@ -142,7 +140,7 @@ fn dead_variable() {
 
     builder
         .build_block(bb0)
-        .assign_local(x, |rv| rv.load(const_5))
+        .assign_place(x, |rv| rv.load(const_5))
         .ret(const_0);
 
     let body = builder.finish(0, int_ty);
@@ -159,10 +157,8 @@ fn use_before_def() {
     let int_ty = TypeBuilder::synthetic(&env).integer();
 
     let x = builder.local("x", int_ty);
-    let x = builder.place_local(x);
-
     let y = builder.local("y", int_ty);
-    let y = builder.place_local(y);
+
     let bb0 = builder.reserve_block([]);
 
     let const_5 = builder.const_int(5);
@@ -193,7 +189,6 @@ fn cross_block() {
     let int_ty = TypeBuilder::synthetic(&env).integer();
 
     let x = builder.local("x", int_ty);
-    let x = builder.place_local(x);
 
     let bb0 = builder.reserve_block([]);
     let bb1 = builder.reserve_block([]);
@@ -233,16 +228,9 @@ fn diamond_both_branches_use() {
     let int_ty = TypeBuilder::synthetic(&env).integer();
 
     let x = builder.local("x", int_ty);
-    let x = builder.place_local(x);
-
     let y = builder.local("y", int_ty);
-    let y = builder.place_local(y);
-
     let z = builder.local("z", int_ty);
-    let z = builder.place_local(z);
-
     let result = builder.local("result", int_ty);
-    let result = builder.place_local(result);
 
     let bb0 = builder.reserve_block([]);
     let bb1 = builder.reserve_block([]);
@@ -287,7 +275,6 @@ fn block_parameter_kills() {
     let int_ty = TypeBuilder::synthetic(&env).integer();
 
     let x = builder.local("x", int_ty);
-    let x = builder.place_local(x);
 
     let bb0 = builder.reserve_block([]);
     let bb1 = builder.reserve_block([x.local]);
@@ -323,9 +310,7 @@ fn loop_liveness() {
     let bool_ty = TypeBuilder::synthetic(&env).boolean();
 
     let x = builder.local("x", int_ty);
-    let x = builder.place_local(x);
     let cond = builder.local("cond", bool_ty);
-    let cond = builder.place_local(cond);
 
     let bb0 = builder.reserve_block([]);
     let bb1 = builder.reserve_block([]);
@@ -371,7 +356,6 @@ fn multiple_definitions() {
     let int_ty = TypeBuilder::synthetic(&env).integer();
 
     let x = builder.local("x", int_ty);
-    let x = builder.place_local(x);
     let bb0 = builder.reserve_block([]);
 
     let const_1 = builder.const_int(1);
@@ -404,13 +388,8 @@ fn binary_op_both_operands_live() {
     let bool_ty = TypeBuilder::synthetic(&env).boolean();
 
     let x = builder.local("x", int_ty);
-    let x = builder.place_local(x);
-
     let y = builder.local("y", int_ty);
-    let y = builder.place_local(y);
-
     let z = builder.local("z", bool_ty);
-    let z = builder.place_local(z);
 
     let bb0 = builder.reserve_block([]);
 
@@ -441,7 +420,6 @@ fn diamond_one_branch_uses() {
     let int_ty = TypeBuilder::synthetic(&env).integer();
 
     let x = builder.local("x", int_ty);
-    let x = builder.place_local(x);
 
     let bb0 = builder.reserve_block([]);
     let bb1 = builder.reserve_block([]);

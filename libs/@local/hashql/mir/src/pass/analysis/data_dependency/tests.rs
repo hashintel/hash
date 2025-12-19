@@ -7,7 +7,7 @@ use hashql_hir::node::operation::InputOp;
 use insta::{Settings, assert_snapshot};
 
 use super::DataDependencyAnalysis;
-use crate::{body::Body, context::MirContext, pass::AnalysisPass as _, scaffold};
+use crate::{body::Body, builder::scaffold, context::MirContext, pass::AnalysisPass as _};
 
 #[track_caller]
 fn assert_data_dependency<'heap>(
@@ -45,9 +45,7 @@ fn load_simple() {
     let ty = TypeBuilder::synthetic(&env).integer();
 
     let x = builder.local("x", ty);
-    let x = builder.place_local(x);
     let y = builder.local("y", ty);
-    let y = builder.place_local(y);
 
     let bb0 = builder.reserve_block([]);
 
@@ -87,11 +85,8 @@ fn load_chain() {
     let ty = TypeBuilder::synthetic(&env).integer();
 
     let x = builder.local("x", ty);
-    let x = builder.place_local(x);
     let y = builder.local("y", ty);
-    let y = builder.place_local(y);
     let z = builder.local("z", ty);
-    let z = builder.place_local(z);
 
     let bb0 = builder.reserve_block([]);
 
@@ -136,15 +131,14 @@ fn load_with_projection() {
 
     let tup = builder.local("tup", tuple_ty);
     let elem = builder.local("elem", int_ty);
-    let elem = builder.place_local(elem);
 
-    let tup_field_0 = builder.place(|place| place.local(tup).field(0, int_ty));
+    let tup_field_0 = builder.place(|place| place.from(tup).field(0, int_ty));
 
     let bb0 = builder.reserve_block([]);
 
     builder
         .build_block(bb0)
-        .assign_local(tup, |rv| {
+        .assign_place(tup, |rv| {
             rv.input(InputOp::Load { required: true }, "input")
         })
         .assign_place(elem, |rv| rv.load(tup_field_0))
@@ -187,21 +181,17 @@ fn load_then_projection() {
     let tup = builder.local("tup", tuple_ty);
     let alias = builder.local("alias", tuple_ty);
     let result = builder.local("result", int_ty);
-    let result = builder.place_local(result);
 
-    let a_place = builder.place_local(a);
-    let b_place = builder.place_local(b);
-    let tup_place = builder.place_local(tup);
-    let alias_field_0 = builder.place(|place| place.local(alias).field(0, int_ty));
+    let alias_field_0 = builder.place(|place| place.from(alias).field(0, int_ty));
 
     let bb0 = builder.reserve_block([]);
 
     builder
         .build_block(bb0)
-        .assign_local(a, |rv| rv.input(InputOp::Load { required: true }, "a"))
-        .assign_local(b, |rv| rv.input(InputOp::Load { required: true }, "b"))
-        .assign_local(tup, |rv| rv.tuple([a_place, b_place]))
-        .assign_local(alias, |rv| rv.load(tup_place))
+        .assign_place(a, |rv| rv.input(InputOp::Load { required: true }, "a"))
+        .assign_place(b, |rv| rv.input(InputOp::Load { required: true }, "b"))
+        .assign_place(tup, |rv| rv.tuple([a, b]))
+        .assign_place(alias, |rv| rv.load(tup))
         .assign_place(result, |rv| rv.load(alias_field_0))
         .ret(result);
 
@@ -249,13 +239,11 @@ fn nested_projection_through_edge() {
         TypeBuilder::synthetic(&env).tuple([inner_tuple_ty, int_ty]),
     );
     let result = builder.local("result", int_ty);
-    let result_place = builder.place_local(result);
 
-    let input_field_0 = builder.place(|place| place.local(input).field(0, inner_tuple_ty));
-    let other_place = builder.place_local(other);
+    let input_field_0 = builder.place(|place| place.from(input).field(0, inner_tuple_ty));
     let wrapped_0_1 = builder.place(|place| {
         place
-            .local(wrapped)
+            .from(wrapped)
             .field(0, inner_tuple_ty)
             .field(1, int_ty)
     });
@@ -264,15 +252,15 @@ fn nested_projection_through_edge() {
 
     builder
         .build_block(bb0)
-        .assign_local(input, |rv| {
+        .assign_place(input, |rv| {
             rv.input(InputOp::Load { required: true }, "input")
         })
-        .assign_local(other, |rv| {
+        .assign_place(other, |rv| {
             rv.input(InputOp::Load { required: true }, "other")
         })
-        .assign_local(wrapped, |rv| rv.tuple([input_field_0, other_place]))
-        .assign_place(result_place, |rv| rv.load(wrapped_0_1))
-        .ret(result_place);
+        .assign_place(wrapped, |rv| rv.tuple([input_field_0, other]))
+        .assign_place(result, |rv| rv.load(wrapped_0_1))
+        .ret(result);
 
     let body = builder.finish(0, int_ty);
 
@@ -314,29 +302,23 @@ fn param_consensus_agree() {
     let tuple_ty = TypeBuilder::synthetic(&env).tuple([int_ty, int_ty]);
 
     let input = builder.local("input", int_ty);
-    let input = builder.place_local(input);
     let tup = builder.local("tup", tuple_ty);
-    let tup_0 = builder.place(|place| place.local(tup).field(0, int_ty));
-    let tup_1 = builder.place(|place| place.local(tup).field(1, int_ty));
+    let tup_0 = builder.place(|place| place.from(tup).field(0, int_ty));
+    let tup_1 = builder.place(|place| place.from(tup).field(1, int_ty));
     let cond = builder.local("cond", int_ty);
-    let cond = builder.place_local(cond);
     let p1 = builder.local("p1", int_ty);
     let p2 = builder.local("p2", int_ty);
     let result = builder.local("result", int_ty);
 
     let bb0 = builder.reserve_block([]);
-    let bb1 = builder.reserve_block([p1]);
-    let bb2 = builder.reserve_block([p2]);
-    let bb3 = builder.reserve_block([result]);
-
-    let p1 = builder.place_local(p1);
-    let p2 = builder.place_local(p2);
-    let result = builder.place_local(result);
+    let bb1 = builder.reserve_block([p1.local]);
+    let bb2 = builder.reserve_block([p2.local]);
+    let bb3 = builder.reserve_block([result.local]);
 
     builder
         .build_block(bb0)
         .assign_place(input, |rv| rv.input(InputOp::Load { required: true }, "x"))
-        .assign_local(tup, |rv| rv.tuple([input, input]))
+        .assign_place(tup, |rv| rv.tuple([input, input]))
         .assign_place(cond, |rv| {
             rv.input(InputOp::Load { required: true }, "cond")
         })
@@ -385,19 +367,14 @@ fn param_consensus_diverge() {
     let int_ty = TypeBuilder::synthetic(&env).integer();
 
     let input_a = builder.local("input_a", int_ty);
-    let input_a = builder.place_local(input_a);
     let input_b = builder.local("input_b", int_ty);
-    let input_b = builder.place_local(input_b);
     let cond = builder.local("cond", int_ty);
-    let cond = builder.place_local(cond);
     let result = builder.local("result", int_ty);
 
     let bb0 = builder.reserve_block([]);
     let bb1 = builder.reserve_block([]);
     let bb2 = builder.reserve_block([]);
-    let bb3 = builder.reserve_block([result]);
-
-    let result = builder.place_local(result);
+    let bb3 = builder.reserve_block([result.local]);
 
     builder
         .build_block(bb0)
@@ -451,18 +428,13 @@ fn param_cycle_detection() {
     let int_ty = TypeBuilder::synthetic(&env).integer();
 
     let input = builder.local("input", int_ty);
-    let input = builder.place_local(input);
     let x = builder.local("x", int_ty);
     let cond = builder.local("cond", int_ty);
-    let cond = builder.place_local(cond);
     let result = builder.local("result", int_ty);
 
     let bb0 = builder.reserve_block([]);
-    let bb1 = builder.reserve_block([x]);
-    let bb2 = builder.reserve_block([result]);
-
-    let x = builder.place_local(x);
-    let result = builder.place_local(result);
+    let bb1 = builder.reserve_block([x.local]);
+    let bb2 = builder.reserve_block([result.local]);
 
     builder
         .build_block(bb0)
@@ -508,9 +480,8 @@ fn constant_propagation() {
     let tuple_ty = TypeBuilder::synthetic(&env).tuple([int_ty, int_ty]);
 
     let tup = builder.local("tup", tuple_ty);
-    let tup_0 = builder.place(|place| place.local(tup).field(0, int_ty));
+    let tup_0 = builder.place(|place| place.from(tup).field(0, int_ty));
     let result = builder.local("result", int_ty);
-    let result = builder.place_local(result);
 
     let const_42 = builder.const_int(42);
     let const_100 = builder.const_int(100);
@@ -519,7 +490,7 @@ fn constant_propagation() {
 
     builder
         .build_block(bb0)
-        .assign_local(tup, |rv| rv.tuple([const_42, const_100]))
+        .assign_place(tup, |rv| rv.tuple([const_42, const_100]))
         .assign_place(result, |rv| rv.load(tup_0))
         .ret(result);
 
@@ -562,22 +533,14 @@ fn load_then_param_consensus() {
     let int_ty = TypeBuilder::synthetic(&env).integer();
 
     let input = builder.local("input", int_ty);
-    let input = builder.place_local(input);
-
     let alias = builder.local("alias", int_ty);
-    let alias = builder.place_local(alias);
-
     let cond = builder.local("cond", int_ty);
-    let cond = builder.place_local(cond);
-
     let result = builder.local("result", int_ty);
 
     let bb0 = builder.reserve_block([]);
     let bb1 = builder.reserve_block([]);
     let bb2 = builder.reserve_block([]);
-    let bb3 = builder.reserve_block([result]);
-
-    let result = builder.place_local(result);
+    let bb3 = builder.reserve_block([result.local]);
 
     builder
         .build_block(bb0)
@@ -625,13 +588,11 @@ fn load_chain_with_projections() {
     let outer_ty = TypeBuilder::synthetic(&env).tuple([inner_ty, inner_ty]);
 
     let input = builder.local("input", outer_ty);
-    let input = builder.place_local(input);
     let alias = builder.local("alias", outer_ty);
-    let alias_0 = builder.place(|place| place.local(alias).field(0, inner_ty));
+    let alias_0 = builder.place(|place| place.from(alias).field(0, inner_ty));
     let inner = builder.local("inner", inner_ty);
-    let inner_1 = builder.place(|place| place.local(inner).field(1, int_ty));
+    let inner_1 = builder.place(|place| place.from(inner).field(1, int_ty));
     let result = builder.local("result", int_ty);
-    let result = builder.place_local(result);
 
     let bb0 = builder.reserve_block([]);
 
@@ -640,8 +601,8 @@ fn load_chain_with_projections() {
         .assign_place(input, |rv| {
             rv.input(InputOp::Load { required: true }, "input")
         })
-        .assign_local(alias, |rv| rv.load(input))
-        .assign_local(inner, |rv| rv.load(alias_0))
+        .assign_place(alias, |rv| rv.load(input))
+        .assign_place(inner, |rv| rv.load(alias_0))
         .assign_place(result, |rv| rv.load(inner_1))
         .ret(result);
 
@@ -677,14 +638,13 @@ fn param_wrap_and_project() {
     let x = builder.local("x", int_ty);
     let wrapped = builder.local("wrapped", tuple_ty);
 
-    let bb0 = builder.reserve_block([x]);
+    let bb0 = builder.reserve_block([x.local]);
 
-    let x = builder.place_local(x);
-    let wrapped_0 = builder.place(|p| p.local(wrapped).field(0, int_ty));
+    let wrapped_0 = builder.place(|p| p.from(wrapped).field(0, int_ty));
 
     builder
         .build_block(bb0)
-        .assign_local(wrapped, |rv| rv.tuple([x]))
+        .assign_place(wrapped, |rv| rv.tuple([x]))
         .goto(bb0, [wrapped_0.into()]);
 
     let body = builder.finish(0, int_ty);
@@ -727,19 +687,16 @@ fn param_const_through_projection_agree() {
     let tuple_ty = TypeBuilder::synthetic(&env).tuple([int_ty]);
 
     let cond = builder.local("cond", int_ty);
-    let cond = builder.place_local(cond);
     let x = builder.local("x", int_ty);
     let wrapped = builder.local("wrapped", tuple_ty);
     let y = builder.local("y", int_ty);
-    let y = builder.place_local(y);
 
     let bb0 = builder.reserve_block([]);
     let bb1 = builder.reserve_block([]);
     let bb2 = builder.reserve_block([]);
-    let bb3 = builder.reserve_block([x]);
+    let bb3 = builder.reserve_block([x.local]);
 
-    let x = builder.place_local(x);
-    let wrapped_0 = builder.place(|p| p.local(wrapped).field(0, int_ty));
+    let wrapped_0 = builder.place(|p| p.from(wrapped).field(0, int_ty));
 
     let const_0 = builder.const_int(0);
 
@@ -755,7 +712,7 @@ fn param_const_through_projection_agree() {
 
     builder
         .build_block(bb3)
-        .assign_local(wrapped, |rv| rv.tuple([x]))
+        .assign_place(wrapped, |rv| rv.tuple([x]))
         .assign_place(y, |rv| rv.load(wrapped_0))
         .ret(y);
 
@@ -799,19 +756,16 @@ fn param_const_through_projection_diverge() {
     let tuple_ty = TypeBuilder::synthetic(&env).tuple([int_ty]);
 
     let cond = builder.local("cond", int_ty);
-    let cond = builder.place_local(cond);
     let x = builder.local("x", int_ty);
     let wrapped = builder.local("wrapped", tuple_ty);
     let y = builder.local("y", int_ty);
-    let y = builder.place_local(y);
 
     let bb0 = builder.reserve_block([]);
     let bb1 = builder.reserve_block([]);
     let bb2 = builder.reserve_block([]);
-    let bb3 = builder.reserve_block([x]);
+    let bb3 = builder.reserve_block([x.local]);
 
-    let x = builder.place_local(x);
-    let wrapped_0 = builder.place(|p| p.local(wrapped).field(0, int_ty));
+    let wrapped_0 = builder.place(|p| p.from(wrapped).field(0, int_ty));
 
     let const_0 = builder.const_int(0);
     let const_1 = builder.const_int(1);
@@ -828,7 +782,7 @@ fn param_const_through_projection_diverge() {
 
     builder
         .build_block(bb3)
-        .assign_local(wrapped, |rv| rv.tuple([x]))
+        .assign_place(wrapped, |rv| rv.tuple([x]))
         .assign_place(y, |rv| rv.load(wrapped_0))
         .ret(y);
 
@@ -872,21 +826,20 @@ fn projection_prepending_opaque_source() {
     let wrapped_ty = TypeBuilder::synthetic(&env).tuple([pair_ty, int_ty]);
 
     let input = builder.local("input", outer_ty);
-    let input_0_0 = builder.place(|p| p.local(input).field(0, triple_ty).field(0, pair_ty));
-    let input_1 = builder.place(|p| p.local(input).field(1, int_ty));
+    let input_0_0 = builder.place(|p| p.from(input).field(0, triple_ty).field(0, pair_ty));
+    let input_1 = builder.place(|p| p.from(input).field(1, int_ty));
     let wrapped = builder.local("wrapped", wrapped_ty);
-    let wrapped_0_1 = builder.place(|p| p.local(wrapped).field(0, pair_ty).field(1, int_ty));
+    let wrapped_0_1 = builder.place(|p| p.from(wrapped).field(0, pair_ty).field(1, int_ty));
     let result = builder.local("result", int_ty);
-    let result = builder.place_local(result);
 
     let bb0 = builder.reserve_block([]);
 
     builder
         .build_block(bb0)
-        .assign_local(input, |rv| {
+        .assign_place(input, |rv| {
             rv.input(InputOp::Load { required: true }, "input")
         })
-        .assign_local(wrapped, |rv| rv.tuple([input_0_0, input_1]))
+        .assign_place(wrapped, |rv| rv.tuple([input_0_0, input_1]))
         .assign_place(result, |rv| rv.load(wrapped_0_1))
         .ret(result);
 
