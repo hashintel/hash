@@ -1,6 +1,27 @@
+import { css } from "@hashintel/ds-helpers/css";
+import type { CSSProperties } from "react";
 import { BaseEdge, type EdgeProps, getBezierPath } from "reactflow";
 
 import { useEditorStore } from "../../../state/editor-provider";
+
+const selectionIndicatorStyle: CSSProperties = {
+  stroke: "rgba(249, 115, 22, 0.4)",
+  strokeWidth: 8,
+};
+
+const symbolTextStyle = css({
+  fontSize: "[13px]",
+  fontWeight: "[400]",
+  fill: "[#999]",
+  pointerEvents: "none",
+});
+
+const weightTextStyle = css({
+  fontSize: "[14px]",
+  fontWeight: "[600]",
+  fill: "[#333]",
+  pointerEvents: "none",
+});
 
 interface ArcData {
   tokenWeights: {
@@ -42,10 +63,7 @@ export const Arc: React.FC<EdgeProps<ArcData>> = ({
         <BaseEdge
           id={`${id}-selection`}
           path={arcPath}
-          style={{
-            stroke: "rgba(249, 115, 22, 0.4)",
-            strokeWidth: 8,
-          }}
+          style={selectionIndicatorStyle}
         />
       )}
 
@@ -78,12 +96,7 @@ export const Arc: React.FC<EdgeProps<ArcData>> = ({
                   y="0"
                   textAnchor="middle"
                   dominantBaseline="middle"
-                  style={{
-                    fontSize: 13,
-                    fontWeight: 400,
-                    fill: "#999",
-                    pointerEvents: "none",
-                  }}
+                  className={symbolTextStyle}
                 >
                   ×
                 </text>
@@ -93,12 +106,7 @@ export const Arc: React.FC<EdgeProps<ArcData>> = ({
                   y="0"
                   textAnchor="middle"
                   dominantBaseline="middle"
-                  style={{
-                    fontSize: 14,
-                    fontWeight: 600,
-                    fill: "#333",
-                    pointerEvents: "none",
-                  }}
+                  className={weightTextStyle}
                 >
                   {weight}
                 </text>

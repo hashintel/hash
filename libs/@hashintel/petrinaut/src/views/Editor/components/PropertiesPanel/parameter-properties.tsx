@@ -1,5 +1,57 @@
+import { css, cva } from "@hashintel/ds-helpers/css";
+
 import type { Parameter } from "../../../../core/types/sdcpn";
 import { useIsReadOnly } from "../../../../state/use-is-read-only";
+
+const containerStyle = css({
+  display: "flex",
+  flexDirection: "column",
+  gap: "[12px]",
+});
+
+const headerTitleStyle = css({
+  fontWeight: 600,
+  fontSize: "[16px]",
+  marginBottom: "[8px]",
+});
+
+const fieldLabelStyle = css({
+  fontWeight: 500,
+  fontSize: "[12px]",
+  marginBottom: "[4px]",
+});
+
+const inputStyle = cva({
+  base: {
+    fontSize: "[14px]",
+    padding: "[6px 8px]",
+    border: "[1px solid rgba(0, 0, 0, 0.15)]",
+    borderRadius: "[4px]",
+    width: "[100%]",
+  },
+  variants: {
+    isDisabled: {
+      true: {
+        backgroundColor: "[rgba(0, 0, 0, 0.02)]",
+        cursor: "not-allowed",
+      },
+      false: {
+        backgroundColor: "[white]",
+        cursor: "text",
+      },
+    },
+    isMonospace: {
+      true: {
+        fontFamily: "[monospace]",
+      },
+      false: {},
+    },
+  },
+  defaultVariants: {
+    isDisabled: false,
+    isMonospace: false,
+  },
+});
 
 /**
  * Slugifies a string to a valid JavaScript identifier.
@@ -8,7 +60,7 @@ import { useIsReadOnly } from "../../../../state/use-is-read-only";
  * - Removes leading/trailing underscores
  * - Ensures it doesn't start with a number
  */
-function slugifyToIdentifier(str: string): string {
+const slugifyToIdentifier = (str: string): string => {
   return (
     str
       .toLowerCase()
@@ -21,7 +73,7 @@ function slugifyToIdentifier(str: string): string {
       // Ensure it doesn't start with a number
       .replace(/^(\d)/, "_$1")
   );
-}
+};
 
 interface ParameterPropertiesProps {
   parameter: Parameter;
@@ -81,56 +133,33 @@ export const ParameterProperties: React.FC<ParameterPropertiesProps> = ({
   };
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+    <div className={containerStyle}>
       <div>
-        <div style={{ fontWeight: 600, fontSize: 16, marginBottom: 8 }}>
-          Parameter
-        </div>
+        <div className={headerTitleStyle}>Parameter</div>
       </div>
 
       {/* Name field */}
       <div>
-        <div style={{ fontWeight: 500, fontSize: 12, marginBottom: 4 }}>
-          Name
-        </div>
+        <div className={fieldLabelStyle}>Name</div>
         <input
           type="text"
           value={parameter.name}
           onChange={handleUpdateName}
           disabled={isDisabled}
-          style={{
-            fontSize: 14,
-            padding: "6px 8px",
-            border: "1px solid rgba(0, 0, 0, 0.15)",
-            borderRadius: 4,
-            width: "100%",
-            backgroundColor: isDisabled ? "rgba(0, 0, 0, 0.02)" : "white",
-            cursor: isDisabled ? "not-allowed" : "text",
-          }}
+          className={inputStyle({ isDisabled })}
         />
       </div>
 
       {/* Variable Name field */}
       <div>
-        <div style={{ fontWeight: 500, fontSize: 12, marginBottom: 4 }}>
-          Variable Name
-        </div>
+        <div className={fieldLabelStyle}>Variable Name</div>
         <input
           type="text"
           value={parameter.variableName}
           onChange={handleUpdateVariableName}
           onBlur={handleBlurVariableName}
           disabled={isDisabled}
-          style={{
-            fontSize: 14,
-            fontFamily: "monospace",
-            padding: "6px 8px",
-            border: "1px solid rgba(0, 0, 0, 0.15)",
-            borderRadius: 4,
-            width: "100%",
-            backgroundColor: isDisabled ? "rgba(0, 0, 0, 0.02)" : "white",
-            cursor: isDisabled ? "not-allowed" : "text",
-          }}
+          className={inputStyle({ isDisabled, isMonospace: true })}
         />
       </div>
 
@@ -138,24 +167,13 @@ export const ParameterProperties: React.FC<ParameterPropertiesProps> = ({
 
       {/* Default Value field */}
       <div>
-        <div style={{ fontWeight: 500, fontSize: 12, marginBottom: 4 }}>
-          Default Value
-        </div>
+        <div className={fieldLabelStyle}>Default Value</div>
         <input
           type="text"
           value={parameter.defaultValue}
           onChange={handleUpdateDefaultValue}
           disabled={isDisabled}
-          style={{
-            fontSize: 14,
-            fontFamily: "monospace",
-            padding: "6px 8px",
-            border: "1px solid rgba(0, 0, 0, 0.15)",
-            borderRadius: 4,
-            width: "100%",
-            backgroundColor: isDisabled ? "rgba(0, 0, 0, 0.02)" : "white",
-            cursor: isDisabled ? "not-allowed" : "text",
-          }}
+          className={inputStyle({ isDisabled, isMonospace: true })}
         />
       </div>
     </div>

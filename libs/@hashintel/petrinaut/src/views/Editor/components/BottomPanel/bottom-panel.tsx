@@ -13,6 +13,12 @@ import { DiagnosticsContent } from "./diagnostics-content";
 import { ParametersContent } from "./parameters-content";
 import { SimulationSettingsContent } from "./simulation-settings-content";
 
+const glassPanelBaseStyle = css({
+  position: "fixed",
+  zIndex: 999,
+  padding: "[4px]",
+});
+
 const panelContainerStyle = css({
   display: "flex",
   flexDirection: "column",
@@ -136,14 +142,12 @@ export const BottomPanel: React.FC = () => {
 
   return (
     <GlassPanel
+      className={glassPanelBaseStyle}
       style={{
-        position: "fixed",
         bottom: PANEL_MARGIN,
         left: leftOffset,
         right: PANEL_MARGIN,
         height: panelHeight,
-        zIndex: 999,
-        padding: 4,
       }}
       contentClassName={panelContainerStyle}
       resizable={{

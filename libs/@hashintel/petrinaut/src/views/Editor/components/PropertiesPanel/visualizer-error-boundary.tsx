@@ -1,4 +1,36 @@
+import { css } from "@hashintel/ds-helpers/css";
 import { Component, type ErrorInfo, type ReactNode } from "react";
+
+const errorContainerStyle = css({
+  padding: "[16px]",
+  backgroundColor: "[#ffebee]",
+  color: "[#c62828]",
+  borderRadius: "[4px]",
+  fontSize: "[12px]",
+  fontFamily: "[monospace]",
+  maxHeight: "[400px]",
+  overflow: "auto",
+});
+
+const errorTitleStyle = css({
+  fontWeight: 600,
+  fontSize: "[14px]",
+  marginBottom: "[8px]",
+});
+
+const errorSectionStyle = css({
+  marginBottom: "[8px]",
+});
+
+const stackPreStyle = css({
+  margin: "[4px 0 0 0]",
+  padding: "[8px]",
+  backgroundColor: "[#ffcdd2]",
+  borderRadius: "[2px]",
+  fontSize: "[11px]",
+  whiteSpace: "pre-wrap",
+  wordBreak: "break-word",
+});
 
 interface Props {
   children: ReactNode;
@@ -32,58 +64,21 @@ export class VisualizerErrorBoundary extends Component<Props, State> {
 
     if (hasError) {
       return (
-        <div
-          style={{
-            padding: 16,
-            backgroundColor: "#ffebee",
-            color: "#c62828",
-            borderRadius: 4,
-            fontSize: 12,
-            fontFamily: "monospace",
-            maxHeight: 400,
-            overflow: "auto",
-          }}
-        >
-          <div style={{ fontWeight: 600, fontSize: 14, marginBottom: 8 }}>
-            Visualizer Runtime Error
-          </div>
-          <div style={{ marginBottom: 8 }}>
+        <div className={errorContainerStyle}>
+          <div className={errorTitleStyle}>Visualizer Runtime Error</div>
+          <div className={errorSectionStyle}>
             <strong>Error:</strong> {error?.message}
           </div>
           {error?.stack && (
-            <div style={{ marginBottom: 8 }}>
+            <div className={errorSectionStyle}>
               <strong>Stack:</strong>
-              <pre
-                style={{
-                  margin: "4px 0 0 0",
-                  padding: 8,
-                  backgroundColor: "#ffcdd2",
-                  borderRadius: 2,
-                  fontSize: 11,
-                  whiteSpace: "pre-wrap",
-                  wordBreak: "break-word",
-                }}
-              >
-                {error.stack}
-              </pre>
+              <pre className={stackPreStyle}>{error.stack}</pre>
             </div>
           )}
           {errorInfo?.componentStack && (
             <div>
               <strong>Component Stack:</strong>
-              <pre
-                style={{
-                  margin: "4px 0 0 0",
-                  padding: 8,
-                  backgroundColor: "#ffcdd2",
-                  borderRadius: 2,
-                  fontSize: 11,
-                  whiteSpace: "pre-wrap",
-                  wordBreak: "break-word",
-                }}
-              >
-                {errorInfo.componentStack}
-              </pre>
+              <pre className={stackPreStyle}>{errorInfo.componentStack}</pre>
             </div>
           )}
         </div>

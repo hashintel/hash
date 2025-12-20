@@ -16,6 +16,31 @@ import { PlaceProperties } from "./place-properties";
 import { TransitionProperties } from "./transition-properties";
 import { TypeProperties } from "./type-properties";
 
+const unknownItemStyle = css({
+  padding: "[16px]",
+  textAlign: "center",
+  color: "[#999]",
+  fontSize: "[14px]",
+});
+
+const positionContainerStyle = css({
+  display: "flex",
+  position: "fixed",
+  top: "[0]",
+  right: "[0]",
+  zIndex: 1000,
+  pointerEvents: "none",
+});
+
+const glassPanelHeightStyle = css({
+  height: "[100%]",
+});
+
+const glassPanelContentStyle = css({
+  padding: "[16px]",
+  overflowY: "auto",
+});
+
 /**
  * PropertiesPanel displays properties and controls for the selected node/edge.
  */
@@ -156,18 +181,7 @@ export const PropertiesPanel: React.FC = () => {
 
     default:
       // Unknown item type
-      content = (
-        <div
-          style={{
-            padding: 16,
-            textAlign: "center",
-            color: "#999",
-            fontSize: 14,
-          }}
-        >
-          Unknown item selected
-        </div>
-      );
+      content = <div className={unknownItemStyle}>Unknown item selected</div>;
   }
 
   // Calculate bottom offset based on bottom panel visibility
@@ -176,29 +190,19 @@ export const PropertiesPanel: React.FC = () => {
 
   return (
     <div
+      className={positionContainerStyle}
       style={{
-        display: "flex",
-        position: "fixed",
-        top: 0,
-        right: 0,
         bottom: bottomOffset,
         padding: PANEL_MARGIN,
-        zIndex: 1000,
-        pointerEvents: "none",
       }}
     >
       <GlassPanel
-        className={css({
-          height: "[100%]",
-        })}
+        className={glassPanelHeightStyle}
         style={{
           width: panelWidth,
           pointerEvents: "auto",
         }}
-        contentStyle={{
-          padding: 16,
-          overflowY: "auto",
-        }}
+        contentClassName={glassPanelContentStyle}
         resizable={{
           edge: "left",
           size: panelWidth,
