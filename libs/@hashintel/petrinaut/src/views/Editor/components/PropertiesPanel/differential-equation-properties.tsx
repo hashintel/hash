@@ -1,5 +1,6 @@
 /* eslint-disable id-length */
 
+import { css, cva } from "@hashintel/ds-helpers/css";
 import MonacoEditor from "@monaco-editor/react";
 import { useState } from "react";
 import { TbDotsVertical, TbSparkles } from "react-icons/tb";
@@ -18,13 +19,248 @@ import type {
 } from "../../../../core/types/sdcpn";
 import { useIsReadOnly } from "../../../../state/use-is-read-only";
 
+const containerStyle = css({
+  display: "flex",
+  flexDirection: "column",
+  height: "[100%]",
+  gap: "[12px]",
+});
+
+const headerTitleStyle = css({
+  fontWeight: 600,
+  fontSize: "[16px]",
+  marginBottom: "[8px]",
+});
+
+const fieldLabelStyle = css({
+  fontWeight: 500,
+  fontSize: "[12px]",
+  marginBottom: "[4px]",
+});
+
+const inputStyle = cva({
+  base: {
+    fontSize: "[14px]",
+    padding: "[6px 8px]",
+    border: "[1px solid rgba(0, 0, 0, 0.1)]",
+    borderRadius: "[4px]",
+    width: "[100%]",
+    boxSizing: "border-box",
+  },
+  variants: {
+    isReadOnly: {
+      true: {
+        backgroundColor: "[rgba(0, 0, 0, 0.05)]",
+        cursor: "not-allowed",
+      },
+      false: {
+        backgroundColor: "[white]",
+        cursor: "text",
+      },
+    },
+  },
+});
+
+const typeDropdownButtonStyle = cva({
+  base: {
+    width: "[100%]",
+    fontSize: "[14px]",
+    padding: "[6px 8px]",
+    border: "[1px solid rgba(0, 0, 0, 0.1)]",
+    borderRadius: "[4px]",
+    display: "flex",
+    alignItems: "center",
+    gap: "[8px]",
+    textAlign: "left",
+  },
+  variants: {
+    isReadOnly: {
+      true: {
+        backgroundColor: "[rgba(0, 0, 0, 0.05)]",
+        cursor: "not-allowed",
+      },
+      false: {
+        backgroundColor: "[white]",
+        cursor: "pointer",
+      },
+    },
+  },
+});
+
+const colorDotStyle = css({
+  width: "[12px]",
+  height: "[12px]",
+  borderRadius: "[50%]",
+  flexShrink: 0,
+});
+
+const dropdownMenuStyle = css({
+  position: "absolute",
+  top: "[100%]",
+  left: "[0]",
+  right: "[0]",
+  marginTop: "[4px]",
+  backgroundColor: "[white]",
+  border: "[1px solid rgba(0, 0, 0, 0.1)]",
+  borderRadius: "[4px]",
+  boxShadow: "[0 4px 16px rgba(0, 0, 0, 0.15)]",
+  maxHeight: "[300px]",
+  overflowY: "auto",
+  zIndex: 1000,
+});
+
+const dropdownItemStyle = css({
+  width: "[100%]",
+  padding: "[8px 12px]",
+  border: "none",
+  cursor: "pointer",
+  display: "flex",
+  alignItems: "center",
+  gap: "[8px]",
+  fontSize: "[14px]",
+  textAlign: "left",
+});
+
+const confirmDialogOverlayStyle = css({
+  position: "fixed",
+  top: "[0]",
+  left: "[0]",
+  right: "[0]",
+  bottom: "[0]",
+  backgroundColor: "[rgba(0, 0, 0, 0.5)]",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  zIndex: 10000,
+});
+
+const confirmDialogStyle = css({
+  backgroundColor: "[white]",
+  borderRadius: "[8px]",
+  padding: "[24px]",
+  maxWidth: "[400px]",
+  boxShadow: "[0 4px 16px rgba(0, 0, 0, 0.2)]",
+});
+
+const confirmDialogTitleStyle = css({
+  fontWeight: 600,
+  fontSize: "[16px]",
+  marginBottom: "[12px]",
+});
+
+const confirmDialogTextStyle = css({
+  fontSize: "[14px]",
+  color: "[#666]",
+  marginBottom: "[16px]",
+});
+
+const confirmDialogListStyle = css({
+  fontSize: "[13px]",
+  color: "[#666]",
+  marginBottom: "[16px]",
+  paddingLeft: "[20px]",
+});
+
+const confirmDialogHintStyle = css({
+  fontSize: "[13px]",
+  color: "[#999]",
+  marginBottom: "[20px]",
+});
+
+const confirmDialogButtonsStyle = css({
+  display: "flex",
+  gap: "[8px]",
+  justifyContent: "flex-end",
+});
+
+const cancelButtonStyle = css({
+  padding: "[8px 16px]",
+  border: "[1px solid rgba(0, 0, 0, 0.1)]",
+  borderRadius: "[4px]",
+  backgroundColor: "[white]",
+  cursor: "pointer",
+  fontSize: "[14px]",
+});
+
+const confirmButtonStyle = css({
+  padding: "[8px 16px]",
+  border: "none",
+  borderRadius: "[4px]",
+  backgroundColor: "[#2563eb]",
+  color: "[white]",
+  cursor: "pointer",
+  fontSize: "[14px]",
+});
+
+const codeContainerStyle = css({
+  display: "flex",
+  flexDirection: "column",
+  flex: "[1]",
+  minHeight: "[0]",
+});
+
+const codeHeaderStyle = css({
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "space-between",
+  marginBottom: "[8px]",
+});
+
+const codeHeaderLabelStyle = css({
+  fontWeight: 500,
+  fontSize: "[12px]",
+});
+
+const menuButtonStyle = css({
+  background: "[transparent]",
+  border: "none",
+  cursor: "pointer",
+  padding: "[4px]",
+  display: "flex",
+  alignItems: "center",
+  fontSize: "[18px]",
+  color: "[rgba(0, 0, 0, 0.6)]",
+});
+
+const editorContainerStyle = cva({
+  base: {
+    border: "[1px solid rgba(0, 0, 0, 0.1)]",
+    borderRadius: "[4px]",
+    overflow: "hidden",
+    flex: "[1]",
+    minHeight: "[0]",
+  },
+  variants: {
+    isReadOnly: {
+      true: {
+        filter: "[grayscale(20%) brightness(98%)]",
+        pointerEvents: "none",
+      },
+      false: {
+        filter: "[none]",
+        pointerEvents: "auto",
+      },
+    },
+  },
+});
+
+const aiMenuItemStyle = css({
+  display: "flex",
+  alignItems: "center",
+  gap: "[6px]",
+});
+
+const aiIconStyle = css({
+  fontSize: "[16px]",
+});
+
 interface DifferentialEquationPropertiesProps {
   differentialEquation: DifferentialEquation;
   types: Color[];
   places: Place[];
   updateDifferentialEquation: (
     equationId: string,
-    updateFn: (equation: DifferentialEquation) => void,
+    updateFn: (equation: DifferentialEquation) => void
   ) => void;
 }
 
@@ -38,7 +274,7 @@ export const DifferentialEquationProperties: React.FC<
   const isReadOnly = useIsReadOnly();
 
   const associatedType = types.find(
-    (type) => type.id === differentialEquation.colorId,
+    (type) => type.id === differentialEquation.colorId
   );
 
   // Find places that use this differential equation
@@ -64,7 +300,7 @@ export const DifferentialEquationProperties: React.FC<
         differentialEquation.id,
         (existingEquation) => {
           existingEquation.colorId = newTypeId;
-        },
+        }
       );
     }
   };
@@ -75,7 +311,7 @@ export const DifferentialEquationProperties: React.FC<
         differentialEquation.id,
         (existingEquation) => {
           existingEquation.colorId = pendingTypeId;
-        },
+        }
       );
     }
     setShowConfirmDialog(false);
@@ -88,24 +324,13 @@ export const DifferentialEquationProperties: React.FC<
   };
 
   return (
-    <div
-      style={{
-        display: "flex",
-        flexDirection: "column",
-        height: "100%",
-        gap: 12,
-      }}
-    >
+    <div className={containerStyle}>
       <div>
-        <div style={{ fontWeight: 600, fontSize: 16, marginBottom: 8 }}>
-          Differential Equation
-        </div>
+        <div className={headerTitleStyle}>Differential Equation</div>
       </div>
 
       <div>
-        <div style={{ fontWeight: 500, fontSize: 12, marginBottom: 4 }}>
-          Name
-        </div>
+        <div className={fieldLabelStyle}>Name</div>
         <input
           type="text"
           value={differentialEquation.name}
@@ -114,79 +339,36 @@ export const DifferentialEquationProperties: React.FC<
               differentialEquation.id,
               (existingEquation) => {
                 existingEquation.name = event.target.value;
-              },
+              }
             );
           }}
           disabled={isReadOnly}
-          style={{
-            fontSize: 14,
-            padding: "6px 8px",
-            border: "1px solid rgba(0, 0, 0, 0.1)",
-            borderRadius: 4,
-            width: "100%",
-            boxSizing: "border-box",
-            backgroundColor: isReadOnly ? "rgba(0, 0, 0, 0.05)" : "white",
-            cursor: isReadOnly ? "not-allowed" : "text",
-          }}
+          className={inputStyle({ isReadOnly })}
         />
       </div>
 
       <div>
-        <div style={{ fontWeight: 500, fontSize: 12, marginBottom: 4 }}>
-          Associated Type
-        </div>
+        <div className={fieldLabelStyle}>Associated Type</div>
         <div style={{ position: "relative" }}>
           <button
             type="button"
             onClick={() => setShowTypeDropdown(!showTypeDropdown)}
             onBlur={() => setTimeout(() => setShowTypeDropdown(false), 200)}
             disabled={isReadOnly}
-            style={{
-              width: "100%",
-              fontSize: 14,
-              padding: "6px 8px",
-              border: "1px solid rgba(0, 0, 0, 0.1)",
-              borderRadius: 4,
-              backgroundColor: isReadOnly ? "rgba(0, 0, 0, 0.05)" : "white",
-              cursor: isReadOnly ? "not-allowed" : "pointer",
-              display: "flex",
-              alignItems: "center",
-              gap: 8,
-              textAlign: "left",
-            }}
+            className={typeDropdownButtonStyle({ isReadOnly })}
           >
             {associatedType && (
               <>
                 <div
-                  style={{
-                    width: 12,
-                    height: 12,
-                    borderRadius: "50%",
-                    backgroundColor: associatedType.displayColor,
-                    flexShrink: 0,
-                  }}
+                  className={colorDotStyle}
+                  style={{ backgroundColor: associatedType.displayColor }}
                 />
                 <span>{associatedType.name}</span>
               </>
             )}
           </button>
           {showTypeDropdown && !isReadOnly && (
-            <div
-              style={{
-                position: "absolute",
-                top: "100%",
-                left: 0,
-                right: 0,
-                marginTop: 4,
-                backgroundColor: "white",
-                border: "1px solid rgba(0, 0, 0, 0.1)",
-                borderRadius: 4,
-                boxShadow: "0 4px 16px rgba(0, 0, 0, 0.15)",
-                maxHeight: 300,
-                overflowY: "auto",
-                zIndex: 1000,
-              }}
-            >
+            <div className={dropdownMenuStyle}>
               {types.map((type) => (
                 <button
                   key={type.id}
@@ -195,21 +377,12 @@ export const DifferentialEquationProperties: React.FC<
                     handleTypeChange(type.id);
                     setShowTypeDropdown(false);
                   }}
+                  className={dropdownItemStyle}
                   style={{
-                    width: "100%",
-                    padding: "8px 12px",
-                    border: "none",
                     backgroundColor:
                       type.id === differentialEquation.colorId
                         ? "rgba(0, 0, 0, 0.05)"
                         : "transparent",
-
-                    cursor: "pointer",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 8,
-                    fontSize: 14,
-                    textAlign: "left",
                   }}
                   onMouseEnter={(event) => {
                     // eslint-disable-next-line no-param-reassign
@@ -225,13 +398,8 @@ export const DifferentialEquationProperties: React.FC<
                   }}
                 >
                   <div
-                    style={{
-                      width: 12,
-                      height: 12,
-                      borderRadius: "50%",
-                      backgroundColor: type.displayColor,
-                      flexShrink: 0,
-                    }}
+                    className={colorDotStyle}
+                    style={{ backgroundColor: type.displayColor }}
                   />
                   <span>{type.name}</span>
                 </button>
@@ -244,36 +412,16 @@ export const DifferentialEquationProperties: React.FC<
       {/* Confirmation Dialog */}
       {showConfirmDialog && (
         // eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions
-        <div
-          style={{
-            position: "fixed",
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            backgroundColor: "rgba(0, 0, 0, 0.5)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            zIndex: 10000,
-          }}
-          onClick={cancelTypeChange}
-        >
+        <div className={confirmDialogOverlayStyle} onClick={cancelTypeChange}>
           {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions */}
           <div
-            style={{
-              backgroundColor: "white",
-              borderRadius: 8,
-              padding: 24,
-              maxWidth: 400,
-              boxShadow: "0 4px 16px rgba(0, 0, 0, 0.2)",
-            }}
+            className={confirmDialogStyle}
             onClick={(ev) => ev.stopPropagation()}
           >
-            <div style={{ fontWeight: 600, fontSize: 16, marginBottom: 12 }}>
+            <div className={confirmDialogTitleStyle}>
               Change Associated Type?
             </div>
-            <div style={{ fontSize: 14, color: "#666", marginBottom: 16 }}>
+            <div className={confirmDialogTextStyle}>
               {placesUsingEquation.length === 1 ? (
                 <>
                   <strong>1 place</strong> is currently using this differential
@@ -286,51 +434,27 @@ export const DifferentialEquationProperties: React.FC<
                 </>
               )}
             </div>
-            <ul
-              style={{
-                fontSize: 13,
-                color: "#666",
-                marginBottom: 16,
-                paddingLeft: 20,
-              }}
-            >
+            <ul className={confirmDialogListStyle}>
               {placesUsingEquation.map((place) => (
                 <li key={place.id}>{place.name}</li>
               ))}
             </ul>
-            <div style={{ fontSize: 13, color: "#999", marginBottom: 20 }}>
+            <div className={confirmDialogHintStyle}>
               Changing the type may affect how these places behave. Are you sure
               you want to continue?
             </div>
-            <div
-              style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}
-            >
+            <div className={confirmDialogButtonsStyle}>
               <button
                 type="button"
                 onClick={cancelTypeChange}
-                style={{
-                  padding: "8px 16px",
-                  border: "1px solid rgba(0, 0, 0, 0.1)",
-                  borderRadius: 4,
-                  backgroundColor: "white",
-                  cursor: "pointer",
-                  fontSize: 14,
-                }}
+                className={cancelButtonStyle}
               >
                 Cancel
               </button>
               <button
                 type="button"
                 onClick={confirmTypeChange}
-                style={{
-                  padding: "8px 16px",
-                  border: "none",
-                  borderRadius: 4,
-                  backgroundColor: "#2563eb",
-                  color: "white",
-                  cursor: "pointer",
-                  fontSize: 14,
-                }}
+                className={confirmButtonStyle}
               >
                 Change Type
               </button>
@@ -339,39 +463,13 @@ export const DifferentialEquationProperties: React.FC<
         </div>
       )}
 
-      <div
-        style={{
-          display: "flex",
-          flexDirection: "column",
-          flex: 1,
-          minHeight: 0,
-        }}
-      >
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            marginBottom: 8,
-          }}
-        >
-          <div style={{ fontWeight: 500, fontSize: 12 }}>Code</div>
+      <div className={codeContainerStyle}>
+        <div className={codeHeaderStyle}>
+          <div className={codeHeaderLabelStyle}>Code</div>
           {!isReadOnly && (
             <Menu
               trigger={
-                <button
-                  type="button"
-                  style={{
-                    background: "transparent",
-                    border: "none",
-                    cursor: "pointer",
-                    padding: 4,
-                    display: "flex",
-                    alignItems: "center",
-                    fontSize: 18,
-                    color: "rgba(0, 0, 0, 0.6)",
-                  }}
-                >
+                <button type="button" className={menuButtonStyle}>
                   <TbDotsVertical />
                 </button>
               }
@@ -382,7 +480,7 @@ export const DifferentialEquationProperties: React.FC<
                   onClick: () => {
                     // Get the associated type to generate appropriate default code
                     const equationType = types.find(
-                      (t) => t.id === differentialEquation.colorId,
+                      (t) => t.id === differentialEquation.colorId
                     );
 
                     updateDifferentialEquation(
@@ -390,10 +488,10 @@ export const DifferentialEquationProperties: React.FC<
                       (existingEquation) => {
                         existingEquation.code = equationType
                           ? generateDefaultDifferentialEquationCode(
-                              equationType,
+                              equationType
                             )
                           : DEFAULT_DIFFERENTIAL_EQUATION_CODE;
-                      },
+                      }
                     );
                   },
                 },
@@ -401,14 +499,8 @@ export const DifferentialEquationProperties: React.FC<
                   id: "generate-ai",
                   label: (
                     <Tooltip content={UI_MESSAGES.AI_FEATURE_COMING_SOON}>
-                      <div
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          gap: 6,
-                        }}
-                      >
-                        <TbSparkles style={{ fontSize: 16 }} />
+                      <div className={aiMenuItemStyle}>
+                        <TbSparkles className={aiIconStyle} />
                         Generate with AI
                       </div>
                     </Tooltip>
@@ -422,17 +514,7 @@ export const DifferentialEquationProperties: React.FC<
             />
           )}
         </div>
-        <div
-          style={{
-            border: "1px solid rgba(0, 0, 0, 0.1)",
-            borderRadius: 4,
-            overflow: "hidden",
-            flex: 1,
-            minHeight: 0,
-            filter: isReadOnly ? "grayscale(20%) brightness(98%)" : "none",
-            pointerEvents: isReadOnly ? "none" : "auto",
-          }}
-        >
+        <div className={editorContainerStyle({ isReadOnly })}>
           <MonacoEditor
             language="typescript"
             value={differentialEquation.code}
@@ -441,7 +523,7 @@ export const DifferentialEquationProperties: React.FC<
                 differentialEquation.id,
                 (existingEquation) => {
                   existingEquation.code = newCode ?? "";
-                },
+                }
               );
             }}
             path={`inmemory://sdcpn/differential-equations/${differentialEquation.id}.ts`}

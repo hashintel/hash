@@ -1,4 +1,4 @@
-import { css } from "@hashintel/ds-helpers/css";
+import { css, cva } from "@hashintel/ds-helpers/css";
 import { useState } from "react";
 import { FaChevronDown, FaChevronRight } from "react-icons/fa6";
 import { v4 as uuidv4 } from "uuid";
@@ -8,6 +8,140 @@ import { DEFAULT_DIFFERENTIAL_EQUATION_CODE } from "../../../../core/default-cod
 import { useEditorStore } from "../../../../state/editor-provider";
 import { useSDCPNContext } from "../../../../state/sdcpn-provider";
 import { useSimulationStore } from "../../../../state/simulation-provider";
+
+const sectionContainerStyle = css({
+  display: "flex",
+  flexDirection: "column",
+  gap: "[8px]",
+  paddingBottom: "[16px]",
+  borderBottom: "[1px solid rgba(0, 0, 0, 0.1)]",
+});
+
+const headerRowStyle = css({
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "space-between",
+});
+
+const sectionToggleButtonStyle = css({
+  display: "flex",
+  alignItems: "center",
+  gap: "[6px]",
+  fontWeight: 600,
+  fontSize: "[13px]",
+  color: "[#333]",
+  cursor: "pointer",
+  background: "[transparent]",
+  border: "none",
+  padding: "spacing.1",
+  borderRadius: "radius.4",
+  _hover: {
+    backgroundColor: "[rgba(0, 0, 0, 0.05)]",
+  },
+});
+
+const addButtonStyle = css({
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  padding: "spacing.1",
+  borderRadius: "radius.2",
+  cursor: "pointer",
+  fontSize: "[18px]",
+  color: "core.gray.60",
+  background: "[transparent]",
+  border: "none",
+  width: "[24px]",
+  height: "[24px]",
+  _hover: {
+    backgroundColor: "[rgba(0, 0, 0, 0.05)]",
+    color: "core.gray.90",
+  },
+  _disabled: {
+    cursor: "not-allowed",
+    opacity: "[0.4]",
+    _hover: {
+      backgroundColor: "[transparent]",
+      color: "core.gray.60",
+    },
+  },
+});
+
+const listContainerStyle = css({
+  display: "flex",
+  flexDirection: "column",
+  gap: "[4px]",
+});
+
+const equationRowStyle = cva({
+  base: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    padding: "[4px 2px 4px 8px]",
+    fontSize: "[13px]",
+    borderRadius: "[4px]",
+    cursor: "pointer",
+  },
+  variants: {
+    isSelected: {
+      true: {
+        backgroundColor: "[rgba(59, 130, 246, 0.15)]",
+        _hover: {
+          backgroundColor: "[rgba(59, 130, 246, 0.2)]",
+        },
+      },
+      false: {
+        backgroundColor: "[#f9fafb]",
+        _hover: {
+          backgroundColor: "[rgba(0, 0, 0, 0.05)]",
+        },
+      },
+    },
+  },
+});
+
+const equationNameContainerStyle = css({
+  display: "flex",
+  alignItems: "center",
+  gap: "[6px]",
+});
+
+const deleteButtonStyle = css({
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  padding: "spacing.1",
+  borderRadius: "radius.2",
+  cursor: "pointer",
+  fontSize: "[14px]",
+  color: "core.gray.40",
+  background: "[transparent]",
+  border: "none",
+  width: "[20px]",
+  height: "[20px]",
+  _hover: {
+    backgroundColor: "[rgba(239, 68, 68, 0.1)]",
+    color: "core.red.60",
+  },
+  _disabled: {
+    cursor: "not-allowed",
+    opacity: "[0.3]",
+    _hover: {
+      backgroundColor: "[transparent]",
+      color: "core.gray.40",
+    },
+  },
+});
+
+const emptyMessageStyle = css({
+  fontSize: "[13px]",
+  color: "[#9ca3af]",
+  padding: "spacing.4",
+  textAlign: "center",
+});
+
+// --- Component ---
 
 export const DifferentialEquationsSection: React.FC = () => {
   const [isExpanded, setIsExpanded] = useState(true);
@@ -31,42 +165,12 @@ export const DifferentialEquationsSection: React.FC = () => {
     simulationState === "Running" || simulationState === "Paused";
 
   return (
-    <div
-      style={{
-        display: "flex",
-        flexDirection: "column",
-        gap: 8,
-        paddingBottom: 16,
-        borderBottom: "1px solid rgba(0, 0, 0, 0.1)",
-      }}
-    >
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-        }}
-      >
+    <div className={sectionContainerStyle}>
+      <div className={headerRowStyle}>
         <button
           type="button"
           onClick={() => setIsExpanded(!isExpanded)}
-          className={css({
-            display: "flex",
-            alignItems: "center",
-            fontWeight: 600,
-            fontSize: "[13px]",
-            color: "[#333]",
-            paddingBottom: "[4px]",
-            cursor: "pointer",
-            background: "[transparent]",
-            border: "none",
-            padding: "spacing.1",
-            borderRadius: "radius.4",
-            _hover: {
-              backgroundColor: "[rgba(0, 0, 0, 0.05)]",
-            },
-          })}
-          style={{ gap: 6 }}
+          className={sectionToggleButtonStyle}
         >
           {isExpanded ? (
             <FaChevronDown size={10} />
@@ -75,7 +179,9 @@ export const DifferentialEquationsSection: React.FC = () => {
           )}
           <span>
             Differential Equations
-            <InfoIconTooltip tooltip="Differential equations govern how token data changes over time when tokens remain in a place (“dynamics”)." />
+            <InfoIconTooltip
+              tooltip={`Differential equations govern how token data changes over time when tokens remain in a place ("dynamics").`}
+            />
           </span>
         </button>
         <button
@@ -92,36 +198,14 @@ export const DifferentialEquationsSection: React.FC = () => {
             });
             setSelectedResourceId(id);
           }}
-          className={css({
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            padding: "spacing.1",
-            borderRadius: "radius.2",
-            cursor: "pointer",
-            fontSize: "[18px]",
-            color: "core.gray.60",
-            _hover: {
-              backgroundColor: "[rgba(0, 0, 0, 0.05)]",
-              color: "core.gray.90",
-            },
-            _disabled: {
-              cursor: "not-allowed",
-              opacity: "[0.4]",
-              _hover: {
-                backgroundColor: "[transparent]",
-                color: "core.gray.60",
-              },
-            },
-          })}
-          style={{ width: 24, height: 24 }}
+          className={addButtonStyle}
           aria-label="Add differential equation"
         >
           +
         </button>
       </div>
       {isExpanded && (
-        <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+        <div className={listContainerStyle}>
           {differentialEquations.map((eq) => {
             const isSelected = selectedResourceId === eq.id;
 
@@ -145,27 +229,9 @@ export const DifferentialEquationsSection: React.FC = () => {
                     setSelectedResourceId(eq.id);
                   }
                 }}
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                  padding: "4px 2px 4px 8px",
-                  fontSize: 13,
-                  borderRadius: 4,
-                  backgroundColor: isSelected
-                    ? "rgba(59, 130, 246, 0.15)"
-                    : "#f9fafb",
-                  cursor: "pointer",
-                }}
-                className={css({
-                  _hover: {
-                    backgroundColor: isSelected
-                      ? "[rgba(59, 130, 246, 0.2)]"
-                      : "[rgba(0, 0, 0, 0.05)]",
-                  },
-                })}
+                className={equationRowStyle({ isSelected })}
               >
-                <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                <div className={equationNameContainerStyle}>
                   <span>{eq.name}</span>
                 </div>
                 <button
@@ -181,29 +247,7 @@ export const DifferentialEquationsSection: React.FC = () => {
                       removeDifferentialEquation(eq.id);
                     }
                   }}
-                  className={css({
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    padding: "spacing.1",
-                    borderRadius: "radius.2",
-                    cursor: "pointer",
-                    fontSize: "[14px]",
-                    color: "core.gray.40",
-                    _hover: {
-                      backgroundColor: "[rgba(239, 68, 68, 0.1)]",
-                      color: "core.red.60",
-                    },
-                    _disabled: {
-                      cursor: "not-allowed",
-                      opacity: "[0.3]",
-                      _hover: {
-                        backgroundColor: "[transparent]",
-                        color: "core.gray.40",
-                      },
-                    },
-                  })}
-                  style={{ width: 20, height: 20 }}
+                  className={deleteButtonStyle}
                   aria-label={`Delete equation ${eq.name}`}
                 >
                   ×
@@ -212,14 +256,7 @@ export const DifferentialEquationsSection: React.FC = () => {
             );
           })}
           {differentialEquations.length === 0 && (
-            <div
-              style={{
-                fontSize: 13,
-                color: "#9ca3af",
-                padding: "spacing.4",
-                textAlign: "center",
-              }}
-            >
+            <div className={emptyMessageStyle}>
               No differential equations yet
             </div>
           )}

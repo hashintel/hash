@@ -2,19 +2,6 @@ import { Menu as ArkMenu } from "@ark-ui/react";
 import { css } from "@hashintel/ds-helpers/css";
 import type { ReactNode } from "react";
 
-export interface MenuItem {
-  id: string;
-  label: string | ReactNode;
-  onClick?: () => void;
-  disabled?: boolean;
-  submenu?: MenuItem[];
-}
-
-export interface MenuProps {
-  trigger: ReactNode;
-  items: MenuItem[];
-}
-
 const menuContentStyle = css({
   background: "[white]",
   borderRadius: "[6px]",
@@ -52,6 +39,10 @@ const triggerItemStyle = css({
   },
 });
 
+const triggerItemArrowStyle = css({
+  marginLeft: "[8px]",
+});
+
 const itemStyle = css({
   fontSize: "size.textsm",
   cursor: "pointer",
@@ -67,6 +58,19 @@ const itemStyle = css({
   },
 });
 
+export interface MenuItem {
+  id: string;
+  label: string | ReactNode;
+  onClick?: () => void;
+  disabled?: boolean;
+  submenu?: MenuItem[];
+}
+
+export interface MenuProps {
+  trigger: ReactNode;
+  items: MenuItem[];
+}
+
 export const Menu: React.FC<MenuProps> = ({ trigger, items }) => {
   return (
     <ArkMenu.Root>
@@ -81,7 +85,7 @@ export const Menu: React.FC<MenuProps> = ({ trigger, items }) => {
               >
                 <ArkMenu.TriggerItem className={triggerItemStyle}>
                   {item.label}
-                  <span style={{ marginLeft: 8 }}>›</span>
+                  <span className={triggerItemArrowStyle}>›</span>
                 </ArkMenu.TriggerItem>
                 <ArkMenu.Positioner>
                   <ArkMenu.Content className={submenuContentStyle}>

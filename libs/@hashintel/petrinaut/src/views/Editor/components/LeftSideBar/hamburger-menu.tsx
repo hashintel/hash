@@ -2,6 +2,20 @@ import { css } from "@hashintel/ds-helpers/css";
 
 import { Menu, type MenuItem } from "../../../../components/menu";
 
+const menuButtonStyle = css({
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  padding: "[3px]",
+  borderRadius: "radius.2",
+  cursor: "pointer",
+  _hover: {
+    backgroundColor: "core.gray.10",
+  },
+});
+
+// --- Component ---
+
 export interface HamburgerMenuProps {
   menuItems: MenuItem[];
 }
@@ -10,22 +24,7 @@ export const HamburgerMenu: React.FC<HamburgerMenuProps> = ({ menuItems }) => {
   return (
     <Menu
       trigger={
-        <button
-          type="button"
-          aria-label="Menu"
-          className={css({
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            padding: "spacing.3",
-            borderRadius: "radius.2",
-            cursor: "pointer",
-            _hover: {
-              backgroundColor: "core.gray.10",
-            },
-          })}
-          style={{ padding: 3 }}
-        >
+        <button type="button" aria-label="Menu" className={menuButtonStyle}>
           <svg
             width="20"
             height="20"

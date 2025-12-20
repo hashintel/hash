@@ -1,3 +1,10 @@
+import { css } from "@hashintel/ds-helpers/css";
+
+const titleStyle = css({
+  fontWeight: 600,
+  fontSize: "[14px]",
+});
+
 /**
  * MultipleSelection - Displays info when multiple items are selected
  */
@@ -10,9 +17,7 @@ export const MultipleSelection: React.FC<MultipleSelectionProps> = ({
 }) => {
   return (
     <div>
-      <div style={{ fontWeight: 600, fontSize: 14 }}>
-        Multiple Items Selected ({count})
-      </div>
+      <div className={titleStyle}>Multiple Items Selected ({count})</div>
     </div>
   );
 };
