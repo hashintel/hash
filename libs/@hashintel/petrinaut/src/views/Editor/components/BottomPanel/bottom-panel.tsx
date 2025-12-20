@@ -6,6 +6,7 @@ import { GlassPanel } from "../../../../components/glass-panel";
 import {
   HorizontalTabsContent,
   HorizontalTabsHeader,
+  HorizontalTabsHeaderAction,
 } from "../../../../components/sub-view";
 import type { SubView } from "../../../../components/sub-view/types";
 import {
@@ -44,6 +45,12 @@ const headerStyle = css({
   justifyContent: "space-between",
   padding: "[2px]",
   flexShrink: 0,
+});
+
+const headerRightStyle = css({
+  display: "flex",
+  alignItems: "center",
+  gap: "[4px]",
 });
 
 const closeButtonStyle = css({
@@ -128,14 +135,20 @@ export const BottomPanel: React.FC = () => {
           activeTabId={activeTab}
           onTabChange={handleTabChange}
         />
-        <button
-          type="button"
-          onClick={toggleBottomPanel}
-          className={closeButtonStyle}
-          aria-label="Close panel"
-        >
-          <FaXmark size={14} />
-        </button>
+        <div className={headerRightStyle}>
+          <HorizontalTabsHeaderAction
+            subViews={subViews}
+            activeTabId={activeTab}
+          />
+          <button
+            type="button"
+            onClick={toggleBottomPanel}
+            className={closeButtonStyle}
+            aria-label="Close panel"
+          >
+            <FaXmark size={14} />
+          </button>
+        </div>
       </div>
 
       {/* Scrollable content */}
