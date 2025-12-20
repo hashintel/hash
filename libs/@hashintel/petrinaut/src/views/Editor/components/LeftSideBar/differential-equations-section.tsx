@@ -141,8 +141,6 @@ const emptyMessageStyle = css({
   textAlign: "center",
 });
 
-// --- Component ---
-
 export const DifferentialEquationsSection: React.FC = () => {
   const [isExpanded, setIsExpanded] = useState(true);
 
@@ -153,10 +151,10 @@ export const DifferentialEquationsSection: React.FC = () => {
   } = useSDCPNContext();
 
   const selectedResourceId = useEditorStore(
-    (state) => state.selectedResourceId,
+    (state) => state.selectedResourceId
   );
   const setSelectedResourceId = useEditorStore(
-    (state) => state.setSelectedResourceId,
+    (state) => state.setSelectedResourceId
   );
 
   // Check if simulation is running or paused
@@ -241,7 +239,7 @@ export const DifferentialEquationsSection: React.FC = () => {
                     if (
                       // eslint-disable-next-line no-alert
                       window.confirm(
-                        `Delete equation "${eq.name}"? Any places referencing this equation will have their differential equation reset.`,
+                        `Delete equation "${eq.name}"? Any places referencing this equation will have their differential equation reset.`
                       )
                     ) {
                       removeDifferentialEquation(eq.id);

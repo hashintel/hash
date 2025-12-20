@@ -14,8 +14,6 @@ const tooltipContentStyle = css({
   padding: "[6px 10px]",
 });
 
-// --- Components ---
-
 interface TooltipProps {
   content: string;
   children: ReactNode;

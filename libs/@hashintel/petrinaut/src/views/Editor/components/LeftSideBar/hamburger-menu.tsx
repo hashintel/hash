@@ -14,8 +14,6 @@ const menuButtonStyle = css({
   },
 });
 
-// --- Component ---
-
 export interface HamburgerMenuProps {
   menuItems: MenuItem[];
 }

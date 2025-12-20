@@ -42,8 +42,6 @@ const itemStyle = cva({
   },
 });
 
-// --- Component ---
-
 interface SegmentOption {
   value: string;
   label: string;
