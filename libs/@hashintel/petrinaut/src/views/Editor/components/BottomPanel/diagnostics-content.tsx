@@ -3,6 +3,7 @@ import { useCallback, useMemo, useState } from "react";
 import { FaChevronDown, FaChevronRight } from "react-icons/fa6";
 import ts from "typescript";
 
+import type { SubView } from "../../../../components/sub-view/types";
 import { useCheckerContext } from "../../../../state/checker-provider";
 import { useEditorStore } from "../../../../state/editor-provider";
 import { useSDCPNContext } from "../../../../state/sdcpn-provider";
@@ -289,4 +290,14 @@ export const DiagnosticsContent: React.FC = () => {
       })}
     </>
   );
+};
+
+/**
+ * SubView definition for Diagnostics tab.
+ */
+export const diagnosticsSubView: SubView = {
+  id: "diagnostics",
+  title: "Diagnostics",
+  tooltip: "View compilation errors and warnings in your model code.",
+  component: DiagnosticsContent,
 };

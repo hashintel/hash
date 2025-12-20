@@ -1,7 +1,13 @@
-import { css, cva } from "@hashintel/ds-helpers/css";
+import { css } from "@hashintel/ds-helpers/css";
+import { useCallback } from "react";
 import { FaXmark } from "react-icons/fa6";
 
 import { GlassPanel } from "../../../../components/glass-panel";
+import {
+  HorizontalTabsContent,
+  HorizontalTabsHeader,
+} from "../../../../components/sub-view";
+import type { SubView } from "../../../../components/sub-view/types";
 import {
   MAX_BOTTOM_PANEL_HEIGHT,
   MIN_BOTTOM_PANEL_HEIGHT,
@@ -9,9 +15,17 @@ import {
 } from "../../../../constants/ui";
 import { useEditorStore } from "../../../../state/editor-provider";
 import type { BottomPanelTab } from "../../../../state/editor-store";
-import { DiagnosticsContent } from "./diagnostics-content";
-import { ParametersContent } from "./parameters-content";
-import { SimulationSettingsContent } from "./simulation-settings-content";
+import { diagnosticsSubView } from "./diagnostics-content";
+import { parametersSubView } from "./parameters-content";
+import { simulationSettingsSubView } from "./simulation-settings-content";
+
+// Pre-defined array of subviews for the bottom panel
+// Note: Using explicit array typing due to TypeScript inference quirks with barrel imports
+const BOTTOM_PANEL_SUBVIEWS: SubView[] = [
+  diagnosticsSubView,
+  parametersSubView,
+  simulationSettingsSubView,
+];
 
 const glassPanelBaseStyle = css({
   position: "fixed",
@@ -32,12 +46,6 @@ const headerStyle = css({
   flexShrink: 0,
 });
 
-const tabsContainerStyle = css({
-  display: "flex",
-  alignItems: "center",
-  gap: "[4px]",
-});
-
 const closeButtonStyle = css({
   display: "flex",
   alignItems: "center",
@@ -56,51 +64,6 @@ const closeButtonStyle = css({
   },
 });
 
-const tabButtonStyle = cva({
-  base: {
-    fontSize: "[11px]",
-    fontWeight: "[500]",
-    padding: "[4px 10px]",
-    textTransform: "uppercase",
-    borderRadius: "[3px]",
-    border: "none",
-    cursor: "pointer",
-    transition: "[all 0.3s ease]",
-    background: "[transparent]",
-  },
-  variants: {
-    active: {
-      true: {
-        opacity: "[1]",
-        backgroundColor: "[rgba(0, 0, 0, 0.08)]",
-        color: "core.gray.90",
-      },
-      false: {
-        opacity: "[0.6]",
-        color: "core.gray.60",
-        _hover: {
-          opacity: "[1]",
-          backgroundColor: "[rgba(0, 0, 0, 0.04)]",
-          color: "core.gray.80",
-        },
-      },
-    },
-  },
-});
-
-const contentStyle = css({
-  fontSize: "[12px]",
-  padding: "[12px 12px]",
-  flex: "[1]",
-  overflowY: "auto",
-});
-
-const tabs: { id: BottomPanelTab; label: string }[] = [
-  { id: "diagnostics", label: "Diagnostics" },
-  { id: "parameters", label: "Global Parameters" },
-  { id: "simulation-settings", label: "Simulation Settings" },
-];
-
 /**
  * BottomPanel shows tabs for Diagnostics, Simulation Settings, and Parameters.
  * Positioned at the bottom of the viewport.
@@ -113,11 +76,22 @@ export const BottomPanel: React.FC = () => {
   const leftSidebarWidth = useEditorStore((state) => state.leftSidebarWidth);
   const panelHeight = useEditorStore((state) => state.bottomPanelHeight);
   const setBottomPanelHeight = useEditorStore(
-    (state) => state.setBottomPanelHeight,
+    (state) => state.setBottomPanelHeight
   );
   const activeTab = useEditorStore((state) => state.activeBottomPanelTab);
   const setActiveTab = useEditorStore((state) => state.setActiveBottomPanelTab);
   const toggleBottomPanel = useEditorStore((state) => state.toggleBottomPanel);
+
+  // Use the pre-defined array of subviews
+  const subViews = BOTTOM_PANEL_SUBVIEWS;
+
+  // Handler for tab change that casts string to BottomPanelTab
+  const handleTabChange = useCallback(
+    (tabId: string) => {
+      setActiveTab(tabId as BottomPanelTab);
+    },
+    [setActiveTab]
+  );
 
   if (!isOpen) {
     return null;
@@ -128,17 +102,6 @@ export const BottomPanel: React.FC = () => {
   const leftOffset = isLeftSidebarOpen
     ? leftSidebarWidth + PANEL_MARGIN * 2
     : PANEL_MARGIN;
-
-  function renderContent() {
-    switch (activeTab) {
-      case "diagnostics":
-        return <DiagnosticsContent />;
-      case "simulation-settings":
-        return <SimulationSettingsContent />;
-      case "parameters":
-        return <ParametersContent />;
-    }
-  }
 
   return (
     <GlassPanel
@@ -160,18 +123,11 @@ export const BottomPanel: React.FC = () => {
     >
       {/* Tab Header */}
       <div className={headerStyle}>
-        <div className={tabsContainerStyle}>
-          {tabs.map((tab) => (
-            <button
-              key={tab.id}
-              type="button"
-              onClick={() => setActiveTab(tab.id)}
-              className={tabButtonStyle({ active: activeTab === tab.id })}
-            >
-              {tab.label}
-            </button>
-          ))}
-        </div>
+        <HorizontalTabsHeader
+          subViews={subViews}
+          activeTabId={activeTab}
+          onTabChange={handleTabChange}
+        />
         <button
           type="button"
           onClick={toggleBottomPanel}
@@ -183,7 +139,7 @@ export const BottomPanel: React.FC = () => {
       </div>
 
       {/* Scrollable content */}
-      <div className={contentStyle}>{renderContent()}</div>
+      <HorizontalTabsContent subViews={subViews} activeTabId={activeTab} />
     </GlassPanel>
   );
 };
