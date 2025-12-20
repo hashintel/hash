@@ -60,7 +60,7 @@
     "typescript": "5.9.3",
     "vite": "7.1.11",
     "vite-plugin-dts": "4.5.4",
-    "vitest": "4.0.15"
+    "vitest": "4.0.16"
   },
   "peerDependencies": {
     "@hashintel/ds-helpers": "0.0.1-b",
