@@ -144,6 +144,24 @@ export const HorizontalTabsHeader: React.FC<{
 };
 
 /**
+ * Returns the header action for the currently active tab.
+ * Used to render custom actions (like add buttons) in the panel header.
+ */
+export const HorizontalTabsHeaderAction: React.FC<{
+  subViews: SubView[];
+  activeTabId: string;
+}> = ({ subViews, activeTabId }) => {
+  const activeSubView =
+    subViews.find((sv) => sv.id === activeTabId) ?? subViews[0];
+
+  if (!activeSubView?.renderHeaderAction) {
+    return null;
+  }
+
+  return <>{activeSubView.renderHeaderAction()}</>;
+};
+
+/**
  * Renders just the content portion of the horizontal tabs.
  * Useful when you need to compose the content separately from the tabs header.
  */
