@@ -17,8 +17,6 @@ const floatingTitleInputStyle = css({
   },
 });
 
-// --- Component ---
-
 export interface FloatingTitleProps {
   value: string;
   onChange: (value: string) => void;

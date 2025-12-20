@@ -42,8 +42,6 @@ const modeSelectorPositionStyle = css({
   zIndex: 1000,
 });
 
-// --- Component ---
-
 /**
  * EditorView is responsible for the overall editor UI layout and controls.
  * It relies on sdcpn-store and editor-store for state, and uses SDCPNView for visualization.
@@ -73,7 +71,7 @@ export const EditorView = ({
 
   // Get simulation store method to initialize parameter values
   const initializeParameterValuesFromDefaults = useSimulationStore(
-    (state) => state.initializeParameterValuesFromDefaults,
+    (state) => state.initializeParameterValuesFromDefaults
   );
 
   // Handler for mode change that initializes parameter values when switching to simulate mode
