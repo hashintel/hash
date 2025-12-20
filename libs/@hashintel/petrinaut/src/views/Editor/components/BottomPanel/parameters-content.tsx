@@ -1,6 +1,7 @@
 import { css, cva } from "@hashintel/ds-helpers/css";
 import { v4 as uuidv4 } from "uuid";
 
+import type { SubView } from "../../../../components/sub-view/types";
 import { useEditorStore } from "../../../../state/editor-provider";
 import { useSDCPNContext } from "../../../../state/sdcpn-provider";
 import { useSimulationStore } from "../../../../state/simulation-provider";
@@ -8,17 +9,8 @@ import { useSimulationStore } from "../../../../state/simulation-provider";
 const headerStyle = css({
   display: "flex",
   alignItems: "center",
-  justifyContent: "space-between",
-  marginBottom: "[12px]",
-});
-
-const titleStyle = css({
-  display: "flex",
-  alignItems: "center",
-  gap: "[6px]",
-  fontWeight: 600,
-  fontSize: "[13px]",
-  color: "[#333]",
+  justifyContent: "flex-end",
+  marginBottom: "[8px]",
 });
 
 const addButtonStyle = css({
@@ -189,11 +181,8 @@ export const ParametersContent: React.FC = () => {
 
   return (
     <div>
-      <div className={headerStyle}>
-        <div className={titleStyle}>
-          Parameters are injected into dynamics, lambda, and kernel functions.
-        </div>
-        {!isSimulationMode && (
+      {!isSimulationMode && (
+        <div className={headerStyle}>
           <button
             type="button"
             disabled={isSimulationActive}
@@ -203,8 +192,8 @@ export const ParametersContent: React.FC = () => {
           >
             +
           </button>
-        )}
-      </div>
+        </div>
+      )}
 
       <div className={listContainerStyle}>
         {parameters.map((param) => {
@@ -281,4 +270,15 @@ export const ParametersContent: React.FC = () => {
       </div>
     </div>
   );
+};
+
+/**
+ * SubView definition for Global Parameters tab.
+ */
+export const parametersSubView: SubView = {
+  id: "parameters",
+  title: "Global Parameters",
+  tooltip:
+    "Parameters are injected into dynamics, lambda, and kernel functions.",
+  component: ParametersContent,
 };
