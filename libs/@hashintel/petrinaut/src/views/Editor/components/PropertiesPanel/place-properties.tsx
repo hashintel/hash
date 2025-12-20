@@ -1,5 +1,5 @@
 /* eslint-disable id-length */
-import { css } from "@hashintel/ds-helpers/css";
+import { css, cva } from "@hashintel/ds-helpers/css";
 import MonacoEditor from "@monaco-editor/react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
@@ -32,6 +32,226 @@ import { useSDCPNContext } from "../../../../state/sdcpn-provider";
 import { useSimulationStore } from "../../../../state/simulation-provider";
 import { InitialStateEditor } from "./initial-state-editor";
 import { VisualizerErrorBoundary } from "./visualizer-error-boundary";
+
+const containerStyle = css({
+  display: "flex",
+  flexDirection: "column",
+  gap: "[12px]",
+});
+
+const headerContainerStyle = css({
+  display: "flex",
+  justifyContent: "space-between",
+  alignItems: "center",
+  marginBottom: "[8px]",
+});
+
+const headerTitleStyle = css({
+  fontWeight: 600,
+  fontSize: "[16px]",
+});
+
+const deleteButtonStyle = css({
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  width: "[24px]",
+  height: "[24px]",
+  padding: "spacing.0",
+  border: "none",
+  background: "[transparent]",
+  cursor: "pointer",
+  color: "core.gray.60",
+  borderRadius: "radius.4",
+  _hover: {
+    color: "core.red.60",
+    backgroundColor: "core.red.10",
+  },
+});
+
+const fieldLabelStyle = css({
+  fontWeight: 500,
+  fontSize: "[12px]",
+  marginBottom: "[4px]",
+});
+
+const fieldLabelWithTooltipStyle = css({
+  fontWeight: 500,
+  fontSize: "[12px]",
+  marginBottom: "[4px]",
+  display: "flex",
+  alignItems: "center",
+});
+
+const inputStyle = cva({
+  base: {
+    fontSize: "[14px]",
+    padding: "[6px 8px]",
+    borderRadius: "[4px]",
+    width: "[100%]",
+    boxSizing: "border-box",
+  },
+  variants: {
+    isReadOnly: {
+      true: {
+        backgroundColor: "[rgba(0, 0, 0, 0.05)]",
+        cursor: "not-allowed",
+      },
+      false: {
+        backgroundColor: "[white]",
+        cursor: "text",
+      },
+    },
+    hasError: {
+      true: {
+        border: "[1px solid #ef4444]",
+      },
+      false: {
+        border: "[1px solid rgba(0, 0, 0, 0.1)]",
+      },
+    },
+  },
+  defaultVariants: {
+    isReadOnly: false,
+    hasError: false,
+  },
+});
+
+const errorMessageStyle = css({
+  fontSize: "[12px]",
+  color: "[#ef4444]",
+  marginTop: "[4px]",
+});
+
+const selectStyle = cva({
+  base: {
+    fontSize: "[14px]",
+    padding: "[6px 8px]",
+    border: "[1px solid rgba(0, 0, 0, 0.1)]",
+    borderRadius: "[4px]",
+    width: "[100%]",
+    boxSizing: "border-box",
+  },
+  variants: {
+    isReadOnly: {
+      true: {
+        backgroundColor: "[rgba(0, 0, 0, 0.05)]",
+        cursor: "not-allowed",
+      },
+      false: {
+        backgroundColor: "[white]",
+        cursor: "pointer",
+      },
+    },
+    hasMarginBottom: {
+      true: {
+        marginBottom: "[8px]",
+      },
+      false: {},
+    },
+  },
+});
+
+const jumpButtonContainerStyle = css({
+  textAlign: "right",
+});
+
+const jumpButtonStyle = css({
+  fontSize: "[12px]",
+  padding: "[4px 8px]",
+  border: "[1px solid rgba(0, 0, 0, 0.2)]",
+  borderRadius: "[4px]",
+  backgroundColor: "[white]",
+  cursor: "pointer",
+  color: "[#333]",
+  display: "inline-flex",
+  alignItems: "center",
+  gap: "[6px]",
+});
+
+const jumpIconStyle = css({
+  fontSize: "[14px]",
+});
+
+const sectionContainerStyle = css({
+  marginTop: "[10px]",
+});
+
+const switchRowStyle = css({
+  display: "flex",
+  alignItems: "center",
+  gap: "[8px]",
+  marginBottom: "[8px]",
+});
+
+const switchContainerStyle = css({
+  display: "flex",
+  alignItems: "center",
+});
+
+const hintTextStyle = css({
+  fontSize: "[11px]",
+  color: "[#999]",
+  fontStyle: "italic",
+  marginTop: "[4px]",
+});
+
+const diffEqContainerStyle = css({
+  marginBottom: "[25px]",
+});
+
+const menuButtonStyle = css({
+  background: "[transparent]",
+  border: "none",
+  cursor: "pointer",
+  padding: "[4px]",
+  display: "flex",
+  alignItems: "center",
+  fontSize: "[18px]",
+  color: "[rgba(0, 0, 0, 0.6)]",
+});
+
+const codeHeaderStyle = css({
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "space-between",
+  marginBottom: "[4px]",
+});
+
+const codeHeaderLabelStyle = css({
+  fontWeight: 500,
+  fontSize: "[12px]",
+});
+
+const editorBorderStyle = css({
+  border: "[1px solid rgba(0, 0, 0, 0.1)]",
+  borderRadius: "[4px]",
+  overflow: "hidden",
+});
+
+const aiMenuItemStyle = css({
+  display: "flex",
+  alignItems: "center",
+  gap: "[6px]",
+});
+
+const aiIconStyle = css({
+  fontSize: "[16px]",
+});
+
+const visualizerMessageStyle = css({
+  padding: "[12px]",
+  color: "[#666]",
+});
+
+const visualizerErrorStyle = css({
+  padding: "[12px]",
+  color: "[#d32f2f]",
+});
+
+const spacerStyle = css({
+  height: "[40px]",
+});
 
 interface PlacePropertiesProps {
   place: Place;
@@ -173,20 +393,10 @@ export const PlaceProperties: React.FC<PlacePropertiesProps> = ({
   const { removePlace } = useSDCPNContext();
 
   return (
-    <div
-      ref={rootDivRef}
-      style={{ display: "flex", flexDirection: "column", gap: 12 }}
-    >
+    <div ref={rootDivRef} className={containerStyle}>
       <div>
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            marginBottom: 8,
-          }}
-        >
-          <div style={{ fontWeight: 600, fontSize: 16 }}>Place</div>
+        <div className={headerContainerStyle}>
+          <div className={headerTitleStyle}>Place</div>
           <Tooltip content="Delete">
             <button
               type="button"
@@ -200,23 +410,7 @@ export const PlaceProperties: React.FC<PlacePropertiesProps> = ({
                   removePlace(place.id);
                 }
               }}
-              className={css({
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                width: "[24px]",
-                height: "[24px]",
-                padding: "spacing.0",
-                border: "none",
-                background: "[transparent]",
-                cursor: "pointer",
-                color: "core.gray.60",
-                borderRadius: "radius.4",
-                _hover: {
-                  color: "core.red.60",
-                  backgroundColor: "core.red.10",
-                },
-              })}
+              className={deleteButtonStyle}
             >
               <TbTrash size={16} />
             </button>
@@ -225,9 +419,7 @@ export const PlaceProperties: React.FC<PlacePropertiesProps> = ({
       </div>
 
       <div>
-        <div style={{ fontWeight: 500, fontSize: 12, marginBottom: 4 }}>
-          Name
-        </div>
+        <div className={fieldLabelStyle}>Name</div>
         <input
           ref={nameInputRef}
           type="text"
@@ -245,32 +437,13 @@ export const PlaceProperties: React.FC<PlacePropertiesProps> = ({
             handleNameBlur();
           }}
           disabled={isReadOnly}
-          style={{
-            fontSize: 14,
-            padding: "6px 8px",
-            border: `1px solid ${nameError ? "#ef4444" : "rgba(0, 0, 0, 0.1)"}`,
-            borderRadius: 4,
-            width: "100%",
-            boxSizing: "border-box",
-            backgroundColor: isReadOnly ? "rgba(0, 0, 0, 0.05)" : "white",
-            cursor: isReadOnly ? "not-allowed" : "text",
-          }}
+          className={inputStyle({ isReadOnly, hasError: !!nameError })}
         />
-        {nameError && (
-          <div
-            style={{
-              fontSize: 12,
-              color: "#ef4444",
-              marginTop: 4,
-            }}
-          >
-            {nameError}
-          </div>
-        )}
+        {nameError && <div className={errorMessageStyle}>{nameError}</div>}
       </div>
 
       <div>
-        <div style={{ fontWeight: 500, fontSize: 12, marginBottom: 4 }}>
+        <div className={fieldLabelStyle}>
           Accepted token type
           <InfoIconTooltip
             tooltip={`If tokens in this place should carry data ("colour"), assign a data type here.${
@@ -294,17 +467,10 @@ export const PlaceProperties: React.FC<PlacePropertiesProps> = ({
             });
           }}
           disabled={isReadOnly}
-          style={{
-            fontSize: 14,
-            padding: "6px 8px",
-            border: "1px solid rgba(0, 0, 0, 0.1)",
-            borderRadius: 4,
-            width: "100%",
-            boxSizing: "border-box",
-            backgroundColor: isReadOnly ? "rgba(0, 0, 0, 0.05)" : "white",
-            cursor: isReadOnly ? "not-allowed" : "pointer",
-            marginBottom: place.colorId ? 8 : 0,
-          }}
+          className={selectStyle({
+            isReadOnly,
+            hasMarginBottom: !!place.colorId,
+          })}
         >
           <option value="">None</option>
           {types.map((type) => (
@@ -315,42 +481,24 @@ export const PlaceProperties: React.FC<PlacePropertiesProps> = ({
         </select>
 
         {place.colorId && (
-          <div style={{ textAlign: "right" }}>
+          <div className={jumpButtonContainerStyle}>
             <button
               type="button"
               onClick={() => {
                 setSelectedResourceId(place.colorId);
               }}
-              style={{
-                fontSize: 12,
-                padding: "4px 8px",
-                border: "1px solid rgba(0, 0, 0, 0.2)",
-                borderRadius: 4,
-                backgroundColor: "white",
-                cursor: "pointer",
-                color: "#333",
-                display: "inline-flex",
-                alignItems: "center",
-                gap: 6,
-              }}
+              className={jumpButtonStyle}
             >
               Jump to Type
-              <TbArrowRight style={{ fontSize: 14 }} />
+              <TbArrowRight className={jumpIconStyle} />
             </button>
           </div>
         )}
       </div>
 
-      <div style={{ marginTop: 10 }}>
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 8,
-            marginBottom: 8,
-          }}
-        >
-          <div style={{ display: "flex", alignItems: "center" }}>
+      <div className={sectionContainerStyle}>
+        <div className={switchRowStyle}>
+          <div className={switchContainerStyle}>
             <Switch
               checked={!!place.colorId && place.dynamicsEnabled}
               disabled={isReadOnly || place.colorId === null}
@@ -361,27 +509,13 @@ export const PlaceProperties: React.FC<PlacePropertiesProps> = ({
               }}
             />
           </div>
-          <div
-            style={{
-              fontWeight: 500,
-              fontSize: 12,
-              display: "flex",
-              alignItems: "center",
-            }}
-          >
+          <div className={fieldLabelWithTooltipStyle}>
             Dynamics
             <InfoIconTooltip tooltip="Token data can dynamically change over time when tokens remain in a place, governed by a differential equation." />
           </div>
         </div>
         {(place.colorId === null || availableDiffEqs.length === 0) && (
-          <div
-            style={{
-              fontSize: 11,
-              color: "#999",
-              fontStyle: "italic",
-              marginTop: 4,
-            }}
-          >
+          <div className={hintTextStyle}>
             {place.colorId !== null
               ? "Create a differential equation for the selected type in the left-hand sidebar first"
               : availableTypes.length === 0
@@ -394,10 +528,8 @@ export const PlaceProperties: React.FC<PlacePropertiesProps> = ({
       {place.colorId &&
         place.dynamicsEnabled &&
         availableDiffEqs.length > 0 && (
-          <div style={{ marginBottom: 25 }}>
-            <div style={{ fontWeight: 500, fontSize: 12, marginBottom: 4 }}>
-              Differential Equation
-            </div>
+          <div className={diffEqContainerStyle}>
+            <div className={fieldLabelStyle}>Differential Equation</div>
             <select
               value={place.differentialEquationId ?? undefined}
               onChange={(event) => {
@@ -408,17 +540,7 @@ export const PlaceProperties: React.FC<PlacePropertiesProps> = ({
                 });
               }}
               disabled={isReadOnly}
-              style={{
-                fontSize: 14,
-                padding: "6px 8px",
-                border: "1px solid rgba(0, 0, 0, 0.1)",
-                borderRadius: 4,
-                width: "100%",
-                boxSizing: "border-box",
-                backgroundColor: isReadOnly ? "rgba(0, 0, 0, 0.05)" : "white",
-                cursor: isReadOnly ? "not-allowed" : "pointer",
-                marginBottom: 8,
-              }}
+              className={selectStyle({ isReadOnly, hasMarginBottom: true })}
             >
               <option value="">None</option>
               {availableDiffEqs.map((eq) => (
@@ -429,27 +551,16 @@ export const PlaceProperties: React.FC<PlacePropertiesProps> = ({
             </select>
 
             {place.differentialEquationId && (
-              <div style={{ textAlign: "right" }}>
+              <div className={jumpButtonContainerStyle}>
                 <button
                   type="button"
                   onClick={() => {
                     setSelectedResourceId(place.differentialEquationId);
                   }}
-                  style={{
-                    fontSize: 12,
-                    padding: "4px 8px",
-                    border: "1px solid rgba(0, 0, 0, 0.2)",
-                    borderRadius: 4,
-                    backgroundColor: "white",
-                    cursor: "pointer",
-                    color: "#333",
-                    display: "inline-flex",
-                    alignItems: "center",
-                    gap: 6,
-                  }}
+                  className={jumpButtonStyle}
                 >
                   Jump to Differential Equation
-                  <TbArrowRight style={{ fontSize: 14 }} />
+                  <TbArrowRight className={jumpIconStyle} />
                 </button>
               </div>
             )}
@@ -483,19 +594,11 @@ export const PlaceProperties: React.FC<PlacePropertiesProps> = ({
 
           return (
             <div>
-              <div
-                style={{
-                  fontWeight: 500,
-                  fontSize: 12,
-                  marginBottom: 4,
-                }}
-              >
+              <div className={fieldLabelStyle}>
                 {hasSimulationFrames ? "State" : "Initial State"}
               </div>
               <div>
-                <div style={{ fontWeight: 500, fontSize: 12, marginBottom: 4 }}>
-                  Token count
-                </div>
+                <div className={fieldLabelStyle}>Token count</div>
                 <input
                   type="number"
                   min="0"
@@ -512,18 +615,7 @@ export const PlaceProperties: React.FC<PlacePropertiesProps> = ({
                     });
                   }}
                   disabled={hasSimulationFrames}
-                  style={{
-                    fontSize: 14,
-                    padding: "6px 8px",
-                    border: "1px solid rgba(0, 0, 0, 0.1)",
-                    borderRadius: 4,
-                    width: "100%",
-                    boxSizing: "border-box",
-                    backgroundColor: hasSimulationFrames
-                      ? "rgba(0, 0, 0, 0.05)"
-                      : "white",
-                    cursor: hasSimulationFrames ? "not-allowed" : "text",
-                  }}
+                  className={inputStyle({ isReadOnly: hasSimulationFrames })}
                 />
               </div>
             </div>
@@ -541,16 +633,9 @@ export const PlaceProperties: React.FC<PlacePropertiesProps> = ({
 
       {/* Visualizer section */}
       {globalMode === "edit" && (
-        <div style={{ marginTop: 10 }}>
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 8,
-              marginBottom: 8,
-            }}
-          >
-            <div style={{ display: "flex", alignItems: "center" }}>
+        <div className={sectionContainerStyle}>
+          <div className={switchRowStyle}>
+            <div className={switchContainerStyle}>
               <Switch
                 checked={place.visualizerCode !== undefined}
                 onCheckedChange={(checked) => {
@@ -572,14 +657,7 @@ export const PlaceProperties: React.FC<PlacePropertiesProps> = ({
                 }}
               />
             </div>
-            <div
-              style={{
-                fontWeight: 500,
-                fontSize: 12,
-                display: "flex",
-                alignItems: "center",
-              }}
-            >
+            <div className={fieldLabelWithTooltipStyle}>
               Visualizer
               <InfoIconTooltip tooltip="You can set a custom visualization for tokens evolving in a place, viewable in this panel when a simulation is running." />
             </div>
@@ -597,15 +675,8 @@ export const PlaceProperties: React.FC<PlacePropertiesProps> = ({
 
             return (
               <>
-                <div
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "space-between",
-                    marginBottom: 4,
-                  }}
-                >
-                  <div style={{ fontWeight: 500, fontSize: 12 }}>
+                <div className={codeHeaderStyle}>
+                  <div className={codeHeaderLabelStyle}>
                     {showVisualization
                       ? "Visualizer Output"
                       : "Visualizer Code"}
@@ -613,19 +684,7 @@ export const PlaceProperties: React.FC<PlacePropertiesProps> = ({
                   {!showVisualization && (
                     <Menu
                       trigger={
-                        <button
-                          type="button"
-                          style={{
-                            background: "transparent",
-                            border: "none",
-                            cursor: "pointer",
-                            padding: 4,
-                            display: "flex",
-                            alignItems: "center",
-                            fontSize: 18,
-                            color: "rgba(0, 0, 0, 0.6)",
-                          }}
-                        >
+                        <button type="button" className={menuButtonStyle}>
                           <TbDotsVertical />
                         </button>
                       }
@@ -652,14 +711,8 @@ export const PlaceProperties: React.FC<PlacePropertiesProps> = ({
                             <Tooltip
                               content={UI_MESSAGES.AI_FEATURE_COMING_SOON}
                             >
-                              <div
-                                style={{
-                                  display: "flex",
-                                  alignItems: "center",
-                                  gap: 6,
-                                }}
-                              >
-                                <TbSparkles style={{ fontSize: 16 }} />
+                              <div className={aiMenuItemStyle}>
+                                <TbSparkles className={aiIconStyle} />
                                 Generate with AI
                               </div>
                             </Tooltip>
@@ -673,13 +726,7 @@ export const PlaceProperties: React.FC<PlacePropertiesProps> = ({
                     />
                   )}
                 </div>
-                <div
-                  style={{
-                    border: "1px solid rgba(0, 0, 0, 0.1)",
-                    borderRadius: 4,
-                    overflow: "hidden",
-                  }}
-                >
+                <div className={editorBorderStyle}>
                   {showVisualization ? (
                     // Show live token values and parameters during simulation
                     (() => {
@@ -690,7 +737,7 @@ export const PlaceProperties: React.FC<PlacePropertiesProps> = ({
 
                       if (!placeType) {
                         return (
-                          <div style={{ padding: 12, color: "#666" }}>
+                          <div className={visualizerMessageStyle}>
                             Place has no type set
                           </div>
                         );
@@ -707,7 +754,7 @@ export const PlaceProperties: React.FC<PlacePropertiesProps> = ({
                           simulation.frames[currentlyViewedFrame];
                         if (!currentFrame) {
                           return (
-                            <div style={{ padding: 12, color: "#666" }}>
+                            <div className={visualizerMessageStyle}>
                               No frame data available
                             </div>
                           );
@@ -716,7 +763,7 @@ export const PlaceProperties: React.FC<PlacePropertiesProps> = ({
                         const placeState = currentFrame.places.get(place.id);
                         if (!placeState) {
                           return (
-                            <div style={{ padding: 12, color: "#666" }}>
+                            <div className={visualizerMessageStyle}>
                               Place not found in frame
                             </div>
                           );
@@ -779,7 +826,7 @@ export const PlaceProperties: React.FC<PlacePropertiesProps> = ({
                       // Render the compiled visualizer component
                       if (!VisualizerComponent) {
                         return (
-                          <div style={{ padding: 12, color: "#d32f2f" }}>
+                          <div className={visualizerErrorStyle}>
                             Failed to compile visualizer code. Check console for
                             errors.
                           </div>
@@ -830,7 +877,7 @@ export const PlaceProperties: React.FC<PlacePropertiesProps> = ({
         </div>
       )}
 
-      <div style={{ height: 40 }} />
+      <div className={spacerStyle} />
     </div>
   );
 };

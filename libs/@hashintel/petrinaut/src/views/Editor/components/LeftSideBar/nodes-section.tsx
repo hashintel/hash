@@ -1,4 +1,4 @@
-import { css } from "@hashintel/ds-helpers/css";
+import { css, cva } from "@hashintel/ds-helpers/css";
 import { useState } from "react";
 import {
   FaChevronDown,
@@ -10,6 +10,113 @@ import {
 import { InfoIconTooltip } from "../../../../components/tooltip";
 import { useEditorStore } from "../../../../state/editor-provider";
 import { useSDCPNContext } from "../../../../state/sdcpn-provider";
+
+const sectionContainerStyle = css({
+  display: "flex",
+  flexDirection: "column",
+  gap: "[8px]",
+  flex: "[1]",
+  minHeight: "[0]",
+});
+
+const sectionToggleButtonStyle = css({
+  display: "flex",
+  alignItems: "center",
+  gap: "[6px]",
+  fontWeight: 600,
+  fontSize: "[13px]",
+  color: "[#333]",
+  cursor: "pointer",
+  background: "[transparent]",
+  border: "none",
+  padding: "spacing.1",
+  borderRadius: "radius.4",
+  _hover: {
+    backgroundColor: "[rgba(0, 0, 0, 0.05)]",
+  },
+});
+
+const listContainerStyle = css({
+  display: "flex",
+  flexDirection: "column",
+  gap: "[2px]",
+  overflowY: "auto",
+  flex: "[1]",
+});
+
+const nodeRowStyle = cva({
+  base: {
+    display: "flex",
+    alignItems: "center",
+    gap: "[6px]",
+    padding: "[4px 9px]",
+    borderRadius: "radius.4",
+    cursor: "default",
+    transition: "[all 0.15s ease]",
+  },
+  variants: {
+    isSelected: {
+      true: {
+        backgroundColor: "core.blue.20",
+        _hover: {
+          backgroundColor: "core.blue.30",
+        },
+      },
+      false: {
+        backgroundColor: "[transparent]",
+        _hover: {
+          backgroundColor: "[rgba(0, 0, 0, 0.05)]",
+        },
+      },
+    },
+  },
+});
+
+const nodeIconStyle = cva({
+  base: {
+    flexShrink: 0,
+  },
+  variants: {
+    isSelected: {
+      true: {
+        color: "[#3b82f6]",
+      },
+      false: {
+        color: "[#9ca3af]",
+      },
+    },
+  },
+});
+
+const nodeNameStyle = cva({
+  base: {
+    fontSize: "[13px]",
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+    whiteSpace: "nowrap",
+  },
+  variants: {
+    isSelected: {
+      true: {
+        color: "[#1e40af]",
+        fontWeight: 500,
+      },
+      false: {
+        color: "[#374151]",
+        fontWeight: 400,
+      },
+    },
+  },
+});
+
+const emptyMessageStyle = css({
+  fontSize: "[13px]",
+  color: "[#9ca3af]",
+  padding: "spacing.4",
+  textAlign: "center",
+});
+
+// --- Component ---
 
 export const NodesSection: React.FC = () => {
   const [isExpanded, setIsExpanded] = useState(true);
@@ -29,35 +136,11 @@ export const NodesSection: React.FC = () => {
   };
 
   return (
-    <div
-      style={{
-        display: "flex",
-        flexDirection: "column",
-        gap: 8,
-        flex: 1,
-        minHeight: 0,
-      }}
-    >
+    <div className={sectionContainerStyle}>
       <button
         type="button"
         onClick={() => setIsExpanded(!isExpanded)}
-        className={css({
-          display: "flex",
-          alignItems: "center",
-          fontWeight: 600,
-          fontSize: "[13px]",
-          color: "[#333]",
-          paddingBottom: "[4px]",
-          cursor: "pointer",
-          background: "[transparent]",
-          border: "none",
-          padding: "spacing.1",
-          borderRadius: "radius.4",
-          _hover: {
-            backgroundColor: "[rgba(0, 0, 0, 0.05)]",
-          },
-        })}
-        style={{ gap: 6 }}
+        className={sectionToggleButtonStyle}
       >
         {isExpanded ? (
           <FaChevronDown size={10} />
@@ -72,15 +155,7 @@ export const NodesSection: React.FC = () => {
 
       {/* Nodes List */}
       {isExpanded && (
-        <div
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            gap: 2,
-            overflowY: "auto",
-            flex: 1,
-          }}
-        >
+        <div className={listContainerStyle}>
           {/* Places */}
           {places.map((place) => {
             const isSelected = selectedResourceId === place.id;
@@ -96,43 +171,10 @@ export const NodesSection: React.FC = () => {
                     handleLayerClick(place.id);
                   }
                 }}
-                className={css({
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "spacing.2",
-                  padding: "spacing.2",
-                  paddingX: "spacing.3",
-                  borderRadius: "radius.4",
-                  cursor: "default",
-                  transition: "[all 0.15s ease]",
-                  backgroundColor: isSelected
-                    ? "core.blue.20"
-                    : "[transparent]",
-                  _hover: {
-                    backgroundColor: isSelected
-                      ? "core.blue.30"
-                      : "[rgba(0, 0, 0, 0.05)]",
-                  },
-                })}
-                style={{ padding: "4px 9px", gap: 6 }}
+                className={nodeRowStyle({ isSelected })}
               >
-                <FaCircle
-                  size={12}
-                  style={{
-                    color: isSelected ? "#3b82f6" : "#9ca3af",
-                    flexShrink: 0,
-                  }}
-                />
-                <span
-                  style={{
-                    fontSize: 13,
-                    color: isSelected ? "#1e40af" : "#374151",
-                    fontWeight: isSelected ? 500 : 400,
-                    overflow: "hidden",
-                    textOverflow: "ellipsis",
-                    whiteSpace: "nowrap",
-                  }}
-                >
+                <FaCircle size={12} className={nodeIconStyle({ isSelected })} />
+                <span className={nodeNameStyle({ isSelected })}>
                   {place.name || `Place ${place.id}`}
                 </span>
               </div>
@@ -154,41 +196,10 @@ export const NodesSection: React.FC = () => {
                     handleLayerClick(transition.id);
                   }
                 }}
-                className={css({
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "spacing.2",
-                  borderRadius: "radius.4",
-                  cursor: "default",
-                  transition: "[all 0.15s ease]",
-                  backgroundColor: isSelected
-                    ? "core.blue.20"
-                    : "[transparent]",
-                  _hover: {
-                    backgroundColor: isSelected
-                      ? "core.blue.30"
-                      : "[rgba(0, 0, 0, 0.05)]",
-                  },
-                })}
-                style={{ padding: "4px 9px", gap: 6 }}
+                className={nodeRowStyle({ isSelected })}
               >
-                <FaSquare
-                  size={12}
-                  style={{
-                    color: isSelected ? "#3b82f6" : "#9ca3af",
-                    flexShrink: 0,
-                  }}
-                />
-                <span
-                  style={{
-                    fontSize: 13,
-                    color: isSelected ? "#1e40af" : "#374151",
-                    fontWeight: isSelected ? 500 : 400,
-                    overflow: "hidden",
-                    textOverflow: "ellipsis",
-                    whiteSpace: "nowrap",
-                  }}
-                >
+                <FaSquare size={12} className={nodeIconStyle({ isSelected })} />
+                <span className={nodeNameStyle({ isSelected })}>
                   {transition.name || `Transition ${transition.id}`}
                 </span>
               </div>
@@ -197,16 +208,7 @@ export const NodesSection: React.FC = () => {
 
           {/* Empty state */}
           {places.length === 0 && transitions.length === 0 && (
-            <div
-              style={{
-                fontSize: 13,
-                color: "#9ca3af",
-                padding: "spacing.4",
-                textAlign: "center",
-              }}
-            >
-              No nodes yet
-            </div>
+            <div className={emptyMessageStyle}>No nodes yet</div>
           )}
         </div>
       )}
