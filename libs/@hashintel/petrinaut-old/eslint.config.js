@@ -20,7 +20,9 @@ export default [
     files: ["dev/**/*"],
     languageOptions: {
       parserOptions: {
-        project: "./dev/tsconfig.json",
+        projectService: {
+          defaultProject: "./dev/tsconfig.json",
+        },
         tsconfigRootDir: import.meta.dirname,
       },
     },
