@@ -6,13 +6,6 @@ import { useEditorStore } from "../../../../state/editor-provider";
 import { useSDCPNContext } from "../../../../state/sdcpn-provider";
 import { useSimulationStore } from "../../../../state/simulation-provider";
 
-const headerStyle = css({
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "flex-end",
-  marginBottom: "[8px]",
-});
-
 const addButtonStyle = css({
   display: "flex",
   alignItems: "center",
@@ -137,32 +130,21 @@ const emptyMessageStyle = css({
 });
 
 /**
- * ParametersContent displays global parameters in the BottomPanel.
+ * Header action component for adding parameters.
+ * Shown in the panel header when not in simulation mode.
  */
-export const ParametersContent: React.FC = () => {
+const ParametersHeaderAction: React.FC = () => {
   const {
     petriNetDefinition: { parameters },
     addParameter,
-    removeParameter,
   } = useSDCPNContext();
   const globalMode = useEditorStore((state) => state.globalMode);
   const simulationState = useSimulationStore((state) => state.state);
-  const selectedResourceId = useEditorStore(
-    (state) => state.selectedResourceId,
-  );
   const setSelectedResourceId = useEditorStore(
-    (state) => state.setSelectedResourceId,
-  );
-  const parameterValues = useSimulationStore((state) => state.parameterValues);
-  const setParameterValue = useSimulationStore(
-    (state) => state.setParameterValue,
+    (state) => state.setSelectedResourceId
   );
 
-  const isSimulationNotRun =
-    globalMode === "simulate" && simulationState === "NotRun";
   const isSimulationMode = globalMode === "simulate";
-
-  // Check if simulation is running or paused
   const isSimulationActive =
     simulationState === "Running" || simulationState === "Paused";
 
@@ -179,22 +161,55 @@ export const ParametersContent: React.FC = () => {
     setSelectedResourceId(id);
   };
 
+  // Don't show add button in simulation mode
+  if (isSimulationMode) {
+    return null;
+  }
+
+  return (
+    <button
+      type="button"
+      disabled={isSimulationActive}
+      onClick={handleAddParameter}
+      className={addButtonStyle}
+      aria-label="Add parameter"
+    >
+      +
+    </button>
+  );
+};
+
+/**
+ * ParametersContent displays global parameters in the BottomPanel.
+ */
+export const ParametersContent: React.FC = () => {
+  const {
+    petriNetDefinition: { parameters },
+    removeParameter,
+  } = useSDCPNContext();
+  const globalMode = useEditorStore((state) => state.globalMode);
+  const simulationState = useSimulationStore((state) => state.state);
+  const selectedResourceId = useEditorStore(
+    (state) => state.selectedResourceId
+  );
+  const setSelectedResourceId = useEditorStore(
+    (state) => state.setSelectedResourceId
+  );
+  const parameterValues = useSimulationStore((state) => state.parameterValues);
+  const setParameterValue = useSimulationStore(
+    (state) => state.setParameterValue
+  );
+
+  const isSimulationNotRun =
+    globalMode === "simulate" && simulationState === "NotRun";
+  const isSimulationMode = globalMode === "simulate";
+
+  // Check if simulation is running or paused
+  const isSimulationActive =
+    simulationState === "Running" || simulationState === "Paused";
+
   return (
     <div>
-      {!isSimulationMode && (
-        <div className={headerStyle}>
-          <button
-            type="button"
-            disabled={isSimulationActive}
-            onClick={handleAddParameter}
-            className={addButtonStyle}
-            aria-label="Add parameter"
-          >
-            +
-          </button>
-        </div>
-      )}
-
       <div className={listContainerStyle}>
         {parameters.map((param) => {
           const isSelected = selectedResourceId === param.id;
@@ -281,4 +296,5 @@ export const parametersSubView: SubView = {
   tooltip:
     "Parameters are injected into dynamics, lambda, and kernel functions.",
   component: ParametersContent,
+  renderHeaderAction: () => <ParametersHeaderAction />,
 };
