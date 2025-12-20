@@ -102,11 +102,18 @@ const splitBuffer = (scratch: Scratch, that: ArrayBuffer) => {
   return [self, output] as const;
 };
 
+interface PackOptions {
+  /**
+   * Whether to delay sending the packet until the buffer is full.
+   *
+   * @defaultValue false
+   */
+  readonly noDelay?: boolean;
+}
+
 const pack = <E, R>(
   stream: Stream.Stream<ArrayBuffer, E, R>,
-  options?: {
-    readonly noDelay?: boolean;
-  },
+  options?: PackOptions,
 ) =>
   Effect.gen(function* () {
     const noDelay = options?.noDelay ?? false;
@@ -159,6 +166,11 @@ const pack = <E, R>(
   }).pipe(Stream.unwrap);
 
 export interface EncodeOptions {
+  /**
+   * Whether to delay sending the packet until the buffer is full.
+   *
+   * @defaultValue false
+   */
   readonly noDelay?: boolean;
 }
 
@@ -235,6 +247,7 @@ const encodeImpl = <E, R>(self: Request<E, R>, options?: EncodeOptions) =>
 export const isRequest = (value: unknown): value is Request<unknown, unknown> =>
   Predicate.hasProperty(value, TypeId);
 
+// eslint-disable-next-line fsecond/no-inline-interfaces
 export const encode: {
   <E, R>(
     self: Request<E, R>,

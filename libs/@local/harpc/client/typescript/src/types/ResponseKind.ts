@@ -159,6 +159,7 @@ export const isOk = (value: unknown): value is Ok =>
 export const isErr = (value: unknown): value is Err =>
   isResponseKind(value) && value._tag === "Err";
 
+// eslint-disable-next-line fsecond/no-inline-interfaces
 export const match: {
   <A, B = A>(options: {
     readonly onOk: () => A;
@@ -175,6 +176,7 @@ export const match: {
   2,
   <A, B = A>(
     self: ResponseKind,
+    // eslint-disable-next-line fsecond/no-inline-interfaces
     options: {
       readonly onOk: () => A;
       readonly onErr: (code: ErrorCode.ErrorCode) => B;

@@ -17,10 +17,14 @@ export class InvalidJsonError extends Data.TaggedError("InvalidJsonError")<{
   }
 }
 
+interface TextDecodeOptions {
+  readonly stream: boolean;
+}
+
 const textDecode = (
   decoder: TextDecoder,
   buffer: ArrayBuffer,
-  options: { readonly stream: boolean },
+  options: TextDecodeOptions,
 ) =>
   Effect.try({
     try: () => {
