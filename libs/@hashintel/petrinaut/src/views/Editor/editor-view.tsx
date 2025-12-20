@@ -71,7 +71,7 @@ export const EditorView = ({
 
   // Get simulation store method to initialize parameter values
   const initializeParameterValuesFromDefaults = useSimulationStore(
-    (state) => state.initializeParameterValuesFromDefaults
+    (state) => state.initializeParameterValuesFromDefaults,
   );
 
   // Handler for mode change that initializes parameter values when switching to simulate mode
