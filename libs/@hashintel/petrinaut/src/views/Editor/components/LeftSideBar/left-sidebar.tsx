@@ -1,4 +1,5 @@
 import { css, cva } from "@hashintel/ds-helpers/css";
+import { useMemo } from "react";
 import {
   TbLayoutSidebarLeftCollapse,
   TbLayoutSidebarRightCollapse,
@@ -6,17 +7,19 @@ import {
 
 import { GlassPanel } from "../../../../components/glass-panel";
 import type { MenuItem } from "../../../../components/menu";
+import { VerticalSubViewsContainer } from "../../../../components/sub-view";
+import type { SubView } from "../../../../components/sub-view/types";
 import {
   MAX_LEFT_SIDEBAR_WIDTH,
   MIN_LEFT_SIDEBAR_WIDTH,
   PANEL_MARGIN,
 } from "../../../../constants/ui";
 import { useEditorStore } from "../../../../state/editor-provider";
-import { DifferentialEquationsSection } from "./differential-equations-section";
+import { differentialEquationsSectionSubView } from "./differential-equations-section";
 import { FloatingTitle } from "./floating-title";
 import { HamburgerMenu } from "./hamburger-menu";
-import { NodesSection } from "./nodes-section";
-import { TypesSection } from "./types-section";
+import { nodesSectionSubView } from "./nodes-section";
+import { typesSectionSubView } from "./types-section";
 
 const outerContainerStyle = cva({
   base: {
@@ -148,11 +151,21 @@ export const LeftSideBar: React.FC<LeftSideBarProps> = ({
 }) => {
   const isOpen = useEditorStore((state) => state.isLeftSidebarOpen);
   const setLeftSidebarOpen = useEditorStore(
-    (state) => state.setLeftSidebarOpen,
+    (state) => state.setLeftSidebarOpen
   );
   const leftSidebarWidth = useEditorStore((state) => state.leftSidebarWidth);
   const setLeftSidebarWidth = useEditorStore(
-    (state) => state.setLeftSidebarWidth,
+    (state) => state.setLeftSidebarWidth
+  );
+
+  // Define the subviews for the left sidebar
+  const subViews: SubView[] = useMemo(
+    () => [
+      typesSectionSubView,
+      differentialEquationsSectionSubView,
+      nodesSectionSubView,
+    ],
+    []
   );
 
   return (
@@ -207,18 +220,7 @@ export const LeftSideBar: React.FC<LeftSideBarProps> = ({
         </div>
 
         {/* Content sections - only visible when open */}
-        {isOpen && (
-          <>
-            {/* Types Section - only in Edit mode */}
-            <TypesSection />
-
-            {/* Differential Equations Section - only in Edit mode */}
-            <DifferentialEquationsSection />
-
-            {/* Nodes Section */}
-            <NodesSection />
-          </>
-        )}
+        {isOpen && <VerticalSubViewsContainer subViews={subViews} />}
       </GlassPanel>
     </div>
   );

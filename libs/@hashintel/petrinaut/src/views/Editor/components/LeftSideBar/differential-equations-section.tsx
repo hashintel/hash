@@ -1,71 +1,11 @@
 import { css, cva } from "@hashintel/ds-helpers/css";
-import { useState } from "react";
-import { FaChevronDown, FaChevronRight } from "react-icons/fa6";
 import { v4 as uuidv4 } from "uuid";
 
-import { InfoIconTooltip } from "../../../../components/tooltip";
+import type { SubView } from "../../../../components/sub-view/types";
 import { DEFAULT_DIFFERENTIAL_EQUATION_CODE } from "../../../../core/default-codes";
 import { useEditorStore } from "../../../../state/editor-provider";
 import { useSDCPNContext } from "../../../../state/sdcpn-provider";
 import { useSimulationStore } from "../../../../state/simulation-provider";
-
-const sectionContainerStyle = css({
-  display: "flex",
-  flexDirection: "column",
-  gap: "[8px]",
-  paddingBottom: "[16px]",
-  borderBottom: "[1px solid rgba(0, 0, 0, 0.1)]",
-});
-
-const headerRowStyle = css({
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "space-between",
-});
-
-const sectionToggleButtonStyle = css({
-  display: "flex",
-  alignItems: "center",
-  gap: "[6px]",
-  fontWeight: 600,
-  fontSize: "[13px]",
-  color: "[#333]",
-  cursor: "pointer",
-  background: "[transparent]",
-  border: "none",
-  padding: "spacing.1",
-  borderRadius: "radius.4",
-  _hover: {
-    backgroundColor: "[rgba(0, 0, 0, 0.05)]",
-  },
-});
-
-const addButtonStyle = css({
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-  padding: "spacing.1",
-  borderRadius: "radius.2",
-  cursor: "pointer",
-  fontSize: "[18px]",
-  color: "core.gray.60",
-  background: "[transparent]",
-  border: "none",
-  width: "[24px]",
-  height: "[24px]",
-  _hover: {
-    backgroundColor: "[rgba(0, 0, 0, 0.05)]",
-    color: "core.gray.90",
-  },
-  _disabled: {
-    cursor: "not-allowed",
-    opacity: "[0.4]",
-    _hover: {
-      backgroundColor: "[transparent]",
-      color: "core.gray.60",
-    },
-  },
-});
 
 const listContainerStyle = css({
   display: "flex",
@@ -141,12 +81,40 @@ const emptyMessageStyle = css({
   textAlign: "center",
 });
 
-export const DifferentialEquationsSection: React.FC = () => {
-  const [isExpanded, setIsExpanded] = useState(true);
+const addButtonStyle = css({
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  padding: "spacing.1",
+  borderRadius: "radius.2",
+  cursor: "pointer",
+  fontSize: "[18px]",
+  color: "core.gray.60",
+  background: "[transparent]",
+  border: "none",
+  width: "[24px]",
+  height: "[24px]",
+  _hover: {
+    backgroundColor: "[rgba(0, 0, 0, 0.05)]",
+    color: "core.gray.90",
+  },
+  _disabled: {
+    cursor: "not-allowed",
+    opacity: "[0.4]",
+    _hover: {
+      backgroundColor: "[transparent]",
+      color: "core.gray.60",
+    },
+  },
+});
 
+/**
+ * DifferentialEquationsSectionContent displays the list of differential equations.
+ * This is the content portion without the collapsible header.
+ */
+export const DifferentialEquationsSectionContent: React.FC = () => {
   const {
-    petriNetDefinition: { types, differentialEquations },
-    addDifferentialEquation,
+    petriNetDefinition: { differentialEquations },
     removeDifferentialEquation,
   } = useSDCPNContext();
 
@@ -163,103 +131,111 @@ export const DifferentialEquationsSection: React.FC = () => {
     simulationState === "Running" || simulationState === "Paused";
 
   return (
-    <div className={sectionContainerStyle}>
-      <div className={headerRowStyle}>
-        <button
-          type="button"
-          onClick={() => setIsExpanded(!isExpanded)}
-          className={sectionToggleButtonStyle}
-        >
-          {isExpanded ? (
-            <FaChevronDown size={10} />
-          ) : (
-            <FaChevronRight size={10} />
-          )}
-          <span>
-            Differential Equations
-            <InfoIconTooltip
-              tooltip={`Differential equations govern how token data changes over time when tokens remain in a place ("dynamics").`}
-            />
-          </span>
-        </button>
-        <button
-          type="button"
-          disabled={isSimulationActive}
-          onClick={() => {
-            const name = `Equation ${differentialEquations.length + 1}`;
-            const id = uuidv4();
-            addDifferentialEquation({
-              id,
-              name,
-              colorId: types.length > 0 ? types[0]!.id : "",
-              code: DEFAULT_DIFFERENTIAL_EQUATION_CODE,
-            });
-            setSelectedResourceId(id);
-          }}
-          className={addButtonStyle}
-          aria-label="Add differential equation"
-        >
-          +
-        </button>
-      </div>
-      {isExpanded && (
-        <div className={listContainerStyle}>
-          {differentialEquations.map((eq) => {
-            const isSelected = selectedResourceId === eq.id;
+    <div className={listContainerStyle}>
+      {differentialEquations.map((eq) => {
+        const isSelected = selectedResourceId === eq.id;
 
-            return (
-              <div
-                key={eq.id}
-                onClick={(event) => {
-                  // Don't trigger selection if clicking the delete button
-                  if (
-                    event.target instanceof HTMLElement &&
-                    event.target.closest("button[aria-label^='Delete']")
-                  ) {
-                    return;
-                  }
-                  setSelectedResourceId(eq.id);
-                }}
-                role="button"
-                tabIndex={0}
-                onKeyDown={(event) => {
-                  if (event.key === "Enter" || event.key === " ") {
-                    setSelectedResourceId(eq.id);
-                  }
-                }}
-                className={equationRowStyle({ isSelected })}
-              >
-                <div className={equationNameContainerStyle}>
-                  <span>{eq.name}</span>
-                </div>
-                <button
-                  type="button"
-                  disabled={isSimulationActive}
-                  onClick={() => {
-                    if (
-                      // eslint-disable-next-line no-alert
-                      window.confirm(
-                        `Delete equation "${eq.name}"? Any places referencing this equation will have their differential equation reset.`,
-                      )
-                    ) {
-                      removeDifferentialEquation(eq.id);
-                    }
-                  }}
-                  className={deleteButtonStyle}
-                  aria-label={`Delete equation ${eq.name}`}
-                >
-                  ×
-                </button>
-              </div>
-            );
-          })}
-          {differentialEquations.length === 0 && (
-            <div className={emptyMessageStyle}>
-              No differential equations yet
+        return (
+          <div
+            key={eq.id}
+            onClick={(event) => {
+              // Don't trigger selection if clicking the delete button
+              if (
+                event.target instanceof HTMLElement &&
+                event.target.closest("button[aria-label^='Delete']")
+              ) {
+                return;
+              }
+              setSelectedResourceId(eq.id);
+            }}
+            role="button"
+            tabIndex={0}
+            onKeyDown={(event) => {
+              if (event.key === "Enter" || event.key === " ") {
+                setSelectedResourceId(eq.id);
+              }
+            }}
+            className={equationRowStyle({ isSelected })}
+          >
+            <div className={equationNameContainerStyle}>
+              <span>{eq.name}</span>
             </div>
-          )}
-        </div>
+            <button
+              type="button"
+              disabled={isSimulationActive}
+              onClick={() => {
+                if (
+                  // eslint-disable-next-line no-alert
+                  window.confirm(
+                    `Delete equation "${eq.name}"? Any places referencing this equation will have their differential equation reset.`,
+                  )
+                ) {
+                  removeDifferentialEquation(eq.id);
+                }
+              }}
+              className={deleteButtonStyle}
+              aria-label={`Delete equation ${eq.name}`}
+            >
+              ×
+            </button>
+          </div>
+        );
+      })}
+      {differentialEquations.length === 0 && (
+        <div className={emptyMessageStyle}>No differential equations yet</div>
       )}
     </div>
   );
+};
+
+/**
+ * DifferentialEquationsSectionHeaderAction renders the add button for the section header.
+ */
+export const DifferentialEquationsSectionHeaderAction: React.FC = () => {
+  const {
+    petriNetDefinition: { types, differentialEquations },
+    addDifferentialEquation,
+  } = useSDCPNContext();
+  const setSelectedResourceId = useEditorStore(
+    (state) => state.setSelectedResourceId,
+  );
+
+  // Check if simulation is running or paused
+  const simulationState = useSimulationStore((state) => state.state);
+  const isSimulationActive =
+    simulationState === "Running" || simulationState === "Paused";
+
+  return (
+    <button
+      type="button"
+      disabled={isSimulationActive}
+      onClick={() => {
+        const name = `Equation ${differentialEquations.length + 1}`;
+        const id = uuidv4();
+        addDifferentialEquation({
+          id,
+          name,
+          colorId: types.length > 0 ? types[0]!.id : "",
+          code: DEFAULT_DIFFERENTIAL_EQUATION_CODE,
+        });
+        setSelectedResourceId(id);
+      }}
+      className={addButtonStyle}
+      aria-label="Add differential equation"
+    >
+      +
+    </button>
+  );
+};
+
+/**
+ * SubView definition for Differential Equations section.
+ */
+export const differentialEquationsSectionSubView: SubView = {
+  id: "differential-equations",
+  title: "Differential Equations",
+  tooltip: `Differential equations govern how token data changes over time when tokens remain in a place ("dynamics").`,
+  component: DifferentialEquationsSectionContent,
+  renderHeaderAction: () => <DifferentialEquationsSectionHeaderAction />,
+  flexGrow: false,
 };

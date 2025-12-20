@@ -2,6 +2,7 @@ import { css } from "@hashintel/ds-helpers/css";
 import { useState } from "react";
 import { TbArrowRight } from "react-icons/tb";
 
+import type { SubView } from "../../../../components/sub-view/types";
 import { InfoIconTooltip } from "../../../../components/tooltip";
 import { useEditorStore } from "../../../../state/editor-provider";
 import { useSDCPNContext } from "../../../../state/sdcpn-provider";
@@ -324,4 +325,15 @@ export const SimulationSettingsContent: React.FC = () => {
       )}
     </div>
   );
+};
+
+/**
+ * SubView definition for Simulation Settings tab.
+ */
+export const simulationSettingsSubView: SubView = {
+  id: "simulation-settings",
+  title: "Simulation Settings",
+  tooltip:
+    "Configure simulation parameters including time step and ODE solver method.",
+  component: SimulationSettingsContent,
 };
