@@ -1,0 +1,14 @@
+//@ run: pass
+//@ description: Identity simplification: x || false => x
+// The result of x || false is just x when x is boolean.
+[
+  "if",
+  { "#literal": true },
+  [
+    "let",
+    "x",
+    ["==", { "#literal": 1 }, { "#literal": 1 }],
+    ["||", "x", { "#literal": false }]
+  ],
+  { "#literal": false }
+]

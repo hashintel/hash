@@ -1,0 +1,10 @@
+//@ run: pass
+//@ description: Constant folding for less-than comparison of two constants
+// Before: _0 = (3 < 5) evaluates at runtime
+// After: _0 = true (folded at compile time)
+[
+  "if",
+  { "#literal": true },
+  ["<", { "#literal": 3 }, { "#literal": 5 }],
+  { "#literal": false }
+]

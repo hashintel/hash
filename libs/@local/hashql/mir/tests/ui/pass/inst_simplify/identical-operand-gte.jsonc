@@ -1,0 +1,9 @@
+//@ run: pass
+//@ description: Identical operand simplification: x >= x => true (reflexive)
+// A value is always greater than or equal to itself.
+[
+  "if",
+  { "#literal": true },
+  ["let", "x", { "#literal": 42 }, [">=", "x", "x"]],
+  { "#literal": false }
+]
