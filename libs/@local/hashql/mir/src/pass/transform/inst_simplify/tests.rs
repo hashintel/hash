@@ -1,9 +1,3 @@
-//! Insta tests for `InstSimplify` operations not expressible in HashQL source.
-//!
-//! These tests cover bitwise operations on integers, unary operations, and block
-//! parameter propagation which require direct MIR construction. Boolean logical
-//! operations and comparisons are tested via compiletest.
-
 use std::path::PathBuf;
 
 use bstr::ByteVec as _;
