@@ -1,0 +1,9 @@
+//@ run: pass
+//@ description: Identical operand simplification: x == x => true (reflexive)
+// When both operands of equality are the same place, the result is always true.
+[
+  "if",
+  { "#literal": true },
+  ["let", "x", { "#literal": 42 }, ["==", "x", "x"]],
+  { "#literal": false }
+]

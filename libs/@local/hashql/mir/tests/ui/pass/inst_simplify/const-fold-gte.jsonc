@@ -1,0 +1,10 @@
+//@ run: pass
+//@ description: Constant folding for greater-than-or-equal comparison
+// Before: _0 = (5 >= 5) evaluates at runtime
+// After: _0 = true (folded at compile time)
+[
+  "if",
+  { "#literal": true },
+  [">=", { "#literal": 5 }, { "#literal": 5 }],
+  { "#literal": false }
+]
