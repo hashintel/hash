@@ -1,8 +1,7 @@
-use core::convert::Infallible;
-use std::alloc::Allocator;
+use core::{alloc::Allocator, convert::Infallible};
 
 use hashql_core::{
-    heap::{BumpAllocator, CloneIn, TransferInto},
+    heap::{BumpAllocator, TransferInto as _},
     id::IdVec,
     r#type::{environment::Environment, kind::PrimitiveType},
 };
@@ -137,9 +136,17 @@ impl<'heap, A: Allocator> InstSimplifyVisitor<'_, 'heap, A> {
         match (op, lhs.as_int()) {
             // true && rhs => rhs
             (BinOp::BitAnd, 1) if is_bool => Some(RValue::Load(Operand::Place(rhs))),
+            // false && rhs => false
+            (BinOp::BitAnd, 0) if is_bool => {
+                Some(RValue::Load(Operand::Constant(Constant::Int(false.into()))))
+            }
             (BinOp::BitAnd, _) => None,
             // 0 | rhs => rhs
             (BinOp::BitOr, 0) => Some(RValue::Load(Operand::Place(rhs))),
+            // true || rhs => true
+            (BinOp::BitOr, 1) if is_bool => {
+                Some(RValue::Load(Operand::Constant(Constant::Int(true.into()))))
+            }
             (BinOp::BitOr, _) => None,
             // 1 == rhs => rhs
             (BinOp::Eq, 1) if is_bool => Some(RValue::Load(Operand::Place(rhs))),
@@ -178,9 +185,17 @@ impl<'heap, A: Allocator> InstSimplifyVisitor<'_, 'heap, A> {
         match (op, rhs.as_int()) {
             // lhs && true => lhs
             (BinOp::BitAnd, 1) if is_bool => Some(RValue::Load(Operand::Place(lhs))),
+            // rhs && false => false
+            (BinOp::BitAnd, 0) if is_bool => {
+                Some(RValue::Load(Operand::Constant(Constant::Int(false.into()))))
+            }
             (BinOp::BitAnd, _) => None,
             // lhs | 0 => lhs
             (BinOp::BitOr, 0) => Some(RValue::Load(Operand::Place(lhs))),
+            // rhs || 1 => true
+            (BinOp::BitOr, 1) if is_bool => {
+                Some(RValue::Load(Operand::Constant(Constant::Int(true.into()))))
+            }
             (BinOp::BitOr, _) => None,
             // lhs == 1 => lhs
             (BinOp::Eq, 1) if is_bool => Some(RValue::Load(Operand::Place(lhs))),
@@ -203,6 +218,46 @@ impl<'heap, A: Allocator> InstSimplifyVisitor<'_, 'heap, A> {
             (BinOp::Gt, _) => None,
             (BinOp::Gte, _) => None,
         }
+    }
+
+    #[expect(clippy::match_same_arms)]
+    fn simplify_bin_op_place(
+        lhs: Place<'heap>,
+        op: BinOp,
+        rhs: Place<'heap>,
+    ) -> Option<RValue<'heap>> {
+        let is_same = lhs.local == rhs.local
+            && lhs.projections.len() == rhs.projections.len()
+            && lhs
+                .projections
+                .iter()
+                .zip(rhs.projections)
+                .all(|(lhs, rhs)| lhs.kind == rhs.kind);
+
+        if !is_same {
+            return None;
+        }
+
+        let bool = match op {
+            // x & x => x
+            BinOp::BitAnd => return Some(RValue::Load(Operand::Place(lhs))),
+            // x | x => x
+            BinOp::BitOr => return Some(RValue::Load(Operand::Place(lhs))),
+            // x == x => true
+            BinOp::Eq => true,
+            // x != x => false
+            BinOp::Ne => false,
+            // x < x => false
+            BinOp::Lt => false,
+            // x <= x => true
+            BinOp::Lte => true,
+            // x > x => false
+            BinOp::Gt => false,
+            // x >= x => true
+            BinOp::Gte => true,
+        };
+
+        Some(RValue::Load(Operand::Constant(Constant::Int(bool.into()))))
     }
 }
 
@@ -239,6 +294,12 @@ impl<'heap, A: Allocator> VisitorMut<'heap> for InstSimplifyVisitor<'_, 'heap, A
             }
             (OperandKind::Int(lhs), OperandKind::Place(rhs)) => {
                 let result = self.simplify_bin_op_left(lhs, *op, rhs);
+                if let Some(result) = result {
+                    self.trampoline = Some(result);
+                }
+            }
+            (OperandKind::Place(lhs), OperandKind::Place(rhs)) => {
+                let result = Self::simplify_bin_op_place(lhs, *op, rhs);
                 if let Some(result) = result {
                     self.trampoline = Some(result);
                 }
