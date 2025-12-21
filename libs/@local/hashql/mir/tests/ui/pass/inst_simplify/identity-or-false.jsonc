@@ -1,6 +1,5 @@
 //@ run: pass
 //@ description: Identity simplification: x || false => x
-// The result of x || false is just x when x is boolean.
 [
   "if",
   { "#literal": true },
