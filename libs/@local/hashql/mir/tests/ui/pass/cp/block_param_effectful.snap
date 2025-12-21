@@ -1,0 +1,45 @@
+---
+source: libs/@local/hashql/mir/src/pass/transform/cp/tests.rs
+expression: value
+---
+fn {intrinsic#4294967040}(%0: ?) -> Boolean {
+    let %1: Integer
+    let %2: Boolean
+
+    bb0(): {
+        graph read entities(%0)
+        |> collect -> bb2(_)
+    }
+
+    bb1(): {
+        goto -> bb2(1)
+    }
+
+    bb2(%1): {
+        %2 = %1 == %1
+
+        return %2
+    }
+}
+
+------------------------------------
+
+fn {intrinsic#4294967040}(%0: ?) -> Boolean {
+    let %1: Integer
+    let %2: Boolean
+
+    bb0(): {
+        graph read entities(%0)
+        |> collect -> bb2(_)
+    }
+
+    bb1(): {
+        goto -> bb2(1)
+    }
+
+    bb2(%1): {
+        %2 = %1 == %1
+
+        return %2
+    }
+}
