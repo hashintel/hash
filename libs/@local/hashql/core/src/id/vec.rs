@@ -1,6 +1,6 @@
 use alloc::{alloc::Global, vec};
 use core::{
-    alloc::Allocator,
+    alloc::{AllocError, Allocator},
     borrow::{Borrow, BorrowMut},
     cmp::Ordering,
     fmt::{self, Debug},
@@ -8,10 +8,9 @@ use core::{
     marker::PhantomData,
     ops::{Deref, DerefMut},
 };
-use std::alloc::AllocError;
 
 use super::{Id, slice::IdSlice};
-use crate::heap::{CloneIn, TryCloneIn};
+use crate::heap::TryCloneIn;
 
 /// A growable vector that uses typed IDs for indexing instead of raw `usize` values.
 ///

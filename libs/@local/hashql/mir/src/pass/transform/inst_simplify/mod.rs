@@ -302,7 +302,7 @@ impl<'heap, A: Allocator> InstSimplifyVisitor<'_, 'heap, A> {
 
         if let Operand::Place(place) = operand
             && place.projections.is_empty()
-            && let Some(int) = self.evaluated[place.local]
+            && let Some(&Some(int)) = self.evaluated.get(place.local)
         {
             return OperandKind::Int(int);
         }
@@ -578,6 +578,13 @@ impl<'heap, A: Allocator> VisitorMut<'heap> for InstSimplifyVisitor<'_, 'heap, A
         Ok(()) = visit::r#mut::walk_statement_assign(self, location, assign);
 
         let Some(trampoline) = self.trampoline.take() else {
+            // No simplification occurred, but we still need to track constants for propagation.
+            if let RValue::Load(Operand::Constant(Constant::Int(int))) = assign.rhs
+                && assign.lhs.projections.is_empty()
+            {
+                self.evaluated.insert(assign.lhs.local, int);
+            }
+
             return Ok(());
         };
 

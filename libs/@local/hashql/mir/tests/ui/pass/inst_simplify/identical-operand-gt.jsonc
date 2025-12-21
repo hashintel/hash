@@ -1,6 +1,5 @@
 //@ run: pass
 //@ description: Identical operand simplification: x > x => false (irreflexive)
-// A value is never greater than itself.
 [
   "if",
   { "#literal": true },

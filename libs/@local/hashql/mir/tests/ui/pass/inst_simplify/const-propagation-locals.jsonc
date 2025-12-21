@@ -1,6 +1,5 @@
 //@ run: pass
 //@ description: Constants assigned to locals are tracked and used in subsequent folding
-// x = 5, y = 3, then x == y folds to false because both are known constants.
 [
   "if",
   { "#literal": true },
