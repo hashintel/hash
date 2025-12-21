@@ -1,0 +1,14 @@
+//@ run: pass
+//@ description: Identity simplification: x && true => x
+// The result of x && true is just x when x is boolean.
+[
+  "if",
+  { "#literal": true },
+  [
+    "let",
+    "x",
+    ["==", { "#literal": 1 }, { "#literal": 1 }],
+    ["&&", "x", { "#literal": true }]
+  ],
+  { "#literal": false }
+]

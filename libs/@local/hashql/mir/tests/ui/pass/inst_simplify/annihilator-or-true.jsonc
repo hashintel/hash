@@ -1,0 +1,14 @@
+//@ run: pass
+//@ description: Annihilator simplification: x || true => true
+// x || true is always true regardless of x.
+[
+  "if",
+  { "#literal": true },
+  [
+    "let",
+    "x",
+    ["==", { "#literal": 1 }, { "#literal": 2 }],
+    ["||", "x", { "#literal": true }]
+  ],
+  { "#literal": false }
+]

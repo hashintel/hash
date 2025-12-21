@@ -85,6 +85,8 @@
 //! benefit is low.
 //!
 //! [`Sroa`]: super::Sroa
+#[cfg(test)]
+mod tests;
 
 use core::{alloc::Allocator, convert::Infallible};
 
