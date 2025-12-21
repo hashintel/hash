@@ -48,16 +48,7 @@
 ════ MIR after DSE ═════════════════════════════════════════════════════════════
 
 *thunk {thunk#7}() -> Integer {
-    let %0: Boolean
-    let %1: Integer
-
     bb0(): {
-        %0 = 10 == 20
-
-        switchInt(%0) -> [0: bb1(0), 1: bb1(1)]
-    }
-
-    bb1(%1): {
-        return %1
+        return 0
     }
 }
