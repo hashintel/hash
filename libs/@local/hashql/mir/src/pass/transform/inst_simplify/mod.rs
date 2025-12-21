@@ -2,7 +2,7 @@ use core::convert::Infallible;
 use std::alloc::Allocator;
 
 use hashql_core::{
-    heap::{BumpAllocator, CloneIn},
+    heap::{BumpAllocator, CloneIn, TransferInto},
     id::IdVec,
     r#type::{environment::Environment, kind::PrimitiveType},
 };
@@ -40,16 +40,22 @@ impl<'env, 'heap, A: BumpAllocator> TransformPass<'env, 'heap> for InstSimplify<
     fn run(&mut self, context: &mut MirContext<'env, 'heap>, body: &mut Body<'heap>) {
         self.alloc.reset();
 
-        let decl = body.local_decls.clone_in(&self.alloc);
-
         let mut visitor = InstSimplifyVisitor {
             env: context.env,
             interner: context.interner,
             trampoline: None,
-            decl: &decl,
+            decl: &body.local_decls,
             evaluated: IdVec::with_capacity_in(body.local_decls.len(), &self.alloc),
         };
-        visitor.visit_body_preserving_cfg(body);
+
+        let reverse_postorder = body
+            .basic_blocks
+            .reverse_postorder()
+            .transfer_into(&self.alloc);
+
+        for &mut id in reverse_postorder {
+            visitor.visit_basic_block(id, &mut body.basic_blocks.as_mut_preserving_cfg()[id]);
+        }
     }
 }
 
