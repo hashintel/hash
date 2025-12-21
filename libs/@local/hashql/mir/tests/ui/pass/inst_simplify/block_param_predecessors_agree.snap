@@ -1,0 +1,51 @@
+---
+source: libs/@local/hashql/mir/src/pass/transform/inst_simplify/tests.rs
+expression: value
+---
+fn {intrinsic#4294967040}(%0: Integer) -> Boolean {
+    let %1: Integer
+    let %2: Boolean
+
+    bb0(): {
+        switchInt(%0) -> [0: bb1(), 1: bb2()]
+    }
+
+    bb1(): {
+        goto -> bb3(42)
+    }
+
+    bb2(): {
+        goto -> bb3(42)
+    }
+
+    bb3(%1): {
+        %2 = %1 == 42
+
+        return %2
+    }
+}
+
+------------------------------------
+
+fn {intrinsic#4294967040}(%0: Integer) -> Boolean {
+    let %1: Integer
+    let %2: Boolean
+
+    bb0(): {
+        switchInt(%0) -> [0: bb1(), 1: bb2()]
+    }
+
+    bb1(): {
+        goto -> bb3(42)
+    }
+
+    bb2(): {
+        goto -> bb3(42)
+    }
+
+    bb3(%1): {
+        %2 = 1
+
+        return %2
+    }
+}

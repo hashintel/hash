@@ -1,6 +1,5 @@
 //@ run: pass
 //@ description: Annihilator simplification: x && false => false
-// x && false is always false regardless of x.
 [
   "if",
   { "#literal": true },

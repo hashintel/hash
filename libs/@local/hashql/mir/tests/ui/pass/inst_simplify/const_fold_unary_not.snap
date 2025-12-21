@@ -1,0 +1,25 @@
+---
+source: libs/@local/hashql/mir/src/pass/transform/inst_simplify/tests.rs
+expression: value
+---
+fn {intrinsic#4294967040}() -> Boolean {
+    let %0: Boolean
+
+    bb0(): {
+        %0 = !1
+
+        return %0
+    }
+}
+
+------------------------------------
+
+fn {intrinsic#4294967040}() -> Boolean {
+    let %0: Boolean
+
+    bb0(): {
+        %0 = 0
+
+        return %0
+    }
+}

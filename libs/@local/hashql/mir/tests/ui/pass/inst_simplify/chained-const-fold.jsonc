@@ -1,6 +1,5 @@
 //@ run: pass
 //@ description: Chained constant folding where a folded result is used in another comparison
-// (1 == 2) folds to false, then (false == false) folds to true.
 [
   "if",
   { "#literal": true },

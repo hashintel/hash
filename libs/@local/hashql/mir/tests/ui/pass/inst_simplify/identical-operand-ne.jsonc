@@ -1,6 +1,5 @@
 //@ run: pass
 //@ description: Identical operand simplification: x != x => false (irreflexive)
-// When both operands of inequality are the same place, the result is always false.
 [
   "if",
   { "#literal": true },

@@ -188,7 +188,7 @@ fn const_fold_unary_neg() {
     let env = Environment::new(&heap);
 
     let result = builder.local("result", TypeBuilder::synthetic(&env).integer());
-    let const_5 = builder.const_int(5);
+    let const_5 = builder.const_int(-5);
     let bb0 = builder.reserve_block([]);
 
     builder

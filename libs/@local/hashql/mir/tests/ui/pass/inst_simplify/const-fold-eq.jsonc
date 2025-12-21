@@ -1,7 +1,5 @@
 //@ run: pass
 //@ description: Constant folding for equality comparison of two constants
-// Before: _0 = (1 == 2) evaluates at runtime
-// After: _0 = false (folded at compile time)
 [
   "if",
   { "#literal": true },
