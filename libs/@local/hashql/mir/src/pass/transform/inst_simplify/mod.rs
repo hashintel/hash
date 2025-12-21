@@ -1,7 +1,8 @@
 use core::{alloc::Allocator, convert::Infallible};
 
 use hashql_core::{
-    heap::{BumpAllocator, TransferInto as _},
+    graph::Predecessors as _,
+    heap::{BumpAllocator, Scratch, TransferInto as _},
     id::IdVec,
     r#type::{environment::Environment, kind::PrimitiveType},
 };
@@ -10,6 +11,7 @@ use hashql_hir::node::operation::UnOp;
 use crate::{
     body::{
         Body,
+        basic_block::BasicBlockId,
         constant::{Constant, Int},
         local::{LocalDecl, LocalSlice, LocalVec},
         location::Location,
@@ -24,15 +26,95 @@ use crate::{
     visit::{self, VisitorMut, r#mut::filter},
 };
 
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 enum OperandKind<'heap> {
     Int(Int),
     Place(Place<'heap>),
     Other,
 }
 
-pub struct InstSimplify<A: BumpAllocator> {
+impl OperandKind<'_> {
+    const fn as_int(&self) -> Option<Int> {
+        if let &OperandKind::Int(int) = self {
+            Some(int)
+        } else {
+            None
+        }
+    }
+}
+
+pub struct InstSimplify<A: BumpAllocator = Scratch> {
     alloc: A,
+}
+
+impl InstSimplify {
+    #[must_use]
+    pub fn new() -> Self {
+        Self {
+            alloc: Scratch::new(),
+        }
+    }
+}
+
+impl Default for InstSimplify {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl<A: BumpAllocator> InstSimplify<A> {
+    pub const fn new_in(alloc: A) -> Self {
+        Self { alloc }
+    }
+
+    fn propagate_block_params<'heap>(
+        args: &mut Vec<Option<Int>, &A>,
+        visitor: &mut InstSimplifyVisitor<'_, 'heap, &A>,
+        body: &Body<'heap>,
+        id: BasicBlockId,
+    ) {
+        let pred = body.basic_blocks.predecessors(id);
+
+        // If we have any predecessor that doesn't have explicit params (aka an effect) we cannot
+        // propagate anything
+        if pred
+            .clone()
+            .any(|pred| body.basic_blocks[pred].terminator.kind.is_effectful())
+        {
+            return;
+        }
+
+        // Check any predecessors of the basic block, if they all agree on the same value, we
+        // can copy their value.
+        let mut targets = pred
+            .flat_map(|pred| body.basic_blocks[pred].terminator.kind.successor_targets())
+            .filter(|&target| target.block == id);
+
+        // There's nothing to propagate (aka there are no targets)
+        let Some(first) = targets.next() else {
+            return;
+        };
+
+        // These are our reference values, all branches must have the same `Option` value, as us.
+        args.extend(first.args.iter().map(|&arg| visitor.try_eval(arg).as_int()));
+
+        for target in targets {
+            debug_assert_eq!(args.len(), target.args.len());
+
+            for (lhs, &rhs) in args.iter_mut().zip(target.args.iter()) {
+                let rhs = visitor.try_eval(rhs).as_int();
+                if *lhs != rhs {
+                    *lhs = None;
+                }
+            }
+        }
+
+        for (&local, constant) in body.basic_blocks[id].params.iter().zip(args.drain(..)) {
+            if let Some(constant) = constant {
+                visitor.evaluated.insert(local, constant);
+            }
+        }
+    }
 }
 
 impl<'env, 'heap, A: BumpAllocator> TransformPass<'env, 'heap> for InstSimplify<A> {
@@ -52,8 +134,13 @@ impl<'env, 'heap, A: BumpAllocator> TransformPass<'env, 'heap> for InstSimplify<
             .reverse_postorder()
             .transfer_into(&self.alloc);
 
+        let mut args = Vec::new_in(&self.alloc);
+
         for &mut id in reverse_postorder {
-            visitor.visit_basic_block(id, &mut body.basic_blocks.as_mut_preserving_cfg()[id]);
+            Self::propagate_block_params(&mut args, &mut visitor, body, id);
+
+            Ok(()) =
+                visitor.visit_basic_block(id, &mut body.basic_blocks.as_mut_preserving_cfg()[id]);
         }
     }
 }
