@@ -1,3 +1,91 @@
+//! Instruction simplification pass.
+//!
+//! This pass performs local algebraic simplifications and constant folding on MIR instructions.
+//! It operates on individual instructions, replacing complex expressions with simpler equivalents
+//! when operands are constants or satisfy algebraic identities.
+//!
+//! # Simplifications
+//!
+//! The pass handles three categories of simplifications:
+//!
+//! ## Constant Folding
+//!
+//! When both operands of a binary operation or the operand of a unary operation are constants,
+//! the operation is evaluated at compile time:
+//!
+//! - `const 2 + const 3` → `const 5`
+//! - `!const true` → `const false`
+//!
+//! ## Algebraic Identities
+//!
+//! Operations with one constant operand may simplify based on algebraic laws:
+//!
+//! - **Identity elements**: `x && true` → `x`, `x | 0` → `x`
+//! - **Annihilators**: `x && false` → `false`, `x || true` → `true`
+//! - **Boolean equivalences**: `x == true` → `x`, `x == false` → `!x`
+//!
+//! ## Identical Operand Patterns
+//!
+//! When both operands reference the same place, certain operations have known results:
+//!
+//! - **Idempotence**: `x & x` → `x`, `x | x` → `x`
+//! - **Reflexive comparisons**: `x == x` → `true`, `x < x` → `false`
+//!
+//! # Algorithm
+//!
+//! The pass operates in a single traversal over basic blocks in reverse postorder:
+//!
+//! 1. At each block entry, propagate constants through block parameters by checking if all
+//!    predecessor branches pass the same constant value
+//! 2. Visit each instruction, applying simplifications when patterns match
+//! 3. Track locals assigned constant values to enable further simplifications within the block
+//!
+//! The `evaluated` map tracks locals known to hold constant values. When a local is assigned
+//! a constant (either directly or as the result of constant folding), it is recorded so that
+//! subsequent uses can be treated as constants.
+//!
+//! # Example
+//!
+//! Before:
+//! ```text
+//! bb0:
+//!     _1 = const 1
+//!     _2 = const 2
+//!     _3 = _1 == _2
+//!     _4 = _3 && const true
+//!     return _4
+//! ```
+//!
+//! After:
+//! ```text
+//! bb0:
+//!     _1 = const 1
+//!     _2 = const 2
+//!     _3 = const false
+//!     _4 = const false
+//!     return _4
+//! ```
+//!
+//! # Interaction with Other Passes
+//!
+//! This pass runs after [`Sroa`], which resolves places through the data dependency graph. SROA
+//! ensures that operands are simplified to their canonical forms before [`InstSimplify`] runs, so
+//! constants that flow through assignments or block parameters are already exposed.
+//!
+//! Block parameter propagation in this pass complements SROA: while SROA resolves structural
+//! dependencies at the operand level, [`InstSimplify`] propagates constants discovered through
+//! folding across block boundaries.
+//!
+//! # Limitations
+//!
+//! The pass does not perform fix-point iteration for loops. Constants propagated through
+//! back-edges are not discovered because predecessors forming back-edges have not been visited
+//! when the loop header is processed. Full loop-carried constant propagation would require
+//! iterating until the `evaluated` map stabilizes, which is not implemented as the expected
+//! benefit is low.
+//!
+//! [`Sroa`]: super::Sroa
+
 use core::{alloc::Allocator, convert::Infallible};
 
 use hashql_core::{
@@ -26,10 +114,17 @@ use crate::{
     visit::{self, VisitorMut, r#mut::filter},
 };
 
+/// Classification of an operand for simplification purposes.
+///
+/// This enum categorizes operands into cases relevant for constant folding and algebraic
+/// simplification.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 enum OperandKind<'heap> {
+    /// A constant integer value, either from a literal or a local known to hold a constant.
     Int(Int),
+    /// A place reference that could not be resolved to a constant.
     Place(Place<'heap>),
+    /// An operand that cannot be simplified (e.g., non-integer constants).
     Other,
 }
 
@@ -43,11 +138,15 @@ impl OperandKind<'_> {
     }
 }
 
+/// Instruction simplification pass.
+///
+/// Performs constant folding and algebraic simplification on MIR instructions.
 pub struct InstSimplify<A: BumpAllocator = Scratch> {
     alloc: A,
 }
 
 impl InstSimplify {
+    /// Creates a new [`InstSimplify`].
     #[must_use]
     pub fn new() -> Self {
         Self {
@@ -63,10 +162,28 @@ impl Default for InstSimplify {
 }
 
 impl<A: BumpAllocator> InstSimplify<A> {
+    /// Creates a new [`InstSimplify`] using the provided allocator.
+    #[must_use]
     pub const fn new_in(alloc: A) -> Self {
         Self { alloc }
     }
 
+    /// Propagates constant values through block parameters.
+    ///
+    /// For each block parameter, examines all predecessor branches that target this block.
+    /// If all predecessors pass the same constant value (or a local that evaluates to the
+    /// same constant), records that constant in `evaluated` for the block parameter.
+    ///
+    /// This enables constant folding for values that converge at control flow join points,
+    /// complementing SROA's structural resolution with runtime constant tracking.
+    ///
+    /// # Limitations
+    ///
+    /// - Predecessors with effectful terminators (e.g., `GraphRead`) are skipped entirely, as their
+    ///   arguments are implicit rather than explicit.
+    /// - Back-edges from loops may not have been visited yet, so their contributions are based on
+    ///   whatever constants were discovered in previous iterations (if any). Full loop-carried
+    ///   propagation would require fix-point iteration.
     fn propagate_block_params<'heap>(
         args: &mut Vec<Option<Int>, &A>,
         visitor: &mut InstSimplifyVisitor<'_, 'heap, &A>,
@@ -75,8 +192,10 @@ impl<A: BumpAllocator> InstSimplify<A> {
     ) {
         let pred = body.basic_blocks.predecessors(id);
 
-        // If we have any predecessor that doesn't have explicit params (aka an effect) we cannot
-        // propagate anything
+        // Effectful terminators (like GraphRead) pass arguments implicitly, where they set the
+        // block param directly. We cannot inspect those values, so we conservatively skip
+        // propagation for blocks reachable from effectful predecessors (they have single
+        // successors).
         if pred
             .clone()
             .any(|pred| body.basic_blocks[pred].terminator.kind.is_effectful())
@@ -84,20 +203,24 @@ impl<A: BumpAllocator> InstSimplify<A> {
             return;
         }
 
-        // Check any predecessors of the basic block, if they all agree on the same value, we
-        // can copy their value.
+        // Collect all predecessor targets that branch to this block. A single predecessor
+        // may have multiple targets to us (e.g., a switch with two arms to the same block).
         let mut targets = pred
             .flat_map(|pred| body.basic_blocks[pred].terminator.kind.successor_targets())
             .filter(|&target| target.block == id);
 
-        // There's nothing to propagate (aka there are no targets)
         let Some(first) = targets.next() else {
+            // No explicit targets means this block is only reachable via implicit edges
+            // (e.g., entry block or effectful continuations). Nothing to propagate.
             return;
         };
 
-        // These are our reference values, all branches must have the same `Option` value, as us.
+        // Seed with the first target's argument values. Each position holds `Some(int)` if
+        // that argument evaluated to a constant, `None` otherwise.
         args.extend(first.args.iter().map(|&arg| visitor.try_eval(arg).as_int()));
 
+        // Check remaining targets for consensus. If any target passes a different value
+        // (or non-constant) for a parameter position, clear that position to `None`.
         for target in targets {
             debug_assert_eq!(args.len(), target.args.len());
 
@@ -109,6 +232,7 @@ impl<A: BumpAllocator> InstSimplify<A> {
             }
         }
 
+        // Record constants for block parameters where all predecessors agreed.
         for (&local, constant) in body.basic_blocks[id].params.iter().zip(args.drain(..)) {
             if let Some(constant) = constant {
                 visitor.evaluated.insert(local, constant);
@@ -145,15 +269,30 @@ impl<'env, 'heap, A: BumpAllocator> TransformPass<'env, 'heap> for InstSimplify<
     }
 }
 
+/// Visitor that applies instruction simplifications during MIR traversal.
+///
+/// This visitor implements the core simplification logic. It uses a trampoline pattern to
+/// communicate replacement [`RValue`]s from nested rvalue visitors back to the statement visitor,
+/// since rvalue visitors only have access to the inner struct, not the enclosing `RValue` enum.
 struct InstSimplifyVisitor<'env, 'heap, A: Allocator> {
     env: &'env Environment<'heap>,
     interner: &'env Interner<'heap>,
+
+    /// Temporary slot for rvalue visitors to request replacement of the enclosing [`RValue`].
     trampoline: Option<RValue<'heap>>,
+
     decl: &'env LocalSlice<LocalDecl<'heap>>,
+
+    /// Map from locals to their known constant values.
+    /// Populated when a local is assigned a constant (directly or via folding).
     evaluated: LocalVec<Option<Int>, A>,
 }
 
 impl<'heap, A: Allocator> InstSimplifyVisitor<'_, 'heap, A> {
+    /// Attempts to evaluate an operand to a known constant or classify it for simplification.
+    ///
+    /// Returns `Int` if the operand is a constant integer or a local known to hold one,
+    /// `Place` if it's a non-constant place, or `Other` for operands that can't be simplified.
     fn try_eval(&self, operand: Operand<'heap>) -> OperandKind<'heap> {
         if let Operand::Constant(Constant::Int(int)) = operand {
             return OperandKind::Int(int);
@@ -173,6 +312,7 @@ impl<'heap, A: Allocator> InstSimplifyVisitor<'_, 'heap, A> {
         OperandKind::Other
     }
 
+    /// Evaluates a binary operation on two constant integers.
     fn eval_bin_op(lhs: Int, op: BinOp, rhs: Int) -> Int {
         let lhs = lhs.as_int();
         let rhs = rhs.as_int();
@@ -191,6 +331,7 @@ impl<'heap, A: Allocator> InstSimplifyVisitor<'_, 'heap, A> {
         Int::from(result)
     }
 
+    /// Evaluates a unary operation on a constant integer.
     fn eval_un_op(op: UnOp, operand: Int) -> Int {
         let value = operand.as_int();
 
@@ -209,6 +350,11 @@ impl<'heap, A: Allocator> InstSimplifyVisitor<'_, 'heap, A> {
         Int::from(result)
     }
 
+    /// Attempts to simplify a binary operation with a constant left operand and place right
+    /// operand.
+    ///
+    /// Handles identity elements, annihilators, and boolean equivalences where the constant
+    /// is on the left side of the operation.
     #[expect(clippy::match_same_arms)]
     fn simplify_bin_op_left(
         &self,
@@ -221,31 +367,31 @@ impl<'heap, A: Allocator> InstSimplifyVisitor<'_, 'heap, A> {
             self.env.r#type(rhs_type).kind.primitive().copied() == Some(PrimitiveType::Boolean);
 
         match (op, lhs.as_int()) {
-            // true && rhs => rhs
+            // true && rhs => rhs (identity)
             (BinOp::BitAnd, 1) if is_bool => Some(RValue::Load(Operand::Place(rhs))),
-            // false && rhs => false
+            // false && rhs => false (annihilator)
             (BinOp::BitAnd, 0) if is_bool => {
                 Some(RValue::Load(Operand::Constant(Constant::Int(false.into()))))
             }
             (BinOp::BitAnd, _) => None,
-            // 0 | rhs => rhs
+            // 0 | rhs => rhs (identity)
             (BinOp::BitOr, 0) => Some(RValue::Load(Operand::Place(rhs))),
-            // true || rhs => true
+            // true || rhs => true (annihilator)
             (BinOp::BitOr, 1) if is_bool => {
                 Some(RValue::Load(Operand::Constant(Constant::Int(true.into()))))
             }
             (BinOp::BitOr, _) => None,
-            // 1 == rhs => rhs
+            // true == rhs => rhs (boolean equivalence)
             (BinOp::Eq, 1) if is_bool => Some(RValue::Load(Operand::Place(rhs))),
-            // 0 == rhs => not(rhs)
+            // false == rhs => !rhs (boolean equivalence)
             (BinOp::Eq, 0) if is_bool => Some(RValue::Unary(Unary {
                 op: UnOp::Not,
                 operand: Operand::Place(rhs),
             })),
             (BinOp::Eq, _) => None,
-            // 0 != rhs => rhs
+            // false != rhs => rhs (boolean equivalence)
             (BinOp::Ne, 0) if is_bool => Some(RValue::Load(Operand::Place(rhs))),
-            // 1 != rhs => not(rhs)
+            // true != rhs => !rhs (boolean equivalence)
             (BinOp::Ne, 1) if is_bool => Some(RValue::Unary(Unary {
                 op: UnOp::Not,
                 operand: Operand::Place(rhs),
@@ -258,6 +404,11 @@ impl<'heap, A: Allocator> InstSimplifyVisitor<'_, 'heap, A> {
         }
     }
 
+    /// Attempts to simplify a binary operation with a place left operand and constant right
+    /// operand.
+    ///
+    /// Handles identity elements, annihilators, and boolean equivalences where the constant
+    /// is on the right side of the operation.
     #[expect(clippy::match_same_arms)]
     fn simplify_bin_op_right(
         &self,
@@ -270,31 +421,31 @@ impl<'heap, A: Allocator> InstSimplifyVisitor<'_, 'heap, A> {
             self.env.r#type(lhs_type).kind.primitive().copied() == Some(PrimitiveType::Boolean);
 
         match (op, rhs.as_int()) {
-            // lhs && true => lhs
+            // lhs && true => lhs (identity)
             (BinOp::BitAnd, 1) if is_bool => Some(RValue::Load(Operand::Place(lhs))),
-            // rhs && false => false
+            // lhs && false => false (annihilator)
             (BinOp::BitAnd, 0) if is_bool => {
                 Some(RValue::Load(Operand::Constant(Constant::Int(false.into()))))
             }
             (BinOp::BitAnd, _) => None,
-            // lhs | 0 => lhs
+            // lhs | 0 => lhs (identity)
             (BinOp::BitOr, 0) => Some(RValue::Load(Operand::Place(lhs))),
-            // rhs || 1 => true
+            // lhs || true => true (annihilator)
             (BinOp::BitOr, 1) if is_bool => {
                 Some(RValue::Load(Operand::Constant(Constant::Int(true.into()))))
             }
             (BinOp::BitOr, _) => None,
-            // lhs == 1 => lhs
+            // lhs == true => lhs (boolean equivalence)
             (BinOp::Eq, 1) if is_bool => Some(RValue::Load(Operand::Place(lhs))),
-            // lhs == 0 => not(lhs)
+            // lhs == false => !lhs (boolean equivalence)
             (BinOp::Eq, 0) if is_bool => Some(RValue::Unary(Unary {
                 op: UnOp::Not,
                 operand: Operand::Place(lhs),
             })),
             (BinOp::Eq, _) => None,
-            // lhs != 0 => lhs == 1 => lhs
+            // lhs != false => lhs (boolean equivalence)
             (BinOp::Ne, 0) if is_bool => Some(RValue::Load(Operand::Place(lhs))),
-            // lhs != 1 => lhs == 0 => not(lhs)
+            // lhs != true => !lhs (boolean equivalence)
             (BinOp::Ne, 1) if is_bool => Some(RValue::Unary(Unary {
                 op: UnOp::Not,
                 operand: Operand::Place(lhs),
@@ -307,12 +458,17 @@ impl<'heap, A: Allocator> InstSimplifyVisitor<'_, 'heap, A> {
         }
     }
 
+    /// Attempts to simplify a binary operation where both operands are the same place.
+    ///
+    /// Handles idempotent operations (`x & x`, `x | x`) and reflexive comparisons
+    /// (`x == x`, `x < x`, etc.) that have known results regardless of the actual value.
     #[expect(clippy::match_same_arms)]
     fn simplify_bin_op_place(
         lhs: Place<'heap>,
         op: BinOp,
         rhs: Place<'heap>,
     ) -> Option<RValue<'heap>> {
+        // Check if both places refer to the same location (same local and projections).
         let is_same = lhs.local == rhs.local
             && lhs.projections.len() == rhs.projections.len()
             && lhs
@@ -326,21 +482,21 @@ impl<'heap, A: Allocator> InstSimplifyVisitor<'_, 'heap, A> {
         }
 
         let bool = match op {
-            // x & x => x
+            // x & x => x (idempotent)
             BinOp::BitAnd => return Some(RValue::Load(Operand::Place(lhs))),
-            // x | x => x
+            // x | x => x (idempotent)
             BinOp::BitOr => return Some(RValue::Load(Operand::Place(lhs))),
-            // x == x => true
+            // x == x => true (reflexive)
             BinOp::Eq => true,
-            // x != x => false
+            // x != x => false (irreflexive)
             BinOp::Ne => false,
-            // x < x => false
+            // x < x => false (irreflexive)
             BinOp::Lt => false,
-            // x <= x => true
+            // x <= x => true (reflexive)
             BinOp::Lte => true,
-            // x > x => false
+            // x > x => false (irreflexive)
             BinOp::Gt => false,
-            // x >= x => true
+            // x >= x => true (reflexive)
             BinOp::Gte => true,
         };
 
@@ -365,9 +521,8 @@ impl<'heap, A: Allocator> VisitorMut<'heap> for InstSimplifyVisitor<'_, 'heap, A
         _: Location,
         Binary { op, left, right }: &mut Binary<'heap>,
     ) -> Self::Result<()> {
-        // If both values are non-opaque (aka `Integer`) we evaluate them.
-        // Because we run after SROA, we can assume that the constants are already in place where
-        // they can be evaluated.
+        // Dispatch to the appropriate simplification based on operand classification.
+        // SROA has already resolved structural dependencies, so constants are directly visible.
         match (self.try_eval(*left), self.try_eval(*right)) {
             (OperandKind::Int(lhs), OperandKind::Int(rhs)) => {
                 let result = Self::eval_bin_op(lhs, *op, rhs);
@@ -417,16 +572,29 @@ impl<'heap, A: Allocator> VisitorMut<'heap> for InstSimplifyVisitor<'_, 'heap, A
     ) -> Self::Result<()> {
         debug_assert!(self.trampoline.is_none());
 
+        // Walk the RHS first, which may set `trampoline` if a simplification applies.
         Ok(()) = visit::r#mut::walk_statement_assign(self, location, assign);
 
         let Some(trampoline) = self.trampoline.take() else {
             return Ok(());
         };
 
+        // If the simplified RHS is a constant, record it for future simplifications.
         if let RValue::Load(Operand::Constant(Constant::Int(int))) = trampoline
             && assign.lhs.projections.is_empty()
         {
             self.evaluated.insert(assign.lhs.local, int);
+        }
+
+        // If the simplified RHS is a place, and has a constant associated with it, record it
+        // forward for future simplifications, this is important in cases where we simplify into
+        // idempotent positions, given: `y = x & x`, we simplify to `y = x`. Therefore if `x` is
+        // already a constant, we can propagate it.
+        if let RValue::Load(Operand::Place(place)) = trampoline
+            && place.projections.is_empty()
+            && let Some(&Some(constant)) = self.evaluated.get(place.local)
+        {
+            self.evaluated.insert(assign.lhs.local, constant);
         }
 
         assign.rhs = trampoline;
