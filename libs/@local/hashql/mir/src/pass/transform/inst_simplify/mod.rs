@@ -91,7 +91,6 @@ mod tests;
 use core::{alloc::Allocator, convert::Infallible};
 
 use hashql_core::{
-    graph::Predecessors as _,
     heap::{BumpAllocator, Scratch, TransferInto as _},
     id::IdVec,
     r#type::{environment::Environment, kind::PrimitiveType},
@@ -102,7 +101,6 @@ use super::cp::propagate_block_params;
 use crate::{
     body::{
         Body,
-        basic_block::BasicBlockId,
         constant::{Constant, Int},
         local::{LocalDecl, LocalSlice, LocalVec},
         location::Location,

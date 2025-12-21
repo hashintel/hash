@@ -9,6 +9,7 @@ mod sroa;
 mod ssa_repair;
 
 pub use self::{
-    cfg_simplify::CfgSimplify, dbe::DeadBlockElimination, dle::DeadLocalElimination,
-    dse::DeadStoreElimination, inst_simplify::InstSimplify, sroa::Sroa, ssa_repair::SsaRepair,
+    cfg_simplify::CfgSimplify, cp::CopyPropagation, dbe::DeadBlockElimination,
+    dle::DeadLocalElimination, dse::DeadStoreElimination, inst_simplify::InstSimplify, sroa::Sroa,
+    ssa_repair::SsaRepair,
 };
