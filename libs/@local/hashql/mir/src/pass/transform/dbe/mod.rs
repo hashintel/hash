@@ -139,9 +139,8 @@ impl<'env, 'heap, A: BumpAllocator> TransformPass<'env, 'heap> for DeadBlockElim
             write_index.increment_by(1);
         }
 
-        body.basic_blocks
-            .as_mut_preserving_cfg()
-            .truncate(write_index);
+        // We **remove** the blocks, so cfg must be invalidated.
+        body.basic_blocks.as_mut().truncate(write_index);
     }
 }
 
