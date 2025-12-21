@@ -8,8 +8,10 @@ use core::{
     marker::PhantomData,
     ops::{Deref, DerefMut},
 };
+use std::alloc::AllocError;
 
 use super::{Id, slice::IdSlice};
+use crate::heap::{CloneIn, TryCloneIn};
 
 /// A growable vector that uses typed IDs for indexing instead of raw `usize` values.
 ///
@@ -556,5 +558,24 @@ where
     #[inline]
     fn default() -> Self {
         Self::new()
+    }
+}
+
+impl<I, T, A, B> TryCloneIn<B> for IdVec<I, T, A>
+where
+    I: Id,
+    T: Clone,
+    A: Allocator,
+    B: Allocator,
+{
+    type Cloned = IdVec<I, T, B>;
+
+    #[inline]
+    fn try_clone_in(&self, allocator: B) -> Result<Self::Cloned, AllocError> {
+        self.raw.try_clone_in(allocator).map(IdVec::from_raw)
+    }
+
+    fn try_clone_into(&self, into: &mut Self::Cloned, allocator: B) -> Result<(), AllocError> {
+        self.raw.try_clone_into(&mut into.raw, allocator)
     }
 }
