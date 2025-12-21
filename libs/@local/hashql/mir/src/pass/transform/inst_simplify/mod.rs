@@ -98,6 +98,7 @@ use hashql_core::{
 };
 use hashql_hir::node::operation::UnOp;
 
+use super::cp::propagate_block_params;
 use crate::{
     body::{
         Body,
@@ -169,78 +170,6 @@ impl<A: BumpAllocator> InstSimplify<A> {
     pub const fn new_in(alloc: A) -> Self {
         Self { alloc }
     }
-
-    /// Propagates constant values through block parameters.
-    ///
-    /// For each block parameter, examines all predecessor branches that target this block.
-    /// If all predecessors pass the same constant value (or a local that evaluates to the
-    /// same constant), records that constant in `evaluated` for the block parameter.
-    ///
-    /// This enables constant folding for values that converge at control flow join points,
-    /// complementing SROA's structural resolution with runtime constant tracking.
-    ///
-    /// # Limitations
-    ///
-    /// - Predecessors with effectful terminators (e.g., `GraphRead`) are skipped entirely, as their
-    ///   arguments are implicit rather than explicit.
-    /// - Back-edges from loops may not have been visited yet, so their contributions are based on
-    ///   whatever constants were discovered in previous iterations (if any). Full loop-carried
-    ///   propagation would require fix-point iteration.
-    fn propagate_block_params<'heap>(
-        args: &mut Vec<Option<Int>, &A>,
-        visitor: &mut InstSimplifyVisitor<'_, 'heap, &A>,
-        body: &Body<'heap>,
-        id: BasicBlockId,
-    ) {
-        let pred = body.basic_blocks.predecessors(id);
-
-        // Effectful terminators (like GraphRead) pass arguments implicitly, where they set the
-        // block param directly. We cannot inspect those values, so we conservatively skip
-        // propagation for blocks reachable from effectful predecessors (they have single
-        // successors).
-        if pred
-            .clone()
-            .any(|pred| body.basic_blocks[pred].terminator.kind.is_effectful())
-        {
-            return;
-        }
-
-        // Collect all predecessor targets that branch to this block. A single predecessor
-        // may have multiple targets to us (e.g., a switch with two arms to the same block).
-        let mut targets = pred
-            .flat_map(|pred| body.basic_blocks[pred].terminator.kind.successor_targets())
-            .filter(|&target| target.block == id);
-
-        let Some(first) = targets.next() else {
-            // No explicit targets means this block is only reachable via implicit edges
-            // (e.g., entry block or effectful continuations). Nothing to propagate.
-            return;
-        };
-
-        // Seed with the first target's argument values. Each position holds `Some(int)` if
-        // that argument evaluated to a constant, `None` otherwise.
-        args.extend(first.args.iter().map(|&arg| visitor.try_eval(arg).as_int()));
-
-        // Check remaining targets for consensus. If any target passes a different value
-        // (or non-constant) for a parameter position, clear that position to `None`.
-        for target in targets {
-            debug_assert_eq!(args.len(), target.args.len());
-
-            for (lhs, &rhs) in args.iter_mut().zip(target.args.iter()) {
-                let rhs = visitor.try_eval(rhs).as_int();
-                if *lhs != rhs {
-                    *lhs = None;
-                }
-            }
-        }
-
-        // Record constants for block parameters where all predecessors agreed.
-        for (&local, constant) in body.basic_blocks[id].params.iter().zip(args.drain(..)) {
-            if let Some(constant) = constant {
-                visitor.evaluated.insert(local, constant);
-            }
-        }
-    }
 }
 
 impl<'env, 'heap, A: BumpAllocator> TransformPass<'env, 'heap> for InstSimplify<A> {
@@ -263,7 +192,11 @@ impl<'env, 'heap, A: BumpAllocator> TransformPass<'env, 'heap> for InstSimplify<
         let mut args = Vec::new_in(&self.alloc);
 
         for &mut id in reverse_postorder {
-            Self::propagate_block_params(&mut args, &mut visitor, body, id);
+            for (local, int) in propagate_block_params(&mut args, body, id, |operand| {
+                visitor.try_eval(operand).as_int()
+            }) {
+                visitor.evaluated.insert(local, int);
+            }
 
             Ok(()) =
                 visitor.visit_basic_block(id, &mut body.basic_blocks.as_mut_preserving_cfg()[id]);
@@ -302,7 +235,7 @@ impl<'heap, A: Allocator> InstSimplifyVisitor<'_, 'heap, A> {
 
         if let Operand::Place(place) = operand
             && place.projections.is_empty()
-            && let Some(&Some(int)) = self.evaluated.get(place.local)
+            && let Some(&int) = self.evaluated.lookup(place.local)
         {
             return OperandKind::Int(int);
         }
@@ -601,9 +534,9 @@ impl<'heap, A: Allocator> VisitorMut<'heap> for InstSimplifyVisitor<'_, 'heap, A
         // already a constant, we can propagate it.
         if let RValue::Load(Operand::Place(place)) = trampoline
             && place.projections.is_empty()
-            && let Some(&Some(constant)) = self.evaluated.get(place.local)
+            && let Some(&int) = self.evaluated.lookup(place.local)
         {
-            self.evaluated.insert(assign.lhs.local, constant);
+            self.evaluated.insert(assign.lhs.local, int);
         }
 
         assign.rhs = trampoline;

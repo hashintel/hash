@@ -1,4 +1,5 @@
 mod cfg_simplify;
+mod cp;
 mod dbe;
 mod dle;
 mod dse;
