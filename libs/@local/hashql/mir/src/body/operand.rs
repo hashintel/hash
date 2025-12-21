@@ -35,6 +35,22 @@ pub enum Operand<'heap> {
     Constant(Constant<'heap>),
 }
 
+impl<'heap> Operand<'heap> {
+    pub fn as_place(&self) -> Option<&Place<'heap>> {
+        match self {
+            Operand::Place(place) => Some(place),
+            _ => None,
+        }
+    }
+
+    pub fn as_constant(&self) -> Option<&Constant<'heap>> {
+        match self {
+            Operand::Constant(constant) => Some(constant),
+            _ => None,
+        }
+    }
+}
+
 impl<'heap> From<Place<'heap>> for Operand<'heap> {
     fn from(place: Place<'heap>) -> Self {
         Operand::Place(place)
