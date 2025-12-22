@@ -1,11 +1,11 @@
 import { css, cva } from "@hashintel/ds-helpers/css";
 import { v4 as uuidv4 } from "uuid";
 
-import type { SubView } from "../../../../components/sub-view/types";
-import { DEFAULT_DIFFERENTIAL_EQUATION_CODE } from "../../../../core/default-codes";
-import { useEditorStore } from "../../../../state/editor-provider";
-import { useSDCPNContext } from "../../../../state/sdcpn-provider";
-import { useSimulationStore } from "../../../../state/simulation-provider";
+import type { SubView } from "../../../components/sub-view/types";
+import { DEFAULT_DIFFERENTIAL_EQUATION_CODE } from "../../../core/default-codes";
+import { useEditorStore } from "../../../state/editor-provider";
+import { useSDCPNContext } from "../../../state/sdcpn-provider";
+import { useSimulationStore } from "../../../state/simulation-provider";
 
 const listContainerStyle = css({
   display: "flex",
@@ -112,17 +112,17 @@ const addButtonStyle = css({
  * DifferentialEquationsSectionContent displays the list of differential equations.
  * This is the content portion without the collapsible header.
  */
-export const DifferentialEquationsSectionContent: React.FC = () => {
+const DifferentialEquationsSectionContent: React.FC = () => {
   const {
     petriNetDefinition: { differentialEquations },
     removeDifferentialEquation,
   } = useSDCPNContext();
 
   const selectedResourceId = useEditorStore(
-    (state) => state.selectedResourceId,
+    (state) => state.selectedResourceId
   );
   const setSelectedResourceId = useEditorStore(
-    (state) => state.setSelectedResourceId,
+    (state) => state.setSelectedResourceId
   );
 
   // Check if simulation is running or paused
@@ -167,7 +167,7 @@ export const DifferentialEquationsSectionContent: React.FC = () => {
                 if (
                   // eslint-disable-next-line no-alert
                   window.confirm(
-                    `Delete equation "${eq.name}"? Any places referencing this equation will have their differential equation reset.`,
+                    `Delete equation "${eq.name}"? Any places referencing this equation will have their differential equation reset.`
                   )
                 ) {
                   removeDifferentialEquation(eq.id);
@@ -191,13 +191,13 @@ export const DifferentialEquationsSectionContent: React.FC = () => {
 /**
  * DifferentialEquationsSectionHeaderAction renders the add button for the section header.
  */
-export const DifferentialEquationsSectionHeaderAction: React.FC = () => {
+const DifferentialEquationsSectionHeaderAction: React.FC = () => {
   const {
     petriNetDefinition: { types, differentialEquations },
     addDifferentialEquation,
   } = useSDCPNContext();
   const setSelectedResourceId = useEditorStore(
-    (state) => state.setSelectedResourceId,
+    (state) => state.setSelectedResourceId
   );
 
   // Check if simulation is running or paused
@@ -229,10 +229,10 @@ export const DifferentialEquationsSectionHeaderAction: React.FC = () => {
 };
 
 /**
- * SubView definition for Differential Equations section.
+ * SubView definition for Differential Equations list.
  */
-export const differentialEquationsSectionSubView: SubView = {
-  id: "differential-equations",
+export const differentialEquationsListSubView: SubView = {
+  id: "differential-equations-list",
   title: "Differential Equations",
   tooltip: `Differential equations govern how token data changes over time when tokens remain in a place ("dynamics").`,
   component: DifferentialEquationsSectionContent,
