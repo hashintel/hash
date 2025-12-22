@@ -7,7 +7,7 @@
  *
  * Validation checks:
  * - DAG is acyclic (no circular dependencies)
- * - All step references (dependsOn, inputStepIds, fromStepId) exist
+ * - All step references (dependencyIds) exist
  * - All hypothesis references exist
  * - All requirement references exist
  * - Executor references are in the available agents list
@@ -19,16 +19,11 @@
  * @see docs/PLAN-task-decomposition.md for design documentation
  */
 
-import { AVAILABLE_AGENTS, canAgentHandle } from "../constants";
+import { AVAILABLE_AGENTS, canAgentHandle } from "../agents/executor-agents";
 import type {
   ExperimentStep,
   PlanSpec,
   SynthesizeStep,
-} from "../schemas/plan-spec";
-import {
-  getHypothesisReferences,
-  getRequirementReferences,
-  getStepReferences,
 } from "../schemas/plan-spec";
 
 // =============================================================================
@@ -162,14 +157,14 @@ function validateUniqueRequirementIds(plan: PlanSpec): ValidationError[] {
 }
 
 /**
- * Check that all step references (dependsOn, inputStepIds, fromStepId) exist.
+ * Check that all step references (dependencyIds) exist.
  */
 function validateStepReferences(plan: PlanSpec): ValidationError[] {
   const errors: ValidationError[] = [];
   const stepIds = new Set(plan.steps.map((step) => step.id));
 
   for (const step of plan.steps) {
-    const refs = getStepReferences(step);
+    const refs = step.dependencyIds;
     for (const ref of refs) {
       if (!stepIds.has(ref)) {
         errors.push({
@@ -193,7 +188,7 @@ function validateHypothesisReferences(plan: PlanSpec): ValidationError[] {
   const hypothesisIds = new Set(plan.hypotheses.map((hyp) => hyp.id));
 
   for (const step of plan.steps) {
-    const refs = getHypothesisReferences(step);
+    const refs = step.type === "experiment" ? step.hypothesisIds : [];
     for (const ref of refs) {
       if (!hypothesisIds.has(ref)) {
         errors.push({
@@ -214,17 +209,17 @@ function validateHypothesisReferences(plan: PlanSpec): ValidationError[] {
  */
 function validateRequirementReferences(plan: PlanSpec): ValidationError[] {
   const errors: ValidationError[] = [];
-  const requirementIds = new Set(plan.requirements.map((req) => req.id));
+  const planReqs = new Set(plan.requirements.map((req) => req.id));
 
   for (const step of plan.steps) {
-    const refs = getRequirementReferences(step);
-    for (const ref of refs) {
-      if (!requirementIds.has(ref)) {
+    const stepReqs = step.requirementIds;
+    for (const req of stepReqs) {
+      if (!planReqs.has(req)) {
         errors.push({
           code: "INVALID_REQUIREMENT_REFERENCE",
-          message: `Step "${step.id}" references non-existent requirement "${ref}"`,
+          message: `Step "${step.id}" references non-existent requirement "${req}"`,
           context: step.id,
-          details: { invalidRef: ref },
+          details: { invalidRef: req },
         });
       }
     }
@@ -340,7 +335,7 @@ function detectCycle(plan: PlanSpec): string[] | null {
 
   // Build adjacency list (step -> steps it depends on)
   for (const step of plan.steps) {
-    const deps = getStepReferences(step).filter((ref) => stepIds.has(ref));
+    const deps = step.dependencyIds.filter((ref) => stepIds.has(ref));
     adjacency.set(step.id, deps);
   }
 

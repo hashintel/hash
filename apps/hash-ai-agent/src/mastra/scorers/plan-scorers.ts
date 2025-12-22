@@ -14,7 +14,6 @@
  */
 
 import {
-  isParallelizable,
   type PlanSpec,
   type PlanStep,
   type StepType,
@@ -108,7 +107,9 @@ export function scorePlanStructure(
   if (!validation.valid) {
     return {
       score: 0,
-      reason: `Invalid plan structure: ${validation.errors.length} validation errors. First error: ${validation.errors[0]?.message ?? "unknown"}`,
+      reason: `Invalid plan structure: ${validation.errors.length} validation errors. First error: ${
+        validation.errors[0]?.message ?? "unknown"
+      }`,
       details,
     };
   }
@@ -126,7 +127,7 @@ export function scorePlanStructure(
   );
 
   // Calculate parallelism ratio
-  const parallelizableSteps = plan.steps.filter(isParallelizable);
+  const parallelizableSteps = plan.steps.filter((step) => step.parallelizable);
   details.parallelismRatio =
     plan.steps.length > 0 ? parallelizableSteps.length / plan.steps.length : 0;
 
@@ -273,7 +274,9 @@ export function scorePlanCoverage(
 
   const reason =
     `Requirements: ${details.coveredRequirementCount}/${details.requirementCount} covered ` +
-    `(must: ${(details.mustCoverageRatio * 100).toFixed(0)}%, should: ${(details.shouldCoverageRatio * 100).toFixed(0)}%). ` +
+    `(must: ${(details.mustCoverageRatio * 100).toFixed(0)}%, should: ${(
+      details.shouldCoverageRatio * 100
+    ).toFixed(0)}%). ` +
     `Hypotheses: ${details.testedHypothesisCount}/${details.hypothesisCount} tested.`;
 
   return { score, reason, details };

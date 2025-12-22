@@ -18,7 +18,6 @@
  */
 
 import type { PlanSpec, PlanStep } from "../schemas/plan-spec";
-import { getStepReferences, isParallelizable } from "../schemas/plan-spec";
 
 // =============================================================================
 // TYPES
@@ -103,7 +102,7 @@ function buildGraphMaps(plan: PlanSpec): {
 
   // Populate from step references
   for (const step of plan.steps) {
-    const deps = getStepReferences(step).filter((ref) => stepIds.has(ref));
+    const deps = step.dependencyIds.filter((ref) => stepIds.has(ref));
     dependencies.set(step.id, new Set(deps));
 
     for (const dep of deps) {
@@ -215,7 +214,7 @@ function computeParallelGroups(
     const group = groupsByDepth.get(depth)!;
     group.stepIds.push(step.id);
 
-    if (isParallelizable(step)) {
+    if (step.parallelizable) {
       group.parallelizableStepIds.push(step.id);
     }
   }
@@ -428,7 +427,7 @@ export function getUnblockedSteps(
     }
 
     // Check if all dependencies are completed
-    const deps = getStepReferences(step).filter((ref) => stepIds.has(ref));
+    const deps = step.dependencyIds.filter((ref) => stepIds.has(ref));
     const allDepsCompleted = deps.every((dep) => completedStepIds.has(dep));
 
     if (allDepsCompleted) {

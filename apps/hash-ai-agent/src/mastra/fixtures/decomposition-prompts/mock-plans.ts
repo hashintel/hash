@@ -49,7 +49,7 @@ export const mockSummarizePapersPlan: PlanSpec = {
       type: "research",
       id: "S1",
       description: "Search for recent RAG papers focusing on architecture",
-      dependsOn: [],
+      dependencyIds: [],
       requirementIds: ["R1"],
       inputs: [],
       outputs: [
@@ -66,7 +66,7 @@ export const mockSummarizePapersPlan: PlanSpec = {
       type: "research",
       id: "S2",
       description: "Search for RAG papers focusing on retrieval methods",
-      dependsOn: [],
+      dependencyIds: [],
       requirementIds: ["R1"],
       inputs: [],
       outputs: [
@@ -81,7 +81,7 @@ export const mockSummarizePapersPlan: PlanSpec = {
       type: "research",
       id: "S3",
       description: "Search for RAG papers with performance benchmarks",
-      dependsOn: [],
+      dependencyIds: [],
       requirementIds: ["R1"],
       inputs: [],
       outputs: [
@@ -96,12 +96,12 @@ export const mockSummarizePapersPlan: PlanSpec = {
       type: "synthesize",
       id: "S4",
       description: "Create comparison table from all three papers",
-      dependsOn: ["S1", "S2", "S3"],
+      dependencyIds: ["S1", "S2", "S3"],
       requirementIds: ["R2", "R3"],
       inputs: [
-        { name: "paper_1", description: "First paper", fromStepId: "S1" },
-        { name: "paper_2", description: "Second paper", fromStepId: "S2" },
-        { name: "paper_3", description: "Third paper", fromStepId: "S3" },
+        { name: "paper_1", description: "First paper" },
+        { name: "paper_2", description: "Second paper" },
+        { name: "paper_3", description: "Third paper" },
       ],
       outputs: [
         {
@@ -110,7 +110,6 @@ export const mockSummarizePapersPlan: PlanSpec = {
         },
       ],
       mode: "integrative",
-      inputStepIds: ["S1", "S2", "S3"],
       parallelizable: false,
       executor: { kind: "agent", ref: "result-synthesizer" },
     },
@@ -184,7 +183,7 @@ export const mockExploreAndRecommendPlan: PlanSpec = {
       type: "research",
       id: "S1",
       description: "Deep dive into HNSW indexing",
-      dependsOn: [],
+      dependencyIds: [],
       requirementIds: ["R1"],
       inputs: [],
       outputs: [
@@ -204,7 +203,7 @@ export const mockExploreAndRecommendPlan: PlanSpec = {
       type: "research",
       id: "S2",
       description: "Deep dive into IVF indexing",
-      dependsOn: [],
+      dependencyIds: [],
       requirementIds: ["R2"],
       inputs: [],
       outputs: [
@@ -224,7 +223,7 @@ export const mockExploreAndRecommendPlan: PlanSpec = {
       type: "research",
       id: "S3",
       description: "Research hybrid and emerging approaches",
-      dependsOn: [],
+      dependencyIds: [],
       requirementIds: ["R3"],
       inputs: [],
       outputs: [
@@ -242,19 +241,17 @@ export const mockExploreAndRecommendPlan: PlanSpec = {
       type: "synthesize",
       id: "S4",
       description: "Compare all approaches against our requirements",
-      dependsOn: ["S1", "S2", "S3"],
+      dependencyIds: ["S1", "S2", "S3"],
       requirementIds: ["R4"],
       inputs: [
         {
           name: "hnsw_analysis",
           description: "HNSW research",
-          fromStepId: "S1",
         },
-        { name: "ivf_analysis", description: "IVF research", fromStepId: "S2" },
+        { name: "ivf_analysis", description: "IVF research" },
         {
           name: "other_approaches",
           description: "Other approaches",
-          fromStepId: "S3",
         },
       ],
       outputs: [
@@ -265,7 +262,6 @@ export const mockExploreAndRecommendPlan: PlanSpec = {
         },
       ],
       mode: "integrative",
-      inputStepIds: ["S1", "S2", "S3"],
       parallelizable: false,
       executor: { kind: "agent", ref: "result-synthesizer" },
     },
@@ -273,13 +269,12 @@ export const mockExploreAndRecommendPlan: PlanSpec = {
       type: "synthesize",
       id: "S5",
       description: "Evaluate options and make recommendation",
-      dependsOn: ["S4"],
+      dependencyIds: ["S4"],
       requirementIds: ["R5"],
       inputs: [
         {
           name: "comparison_matrix",
           description: "Comparison results",
-          fromStepId: "S4",
         },
       ],
       outputs: [
@@ -289,7 +284,6 @@ export const mockExploreAndRecommendPlan: PlanSpec = {
         },
       ],
       mode: "evaluative",
-      inputStepIds: ["S4"],
       evaluateAgainst: [
         "Query latency <100ms at 10M scale",
         "Memory efficiency for production deployment",
@@ -396,7 +390,7 @@ export const mockHypothesisValidationPlan: PlanSpec = {
       type: "research",
       id: "S1",
       description: "Review prior work on fine-tuning vs few-shot for NER",
-      dependsOn: [],
+      dependencyIds: [],
       requirementIds: ["R1"],
       inputs: [],
       outputs: [
@@ -416,13 +410,12 @@ export const mockHypothesisValidationPlan: PlanSpec = {
       type: "experiment",
       id: "S2",
       description: "Establish few-shot GPT-4 baseline",
-      dependsOn: ["S1"],
+      dependencyIds: ["S1"],
       requirementIds: ["R1"],
       inputs: [
         {
           name: "prior_work",
           description: "Inform prompt design",
-          fromStepId: "S1",
         },
       ],
       outputs: [
@@ -450,13 +443,12 @@ export const mockHypothesisValidationPlan: PlanSpec = {
       type: "develop",
       id: "S3",
       description: "Fine-tune Llama 3 8B on training data",
-      dependsOn: ["S1"],
+      dependencyIds: ["S1"],
       requirementIds: ["R2"],
       inputs: [
         {
           name: "prior_work",
           description: "Inform fine-tuning approach",
-          fromStepId: "S1",
         },
       ],
       outputs: [
@@ -479,13 +471,12 @@ export const mockHypothesisValidationPlan: PlanSpec = {
       type: "experiment",
       id: "S4",
       description: "Evaluate fine-tuned model on test set",
-      dependsOn: ["S3"],
+      dependencyIds: ["S3"],
       requirementIds: ["R3"],
       inputs: [
         {
           name: "fine_tuned_model",
           description: "Trained model",
-          fromStepId: "S3",
         },
       ],
       outputs: [
@@ -518,18 +509,16 @@ export const mockHypothesisValidationPlan: PlanSpec = {
       type: "synthesize",
       id: "S5",
       description: "Analyze results and make recommendation",
-      dependsOn: ["S2", "S4"],
+      dependencyIds: ["S2", "S4"],
       requirementIds: ["R4", "R5"],
       inputs: [
         {
           name: "baseline_results",
           description: "GPT-4 baseline",
-          fromStepId: "S2",
         },
         {
           name: "finetuned_results",
           description: "Fine-tuned results",
-          fromStepId: "S4",
         },
       ],
       outputs: [
@@ -539,7 +528,6 @@ export const mockHypothesisValidationPlan: PlanSpec = {
         },
       ],
       mode: "evaluative",
-      inputStepIds: ["S2", "S4"],
       evaluateAgainst: [
         "F1 score comparison (primary metric)",
         "Inference cost at 10K docs/day",
@@ -660,7 +648,7 @@ export const mockCtDatabasePlan: PlanSpec = {
       type: "research",
       id: "S1",
       description: "Survey CT foundations in database theory",
-      dependsOn: [],
+      dependencyIds: [],
       requirementIds: ["R1"],
       inputs: [],
       outputs: [
@@ -679,7 +667,7 @@ export const mockCtDatabasePlan: PlanSpec = {
       type: "research",
       id: "S2",
       description: "Survey CT in programming languages",
-      dependsOn: [],
+      dependencyIds: [],
       requirementIds: ["R1"],
       inputs: [],
       outputs: [
@@ -696,7 +684,7 @@ export const mockCtDatabasePlan: PlanSpec = {
       id: "S3",
       description:
         "Analyze existing CT-based systems (CQL, Algebraic Databases)",
-      dependsOn: [],
+      dependencyIds: [],
       requirementIds: ["R1"],
       inputs: [],
       outputs: [
@@ -716,23 +704,20 @@ export const mockCtDatabasePlan: PlanSpec = {
       type: "synthesize",
       id: "S4",
       description: "Synthesize research into design principles",
-      dependsOn: ["S1", "S2", "S3"],
+      dependencyIds: ["S1", "S2", "S3"],
       requirementIds: ["R1"],
       inputs: [
         {
           name: "db_theory_survey",
           description: "DB theory",
-          fromStepId: "S1",
         },
         {
           name: "pl_theory_survey",
           description: "PL theory",
-          fromStepId: "S2",
         },
         {
           name: "existing_systems",
           description: "Existing systems",
-          fromStepId: "S3",
         },
       ],
       outputs: [
@@ -742,7 +727,6 @@ export const mockCtDatabasePlan: PlanSpec = {
         },
       ],
       mode: "integrative",
-      inputStepIds: ["S1", "S2", "S3"],
       parallelizable: false,
       executor: { kind: "agent", ref: "result-synthesizer" },
     },
@@ -750,13 +734,12 @@ export const mockCtDatabasePlan: PlanSpec = {
       type: "experiment",
       id: "S5",
       description: "Feasibility: Implement and index basic CT structures",
-      dependsOn: ["S4"],
+      dependencyIds: ["S4"],
       requirementIds: ["R2"],
       inputs: [
         {
           name: "design_principles",
           description: "Design guidance",
-          fromStepId: "S4",
         },
       ],
       outputs: [
@@ -784,13 +767,12 @@ export const mockCtDatabasePlan: PlanSpec = {
       type: "experiment",
       id: "S6",
       description: "Performance: Benchmark against PostgreSQL",
-      dependsOn: ["S5"],
+      dependencyIds: ["S5"],
       requirementIds: ["R3"],
       inputs: [
         {
           name: "feasibility_results",
           description: "Feasibility results",
-          fromStepId: "S5",
         },
       ],
       outputs: [
@@ -820,20 +802,18 @@ export const mockCtDatabasePlan: PlanSpec = {
       type: "synthesize",
       id: "S7",
       description: "Go/no-go decision on prototype development",
-      dependsOn: ["S6"],
+      dependencyIds: ["S6"],
       requirementIds: ["R4"],
       inputs: [
         {
           name: "benchmark_results",
           description: "Benchmark results",
-          fromStepId: "S6",
         },
       ],
       outputs: [
         { name: "go_decision", description: "Decision and justification" },
       ],
       mode: "evaluative",
-      inputStepIds: ["S6"],
       evaluateAgainst: [
         "Performance within 2x of traditional DB",
         "Clear path to optimization",
@@ -846,11 +826,9 @@ export const mockCtDatabasePlan: PlanSpec = {
       type: "develop",
       id: "S8",
       description: "Develop prototype with functor-based migrations",
-      dependsOn: ["S7"],
+      dependencyIds: ["S7"],
       requirementIds: ["R4", "R5"],
-      inputs: [
-        { name: "go_decision", description: "Go decision", fromStepId: "S7" },
-      ],
+      inputs: [{ name: "go_decision", description: "Go decision" }],
       outputs: [
         {
           name: "prototype",

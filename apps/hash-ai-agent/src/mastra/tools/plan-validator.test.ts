@@ -44,7 +44,7 @@ function createBasePlan(): PlanSpec {
         type: "research",
         id: "S1",
         description: "Research step",
-        dependsOn: [],
+        dependencyIds: [],
         requirementIds: ["R1"],
         inputs: [],
         outputs: [{ name: "findings", description: "Research findings" }],
@@ -110,7 +110,7 @@ describe("Plan Validator — Negative Fixtures", () => {
         type: "research",
         id: "S1", // Duplicate!
         description: "Another research step",
-        dependsOn: [],
+        dependencyIds: [],
         requirementIds: ["R1"],
         inputs: [],
         outputs: [],
@@ -170,59 +170,15 @@ describe("Plan Validator — Negative Fixtures", () => {
   // ---------------------------------------------------------------------------
 
   describe("INVALID_STEP_REFERENCE", () => {
-    test("rejects step with dependsOn referencing non-existent step", () => {
+    test("rejects step with dependencyIds referencing non-existent step", () => {
       const plan = createBasePlan();
-      plan.steps[0]!.dependsOn = ["S99"]; // Non-existent
+      plan.steps[0]!.dependencyIds = ["S99"]; // Non-existent
 
       expectError(plan, "INVALID_STEP_REFERENCE");
 
       const result = validatePlan(plan);
       const errors = getErrorsByCode(result, "INVALID_STEP_REFERENCE");
       expect(errors[0]?.details?.invalidRef).toBe("S99");
-    });
-
-    test("rejects synthesize step with inputStepIds referencing non-existent step", () => {
-      const plan = createBasePlan();
-      plan.steps.push({
-        type: "synthesize",
-        id: "S2",
-        description: "Synthesize results",
-        dependsOn: ["S1"],
-        requirementIds: ["R1"],
-        inputs: [],
-        outputs: [],
-        mode: "integrative",
-        inputStepIds: ["S1", "S99"], // S99 doesn't exist
-        parallelizable: false,
-        executor: { kind: "agent", ref: "result-synthesizer" },
-      });
-
-      expectError(plan, "INVALID_STEP_REFERENCE");
-    });
-
-    test("rejects step with input.fromStepId referencing non-existent step", () => {
-      const plan = createBasePlan();
-      plan.steps.push({
-        type: "synthesize",
-        id: "S2",
-        description: "Synthesize results",
-        dependsOn: ["S1"],
-        requirementIds: ["R1"],
-        inputs: [
-          {
-            name: "data",
-            description: "Input data",
-            fromStepId: "S99", // Non-existent
-          },
-        ],
-        outputs: [],
-        mode: "integrative",
-        inputStepIds: ["S1"],
-        parallelizable: false,
-        executor: { kind: "agent", ref: "result-synthesizer" },
-      });
-
-      expectError(plan, "INVALID_STEP_REFERENCE");
     });
   });
 
@@ -242,7 +198,7 @@ describe("Plan Validator — Negative Fixtures", () => {
         type: "experiment",
         id: "S2",
         description: "Run experiment",
-        dependsOn: ["S1"],
+        dependencyIds: ["S1"],
         requirementIds: ["R1"],
         inputs: [],
         outputs: [],
@@ -322,7 +278,7 @@ describe("Plan Validator — Negative Fixtures", () => {
         type: "experiment",
         id: "S2",
         description: "Run experiment",
-        dependsOn: [],
+        dependencyIds: [],
         requirementIds: ["R1"],
         inputs: [],
         outputs: [],
@@ -360,7 +316,7 @@ describe("Plan Validator — Negative Fixtures", () => {
         type: "experiment",
         id: "S2",
         description: "Confirmatory experiment",
-        dependsOn: [],
+        dependencyIds: [],
         requirementIds: ["R1"],
         inputs: [],
         outputs: [],
@@ -392,7 +348,7 @@ describe("Plan Validator — Negative Fixtures", () => {
         type: "experiment",
         id: "S2",
         description: "Confirmatory experiment",
-        dependsOn: [],
+        dependencyIds: [],
         requirementIds: ["R1"],
         inputs: [],
         outputs: [],
@@ -424,7 +380,7 @@ describe("Plan Validator — Negative Fixtures", () => {
         type: "experiment",
         id: "S2",
         description: "Exploratory experiment",
-        dependsOn: [],
+        dependencyIds: [],
         requirementIds: ["R1"],
         inputs: [],
         outputs: [],
@@ -454,12 +410,11 @@ describe("Plan Validator — Negative Fixtures", () => {
         type: "synthesize",
         id: "S2",
         description: "Evaluate results",
-        dependsOn: ["S1"],
+        dependencyIds: ["S1"],
         requirementIds: ["R1"],
         inputs: [],
         outputs: [],
         mode: "evaluative", // Requires evaluateAgainst!
-        inputStepIds: ["S1"],
         // Missing evaluateAgainst!
         parallelizable: false,
         executor: { kind: "agent", ref: "progress-evaluator" },
@@ -474,12 +429,11 @@ describe("Plan Validator — Negative Fixtures", () => {
         type: "synthesize",
         id: "S2",
         description: "Evaluate results",
-        dependsOn: ["S1"],
+        dependencyIds: ["S1"],
         requirementIds: ["R1"],
         inputs: [],
         outputs: [],
         mode: "evaluative",
-        inputStepIds: ["S1"],
         evaluateAgainst: [], // Empty array!
         parallelizable: false,
         executor: { kind: "agent", ref: "progress-evaluator" },
@@ -494,12 +448,11 @@ describe("Plan Validator — Negative Fixtures", () => {
         type: "synthesize",
         id: "S2",
         description: "Combine findings",
-        dependsOn: ["S1"],
+        dependencyIds: ["S1"],
         requirementIds: ["R1"],
         inputs: [],
         outputs: [],
         mode: "integrative", // Integrative doesn't require evaluateAgainst
-        inputStepIds: ["S1"],
         // No evaluateAgainst — OK for integrative
         parallelizable: false,
         executor: { kind: "agent", ref: "result-synthesizer" },
@@ -517,7 +470,7 @@ describe("Plan Validator — Negative Fixtures", () => {
   describe("CYCLE_DETECTED", () => {
     test("rejects plan with self-referencing step", () => {
       const plan = createBasePlan();
-      plan.steps[0]!.dependsOn = ["S1"]; // Self-reference
+      plan.steps[0]!.dependencyIds = ["S1"]; // Self-reference
 
       expectError(plan, "CYCLE_DETECTED");
 
@@ -532,17 +485,16 @@ describe("Plan Validator — Negative Fixtures", () => {
         type: "synthesize",
         id: "S2",
         description: "Synthesize",
-        dependsOn: ["S1"],
+        dependencyIds: ["S1"],
         requirementIds: ["R1"],
         inputs: [],
         outputs: [],
         mode: "integrative",
-        inputStepIds: ["S1"],
         parallelizable: false,
         executor: { kind: "agent", ref: "result-synthesizer" },
       });
       // Create cycle: S1 -> S2 -> S1
-      plan.steps[0]!.dependsOn = ["S2"];
+      plan.steps[0]!.dependencyIds = ["S2"];
 
       expectError(plan, "CYCLE_DETECTED");
 
@@ -561,7 +513,7 @@ describe("Plan Validator — Negative Fixtures", () => {
           type: "research",
           id: "S2",
           description: "Research 2",
-          dependsOn: ["S1"],
+          dependencyIds: ["S1"],
           requirementIds: ["R1"],
           inputs: [],
           outputs: [],
@@ -574,7 +526,7 @@ describe("Plan Validator — Negative Fixtures", () => {
           type: "research",
           id: "S3",
           description: "Research 3",
-          dependsOn: ["S2"],
+          dependencyIds: ["S2"],
           requirementIds: ["R1"],
           inputs: [],
           outputs: [],
@@ -585,7 +537,7 @@ describe("Plan Validator — Negative Fixtures", () => {
         },
       );
       // Create cycle: S1 -> S2 -> S3 -> S1
-      plan.steps[0]!.dependsOn = ["S3"];
+      plan.steps[0]!.dependencyIds = ["S3"];
 
       expectError(plan, "CYCLE_DETECTED");
     });
@@ -600,7 +552,7 @@ describe("Plan Validator — Negative Fixtures", () => {
           type: "research",
           id: "S1",
           description: "Initial research",
-          dependsOn: [],
+          dependencyIds: [],
           requirementIds: ["R1"],
           inputs: [],
           outputs: [{ name: "findings", description: "Findings" }],
@@ -613,7 +565,7 @@ describe("Plan Validator — Negative Fixtures", () => {
           type: "research",
           id: "S2",
           description: "Branch A",
-          dependsOn: ["S1"],
+          dependencyIds: ["S1"],
           requirementIds: ["R1"],
           inputs: [],
           outputs: [],
@@ -626,7 +578,7 @@ describe("Plan Validator — Negative Fixtures", () => {
           type: "research",
           id: "S3",
           description: "Branch B",
-          dependsOn: ["S1"],
+          dependencyIds: ["S1"],
           requirementIds: ["R1"],
           inputs: [],
           outputs: [],
@@ -639,12 +591,11 @@ describe("Plan Validator — Negative Fixtures", () => {
           type: "synthesize",
           id: "S4",
           description: "Combine branches",
-          dependsOn: ["S2", "S3"],
+          dependencyIds: ["S2", "S3"],
           requirementIds: ["R1"],
           inputs: [],
           outputs: [],
           mode: "integrative",
-          inputStepIds: ["S2", "S3"],
           parallelizable: false,
           executor: { kind: "agent", ref: "result-synthesizer" },
         },
@@ -674,7 +625,7 @@ describe("Plan Validator — Negative Fixtures", () => {
             type: "research",
             id: "S1",
             description: "Research",
-            dependsOn: ["S99"], // Invalid reference
+            dependencyIds: ["S99"], // Invalid reference
             requirementIds: ["R99"], // Invalid reference
             inputs: [],
             outputs: [],
@@ -743,7 +694,7 @@ describe("Plan Validator — Negative Fixtures", () => {
             type: "research",
             id: "S1",
             description: "Literature review",
-            dependsOn: [],
+            dependencyIds: [],
             requirementIds: ["R1"],
             inputs: [],
             outputs: [{ name: "papers", description: "Relevant papers" }],
@@ -756,14 +707,11 @@ describe("Plan Validator — Negative Fixtures", () => {
             type: "synthesize",
             id: "S2",
             description: "Summarize findings",
-            dependsOn: ["S1"],
+            dependencyIds: ["S1"],
             requirementIds: ["R1"],
-            inputs: [
-              { name: "papers", description: "Papers", fromStepId: "S1" },
-            ],
+            inputs: [{ name: "papers", description: "Papers" }],
             outputs: [{ name: "summary", description: "Literature summary" }],
             mode: "integrative",
-            inputStepIds: ["S1"],
             parallelizable: false,
             executor: { kind: "agent", ref: "result-synthesizer" },
           },
@@ -771,11 +719,9 @@ describe("Plan Validator — Negative Fixtures", () => {
             type: "experiment",
             id: "S3",
             description: "Test hypothesis",
-            dependsOn: ["S2"],
+            dependencyIds: ["S2"],
             requirementIds: ["R2"],
-            inputs: [
-              { name: "summary", description: "Summary", fromStepId: "S2" },
-            ],
+            inputs: [{ name: "summary", description: "Summary" }],
             outputs: [{ name: "results", description: "Experiment results" }],
             mode: "confirmatory",
             hypothesisIds: ["H1"],
@@ -794,14 +740,11 @@ describe("Plan Validator — Negative Fixtures", () => {
             type: "synthesize",
             id: "S4",
             description: "Evaluate results",
-            dependsOn: ["S3"],
+            dependencyIds: ["S3"],
             requirementIds: ["R1", "R2"],
-            inputs: [
-              { name: "results", description: "Results", fromStepId: "S3" },
-            ],
+            inputs: [{ name: "results", description: "Results" }],
             outputs: [{ name: "conclusion", description: "Final conclusion" }],
             mode: "evaluative",
-            inputStepIds: ["S3"],
             evaluateAgainst: [
               "Does the evidence support H1?",
               "What is the effect size?",
