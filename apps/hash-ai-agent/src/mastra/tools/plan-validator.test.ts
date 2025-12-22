@@ -50,7 +50,7 @@ function createBasePlan(): PlanSpec {
         outputs: [{ name: "findings", description: "Research findings" }],
         query: "Test query",
         stoppingRule: "Find 3 relevant sources",
-        parallelizable: true,
+        concurrent: true,
         executor: { kind: "agent", ref: "literature-searcher" },
       },
     ],
@@ -116,7 +116,7 @@ describe("Plan Validator — Negative Fixtures", () => {
         outputs: [],
         query: "Another query",
         stoppingRule: "Find sources",
-        parallelizable: true,
+        concurrent: true,
         executor: { kind: "agent", ref: "literature-searcher" },
       });
 
@@ -207,7 +207,7 @@ describe("Plan Validator — Negative Fixtures", () => {
         procedure: "Test procedure",
         expectedOutcomes: ["Outcome A"],
         successCriteria: ["Criterion A"],
-        parallelizable: true,
+        concurrent: true,
         executor: { kind: "agent", ref: "experiment-runner" },
       });
 
@@ -287,7 +287,7 @@ describe("Plan Validator — Negative Fixtures", () => {
         procedure: "Test procedure",
         expectedOutcomes: ["Outcome"],
         successCriteria: ["Criterion"],
-        parallelizable: true,
+        concurrent: true,
         // paper-summarizer can only handle "research"
         executor: { kind: "agent", ref: "paper-summarizer" },
       });
@@ -326,7 +326,7 @@ describe("Plan Validator — Negative Fixtures", () => {
         expectedOutcomes: ["Outcome"],
         successCriteria: ["Criterion"],
         // Missing preregisteredCommitments!
-        parallelizable: true,
+        concurrent: true,
         executor: { kind: "agent", ref: "experiment-runner" },
       });
 
@@ -358,7 +358,7 @@ describe("Plan Validator — Negative Fixtures", () => {
         expectedOutcomes: ["Outcome"],
         successCriteria: ["Criterion"],
         preregisteredCommitments: [], // Empty array!
-        parallelizable: true,
+        concurrent: true,
         executor: { kind: "agent", ref: "experiment-runner" },
       });
 
@@ -390,7 +390,7 @@ describe("Plan Validator — Negative Fixtures", () => {
         expectedOutcomes: ["Outcome"],
         successCriteria: ["Criterion"],
         // No preregisteredCommitments — OK for exploratory
-        parallelizable: true,
+        concurrent: true,
         executor: { kind: "agent", ref: "experiment-runner" },
       });
 
@@ -416,7 +416,7 @@ describe("Plan Validator — Negative Fixtures", () => {
         outputs: [],
         mode: "evaluative", // Requires evaluateAgainst!
         // Missing evaluateAgainst!
-        parallelizable: false,
+        concurrent: false,
         executor: { kind: "agent", ref: "progress-evaluator" },
       });
 
@@ -435,7 +435,7 @@ describe("Plan Validator — Negative Fixtures", () => {
         outputs: [],
         mode: "evaluative",
         evaluateAgainst: [], // Empty array!
-        parallelizable: false,
+        concurrent: false,
         executor: { kind: "agent", ref: "progress-evaluator" },
       });
 
@@ -454,7 +454,7 @@ describe("Plan Validator — Negative Fixtures", () => {
         outputs: [],
         mode: "integrative", // Integrative doesn't require evaluateAgainst
         // No evaluateAgainst — OK for integrative
-        parallelizable: false,
+        concurrent: false,
         executor: { kind: "agent", ref: "result-synthesizer" },
       });
 
@@ -490,7 +490,7 @@ describe("Plan Validator — Negative Fixtures", () => {
         inputs: [],
         outputs: [],
         mode: "integrative",
-        parallelizable: false,
+        concurrent: false,
         executor: { kind: "agent", ref: "result-synthesizer" },
       });
       // Create cycle: S1 -> S2 -> S1
@@ -519,7 +519,7 @@ describe("Plan Validator — Negative Fixtures", () => {
           outputs: [],
           query: "Query 2",
           stoppingRule: "Rule 2",
-          parallelizable: true,
+          concurrent: true,
           executor: { kind: "agent", ref: "literature-searcher" },
         },
         {
@@ -532,7 +532,7 @@ describe("Plan Validator — Negative Fixtures", () => {
           outputs: [],
           query: "Query 3",
           stoppingRule: "Rule 3",
-          parallelizable: true,
+          concurrent: true,
           executor: { kind: "agent", ref: "literature-searcher" },
         },
       );
@@ -558,7 +558,7 @@ describe("Plan Validator — Negative Fixtures", () => {
           outputs: [{ name: "findings", description: "Findings" }],
           query: "Initial query",
           stoppingRule: "Find sources",
-          parallelizable: true,
+          concurrent: true,
           executor: { kind: "agent", ref: "literature-searcher" },
         },
         {
@@ -571,7 +571,7 @@ describe("Plan Validator — Negative Fixtures", () => {
           outputs: [],
           query: "Branch A query",
           stoppingRule: "Find sources",
-          parallelizable: true,
+          concurrent: true,
           executor: { kind: "agent", ref: "literature-searcher" },
         },
         {
@@ -584,7 +584,7 @@ describe("Plan Validator — Negative Fixtures", () => {
           outputs: [],
           query: "Branch B query",
           stoppingRule: "Find sources",
-          parallelizable: true,
+          concurrent: true,
           executor: { kind: "agent", ref: "literature-searcher" },
         },
         {
@@ -596,7 +596,7 @@ describe("Plan Validator — Negative Fixtures", () => {
           inputs: [],
           outputs: [],
           mode: "integrative",
-          parallelizable: false,
+          concurrent: false,
           executor: { kind: "agent", ref: "result-synthesizer" },
         },
       ];
@@ -631,7 +631,7 @@ describe("Plan Validator — Negative Fixtures", () => {
             outputs: [],
             query: "Query",
             stoppingRule: "Rule",
-            parallelizable: true,
+            concurrent: true,
             executor: { kind: "agent", ref: "unknown-agent" }, // Invalid executor
           },
         ],
@@ -700,7 +700,7 @@ describe("Plan Validator — Negative Fixtures", () => {
             outputs: [{ name: "papers", description: "Relevant papers" }],
             query: "X and Y relationship",
             stoppingRule: "10 relevant papers",
-            parallelizable: true,
+            concurrent: true,
             executor: { kind: "agent", ref: "literature-searcher" },
           },
           {
@@ -712,7 +712,7 @@ describe("Plan Validator — Negative Fixtures", () => {
             inputs: [{ name: "papers", description: "Papers" }],
             outputs: [{ name: "summary", description: "Literature summary" }],
             mode: "integrative",
-            parallelizable: false,
+            concurrent: false,
             executor: { kind: "agent", ref: "result-synthesizer" },
           },
           {
@@ -733,7 +733,7 @@ describe("Plan Validator — Negative Fixtures", () => {
               "Analysis: t-test",
               "Stopping rule: fixed sample",
             ],
-            parallelizable: true,
+            concurrent: true,
             executor: { kind: "agent", ref: "experiment-runner" },
           },
           {
@@ -750,7 +750,7 @@ describe("Plan Validator — Negative Fixtures", () => {
               "What is the effect size?",
               "Are there confounding factors?",
             ],
-            parallelizable: false,
+            concurrent: false,
             executor: { kind: "agent", ref: "progress-evaluator" },
           },
         ],

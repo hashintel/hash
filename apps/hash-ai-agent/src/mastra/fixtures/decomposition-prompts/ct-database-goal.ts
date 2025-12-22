@@ -63,7 +63,7 @@ export const ctDatabaseGoalFixture: PlanningFixture = {
   expected: {
     shouldHaveHypotheses: true,
     shouldHaveExperiments: true,
-    shouldHaveParallelResearch: true,
+    shouldHaveConcurrentResearch: true,
     minSteps: 8,
     maxSteps: 20,
     expectedStepTypes: ["research", "experiment", "synthesize", "develop"],

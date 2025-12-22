@@ -28,8 +28,8 @@ export interface ExpectedPlanCharacteristics {
   shouldHaveHypotheses: boolean;
   /** Should the plan include experiment steps? */
   shouldHaveExperiments: boolean;
-  /** Should research steps be parallelizable? */
-  shouldHaveParallelResearch: boolean;
+  /** Should research steps be concurrent? */
+  shouldHaveConcurrentResearch: boolean;
   /** Minimum expected step count */
   minSteps: number;
   /** Maximum expected step count (optional) */

@@ -15,10 +15,6 @@
 
 import { z } from "zod";
 
-// =============================================================================
-// AIM TYPE
-// =============================================================================
-
 /**
  * Classification of the goal's primary aim.
  *
@@ -34,6 +30,9 @@ import { z } from "zod";
 export const zAimType = z.enum(["describe", "explain", "predict", "intervene"]);
 export type AimType = z.infer<typeof zAimType>;
 
+/**
+ * Step types supported in the PlanSpec.
+ */
 export const STEP_TYPES = [
   "research",
   "synthesize",
@@ -42,10 +41,6 @@ export const STEP_TYPES = [
 ] as const;
 export const zStepType = z.enum(STEP_TYPES);
 export type StepType = z.infer<typeof zStepType>;
-
-// =============================================================================
-// REQUIREMENTS
-// =============================================================================
 
 /**
  * A requirement extracted from the goal.
@@ -63,10 +58,6 @@ export const zRequirement = z.object({
     .describe("MoSCoW priority level"),
 });
 export type Requirement = z.infer<typeof zRequirement>;
-
-// =============================================================================
-// HYPOTHESES
-// =============================================================================
 
 /**
  * A testable hypothesis.
@@ -233,7 +224,12 @@ export const zBaseStep = z.object({
   description: z.string().describe("What this step accomplishes"),
   dependencyIds: z
     .array(z.string())
+    .default([])
     .describe("Step IDs that must complete before this step"),
+  concurrent: z
+    .boolean()
+    .default(true)
+    .describe("Whether this step may run concurrently with other ready steps"),
   requirementIds: z
     .array(z.string())
     .describe("Requirement IDs this step addresses"),
@@ -256,9 +252,8 @@ export const zBaseStep = z.object({
 /**
  * A research step for gathering existing knowledge.
  *
- * Research steps are parallelizable — multiple research queries can run
- * concurrently. Each research step should have a clear stopping rule
- * defining what "done" means.
+ * Each research step should have a clear stopping rule defining what "done"
+ * means.
  */
 export const zResearchStep = zBaseStep.extend({
   type: zStepType.extract(["research"]),
@@ -268,10 +263,6 @@ export const zResearchStep = zBaseStep.extend({
     .describe(
       'What "done" means for this research (e.g., "3 relevant papers found")',
     ),
-  parallelizable: z
-    .boolean()
-    .default(true)
-    .describe("Research steps are typically parallelizable (defaults to true)"),
 });
 export type ResearchStep = z.infer<typeof zResearchStep>;
 
@@ -281,8 +272,6 @@ export type ResearchStep = z.infer<typeof zResearchStep>;
 
 /**
  * A synthesize step for combining or evaluating results.
- *
- * Synthesize steps are NOT parallelizable — they require all inputs to be ready.
  *
  * When mode is 'evaluative', this subsumes the old "assess" step type.
  * Evaluative synthesis judges results against specific criteria.
@@ -296,10 +285,6 @@ export const zSynthesizeStep = zBaseStep.extend({
     .array(z.string())
     .optional()
     .describe("Criteria to evaluate against (required if mode is evaluative)"),
-  parallelizable: z
-    .boolean()
-    .default(false)
-    .describe("Synthesize steps typically wait for inputs (defaults to false)"),
 });
 export type SynthesizeStep = z.infer<typeof zSynthesizeStep>;
 
@@ -323,9 +308,6 @@ export type ExperimentMode = z.infer<typeof zExperimentMode>;
 /**
  * An experiment step for testing hypotheses.
  *
- * Experiment steps can be parallelizable — multiple independent experiments
- * can run concurrently, but sequential experiments are also valid.
- *
  * Confirmatory experiments SHOULD have preregisteredCommitments — decisions
  * locked before seeing outcomes. This is validated by the experiment-rigor scorer.
  */
@@ -346,10 +328,6 @@ export const zExperimentStep = zBaseStep.extend({
     .describe(
       "Decisions locked before seeing outcomes (required for confirmatory)",
     ),
-  parallelizable: z
-    .boolean()
-    .default(true)
-    .describe("Whether this experiment can run in parallel with others"),
 });
 export type ExperimentStep = z.infer<typeof zExperimentStep>;
 
@@ -359,17 +337,11 @@ export type ExperimentStep = z.infer<typeof zExperimentStep>;
 
 /**
  * A develop step for building/implementing something.
- *
- * Develop steps may or may not be parallelizable depending on dependencies.
  */
 export const zDevelopStep = zBaseStep.extend({
   type: zStepType.extract(["develop"]),
   specification: z.string().describe("What to build/implement"),
   deliverables: z.array(z.string()).describe("Concrete outputs to produce"),
-  parallelizable: z
-    .boolean()
-    .default(false)
-    .describe("Whether this can run in parallel with other develop steps"),
 });
 export type DevelopStep = z.infer<typeof zDevelopStep>;
 

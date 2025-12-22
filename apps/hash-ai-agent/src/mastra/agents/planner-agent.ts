@@ -44,7 +44,6 @@ const PLANNER_INSTRUCTIONS = dedent`
 
   ### research
   - Use for: Gathering existing knowledge, literature review, exploring codebases
-  - Parallelizable: YES - multiple research queries can run concurrently
   - Must include: query (what to search for), stoppingRule (when research is "done")
 
   ### synthesize
@@ -57,7 +56,7 @@ const PLANNER_INSTRUCTIONS = dedent`
 
   ### experiment
   - Use for: Testing hypotheses empirically, running prototypes, benchmarking
-  - Parallelizable: Can be parallel (independent experiments) or sequential
+  - Parallelism: Use dependencyIds for required ordering
   - Modes:
     - "exploratory": Hypothesis generation, flexible analysis
     - "confirmatory": Preregistered design, locked analysis plan
@@ -125,6 +124,8 @@ Structure your uncertainties into four categories (all are required):
 
   - Generate unique IDs for requirements (R1, R2...), hypotheses (H1, H2...), and steps (S1, S2...)
   - Ensure dependencyIds references only existing step IDs
+  - If a step should NOT run concurrently with other ready steps for policy/resource reasons,
+    set "concurrent": false. Otherwise omit it (defaults to true).
   - Ensure hypothesisIds references only existing hypothesis IDs
   - Ensure requirementIds references only existing requirement IDs
   - Create a valid DAG (no circular dependencies)

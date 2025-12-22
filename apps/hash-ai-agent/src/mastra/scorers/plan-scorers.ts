@@ -56,7 +56,7 @@ export interface PlanStructureDetails {
   criticalPathLength: number;
   /** Maximum parallelism (max steps that can run concurrently) */
   maxParallelism: number;
-  /** Ratio of parallelizable steps to total steps */
+  /** Ratio of concurrent steps to total steps */
   parallelismRatio: number;
   /** Step type distribution */
   stepTypeDistribution: Record<StepType, number>;
@@ -121,15 +121,15 @@ export function scorePlanStructure(
   details.criticalPathLength = topology.criticalPath.length;
   details.maxParallelism = Math.max(
     1,
-    ...topology.parallelGroups.map(
-      (group) => group.parallelizableStepIds.length,
-    ),
+    ...topology.parallelGroups.map((group) => group.concurrentStepIds.length),
   );
 
   // Calculate parallelism ratio
-  const parallelizableSteps = plan.steps.filter((step) => step.parallelizable);
+  const concurrentSteps = plan.steps.filter(
+    (step) => step.concurrent !== false,
+  );
   details.parallelismRatio =
-    plan.steps.length > 0 ? parallelizableSteps.length / plan.steps.length : 0;
+    plan.steps.length > 0 ? concurrentSteps.length / plan.steps.length : 0;
 
   // Calculate component scores
   const dagScore = 1.0; // Valid if we got here

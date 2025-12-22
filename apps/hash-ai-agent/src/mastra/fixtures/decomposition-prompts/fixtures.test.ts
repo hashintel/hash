@@ -86,7 +86,7 @@ async function runFixtureTest(fixture: PlanningFixture): Promise<void> {
     console.log(`  Exit points: [${topology.exitPoints.join(", ")}]`);
     console.log(`  Critical path: ${topology.criticalPath.length} steps`);
     console.log(
-      `  Max parallelism: ${Math.max(...topology.parallelGroups.map((group) => group.parallelizableStepIds.length))}`,
+      `  Max parallelism: ${Math.max(...topology.parallelGroups.map((group) => group.concurrentStepIds.length))}`,
     );
   }
 
@@ -117,10 +117,10 @@ async function runFixtureTest(fixture: PlanningFixture): Promise<void> {
     expect(hasExperiment).toBe(true);
   }
 
-  // Parallel research expectation
-  if (expected.shouldHaveParallelResearch) {
+  // Concurrent research expectation
+  if (expected.shouldHaveConcurrentResearch) {
     const researchSteps = plan.steps.filter((step) => step.type === "research");
-    // Should have at least one research step (all research steps are parallelizable by design)
+    // Should have at least one research step (typically concurrent by policy)
     expect(researchSteps.length).toBeGreaterThan(0);
   }
 

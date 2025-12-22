@@ -48,7 +48,7 @@ function createMinimalPlan(): PlanSpec {
         outputs: [{ name: "findings", description: "Research findings" }],
         query: "Test query",
         stoppingRule: "Find 3 sources",
-        parallelizable: true,
+        concurrent: true,
         executor: { kind: "agent", ref: "literature-searcher" },
       },
     ],
@@ -89,7 +89,7 @@ function createLinearPlan(): PlanSpec {
         outputs: [{ name: "findings", description: "Initial findings" }],
         query: "Initial query",
         stoppingRule: "Find sources",
-        parallelizable: true,
+        concurrent: true,
         executor: { kind: "agent", ref: "literature-searcher" },
       },
       {
@@ -101,7 +101,7 @@ function createLinearPlan(): PlanSpec {
         inputs: [{ name: "findings", description: "From S1" }],
         outputs: [{ name: "synthesis", description: "Synthesized results" }],
         mode: "integrative",
-        parallelizable: false,
+        concurrent: false,
         executor: { kind: "agent", ref: "result-synthesizer" },
       },
       {
@@ -114,7 +114,7 @@ function createLinearPlan(): PlanSpec {
         outputs: [{ name: "deliverable", description: "Final output" }],
         specification: "Build based on synthesis",
         deliverables: ["Documentation"],
-        parallelizable: false,
+        concurrent: false,
         executor: { kind: "agent", ref: "documentation-writer" },
       },
     ],
@@ -155,7 +155,7 @@ function createParallelPlan(): PlanSpec {
         outputs: [{ name: "findings_a", description: "Topic A findings" }],
         query: "Topic A query",
         stoppingRule: "Find 3 sources",
-        parallelizable: true,
+        concurrent: true,
         executor: { kind: "agent", ref: "literature-searcher" },
       },
       {
@@ -168,7 +168,7 @@ function createParallelPlan(): PlanSpec {
         outputs: [{ name: "findings_b", description: "Topic B findings" }],
         query: "Topic B query",
         stoppingRule: "Find 3 sources",
-        parallelizable: true,
+        concurrent: true,
         executor: { kind: "agent", ref: "literature-searcher" },
       },
       {
@@ -181,7 +181,7 @@ function createParallelPlan(): PlanSpec {
         outputs: [{ name: "findings_c", description: "Topic C findings" }],
         query: "Topic C query",
         stoppingRule: "Find 3 sources",
-        parallelizable: true,
+        concurrent: true,
         executor: { kind: "agent", ref: "literature-searcher" },
       },
       {
@@ -197,7 +197,7 @@ function createParallelPlan(): PlanSpec {
         ],
         outputs: [{ name: "synthesis", description: "Combined synthesis" }],
         mode: "integrative",
-        parallelizable: false,
+        concurrent: false,
         executor: { kind: "agent", ref: "result-synthesizer" },
       },
     ],
@@ -242,7 +242,7 @@ function createDiamondPlan(): PlanSpec {
         outputs: [{ name: "initial", description: "Initial data" }],
         query: "Initial query",
         stoppingRule: "Find sources",
-        parallelizable: true,
+        concurrent: true,
         executor: { kind: "agent", ref: "literature-searcher" },
       },
       {
@@ -255,7 +255,7 @@ function createDiamondPlan(): PlanSpec {
         outputs: [{ name: "branch_a", description: "Branch A results" }],
         query: "Branch A query",
         stoppingRule: "Analyze branch A",
-        parallelizable: true,
+        concurrent: true,
         executor: { kind: "agent", ref: "literature-searcher" },
       },
       {
@@ -268,7 +268,7 @@ function createDiamondPlan(): PlanSpec {
         outputs: [{ name: "branch_b", description: "Branch B results" }],
         query: "Branch B query",
         stoppingRule: "Analyze branch B",
-        parallelizable: true,
+        concurrent: true,
         executor: { kind: "agent", ref: "literature-searcher" },
       },
       {
@@ -283,7 +283,7 @@ function createDiamondPlan(): PlanSpec {
         ],
         outputs: [{ name: "merged", description: "Merged results" }],
         mode: "integrative",
-        parallelizable: false,
+        concurrent: false,
         executor: { kind: "agent", ref: "result-synthesizer" },
       },
     ],
@@ -324,19 +324,19 @@ function createMixedParallelismPlan(): PlanSpec {
         outputs: [{ name: "findings", description: "Findings" }],
         query: "Query",
         stoppingRule: "Find sources",
-        parallelizable: true,
+        concurrent: true,
         executor: { kind: "agent", ref: "literature-searcher" },
       },
       {
         type: "synthesize",
         id: "S2",
-        description: "Non-parallelizable synthesis (no deps)",
+        description: "Non-concurrent synthesis (no deps)",
         dependencyIds: [],
         requirementIds: ["R1"],
         inputs: [],
         outputs: [{ name: "synthesis", description: "Synthesis" }],
         mode: "integrative",
-        parallelizable: false, // Explicitly not parallelizable
+        concurrent: false, // Explicitly not concurrent
         executor: { kind: "agent", ref: "result-synthesizer" },
       },
       {
@@ -349,7 +349,7 @@ function createMixedParallelismPlan(): PlanSpec {
         outputs: [{ name: "output", description: "Output" }],
         specification: "Combine results",
         deliverables: ["Final artifact"],
-        parallelizable: false,
+        concurrent: false,
         executor: { kind: "agent", ref: "documentation-writer" },
       },
     ],
@@ -404,7 +404,7 @@ function createDeepDagPlan(): PlanSpec {
         ],
         query: "Explore problem space",
         stoppingRule: "Identify 3 key areas",
-        parallelizable: true,
+        concurrent: true,
         executor: { kind: "agent", ref: "literature-searcher" },
       },
       // Depth 1: Parallel deep-dives
@@ -418,7 +418,7 @@ function createDeepDagPlan(): PlanSpec {
         outputs: [{ name: "area_a_findings", description: "Area A findings" }],
         query: "Research area A in depth",
         stoppingRule: "Find 5 relevant sources",
-        parallelizable: true,
+        concurrent: true,
         executor: { kind: "agent", ref: "literature-searcher" },
       },
       {
@@ -431,7 +431,7 @@ function createDeepDagPlan(): PlanSpec {
         outputs: [{ name: "area_b_findings", description: "Area B findings" }],
         query: "Research area B in depth",
         stoppingRule: "Find 5 relevant sources",
-        parallelizable: true,
+        concurrent: true,
         executor: { kind: "agent", ref: "literature-searcher" },
       },
       {
@@ -444,7 +444,7 @@ function createDeepDagPlan(): PlanSpec {
         outputs: [{ name: "area_c_findings", description: "Area C findings" }],
         query: "Research area C in depth",
         stoppingRule: "Find 5 relevant sources",
-        parallelizable: true,
+        concurrent: true,
         executor: { kind: "agent", ref: "literature-searcher" },
       },
       // Depth 2: Synthesis fan-in
@@ -461,7 +461,7 @@ function createDeepDagPlan(): PlanSpec {
         ],
         outputs: [{ name: "synthesis", description: "Combined synthesis" }],
         mode: "integrative",
-        parallelizable: false,
+        concurrent: false,
         executor: { kind: "agent", ref: "result-synthesizer" },
       },
       // Depth 3: Parallel development
@@ -475,7 +475,7 @@ function createDeepDagPlan(): PlanSpec {
         outputs: [{ name: "component_x", description: "Component X" }],
         specification: "Build component X",
         deliverables: ["Component X implementation"],
-        parallelizable: true,
+        concurrent: true,
         executor: { kind: "agent", ref: "code-writer" },
       },
       {
@@ -488,7 +488,7 @@ function createDeepDagPlan(): PlanSpec {
         outputs: [{ name: "component_y", description: "Component Y" }],
         specification: "Build component Y",
         deliverables: ["Component Y implementation"],
-        parallelizable: true,
+        concurrent: true,
         executor: { kind: "agent", ref: "code-writer" },
       },
       // Depth 4: Final synthesis/evaluation
@@ -510,7 +510,7 @@ function createDeepDagPlan(): PlanSpec {
           "Do components integrate correctly?",
           "Are requirements met?",
         ],
-        parallelizable: false,
+        concurrent: false,
         executor: { kind: "agent", ref: "progress-evaluator" },
       },
     ],
@@ -550,7 +550,7 @@ function createPlanWithInvalidExecutor(): PlanSpec {
         outputs: [{ name: "findings", description: "Findings" }],
         query: "Test query",
         stoppingRule: "Find sources",
-        parallelizable: true,
+        concurrent: true,
         executor: { kind: "agent", ref: "nonexistent-agent" }, // Invalid!
       },
     ],
@@ -585,7 +585,7 @@ function createPlanWithThrowingStep(): PlanSpec {
         outputs: [{ name: "findings", description: "Findings" }],
         query: "__THROW__ trigger error",
         stoppingRule: "Find sources",
-        parallelizable: true,
+        concurrent: true,
         executor: { kind: "agent", ref: "literature-searcher" },
       },
     ],
@@ -753,15 +753,15 @@ describe("Plan Compiler — Topology Analysis", () => {
     expect(topology.criticalPath.stepIds[2]).toBe("S4");
   });
 
-  test("correctly identifies parallelizable steps within groups", () => {
+  test("correctly identifies concurrent steps within groups", () => {
     const plan = createMixedParallelismPlan();
     const topology = analyzePlanTopology(plan);
 
     const depth0 = topology.parallelGroups.find((grp) => grp.depth === 0);
 
-    // S1 is parallelizable, S2 is not
-    expect(depth0?.parallelizableStepIds).toContain("S1");
-    expect(depth0?.parallelizableStepIds).not.toContain("S2");
+    // S1 is concurrent, S2 is not
+    expect(depth0?.concurrentStepIds).toContain("S1");
+    expect(depth0?.concurrentStepIds).not.toContain("S2");
   });
 
   test("correctly computes 5 depth levels for deep DAG", () => {

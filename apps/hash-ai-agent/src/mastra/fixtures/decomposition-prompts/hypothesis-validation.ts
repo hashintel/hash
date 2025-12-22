@@ -46,7 +46,7 @@ export const hypothesisValidationFixture: PlanningFixture = {
   expected: {
     shouldHaveHypotheses: true,
     shouldHaveExperiments: true,
-    shouldHaveParallelResearch: false,
+    shouldHaveConcurrentResearch: false,
     minSteps: 5,
     maxSteps: 15,
     expectedStepTypes: ["research", "experiment", "synthesize"],

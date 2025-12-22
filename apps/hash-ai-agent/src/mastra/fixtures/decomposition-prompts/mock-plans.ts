@@ -59,7 +59,7 @@ export const mockSummarizePapersPlan: PlanSpec = {
         "Recent retrieval-augmented generation architecture papers 2023-2024",
       stoppingRule:
         "Find 1 high-quality paper with clear architecture description",
-      parallelizable: true,
+      concurrent: true,
       executor: { kind: "agent", ref: "literature-searcher" },
     },
     {
@@ -74,7 +74,7 @@ export const mockSummarizePapersPlan: PlanSpec = {
       ],
       query: "RAG retrieval methods dense sparse hybrid 2023-2024",
       stoppingRule: "Find 1 high-quality paper with novel retrieval approach",
-      parallelizable: true,
+      concurrent: true,
       executor: { kind: "agent", ref: "literature-searcher" },
     },
     {
@@ -89,7 +89,7 @@ export const mockSummarizePapersPlan: PlanSpec = {
       ],
       query: "RAG performance benchmarks evaluation 2023-2024",
       stoppingRule: "Find 1 paper with comprehensive performance evaluation",
-      parallelizable: true,
+      concurrent: true,
       executor: { kind: "agent", ref: "literature-searcher" },
     },
     {
@@ -110,7 +110,7 @@ export const mockSummarizePapersPlan: PlanSpec = {
         },
       ],
       mode: "integrative",
-      parallelizable: false,
+      concurrent: false,
       executor: { kind: "agent", ref: "result-synthesizer" },
     },
   ],
@@ -196,7 +196,7 @@ export const mockExploreAndRecommendPlan: PlanSpec = {
         "HNSW hierarchical navigable small world index performance characteristics filtered queries",
       stoppingRule:
         "Understand latency at scale, memory requirements, and filtering support",
-      parallelizable: true,
+      concurrent: true,
       executor: { kind: "agent", ref: "literature-searcher" },
     },
     {
@@ -216,7 +216,7 @@ export const mockExploreAndRecommendPlan: PlanSpec = {
         "IVF inverted file index vector database performance nlist nprobe tradeoffs",
       stoppingRule:
         "Understand build time, query latency, and accuracy tradeoffs",
-      parallelizable: true,
+      concurrent: true,
       executor: { kind: "agent", ref: "literature-searcher" },
     },
     {
@@ -234,7 +234,7 @@ export const mockExploreAndRecommendPlan: PlanSpec = {
       ],
       query: "DiskANN ScaNN hybrid vector index billion scale filtered search",
       stoppingRule: "Identify 2-3 promising alternatives to HNSW and IVF",
-      parallelizable: true,
+      concurrent: true,
       executor: { kind: "agent", ref: "literature-searcher" },
     },
     {
@@ -262,7 +262,7 @@ export const mockExploreAndRecommendPlan: PlanSpec = {
         },
       ],
       mode: "integrative",
-      parallelizable: false,
+      concurrent: false,
       executor: { kind: "agent", ref: "result-synthesizer" },
     },
     {
@@ -290,7 +290,7 @@ export const mockExploreAndRecommendPlan: PlanSpec = {
         "Support for metadata filtering",
         "Index build time within 3-week timeline",
       ],
-      parallelizable: false,
+      concurrent: false,
       executor: { kind: "agent", ref: "progress-evaluator" },
     },
   ],
@@ -403,7 +403,7 @@ export const mockHypothesisValidationPlan: PlanSpec = {
       query:
         "Fine-tuning vs few-shot prompting named entity recognition legal documents comparison",
       stoppingRule: "Find 3+ relevant comparisons with quantitative results",
-      parallelizable: true,
+      concurrent: true,
       executor: { kind: "agent", ref: "literature-searcher" },
     },
     {
@@ -436,7 +436,7 @@ export const mockHypothesisValidationPlan: PlanSpec = {
         "Complete evaluation on all test documents",
         "F1 score computed for each entity type",
       ],
-      parallelizable: true,
+      concurrent: true,
       executor: { kind: "agent", ref: "experiment-runner" },
     },
     {
@@ -464,7 +464,7 @@ export const mockHypothesisValidationPlan: PlanSpec = {
         "Training curves",
         "Validation F1 progression",
       ],
-      parallelizable: true,
+      concurrent: true,
       executor: { kind: "agent", ref: "code-writer" },
     },
     {
@@ -502,7 +502,7 @@ export const mockHypothesisValidationPlan: PlanSpec = {
         "Report all entity types, not just best performing",
         "Significance threshold: p < 0.05",
       ],
-      parallelizable: false,
+      concurrent: false,
       executor: { kind: "agent", ref: "experiment-runner" },
     },
     {
@@ -533,7 +533,7 @@ export const mockHypothesisValidationPlan: PlanSpec = {
         "Inference cost at 10K docs/day",
         "Stakeholder explainability",
       ],
-      parallelizable: false,
+      concurrent: false,
       executor: { kind: "agent", ref: "progress-evaluator" },
     },
   ],
@@ -660,7 +660,7 @@ export const mockCtDatabasePlan: PlanSpec = {
       query:
         "Category theory database foundations functorial data migration categorical query language",
       stoppingRule: "Identify key papers: Spivak, Schultz, CQL",
-      parallelizable: true,
+      concurrent: true,
       executor: { kind: "agent", ref: "literature-searcher" },
     },
     {
@@ -676,7 +676,7 @@ export const mockCtDatabasePlan: PlanSpec = {
       query:
         "Category theory programming languages Haskell categorical semantics type theory",
       stoppingRule: "Understand how Haskell/ML encode CT concepts",
-      parallelizable: true,
+      concurrent: true,
       executor: { kind: "agent", ref: "literature-searcher" },
     },
     {
@@ -697,7 +697,7 @@ export const mockCtDatabasePlan: PlanSpec = {
         "CQL categorical query language implementation Algebraic Databases performance",
       stoppingRule:
         "Document architecture, limitations, and performance of 2+ systems",
-      parallelizable: true,
+      concurrent: true,
       executor: { kind: "agent", ref: "literature-searcher" },
     },
     {
@@ -727,7 +727,7 @@ export const mockCtDatabasePlan: PlanSpec = {
         },
       ],
       mode: "integrative",
-      parallelizable: false,
+      concurrent: false,
       executor: { kind: "agent", ref: "result-synthesizer" },
     },
     {
@@ -760,7 +760,7 @@ export const mockCtDatabasePlan: PlanSpec = {
         "Complete implementation of basic structures",
         "Benchmark results for 3 query types",
       ],
-      parallelizable: false,
+      concurrent: false,
       executor: { kind: "agent", ref: "experiment-runner" },
     },
     {
@@ -795,7 +795,7 @@ export const mockCtDatabasePlan: PlanSpec = {
         "Warm cache for both",
         "Report median and p99 latency",
       ],
-      parallelizable: false,
+      concurrent: false,
       executor: { kind: "agent", ref: "experiment-runner" },
     },
     {
@@ -819,7 +819,7 @@ export const mockCtDatabasePlan: PlanSpec = {
         "Clear path to optimization",
         "Team has capacity for 6+ month project",
       ],
-      parallelizable: false,
+      concurrent: false,
       executor: { kind: "agent", ref: "progress-evaluator" },
     },
     {
@@ -843,7 +843,7 @@ export const mockCtDatabasePlan: PlanSpec = {
         "Query language parser",
         "Documentation",
       ],
-      parallelizable: false,
+      concurrent: false,
       executor: { kind: "agent", ref: "code-writer" },
     },
   ],
