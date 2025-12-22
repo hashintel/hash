@@ -33,6 +33,14 @@ These represent a shift toward **epistemically rigorous R&D orchestration** rath
 
 ---
 
+## Recent Observations (2025-05-04)
+
+- **Branching + suspend/resume** need to be first-class in the compiler approach. We should plan for conditional paths and HITL pauses as part of the compiled workflow model, not just at the prompt layer.
+- **Error handling needs a policy layer**: beyond fail-fast, we need declarative choices for retries, fallbacks, and “continue-on-error” semantics. This should be modeled separately from step logic (e.g., per-step or per-plan execution policy).
+- **Mastra dev UI is useful but limited** for interaction patterns; keep the TUI demo path as the primary interactive surface until a dedicated frontend is warranted.
+
+---
+
 ## Priority 1: Handoff Packet Integration
 
 **Problem**: Current step outputs are unstructured (`outputs: DataContract[]` at plan-time, arbitrary objects at runtime). No standard for what constitutes a "complete" step contribution.
