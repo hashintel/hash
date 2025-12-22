@@ -520,10 +520,13 @@ impl<'env, 'heap, A: BumpAllocator> TransformPass<'env, 'heap> for CfgSimplify<A
 
         // Unreachable blocks will be dead, therefore must be removed
         let mut dbe = DeadBlockElimination::new_in(&mut self.alloc);
-        dbe.run(context, body);
+        let _: Changed = dbe.run(context, body);
 
         // Simplifications may break SSA (e.g., merged blocks with conflicting definitions).
-        SsaRepair::new_in(&mut self.alloc).run(context, body);
+        let _: Changed = SsaRepair::new_in(&mut self.alloc).run(context, body);
+
+        // We ignore the changed of the sub-passes above, because we **know** that we already
+        // modified, if they don't doesn't matter.
 
         changed.into()
     }
