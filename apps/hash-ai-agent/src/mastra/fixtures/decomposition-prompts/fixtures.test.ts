@@ -59,7 +59,9 @@ async function runFixtureTest(fixture: PlanningFixture): Promise<void> {
   console.log(`\nSteps:`);
   for (const step of plan.steps) {
     const deps =
-      step.dependsOn.length > 0 ? ` (deps: ${step.dependsOn.join(", ")})` : "";
+      step.dependencyIds.length > 0
+        ? ` (deps: ${step.dependencyIds.join(", ")})`
+        : "";
     console.log(
       `  ${step.id}: [${step.type}] ${step.description.slice(0, 50)}...${deps}`,
     );

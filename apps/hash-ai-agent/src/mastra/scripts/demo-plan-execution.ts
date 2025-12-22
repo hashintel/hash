@@ -178,9 +178,9 @@ function formatStepForDisplay(step: PlanStep, depth: number): string[] {
   lines.push(`${indent}${icon} ${colorFn(step.id)} — ${step.description}`);
 
   // Dependencies
-  if (step.dependsOn.length > 0) {
+  if (step.dependencyIds.length > 0) {
     lines.push(
-      `${indent}   ${color.dim(`depends on: ${step.dependsOn.join(", ")}`)}`,
+      `${indent}   ${color.dim(`depends on: ${step.dependencyIds.join(", ")}`)}`,
     );
   }
 
@@ -234,8 +234,10 @@ function displayPlanVisualization(plan: PlanSpec): void {
   writeLine(color.bold("Execution Steps:"));
 
   // Group steps by their dependencies to show structure
-  const entrySteps = plan.steps.filter((step) => step.dependsOn.length === 0);
-  const otherSteps = plan.steps.filter((step) => step.dependsOn.length > 0);
+  const entrySteps = plan.steps.filter(
+    (step) => step.dependencyIds.length === 0,
+  );
+  const otherSteps = plan.steps.filter((step) => step.dependencyIds.length > 0);
 
   // Show entry points (depth 0)
   if (entrySteps.length > 0) {

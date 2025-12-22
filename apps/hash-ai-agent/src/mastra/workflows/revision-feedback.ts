@@ -30,7 +30,7 @@ function formatStepContext(step: PlanStep): string {
     id: step.id,
     type: step.type,
     description: step.description,
-    dependsOn: step.dependsOn,
+    dependencyIds: step.dependencyIds,
   };
 
   // Add type-specific fields
@@ -43,7 +43,6 @@ function formatStepContext(step: PlanStep): string {
     }
   } else if (step.type === "synthesize") {
     relevantFields.mode = step.mode;
-    relevantFields.inputStepIds = step.inputStepIds;
     if (step.mode === "evaluative") {
       relevantFields.evaluateAgainst = step.evaluateAgainst;
     }
@@ -122,7 +121,7 @@ function getFixInstructions(error: ValidationError, _step?: PlanStep): string {
 
     CYCLE_DETECTED: dedent`
       The plan contains a circular dependency. Step "${error.context}" is part 
-      of a cycle. Review the \`dependsOn\` references and ensure the plan forms 
+      of a cycle. Review the \`dependencyIds\` references and ensure the plan forms 
       a valid DAG (directed acyclic graph).
     `,
 
@@ -130,8 +129,8 @@ function getFixInstructions(error: ValidationError, _step?: PlanStep): string {
       Step "${error.context}" references a step ID that doesn't exist.
       ${invalidRef ? `Invalid reference: "${invalidRef}"` : ""}
       
-      Check the \`dependsOn\`, \`inputStepIds\`, or \`fromStepId\` fields and 
-      ensure they reference valid step IDs defined in the plan.
+      Check the \`dependencyIds\` field and ensure it references valid step IDs 
+      defined in the plan.
     `,
 
     INVALID_HYPOTHESIS_REFERENCE: dedent`
@@ -252,7 +251,7 @@ export function buildRevisionFeedback(
 
     When fixing these errors, ensure you:
     - Keep all existing step IDs stable unless they're duplicates
-    - Verify all references (hypothesisIds, requirementIds, dependsOn) point to existing IDs
+    - Verify all references (hypothesisIds, requirementIds, dependencyIds) point to existing IDs
     - Maintain the DAG structure (no circular dependencies)
     - Do not introduce new errors while fixing these
 

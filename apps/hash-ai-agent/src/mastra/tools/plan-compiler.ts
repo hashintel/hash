@@ -61,7 +61,7 @@ export interface PlanStepStartEvent {
     description: string;
     depth: number;
     executor: Executor;
-    dependsOn: string[];
+    dependencyIds: string[];
   };
 }
 
@@ -272,7 +272,7 @@ function buildPromptForStep(
 
     case "synthesize":
       parts.push(`Mode: ${planStep.mode}`);
-      parts.push(`Input Step IDs: ${planStep.inputStepIds.join(", ")}`);
+      parts.push(`Dependencies: ${planStep.dependencyIds.join(", ")}`);
       if (planStep.mode === "evaluative" && planStep.evaluateAgainst) {
         parts.push(`Evaluate Against: ${planStep.evaluateAgainst.join(", ")}`);
       }
@@ -443,7 +443,7 @@ function createMastraStep(planStep: PlanStep, ctx: CompilerContext) {
           description: planStep.description,
           depth,
           executor: planStep.executor,
-          dependsOn: planStep.dependsOn,
+          dependencyIds: planStep.dependencyIds,
         },
       } satisfies PlanStepStartEvent);
 

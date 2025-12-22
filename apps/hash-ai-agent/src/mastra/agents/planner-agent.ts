@@ -12,9 +12,10 @@
 import { Agent } from "@mastra/core/agent";
 import dedent from "dedent";
 
-import { DEFAULT_MODEL, formatAgentsForPrompt } from "../constants";
+import { DEFAULT_MODEL } from "../constants";
 import type { PlanSpec } from "../schemas/plan-spec";
 import { zPlanSpec } from "../schemas/plan-spec";
+import { formatAgentsForPrompt } from "./executor-agents";
 
 /**
  * System instructions for the planner agent.
@@ -123,7 +124,7 @@ Structure your uncertainties into four categories (all are required):
   ## Output Requirements
 
   - Generate unique IDs for requirements (R1, R2...), hypotheses (H1, H2...), and steps (S1, S2...)
-  - Ensure dependsOn references only existing step IDs
+  - Ensure dependencyIds references only existing step IDs
   - Ensure hypothesisIds references only existing hypothesis IDs
   - Ensure requirementIds references only existing requirement IDs
   - Create a valid DAG (no circular dependencies)
@@ -202,7 +203,7 @@ export async function generatePlan(
 
     Decompose this goal into a structured plan. Ensure:
     - All step dependencies form a valid DAG (no cycles)
-    - All references (hypothesisIds, requirementIds, dependsOn) point to existing IDs
+    - All references (hypothesisIds, requirementIds, dependencyIds) point to existing IDs
     - Each step has an appropriate executor assigned
     - The unknowns map captures your uncertainty honestly
 

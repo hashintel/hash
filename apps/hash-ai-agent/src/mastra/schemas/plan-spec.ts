@@ -34,6 +34,15 @@ import { z } from "zod";
 export const zAimType = z.enum(["describe", "explain", "predict", "intervene"]);
 export type AimType = z.infer<typeof zAimType>;
 
+export const STEP_TYPES = [
+  "research",
+  "synthesize",
+  "experiment",
+  "develop",
+] as const;
+export const zStepType = z.enum(STEP_TYPES);
+export type StepType = z.infer<typeof zStepType>;
+
 // =============================================================================
 // REQUIREMENTS
 // =============================================================================
@@ -88,6 +97,7 @@ export const zHypothesis = z.object({
     .describe("How this hypothesis can be tested (what experiment/evidence)"),
   status: zHypothesisStatus.default("untested"),
 });
+
 export type Hypothesis = z.infer<typeof zHypothesis>;
 
 // =============================================================================
@@ -106,6 +116,7 @@ export const zUnknownUnknown = z.object({
     .string()
     .describe("How would we notice? What would be the signal?"),
 });
+
 export type UnknownUnknown = z.infer<typeof zUnknownUnknown>;
 
 /**
@@ -135,6 +146,7 @@ export const zUnknownsMap = z.object({
     .string()
     .describe("What others would need to see to scrutinize our claims"),
 });
+
 export type UnknownsMap = z.infer<typeof zUnknownsMap>;
 
 // =============================================================================
@@ -150,11 +162,8 @@ export type UnknownsMap = z.infer<typeof zUnknownsMap>;
 export const zDataContract = z.object({
   name: z.string().describe("Name of the data artifact"),
   description: z.string().describe("What this data represents"),
-  fromStepId: z
-    .string()
-    .optional()
-    .describe("Step that produces this (for inputs)"),
 });
+
 export type DataContract = z.infer<typeof zDataContract>;
 
 // =============================================================================
@@ -171,6 +180,7 @@ export const zEvalCriteria = z.object({
     .optional()
     .describe("What constitutes failure (if different from !success)"),
 });
+
 export type EvalCriteria = z.infer<typeof zEvalCriteria>;
 
 // =============================================================================
@@ -207,6 +217,7 @@ export const zExecutor = z.discriminatedUnion("kind", [
       .describe("Instructions for human executor"),
   }),
 ]);
+
 export type Executor = z.infer<typeof zExecutor>;
 
 // =============================================================================
@@ -217,9 +228,10 @@ export type Executor = z.infer<typeof zExecutor>;
  * Common fields shared by all step types.
  */
 export const zBaseStep = z.object({
+  type: zStepType,
   id: z.string().describe("Unique identifier (e.g., 'S1', 'S2')"),
   description: z.string().describe("What this step accomplishes"),
-  dependsOn: z
+  dependencyIds: z
     .array(z.string())
     .describe("Step IDs that must complete before this step"),
   requirementIds: z
@@ -249,7 +261,7 @@ export const zBaseStep = z.object({
  * defining what "done" means.
  */
 export const zResearchStep = zBaseStep.extend({
-  type: z.literal("research"),
+  type: zStepType.extract(["research"]),
   query: z.string().describe("The research question or search query"),
   stoppingRule: z
     .string()
@@ -268,15 +280,6 @@ export type ResearchStep = z.infer<typeof zResearchStep>;
 // -----------------------------------------------------------------------------
 
 /**
- * Synthesis modes.
- *
- * - integrative: Combine findings from multiple sources into coherent understanding
- * - evaluative: Judge results against criteria (subsumes old "assess" step type)
- */
-export const zSynthesisMode = z.enum(["integrative", "evaluative"]);
-export type SynthesisMode = z.infer<typeof zSynthesisMode>;
-
-/**
  * A synthesize step for combining or evaluating results.
  *
  * Synthesize steps are NOT parallelizable — they require all inputs to be ready.
@@ -285,11 +288,10 @@ export type SynthesisMode = z.infer<typeof zSynthesisMode>;
  * Evaluative synthesis judges results against specific criteria.
  */
 export const zSynthesizeStep = zBaseStep.extend({
-  type: z.literal("synthesize"),
-  mode: zSynthesisMode.describe("integrative (combine) or evaluative (judge)"),
-  inputStepIds: z
-    .array(z.string())
-    .describe("Step IDs whose outputs to synthesize"),
+  type: zStepType.extract(["synthesize"]),
+  mode: z
+    .enum(["integrative", "evaluative"])
+    .describe("integrative (combine) or evaluative (judge)"),
   evaluateAgainst: z
     .array(z.string())
     .optional()
@@ -328,7 +330,7 @@ export type ExperimentMode = z.infer<typeof zExperimentMode>;
  * locked before seeing outcomes. This is validated by the experiment-rigor scorer.
  */
 export const zExperimentStep = zBaseStep.extend({
-  type: z.literal("experiment"),
+  type: zStepType.extract(["experiment"]),
   mode: zExperimentMode.describe("exploratory or confirmatory"),
   hypothesisIds: z.array(z.string()).describe("Hypothesis IDs being tested"),
   procedure: z.string().describe("How the experiment will be conducted"),
@@ -361,7 +363,7 @@ export type ExperimentStep = z.infer<typeof zExperimentStep>;
  * Develop steps may or may not be parallelizable depending on dependencies.
  */
 export const zDevelopStep = zBaseStep.extend({
-  type: z.literal("develop"),
+  type: zStepType.extract(["develop"]),
   specification: z.string().describe("What to build/implement"),
   deliverables: z.array(z.string()).describe("Concrete outputs to produce"),
   parallelizable: z
@@ -385,17 +387,6 @@ export const zPlanStep = z.discriminatedUnion("type", [
   zDevelopStep,
 ]);
 export type PlanStep = z.infer<typeof zPlanStep>;
-
-/**
- * Step type literals for type-safe checks.
- */
-export const STEP_TYPES = [
-  "research",
-  "synthesize",
-  "experiment",
-  "develop",
-] as const;
-export type StepType = (typeof STEP_TYPES)[number];
 
 // =============================================================================
 // PLAN SPEC (Full IR)
@@ -450,52 +441,3 @@ export const zPlanSpec = z.object({
     .describe("Estimated complexity of the plan"),
 });
 export type PlanSpec = z.infer<typeof zPlanSpec>;
-
-// =============================================================================
-// VALIDATION HELPERS
-// =============================================================================
-
-/**
- * Check if a step is parallelizable based on its type and configuration.
- */
-export function isParallelizable(step: PlanStep): boolean {
-  return step.parallelizable;
-}
-
-/**
- * Get all step IDs referenced by a step (dependencies + inputs).
- */
-export function getStepReferences(step: PlanStep): string[] {
-  const refs = [...step.dependsOn];
-
-  // Add inputStepIds for synthesize steps
-  if (step.type === "synthesize") {
-    refs.push(...step.inputStepIds);
-  }
-
-  // Add fromStepId from inputs
-  for (const input of step.inputs) {
-    if (input.fromStepId) {
-      refs.push(input.fromStepId);
-    }
-  }
-
-  return Array.from(new Set(refs)); // Deduplicate
-}
-
-/**
- * Get all hypothesis IDs referenced by a step.
- */
-export function getHypothesisReferences(step: PlanStep): string[] {
-  if (step.type === "experiment") {
-    return step.hypothesisIds;
-  }
-  return [];
-}
-
-/**
- * Get all requirement IDs referenced by a step.
- */
-export function getRequirementReferences(step: PlanStep): string[] {
-  return step.requirementIds;
-}
