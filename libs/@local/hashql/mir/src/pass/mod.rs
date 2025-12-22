@@ -62,14 +62,15 @@ const fn simplify_type_name(name: &'static str) -> &'static str {
 ///
 /// Passes return this to signal whether they made changes, enabling the pass manager to skip
 /// dependent re-analyses when nothing changed.
+#[must_use]
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum Changed {
     /// The pass definitely made modifications.
-    Yes,
+    Yes = 2,
     /// The pass may have made modifications, but precise tracking was not possible.
-    Unknown,
+    Unknown = 1,
     /// The pass made no modifications.
-    No,
+    No = 0,
 }
 
 impl Changed {
