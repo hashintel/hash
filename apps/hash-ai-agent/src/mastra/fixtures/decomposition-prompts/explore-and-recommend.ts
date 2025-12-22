@@ -42,7 +42,7 @@ export const exploreAndRecommendFixture: PlanningFixture = {
     // Note: LLM often generates hypotheses and experiments even when not strictly required
     shouldHaveHypotheses: false, // Not required, but may include
     shouldHaveExperiments: false, // Not required, but may include
-    shouldHaveParallelResearch: true,
+    shouldHaveConcurrentResearch: true,
     minSteps: 4,
     maxSteps: 12, // Increased to accommodate LLM's tendency to be thorough
     expectedStepTypes: ["research", "synthesize"],

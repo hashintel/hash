@@ -42,7 +42,7 @@ function createMinimalPlan(): PlanSpec {
         outputs: [{ name: "findings", description: "Findings" }],
         query: "Query",
         stoppingRule: "Rule",
-        parallelizable: true,
+        concurrent: true,
         executor: { kind: "agent", ref: "literature-searcher" },
       },
     ],
@@ -100,7 +100,7 @@ function createComplexPlan(): PlanSpec {
         outputs: [{ name: "findings", description: "Findings" }],
         query: "Initial query",
         stoppingRule: "Find 5 sources",
-        parallelizable: true,
+        concurrent: true,
         executor: { kind: "agent", ref: "literature-searcher" },
       },
       {
@@ -113,7 +113,7 @@ function createComplexPlan(): PlanSpec {
         outputs: [{ name: "data", description: "Data" }],
         query: "Parallel query",
         stoppingRule: "Collect data",
-        parallelizable: true,
+        concurrent: true,
         executor: { kind: "agent", ref: "literature-searcher" },
       },
       {
@@ -128,7 +128,7 @@ function createComplexPlan(): PlanSpec {
         ],
         outputs: [{ name: "synthesis", description: "Combined understanding" }],
         mode: "integrative",
-        parallelizable: false,
+        concurrent: false,
         executor: { kind: "agent", ref: "result-synthesizer" },
       },
       {
@@ -145,7 +145,7 @@ function createComplexPlan(): PlanSpec {
         expectedOutcomes: ["H1 supported", "H1 refuted"],
         successCriteria: ["p < 0.05"],
         preregisteredCommitments: ["Sample size: 100", "Analysis: t-test"],
-        parallelizable: true,
+        concurrent: true,
         executor: { kind: "agent", ref: "experiment-runner" },
       },
       {
@@ -158,7 +158,7 @@ function createComplexPlan(): PlanSpec {
         outputs: [{ name: "prototype", description: "Working prototype" }],
         specification: "Build X based on findings",
         deliverables: ["Code", "Tests"],
-        parallelizable: false,
+        concurrent: false,
         executor: { kind: "agent", ref: "code-writer" },
       },
     ],
@@ -218,7 +218,7 @@ describe("scorePlanStructure", () => {
       inputs: [],
       outputs: [],
       mode: "integrative",
-      parallelizable: false,
+      concurrent: false,
       executor: { kind: "agent", ref: "result-synthesizer" },
     });
 
@@ -233,7 +233,7 @@ describe("scorePlanStructure", () => {
       outputs: [],
       query: "Query 2",
       stoppingRule: "Rule",
-      parallelizable: true,
+      concurrent: true,
       executor: { kind: "agent", ref: "literature-searcher" },
     });
 
@@ -383,7 +383,7 @@ describe("scoreExperimentRigor", () => {
       expectedOutcomes: ["Outcome"],
       successCriteria: ["Criterion"],
       // No preregisteredCommitments!
-      parallelizable: true,
+      concurrent: true,
       executor: { kind: "agent", ref: "experiment-runner" },
     });
 
@@ -417,7 +417,7 @@ describe("scoreExperimentRigor", () => {
       procedure: "Procedure",
       expectedOutcomes: ["Outcome"],
       successCriteria: ["Criterion"],
-      parallelizable: true,
+      concurrent: true,
       executor: { kind: "agent", ref: "experiment-runner" },
     });
 
@@ -444,7 +444,7 @@ describe("scoreExperimentRigor", () => {
       procedure: "Procedure",
       expectedOutcomes: ["Outcome"],
       successCriteria: ["Criterion 1", "Criterion 2"],
-      parallelizable: true,
+      concurrent: true,
       executor: { kind: "agent" as const, ref: "experiment-runner" },
     };
 

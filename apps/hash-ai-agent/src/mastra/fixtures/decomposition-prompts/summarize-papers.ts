@@ -33,7 +33,7 @@ export const summarizePapersFixture: PlanningFixture = {
   expected: {
     shouldHaveHypotheses: false,
     shouldHaveExperiments: false,
-    shouldHaveParallelResearch: true,
+    shouldHaveConcurrentResearch: true,
     minSteps: 3,
     maxSteps: 6,
     expectedStepTypes: ["research", "synthesize"],

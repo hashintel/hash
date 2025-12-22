@@ -500,7 +500,7 @@ function createMastraStep(planStep: PlanStep, ctx: CompilerContext) {
  * Strategy:
  * - Process parallel groups in order (by depth)
  * - Single step at a depth → .then()
- * - Multiple parallelizable steps → .parallel()
+ * - Multiple concurrent steps → .parallel()
  * - Wrap with entry/exit handlers for streaming events
  */
 function buildWorkflowFromGroups(
@@ -581,19 +581,19 @@ function buildWorkflowFromGroups(
       // Single step - use .then()
       workflow.then(stepsInGroup[0]!);
     } else {
-      // Multiple steps - check if all are parallelizable
-      const parallelizableSteps = group.parallelizableStepIds
+      // Multiple steps - check if all are concurrent
+      const concurrentSteps = group.concurrentStepIds
         .map((id) => ctx.steps.get(id))
         .filter((step): step is NonNullable<typeof step> => step !== undefined);
 
-      if (parallelizableSteps.length === stepsInGroup.length) {
-        // All parallelizable - use .parallel()
-        workflow.parallel(parallelizableSteps);
-      } else if (parallelizableSteps.length > 1) {
+      if (concurrentSteps.length === stepsInGroup.length) {
+        // All concurrent - use .parallel()
+        workflow.parallel(concurrentSteps);
+      } else if (concurrentSteps.length > 1) {
         // Mixed: parallel first, then sequential
-        workflow.parallel(parallelizableSteps);
+        workflow.parallel(concurrentSteps);
         const sequentialSteps = stepsInGroup.filter(
-          (step) => !parallelizableSteps.includes(step),
+          (step) => !concurrentSteps.includes(step),
         );
         for (const step of sequentialSteps) {
           workflow.then(step);
@@ -667,7 +667,7 @@ function buildWorkflowFromGroups(
  * 2. Create Mastra steps for each PlanStep with streaming instrumentation
  * 3. Build workflow using parallel groups:
  *    - Single step at a depth → .then()
- *    - Multiple parallelizable steps at same depth → .parallel()
+ *    - Multiple concurrent steps at same depth → .parallel()
  *
  * @param plan - A validated PlanSpec (call validatePlan first!)
  * @param options - Compilation options
