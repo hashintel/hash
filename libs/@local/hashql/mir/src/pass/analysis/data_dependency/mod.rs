@@ -119,7 +119,7 @@ impl<'env, 'heap, A: Allocator + Clone> AnalysisPass<'env, 'heap>
 
         graph.derive(&body.local_decls, |id, _| id);
 
-        let Ok(()) = DataDependencyAnalysisVisitor {
+        Ok(()) = DataDependencyAnalysisVisitor {
             graph: &mut graph,
             constant_bindings: &mut constant_bindings,
             context,

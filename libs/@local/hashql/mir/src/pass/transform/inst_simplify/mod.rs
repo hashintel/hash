@@ -111,7 +111,7 @@ use crate::{
     },
     context::MirContext,
     intern::Interner,
-    pass::TransformPass,
+    pass::{Changed, TransformPass},
     visit::{self, VisitorMut, r#mut::filter},
 };
 
@@ -171,7 +171,7 @@ impl<A: BumpAllocator> InstSimplify<A> {
 }
 
 impl<'env, 'heap, A: BumpAllocator> TransformPass<'env, 'heap> for InstSimplify<A> {
-    fn run(&mut self, context: &mut MirContext<'env, 'heap>, body: &mut Body<'heap>) {
+    fn run(&mut self, context: &mut MirContext<'env, 'heap>, body: &mut Body<'heap>) -> Changed {
         self.alloc.reset();
 
         let mut visitor = InstSimplifyVisitor {
@@ -180,6 +180,7 @@ impl<'env, 'heap, A: BumpAllocator> TransformPass<'env, 'heap> for InstSimplify<
             trampoline: None,
             decl: &body.local_decls,
             evaluated: IdVec::with_capacity_in(body.local_decls.len(), &self.alloc),
+            changed: false,
         };
 
         let reverse_postorder = body
@@ -199,6 +200,8 @@ impl<'env, 'heap, A: BumpAllocator> TransformPass<'env, 'heap> for InstSimplify<
             Ok(()) =
                 visitor.visit_basic_block(id, &mut body.basic_blocks.as_mut_preserving_cfg()[id]);
         }
+
+        visitor.changed.into()
     }
 }
 
@@ -219,6 +222,8 @@ struct InstSimplifyVisitor<'env, 'heap, A: Allocator> {
     /// Map from locals to their known constant values.
     /// Populated when a local is assigned a constant (directly or via folding).
     evaluated: LocalVec<Option<Int>, A>,
+
+    changed: bool,
 }
 
 impl<'heap, A: Allocator> InstSimplifyVisitor<'_, 'heap, A> {
@@ -518,6 +523,8 @@ impl<'heap, A: Allocator> VisitorMut<'heap> for InstSimplifyVisitor<'_, 'heap, A
 
             return Ok(());
         };
+
+        self.changed = true;
 
         // If the simplified RHS is a constant, record it for future simplifications.
         if let RValue::Load(Operand::Constant(Constant::Int(int))) = trampoline

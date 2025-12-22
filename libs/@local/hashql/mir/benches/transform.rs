@@ -365,7 +365,9 @@ fn run(
         bencher,
         body,
         #[inline]
-        |context, body| pass.run(context, body),
+        |context, body| {
+            pass.run(context, body);
+        },
     );
 }
 
