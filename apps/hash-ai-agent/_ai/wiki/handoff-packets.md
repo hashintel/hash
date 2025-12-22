@@ -92,6 +92,7 @@ The `outputs` field describes *intent*; the handoff describes *actuality*. Orche
 ### Execution State Accumulation
 
 Handoffs accumulate into execution state, enabling:
+
 - Evidence ledger updates (from `observed` entries)
 - Uncertainty inventory updates (from `highestImpactUncertainty`)
 - Artifact tracking (from `changed` entries)

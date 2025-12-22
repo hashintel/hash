@@ -38,6 +38,7 @@ const mastra = new Mastra({
 ```
 
 ### Supported Backends
+
 - **PostgreSQL** - production recommended
 - **LibSQL/SQLite** - local development, serverless edge
 - **Custom** - implement `BaseStorage` interface

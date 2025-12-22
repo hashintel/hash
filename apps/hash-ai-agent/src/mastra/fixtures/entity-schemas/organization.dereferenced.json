@@ -1155,8 +1155,8 @@
     }
   },
   "required": [
-    "https://hash.ai/@h/types/property-type/organization-name/",
-    "https://hash.ai/@h/types/property-type/shortname/"
+    "https://hash.ai/@h/types/property-type/shortname/",
+    "https://hash.ai/@h/types/property-type/organization-name/"
   ],
   "title": "Organization",
   "type": "object"
