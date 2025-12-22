@@ -60,16 +60,16 @@ const PLANNER_INSTRUCTIONS = dedent`
   - Modes:
     - "exploratory": Hypothesis generation, flexible analysis
     - "confirmatory": Preregistered design, locked analysis plan
-  
+
   **CRITICAL FOR CONFIRMATORY EXPERIMENTS:**
   If mode is "confirmatory", you MUST include a preregisteredCommitments array with 2-3 items.
   This field is REQUIRED and the plan will fail validation without it!
-  
+
   preregisteredCommitments = decisions locked BEFORE seeing outcomes:
   - "Primary metric: <specific metric name>"
-  - "Sample size: <specific number>"  
+  - "Sample size: <specific number>"
   - "Success threshold: <specific criterion>"
-  
+
   Example confirmatory experiment:
   \`\`\`json
   {
@@ -86,21 +86,21 @@ const PLANNER_INSTRUCTIONS = dedent`
     ...
   }
   \`\`\`
-  
+
   - Must reference hypothesis IDs being tested
 
   ### develop
   - Use for: Building/implementing something, writing code, creating artifacts
   - Parallelizable: Sometimes - depends on dependencies
 
-  ## Unknowns Map
+## Unknowns Map
 
-  Structure your uncertainties into three categories:
+Structure your uncertainties into four categories (all are required):
 
-  1. **knownKnowns**: High-confidence facts you're building on
-  2. **knownUnknowns**: Explicit questions you need to answer
-  3. **unknownUnknowns**: What would surprise you (include detection signals)
-  4. **communityCheck**: What would others need to scrutinize your claims
+1. **knownKnowns**: High-confidence facts you're building on
+2. **knownUnknowns**: Explicit questions you need to answer
+3. **unknownUnknowns**: What would surprise you (include detection signals)
+4. **communityCheck**: What others should scrutinize or independently verify
 
   ## Executor Assignment
 
@@ -113,7 +113,7 @@ const PLANNER_INSTRUCTIONS = dedent`
   }
   \`\`\`
 
-  IMPORTANT: The executor.kind is NOT the step type! 
+  IMPORTANT: The executor.kind is NOT the step type!
   - Step type = what kind of work (research, synthesize, experiment, develop)
   - Executor kind = who performs it (agent, tool, workflow, human)
 

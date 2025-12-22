@@ -601,6 +601,8 @@ describe("scorePlanComposite", () => {
     const minResult = scorePlanComposite(minimal);
     const complexResult = scorePlanComposite(complex);
 
+    expect(complexResult.overall).toBeGreaterThan(minResult.overall);
+
     // Complex plan has more step types, better coverage
     expect(complexResult.structure.details.stepTypeDistribution).not.toEqual(
       minResult.structure.details.stepTypeDistribution,
