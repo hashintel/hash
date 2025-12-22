@@ -66,25 +66,35 @@ export const goalAlignmentScorer = createScorer({
     description: "Analyze how well the plan addresses the goal",
     outputSchema: zGoalAlignmentAnalysis,
     createPrompt: ({ run }) => {
-      // Input contains goal and plan
-      const input = run.input as
-        | { goal?: string; plan?: unknown }
-        | Array<{ content: string }>;
-      let goal: string;
-      let plan: unknown;
+      // Safely extract goal and plan from input
+      const rawInput = run.input as unknown;
+      let goal = "Unknown goal";
+      let plan: unknown = run.output as unknown;
 
-      if (Array.isArray(input)) {
-        // Message format - extract from content
-        const content = input[0]?.content ?? "";
-        goal = content;
-        plan = run.output;
-      } else {
-        goal = input.goal ?? "Unknown goal";
-        plan = input.plan ?? run.output;
+      if (Array.isArray(rawInput)) {
+        const first = rawInput[0] as { content?: string } | undefined;
+        goal = first?.content ?? "";
+        plan = run.output as unknown;
+      } else if (rawInput && typeof rawInput === "object") {
+        const obj = rawInput as { goal?: unknown; plan?: unknown };
+        if (typeof obj.goal === "string" && obj.goal.trim() !== "") {
+          goal = obj.goal;
+        }
+        plan = obj.plan ?? (run.output as unknown);
       }
 
-      const planJson =
-        typeof plan === "string" ? plan : JSON.stringify(plan, null, 2);
+      let planJson: string;
+      if (typeof plan === "string") {
+        planJson = plan;
+      } else if (plan == null) {
+        planJson = "No plan was provided.";
+      } else {
+        try {
+          planJson = JSON.stringify(plan, null, 2);
+        } catch {
+          planJson = "Plan could not be serialized.";
+        }
+      }
 
       return `Evaluate how well this plan addresses its goal.
 
@@ -182,23 +192,35 @@ export const planGranularityScorer = createScorer({
     description: "Analyze step granularity",
     outputSchema: zGranularityAnalysis,
     createPrompt: ({ run }) => {
-      const input = run.input as
-        | { goal?: string; plan?: unknown }
-        | Array<{ content: string }>;
-      let goal: string;
-      let plan: unknown;
+      // Safely extract goal and plan from input
+      const rawInput = run.input as unknown;
+      let goal = "Unknown goal";
+      let plan: unknown = run.output as unknown;
 
-      if (Array.isArray(input)) {
-        const content = input[0]?.content ?? "";
-        goal = content;
-        plan = run.output;
-      } else {
-        goal = input.goal ?? "Unknown goal";
-        plan = input.plan ?? run.output;
+      if (Array.isArray(rawInput)) {
+        const first = rawInput[0] as { content?: string } | undefined;
+        goal = first?.content ?? "";
+        plan = run.output as unknown;
+      } else if (rawInput && typeof rawInput === "object") {
+        const obj = rawInput as { goal?: unknown; plan?: unknown };
+        if (typeof obj.goal === "string" && obj.goal.trim() !== "") {
+          goal = obj.goal;
+        }
+        plan = obj.plan ?? (run.output as unknown);
       }
 
-      const planJson =
-        typeof plan === "string" ? plan : JSON.stringify(plan, null, 2);
+      let planJson: string;
+      if (typeof plan === "string") {
+        planJson = plan;
+      } else if (plan == null) {
+        planJson = "No plan was provided.";
+      } else {
+        try {
+          planJson = JSON.stringify(plan, null, 2);
+        } catch {
+          planJson = "Plan could not be serialized.";
+        }
+      }
 
       return `Evaluate the granularity of steps in this plan.
 
@@ -299,37 +321,65 @@ export const hypothesisTestabilityScorer = createScorer({
   },
 })
   .preprocess(({ run }) => {
-    const input = run.input as
-      | { goal?: string; plan?: unknown }
-      | Array<{ content: string }>;
-    let goal: string;
-    let plan: unknown;
+    // Safely extract goal and plan from input
+    const rawInput = run.input as unknown;
+    let goal = "Unknown goal";
+    let plan: unknown = run.output as unknown;
 
-    if (Array.isArray(input)) {
-      const content = input[0]?.content ?? "";
-      goal = content;
-      plan = run.output;
-    } else {
-      goal = input.goal ?? "Unknown goal";
-      plan = input.plan ?? run.output;
+    if (Array.isArray(rawInput)) {
+      const first = rawInput[0] as { content?: string } | undefined;
+      goal = first?.content ?? "";
+      plan = run.output as unknown;
+    } else if (rawInput && typeof rawInput === "object") {
+      const obj = rawInput as { goal?: unknown; plan?: unknown };
+      if (typeof obj.goal === "string" && obj.goal.trim() !== "") {
+        goal = obj.goal;
+      }
+      plan = obj.plan ?? (run.output as unknown);
     }
 
-    // Parse plan if it's a string
-    const planObj = (
-      typeof plan === "string" ? JSON.parse(plan) : plan
-    ) as {
+    // Safely parse plan if it's a string
+    type PlanLike = {
       hypotheses?: Array<{ id: string; statement: string }>;
       steps?: Array<{ type: string; id: string }>;
     };
-    const hasHypotheses = planObj.hypotheses && planObj.hypotheses.length > 0;
+    let planObj: PlanLike = {};
+
+    if (typeof plan === "string") {
+      try {
+        const parsed: unknown = JSON.parse(plan);
+        if (parsed && typeof parsed === "object") {
+          planObj = parsed as PlanLike;
+        }
+      } catch {
+        // Leave planObj as empty object
+      }
+    } else if (plan && typeof plan === "object") {
+      planObj = plan as PlanLike;
+    }
+
+    const hasHypotheses = (planObj.hypotheses?.length ?? 0) > 0;
     const hasExperiments =
       planObj.steps?.some((step) => step.type === "experiment") ?? false;
+
+    // Safely serialize planJson
+    let planJson: string;
+    if (typeof plan === "string") {
+      planJson = plan;
+    } else if (plan == null) {
+      planJson = "No plan was provided.";
+    } else {
+      try {
+        planJson = JSON.stringify(plan, null, 2);
+      } catch {
+        planJson = "Plan could not be serialized.";
+      }
+    }
 
     return {
       goal,
       plan,
-      planJson:
-        typeof plan === "string" ? plan : JSON.stringify(plan, null, 2),
+      planJson,
       hasHypotheses,
       hasExperiments,
     };
