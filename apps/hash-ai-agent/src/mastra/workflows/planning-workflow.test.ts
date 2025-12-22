@@ -24,11 +24,11 @@ import {
   type CompositePlanScore,
   scorePlanComposite,
 } from "../scorers/plan-scorers";
-import { validatePlan, type ValidationResult } from "../tools/plan-validator";
+import { validatePlan, type ValidationResult } from "../utils/plan-validator";
 import {
   analyzePlanTopology,
   type TopologyAnalysis,
-} from "../tools/topology-analyzer";
+} from "../utils/topology-analyzer";
 import { planningWorkflow } from "./planning-workflow";
 
 // =============================================================================
@@ -597,7 +597,9 @@ describeIfLlm("Planning Workflow with Revision Loop", () => {
             durationMs,
           });
           console.log(
-            `  Valid: ${output.valid}, Attempts: ${output.attempts}, Steps: ${output.plan.steps.length}, Duration: ${(durationMs / 1000).toFixed(1)}s`,
+            `  Valid: ${output.valid}, Attempts: ${output.attempts}, Steps: ${
+              output.plan.steps.length
+            }, Duration: ${(durationMs / 1000).toFixed(1)}s`,
           );
         } else {
           results.push({

@@ -15,7 +15,7 @@ import dedent from "dedent";
 import { DEFAULT_MODEL } from "../constants";
 import type { PlanSpec } from "../schemas/plan-spec";
 import { zPlanSpec } from "../schemas/plan-spec";
-import { formatAgentsForPrompt } from "./executor-agents";
+import { formatAgentsForPrompt } from "../utils/plan-executors";
 
 /**
  * System instructions for the planner agent.

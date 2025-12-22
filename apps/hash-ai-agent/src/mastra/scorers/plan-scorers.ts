@@ -13,13 +13,9 @@
  * Each scorer returns a normalized score [0, 1] and detailed breakdown.
  */
 
-import {
-  type PlanSpec,
-  type PlanStep,
-  type StepType,
-} from "../schemas/plan-spec";
-import { validatePlan } from "../tools/plan-validator";
-import { analyzePlanTopology } from "../tools/topology-analyzer";
+import type { PlanSpec, PlanStep, StepType } from "../schemas/plan-spec";
+import { validatePlan } from "../utils/plan-validator";
+import { analyzePlanTopology } from "../utils/topology-analyzer";
 
 // =============================================================================
 // SCORER RESULT TYPES

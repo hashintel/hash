@@ -38,7 +38,7 @@ import type {
 import {
   compilePlanToWorkflow,
   type PlanExecutionEvent,
-} from "../tools/plan-compiler";
+} from "../utils/plan-compiler";
 import { planningWorkflow } from "../workflows/planning-workflow";
 
 // =============================================================================
@@ -101,7 +101,7 @@ function parseCliArgs(): CliArgs {
     } else if (arg.startsWith("--fixture=")) {
       result.fixture = arg.split("=")[1];
     } else if (arg.startsWith("--delay=")) {
-      result.delay = parseInt(arg.split("=")[1]!, 10);
+      result.delay = Number.parseInt(arg.split("=")[1]!, 10);
     }
   }
 
@@ -383,7 +383,9 @@ async function executePlan(
           `${color.dim("┌")} Plan started: ${color.cyan(event.data.planId)}`,
         );
         writeLine(
-          `${color.dim("│")} Steps: ${event.data.totalSteps}, Critical path: ${event.data.criticalPathLength}, Parallel groups: ${event.data.parallelGroups}`,
+          `${color.dim("│")} Steps: ${event.data.totalSteps}, Critical path: ${
+            event.data.criticalPathLength
+          }, Parallel groups: ${event.data.parallelGroups}`,
         );
         break;
       }
@@ -396,7 +398,9 @@ async function executePlan(
         const depthIndicator = color.dim(`d${depth}`);
 
         writeLine(
-          `${color.dim("│")} ${color.yellow("▶")} ${formatStepType(stepType)} ${color.bold(stepId)} ${depthIndicator} — ${color.dim(description)}`,
+          `${color.dim("│")} ${color.yellow("▶")} ${formatStepType(stepType)} ${color.bold(
+            stepId,
+          )} ${depthIndicator} — ${color.dim(description)}`,
         );
 
         if (stepInfo?.executor) {
@@ -413,7 +417,11 @@ async function executePlan(
         completedSteps++;
 
         writeLine(
-          `${color.dim("│")} ${color.green("✓")} ${formatStepType(stepType)} ${color.bold(stepId)} ${color.dim(`(${formatDuration(durationMs)})`)} ${color.dim(`[${completedSteps}/${plan.steps.length}]`)}`,
+          `${color.dim("│")} ${color.green("✓")} ${formatStepType(stepType)} ${color.bold(
+            stepId,
+          )} ${color.dim(`(${formatDuration(durationMs)})`)} ${color.dim(
+            `[${completedSteps}/${plan.steps.length}]`,
+          )}`,
         );
         break;
       }
@@ -424,7 +432,9 @@ async function executePlan(
         errorCount++;
 
         writeLine(
-          `${color.dim("│")} ${color.red("✗")} ${formatStepType(stepType)} ${color.bold(stepId)} ${color.dim(`(${formatDuration(durationMs)})`)}`,
+          `${color.dim("│")} ${color.red("✗")} ${formatStepType(stepType)} ${color.bold(stepId)} ${color.dim(
+            `(${formatDuration(durationMs)})`,
+          )}`,
         );
         writeLine(`${color.dim("│")}   ${color.red(error)}`);
         break;
@@ -439,7 +449,9 @@ async function executePlan(
         } = event.data;
 
         writeLine(
-          `${color.dim("├──")} Depth ${fromDepth} → ${toDepth} ${color.dim(`(${stepsCompletedAtDepth} done, ${stepsStartingAtDepth} starting)`)}`,
+          `${color.dim("├──")} Depth ${fromDepth} → ${toDepth} ${color.dim(
+            `(${stepsCompletedAtDepth} done, ${stepsStartingAtDepth} starting)`,
+          )}`,
         );
         break;
       }
@@ -459,7 +471,9 @@ async function executePlan(
         } = event.data;
 
         writeLine(
-          `${color.dim("└")} ${success ? color.green("Done") : color.red("Failed")}: ${planId} — ${color.cyan(formatDuration(totalDurationMs))}, ${stepsCompleted} completed, ${stepsFailed} failed`,
+          `${color.dim("└")} ${success ? color.green("Done") : color.red("Failed")}: ${planId} — ${color.cyan(
+            formatDuration(totalDurationMs),
+          )}, ${stepsCompleted} completed, ${stepsFailed} failed`,
         );
         break;
       }

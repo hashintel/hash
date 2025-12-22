@@ -11,10 +11,7 @@
 import dedent from "dedent";
 
 import type { PlanSpec, PlanStep } from "../schemas/plan-spec";
-import type {
-  ValidationError,
-  ValidationErrorCode,
-} from "../tools/plan-validator";
+import type { ValidationError, ValidationErrorCode } from "./plan-validator";
 
 // =============================================================================
 // HELPERS (defined first to avoid use-before-define)
@@ -85,13 +82,13 @@ function getFixInstructions(error: ValidationError, _step?: PlanStep): string {
 
   const instructions: Record<ValidationErrorCode, string> = {
     MISSING_PREREGISTERED_COMMITMENTS: dedent`
-      **CRITICAL ERROR**: Step "${error.context}" is a confirmatory experiment but is 
-      MISSING the REQUIRED \`preregisteredCommitments\` array. This field is mandatory 
+      **CRITICAL ERROR**: Step "${error.context}" is a confirmatory experiment but is
+      MISSING the REQUIRED \`preregisteredCommitments\` array. This field is mandatory
       for all confirmatory experiments.
-      
-      You MUST add a preregisteredCommitments array with 2-3 specific commitments 
+
+      You MUST add a preregisteredCommitments array with 2-3 specific commitments
       that lock decisions BEFORE seeing outcomes:
-      
+
       Example fix for step "${error.context}":
       \`\`\`json
       "preregisteredCommitments": [
@@ -100,15 +97,15 @@ function getFixInstructions(error: ValidationError, _step?: PlanStep): string {
         "Success threshold: <specific criterion>"
       ]
       \`\`\`
-      
-      If you cannot specify preregistered commitments, change the experiment mode 
+
+      If you cannot specify preregistered commitments, change the experiment mode
       from "confirmatory" to "exploratory" instead.
     `,
 
     MISSING_EVALUATE_AGAINST: dedent`
-      Step "${error.context}" is an evaluative synthesize step but is missing 
+      Step "${error.context}" is an evaluative synthesize step but is missing
       the required \`evaluateAgainst\` array.
-      
+
       Add 2-3 specific criteria that results will be evaluated against:
       - Relevant requirements or hypotheses to check
       - Specific metrics or quality thresholds
@@ -120,67 +117,67 @@ function getFixInstructions(error: ValidationError, _step?: PlanStep): string {
     `,
 
     CYCLE_DETECTED: dedent`
-      The plan contains a circular dependency. Step "${error.context}" is part 
-      of a cycle. Review the \`dependencyIds\` references and ensure the plan forms 
+      The plan contains a circular dependency. Step "${error.context}" is part
+      of a cycle. Review the \`dependencyIds\` references and ensure the plan forms
       a valid DAG (directed acyclic graph).
     `,
 
     INVALID_STEP_REFERENCE: dedent`
       Step "${error.context}" references a step ID that doesn't exist.
       ${invalidRef ? `Invalid reference: "${invalidRef}"` : ""}
-      
-      Check the \`dependencyIds\` field and ensure it references valid step IDs 
+
+      Check the \`dependencyIds\` field and ensure it references valid step IDs
       defined in the plan.
     `,
 
     INVALID_HYPOTHESIS_REFERENCE: dedent`
       Step "${error.context}" references a hypothesis ID that doesn't exist.
       ${invalidRef ? `Invalid reference: "${invalidRef}"` : ""}
-      
-      Check the \`hypothesisIds\` field and ensure it references valid hypothesis 
+
+      Check the \`hypothesisIds\` field and ensure it references valid hypothesis
       IDs defined in the plan's \`hypotheses\` array.
     `,
 
     INVALID_REQUIREMENT_REFERENCE: dedent`
       Step "${error.context}" references a requirement ID that doesn't exist.
       ${invalidRef ? `Invalid reference: "${invalidRef}"` : ""}
-      
-      Check the \`requirementIds\` field and ensure it references valid requirement 
+
+      Check the \`requirementIds\` field and ensure it references valid requirement
       IDs defined in the plan's \`requirements\` array.
     `,
 
     INVALID_EXECUTOR_REFERENCE: dedent`
       Step "${error.context}" references an executor that doesn't exist.
       ${invalidRef ? `Invalid executor ref: "${invalidRef}"` : ""}
-      
+
       Use a valid executor from the available agents list provided in the prompt.
     `,
 
     EXECUTOR_CANNOT_HANDLE_STEP: dedent`
-      Step "${error.context}" is assigned to an executor that cannot handle 
+      Step "${error.context}" is assigned to an executor that cannot handle
       its step type.
       ${executor ? `Executor: "${executor}"` : ""}
       ${stepType ? `Step type: "${stepType}"` : ""}
-      
-      Assign an executor that supports the step type, or change the step type 
+
+      Assign an executor that supports the step type, or change the step type
       to match the executor's capabilities.
     `,
 
     DUPLICATE_STEP_ID: dedent`
       Multiple steps have the same ID: "${error.context}".
-      
+
       Each step must have a unique ID. Rename one of the duplicate steps.
     `,
 
     DUPLICATE_HYPOTHESIS_ID: dedent`
       Multiple hypotheses have the same ID: "${error.context}".
-      
+
       Each hypothesis must have a unique ID. Rename one of the duplicates.
     `,
 
     DUPLICATE_REQUIREMENT_ID: dedent`
       Multiple requirements have the same ID: "${error.context}".
-      
+
       Each requirement must have a unique ID. Rename one of the duplicates.
     `,
   };
@@ -193,7 +190,7 @@ function getFixInstructions(error: ValidationError, _step?: PlanStep): string {
   // Fallback for any unhandled error codes
   return dedent`
     Fix the ${error.code} error${error.context ? ` on "${error.context}"` : ""}.
-    
+
     Error message: ${error.message}
   `;
 }
@@ -242,7 +239,7 @@ export function buildRevisionFeedback(
   return dedent`
     ## Revision Required
 
-    Your previous plan failed validation with ${errors.length} error${errors.length > 1 ? "s" : ""}. 
+    Your previous plan failed validation with ${errors.length} error${errors.length > 1 ? "s" : ""}.
     Fix ALL errors in a single revision.
 
     ${errorSections.join("\n\n---\n\n")}

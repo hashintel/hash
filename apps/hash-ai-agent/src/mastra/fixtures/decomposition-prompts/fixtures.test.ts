@@ -14,8 +14,8 @@ import { describe, expect, test } from "vitest";
 
 import { generatePlan } from "../../agents/planner-agent";
 import type { PlanningFixture } from "../../schemas/planning-fixture";
-import { validatePlan } from "../../tools/plan-validator";
-import { analyzePlanTopology } from "../../tools/topology-analyzer";
+import { validatePlan } from "../../utils/plan-validator";
+import { analyzePlanTopology } from "../../utils/topology-analyzer";
 import { ctDatabaseGoalFixture } from "./ct-database-goal";
 import { exploreAndRecommendFixture } from "./explore-and-recommend";
 import { hypothesisValidationFixture } from "./hypothesis-validation";
@@ -86,7 +86,11 @@ async function runFixtureTest(fixture: PlanningFixture): Promise<void> {
     console.log(`  Exit points: [${topology.exitPoints.join(", ")}]`);
     console.log(`  Critical path: ${topology.criticalPath.length} steps`);
     console.log(
-      `  Max parallelism: ${Math.max(...topology.parallelGroups.map((group) => group.concurrentStepIds.length))}`,
+      `  Max parallelism: ${Math.max(
+        ...topology.parallelGroups.map(
+          (group) => group.concurrentStepIds.length,
+        ),
+      )}`,
     );
   }
 
