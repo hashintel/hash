@@ -6,7 +6,7 @@ A minimal React chat frontend that connects to the Mastra backend server.
 
 This setup runs **two separate processes**:
 
-```
+```txt
 ┌─────────────────────┐         ┌─────────────────────┐
 │   Vite Dev Server   │         │   Mastra Server     │
 │   (port 5173)       │ ──────▶ │   (port 4111)       │
@@ -40,7 +40,7 @@ Open http://localhost:5173 to use the chat interface.
 
 ## Key Files
 
-```
+```txt
 src/
 ├── mastra/              # Mastra server (agents, workflows)
 │   └── index.ts         # Mastra config with chatRoute()
@@ -103,18 +103,19 @@ function Chat() {
 During development, Vite proxies `/chat/*` and `/api/*` requests to the Mastra server. This avoids CORS issues by making requests same-origin from the browser's perspective.
 
 For production, you have two options:
+
 1. Configure your production server to proxy requests similarly
 2. Set appropriate CORS headers on the Mastra server
 
 ## Packages Used
 
-| Package | Purpose |
-|---------|---------|
+| Package          | Purpose                                   |
+| ---------------- | ----------------------------------------- |
 | `@mastra/ai-sdk` | `chatRoute()` helper for AI SDK streaming |
-| `@ai-sdk/react` | `useChat()` hook for client-side chat |
-| `ai` | Vercel AI SDK core (DefaultChatTransport) |
-| `react-router` | Client-side routing |
-| `vite` | Dev server with HMR and proxy |
+| `@ai-sdk/react`  | `useChat()` hook for client-side chat     |
+| `ai`             | Vercel AI SDK core (DefaultChatTransport) |
+| `react-router`   | Client-side routing                       |
+| `vite`           | Dev server with HMR and proxy             |
 
 ## Adding More Features
 
@@ -176,13 +177,16 @@ function MyComponent() {
 ## Troubleshooting
 
 ### "Failed to fetch" or Network Errors
+
 - Ensure Mastra server is running (`yarn dev:mastra`)
 - Check that port 4111 is not in use by another process
 
 ### Agent Not Found
+
 - Verify the agent ID matches one registered in `src/mastra/index.ts`
 - Check Mastra server logs for errors
 
 ### CORS Errors in Production
+
 - Configure CORS in Mastra server config: `server.cors.origin`
 - Or set up a reverse proxy in your production infrastructure

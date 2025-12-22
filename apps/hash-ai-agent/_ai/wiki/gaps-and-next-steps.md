@@ -6,6 +6,7 @@
 ## Current State Summary
 
 The planning framework has:
+
 - ✅ PlanSpec schema with 4 step types (research, synthesize, experiment, develop)
 - ✅ Plan validation (structural checks)
 - ✅ Deterministic scorers (structure, coverage, rigor, unknowns)
@@ -46,11 +47,13 @@ These represent a shift toward **epistemically rigorous R&D orchestration** rath
 **Problem**: Current step outputs are unstructured (`outputs: DataContract[]` at plan-time, arbitrary objects at runtime). No standard for what constitutes a "complete" step contribution.
 
 **Solution**: Implement `StepHandoff` schema as the canonical output format:
+
 - Every step produces: attempted, observed, changed, notDone, highestImpactUncertainty, nextAgentShouldFirst
 - Handoff completeness becomes the stop condition
 - Handoffs fold into execution state
 
 **Files to modify**:
+
 - `schemas/plan-spec.ts` — Add `zStepHandoff` and related types
 - `tools/plan-compiler.ts` — Update prompt building to require handoff format
 - `tools/mock-agent.ts` — Return handoff-shaped mock responses
@@ -64,12 +67,14 @@ These represent a shift toward **epistemically rigorous R&D orchestration** rath
 **Problem**: No structured runtime state beyond what Mastra provides. Can't track evidence accumulation, uncertainty evolution, or audit trail across steps.
 
 **Solution**: Implement `ExecutionState` as described in [execution-state.md](./execution-state.md):
+
 - Initialize from PlanSpec
 - Fold handoffs after each step
 - Track evidence ledger, uncertainty inventory, artifact registry, gaps registry
 - Enable re-planning triggers
 
 **Files to create/modify**:
+
 - `schemas/execution-state.ts` — New schema
 - `tools/plan-compiler.ts` or new `tools/interpreter.ts` — State management
 
@@ -84,6 +89,7 @@ These represent a shift toward **epistemically rigorous R&D orchestration** rath
 **Insight**: Need a middle ground between deterministic mocks and real long-running execution.
 
 **Solution**: "Synthetic mocking" — mock agents that make real LLM calls to generate realistic but synthetic step outputs:
+
 - Takes step context (type, description, inputs)
 - Generates plausible handoff packet via LLM
 - Can simulate failures, unexpected findings, or re-planning triggers
@@ -98,6 +104,7 @@ interface SyntheticMockConfig {
 ```
 
 **Files to modify**:
+
 - `tools/mock-agent.ts` — Add synthetic mode with LLM-backed generation
 
 **Complexity**: Low-Medium
@@ -109,6 +116,7 @@ interface SyntheticMockConfig {
 **Problem**: Compiled workflows have fixed shape at commit time. Can't support Level 3 dynamism (re-planning based on execution outcomes).
 
 **Solution**: Implement interpreter pattern as described in [execution-state.md](./execution-state.md):
+
 ```typescript
 createWorkflow(...)
   .map(initializeExecutionState)
@@ -123,6 +131,7 @@ createWorkflow(...)
 ```
 
 The interpreter step:
+
 - Picks next ready step(s) from topology
 - Builds context from prior handoffs
 - Executes step, expecting handoff output
@@ -130,6 +139,7 @@ The interpreter step:
 - Checks re-planning triggers
 
 **Files to create**:
+
 - `workflows/interpreted-execution.ts` — New interpreter-based execution workflow
 - Could coexist with compiled approach for simpler plans
 
@@ -142,11 +152,13 @@ The interpreter step:
 **Problem**: Revision loop only checks boolean `valid` flag. Structurally valid but mediocre plans pass immediately.
 
 **Solution**: Add composite score threshold to revision loop:
+
 - After validation passes, run `scorePlanComposite()`
 - Require `overall >= 0.85` (configurable) to exit loop
 - If below threshold, build feedback from low-scoring areas
 
 **Files to modify**:
+
 - `workflows/planning-workflow.ts` — Integrate scorer into loop condition
 
 **Complexity**: Low
@@ -158,11 +170,13 @@ The interpreter step:
 **Problem**: No semantic review of plans against original goal. Validation is structural only.
 
 **Solution**: Implement supervisor agent as LLM approval gate:
+
 - Reviews plan against goal
 - Returns `{ approved: boolean, feedback?: string, issues?: string[] }`
 - Integrates after validation + scoring in revision loop
 
 **Files to create**:
+
 - `agents/supervisor-agent.ts`
 
 **Complexity**: Medium
@@ -174,6 +188,7 @@ The interpreter step:
 **Problem**: No support for human approval checkpoints during execution.
 
 **Solution**: Use Mastra's `suspend()`/`resume()` at key decision points:
+
 - Post-design, pre-execution (human approves experimental design)
 - Post-analysis, pre-interpretation (human validates analysis)
 - Post-conclusion, pre-propagation (human checks confidence claims)
@@ -187,10 +202,13 @@ The interpreter step:
 ## Deferred / Low Priority
 
 ### Conditional Branching (Level 1 Dynamism)
+
 Static branching based on conditions in plan. Design options captured in [conditional-branching.md](./conditional-branching.md). Less urgent now that interpreter pattern handles higher levels of dynamism.
 
 ### Real Agent Execution
+
 Replacing mock agents with actual capable agents. Deferred until:
+
 1. Handoff packet format is stable
 2. Execution state management is solid
 3. Quality of plan decomposition is validated
