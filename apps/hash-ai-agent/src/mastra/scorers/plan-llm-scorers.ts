@@ -314,8 +314,10 @@ export const hypothesisTestabilityScorer = createScorer({
       plan = input.plan ?? run.output;
     }
 
-    // Check if plan has hypotheses
-    const planObj = plan as {
+    // Parse plan if it's a string
+    const planObj = (
+      typeof plan === "string" ? JSON.parse(plan) : plan
+    ) as {
       hypotheses?: Array<{ id: string; statement: string }>;
       steps?: Array<{ type: string; id: string }>;
     };
@@ -326,7 +328,8 @@ export const hypothesisTestabilityScorer = createScorer({
     return {
       goal,
       plan,
-      planJson: typeof plan === "string" ? plan : JSON.stringify(plan, null, 2),
+      planJson:
+        typeof plan === "string" ? plan : JSON.stringify(plan, null, 2),
       hasHypotheses,
       hasExperiments,
     };

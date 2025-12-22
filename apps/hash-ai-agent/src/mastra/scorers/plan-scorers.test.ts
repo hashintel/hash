@@ -576,6 +576,16 @@ describe("scorePlanComposite", () => {
     expect(result.overall).toBeCloseTo(expectedOverall, 5);
   });
 
+  test("normalizes partial weights to keep overall score in [0, 1]", () => {
+    const plan = createComplexPlan();
+
+    // Partial weights that would sum to 1.45 without normalization
+    const result = scorePlanComposite(plan, { structure: 0.7 });
+
+    expect(result.overall).toBeGreaterThanOrEqual(0);
+    expect(result.overall).toBeLessThanOrEqual(1);
+  });
+
   test("minimal plan scores reasonably", () => {
     const plan = createMinimalPlan();
     const result = scorePlanComposite(plan);
