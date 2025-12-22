@@ -72,7 +72,7 @@ use crate::{
     },
     context::MirContext,
     intern::Interner,
-    pass::TransformPass,
+    pass::{Changed, TransformPass},
     visit::{self, Visitor, VisitorMut, r#mut::filter},
 };
 
@@ -138,9 +138,14 @@ impl Default for DeadStoreElimination {
 }
 
 impl<'env, 'heap, A: BumpAllocator> TransformPass<'env, 'heap> for DeadStoreElimination<A> {
-    fn run(&mut self, context: &mut MirContext<'env, 'heap>, body: &mut Body<'heap>) {
+    fn run(&mut self, context: &mut MirContext<'env, 'heap>, body: &mut Body<'heap>) -> Changed {
         self.alloc.reset();
         let dead = self.dead_locals(body);
+
+        if dead.is_empty() {
+            return Changed::No;
+        }
+
         let mut visitor = EliminationVisitor {
             dead: &dead,
             params: BasicBlockVec::from_fn_in(
@@ -149,16 +154,20 @@ impl<'env, 'heap, A: BumpAllocator> TransformPass<'env, 'heap> for DeadStoreElim
                 &self.alloc,
             ),
             interner: context.interner,
+            changed: false,
             scratch_locals: Vec::new_in(&self.alloc),
             scratch_operands: Vec::new_in(&self.alloc),
         };
 
         Ok(()) = visitor.visit_body_preserving_cfg(body);
 
+        let mut changed = Changed::from(visitor.changed);
         drop(visitor);
 
         let mut dle = DeadLocalElimination::new_in(&mut self.alloc).with_dead(dead);
-        dle.run(context, body);
+        changed = changed.max(dle.run(context, body));
+
+        changed
     }
 }
 
@@ -312,6 +321,7 @@ struct EliminationVisitor<'dead, 'env, 'heap, A: Allocator> {
     params: BasicBlockVec<Interned<'heap, [Local]>, A>,
 
     interner: &'env Interner<'heap>,
+    changed: bool,
 
     /// Scratch buffer for building new block parameter lists.
     scratch_locals: Vec<Local, A>,
@@ -352,6 +362,8 @@ impl<'heap, A: Allocator> VisitorMut<'heap> for EliminationVisitor<'_, '_, 'heap
                 .retain(|&param| !self.dead.contains(param));
 
             block.params = self.interner.locals.intern_slice(&self.scratch_locals);
+
+            self.changed = true;
         }
 
         Ok(())
@@ -370,6 +382,7 @@ impl<'heap, A: Allocator> VisitorMut<'heap> for EliminationVisitor<'_, '_, 'heap
 
         if self.dead.contains(local) {
             statement.kind = StatementKind::Nop;
+            self.changed = true;
         }
 
         Ok(())
@@ -397,6 +410,7 @@ impl<'heap, A: Allocator> VisitorMut<'heap> for EliminationVisitor<'_, '_, 'heap
         let operands = self.interner.operands.intern_slice(&self.scratch_operands);
 
         target.args = operands;
+        self.changed = true;
 
         Ok(())
     }

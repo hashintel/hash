@@ -64,7 +64,7 @@ use crate::{
         terminator::{Goto, Terminator, TerminatorKind},
     },
     context::MirContext,
-    pass::TransformPass,
+    pass::{Changed, TransformPass},
 };
 
 /// Control-flow graph simplification pass.
@@ -479,8 +479,9 @@ impl<'env, 'heap, A: BumpAllocator> TransformPass<'env, 'heap> for CfgSimplify<A
     /// Uses a worklist algorithm that processes blocks in reverse postorder and re-enqueues
     /// predecessors when changes occur. This ensures optimization opportunities propagate
     /// backward through the CFG until a fixed point is reached.
-    fn run(&mut self, context: &mut MirContext<'env, 'heap>, body: &mut Body<'heap>) {
+    fn run(&mut self, context: &mut MirContext<'env, 'heap>, body: &mut Body<'heap>) -> Changed {
         let mut queue = WorkQueue::new(body.basic_blocks.len());
+        let mut changed = false;
 
         // Process in reverse of reverse-postorder (i.e., roughly postorder) to handle
         // successors before predecessors, maximizing optimization opportunities.
@@ -500,6 +501,7 @@ impl<'env, 'heap, A: BumpAllocator> TransformPass<'env, 'heap> for CfgSimplify<A
                 simplified = true;
             }
 
+            changed |= simplified;
             if !simplified {
                 continue;
             }
@@ -510,11 +512,19 @@ impl<'env, 'heap, A: BumpAllocator> TransformPass<'env, 'heap> for CfgSimplify<A
             }
         }
 
+        if !changed {
+            // We haven't made any changes, meaning that we can skip further analysis, as no blocks
+            // will be made unreachable, and SSA won't be violated.
+            return Changed::No;
+        }
+
         // Unreachable blocks will be dead, therefore must be removed
         let mut dbe = DeadBlockElimination::new_in(&mut self.alloc);
         dbe.run(context, body);
 
         // Simplifications may break SSA (e.g., merged blocks with conflicting definitions).
         SsaRepair::new_in(&mut self.alloc).run(context, body);
+
+        changed.into()
     }
 }
