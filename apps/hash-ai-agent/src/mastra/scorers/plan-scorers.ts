@@ -13,7 +13,12 @@
  * Each scorer returns a normalized score [0, 1] and detailed breakdown.
  */
 
-import type { PlanSpec, PlanStep, StepType } from "../schemas/plan-spec";
+import {
+  isParallelizable,
+  type PlanSpec,
+  type PlanStep,
+  type StepType,
+} from "../schemas/plan-spec";
 import { validatePlan } from "../tools/plan-validator";
 import { analyzePlanTopology } from "../tools/topology-analyzer";
 
@@ -121,15 +126,7 @@ export function scorePlanStructure(
   );
 
   // Calculate parallelism ratio
-  const parallelizableSteps = plan.steps.filter((step) => {
-    if (step.type === "research") {
-      return true;
-    }
-    if (step.type === "synthesize") {
-      return false;
-    }
-    return step.parallelizable;
-  });
+  const parallelizableSteps = plan.steps.filter(isParallelizable);
   details.parallelismRatio =
     plan.steps.length > 0 ? parallelizableSteps.length / plan.steps.length : 0;
 

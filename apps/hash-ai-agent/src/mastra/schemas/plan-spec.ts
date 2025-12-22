@@ -459,15 +459,7 @@ export type PlanSpec = z.infer<typeof zPlanSpec>;
  * Check if a step is parallelizable based on its type and configuration.
  */
 export function isParallelizable(step: PlanStep): boolean {
-  switch (step.type) {
-    case "research":
-      return true;
-    case "synthesize":
-      return false;
-    case "experiment":
-    case "develop":
-      return step.parallelizable;
-  }
+  return step.parallelizable;
 }
 
 /**
