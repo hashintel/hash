@@ -532,32 +532,6 @@ async function runDemoIteration(cliArgs: CliArgs): Promise<boolean> {
     )!.fixture;
   }
 
-  // Delay selection - use CLI arg, --fast flag, or prompt
-  let delayMs: number;
-
-  if (cliArgs.fast) {
-    delayMs = 100;
-    p.log.info(`Mock agent delay: ${color.cyan("100ms")} (--fast mode)`);
-  } else if (cliArgs.delay !== undefined) {
-    delayMs = cliArgs.delay;
-    p.log.info(`Mock agent delay: ${color.cyan(String(delayMs))}ms (from CLI)`);
-  } else {
-    const delayChoice = await p.select({
-      message: "Select mock agent delay:",
-      options: [
-        { value: 1000, label: "Normal (1s)", hint: "Comfortable pace" },
-        { value: 2000, label: "Slow (2s)", hint: "Easy to follow" },
-        { value: 3000, label: "Very slow (3s)", hint: "Step by step" },
-      ],
-    });
-
-    if (p.isCancel(delayChoice)) {
-      return false;
-    }
-
-    delayMs = delayChoice as number;
-  }
-
   // Display goal
   p.log.step("Goal:");
   p.log.message(color.dim(selectedFixture.input.goal.trim()));
@@ -608,6 +582,39 @@ async function runDemoIteration(cliArgs: CliArgs): Promise<boolean> {
         `Requirements: ${plan.requirements.length}, ` +
         `Hypotheses: ${plan.hypotheses.length}`,
     );
+  }
+
+  // Ask whether to execute and select delay
+  let delayMs: number;
+  if (cliArgs.fast) {
+    delayMs = 100;
+    p.log.info(`Mock agent delay: ${color.cyan("100ms")} (--fast mode)`);
+  } else if (cliArgs.delay !== undefined) {
+    delayMs = cliArgs.delay;
+    p.log.info(`Mock agent delay: ${color.cyan(String(delayMs))}ms (from CLI)`);
+  } else {
+    const executeChoice = await p.select<number | "__back__" | "__exit__">({
+      message: "Execute this plan now?",
+      options: [
+        { value: 1000, label: "Yes — Normal (1s)", hint: "Comfortable pace" },
+        { value: 2000, label: "Yes — Slow (2s)", hint: "Easy to follow" },
+        { value: 3000, label: "Yes — Very slow (3s)", hint: "Step by step" },
+        { value: "__back__", label: "No — pick another goal", hint: "Back" },
+        { value: "__exit__", label: "No — exit demo", hint: "Quit" },
+      ],
+    });
+
+    const selection = executeChoice as number | "__back__" | "__exit__";
+
+    if (p.isCancel(executeChoice) || selection === "__exit__") {
+      return false;
+    }
+
+    if (selection === "__back__") {
+      return !cliArgs.fixture;
+    }
+
+    delayMs = selection;
   }
 
   // Brief pause before execution
