@@ -526,12 +526,17 @@ export function scorePlanComposite(
     rawWeights.coverage +
     rawWeights.experimentRigor +
     rawWeights.unknownsCoverage;
-  const resolvedWeights = {
-    structure: rawWeights.structure / weightSum,
-    coverage: rawWeights.coverage / weightSum,
-    experimentRigor: rawWeights.experimentRigor / weightSum,
-    unknownsCoverage: rawWeights.unknownsCoverage / weightSum,
-  };
+
+  // Guard against division by zero (all weights are 0)
+  const resolvedWeights =
+    weightSum === 0
+      ? { structure: 0.25, coverage: 0.3, experimentRigor: 0.25, unknownsCoverage: 0.2 }
+      : {
+          structure: rawWeights.structure / weightSum,
+          coverage: rawWeights.coverage / weightSum,
+          experimentRigor: rawWeights.experimentRigor / weightSum,
+          unknownsCoverage: rawWeights.unknownsCoverage / weightSum,
+        };
 
   const structure = scorePlanStructure(plan);
   const coverage = scorePlanCoverage(plan);

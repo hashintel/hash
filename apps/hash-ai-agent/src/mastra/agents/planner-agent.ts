@@ -77,7 +77,7 @@ const PLANNER_INSTRUCTIONS = dedent`
     "type": "experiment",
     "mode": "confirmatory",
     "hypothesisIds": ["H1"],
-    "successCriteria": "The experiment passes if accuracy exceeds baseline",
+    "successCriteria": ["The experiment passes if accuracy exceeds baseline"],
     "preregisteredCommitments": [
       "Primary metric: F1 score",
       "Test set size: 500 examples",
