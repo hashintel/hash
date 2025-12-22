@@ -8,25 +8,14 @@ import {
   HorizontalTabsHeader,
   HorizontalTabsHeaderAction,
 } from "../../../../components/sub-view";
-import type { SubView } from "../../../../components/sub-view/types";
 import {
+  BOTTOM_PANEL_SUBVIEWS,
   MAX_BOTTOM_PANEL_HEIGHT,
   MIN_BOTTOM_PANEL_HEIGHT,
   PANEL_MARGIN,
 } from "../../../../constants/ui";
 import { useEditorStore } from "../../../../state/editor-provider";
 import type { BottomPanelTab } from "../../../../state/editor-store";
-import { diagnosticsSubView } from "./diagnostics-content";
-import { parametersSubView } from "./parameters-content";
-import { simulationSettingsSubView } from "./simulation-settings-content";
-
-// Pre-defined array of subviews for the bottom panel
-// Note: Using explicit array typing due to TypeScript inference quirks with barrel imports
-const BOTTOM_PANEL_SUBVIEWS: SubView[] = [
-  diagnosticsSubView,
-  parametersSubView,
-  simulationSettingsSubView,
-];
 
 const glassPanelBaseStyle = css({
   position: "fixed",
@@ -89,9 +78,6 @@ export const BottomPanel: React.FC = () => {
   const setActiveTab = useEditorStore((state) => state.setActiveBottomPanelTab);
   const toggleBottomPanel = useEditorStore((state) => state.toggleBottomPanel);
 
-  // Use the pre-defined array of subviews
-  const subViews = BOTTOM_PANEL_SUBVIEWS;
-
   // Handler for tab change that casts string to BottomPanelTab
   const handleTabChange = useCallback(
     (tabId: string) => {
@@ -131,13 +117,13 @@ export const BottomPanel: React.FC = () => {
       {/* Tab Header */}
       <div className={headerStyle}>
         <HorizontalTabsHeader
-          subViews={subViews}
+          subViews={BOTTOM_PANEL_SUBVIEWS}
           activeTabId={activeTab}
           onTabChange={handleTabChange}
         />
         <div className={headerRightStyle}>
           <HorizontalTabsHeaderAction
-            subViews={subViews}
+            subViews={BOTTOM_PANEL_SUBVIEWS}
             activeTabId={activeTab}
           />
           <button
@@ -152,7 +138,10 @@ export const BottomPanel: React.FC = () => {
       </div>
 
       {/* Scrollable content */}
-      <HorizontalTabsContent subViews={subViews} activeTabId={activeTab} />
+      <HorizontalTabsContent
+        subViews={BOTTOM_PANEL_SUBVIEWS}
+        activeTabId={activeTab}
+      />
     </GlassPanel>
   );
 };

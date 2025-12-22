@@ -1,9 +1,9 @@
 import { css, cva } from "@hashintel/ds-helpers/css";
 import { FaCircle, FaSquare } from "react-icons/fa6";
 
-import type { SubView } from "../../../../components/sub-view/types";
-import { useEditorStore } from "../../../../state/editor-provider";
-import { useSDCPNContext } from "../../../../state/sdcpn-provider";
+import type { SubView } from "../../../components/sub-view/types";
+import { useEditorStore } from "../../../state/editor-provider";
+import { useSDCPNContext } from "../../../state/sdcpn-provider";
 
 const listContainerStyle = css({
   display: "flex",
@@ -87,15 +87,15 @@ const emptyMessageStyle = css({
  * NodesSectionContent displays the list of places and transitions.
  * This is the content portion without the collapsible header.
  */
-export const NodesSectionContent: React.FC = () => {
+const NodesSectionContent: React.FC = () => {
   const {
     petriNetDefinition: { places, transitions },
   } = useSDCPNContext();
   const selectedResourceId = useEditorStore(
-    (state) => state.selectedResourceId,
+    (state) => state.selectedResourceId
   );
   const setSelectedResourceId = useEditorStore(
-    (state) => state.setSelectedResourceId,
+    (state) => state.setSelectedResourceId
   );
 
   const handleLayerClick = (id: string) => {
@@ -164,10 +164,10 @@ export const NodesSectionContent: React.FC = () => {
 };
 
 /**
- * SubView definition for Nodes section.
+ * SubView definition for Nodes list.
  */
-export const nodesSectionSubView: SubView = {
-  id: "nodes",
+export const nodesListSubView: SubView = {
+  id: "nodes-list",
   title: "Nodes",
   tooltip:
     "Manage nodes in the net, including places and transitions. Places represent states in the net, and transitions represent events which change the state of the net.",
