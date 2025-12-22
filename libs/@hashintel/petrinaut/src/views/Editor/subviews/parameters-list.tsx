@@ -1,10 +1,10 @@
 import { css, cva } from "@hashintel/ds-helpers/css";
 import { v4 as uuidv4 } from "uuid";
 
-import type { SubView } from "../../../../components/sub-view/types";
-import { useEditorStore } from "../../../../state/editor-provider";
-import { useSDCPNContext } from "../../../../state/sdcpn-provider";
-import { useSimulationStore } from "../../../../state/simulation-provider";
+import type { SubView } from "../../../components/sub-view/types";
+import { useEditorStore } from "../../../state/editor-provider";
+import { useSDCPNContext } from "../../../state/sdcpn-provider";
+import { useSimulationStore } from "../../../state/simulation-provider";
 
 const addButtonStyle = css({
   display: "flex",
@@ -180,9 +180,9 @@ const ParametersHeaderAction: React.FC = () => {
 };
 
 /**
- * ParametersContent displays global parameters in the BottomPanel.
+ * ParametersList displays global parameters list as a SubView.
  */
-export const ParametersContent: React.FC = () => {
+const ParametersList: React.FC = () => {
   const {
     petriNetDefinition: { parameters },
     removeParameter,
@@ -288,13 +288,13 @@ export const ParametersContent: React.FC = () => {
 };
 
 /**
- * SubView definition for Global Parameters tab.
+ * SubView definition for Global Parameters List.
  */
-export const parametersSubView: SubView = {
-  id: "parameters",
+export const parametersListSubView: SubView = {
+  id: "parameters-list",
   title: "Global Parameters",
   tooltip:
     "Parameters are injected into dynamics, lambda, and kernel functions.",
-  component: ParametersContent,
+  component: ParametersList,
   renderHeaderAction: () => <ParametersHeaderAction />,
 };

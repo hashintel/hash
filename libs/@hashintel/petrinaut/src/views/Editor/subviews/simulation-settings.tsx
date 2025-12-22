@@ -2,11 +2,11 @@ import { css } from "@hashintel/ds-helpers/css";
 import { useState } from "react";
 import { TbArrowRight } from "react-icons/tb";
 
-import type { SubView } from "../../../../components/sub-view/types";
-import { InfoIconTooltip } from "../../../../components/tooltip";
-import { useEditorStore } from "../../../../state/editor-provider";
-import { useSDCPNContext } from "../../../../state/sdcpn-provider";
-import { useSimulationStore } from "../../../../state/simulation-provider";
+import type { SubView } from "../../../components/sub-view/types";
+import { InfoIconTooltip } from "../../../components/tooltip";
+import { useEditorStore } from "../../../state/editor-provider";
+import { useSDCPNContext } from "../../../state/sdcpn-provider";
+import { useSimulationStore } from "../../../state/simulation-provider";
 
 const containerStyle = css({
   display: "flex",
@@ -190,7 +190,7 @@ const editButtonIconStyle = css({
  * SimulationSettingsContent displays simulation settings in the BottomPanel.
  * Split into two sections: Computation and Parameters.
  */
-export const SimulationSettingsContent: React.FC = () => {
+const SimulationSettingsContent: React.FC = () => {
   const setGlobalMode = useEditorStore((state) => state.setGlobalMode);
   const simulationState = useSimulationStore((state) => state.state);
   const simulationError = useSimulationStore((state) => state.error);
@@ -198,11 +198,11 @@ export const SimulationSettingsContent: React.FC = () => {
   const dt = useSimulationStore((state) => state.dt);
   const setDt = useSimulationStore((state) => state.setDt);
   const setSelectedResourceId = useEditorStore(
-    (state) => state.setSelectedResourceId,
+    (state) => state.setSelectedResourceId
   );
   const parameterValues = useSimulationStore((state) => state.parameterValues);
   const setParameterValue = useSimulationStore(
-    (state) => state.setParameterValue,
+    (state) => state.setParameterValue
   );
 
   const {

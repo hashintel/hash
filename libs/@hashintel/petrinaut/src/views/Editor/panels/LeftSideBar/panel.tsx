@@ -1,5 +1,4 @@
 import { css, cva } from "@hashintel/ds-helpers/css";
-import { useMemo } from "react";
 import {
   TbLayoutSidebarLeftCollapse,
   TbLayoutSidebarRightCollapse,
@@ -8,18 +7,15 @@ import {
 import { GlassPanel } from "../../../../components/glass-panel";
 import type { MenuItem } from "../../../../components/menu";
 import { VerticalSubViewsContainer } from "../../../../components/sub-view";
-import type { SubView } from "../../../../components/sub-view/types";
 import {
+  LEFT_SIDEBAR_SUBVIEWS,
   MAX_LEFT_SIDEBAR_WIDTH,
   MIN_LEFT_SIDEBAR_WIDTH,
   PANEL_MARGIN,
 } from "../../../../constants/ui";
 import { useEditorStore } from "../../../../state/editor-provider";
-import { differentialEquationsSectionSubView } from "./differential-equations-section";
 import { FloatingTitle } from "./floating-title";
 import { HamburgerMenu } from "./hamburger-menu";
-import { nodesSectionSubView } from "./nodes-section";
-import { typesSectionSubView } from "./types-section";
 
 const outerContainerStyle = cva({
   base: {
@@ -158,16 +154,6 @@ export const LeftSideBar: React.FC<LeftSideBarProps> = ({
     (state) => state.setLeftSidebarWidth
   );
 
-  // Define the subviews for the left sidebar
-  const subViews: SubView[] = useMemo(
-    () => [
-      typesSectionSubView,
-      differentialEquationsSectionSubView,
-      nodesSectionSubView,
-    ],
-    []
-  );
-
   return (
     <div
       className={outerContainerStyle({ isOpen })}
@@ -220,7 +206,9 @@ export const LeftSideBar: React.FC<LeftSideBarProps> = ({
         </div>
 
         {/* Content sections - only visible when open */}
-        {isOpen && <VerticalSubViewsContainer subViews={subViews} />}
+        {isOpen && (
+          <VerticalSubViewsContainer subViews={LEFT_SIDEBAR_SUBVIEWS} />
+        )}
       </GlassPanel>
     </div>
   );

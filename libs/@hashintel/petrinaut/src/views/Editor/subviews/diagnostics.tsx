@@ -3,10 +3,10 @@ import { useCallback, useMemo, useState } from "react";
 import { FaChevronDown, FaChevronRight } from "react-icons/fa6";
 import ts from "typescript";
 
-import type { SubView } from "../../../../components/sub-view/types";
-import { useCheckerContext } from "../../../../state/checker-provider";
-import { useEditorStore } from "../../../../state/editor-provider";
-import { useSDCPNContext } from "../../../../state/sdcpn-provider";
+import type { SubView } from "../../../components/sub-view/types";
+import { useCheckerContext } from "../../../state/checker-provider";
+import { useEditorStore } from "../../../state/editor-provider";
+import { useSDCPNContext } from "../../../state/sdcpn-provider";
 
 const emptyMessageStyle = css({
   color: "core.gray.50",
@@ -99,14 +99,14 @@ const positionStyle = css({
 /**
  * Formats a TypeScript diagnostic message to a readable string
  */
-const formatDiagnosticMessage = (
-  messageText: string | ts.DiagnosticMessageChain,
-): string => {
+function formatDiagnosticMessage(
+  messageText: string | ts.DiagnosticMessageChain
+): string {
   if (typeof messageText === "string") {
     return messageText;
   }
   return ts.flattenDiagnosticMessageText(messageText, "\n");
-};
+}
 
 // --- Types ---
 
@@ -126,15 +126,15 @@ interface GroupedDiagnostics {
 /**
  * DiagnosticsContent shows the full list of diagnostics grouped by entity.
  */
-export const DiagnosticsContent: React.FC = () => {
+const DiagnosticsContent: React.FC = () => {
   const { checkResult, totalDiagnosticsCount } = useCheckerContext();
   const { petriNetDefinition } = useSDCPNContext();
   const setSelectedResourceId = useEditorStore(
-    (state) => state.setSelectedResourceId,
+    (state) => state.setSelectedResourceId
   );
   // Track collapsed entities (all expanded by default)
   const [collapsedEntities, setCollapsedEntities] = useState<Set<string>>(
-    new Set(),
+    new Set()
   );
 
   // Handler to select an entity when clicking on a diagnostic
@@ -142,7 +142,7 @@ export const DiagnosticsContent: React.FC = () => {
     (entityId: string) => {
       setSelectedResourceId(entityId);
     },
-    [setSelectedResourceId],
+    [setSelectedResourceId]
   );
 
   // Group diagnostics by entity (transition or differential equation)
@@ -158,14 +158,14 @@ export const DiagnosticsContent: React.FC = () => {
       if (item.itemType === "differential-equation") {
         entityType = "differential-equation";
         const de = petriNetDefinition.differentialEquations.find(
-          (deItem) => deItem.id === entityId,
+          (deItem) => deItem.id === entityId
         );
         entityName = de?.name ?? entityId;
         subType = null;
       } else {
         entityType = "transition";
         const transition = petriNetDefinition.transitions.find(
-          (tr) => tr.id === entityId,
+          (tr) => tr.id === entityId
         );
         entityName = transition?.name ?? entityId;
         subType = item.itemType === "transition-lambda" ? "lambda" : "kernel";
@@ -293,7 +293,7 @@ export const DiagnosticsContent: React.FC = () => {
 };
 
 /**
- * SubView definition for Diagnostics tab.
+ * SubView definition for Diagnostics.
  */
 export const diagnosticsSubView: SubView = {
   id: "diagnostics",
