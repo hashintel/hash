@@ -21,20 +21,18 @@
 import * as p from "@clack/prompts";
 import color from "picocolors";
 
-import {
-  ctDatabaseGoalFixture,
-  exploreAndRecommendFixture,
-  hypothesisValidationFixture,
-  type PlanningFixture,
-  summarizePapersFixture,
-} from "../fixtures/decomposition-prompts/fixtures";
-import { getMockPlan } from "../fixtures/decomposition-prompts/mock-plans";
+import { getMockPlan } from "../fixtures/mock-plans";
+import { ctDatabaseGoalFixture } from "../fixtures/planning-goals/ct-database-goal";
+import { exploreAndRecommendFixture } from "../fixtures/planning-goals/explore-and-recommend";
+import { hypothesisValidationFixture } from "../fixtures/planning-goals/hypothesis-validation";
+import { summarizePapersFixture } from "../fixtures/planning-goals/summarize-papers";
 import type {
   Executor,
   PlanSpec,
   PlanStep,
   StepType,
 } from "../schemas/plan-spec";
+import type { PlanningGoal } from "../schemas/planning-goal";
 import {
   compilePlanToWorkflow,
   type PlanExecutionEvent,
@@ -49,7 +47,7 @@ import { planningWorkflow } from "../workflows/planning-workflow";
  * All available fixtures with display metadata.
  */
 const FIXTURES: Array<{
-  fixture: PlanningFixture;
+  fixture: PlanningGoal;
   label: string;
   hint: string;
 }> = [
@@ -283,7 +281,7 @@ function displayPlanVisualization(plan: PlanSpec): void {
  * In mock mode, returns the cached plan. Otherwise, uses the LLM.
  */
 async function generatePlanFromFixture(
-  fixture: PlanningFixture,
+  fixture: PlanningGoal,
   useMock: boolean,
   spinner: ReturnType<typeof p.spinner>,
 ): Promise<{ plan: PlanSpec; fromCache: boolean }> {
@@ -497,7 +495,7 @@ async function executePlan(
  */
 async function runDemoIteration(cliArgs: CliArgs): Promise<boolean> {
   // Fixture selection - use CLI arg or prompt
-  let selectedFixture: PlanningFixture;
+  let selectedFixture: PlanningGoal;
 
   if (cliArgs.fixture) {
     const found = FIXTURES.find(

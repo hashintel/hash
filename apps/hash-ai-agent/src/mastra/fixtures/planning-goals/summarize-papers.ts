@@ -12,7 +12,7 @@
  * - Should produce 3-6 steps
  */
 
-import type { PlanningFixture } from "../../schemas/planning-fixture";
+import type { PlanningGoal } from "../../schemas/planning-goal";
 
 /**
  * Summarize Papers fixture — the simplest planning goal.
@@ -20,14 +20,14 @@ import type { PlanningFixture } from "../../schemas/planning-fixture";
  * Goal: Summarize 3 papers on RAG and produce a comparison table.
  * Expected plan: Parallel research → synthesize
  */
-export const summarizePapersFixture: PlanningFixture = {
+export const summarizePapersFixture: PlanningGoal = {
   input: {
     id: "summarize-papers",
-    goal: `Summarize 3 recent papers on retrieval-augmented generation (RAG) 
+    goal: `Summarize 3 recent papers on retrieval-augmented generation (RAG)
            and produce a comparison table of their approaches.`,
-    context: `We need to understand the current landscape of RAG techniques 
+    context: `We need to understand the current landscape of RAG techniques
               for an internal tech review. Focus on papers from the last 2 years.
-              The comparison should cover: architecture, retrieval method, 
+              The comparison should cover: architecture, retrieval method,
               performance claims, and limitations.`,
   },
   expected: {

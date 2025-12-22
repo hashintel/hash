@@ -14,7 +14,7 @@
  * - Should produce 4-8 steps
  */
 
-import type { PlanningFixture } from "../../schemas/planning-fixture";
+import type { PlanningGoal } from "../../schemas/planning-goal";
 
 /**
  * Explore and Recommend fixture.
@@ -22,15 +22,15 @@ import type { PlanningFixture } from "../../schemas/planning-fixture";
  * Goal: Research vector database indexing approaches and recommend the best one.
  * Expected plan: Parallel research on different approaches → evaluative synthesize
  */
-export const exploreAndRecommendFixture: PlanningFixture = {
+export const exploreAndRecommendFixture: PlanningGoal = {
   input: {
     id: "explore-and-recommend",
-    goal: `Research approaches to vector database indexing and recommend 
-           the best approach for our use case: 10M documents, sub-100ms 
-           query latency requirement, primarily similarity search with 
+    goal: `Research approaches to vector database indexing and recommend
+           the best approach for our use case: 10M documents, sub-100ms
+           query latency requirement, primarily similarity search with
            occasional filtering.`,
     context: `We're evaluating vector databases for a semantic search feature.
-              Need to understand tradeoffs between HNSW, IVF, and other 
+              Need to understand tradeoffs between HNSW, IVF, and other
               indexing approaches. The recommendation should consider:
               - Query latency at scale
               - Index build time
