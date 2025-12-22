@@ -1,9 +1,9 @@
 import { css, cva } from "@hashintel/ds-helpers/css";
 
-import type { SubView } from "../../../../components/sub-view/types";
-import { useEditorStore } from "../../../../state/editor-provider";
-import { useSDCPNContext } from "../../../../state/sdcpn-provider";
-import { useSimulationStore } from "../../../../state/simulation-provider";
+import type { SubView } from "../../../components/sub-view/types";
+import { useEditorStore } from "../../../state/editor-provider";
+import { useSDCPNContext } from "../../../state/sdcpn-provider";
+import { useSimulationStore } from "../../../state/simulation-provider";
 
 const listContainerStyle = css({
   display: "flex",
@@ -133,18 +133,18 @@ const TYPE_COLOR_POOL = [
  * Get the next available color from the pool that's not currently in use.
  * If all colors are in use, cycle back to the beginning.
  */
-const getNextAvailableColor = (existingColors: string[]): string => {
+function getNextAvailableColor(existingColors: string[]): string {
   const unusedColor = TYPE_COLOR_POOL.find(
-    (color) => !existingColors.includes(color),
+    (color) => !existingColors.includes(color)
   );
   return unusedColor ?? TYPE_COLOR_POOL[0]!;
-};
+}
 
 /**
  * Extract the highest type number from existing type names.
  * Looks for patterns like "Type 1", "Type 2", "New Type 3", etc.
  */
-const getNextTypeNumber = (existingNames: string[]): number => {
+function getNextTypeNumber(existingNames: string[]): number {
   let maxNumber = 0;
   for (const name of existingNames) {
     // Match patterns like "Type 1", "New Type 2", etc.
@@ -157,23 +157,23 @@ const getNextTypeNumber = (existingNames: string[]): number => {
     }
   }
   return maxNumber + 1;
-};
+}
 
 /**
  * TypesSectionContent displays the list of token types.
  * This is the content portion without the collapsible header.
  */
-export const TypesSectionContent: React.FC = () => {
+const TypesSectionContent: React.FC = () => {
   const {
     petriNetDefinition: { types },
     removeType,
   } = useSDCPNContext();
 
   const selectedResourceId = useEditorStore(
-    (state) => state.selectedResourceId,
+    (state) => state.selectedResourceId
   );
   const setSelectedResourceId = useEditorStore(
-    (state) => state.setSelectedResourceId,
+    (state) => state.setSelectedResourceId
   );
 
   // Check if simulation is running or paused
@@ -220,7 +220,7 @@ export const TypesSectionContent: React.FC = () => {
                 if (
                   // eslint-disable-next-line no-alert
                   window.confirm(
-                    `Delete token type "${type.name}"? All places using this type will have their type set to null.`,
+                    `Delete token type "${type.name}"? All places using this type will have their type set to null.`
                   )
                 ) {
                   removeType(type.id);
@@ -244,7 +244,7 @@ export const TypesSectionContent: React.FC = () => {
 /**
  * TypesSectionHeaderAction renders the add button for the types section header.
  */
-export const TypesSectionHeaderAction: React.FC = () => {
+const TypesSectionHeaderAction: React.FC = () => {
   const {
     petriNetDefinition: { types },
     addType,
@@ -289,10 +289,10 @@ export const TypesSectionHeaderAction: React.FC = () => {
 };
 
 /**
- * SubView definition for Token Types section.
+ * SubView definition for Token Types list.
  */
-export const typesSectionSubView: SubView = {
-  id: "token-types",
+export const typesListSubView: SubView = {
+  id: "token-types-list",
   title: "Token Types",
   tooltip: "Manage data types which can be assigned to tokens in a place.",
   component: TypesSectionContent,
