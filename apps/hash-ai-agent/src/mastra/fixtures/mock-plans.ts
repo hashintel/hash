@@ -10,7 +10,7 @@
  * Run with: npx tsx src/mastra/scripts/demo-plan-execution.ts --mock
  */
 
-import type { PlanSpec } from "../../schemas/plan-spec";
+import type { PlanSpec } from "../schemas/plan-spec";
 
 // =============================================================================
 // SUMMARIZE PAPERS (Simplest)

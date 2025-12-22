@@ -16,7 +16,7 @@
  * - Should produce 5-10 steps
  */
 
-import type { PlanningFixture } from "../../schemas/planning-fixture";
+import type { PlanningGoal } from "../../schemas/planning-goal";
 
 /**
  * Hypothesis Validation fixture.
@@ -24,22 +24,22 @@ import type { PlanningFixture } from "../../schemas/planning-fixture";
  * Goal: Test whether fine-tuning outperforms few-shot prompting for entity extraction.
  * Expected plan: Research → form hypothesis → design experiment → run → evaluate
  */
-export const hypothesisValidationFixture: PlanningFixture = {
+export const hypothesisValidationFixture: PlanningGoal = {
   input: {
     id: "hypothesis-validation",
-    goal: `Test whether fine-tuning a small LLM (e.g., Llama 3 8B) on 
-           domain-specific data outperforms few-shot prompting with a 
+    goal: `Test whether fine-tuning a small LLM (e.g., Llama 3 8B) on
+           domain-specific data outperforms few-shot prompting with a
            larger model (e.g., GPT-4) for our entity extraction task.`,
-    context: `We have 5,000 labeled examples of entity extraction from 
-              legal documents. Entities include: parties, dates, monetary 
+    context: `We have 5,000 labeled examples of entity extraction from
+              legal documents. Entities include: parties, dates, monetary
               amounts, contract terms, and obligations.
-              
+
               Key considerations:
               - Accuracy (F1 score) is the primary metric
               - Inference cost matters for production (processing ~10K docs/day)
               - We need to justify the choice to stakeholders
-              
-              The experiment should be rigorous enough to defend the 
+
+              The experiment should be rigorous enough to defend the
               recommendation. We suspect fine-tuning might win on accuracy
               but need to verify this hypothesis.`,
   },

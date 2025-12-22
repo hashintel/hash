@@ -41,7 +41,7 @@ export interface ExpectedPlanCharacteristics {
 /**
  * A complete planning fixture with input and expected characteristics.
  */
-export interface PlanningFixture {
+export interface PlanningGoal {
   input: PlanningGoalInput;
   expected: ExpectedPlanCharacteristics;
 }
