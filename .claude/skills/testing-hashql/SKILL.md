@@ -180,6 +180,12 @@ For testing MIR transformation and analysis passes directly with programmaticall
 - Edge cases requiring specific MIR structures hard to produce from source
 - Benchmarking pass performance
 
+**Key features:**
+
+- Transform passes return `Changed` enum (`Yes`, `No`, `Unknown`) to indicate modifications
+- Test harness captures and includes `Changed` value in snapshots for verification
+- Snapshot format: before MIR → `Changed: Yes/No/Unknown` separator → after MIR
+
 **Quick Example:**
 
 ```rust
@@ -201,10 +207,10 @@ builder
 let body = builder.finish(0, TypeBuilder::synthetic(&env).integer());
 ```
 
-📖 **Full Guide:** [resources/mir-builder-guide.md](resources/mir-builder-guide.md)
+📖 **Full Guide:** [references/mir-builder-guide.md](references/mir-builder-guide.md)
 
 ## References
 
-- [compiletest Guide](resources/compiletest-guide.md) - Detailed UI test documentation
-- [Testing Strategies](resources/testing-strategies.md) - Choosing the right approach
-- [MIR Builder Guide](resources/mir-builder-guide.md) - Programmatic MIR construction for tests
+- [compiletest Guide](references/compiletest-guide.md) - Detailed UI test documentation
+- [Testing Strategies](references/testing-strategies.md) - Choosing the right approach
+- [MIR Builder Guide](references/mir-builder-guide.md) - Programmatic MIR construction for tests
