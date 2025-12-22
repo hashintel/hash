@@ -8,6 +8,7 @@ import { differentialEquationsListSubView } from "../views/Editor/subviews/diffe
 import { nodesListSubView } from "../views/Editor/subviews/nodes-list";
 import { parametersListSubView } from "../views/Editor/subviews/parameters-list";
 import { simulationSettingsSubView } from "../views/Editor/subviews/simulation-settings";
+import { simulationTimelineSubView } from "../views/Editor/subviews/simulation-timeline";
 import { typesListSubView } from "../views/Editor/subviews/types-list";
 
 // Panel margin (spacing around panels)
@@ -43,7 +44,11 @@ export const LEFT_SIDEBAR_SUBVIEWS: SubView[] = [
   nodesListSubView,
 ];
 
+// Base subviews always visible in the bottom panel
 export const BOTTOM_PANEL_SUBVIEWS: SubView[] = [
   diagnosticsSubView,
   simulationSettingsSubView,
 ];
+
+// Subviews only visible when simulation is running/paused
+export const SIMULATION_ONLY_SUBVIEWS: SubView[] = [simulationTimelineSubView];

@@ -1,5 +1,5 @@
 import { css } from "@hashintel/ds-helpers/css";
-import { useCallback } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import { FaXmark } from "react-icons/fa6";
 
 import { GlassPanel } from "../../../../components/glass-panel";
@@ -13,9 +13,11 @@ import {
   MAX_BOTTOM_PANEL_HEIGHT,
   MIN_BOTTOM_PANEL_HEIGHT,
   PANEL_MARGIN,
+  SIMULATION_ONLY_SUBVIEWS,
 } from "../../../../constants/ui";
 import { useEditorStore } from "../../../../state/editor-provider";
 import type { BottomPanelTab } from "../../../../state/editor-store";
+import { useSimulationStore } from "../../../../state/simulation-provider";
 
 const glassPanelBaseStyle = css({
   position: "fixed",
@@ -68,6 +70,9 @@ const closeButtonStyle = css({
  */
 export const BottomPanel: React.FC = () => {
   const isOpen = useEditorStore((state) => state.isBottomPanelOpen);
+  const setBottomPanelOpen = useEditorStore(
+    (state) => state.setBottomPanelOpen
+  );
   const isLeftSidebarOpen = useEditorStore((state) => state.isLeftSidebarOpen);
   const leftSidebarWidth = useEditorStore((state) => state.leftSidebarWidth);
   const panelHeight = useEditorStore((state) => state.bottomPanelHeight);
@@ -77,6 +82,31 @@ export const BottomPanel: React.FC = () => {
   const activeTab = useEditorStore((state) => state.activeBottomPanelTab);
   const setActiveTab = useEditorStore((state) => state.setActiveBottomPanelTab);
   const toggleBottomPanel = useEditorStore((state) => state.toggleBottomPanel);
+
+  // Simulation state for conditional subviews
+  const simulationState = useSimulationStore((state) => state.state);
+  const isSimulationActive =
+    simulationState === "Running" || simulationState === "Paused";
+
+  // Track previous simulation state to detect when simulation starts
+  const prevSimulationActiveRef = useRef(isSimulationActive);
+
+  // Dynamically compute subviews based on simulation state
+  const subViews = isSimulationActive
+    ? [...BOTTOM_PANEL_SUBVIEWS, ...SIMULATION_ONLY_SUBVIEWS]
+    : BOTTOM_PANEL_SUBVIEWS;
+
+  // Automatically open bottom panel and switch to timeline when simulation starts
+  useEffect(() => {
+    const wasActive = prevSimulationActiveRef.current;
+    prevSimulationActiveRef.current = isSimulationActive;
+
+    // Simulation just started (transition from inactive to active)
+    if (isSimulationActive && !wasActive) {
+      setBottomPanelOpen(true);
+      setActiveTab("simulation-timeline");
+    }
+  }, [isSimulationActive, setBottomPanelOpen, setActiveTab]);
 
   // Handler for tab change that casts string to BottomPanelTab
   const handleTabChange = useCallback(
@@ -117,13 +147,13 @@ export const BottomPanel: React.FC = () => {
       {/* Tab Header */}
       <div className={headerStyle}>
         <HorizontalTabsHeader
-          subViews={BOTTOM_PANEL_SUBVIEWS}
+          subViews={subViews}
           activeTabId={activeTab}
           onTabChange={handleTabChange}
         />
         <div className={headerRightStyle}>
           <HorizontalTabsHeaderAction
-            subViews={BOTTOM_PANEL_SUBVIEWS}
+            subViews={subViews}
             activeTabId={activeTab}
           />
           <button
@@ -138,10 +168,7 @@ export const BottomPanel: React.FC = () => {
       </div>
 
       {/* Scrollable content */}
-      <HorizontalTabsContent
-        subViews={BOTTOM_PANEL_SUBVIEWS}
-        activeTabId={activeTab}
-      />
+      <HorizontalTabsContent subViews={subViews} activeTabId={activeTab} />
     </GlassPanel>
   );
 };
