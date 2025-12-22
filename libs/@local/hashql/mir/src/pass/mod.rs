@@ -58,6 +58,54 @@ const fn simplify_type_name(name: &'static str) -> &'static str {
     }
 }
 
+/// Indicates whether a pass modified the MIR.
+///
+/// Passes return this to signal whether they made changes, enabling the pass manager to skip
+/// dependent re-analyses when nothing changed.
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub enum Changed {
+    /// The pass definitely made modifications.
+    Yes,
+    /// The pass may have made modifications, but precise tracking was not possible.
+    Unknown,
+    /// The pass made no modifications.
+    No,
+}
+
+impl Changed {
+    /// Returns `true` if the MIR may have changed.
+    ///
+    /// This is the conservative choice: returns `true` for both [`Changed::Yes`] and
+    /// [`Changed::Unknown`], ensuring dependent analyses are invalidated when in doubt, but may
+    /// result in unnecessary passes to be run.
+    #[must_use]
+    pub const fn conservative(self) -> bool {
+        match self {
+            Self::Yes | Self::Unknown => true,
+            Self::No => false,
+        }
+    }
+
+    /// Returns `true` only if the MIR definitely changed.
+    ///
+    /// This is the optimistic choice: returns `true` only for [`Changed::Yes`], assuming
+    /// [`Changed::Unknown`] did not actually modify anything. Use with caution, as this may
+    /// skip necessary re-runs of passes.
+    #[must_use]
+    pub const fn optimistic(self) -> bool {
+        match self {
+            Self::Yes => true,
+            Self::Unknown | Self::No => false,
+        }
+    }
+}
+
+impl From<bool> for Changed {
+    fn from(value: bool) -> Self {
+        if value { Self::Yes } else { Self::No }
+    }
+}
+
 /// A transformation or analysis pass over MIR.
 ///
 /// Passes operate on a [`Body`] within a [`MirContext`], allowing them to read and modify the
@@ -86,7 +134,7 @@ pub trait TransformPass<'env, 'heap> {
     ///
     /// The `context` provides access to the heap allocator, type environment, interner, and
     /// diagnostic collection. The `body` can be read and modified in place.
-    fn run(&mut self, context: &mut MirContext<'env, 'heap>, body: &mut Body<'heap>);
+    fn run(&mut self, context: &mut MirContext<'env, 'heap>, body: &mut Body<'heap>) -> Changed;
 
     /// Returns a human-readable name for this pass.
     ///
