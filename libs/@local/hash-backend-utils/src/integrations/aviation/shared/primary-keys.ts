@@ -1,86 +1,268 @@
-import { systemPropertyTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
+import {
+  type BaseUrl,
+  type EntityId,
+  extractEntityUuidFromEntityId,
+} from "@blockprotocol/type-system";
+import type { Filter } from "@local/hash-graph-client";
+import type { ProposedEntity } from "@local/hash-isomorphic-utils/flows/types";
+import {
+  systemEntityTypes,
+  systemLinkEntityTypes,
+  systemPropertyTypes,
+} from "@local/hash-isomorphic-utils/ontology-type-ids";
 
 /**
- * A unique identifier for an entity, consisting of:
- * - A string key for in-memory deduplication
- * - Property filters for querying existing entities in the database
- */
-export type EntityPrimaryKey = {
-  /**
-   * A string key for in-memory deduplication (e.g., "flight-BA123-2024-12-19")
-   */
-  key: string;
-  /**
-   * Property base URLs and their values for querying existing entities.
-   * Used to find matching entities in the database.
-   */
-  properties: Record<string, string>;
-};
-
-/**
- * Generates primary keys for aviation entities.
+ * Generates string primary keys for aviation entities, used for in-memory deduplication.
  *
- * Returns `null` if any required field(s) missing.
+ * Returns `null` if any required field(s) are missing.
  */
 export const generatePrimaryKey = {
   flight: (input: {
     flightNumber: string | null | undefined;
     flightDate: string | null | undefined;
-  }): EntityPrimaryKey | null => {
+  }): string | null => {
     if (!input.flightNumber || !input.flightDate) {
       return null;
     }
 
-    return {
-      key: `flight-${input.flightNumber}-${input.flightDate}`,
-      properties: {
-        [systemPropertyTypes.flightNumber.propertyTypeBaseUrl]:
-          input.flightNumber,
-        [systemPropertyTypes.flightDate.propertyTypeBaseUrl]: input.flightDate,
-      },
-    };
+    return `flight-${input.flightNumber}-${input.flightDate}`;
   },
   aircraft: (input: {
     registrationNumber: string | null | undefined;
-  }): EntityPrimaryKey | null => {
+  }): string | null => {
     if (!input.registrationNumber) {
       return null;
     }
 
-    return {
-      key: `aircraft-${input.registrationNumber}`,
-      properties: {
-        [systemPropertyTypes.registrationNumber.propertyTypeBaseUrl]:
-          input.registrationNumber,
-      },
-    };
+    return `aircraft-${input.registrationNumber}`;
   },
-  airport: (input: {
-    icaoCode: string | null | undefined;
-  }): EntityPrimaryKey | null => {
+  airport: (input: { icaoCode: string | null | undefined }): string | null => {
     if (!input.icaoCode) {
       return null;
     }
 
-    return {
-      key: `airport-${input.icaoCode}`,
-      properties: {
-        [systemPropertyTypes.icaoCode.propertyTypeBaseUrl]: input.icaoCode,
-      },
-    };
+    return `airport-${input.icaoCode}`;
   },
-  airline: (input: {
-    icaoCode: string | null | undefined;
-  }): EntityPrimaryKey | null => {
+  airline: (input: { icaoCode: string | null | undefined }): string | null => {
     if (!input.icaoCode) {
       return null;
     }
 
-    return {
-      key: `airline-${input.icaoCode}`,
-      properties: {
-        [systemPropertyTypes.icaoCode.propertyTypeBaseUrl]: input.icaoCode,
-      },
-    };
+    return `airline-${input.icaoCode}`;
   },
 };
+
+/**
+ * Generates Graph API filters to find existing entities matching a proposed entity.
+ */
+export const generateEntityMatcher = {
+  [systemEntityTypes.flight.entityTypeBaseUrl]: (input: ProposedEntity) => {
+    return {
+      all: [
+        {
+          equal: [
+            {
+              path: [
+                "properties",
+                systemPropertyTypes.flightNumber.propertyTypeBaseUrl,
+              ],
+            },
+            {
+              parameter:
+                input.properties[
+                  systemPropertyTypes.flightNumber.propertyTypeBaseUrl
+                ],
+            },
+          ],
+        },
+        {
+          equal: [
+            {
+              path: [
+                "properties",
+                systemPropertyTypes.flightDate.propertyTypeBaseUrl,
+              ],
+            },
+            {
+              parameter:
+                input.properties[
+                  systemPropertyTypes.flightDate.propertyTypeBaseUrl
+                ],
+            },
+          ],
+        },
+      ],
+    };
+  },
+  [systemEntityTypes.aircraft.entityTypeBaseUrl]: (input: ProposedEntity) => {
+    return {
+      all: [
+        {
+          equal: [
+            {
+              path: [
+                "properties",
+                systemPropertyTypes.registrationNumber.propertyTypeBaseUrl,
+              ],
+            },
+            {
+              parameter:
+                input.properties[
+                  systemPropertyTypes.registrationNumber.propertyTypeBaseUrl
+                ],
+            },
+          ],
+        },
+      ],
+    };
+  },
+  [systemEntityTypes.airport.entityTypeBaseUrl]: (input: ProposedEntity) => {
+    return {
+      all: [
+        {
+          equal: [
+            {
+              path: [
+                "properties",
+                systemPropertyTypes.icaoCode.propertyTypeBaseUrl,
+              ],
+            },
+            {
+              parameter:
+                input.properties[
+                  systemPropertyTypes.icaoCode.propertyTypeBaseUrl
+                ],
+            },
+          ],
+        },
+      ],
+    };
+  },
+  [systemEntityTypes.airline.entityTypeBaseUrl]: (input: ProposedEntity) => {
+    return {
+      all: [
+        {
+          equal: [
+            {
+              path: [
+                "properties",
+                systemPropertyTypes.icaoCode.propertyTypeBaseUrl,
+              ],
+            },
+            {
+              parameter:
+                input.properties[
+                  systemPropertyTypes.icaoCode.propertyTypeBaseUrl
+                ],
+            },
+          ],
+        },
+      ],
+    };
+  },
+} as const satisfies Record<BaseUrl, (input: ProposedEntity) => Filter>;
+
+/**
+ * Generates Graph API filters to find existing link entities.
+ */
+export const generateLinkMatcher = {
+  [systemLinkEntityTypes.arrivesAt.linkEntityTypeBaseUrl]: (input: {
+    leftEntityId: EntityId;
+    rightEntityId: EntityId;
+  }) => {
+    const leftEntityUuid = extractEntityUuidFromEntityId(input.leftEntityId);
+    const rightEntityUuid = extractEntityUuidFromEntityId(input.rightEntityId);
+
+    return {
+      all: [
+        {
+          equal: [
+            { path: ["leftEntity", "uuid"] },
+            { parameter: leftEntityUuid },
+          ],
+        },
+        {
+          equal: [
+            { path: ["rightEntity", "uuid"] },
+            { parameter: rightEntityUuid },
+          ],
+        },
+      ],
+    };
+  },
+  [systemLinkEntityTypes.departsFrom.linkEntityTypeBaseUrl]: (input: {
+    leftEntityId: EntityId;
+    rightEntityId: EntityId;
+  }) => {
+    const leftEntityUuid = extractEntityUuidFromEntityId(input.leftEntityId);
+    const rightEntityUuid = extractEntityUuidFromEntityId(input.rightEntityId);
+
+    return {
+      all: [
+        {
+          equal: [
+            { path: ["leftEntity", "uuid"] },
+            { parameter: leftEntityUuid },
+          ],
+        },
+        {
+          equal: [
+            { path: ["rightEntity", "uuid"] },
+            { parameter: rightEntityUuid },
+          ],
+        },
+      ],
+    };
+  },
+  [systemLinkEntityTypes.operatedBy.linkEntityTypeBaseUrl]: (input: {
+    leftEntityId: EntityId;
+    rightEntityId: EntityId;
+  }) => {
+    const leftEntityUuid = extractEntityUuidFromEntityId(input.leftEntityId);
+    const rightEntityUuid = extractEntityUuidFromEntityId(input.rightEntityId);
+
+    return {
+      all: [
+        {
+          equal: [
+            { path: ["leftEntity", "uuid"] },
+            { parameter: leftEntityUuid },
+          ],
+        },
+        {
+          equal: [
+            { path: ["rightEntity", "uuid"] },
+            { parameter: rightEntityUuid },
+          ],
+        },
+      ],
+    };
+  },
+  [systemLinkEntityTypes.usesAircraft.linkEntityTypeBaseUrl]: (input: {
+    leftEntityId: EntityId;
+    rightEntityId: EntityId;
+  }) => {
+    const leftEntityUuid = extractEntityUuidFromEntityId(input.leftEntityId);
+    const rightEntityUuid = extractEntityUuidFromEntityId(input.rightEntityId);
+
+    return {
+      all: [
+        {
+          equal: [
+            { path: ["leftEntity", "uuid"] },
+            { parameter: leftEntityUuid },
+          ],
+        },
+        {
+          equal: [
+            { path: ["rightEntity", "uuid"] },
+            { parameter: rightEntityUuid },
+          ],
+        },
+      ],
+    };
+  },
+} as const satisfies Record<
+  (typeof systemLinkEntityTypes)[keyof typeof systemLinkEntityTypes]["linkEntityTypeBaseUrl"],
+  (input: { leftEntityId: EntityId; rightEntityId: EntityId }) => Filter
+>;

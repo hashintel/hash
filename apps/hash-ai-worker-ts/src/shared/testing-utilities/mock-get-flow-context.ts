@@ -6,7 +6,7 @@ import type {
 import { extractEntityUuidFromEntityId } from "@blockprotocol/type-system";
 import { HashEntity } from "@local/hash-graph-sdk/entity";
 import { mapFlowRunToEntityProperties } from "@local/hash-isomorphic-utils/flows/mappings";
-import type { RunFlowWorkflowParams } from "@local/hash-isomorphic-utils/flows/temporal-types";
+import type { RunAiFlowWorkflowParams } from "@local/hash-isomorphic-utils/flows/temporal-types";
 import type { FlowDefinition } from "@local/hash-isomorphic-utils/flows/types";
 import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
@@ -120,7 +120,7 @@ vi.mock("@local/hash-backend-utils/temporal", async (importOriginal) => {
           signal: async () => {},
           // eslint-disable-next-line @typescript-eslint/require-await
           fetchHistory: async () => {
-            const mockedFlorWorkflowParams: RunFlowWorkflowParams = {
+            const mockedFlorWorkflowParams: RunAiFlowWorkflowParams = {
               dataSources: {
                 files: { fileEntityIds: [] },
                 internetAccess: {

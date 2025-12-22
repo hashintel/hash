@@ -1,8 +1,9 @@
 import type { Url } from "@blockprotocol/type-system";
+import type { FlowActionActivity } from "@local/hash-backend-utils/flows";
 import { isInferenceModelName } from "@local/hash-isomorphic-utils/ai-inference-types";
 import {
-  getSimplifiedActionInputs,
-  type OutputNameForAction,
+  getSimplifiedAiFlowActionInputs,
+  type OutputNameForAiFlowAction,
 } from "@local/hash-isomorphic-utils/flows/action-definitions";
 import { StatusCode } from "@local/status";
 import dedent from "dedent";
@@ -13,7 +14,6 @@ import { getLlmResponse } from "../shared/get-llm-response.js";
 import { getTextContentFromLlmMessage } from "../shared/get-llm-response/llm-message.js";
 import { graphApiClient } from "../shared/graph-api-client.js";
 import { inferenceModelAliasToSpecificModel } from "../shared/inference-model-alias-to-llm-model.js";
-import type { FlowActionActivity } from "./types.js";
 
 const generateSummarizeWebPageSystemPrompt = (params: {
   numberOfSentences: number;
@@ -34,7 +34,7 @@ const generateSummarizeWebPageSystemPrompt = (params: {
 export const getWebPageSummaryAction: FlowActionActivity = async ({
   inputs,
 }) => {
-  const { url, model, numberOfSentences } = getSimplifiedActionInputs({
+  const { url, model, numberOfSentences } = getSimplifiedAiFlowActionInputs({
     inputs,
     actionType: "getWebPageSummary",
   });
@@ -124,7 +124,7 @@ export const getWebPageSummaryAction: FlowActionActivity = async ({
         outputs: [
           {
             outputName:
-              "summary" satisfies OutputNameForAction<"getWebPageSummary">,
+              "summary" satisfies OutputNameForAiFlowAction<"getWebPageSummary">,
             payload: {
               kind: "Text",
               value: summary,
@@ -132,7 +132,7 @@ export const getWebPageSummaryAction: FlowActionActivity = async ({
           },
           {
             outputName:
-              "title" satisfies OutputNameForAction<"getWebPageSummary">,
+              "title" satisfies OutputNameForAiFlowAction<"getWebPageSummary">,
             payload: {
               kind: "Text",
               value: webPage.title,

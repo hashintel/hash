@@ -1,8 +1,8 @@
 import type { EntityUuid } from "@blockprotocol/type-system";
 
 import type {
-  InputNameForAction,
-  OutputNameForAction,
+  InputNameForAiFlowAction,
+  OutputNameForAiFlowAction,
 } from "./action-definitions.js";
 import type {
   AutomaticInferenceTriggerInputName,
@@ -65,7 +65,7 @@ export const manualBrowserInferenceFlowDefinition: FlowDefinition = {
       inputSources: [
         {
           inputName:
-            "content" satisfies InputNameForAction<"inferEntitiesFromContent">,
+            "content" satisfies InputNameForAiFlowAction<"inferEntitiesFromContent">,
           kind: "step-output",
           sourceStepId: "trigger",
           sourceStepOutputName:
@@ -73,7 +73,7 @@ export const manualBrowserInferenceFlowDefinition: FlowDefinition = {
         },
         {
           inputName:
-            "entityTypeIds" satisfies InputNameForAction<"inferEntitiesFromContent">,
+            "entityTypeIds" satisfies InputNameForAiFlowAction<"inferEntitiesFromContent">,
           kind: "step-output",
           sourceStepId: "trigger",
           sourceStepOutputName:
@@ -81,7 +81,7 @@ export const manualBrowserInferenceFlowDefinition: FlowDefinition = {
         },
         {
           inputName:
-            "model" satisfies InputNameForAction<"inferEntitiesFromContent">,
+            "model" satisfies InputNameForAiFlowAction<"inferEntitiesFromContent">,
           kind: "step-output",
           sourceStepId: "trigger",
           sourceStepOutputName:
@@ -97,14 +97,15 @@ export const manualBrowserInferenceFlowDefinition: FlowDefinition = {
       inputSources: [
         {
           inputName:
-            "proposedEntities" satisfies InputNameForAction<"persistEntities">,
+            "proposedEntities" satisfies InputNameForAiFlowAction<"persistEntities">,
           kind: "step-output",
           sourceStepId: "0",
           sourceStepOutputName:
-            "proposedEntities" satisfies OutputNameForAction<"inferEntitiesFromContent">,
+            "proposedEntities" satisfies OutputNameForAiFlowAction<"inferEntitiesFromContent">,
         },
         {
-          inputName: "draft" satisfies InputNameForAction<"persistEntities">,
+          inputName:
+            "draft" satisfies InputNameForAiFlowAction<"persistEntities">,
           kind: "step-output",
           sourceStepId: "trigger",
           sourceStepOutputName:
@@ -117,7 +118,7 @@ export const manualBrowserInferenceFlowDefinition: FlowDefinition = {
     {
       stepId: "1",
       stepOutputName:
-        "persistedEntities" as const satisfies OutputNameForAction<"persistEntities">,
+        "persistedEntities" as const satisfies OutputNameForAiFlowAction<"persistEntities">,
       ...browserInferenceFlowOutput,
     },
   ],
@@ -153,7 +154,7 @@ export const automaticBrowserInferenceFlowDefinition: FlowDefinition = {
       inputSources: [
         {
           inputName:
-            "webPage" satisfies InputNameForAction<"processAutomaticBrowsingSettings">,
+            "webPage" satisfies InputNameForAiFlowAction<"processAutomaticBrowsingSettings">,
           kind: "step-output",
           sourceStepId: "trigger",
           sourceStepOutputName:
@@ -169,7 +170,7 @@ export const automaticBrowserInferenceFlowDefinition: FlowDefinition = {
       inputSources: [
         {
           inputName:
-            "content" satisfies InputNameForAction<"inferEntitiesFromContent">,
+            "content" satisfies InputNameForAiFlowAction<"inferEntitiesFromContent">,
           kind: "step-output",
           sourceStepId: "trigger",
           sourceStepOutputName:
@@ -177,19 +178,19 @@ export const automaticBrowserInferenceFlowDefinition: FlowDefinition = {
         },
         {
           inputName:
-            "model" satisfies InputNameForAction<"inferEntitiesFromContent">,
+            "model" satisfies InputNameForAiFlowAction<"inferEntitiesFromContent">,
           kind: "step-output",
           sourceStepId: "0",
           sourceStepOutputName:
-            "model" satisfies OutputNameForAction<"processAutomaticBrowsingSettings">,
+            "model" satisfies OutputNameForAiFlowAction<"processAutomaticBrowsingSettings">,
         },
         {
           inputName:
-            "entityTypeIds" satisfies InputNameForAction<"inferEntitiesFromContent">,
+            "entityTypeIds" satisfies InputNameForAiFlowAction<"inferEntitiesFromContent">,
           kind: "step-output",
           sourceStepId: "0",
           sourceStepOutputName:
-            "entityTypeIds" satisfies OutputNameForAction<"processAutomaticBrowsingSettings">,
+            "entityTypeIds" satisfies OutputNameForAiFlowAction<"processAutomaticBrowsingSettings">,
         },
       ],
     },
@@ -201,18 +202,19 @@ export const automaticBrowserInferenceFlowDefinition: FlowDefinition = {
       inputSources: [
         {
           inputName:
-            "proposedEntities" satisfies InputNameForAction<"persistEntities">,
+            "proposedEntities" satisfies InputNameForAiFlowAction<"persistEntities">,
           kind: "step-output",
           sourceStepId: "1",
           sourceStepOutputName:
-            "proposedEntities" satisfies OutputNameForAction<"inferEntitiesFromContent">,
+            "proposedEntities" satisfies OutputNameForAiFlowAction<"inferEntitiesFromContent">,
         },
         {
-          inputName: "draft" satisfies InputNameForAction<"persistEntities">,
+          inputName:
+            "draft" satisfies InputNameForAiFlowAction<"persistEntities">,
           kind: "step-output",
           sourceStepId: "0",
           sourceStepOutputName:
-            "draft" satisfies OutputNameForAction<"processAutomaticBrowsingSettings">,
+            "draft" satisfies OutputNameForAiFlowAction<"processAutomaticBrowsingSettings">,
         },
       ],
     },
@@ -221,7 +223,7 @@ export const automaticBrowserInferenceFlowDefinition: FlowDefinition = {
     {
       stepId: "2",
       stepOutputName:
-        "persistedEntities" as const satisfies OutputNameForAction<"persistEntities">,
+        "persistedEntities" as const satisfies OutputNameForAiFlowAction<"persistEntities">,
       ...browserInferenceFlowOutput,
     },
   ],

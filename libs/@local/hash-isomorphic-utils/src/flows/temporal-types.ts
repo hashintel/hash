@@ -8,13 +8,20 @@ import type {
   LocalFlowRun,
 } from "./types.js";
 
-export type RunFlowWorkflowParams = {
-  dataSources: FlowDataSources;
-  flowTrigger: FlowTrigger;
+export type BaseRunFlowWorkflowParams = {
   flowDefinition: FlowDefinition;
+  flowTrigger: FlowTrigger;
   userAuthentication: { actorId: UserId };
   webId: WebId;
 };
+
+export type RunAiFlowWorkflowParams = BaseRunFlowWorkflowParams & {
+  dataSources: FlowDataSources;
+};
+
+export type RunFlowWorkflowParams =
+  | BaseRunFlowWorkflowParams
+  | RunAiFlowWorkflowParams;
 
 export type RunFlowWorkflowResponse = Status<{
   flow?: LocalFlowRun;

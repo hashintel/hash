@@ -6,10 +6,11 @@ import type {
   Url,
 } from "@blockprotocol/type-system";
 import { extractEntityUuidFromEntityId } from "@blockprotocol/type-system";
+import type { FlowActionActivity } from "@local/hash-backend-utils/flows";
 import type { HashEntity } from "@local/hash-graph-sdk/entity";
 import {
-  getSimplifiedActionInputs,
-  type OutputNameForAction,
+  getSimplifiedAiFlowActionInputs,
+  type OutputNameForAiFlowAction,
 } from "@local/hash-isomorphic-utils/flows/action-definitions";
 import type { PersistedEntity } from "@local/hash-isomorphic-utils/flows/types";
 import {
@@ -32,7 +33,6 @@ import { useFileSystemPathFromEntity } from "../shared/use-file-system-file-from
 import { generateDocumentPropertyPatches } from "./infer-metadata-from-document-action/generate-property-patches.js";
 import { generateDocumentProposedEntitiesAndCreateClaims } from "./infer-metadata-from-document-action/generate-proposed-entities-and-claims.js";
 import { getLlmAnalysisOfDoc } from "./infer-metadata-from-document-action/get-llm-analysis-of-doc.js";
-import type { FlowActionActivity } from "./types.js";
 
 const isFileEntity = (entity: HashEntity): entity is HashEntity<File> =>
   systemPropertyTypes.fileStorageKey.propertyTypeBaseUrl in entity.properties &&
@@ -48,7 +48,7 @@ export const inferMetadataFromDocumentAction: FlowActionActivity = async ({
     webId,
   } = await getFlowContext();
 
-  const { documentEntityId } = getSimplifiedActionInputs({
+  const { documentEntityId } = getSimplifiedAiFlowActionInputs({
     inputs,
     actionType: "inferMetadataFromDocument",
   });
@@ -247,7 +247,7 @@ export const inferMetadataFromDocumentAction: FlowActionActivity = async ({
         outputs: [
           {
             outputName:
-              "proposedEntities" satisfies OutputNameForAction<"inferMetadataFromDocument">,
+              "proposedEntities" satisfies OutputNameForAiFlowAction<"inferMetadataFromDocument">,
             payload: {
               kind: "ProposedEntity",
               value: proposedEntities,
@@ -255,7 +255,7 @@ export const inferMetadataFromDocumentAction: FlowActionActivity = async ({
           },
           {
             outputName:
-              "updatedDocumentEntity" satisfies OutputNameForAction<"inferMetadataFromDocument">,
+              "updatedDocumentEntity" satisfies OutputNameForAiFlowAction<"inferMetadataFromDocument">,
             payload: {
               kind: "PersistedEntity",
               value: persistedDocumentEntity,

@@ -1,6 +1,8 @@
 import { ArrowRightRegularIcon } from "@hashintel/design-system";
-import type { ActionDefinitionId } from "@local/hash-isomorphic-utils/flows/action-definitions";
-import type { ExternalInputRequest } from "@local/hash-isomorphic-utils/flows/types";
+import type {
+  ExternalInputRequest,
+  FlowActionDefinitionId,
+} from "@local/hash-isomorphic-utils/flows/types";
 import type { SxProps, Theme } from "@mui/material";
 import { Box, Stack, Typography } from "@mui/material";
 import { formatDistance } from "date-fns";
@@ -33,7 +35,7 @@ const useStatusText = ({
   simpleStatusName,
   statusData,
 }: {
-  actionDefinitionId?: ActionDefinitionId;
+  actionDefinitionId?: FlowActionDefinitionId;
   simpleStatusName: SimpleStatus;
   statusData?: StepRunStatus | null;
 }) => {

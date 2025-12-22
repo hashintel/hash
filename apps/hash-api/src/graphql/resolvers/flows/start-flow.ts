@@ -17,16 +17,16 @@ export const startFlow: ResolverFn<
   MutationStartFlowArgs
 > = async (
   _,
-  { dataSources, flowTrigger, flowDefinition, webId },
+  { dataSources, flowTrigger, flowDefinition, flowType, webId },
   graphQLContext,
 ) => {
   const { temporal, user } = graphQLContext;
 
-  if (!user.enabledFeatureFlags.includes("ai")) {
-    throw Error.forbidden("Flows are not enabled for this user");
+  if (flowType === "ai" && !user.enabledFeatureFlags.includes("ai")) {
+    throw Error.forbidden("AI flows are not enabled for this user");
   }
 
-  validateFlowDefinition(flowDefinition);
+  validateFlowDefinition(flowDefinition, flowType);
 
   const workflowId = generateUuid();
 

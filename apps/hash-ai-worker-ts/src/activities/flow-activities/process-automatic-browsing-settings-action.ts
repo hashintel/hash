@@ -1,7 +1,8 @@
+import type { FlowActionActivity } from "@local/hash-backend-utils/flows";
 import type { HashEntity } from "@local/hash-graph-sdk/entity";
 import {
-  getSimplifiedActionInputs,
-  type OutputNameForAction,
+  getSimplifiedAiFlowActionInputs,
+  type OutputNameForAiFlowAction,
 } from "@local/hash-isomorphic-utils/flows/action-definitions";
 import type { AutomaticInferenceSettings } from "@local/hash-isomorphic-utils/flows/browser-plugin-flow-types";
 import { generateVersionedUrlMatchingFilter } from "@local/hash-isomorphic-utils/graph-queries";
@@ -12,11 +13,10 @@ import { StatusCode } from "@local/status";
 import { getEntityByFilter } from "../shared/get-entity-by-filter.js";
 import { getFlowContext } from "../shared/get-flow-context.js";
 import { graphApiClient } from "../shared/graph-api-client.js";
-import type { FlowActionActivity } from "./types.js";
 
 export const processAutomaticBrowsingSettingsAction: FlowActionActivity =
   async ({ inputs }) => {
-    const { webPage } = getSimplifiedActionInputs({
+    const { webPage } = getSimplifiedAiFlowActionInputs({
       inputs,
       actionType: "processAutomaticBrowsingSettings",
     });
@@ -108,7 +108,7 @@ export const processAutomaticBrowsingSettingsAction: FlowActionActivity =
           outputs: [
             {
               outputName:
-                "draft" satisfies OutputNameForAction<"processAutomaticBrowsingSettings">,
+                "draft" satisfies OutputNameForAiFlowAction<"processAutomaticBrowsingSettings">,
               payload: {
                 kind: "Boolean",
                 value: createAs === "draft",
@@ -116,7 +116,7 @@ export const processAutomaticBrowsingSettingsAction: FlowActionActivity =
             },
             {
               outputName:
-                "entityTypeIds" satisfies OutputNameForAction<"processAutomaticBrowsingSettings">,
+                "entityTypeIds" satisfies OutputNameForAiFlowAction<"processAutomaticBrowsingSettings">,
               payload: {
                 kind: "VersionedUrl",
                 value: entityTypeIdsToInfer,
@@ -124,7 +124,7 @@ export const processAutomaticBrowsingSettingsAction: FlowActionActivity =
             },
             {
               outputName:
-                "model" satisfies OutputNameForAction<"processAutomaticBrowsingSettings">,
+                "model" satisfies OutputNameForAiFlowAction<"processAutomaticBrowsingSettings">,
               payload: {
                 kind: "Text",
                 value: model,

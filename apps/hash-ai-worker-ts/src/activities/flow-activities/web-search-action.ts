@@ -1,16 +1,15 @@
 import type { Url } from "@blockprotocol/type-system";
+import type { FlowActionActivity } from "@local/hash-backend-utils/flows";
 import { internalApiClient } from "@local/hash-backend-utils/internal-api-client";
 import {
-  getSimplifiedActionInputs,
-  type OutputNameForAction,
+  getSimplifiedAiFlowActionInputs,
+  type OutputNameForAiFlowAction,
 } from "@local/hash-isomorphic-utils/flows/action-definitions";
 import type { StepOutput } from "@local/hash-isomorphic-utils/flows/types";
 import type { GetWebSearchResults200ResponseWebSearchResultsInner } from "@local/internal-api-client";
 import type { Status } from "@local/status";
 import { StatusCode } from "@local/status";
 import { backOff } from "exponential-backoff";
-
-import type { FlowActionActivity } from "./types.js";
 
 export type GetWebSearchResultsResponse = Omit<
   GetWebSearchResults200ResponseWebSearchResultsInner,
@@ -27,7 +26,7 @@ const mapWebSearchResults = (
   );
 
 export const webSearchAction: FlowActionActivity = async ({ inputs }) => {
-  const { query, numberOfSearchResults } = getSimplifiedActionInputs({
+  const { query, numberOfSearchResults } = getSimplifiedAiFlowActionInputs({
     inputs,
     actionType: "webSearch",
   });
@@ -49,7 +48,7 @@ export const webSearchAction: FlowActionActivity = async ({ inputs }) => {
         outputs: [
           {
             outputName:
-              "webSearchResult" satisfies OutputNameForAction<"webSearch">,
+              "webSearchResult" satisfies OutputNameForAiFlowAction<"webSearch">,
             payload: {
               kind: "WebSearchResult",
               value: mapWebSearchResults(webPages),

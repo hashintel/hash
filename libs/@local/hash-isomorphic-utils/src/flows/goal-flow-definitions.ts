@@ -1,8 +1,8 @@
 import type { EntityUuid } from "@blockprotocol/type-system";
 
 import type {
-  InputNameForAction,
-  OutputNameForAction,
+  InputNameForAiFlowAction,
+  OutputNameForAiFlowAction,
 } from "./action-definitions.js";
 import {
   googleSheetDeliverable,
@@ -69,7 +69,8 @@ export const goalFlowDefinition = {
         "Discover entities according to research specification, using public web sources",
       inputSources: [
         {
-          inputName: "prompt" satisfies InputNameForAction<"researchEntities">,
+          inputName:
+            "prompt" satisfies InputNameForAiFlowAction<"researchEntities">,
           kind: "step-output",
           sourceStepId: "trigger",
           sourceStepOutputName:
@@ -77,7 +78,7 @@ export const goalFlowDefinition = {
         },
         {
           inputName:
-            "entityTypeIds" satisfies InputNameForAction<"researchEntities">,
+            "entityTypeIds" satisfies InputNameForAiFlowAction<"researchEntities">,
           kind: "step-output",
           sourceStepId: "trigger",
           sourceStepOutputName: "Entity Types" satisfies GoalFlowTriggerInput,
@@ -93,14 +94,15 @@ export const goalFlowDefinition = {
       inputSources: [
         {
           inputName:
-            "proposedEntities" satisfies InputNameForAction<"persistEntities">,
+            "proposedEntities" satisfies InputNameForAiFlowAction<"persistEntities">,
           kind: "step-output",
           sourceStepId: "1",
           sourceStepOutputName:
-            "proposedEntities" satisfies OutputNameForAction<"researchEntities">,
+            "proposedEntities" satisfies OutputNameForAiFlowAction<"researchEntities">,
         },
         {
-          inputName: "draft" satisfies InputNameForAction<"persistEntities">,
+          inputName:
+            "draft" satisfies InputNameForAiFlowAction<"persistEntities">,
           kind: "step-output",
           sourceStepId: "trigger",
           sourceStepOutputName:

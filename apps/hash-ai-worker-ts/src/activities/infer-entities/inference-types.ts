@@ -2,7 +2,7 @@ import type { VersionedUrl } from "@blockprotocol/type-system";
 import type { SerializedEntity } from "@local/hash-graph-sdk/entity";
 import type {
   InferredEntityChangeResult,
-  ProposedEntity,
+  DeprecatedProposedEntity,
 } from "@local/hash-isomorphic-utils/ai-inference-types";
 import type OpenAI from "openai";
 
@@ -34,7 +34,7 @@ export type ProposedEntitySummary = {
 
 export type UpdateCandidate = {
   entity: SerializedEntity;
-  proposedEntity: ProposedEntity;
+  proposedEntity: DeprecatedProposedEntity;
   status: "update-candidate";
 };
 
@@ -46,7 +46,10 @@ export type InferenceState = {
   /** A list of entities that can be inferred from the input, in summary form (no properties) */
   proposedEntitySummaries: ProposedEntitySummary[];
   /** A map of entity type IDs to a set of proposed entities, in entity form (with properties) */
-  proposedEntityCreationsByType: Record<VersionedUrl, ProposedEntity[]>;
+  proposedEntityCreationsByType: Record<
+    VersionedUrl,
+    DeprecatedProposedEntity[]
+  >;
   /** The results of attempting to persist entities inferred from the input */
   resultsByTemporaryId: Record<
     number,

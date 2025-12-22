@@ -11,6 +11,7 @@ import type {
   ScheduledArrivalsRequestParams,
 } from "./client/types.js";
 
+export { AviationProposedEntity } from "./client/build-graph.js";
 export type {
   AeroApiAirport,
   AeroApiPaginationLinks,
@@ -133,6 +134,3 @@ export const getScheduledArrivalEntities = async (
     provenance,
   };
 };
-await getScheduledArrivalEntities("EDDS", "2025-12-19").then((data) =>
-  console.log(JSON.stringify(data, null, 2)),
-);

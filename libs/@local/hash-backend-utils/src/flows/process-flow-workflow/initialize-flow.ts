@@ -3,6 +3,7 @@ import { actionDefinitions } from "@local/hash-isomorphic-utils/flows/action-def
 import type {
   ActionStep,
   ActionStepDefinition,
+  ActionStepWithParallelInput,
   ArrayPayload,
   FlowDefinition,
   FlowStep,
@@ -18,12 +19,7 @@ import { getAllStepsInFlow } from "./get-all-steps-in-flow.js";
 
 export const initializeActionStep = (params: {
   flowTrigger: FlowTrigger;
-  stepDefinition:
-    | ActionStepDefinition
-    | ActionStepDefinition<{
-        inputName: string;
-        kind: "parallel-group-input";
-      }>;
+  stepDefinition: ActionStepDefinition | ActionStepWithParallelInput;
   overrideStepId?: string;
   existingFlow?: LocalFlowRun;
   parallelGroupInputPayload?: Payload;

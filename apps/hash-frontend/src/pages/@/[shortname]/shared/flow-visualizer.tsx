@@ -3,7 +3,7 @@ import "reactflow/dist/style.css";
 import { useApolloClient, useMutation } from "@apollo/client";
 import type { EntityId, WebId } from "@blockprotocol/type-system";
 import { IconButton, Skeleton } from "@hashintel/design-system";
-import type { OutputNameForAction } from "@local/hash-isomorphic-utils/flows/action-definitions";
+import type { OutputNameForAiFlowAction } from "@local/hash-isomorphic-utils/flows/action-definitions";
 import { actionDefinitions } from "@local/hash-isomorphic-utils/flows/action-definitions";
 import { manualBrowserInferenceFlowDefinition } from "@local/hash-isomorphic-utils/flows/browser-plugin-flow-definitions";
 import { generateWorkerRunPath } from "@local/hash-isomorphic-utils/flows/frontend-paths";
@@ -496,7 +496,7 @@ export const FlowVisualizer = () => {
             case "EntityId":
               if (
                 output.outputName ===
-                ("highlightedEntities" satisfies OutputNameForAction<"researchEntities">)
+                ("highlightedEntities" satisfies OutputNameForAiFlowAction<"researchEntities">)
               ) {
                 if (Array.isArray(output.payload.value)) {
                   highlightedEntityIds.push(...output.payload.value);

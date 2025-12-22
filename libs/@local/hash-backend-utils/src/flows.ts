@@ -10,7 +10,7 @@ import {
 } from "@blockprotocol/type-system";
 import { typedKeys } from "@local/advanced-types/typed-entries";
 import type { GraphApi } from "@local/hash-graph-client";
-import { type HashEntity, queryEntities } from "@local/hash-graph-sdk/entity";
+import { queryEntities } from "@local/hash-graph-sdk/entity";
 import type { SparseFlowRun } from "@local/hash-isomorphic-utils/flows/types";
 import {
   currentTimeInstantTemporalAxes,
@@ -30,40 +30,19 @@ import {
   getFlowRunFromWorkflowId,
   getSparseFlowRunFromWorkflowId,
 } from "./flows/get-flow-run-details.js";
+import { getFlowRunEntityById } from "./flows/shared/get-flow-run-entity-by-id.js";
 import type { TemporalClient } from "./temporal.js";
 
-export const getFlowRunEntityById = async (params: {
-  flowRunId: EntityUuid;
-  graphApiClient: GraphApi;
-  userAuthentication: { actorId: ActorEntityUuid };
-}): Promise<HashEntity<FlowRunEntity> | null> => {
-  const { flowRunId, graphApiClient, userAuthentication } = params;
+export { getFlowRunEntityById };
 
-  const {
-    entities: [existingFlowEntity],
-  } = await queryEntities<FlowRunEntity>(
-    { graphApi: graphApiClient },
-    userAuthentication,
-    {
-      filter: {
-        all: [
-          {
-            equal: [{ path: ["uuid"] }, { parameter: flowRunId }],
-          },
-          generateVersionedUrlMatchingFilter(
-            systemEntityTypes.flowRun.entityTypeId,
-            { ignoreParents: true },
-          ),
-        ],
-      },
-      temporalAxes: currentTimeInstantTemporalAxes,
-      includeDrafts: false,
-      includePermissions: false,
-    },
-  );
-
-  return existingFlowEntity ?? null;
-};
+export type {
+  ActionName,
+  CreateFlowActivities,
+  FlowActionActivity,
+  ProxyFlowActivity,
+} from "./flows/action-types.js";
+export { processFlowWorkflow } from "./flows/process-flow-workflow.js";
+export { createCommonFlowActivities } from "./flows/process-flow-workflow/common-activities.js";
 
 type GetFlowRunByIdFnArgs<IncludeDetails extends boolean = boolean> = {
   flowRunId: EntityUuid;

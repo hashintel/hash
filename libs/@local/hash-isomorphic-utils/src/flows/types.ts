@@ -15,8 +15,15 @@ import type { Status } from "@local/status";
 
 import type { FlowRun } from "../graphql/api-types.gen.js";
 import type { ActorTypeDataType } from "../system-types/google/googlesheetsfile.js";
-import type { ActionDefinitionId } from "./action-definitions.js";
+import type {
+  AiFlowActionDefinitionId,
+  IntegrationFlowActionDefinitionId,
+} from "./action-definitions.js";
 import type { TriggerDefinitionId } from "./trigger-definitions.js";
+
+export type FlowActionDefinitionId =
+  | AiFlowActionDefinitionId
+  | IntegrationFlowActionDefinitionId;
 
 export type DeepReadOnly<T> = {
   readonly [key in keyof T]: DeepReadOnly<T[key]>;
@@ -80,14 +87,17 @@ export type PersistedEntities = {
   failedEntityProposals: FailedEntityProposal[];
 };
 
-export type FlowInputs = [
-  {
-    dataSources: FlowDataSources;
-    flowDefinition: FlowDefinition;
-    flowTrigger: FlowTrigger;
-    webId: WebId;
-  },
-];
+type BaseFlowInputs = {
+  flowDefinition: FlowDefinition;
+  flowTrigger: FlowTrigger;
+  webId: WebId;
+};
+
+type AiFlowInputs = BaseFlowInputs & {
+  dataSources: FlowDataSources;
+};
+
+export type FlowInputs = [BaseFlowInputs | AiFlowInputs];
 
 export const textFormats = ["CSV", "HTML", "Markdown", "Plain"] as const;
 
@@ -170,7 +180,9 @@ export type TriggerDefinition = {
   outputs?: OutputDefinition[];
 };
 
-export type ActionDefinition = {
+export type ActionDefinition<
+  ActionDefinitionId extends FlowActionDefinitionId,
+> = {
   kind: "action";
   actionDefinitionId: ActionDefinitionId;
   name: string;
@@ -178,10 +190,6 @@ export type ActionDefinition = {
   inputs: InputDefinition[];
   outputs: OutputDefinition[];
 };
-
-/**
- * Flow Definition
- */
 
 export type StepInputSource<P extends Payload = Payload> = {
   inputName: string;
@@ -207,6 +215,7 @@ export type StepInputSource<P extends Payload = Payload> = {
 );
 
 export type ActionStepDefinition<
+  ActionDefinitionId extends FlowActionDefinitionId = FlowActionDefinitionId,
   AdditionalInputSources extends { inputName: string } | null = null,
 > = {
   kind: "action";
@@ -220,26 +229,35 @@ export type ActionStepDefinition<
   retryCount?: number;
 };
 
-export type ActionStepWithParallelInput = ActionStepDefinition<{
-  /**
-   * This additional input source refers to the dispersed input
-   * for a parallel group.
-   */
-  inputName: string;
-  kind: "parallel-group-input";
-}>;
+export type ActionStepWithParallelInput<
+  ActionDefinitionId extends FlowActionDefinitionId = FlowActionDefinitionId,
+> = ActionStepDefinition<
+  ActionDefinitionId,
+  {
+    /**
+     * This additional input source refers to the dispersed input
+     * for a parallel group.
+     */
+    inputName: string;
+    kind: "parallel-group-input";
+  }
+>;
 
-export type StepDefinition =
-  | ActionStepDefinition
-  | ActionStepWithParallelInput
-  | ParallelGroupStepDefinition;
+export type StepDefinition<
+  ActionDefinitionId extends FlowActionDefinitionId = FlowActionDefinitionId,
+> =
+  | ActionStepDefinition<ActionDefinitionId>
+  | ActionStepWithParallelInput<ActionDefinitionId>
+  | ParallelGroupStepDefinition<ActionDefinitionId>;
 
 /**
  * A step which spawns multiple parallel branches of steps based on an array input.
  *
  * e.g. for each input entity, do X with that entity in a separate branch.
  */
-export type ParallelGroupStepDefinition = {
+export type ParallelGroupStepDefinition<
+  ActionDefinitionId extends FlowActionDefinitionId = FlowActionDefinitionId,
+> = {
   kind: "parallel-group";
   stepId: string;
   groupId?: number;
@@ -254,7 +272,7 @@ export type ParallelGroupStepDefinition = {
    * The steps that will be executed in parallel branches for each payload
    * item in the provided `ArrayPayload`.
    */
-  steps: StepDefinition[];
+  steps: StepDefinition<ActionDefinitionId>[];
   /**
    * The aggregate output of the parallel group must be defined
    * as an `array` output.
@@ -294,13 +312,15 @@ export type StepGroup = {
   description: string;
 };
 
-export type FlowDefinition = {
+export type FlowDefinition<
+  ActionDefinitionId extends FlowActionDefinitionId = FlowActionDefinitionId,
+> = {
   name: string;
   description: string;
   flowDefinitionId: EntityUuid;
   trigger: FlowDefinitionTrigger;
   groups?: StepGroup[];
-  steps: StepDefinition[];
+  steps: StepDefinition<ActionDefinitionId>[];
   outputs: (OutputDefinition & {
     /**
      * The step ID for the step in the flow that will produce the
@@ -324,9 +344,13 @@ export type StepOutput<P extends Payload = Payload> = {
   payload: P;
 };
 
-export type StepRunOutput = Status<Required<Pick<ActionStep, "outputs">>>;
+export type StepRunOutput = Status<
+  Required<Pick<ActionStep<FlowActionDefinitionId>, "outputs">>
+>;
 
-export type ActionStep = {
+export type ActionStep<
+  ActionDefinitionId extends FlowActionDefinitionId = FlowActionDefinitionId,
+> = {
   stepId: string;
   kind: "action";
   actionDefinitionId: ActionDefinitionId;
@@ -335,15 +359,19 @@ export type ActionStep = {
   outputs?: StepOutput[];
 };
 
-export type ParallelGroupStep = {
+export type ParallelGroupStep<
+  ActionDefinitionId extends FlowActionDefinitionId = FlowActionDefinitionId,
+> = {
   stepId: string;
   kind: "parallel-group";
   inputToParallelizeOn?: StepInput<ArrayPayload>;
-  steps?: FlowStep[];
+  steps?: FlowStep<ActionDefinitionId>[];
   aggregateOutput?: StepOutput<ArrayPayload>;
 };
 
-export type FlowStep = ActionStep | ParallelGroupStep;
+export type FlowStep<
+  ActionDefinitionId extends FlowActionDefinitionId = FlowActionDefinitionId,
+> = ActionStep<ActionDefinitionId> | ParallelGroupStep<ActionDefinitionId>;
 
 export type FlowTrigger = {
   triggerDefinitionId: TriggerDefinitionId;
@@ -372,12 +400,14 @@ export type FlowDataSources = {
 /**
  * A simplified type for a FlowRun used internally in the worker logic.
  */
-export type LocalFlowRun = {
+export type LocalFlowRun<
+  ActionDefinitionId extends FlowActionDefinitionId = FlowActionDefinitionId,
+> = {
   name: string;
   flowRunId: EntityUuid;
   trigger: FlowTrigger;
   flowDefinitionId: EntityUuid;
-  steps: FlowStep[];
+  steps: FlowStep<ActionDefinitionId>[];
   outputs?: StepOutput[];
 };
 

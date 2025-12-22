@@ -1,8 +1,8 @@
 import type { DistributiveOmit } from "@local/advanced-types/distribute";
 
 import type {
-  InputNameForAction,
-  OutputNameForAction,
+  InputNameForAiFlowAction,
+  OutputNameForAiFlowAction,
 } from "../action-definitions.js";
 import type { ActionStepDefinition, FlowDefinition } from "../types.js";
 
@@ -19,7 +19,7 @@ export const markdownReportTriggerInputs = [
 
 export const markdownReportResearchEntitiesStepInput = {
   inputName:
-    "reportSpecification" satisfies InputNameForAction<"researchEntities">,
+    "reportSpecification" satisfies InputNameForAiFlowAction<"researchEntities">,
   kind: "step-output",
   sourceStepId: "trigger",
   sourceStepOutputName: "Report specification" satisfies ReportTriggerInput,
@@ -31,17 +31,19 @@ export const markdownReportStep = {
   description: "Write report based on the research specification",
   inputSources: [
     {
-      inputName: "question" satisfies InputNameForAction<"answerQuestion">,
+      inputName:
+        "question" satisfies InputNameForAiFlowAction<"answerQuestion">,
       kind: "step-output",
       sourceStepId: "trigger",
       sourceStepOutputName: "Report specification",
     },
     {
-      inputName: "entities" satisfies InputNameForAction<"answerQuestion">,
+      inputName:
+        "entities" satisfies InputNameForAiFlowAction<"answerQuestion">,
       kind: "step-output",
       sourceStepId: "2",
       sourceStepOutputName:
-        "persistedEntities" satisfies OutputNameForAction<"persistEntities">,
+        "persistedEntities" satisfies OutputNameForAiFlowAction<"persistEntities">,
     },
   ],
 } satisfies DistributiveOmit<
@@ -50,7 +52,8 @@ export const markdownReportStep = {
 >;
 
 export const markdownReportDeliverable = {
-  stepOutputName: "answer" satisfies OutputNameForAction<"answerQuestion">,
+  stepOutputName:
+    "answer" satisfies OutputNameForAiFlowAction<"answerQuestion">,
   payloadKind: "Text",
   name: "report" as const,
   array: false,

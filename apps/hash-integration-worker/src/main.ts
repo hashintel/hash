@@ -15,6 +15,7 @@ import { fileURLToPath } from "node:url";
 
 import { createGraphClient } from "@local/hash-backend-utils/create-graph-client";
 import { getRequiredEnv } from "@local/hash-backend-utils/environment";
+import { createCommonFlowActivities } from "@local/hash-backend-utils/flows";
 import { Logger } from "@local/hash-backend-utils/logger";
 import { SentryActivityInboundInterceptor } from "@local/hash-backend-utils/temporal/interceptors/activities/sentry";
 import { sentrySinks } from "@local/hash-backend-utils/temporal/sinks/sentry";
@@ -22,9 +23,9 @@ import type { WorkflowTypeMap } from "@local/hash-backend-utils/temporal-integra
 import { defaultSinks, NativeConnection, Worker } from "@temporalio/worker";
 import { config } from "dotenv-flow";
 
-import * as aviationActivities from "./aviation-activities";
-import * as linearActivities from "./linear-activities";
-import * as workflows from "./workflows";
+import { createFlowActivities } from "./activities/flow-activities.js";
+import * as linearActivities from "./activities/linear-activities.js";
+import * as workflows from "./workflows.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -83,6 +84,7 @@ const workflowOption = () =>
 async function run() {
   // eslint-disable-next-line no-console
   console.info("Starting integration worker...");
+
   const graphApiClient = createGraphClient(logger, {
     host: getRequiredEnv("HASH_GRAPH_HTTP_HOST"),
     port: parseInt(getRequiredEnv("HASH_GRAPH_HTTP_PORT"), 10),
@@ -94,9 +96,10 @@ async function run() {
       ...linearActivities.createLinearIntegrationActivities({
         graphApiClient,
       }),
-      ...aviationActivities.createAviationActivities({
+      ...createFlowActivities({
         graphApiClient,
       }),
+      ...createCommonFlowActivities({ graphApiClient }),
     },
     connection: await NativeConnection.connect({
       address: `${TEMPORAL_HOST}:${TEMPORAL_PORT}`,
