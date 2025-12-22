@@ -1,4 +1,3 @@
-/* eslint-disable no-console */
 /**
  * Script to generate bundled and dereferenced JSON Schema fixtures
  * from remote HASH type schemas.

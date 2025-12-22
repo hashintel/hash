@@ -13,7 +13,7 @@ import { describe, expect, test } from "vitest";
 
 import { generatePlan } from "../agents/planner-agent";
 import type { PlanSpec } from "../schemas/plan-spec";
-import { validatePlan } from "../tools/plan-validator";
+import { validatePlan } from "../utils/plan-validator";
 import {
   goalAlignmentScorer,
   hypothesisTestabilityScorer,

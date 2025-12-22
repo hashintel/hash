@@ -19,12 +19,12 @@
  * @see docs/PLAN-task-decomposition.md for design documentation
  */
 
-import { AVAILABLE_AGENTS, canAgentHandle } from "../agents/executor-agents";
 import type {
   ExperimentStep,
   PlanSpec,
   SynthesizeStep,
 } from "../schemas/plan-spec";
+import { AVAILABLE_AGENTS, canAgentHandle } from "./plan-executors";
 
 // =============================================================================
 // VALIDATION ERROR TYPES
