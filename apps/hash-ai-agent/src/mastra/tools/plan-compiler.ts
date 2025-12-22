@@ -221,7 +221,7 @@ export type CompiledWorkflowOutput = z.infer<
 // =============================================================================
 
 /**
- * Build input schema from step's data contracts.
+ * Build input schema from step artifacts.
  */
 function buildInputSchema(planStep: PlanStep): z.ZodType<unknown> {
   if (planStep.inputs.length === 0) {
@@ -237,7 +237,7 @@ function buildInputSchema(planStep: PlanStep): z.ZodType<unknown> {
 }
 
 /**
- * Build output schema from step's data contracts.
+ * Build output schema from step artifacts.
  */
 function buildOutputSchema(_planStep: PlanStep): z.ZodType<unknown> {
   return z
@@ -422,7 +422,7 @@ async function executeStep(
 function createMastraStep(planStep: PlanStep, ctx: CompilerContext) {
   const depth = ctx.topology.depthMap.get(planStep.id) ?? 0;
 
-  // Build input/output schemas from data contracts
+  // Build input/output schemas from step artifacts
   const inputSchema = buildInputSchema(planStep);
   const outputSchema = buildOutputSchema(planStep);
 
