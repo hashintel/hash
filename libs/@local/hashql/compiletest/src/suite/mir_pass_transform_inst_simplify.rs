@@ -11,7 +11,7 @@ use hashql_mir::{
     context::MirContext,
     def::{DefId, DefIdSlice, DefIdVec},
     intern::Interner,
-    pass::{TransformPass as _, transform::InstSimplify},
+    pass::{Changed, TransformPass as _, transform::InstSimplify},
 };
 
 use super::{
@@ -44,7 +44,7 @@ pub(crate) fn mir_pass_transform_inst_simplify<'heap>(
 
     let mut pass = InstSimplify::new_in(&mut scratch);
     for body in bodies.as_mut_slice() {
-        pass.run(&mut context, body);
+        let _: Changed = pass.run(&mut context, body);
     }
 
     process_issues(diagnostics, context.diagnostics)?;
