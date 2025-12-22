@@ -39,6 +39,13 @@ import { planningWorkflow } from "./planning-workflow";
  * Set RUN_LLM_SCORERS=true to run LLM-based scorers (slower, costs API credits)
  */
 const RUN_LLM_SCORERS = process.env.RUN_LLM_SCORERS === "true";
+const describeIfLlm = RUN_LLM_SCORERS ? describe : describe.skip;
+
+if (!RUN_LLM_SCORERS) {
+  console.warn(
+    "Skipping planning pipeline E2E tests; set RUN_LLM_SCORERS=true or run `yarn eval`.",
+  );
+}
 
 /**
  * All fixtures ordered by complexity (simplest first)
@@ -343,7 +350,7 @@ async function runPipelineForFixture(
 // TESTS
 // =============================================================================
 
-describe("Planning Pipeline E2E", () => {
+describeIfLlm("Planning Pipeline E2E", () => {
   // Timeout for LLM calls: 2 minutes per fixture
   const FIXTURE_TIMEOUT = 2 * 60 * 1000;
 
@@ -462,7 +469,7 @@ describe("Planning Pipeline E2E", () => {
 // REVISION WORKFLOW TESTS
 // =============================================================================
 
-describe("Planning Workflow with Revision Loop", () => {
+describeIfLlm("Planning Workflow with Revision Loop", () => {
   // Timeout for workflow with potential revisions: 4 minutes
   const WORKFLOW_TIMEOUT = 4 * 60 * 1000;
 

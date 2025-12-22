@@ -10,6 +10,8 @@
     "build": "mastra build",
     "codegen": "tsx src/mastra/fixtures/generate-schemas.ts",
     "dev": "mastra dev",
+    "eval": "RUN_LLM_SCORERS=true vitest run",
+    "eval:dev": "RUN_LLM_SCORERS=true vitest dev",
     "fix": "npm-run-all --continue-on-error \"fix:*\"",
     "fix:eslint": "eslint --fix .",
     "fix:format": "biome format --write",
@@ -17,7 +19,8 @@
     "lint:eslint": "eslint --report-unused-disable-directives .",
     "lint:tsc": "tsc --noEmit",
     "start": "mastra start",
-    "test": "vitest",
+    "test": "vitest run",
+    "test:dev": "vitest dev",
     "ug": "yarn upgrade-interactive"
   },
   "dependencies": {
