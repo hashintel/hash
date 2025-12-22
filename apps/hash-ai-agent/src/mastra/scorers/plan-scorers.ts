@@ -439,10 +439,16 @@ export function scoreUnknownsCoverage(
 ): ScorerResult<UnknownsCoverageDetails> {
   const { unknownsMap } = plan;
 
+  // Unknown-unknowns: having 1-3 with detection signals is excellent
+  // Check that each has both potentialSurprise and detectionSignal
+  const validUnknownUnknowns = unknownsMap.unknownUnknowns.filter(
+    (uu) => uu.potentialSurprise.length > 10 && uu.detectionSignal.length > 10,
+  );
+
   const details: UnknownsCoverageDetails = {
     knownKnownsCount: unknownsMap.knownKnowns.length,
     knownUnknownsCount: unknownsMap.knownUnknowns.length,
-    unknownUnknownsCount: unknownsMap.unknownUnknowns.length,
+    unknownUnknownsCount: validUnknownUnknowns.length,
     hasCommunityCheck: unknownsMap.communityCheck.length > 20,
     epistemicCompleteness: 0,
   };
@@ -454,11 +460,6 @@ export function scoreUnknownsCoverage(
   // Known-unknowns: having 2-5 is good
   const knownUnknownsScore = Math.min(1, details.knownUnknownsCount / 3);
 
-  // Unknown-unknowns: having 1-3 with detection signals is excellent
-  // Check that each has both potentialSurprise and detectionSignal
-  const validUnknownUnknowns = unknownsMap.unknownUnknowns.filter(
-    (uu) => uu.potentialSurprise.length > 10 && uu.detectionSignal.length > 10,
-  );
   const unknownUnknownsScore = Math.min(1, validUnknownUnknowns.length / 2);
 
   // Community check: should be substantive
@@ -475,7 +476,7 @@ export function scoreUnknownsCoverage(
   const reason =
     `Epistemic coverage: ${details.knownKnownsCount} known-knowns, ` +
     `${details.knownUnknownsCount} known-unknowns, ` +
-    `${validUnknownUnknowns.length} unknown-unknowns with detection signals. ` +
+    `${details.unknownUnknownsCount} unknown-unknowns with detection signals. ` +
     `Community check: ${details.hasCommunityCheck ? "present" : "missing/weak"}.`;
 
   return { score, reason, details };
@@ -530,7 +531,12 @@ export function scorePlanComposite(
   // Guard against division by zero (all weights are 0)
   const resolvedWeights =
     weightSum === 0
-      ? { structure: 0.25, coverage: 0.3, experimentRigor: 0.25, unknownsCoverage: 0.2 }
+      ? {
+          structure: 0.25,
+          coverage: 0.3,
+          experimentRigor: 0.25,
+          unknownsCoverage: 0.2,
+        }
       : {
           structure: rawWeights.structure / weightSum,
           coverage: rawWeights.coverage / weightSum,
