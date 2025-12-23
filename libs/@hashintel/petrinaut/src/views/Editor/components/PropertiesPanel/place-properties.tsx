@@ -30,6 +30,7 @@ import {
 import { useEditorStore } from "../../../../state/editor-provider";
 import { useSDCPNContext } from "../../../../state/sdcpn-provider";
 import { useSimulationStore } from "../../../../state/simulation-provider";
+import { useIsReadOnly } from "../../../../state/use-is-read-only";
 import { InitialStateEditor } from "./initial-state-editor";
 import { VisualizerErrorBoundary } from "./visualizer-error-boundary";
 
@@ -37,7 +38,6 @@ interface PlacePropertiesProps {
   place: Place;
   types: Color[];
   differentialEquations: DifferentialEquation[];
-  globalMode: "edit" | "simulate";
   updatePlace: (placeId: string, updateFn: (place: Place) => void) => void;
 }
 
@@ -45,16 +45,11 @@ export const PlaceProperties: React.FC<PlacePropertiesProps> = ({
   place,
   types,
   differentialEquations,
-  globalMode,
   updatePlace,
 }) => {
   const simulation = useSimulationStore((state) => state.simulation);
-  const simulationState = useSimulationStore((state) => state.state);
-
-  // Check if simulation is running or paused
-  const isSimulationActive =
-    simulationState === "Running" || simulationState === "Paused";
-  const isReadOnly = globalMode === "simulate" || isSimulationActive;
+  const isReadOnly = useIsReadOnly();
+  const globalMode = useEditorStore((state) => state.globalMode);
   const initialMarking = useSimulationStore((state) => state.initialMarking);
   const setInitialMarking = useSimulationStore(
     (state) => state.setInitialMarking,

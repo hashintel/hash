@@ -29,14 +29,13 @@ import {
 } from "../../../../core/default-codes";
 import type { Color, Place, Transition } from "../../../../core/types/sdcpn";
 import { useSDCPNContext } from "../../../../state/sdcpn-provider";
-import { useSimulationStore } from "../../../../state/simulation-provider";
+import { useIsReadOnly } from "../../../../state/use-is-read-only";
 import { SortableArcItem } from "./sortable-arc-item";
 
 interface TransitionPropertiesProps {
   transition: Transition;
   places: Place[];
   types: Color[];
-  globalMode: "edit" | "simulate";
   updateTransition: (
     id: string,
     updateFn: (existingTransition: Transition) => void,
@@ -53,16 +52,10 @@ export const TransitionProperties: React.FC<TransitionPropertiesProps> = ({
   transition,
   places,
   types,
-  globalMode,
   updateTransition,
   onArcWeightUpdate,
 }) => {
-  const simulationState = useSimulationStore((state) => state.state);
-
-  // Check if simulation is running or paused
-  const isSimulationActive =
-    simulationState === "Running" || simulationState === "Paused";
-  const isReadOnly = globalMode === "simulate" || isSimulationActive;
+  const isReadOnly = useIsReadOnly();
 
   const sensors = useSensors(
     useSensor(PointerSensor),

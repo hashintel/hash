@@ -43,13 +43,13 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
 };
 
 export function useSimulationStore<T>(
-  selector: (state: SimulationStoreState) => T
+  selector: (state: SimulationStoreState) => T,
 ): T {
   const store = useContext(SimulationContext);
 
   if (!store) {
     throw new Error(
-      "useSimulationStore must be used within SimulationProvider"
+      "useSimulationStore must be used within SimulationProvider",
     );
   }
 

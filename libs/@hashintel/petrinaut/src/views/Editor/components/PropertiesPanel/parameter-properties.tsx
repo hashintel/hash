@@ -1,5 +1,5 @@
 import type { Parameter } from "../../../../core/types/sdcpn";
-import { useSimulationStore } from "../../../../state/simulation-provider";
+import { useIsReadOnly } from "../../../../state/use-is-read-only";
 
 /**
  * Slugifies a string to a valid JavaScript identifier.
@@ -29,20 +29,13 @@ interface ParameterPropertiesProps {
     parameterId: string,
     updateFn: (parameter: Parameter) => void,
   ) => void;
-  globalMode: "edit" | "simulate";
 }
 
 export const ParameterProperties: React.FC<ParameterPropertiesProps> = ({
   parameter,
   updateParameter,
-  globalMode,
 }) => {
-  const simulationState = useSimulationStore((state) => state.state);
-
-  // Check if simulation is running or paused
-  const isSimulationActive =
-    simulationState === "Running" || simulationState === "Paused";
-  const isDisabled = globalMode === "simulate" || isSimulationActive;
+  const isDisabled = useIsReadOnly();
 
   const handleUpdateName = (event: React.ChangeEvent<HTMLInputElement>) => {
     updateParameter(parameter.id, (existingParameter) => {
