@@ -1,5 +1,5 @@
 import { css } from "@hashintel/ds-helpers/css";
-import { useCallback, useMemo, useRef } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 
 import type { SubView } from "../../../components/sub-view/types";
 import { useSDCPNContext } from "../../../state/sdcpn-provider";
@@ -38,6 +38,12 @@ const legendItemStyle = css({
   display: "flex",
   alignItems: "center",
   gap: "[4px]",
+  cursor: "pointer",
+  userSelect: "none",
+  transition: "[opacity 0.15s ease]",
+  _hover: {
+    opacity: 1,
+  },
 });
 
 const legendColorStyle = css({
@@ -110,6 +116,23 @@ const CompartmentTimeSeries: React.FC = () => {
 
   const chartRef = useRef<SVGSVGElement>(null);
   const isDraggingRef = useRef(false);
+
+  // State for legend interactivity
+  const [hiddenPlaces, setHiddenPlaces] = useState<Set<string>>(new Set());
+  const [hoveredPlaceId, setHoveredPlaceId] = useState<string | null>(null);
+
+  // Toggle visibility handler
+  const togglePlaceVisibility = useCallback((placeId: string) => {
+    setHiddenPlaces((prev) => {
+      const next = new Set(prev);
+      if (next.has(placeId)) {
+        next.delete(placeId);
+      } else {
+        next.add(placeId);
+      }
+      return next;
+    });
+  }, []);
 
   // Extract compartment data from simulation frames
   const compartmentData = useMemo((): CompartmentData[] => {
@@ -307,19 +330,41 @@ const CompartmentTimeSeries: React.FC = () => {
             vectorEffect="non-scaling-stroke"
           />
 
-          {/* Data lines */}
-          {compartmentData.map((data) => (
-            <path
-              key={data.placeId}
-              d={generatePath(data.values, 100, 100)}
-              fill="none"
-              stroke={data.color}
-              strokeWidth="1.5"
-              vectorEffect="non-scaling-stroke"
-              strokeLinejoin="round"
-              strokeLinecap="round"
-            />
-          ))}
+          {/* Data lines - render non-hovered first, then hovered on top */}
+          {compartmentData
+            .filter((data) => !hiddenPlaces.has(data.placeId))
+            .filter((data) => data.placeId !== hoveredPlaceId)
+            .map((data) => (
+              <path
+                key={data.placeId}
+                d={generatePath(data.values, 100, 100)}
+                fill="none"
+                stroke={data.color}
+                strokeWidth="1.5"
+                vectorEffect="non-scaling-stroke"
+                strokeLinejoin="round"
+                strokeLinecap="round"
+                opacity={hoveredPlaceId ? 0.2 : 1}
+                style={{ transition: "opacity 0.15s ease" }}
+              />
+            ))}
+          {/* Render hovered line on top */}
+          {hoveredPlaceId &&
+            !hiddenPlaces.has(hoveredPlaceId) &&
+            compartmentData
+              .filter((data) => data.placeId === hoveredPlaceId)
+              .map((data) => (
+                <path
+                  key={data.placeId}
+                  d={generatePath(data.values, 100, 100)}
+                  fill="none"
+                  stroke={data.color}
+                  strokeWidth="2"
+                  vectorEffect="non-scaling-stroke"
+                  strokeLinejoin="round"
+                  strokeLinecap="round"
+                />
+              ))}
 
           {/* Playhead indicator */}
           <line
@@ -343,15 +388,44 @@ const CompartmentTimeSeries: React.FC = () => {
 
       {/* Legend */}
       <div className={legendContainerStyle}>
-        {compartmentData.map((data) => (
-          <div key={data.placeId} className={legendItemStyle}>
+        {compartmentData.map((data) => {
+          const isHidden = hiddenPlaces.has(data.placeId);
+          const isHovered = hoveredPlaceId === data.placeId;
+          const isDimmed = hoveredPlaceId && !isHovered;
+
+          return (
             <div
-              className={legendColorStyle}
-              style={{ backgroundColor: data.color }}
-            />
-            <span>{data.placeName}</span>
-          </div>
-        ))}
+              key={data.placeId}
+              role="button"
+              tabIndex={0}
+              className={legendItemStyle}
+              onClick={() => togglePlaceVisibility(data.placeId)}
+              onKeyDown={(event) => {
+                if (event.key === "Enter" || event.key === " ") {
+                  event.preventDefault();
+                  togglePlaceVisibility(data.placeId);
+                }
+              }}
+              onMouseEnter={() => setHoveredPlaceId(data.placeId)}
+              onMouseLeave={() => setHoveredPlaceId(null)}
+              onFocus={() => setHoveredPlaceId(data.placeId)}
+              onBlur={() => setHoveredPlaceId(null)}
+              style={{
+                opacity: isHidden ? 0.4 : isDimmed ? 0.6 : 1,
+                textDecoration: isHidden ? "line-through" : "none",
+              }}
+            >
+              <div
+                className={legendColorStyle}
+                style={{
+                  backgroundColor: data.color,
+                  opacity: isHidden ? 0.5 : 1,
+                }}
+              />
+              <span>{data.placeName}</span>
+            </div>
+          );
+        })}
       </div>
     </div>
   );
