@@ -23,6 +23,7 @@ runs:
       uses: jdx/mise-action@146a28175021df8ca24f8ee1828cc2a60f980bd5 # v3.5.1
       with:
         install_args: --env ci --jobs 1
+        cache: ${{ runner.environment != 'self-hosted' }}
       env:
         MISE_VERBOSE: 1
         GITHUB_TOKEN: ${{ inputs.token }}
