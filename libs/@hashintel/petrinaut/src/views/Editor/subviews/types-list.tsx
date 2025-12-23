@@ -297,5 +297,9 @@ export const typesListSubView: SubView = {
   tooltip: "Manage data types which can be assigned to tokens in a place.",
   component: TypesSectionContent,
   renderHeaderAction: () => <TypesSectionHeaderAction />,
-  flexGrow: false,
+  resizable: {
+    defaultHeight: 120,
+    minHeight: 60,
+    maxHeight: 300,
+  },
 };

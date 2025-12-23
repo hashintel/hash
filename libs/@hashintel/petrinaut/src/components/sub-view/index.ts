@@ -1,4 +1,4 @@
-export type { SubView } from "./types";
+export type { SubView, SubViewResizeConfig } from "./types";
 export { VerticalSubViewsContainer } from "./vertical-sub-views-container";
 export {
   HorizontalTabsContainer,

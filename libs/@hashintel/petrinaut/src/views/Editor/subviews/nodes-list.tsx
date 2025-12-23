@@ -172,5 +172,9 @@ export const nodesListSubView: SubView = {
   tooltip:
     "Manage nodes in the net, including places and transitions. Places represent states in the net, and transitions represent events which change the state of the net.",
   component: NodesSectionContent,
-  flexGrow: true,
+  resizable: {
+    defaultHeight: 150,
+    minHeight: 80,
+    maxHeight: 400,
+  },
 };
