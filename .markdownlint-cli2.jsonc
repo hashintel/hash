@@ -25,5 +25,11 @@
   },
   "gitignore": true,
   "globs": ["*.md", "**/*.md", "**/*.mdc"],
-  "ignores": ["**/LICENSE*.md", "node_modules/**", "target/**", "**/_temp/**"]
+  "ignores": [
+    "**/LICENSE*.md",
+    "node_modules/**",
+    "target/**",
+    "**/_temp/**",
+    "**/agent/**"
+  ]
 }

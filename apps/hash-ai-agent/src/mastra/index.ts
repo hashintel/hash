@@ -9,6 +9,7 @@ import { Observability } from "@mastra/observability";
 
 import { genericAgent } from "./agents/generic-agent";
 import { nerAgent } from "./agents/ner-agent";
+import { plannerAgent } from "./agents/planner-agent";
 import { nerPeopleScorer } from "./scorers/ner-people-scorer";
 import { nerPeopleWorkflow } from "./workflows/ner-people-workflow";
 
@@ -21,6 +22,7 @@ export const mastra = new Mastra({
   agents: {
     nerAgent,
     genericAgent,
+    plannerAgent,
   },
   scorers: { nerPeopleScorer },
   logger: new PinoLogger(),
