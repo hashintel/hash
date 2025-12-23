@@ -53,7 +53,19 @@ const makeGraphQlRequest = async <Data, Variables>(
     method: "POST",
     headers: { "content-type": "application/json", cookie: cookie ?? "" },
     body: JSON.stringify({ query, variables }),
-  }).then((resp) => resp.json());
+  })
+    .then((resp) => resp.json())
+    .catch((err) => {
+      return {
+        data: null,
+        errors: [
+          {
+            message: err.message ?? "Internal server error",
+            extensions: { code: "INTERNAL_SERVER_ERROR" },
+          },
+        ],
+      };
+    });
 
   return { data, errors };
 };

@@ -177,19 +177,10 @@ If you need to run the browser plugin locally, see the `README.md` in the `apps/
 
 ##### Resetting the local database
 
-If you need to reset the local database, to clear out test data or because it has become corrupted during development, you have two options:
+If you need to reset the local database, to clear out test data or because it has become corrupted during development:
 
-1. The slow option – rebuild in Docker
-
-   1. In the Docker UI (or via CLI at your preference), stop and delete the `hash-external-services` container
-   2. In 'Volumes', search 'hash-external-services' and delete the volumes shown
-   3. Run `yarn external-services up --wait` to rebuild the services
-
-2. The fast option – reset the database via the Graph API
-
-   1. Run the Graph API in test mode by running `yarn dev:graph:test-server`
-   2. Run `yarn graph:reset-database` to reset the database
-   3. **If you need to use the frontend**, you will also need to delete the rows in the `identities` table in the `dev_kratos` database, or signin will not work. You can do so via any Postgres UI or CLI. The db connection and user details are in `.env`
+1. Run `yarn external-services down -v` (this will take the Docker services down and drop the volumes)
+2. Run `yarn external-services up --wait` to start everything again
 
 ##### External services test mode
 
