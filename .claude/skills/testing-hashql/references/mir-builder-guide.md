@@ -228,10 +228,11 @@ builder.build_block(bb_merge).ret(x);  // x receives value from param
 
 ## Test Harness Pattern
 
-Standard pattern used across transform pass tests:
+Standard pattern used across transform pass tests. The harness captures and displays
+the `Changed` return value to verify pass behavior:
 
 ```rust
-use std::path::PathBuf;
+use std::{io::Write as _, path::PathBuf};
 use bstr::ByteVec as _;
 use hashql_core::{
     pretty::Formatter,
@@ -274,12 +275,16 @@ fn assert_pass<'heap>(
         .format(DefIdSlice::from_raw(&bodies), &[])
         .expect("should be able to write bodies");
 
-    text_format
-        .writer
-        .extend(b"\n\n------------------------------------\n\n");
-
-    // Run the pass
-    YourPass::new().run(context, &mut bodies[0]);
+    // Run the pass and capture change status
+    let changed = YourPass::new().run(context, &mut bodies[0]);
+    
+    // Include Changed value in snapshot for verification
+    write!(
+        text_format.writer,
+        "\n\n{:=^50}\n\n",
+        format!(" Changed: {changed:?} ")
+    )
+    .expect("infallible");
 
     // Format after
     text_format
