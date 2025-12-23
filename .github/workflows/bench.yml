@@ -92,10 +92,6 @@ jobs:
         with:
           ref: ${{ github.event.pull_request.base.sha }}
 
-      - name: Clean up disk
-        if: github.event_name == 'pull_request'
-        uses: ./.github/actions/clean-up-disk
-
       - name: Install tools
         if: github.event_name == 'pull_request'
         uses: ./.github/actions/install-tools
@@ -132,10 +128,6 @@ jobs:
         uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
         with:
           ref: ${{ github.event.pull_request.head.sha }}
-
-      - name: Clean up disk
-        if: github.event_name != 'pull_request'
-        uses: ./.github/actions/clean-up-disk
 
       - name: Install tools
         uses: ./.github/actions/install-tools
