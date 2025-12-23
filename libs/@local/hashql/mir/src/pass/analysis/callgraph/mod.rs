@@ -1,8 +1,8 @@
 //! Call graph analysis for MIR.
 //!
 //! This module provides [`CallGraphAnalysis`], a pass that constructs a [`CallGraph`] representing
-//! function call relationships between [`DefId`]s in the MIR. The graph can be used for call site
-//! enumeration, reachability analysis, and optimization decisions.
+//! function call relationships between [`DefId`]s in the MIR. The resulting graph can be used for
+//! call site enumeration, reachability analysis, and optimization decisions.
 //!
 //! # Graph Structure
 //!
@@ -10,27 +10,36 @@
 //! An edge from `A` to `B` means "the MIR body of A references B", annotated with a [`CallKind`]
 //! describing how the reference occurs:
 //!
-//! - [`CallKind::Apply`]: Direct function application at a specific location
-//! - [`CallKind::Filter`]: Graph-read filter function call
-//! - [`CallKind::Opaque`]: Any other reference (types, constants, function pointers, etc.)
+//! - [`CallKind::Apply`]: Direct function application via an [`Apply`] rvalue
+//! - [`CallKind::Filter`]: Graph-read filter function in a [`GraphReadBody::Filter`] terminator
+//! - [`CallKind::Opaque`]: Any other reference (types, constants, function pointers)
+//!
+//! For example, given a body `@0` containing `_1 = @1(_2)`:
+//! - An edge `@0 → @1` is created with kind [`CallKind::Apply`]
 //!
 //! # Usage Pattern
 //!
 //! Unlike [`DataDependencyAnalysis`] which is per-body, [`CallGraphAnalysis`] operates on a shared
-//! [`CallGraph`] across multiple bodies. The caller must:
+//! [`CallGraph`] across multiple bodies:
 //!
 //! 1. Create a [`CallGraph`] with a domain containing all [`DefId`]s that may appear
 //! 2. Run [`CallGraphAnalysis`] on each body to populate edges
 //! 3. Query the resulting graph
 //!
-//! # Limitations
+//! # Direct vs Indirect Calls
 //!
 //! Only *direct* calls are tracked as [`CallKind::Apply`] — those where the callee [`DefId`]
-//! appears syntactically in the function operand. Indirect calls through locals or function
-//! pointers appear as [`CallKind::Opaque`] edges at the point where the [`DefId`] is referenced,
-//! not at the call site.
+//! appears syntactically as the function operand. Indirect calls through locals (e.g.,
+//! `_1 = @fn; _2 = _1(...)`) produce an [`Opaque`] edge at the assignment site, not an
+//! [`Apply`] edge at the call site.
 //!
+//! This is intentional: the analysis is designed to run after SROA, which propagates function
+//! references through locals, eliminating most indirect call patterns.
+//!
+//! [`Opaque`]: CallKind::Opaque
 //! [`DataDependencyAnalysis`]: super::DataDependencyAnalysis
+//! [`Apply`]: crate::body::rvalue::Apply
+//! [`GraphReadBody::Filter`]: crate::body::terminator::GraphReadBody::Filter
 
 #[cfg(test)]
 mod tests;
@@ -59,41 +68,58 @@ use crate::{
 
 /// Classification of [`DefId`] references in the call graph.
 ///
-/// Each edge in the [`CallGraph`] is annotated with a `CallKind` to distinguish actual call sites
-/// from other kinds of references.
+/// Each edge in the [`CallGraph`] is annotated with a `CallKind` to distinguish direct call sites
+/// from other kinds of references. This enables consumers to differentiate between actual function
+/// invocations and incidental references.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum CallKind {
-    /// Direct function application at the given MIR location.
+    /// Direct function application at the given MIR [`Location`].
     ///
-    /// The [`DefId`] appears syntactically as the function operand in an [`Apply`] rvalue.
+    /// Created when a [`DefId`] appears syntactically as the function operand in an [`Apply`]
+    /// rvalue. The location identifies the exact statement where the call occurs.
+    ///
+    /// [`Apply`]: crate::body::rvalue::Apply
     Apply(Location),
 
-    /// Graph-read filter function call at the given location.
+    /// Graph-read filter function call at the given [`GraphReadLocation`].
     ///
-    /// The [`DefId`] is the filter function in a [`GraphReadBody::Filter`] terminator.
+    /// Created when a [`DefId`] is the filter function in a [`GraphReadBody::Filter`] terminator.
+    ///
+    /// [`GraphReadBody::Filter`]: crate::body::terminator::GraphReadBody::Filter
     Filter(GraphReadLocation),
 
     /// Any other reference to a [`DefId`].
     ///
-    /// Includes type references, constant uses, function pointer initialization, and other
-    /// non-call references.
+    /// Includes type references, constant uses, function pointer assignments, and indirect call
+    /// targets. For indirect calls, this edge appears at the assignment site, not the call site.
     Opaque,
 }
 
-/// A global call graph over [`DefId`]s.
+/// A directed graph of [`DefId`] references across MIR bodies.
+///
+/// Nodes correspond to [`DefId`]s and edges represent references from one definition to another,
+/// annotated with [`CallKind`] to distinguish call sites from other reference types.
+///
+/// The graph is populated by running [`CallGraphAnalysis`] on each MIR body. Multiple bodies
+/// can contribute edges to the same graph, building up a complete picture of inter-procedural
+/// references.
 pub struct CallGraph<A: Allocator = Global> {
     inner: LinkedGraph<(), CallKind, A>,
 }
 
 impl CallGraph {
-    /// Creates a new call graph using the global allocator.
+    /// Creates a new call graph with the given `domain` of [`DefId`]s.
+    ///
+    /// All [`DefId`]s that may appear as edge endpoints must be present in the domain.
     pub fn new(domain: &DefIdSlice<impl Sized>) -> Self {
         Self::new_in(domain, Global)
     }
 }
 
 impl<A: Allocator + Clone> CallGraph<A> {
-    /// Creates a new call graph using the specified allocator.
+    /// Creates a new call graph with the given `domain` using the specified `alloc`ator.
+    ///
+    /// All [`DefId`]s that may appear as edge endpoints must be present in the domain.
     pub fn new_in(domain: &DefIdSlice<impl Sized>, alloc: A) -> Self {
         let mut graph = LinkedGraph::new_in(alloc);
         graph.derive(domain, |_, _| ());
@@ -108,13 +134,12 @@ impl<A: Allocator> fmt::Display for CallGraph<A> {
             let source = DefId::from_usize(edge.source().as_usize());
             let target = DefId::from_usize(edge.target().as_usize());
 
-            #[expect(clippy::use_debug)]
             match edge.data {
                 CallKind::Apply(location) => {
-                    writeln!(fmt, "@{source} -> @{target} [Apply @ {location:?}]")?;
+                    writeln!(fmt, "@{source} -> @{target} [Apply @ {location}]")?;
                 }
                 CallKind::Filter(location) => {
-                    writeln!(fmt, "@{source} -> @{target} [Filter @ {location:?}]")?;
+                    writeln!(fmt, "@{source} -> @{target} [Filter @ {location}]")?;
                 }
                 CallKind::Opaque => {
                     writeln!(fmt, "@{source} -> @{target} [Opaque]")?;
@@ -126,15 +151,17 @@ impl<A: Allocator> fmt::Display for CallGraph<A> {
     }
 }
 
-/// Analysis pass that populates a shared [`CallGraph`] from MIR bodies.
+/// Analysis pass that populates a [`CallGraph`] from MIR bodies.
 ///
-/// This pass traverses a MIR body and records edges for each [`DefId`] reference encountered.
+/// This pass traverses a MIR body and records an edge for each [`DefId`] reference encountered,
+/// annotated with the appropriate [`CallKind`]. Run this pass on each body to build a complete
+/// inter-procedural call graph.
 pub struct CallGraphAnalysis<'graph, A: Allocator = Global> {
     graph: &'graph mut CallGraph<A>,
 }
 
 impl<'graph, A: Allocator> CallGraphAnalysis<'graph, A> {
-    /// Creates a new analysis pass that will populate the given graph.
+    /// Creates a new analysis pass that will populate the given `graph`.
     pub const fn new(graph: &'graph mut CallGraph<A>) -> Self {
         Self { graph }
     }

@@ -2,5 +2,5 @@
 source: libs/@local/hashql/mir/src/pass/analysis/callgraph/tests.rs
 expression: "format!(\"{graph}\")"
 ---
-@0 -> @1 [Apply @ Location { block: BasicBlockId(0), statement_index: 1 }]
+@0 -> @1 [Apply @ bb0:1]
 @0 -> @2 [Opaque]

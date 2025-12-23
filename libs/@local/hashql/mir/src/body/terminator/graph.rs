@@ -4,6 +4,8 @@
 //! the HashQL graph store. They provide structured access to graph data with
 //! control flow implications based on query results.
 
+use core::{fmt, fmt::Display};
+
 use hashql_core::heap;
 
 use crate::{
@@ -31,6 +33,17 @@ pub struct GraphReadLocation {
     /// - `1..n`: Body operations (indexed sequentially)
     /// - `n`: The tail operation (where n = 1 + number of body operations)
     pub graph_read_index: usize,
+}
+
+impl Display for GraphReadLocation {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let Self {
+            base,
+            graph_read_index,
+        } = self;
+
+        write!(fmt, "{base}:{graph_read_index}")
+    }
 }
 
 /// The starting point for a graph read operation.
