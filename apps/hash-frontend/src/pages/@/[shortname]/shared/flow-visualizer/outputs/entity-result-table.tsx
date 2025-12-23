@@ -685,11 +685,8 @@ export const EntityResultTable = memo(
               },
             },
           });
-        } catch (error) {
-          console.error(
-            `Error generating entity label for entity ${entityId} with types ${entityTypeIds.join(", ")}: ${(error as Error).message}`,
-          );
-          entityLabel = "Unknown";
+        } catch {
+          entityLabel = "";
         }
 
         entitiesByEntityId[entityId] = {

@@ -34,7 +34,6 @@ export const startFlow: ResolverFn<
 
   const workflowId = generateUuid();
 
-  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
   if (flowType === FlowType.Ai && !dataSources) {
     throw Error.badRequest("Data sources are required for AI flows");
   }
