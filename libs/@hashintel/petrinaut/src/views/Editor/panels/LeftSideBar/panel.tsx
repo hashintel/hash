@@ -49,7 +49,7 @@ const panelContentStyle = cva({
         height: "[100%]",
         padding: "[16px]",
         flexDirection: "column",
-        gap: "[16px]",
+        gap: "[4px]",
         alignItems: "stretch",
       },
       false: {
