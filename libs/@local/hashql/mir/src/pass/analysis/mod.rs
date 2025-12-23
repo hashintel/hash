@@ -1,6 +1,7 @@
 mod callgraph;
 mod data_dependency;
 pub mod dataflow;
-pub use data_dependency::{
-    DataDependencyAnalysis, DataDependencyGraph, TransientDataDependencyGraph,
+pub use self::{
+    callgraph::{CallGraph, CallGraphAnalysis, CallKind},
+    data_dependency::{DataDependencyAnalysis, DataDependencyGraph, TransientDataDependencyGraph},
 };

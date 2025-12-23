@@ -3,11 +3,17 @@ use core::alloc::Allocator;
 
 use hashql_core::{
     graph::{LinkedGraph, NodeId},
-    id::Id,
+    id::Id as _,
 };
 
 use crate::{
-    body::{Body, location::Location, rvalue::Apply},
+    body::{
+        Body,
+        location::Location,
+        place::{PlaceContext, PlaceReadContext},
+        rvalue::Apply,
+        terminator::{GraphReadBody, GraphReadLocation},
+    },
     context::MirContext,
     def::{DefId, DefIdSlice},
     pass::AnalysisPass,
@@ -15,14 +21,20 @@ use crate::{
 };
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
-enum CallKind {
+pub enum CallKind {
     Apply(Location),
-    Filter(Location),
+    Filter(GraphReadLocation),
     Opaque,
 }
 
 pub struct CallGraph<A: Allocator = Global> {
     inner: LinkedGraph<(), CallKind, A>,
+}
+
+impl CallGraph {
+    pub fn new(domain: &DefIdSlice<impl Sized>) -> Self {
+        Self::new_in(domain, Global)
+    }
 }
 
 impl<A: Allocator + Clone> CallGraph<A> {
@@ -38,9 +50,20 @@ pub struct CallGraphAnalysis<'graph, A: Allocator = Global> {
     graph: &'graph mut CallGraph<A>,
 }
 
+impl<'graph, A: Allocator> CallGraphAnalysis<'graph, A> {
+    pub const fn new(graph: &'graph mut CallGraph<A>) -> Self {
+        Self { graph }
+    }
+}
+
 impl<'env, 'heap, A: Allocator> AnalysisPass<'env, 'heap> for CallGraphAnalysis<'_, A> {
-    fn run(&mut self, context: &mut MirContext<'env, 'heap>, body: &Body<'heap>) {
-        todo!()
+    fn run(&mut self, _: &mut MirContext<'env, 'heap>, body: &Body<'heap>) {
+        let mut visitor = CallGraphVisitor {
+            kind: CallKind::Opaque,
+            current: body.id,
+            graph: self.graph,
+        };
+        Ok(()) = visitor.visit_body(body);
     }
 }
 
@@ -53,7 +76,7 @@ struct CallGraphVisitor<'graph, A: Allocator = Global> {
 impl<'heap, A: Allocator> Visitor<'heap> for CallGraphVisitor<'_, A> {
     type Result = Result<(), !>;
 
-    fn visit_def_id(&mut self, location: Location, def_id: DefId) -> Self::Result {
+    fn visit_def_id(&mut self, _: Location, def_id: DefId) -> Self::Result {
         let source = NodeId::from_usize(self.current.as_usize());
         let target = NodeId::from_usize(def_id.as_usize());
 
@@ -69,15 +92,36 @@ impl<'heap, A: Allocator> Visitor<'heap> for CallGraphVisitor<'_, A> {
             arguments,
         }: &Apply<'heap>,
     ) -> Self::Result {
-        debug_assert!(self.kind.is_none());
-        self.kind = Some(Place::Function);
+        debug_assert_eq!(self.kind, CallKind::Opaque);
+        self.kind = CallKind::Apply(location);
         self.visit_operand(location, function)?;
-        self.kind = None;
+        self.kind = CallKind::Opaque;
 
         for argument in arguments.iter() {
             self.visit_operand(location, argument)?;
         }
 
         Ok(())
+    }
+
+    fn visit_graph_read_body(
+        &mut self,
+        location: GraphReadLocation,
+        body: &GraphReadBody,
+    ) -> Self::Result {
+        match body {
+            GraphReadBody::Filter(func, env) => {
+                debug_assert_eq!(self.kind, CallKind::Opaque);
+                self.kind = CallKind::Filter(location);
+                self.visit_def_id(location.base, *func)?;
+                self.kind = CallKind::Opaque;
+
+                self.visit_local(
+                    location.base,
+                    PlaceContext::Read(PlaceReadContext::Load),
+                    *env,
+                )
+            }
+        }
     }
 }
