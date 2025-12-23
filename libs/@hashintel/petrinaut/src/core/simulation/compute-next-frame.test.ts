@@ -65,6 +65,7 @@ describe("computeNextFrame", () => {
     const simulation = buildSimulation({
       sdcpn,
       initialMarking,
+      parameterValues: {},
       seed: 42,
       dt: 0.1,
     });
@@ -114,6 +115,7 @@ describe("computeNextFrame", () => {
     const simulation = buildSimulation({
       sdcpn,
       initialMarking,
+      parameterValues: {},
       seed: 42,
       dt: 0.1,
     });
@@ -167,6 +169,7 @@ describe("computeNextFrame", () => {
     const simulation = buildSimulation({
       sdcpn,
       initialMarking,
+      parameterValues: {},
       seed: 42,
       dt: 0.1,
     });
