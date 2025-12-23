@@ -1,7 +1,6 @@
 import { createContext, useContext, useEffect, useRef } from "react";
 import { useStore } from "zustand";
 
-import { EditorContext } from "./editor-provider";
 import { useSDCPNContext } from "./sdcpn-provider";
 import type { SimulationStoreState } from "./simulation-store";
 import { createSimulationStore } from "./simulation-store";
@@ -18,12 +17,6 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
   const sdcpnContext = useSDCPNContext();
   const { petriNetId } = sdcpnContext;
 
-  const editorStore = useContext(EditorContext);
-
-  if (!editorStore) {
-    throw new Error("SimulationProvider must be used within EditorProvider");
-  }
-
   const sdcpnContextRef = useRef(sdcpnContext);
   useEffect(() => {
     sdcpnContextRef.current = sdcpnContext;
@@ -35,17 +28,6 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
   });
 
   const simulationStore = createSimulationStore(getSDCPN);
-
-  useEffect(() => {
-    const unsub = editorStore.subscribe((prevState, newState) => {
-      if (prevState.globalMode !== newState.globalMode) {
-        simulationStore.getState().__reinitialize();
-      }
-    });
-    return () => {
-      unsub();
-    };
-  }, [editorStore, simulationStore]);
 
   useEffect(() => {
     if (petriNetId) {
@@ -61,13 +43,13 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
 };
 
 export function useSimulationStore<T>(
-  selector: (state: SimulationStoreState) => T,
+  selector: (state: SimulationStoreState) => T
 ): T {
   const store = useContext(SimulationContext);
 
   if (!store) {
     throw new Error(
-      "useSimulationStore must be used within SimulationProvider",
+      "useSimulationStore must be used within SimulationProvider"
     );
   }
 
