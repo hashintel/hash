@@ -104,6 +104,13 @@ pub enum Source<'heap> {
 /// usage and improve interning efficiency while maintaining sufficient debugging information.
 #[derive(Debug, Clone)]
 pub struct Body<'heap> {
+    /// The unique identifier for this body.
+    ///
+    /// This [`DefId`] serves as a stable reference to this body within a collection of bodies,
+    /// enabling cross-body analyses like call graphs. The `DefId` is assigned during lowering
+    /// and corresponds to the body's index in the global definition table.
+    pub id: DefId,
+
     /// The source location span for this entire body.
     ///
     /// This [`SpanId`] tracks the source location of the function, closure,
