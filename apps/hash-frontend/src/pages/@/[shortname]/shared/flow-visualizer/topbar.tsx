@@ -36,7 +36,6 @@ import { Link } from "../../../../../shared/ui/link";
 import { MenuItem } from "../../../../../shared/ui/menu-item";
 import { useFlowDefinitionsContext } from "../../../../shared/flow-definitions-context";
 import { useFlowRunsContext } from "../../../../shared/flow-runs-context";
-import type { direction } from "@glideapps/glide-data-grid/dist/dts/common/utils";
 
 const typographySx: SxProps<Theme> = {
   color: ({ palette }) => palette.gray[70],
@@ -163,7 +162,6 @@ export const Topbar = ({
   const { push } = useRouter();
 
   const [cancelling, setCancelling] = useState(false);
-  const [waitingToRun, setWaitingToRun] = useState(false);
 
   const { flowDefinitions, selectedFlowDefinitionId } =
     useFlowDefinitionsContext();
@@ -349,7 +347,7 @@ export const Topbar = ({
           background="blue"
           Icon={PlaySolidIcon}
           onClick={onRunFlowClicked}
-          pending={waitingToRun}
+          pending={false}
           text={selectedFlowRun ? "Re-run" : "Run"}
         />
       ) : null}
