@@ -35,6 +35,30 @@ pub enum Operand<'heap> {
     Constant(Constant<'heap>),
 }
 
+impl<'heap> Operand<'heap> {
+    /// Returns the contained [`Place`] if this operand is a place reference.
+    ///
+    /// Returns [`None`] if this operand is a constant.
+    #[must_use]
+    pub const fn as_place(&self) -> Option<&Place<'heap>> {
+        match self {
+            Operand::Place(place) => Some(place),
+            Operand::Constant(_) => None,
+        }
+    }
+
+    /// Returns the contained [`Constant`] if this operand is an immediate value.
+    ///
+    /// Returns [`None`] if this operand is a place reference.
+    #[must_use]
+    pub const fn as_constant(&self) -> Option<&Constant<'heap>> {
+        match self {
+            Operand::Constant(constant) => Some(constant),
+            Operand::Place(_) => None,
+        }
+    }
+}
+
 impl<'heap> From<Place<'heap>> for Operand<'heap> {
     fn from(place: Place<'heap>) -> Self {
         Operand::Place(place)
