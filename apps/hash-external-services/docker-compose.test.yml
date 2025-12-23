@@ -1,6 +1,5 @@
 services:
   postgres:
-    shm_size: 4GB
     ports:
       - "${POSTGRES_PORT}:5432"
 
