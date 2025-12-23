@@ -1,0 +1,13 @@
+//@ run: pass
+//@ description: Constants assigned to locals are tracked and used in subsequent folding
+[
+  "if",
+  { "#literal": true },
+  [
+    "let",
+    "x",
+    { "#literal": 5 },
+    ["let", "y", { "#literal": 3 }, ["==", "x", "y"]]
+  ],
+  { "#literal": true }
+]

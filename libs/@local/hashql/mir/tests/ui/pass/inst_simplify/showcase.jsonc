@@ -1,0 +1,34 @@
+//@ run: pass
+//@ description: Showcase of InstSimplify transformations through the pipeline
+//@ suite#d2: true
+// This test demonstrates multiple simplification patterns working together:
+// - Constant folding: 1 == 2 => false, 3 < 5 => true
+// - Chained propagation: folded results feed into subsequent operations
+// - Identity: result && true => result
+// - Identical operands: x == x => true
+[
+  "if",
+  { "#literal": true },
+  [
+    "let",
+    "a",
+    ["==", { "#literal": 1 }, { "#literal": 2 }],
+    [
+      "let",
+      "b",
+      ["<", { "#literal": 3 }, { "#literal": 5 }],
+      [
+        "let",
+        "c",
+        ["&&", "b", { "#literal": true }],
+        [
+          "let",
+          "x",
+          { "#literal": 42 },
+          ["let", "d", ["==", "x", "x"], ["&&", ["||", "a", "c"], "d"]]
+        ]
+      ]
+    ]
+  ],
+  { "#literal": false }
+]

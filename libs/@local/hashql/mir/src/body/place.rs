@@ -12,7 +12,7 @@ use core::{
 
 use hashql_core::{id, intern::Interned, symbol::Symbol, r#type::TypeId};
 
-use super::local::{Local, LocalDecl, LocalVec};
+use super::local::{Local, LocalDecl, LocalSlice};
 use crate::intern::Interner;
 
 id::newtype!(
@@ -378,7 +378,8 @@ impl<'heap> Place<'heap> {
     }
 
     /// Return the type of the place after applying all projections.
-    pub fn type_id<A: Allocator>(&self, decl: &LocalVec<LocalDecl<'heap>, A>) -> TypeId {
+    #[must_use]
+    pub fn type_id(&self, decl: &LocalSlice<LocalDecl<'heap>>) -> TypeId {
         self.projections
             .last()
             .map_or_else(|| decl[self.local].r#type, |projection| projection.r#type)
