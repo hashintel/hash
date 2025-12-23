@@ -410,6 +410,7 @@ jobs:
       - name: Check setup script
         run: |
           [[ ${{ needs.setup.result }} = success ]]
+
       - name: Check unit benches
         run: |
           [[ ${{ needs.unit-benches.result }} =~ success|skipped ]]
