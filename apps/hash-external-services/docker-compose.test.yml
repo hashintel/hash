@@ -1,5 +1,6 @@
 services:
   postgres:
+    shm_size: 4GB
     ports:
       - "${POSTGRES_PORT}:5432"
 
@@ -48,7 +49,11 @@ services:
         condition: on-failure
     healthcheck:
       # Port 14269 is the Jaeger admin endpoint
-      test: [ "CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:14269 || exit 1" ]
+      test:
+        [
+          "CMD-SHELL",
+          "wget --no-verbose --tries=1 --spider http://localhost:14269 || exit 1",
+        ]
       interval: 2s
       timeout: 2s
       retries: 10

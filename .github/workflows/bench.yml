@@ -240,6 +240,20 @@ jobs:
           echo 'HASH_GRAPH_PG_DATABASE=graph' > .env.local
 
           cp .env.local .env.test.local
+
+          # Tune Postgres for benchmarks
+          cat >> apps/hash-external-services/postgres/postgresql.conf << 'EOF'
+          # Benchmark optimizations
+          shared_buffers = 4GB
+          effective_cache_size = 12GB
+          work_mem = 256MB
+          maintenance_work_mem = 1GB
+          wal_buffers = 64MB
+          random_page_cost = 1.1
+          effective_io_concurrency = 200
+          synchronous_commit = off
+          EOF
+
           yarn external-services:test up --wait
 
       - name: Start background tasks
@@ -316,6 +330,20 @@ jobs:
           echo 'HASH_GRAPH_PG_DATABASE=graph' > .env.local
 
           cp .env.local .env.test.local
+
+          # Tune Postgres for benchmarks
+          cat >> apps/hash-external-services/postgres/postgresql.conf << 'EOF'
+          # Benchmark optimizations
+          shared_buffers = 4GB
+          effective_cache_size = 12GB
+          work_mem = 256MB
+          maintenance_work_mem = 1GB
+          wal_buffers = 64MB
+          random_page_cost = 1.1
+          effective_io_concurrency = 200
+          synchronous_commit = off
+          EOF
+
           yarn external-services:test up --wait
 
       - name: Start background tasks
@@ -389,10 +417,6 @@ jobs:
         if: ${{ success() || failure() }}
         run: yarn workspace @apps/hash-external-services deploy:test down
 
-      - name: Remove log files
-        if: ${{ success() || failure() }}
-        run: rm -rf var/logs
-
       - name: Upload background tasks logs
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         if: success() || failure()
@@ -400,6 +424,10 @@ jobs:
           name: ${{ env.TRIMMED_PACKAGE_NAME }}_logs
           path: |
             var/logs
+
+      - name: Remove log files
+        if: ${{ success() || failure() }}
+        run: rm -rf var/logs
 
   passed:
     name: Benches passed
