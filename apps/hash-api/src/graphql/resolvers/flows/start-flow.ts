@@ -1,7 +1,7 @@
 import type { EntityUuid } from "@blockprotocol/type-system";
-import {
-  type RunFlowWorkflowParams,
-  type RunFlowWorkflowResponse,
+import type {
+  RunFlowWorkflowParams,
+  RunFlowWorkflowResponse,
 } from "@local/hash-isomorphic-utils/flows/temporal-types";
 import { validateFlowDefinition } from "@local/hash-isomorphic-utils/flows/util";
 import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
@@ -34,19 +34,18 @@ export const startFlow: ResolverFn<
 
   const workflowId = generateUuid();
 
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+  if (flowType === FlowType.Ai && !dataSources) {
+    throw Error.badRequest("Data sources are required for AI flows");
+  }
+
   const params: RunFlowWorkflowParams = {
+    ...(flowType === FlowType.Ai ? { dataSources } : {}),
     flowTrigger,
     flowDefinition,
     userAuthentication: { actorId: user.accountId },
     webId,
   };
-
-  if (flowType === FlowType.Ai) {
-    if (!("dataSources" in params)) {
-      throw Error.badRequest("Data sources are required for AI flows");
-    }
-    params.dataSources = dataSources;
-  }
 
   await temporal.workflow.start<
     (params: RunFlowWorkflowParams) => Promise<RunFlowWorkflowResponse>
