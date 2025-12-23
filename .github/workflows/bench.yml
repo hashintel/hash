@@ -32,8 +32,12 @@ jobs:
 
   setup:
     needs: [optimize-ci]
-    if: needs.optimize-ci.outputs.skip == 'false'
-    runs-on: ubuntu-24.04
+    if: |
+      needs.optimize-ci.outputs.skip == 'false' && (
+        github.event_name == 'push' ||
+        github.event.pull_request.head.repo.full_name == github.repository
+      )
+    runs-on: [self-hosted, bench-lg]
     permissions:
       id-token: write
     outputs:
@@ -75,8 +79,12 @@ jobs:
     strategy:
       matrix: ${{ fromJSON(needs.setup.outputs.unit) }}
       fail-fast: false
-    if: needs.setup.outputs.unit != '{"name":[],"include":[]}'
-    runs-on: ubuntu-24.04
+    if: |
+      needs.setup.outputs.unit != '{"name":[],"include":[]}' && (
+        github.event_name == 'push' ||
+        github.event.pull_request.head.repo.full_name == github.repository
+      )
+    runs-on: [self-hosted, bench-lg]
     steps:
       - name: Checkout base branch
         if: github.event_name == 'pull_request'
@@ -196,8 +204,12 @@ jobs:
       fail-fast: false
     env:
       HASH_GRAPH_PG_DATABASE: graph
-    if: needs.setup.outputs.integration != '{"name":[],"include":[]}'
-    runs-on: ubuntu-24.04
+    if: |
+      needs.setup.outputs.integration != '{"name":[],"include":[]}' && (
+        github.event_name == 'push' ||
+        github.event.pull_request.head.repo.full_name == github.repository
+      )
+    runs-on: [self-hosted, bench-lg]
     steps:
       - name: Checkout base branch
         if: github.event_name == 'pull_request'
@@ -400,8 +412,14 @@ jobs:
   passed:
     name: Benches passed
     needs: [setup, unit-benches, integration-benches, optimize-ci]
-    if: always() && needs.optimize-ci.outputs.skip == 'false'
-    runs-on: ubuntu-latest
+    if: |
+      always() &&
+      needs.optimize-ci.outputs.skip == 'false' &&
+      (
+        github.event_name == 'push' ||
+        github.event.pull_request.head.repo.full_name == github.repository
+      )
+    runs-on: ubuntu-24.04
     permissions:
       pull-requests: write
     steps:
