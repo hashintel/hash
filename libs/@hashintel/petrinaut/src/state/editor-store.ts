@@ -17,7 +17,7 @@ type EditorEditionMode = "select" | "pan" | "add-place" | "add-transition";
 export type BottomPanelTab =
   | "diagnostics"
   | "simulation-settings"
-  | "parameters";
+  | "simulation-timeline";
 
 export type EditorState = {
   globalMode: EditorGlobalMode;
