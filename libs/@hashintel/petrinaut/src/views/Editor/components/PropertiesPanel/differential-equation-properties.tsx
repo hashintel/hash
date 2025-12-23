@@ -16,13 +16,12 @@ import type {
   DifferentialEquation,
   Place,
 } from "../../../../core/types/sdcpn";
-import { useSimulationStore } from "../../../../state/simulation-provider";
+import { useIsReadOnly } from "../../../../state/use-is-read-only";
 
 interface DifferentialEquationPropertiesProps {
   differentialEquation: DifferentialEquation;
   types: Color[];
   places: Place[];
-  globalMode: "edit" | "simulate";
   updateDifferentialEquation: (
     equationId: string,
     updateFn: (equation: DifferentialEquation) => void,
@@ -31,21 +30,12 @@ interface DifferentialEquationPropertiesProps {
 
 export const DifferentialEquationProperties: React.FC<
   DifferentialEquationPropertiesProps
-> = ({
-  differentialEquation,
-  types,
-  places,
-  globalMode,
-  updateDifferentialEquation,
-}) => {
+> = ({ differentialEquation, types, places, updateDifferentialEquation }) => {
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [pendingTypeId, setPendingTypeId] = useState<string | null>(null);
   const [showTypeDropdown, setShowTypeDropdown] = useState(false);
 
-  const simulationState = useSimulationStore((state) => state.state);
-  const isSimulationRunning =
-    simulationState === "Running" || simulationState === "Paused";
-  const isReadOnly = globalMode === "simulate" || isSimulationRunning;
+  const isReadOnly = useIsReadOnly();
 
   const associatedType = types.find(
     (type) => type.id === differentialEquation.colorId,

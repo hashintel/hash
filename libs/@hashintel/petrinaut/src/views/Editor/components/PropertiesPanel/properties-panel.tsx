@@ -23,7 +23,6 @@ export const PropertiesPanel: React.FC = () => {
   const selectedResourceId = useEditorStore(
     (state) => state.selectedResourceId,
   );
-  const globalMode = useEditorStore((state) => state.globalMode);
   const setPropertiesPanelWidth = useEditorStore(
     (state) => state.setPropertiesPanelWidth,
   );
@@ -88,7 +87,6 @@ export const PropertiesPanel: React.FC = () => {
             place={placeData}
             types={petriNetDefinition.types}
             differentialEquations={petriNetDefinition.differentialEquations}
-            globalMode={globalMode}
             updatePlace={updatePlace}
           />
         );
@@ -106,7 +104,6 @@ export const PropertiesPanel: React.FC = () => {
             transition={transitionData}
             places={petriNetDefinition.places}
             types={petriNetDefinition.types}
-            globalMode={globalMode}
             onArcWeightUpdate={updateArcWeight}
             updateTransition={updateTransition}
           />
@@ -120,13 +117,7 @@ export const PropertiesPanel: React.FC = () => {
         (type) => type.id === selectedId,
       );
       if (typeData) {
-        content = (
-          <TypeProperties
-            type={typeData}
-            updateType={updateType}
-            globalMode={globalMode}
-          />
-        );
+        content = <TypeProperties type={typeData} updateType={updateType} />;
       }
       break;
     }
@@ -141,7 +132,6 @@ export const PropertiesPanel: React.FC = () => {
             differentialEquation={equationData}
             types={petriNetDefinition.types}
             places={petriNetDefinition.places}
-            globalMode={globalMode}
             updateDifferentialEquation={updateDifferentialEquation}
           />
         );
@@ -158,7 +148,6 @@ export const PropertiesPanel: React.FC = () => {
           <ParameterProperties
             parameter={parameterData}
             updateParameter={updateParameter}
-            globalMode={globalMode}
           />
         );
       }
