@@ -11,20 +11,24 @@ const buttonStyle = cva({
     borderRadius: "[8px]",
     cursor: "pointer",
     transition: "[all 0.2s ease]",
+    padding: "[2px 6px]",
+    marginLeft: "[12px]",
+    marginRight: "[3px]",
+    gap: "[2px]",
   },
   variants: {
     status: {
       error: {
         backgroundColor: "[rgba(239, 68, 68, 0.1)]",
         color: "[#dc2626]",
-        "&:hover": {
+        _hover: {
           backgroundColor: "[rgba(239, 68, 68, 0.2)]",
         },
       },
       success: {
         backgroundColor: "[rgba(34, 197, 94, 0.1)]",
         color: "[#16a34a]",
-        "&:hover": {
+        _hover: {
           backgroundColor: "[rgba(34, 197, 94, 0.2)]",
         },
       },
@@ -59,12 +63,6 @@ export const DiagnosticsIndicator: React.FC<DiagnosticsIndicatorProps> = ({
     <button
       type="button"
       onClick={onClick}
-      style={{
-        padding: "2px 6px",
-        marginLeft: "12px",
-        marginRight: "3px",
-        gap: 2,
-      }}
       className={buttonStyle({ status: hasErrors ? "error" : "success" })}
       aria-label={
         hasErrors

@@ -35,7 +35,7 @@ Return ONLY entities that match the provided schemas. Each entity MUST include a
 The parameters for this task are as follows:
 
 <entity-schemas syntax="yaml">
-${schemaToPromptSummary(personSchemaDereferenced)}
+${schemaToPromptSummary(personSchemaDereferenced as unknown as TSchema)}
 </entity-schemas>
 <research-goal syntax="markdown">
 ${researchGoal}

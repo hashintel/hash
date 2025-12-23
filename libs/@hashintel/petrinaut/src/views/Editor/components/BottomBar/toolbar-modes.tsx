@@ -1,4 +1,4 @@
-import { css } from "@hashintel/ds-helpers/css";
+import { cva } from "@hashintel/ds-helpers/css";
 import { FaArrowPointer, FaCircle, FaHand, FaSquare } from "react-icons/fa6";
 
 import { Tooltip } from "../../../../components/tooltip";
@@ -7,32 +7,54 @@ import type { EditorState } from "../../../../state/editor-store";
 type EditorMode = EditorState["globalMode"];
 type EditorEditionMode = EditorState["editionMode"];
 
-interface ToolbarModesProps {
-  mode: EditorMode;
-  editionMode: EditorEditionMode;
-  onEditionModeChange: (mode: EditorEditionMode) => void;
-}
-
-function getIconContainerStyle(
-  editionMode: EditorEditionMode,
-  itemMode: EditorEditionMode,
-) {
-  const isSelected = editionMode === itemMode;
-  return css({
+const iconContainerStyle = cva({
+  base: {
     cursor: "pointer",
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
-    width: "[50px]",
-    height: "[50px]",
-    fontSize: "[24px]",
-    color: isSelected ? "[#3b82f6]" : "core.gray.70",
+    width: "[45px]",
+    height: "[45px]",
+    fontSize: "[22px]",
     transition: "[all 0.2s ease]",
-    "&:hover": {
-      color: isSelected ? "[#2563eb]" : "core.gray.90",
+    _hover: {
       transform: "[scale(1.1)]",
     },
-  });
+  },
+  variants: {
+    selected: {
+      true: {
+        color: "[#3b82f6]",
+      },
+      false: {
+        color: "core.gray.70",
+      },
+    },
+  },
+  compoundVariants: [
+    {
+      selected: true,
+      css: {
+        _hover: {
+          color: "[#2563eb]",
+        },
+      },
+    },
+    {
+      selected: false,
+      css: {
+        _hover: {
+          color: "core.gray.90",
+        },
+      },
+    },
+  ],
+});
+
+interface ToolbarModesProps {
+  mode: EditorMode;
+  editionMode: EditorEditionMode;
+  onEditionModeChange: (mode: EditorEditionMode) => void;
 }
 
 export const ToolbarModes: React.FC<ToolbarModesProps> = ({
@@ -46,7 +68,9 @@ export const ToolbarModes: React.FC<ToolbarModesProps> = ({
         <>
           <Tooltip content="Add Place (N)">
             <div
-              className={getIconContainerStyle(editionMode, "add-place")}
+              className={iconContainerStyle({
+                selected: editionMode === "add-place",
+              })}
               onClick={() => onEditionModeChange("add-place")}
               onKeyDown={(event) => {
                 if (event.key === "Enter" || event.key === " ") {
@@ -69,7 +93,9 @@ export const ToolbarModes: React.FC<ToolbarModesProps> = ({
           </Tooltip>
           <Tooltip content="Add Transition (T)">
             <div
-              className={getIconContainerStyle(editionMode, "add-transition")}
+              className={iconContainerStyle({
+                selected: editionMode === "add-transition",
+              })}
               onClick={() => onEditionModeChange("add-transition")}
               onKeyDown={(event) => {
                 if (event.key === "Enter" || event.key === " ") {
@@ -94,10 +120,10 @@ export const ToolbarModes: React.FC<ToolbarModesProps> = ({
             </div>
           </Tooltip>
         </>
-      )}{" "}
+      )}
       <Tooltip content="Select (V)">
         <div
-          className={getIconContainerStyle(editionMode, "select")}
+          className={iconContainerStyle({ selected: editionMode === "select" })}
           onClick={() => onEditionModeChange("select")}
           onKeyDown={(event) => {
             if (event.key === "Enter" || event.key === " ") {
@@ -114,7 +140,7 @@ export const ToolbarModes: React.FC<ToolbarModesProps> = ({
       </Tooltip>
       <Tooltip content="Pan (H)">
         <div
-          className={getIconContainerStyle(editionMode, "pan")}
+          className={iconContainerStyle({ selected: editionMode === "pan" })}
           onClick={() => onEditionModeChange("pan")}
           onKeyDown={(event) => {
             if (event.key === "Enter" || event.key === " ") {
