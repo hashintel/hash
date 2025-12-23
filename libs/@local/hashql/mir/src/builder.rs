@@ -324,6 +324,7 @@ impl<'env, 'heap> BodyBuilder<'env, 'heap> {
         );
 
         Body {
+            id: DefId::MAX,
             span: SpanId::SYNTHETIC,
             return_type: return_ty,
             source: Source::Intrinsic(DefId::MAX),

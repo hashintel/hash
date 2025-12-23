@@ -104,6 +104,8 @@ pub enum Source<'heap> {
 /// usage and improve interning efficiency while maintaining sufficient debugging information.
 #[derive(Debug, Clone)]
 pub struct Body<'heap> {
+    pub id: DefId,
+
     /// The source location span for this entire body.
     ///
     /// This [`SpanId`] tracks the source location of the function, closure,
