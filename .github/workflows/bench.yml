@@ -245,7 +245,7 @@ jobs:
           cat >> apps/hash-external-services/postgres/postgresql.conf << 'EOF'
           # Benchmark optimizations
           shared_buffers = 4GB
-          effective_cache_size = 12GB
+          effective_cache_size = 8GB
           work_mem = 256MB
           maintenance_work_mem = 1GB
           wal_buffers = 64MB
@@ -335,7 +335,7 @@ jobs:
           cat >> apps/hash-external-services/postgres/postgresql.conf << 'EOF'
           # Benchmark optimizations
           shared_buffers = 4GB
-          effective_cache_size = 12GB
+          effective_cache_size = 8GB
           work_mem = 256MB
           maintenance_work_mem = 1GB
           wal_buffers = 64MB
