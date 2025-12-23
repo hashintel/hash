@@ -1874,7 +1874,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8d162beedaa69905488a8da94f5ac3edb4dd4788b732fadb7bd120b2625c1976"
 dependencies = [
  "data-encoding",
- "syn 2.0.111",
+ "syn 1.0.109",
 ]
 
 [[package]]
@@ -2024,11 +2024,11 @@ dependencies = [
 
 [[package]]
 name = "derive_more"
-version = "2.1.0"
+version = "2.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "10b768e943bed7bf2cab53df09f4bc34bfd217cdb57d971e769874c9a6710618"
+checksum = "d751e9e49156b02b44f9c1815bcb94b984cdcc4396ecc32521c739452808b134"
 dependencies = [
- "derive_more-impl 2.1.0",
+ "derive_more-impl 2.1.1",
 ]
 
 [[package]]
@@ -2045,9 +2045,9 @@ dependencies = [
 
 [[package]]
 name = "derive_more-impl"
-version = "2.1.0"
+version = "2.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6d286bfdaf75e988b4a78e013ecd79c581e06399ab53fbacd2d916c2f904f30b"
+checksum = "799a97264921d8623a957f6c3b9011f3b5492f557bbb7a5a19b7fa6d06ba8dcb"
 dependencies = [
  "convert_case 0.10.0",
  "proc-macro2",
@@ -2831,7 +2831,7 @@ version = "0.0.0"
 dependencies = [
  "bytes",
  "derive-where",
- "derive_more 2.1.0",
+ "derive_more 2.1.1",
  "error-stack",
  "futures",
  "harpc-codec",
@@ -2873,7 +2873,7 @@ version = "0.0.0"
 dependencies = [
  "bytes",
  "bytes-utils",
- "derive_more 2.1.0",
+ "derive_more 2.1.1",
  "error-stack",
  "futures",
  "futures-core",
@@ -2915,7 +2915,7 @@ version = "0.0.0"
 dependencies = [
  "bytes",
  "derive-where",
- "derive_more 2.1.0",
+ "derive_more 2.1.1",
  "error-stack",
  "frunk",
  "frunk_core",
@@ -2955,7 +2955,7 @@ name = "harpc-tower"
 version = "0.0.0"
 dependencies = [
  "bytes",
- "derive_more 2.1.0",
+ "derive_more 2.1.1",
  "error-stack",
  "futures",
  "futures-core",
@@ -3016,7 +3016,7 @@ dependencies = [
  "dashu-base",
  "dashu-float",
  "derive-where",
- "derive_more 2.1.0",
+ "derive_more 2.1.1",
  "error-stack",
  "harpc-types",
  "harpc-wire-protocol",
@@ -3088,7 +3088,7 @@ dependencies = [
  "axum-core 0.5.5",
  "bytes",
  "derive-where",
- "derive_more 2.1.0",
+ "derive_more 2.1.1",
  "error-stack",
  "frunk",
  "futures",
@@ -3144,7 +3144,7 @@ dependencies = [
  "bytes",
  "cedar-policy-core",
  "derive-where",
- "derive_more 2.1.0",
+ "derive_more 2.1.1",
  "enum-iterator",
  "error-stack",
  "futures",
@@ -3178,7 +3178,7 @@ version = "0.0.0"
 dependencies = [
  "criterion",
  "criterion-macro",
- "derive_more 2.1.0",
+ "derive_more 2.1.1",
  "either",
  "error-stack",
  "hash-graph-api",
@@ -3235,7 +3235,7 @@ dependencies = [
  "bytes",
  "clap",
  "clap_complete",
- "derive_more 2.1.0",
+ "derive_more 2.1.1",
  "error-stack",
  "futures",
  "hash-graph-migrations-macros",
@@ -3256,7 +3256,7 @@ name = "hash-graph-migrations-macros"
 version = "0.0.0"
 dependencies = [
  "convert_case 0.10.0",
- "derive_more 2.1.0",
+ "derive_more 2.1.1",
  "proc-macro-error2",
  "proc-macro2",
  "quote",
@@ -3278,7 +3278,7 @@ dependencies = [
  "deadpool",
  "deadpool-postgres",
  "derive-where",
- "derive_more 2.1.0",
+ "derive_more 2.1.1",
  "dotenv-flow",
  "error-stack",
  "futures",
@@ -3318,7 +3318,7 @@ version = "0.0.0"
 dependencies = [
  "bytes",
  "derive-where",
- "derive_more 2.1.0",
+ "derive_more 2.1.1",
  "error-stack",
  "futures",
  "hash-codec",
@@ -3362,7 +3362,7 @@ dependencies = [
 name = "hash-graph-test-data"
 version = "0.0.0"
 dependencies = [
- "derive_more 2.1.0",
+ "derive_more 2.1.1",
  "error-stack",
  "hash-codec",
  "hash-graph-store",
@@ -3417,7 +3417,7 @@ dependencies = [
 name = "hash-graph-type-fetcher"
 version = "0.0.0"
 dependencies = [
- "derive_more 2.1.0",
+ "derive_more 2.1.1",
  "error-stack",
  "futures",
  "hash-graph-authorization",
@@ -3446,7 +3446,7 @@ name = "hash-graph-types"
 version = "0.0.0"
 dependencies = [
  "bytes",
- "derive_more 2.1.0",
+ "derive_more 2.1.1",
  "error-stack",
  "futures",
  "hash-codec",
@@ -3471,7 +3471,7 @@ dependencies = [
 name = "hash-graph-validation"
 version = "0.0.0"
 dependencies = [
- "derive_more 2.1.0",
+ "derive_more 2.1.1",
  "error-stack",
  "futures",
  "hash-graph-store",
@@ -3502,7 +3502,7 @@ dependencies = [
  "clap",
  "clap_complete",
  "criterion",
- "derive_more 2.1.0",
+ "derive_more 2.1.1",
  "error-stack",
  "globset",
  "guppy",
@@ -3533,7 +3533,7 @@ version = "0.0.0"
 dependencies = [
  "clap",
  "clap_builder",
- "derive_more 2.1.0",
+ "derive_more 2.1.1",
  "error-stack",
  "opentelemetry",
  "opentelemetry-appender-tracing",
@@ -3599,7 +3599,7 @@ dependencies = [
 name = "hashql-ast"
 version = "0.0.0"
 dependencies = [
- "derive_more 2.1.0",
+ "derive_more 2.1.1",
  "enum-iterator",
  "foldhash 0.2.0",
  "hashbrown 0.16.1",
@@ -3617,7 +3617,7 @@ dependencies = [
  "anstream",
  "camino",
  "clap",
- "derive_more 2.1.0",
+ "derive_more 2.1.1",
  "error-stack",
  "guppy",
  "hash-graph-store",
@@ -3654,7 +3654,7 @@ dependencies = [
  "anstyle-lossy",
  "bitvec",
  "bumpalo",
- "derive_more 2.1.0",
+ "derive_more 2.1.1",
  "ena",
  "foldhash 0.2.0",
  "hash-codec",
@@ -3688,7 +3688,7 @@ dependencies = [
  "anstyle",
  "anstyle-lossy",
  "anstyle-svg",
- "derive_more 2.1.0",
+ "derive_more 2.1.1",
  "rstest",
  "serde",
  "serde_core",
@@ -3701,7 +3701,7 @@ dependencies = [
 name = "hashql-eval"
 version = "0.0.0"
 dependencies = [
- "derive_more 2.1.0",
+ "derive_more 2.1.1",
  "hash-graph-store",
  "hashql-compiletest",
  "hashql-core",
@@ -9080,7 +9080,7 @@ version = "0.0.0"
 dependencies = [
  "bytes",
  "console_error_panic_hook",
- "derive_more 2.1.0",
+ "derive_more 2.1.1",
  "email_address",
  "error-stack",
  "futures",
