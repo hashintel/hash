@@ -1,5 +1,46 @@
 import { SegmentGroup as ArkSegmentGroup } from "@ark-ui/react/segment-group";
-import { css } from "@hashintel/ds-helpers/css";
+import { css, cva } from "@hashintel/ds-helpers/css";
+
+const containerStyle = css({
+  display: "flex",
+  backgroundColor: "core.gray.20",
+  borderRadius: "radius.8",
+  gap: "spacing.1",
+  position: "relative",
+  padding: "[4px]",
+});
+
+const indicatorStyle = css({
+  backgroundColor: "core.gray.90",
+  borderRadius: "radius.6",
+  position: "absolute",
+  transition: "[all 0.2s ease]",
+  width: "var(--width)",
+  height: "var(--height)",
+  left: "var(--left)",
+  top: "var(--top)",
+});
+
+const itemStyle = cva({
+  base: {
+    flex: "1",
+    fontSize: "[13px]",
+    fontWeight: 500,
+    textAlign: "center",
+    cursor: "pointer",
+    borderRadius: "radius.6",
+    transition: "[all 0.2s ease]",
+    position: "relative",
+    zIndex: 1,
+    padding: "[4px 6px]",
+  },
+  variants: {
+    isSelected: {
+      true: { color: "core.gray.10" },
+      false: { color: "core.gray.70" },
+    },
+  },
+});
 
 interface SegmentOption {
   value: string;
@@ -26,45 +67,13 @@ export const SegmentGroup: React.FC<SegmentGroupProps> = ({
         }
       }}
     >
-      <div
-        className={css({
-          display: "flex",
-          backgroundColor: "core.gray.20",
-          borderRadius: "radius.8",
-          gap: "spacing.1",
-          position: "relative",
-        })}
-        style={{ padding: 4 }}
-      >
-        <ArkSegmentGroup.Indicator
-          className={css({
-            backgroundColor: "core.gray.90",
-            borderRadius: "radius.6",
-            position: "absolute",
-            transition: "[all 0.2s ease]",
-            width: "var(--width)",
-            height: "var(--height)",
-            left: "var(--left)",
-            top: "var(--top)",
-          })}
-        />
+      <div className={containerStyle}>
+        <ArkSegmentGroup.Indicator className={indicatorStyle} />
         {options.map((option) => (
           <ArkSegmentGroup.Item
             key={option.value}
             value={option.value}
-            className={css({
-              flex: "1",
-              fontSize: "[13px]",
-              fontWeight: 500,
-              textAlign: "center",
-              cursor: "pointer",
-              borderRadius: "radius.6",
-              transition: "[all 0.2s ease]",
-              position: "relative",
-              zIndex: 1,
-              color: value === option.value ? "core.gray.10" : "core.gray.70",
-            })}
-            style={{ padding: "4px 6px" }}
+            className={itemStyle({ isSelected: value === option.value })}
           >
             <ArkSegmentGroup.ItemText>{option.label}</ArkSegmentGroup.ItemText>
             <ArkSegmentGroup.ItemControl />

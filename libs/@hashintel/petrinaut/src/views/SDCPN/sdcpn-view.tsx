@@ -32,6 +32,15 @@ const REACTFLOW_EDGE_TYPES = {
   default: Arc,
 };
 
+const canvasContainerStyle = css({
+  width: "[100%]",
+  height: "[100%]",
+  position: "relative",
+  "& .react-flow__pane": {
+    cursor: `var(--pane-cursor) !important`,
+  },
+});
+
 /**
  * SDCPNView is responsible for rendering the SDCPN using ReactFlow.
  * It reads from sdcpn-store and editor-store, and handles all ReactFlow interactions.
@@ -294,18 +303,11 @@ export const SDCPNView: React.FC = () => {
     // eslint-disable-next-line jsx-a11y/no-static-element-interactions
     <div
       ref={canvasContainer}
+      className={canvasContainerStyle}
       style={{
-        width: "100%",
-        height: "100%",
-        position: "relative",
         // @ts-expect-error CSS variables work at runtime, but are not in the type system
         "--pane-cursor": getCursorStyle() as string,
       }}
-      className={css({
-        "& .react-flow__pane": {
-          cursor: `var(--pane-cursor) !important`,
-        },
-      })}
       onKeyDown={({ key }) => {
         // Quick-and-dirty way to delete selected items with keyboard
         // with two different keys (Delete and Backspace), not possible with ReactFlow `deleteKeyCode` prop

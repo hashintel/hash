@@ -1,9 +1,193 @@
+import { css, cva } from "@hashintel/ds-helpers/css";
 import { useEffect, useRef, useState } from "react";
 import { TbTrash } from "react-icons/tb";
 
 import { InfoIconTooltip } from "../../../../components/tooltip";
 import type { Color } from "../../../../core/types/sdcpn";
 import { useSimulationStore } from "../../../../state/simulation-provider";
+
+const headerRowStyle = css({
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "space-between",
+  marginBottom: "[4px]",
+  height: "[20px]",
+});
+
+const headerLabelStyle = css({
+  fontWeight: 500,
+  fontSize: "[12px]",
+});
+
+const clearButtonStyle = css({
+  fontSize: "[11px]",
+  padding: "[2px 8px]",
+  border: "[1px solid rgba(0, 0, 0, 0.2)]",
+  borderRadius: "[3px]",
+  backgroundColor: "[white]",
+  cursor: "pointer",
+  color: "[#666]",
+  display: "flex",
+  alignItems: "center",
+  gap: "[4px]",
+});
+
+const tableContainerStyle = css({
+  position: "relative",
+  border: "[1px solid rgba(0, 0, 0, 0.1)]",
+  borderRadius: "[4px]",
+  overflow: "auto",
+  width: "[100%]",
+  backgroundColor: "[#fafafa]",
+});
+
+const tableStyle = css({
+  width: "[100%]",
+  borderCollapse: "collapse",
+  fontSize: "[12px]",
+  tableLayout: "fixed",
+});
+
+const rowNumberHeaderStyle = css({
+  position: "sticky",
+  top: "[0]",
+  backgroundColor: "[#f5f5f5]",
+  borderBottom: "[1px solid rgba(0, 0, 0, 0.1)]",
+  borderRight: "[1px solid rgba(0, 0, 0, 0.1)]",
+  padding: "[4px 8px]",
+  textAlign: "center",
+  fontWeight: 500,
+  width: "[40px]",
+  minWidth: "[40px]",
+});
+
+const columnHeaderStyle = css({
+  position: "sticky",
+  top: "[0]",
+  backgroundColor: "[#f5f5f5]",
+  borderBottom: "[1px solid rgba(0, 0, 0, 0.1)]",
+  padding: "[4px 8px]",
+  textAlign: "left",
+  fontWeight: 500,
+  fontFamily: "[monospace]",
+  minWidth: "[60px]",
+  overflow: "hidden",
+  textOverflow: "ellipsis",
+  whiteSpace: "nowrap",
+});
+
+const rowStyle = cva({
+  base: {
+    height: "[28px]",
+  },
+  variants: {
+    isSelected: {
+      true: { backgroundColor: "[rgba(59, 130, 246, 0.1)]" },
+      false: { backgroundColor: "[white]" },
+    },
+  },
+});
+
+const rowNumberCellStyle = cva({
+  base: {
+    borderRight: "[1px solid rgba(0, 0, 0, 0.1)]",
+    borderBottom: "[1px solid rgba(0, 0, 0, 0.05)]",
+    padding: "[4px 8px]",
+    textAlign: "center",
+    fontWeight: 500,
+    outline: "none",
+  },
+  variants: {
+    isSelected: {
+      true: { backgroundColor: "[rgba(59, 130, 246, 0.2)]" },
+      false: { backgroundColor: "[#fafafa]" },
+    },
+    isPhantom: {
+      true: { color: "[#ccc]" },
+      false: { color: "[#666]" },
+    },
+    hasSimulation: {
+      true: { cursor: "default" },
+      false: { cursor: "pointer" },
+    },
+  },
+});
+
+const cellContainerStyle = css({
+  borderBottom: "[1px solid rgba(0, 0, 0, 0.05)]",
+  padding: "spacing.0",
+  height: "[28px]",
+});
+
+const readOnlyCellStyle = css({
+  height: "[28px]",
+  display: "flex",
+  alignItems: "center",
+  fontFamily: "[monospace]",
+  fontSize: "[12px]",
+  padding: "[4px 8px]",
+  overflow: "hidden",
+  textOverflow: "ellipsis",
+  whiteSpace: "nowrap",
+});
+
+const editingInputStyle = css({
+  width: "[100%]",
+  height: "[28px]",
+  border: "none",
+  padding: "[4px 8px]",
+  fontFamily: "[monospace]",
+  fontSize: "[12px]",
+  backgroundColor: "[rgba(59, 130, 246, 0.05)]",
+  outline: "[2px solid #3b82f6]",
+  outlineOffset: "[-2px]",
+  boxSizing: "border-box",
+});
+
+const cellButtonStyle = cva({
+  base: {
+    width: "[100%]",
+    height: "[28px]",
+    padding: "[4px 8px]",
+    fontFamily: "[monospace]",
+    fontSize: "[12px]",
+    backgroundColor: "[transparent]",
+    outlineOffset: "[-2px]",
+    cursor: "default",
+    boxSizing: "border-box",
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+    whiteSpace: "nowrap",
+    display: "flex",
+    alignItems: "center",
+  },
+  variants: {
+    isFocused: {
+      true: { outline: "[2px solid #3b82f6]" },
+      false: { outline: "none" },
+    },
+  },
+});
+
+const resizeHandleStyle = cva({
+  base: {
+    position: "absolute",
+    bottom: "[0]",
+    left: "[0]",
+    right: "[0]",
+    height: "[8px]",
+    cursor: "ns-resize",
+    border: "none",
+    padding: "spacing.0",
+    zIndex: 10,
+  },
+  variants: {
+    isResizing: {
+      true: { backgroundColor: "[rgba(0, 0, 0, 0.1)]" },
+      false: { backgroundColor: "[transparent]" },
+    },
+  },
+});
 
 /**
  * Hook to make an element resizable by dragging its bottom border
@@ -559,16 +743,8 @@ export const InitialStateEditor: React.FC<InitialStateEditorProps> = ({
 
   return (
     <div>
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          marginBottom: 4,
-          height: 20,
-        }}
-      >
-        <div style={{ fontWeight: 500, fontSize: 12 }}>
+      <div className={headerRowStyle}>
+        <div className={headerLabelStyle}>
           {isSimulationNotRun ? "Initial State" : "State"}
           {isSimulationNotRun && (
             <InfoIconTooltip tooltip="To delete an existing row, click its number in the left-most cell and press delete on your keyboard." />
@@ -578,18 +754,7 @@ export const InitialStateEditor: React.FC<InitialStateEditorProps> = ({
           <button
             type="button"
             onClick={clearState}
-            style={{
-              fontSize: 11,
-              padding: "2px 8px",
-              border: "1px solid rgba(0, 0, 0, 0.2)",
-              borderRadius: 3,
-              backgroundColor: "white",
-              cursor: "pointer",
-              color: "#666",
-              display: "flex",
-              alignItems: "center",
-              gap: 4,
-            }}
+            className={clearButtonStyle}
           >
             <TbTrash size={12} color="#a72b2bff" />
             Clear state
@@ -598,59 +763,20 @@ export const InitialStateEditor: React.FC<InitialStateEditorProps> = ({
       </div>
       <div
         ref={containerRef}
-        style={{
-          position: "relative",
-          border: "1px solid rgba(0, 0, 0, 0.1)",
-          borderRadius: 4,
-          overflow: "auto",
-          width: "100%",
-          height: `${height}px`,
-          backgroundColor: "#fafafa",
-        }}
+        className={tableContainerStyle}
+        style={{ height: `${height}px` }}
       >
-        <table
-          style={{
-            width: "100%",
-            borderCollapse: "collapse",
-            fontSize: 12,
-            tableLayout: "fixed",
-          }}
-        >
+        <table className={tableStyle}>
           <thead>
             <tr>
-              <th
-                aria-label="Row number"
-                style={{
-                  position: "sticky",
-                  top: 0,
-                  backgroundColor: "#f5f5f5",
-                  borderBottom: "1px solid rgba(0, 0, 0, 0.1)",
-                  borderRight: "1px solid rgba(0, 0, 0, 0.1)",
-                  padding: "4px 8px",
-                  textAlign: "center",
-                  fontWeight: 500,
-                  width: 40,
-                  minWidth: 40,
-                }}
-              />
+              <th aria-label="Row number" className={rowNumberHeaderStyle} />
               {placeType.elements.map((element) => (
                 <th
                   key={element.elementId}
+                  className={columnHeaderStyle}
                   style={{
-                    position: "sticky",
-                    top: 0,
-                    backgroundColor: "#f5f5f5",
-                    borderBottom: "1px solid rgba(0, 0, 0, 0.1)",
-                    padding: "4px 8px",
-                    textAlign: "left",
-                    fontWeight: 500,
-                    fontFamily: "monospace",
                     width: `${columnWidth}%`,
-                    minWidth: "60px",
                     maxWidth: `${columnWidth}%`,
-                    overflow: "hidden",
-                    textOverflow: "ellipsis",
-                    whiteSpace: "nowrap",
                   }}
                 >
                   {element.name}
@@ -671,33 +797,18 @@ export const InitialStateEditor: React.FC<InitialStateEditorProps> = ({
                 <tr
                   // eslint-disable-next-line react/no-array-index-key -- Row position is stable and meaningful
                   key={`row-${rowIndex}-${row.join("-")}`}
-                  style={{
-                    backgroundColor:
-                      selectedRow === rowIndex
-                        ? "rgba(59, 130, 246, 0.1)"
-                        : "white",
-                    height: "28px",
-                  }}
+                  className={rowStyle({ isSelected: selectedRow === rowIndex })}
                 >
                   <td
                     data-row={rowIndex}
                     onClick={() => handleRowClick(rowIndex)}
                     onKeyDown={(event) => handleRowKeyDown(event, rowIndex)}
                     tabIndex={0}
-                    style={{
-                      borderRight: "1px solid rgba(0, 0, 0, 0.1)",
-                      borderBottom: "1px solid rgba(0, 0, 0, 0.05)",
-                      padding: "4px 8px",
-                      textAlign: "center",
-                      cursor: hasSimulation ? "default" : "pointer",
-                      backgroundColor:
-                        selectedRow === rowIndex
-                          ? "rgba(59, 130, 246, 0.2)"
-                          : "#fafafa",
-                      fontWeight: 500,
-                      color: rowIndex === tableData.length ? "#ccc" : "#666",
-                      outline: "none",
-                    }}
+                    className={rowNumberCellStyle({
+                      isSelected: selectedRow === rowIndex,
+                      isPhantom: rowIndex === tableData.length,
+                      hasSimulation,
+                    })}
                   >
                     {rowIndex === tableData.length ? "" : rowIndex + 1}
                   </td>
@@ -714,27 +825,11 @@ export const InitialStateEditor: React.FC<InitialStateEditorProps> = ({
                       <td
                         // eslint-disable-next-line react/no-array-index-key -- Column position is stable and meaningful
                         key={`cell-${rowIndex}-${colIndex}`}
-                        style={{
-                          borderBottom: "1px solid rgba(0, 0, 0, 0.05)",
-                          padding: 0,
-                          width: `${columnWidth}%`,
-                          height: "28px",
-                        }}
+                        className={cellContainerStyle}
+                        style={{ width: `${columnWidth}%` }}
                       >
                         {hasSimulation ? (
-                          <div
-                            style={{
-                              height: "28px",
-                              display: "flex",
-                              alignItems: "center",
-                              fontFamily: "monospace",
-                              fontSize: 12,
-                              padding: "4px 8px",
-                              overflow: "hidden",
-                              textOverflow: "ellipsis",
-                              whiteSpace: "nowrap",
-                            }}
-                          >
+                          <div className={readOnlyCellStyle}>
                             {isPhantomRow ? "" : value}
                           </div>
                         ) : isEditing ? (
@@ -755,18 +850,7 @@ export const InitialStateEditor: React.FC<InitialStateEditorProps> = ({
                               setEditingCell(null);
                               setEditingValue("");
                             }}
-                            style={{
-                              width: "100%",
-                              height: "28px",
-                              border: "none",
-                              padding: "4px 8px",
-                              fontFamily: "monospace",
-                              fontSize: 12,
-                              backgroundColor: "rgba(59, 130, 246, 0.05)",
-                              outline: "2px solid #3b82f6",
-                              outlineOffset: -2,
-                              boxSizing: "border-box",
-                            }}
+                            className={editingInputStyle}
                           />
                         ) : (
                           <div
@@ -791,23 +875,7 @@ export const InitialStateEditor: React.FC<InitialStateEditorProps> = ({
                             onKeyDown={(event) =>
                               handleKeyDown(event, rowIndex, colIndex)
                             }
-                            style={{
-                              width: "100%",
-                              height: "28px",
-                              padding: "4px 8px",
-                              fontFamily: "monospace",
-                              fontSize: 12,
-                              backgroundColor: "transparent",
-                              outline: isFocused ? "2px solid #3b82f6" : "none",
-                              outlineOffset: -2,
-                              cursor: "default",
-                              boxSizing: "border-box",
-                              overflow: "hidden",
-                              textOverflow: "ellipsis",
-                              whiteSpace: "nowrap",
-                              display: "flex",
-                              alignItems: "center",
-                            }}
+                            className={cellButtonStyle({ isFocused })}
                           >
                             {isPhantomRow ? "" : value}
                           </div>
@@ -824,18 +892,7 @@ export const InitialStateEditor: React.FC<InitialStateEditorProps> = ({
           type="button"
           aria-label="Resize table"
           onMouseDown={startResize}
-          style={{
-            position: "absolute",
-            bottom: 0,
-            left: 0,
-            right: 0,
-            height: 8,
-            cursor: "ns-resize",
-            backgroundColor: isResizing ? "rgba(0, 0, 0, 0.1)" : "transparent",
-            border: "none",
-            padding: 0,
-            zIndex: 10,
-          }}
+          className={resizeHandleStyle({ isResizing })}
         />
       </div>
     </div>

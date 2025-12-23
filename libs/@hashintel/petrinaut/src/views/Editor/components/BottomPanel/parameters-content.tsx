@@ -1,4 +1,4 @@
-import { css } from "@hashintel/ds-helpers/css";
+import { css, cva } from "@hashintel/ds-helpers/css";
 import { v4 as uuidv4 } from "uuid";
 
 import { useEditorStore } from "../../../../state/editor-provider";
@@ -48,16 +48,51 @@ const addButtonStyle = css({
   },
 });
 
-const parameterRowStyle = css({
-  _hover: {
-    backgroundColor: "[rgba(0, 0, 0, 0.03)]",
+const listContainerStyle = css({
+  display: "flex",
+  flexDirection: "column",
+  gap: "[4px]",
+});
+
+const parameterRowStyle = cva({
+  base: {
+    width: "[100%]",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    padding: "[4px 2px 4px 8px]",
+    fontSize: "[13px]",
+    borderRadius: "[4px]",
+    cursor: "pointer",
+  },
+  variants: {
+    isSelected: {
+      true: {
+        backgroundColor: "[rgba(59, 130, 246, 0.15)]",
+        _hover: {
+          backgroundColor: "[rgba(59, 130, 246, 0.2)]",
+        },
+      },
+      false: {
+        backgroundColor: "[#f9fafb]",
+        _hover: {
+          backgroundColor: "[rgba(0, 0, 0, 0.03)]",
+        },
+      },
+    },
   },
 });
 
-const parameterRowSelectedStyle = css({
-  _hover: {
-    backgroundColor: "[rgba(59, 130, 246, 0.2)]",
-  },
+const parameterVarNameStyle = css({
+  margin: "[0]",
+  fontSize: "[11px]",
+  color: "[#6b7280]",
+});
+
+const actionsContainerStyle = css({
+  display: "flex",
+  alignItems: "center",
+  gap: "[6px]",
 });
 
 const inputStyle = css({
@@ -171,7 +206,7 @@ export const ParametersContent: React.FC = () => {
         )}
       </div>
 
-      <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+      <div className={listContainerStyle}>
         {parameters.map((param) => {
           const isSelected = selectedResourceId === param.id;
 
@@ -196,36 +231,15 @@ export const ParametersContent: React.FC = () => {
                   setSelectedResourceId(param.id);
                 }
               }}
-              style={{
-                width: "100%",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-                padding: "4px 2px 4px 8px",
-                fontSize: 13,
-                borderRadius: 4,
-                backgroundColor: isSelected
-                  ? "rgba(59, 130, 246, 0.15)"
-                  : "#f9fafb",
-                cursor: "pointer",
-              }}
-              className={
-                isSelected ? parameterRowSelectedStyle : parameterRowStyle
-              }
+              className={parameterRowStyle({ isSelected })}
             >
               <div>
                 <div>{param.name}</div>
-                <pre style={{ margin: 0, fontSize: 11, color: "#6b7280" }}>
+                <pre className={parameterVarNameStyle}>
                   {param.variableName}
                 </pre>
               </div>
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 6,
-                }}
-              >
+              <div className={actionsContainerStyle}>
                 {isSimulationMode ? (
                   <input
                     type="number"

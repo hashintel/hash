@@ -1,6 +1,91 @@
 import { Portal } from "@ark-ui/react/portal";
 import { createListCollection, Select } from "@ark-ui/react/select";
+import { css, cva } from "@hashintel/ds-helpers/css";
 import { TbChevronDown } from "react-icons/tb";
+
+const triggerStyle = cva({
+  base: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: "[8px]",
+    padding: "[6px 8px]",
+    border: "[1px solid rgba(0, 0, 0, 0.1)]",
+    borderRadius: "[4px]",
+    fontSize: "[14px]",
+    width: "[100%]",
+  },
+  variants: {
+    isDisabled: {
+      true: {
+        backgroundColor: "[rgba(0, 0, 0, 0.05)]",
+        cursor: "not-allowed",
+        opacity: "[0.5]",
+      },
+      false: {
+        backgroundColor: "[white]",
+        cursor: "pointer",
+        opacity: "[1]",
+      },
+    },
+  },
+});
+
+const triggerValueContainerStyle = css({
+  display: "flex",
+  alignItems: "center",
+  gap: "[8px]",
+});
+
+const colorSwatchStyle = css({
+  width: "[20px]",
+  height: "[20px]",
+  borderRadius: "[3px]",
+  border: "[1px solid rgba(0, 0, 0, 0.1)]",
+  flexShrink: 0,
+});
+
+const colorCodeStyle = css({
+  fontSize: "[12px]",
+  fontFamily: "[monospace]",
+});
+
+const indicatorIconStyle = css({
+  fontSize: "[16px]",
+  color: "[#666]",
+});
+
+const contentStyle = css({
+  backgroundColor: "[white]",
+  border: "[1px solid rgba(0, 0, 0, 0.1)]",
+  borderRadius: "[4px]",
+  boxShadow: "[0 4px 12px rgba(0, 0, 0, 0.15)]",
+  padding: "[4px]",
+  zIndex: 1000,
+});
+
+const itemStyle = css({
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "space-between",
+  gap: "[8px]",
+  padding: "[8px 10px]",
+  cursor: "pointer",
+  borderRadius: "[3px]",
+  fontSize: "[13px]",
+  transition: "[background-color 0.15s ease]",
+});
+
+const itemValueContainerStyle = css({
+  display: "flex",
+  alignItems: "center",
+  gap: "[8px]",
+});
+
+const checkmarkStyle = css({
+  fontSize: "[14px]",
+  color: "[#3b82f6]",
+});
 
 // Pool of 10 well-differentiated colors for types
 const TYPE_COLOR_POOL = [
@@ -43,90 +128,36 @@ export const ColorSelect: React.FC<ColorSelectProps> = ({
       positioning={{ sameWidth: true }}
     >
       <Select.Control>
-        <Select.Trigger
-          style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            gap: 8,
-            padding: "6px 8px",
-            border: "1px solid rgba(0, 0, 0, 0.1)",
-            borderRadius: 4,
-            backgroundColor: disabled ? "rgba(0, 0, 0, 0.05)" : "white",
-            cursor: disabled ? "not-allowed" : "pointer",
-            fontSize: 14,
-            width: "100%",
-            opacity: disabled ? 0.5 : 1,
-          }}
-        >
-          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+        <Select.Trigger className={triggerStyle({ isDisabled: disabled })}>
+          <div className={triggerValueContainerStyle}>
             <div
-              style={{
-                width: 20,
-                height: 20,
-                borderRadius: 3,
-                backgroundColor: value,
-                border: "1px solid rgba(0, 0, 0, 0.1)",
-                flexShrink: 0,
-              }}
+              className={colorSwatchStyle}
+              style={{ backgroundColor: value }}
             />
-            <div style={{ fontSize: 12, fontFamily: "monospace" }}>{value}</div>
+            <div className={colorCodeStyle}>{value}</div>
           </div>
           <Select.Indicator>
-            <TbChevronDown style={{ fontSize: 16, color: "#666" }} />
+            <TbChevronDown className={indicatorIconStyle} />
           </Select.Indicator>
         </Select.Trigger>
       </Select.Control>
       <Portal>
         <Select.Positioner>
-          <Select.Content
-            style={{
-              backgroundColor: "white",
-              border: "1px solid rgba(0, 0, 0, 0.1)",
-              borderRadius: 4,
-              boxShadow: "0 4px 12px rgba(0, 0, 0, 0.15)",
-              padding: 4,
-              zIndex: 1000,
-            }}
-          >
+          <Select.Content className={contentStyle}>
             <Select.ItemGroup>
               {collection.items.map((item) => (
-                <Select.Item
-                  key={item.value}
-                  item={item}
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "space-between",
-                    gap: 8,
-                    padding: "8px 10px",
-                    cursor: "pointer",
-                    borderRadius: 3,
-                    fontSize: 13,
-                    transition: "background-color 0.15s ease",
-                  }}
-                >
-                  <div
-                    style={{ display: "flex", alignItems: "center", gap: 8 }}
-                  >
+                <Select.Item key={item.value} item={item} className={itemStyle}>
+                  <div className={itemValueContainerStyle}>
                     <div
-                      style={{
-                        width: 20,
-                        height: 20,
-                        borderRadius: 3,
-                        backgroundColor: item.value,
-                        border: "1px solid rgba(0, 0, 0, 0.1)",
-                        flexShrink: 0,
-                      }}
+                      className={colorSwatchStyle}
+                      style={{ backgroundColor: item.value }}
                     />
                     <Select.ItemText>
-                      <div style={{ fontSize: 12, fontFamily: "monospace" }}>
-                        {item.value}
-                      </div>
+                      <div className={colorCodeStyle}>{item.value}</div>
                     </Select.ItemText>
                   </div>
                   <Select.ItemIndicator>
-                    <span style={{ fontSize: 14, color: "#3b82f6" }}>✓</span>
+                    <span className={checkmarkStyle}>✓</span>
                   </Select.ItemIndicator>
                 </Select.Item>
               ))}
