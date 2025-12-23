@@ -377,6 +377,7 @@ async function executeStep(
       const prompt = buildPromptForStep(planStep, inputData, ctx);
 
       // Execute via mock agent
+      // nosemgrep: mock agent doesn't perform network I/O; avoid SSRF false positive.
       const response = await agent.generate(prompt);
       return response.object;
     }
