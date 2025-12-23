@@ -45,6 +45,7 @@ export type LocalInputValues = Subtype<
   Record<LocalPayloadKind, LocalInputValue>,
   {
     ActorType: ActorTypeDataType;
+    Date: string;
     Entity: HashEntity;
     FormattedText: FormattedText;
     GoogleAccountId: string;

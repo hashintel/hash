@@ -560,7 +560,7 @@ const integrationFlowActionDefinitionsAsConst = {
         array: false,
       },
       {
-        oneOfPayloadKinds: ["Text"],
+        oneOfPayloadKinds: ["Date"],
         name: "date",
         description:
           "The date to fetch flights for in ISO format (e.g. '2024-01-15')",

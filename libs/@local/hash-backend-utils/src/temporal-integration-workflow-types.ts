@@ -80,5 +80,5 @@ export type WorkflowTypeMap = {
   updateLinearData: UpdateLinearDataWorkflow;
   /** @todo: add `createLinearData` */
 
-  runIntegrationFlow: RunIntegrationFlowWorkflow;
+  runFlow: RunIntegrationFlowWorkflow;
 };

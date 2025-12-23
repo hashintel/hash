@@ -11,7 +11,7 @@ import type {
   ScheduledArrivalsRequestParams,
 } from "./client/types.js";
 
-export { AviationProposedEntity } from "./client/build-graph.js";
+export type { AviationProposedEntity } from "./client/build-graph.js";
 export type {
   AeroApiAirport,
   AeroApiPaginationLinks,

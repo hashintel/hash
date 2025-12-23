@@ -116,6 +116,7 @@ export type WebSearchResult = Pick<WebPage, "title" | "url">;
 export type PayloadKindValues = {
   ActorType: ActorTypeDataType;
   Boolean: boolean;
+  Date: string; // e.g. "2025-01-01"
   Entity: SerializedEntity;
   EntityId: EntityId;
   FormattedText: FormattedText;

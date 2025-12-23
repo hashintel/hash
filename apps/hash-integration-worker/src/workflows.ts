@@ -74,4 +74,4 @@ export const readLinearTeams: ReadLinearTeamsWorkflow = async ({ apiKey }) =>
 export const updateLinearData: UpdateLinearDataWorkflow = async (params) =>
   linearActivities.updateLinearData(params);
 
-export const runIntegrationFlow = runFlowWorkflow;
+export const runFlow = runFlowWorkflow;

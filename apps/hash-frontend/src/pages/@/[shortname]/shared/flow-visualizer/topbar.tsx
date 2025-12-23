@@ -36,6 +36,7 @@ import { Link } from "../../../../../shared/ui/link";
 import { MenuItem } from "../../../../../shared/ui/menu-item";
 import { useFlowDefinitionsContext } from "../../../../shared/flow-definitions-context";
 import { useFlowRunsContext } from "../../../../shared/flow-runs-context";
+import type { direction } from "@glideapps/glide-data-grid/dist/dts/common/utils";
 
 const typographySx: SxProps<Theme> = {
   color: ({ palette }) => palette.gray[70],
@@ -190,15 +191,7 @@ export const Topbar = ({
   }, [cancelFlow, selectedFlowRunId]);
 
   const onRunFlowClicked = useCallback(() => {
-    setWaitingToRun(true);
-    try {
-      handleRunFlowClicked();
-    } catch {
-      /**
-       * We don't need to worry about the success case because the user will be sent to the new flow run's page
-       */
-      setWaitingToRun(false);
-    }
+    handleRunFlowClicked();
   }, [handleRunFlowClicked]);
 
   const getOwner = useGetOwnerForEntity();

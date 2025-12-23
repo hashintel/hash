@@ -10,6 +10,7 @@ import {
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { useMemo } from "react";
 
+import { useUserOrOrgShortnameByWebId } from "../../../../components/hooks/use-user-or-org-shortname-by-owned-by-id";
 import type {
   GetEntityDiffsQuery,
   GetEntityDiffsQueryVariables,
@@ -27,6 +28,10 @@ import type { HistoryEvent } from "./history-section/shared/types";
 
 export const HistorySection = ({ entityId }: { entityId: EntityId }) => {
   const [webId, entityUuid, _draftUuid] = splitEntityId(entityId);
+
+  const { shortname } = useUserOrOrgShortnameByWebId({
+    webId,
+  });
 
   const { data: editionsData, loading: editionsLoading } = useQuery<
     QueryEntitySubgraphQuery,
@@ -145,7 +150,11 @@ export const HistorySection = ({ entityId }: { entityId: EntityId }) => {
         {loading || !subgraph ? (
           <Skeleton height={600} />
         ) : (
-          <HistoryTable events={historyEvents} subgraph={subgraph} />
+          <HistoryTable
+            events={historyEvents}
+            subgraph={subgraph}
+            shortname={shortname ?? ""}
+          />
         )}
       </WhiteCard>
     </SectionWrapper>

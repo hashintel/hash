@@ -673,16 +673,24 @@ export const EntityResultTable = memo(
 
         closedTypesByKey[typeKey] ??= closedMultiEntityType;
 
-        const entityLabel = generateEntityLabel(closedMultiEntityType, {
-          properties: entity.properties,
-          metadata: {
-            entityTypeIds,
-            recordId: {
-              entityId,
-              editionId: "irrelevant-here" as EntityEditionId,
+        let entityLabel: string;
+        try {
+          entityLabel = generateEntityLabel(closedMultiEntityType, {
+            properties: entity.properties,
+            metadata: {
+              entityTypeIds,
+              recordId: {
+                entityId,
+                editionId: "irrelevant-here" as EntityEditionId,
+              },
             },
-          },
-        });
+          });
+        } catch (error) {
+          console.error(
+            `Error generating entity label for entity ${entityId} with types ${entityTypeIds.join(", ")}: ${(error as Error).message}`,
+          );
+          entityLabel = "Unknown";
+        }
 
         entitiesByEntityId[entityId] = {
           closedMultiEntityType,

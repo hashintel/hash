@@ -16,7 +16,7 @@ export const scheduledFlightsFlowDefinition: FlowDefinition<IntegrationFlowActio
     type: "integration",
     flowDefinitionId: "scheduled-flights" as EntityUuid,
     description:
-      "Fetch scheduled flight arrivals for an airport on a given date and save them to a web.",
+      "Fetch and save scheduled flight arrivals for an airport on a given date.",
     trigger: {
       triggerDefinitionId: "userTrigger",
       description:
@@ -30,7 +30,7 @@ export const scheduledFlightsFlowDefinition: FlowDefinition<IntegrationFlowActio
           required: true,
         },
         {
-          payloadKind: "Text",
+          payloadKind: "Date",
           name: "Date",
           array: false,
           required: true,
@@ -43,7 +43,7 @@ export const scheduledFlightsFlowDefinition: FlowDefinition<IntegrationFlowActio
         kind: "action",
         actionDefinitionId: "getScheduledFlights",
         description:
-          "Fetch scheduled flight arrivals from AeroAPI for the specified airport and date",
+          "Fetch scheduled flight arrivals from for the specified airport and date",
         inputSources: [
           {
             inputName:
@@ -64,8 +64,7 @@ export const scheduledFlightsFlowDefinition: FlowDefinition<IntegrationFlowActio
       {
         stepId: "2",
         kind: "action",
-        description:
-          "Save discovered flight entities and relationships to HASH graph",
+        description: "Save discovered entities and relationships to HASH graph",
         actionDefinitionId: "persistIntegrationEntities",
         inputSources: [
           {

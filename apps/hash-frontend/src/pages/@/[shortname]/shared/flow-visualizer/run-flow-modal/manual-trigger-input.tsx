@@ -76,6 +76,18 @@ export const ManualTriggerInput = <Payload extends LocalPayload>({
           onChange={(event) => setValue(event.target.checked)}
         />
       );
+    case "Date":
+      if (array || Array.isArray(payload.value)) {
+        throw new Error("Selecting multiple dates is not supported");
+      }
+      return (
+        <TextField
+          onChange={(event) => setValue(event.target.value)}
+          sx={textFieldSx}
+          type="date"
+          value={payload.value}
+        />
+      );
     case "VersionedUrl": {
       return (
         <EntityTypeSelector

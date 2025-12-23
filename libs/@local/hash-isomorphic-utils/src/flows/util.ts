@@ -272,7 +272,7 @@ const recursivelyValidateSteps = <T extends FlowActionDefinitionId>(params: {
           )
         ) {
           throw new Error(
-            `${errorPrefix}references an output "${inputSource.sourceStepOutputName}" of step "${inputSource.sourceStepId}" that does not match the expected payload kinds of the input`,
+            `${errorPrefix}references an output "${inputSource.sourceStepOutputName}" of step "${inputSource.sourceStepId}" that does not match the expected payload kinds of the input (expected: ${matchingDefinitionInput.oneOfPayloadKinds.join(", ")}, actual: ${matchingSourceStepOutput.payloadKind})`,
           );
         }
       } else if (inputSource.kind === "hardcoded") {

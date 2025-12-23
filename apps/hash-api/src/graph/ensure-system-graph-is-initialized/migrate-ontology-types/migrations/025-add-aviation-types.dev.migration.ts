@@ -737,7 +737,7 @@ const migrate: MigrationFunction = async ({
       entityTypeDefinition: {
         title: "Airport",
         titlePlural: "Airports",
-        icon: "🛬",
+        icon: "🏢",
         description:
           "A facility where aircraft take off and land, with infrastructure for passenger and cargo services.",
         labelProperty: blockProtocolPropertyTypes.name.propertyTypeBaseUrl,
@@ -772,7 +772,7 @@ const migrate: MigrationFunction = async ({
       entityTypeDefinition: {
         title: "Airline",
         titlePlural: "Airlines",
-        icon: "🛫",
+        icon: "🏦",
         description:
           "A company that provides air transport services for passengers and/or cargo.",
         labelProperty: blockProtocolPropertyTypes.name.propertyTypeBaseUrl,
@@ -894,6 +894,7 @@ const migrate: MigrationFunction = async ({
       entityTypeDefinition: {
         allOf: [blockProtocolEntityTypes.link.entityTypeId],
         title: "Operated By",
+        icon: "👨‍✈️",
         inverse: {
           title: "Operates",
         },
@@ -912,6 +913,7 @@ const migrate: MigrationFunction = async ({
       entityTypeDefinition: {
         allOf: [blockProtocolEntityTypes.link.entityTypeId],
         title: "Uses Aircraft",
+        icon: "🛩️",
         inverse: {
           title: "Used For Flight",
         },

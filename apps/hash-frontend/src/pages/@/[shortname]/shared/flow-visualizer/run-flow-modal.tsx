@@ -8,6 +8,7 @@ import type {
   StepOutput,
 } from "@local/hash-isomorphic-utils/flows/types";
 import { Box, Typography } from "@mui/material";
+import { format } from "date-fns";
 import type { PropsWithChildren } from "react";
 import { useState } from "react";
 
@@ -54,6 +55,8 @@ const generateInitialFormState = (outputDefinitions: OutputDefinition[]) =>
         defaultValue = false;
       } else if (outputDefinition.payloadKind === "Entity") {
         defaultValue = undefined;
+      } else if (outputDefinition.payloadKind === "Date") {
+        defaultValue = format(new Date(), "yyyy-MM-dd");
       }
 
       acc[outputDefinition.name] = {

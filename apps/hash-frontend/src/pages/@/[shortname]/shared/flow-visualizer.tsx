@@ -550,7 +550,13 @@ export const FlowVisualizer = () => {
         }
 
         const { inputs } = selectedFlowRun;
-        flowInputs = inputs[0];
+        flowInputs = {
+          ...inputs[0],
+          flowType:
+            selectedFlowDefinition.type === "ai"
+              ? FlowType.Ai
+              : FlowType.Integration,
+        };
       } else {
         const { webId, outputs } = args;
         flowInputs = {

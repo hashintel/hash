@@ -36,6 +36,18 @@ export const aviationProposedEntityToFlowProposedEntity = (
       isSubjectOf: [],
       isObjectOf: [],
     },
+    sourceEntityId: entity.sourceEntityLocalId
+      ? {
+          kind: "proposed-entity",
+          localId: entity.sourceEntityLocalId as EntityId,
+        }
+      : undefined,
+    targetEntityId: entity.targetEntityLocalId
+      ? {
+          kind: "proposed-entity",
+          localId: entity.targetEntityLocalId as EntityId,
+        }
+      : undefined,
     provenance,
     propertyMetadata,
     localEntityId: entity.localEntityId as EntityId,
