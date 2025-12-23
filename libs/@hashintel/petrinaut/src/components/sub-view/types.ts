@@ -1,6 +1,18 @@
 import type { ComponentType, ReactNode } from "react";
 
 /**
+ * Configuration for resizable subviews.
+ */
+export interface SubViewResizeConfig {
+  /** Default height when expanded (in pixels) */
+  defaultHeight: number;
+  /** Minimum height constraint (in pixels) */
+  minHeight?: number;
+  /** Maximum height constraint (in pixels) */
+  maxHeight?: number;
+}
+
+/**
  * SubView represents a single view that can be displayed in either:
  * - A vertical collapsible section (LeftSideBar)
  * - A horizontal tab (BottomPanel)
@@ -26,5 +38,9 @@ export interface SubView {
    * Only affects vertical layout. Defaults to false.
    */
   flexGrow?: boolean;
+  /**
+   * Configuration for making the subview resizable when expanded.
+   * Only affects vertical layout. When set, the section can be resized by dragging its bottom edge.
+   */
+  resizable?: SubViewResizeConfig;
 }
-

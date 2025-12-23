@@ -2,7 +2,6 @@ import { css, cva } from "@hashintel/ds-helpers/css";
 import { useEffect, useRef, useState } from "react";
 import { TbTrash } from "react-icons/tb";
 
-import { InfoIconTooltip } from "../../../../components/tooltip";
 import type { Color } from "../../../../core/types/sdcpn";
 import { useSimulationStore } from "../../../../state/simulation-provider";
 
@@ -12,11 +11,6 @@ const headerRowStyle = css({
   justifyContent: "space-between",
   marginBottom: "[4px]",
   height: "[20px]",
-});
-
-const headerLabelStyle = css({
-  fontWeight: 500,
-  fontSize: "[12px]",
 });
 
 const clearButtonStyle = css({
@@ -250,16 +244,16 @@ export const InitialStateEditor: React.FC<InitialStateEditorProps> = ({
   const { height, isResizing, containerRef, startResize } = useResizable(250);
 
   const isSimulationNotRun = useSimulationStore(
-    (state) => state.state === "NotRun",
+    (state) => state.state === "NotRun"
   );
 
   const initialMarking = useSimulationStore((state) => state.initialMarking);
   const setInitialMarking = useSimulationStore(
-    (state) => state.setInitialMarking,
+    (state) => state.setInitialMarking
   );
   const simulation = useSimulationStore((state) => state.simulation);
   const currentlyViewedFrame = useSimulationStore(
-    (state) => state.currentlyViewedFrame,
+    (state) => state.currentlyViewedFrame
   );
 
   // Determine if we should show current simulation state or initial marking
@@ -305,7 +299,7 @@ export const InitialStateEditor: React.FC<InitialStateEditorProps> = ({
         const tokenValues: number[] = [];
         for (let colIndex = 0; colIndex < dimensions; colIndex++) {
           tokenValues.push(
-            currentMarking.values[i * dimensions + colIndex] ?? 0,
+            currentMarking.values[i * dimensions + colIndex] ?? 0
           );
         }
         tokens.push(tokenValues);
@@ -338,7 +332,7 @@ export const InitialStateEditor: React.FC<InitialStateEditorProps> = ({
           const tokenValues: number[] = [];
           for (let colIndex = 0; colIndex < dimensions; colIndex++) {
             tokenValues.push(
-              currentMarking.values[i * dimensions + colIndex] ?? 0,
+              currentMarking.values[i * dimensions + colIndex] ?? 0
             );
           }
           tokens.push(tokenValues);
@@ -381,7 +375,7 @@ export const InitialStateEditor: React.FC<InitialStateEditorProps> = ({
         }
       } else {
         newData = prev.map((rowData, index) =>
-          index === row ? [...rowData] : rowData,
+          index === row ? [...rowData] : rowData
         );
         if (newData[row]) {
           newData[row][col] = value;
@@ -406,7 +400,7 @@ export const InitialStateEditor: React.FC<InitialStateEditorProps> = ({
           // Focus the row number cell after state update
           setTimeout(() => {
             const rowCell = document.querySelector(
-              `td[data-row="${newData.length - 1}"]`,
+              `td[data-row="${newData.length - 1}"]`
             );
             if (rowCell instanceof HTMLElement) {
               rowCell.focus();
@@ -418,7 +412,7 @@ export const InitialStateEditor: React.FC<InitialStateEditorProps> = ({
           // Focus the row number cell after state update
           setTimeout(() => {
             const rowCell = document.querySelector(
-              `td[data-row="${rowIndex}"]`,
+              `td[data-row="${rowIndex}"]`
             );
             if (rowCell instanceof HTMLElement) {
               rowCell.focus();
@@ -444,7 +438,7 @@ export const InitialStateEditor: React.FC<InitialStateEditorProps> = ({
   const handleKeyDown = (
     event: React.KeyboardEvent,
     row: number,
-    col: number,
+    col: number
   ) => {
     if (hasSimulation) {
       return;
@@ -514,7 +508,7 @@ export const InitialStateEditor: React.FC<InitialStateEditorProps> = ({
             });
             setTimeout(() => {
               const prevCell = cellRefs.current.get(
-                `${row - 1}-${placeType.elements.length - 1}`,
+                `${row - 1}-${placeType.elements.length - 1}`
               );
               prevCell?.focus();
             }, 0);
@@ -607,7 +601,7 @@ export const InitialStateEditor: React.FC<InitialStateEditorProps> = ({
           setFocusedCell({ row: row - 1, col: placeType.elements.length - 1 });
           setTimeout(() => {
             const prevCell = cellRefs.current.get(
-              `${row - 1}-${placeType.elements.length - 1}`,
+              `${row - 1}-${placeType.elements.length - 1}`
             );
             prevCell?.focus();
           }, 0);
@@ -718,7 +712,7 @@ export const InitialStateEditor: React.FC<InitialStateEditorProps> = ({
       setEditingCell(null);
       // Focus the next row number cell
       const nextRowCell = document.querySelector(
-        `td[data-row="${rowIndex + 1}"]`,
+        `td[data-row="${rowIndex + 1}"]`
       );
       if (nextRowCell instanceof HTMLElement) {
         nextRowCell.focus();
@@ -731,7 +725,7 @@ export const InitialStateEditor: React.FC<InitialStateEditorProps> = ({
       setEditingCell(null);
       // Focus the previous row number cell
       const prevRowCell = document.querySelector(
-        `td[data-row="${rowIndex - 1}"]`,
+        `td[data-row="${rowIndex - 1}"]`
       );
       if (prevRowCell instanceof HTMLElement) {
         prevRowCell.focus();
@@ -744,12 +738,6 @@ export const InitialStateEditor: React.FC<InitialStateEditorProps> = ({
   return (
     <div>
       <div className={headerRowStyle}>
-        <div className={headerLabelStyle}>
-          {isSimulationNotRun ? "Initial State" : "State"}
-          {isSimulationNotRun && (
-            <InfoIconTooltip tooltip="To delete an existing row, click its number in the left-most cell and press delete on your keyboard." />
-          )}
-        </div>
         {isSimulationNotRun && tableData.length > 0 && (
           <button
             type="button"
@@ -858,11 +846,11 @@ export const InitialStateEditor: React.FC<InitialStateEditorProps> = ({
                               if (el) {
                                 cellRefs.current.set(
                                   `${rowIndex}-${colIndex}`,
-                                  el,
+                                  el
                                 );
                               } else {
                                 cellRefs.current.delete(
-                                  `${rowIndex}-${colIndex}`,
+                                  `${rowIndex}-${colIndex}`
                                 );
                               }
                             }}
