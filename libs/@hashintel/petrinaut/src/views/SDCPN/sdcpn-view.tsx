@@ -73,7 +73,6 @@ export const SDCPNView: React.FC = () => {
   );
   const clearSelection = useEditorStore((state) => state.clearSelection);
 
-  // Simulation state
   const simulationState = useSimulationStore((state) => state.state);
 
   // Center viewport on SDCPN load
