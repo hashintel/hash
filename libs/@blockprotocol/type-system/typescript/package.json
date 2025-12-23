@@ -65,7 +65,7 @@
     "@types/react": "19.2.7",
     "@types/semver": "7.7.1",
     "@vitest/coverage-istanbul": "3.2.4",
-    "eslint": "9.38.0",
+    "eslint": "9.39.2",
     "react": "19.2.3",
     "rimraf": "6.1.2",
     "rollup": "4.53.3",

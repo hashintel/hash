@@ -52,6 +52,7 @@ export const implEncode: <
     buffer: MutableBuffer.WriteBuffer,
     self: U,
   ) => MutableBuffer.WriteResult<E>,
+  // eslint-disable-next-line fsecond/no-inline-interfaces
 ) => {
   (
     self: U,
