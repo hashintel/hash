@@ -238,7 +238,6 @@ jobs:
           touch .env.local
 
           echo 'HASH_GRAPH_PG_DATABASE=graph' > .env.local
-
           cp .env.local .env.test.local
 
           # Tune Postgres for benchmarks
@@ -328,7 +327,6 @@ jobs:
           touch .env.local
 
           echo 'HASH_GRAPH_PG_DATABASE=graph' > .env.local
-
           cp .env.local .env.test.local
 
           # Tune Postgres for benchmarks
