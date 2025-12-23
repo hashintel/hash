@@ -1,0 +1,1163 @@
+{
+  "$id": "https://hash.ai/@h/types/entity-type/organization/v/3",
+  "$schema": "https://json-schema.org/draft/2019-09/schema",
+  "description": "An organization. Organizations are root-level objects that contain user accounts and teams.",
+  "icon": "/icons/types/people-group.svg",
+  "kind": "entityType",
+  "labelProperty": "https://hash.ai/@h/types/property-type/organization-name/",
+  "links": {
+    "https://hash.ai/@h/types/entity-type/has-avatar/v/1": {
+      "items": {
+        "oneOf": [
+          {
+            "$id": "https://hash.ai/@h/types/entity-type/image-file/v/2",
+            "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/entity-type",
+            "allOf": [
+              {
+                "$id": "https://hash.ai/@h/types/entity-type/file/v/2",
+                "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/entity-type",
+                "description": "A file hosted at a URL",
+                "icon": "/icons/types/file.svg",
+                "kind": "entityType",
+                "labelProperty": "https://blockprotocol.org/@blockprotocol/types/property-type/display-name/",
+                "properties": {
+                  "https://blockprotocol.org/@blockprotocol/types/property-type/description/": {
+                    "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/property-type",
+                    "$id": "https://blockprotocol.org/@blockprotocol/types/property-type/description/v/1",
+                    "kind": "propertyType",
+                    "title": "Description",
+                    "description": "A piece of text that tells you about something or someone. This can include explaining what they look like, what its purpose is for, what they’re like, etc.",
+                    "oneOf": [
+                      {
+                        "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
+                        "kind": "dataType",
+                        "$id": "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+                        "title": "Text",
+                        "description": "An ordered sequence of characters",
+                        "type": "string"
+                      }
+                    ]
+                  },
+                  "https://blockprotocol.org/@blockprotocol/types/property-type/display-name/": {
+                    "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/property-type",
+                    "$id": "https://blockprotocol.org/@blockprotocol/types/property-type/display-name/v/1",
+                    "kind": "propertyType",
+                    "title": "Display Name",
+                    "description": "A human-friendly display name for something",
+                    "oneOf": [
+                      {
+                        "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
+                        "kind": "dataType",
+                        "$id": "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+                        "title": "Text",
+                        "description": "An ordered sequence of characters",
+                        "type": "string"
+                      }
+                    ]
+                  },
+                  "https://blockprotocol.org/@blockprotocol/types/property-type/file-hash/": {
+                    "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/property-type",
+                    "$id": "https://blockprotocol.org/@blockprotocol/types/property-type/file-hash/v/1",
+                    "kind": "propertyType",
+                    "title": "File Hash",
+                    "description": "A unique signature derived from a file's contents",
+                    "oneOf": [
+                      {
+                        "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
+                        "kind": "dataType",
+                        "$id": "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+                        "title": "Text",
+                        "description": "An ordered sequence of characters",
+                        "type": "string"
+                      }
+                    ]
+                  },
+                  "https://blockprotocol.org/@blockprotocol/types/property-type/file-name/": {
+                    "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/property-type",
+                    "$id": "https://blockprotocol.org/@blockprotocol/types/property-type/file-name/v/1",
+                    "kind": "propertyType",
+                    "title": "File Name",
+                    "description": "The name of a file.",
+                    "oneOf": [
+                      {
+                        "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
+                        "kind": "dataType",
+                        "$id": "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+                        "title": "Text",
+                        "description": "An ordered sequence of characters",
+                        "type": "string"
+                      }
+                    ]
+                  },
+                  "https://blockprotocol.org/@blockprotocol/types/property-type/file-size/": {
+                    "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/property-type",
+                    "$id": "https://blockprotocol.org/@blockprotocol/types/property-type/file-size/v/1",
+                    "kind": "propertyType",
+                    "title": "File Size",
+                    "description": "The size of a file",
+                    "oneOf": [
+                      {
+                        "$id": "https://hash.ai/@h/types/data-type/bytes/v/1",
+                        "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
+                        "abstract": false,
+                        "allOf": [
+                          {
+                            "$id": "https://hash.ai/@h/types/data-type/information/v/1",
+                            "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
+                            "abstract": true,
+                            "allOf": [
+                              {
+                                "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
+                                "kind": "dataType",
+                                "$id": "https://blockprotocol.org/@blockprotocol/types/data-type/number/v/1",
+                                "title": "Number",
+                                "description": "An arithmetical value (in the Real number system)",
+                                "type": "number"
+                              }
+                            ],
+                            "description": "A measure of information content.",
+                            "kind": "dataType",
+                            "title": "Information",
+                            "type": "number"
+                          }
+                        ],
+                        "description": "A unit of information equal to eight bits.",
+                        "kind": "dataType",
+                        "label": {
+                          "right": "B"
+                        },
+                        "title": "Bytes",
+                        "type": "number"
+                      }
+                    ]
+                  },
+                  "https://blockprotocol.org/@blockprotocol/types/property-type/file-url/": {
+                    "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/property-type",
+                    "$id": "https://blockprotocol.org/@blockprotocol/types/property-type/file-url/v/1",
+                    "kind": "propertyType",
+                    "title": "File URL",
+                    "description": "A URL that serves a file.",
+                    "oneOf": [
+                      {
+                        "$id": "https://hash.ai/@h/types/data-type/uri/v/1",
+                        "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
+                        "abstract": false,
+                        "allOf": [
+                          {
+                            "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
+                            "kind": "dataType",
+                            "$id": "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+                            "title": "Text",
+                            "description": "An ordered sequence of characters",
+                            "type": "string"
+                          }
+                        ],
+                        "description": "A unique identifier for a resource (e.g. a URL, or URN).",
+                        "format": "uri",
+                        "kind": "dataType",
+                        "title": "URI",
+                        "type": "string"
+                      }
+                    ]
+                  },
+                  "https://blockprotocol.org/@blockprotocol/types/property-type/mime-type/": {
+                    "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/property-type",
+                    "$id": "https://blockprotocol.org/@blockprotocol/types/property-type/mime-type/v/1",
+                    "kind": "propertyType",
+                    "title": "MIME Type",
+                    "description": "A MIME (Multipurpose Internet Mail Extensions) type.\n\nSee: https://developer.mozilla.org/en-US/docs/Web/HTTP/Basics_of_HTTP/MIME_types",
+                    "oneOf": [
+                      {
+                        "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
+                        "kind": "dataType",
+                        "$id": "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+                        "title": "Text",
+                        "description": "An ordered sequence of characters",
+                        "type": "string"
+                      }
+                    ]
+                  },
+                  "https://blockprotocol.org/@blockprotocol/types/property-type/original-file-name/": {
+                    "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/property-type",
+                    "$id": "https://blockprotocol.org/@blockprotocol/types/property-type/original-file-name/v/1",
+                    "kind": "propertyType",
+                    "title": "Original File Name",
+                    "description": "The original name of a file",
+                    "oneOf": [
+                      {
+                        "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
+                        "kind": "dataType",
+                        "$id": "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+                        "title": "Text",
+                        "description": "An ordered sequence of characters",
+                        "type": "string"
+                      }
+                    ]
+                  },
+                  "https://blockprotocol.org/@blockprotocol/types/property-type/original-source/": {
+                    "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/property-type",
+                    "$id": "https://blockprotocol.org/@blockprotocol/types/property-type/original-source/v/1",
+                    "kind": "propertyType",
+                    "title": "Original Source",
+                    "description": "The original source of something",
+                    "oneOf": [
+                      {
+                        "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
+                        "kind": "dataType",
+                        "$id": "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+                        "title": "Text",
+                        "description": "An ordered sequence of characters",
+                        "type": "string"
+                      }
+                    ]
+                  },
+                  "https://blockprotocol.org/@blockprotocol/types/property-type/original-url/": {
+                    "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/property-type",
+                    "$id": "https://blockprotocol.org/@blockprotocol/types/property-type/original-url/v/1",
+                    "kind": "propertyType",
+                    "title": "Original URL",
+                    "description": "The original URL something was hosted at",
+                    "oneOf": [
+                      {
+                        "$id": "https://hash.ai/@h/types/data-type/uri/v/1",
+                        "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
+                        "abstract": false,
+                        "allOf": [
+                          {
+                            "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
+                            "kind": "dataType",
+                            "$id": "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+                            "title": "Text",
+                            "description": "An ordered sequence of characters",
+                            "type": "string"
+                          }
+                        ],
+                        "description": "A unique identifier for a resource (e.g. a URL, or URN).",
+                        "format": "uri",
+                        "kind": "dataType",
+                        "title": "URI",
+                        "type": "string"
+                      }
+                    ]
+                  },
+                  "https://hash.ai/@h/types/property-type/file-storage-bucket/": {
+                    "$id": "https://hash.ai/@h/types/property-type/file-storage-bucket/v/1",
+                    "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/property-type",
+                    "description": "The bucket in which a file is stored.",
+                    "kind": "propertyType",
+                    "oneOf": [
+                      {
+                        "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
+                        "kind": "dataType",
+                        "$id": "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+                        "title": "Text",
+                        "description": "An ordered sequence of characters",
+                        "type": "string"
+                      }
+                    ],
+                    "title": "File Storage Bucket"
+                  },
+                  "https://hash.ai/@h/types/property-type/file-storage-endpoint/": {
+                    "$id": "https://hash.ai/@h/types/property-type/file-storage-endpoint/v/1",
+                    "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/property-type",
+                    "description": "The endpoint for making requests to a file storage provider.",
+                    "kind": "propertyType",
+                    "oneOf": [
+                      {
+                        "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
+                        "kind": "dataType",
+                        "$id": "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+                        "title": "Text",
+                        "description": "An ordered sequence of characters",
+                        "type": "string"
+                      }
+                    ],
+                    "title": "File Storage Endpoint"
+                  },
+                  "https://hash.ai/@h/types/property-type/file-storage-force-path-style/": {
+                    "$id": "https://hash.ai/@h/types/property-type/file-storage-force-path-style/v/1",
+                    "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/property-type",
+                    "description": "Whether to force path style for requests to a file storage provider (vs virtual host style).",
+                    "kind": "propertyType",
+                    "oneOf": [
+                      {
+                        "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
+                        "kind": "dataType",
+                        "$id": "https://blockprotocol.org/@blockprotocol/types/data-type/boolean/v/1",
+                        "title": "Boolean",
+                        "description": "A True or False value",
+                        "type": "boolean"
+                      }
+                    ],
+                    "title": "File Storage Force Path Style"
+                  },
+                  "https://hash.ai/@h/types/property-type/file-storage-key/": {
+                    "$id": "https://hash.ai/@h/types/property-type/file-storage-key/v/1",
+                    "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/property-type",
+                    "description": "The key identifying a file in storage.",
+                    "kind": "propertyType",
+                    "oneOf": [
+                      {
+                        "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
+                        "kind": "dataType",
+                        "$id": "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+                        "title": "Text",
+                        "description": "An ordered sequence of characters",
+                        "type": "string"
+                      }
+                    ],
+                    "title": "File Storage Key"
+                  },
+                  "https://hash.ai/@h/types/property-type/file-storage-provider/": {
+                    "$id": "https://hash.ai/@h/types/property-type/file-storage-provider/v/1",
+                    "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/property-type",
+                    "description": "The provider of a file storage service.",
+                    "kind": "propertyType",
+                    "oneOf": [
+                      {
+                        "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
+                        "kind": "dataType",
+                        "$id": "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+                        "title": "Text",
+                        "description": "An ordered sequence of characters",
+                        "type": "string"
+                      }
+                    ],
+                    "title": "File Storage Provider"
+                  },
+                  "https://hash.ai/@h/types/property-type/file-storage-region/": {
+                    "$id": "https://hash.ai/@h/types/property-type/file-storage-region/v/1",
+                    "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/property-type",
+                    "description": "The region in which a file is stored.",
+                    "kind": "propertyType",
+                    "oneOf": [
+                      {
+                        "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
+                        "kind": "dataType",
+                        "$id": "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+                        "title": "Text",
+                        "description": "An ordered sequence of characters",
+                        "type": "string"
+                      }
+                    ],
+                    "title": "File Storage Region"
+                  },
+                  "https://hash.ai/@h/types/property-type/upload-completed-at/": {
+                    "$id": "https://hash.ai/@h/types/property-type/upload-completed-at/v/1",
+                    "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/property-type",
+                    "description": "The timestamp when the upload of something has completed",
+                    "kind": "propertyType",
+                    "oneOf": [
+                      {
+                        "$id": "https://hash.ai/@h/types/data-type/datetime/v/1",
+                        "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
+                        "abstract": false,
+                        "allOf": [
+                          {
+                            "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
+                            "kind": "dataType",
+                            "$id": "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+                            "title": "Text",
+                            "description": "An ordered sequence of characters",
+                            "type": "string"
+                          }
+                        ],
+                        "description": "A reference to a particular date and time, formatted according to RFC 3339.",
+                        "format": "date-time",
+                        "kind": "dataType",
+                        "title": "DateTime",
+                        "type": "string"
+                      }
+                    ],
+                    "title": "Upload Completed At"
+                  }
+                },
+                "required": [
+                  "https://blockprotocol.org/@blockprotocol/types/property-type/file-url/"
+                ],
+                "title": "File",
+                "type": "object"
+              }
+            ],
+            "description": "An image file hosted at a URL",
+            "icon": "/icons/types/file-image.svg",
+            "kind": "entityType",
+            "properties": {},
+            "title": "Image File",
+            "type": "object"
+          }
+        ]
+      },
+      "maxItems": 1,
+      "minItems": 0,
+      "type": "array"
+    },
+    "https://hash.ai/@h/types/entity-type/has-bio/v/1": {
+      "items": {
+        "oneOf": [
+          {
+            "$id": "https://hash.ai/@h/types/entity-type/profile-bio/v/1",
+            "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/entity-type",
+            "allOf": [
+              {
+                "$id": "https://hash.ai/@h/types/entity-type/block-collection/v/1",
+                "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/entity-type",
+                "description": "A collection of blocks.",
+                "icon": "/icons/types/cubes.svg",
+                "kind": "entityType",
+                "properties": {},
+                "title": "Block Collection",
+                "type": "object"
+              }
+            ],
+            "description": "A biography for display on someone or something's profile.",
+            "icon": "/icons/types/memo-circle-info.svg",
+            "kind": "entityType",
+            "links": {
+              "https://hash.ai/@h/types/entity-type/has-indexed-content/v/1": {
+                "items": {
+                  "oneOf": [
+                    {
+                      "$id": "https://hash.ai/@h/types/entity-type/block/v/1",
+                      "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/entity-type",
+                      "description": "A block that displays or otherwise uses data, part of a wider page or collection.",
+                      "icon": "/icons/types/cube.svg",
+                      "kind": "entityType",
+                      "links": {
+                        "https://hash.ai/@h/types/entity-type/has-data/v/1": {
+                          "items": {},
+                          "maxItems": 1,
+                          "minItems": 1,
+                          "type": "array"
+                        }
+                      },
+                      "properties": {
+                        "https://hash.ai/@h/types/property-type/component-id/": {
+                          "$id": "https://hash.ai/@h/types/property-type/component-id/v/1",
+                          "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/property-type",
+                          "description": "An identifier for a component.",
+                          "kind": "propertyType",
+                          "oneOf": [
+                            {
+                              "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
+                              "kind": "dataType",
+                              "$id": "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+                              "title": "Text",
+                              "description": "An ordered sequence of characters",
+                              "type": "string"
+                            }
+                          ],
+                          "title": "Component Id"
+                        }
+                      },
+                      "required": [
+                        "https://hash.ai/@h/types/property-type/component-id/"
+                      ],
+                      "title": "Block",
+                      "type": "object"
+                    }
+                  ]
+                },
+                "minItems": 1,
+                "type": "array"
+              }
+            },
+            "properties": {},
+            "title": "Profile Bio",
+            "type": "object"
+          }
+        ]
+      },
+      "maxItems": 1,
+      "minItems": 0,
+      "type": "array"
+    },
+    "https://hash.ai/@h/types/entity-type/has-cover-image/v/1": {
+      "items": {
+        "oneOf": [
+          {
+            "$id": "https://hash.ai/@h/types/entity-type/image-file/v/2",
+            "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/entity-type",
+            "allOf": [
+              {
+                "$id": "https://hash.ai/@h/types/entity-type/file/v/2",
+                "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/entity-type",
+                "description": "A file hosted at a URL",
+                "icon": "/icons/types/file.svg",
+                "kind": "entityType",
+                "labelProperty": "https://blockprotocol.org/@blockprotocol/types/property-type/display-name/",
+                "properties": {
+                  "https://blockprotocol.org/@blockprotocol/types/property-type/description/": {
+                    "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/property-type",
+                    "$id": "https://blockprotocol.org/@blockprotocol/types/property-type/description/v/1",
+                    "kind": "propertyType",
+                    "title": "Description",
+                    "description": "A piece of text that tells you about something or someone. This can include explaining what they look like, what its purpose is for, what they’re like, etc.",
+                    "oneOf": [
+                      {
+                        "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
+                        "kind": "dataType",
+                        "$id": "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+                        "title": "Text",
+                        "description": "An ordered sequence of characters",
+                        "type": "string"
+                      }
+                    ]
+                  },
+                  "https://blockprotocol.org/@blockprotocol/types/property-type/display-name/": {
+                    "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/property-type",
+                    "$id": "https://blockprotocol.org/@blockprotocol/types/property-type/display-name/v/1",
+                    "kind": "propertyType",
+                    "title": "Display Name",
+                    "description": "A human-friendly display name for something",
+                    "oneOf": [
+                      {
+                        "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
+                        "kind": "dataType",
+                        "$id": "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+                        "title": "Text",
+                        "description": "An ordered sequence of characters",
+                        "type": "string"
+                      }
+                    ]
+                  },
+                  "https://blockprotocol.org/@blockprotocol/types/property-type/file-hash/": {
+                    "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/property-type",
+                    "$id": "https://blockprotocol.org/@blockprotocol/types/property-type/file-hash/v/1",
+                    "kind": "propertyType",
+                    "title": "File Hash",
+                    "description": "A unique signature derived from a file's contents",
+                    "oneOf": [
+                      {
+                        "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
+                        "kind": "dataType",
+                        "$id": "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+                        "title": "Text",
+                        "description": "An ordered sequence of characters",
+                        "type": "string"
+                      }
+                    ]
+                  },
+                  "https://blockprotocol.org/@blockprotocol/types/property-type/file-name/": {
+                    "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/property-type",
+                    "$id": "https://blockprotocol.org/@blockprotocol/types/property-type/file-name/v/1",
+                    "kind": "propertyType",
+                    "title": "File Name",
+                    "description": "The name of a file.",
+                    "oneOf": [
+                      {
+                        "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
+                        "kind": "dataType",
+                        "$id": "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+                        "title": "Text",
+                        "description": "An ordered sequence of characters",
+                        "type": "string"
+                      }
+                    ]
+                  },
+                  "https://blockprotocol.org/@blockprotocol/types/property-type/file-size/": {
+                    "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/property-type",
+                    "$id": "https://blockprotocol.org/@blockprotocol/types/property-type/file-size/v/1",
+                    "kind": "propertyType",
+                    "title": "File Size",
+                    "description": "The size of a file",
+                    "oneOf": [
+                      {
+                        "$id": "https://hash.ai/@h/types/data-type/bytes/v/1",
+                        "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
+                        "abstract": false,
+                        "allOf": [
+                          {
+                            "$id": "https://hash.ai/@h/types/data-type/information/v/1",
+                            "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
+                            "abstract": true,
+                            "allOf": [
+                              {
+                                "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
+                                "kind": "dataType",
+                                "$id": "https://blockprotocol.org/@blockprotocol/types/data-type/number/v/1",
+                                "title": "Number",
+                                "description": "An arithmetical value (in the Real number system)",
+                                "type": "number"
+                              }
+                            ],
+                            "description": "A measure of information content.",
+                            "kind": "dataType",
+                            "title": "Information",
+                            "type": "number"
+                          }
+                        ],
+                        "description": "A unit of information equal to eight bits.",
+                        "kind": "dataType",
+                        "label": {
+                          "right": "B"
+                        },
+                        "title": "Bytes",
+                        "type": "number"
+                      }
+                    ]
+                  },
+                  "https://blockprotocol.org/@blockprotocol/types/property-type/file-url/": {
+                    "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/property-type",
+                    "$id": "https://blockprotocol.org/@blockprotocol/types/property-type/file-url/v/1",
+                    "kind": "propertyType",
+                    "title": "File URL",
+                    "description": "A URL that serves a file.",
+                    "oneOf": [
+                      {
+                        "$id": "https://hash.ai/@h/types/data-type/uri/v/1",
+                        "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
+                        "abstract": false,
+                        "allOf": [
+                          {
+                            "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
+                            "kind": "dataType",
+                            "$id": "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+                            "title": "Text",
+                            "description": "An ordered sequence of characters",
+                            "type": "string"
+                          }
+                        ],
+                        "description": "A unique identifier for a resource (e.g. a URL, or URN).",
+                        "format": "uri",
+                        "kind": "dataType",
+                        "title": "URI",
+                        "type": "string"
+                      }
+                    ]
+                  },
+                  "https://blockprotocol.org/@blockprotocol/types/property-type/mime-type/": {
+                    "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/property-type",
+                    "$id": "https://blockprotocol.org/@blockprotocol/types/property-type/mime-type/v/1",
+                    "kind": "propertyType",
+                    "title": "MIME Type",
+                    "description": "A MIME (Multipurpose Internet Mail Extensions) type.\n\nSee: https://developer.mozilla.org/en-US/docs/Web/HTTP/Basics_of_HTTP/MIME_types",
+                    "oneOf": [
+                      {
+                        "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
+                        "kind": "dataType",
+                        "$id": "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+                        "title": "Text",
+                        "description": "An ordered sequence of characters",
+                        "type": "string"
+                      }
+                    ]
+                  },
+                  "https://blockprotocol.org/@blockprotocol/types/property-type/original-file-name/": {
+                    "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/property-type",
+                    "$id": "https://blockprotocol.org/@blockprotocol/types/property-type/original-file-name/v/1",
+                    "kind": "propertyType",
+                    "title": "Original File Name",
+                    "description": "The original name of a file",
+                    "oneOf": [
+                      {
+                        "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
+                        "kind": "dataType",
+                        "$id": "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+                        "title": "Text",
+                        "description": "An ordered sequence of characters",
+                        "type": "string"
+                      }
+                    ]
+                  },
+                  "https://blockprotocol.org/@blockprotocol/types/property-type/original-source/": {
+                    "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/property-type",
+                    "$id": "https://blockprotocol.org/@blockprotocol/types/property-type/original-source/v/1",
+                    "kind": "propertyType",
+                    "title": "Original Source",
+                    "description": "The original source of something",
+                    "oneOf": [
+                      {
+                        "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
+                        "kind": "dataType",
+                        "$id": "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+                        "title": "Text",
+                        "description": "An ordered sequence of characters",
+                        "type": "string"
+                      }
+                    ]
+                  },
+                  "https://blockprotocol.org/@blockprotocol/types/property-type/original-url/": {
+                    "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/property-type",
+                    "$id": "https://blockprotocol.org/@blockprotocol/types/property-type/original-url/v/1",
+                    "kind": "propertyType",
+                    "title": "Original URL",
+                    "description": "The original URL something was hosted at",
+                    "oneOf": [
+                      {
+                        "$id": "https://hash.ai/@h/types/data-type/uri/v/1",
+                        "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
+                        "abstract": false,
+                        "allOf": [
+                          {
+                            "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
+                            "kind": "dataType",
+                            "$id": "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+                            "title": "Text",
+                            "description": "An ordered sequence of characters",
+                            "type": "string"
+                          }
+                        ],
+                        "description": "A unique identifier for a resource (e.g. a URL, or URN).",
+                        "format": "uri",
+                        "kind": "dataType",
+                        "title": "URI",
+                        "type": "string"
+                      }
+                    ]
+                  },
+                  "https://hash.ai/@h/types/property-type/file-storage-bucket/": {
+                    "$id": "https://hash.ai/@h/types/property-type/file-storage-bucket/v/1",
+                    "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/property-type",
+                    "description": "The bucket in which a file is stored.",
+                    "kind": "propertyType",
+                    "oneOf": [
+                      {
+                        "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
+                        "kind": "dataType",
+                        "$id": "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+                        "title": "Text",
+                        "description": "An ordered sequence of characters",
+                        "type": "string"
+                      }
+                    ],
+                    "title": "File Storage Bucket"
+                  },
+                  "https://hash.ai/@h/types/property-type/file-storage-endpoint/": {
+                    "$id": "https://hash.ai/@h/types/property-type/file-storage-endpoint/v/1",
+                    "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/property-type",
+                    "description": "The endpoint for making requests to a file storage provider.",
+                    "kind": "propertyType",
+                    "oneOf": [
+                      {
+                        "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
+                        "kind": "dataType",
+                        "$id": "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+                        "title": "Text",
+                        "description": "An ordered sequence of characters",
+                        "type": "string"
+                      }
+                    ],
+                    "title": "File Storage Endpoint"
+                  },
+                  "https://hash.ai/@h/types/property-type/file-storage-force-path-style/": {
+                    "$id": "https://hash.ai/@h/types/property-type/file-storage-force-path-style/v/1",
+                    "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/property-type",
+                    "description": "Whether to force path style for requests to a file storage provider (vs virtual host style).",
+                    "kind": "propertyType",
+                    "oneOf": [
+                      {
+                        "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
+                        "kind": "dataType",
+                        "$id": "https://blockprotocol.org/@blockprotocol/types/data-type/boolean/v/1",
+                        "title": "Boolean",
+                        "description": "A True or False value",
+                        "type": "boolean"
+                      }
+                    ],
+                    "title": "File Storage Force Path Style"
+                  },
+                  "https://hash.ai/@h/types/property-type/file-storage-key/": {
+                    "$id": "https://hash.ai/@h/types/property-type/file-storage-key/v/1",
+                    "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/property-type",
+                    "description": "The key identifying a file in storage.",
+                    "kind": "propertyType",
+                    "oneOf": [
+                      {
+                        "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
+                        "kind": "dataType",
+                        "$id": "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+                        "title": "Text",
+                        "description": "An ordered sequence of characters",
+                        "type": "string"
+                      }
+                    ],
+                    "title": "File Storage Key"
+                  },
+                  "https://hash.ai/@h/types/property-type/file-storage-provider/": {
+                    "$id": "https://hash.ai/@h/types/property-type/file-storage-provider/v/1",
+                    "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/property-type",
+                    "description": "The provider of a file storage service.",
+                    "kind": "propertyType",
+                    "oneOf": [
+                      {
+                        "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
+                        "kind": "dataType",
+                        "$id": "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+                        "title": "Text",
+                        "description": "An ordered sequence of characters",
+                        "type": "string"
+                      }
+                    ],
+                    "title": "File Storage Provider"
+                  },
+                  "https://hash.ai/@h/types/property-type/file-storage-region/": {
+                    "$id": "https://hash.ai/@h/types/property-type/file-storage-region/v/1",
+                    "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/property-type",
+                    "description": "The region in which a file is stored.",
+                    "kind": "propertyType",
+                    "oneOf": [
+                      {
+                        "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
+                        "kind": "dataType",
+                        "$id": "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+                        "title": "Text",
+                        "description": "An ordered sequence of characters",
+                        "type": "string"
+                      }
+                    ],
+                    "title": "File Storage Region"
+                  },
+                  "https://hash.ai/@h/types/property-type/upload-completed-at/": {
+                    "$id": "https://hash.ai/@h/types/property-type/upload-completed-at/v/1",
+                    "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/property-type",
+                    "description": "The timestamp when the upload of something has completed",
+                    "kind": "propertyType",
+                    "oneOf": [
+                      {
+                        "$id": "https://hash.ai/@h/types/data-type/datetime/v/1",
+                        "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
+                        "abstract": false,
+                        "allOf": [
+                          {
+                            "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
+                            "kind": "dataType",
+                            "$id": "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+                            "title": "Text",
+                            "description": "An ordered sequence of characters",
+                            "type": "string"
+                          }
+                        ],
+                        "description": "A reference to a particular date and time, formatted according to RFC 3339.",
+                        "format": "date-time",
+                        "kind": "dataType",
+                        "title": "DateTime",
+                        "type": "string"
+                      }
+                    ],
+                    "title": "Upload Completed At"
+                  }
+                },
+                "required": [
+                  "https://blockprotocol.org/@blockprotocol/types/property-type/file-url/"
+                ],
+                "title": "File",
+                "type": "object"
+              }
+            ],
+            "description": "An image file hosted at a URL",
+            "icon": "/icons/types/file-image.svg",
+            "kind": "entityType",
+            "properties": {},
+            "title": "Image File",
+            "type": "object"
+          }
+        ]
+      },
+      "maxItems": 1,
+      "minItems": 0,
+      "type": "array"
+    },
+    "https://hash.ai/@h/types/entity-type/has-issued-invitation/v/1": {
+      "items": {
+        "oneOf": [
+          {
+            "$id": "https://hash.ai/@h/types/entity-type/invitation-via-email/v/1",
+            "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/entity-type",
+            "allOf": [
+              {
+                "$id": "https://hash.ai/@h/types/entity-type/invitation/v/1",
+                "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/entity-type",
+                "description": "A request or offer to join or attend something.",
+                "kind": "entityType",
+                "properties": {
+                  "https://hash.ai/@h/types/property-type/expired-at/": {
+                    "$id": "https://hash.ai/@h/types/property-type/expired-at/v/1",
+                    "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/property-type",
+                    "description": "Stringified timestamp of when something expired.",
+                    "kind": "propertyType",
+                    "oneOf": [
+                      {
+                        "$id": "https://hash.ai/@h/types/data-type/datetime/v/1",
+                        "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
+                        "abstract": false,
+                        "allOf": [
+                          {
+                            "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
+                            "kind": "dataType",
+                            "$id": "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+                            "title": "Text",
+                            "description": "An ordered sequence of characters",
+                            "type": "string"
+                          }
+                        ],
+                        "description": "A reference to a particular date and time, formatted according to RFC 3339.",
+                        "format": "date-time",
+                        "kind": "dataType",
+                        "title": "DateTime",
+                        "type": "string"
+                      }
+                    ],
+                    "title": "Expired At"
+                  }
+                },
+                "required": [
+                  "https://hash.ai/@h/types/property-type/expired-at/"
+                ],
+                "title": "Invitation",
+                "type": "object"
+              }
+            ],
+            "description": "An invitation issued to an email address.",
+            "kind": "entityType",
+            "properties": {
+              "https://hash.ai/@h/types/property-type/email/": {
+                "$id": "https://hash.ai/@h/types/property-type/email/v/1",
+                "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/property-type",
+                "description": "An email address",
+                "kind": "propertyType",
+                "oneOf": [
+                  {
+                    "$id": "https://hash.ai/@h/types/data-type/email/v/1",
+                    "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
+                    "abstract": false,
+                    "allOf": [
+                      {
+                        "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
+                        "kind": "dataType",
+                        "$id": "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+                        "title": "Text",
+                        "description": "An ordered sequence of characters",
+                        "type": "string"
+                      }
+                    ],
+                    "description": "An identifier for an email box to which messages are delivered.",
+                    "format": "email",
+                    "kind": "dataType",
+                    "title": "Email",
+                    "type": "string"
+                  }
+                ],
+                "title": "Email"
+              }
+            },
+            "required": ["https://hash.ai/@h/types/property-type/email/"],
+            "title": "Invitation Via Email",
+            "type": "object"
+          },
+          {
+            "$id": "https://hash.ai/@h/types/entity-type/invitation-via-shortname/v/1",
+            "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/entity-type",
+            "allOf": [
+              {
+                "$id": "https://hash.ai/@h/types/entity-type/invitation/v/1",
+                "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/entity-type",
+                "description": "A request or offer to join or attend something.",
+                "kind": "entityType",
+                "properties": {
+                  "https://hash.ai/@h/types/property-type/expired-at/": {
+                    "$id": "https://hash.ai/@h/types/property-type/expired-at/v/1",
+                    "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/property-type",
+                    "description": "Stringified timestamp of when something expired.",
+                    "kind": "propertyType",
+                    "oneOf": [
+                      {
+                        "$id": "https://hash.ai/@h/types/data-type/datetime/v/1",
+                        "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
+                        "abstract": false,
+                        "allOf": [
+                          {
+                            "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
+                            "kind": "dataType",
+                            "$id": "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+                            "title": "Text",
+                            "description": "An ordered sequence of characters",
+                            "type": "string"
+                          }
+                        ],
+                        "description": "A reference to a particular date and time, formatted according to RFC 3339.",
+                        "format": "date-time",
+                        "kind": "dataType",
+                        "title": "DateTime",
+                        "type": "string"
+                      }
+                    ],
+                    "title": "Expired At"
+                  }
+                },
+                "required": [
+                  "https://hash.ai/@h/types/property-type/expired-at/"
+                ],
+                "title": "Invitation",
+                "type": "object"
+              }
+            ],
+            "description": "An invitation issued to a user via their shortname.",
+            "kind": "entityType",
+            "properties": {
+              "https://hash.ai/@h/types/property-type/shortname/": {
+                "$id": "https://hash.ai/@h/types/property-type/shortname/v/1",
+                "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/property-type",
+                "description": "A unique identifier for something, in the form of a slug",
+                "kind": "propertyType",
+                "oneOf": [
+                  {
+                    "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
+                    "kind": "dataType",
+                    "$id": "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+                    "title": "Text",
+                    "description": "An ordered sequence of characters",
+                    "type": "string"
+                  }
+                ],
+                "title": "Shortname"
+              }
+            },
+            "required": ["https://hash.ai/@h/types/property-type/shortname/"],
+            "title": "Invitation Via Shortname",
+            "type": "object"
+          }
+        ]
+      },
+      "type": "array"
+    }
+  },
+  "properties": {
+    "https://blockprotocol.org/@blockprotocol/types/property-type/description/": {
+      "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/property-type",
+      "$id": "https://blockprotocol.org/@blockprotocol/types/property-type/description/v/1",
+      "kind": "propertyType",
+      "title": "Description",
+      "description": "A piece of text that tells you about something or someone. This can include explaining what they look like, what its purpose is for, what they’re like, etc.",
+      "oneOf": [
+        {
+          "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
+          "kind": "dataType",
+          "$id": "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+          "title": "Text",
+          "description": "An ordered sequence of characters",
+          "type": "string"
+        }
+      ]
+    },
+    "https://hash.ai/@h/types/property-type/location/": {
+      "$id": "https://hash.ai/@h/types/property-type/location/v/1",
+      "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/property-type",
+      "description": "A location for something, expressed as a single string",
+      "kind": "propertyType",
+      "oneOf": [
+        {
+          "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
+          "kind": "dataType",
+          "$id": "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+          "title": "Text",
+          "description": "An ordered sequence of characters",
+          "type": "string"
+        }
+      ],
+      "title": "Location"
+    },
+    "https://hash.ai/@h/types/property-type/organization-name/": {
+      "$id": "https://hash.ai/@h/types/property-type/organization-name/v/1",
+      "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/property-type",
+      "description": "The name of an organization.",
+      "kind": "propertyType",
+      "oneOf": [
+        {
+          "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
+          "kind": "dataType",
+          "$id": "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+          "title": "Text",
+          "description": "An ordered sequence of characters",
+          "type": "string"
+        }
+      ],
+      "title": "Organization Name"
+    },
+    "https://hash.ai/@h/types/property-type/pinned-entity-type-base-url/": {
+      "items": {
+        "$id": "https://hash.ai/@h/types/property-type/pinned-entity-type-base-url/v/1",
+        "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/property-type",
+        "description": "The base URL of a pinned entity type.",
+        "kind": "propertyType",
+        "oneOf": [
+          {
+            "$id": "https://hash.ai/@h/types/data-type/uri/v/1",
+            "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
+            "abstract": false,
+            "allOf": [
+              {
+                "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
+                "kind": "dataType",
+                "$id": "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+                "title": "Text",
+                "description": "An ordered sequence of characters",
+                "type": "string"
+              }
+            ],
+            "description": "A unique identifier for a resource (e.g. a URL, or URN).",
+            "format": "uri",
+            "kind": "dataType",
+            "title": "URI",
+            "type": "string"
+          }
+        ],
+        "title": "Pinned Entity Type Base URL"
+      },
+      "maxItems": 5,
+      "type": "array"
+    },
+    "https://hash.ai/@h/types/property-type/shortname/": {
+      "$id": "https://hash.ai/@h/types/property-type/shortname/v/1",
+      "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/property-type",
+      "description": "A unique identifier for something, in the form of a slug",
+      "kind": "propertyType",
+      "oneOf": [
+        {
+          "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
+          "kind": "dataType",
+          "$id": "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+          "title": "Text",
+          "description": "An ordered sequence of characters",
+          "type": "string"
+        }
+      ],
+      "title": "Shortname"
+    },
+    "https://hash.ai/@h/types/property-type/website-url/": {
+      "$id": "https://hash.ai/@h/types/property-type/website-url/v/1",
+      "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/property-type",
+      "description": "A URL for a website",
+      "kind": "propertyType",
+      "oneOf": [
+        {
+          "$id": "https://hash.ai/@h/types/data-type/uri/v/1",
+          "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
+          "abstract": false,
+          "allOf": [
+            {
+              "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
+              "kind": "dataType",
+              "$id": "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+              "title": "Text",
+              "description": "An ordered sequence of characters",
+              "type": "string"
+            }
+          ],
+          "description": "A unique identifier for a resource (e.g. a URL, or URN).",
+          "format": "uri",
+          "kind": "dataType",
+          "title": "URI",
+          "type": "string"
+        }
+      ],
+      "title": "Website URL"
+    }
+  },
+  "required": [
+    "https://hash.ai/@h/types/property-type/shortname/",
+    "https://hash.ai/@h/types/property-type/organization-name/"
+  ],
+  "title": "Organization",
+  "type": "object"
+}

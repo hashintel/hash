@@ -1,4 +1,3 @@
-/* eslint-disable no-console */
 /**
  * Script to generate bundled and dereferenced JSON Schema fixtures
  * from remote HASH type schemas.
@@ -21,7 +20,7 @@
  *   other use cases (standard JSON Schema validators, etc.).
  *
  * Usage:
- *   tsx apps/hash-ai-agent/src/mastra/fixtures/generate-schemas.ts
+ *   tsx apps/hash-ai-agent/src/mastra/scripts/generate-schemas.ts
  *
  * Or via npm script:
  *   yarn workspace @apps/hash-ai-agent generate-schemas
@@ -194,7 +193,7 @@ function normalizeToDefsStructure(
 }
 
 async function generateSchemas() {
-  const outputDir = path.join(__dirname, "entity-schemas");
+  const outputDir = path.join(__dirname, "../fixtures/entity-schemas");
 
   await mkdir(outputDir, { recursive: true });
 

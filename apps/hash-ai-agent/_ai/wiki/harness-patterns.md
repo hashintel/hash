@@ -1,4 +1,5 @@
 > Essential architectural patterns from Anthropic’s two articles re agent harnesses:
+>
 > - https://www.anthropic.com/engineering/effective-harnesses-for-long-running-agents
 > - https://www.anthropic.com/research/building-effective-agents
 

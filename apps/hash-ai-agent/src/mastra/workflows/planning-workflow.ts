@@ -18,9 +18,9 @@ import { z } from "zod";
 
 import { generatePlan } from "../agents/planner-agent";
 import { zPlanSpec } from "../schemas/plan-spec";
-import type { ValidationError } from "../tools/plan-validator";
-import { validatePlan } from "../tools/plan-validator";
-import { buildRevisionFeedback } from "./revision-feedback";
+import { buildRevisionFeedback } from "../utils/build-revision-feedback";
+import type { ValidationError } from "../utils/plan-validator";
+import { validatePlan } from "../utils/plan-validator";
 
 // =============================================================================
 // SCHEMAS

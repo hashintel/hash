@@ -15,10 +15,6 @@
 
 import { z } from "zod";
 
-// =============================================================================
-// AIM TYPE
-// =============================================================================
-
 /**
  * Classification of the goal's primary aim.
  *
@@ -33,10 +29,6 @@ import { z } from "zod";
  */
 export const zAimType = z.enum(["describe", "explain", "predict", "intervene"]);
 export type AimType = z.infer<typeof zAimType>;
-
-// =============================================================================
-// REQUIREMENTS
-// =============================================================================
 
 /**
  * A requirement extracted from the goal.
@@ -54,10 +46,6 @@ export const zRequirement = z.object({
     .describe("MoSCoW priority level"),
 });
 export type Requirement = z.infer<typeof zRequirement>;
-
-// =============================================================================
-// HYPOTHESES
-// =============================================================================
 
 /**
  * A testable hypothesis.
@@ -88,6 +76,7 @@ export const zHypothesis = z.object({
     .describe("How this hypothesis can be tested (what experiment/evidence)"),
   status: zHypothesisStatus.default("untested"),
 });
+
 export type Hypothesis = z.infer<typeof zHypothesis>;
 
 // =============================================================================
@@ -106,6 +95,7 @@ export const zUnknownUnknown = z.object({
     .string()
     .describe("How would we notice? What would be the signal?"),
 });
+
 export type UnknownUnknown = z.infer<typeof zUnknownUnknown>;
 
 /**
@@ -135,31 +125,21 @@ export const zUnknownsMap = z.object({
     .string()
     .describe("What others would need to see to scrutinize our claims"),
 });
+
 export type UnknownsMap = z.infer<typeof zUnknownsMap>;
 
-// =============================================================================
-// DATA CONTRACTS
-// =============================================================================
-
 /**
- * A data contract describing step inputs/outputs.
+ * A step artifact describing step inputs/outputs.
  *
  * Contracts enable validation that steps are properly connected
  * and that data flows correctly through the plan.
  */
-export const zDataContract = z.object({
+export const zStepArtifact = z.object({
   name: z.string().describe("Name of the data artifact"),
   description: z.string().describe("What this data represents"),
-  fromStepId: z
-    .string()
-    .optional()
-    .describe("Step that produces this (for inputs)"),
 });
-export type DataContract = z.infer<typeof zDataContract>;
 
-// =============================================================================
-// EVALUATION CRITERIA
-// =============================================================================
+export type StepArtifact = z.infer<typeof zStepArtifact>;
 
 /**
  * Criteria for evaluating step success.
@@ -171,11 +151,8 @@ export const zEvalCriteria = z.object({
     .optional()
     .describe("What constitutes failure (if different from !success)"),
 });
-export type EvalCriteria = z.infer<typeof zEvalCriteria>;
 
-// =============================================================================
-// EXECUTOR BINDING
-// =============================================================================
+export type EvalCriteria = z.infer<typeof zEvalCriteria>;
 
 /**
  * Binding to an executor that will perform the step.
@@ -207,35 +184,50 @@ export const zExecutor = z.discriminatedUnion("kind", [
       .describe("Instructions for human executor"),
   }),
 ]);
+
 export type Executor = z.infer<typeof zExecutor>;
 
 // =============================================================================
-// BASE STEP
+// STEP TYPES
 // =============================================================================
+
+/**
+ * Step types supported in the PlanSpec.
+ */
+export const STEP_TYPES = [
+  "research",
+  "synthesize",
+  "experiment",
+  "develop",
+] as const;
+export const zStepType = z.enum(STEP_TYPES);
+export type StepType = z.infer<typeof zStepType>;
 
 /**
  * Common fields shared by all step types.
  */
 export const zBaseStep = z.object({
+  type: zStepType,
   id: z.string().describe("Unique identifier (e.g., 'S1', 'S2')"),
   description: z.string().describe("What this step accomplishes"),
-  dependsOn: z
+  dependencyIds: z
     .array(z.string())
+    .default([])
     .describe("Step IDs that must complete before this step"),
+  concurrent: z
+    .boolean()
+    .default(true)
+    .describe("Whether this step may run concurrently with other ready steps"),
   requirementIds: z
     .array(z.string())
     .describe("Requirement IDs this step addresses"),
-  inputs: z.array(zDataContract).describe("Data this step consumes"),
-  outputs: z.array(zDataContract).describe("Data this step produces"),
+  inputs: z.array(zStepArtifact).describe("Data this step consumes"),
+  outputs: z.array(zStepArtifact).describe("Data this step produces"),
   evalCriteria: zEvalCriteria
     .optional()
     .describe("How to evaluate step success"),
   executor: zExecutor.describe("Who/what performs this step"),
 });
-
-// =============================================================================
-// STEP TYPES
-// =============================================================================
 
 // -----------------------------------------------------------------------------
 // Research Step
@@ -244,22 +236,17 @@ export const zBaseStep = z.object({
 /**
  * A research step for gathering existing knowledge.
  *
- * Research steps are parallelizable — multiple research queries can run
- * concurrently. Each research step should have a clear stopping rule
- * defining what "done" means.
+ * Each research step should have a clear stopping rule defining what "done"
+ * means.
  */
 export const zResearchStep = zBaseStep.extend({
-  type: z.literal("research"),
+  type: zStepType.extract(["research"]),
   query: z.string().describe("The research question or search query"),
   stoppingRule: z
     .string()
     .describe(
       'What "done" means for this research (e.g., "3 relevant papers found")',
     ),
-  parallelizable: z
-    .boolean()
-    .default(true)
-    .describe("Research steps are typically parallelizable (defaults to true)"),
 });
 export type ResearchStep = z.infer<typeof zResearchStep>;
 
@@ -268,36 +255,20 @@ export type ResearchStep = z.infer<typeof zResearchStep>;
 // -----------------------------------------------------------------------------
 
 /**
- * Synthesis modes.
- *
- * - integrative: Combine findings from multiple sources into coherent understanding
- * - evaluative: Judge results against criteria (subsumes old "assess" step type)
- */
-export const zSynthesisMode = z.enum(["integrative", "evaluative"]);
-export type SynthesisMode = z.infer<typeof zSynthesisMode>;
-
-/**
  * A synthesize step for combining or evaluating results.
- *
- * Synthesize steps are NOT parallelizable — they require all inputs to be ready.
  *
  * When mode is 'evaluative', this subsumes the old "assess" step type.
  * Evaluative synthesis judges results against specific criteria.
  */
 export const zSynthesizeStep = zBaseStep.extend({
-  type: z.literal("synthesize"),
-  mode: zSynthesisMode.describe("integrative (combine) or evaluative (judge)"),
-  inputStepIds: z
-    .array(z.string())
-    .describe("Step IDs whose outputs to synthesize"),
+  type: zStepType.extract(["synthesize"]),
+  mode: z
+    .enum(["integrative", "evaluative"])
+    .describe("integrative (combine) or evaluative (judge)"),
   evaluateAgainst: z
     .array(z.string())
     .optional()
     .describe("Criteria to evaluate against (required if mode is evaluative)"),
-  parallelizable: z
-    .boolean()
-    .default(false)
-    .describe("Synthesize steps typically wait for inputs (defaults to false)"),
 });
 export type SynthesizeStep = z.infer<typeof zSynthesizeStep>;
 
@@ -321,14 +292,11 @@ export type ExperimentMode = z.infer<typeof zExperimentMode>;
 /**
  * An experiment step for testing hypotheses.
  *
- * Experiment steps can be parallelizable — multiple independent experiments
- * can run concurrently, but sequential experiments are also valid.
- *
  * Confirmatory experiments SHOULD have preregisteredCommitments — decisions
  * locked before seeing outcomes. This is validated by the experiment-rigor scorer.
  */
 export const zExperimentStep = zBaseStep.extend({
-  type: z.literal("experiment"),
+  type: zStepType.extract(["experiment"]),
   mode: zExperimentMode.describe("exploratory or confirmatory"),
   hypothesisIds: z.array(z.string()).describe("Hypothesis IDs being tested"),
   procedure: z.string().describe("How the experiment will be conducted"),
@@ -344,10 +312,6 @@ export const zExperimentStep = zBaseStep.extend({
     .describe(
       "Decisions locked before seeing outcomes (required for confirmatory)",
     ),
-  parallelizable: z
-    .boolean()
-    .default(true)
-    .describe("Whether this experiment can run in parallel with others"),
 });
 export type ExperimentStep = z.infer<typeof zExperimentStep>;
 
@@ -357,17 +321,11 @@ export type ExperimentStep = z.infer<typeof zExperimentStep>;
 
 /**
  * A develop step for building/implementing something.
- *
- * Develop steps may or may not be parallelizable depending on dependencies.
  */
 export const zDevelopStep = zBaseStep.extend({
-  type: z.literal("develop"),
+  type: zStepType.extract(["develop"]),
   specification: z.string().describe("What to build/implement"),
   deliverables: z.array(z.string()).describe("Concrete outputs to produce"),
-  parallelizable: z
-    .boolean()
-    .default(false)
-    .describe("Whether this can run in parallel with other develop steps"),
 });
 export type DevelopStep = z.infer<typeof zDevelopStep>;
 
@@ -385,17 +343,6 @@ export const zPlanStep = z.discriminatedUnion("type", [
   zDevelopStep,
 ]);
 export type PlanStep = z.infer<typeof zPlanStep>;
-
-/**
- * Step type literals for type-safe checks.
- */
-export const STEP_TYPES = [
-  "research",
-  "synthesize",
-  "experiment",
-  "develop",
-] as const;
-export type StepType = (typeof STEP_TYPES)[number];
 
 // =============================================================================
 // PLAN SPEC (Full IR)
@@ -450,52 +397,3 @@ export const zPlanSpec = z.object({
     .describe("Estimated complexity of the plan"),
 });
 export type PlanSpec = z.infer<typeof zPlanSpec>;
-
-// =============================================================================
-// VALIDATION HELPERS
-// =============================================================================
-
-/**
- * Check if a step is parallelizable based on its type and configuration.
- */
-export function isParallelizable(step: PlanStep): boolean {
-  return step.parallelizable;
-}
-
-/**
- * Get all step IDs referenced by a step (dependencies + inputs).
- */
-export function getStepReferences(step: PlanStep): string[] {
-  const refs = [...step.dependsOn];
-
-  // Add inputStepIds for synthesize steps
-  if (step.type === "synthesize") {
-    refs.push(...step.inputStepIds);
-  }
-
-  // Add fromStepId from inputs
-  for (const input of step.inputs) {
-    if (input.fromStepId) {
-      refs.push(input.fromStepId);
-    }
-  }
-
-  return Array.from(new Set(refs)); // Deduplicate
-}
-
-/**
- * Get all hypothesis IDs referenced by a step.
- */
-export function getHypothesisReferences(step: PlanStep): string[] {
-  if (step.type === "experiment") {
-    return step.hypothesisIds;
-  }
-  return [];
-}
-
-/**
- * Get all requirement IDs referenced by a step.
- */
-export function getRequirementReferences(step: PlanStep): string[] {
-  return step.requirementIds;
-}

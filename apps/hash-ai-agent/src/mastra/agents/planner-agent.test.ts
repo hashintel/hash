@@ -12,14 +12,14 @@
 
 import { describe, expect, test } from "vitest";
 
-import { generatePlan } from "../../agents/planner-agent";
-import type { PlanningFixture } from "../../schemas/planning-fixture";
-import { validatePlan } from "../../tools/plan-validator";
-import { analyzePlanTopology } from "../../tools/topology-analyzer";
-import { ctDatabaseGoalFixture } from "./ct-database-goal";
-import { exploreAndRecommendFixture } from "./explore-and-recommend";
-import { hypothesisValidationFixture } from "./hypothesis-validation";
-import { summarizePapersFixture } from "./summarize-papers";
+import { ctDatabaseGoalFixture } from "../fixtures/planning-goals/ct-database-goal";
+import { exploreAndRecommendFixture } from "../fixtures/planning-goals/explore-and-recommend";
+import { hypothesisValidationFixture } from "../fixtures/planning-goals/hypothesis-validation";
+import { summarizePapersFixture } from "../fixtures/planning-goals/summarize-papers";
+import type { PlanningGoal } from "../schemas/planning-goal";
+import { validatePlan } from "../utils/plan-validator";
+import { analyzePlanTopology } from "../utils/topology-analyzer";
+import { generatePlan } from "./planner-agent";
 
 const RUN_LLM_SCORERS = process.env.RUN_LLM_SCORERS === "true";
 const describeIfLlm = RUN_LLM_SCORERS ? describe : describe.skip;
@@ -33,7 +33,7 @@ if (!RUN_LLM_SCORERS) {
 /**
  * Helper to run a fixture through the planning pipeline and validate results.
  */
-async function runFixtureTest(fixture: PlanningFixture): Promise<void> {
+async function runFixtureTest(fixture: PlanningGoal): Promise<void> {
   const { input, expected } = fixture;
 
   console.log(`\n${"=".repeat(60)}`);
@@ -59,7 +59,9 @@ async function runFixtureTest(fixture: PlanningFixture): Promise<void> {
   console.log(`\nSteps:`);
   for (const step of plan.steps) {
     const deps =
-      step.dependsOn.length > 0 ? ` (deps: ${step.dependsOn.join(", ")})` : "";
+      step.dependencyIds.length > 0
+        ? ` (deps: ${step.dependencyIds.join(", ")})`
+        : "";
     console.log(
       `  ${step.id}: [${step.type}] ${step.description.slice(0, 50)}...${deps}`,
     );
@@ -84,7 +86,11 @@ async function runFixtureTest(fixture: PlanningFixture): Promise<void> {
     console.log(`  Exit points: [${topology.exitPoints.join(", ")}]`);
     console.log(`  Critical path: ${topology.criticalPath.length} steps`);
     console.log(
-      `  Max parallelism: ${Math.max(...topology.parallelGroups.map((group) => group.parallelizableStepIds.length))}`,
+      `  Max parallelism: ${Math.max(
+        ...topology.parallelGroups.map(
+          (group) => group.concurrentStepIds.length,
+        ),
+      )}`,
     );
   }
 
@@ -115,10 +121,10 @@ async function runFixtureTest(fixture: PlanningFixture): Promise<void> {
     expect(hasExperiment).toBe(true);
   }
 
-  // Parallel research expectation
-  if (expected.shouldHaveParallelResearch) {
+  // Concurrent research expectation
+  if (expected.shouldHaveConcurrentResearch) {
     const researchSteps = plan.steps.filter((step) => step.type === "research");
-    // Should have at least one research step (all research steps are parallelizable by design)
+    // Should have at least one research step (typically concurrent by policy)
     expect(researchSteps.length).toBeGreaterThan(0);
   }
 

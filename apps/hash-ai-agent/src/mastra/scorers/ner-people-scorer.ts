@@ -1,12 +1,12 @@
 import { createScorer } from "@mastra/core/evals";
 import { z } from "zod";
 
-import { DEFAULT_MODEL, NAME_PROPERTY } from "../constants";
+import { DEFAULT_MODEL, NAME_PROPERTY_SCHEMA } from "../constants";
 
 /** Schema for extracted person entity */
 const zPersonEntity = z
   .object({
-    [NAME_PROPERTY]: z.string(),
+    [NAME_PROPERTY_SCHEMA]: z.string(),
   })
   .passthrough(); // allow other properties like description
 
@@ -66,7 +66,7 @@ Be precise: only match names that clearly refer to the same real-world person.`,
     } else {
       for (const person of output) {
         const personObj = person as Record<string, unknown>;
-        const name = personObj[NAME_PROPERTY];
+        const name = personObj[NAME_PROPERTY_SCHEMA];
         if (typeof name === "string") {
           extractedNames.push(name);
         }
@@ -76,7 +76,7 @@ Be precise: only match names that clearly refer to the same real-world person.`,
     // Parse ground truth
     const groundTruth = zGroundTruth.parse(run.groundTruth);
     const expectedNames = groundTruth.expectedPersons.map(
-      (person) => person[NAME_PROPERTY],
+      (person) => person[NAME_PROPERTY_SCHEMA],
     );
 
     return { extractedNames, expectedNames };

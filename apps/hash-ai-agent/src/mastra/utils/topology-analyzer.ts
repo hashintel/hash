@@ -18,7 +18,6 @@
  */
 
 import type { PlanSpec, PlanStep } from "../schemas/plan-spec";
-import { getStepReferences, isParallelizable } from "../schemas/plan-spec";
 
 // =============================================================================
 // TYPES
@@ -29,15 +28,15 @@ import { getStepReferences, isParallelizable } from "../schemas/plan-spec";
  *
  * Steps in a group:
  * - Have the same dependency depth (all dependencies are satisfied at the same time)
- * - May or may not be individually parallelizable (check `parallelizable` field)
+ * - May or may not be individually concurrent (check `concurrent` field)
  */
 export interface ParallelGroup {
   /** Depth level (0 = entry points, 1 = depends on entry points, etc.) */
   depth: number;
   /** Step IDs in this group */
   stepIds: string[];
-  /** Step IDs that are individually parallelizable */
-  parallelizableStepIds: string[];
+  /** Step IDs that are individually concurrent */
+  concurrentStepIds: string[];
 }
 
 /**
@@ -103,7 +102,7 @@ function buildGraphMaps(plan: PlanSpec): {
 
   // Populate from step references
   for (const step of plan.steps) {
-    const deps = getStepReferences(step).filter((ref) => stepIds.has(ref));
+    const deps = step.dependencyIds.filter((ref) => stepIds.has(ref));
     dependencies.set(step.id, new Set(deps));
 
     for (const dep of deps) {
@@ -208,15 +207,15 @@ function computeParallelGroups(
       groupsByDepth.set(depth, {
         depth,
         stepIds: [],
-        parallelizableStepIds: [],
+        concurrentStepIds: [],
       });
     }
 
     const group = groupsByDepth.get(depth)!;
     group.stepIds.push(step.id);
 
-    if (isParallelizable(step)) {
-      group.parallelizableStepIds.push(step.id);
+    if (step.concurrent !== false) {
+      group.concurrentStepIds.push(step.id);
     }
   }
 
@@ -347,7 +346,7 @@ function computeDependentCounts(
  * const analysis = analyzePlanTopology(planSpec);
  *
  * // Get steps that can run in parallel at depth 0
- * const firstBatch = analysis.parallelGroups[0].parallelizableStepIds;
+ * const firstBatch = analysis.parallelGroups[0].concurrentStepIds;
  *
  * // Check critical path length for complexity
  * console.log(`Critical path length: ${analysis.criticalPath.length}`);
@@ -379,12 +378,12 @@ export function analyzePlanTopology(plan: PlanSpec): TopologyAnalysis {
 /**
  * Get the maximum parallelism possible at any depth level.
  *
- * This is the maximum number of parallelizable steps in any single group.
+ * This is the maximum number of concurrent steps in any single group.
  */
 export function getMaxParallelism(analysis: TopologyAnalysis): number {
   let max = 0;
   for (const group of analysis.parallelGroups) {
-    max = Math.max(max, group.parallelizableStepIds.length);
+    max = Math.max(max, group.concurrentStepIds.length);
   }
   return max;
 }
@@ -428,7 +427,7 @@ export function getUnblockedSteps(
     }
 
     // Check if all dependencies are completed
-    const deps = getStepReferences(step).filter((ref) => stepIds.has(ref));
+    const deps = step.dependencyIds.filter((ref) => stepIds.has(ref));
     const allDepsCompleted = deps.every((dep) => completedStepIds.has(dep));
 
     if (allDepsCompleted) {
