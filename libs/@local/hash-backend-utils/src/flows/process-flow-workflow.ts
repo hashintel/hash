@@ -50,7 +50,7 @@ const log = (message: string) => {
 
 const doesFlowStepHaveSatisfiedDependencies = (params: {
   step: FlowStep;
-  flowDefinition: FlowDefinition;
+  flowDefinition: FlowDefinition<FlowActionDefinitionId>;
   processedStepIds: string[];
 }) => {
   const { step, flowDefinition, processedStepIds } = params;
@@ -156,13 +156,13 @@ export const processFlowWorkflow = async <
   ValidActionDefinitionId extends FlowActionDefinitionId,
   CreateActivitiesFn extends CreateFlowActivities<ValidActionDefinitionId>,
 >(
-  params: BaseRunFlowWorkflowParams & {
+  params: BaseRunFlowWorkflowParams<ValidActionDefinitionId> & {
     flowType: "ai" | "integration";
     generateFlowRunName?: ({
       flowDefinition,
       flowTrigger,
     }: {
-      flowDefinition: FlowDefinition;
+      flowDefinition: FlowDefinition<ValidActionDefinitionId>;
       flowTrigger: FlowTrigger;
     }) => Promise<string>;
     proxyFlowActivity: ProxyFlowActivity<

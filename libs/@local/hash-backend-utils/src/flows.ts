@@ -41,7 +41,6 @@ export type {
   FlowActionActivity,
   ProxyFlowActivity,
 } from "./flows/action-types.js";
-export { processFlowWorkflow } from "./flows/process-flow-workflow.js";
 export { createCommonFlowActivities } from "./flows/process-flow-workflow/common-activities.js";
 
 type GetFlowRunByIdFnArgs<IncludeDetails extends boolean = boolean> = {

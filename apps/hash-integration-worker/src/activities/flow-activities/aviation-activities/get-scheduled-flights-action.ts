@@ -47,10 +47,7 @@ export const aviationProposedEntityToFlowProposedEntity = (
 };
 
 /**
- * Fetches scheduled flights from AeroAPI for a given airport and date
- * and returns them as ProposedEntity objects.
- *
- * This is a FlowActionActivity that can be used in flow definitions.
+ * Fetches scheduled flights from AeroAPI for a given airport and date and returns them as ProposedEntity objects.
  */
 export const getScheduledFlightsAction: FlowActionActivity = async ({
   inputs,

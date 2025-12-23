@@ -195,6 +195,9 @@ export const flowTypedef = gql`
     getFlowRunById(flowRunId: String!): FlowRun!
   }
 
+  # FlowActionDefinitionId is just here so that the type is generated along with the other scalars,
+  # as we need to pass it to FlowDefinition.
+  scalar FlowActionDefinitionId
   scalar FlowDefinition
   scalar FlowDataSources
   scalar FlowTrigger

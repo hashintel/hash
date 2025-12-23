@@ -2,6 +2,7 @@ import { actionDefinitions } from "@local/hash-isomorphic-utils/flows/action-def
 import type {
   ArrayPayload,
   DeepReadOnly,
+  FlowActionDefinitionId,
   FlowDefinition,
   LocalFlowRun,
   OutputDefinition,
@@ -21,7 +22,7 @@ import { getStepDefinitionFromFlowDefinition } from "./get-step-definition-from-
  */
 export const passOutputsToUnprocessedSteps = (params: {
   flow: LocalFlowRun;
-  flowDefinition: FlowDefinition;
+  flowDefinition: FlowDefinition<FlowActionDefinitionId>;
   stepId: string;
   outputDefinitions: DeepReadOnly<OutputDefinition[]>;
   outputs: StepOutput[];

@@ -1,6 +1,7 @@
 import type { DistributiveOmit } from "@local/advanced-types/distribute";
 
 import type {
+  AiFlowActionDefinitionId,
   InputNameForAiFlowAction,
   OutputNameForAiFlowAction,
 } from "../action-definitions.js";
@@ -21,7 +22,7 @@ export const googleSheetTriggerInputs = [
     array: false,
     required: true,
   },
-] satisfies FlowDefinition["trigger"]["outputs"];
+] satisfies FlowDefinition<AiFlowActionDefinitionId>["trigger"]["outputs"];
 
 export const googleSheetStep = {
   kind: "action",
@@ -61,7 +62,7 @@ export const googleSheetStep = {
     },
   ],
 } satisfies DistributiveOmit<
-  FlowDefinition["steps"][number],
+  FlowDefinition<AiFlowActionDefinitionId>["steps"][number],
   "stepId" | "groupId"
 >;
 
@@ -72,4 +73,7 @@ export const googleSheetDeliverable = {
   name: "googleSheetEntity" as const,
   array: false,
   required: true,
-} satisfies Omit<FlowDefinition["outputs"][number], "stepId">;
+} satisfies Omit<
+  FlowDefinition<AiFlowActionDefinitionId>["outputs"][number],
+  "stepId"
+>;

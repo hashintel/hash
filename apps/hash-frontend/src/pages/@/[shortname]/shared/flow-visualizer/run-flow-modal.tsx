@@ -1,6 +1,7 @@
 import type { WebId } from "@blockprotocol/type-system";
 import { typedValues } from "@local/advanced-types/typed-entries";
 import type {
+  FlowActionDefinitionId,
   FlowDefinition,
   FlowTrigger,
   OutputDefinition,
@@ -67,7 +68,7 @@ const generateInitialFormState = (outputDefinitions: OutputDefinition[]) =>
   }, {});
 
 type RunFlowModalProps = {
-  flowDefinition: FlowDefinition;
+  flowDefinition: FlowDefinition<FlowActionDefinitionId>;
   open: boolean;
   onClose: () => void;
   runFlow: (outputs: FlowTrigger["outputs"], webId: WebId) => Promise<void>;

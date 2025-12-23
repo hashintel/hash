@@ -13,6 +13,7 @@ import type { FlowDefinition } from "./types.js";
 export const scheduledFlightsFlowDefinition: FlowDefinition<IntegrationFlowActionDefinitionId> =
   {
     name: "Get Scheduled Flights",
+    type: "integration",
     flowDefinitionId: "scheduled-flights" as EntityUuid,
     description:
       "Fetch scheduled flight arrivals for an airport on a given date and save them to a web.",

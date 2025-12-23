@@ -1,6 +1,7 @@
 import type {
   ActionStep,
   ActionStepWithParallelInput,
+  FlowActionDefinitionId,
   FlowDefinition,
   FlowStep,
   ParallelGroupStepDefinition,
@@ -15,7 +16,7 @@ export const getStepDefinitionFromFlowDefinition = <
   T extends FlowStep,
 >(params: {
   step: T;
-  flowDefinition: FlowDefinition;
+  flowDefinition: FlowDefinition<FlowActionDefinitionId>;
 }): T extends ActionStep
   ? ActionStepWithParallelInput
   : ParallelGroupStepDefinition => {

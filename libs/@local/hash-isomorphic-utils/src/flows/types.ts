@@ -13,7 +13,7 @@ import type { DistributiveOmit } from "@local/advanced-types/distribute";
 import type { SerializedEntity } from "@local/hash-graph-sdk/entity";
 import type { Status } from "@local/status";
 
-import type { FlowRun } from "../graphql/api-types.gen.js";
+import type { FlowRun, FlowType } from "../graphql/api-types.gen.js";
 import type { ActorTypeDataType } from "../system-types/google/googlesheetsfile.js";
 import type {
   AiFlowActionDefinitionId,
@@ -88,7 +88,8 @@ export type PersistedEntities = {
 };
 
 type BaseFlowInputs = {
-  flowDefinition: FlowDefinition;
+  flowDefinition: FlowDefinition<FlowActionDefinitionId>;
+  flowType: FlowType;
   flowTrigger: FlowTrigger;
   webId: WebId;
 };
@@ -312,27 +313,29 @@ export type StepGroup = {
   description: string;
 };
 
-export type FlowDefinition<
-  ActionDefinitionId extends FlowActionDefinitionId = FlowActionDefinitionId,
-> = {
-  name: string;
-  description: string;
-  flowDefinitionId: EntityUuid;
-  trigger: FlowDefinitionTrigger;
-  groups?: StepGroup[];
-  steps: StepDefinition<ActionDefinitionId>[];
-  outputs: (OutputDefinition & {
-    /**
-     * The step ID for the step in the flow that will produce the
-     * output.
-     */
-    stepId: string;
-    /**
-     * The name of the output in the step
-     */
-    stepOutputName: string;
-  })[];
-};
+export type FlowDefinition<ActionDefinitionId extends FlowActionDefinitionId> =
+  {
+    type: ActionDefinitionId extends AiFlowActionDefinitionId
+      ? "ai"
+      : "integration";
+    name: string;
+    description: string;
+    flowDefinitionId: EntityUuid;
+    trigger: FlowDefinitionTrigger;
+    groups?: StepGroup[];
+    steps: StepDefinition<ActionDefinitionId>[];
+    outputs: (OutputDefinition & {
+      /**
+       * The step ID for the step in the flow that will produce the
+       * output.
+       */
+      stepId: string;
+      /**
+       * The name of the output in the step
+       */
+      stepOutputName: string;
+    })[];
+  };
 
 export type StepInput<P extends Payload = Payload> = {
   inputName: string;

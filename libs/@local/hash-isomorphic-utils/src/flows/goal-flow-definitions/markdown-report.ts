@@ -1,6 +1,7 @@
 import type { DistributiveOmit } from "@local/advanced-types/distribute";
 
 import type {
+  AiFlowActionDefinitionId,
   InputNameForAiFlowAction,
   OutputNameForAiFlowAction,
 } from "../action-definitions.js";
@@ -15,7 +16,7 @@ export const markdownReportTriggerInputs = [
     array: false,
     required: true,
   },
-] satisfies FlowDefinition["trigger"]["outputs"];
+] satisfies FlowDefinition<AiFlowActionDefinitionId>["trigger"]["outputs"];
 
 export const markdownReportResearchEntitiesStepInput = {
   inputName:
@@ -47,7 +48,7 @@ export const markdownReportStep = {
     },
   ],
 } satisfies DistributiveOmit<
-  FlowDefinition["steps"][number],
+  FlowDefinition<AiFlowActionDefinitionId>["steps"][number],
   "stepId" | "groupId"
 >;
 
@@ -58,4 +59,7 @@ export const markdownReportDeliverable = {
   name: "report" as const,
   array: false,
   required: true,
-} satisfies Omit<FlowDefinition["outputs"][number], "stepId">;
+} satisfies Omit<
+  FlowDefinition<AiFlowActionDefinitionId>["outputs"][number],
+  "stepId"
+>;

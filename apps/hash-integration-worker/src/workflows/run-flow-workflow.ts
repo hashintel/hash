@@ -1,7 +1,5 @@
-import {
-  processFlowWorkflow,
-  type ProxyFlowActivity,
-} from "@local/hash-backend-utils/flows";
+import { type ProxyFlowActivity } from "@local/hash-backend-utils/flows";
+import { processFlowWorkflow } from "@local/hash-backend-utils/flows/process-flow-workflow";
 import type { IntegrationFlowActionDefinitionId } from "@local/hash-isomorphic-utils/flows/action-definitions";
 import type {
   BaseRunFlowWorkflowParams,
@@ -35,7 +33,7 @@ const proxyFlowActivity: ProxyFlowActivity<
 };
 
 export const runFlowWorkflow = async (
-  params: BaseRunFlowWorkflowParams,
+  params: BaseRunFlowWorkflowParams<IntegrationFlowActionDefinitionId>,
 ): Promise<RunFlowWorkflowResponse> => {
   return await processFlowWorkflow({
     ...params,

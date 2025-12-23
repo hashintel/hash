@@ -5,6 +5,7 @@ import type {
   ActionStepDefinition,
   ActionStepWithParallelInput,
   ArrayPayload,
+  FlowActionDefinitionId,
   FlowDefinition,
   FlowStep,
   FlowTrigger,
@@ -169,7 +170,7 @@ export const initializeParallelGroup = (params: {
 
 export const initializeFlow = (params: {
   flowRunId: EntityUuid;
-  flowDefinition: FlowDefinition;
+  flowDefinition: FlowDefinition<FlowActionDefinitionId>;
   flowTrigger: FlowTrigger;
   name: string;
 }): LocalFlowRun => {

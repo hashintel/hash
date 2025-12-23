@@ -5,14 +5,10 @@ export { createPersistIntegrationEntitiesAction as createPersistFlightEntitiesAc
 
 /**
  * Creates the aviation flow action activities.
- *
- * @param graphApiClient - The GraphApi client for persisting entities
- * @returns An object containing the aviation flow activities
  */
 export const createAviationActivities = () => ({
   /**
    * Fetches scheduled flights from AeroAPI and returns them as ProposedEntity objects.
-   * This activity doesn't require a graph client since it only fetches data.
    */
   getScheduledFlightsAction,
 });

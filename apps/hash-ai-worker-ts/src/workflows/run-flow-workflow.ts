@@ -1,5 +1,5 @@
 import type { ProxyFlowActivity } from "@local/hash-backend-utils/flows";
-import { processFlowWorkflow } from "@local/hash-backend-utils/flows";
+import { processFlowWorkflow } from "@local/hash-backend-utils/flows/process-flow-workflow";
 import { type AiFlowActionDefinitionId } from "@local/hash-isomorphic-utils/flows/action-definitions";
 import type {
   RunAiFlowWorkflowParams,
@@ -75,7 +75,7 @@ const proxyFlowActivity: ProxyFlowActivity<
 };
 
 const generateFlowRunName = (params: {
-  flowDefinition: FlowDefinition;
+  flowDefinition: FlowDefinition<AiFlowActionDefinitionId>;
   flowTrigger: FlowTrigger;
 }) => {
   const { flowDefinition, flowTrigger } = params;

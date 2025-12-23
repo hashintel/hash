@@ -2336,6 +2336,12 @@ export const blockProtocolPropertyTypes = {
     propertyTypeBaseUrl:
       "https://blockprotocol.org/@blockprotocol/types/property-type/original-url/" as BaseUrl,
   },
+  query: {
+    propertyTypeId:
+      "https://blockprotocol.org/@h/types/property-type/query/v/1",
+    propertyTypeBaseUrl:
+      "https://blockprotocol.org/@h/types/property-type/query/" as BaseUrl,
+  },
   textualContent: {
     propertyTypeId:
       "https://blockprotocol.org/@blockprotocol/types/property-type/textual-content/v/2",

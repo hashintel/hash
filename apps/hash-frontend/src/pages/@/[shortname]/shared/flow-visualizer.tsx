@@ -9,6 +9,7 @@ import { manualBrowserInferenceFlowDefinition } from "@local/hash-isomorphic-uti
 import { generateWorkerRunPath } from "@local/hash-isomorphic-utils/flows/frontend-paths";
 import { goalFlowDefinitionIds } from "@local/hash-isomorphic-utils/flows/goal-flow-definitions";
 import type {
+  FlowActionDefinitionId,
   FlowDefinition as FlowDefinitionType,
   FlowInputs,
   FlowTrigger,
@@ -19,9 +20,10 @@ import { useRouter } from "next/router";
 import { useCallback, useMemo, useState } from "react";
 
 import { useGetOwnerForEntity } from "../../../../components/hooks/use-get-owner-for-entity";
-import type {
-  StartFlowMutation,
-  StartFlowMutationVariables,
+import {
+  FlowType,
+  type StartFlowMutation,
+  type StartFlowMutationVariables,
 } from "../../../../graphql/api-types.gen";
 import { startFlowMutation } from "../../../../graphql/queries/knowledge/flow.queries";
 import { ArrowRightToLineIcon } from "../../../../shared/icons/arrow-right-to-line-icon";
@@ -56,7 +58,7 @@ import {
 import { Topbar, topbarHeight } from "./flow-visualizer/topbar";
 
 const getGraphFromFlowDefinition = (
-  flowDefinition: FlowDefinitionType,
+  flowDefinition: FlowDefinitionType<FlowActionDefinitionId>,
   showAllDependencies = false,
 ) => {
   /**
@@ -563,6 +565,10 @@ export const FlowVisualizer = () => {
             },
           },
           flowDefinition: selectedFlowDefinition,
+          flowType:
+            selectedFlowDefinition.type === "ai"
+              ? FlowType.Ai
+              : FlowType.Integration,
           flowTrigger: {
             outputs,
             triggerDefinitionId: "userTrigger",

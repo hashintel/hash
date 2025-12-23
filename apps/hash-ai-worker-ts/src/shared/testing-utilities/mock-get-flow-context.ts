@@ -5,6 +5,7 @@ import type {
 } from "@blockprotocol/type-system";
 import { extractEntityUuidFromEntityId } from "@blockprotocol/type-system";
 import { HashEntity } from "@local/hash-graph-sdk/entity";
+import type { AiFlowActionDefinitionId } from "@local/hash-isomorphic-utils/flows/action-definitions";
 import { mapFlowRunToEntityProperties } from "@local/hash-isomorphic-utils/flows/mappings";
 import type { RunAiFlowWorkflowParams } from "@local/hash-isomorphic-utils/flows/temporal-types";
 import type { FlowDefinition } from "@local/hash-isomorphic-utils/flows/types";
@@ -131,7 +132,7 @@ vi.mock("@local/hash-backend-utils/temporal", async (importOriginal) => {
                   },
                 },
               },
-              flowDefinition: {} as FlowDefinition,
+              flowDefinition: {} as FlowDefinition<AiFlowActionDefinitionId>,
               flowTrigger: {
                 triggerDefinitionId: "userTrigger",
               },
