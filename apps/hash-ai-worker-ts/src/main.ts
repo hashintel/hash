@@ -15,6 +15,7 @@ import { fileURLToPath } from "node:url";
 
 import { createGraphClient } from "@local/hash-backend-utils/create-graph-client";
 import { getRequiredEnv } from "@local/hash-backend-utils/environment";
+import { createCommonFlowActivities } from "@local/hash-backend-utils/flows";
 import { SentryActivityInboundInterceptor } from "@local/hash-backend-utils/temporal/interceptors/activities/sentry";
 import { sentrySinks } from "@local/hash-backend-utils/temporal/sinks/sentry";
 import { createVaultClient } from "@local/hash-backend-utils/vault";
@@ -128,6 +129,7 @@ async function run() {
         graphApiClient,
       }),
       ...createFlowActivities({ vaultClient }),
+      ...createCommonFlowActivities({ graphApiClient }),
     },
     connection,
     /**

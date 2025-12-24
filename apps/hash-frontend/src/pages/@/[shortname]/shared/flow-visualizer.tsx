@@ -3,12 +3,13 @@ import "reactflow/dist/style.css";
 import { useApolloClient, useMutation } from "@apollo/client";
 import type { EntityId, WebId } from "@blockprotocol/type-system";
 import { IconButton, Skeleton } from "@hashintel/design-system";
-import type { OutputNameForAction } from "@local/hash-isomorphic-utils/flows/action-definitions";
+import type { OutputNameForAiFlowAction } from "@local/hash-isomorphic-utils/flows/action-definitions";
 import { actionDefinitions } from "@local/hash-isomorphic-utils/flows/action-definitions";
 import { manualBrowserInferenceFlowDefinition } from "@local/hash-isomorphic-utils/flows/browser-plugin-flow-definitions";
 import { generateWorkerRunPath } from "@local/hash-isomorphic-utils/flows/frontend-paths";
 import { goalFlowDefinitionIds } from "@local/hash-isomorphic-utils/flows/goal-flow-definitions";
 import type {
+  FlowActionDefinitionId,
   FlowDefinition as FlowDefinitionType,
   FlowInputs,
   FlowTrigger,
@@ -19,9 +20,10 @@ import { useRouter } from "next/router";
 import { useCallback, useMemo, useState } from "react";
 
 import { useGetOwnerForEntity } from "../../../../components/hooks/use-get-owner-for-entity";
-import type {
-  StartFlowMutation,
-  StartFlowMutationVariables,
+import {
+  FlowType,
+  type StartFlowMutation,
+  type StartFlowMutationVariables,
 } from "../../../../graphql/api-types.gen";
 import { startFlowMutation } from "../../../../graphql/queries/knowledge/flow.queries";
 import { ArrowRightToLineIcon } from "../../../../shared/icons/arrow-right-to-line-icon";
@@ -56,7 +58,7 @@ import {
 import { Topbar, topbarHeight } from "./flow-visualizer/topbar";
 
 const getGraphFromFlowDefinition = (
-  flowDefinition: FlowDefinitionType,
+  flowDefinition: FlowDefinitionType<FlowActionDefinitionId>,
   showAllDependencies = false,
 ) => {
   /**
@@ -219,6 +221,8 @@ export const FlowVisualizer = () => {
   const [bottomPanelIsCollapsed, setBottomPanelIsCollapsed] = useState(false);
 
   const [logDisplay, setLogDisplay] = useState<LogDisplay>("grouped");
+
+  const [startFlowPending, setStartFlowPending] = useState(false);
 
   const apolloClient = useApolloClient();
 
@@ -496,7 +500,7 @@ export const FlowVisualizer = () => {
             case "EntityId":
               if (
                 output.outputName ===
-                ("highlightedEntities" satisfies OutputNameForAction<"researchEntities">)
+                ("highlightedEntities" satisfies OutputNameForAiFlowAction<"researchEntities">)
               ) {
                 if (Array.isArray(output.payload.value)) {
                   highlightedEntityIds.push(...output.payload.value);
@@ -548,7 +552,13 @@ export const FlowVisualizer = () => {
         }
 
         const { inputs } = selectedFlowRun;
-        flowInputs = inputs[0];
+        flowInputs = {
+          ...inputs[0],
+          flowType:
+            selectedFlowDefinition.type === "ai"
+              ? FlowType.Ai
+              : FlowType.Integration,
+        };
       } else {
         const { webId, outputs } = args;
         flowInputs = {
@@ -563,6 +573,10 @@ export const FlowVisualizer = () => {
             },
           },
           flowDefinition: selectedFlowDefinition,
+          flowType:
+            selectedFlowDefinition.type === "ai"
+              ? FlowType.Ai
+              : FlowType.Integration,
           flowTrigger: {
             outputs,
             triggerDefinitionId: "userTrigger",
@@ -571,24 +585,30 @@ export const FlowVisualizer = () => {
         };
       }
 
-      const { data } = await startFlow({
-        variables: flowInputs,
-      });
+      setStartFlowPending(true);
 
-      const flowRunId = data?.startFlow;
-      if (!flowRunId) {
-        throw new Error("Failed to start flow");
+      try {
+        const { data } = await startFlow({
+          variables: flowInputs,
+        });
+
+        const flowRunId = data?.startFlow;
+        if (!flowRunId) {
+          throw new Error("Failed to start flow");
+        }
+
+        await apolloClient.refetchQueries({
+          include: ["getFlowRuns"],
+        });
+
+        setShowRunModal(false);
+
+        const { shortname } = getOwner({ webId: flowInputs.webId });
+
+        void push(generateWorkerRunPath({ shortname, flowRunId }));
+      } finally {
+        setStartFlowPending(false);
       }
-
-      await apolloClient.refetchQueries({
-        include: ["getFlowRuns"],
-      });
-
-      setShowRunModal(false);
-
-      const { shortname } = getOwner({ webId: flowInputs.webId });
-
-      void push(generateWorkerRunPath({ shortname, flowRunId }));
     },
     [
       apolloClient,
@@ -657,6 +677,7 @@ export const FlowVisualizer = () => {
         <Box sx={{ background: ({ palette }) => palette.gray[5] }}>
           <Topbar
             handleRunFlowClicked={handleRunFlowClicked}
+            startFlowPending={startFlowPending}
             showRunButton={isRunnableFromHere}
             workerType={isGoal ? "goal" : "flow"}
           />

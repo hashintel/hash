@@ -19,6 +19,7 @@ import { sleep } from "@local/hash-isomorphic-utils/sleep";
 import { v4 as uuid } from "uuid";
 import browser from "webextension-polyfill";
 
+import type { FlowType } from "../../graphql/api-types.gen";
 import { FlowRunStatus } from "../../graphql/api-types.gen";
 import type { InferEntitiesRequest } from "../../shared/messages";
 import {
@@ -368,6 +369,7 @@ export const inferEntities = async (
             },
           },
           flowDefinition,
+          flowType: "ai" as FlowType,
           flowTrigger: {
             triggerDefinitionId: flowDefinition.trigger.triggerDefinitionId,
             outputs: [],

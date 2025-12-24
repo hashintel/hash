@@ -1,33 +1,40 @@
 import type {
   ActorEntityUuid,
+  EntityId,
   OriginProvenance,
   ProvidedEntityEditionProvenance,
   WebId,
 } from "@blockprotocol/type-system";
-import { getFlowRunEntityById } from "@local/hash-backend-utils/flows";
+import type { GraphApi } from "@local/hash-graph-client";
 import { HashEntity } from "@local/hash-graph-sdk/entity";
 import { mapFlowRunToEntityProperties } from "@local/hash-isomorphic-utils/flows/mappings";
 import type { LocalFlowRun } from "@local/hash-isomorphic-utils/flows/types";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type { FlowRun } from "@local/hash-isomorphic-utils/system-types/shared";
 
-import { getFlowContext } from "../shared/get-flow-context.js";
-import { graphApiClient } from "../shared/graph-api-client.js";
+import { getFlowRunEntityById } from "../../shared/get-flow-run-entity-by-id.js";
 
-type PersistFlowActivityParams = {
+export type PersistFlowActivityParams = {
   flow: LocalFlowRun;
+  flowEntityId: EntityId;
+  stepIds: string[];
   userAuthentication: { actorId: ActorEntityUuid };
   webId: WebId;
 };
 
 export const persistFlowActivity = async (
-  params: PersistFlowActivityParams,
+  params: PersistFlowActivityParams & { graphApiClient: GraphApi },
 ) => {
-  const { flow, userAuthentication, webId } = params;
+  const {
+    flow,
+    flowEntityId,
+    graphApiClient,
+    stepIds,
+    userAuthentication,
+    webId,
+  } = params;
 
   const { flowRunId } = flow;
-
-  const { flowEntityId, stepId } = await getFlowContext();
 
   const flowRunProperties = mapFlowRunToEntityProperties(flow);
 
@@ -42,7 +49,7 @@ export const persistFlowActivity = async (
     origin: {
       type: "flow",
       id: flowEntityId,
-      stepIds: [stepId],
+      stepIds,
     } satisfies OriginProvenance,
   };
 

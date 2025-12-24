@@ -1,7 +1,7 @@
 import type { Url } from "@blockprotocol/type-system";
 import type {
-  InputNameForAction,
-  OutputNameForAction,
+  InputNameForAiFlowAction,
+  OutputNameForAiFlowAction,
 } from "@local/hash-isomorphic-utils/flows/action-definitions";
 import { actionDefinitions } from "@local/hash-isomorphic-utils/flows/action-definitions";
 import type {
@@ -35,12 +35,12 @@ export const handleWebSearchToolCall = async (params: {
   const response = await webSearchAction({
     inputs: [
       {
-        inputName: "query" satisfies InputNameForAction<"webSearch">,
+        inputName: "query" satisfies InputNameForAiFlowAction<"webSearch">,
         payload: { kind: "Text", value: query },
       },
       {
         inputName:
-          "numberOfSearchResults" satisfies InputNameForAction<"webSearch">,
+          "numberOfSearchResults" satisfies InputNameForAiFlowAction<"webSearch">,
         payload: { kind: "Number", value: 5 },
       },
     ],
@@ -68,7 +68,7 @@ export const handleWebSearchToolCall = async (params: {
   const webPageUrlsOutput = webSearchOutputs.find(
     ({ outputName }) =>
       outputName ===
-      ("webSearchResult" satisfies OutputNameForAction<"webSearch">),
+      ("webSearchResult" satisfies OutputNameForAiFlowAction<"webSearch">),
   );
 
   if (!webPageUrlsOutput) {
@@ -88,7 +88,7 @@ export const handleWebSearchToolCall = async (params: {
           inputs: [
             {
               inputName:
-                "url" satisfies InputNameForAction<"getWebPageSummary">,
+                "url" satisfies InputNameForAiFlowAction<"getWebPageSummary">,
               payload: { kind: "Text", value: url },
             },
             ...actionDefinitions.getWebPageSummary.inputs.flatMap<StepInput>(
@@ -113,7 +113,7 @@ export const handleWebSearchToolCall = async (params: {
         const summaryOutput = webPageSummaryOutputs?.find(
           ({ outputName }) =>
             outputName ===
-            ("summary" satisfies OutputNameForAction<"getWebPageSummary">),
+            ("summary" satisfies OutputNameForAiFlowAction<"getWebPageSummary">),
         );
 
         if (!summaryOutput) {

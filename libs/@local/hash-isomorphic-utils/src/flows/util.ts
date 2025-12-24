@@ -1,26 +1,45 @@
-import { actionDefinitions } from "./action-definitions.js";
+import {
+  aiActionDefinitions,
+  integrationActionDefinitions,
+} from "./action-definitions.js";
 import { triggerDefinitions } from "./trigger-definitions.js";
 import type {
-  ActionStepDefinition,
+  ActionDefinition,
+  ActionStepWithParallelInput,
+  FlowActionDefinitionId,
   FlowDefinition,
   ParallelGroupStepDefinition,
   StepDefinition,
 } from "./types.js";
 
-type AnyStepDefinition =
-  | StepDefinition
-  | ActionStepDefinition<{
-      inputName: string;
-      kind: "parallel-group-input";
-    }>;
+export type FlowType = "ai" | "integration";
 
-const recursivelyValidateSteps = (params: {
-  allStepDefinitions: AnyStepDefinition[];
+type ActionDefinitionsMap<T extends FlowActionDefinitionId> = Record<
+  T,
+  ActionDefinition<T>
+>;
+
+const getActionDefinitions = <T extends FlowActionDefinitionId>(
+  flowType: FlowType,
+): ActionDefinitionsMap<T> => {
+  if (flowType === "ai") {
+    return aiActionDefinitions as unknown as ActionDefinitionsMap<T>;
+  }
+  return integrationActionDefinitions as unknown as ActionDefinitionsMap<T>;
+};
+
+type FlowStepDefinition<T extends FlowActionDefinitionId> =
+  | StepDefinition<T>
+  | ActionStepWithParallelInput<T>;
+
+const recursivelyValidateSteps = <T extends FlowActionDefinitionId>(params: {
+  actionDefinitions: ActionDefinitionsMap<T>;
+  allStepDefinitions: FlowStepDefinition<T>[];
   stepIds: Set<string>;
-  flow: FlowDefinition;
-  step: AnyStepDefinition;
+  flow: FlowDefinition<T>;
+  step: FlowStepDefinition<T>;
 }) => {
-  const { flow, step, stepIds, allStepDefinitions } = params;
+  const { actionDefinitions, flow, step, stepIds, allStepDefinitions } = params;
 
   if (stepIds.has(step.stepId)) {
     throw new Error(`Duplicate step id: ${step.stepId}`);
@@ -82,7 +101,7 @@ const recursivelyValidateSteps = (params: {
       const childActionSteps = step.steps.filter(
         (
           childStep,
-        ): childStep is Extract<AnyStepDefinition, { kind: "action" }> =>
+        ): childStep is Extract<FlowStepDefinition<T>, { kind: "action" }> =>
           childStep.kind === "action",
       );
 
@@ -167,6 +186,7 @@ const recursivelyValidateSteps = (params: {
 
     for (const childStep of step.steps) {
       recursivelyValidateSteps({
+        actionDefinitions,
         stepIds,
         flow,
         step: childStep,
@@ -252,7 +272,7 @@ const recursivelyValidateSteps = (params: {
           )
         ) {
           throw new Error(
-            `${errorPrefix}references an output "${inputSource.sourceStepOutputName}" of step "${inputSource.sourceStepId}" that does not match the expected payload kinds of the input`,
+            `${errorPrefix}references an output "${inputSource.sourceStepOutputName}" of step "${inputSource.sourceStepId}" that does not match the expected payload kinds of the input (expected: ${matchingDefinitionInput.oneOfPayloadKinds.join(", ")}, actual: ${matchingSourceStepOutput.payloadKind})`,
           );
         }
       } else if (inputSource.kind === "hardcoded") {
@@ -286,9 +306,11 @@ const recursivelyValidateSteps = (params: {
   }
 };
 
-const getAllStepDefinitionsInParallelGroupDefinition = (
-  stepDefinition: ParallelGroupStepDefinition,
-): AnyStepDefinition[] => [
+const getAllStepDefinitionsInParallelGroupDefinition = <
+  T extends FlowActionDefinitionId,
+>(
+  stepDefinition: ParallelGroupStepDefinition<T>,
+): FlowStepDefinition<T>[] => [
   ...stepDefinition.steps,
   ...stepDefinition.steps.flatMap((childStep) =>
     childStep.kind === "parallel-group"
@@ -297,7 +319,11 @@ const getAllStepDefinitionsInParallelGroupDefinition = (
   ),
 ];
 
-export const getAllStepDefinitionsInFlowDefinition = (flow: FlowDefinition) => [
+export const getAllStepDefinitionsInFlowDefinition = <
+  T extends FlowActionDefinitionId,
+>(
+  flow: FlowDefinition<T>,
+) => [
   ...flow.steps,
   ...flow.steps.flatMap((step) =>
     step.kind === "parallel-group"
@@ -313,15 +339,26 @@ export const getAllStepDefinitionsInFlowDefinition = (flow: FlowDefinition) => [
  * - Input sources (other step outputs, flow triggers, hardcoded values) exist and match expected types.
  *
  * @param flow The flow definition to validate.
+ * @param flowType The type of flow ('ai' or 'integration') to determine which action definitions to use.
  * @returns true if the flow definition passes all validation checks.
  */
-export const validateFlowDefinition = (flow: FlowDefinition) => {
+export const validateFlowDefinition = <T extends FlowActionDefinitionId>(
+  flow: FlowDefinition<T>,
+  flowType: FlowType,
+) => {
   const stepIds = new Set<string>();
+  const actionDefinitions = getActionDefinitions<T>(flowType);
 
   const allStepDefinitions = getAllStepDefinitionsInFlowDefinition(flow);
 
   for (const step of flow.steps) {
-    recursivelyValidateSteps({ stepIds, flow, step, allStepDefinitions });
+    recursivelyValidateSteps({
+      actionDefinitions,
+      stepIds,
+      flow,
+      step,
+      allStepDefinitions,
+    });
   }
 
   return true;

@@ -673,16 +673,21 @@ export const EntityResultTable = memo(
 
         closedTypesByKey[typeKey] ??= closedMultiEntityType;
 
-        const entityLabel = generateEntityLabel(closedMultiEntityType, {
-          properties: entity.properties,
-          metadata: {
-            entityTypeIds,
-            recordId: {
-              entityId,
-              editionId: "irrelevant-here" as EntityEditionId,
+        let entityLabel: string;
+        try {
+          entityLabel = generateEntityLabel(closedMultiEntityType, {
+            properties: entity.properties,
+            metadata: {
+              entityTypeIds,
+              recordId: {
+                entityId,
+                editionId: "irrelevant-here" as EntityEditionId,
+              },
             },
-          },
-        });
+          });
+        } catch {
+          entityLabel = "";
+        }
 
         entitiesByEntityId[entityId] = {
           closedMultiEntityType,

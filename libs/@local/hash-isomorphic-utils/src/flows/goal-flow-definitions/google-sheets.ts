@@ -1,8 +1,9 @@
 import type { DistributiveOmit } from "@local/advanced-types/distribute";
 
 import type {
-  InputNameForAction,
-  OutputNameForAction,
+  AiFlowActionDefinitionId,
+  InputNameForAiFlowAction,
+  OutputNameForAiFlowAction,
 } from "../action-definitions.js";
 import type { FlowDefinition } from "../types.js";
 
@@ -21,7 +22,7 @@ export const googleSheetTriggerInputs = [
     array: false,
     required: true,
   },
-] satisfies FlowDefinition["trigger"]["outputs"];
+] satisfies FlowDefinition<AiFlowActionDefinitionId>["trigger"]["outputs"];
 
 export const googleSheetStep = {
   kind: "action",
@@ -29,7 +30,8 @@ export const googleSheetStep = {
   description: "Save discovered entities to Google Sheet",
   inputSources: [
     {
-      inputName: "audience" satisfies InputNameForAction<"writeGoogleSheet">,
+      inputName:
+        "audience" satisfies InputNameForAiFlowAction<"writeGoogleSheet">,
       kind: "hardcoded",
       payload: {
         kind: "ActorType",
@@ -38,35 +40,40 @@ export const googleSheetStep = {
     },
     {
       inputName:
-        "googleAccountId" satisfies InputNameForAction<"writeGoogleSheet">,
+        "googleAccountId" satisfies InputNameForAiFlowAction<"writeGoogleSheet">,
       kind: "step-output",
       sourceStepId: "trigger",
       sourceStepOutputName: "Google Account" satisfies GoogleSheetTriggerInput,
     },
     {
-      inputName: "googleSheet" satisfies InputNameForAction<"writeGoogleSheet">,
+      inputName:
+        "googleSheet" satisfies InputNameForAiFlowAction<"writeGoogleSheet">,
       kind: "step-output",
       sourceStepId: "trigger",
       sourceStepOutputName: "Google Sheet" satisfies GoogleSheetTriggerInput,
     },
     {
-      inputName: "dataToWrite" satisfies InputNameForAction<"writeGoogleSheet">,
+      inputName:
+        "dataToWrite" satisfies InputNameForAiFlowAction<"writeGoogleSheet">,
       kind: "step-output",
       sourceStepId: "2",
       sourceStepOutputName:
-        "persistedEntities" satisfies OutputNameForAction<"persistEntities">,
+        "persistedEntities" satisfies OutputNameForAiFlowAction<"persistEntities">,
     },
   ],
 } satisfies DistributiveOmit<
-  FlowDefinition["steps"][number],
+  FlowDefinition<AiFlowActionDefinitionId>["steps"][number],
   "stepId" | "groupId"
 >;
 
 export const googleSheetDeliverable = {
   stepOutputName:
-    "googleSheetEntity" satisfies OutputNameForAction<"writeGoogleSheet">,
+    "googleSheetEntity" satisfies OutputNameForAiFlowAction<"writeGoogleSheet">,
   payloadKind: "PersistedEntity",
   name: "googleSheetEntity" as const,
   array: false,
   required: true,
-} satisfies Omit<FlowDefinition["outputs"][number], "stepId">;
+} satisfies Omit<
+  FlowDefinition<AiFlowActionDefinitionId>["outputs"][number],
+  "stepId"
+>;

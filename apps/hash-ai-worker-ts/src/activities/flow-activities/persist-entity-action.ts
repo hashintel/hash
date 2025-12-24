@@ -1,5 +1,6 @@
 import type { EntityId, VersionedUrl } from "@blockprotocol/type-system";
 import { extractEntityUuidFromEntityId } from "@blockprotocol/type-system";
+import type { FlowActionActivity } from "@local/hash-backend-utils/flows";
 import { getWebMachineId } from "@local/hash-backend-utils/machine-actors";
 import type { CreateEntityParameters } from "@local/hash-graph-sdk/entity";
 import {
@@ -8,8 +9,8 @@ import {
   mergePropertyObjectAndMetadata,
 } from "@local/hash-graph-sdk/entity";
 import {
-  getSimplifiedActionInputs,
-  type OutputNameForAction,
+  getSimplifiedAiFlowActionInputs,
+  type OutputNameForAiFlowAction,
 } from "@local/hash-isomorphic-utils/flows/action-definitions";
 import type { PersistedEntity } from "@local/hash-isomorphic-utils/flows/types";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
@@ -38,7 +39,6 @@ import {
   getEntityUpdate,
   getLatestEntityById,
 } from "./shared/graph-requests.js";
-import type { FlowActionActivity } from "./types.js";
 
 export const fileEntityTypeIds: VersionedUrl[] = [
   systemEntityTypes.file.entityTypeId,
@@ -58,10 +58,11 @@ export const persistEntityAction: FlowActionActivity = async ({ inputs }) => {
     webId,
   } = await getFlowContext();
 
-  const { draft, proposedEntityWithResolvedLinks } = getSimplifiedActionInputs({
-    inputs,
-    actionType: "persistEntity",
-  });
+  const { draft, proposedEntityWithResolvedLinks } =
+    getSimplifiedAiFlowActionInputs({
+      inputs,
+      actionType: "persistEntity",
+    });
 
   const createEditionAsDraft = draft ?? false;
 
@@ -327,7 +328,7 @@ export const persistEntityAction: FlowActionActivity = async ({ inputs }) => {
         outputs: [
           {
             outputName:
-              "persistedEntity" as OutputNameForAction<"persistEntity">,
+              "persistedEntity" as OutputNameForAiFlowAction<"persistEntity">,
             payload: {
               kind: "PersistedEntity",
               value: persistedEntity,

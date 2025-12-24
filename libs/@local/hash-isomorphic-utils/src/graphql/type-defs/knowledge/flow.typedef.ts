@@ -195,19 +195,28 @@ export const flowTypedef = gql`
     getFlowRunById(flowRunId: String!): FlowRun!
   }
 
+  # FlowActionDefinitionId is just here so that the type is generated along with the other scalars,
+  # as we need to pass it to FlowDefinition.
+  scalar FlowActionDefinitionId
   scalar FlowDefinition
   scalar FlowDataSources
   scalar FlowTrigger
   scalar ExternalInputResponseWithoutUser
+
+  enum FlowType {
+    ai
+    integration
+  }
 
   extend type Mutation {
     """
     Start a new flow run, and return its flowRunId to allow for identifying it later.
     """
     startFlow(
-      dataSources: FlowDataSources!
+      dataSources: FlowDataSources
       flowDefinition: FlowDefinition!
       flowTrigger: FlowTrigger!
+      flowType: FlowType!
       webId: WebId!
     ): EntityUuid!
 

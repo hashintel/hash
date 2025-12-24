@@ -1,7 +1,7 @@
 import type { VersionedUrl } from "@blockprotocol/type-system";
 import type { DistributiveOmit } from "@local/advanced-types/distribute";
 import type {
-  ProposedEntity,
+  DeprecatedProposedEntity,
   ProposedEntitySchemaOrData,
 } from "@local/hash-isomorphic-utils/ai-inference-types";
 import type { JSONSchema } from "openai/lib/jsonschema";
@@ -15,7 +15,7 @@ import { stripIdsFromDereferencedProperties } from "./strip-ids-from-dereference
 export type ProposeEntitiesToolName = "abandon_entities" | "create_entities";
 
 type ProposedEntityWithSimplifiedProperties = DistributiveOmit<
-  ProposedEntity,
+  DeprecatedProposedEntity,
   "properties"
 > & {
   properties?: Record<string, PropertyValueWithSimplifiedProperties>;

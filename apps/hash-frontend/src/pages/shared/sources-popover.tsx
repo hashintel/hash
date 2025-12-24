@@ -39,7 +39,7 @@ export const SourcesList = ({ sources }: { sources: SourceProvenance[] }) => {
                 p: 1.5,
               })}
             >
-              {sourceUrl ? (
+              {source.type !== "integration" && sourceUrl ? (
                 <Link
                   href={sourceUrl}
                   target="_blank"

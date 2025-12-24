@@ -11,10 +11,11 @@ import {
   entityIdFromComponents,
 } from "@blockprotocol/type-system";
 import { typedKeys } from "@local/advanced-types/typed-entries";
+import type { FlowActionActivity } from "@local/hash-backend-utils/flows";
 import { isInferenceModelName } from "@local/hash-isomorphic-utils/ai-inference-types";
 import {
-  getSimplifiedActionInputs,
-  type OutputNameForAction,
+  getSimplifiedAiFlowActionInputs,
+  type OutputNameForAiFlowAction,
 } from "@local/hash-isomorphic-utils/flows/action-definitions";
 import type { ProposedEntity } from "@local/hash-isomorphic-utils/flows/types";
 import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
@@ -31,7 +32,6 @@ import { getFlowContext } from "../shared/get-flow-context.js";
 import { graphApiClient } from "../shared/graph-api-client.js";
 import { inferenceModelAliasToSpecificModel } from "../shared/inference-model-alias-to-llm-model.js";
 import { isPermittedOpenAiModel } from "../shared/openai-client.js";
-import type { FlowActionActivity } from "./types.js";
 
 export const inferEntitiesFromContentAction: FlowActionActivity = async ({
   inputs,
@@ -41,7 +41,7 @@ export const inferEntitiesFromContentAction: FlowActionActivity = async ({
     entityTypeIds,
     model: modelAlias,
     relevantEntitiesPrompt,
-  } = getSimplifiedActionInputs({
+  } = getSimplifiedAiFlowActionInputs({
     inputs,
     actionType: "inferEntitiesFromContent",
   });
@@ -218,7 +218,7 @@ export const inferEntitiesFromContentAction: FlowActionActivity = async ({
         outputs: [
           {
             outputName:
-              "proposedEntities" satisfies OutputNameForAction<"inferEntitiesFromContent">,
+              "proposedEntities" satisfies OutputNameForAiFlowAction<"inferEntitiesFromContent">,
             payload: {
               kind: "ProposedEntity",
               value: proposedEntities,

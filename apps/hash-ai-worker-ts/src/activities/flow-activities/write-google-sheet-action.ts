@@ -2,6 +2,7 @@ import type {
   OriginProvenance,
   ProvidedEntityEditionProvenance,
 } from "@blockprotocol/type-system";
+import type { FlowActionActivity } from "@local/hash-backend-utils/flows";
 import {
   createGoogleOAuth2Client,
   getGoogleAccountById,
@@ -10,7 +11,7 @@ import {
 import { getWebMachineId } from "@local/hash-backend-utils/machine-actors";
 import type { VaultClient } from "@local/hash-backend-utils/vault";
 import { HashEntity } from "@local/hash-graph-sdk/entity";
-import { getSimplifiedActionInputs } from "@local/hash-isomorphic-utils/flows/action-definitions";
+import { getSimplifiedAiFlowActionInputs } from "@local/hash-isomorphic-utils/flows/action-definitions";
 import { generateEntityIdFilter } from "@local/hash-isomorphic-utils/graph-queries";
 import {
   googleEntityTypes,
@@ -31,7 +32,6 @@ import { getEntityByFilter } from "../shared/get-entity-by-filter.js";
 import { getFlowContext } from "../shared/get-flow-context.js";
 import { graphApiClient } from "../shared/graph-api-client.js";
 import { getEntityUpdate } from "./shared/graph-requests.js";
-import type { FlowActionActivity } from "./types.js";
 import { convertCsvToSheetRequests } from "./write-google-sheet-action/convert-csv-to-sheet-requests.js";
 import { convertSubgraphToSheetRequests } from "./write-google-sheet-action/convert-subgraph-to-sheet-requests.js";
 import { getFilterFromBlockProtocolQueryEntity } from "./write-google-sheet-action/get-filter-from-bp-query-entity.js";
@@ -78,7 +78,7 @@ export const writeGoogleSheetAction: FlowActionActivity<{
     await getFlowContext();
 
   const { audience, dataToWrite, googleAccountId, googleSheet } =
-    getSimplifiedActionInputs({
+    getSimplifiedAiFlowActionInputs({
       inputs,
       actionType: "writeGoogleSheet",
     });

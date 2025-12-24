@@ -14,7 +14,7 @@ import { parseHistoryItemPayload } from "@local/hash-backend-utils/temporal/pars
 import { type HashEntity, queryEntities } from "@local/hash-graph-sdk/entity";
 import type { ManualInferenceTriggerInputName } from "@local/hash-isomorphic-utils/flows/browser-plugin-flow-types";
 import type { GoalFlowTriggerInput } from "@local/hash-isomorphic-utils/flows/goal-flow-definitions";
-import type { RunFlowWorkflowParams } from "@local/hash-isomorphic-utils/flows/temporal-types";
+import type { RunAiFlowWorkflowParams } from "@local/hash-isomorphic-utils/flows/temporal-types";
 import type { FlowDataSources } from "@local/hash-isomorphic-utils/flows/types";
 import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 import { normalizeWhitespace } from "@local/hash-isomorphic-utils/normalize";
@@ -31,7 +31,7 @@ let _temporalClient: TemporalClient | undefined;
 let _runFlowWorkflowParamsCache: MemoryCache | undefined;
 
 type PartialRunFlowWorkflowParams = Pick<
-  RunFlowWorkflowParams,
+  RunAiFlowWorkflowParams,
   "dataSources" | "webId" | "userAuthentication"
 > & { createEntitiesAsDraft: boolean };
 
@@ -95,7 +95,7 @@ const getPartialRunFlowWorkflowParams = async (params: {
     );
   }
 
-  const [runFlowWorkflowParams] = inputs as RunFlowWorkflowParams[];
+  const [runFlowWorkflowParams] = inputs as RunAiFlowWorkflowParams[];
 
   if (!runFlowWorkflowParams) {
     throw new Error(

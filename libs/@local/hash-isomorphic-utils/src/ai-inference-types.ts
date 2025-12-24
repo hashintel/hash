@@ -56,7 +56,10 @@ export type ProposedEntityLinkFields = {
   targetEntityId: number;
 };
 
-export type ProposedEntity =
+/**
+ * @deprecated only used in an old inference flow – use ProposedEntity from the flows/types.ts file instead
+ */
+export type DeprecatedProposedEntity =
   | BaseProposedEntity
   | (BaseProposedEntity & ProposedEntityLinkFields);
 
@@ -70,7 +73,7 @@ type InferredEntityResultBase = {
   entity?: SerializedEntity | null;
   entityTypeIds: VersionedUrl[];
   operation: "create" | "update" | "already-exists-as-proposed";
-  proposedEntity: ProposedEntity;
+  proposedEntity: DeprecatedProposedEntity;
   status: "success" | "failure";
 };
 

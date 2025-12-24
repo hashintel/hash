@@ -26,16 +26,16 @@ import {
 import { linearPropertyTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { v4 as uuidv4 } from "uuid";
 
+import { logger } from "../main.js";
+import {
+  getEntitiesByLinearId,
+  getEntityOutgoingLinks,
+} from "../shared/graph-requests.js";
 import {
   mapHashEntityToLinearUpdateInput,
   mapLinearDataToEntity,
   mapLinearDataToEntityWithOutgoingLinks,
-} from "./linear-activities/mappings";
-import { logger } from "./main";
-import {
-  getEntitiesByLinearId,
-  getEntityOutgoingLinks,
-} from "./shared/graph-requests";
+} from "./linear-activities/mappings.js";
 
 const provenance: ProvidedEntityEditionProvenance = {
   actorType: "machine",

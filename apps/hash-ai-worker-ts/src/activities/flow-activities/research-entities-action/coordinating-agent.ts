@@ -4,10 +4,11 @@ import type {
   Url,
 } from "@blockprotocol/type-system";
 import { entityIdFromComponents } from "@blockprotocol/type-system";
+import type { FlowActionActivity } from "@local/hash-backend-utils/flows";
 import { flattenPropertyMetadata } from "@local/hash-graph-sdk/entity";
 import {
-  getSimplifiedActionInputs,
-  type OutputNameForAction,
+  getSimplifiedAiFlowActionInputs,
+  type OutputNameForAiFlowAction,
 } from "@local/hash-isomorphic-utils/flows/action-definitions";
 import type {
   ProposedEntity,
@@ -31,7 +32,6 @@ import { graphApiClient } from "../../shared/graph-api-client.js";
 import { logProgress } from "../../shared/log-progress.js";
 import { mapActionInputEntitiesToEntities } from "../../shared/map-action-input-entities-to-entities.js";
 import { stringify } from "../../shared/stringify.js";
-import type { FlowActionActivity } from "../types.js";
 import { createCheckpoint } from "./checkpoints.js";
 import { createInitialPlan } from "./coordinating-agent/create-initial-plan.js";
 import { processCompleteToolCall } from "./coordinating-agent/process-complete-tool-call.js";
@@ -73,7 +73,7 @@ const parseAndResolveCoordinatorInputs = async (params: {
     entityTypeIds,
     existingEntities: inputExistingEntities,
     reportSpecification,
-  } = getSimplifiedActionInputs({
+  } = getSimplifiedAiFlowActionInputs({
     inputs: stepInputs,
     actionType: "researchEntities",
   });
@@ -586,7 +586,7 @@ export const runCoordinatingAgent: FlowActionActivity<{
         outputs: [
           {
             outputName:
-              "proposedEntities" satisfies OutputNameForAction<"researchEntities">,
+              "proposedEntities" satisfies OutputNameForAiFlowAction<"researchEntities">,
             payload: {
               kind: "ProposedEntity",
               value: [...allProposedEntities, ...fileEntityProposals],
@@ -594,7 +594,7 @@ export const runCoordinatingAgent: FlowActionActivity<{
           },
           {
             outputName:
-              "highlightedEntities" satisfies OutputNameForAction<"researchEntities">,
+              "highlightedEntities" satisfies OutputNameForAiFlowAction<"researchEntities">,
             payload: {
               kind: "EntityId",
               value: submittedEntities.map(

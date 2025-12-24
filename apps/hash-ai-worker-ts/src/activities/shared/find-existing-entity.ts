@@ -422,7 +422,7 @@ export const findExistingLinkEntity = async ({
   }
 
   /**
-   * If we've reached here, the input has some properties
+   * If we've reached here, the new input has some properties
    */
   const potentialMatchesWithProperties = linksWithOverlappingTypes.filter(
     (entity) => Object.keys(entity.properties).length > 0,

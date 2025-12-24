@@ -9,6 +9,7 @@ import type {
 import type { GoalFlowTriggerInput } from "@local/hash-isomorphic-utils/flows/goal-flow-definitions";
 import { goalFlowDefinitionIds } from "@local/hash-isomorphic-utils/flows/goal-flow-definitions";
 import type {
+  FlowActionDefinitionId,
   FlowDefinition,
   FlowTrigger,
   PayloadKind,
@@ -21,8 +22,8 @@ import { getLlmResponse } from "../shared/get-llm-response.js";
 import { getTextContentFromLlmMessage } from "../shared/get-llm-response/llm-message.js";
 import { graphApiClient } from "../shared/graph-api-client.js";
 
-type PersistFlowActivityParams = {
-  flowDefinition: FlowDefinition;
+type GenerateFlowRunNameActivityParams = {
+  flowDefinition: FlowDefinition<FlowActionDefinitionId>;
   flowTrigger: FlowTrigger;
 };
 
@@ -90,7 +91,7 @@ const outputKindsToIgnore: PayloadKind[] = [
 ];
 
 export const generateFlowRunName = async (
-  params: PersistFlowActivityParams,
+  params: GenerateFlowRunNameActivityParams,
 ) => {
   const { flowDefinition, flowTrigger } = params;
 

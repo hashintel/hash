@@ -20,7 +20,7 @@ import {
   // getEntitiesByLinearId,
   getEntityOutgoingLinks,
   getLatestEntityById,
-} from "../shared/graph-requests";
+} from "../../shared/graph-requests.js";
 
 export const mapLinearDataToEntity = <
   T extends SupportedLinearTypeNames,

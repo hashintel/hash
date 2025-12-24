@@ -2,6 +2,7 @@ import type {
   ActionDefinition,
   ActionStepDefinition,
   ActionStepWithParallelInput,
+  FlowActionDefinitionId,
   ParallelGroupStepDefinition,
   ProgressLogBase,
   ProposedEntity,
@@ -16,7 +17,7 @@ import type { SimpleStatus } from "../../../../../shared/flow-runs-context";
 export type NodeData = {
   kind: StepDefinition["kind"];
   groupId?: number;
-  actionDefinition?: ActionDefinition | null;
+  actionDefinition?: ActionDefinition<FlowActionDefinitionId> | null;
   label: string;
   inputSources:
     | ActionStepDefinition["inputSources"]
