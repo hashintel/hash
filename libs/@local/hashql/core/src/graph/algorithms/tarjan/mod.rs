@@ -149,6 +149,22 @@ struct Component<A> {
     successors: Range<usize>,
 }
 
+pub struct Members<N, S, A: Allocator = Global> {
+    offsets: IdVec<S, usize, A>,
+    nodes: Vec<N, A>,
+}
+
+impl<N, S, A: Allocator> Members<N, S, A>
+where
+    S: Id,
+{
+    pub fn of(&self, id: S) -> &[N] {
+        let range = self.offsets[id]..self.offsets[id.plus(1)];
+
+        &self.nodes[range]
+    }
+}
+
 /// Storage for the computed SCCs and their relationships.
 ///
 /// Intentionally opaque to avoid exposing internal details.
@@ -167,6 +183,8 @@ struct Data<N, S, M, A: Allocator = Global> {
 /// connected component from the original graph. Two SCCs are connected if there was an
 /// edge between any of their constituent nodes in the original graph.
 pub struct StronglyConnectedComponents<N, S, M: Metadata<N, S> = (), A: Allocator = Global> {
+    alloc: A,
+
     /// Metadata tracker used during construction.
     pub metadata: M,
 
@@ -187,6 +205,56 @@ where
     /// Returns the metadata annotation for the given SCC.
     pub fn annotation(&self, scc: S) -> &M::Annotation {
         &self.data.components[scc].annotation
+    }
+
+    #[inline]
+    pub fn members(&self) -> Members<N, S, A>
+    where
+        A: Clone,
+    {
+        self.members_in(Global)
+    }
+
+    pub fn members_in<B: Allocator>(&self, scratch: B) -> Members<N, S, A>
+    where
+        A: Clone,
+    {
+        let num_sccs = self.data.components.len();
+        let num_nodes = self.data.nodes.len();
+
+        // Pass 1: count nodes per SCC
+        let mut counts = IdVec::from_domain_in(0, &self.data.components, scratch);
+        for &scc in self.data.nodes.iter() {
+            counts[scc] += 1;
+        }
+
+        // Build offsets via prefix sum
+        let mut offsets = IdVec::with_capacity_in(num_sccs + 1, self.alloc.clone());
+        let mut total = 0;
+        for &count in counts.iter() {
+            offsets.push(total);
+            total += count;
+        }
+
+        // Reuse the counts vector, for cursors, copying from the offsets vector
+        let mut cursor = counts;
+        cursor.raw.copy_from_slice(&offsets.raw);
+
+        // Push the final offset, done after(!) the cursor has been initialized, to ensure that the
+        // slice region is the same.
+        offsets.push(total);
+        debug_assert_eq!(total, num_nodes);
+        debug_assert_eq!(offsets.len(), num_sccs + 1);
+
+        // Pass 2: place nodes
+        let mut nodes = Vec::with_capacity_in(num_nodes, self.alloc.clone());
+        nodes.resize(num_nodes, N::MAX);
+        for (node, &scc) in self.data.nodes.iter_enumerated() {
+            nodes[cursor[scc]] = node;
+            cursor[scc] += 1;
+        }
+
+        Members { offsets, nodes }
     }
 }
 
@@ -251,6 +319,8 @@ where
 /// - **Time**: O(V + E) where V is nodes and E is edges
 /// - **Space**: O(V) for the various stacks and state tracking
 pub struct Tarjan<'graph, G, N, S, M: Metadata<N, S> = (), A: Allocator = Global> {
+    alloc: A,
+
     /// Reference to the input graph.
     graph: &'graph G,
     /// Metadata tracker for annotations.
@@ -328,6 +398,8 @@ where
         let node_count = graph.node_count();
 
         Self {
+            alloc: alloc.clone(),
+
             graph,
             metadata,
 
@@ -364,6 +436,7 @@ where
         }
 
         StronglyConnectedComponents {
+            alloc: self.alloc,
             data: self.data,
             metadata: self.metadata,
         }
