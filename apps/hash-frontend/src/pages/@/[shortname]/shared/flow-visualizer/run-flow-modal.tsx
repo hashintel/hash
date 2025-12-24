@@ -72,8 +72,8 @@ const generateInitialFormState = (outputDefinitions: OutputDefinition[]) =>
 
 type RunFlowModalProps = {
   flowDefinition: FlowDefinition<FlowActionDefinitionId>;
-  open: boolean;
   onClose: () => void;
+  open: boolean;
   runFlow: (outputs: FlowTrigger["outputs"], webId: WebId) => Promise<void>;
 };
 

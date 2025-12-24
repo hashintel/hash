@@ -262,9 +262,9 @@ export const goalFlowDefinitionWithReportAndSpreadsheetDeliverable: FlowDefiniti
     ],
   };
 
-export const goalFlowDefinitionIds = [
+export const goalFlowDefinitionIds: string[] = [
   goalFlowDefinition.flowDefinitionId,
   goalFlowDefinitionWithSpreadsheetDeliverable.flowDefinitionId,
   goalFlowDefinitionWithReportDeliverable.flowDefinitionId,
-  goalFlowDefinitionWithReportAndSpreadsheetDeliverable,
+  goalFlowDefinitionWithReportAndSpreadsheetDeliverable.flowDefinitionId,
 ];

@@ -152,11 +152,13 @@ export const Topbar = ({
   handleRunFlowClicked,
   readonly,
   showRunButton,
+  startFlowPending,
   workerType,
 }: {
   handleRunFlowClicked: () => void;
   readonly?: boolean;
   showRunButton: boolean;
+  startFlowPending: boolean;
   workerType: "goal" | "flow";
 }) => {
   const { push } = useRouter();
@@ -347,7 +349,7 @@ export const Topbar = ({
           background="blue"
           Icon={PlaySolidIcon}
           onClick={onRunFlowClicked}
-          pending={false}
+          pending={startFlowPending}
           text={selectedFlowRun ? "Re-run" : "Run"}
         />
       ) : null}

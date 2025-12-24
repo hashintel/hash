@@ -222,6 +222,8 @@ export const FlowVisualizer = () => {
 
   const [logDisplay, setLogDisplay] = useState<LogDisplay>("grouped");
 
+  const [startFlowPending, setStartFlowPending] = useState(false);
+
   const apolloClient = useApolloClient();
 
   const { push } = useRouter();
@@ -583,24 +585,30 @@ export const FlowVisualizer = () => {
         };
       }
 
-      const { data } = await startFlow({
-        variables: flowInputs,
-      });
+      setStartFlowPending(true);
 
-      const flowRunId = data?.startFlow;
-      if (!flowRunId) {
-        throw new Error("Failed to start flow");
+      try {
+        const { data } = await startFlow({
+          variables: flowInputs,
+        });
+
+        const flowRunId = data?.startFlow;
+        if (!flowRunId) {
+          throw new Error("Failed to start flow");
+        }
+
+        await apolloClient.refetchQueries({
+          include: ["getFlowRuns"],
+        });
+
+        setShowRunModal(false);
+
+        const { shortname } = getOwner({ webId: flowInputs.webId });
+
+        void push(generateWorkerRunPath({ shortname, flowRunId }));
+      } finally {
+        setStartFlowPending(false);
       }
-
-      await apolloClient.refetchQueries({
-        include: ["getFlowRuns"],
-      });
-
-      setShowRunModal(false);
-
-      const { shortname } = getOwner({ webId: flowInputs.webId });
-
-      void push(generateWorkerRunPath({ shortname, flowRunId }));
     },
     [
       apolloClient,
@@ -669,6 +677,7 @@ export const FlowVisualizer = () => {
         <Box sx={{ background: ({ palette }) => palette.gray[5] }}>
           <Topbar
             handleRunFlowClicked={handleRunFlowClicked}
+            startFlowPending={startFlowPending}
             showRunButton={isRunnableFromHere}
             workerType={isGoal ? "goal" : "flow"}
           />
