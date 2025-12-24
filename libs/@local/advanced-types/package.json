@@ -24,7 +24,7 @@
   "devDependencies": {
     "@local/eslint": "0.0.0-private",
     "@local/tsconfig": "0.0.0-private",
-    "eslint": "9.38.0",
+    "eslint": "9.39.2",
     "react": "19.2.3",
     "rimraf": "6.1.2",
     "typescript": "5.9.3"
