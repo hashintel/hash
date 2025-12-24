@@ -71,7 +71,7 @@ use crate::{
 /// Each edge in the [`CallGraph`] is annotated with a `CallKind` to distinguish direct call sites
 /// from other kinds of references. This enables consumers to differentiate between actual function
 /// invocations and incidental references.
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum CallKind {
     /// Direct function application at the given MIR [`Location`].
     ///
@@ -143,6 +143,54 @@ impl<'heap, A: Allocator + Clone> CallGraph<'heap, A> {
         }
 
         graph
+    }
+}
+
+impl<'heap, A: Allocator> CallGraph<'heap, A> {
+    pub fn is_leaf(&self, def_id: DefId) -> bool {
+        let def_id = NodeId::new(def_id.as_usize());
+
+        self.inner
+            .outgoing_edges(def_id)
+            .filter(|edge| {
+                let target = self
+                    .inner
+                    .node(edge.target())
+                    .unwrap_or_else(|| unreachable!("target must exist"));
+
+                // leafs are functions which can have outgoing edges, as long as those outgoing
+                // edges are not intrinsics
+                !matches!(target.data, Source::Intrinsic(_))
+            })
+            .next()
+            .is_none()
+    }
+
+    // caller -> callee
+    pub fn is_single_caller(&self, caller: DefId, callee: DefId) -> bool {
+        let caller = NodeId::new(caller.as_usize());
+        let callee = NodeId::new(callee.as_usize());
+
+        self.inner
+            .incoming_edges(callee)
+            .all(|edge| matches!(edge.data, CallKind::Apply(_)) && edge.source() == caller)
+    }
+
+    pub fn unique_caller(&self, callee: DefId) -> Option<DefId> {
+        // Same as is_single_caller, but makes sure that there is exactly one edge
+        let callee = NodeId::new(callee.as_usize());
+
+        let mut incoming = self.inner.incoming_edges(callee);
+        let edge = incoming.next()?;
+
+        if incoming.next().is_some() {
+            return None;
+        }
+
+        match edge.data {
+            CallKind::Apply(_) => Some(DefId::new(edge.source().as_u32())),
+            _ => None,
+        }
     }
 }
 
