@@ -61,6 +61,7 @@ export const DagSlide = ({
             <Topbar
               handleRunFlowClicked={() => null}
               showRunButton={false}
+              startFlowPending={false}
               readonly
               workerType={isGoal ? "goal" : "flow"}
             />
