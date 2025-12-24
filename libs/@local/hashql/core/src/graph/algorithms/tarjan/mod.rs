@@ -19,6 +19,8 @@ use crate::{
     newtype,
 };
 
+newtype!(pub struct SccId(u32 is 0..=u32::MAX));
+
 newtype!(struct DiscoveryTime(usize is 0..=usize::MAX));
 
 /// Trait for attaching metadata to nodes and strongly connected components during traversal.
