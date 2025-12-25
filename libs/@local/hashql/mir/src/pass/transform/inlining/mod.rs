@@ -67,17 +67,14 @@ struct Inliner<A: Allocator, S: BumpAllocator> {
 }
 
 impl<A: Allocator, S: BumpAllocator> Inliner<A, S> {
-    fn prepare<'heap>(
+    fn global_analysis<'heap>(
         &self,
         bodies: &DefIdSlice<Body<'heap>>,
     ) -> (CallGraph<'heap, A>, CostEstimationResidual<A>)
     where
         A: Clone,
     {
-        // First we need to create a call graph
         let callgraph = CallGraph::analyze_in(bodies, self.alloc.clone());
-
-        // First we need to run the cost estimation pass
         let mut analysis = CostEstimationAnalysis::new(
             &callgraph,
             bodies,
@@ -95,7 +92,7 @@ impl<A: Allocator, S: BumpAllocator> Inliner<A, S> {
         (callgraph, costs)
     }
 
-    fn choose_candidates(
+    fn inlinable_callsites(
         &self,
         graph: &CallGraph<'_, A>,
         costs: &CostEstimationResidual<A>,
@@ -131,7 +128,7 @@ impl<A: Allocator, S: BumpAllocator> Inliner<A, S> {
         let mut remaining_budget = self.config.score.max * self.config.budget_multiplier;
         let chosen_candidates = candidates
             .into_iter_sorted()
-            .take_while(|Candidate { score, callsite }| {
+            .take_while(|Candidate { score: _, callsite }| {
                 let target_cost = costs.properties[callsite.target].cost;
                 if remaining_budget - target_cost >= 0.0 {
                     remaining_budget -= target_cost;
