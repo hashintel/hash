@@ -98,7 +98,13 @@ impl CostEstimationConfig {
     };
 }
 
-struct CostEstimationAnalysis<'ctx, 'heap, A: Allocator, S: BumpAllocator> {
+pub(crate) struct CostEstimationResidual<A: Allocator> {
+    pub properties: DefIdVec<BodyProperties, A>,
+    pub loops: LoopVec<A>,
+}
+
+pub(crate) struct CostEstimationAnalysis<'ctx, 'heap, A: Allocator, S: Allocator> {
+    alloc: A,
     scratch: S,
     config: CostEstimationConfig,
 
@@ -107,14 +113,14 @@ struct CostEstimationAnalysis<'ctx, 'heap, A: Allocator, S: BumpAllocator> {
     graph: &'ctx CallGraph<'heap, A>,
 }
 
-impl<'ctx, 'heap, A: Allocator, B: BumpAllocator> CostEstimationAnalysis<'ctx, 'heap, A, B> {
-    fn new(
+impl<'ctx, 'heap, A: Allocator, S: Allocator> CostEstimationAnalysis<'ctx, 'heap, A, S> {
+    pub(crate) fn new(
         graph: &'ctx CallGraph<'heap, A>,
         bodies: &'ctx DefIdSlice<Body<'heap>>,
         config: CostEstimationConfig,
 
         alloc: A,
-        scratch: B,
+        scratch: S,
     ) -> Self
     where
         A: Clone,
@@ -128,9 +134,10 @@ impl<'ctx, 'heap, A: Allocator, B: BumpAllocator> CostEstimationAnalysis<'ctx, '
             bodies,
             alloc.clone(),
         );
-        let loops = IdVec::new_in(alloc);
+        let loops = IdVec::new_in(alloc.clone());
 
         Self {
+            alloc,
             scratch,
             config,
             properties,
@@ -138,14 +145,15 @@ impl<'ctx, 'heap, A: Allocator, B: BumpAllocator> CostEstimationAnalysis<'ctx, '
             graph,
         }
     }
-}
 
-impl<'env, 'heap, A: Allocator, S: BumpAllocator> AnalysisPass<'env, 'heap>
-    for CostEstimationAnalysis<'_, 'heap, A, S>
-{
-    fn run(&mut self, _: &mut MirContext<'env, 'heap>, body: &Body<'heap>) {
-        self.scratch.reset();
+    pub(crate) fn finish(self) -> CostEstimationResidual<A> {
+        CostEstimationResidual {
+            properties: self.properties,
+            loops: self.loops,
+        }
+    }
 
+    pub(crate) fn analyze(&mut self, body: &Body<'heap>) {
         let inline = match body.source {
             Source::Ctor(_) => Inline::Always,
             Source::Closure(_, _) | Source::Thunk(_, _) => Inline::Depends,
@@ -187,6 +195,15 @@ impl<'env, 'heap, A: Allocator, S: BumpAllocator> AnalysisPass<'env, 'heap>
         if let Some(bitset) = bitset {
             self.loops.insert(body.id, bitset);
         }
+    }
+}
+
+impl<'env, 'heap, A: Allocator, S: BumpAllocator> AnalysisPass<'env, 'heap>
+    for CostEstimationAnalysis<'_, 'heap, A, S>
+{
+    fn run(&mut self, _: &mut MirContext<'env, 'heap>, body: &Body<'heap>) {
+        self.scratch.reset();
+        self.analyze(body);
     }
 }
 

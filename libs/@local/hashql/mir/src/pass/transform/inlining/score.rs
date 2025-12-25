@@ -14,20 +14,20 @@ struct CallSite {
 }
 
 #[derive(Debug, Copy, Clone, PartialEq)]
-struct ScoreConfig {
-    always_inline: f32,
-    max: f32,
-    max_loop_multiplier: f32,
+pub struct ScoreConfig {
+    pub always_inline: f32,
+    pub max: f32,
+    pub max_loop_multiplier: f32,
 
-    loop_bonus: f32,
-    leaf_bonus: f32,
-    single_caller_bonus: f32,
-    unique_callsite_bonus: f32,
-    size_penalty_factor: f32,
+    pub loop_bonus: f32,
+    pub leaf_bonus: f32,
+    pub single_caller_bonus: f32,
+    pub unique_callsite_bonus: f32,
+    pub size_penalty_factor: f32,
 }
 
 impl ScoreConfig {
-    const DEFAULT: Self = Self {
+    pub const DEFAULT: Self = Self {
         always_inline: 15.0,
         max: 80.0,
         max_loop_multiplier: 1.5,
