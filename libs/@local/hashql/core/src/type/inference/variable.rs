@@ -20,8 +20,7 @@ pub struct Variable {
 }
 
 impl Variable {
-    #[cfg(test)]
-    pub(crate) const fn synthetic(kind: VariableKind) -> Self {
+    pub const fn synthetic(kind: VariableKind) -> Self {
         Self {
             span: SpanId::SYNTHETIC,
             kind,

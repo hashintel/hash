@@ -34,6 +34,7 @@ pub struct AnalysisEnvironmentSkeleton<'heap> {
     variables: Option<VariableLookup>,
     substitution: Option<Substitution>,
     provisioned: Rc<ProvisionedScope<TypeId>>,
+    variance: VarianceState,
 }
 
 #[derive(Debug)]
@@ -78,6 +79,7 @@ impl<'env, 'heap> AnalysisEnvironment<'env, 'heap> {
             variables: self.variables,
             substitution: self.substitution,
             provisioned: self.provisioned,
+            variance: self.variance,
         }
     }
 

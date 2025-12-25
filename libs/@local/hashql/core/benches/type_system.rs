@@ -17,6 +17,7 @@ use hashql_core::{
             AnalysisEnvironment, Environment, InferenceEnvironment, LatticeEnvironment,
             SimplifyEnvironment, Variance,
         },
+        inference::{Constraint, Inference, Variable, VariableKind},
     },
 };
 
@@ -227,6 +228,20 @@ fn bench_simplify<'heap, T, U: 'heap>(
     });
 }
 
+#[expect(unsafe_code)]
+fn bench_inference<'heap, T, U: 'heap>(
+    bencher: &mut Bencher,
+    setup: impl FnMut(&mut TypeBuilder<'_, 'heap>) -> T,
+    mut run: impl FnMut(&mut InferenceEnvironment<'_, 'heap>, &mut T) -> U,
+) {
+    bench_with_env(bencher, setup, |env, data| {
+        let mut inference_env = InferenceEnvironment::new(env);
+        let data = run(&mut inference_env, data);
+
+        (data, inference_env.into_skeleton())
+    });
+}
+
 // =============================================================================
 // Lattice Benchmarks: Join
 // =============================================================================
@@ -238,8 +253,8 @@ fn lattice_join(criterion: &mut Criterion) {
         bench_lattice(
             bencher,
             |builder| (builder.integer(), builder.integer()),
-            |lattice, &mut (a, b)| {
-                lattice.join(a, b);
+            |lattice, &mut (lhs, rhs)| {
+                lattice.join(lhs, rhs);
             },
         );
     });
@@ -248,8 +263,8 @@ fn lattice_join(criterion: &mut Criterion) {
         bench_lattice(
             bencher,
             |builder| (builder.integer(), builder.string()),
-            |lattice, &mut (a, b)| {
-                lattice.join(a, b);
+            |lattice, &mut (lhs, rhs)| {
+                lattice.join(lhs, rhs);
             },
         );
     });
@@ -258,8 +273,8 @@ fn lattice_join(criterion: &mut Criterion) {
         bench_lattice(
             bencher,
             |builder| (builder.integer(), builder.number()),
-            |lattice, &mut (a, b)| {
-                lattice.join(a, b);
+            |lattice, &mut (lhs, rhs)| {
+                lattice.join(lhs, rhs);
             },
         );
     });
@@ -268,8 +283,8 @@ fn lattice_join(criterion: &mut Criterion) {
         bench_lattice(
             bencher,
             |builder| (builder.never(), builder.string()),
-            |lattice, &mut (a, b)| {
-                lattice.join(a, b);
+            |lattice, &mut (lhs, rhs)| {
+                lattice.join(lhs, rhs);
             },
         );
     });
@@ -278,8 +293,8 @@ fn lattice_join(criterion: &mut Criterion) {
         bench_lattice(
             bencher,
             |builder| (builder.unknown(), builder.string()),
-            |lattice, &mut (a, b)| {
-                lattice.join(a, b);
+            |lattice, &mut (lhs, rhs)| {
+                lattice.join(lhs, rhs);
             },
         );
     });
@@ -288,8 +303,8 @@ fn lattice_join(criterion: &mut Criterion) {
         bench_lattice(
             bencher,
             |builder| (create_simple_struct(builder), create_simple_struct(builder)),
-            |lattice, &mut (a, b)| {
-                lattice.join(a, b);
+            |lattice, &mut (lhs, rhs)| {
+                lattice.join(lhs, rhs);
             },
         );
     });
@@ -298,8 +313,8 @@ fn lattice_join(criterion: &mut Criterion) {
         bench_lattice(
             bencher,
             |builder| (create_nested_struct(builder), create_nested_struct(builder)),
-            |lattice, &mut (a, b)| {
-                lattice.join(a, b);
+            |lattice, &mut (lhs, rhs)| {
+                lattice.join(lhs, rhs);
             },
         );
     });
@@ -308,8 +323,18 @@ fn lattice_join(criterion: &mut Criterion) {
         bench_lattice(
             bencher,
             |builder| (create_simple_tuple(builder), create_simple_tuple(builder)),
-            |lattice, &mut (a, b)| {
-                lattice.join(a, b);
+            |lattice, &mut (lhs, rhs)| {
+                lattice.join(lhs, rhs);
+            },
+        );
+    });
+
+    group.bench_function("tuples/nested", |bencher| {
+        bench_lattice(
+            bencher,
+            |builder| (create_nested_tuple(builder), create_nested_tuple(builder)),
+            |lattice, &mut (lhs, rhs)| {
+                lattice.join(lhs, rhs);
             },
         );
     });
@@ -318,8 +343,8 @@ fn lattice_join(criterion: &mut Criterion) {
         bench_lattice(
             bencher,
             |builder| (create_simple_union(builder), create_simple_union(builder)),
-            |lattice, &mut (a, b)| {
-                lattice.join(a, b);
+            |lattice, &mut (lhs, rhs)| {
+                lattice.join(lhs, rhs);
             },
         );
     });
@@ -328,8 +353,8 @@ fn lattice_join(criterion: &mut Criterion) {
         bench_lattice(
             bencher,
             |builder| (create_nested_union(builder), create_nested_union(builder)),
-            |lattice, &mut (a, b)| {
-                lattice.join(a, b);
+            |lattice, &mut (lhs, rhs)| {
+                lattice.join(lhs, rhs);
             },
         );
     });
@@ -338,8 +363,8 @@ fn lattice_join(criterion: &mut Criterion) {
         bench_lattice(
             bencher,
             |builder| (create_wide_union(builder), create_wide_union(builder)),
-            |lattice, &mut (a, b)| {
-                lattice.join(a, b);
+            |lattice, &mut (lhs, rhs)| {
+                lattice.join(lhs, rhs);
             },
         );
     });
@@ -353,8 +378,8 @@ fn lattice_join(criterion: &mut Criterion) {
                     create_simple_intersection(builder),
                 )
             },
-            |lattice, &mut (a, b)| {
-                lattice.join(a, b);
+            |lattice, &mut (lhs, rhs)| {
+                lattice.join(lhs, rhs);
             },
         );
     });
@@ -368,8 +393,8 @@ fn lattice_join(criterion: &mut Criterion) {
                     create_simple_closure(builder),
                 )
             },
-            |lattice, &mut (a, b)| {
-                lattice.join(a, b);
+            |lattice, &mut (lhs, rhs)| {
+                lattice.join(lhs, rhs);
             },
         );
     });
@@ -383,8 +408,8 @@ fn lattice_join(criterion: &mut Criterion) {
                     create_complex_closure(builder),
                 )
             },
-            |lattice, &mut (a, b)| {
-                lattice.join(a, b);
+            |lattice, &mut (lhs, rhs)| {
+                lattice.join(lhs, rhs);
             },
         );
     });
@@ -393,8 +418,8 @@ fn lattice_join(criterion: &mut Criterion) {
         bench_lattice(
             bencher,
             |builder| (create_list_type(builder), create_list_type(builder)),
-            |lattice, &mut (a, b)| {
-                lattice.join(a, b);
+            |lattice, &mut (lhs, rhs)| {
+                lattice.join(lhs, rhs);
             },
         );
     });
@@ -403,8 +428,8 @@ fn lattice_join(criterion: &mut Criterion) {
         bench_lattice(
             bencher,
             |builder| (create_nested_list(builder), create_nested_list(builder)),
-            |lattice, &mut (a, b)| {
-                lattice.join(a, b);
+            |lattice, &mut (lhs, rhs)| {
+                lattice.join(lhs, rhs);
             },
         );
     });
@@ -418,8 +443,8 @@ fn lattice_join(criterion: &mut Criterion) {
                     create_recursive_type(builder),
                 )
             },
-            |lattice, &mut (a, b)| {
-                lattice.join(a, b);
+            |lattice, &mut (lhs, rhs)| {
+                lattice.join(lhs, rhs);
             },
         );
     });
@@ -433,8 +458,28 @@ fn lattice_join(criterion: &mut Criterion) {
                     create_deep_recursive_type(builder),
                 )
             },
-            |lattice, &mut (a, b)| {
-                lattice.join(a, b);
+            |lattice, &mut (lhs, rhs)| {
+                lattice.join(lhs, rhs);
+            },
+        );
+    });
+
+    group.bench_function("generics/simple", |bencher| {
+        bench_lattice(
+            bencher,
+            |builder| (create_generic_type(builder), create_generic_type(builder)),
+            |lattice, &mut (lhs, rhs)| {
+                lattice.join(lhs, rhs);
+            },
+        );
+    });
+
+    group.bench_function("generics/applied", |bencher| {
+        bench_lattice(
+            bencher,
+            |builder| (create_applied_type(builder), create_applied_type(builder)),
+            |lattice, &mut (lhs, rhs)| {
+                lattice.join(lhs, rhs);
             },
         );
     });
@@ -453,9 +498,7 @@ fn lattice_meet(criterion: &mut Criterion) {
         bench_lattice(
             bencher,
             |builder| (builder.integer(), builder.integer()),
-            |lattice, &mut (a, b)| {
-                lattice.meet(a, b);
-            },
+            |lattice, &mut (lhs, rhs)| lattice.meet(lhs, rhs),
         );
     });
 
@@ -463,9 +506,7 @@ fn lattice_meet(criterion: &mut Criterion) {
         bench_lattice(
             bencher,
             |builder| (builder.integer(), builder.string()),
-            |lattice, &mut (a, b)| {
-                lattice.meet(a, b);
-            },
+            |lattice, &mut (lhs, rhs)| lattice.meet(lhs, rhs),
         );
     });
 
@@ -473,9 +514,7 @@ fn lattice_meet(criterion: &mut Criterion) {
         bench_lattice(
             bencher,
             |builder| (builder.integer(), builder.number()),
-            |lattice, &mut (a, b)| {
-                lattice.meet(a, b);
-            },
+            |lattice, &mut (lhs, rhs)| lattice.meet(lhs, rhs),
         );
     });
 
@@ -483,9 +522,7 @@ fn lattice_meet(criterion: &mut Criterion) {
         bench_lattice(
             bencher,
             |builder| (builder.unknown(), builder.string()),
-            |lattice, &mut (a, b)| {
-                lattice.meet(a, b);
-            },
+            |lattice, &mut (lhs, rhs)| lattice.meet(lhs, rhs),
         );
     });
 
@@ -493,9 +530,7 @@ fn lattice_meet(criterion: &mut Criterion) {
         bench_lattice(
             bencher,
             |builder| (builder.never(), builder.string()),
-            |lattice, &mut (a, b)| {
-                lattice.meet(a, b);
-            },
+            |lattice, &mut (lhs, rhs)| lattice.meet(lhs, rhs),
         );
     });
 
@@ -503,9 +538,15 @@ fn lattice_meet(criterion: &mut Criterion) {
         bench_lattice(
             bencher,
             |builder| (create_simple_struct(builder), create_simple_struct(builder)),
-            |lattice, &mut (a, b)| {
-                lattice.meet(a, b);
-            },
+            |lattice, &mut (lhs, rhs)| lattice.meet(lhs, rhs),
+        );
+    });
+
+    group.bench_function("tuples/nested", |bencher| {
+        bench_lattice(
+            bencher,
+            |builder| (create_nested_tuple(builder), create_nested_tuple(builder)),
+            |lattice, &mut (lhs, rhs)| lattice.meet(lhs, rhs),
         );
     });
 
@@ -513,9 +554,7 @@ fn lattice_meet(criterion: &mut Criterion) {
         bench_lattice(
             bencher,
             |builder| (create_simple_union(builder), create_simple_union(builder)),
-            |lattice, &mut (a, b)| {
-                lattice.meet(a, b);
-            },
+            |lattice, &mut (lhs, rhs)| lattice.meet(lhs, rhs),
         );
     });
 
@@ -523,9 +562,7 @@ fn lattice_meet(criterion: &mut Criterion) {
         bench_lattice(
             bencher,
             |builder| (create_wide_union(builder), create_wide_union(builder)),
-            |lattice, &mut (a, b)| {
-                lattice.meet(a, b);
-            },
+            |lattice, &mut (lhs, rhs)| lattice.meet(lhs, rhs),
         );
     });
 
@@ -538,9 +575,7 @@ fn lattice_meet(criterion: &mut Criterion) {
                     create_simple_intersection(builder),
                 )
             },
-            |lattice, &mut (a, b)| {
-                lattice.meet(a, b);
-            },
+            |lattice, &mut (lhs, rhs)| lattice.meet(lhs, rhs),
         );
     });
 
@@ -553,9 +588,7 @@ fn lattice_meet(criterion: &mut Criterion) {
                     create_nested_intersection(builder),
                 )
             },
-            |lattice, &mut (a, b)| {
-                lattice.meet(a, b);
-            },
+            |lattice, &mut (lhs, rhs)| lattice.meet(lhs, rhs),
         );
     });
 
@@ -568,9 +601,7 @@ fn lattice_meet(criterion: &mut Criterion) {
                     create_simple_closure(builder),
                 )
             },
-            |lattice, &mut (a, b)| {
-                lattice.meet(a, b);
-            },
+            |lattice, &mut (lhs, rhs)| lattice.meet(lhs, rhs),
         );
     });
 
@@ -583,9 +614,23 @@ fn lattice_meet(criterion: &mut Criterion) {
                     create_recursive_type(builder),
                 )
             },
-            |lattice, &mut (a, b)| {
-                lattice.meet(a, b);
-            },
+            |lattice, &mut (lhs, rhs)| lattice.meet(lhs, rhs),
+        );
+    });
+
+    group.bench_function("generics/simple", |bencher| {
+        bench_lattice(
+            bencher,
+            |builder| (create_generic_type(builder), create_generic_type(builder)),
+            |lattice, &mut (lhs, rhs)| lattice.meet(lhs, rhs),
+        );
+    });
+
+    group.bench_function("generics/applied", |bencher| {
+        bench_lattice(
+            bencher,
+            |builder| (create_applied_type(builder), create_applied_type(builder)),
+            |lattice, &mut (lhs, rhs)| lattice.meet(lhs, rhs),
         );
     });
 
@@ -603,9 +648,7 @@ fn analysis_subtyping(criterion: &mut Criterion) {
         bench_analysis(
             bencher,
             |builder| (builder.integer(), builder.integer()),
-            |analysis, &mut (a, b)| {
-                analysis.is_subtype_of(Variance::Covariant, a, b);
-            },
+            |analysis, &mut (lhs, rhs)| analysis.is_subtype_of(Variance::Covariant, lhs, rhs),
         );
     });
 
@@ -613,9 +656,7 @@ fn analysis_subtyping(criterion: &mut Criterion) {
         bench_analysis(
             bencher,
             |builder| (builder.integer(), builder.number()),
-            |analysis, &mut (a, b)| {
-                analysis.is_subtype_of(Variance::Covariant, a, b);
-            },
+            |analysis, &mut (lhs, rhs)| analysis.is_subtype_of(Variance::Covariant, lhs, rhs),
         );
     });
 
@@ -623,9 +664,7 @@ fn analysis_subtyping(criterion: &mut Criterion) {
         bench_analysis(
             bencher,
             |builder| (builder.string(), builder.integer()),
-            |analysis, &mut (a, b)| {
-                analysis.is_subtype_of(Variance::Covariant, a, b);
-            },
+            |analysis, &mut (lhs, rhs)| analysis.is_subtype_of(Variance::Covariant, lhs, rhs),
         );
     });
 
@@ -633,9 +672,7 @@ fn analysis_subtyping(criterion: &mut Criterion) {
         bench_analysis(
             bencher,
             |builder| (builder.never(), builder.string()),
-            |analysis, &mut (a, b)| {
-                analysis.is_subtype_of(Variance::Covariant, a, b);
-            },
+            |analysis, &mut (lhs, rhs)| analysis.is_subtype_of(Variance::Covariant, lhs, rhs),
         );
     });
 
@@ -643,9 +680,7 @@ fn analysis_subtyping(criterion: &mut Criterion) {
         bench_analysis(
             bencher,
             |builder| (builder.string(), builder.unknown()),
-            |analysis, &mut (a, b)| {
-                analysis.is_subtype_of(Variance::Covariant, a, b);
-            },
+            |analysis, &mut (lhs, rhs)| analysis.is_subtype_of(Variance::Covariant, lhs, rhs),
         );
     });
 
@@ -653,9 +688,7 @@ fn analysis_subtyping(criterion: &mut Criterion) {
         bench_analysis(
             bencher,
             |builder| (create_simple_struct(builder), create_simple_struct(builder)),
-            |analysis, &mut (a, b)| {
-                analysis.is_subtype_of(Variance::Covariant, a, b);
-            },
+            |analysis, &mut (lhs, rhs)| analysis.is_subtype_of(Variance::Covariant, lhs, rhs),
         );
     });
 
@@ -663,9 +696,15 @@ fn analysis_subtyping(criterion: &mut Criterion) {
         bench_analysis(
             bencher,
             |builder| (create_nested_struct(builder), create_nested_struct(builder)),
-            |analysis, &mut (a, b)| {
-                analysis.is_subtype_of(Variance::Covariant, a, b);
-            },
+            |analysis, &mut (lhs, rhs)| analysis.is_subtype_of(Variance::Covariant, lhs, rhs),
+        );
+    });
+
+    group.bench_function("tuples/nested", |bencher| {
+        bench_analysis(
+            bencher,
+            |builder| (create_nested_tuple(builder), create_nested_tuple(builder)),
+            |analysis, &mut (lhs, rhs)| analysis.is_subtype_of(Variance::Covariant, lhs, rhs),
         );
     });
 
@@ -673,9 +712,7 @@ fn analysis_subtyping(criterion: &mut Criterion) {
         bench_analysis(
             bencher,
             |builder| (builder.string(), create_simple_union(builder)),
-            |analysis, &mut (a, b)| {
-                analysis.is_subtype_of(Variance::Covariant, a, b);
-            },
+            |analysis, &mut (lhs, rhs)| analysis.is_subtype_of(Variance::Covariant, lhs, rhs),
         );
     });
 
@@ -683,9 +720,7 @@ fn analysis_subtyping(criterion: &mut Criterion) {
         bench_analysis(
             bencher,
             |builder| (builder.string(), create_wide_union(builder)),
-            |analysis, &mut (a, b)| {
-                analysis.is_subtype_of(Variance::Covariant, a, b);
-            },
+            |analysis, &mut (lhs, rhs)| analysis.is_subtype_of(Variance::Covariant, lhs, rhs),
         );
     });
 
@@ -698,9 +733,7 @@ fn analysis_subtyping(criterion: &mut Criterion) {
                     create_simple_closure(builder),
                 )
             },
-            |analysis, &mut (a, b)| {
-                analysis.is_subtype_of(Variance::Covariant, a, b);
-            },
+            |analysis, &mut (lhs, rhs)| analysis.is_subtype_of(Variance::Covariant, lhs, rhs),
         );
     });
 
@@ -712,9 +745,7 @@ fn analysis_subtyping(criterion: &mut Criterion) {
                 let sup = builder.closure([builder.integer()], builder.number());
                 (sub, sup)
             },
-            |analysis, &mut (a, b)| {
-                analysis.is_subtype_of(Variance::Covariant, a, b);
-            },
+            |analysis, &mut (lhs, rhs)| analysis.is_subtype_of(Variance::Covariant, lhs, rhs),
         );
     });
 
@@ -727,9 +758,7 @@ fn analysis_subtyping(criterion: &mut Criterion) {
                     builder.list(builder.number()),
                 )
             },
-            |analysis, &mut (a, b)| {
-                analysis.is_subtype_of(Variance::Covariant, a, b);
-            },
+            |analysis, &mut (lhs, rhs)| analysis.is_subtype_of(Variance::Covariant, lhs, rhs),
         );
     });
 
@@ -737,13 +766,27 @@ fn analysis_subtyping(criterion: &mut Criterion) {
         bench_analysis(
             bencher,
             |builder| {
-                let a = builder.tuple(lazy(|id, builder| [builder.integer(), id.value()]));
-                let b = builder.tuple(lazy(|id, builder| [builder.number(), id.value()]));
-                (a, b)
+                let lhs = builder.tuple(lazy(|id, builder| [builder.integer(), id.value()]));
+                let rhs = builder.tuple(lazy(|id, builder| [builder.number(), id.value()]));
+                (lhs, rhs)
             },
-            |analysis, &mut (a, b)| {
-                analysis.is_subtype_of(Variance::Covariant, a, b);
-            },
+            |analysis, &mut (lhs, rhs)| analysis.is_subtype_of(Variance::Covariant, lhs, rhs),
+        );
+    });
+
+    group.bench_function("generics/simple", |bencher| {
+        bench_analysis(
+            bencher,
+            |builder| (create_generic_type(builder), create_generic_type(builder)),
+            |analysis, &mut (lhs, rhs)| analysis.is_subtype_of(Variance::Covariant, lhs, rhs),
+        );
+    });
+
+    group.bench_function("generics/applied", |bencher| {
+        bench_analysis(
+            bencher,
+            |builder| (create_applied_type(builder), create_applied_type(builder)),
+            |analysis, &mut (lhs, rhs)| analysis.is_subtype_of(Variance::Covariant, lhs, rhs),
         );
     });
 
@@ -761,9 +804,7 @@ fn analysis_equivalence(criterion: &mut Criterion) {
         bench_analysis(
             bencher,
             |builder| (builder.integer(), builder.integer()),
-            |analysis, &mut (a, b)| {
-                analysis.is_equivalent(a, b);
-            },
+            |analysis, &mut (lhs, rhs)| analysis.is_equivalent(lhs, rhs),
         );
     });
 
@@ -771,9 +812,7 @@ fn analysis_equivalence(criterion: &mut Criterion) {
         bench_analysis(
             bencher,
             |builder| (builder.integer(), builder.string()),
-            |analysis, &mut (a, b)| {
-                analysis.is_equivalent(a, b);
-            },
+            |analysis, &mut (lhs, rhs)| analysis.is_equivalent(lhs, rhs),
         );
     });
 
@@ -781,9 +820,15 @@ fn analysis_equivalence(criterion: &mut Criterion) {
         bench_analysis(
             bencher,
             |builder| (create_simple_struct(builder), create_simple_struct(builder)),
-            |analysis, &mut (a, b)| {
-                analysis.is_equivalent(a, b);
-            },
+            |analysis, &mut (lhs, rhs)| analysis.is_equivalent(lhs, rhs),
+        );
+    });
+
+    group.bench_function("tuples/nested", |bencher| {
+        bench_analysis(
+            bencher,
+            |builder| (create_nested_tuple(builder), create_nested_tuple(builder)),
+            |analysis, &mut (lhs, rhs)| analysis.is_equivalent(lhs, rhs),
         );
     });
 
@@ -791,9 +836,7 @@ fn analysis_equivalence(criterion: &mut Criterion) {
         bench_analysis(
             bencher,
             |builder| (create_simple_union(builder), create_simple_union(builder)),
-            |analysis, &mut (a, b)| {
-                analysis.is_equivalent(a, b);
-            },
+            |analysis, &mut (lhs, rhs)| analysis.is_equivalent(lhs, rhs),
         );
     });
 
@@ -806,9 +849,15 @@ fn analysis_equivalence(criterion: &mut Criterion) {
                     create_recursive_type(builder),
                 )
             },
-            |analysis, &mut (a, b)| {
-                analysis.is_equivalent(a, b);
-            },
+            |analysis, &mut (lhs, rhs)| analysis.is_equivalent(lhs, rhs),
+        );
+    });
+
+    group.bench_function("generics/equivalent", |bencher| {
+        bench_analysis(
+            bencher,
+            |builder| (create_generic_type(builder), create_generic_type(builder)),
+            |analysis, &mut (lhs, rhs)| analysis.is_equivalent(lhs, rhs),
         );
     });
 
@@ -826,9 +875,7 @@ fn analysis_properties(criterion: &mut Criterion) {
         bench_analysis(
             bencher,
             |builder| builder.never(),
-            |analysis, &mut ty| {
-                analysis.is_bottom(ty);
-            },
+            |analysis, &mut type_id| analysis.is_bottom(type_id),
         );
     });
 
@@ -836,9 +883,7 @@ fn analysis_properties(criterion: &mut Criterion) {
         bench_analysis(
             bencher,
             |builder| builder.integer(),
-            |analysis, &mut ty| {
-                analysis.is_bottom(ty);
-            },
+            |analysis, &mut type_id| analysis.is_bottom(type_id),
         );
     });
 
@@ -846,9 +891,7 @@ fn analysis_properties(criterion: &mut Criterion) {
         bench_analysis(
             bencher,
             |builder| builder.union([builder.never(), builder.never()]),
-            |analysis, &mut ty| {
-                analysis.is_bottom(ty);
-            },
+            |analysis, &mut type_id| analysis.is_bottom(type_id),
         );
     });
 
@@ -856,9 +899,7 @@ fn analysis_properties(criterion: &mut Criterion) {
         bench_analysis(
             bencher,
             |builder| builder.unknown(),
-            |analysis, &mut ty| {
-                analysis.is_top(ty);
-            },
+            |analysis, &mut type_id| analysis.is_top(type_id),
         );
     });
 
@@ -866,9 +907,7 @@ fn analysis_properties(criterion: &mut Criterion) {
         bench_analysis(
             bencher,
             |builder| builder.integer(),
-            |analysis, &mut ty| {
-                analysis.is_top(ty);
-            },
+            |analysis, &mut type_id| analysis.is_top(type_id),
         );
     });
 
@@ -876,9 +915,7 @@ fn analysis_properties(criterion: &mut Criterion) {
         bench_analysis(
             bencher,
             |builder| builder.integer(),
-            |analysis, &mut ty| {
-                analysis.is_concrete(ty);
-            },
+            |analysis, &mut type_id| analysis.is_concrete(type_id),
         );
     });
 
@@ -886,9 +923,7 @@ fn analysis_properties(criterion: &mut Criterion) {
         bench_analysis(
             bencher,
             |builder| create_simple_struct(builder),
-            |analysis, &mut ty| {
-                analysis.is_concrete(ty);
-            },
+            |analysis, &mut type_id| analysis.is_concrete(type_id),
         );
     });
 
@@ -896,9 +931,7 @@ fn analysis_properties(criterion: &mut Criterion) {
         bench_analysis(
             bencher,
             |builder| create_nested_struct(builder),
-            |analysis, &mut ty| {
-                analysis.is_concrete(ty);
-            },
+            |analysis, &mut type_id| analysis.is_concrete(type_id),
         );
     });
 
@@ -906,9 +939,7 @@ fn analysis_properties(criterion: &mut Criterion) {
         bench_analysis(
             bencher,
             |builder| create_wide_union(builder),
-            |analysis, &mut ty| {
-                analysis.is_concrete(ty);
-            },
+            |analysis, &mut type_id| analysis.is_concrete(type_id),
         );
     });
 
@@ -916,9 +947,7 @@ fn analysis_properties(criterion: &mut Criterion) {
         bench_analysis(
             bencher,
             |builder| create_simple_struct(builder),
-            |analysis, &mut ty| {
-                analysis.is_recursive(ty);
-            },
+            |analysis, &mut type_id| analysis.is_recursive(type_id),
         );
     });
 
@@ -926,9 +955,7 @@ fn analysis_properties(criterion: &mut Criterion) {
         bench_analysis(
             bencher,
             |builder| create_recursive_type(builder),
-            |analysis, &mut ty| {
-                analysis.is_recursive(ty);
-            },
+            |analysis, &mut type_id| analysis.is_recursive(type_id),
         );
     });
 
@@ -936,9 +963,7 @@ fn analysis_properties(criterion: &mut Criterion) {
         bench_analysis(
             bencher,
             |builder| create_deep_recursive_type(builder),
-            |analysis, &mut ty| {
-                analysis.is_recursive(ty);
-            },
+            |analysis, &mut type_id| analysis.is_recursive(type_id),
         );
     });
 
@@ -956,9 +981,7 @@ fn analysis_distribution(criterion: &mut Criterion) {
         bench_analysis(
             bencher,
             |builder| builder.list(builder.union([builder.string(), builder.integer()])),
-            |analysis, &mut ty| {
-                analysis.distribute_union(ty);
-            },
+            |analysis, &mut type_id| analysis.distribute_union(type_id),
         );
     });
 
@@ -971,9 +994,7 @@ fn analysis_distribution(criterion: &mut Criterion) {
                     builder.boolean(),
                 ])
             },
-            |analysis, &mut ty| {
-                analysis.distribute_union(ty);
-            },
+            |analysis, &mut type_id| analysis.distribute_union(type_id),
         );
     });
 
@@ -989,9 +1010,7 @@ fn analysis_distribution(criterion: &mut Criterion) {
                     ("flag", builder.boolean()),
                 ])
             },
-            |analysis, &mut ty| {
-                analysis.distribute_union(ty);
-            },
+            |analysis, &mut type_id| analysis.distribute_union(type_id),
         );
     });
 
@@ -1004,9 +1023,7 @@ fn analysis_distribution(criterion: &mut Criterion) {
                     builder.r#struct([("b", builder.integer())]),
                 ]))
             },
-            |analysis, &mut ty| {
-                analysis.distribute_intersection(ty);
-            },
+            |analysis, &mut type_id| analysis.distribute_intersection(type_id),
         );
     });
 
@@ -1024,9 +1041,7 @@ fn simplify(criterion: &mut Criterion) {
         bench_simplify(
             bencher,
             |builder| builder.integer(),
-            |simplify, &mut ty| {
-                simplify.simplify(ty);
-            },
+            |simplify, &mut type_id| simplify.simplify(type_id),
         );
     });
 
@@ -1034,9 +1049,7 @@ fn simplify(criterion: &mut Criterion) {
         bench_simplify(
             bencher,
             |builder| create_simple_struct(builder),
-            |simplify, &mut ty| {
-                simplify.simplify(ty);
-            },
+            |simplify, &mut type_id| simplify.simplify(type_id),
         );
     });
 
@@ -1044,9 +1057,15 @@ fn simplify(criterion: &mut Criterion) {
         bench_simplify(
             bencher,
             |builder| create_nested_struct(builder),
-            |simplify, &mut ty| {
-                simplify.simplify(ty);
-            },
+            |simplify, &mut type_id| simplify.simplify(type_id),
+        );
+    });
+
+    group.bench_function("tuple/nested", |bencher| {
+        bench_simplify(
+            bencher,
+            |builder| create_nested_tuple(builder),
+            |simplify, &mut type_id| simplify.simplify(type_id),
         );
     });
 
@@ -1054,9 +1073,7 @@ fn simplify(criterion: &mut Criterion) {
         bench_simplify(
             bencher,
             |builder| create_simple_union(builder),
-            |simplify, &mut ty| {
-                simplify.simplify(ty);
-            },
+            |simplify, &mut type_id| simplify.simplify(type_id),
         );
     });
 
@@ -1064,9 +1081,7 @@ fn simplify(criterion: &mut Criterion) {
         bench_simplify(
             bencher,
             |builder| create_nested_union(builder),
-            |simplify, &mut ty| {
-                simplify.simplify(ty);
-            },
+            |simplify, &mut type_id| simplify.simplify(type_id),
         );
     });
 
@@ -1074,9 +1089,7 @@ fn simplify(criterion: &mut Criterion) {
         bench_simplify(
             bencher,
             |builder| create_wide_union(builder),
-            |simplify, &mut ty| {
-                simplify.simplify(ty);
-            },
+            |simplify, &mut type_id| simplify.simplify(type_id),
         );
     });
 
@@ -1091,9 +1104,7 @@ fn simplify(criterion: &mut Criterion) {
                     builder.integer(),
                 ])
             },
-            |simplify, &mut ty| {
-                simplify.simplify(ty);
-            },
+            |simplify, &mut type_id| simplify.simplify(type_id),
         );
     });
 
@@ -1108,9 +1119,7 @@ fn simplify(criterion: &mut Criterion) {
                     builder.never(),
                 ])
             },
-            |simplify, &mut ty| {
-                simplify.simplify(ty);
-            },
+            |simplify, &mut type_id| simplify.simplify(type_id),
         );
     });
 
@@ -1118,9 +1127,7 @@ fn simplify(criterion: &mut Criterion) {
         bench_simplify(
             bencher,
             |builder| create_simple_intersection(builder),
-            |simplify, &mut ty| {
-                simplify.simplify(ty);
-            },
+            |simplify, &mut type_id| simplify.simplify(type_id),
         );
     });
 
@@ -1128,9 +1135,7 @@ fn simplify(criterion: &mut Criterion) {
         bench_simplify(
             bencher,
             |builder| create_nested_intersection(builder),
-            |simplify, &mut ty| {
-                simplify.simplify(ty);
-            },
+            |simplify, &mut type_id| simplify.simplify(type_id),
         );
     });
 
@@ -1143,9 +1148,7 @@ fn simplify(criterion: &mut Criterion) {
                     builder.unknown(),
                 ])
             },
-            |simplify, &mut ty| {
-                simplify.simplify(ty);
-            },
+            |simplify, &mut type_id| simplify.simplify(type_id),
         );
     });
 
@@ -1158,9 +1161,7 @@ fn simplify(criterion: &mut Criterion) {
                     builder.string(),
                 ])
             },
-            |simplify, &mut ty| {
-                simplify.simplify(ty);
-            },
+            |simplify, &mut type_id| simplify.simplify(type_id),
         );
     });
 
@@ -1168,9 +1169,23 @@ fn simplify(criterion: &mut Criterion) {
         bench_simplify(
             bencher,
             |builder| create_recursive_type(builder),
-            |simplify, &mut ty| {
-                simplify.simplify(ty);
-            },
+            |simplify, &mut type_id| simplify.simplify(type_id),
+        );
+    });
+
+    group.bench_function("generics/simple", |bencher| {
+        bench_simplify(
+            bencher,
+            |builder| create_generic_type(builder),
+            |simplify, &mut type_id| simplify.simplify(type_id),
+        );
+    });
+
+    group.bench_function("generics/applied", |bencher| {
+        bench_simplify(
+            bencher,
+            |builder| create_applied_type(builder),
+            |simplify, &mut type_id| simplify.simplify(type_id),
         );
     });
 
@@ -1185,67 +1200,58 @@ fn projection(criterion: &mut Criterion) {
     let mut group = criterion.benchmark_group("lattice/projection");
 
     group.bench_function("struct/existing_field", |bencher| {
-        bench_with_env(
+        bench_lattice(
             bencher,
             |builder| {
                 (
                     create_simple_struct(builder),
-                    builder.env.heap.intern_symbol("name"),
+                    Ident::synthetic(builder.env.heap.intern_symbol("name")),
                 )
             },
-            |env, &mut (ty, field_sym)| {
-                let mut lattice = LatticeEnvironment::new(env);
-                lattice.projection(ty, Ident::synthetic(field_sym));
-            },
+            |lattice, &mut (type_id, field)| lattice.projection(type_id, field),
         );
     });
 
     group.bench_function("struct/nested_field", |bencher| {
-        bench_with_env(
+        bench_lattice(
             bencher,
             |builder| {
                 (
                     create_nested_struct(builder),
-                    builder.env.heap.intern_symbol("user"),
+                    Ident::synthetic(builder.env.heap.intern_symbol("user")),
                 )
             },
-            |env, &mut (ty, field_sym)| {
-                let mut lattice = LatticeEnvironment::new(env);
-                lattice.projection(ty, Ident::synthetic(field_sym));
-            },
+            |lattice, &mut (type_id, field)| lattice.projection(type_id, field),
         );
     });
 
     group.bench_function("struct/missing_field", |bencher| {
-        bench_with_env(
+        bench_lattice(
             bencher,
             |builder| {
                 (
                     create_simple_struct(builder),
-                    builder.env.heap.intern_symbol("nonexistent"),
+                    Ident::synthetic(builder.env.heap.intern_symbol("nonexistent")),
                 )
             },
-            |env, &mut (ty, field_sym)| {
-                let mut lattice = LatticeEnvironment::new(env);
-                lattice.projection(ty, Ident::synthetic(field_sym));
-            },
+            |lattice, &mut (type_id, field)| lattice.projection(type_id, field),
         );
     });
 
     group.bench_function("union/common_field", |bencher| {
-        bench_with_env(
+        bench_lattice(
             bencher,
             |builder| {
-                let ty = builder.union([
+                let type_id = builder.union([
                     builder.r#struct([("id", builder.integer()), ("name", builder.string())]),
                     builder.r#struct([("id", builder.integer()), ("value", builder.number())]),
                 ]);
-                (ty, builder.env.heap.intern_symbol("id"))
+                (
+                    type_id,
+                    Ident::synthetic(builder.env.heap.intern_symbol("id")),
+                )
             },
-            |env, &mut (ty, field_sym)| {
-                let mut lattice = LatticeEnvironment::new(env);
-                lattice.projection(ty, Ident::synthetic(field_sym));
-            },
+            |lattice, &mut (type_id, field)| lattice.projection(type_id, field),
         );
     });
 
@@ -1263,10 +1269,10 @@ fn subscript(criterion: &mut Criterion) {
         bench_with_env(
             bencher,
             |builder| (create_list_type(builder), builder.integer()),
-            |env, &mut (ty, index)| {
+            |env, &mut (type_id, index)| {
                 let mut lattice = LatticeEnvironment::new(env);
                 let mut inference = InferenceEnvironment::new(env);
-                lattice.subscript(ty, index, &mut inference);
+                lattice.subscript(type_id, index, &mut inference);
             },
         );
     });
@@ -1275,10 +1281,10 @@ fn subscript(criterion: &mut Criterion) {
         bench_with_env(
             bencher,
             |builder| (create_nested_list(builder), builder.integer()),
-            |env, &mut (ty, index)| {
+            |env, &mut (type_id, index)| {
                 let mut lattice = LatticeEnvironment::new(env);
                 let mut inference = InferenceEnvironment::new(env);
-                lattice.subscript(ty, index, &mut inference);
+                lattice.subscript(type_id, index, &mut inference);
             },
         );
     });
@@ -1287,10 +1293,10 @@ fn subscript(criterion: &mut Criterion) {
         bench_with_env(
             bencher,
             |builder| (create_dict_type(builder), builder.string()),
-            |env, &mut (ty, index)| {
+            |env, &mut (type_id, index)| {
                 let mut lattice = LatticeEnvironment::new(env);
                 let mut inference = InferenceEnvironment::new(env);
-                lattice.subscript(ty, index, &mut inference);
+                lattice.subscript(type_id, index, &mut inference);
             },
         );
     });
@@ -1299,10 +1305,424 @@ fn subscript(criterion: &mut Criterion) {
         bench_with_env(
             bencher,
             |builder| (create_simple_tuple(builder), builder.integer()),
-            |env, &mut (ty, index)| {
+            |env, &mut (type_id, index)| {
                 let mut lattice = LatticeEnvironment::new(env);
                 let mut inference = InferenceEnvironment::new(env);
-                lattice.subscript(ty, index, &mut inference);
+                lattice.subscript(type_id, index, &mut inference);
+            },
+        );
+    });
+
+    group.bench_function("tuple/nested", |bencher| {
+        bench_with_env(
+            bencher,
+            |builder| (create_nested_tuple(builder), builder.integer()),
+            |env, &mut (type_id, index)| {
+                let mut lattice = LatticeEnvironment::new(env);
+                let mut inference = InferenceEnvironment::new(env);
+                lattice.subscript(type_id, index, &mut inference);
+            },
+        );
+    });
+
+    group.finish();
+}
+
+// =============================================================================
+// Inference Solver Benchmarks
+// =============================================================================
+
+fn inference_constraint_collection(criterion: &mut Criterion) {
+    let mut group = criterion.benchmark_group("inference/collect_constraints");
+
+    group.bench_function("primitives/subtype", |bencher| {
+        bench_inference(
+            bencher,
+            |builder| (builder.integer(), builder.number()),
+            |inference, &mut (subtype, supertype)| {
+                inference.collect_constraints(Variance::Covariant, subtype, supertype)
+            },
+        );
+    });
+
+    group.bench_function("structs/simple", |bencher| {
+        bench_inference(
+            bencher,
+            |builder| (create_simple_struct(builder), create_simple_struct(builder)),
+            |inference, &mut (subtype, supertype)| {
+                inference.collect_constraints(Variance::Covariant, subtype, supertype)
+            },
+        );
+    });
+
+    group.bench_function("structs/nested", |bencher| {
+        bench_inference(
+            bencher,
+            |builder| (create_nested_struct(builder), create_nested_struct(builder)),
+            |inference, &mut (subtype, supertype)| {
+                inference.collect_constraints(Variance::Covariant, subtype, supertype)
+            },
+        );
+    });
+
+    group.bench_function("unions/wide", |bencher| {
+        bench_inference(
+            bencher,
+            |builder| (create_wide_union(builder), create_wide_union(builder)),
+            |inference, &mut (subtype, supertype)| {
+                inference.collect_constraints(Variance::Covariant, subtype, supertype)
+            },
+        );
+    });
+
+    group.bench_function("with_inference_variable", |bencher| {
+        bench_inference(
+            bencher,
+            |builder| {
+                let hole = builder.fresh_hole();
+
+                (builder.infer(hole), builder.string())
+            },
+            |inference, &mut (subtype, supertype)| {
+                inference.collect_constraints(Variance::Covariant, subtype, supertype)
+            },
+        );
+    });
+
+    group.bench_function("list_with_variable", |bencher| {
+        bench_inference(
+            bencher,
+            |builder| {
+                let hole = builder.fresh_hole();
+
+                (
+                    builder.list(builder.infer(hole)),
+                    builder.list(builder.string()),
+                )
+            },
+            |inference, &mut (subtype, supertype)| {
+                inference.collect_constraints(Variance::Covariant, subtype, supertype)
+            },
+        );
+    });
+
+    group.finish();
+}
+
+fn inference_solver(criterion: &mut Criterion) {
+    let mut group = criterion.benchmark_group("inference/solve");
+
+    group.bench_function("single_equality", |bencher| {
+        bench_inference(
+            bencher,
+            |builder| {
+                let hole = builder.fresh_hole();
+                let variable = Variable::synthetic(VariableKind::Hole(hole));
+                let string = builder.string();
+                vec![Constraint::Equals {
+                    variable,
+                    r#type: string,
+                }]
+            },
+            |inference, constraints| {
+                for constraint in constraints.iter().copied() {
+                    inference.add_constraint(constraint);
+                }
+                let _ = inference.environment;
+            },
+        );
+    });
+
+    group.bench_function("upper_lower_bounds", |bencher| {
+        bench_inference(
+            bencher,
+            |builder| {
+                let hole = builder.fresh_hole();
+                let variable = Variable::synthetic(VariableKind::Hole(hole));
+                let integer = builder.integer();
+                let number = builder.number();
+                vec![
+                    Constraint::LowerBound {
+                        variable,
+                        bound: integer,
+                    },
+                    Constraint::UpperBound {
+                        variable,
+                        bound: number,
+                    },
+                ]
+            },
+            |inference, constraints| {
+                for constraint in constraints.iter().copied() {
+                    inference.add_constraint(constraint);
+                }
+            },
+        );
+    });
+
+    group.bench_function("unification/two_variables", |bencher| {
+        bench_inference(
+            bencher,
+            |builder| {
+                let hole1 = builder.fresh_hole();
+                let hole2 = builder.fresh_hole();
+                let var1 = Variable::synthetic(VariableKind::Hole(hole1));
+                let var2 = Variable::synthetic(VariableKind::Hole(hole2));
+                let string = builder.string();
+                vec![
+                    Constraint::Unify {
+                        lhs: var1,
+                        rhs: var2,
+                    },
+                    Constraint::Equals {
+                        variable: var1,
+                        r#type: string,
+                    },
+                ]
+            },
+            |inference, constraints| {
+                for constraint in constraints.iter().copied() {
+                    inference.add_constraint(constraint);
+                }
+            },
+        );
+    });
+
+    group.bench_function("ordering/chain", |bencher| {
+        bench_inference(
+            bencher,
+            |builder| {
+                let hole1 = builder.fresh_hole();
+                let hole2 = builder.fresh_hole();
+                let hole3 = builder.fresh_hole();
+                let var1 = Variable::synthetic(VariableKind::Hole(hole1));
+                let var2 = Variable::synthetic(VariableKind::Hole(hole2));
+                let var3 = Variable::synthetic(VariableKind::Hole(hole3));
+                let string = builder.string();
+                vec![
+                    Constraint::Ordering {
+                        lower: var1,
+                        upper: var2,
+                    },
+                    Constraint::Ordering {
+                        lower: var2,
+                        upper: var3,
+                    },
+                    Constraint::LowerBound {
+                        variable: var3,
+                        bound: string,
+                    },
+                ]
+            },
+            |inference, constraints| {
+                for constraint in constraints.iter().copied() {
+                    inference.add_constraint(constraint);
+                }
+            },
+        );
+    });
+
+    group.bench_function("ordering/anti_symmetry", |bencher| {
+        bench_inference(
+            bencher,
+            |builder| {
+                let hole1 = builder.fresh_hole();
+                let hole2 = builder.fresh_hole();
+                let var1 = Variable::synthetic(VariableKind::Hole(hole1));
+                let var2 = Variable::synthetic(VariableKind::Hole(hole2));
+                let string = builder.string();
+                vec![
+                    Constraint::Ordering {
+                        lower: var1,
+                        upper: var2,
+                    },
+                    Constraint::Ordering {
+                        lower: var2,
+                        upper: var1,
+                    },
+                    Constraint::Equals {
+                        variable: var1,
+                        r#type: string,
+                    },
+                ]
+            },
+            |inference, constraints| {
+                for constraint in constraints.iter().copied() {
+                    inference.add_constraint(constraint);
+                }
+            },
+        );
+    });
+
+    group.bench_function("ordering/cycle", |bencher| {
+        bench_inference(
+            bencher,
+            |builder| {
+                let hole1 = builder.fresh_hole();
+                let hole2 = builder.fresh_hole();
+                let hole3 = builder.fresh_hole();
+
+                let var1 = Variable::synthetic(VariableKind::Hole(hole1));
+                let var2 = Variable::synthetic(VariableKind::Hole(hole2));
+                let var3 = Variable::synthetic(VariableKind::Hole(hole3));
+
+                let string = builder.string();
+
+                vec![
+                    Constraint::Ordering {
+                        lower: var1,
+                        upper: var2,
+                    },
+                    Constraint::Ordering {
+                        lower: var2,
+                        upper: var3,
+                    },
+                    Constraint::Ordering {
+                        lower: var3,
+                        upper: var1,
+                    },
+                    Constraint::Equals {
+                        variable: var1,
+                        r#type: string,
+                    },
+                ]
+            },
+            |inference, constraints| {
+                for constraint in constraints.iter().copied() {
+                    inference.add_constraint(constraint);
+                }
+            },
+        );
+    });
+
+    group.bench_function("multiple_bounds", |bencher| {
+        bench_inference(
+            bencher,
+            |builder| {
+                let hole = builder.fresh_hole();
+
+                let variable = Variable::synthetic(VariableKind::Hole(hole));
+                let number = builder.number();
+                let integer = builder.integer();
+
+                vec![
+                    Constraint::UpperBound {
+                        variable,
+                        bound: number,
+                    },
+                    Constraint::UpperBound {
+                        variable,
+                        bound: integer,
+                    },
+                ]
+            },
+            |inference, constraints| {
+                for constraint in constraints.iter().copied() {
+                    inference.add_constraint(constraint);
+                }
+            },
+        );
+    });
+
+    group.finish();
+}
+
+fn inference_full_solve(criterion: &mut Criterion) {
+    let mut group = criterion.benchmark_group("inference/full_solve");
+
+    group.bench_function("simple_subtyping", |bencher| {
+        bench_inference(
+            bencher,
+            |builder| {
+                let hole = builder.fresh_hole();
+
+                (builder.infer(hole), builder.string())
+            },
+            |inference, &mut (subtype, supertype)| {
+                inference.collect_constraints(Variance::Covariant, subtype, supertype)
+            },
+        );
+    });
+
+    group.bench_function("nested_list_inference", |bencher| {
+        bench_inference(
+            bencher,
+            |builder| {
+                let hole = builder.fresh_hole();
+
+                (
+                    builder.list(builder.infer(hole)),
+                    builder.list(builder.string()),
+                )
+            },
+            |inference, &mut (subtype, supertype)| {
+                inference.collect_constraints(Variance::Covariant, subtype, supertype)
+            },
+        );
+    });
+
+    group.bench_function("struct_field_inference", |bencher| {
+        bench_inference(
+            bencher,
+            |builder| {
+                let hole = builder.fresh_hole();
+
+                let subtype =
+                    builder.r#struct([("name", builder.infer(hole)), ("age", builder.integer())]);
+                let supertype =
+                    builder.r#struct([("name", builder.string()), ("age", builder.integer())]);
+                (subtype, supertype)
+            },
+            |inference, &mut (subtype, supertype)| {
+                inference.collect_constraints(Variance::Covariant, subtype, supertype)
+            },
+        );
+    });
+
+    group.bench_function("closure_inference", |bencher| {
+        bench_inference(
+            bencher,
+            |builder| {
+                let hole = builder.fresh_hole();
+
+                let subtype = builder.closure([builder.string()], builder.infer(hole));
+                let supertype = builder.closure([builder.string()], builder.integer());
+                (subtype, supertype)
+            },
+            |inference, &mut (subtype, supertype)| {
+                inference.collect_constraints(Variance::Covariant, subtype, supertype)
+            },
+        );
+    });
+
+    group.bench_function("multiple_variables", |bencher| {
+        bench_inference(
+            bencher,
+            |builder| {
+                let hole1 = builder.fresh_hole();
+                let hole2 = builder.fresh_hole();
+
+                let subtype = builder.tuple([builder.infer(hole1), builder.infer(hole2)]);
+                let supertype = builder.tuple([builder.string(), builder.integer()]);
+                (subtype, supertype)
+            },
+            |inference, &mut (subtype, supertype)| {
+                inference.collect_constraints(Variance::Covariant, subtype, supertype)
+            },
+        );
+    });
+
+    group.bench_function("contravariant_closure", |bencher| {
+        bench_inference(
+            bencher,
+            |builder| {
+                let hole = builder.fresh_hole();
+                let subtype = builder.closure([builder.infer(hole)], builder.boolean());
+                let supertype = builder.closure([builder.integer()], builder.boolean());
+                (subtype, supertype)
+            },
+            |inference, &mut (subtype, supertype)| {
+                inference.collect_constraints(Variance::Covariant, subtype, supertype)
             },
         );
     });
@@ -1328,9 +1748,17 @@ criterion_group!(simplify_benches, simplify,);
 
 criterion_group!(access_benches, projection, subscript,);
 
+criterion_group!(
+    inference_benches,
+    inference_constraint_collection,
+    inference_solver,
+    inference_full_solve,
+);
+
 criterion_main!(
     lattice_benches,
     analysis_benches,
     simplify_benches,
     access_benches,
+    inference_benches,
 );
