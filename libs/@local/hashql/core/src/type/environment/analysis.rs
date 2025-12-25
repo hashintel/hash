@@ -4,6 +4,7 @@ use core::{
     ops::{ControlFlow, Deref},
 };
 
+use derive_more::Debug;
 use hashql_diagnostics::DiagnosticIssues;
 use smallvec::SmallVec;
 
@@ -22,6 +23,18 @@ use crate::r#type::{
     lattice::Lattice as _,
     recursion::{RecursionBoundary, RecursionCycle},
 };
+
+#[derive(Debug)]
+#[expect(
+    dead_code,
+    reason = "used during benchmarking to delay signficiant drop"
+)]
+pub struct AnalysisEnvironmentSkeleton<'heap> {
+    boundary: RecursionBoundary<'heap>,
+    variables: Option<VariableLookup>,
+    substitution: Option<Substitution>,
+    provisioned: Rc<ProvisionedScope<TypeId>>,
+}
 
 #[derive(Debug)]
 #[expect(
@@ -55,6 +68,16 @@ impl<'env, 'heap> AnalysisEnvironment<'env, 'heap> {
             provisioned: Rc::default(),
 
             variance: VarianceState::new(Variance::Covariant),
+        }
+    }
+
+    #[must_use]
+    pub fn into_skeleton(self) -> AnalysisEnvironmentSkeleton<'heap> {
+        AnalysisEnvironmentSkeleton {
+            boundary: self.boundary,
+            variables: self.variables,
+            substitution: self.substitution,
+            provisioned: self.provisioned,
         }
     }
 
