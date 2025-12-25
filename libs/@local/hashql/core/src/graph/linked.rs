@@ -87,6 +87,7 @@ pub struct Node<N> {
 impl<N> HasId for Node<N> {
     type Id = NodeId;
 
+    #[inline]
     fn id(&self) -> Self::Id {
         self.id
     }
