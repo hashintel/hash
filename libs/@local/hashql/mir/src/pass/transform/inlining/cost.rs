@@ -59,8 +59,48 @@ impl<N, S> Metadata<N, S> for MemberCount {
     fn merge_reachable(&mut self, _: &mut Self::Annotation, _: &Self::Annotation) {}
 }
 
+#[derive(Debug, Copy, Clone, PartialEq)]
+pub struct CostEstimationConfig {
+    pub rvalue_load: f32,
+    pub rvalue_binary: f32,
+    pub rvalue_unary: f32,
+    pub rvalue_aggregate: f32,
+    pub rvalue_input: f32,
+    pub rvalue_apply: f32,
+
+    pub terminator_switch_int_base: f32,
+    pub terminator_switch_int_branch_multiplier: f32,
+    pub terminator_graph_read: f32,
+    pub terminator_goto: f32,
+    pub terminator_return: f32,
+    pub terminator_unreachable: f32,
+
+    pub basic_block: f32,
+}
+
+impl CostEstimationConfig {
+    pub const DEFAULT: Self = Self {
+        rvalue_load: 1.0,
+        rvalue_binary: 2.0,
+        rvalue_unary: 2.0,
+        rvalue_aggregate: 3.0,
+        rvalue_input: 5.0,
+        rvalue_apply: 4.0,
+
+        terminator_switch_int_base: 1.0,
+        terminator_switch_int_branch_multiplier: 0.5,
+        terminator_graph_read: 5.0,
+        terminator_goto: 1.0,
+        terminator_return: 1.0,
+        terminator_unreachable: 0.0,
+
+        basic_block: 1.0,
+    };
+}
+
 struct CostEstimationAnalysis<'ctx, 'heap, A: Allocator, S: BumpAllocator> {
     scratch: S,
+    config: CostEstimationConfig,
 
     properties: DefIdVec<BodyProperties, A>,
     loops: LoopVec<A>,
@@ -69,8 +109,10 @@ struct CostEstimationAnalysis<'ctx, 'heap, A: Allocator, S: BumpAllocator> {
 
 impl<'ctx, 'heap, A: Allocator, B: BumpAllocator> CostEstimationAnalysis<'ctx, 'heap, A, B> {
     fn new(
-        bodies: &'ctx DefIdSlice<Body<'heap>>,
         graph: &'ctx CallGraph<'heap, A>,
+        bodies: &'ctx DefIdSlice<Body<'heap>>,
+        config: CostEstimationConfig,
+
         alloc: A,
         scratch: B,
     ) -> Self
@@ -88,8 +130,9 @@ impl<'ctx, 'heap, A: Allocator, B: BumpAllocator> CostEstimationAnalysis<'ctx, '
         );
         let loops = IdVec::new_in(alloc);
 
-        CostEstimationAnalysis {
+        Self {
             scratch,
+            config,
             properties,
             loops,
             graph,
@@ -129,7 +172,10 @@ impl<'env, 'heap, A: Allocator, S: BumpAllocator> AnalysisPass<'env, 'heap>
         }
 
         // Evaluate the total cost of the body
-        let mut visitor = CostEstimationVisitor { total: 0.0 };
+        let mut visitor = CostEstimationVisitor {
+            config: self.config,
+            total: 0.0,
+        };
         visitor.visit_body(body);
 
         self.properties[body.id] = BodyProperties {
@@ -145,6 +191,7 @@ impl<'env, 'heap, A: Allocator, S: BumpAllocator> AnalysisPass<'env, 'heap>
 }
 
 struct CostEstimationVisitor {
+    config: CostEstimationConfig,
     total: f32,
 }
 
@@ -154,14 +201,15 @@ impl<'heap> Visitor<'heap> for CostEstimationVisitor {
 
     fn visit_rvalue(&mut self, _: Location, rvalue: &RValue<'heap>) -> Self::Result {
         let cost = match rvalue {
-            RValue::Load(_) => 1.0,
-            RValue::Binary(_) | RValue::Unary(_) => 2.0,
-            RValue::Aggregate(_) => 3.0,
+            RValue::Load(_) => self.config.rvalue_load,
+            RValue::Binary(_) => self.config.rvalue_binary,
+            RValue::Unary(_) => self.config.rvalue_unary,
+            RValue::Aggregate(_) => self.config.rvalue_aggregate,
             // We try to get something from the environment, as this needs to communicate with the
             // runtime it's most expensive.
-            RValue::Input(_) => 5.0,
+            RValue::Input(_) => self.config.rvalue_input,
             // Nested calls are most expensive and therefore
-            RValue::Apply(_) => 4.0,
+            RValue::Apply(_) => self.config.rvalue_apply,
         };
 
         self.total += cost;
@@ -170,15 +218,17 @@ impl<'heap> Visitor<'heap> for CostEstimationVisitor {
 
     fn visit_terminator(&mut self, _: Location, terminator: &Terminator<'heap>) -> Self::Result {
         let cost = match &terminator.kind {
-            TerminatorKind::SwitchInt(switch_int) => {
-                1.0 + (switch_int.targets.targets().len() as f32 / 2.0)
-            }
+            TerminatorKind::SwitchInt(switch_int) => (switch_int.targets.targets().len() as f32)
+                .mul_add(
+                    self.config.terminator_switch_int_branch_multiplier,
+                    self.config.terminator_switch_int_base,
+                ),
             // Similar to RValue::Input, we try to get something from the environment, as this needs
             // to communicate with the runtime it's most expensive.
-            TerminatorKind::GraphRead(_) => 5.0,
-            TerminatorKind::Goto(_) | TerminatorKind::Return(_) | TerminatorKind::Unreachable => {
-                1.0
-            }
+            TerminatorKind::GraphRead(_) => self.config.terminator_graph_read,
+            TerminatorKind::Goto(_) => self.config.terminator_goto,
+            TerminatorKind::Return(_) => self.config.terminator_return,
+            TerminatorKind::Unreachable => self.config.terminator_unreachable,
         };
 
         self.total += cost;
@@ -186,7 +236,7 @@ impl<'heap> Visitor<'heap> for CostEstimationVisitor {
     }
 
     fn visit_basic_block(&mut self, id: BasicBlockId, block: &BasicBlock<'heap>) -> Self::Result {
-        self.total += 1.0;
+        self.total += self.config.basic_block;
 
         visit::r#ref::walk_basic_block(self, id, block)
     }
