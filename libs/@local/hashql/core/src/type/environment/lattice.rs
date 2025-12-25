@@ -42,6 +42,7 @@ pub struct LatticeEnvironment<'env, 'heap> {
 
     simplify_lattice: bool,
     inference: bool,
+    warnings_enabled: bool,
 
     simplify: SimplifyEnvironment<'env, 'heap>,
 }
@@ -54,6 +55,7 @@ impl<'env, 'heap> LatticeEnvironment<'env, 'heap> {
             diagnostics: DiagnosticIssues::new(),
             simplify_lattice: true,
             inference: false,
+            warnings_enabled: true,
             simplify: SimplifyEnvironment::new(environment),
         }
     }
@@ -65,6 +67,12 @@ impl<'env, 'heap> LatticeEnvironment<'env, 'heap> {
             boundary: self.boundary,
             simplify: self.simplify.into_skeleton(),
         }
+    }
+
+    #[must_use]
+    pub const fn without_warnings(mut self) -> Self {
+        self.warnings_enabled = false;
+        self
     }
 
     #[inline]
@@ -173,7 +181,9 @@ impl<'env, 'heap> LatticeEnvironment<'env, 'heap> {
         cycle: RecursionCycle,
     ) -> TypeId {
         // Record diagnostic for awareness but don't treat as fatal
-        self.diagnostics.push(circular_type_reference(lhs, rhs));
+        if self.warnings_enabled {
+            self.diagnostics.push(circular_type_reference(lhs, rhs));
+        }
 
         if cycle.should_discharge() && self.is_subtype_of(Variance::Covariant, lhs.id, rhs.id) {
             return rhs.id;
@@ -285,8 +295,10 @@ impl<'env, 'heap> LatticeEnvironment<'env, 'heap> {
         rhs: Type<'heap>,
         cycle: RecursionCycle,
     ) -> TypeId {
-        // Record diagnostic for awareness but don't treat as fatal
-        self.diagnostics.push(circular_type_reference(lhs, rhs));
+        if self.warnings_enabled {
+            // Record diagnostic for awareness but don't treat as fatal
+            self.diagnostics.push(circular_type_reference(lhs, rhs));
+        }
 
         // Check the subtyping relationship
         if cycle.should_discharge() && self.is_subtype_of(Variance::Covariant, lhs.id, rhs.id) {
