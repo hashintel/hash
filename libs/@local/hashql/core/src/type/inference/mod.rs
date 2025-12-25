@@ -7,7 +7,10 @@ pub use self::{
     variable::{Variable, VariableKind},
     visit::VariableCollector,
 };
-pub(crate) use self::{variable::VariableLookup, visit::VariableDependencyCollector};
+pub(crate) use self::{
+    variable::VariableLookup,
+    visit::{VariableDependencyCollector, VariableDependencyCollectorSkeleton},
+};
 use super::{
     Type, TypeId,
     environment::{Environment, InferenceEnvironment, instantiate::InstantiateEnvironment},
