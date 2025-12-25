@@ -146,24 +146,19 @@ impl<'heap, A: Allocator + Clone> CallGraph<'heap, A> {
     }
 }
 
-impl<'heap, A: Allocator> CallGraph<'heap, A> {
+impl<A: Allocator> CallGraph<'_, A> {
     pub fn is_leaf(&self, def_id: DefId) -> bool {
         let def_id = NodeId::new(def_id.as_usize());
 
-        self.inner
-            .outgoing_edges(def_id)
-            .filter(|edge| {
-                let target = self
-                    .inner
-                    .node(edge.target())
-                    .unwrap_or_else(|| unreachable!("target must exist"));
+        self.inner.outgoing_edges(def_id).all(|edge| {
+            let target = self
+                .inner
+                .node(edge.target())
+                .unwrap_or_else(|| unreachable!("target must exist"));
 
-                // leafs are functions which can have outgoing edges, as long as those outgoing
-                // edges are not intrinsics
-                !matches!(target.data, Source::Intrinsic(_))
-            })
-            .next()
-            .is_none()
+            // Leafs are functions, which can only have intrinsic edges
+            matches!(target.data, Source::Intrinsic(_))
+        })
     }
 
     // caller -> callee
@@ -304,6 +299,11 @@ impl<'graph, 'heap, A: Allocator> CallGraphAnalysis<'graph, 'heap, A> {
         };
 
         Ok(()) = visitor.visit_body(body);
+    }
+
+impl<'env, 'heap, A: Allocator> AnalysisPass<'env, 'heap> for CallGraphAnalysis<'_, 'heap, A> {
+    fn run(&mut self, _: &mut MirContext<'env, 'heap>, body: &Body<'heap>) {
+        self.analyze(body);
     }
 }
 
