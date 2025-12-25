@@ -12,10 +12,12 @@ mod tests;
 use alloc::{alloc::Global, vec::Vec};
 use core::{alloc::Allocator, iter, ops::Range, slice};
 
+#[cfg(debug_assertions)]
+use crate::id::bit_vec::DenseBitSet;
 use crate::{
     collections::{FastHashSet, fast_hash_set_in},
     graph::{DirectedGraph, EdgeId, Successors},
-    id::{HasId, Id, IdVec},
+    id::{HasId, Id, IdSlice, IdVec},
     newtype,
 };
 
@@ -150,8 +152,8 @@ struct Component<A> {
 }
 
 pub struct Members<N, S, A: Allocator = Global> {
-    offsets: IdVec<S, usize, A>,
-    nodes: Vec<N, A>,
+    offsets: Box<IdSlice<S, usize>, A>,
+    nodes: Box<[N], A>,
 }
 
 impl<N, S, A: Allocator> Members<N, S, A>
@@ -215,6 +217,7 @@ where
         self.members_in(Global)
     }
 
+    #[expect(unsafe_code, clippy::debug_assert_with_mut_call)]
     pub fn members_in<B: Allocator>(&self, scratch: B) -> Members<N, S, A>
     where
         A: Clone,
@@ -229,30 +232,55 @@ where
         }
 
         // Build offsets via prefix sum
-        let mut offsets = IdVec::with_capacity_in(num_sccs + 1, self.alloc.clone());
+        let mut offsets =
+            IdSlice::from_boxed_slice(Box::new_uninit_slice_in(num_sccs + 1, self.alloc.clone()));
+
         let mut total = 0;
-        for &count in counts.iter() {
-            offsets.push(total);
+        for (index, &count) in counts.iter_enumerated() {
+            offsets[index].write(total);
             total += count;
         }
+        offsets[S::from_usize(num_sccs)].write(total);
+
+        // SAFETY: All `num_sccs + 1` elements are initialized:
+        // - The loop writes indices 0..num_sccs (one per SCC via iter_enumerated)
+        // - Final index at num_sccs is written just before this
+        let offsets = unsafe { IdSlice::boxed_assume_init(offsets) };
 
         // Reuse the counts vector, for cursors, copying from the offsets vector
         let mut cursor = counts;
-        cursor.raw.copy_from_slice(&offsets.raw);
+        cursor
+            .raw
+            .copy_from_slice(&offsets[..S::from_usize(num_sccs)]);
 
-        // Push the final offset, done after(!) the cursor has been initialized, to ensure that the
-        // slice region is the same.
-        offsets.push(total);
         debug_assert_eq!(total, num_nodes);
         debug_assert_eq!(offsets.len(), num_sccs + 1);
 
         // Pass 2: place nodes
-        let mut nodes = Vec::with_capacity_in(num_nodes, self.alloc.clone());
-        nodes.resize(num_nodes, N::MAX);
+        let mut nodes = Box::new_uninit_slice_in(num_nodes, self.alloc.clone());
+        #[cfg(debug_assertions)]
+        let mut nodes_written = DenseBitSet::new_empty(num_nodes);
+
         for (node, &scc) in self.data.nodes.iter_enumerated() {
-            nodes[cursor[scc]] = node;
+            debug_assert!(
+                nodes_written.insert(N::from_usize(cursor[scc])),
+                "Cursor {} has been visited multiple times.",
+                cursor[scc]
+            );
+            nodes[cursor[scc]].write(node);
+
             cursor[scc] += 1;
         }
+
+        debug_assert_eq!(nodes_written.count(), num_nodes);
+
+        // SAFETY: Every element in `nodes[0..num_nodes]` is initialized exactly once:
+        // - The loop iterates over all `num_nodes` nodes exactly once.
+        // - Each node writes to `nodes[cursor[scc]]` then increments `cursor[scc]`.
+        // - Cursors start at disjoint offsets (prefix sum of counts per SCC).
+        // - The sum of all counts equals `num_nodes` (each node belongs to exactly one SCC).
+        // - Therefore, the cursor writes partition and fully cover `0..num_nodes`.
+        let nodes = unsafe { nodes.assume_init() };
 
         Members { offsets, nodes }
     }
