@@ -20,6 +20,7 @@ pub struct Variable {
 }
 
 impl Variable {
+    #[must_use]
     pub const fn synthetic(kind: VariableKind) -> Self {
         Self {
             span: SpanId::SYNTHETIC,

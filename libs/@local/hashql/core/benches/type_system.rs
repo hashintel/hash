@@ -17,7 +17,7 @@ use hashql_core::{
             AnalysisEnvironment, Environment, InferenceEnvironment, LatticeEnvironment,
             SimplifyEnvironment, Variance,
         },
-        inference::{Constraint, Inference, Variable, VariableKind},
+        inference::{Constraint, Variable, VariableKind},
     },
 };
 
@@ -228,7 +228,6 @@ fn bench_simplify<'heap, T, U: 'heap>(
     });
 }
 
-#[expect(unsafe_code)]
 fn bench_inference<'heap, T, U: 'heap>(
     bencher: &mut Bencher,
     setup: impl FnMut(&mut TypeBuilder<'_, 'heap>) -> T,
@@ -238,7 +237,9 @@ fn bench_inference<'heap, T, U: 'heap>(
         let mut inference_env = InferenceEnvironment::new(env);
         let data = run(&mut inference_env, data);
 
-        (data, inference_env.into_skeleton())
+        let result = inference_env.into_solver().solve();
+
+        (data, result)
     });
 }
 
@@ -1336,61 +1337,83 @@ fn inference_constraint_collection(criterion: &mut Criterion) {
     let mut group = criterion.benchmark_group("inference/collect_constraints");
 
     group.bench_function("primitives/subtype", |bencher| {
-        bench_inference(
+        bench_with_env(
             bencher,
             |builder| (builder.integer(), builder.number()),
-            |inference, &mut (subtype, supertype)| {
-                inference.collect_constraints(Variance::Covariant, subtype, supertype)
+            |env, &mut (subtype, supertype)| {
+                let mut inference = InferenceEnvironment::new(env);
+                inference.collect_constraints(Variance::Covariant, subtype, supertype);
+                inference.into_skeleton()
             },
         );
     });
 
     group.bench_function("structs/simple", |bencher| {
-        bench_inference(
+        bench_with_env(
             bencher,
             |builder| (create_simple_struct(builder), create_simple_struct(builder)),
-            |inference, &mut (subtype, supertype)| {
-                inference.collect_constraints(Variance::Covariant, subtype, supertype)
+            |env, &mut (subtype, supertype)| {
+                let mut inference = InferenceEnvironment::new(env);
+                inference.collect_constraints(Variance::Covariant, subtype, supertype);
+                inference.into_skeleton()
             },
         );
     });
 
     group.bench_function("structs/nested", |bencher| {
-        bench_inference(
+        bench_with_env(
             bencher,
             |builder| (create_nested_struct(builder), create_nested_struct(builder)),
-            |inference, &mut (subtype, supertype)| {
-                inference.collect_constraints(Variance::Covariant, subtype, supertype)
+            |env, &mut (subtype, supertype)| {
+                let mut inference = InferenceEnvironment::new(env);
+                inference.collect_constraints(Variance::Covariant, subtype, supertype);
+                inference.into_skeleton()
+            },
+        );
+    });
+
+    group.bench_function("structs/nested", |bencher| {
+        bench_with_env(
+            bencher,
+            |builder| (create_nested_struct(builder), create_nested_struct(builder)),
+            |env, &mut (subtype, supertype)| {
+                let mut inference = InferenceEnvironment::new(env);
+                inference.collect_constraints(Variance::Covariant, subtype, supertype);
+                inference.into_skeleton()
             },
         );
     });
 
     group.bench_function("unions/wide", |bencher| {
-        bench_inference(
+        bench_with_env(
             bencher,
             |builder| (create_wide_union(builder), create_wide_union(builder)),
-            |inference, &mut (subtype, supertype)| {
-                inference.collect_constraints(Variance::Covariant, subtype, supertype)
+            |env, &mut (subtype, supertype)| {
+                let mut inference = InferenceEnvironment::new(env);
+                inference.collect_constraints(Variance::Covariant, subtype, supertype);
+                inference.into_skeleton()
             },
         );
     });
 
     group.bench_function("with_inference_variable", |bencher| {
-        bench_inference(
+        bench_with_env(
             bencher,
             |builder| {
                 let hole = builder.fresh_hole();
 
                 (builder.infer(hole), builder.string())
             },
-            |inference, &mut (subtype, supertype)| {
-                inference.collect_constraints(Variance::Covariant, subtype, supertype)
+            |env, &mut (subtype, supertype)| {
+                let mut inference = InferenceEnvironment::new(env);
+                inference.collect_constraints(Variance::Covariant, subtype, supertype);
+                inference.into_skeleton()
             },
         );
     });
 
     group.bench_function("list_with_variable", |bencher| {
-        bench_inference(
+        bench_with_env(
             bencher,
             |builder| {
                 let hole = builder.fresh_hole();
@@ -1400,8 +1423,10 @@ fn inference_constraint_collection(criterion: &mut Criterion) {
                     builder.list(builder.string()),
                 )
             },
-            |inference, &mut (subtype, supertype)| {
-                inference.collect_constraints(Variance::Covariant, subtype, supertype)
+            |env, &mut (subtype, supertype)| {
+                let mut inference = InferenceEnvironment::new(env);
+                inference.collect_constraints(Variance::Covariant, subtype, supertype);
+                inference.into_skeleton()
             },
         );
     });
@@ -1428,7 +1453,6 @@ fn inference_solver(criterion: &mut Criterion) {
                 for constraint in constraints.iter().copied() {
                     inference.add_constraint(constraint);
                 }
-                let _ = inference.environment;
             },
         );
     });
@@ -1639,7 +1663,7 @@ fn inference_full_solve(criterion: &mut Criterion) {
                 (builder.infer(hole), builder.string())
             },
             |inference, &mut (subtype, supertype)| {
-                inference.collect_constraints(Variance::Covariant, subtype, supertype)
+                inference.collect_constraints(Variance::Covariant, subtype, supertype);
             },
         );
     });
@@ -1656,7 +1680,7 @@ fn inference_full_solve(criterion: &mut Criterion) {
                 )
             },
             |inference, &mut (subtype, supertype)| {
-                inference.collect_constraints(Variance::Covariant, subtype, supertype)
+                inference.collect_constraints(Variance::Covariant, subtype, supertype);
             },
         );
     });
@@ -1674,7 +1698,7 @@ fn inference_full_solve(criterion: &mut Criterion) {
                 (subtype, supertype)
             },
             |inference, &mut (subtype, supertype)| {
-                inference.collect_constraints(Variance::Covariant, subtype, supertype)
+                inference.collect_constraints(Variance::Covariant, subtype, supertype);
             },
         );
     });
@@ -1690,7 +1714,7 @@ fn inference_full_solve(criterion: &mut Criterion) {
                 (subtype, supertype)
             },
             |inference, &mut (subtype, supertype)| {
-                inference.collect_constraints(Variance::Covariant, subtype, supertype)
+                inference.collect_constraints(Variance::Covariant, subtype, supertype);
             },
         );
     });
@@ -1707,7 +1731,7 @@ fn inference_full_solve(criterion: &mut Criterion) {
                 (subtype, supertype)
             },
             |inference, &mut (subtype, supertype)| {
-                inference.collect_constraints(Variance::Covariant, subtype, supertype)
+                inference.collect_constraints(Variance::Covariant, subtype, supertype);
             },
         );
     });
@@ -1722,7 +1746,7 @@ fn inference_full_solve(criterion: &mut Criterion) {
                 (subtype, supertype)
             },
             |inference, &mut (subtype, supertype)| {
-                inference.collect_constraints(Variance::Covariant, subtype, supertype)
+                inference.collect_constraints(Variance::Covariant, subtype, supertype);
             },
         );
     });
