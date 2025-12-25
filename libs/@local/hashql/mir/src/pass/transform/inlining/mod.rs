@@ -179,6 +179,8 @@ impl<A: Allocator, S: BumpAllocator> Inliner<A, S> {
     ) where
         A: Clone,
     {
+        // TODO: global overarching scratch space for BinaryHeap and Vec (sadly needs to be done
+        // because we don't have checkpointing yet)
         let mut targets = self.inlinable_callsites(graph, costs, sccs, body);
 
         // targets already come pre-ordered, so we can just iterate over them
