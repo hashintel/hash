@@ -20,6 +20,12 @@ impl visit::filter::Filter for VariableVisitorFilter {
 }
 
 #[derive(Debug)]
+pub(crate) struct VariableDependencyCollectorSkeleton<'heap> {
+    recursion: RecursionBoundary<'heap>,
+    variables: Vec<Variable>,
+}
+
+#[derive(Debug)]
 pub(crate) struct VariableDependencyCollector<'env, 'heap> {
     env: &'env Environment<'heap>,
     current_span: SpanId,
@@ -34,6 +40,13 @@ impl<'env, 'heap> VariableDependencyCollector<'env, 'heap> {
             current_span: SpanId::SYNTHETIC,
             recursion: RecursionBoundary::new(),
             variables: Vec::new(),
+        }
+    }
+
+    pub(crate) fn into_skeleton(self) -> VariableDependencyCollectorSkeleton<'heap> {
+        VariableDependencyCollectorSkeleton {
+            recursion: self.recursion,
+            variables: self.variables,
         }
     }
 
