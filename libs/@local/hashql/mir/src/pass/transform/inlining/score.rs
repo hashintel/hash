@@ -1,17 +1,11 @@
 use core::alloc::Allocator;
 
-use super::cost::{BodyProperties, Inline, LoopVec};
+use super::cost::{BodyProperties, CostEstimationResidual, Inline, LoopVec};
 use crate::{
     body::location::Location,
-    def::{DefId, DefIdSlice},
-    pass::analysis::CallGraph,
+    def::DefIdSlice,
+    pass::analysis::{CallGraph, CallSite},
 };
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-struct CallSite {
-    body: DefId,
-    location: Location,
-}
 
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub struct ScoreConfig {
@@ -40,35 +34,55 @@ impl ScoreConfig {
     };
 }
 
-struct CallScorer<'ctx, 'heap, A: Allocator> {
+pub(crate) struct CallScorer<'ctx, 'heap, A: Allocator> {
     config: ScoreConfig,
     graph: &'ctx CallGraph<'heap, A>,
     loops: &'ctx LoopVec<A>,
     properties: &'ctx DefIdSlice<BodyProperties>,
 }
 
-impl<A: Allocator> CallScorer<'_, '_, A> {
+impl<'ctx, 'heap, A: Allocator> CallScorer<'ctx, 'heap, A> {
+    pub(crate) fn new(
+        config: ScoreConfig,
+        graph: &'ctx CallGraph<'heap, A>,
+        cost: &'ctx CostEstimationResidual<A>,
+    ) -> Self {
+        Self {
+            config,
+            graph,
+            loops: &cost.loops,
+            properties: &cost.properties,
+        }
+    }
+
     #[expect(clippy::float_arithmetic)]
-    fn score(&self, call: CallSite, callee: DefId) -> f32 {
+    pub(crate) fn score(
+        &self,
+        CallSite {
+            caller,
+            kind: location,
+            target,
+        }: CallSite<Location>,
+    ) -> f32 {
         // A score of +inf means: always inline, do not add to cost, -inf means: never inline,
         // always inlining does not contribute to the hard max calculation.
-        match self.properties[callee].inline {
+        match self.properties[target].inline {
             Inline::Always => return f32::INFINITY,
             Inline::Depends => {}
             Inline::Never => return f32::NEG_INFINITY,
         }
 
-        let callee_cost = self.properties[callee].cost;
+        let target_cost = self.properties[target].cost;
 
-        if callee_cost < self.config.always_inline {
+        if target_cost < self.config.always_inline {
             // We always inline these functions "for free"
             return f32::INFINITY;
         }
 
         let call_in_loop = self
             .loops
-            .lookup(call.body)
-            .is_some_and(|set| set.contains(call.location.block));
+            .lookup(caller)
+            .is_some_and(|set| set.contains(location.block));
 
         let max_multiplier = if call_in_loop {
             self.config.max_loop_multiplier
@@ -77,7 +91,7 @@ impl<A: Allocator> CallScorer<'_, '_, A> {
         };
 
         let max_cost = self.config.max * max_multiplier;
-        if callee_cost > max_cost {
+        if target_cost > max_cost {
             return f32::NEG_INFINITY;
         }
 
@@ -85,18 +99,18 @@ impl<A: Allocator> CallScorer<'_, '_, A> {
         if call_in_loop {
             score += self.config.loop_bonus;
         }
-        if self.properties[callee].is_leaf {
+        if self.properties[target].is_leaf {
             score += self.config.leaf_bonus;
         }
-        if self.graph.is_single_caller(call.body, callee) {
+        if self.graph.is_single_caller(caller, target) {
             score += self.config.single_caller_bonus;
         }
-        if self.graph.unique_caller(callee) == Some(call.body) {
+        if self.graph.unique_caller(target) == Some(caller) {
             score += self.config.unique_callsite_bonus;
         }
 
         // "damage" by the size of the callee
-        score -= callee_cost * self.config.size_penalty_factor;
+        score -= target_cost * self.config.size_penalty_factor;
 
         score
     }

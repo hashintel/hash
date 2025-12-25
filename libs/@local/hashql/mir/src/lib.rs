@@ -21,7 +21,8 @@
     string_from_utf8_lossy_owned,
     try_trait_v2,
     step_trait,
-    maybe_uninit_fill
+    maybe_uninit_fill,
+    binary_heap_into_iter_sorted
 )]
 #![expect(clippy::indexing_slicing)]
 extern crate alloc;

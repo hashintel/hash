@@ -95,6 +95,14 @@ pub enum CallKind {
     Opaque,
 }
 
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+pub struct CallSite<C = CallKind> {
+    pub caller: DefId,
+    pub kind: C,
+
+    pub target: DefId,
+}
+
 /// A directed graph of [`DefId`] references across MIR bodies.
 ///
 /// Nodes correspond to [`DefId`]s and edges represent references from one definition to another,
@@ -147,10 +155,38 @@ impl<'heap, A: Allocator + Clone> CallGraph<'heap, A> {
 }
 
 impl<A: Allocator> CallGraph<'_, A> {
-    pub fn is_leaf(&self, def_id: DefId) -> bool {
-        let def_id = NodeId::new(def_id.as_usize());
+    #[inline]
+    pub fn callsites(&self, def: DefId) -> impl Iterator<Item = CallSite> {
+        let node = NodeId::new(def.as_usize());
 
-        self.inner.outgoing_edges(def_id).all(|edge| {
+        self.inner.outgoing_edges(node).map(move |edge| CallSite {
+            caller: def,
+            kind: edge.data,
+            target: DefId::new(edge.target().as_u32()),
+        })
+    }
+
+    #[inline]
+    pub fn apply_callsites(&self, def: DefId) -> impl Iterator<Item = CallSite<Location>> {
+        let node = NodeId::new(def.as_usize());
+
+        self.inner
+            .outgoing_edges(node)
+            .filter_map(move |edge| match edge.data {
+                CallKind::Apply(location) => Some(CallSite {
+                    caller: def,
+                    kind: location,
+                    target: DefId::new(edge.target().as_u32()),
+                }),
+                _ => None,
+            })
+    }
+
+    #[inline]
+    pub fn is_leaf(&self, def: DefId) -> bool {
+        let def = NodeId::new(def.as_usize());
+
+        self.inner.outgoing_edges(def).all(|edge| {
             let target = self
                 .inner
                 .node(edge.target())
@@ -161,16 +197,17 @@ impl<A: Allocator> CallGraph<'_, A> {
         })
     }
 
-    // caller -> callee
-    pub fn is_single_caller(&self, caller: DefId, callee: DefId) -> bool {
+    #[inline]
+    pub fn is_single_caller(&self, caller: DefId, target: DefId) -> bool {
         let caller = NodeId::new(caller.as_usize());
-        let callee = NodeId::new(callee.as_usize());
+        let target = NodeId::new(target.as_usize());
 
         self.inner
-            .incoming_edges(callee)
+            .incoming_edges(target)
             .all(|edge| matches!(edge.data, CallKind::Apply(_)) && edge.source() == caller)
     }
 
+    #[inline]
     pub fn unique_caller(&self, callee: DefId) -> Option<DefId> {
         // Same as is_single_caller, but makes sure that there is exactly one edge
         let callee = NodeId::new(callee.as_usize());
