@@ -20,6 +20,10 @@ impl visit::filter::Filter for VariableVisitorFilter {
 }
 
 #[derive(Debug)]
+#[expect(
+    dead_code,
+    reason = "used during benchmarking to delay signficiant drop"
+)]
 pub(crate) struct VariableDependencyCollectorSkeleton<'heap> {
     recursion: RecursionBoundary<'heap>,
     variables: Vec<Variable>,
