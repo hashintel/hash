@@ -3,7 +3,10 @@ use core::{mem, ops::Deref};
 use hashql_diagnostics::DiagnosticIssues;
 use smallvec::SmallVec;
 
-use super::{Environment, InferenceEnvironment, SimplifyEnvironment, Variance};
+use super::{
+    Environment, InferenceEnvironment, SimplifyEnvironment, Variance,
+    simplify::SimplifyEnvironmentSkeleton,
+};
 use crate::{
     symbol::Ident,
     r#type::{
@@ -18,6 +21,17 @@ use crate::{
         recursion::{RecursionBoundary, RecursionCycle},
     },
 };
+
+#[derive(Debug)]
+#[expect(
+    dead_code,
+    reason = "used during benchmarking to delay signficiant drop"
+)]
+pub struct LatticeEnvironmentSkeleton<'heap> {
+    diagnostics: TypeCheckDiagnosticIssues,
+    boundary: RecursionBoundary<'heap>,
+    simplify: SimplifyEnvironmentSkeleton<'heap>,
+}
 
 #[derive(Debug)]
 pub struct LatticeEnvironment<'env, 'heap> {
@@ -41,6 +55,15 @@ impl<'env, 'heap> LatticeEnvironment<'env, 'heap> {
             simplify_lattice: true,
             inference: false,
             simplify: SimplifyEnvironment::new(environment),
+        }
+    }
+
+    #[must_use]
+    pub fn into_skeleton(self) -> LatticeEnvironmentSkeleton<'heap> {
+        LatticeEnvironmentSkeleton {
+            diagnostics: self.diagnostics,
+            boundary: self.boundary,
+            simplify: self.simplify.into_skeleton(),
         }
     }
 

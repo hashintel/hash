@@ -46,7 +46,12 @@ serde = ["dep:serde", "text-size/serde"]
 workspace = true
 
 [dev-dependencies]
-insta         = { workspace = true }
-proptest      = { workspace = true }
-rstest        = { workspace = true }
-test-strategy = { workspace = true }
+codspeed-criterion-compat = { workspace = true }
+insta                     = { workspace = true }
+proptest                  = { workspace = true }
+rstest                    = { workspace = true }
+test-strategy             = { workspace = true }
+
+[[bench]]
+name    = "type_system"
+harness = false
