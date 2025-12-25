@@ -6,7 +6,7 @@ use super::basic_block::BasicBlockId;
 ///
 /// A [`Location`] uniquely identifies a program point by specifying both the basic block
 /// and the statement index within that block.
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Location {
     /// The basic block containing this location.
     ///

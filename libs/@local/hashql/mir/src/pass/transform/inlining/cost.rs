@@ -212,7 +212,7 @@ struct CostEstimationVisitor {
     total: f32,
 }
 
-#[expect(clippy::float_arithmetic, clippy::cast_precision_loss)]
+#[expect(clippy::cast_precision_loss)]
 impl<'heap> Visitor<'heap> for CostEstimationVisitor {
     type Result = Result<(), !>;
 
