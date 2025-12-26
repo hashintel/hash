@@ -32,6 +32,7 @@ use crate::{
         statement::{Assign, Statement, StatementKind},
         terminator::{Goto, Target, Terminator, TerminatorKind},
     },
+    context::MirContext,
     def::{DefId, DefIdSlice, DefIdVec},
     intern::Interner,
     pass::analysis::{CallGraph, CallSite},
@@ -85,7 +86,6 @@ impl InlineConfig {
 }
 
 struct InlineState<'env, 'heap, A: Allocator> {
-    alloc: A,
     config: InlineConfig,
     interner: &'env Interner<'heap>,
 
@@ -96,10 +96,11 @@ struct InlineState<'env, 'heap, A: Allocator> {
 }
 
 impl<'heap, A: Allocator> InlineState<'_, 'heap, A> {
-    fn select_callsites(&self, body: DefId) -> Vec<CallSite<Location>, A>
-    where
-        A: Clone,
-    {
+    fn select_callsites<S: Allocator + Clone>(
+        &self,
+        body: DefId,
+        scratch: S,
+    ) -> Vec<CallSite<Location>, S> {
         let component = self.components.scc(body);
         let scorer = CallScorer {
             config: self.config.score,
@@ -108,8 +109,8 @@ impl<'heap, A: Allocator> InlineState<'_, 'heap, A> {
             properties: &self.properties,
         };
 
-        let mut to_be_inlined = Vec::new_in(self.alloc.clone());
-        let mut candidates = BinaryHeap::new_in(self.alloc.clone());
+        let mut to_be_inlined = Vec::new_in(scratch.clone());
+        let mut candidates = BinaryHeap::new_in(scratch.clone());
 
         for callsite in self.graph.apply_callsites(body) {
             if self.components.scc(callsite.target) == component {
@@ -281,13 +282,15 @@ impl<'heap, A: Allocator> InlineState<'_, 'heap, A> {
         }
     }
 
-    fn inline_body(&self, bodies: &mut DefIdSlice<Body<'heap>>, body: DefId)
-    where
-        A: Clone,
-    {
+    fn inline_body<S: Allocator + Clone>(
+        &self,
+        bodies: &mut DefIdSlice<Body<'heap>>,
+        body: DefId,
+        scratch: S,
+    ) {
         // TODO: global overarching scratch space for BinaryHeap and Vec (sadly needs to be done
         // because we don't have checkpointing yet)
-        let targets = self.select_callsites(body);
+        let targets = self.select_callsites(body, scratch);
 
         // targets already come pre-ordered, so we can just iterate over them
         // they're ordered in reverse
@@ -297,30 +300,21 @@ impl<'heap, A: Allocator> InlineState<'_, 'heap, A> {
     }
 }
 
-struct Inliner<A: Allocator, S: BumpAllocator> {
+struct Inliner<A: Allocator> {
     alloc: A,
-    scratch: S,
 
     config: InlineConfig,
 }
 
-impl<A: Allocator, S: BumpAllocator> Inliner<A, S> {
+impl<A: Allocator> Inliner<A> {
     fn state<'env, 'heap>(
         &self,
         interner: &'env Interner<'heap>,
         bodies: &DefIdSlice<Body<'heap>>,
-    ) -> InlineState<'env, 'heap, A>
-    where
-        A: Clone,
-    {
+    ) -> InlineState<'env, 'heap, A> {
         let graph = CallGraph::analyze_in(bodies, self.alloc.clone());
-        let mut analysis = CostEstimationAnalysis::new(
-            &graph,
-            bodies,
-            self.config.cost,
-            self.alloc.clone(),
-            self.alloc.clone(),
-        );
+        let mut analysis =
+            CostEstimationAnalysis::new(&graph, bodies, self.config.cost, self.alloc.clone());
 
         for body in bodies {
             analysis.analyze(body);
@@ -332,13 +326,30 @@ impl<A: Allocator, S: BumpAllocator> Inliner<A, S> {
         let components = tarjan.run();
 
         InlineState {
-            alloc: self.alloc.clone(),
             config: self.config,
             interner,
             graph,
             properties: costs.properties,
             loops: costs.loops,
             components,
+        }
+    }
+
+    pub fn inline<'env, 'heap>(
+        &mut self,
+        context: &MirContext<'env, 'heap>,
+        bodies: &mut DefIdSlice<Body<'heap>>,
+    ) where
+        A: BumpAllocator,
+    {
+        let state = self.state(context.interner, bodies);
+        // There are fundamentally two phases, the first is to just normally inline, the second then
+        // does "aggressive" inlining, in which we inline any callsite that is eligible until
+        // fix-point is reached.
+        for id in bodies.ids() {
+            self.alloc.scoped(|alloc| {
+                state.inline_body(bodies, id, &alloc);
+            });
         }
     }
 }
