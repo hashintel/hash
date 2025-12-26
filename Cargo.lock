@@ -96,6 +96,18 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "683d7910e743518b0e34f1186f92494becacb047c7b6bf616c96772180fef923"
 
 [[package]]
+name = "allocator-api2"
+version = "0.3.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c583acf993cf4245c4acb0a2cc2ab1f9cc097de73411bb6d3647ff6af2b1013d"
+
+[[package]]
+name = "allocator-api2"
+version = "0.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c880a97d28a3681c0267bd29cff89621202715b065127cd445fa0f0fe0aa2880"
+
+[[package]]
 name = "android_system_properties"
 version = "0.1.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1127,12 +1139,23 @@ dependencies = [
 ]
 
 [[package]]
+name = "bump-scope"
+version = "1.5.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a117a0e80c453511760a08c607060a778967a8dec5415c1d1a75e20630825824"
+dependencies = [
+ "allocator-api2 0.2.21",
+ "allocator-api2 0.3.1",
+ "allocator-api2 0.4.0",
+]
+
+[[package]]
 name = "bumpalo"
 version = "3.19.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "46c5e41b57b8bba42a04676d81cb89e9ee8e859a1a66f80a5a72e1cb76b34d43"
 dependencies = [
- "allocator-api2",
+ "allocator-api2 0.2.21",
 ]
 
 [[package]]
@@ -3668,7 +3691,7 @@ version = "0.15.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9229cfe53dfd69f0609a49f65461bd93001ea1ef889cd5529dd176593f5338a1"
 dependencies = [
- "allocator-api2",
+ "allocator-api2 0.2.21",
  "equivalent",
  "foldhash 0.1.5",
 ]
@@ -3736,11 +3759,10 @@ dependencies = [
 name = "hashql-core"
 version = "0.0.0"
 dependencies = [
- "allocator-api2",
  "anstyle",
  "anstyle-lossy",
  "bitvec",
- "bumpalo",
+ "bump-scope",
  "codspeed-criterion-compat",
  "derive_more 2.1.1",
  "ena",
@@ -6066,7 +6088,7 @@ name = "oxc_allocator"
 version = "0.95.0"
 source = "git+https://github.com/hashdeps/oxc?rev=73c781b#73c781b54fdd9b34accca9585ee2ebe091400104"
 dependencies = [
- "allocator-api2",
+ "allocator-api2 0.2.21",
  "bumpalo",
  "hashbrown 0.15.5",
  "oxc_data_structures",

@@ -51,7 +51,8 @@
 //! [`Heap`]: super::Heap
 //! [`Scratch`]: super::Scratch
 #![expect(clippy::mut_from_ref, reason = "allocator")]
-use core::alloc::{AllocError, Allocator};
+use alloc::alloc::handle_alloc_error;
+use core::alloc::{AllocError, Allocator, Layout};
 
 /// A bump allocator that supports bulk deallocation.
 ///
@@ -77,7 +78,26 @@ pub trait BumpAllocator: Allocator {
     /// # Errors
     ///
     /// Returns [`AllocError`] if memory allocation fails.
-    fn allocate_slice_copy<T: Copy>(&self, slice: &[T]) -> Result<&mut [T], AllocError>;
+    fn try_allocate_slice_copy<T: Copy>(&self, slice: &[T]) -> Result<&mut [T], AllocError>;
+
+    #[expect(
+        clippy::single_match_else,
+        clippy::option_if_let_else,
+        reason = "clarity"
+    )]
+    #[inline]
+    fn allocate_slice_copy<T: Copy>(&self, slice: &[T]) -> &mut [T] {
+        match self.try_allocate_slice_copy(slice) {
+            Ok(slice) => slice,
+            Err(_) => {
+                let Ok(layout) = Layout::array::<T>(slice.len()) else {
+                    panic!("stack overflow");
+                };
+
+                handle_alloc_error(layout)
+            }
+        }
+    }
 
     /// Resets the allocator, freeing all allocations at once.
     ///
@@ -99,8 +119,8 @@ where
     A: BumpAllocator,
 {
     #[inline]
-    fn allocate_slice_copy<T: Copy>(&self, slice: &[T]) -> Result<&mut [T], AllocError> {
-        A::allocate_slice_copy(self, slice)
+    fn try_allocate_slice_copy<T: Copy>(&self, slice: &[T]) -> Result<&mut [T], AllocError> {
+        A::try_allocate_slice_copy(self, slice)
     }
 
     #[inline]
