@@ -38,6 +38,18 @@ impl BumpAllocator for Allocator {
     type Scoped<'scope> = AllocatorScope<'scope>;
 
     #[inline]
+    fn checkpoint(&self) -> Self::Checkpoint {
+        Checkpoint(self.0.checkpoint())
+    }
+
+    #[inline]
+    unsafe fn rollback(&self, checkpoint: Self::Checkpoint) {
+        unsafe {
+            self.0.reset_to(checkpoint.0);
+        }
+    }
+
+    #[inline]
     fn scoped<T>(&mut self, func: impl FnOnce(Self::Scoped<'_>) -> T) -> T {
         self.0.scoped(|scope| func(AllocatorScope(scope)))
     }
@@ -160,6 +172,18 @@ pub struct AllocatorScope<'scope>(BumpScope<'scope>);
 impl BumpAllocator for AllocatorScope<'_> {
     type Checkpoint = Checkpoint;
     type Scoped<'scope> = AllocatorScope<'scope>;
+
+    #[inline]
+    fn checkpoint(&self) -> Self::Checkpoint {
+        Checkpoint(self.0.checkpoint())
+    }
+
+    #[inline]
+    unsafe fn rollback(&self, checkpoint: Self::Checkpoint) {
+        unsafe {
+            self.0.reset_to(checkpoint.0);
+        }
+    }
 
     #[inline]
     fn scoped<T>(&mut self, func: impl FnOnce(Self::Scoped<'_>) -> T) -> T {
