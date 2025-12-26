@@ -24,7 +24,7 @@ text-size = { workspace = true, public = true }
 # Private third-party dependencies
 anstyle-lossy        = { workspace = true }
 bitvec               = { workspace = true, features = ["alloc"] }
-bump-scope           = { version = "1.5.1", default-features = false, features = ["std", "alloc", "panic-on-alloc", "nightly-coerce-unsized", "nightly-exact-size-is-empty", "nightly-trusted-len", "nightly-fn-traits", "nightly-tests", "nightly-dropck-eyepatch", "nightly-clone-to-uninit"] }
+bump-scope           = { workspace = true }
 derive_more          = { workspace = true, features = ["debug", "from"] }
 ena                  = { workspace = true }
 lexical              = { workspace = true, features = ["parse-integers", "parse-floats", "format"] }
