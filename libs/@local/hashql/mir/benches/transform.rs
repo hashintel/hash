@@ -9,7 +9,7 @@ use core::{cmp, hint::black_box};
 
 use codspeed_criterion_compat::{BatchSize, Bencher, Criterion, criterion_group, criterion_main};
 use hashql_core::{
-    heap::{BumpAllocator as _, Heap, Scratch},
+    heap::{Heap, ResetAllocator as _, Scratch},
     r#type::{TypeBuilder, environment::Environment},
 };
 use hashql_diagnostics::DiagnosticIssues;

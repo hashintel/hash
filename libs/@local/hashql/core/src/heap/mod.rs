@@ -106,9 +106,9 @@ use std::sync::Mutex;
 use ::alloc::{boxed, collections::vec_deque, vec};
 use hashbrown::HashSet;
 
-use self::allocator::Allocator;
+use self::allocator::{Allocator, AllocatorScope};
 pub use self::{
-    bump::BumpAllocator,
+    bump::{BumpAllocator, ResetAllocator},
     clone::{CloneIn, TryCloneIn},
     convert::{FromIn, IntoIn},
     iter::{CollectIn, FromIteratorIn},
@@ -303,11 +303,20 @@ impl Default for Heap {
 }
 
 impl BumpAllocator for Heap {
+    type Scoped<'scope> = AllocatorScope<'scope>;
+
+    #[inline]
+    fn scoped<T>(&mut self, func: impl FnOnce(Self::Scoped<'_>) -> T) -> T {
+        self.inner.scoped(func)
+    }
+
     #[inline]
     fn try_allocate_slice_copy<T: Copy>(&self, slice: &[T]) -> Result<&mut [T], alloc::AllocError> {
         self.inner.try_allocate_slice_copy(slice)
     }
+}
 
+impl ResetAllocator for Heap {
     /// Resets the heap, invalidating all previous allocations.
     ///
     /// Clears all allocations and re-primes with common symbols.
