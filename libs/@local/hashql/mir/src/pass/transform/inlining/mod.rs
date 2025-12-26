@@ -122,7 +122,7 @@ impl<A: Allocator, S: BumpAllocator> Inliner<A, S> {
         (callgraph, costs, sccs)
     }
 
-    fn inlinable_callsites(
+    fn select_callsites(
         &self,
         graph: &CallGraph<'_, A>,
         costs: &CostEstimationResidual<A>,
@@ -185,7 +185,118 @@ impl<A: Allocator, S: BumpAllocator> Inliner<A, S> {
         to_be_inlined
     }
 
-    fn inline<'heap>(
+    fn inline_callsite<'heap>(
+        interner: &Interner<'heap>,
+        bodies: &mut hashql_core::id::IdSlice<DefId, Body<'heap>>,
+        caller: DefId,
+        location: Location,
+        target: DefId,
+    ) {
+        let Ok([source, target]) = bodies.get_disjoint_mut([caller, target]) else {
+            unreachable!("`inlinable_callsites` should have filtered out self-calls")
+        };
+        let target = &*target; // We take an explicit `&` here, downgrading the reference, to make sure that we don't modify the target body.
+
+        let bb_offset = source.basic_blocks.len();
+        let local_offset = source.local_decls.len();
+
+        // We now need to rewire the basic block, we do this by first assigning the arguments,
+        // assigning their value, and then splitting the block.
+        let block = &mut source.basic_blocks.as_mut()[location.block];
+
+        debug_assert!(target.basic_blocks[BasicBlockId::START].params.is_empty());
+        // Must always be empty, otherwise we wouldn't have a valid function entrypoint.
+        let terminator = mem::replace(
+            &mut block.terminator,
+            Terminator {
+                span: SpanId::SYNTHETIC,
+                kind: TerminatorKind::Goto(Goto {
+                    target: Target::block(BasicBlockId::START.plus(bb_offset), interner),
+                }),
+            },
+        );
+        let after = block.statements.split_off(location.statement_index);
+        let callsite = block.statements.pop().unwrap_or_else(|| unreachable!());
+
+        block.terminator.span = callsite.span;
+
+        let StatementKind::Assign(Assign {
+            lhs,
+            rhs: RValue::Apply(apply),
+        }) = callsite.kind
+        else {
+            unreachable!("`inlinable_callsites` should only point to apply statements")
+        };
+
+        // For all arguments, add assignment expressions before the goto
+        debug_assert_eq!(apply.arguments.len(), target.args);
+        for (index, arg) in apply.arguments.into_iter().enumerate() {
+            block.statements.push(Statement {
+                span: callsite.span,
+                kind: StatementKind::Assign(Assign {
+                    lhs: Place::local(Local::new(local_offset + index), interner),
+                    rhs: RValue::Load(arg),
+                }),
+            });
+        }
+
+        // if lhs is an argument, we must create a new local, and use that instead
+        let lhs = if lhs.projections.is_empty() {
+            lhs.local
+        } else {
+            let type_id = lhs.type_id(&source.local_decls);
+            let local = source.local_decls.push(LocalDecl {
+                span: callsite.span,
+                r#type: type_id,
+                name: None,
+            });
+
+            // Create the new assignment statement
+            block.statements.push(Statement {
+                span: callsite.span,
+                kind: StatementKind::Assign(Assign {
+                    lhs: Place::local(local, interner),
+                    rhs: RValue::Load(Operand::Place(lhs)),
+                }),
+            });
+
+            local
+        };
+
+        // We now create new block, which has a block param for the new local, the terminator is
+        // the terminator of the original block
+        let continution = source.basic_blocks.as_mut().push(BasicBlock {
+            params: interner.locals.intern_slice(&[lhs]),
+            statements: after,
+            terminator,
+        });
+
+        source
+            .basic_blocks
+            .as_mut()
+            .extend(target.basic_blocks.iter().cloned());
+
+        source
+            .local_decls
+            .extend(target.local_decls.iter().copied());
+
+        let mut visitor = RenameVisitor {
+            local_offset,
+            bb_offset,
+            continution,
+            interner,
+        };
+
+        let bb_offset = BasicBlockId::from_usize(bb_offset);
+        for (index, block) in source.basic_blocks.as_mut()[bb_offset..]
+            .iter_mut()
+            .enumerate()
+        {
+            visitor.visit_basic_block(bb_offset.plus(index), block);
+        }
+    }
+
+    fn inline_body<'heap>(
         &self,
         interner: &Interner<'heap>,
         graph: &CallGraph<'_, A>,
@@ -199,7 +310,7 @@ impl<A: Allocator, S: BumpAllocator> Inliner<A, S> {
     {
         // TODO: global overarching scratch space for BinaryHeap and Vec (sadly needs to be done
         // because we don't have checkpointing yet)
-        let targets = self.inlinable_callsites(graph, costs, sccs, body);
+        let targets = self.select_callsites(graph, costs, sccs, body);
 
         // targets already come pre-ordered, so we can just iterate over them
         // they're ordered in reverse
@@ -209,106 +320,7 @@ impl<A: Allocator, S: BumpAllocator> Inliner<A, S> {
             target,
         } in targets
         {
-            let Ok([source, target]) = bodies.get_disjoint_mut([caller, target]) else {
-                unreachable!("`inlinable_callsites` should have filtered out self-calls")
-            };
-
-            let bb_offset = source.basic_blocks.len();
-            let local_offset = source.local_decls.len();
-
-            // We now need to rewire the basic block, we do this by first assigning the arguments,
-            // assigning their value, and then splitting the block.
-            let block = &mut source.basic_blocks.as_mut()[location.block];
-
-            debug_assert!(target.basic_blocks[BasicBlockId::START].params.is_empty()); // Must always be empty, otherwise we wouldn't have a valid function entrypoint.
-            let terminator = mem::replace(
-                &mut block.terminator,
-                Terminator {
-                    span: SpanId::SYNTHETIC,
-                    kind: TerminatorKind::Goto(Goto {
-                        target: Target::block(BasicBlockId::START.plus(bb_offset), interner),
-                    }),
-                },
-            );
-            let post_split = block.statements.split_off(location.statement_index);
-            let callsite = block.statements.pop().unwrap_or_else(|| unreachable!());
-
-            block.terminator.span = callsite.span;
-
-            let StatementKind::Assign(Assign {
-                lhs,
-                rhs: RValue::Apply(apply),
-            }) = callsite.kind
-            else {
-                unreachable!("`inlinable_callsites` should only point to apply statements")
-            };
-
-            // For all arguments, add assignment expressions before the goto
-            debug_assert_eq!(apply.arguments.len(), target.args);
-            for (index, arg) in apply.arguments.into_iter().enumerate() {
-                block.statements.push(Statement {
-                    span: callsite.span,
-                    kind: StatementKind::Assign(Assign {
-                        lhs: Place::local(Local::new(local_offset + index), interner),
-                        rhs: RValue::Load(arg),
-                    }),
-                });
-            }
-
-            // if lhs is an argument, we must create a new local, and use that instead
-            let lhs = if lhs.projections.is_empty() {
-                lhs.local
-            } else {
-                let type_id = lhs.type_id(&source.local_decls);
-                let local = source.local_decls.push(LocalDecl {
-                    span: callsite.span,
-                    r#type: type_id,
-                    name: None,
-                });
-
-                // Create the new assignment statement
-                block.statements.push(Statement {
-                    span: callsite.span,
-                    kind: StatementKind::Assign(Assign {
-                        lhs: Place::local(local, interner),
-                        rhs: RValue::Load(Operand::Place(lhs)),
-                    }),
-                });
-
-                local
-            };
-
-            // We now create new block, which has a block param for the new local, the terminator is
-            // the terminator of the original block
-            let continution = source.basic_blocks.as_mut().push(BasicBlock {
-                params: interner.locals.intern_slice(&[lhs]),
-                statements: post_split,
-                terminator,
-            });
-
-            source
-                .basic_blocks
-                .as_mut()
-                .extend(target.basic_blocks.iter().cloned());
-
-            source
-                .local_decls
-                .extend(target.local_decls.iter().copied());
-
-            let mut visitor = RenameVisitor {
-                local_offset,
-                bb_offset,
-                continution,
-                interner,
-            };
-
-            let bb_offset = BasicBlockId::from_usize(bb_offset);
-            for (index, block) in source.basic_blocks.as_mut()[bb_offset..]
-                .iter_mut()
-                .enumerate()
-            {
-                visitor.visit_basic_block(bb_offset.plus(index), block);
-            }
+            Self::inline_callsite(interner, bodies, caller, location, target);
         }
     }
 }
