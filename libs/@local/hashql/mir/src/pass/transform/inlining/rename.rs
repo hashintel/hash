@@ -3,29 +3,22 @@ use core::convert::Infallible;
 use hashql_core::id::Id as _;
 
 use crate::{
-    body::{basic_block::BasicBlockId, local::Local, location::Location, place::PlaceContext},
+    body::{
+        basic_block::BasicBlockId,
+        local::Local,
+        location::Location,
+        place::PlaceContext,
+        terminator::{Goto, Return, Target, Terminator, TerminatorKind},
+    },
     intern::Interner,
-    visit::{VisitorMut, r#mut::filter},
+    visit::{self, VisitorMut, r#mut::filter},
 };
 
 pub(crate) struct RenameVisitor<'env, 'heap> {
-    local_offset: usize,
-    bb_offset: usize,
-    interner: &'env Interner<'heap>,
-}
-
-impl<'env, 'heap> RenameVisitor<'env, 'heap> {
-    pub(crate) const fn new(
-        local_offset: usize,
-        bb_offset: usize,
-        interner: &'env Interner<'heap>,
-    ) -> Self {
-        Self {
-            local_offset,
-            bb_offset,
-            interner,
-        }
-    }
+    pub local_offset: usize,
+    pub bb_offset: usize,
+    pub continution: BasicBlockId,
+    pub interner: &'env Interner<'heap>,
 }
 
 impl<'heap> VisitorMut<'heap> for RenameVisitor<'_, 'heap> {
@@ -51,6 +44,25 @@ impl<'heap> VisitorMut<'heap> for RenameVisitor<'_, 'heap> {
         basic_block_id: &mut BasicBlockId,
     ) -> Self::Result<()> {
         basic_block_id.increment_by(self.bb_offset);
+        Ok(())
+    }
+
+    fn visit_terminator(
+        &mut self,
+        location: Location,
+        terminator: &mut Terminator<'heap>,
+    ) -> Self::Result<()> {
+        Ok(()) = visit::r#mut::walk_terminator(self, location, terminator);
+
+        if let TerminatorKind::Return(Return { value }) = terminator.kind {
+            terminator.kind = TerminatorKind::Goto(Goto {
+                target: Target {
+                    block: self.continution,
+                    args: self.interner.operands.intern_slice(&[value]),
+                },
+            });
+        }
+
         Ok(())
     }
 }
