@@ -103,9 +103,8 @@ pub(crate) struct CostEstimationResidual<A: Allocator> {
     pub loops: LoopVec<A>,
 }
 
-pub(crate) struct CostEstimationAnalysis<'ctx, 'heap, A: Allocator, S: Allocator> {
+pub(crate) struct CostEstimationAnalysis<'ctx, 'heap, A: Allocator> {
     alloc: A,
-    scratch: S,
     config: CostEstimationConfig,
 
     properties: DefIdVec<BodyProperties, A>,
@@ -113,14 +112,13 @@ pub(crate) struct CostEstimationAnalysis<'ctx, 'heap, A: Allocator, S: Allocator
     graph: &'ctx CallGraph<'heap, A>,
 }
 
-impl<'ctx, 'heap, A: Allocator, S: Allocator> CostEstimationAnalysis<'ctx, 'heap, A, S> {
+impl<'ctx, 'heap, A: Allocator> CostEstimationAnalysis<'ctx, 'heap, A> {
     pub(crate) fn new(
         graph: &'ctx CallGraph<'heap, A>,
         bodies: &'ctx DefIdSlice<Body<'heap>>,
         config: CostEstimationConfig,
 
         alloc: A,
-        scratch: S,
     ) -> Self
     where
         A: Clone,
@@ -138,7 +136,6 @@ impl<'ctx, 'heap, A: Allocator, S: Allocator> CostEstimationAnalysis<'ctx, 'heap
 
         Self {
             alloc,
-            scratch,
             config,
             properties,
             loops,
@@ -198,11 +195,8 @@ impl<'ctx, 'heap, A: Allocator, S: Allocator> CostEstimationAnalysis<'ctx, 'heap
     }
 }
 
-impl<'env, 'heap, A: Allocator, S: ResetAllocator> AnalysisPass<'env, 'heap>
-    for CostEstimationAnalysis<'_, 'heap, A, S>
-{
+impl<'env, 'heap, A: Allocator> AnalysisPass<'env, 'heap> for CostEstimationAnalysis<'_, 'heap, A> {
     fn run(&mut self, _: &mut MirContext<'env, 'heap>, body: &Body<'heap>) {
-        self.scratch.reset();
         self.analyze(body);
     }
 }
