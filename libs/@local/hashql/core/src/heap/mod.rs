@@ -241,12 +241,6 @@ impl Heap {
         }
     }
 
-    /// Sets the allocation limit for the heap.
-    #[inline]
-    pub fn set_allocation_limit(&self, capacity: Option<usize>) {
-        self.inner.set_allocation_limit(capacity);
-    }
-
     /// Allocates a value in the arena, returning a mutable reference.
     ///
     /// Only accepts types that do **not** require [`Drop`]. Types requiring destructors
@@ -310,8 +304,8 @@ impl Default for Heap {
 
 impl BumpAllocator for Heap {
     #[inline]
-    fn allocate_slice_copy<T: Copy>(&self, slice: &[T]) -> Result<&mut [T], alloc::AllocError> {
-        self.inner.try_alloc_slice_copy(slice)
+    fn try_allocate_slice_copy<T: Copy>(&self, slice: &[T]) -> Result<&mut [T], alloc::AllocError> {
+        self.inner.try_allocate_slice_copy(slice)
     }
 
     /// Resets the heap, invalidating all previous allocations.

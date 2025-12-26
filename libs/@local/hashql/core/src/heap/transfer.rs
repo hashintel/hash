@@ -66,7 +66,7 @@ unsafe impl<'alloc, T: Copy + 'alloc, A: BumpAllocator> TryTransferInto<'alloc, 
 
     #[inline]
     fn try_transfer_into(&self, allocator: &'alloc A) -> Result<Self::Output, AllocError> {
-        allocator.allocate_slice_copy(self)
+        allocator.try_allocate_slice_copy(self)
     }
 }
 
@@ -76,7 +76,7 @@ unsafe impl<'alloc, A: BumpAllocator> TryTransferInto<'alloc, A> for str {
 
     #[inline]
     fn try_transfer_into(&self, allocator: &'alloc A) -> Result<Self::Output, AllocError> {
-        let buffer = allocator.allocate_slice_copy(self.as_bytes())?;
+        let buffer = allocator.try_allocate_slice_copy(self.as_bytes())?;
 
         // SAFETY: The buffer has been invalidated by the allocator
         unsafe { Ok(Self::from_utf8_unchecked_mut(buffer)) }
