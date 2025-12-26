@@ -59,7 +59,7 @@
 
 use core::{alloc::Allocator, convert::Infallible};
 
-use hashql_core::heap::{BumpAllocator, Scratch};
+use hashql_core::heap::{BumpAllocator, ResetAllocator, Scratch};
 
 use crate::{
     body::{Body, location::Location, operand::Operand},
@@ -130,7 +130,7 @@ impl<A: BumpAllocator> Sroa<A> {
     }
 }
 
-impl<'env, 'heap, A: BumpAllocator> TransformPass<'env, 'heap> for Sroa<A> {
+impl<'env, 'heap, A: ResetAllocator> TransformPass<'env, 'heap> for Sroa<A> {
     fn run(&mut self, context: &mut MirContext<'env, 'heap>, body: &mut Body<'heap>) -> Changed {
         self.alloc.reset();
 

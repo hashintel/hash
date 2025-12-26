@@ -50,7 +50,7 @@ use core::{alloc::Allocator, convert::Infallible};
 
 use hashql_core::{
     collections::WorkQueue,
-    heap::{BumpAllocator, Scratch},
+    heap::{BumpAllocator, ResetAllocator, Scratch},
     id::{
         Id as _,
         bit_vec::{BitMatrix, DenseBitSet},
@@ -137,7 +137,7 @@ impl Default for DeadStoreElimination {
     }
 }
 
-impl<'env, 'heap, A: BumpAllocator> TransformPass<'env, 'heap> for DeadStoreElimination<A> {
+impl<'env, 'heap, A: ResetAllocator> TransformPass<'env, 'heap> for DeadStoreElimination<A> {
     fn run(&mut self, context: &mut MirContext<'env, 'heap>, body: &mut Body<'heap>) -> Changed {
         self.alloc.reset();
         let dead = self.dead_locals(body);

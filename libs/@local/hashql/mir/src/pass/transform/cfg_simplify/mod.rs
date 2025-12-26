@@ -48,7 +48,7 @@ use core::{iter::ExactSizeIterator as _, mem};
 use hashql_core::{
     collections::{WorkQueue, fast_hash_set_with_capacity_in},
     graph::Predecessors as _,
-    heap::{BumpAllocator, Scratch, TransferInto as _},
+    heap::{BumpAllocator, ResetAllocator, Scratch, TransferInto as _},
 };
 
 use super::{DeadBlockElimination, error::unreachable_switch_arm, ssa_repair::SsaRepair};
@@ -473,7 +473,7 @@ impl Default for CfgSimplify {
     }
 }
 
-impl<'env, 'heap, A: BumpAllocator> TransformPass<'env, 'heap> for CfgSimplify<A> {
+impl<'env, 'heap, A: ResetAllocator> TransformPass<'env, 'heap> for CfgSimplify<A> {
     /// Runs the CFG simplification pass on the given body.
     ///
     /// Uses a worklist algorithm that processes blocks in reverse postorder and re-enqueues

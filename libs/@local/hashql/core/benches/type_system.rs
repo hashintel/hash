@@ -4,7 +4,7 @@ use core::hint::black_box;
 
 use codspeed_criterion_compat::{BatchSize, Bencher, Criterion, criterion_group, criterion_main};
 use hashql_core::{
-    heap::{BumpAllocator as _, Heap},
+    heap::{Heap, ResetAllocator as _},
     r#type::{
         TypeId,
         builder::{TypeBuilder, lazy},

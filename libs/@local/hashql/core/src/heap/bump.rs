@@ -1,7 +1,9 @@
-//! Bump allocator trait for arena-style memory management.
+//! Bump allocator traits for arena-style memory management.
 //!
-//! This module provides the [`BumpAllocator`] trait, an extension to the standard
-//! [`Allocator`] trait that adds support for bulk deallocation via [`reset`](BumpAllocator::reset).
+//! This module provides two traits extending the standard [`Allocator`] trait:
+//!
+//! - [`BumpAllocator`]: Core bump allocation with scoped arenas and slice copying
+//! - [`ResetAllocator`]: Adds bulk deallocation via [`reset`](ResetAllocator::reset)
 //!
 //! # Overview
 //!
@@ -18,11 +20,11 @@
 //!
 //! # Usage
 //!
-//! The trait is implemented by [`Heap`] and [`Scratch`] allocators:
+//! Both traits are implemented by [`Heap`] and [`Scratch`] allocators:
 //!
 //! ```
 //! # #![feature(allocator_api)]
-//! use hashql_core::heap::{BumpAllocator, CollectIn, Scratch};
+//! use hashql_core::heap::{CollectIn, ResetAllocator, Scratch};
 //!
 //! let mut scratch = Scratch::new();
 //!
@@ -40,7 +42,7 @@
 //! memory from previous invocations:
 //!
 //! ```ignore
-//! impl TransformPass for MyPass<A: BumpAllocator> {
+//! impl TransformPass for MyPass<A: ResetAllocator> {
 //!     fn run(&mut self, context: &mut Context, body: &mut Body) {
 //!         self.alloc.reset();  // Reuse memory from previous run
 //!         // ... pass implementation using self.alloc ...
@@ -54,17 +56,33 @@
 use alloc::alloc::handle_alloc_error;
 use core::alloc::{AllocError, Allocator, Layout};
 
-/// A bump allocator that supports bulk deallocation.
+/// A bump allocator with scoped arenas and efficient slice copying.
 ///
-/// This trait extends [`Allocator`] with arena-style memory management:
-/// allocations are made by bumping a pointer, and all memory is freed at once
-/// via [`reset`](Self::reset).
+/// This trait extends [`Allocator`] with arena-style memory management where
+/// allocations are made by bumping a pointer within a contiguous memory region.
 ///
 /// # Implementors
 ///
 /// - [`Heap`](super::Heap): Full-featured arena with string interning
 /// - [`Scratch`](super::Scratch): Lightweight arena for temporary allocations
 pub trait BumpAllocator: Allocator {
+    /// The scoped allocator type returned by [`scoped`](Self::scoped).
+    ///
+    /// This associated type allows each allocator to define its own scoped variant
+    /// while ensuring it also implements [`BumpAllocator`].
+    type Scoped<'scope>: BumpAllocator;
+
+    /// Executes a closure with a scoped sub-arena.
+    ///
+    /// A scoped allocator creates a checkpoint in the arena. Allocations made within the
+    /// closure use memory after this checkpoint, and when the closure returns, the arena
+    /// rewinds to the checkpoint—freeing all scoped allocations while preserving any
+    /// allocations made before entering the scope.
+    ///
+    /// This is useful for temporary intermediate allocations during a computation that
+    /// should not outlive the computation itself.
+    fn scoped<T>(&mut self, func: impl FnOnce(Self::Scoped<'_>) -> T) -> T;
+
     /// Copies a slice into the arena, returning a mutable reference to the copy.
     ///
     /// This is useful for transferring borrowed data into arena-owned memory.
@@ -80,6 +98,14 @@ pub trait BumpAllocator: Allocator {
     /// Returns [`AllocError`] if memory allocation fails.
     fn try_allocate_slice_copy<T: Copy>(&self, slice: &[T]) -> Result<&mut [T], AllocError>;
 
+    /// Copies a slice into the arena, returning a mutable reference to the copy.
+    ///
+    /// This is the infallible version of
+    /// [`try_allocate_slice_copy`](Self::try_allocate_slice_copy).
+    ///
+    /// # Panics
+    ///
+    /// Panics if memory allocation fails.
     #[expect(
         clippy::single_match_else,
         clippy::option_if_let_else,
@@ -98,7 +124,21 @@ pub trait BumpAllocator: Allocator {
             }
         }
     }
+}
 
+/// A bump allocator that supports bulk deallocation.
+///
+/// This trait extends [`BumpAllocator`] with the ability to reset the allocator,
+/// freeing all allocations at once. This is the key operation that makes bump
+/// allocation efficient: instead of tracking individual deallocations, all memory
+/// is reclaimed in a single O(1) operation.
+///
+/// # Note
+///
+/// Implementors do not guarantee that [`Drop`] implementations are run for
+/// allocated values when resetting. If cleanup is required, callers should
+/// use owning types such as [`Box`] or [`Vec`] that handle dropping.
+pub trait ResetAllocator: BumpAllocator {
     /// Resets the allocator, freeing all allocations at once.
     ///
     /// After calling `reset`, the allocator's memory is available for reuse.
@@ -110,19 +150,27 @@ pub trait BumpAllocator: Allocator {
     fn reset(&mut self);
 }
 
-/// Blanket implementation allowing `&mut A` to be used where `A: BumpAllocator`.
-///
-/// This enables passes to store `&mut Scratch` or `&mut Heap` while still
-/// calling [`reset`](BumpAllocator::reset) through the mutable reference.
 impl<A> BumpAllocator for &mut A
 where
     A: BumpAllocator,
 {
+    type Scoped<'scope> = A::Scoped<'scope>;
+
+    #[inline]
+    fn scoped<T>(&mut self, func: impl FnOnce(Self::Scoped<'_>) -> T) -> T {
+        A::scoped(self, func)
+    }
+
     #[inline]
     fn try_allocate_slice_copy<T: Copy>(&self, slice: &[T]) -> Result<&mut [T], AllocError> {
         A::try_allocate_slice_copy(self, slice)
     }
+}
 
+impl<A> ResetAllocator for &mut A
+where
+    A: ResetAllocator,
+{
     #[inline]
     fn reset(&mut self) {
         A::reset(self);
