@@ -34,7 +34,7 @@ pub unsafe trait TransferInto<'alloc, A: Allocator> {
     fn try_transfer_into(&self, allocator: &'alloc A) -> Result<Self::Output, AllocError>;
 }
 
-// SAFETY: Arena memory remains valid for 'alloc. Bumpalo handles layout/initialization.
+// SAFETY: Arena memory remains valid for 'alloc. bump_scope handles layout/initialization.
 unsafe impl<'alloc, T: Copy + 'alloc, A: BumpAllocator> TransferInto<'alloc, A> for [T] {
     type Output = &'alloc mut Self;
 
@@ -49,7 +49,7 @@ unsafe impl<'alloc, T: Copy + 'alloc, A: BumpAllocator> TransferInto<'alloc, A> 
     }
 }
 
-// SAFETY: Arena memory remains valid for 'alloc. Bumpalo handles layout/initialization.
+// SAFETY: Arena memory remains valid for 'alloc. bump_scope handles layout/initialization.
 unsafe impl<'alloc, A: BumpAllocator> TransferInto<'alloc, A> for str {
     type Output = &'alloc mut Self;
 
