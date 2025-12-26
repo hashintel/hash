@@ -132,8 +132,13 @@ impl<T: Clone, A: Allocator, B: Allocator> TryCloneIn<A> for Box<[T], B> {
     }
 
     #[inline]
-    fn try_clone_into(&self, into: &mut Self::Cloned, _: A) -> Result<(), AllocError> {
-        into.clone_from_slice(self);
+    fn try_clone_into(&self, into: &mut Self::Cloned, allocator: A) -> Result<(), AllocError> {
+        if into.len() == self.len() {
+            into.clone_from_slice(self);
+            return Ok(());
+        }
+
+        *into = self.try_clone_in(allocator)?;
         Ok(())
     }
 }
