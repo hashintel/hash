@@ -8,7 +8,7 @@ use hashql_core::{
             tarjan::{Metadata, SccId},
         },
     },
-    heap::BumpAllocator,
+    heap::{BumpAllocator, ResetAllocator},
     id::{IdVec, bit_vec::DenseBitSet},
 };
 
@@ -198,7 +198,7 @@ impl<'ctx, 'heap, A: Allocator, S: Allocator> CostEstimationAnalysis<'ctx, 'heap
     }
 }
 
-impl<'env, 'heap, A: Allocator, S: BumpAllocator> AnalysisPass<'env, 'heap>
+impl<'env, 'heap, A: Allocator, S: ResetAllocator> AnalysisPass<'env, 'heap>
     for CostEstimationAnalysis<'_, 'heap, A, S>
 {
     fn run(&mut self, _: &mut MirContext<'env, 'heap>, body: &Body<'heap>) {
