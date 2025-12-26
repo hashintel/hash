@@ -227,7 +227,7 @@ where
 
         // Pass 1: count nodes per SCC
         let mut counts = IdVec::from_domain_in(0, &self.data.components, scratch);
-        for &scc in self.data.nodes.iter() {
+        for &scc in &self.data.nodes {
             counts[scc] += 1;
         }
 

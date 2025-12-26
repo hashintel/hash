@@ -448,7 +448,7 @@ impl<'heap, A: Allocator> Visitor<'heap> for CallGraphVisitor<'_, 'heap, A> {
             return Ok(());
         }
 
-        for argument in arguments.iter() {
+        for argument in arguments {
             self.visit_operand(location, argument)?;
         }
 

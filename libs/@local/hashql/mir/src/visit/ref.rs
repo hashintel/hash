@@ -630,7 +630,7 @@ pub fn walk_rvalue_aggregate<'heap, T: Visitor<'heap> + ?Sized>(
         | AggregateKind::Closure => {}
     }
 
-    for operand in operands.iter() {
+    for operand in operands {
         visitor.visit_operand(location, operand)?;
     }
 
@@ -656,7 +656,7 @@ pub fn walk_rvalue_apply<'heap, T: Visitor<'heap> + ?Sized>(
 ) -> T::Result {
     visitor.visit_operand(location, function)?;
 
-    for argument in arguments.iter() {
+    for argument in arguments {
         visitor.visit_operand(location, argument)?;
     }
 

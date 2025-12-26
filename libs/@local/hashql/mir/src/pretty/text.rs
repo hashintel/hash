@@ -711,7 +711,7 @@ where
         self.writer.write_all(b"apply ")?;
         self.format_part(*function)?;
 
-        for argument in arguments.iter() {
+        for argument in arguments {
             self.writer.write_all(b" ")?;
             self.format_part(*argument)?;
         }
