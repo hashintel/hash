@@ -158,7 +158,7 @@ impl<'ctx, 'heap, A: Allocator> CostEstimationAnalysis<'ctx, 'heap, A> {
         };
 
         let tarjan: Tarjan<_, _, SccId, _, _> =
-            Tarjan::new_with_metadata_in(&body.basic_blocks, MemberCount, &self.scratch);
+            Tarjan::new_with_metadata_in(&body.basic_blocks, MemberCount, &self.alloc);
         let scc = tarjan.run();
 
         // First create the "is in loop" bitset, we must additionally check if there are no

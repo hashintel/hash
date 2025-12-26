@@ -7,7 +7,7 @@ use hashql_core::{
         Tarjan,
         tarjan::{SccId, StronglyConnectedComponents},
     },
-    heap::{BumpAllocator, Heap},
+    heap::{BumpAllocator, Heap, TransferInto},
     id::{Id, IdSlice},
     span::SpanId,
 };
@@ -336,23 +336,34 @@ impl<A: Allocator> Inliner<A> {
         }
     }
 
-    pub fn inline<'env, 'heap>(
+    #[expect(unsafe_code)]
+    pub fn inline<'heap>(
         &mut self,
-        context: &MirContext<'env, 'heap>,
+        context: &MirContext<'_, 'heap>,
         bodies: &mut DefIdSlice<Body<'heap>>,
     ) where
         A: BumpAllocator,
     {
-        self.alloc.scoped(|mut bump| {
-            let state = self.state(context.interner, bodies, &bump);
-            // There are fundamentally two phases, the first is to just normally inline, the second
-            // then does "aggressive" inlining, in which we inline any callsite that is
-            // eligible until fix-point is reached.
-            for id in bodies.ids() {
-                bump.scoped(|alloc| {
-                    state.inline_body(bodies, id, &alloc);
-                });
+        let state = self.state(context.interner, bodies, &self.alloc);
+
+        // There are fundamentally two phases, the first is to just normally inline, the
+        // second then does "aggressive" inlining, in which we inline any
+        // callsite that is eligible until fix-point is reached.
+        for id in bodies.ids() {
+            let checkpoint = self.alloc.checkpoint();
+
+            InlineState::inline_body(&state, bodies, id, &self.alloc);
+
+            // SAFETY: `state` is used only with `&self`. It only has access to the allocator
+            // through `self.alloc`, and due to the `&self` reference is unable to reallocate the
+            // memory it uses.
+            // Therefore, it is safe to assume that no allocation outside outlives
+            // `InlineState::inline_body` for anything that's made inside of it.
+            unsafe {
+                self.alloc.rollback(checkpoint);
             }
-        });
+        }
+
+        // TODO: Implement aggressive inlining
     }
 }

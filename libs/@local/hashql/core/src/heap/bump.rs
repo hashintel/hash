@@ -228,6 +228,18 @@ where
     type Scoped<'scope> = A::Scoped<'scope>;
 
     #[inline]
+    fn checkpoint(&self) -> Self::Checkpoint {
+        A::checkpoint(self)
+    }
+
+    #[inline]
+    unsafe fn rollback(&self, checkpoint: Self::Checkpoint) {
+        unsafe {
+            A::rollback(self, checkpoint);
+        }
+    }
+
+    #[inline]
     fn scoped<T>(&mut self, func: impl FnOnce(Self::Scoped<'_>) -> T) -> T {
         A::scoped(self, func)
     }

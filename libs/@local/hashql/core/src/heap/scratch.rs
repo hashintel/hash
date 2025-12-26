@@ -61,6 +61,18 @@ impl BumpAllocator for Scratch {
     type Scoped<'scope> = AllocatorScope<'scope>;
 
     #[inline]
+    fn checkpoint(&self) -> Self::Checkpoint {
+        self.inner.checkpoint()
+    }
+
+    #[inline]
+    unsafe fn rollback(&self, checkpoint: Self::Checkpoint) {
+        unsafe {
+            self.inner.rollback(checkpoint);
+        }
+    }
+
+    #[inline]
     fn scoped<T>(&mut self, func: impl FnOnce(Self::Scoped<'_>) -> T) -> T {
         self.inner.scoped(func)
     }
