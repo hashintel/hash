@@ -307,14 +307,15 @@ struct Inliner<A: Allocator> {
 }
 
 impl<A: Allocator> Inliner<A> {
-    fn state<'env, 'heap>(
+    fn state<'env, 'heap, B: Allocator + Clone>(
         &self,
         interner: &'env Interner<'heap>,
         bodies: &DefIdSlice<Body<'heap>>,
-    ) -> InlineState<'env, 'heap, A> {
-        let graph = CallGraph::analyze_in(bodies, self.alloc.clone());
+        alloc: B,
+    ) -> InlineState<'env, 'heap, B> {
+        let graph = CallGraph::analyze_in(bodies, alloc.clone());
         let mut analysis =
-            CostEstimationAnalysis::new(&graph, bodies, self.config.cost, self.alloc.clone());
+            CostEstimationAnalysis::new(&graph, bodies, self.config.cost, alloc.clone());
 
         for body in bodies {
             analysis.analyze(body);
@@ -322,7 +323,7 @@ impl<A: Allocator> Inliner<A> {
 
         let costs = analysis.finish();
 
-        let tarjan = Tarjan::new_in(&graph, self.alloc.clone());
+        let tarjan = Tarjan::new_in(&graph, alloc.clone());
         let components = tarjan.run();
 
         InlineState {
@@ -342,14 +343,16 @@ impl<A: Allocator> Inliner<A> {
     ) where
         A: BumpAllocator,
     {
-        let state = self.state(context.interner, bodies);
-        // There are fundamentally two phases, the first is to just normally inline, the second then
-        // does "aggressive" inlining, in which we inline any callsite that is eligible until
-        // fix-point is reached.
-        for id in bodies.ids() {
-            self.alloc.scoped(|alloc| {
-                state.inline_body(bodies, id, &alloc);
-            });
-        }
+        self.alloc.scoped(|mut bump| {
+            let state = self.state(context.interner, bodies, &bump);
+            // There are fundamentally two phases, the first is to just normally inline, the second
+            // then does "aggressive" inlining, in which we inline any callsite that is
+            // eligible until fix-point is reached.
+            for id in bodies.ids() {
+                bump.scoped(|alloc| {
+                    state.inline_body(bodies, id, &alloc);
+                });
+            }
+        });
     }
 }
