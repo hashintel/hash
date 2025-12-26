@@ -113,7 +113,7 @@ pub use self::{
     convert::{FromIn, IntoIn},
     iter::{CollectIn, FromIteratorIn},
     scratch::Scratch,
-    transfer::{TransferInto, TryTransferInto},
+    transfer::TransferInto,
 };
 use crate::{
     collections::{FastHashSet, fast_hash_set_with_capacity},

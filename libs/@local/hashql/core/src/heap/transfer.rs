@@ -1,13 +1,9 @@
 //! Zero-copy data transfer into arena allocators.
-#![expect(clippy::option_if_let_else)]
-
-use alloc::alloc::handle_alloc_error;
-use core::alloc::{AllocError, Allocator, Layout};
+use core::alloc::{AllocError, Allocator};
 
 use super::BumpAllocator;
 
-/// Fallibly transfers data into an arena allocator, returning a reference
-/// tied to the allocator's lifetime.
+/// Transfers data into an arena allocator.
 ///
 /// # Why Arena-Only?
 ///
@@ -24,8 +20,11 @@ use super::BumpAllocator;
 /// - The allocated memory is fully initialized before returning
 /// - No aliasing violations when returning `&mut` references
 /// - The allocator keeps memory valid for the full `'alloc` lifetime
-pub unsafe trait TryTransferInto<'alloc, A: Allocator> {
+pub unsafe trait TransferInto<'alloc, A: Allocator> {
     type Output;
+
+    /// Transfers `self` into the given allocator.
+    fn transfer_into(&self, allocator: &'alloc A) -> Self::Output;
 
     /// Attempts to transfer `self` into the given allocator.
     ///
@@ -35,51 +34,39 @@ pub unsafe trait TryTransferInto<'alloc, A: Allocator> {
     fn try_transfer_into(&self, allocator: &'alloc A) -> Result<Self::Output, AllocError>;
 }
 
-/// Infallibly transfers data into an arena allocator.
-///
-/// Panics on allocation failure via [`handle_alloc_error`].
-pub trait TransferInto<'alloc, A: Allocator> {
-    type Output;
-
-    /// Transfers `self` into the given allocator.
-    fn transfer_into(&self, allocator: &'alloc A) -> Self::Output;
-}
-
-impl<'alloc, T, A: Allocator> TransferInto<'alloc, A> for T
-where
-    T: ?Sized + TryTransferInto<'alloc, A>,
-{
-    type Output = T::Output;
-
-    #[inline]
-    fn transfer_into(&self, allocator: &'alloc A) -> Self::Output {
-        match self.try_transfer_into(allocator) {
-            Ok(output) => output,
-            Err(_) => handle_alloc_error(Layout::for_value::<T>(self)),
-        }
-    }
-}
-
 // SAFETY: Arena memory remains valid for 'alloc. Bumpalo handles layout/initialization.
-unsafe impl<'alloc, T: Copy + 'alloc, A: BumpAllocator> TryTransferInto<'alloc, A> for [T] {
+unsafe impl<'alloc, T: Copy + 'alloc, A: BumpAllocator> TransferInto<'alloc, A> for [T] {
     type Output = &'alloc mut Self;
 
     #[inline]
     fn try_transfer_into(&self, allocator: &'alloc A) -> Result<Self::Output, AllocError> {
         allocator.try_allocate_slice_copy(self)
     }
+
+    #[inline]
+    fn transfer_into(&self, allocator: &'alloc A) -> Self::Output {
+        allocator.allocate_slice_copy(self)
+    }
 }
 
 // SAFETY: Arena memory remains valid for 'alloc. Bumpalo handles layout/initialization.
-unsafe impl<'alloc, A: BumpAllocator> TryTransferInto<'alloc, A> for str {
+unsafe impl<'alloc, A: BumpAllocator> TransferInto<'alloc, A> for str {
     type Output = &'alloc mut Self;
 
     #[inline]
     fn try_transfer_into(&self, allocator: &'alloc A) -> Result<Self::Output, AllocError> {
         let buffer = allocator.try_allocate_slice_copy(self.as_bytes())?;
 
-        // SAFETY: The buffer has been invalidated by the allocator
+        // SAFETY: The comes from a valid string
         unsafe { Ok(Self::from_utf8_unchecked_mut(buffer)) }
+    }
+
+    #[inline]
+    fn transfer_into(&self, allocator: &'alloc A) -> Self::Output {
+        let buffer = allocator.allocate_slice_copy(self.as_bytes());
+
+        // SAFETY: The comes from a valid string
+        unsafe { Self::from_utf8_unchecked_mut(buffer) }
     }
 }
 
