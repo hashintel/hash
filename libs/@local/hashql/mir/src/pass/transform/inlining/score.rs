@@ -35,26 +35,13 @@ impl ScoreConfig {
 }
 
 pub(crate) struct CallScorer<'ctx, 'heap, A: Allocator> {
-    config: ScoreConfig,
-    graph: &'ctx CallGraph<'heap, A>,
-    loops: &'ctx LoopVec<A>,
-    properties: &'ctx DefIdSlice<BodyProperties>,
+    pub config: ScoreConfig,
+    pub graph: &'ctx CallGraph<'heap, A>,
+    pub loops: &'ctx LoopVec<A>,
+    pub properties: &'ctx DefIdSlice<BodyProperties>,
 }
 
 impl<'ctx, 'heap, A: Allocator> CallScorer<'ctx, 'heap, A> {
-    pub(crate) fn new(
-        config: ScoreConfig,
-        graph: &'ctx CallGraph<'heap, A>,
-        cost: &'ctx CostEstimationResidual<A>,
-    ) -> Self {
-        Self {
-            config,
-            graph,
-            loops: &cost.loops,
-            properties: &cost.properties,
-        }
-    }
-
     #[expect(clippy::float_arithmetic)]
     pub(crate) fn score(
         &self,

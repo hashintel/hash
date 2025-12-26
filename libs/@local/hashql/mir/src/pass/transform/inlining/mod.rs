@@ -1,20 +1,22 @@
 #![expect(clippy::float_arithmetic)]
 use alloc::collections::BinaryHeap;
 use core::{alloc::Allocator, cmp, mem};
-use std::assert_matches::debug_assert_matches;
 
 use hashql_core::{
     graph::algorithms::{
         Tarjan,
         tarjan::{SccId, StronglyConnectedComponents},
     },
-    heap::BumpAllocator,
-    id::Id,
+    heap::{BumpAllocator, Heap},
+    id::{Id, IdSlice},
     span::SpanId,
 };
 
 use self::{
-    cost::{CostEstimationAnalysis, CostEstimationConfig, CostEstimationResidual},
+    cost::{
+        BodyProperties, CostEstimationAnalysis, CostEstimationConfig, CostEstimationResidual,
+        LoopVec,
+    },
     rename::RenameVisitor,
     score::{CallScorer, ScoreConfig},
 };
@@ -30,7 +32,7 @@ use crate::{
         statement::{Assign, Statement, StatementKind},
         terminator::{Goto, Target, Terminator, TerminatorKind},
     },
-    def::{DefId, DefIdSlice},
+    def::{DefId, DefIdSlice, DefIdVec},
     intern::Interner,
     pass::analysis::{CallGraph, CallSite},
     visit::VisitorMut as _,
@@ -82,65 +84,35 @@ impl InlineConfig {
     };
 }
 
-struct Inliner<A: Allocator, S: BumpAllocator> {
+struct InlineState<'env, 'heap, A: Allocator> {
     alloc: A,
-    scratch: S,
-
     config: InlineConfig,
+    interner: &'env Interner<'heap>,
+
+    graph: CallGraph<'heap, A>,
+    properties: DefIdVec<BodyProperties, A>,
+    loops: LoopVec<A>,
+    components: StronglyConnectedComponents<DefId, SccId, (), A>,
 }
 
-impl<A: Allocator, S: BumpAllocator> Inliner<A, S> {
-    fn global_analysis<'heap>(
-        &self,
-        bodies: &DefIdSlice<Body<'heap>>,
-    ) -> (
-        CallGraph<'heap, A>,
-        CostEstimationResidual<A>,
-        StronglyConnectedComponents<DefId, SccId, (), A>,
-    )
+impl<'heap, A: Allocator> InlineState<'_, 'heap, A> {
+    fn select_callsites(&self, body: DefId) -> Vec<CallSite<Location>, A>
     where
         A: Clone,
     {
-        let callgraph = CallGraph::analyze_in(bodies, self.alloc.clone());
-        let mut analysis = CostEstimationAnalysis::new(
-            &callgraph,
-            bodies,
-            self.config.cost,
-            self.alloc.clone(),
-            self.alloc.clone(),
-        );
-
-        for body in bodies {
-            analysis.analyze(body);
-        }
-
-        let costs = analysis.finish();
-
-        let tarjan = Tarjan::new_in(&callgraph, self.alloc.clone());
-        let sccs: StronglyConnectedComponents<DefId, SccId, (), A> = tarjan.run();
-
-        (callgraph, costs, sccs)
-    }
-
-    fn select_callsites(
-        &self,
-        graph: &CallGraph<'_, A>,
-        costs: &CostEstimationResidual<A>,
-        sccs: &StronglyConnectedComponents<DefId, SccId, (), A>,
-
-        body: DefId,
-    ) -> Vec<CallSite<Location>, A>
-    where
-        A: Clone,
-    {
-        let component = sccs.scc(body);
-        let scorer = CallScorer::new(self.config.score, graph, costs);
+        let component = self.components.scc(body);
+        let scorer = CallScorer {
+            config: self.config.score,
+            graph: &self.graph,
+            loops: &self.loops,
+            properties: &self.properties,
+        };
 
         let mut to_be_inlined = Vec::new_in(self.alloc.clone());
         let mut candidates = BinaryHeap::new_in(self.alloc.clone());
 
-        for callsite in graph.apply_callsites(body) {
-            if sccs.scc(callsite.target) == component {
+        for callsite in self.graph.apply_callsites(body) {
+            if self.components.scc(callsite.target) == component {
                 // We cannot inline calls to the same SCC, aka functions that are inside of a
                 // recursive chain.
                 continue;
@@ -164,19 +136,15 @@ impl<A: Allocator, S: BumpAllocator> Inliner<A, S> {
         }
 
         let mut remaining_budget = self.config.score.max * self.config.budget_multiplier;
-        let chosen_candidates = candidates
-            .into_iter_sorted()
-            .take_while(|Candidate { score: _, callsite }| {
-                let target_cost = costs.properties[callsite.target].cost;
-                if remaining_budget - target_cost >= 0.0 {
-                    remaining_budget -= target_cost;
-                    return true;
-                }
 
-                false
-            })
-            .map(|Candidate { score: _, callsite }| callsite);
-        to_be_inlined.extend(chosen_candidates);
+        for candidate in candidates.into_iter_sorted() {
+            let target_cost = self.properties[candidate.callsite.target].cost;
+
+            if remaining_budget >= target_cost {
+                remaining_budget -= target_cost;
+                to_be_inlined.push(candidate.callsite);
+            }
+        }
 
         // sort the candidates by location (in reverse order), the reason we do this is so that
         // inlining doesn't disturb the location of subsequent candidates
@@ -185,12 +153,15 @@ impl<A: Allocator, S: BumpAllocator> Inliner<A, S> {
         to_be_inlined
     }
 
-    fn inline_callsite<'heap>(
-        interner: &Interner<'heap>,
-        bodies: &mut hashql_core::id::IdSlice<DefId, Body<'heap>>,
-        caller: DefId,
-        location: Location,
-        target: DefId,
+    fn inline_callsite(
+        &self,
+        bodies: &mut IdSlice<DefId, Body<'heap>>,
+
+        CallSite {
+            caller,
+            kind: location,
+            target,
+        }: CallSite<Location>,
     ) {
         let Ok([source, target]) = bodies.get_disjoint_mut([caller, target]) else {
             unreachable!("`inlinable_callsites` should have filtered out self-calls")
@@ -211,7 +182,7 @@ impl<A: Allocator, S: BumpAllocator> Inliner<A, S> {
             Terminator {
                 span: SpanId::SYNTHETIC,
                 kind: TerminatorKind::Goto(Goto {
-                    target: Target::block(BasicBlockId::START.plus(bb_offset), interner),
+                    target: Target::block(BasicBlockId::START.plus(bb_offset), self.interner),
                 }),
             },
         );
@@ -234,14 +205,14 @@ impl<A: Allocator, S: BumpAllocator> Inliner<A, S> {
             block.statements.push(Statement {
                 span: callsite.span,
                 kind: StatementKind::Assign(Assign {
-                    lhs: Place::local(Local::new(local_offset + index), interner),
+                    lhs: Place::local(Local::new(local_offset + index), self.interner),
                     rhs: RValue::Load(arg),
                 }),
             });
         }
 
         // if lhs is an argument, we must create a new local, and use that instead
-        let lhs = if lhs.projections.is_empty() {
+        let result = if lhs.projections.is_empty() {
             lhs.local
         } else {
             let type_id = lhs.type_id(&source.local_decls);
@@ -255,7 +226,7 @@ impl<A: Allocator, S: BumpAllocator> Inliner<A, S> {
             block.statements.push(Statement {
                 span: callsite.span,
                 kind: StatementKind::Assign(Assign {
-                    lhs: Place::local(local, interner),
+                    lhs: Place::local(local, self.interner),
                     rhs: RValue::Load(Operand::Place(lhs)),
                 }),
             });
@@ -263,31 +234,45 @@ impl<A: Allocator, S: BumpAllocator> Inliner<A, S> {
             local
         };
 
+        self.patch_callsite(source, target, result, after, terminator);
+    }
+
+    fn patch_callsite(
+        &self,
+        source: &mut Body<'heap>,
+        callee: &Body<'heap>,
+
+        result: Local,
+        statements: Vec<Statement<'heap>, &'heap Heap>,
+        terminator: Terminator<'heap>,
+    ) {
         // We now create new block, which has a block param for the new local, the terminator is
         // the terminator of the original block
         let continution = source.basic_blocks.as_mut().push(BasicBlock {
-            params: interner.locals.intern_slice(&[lhs]),
-            statements: after,
+            params: self.interner.locals.intern_slice(&[result]),
+            statements,
             terminator,
         });
+
+        let bb_offset = source.basic_blocks.bound();
+        let local_offset = source.local_decls.len();
 
         source
             .basic_blocks
             .as_mut()
-            .extend(target.basic_blocks.iter().cloned());
+            .extend(callee.basic_blocks.iter().cloned());
 
         source
             .local_decls
-            .extend(target.local_decls.iter().copied());
+            .extend(callee.local_decls.iter().copied());
 
         let mut visitor = RenameVisitor {
             local_offset,
-            bb_offset,
+            bb_offset: bb_offset.as_usize(),
             continution,
-            interner,
+            interner: self.interner,
         };
 
-        let bb_offset = BasicBlockId::from_usize(bb_offset);
         for (index, block) in source.basic_blocks.as_mut()[bb_offset..]
             .iter_mut()
             .enumerate()
@@ -296,31 +281,64 @@ impl<A: Allocator, S: BumpAllocator> Inliner<A, S> {
         }
     }
 
-    fn inline_body<'heap>(
-        &self,
-        interner: &Interner<'heap>,
-        graph: &CallGraph<'_, A>,
-        costs: &CostEstimationResidual<A>,
-        sccs: &StronglyConnectedComponents<DefId, SccId, (), A>,
-
-        bodies: &mut DefIdSlice<Body<'heap>>,
-        body: DefId,
-    ) where
+    fn inline_body(&self, bodies: &mut DefIdSlice<Body<'heap>>, body: DefId)
+    where
         A: Clone,
     {
         // TODO: global overarching scratch space for BinaryHeap and Vec (sadly needs to be done
         // because we don't have checkpointing yet)
-        let targets = self.select_callsites(graph, costs, sccs, body);
+        let targets = self.select_callsites(body);
 
         // targets already come pre-ordered, so we can just iterate over them
         // they're ordered in reverse
-        for CallSite {
-            caller,
-            kind: location,
-            target,
-        } in targets
-        {
-            Self::inline_callsite(interner, bodies, caller, location, target);
+        for callsite in targets {
+            self.inline_callsite(bodies, callsite);
+        }
+    }
+}
+
+struct Inliner<A: Allocator, S: BumpAllocator> {
+    alloc: A,
+    scratch: S,
+
+    config: InlineConfig,
+}
+
+impl<A: Allocator, S: BumpAllocator> Inliner<A, S> {
+    fn state<'env, 'heap>(
+        &self,
+        interner: &'env Interner<'heap>,
+        bodies: &DefIdSlice<Body<'heap>>,
+    ) -> InlineState<'env, 'heap, A>
+    where
+        A: Clone,
+    {
+        let graph = CallGraph::analyze_in(bodies, self.alloc.clone());
+        let mut analysis = CostEstimationAnalysis::new(
+            &graph,
+            bodies,
+            self.config.cost,
+            self.alloc.clone(),
+            self.alloc.clone(),
+        );
+
+        for body in bodies {
+            analysis.analyze(body);
+        }
+
+        let costs = analysis.finish();
+
+        let tarjan = Tarjan::new_in(&graph, self.alloc.clone());
+        let components = tarjan.run();
+
+        InlineState {
+            alloc: self.alloc.clone(),
+            config: self.config,
+            interner,
+            graph,
+            properties: costs.properties,
+            loops: costs.loops,
+            components,
         }
     }
 }
