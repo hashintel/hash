@@ -178,7 +178,7 @@ impl<A: Allocator> CallGraph<'_, A> {
                     kind: location,
                     target: DefId::new(edge.target().as_u32()),
                 }),
-                _ => None,
+                CallKind::Filter(_) | CallKind::Opaque => None,
             })
     }
 

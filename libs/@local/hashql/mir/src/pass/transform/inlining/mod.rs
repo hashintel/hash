@@ -8,19 +8,24 @@ use hashql_core::{
         tarjan::{SccId, StronglyConnectedComponents},
     },
     heap::BumpAllocator,
+    id::Id,
 };
 
 use self::{
     cost::{CostEstimationAnalysis, CostEstimationConfig, CostEstimationResidual},
+    rename::RenameVisitor,
     score::{CallScorer, ScoreConfig},
 };
 use crate::{
-    body::{Body, location::Location},
+    body::{Body, basic_block::BasicBlockId, location::Location},
     def::{DefId, DefIdSlice},
+    intern::Interner,
     pass::analysis::{CallGraph, CallSite},
+    visit::VisitorMut as _,
 };
 
 mod cost;
+mod rename;
 mod score;
 
 struct Candidate {
@@ -170,6 +175,7 @@ impl<A: Allocator, S: BumpAllocator> Inliner<A, S> {
 
     fn inline<'heap>(
         &self,
+        interner: &Interner<'heap>,
         graph: &CallGraph<'_, A>,
         costs: &CostEstimationResidual<A>,
         sccs: &StronglyConnectedComponents<DefId, SccId, (), A>,
@@ -184,12 +190,42 @@ impl<A: Allocator, S: BumpAllocator> Inliner<A, S> {
         let mut targets = self.inlinable_callsites(graph, costs, sccs, body);
 
         // targets already come pre-ordered, so we can just iterate over them
+        // they're ordered in reverse
         for CallSite {
             caller,
             kind,
             target,
         } in targets
         {
+            let Ok([source, target]) = bodies.get_disjoint_mut([caller, target]) else {
+                unreachable!("`inlinable_callsites` should have filtered out self-calls")
+            };
+
+            let bb_start = source.basic_blocks.len();
+            let bb_end = bb_start + target.basic_blocks.len();
+
+            let local_decl_start = source.local_decls.len();
+            let local_decl_end = local_decl_start + target.local_decls.len();
+
+            source
+                .basic_blocks
+                .as_mut()
+                .extend(target.basic_blocks.iter().cloned());
+
+            source
+                .local_decls
+                .extend(target.local_decls.iter().copied());
+
+            let mut visitor = RenameVisitor::new(local_decl_start, bb_start, interner);
+
+            let bb_offset = BasicBlockId::from_usize(bb_start);
+            for (index, block) in source.basic_blocks.as_mut()[bb_offset..]
+                .iter_mut()
+                .enumerate()
+            {
+                visitor.visit_basic_block(bb_offset.plus(index), block);
+            }
+
             todo!()
         }
     }
