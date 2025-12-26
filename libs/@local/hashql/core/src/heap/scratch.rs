@@ -54,8 +54,8 @@ impl Default for Scratch {
 
 impl BumpAllocator for Scratch {
     #[inline]
-    fn allocate_slice_copy<T: Copy>(&self, slice: &[T]) -> Result<&mut [T], alloc::AllocError> {
-        self.inner.try_alloc_slice_copy(slice)
+    fn try_allocate_slice_copy<T: Copy>(&self, slice: &[T]) -> Result<&mut [T], alloc::AllocError> {
+        self.inner.try_allocate_slice_copy(slice)
     }
 
     #[inline]
