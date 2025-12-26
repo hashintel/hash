@@ -109,8 +109,7 @@ axum-core                          = { version = "0.5.5" }
 bitvec                             = { version = "1.0.1", default-features = false }
 bon                                = { version = "3.8.1", default-features = false, features = ["implied-bounds"] }
 bstr                               = { version = "1.12.1" }
-bump-scope                         = { version = "1.5.1", default-features = false, features = ["nightly-clone-to-uninit", "panic-on-alloc"] }
-bumpalo                            = { version = "3.19.0", default-features = false, features = ["allocator-api2"] }
+bump-scope                         = { version = "1.5.1", default-features = false, features = ["alloc", "nightly-clone-to-uninit", "panic-on-alloc", "std"] }
 bytes                              = { version = "1.10.1" }
 bytes-utils                        = { version = "0.1.4", default-features = false }
 camino                             = { version = "1.1.12", default-features = false }
