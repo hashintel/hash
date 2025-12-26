@@ -1,6 +1,7 @@
 #![expect(clippy::float_arithmetic)]
 use alloc::collections::BinaryHeap;
-use core::{alloc::Allocator, cmp};
+use core::{alloc::Allocator, cmp, mem};
+use std::assert_matches::debug_assert_matches;
 
 use hashql_core::{
     graph::algorithms::{
@@ -9,6 +10,7 @@ use hashql_core::{
     },
     heap::BumpAllocator,
     id::Id,
+    span::SpanId,
 };
 
 use self::{
@@ -17,7 +19,17 @@ use self::{
     score::{CallScorer, ScoreConfig},
 };
 use crate::{
-    body::{Body, basic_block::BasicBlockId, location::Location},
+    body::{
+        Body,
+        basic_block::{BasicBlock, BasicBlockId},
+        local::{Local, LocalDecl},
+        location::Location,
+        operand::Operand,
+        place::Place,
+        rvalue::RValue,
+        statement::{Assign, Statement, StatementKind},
+        terminator::{Goto, Target, Terminator, TerminatorKind},
+    },
     def::{DefId, DefIdSlice},
     intern::Interner,
     pass::analysis::{CallGraph, CallSite},
@@ -187,13 +199,13 @@ impl<A: Allocator, S: BumpAllocator> Inliner<A, S> {
     {
         // TODO: global overarching scratch space for BinaryHeap and Vec (sadly needs to be done
         // because we don't have checkpointing yet)
-        let mut targets = self.inlinable_callsites(graph, costs, sccs, body);
+        let targets = self.inlinable_callsites(graph, costs, sccs, body);
 
         // targets already come pre-ordered, so we can just iterate over them
         // they're ordered in reverse
         for CallSite {
             caller,
-            kind,
+            kind: location,
             target,
         } in targets
         {
@@ -201,11 +213,78 @@ impl<A: Allocator, S: BumpAllocator> Inliner<A, S> {
                 unreachable!("`inlinable_callsites` should have filtered out self-calls")
             };
 
-            let bb_start = source.basic_blocks.len();
-            let bb_end = bb_start + target.basic_blocks.len();
+            let bb_offset = source.basic_blocks.len();
+            let local_offset = source.local_decls.len();
 
-            let local_decl_start = source.local_decls.len();
-            let local_decl_end = local_decl_start + target.local_decls.len();
+            // We now need to rewire the basic block, we do this by first assigning the arguments,
+            // assigning their value, and then splitting the block.
+            let block = &mut source.basic_blocks.as_mut()[location.block];
+
+            debug_assert!(target.basic_blocks[BasicBlockId::START].params.is_empty()); // Must always be empty, otherwise we wouldn't have a valid function entrypoint.
+            let terminator = mem::replace(
+                &mut block.terminator,
+                Terminator {
+                    span: SpanId::SYNTHETIC,
+                    kind: TerminatorKind::Goto(Goto {
+                        target: Target::block(BasicBlockId::START.plus(bb_offset), interner),
+                    }),
+                },
+            );
+            let post_split = block.statements.split_off(location.statement_index);
+            let callsite = block.statements.pop().unwrap_or_else(|| unreachable!());
+
+            block.terminator.span = callsite.span;
+
+            let StatementKind::Assign(Assign {
+                lhs,
+                rhs: RValue::Apply(apply),
+            }) = callsite.kind
+            else {
+                unreachable!("`inlinable_callsites` should only point to apply statements")
+            };
+
+            // For all arguments, add assignment expressions before the goto
+            debug_assert_eq!(apply.arguments.len(), target.args);
+            for (index, arg) in apply.arguments.into_iter().enumerate() {
+                block.statements.push(Statement {
+                    span: callsite.span,
+                    kind: StatementKind::Assign(Assign {
+                        lhs: Place::local(Local::new(local_offset + index), interner),
+                        rhs: RValue::Load(arg),
+                    }),
+                });
+            }
+
+            // if lhs is an argument, we must create a new local, and use that instead
+            let lhs = if lhs.projections.is_empty() {
+                lhs.local
+            } else {
+                let type_id = lhs.type_id(&source.local_decls);
+                let local = source.local_decls.push(LocalDecl {
+                    span: callsite.span,
+                    r#type: type_id,
+                    name: None,
+                });
+
+                // Create the new assignment statement
+                block.statements.push(Statement {
+                    span: callsite.span,
+                    kind: StatementKind::Assign(Assign {
+                        lhs: Place::local(local, interner),
+                        rhs: RValue::Load(Operand::Place(lhs)),
+                    }),
+                });
+
+                local
+            };
+
+            // We now create new block, which has a block param for the new local, the terminator is
+            // the terminator of the original block
+            let continution = source.basic_blocks.as_mut().push(BasicBlock {
+                params: interner.locals.intern_slice(&[lhs]),
+                statements: post_split,
+                terminator,
+            });
 
             source
                 .basic_blocks
@@ -216,17 +295,20 @@ impl<A: Allocator, S: BumpAllocator> Inliner<A, S> {
                 .local_decls
                 .extend(target.local_decls.iter().copied());
 
-            let mut visitor = RenameVisitor::new(local_decl_start, bb_start, interner);
+            let mut visitor = RenameVisitor {
+                local_offset,
+                bb_offset,
+                continution,
+                interner,
+            };
 
-            let bb_offset = BasicBlockId::from_usize(bb_start);
+            let bb_offset = BasicBlockId::from_usize(bb_offset);
             for (index, block) in source.basic_blocks.as_mut()[bb_offset..]
                 .iter_mut()
                 .enumerate()
             {
                 visitor.visit_basic_block(bb_offset.plus(index), block);
             }
-
-            todo!()
         }
     }
 }
