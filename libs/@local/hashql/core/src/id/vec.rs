@@ -7,6 +7,7 @@ use core::{
     hash::{Hash, Hasher},
     marker::PhantomData,
     ops::{Deref, DerefMut},
+    slice,
 };
 
 use super::{Id, slice::IdSlice};
@@ -555,6 +556,34 @@ where
     #[inline]
     fn into_iter(self) -> Self::IntoIter {
         self.raw.into_iter()
+    }
+}
+
+impl<'this, I, T, A> IntoIterator for &'this IdVec<I, T, A>
+where
+    I: Id,
+    A: Allocator,
+{
+    type IntoIter = slice::Iter<'this, T>;
+    type Item = &'this T;
+
+    #[inline]
+    fn into_iter(self) -> Self::IntoIter {
+        self.raw.iter()
+    }
+}
+
+impl<'this, I, T, A> IntoIterator for &'this mut IdVec<I, T, A>
+where
+    I: Id,
+    A: Allocator,
+{
+    type IntoIter = slice::IterMut<'this, T>;
+    type Item = &'this mut T;
+
+    #[inline]
+    fn into_iter(self) -> Self::IntoIter {
+        self.raw.iter_mut()
     }
 }
 
