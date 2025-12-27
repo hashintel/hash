@@ -160,8 +160,6 @@ impl<'ctx, 'heap, A: Allocator> CostEstimationAnalysis<'ctx, 'heap, A> {
             Tarjan::new_with_metadata_in(&body.basic_blocks, MemberCount, &self.alloc);
         let scc = tarjan.run();
 
-        // First create the "is in loop" bitset, we must additionally check if there are no
-        // self-loops for each
         let mut bitset = None;
         for id in body.basic_blocks.ids() {
             let component = scc.scc(id);
@@ -175,7 +173,6 @@ impl<'ctx, 'heap, A: Allocator> CostEstimationAnalysis<'ctx, 'heap, A> {
             }
         }
 
-        // Evaluate the total cost of the body
         let mut visitor = CostEstimationVisitor {
             config: self.config,
             total: 0.0,
@@ -215,10 +212,7 @@ impl<'heap> Visitor<'heap> for CostEstimationVisitor {
             RValue::Binary(_) => self.config.rvalue_binary,
             RValue::Unary(_) => self.config.rvalue_unary,
             RValue::Aggregate(_) => self.config.rvalue_aggregate,
-            // We try to get something from the environment, as this needs to communicate with the
-            // runtime it's most expensive.
             RValue::Input(_) => self.config.rvalue_input,
-            // Nested calls are most expensive and therefore
             RValue::Apply(_) => self.config.rvalue_apply,
         };
 
@@ -233,8 +227,6 @@ impl<'heap> Visitor<'heap> for CostEstimationVisitor {
                     self.config.terminator_switch_int_branch_multiplier,
                     self.config.terminator_switch_int_base,
                 ),
-            // Similar to RValue::Input, we try to get something from the environment, as this needs
-            // to communicate with the runtime it's most expensive.
             TerminatorKind::GraphRead(_) => self.config.terminator_graph_read,
             TerminatorKind::Goto(_) => self.config.terminator_goto,
             TerminatorKind::Return(_) => self.config.terminator_return,
