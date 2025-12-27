@@ -13,7 +13,7 @@
       {"#tuple": []},
       {"#struct": {"vertex": "_"}},
       "_",
-      ["==", "vertex.draft_id", {"#literal": null}]
+      ["==", "vertex.link_data", {"#literal": null}]
     ]
   ]
 ]

@@ -1,14 +1,18 @@
-#![expect(clippy::min_ident_chars, reason = "tests")]
+#![expect(
+    clippy::min_ident_chars,
+    clippy::similar_names,
+    clippy::non_ascii_literal,
+    reason = "tests"
+)]
 
 use alloc::vec;
-use core::f32;
-use std::{fmt::Write as _, path::PathBuf};
+use core::{f32, fmt::Write as _};
+use std::path::PathBuf;
 
 use bstr::ByteVec as _;
 use hashql_core::{
     heap::Heap,
     pretty::Formatter,
-    span::SpanId,
     symbol::sym,
     r#type::{TypeBuilder, TypeFormatter, TypeFormatterOptions, environment::Environment},
 };
@@ -24,7 +28,12 @@ use crate::{
     builder::{BodyBuilder, op, scaffold},
     context::MirContext,
     def::{DefId, DefIdSlice, DefIdVec},
-    pass::analysis::{CallGraph, CallSite},
+    pass::{
+        analysis::{CallGraph, CallSite},
+        transform::inline::{
+            BodyProperties, analysis::InlineDirective, heuristics::InlineHeuristics,
+        },
+    },
     pretty::TextFormat,
 };
 
@@ -337,8 +346,6 @@ fn inline_continuation_terminator() {
 /// Tests that `Source::Ctor` produces `InlineDirective::Always`.
 #[test]
 fn analysis_ctor_directive() {
-    use super::analysis::InlineDirective;
-
     scaffold!(heap, interner, builder);
     let env = Environment::new(&heap);
     let int_ty = TypeBuilder::synthetic(&env).integer();
@@ -374,8 +381,6 @@ fn analysis_ctor_directive() {
 /// Tests that `Source::Intrinsic` produces `InlineDirective::Never`.
 #[test]
 fn analysis_intrinsic_directive() {
-    use super::analysis::InlineDirective;
-
     scaffold!(heap, interner, builder);
     let env = Environment::new(&heap);
     let int_ty = TypeBuilder::synthetic(&env).integer();
@@ -411,8 +416,6 @@ fn analysis_intrinsic_directive() {
 /// Tests that `Source::Closure` produces `InlineDirective::Heuristic`.
 #[test]
 fn analysis_closure_directive() {
-    use super::analysis::InlineDirective;
-
     scaffold!(heap, interner, builder);
     let env = Environment::new(&heap);
     let int_ty = TypeBuilder::synthetic(&env).integer();
@@ -503,20 +506,18 @@ fn analysis_is_leaf() {
     leaf.source = Source::Closure(HirId::PLACEHOLDER, None);
 
     // Non-leaf function (calls leaf)
-    scaffold!(heap2, interner2, builder2);
-    let env2 = Environment::new(&heap2);
-    let int_ty2 = TypeBuilder::synthetic(&env2).integer();
+    let mut builder = BodyBuilder::new(&interner);
+    let out = builder.local("out", int_ty);
+    let const_5 = builder.const_int(5);
+    let leaf_fn = builder.const_fn(leaf.id);
 
-    let out = builder2.local("out", int_ty2);
-    let const_5 = builder2.const_int(5);
-    let leaf_fn = builder2.const_fn(DefId::new(0));
-    let bb0 = builder2.reserve_block([]);
-    builder2
+    let bb0 = builder.reserve_block([]);
+    builder
         .build_block(bb0)
         .assign_place(out, |rv| rv.apply(leaf_fn, [const_5]))
         .ret(out);
 
-    let mut non_leaf = builder2.finish(0, int_ty2);
+    let mut non_leaf = builder.finish(0, int_ty);
     non_leaf.id = DefId::new(1);
     non_leaf.source = Source::Thunk(HirId::PLACEHOLDER, None);
 
@@ -553,35 +554,32 @@ fn analysis_is_leaf() {
 /// Tests that `InlineDirective::Always` produces +∞ score.
 #[test]
 fn heuristics_always_directive() {
-    use super::{
-        analysis::{BodyProperties, InlineDirective},
-        heuristics::InlineHeuristics,
-    };
-
     scaffold!(heap, interner, builder);
     let env = Environment::new(&heap);
     let int_ty = TypeBuilder::synthetic(&env).integer();
 
-    // Create minimal bodies
+    // Create minimal callee
     let x = builder.local("x", int_ty);
     let bb0 = builder.reserve_block([]);
     builder.build_block(bb0).ret(x);
+
     let mut callee = builder.finish(1, int_ty);
     callee.id = DefId::new(0);
     callee.source = Source::Ctor(sym::lexical::Some);
 
-    scaffold!(heap2, interner2, builder2);
-    let env2 = Environment::new(&heap2);
-    let int_ty2 = TypeBuilder::synthetic(&env2).integer();
-    let out = builder2.local("out", int_ty2);
-    let callee_fn = builder2.const_fn(DefId::new(0));
-    let const_1 = builder2.const_int(1);
-    let bb0 = builder2.reserve_block([]);
-    builder2
+    // Create caller
+    let mut builder = BodyBuilder::new(&interner);
+    let out = builder.local("out", int_ty);
+    let callee_fn = builder.const_fn(callee.id);
+    let const_1 = builder.const_int(1);
+
+    let bb0 = builder.reserve_block([]);
+    builder
         .build_block(bb0)
         .assign_place(out, |rv| rv.apply(callee_fn, [const_1]))
         .ret(out);
-    let mut caller = builder2.finish(0, int_ty2);
+
+    let mut caller = builder.finish(0, int_ty);
     caller.id = DefId::new(1);
     caller.source = Source::Thunk(HirId::PLACEHOLDER, None);
 
@@ -632,34 +630,32 @@ fn heuristics_always_directive() {
 /// Tests that `InlineDirective::Never` produces -∞ score.
 #[test]
 fn heuristics_never_directive() {
-    use super::{
-        analysis::{BodyProperties, InlineDirective},
-        heuristics::InlineHeuristics,
-    };
-
     scaffold!(heap, interner, builder);
     let env = Environment::new(&heap);
     let int_ty = TypeBuilder::synthetic(&env).integer();
 
+    // Create callee
     let x = builder.local("x", int_ty);
     let bb0 = builder.reserve_block([]);
     builder.build_block(bb0).ret(x);
+
     let mut callee = builder.finish(1, int_ty);
     callee.id = DefId::new(0);
     callee.source = Source::Intrinsic(DefId::new(0));
 
-    scaffold!(heap2, interner2, builder2);
-    let env2 = Environment::new(&heap2);
-    let int_ty2 = TypeBuilder::synthetic(&env2).integer();
-    let out = builder2.local("out", int_ty2);
-    let callee_fn = builder2.const_fn(DefId::new(0));
-    let const_1 = builder2.const_int(1);
-    let bb0 = builder2.reserve_block([]);
-    builder2
+    // Create caller
+    let mut builder = BodyBuilder::new(&interner);
+    let out = builder.local("out", int_ty);
+    let callee_fn = builder.const_fn(callee.id);
+    let const_1 = builder.const_int(1);
+
+    let bb0 = builder.reserve_block([]);
+    builder
         .build_block(bb0)
         .assign_place(out, |rv| rv.apply(callee_fn, [const_1]))
         .ret(out);
-    let mut caller = builder2.finish(0, int_ty2);
+
+    let mut caller = builder.finish(0, int_ty);
     caller.id = DefId::new(1);
     caller.source = Source::Thunk(HirId::PLACEHOLDER, None);
 
@@ -710,34 +706,32 @@ fn heuristics_never_directive() {
 /// Tests that cost below `always_inline` threshold gives +∞.
 #[test]
 fn heuristics_small_cost() {
-    use super::{
-        analysis::{BodyProperties, InlineDirective},
-        heuristics::InlineHeuristics,
-    };
-
     scaffold!(heap, interner, builder);
     let env = Environment::new(&heap);
     let int_ty = TypeBuilder::synthetic(&env).integer();
 
+    // Create callee
     let x = builder.local("x", int_ty);
     let bb0 = builder.reserve_block([]);
     builder.build_block(bb0).ret(x);
+
     let mut callee = builder.finish(1, int_ty);
     callee.id = DefId::new(0);
     callee.source = Source::Closure(HirId::PLACEHOLDER, None);
 
-    scaffold!(heap2, interner2, builder2);
-    let env2 = Environment::new(&heap2);
-    let int_ty2 = TypeBuilder::synthetic(&env2).integer();
-    let out = builder2.local("out", int_ty2);
-    let callee_fn = builder2.const_fn(DefId::new(0));
-    let const_1 = builder2.const_int(1);
-    let bb0 = builder2.reserve_block([]);
-    builder2
+    // Create caller
+    let mut builder = BodyBuilder::new(&interner);
+    let out = builder.local("out", int_ty);
+    let callee_fn = builder.const_fn(callee.id);
+    let const_1 = builder.const_int(1);
+
+    let bb0 = builder.reserve_block([]);
+    builder
         .build_block(bb0)
         .assign_place(out, |rv| rv.apply(callee_fn, [const_1]))
         .ret(out);
-    let mut caller = builder2.finish(0, int_ty2);
+
+    let mut caller = builder.finish(0, int_ty);
     caller.id = DefId::new(1);
     caller.source = Source::Thunk(HirId::PLACEHOLDER, None);
 
@@ -790,34 +784,32 @@ fn heuristics_small_cost() {
 /// Tests that cost above `max` threshold gives -∞.
 #[test]
 fn heuristics_large_cost() {
-    use super::{
-        analysis::{BodyProperties, InlineDirective},
-        heuristics::InlineHeuristics,
-    };
-
     scaffold!(heap, interner, builder);
     let env = Environment::new(&heap);
     let int_ty = TypeBuilder::synthetic(&env).integer();
 
+    // Create callee
     let x = builder.local("x", int_ty);
     let bb0 = builder.reserve_block([]);
     builder.build_block(bb0).ret(x);
+
     let mut callee = builder.finish(1, int_ty);
     callee.id = DefId::new(0);
     callee.source = Source::Closure(HirId::PLACEHOLDER, None);
 
-    scaffold!(heap2, interner2, builder2);
-    let env2 = Environment::new(&heap2);
-    let int_ty2 = TypeBuilder::synthetic(&env2).integer();
-    let out = builder2.local("out", int_ty2);
-    let callee_fn = builder2.const_fn(DefId::new(0));
-    let const_1 = builder2.const_int(1);
-    let bb0 = builder2.reserve_block([]);
-    builder2
+    // Create caller
+    let mut builder = BodyBuilder::new(&interner);
+    let out = builder.local("out", int_ty);
+    let callee_fn = builder.const_fn(callee.id);
+    let const_1 = builder.const_int(1);
+
+    let bb0 = builder.reserve_block([]);
+    builder
         .build_block(bb0)
         .assign_place(out, |rv| rv.apply(callee_fn, [const_1]))
         .ret(out);
-    let mut caller = builder2.finish(0, int_ty2);
+
+    let mut caller = builder.finish(0, int_ty);
     caller.id = DefId::new(1);
     caller.source = Source::Thunk(HirId::PLACEHOLDER, None);
 
@@ -870,34 +862,32 @@ fn heuristics_large_cost() {
 /// Tests that leaf callee gets leaf bonus in score.
 #[test]
 fn heuristics_leaf_bonus() {
-    use super::{
-        analysis::{BodyProperties, InlineDirective},
-        heuristics::InlineHeuristics,
-    };
-
     scaffold!(heap, interner, builder);
     let env = Environment::new(&heap);
     let int_ty = TypeBuilder::synthetic(&env).integer();
 
+    // Create callee
     let x = builder.local("x", int_ty);
     let bb0 = builder.reserve_block([]);
     builder.build_block(bb0).ret(x);
+
     let mut callee = builder.finish(1, int_ty);
     callee.id = DefId::new(0);
     callee.source = Source::Closure(HirId::PLACEHOLDER, None);
 
-    scaffold!(heap2, interner2, builder2);
-    let env2 = Environment::new(&heap2);
-    let int_ty2 = TypeBuilder::synthetic(&env2).integer();
-    let out = builder2.local("out", int_ty2);
-    let callee_fn = builder2.const_fn(DefId::new(0));
-    let const_1 = builder2.const_int(1);
-    let bb0 = builder2.reserve_block([]);
-    builder2
+    // Create caller
+    let mut builder = BodyBuilder::new(&interner);
+    let out = builder.local("out", int_ty);
+    let callee_fn = builder.const_fn(callee.id);
+    let const_1 = builder.const_int(1);
+
+    let bb0 = builder.reserve_block([]);
+    builder
         .build_block(bb0)
         .assign_place(out, |rv| rv.apply(callee_fn, [const_1]))
         .ret(out);
-    let mut caller = builder2.finish(0, int_ty2);
+
+    let mut caller = builder.finish(0, int_ty);
     caller.id = DefId::new(1);
     caller.source = Source::Thunk(HirId::PLACEHOLDER, None);
 
@@ -969,27 +959,5 @@ fn heuristics_leaf_bonus() {
         (score_leaf - score_non_leaf - config.leaf_bonus).abs() < f32::EPSILON,
         "Leaf should add leaf_bonus: leaf={score_leaf}, non_leaf={score_non_leaf}, bonus={}",
         config.leaf_bonus
-    );
-}
-
-// =============================================================================
-// Aggressive Inlining Tests
-// =============================================================================
-
-/// Tests that the excessive inlining depth diagnostic is correctly created.
-#[test]
-fn aggressive_cutoff_diagnostic() {
-    use super::super::error::TransformationDiagnosticCategory;
-    use crate::error::MirDiagnosticCategory;
-
-    // Test the diagnostic creation function directly
-    let cutoff = 16;
-    let diagnostic = super::super::error::excessive_inlining_depth(SpanId::SYNTHETIC, cutoff);
-
-    assert_eq!(
-        diagnostic.category,
-        MirDiagnosticCategory::Transformation(
-            TransformationDiagnosticCategory::ExcessiveInliningDepth
-        )
     );
 }

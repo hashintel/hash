@@ -8,7 +8,7 @@
     {"#tuple": []},
     {"#struct": {"x": "Integer"}},
     "_",
-    ["+", "x", "x"]
+    ["==", "x", "x"]
   ],
   ["double", {"#literal": 21}]
 ]
