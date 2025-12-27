@@ -1,18 +1,131 @@
-import { css } from "@hashintel/ds-helpers/css";
+import { css, cva } from "@hashintel/ds-helpers/css";
 import {
   TbLayoutSidebarLeftCollapse,
   TbLayoutSidebarRightCollapse,
 } from "react-icons/tb";
 
+import { GlassPanel } from "../../../../components/glass-panel";
 import type { MenuItem } from "../../../../components/menu";
+import {
+  MAX_LEFT_SIDEBAR_WIDTH,
+  MIN_LEFT_SIDEBAR_WIDTH,
+  PANEL_MARGIN,
+} from "../../../../constants/ui";
 import { useEditorStore } from "../../../../state/editor-provider";
 import { DifferentialEquationsSection } from "./differential-equations-section";
 import { FloatingTitle } from "./floating-title";
 import { HamburgerMenu } from "./hamburger-menu";
 import { NodesSection } from "./nodes-section";
-import { ParametersSection } from "./parameters-section";
-import { SimulationStateSection } from "./simulation-state-section";
 import { TypesSection } from "./types-section";
+
+const outerContainerStyle = cva({
+  base: {
+    position: "fixed",
+    zIndex: 1000,
+    display: "flex",
+  },
+  variants: {
+    isOpen: {
+      true: {
+        top: "[0]",
+        left: "[0]",
+        bottom: "[0]",
+        height: "[100%]",
+      },
+      false: {
+        bottom: "[auto]",
+        height: "[auto]",
+      },
+    },
+  },
+});
+
+const panelContentStyle = cva({
+  base: {
+    display: "flex",
+  },
+  variants: {
+    isOpen: {
+      true: {
+        height: "[100%]",
+        padding: "[16px]",
+        flexDirection: "column",
+        gap: "[16px]",
+        alignItems: "stretch",
+      },
+      false: {
+        height: "auto",
+        width: "auto",
+        padding: "[8px 12px]",
+        flexDirection: "row",
+        gap: "[8px]",
+        alignItems: "center",
+      },
+    },
+  },
+});
+
+const headerStyle = cva({
+  base: {
+    display: "flex",
+  },
+  variants: {
+    isOpen: {
+      true: {
+        flexDirection: "column",
+        gap: "[12px]",
+        paddingBottom: "[12px]",
+        borderBottom: "[1px solid rgba(0, 0, 0, 0.1)]",
+        alignItems: "stretch",
+      },
+      false: {
+        flexDirection: "row",
+        gap: "[8px]",
+        paddingBottom: "[0]",
+        borderBottom: "none",
+        alignItems: "center",
+      },
+    },
+  },
+});
+
+const headerInnerStyle = css({
+  display: "flex",
+  alignItems: "center",
+  gap: "[8px]",
+});
+
+const titleContainerStyle = cva({
+  base: {},
+  variants: {
+    isOpen: {
+      true: {
+        flex: "[1]",
+        minWidth: "[0]",
+      },
+      false: {
+        flex: "[0 0 auto]",
+        minWidth: "[120px]",
+      },
+    },
+  },
+});
+
+const toggleButtonStyle = css({
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  padding: "spacing.1",
+  background: "[rgba(255, 255, 255, 0.5)]",
+  borderRadius: "radius.2",
+  cursor: "pointer",
+  flexShrink: 0,
+  width: "[28px]",
+  height: "[28px]",
+  _hover: {
+    backgroundColor: "[rgba(255, 255, 255, 0.8)]",
+  },
+});
 
 interface LeftSideBarProps {
   hideNetManagementControls: boolean;
@@ -25,6 +138,7 @@ interface LeftSideBarProps {
  * LeftSideBar displays the menu, title, and tools.
  * When collapsed: shows a horizontal bar with menu, title, and toggle button.
  * When open: shows the full sidebar with tools and content.
+ * Resizable from the right edge when open.
  */
 export const LeftSideBar: React.FC<LeftSideBarProps> = ({
   hideNetManagementControls,
@@ -32,69 +146,43 @@ export const LeftSideBar: React.FC<LeftSideBarProps> = ({
   title,
   onTitleChange,
 }) => {
-  const globalMode = useEditorStore((state) => state.globalMode);
   const isOpen = useEditorStore((state) => state.isLeftSidebarOpen);
   const setLeftSidebarOpen = useEditorStore(
     (state) => state.setLeftSidebarOpen,
   );
+  const leftSidebarWidth = useEditorStore((state) => state.leftSidebarWidth);
+  const setLeftSidebarWidth = useEditorStore(
+    (state) => state.setLeftSidebarWidth,
+  );
 
   return (
     <div
+      className={outerContainerStyle({ isOpen })}
       style={{
-        position: "fixed",
-        top: isOpen ? 0 : 12,
-        left: isOpen ? 0 : 12,
-        bottom: isOpen ? 0 : "auto",
-        padding: 12,
-        height: isOpen ? "100%" : "auto",
-        zIndex: 1000,
-        display: "flex",
+        padding: PANEL_MARGIN,
+        ...(isOpen ? {} : { top: PANEL_MARGIN, left: PANEL_MARGIN }),
       }}
     >
-      <div
-        className={css({
-          borderRadius: "[12px]",
-          height: isOpen ? "[100%]" : "auto",
-          width: isOpen ? "[320px]" : "auto",
-          backgroundColor: "[rgba(255, 255, 255, 0.7)]",
-          boxShadow: "[0 3px 13px rgba(0, 0, 0, 0.1)]",
-          border: "[1px solid rgba(255, 255, 255, 0.8)]",
-          backdropFilter: "[blur(12px)]",
-        })}
-        style={{
-          padding: isOpen ? 16 : "8px 12px",
-          position: "relative",
-          display: "flex",
-          flexDirection: isOpen ? "column" : "row",
-          gap: isOpen ? 16 : 8,
-          alignItems: isOpen ? "stretch" : "center",
-        }}
+      <GlassPanel
+        style={isOpen ? { width: leftSidebarWidth } : undefined}
+        contentClassName={panelContentStyle({ isOpen })}
+        resizable={
+          isOpen
+            ? {
+                edge: "right",
+                size: leftSidebarWidth,
+                onResize: setLeftSidebarWidth,
+                minSize: MIN_LEFT_SIDEBAR_WIDTH,
+                maxSize: MAX_LEFT_SIDEBAR_WIDTH,
+              }
+            : undefined
+        }
       >
         {/* Header with Menu, Title, and Toggle button */}
-        <div
-          style={{
-            display: "flex",
-            flexDirection: isOpen ? "column" : "row",
-            gap: isOpen ? 12 : 8,
-            paddingBottom: isOpen ? 12 : 0,
-            borderBottom: isOpen ? "1px solid rgba(0, 0, 0, 0.1)" : "none",
-            alignItems: isOpen ? "stretch" : "center",
-          }}
-        >
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 8,
-            }}
-          >
+        <div className={headerStyle({ isOpen })}>
+          <div className={headerInnerStyle}>
             <HamburgerMenu menuItems={menuItems} />
-            <div
-              style={{
-                flex: isOpen ? 1 : "0 0 auto",
-                minWidth: isOpen ? 0 : 120,
-              }}
-            >
+            <div className={titleContainerStyle({ isOpen })}>
               {!hideNetManagementControls && (
                 <FloatingTitle
                   value={title}
@@ -107,20 +195,7 @@ export const LeftSideBar: React.FC<LeftSideBarProps> = ({
               type="button"
               onClick={() => setLeftSidebarOpen(!isOpen)}
               aria-label={isOpen ? "Collapse sidebar" : "Expand sidebar"}
-              className={css({
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                padding: "spacing.1",
-                background: "[rgba(255, 255, 255, 0.5)]",
-                borderRadius: "radius.2",
-                cursor: "pointer",
-                flexShrink: 0,
-                _hover: {
-                  backgroundColor: "[rgba(255, 255, 255, 0.8)]",
-                },
-              })}
-              style={{ width: 28, height: 28 }}
+              className={toggleButtonStyle}
             >
               {isOpen ? (
                 <TbLayoutSidebarLeftCollapse size={18} />
@@ -134,23 +209,17 @@ export const LeftSideBar: React.FC<LeftSideBarProps> = ({
         {/* Content sections - only visible when open */}
         {isOpen && (
           <>
-            {/* Simulation State Section - only in Simulate mode */}
-            {globalMode === "simulate" && <SimulationStateSection />}
-
             {/* Types Section - only in Edit mode */}
-            {globalMode === "edit" && <TypesSection />}
+            <TypesSection />
 
             {/* Differential Equations Section - only in Edit mode */}
-            {globalMode === "edit" && <DifferentialEquationsSection />}
-
-            {/* Parameters Section */}
-            <ParametersSection />
+            <DifferentialEquationsSection />
 
             {/* Nodes Section */}
             <NodesSection />
           </>
         )}
-      </div>
+      </GlassPanel>
     </div>
   );
 };

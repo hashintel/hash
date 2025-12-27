@@ -30,6 +30,7 @@ import {
 import { useEditorStore } from "../../../../state/editor-provider";
 import { useSDCPNContext } from "../../../../state/sdcpn-provider";
 import { useSimulationStore } from "../../../../state/simulation-provider";
+import { useIsReadOnly } from "../../../../state/use-is-read-only";
 import { InitialStateEditor } from "./initial-state-editor";
 import { VisualizerErrorBoundary } from "./visualizer-error-boundary";
 
@@ -37,7 +38,6 @@ interface PlacePropertiesProps {
   place: Place;
   types: Color[];
   differentialEquations: DifferentialEquation[];
-  globalMode: "edit" | "simulate";
   updatePlace: (placeId: string, updateFn: (place: Place) => void) => void;
 }
 
@@ -45,13 +45,11 @@ export const PlaceProperties: React.FC<PlacePropertiesProps> = ({
   place,
   types,
   differentialEquations,
-  globalMode,
   updatePlace,
 }) => {
-  const isSimulationNotRun = useSimulationStore(
-    (state) => state.state === "NotRun",
-  );
   const simulation = useSimulationStore((state) => state.simulation);
+  const isReadOnly = useIsReadOnly();
+  const globalMode = useEditorStore((state) => state.globalMode);
   const initialMarking = useSimulationStore((state) => state.initialMarking);
   const setInitialMarking = useSimulationStore(
     (state) => state.setInitialMarking,
@@ -241,7 +239,7 @@ export const PlaceProperties: React.FC<PlacePropertiesProps> = ({
             setIsNameInputFocused(false);
             handleNameBlur();
           }}
-          disabled={globalMode === "simulate"}
+          disabled={isReadOnly}
           style={{
             fontSize: 14,
             padding: "6px 8px",
@@ -249,9 +247,8 @@ export const PlaceProperties: React.FC<PlacePropertiesProps> = ({
             borderRadius: 4,
             width: "100%",
             boxSizing: "border-box",
-            backgroundColor:
-              globalMode === "simulate" ? "rgba(0, 0, 0, 0.05)" : "white",
-            cursor: globalMode === "simulate" ? "not-allowed" : "text",
+            backgroundColor: isReadOnly ? "rgba(0, 0, 0, 0.05)" : "white",
+            cursor: isReadOnly ? "not-allowed" : "text",
           }}
         />
         {nameError && (
@@ -271,7 +268,11 @@ export const PlaceProperties: React.FC<PlacePropertiesProps> = ({
         <div style={{ fontWeight: 500, fontSize: 12, marginBottom: 4 }}>
           Accepted token type
           <InfoIconTooltip
-            tooltip={`If tokens in this place should carry data ("colour"), assign a data type here.${availableTypes.length === 0 ? " You must create a data type in the left-hand sidebar first." : ""} Tokens in places don't have to carry data, but they need one to enable dynamics (token data changing over time when in a place).`}
+            tooltip={`If tokens in this place should carry data ("colour"), assign a data type here.${
+              availableTypes.length === 0
+                ? " You must create a data type in the left-hand sidebar first."
+                : ""
+            } Tokens in places don't have to carry data, but they need one to enable dynamics (token data changing over time when in a place).`}
           />
         </div>
         <select
@@ -287,7 +288,7 @@ export const PlaceProperties: React.FC<PlacePropertiesProps> = ({
               }
             });
           }}
-          disabled={globalMode === "simulate"}
+          disabled={isReadOnly}
           style={{
             fontSize: 14,
             padding: "6px 8px",
@@ -295,9 +296,8 @@ export const PlaceProperties: React.FC<PlacePropertiesProps> = ({
             borderRadius: 4,
             width: "100%",
             boxSizing: "border-box",
-            backgroundColor:
-              globalMode === "simulate" ? "rgba(0, 0, 0, 0.05)" : "white",
-            cursor: globalMode === "simulate" ? "not-allowed" : "pointer",
+            backgroundColor: isReadOnly ? "rgba(0, 0, 0, 0.05)" : "white",
+            cursor: isReadOnly ? "not-allowed" : "pointer",
             marginBottom: place.colorId ? 8 : 0,
           }}
         >
@@ -348,7 +348,7 @@ export const PlaceProperties: React.FC<PlacePropertiesProps> = ({
           <div style={{ display: "flex", alignItems: "center" }}>
             <Switch
               checked={!!place.colorId && place.dynamicsEnabled}
-              disabled={globalMode === "simulate" || place.colorId === null}
+              disabled={isReadOnly || place.colorId === null}
               onCheckedChange={(checked) => {
                 updatePlace(place.id, (existingPlace) => {
                   existingPlace.dynamicsEnabled = checked;
@@ -402,7 +402,7 @@ export const PlaceProperties: React.FC<PlacePropertiesProps> = ({
                   existingPlace.differentialEquationId = value || null;
                 });
               }}
-              disabled={globalMode === "simulate"}
+              disabled={isReadOnly}
               style={{
                 fontSize: 14,
                 padding: "6px 8px",
@@ -410,9 +410,8 @@ export const PlaceProperties: React.FC<PlacePropertiesProps> = ({
                 borderRadius: 4,
                 width: "100%",
                 boxSizing: "border-box",
-                backgroundColor:
-                  globalMode === "simulate" ? "rgba(0, 0, 0, 0.05)" : "white",
-                cursor: globalMode === "simulate" ? "not-allowed" : "pointer",
+                backgroundColor: isReadOnly ? "rgba(0, 0, 0, 0.05)" : "white",
+                cursor: isReadOnly ? "not-allowed" : "pointer",
                 marginBottom: 8,
               }}
             >
@@ -452,91 +451,88 @@ export const PlaceProperties: React.FC<PlacePropertiesProps> = ({
           </div>
         )}
 
-      {/* Initial State section - only in Simulate mode */}
-      {globalMode === "simulate" &&
-        (() => {
-          const placeType = place.colorId
-            ? types.find((tp) => tp.id === place.colorId)
-            : null;
+      {/* Initial State section - shown in both Edit and Simulate modes */}
+      {(() => {
+        const placeType = place.colorId
+          ? types.find((tp) => tp.id === place.colorId)
+          : null;
 
-          // If no type or type has 0 dimensions, show simple number input
-          if (!placeType || placeType.elements.length === 0) {
-            // Determine if simulation is running
-            const hasSimulation =
-              simulation !== null && simulation.frames.length > 0;
+        // Determine if simulation is running (has frames)
+        const hasSimulationFrames =
+          simulation !== null && simulation.frames.length > 0;
 
-            // Get token count from simulation frame or initial marking
-            let currentTokenCount = 0;
-            if (hasSimulation) {
-              const currentFrame = simulation.frames[currentlyViewedFrame];
-              if (currentFrame) {
-                const placeState = currentFrame.places.get(place.id);
-                currentTokenCount = placeState?.count ?? 0;
-              }
-            } else {
-              const currentMarking = initialMarking.get(place.id);
-              currentTokenCount = currentMarking?.count ?? 0;
+        // If no type or type has 0 dimensions, show simple number input
+        if (!placeType || placeType.elements.length === 0) {
+          // Get token count from simulation frame or initial marking
+          let currentTokenCount = 0;
+          if (hasSimulationFrames) {
+            const currentFrame = simulation.frames[currentlyViewedFrame];
+            if (currentFrame) {
+              const placeState = currentFrame.places.get(place.id);
+              currentTokenCount = placeState?.count ?? 0;
             }
-
-            return (
-              <div>
-                <div
-                  style={{
-                    fontWeight: 500,
-                    fontSize: 12,
-                    marginBottom: 4,
-                  }}
-                >
-                  {isSimulationNotRun ? "Initial State" : "State"}
-                </div>
-                <div>
-                  <div
-                    style={{ fontWeight: 500, fontSize: 12, marginBottom: 4 }}
-                  >
-                    Token count
-                  </div>
-                  <input
-                    type="number"
-                    min="0"
-                    step="1"
-                    value={currentTokenCount}
-                    onChange={(event) => {
-                      const count = Math.max(
-                        0,
-                        Number.parseInt(event.target.value, 10) || 0,
-                      );
-                      setInitialMarking(place.id, {
-                        values: new Float64Array(0), // Empty array for places without type
-                        count,
-                      });
-                    }}
-                    disabled={hasSimulation}
-                    style={{
-                      fontSize: 14,
-                      padding: "6px 8px",
-                      border: "1px solid rgba(0, 0, 0, 0.1)",
-                      borderRadius: 4,
-                      width: "100%",
-                      boxSizing: "border-box",
-                      backgroundColor: hasSimulation
-                        ? "rgba(0, 0, 0, 0.05)"
-                        : "white",
-                      cursor: hasSimulation ? "not-allowed" : "text",
-                    }}
-                  />
-                </div>
-              </div>
-            );
+          } else {
+            const currentMarking = initialMarking.get(place.id);
+            currentTokenCount = currentMarking?.count ?? 0;
           }
 
           return (
-            <InitialStateEditor
-              key={place.id}
-              placeId={place.id}
-              placeType={placeType}
-            />
+            <div>
+              <div
+                style={{
+                  fontWeight: 500,
+                  fontSize: 12,
+                  marginBottom: 4,
+                }}
+              >
+                {hasSimulationFrames ? "State" : "Initial State"}
+              </div>
+              <div>
+                <div style={{ fontWeight: 500, fontSize: 12, marginBottom: 4 }}>
+                  Token count
+                </div>
+                <input
+                  type="number"
+                  min="0"
+                  step="1"
+                  value={currentTokenCount}
+                  onChange={(event) => {
+                    const count = Math.max(
+                      0,
+                      Number.parseInt(event.target.value, 10) || 0,
+                    );
+                    setInitialMarking(place.id, {
+                      values: new Float64Array(0), // Empty array for places without type
+                      count,
+                    });
+                  }}
+                  disabled={hasSimulationFrames}
+                  style={{
+                    fontSize: 14,
+                    padding: "6px 8px",
+                    border: "1px solid rgba(0, 0, 0, 0.1)",
+                    borderRadius: 4,
+                    width: "100%",
+                    boxSizing: "border-box",
+                    backgroundColor: hasSimulationFrames
+                      ? "rgba(0, 0, 0, 0.05)"
+                      : "white",
+                    cursor: hasSimulationFrames ? "not-allowed" : "text",
+                  }}
+                />
+              </div>
+            </div>
           );
-        })()}
+        }
+
+        return (
+          <InitialStateEditor
+            key={place.id}
+            placeId={place.id}
+            placeType={placeType}
+          />
+        );
+      })()}
 
       {/* Visualizer section */}
       {globalMode === "edit" && (
@@ -588,225 +584,244 @@ export const PlaceProperties: React.FC<PlacePropertiesProps> = ({
 
       {place.visualizerCode !== undefined && (
         <div>
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-              marginBottom: 4,
-            }}
-          >
-            <div style={{ fontWeight: 500, fontSize: 12 }}>
-              {globalMode === "simulate"
-                ? "Visualizer Output"
-                : "Visualizer Code"}
-            </div>
-            {globalMode === "edit" && (
-              <Menu
-                trigger={
-                  <button
-                    type="button"
-                    style={{
-                      background: "transparent",
-                      border: "none",
-                      cursor: "pointer",
-                      padding: 4,
-                      display: "flex",
-                      alignItems: "center",
-                      fontSize: 18,
-                      color: "rgba(0, 0, 0, 0.6)",
-                    }}
-                  >
-                    <TbDotsVertical />
-                  </button>
-                }
-                items={[
-                  {
-                    id: "load-default",
-                    label: "Load default template",
-                    onClick: () => {
-                      // Get the place's type to generate appropriate default code
-                      const placeType = place.colorId
-                        ? types.find((t) => t.id === place.colorId)
-                        : null;
+          {(() => {
+            // Determine if we should show visualization (when simulation has frames)
+            const hasSimulationFrames =
+              simulation !== null && simulation.frames.length > 0;
+            const showVisualization = isReadOnly || hasSimulationFrames;
 
-                      updatePlace(place.id, (existingPlace) => {
-                        existingPlace.visualizerCode = placeType
-                          ? generateDefaultVisualizerCode(placeType)
-                          : DEFAULT_VISUALIZER_CODE;
-                      });
-                    },
-                  },
-                  {
-                    id: "generate-ai",
-                    label: (
-                      <Tooltip content={UI_MESSAGES.AI_FEATURE_COMING_SOON}>
-                        <div
+            return (
+              <>
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    marginBottom: 4,
+                  }}
+                >
+                  <div style={{ fontWeight: 500, fontSize: 12 }}>
+                    {showVisualization
+                      ? "Visualizer Output"
+                      : "Visualizer Code"}
+                  </div>
+                  {!showVisualization && (
+                    <Menu
+                      trigger={
+                        <button
+                          type="button"
                           style={{
+                            background: "transparent",
+                            border: "none",
+                            cursor: "pointer",
+                            padding: 4,
                             display: "flex",
                             alignItems: "center",
-                            gap: 6,
+                            fontSize: 18,
+                            color: "rgba(0, 0, 0, 0.6)",
                           }}
                         >
-                          <TbSparkles style={{ fontSize: 16 }} />
-                          Generate with AI
-                        </div>
-                      </Tooltip>
-                    ),
-                    disabled: true,
-                    onClick: () => {
-                      // TODO: Implement AI generation
-                    },
-                  },
-                ]}
-              />
-            )}
-          </div>
-          <div
-            style={{
-              border: "1px solid rgba(0, 0, 0, 0.1)",
-              borderRadius: 4,
-              overflow: "hidden",
-            }}
-          >
-            {globalMode === "simulate" ? (
-              // Show live token values and parameters during simulation
-              (() => {
-                // Get place type to determine dimensions
-                const placeType = place.colorId
-                  ? types.find((tp) => tp.id === place.colorId)
-                  : null;
-
-                if (!placeType) {
-                  return (
-                    <div style={{ padding: 12, color: "#666" }}>
-                      Place has no type set
-                    </div>
-                  );
-                }
-
-                const dimensions = placeType.elements.length;
-                const tokens: Record<string, number>[] = [];
-                let parameters: Record<string, number | boolean> = {};
-
-                // Check if we have simulation frames or use initial marking
-                if (simulation && simulation.frames.length > 0) {
-                  // Use currently viewed simulation frame
-                  const currentFrame = simulation.frames[currentlyViewedFrame];
-                  if (!currentFrame) {
-                    return (
-                      <div style={{ padding: 12, color: "#666" }}>
-                        No frame data available
-                      </div>
-                    );
-                  }
-
-                  const placeState = currentFrame.places.get(place.id);
-                  if (!placeState) {
-                    return (
-                      <div style={{ padding: 12, color: "#666" }}>
-                        Place not found in frame
-                      </div>
-                    );
-                  }
-
-                  const { offset, count } = placeState;
-                  const placeSize = count * dimensions;
-                  const tokenValues = Array.from(
-                    currentFrame.buffer.slice(offset, offset + placeSize),
-                  );
-
-                  // Format tokens as array of objects with named dimensions
-                  for (let i = 0; i < count; i++) {
-                    const token: Record<string, number> = {};
-                    for (let colIndex = 0; colIndex < dimensions; colIndex++) {
-                      const dimensionName = placeType.elements[colIndex]!.name;
-                      token[dimensionName] =
-                        tokenValues[i * dimensions + colIndex] ?? 0;
-                    }
-                    tokens.push(token);
-                  }
-
-                  // Merge SimulationStore values with SDCPN defaults
-                  parameters = mergeParameterValues(
-                    parameterValues,
-                    defaultParameterValues,
-                  );
-                } else {
-                  // Use initial marking
-                  const marking = initialMarking.get(place.id);
-                  if (marking && marking.count > 0) {
-                    for (let i = 0; i < marking.count; i++) {
-                      const token: Record<string, number> = {};
-                      for (
-                        let colIndex = 0;
-                        colIndex < dimensions;
-                        colIndex++
-                      ) {
-                        const dimensionName =
-                          placeType.elements[colIndex]!.name;
-                        token[dimensionName] =
-                          marking.values[i * dimensions + colIndex] ?? 0;
+                          <TbDotsVertical />
+                        </button>
                       }
-                      tokens.push(token);
-                    }
-                  }
+                      items={[
+                        {
+                          id: "load-default",
+                          label: "Load default template",
+                          onClick: () => {
+                            // Get the place's type to generate appropriate default code
+                            const placeType = place.colorId
+                              ? types.find((t) => t.id === place.colorId)
+                              : null;
 
-                  // Merge SimulationStore values with SDCPN defaults
-                  parameters = mergeParameterValues(
-                    parameterValues,
-                    defaultParameterValues,
-                  );
-                }
-
-                // Render the compiled visualizer component
-                if (!VisualizerComponent) {
-                  return (
-                    <div style={{ padding: 12, color: "#d32f2f" }}>
-                      Failed to compile visualizer code. Check console for
-                      errors.
-                    </div>
-                  );
-                }
-
-                return (
-                  <VisualizerErrorBoundary>
-                    <VisualizerComponent
-                      tokens={tokens}
-                      parameters={parameters}
+                            updatePlace(place.id, (existingPlace) => {
+                              existingPlace.visualizerCode = placeType
+                                ? generateDefaultVisualizerCode(placeType)
+                                : DEFAULT_VISUALIZER_CODE;
+                            });
+                          },
+                        },
+                        {
+                          id: "generate-ai",
+                          label: (
+                            <Tooltip
+                              content={UI_MESSAGES.AI_FEATURE_COMING_SOON}
+                            >
+                              <div
+                                style={{
+                                  display: "flex",
+                                  alignItems: "center",
+                                  gap: 6,
+                                }}
+                              >
+                                <TbSparkles style={{ fontSize: 16 }} />
+                                Generate with AI
+                              </div>
+                            </Tooltip>
+                          ),
+                          disabled: true,
+                          onClick: () => {
+                            // TODO: Implement AI generation
+                          },
+                        },
+                      ]}
                     />
-                  </VisualizerErrorBoundary>
-                );
-              })()
-            ) : (
-              // Show code editor in edit mode
-              <MonacoEditor
-                key={`visualizer-${place.colorId ?? "no-type"}`}
-                language="typescript"
-                path={`inmemory://sdcpn/places/${place.id}/visualizer.tsx`}
-                height={400}
-                value={place.visualizerCode}
-                onChange={(value) => {
-                  updatePlace(place.id, (existingPlace) => {
-                    existingPlace.visualizerCode = value ?? "";
-                  });
-                }}
-                theme="vs-light"
-                options={{
-                  minimap: { enabled: false },
-                  scrollBeyondLastLine: false,
-                  fontSize: 12,
-                  lineNumbers: "off",
-                  folding: true,
-                  glyphMargin: false,
-                  lineDecorationsWidth: 0,
-                  lineNumbersMinChars: 3,
-                  padding: { top: 8, bottom: 8 },
-                  fixedOverflowWidgets: true,
-                }}
-              />
-            )}
-          </div>
+                  )}
+                </div>
+                <div
+                  style={{
+                    border: "1px solid rgba(0, 0, 0, 0.1)",
+                    borderRadius: 4,
+                    overflow: "hidden",
+                  }}
+                >
+                  {showVisualization ? (
+                    // Show live token values and parameters during simulation
+                    (() => {
+                      // Get place type to determine dimensions
+                      const placeType = place.colorId
+                        ? types.find((tp) => tp.id === place.colorId)
+                        : null;
+
+                      if (!placeType) {
+                        return (
+                          <div style={{ padding: 12, color: "#666" }}>
+                            Place has no type set
+                          </div>
+                        );
+                      }
+
+                      const dimensions = placeType.elements.length;
+                      const tokens: Record<string, number>[] = [];
+                      let parameters: Record<string, number | boolean> = {};
+
+                      // Check if we have simulation frames or use initial marking
+                      if (simulation && simulation.frames.length > 0) {
+                        // Use currently viewed simulation frame
+                        const currentFrame =
+                          simulation.frames[currentlyViewedFrame];
+                        if (!currentFrame) {
+                          return (
+                            <div style={{ padding: 12, color: "#666" }}>
+                              No frame data available
+                            </div>
+                          );
+                        }
+
+                        const placeState = currentFrame.places.get(place.id);
+                        if (!placeState) {
+                          return (
+                            <div style={{ padding: 12, color: "#666" }}>
+                              Place not found in frame
+                            </div>
+                          );
+                        }
+
+                        const { offset, count } = placeState;
+                        const placeSize = count * dimensions;
+                        const tokenValues = Array.from(
+                          currentFrame.buffer.slice(offset, offset + placeSize),
+                        );
+
+                        // Format tokens as array of objects with named dimensions
+                        for (let i = 0; i < count; i++) {
+                          const token: Record<string, number> = {};
+                          for (
+                            let colIndex = 0;
+                            colIndex < dimensions;
+                            colIndex++
+                          ) {
+                            const dimensionName =
+                              placeType.elements[colIndex]!.name;
+                            token[dimensionName] =
+                              tokenValues[i * dimensions + colIndex] ?? 0;
+                          }
+                          tokens.push(token);
+                        }
+
+                        // Merge SimulationStore values with SDCPN defaults
+                        parameters = mergeParameterValues(
+                          parameterValues,
+                          defaultParameterValues,
+                        );
+                      } else {
+                        // Use initial marking
+                        const marking = initialMarking.get(place.id);
+                        if (marking && marking.count > 0) {
+                          for (let i = 0; i < marking.count; i++) {
+                            const token: Record<string, number> = {};
+                            for (
+                              let colIndex = 0;
+                              colIndex < dimensions;
+                              colIndex++
+                            ) {
+                              const dimensionName =
+                                placeType.elements[colIndex]!.name;
+                              token[dimensionName] =
+                                marking.values[i * dimensions + colIndex] ?? 0;
+                            }
+                            tokens.push(token);
+                          }
+                        }
+
+                        // Merge SimulationStore values with SDCPN defaults
+                        parameters = mergeParameterValues(
+                          parameterValues,
+                          defaultParameterValues,
+                        );
+                      }
+
+                      // Render the compiled visualizer component
+                      if (!VisualizerComponent) {
+                        return (
+                          <div style={{ padding: 12, color: "#d32f2f" }}>
+                            Failed to compile visualizer code. Check console for
+                            errors.
+                          </div>
+                        );
+                      }
+
+                      return (
+                        <VisualizerErrorBoundary>
+                          <VisualizerComponent
+                            tokens={tokens}
+                            parameters={parameters}
+                          />
+                        </VisualizerErrorBoundary>
+                      );
+                    })()
+                  ) : (
+                    // Show code editor in edit mode
+                    <MonacoEditor
+                      key={`visualizer-${place.colorId ?? "no-type"}`}
+                      language="typescript"
+                      path={`inmemory://sdcpn/places/${place.id}/visualizer.tsx`}
+                      height={400}
+                      value={place.visualizerCode}
+                      onChange={(value) => {
+                        updatePlace(place.id, (existingPlace) => {
+                          existingPlace.visualizerCode = value ?? "";
+                        });
+                      }}
+                      theme="vs-light"
+                      options={{
+                        minimap: { enabled: false },
+                        scrollBeyondLastLine: false,
+                        fontSize: 12,
+                        lineNumbers: "off",
+                        folding: true,
+                        glyphMargin: false,
+                        lineDecorationsWidth: 0,
+                        lineNumbersMinChars: 3,
+                        padding: { top: 8, bottom: 8 },
+                        fixedOverflowWidgets: true,
+                      }}
+                    />
+                  )}
+                </div>
+              </>
+            );
+          })()}
         </div>
       )}
 

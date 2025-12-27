@@ -16,12 +16,12 @@ import type {
   DifferentialEquation,
   Place,
 } from "../../../../core/types/sdcpn";
+import { useIsReadOnly } from "../../../../state/use-is-read-only";
 
 interface DifferentialEquationPropertiesProps {
   differentialEquation: DifferentialEquation;
   types: Color[];
   places: Place[];
-  globalMode: "edit" | "simulate";
   updateDifferentialEquation: (
     equationId: string,
     updateFn: (equation: DifferentialEquation) => void,
@@ -30,16 +30,12 @@ interface DifferentialEquationPropertiesProps {
 
 export const DifferentialEquationProperties: React.FC<
   DifferentialEquationPropertiesProps
-> = ({
-  differentialEquation,
-  types,
-  places,
-  globalMode,
-  updateDifferentialEquation,
-}) => {
+> = ({ differentialEquation, types, places, updateDifferentialEquation }) => {
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [pendingTypeId, setPendingTypeId] = useState<string | null>(null);
   const [showTypeDropdown, setShowTypeDropdown] = useState(false);
+
+  const isReadOnly = useIsReadOnly();
 
   const associatedType = types.find(
     (type) => type.id === differentialEquation.colorId,
@@ -121,7 +117,7 @@ export const DifferentialEquationProperties: React.FC<
               },
             );
           }}
-          disabled={globalMode === "simulate"}
+          disabled={isReadOnly}
           style={{
             fontSize: 14,
             padding: "6px 8px",
@@ -129,9 +125,8 @@ export const DifferentialEquationProperties: React.FC<
             borderRadius: 4,
             width: "100%",
             boxSizing: "border-box",
-            backgroundColor:
-              globalMode === "simulate" ? "rgba(0, 0, 0, 0.05)" : "white",
-            cursor: globalMode === "simulate" ? "not-allowed" : "text",
+            backgroundColor: isReadOnly ? "rgba(0, 0, 0, 0.05)" : "white",
+            cursor: isReadOnly ? "not-allowed" : "text",
           }}
         />
       </div>
@@ -145,16 +140,15 @@ export const DifferentialEquationProperties: React.FC<
             type="button"
             onClick={() => setShowTypeDropdown(!showTypeDropdown)}
             onBlur={() => setTimeout(() => setShowTypeDropdown(false), 200)}
-            disabled={globalMode === "simulate"}
+            disabled={isReadOnly}
             style={{
               width: "100%",
               fontSize: 14,
               padding: "6px 8px",
               border: "1px solid rgba(0, 0, 0, 0.1)",
               borderRadius: 4,
-              backgroundColor:
-                globalMode === "simulate" ? "rgba(0, 0, 0, 0.05)" : "white",
-              cursor: globalMode === "simulate" ? "not-allowed" : "pointer",
+              backgroundColor: isReadOnly ? "rgba(0, 0, 0, 0.05)" : "white",
+              cursor: isReadOnly ? "not-allowed" : "pointer",
               display: "flex",
               alignItems: "center",
               gap: 8,
@@ -176,7 +170,7 @@ export const DifferentialEquationProperties: React.FC<
               </>
             )}
           </button>
-          {showTypeDropdown && globalMode === "edit" && (
+          {showTypeDropdown && !isReadOnly && (
             <div
               style={{
                 position: "absolute",
@@ -362,7 +356,7 @@ export const DifferentialEquationProperties: React.FC<
           }}
         >
           <div style={{ fontWeight: 500, fontSize: 12 }}>Code</div>
-          {globalMode === "edit" && (
+          {!isReadOnly && (
             <Menu
               trigger={
                 <button
@@ -435,11 +429,8 @@ export const DifferentialEquationProperties: React.FC<
             overflow: "hidden",
             flex: 1,
             minHeight: 0,
-            filter:
-              globalMode === "simulate"
-                ? "grayscale(20%) brightness(98%)"
-                : "none",
-            pointerEvents: globalMode === "simulate" ? "none" : "auto",
+            filter: isReadOnly ? "grayscale(20%) brightness(98%)" : "none",
+            pointerEvents: isReadOnly ? "none" : "auto",
           }}
         >
           <MonacoEditor
@@ -466,7 +457,7 @@ export const DifferentialEquationProperties: React.FC<
               lineNumbersMinChars: 3,
               padding: { top: 8, bottom: 8 },
               fixedOverflowWidgets: true,
-              readOnly: globalMode === "simulate",
+              readOnly: isReadOnly,
             }}
           />
         </div>

@@ -46,10 +46,7 @@ export type PetrinautProps = {
   /**
    * Create a new net and load it into the editor.
    */
-  createNewNet: (params: {
-    petriNetDefinition: SDCPN;
-    title: string;
-  }) => void;
+  createNewNet: (params: { petriNetDefinition: SDCPN; title: string }) => void;
   /**
    * Whether to hide controls relating to net loading, creation and title.
    */
@@ -105,14 +102,14 @@ export const Petrinaut = ({
 }: PetrinautProps) => {
   return (
     <SDCPNProvider {...rest}>
-      <EditorProvider>
-        <CheckerProvider>
-          <SimulationProvider>
+      <CheckerProvider>
+        <SimulationProvider>
+          <EditorProvider>
             <MonacoSetup />
             <EditorView hideNetManagementControls={hideNetManagementControls} />
-          </SimulationProvider>
-        </CheckerProvider>
-      </EditorProvider>
+          </EditorProvider>
+        </SimulationProvider>
+      </CheckerProvider>
     </SDCPNProvider>
   );
 };

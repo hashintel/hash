@@ -29,22 +29,22 @@ import {
 } from "../../../../core/default-codes";
 import type { Color, Place, Transition } from "../../../../core/types/sdcpn";
 import { useSDCPNContext } from "../../../../state/sdcpn-provider";
+import { useIsReadOnly } from "../../../../state/use-is-read-only";
 import { SortableArcItem } from "./sortable-arc-item";
 
 interface TransitionPropertiesProps {
   transition: Transition;
   places: Place[];
   types: Color[];
-  globalMode: "edit" | "simulate";
   updateTransition: (
     id: string,
-    updateFn: (existingTransition: Transition) => void,
+    updateFn: (existingTransition: Transition) => void
   ) => void;
   onArcWeightUpdate: (
     transitionId: string,
     arcType: "input" | "output",
     placeId: string,
-    weight: number,
+    weight: number
   ) => void;
 }
 
@@ -52,15 +52,16 @@ export const TransitionProperties: React.FC<TransitionPropertiesProps> = ({
   transition,
   places,
   types,
-  globalMode,
   updateTransition,
   onArcWeightUpdate,
 }) => {
+  const isReadOnly = useIsReadOnly();
+
   const sensors = useSensors(
     useSensor(PointerSensor),
     useSensor(KeyboardSensor, {
       coordinateGetter: sortableKeyboardCoordinates,
-    }),
+    })
   );
 
   const handleInputArcDragEnd = (event: DragEndEvent) => {
@@ -68,17 +69,17 @@ export const TransitionProperties: React.FC<TransitionPropertiesProps> = ({
 
     if (over && active.id !== over.id) {
       const oldIndex = transition.inputArcs.findIndex(
-        (arc) => arc.placeId === active.id,
+        (arc) => arc.placeId === active.id
       );
       const newIndex = transition.inputArcs.findIndex(
-        (arc) => arc.placeId === over.id,
+        (arc) => arc.placeId === over.id
       );
 
       updateTransition(transition.id, (existingTransition) => {
         existingTransition.inputArcs = arrayMove(
           existingTransition.inputArcs,
           oldIndex,
-          newIndex,
+          newIndex
         );
       });
     }
@@ -89,17 +90,17 @@ export const TransitionProperties: React.FC<TransitionPropertiesProps> = ({
 
     if (over && active.id !== over.id) {
       const oldIndex = transition.outputArcs.findIndex(
-        (arc) => arc.placeId === active.id,
+        (arc) => arc.placeId === active.id
       );
       const newIndex = transition.outputArcs.findIndex(
-        (arc) => arc.placeId === over.id,
+        (arc) => arc.placeId === over.id
       );
 
       updateTransition(transition.id, (existingTransition) => {
         existingTransition.outputArcs = arrayMove(
           existingTransition.outputArcs,
           oldIndex,
-          newIndex,
+          newIndex
         );
       });
     }
@@ -108,7 +109,7 @@ export const TransitionProperties: React.FC<TransitionPropertiesProps> = ({
   const handleDeleteInputArc = (placeId: string) => {
     updateTransition(transition.id, (existingTransition) => {
       const index = existingTransition.inputArcs.findIndex(
-        (arc) => arc.placeId === placeId,
+        (arc) => arc.placeId === placeId
       );
       if (index !== -1) {
         existingTransition.inputArcs.splice(index, 1);
@@ -119,7 +120,7 @@ export const TransitionProperties: React.FC<TransitionPropertiesProps> = ({
   const handleDeleteOutputArc = (placeId: string) => {
     updateTransition(transition.id, (existingTransition) => {
       const index = existingTransition.outputArcs.findIndex(
-        (arc) => arc.placeId === placeId,
+        (arc) => arc.placeId === placeId
       );
       if (index !== -1) {
         existingTransition.outputArcs.splice(index, 1);
@@ -153,7 +154,7 @@ export const TransitionProperties: React.FC<TransitionPropertiesProps> = ({
                 if (
                   // eslint-disable-next-line no-alert
                   window.confirm(
-                    `Are you sure you want to delete "${transition.name}"? All arcs connected to this transition will also be removed.`,
+                    `Are you sure you want to delete "${transition.name}"? All arcs connected to this transition will also be removed.`
                   )
                 ) {
                   removeTransition(transition.id);
@@ -195,7 +196,7 @@ export const TransitionProperties: React.FC<TransitionPropertiesProps> = ({
               existingTransition.name = event.target.value;
             });
           }}
-          disabled={globalMode === "simulate"}
+          disabled={isReadOnly}
           style={{
             fontSize: 14,
             padding: "6px 8px",
@@ -203,9 +204,8 @@ export const TransitionProperties: React.FC<TransitionPropertiesProps> = ({
             borderRadius: 4,
             width: "100%",
             boxSizing: "border-box",
-            backgroundColor:
-              globalMode === "simulate" ? "rgba(0, 0, 0, 0.05)" : "white",
-            cursor: globalMode === "simulate" ? "not-allowed" : "text",
+            backgroundColor: isReadOnly ? "rgba(0, 0, 0, 0.05)" : "white",
+            cursor: isReadOnly ? "not-allowed" : "text",
           }}
         />
       </div>
@@ -227,7 +227,7 @@ export const TransitionProperties: React.FC<TransitionPropertiesProps> = ({
             }}
           >
             <DndContext
-              sensors={globalMode === "simulate" ? [] : sensors}
+              sensors={isReadOnly ? [] : sensors}
               collisionDetection={closestCenter}
               onDragEnd={handleInputArcDragEnd}
             >
@@ -237,7 +237,7 @@ export const TransitionProperties: React.FC<TransitionPropertiesProps> = ({
               >
                 {transition.inputArcs.map((arc) => {
                   const place = places.find(
-                    (placeItem) => placeItem.id === arc.placeId,
+                    (placeItem) => placeItem.id === arc.placeId
                   );
                   return (
                     <SortableArcItem
@@ -245,13 +245,13 @@ export const TransitionProperties: React.FC<TransitionPropertiesProps> = ({
                       id={arc.placeId}
                       placeName={place?.name ?? arc.placeId}
                       weight={arc.weight}
-                      disabled={globalMode === "simulate"}
+                      disabled={isReadOnly}
                       onWeightChange={(weight) => {
                         onArcWeightUpdate(
                           transition.id,
                           "input",
                           arc.placeId,
-                          weight,
+                          weight
                         );
                       }}
                       onDelete={() => handleDeleteInputArc(arc.placeId)}
@@ -281,7 +281,7 @@ export const TransitionProperties: React.FC<TransitionPropertiesProps> = ({
             }}
           >
             <DndContext
-              sensors={globalMode === "simulate" ? [] : sensors}
+              sensors={isReadOnly ? [] : sensors}
               collisionDetection={closestCenter}
               onDragEnd={handleOutputArcDragEnd}
             >
@@ -291,7 +291,7 @@ export const TransitionProperties: React.FC<TransitionPropertiesProps> = ({
               >
                 {transition.outputArcs.map((arc) => {
                   const place = places.find(
-                    (placeItem) => placeItem.id === arc.placeId,
+                    (placeItem) => placeItem.id === arc.placeId
                   );
                   return (
                     <SortableArcItem
@@ -299,13 +299,13 @@ export const TransitionProperties: React.FC<TransitionPropertiesProps> = ({
                       id={arc.placeId}
                       placeName={place?.name ?? arc.placeId}
                       weight={arc.weight}
-                      disabled={globalMode === "simulate"}
+                      disabled={isReadOnly}
                       onWeightChange={(weight) => {
                         onArcWeightUpdate(
                           transition.id,
                           "output",
                           arc.placeId,
-                          weight,
+                          weight
                         );
                       }}
                       onDelete={() => handleDeleteOutputArc(arc.placeId)}
@@ -325,8 +325,8 @@ export const TransitionProperties: React.FC<TransitionPropertiesProps> = ({
         </div>
         <div
           style={{
-            opacity: globalMode === "simulate" ? 0.6 : 1,
-            pointerEvents: globalMode === "simulate" ? "none" : "auto",
+            opacity: isReadOnly ? 0.6 : 1,
+            pointerEvents: isReadOnly ? "none" : "auto",
           }}
         >
           <SegmentGroup
@@ -336,13 +336,11 @@ export const TransitionProperties: React.FC<TransitionPropertiesProps> = ({
               { value: "stochastic", label: "Stochastic Rate" },
             ]}
             onChange={(value) => {
-              if (globalMode !== "simulate") {
-                updateTransition(transition.id, (existingTransition) => {
-                  existingTransition.lambdaType = value as
-                    | "predicate"
-                    | "stochastic";
-                });
-              }
+              updateTransition(transition.id, (existingTransition) => {
+                existingTransition.lambdaType = value as
+                  | "predicate"
+                  | "stochastic";
+              });
             }}
           />
         </div>
@@ -385,7 +383,118 @@ export const TransitionProperties: React.FC<TransitionPropertiesProps> = ({
               ? "Predicate Firing Code"
               : "Stochastic Firing Rate Code"}
           </div>
-          {globalMode === "edit" && (
+
+          <Menu
+            trigger={
+              <button
+                type="button"
+                style={{
+                  background: "transparent",
+                  border: "none",
+                  cursor: "pointer",
+                  padding: 4,
+                  display: "flex",
+                  alignItems: "center",
+                  fontSize: 18,
+                  color: "rgba(0, 0, 0, 0.6)",
+                }}
+              >
+                <TbDotsVertical />
+              </button>
+            }
+            items={[
+              {
+                id: "load-default",
+                label: "Load default template",
+                onClick: () => {
+                  updateTransition(transition.id, (existingTransition) => {
+                    existingTransition.lambdaCode = generateDefaultLambdaCode(
+                      existingTransition.lambdaType
+                    );
+                  });
+                },
+              },
+              {
+                id: "generate-ai",
+                label: (
+                  <Tooltip content={UI_MESSAGES.AI_FEATURE_COMING_SOON}>
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 6,
+                      }}
+                    >
+                      <TbSparkles style={{ fontSize: 16 }} />
+                      Generate with AI
+                    </div>
+                  </Tooltip>
+                ),
+                disabled: true,
+                onClick: () => {
+                  // TODO: Implement AI generation
+                },
+              },
+            ]}
+          />
+        </div>
+        <div
+          style={{
+            border: "1px solid rgba(0, 0, 0, 0.1)",
+            borderRadius: 4,
+            overflow: "hidden",
+            height: 340,
+            filter: isReadOnly ? "grayscale(20%) brightness(98%)" : "none",
+            pointerEvents: isReadOnly ? "none" : "auto",
+          }}
+        >
+          <MonacoEditor
+            key={`lambda-${transition.lambdaType}-${transition.inputArcs
+              .map((a) => `${a.placeId}:${a.weight}`)
+              .join("-")}`}
+            language="typescript"
+            value={transition.lambdaCode || ""}
+            path={`inmemory://sdcpn/transitions/${transition.id}/lambda.ts`}
+            onChange={(value) => {
+              updateTransition(transition.id, (existingTransition) => {
+                existingTransition.lambdaCode = value ?? "";
+              });
+            }}
+            theme="vs-light"
+            options={{
+              minimap: { enabled: false },
+              scrollBeyondLastLine: false,
+              fontSize: 12,
+              lineNumbers: "off",
+              folding: true,
+              glyphMargin: false,
+              lineDecorationsWidth: 0,
+              lineNumbersMinChars: 3,
+              padding: { top: 8, bottom: 8 },
+              readOnly: isReadOnly,
+              fixedOverflowWidgets: true,
+            }}
+          />
+        </div>
+      </div>
+
+      {/* Only show Transition Results if at least one output place has a type */}
+      {hasOutputPlaceWithType ? (
+        <div>
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              marginBottom: 4,
+              marginTop: 20,
+              height: 30,
+            }}
+          >
+            <div style={{ fontWeight: 500, fontSize: 13 }}>
+              Transition Results
+              <InfoIconTooltip tooltip="This function determines the data for output tokens, optionally based on the input token data and any global parameters defined." />
+            </div>
             <Menu
               trigger={
                 <button
@@ -409,10 +518,38 @@ export const TransitionProperties: React.FC<TransitionPropertiesProps> = ({
                   id: "load-default",
                   label: "Load default template",
                   onClick: () => {
+                    // Build input and output arc information for code generation
+                    const inputs = transition.inputArcs
+                      .map((arc) => {
+                        const place = places.find((p) => p.id === arc.placeId);
+                        if (!place || !place.colorId) return null;
+                        const type = types.find((t) => t.id === place.colorId);
+                        if (!type) return null;
+                        return {
+                          placeName: place.name,
+                          type,
+                          weight: arc.weight,
+                        };
+                      })
+                      .filter((i) => i !== null);
+
+                    const outputs = transition.outputArcs
+                      .map((arc) => {
+                        const place = places.find((p) => p.id === arc.placeId);
+                        if (!place || !place.colorId) return null;
+                        const type = types.find((t) => t.id === place.colorId);
+                        if (!type) return null;
+                        return {
+                          placeName: place.name,
+                          type,
+                          weight: arc.weight,
+                        };
+                      })
+                      .filter((o) => o !== null);
+
                     updateTransition(transition.id, (existingTransition) => {
-                      existingTransition.lambdaCode = generateDefaultLambdaCode(
-                        existingTransition.lambdaType,
-                      );
+                      existingTransition.transitionKernelCode =
+                        generateDefaultTransitionKernelCode(inputs, outputs);
                     });
                   },
                 },
@@ -439,157 +576,6 @@ export const TransitionProperties: React.FC<TransitionPropertiesProps> = ({
                 },
               ]}
             />
-          )}
-        </div>
-        <div
-          style={{
-            border: "1px solid rgba(0, 0, 0, 0.1)",
-            borderRadius: 4,
-            overflow: "hidden",
-            height: 340,
-            filter:
-              globalMode === "simulate"
-                ? "grayscale(20%) brightness(98%)"
-                : "none",
-            pointerEvents: globalMode === "simulate" ? "none" : "auto",
-          }}
-        >
-          <MonacoEditor
-            key={`lambda-${transition.lambdaType}-${transition.inputArcs.map((a) => `${a.placeId}:${a.weight}`).join("-")}`}
-            language="typescript"
-            value={transition.lambdaCode || ""}
-            path={`inmemory://sdcpn/transitions/${transition.id}/lambda.ts`}
-            onChange={(value) => {
-              updateTransition(transition.id, (existingTransition) => {
-                existingTransition.lambdaCode = value ?? "";
-              });
-            }}
-            theme="vs-light"
-            options={{
-              minimap: { enabled: false },
-              scrollBeyondLastLine: false,
-              fontSize: 12,
-              lineNumbers: "off",
-              folding: true,
-              glyphMargin: false,
-              lineDecorationsWidth: 0,
-              lineNumbersMinChars: 3,
-              padding: { top: 8, bottom: 8 },
-              readOnly: globalMode === "simulate",
-              fixedOverflowWidgets: true,
-            }}
-          />
-        </div>
-      </div>
-
-      {/* Only show Transition Results if at least one output place has a type */}
-      {hasOutputPlaceWithType ? (
-        <div>
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-              marginBottom: 4,
-              marginTop: 20,
-              height: 30,
-            }}
-          >
-            <div style={{ fontWeight: 500, fontSize: 13 }}>
-              Transition Results
-              <InfoIconTooltip tooltip="This function determines the data for output tokens, optionally based on the input token data and any global parameters defined." />
-            </div>
-            {globalMode === "edit" && (
-              <Menu
-                trigger={
-                  <button
-                    type="button"
-                    style={{
-                      background: "transparent",
-                      border: "none",
-                      cursor: "pointer",
-                      padding: 4,
-                      display: "flex",
-                      alignItems: "center",
-                      fontSize: 18,
-                      color: "rgba(0, 0, 0, 0.6)",
-                    }}
-                  >
-                    <TbDotsVertical />
-                  </button>
-                }
-                items={[
-                  {
-                    id: "load-default",
-                    label: "Load default template",
-                    onClick: () => {
-                      // Build input and output arc information for code generation
-                      const inputs = transition.inputArcs
-                        .map((arc) => {
-                          const place = places.find(
-                            (p) => p.id === arc.placeId,
-                          );
-                          if (!place || !place.colorId) return null;
-                          const type = types.find(
-                            (t) => t.id === place.colorId,
-                          );
-                          if (!type) return null;
-                          return {
-                            placeName: place.name,
-                            type,
-                            weight: arc.weight,
-                          };
-                        })
-                        .filter((i) => i !== null);
-
-                      const outputs = transition.outputArcs
-                        .map((arc) => {
-                          const place = places.find(
-                            (p) => p.id === arc.placeId,
-                          );
-                          if (!place || !place.colorId) return null;
-                          const type = types.find(
-                            (t) => t.id === place.colorId,
-                          );
-                          if (!type) return null;
-                          return {
-                            placeName: place.name,
-                            type,
-                            weight: arc.weight,
-                          };
-                        })
-                        .filter((o) => o !== null);
-
-                      updateTransition(transition.id, (existingTransition) => {
-                        existingTransition.transitionKernelCode =
-                          generateDefaultTransitionKernelCode(inputs, outputs);
-                      });
-                    },
-                  },
-                  {
-                    id: "generate-ai",
-                    label: (
-                      <Tooltip content={UI_MESSAGES.AI_FEATURE_COMING_SOON}>
-                        <div
-                          style={{
-                            display: "flex",
-                            alignItems: "center",
-                            gap: 6,
-                          }}
-                        >
-                          <TbSparkles style={{ fontSize: 16 }} />
-                          Generate with AI
-                        </div>
-                      </Tooltip>
-                    ),
-                    disabled: true,
-                    onClick: () => {
-                      // TODO: Implement AI generation
-                    },
-                  },
-                ]}
-              />
-            )}
           </div>
           <div
             style={{
@@ -597,15 +583,16 @@ export const TransitionProperties: React.FC<TransitionPropertiesProps> = ({
               borderRadius: 4,
               overflow: "hidden",
               height: 400,
-              filter:
-                globalMode === "simulate"
-                  ? "grayscale(20%) brightness(98%)"
-                  : "none",
-              pointerEvents: globalMode === "simulate" ? "none" : "auto",
+              filter: isReadOnly ? "grayscale(20%) brightness(98%)" : "none",
+              pointerEvents: isReadOnly ? "none" : "auto",
             }}
           >
             <MonacoEditor
-              key={`kernel-${transition.inputArcs.map((a) => `${a.placeId}:${a.weight}`).join("-")}-${transition.outputArcs.map((a) => `${a.placeId}:${a.weight}`).join("-")}`}
+              key={`kernel-${transition.inputArcs
+                .map((a) => `${a.placeId}:${a.weight}`)
+                .join("-")}-${transition.outputArcs
+                .map((a) => `${a.placeId}:${a.weight}`)
+                .join("-")}`}
               language="typescript"
               value={transition.transitionKernelCode || ""}
               path={`inmemory://sdcpn/transitions/${transition.id}/transition-kernel.ts`}
@@ -625,7 +612,7 @@ export const TransitionProperties: React.FC<TransitionPropertiesProps> = ({
                 lineDecorationsWidth: 0,
                 lineNumbersMinChars: 3,
                 padding: { top: 8, bottom: 8 },
-                readOnly: globalMode === "simulate",
+                readOnly: isReadOnly,
                 fixedOverflowWidgets: true,
               }}
             />

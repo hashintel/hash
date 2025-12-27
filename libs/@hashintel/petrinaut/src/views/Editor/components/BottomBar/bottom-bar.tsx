@@ -1,11 +1,14 @@
 import { css } from "@hashintel/ds-helpers/css";
 import { refractive } from "@hashintel/refractive";
-import { useEffect } from "react";
+import { useCallback, useEffect } from "react";
+import { FaChevronDown, FaChevronUp } from "react-icons/fa6";
 
+import { useCheckerContext } from "../../../../state/checker-provider";
 import { useEditorStore } from "../../../../state/editor-provider";
 import type { EditorState } from "../../../../state/editor-store";
 import { DiagnosticsIndicator } from "./diagnostics-indicator";
 import { SimulationControls } from "./simulation-controls";
+import { ToolbarButton } from "./toolbar-button";
 import { ToolbarModes } from "./toolbar-modes";
 import { useKeyboardShortcuts } from "./use-keyboard-shortcuts";
 
@@ -13,7 +16,12 @@ const refractiveContainerStyle = css({
   paddingX: "spacing.2",
   paddingY: "spacing.1",
   backgroundColor: "[rgba(255, 255, 255, 0.6)]",
-  boxShadow: "[0 4px 13px rgba(0, 0, 0, 0.15)]",
+  boxShadow: "[0 3px 11px rgba(0, 0, 0, 0.1)]",
+  transition: "[all 0.3s ease]",
+  _hover: {
+    backgroundColor: "[rgba(255, 255, 255, 0.8)]",
+    boxShadow: "[0 4px 13px rgba(0, 0, 0, 0.15)]",
+  },
 });
 
 const toolbarContainerStyle = css({
@@ -25,7 +33,7 @@ const toolbarContainerStyle = css({
 const dividerStyle = css({
   background: "core.gray.20",
   width: "[1px]",
-  height: "[40px]",
+  height: "[16px]",
   margin: "[0 4px]",
 });
 
@@ -50,15 +58,26 @@ export const BottomBar: React.FC<BottomBarProps> = ({
   editionMode,
   onEditionModeChange,
 }) => {
-  const isDiagnosticsPanelOpen = useEditorStore(
-    (state) => state.isDiagnosticsPanelOpen,
+  const isBottomPanelOpen = useEditorStore((state) => state.isBottomPanelOpen);
+  const setBottomPanelOpen = useEditorStore(
+    (state) => state.setBottomPanelOpen,
   );
-  const toggleDiagnosticsPanel = useEditorStore(
-    (state) => state.toggleDiagnosticsPanel,
+  const setActiveBottomPanelTab = useEditorStore(
+    (state) => state.setActiveBottomPanelTab,
   );
-  const diagnosticsPanelHeight = useEditorStore(
-    (state) => state.diagnosticsPanelHeight,
-  );
+  const bottomPanelHeight = useEditorStore((state) => state.bottomPanelHeight);
+
+  const { totalDiagnosticsCount } = useCheckerContext();
+  const hasDiagnostics = totalDiagnosticsCount > 0;
+
+  const showDiagnostics = useCallback(() => {
+    setBottomPanelOpen(true);
+    setActiveBottomPanelTab("diagnostics");
+  }, [setBottomPanelOpen, setActiveBottomPanelTab]);
+
+  const toggleBottomPanel = useCallback(() => {
+    setBottomPanelOpen(!isBottomPanelOpen);
+  }, [setBottomPanelOpen, isBottomPanelOpen]);
 
   // Fallback to 'pan' mode when switching to simulate mode if mutative mode
   useEffect(() => {
@@ -73,9 +92,9 @@ export const BottomBar: React.FC<BottomBarProps> = ({
   // Setup keyboard shortcuts
   useKeyboardShortcuts(mode, onEditionModeChange);
 
-  // Calculate bottom offset based on diagnostics panel visibility
-  const bottomOffset = isDiagnosticsPanelOpen
-    ? diagnosticsPanelHeight + 12 + 24 // panel height + margin + spacing
+  // Calculate bottom offset based on bottom panel visibility
+  const bottomOffset = isBottomPanelOpen
+    ? bottomPanelHeight + 12 + 24 // panel height + margin + spacing
     : 24;
 
   return (
@@ -85,14 +104,26 @@ export const BottomBar: React.FC<BottomBarProps> = ({
         refraction={{
           radius: 12,
           blur: 3,
-          bezelWidth: 22,
+          bezelWidth: 20,
           glassThickness: 100,
         }}
       >
         <div className={toolbarContainerStyle}>
+          <ToolbarButton
+            tooltip={isBottomPanelOpen ? "Hide Panel" : "Show Panel"}
+            onClick={toggleBottomPanel}
+            ariaLabel={isBottomPanelOpen ? "Hide panel" : "Show panel"}
+            ariaExpanded={isBottomPanelOpen}
+          >
+            {isBottomPanelOpen ? (
+              <FaChevronDown size={14} />
+            ) : (
+              <FaChevronUp size={14} />
+            )}
+          </ToolbarButton>
           <DiagnosticsIndicator
-            onClick={toggleDiagnosticsPanel}
-            isExpanded={isDiagnosticsPanelOpen}
+            onClick={showDiagnostics}
+            isExpanded={isBottomPanelOpen}
           />
           <div className={dividerStyle} />
           <ToolbarModes
@@ -100,8 +131,8 @@ export const BottomBar: React.FC<BottomBarProps> = ({
             editionMode={editionMode}
             onEditionModeChange={onEditionModeChange}
           />
-
-          {mode === "simulate" && <SimulationControls />}
+          <div className={dividerStyle} />
+          <SimulationControls disabled={hasDiagnostics} />
         </div>
       </refractive.div>
     </div>
