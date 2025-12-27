@@ -4,13 +4,13 @@ use core::{alloc::Allocator, cmp, mem};
 
 use hashql_core::{
     graph::{
-        DirectedGraph,
+        DirectedGraph as _,
         algorithms::{
             Tarjan,
             tarjan::{SccId, StronglyConnectedComponents},
         },
     },
-    heap::{BumpAllocator, CollectIn, Heap, ResetAllocator},
+    heap::{Heap, ResetAllocator},
     id::{
         Id as _, IdSlice,
         bit_vec::{DenseBitSet, SparseBitMatrix},
@@ -20,6 +20,7 @@ use hashql_core::{
 
 use self::{
     cost::{BodyProperties, CostEstimationAnalysis, CostEstimationConfig, LoopVec},
+    find::FindCallsiteVisitor,
     rename::RenameVisitor,
     score::{CallScorer, ScoreConfig},
 };
@@ -39,10 +40,11 @@ use crate::{
     def::{DefId, DefIdSlice, DefIdVec},
     intern::Interner,
     pass::analysis::{CallGraph, CallSite},
-    visit::VisitorMut as _,
+    visit::{Visitor as _, VisitorMut as _},
 };
 
 mod cost;
+mod find;
 mod rename;
 mod score;
 
@@ -74,22 +76,24 @@ impl Ord for Candidate {
 }
 
 #[derive(Debug, Copy, Clone, PartialEq)]
-struct InlineConfig {
+pub struct InlineConfig {
     pub cost: CostEstimationConfig,
     pub score: ScoreConfig,
     pub budget_multiplier: f32,
+    pub aggressive_inline_cutoff: usize,
 }
 
 impl InlineConfig {
-    const DEFAULT: Self = Self {
+    pub const DEFAULT: Self = Self {
         cost: CostEstimationConfig::DEFAULT,
         score: ScoreConfig::DEFAULT,
         budget_multiplier: 5.0,
+        aggressive_inline_cutoff: 16,
     };
 }
 
 struct InlineStateMemory<A: Allocator> {
-    targets: Vec<CallSite<Location>, A>,
+    callsites: Vec<CallSite<Location>, A>,
     candidates: BinaryHeap<Candidate, A>,
 }
 
@@ -99,7 +103,7 @@ impl<A: Allocator> InlineStateMemory<A> {
         A: Clone,
     {
         Self {
-            targets: Vec::new_in(alloc.clone()),
+            callsites: Vec::new_in(alloc.clone()),
             candidates: BinaryHeap::new_in(alloc),
         }
     }
@@ -126,12 +130,12 @@ impl<'heap, A: Allocator> InlineState<'_, 'heap, A> {
         self.graph
             .apply_callsites(body)
             .filter(|callsite| self.components.scc(callsite.target) != component)
-            .collect_into(&mut mem.targets);
+            .collect_into(&mut mem.callsites);
 
         // To be able to detect cycles in the aggressive inlining phase, we must record all the
         // inlined functions components for the current body.
         self.inlined.insert(body, component);
-        for callsite in &mem.targets {
+        for callsite in &mem.callsites {
             self.inlined
                 .insert(body, self.components.scc(callsite.target));
         }
@@ -150,7 +154,7 @@ impl<'heap, A: Allocator> InlineState<'_, 'heap, A> {
             properties: &self.properties,
         };
 
-        let targets = &mut mem.targets;
+        let targets = &mut mem.callsites;
         let candidates = &mut mem.candidates;
 
         for callsite in self.graph.apply_callsites(body) {
@@ -324,24 +328,28 @@ impl<'heap, A: Allocator> InlineState<'_, 'heap, A> {
         mem: &mut InlineStateMemory<A>,
     ) {
         self.select_callsites(body, mem);
-        mem.targets
+        mem.callsites
             .sort_unstable_by(|lhs, rhs| lhs.kind.cmp(&rhs.kind).reverse());
 
         // targets already come pre-ordered, so we can just iterate over them
         // they're ordered in reverse
-        for callsite in mem.targets.drain(..) {
+        for callsite in mem.callsites.drain(..) {
             self.inline_callsite(bodies, callsite);
         }
     }
 }
 
-struct Inliner<A: Allocator> {
+pub struct Inline<A: Allocator> {
     alloc: A,
 
     config: InlineConfig,
 }
 
-impl<A: Allocator> Inliner<A> {
+impl<A: Allocator> Inline<A> {
+    pub const fn new_in(config: InlineConfig, alloc: A) -> Self {
+        Self { alloc, config }
+    }
+
     fn state<'env, 'heap>(
         &self,
         interner: &'env Interner<'heap>,
@@ -377,7 +385,68 @@ impl<A: Allocator> Inliner<A> {
         }
     }
 
-    pub fn inline<'heap>(
+    fn normal_inline<'heap, 'alloc>(
+        &self,
+        state: &mut InlineState<'_, 'heap, &'alloc A>,
+        bodies: &mut IdSlice<DefId, Body<'heap>>,
+        mem: &mut InlineStateMemory<&'alloc A>,
+    ) {
+        // The order is determined by the components of the call graph, and the members of it
+        let members = state.components.members_in(&self.alloc);
+
+        // The return value of Tarjan will be in dependency order (aka post order), meaning that if
+        // `S1 -> S2`, we will visit `S2` first, and `S1` second.
+        // Because our edges are `caller -> callee`, we can just iterate over the SCCs to get the
+        // order we want.
+        for scc in members.sccs() {
+            for &id in members.of(scc) {
+                state.inline_body(bodies, id, mem);
+            }
+        }
+    }
+
+    fn aggressive_inline<'heap, 'alloc>(
+        &self,
+        state: &mut InlineState<'_, 'heap, &'alloc A>,
+        bodies: &mut IdSlice<DefId, Body<'heap>>,
+        mem: &mut InlineStateMemory<&'alloc A>,
+    ) {
+        // for each filter, find the call sites that are eligible for inlining (which are all
+        // callsites)
+        for filter in &state.filters {
+            let mut iteration = 0;
+            while iteration < self.config.aggressive_inline_cutoff {
+                let mut visitor = FindCallsiteVisitor {
+                    caller: filter,
+                    state,
+                    mem,
+                };
+                visitor.visit_body(&bodies[filter]);
+
+                if mem.callsites.is_empty() {
+                    break;
+                }
+
+                mem.callsites
+                    .sort_unstable_by(|lhs, rhs| lhs.kind.cmp(&rhs.kind).reverse());
+                for callsite in mem.callsites.drain(..) {
+                    let target_component = state.components.scc(callsite.target);
+                    state.inlined.insert(filter, target_component); // ensure that the next iteration we don't go into a recursive loop
+
+                    state.inline_callsite(bodies, callsite);
+                }
+
+                iteration += 1;
+            }
+
+            if iteration == self.config.aggressive_inline_cutoff {
+                // TODO: issue diagnostic that filter is excessively deep and wasn't able to be
+                // fully inlined
+            }
+        }
+    }
+
+    pub fn run<'heap>(
         &mut self,
         context: &MirContext<'_, 'heap>,
         bodies: &mut DefIdSlice<Body<'heap>>,
@@ -392,10 +461,8 @@ impl<A: Allocator> Inliner<A> {
         // There are fundamentally two phases, the first is to just normally inline, the
         // second then does "aggressive" inlining, in which we inline any
         // callsite that is eligible until fix-point is reached.
-        for id in bodies.ids() {
-            state.inline_body(bodies, id, &mut mem);
-        }
 
-        // TODO: Implement aggressive inlining
+        self.normal_inline(&mut state, bodies, &mut mem);
+        self.aggressive_inline(&mut state, bodies, &mut mem);
     }
 }

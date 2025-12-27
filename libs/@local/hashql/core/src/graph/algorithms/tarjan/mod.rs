@@ -160,6 +160,11 @@ impl<N, S, A: Allocator> Members<N, S, A>
 where
     S: Id,
 {
+    pub fn sccs(&self) -> impl ExactSizeIterator<Item = S> + DoubleEndedIterator {
+        // Offsets is 1 longer than the number of SCCs
+        self.offsets.ids().take(self.offsets.len() - 1)
+    }
+
     pub fn of(&self, id: S) -> &[N] {
         let range = self.offsets[id]..self.offsets[id.plus(1)];
 
