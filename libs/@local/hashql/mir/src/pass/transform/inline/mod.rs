@@ -39,7 +39,10 @@ use crate::{
     context::MirContext,
     def::{DefId, DefIdSlice, DefIdVec},
     intern::Interner,
-    pass::analysis::{CallGraph, CallSite},
+    pass::{
+        analysis::{CallGraph, CallSite},
+        transform::error,
+    },
     visit::{Visitor as _, VisitorMut as _},
 };
 
@@ -409,6 +412,7 @@ impl<A: BumpAllocator> Inline<A> {
 
     fn aggressive<'heap, 'alloc>(
         &self,
+        context: &mut MirContext<'_, 'heap>,
         state: &mut InlineState<'_, 'heap, &'alloc A>,
         bodies: &mut IdSlice<DefId, Body<'heap>>,
         mem: &mut InlineStateMemory<&'alloc A>,
@@ -441,15 +445,17 @@ impl<A: BumpAllocator> Inline<A> {
             }
 
             if iteration == self.config.aggressive_inline_cutoff {
-                // TODO: issue diagnostic that filter is excessively deep and wasn't able to be
-                // fully inlined
+                context.diagnostics.push(error::excessive_inlining_depth(
+                    bodies[filter].span,
+                    self.config.aggressive_inline_cutoff,
+                ));
             }
         }
     }
 
     pub fn run<'heap>(
         &mut self,
-        context: &MirContext<'_, 'heap>,
+        context: &mut MirContext<'_, 'heap>,
         bodies: &mut DefIdSlice<Body<'heap>>,
     ) where
         A: ResetAllocator,
@@ -460,6 +466,6 @@ impl<A: BumpAllocator> Inline<A> {
         let mut mem = InlineStateMemory::new(&self.alloc);
 
         self.normal(&mut state, bodies, &mut mem);
-        self.aggressive(&mut state, bodies, &mut mem);
+        self.aggressive(context, &mut state, bodies, &mut mem);
     }
 }
