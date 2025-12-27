@@ -1,6 +1,6 @@
 use core::alloc::Allocator;
 
-use super::cost::{BodyProperties, Inline, LoopVec};
+use super::analysis::{BasicBlockLoopVec, BodyProperties, InlineDirective};
 use crate::{
     body::location::Location,
     def::DefIdSlice,
@@ -8,7 +8,7 @@ use crate::{
 };
 
 #[derive(Debug, Copy, Clone, PartialEq)]
-pub struct ScoreConfig {
+pub struct InlineHeuristicsConfig {
     pub always_inline: f32,
     pub max: f32,
     pub max_loop_multiplier: f32,
@@ -20,7 +20,7 @@ pub struct ScoreConfig {
     pub size_penalty_factor: f32,
 }
 
-impl ScoreConfig {
+impl InlineHeuristicsConfig {
     pub const DEFAULT: Self = Self {
         always_inline: 15.0,
         max: 80.0,
@@ -34,14 +34,14 @@ impl ScoreConfig {
     };
 }
 
-pub(crate) struct CallScorer<'ctx, 'heap, A: Allocator> {
-    pub config: ScoreConfig,
+pub(crate) struct InlineHeuristics<'ctx, 'heap, A: Allocator> {
+    pub config: InlineHeuristicsConfig,
     pub graph: &'ctx CallGraph<'heap, A>,
-    pub loops: &'ctx LoopVec<A>,
+    pub loops: &'ctx BasicBlockLoopVec<A>,
     pub properties: &'ctx DefIdSlice<BodyProperties>,
 }
 
-impl<A: Allocator> CallScorer<'_, '_, A> {
+impl<A: Allocator> InlineHeuristics<'_, '_, A> {
     #[expect(clippy::float_arithmetic)]
     pub(crate) fn score(
         &self,
@@ -52,10 +52,10 @@ impl<A: Allocator> CallScorer<'_, '_, A> {
         }: CallSite<Location>,
     ) -> f32 {
         // +inf = always inline, -inf = never inline.
-        match self.properties[target].inline {
-            Inline::Always => return f32::INFINITY,
-            Inline::Depends => {}
-            Inline::Never => return f32::NEG_INFINITY,
+        match self.properties[target].directive {
+            InlineDirective::Always => return f32::INFINITY,
+            InlineDirective::Heuristic => {}
+            InlineDirective::Never => return f32::NEG_INFINITY,
         }
 
         let target_cost = self.properties[target].cost;

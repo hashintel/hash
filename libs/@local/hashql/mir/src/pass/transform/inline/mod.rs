@@ -19,10 +19,10 @@ use hashql_core::{
 };
 
 use self::{
-    cost::{BodyProperties, CostEstimationAnalysis, CostEstimationConfig, LoopVec},
+    analysis::{BasicBlockLoopVec, BodyAnalysis, BodyProperties, InlineCostEstimationConfig},
     find::FindCallsiteVisitor,
+    heuristics::{InlineHeuristics, InlineHeuristicsConfig},
     rename::RenameVisitor,
-    score::{CallScorer, ScoreConfig},
 };
 use crate::{
     body::{
@@ -43,10 +43,10 @@ use crate::{
     visit::{Visitor as _, VisitorMut as _},
 };
 
-mod cost;
+mod analysis;
 mod find;
+mod heuristics;
 mod rename;
-mod score;
 
 struct Candidate {
     score: f32,
@@ -77,16 +77,16 @@ impl Ord for Candidate {
 
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub struct InlineConfig {
-    pub cost: CostEstimationConfig,
-    pub score: ScoreConfig,
+    pub cost: InlineCostEstimationConfig,
+    pub heuristics: InlineHeuristicsConfig,
     pub budget_multiplier: f32,
     pub aggressive_inline_cutoff: usize,
 }
 
 impl InlineConfig {
     pub const DEFAULT: Self = Self {
-        cost: CostEstimationConfig::DEFAULT,
-        score: ScoreConfig::DEFAULT,
+        cost: InlineCostEstimationConfig::DEFAULT,
+        heuristics: InlineHeuristicsConfig::DEFAULT,
         budget_multiplier: 5.0,
         aggressive_inline_cutoff: 16,
     };
@@ -120,7 +120,7 @@ struct InlineState<'env, 'heap, A: Allocator> {
                                   * body. */
 
     properties: DefIdVec<BodyProperties, A>,
-    loops: LoopVec<A>,
+    loops: BasicBlockLoopVec<A>,
     components: StronglyConnectedComponents<DefId, SccId, (), A>,
 }
 
@@ -147,8 +147,8 @@ impl<'heap, A: Allocator> InlineState<'_, 'heap, A> {
         }
 
         let component = self.components.scc(body);
-        let scorer = CallScorer {
-            config: self.config.score,
+        let scorer = InlineHeuristics {
+            config: self.config.heuristics,
             graph: &self.graph,
             loops: &self.loops,
             properties: &self.properties,
@@ -178,7 +178,7 @@ impl<'heap, A: Allocator> InlineState<'_, 'heap, A> {
             candidates.push(Candidate { score, callsite });
         }
 
-        let mut remaining_budget = self.config.score.max * self.config.budget_multiplier;
+        let mut remaining_budget = self.config.heuristics.max * self.config.budget_multiplier;
 
         for candidate in candidates.drain_sorted() {
             let target_cost = self.properties[candidate.callsite.target].cost;
@@ -363,11 +363,10 @@ impl<A: BumpAllocator> Inline<A> {
         bodies: &DefIdSlice<Body<'heap>>,
     ) -> InlineState<'env, 'heap, &A> {
         let graph = CallGraph::analyze_in(bodies, &self.alloc);
-        let mut analysis =
-            CostEstimationAnalysis::new(&graph, bodies, self.config.cost, &self.alloc);
+        let mut analysis = BodyAnalysis::new(&graph, bodies, self.config.cost, &self.alloc);
 
         for body in bodies {
-            analysis.analyze(body);
+            analysis.run(body);
         }
 
         let mut filters = DenseBitSet::new_empty(bodies.len());
