@@ -1,7 +1,7 @@
 {
   "name": "@hashintel/ds-theme",
   "version": "0.0.1",
-  "description": "HASH UI Preset",
+  "description": "HASH PandaCSS Preset",
   "repository": {
     "type": "git",
     "url": "https://github.com/hashintel/hash.git",
@@ -12,10 +12,13 @@
   "type": "module",
   "main": "src/index.ts",
   "scripts": {
-    "generate:panda": "tsx scripts/toPanda.ts"
+    "generate:colors": "tsx generate-colors.ts",
+    "lint:tsc": "tsc --noEmit"
   },
   "devDependencies": {
-    "es-toolkit": "1.41.0",
-    "tsx": "4.20.6"
+    "@pandacss/dev": "1.4.3",
+    "case-anything": "3.1.0",
+    "tsx": "4.20.6",
+    "typescript": "5.9.3"
   }
 }
