@@ -1,0 +1,314 @@
+════ Initial MIR ═══════════════════════════════════════════════════════════════
+
+thunk {thunk#1}() -> ::graph::TimeAxis {
+    let %0: ::graph::TimeAxis
+
+    bb0(): {
+        %0 = input LOAD axis
+
+        return %0
+    }
+}
+
+fn {ctor#::core::uuid::Uuid}(%0: (), %1: String) -> ::core::uuid::Uuid {
+    let %2: ::core::uuid::Uuid
+
+    bb0(): {
+        %2 = opaque(::core::uuid::Uuid, %1)
+
+        return %2
+    }
+}
+
+thunk {thunk#2}() -> (String) -> ::core::uuid::Uuid {
+    let %0: (String) -> ::core::uuid::Uuid
+
+    bb0(): {
+        %0 = closure(({ctor#::core::uuid::Uuid} as FnPtr), ())
+
+        return %0
+    }
+}
+
+thunk {thunk#3}() -> ::core::uuid::Uuid {
+    let %0: (String) -> ::core::uuid::Uuid
+    let %1: ::core::uuid::Uuid
+
+    bb0(): {
+        %0 = apply ({thunk#2} as FnPtr)
+        %1 = apply %0.0 %0.1 "e2851dbb-7376-4959-9bca-f72cafc4448f"
+
+        return %1
+    }
+}
+
+fn {ctor#::graph::types::knowledge::entity::EntityUuid}(%0: (), %1: ::core::uuid::Uuid) -> ::graph::types::knowledge::entity::EntityUuid {
+    let %2: ::graph::types::knowledge::entity::EntityUuid
+
+    bb0(): {
+        %2 = opaque(::graph::types::knowledge::entity::EntityUuid, %1)
+
+        return %2
+    }
+}
+
+thunk {thunk#4}() -> (::core::uuid::Uuid) -> ::graph::types::knowledge::entity::EntityUuid {
+    let %0: (::core::uuid::Uuid) -> ::graph::types::knowledge::entity::EntityUuid
+
+    bb0(): {
+        %0 = closure(({ctor#::graph::types::knowledge::entity::EntityUuid} as FnPtr), ())
+
+        return %0
+    }
+}
+
+thunk {thunk#5}() -> ::graph::types::knowledge::entity::EntityUuid {
+    let %0: ::core::uuid::Uuid
+    let %1: (::core::uuid::Uuid) -> ::graph::types::knowledge::entity::EntityUuid
+    let %2: ::graph::types::knowledge::entity::EntityUuid
+
+    bb0(): {
+        %0 = apply ({thunk#3} as FnPtr)
+        %1 = apply ({thunk#4} as FnPtr)
+        %2 = apply %1.0 %1.1 %0
+
+        return %2
+    }
+}
+
+fn {closure@7}(%0: (), %1: ::graph::types::knowledge::entity::Entity) -> Boolean {
+    let %2: ::graph::types::knowledge::entity::EntityUuid
+    let %3: Boolean
+
+    bb0(): {
+        %2 = apply ({thunk#5} as FnPtr)
+        %3 = %1.id.entity_id.entity_uuid == %2
+
+        return %3
+    }
+}
+
+*thunk {thunk#7}() -> List<::graph::types::knowledge::entity::Entity> {
+    let %0: ::graph::TimeAxis
+    let %1: List<::graph::types::knowledge::entity::Entity>
+    let %2: ()
+
+    bb0(): {
+        %0 = apply ({thunk#1} as FnPtr)
+        %2 = ()
+
+        graph read entities(%0)
+        |> filter({closure@7}, %2)
+        |> collect -> bb1(_)
+    }
+
+    bb1(%1): {
+        return %1
+    }
+}
+════ MIR after Inlining ════════════════════════════════════════════════════════
+
+thunk {thunk#1}() -> ::graph::TimeAxis {
+    let %0: ::graph::TimeAxis
+
+    bb0(): {
+        %0 = input LOAD axis
+
+        return %0
+    }
+}
+
+fn {ctor#::core::uuid::Uuid}(%0: (), %1: String) -> ::core::uuid::Uuid {
+    let %2: ::core::uuid::Uuid
+
+    bb0(): {
+        %2 = opaque(::core::uuid::Uuid, %1)
+
+        return %2
+    }
+}
+
+thunk {thunk#2}() -> (String) -> ::core::uuid::Uuid {
+    let %0: (String) -> ::core::uuid::Uuid
+
+    bb0(): {
+        %0 = closure(({ctor#::core::uuid::Uuid} as FnPtr), ())
+
+        return %0
+    }
+}
+
+thunk {thunk#3}() -> ::core::uuid::Uuid {
+    let %0: (String) -> ::core::uuid::Uuid
+    let %1: ::core::uuid::Uuid
+    let %2: (String) -> ::core::uuid::Uuid
+
+    bb0(): {
+        goto -> bb2()
+    }
+
+    bb1(%0): {
+        %1 = apply %0.0 %0.1 "e2851dbb-7376-4959-9bca-f72cafc4448f"
+
+        return %1
+    }
+
+    bb2(): {
+        %2 = closure(({ctor#::core::uuid::Uuid} as FnPtr), ())
+
+        goto -> bb1(%2)
+    }
+}
+
+fn {ctor#::graph::types::knowledge::entity::EntityUuid}(%0: (), %1: ::core::uuid::Uuid) -> ::graph::types::knowledge::entity::EntityUuid {
+    let %2: ::graph::types::knowledge::entity::EntityUuid
+
+    bb0(): {
+        %2 = opaque(::graph::types::knowledge::entity::EntityUuid, %1)
+
+        return %2
+    }
+}
+
+thunk {thunk#4}() -> (::core::uuid::Uuid) -> ::graph::types::knowledge::entity::EntityUuid {
+    let %0: (::core::uuid::Uuid) -> ::graph::types::knowledge::entity::EntityUuid
+
+    bb0(): {
+        %0 = closure(({ctor#::graph::types::knowledge::entity::EntityUuid} as FnPtr), ())
+
+        return %0
+    }
+}
+
+thunk {thunk#5}() -> ::graph::types::knowledge::entity::EntityUuid {
+    let %0: ::core::uuid::Uuid
+    let %1: (::core::uuid::Uuid) -> ::graph::types::knowledge::entity::EntityUuid
+    let %2: ::graph::types::knowledge::entity::EntityUuid
+    let %3: (::core::uuid::Uuid) -> ::graph::types::knowledge::entity::EntityUuid
+    let %4: (String) -> ::core::uuid::Uuid
+    let %5: ::core::uuid::Uuid
+    let %6: (String) -> ::core::uuid::Uuid
+
+    bb0(): {
+        goto -> bb4()
+    }
+
+    bb1(%1): {
+        %2 = apply %1.0 %1.1 %0
+
+        return %2
+    }
+
+    bb2(): {
+        %3 = closure(({ctor#::graph::types::knowledge::entity::EntityUuid} as FnPtr), ())
+
+        goto -> bb1(%3)
+    }
+
+    bb3(%0): {
+        goto -> bb2()
+    }
+
+    bb4(): {
+        goto -> bb6()
+    }
+
+    bb5(%4): {
+        %5 = apply %4.0 %4.1 "e2851dbb-7376-4959-9bca-f72cafc4448f"
+
+        goto -> bb3(%5)
+    }
+
+    bb6(): {
+        %6 = closure(({ctor#::core::uuid::Uuid} as FnPtr), ())
+
+        goto -> bb5(%6)
+    }
+}
+
+fn {closure@7}(%0: (), %1: ::graph::types::knowledge::entity::Entity) -> Boolean {
+    let %2: ::graph::types::knowledge::entity::EntityUuid
+    let %3: Boolean
+    let %4: ::core::uuid::Uuid
+    let %5: (::core::uuid::Uuid) -> ::graph::types::knowledge::entity::EntityUuid
+    let %6: ::graph::types::knowledge::entity::EntityUuid
+    let %7: (::core::uuid::Uuid) -> ::graph::types::knowledge::entity::EntityUuid
+    let %8: (String) -> ::core::uuid::Uuid
+    let %9: ::core::uuid::Uuid
+    let %10: (String) -> ::core::uuid::Uuid
+
+    bb0(): {
+        goto -> bb2()
+    }
+
+    bb1(%2): {
+        %3 = %1.id.entity_id.entity_uuid == %2
+
+        return %3
+    }
+
+    bb2(): {
+        goto -> bb6()
+    }
+
+    bb3(%5): {
+        %6 = apply %5.0 %5.1 %4
+
+        goto -> bb1(%6)
+    }
+
+    bb4(): {
+        %7 = closure(({ctor#::graph::types::knowledge::entity::EntityUuid} as FnPtr), ())
+
+        goto -> bb3(%7)
+    }
+
+    bb5(%4): {
+        goto -> bb4()
+    }
+
+    bb6(): {
+        goto -> bb8()
+    }
+
+    bb7(%8): {
+        %9 = apply %8.0 %8.1 "e2851dbb-7376-4959-9bca-f72cafc4448f"
+
+        goto -> bb5(%9)
+    }
+
+    bb8(): {
+        %10 = closure(({ctor#::core::uuid::Uuid} as FnPtr), ())
+
+        goto -> bb7(%10)
+    }
+}
+
+*thunk {thunk#7}() -> List<::graph::types::knowledge::entity::Entity> {
+    let %0: ::graph::TimeAxis
+    let %1: List<::graph::types::knowledge::entity::Entity>
+    let %2: ()
+    let %3: ::graph::TimeAxis
+
+    bb0(): {
+        goto -> bb3()
+    }
+
+    bb1(%1): {
+        return %1
+    }
+
+    bb2(%0): {
+        %2 = ()
+
+        graph read entities(%0)
+        |> filter({closure@7}, %2)
+        |> collect -> bb1(_)
+    }
+
+    bb3(): {
+        %3 = input LOAD axis
+
+        goto -> bb2(%3)
+    }
+}

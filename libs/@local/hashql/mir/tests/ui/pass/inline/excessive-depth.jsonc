@@ -47,7 +47,7 @@
                                       "let", "f16", ["fn", {"#tuple": []}, {"#struct": {"x": "Boolean"}}, "_", ["f15", "x"]],
                                       [
                                         "let", "f17", ["fn", {"#tuple": []}, {"#struct": {"x": "Boolean"}}, "_", ["f16", "x"]],
-                                        ["f17", ["==", "vertex.draft_id", {"#literal": null}]]
+                                        ["f17", ["==", "vertex.link_data", {"#literal": null}]]
                                       ]
                                     ]
                                   ]
@@ -68,4 +68,3 @@
     ]
   ]
 ]
-//~? WARN filter has deeply nested calls

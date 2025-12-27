@@ -1,0 +1,1107 @@
+════ Initial MIR ═══════════════════════════════════════════════════════════════
+
+thunk {thunk#35}() -> ::graph::TimeAxis {
+    let %0: ::graph::TimeAxis
+
+    bb0(): {
+        %0 = input LOAD axis
+
+        return %0
+    }
+}
+
+fn {closure#56}(%0: (), %1: Boolean) -> Boolean {
+    bb0(): {
+        return %1
+    }
+}
+
+thunk f1:0() -> (Boolean) -> Boolean {
+    let %0: (Boolean) -> Boolean
+    let %1: ()
+
+    bb0(): {
+        %1 = ()
+        %0 = closure(({closure#56} as FnPtr), %1)
+
+        return %0
+    }
+}
+
+fn {closure#58}(%0: (), %1: Boolean) -> Boolean {
+    let %2: (Boolean) -> Boolean
+    let %3: Boolean
+
+    bb0(): {
+        %2 = apply (f1:0 as FnPtr)
+        %3 = apply %2.0 %2.1 %1
+
+        return %3
+    }
+}
+
+thunk f2:0() -> (Boolean) -> Boolean {
+    let %0: (Boolean) -> Boolean
+    let %1: ()
+
+    bb0(): {
+        %1 = ()
+        %0 = closure(({closure#58} as FnPtr), %1)
+
+        return %0
+    }
+}
+
+fn {closure#60}(%0: (), %1: Boolean) -> Boolean {
+    let %2: (Boolean) -> Boolean
+    let %3: Boolean
+
+    bb0(): {
+        %2 = apply (f2:0 as FnPtr)
+        %3 = apply %2.0 %2.1 %1
+
+        return %3
+    }
+}
+
+thunk f3:0() -> (Boolean) -> Boolean {
+    let %0: (Boolean) -> Boolean
+    let %1: ()
+
+    bb0(): {
+        %1 = ()
+        %0 = closure(({closure#60} as FnPtr), %1)
+
+        return %0
+    }
+}
+
+fn {closure#62}(%0: (), %1: Boolean) -> Boolean {
+    let %2: (Boolean) -> Boolean
+    let %3: Boolean
+
+    bb0(): {
+        %2 = apply (f3:0 as FnPtr)
+        %3 = apply %2.0 %2.1 %1
+
+        return %3
+    }
+}
+
+thunk f4:0() -> (Boolean) -> Boolean {
+    let %0: (Boolean) -> Boolean
+    let %1: ()
+
+    bb0(): {
+        %1 = ()
+        %0 = closure(({closure#62} as FnPtr), %1)
+
+        return %0
+    }
+}
+
+fn {closure#64}(%0: (), %1: Boolean) -> Boolean {
+    let %2: (Boolean) -> Boolean
+    let %3: Boolean
+
+    bb0(): {
+        %2 = apply (f4:0 as FnPtr)
+        %3 = apply %2.0 %2.1 %1
+
+        return %3
+    }
+}
+
+thunk f5:0() -> (Boolean) -> Boolean {
+    let %0: (Boolean) -> Boolean
+    let %1: ()
+
+    bb0(): {
+        %1 = ()
+        %0 = closure(({closure#64} as FnPtr), %1)
+
+        return %0
+    }
+}
+
+fn {closure#66}(%0: (), %1: Boolean) -> Boolean {
+    let %2: (Boolean) -> Boolean
+    let %3: Boolean
+
+    bb0(): {
+        %2 = apply (f5:0 as FnPtr)
+        %3 = apply %2.0 %2.1 %1
+
+        return %3
+    }
+}
+
+thunk f6:0() -> (Boolean) -> Boolean {
+    let %0: (Boolean) -> Boolean
+    let %1: ()
+
+    bb0(): {
+        %1 = ()
+        %0 = closure(({closure#66} as FnPtr), %1)
+
+        return %0
+    }
+}
+
+fn {closure#68}(%0: (), %1: Boolean) -> Boolean {
+    let %2: (Boolean) -> Boolean
+    let %3: Boolean
+
+    bb0(): {
+        %2 = apply (f6:0 as FnPtr)
+        %3 = apply %2.0 %2.1 %1
+
+        return %3
+    }
+}
+
+thunk f7:0() -> (Boolean) -> Boolean {
+    let %0: (Boolean) -> Boolean
+    let %1: ()
+
+    bb0(): {
+        %1 = ()
+        %0 = closure(({closure#68} as FnPtr), %1)
+
+        return %0
+    }
+}
+
+fn {closure#70}(%0: (), %1: Boolean) -> Boolean {
+    let %2: (Boolean) -> Boolean
+    let %3: Boolean
+
+    bb0(): {
+        %2 = apply (f7:0 as FnPtr)
+        %3 = apply %2.0 %2.1 %1
+
+        return %3
+    }
+}
+
+thunk f8:0() -> (Boolean) -> Boolean {
+    let %0: (Boolean) -> Boolean
+    let %1: ()
+
+    bb0(): {
+        %1 = ()
+        %0 = closure(({closure#70} as FnPtr), %1)
+
+        return %0
+    }
+}
+
+fn {closure#72}(%0: (), %1: Boolean) -> Boolean {
+    let %2: (Boolean) -> Boolean
+    let %3: Boolean
+
+    bb0(): {
+        %2 = apply (f8:0 as FnPtr)
+        %3 = apply %2.0 %2.1 %1
+
+        return %3
+    }
+}
+
+thunk f9:0() -> (Boolean) -> Boolean {
+    let %0: (Boolean) -> Boolean
+    let %1: ()
+
+    bb0(): {
+        %1 = ()
+        %0 = closure(({closure#72} as FnPtr), %1)
+
+        return %0
+    }
+}
+
+fn {closure#74}(%0: (), %1: Boolean) -> Boolean {
+    let %2: (Boolean) -> Boolean
+    let %3: Boolean
+
+    bb0(): {
+        %2 = apply (f9:0 as FnPtr)
+        %3 = apply %2.0 %2.1 %1
+
+        return %3
+    }
+}
+
+thunk f10:0() -> (Boolean) -> Boolean {
+    let %0: (Boolean) -> Boolean
+    let %1: ()
+
+    bb0(): {
+        %1 = ()
+        %0 = closure(({closure#74} as FnPtr), %1)
+
+        return %0
+    }
+}
+
+fn {closure#76}(%0: (), %1: Boolean) -> Boolean {
+    let %2: (Boolean) -> Boolean
+    let %3: Boolean
+
+    bb0(): {
+        %2 = apply (f10:0 as FnPtr)
+        %3 = apply %2.0 %2.1 %1
+
+        return %3
+    }
+}
+
+thunk f11:0() -> (Boolean) -> Boolean {
+    let %0: (Boolean) -> Boolean
+    let %1: ()
+
+    bb0(): {
+        %1 = ()
+        %0 = closure(({closure#76} as FnPtr), %1)
+
+        return %0
+    }
+}
+
+fn {closure#78}(%0: (), %1: Boolean) -> Boolean {
+    let %2: (Boolean) -> Boolean
+    let %3: Boolean
+
+    bb0(): {
+        %2 = apply (f11:0 as FnPtr)
+        %3 = apply %2.0 %2.1 %1
+
+        return %3
+    }
+}
+
+thunk f12:0() -> (Boolean) -> Boolean {
+    let %0: (Boolean) -> Boolean
+    let %1: ()
+
+    bb0(): {
+        %1 = ()
+        %0 = closure(({closure#78} as FnPtr), %1)
+
+        return %0
+    }
+}
+
+fn {closure#80}(%0: (), %1: Boolean) -> Boolean {
+    let %2: (Boolean) -> Boolean
+    let %3: Boolean
+
+    bb0(): {
+        %2 = apply (f12:0 as FnPtr)
+        %3 = apply %2.0 %2.1 %1
+
+        return %3
+    }
+}
+
+thunk f13:0() -> (Boolean) -> Boolean {
+    let %0: (Boolean) -> Boolean
+    let %1: ()
+
+    bb0(): {
+        %1 = ()
+        %0 = closure(({closure#80} as FnPtr), %1)
+
+        return %0
+    }
+}
+
+fn {closure#82}(%0: (), %1: Boolean) -> Boolean {
+    let %2: (Boolean) -> Boolean
+    let %3: Boolean
+
+    bb0(): {
+        %2 = apply (f13:0 as FnPtr)
+        %3 = apply %2.0 %2.1 %1
+
+        return %3
+    }
+}
+
+thunk f14:0() -> (Boolean) -> Boolean {
+    let %0: (Boolean) -> Boolean
+    let %1: ()
+
+    bb0(): {
+        %1 = ()
+        %0 = closure(({closure#82} as FnPtr), %1)
+
+        return %0
+    }
+}
+
+fn {closure#84}(%0: (), %1: Boolean) -> Boolean {
+    let %2: (Boolean) -> Boolean
+    let %3: Boolean
+
+    bb0(): {
+        %2 = apply (f14:0 as FnPtr)
+        %3 = apply %2.0 %2.1 %1
+
+        return %3
+    }
+}
+
+thunk f15:0() -> (Boolean) -> Boolean {
+    let %0: (Boolean) -> Boolean
+    let %1: ()
+
+    bb0(): {
+        %1 = ()
+        %0 = closure(({closure#84} as FnPtr), %1)
+
+        return %0
+    }
+}
+
+fn {closure#86}(%0: (), %1: Boolean) -> Boolean {
+    let %2: (Boolean) -> Boolean
+    let %3: Boolean
+
+    bb0(): {
+        %2 = apply (f15:0 as FnPtr)
+        %3 = apply %2.0 %2.1 %1
+
+        return %3
+    }
+}
+
+thunk f16:0() -> (Boolean) -> Boolean {
+    let %0: (Boolean) -> Boolean
+    let %1: ()
+
+    bb0(): {
+        %1 = ()
+        %0 = closure(({closure#86} as FnPtr), %1)
+
+        return %0
+    }
+}
+
+fn {closure#88}(%0: (), %1: Boolean) -> Boolean {
+    let %2: (Boolean) -> Boolean
+    let %3: Boolean
+
+    bb0(): {
+        %2 = apply (f16:0 as FnPtr)
+        %3 = apply %2.0 %2.1 %1
+
+        return %3
+    }
+}
+
+thunk f17:0() -> (Boolean) -> Boolean {
+    let %0: (Boolean) -> Boolean
+    let %1: ()
+
+    bb0(): {
+        %1 = ()
+        %0 = closure(({closure#88} as FnPtr), %1)
+
+        return %0
+    }
+}
+
+fn {closure@7}(%0: (), %1: ::graph::types::knowledge::entity::Entity) -> Boolean {
+    let %2: Boolean
+    let %3: (Boolean) -> Boolean
+    let %4: Boolean
+
+    bb0(): {
+        %2 = %1.link_data == null
+        %3 = apply (f17:0 as FnPtr)
+        %4 = apply %3.0 %3.1 %2
+
+        return %4
+    }
+}
+
+*thunk {thunk#54}() -> List<::graph::types::knowledge::entity::Entity> {
+    let %0: ::graph::TimeAxis
+    let %1: List<::graph::types::knowledge::entity::Entity>
+    let %2: ()
+
+    bb0(): {
+        %0 = apply ({thunk#35} as FnPtr)
+        %2 = ()
+
+        graph read entities(%0)
+        |> filter({closure@7}, %2)
+        |> collect -> bb1(_)
+    }
+
+    bb1(%1): {
+        return %1
+    }
+}
+════ MIR after Inlining ════════════════════════════════════════════════════════
+
+thunk {thunk#35}() -> ::graph::TimeAxis {
+    let %0: ::graph::TimeAxis
+
+    bb0(): {
+        %0 = input LOAD axis
+
+        return %0
+    }
+}
+
+fn {closure#56}(%0: (), %1: Boolean) -> Boolean {
+    bb0(): {
+        return %1
+    }
+}
+
+thunk f1:0() -> (Boolean) -> Boolean {
+    let %0: (Boolean) -> Boolean
+    let %1: ()
+
+    bb0(): {
+        %1 = ()
+        %0 = closure(({closure#56} as FnPtr), %1)
+
+        return %0
+    }
+}
+
+fn {closure#58}(%0: (), %1: Boolean) -> Boolean {
+    let %2: (Boolean) -> Boolean
+    let %3: Boolean
+    let %4: (Boolean) -> Boolean
+    let %5: ()
+
+    bb0(): {
+        goto -> bb2()
+    }
+
+    bb1(%2): {
+        %3 = apply %2.0 %2.1 %1
+
+        return %3
+    }
+
+    bb2(): {
+        %5 = ()
+        %4 = closure(({closure#56} as FnPtr), %5)
+
+        goto -> bb1(%4)
+    }
+}
+
+thunk f2:0() -> (Boolean) -> Boolean {
+    let %0: (Boolean) -> Boolean
+    let %1: ()
+
+    bb0(): {
+        %1 = ()
+        %0 = closure(({closure#58} as FnPtr), %1)
+
+        return %0
+    }
+}
+
+fn {closure#60}(%0: (), %1: Boolean) -> Boolean {
+    let %2: (Boolean) -> Boolean
+    let %3: Boolean
+    let %4: (Boolean) -> Boolean
+    let %5: ()
+
+    bb0(): {
+        goto -> bb2()
+    }
+
+    bb1(%2): {
+        %3 = apply %2.0 %2.1 %1
+
+        return %3
+    }
+
+    bb2(): {
+        %5 = ()
+        %4 = closure(({closure#58} as FnPtr), %5)
+
+        goto -> bb1(%4)
+    }
+}
+
+thunk f3:0() -> (Boolean) -> Boolean {
+    let %0: (Boolean) -> Boolean
+    let %1: ()
+
+    bb0(): {
+        %1 = ()
+        %0 = closure(({closure#60} as FnPtr), %1)
+
+        return %0
+    }
+}
+
+fn {closure#62}(%0: (), %1: Boolean) -> Boolean {
+    let %2: (Boolean) -> Boolean
+    let %3: Boolean
+    let %4: (Boolean) -> Boolean
+    let %5: ()
+
+    bb0(): {
+        goto -> bb2()
+    }
+
+    bb1(%2): {
+        %3 = apply %2.0 %2.1 %1
+
+        return %3
+    }
+
+    bb2(): {
+        %5 = ()
+        %4 = closure(({closure#60} as FnPtr), %5)
+
+        goto -> bb1(%4)
+    }
+}
+
+thunk f4:0() -> (Boolean) -> Boolean {
+    let %0: (Boolean) -> Boolean
+    let %1: ()
+
+    bb0(): {
+        %1 = ()
+        %0 = closure(({closure#62} as FnPtr), %1)
+
+        return %0
+    }
+}
+
+fn {closure#64}(%0: (), %1: Boolean) -> Boolean {
+    let %2: (Boolean) -> Boolean
+    let %3: Boolean
+    let %4: (Boolean) -> Boolean
+    let %5: ()
+
+    bb0(): {
+        goto -> bb2()
+    }
+
+    bb1(%2): {
+        %3 = apply %2.0 %2.1 %1
+
+        return %3
+    }
+
+    bb2(): {
+        %5 = ()
+        %4 = closure(({closure#62} as FnPtr), %5)
+
+        goto -> bb1(%4)
+    }
+}
+
+thunk f5:0() -> (Boolean) -> Boolean {
+    let %0: (Boolean) -> Boolean
+    let %1: ()
+
+    bb0(): {
+        %1 = ()
+        %0 = closure(({closure#64} as FnPtr), %1)
+
+        return %0
+    }
+}
+
+fn {closure#66}(%0: (), %1: Boolean) -> Boolean {
+    let %2: (Boolean) -> Boolean
+    let %3: Boolean
+    let %4: (Boolean) -> Boolean
+    let %5: ()
+
+    bb0(): {
+        goto -> bb2()
+    }
+
+    bb1(%2): {
+        %3 = apply %2.0 %2.1 %1
+
+        return %3
+    }
+
+    bb2(): {
+        %5 = ()
+        %4 = closure(({closure#64} as FnPtr), %5)
+
+        goto -> bb1(%4)
+    }
+}
+
+thunk f6:0() -> (Boolean) -> Boolean {
+    let %0: (Boolean) -> Boolean
+    let %1: ()
+
+    bb0(): {
+        %1 = ()
+        %0 = closure(({closure#66} as FnPtr), %1)
+
+        return %0
+    }
+}
+
+fn {closure#68}(%0: (), %1: Boolean) -> Boolean {
+    let %2: (Boolean) -> Boolean
+    let %3: Boolean
+    let %4: (Boolean) -> Boolean
+    let %5: ()
+
+    bb0(): {
+        goto -> bb2()
+    }
+
+    bb1(%2): {
+        %3 = apply %2.0 %2.1 %1
+
+        return %3
+    }
+
+    bb2(): {
+        %5 = ()
+        %4 = closure(({closure#66} as FnPtr), %5)
+
+        goto -> bb1(%4)
+    }
+}
+
+thunk f7:0() -> (Boolean) -> Boolean {
+    let %0: (Boolean) -> Boolean
+    let %1: ()
+
+    bb0(): {
+        %1 = ()
+        %0 = closure(({closure#68} as FnPtr), %1)
+
+        return %0
+    }
+}
+
+fn {closure#70}(%0: (), %1: Boolean) -> Boolean {
+    let %2: (Boolean) -> Boolean
+    let %3: Boolean
+    let %4: (Boolean) -> Boolean
+    let %5: ()
+
+    bb0(): {
+        goto -> bb2()
+    }
+
+    bb1(%2): {
+        %3 = apply %2.0 %2.1 %1
+
+        return %3
+    }
+
+    bb2(): {
+        %5 = ()
+        %4 = closure(({closure#68} as FnPtr), %5)
+
+        goto -> bb1(%4)
+    }
+}
+
+thunk f8:0() -> (Boolean) -> Boolean {
+    let %0: (Boolean) -> Boolean
+    let %1: ()
+
+    bb0(): {
+        %1 = ()
+        %0 = closure(({closure#70} as FnPtr), %1)
+
+        return %0
+    }
+}
+
+fn {closure#72}(%0: (), %1: Boolean) -> Boolean {
+    let %2: (Boolean) -> Boolean
+    let %3: Boolean
+    let %4: (Boolean) -> Boolean
+    let %5: ()
+
+    bb0(): {
+        goto -> bb2()
+    }
+
+    bb1(%2): {
+        %3 = apply %2.0 %2.1 %1
+
+        return %3
+    }
+
+    bb2(): {
+        %5 = ()
+        %4 = closure(({closure#70} as FnPtr), %5)
+
+        goto -> bb1(%4)
+    }
+}
+
+thunk f9:0() -> (Boolean) -> Boolean {
+    let %0: (Boolean) -> Boolean
+    let %1: ()
+
+    bb0(): {
+        %1 = ()
+        %0 = closure(({closure#72} as FnPtr), %1)
+
+        return %0
+    }
+}
+
+fn {closure#74}(%0: (), %1: Boolean) -> Boolean {
+    let %2: (Boolean) -> Boolean
+    let %3: Boolean
+    let %4: (Boolean) -> Boolean
+    let %5: ()
+
+    bb0(): {
+        goto -> bb2()
+    }
+
+    bb1(%2): {
+        %3 = apply %2.0 %2.1 %1
+
+        return %3
+    }
+
+    bb2(): {
+        %5 = ()
+        %4 = closure(({closure#72} as FnPtr), %5)
+
+        goto -> bb1(%4)
+    }
+}
+
+thunk f10:0() -> (Boolean) -> Boolean {
+    let %0: (Boolean) -> Boolean
+    let %1: ()
+
+    bb0(): {
+        %1 = ()
+        %0 = closure(({closure#74} as FnPtr), %1)
+
+        return %0
+    }
+}
+
+fn {closure#76}(%0: (), %1: Boolean) -> Boolean {
+    let %2: (Boolean) -> Boolean
+    let %3: Boolean
+    let %4: (Boolean) -> Boolean
+    let %5: ()
+
+    bb0(): {
+        goto -> bb2()
+    }
+
+    bb1(%2): {
+        %3 = apply %2.0 %2.1 %1
+
+        return %3
+    }
+
+    bb2(): {
+        %5 = ()
+        %4 = closure(({closure#74} as FnPtr), %5)
+
+        goto -> bb1(%4)
+    }
+}
+
+thunk f11:0() -> (Boolean) -> Boolean {
+    let %0: (Boolean) -> Boolean
+    let %1: ()
+
+    bb0(): {
+        %1 = ()
+        %0 = closure(({closure#76} as FnPtr), %1)
+
+        return %0
+    }
+}
+
+fn {closure#78}(%0: (), %1: Boolean) -> Boolean {
+    let %2: (Boolean) -> Boolean
+    let %3: Boolean
+    let %4: (Boolean) -> Boolean
+    let %5: ()
+
+    bb0(): {
+        goto -> bb2()
+    }
+
+    bb1(%2): {
+        %3 = apply %2.0 %2.1 %1
+
+        return %3
+    }
+
+    bb2(): {
+        %5 = ()
+        %4 = closure(({closure#76} as FnPtr), %5)
+
+        goto -> bb1(%4)
+    }
+}
+
+thunk f12:0() -> (Boolean) -> Boolean {
+    let %0: (Boolean) -> Boolean
+    let %1: ()
+
+    bb0(): {
+        %1 = ()
+        %0 = closure(({closure#78} as FnPtr), %1)
+
+        return %0
+    }
+}
+
+fn {closure#80}(%0: (), %1: Boolean) -> Boolean {
+    let %2: (Boolean) -> Boolean
+    let %3: Boolean
+    let %4: (Boolean) -> Boolean
+    let %5: ()
+
+    bb0(): {
+        goto -> bb2()
+    }
+
+    bb1(%2): {
+        %3 = apply %2.0 %2.1 %1
+
+        return %3
+    }
+
+    bb2(): {
+        %5 = ()
+        %4 = closure(({closure#78} as FnPtr), %5)
+
+        goto -> bb1(%4)
+    }
+}
+
+thunk f13:0() -> (Boolean) -> Boolean {
+    let %0: (Boolean) -> Boolean
+    let %1: ()
+
+    bb0(): {
+        %1 = ()
+        %0 = closure(({closure#80} as FnPtr), %1)
+
+        return %0
+    }
+}
+
+fn {closure#82}(%0: (), %1: Boolean) -> Boolean {
+    let %2: (Boolean) -> Boolean
+    let %3: Boolean
+    let %4: (Boolean) -> Boolean
+    let %5: ()
+
+    bb0(): {
+        goto -> bb2()
+    }
+
+    bb1(%2): {
+        %3 = apply %2.0 %2.1 %1
+
+        return %3
+    }
+
+    bb2(): {
+        %5 = ()
+        %4 = closure(({closure#80} as FnPtr), %5)
+
+        goto -> bb1(%4)
+    }
+}
+
+thunk f14:0() -> (Boolean) -> Boolean {
+    let %0: (Boolean) -> Boolean
+    let %1: ()
+
+    bb0(): {
+        %1 = ()
+        %0 = closure(({closure#82} as FnPtr), %1)
+
+        return %0
+    }
+}
+
+fn {closure#84}(%0: (), %1: Boolean) -> Boolean {
+    let %2: (Boolean) -> Boolean
+    let %3: Boolean
+    let %4: (Boolean) -> Boolean
+    let %5: ()
+
+    bb0(): {
+        goto -> bb2()
+    }
+
+    bb1(%2): {
+        %3 = apply %2.0 %2.1 %1
+
+        return %3
+    }
+
+    bb2(): {
+        %5 = ()
+        %4 = closure(({closure#82} as FnPtr), %5)
+
+        goto -> bb1(%4)
+    }
+}
+
+thunk f15:0() -> (Boolean) -> Boolean {
+    let %0: (Boolean) -> Boolean
+    let %1: ()
+
+    bb0(): {
+        %1 = ()
+        %0 = closure(({closure#84} as FnPtr), %1)
+
+        return %0
+    }
+}
+
+fn {closure#86}(%0: (), %1: Boolean) -> Boolean {
+    let %2: (Boolean) -> Boolean
+    let %3: Boolean
+    let %4: (Boolean) -> Boolean
+    let %5: ()
+
+    bb0(): {
+        goto -> bb2()
+    }
+
+    bb1(%2): {
+        %3 = apply %2.0 %2.1 %1
+
+        return %3
+    }
+
+    bb2(): {
+        %5 = ()
+        %4 = closure(({closure#84} as FnPtr), %5)
+
+        goto -> bb1(%4)
+    }
+}
+
+thunk f16:0() -> (Boolean) -> Boolean {
+    let %0: (Boolean) -> Boolean
+    let %1: ()
+
+    bb0(): {
+        %1 = ()
+        %0 = closure(({closure#86} as FnPtr), %1)
+
+        return %0
+    }
+}
+
+fn {closure#88}(%0: (), %1: Boolean) -> Boolean {
+    let %2: (Boolean) -> Boolean
+    let %3: Boolean
+    let %4: (Boolean) -> Boolean
+    let %5: ()
+
+    bb0(): {
+        goto -> bb2()
+    }
+
+    bb1(%2): {
+        %3 = apply %2.0 %2.1 %1
+
+        return %3
+    }
+
+    bb2(): {
+        %5 = ()
+        %4 = closure(({closure#86} as FnPtr), %5)
+
+        goto -> bb1(%4)
+    }
+}
+
+thunk f17:0() -> (Boolean) -> Boolean {
+    let %0: (Boolean) -> Boolean
+    let %1: ()
+
+    bb0(): {
+        %1 = ()
+        %0 = closure(({closure#88} as FnPtr), %1)
+
+        return %0
+    }
+}
+
+fn {closure@7}(%0: (), %1: ::graph::types::knowledge::entity::Entity) -> Boolean {
+    let %2: Boolean
+    let %3: (Boolean) -> Boolean
+    let %4: Boolean
+    let %5: (Boolean) -> Boolean
+    let %6: ()
+
+    bb0(): {
+        %2 = %1.link_data == null
+
+        goto -> bb2()
+    }
+
+    bb1(%3): {
+        %4 = apply %3.0 %3.1 %2
+
+        return %4
+    }
+
+    bb2(): {
+        %6 = ()
+        %5 = closure(({closure#88} as FnPtr), %6)
+
+        goto -> bb1(%5)
+    }
+}
+
+*thunk {thunk#54}() -> List<::graph::types::knowledge::entity::Entity> {
+    let %0: ::graph::TimeAxis
+    let %1: List<::graph::types::knowledge::entity::Entity>
+    let %2: ()
+    let %3: ::graph::TimeAxis
+
+    bb0(): {
+        goto -> bb3()
+    }
+
+    bb1(%1): {
+        return %1
+    }
+
+    bb2(%0): {
+        %2 = ()
+
+        graph read entities(%0)
+        |> filter({closure@7}, %2)
+        |> collect -> bb1(_)
+    }
+
+    bb3(): {
+        %3 = input LOAD axis
+
+        goto -> bb2(%3)
+    }
+}

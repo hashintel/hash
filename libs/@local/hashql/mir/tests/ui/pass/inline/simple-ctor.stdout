@@ -1,0 +1,76 @@
+════ Initial MIR ═══════════════════════════════════════════════════════════════
+
+fn {ctor#::core::option::Some}(%0: (), %1: Integer) -> ::core::option::Some {
+    let %2: ::core::option::Some
+
+    bb0(): {
+        %2 = opaque(::core::option::Some, %1)
+
+        return %2
+    }
+}
+
+thunk {thunk#0}() -> (Integer) -> ::core::option::Some {
+    let %0: (Integer) -> ::core::option::Some
+
+    bb0(): {
+        %0 = closure(({ctor#::core::option::Some} as FnPtr), ())
+
+        return %0
+    }
+}
+
+*thunk {thunk#1}() -> ::core::option::Some {
+    let %0: (Integer) -> ::core::option::Some
+    let %1: ::core::option::Some
+
+    bb0(): {
+        %0 = apply ({thunk#0} as FnPtr)
+        %1 = apply %0.0 %0.1 42
+
+        return %1
+    }
+}
+════ MIR after Inlining ════════════════════════════════════════════════════════
+
+fn {ctor#::core::option::Some}(%0: (), %1: Integer) -> ::core::option::Some {
+    let %2: ::core::option::Some
+
+    bb0(): {
+        %2 = opaque(::core::option::Some, %1)
+
+        return %2
+    }
+}
+
+thunk {thunk#0}() -> (Integer) -> ::core::option::Some {
+    let %0: (Integer) -> ::core::option::Some
+
+    bb0(): {
+        %0 = closure(({ctor#::core::option::Some} as FnPtr), ())
+
+        return %0
+    }
+}
+
+*thunk {thunk#1}() -> ::core::option::Some {
+    let %0: (Integer) -> ::core::option::Some
+    let %1: ::core::option::Some
+    let %2: (Integer) -> ::core::option::Some
+
+    bb0(): {
+        goto -> bb2()
+    }
+
+    bb1(%0): {
+        %1 = apply %0.0 %0.1 42
+
+        return %1
+    }
+
+    bb2(): {
+        %2 = closure(({ctor#::core::option::Some} as FnPtr), ())
+
+        goto -> bb1(%2)
+    }
+}

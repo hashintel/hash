@@ -1,0 +1,82 @@
+════ Initial MIR ═══════════════════════════════════════════════════════════════
+
+fn {closure#4}(%0: (), %1: Integer) -> Boolean {
+    let %2: Boolean
+
+    bb0(): {
+        %2 = %1 == %1
+
+        return %2
+    }
+}
+
+thunk double:0() -> (Integer) -> Boolean {
+    let %0: (Integer) -> Boolean
+    let %1: ()
+
+    bb0(): {
+        %1 = ()
+        %0 = closure(({closure#4} as FnPtr), %1)
+
+        return %0
+    }
+}
+
+*thunk {thunk#3}() -> Boolean {
+    let %0: (Integer) -> Boolean
+    let %1: Boolean
+
+    bb0(): {
+        %0 = apply (double:0 as FnPtr)
+        %1 = apply %0.0 %0.1 21
+
+        return %1
+    }
+}
+════ MIR after Inlining ════════════════════════════════════════════════════════
+
+fn {closure#4}(%0: (), %1: Integer) -> Boolean {
+    let %2: Boolean
+
+    bb0(): {
+        %2 = 1
+
+        return %2
+    }
+}
+
+thunk double:0() -> (Integer) -> Boolean {
+    let %0: (Integer) -> Boolean
+    let %1: ()
+
+    bb0(): {
+        %1 = ()
+        %0 = closure(({closure#4} as FnPtr), %1)
+
+        return %0
+    }
+}
+
+*thunk {thunk#3}() -> Boolean {
+    let %0: (Integer) -> Boolean
+    let %1: Boolean
+    let %2: (Integer) -> Boolean
+    let %3: ()
+
+    bb0(): {
+        goto -> bb2()
+    }
+
+    bb1(%0): {
+        %1 = apply %0.0 %0.1 21
+
+        return %1
+    }
+
+    bb2(): {
+        %3 = ()
+        %2 = closure(({closure#4} as FnPtr), %3)
+
+        goto -> bb1(%2)
+    }
+}
