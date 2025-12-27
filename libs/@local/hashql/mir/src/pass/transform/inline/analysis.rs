@@ -19,28 +19,27 @@ use crate::{
         rvalue::RValue,
         terminator::{Terminator, TerminatorKind},
     },
-    context::MirContext,
     def::{DefIdSlice, DefIdVec},
-    pass::{AnalysisPass, analysis::CallGraph},
+    pass::analysis::CallGraph,
     visit::{self, Visitor},
 };
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-pub(super) enum Inline {
+pub(super) enum InlineDirective {
     Always,
-    Depends,
+    Heuristic,
     Never,
 }
 
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub(super) struct BodyProperties {
-    pub inline: Inline,
+    pub directive: InlineDirective,
     pub cost: f32,
 
     pub is_leaf: bool, // has no outgoing edges, except for intrinsics
 }
 
-pub(super) type LoopVec<A> = DefIdVec<Option<DenseBitSet<BasicBlockId>>, A>;
+pub(super) type BasicBlockLoopVec<A> = DefIdVec<Option<DenseBitSet<BasicBlockId>>, A>;
 
 struct MemberCount;
 
@@ -59,7 +58,7 @@ impl<N, S> Metadata<N, S> for MemberCount {
 }
 
 #[derive(Debug, Copy, Clone, PartialEq)]
-pub struct CostEstimationConfig {
+pub struct InlineCostEstimationConfig {
     pub rvalue_load: f32,
     pub rvalue_binary: f32,
     pub rvalue_unary: f32,
@@ -77,7 +76,7 @@ pub struct CostEstimationConfig {
     pub basic_block: f32,
 }
 
-impl CostEstimationConfig {
+impl InlineCostEstimationConfig {
     pub const DEFAULT: Self = Self {
         rvalue_load: 1.0,
         rvalue_binary: 2.0,
@@ -99,23 +98,23 @@ impl CostEstimationConfig {
 
 pub(crate) struct CostEstimationResidual<A: Allocator> {
     pub properties: DefIdVec<BodyProperties, A>,
-    pub loops: LoopVec<A>,
+    pub loops: BasicBlockLoopVec<A>,
 }
 
-pub(crate) struct CostEstimationAnalysis<'ctx, 'heap, A: Allocator> {
+pub(crate) struct BodyAnalysis<'ctx, 'heap, A: Allocator> {
     alloc: A,
-    config: CostEstimationConfig,
+    config: InlineCostEstimationConfig,
 
     properties: DefIdVec<BodyProperties, A>,
-    loops: LoopVec<A>,
+    loops: BasicBlockLoopVec<A>,
     graph: &'ctx CallGraph<'heap, A>,
 }
 
-impl<'ctx, 'heap, A: Allocator> CostEstimationAnalysis<'ctx, 'heap, A> {
+impl<'ctx, 'heap, A: Allocator> BodyAnalysis<'ctx, 'heap, A> {
     pub(crate) fn new(
         graph: &'ctx CallGraph<'heap, A>,
         bodies: &'ctx DefIdSlice<Body<'heap>>,
-        config: CostEstimationConfig,
+        config: InlineCostEstimationConfig,
 
         alloc: A,
     ) -> Self
@@ -124,7 +123,7 @@ impl<'ctx, 'heap, A: Allocator> CostEstimationAnalysis<'ctx, 'heap, A> {
     {
         let properties = DefIdVec::from_domain_in(
             BodyProperties {
-                inline: Inline::Depends,
+                directive: InlineDirective::Heuristic,
                 cost: 0.0,
                 is_leaf: true,
             },
@@ -149,11 +148,11 @@ impl<'ctx, 'heap, A: Allocator> CostEstimationAnalysis<'ctx, 'heap, A> {
         }
     }
 
-    pub(crate) fn analyze(&mut self, body: &Body<'heap>) {
+    pub(crate) fn run(&mut self, body: &Body<'heap>) {
         let inline = match body.source {
-            Source::Ctor(_) => Inline::Always,
-            Source::Closure(_, _) | Source::Thunk(_, _) => Inline::Depends,
-            Source::Intrinsic(_) => Inline::Never,
+            Source::Ctor(_) => InlineDirective::Always,
+            Source::Closure(_, _) | Source::Thunk(_, _) => InlineDirective::Heuristic,
+            Source::Intrinsic(_) => InlineDirective::Never,
         };
 
         let tarjan: Tarjan<_, _, SccId, _, _> =
@@ -180,7 +179,7 @@ impl<'ctx, 'heap, A: Allocator> CostEstimationAnalysis<'ctx, 'heap, A> {
         visitor.visit_body(body);
 
         self.properties[body.id] = BodyProperties {
-            inline,
+            directive: inline,
             cost: visitor.total,
             is_leaf: self.graph.is_leaf(body.id),
         };
@@ -191,14 +190,8 @@ impl<'ctx, 'heap, A: Allocator> CostEstimationAnalysis<'ctx, 'heap, A> {
     }
 }
 
-impl<'env, 'heap, A: Allocator> AnalysisPass<'env, 'heap> for CostEstimationAnalysis<'_, 'heap, A> {
-    fn run(&mut self, _: &mut MirContext<'env, 'heap>, body: &Body<'heap>) {
-        self.analyze(body);
-    }
-}
-
 struct CostEstimationVisitor {
-    config: CostEstimationConfig,
+    config: InlineCostEstimationConfig,
     total: f32,
 }
 
