@@ -71,7 +71,7 @@ impl Ord for Candidate {
     fn cmp(&self, other: &Self) -> cmp::Ordering {
         let Self { score, callsite: _ } = self;
 
-        score.total_cmp(&other.score).reverse()
+        score.total_cmp(&other.score).reverse() // Higher scores first (max-heap).
     }
 }
 
@@ -115,8 +115,9 @@ struct InlineState<'env, 'heap, A: Allocator> {
 
     graph: CallGraph<'heap, A>,
 
-    filters: DenseBitSet<DefId>,
-    inlined: SparseBitMatrix<DefId, SccId, A>,
+    filters: DenseBitSet<DefId>, // Bodies requiring aggressive inlining.
+    inlined: SparseBitMatrix<DefId, SccId, A>, /* Tracks which SCCs have been inlined into each
+                                  * body. */
 
     properties: DefIdVec<BodyProperties, A>,
     loops: LoopVec<A>,
@@ -132,8 +133,7 @@ impl<'heap, A: Allocator> InlineState<'_, 'heap, A> {
             .filter(|callsite| self.components.scc(callsite.target) != component)
             .collect_into(&mut mem.callsites);
 
-        // To be able to detect cycles in the aggressive inlining phase, we must record all the
-        // inlined functions components for the current body.
+        // Record inlined SCCs to prevent cycles during aggressive inlining.
         self.inlined.insert(body, component);
         for callsite in &mem.callsites {
             self.inlined
@@ -159,21 +159,18 @@ impl<'heap, A: Allocator> InlineState<'_, 'heap, A> {
 
         for callsite in self.graph.apply_callsites(body) {
             if self.components.scc(callsite.target) == component {
-                // We cannot inline calls to the same SCC, aka functions that are inside of a
-                // recursive chain.
+                // Cannot inline recursive calls (same SCC).
                 continue;
             }
 
             let score = scorer.score(callsite);
             if score.is_sign_negative() {
-                // The cost is negative, which means that the call site is not a candidate for
-                // inlining.
+                // Negative score means inlining is not beneficial.
                 continue;
             }
 
             if score.is_infinite() {
-                // The cost infinite, which means that the call site is *always* inlined, without
-                // contributing to the overall cost of the caller.
+                // Infinite score means always inline without contributing to budget.
                 targets.push(callsite);
                 continue;
             }
@@ -206,27 +203,33 @@ impl<'heap, A: Allocator> InlineState<'_, 'heap, A> {
         let Ok([source, target]) = bodies.get_disjoint_mut([caller, target]) else {
             unreachable!("`inlinable_callsites` should have filtered out self-calls")
         };
-        let target = &*target; // We take an explicit `&` here, downgrading the reference, to make sure that we don't modify the target body.
+        let target = &*target; // Downgrade to shared ref to prevent accidental modification.
 
         let bb_offset = source.basic_blocks.len();
-        let local_offset = source.local_decls.len();
 
-        // We now need to rewire the basic block, we do this by first assigning the arguments,
-        // assigning their value, and then splitting the block.
         let block = &mut source.basic_blocks.as_mut()[location.block];
 
-        debug_assert!(target.basic_blocks[BasicBlockId::START].params.is_empty());
-        // Must always be empty, otherwise we wouldn't have a valid function entrypoint.
+        debug_assert!(
+            target.basic_blocks[BasicBlockId::START].params.is_empty(),
+            "function entry block must have no params"
+        );
         let terminator = mem::replace(
             &mut block.terminator,
             Terminator {
                 span: SpanId::SYNTHETIC,
                 kind: TerminatorKind::Goto(Goto {
-                    target: Target::block(BasicBlockId::START.plus(bb_offset), self.interner),
+                    // +1 because patch_callsite pushes the continuation block first.
+                    target: Target::block(BasicBlockId::START.plus(bb_offset + 1), self.interner),
                 }),
             },
         );
-        let after = block.statements.split_off(location.statement_index);
+        debug_assert!(
+            location.statement_index > 0,
+            "callsite location must point to a statement, not block params"
+        );
+        // statement_index is 1-based: split_off gives statements after the call,
+        // pop removes the call statement itself.
+        let mut after = block.statements.split_off(location.statement_index);
         let callsite = block.statements.pop().unwrap_or_else(|| unreachable!());
 
         block.terminator.span = callsite.span;
@@ -238,6 +241,34 @@ impl<'heap, A: Allocator> InlineState<'_, 'heap, A> {
         else {
             unreachable!("`inlinable_callsites` should only point to apply statements")
         };
+
+        // If lhs has projections, create a temp local and assign to lhs after the call.
+        let result = if lhs.projections.is_empty() {
+            lhs.local
+        } else {
+            let type_id = lhs.type_id(&source.local_decls);
+            let local = source.local_decls.push(LocalDecl {
+                span: callsite.span,
+                r#type: type_id,
+                name: None,
+            });
+
+            // Prepend assignment to write the result back to the projected place.
+            after.insert(
+                0,
+                Statement {
+                    span: callsite.span,
+                    kind: StatementKind::Assign(Assign {
+                        lhs,
+                        rhs: RValue::Load(Operand::Place(Place::local(local, self.interner))),
+                    }),
+                },
+            );
+
+            local
+        };
+
+        let local_offset = source.local_decls.len();
 
         // For all arguments, add assignment expressions before the goto
         debug_assert_eq!(apply.arguments.len(), target.args);
@@ -251,29 +282,6 @@ impl<'heap, A: Allocator> InlineState<'_, 'heap, A> {
             });
         }
 
-        // if lhs is an argument, we must create a new local, and use that instead
-        let result = if lhs.projections.is_empty() {
-            lhs.local
-        } else {
-            let type_id = lhs.type_id(&source.local_decls);
-            let local = source.local_decls.push(LocalDecl {
-                span: callsite.span,
-                r#type: type_id,
-                name: None,
-            });
-
-            // Create the new assignment statement
-            block.statements.push(Statement {
-                span: callsite.span,
-                kind: StatementKind::Assign(Assign {
-                    lhs: Place::local(local, self.interner),
-                    rhs: RValue::Load(Operand::Place(lhs)),
-                }),
-            });
-
-            local
-        };
-
         self.patch_callsite(source, target, result, after, terminator);
     }
 
@@ -286,15 +294,15 @@ impl<'heap, A: Allocator> InlineState<'_, 'heap, A> {
         statements: Vec<Statement<'heap>, &'heap Heap>,
         terminator: Terminator<'heap>,
     ) {
-        // We now create new block, which has a block param for the new local, the terminator is
-        // the terminator of the original block
-        let continution = source.basic_blocks.as_mut().push(BasicBlock {
+        // Create continuation block with result as block param.
+        let continuation = source.basic_blocks.as_mut().push(BasicBlock {
             params: self.interner.locals.intern_slice(&[result]),
             statements,
             terminator,
         });
 
         let bb_offset = source.basic_blocks.bound();
+        // This must match the `local_offset` used in `inline_callsite` for argument assignments.
         let local_offset = source.local_decls.len();
 
         source
@@ -309,7 +317,7 @@ impl<'heap, A: Allocator> InlineState<'_, 'heap, A> {
         let mut visitor = RenameVisitor {
             local_offset,
             bb_offset: bb_offset.as_usize(),
-            continution,
+            continuation,
             interner: self.interner,
         };
 
@@ -328,11 +336,10 @@ impl<'heap, A: Allocator> InlineState<'_, 'heap, A> {
         mem: &mut InlineStateMemory<A>,
     ) {
         self.select_callsites(body, mem);
+        // Sort in reverse order so later callsites are processed first (avoids index shifting).
         mem.callsites
             .sort_unstable_by(|lhs, rhs| lhs.kind.cmp(&rhs.kind).reverse());
 
-        // targets already come pre-ordered, so we can just iterate over them
-        // they're ordered in reverse
         for callsite in mem.callsites.drain(..) {
             self.inline_callsite(bodies, callsite);
         }
@@ -391,13 +398,9 @@ impl<A: BumpAllocator> Inline<A> {
         bodies: &mut IdSlice<DefId, Body<'heap>>,
         mem: &mut InlineStateMemory<&'alloc A>,
     ) {
-        // The order is determined by the components of the call graph, and the members of it
+        // Process SCCs in dependency order (callees before callers).
         let members = state.components.members_in(&self.alloc);
 
-        // The return value of Tarjan will be in dependency order (aka post order), meaning that if
-        // `S1 -> S2`, we will visit `S2` first, and `S1` second.
-        // Because our edges are `caller -> callee`, we can just iterate over the SCCs to get the
-        // order we want.
         for scc in members.sccs() {
             for &id in members.of(scc) {
                 state.inline_body(bodies, id, mem);
@@ -411,8 +414,7 @@ impl<A: BumpAllocator> Inline<A> {
         bodies: &mut IdSlice<DefId, Body<'heap>>,
         mem: &mut InlineStateMemory<&'alloc A>,
     ) {
-        // for each filter, find the call sites that are eligible for inlining (which are all
-        // callsites)
+        // For each filter, inline all eligible callsites until fixpoint or cutoff.
         for filter in &state.filters {
             let mut iteration = 0;
             while iteration < self.config.aggressive_inline_cutoff {
@@ -431,7 +433,7 @@ impl<A: BumpAllocator> Inline<A> {
                     .sort_unstable_by(|lhs, rhs| lhs.kind.cmp(&rhs.kind).reverse());
                 for callsite in mem.callsites.drain(..) {
                     let target_component = state.components.scc(callsite.target);
-                    state.inlined.insert(filter, target_component); // ensure that the next iteration we don't go into a recursive loop
+                    state.inlined.insert(filter, target_component);
 
                     state.inline_callsite(bodies, callsite);
                 }
@@ -457,10 +459,6 @@ impl<A: BumpAllocator> Inline<A> {
 
         let mut state = self.state(context.interner, bodies);
         let mut mem = InlineStateMemory::new(&self.alloc);
-
-        // There are fundamentally two phases, the first is to just normally inline, the
-        // second then does "aggressive" inlining, in which we inline any
-        // callsite that is eligible until fix-point is reached.
 
         self.normal_inline(&mut state, bodies, &mut mem);
         self.aggressive_inline(&mut state, bodies, &mut mem);

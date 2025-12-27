@@ -17,7 +17,7 @@ use crate::{
 pub(crate) struct RenameVisitor<'env, 'heap> {
     pub local_offset: usize,
     pub bb_offset: usize,
-    pub continution: BasicBlockId,
+    pub continuation: BasicBlockId,
     pub interner: &'env Interner<'heap>,
 }
 
@@ -57,7 +57,7 @@ impl<'heap> VisitorMut<'heap> for RenameVisitor<'_, 'heap> {
         if let TerminatorKind::Return(Return { value }) = terminator.kind {
             terminator.kind = TerminatorKind::Goto(Goto {
                 target: Target {
-                    block: self.continution,
+                    block: self.continuation,
                     args: self.interner.operands.intern_slice(&[value]),
                 },
             });

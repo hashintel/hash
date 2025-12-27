@@ -51,8 +51,7 @@ impl<A: Allocator> CallScorer<'_, '_, A> {
             target,
         }: CallSite<Location>,
     ) -> f32 {
-        // A score of +inf means: always inline, do not add to cost, -inf means: never inline,
-        // always inlining does not contribute to the hard max calculation.
+        // +inf = always inline, -inf = never inline.
         match self.properties[target].inline {
             Inline::Always => return f32::INFINITY,
             Inline::Depends => {}
@@ -62,7 +61,6 @@ impl<A: Allocator> CallScorer<'_, '_, A> {
         let target_cost = self.properties[target].cost;
 
         if target_cost < self.config.always_inline {
-            // We always inline these functions "for free"
             return f32::INFINITY;
         }
 
@@ -96,7 +94,6 @@ impl<A: Allocator> CallScorer<'_, '_, A> {
             score += self.config.unique_callsite_bonus;
         }
 
-        // "damage" by the size of the callee
         score -= target_cost * self.config.size_penalty_factor;
 
         score

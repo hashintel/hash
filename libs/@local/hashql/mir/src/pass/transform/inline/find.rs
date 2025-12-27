@@ -32,8 +32,6 @@ impl<'heap, A: Allocator> Visitor<'heap> for FindCallsiteVisitor<'_, '_, 'heap, 
 
         let target_component = self.state.components.scc(ptr);
 
-        // Check if the function is in the same component already, if that is the case, then we
-        // cannot inline it
         if self.state.inlined.contains(self.caller, target_component) {
             return Ok(());
         }
