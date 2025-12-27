@@ -3,20 +3,23 @@ use alloc::collections::BinaryHeap;
 use core::{alloc::Allocator, cmp, mem};
 
 use hashql_core::{
-    graph::algorithms::{
-        Tarjan,
-        tarjan::{SccId, StronglyConnectedComponents},
+    graph::{
+        DirectedGraph,
+        algorithms::{
+            Tarjan,
+            tarjan::{SccId, StronglyConnectedComponents},
+        },
     },
-    heap::{BumpAllocator, Heap, TransferInto},
-    id::{Id, IdSlice},
+    heap::{BumpAllocator, CollectIn, Heap, ResetAllocator},
+    id::{
+        Id as _, IdSlice,
+        bit_vec::{DenseBitSet, SparseBitMatrix},
+    },
     span::SpanId,
 };
 
 use self::{
-    cost::{
-        BodyProperties, CostEstimationAnalysis, CostEstimationConfig, CostEstimationResidual,
-        LoopVec,
-    },
+    cost::{BodyProperties, CostEstimationAnalysis, CostEstimationConfig, LoopVec},
     rename::RenameVisitor,
     score::{CallScorer, ScoreConfig},
 };
@@ -85,22 +88,60 @@ impl InlineConfig {
     };
 }
 
+struct InlineStateMemory<A: Allocator> {
+    targets: Vec<CallSite<Location>, A>,
+    candidates: BinaryHeap<Candidate, A>,
+}
+
+impl<A: Allocator> InlineStateMemory<A> {
+    fn new(alloc: A) -> Self
+    where
+        A: Clone,
+    {
+        Self {
+            targets: Vec::new_in(alloc.clone()),
+            candidates: BinaryHeap::new_in(alloc),
+        }
+    }
+}
+
 struct InlineState<'env, 'heap, A: Allocator> {
     config: InlineConfig,
     interner: &'env Interner<'heap>,
 
     graph: CallGraph<'heap, A>,
+
+    filters: DenseBitSet<DefId>,
+    inlined: SparseBitMatrix<DefId, SccId, A>,
+
     properties: DefIdVec<BodyProperties, A>,
     loops: LoopVec<A>,
     components: StronglyConnectedComponents<DefId, SccId, (), A>,
 }
 
 impl<'heap, A: Allocator> InlineState<'_, 'heap, A> {
-    fn select_callsites<S: Allocator + Clone>(
-        &self,
-        body: DefId,
-        scratch: S,
-    ) -> Vec<CallSite<Location>, S> {
+    fn select_all_callsites(&mut self, body: DefId, mem: &mut InlineStateMemory<A>) {
+        let component = self.components.scc(body);
+
+        self.graph
+            .apply_callsites(body)
+            .filter(|callsite| self.components.scc(callsite.target) != component)
+            .collect_into(&mut mem.targets);
+
+        // To be able to detect cycles in the aggressive inlining phase, we must record all the
+        // inlined functions components for the current body.
+        self.inlined.insert(body, component);
+        for callsite in &mem.targets {
+            self.inlined
+                .insert(body, self.components.scc(callsite.target));
+        }
+    }
+
+    fn select_callsites(&mut self, body: DefId, mem: &mut InlineStateMemory<A>) {
+        if self.filters.contains(body) {
+            return self.select_all_callsites(body, mem);
+        }
+
         let component = self.components.scc(body);
         let scorer = CallScorer {
             config: self.config.score,
@@ -109,8 +150,8 @@ impl<'heap, A: Allocator> InlineState<'_, 'heap, A> {
             properties: &self.properties,
         };
 
-        let mut to_be_inlined = Vec::new_in(scratch.clone());
-        let mut candidates = BinaryHeap::new_in(scratch.clone());
+        let targets = &mut mem.targets;
+        let candidates = &mut mem.candidates;
 
         for callsite in self.graph.apply_callsites(body) {
             if self.components.scc(callsite.target) == component {
@@ -129,7 +170,7 @@ impl<'heap, A: Allocator> InlineState<'_, 'heap, A> {
             if score.is_infinite() {
                 // The cost infinite, which means that the call site is *always* inlined, without
                 // contributing to the overall cost of the caller.
-                to_be_inlined.push(callsite);
+                targets.push(callsite);
                 continue;
             }
 
@@ -138,20 +179,14 @@ impl<'heap, A: Allocator> InlineState<'_, 'heap, A> {
 
         let mut remaining_budget = self.config.score.max * self.config.budget_multiplier;
 
-        for candidate in candidates.into_iter_sorted() {
+        for candidate in candidates.drain_sorted() {
             let target_cost = self.properties[candidate.callsite.target].cost;
 
             if remaining_budget >= target_cost {
                 remaining_budget -= target_cost;
-                to_be_inlined.push(candidate.callsite);
+                targets.push(candidate.callsite);
             }
         }
-
-        // sort the candidates by location (in reverse order), the reason we do this is so that
-        // inlining doesn't disturb the location of subsequent candidates
-        to_be_inlined.sort_unstable_by(|lhs, rhs| lhs.kind.cmp(&rhs.kind).reverse());
-
-        to_be_inlined
     }
 
     fn inline_callsite(
@@ -282,19 +317,19 @@ impl<'heap, A: Allocator> InlineState<'_, 'heap, A> {
         }
     }
 
-    fn inline_body<S: Allocator + Clone>(
-        &self,
+    fn inline_body(
+        &mut self,
         bodies: &mut DefIdSlice<Body<'heap>>,
         body: DefId,
-        scratch: S,
+        mem: &mut InlineStateMemory<A>,
     ) {
-        // TODO: global overarching scratch space for BinaryHeap and Vec (sadly needs to be done
-        // because we don't have checkpointing yet)
-        let targets = self.select_callsites(body, scratch);
+        self.select_callsites(body, mem);
+        mem.targets
+            .sort_unstable_by(|lhs, rhs| lhs.kind.cmp(&rhs.kind).reverse());
 
         // targets already come pre-ordered, so we can just iterate over them
         // they're ordered in reverse
-        for callsite in targets {
+        for callsite in mem.targets.drain(..) {
             self.inline_callsite(bodies, callsite);
         }
     }
@@ -307,27 +342,33 @@ struct Inliner<A: Allocator> {
 }
 
 impl<A: Allocator> Inliner<A> {
-    fn state<'env, 'heap, B: Allocator + Clone>(
+    fn state<'env, 'heap>(
         &self,
         interner: &'env Interner<'heap>,
         bodies: &DefIdSlice<Body<'heap>>,
-        alloc: B,
-    ) -> InlineState<'env, 'heap, B> {
-        let graph = CallGraph::analyze_in(bodies, alloc.clone());
+    ) -> InlineState<'env, 'heap, &A> {
+        let graph = CallGraph::analyze_in(bodies, &self.alloc);
         let mut analysis =
-            CostEstimationAnalysis::new(&graph, bodies, self.config.cost, alloc.clone());
+            CostEstimationAnalysis::new(&graph, bodies, self.config.cost, &self.alloc);
 
         for body in bodies {
             analysis.analyze(body);
         }
 
+        let mut filters = DenseBitSet::new_empty(bodies.len());
+        for filter in graph.filters() {
+            filters.insert(filter);
+        }
+
         let costs = analysis.finish();
 
-        let tarjan = Tarjan::new_in(&graph, alloc.clone());
+        let tarjan = Tarjan::new_in(&graph, &self.alloc);
         let components = tarjan.run();
 
         InlineState {
             config: self.config,
+            filters,
+            inlined: SparseBitMatrix::new_in(components.node_count(), &self.alloc),
             interner,
             graph,
             properties: costs.properties,
@@ -336,32 +377,23 @@ impl<A: Allocator> Inliner<A> {
         }
     }
 
-    #[expect(unsafe_code)]
     pub fn inline<'heap>(
         &mut self,
         context: &MirContext<'_, 'heap>,
         bodies: &mut DefIdSlice<Body<'heap>>,
     ) where
-        A: BumpAllocator,
+        A: ResetAllocator,
     {
-        let state = self.state(context.interner, bodies, &self.alloc);
+        self.alloc.reset();
+
+        let mut state = self.state(context.interner, bodies);
+        let mut mem = InlineStateMemory::new(&self.alloc);
 
         // There are fundamentally two phases, the first is to just normally inline, the
         // second then does "aggressive" inlining, in which we inline any
         // callsite that is eligible until fix-point is reached.
         for id in bodies.ids() {
-            let checkpoint = self.alloc.checkpoint();
-
-            InlineState::inline_body(&state, bodies, id, &self.alloc);
-
-            // SAFETY: `state` is used only with `&self`. It only has access to the allocator
-            // through `self.alloc`, and due to the `&self` reference is unable to reallocate the
-            // memory it uses.
-            // Therefore, it is safe to assume that no allocation outside outlives
-            // `InlineState::inline_body` for anything that's made inside of it.
-            unsafe {
-                self.alloc.rollback(checkpoint);
-            }
+            state.inline_body(bodies, id, &mut mem);
         }
 
         // TODO: Implement aggressive inlining
