@@ -1,0 +1,6 @@
+//@ run: pass
+//@ description: Nested constructor invocations should both be inlined
+[
+  "::graph::types::knowledge::entity::EntityUuid",
+  ["::core::uuid::Uuid", {"#literal": "e2851dbb-7376-4959-9bca-f72cafc4448f"}]
+]

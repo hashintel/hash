@@ -1,0 +1,14 @@
+//@ run: pass
+//@ description: Small closure with single caller should be inlined
+[
+  "let",
+  "double",
+  [
+    "fn",
+    {"#tuple": []},
+    {"#struct": {"x": "Integer"}},
+    "_",
+    ["+", "x", "x"]
+  ],
+  ["double", {"#literal": 21}]
+]

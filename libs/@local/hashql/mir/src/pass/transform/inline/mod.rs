@@ -52,6 +52,9 @@ mod find;
 mod heuristics;
 mod rename;
 
+#[cfg(test)]
+mod tests;
+
 struct Candidate {
     score: f32,
     callsite: CallSite<Location>,

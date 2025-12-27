@@ -1,0 +1,71 @@
+//@ run: pass
+//@ description: Filter with deeply nested call chain triggers excessive-inlining-depth warning
+[
+  "::graph::tail::collect",
+  [
+    "::graph::body::filter",
+    [
+      "::graph::head::entities",
+      ["input", "axis", "::graph::QueryTemporalAxes"]
+    ],
+    [
+      "fn",
+      {"#tuple": []},
+      {"#struct": {"vertex": "_"}},
+      "_",
+      [
+        "let", "f1", ["fn", {"#tuple": []}, {"#struct": {"x": "Boolean"}}, "_", "x"],
+        [
+          "let", "f2", ["fn", {"#tuple": []}, {"#struct": {"x": "Boolean"}}, "_", ["f1", "x"]],
+          [
+            "let", "f3", ["fn", {"#tuple": []}, {"#struct": {"x": "Boolean"}}, "_", ["f2", "x"]],
+            [
+              "let", "f4", ["fn", {"#tuple": []}, {"#struct": {"x": "Boolean"}}, "_", ["f3", "x"]],
+              [
+                "let", "f5", ["fn", {"#tuple": []}, {"#struct": {"x": "Boolean"}}, "_", ["f4", "x"]],
+                [
+                  "let", "f6", ["fn", {"#tuple": []}, {"#struct": {"x": "Boolean"}}, "_", ["f5", "x"]],
+                  [
+                    "let", "f7", ["fn", {"#tuple": []}, {"#struct": {"x": "Boolean"}}, "_", ["f6", "x"]],
+                    [
+                      "let", "f8", ["fn", {"#tuple": []}, {"#struct": {"x": "Boolean"}}, "_", ["f7", "x"]],
+                      [
+                        "let", "f9", ["fn", {"#tuple": []}, {"#struct": {"x": "Boolean"}}, "_", ["f8", "x"]],
+                        [
+                          "let", "f10", ["fn", {"#tuple": []}, {"#struct": {"x": "Boolean"}}, "_", ["f9", "x"]],
+                          [
+                            "let", "f11", ["fn", {"#tuple": []}, {"#struct": {"x": "Boolean"}}, "_", ["f10", "x"]],
+                            [
+                              "let", "f12", ["fn", {"#tuple": []}, {"#struct": {"x": "Boolean"}}, "_", ["f11", "x"]],
+                              [
+                                "let", "f13", ["fn", {"#tuple": []}, {"#struct": {"x": "Boolean"}}, "_", ["f12", "x"]],
+                                [
+                                  "let", "f14", ["fn", {"#tuple": []}, {"#struct": {"x": "Boolean"}}, "_", ["f13", "x"]],
+                                  [
+                                    "let", "f15", ["fn", {"#tuple": []}, {"#struct": {"x": "Boolean"}}, "_", ["f14", "x"]],
+                                    [
+                                      "let", "f16", ["fn", {"#tuple": []}, {"#struct": {"x": "Boolean"}}, "_", ["f15", "x"]],
+                                      [
+                                        "let", "f17", ["fn", {"#tuple": []}, {"#struct": {"x": "Boolean"}}, "_", ["f16", "x"]],
+                                        ["f17", ["==", "vertex.draft_id", {"#literal": null}]]
+                                      ]
+                                    ]
+                                  ]
+                                ]
+                              ]
+                            ]
+                          ]
+                        ]
+                      ]
+                    ]
+                  ]
+                ]
+              ]
+            ]
+          ]
+        ]
+      ]
+    ]
+  ]
+]
+//~? WARN filter has deeply nested calls

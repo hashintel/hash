@@ -1,0 +1,3 @@
+//@ run: pass
+//@ description: Simple constructor invocation should be inlined (InlineDirective::Always)
+["Some", {"#literal": 42}]
