@@ -1,6 +1,6 @@
 use core::alloc::Allocator;
 
-use super::cost::{BodyProperties, CostEstimationResidual, Inline, LoopVec};
+use super::cost::{BodyProperties, Inline, LoopVec};
 use crate::{
     body::location::Location,
     def::DefIdSlice,
@@ -41,7 +41,7 @@ pub(crate) struct CallScorer<'ctx, 'heap, A: Allocator> {
     pub properties: &'ctx DefIdSlice<BodyProperties>,
 }
 
-impl<'ctx, 'heap, A: Allocator> CallScorer<'ctx, 'heap, A> {
+impl<A: Allocator> CallScorer<'_, '_, A> {
     #[expect(clippy::float_arithmetic)]
     pub(crate) fn score(
         &self,

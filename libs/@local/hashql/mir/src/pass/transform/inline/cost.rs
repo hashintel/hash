@@ -8,7 +8,6 @@ use hashql_core::{
             tarjan::{Metadata, SccId},
         },
     },
-    heap::{BumpAllocator, ResetAllocator},
     id::{IdVec, bit_vec::DenseBitSet},
 };
 

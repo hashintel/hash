@@ -6,7 +6,7 @@ mod dle;
 mod dse;
 pub mod error;
 mod forward_substitution;
-mod inlining;
+mod inline;
 mod inst_simplify;
 mod pre_inlining;
 mod ssa_repair;
