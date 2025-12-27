@@ -125,7 +125,7 @@ struct InlineState<'env, 'heap, A: Allocator> {
 }
 
 impl<'heap, A: Allocator> InlineState<'_, 'heap, A> {
-    fn select_all_callsites(&mut self, body: DefId, mem: &mut InlineStateMemory<A>) {
+    fn collect_all_callsites(&mut self, body: DefId, mem: &mut InlineStateMemory<A>) {
         let component = self.components.scc(body);
 
         self.graph
@@ -141,9 +141,9 @@ impl<'heap, A: Allocator> InlineState<'_, 'heap, A> {
         }
     }
 
-    fn select_callsites(&mut self, body: DefId, mem: &mut InlineStateMemory<A>) {
+    fn collect_callsites(&mut self, body: DefId, mem: &mut InlineStateMemory<A>) {
         if self.filters.contains(body) {
-            return self.select_all_callsites(body, mem);
+            return self.collect_all_callsites(body, mem);
         }
 
         let component = self.components.scc(body);
@@ -190,7 +190,7 @@ impl<'heap, A: Allocator> InlineState<'_, 'heap, A> {
         }
     }
 
-    fn inline_callsite(
+    fn inline(
         &self,
         bodies: &mut IdSlice<DefId, Body<'heap>>,
 
@@ -282,10 +282,10 @@ impl<'heap, A: Allocator> InlineState<'_, 'heap, A> {
             });
         }
 
-        self.patch_callsite(source, target, result, after, terminator);
+        self.apply(source, target, result, after, terminator);
     }
 
-    fn patch_callsite(
+    fn apply(
         &self,
         source: &mut Body<'heap>,
         callee: &Body<'heap>,
@@ -302,7 +302,7 @@ impl<'heap, A: Allocator> InlineState<'_, 'heap, A> {
         });
 
         let bb_offset = source.basic_blocks.bound();
-        // This must match the `local_offset` used in `inline_callsite` for argument assignments.
+        // This must match the `local_offset` used in `inline` for argument assignments.
         let local_offset = source.local_decls.len();
 
         source
@@ -329,19 +329,19 @@ impl<'heap, A: Allocator> InlineState<'_, 'heap, A> {
         }
     }
 
-    fn inline_body(
+    fn run(
         &mut self,
         bodies: &mut DefIdSlice<Body<'heap>>,
         body: DefId,
         mem: &mut InlineStateMemory<A>,
     ) {
-        self.select_callsites(body, mem);
+        self.collect_callsites(body, mem);
         // Sort in reverse order so later callsites are processed first (avoids index shifting).
         mem.callsites
             .sort_unstable_by(|lhs, rhs| lhs.kind.cmp(&rhs.kind).reverse());
 
         for callsite in mem.callsites.drain(..) {
-            self.inline_callsite(bodies, callsite);
+            self.inline(bodies, callsite);
         }
     }
 }
@@ -391,7 +391,7 @@ impl<A: BumpAllocator> Inline<A> {
         }
     }
 
-    fn normal_inline<'heap, 'alloc>(
+    fn normal<'heap, 'alloc>(
         &self,
         state: &mut InlineState<'_, 'heap, &'alloc A>,
         bodies: &mut IdSlice<DefId, Body<'heap>>,
@@ -402,12 +402,12 @@ impl<A: BumpAllocator> Inline<A> {
 
         for scc in members.sccs() {
             for &id in members.of(scc) {
-                state.inline_body(bodies, id, mem);
+                state.run(bodies, id, mem);
             }
         }
     }
 
-    fn aggressive_inline<'heap, 'alloc>(
+    fn aggressive<'heap, 'alloc>(
         &self,
         state: &mut InlineState<'_, 'heap, &'alloc A>,
         bodies: &mut IdSlice<DefId, Body<'heap>>,
@@ -434,7 +434,7 @@ impl<A: BumpAllocator> Inline<A> {
                     let target_component = state.components.scc(callsite.target);
                     state.inlined.insert(filter, target_component);
 
-                    state.inline_callsite(bodies, callsite);
+                    state.inline(bodies, callsite);
                 }
 
                 iteration += 1;
@@ -459,7 +459,7 @@ impl<A: BumpAllocator> Inline<A> {
         let mut state = self.state(context.interner, bodies);
         let mut mem = InlineStateMemory::new(&self.alloc);
 
-        self.normal_inline(&mut state, bodies, &mut mem);
-        self.aggressive_inline(&mut state, bodies, &mut mem);
+        self.normal(&mut state, bodies, &mut mem);
+        self.aggressive(&mut state, bodies, &mut mem);
     }
 }
