@@ -1,0 +1,80 @@
+name: CodSpeed Benchmarks
+
+on:
+  push:
+    branches:
+      - "main"
+  pull_request:
+  # `workflow_dispatch` allows CodSpeed to trigger backtest
+  # performance analysis in order to generate initial data.
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  setup:
+    runs-on: ubuntu-24.04
+    permissions:
+      id-token: write
+    outputs:
+      packages: ${{ steps.packages.outputs.packages }}
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+        with:
+          fetch-depth: 2
+
+      - name: Install tools
+        uses: ./.github/actions/install-tools
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          vault_address: ${{ secrets.VAULT_ADDR }}
+          rust: false
+
+      - name: Determine changed packages that have codspeed
+        id: packages
+        run: |
+          PACKAGES_QUERY='query { affectedPackages(base: "HEAD^" filter: {has: {field: "TASK_NAME", value: "build:codspeed"}}) {items {name path}}}'
+          PACKAGES=$(turbo query "$PACKAGES_QUERY" \
+            | jq --compact-output '.data.affectedPackages.items | [(.[] | select(.name != "//"))] | { name: [.[].name], include: . }')
+
+          echo "packages=$PACKAGES" | tee -a $GITHUB_OUTPUT
+
+  benchmarks:
+    name: Run benchmarks
+    needs: [setup]
+    runs-on: ubuntu-24.04
+    strategy:
+      matrix: ${{ fromJSON(needs.setup.outputs.packages) }}
+      fail-fast: false
+    if: needs.setup.outputs.packages != '{"name":[],"include":[]}'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+        with:
+          fetch-depth: 2
+
+      - name: Clean up disk
+        uses: ./.github/actions/clean-up-disk
+
+      - name: Install tools
+        uses: ./.github/actions/install-tools
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          vault_address: ${{ secrets.VAULT_ADDR }}
+
+      - name: Prune repository
+        uses: ./.github/actions/prune-repository
+        with:
+          scope: ${{ matrix.name }}
+
+      - name: Build the benchmark target
+        run: turbo run build:codspeed --filter=${{ matrix.name }}
+
+      - name: Run the benchmark
+        uses: CodSpeedHQ/action@346a2d8a8d9d38909abd0bc3d23f773110f076ad # v4.4.1
+        with:
+          mode: simulation
+          run: turbo run test:codspeed --filter=${{ matrix.name }}

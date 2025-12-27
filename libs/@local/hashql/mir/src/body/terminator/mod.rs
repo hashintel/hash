@@ -46,10 +46,12 @@ where
 {
     type Item = L::Item;
 
+    #[inline]
     fn next(&mut self) -> Option<Self::Item> {
         for_both!(self; value => value.next())
     }
 
+    #[inline]
     fn size_hint(&self) -> (usize, Option<usize>) {
         for_both!(self; value => value.size_hint())
     }
@@ -60,6 +62,7 @@ where
     L: DoubleEndedIterator,
     R: DoubleEndedIterator<Item = L::Item>,
 {
+    #[inline]
     fn next_back(&mut self) -> Option<Self::Item> {
         for_both!(self; value => value.next_back())
     }
@@ -70,6 +73,7 @@ where
     L: ExactSizeIterator,
     R: ExactSizeIterator<Item = L::Item>,
 {
+    #[inline]
     fn len(&self) -> usize {
         for_both!(self; value => value.len())
     }
