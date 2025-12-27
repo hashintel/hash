@@ -46,7 +46,7 @@
     "dedent": "1.7.0",
     "es-toolkit": "1.41.0",
     "json-schema": "0.4.0",
-    "vitest": "4.0.15",
+    "vitest": "4.0.16",
     "zod": "4.1.12",
     "zod-from-json-schema": "0.5.2"
   },
