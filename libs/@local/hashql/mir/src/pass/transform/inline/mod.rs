@@ -10,7 +10,7 @@ use hashql_core::{
             tarjan::{SccId, StronglyConnectedComponents},
         },
     },
-    heap::{Heap, ResetAllocator},
+    heap::{BumpAllocator, Heap, ResetAllocator},
     id::{
         Id as _, IdSlice,
         bit_vec::{DenseBitSet, SparseBitMatrix},
@@ -339,13 +339,13 @@ impl<'heap, A: Allocator> InlineState<'_, 'heap, A> {
     }
 }
 
-pub struct Inline<A: Allocator> {
+pub struct Inline<A: BumpAllocator> {
     alloc: A,
 
     config: InlineConfig,
 }
 
-impl<A: Allocator> Inline<A> {
+impl<A: BumpAllocator> Inline<A> {
     pub const fn new_in(config: InlineConfig, alloc: A) -> Self {
         Self { alloc, config }
     }
