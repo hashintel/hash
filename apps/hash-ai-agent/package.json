@@ -62,7 +62,7 @@
     "@types/node": "22.18.13",
     "@types/papaparse": "5.3.16",
     "@types/sanitize-html": "2.16.0",
-    "@vitest/coverage-istanbul": "3.2.4",
+    "@vitest/coverage-istanbul": "4.0.16",
     "baseline-browser-mapping": "2.9.11",
     "eslint": "9.38.0",
     "jsdom": "24.1.3",
