@@ -76,24 +76,26 @@ pub struct InlineCostEstimationConfig {
     pub basic_block: f32,
 }
 
-impl InlineCostEstimationConfig {
-    pub const DEFAULT: Self = Self {
-        rvalue_load: 1.0,
-        rvalue_binary: 2.0,
-        rvalue_unary: 2.0,
-        rvalue_aggregate: 3.0,
-        rvalue_input: 5.0,
-        rvalue_apply: 4.0,
+impl Default for InlineCostEstimationConfig {
+    fn default() -> Self {
+        Self {
+            rvalue_load: 1.0,
+            rvalue_binary: 2.0,
+            rvalue_unary: 2.0,
+            rvalue_aggregate: 3.0,
+            rvalue_input: 5.0,
+            rvalue_apply: 4.0,
 
-        terminator_switch_int_base: 1.0,
-        terminator_switch_int_branch_multiplier: 0.5,
-        terminator_graph_read: 5.0,
-        terminator_goto: 1.0,
-        terminator_return: 1.0,
-        terminator_unreachable: 0.0,
+            terminator_switch_int_base: 1.0,
+            terminator_switch_int_branch_multiplier: 0.5,
+            terminator_graph_read: 5.0,
+            terminator_goto: 1.0,
+            terminator_return: 1.0,
+            terminator_unreachable: 0.0,
 
-        basic_block: 1.0,
-    };
+            basic_block: 1.0,
+        }
+    }
 }
 
 pub(crate) struct CostEstimationResidual<A: Allocator> {

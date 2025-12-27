@@ -18,10 +18,11 @@ use hashql_core::{
     span::SpanId,
 };
 
+pub use self::{analysis::InlineCostEstimationConfig, heuristics::InlineHeuristicsConfig};
 use self::{
-    analysis::{BasicBlockLoopVec, BodyAnalysis, BodyProperties, InlineCostEstimationConfig},
+    analysis::{BasicBlockLoopVec, BodyAnalysis, BodyProperties},
     find::FindCallsiteVisitor,
-    heuristics::{InlineHeuristics, InlineHeuristicsConfig},
+    heuristics::InlineHeuristics,
     rename::RenameVisitor,
 };
 use crate::{
@@ -86,13 +87,15 @@ pub struct InlineConfig {
     pub aggressive_inline_cutoff: usize,
 }
 
-impl InlineConfig {
-    pub const DEFAULT: Self = Self {
-        cost: InlineCostEstimationConfig::DEFAULT,
-        heuristics: InlineHeuristicsConfig::DEFAULT,
-        budget_multiplier: 5.0,
-        aggressive_inline_cutoff: 16,
-    };
+impl Default for InlineConfig {
+    fn default() -> Self {
+        Self {
+            cost: InlineCostEstimationConfig::default(),
+            heuristics: InlineHeuristicsConfig::default(),
+            budget_multiplier: 5.0,
+            aggressive_inline_cutoff: 16,
+        }
+    }
 }
 
 struct InlineStateMemory<A: Allocator> {
