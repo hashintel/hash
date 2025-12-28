@@ -1,16 +1,15 @@
 use core::{
     borrow::Borrow,
     hash::{BuildHasher as _, Hash},
-    sync::atomic::{AtomicU32, Ordering},
 };
 
 use hashbrown::hash_map::RawEntryMut;
 
 use super::Interned;
 use crate::{
-    collections::{FastHashMap, fast_hash_map_with_capacity},
+    collections::{FastHashMap, fast_hash_map_in, fast_hash_map_with_capacity_in},
     heap::Heap,
-    id::{HasId, Id},
+    id::{HasId, Id, IdProducer},
     sync::lock::LocalLock,
 };
 
@@ -185,7 +184,7 @@ pub struct InternMap<'heap, T: Decompose<'heap>> {
 
     // For more information about the tradeoff and decision on the use of `LocalLock`, see
     // the documentation on `InternSet`.
-    inner: LocalLock<FastHashMap<&'heap T::Partial, T::Id>>,
+    inner: LocalLock<FastHashMap<&'heap T::Partial, T::Id, &'heap Heap>>,
 
     // In theory, this isn't as efficient as it could be, but it makes the implementation simpler.
     // A more optimized approach would be to:
@@ -202,9 +201,9 @@ pub struct InternMap<'heap, T: Decompose<'heap>> {
     // - Each map entry requires ~24 bytes (12 bytes per hashmap entry × 2 maps).
     // - The entire ID space would require ~96GB just for the map structures.
     // - Memory constraints will be hit long before ID exhaustion.
-    lookup: LocalLock<FastHashMap<T::Id, &'heap T::Partial>>,
+    lookup: LocalLock<FastHashMap<T::Id, &'heap T::Partial, &'heap Heap>>,
 
-    next: AtomicU32,
+    next: IdProducer<T::Id>,
 }
 
 impl<'heap, T> InternMap<'heap, T>
@@ -219,11 +218,11 @@ where
     pub fn new(heap: &'heap Heap) -> Self {
         Self {
             heap,
-            inner: LocalLock::default(),
+            inner: LocalLock::new(fast_hash_map_in(heap)),
 
-            lookup: LocalLock::default(),
+            lookup: LocalLock::new(fast_hash_map_in(heap)),
 
-            next: AtomicU32::new(0),
+            next: IdProducer::new(),
         }
     }
 
@@ -304,9 +303,9 @@ where
     pub fn with_capacity(capacity: usize, heap: &'heap Heap) -> Self {
         Self {
             heap,
-            inner: LocalLock::new(fast_hash_map_with_capacity(capacity)),
-            lookup: LocalLock::new(fast_hash_map_with_capacity(capacity)),
-            next: AtomicU32::new(0),
+            inner: LocalLock::new(fast_hash_map_with_capacity_in(capacity, heap)),
+            lookup: LocalLock::new(fast_hash_map_with_capacity_in(capacity, heap)),
+            next: IdProducer::new(),
         }
     }
 
@@ -318,11 +317,7 @@ where
     /// Relaxed ordering is used since this is the only place where the atomic counter
     /// is accessed and no ordering constraints are required.
     fn next_id(&self) -> T::Id {
-        // Relaxed ordering is sufficient for this use case as this is the only place where the
-        // atomic is accessed and no ordering constraints are required.
-        let id = self.next.fetch_add(1, Ordering::Relaxed);
-
-        T::Id::from_u32(id)
+        self.next.next()
     }
 }
 
