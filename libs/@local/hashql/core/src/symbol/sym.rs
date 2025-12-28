@@ -212,7 +212,7 @@ mod test {
 
     use super::TABLES;
     use crate::{
-        heap::{BumpAllocator as _, Heap},
+        heap::{Heap, ResetAllocator as _},
         symbol::sym,
     };
 
