@@ -20,6 +20,8 @@ use super::BumpAllocator;
 /// - The allocated memory is fully initialized before returning
 /// - No aliasing violations when returning `&mut` references
 /// - The allocator keeps memory valid for the full `'alloc` lifetime
+///
+/// [`Layout`]: core::alloc::Layout
 pub unsafe trait TransferInto<'alloc, A: Allocator> {
     type Output;
 
