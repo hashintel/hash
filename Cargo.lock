@@ -3741,6 +3741,7 @@ dependencies = [
  "anstyle-lossy",
  "bitvec",
  "bumpalo",
+ "codspeed-criterion-compat",
  "derive_more 2.1.1",
  "ena",
  "foldhash 0.2.0",
