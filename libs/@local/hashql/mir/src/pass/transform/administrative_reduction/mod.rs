@@ -1,30 +1,103 @@
-use core::convert::Infallible;
-use std::alloc::Allocator;
+use core::{
+    alloc::Allocator,
+    convert::Infallible,
+    marker::PhantomData,
+    mem,
+    ops::{Index, IndexMut},
+    usize,
+};
 
 use hashql_core::{
-    heap::{BumpAllocator, TransferInto},
-    id::IdVec,
+    collections::pool::VecRecycler,
+    graph::{Successors, Traverse, algorithms::Tarjan},
+    heap::{BumpAllocator, Heap, TransferInto as _},
+    id::{Id, IdSlice, IdVec, bit_vec::DenseBitSet},
+    intern::Interned,
 };
 
 use crate::{
     body::{
         Body, Source,
-        basic_block::BasicBlockId,
+        basic_block::{BasicBlock, BasicBlockId},
         constant::Constant,
-        local::LocalVec,
+        local::{Local, LocalDecl, LocalVec},
         location::Location,
         operand::Operand,
-        place::{FieldIndex, Place, ProjectionKind},
-        rvalue::{Aggregate, AggregateKind, Apply, RValue},
+        place::{FieldIndex, Place, PlaceContext, ProjectionKind},
+        rvalue::{Aggregate, AggregateKind, Apply, ArgIndex, RValue},
         statement::{Assign, Statement, StatementKind},
         terminator::{Return, TerminatorKind},
     },
     context::MirContext,
     def::{DefId, DefIdSlice, DefIdVec},
     intern::Interner,
-    pass::{Changed, TransformPass, analysis::CallGraph, transform::cp::propagate_block_params},
-    visit::{self, VisitorMut, r#mut::filter},
+    pass::{
+        AnalysisPass, Changed, TransformPass,
+        analysis::{CallGraph, CallGraphAnalysis},
+        transform::cp::propagate_block_params,
+    },
+    visit::{self, Visitor, VisitorMut, r#mut::filter},
 };
+
+struct SplitIdSlice<'slice, I, T> {
+    left: &'slice mut [T],
+    right: &'slice mut [T],
+
+    _marker: PhantomData<fn(&I)>,
+}
+
+impl<'slice, I, T> SplitIdSlice<'slice, I, T>
+where
+    I: Id,
+{
+    fn new(slice: &'slice mut IdSlice<I, T>, at: I) -> (&'slice mut T, Self) {
+        let (left, right) = slice.as_raw_mut().split_at_mut(at.as_usize());
+        let [mid, right @ ..] = right else {
+            unreachable!("right slice is always non-empty")
+        };
+
+        (
+            mid,
+            Self {
+                left,
+                right,
+                _marker: PhantomData,
+            },
+        )
+    }
+}
+
+impl<'slice, I, T> Index<I> for SplitIdSlice<'slice, I, T>
+where
+    I: Id,
+{
+    type Output = T;
+
+    fn index(&self, index: I) -> &Self::Output {
+        assert!(index.as_usize() != self.left.len(), "index out of bounds");
+
+        if index.as_usize() < self.left.len() {
+            &self.left[index.as_usize()]
+        } else {
+            &self.right[index.as_usize() - self.left.len() - 1]
+        }
+    }
+}
+
+impl<I, T> IndexMut<I> for SplitIdSlice<'_, I, T>
+where
+    I: Id,
+{
+    fn index_mut(&mut self, index: I) -> &mut Self::Output {
+        assert!(index.as_usize() != self.left.len(), "index out of bounds");
+
+        if index.as_usize() < self.left.len() {
+            &mut self.left[index.as_usize()]
+        } else {
+            &mut self.right[index.as_usize() - self.left.len() - 1]
+        }
+    }
+}
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 enum Target {
@@ -149,38 +222,106 @@ enum Pointer<'heap> {
     Fat(Closure<'heap>),
 }
 
-struct AdministrativeReduction;
+struct AdministrativeReduction<A: Allocator> {
+    alloc: A,
+}
+
+impl<A: Allocator> AdministrativeReduction<A> {
+    pub fn run<'env, 'heap>(
+        &self,
+        context: &mut MirContext<'env, 'heap>,
+        bodies: &mut DefIdSlice<Body<'heap>>,
+    ) -> Changed {
+        // first we create a callgraph
+        let mut callgraph = CallGraph::new_in(bodies, &self.alloc);
+        let mut analysis = CallGraphAnalysis::new(&mut callgraph);
+        // We do not need to run until fix-point, rather we just do reverse postorder, which is
+        // sufficient
+        for body in bodies {
+            analysis.run(context, body);
+        }
+
+        let mut targets = DefIdVec::with_capacity_in(bodies.len(), &self.alloc);
+        let mut target_bitset = DenseBitSet::new_empty(bodies.len());
+        for (id, body) in bodies.iter_enumerated() {
+            if let Some(target) = Target::analyze(body) {
+                targets.insert(id, target);
+                target_bitset.insert(id);
+            }
+        }
+
+        // We cannot use postorder, because we don't know where to start, instead we must use tarjan
+        // to get an order.
+        let tarjan = Tarjan::new_in(&callgraph, &self.alloc).run();
+        let members = tarjan.members();
+
+        let mut changed = Changed::No;
+        for scc in members.sccs() {
+            for member in members.of(scc) {
+                let (body, rest) = SplitIdSlice::new(bodies, member);
+
+                let pass = AdministrativeReductionPass {
+                    alloc: &self.alloc,
+                    callgraph: &callgraph,
+                    targets: &targets,
+                    target_bitset: &target_bitset,
+                    bodies: rest,
+                };
+
+                changed |= pass.run(context, body);
+            }
+        }
+
+        changed
+    }
+}
 
 // administrative reduction
 
-impl AdministrativeReduction {}
-
-struct AdministrativeReductionPass<'ctx, A: Allocator> {
+struct AdministrativeReductionPass<'ctx, 'slice, 'heap, A: Allocator> {
     alloc: A,
     callgraph: &'ctx CallGraph<A>,
     targets: &'ctx DefIdSlice<Option<Target>>,
+    target_bitset: &'ctx DenseBitSet<DefId>,
+    bodies: SplitIdSlice<'slice, DefId, Body<'heap>>,
 }
 
-impl<'env, 'heap, A: BumpAllocator> TransformPass<'env, 'heap>
-    for AdministrativeReductionPass<'_, A>
+impl<'env, 'heap, A: Allocator> TransformPass<'env, 'heap>
+    for AdministrativeReductionPass<'_, '_, 'heap, A>
 {
     fn run(&mut self, context: &mut MirContext<'env, 'heap>, body: &mut Body<'heap>) -> Changed {
+        // check if we even have *any* outgoing edge to a target, if not, skip
+        if self
+            .callgraph
+            .successors(body.id)
+            .all(|successor| self.target_bitset.contains(successor))
+        {
+            // Nothing to do, because we don't have an edge to a target
+            return Changed::No;
+        }
+
         let mut visitor = AdministrativeReductionVisitor {
             current: body.id,
             interner: context.interner,
             pointers: IdVec::with_capacity_in(body.local_decls.len(), &self.alloc),
             targets: self.targets,
-            changed: false,
+            changed: true, // indicator inside the loop, therefore first true
             lhs: Place::SYNTHETIC,
+            heap: context.heap,
+            local_decl: &mut body.local_decls,
+            bodies: &mut self.bodies,
+            current_target: None,
         };
 
-        let reverse_postorder = body
+        let reverse_postorder = &*body
             .basic_blocks
             .reverse_postorder()
             .transfer_into(&self.alloc);
         let mut args = Vec::new_in(&self.alloc);
 
-        for &mut id in reverse_postorder {
+        // We don't need to run to fix-point, because we already are! We rerun statements we just
+        // processed.
+        for &id in reverse_postorder {
             for (local, closure) in
                 propagate_block_params(&mut args, body, id, |operand| visitor.try_eval(operand))
             {
@@ -195,21 +336,41 @@ impl<'env, 'heap, A: BumpAllocator> TransformPass<'env, 'heap>
     }
 }
 
-struct AdministrativeReductionVisitor<'ctx, 'env, 'heap, A: Allocator> {
+struct AdministrativeReductionVisitor<'ctx, 'body, 'env, 'heap, A: Allocator> {
+    heap: &'heap Heap,
     current: DefId,
+    local_decl: &'ctx mut LocalVec<LocalDecl<'heap>, &'heap Heap>,
     interner: &'env Interner<'heap>,
     pointers: LocalVec<Option<Pointer<'heap>>, A>,
     targets: &'ctx DefIdSlice<Option<Target>>,
     changed: bool,
     lhs: Place<'heap>,
+    bodies: &'ctx mut SplitIdSlice<'body, DefId, Body<'heap>>,
+    current_target: Option<(DefId, Target, IdVec<ArgIndex, Operand<'heap>, &'heap Heap>)>,
 }
 
-impl<'heap, A: Allocator> AdministrativeReductionVisitor<'_, '_, 'heap, A> {
+impl<'heap, A: Allocator> AdministrativeReductionVisitor<'_, '_, '_, 'heap, A> {
     fn try_eval(&self, operand: Operand<'heap>) -> Option<Pointer<'heap>> {
-        if let Operand::Place(place) = operand
-            && place.projections.is_empty()
+        if let Operand::Constant(Constant::FnPtr(ptr)) = operand {
+            return Some(Pointer::Thin(Function { ptr }));
+        }
+
+        let Operand::Place(place) = operand else {
+            return None;
+        };
+
+        let &pointer = self.pointers.lookup(place.local)?;
+
+        if place.projections.is_empty() {
+            return Some(pointer);
+        }
+
+        // Degrade to a thin pointer if the projection is a field access to the first field
+        if place.projections.len() == 1
+            && place.projections[0].kind == ProjectionKind::Field(FieldIndex::new(0))
+            && let Pointer::Fat(Closure { ptr, env: _ }) = pointer
         {
-            return self.pointers.lookup(place.local).copied();
+            return Some(Pointer::Thin(Function { ptr }));
         }
 
         None
@@ -239,13 +400,19 @@ impl<'heap, A: Allocator> AdministrativeReductionVisitor<'_, '_, 'heap, A> {
     }
 }
 
-impl<'heap, A: Allocator> VisitorMut<'heap> for AdministrativeReductionVisitor<'_, '_, 'heap, A> {
+impl<'heap, A: Allocator> VisitorMut<'heap>
+    for AdministrativeReductionVisitor<'_, '_, '_, 'heap, A>
+{
     type Filter = filter::Deep;
     type Residual = Result<Infallible, !>;
     type Result<T>
         = Result<T, !>
     where
         T: 'heap;
+
+    fn interner(&self) -> &Interner<'heap> {
+        self.interner
+    }
 
     fn visit_statement_assign(
         &mut self,
@@ -312,11 +479,129 @@ impl<'heap, A: Allocator> VisitorMut<'heap> for AdministrativeReductionVisitor<'
             return Ok(());
         };
 
+        let arguments = mem::replace(&mut apply.arguments, IdVec::new_in(self.heap));
+
         // The target dictates how we reduce the closure, if it's closure forwarding, we simply
         // replace the closure (and add any prelude required) if it's a trivial thunk, we
         // simply inline, and replace the return with an assignment to our value.
         // Either way we add some locals, which are removed in subsequent passes.
+        self.current_target = Some((ptr, target, arguments));
 
-        todo!()
+        Ok(())
+    }
+
+    fn visit_basic_block(
+        &mut self,
+        id: BasicBlockId,
+        BasicBlock {
+            params,
+            statements,
+            terminator,
+        }: &mut BasicBlock<'heap>,
+    ) -> Self::Result<()> {
+        let mut location = Location {
+            block: id,
+            statement_index: 0,
+        };
+
+        // We do not visit the basic block id here because it **cannot** be changed
+        self.visit_basic_block_params(location, params)?;
+
+        while location.statement_index < statements.len() {
+            let statement = &mut statements[location.statement_index];
+            location.statement_index += 1; // one based, so we must offset accordingly **before** we run
+
+            self.visit_statement(location, statement)?;
+            if let Some((ptr, _, arguments)) = self.current_target.take() {
+                let statement_span = statement.span;
+                // In both cases the result is very straightforward, we simply merge the targets
+                // statements, and assign the result, then re-process. subsequent passes inside the
+                // fix-point iteration loop will handle the rest.
+
+                // A trivial thunk is a replacement
+                let target = &self.bodies[ptr];
+                debug_assert_eq!(target.basic_blocks.len(), 1);
+                let target_bb = &target.basic_blocks[BasicBlockId::START];
+
+                let TerminatorKind::Return(Return { mut value }) = target_bb.terminator.kind else {
+                    unreachable!(
+                        "a thunk is only trivial if it has a return inside of a single bb"
+                    );
+                };
+
+                let local_offset = self.local_decl.len();
+                self.local_decl.extend_from_slice(&target.local_decls);
+
+                let mut offset_visitor = OffsetLocalVisitor {
+                    interner: self.interner,
+                    offset: local_offset,
+                };
+
+                // We change our statement to be one, that assigns the place to that local
+                offset_visitor.visit_operand(location, &mut value);
+                statement.kind = StatementKind::Assign(Assign {
+                    lhs: self.lhs,
+                    rhs: RValue::Load(value),
+                });
+
+                // Any statements are *prepended* to our current body, once that is done, we
+                // offset these, and decrement the clock, to allow our optimization to run.
+                let offset = location.statement_index - 1;
+                let length = target_bb.statements.len() + target.args;
+
+                // If there are any arguments, also create some statements that bind the arguments
+                // (without offset because the offset visitor is going to look over them)
+                debug_assert_eq!(arguments.len(), target.args);
+                for (param, argument) in arguments.into_iter().enumerate() {
+                    statements.push(Statement {
+                        kind: StatementKind::Assign(Assign {
+                            lhs: Place::local(Local::new(param), self.interner),
+                            rhs: RValue::Load(argument),
+                        }),
+                        span: statement_span,
+                    });
+                }
+
+                statements.splice(offset..offset, target_bb.statements.iter().cloned());
+
+                for (offset, statement) in
+                    statements[offset..offset + length].iter_mut().enumerate()
+                {
+                    let mut location = location;
+                    location.statement_index += offset;
+
+                    offset_visitor.visit_statement(location, statement);
+                }
+
+                location.statement_index -= 1;
+            }
+        }
+
+        self.visit_terminator(location, terminator)?;
+
+        Ok(())
+    }
+}
+
+struct OffsetLocalVisitor<'env, 'heap> {
+    interner: &'env Interner<'heap>,
+    offset: usize,
+}
+
+impl<'env, 'heap> VisitorMut<'heap> for OffsetLocalVisitor<'env, 'heap> {
+    type Filter = filter::Deep;
+    type Residual = Result<Infallible, !>;
+    type Result<T>
+        = Result<T, !>
+    where
+        T: 'heap;
+
+    fn interner(&self) -> &Interner<'heap> {
+        self.interner
+    }
+
+    fn visit_local(&mut self, _: Location, _: PlaceContext, local: &mut Local) -> Self::Result<()> {
+        local.increment_by(self.offset);
+        Ok(())
     }
 }

@@ -48,7 +48,7 @@ use alloc::alloc::Global;
 use core::{alloc::Allocator, fmt};
 
 use hashql_core::{
-    graph::{LinkedGraph, NodeId},
+    graph::{DirectedGraph, EdgeId, LinkedGraph, NodeId, Successors, Traverse},
     id::Id as _,
 };
 
@@ -150,6 +150,50 @@ impl<A: Allocator> fmt::Display for CallGraph<A> {
         Ok(())
     }
 }
+
+impl<A: Allocator> DirectedGraph for CallGraph<A> {
+    type Edge<'this>
+        = EdgeId
+    where
+        Self: 'this;
+    type EdgeId = EdgeId;
+    type Node<'this>
+        = DefId
+    where
+        Self: 'this;
+    type NodeId = DefId;
+
+    fn node_count(&self) -> usize {
+        self.inner.node_count()
+    }
+
+    fn edge_count(&self) -> usize {
+        self.inner.edge_count()
+    }
+
+    fn iter_nodes(&self) -> impl ExactSizeIterator<Item = Self::Node<'_>> + DoubleEndedIterator {
+        self.inner.nodes().ids().map(|id| DefId::new(id.as_u32()))
+    }
+
+    fn iter_edges(&self) -> impl ExactSizeIterator<Item = Self::Edge<'_>> + DoubleEndedIterator {
+        self.inner.edges().ids()
+    }
+}
+
+impl<A: Allocator> Successors for CallGraph<A> {
+    type SuccIter<'this>
+        = impl Iterator<Item = Self::NodeId>
+    where
+        Self: 'this;
+
+    fn successors(&self, node: Self::NodeId) -> Self::SuccIter<'_> {
+        self.inner
+            .successors(NodeId::from_u32(node.as_u32()))
+            .map(|id| DefId::new(id.as_u32()))
+    }
+}
+
+impl<A: Allocator> Traverse for CallGraph<A> {}
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum CallKindFilter {

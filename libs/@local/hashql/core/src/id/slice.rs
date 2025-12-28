@@ -61,6 +61,20 @@ where
         unsafe { &mut *(ptr::from_mut(raw) as *mut Self) }
     }
 
+    #[inline]
+    #[expect(unsafe_code, reason = "repr(transparent)")]
+    pub const fn as_raw(&self) -> &[T] {
+        // SAFETY: `IdSlice` is repr(transparent) and has the same layout as `[T]`.
+        unsafe { &*(ptr::from_ref(self) as *const [T]) }
+    }
+
+    #[inline]
+    #[expect(unsafe_code, reason = "repr(transparent)")]
+    pub const fn as_raw_mut(&mut self) -> &mut [T] {
+        // SAFETY: `IdSlice` is repr(transparent) and has the same layout as `[T]`.
+        unsafe { &mut *(ptr::from_mut(self) as *mut [T]) }
+    }
+
     /// Gets a reference to an element or subslice by ID index.
     ///
     /// See [`slice::get`] for details.
