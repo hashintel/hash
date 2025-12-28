@@ -12,7 +12,7 @@ fn {intrinsic#4294967040}(%0: Integer) -> Integer {
     }
 }
 
-------------------------------------
+================== Changed: Yes ==================
 
 fn {intrinsic#4294967040}(%0: Integer) -> Integer {
     let %1: Integer
