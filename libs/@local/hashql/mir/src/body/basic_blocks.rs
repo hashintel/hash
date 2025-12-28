@@ -349,7 +349,7 @@ impl graph::Successors for BasicBlocks<'_> {
 
 impl graph::Predecessors for BasicBlocks<'_> {
     type PredIter<'this>
-        = impl ExactSizeIterator<Item = BasicBlockId> + DoubleEndedIterator
+        = impl ExactSizeIterator<Item = BasicBlockId> + DoubleEndedIterator + Clone
     where
         Self: 'this;
 

@@ -1,7 +1,8 @@
 #![expect(
     clippy::min_ident_chars,
     clippy::many_single_char_names,
-    clippy::significant_drop_tightening
+    clippy::significant_drop_tightening,
+    clippy::similar_names
 )]
 
 use core::hint::black_box;
@@ -20,7 +21,7 @@ use hashql_mir::{
     op,
     pass::{
         TransformPass,
-        transform::{CfgSimplify, DeadStoreElimination, Sroa},
+        transform::{CfgSimplify, DeadStoreElimination, InstSimplify, Sroa},
     },
 };
 
@@ -149,6 +150,62 @@ fn create_dead_store_cfg<'heap>(
         .ret(y);
 
     builder.finish(0, TypeBuilder::synthetic(env).integer())
+}
+
+/// Creates a body with patterns that `InstSimplify` can optimize.
+///
+/// Structure:
+/// ```text
+/// bb0:
+///     a = 1 == 2              // const fold -> false
+///     b = 3 < 5               // const fold -> true
+///     c = b && true           // identity -> b
+///     x = 42
+///     y = x & x               // idempotent -> x
+///     d = x == x              // identical operand -> true
+///     e = a || c              // const fold (a=false, c=true) -> true
+///     f = e && d              // const fold -> true
+///     return f
+/// ```
+fn create_inst_simplify_cfg<'heap>(
+    env: &Environment<'heap>,
+    interner: &Interner<'heap>,
+) -> Body<'heap> {
+    let mut builder = BodyBuilder::new(interner);
+    let int_ty = TypeBuilder::synthetic(env).integer();
+    let bool_ty = TypeBuilder::synthetic(env).boolean();
+
+    let a = builder.local("a", bool_ty);
+    let b = builder.local("b", bool_ty);
+    let c = builder.local("c", bool_ty);
+    let x = builder.local("x", int_ty);
+    let y = builder.local("y", int_ty);
+    let d = builder.local("d", bool_ty);
+    let e = builder.local("e", bool_ty);
+    let f = builder.local("f", bool_ty);
+
+    let const_1 = builder.const_int(1);
+    let const_2 = builder.const_int(2);
+    let const_3 = builder.const_int(3);
+    let const_5 = builder.const_int(5);
+    let const_42 = builder.const_int(42);
+    let const_true = builder.const_bool(true);
+
+    let bb0 = builder.reserve_block([]);
+
+    builder
+        .build_block(bb0)
+        .assign_place(a, |rv| rv.binary(const_1, op![==], const_2))
+        .assign_place(b, |rv| rv.binary(const_3, op![<], const_5))
+        .assign_place(c, |rv| rv.binary(b, op![&], const_true))
+        .assign_place(x, |rv| rv.load(const_42))
+        .assign_place(y, |rv| rv.binary(x, op![&], x))
+        .assign_place(d, |rv| rv.binary(x, op![==], x))
+        .assign_place(e, |rv| rv.binary(a, op![|], c))
+        .assign_place(f, |rv| rv.binary(e, op![&], d))
+        .ret(f);
+
+    builder.finish(0, TypeBuilder::synthetic(env).boolean())
 }
 
 /// Creates a larger CFG with multiple branches and join points for more realistic benchmarking.
@@ -359,6 +416,23 @@ fn dse(criterion: &mut Criterion) {
     });
 }
 
+fn inst_simplify(criterion: &mut Criterion) {
+    let mut group = criterion.benchmark_group("inst_simplify");
+
+    group.bench_function("foldable", |bencher| {
+        run(bencher, create_inst_simplify_cfg, InstSimplify::new());
+    });
+    group.bench_function("linear", |bencher| {
+        run(bencher, create_linear_cfg, InstSimplify::new());
+    });
+    group.bench_function("diamond", |bencher| {
+        run(bencher, create_diamond_cfg, InstSimplify::new());
+    });
+    group.bench_function("complex", |bencher| {
+        run(bencher, create_complex_cfg, InstSimplify::new());
+    });
+}
+
 fn pipeline(criterion: &mut Criterion) {
     let mut group = criterion.benchmark_group("pipeline");
 
@@ -368,6 +442,7 @@ fn pipeline(criterion: &mut Criterion) {
         run_bencher(bencher, create_linear_cfg, |context, body| {
             CfgSimplify::new_in(&mut scratch).run(context, body);
             Sroa::new_in(&mut scratch).run(context, body);
+            InstSimplify::new().run(context, body);
             DeadStoreElimination::new_in(&mut scratch).run(context, body);
         });
     });
@@ -377,6 +452,7 @@ fn pipeline(criterion: &mut Criterion) {
         run_bencher(bencher, create_diamond_cfg, |context, body| {
             CfgSimplify::new_in(&mut scratch).run(context, body);
             Sroa::new_in(&mut scratch).run(context, body);
+            InstSimplify::new().run(context, body);
             DeadStoreElimination::new_in(&mut scratch).run(context, body);
         });
     });
@@ -386,10 +462,11 @@ fn pipeline(criterion: &mut Criterion) {
         run_bencher(bencher, create_complex_cfg, |context, body| {
             CfgSimplify::new_in(&mut scratch).run(context, body);
             Sroa::new_in(&mut scratch).run(context, body);
+            InstSimplify::new().run(context, body);
             DeadStoreElimination::new_in(&mut scratch).run(context, body);
         });
     });
 }
 
-criterion_group!(benches, cfg_simplify, sroa, dse, pipeline);
+criterion_group!(benches, cfg_simplify, sroa, dse, inst_simplify, pipeline);
 criterion_main!(benches);

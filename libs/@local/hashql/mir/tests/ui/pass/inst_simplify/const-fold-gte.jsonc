@@ -1,0 +1,8 @@
+//@ run: pass
+//@ description: Constant folding for greater-than-or-equal comparison
+[
+  "if",
+  { "#literal": true },
+  [">=", { "#literal": 5 }, { "#literal": 5 }],
+  { "#literal": false }
+]

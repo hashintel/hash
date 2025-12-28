@@ -165,6 +165,11 @@ pub enum TerminatorKind<'heap> {
 }
 
 impl<'heap> TerminatorKind<'heap> {
+    #[must_use]
+    pub const fn is_effectful(&self) -> bool {
+        matches!(self, Self::GraphRead(_))
+    }
+
     /// Returns an iterator over the basic block IDs of all possible successors.
     ///
     /// The returned iterator yields the [`BasicBlockId`] of each block that control

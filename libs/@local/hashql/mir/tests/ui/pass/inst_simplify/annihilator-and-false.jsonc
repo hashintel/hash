@@ -1,0 +1,13 @@
+//@ run: pass
+//@ description: Annihilator simplification: x && false => false
+[
+  "if",
+  { "#literal": true },
+  [
+    "let",
+    "x",
+    ["==", { "#literal": 1 }, { "#literal": 1 }],
+    ["&&", "x", { "#literal": false }]
+  ],
+  { "#literal": true }
+]

@@ -1,0 +1,8 @@
+//@ run: pass
+//@ description: Constant folding for equality comparison of two constants
+[
+  "if",
+  { "#literal": true },
+  ["==", { "#literal": 1 }, { "#literal": 2 }],
+  { "#literal": false }
+]
