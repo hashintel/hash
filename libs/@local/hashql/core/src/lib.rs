@@ -30,7 +30,8 @@
     step_trait,
     try_trait_v2,
     variant_count,
-    clone_from_ref
+    clone_from_ref,
+    extend_one
 )]
 
 extern crate alloc;
