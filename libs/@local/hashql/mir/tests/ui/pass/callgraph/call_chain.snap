@@ -1,0 +1,6 @@
+---
+source: libs/@local/hashql/mir/src/pass/analysis/callgraph/tests.rs
+expression: "format!(\"{graph}\")"
+---
+@0 -> @1 [Apply @ bb0:1]
+@1 -> @2 [Apply @ bb0:1]
