@@ -1,0 +1,41 @@
+---
+source: libs/@local/hashql/mir/src/pass/transform/cp/tests.rs
+expression: value
+---
+fn {intrinsic#4294967040}() -> Boolean {
+    let %0: Integer
+    let %1: Integer
+    let %2: Boolean
+
+    bb0(): {
+        %0 = 1
+
+        goto -> bb1(%0)
+    }
+
+    bb1(%1): {
+        %2 = %1 == %1
+
+        return %2
+    }
+}
+
+------------------------------------
+
+fn {intrinsic#4294967040}() -> Boolean {
+    let %0: Integer
+    let %1: Integer
+    let %2: Boolean
+
+    bb0(): {
+        %0 = 1
+
+        goto -> bb1(1)
+    }
+
+    bb1(%1): {
+        %2 = 1 == 1
+
+        return %2
+    }
+}
