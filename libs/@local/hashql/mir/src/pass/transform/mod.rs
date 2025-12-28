@@ -1,3 +1,4 @@
+mod administrative_reduction;
 mod cfg_simplify;
 mod cp;
 mod dbe;

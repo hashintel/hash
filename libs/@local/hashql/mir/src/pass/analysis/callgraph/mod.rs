@@ -151,6 +151,12 @@ impl<A: Allocator> fmt::Display for CallGraph<A> {
     }
 }
 
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+pub enum CallKindFilter {
+    ApplyOnly,
+    FilterOnly,
+}
+
 /// Analysis pass that populates a [`CallGraph`] from MIR bodies.
 ///
 /// This pass traverses a MIR body and records an edge for each [`DefId`] reference encountered,
@@ -158,12 +164,25 @@ impl<A: Allocator> fmt::Display for CallGraph<A> {
 /// inter-procedural call graph.
 pub struct CallGraphAnalysis<'graph, A: Allocator = Global> {
     graph: &'graph mut CallGraph<A>,
+    filter: Option<CallKindFilter>,
 }
 
 impl<'graph, A: Allocator> CallGraphAnalysis<'graph, A> {
     /// Creates a new analysis pass that will populate the given `graph`.
+    #[must_use]
     pub const fn new(graph: &'graph mut CallGraph<A>) -> Self {
-        Self { graph }
+        Self {
+            graph,
+            filter: None,
+        }
+    }
+
+    #[must_use]
+    pub const fn with_filter(self, filter: CallKindFilter) -> Self {
+        Self {
+            graph: self.graph,
+            filter: Some(filter),
+        }
     }
 }
 
@@ -173,6 +192,7 @@ impl<'env, 'heap, A: Allocator> AnalysisPass<'env, 'heap> for CallGraphAnalysis<
             kind: CallKind::Opaque,
             caller: body.id,
             graph: self.graph,
+            filter: self.filter,
         };
 
         Ok(()) = visitor.visit_body(body);
@@ -184,12 +204,22 @@ struct CallGraphVisitor<'graph, A: Allocator = Global> {
     kind: CallKind,
     caller: DefId,
     graph: &'graph mut CallGraph<A>,
+    filter: Option<CallKindFilter>,
 }
 
 impl<'heap, A: Allocator> Visitor<'heap> for CallGraphVisitor<'_, A> {
     type Result = Result<(), !>;
 
     fn visit_def_id(&mut self, _: Location, def_id: DefId) -> Self::Result {
+        if !matches!(
+            (self.filter, self.kind),
+            (None, _)
+                | (Some(CallKindFilter::ApplyOnly), CallKind::Apply(_))
+                | (Some(CallKindFilter::FilterOnly), CallKind::Filter(_))
+        ) {
+            return Ok(());
+        }
+
         let source = NodeId::from_usize(self.caller.as_usize());
         let target = NodeId::from_usize(def_id.as_usize());
 
@@ -206,9 +236,22 @@ impl<'heap, A: Allocator> Visitor<'heap> for CallGraphVisitor<'_, A> {
         }: &Apply<'heap>,
     ) -> Self::Result {
         debug_assert_eq!(self.kind, CallKind::Opaque);
+
+        if self.filter == Some(CallKindFilter::FilterOnly) {
+            // In the case that we're only interested in filter edges, we can skip apply edges
+            // completely.
+            return Ok(());
+        }
+
         self.kind = CallKind::Apply(location);
         self.visit_operand(location, function)?;
         self.kind = CallKind::Opaque;
+
+        if self.filter.is_some() {
+            // Arguments can only add opaque edges, if we're only checking for filter or apply edges
+            // we can safely ignore them.
+            return Ok(());
+        }
 
         for argument in arguments.iter() {
             self.visit_operand(location, argument)?;
@@ -225,9 +268,21 @@ impl<'heap, A: Allocator> Visitor<'heap> for CallGraphVisitor<'_, A> {
         match body {
             &GraphReadBody::Filter(func, env) => {
                 debug_assert_eq!(self.kind, CallKind::Opaque);
+
+                if self.filter == Some(CallKindFilter::ApplyOnly) {
+                    // If we're only checking for apply edges, we can safely ignore filter edges.
+                    return Ok(());
+                }
+
                 self.kind = CallKind::Filter(location);
                 self.visit_def_id(location.base, func)?;
                 self.kind = CallKind::Opaque;
+
+                if self.filter.is_some() {
+                    // Env can only add opaque edges, if we're only checking for filter or
+                    // apply edges we can safely ignore them.
+                    return Ok(());
+                }
 
                 self.visit_local(
                     location.base,
