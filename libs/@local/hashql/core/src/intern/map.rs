@@ -7,7 +7,7 @@ use hashbrown::hash_map::RawEntryMut;
 
 use super::Interned;
 use crate::{
-    collections::{FastHashMap, fast_hash_map_in, fast_hash_map_with_capacity_in},
+    collections::{FastHashMap, fast_hash_map, fast_hash_map_with_capacity},
     heap::Heap,
     id::{HasId, Id, IdProducer},
     sync::lock::LocalLock,
@@ -184,7 +184,7 @@ pub struct InternMap<'heap, T: Decompose<'heap>> {
 
     // For more information about the tradeoff and decision on the use of `LocalLock`, see
     // the documentation on `InternSet`.
-    inner: LocalLock<FastHashMap<&'heap T::Partial, T::Id, &'heap Heap>>,
+    inner: LocalLock<FastHashMap<&'heap T::Partial, T::Id>>,
 
     // In theory, this isn't as efficient as it could be, but it makes the implementation simpler.
     // A more optimized approach would be to:
@@ -201,7 +201,7 @@ pub struct InternMap<'heap, T: Decompose<'heap>> {
     // - Each map entry requires ~24 bytes (12 bytes per hashmap entry × 2 maps).
     // - The entire ID space would require ~96GB just for the map structures.
     // - Memory constraints will be hit long before ID exhaustion.
-    lookup: LocalLock<FastHashMap<T::Id, &'heap T::Partial, &'heap Heap>>,
+    lookup: LocalLock<FastHashMap<T::Id, &'heap T::Partial>>,
 
     next: IdProducer<T::Id>,
 }
@@ -218,9 +218,9 @@ where
     pub fn new(heap: &'heap Heap) -> Self {
         Self {
             heap,
-            inner: LocalLock::new(fast_hash_map_in(heap)),
+            inner: LocalLock::new(fast_hash_map()),
 
-            lookup: LocalLock::new(fast_hash_map_in(heap)),
+            lookup: LocalLock::new(fast_hash_map()),
 
             next: IdProducer::new(),
         }
@@ -303,8 +303,8 @@ where
     pub fn with_capacity(capacity: usize, heap: &'heap Heap) -> Self {
         Self {
             heap,
-            inner: LocalLock::new(fast_hash_map_with_capacity_in(capacity, heap)),
-            lookup: LocalLock::new(fast_hash_map_with_capacity_in(capacity, heap)),
+            inner: LocalLock::new(fast_hash_map_with_capacity(capacity)),
+            lookup: LocalLock::new(fast_hash_map_with_capacity(capacity)),
             next: IdProducer::new(),
         }
     }
