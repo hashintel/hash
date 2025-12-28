@@ -5,7 +5,7 @@ use hashbrown::hash_map::RawEntryMut;
 
 use super::Interned;
 use crate::{
-    collections::{FastHashMap, fast_hash_map_with_capacity},
+    collections::{FastHashMap, fast_hash_map_in, fast_hash_map_with_capacity_in},
     heap::{Heap, TransferInto as _},
     sync::lock::LocalLock,
 };
@@ -97,7 +97,7 @@ use crate::{
 #[derive(derive_more::Debug)]
 #[debug(bound(T: Eq))]
 pub struct InternSet<'heap, T: ?Sized> {
-    inner: LocalLock<FastHashMap<&'heap T, ()>>,
+    inner: LocalLock<FastHashMap<&'heap T, (), &'heap Heap>>,
     heap: &'heap Heap,
 }
 
@@ -117,7 +117,7 @@ impl<'heap, T: ?Sized> InternSet<'heap, T> {
     /// ```
     pub fn new(heap: &'heap Heap) -> Self {
         Self {
-            inner: LocalLock::default(),
+            inner: LocalLock::new(fast_hash_map_in(heap)),
             heap,
         }
     }
@@ -164,7 +164,7 @@ impl<'heap, T: ?Sized> InternSet<'heap, T> {
     /// ```
     pub fn with_capacity(capacity: usize, heap: &'heap Heap) -> Self {
         Self {
-            inner: LocalLock::new(fast_hash_map_with_capacity(capacity)),
+            inner: LocalLock::new(fast_hash_map_with_capacity_in(capacity, heap)),
             heap,
         }
     }
