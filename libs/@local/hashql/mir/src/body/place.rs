@@ -10,7 +10,12 @@ use core::{
     hash::{Hash, Hasher},
 };
 
-use hashql_core::{id, intern::Interned, symbol::Symbol, r#type::TypeId};
+use hashql_core::{
+    id::{self, Id},
+    intern::Interned,
+    symbol::Symbol,
+    r#type::TypeId,
+};
 
 use super::local::{Local, LocalDecl, LocalSlice};
 use crate::intern::Interner;
@@ -295,6 +300,11 @@ pub struct Place<'heap> {
 }
 
 impl<'heap> Place<'heap> {
+    pub const SYNTHETIC: Self = Place {
+        local: Local::MAX,
+        projections: Interned::empty(),
+    };
+
     /// Creates a new place that directly references a local variable without any projections.
     ///
     /// This is the simplest form of a place, representing direct access to a local variable
