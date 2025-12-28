@@ -208,9 +208,15 @@ mod tests {
 
     #[test]
     fn stable_empty_slice() {
-        let a: Interned<'_, [u32]> = Interned::empty();
-        let b: Interned<'_, [u16]> = Interned::empty();
+        let a: Interned<'_, [u16]> = Interned::empty();
+        let b: Interned<'_, [u32]> = Interned::empty();
+        let c: Interned<'_, [u128]> = Interned::empty();
 
         assert!(ptr::addr_eq(a.0, b.0));
+        assert!(ptr::addr_eq(b.0, c.0));
+
+        assert!(a.is_empty());
+        assert!(b.is_empty());
+        assert!(c.is_empty());
     }
 }
