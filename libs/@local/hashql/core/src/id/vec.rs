@@ -10,7 +10,7 @@ use core::{
 };
 
 use super::{Id, slice::IdSlice};
-use crate::heap::TryCloneIn;
+use crate::heap::{FromIteratorIn, TryCloneIn};
 
 /// A growable vector that uses typed IDs for indexing instead of raw `usize` values.
 ///
@@ -601,5 +601,19 @@ where
 
     fn try_clone_into(&self, into: &mut Self::Cloned, allocator: B) -> Result<(), AllocError> {
         self.raw.try_clone_into(&mut into.raw, allocator)
+    }
+}
+
+impl<I, T, A> FromIteratorIn<T, A> for IdVec<I, T, A>
+where
+    I: Id,
+    A: Allocator,
+{
+    #[inline]
+    fn from_iter_in<U>(iter: U, alloc: A) -> Self
+    where
+        U: IntoIterator<Item = T>,
+    {
+        Self::from_raw(Vec::from_iter_in(iter, alloc))
     }
 }
