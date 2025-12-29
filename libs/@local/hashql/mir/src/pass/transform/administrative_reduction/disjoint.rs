@@ -32,8 +32,8 @@ where
         )
     }
 
-    pub(crate) fn reborrow<'this: 'slice>(&'this mut self) -> DisjointIdSlice<'this, I, T> {
-        Self {
+    pub(crate) fn reborrow(&mut self) -> DisjointIdSlice<'_, I, T> {
+        DisjointIdSlice {
             left: self.left,
             right: self.right,
             _marker: PhantomData,

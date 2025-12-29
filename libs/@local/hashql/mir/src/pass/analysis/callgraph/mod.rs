@@ -112,11 +112,13 @@ impl<'heap> CallGraph<'heap> {
     ///
     /// All [`DefId`]s that may appear as edge endpoints must be present in the domain.
     #[inline]
+    #[must_use]
     pub fn new(domain: &DefIdSlice<Body<'heap>>) -> Self {
         Self::new_in(domain, Global)
     }
 
     #[inline]
+    #[must_use]
     pub fn analyze(domain: &DefIdSlice<Body<'heap>>) -> Self {
         Self::analyze_in(domain, Global)
     }

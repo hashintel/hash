@@ -19,7 +19,7 @@
 
 use core::ops::{BitOr, BitOrAssign};
 
-use crate::{body::Body, context::MirContext};
+use crate::{body::Body, context::MirContext, def::DefIdSlice};
 
 pub mod analysis;
 pub mod transform;
@@ -102,7 +102,7 @@ impl Changed {
         }
     }
 
-    fn from_u8(value: u8) -> Self {
+    const fn from_u8(value: u8) -> Self {
         match value {
             0 => Self::No,
             1 => Self::Unknown,
@@ -111,7 +111,7 @@ impl Changed {
         }
     }
 
-    fn into_u8(self) -> u8 {
+    const fn into_u8(self) -> u8 {
         self as u8
     }
 }
@@ -165,6 +165,26 @@ pub trait TransformPass<'env, 'heap> {
     /// The `context` provides access to the heap allocator, type environment, interner, and
     /// diagnostic collection. The `body` can be read and modified in place.
     fn run(&mut self, context: &mut MirContext<'env, 'heap>, body: &mut Body<'heap>) -> Changed;
+
+    /// Returns a human-readable name for this pass.
+    ///
+    /// The default implementation extracts the type name without module path or generic
+    /// parameters. Override this method to provide a custom name.
+    fn name(&self) -> &'static str {
+        const { simplify_type_name(core::any::type_name::<Self>()) }
+    }
+}
+
+pub trait ProgramTransformPass<'env, 'heap> {
+    /// Executes the pass on the given `body`.
+    ///
+    /// The `context` provides access to the heap allocator, type environment, interner, and
+    /// diagnostic collection. The `body` can be read and modified in place.
+    fn run(
+        &mut self,
+        context: &mut MirContext<'env, 'heap>,
+        bodies: &mut DefIdSlice<Body<'heap>>,
+    ) -> Changed;
 
     /// Returns a human-readable name for this pass.
     ///
