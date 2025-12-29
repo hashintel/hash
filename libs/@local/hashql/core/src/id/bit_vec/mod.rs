@@ -26,6 +26,7 @@
 //! - Removed mentions of `IntervalSet`.
 //! - Implement `MixedBitSet::intersect`.
 //! - Implement `DenseBitSet::negate`
+//! - Implement `DenseBitSet::first_unset`
 #![expect(
     clippy::integer_division,
     clippy::integer_division_remainder_used,
@@ -338,6 +339,16 @@ impl<T: Id> DenseBitSet<T> {
         }
 
         None
+    }
+
+    #[inline]
+    #[must_use]
+    pub fn first_unset(&self) -> Option<T> {
+        let word_idx = self.words.iter().position(|&word| word != !0)?;
+
+        let word = self.words[word_idx];
+        let pos = WORD_BITS * word_idx + word.trailing_ones() as usize;
+        (pos < self.domain_size).then(|| T::from_usize(pos))
     }
 
     /// Sets `self = self | !other`.

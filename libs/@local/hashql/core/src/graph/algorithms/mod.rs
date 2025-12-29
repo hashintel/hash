@@ -29,6 +29,7 @@ pub mod dominators;
 pub mod tarjan;
 
 use alloc::collections::VecDeque;
+use core::iter::FusedIterator;
 
 pub use self::{
     dominators::{
@@ -38,7 +39,10 @@ pub use self::{
     tarjan::Tarjan,
 };
 use super::{DirectedGraph, Successors};
-use crate::id::{Id, bit_vec::MixedBitSet};
+use crate::id::{
+    Id,
+    bit_vec::{DenseBitSet, MixedBitSet},
+};
 
 /// Iterator for depth-first traversal of a directed graph.
 ///
@@ -589,6 +593,153 @@ where
         // Lower bound: at least the nodes currently in the stack
         // Upper bound: could visit up to all remaining unvisited nodes
         // Note: Due to disconnected components, we may not visit all nodes
-        (self.stack.len(), Some(remaining))
+        (self.stack.len(), Some(self.stack.len() + remaining))
     }
+}
+
+/// Iterator for post-order depth-first traversal of an entire graph forest.
+///
+/// Unlike [`DepthFirstTraversalPostOrder`], this iterator automatically discovers and
+/// traverses all nodes in the graph, including disconnected components. It guarantees
+/// that every node is visited exactly once, with all descendants visited before their
+/// ancestors (post-order).
+///
+/// This traversal is useful for:
+/// - Processing all nodes in a graph without knowing the structure upfront
+/// - Topological-like ordering across disconnected components
+/// - Computing properties that require visiting all nodes bottom-up
+///
+/// The iterator implements [`ExactSizeIterator`] since it will visit exactly
+/// `graph.node_count()` nodes.
+///
+/// # Examples
+///
+/// ```rust
+/// # use hashql_core::graph::{LinkedGraph, algorithms::DepthFirstForestPostOrder};
+/// #
+/// let mut graph = LinkedGraph::new();
+/// let n1 = graph.add_node("A");
+/// let n2 = graph.add_node("B");
+/// let n3 = graph.add_node("C");
+/// graph.add_edge(n1, n2, ());
+/// // n3 is disconnected
+///
+/// let traversal = DepthFirstForestPostOrder::new(&graph);
+/// let visited: Vec<_> = traversal.collect();
+///
+/// // All nodes are visited, with descendants before ancestors
+/// assert_eq!(visited.len(), 3);
+/// # // n2 comes before n1 (post-order within component)
+/// # assert!(visited.iter().position(|&n| n == n2) < visited.iter().position(|&n| n == n1));
+/// ```
+pub struct DepthFirstForestPostOrder<'graph, G: ?Sized, N, I> {
+    graph: &'graph G,
+    stack: Vec<PostOrderFrame<N, I>>,
+    visited: DenseBitSet<N>,
+}
+
+impl<'graph, G: ?Sized, N, I> DepthFirstForestPostOrder<'graph, G, N, I> {
+    /// Creates a new post-order forest traversal over the entire graph.
+    ///
+    /// The traversal will visit all nodes in the graph, automatically discovering
+    /// disconnected components by iterating through unvisited node IDs.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// # use hashql_core::graph::{LinkedGraph, algorithms::DepthFirstForestPostOrder};
+    /// #
+    /// let mut graph = LinkedGraph::new();
+    /// let n1 = graph.add_node("A");
+    /// let n2 = graph.add_node("B");
+    /// graph.add_edge(n1, n2, ());
+    ///
+    /// let traversal = DepthFirstForestPostOrder::new(&graph);
+    /// assert_eq!(traversal.len(), 2);
+    /// ```
+    pub fn new(graph: &'graph G) -> Self
+    where
+        G: DirectedGraph,
+        N: Id,
+    {
+        Self {
+            graph,
+            stack: Vec::new(),
+            visited: DenseBitSet::new_empty(graph.node_count()),
+        }
+    }
+}
+
+impl<'graph, G: DirectedGraph<NodeId = N> + Successors<SuccIter<'graph> = I> + ?Sized, N, I>
+    Iterator for DepthFirstForestPostOrder<'graph, G, N, I>
+where
+    N: Id,
+    I: Iterator<Item = N>,
+{
+    type Item = N;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let node = 'recurse: loop {
+            if self.stack.is_empty()
+                && let Some(node) = self.visited.first_unset()
+            {
+                self.visited.insert(node);
+                self.stack.push(PostOrderFrame {
+                    node,
+                    successors: self.graph.successors(node),
+                });
+            }
+
+            let PostOrderFrame { node, successors } = self.stack.last_mut()?;
+            let node = *node;
+
+            // Process successors until we find an unvisited one
+            for successor in successors {
+                if !self.visited.insert(successor) {
+                    // Already visited, skip
+                    continue;
+                }
+
+                // Found unvisited successor - push it and "recurse" by continuing outer loop
+                self.stack.push(PostOrderFrame {
+                    node: successor,
+                    successors: self.graph.successors(successor),
+                });
+
+                continue 'recurse;
+            }
+
+            // All successors processed - we can now yield this node
+            self.stack.pop();
+            break node;
+        };
+
+        Some(node)
+    }
+
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        let remaining = self.graph.node_count() - self.visited.count();
+
+        let total = self.stack.len() + remaining;
+
+        // Lower bound: at least the nodes currently in the stack
+        // Upper bound: could visit up to all remaining unvisited nodes
+        (total, Some(total))
+    }
+}
+
+impl<'graph, G: DirectedGraph<NodeId = N> + Successors<SuccIter<'graph> = I> + ?Sized, N, I>
+    ExactSizeIterator for DepthFirstForestPostOrder<'graph, G, N, I>
+where
+    N: Id,
+    I: Iterator<Item = N>,
+{
+}
+
+impl<'graph, G: DirectedGraph<NodeId = N> + Successors<SuccIter<'graph> = I> + ?Sized, N, I>
+    FusedIterator for DepthFirstForestPostOrder<'graph, G, N, I>
+where
+    N: Id,
+    I: Iterator<Item = N>,
+{
 }

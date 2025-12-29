@@ -8,11 +8,9 @@ use core::{
 };
 
 use hashql_core::{
-    collections::pool::VecRecycler,
-    graph::{Successors, Traverse, algorithms::Tarjan},
-    heap::{BumpAllocator, Heap, TransferInto as _},
+    graph::{Successors, algorithms::Tarjan},
+    heap::{Heap, TransferInto as _},
     id::{Id, IdSlice, IdVec, bit_vec::DenseBitSet},
-    intern::Interned,
 };
 
 use crate::{
@@ -36,7 +34,7 @@ use crate::{
         analysis::{CallGraph, CallGraphAnalysis},
         transform::cp::propagate_block_params,
     },
-    visit::{self, Visitor, VisitorMut, r#mut::filter},
+    visit::{self, VisitorMut, r#mut::filter},
 };
 
 struct SplitIdSlice<'slice, I, T> {
