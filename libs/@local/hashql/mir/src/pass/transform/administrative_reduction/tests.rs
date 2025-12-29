@@ -21,73 +21,32 @@ use crate::{
     pretty::TextFormat,
 };
 
-/// Tests TrivialThunk classification for a body that loads a constant and returns it.
+/// Tests `TrivialThunk` classification for an identity function (returns parameter).
 ///
 /// ```text
-/// fn body0() -> Int {
-///     bb0:
-///         %0 = 1
-///         return %0
-/// }
-/// ```
-#[test]
-fn classify_thunk_const_return() {
-    scaffold!(heap, interner, builder);
-    let env = Environment::new(&heap);
-
-    let int_ty = TypeBuilder::synthetic(&env).integer();
-
-    let x = builder.local("x", int_ty);
-    let const_1 = builder.const_int(1);
-
-    let bb0 = builder.reserve_block([]);
-    builder
-        .build_block(bb0)
-        .assign_place(x, |rv| rv.load(const_1))
-        .ret(x);
-
-    let body = builder.finish(0, int_ty);
-
-    assert_eq!(ReductionKind::of(&body), Some(ReductionKind::TrivialThunk));
-}
-
-/// Tests TrivialThunk classification for a body with multiple Load statements.
-///
-/// ```text
-/// fn body0() -> Int {
+/// fn body0(%0: Int) -> Int {
 ///   bb0:
-///     %0 = 1
-///     %1 = %0
-///     %2 = %1
-///     return %2
+///     return %0
 /// }
 /// ```
 #[test]
-fn classify_thunk_load_chain() {
+fn classify_thunk_identity() {
     scaffold!(heap, interner, builder);
     let env = Environment::new(&heap);
 
     let int_ty = TypeBuilder::synthetic(&env).integer();
 
-    let x = builder.local("x", int_ty);
-    let y = builder.local("y", int_ty);
-    let z = builder.local("z", int_ty);
-    let const_1 = builder.const_int(1);
+    let arg = builder.local("arg", int_ty);
 
     let bb0 = builder.reserve_block([]);
-    builder
-        .build_block(bb0)
-        .assign_place(x, |rv| rv.load(const_1))
-        .assign_place(y, |rv| rv.load(x))
-        .assign_place(z, |rv| rv.load(y))
-        .ret(z);
+    builder.build_block(bb0).ret(arg);
 
-    let body = builder.finish(0, int_ty);
+    let body = builder.finish(1, int_ty);
 
     assert_eq!(ReductionKind::of(&body), Some(ReductionKind::TrivialThunk));
 }
 
-/// Tests TrivialThunk classification for a body with struct Aggregate.
+/// Tests `TrivialThunk` classification for a body with Aggregate.
 ///
 /// ```text
 /// fn body0() -> (a: Int, b: Int) {
@@ -97,7 +56,7 @@ fn classify_thunk_load_chain() {
 /// }
 /// ```
 #[test]
-fn classify_thunk_aggregate_struct() {
+fn classify_thunk_aggregate() {
     scaffold!(heap, interner, builder);
     let env = Environment::new(&heap);
 
@@ -119,98 +78,7 @@ fn classify_thunk_aggregate_struct() {
     assert_eq!(ReductionKind::of(&body), Some(ReductionKind::TrivialThunk));
 }
 
-/// Tests TrivialThunk classification for a body with tuple Aggregate.
-///
-/// ```text
-/// fn body0() -> (Int, Int) {
-///   bb0:
-///     %0 = (1, 2)
-///     return %0
-/// }
-/// ```
-#[test]
-fn classify_thunk_aggregate_tuple() {
-    scaffold!(heap, interner, builder);
-    let env = Environment::new(&heap);
-
-    let int_ty = TypeBuilder::synthetic(&env).integer();
-    let tuple_ty = TypeBuilder::synthetic(&env).tuple([int_ty, int_ty]);
-
-    let x = builder.local("x", tuple_ty);
-    let const_1 = builder.const_int(1);
-    let const_2 = builder.const_int(2);
-
-    let bb0 = builder.reserve_block([]);
-    builder
-        .build_block(bb0)
-        .assign_place(x, |rv| rv.tuple([const_1, const_2]))
-        .ret(x);
-
-    let body = builder.finish(0, tuple_ty);
-
-    assert_eq!(ReductionKind::of(&body), Some(ReductionKind::TrivialThunk));
-}
-
-/// Tests that Nop statements don't block TrivialThunk classification.
-///
-/// ```text
-/// fn body0() -> Int {
-///   bb0:
-///     nop
-///     %0 = 1
-///     nop
-///     return %0
-/// }
-/// ```
-#[test]
-fn classify_thunk_nop() {
-    scaffold!(heap, interner, builder);
-    let env = Environment::new(&heap);
-
-    let int_ty = TypeBuilder::synthetic(&env).integer();
-
-    let x = builder.local("x", int_ty);
-    let const_1 = builder.const_int(1);
-
-    let bb0 = builder.reserve_block([]);
-    builder
-        .build_block(bb0)
-        .nop()
-        .assign_place(x, |rv| rv.load(const_1))
-        .nop()
-        .ret(x);
-
-    let body = builder.finish(0, int_ty);
-
-    assert_eq!(ReductionKind::of(&body), Some(ReductionKind::TrivialThunk));
-}
-
-/// Tests TrivialThunk classification for an identity function (returns parameter).
-///
-/// ```text
-/// fn body0(%0: Int) -> Int {
-///   bb0:
-///     return %0
-/// }
-/// ```
-#[test]
-fn classify_thunk_empty() {
-    scaffold!(heap, interner, builder);
-    let env = Environment::new(&heap);
-
-    let int_ty = TypeBuilder::synthetic(&env).integer();
-
-    let arg = builder.local("arg", int_ty);
-
-    let bb0 = builder.reserve_block([]);
-    builder.build_block(bb0).ret(arg);
-
-    let body = builder.finish(1, int_ty);
-
-    assert_eq!(ReductionKind::of(&body), Some(ReductionKind::TrivialThunk));
-}
-
-/// Tests ForwardingClosure classification for a body with single Apply + return.
+/// Tests `ForwardingClosure` classification for a body with single Apply + return.
 ///
 /// ```text
 /// fn body0() -> Int {
@@ -233,43 +101,6 @@ fn classify_closure_immediate() {
     builder
         .build_block(bb0)
         .assign_place(result, |rv| rv.call(fn_ptr))
-        .ret(result);
-
-    let body = builder.finish(0, int_ty);
-
-    assert_eq!(
-        ReductionKind::of(&body),
-        Some(ReductionKind::ForwardingClosure)
-    );
-}
-
-/// Tests ForwardingClosure classification with trivial prelude before call.
-///
-/// ```text
-/// fn body0() -> Int {
-///   bb0:
-///     %0 = 1
-///     %1 = apply fn@0 %0
-///     return %1
-/// }
-/// ```
-#[test]
-fn classify_closure_prelude() {
-    scaffold!(heap, interner, builder);
-    let env = Environment::new(&heap);
-
-    let int_ty = TypeBuilder::synthetic(&env).integer();
-
-    let x = builder.local("x", int_ty);
-    let result = builder.local("result", int_ty);
-    let const_1 = builder.const_int(1);
-    let fn_ptr = builder.const_fn(DefId::new(0));
-
-    let bb0 = builder.reserve_block([]);
-    builder
-        .build_block(bb0)
-        .assign_place(x, |rv| rv.load(const_1))
-        .assign_place(result, |rv| rv.apply(fn_ptr, [x]))
         .ret(result);
 
     let body = builder.finish(0, int_ty);
@@ -327,7 +158,7 @@ fn classify_non_reducible_multi_bb() {
     assert_eq!(ReductionKind::of(&body), None);
 }
 
-/// Tests that a body with Binary operation is not reducible.
+/// Tests that a body with non-trivial operations (Binary, Unary, etc.) is not reducible.
 ///
 /// ```text
 /// fn body0() -> Boolean {
@@ -338,7 +169,7 @@ fn classify_non_reducible_multi_bb() {
 /// }
 /// ```
 #[test]
-fn classify_non_reducible_binary() {
+fn classify_non_reducible_non_trivial_op() {
     scaffold!(heap, interner, builder);
     let env = Environment::new(&heap);
 
@@ -362,107 +193,7 @@ fn classify_non_reducible_binary() {
     assert_eq!(ReductionKind::of(&body), None);
 }
 
-/// Tests that a body with Unary operation is not reducible.
-///
-/// ```text
-/// fn body0() -> Boolean {
-///   bb0:
-///     %0 = true
-///     %1 = !%0
-///     return %1
-/// }
-/// ```
-#[test]
-fn classify_non_reducible_unary() {
-    scaffold!(heap, interner, builder);
-    let env = Environment::new(&heap);
-
-    let bool_ty = TypeBuilder::synthetic(&env).boolean();
-
-    let x = builder.local("x", bool_ty);
-    let y = builder.local("y", bool_ty);
-    let const_true = builder.const_bool(true);
-
-    let bb0 = builder.reserve_block([]);
-    builder
-        .build_block(bb0)
-        .assign_place(x, |rv| rv.load(const_true))
-        .assign_place(y, |rv| rv.unary(op![!], x))
-        .ret(y);
-
-    let body = builder.finish(0, bool_ty);
-
-    assert_eq!(ReductionKind::of(&body), None);
-}
-
-/// Tests that a body with StorageLive is not reducible.
-///
-/// ```text
-/// fn body0() -> Int {
-///   bb0:
-///     let %0
-///     %0 = 1
-///     return %0
-/// }
-/// ```
-#[test]
-fn classify_non_reducible_storage_live() {
-    scaffold!(heap, interner, builder);
-    let env = Environment::new(&heap);
-
-    let int_ty = TypeBuilder::synthetic(&env).integer();
-
-    let x = builder.local("x", int_ty);
-    let const_1 = builder.const_int(1);
-
-    let bb0 = builder.reserve_block([]);
-    builder
-        .build_block(bb0)
-        .storage_live(x.local)
-        .assign_place(x, |rv| rv.load(const_1))
-        .ret(x);
-
-    let body = builder.finish(0, int_ty);
-
-    assert_eq!(ReductionKind::of(&body), None);
-}
-
-/// Tests that a body with StorageDead is not reducible.
-///
-/// ```text
-/// fn body0() -> Int {
-///   bb0:
-///     %0 = 1
-///     %1 = %0
-///     drop %0
-///     return %1
-/// }
-/// ```
-#[test]
-fn classify_non_reducible_storage_dead() {
-    scaffold!(heap, interner, builder);
-    let env = Environment::new(&heap);
-
-    let int_ty = TypeBuilder::synthetic(&env).integer();
-
-    let x = builder.local("x", int_ty);
-    let y = builder.local("y", int_ty);
-    let const_1 = builder.const_int(1);
-
-    let bb0 = builder.reserve_block([]);
-    builder
-        .build_block(bb0)
-        .assign_place(x, |rv| rv.load(const_1))
-        .assign_place(y, |rv| rv.load(x))
-        .storage_dead(x.local)
-        .ret(y);
-
-    let body = builder.finish(0, int_ty);
-
-    assert_eq!(ReductionKind::of(&body), None);
-}
-
-/// Tests that Apply not in final statement position is not a ForwardingClosure.
+/// Tests that Apply not in final statement position is not a `ForwardingClosure`.
 ///
 /// ```text
 /// fn body0() -> Int {
@@ -495,7 +226,7 @@ fn classify_non_reducible_call_not_last() {
     assert_eq!(ReductionKind::of(&body), None);
 }
 
-/// Tests that returning something other than the call result is not a ForwardingClosure.
+/// Tests that returning something other than the call result is not a `ForwardingClosure`.
 ///
 /// ```text
 /// fn body0() -> Int {
@@ -529,7 +260,7 @@ fn classify_non_reducible_return_mismatch() {
     assert_eq!(ReductionKind::of(&body), None);
 }
 
-/// Tests that multiple Apply statements block ForwardingClosure classification.
+/// Tests that multiple Apply statements block `ForwardingClosure` classification.
 ///
 /// ```text
 /// fn body0() -> Int {
@@ -572,7 +303,7 @@ fn classify_non_reducible_multi_call() {
 /// }
 /// ```
 ///
-/// Even though this is classified as ForwardingClosure, running the pass should
+/// Even though this is classified as `ForwardingClosure`, running the pass should
 /// not cause infinite inlining because self-recursion is blocked.
 #[test]
 fn self_recursion_blocked() {
@@ -605,85 +336,6 @@ fn self_recursion_blocked() {
     let changed = pass.run(&mut context, DefIdSlice::from_raw_mut(&mut bodies));
 
     assert_eq!(changed, Changed::No);
-}
-
-/// Tests reclassification: after inlining, a ForwardingClosure becomes TrivialThunk.
-///
-/// Before:
-/// ```text
-/// fn body0@0() -> Int {   // TrivialThunk
-///   bb0:
-///     %0 = 1
-///     return %0
-/// }
-///
-/// fn body1@1() -> Int {   // ForwardingClosure (calls body0)
-///   bb0:
-///     %0 = call fn@0()
-///     return %0
-/// }
-/// ```
-///
-/// After inlining body0 into body1:
-/// ```text
-/// fn body1@1() -> Int {   // Now TrivialThunk (no more calls)
-///   bb0:
-///     %1 = 1        // inlined from body0
-///     %0 = %1
-///     return %0
-/// }
-/// ```
-#[test]
-fn reclassify_closure_to_thunk() {
-    scaffold!(heap, interner, builder);
-    let env = Environment::new(&heap);
-
-    let int_ty = TypeBuilder::synthetic(&env).integer();
-
-    // Body 0: trivial thunk (returns const)
-    let x0 = builder.local("x", int_ty);
-    let const_1 = builder.const_int(1);
-    let bb0 = builder.reserve_block([]);
-    builder
-        .build_block(bb0)
-        .assign_place(x0, |rv| rv.load(const_1))
-        .ret(x0);
-    let mut body0 = builder.finish(0, int_ty);
-    body0.id = DefId::new(0);
-
-    // Body 1: forwarding closure (calls body0)
-    let mut builder = BodyBuilder::new(&interner);
-    let result1 = builder.local("result", int_ty);
-    let fn_ptr = builder.const_fn(body0.id);
-    let bb1 = builder.reserve_block([]);
-    builder
-        .build_block(bb1)
-        .assign_place(result1, |rv| rv.call(fn_ptr))
-        .ret(result1);
-    let mut body1 = builder.finish(0, int_ty);
-    body1.id = DefId::new(1);
-
-    assert_eq!(
-        ReductionKind::of(&body1),
-        Some(ReductionKind::ForwardingClosure)
-    );
-
-    let mut context = MirContext {
-        heap: &heap,
-        env: &env,
-        interner: &interner,
-        diagnostics: DiagnosticIssues::new(),
-    };
-
-    let mut bodies = [body0, body1];
-    let mut pass = AdministrativeReduction::new_in(Scratch::new());
-    let changed = pass.run(&mut context, DefIdSlice::from_raw_mut(&mut bodies));
-
-    assert_eq!(changed, Changed::Yes);
-    assert_eq!(
-        ReductionKind::of(&bodies[1]),
-        Some(ReductionKind::TrivialThunk)
-    );
 }
 
 // =============================================================================
@@ -866,85 +518,6 @@ fn inline_thunk_multi_arg() {
     );
 }
 
-/// Tests inlining a chain of forwarding closures: body2 → body1 → body0.
-///
-/// Before:
-/// ```text
-/// fn body0@0() -> Int {   // TrivialThunk
-///   bb0:
-///     %0 = 42
-///     return %0
-/// }
-///
-/// fn body1() -> Int {   // ForwardingClosure
-///   bb0:
-///     %0 = apply fn@0
-///     return %0
-/// }
-///
-/// fn body2() -> Int {
-///   bb0:
-///     %0 = call fn@1
-///     return %0
-/// }
-/// ```
-///
-/// After: All calls inlined, body2 ends up with just loads.
-#[test]
-fn inline_closure_simple() {
-    scaffold!(heap, interner, builder);
-    let env = Environment::new(&heap);
-
-    let int_ty = TypeBuilder::synthetic(&env).integer();
-
-    // Body 0: trivial thunk
-    let x0 = builder.local("x", int_ty);
-    let const_42 = builder.const_int(42);
-    let bb0 = builder.reserve_block([]);
-    builder
-        .build_block(bb0)
-        .assign_place(x0, |rv| rv.load(const_42))
-        .ret(x0);
-    let mut body0 = builder.finish(0, int_ty);
-    body0.id = DefId::new(0);
-
-    // Body 1: forwarding closure that calls body0
-    let mut builder = BodyBuilder::new(&interner);
-    let result1 = builder.local("result", int_ty);
-    let fn_ptr0 = builder.const_fn(body0.id);
-    let bb1 = builder.reserve_block([]);
-    builder
-        .build_block(bb1)
-        .assign_place(result1, |rv| rv.call(fn_ptr0))
-        .ret(result1);
-    let mut body1 = builder.finish(0, int_ty);
-    body1.id = DefId::new(1);
-
-    // Body 2: calls body1
-    let mut builder = BodyBuilder::new(&interner);
-    let result2 = builder.local("result", int_ty);
-    let fn_ptr1 = builder.const_fn(body1.id);
-    let bb2 = builder.reserve_block([]);
-    builder
-        .build_block(bb2)
-        .assign_place(result2, |rv| rv.call(fn_ptr1))
-        .ret(result2);
-    let mut body2 = builder.finish(0, int_ty);
-    body2.id = DefId::new(2);
-
-    let mut bodies = [body0, body1, body2];
-    assert_admin_reduction_pass(
-        "inline_closure_simple",
-        &mut bodies,
-        &mut MirContext {
-            heap: &heap,
-            env: &env,
-            interner: &interner,
-            diagnostics: DiagnosticIssues::new(),
-        },
-    );
-}
-
 /// Tests inlining a forwarding closure with a trivial prelude.
 ///
 /// Before:
@@ -961,12 +534,14 @@ fn inline_closure_simple() {
 ///     return %1
 /// }
 ///
-/// fn body2() -> Int {   // Calls body1
+/// fn body2@2() -> Int {   // Calls body1
 ///   bb0:
 ///     %0 = apply fn@1
 ///     return %0
 /// }
 /// ```
+///
+/// After: All calls inlined with prelude statements preserved.
 #[test]
 fn inline_closure_with_prelude() {
     scaffold!(heap, interner, builder);
@@ -1021,170 +596,18 @@ fn inline_closure_with_prelude() {
     );
 }
 
-/// Tests that caller's existing locals are preserved and callee locals are offset.
-///
-/// Before:
-/// ```text
-/// fn body0@0() -> Int {   // TrivialThunk
-///   bb0:
-///     %0 = 42
-///     return %0
-/// }
-///
-/// fn body1() -> Int {
-///   bb0:
-///     %0 = 1
-///     %1 = 2
-///     %2 = %0 == %1
-///     %3 = apply fn@0
-///     return %3
-/// }
-/// ```
-///
-/// After: body0's %0 becomes body1's %4 (offset by 4).
-#[test]
-fn offset_caller_locals() {
-    scaffold!(heap, interner, builder);
-    let env = Environment::new(&heap);
-
-    let int_ty = TypeBuilder::synthetic(&env).integer();
-    let bool_ty = TypeBuilder::synthetic(&env).boolean();
-
-    // Body 0: trivial thunk returning const
-    let x0 = builder.local("x", int_ty);
-    let const_42 = builder.const_int(42);
-    let bb0 = builder.reserve_block([]);
-    builder
-        .build_block(bb0)
-        .assign_place(x0, |rv| rv.load(const_42))
-        .ret(x0);
-    let mut body0 = builder.finish(0, int_ty);
-    body0.id = DefId::new(0);
-
-    // Body 1: has locals before the call, then calls body0
-    let mut builder = BodyBuilder::new(&interner);
-    let a = builder.local("a", int_ty);
-    let b = builder.local("b", int_ty);
-    let c = builder.local("c", bool_ty);
-    let result = builder.local("result", int_ty);
-    let const_1 = builder.const_int(1);
-    let const_2 = builder.const_int(2);
-    let fn_ptr = builder.const_fn(body0.id);
-    let bb1 = builder.reserve_block([]);
-    builder
-        .build_block(bb1)
-        .assign_place(a, |rv| rv.load(const_1))
-        .assign_place(b, |rv| rv.load(const_2))
-        .assign_place(c, |rv| rv.binary(a, op![==], b))
-        .assign_place(result, |rv| rv.call(fn_ptr))
-        .ret(result);
-    let mut body1 = builder.finish(0, int_ty);
-    body1.id = DefId::new(1);
-
-    let mut bodies = [body0, body1];
-    assert_admin_reduction_pass(
-        "offset_caller_locals",
-        &mut bodies,
-        &mut MirContext {
-            heap: &heap,
-            env: &env,
-            interner: &interner,
-            diagnostics: DiagnosticIssues::new(),
-        },
-    );
-}
-
-/// Tests nested inlining: body2 → body1 → body0, with cumulative local offsets.
-///
-/// Before:
-/// ```text
-/// fn body0@0() -> Int {   // TrivialThunk
-///   bb0:
-///     %0 = 1
-///     return %0
-/// }
-///
-/// fn body1@1() -> Int {   // ForwardingClosure → body0
-///   bb0:
-///     %0 = apply fn@0
-///     return %0
-/// }
-///
-/// fn body2@2() -> Int {
-///   bb0:
-///     %0 = apply fn@1
-///     return %0
-/// }
-/// ```
-///
-/// After: All inlined with correct cumulative offsets.
-#[test]
-fn offset_nested() {
-    scaffold!(heap, interner, builder);
-    let env = Environment::new(&heap);
-
-    let int_ty = TypeBuilder::synthetic(&env).integer();
-
-    // Body 0 (C): trivial thunk returning const
-    let x0 = builder.local("x", int_ty);
-    let const_1 = builder.const_int(1);
-    let bb0 = builder.reserve_block([]);
-    builder
-        .build_block(bb0)
-        .assign_place(x0, |rv| rv.load(const_1))
-        .ret(x0);
-    let mut body0 = builder.finish(0, int_ty);
-    body0.id = DefId::new(0);
-
-    // Body 1 (B): calls C
-    let mut builder = BodyBuilder::new(&interner);
-    let result1 = builder.local("result", int_ty);
-    let fn_ptr0 = builder.const_fn(body0.id);
-    let bb1 = builder.reserve_block([]);
-    builder
-        .build_block(bb1)
-        .assign_place(result1, |rv| rv.call(fn_ptr0))
-        .ret(result1);
-    let mut body1 = builder.finish(0, int_ty);
-    body1.id = DefId::new(1);
-
-    // Body 2 (A): calls B
-    let mut builder = BodyBuilder::new(&interner);
-    let result2 = builder.local("result", int_ty);
-    let fn_ptr1 = builder.const_fn(body1.id);
-    let bb2 = builder.reserve_block([]);
-    builder
-        .build_block(bb2)
-        .assign_place(result2, |rv| rv.call(fn_ptr1))
-        .ret(result2);
-    let mut body2 = builder.finish(0, int_ty);
-    body2.id = DefId::new(2);
-
-    let mut bodies = [body0, body1, body2];
-    assert_admin_reduction_pass(
-        "offset_nested",
-        &mut bodies,
-        &mut MirContext {
-            heap: &heap,
-            env: &env,
-            interner: &interner,
-            diagnostics: DiagnosticIssues::new(),
-        },
-    );
-}
-
 /// Tests that argument RHS operands are NOT offset (they reference caller locals).
 ///
 /// Before:
 /// ```text
-/// fn body0(%0: Int) -> Int {   // Takes arg, returns it
+/// fn body0@0(%0: Int) -> Int {   // Takes arg, returns it
 ///     bb0:
 ///         %1 = 10
 ///         %2 = %0
 ///         return %2
 /// }
 ///
-/// fn body1() -> Int {
+/// fn body1@1() -> Int {
 ///     bb0:
 ///         %0 = 5            // caller_local
 ///         %1 = call fn@0(%0)  // passes caller_local as arg
@@ -1194,7 +617,7 @@ fn offset_nested() {
 ///
 /// After: The param binding `%2 = %0` uses caller's %0, NOT offset.
 #[test]
-fn offset_args_not_offset() {
+fn inline_args_not_offset() {
     scaffold!(heap, interner, builder);
     let env = Environment::new(&heap);
 
@@ -1231,7 +654,7 @@ fn offset_args_not_offset() {
 
     let mut bodies = [body0, body1];
     assert_admin_reduction_pass(
-        "offset_args_not_offset",
+        "inline_args_not_offset",
         &mut bodies,
         &mut MirContext {
             heap: &heap,
@@ -1242,143 +665,7 @@ fn offset_args_not_offset() {
     );
 }
 
-/// Tests postorder traversal: callee (body0) is processed before caller (body1).
-///
-/// ```text
-/// fn body0@0() -> Int {   // TrivialThunk, processed first
-///   bb0:
-///     %0 = 1
-///     return %0
-/// }
-///
-/// fn body1@1() -> Int {
-///   bb0:
-///     %0 = apply fn@0
-///     return %0
-/// }
-/// ```
-#[test]
-fn postorder_simple() {
-    scaffold!(heap, interner, builder);
-    let env = Environment::new(&heap);
-
-    let int_ty = TypeBuilder::synthetic(&env).integer();
-
-    // Body 0: trivial thunk
-    let x0 = builder.local("x", int_ty);
-    let const_1 = builder.const_int(1);
-    let bb0 = builder.reserve_block([]);
-    builder
-        .build_block(bb0)
-        .assign_place(x0, |rv| rv.load(const_1))
-        .ret(x0);
-    let mut body0 = builder.finish(0, int_ty);
-    body0.id = DefId::new(0);
-
-    // Body 1: calls body0
-    let mut builder = BodyBuilder::new(&interner);
-    let result1 = builder.local("result", int_ty);
-    let fn_ptr0 = builder.const_fn(body0.id);
-    let bb1 = builder.reserve_block([]);
-    builder
-        .build_block(bb1)
-        .assign_place(result1, |rv| rv.call(fn_ptr0))
-        .ret(result1);
-    let mut body1 = builder.finish(0, int_ty);
-    body1.id = DefId::new(1);
-
-    let mut bodies = [body0, body1];
-    assert_admin_reduction_pass(
-        "postorder_simple",
-        &mut bodies,
-        &mut MirContext {
-            heap: &heap,
-            env: &env,
-            interner: &interner,
-            diagnostics: DiagnosticIssues::new(),
-        },
-    );
-}
-
-/// Tests a chain of thunks: body2 → body1 → body0, all reduced in one pass.
-///
-/// ```text
-/// fn body0@0() -> Int {   // C: TrivialThunk
-///   bb0:
-///     %0 = 100
-///     return %0
-/// }
-///
-/// fn body1@1() -> Int {   // B: ForwardingClosure → C
-///   bb0:
-///     %0 = apply fn@0
-///     return %0
-/// }
-///
-/// fn body2@2() -> Int {   // A: Calls B
-///   bb0:
-///     %0 = apply fn@1
-///     return %0
-/// }
-/// ```
-///
-/// Postorder: C first, then B (inlines C, becomes thunk), then A (inlines B).
-#[test]
-fn postorder_chain() {
-    scaffold!(heap, interner, builder);
-    let env = Environment::new(&heap);
-
-    let int_ty = TypeBuilder::synthetic(&env).integer();
-
-    // Body 0 (C): trivial thunk
-    let x0 = builder.local("x", int_ty);
-    let const_100 = builder.const_int(100);
-    let bb0 = builder.reserve_block([]);
-    builder
-        .build_block(bb0)
-        .assign_place(x0, |rv| rv.load(const_100))
-        .ret(x0);
-    let mut body0 = builder.finish(0, int_ty);
-    body0.id = DefId::new(0);
-
-    // Body 1 (B): calls C
-    let mut builder = BodyBuilder::new(&interner);
-    let result1 = builder.local("result", int_ty);
-    let fn_ptr0 = builder.const_fn(body0.id);
-    let bb1 = builder.reserve_block([]);
-    builder
-        .build_block(bb1)
-        .assign_place(result1, |rv| rv.call(fn_ptr0))
-        .ret(result1);
-    let mut body1 = builder.finish(0, int_ty);
-    body1.id = DefId::new(1);
-
-    // Body 2 (A): calls B
-    let mut builder = BodyBuilder::new(&interner);
-    let result2 = builder.local("result", int_ty);
-    let fn_ptr1 = builder.const_fn(body1.id);
-    let bb2 = builder.reserve_block([]);
-    builder
-        .build_block(bb2)
-        .assign_place(result2, |rv| rv.call(fn_ptr1))
-        .ret(result2);
-    let mut body2 = builder.finish(0, int_ty);
-    body2.id = DefId::new(2);
-
-    let mut bodies = [body0, body1, body2];
-    assert_admin_reduction_pass(
-        "postorder_chain",
-        &mut bodies,
-        &mut MirContext {
-            heap: &heap,
-            env: &env,
-            interner: &interner,
-            diagnostics: DiagnosticIssues::new(),
-        },
-    );
-}
-
-/// Tests diamond call graph: body3 → {body1, body2} → body0
+/// Tests diamond call graph: body3 → {body1, body2} → body0.
 ///
 /// ```text
 /// fn body0@0() -> Int {   // D: TrivialThunk (leaf)
@@ -1407,7 +694,7 @@ fn postorder_chain() {
 /// }
 /// ```
 #[test]
-fn postorder_diamond() {
+fn inline_diamond() {
     scaffold!(heap, interner, builder);
     let env = Environment::new(&heap);
 
@@ -1465,7 +752,7 @@ fn postorder_diamond() {
 
     let mut bodies = [body0, body1, body2, body3];
     assert_admin_reduction_pass(
-        "postorder_diamond",
+        "inline_diamond",
         &mut bodies,
         &mut MirContext {
             heap: &heap,
@@ -1476,7 +763,7 @@ fn postorder_diamond() {
     );
 }
 
-/// Tests local fixpoint: multiple reducible calls in sequence are all inlined.
+/// Tests that multiple reducible calls in sequence are all inlined.
 ///
 /// ```text
 /// fn body0@0() -> Int {   // TrivialThunk returning 1
@@ -1501,7 +788,7 @@ fn postorder_diamond() {
 ///
 /// Both calls should be inlined via statement index rewind.
 #[test]
-fn fixpoint_sequential() {
+fn inline_sequential_calls() {
     scaffold!(heap, interner, builder);
     let env = Environment::new(&heap);
 
@@ -1547,86 +834,7 @@ fn fixpoint_sequential() {
 
     let mut bodies = [body0, body1, body2];
     assert_admin_reduction_pass(
-        "fixpoint_sequential",
-        &mut bodies,
-        &mut MirContext {
-            heap: &heap,
-            env: &env,
-            interner: &interner,
-            diagnostics: DiagnosticIssues::new(),
-        },
-    );
-}
-
-/// Tests that newly inserted code (from inlining) containing a reducible call is processed.
-///
-/// ```text
-/// fn body0@0() -> Int {   // TrivialThunk
-///   bb0:
-///     %0 = 42
-///     return %0
-/// }
-///
-/// fn body1@1() -> Int {   // ForwardingClosure → body0
-///   bb0:
-///     %0 = apply fn@0
-///     return %0
-/// }
-///
-/// fn body2@2() -> Int {
-///   bb0:
-///     %0 = apply fn@1
-///     return %0
-/// }
-/// ```
-///
-/// When body1 is inlined into body2, the `apply fn@0` statement is inserted.
-/// The rewind mechanism should catch this and inline body0 too.
-#[test]
-fn fixpoint_nested() {
-    scaffold!(heap, interner, builder);
-    let env = Environment::new(&heap);
-
-    let int_ty = TypeBuilder::synthetic(&env).integer();
-
-    // Body 0: trivial thunk returning const
-    let x0 = builder.local("x", int_ty);
-    let const_42 = builder.const_int(42);
-    let bb0 = builder.reserve_block([]);
-    builder
-        .build_block(bb0)
-        .assign_place(x0, |rv| rv.load(const_42))
-        .ret(x0);
-    let mut body0 = builder.finish(0, int_ty);
-    body0.id = DefId::new(0);
-
-    // Body 1: forwarding closure that calls body0
-    let mut builder = BodyBuilder::new(&interner);
-    let result1 = builder.local("result", int_ty);
-    let fn_ptr0 = builder.const_fn(body0.id);
-    let bb1 = builder.reserve_block([]);
-    builder
-        .build_block(bb1)
-        .assign_place(result1, |rv| rv.call(fn_ptr0))
-        .ret(result1);
-    let mut body1 = builder.finish(0, int_ty);
-    body1.id = DefId::new(1);
-
-    // Body 2: calls body1
-    let mut builder = BodyBuilder::new(&interner);
-    let result2 = builder.local("result", int_ty);
-    let fn_ptr1 = builder.const_fn(body1.id);
-    let bb2 = builder.reserve_block([]);
-    builder
-        .build_block(bb2)
-        .assign_place(result2, |rv| rv.call(fn_ptr1))
-        .ret(result2);
-    let mut body2 = builder.finish(0, int_ty);
-    body2.id = DefId::new(2);
-
-    let mut bodies = [body0, body1, body2];
-    assert_admin_reduction_pass(
-        "fixpoint_nested",
+        "inline_sequential_calls",
         &mut bodies,
         &mut MirContext {
             heap: &heap,
@@ -1656,7 +864,7 @@ fn fixpoint_nested() {
 ///
 /// The pass tracks that %0 holds fn@0 and resolves the indirect call.
 #[test]
-fn indirect_via_local() {
+fn inline_indirect_via_local() {
     scaffold!(heap, interner, builder);
     let env = Environment::new(&heap);
 
@@ -1690,7 +898,7 @@ fn indirect_via_local() {
 
     let mut bodies = [body0, body1];
     assert_admin_reduction_pass(
-        "indirect_via_local",
+        "inline_indirect_via_local",
         &mut bodies,
         &mut MirContext {
             heap: &heap,
@@ -1701,7 +909,7 @@ fn indirect_via_local() {
     );
 }
 
-/// Tests closure aggregate tracking: closure (fn_ptr, env) is tracked and call is resolved.
+/// Tests closure aggregate tracking: `closure (fn_ptr, env)` is tracked and call is resolved.
 ///
 /// ```text
 /// fn body0@0(%0: Int) -> Int {   // Takes captured env, returns it
@@ -1719,7 +927,7 @@ fn indirect_via_local() {
 /// }
 /// ```
 #[test]
-fn indirect_closure() {
+fn inline_indirect_closure() {
     scaffold!(heap, interner, builder);
     let env = Environment::new(&heap);
 
@@ -1757,7 +965,7 @@ fn indirect_closure() {
 
     let mut bodies = [body0, body1];
     assert_admin_reduction_pass(
-        "indirect_closure",
+        "inline_indirect_closure",
         &mut bodies,
         &mut MirContext {
             heap: &heap,

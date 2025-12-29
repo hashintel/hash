@@ -1,0 +1,13 @@
+//@ run: pass
+//@ description: Multiple thunk calls in same expression are all inlined
+[
+  "let",
+  "get_a",
+  ["fn", { "#tuple": [] }, { "#struct": {} }, "_", { "#literal": 10 }],
+  [
+    "let",
+    "get_b",
+    ["fn", { "#tuple": [] }, { "#struct": {} }, "_", { "#literal": 20 }],
+    { "#tuple": [["get_a"], ["get_b"]] }
+  ]
+]

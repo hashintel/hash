@@ -1,0 +1,18 @@
+//@ run: pass
+//@ description: Chain of thunk references are transitively inlined
+[
+  "let",
+  "a",
+  { "#literal": 1 },
+  [
+    "let",
+    "b",
+    "a",
+    [
+      "let",
+      "c",
+      "b",
+      "c"
+    ]
+  ]
+]
