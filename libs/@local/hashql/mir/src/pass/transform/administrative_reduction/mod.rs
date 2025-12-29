@@ -231,12 +231,7 @@ impl<A: BumpAllocator> AdministrativeReduction<A> {
         bodies: &mut DefIdSlice<Body<'heap>>,
     ) -> Changed {
         // first we create a callgraph
-        let mut callgraph = CallGraph::new_in(bodies, &self.alloc);
-        let mut analysis = CallGraphAnalysis::new(&mut callgraph);
-
-        for body in bodies {
-            analysis.run(context, body);
-        }
+        let mut callgraph = CallGraph::analyze_in(bodies, &self.alloc);
 
         let mut targets = DefIdVec::with_capacity_in(bodies.len(), &self.alloc);
         let mut target_bitset = DenseBitSet::new_empty(bodies.len());
@@ -279,7 +274,7 @@ impl<A: BumpAllocator> AdministrativeReduction<A> {
 
 struct AdministrativeReductionPass<'ctx, 'slice, 'heap, A: Allocator> {
     alloc: A,
-    callgraph: &'ctx CallGraph<A>,
+    callgraph: &'ctx CallGraph<'heap, A>,
     targets: &'ctx DefIdSlice<Option<Target>>,
     target_bitset: &'ctx DenseBitSet<DefId>,
     bodies: SplitIdSlice<'slice, DefId, Body<'heap>>,
@@ -299,6 +294,8 @@ impl<'env, 'heap, A: BumpAllocator> TransformPass<'env, 'heap>
             return Changed::No;
         }
 
+        let mut local_decls = mem::replace(&mut body.local_decls, LocalVec::new_in(context.heap));
+
         let mut visitor = AdministrativeReductionVisitor {
             current: body.id,
             interner: context.interner,
@@ -307,7 +304,7 @@ impl<'env, 'heap, A: BumpAllocator> TransformPass<'env, 'heap>
             changed: true, // indicator inside the loop, therefore first true
             lhs: Place::SYNTHETIC,
             heap: context.heap,
-            local_decl: &mut body.local_decls,
+            local_decl: &mut local_decls,
             bodies: &mut self.bodies,
             current_target: None,
         };
@@ -331,7 +328,10 @@ impl<'env, 'heap, A: BumpAllocator> TransformPass<'env, 'heap>
                 visitor.visit_basic_block(id, &mut body.basic_blocks.as_mut_preserving_cfg()[id]);
         }
 
-        visitor.changed.into()
+        let changed = visitor.changed;
+        body.local_decls = local_decls;
+
+        changed.into()
     }
 }
 

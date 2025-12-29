@@ -54,7 +54,7 @@ use hashql_core::{
 
 use crate::{
     body::{
-        Body,
+        Body, Source,
         location::Location,
         place::{PlaceContext, PlaceReadContext},
         rvalue::Apply,
@@ -103,32 +103,48 @@ pub enum CallKind {
 /// The graph is populated by running [`CallGraphAnalysis`] on each MIR body. Multiple bodies
 /// can contribute edges to the same graph, building up a complete picture of inter-procedural
 /// references.
-pub struct CallGraph<A: Allocator = Global> {
-    inner: LinkedGraph<(), CallKind, A>,
+pub struct CallGraph<'heap, A: Allocator = Global> {
+    inner: LinkedGraph<Source<'heap>, CallKind, A>,
 }
 
-impl CallGraph {
+impl<'heap> CallGraph<'heap> {
     /// Creates a new call graph with the given `domain` of [`DefId`]s.
     ///
     /// All [`DefId`]s that may appear as edge endpoints must be present in the domain.
-    pub fn new(domain: &DefIdSlice<impl Sized>) -> Self {
+    #[inline]
+    pub fn new(domain: &DefIdSlice<Body<'heap>>) -> Self {
         Self::new_in(domain, Global)
+    }
+
+    #[inline]
+    pub fn analyze(domain: &DefIdSlice<Body<'heap>>) -> Self {
+        Self::analyze_in(domain, Global)
     }
 }
 
-impl<A: Allocator + Clone> CallGraph<A> {
+impl<'heap, A: Allocator + Clone> CallGraph<'heap, A> {
     /// Creates a new call graph with the given `domain` using the specified `alloc`ator.
     ///
     /// All [`DefId`]s that may appear as edge endpoints must be present in the domain.
-    pub fn new_in(domain: &DefIdSlice<impl Sized>, alloc: A) -> Self {
+    pub fn new_in(domain: &DefIdSlice<Body<'heap>>, alloc: A) -> Self {
         let mut graph = LinkedGraph::new_in(alloc);
-        graph.derive(domain, |_, _| ());
+        graph.derive(domain, |_, body| body.source);
 
         Self { inner: graph }
     }
+
+    pub fn analyze_in(domain: &DefIdSlice<Body<'heap>>, alloc: A) -> Self {
+        let mut graph = Self::new_in(domain, alloc);
+        let mut visitor = CallGraphAnalysis::new(&mut graph);
+        for body in domain {
+            visitor.analyze(body);
+        }
+
+        graph
+    }
 }
 
-impl<A: Allocator> fmt::Display for CallGraph<A> {
+impl<A: Allocator> fmt::Display for CallGraph<'_, A> {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         for edge in self.inner.edges() {
             let source = DefId::from_usize(edge.source().as_usize());
@@ -151,7 +167,7 @@ impl<A: Allocator> fmt::Display for CallGraph<A> {
     }
 }
 
-impl<A: Allocator> DirectedGraph for CallGraph<A> {
+impl<A: Allocator> DirectedGraph for CallGraph<'_, A> {
     type Edge<'this>
         = EdgeId
     where
@@ -180,7 +196,7 @@ impl<A: Allocator> DirectedGraph for CallGraph<A> {
     }
 }
 
-impl<A: Allocator> Successors for CallGraph<A> {
+impl<A: Allocator> Successors for CallGraph<'_, A> {
     type SuccIter<'this>
         = impl Iterator<Item = Self::NodeId>
     where
@@ -193,7 +209,7 @@ impl<A: Allocator> Successors for CallGraph<A> {
     }
 }
 
-impl<A: Allocator> Traverse for CallGraph<A> {}
+impl<A: Allocator> Traverse for CallGraph<'_, A> {}
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum CallKindFilter {
@@ -206,15 +222,15 @@ pub enum CallKindFilter {
 /// This pass traverses a MIR body and records an edge for each [`DefId`] reference encountered,
 /// annotated with the appropriate [`CallKind`]. Run this pass on each body to build a complete
 /// inter-procedural call graph.
-pub struct CallGraphAnalysis<'graph, A: Allocator = Global> {
-    graph: &'graph mut CallGraph<A>,
+pub struct CallGraphAnalysis<'graph, 'heap, A: Allocator = Global> {
+    graph: &'graph mut CallGraph<'heap, A>,
     filter: Option<CallKindFilter>,
 }
 
-impl<'graph, A: Allocator> CallGraphAnalysis<'graph, A> {
+impl<'graph, 'heap, A: Allocator> CallGraphAnalysis<'graph, 'heap, A> {
     /// Creates a new analysis pass that will populate the given `graph`.
     #[must_use]
-    pub const fn new(graph: &'graph mut CallGraph<A>) -> Self {
+    pub const fn new(graph: &'graph mut CallGraph<'heap, A>) -> Self {
         Self {
             graph,
             filter: None,
@@ -228,10 +244,8 @@ impl<'graph, A: Allocator> CallGraphAnalysis<'graph, A> {
             filter: Some(filter),
         }
     }
-}
 
-impl<'env, 'heap, A: Allocator> AnalysisPass<'env, 'heap> for CallGraphAnalysis<'_, A> {
-    fn run(&mut self, _: &mut MirContext<'env, 'heap>, body: &Body<'heap>) {
+    fn analyze(&mut self, body: &Body<'heap>) {
         let mut visitor = CallGraphVisitor {
             kind: CallKind::Opaque,
             caller: body.id,
@@ -243,15 +257,21 @@ impl<'env, 'heap, A: Allocator> AnalysisPass<'env, 'heap> for CallGraphAnalysis<
     }
 }
 
+impl<'env, 'heap, A: Allocator> AnalysisPass<'env, 'heap> for CallGraphAnalysis<'_, 'heap, A> {
+    fn run(&mut self, _: &mut MirContext<'env, 'heap>, body: &Body<'heap>) {
+        self.analyze(body);
+    }
+}
+
 /// Visitor that collects call edges during MIR traversal.
-struct CallGraphVisitor<'graph, A: Allocator = Global> {
+struct CallGraphVisitor<'graph, 'heap, A: Allocator = Global> {
     kind: CallKind,
     caller: DefId,
-    graph: &'graph mut CallGraph<A>,
+    graph: &'graph mut CallGraph<'heap, A>,
     filter: Option<CallKindFilter>,
 }
 
-impl<'heap, A: Allocator> Visitor<'heap> for CallGraphVisitor<'_, A> {
+impl<'heap, A: Allocator> Visitor<'heap> for CallGraphVisitor<'_, 'heap, A> {
     type Result = Result<(), !>;
 
     fn visit_def_id(&mut self, _: Location, def_id: DefId) -> Self::Result {
