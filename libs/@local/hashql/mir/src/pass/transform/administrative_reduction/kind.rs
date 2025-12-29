@@ -1,5 +1,9 @@
+//! Classification of function bodies for administrative reduction.
+//!
+//! This module determines which bodies are eligible for inlining and how they should be reduced.
+
 use crate::body::{
-    Body, Source,
+    Body,
     basic_block::BasicBlockId,
     operand::Operand,
     rvalue::RValue,
@@ -7,6 +11,16 @@ use crate::body::{
     terminator::{Return, TerminatorKind},
 };
 
+/// Checks whether all statements in a sequence are "trivial" for reduction purposes.
+///
+/// Trivial statements are those that don't perform computation or have side effects beyond
+/// simple data movement:
+/// - `Nop`: No operation
+/// - `Assign` with `Load`: Simple value copy
+/// - `Assign` with `Aggregate`: Struct/tuple construction
+///
+/// Non-trivial statements include function calls (`Apply`), arithmetic (`Binary`, `Unary`),
+/// and storage markers (`StorageLive`, `StorageDead`).
 fn all_statements_trivial<'stmt, 'heap: 'stmt>(
     statements: impl IntoIterator<Item = &'stmt Statement<'heap>>,
 ) -> bool {
@@ -27,26 +41,51 @@ fn all_statements_trivial<'stmt, 'heap: 'stmt>(
         })
 }
 
+/// The kind of administrative reduction applicable to a function body.
+///
+/// Each variant represents a different reduction strategy:
+///
+/// - [`TrivialThunk`](Self::TrivialThunk): The body contains only trivial statements and can be
+///   fully inlined, replacing the call with the body's statements and a load of the return value.
+///
+/// - [`ForwardingClosure`](Self::ForwardingClosure): The body is a thin wrapper that performs some
+///   trivial setup then delegates to another function. The wrapper is eliminated, exposing the
+///   inner call directly.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub(crate) enum ReductionKind {
+    /// A function with only trivial statements that immediately returns a value.
+    ///
+    /// Shape: single basic block, all statements are `Nop`/`Load`/`Aggregate`, terminator is
+    /// `Return`. No control flow, no calls.
     TrivialThunk,
+
+    /// A function that forwards to another call after trivial setup.
+    ///
+    /// Shape: single basic block, trivial prelude statements, final statement is an `Apply`,
+    /// terminator returns the result of that `Apply`.
     ForwardingClosure,
 }
 
 impl ReductionKind {
+    /// Attempts to classify a body as a trivial thunk.
+    ///
+    /// Requirements:
+    /// - Single basic block (no control flow)
+    /// - All statements are trivial (no calls, no arithmetic)
+    /// - Terminator is a `Return`
+    ///
+    /// Note: `StorageLive`/`StorageDead` markers are intentionally considered non-trivial
+    /// because their presence indicates liveness analysis has already run, and we want to
+    /// reduce before that phase.
     fn thunk(body: &Body<'_>) -> Option<Self> {
-        // We can't have any control-flow, therefore only one bb allowed
         if body.basic_blocks.len() > 1 {
             return None;
         }
 
         let bb = &body.basic_blocks[BasicBlockId::START];
 
-        // StorageLive and StorageDead are invalid on purpose, this is because them being in a thunk
-        // signifies that we have already done liveness analysis.
         let is_trivial = all_statements_trivial(&bb.statements);
 
-        // The return value of the thunk **must** be a return
         if !matches!(bb.terminator.kind, TerminatorKind::Return(_)) {
             return None;
         }
@@ -58,22 +97,29 @@ impl ReductionKind {
         None
     }
 
+    /// Attempts to classify a body as a forwarding closure.
+    ///
+    /// A forwarding closure has the shape:
+    /// ```text
+    /// bb0:
+    ///     <trivial prelude statements>
+    ///     result = Apply(callee, args)
+    ///     Return(result)
+    /// ```
+    ///
+    /// Requirements:
+    /// - Single basic block (no control flow)
+    /// - At least one statement (the call). Empty blocks are trivial thunks, not forwarders.
+    /// - Final statement must be a call assignment.
     fn closure(body: &Body<'_>) -> Option<Self> {
-        // A closure is forwarding in the following cases:
-        // 1) The last statement is a closure call
-        // 2) Everything leading up to the last statement is considered trivial
-        // 3) The return value is the result of the closure call
-
-        // Unlike `analyze_thunk` this is applicable to *any* closure, not just thunks.
         if body.basic_blocks.len() > 1 {
             return None;
         }
 
         let bb = &body.basic_blocks[BasicBlockId::START];
 
-        // An empty closure is not forwarding
-        let [prelude @ .., closure] = &*bb.statements else {
-            // An empty basic block is not forwarding, it is considered trivial
+        // Need at least one statement (the call). Empty blocks are trivial thunks, not forwarders.
+        let [prelude @ .., final_stmt] = &*bb.statements else {
             return None;
         };
 
@@ -81,14 +127,16 @@ impl ReductionKind {
             return None;
         }
 
+        // Final statement must be a call assignment.
         let StatementKind::Assign(Assign {
             lhs,
             rhs: RValue::Apply(_),
-        }) = closure.kind
+        }) = final_stmt.kind
         else {
             return None;
         };
 
+        // Terminator must return the call's result.
         if bb.terminator.kind
             == TerminatorKind::Return(Return {
                 value: Operand::Place(lhs),
@@ -100,15 +148,22 @@ impl ReductionKind {
         None
     }
 
+    /// Classifies a body for administrative reduction, if applicable.
+    ///
+    /// Returns `Some(kind)` if the body is reducible, `None` otherwise.
+    ///
+    /// Classification priority:
+    /// 1. Try [`TrivialThunk`](Self::TrivialThunk) first (fully inlinable, no calls)
+    /// 2. Fall back to [`ForwardingClosure`](Self::ForwardingClosure) (wrapper elimination)
+    ///
+    /// Bodies with multiple basic blocks (control flow) are never reducible.
     pub(crate) fn of(body: &Body<'_>) -> Option<Self> {
-        // A trivial thunk is one that is a thunk that has a single body, with only trivial
-        // assignments, and then returns such a value. So no control-flow.
-        // A trivial thunk may create aggregates, but not operate on them, so bin and unops are not
-        // allowed.
+        // Early exit for bodies with control flow.
         if body.basic_blocks.len() > 1 {
             return None;
         }
 
+        // Prefer TrivialThunk classification when possible, as it's simpler to inline.
         if let Some(target) = Self::thunk(body) {
             return Some(target);
         }
