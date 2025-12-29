@@ -68,7 +68,7 @@ const fn simplify_type_name(name: &'static str) -> &'static str {
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum Changed {
     /// The pass definitely made modifications.
-    Yes = 2,
+    Yes = 3,
     /// The pass may have made modifications, but precise tracking was not possible.
     Unknown = 1,
     /// The pass made no modifications.
@@ -106,7 +106,7 @@ impl Changed {
         match value {
             0 => Self::No,
             1 => Self::Unknown,
-            2 => Self::Yes,
+            3 => Self::Yes,
             _ => unreachable!(),
         }
     }

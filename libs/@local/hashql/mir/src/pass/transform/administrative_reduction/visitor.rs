@@ -271,10 +271,9 @@ impl<'heap, A: Allocator> VisitorMut<'heap> for AdministrativeReductionVisitor<'
     /// Track function pointer loads: `local = Load(fn_ptr)` → record local as known callee.
     fn visit_rvalue(&mut self, location: Location, rvalue: &mut RValue<'heap>) -> Self::Result<()> {
         if let &mut RValue::Load(load) = rvalue
-            && let Some(ptr) = self.try_eval_ptr(load)
+            && let Some(callee) = self.try_eval_callee(load)
         {
-            self.callees
-                .insert(self.state.lhs.local, Callee::Fn { ptr });
+            self.callees.insert(self.state.lhs.local, callee);
         }
 
         visit::r#mut::walk_rvalue(self, location, rvalue)

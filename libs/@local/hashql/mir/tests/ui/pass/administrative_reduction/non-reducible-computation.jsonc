@@ -3,6 +3,6 @@
 [
   "let",
   "compute",
-  ["fn", { "#tuple": [] }, { "#struct": { "a": "Integer", "b": "Integer" } }, "_", ["+", "a", "b"]],
+  ["fn", { "#tuple": [] }, { "#struct": { "a": "Integer", "b": "Integer" } }, "_", ["==", "a", "b"]],
   ["compute", { "#literal": 1 }, { "#literal": 2 }]
 ]

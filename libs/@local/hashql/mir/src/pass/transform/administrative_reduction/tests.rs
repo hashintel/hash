@@ -909,7 +909,7 @@ fn inline_indirect_via_local() {
     );
 }
 
-/// Tests closure aggregate tracking: `closure (fn_ptr, env)` is tracked and call is resolved.
+/// Tests closure aggregate tracking: closure `(fn_ptr, env)` is tracked and call is resolved.
 ///
 /// ```text
 /// fn body0@0(%0: Int) -> Int {   // Takes captured env, returns it
@@ -922,7 +922,7 @@ fn inline_indirect_via_local() {
 ///   bb0:
 ///     %0 = 55                    // captured value
 ///     %1 = Closure(fn@0, %0)     // create closure
-///     %2 = apply %1 (%0)         // call closure with captured env
+///     %2 = apply %1.0 %1.1       // call via fn ptr projection, pass env projection
 ///     return %2
 /// }
 /// ```
@@ -932,6 +932,7 @@ fn inline_indirect_closure() {
     let env = Environment::new(&heap);
 
     let int_ty = TypeBuilder::synthetic(&env).integer();
+    let fn_ty = TypeBuilder::synthetic(&env).closure([int_ty], int_ty);
     let closure_ty = TypeBuilder::synthetic(&env).closure([int_ty], int_ty);
 
     // Body 0: trivial thunk that takes captured env as first arg
@@ -945,7 +946,7 @@ fn inline_indirect_closure() {
     let mut body0 = builder.finish(1, int_ty);
     body0.id = DefId::new(0);
 
-    // Body 1: creates a closure (fn_ptr, env), then calls it
+    // Body 1: creates a closure (fn_ptr, env), then calls it via projections
     let mut builder = BodyBuilder::new(&interner);
     let captured = builder.local("captured", int_ty);
     let closure = builder.local("closure", closure_ty);
@@ -953,11 +954,15 @@ fn inline_indirect_closure() {
     let const_55 = builder.const_int(55);
     let bb1 = builder.reserve_block([]);
 
+    // Create projections: %1.0 (fn ptr) and %1.1 (env)
+    let closure_fn_ptr = builder.place(|p| p.from(closure).field(0, fn_ty));
+    let closure_env = builder.place(|p| p.from(closure).field(1, int_ty));
+
     builder
         .build_block(bb1)
         .assign_place(captured, |rv| rv.load(const_55))
         .assign_place(closure, |rv| rv.closure(body0.id, captured))
-        .assign_place(result1, |rv| rv.apply(closure, [captured]))
+        .assign_place(result1, |rv| rv.apply(closure_fn_ptr, [closure_env]))
         .ret(result1);
 
     let mut body1 = builder.finish(0, int_ty);
