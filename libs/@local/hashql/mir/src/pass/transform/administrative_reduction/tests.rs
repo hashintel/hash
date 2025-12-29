@@ -6,7 +6,7 @@ use bstr::ByteVec as _;
 use hashql_core::{
     heap::Scratch,
     pretty::Formatter,
-    r#type::{TypeBuilder, TypeFormatter, TypeFormatterOptions, environment::Environment},
+    r#type::{TypeBuilder, TypeFormatter, TypeFormatterOptions, TypeId, environment::Environment},
 };
 use hashql_diagnostics::DiagnosticIssues;
 use insta::{Settings, assert_snapshot};
@@ -991,7 +991,7 @@ fn inline_closure_with_prelude() {
     builder
         .build_block(bb1)
         .assign_place(x, |rv| rv.load(const_99))
-        .assign_place(result1, |rv| rv.apply(fn_ptr0, [x.into()]))
+        .assign_place(result1, |rv| rv.apply(fn_ptr0, [x]))
         .ret(result1);
     let mut body1 = builder.finish(0, int_ty);
     body1.id = DefId::new(1);
@@ -1003,7 +1003,7 @@ fn inline_closure_with_prelude() {
     let bb2 = builder.reserve_block([]);
     builder
         .build_block(bb2)
-        .assign_place(result2, |rv| rv.apply(fn_ptr1, []))
+        .assign_place(result2, |rv| rv.call(fn_ptr1))
         .ret(result2);
     let mut body2 = builder.finish(0, int_ty);
     body2.id = DefId::new(2);
@@ -1098,22 +1098,22 @@ fn offset_caller_locals() {
 ///
 /// Before:
 /// ```text
-/// fn body0() -> Int {   // TrivialThunk
-///     bb0:
-///         %0 = 1
-///         return %0
+/// fn body0@0() -> Int {   // TrivialThunk
+///   bb0:
+///     %0 = 1
+///     return %0
 /// }
 ///
-/// fn body1() -> Int {   // ForwardingClosure → body0
-///     bb0:
-///         %0 = call fn@0()
-///         return %0
+/// fn body1@1() -> Int {   // ForwardingClosure → body0
+///   bb0:
+///     %0 = apply fn@0
+///     return %0
 /// }
 ///
-/// fn body2() -> Int {   // Calls body1
-///     bb0:
-///         %0 = call fn@1()
-///         return %0
+/// fn body2@2() -> Int {
+///   bb0:
+///     %0 = apply fn@1
+///     return %0
 /// }
 /// ```
 ///
@@ -1143,7 +1143,7 @@ fn offset_nested() {
     let bb1 = builder.reserve_block([]);
     builder
         .build_block(bb1)
-        .assign_place(result1, |rv| rv.apply(fn_ptr0, []))
+        .assign_place(result1, |rv| rv.call(fn_ptr0))
         .ret(result1);
     let mut body1 = builder.finish(0, int_ty);
     body1.id = DefId::new(1);
@@ -1155,7 +1155,7 @@ fn offset_nested() {
     let bb2 = builder.reserve_block([]);
     builder
         .build_block(bb2)
-        .assign_place(result2, |rv| rv.apply(fn_ptr1, []))
+        .assign_place(result2, |rv| rv.call(fn_ptr1))
         .ret(result2);
     let mut body2 = builder.finish(0, int_ty);
     body2.id = DefId::new(2);
@@ -1224,7 +1224,7 @@ fn offset_args_not_offset() {
     builder
         .build_block(bb1)
         .assign_place(caller_local, |rv| rv.load(const_5))
-        .assign_place(result1, |rv| rv.apply(fn_ptr0, [caller_local.into()]))
+        .assign_place(result1, |rv| rv.apply(fn_ptr0, [caller_local]))
         .ret(result1);
     let mut body1 = builder.finish(0, int_ty);
     body1.id = DefId::new(1);
@@ -1245,16 +1245,16 @@ fn offset_args_not_offset() {
 /// Tests postorder traversal: callee (body0) is processed before caller (body1).
 ///
 /// ```text
-/// fn body0() -> Int {   // TrivialThunk, processed first
-///     bb0:
-///         %0 = 1
-///         return %0
+/// fn body0@0() -> Int {   // TrivialThunk, processed first
+///   bb0:
+///     %0 = 1
+///     return %0
 /// }
 ///
-/// fn body1() -> Int {   // Calls body0, processed second
-///     bb0:
-///         %0 = call fn@0()
-///         return %0
+/// fn body1@1() -> Int {
+///   bb0:
+///     %0 = apply fn@0
+///     return %0
 /// }
 /// ```
 #[test]
@@ -1282,7 +1282,7 @@ fn postorder_simple() {
     let bb1 = builder.reserve_block([]);
     builder
         .build_block(bb1)
-        .assign_place(result1, |rv| rv.apply(fn_ptr0, []))
+        .assign_place(result1, |rv| rv.call(fn_ptr0))
         .ret(result1);
     let mut body1 = builder.finish(0, int_ty);
     body1.id = DefId::new(1);
@@ -1303,22 +1303,22 @@ fn postorder_simple() {
 /// Tests a chain of thunks: body2 → body1 → body0, all reduced in one pass.
 ///
 /// ```text
-/// fn body0() -> Int {   // C: TrivialThunk
-///     bb0:
-///         %0 = 100
-///         return %0
+/// fn body0@0() -> Int {   // C: TrivialThunk
+///   bb0:
+///     %0 = 100
+///     return %0
 /// }
 ///
-/// fn body1() -> Int {   // B: ForwardingClosure → C
-///     bb0:
-///         %0 = call fn@0()
-///         return %0
+/// fn body1@1() -> Int {   // B: ForwardingClosure → C
+///   bb0:
+///     %0 = apply fn@0
+///     return %0
 /// }
 ///
-/// fn body2() -> Int {   // A: Calls B
-///     bb0:
-///         %0 = call fn@1()
-///         return %0
+/// fn body2@2() -> Int {   // A: Calls B
+///   bb0:
+///     %0 = apply fn@1
+///     return %0
 /// }
 /// ```
 ///
@@ -1348,7 +1348,7 @@ fn postorder_chain() {
     let bb1 = builder.reserve_block([]);
     builder
         .build_block(bb1)
-        .assign_place(result1, |rv| rv.apply(fn_ptr0, []))
+        .assign_place(result1, |rv| rv.call(fn_ptr0))
         .ret(result1);
     let mut body1 = builder.finish(0, int_ty);
     body1.id = DefId::new(1);
@@ -1360,7 +1360,7 @@ fn postorder_chain() {
     let bb2 = builder.reserve_block([]);
     builder
         .build_block(bb2)
-        .assign_place(result2, |rv| rv.apply(fn_ptr1, []))
+        .assign_place(result2, |rv| rv.call(fn_ptr1))
         .ret(result2);
     let mut body2 = builder.finish(0, int_ty);
     body2.id = DefId::new(2);
@@ -1381,29 +1381,29 @@ fn postorder_chain() {
 /// Tests diamond call graph: body3 → {body1, body2} → body0
 ///
 /// ```text
-/// fn body0() -> Int {   // D: TrivialThunk (leaf)
-///     bb0:
-///         %0 = 1
-///         return %0
+/// fn body0@0() -> Int {   // D: TrivialThunk (leaf)
+///   bb0:
+///     %0 = 1
+///     return %0
 /// }
 ///
-/// fn body1() -> Int {   // B: Calls D
-///     bb0:
-///         %0 = call fn@0()
-///         return %0
+/// fn body1@1() -> Int {   // B: Calls D
+///   bb0:
+///     %0 = apply fn@0
+///     return %0
 /// }
 ///
-/// fn body2() -> Int {   // C: Calls D
-///     bb0:
-///         %0 = call fn@0()
-///         return %0
+/// fn body2@2() -> Int {   // C: Calls D
+///   bb0:
+///     %0 = apply fn@0
+///     return %0
 /// }
 ///
-/// fn body3() -> Int {   // A: Calls B and C
-///     bb0:
-///         %0 = call fn@1()
-///         %1 = call fn@2()
-///         return %0
+/// fn body3@3() -> Int {   // A: Calls B and C
+///   bb0:
+///     %0 = apply fn@1
+///     %1 = apply fn@2
+///     return %0
 /// }
 /// ```
 #[test]
@@ -1431,7 +1431,7 @@ fn postorder_diamond() {
     let bb1 = builder.reserve_block([]);
     builder
         .build_block(bb1)
-        .assign_place(result1, |rv| rv.apply(fn_ptr0, []))
+        .assign_place(result1, |rv| rv.call(fn_ptr0))
         .ret(result1);
     let mut body1 = builder.finish(0, int_ty);
     body1.id = DefId::new(1);
@@ -1443,7 +1443,7 @@ fn postorder_diamond() {
     let bb2 = builder.reserve_block([]);
     builder
         .build_block(bb2)
-        .assign_place(result2, |rv| rv.apply(fn_ptr0, []))
+        .assign_place(result2, |rv| rv.call(fn_ptr0))
         .ret(result2);
     let mut body2 = builder.finish(0, int_ty);
     body2.id = DefId::new(2);
@@ -1457,8 +1457,8 @@ fn postorder_diamond() {
     let bb3 = builder.reserve_block([]);
     builder
         .build_block(bb3)
-        .assign_place(r_b, |rv| rv.apply(fn_ptr1, []))
-        .assign_place(r_c, |rv| rv.apply(fn_ptr2, []))
+        .assign_place(r_b, |rv| rv.call(fn_ptr1))
+        .assign_place(r_c, |rv| rv.call(fn_ptr2))
         .ret(r_b);
     let mut body3 = builder.finish(0, int_ty);
     body3.id = DefId::new(3);
@@ -1479,23 +1479,23 @@ fn postorder_diamond() {
 /// Tests local fixpoint: multiple reducible calls in sequence are all inlined.
 ///
 /// ```text
-/// fn body0() -> Int {   // TrivialThunk returning 1
-///     bb0:
-///         %0 = 1
-///         return %0
+/// fn body0@0() -> Int {   // TrivialThunk returning 1
+///   bb0:
+///     %0 = 1
+///     return %0
 /// }
 ///
-/// fn body1() -> Int {   // TrivialThunk returning 2
-///     bb0:
-///         %0 = 2
-///         return %0
+/// fn body1@1() -> Int {   // TrivialThunk returning 2
+///   bb0:
+///     %0 = 2
+///     return %0
 /// }
 ///
-/// fn body2() -> Int {   // Calls body0, then body1
-///     bb0:
-///         %0 = call fn@0()
-///         %1 = call fn@1()
-///         return %1
+/// fn body2@2() -> Int {   // Calls body0, then body1
+///   bb0:
+///     %0 = apply fn@0
+///     %1 = apply fn@1
+///     return %1
 /// }
 /// ```
 ///
@@ -1539,8 +1539,8 @@ fn fixpoint_sequential() {
     let bb2 = builder.reserve_block([]);
     builder
         .build_block(bb2)
-        .assign_place(r0, |rv| rv.apply(fn_ptr0, []))
-        .assign_place(r1, |rv| rv.apply(fn_ptr1, []))
+        .assign_place(r0, |rv| rv.call(fn_ptr0))
+        .assign_place(r1, |rv| rv.call(fn_ptr1))
         .ret(r1);
     let mut body2 = builder.finish(0, int_ty);
     body2.id = DefId::new(2);
@@ -1561,26 +1561,26 @@ fn fixpoint_sequential() {
 /// Tests that newly inserted code (from inlining) containing a reducible call is processed.
 ///
 /// ```text
-/// fn body0() -> Int {   // TrivialThunk
-///     bb0:
-///         %0 = 42
-///         return %0
+/// fn body0@0() -> Int {   // TrivialThunk
+///   bb0:
+///     %0 = 42
+///     return %0
 /// }
 ///
-/// fn body1() -> Int {   // ForwardingClosure → body0
-///     bb0:
-///         %0 = call fn@0()
-///         return %0
+/// fn body1@1() -> Int {   // ForwardingClosure → body0
+///   bb0:
+///     %0 = apply fn@0
+///     return %0
 /// }
 ///
-/// fn body2() -> Int {   // Calls body1
-///     bb0:
-///         %0 = call fn@1()
-///         return %0
+/// fn body2@2() -> Int {
+///   bb0:
+///     %0 = apply fn@1
+///     return %0
 /// }
 /// ```
 ///
-/// When body1 is inlined into body2, the `call fn@0()` statement is inserted.
+/// When body1 is inlined into body2, the `apply fn@0` statement is inserted.
 /// The rewind mechanism should catch this and inline body0 too.
 #[test]
 fn fixpoint_nested() {
@@ -1607,7 +1607,7 @@ fn fixpoint_nested() {
     let bb1 = builder.reserve_block([]);
     builder
         .build_block(bb1)
-        .assign_place(result1, |rv| rv.apply(fn_ptr0, []))
+        .assign_place(result1, |rv| rv.call(fn_ptr0))
         .ret(result1);
     let mut body1 = builder.finish(0, int_ty);
     body1.id = DefId::new(1);
@@ -1619,7 +1619,7 @@ fn fixpoint_nested() {
     let bb2 = builder.reserve_block([]);
     builder
         .build_block(bb2)
-        .assign_place(result2, |rv| rv.apply(fn_ptr1, []))
+        .assign_place(result2, |rv| rv.call(fn_ptr1))
         .ret(result2);
     let mut body2 = builder.finish(0, int_ty);
     body2.id = DefId::new(2);
@@ -1640,17 +1640,17 @@ fn fixpoint_nested() {
 /// Tests indirect call resolution via local tracking.
 ///
 /// ```text
-/// fn body0() -> Int {   // TrivialThunk
-///     bb0:
-///         %0 = 77
-///         return %0
+/// fn body0@0() -> Int {   // TrivialThunk
+///   bb0:
+///     %0 = 77
+///     return %0
 /// }
 ///
-/// fn body1() -> Int {
-///     bb0:
-///         %0 = fn@0     // store fn ptr in local
-///         %1 = call %0() // call via local
-///         return %1
+/// fn body1@1() -> Int {
+///   bb0:
+///     %0 = fn@0         // store fn ptr in local
+///     %1 = apply %0     // call via local
+///     return %1
 /// }
 /// ```
 ///
@@ -1661,7 +1661,7 @@ fn indirect_via_local() {
     let env = Environment::new(&heap);
 
     let int_ty = TypeBuilder::synthetic(&env).integer();
-    let fn_ty = TypeBuilder::synthetic(&env).closure([] as [_; 0], int_ty);
+    let fn_ty = TypeBuilder::synthetic(&env).closure([] as [TypeId; 0], int_ty);
 
     // Body 0: trivial thunk
     let x0 = builder.local("x", int_ty);
@@ -1683,7 +1683,7 @@ fn indirect_via_local() {
     builder
         .build_block(bb1)
         .assign_place(f, |rv| rv.load(fn_ptr0))
-        .assign_place(result, |rv| rv.apply(f, []))
+        .assign_place(result, |rv| rv.call(f))
         .ret(result);
     let mut body1 = builder.finish(0, int_ty);
     body1.id = DefId::new(1);
@@ -1704,18 +1704,18 @@ fn indirect_via_local() {
 /// Tests closure aggregate tracking: closure (fn_ptr, env) is tracked and call is resolved.
 ///
 /// ```text
-/// fn body0(%0: Int) -> Int {   // Takes captured env, returns it
-///     bb0:
-///         %1 = %0
-///         return %1
+/// fn body0@0(%0: Int) -> Int {   // Takes captured env, returns it
+///   bb0:
+///     %1 = %0
+///     return %1
 /// }
 ///
-/// fn body1() -> Int {
-///     bb0:
-///         %0 = 55                    // captured value
-///         %1 = Closure(fn@0, %0)     // create closure
-///         %2 = call %1(%0)           // call closure with captured env
-///         return %2
+/// fn body1@1() -> Int {
+///   bb0:
+///     %0 = 55                    // captured value
+///     %1 = Closure(fn@0, %0)     // create closure
+///     %2 = apply %1 (%0)         // call closure with captured env
+///     return %2
 /// }
 /// ```
 #[test]
@@ -1743,23 +1743,13 @@ fn indirect_closure() {
     let closure = builder.local("closure", closure_ty);
     let result1 = builder.local("result", int_ty);
     let const_55 = builder.const_int(55);
-    let fn_ptr0 = builder.const_fn(body0.id);
     let bb1 = builder.reserve_block([]);
 
-    // Build the block with a manual closure aggregate
     builder
         .build_block(bb1)
         .assign_place(captured, |rv| rv.load(const_55))
-        .assign(
-            |pb| pb.local(closure.local),
-            |_rv| {
-                RValue::Aggregate(Aggregate {
-                    kind: AggregateKind::Closure,
-                    operands: IdVec::from_iter_in([fn_ptr0, Operand::Place(captured)], &heap),
-                })
-            },
-        )
-        .assign_place(result1, |rv| rv.apply(closure, [captured.into()]))
+        .assign_place(closure, |rv| rv.closure(body0.id, captured))
+        .assign_place(result1, |rv| rv.apply(closure, [captured]))
         .ret(result1);
 
     let mut body1 = builder.finish(0, int_ty);
