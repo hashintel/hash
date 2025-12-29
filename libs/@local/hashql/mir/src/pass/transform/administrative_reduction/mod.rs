@@ -233,8 +233,7 @@ impl<A: BumpAllocator> AdministrativeReduction<A> {
         // first we create a callgraph
         let mut callgraph = CallGraph::new_in(bodies, &self.alloc);
         let mut analysis = CallGraphAnalysis::new(&mut callgraph);
-        // We do not need to run until fix-point, rather we just do reverse postorder, which is
-        // sufficient
+
         for body in bodies {
             analysis.run(context, body);
         }
@@ -248,15 +247,14 @@ impl<A: BumpAllocator> AdministrativeReduction<A> {
             }
         }
 
-        let mut nodes = 0;
-        let slice = self.alloc.allocate_slice_uninit(bodies.len());
-        let (postorder, rest) = slice.write_iter(callgraph.depth_first_forest_post_order());
+        // We do not need to run until fix-point, rather we just do reverse postorder, which is
+        // sufficient
+        let postorder_slice = self.alloc.allocate_slice_uninit(bodies.len());
+        let (postorder, rest) =
+            postorder_slice.write_iter(callgraph.depth_first_forest_post_order());
         debug_assert!(rest.is_empty());
         postorder.reverse();
         let reverse_postorder = &*postorder;
-
-        // We cannot use postorder, because we don't know where to start, instead we must use tarjan
-        // to get an order.
 
         let mut changed = Changed::No;
         for &id in reverse_postorder {
