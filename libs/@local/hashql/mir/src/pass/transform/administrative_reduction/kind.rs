@@ -105,11 +105,11 @@ impl ReductionKind {
         // assignments, and then returns such a value. So no control-flow.
         // A trivial thunk may create aggregates, but not operate on them, so bin and unops are not
         // allowed.
+        if body.basic_blocks.len() > 1 {
+            return None;
+        }
 
-        // TODO: should we expand the scope here to allow non-thunks to allow as thunks?!
-        if matches!(body.source, Source::Thunk(_, _))
-            && let Some(target) = Self::thunk(body)
-        {
+        if let Some(target) = Self::thunk(body) {
             return Some(target);
         }
 

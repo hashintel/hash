@@ -21,7 +21,7 @@ use crate::{
     context::MirContext,
     def::{DefId, DefIdSlice, DefIdVec},
     pass::{
-        Changed, ProgramTransformPass, TransformPass, analysis::CallGraph,
+        Changed, GlobalTransformPass, TransformPass, analysis::CallGraph,
         transform::cp::propagate_block_params,
     },
     visit::VisitorMut as _,
@@ -51,10 +51,10 @@ impl<A: Allocator> Reducable<A> {
             return false;
         };
 
-        self.inner.insert(body.id, kind);
+        let previous = self.inner.insert(body.id, kind);
         self.set.insert(body.id);
 
-        true
+        previous.is_none()
     }
 
     fn get(&self, id: DefId) -> Option<ReductionKind> {
@@ -117,7 +117,7 @@ impl<A: Allocator> AdministrativeReduction<A> {
     }
 }
 
-impl<'env, 'heap, A: ResetAllocator> ProgramTransformPass<'env, 'heap>
+impl<'env, 'heap, A: ResetAllocator> GlobalTransformPass<'env, 'heap>
     for AdministrativeReduction<A>
 {
     fn run(
@@ -129,7 +129,7 @@ impl<'env, 'heap, A: ResetAllocator> ProgramTransformPass<'env, 'heap>
 
         // first we create a callgraph
         let callgraph = CallGraph::analyze_in(bodies, &self.alloc);
-        let reducable = Reducable::new(bodies, &self.alloc);
+        let mut reducable = Reducable::new(bodies, &self.alloc);
 
         // We do not need to run until fix-point, rather we just do reverse postorder, which is
         // sufficient
@@ -137,14 +137,13 @@ impl<'env, 'heap, A: ResetAllocator> ProgramTransformPass<'env, 'heap>
         let (postorder, rest) =
             postorder_slice.write_iter(callgraph.depth_first_forest_post_order());
         debug_assert!(rest.is_empty());
-        postorder.reverse();
-        let reverse_postorder = &*postorder;
+        let postorder = &*postorder;
 
         let mut scratch = ScratchMemory::new(bodies, &self.alloc);
 
         let mut changed = Changed::No;
 
-        for &id in reverse_postorder {
+        for &id in postorder {
             let (body, rest) = DisjointIdSlice::new(bodies, id);
 
             let mut pass = AdministrativeReductionPass {
@@ -154,7 +153,12 @@ impl<'env, 'heap, A: ResetAllocator> ProgramTransformPass<'env, 'heap>
                 scratch: &mut scratch,
             };
 
-            changed |= pass.run(context, body);
+            let body_changed = pass.run(context, body);
+            changed |= body_changed;
+
+            if body_changed != Changed::No && !reducable.contains(body.id) {
+                reducable.insert(body);
+            }
         }
 
         changed
@@ -177,7 +181,7 @@ impl<'env, 'heap, A: Allocator> TransformPass<'env, 'heap>
         if self
             .callgraph
             .successors(body.id)
-            .all(|successor| self.reducable.contains(successor))
+            .all(|successor| !self.reducable.contains(successor))
         {
             // Nothing to do, because we don't have an edge to a target
             return Changed::No;
