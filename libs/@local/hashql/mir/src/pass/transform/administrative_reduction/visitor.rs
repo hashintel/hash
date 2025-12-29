@@ -1,3 +1,9 @@
+//! MIR visitor for performing administrative reductions within a single body.
+//!
+//! This module contains the [`AdministrativeReductionVisitor`] which walks through statements,
+//! tracks closure/function pointer assignments, and performs inlining when it encounters calls
+//! to reducible functions.
+
 use core::{alloc::Allocator, convert::Infallible, mem};
 
 use hashql_core::{heap::Heap, id::IdVec};
@@ -22,25 +28,44 @@ use crate::{
     visit::{self, VisitorMut, r#mut::filter},
 };
 
+/// A pending reduction to be applied after visiting a call statement.
+///
+/// When the visitor encounters a reducible call, it doesn't inline immediately (to avoid
+/// invalidating the current iteration state). Instead, it records the reduction here and
+/// applies it after `visit_statement` returns.
 struct Reduction<'heap> {
     callee: DefId,
     args: ArgVec<Operand<'heap>, &'heap Heap>,
 }
 
+/// Represents a known function or closure value assigned to a local.
+///
+/// The visitor tracks these assignments to resolve indirect calls (calls through locals)
+/// to their concrete callees, enabling reduction of closures passed as values.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub(crate) enum Callee<'heap> {
+    /// A bare function pointer.
     Fn { ptr: DefId },
+    /// A closure: function pointer plus captured environment.
     Closure { ptr: DefId, env: Place<'heap> },
 }
 
+/// Header information for the body being transformed.
+///
+/// This is separated from the main body to allow the visitor to extend `local_decls`
+/// with locals from inlined callees while the body's basic blocks are being visited.
 pub(crate) struct BodyHeader<'heap> {
     pub id: DefId,
     pub local_decls: LocalVec<LocalDecl<'heap>, &'heap Heap>,
 }
 
+/// Mutable state carried through the visitor traversal.
 pub(crate) struct State<'heap> {
+    /// Whether any reductions were performed.
     pub changed: bool,
+    /// The LHS of the current assignment being visited (used to record closure tracking).
     lhs: Place<'heap>,
+    /// A pending reduction to apply after the current statement.
     reduction: Option<Reduction<'heap>>,
 }
 
@@ -54,13 +79,24 @@ impl State<'_> {
     }
 }
 
+/// The MIR visitor that performs administrative reduction within a single body.
+///
+/// This visitor:
+/// 1. Tracks assignments of function pointers and closures to locals
+/// 2. When encountering a call (`Apply`), checks if the callee is reducible
+/// 3. If reducible, inlines the callee's body at the call site
+///
+/// The visitor implements local fixpoint iteration by rewinding the statement index after
+/// each reduction, ensuring that newly inserted statements are also processed.
 pub(crate) struct AdministrativeReductionVisitor<'ctx, 'env, 'heap, A: Allocator> {
     pub heap: &'heap Heap,
     pub interner: &'env Interner<'heap>,
 
     pub body: BodyHeader<'heap>,
+    /// Maps locals to their known callee values (for resolving indirect calls).
     pub callees: &'ctx mut LocalVec<Option<Callee<'heap>>, A>,
 
+    /// Read-only access to all bodies except the one being transformed.
     pub bodies: DisjointIdSlice<'ctx, DefId, Body<'heap>>,
     pub reducable: &'env Reducable<A>,
 
@@ -68,6 +104,12 @@ pub(crate) struct AdministrativeReductionVisitor<'ctx, 'env, 'heap, A: Allocator
 }
 
 impl<'heap, A: Allocator> AdministrativeReductionVisitor<'_, '_, 'heap, A> {
+    /// Attempts to resolve an operand to a known callee (function or closure).
+    ///
+    /// This handles:
+    /// - Direct function pointer constants
+    /// - Locals known to hold function pointers or closures
+    /// - Field projections extracting the function pointer from a closure
     pub(super) fn try_eval_callee(&self, operand: Operand<'heap>) -> Option<Callee<'heap>> {
         if let Operand::Constant(Constant::FnPtr(ptr)) = operand {
             return Some(Callee::Fn { ptr });
@@ -83,7 +125,7 @@ impl<'heap, A: Allocator> AdministrativeReductionVisitor<'_, '_, 'heap, A> {
             return Some(pointer);
         }
 
-        // Degrade to a thin pointer if the projection is a field access to the first field
+        // Extracting the function pointer field from a closure degrades it to a bare Fn.
         if place.projections.len() == 1
             && place.projections[0].kind == ProjectionKind::Field(FieldIndex::FN_PTR)
             && let Callee::Closure { ptr, env: _ } = pointer
@@ -94,6 +136,11 @@ impl<'heap, A: Allocator> AdministrativeReductionVisitor<'_, '_, 'heap, A> {
         None
     }
 
+    /// Attempts to resolve an operand to a concrete function `DefId`.
+    ///
+    /// Unlike [`try_eval_callee`](Self::try_eval_callee), this only returns the function pointer,
+    /// not the full closure information. Used when we only need to know *which* function is
+    /// being called, not how it's packaged.
     fn try_eval_ptr(&self, operand: Operand<'heap>) -> Option<DefId> {
         if let Operand::Constant(Constant::FnPtr(ptr)) = operand {
             return Some(ptr);
@@ -117,6 +164,21 @@ impl<'heap, A: Allocator> AdministrativeReductionVisitor<'_, '_, 'heap, A> {
         }
     }
 
+    /// Inlines a reducible callee at the given call site.
+    ///
+    /// This is the core inlining operation. Given a call `lhs = Apply(callee, args)` at
+    /// `statements[index]`, it transforms the code to:
+    ///
+    /// ```text
+    /// // Parameter bindings (caller args -> callee params)
+    /// param0 = arg0
+    /// param1 = arg1
+    /// ...
+    /// // Callee body statements (with locals offset)
+    /// <callee statements>
+    /// // Original call site becomes a load of the return value
+    /// lhs = <callee return value>
+    /// ```
     fn apply_reduction(
         &mut self,
         statements: &mut Vec<Statement<'heap>, &'heap Heap>,
@@ -133,37 +195,27 @@ impl<'heap, A: Allocator> AdministrativeReductionVisitor<'_, '_, 'heap, A> {
             unreachable!("a thunk is only trivial if it has a return inside of a single bb");
         };
 
-        // Add the locals that have been defined in the target function to our set, this may be more
-        // than we need, subsequent passes are going to trim them.
+        // Append callee's locals to our local_decls. Subsequent passes (DCE) will trim unused ones.
         let local_offset = self.body.local_decls.len();
         self.body.local_decls.extend_from_slice(&target.local_decls);
 
         let mut offset = OffsetLocalVisitor::new(self.interner, local_offset);
 
-        // Before we change the current statement, we must offset the operand, as otherwise we will
-        // target the wrong local.
-        // We know that the offset local visitor doesn't make use of the location, so we can simply
-        // use the placeholder in it's invocation.
+        // Offset the return value operand to reference the new local positions.
         offset.visit_operand(Location::PLACEHOLDER, &mut value);
 
-        // Modify our statement to load the value from the local, this means that we'll have a
-        // simple alias, which projection forwarding will resolve and subsequently remove inside
-        // DSE.
+        // Rewrite the call statement to load from the (now offset) return value.
+        // This creates an alias that projection forwarding and DCE will clean up.
         statements[index].kind = StatementKind::Assign(Assign {
             lhs: self.state.lhs,
             rhs: RValue::Load(value),
         });
 
-        // We must now modify the body (via the statements) to include the new operations. There are
-        // in total two things we must do:
-        // 1. Assign the parameters their new values
-        // 2. Include the body
-        // Once done we add everything to the body
         let length = target_bb.statements.len() + target.args;
         debug_assert_eq!(args.len(), target.args);
 
-        // Offset the params, we must do this here, instead of all statements, as we otherwise would
-        // offset the rhs as well.
+        // Build parameter binding statements. LHS is pre-offset (callee param locals), RHS is
+        // NOT offset (caller argument operands). This is critical for correctness.
         let argument_statements = args
             .into_iter()
             .enumerate()
@@ -174,18 +226,19 @@ impl<'heap, A: Allocator> AdministrativeReductionVisitor<'_, '_, 'heap, A> {
                 }),
                 span,
             });
+
+        // Insert: [param bindings] + [callee body] before the rewritten call statement.
         statements.splice(
             index..index,
             argument_statements.chain(target_bb.statements.iter().cloned()),
         );
 
-        // Once done we must now offset the statements, while doing so we must **not** include our
-        // assignment statement (so no +1).
+        // Offset only the callee body statements, NOT the parameter bindings (which already
+        // have correct LHS indices and must preserve caller locals in RHS).
+        // Range: [index + target.args .. index + length) = callee body only
         for statement in &mut statements[(index + target.args)..(index + length)] {
             offset.visit_statement(Location::PLACEHOLDER, statement);
         }
-
-        // Once done we have successfully soft inlined everything
     }
 }
 
@@ -215,6 +268,7 @@ impl<'heap, A: Allocator> VisitorMut<'heap> for AdministrativeReductionVisitor<'
         visit::r#mut::walk_statement_assign(self, location, assign)
     }
 
+    /// Track function pointer loads: `local = Load(fn_ptr)` → record local as known callee.
     fn visit_rvalue(&mut self, location: Location, rvalue: &mut RValue<'heap>) -> Self::Result<()> {
         if let &mut RValue::Load(load) = rvalue
             && let Some(ptr) = self.try_eval_ptr(load)
@@ -226,12 +280,12 @@ impl<'heap, A: Allocator> VisitorMut<'heap> for AdministrativeReductionVisitor<'
         visit::r#mut::walk_rvalue(self, location, rvalue)
     }
 
+    /// Track closure construction: `local = Aggregate(Closure, [fn_ptr, env])` → record as closure.
     fn visit_rvalue_aggregate(
         &mut self,
         _: Location,
         aggregate: &mut Aggregate<'heap>,
     ) -> Self::Result<()> {
-        // We do not descend further, because we won't need to.
         if aggregate.kind != AggregateKind::Closure {
             return Ok(());
         }
@@ -251,35 +305,38 @@ impl<'heap, A: Allocator> VisitorMut<'heap> for AdministrativeReductionVisitor<'
         Ok(())
     }
 
+    /// Check if a call can be reduced and queue the reduction if so.
+    ///
+    /// This doesn't perform the reduction immediately — it records it in `state.reduction`
+    /// to be applied after `visit_statement` returns.
     fn visit_rvalue_apply(&mut self, _: Location, apply: &mut Apply<'heap>) -> Self::Result<()> {
-        // Closure devirt, there are two cases which we can resolve:
-        // Nothing to do here, this is because we *must* look at a closure here.
         let Some(ptr) = self.try_eval_ptr(apply.function) else {
             return Ok(());
         };
 
+        // Guard against self-recursion: inlining ourselves would loop forever.
         if ptr == self.body.id {
-            // We can't reduce a closure to itself, so we just return Ok(())
             return Ok(());
         }
 
-        // We now know the closure, we now must check if it is an eligible target for administrative
-        // reduction
         if self.reducable.get(ptr).is_none() {
             return Ok(());
         }
 
         let args = mem::replace(&mut apply.arguments, IdVec::new_in(self.heap));
 
-        // The target dictates how we reduce the closure, if it's closure forwarding, we simply
-        // replace the closure (and add any prelude required) if it's a trivial thunk, we
-        // simply inline, and replace the return with an assignment to our value.
-        // Either way we add some locals, which are removed in subsequent passes.
+        // Queue the reduction. The actual inlining happens in `visit_basic_block` after
+        // this method returns.
         self.state.reduction = Some(Reduction { callee: ptr, args });
 
         Ok(())
     }
 
+    /// Custom basic block visitor that implements local fixpoint iteration.
+    ///
+    /// After each reduction, we decrement `statement_index` to re-visit the newly inserted
+    /// statements. This ensures nested reductions (e.g., a thunk calling another thunk) are
+    /// fully applied without needing a separate fixpoint loop.
     fn visit_basic_block(
         &mut self,
         id: BasicBlockId,
@@ -294,20 +351,20 @@ impl<'heap, A: Allocator> VisitorMut<'heap> for AdministrativeReductionVisitor<'
             statement_index: 0,
         };
 
-        // We do not visit the basic block id here because it **cannot** be changed
         self.visit_basic_block_params(location, params)?;
 
         while location.statement_index < statements.len() {
             let statement = &mut statements[location.statement_index];
-            location.statement_index += 1; // one based, so we must offset accordingly **before** we run
+            location.statement_index += 1;
 
             self.visit_statement(location, statement)?;
             if let Some(reduction) = self.state.reduction.take() {
                 self.state.changed = true;
                 self.apply_reduction(statements, location.statement_index - 1, reduction);
 
-                // We must *wind back* the clock the previous statement, as we have added new
-                // statements. This allows us to skip fix-point iteration.
+                // Rewind to re-process newly inserted statements. The `apply_reduction` call
+                // inserted statements *before* the current index, so decrementing lets us
+                // visit them on the next loop iteration.
                 location.statement_index -= 1;
             }
         }
