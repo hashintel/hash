@@ -175,11 +175,45 @@ pub trait TransformPass<'env, 'heap> {
     }
 }
 
-pub trait ProgramTransformPass<'env, 'heap> {
-    /// Executes the pass on the given `body`.
+/// A global transformation pass over MIR.
+///
+/// Unlike [`TransformPass`] which operates on a single [`Body`], global passes have access to
+/// **all** bodies simultaneously via a [`DefIdSlice`]. This enables inter-procedural
+/// transformations that need to:
+///
+/// - Analyze or traverse the call graph
+/// - Inline code from callees into callers
+/// - Perform whole-program optimizations
+///
+/// # When to Use
+///
+/// Use `GlobalTransformPass` when your transformation requires cross-function visibility.
+/// For single-function transformations, prefer [`TransformPass`] which is simpler and
+/// allows the pass manager more flexibility in scheduling.
+///
+/// # Implementing a Global Pass
+///
+/// ```ignore
+/// struct MyInterProceduralPass;
+///
+/// impl<'env, 'heap> GlobalTransformPass<'env, 'heap> for MyInterProceduralPass {
+///     fn run(
+///         &mut self,
+///         context: &mut MirContext<'env, 'heap>,
+///         bodies: &mut DefIdSlice<Body<'heap>>,
+///     ) -> Changed {
+///         // Access any body by DefId, build call graphs, inline across functions, etc.
+///         Changed::No
+///     }
+/// }
+/// ```
+///
+/// [`name`]: GlobalTransformPass::name
+pub trait GlobalTransformPass<'env, 'heap> {
+    /// Executes the pass on all bodies.
     ///
     /// The `context` provides access to the heap allocator, type environment, interner, and
-    /// diagnostic collection. The `body` can be read and modified in place.
+    /// diagnostic collection. The `bodies` slice allows reading and modifying any function body.
     fn run(
         &mut self,
         context: &mut MirContext<'env, 'heap>,

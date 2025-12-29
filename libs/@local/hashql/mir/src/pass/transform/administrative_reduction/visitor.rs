@@ -162,14 +162,14 @@ impl<'heap, A: Allocator> AdministrativeReductionVisitor<'_, '_, 'heap, A> {
         let length = target_bb.statements.len() + target.args;
         debug_assert_eq!(args.len(), target.args);
 
-        // We do not offset here, because offset happens at a later stage automatically, otherwise
-        // we would double offset.
+        // Offset the params, we must do this here, instead of all statements, as we otherwise would
+        // offset the rhs as well.
         let argument_statements = args
             .into_iter()
             .enumerate()
             .map(|(param, argument)| Statement {
                 kind: StatementKind::Assign(Assign {
-                    lhs: Place::local(Local::new(param), self.interner),
+                    lhs: Place::local(Local::new(local_offset + param), self.interner),
                     rhs: RValue::Load(argument),
                 }),
                 span,
@@ -181,7 +181,7 @@ impl<'heap, A: Allocator> AdministrativeReductionVisitor<'_, '_, 'heap, A> {
 
         // Once done we must now offset the statements, while doing so we must **not** include our
         // assignment statement (so no +1).
-        for statement in &mut statements[index..(index + length)] {
+        for statement in &mut statements[(index + target.args)..(index + length)] {
             offset.visit_statement(Location::PLACEHOLDER, statement);
         }
 
