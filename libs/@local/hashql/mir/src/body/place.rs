@@ -11,7 +11,7 @@ use core::{
 };
 
 use hashql_core::{
-    id::{self, Id},
+    id::{self, Id as _},
     intern::Interned,
     symbol::Symbol,
     r#type::TypeId,

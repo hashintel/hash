@@ -1,9 +1,8 @@
-use core::{convert::Infallible, mem};
-use std::alloc::Allocator;
+use core::{alloc::Allocator, convert::Infallible, mem};
 
 use hashql_core::{heap::Heap, id::IdVec};
 
-use super::{Callee, Reducable, disjoint::DisjointIdSlice, kind::ReductionKind};
+use super::{Reducable, disjoint::DisjointIdSlice};
 use crate::{
     body::{
         Body,
@@ -25,8 +24,13 @@ use crate::{
 
 struct Reduction<'heap> {
     callee: DefId,
-    kind: ReductionKind,
     args: ArgVec<Operand<'heap>, &'heap Heap>,
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub(crate) enum Callee<'heap> {
+    Fn { ptr: DefId },
+    Closure { ptr: DefId, env: Place<'heap> },
 }
 
 pub(crate) struct BodyHeader<'heap> {
@@ -40,8 +44,8 @@ pub(crate) struct State<'heap> {
     reduction: Option<Reduction<'heap>>,
 }
 
-impl<'heap> State<'heap> {
-    pub fn new() -> Self {
+impl State<'_> {
+    pub(crate) const fn new() -> Self {
         Self {
             changed: false,
             lhs: Place::SYNTHETIC,
@@ -50,21 +54,21 @@ impl<'heap> State<'heap> {
     }
 }
 
-pub(crate) struct AdministrativeReductionVisitor<'body, 'env, 'heap, A: Allocator> {
+pub(crate) struct AdministrativeReductionVisitor<'ctx, 'env, 'heap, A: Allocator> {
     pub heap: &'heap Heap,
     pub interner: &'env Interner<'heap>,
 
     pub body: BodyHeader<'heap>,
-    pub callees: LocalVec<Option<Callee<'heap>>, A>,
+    pub callees: &'ctx mut LocalVec<Option<Callee<'heap>>, A>,
 
-    pub bodies: DisjointIdSlice<'body, DefId, Body<'heap>>,
+    pub bodies: DisjointIdSlice<'ctx, DefId, Body<'heap>>,
     pub reducable: &'env Reducable<A>,
 
     pub state: State<'heap>,
 }
 
 impl<'heap, A: Allocator> AdministrativeReductionVisitor<'_, '_, 'heap, A> {
-    fn try_eval_callee(&self, operand: Operand<'heap>) -> Option<Callee<'heap>> {
+    pub(super) fn try_eval_callee(&self, operand: Operand<'heap>) -> Option<Callee<'heap>> {
         if let Operand::Constant(Constant::FnPtr(ptr)) = operand {
             return Some(Callee::Fn { ptr });
         }
@@ -109,7 +113,7 @@ impl<'heap, A: Allocator> AdministrativeReductionVisitor<'_, '_, 'heap, A> {
             {
                 Some(ptr)
             }
-            _ => None,
+            Callee::Fn { .. } | Callee::Closure { .. } => None,
         }
     }
 
@@ -117,11 +121,7 @@ impl<'heap, A: Allocator> AdministrativeReductionVisitor<'_, '_, 'heap, A> {
         &mut self,
         statements: &mut Vec<Statement<'heap>, &'heap Heap>,
         index: usize,
-        Reduction {
-            callee,
-            kind: _,
-            args,
-        }: Reduction<'heap>,
+        Reduction { callee, args }: Reduction<'heap>,
     ) {
         let span = statements[index].span;
 
@@ -265,9 +265,9 @@ impl<'heap, A: Allocator> VisitorMut<'heap> for AdministrativeReductionVisitor<'
 
         // We now know the closure, we now must check if it is an eligible target for administrative
         // reduction
-        let Some(kind) = self.reducable.get(ptr) else {
+        if self.reducable.get(ptr).is_none() {
             return Ok(());
-        };
+        }
 
         let args = mem::replace(&mut apply.arguments, IdVec::new_in(self.heap));
 
@@ -275,11 +275,7 @@ impl<'heap, A: Allocator> VisitorMut<'heap> for AdministrativeReductionVisitor<'
         // replace the closure (and add any prelude required) if it's a trivial thunk, we
         // simply inline, and replace the return with an assignment to our value.
         // Either way we add some locals, which are removed in subsequent passes.
-        self.state.reduction = Some(Reduction {
-            callee: ptr,
-            kind,
-            args,
-        });
+        self.state.reduction = Some(Reduction { callee: ptr, args });
 
         Ok(())
     }

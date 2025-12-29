@@ -14,12 +14,12 @@ pub(crate) struct OffsetLocalVisitor<'env, 'heap> {
 }
 
 impl<'env, 'heap> OffsetLocalVisitor<'env, 'heap> {
-    pub(crate) fn new(interner: &'env Interner<'heap>, offset: usize) -> Self {
+    pub(crate) const fn new(interner: &'env Interner<'heap>, offset: usize) -> Self {
         Self { interner, offset }
     }
 }
 
-impl<'env, 'heap> VisitorMut<'heap> for OffsetLocalVisitor<'env, 'heap> {
+impl<'heap> VisitorMut<'heap> for OffsetLocalVisitor<'_, 'heap> {
     type Filter = filter::Deep;
     type Residual = Result<Infallible, !>;
     type Result<T>
