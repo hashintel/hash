@@ -20,7 +20,8 @@
     iter_intersperse,
     string_from_utf8_lossy_owned,
     try_trait_v2,
-    step_trait
+    step_trait,
+    maybe_uninit_fill
 )]
 #![expect(clippy::indexing_slicing)]
 extern crate alloc;

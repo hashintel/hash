@@ -1,6 +1,6 @@
 //! Scratch allocator for temporary allocations.
 
-use core::{alloc, ptr};
+use core::{alloc, mem, ptr};
 
 use super::{AllocatorScope, BumpAllocator, allocator::Allocator, bump::ResetAllocator};
 
@@ -63,6 +63,14 @@ impl BumpAllocator for Scratch {
     #[inline]
     fn try_allocate_slice_copy<T: Copy>(&self, slice: &[T]) -> Result<&mut [T], alloc::AllocError> {
         self.inner.try_allocate_slice_copy(slice)
+    }
+
+    #[inline]
+    fn try_allocate_slice_uninit<T>(
+        &self,
+        len: usize,
+    ) -> Result<&mut [mem::MaybeUninit<T>], alloc::AllocError> {
+        self.inner.try_allocate_slice_uninit(len)
     }
 }
 

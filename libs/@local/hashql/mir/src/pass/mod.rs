@@ -17,6 +17,8 @@
 //! - [`analysis`]: Static analysis infrastructure including dataflow analysis framework
 //! - [`transform`]: MIR transformation passes
 
+use core::ops::{BitOr, BitOrAssign};
+
 use crate::{body::Body, context::MirContext};
 
 pub mod analysis;
@@ -99,6 +101,33 @@ impl Changed {
             Self::Unknown | Self::No => false,
         }
     }
+
+    fn from_u8(value: u8) -> Self {
+        match value {
+            0 => Self::No,
+            1 => Self::Unknown,
+            2 => Self::Yes,
+            _ => unreachable!(),
+        }
+    }
+
+    fn into_u8(self) -> u8 {
+        self as u8
+    }
+}
+
+impl BitOr for Changed {
+    type Output = Self;
+
+    fn bitor(self, rhs: Self) -> Self::Output {
+        Self::from_u8(self.into_u8() | rhs.into_u8())
+    }
+}
+
+impl BitOrAssign for Changed {
+    fn bitor_assign(&mut self, rhs: Self) {
+        *self = *self | rhs;
+    }
 }
 
 impl From<bool> for Changed {
@@ -180,5 +209,28 @@ pub trait AnalysisPass<'env, 'heap> {
     /// parameters. Override this method to provide a custom name.
     fn name(&self) -> &'static str {
         const { simplify_type_name(core::any::type_name::<Self>()) }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::Changed;
+
+    #[test]
+    fn changed_bitor() {
+        for (lhs, rhs, expected) in [
+            (Changed::No, Changed::No, Changed::No),
+            (Changed::No, Changed::Yes, Changed::Yes),
+            (Changed::No, Changed::Unknown, Changed::Unknown),
+            (Changed::Yes, Changed::No, Changed::Yes),
+            (Changed::Yes, Changed::Yes, Changed::Yes),
+            (Changed::Yes, Changed::Unknown, Changed::Yes),
+            (Changed::Unknown, Changed::No, Changed::Unknown),
+            (Changed::Unknown, Changed::Yes, Changed::Yes),
+            (Changed::Unknown, Changed::Unknown, Changed::Unknown),
+        ] {
+            let result = lhs | rhs;
+            assert_eq!(result, expected);
+        }
     }
 }

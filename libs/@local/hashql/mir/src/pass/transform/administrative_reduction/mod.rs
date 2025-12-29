@@ -8,8 +8,8 @@ use core::{
 };
 
 use hashql_core::{
-    graph::{Successors, algorithms::Tarjan},
-    heap::{Heap, TransferInto as _},
+    graph::{Successors, Traverse, algorithms::Tarjan},
+    heap::{BumpAllocator, Heap, TransferInto as _},
     id::{Id, IdSlice, IdVec, bit_vec::DenseBitSet},
 };
 
@@ -224,7 +224,7 @@ struct AdministrativeReduction<A: Allocator> {
     alloc: A,
 }
 
-impl<A: Allocator> AdministrativeReduction<A> {
+impl<A: BumpAllocator> AdministrativeReduction<A> {
     pub fn run<'env, 'heap>(
         &self,
         context: &mut MirContext<'env, 'heap>,
@@ -248,26 +248,29 @@ impl<A: Allocator> AdministrativeReduction<A> {
             }
         }
 
+        let mut nodes = 0;
+        let slice = self.alloc.allocate_slice_uninit(bodies.len());
+        let (postorder, rest) = slice.write_iter(callgraph.depth_first_forest_post_order());
+        debug_assert!(rest.is_empty());
+        postorder.reverse();
+        let reverse_postorder = &*postorder;
+
         // We cannot use postorder, because we don't know where to start, instead we must use tarjan
         // to get an order.
-        let tarjan = Tarjan::new_in(&callgraph, &self.alloc).run();
-        let members = tarjan.members();
 
         let mut changed = Changed::No;
-        for scc in members.sccs() {
-            for member in members.of(scc) {
-                let (body, rest) = SplitIdSlice::new(bodies, member);
+        for &id in reverse_postorder {
+            let (body, rest) = SplitIdSlice::new(bodies, id);
 
-                let pass = AdministrativeReductionPass {
-                    alloc: &self.alloc,
-                    callgraph: &callgraph,
-                    targets: &targets,
-                    target_bitset: &target_bitset,
-                    bodies: rest,
-                };
+            let mut pass = AdministrativeReductionPass {
+                alloc: &self.alloc,
+                callgraph: &callgraph,
+                targets: &targets,
+                target_bitset: &target_bitset,
+                bodies: rest,
+            };
 
-                changed |= pass.run(context, body);
-            }
+            changed |= pass.run(context, body);
         }
 
         changed
@@ -284,7 +287,7 @@ struct AdministrativeReductionPass<'ctx, 'slice, 'heap, A: Allocator> {
     bodies: SplitIdSlice<'slice, DefId, Body<'heap>>,
 }
 
-impl<'env, 'heap, A: Allocator> TransformPass<'env, 'heap>
+impl<'env, 'heap, A: BumpAllocator> TransformPass<'env, 'heap>
     for AdministrativeReductionPass<'_, '_, 'heap, A>
 {
     fn run(&mut self, context: &mut MirContext<'env, 'heap>, body: &mut Body<'heap>) -> Changed {
