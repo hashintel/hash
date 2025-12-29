@@ -69,6 +69,7 @@ impl<A: Allocator> Reducable<A> {
 struct ScratchMemory<'heap, A: Allocator> {
     basic_block_reverse_postorder: Vec<BasicBlockId, A>,
     callees: LocalVec<Option<Callee<'heap>>, A>,
+    args: Vec<Option<Callee<'heap>>, A>,
 }
 
 impl<'heap, A: Allocator> ScratchMemory<'heap, A> {
@@ -78,10 +79,16 @@ impl<'heap, A: Allocator> ScratchMemory<'heap, A> {
     {
         let mut max_basic_block_len = 0;
         let mut max_local_decl_len = 0;
+        let mut max_arg_len = 0;
 
         for body in bodies {
             max_basic_block_len = cmp::max(max_basic_block_len, body.basic_blocks.len());
             max_local_decl_len = cmp::max(max_local_decl_len, body.local_decls.len());
+
+            // We assume that at a maximum each basic block has on average ~1-2 arguments after
+            // SSA reconciliation. To make the calculation straight forward, we simply
+            // assume 1 argument per basic block.
+            max_arg_len = cmp::max(max_arg_len, body.basic_blocks.len());
         }
 
         Self {
@@ -89,7 +96,8 @@ impl<'heap, A: Allocator> ScratchMemory<'heap, A> {
                 max_basic_block_len,
                 alloc.clone(),
             ),
-            callees: LocalVec::with_capacity_in(max_local_decl_len, alloc),
+            callees: LocalVec::with_capacity_in(max_local_decl_len, alloc.clone()),
+            args: Vec::with_capacity_in(max_arg_len, alloc),
         }
     }
 
@@ -140,7 +148,6 @@ impl<'env, 'heap, A: ResetAllocator> ProgramTransformPass<'env, 'heap>
             let (body, rest) = DisjointIdSlice::new(bodies, id);
 
             let mut pass = AdministrativeReductionPass {
-                alloc: &self.alloc,
                 callgraph: &callgraph,
                 reducable: &reducable,
                 bodies: rest,
@@ -155,7 +162,6 @@ impl<'env, 'heap, A: ResetAllocator> ProgramTransformPass<'env, 'heap>
 }
 
 struct AdministrativeReductionPass<'ctx, 'slice, 'heap, A: Allocator> {
-    alloc: A,
     callgraph: &'ctx CallGraph<'heap, A>,
     reducable: &'ctx Reducable<A>,
     bodies: DisjointIdSlice<'slice, DefId, Body<'heap>>,
@@ -197,14 +203,15 @@ impl<'env, 'heap, A: Allocator> TransformPass<'env, 'heap>
         self.scratch
             .basic_block_reverse_postorder
             .extend_from_slice(body.basic_blocks.reverse_postorder());
-        let mut args = Vec::new_in(&self.alloc);
 
         // We don't need to run to fix-point, because we already are! We rerun statements we just
         // processed.
         for &id in &self.scratch.basic_block_reverse_postorder {
-            for (local, closure) in propagate_block_params(&mut args, body, id, |operand| {
-                visitor.try_eval_callee(operand)
-            }) {
+            for (local, closure) in
+                propagate_block_params(&mut self.scratch.args, body, id, |operand| {
+                    visitor.try_eval_callee(operand)
+                })
+            {
                 visitor.callees.insert(local, closure);
             }
 
