@@ -1,0 +1,74 @@
+════ Initial MIR ═══════════════════════════════════════════════════════════════
+
+fn {closure#5}(%0: (), %1: Integer, %2: Integer) -> Boolean {
+    let %3: Boolean
+
+    bb0(): {
+        %3 = %1 == %2
+
+        return %3
+    }
+}
+
+thunk compute:0() -> (Integer, Integer) -> Boolean {
+    let %0: (Integer, Integer) -> Boolean
+    let %1: ()
+
+    bb0(): {
+        %1 = ()
+        %0 = closure(({closure#5} as FnPtr), %1)
+
+        return %0
+    }
+}
+
+*thunk {thunk#4}() -> Boolean {
+    let %0: (Integer, Integer) -> Boolean
+    let %1: Boolean
+
+    bb0(): {
+        %0 = apply (compute:0 as FnPtr)
+        %1 = apply %0.0 %0.1 1 2
+
+        return %1
+    }
+}
+════ MIR after AR ══════════════════════════════════════════════════════════════
+
+fn {closure#5}(%0: (), %1: Integer, %2: Integer) -> Boolean {
+    let %3: Boolean
+
+    bb0(): {
+        %3 = %1 == %2
+
+        return %3
+    }
+}
+
+thunk compute:0() -> (Integer, Integer) -> Boolean {
+    let %0: (Integer, Integer) -> Boolean
+    let %1: ()
+
+    bb0(): {
+        %1 = ()
+        %0 = closure(({closure#5} as FnPtr), %1)
+
+        return %0
+    }
+}
+
+*thunk {thunk#4}() -> Boolean {
+    let %0: (Integer, Integer) -> Boolean
+    let %1: Boolean
+    let %2: (Integer, Integer) -> Boolean
+    let %3: ()
+
+    bb0(): {
+        %3 = ()
+        %2 = closure(({closure#5} as FnPtr), %3)
+        %0 = %2
+        %1 = apply %0.0 %0.1 1 2
+
+        return %1
+    }
+}

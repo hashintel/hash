@@ -1,0 +1,182 @@
+════ Initial MIR ═══════════════════════════════════════════════════════════════
+
+fn {closure#5}(%0: ()) -> Integer {
+    bb0(): {
+        return 10
+    }
+}
+
+thunk get_a:0() -> () -> Integer {
+    let %0: () -> Integer
+    let %1: ()
+
+    bb0(): {
+        %1 = ()
+        %0 = closure(({closure#5} as FnPtr), %1)
+
+        return %0
+    }
+}
+
+fn {closure#6}(%0: ()) -> Integer {
+    bb0(): {
+        return 20
+    }
+}
+
+thunk get_b:0() -> () -> Integer {
+    let %0: () -> Integer
+    let %1: ()
+
+    bb0(): {
+        %1 = ()
+        %0 = closure(({closure#6} as FnPtr), %1)
+
+        return %0
+    }
+}
+
+thunk {thunk#2}() -> Integer {
+    let %0: () -> Integer
+    let %1: Integer
+
+    bb0(): {
+        %0 = apply (get_a:0 as FnPtr)
+        %1 = apply %0.0 %0.1
+
+        return %1
+    }
+}
+
+thunk {thunk#3}() -> Integer {
+    let %0: () -> Integer
+    let %1: Integer
+
+    bb0(): {
+        %0 = apply (get_b:0 as FnPtr)
+        %1 = apply %0.0 %0.1
+
+        return %1
+    }
+}
+
+*thunk {thunk#4}() -> (Integer, Integer) {
+    let %0: Integer
+    let %1: Integer
+    let %2: (Integer, Integer)
+
+    bb0(): {
+        %0 = apply ({thunk#2} as FnPtr)
+        %1 = apply ({thunk#3} as FnPtr)
+        %2 = (%0, %1)
+
+        return %2
+    }
+}
+════ MIR after AR ══════════════════════════════════════════════════════════════
+
+fn {closure#5}(%0: ()) -> Integer {
+    bb0(): {
+        return 10
+    }
+}
+
+thunk get_a:0() -> () -> Integer {
+    let %0: () -> Integer
+    let %1: ()
+
+    bb0(): {
+        %1 = ()
+        %0 = closure(({closure#5} as FnPtr), %1)
+
+        return %0
+    }
+}
+
+fn {closure#6}(%0: ()) -> Integer {
+    bb0(): {
+        return 20
+    }
+}
+
+thunk get_b:0() -> () -> Integer {
+    let %0: () -> Integer
+    let %1: ()
+
+    bb0(): {
+        %1 = ()
+        %0 = closure(({closure#6} as FnPtr), %1)
+
+        return %0
+    }
+}
+
+thunk {thunk#2}() -> Integer {
+    let %0: () -> Integer
+    let %1: Integer
+    let %2: () -> Integer
+    let %3: ()
+    let %4: ()
+
+    bb0(): {
+        %3 = ()
+        %2 = closure(({closure#5} as FnPtr), %3)
+        %0 = %2
+        %4 = %0.1
+        %1 = 10
+
+        return %1
+    }
+}
+
+thunk {thunk#3}() -> Integer {
+    let %0: () -> Integer
+    let %1: Integer
+    let %2: () -> Integer
+    let %3: ()
+    let %4: ()
+
+    bb0(): {
+        %3 = ()
+        %2 = closure(({closure#6} as FnPtr), %3)
+        %0 = %2
+        %4 = %0.1
+        %1 = 20
+
+        return %1
+    }
+}
+
+*thunk {thunk#4}() -> (Integer, Integer) {
+    let %0: Integer
+    let %1: Integer
+    let %2: (Integer, Integer)
+    let %3: () -> Integer
+    let %4: Integer
+    let %5: () -> Integer
+    let %6: ()
+    let %7: ()
+    let %8: () -> Integer
+    let %9: Integer
+    let %10: () -> Integer
+    let %11: ()
+    let %12: ()
+
+    bb0(): {
+        %6 = ()
+        %5 = closure(({closure#5} as FnPtr), %6)
+        %3 = %5
+        %7 = %3.1
+        %4 = 10
+        %0 = %4
+        %11 = ()
+        %10 = closure(({closure#6} as FnPtr), %11)
+        %8 = %10
+        %12 = %8.1
+        %9 = 20
+        %1 = %9
+        %2 = (%0, %1)
+
+        return %2
+    }
+}

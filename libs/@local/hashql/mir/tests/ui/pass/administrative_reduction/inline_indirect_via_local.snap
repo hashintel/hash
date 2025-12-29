@@ -1,0 +1,51 @@
+---
+source: libs/@local/hashql/mir/src/pass/transform/administrative_reduction/tests.rs
+expression: value
+---
+fn {intrinsic#4294967040}() -> Integer {
+    let %0: Integer
+
+    bb0(): {
+        %0 = 77
+
+        return %0
+    }
+}
+
+fn {intrinsic#4294967040}() -> Integer {
+    let %0: () -> Integer
+    let %1: Integer
+
+    bb0(): {
+        %0 = ({def@0} as FnPtr)
+        %1 = apply %0
+
+        return %1
+    }
+}
+
+================== Changed: Yes ==================
+
+fn {intrinsic#4294967040}() -> Integer {
+    let %0: Integer
+
+    bb0(): {
+        %0 = 77
+
+        return %0
+    }
+}
+
+fn {intrinsic#4294967040}() -> Integer {
+    let %0: () -> Integer
+    let %1: Integer
+    let %2: Integer
+
+    bb0(): {
+        %0 = ({def@0} as FnPtr)
+        %2 = 77
+        %1 = %2
+
+        return %1
+    }
+}
