@@ -46,6 +46,9 @@
 //! - Mutual recursion between reducible functions may not be fully reduced in one pass
 //! - Functions with control flow (multiple basic blocks) are not candidates for reduction
 
+#[cfg(test)]
+mod tests;
+
 mod disjoint;
 mod kind;
 mod offset;
