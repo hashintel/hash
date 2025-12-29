@@ -54,7 +54,10 @@
 //! [`Scratch`]: super::Scratch
 #![expect(clippy::mut_from_ref, reason = "allocator")]
 use alloc::alloc::handle_alloc_error;
-use core::alloc::{AllocError, Allocator, Layout};
+use core::{
+    alloc::{AllocError, Allocator, Layout},
+    mem,
+};
 
 /// A bump allocator with scoped arenas and efficient slice copying.
 ///
@@ -124,6 +127,30 @@ pub trait BumpAllocator: Allocator {
             }
         }
     }
+
+    fn try_allocate_slice_uninit<T>(
+        &self,
+        len: usize,
+    ) -> Result<&mut [mem::MaybeUninit<T>], AllocError>;
+
+    #[expect(
+        clippy::single_match_else,
+        clippy::option_if_let_else,
+        reason = "clarity"
+    )]
+    #[inline]
+    fn allocate_slice_uninit<T>(&self, len: usize) -> &mut [mem::MaybeUninit<T>] {
+        match self.try_allocate_slice_uninit(len) {
+            Ok(slice) => slice,
+            Err(_) => {
+                let Ok(layout) = Layout::array::<T>(len) else {
+                    panic!("stack overflow");
+                };
+
+                handle_alloc_error(layout)
+            }
+        }
+    }
 }
 
 /// A bump allocator that supports bulk deallocation.
@@ -164,6 +191,24 @@ where
     #[inline]
     fn try_allocate_slice_copy<T: Copy>(&self, slice: &[T]) -> Result<&mut [T], AllocError> {
         A::try_allocate_slice_copy(self, slice)
+    }
+
+    #[inline]
+    fn allocate_slice_copy<T: Copy>(&self, slice: &[T]) -> &mut [T] {
+        A::allocate_slice_copy(self, slice)
+    }
+
+    #[inline]
+    fn allocate_slice_uninit<T>(&self, len: usize) -> &mut [mem::MaybeUninit<T>] {
+        A::allocate_slice_uninit(self, len)
+    }
+
+    #[inline]
+    fn try_allocate_slice_uninit<T>(
+        &self,
+        len: usize,
+    ) -> Result<&mut [mem::MaybeUninit<T>], AllocError> {
+        A::try_allocate_slice_uninit(self, len)
     }
 }
 
