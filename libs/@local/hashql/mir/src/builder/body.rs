@@ -170,7 +170,18 @@ impl<'env, 'heap> Deref for BodyBuilder<'env, 'heap> {
 /// - `Int` - Integer type
 /// - `Bool` - Boolean type
 /// - `(T1, T2, ...)` - Tuple types
+/// - `(a: T1, b: T2)` - Struct types
+/// - `[fn(T1, T2) -> R]` - Closure types (e.g., `[fn(Int) -> Int]` or `[fn() -> Int]`)
 /// - `|types| types.custom()` - Custom type expression
+///
+/// ## Projections (optional, after decl)
+///
+/// ```text
+/// @proj <name> = <base>.<field>: <type>, ...;
+/// ```
+///
+/// Declares field projections for accessing struct/tuple fields as places.
+/// Example: `@proj fn_ptr = closure.0: [fn(Int) -> Int], env = closure.1: Int;`.
 ///
 /// ## Statements (inside blocks)
 ///
@@ -183,6 +194,7 @@ impl<'env, 'heap> Deref for BodyBuilder<'env, 'heap> {
 /// | `x = apply <func>, <arg1>, <arg2>;` | Call function with args |
 /// | `x = tuple <a>, <b>, ...;` | Create tuple aggregate |
 /// | `x = struct a: <v1>, b: <v2>;` | Create struct aggregate |
+/// | `x = closure <def> <env>;` | Create closure aggregate |
 /// | `x = bin.<op> <lhs> <rhs>;` | Binary operation (e.g., `bin.== x y`) |
 /// | `x = un.<op> <operand>;` | Unary operation (e.g., `un.! cond`) |
 ///
@@ -242,16 +254,23 @@ macro_rules! body {
         $interner:ident, $env:ident;
         $type:ident @ $id:literal / $arity:literal -> $body_type:tt {
             decl $($param:ident: $param_type:tt),*;
+            $(@proj $($proj:ident = $proj_base:ident.$field:literal: $proj_type:tt),*;)?
 
             $($block:ident($($block_param:ident),*) $block_body:tt),+
         }
     ) => {{
         let mut builder = $crate::builder::BodyBuilder::new(&$interner);
-        let types =  hashql_core::r#type::TypeBuilder::synthetic(&$env);
+        let types = hashql_core::r#type::TypeBuilder::synthetic(&$env);
 
         $(
             let $param = builder.local(stringify!($param), $crate::builder::body!(@type types; $param_type));
         )*
+
+        $(
+            $(
+                let $proj = builder.place(|p| p.from($proj_base).field($field, $crate::builder::body!(@type types; $proj_type)));
+            )*
+        )?
 
         $(
             let $block = builder.reserve_block([$($block_param.local),*]);
@@ -280,6 +299,12 @@ macro_rules! body {
     };
     (@type $types:ident; ($($name:ident: $sub:tt),*)) => {
         $types.r#struct([$((stringify!($name), $crate::builder::body!(@type $types; $sub))),*])
+    };
+    (@type $types:ident; [fn($($args:tt),+) -> $ret:tt]) => {
+        $types.closure([$($crate::builder::body!(@type $types; $args)),*], $crate::builder::body!(@type $types; $ret))
+    };
+    (@type $types:ident; [fn() -> $ret:tt]) => {
+        $types.closure([] as [hashql_core::r#type::TypeId; 0], $crate::builder::body!(@type $types; $ret))
     };
     (@type $types:ident; Bool) => {
         $types.boolean()
