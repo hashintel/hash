@@ -115,33 +115,6 @@ macro_rules! op {
     [neg] => { hashql_hir::node::operation::UnOp::Neg };
 }
 
-/// Scaffold macro for setting up MIR builder infrastructure.
-///
-/// Creates the heap, interner, and body builder needed for constructing MIR.
-/// This is the recommended way to initialize the builder for tests and benchmarks.
-///
-/// # Example
-///
-/// ```
-/// use hashql_core::{id::Id, r#type::TypeId};
-/// use hashql_mir::{builder::BodyBuilder, scaffold};
-///
-/// scaffold!(heap, interner, builder);
-///
-/// let x = builder.local("x", TypeId::MAX);
-/// let entry = builder.reserve_block([]);
-/// builder.build_block(entry).ret(x);
-/// let body = builder.finish(0, TypeId::MAX);
-/// ```
-#[macro_export]
-macro_rules! scaffold {
-    ($heap:ident, $interner:ident, $builder:ident) => {
-        let $heap = hashql_core::heap::Heap::new();
-        let $interner = $crate::intern::Interner::new(&$heap);
-        let mut $builder = $crate::builder::BodyBuilder::new(&$interner);
-    };
-}
-
 #[doc(hidden)]
 pub mod _private {
     pub use super::{
@@ -153,4 +126,3 @@ pub mod _private {
 }
 
 pub use op;
-pub use scaffold;

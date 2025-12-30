@@ -75,9 +75,6 @@ macro_rules! operand {
     (@impl $o:expr; null) => {
         $o.const_null()
     };
-    (@impl $o:expr; fn() @ $def:ident) => {
-        $o.const_fn($def)
-    };
     (@impl $o:expr; $value:expr) => {
         $crate::builder::_private::BuildOperand::build_operand(&$o, $value)
     };
