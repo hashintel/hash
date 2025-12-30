@@ -1,21 +1,19 @@
+#![expect(clippy::min_ident_chars, reason = "tests")]
 use std::{io::Write as _, path::PathBuf};
 
 use bstr::ByteVec as _;
 use hashql_core::{
+    heap::Heap,
     pretty::Formatter,
-    r#type::{TypeBuilder, TypeFormatter, TypeFormatterOptions, environment::Environment},
+    r#type::{TypeFormatter, TypeFormatterOptions, environment::Environment},
 };
 use hashql_diagnostics::DiagnosticIssues;
 use insta::{Settings, assert_snapshot};
 
 use super::InstSimplify;
 use crate::{
-    body::Body,
-    builder::{op, scaffold},
-    context::MirContext,
-    def::DefIdSlice,
-    pass::TransformPass as _,
-    pretty::TextFormat,
+    body::Body, builder::body, context::MirContext, def::DefIdSlice, intern::Interner,
+    pass::TransformPass as _, pretty::TextFormat,
 };
 
 #[track_caller]
@@ -71,28 +69,20 @@ fn assert_inst_simplify_pass<'heap>(
 // =============================================================================
 
 /// Tests constant folding for bitwise AND on integers.
-///
-/// ```text
-/// bb0:
-///     %result = 2 & 3
-///     return %result
-/// ```
 #[test]
 fn const_fold_bit_and() {
-    scaffold!(heap, interner, builder);
+    let heap = Heap::new();
+    let interner = Interner::new(&heap);
     let env = Environment::new(&heap);
 
-    let result = builder.local("result", TypeBuilder::synthetic(&env).integer());
-    let const_2 = builder.const_int(2);
-    let const_3 = builder.const_int(3);
-    let bb0 = builder.reserve_block([]);
+    let body = body!(interner, env; fn@0/0 -> Int {
+        decl result: Int;
 
-    builder
-        .build_block(bb0)
-        .assign_place(result, |rv| rv.binary(const_2, op![&], const_3))
-        .ret(result);
-
-    let body = builder.finish(0, TypeBuilder::synthetic(&env).integer());
+        bb0() {
+            result = bin.& 2 3;
+            return result;
+        }
+    });
 
     assert_inst_simplify_pass(
         "const_fold_bit_and",
@@ -107,28 +97,20 @@ fn const_fold_bit_and() {
 }
 
 /// Tests constant folding for bitwise OR on integers.
-///
-/// ```text
-/// bb0:
-///     %result = 2 | 1
-///     return %result
-/// ```
 #[test]
 fn const_fold_bit_or() {
-    scaffold!(heap, interner, builder);
+    let heap = Heap::new();
+    let interner = Interner::new(&heap);
     let env = Environment::new(&heap);
 
-    let result = builder.local("result", TypeBuilder::synthetic(&env).integer());
-    let const_2 = builder.const_int(2);
-    let const_1 = builder.const_int(1);
-    let bb0 = builder.reserve_block([]);
+    let body = body!(interner, env; fn@0/0 -> Int {
+        decl result: Int;
 
-    builder
-        .build_block(bb0)
-        .assign_place(result, |rv| rv.binary(const_2, op![|], const_1))
-        .ret(result);
-
-    let body = builder.finish(0, TypeBuilder::synthetic(&env).integer());
+        bb0() {
+            result = bin.| 2 1;
+            return result;
+        }
+    });
 
     assert_inst_simplify_pass(
         "const_fold_bit_or",
@@ -143,27 +125,20 @@ fn const_fold_bit_or() {
 }
 
 /// Tests constant folding for unary NOT.
-///
-/// ```text
-/// bb0:
-///     %result = !true
-///     return %result
-/// ```
 #[test]
 fn const_fold_unary_not() {
-    scaffold!(heap, interner, builder);
+    let heap = Heap::new();
+    let interner = Interner::new(&heap);
     let env = Environment::new(&heap);
 
-    let result = builder.local("result", TypeBuilder::synthetic(&env).boolean());
-    let const_true = builder.const_bool(true);
-    let bb0 = builder.reserve_block([]);
+    let body = body!(interner, env; fn@0/0 -> Bool {
+        decl result: Bool;
 
-    builder
-        .build_block(bb0)
-        .assign_place(result, |rv| rv.unary(op![!], const_true))
-        .ret(result);
-
-    let body = builder.finish(0, TypeBuilder::synthetic(&env).boolean());
+        bb0() {
+            result = un.! true;
+            return result;
+        }
+    });
 
     assert_inst_simplify_pass(
         "const_fold_unary_not",
@@ -178,27 +153,20 @@ fn const_fold_unary_not() {
 }
 
 /// Tests constant folding for unary negation.
-///
-/// ```text
-/// bb0:
-///     %result = -5
-///     return %result
-/// ```
 #[test]
 fn const_fold_unary_neg() {
-    scaffold!(heap, interner, builder);
+    let heap = Heap::new();
+    let interner = Interner::new(&heap);
     let env = Environment::new(&heap);
 
-    let result = builder.local("result", TypeBuilder::synthetic(&env).integer());
-    let const_5 = builder.const_int(-5);
-    let bb0 = builder.reserve_block([]);
+    let body = body!(interner, env; fn@0/0 -> Int {
+        decl result: Int;
 
-    builder
-        .build_block(bb0)
-        .assign_place(result, |rv| rv.unary(op![neg], const_5))
-        .ret(result);
-
-    let body = builder.finish(0, TypeBuilder::synthetic(&env).integer());
+        bb0() {
+            result = un.neg (-5);
+            return result;
+        }
+    });
 
     assert_inst_simplify_pass(
         "const_fold_unary_neg",
@@ -217,28 +185,20 @@ fn const_fold_unary_neg() {
 // =============================================================================
 
 /// Tests identity simplification for bitwise OR with zero.
-///
-/// ```text
-/// bb0:
-///     %result = %x | 0
-///     return %result
-/// ```
 #[test]
 fn identity_bit_or_zero() {
-    scaffold!(heap, interner, builder);
+    let heap = Heap::new();
+    let interner = Interner::new(&heap);
     let env = Environment::new(&heap);
 
-    let x = builder.local("x", TypeBuilder::synthetic(&env).integer());
-    let result = builder.local("result", TypeBuilder::synthetic(&env).integer());
-    let const_0 = builder.const_int(0);
-    let bb0 = builder.reserve_block([]);
+    let body = body!(interner, env; fn@0/1 -> Int {
+        decl x: Int, result: Int;
 
-    builder
-        .build_block(bb0)
-        .assign_place(result, |rv| rv.binary(x, op![|], const_0))
-        .ret(result);
-
-    let body = builder.finish(1, TypeBuilder::synthetic(&env).integer());
+        bb0() {
+            result = bin.| x 0;
+            return result;
+        }
+    });
 
     assert_inst_simplify_pass(
         "identity_bit_or_zero",
@@ -257,27 +217,20 @@ fn identity_bit_or_zero() {
 // =============================================================================
 
 /// Tests idempotent simplification for bitwise AND with identical operands.
-///
-/// ```text
-/// bb0:
-///     %result = %x & %x
-///     return %result
-/// ```
 #[test]
 fn identical_operand_bit_and() {
-    scaffold!(heap, interner, builder);
+    let heap = Heap::new();
+    let interner = Interner::new(&heap);
     let env = Environment::new(&heap);
 
-    let x = builder.local("x", TypeBuilder::synthetic(&env).integer());
-    let result = builder.local("result", TypeBuilder::synthetic(&env).integer());
-    let bb0 = builder.reserve_block([]);
+    let body = body!(interner, env; fn@0/1 -> Int {
+        decl x: Int, result: Int;
 
-    builder
-        .build_block(bb0)
-        .assign_place(result, |rv| rv.binary(x, op![&], x))
-        .ret(result);
-
-    let body = builder.finish(1, TypeBuilder::synthetic(&env).integer());
+        bb0() {
+            result = bin.& x x;
+            return result;
+        }
+    });
 
     assert_inst_simplify_pass(
         "identical_operand_bit_and",
@@ -292,27 +245,20 @@ fn identical_operand_bit_and() {
 }
 
 /// Tests idempotent simplification for bitwise OR with identical operands.
-///
-/// ```text
-/// bb0:
-///     %result = %x | %x
-///     return %result
-/// ```
 #[test]
 fn identical_operand_bit_or() {
-    scaffold!(heap, interner, builder);
+    let heap = Heap::new();
+    let interner = Interner::new(&heap);
     let env = Environment::new(&heap);
 
-    let x = builder.local("x", TypeBuilder::synthetic(&env).integer());
-    let result = builder.local("result", TypeBuilder::synthetic(&env).integer());
-    let bb0 = builder.reserve_block([]);
+    let body = body!(interner, env; fn@0/1 -> Int {
+        decl x: Int, result: Int;
 
-    builder
-        .build_block(bb0)
-        .assign_place(result, |rv| rv.binary(x, op![|], x))
-        .ret(result);
-
-    let body = builder.finish(1, TypeBuilder::synthetic(&env).integer());
+        bb0() {
+            result = bin.| x x;
+            return result;
+        }
+    });
 
     assert_inst_simplify_pass(
         "identical_operand_bit_or",
@@ -331,35 +277,23 @@ fn identical_operand_bit_or() {
 // =============================================================================
 
 /// Tests constant propagation through block params with single predecessor.
-///
-/// ```text
-/// bb0:
-///     goto bb1(5)
-///
-/// bb1(%p):
-///     %result = %p == 5
-///     return %result
-/// ```
 #[test]
 fn block_param_single_predecessor() {
-    scaffold!(heap, interner, builder);
+    let heap = Heap::new();
+    let interner = Interner::new(&heap);
     let env = Environment::new(&heap);
 
-    let param = builder.local("p", TypeBuilder::synthetic(&env).integer());
-    let result = builder.local("result", TypeBuilder::synthetic(&env).boolean());
-    let const_5 = builder.const_int(5);
+    let body = body!(interner, env; fn@0/0 -> Bool {
+        decl p: Int, result: Bool;
 
-    let bb0 = builder.reserve_block([]);
-    let bb1 = builder.reserve_block([param.local]);
-
-    builder.build_block(bb0).goto(bb1, [const_5]);
-
-    builder
-        .build_block(bb1)
-        .assign_place(result, |rv| rv.binary(param, op![==], const_5))
-        .ret(result);
-
-    let body = builder.finish(0, TypeBuilder::synthetic(&env).boolean());
+        bb0() {
+            goto bb1(5);
+        },
+        bb1(p) {
+            result = bin.== p 5;
+            return result;
+        }
+    });
 
     assert_inst_simplify_pass(
         "block_param_single_predecessor",
@@ -374,49 +308,29 @@ fn block_param_single_predecessor() {
 }
 
 /// Tests constant propagation when all predecessors agree on value.
-///
-/// ```text
-/// bb0:
-///     switch %cond -> [0: bb1, 1: bb2]
-///
-/// bb1:
-///     goto bb3(42)
-///
-/// bb2:
-///     goto bb3(42)
-///
-/// bb3(%p):
-///     %result = %p == 42
-///     return %result
-/// ```
 #[test]
 fn block_param_predecessors_agree() {
-    scaffold!(heap, interner, builder);
+    let heap = Heap::new();
+    let interner = Interner::new(&heap);
     let env = Environment::new(&heap);
 
-    let cond = builder.local("cond", TypeBuilder::synthetic(&env).integer());
-    let param = builder.local("p", TypeBuilder::synthetic(&env).integer());
-    let result = builder.local("result", TypeBuilder::synthetic(&env).boolean());
-    let const_42 = builder.const_int(42);
+    let body = body!(interner, env; fn@0/1 -> Bool {
+        decl cond: Int, p: Int, result: Bool;
 
-    let bb0 = builder.reserve_block([]);
-    let bb1 = builder.reserve_block([]);
-    let bb2 = builder.reserve_block([]);
-    let bb3 = builder.reserve_block([param.local]);
-
-    builder
-        .build_block(bb0)
-        .switch(cond, |switch| switch.case(0, bb1, []).case(1, bb2, []));
-
-    builder.build_block(bb1).goto(bb3, [const_42]);
-    builder.build_block(bb2).goto(bb3, [const_42]);
-
-    builder
-        .build_block(bb3)
-        .assign_place(result, |rv| rv.binary(param, op![==], const_42))
-        .ret(result);
-
-    let body = builder.finish(1, TypeBuilder::synthetic(&env).boolean());
+        bb0() {
+            switch cond [0 => bb1(), 1 => bb2()];
+        },
+        bb1() {
+            goto bb3(42);
+        },
+        bb2() {
+            goto bb3(42);
+        },
+        bb3(p) {
+            result = bin.== p 42;
+            return result;
+        }
+    });
 
     assert_inst_simplify_pass(
         "block_param_predecessors_agree",
@@ -431,50 +345,29 @@ fn block_param_predecessors_agree() {
 }
 
 /// Tests no propagation when predecessors disagree on value.
-///
-/// ```text
-/// bb0:
-///     switch %cond -> [0: bb1, 1: bb2]
-///
-/// bb1:
-///     goto bb3(1)
-///
-/// bb2:
-///     goto bb3(2)
-///
-/// bb3(%p):
-///     %result = %p == 1
-///     return %result
-/// ```
 #[test]
 fn block_param_predecessors_disagree() {
-    scaffold!(heap, interner, builder);
+    let heap = Heap::new();
+    let interner = Interner::new(&heap);
     let env = Environment::new(&heap);
 
-    let cond = builder.local("cond", TypeBuilder::synthetic(&env).integer());
-    let param = builder.local("p", TypeBuilder::synthetic(&env).integer());
-    let result = builder.local("result", TypeBuilder::synthetic(&env).boolean());
-    let const_1 = builder.const_int(1);
-    let const_2 = builder.const_int(2);
+    let body = body!(interner, env; fn@0/1 -> Bool {
+        decl cond: Int, p: Int, result: Bool;
 
-    let bb0 = builder.reserve_block([]);
-    let bb1 = builder.reserve_block([]);
-    let bb2 = builder.reserve_block([]);
-    let bb3 = builder.reserve_block([param.local]);
-
-    builder
-        .build_block(bb0)
-        .switch(cond, |switch| switch.case(0, bb1, []).case(1, bb2, []));
-
-    builder.build_block(bb1).goto(bb3, [const_1]);
-    builder.build_block(bb2).goto(bb3, [const_2]);
-
-    builder
-        .build_block(bb3)
-        .assign_place(result, |rv| rv.binary(param, op![==], const_1))
-        .ret(result);
-
-    let body = builder.finish(1, TypeBuilder::synthetic(&env).boolean());
+        bb0() {
+            switch cond [0 => bb1(), 1 => bb2()];
+        },
+        bb1() {
+            goto bb3(1);
+        },
+        bb2() {
+            goto bb3(2);
+        },
+        bb3(p) {
+            result = bin.== p 1;
+            return result;
+        }
+    });
 
     assert_inst_simplify_pass(
         "block_param_predecessors_disagree",
@@ -493,34 +386,22 @@ fn block_param_predecessors_disagree() {
 // =============================================================================
 
 /// Tests that idempotent simplification propagates constants through the result.
-///
-/// ```text
-/// bb0:
-///     %x = 42
-///     %y = %x & %x
-///     %result = %y == 42
-///     return %result
-/// ```
 #[test]
 fn idempotent_to_const_forwarding() {
-    scaffold!(heap, interner, builder);
+    let heap = Heap::new();
+    let interner = Interner::new(&heap);
     let env = Environment::new(&heap);
 
-    let x = builder.local("x", TypeBuilder::synthetic(&env).integer());
-    let y = builder.local("y", TypeBuilder::synthetic(&env).integer());
-    let result = builder.local("result", TypeBuilder::synthetic(&env).boolean());
-    let const_42 = builder.const_int(42);
+    let body = body!(interner, env; fn@0/0 -> Bool {
+        decl x: Int, y: Int, result: Bool;
 
-    let bb0 = builder.reserve_block([]);
-
-    builder
-        .build_block(bb0)
-        .assign_place(x, |rv| rv.load(const_42))
-        .assign_place(y, |rv| rv.binary(x, op![&], x))
-        .assign_place(result, |rv| rv.binary(y, op![==], const_42))
-        .ret(result);
-
-    let body = builder.finish(0, TypeBuilder::synthetic(&env).boolean());
+        bb0() {
+            x = load 42;
+            y = bin.& x x;
+            result = bin.== y 42;
+            return result;
+        }
+    });
 
     assert_inst_simplify_pass(
         "idempotent_to_const_forwarding",
