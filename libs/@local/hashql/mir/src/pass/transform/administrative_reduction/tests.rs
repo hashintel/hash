@@ -1,10 +1,10 @@
-#![expect(clippy::min_ident_chars, reason = "tests")]
+#![expect(clippy::min_ident_chars, unused_mut, reason = "tests")]
 
 use std::{io::Write as _, path::PathBuf};
 
 use bstr::ByteVec as _;
 use hashql_core::{
-    heap::Scratch,
+    heap::{Heap, Scratch},
     pretty::Formatter,
     r#type::{TypeBuilder, TypeFormatter, TypeFormatterOptions, TypeId, environment::Environment},
 };
@@ -14,9 +14,10 @@ use insta::{Settings, assert_snapshot};
 use super::{AdministrativeReduction, kind::ReductionKind};
 use crate::{
     body::Body,
-    builder::{BodyBuilder, op, scaffold},
+    builder::{BodyBuilder, body, op, scaffold},
     context::MirContext,
     def::{DefId, DefIdSlice},
+    intern::Interner,
     pass::{Changed, GlobalTransformPass as _},
     pretty::TextFormat,
 };
@@ -112,48 +113,30 @@ fn classify_closure_immediate() {
 }
 
 /// Tests that a body with multiple basic blocks (control flow) is not reducible.
-///
-/// ```text
-/// fn body0() -> Int {
-///   bb0:
-///     %0 = true
-///     switchInt(%0) -> [0: bb2, 1: bb1]
-///   bb1:
-///     goto bb3(1)
-///   bb2:
-///     goto bb3(2)
-///   bb3(%1):
-///     return %1
-/// }
-/// ```
 #[test]
 fn classify_non_reducible_multi_bb() {
-    scaffold!(heap, interner, builder);
+    let heap = Heap::new();
+    let interner = Interner::new(&heap);
     let env = Environment::new(&heap);
 
-    let int_ty = TypeBuilder::synthetic(&env).integer();
-    let bool_ty = TypeBuilder::synthetic(&env).boolean();
+    let body = body!(interner, env; fn@0/0 -> Int {
+        decl cond: Bool, x: Int;
 
-    let cond = builder.local("cond", bool_ty);
-    let x = builder.local("x", int_ty);
-    let const_true = builder.const_bool(true);
-    let const_1 = builder.const_int(1);
-    let const_2 = builder.const_int(2);
+        bb0() => {
+            cond = load true;
 
-    let bb0 = builder.reserve_block([]);
-    let bb1 = builder.reserve_block([]);
-    let bb2 = builder.reserve_block([]);
-    let bb3 = builder.reserve_block([x.local]);
-
-    builder
-        .build_block(bb0)
-        .assign_place(cond, |rv| rv.load(const_true))
-        .if_else(cond, bb1, [], bb2, []);
-    builder.build_block(bb1).goto(bb3, [const_1]);
-    builder.build_block(bb2).goto(bb3, [const_2]);
-    builder.build_block(bb3).ret(x);
-
-    let body = builder.finish(0, int_ty);
+            if cond bb1() bb2();
+        },
+        bb1() => {
+            goto bb3(1);
+        },
+        bb2() => {
+            goto bb3(2);
+        },
+        bb3(x) => {
+            return x;
+        }
+    });
 
     assert_eq!(ReductionKind::of(&body), None);
 }
@@ -215,6 +198,7 @@ fn classify_non_reducible_call_not_last() {
     let fn_ptr = builder.const_fn(DefId::new(0));
 
     let bb0 = builder.reserve_block([]);
+
     builder
         .build_block(bb0)
         .assign_place(x, |rv| rv.call(fn_ptr))
@@ -392,51 +376,30 @@ fn assert_admin_reduction_pass<'heap>(
 
 /// Tests inlining a simple trivial thunk that returns a constant.
 ///
-/// Before:
-/// ```text
-/// fn body0@0() -> Int {   // TrivialThunk
-///   bb0:
-///     %0 = 42
-///     return %0
-/// }
-///
-/// fn body1@1() -> Int {
-///   bb0:
-///     %0 = apply fn@0
-///     return %0
-/// }
-/// ```
-///
 /// After: body1 has body0's statements inlined, call replaced with load.
 #[test]
 fn inline_thunk_simple() {
-    scaffold!(heap, interner, builder);
+    let heap = Heap::new();
+    let interner = Interner::new(&heap);
     let env = Environment::new(&heap);
 
-    let int_ty = TypeBuilder::synthetic(&env).integer();
+    let body0 = body!(interner, env; thunk@0/0 -> Int {
+        decl x: Int;
 
-    // Body 0: trivial thunk returning const
-    let x0 = builder.local("x", int_ty);
-    let const_42 = builder.const_int(42);
-    let bb0 = builder.reserve_block([]);
-    builder
-        .build_block(bb0)
-        .assign_place(x0, |rv| rv.load(const_42))
-        .ret(x0);
-    let mut body0 = builder.finish(0, int_ty);
-    body0.id = DefId::new(0);
+        bb0() => {
+            x = load 42;
+            return x;
+        }
+    });
 
-    // Body 1: calls body0
-    let mut builder = BodyBuilder::new(&interner);
-    let result = builder.local("result", int_ty);
-    let fn_ptr = builder.const_fn(body0.id);
-    let bb1 = builder.reserve_block([]);
-    builder
-        .build_block(bb1)
-        .assign_place(result, |rv| rv.call(fn_ptr))
-        .ret(result);
-    let mut body1 = builder.finish(0, int_ty);
-    body1.id = DefId::new(1);
+    let body1 = body!(interner, env; fn@1/0 -> Int {
+        decl x: Int;
+
+        bb0() => {
+            x = apply (body0.id);
+            return x;
+        }
+    });
 
     let mut bodies = [body0, body1];
     assert_admin_reduction_pass(
@@ -452,58 +415,29 @@ fn inline_thunk_simple() {
 }
 
 /// Tests inlining a thunk with multiple parameters.
-///
-/// Before:
-/// ```text
-/// fn body0(%0: Int, %1: Int, %2: Int) -> (Int, Int, Int) {
-///     bb0:
-///         %3 = (%0, %1, %2)
-///         return %3
-/// }
-///
-/// fn body1() -> (Int, Int, Int) {
-///     bb0:
-///         %0 = call fn@0(1, 2, 3)
-///         return %0
-/// }
-/// ```
-///
-/// After: body1 has param bindings + body0's statements inlined.
 #[test]
 fn inline_thunk_multi_arg() {
-    scaffold!(heap, interner, builder);
+    let heap = Heap::new();
+    let interner = Interner::new(&heap);
     let env = Environment::new(&heap);
 
-    let int_ty = TypeBuilder::synthetic(&env).integer();
-    let tuple_ty = TypeBuilder::synthetic(&env).tuple([int_ty, int_ty, int_ty]);
+    let body0 = body!(interner, env; fn@0/3 -> (Int, Int, Int) {
+        decl a: Int, b: Int, c: Int, result: (Int, Int, Int);
 
-    // Body 0: thunk that takes 3 args and returns a tuple
-    let a = builder.local("a", int_ty);
-    let b = builder.local("b", int_ty);
-    let c = builder.local("c", int_ty);
-    let result0 = builder.local("result", tuple_ty);
-    let bb0 = builder.reserve_block([]);
-    builder
-        .build_block(bb0)
-        .assign_place(result0, |rv| rv.tuple([a, b, c]))
-        .ret(result0);
-    let mut body0 = builder.finish(3, tuple_ty);
-    body0.id = DefId::new(0);
+        bb0() => {
+            result = tuple a, b, c;
+            return result;
+        }
+    });
 
-    // Body 1: calls body0 with 3 arguments
-    let mut builder = BodyBuilder::new(&interner);
-    let const_1 = builder.const_int(1);
-    let const_2 = builder.const_int(2);
-    let const_3 = builder.const_int(3);
-    let result1 = builder.local("result", tuple_ty);
-    let fn_ptr = builder.const_fn(body0.id);
-    let bb1 = builder.reserve_block([]);
-    builder
-        .build_block(bb1)
-        .assign_place(result1, |rv| rv.apply(fn_ptr, [const_1, const_2, const_3]))
-        .ret(result1);
-    let mut body1 = builder.finish(0, tuple_ty);
-    body1.id = DefId::new(1);
+    let body1 = body!(interner, env; fn@1/0 -> (Int, Int, Int) {
+        decl result: (Int, Int, Int);
+
+        bb0() => {
+            result = apply (body0.id) 1, 2, 3;
+            return result;
+        }
+    });
 
     let mut bodies = [body0, body1];
     assert_admin_reduction_pass(
