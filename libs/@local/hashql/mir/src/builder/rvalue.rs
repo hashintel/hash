@@ -22,6 +22,9 @@ use crate::{
 ///
 /// Provides methods for creating loads, binary/unary operations, aggregates, and function
 /// applications. Used within [`BasicBlockBuilder::assign`] and [`BasicBlockBuilder::assign_place`].
+///
+/// [`BasicBlockBuilder::assign`]: super::BasicBlockBuilder::assign
+/// [`BasicBlockBuilder::assign_place`]: super::BasicBlockBuilder::assign_place
 pub struct RValueBuilder<'env, 'heap> {
     base: BaseBuilder<'env, 'heap>,
 }
@@ -41,6 +44,8 @@ impl<'env, 'heap> RValueBuilder<'env, 'heap> {
     /// Creates a binary operation r-value.
     ///
     /// Use the [`op!`] macro for the operator: `rv.binary(x, op![==], y)`.
+    ///
+    /// [`op!`]: crate::op
     #[must_use]
     pub fn binary(
         self,
@@ -58,6 +63,8 @@ impl<'env, 'heap> RValueBuilder<'env, 'heap> {
     /// Creates a unary operation r-value.
     ///
     /// Use the [`op!`] macro for the operator: `rv.unary(op![!], operand)`.
+    ///
+    /// [`op!`]: crate::op
     #[must_use]
     pub fn unary(self, op: UnOp, operand: impl Into<Operand<'heap>>) -> RValue<'heap> {
         RValue::Unary(Unary {

@@ -6,6 +6,8 @@ use crate::body::{basic_block::BasicBlockId, operand::Operand, terminator::Targe
 /// Builder for constructing switch targets.
 ///
 /// Used within [`BasicBlockBuilder::switch`] to define cases and an optional default target.
+///
+/// [`BasicBlockBuilder::switch`]: super::BasicBlockBuilder::switch
 pub struct SwitchBuilder<'env, 'heap> {
     pub(super) base: BaseBuilder<'env, 'heap>,
     pub(super) cases: Vec<(u128, Target<'heap>)>,

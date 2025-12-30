@@ -37,7 +37,7 @@ const PLACEHOLDER_TERMINATOR: Terminator<'static> = Terminator {
 /// 3. Build each block with [`build_block`](Self::build_block), adding statements and a terminator
 /// 4. Finalize with [`finish`](Self::finish)
 ///
-/// Use the [`scaffold!`] macro to set up the required infrastructure.
+/// See the [`body!`] macro for a more ergonomic way to construct MIR bodies.
 pub struct BodyBuilder<'env, 'heap> {
     base: BaseBuilder<'env, 'heap>,
     local_decls: LocalVec<LocalDecl<'heap>, &'heap Heap>,
@@ -48,7 +48,7 @@ pub struct BodyBuilder<'env, 'heap> {
 impl<'env, 'heap> BodyBuilder<'env, 'heap> {
     /// Creates a new body builder with the given interner.
     ///
-    /// Prefer using the [`scaffold!`] macro which sets up both the heap and interner.
+    /// See the [`body!`] macro for a more ergonomic way to construct MIR bodies.
     #[must_use]
     pub const fn new(interner: &'env Interner<'heap>) -> Self {
         Self {
