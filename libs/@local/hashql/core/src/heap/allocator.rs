@@ -164,6 +164,13 @@ impl BumpAllocator for AllocatorScope<'_> {
         &self,
         len: usize,
     ) -> Result<&mut [mem::MaybeUninit<T>], alloc::AllocError> {
+        const {
+            assert!(
+                !core::mem::needs_drop::<T>(),
+                "Cannot allocate a type that needs drop"
+            );
+        };
+
         self.0
             .try_alloc_uninit_slice(len)
             .map(BumpBox::leak)
