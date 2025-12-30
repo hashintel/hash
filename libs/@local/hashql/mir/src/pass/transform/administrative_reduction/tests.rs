@@ -6,7 +6,7 @@ use bstr::ByteVec as _;
 use hashql_core::{
     heap::{Heap, Scratch},
     pretty::Formatter,
-    r#type::{TypeBuilder, TypeFormatter, TypeFormatterOptions, TypeId, environment::Environment},
+    r#type::{TypeFormatter, TypeFormatterOptions, environment::Environment},
 };
 use hashql_diagnostics::DiagnosticIssues;
 use insta::{Settings, assert_snapshot};
@@ -14,7 +14,7 @@ use insta::{Settings, assert_snapshot};
 use super::{AdministrativeReduction, kind::ReductionKind};
 use crate::{
     body::Body,
-    builder::{BodyBuilder, body, op, scaffold},
+    builder::body,
     context::MirContext,
     def::{DefId, DefIdSlice},
     intern::Interner,
@@ -23,13 +23,6 @@ use crate::{
 };
 
 /// Tests `TrivialThunk` classification for an identity function (returns parameter).
-///
-/// ```text
-/// fn body0(%0: Int) -> Int {
-///   bb0:
-///     return %0
-/// }
-/// ```
 #[test]
 fn classify_thunk_identity() {
     let heap = Heap::new();
@@ -48,14 +41,6 @@ fn classify_thunk_identity() {
 }
 
 /// Tests `TrivialThunk` classification for a body with Aggregate.
-///
-/// ```text
-/// fn body0() -> (a: Int, b: Int) {
-///   bb0:
-///     %0 = (a: 1, b: 2)
-///     return %0
-/// }
-/// ```
 #[test]
 fn classify_thunk_aggregate() {
     let heap = Heap::new();
@@ -75,14 +60,6 @@ fn classify_thunk_aggregate() {
 }
 
 /// Tests `ForwardingClosure` classification for a body with single Apply + return.
-///
-/// ```text
-/// fn body0() -> Int {
-///   bb0:
-///     %0 = apply fn@0
-///     return %0
-/// }
-/// ```
 #[test]
 fn classify_closure_immediate() {
     let heap = Heap::new();
@@ -136,15 +113,6 @@ fn classify_non_reducible_multi_bb() {
 }
 
 /// Tests that a body with non-trivial operations (Binary, Unary, etc.) is not reducible.
-///
-/// ```text
-/// fn body0() -> Boolean {
-///   bb0:
-///     %0 = 1
-///     %1 = %0 == 2
-///     return %1
-/// }
-/// ```
 #[test]
 fn classify_non_reducible_non_trivial_op() {
     let heap = Heap::new();
@@ -165,15 +133,6 @@ fn classify_non_reducible_non_trivial_op() {
 }
 
 /// Tests that Apply not in final statement position is not a `ForwardingClosure`.
-///
-/// ```text
-/// fn body0() -> Int {
-///   bb0:
-///     %0 = apply fn@0
-///     %1 = %0           // <-- final statement is Load, not Apply
-///     return %1
-/// }
-/// ```
 #[test]
 fn classify_non_reducible_call_not_last() {
     let heap = Heap::new();
@@ -187,7 +146,7 @@ fn classify_non_reducible_call_not_last() {
 
         bb0() {
             x = apply (def_id);
-            y = load x;
+            y = load x; // final statement is load, not apply
             return y;
         }
     });
@@ -196,15 +155,6 @@ fn classify_non_reducible_call_not_last() {
 }
 
 /// Tests that returning something other than the call result is not a `ForwardingClosure`.
-///
-/// ```text
-/// fn body0() -> Int {
-///   bb0:
-///     %0 = 1
-///     %1 = apply fn@0
-///     return %0         // <-- returns %0, not %1 (the call result)
-/// }
-/// ```
 #[test]
 fn classify_non_reducible_return_mismatch() {
     let heap = Heap::new();
@@ -219,7 +169,7 @@ fn classify_non_reducible_return_mismatch() {
         bb0() {
             x = load 1;
             y = apply (def_id);
-            return x;
+            return x; // returns x, not y (the call result)
         }
     });
 
@@ -227,15 +177,6 @@ fn classify_non_reducible_return_mismatch() {
 }
 
 /// Tests that multiple Apply statements block `ForwardingClosure` classification.
-///
-/// ```text
-/// fn body0() -> Int {
-///   bb0:
-///     %0 = apply fn@0   // <-- first Apply makes prelude non-trivial
-///     %1 = apply fn@0 %0
-///     return %1
-/// }
-/// ```
 #[test]
 fn classify_non_reducible_multi_call() {
     let heap = Heap::new();
@@ -248,7 +189,7 @@ fn classify_non_reducible_multi_call() {
         decl x: Int, y: Int;
 
         bb0() {
-            x = apply def_id;
+            x = apply def_id; // First apply makes prelude nontrivial
             y = apply def_id, x;
             return y;
         }
@@ -258,14 +199,6 @@ fn classify_non_reducible_multi_call() {
 }
 
 /// Tests that self-recursion is blocked (body doesn't inline itself).
-///
-/// ```text
-/// fn body0@0() -> Int {
-///   bb0:
-///     %0 = apply fn@0  // <-- calls itself
-///     return %0
-/// }
-/// ```
 ///
 /// Even though this is classified as `ForwardingClosure`, running the pass should
 /// not cause infinite inlining because self-recursion is blocked.
@@ -281,7 +214,7 @@ fn self_recursion_blocked() {
         decl result: Int;
 
         bb0() {
-            result = apply def_id;
+            result = apply def_id; // recursion
             return result;
         }
     });
@@ -431,36 +364,13 @@ fn inline_thunk_multi_arg() {
 }
 
 /// Tests inlining a forwarding closure with a trivial prelude.
-///
-/// Before:
-/// ```text
-/// fn body0@0(%0: Int) -> Int {   // Identity thunk
-///   bb0:
-///     return %0
-/// }
-///
-/// fn body1@1() -> Int {   // ForwardingClosure with prelude
-///   bb0:
-///     %0 = 99
-///     %1 = apply fn@0 %0
-///     return %1
-/// }
-///
-/// fn body2@2() -> Int {   // Calls body1
-///   bb0:
-///     %0 = apply fn@1
-///     return %0
-/// }
-/// ```
-///
-/// After: All calls inlined with prelude statements preserved.
 #[test]
 fn inline_closure_with_prelude() {
     let heap = Heap::new();
     let interner = Interner::new(&heap);
     let env = Environment::new(&heap);
 
-    let body0 = body!(interner, env; fn@0/1 -> Int {
+    let body0 = body!(interner, env; fn@0/1 -> Int { // `TrivialThunk` (identity)
         decl arg: Int;
 
         bb0() {
@@ -468,7 +378,7 @@ fn inline_closure_with_prelude() {
         }
     });
 
-    let body1 = body!(interner, env; fn@1/0 -> Int {
+    let body1 = body!(interner, env; fn@1/0 -> Int { // `ForwardingClosure` with prelude
         decl x: Int, result: Int;
 
         bb0() {
@@ -501,25 +411,6 @@ fn inline_closure_with_prelude() {
 }
 
 /// Tests that argument RHS operands are NOT offset (they reference caller locals).
-///
-/// Before:
-/// ```text
-/// fn body0@0(%0: Int) -> Int {   // Takes arg, returns it
-///     bb0:
-///         %1 = 10
-///         %2 = %0
-///         return %2
-/// }
-///
-/// fn body1@1() -> Int {
-///     bb0:
-///         %0 = 5            // caller_local
-///         %1 = call fn@0(%0)  // passes caller_local as arg
-///         return %1
-/// }
-/// ```
-///
-/// After: The param binding `%2 = %0` uses caller's %0, NOT offset.
 #[test]
 fn inline_args_not_offset() {
     let heap = Heap::new();
@@ -560,33 +451,6 @@ fn inline_args_not_offset() {
 }
 
 /// Tests diamond call graph: body3 → {body1, body2} → body0.
-///
-/// ```text
-/// fn body0@0() -> Int {   // D: TrivialThunk (leaf)
-///   bb0:
-///     %0 = 1
-///     return %0
-/// }
-///
-/// fn body1@1() -> Int {   // B: Calls D
-///   bb0:
-///     %0 = apply fn@0
-///     return %0
-/// }
-///
-/// fn body2@2() -> Int {   // C: Calls D
-///   bb0:
-///     %0 = apply fn@0
-///     return %0
-/// }
-///
-/// fn body3@3() -> Int {   // A: Calls B and C
-///   bb0:
-///     %0 = apply fn@1
-///     %1 = apply fn@2
-///     return %0
-/// }
-/// ```
 #[test]
 fn inline_diamond() {
     let heap = Heap::new();
@@ -644,29 +508,6 @@ fn inline_diamond() {
 }
 
 /// Tests that multiple reducible calls in sequence are all inlined.
-///
-/// ```text
-/// fn body0@0() -> Int {   // TrivialThunk returning 1
-///   bb0:
-///     %0 = 1
-///     return %0
-/// }
-///
-/// fn body1@1() -> Int {   // TrivialThunk returning 2
-///   bb0:
-///     %0 = 2
-///     return %0
-/// }
-///
-/// fn body2@2() -> Int {   // Calls body0, then body1
-///   bb0:
-///     %0 = apply fn@0
-///     %1 = apply fn@1
-///     return %1
-/// }
-/// ```
-///
-/// Both calls should be inlined via statement index rewind.
 #[test]
 fn inline_sequential_calls() {
     let heap = Heap::new();
@@ -715,55 +556,30 @@ fn inline_sequential_calls() {
 }
 
 /// Tests indirect call resolution via local tracking.
-///
-/// ```text
-/// fn body0@0() -> Int {   // TrivialThunk
-///   bb0:
-///     %0 = 77
-///     return %0
-/// }
-///
-/// fn body1@1() -> Int {
-///   bb0:
-///     %0 = fn@0         // store fn ptr in local
-///     %1 = apply %0     // call via local
-///     return %1
-/// }
-/// ```
-///
-/// The pass tracks that %0 holds fn@0 and resolves the indirect call.
 #[test]
 fn inline_indirect_via_local() {
-    scaffold!(heap, interner, builder);
+    let heap = Heap::new();
+    let interner = Interner::new(&heap);
     let env = Environment::new(&heap);
 
-    let int_ty = TypeBuilder::synthetic(&env).integer();
-    let fn_ty = TypeBuilder::synthetic(&env).closure([] as [TypeId; 0], int_ty);
+    let body0 = body!(interner, env; fn@0/0 -> Int {
+        decl x: Int;
 
-    // Body 0: trivial thunk
-    let x0 = builder.local("x", int_ty);
-    let const_77 = builder.const_int(77);
-    let bb0 = builder.reserve_block([]);
-    builder
-        .build_block(bb0)
-        .assign_place(x0, |rv| rv.load(const_77))
-        .ret(x0);
-    let mut body0 = builder.finish(0, int_ty);
-    body0.id = DefId::new(0);
+        bb0() {
+            x = load 77;
+            return x;
+        }
+    });
 
-    // Body 1: stores fn ptr in local, then calls it
-    let mut builder = BodyBuilder::new(&interner);
-    let f = builder.local("f", fn_ty);
-    let result = builder.local("result", int_ty);
-    let fn_ptr0 = builder.const_fn(body0.id);
-    let bb1 = builder.reserve_block([]);
-    builder
-        .build_block(bb1)
-        .assign_place(f, |rv| rv.load(fn_ptr0))
-        .assign_place(result, |rv| rv.call(f))
-        .ret(result);
-    let mut body1 = builder.finish(0, int_ty);
-    body1.id = DefId::new(1);
+    let body1 = body!(interner, env; fn@1/0 -> Int {
+        decl f: [fn() -> Int], result: Int;
+
+        bb0() {
+            f = load (body0.id);
+            result = apply f;
+            return result;
+        }
+    });
 
     let mut bodies = [body0, body1];
     assert_admin_reduction_pass(
@@ -779,63 +595,32 @@ fn inline_indirect_via_local() {
 }
 
 /// Tests closure aggregate tracking: closure `(fn_ptr, env)` is tracked and call is resolved.
-///
-/// ```text
-/// fn body0@0(%0: Int) -> Int {   // Takes captured env, returns it
-///   bb0:
-///     %1 = %0
-///     return %1
-/// }
-///
-/// fn body1@1() -> Int {
-///   bb0:
-///     %0 = 55                    // captured value
-///     %1 = Closure(fn@0, %0)     // create closure
-///     %2 = apply %1.0 %1.1       // call via fn ptr projection, pass env projection
-///     return %2
-/// }
-/// ```
 #[test]
 fn inline_indirect_closure() {
-    scaffold!(heap, interner, builder);
+    let heap = Heap::new();
+    let interner = Interner::new(&heap);
     let env = Environment::new(&heap);
 
-    let int_ty = TypeBuilder::synthetic(&env).integer();
-    let fn_ty = TypeBuilder::synthetic(&env).closure([int_ty], int_ty);
-    let closure_ty = TypeBuilder::synthetic(&env).closure([int_ty], int_ty);
+    let body0 = body!(interner, env; fn@0/1 -> Int {
+        decl env_arg: Int, result: Int;
 
-    // Body 0: trivial thunk that takes captured env as first arg
-    let env_arg = builder.local("env", int_ty);
-    let result0 = builder.local("result", int_ty);
-    let bb0 = builder.reserve_block([]);
-    builder
-        .build_block(bb0)
-        .assign_place(result0, |rv| rv.load(env_arg))
-        .ret(result0);
-    let mut body0 = builder.finish(1, int_ty);
-    body0.id = DefId::new(0);
+        bb0() {
+            result = load env_arg;
+            return result;
+        }
+    });
 
-    // Body 1: creates a closure (fn_ptr, env), then calls it via projections
-    let mut builder = BodyBuilder::new(&interner);
-    let captured = builder.local("captured", int_ty);
-    let closure = builder.local("closure", closure_ty);
-    let result1 = builder.local("result", int_ty);
-    let const_55 = builder.const_int(55);
-    let bb1 = builder.reserve_block([]);
+    let body1 = body!(interner, env; fn@1/0 -> Int {
+        decl captured: Int, closure: [fn(Int) -> Int], result: Int;
+        @proj closure_fn = closure.0: [fn(Int) -> Int], closure_env = closure.1: Int;
 
-    // Create projections: %1.0 (fn ptr) and %1.1 (env)
-    let closure_fn_ptr = builder.place(|p| p.from(closure).field(0, fn_ty));
-    let closure_env = builder.place(|p| p.from(closure).field(1, int_ty));
-
-    builder
-        .build_block(bb1)
-        .assign_place(captured, |rv| rv.load(const_55))
-        .assign_place(closure, |rv| rv.closure(body0.id, captured))
-        .assign_place(result1, |rv| rv.apply(closure_fn_ptr, [closure_env]))
-        .ret(result1);
-
-    let mut body1 = builder.finish(0, int_ty);
-    body1.id = DefId::new(1);
+        bb0() {
+            captured = load 55;
+            closure = closure (body0.id) captured;
+            result = apply closure_fn, closure_env;
+            return result;
+        }
+    });
 
     let mut bodies = [body0, body1];
     assert_admin_reduction_pass(
