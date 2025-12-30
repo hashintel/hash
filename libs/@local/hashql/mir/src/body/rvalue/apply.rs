@@ -50,7 +50,7 @@ pub struct Apply<'heap> {
 
     /// The arguments to pass to the function.
     ///
-    /// This [`IdVec`] contains the ordered list of argument [`Operand`]s that
+    /// This [`ArgVec`] contains the ordered list of argument [`Operand`]s that
     /// will be evaluated and passed to the function.
     ///
     /// The number and types of arguments must match the function's signature,

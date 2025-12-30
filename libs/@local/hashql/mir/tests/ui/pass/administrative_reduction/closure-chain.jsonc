@@ -7,15 +7,33 @@
   [
     "let",
     "f2",
-    ["fn", { "#tuple": [] }, { "#struct": { "x": "Boolean" } }, "_", ["f1", "x"]],
+    [
+      "fn",
+      { "#tuple": [] },
+      { "#struct": { "x": "Boolean" } },
+      "_",
+      ["f1", "x"]
+    ],
     [
       "let",
       "f3",
-      ["fn", { "#tuple": [] }, { "#struct": { "x": "Boolean" } }, "_", ["f2", "x"]],
+      [
+        "fn",
+        { "#tuple": [] },
+        { "#struct": { "x": "Boolean" } },
+        "_",
+        ["f2", "x"]
+      ],
       [
         "let",
         "f4",
-        ["fn", { "#tuple": [] }, { "#struct": { "x": "Boolean" } }, "_", ["f3", "x"]],
+        [
+          "fn",
+          { "#tuple": [] },
+          { "#struct": { "x": "Boolean" } },
+          "_",
+          ["f3", "x"]
+        ],
         ["f4", { "#literal": true }]
       ]
     ]
