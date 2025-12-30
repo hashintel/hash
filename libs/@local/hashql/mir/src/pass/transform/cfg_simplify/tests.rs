@@ -72,18 +72,6 @@ fn assert_cfg_simplify_pass<'heap>(
 }
 
 /// Tests that a switch where all arms point to the same block degenerates to a goto.
-///
-/// Before:
-/// ```text
-/// bb0: switch_int(x) -> [0: bb1, 1: bb1, otherwise: bb1]
-/// bb1: return
-/// ```
-///
-/// After:
-/// ```text
-/// bb0: goto bb1
-/// bb1: return
-/// ```
 #[test]
 fn identical_switch_targets() {
     let heap = Heap::new();
@@ -115,18 +103,6 @@ fn identical_switch_targets() {
 }
 
 /// Tests that a switch with only an otherwise branch degenerates to a goto.
-///
-/// Before:
-/// ```text
-/// bb0: switch_int(x) -> [otherwise: bb1]
-/// bb1: return
-/// ```
-///
-/// After:
-/// ```text
-/// bb0: goto bb1
-/// bb1: return
-/// ```
 #[test]
 fn only_otherwise_switch() {
     let heap = Heap::new();
@@ -158,20 +134,6 @@ fn only_otherwise_switch() {
 }
 
 /// Tests that switch cases matching the otherwise target are removed.
-///
-/// Before:
-/// ```text
-/// bb0: switch_int(x) -> [0: bb1, 1: bb2, 2: bb2, otherwise: bb2]
-/// bb1: return 1
-/// bb2: return 2
-/// ```
-///
-/// After:
-/// ```text
-/// bb0: switch_int(x) -> [0: bb1, otherwise: bb2]
-/// bb1: return 1
-/// bb2: return 2
-/// ```
 #[test]
 fn redundant_cases_removal() {
     let heap = Heap::new();
@@ -206,17 +168,6 @@ fn redundant_cases_removal() {
 }
 
 /// Tests that goto to a non-noop block with multiple predecessors is NOT simplified.
-///
-/// When a block has multiple predecessors and contains actual statements (not just noop),
-/// we cannot inline it because that would duplicate the statements across all paths.
-///
-/// Before & After (bb3 preserved - has statements and multiple preds):
-/// ```text
-/// bb0: switch_int(x) -> [0: bb1, 1: bb2]  // runtime value, not constant-folded
-/// bb1: a = 1; goto bb3  // non-noop, cannot be promoted through
-/// bb2: b = 2; goto bb3  // non-noop, cannot be promoted through
-/// bb3: c = 3; return    // has statements, multiple preds - cannot inline
-/// ```
 #[test]
 fn no_inline_non_noop_multiple_preds() {
     let heap = Heap::new();
@@ -256,15 +207,6 @@ fn no_inline_non_noop_multiple_preds() {
 }
 
 /// Tests that goto self-loops are preserved (not simplified).
-///
-/// A goto that targets its own block cannot be optimized away—it represents
-/// an infinite loop that must be preserved in the CFG.
-///
-/// Before & After:
-/// ```text
-/// bb0: goto bb1
-/// bb1: goto bb1  // self-loop preserved
-/// ```
 #[test]
 fn self_loop_preservation() {
     let heap = Heap::new();
@@ -295,16 +237,6 @@ fn self_loop_preservation() {
 }
 
 /// Tests that goto self-loops with parameters are preserved.
-///
-/// A goto that targets its own block with parameters cannot be optimized away—it
-/// represents an infinite loop that passes values to each iteration. The block
-/// body is empty (noop) but the self-loop must still be preserved.
-///
-/// Before & After:
-/// ```text
-/// bb0: goto bb1(0)
-/// bb1(p): goto bb1(p)  // noop self-loop with params preserved
-/// ```
 #[test]
 fn self_loop_preservation_with_params() {
     let heap = Heap::new();
@@ -335,27 +267,6 @@ fn self_loop_preservation_with_params() {
 }
 
 /// Tests that goto through a noop block with multiple predecessors is simplified.
-///
-/// When multiple blocks jump to an empty (noop) block that just forwards to another
-/// block, we can redirect each predecessor directly to the final target.
-///
-/// Before:
-/// ```text
-/// bb0: if cond -> bb1, bb2
-/// bb1: goto bb3  // noop passthrough
-/// bb2: goto bb3  // noop passthrough
-/// bb3: /* empty */ goto bb4
-/// bb4: return
-/// ```
-///
-/// After:
-/// ```text
-/// bb0: if cond -> bb4, bb4  // direct to return
-/// bb1: unreachable
-/// bb2: unreachable
-/// bb3: unreachable
-/// bb4: return
-/// ```
 #[test]
 fn noop_block_multiple_predecessors() {
     let heap = Heap::new();
@@ -396,27 +307,6 @@ fn noop_block_multiple_predecessors() {
 }
 
 /// Tests that switch target promotion works through noop blocks.
-///
-/// When a switch arm targets an empty block with just a goto terminator,
-/// we can redirect the switch arm directly to the goto's target.
-///
-/// Before:
-/// ```text
-/// bb0: switch_int(x) -> [0: bb1, 1: bb2, otherwise: bb3]
-/// bb1: /* noop */ goto bb4
-/// bb2: /* noop */ goto bb4
-/// bb3: return 3
-/// bb4: return 4
-/// ```
-///
-/// After:
-/// ```text
-/// bb0: switch_int(x) -> [0: bb4, 1: bb4, otherwise: bb3]
-/// bb1: unreachable (or preserved if still referenced)
-/// bb2: unreachable (or preserved if still referenced)
-/// bb3: return 3
-/// bb4: return 4
-/// ```
 #[test]
 fn switch_target_promotion() {
     let heap = Heap::new();
@@ -457,16 +347,6 @@ fn switch_target_promotion() {
 }
 
 /// Tests that switch self-loops are preserved (not simplified).
-///
-/// A switch arm that targets its own block cannot be optimized away—it represents
-/// a loop that must be preserved in the CFG.
-///
-/// Before & After:
-/// ```text
-/// bb0: goto bb1
-/// bb1: switch_int(x) -> [0: bb1, otherwise: bb2]  // self-loop on case 0
-/// bb2: return
-/// ```
 #[test]
 fn switch_self_loop_preservation() {
     let heap = Heap::new();
@@ -501,23 +381,6 @@ fn switch_self_loop_preservation() {
 }
 
 /// Tests that a constant discriminant with no matching case and no otherwise emits a diagnostic.
-///
-/// This is an internal compiler error (ICE) case - the discriminant value has no matching
-/// case and no fallback otherwise branch. The block becomes unreachable.
-///
-/// Before:
-/// ```text
-/// bb0: switch_int(const 5) -> [0: bb1, 1: bb2]  // no case for 5, no otherwise
-/// bb1: return 1
-/// bb2: return 2
-/// ```
-///
-/// After:
-/// ```text
-/// bb0: unreachable  // ICE diagnostic emitted
-/// bb1: unreachable
-/// bb2: unreachable
-/// ```
 #[test]
 fn unreachable_switch_arm_ice() {
     let heap = Heap::new();
@@ -559,27 +422,6 @@ fn unreachable_switch_arm_ice() {
 }
 
 /// Tests that switch target promotion works through noop blocks that pass arguments.
-///
-/// When a switch arm targets a noop block whose goto passes arguments, we can
-/// promote by copying the goto's target (including args) directly to the switch arm.
-///
-/// Before:
-/// ```text
-/// bb0: switch_int(x) -> [0: bb1, 1: bb2, otherwise: bb3]
-/// bb1: goto bb4(const 1)
-/// bb2: goto bb4(const 2)
-/// bb3: return
-/// bb4(p): use p; return
-/// ```
-///
-/// After:
-/// ```text
-/// bb0: switch_int(x) -> [0: bb4(1), 1: bb4(2), otherwise: bb3]
-/// bb1: unreachable
-/// bb2: unreachable
-/// bb3: return
-/// bb4(p): use p; return
-/// ```
 #[test]
 fn switch_promotion_with_goto_params() {
     let heap = Heap::new();
