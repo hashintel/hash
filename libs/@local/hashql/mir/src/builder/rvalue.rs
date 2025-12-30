@@ -232,6 +232,21 @@ macro_rules! rvalue {
             rv.r#struct(fields)
         }; $payload; $($rest)*)
     };
+    ($resume:path; $payload:tt; input.load! $name:tt; $($rest:tt)*) => {
+        $resume!(@rvalue |rv| {
+            rv.input(hashql_hir::node::operation::InputOp::Load {required: true}, $name)
+        }; $payload; $($rest)*)
+    };
+    ($resume:path; $payload:tt; input.load $name:tt; $($rest:tt)*) => {
+        $resume!(@rvalue |rv| {
+            rv.input(hashql_hir::node::operation::InputOp::Load {required: false}, $name)
+        }; $payload; $($rest)*)
+    };
+    ($resume:path; $payload:tt; input.exists $name:tt; $($rest:tt)*) => {
+        $resume!(@rvalue |rv| {
+            rv.input(hashql_hir::node::operation::InputOp::Exists, $name)
+        }; $payload; $($rest)*)
+    };
     ($resume:path; $payload:tt; bin.$op:tt $lhs:tt $rhs:tt; $($rest:tt)*) => {
         $resume!(@rvalue |rv| {
             let lhs = $crate::builder::_private::operand!(rv; $lhs);
