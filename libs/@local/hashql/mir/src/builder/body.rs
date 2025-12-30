@@ -258,7 +258,7 @@ impl<'env, 'heap> Deref for BodyBuilder<'env, 'heap> {
 macro_rules! body {
     (
         $interner:ident, $env:ident;
-        $type:ident @ $id:literal / $arity:literal -> $body_type:tt {
+        $type:ident @ $id:tt / $arity:literal -> $body_type:tt {
             decl $($param:ident: $param_type:tt),*;
             $(@proj $($proj:ident = $proj_base:ident.$field:literal: $proj_type:tt),*;)?
 
@@ -294,10 +294,17 @@ macro_rules! body {
 
         let mut body = builder.finish($arity, $crate::builder::body!(@type types; $body_type));
         body.source = $crate::builder::body!(@source $type);
-        body.id = $crate::def::DefId::new($id);
+        body.id = $crate::builder::body!(@id $id);
 
         body
     }};
+
+    (@id $id:literal) => {
+        $crate::def::DefId::new($id)
+    };
+    (@id $id:ident) => {
+        $id
+    };
 
     (@type $types:ident; Int) => {
         $types.integer()
