@@ -395,7 +395,7 @@ fn inline_thunk_simple() {
     let body1 = body!(interner, env; fn@1/0 -> Int {
         decl x: Int;
 
-        bb0() => {
+        bb0() {
             x = apply (body0.id);
             return x;
         }
