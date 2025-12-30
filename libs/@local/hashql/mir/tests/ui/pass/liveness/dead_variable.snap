@@ -2,7 +2,7 @@
 source: libs/@local/hashql/mir/src/pass/analysis/dataflow/liveness/tests.rs
 expression: "format!(\"{}\\n\\n========\\n\\n{}\", format_body(env, body),\nformat_liveness(body, &results))"
 ---
-fn {intrinsic#4294967040}() -> Integer {
+fn {closure@4294967040}() -> Integer {
     let %0: Integer
 
     bb0(): {
