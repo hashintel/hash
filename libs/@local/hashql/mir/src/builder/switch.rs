@@ -53,3 +53,27 @@ impl<'env, 'heap> Deref for SwitchBuilder<'env, 'heap> {
         &self.base
     }
 }
+
+#[doc(hidden)]
+#[macro_export]
+macro_rules! switch {
+    ($resume:path; $payload:tt; [$($cases:tt)*]; $($rest:tt)*) => {
+        $resume!(@switch |mut switch| {
+            $crate::builder::_private::switch!(@case switch; $($cases)*);
+            switch
+        }; $payload; $($rest)*)
+    };
+    (@case $switch:ident;) => {};
+    (@case $switch:ident; $value:literal => $block:ident($($args:tt),*) $(, $($rest:tt)+)?) => {
+        let args = [$($crate::builder::_private::operand!(*$switch; $args)),*];
+        $switch = $switch.case($value, $block, args);
+        $crate::builder::_private::switch!(@case $switch; $($($rest)*)?);
+    };
+    (@case $switch:ident; _ => $block:ident($($args:tt),*) $(, $($rest:tt)+)?) => {
+        let args = [$($crate::builder::_private::operand!(*$switch; $args)),*];
+        $switch = $switch.otherwise($block, args);
+        $crate::builder::_private::switch!(@case $switch; $($($rest)*)?);
+    };
+}
+
+pub use switch;

@@ -148,6 +148,7 @@ pub mod _private {
         basic_block::bb,
         operand::{BuildOperand, operand},
         rvalue::rvalue,
+        switch::switch,
     };
 }
 

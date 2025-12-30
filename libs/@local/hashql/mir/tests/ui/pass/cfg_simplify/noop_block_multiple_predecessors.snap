@@ -2,7 +2,7 @@
 source: libs/@local/hashql/mir/src/pass/transform/cfg_simplify/tests.rs
 expression: value
 ---
-fn {intrinsic#4294967040}() -> Null {
+fn {closure@4294967040}() -> Null {
     let %0: Boolean
 
     bb0(): {
@@ -24,13 +24,13 @@ fn {intrinsic#4294967040}() -> Null {
     }
 
     bb4(): {
-        return ()
+        return null
     }
 }
 
 ================== Changed: Yes ==================
 
-fn {intrinsic#4294967040}() -> Null {
+fn {closure@4294967040}() -> Null {
     let %0: Boolean
 
     bb0(): {
@@ -40,10 +40,10 @@ fn {intrinsic#4294967040}() -> Null {
     }
 
     bb1(): {
-        return ()
+        return null
     }
 
     bb2(): {
-        return ()
+        return null
     }
 }
