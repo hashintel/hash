@@ -140,6 +140,101 @@ impl<'env, 'heap> Deref for BodyBuilder<'env, 'heap> {
     }
 }
 
+/// Declarative macro for constructing complete MIR bodies.
+///
+/// This macro provides a concise, IR-like syntax for building MIR bodies in tests.
+/// It is the preferred way to construct complex MIR with multiple basic blocks.
+///
+/// # Syntax
+///
+/// ```text
+/// body!(interner, env; <source> @ <id> / <arity> -> <return_type> {
+///     decl <local>: <type>, ...;
+///
+///     <block>(<params>...) {
+///         <statements>...
+///     },
+///     ...
+/// })
+/// ```
+///
+/// ## Header
+///
+/// - `<source>`: Either `fn` (closure) or `thunk`
+/// - `<id>`: Numeric literal for `DefId`
+/// - `<arity>`: Number of function arguments
+/// - `<return_type>`: Return type (`Int`, `Bool`, tuple `(Int, Bool)`, or custom `|t| t.foo()`)
+///
+/// ## Types
+///
+/// - `Int` - Integer type
+/// - `Bool` - Boolean type
+/// - `(T1, T2, ...)` - Tuple types
+/// - `|types| types.custom()` - Custom type expression
+///
+/// ## Statements (inside blocks)
+///
+/// | Syntax | Description |
+/// | ------ | ----------- |
+/// | `let x;` | `StorageLive(x)` |
+/// | `drop x;` | `StorageDead(x)` |
+/// | `x = load <operand>;` | Load value into place |
+/// | `x = apply <func>;` | Call function with no args |
+/// | `x = apply <func>, <arg1>, <arg2>;` | Call function with args |
+/// | `x = tuple <a>, <b>, ...;` | Create tuple aggregate |
+/// | `x = bin.<op> <lhs> <rhs>;` | Binary operation (e.g., `bin.== x y`) |
+/// | `x = un.<op> <operand>;` | Unary operation (e.g., `un.! cond`) |
+///
+/// ## Terminators
+///
+/// | Syntax | Description |
+/// | ------ | ----------- |
+/// | `return <operand>;` | Return from function |
+/// | `goto <block>(<args>...);` | Unconditional jump |
+/// | `if <cond> then <block>(<args>) else <block>(<args>);` | Conditional branch |
+///
+/// ## Operands
+///
+/// - Identifiers: `x`, `cond` (places)
+/// - Literals: `42` (i64), `3.14` (f64), `true`/`false` (bool)
+/// - Unit: `()`
+/// - Null: `null`
+/// - Function pointers: `fn() @ def_id`
+///
+/// # Example
+///
+/// ```
+/// use hashql_core::{heap::Heap, r#type::environment::Environment};
+/// use hashql_mir::{builder::body, intern::Interner};
+///
+/// let heap = Heap::new();
+/// let interner = Interner::new(&heap);
+/// let env = Environment::new(&heap);
+///
+/// let body = body!(interner, env; fn@0/1 -> Int {
+///     decl x: Int, cond: Bool;
+///
+///     bb0() {
+///         cond = load true;
+///         if cond then bb1() else bb2();
+///     },
+///     bb1() {
+///         goto bb3(1);
+///     },
+///     bb2() {
+///         goto bb3(2);
+///     },
+///     bb3(x) {
+///         return x;
+///     }
+/// });
+/// ```
+///
+/// # Supported Operators
+///
+/// Binary (`bin.<op>`): `==`, `!=`, `<`, `<=`, `>`, `>=`, `&`, `|`, `+`, `-`, `*`, `/`.
+///
+/// Unary (`un.<op>`): `!`, `neg`.
 #[macro_export]
 macro_rules! body {
     (
