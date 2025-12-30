@@ -168,8 +168,6 @@ impl<'heap, A: Allocator> ScratchMemory<'heap, A> {
 /// This pass inlines trivial thunks and forwarding closures at their call sites, eliminating
 /// unnecessary function call overhead introduced by earlier compilation phases.
 ///
-/// See the [module documentation](self) for details on the algorithm and correctness invariants.
-///
 /// # Example
 ///
 /// ```ignore

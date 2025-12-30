@@ -3,6 +3,12 @@
 [
   "let",
   "make_pair",
-  ["fn", { "#tuple": [] }, { "#struct": {} }, "_", { "#tuple": [{ "#literal": 1 }, { "#literal": 2 }] }],
+  [
+    "fn",
+    { "#tuple": [] },
+    { "#struct": {} },
+    "_",
+    { "#tuple": [{ "#literal": 1 }, { "#literal": 2 }] }
+  ],
   ["make_pair"]
 ]
