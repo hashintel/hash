@@ -207,6 +207,10 @@ macro_rules! bb {
         $b.ret(returns);
         $crate::builder::_private::bb!(@impl $b; $($rest)*)
     };
+    (@impl $b:expr; unreachable; $($rest:tt)*) => {
+        $b.unreachable();
+        $crate::builder::_private::bb!(@impl $b; $($rest)*)
+    };
     (@impl $b:expr; goto $target:ident($($arg:tt),*); $($rest:tt)*) => {
         let args = [$($crate::builder::_private::operand!(*$b; $arg)),*];
         $b.goto($target, args);
