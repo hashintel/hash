@@ -1,17 +1,48 @@
 //! Ergonomic builder for constructing MIR bodies.
 //!
-//! This module provides a fluent API for building MIR bodies without the boilerplate
-//! of manually constructing all the intermediate structures. It is primarily useful
-//! for testing and benchmarking MIR passes.
+//! This module provides two approaches for building MIR bodies:
 //!
-//! # Example
+//! 1. **`body!` macro** (preferred) - Declarative, IR-like syntax for complex CFGs
+//! 2. **Fluent builder API** - Programmatic construction for advanced cases
+//!
+//! # Example using `body!` macro
 //!
 //! ```
-//! use hashql_core::{id::Id, r#type::TypeId};
-//! use hashql_mir::{op, scaffold, builder::BodyBuilder};
+//! use hashql_core::{heap::Heap, r#type::environment::Environment};
+//! use hashql_mir::{builder::body, intern::Interner};
 //!
-//! // Set up the heap, interner, and builder
-//! scaffold!(heap, interner, builder);
+//! let heap = Heap::new();
+//! let interner = Interner::new(&heap);
+//! let env = Environment::new(&heap);
+//!
+//! let body = body!(interner, env; fn@0/0 -> Int {
+//!     decl x: Int, cond: Bool;
+//!
+//!     bb0() {
+//!         cond = load true;
+//!         if cond then bb1() else bb2();
+//!     },
+//!     bb1() {
+//!         goto bb3(1);
+//!     },
+//!     bb2() {
+//!         goto bb3(2);
+//!     },
+//!     bb3(x) {
+//!         return x;
+//!     }
+//! });
+//! ```
+//!
+//! # Example using fluent builder API
+//!
+//! ```
+//! use hashql_core::{heap::Heap, id::Id, r#type::TypeId};
+//! use hashql_mir::{op, builder::BodyBuilder, intern::Interner};
+//!
+//! let heap = Heap::new();
+//! let interner = Interner::new(&heap);
+//! let mut builder = BodyBuilder::new(&interner);
 //!
 //! // Declare local variables (using TypeId::MAX as a placeholder type)
 //! let x = builder.local("x", TypeId::MAX);

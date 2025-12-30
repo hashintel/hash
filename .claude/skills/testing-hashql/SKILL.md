@@ -225,4 +225,5 @@ let body = body!(interner, env; fn@0/1 -> Int {
 
 - [compiletest Guide](references/compiletest-guide.md) - Detailed UI test documentation
 - [Testing Strategies](references/testing-strategies.md) - Choosing the right approach
-- [MIR Builder Guide](references/mir-builder-guide.md) - Programmatic MIR construction for tests
+- [MIR Builder Guide](references/mir-builder-guide.md) - `body!` macro for MIR construction in tests
+- [MIR Fluent Builder](references/mir-fluent-builder.md) - Programmatic builder API (for advanced cases)

@@ -17,6 +17,13 @@ use crate::{
 ///
 /// This builder is accessible from [`BodyBuilder`], [`BasicBlockBuilder`], [`PlaceBuilder`],
 /// [`RValueBuilder`], and [`SwitchBuilder`] via [`Deref`].
+///
+/// [`BodyBuilder`]: super::BodyBuilder
+/// [`BasicBlockBuilder`]: super::BasicBlockBuilder
+/// [`PlaceBuilder`]: super::PlaceBuilder
+/// [`RValueBuilder`]: super::RValueBuilder
+/// [`SwitchBuilder`]: super::SwitchBuilder
+/// [`Deref`]: core::ops::Deref
 #[derive(Debug, Copy, Clone)]
 pub struct BaseBuilder<'env, 'heap> {
     pub(super) interner: &'env Interner<'heap>,

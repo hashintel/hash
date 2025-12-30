@@ -8,14 +8,9 @@ Ergonomic API for constructing MIR bodies in tests. Use for testing and benchmar
 
 The `body!` macro does not support all MIR constructs. If you need a feature that is not supported, **do not work around it manually** - instead, stop and request that the feature be added to the macro.
 
+For advanced cases not supported by the macro, see [mir-fluent-builder.md](mir-fluent-builder.md).
+
 ## Quick Start
-
-Two approaches are available:
-
-1. **`body!` macro** (preferred for complex CFG) - Declarative, IR-like syntax
-2. **Fluent builder API** - Programmatic construction for simple cases
-
-### `body!` Macro (Preferred)
 
 ```rust
 use hashql_core::{heap::Heap, r#type::environment::Environment};
@@ -44,27 +39,6 @@ let body = body!(interner, env; fn@0/1 -> Int {
 });
 ```
 
-### Fluent Builder API
-
-```rust
-use hashql_core::r#type::{TypeBuilder, environment::Environment};
-use hashql_mir::{builder::BodyBuilder, op, scaffold};
-
-scaffold!(heap, interner, builder);
-let env = Environment::new(&heap);
-
-let x = builder.local("x", TypeBuilder::synthetic(&env).integer());
-let const_1 = builder.const_int(1);
-
-let bb0 = builder.reserve_block([]);
-builder
-    .build_block(bb0)
-    .assign_place(x, |rv| rv.load(const_1))
-    .ret(x);
-
-let body = builder.finish(0, TypeBuilder::synthetic(&env).integer());
-```
-
 ## `body!` Macro Syntax
 
 ```text
@@ -83,9 +57,11 @@ body!(interner, env; <source> @ <id> / <arity> -> <return_type> {
 | Component | Description | Example |
 | --------- | ----------- | ------- |
 | `<source>` | Body source type | `fn` (closure) or `thunk` |
-| `<id>` | DefId numeric literal | `0`, `1`, `42` |
+| `<id>` | DefId (literal or variable) | `0`, `42`, `my_def_id` |
 | `<arity>` | Number of function arguments | `0`, `1`, `2` |
 | `<return_type>` | Return type | `Int`, `Bool`, `(Int, Bool)` |
+
+The `<id>` can be a numeric literal (`0`, `1`, `42`) or a variable identifier (`callee_id`, `my_def_id`). When using a variable, it must be a `DefId` in scope.
 
 ### Types
 
@@ -93,7 +69,9 @@ body!(interner, env; <source> @ <id> / <arity> -> <return_type> {
 | ------ | ----------- | ------- |
 | `Int` | Integer type | `Int` |
 | `Bool` | Boolean type | `Bool` |
+| `Null` | Null type | `Null` |
 | `(T1, T2, ...)` | Tuple types | `(Int, Bool, Int)` |
+| `(T,)` | Single-element tuple | `(Int,)` |
 | `(a: T1, b: T2)` | Struct types | `(a: Int, b: Bool)` |
 | `[fn(T1, T2) -> R]` | Closure types | `[fn(Int) -> Int]`, `[fn() -> Bool]` |
 | `\|types\| types.custom()` | Custom type expression | `\|t\| t.null()` |
@@ -106,15 +84,15 @@ Declare field projections after `decl` to access struct/tuple fields as places:
 @proj <name> = <base>.<field>: <type>, ...;
 ```
 
-Example:
+Supports nested projections:
 
 ```rust
-let body = body!(interner, env; fn@1/0 -> Int {
-    decl closure: [fn(Int) -> Int], result: Int;
-    @proj closure_fn = closure.0: [fn(Int) -> Int], closure_env = closure.1: Int;
+let body = body!(interner, env; fn@0/0 -> Int {
+    decl tup: ((Int, Int), Int), result: Int;
+    @proj inner = tup.0: (Int, Int), inner_1 = tup.0.1: Int;
 
     bb0() {
-        result = apply closure_fn, closure_env;
+        result = load inner_1;
         return result;
     }
 });
@@ -153,112 +131,19 @@ let body = body!(interner, env; fn@1/0 -> Int {
 
 | Syntax | Description |
 | ------ | ----------- |
-| `x`, `cond` | Place (local variable) |
+| `x`, `cond` | Place (local variable or projection) |
 | `42`, `-5` | Integer literal (i64) |
 | `3.14` | Float literal (f64) |
 | `true`, `false` | Boolean literal |
 | `()` | Unit |
 | `null` | Null |
-| `fn() @ def_id` | Function pointer |
+| `def_id` | DefId variable (for function pointers) |
 
 ### Operators
 
 **Binary** (`bin.<op>`): `==`, `!=`, `<`, `<=`, `>`, `>=`, `&`, `|`, `+`, `-`, `*`, `/`
 
 **Unary** (`un.<op>`): `!`, `neg`
-
-## Fluent Builder Reference
-
-### `scaffold!` Macro
-
-Sets up heap, interner, and builder:
-
-```rust
-scaffold!(heap, interner, builder);
-let env = Environment::new(&heap);  // Also needed for types
-```
-
-### `op!` Macro
-
-Creates operators for fluent builder binary/unary operations:
-
-```rust
-// Binary: ==, !=, <, <=, >, >=, &, |, +, -, *, /
-rv.binary(x, op![==], y)
-
-// Unary: !, neg
-rv.unary(op![!], cond)
-rv.unary(op![neg], value)
-```
-
-### Locals and Types
-
-```rust
-let env = Environment::new(&heap);
-
-// Common types
-let int_ty = TypeBuilder::synthetic(&env).integer();
-let bool_ty = TypeBuilder::synthetic(&env).boolean();
-let null_ty = TypeBuilder::synthetic(&env).null();
-
-// Declare locals
-let x = builder.local("x", int_ty);  // Returns Place<'heap>
-```
-
-### Constants
-
-```rust
-let const_42 = builder.const_int(42);
-let const_true = builder.const_bool(true);
-let const_unit = builder.const_unit();
-let const_null = builder.const_null();
-let const_fn = builder.const_fn(def_id);
-```
-
-### Basic Blocks
-
-```rust
-// Reserve without parameters
-let bb0 = builder.reserve_block([]);
-
-// Reserve with block parameters (for SSA phi-like merging)
-let bb1 = builder.reserve_block([x.local, y.local]);
-```
-
-### Building Blocks
-
-```rust
-builder
-    .build_block(bb0)
-    .assign_place(x, |rv| rv.load(const_1))
-    .assign_place(y, |rv| rv.binary(x, op![==], x))
-    .storage_live(local)
-    .storage_dead(local)
-    .nop()
-    .ret(result);  // Must end with terminator
-```
-
-### Terminators
-
-```rust
-// Return
-builder.build_block(bb).ret(value);
-
-// Goto
-builder.build_block(bb0).goto(bb1, []);
-builder.build_block(bb0).goto(bb1, [x.into(), y.into()]);
-
-// If-else
-builder.build_block(bb0).if_else(cond, bb_then, [], bb_else, []);
-
-// Switch
-builder.build_block(bb0).switch(selector, |switch| {
-    switch.case(0, bb1, []).case(1, bb2, []).otherwise(bb3, [])
-});
-
-// Unreachable
-builder.build_block(bb).unreachable();
-```
 
 ## Common Patterns
 
@@ -327,15 +212,63 @@ let body = body!(interner, env; fn@0/0 -> Null {
 });
 ```
 
-### Function Calls
+### Direct Function Calls
+
+Use a `DefId` variable directly:
 
 ```rust
-let body = body!(interner, env; fn@1/0 -> Int {
+let callee_id = DefId::new(1);
+
+let body = body!(interner, env; fn@0/0 -> Int {
     decl result: Int;
 
     bb0() {
-        result = apply fn() @ callee_def_id;
+        result = apply callee_id;
         return result;
+    }
+});
+```
+
+### Indirect Function Calls (via local)
+
+Load a DefId into a local, then apply the local:
+
+```rust
+let callee_id = DefId::new(1);
+
+let body = body!(interner, env; fn@0/0 -> Int {
+    decl func: [fn(Int) -> Int], result: Int;
+
+    bb0() {
+        func = load callee_id;
+        result = apply func, 1;
+        return result;
+    }
+});
+```
+
+### Multiple Bodies with DefId Variables
+
+When creating multiple bodies that reference each other:
+
+```rust
+let callee_id = DefId::new(1);
+let caller_id = DefId::new(0);
+
+let caller = body!(interner, env; fn@caller_id/0 -> Int {
+    decl result: Int;
+
+    bb0() {
+        result = apply callee_id;
+        return result;
+    }
+});
+
+let callee = body!(interner, env; fn@callee_id/0 -> Int {
+    decl ret: Int;
+
+    bb0() {
+        return ret;
     }
 });
 ```
@@ -375,6 +308,28 @@ let body1 = body!(interner, env; fn@1/0 -> Int {
         captured = load 55;
         closure = closure (body0.id) captured;
         result = apply closure_fn, closure_env;
+        return result;
+    }
+});
+```
+
+### Projections in Terminators
+
+Projected places can be used as operands in terminators:
+
+```rust
+let body = body!(interner, env; fn@0/0 -> Int {
+    decl tup: (Int, Int), result: Int;
+    @proj tup_0 = tup.0: Int, tup_1 = tup.1: Int;
+
+    bb0() {
+        tup = tuple 1, 2;
+        if tup_0 then bb1(tup_0) else bb2(tup_1);
+    },
+    bb1(result) {
+        return result;
+    },
+    bb2(result) {
         return result;
     }
 });
@@ -485,28 +440,23 @@ fn test_case() {
 }
 ```
 
-## RValue Types (Fluent Builder)
-
-| Method | Creates | Example |
-| ------ | ------- | ------- |
-| `load(operand)` | Copy/move | `rv.load(x)` |
-| `binary(l, op, r)` | Binary op | `rv.binary(x, op![+], y)` |
-| `unary(op, val)` | Unary op | `rv.unary(op![!], cond)` |
-| `tuple([...])` | Tuple | `rv.tuple([x, y, z])` |
-| `list([...])` | List | `rv.list([a, b, c])` |
-| `struct([...])` | Struct | `rv.r#struct([("x", val)])` |
-| `closure(def, env)` | Closure | `rv.closure(def_id, env_place)` |
-| `dict([...])` | Dict | `rv.dict([(k, v)])` |
-| `apply(fn, args)` | Call | `rv.apply(func, [arg1])` |
-| `call(fn)` | Call (no args) | `rv.call(func)` |
-| `input(op, name)` | Input | `rv.input(InputOp::Load { required: true }, "x")` |
-
 ## Examples in Codebase
 
-Real test examples in `libs/@local/hashql/mir/src/pass/transform/`:
+Real test examples in `libs/@local/hashql/mir/src/pass/`:
 
-- `administrative_reduction/tests.rs` - Administrative reduction (uses `body!` macro)
+**Transform passes** (`transform/`):
+
+- `administrative_reduction/tests.rs`
 - `dse/tests.rs` - Dead Store Elimination
 - `ssa_repair/tests.rs` - SSA Repair
 - `cfg_simplify/tests.rs` - CFG Simplification
 - `dbe/tests.rs` - Dead Block Elimination
+- `cp/tests.rs` - Constant Propagation
+- `dle/tests.rs` - Dead Local Elimination
+- `inst_simplify/tests.rs` - Instruction Simplification
+
+**Analysis passes** (`analysis/`):
+
+- `callgraph/tests.rs` - Call graph analysis
+- `data_dependency/tests.rs` - Data dependency analysis
+- `dataflow/liveness/tests.rs` - Liveness analysis
