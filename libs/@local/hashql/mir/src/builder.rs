@@ -151,10 +151,218 @@ macro_rules! op {
     [neg] => { hashql_hir::node::operation::UnOp::Neg };
 }
 
+#[macro_export]
+macro_rules! operand {
+    ($b:expr; $value:expr) => {{
+        let o = $b.operands();
+
+        $crate::builder::operand!(@impl o; $value)
+    }};
+
+    (@impl $o:expr; fn() @ $def:ident) => {
+        $o.const_fn($def)
+    };
+    (@impl $o:expr; $value:expr) => {
+        $crate::builder::BuildOperand::build_operand(&$o, $value)
+    };
+
+}
+
+// Creates a new bb based, based on a set of statements
+#[macro_export]
+macro_rules! bb {
+    ($b:expr; { $($rest:tt)* }) => {
+        $crate::builder::bb!(@impl $b; $($rest)*)
+    };
+    (@impl $b:expr;) => {};
+    (@impl $b:expr; let $name:expr; $($rest:tt)*) => {
+        $b = $b.storage_live($name);
+        $crate::builder::bb!(@impl $b; $($rest)*)
+    };
+    (@impl $b:expr; drop $name:expr; $($rest:tt)*) => {
+        $b = $b.storage_dead($name);
+        $crate::builder::bb!(@impl $b; $($rest)*)
+    };
+    (@impl $b:expr; $name:ident = load $lhs:tt; $($rest:tt)*) => {
+        $b = $b.assign_place($name, |rv| {
+            let func = $crate::builder::operand!(*rv; $lhs);
+
+            rv.load(func)
+        });
+        $crate::builder::bb!(@impl $b; $($rest)*)
+    };
+    (@impl $b:expr; $name:ident = apply $lhs:tt; $($rest:tt)*) => {
+        $b = $b.assign_place($name, |rv| {
+            let func = $crate::builder::operand!(*rv; $lhs);
+            rv.call(func)
+        });
+        $crate::builder::bb!(@impl $b; $($rest)*)
+    };
+    (@impl $b:expr; $name:ident = apply $lhs:tt $($arg:tt),+; $($rest:tt)*) => {
+        $b = $b.assign_place($name, |rv| {
+            let func = $crate::builder::operand!(*rv; $lhs);
+            let args = [$($crate::builder::operand!(*rv; $arg),)*];
+
+            rv.apply(func, args)
+        });
+        $crate::builder::bb!(@impl $b; $($rest)*)
+    };
+    (@impl $b:expr; $name:ident = tuple $($field:tt),*; $($rest:tt)*) => {
+        $b = $b.assign_place($name, |rv| {
+            let fields = [$($crate::builder::operand!(rv; $field),)*];
+            rv.tuple(fields)
+        });
+        $crate::builder::bb!(@impl $b; $($rest)*)
+    };
+    (@impl $b:expr; $name:ident = $lhs:tt $op:tt $rhs:tt; $($rest:tt)*) => {
+        $b = $b.assign_place($name, |rv| rv.binary($crate::builder::operand!(rv; $lhs), $crate::builder::op![$op], $crate::builder::operand!(rv; $rhs)));
+        $crate::builder::bb!(@impl $b; $($rest)*)
+    };
+
+    (@impl $b:expr; return $value:tt; $($rest:tt)*) => {
+        let returns = $crate::builder::operand!(*$b; $value);
+        $b.ret(returns);
+        $crate::builder::bb!(@impl $b; $($rest)*)
+    };
+    (@impl $b:expr; goto $target:ident($($arg:tt),*); $($rest:tt)*) => {
+        let args = [$($crate::builder::operand!(*$b; $arg)),*];
+        $b.goto($target, args);
+
+        $crate::builder::bb!(@impl $b; $($rest)*)
+    };
+    (@impl $b:expr; if $cond:tt $then:ident($($thenarg:tt),*) $else:ident($($elsearg:tt),*); $($rest:tt)*) => {
+        let cond = $crate::builder::operand!(*$b; $cond);
+        let thenargs = [$($crate::builder::operand!(*$b; $thenarg)),*];
+        let elseargs = [$($crate::builder::operand!(*$b; $elsearg)),*];
+        $b.if_else(cond, $then, thenargs, $else, elseargs);
+
+        $crate::builder::bb!(@impl $b; $($rest)*)
+    };
+}
+
+#[macro_export]
+macro_rules! body {
+    (
+        $interner:ident, $env:ident;
+        $type:ident @ $id:literal / $arity:literal -> $body_type:tt {
+            decl $($param:ident: $param_type:tt),*;
+
+            $($block:ident($($block_param:ident),*) => $block_body:tt),+
+        }
+    ) => {{
+        let mut builder = $crate::builder::BodyBuilder::new(&$interner);
+        let types =  hashql_core::r#type::TypeBuilder::synthetic(&$env);
+
+        // Create all the params required
+        $(
+            let $param = builder.local(stringify!($param), $crate::builder::body!(@type types; $param_type));
+        )*
+
+        // Create all the blocks required
+        $(
+            let $block = builder.reserve_block([$($block_param.local),*]);
+        )*
+
+        // Now we need to build each block
+        $(
+            let mut bb_builder = builder.build_block($block);
+
+            $crate::builder::bb!(bb_builder; $block_body);
+        )*
+
+        // We now need to finish everything
+        let mut body = builder.finish($arity, $crate::builder::body!(@type types; $body_type));
+        body.source = $crate::builder::body!(@source $type);
+        body.id = $crate::def::DefId::new($id);
+
+        body
+    }};
+
+    (@type $types:ident; Int) => {
+        $types.integer()
+    };
+    (@type $types:ident; ($($sub:tt),*)) => {
+        $types.tuple([$($crate::builder::body!(@type $types; $sub)),*])
+    };
+    (@type $types:ident; Bool) => {
+        $types.boolean()
+    };
+    (@type $types:ident; $other:expr) => {
+        $other($types)
+    };
+
+    (@source thunk) => {
+        $crate::body::Source::Thunk(hashql_hir::node::HirId::PLACEHOLDER, None)
+    };
+    (@source fn) => {
+        $crate::body::Source::Closure(hashql_hir::node::HirId::PLACEHOLDER, None)
+    };
+}
+
 const PLACEHOLDER_TERMINATOR: Terminator<'static> = Terminator {
     span: SpanId::SYNTHETIC,
     kind: TerminatorKind::Unreachable,
 };
+
+pub trait BuildOperand<'heap, T> {
+    fn build_operand(&self, value: T) -> Operand<'heap>;
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+pub struct Null;
+
+#[derive(Debug, Copy, Clone)]
+pub struct OperandBuilder<'env, 'heap> {
+    base: BaseBuilder<'env, 'heap>,
+}
+
+impl<'heap> BuildOperand<'heap, f64> for OperandBuilder<'_, 'heap> {
+    fn build_operand(&self, value: f64) -> Operand<'heap> {
+        self.base.const_float(value)
+    }
+}
+
+impl<'heap> BuildOperand<'heap, i64> for OperandBuilder<'_, 'heap> {
+    fn build_operand(&self, value: i64) -> Operand<'heap> {
+        self.base.const_int(value)
+    }
+}
+
+impl<'heap> BuildOperand<'heap, bool> for OperandBuilder<'_, 'heap> {
+    fn build_operand(&self, value: bool) -> Operand<'heap> {
+        self.base.const_bool(value)
+    }
+}
+
+impl<'heap> BuildOperand<'heap, ()> for OperandBuilder<'_, 'heap> {
+    fn build_operand(&self, (): ()) -> Operand<'heap> {
+        self.base.const_unit()
+    }
+}
+
+impl<'heap> BuildOperand<'heap, Null> for OperandBuilder<'_, 'heap> {
+    fn build_operand(&self, _: Null) -> Operand<'heap> {
+        self.base.const_unit()
+    }
+}
+
+impl<'heap> BuildOperand<'heap, DefId> for OperandBuilder<'_, 'heap> {
+    fn build_operand(&self, value: DefId) -> Operand<'heap> {
+        self.base.const_fn(value)
+    }
+}
+
+impl<'heap> BuildOperand<'heap, Place<'heap>> for OperandBuilder<'_, 'heap> {
+    fn build_operand(&self, value: Place<'heap>) -> Operand<'heap> {
+        Operand::Place(value)
+    }
+}
+
+impl<'heap> BuildOperand<'heap, Operand<'heap>> for OperandBuilder<'_, 'heap> {
+    fn build_operand(&self, value: Operand<'heap>) -> Operand<'heap> {
+        value
+    }
+}
 
 /// Shared base builder providing common operations for creating constants and places.
 ///
@@ -167,6 +375,11 @@ pub struct BaseBuilder<'env, 'heap> {
 
 #[expect(clippy::unused_self, reason = "ergonomics")]
 impl<'env, 'heap> BaseBuilder<'env, 'heap> {
+    #[must_use]
+    pub const fn operands(self) -> OperandBuilder<'env, 'heap> {
+        OperandBuilder { base: self }
+    }
+
     /// Creates an integer constant operand.
     #[must_use]
     pub fn const_int(self, value: i64) -> Operand<'heap> {
@@ -827,5 +1040,8 @@ impl<'env, 'heap> Deref for SwitchBuilder<'env, 'heap> {
     }
 }
 
+pub use bb;
+pub use body;
 pub use op;
+pub use operand;
 pub use scaffold;
