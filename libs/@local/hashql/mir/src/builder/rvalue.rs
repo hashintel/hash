@@ -218,6 +218,15 @@ macro_rules! rvalue {
             rv.tuple(members)
         }; $payload; $($rest)*)
     };
+    ($resume:path; $payload:tt; struct $($field:ident : $value:tt),+ $(,)?; $($rest:tt)*) => {
+        $resume!(@rvalue |rv| {
+            let fields = [$(
+                (stringify!($field), $crate::builder::_private::operand!(rv; $value))
+            ),*];
+
+            rv.r#struct(fields)
+        }; $payload; $($rest)*)
+    };
     ($resume:path; $payload:tt; bin.$op:tt $lhs:tt $rhs:tt; $($rest:tt)*) => {
         $resume!(@rvalue |rv| {
             let lhs = $crate::builder::_private::operand!(rv; $lhs);

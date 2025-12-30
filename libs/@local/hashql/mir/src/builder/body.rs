@@ -182,6 +182,7 @@ impl<'env, 'heap> Deref for BodyBuilder<'env, 'heap> {
 /// | `x = apply <func>;` | Call function with no args |
 /// | `x = apply <func>, <arg1>, <arg2>;` | Call function with args |
 /// | `x = tuple <a>, <b>, ...;` | Create tuple aggregate |
+/// | `x = struct a: <v1>, b: <v2>;` | Create struct aggregate |
 /// | `x = bin.<op> <lhs> <rhs>;` | Binary operation (e.g., `bin.== x y`) |
 /// | `x = un.<op> <operand>;` | Unary operation (e.g., `un.! cond`) |
 ///
@@ -276,6 +277,9 @@ macro_rules! body {
     };
     (@type $types:ident; ($($sub:tt),*)) => {
         $types.tuple([$($crate::builder::body!(@type $types; $sub)),*])
+    };
+    (@type $types:ident; ($($name:ident: $sub:tt),*)) => {
+        $types.r#struct([$((stringify!($name), $crate::builder::body!(@type $types; $sub))),*])
     };
     (@type $types:ident; Bool) => {
         $types.boolean()
