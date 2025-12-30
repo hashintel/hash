@@ -36,11 +36,11 @@
 //! // Finalize the body
 //! let body = builder.finish(0, TypeId::MAX);
 //! ```
+#![expect(clippy::field_scoped_visibility_modifiers)]
 
 mod base;
 mod basic_block;
 mod body;
-mod macros;
 mod operand;
 mod place;
 mod rvalue;
@@ -49,17 +49,70 @@ mod switch;
 pub use self::{
     base::BaseBuilder,
     basic_block::BasicBlockBuilder,
-    body::BodyBuilder,
-    macros::{bb, body, op, operand},
+    body::{BodyBuilder, body},
     operand::OperandBuilder,
     place::PlaceBuilder,
     rvalue::RValueBuilder,
     switch::SwitchBuilder,
 };
 
-#[doc(hidden)]
-pub mod _private {
-    pub use super::operand::{BuildOperand, Null};
+/// Macro for creating binary and unary operators.
+///
+/// This macro provides a convenient way to create operator values for use with
+/// [`RValueBuilder::binary`] and [`RValueBuilder::unary`].
+///
+/// # Binary Operators
+///
+/// Comparison and logical operators are supported:
+///
+/// ```
+/// use hashql_mir::body::rvalue::BinOp;
+/// use hashql_mir::op;
+///
+/// // Bitwise
+/// assert!(matches!(op![&], BinOp::BitAnd));
+/// assert!(matches!(op![|], BinOp::BitOr));
+///
+/// // Comparison
+/// assert!(matches!(op![==], BinOp::Eq));
+/// assert!(matches!(op![!=], BinOp::Ne));
+/// assert!(matches!(op![<], BinOp::Lt));
+/// assert!(matches!(op![<=], BinOp::Lte));
+/// assert!(matches!(op![>], BinOp::Gt));
+/// assert!(matches!(op![>=], BinOp::Gte));
+/// ```
+///
+/// Arithmetic operators are also available (`op![+]`, `op![-]`, `op![*]`, `op![/]`),
+/// though they use uninhabited marker types in the current type system.
+///
+/// # Unary Operators
+///
+/// ```
+/// use hashql_hir::node::operation::UnOp;
+/// use hashql_mir::op;
+///
+/// assert!(matches!(op![!], UnOp::Not));
+/// assert!(matches!(op![neg], UnOp::Neg)); // `neg` is used since `-` alone is ambiguous
+/// ```
+#[macro_export]
+macro_rules! op {
+    // Binary operators
+    [+] => { $crate::body::rvalue::BinOp::Add };
+    [-] => { $crate::body::rvalue::BinOp::Sub };
+    [*] => { $crate::body::rvalue::BinOp::Mul };
+    [/] => { $crate::body::rvalue::BinOp::Div };
+    [==] => { $crate::body::rvalue::BinOp::Eq };
+    [!=] => { $crate::body::rvalue::BinOp::Ne };
+    [<] => { $crate::body::rvalue::BinOp::Lt };
+    [<=] => { $crate::body::rvalue::BinOp::Lte };
+    [>] => { $crate::body::rvalue::BinOp::Gt };
+    [>=] => { $crate::body::rvalue::BinOp::Gte };
+    [&] => { $crate::body::rvalue::BinOp::BitAnd };
+    [|] => { $crate::body::rvalue::BinOp::BitOr };
+
+    // Unary operators
+    [!] => { hashql_hir::node::operation::UnOp::Not };
+    [neg] => { hashql_hir::node::operation::UnOp::Neg };
 }
 
 /// Scaffold macro for setting up MIR builder infrastructure.
@@ -89,4 +142,14 @@ macro_rules! scaffold {
     };
 }
 
+#[doc(hidden)]
+pub mod _private {
+    pub use super::{
+        basic_block::bb,
+        operand::{BuildOperand, operand},
+        rvalue::rvalue,
+    };
+}
+
+pub use op;
 pub use scaffold;

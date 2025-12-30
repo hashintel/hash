@@ -139,3 +139,62 @@ impl<'env, 'heap> Deref for BodyBuilder<'env, 'heap> {
         &self.base
     }
 }
+
+#[macro_export]
+macro_rules! body {
+    (
+        $interner:ident, $env:ident;
+        $type:ident @ $id:literal / $arity:literal -> $body_type:tt {
+            decl $($param:ident: $param_type:tt),*;
+
+            $($block:ident($($block_param:ident),*) $block_body:tt),+
+        }
+    ) => {{
+        let mut builder = $crate::builder::BodyBuilder::new(&$interner);
+        let types =  hashql_core::r#type::TypeBuilder::synthetic(&$env);
+
+        $(
+            let $param = builder.local(stringify!($param), $crate::builder::body!(@type types; $param_type));
+        )*
+
+        $(
+            let $block = builder.reserve_block([$($block_param.local),*]);
+        )*
+
+        $(
+            #[expect(clippy::allow_attributes)]
+            #[allow(unused_mut)]
+            let mut bb_builder = builder.build_block($block);
+
+            $crate::builder::_private::bb!(bb_builder; $block_body);
+        )*
+
+        let mut body = builder.finish($arity, $crate::builder::body!(@type types; $body_type));
+        body.source = $crate::builder::body!(@source $type);
+        body.id = $crate::def::DefId::new($id);
+
+        body
+    }};
+
+    (@type $types:ident; Int) => {
+        $types.integer()
+    };
+    (@type $types:ident; ($($sub:tt),*)) => {
+        $types.tuple([$($crate::builder::body!(@type $types; $sub)),*])
+    };
+    (@type $types:ident; Bool) => {
+        $types.boolean()
+    };
+    (@type $types:ident; $other:expr) => {
+        $other($types)
+    };
+
+    (@source thunk) => {
+        $crate::body::Source::Thunk(hashql_hir::node::HirId::PLACEHOLDER, None)
+    };
+    (@source fn) => {
+        $crate::body::Source::Closure(hashql_hir::node::HirId::PLACEHOLDER, None)
+    };
+}
+
+pub use body;

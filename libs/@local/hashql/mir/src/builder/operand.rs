@@ -8,9 +8,6 @@ pub trait BuildOperand<'heap, T> {
     fn build_operand(&self, value: T) -> Operand<'heap>;
 }
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-pub struct Null;
-
 #[derive(Debug, Copy, Clone)]
 pub struct OperandBuilder<'env, 'heap> {
     pub(super) base: BaseBuilder<'env, 'heap>,
@@ -40,12 +37,6 @@ impl<'heap> BuildOperand<'heap, ()> for OperandBuilder<'_, 'heap> {
     }
 }
 
-impl<'heap> BuildOperand<'heap, Null> for OperandBuilder<'_, 'heap> {
-    fn build_operand(&self, _: Null) -> Operand<'heap> {
-        self.base.const_unit()
-    }
-}
-
 impl<'heap> BuildOperand<'heap, DefId> for OperandBuilder<'_, 'heap> {
     fn build_operand(&self, value: DefId) -> Operand<'heap> {
         self.base.const_fn(value)
@@ -63,3 +54,23 @@ impl<'heap> BuildOperand<'heap, Operand<'heap>> for OperandBuilder<'_, 'heap> {
         value
     }
 }
+
+#[macro_export]
+macro_rules! operand {
+    ($b:expr; $value:expr) => {{
+        let o = $b.operands();
+
+        $crate::builder::_private::operand!(@impl o; $value)
+    }};
+    (@impl $o:expr; null) => {
+        $o.const_null()
+    };
+    (@impl $o:expr; fn() @ $def:ident) => {
+        $o.const_fn($def)
+    };
+    (@impl $o:expr; $value:expr) => {
+        $crate::builder::_private::BuildOperand::build_operand(&$o, $value)
+    };
+}
+
+pub use operand;
