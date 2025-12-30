@@ -1,3 +1,5 @@
+use core::ops::Deref;
+
 use super::base::BaseBuilder;
 use crate::{
     body::{operand::Operand, place::Place},
@@ -55,9 +57,17 @@ impl<'heap> BuildOperand<'heap, Operand<'heap>> for OperandBuilder<'_, 'heap> {
     }
 }
 
+impl<'env, 'heap> Deref for OperandBuilder<'env, 'heap> {
+    type Target = BaseBuilder<'env, 'heap>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.base
+    }
+}
+
 #[macro_export]
 macro_rules! operand {
-    ($b:expr; $value:expr) => {{
+    ($b:expr; $value:tt) => {{
         let o = $b.operands();
 
         $crate::builder::_private::operand!(@impl o; $value)

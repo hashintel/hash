@@ -205,6 +205,8 @@ impl<'env, 'heap> Deref for BodyBuilder<'env, 'heap> {
 /// | `return <operand>;` | Return from function |
 /// | `goto <block>(<args>...);` | Unconditional jump |
 /// | `if <cond> then <block>(<args>) else <block>(<args>);` | Conditional branch |
+/// | `switch <discr> [<val> => <block>(<args>), ...];` | Switch (no otherwise) |
+/// | `switch <discr> [<val> => <block>(<args>), _ => <block>(<args>)];` | Switch with otherwise |
 ///
 /// ## Operands
 ///
@@ -308,6 +310,9 @@ macro_rules! body {
     };
     (@type $types:ident; Bool) => {
         $types.boolean()
+    };
+    (@type $types:ident; Null) => {
+        $types.null()
     };
     (@type $types:ident; $other:expr) => {
         $other($types)

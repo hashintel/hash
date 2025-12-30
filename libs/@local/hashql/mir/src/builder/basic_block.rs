@@ -213,6 +213,15 @@ macro_rules! bb {
 
         $crate::builder::_private::bb!(@impl $b; $($rest)*)
     };
+    (@impl $b:expr; switch $discriminant:tt $($rest:tt)*) => {
+        $crate::builder::_private::switch!($crate::builder::_private::bb; ($b; $discriminant); $($rest)*)
+    };
+    (@switch $switch:expr; ($b:expr; $discriminant:tt); $($rest:tt)*) => {
+        let discriminant = $crate::builder::_private::operand!(*$b; $discriminant);
+        $b.switch(discriminant, $switch);
+
+        $crate::builder::_private::bb!(@impl $b; $($rest)*)
+    };
     (@impl $b:expr; if $cond:tt then $then:ident($($thenarg:tt),*) else $else:ident($($elsearg:tt),*); $($rest:tt)*) => {
         let cond = $crate::builder::_private::operand!(*$b; $cond);
         let thenargs = [$($crate::builder::_private::operand!(*$b; $thenarg)),*];

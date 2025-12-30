@@ -89,12 +89,36 @@ body!(interner, env; <source> @ <id> / <arity> -> <return_type> {
 
 ### Types
 
-| Syntax | Description |
-| ------ | ----------- |
-| `Int` | Integer type |
-| `Bool` | Boolean type |
-| `(T1, T2, ...)` | Tuple types |
-| `\|types\| types.custom()` | Custom type expression |
+| Syntax | Description | Example |
+| ------ | ----------- | ------- |
+| `Int` | Integer type | `Int` |
+| `Bool` | Boolean type | `Bool` |
+| `(T1, T2, ...)` | Tuple types | `(Int, Bool, Int)` |
+| `(a: T1, b: T2)` | Struct types | `(a: Int, b: Bool)` |
+| `[fn(T1, T2) -> R]` | Closure types | `[fn(Int) -> Int]`, `[fn() -> Bool]` |
+| `\|types\| types.custom()` | Custom type expression | `\|t\| t.null()` |
+
+### Projections (Optional)
+
+Declare field projections after `decl` to access struct/tuple fields as places:
+
+```text
+@proj <name> = <base>.<field>: <type>, ...;
+```
+
+Example:
+
+```rust
+let body = body!(interner, env; fn@1/0 -> Int {
+    decl closure: [fn(Int) -> Int], result: Int;
+    @proj closure_fn = closure.0: [fn(Int) -> Int], closure_env = closure.1: Int;
+
+    bb0() {
+        result = apply closure_fn, closure_env;
+        return result;
+    }
+});
+```
 
 ### Statements
 
@@ -106,6 +130,8 @@ body!(interner, env; <source> @ <id> / <arity> -> <return_type> {
 | `x = apply <func>;` | Call with no args | `Assign(x, Apply(func, []))` |
 | `x = apply <func>, <a1>, <a2>;` | Call with args | `Assign(x, Apply(func, [a1, a2]))` |
 | `x = tuple <a>, <b>;` | Create tuple | `Assign(x, Aggregate(Tuple, [a, b]))` |
+| `x = struct a: <v1>, b: <v2>;` | Create struct | `Assign(x, Aggregate(Struct, [v1, v2]))` |
+| `x = closure <def> <env>;` | Create closure | `Assign(x, Aggregate(Closure, [def, env]))` |
 | `x = bin.<op> <lhs> <rhs>;` | Binary operation | `Assign(x, Binary(lhs, op, rhs))` |
 | `x = un.<op> <operand>;` | Unary operation | `Assign(x, Unary(op, operand))` |
 
@@ -116,6 +142,8 @@ body!(interner, env; <source> @ <id> / <arity> -> <return_type> {
 | `return <operand>;` | Return from function |
 | `goto <block>(<args>...);` | Unconditional jump with args |
 | `if <cond> then <tb>(<ta>) else <eb>(<ea>);` | Conditional branch |
+| `switch <discr> [<val> => <block>(<args>), ...];` | Switch (no otherwise) |
+| `switch <discr> [<val> => <block>(), _ => <block>()];` | Switch with otherwise |
 
 ### Operands
 
@@ -273,6 +301,28 @@ let body = body!(interner, env; fn@0/0 -> Int {
 });
 ```
 
+### Switch Statement
+
+```rust
+let body = body!(interner, env; fn@0/0 -> Null {
+    decl selector: Int;
+
+    bb0() {
+        selector = load 0;
+        switch selector [0 => bb1(), 1 => bb2(), _ => bb3()];
+    },
+    bb1() {
+        return null;
+    },
+    bb2() {
+        return null;
+    },
+    bb3() {
+        return null;
+    }
+});
+```
+
 ### Function Calls
 
 ```rust
@@ -281,6 +331,46 @@ let body = body!(interner, env; fn@1/0 -> Int {
 
     bb0() {
         result = apply fn() @ callee_def_id;
+        return result;
+    }
+});
+```
+
+### Struct Aggregate
+
+```rust
+let body = body!(interner, env; fn@0/0 -> (a: Int, b: Bool) {
+    decl result: (a: Int, b: Bool);
+
+    bb0() {
+        result = struct a: 42, b: true;
+        return result;
+    }
+});
+```
+
+### Closure with Projections
+
+```rust
+// body0: function that takes captured env and returns it
+let body0 = body!(interner, env; fn@0/1 -> Int {
+    decl env_arg: Int, result: Int;
+
+    bb0() {
+        result = load env_arg;
+        return result;
+    }
+});
+
+// body1: creates closure, calls it via projections
+let body1 = body!(interner, env; fn@1/0 -> Int {
+    decl captured: Int, closure: [fn(Int) -> Int], result: Int;
+    @proj closure_fn = closure.0: [fn(Int) -> Int], closure_env = closure.1: Int;
+
+    bb0() {
+        captured = load 55;
+        closure = closure (body0.id) captured;
+        result = apply closure_fn, closure_env;
         return result;
     }
 });
@@ -401,6 +491,7 @@ fn test_case() {
 | `tuple([...])` | Tuple | `rv.tuple([x, y, z])` |
 | `list([...])` | List | `rv.list([a, b, c])` |
 | `struct([...])` | Struct | `rv.r#struct([("x", val)])` |
+| `closure(def, env)` | Closure | `rv.closure(def_id, env_place)` |
 | `dict([...])` | Dict | `rv.dict([(k, v)])` |
 | `apply(fn, args)` | Call | `rv.apply(func, [arg1])` |
 | `call(fn)` | Call (no args) | `rv.call(func)` |
