@@ -265,6 +265,8 @@ macro_rules! body {
         let types = hashql_core::r#type::TypeBuilder::synthetic(&$env);
 
         $(
+            #[expect(clippy::allow_attributes)]
+            #[allow(unused)]
             let $param = builder.local(stringify!($param), $crate::builder::body!(@type types; $param_type));
         )*
 
@@ -280,7 +282,7 @@ macro_rules! body {
 
         $(
             #[expect(clippy::allow_attributes)]
-            #[allow(unused_mut)]
+            #[allow(unused)]
             let mut bb_builder = builder.build_block($block);
 
             $crate::builder::_private::bb!(bb_builder; $block_body);
