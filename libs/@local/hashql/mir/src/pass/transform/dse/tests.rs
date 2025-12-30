@@ -1,13 +1,14 @@
 #![expect(clippy::min_ident_chars, reason = "tests")]
+
 use std::{io::Write as _, path::PathBuf};
 
 use bstr::ByteVec as _;
 use hashql_core::{
+    heap::Heap,
     pretty::Formatter,
     r#type::{TypeBuilder, TypeFormatter, TypeFormatterOptions, environment::Environment},
 };
 use hashql_diagnostics::DiagnosticIssues;
-use hashql_hir::node::operation::InputOp;
 use insta::{Settings, assert_snapshot};
 
 use super::DeadStoreElimination;
@@ -17,9 +18,10 @@ use crate::{
         operand::Operand,
         terminator::{GraphRead, GraphReadHead, GraphReadTail, TerminatorKind},
     },
-    builder::{op, scaffold},
+    builder::{body, scaffold},
     context::MirContext,
     def::DefIdSlice,
+    intern::Interner,
     pass::TransformPass as _,
     pretty::TextFormat,
 };
@@ -73,31 +75,21 @@ fn assert_dse_pass<'heap>(
 }
 
 /// Tests that a CFG with all locals used is unchanged.
-///
-/// ```text
-/// _0 = input
-/// _1 = _0
-/// return _1
-/// ```
 #[test]
 fn all_live() {
-    scaffold!(heap, interner, builder);
+    let heap = Heap::new();
+    let interner = Interner::new(&heap);
     let env = Environment::new(&heap);
 
-    let ty = TypeBuilder::synthetic(&env).integer();
+    let body = body!(interner, env; fn@0/0 -> Int {
+        decl x: Int, y: Int;
 
-    let x = builder.local("x", ty);
-    let y = builder.local("y", ty);
-
-    let bb0 = builder.reserve_block([]);
-
-    builder
-        .build_block(bb0)
-        .assign_place(x, |rv| rv.input(InputOp::Load { required: true }, "input"))
-        .assign_place(y, |rv| rv.load(x))
-        .ret(y);
-
-    let body = builder.finish(0, ty);
+        bb0() {
+            x = input.load! "input";
+            y = load x;
+            return y;
+        }
+    });
 
     assert_dse_pass(
         "all_live",
@@ -112,33 +104,21 @@ fn all_live() {
 }
 
 /// Tests removal of a single dead assignment.
-///
-/// ```text
-/// _0 = input
-/// _1 = 42      // dead - never used
-/// return _0
-/// ```
 #[test]
 fn single_dead_assignment() {
-    scaffold!(heap, interner, builder);
+    let heap = Heap::new();
+    let interner = Interner::new(&heap);
     let env = Environment::new(&heap);
 
-    let ty = TypeBuilder::synthetic(&env).integer();
+    let body = body!(interner, env; fn@0/0 -> Int {
+        decl x: Int, dead: Int;
 
-    let x = builder.local("x", ty);
-    let dead = builder.local("dead", ty);
-
-    let const_42 = builder.const_int(42);
-
-    let bb0 = builder.reserve_block([]);
-
-    builder
-        .build_block(bb0)
-        .assign_place(x, |rv| rv.input(InputOp::Load { required: true }, "input"))
-        .assign_place(dead, |rv| rv.load(const_42))
-        .ret(x);
-
-    let body = builder.finish(0, ty);
+        bb0() {
+            x = input.load! "input";
+            dead = load 42; // dead - never used
+            return x;
+        }
+    });
 
     assert_dse_pass(
         "single_dead_assignment",
@@ -153,39 +133,23 @@ fn single_dead_assignment() {
 }
 
 /// Tests removal of a chain of dead assignments where none reach a root use.
-///
-/// ```text
-/// _0 = input
-/// _1 = _0      // dead - only used by _2
-/// _2 = _1      // dead - only used by _3
-/// _3 = _2      // dead - never used
-/// return _0
-/// ```
-///
-/// This tests that liveness propagation correctly identifies the entire chain as dead.
 #[test]
 fn dead_chain() {
-    scaffold!(heap, interner, builder);
+    let heap = Heap::new();
+    let interner = Interner::new(&heap);
     let env = Environment::new(&heap);
 
-    let ty = TypeBuilder::synthetic(&env).integer();
+    let body = body!(interner, env; fn@0/0 -> Int {
+        decl x: Int, a: Int, b: Int, c: Int;
 
-    let x = builder.local("x", ty);
-    let a = builder.local("a", ty);
-    let b = builder.local("b", ty);
-    let c = builder.local("c", ty);
-
-    let bb0 = builder.reserve_block([]);
-
-    builder
-        .build_block(bb0)
-        .assign_place(x, |rv| rv.input(InputOp::Load { required: true }, "input"))
-        .assign_place(a, |rv| rv.load(x))
-        .assign_place(b, |rv| rv.load(a))
-        .assign_place(c, |rv| rv.load(b))
-        .ret(x);
-
-    let body = builder.finish(0, ty);
+        bb0() {
+            x = input.load! "input";
+            a = load x;  // dead - only used by b
+            b = load a;  // dead - only used by c
+            c = load b;  // dead - never used
+            return x;
+        }
+    });
 
     assert_dse_pass(
         "dead_chain",
@@ -200,38 +164,23 @@ fn dead_chain() {
 }
 
 /// Tests removal of a dead cycle where locals depend on each other but none reach a root.
-///
-/// ```text
-/// bb0(a, b):
-///   goto bb0(b, a)   // a <- b, b <- a cycle
-/// bb1:
-///   x = input
-///   goto bb0(x, x)
-/// ```
-///
-/// Neither a nor b reaches a root use, so both params and their args should be eliminated.
 #[test]
 fn dead_cycle() {
-    scaffold!(heap, interner, builder);
+    let heap = Heap::new();
+    let interner = Interner::new(&heap);
     let env = Environment::new(&heap);
 
-    let ty = TypeBuilder::synthetic(&env).integer();
+    let body = body!(interner, env; fn@0/1 -> Int {
+        decl x: Int, a: Int, b: Int;
 
-    let x = builder.local("x", ty);
-    let a = builder.local("a", ty);
-    let b = builder.local("b", ty);
-
-    let bb0 = builder.reserve_block([a.local, b.local]);
-    let bb1 = builder.reserve_block([]);
-
-    builder.build_block(bb0).goto(bb0, [b.into(), a.into()]);
-
-    builder
-        .build_block(bb1)
-        .assign_place(x, |rv| rv.input(InputOp::Load { required: true }, "input"))
-        .goto(bb0, [x.into(), x.into()]);
-
-    let body = builder.finish(1, ty);
+        bb0(a, b) {
+            goto bb0(b, a); // a <- b, b <- a cycle
+        },
+        bb1() {
+            x = input.load! "input";
+            goto bb0(x, x);
+        }
+    });
 
     assert_dse_pass(
         "dead_cycle",
@@ -246,35 +195,22 @@ fn dead_cycle() {
 }
 
 /// Tests that dead params are removed while live siblings are preserved.
-///
-/// ```text
-/// bb0:
-///   goto bb1(1, 2)
-/// bb1(dead, live):
-///   return live
-/// ```
-///
-/// This tests selective removal: only dead params and their corresponding args are removed.
 #[test]
 fn dead_param_with_live_sibling() {
-    scaffold!(heap, interner, builder);
+    let heap = Heap::new();
+    let interner = Interner::new(&heap);
     let env = Environment::new(&heap);
 
-    let ty = TypeBuilder::synthetic(&env).integer();
+    let body = body!(interner, env; fn@0/0 -> Int {
+        decl dead: Int, live: Int;
 
-    let dead = builder.local("dead", ty);
-    let live = builder.local("live", ty);
-
-    let const_1 = builder.const_int(1);
-    let const_2 = builder.const_int(2);
-
-    let bb0 = builder.reserve_block([]);
-    let bb1 = builder.reserve_block([dead.local, live.local]);
-
-    builder.build_block(bb0).goto(bb1, [const_1, const_2]);
-    builder.build_block(bb1).ret(live);
-
-    let body = builder.finish(0, ty);
+        bb0() {
+            goto bb1(1, 2);
+        },
+        bb1(dead, live) {
+            return live;
+        }
+    });
 
     assert_dse_pass(
         "dead_param_with_live_sibling",
@@ -289,42 +225,27 @@ fn dead_param_with_live_sibling() {
 }
 
 /// Tests that branch conditions are treated as root uses and preserved.
-///
-/// ```text
-/// _0 = input
-/// _1 = _0 == _0    // live - used in branch condition
-/// if _1 -> bb1 else bb2
-/// bb1: return 1
-/// bb2: return 2
-/// ```
 #[test]
 fn branch_condition_preserved() {
-    scaffold!(heap, interner, builder);
+    let heap = Heap::new();
+    let interner = Interner::new(&heap);
     let env = Environment::new(&heap);
 
-    let int_ty = TypeBuilder::synthetic(&env).integer();
-    let bool_ty = TypeBuilder::synthetic(&env).boolean();
+    let body = body!(interner, env; fn@0/0 -> Int {
+        decl x: Int, cond: Bool;
 
-    let x = builder.local("x", int_ty);
-    let cond = builder.local("cond", bool_ty);
-
-    let const_1 = builder.const_int(1);
-    let const_2 = builder.const_int(2);
-
-    let bb0 = builder.reserve_block([]);
-    let bb1 = builder.reserve_block([]);
-    let bb2 = builder.reserve_block([]);
-
-    builder
-        .build_block(bb0)
-        .assign_place(x, |rv| rv.input(InputOp::Load { required: true }, "input"))
-        .assign_place(cond, |rv| rv.binary(x, op![==], x))
-        .if_else(cond, bb1, [], bb2, []);
-
-    builder.build_block(bb1).ret(const_1);
-    builder.build_block(bb2).ret(const_2);
-
-    let body = builder.finish(0, int_ty);
+        bb0() {
+            x = input.load! "input";
+            cond = bin.== x x; // live - used in branch condition
+            if cond then bb1() else bb2();
+        },
+        bb1() {
+            return 1;
+        },
+        bb2() {
+            return 2;
+        }
+    });
 
     assert_dse_pass(
         "branch_condition_preserved",
@@ -339,40 +260,23 @@ fn branch_condition_preserved() {
 }
 
 /// Tests removal of StorageLive/StorageDead for dead locals.
-///
-/// ```text
-/// bb0:
-///   StorageLive(dead)
-///   x = input
-///   dead = 42        // dead assignment
-///   StorageDead(dead)
-///   return x
-/// ```
-///
-/// Both the assignment and storage markers for dead locals should be eliminated.
 #[test]
 fn dead_storage_statements() {
-    scaffold!(heap, interner, builder);
+    let heap = Heap::new();
+    let interner = Interner::new(&heap);
     let env = Environment::new(&heap);
 
-    let ty = TypeBuilder::synthetic(&env).integer();
+    let body = body!(interner, env; fn@0/0 -> Int {
+        decl x: Int, dead: Int;
 
-    let x = builder.local("x", ty);
-    let dead = builder.local("dead", ty);
-
-    let const_42 = builder.const_int(42);
-
-    let bb0 = builder.reserve_block([]);
-
-    builder
-        .build_block(bb0)
-        .storage_live(dead.local)
-        .assign_place(x, |rv| rv.input(InputOp::Load { required: true }, "input"))
-        .assign_place(dead, |rv| rv.load(const_42))
-        .storage_dead(dead.local)
-        .ret(x);
-
-    let body = builder.finish(0, ty);
+        bb0() {
+            let (dead.local);
+            x = input.load! "input";
+            dead = load 42; // dead assignment
+            drop (dead.local);
+            return x;
+        }
+    });
 
     assert_dse_pass(
         "dead_storage_statements",
@@ -387,55 +291,29 @@ fn dead_storage_statements() {
 }
 
 /// Tests dead param elimination with multiple predecessors.
-///
-/// ```text
-/// bb0:
-///   cond = input
-///   if cond -> bb1 else bb2
-/// bb1:
-///   goto bb3(1, 10)
-/// bb2:
-///   goto bb3(2, 20)
-/// bb3(dead, live):
-///   return live
-/// ```
-///
-/// Both bb1 and bb2 must have their first argument removed.
 #[test]
 fn dead_param_multiple_predecessors() {
-    scaffold!(heap, interner, builder);
+    let heap = Heap::new();
+    let interner = Interner::new(&heap);
     let env = Environment::new(&heap);
 
-    let int_ty = TypeBuilder::synthetic(&env).integer();
-    let bool_ty = TypeBuilder::synthetic(&env).boolean();
+    let body = body!(interner, env; fn@0/0 -> Int {
+        decl cond: Bool, dead: Int, live: Int;
 
-    let cond = builder.local("cond", bool_ty);
-    let dead = builder.local("dead", int_ty);
-    let live = builder.local("live", int_ty);
-
-    let const_1 = builder.const_int(1);
-    let const_2 = builder.const_int(2);
-    let const_10 = builder.const_int(10);
-    let const_20 = builder.const_int(20);
-
-    let bb0 = builder.reserve_block([]);
-    let bb1 = builder.reserve_block([]);
-    let bb2 = builder.reserve_block([]);
-    let bb3 = builder.reserve_block([dead.local, live.local]);
-
-    builder
-        .build_block(bb0)
-        .assign_place(cond, |rv| {
-            rv.input(InputOp::Load { required: true }, "cond")
-        })
-        .if_else(cond, bb1, [], bb2, []);
-
-    builder.build_block(bb1).goto(bb3, [const_1, const_10]);
-    builder.build_block(bb2).goto(bb3, [const_2, const_20]);
-
-    builder.build_block(bb3).ret(live);
-
-    let body = builder.finish(0, int_ty);
+        bb0() {
+            cond = input.load! "cond";
+            if cond then bb1() else bb2();
+        },
+        bb1() {
+            goto bb3(1, 10);
+        },
+        bb2() {
+            goto bb3(2, 20);
+        },
+        bb3(dead, live) {
+            return live;
+        }
+    });
 
     assert_dse_pass(
         "dead_param_multiple_predecessors",
@@ -451,15 +329,7 @@ fn dead_param_multiple_predecessors() {
 
 /// Tests that graph read effect tokens are always kept live.
 ///
-/// ```text
-/// bb0:
-///   graph_read -> bb1(token)
-/// bb1(token):      // token must be preserved (side effect)
-///   dead = 42      // dead - not used
-///   return 0
-/// ```
-///
-/// The graph read token is a root use because eliminating it would remove a side effect.
+/// Uses fluent builder API because `GraphRead` terminator is not supported by the `body!` macro.
 #[test]
 fn graph_read_token_preserved() {
     scaffold!(heap, interner, builder);

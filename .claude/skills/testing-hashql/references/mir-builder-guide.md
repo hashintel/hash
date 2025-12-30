@@ -134,6 +134,9 @@ let body = body!(interner, env; fn@1/0 -> Int {
 | `x = closure <def> <env>;` | Create closure | `Assign(x, Aggregate(Closure, [def, env]))` |
 | `x = bin.<op> <lhs> <rhs>;` | Binary operation | `Assign(x, Binary(lhs, op, rhs))` |
 | `x = un.<op> <operand>;` | Unary operation | `Assign(x, Unary(op, operand))` |
+| `x = input.load! "name";` | Load required input | `Assign(x, Input(Load { required: true }, "name"))` |
+| `x = input.load "name";` | Load optional input | `Assign(x, Input(Load { required: false }, "name"))` |
+| `x = input.exists "name";` | Check if input exists | `Assign(x, Input(Exists, "name"))` |
 
 ### Terminators
 
@@ -144,6 +147,7 @@ let body = body!(interner, env; fn@1/0 -> Int {
 | `if <cond> then <tb>(<ta>) else <eb>(<ea>);` | Conditional branch |
 | `switch <discr> [<val> => <block>(<args>), ...];` | Switch (no otherwise) |
 | `switch <discr> [<val> => <block>(), _ => <block>()];` | Switch with otherwise |
+| `unreachable;` | Mark block as unreachable |
 
 ### Operands
 

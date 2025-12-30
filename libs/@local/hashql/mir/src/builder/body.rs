@@ -197,6 +197,9 @@ impl<'env, 'heap> Deref for BodyBuilder<'env, 'heap> {
 /// | `x = closure <def> <env>;` | Create closure aggregate |
 /// | `x = bin.<op> <lhs> <rhs>;` | Binary operation (e.g., `bin.== x y`) |
 /// | `x = un.<op> <operand>;` | Unary operation (e.g., `un.! cond`) |
+/// | `x = input.load! "name";` | Load required input |
+/// | `x = input.load "name";` | Load optional input |
+/// | `x = input.exists "name";` | Check if input exists |
 ///
 /// ## Terminators
 ///
@@ -207,6 +210,7 @@ impl<'env, 'heap> Deref for BodyBuilder<'env, 'heap> {
 /// | `if <cond> then <block>(<args>) else <block>(<args>);` | Conditional branch |
 /// | `switch <discr> [<val> => <block>(<args>), ...];` | Switch (no otherwise) |
 /// | `switch <discr> [<val> => <block>(<args>), _ => <block>(<args>)];` | Switch with otherwise |
+/// | `unreachable;` | Mark block as unreachable |
 ///
 /// ## Operands
 ///
