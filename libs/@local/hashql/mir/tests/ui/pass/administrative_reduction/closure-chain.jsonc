@@ -1,0 +1,41 @@
+//@ run: pass
+//@ description: Chain of forwarding closures are transitively inlined
+[
+  "let",
+  "f1",
+  ["fn", { "#tuple": [] }, { "#struct": { "x": "Boolean" } }, "_", "x"],
+  [
+    "let",
+    "f2",
+    [
+      "fn",
+      { "#tuple": [] },
+      { "#struct": { "x": "Boolean" } },
+      "_",
+      ["f1", "x"]
+    ],
+    [
+      "let",
+      "f3",
+      [
+        "fn",
+        { "#tuple": [] },
+        { "#struct": { "x": "Boolean" } },
+        "_",
+        ["f2", "x"]
+      ],
+      [
+        "let",
+        "f4",
+        [
+          "fn",
+          { "#tuple": [] },
+          { "#struct": { "x": "Boolean" } },
+          "_",
+          ["f3", "x"]
+        ],
+        ["f4", { "#literal": true }]
+      ]
+    ]
+  ]
+]

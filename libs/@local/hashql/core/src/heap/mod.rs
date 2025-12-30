@@ -100,7 +100,7 @@ mod iter;
 mod scratch;
 mod transfer;
 
-use core::{alloc, ptr};
+use core::{alloc, mem, ptr};
 use std::sync::Mutex;
 
 use ::alloc::{boxed, collections::vec_deque, vec};
@@ -313,6 +313,14 @@ impl BumpAllocator for Heap {
     #[inline]
     fn try_allocate_slice_copy<T: Copy>(&self, slice: &[T]) -> Result<&mut [T], alloc::AllocError> {
         self.inner.try_allocate_slice_copy(slice)
+    }
+
+    #[inline]
+    fn try_allocate_slice_uninit<T>(
+        &self,
+        len: usize,
+    ) -> Result<&mut [mem::MaybeUninit<T>], alloc::AllocError> {
+        self.inner.try_allocate_slice_uninit(len)
     }
 }
 

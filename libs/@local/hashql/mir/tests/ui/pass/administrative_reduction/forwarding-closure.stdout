@@ -1,0 +1,138 @@
+════ Initial MIR ═══════════════════════════════════════════════════════════════
+
+fn {closure#6}(%0: (), %1: Boolean) -> Boolean {
+    bb0(): {
+        return %1
+    }
+}
+
+thunk f1:0() -> (Boolean) -> Boolean {
+    let %0: (Boolean) -> Boolean
+    let %1: ()
+
+    bb0(): {
+        %1 = ()
+        %0 = closure(({closure#6} as FnPtr), %1)
+
+        return %0
+    }
+}
+
+fn {closure#8}(%0: (), %1: Boolean) -> Boolean {
+    let %2: (Boolean) -> Boolean
+    let %3: Boolean
+
+    bb0(): {
+        %2 = apply (f1:0 as FnPtr)
+        %3 = apply %2.0 %2.1 %1
+
+        return %3
+    }
+}
+
+thunk f2:0() -> (Boolean) -> Boolean {
+    let %0: (Boolean) -> Boolean
+    let %1: ()
+
+    bb0(): {
+        %1 = ()
+        %0 = closure(({closure#8} as FnPtr), %1)
+
+        return %0
+    }
+}
+
+*thunk {thunk#5}() -> Boolean {
+    let %0: (Boolean) -> Boolean
+    let %1: Boolean
+
+    bb0(): {
+        %0 = apply (f2:0 as FnPtr)
+        %1 = apply %0.0 %0.1 1
+
+        return %1
+    }
+}
+════ MIR after AR ══════════════════════════════════════════════════════════════
+
+fn {closure#6}(%0: (), %1: Boolean) -> Boolean {
+    bb0(): {
+        return %1
+    }
+}
+
+thunk f1:0() -> (Boolean) -> Boolean {
+    let %0: (Boolean) -> Boolean
+    let %1: ()
+
+    bb0(): {
+        %1 = ()
+        %0 = closure(({closure#6} as FnPtr), %1)
+
+        return %0
+    }
+}
+
+fn {closure#8}(%0: (), %1: Boolean) -> Boolean {
+    let %2: (Boolean) -> Boolean
+    let %3: Boolean
+    let %4: (Boolean) -> Boolean
+    let %5: ()
+    let %6: ()
+    let %7: Boolean
+
+    bb0(): {
+        %5 = ()
+        %4 = closure(({closure#6} as FnPtr), %5)
+        %2 = %4
+        %6 = %2.1
+        %7 = %1
+        %3 = %7
+
+        return %3
+    }
+}
+
+thunk f2:0() -> (Boolean) -> Boolean {
+    let %0: (Boolean) -> Boolean
+    let %1: ()
+
+    bb0(): {
+        %1 = ()
+        %0 = closure(({closure#8} as FnPtr), %1)
+
+        return %0
+    }
+}
+
+*thunk {thunk#5}() -> Boolean {
+    let %0: (Boolean) -> Boolean
+    let %1: Boolean
+    let %2: (Boolean) -> Boolean
+    let %3: ()
+    let %4: ()
+    let %5: Boolean
+    let %6: (Boolean) -> Boolean
+    let %7: Boolean
+    let %8: (Boolean) -> Boolean
+    let %9: ()
+    let %10: ()
+    let %11: Boolean
+
+    bb0(): {
+        %3 = ()
+        %2 = closure(({closure#8} as FnPtr), %3)
+        %0 = %2
+        %4 = %0.1
+        %5 = 1
+        %9 = ()
+        %8 = closure(({closure#6} as FnPtr), %9)
+        %6 = %8
+        %10 = %6.1
+        %11 = %5
+        %7 = %11
+        %1 = %7
+
+        return %1
+    }
+}

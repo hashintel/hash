@@ -12,7 +12,7 @@ mod unary;
 
 pub use self::{
     aggregate::{Aggregate, AggregateKind},
-    apply::{Apply, ArgIndex},
+    apply::{Apply, ArgIndex, ArgVec},
     binary::{BinOp, Binary},
     input::Input,
     unary::Unary,

@@ -32,7 +32,10 @@ pub mod linked;
 #[cfg(test)]
 mod tests;
 
-use self::algorithms::{BreadthFirstTraversal, DepthFirstTraversal, DepthFirstTraversalPostOrder};
+use self::algorithms::{
+    BreadthFirstTraversal, DepthFirstForestPostOrder, DepthFirstTraversal,
+    DepthFirstTraversalPostOrder,
+};
 pub use self::linked::LinkedGraph;
 use crate::id::{HasId, Id, newtype};
 
@@ -267,6 +270,38 @@ pub trait Traverse: DirectedGraph + Successors {
         }
 
         traversal
+    }
+
+    /// Performs a post-order depth-first traversal over all nodes in the graph.
+    ///
+    /// Unlike [`depth_first_traversal_post_order`], this method automatically discovers
+    /// and traverses all nodes, including disconnected components. Every node is visited
+    /// exactly once, with descendants visited before ancestors.
+    ///
+    /// Returns an [`ExactSizeIterator`] since it visits exactly `node_count()` nodes.
+    ///
+    /// [`depth_first_traversal_post_order`]: Traverse::depth_first_traversal_post_order
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// # use hashql_core::graph::{LinkedGraph, Traverse};
+    /// #
+    /// let mut graph = LinkedGraph::new();
+    /// let n1 = graph.add_node("A");
+    /// let n2 = graph.add_node("B");
+    /// let n3 = graph.add_node("C");
+    /// graph.add_edge(n1, n2, ());
+    /// // n3 is disconnected
+    ///
+    /// let visited: Vec<_> = graph.depth_first_forest_post_order().collect();
+    ///
+    /// // All nodes visited, with descendants before ancestors
+    /// assert_eq!(visited.len(), 3);
+    /// # assert!(visited.iter().position(|&n| n == n2) < visited.iter().position(|&n| n == n1));
+    /// ```
+    fn depth_first_forest_post_order(&self) -> impl ExactSizeIterator<Item = Self::NodeId> {
+        DepthFirstForestPostOrder::new(self)
     }
 
     /// Performs a breadth-first traversal starting from the given nodes.

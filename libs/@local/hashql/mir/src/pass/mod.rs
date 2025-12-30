@@ -17,7 +17,9 @@
 //! - [`analysis`]: Static analysis infrastructure including dataflow analysis framework
 //! - [`transform`]: MIR transformation passes
 
-use crate::{body::Body, context::MirContext};
+use core::ops::{BitOr, BitOrAssign};
+
+use crate::{body::Body, context::MirContext, def::DefIdSlice};
 
 pub mod analysis;
 pub mod transform;
@@ -66,7 +68,7 @@ const fn simplify_type_name(name: &'static str) -> &'static str {
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum Changed {
     /// The pass definitely made modifications.
-    Yes = 2,
+    Yes = 3,
     /// The pass may have made modifications, but precise tracking was not possible.
     Unknown = 1,
     /// The pass made no modifications.
@@ -98,6 +100,33 @@ impl Changed {
             Self::Yes => true,
             Self::Unknown | Self::No => false,
         }
+    }
+
+    const fn from_u8(value: u8) -> Self {
+        match value {
+            0 => Self::No,
+            1 => Self::Unknown,
+            3 => Self::Yes,
+            _ => unreachable!(),
+        }
+    }
+
+    const fn into_u8(self) -> u8 {
+        self as u8
+    }
+}
+
+impl BitOr for Changed {
+    type Output = Self;
+
+    fn bitor(self, rhs: Self) -> Self::Output {
+        Self::from_u8(self.into_u8() | rhs.into_u8())
+    }
+}
+
+impl BitOrAssign for Changed {
+    fn bitor_assign(&mut self, rhs: Self) {
+        *self = *self | rhs;
     }
 }
 
@@ -146,6 +175,60 @@ pub trait TransformPass<'env, 'heap> {
     }
 }
 
+/// A global transformation pass over MIR.
+///
+/// Unlike [`TransformPass`] which operates on a single [`Body`], global passes have access to
+/// **all** bodies simultaneously via a [`DefIdSlice`]. This enables inter-procedural
+/// transformations that need to:
+///
+/// - Analyze or traverse the call graph
+/// - Inline code from callees into callers
+/// - Perform whole-program optimizations
+///
+/// # When to Use
+///
+/// Use `GlobalTransformPass` when your transformation requires cross-function visibility.
+/// For single-function transformations, prefer [`TransformPass`] which is simpler and
+/// allows the pass manager more flexibility in scheduling.
+///
+/// # Implementing a Global Pass
+///
+/// ```ignore
+/// struct MyInterProceduralPass;
+///
+/// impl<'env, 'heap> GlobalTransformPass<'env, 'heap> for MyInterProceduralPass {
+///     fn run(
+///         &mut self,
+///         context: &mut MirContext<'env, 'heap>,
+///         bodies: &mut DefIdSlice<Body<'heap>>,
+///     ) -> Changed {
+///         // Access any body by DefId, build call graphs, inline across functions, etc.
+///         Changed::No
+///     }
+/// }
+/// ```
+///
+/// [`name`]: GlobalTransformPass::name
+pub trait GlobalTransformPass<'env, 'heap> {
+    /// Executes the pass on all bodies.
+    ///
+    /// The `context` provides access to the heap allocator, type environment, interner, and
+    /// diagnostic collection. The `bodies` slice allows reading and modifying any function body.
+    fn run(
+        &mut self,
+        context: &mut MirContext<'env, 'heap>,
+        bodies: &mut DefIdSlice<Body<'heap>>,
+    ) -> Changed;
+
+    /// Returns a human-readable name for this pass.
+    ///
+    /// The default implementation extracts the type name without module path or generic
+    /// parameters. Override this method to provide a custom name.
+    fn name(&self) -> &'static str {
+        const { simplify_type_name(core::any::type_name::<Self>()) }
+    }
+}
+
 /// An analysis pass over MIR.
 ///
 /// Analysis passes inspect a [`Body`] without modifying it, typically to collect information
@@ -180,5 +263,28 @@ pub trait AnalysisPass<'env, 'heap> {
     /// parameters. Override this method to provide a custom name.
     fn name(&self) -> &'static str {
         const { simplify_type_name(core::any::type_name::<Self>()) }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::Changed;
+
+    #[test]
+    fn changed_bitor() {
+        for (lhs, rhs, expected) in [
+            (Changed::No, Changed::No, Changed::No),
+            (Changed::No, Changed::Yes, Changed::Yes),
+            (Changed::No, Changed::Unknown, Changed::Unknown),
+            (Changed::Yes, Changed::No, Changed::Yes),
+            (Changed::Yes, Changed::Yes, Changed::Yes),
+            (Changed::Yes, Changed::Unknown, Changed::Yes),
+            (Changed::Unknown, Changed::No, Changed::Unknown),
+            (Changed::Unknown, Changed::Yes, Changed::Yes),
+            (Changed::Unknown, Changed::Unknown, Changed::Unknown),
+        ] {
+            let result = lhs | rhs;
+            assert_eq!(result, expected);
+        }
     }
 }

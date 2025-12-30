@@ -1,0 +1,14 @@
+//@ run: pass
+//@ description: Closure with computation (binary op) is NOT a trivial thunk
+[
+  "let",
+  "compute",
+  [
+    "fn",
+    { "#tuple": [] },
+    { "#struct": { "a": "Integer", "b": "Integer" } },
+    "_",
+    ["==", "a", "b"]
+  ],
+  ["compute", { "#literal": 1 }, { "#literal": 2 }]
+]
