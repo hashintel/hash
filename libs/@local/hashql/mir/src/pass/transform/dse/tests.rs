@@ -18,7 +18,7 @@ use crate::{
         operand::Operand,
         terminator::{GraphRead, GraphReadHead, GraphReadTail, TerminatorKind},
     },
-    builder::{body, scaffold},
+    builder::{BodyBuilder, body},
     context::MirContext,
     def::DefIdSlice,
     intern::Interner,
@@ -332,13 +332,16 @@ fn dead_param_multiple_predecessors() {
 /// Uses fluent builder API because `GraphRead` terminator is not supported by the `body!` macro.
 #[test]
 fn graph_read_token_preserved() {
-    scaffold!(heap, interner, builder);
+    let heap = Heap::new();
+    let interner = Interner::new(&heap);
+
     let env = Environment::new(&heap);
 
     let int_ty = TypeBuilder::synthetic(&env).integer();
     let token_ty =
         TypeBuilder::synthetic(&env).opaque("GraphToken", TypeBuilder::synthetic(&env).unknown());
 
+    let mut builder = BodyBuilder::new(&interner);
     let axis = builder.local("axis", TypeBuilder::synthetic(&env).unknown());
     let token = builder.local("token", token_ty);
     let dead = builder.local("dead", int_ty);

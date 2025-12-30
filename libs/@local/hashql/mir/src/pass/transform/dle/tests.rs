@@ -14,7 +14,7 @@ use insta::{Settings, assert_snapshot};
 use super::DeadLocalElimination;
 use crate::{
     body::Body,
-    builder::{body, scaffold},
+    builder::{BodyBuilder, body},
     context::MirContext,
     def::DefIdSlice,
     intern::Interner,
@@ -222,12 +222,14 @@ fn unused_args_preserved() {
 /// Uses fluent builder API because index projections are not supported by the `body!` macro.
 #[test]
 fn projection_locals_preserved() {
-    scaffold!(heap, interner, builder);
+    let heap = Heap::new();
+    let interner = Interner::new(&heap);
     let env = Environment::new(&heap);
 
     let int_ty = TypeBuilder::synthetic(&env).integer();
     let list_ty = TypeBuilder::synthetic(&env).list(int_ty);
 
+    let mut builder = BodyBuilder::new(&interner);
     let list = builder.local("list", list_ty);
     let index = builder.local("index", int_ty);
     let element = builder.local("element", int_ty);

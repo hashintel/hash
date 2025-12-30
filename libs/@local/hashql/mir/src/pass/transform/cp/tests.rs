@@ -18,7 +18,7 @@ use crate::{
         operand::Operand,
         terminator::{GraphRead, GraphReadHead, GraphReadTail, TerminatorKind},
     },
-    builder::{body, op, scaffold},
+    builder::{BodyBuilder, body, op},
     context::MirContext,
     def::DefIdSlice,
     intern::Interner,
@@ -261,12 +261,15 @@ fn block_param_via_local() {
 /// Uses the fluent API because of the custom terminator.
 #[test]
 fn block_param_effectful() {
-    scaffold!(heap, interner, builder);
+    let heap = hashql_core::heap::Heap::new();
+    let interner = Interner::new(&heap);
+
     let env = Environment::new(&heap);
 
     let int_ty = TypeBuilder::synthetic(&env).integer();
     let bool_ty = TypeBuilder::synthetic(&env).boolean();
 
+    let mut builder = BodyBuilder::new(&interner);
     let axis = builder.local("axis", TypeBuilder::synthetic(&env).unknown());
     let p = builder.local("p", int_ty);
     let r = builder.local("r", bool_ty);
