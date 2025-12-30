@@ -65,6 +65,7 @@ impl<'env, 'heap> Deref for OperandBuilder<'env, 'heap> {
     }
 }
 
+#[doc(hidden)]
 #[macro_export]
 macro_rules! operand {
     ($b:expr; $value:tt) => {{
