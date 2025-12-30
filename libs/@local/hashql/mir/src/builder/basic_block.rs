@@ -178,3 +178,49 @@ impl<'env, 'heap> Deref for BasicBlockBuilder<'_, 'env, 'heap> {
         &self.base
     }
 }
+
+#[doc(hidden)]
+#[macro_export]
+macro_rules! bb {
+    ($b:expr; { $($rest:tt)* }) => {
+        $crate::builder::_private::bb!(@impl $b; $($rest)*)
+    };
+    (@impl $b:expr;) => {};
+    (@impl $b:expr; let $name:expr; $($rest:tt)*) => {
+        $b = $b.storage_live($name);
+        $crate::builder::_private::bb!(@impl $b; $($rest)*)
+    };
+    (@impl $b:expr; drop $name:expr; $($rest:tt)*) => {
+        $b = $b.storage_dead($name);
+        $crate::builder::_private::bb!(@impl $b; $($rest)*)
+    };
+    (@impl $b:expr; $name:ident = $($rest:tt)*) => {
+        $crate::builder::_private::rvalue!($crate::builder::_private::bb; ($b; $name); $($rest)*)
+    };
+    (@rvalue $rv:expr; ($b:expr; $name:ident); $($rest:tt)*) => {
+        $b = $b.assign_place($name, $rv);
+        $crate::builder::_private::bb!(@impl $b; $($rest)*)
+    };
+
+    (@impl $b:expr; return $value:tt; $($rest:tt)*) => {
+        let returns = $crate::builder::_private::operand!(*$b; $value);
+        $b.ret(returns);
+        $crate::builder::_private::bb!(@impl $b; $($rest)*)
+    };
+    (@impl $b:expr; goto $target:ident($($arg:tt),*); $($rest:tt)*) => {
+        let args = [$($crate::builder::_private::operand!(*$b; $arg)),*];
+        $b.goto($target, args);
+
+        $crate::builder::_private::bb!(@impl $b; $($rest)*)
+    };
+    (@impl $b:expr; if $cond:tt then $then:ident($($thenarg:tt),*) else $else:ident($($elsearg:tt),*); $($rest:tt)*) => {
+        let cond = $crate::builder::_private::operand!(*$b; $cond);
+        let thenargs = [$($crate::builder::_private::operand!(*$b; $thenarg)),*];
+        let elseargs = [$($crate::builder::_private::operand!(*$b; $elsearg)),*];
+        $b.if_else(cond, $then, thenargs, $else, elseargs);
+
+        $crate::builder::_private::bb!(@impl $b; $($rest)*)
+    };
+}
+
+pub use bb;

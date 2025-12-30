@@ -1,4 +1,4 @@
-#![expect(clippy::min_ident_chars, unused_mut, reason = "tests")]
+#![expect(clippy::min_ident_chars, reason = "tests")]
 
 use std::{io::Write as _, path::PathBuf};
 
@@ -122,18 +122,18 @@ fn classify_non_reducible_multi_bb() {
     let body = body!(interner, env; fn@0/0 -> Int {
         decl cond: Bool, x: Int;
 
-        bb0() => {
+        bb0() {
             cond = load true;
 
-            if cond bb1() bb2();
+            if cond then bb1() else bb2();
         },
-        bb1() => {
+        bb1() {
             goto bb3(1);
         },
-        bb2() => {
+        bb2() {
             goto bb3(2);
         },
-        bb3(x) => {
+        bb3(x) {
             return x;
         }
     });
@@ -386,7 +386,7 @@ fn inline_thunk_simple() {
     let body0 = body!(interner, env; thunk@0/0 -> Int {
         decl x: Int;
 
-        bb0() => {
+        bb0() {
             x = load 42;
             return x;
         }
@@ -424,7 +424,7 @@ fn inline_thunk_multi_arg() {
     let body0 = body!(interner, env; fn@0/3 -> (Int, Int, Int) {
         decl a: Int, b: Int, c: Int, result: (Int, Int, Int);
 
-        bb0() => {
+        bb0() {
             result = tuple a, b, c;
             return result;
         }
@@ -433,8 +433,8 @@ fn inline_thunk_multi_arg() {
     let body1 = body!(interner, env; fn@1/0 -> (Int, Int, Int) {
         decl result: (Int, Int, Int);
 
-        bb0() => {
-            result = apply (body0.id) 1, 2, 3;
+        bb0() {
+            result = apply (body0.id), 1, 2, 3;
             return result;
         }
     });

@@ -189,3 +189,50 @@ impl<'env, 'heap> Deref for RValueBuilder<'env, 'heap> {
         &self.base
     }
 }
+
+#[doc(hidden)]
+#[macro_export]
+macro_rules! rvalue {
+    ($resume:path; $payload:tt; load $lhs:tt; $($rest:tt)*) => {
+        $resume!(@rvalue |rv| {
+            let lhs = $crate::builder::_private::operand!(rv; $lhs);
+            rv.load(lhs)
+        }; $payload; $($rest)*)
+    };
+    ($resume:path; $payload:tt; apply $func:tt; $($rest:tt)*) => {
+        $resume!(@rvalue |rv| {
+            let func = $crate::builder::_private::operand!(rv; $func);
+            rv.call(func)
+        }; $payload; $($rest)*)
+    };
+    ($resume:path; $payload:tt; apply $func:tt, $($args:tt),+; $($rest:tt)*) => {
+        $resume!(@rvalue |rv| {
+            let func = $crate::builder::_private::operand!(rv; $func);
+            let args = [$($crate::builder::_private::operand!(rv; $args)),*];
+            rv.apply(func, args)
+        }; $payload; $($rest)*)
+    };
+    ($resume:path; $payload:tt; tuple $($members:tt),+; $($rest:tt)*) => {
+        $resume!(@rvalue |rv| {
+            let members = [$($crate::builder::_private::operand!(rv; $members)),*];
+            rv.tuple(members)
+        }; $payload; $($rest)*)
+    };
+    ($resume:path; $payload:tt; bin.$op:tt $lhs:tt $rhs:tt; $($rest:tt)*) => {
+        $resume!(@rvalue |rv| {
+            let lhs = $crate::builder::_private::operand!(rv; $lhs);
+            let rhs = $crate::builder::_private::operand!(rv; $rhs);
+
+            rv.binary(lhs, $crate::builder::op![$op], rhs)
+        }; $payload; $($rest)*)
+    };
+    ($resume:path; $payload:tt; un.$op:tt $lhs:tt; $($rest:tt)*) => {
+        $resume!(@rvalue |rv| {
+            let lhs = $crate::builder::_private::operand!(rv; $lhs);
+
+            rv.unary($crate::builder::op![$op], lhs)
+        }; $payload; $($rest)*)
+    };
+}
+
+pub use rvalue;
