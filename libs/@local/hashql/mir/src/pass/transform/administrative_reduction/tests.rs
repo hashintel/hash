@@ -32,17 +32,17 @@ use crate::{
 /// ```
 #[test]
 fn classify_thunk_identity() {
-    scaffold!(heap, interner, builder);
+    let heap = Heap::new();
+    let interner = Interner::new(&heap);
     let env = Environment::new(&heap);
 
-    let int_ty = TypeBuilder::synthetic(&env).integer();
+    let body = body!(interner, env; fn@0/1 -> Int {
+        decl arg: Int;
 
-    let arg = builder.local("arg", int_ty);
-
-    let bb0 = builder.reserve_block([]);
-    builder.build_block(bb0).ret(arg);
-
-    let body = builder.finish(1, int_ty);
+        bb0() {
+            return arg;
+        }
+    });
 
     assert_eq!(ReductionKind::of(&body), Some(ReductionKind::TrivialThunk));
 }
@@ -58,23 +58,18 @@ fn classify_thunk_identity() {
 /// ```
 #[test]
 fn classify_thunk_aggregate() {
-    scaffold!(heap, interner, builder);
+    let heap = Heap::new();
+    let interner = Interner::new(&heap);
     let env = Environment::new(&heap);
 
-    let int_ty = TypeBuilder::synthetic(&env).integer();
-    let struct_ty = TypeBuilder::synthetic(&env).r#struct([("a", int_ty), ("b", int_ty)]);
+    let body = body!(interner, env; fn@0/0 -> (a: Int, b: Int) {
+        decl x: (a: Int, b: Int);
 
-    let x = builder.local("x", struct_ty);
-    let const_1 = builder.const_int(1);
-    let const_2 = builder.const_int(2);
-
-    let bb0 = builder.reserve_block([]);
-    builder
-        .build_block(bb0)
-        .assign_place(x, |rv| rv.r#struct([("a", const_1), ("b", const_2)]))
-        .ret(x);
-
-    let body = builder.finish(0, struct_ty);
+        bb0() {
+            x = struct a: 1, b: 2;
+            return x;
+        }
+    });
 
     assert_eq!(ReductionKind::of(&body), Some(ReductionKind::TrivialThunk));
 }
@@ -90,21 +85,20 @@ fn classify_thunk_aggregate() {
 /// ```
 #[test]
 fn classify_closure_immediate() {
-    scaffold!(heap, interner, builder);
+    let heap = Heap::new();
+    let interner = Interner::new(&heap);
     let env = Environment::new(&heap);
 
-    let int_ty = TypeBuilder::synthetic(&env).integer();
+    let def_id = DefId::new(0);
 
-    let result = builder.local("result", int_ty);
-    let fn_ptr = builder.const_fn(DefId::new(0));
+    let body = body!(interner, env; fn@1/0 -> Int {
+        decl result: Int;
 
-    let bb0 = builder.reserve_block([]);
-    builder
-        .build_block(bb0)
-        .assign_place(result, |rv| rv.call(fn_ptr))
-        .ret(result);
-
-    let body = builder.finish(0, int_ty);
+        bb0() {
+            result = apply def_id;
+            return result;
+        }
+    });
 
     assert_eq!(
         ReductionKind::of(&body),
@@ -153,25 +147,19 @@ fn classify_non_reducible_multi_bb() {
 /// ```
 #[test]
 fn classify_non_reducible_non_trivial_op() {
-    scaffold!(heap, interner, builder);
+    let heap = Heap::new();
+    let interner = Interner::new(&heap);
     let env = Environment::new(&heap);
 
-    let int_ty = TypeBuilder::synthetic(&env).integer();
-    let bool_ty = TypeBuilder::synthetic(&env).boolean();
+    let body = body!(interner, env; fn@0/0 -> Bool {
+        decl x: Int, y: Bool;
 
-    let x = builder.local("x", int_ty);
-    let y = builder.local("y", bool_ty);
-    let const_1 = builder.const_int(1);
-    let const_2 = builder.const_int(2);
-
-    let bb0 = builder.reserve_block([]);
-    builder
-        .build_block(bb0)
-        .assign_place(x, |rv| rv.load(const_1))
-        .assign_place(y, |rv| rv.binary(x, op![==], const_2))
-        .ret(y);
-
-    let body = builder.finish(0, bool_ty);
+        bb0() {
+            x = load 1;
+            y = bin.== x 2;
+            return y;
+        }
+    });
 
     assert_eq!(ReductionKind::of(&body), None);
 }
@@ -188,24 +176,21 @@ fn classify_non_reducible_non_trivial_op() {
 /// ```
 #[test]
 fn classify_non_reducible_call_not_last() {
-    scaffold!(heap, interner, builder);
+    let heap = Heap::new();
+    let interner = Interner::new(&heap);
     let env = Environment::new(&heap);
 
-    let int_ty = TypeBuilder::synthetic(&env).integer();
+    let def_id = DefId::new(0);
 
-    let x = builder.local("x", int_ty);
-    let y = builder.local("y", int_ty);
-    let fn_ptr = builder.const_fn(DefId::new(0));
+    let body = body!(interner, env; fn@1/0 -> Int {
+        decl x: Int, y: Int;
 
-    let bb0 = builder.reserve_block([]);
-
-    builder
-        .build_block(bb0)
-        .assign_place(x, |rv| rv.call(fn_ptr))
-        .assign_place(y, |rv| rv.load(x))
-        .ret(y);
-
-    let body = builder.finish(0, int_ty);
+        bb0() {
+            x = apply (def_id);
+            y = load x;
+            return y;
+        }
+    });
 
     assert_eq!(ReductionKind::of(&body), None);
 }
@@ -222,24 +207,21 @@ fn classify_non_reducible_call_not_last() {
 /// ```
 #[test]
 fn classify_non_reducible_return_mismatch() {
-    scaffold!(heap, interner, builder);
+    let heap = Heap::new();
+    let interner = Interner::new(&heap);
     let env = Environment::new(&heap);
 
-    let int_ty = TypeBuilder::synthetic(&env).integer();
+    let def_id = DefId::new(0);
 
-    let x = builder.local("x", int_ty);
-    let y = builder.local("y", int_ty);
-    let const_1 = builder.const_int(1);
-    let fn_ptr = builder.const_fn(DefId::new(0));
+    let body = body!(interner, env; fn@1/0 -> Int {
+        decl x: Int, y: Int;
 
-    let bb0 = builder.reserve_block([]);
-    builder
-        .build_block(bb0)
-        .assign_place(x, |rv| rv.load(const_1))
-        .assign_place(y, |rv| rv.call(fn_ptr))
-        .ret(x);
-
-    let body = builder.finish(0, int_ty);
+        bb0() {
+            x = load 1;
+            y = apply (def_id);
+            return x;
+        }
+    });
 
     assert_eq!(ReductionKind::of(&body), None);
 }
@@ -256,23 +238,21 @@ fn classify_non_reducible_return_mismatch() {
 /// ```
 #[test]
 fn classify_non_reducible_multi_call() {
-    scaffold!(heap, interner, builder);
+    let heap = Heap::new();
+    let interner = Interner::new(&heap);
     let env = Environment::new(&heap);
 
-    let int_ty = TypeBuilder::synthetic(&env).integer();
+    let def_id = DefId::new(0);
 
-    let x = builder.local("x", int_ty);
-    let y = builder.local("y", int_ty);
-    let fn_ptr = builder.const_fn(DefId::new(0));
+    let body = body!(interner, env; fn@1/0 -> Int {
+        decl x: Int, y: Int;
 
-    let bb0 = builder.reserve_block([]);
-    builder
-        .build_block(bb0)
-        .assign_place(x, |rv| rv.call(fn_ptr))
-        .assign_place(y, |rv| rv.apply(fn_ptr, [x]))
-        .ret(y);
-
-    let body = builder.finish(0, int_ty);
+        bb0() {
+            x = apply def_id;
+            y = apply def_id, x;
+            return y;
+        }
+    });
 
     assert_eq!(ReductionKind::of(&body), None);
 }
@@ -291,22 +271,20 @@ fn classify_non_reducible_multi_call() {
 /// not cause infinite inlining because self-recursion is blocked.
 #[test]
 fn self_recursion_blocked() {
-    scaffold!(heap, interner, builder);
+    let heap = Heap::new();
+    let interner = Interner::new(&heap);
     let env = Environment::new(&heap);
 
-    let int_ty = TypeBuilder::synthetic(&env).integer();
+    let def_id = DefId::new(0);
 
-    let result = builder.local("result", int_ty);
-    let fn_ptr = builder.const_fn(DefId::new(0));
+    let body = body!(interner, env; fn@0/0 -> Int {
+        decl result: Int;
 
-    let bb0 = builder.reserve_block([]);
-    builder
-        .build_block(bb0)
-        .assign_place(result, |rv| rv.call(fn_ptr))
-        .ret(result);
-
-    let mut body = builder.finish(0, int_ty);
-    body.id = DefId::new(0);
+        bb0() {
+            result = apply def_id;
+            return result;
+        }
+    });
 
     let mut context = MirContext {
         heap: &heap,
@@ -478,44 +456,36 @@ fn inline_thunk_multi_arg() {
 /// After: All calls inlined with prelude statements preserved.
 #[test]
 fn inline_closure_with_prelude() {
-    scaffold!(heap, interner, builder);
+    let heap = Heap::new();
+    let interner = Interner::new(&heap);
     let env = Environment::new(&heap);
 
-    let int_ty = TypeBuilder::synthetic(&env).integer();
+    let body0 = body!(interner, env; fn@0/1 -> Int {
+        decl arg: Int;
 
-    // Body 0: thunk that takes an arg and returns it
-    let arg0 = builder.local("arg", int_ty);
-    let bb0 = builder.reserve_block([]);
-    builder.build_block(bb0).ret(arg0);
-    let mut body0 = builder.finish(1, int_ty);
-    body0.id = DefId::new(0);
+        bb0() {
+            return arg;
+        }
+    });
 
-    // Body 1: forwarding closure with prelude (loads a const, then calls body0)
-    let mut builder = BodyBuilder::new(&interner);
-    let x = builder.local("x", int_ty);
-    let result1 = builder.local("result", int_ty);
-    let const_99 = builder.const_int(99);
-    let fn_ptr0 = builder.const_fn(body0.id);
-    let bb1 = builder.reserve_block([]);
-    builder
-        .build_block(bb1)
-        .assign_place(x, |rv| rv.load(const_99))
-        .assign_place(result1, |rv| rv.apply(fn_ptr0, [x]))
-        .ret(result1);
-    let mut body1 = builder.finish(0, int_ty);
-    body1.id = DefId::new(1);
+    let body1 = body!(interner, env; fn@1/0 -> Int {
+        decl x: Int, result: Int;
 
-    // Body 2: calls body1
-    let mut builder = BodyBuilder::new(&interner);
-    let result2 = builder.local("result", int_ty);
-    let fn_ptr1 = builder.const_fn(body1.id);
-    let bb2 = builder.reserve_block([]);
-    builder
-        .build_block(bb2)
-        .assign_place(result2, |rv| rv.call(fn_ptr1))
-        .ret(result2);
-    let mut body2 = builder.finish(0, int_ty);
-    body2.id = DefId::new(2);
+        bb0() {
+            x = load 99;
+            result = apply (body0.id), x;
+            return result;
+        }
+    });
+
+    let body2 = body!(interner, env; fn@2/0 -> Int {
+        decl result: Int;
+
+        bb0() {
+            result = apply (body1.id);
+            return result;
+        }
+    });
 
     let mut bodies = [body0, body1, body2];
     assert_admin_reduction_pass(
@@ -552,39 +522,29 @@ fn inline_closure_with_prelude() {
 /// After: The param binding `%2 = %0` uses caller's %0, NOT offset.
 #[test]
 fn inline_args_not_offset() {
-    scaffold!(heap, interner, builder);
+    let heap = Heap::new();
+    let interner = Interner::new(&heap);
     let env = Environment::new(&heap);
 
-    let int_ty = TypeBuilder::synthetic(&env).integer();
+    let body0 = body!(interner, env; fn@0/1 -> Int {
+        decl arg: Int, local: Int, result: Int;
 
-    // Body 0: thunk that takes an arg, has a local, and returns the arg
-    let arg0 = builder.local("arg", int_ty);
-    let local0 = builder.local("local", int_ty);
-    let result0 = builder.local("result", int_ty);
-    let const_10 = builder.const_int(10);
-    let bb0 = builder.reserve_block([]);
-    builder
-        .build_block(bb0)
-        .assign_place(local0, |rv| rv.load(const_10))
-        .assign_place(result0, |rv| rv.load(arg0))
-        .ret(result0);
-    let mut body0 = builder.finish(1, int_ty);
-    body0.id = DefId::new(0);
+        bb0() {
+            local = load 10;
+            result = load arg;
+            return result;
+        }
+    });
 
-    // Body 1: calls body0 with a local as argument
-    let mut builder = BodyBuilder::new(&interner);
-    let caller_local = builder.local("caller_local", int_ty);
-    let result1 = builder.local("result", int_ty);
-    let const_5 = builder.const_int(5);
-    let fn_ptr0 = builder.const_fn(body0.id);
-    let bb1 = builder.reserve_block([]);
-    builder
-        .build_block(bb1)
-        .assign_place(caller_local, |rv| rv.load(const_5))
-        .assign_place(result1, |rv| rv.apply(fn_ptr0, [caller_local]))
-        .ret(result1);
-    let mut body1 = builder.finish(0, int_ty);
-    body1.id = DefId::new(1);
+    let body1 = body!(interner, env; fn@1/0 -> Int {
+        decl caller_local: Int, result: Int;
+
+        bb0() {
+            caller_local = load 5;
+            result = apply (body0.id), caller_local;
+            return result;
+        }
+    });
 
     let mut bodies = [body0, body1];
     assert_admin_reduction_pass(
@@ -629,60 +589,46 @@ fn inline_args_not_offset() {
 /// ```
 #[test]
 fn inline_diamond() {
-    scaffold!(heap, interner, builder);
+    let heap = Heap::new();
+    let interner = Interner::new(&heap);
     let env = Environment::new(&heap);
 
-    let int_ty = TypeBuilder::synthetic(&env).integer();
+    let body0 = body!(interner, env; fn@0/0 -> Int {
+        decl x: Int;
 
-    // Body 0 (D): trivial thunk
-    let x0 = builder.local("x", int_ty);
-    let const_1 = builder.const_int(1);
-    let bb0 = builder.reserve_block([]);
-    builder
-        .build_block(bb0)
-        .assign_place(x0, |rv| rv.load(const_1))
-        .ret(x0);
-    let mut body0 = builder.finish(0, int_ty);
-    body0.id = DefId::new(0);
+        bb0() {
+            x = load 1;
+            return x;
+        }
+    });
 
-    // Body 1 (B): calls D
-    let mut builder = BodyBuilder::new(&interner);
-    let result1 = builder.local("result", int_ty);
-    let fn_ptr0 = builder.const_fn(body0.id);
-    let bb1 = builder.reserve_block([]);
-    builder
-        .build_block(bb1)
-        .assign_place(result1, |rv| rv.call(fn_ptr0))
-        .ret(result1);
-    let mut body1 = builder.finish(0, int_ty);
-    body1.id = DefId::new(1);
+    let body1 = body!(interner, env; fn@1/0 -> Int {
+        decl result: Int;
 
-    // Body 2 (C): calls D
-    let mut builder = BodyBuilder::new(&interner);
-    let result2 = builder.local("result", int_ty);
-    let fn_ptr0 = builder.const_fn(body0.id);
-    let bb2 = builder.reserve_block([]);
-    builder
-        .build_block(bb2)
-        .assign_place(result2, |rv| rv.call(fn_ptr0))
-        .ret(result2);
-    let mut body2 = builder.finish(0, int_ty);
-    body2.id = DefId::new(2);
+        bb0() {
+            result = apply (body0.id);
+            return result;
+        }
+    });
 
-    // Body 3 (A): calls B and C
-    let mut builder = BodyBuilder::new(&interner);
-    let r_b = builder.local("r_b", int_ty);
-    let r_c = builder.local("r_c", int_ty);
-    let fn_ptr1 = builder.const_fn(body1.id);
-    let fn_ptr2 = builder.const_fn(body2.id);
-    let bb3 = builder.reserve_block([]);
-    builder
-        .build_block(bb3)
-        .assign_place(r_b, |rv| rv.call(fn_ptr1))
-        .assign_place(r_c, |rv| rv.call(fn_ptr2))
-        .ret(r_b);
-    let mut body3 = builder.finish(0, int_ty);
-    body3.id = DefId::new(3);
+    let body2 = body!(interner, env; fn@2/0 -> Int {
+        decl result: Int;
+
+        bb0() {
+            result = apply (body0.id);
+            return result;
+        }
+    });
+
+    let body3 = body!(interner, env; fn@3/0 -> Int {
+        decl r_b: Int, r_c: Int;
+
+        bb0() {
+            r_b = apply (body1.id);
+            r_c = apply (body2.id);
+            return r_b;
+        }
+    });
 
     let mut bodies = [body0, body1, body2, body3];
     assert_admin_reduction_pass(
@@ -723,48 +669,37 @@ fn inline_diamond() {
 /// Both calls should be inlined via statement index rewind.
 #[test]
 fn inline_sequential_calls() {
-    scaffold!(heap, interner, builder);
+    let heap = Heap::new();
+    let interner = Interner::new(&heap);
     let env = Environment::new(&heap);
 
-    let int_ty = TypeBuilder::synthetic(&env).integer();
+    let body0 = body!(interner, env; fn@0/0 -> Int {
+        decl x: Int;
 
-    // Body 0: trivial thunk returning const 1
-    let x0 = builder.local("x", int_ty);
-    let const_1 = builder.const_int(1);
-    let bb0 = builder.reserve_block([]);
-    builder
-        .build_block(bb0)
-        .assign_place(x0, |rv| rv.load(const_1))
-        .ret(x0);
-    let mut body0 = builder.finish(0, int_ty);
-    body0.id = DefId::new(0);
+        bb0() {
+            x = load 1;
+            return x;
+        }
+    });
 
-    // Body 1: trivial thunk returning const 2
-    let mut builder = BodyBuilder::new(&interner);
-    let x1 = builder.local("x", int_ty);
-    let const_2 = builder.const_int(2);
-    let bb1 = builder.reserve_block([]);
-    builder
-        .build_block(bb1)
-        .assign_place(x1, |rv| rv.load(const_2))
-        .ret(x1);
-    let mut body1 = builder.finish(0, int_ty);
-    body1.id = DefId::new(1);
+    let body1 = body!(interner, env; fn@1/0 -> Int {
+        decl x: Int;
 
-    // Body 2: calls body0, then body1
-    let mut builder = BodyBuilder::new(&interner);
-    let r0 = builder.local("r0", int_ty);
-    let r1 = builder.local("r1", int_ty);
-    let fn_ptr0 = builder.const_fn(body0.id);
-    let fn_ptr1 = builder.const_fn(body1.id);
-    let bb2 = builder.reserve_block([]);
-    builder
-        .build_block(bb2)
-        .assign_place(r0, |rv| rv.call(fn_ptr0))
-        .assign_place(r1, |rv| rv.call(fn_ptr1))
-        .ret(r1);
-    let mut body2 = builder.finish(0, int_ty);
-    body2.id = DefId::new(2);
+        bb0() {
+            x = load 2;
+            return x;
+        }
+    });
+
+    let body2 = body!(interner, env; fn@2/0 -> Int {
+        decl r0: Int, r1: Int;
+
+        bb0() {
+            r0 = apply (body0.id);
+            r1 = apply (body1.id);
+            return r1;
+        }
+    });
 
     let mut bodies = [body0, body1, body2];
     assert_admin_reduction_pass(
