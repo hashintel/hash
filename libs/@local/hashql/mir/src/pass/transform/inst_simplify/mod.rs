@@ -97,7 +97,7 @@ use hashql_core::{
 };
 use hashql_hir::node::operation::UnOp;
 
-use super::cp::propagate_block_params;
+use super::copy_propagation::propagate_block_params;
 use crate::{
     body::{
         Body,

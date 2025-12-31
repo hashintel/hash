@@ -1,11 +1,15 @@
-//! Scalar Replacement of Aggregates (SROA) transformation pass.
+//! Forward substitution transformation pass.
 //!
 //! This pass resolves place operands to their ultimate sources by leveraging data dependency
 //! analysis. It effectively "looks through" assignments, projections, and block parameters to
-//! replace places with either:
+//! substitute places with either:
 //!
 //! - **Constants**: When the place can be traced back to a constant value
 //! - **Simplified places**: When the place can be traced to a simpler location
+//!
+//! This is a more comprehensive form of value propagation than [`CopyPropagation`], as it handles
+//! projections, chained access paths, and closure environments through full data dependency
+//! analysis.
 //!
 //! # Algorithm
 //!
@@ -14,7 +18,7 @@
 //! 1. Running [`DataDependencyAnalysis`] to build a graph of data flow relationships
 //! 2. Walking all operands in the MIR body
 //! 3. For each place operand, resolving it through the dependency graph to find its source
-//! 4. Replacing the operand with the resolved value (constant or simplified place)
+//! 4. Substituting the operand with the resolved value (constant or simplified place)
 //!
 //! The resolution handles several cases:
 //!
@@ -46,14 +50,19 @@
 //!
 //! # Interaction with Other Passes
 //!
-//! SROA runs after [`CfgSimplify`] in the optimization pipeline, which ensures that unreachable
-//! code paths have been eliminated before resolution. This allows SROA to make more precise
-//! determinations about constant values at join points.
+//! Forward substitution runs after [`CfgSimplify`] in the optimization pipeline, which ensures
+//! that unreachable code paths have been eliminated before resolution. This allows the pass to
+//! make more precise determinations about constant values at join points.
 //!
-//! When block parameters receive the same constant from all predecessors, SROA resolves uses
-//! of that parameter to the constant. When predecessors diverge (provide different constants),
-//! the place is preserved unchanged.
+//! When combined with dead store elimination (DSE), forward substitution enables SROA-like
+//! decomposition of aggregates: uses are substituted with their original values, and DSE
+//! then removes the now-dead aggregate constructions.
 //!
+//! When block parameters receive the same constant from all predecessors, forward substitution
+//! resolves uses of that parameter to the constant. When predecessors diverge (provide different
+//! constants), the place is preserved unchanged.
+//!
+//! [`CopyPropagation`]: super::CopyPropagation
 //! [`DataDependencyAnalysis`]: crate::pass::analysis::DataDependencyAnalysis
 //! [`CfgSimplify`]: super::CfgSimplify
 
@@ -105,16 +114,17 @@ impl<'heap, A: Allocator + Clone> VisitorMut<'heap> for PlaceVisitor<'_, 'heap, 
     }
 }
 
-/// Scalar Replacement of Aggregates transformation pass.
+/// Forward substitution transformation pass.
 ///
-/// Resolves place operands to their ultimate sources by tracing data dependencies. This enables
-/// downstream passes to work with simplified operands and can expose constant propagation
-/// opportunities.
-pub struct Sroa<A: BumpAllocator = Scratch> {
+/// Resolves place operands to their ultimate sources by tracing data dependencies through
+/// projections, assignments, and block parameters. This enables downstream passes to work with
+/// simplified operands and, when combined with dead store elimination, achieves SROA-like
+/// decomposition of aggregates.
+pub struct ForwardSubstitution<A: BumpAllocator = Scratch> {
     alloc: A,
 }
 
-impl Sroa {
+impl ForwardSubstitution {
     #[must_use]
     pub fn new() -> Self {
         Self {
@@ -123,14 +133,14 @@ impl Sroa {
     }
 }
 
-impl<A: BumpAllocator> Sroa<A> {
+impl<A: BumpAllocator> ForwardSubstitution<A> {
     #[must_use]
     pub const fn new_in(alloc: A) -> Self {
         Self { alloc }
     }
 }
 
-impl<'env, 'heap, A: ResetAllocator> TransformPass<'env, 'heap> for Sroa<A> {
+impl<'env, 'heap, A: ResetAllocator> TransformPass<'env, 'heap> for ForwardSubstitution<A> {
     fn run(&mut self, context: &mut MirContext<'env, 'heap>, body: &mut Body<'heap>) -> Changed {
         self.alloc.reset();
 
@@ -151,7 +161,7 @@ impl<'env, 'heap, A: ResetAllocator> TransformPass<'env, 'heap> for Sroa<A> {
     }
 }
 
-impl Default for Sroa {
+impl Default for ForwardSubstitution {
     fn default() -> Self {
         Self::new()
     }
