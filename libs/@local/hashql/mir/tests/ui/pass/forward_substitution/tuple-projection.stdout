@@ -24,7 +24,7 @@
         return %0
     }
 }
-════ MIR after SROA ════════════════════════════════════════════════════════════
+════ MIR after Forward Substitution ════════════════════════════════════════════
 
 *thunk {thunk#2}() -> Integer {
     let %0: Integer

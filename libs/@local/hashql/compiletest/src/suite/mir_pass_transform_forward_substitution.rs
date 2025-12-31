@@ -100,11 +100,15 @@ impl Suite for MirPassTransformForwardSubstitution {
             diagnostics,
         )?;
 
-        let _ = writeln!(buffer, "\n{}\n", Header::new("MIR after SROA"));
+        let _ = writeln!(
+            buffer,
+            "\n{}\n",
+            Header::new("MIR after Forward Substitution")
+        );
         mir_format_text(heap, &environment, &mut buffer, root, &bodies);
 
         if let Some((mut writer, handle)) = d2 {
-            writeln!(writer, "final: 'MIR after SROA' {{")
+            writeln!(writer, "final: 'MIR after Forward Substitution' {{")
                 .expect("should be able to write to buffer");
             mir_format_d2(heap, &environment, &mut writer, root, &bodies);
             writeln!(writer, "}}").expect("should be able to write to buffer");
