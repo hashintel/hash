@@ -1,16 +1,14 @@
-#![expect(clippy::similar_names, reason = "tests")]
+#![expect(clippy::similar_names, clippy::min_ident_chars, reason = "tests")]
+
 use std::path::PathBuf;
 
-use hashql_core::r#type::{TypeBuilder, environment::Environment};
+use hashql_core::{heap::Heap, r#type::environment::Environment};
 use hashql_diagnostics::DiagnosticIssues;
 use insta::{Settings, assert_snapshot};
 
 use super::{CallGraph, CallGraphAnalysis};
 use crate::{
-    body::{Body, operand::Operand},
-    builder::{BodyBuilder, scaffold},
-    context::MirContext,
-    def::DefId,
+    body::Body, builder::body, context::MirContext, def::DefId, intern::Interner,
     pass::AnalysisPass as _,
 };
 
@@ -38,41 +36,30 @@ fn assert_callgraph<'heap>(
 }
 
 /// Tests that a direct function application creates an Apply edge.
-///
-/// ```text
-/// @0:
-///   _0 = apply(@1, [])
-///   return _0
-/// ```
 #[test]
 fn direct_apply() {
-    scaffold!(heap, interner, builder);
+    let heap = Heap::new();
+    let interner = Interner::new(&heap);
     let env = Environment::new(&heap);
-    let ty = TypeBuilder::synthetic(&env).integer();
 
-    let result = builder.local("result", ty);
-
-    let caller_id = DefId::new(0);
     let callee_id = DefId::new(1);
-    let callee_fn = builder.const_fn(callee_id);
 
-    let bb0 = builder.reserve_block([]);
+    let caller = body!(interner, env; fn@0/0 -> Int {
+        decl result: Int;
 
-    builder
-        .build_block(bb0)
-        .assign_place(result, |rv| rv.apply(callee_fn, [] as [Operand<'_>; 0]))
-        .ret(result);
+        bb0() {
+            result = apply callee_id;
+            return result;
+        }
+    });
 
-    let mut caller = builder.finish(0, ty);
-    caller.id = caller_id;
+    let callee = body!(interner, env; fn@callee_id/0 -> Int {
+        decl ret: Int;
 
-    // Create a dummy body for the callee so the domain includes it
-    let mut builder = BodyBuilder::new(&interner);
-    let ret = builder.local("ret", ty);
-    let bb = builder.reserve_block([]);
-    builder.build_block(bb).ret(ret);
-    let mut callee = builder.finish(0, ty);
-    callee.id = callee_id;
+        bb0() {
+            return ret;
+        }
+    });
 
     assert_callgraph(
         "direct_apply",
@@ -86,51 +73,40 @@ fn direct_apply() {
     );
 }
 
-/// Tests that function arguments also get visited as Opaque if they contain [`DefId`].
-///
-/// ```text
-/// @0:
-///   _0 = apply(@1, [@2])  // @1 is Apply, @2 is Opaque (passed as argument)
-///   return _0
-/// ```
+/// Tests that function arguments also get visited as Opaque if they contain `DefId`.
 #[test]
 fn apply_with_fn_argument() {
-    scaffold!(heap, interner, builder);
+    let heap = Heap::new();
+    let interner = Interner::new(&heap);
     let env = Environment::new(&heap);
-    let ty = TypeBuilder::synthetic(&env).integer();
 
-    let caller_id = DefId::new(0);
     let callee_id = DefId::new(1);
     let arg_fn_id = DefId::new(2);
 
-    let result = builder.local("result", ty);
-    let callee_fn = builder.const_fn(callee_id);
-    let arg_fn = builder.const_fn(arg_fn_id);
+    let caller = body!(interner, env; fn@0/0 -> Int {
+        decl result: Int;
 
-    let bb0 = builder.reserve_block([]);
-    builder
-        .build_block(bb0)
-        .assign_place(result, |rv| rv.apply(callee_fn, [arg_fn]))
-        .ret(result);
+        bb0() {
+            result = apply callee_id, arg_fn_id;
+            return result;
+        }
+    });
 
-    let mut caller = builder.finish(0, ty);
-    caller.id = caller_id;
+    let callee = body!(interner, env; fn@callee_id/0 -> Int {
+        decl ret: Int;
 
-    // Dummy body for callee
-    let mut builder = BodyBuilder::new(&interner);
-    let ret = builder.local("ret", ty);
-    let bb = builder.reserve_block([]);
-    builder.build_block(bb).ret(ret);
-    let mut callee = builder.finish(0, ty);
-    callee.id = callee_id;
+        bb0() {
+            return ret;
+        }
+    });
 
-    // Dummy body for arg_fn
-    let mut builder = BodyBuilder::new(&interner);
-    let ret = builder.local("ret", ty);
-    let bb = builder.reserve_block([]);
-    builder.build_block(bb).ret(ret);
-    let mut arg_body = builder.finish(0, ty);
-    arg_body.id = arg_fn_id;
+    let arg_body = body!(interner, env; fn@arg_fn_id/0 -> Int {
+        decl ret: Int;
+
+        bb0() {
+            return ret;
+        }
+    });
 
     assert_callgraph(
         "apply_with_fn_argument",
@@ -145,53 +121,40 @@ fn apply_with_fn_argument() {
 }
 
 /// Tests that multiple calls from the same body create multiple edges.
-///
-/// ```text
-/// @0:
-///   _0 = apply(@1, [])
-///   _1 = apply(@2, [])
-///   return _1
-/// ```
 #[test]
 fn multiple_calls() {
-    scaffold!(heap, interner, builder);
+    let heap = Heap::new();
+    let interner = Interner::new(&heap);
     let env = Environment::new(&heap);
-    let ty = TypeBuilder::synthetic(&env).integer();
 
-    let caller_id = DefId::new(0);
     let callee1_id = DefId::new(1);
     let callee2_id = DefId::new(2);
 
-    let x = builder.local("x", ty);
-    let y = builder.local("y", ty);
-    let fn1 = builder.const_fn(callee1_id);
-    let fn2 = builder.const_fn(callee2_id);
+    let caller = body!(interner, env; fn@0/0 -> Int {
+        decl x: Int, y: Int;
 
-    let bb0 = builder.reserve_block([]);
-    builder
-        .build_block(bb0)
-        .assign_place(x, |rv| rv.apply(fn1, [] as [Operand<'_>; 0]))
-        .assign_place(y, |rv| rv.apply(fn2, [] as [Operand<'_>; 0]))
-        .ret(y);
+        bb0() {
+            x = apply callee1_id;
+            y = apply callee2_id;
+            return y;
+        }
+    });
 
-    let mut caller = builder.finish(0, ty);
-    caller.id = caller_id;
+    let body1 = body!(interner, env; fn@callee1_id/0 -> Int {
+        decl ret: Int;
 
-    // Dummy body 1
-    let mut builder = BodyBuilder::new(&interner);
-    let ret = builder.local("ret", ty);
-    let bb = builder.reserve_block([]);
-    builder.build_block(bb).ret(ret);
-    let mut body1 = builder.finish(0, ty);
-    body1.id = callee1_id;
+        bb0() {
+            return ret;
+        }
+    });
 
-    // Dummy body 2
-    let mut builder = BodyBuilder::new(&interner);
-    let ret = builder.local("ret", ty);
-    let bb = builder.reserve_block([]);
-    builder.build_block(bb).ret(ret);
-    let mut body2 = builder.finish(0, ty);
-    body2.id = callee2_id;
+    let body2 = body!(interner, env; fn@callee2_id/0 -> Int {
+        decl ret: Int;
+
+        bb0() {
+            return ret;
+        }
+    });
 
     assert_callgraph(
         "multiple_calls",
@@ -206,51 +169,41 @@ fn multiple_calls() {
 }
 
 /// Tests call chain across multiple bodies.
-///
-/// ```text
-/// @0 calls @1
-/// @1 calls @2
-/// ```
 #[test]
 fn call_chain() {
-    scaffold!(heap, interner, builder);
+    let heap = Heap::new();
+    let interner = Interner::new(&heap);
     let env = Environment::new(&heap);
-    let ty = TypeBuilder::synthetic(&env).integer();
 
     let outer_id = DefId::new(0);
     let middle_id = DefId::new(1);
     let leaf_id = DefId::new(2);
 
-    // Outer body: calls middle
-    let x = builder.local("x", ty);
-    let middle_fn = builder.const_fn(middle_id);
-    let bb0 = builder.reserve_block([]);
-    builder
-        .build_block(bb0)
-        .assign_place(x, |rv| rv.apply(middle_fn, [] as [Operand<'_>; 0]))
-        .ret(x);
-    let mut outer = builder.finish(0, ty);
-    outer.id = outer_id;
+    let outer = body!(interner, env; fn@outer_id/0 -> Int {
+        decl x: Int;
 
-    // Middle body: calls leaf
-    let mut builder = BodyBuilder::new(&interner);
-    let y = builder.local("y", ty);
-    let leaf_fn = builder.const_fn(leaf_id);
-    let bb1 = builder.reserve_block([]);
-    builder
-        .build_block(bb1)
-        .assign_place(y, |rv| rv.apply(leaf_fn, [] as [Operand<'_>; 0]))
-        .ret(y);
-    let mut middle = builder.finish(0, ty);
-    middle.id = middle_id;
+        bb0() {
+            x = apply middle_id;
+            return x;
+        }
+    });
 
-    // Leaf body: no calls
-    let mut builder = BodyBuilder::new(&interner);
-    let z = builder.local("z", ty);
-    let bb2 = builder.reserve_block([]);
-    builder.build_block(bb2).ret(z);
-    let mut leaf = builder.finish(0, ty);
-    leaf.id = leaf_id;
+    let middle = body!(interner, env; fn@middle_id/0 -> Int {
+        decl y: Int;
+
+        bb0() {
+            y = apply leaf_id;
+            return y;
+        }
+    });
+
+    let leaf = body!(interner, env; fn@leaf_id/0 -> Int {
+        decl z: Int;
+
+        bb0() {
+            return z;
+        }
+    });
 
     assert_callgraph(
         "call_chain",
@@ -265,29 +218,22 @@ fn call_chain() {
 }
 
 /// Tests recursive call (self-reference).
-///
-/// ```text
-/// @0 calls @0
-/// ```
 #[test]
 fn recursive_call() {
-    scaffold!(heap, interner, builder);
+    let heap = Heap::new();
+    let interner = Interner::new(&heap);
     let env = Environment::new(&heap);
-    let ty = TypeBuilder::synthetic(&env).integer();
 
     let recursive_id = DefId::new(0);
 
-    let x = builder.local("x", ty);
-    let self_fn = builder.const_fn(recursive_id);
-    let bb0 = builder.reserve_block([]);
+    let body = body!(interner, env; fn@recursive_id/0 -> Int {
+        decl x: Int;
 
-    builder
-        .build_block(bb0)
-        .assign_place(x, |rv| rv.apply(self_fn, [] as [Operand<'_>; 0]))
-        .ret(x);
-
-    let mut body = builder.finish(0, ty);
-    body.id = recursive_id;
+        bb0() {
+            x = apply recursive_id;
+            return x;
+        }
+    });
 
     assert_callgraph(
         "recursive_call",
@@ -302,44 +248,33 @@ fn recursive_call() {
 }
 
 /// Tests that indirect calls (via local) are tracked as Opaque at assignment, not Apply.
-///
-/// ```text
-/// @0:
-///   _0 = @1         // Opaque edge here
-///   _1 = apply(_0)  // No edge here (function is a local, not a DefId)
-///   return _1
-/// ```
 #[test]
 fn indirect_call_via_local() {
-    scaffold!(heap, interner, builder);
+    let heap = Heap::new();
+    let interner = Interner::new(&heap);
     let env = Environment::new(&heap);
-    let ty = TypeBuilder::synthetic(&env).integer();
-    let fn_ty = TypeBuilder::synthetic(&env).unknown();
 
     let caller_id = DefId::new(0);
     let callee_id = DefId::new(1);
 
-    let func_local = builder.local("func", fn_ty);
-    let result = builder.local("result", ty);
-    let fn_const = builder.const_fn(callee_id);
+    let caller = body!(interner, env; fn@caller_id/0 -> Int {
+        decl func: [fn(Int) -> Int], result: Int;
 
-    let bb0 = builder.reserve_block([]);
-    builder
-        .build_block(bb0)
-        .assign_place(func_local, |rv| rv.load(fn_const))
-        .assign_place(result, |rv| rv.apply(func_local, [] as [Operand<'_>; 0]))
-        .ret(result);
+        bb0() {
+            func = load callee_id;
+            result = apply func, 1;
+            return result;
+        }
+    });
 
-    let mut caller = builder.finish(0, ty);
-    caller.id = caller_id;
+    let callee = body!(interner, env; fn@callee_id/1 -> Int {
+        decl arg: Int, result: Int;
 
-    // Dummy callee body
-    let mut builder = BodyBuilder::new(&interner);
-    let ret = builder.local("ret", ty);
-    let bb = builder.reserve_block([]);
-    builder.build_block(bb).ret(ret);
-    let mut callee = builder.finish(0, ty);
-    callee.id = callee_id;
+        bb0() {
+            result = load arg;
+            return result;
+        }
+    });
 
     assert_callgraph(
         "indirect_call_via_local",

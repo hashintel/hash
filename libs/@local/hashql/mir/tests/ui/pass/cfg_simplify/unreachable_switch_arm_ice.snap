@@ -2,23 +2,23 @@
 source: libs/@local/hashql/mir/src/pass/transform/cfg_simplify/tests.rs
 expression: value
 ---
-fn {intrinsic#4294967040}() -> Null {
+fn {closure@4294967040}() -> Null {
     bb0(): {
         switchInt(5) -> [0: bb1(), 1: bb2()]
     }
 
     bb1(): {
-        return ()
+        return null
     }
 
     bb2(): {
-        return ()
+        return null
     }
 }
 
 ================== Changed: Yes ==================
 
-fn {intrinsic#4294967040}() -> Null {
+fn {closure@4294967040}() -> Null {
     bb0(): {
         unreachable
     }

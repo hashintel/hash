@@ -2,7 +2,7 @@
 source: libs/@local/hashql/mir/src/pass/transform/cfg_simplify/tests.rs
 expression: value
 ---
-fn {intrinsic#4294967040}() -> Null {
+fn {closure@4294967040}() -> Null {
     bb0(): {
         goto -> bb1()
     }
@@ -14,7 +14,7 @@ fn {intrinsic#4294967040}() -> Null {
 
 ================== Changed: No ===================
 
-fn {intrinsic#4294967040}() -> Null {
+fn {closure@4294967040}() -> Null {
     bb0(): {
         goto -> bb1()
     }

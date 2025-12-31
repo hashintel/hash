@@ -2,249 +2,359 @@
 
 Ergonomic API for constructing MIR bodies in tests. Use for testing and benchmarking MIR passes without manual structure boilerplate.
 
-**Source**: `libs/@local/hashql/mir/src/builder.rs`
+**Source**: `libs/@local/hashql/mir/src/builder/`
+
+## Important
+
+The `body!` macro does not support all MIR constructs. If you need a feature that is not supported, **do not work around it manually** - instead, stop and request that the feature be added to the macro.
+
+For advanced cases not supported by the macro, see [mir-fluent-builder.md](mir-fluent-builder.md).
 
 ## Quick Start
 
 ```rust
-use hashql_core::r#type::{TypeBuilder, environment::Environment};
-use hashql_mir::{builder::BodyBuilder, op, scaffold};
+use hashql_core::{heap::Heap, r#type::environment::Environment};
+use hashql_mir::{builder::body, intern::Interner};
 
-scaffold!(heap, interner, builder);
+let heap = Heap::new();
+let interner = Interner::new(&heap);
 let env = Environment::new(&heap);
 
-// 1. Declare locals
-let x = builder.local("x", TypeBuilder::synthetic(&env).integer());
-let y = builder.local("y", TypeBuilder::synthetic(&env).integer());
+let body = body!(interner, env; fn@0/1 -> Int {
+    decl x: Int, cond: Bool;
 
-// 2. Create constants
-let const_1 = builder.const_int(1);
-
-// 3. Reserve blocks (with optional parameters)
-let bb0 = builder.reserve_block([]);
-
-// 4. Build blocks with statements and terminator
-builder
-    .build_block(bb0)
-    .assign_place(x, |rv| rv.load(const_1))
-    .assign_place(y, |rv| rv.binary(x, op![==], x))
-    .ret(y);
-
-// 5. Finalize
-let body = builder.finish(0, TypeBuilder::synthetic(&env).integer());
+    bb0() {
+        cond = load true;
+        if cond then bb1() else bb2();
+    },
+    bb1() {
+        goto bb3(1);
+    },
+    bb2() {
+        goto bb3(2);
+    },
+    bb3(x) {
+        return x;
+    }
+});
 ```
 
-## Core Components
+## `body!` Macro Syntax
 
-### `scaffold!` Macro
+```text
+body!(interner, env; <source> @ <id> / <arity> -> <return_type> {
+    decl <local>: <type>, ...;
 
-Sets up heap, interner, and builder:
+    <block>(<params>...) {
+        <statements>...
+    },
+    ...
+})
+```
+
+### Header
+
+| Component | Description | Example |
+| --------- | ----------- | ------- |
+| `<source>` | Body source type | `fn` (closure) or `thunk` |
+| `<id>` | DefId (literal or variable) | `0`, `42`, `my_def_id` |
+| `<arity>` | Number of function arguments | `0`, `1`, `2` |
+| `<return_type>` | Return type | `Int`, `Bool`, `(Int, Bool)` |
+
+The `<id>` can be a numeric literal (`0`, `1`, `42`) or a variable identifier (`callee_id`, `my_def_id`). When using a variable, it must be a `DefId` in scope.
+
+### Types
+
+| Syntax | Description | Example |
+| ------ | ----------- | ------- |
+| `Int` | Integer type | `Int` |
+| `Bool` | Boolean type | `Bool` |
+| `Null` | Null type | `Null` |
+| `(T1, T2, ...)` | Tuple types | `(Int, Bool, Int)` |
+| `(T,)` | Single-element tuple | `(Int,)` |
+| `(a: T1, b: T2)` | Struct types | `(a: Int, b: Bool)` |
+| `[fn(T1, T2) -> R]` | Closure types | `[fn(Int) -> Int]`, `[fn() -> Bool]` |
+| `\|types\| types.custom()` | Custom type expression | `\|t\| t.null()` |
+
+### Projections (Optional)
+
+Declare field projections after `decl` to access struct/tuple fields as places:
+
+```text
+@proj <name> = <base>.<field>: <type>, ...;
+```
+
+Supports nested projections:
 
 ```rust
-scaffold!(heap, interner, builder);
-let env = Environment::new(&heap);  // Also needed for types
+let body = body!(interner, env; fn@0/0 -> Int {
+    decl tup: ((Int, Int), Int), result: Int;
+    @proj inner = tup.0: (Int, Int), inner_1 = tup.0.1: Int;
+
+    bb0() {
+        result = load inner_1;
+        return result;
+    }
+});
 ```
-
-### `op!` Macro
-
-Creates operators for binary/unary operations:
-
-```rust
-// Binary: ==, !=, <, <=, >, >=, &&, ||, +, -, *, /
-rv.binary(x, op![==], y)
-rv.binary(a, op![&&], b)
-
-// Unary: !, neg
-rv.unary(op![!], cond)
-rv.unary(op![neg], value)
-```
-
-### Locals and Types
-
-```rust
-let env = Environment::new(&heap);
-
-// Common types
-let int_ty = TypeBuilder::synthetic(&env).integer();
-let bool_ty = TypeBuilder::synthetic(&env).boolean();
-let null_ty = TypeBuilder::synthetic(&env).null();
-let unknown_ty = TypeBuilder::synthetic(&env).unknown();
-
-// Declare locals
-let x = builder.local("x", int_ty);        // Returns Place<'heap>
-let cond = builder.local("cond", bool_ty);
-```
-
-### Constants
-
-```rust
-let const_0 = builder.const_int(0);
-let const_42 = builder.const_int(42);
-let const_true = builder.const_bool(true);
-let const_unit = builder.const_unit();
-let const_null = builder.const_null();
-let const_fn = builder.const_fn(def_id);
-```
-
-### Basic Blocks
-
-```rust
-// Reserve without parameters
-let bb0 = builder.reserve_block([]);
-
-// Reserve with block parameters (for SSA phi-like merging)
-let x_local = x.local;  // Extract Local from Place
-let bb1 = builder.reserve_block([x_local, y_local]);
-```
-
-## Building Blocks
 
 ### Statements
 
-```rust
-builder
-    .build_block(bb0)
-    // Assignment from rvalue
-    .assign_place(x, |rv| rv.load(const_1))
-    
-    // Binary operation
-    .assign_place(y, |rv| rv.binary(x, op![==], x))
-    
-    // Unary operation
-    .assign_place(neg_x, |rv| rv.unary(op![neg], x))
-    
-    // Input operation
-    .assign_place(input_val, |rv| rv.input(InputOp::Load { required: true }, "param"))
-    
-    // Tuple aggregate
-    .assign_place(tuple, |rv| rv.tuple([x, y]))
-    
-    // Storage markers
-    .storage_live(local)
-    .storage_dead(local)
-    
-    // No-op
-    .nop()
-    
-    // Must end with terminator
-    .ret(result);
-```
+| Syntax | Description | MIR Equivalent |
+| ------ | ----------- | -------------- |
+| `let x;` | Mark storage live | `StorageLive(x)` |
+| `drop x;` | Mark storage dead | `StorageDead(x)` |
+| `x = load <operand>;` | Load value | `Assign(x, Load(operand))` |
+| `x = apply <func>;` | Call with no args | `Assign(x, Apply(func, []))` |
+| `x = apply <func>, <a1>, <a2>;` | Call with args | `Assign(x, Apply(func, [a1, a2]))` |
+| `x = tuple <a>, <b>;` | Create tuple | `Assign(x, Aggregate(Tuple, [a, b]))` |
+| `x = struct a: <v1>, b: <v2>;` | Create struct | `Assign(x, Aggregate(Struct, [v1, v2]))` |
+| `x = closure <def> <env>;` | Create closure | `Assign(x, Aggregate(Closure, [def, env]))` |
+| `x = bin.<op> <lhs> <rhs>;` | Binary operation | `Assign(x, Binary(lhs, op, rhs))` |
+| `x = un.<op> <operand>;` | Unary operation | `Assign(x, Unary(op, operand))` |
+| `x = input.load! "name";` | Load required input | `Assign(x, Input(Load { required: true }, "name"))` |
+| `x = input.load "name";` | Load optional input | `Assign(x, Input(Load { required: false }, "name"))` |
+| `x = input.exists "name";` | Check if input exists | `Assign(x, Input(Exists, "name"))` |
 
 ### Terminators
 
-```rust
-// Return
-builder.build_block(bb).ret(value);
-builder.build_block(bb).ret(const_unit);
+| Syntax | Description |
+| ------ | ----------- |
+| `return <operand>;` | Return from function |
+| `goto <block>(<args>...);` | Unconditional jump with args |
+| `if <cond> then <tb>(<ta>) else <eb>(<ea>);` | Conditional branch |
+| `switch <discr> [<val> => <block>(<args>), ...];` | Switch (no otherwise) |
+| `switch <discr> [<val> => <block>(), _ => <block>()];` | Switch with otherwise |
+| `unreachable;` | Mark block as unreachable |
 
-// Unconditional goto
-builder.build_block(bb0).goto(bb1, []);  // No args
-builder.build_block(bb0).goto(bb1, [x.into(), y.into()]);  // With args
+### Operands
 
-// Conditional branch (if-else)
-builder
-    .build_block(bb0)
-    .if_else(cond, bb_then, [], bb_else, []);
+| Syntax | Description |
+| ------ | ----------- |
+| `x`, `cond` | Place (local variable or projection) |
+| `42`, `-5` | Integer literal (i64) |
+| `3.14` | Float literal (f64) |
+| `true`, `false` | Boolean literal |
+| `()` | Unit |
+| `null` | Null |
+| `def_id` | DefId variable (for function pointers) |
 
-// Switch on integer
-builder
-    .build_block(bb0)
-    .switch(selector, |switch| {
-        switch
-            .case(0, bb1, [])
-            .case(1, bb2, [])
-            .otherwise(bb3, [])
-    });
+### Operators
 
-// Unreachable
-builder.build_block(bb).unreachable();
+**Binary** (`bin.<op>`): `==`, `!=`, `<`, `<=`, `>`, `>=`, `&`, `|`, `+`, `-`, `*`, `/`
 
-// Custom terminator (for special cases like GraphRead)
-builder
-    .build_block(bb)
-    .finish_with_terminator(TerminatorKind::GraphRead(...));
-```
+**Unary** (`un.<op>`): `!`, `neg`
 
 ## Common Patterns
 
 ### Diamond CFG (Branch and Merge)
 
 ```rust
-let bb0 = builder.reserve_block([]);
-let bb_then = builder.reserve_block([]);
-let bb_else = builder.reserve_block([]);
-let bb_merge = builder.reserve_block([]);
+let body = body!(interner, env; fn@0/0 -> Int {
+    decl x: Int, cond: Bool;
 
-builder
-    .build_block(bb0)
-    .assign_place(cond, |rv| rv.load(const_true))
-    .if_else(cond, bb_then, [], bb_else, []);
-
-builder
-    .build_block(bb_then)
-    .assign_place(x, |rv| rv.load(const_1))
-    .goto(bb_merge, []);
-
-builder
-    .build_block(bb_else)
-    .assign_place(x, |rv| rv.load(const_2))
-    .goto(bb_merge, []);
-
-builder.build_block(bb_merge).ret(x);
+    bb0() {
+        cond = load true;
+        if cond then bb1() else bb2();
+    },
+    bb1() {
+        goto bb3(1);
+    },
+    bb2() {
+        goto bb3(2);
+    },
+    bb3(x) {
+        return x;
+    }
+});
 ```
 
 ### Loop
 
 ```rust
-let bb_entry = builder.reserve_block([]);
-let bb_header = builder.reserve_block([]);
-let bb_exit = builder.reserve_block([]);
+let body = body!(interner, env; fn@0/0 -> Int {
+    decl x: Int, cond: Bool;
 
-builder
-    .build_block(bb_entry)
-    .assign_place(x, |rv| rv.load(const_0))
-    .goto(bb_header, []);
-
-builder
-    .build_block(bb_header)
-    .assign_place(cond, |rv| rv.binary(x, op![<], const_10))
-    .assign_place(x, |rv| rv.binary(x, op![+], const_1))
-    .if_else(cond, bb_header, [], bb_exit, []);
-
-builder.build_block(bb_exit).ret(x);
+    bb0() {
+        x = load 0;
+        goto bb1();
+    },
+    bb1() {
+        cond = bin.< x 10;
+        x = bin.+ x 1;
+        if cond then bb1() else bb2();
+    },
+    bb2() {
+        return x;
+    }
+});
 ```
 
-### Block Parameters (SSA Merge)
+### Switch Statement
 
 ```rust
-// For values that differ across branches
-let x_local = x.local;
-let bb_merge = builder.reserve_block([x_local]);
+let body = body!(interner, env; fn@0/0 -> Null {
+    decl selector: Int;
 
-builder.build_block(bb_then).goto(bb_merge, [const_1]);
-builder.build_block(bb_else).goto(bb_merge, [const_2]);
-builder.build_block(bb_merge).ret(x);  // x receives value from param
+    bb0() {
+        selector = load 0;
+        switch selector [0 => bb1(), 1 => bb2(), _ => bb3()];
+    },
+    bb1() {
+        return null;
+    },
+    bb2() {
+        return null;
+    },
+    bb3() {
+        return null;
+    }
+});
+```
+
+### Direct Function Calls
+
+Use a `DefId` variable directly:
+
+```rust
+let callee_id = DefId::new(1);
+
+let body = body!(interner, env; fn@0/0 -> Int {
+    decl result: Int;
+
+    bb0() {
+        result = apply callee_id;
+        return result;
+    }
+});
+```
+
+### Indirect Function Calls (via local)
+
+Load a DefId into a local, then apply the local:
+
+```rust
+let callee_id = DefId::new(1);
+
+let body = body!(interner, env; fn@0/0 -> Int {
+    decl func: [fn(Int) -> Int], result: Int;
+
+    bb0() {
+        func = load callee_id;
+        result = apply func, 1;
+        return result;
+    }
+});
+```
+
+### Multiple Bodies with DefId Variables
+
+When creating multiple bodies that reference each other:
+
+```rust
+let callee_id = DefId::new(1);
+let caller_id = DefId::new(0);
+
+let caller = body!(interner, env; fn@caller_id/0 -> Int {
+    decl result: Int;
+
+    bb0() {
+        result = apply callee_id;
+        return result;
+    }
+});
+
+let callee = body!(interner, env; fn@callee_id/0 -> Int {
+    decl ret: Int;
+
+    bb0() {
+        return ret;
+    }
+});
+```
+
+### Struct Aggregate
+
+```rust
+let body = body!(interner, env; fn@0/0 -> (a: Int, b: Bool) {
+    decl result: (a: Int, b: Bool);
+
+    bb0() {
+        result = struct a: 42, b: true;
+        return result;
+    }
+});
+```
+
+### Closure with Projections
+
+```rust
+// body0: function that takes captured env and returns it
+let body0 = body!(interner, env; fn@0/1 -> Int {
+    decl env_arg: Int, result: Int;
+
+    bb0() {
+        result = load env_arg;
+        return result;
+    }
+});
+
+// body1: creates closure, calls it via projections
+let body1 = body!(interner, env; fn@1/0 -> Int {
+    decl captured: Int, closure: [fn(Int) -> Int], result: Int;
+    @proj closure_fn = closure.0: [fn(Int) -> Int], closure_env = closure.1: Int;
+
+    bb0() {
+        captured = load 55;
+        closure = closure (body0.id) captured;
+        result = apply closure_fn, closure_env;
+        return result;
+    }
+});
+```
+
+### Projections in Terminators
+
+Projected places can be used as operands in terminators:
+
+```rust
+let body = body!(interner, env; fn@0/0 -> Int {
+    decl tup: (Int, Int), result: Int;
+    @proj tup_0 = tup.0: Int, tup_1 = tup.1: Int;
+
+    bb0() {
+        tup = tuple 1, 2;
+        if tup_0 then bb1(tup_0) else bb2(tup_1);
+    },
+    bb1(result) {
+        return result;
+    },
+    bb2(result) {
+        return result;
+    }
+});
 ```
 
 ## Test Harness Pattern
 
-Standard pattern used across transform pass tests. The harness captures and displays
-the `Changed` return value to verify pass behavior:
+Standard pattern used across transform pass tests:
 
 ```rust
 use std::{io::Write as _, path::PathBuf};
 use bstr::ByteVec as _;
 use hashql_core::{
+    heap::Heap,
     pretty::Formatter,
-    r#type::{TypeBuilder, TypeFormatter, TypeFormatterOptions, environment::Environment},
+    r#type::{TypeFormatter, TypeFormatterOptions, environment::Environment},
 };
 use hashql_diagnostics::DiagnosticIssues;
 use insta::{Settings, assert_snapshot};
 
 use crate::{
-    builder::{op, scaffold},
+    builder::body,
     context::MirContext,
     def::DefIdSlice,
+    intern::Interner,
     pass::TransformPass as _,
     pretty::TextFormat,
 };
@@ -278,13 +388,12 @@ fn assert_pass<'heap>(
     // Run the pass and capture change status
     let changed = YourPass::new().run(context, &mut bodies[0]);
     
-    // Include Changed value in snapshot for verification
+    // Include Changed value in snapshot
     write!(
         text_format.writer,
         "\n\n{:=^50}\n\n",
         format!(" Changed: {changed:?} ")
-    )
-    .expect("infallible");
+    ).expect("infallible");
 
     // Format after
     text_format
@@ -305,11 +414,18 @@ fn assert_pass<'heap>(
 
 #[test]
 fn test_case() {
-    scaffold!(heap, interner, builder);
+    let heap = Heap::new();
+    let interner = Interner::new(&heap);
     let env = Environment::new(&heap);
 
-    // Build MIR...
-    let body = builder.finish(0, TypeBuilder::synthetic(&env).null());
+    let body = body!(interner, env; fn@0/0 -> Int {
+        decl x: Int;
+
+        bb0() {
+            x = load 42;
+            return x;
+        }
+    });
 
     assert_pass(
         "test_case",
@@ -324,25 +440,23 @@ fn test_case() {
 }
 ```
 
-## RValue Types
-
-| Method | Creates | Example |
-| ------ | ------- | ------- |
-| `load(operand)` | Copy/move | `rv.load(x)` |
-| `binary(l, op, r)` | Binary op | `rv.binary(x, op![+], y)` |
-| `unary(op, val)` | Unary op | `rv.unary(op![!], cond)` |
-| `tuple([...])` | Tuple | `rv.tuple([x, y, z])` |
-| `list([...])` | List | `rv.list([a, b, c])` |
-| `struct([...])` | Struct | `rv.r#struct([("x", val)])` |
-| `dict([...])` | Dict | `rv.dict([(k, v)])` |
-| `apply(fn, args)` | Call | `rv.apply(func, [arg1])` |
-| `input(op, name)` | Input | `rv.input(InputOp::Load { required: true }, "x")` |
-
 ## Examples in Codebase
 
-Real test examples in `libs/@local/hashql/mir/src/pass/transform/`:
+Real test examples in `libs/@local/hashql/mir/src/pass/`:
 
+**Transform passes** (`transform/`):
+
+- `administrative_reduction/tests.rs`
 - `dse/tests.rs` - Dead Store Elimination
 - `ssa_repair/tests.rs` - SSA Repair
 - `cfg_simplify/tests.rs` - CFG Simplification
 - `dbe/tests.rs` - Dead Block Elimination
+- `cp/tests.rs` - Constant Propagation
+- `dle/tests.rs` - Dead Local Elimination
+- `inst_simplify/tests.rs` - Instruction Simplification
+
+**Analysis passes** (`analysis/`):
+
+- `callgraph/tests.rs` - Call graph analysis
+- `data_dependency/tests.rs` - Data dependency analysis
+- `dataflow/liveness/tests.rs` - Liveness analysis
