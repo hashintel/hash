@@ -11,7 +11,7 @@ use hashql_mir::{
     context::MirContext,
     def::{DefId, DefIdSlice, DefIdVec},
     intern::Interner,
-    pass::{Changed, TransformPass as _, transform::Sroa},
+    pass::{Changed, TransformPass as _, transform::ForwardSubstitution},
 };
 
 use super::{
@@ -24,7 +24,7 @@ use crate::suite::{
     mir_reify::{d2_output_enabled, mir_format_d2, mir_format_text, mir_spawn_d2},
 };
 
-pub(crate) fn mir_pass_transform_sroa<'heap>(
+pub(crate) fn mir_pass_transform_forward_substitution<'heap>(
     heap: &'heap Heap,
     expr: Expr<'heap>,
     interner: &Interner<'heap>,
@@ -42,7 +42,7 @@ pub(crate) fn mir_pass_transform_sroa<'heap>(
         diagnostics: DiagnosticIssues::new(),
     };
 
-    let mut pass = Sroa::new_in(&mut scratch);
+    let mut pass = ForwardSubstitution::new_in(&mut scratch);
     for body in bodies.as_mut_slice() {
         let _: Changed = pass.run(&mut context, body);
     }
@@ -51,19 +51,19 @@ pub(crate) fn mir_pass_transform_sroa<'heap>(
     Ok((root, bodies, scratch))
 }
 
-pub(crate) struct MirPassTransformSroa;
+pub(crate) struct MirPassTransformForwardSubstitution;
 
-impl Suite for MirPassTransformSroa {
+impl Suite for MirPassTransformForwardSubstitution {
     fn priority(&self) -> usize {
         1
     }
 
     fn name(&self) -> &'static str {
-        "mir/pass/transform/sroa"
+        "mir/pass/transform/forward-substitution"
     }
 
     fn description(&self) -> &'static str {
-        "Scalar Replacement of Aggregates in the MIR"
+        "Forward Substitution in the MIR"
     }
 
     fn secondary_file_extensions(&self) -> &[&str] {
@@ -88,7 +88,7 @@ impl Suite for MirPassTransformSroa {
         let mut buffer = Vec::new();
         let mut d2 = d2_output_enabled(self, suite_directives, reports).then(mir_spawn_d2);
 
-        let (root, bodies, _) = mir_pass_transform_sroa(
+        let (root, bodies, _) = mir_pass_transform_forward_substitution(
             heap,
             expr,
             &interner,
@@ -100,11 +100,15 @@ impl Suite for MirPassTransformSroa {
             diagnostics,
         )?;
 
-        let _ = writeln!(buffer, "\n{}\n", Header::new("MIR after SROA"));
+        let _ = writeln!(
+            buffer,
+            "\n{}\n",
+            Header::new("MIR after Forward Substitution")
+        );
         mir_format_text(heap, &environment, &mut buffer, root, &bodies);
 
         if let Some((mut writer, handle)) = d2 {
-            writeln!(writer, "final: 'MIR after SROA' {{")
+            writeln!(writer, "final: 'MIR after Forward Substitution' {{")
                 .expect("should be able to write to buffer");
             mir_format_d2(heap, &environment, &mut writer, root, &bodies);
             writeln!(writer, "}}").expect("should be able to write to buffer");

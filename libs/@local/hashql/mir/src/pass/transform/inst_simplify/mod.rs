@@ -68,13 +68,14 @@
 //!
 //! # Interaction with Other Passes
 //!
-//! This pass runs after [`Sroa`], which resolves places through the data dependency graph. SROA
-//! ensures that operands are simplified to their canonical forms before [`InstSimplify`] runs, so
-//! constants that flow through assignments or block parameters are already exposed.
+//! This pass runs after [`ForwardSubstitution`], which resolves places through the data dependency
+//! graph. Forward substitution ensures that operands are simplified to their canonical forms before
+//! [`InstSimplify`] runs, so constants that flow through assignments or block parameters are
+//! already exposed.
 //!
-//! Block parameter propagation in this pass complements SROA: while SROA resolves structural
-//! dependencies at the operand level, [`InstSimplify`] propagates constants discovered through
-//! folding across block boundaries.
+//! Block parameter propagation in this pass complements forward substitution: while forward
+//! substitution resolves structural dependencies at the operand level, [`InstSimplify`] propagates
+//! constants discovered through folding across block boundaries.
 //!
 //! # Limitations
 //!
@@ -84,7 +85,7 @@
 //! iterating until the `evaluated` map stabilizes, which is not implemented as the expected
 //! benefit is low.
 //!
-//! [`Sroa`]: super::Sroa
+//! [`ForwardSubstitution`]: super::ForwardSubstitution
 #[cfg(test)]
 mod tests;
 
@@ -97,7 +98,7 @@ use hashql_core::{
 };
 use hashql_hir::node::operation::UnOp;
 
-use super::cp::propagate_block_params;
+use super::copy_propagation::propagate_block_params;
 use crate::{
     body::{
         Body,
@@ -460,7 +461,8 @@ impl<'heap, A: Allocator> VisitorMut<'heap> for InstSimplifyVisitor<'_, 'heap, A
         Binary { op, left, right }: &mut Binary<'heap>,
     ) -> Self::Result<()> {
         // Dispatch to the appropriate simplification based on operand classification.
-        // SROA has already resolved structural dependencies, so constants are directly visible.
+        // Forward substitution has already resolved structural dependencies, so constants are
+        // directly visible.
         match (self.try_eval(*left), self.try_eval(*right)) {
             (OperandKind::Int(lhs), OperandKind::Int(rhs)) => {
                 let result = Self::eval_bin_op(lhs, *op, rhs);

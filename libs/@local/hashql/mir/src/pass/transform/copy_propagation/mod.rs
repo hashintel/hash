@@ -1,3 +1,32 @@
+//! Copy and constant propagation transformation pass.
+//!
+//! This pass propagates constant values through the MIR by tracking which locals hold known
+//! constants and substituting uses of those locals with the constant values directly.
+//!
+//! Unlike [`ForwardSubstitution`], this pass does not perform full data dependency analysis and
+//! cannot resolve values through projections or chained access paths. It is faster but less
+//! comprehensive, making it suitable for quick constant folding in simpler cases.
+//!
+//! # Algorithm
+//!
+//! The pass operates in a single forward traversal (reverse postorder):
+//!
+//! 1. For each block, propagates constants through block parameters when all predecessors pass the
+//!    same constant value
+//! 2. For each assignment `_x = <operand>`, if the operand is a constant or a local known to hold a
+//!    constant, records that `_x` holds that constant
+//! 3. For each use of a local known to hold a constant, substitutes the use with the constant
+//!
+//! # Limitations
+//!
+//! - Does not handle projections: `_2 = (_1,); use(_2.0)` is not simplified
+//! - Does not perform fix-point iteration for loops
+//! - Only tracks constants, not arbitrary value equivalences
+//!
+//! For more comprehensive value propagation including projections, see [`ForwardSubstitution`].
+//!
+//! [`ForwardSubstitution`]: super::ForwardSubstitution
+
 #[cfg(test)]
 mod tests;
 

@@ -2,18 +2,18 @@
 
 *thunk {thunk#2}() -> Integer {
     let %0: Integer
-    let %1: Integer
-    let %2: (Integer,)
+    let %1: (Integer, Integer)
+    let %2: ((Integer, Integer), Integer)
 
     bb0(): {
         switchInt(1) -> [0: bb2(), 1: bb1()]
     }
 
     bb1(): {
-        %1 = 42
-        %2 = (%1)
+        %1 = (1, 2)
+        %2 = (%1, 3)
 
-        goto -> bb3(%2.0)
+        goto -> bb3(%2.0.1)
     }
 
     bb2(): {
@@ -24,18 +24,18 @@
         return %0
     }
 }
-════ MIR after SROA ════════════════════════════════════════════════════════════
+════ MIR after Forward Substitution ════════════════════════════════════════════
 
 *thunk {thunk#2}() -> Integer {
     let %0: Integer
-    let %1: Integer
-    let %2: (Integer,)
+    let %1: (Integer, Integer)
+    let %2: ((Integer, Integer), Integer)
 
     bb0(): {
-        %1 = 42
-        %2 = (42)
-        %0 = 42
+        %1 = (1, 2)
+        %2 = (%1, 3)
+        %0 = 2
 
-        return 42
+        return 2
     }
 }

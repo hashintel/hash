@@ -38,7 +38,7 @@ fn f:0(%0: (Integer,)) -> Integer {
         return %0
     }
 }
-════ MIR after SROA ════════════════════════════════════════════════════════════
+════ MIR after Forward Substitution ════════════════════════════════════════════
 
 fn f:0(%0: (Integer,)) -> Integer {
     let %1: Integer

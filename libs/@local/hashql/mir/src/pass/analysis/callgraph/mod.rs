@@ -33,8 +33,8 @@
 //! `_1 = @fn; _2 = _1(...)`) produce an [`Opaque`] edge at the assignment site, not an
 //! [`Apply`] edge at the call site.
 //!
-//! This is intentional: the analysis is designed to run after SROA, which propagates function
-//! references through locals, eliminating most indirect call patterns.
+//! This is intentional: the analysis is designed to run after forward substitution, which
+//! propagates function references through locals, eliminating most indirect call patterns.
 //!
 //! [`Opaque`]: CallKind::Opaque
 //! [`DataDependencyAnalysis`]: super::DataDependencyAnalysis
