@@ -51,7 +51,7 @@
         return %0
     }
 }
-════ MIR after SROA ════════════════════════════════════════════════════════════
+════ MIR after Forward Substitution ════════════════════════════════════════════
 
 *thunk {thunk#4}() -> String {
     let %0: String
