@@ -264,9 +264,6 @@ struct CopyPropagationVisitor<'env, 'heap, A: Allocator> {
 
 impl<'heap, A: Allocator> CopyPropagationVisitor<'_, 'heap, A> {
     /// Attempts to evaluate an operand to a known constant or classify it for simplification.
-    ///
-    /// Returns `Int` if the operand is a constant integer or a local known to hold one,
-    /// `Place` if it's a non-constant place, or `Other` for operands that can't be simplified.
     fn try_eval(&self, operand: Operand<'heap>) -> Option<KnownValue<'heap>> {
         let place = match operand {
             Operand::Place(place) => place,
