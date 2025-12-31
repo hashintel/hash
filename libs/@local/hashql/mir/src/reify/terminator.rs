@@ -159,8 +159,8 @@ impl<'mir, 'heap> Reifier<'_, 'mir, '_, '_, 'heap> {
                     discriminant: test,
                     targets: SwitchTargets::new_if(
                         self.context.mir.heap,
-                        Target::block(then_entry, self.context.mir.interner),
-                        Target::block(else_entry, self.context.mir.interner),
+                        Target::block(then_entry.into()),
+                        Target::block(else_entry.into()),
                     ),
                 }),
             },

@@ -2,6 +2,7 @@ use core::mem;
 
 use hashql_core::{
     heap::{self, Heap},
+    intern::Interned,
     span::SpanId,
 };
 
@@ -75,11 +76,11 @@ pub(crate) struct CurrentBlock<'mir, 'heap> {
 }
 
 impl<'mir, 'heap> CurrentBlock<'mir, 'heap> {
-    pub(crate) fn new(heap: &'heap Heap, interner: &'mir Interner<'heap>) -> Self {
+    pub(crate) const fn new(heap: &'heap Heap, interner: &'mir Interner<'heap>) -> Self {
         Self {
             heap,
             interner,
-            block: Self::empty_block(heap, interner),
+            block: Self::empty_block(heap),
             slot: None,
             entry: None,
             forward_ref: Vec::new(),
@@ -95,9 +96,9 @@ impl<'mir, 'heap> CurrentBlock<'mir, 'heap> {
         self.block.statements.push(statement);
     }
 
-    fn empty_block(heap: &'heap Heap, interner: &Interner<'heap>) -> BasicBlock<'heap> {
+    const fn empty_block(heap: &'heap Heap) -> BasicBlock<'heap> {
         BasicBlock {
-            params: interner.locals.intern_slice(&[]),
+            params: Interned::empty(),
             statements: heap::Vec::new_in(heap),
             // This terminator is temporary and is going to get replaced once finished
             terminator: Terminator {
@@ -165,7 +166,7 @@ impl<'mir, 'heap> CurrentBlock<'mir, 'heap> {
     }
 
     pub(crate) fn reserve(&mut self, blocks: &mut BasicBlockVec<BasicBlock<'heap>, &'heap Heap>) {
-        self.slot = Some(blocks.push(Self::empty_block(self.heap, self.interner)));
+        self.slot = Some(blocks.push(Self::empty_block(self.heap)));
     }
 
     pub(crate) fn terminate<const N: usize>(
@@ -175,7 +176,7 @@ impl<'mir, 'heap> CurrentBlock<'mir, 'heap> {
         blocks: &mut BasicBlockVec<BasicBlock<'heap>, &'heap Heap>,
     ) -> ExitBlock {
         // Finishes the current block, and starts a new one
-        let previous = mem::replace(&mut self.block, Self::empty_block(self.heap, self.interner));
+        let previous = mem::replace(&mut self.block, Self::empty_block(self.heap));
         let (_, id) = Self::complete(
             previous,
             terminator,
