@@ -1,27 +1,45 @@
 //! Copy and constant propagation transformation pass.
 //!
-//! This pass propagates constant values through the MIR by tracking which locals hold known
-//! constants and substituting uses of those locals with the constant values directly.
+//! This pass propagates both constants and copies through the MIR by tracking which locals hold
+//! known values (either constants or references to other locals) and substituting uses accordingly.
 //!
 //! Unlike [`ForwardSubstitution`], this pass does not perform full data dependency analysis and
 //! cannot resolve values through projections or chained access paths. It is faster but less
-//! comprehensive, making it suitable for quick constant folding in simpler cases.
+//! comprehensive, making it suitable for quick propagation in simpler cases.
 //!
 //! # Algorithm
 //!
 //! The pass operates in a single forward traversal (reverse postorder):
 //!
-//! 1. For each block, propagates constants through block parameters when all predecessors pass the
-//!    same constant value
-//! 2. For each assignment `_x = <operand>`, if the operand is a constant or a local known to hold a
-//!    constant, records that `_x` holds that constant
-//! 3. For each use of a local known to hold a constant, substitutes the use with the constant
+//! 1. For each block, propagates values through block parameters when all predecessors pass the
+//!    same value (constant or local)
+//! 2. For each assignment `_x = <operand>`, records what `_x` holds:
+//!    - If the operand is a constant, records `_x → constant`
+//!    - If the operand is a local (possibly with a known value), records `_x → known value`
+//! 3. For each use of a local with a known value, substitutes the use with that value
+//!
+//! # Examples
+//!
+//! Constant propagation:
+//! ```text
+//! _1 = const 42; use(_1)  →  _1 = const 42; use(const 42)
+//! ```
+//!
+//! Copy propagation:
+//! ```text
+//! _2 = _1; use(_2)  →  _2 = _1; use(_1)
+//! ```
+//!
+//! Chained propagation:
+//! ```text
+//! _2 = _1; _3 = _2; use(_3)  →  _2 = _1; _3 = _1; use(_1)
+//! ```
 //!
 //! # Limitations
 //!
 //! - Does not handle projections: `_2 = (_1,); use(_2.0)` is not simplified
 //! - Does not perform fix-point iteration for loops
-//! - Only tracks constants, not arbitrary value equivalences
+//! - Assumes SSA-like semantics (locals are assigned at most once)
 //!
 //! For more comprehensive value propagation including projections, see [`ForwardSubstitution`].
 //!
@@ -46,6 +64,7 @@ use crate::{
         local::{Local, LocalVec},
         location::Location,
         operand::Operand,
+        place::Place,
         rvalue::RValue,
         statement::Assign,
     },
@@ -165,6 +184,21 @@ where
     .flatten()
 }
 
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+enum KnownValue<'heap> {
+    Constant(Constant<'heap>),
+    Local(Local),
+}
+
+impl<'heap> From<KnownValue<'heap>> for Operand<'heap> {
+    fn from(value: KnownValue<'heap>) -> Self {
+        match value {
+            KnownValue::Constant(constant) => Operand::Constant(constant),
+            KnownValue::Local(local) => Operand::Place(Place::local(local)),
+        }
+    }
+}
+
 pub struct CopyPropagation<A: BumpAllocator = Scratch> {
     alloc: A,
 }
@@ -196,7 +230,7 @@ impl<'env, 'heap, A: ResetAllocator> TransformPass<'env, 'heap> for CopyPropagat
 
         let mut visitor = CopyPropagationVisitor {
             interner: context.interner,
-            constants: IdVec::with_capacity_in(body.local_decls.len(), &self.alloc),
+            values: IdVec::with_capacity_in(body.local_decls.len(), &self.alloc),
             changed: false,
         };
 
@@ -208,10 +242,10 @@ impl<'env, 'heap, A: ResetAllocator> TransformPass<'env, 'heap> for CopyPropagat
         let mut args = Vec::new_in(&self.alloc);
 
         for &mut id in reverse_postorder {
-            for (local, constant) in
+            for (local, value) in
                 propagate_block_params(&mut args, body, id, |operand| visitor.try_eval(operand))
             {
-                visitor.constants.insert(local, constant);
+                visitor.values.insert(local, value);
             }
 
             Ok(()) =
@@ -224,28 +258,27 @@ impl<'env, 'heap, A: ResetAllocator> TransformPass<'env, 'heap> for CopyPropagat
 
 struct CopyPropagationVisitor<'env, 'heap, A: Allocator> {
     interner: &'env Interner<'heap>,
-    constants: LocalVec<Option<Constant<'heap>>, A>,
+    values: LocalVec<Option<KnownValue<'heap>>, A>,
     changed: bool,
 }
 
 impl<'heap, A: Allocator> CopyPropagationVisitor<'_, 'heap, A> {
     /// Attempts to evaluate an operand to a known constant or classify it for simplification.
-    ///
-    /// Returns `Int` if the operand is a constant integer or a local known to hold one,
-    /// `Place` if it's a non-constant place, or `Other` for operands that can't be simplified.
-    fn try_eval(&self, operand: Operand<'heap>) -> Option<Constant<'heap>> {
-        if let Operand::Constant(constant) = operand {
-            return Some(constant);
+    fn try_eval(&self, operand: Operand<'heap>) -> Option<KnownValue<'heap>> {
+        let place = match operand {
+            Operand::Place(place) => place,
+            Operand::Constant(constant) => return Some(KnownValue::Constant(constant)),
+        };
+
+        if !place.projections.is_empty() {
+            return None;
         }
 
-        if let Operand::Place(place) = operand
-            && place.projections.is_empty()
-            && let Some(&constant) = self.constants.lookup(place.local)
-        {
-            return Some(constant);
+        if let Some(&known) = self.values.lookup(place.local) {
+            return Some(known);
         }
 
-        None
+        Some(KnownValue::Local(place.local))
     }
 }
 
@@ -262,12 +295,10 @@ impl<'heap, A: Allocator> VisitorMut<'heap> for CopyPropagationVisitor<'_, 'heap
     }
 
     fn visit_operand(&mut self, _: Location, operand: &mut Operand<'heap>) -> Self::Result<()> {
-        if let Operand::Place(place) = operand
-            && place.projections.is_empty()
-            && let Some(&constant) = self.constants.lookup(place.local)
-        {
-            *operand = Operand::Constant(constant);
-            self.changed = true;
+        if let Some(known) = self.try_eval(*operand) {
+            let known: Operand<'heap> = known.into();
+            self.changed |= known != *operand;
+            *operand = known;
         }
 
         Ok(())
@@ -292,16 +323,8 @@ impl<'heap, A: Allocator> VisitorMut<'heap> for CopyPropagationVisitor<'_, 'heap
             return Ok(());
         };
 
-        match load {
-            Operand::Place(place) if place.projections.is_empty() => {
-                if let Some(&constant) = self.constants.lookup(place.local) {
-                    self.constants.insert(lhs.local, constant);
-                }
-            }
-            Operand::Place(_) => {}
-            &mut Operand::Constant(constant) => {
-                self.constants.insert(lhs.local, constant);
-            }
+        if let Some(known) = self.try_eval(*load) {
+            self.values.insert(lhs.local, known);
         }
 
         Ok(())

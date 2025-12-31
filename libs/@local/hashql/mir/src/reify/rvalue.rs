@@ -215,7 +215,7 @@ impl<'mir, 'heap> Reifier<'_, 'mir, '_, '_, 'heap> {
                     .push(fat_call_on_constant(function.span));
 
                 // Return a bogus value / place that can be used to continue lowering
-                Place::local(Local::MAX, self.context.mir.interner)
+                Place::local(Local::MAX)
             }
         };
 
@@ -293,7 +293,7 @@ impl<'mir, 'heap> Reifier<'_, 'mir, '_, '_, 'heap> {
         // that are referenced out of scope (upvars).
         let mut closure_operands = IdVec::with_capacity_in(2, self.context.mir.heap);
         closure_operands.push(Operand::Constant(Constant::FnPtr(ptr)));
-        closure_operands.push(Operand::Place(Place::local(env, self.context.mir.interner)));
+        closure_operands.push(Operand::Place(Place::local(env)));
 
         RValue::Aggregate(Aggregate {
             kind: AggregateKind::Closure,

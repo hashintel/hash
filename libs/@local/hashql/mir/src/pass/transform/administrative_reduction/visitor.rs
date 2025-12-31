@@ -221,7 +221,7 @@ impl<'heap, A: Allocator> AdministrativeReductionVisitor<'_, '_, 'heap, A> {
             .enumerate()
             .map(|(param, argument)| Statement {
                 kind: StatementKind::Assign(Assign {
-                    lhs: Place::local(Local::new(local_offset + param), self.interner),
+                    lhs: Place::local(Local::new(local_offset + param)),
                     rhs: RValue::Load(argument),
                 }),
                 span,

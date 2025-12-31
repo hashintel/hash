@@ -593,7 +593,7 @@ impl<'heap> VisitorMut<'heap> for RewireBody<'_, 'heap> {
 
         // Sanity check to ensure that our previous analysis step isn't divergent
         debug_assert_eq!(Some(current_local), self.last_def);
-        let operand = Operand::Place(Place::local(current_local, self.interner));
+        let operand = Operand::Place(Place::local(current_local));
 
         let mut args = TinyVec::from_slice_copy(&target.args);
         args.push(operand);
