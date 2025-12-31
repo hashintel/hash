@@ -18,7 +18,7 @@ use crate::{
     context::MirContext,
     def::{DefId, DefIdSlice},
     intern::Interner,
-    pass::{Changed, GlobalTransformPass as _},
+    pass::{Changed, GlobalTransformPass as _, GlobalTransformState},
     pretty::TextFormat,
 };
 
@@ -228,7 +228,11 @@ fn self_recursion_blocked() {
 
     let mut bodies = [body];
     let mut pass = AdministrativeReduction::new_in(Scratch::new());
-    let changed = pass.run(&mut context, DefIdSlice::from_raw_mut(&mut bodies));
+    let changed = pass.run(
+        &mut context,
+        &mut GlobalTransformState::new(DefIdSlice::from_raw_mut(&mut [Changed::No])),
+        DefIdSlice::from_raw_mut(&mut bodies),
+    );
 
     assert_eq!(changed, Changed::No);
 }
@@ -261,7 +265,11 @@ fn assert_admin_reduction_pass<'heap>(
         .expect("should be able to write bodies");
 
     let mut pass = AdministrativeReduction::new_in(Scratch::new());
-    let changed = pass.run(context, DefIdSlice::from_raw_mut(bodies));
+    let changed = pass.run(
+        context,
+        &mut GlobalTransformState::new_in(DefIdSlice::from_raw(bodies), context.heap),
+        DefIdSlice::from_raw_mut(bodies),
+    );
 
     write!(
         text_format.writer,

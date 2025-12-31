@@ -3,6 +3,7 @@ use std::io::Write as _;
 use hashql_ast::node::expr::Expr;
 use hashql_core::{
     heap::{Heap, Scratch},
+    id::IdVec,
     r#type::environment::Environment,
 };
 use hashql_diagnostics::DiagnosticIssues;
@@ -11,7 +12,9 @@ use hashql_mir::{
     context::MirContext,
     def::{DefId, DefIdSlice, DefIdVec},
     intern::Interner,
-    pass::{Changed, GlobalTransformPass as _, transform::AdministrativeReduction},
+    pass::{
+        Changed, GlobalTransformPass as _, GlobalTransformState, transform::AdministrativeReduction,
+    },
 };
 
 use super::{
@@ -43,7 +46,12 @@ pub(crate) fn mir_pass_transform_administrative_reduction<'heap>(
     };
 
     let mut pass = AdministrativeReduction::new_in(&mut scratch);
-    let _: Changed = pass.run(&mut context, &mut bodies);
+    let mut changed = IdVec::from_domain(Changed::No, &bodies);
+    let _: Changed = pass.run(
+        &mut context,
+        &mut GlobalTransformState::new(&mut changed),
+        &mut bodies,
+    );
 
     process_issues(diagnostics, context.diagnostics)?;
     Ok((root, bodies, scratch))
