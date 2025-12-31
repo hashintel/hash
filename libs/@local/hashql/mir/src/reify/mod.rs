@@ -246,7 +246,7 @@ impl<'ctx, 'mir, 'hir, 'env, 'heap> Reifier<'ctx, 'mir, 'hir, 'env, 'heap> {
                 block.push_statement(Statement {
                     span,
                     kind: StatementKind::Assign(Assign {
-                        lhs: Place::local(local, self.context.mir.interner),
+                        lhs: Place::local(local),
                         rhs: RValue::Load(Operand::Place(Place {
                             local: env,
                             projections: self.context.mir.interner.projections.intern_slice(&[
@@ -372,13 +372,12 @@ impl<'ctx, 'mir, 'hir, 'env, 'heap> Reifier<'ctx, 'mir, 'hir, 'env, 'heap> {
                     r#type: closure_type.returns,
                     name: None,
                 });
-                let lhs = Place::local(output, this.context.mir.interner);
+                let lhs = Place::local(output);
 
                 let operand = if let Some(param) = param {
                     Operand::Place(Place::local(
                         this.locals[param.id]
                             .unwrap_or_else(|| unreachable!("We just verified this local exists")),
-                        this.context.mir.interner,
                     ))
                 } else {
                     Operand::Constant(Constant::Unit)

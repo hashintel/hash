@@ -69,10 +69,7 @@ impl<'mir, 'heap> Reifier<'_, 'mir, '_, '_, 'heap> {
                 continue;
             };
 
-            tuple_elements.push(Operand::Place(Place::local(
-                capture_local,
-                self.context.mir.interner,
-            )));
+            tuple_elements.push(Operand::Place(Place::local(capture_local)));
 
             tuple_element_ty.push(self.local_decls[capture_local].r#type);
         }
@@ -88,7 +85,7 @@ impl<'mir, 'heap> Reifier<'_, 'mir, '_, '_, 'heap> {
         block.push_statement(Statement {
             span: hir.span,
             kind: StatementKind::Assign(Assign {
-                lhs: Place::local(env_local, self.context.mir.interner),
+                lhs: Place::local(env_local),
                 rhs: RValue::Aggregate(Aggregate {
                     kind: AggregateKind::Tuple,
                     operands: tuple_elements,
@@ -126,7 +123,7 @@ impl<'mir, 'heap> Reifier<'_, 'mir, '_, '_, 'heap> {
             block.push_statement(Statement {
                 span: binding.span,
                 kind: StatementKind::Assign(Assign {
-                    lhs: Place::local(local, self.context.mir.interner),
+                    lhs: Place::local(local),
                     rhs: rvalue,
                 }),
             });
