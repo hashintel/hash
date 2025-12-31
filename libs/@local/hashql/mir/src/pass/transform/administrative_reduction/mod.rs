@@ -72,7 +72,7 @@ use crate::{
     def::{DefId, DefIdSlice, DefIdVec},
     pass::{
         Changed, GlobalTransformPass, TransformPass, analysis::CallGraph,
-        transform::cp::propagate_block_params,
+        transform::copy_propagation::propagate_block_params,
     },
     visit::VisitorMut as _,
 };
