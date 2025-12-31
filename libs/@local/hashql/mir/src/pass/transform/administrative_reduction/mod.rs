@@ -71,7 +71,7 @@ use crate::{
     context::MirContext,
     def::{DefId, DefIdSlice, DefIdVec},
     pass::{
-        Changed, GlobalTransformPass, TransformPass, analysis::CallGraph,
+        Changed, GlobalTransformPass, GlobalTransformState, TransformPass, analysis::CallGraph,
         transform::copy_propagation::propagate_block_params,
     },
     visit::VisitorMut as _,
@@ -195,6 +195,7 @@ impl<'env, 'heap, A: ResetAllocator> GlobalTransformPass<'env, 'heap>
     fn run(
         &mut self,
         context: &mut MirContext<'env, 'heap>,
+        state: &mut GlobalTransformState<'_>,
         bodies: &mut DefIdSlice<Body<'heap>>,
     ) -> Changed {
         self.alloc.reset();
@@ -229,6 +230,7 @@ impl<'env, 'heap, A: ResetAllocator> GlobalTransformPass<'env, 'heap>
 
             let body_changed = pass.run(context, body);
             changed |= body_changed;
+            state.mark(id, body_changed);
 
             // If this body was transformed and wasn't already reducible, reclassify it.
             // This enables callers (processed later in postorder) to reduce calls to this body.
