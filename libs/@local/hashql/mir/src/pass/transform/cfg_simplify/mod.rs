@@ -122,12 +122,7 @@ impl<A: BumpAllocator> CfgSimplify<A> {
     /// 3. Replace `A`'s terminator with `B`'s terminator
     ///
     /// SSA invariants may be temporarily broken; the [`SsaRepair`] runs afterward to fix them.
-    fn simplify_goto<'heap>(
-        context: &MirContext<'_, 'heap>,
-        body: &mut Body<'heap>,
-        id: BasicBlockId,
-        goto: Goto<'heap>,
-    ) -> bool {
+    fn simplify_goto<'heap>(body: &mut Body<'heap>, id: BasicBlockId, goto: Goto<'heap>) -> bool {
         // Self-loops cannot be optimized as there's no simplification possible.
         if goto.target.block == id {
             return false;
@@ -170,7 +165,7 @@ impl<A: BumpAllocator> CfgSimplify<A> {
             block.statements.push(Statement {
                 span: block.terminator.span,
                 kind: StatementKind::Assign(Assign {
-                    lhs: Place::local(param, context.interner),
+                    lhs: Place::local(param),
                     rhs: RValue::Load(arg),
                 }),
             });
@@ -424,7 +419,7 @@ impl<A: BumpAllocator> CfgSimplify<A> {
             .transfer_into(&self.alloc);
 
         let changed = match &body.basic_blocks[id].terminator.kind {
-            &TerminatorKind::Goto(goto) => Self::simplify_goto(context, body, id, goto),
+            &TerminatorKind::Goto(goto) => Self::simplify_goto(body, id, goto),
             TerminatorKind::SwitchInt(_) => Self::simplify_switch_int(context, body, id),
             TerminatorKind::Return(_)
             | TerminatorKind::GraphRead(_)

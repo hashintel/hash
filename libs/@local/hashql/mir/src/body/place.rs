@@ -315,10 +315,11 @@ impl<'heap> Place<'heap> {
     /// This is the simplest form of a place, representing direct access to a local variable
     /// without navigating through any structured data. The resulting place has an empty
     /// projection sequence.
-    pub fn local(local: Local, interner: &Interner<'heap>) -> Self {
+    #[must_use]
+    pub const fn local(local: Local) -> Self {
         Self {
             local,
-            projections: interner.projections.intern_slice(&[]),
+            projections: Interned::empty(),
         }
     }
 
