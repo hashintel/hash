@@ -111,7 +111,8 @@ impl<'env, 'heap> BodyBuilder<'env, 'heap> {
     ///
     /// # Panics
     ///
-    /// Panics if any block still has a placeholder terminator (wasn't built).
+    /// Panics if any block still has a placeholder terminator (wasn't built) or there are more
+    /// arguments declared than local declarations.
     #[must_use]
     pub fn finish(self, args: usize, return_ty: TypeId) -> Body<'heap> {
         // Validate all blocks have been built
@@ -119,6 +120,7 @@ impl<'env, 'heap> BodyBuilder<'env, 'heap> {
             self.finished.iter().all(|&finished| finished),
             "unfinished blocks"
         );
+        assert!(args <= self.local_decls.len());
 
         Body {
             id: DefId::MAX,
@@ -218,7 +220,7 @@ impl<'env, 'heap> Deref for BodyBuilder<'env, 'heap> {
 /// - Literals: `42` (i64), `3.14` (f64), `true`/`false` (bool)
 /// - Unit: `()`
 /// - Null: `null`
-/// - Function pointers: `fn() @ def_id`
+/// - Function pointers: simply reference the variable that defines it, for example `def_id`
 ///
 /// # Example
 ///
