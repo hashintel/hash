@@ -74,20 +74,17 @@ pub enum SwitchIntValue {
 /// let targets = SwitchTargets::new(
 ///     &heap,
 ///     [
-///         (0, Target::block(bb0, &interner)),
-///         (1, Target::block(bb1, &interner)),
-///         (2, Target::block(bb2, &interner)),
+///         (0, Target::block(bb0)),
+///         (1, Target::block(bb1)),
+///         (2, Target::block(bb2)),
 ///     ],
-///     Some(Target::block(otherwise, &interner)),
+///     Some(Target::block(otherwise)),
 /// );
 ///
 /// // Values are automatically sorted
 /// assert_eq!(targets.values(), &[0, 1, 2]);
-/// assert_eq!(targets.target(1), Some(Target::block(bb1, &interner)));
-/// assert_eq!(
-///     targets.target(99),
-///     Some(Target::block(otherwise, &interner))
-/// );
+/// assert_eq!(targets.target(1), Some(Target::block(bb1)));
+/// assert_eq!(targets.target(99), Some(Target::block(otherwise)));
 /// ```
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct SwitchTargets<'heap> {
@@ -131,11 +128,11 @@ impl<'heap> SwitchTargets<'heap> {
     /// let targets = SwitchTargets::new(
     ///     &heap,
     ///     [
-    ///         (10, Target::block(BasicBlockId::new(0), &interner)),
-    ///         (20, Target::block(BasicBlockId::new(1), &interner)),
-    ///         (30, Target::block(BasicBlockId::new(2), &interner)),
+    ///         (10, Target::block(BasicBlockId::new(0))),
+    ///         (20, Target::block(BasicBlockId::new(1))),
+    ///         (30, Target::block(BasicBlockId::new(2))),
     ///     ],
-    ///     Some(Target::block(BasicBlockId::new(3), &interner)),
+    ///     Some(Target::block(BasicBlockId::new(3))),
     /// );
     ///
     /// assert_eq!(targets.values(), &[10, 20, 30]);
@@ -158,11 +155,7 @@ impl<'heap> SwitchTargets<'heap> {
     /// let heap = Heap::new();
     /// let interner = Interner::new(&heap);
     ///
-    /// let targets = SwitchTargets::new(
-    ///     &heap,
-    ///     [(0, Target::block(BasicBlockId::new(0), &interner))],
-    ///     None,
-    /// );
+    /// let targets = SwitchTargets::new(&heap, [(0, Target::block(BasicBlockId::new(0)))], None);
     ///
     /// assert_eq!(targets.otherwise(), None);
     /// assert_eq!(targets.target(99), None); // No otherwise, so None for unmatched values
@@ -214,8 +207,8 @@ impl<'heap> SwitchTargets<'heap> {
     /// let heap = Heap::new();
     /// let interner = Interner::new(&heap);
     ///
-    /// let then_block = Target::block(BasicBlockId::new(1), &interner);
-    /// let else_block = Target::block(BasicBlockId::new(2), &interner);
+    /// let then_block = Target::block(BasicBlockId::new(1));
+    /// let else_block = Target::block(BasicBlockId::new(2));
     ///
     /// let targets = SwitchTargets::new_if(&heap, then_block, else_block);
     ///
@@ -261,8 +254,8 @@ impl<'heap> SwitchTargets<'heap> {
     /// let heap = Heap::new();
     /// let interner = Interner::new(&heap);
     ///
-    /// let then_block = Target::block(BasicBlockId::new(1), &interner);
-    /// let else_block = Target::block(BasicBlockId::new(2), &interner);
+    /// let then_block = Target::block(BasicBlockId::new(1));
+    /// let else_block = Target::block(BasicBlockId::new(2));
     ///
     /// // Binary switch can be converted
     /// let binary = SwitchTargets::new_if(&heap, then_block, else_block);
@@ -316,11 +309,11 @@ impl<'heap> SwitchTargets<'heap> {
     /// let heap = Heap::new();
     /// let interner = Interner::new(&heap);
     ///
-    /// let default = Target::block(BasicBlockId::new(99), &interner);
+    /// let default = Target::block(BasicBlockId::new(99));
     ///
     /// let with_otherwise = SwitchTargets::new(
     ///     &heap,
-    ///     [(1, Target::block(BasicBlockId::new(0), &interner))],
+    ///     [(1, Target::block(BasicBlockId::new(0)))],
     ///     Some(default),
     /// );
     /// assert_eq!(with_otherwise.otherwise(), Some(default));
@@ -353,9 +346,9 @@ impl<'heap> SwitchTargets<'heap> {
     /// let heap = Heap::new();
     /// let interner = Interner::new(&heap);
     ///
-    /// let bb0 = Target::block(BasicBlockId::new(0), &interner);
-    /// let bb1 = Target::block(BasicBlockId::new(1), &interner);
-    /// let otherwise = Target::block(BasicBlockId::new(99), &interner);
+    /// let bb0 = Target::block(BasicBlockId::new(0));
+    /// let bb1 = Target::block(BasicBlockId::new(1));
+    /// let otherwise = Target::block(BasicBlockId::new(99));
     ///
     /// let targets = SwitchTargets::new(&heap, [(10, bb0), (20, bb1)], Some(otherwise));
     ///
@@ -417,8 +410,8 @@ impl<'heap> SwitchTargets<'heap> {
     /// let mut targets = SwitchTargets::new(
     ///     &heap,
     ///     [
-    ///         (1, Target::block(BasicBlockId::new(0), &interner)),
-    ///         (2, Target::block(BasicBlockId::new(1), &interner)),
+    ///         (1, Target::block(BasicBlockId::new(0))),
+    ///         (2, Target::block(BasicBlockId::new(1))),
     ///     ],
     ///     None,
     /// );
@@ -459,10 +452,10 @@ impl<'heap> SwitchTargets<'heap> {
     /// let targets = SwitchTargets::new(
     ///     &heap,
     ///     [
-    ///         (10, Target::block(BasicBlockId::new(0), &interner)),
-    ///         (20, Target::block(BasicBlockId::new(1), &interner)),
+    ///         (10, Target::block(BasicBlockId::new(0))),
+    ///         (20, Target::block(BasicBlockId::new(1))),
     ///     ],
-    ///     Some(Target::block(BasicBlockId::new(99), &interner)),
+    ///     Some(Target::block(BasicBlockId::new(99))),
     /// );
     ///
     /// let pairs: Vec<_> = targets.iter().collect();
@@ -501,8 +494,8 @@ impl<'heap> SwitchTargets<'heap> {
     /// let mut targets = SwitchTargets::new(
     ///     &heap,
     ///     [
-    ///         (10, Target::block(BasicBlockId::new(0), &interner)),
-    ///         (20, Target::block(BasicBlockId::new(1), &interner)),
+    ///         (10, Target::block(BasicBlockId::new(0))),
+    ///         (20, Target::block(BasicBlockId::new(1))),
     ///     ],
     ///     None,
     /// );
@@ -545,8 +538,8 @@ impl<'heap> SwitchTargets<'heap> {
     ///
     /// let mut targets = SwitchTargets::new(&heap, [], None);
     ///
-    /// targets.add_target(10, Target::block(BasicBlockId::new(0), &interner));
-    /// targets.add_target(5, Target::block(BasicBlockId::new(1), &interner));
+    /// targets.add_target(10, Target::block(BasicBlockId::new(0)));
+    /// targets.add_target(5, Target::block(BasicBlockId::new(1)));
     ///
     /// // Values are kept sorted
     /// assert_eq!(targets.values(), &[5, 10]);
@@ -587,16 +580,12 @@ impl<'heap> SwitchTargets<'heap> {
     /// let heap = Heap::new();
     /// let interner = Interner::new(&heap);
     ///
-    /// let mut first = SwitchTargets::new(
-    ///     &heap,
-    ///     [(10, Target::block(BasicBlockId::new(0), &interner))],
-    ///     None,
-    /// );
+    /// let mut first = SwitchTargets::new(&heap, [(10, Target::block(BasicBlockId::new(0)))], None);
     ///
     /// let mut second = SwitchTargets::new(
     ///     &heap,
-    ///     [(20, Target::block(BasicBlockId::new(1), &interner))],
-    ///     Some(Target::block(BasicBlockId::new(99), &interner)),
+    ///     [(20, Target::block(BasicBlockId::new(1)))],
+    ///     Some(Target::block(BasicBlockId::new(99))),
     /// );
     ///
     /// first.append(&mut second);
@@ -702,11 +691,11 @@ impl<'heap> SwitchTargets<'heap> {
 /// let targets = SwitchTargets::new(
 ///     &heap,
 ///     [
-///         (0, Target::block(BasicBlockId::new(0), &interner)),
-///         (1, Target::block(BasicBlockId::new(1), &interner)),
-///         (2, Target::block(BasicBlockId::new(2), &interner)),
+///         (0, Target::block(BasicBlockId::new(0))),
+///         (1, Target::block(BasicBlockId::new(1))),
+///         (2, Target::block(BasicBlockId::new(2))),
 ///     ],
-///     Some(Target::block(BasicBlockId::new(3), &interner)), // otherwise
+///     Some(Target::block(BasicBlockId::new(3))), // otherwise
 /// );
 ///
 /// // Create the switch with an integer discriminant
@@ -734,12 +723,12 @@ impl<'heap> SwitchTargets<'heap> {
 /// let heap = Heap::new();
 /// let interner = Interner::new(&heap);
 ///
-/// let then_target = Target::block(BasicBlockId::new(1), &interner);
-/// let else_target = Target::block(BasicBlockId::new(2), &interner);
+/// let then_target = Target::block(BasicBlockId::new(1));
+/// let else_target = Target::block(BasicBlockId::new(2));
 ///
 /// // Create a binary switch for if-else
 /// let switch = SwitchInt {
-///     discriminant: Operand::Place(Place::local(Local::new(0), &interner)),
+///     discriminant: Operand::Place(Place::local(Local::new(0))),
 ///     targets: SwitchTargets::new_if(&heap, then_target, else_target),
 /// };
 ///
