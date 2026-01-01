@@ -5,11 +5,12 @@
     clippy::similar_names
 )]
 
-use core::{cmp, hint::black_box};
+use core::hint::black_box;
 
 use codspeed_criterion_compat::{BatchSize, Bencher, Criterion, criterion_group, criterion_main};
 use hashql_core::{
     heap::{Heap, ResetAllocator as _, Scratch},
+    id::IdSlice,
     r#type::{TypeBuilder, environment::Environment},
 };
 use hashql_diagnostics::DiagnosticIssues;
@@ -17,11 +18,14 @@ use hashql_mir::{
     body::Body,
     builder::BodyBuilder,
     context::MirContext,
+    def::DefId,
     intern::Interner,
     op,
     pass::{
-        TransformPass,
-        transform::{CfgSimplify, DeadStoreElimination, ForwardSubstitution, InstSimplify},
+        GlobalTransformPass as _, GlobalTransformState, TransformPass,
+        transform::{
+            CfgSimplify, DeadStoreElimination, ForwardSubstitution, InstSimplify, PreInlining,
+        },
     },
 };
 
@@ -64,7 +68,9 @@ fn create_linear_cfg<'heap>(env: &Environment<'heap>, interner: &Interner<'heap>
         .assign_place(z, |rv| rv.binary(y, op![==], const_3))
         .ret(z);
 
-    builder.finish(0, TypeBuilder::synthetic(env).integer())
+    let mut body = builder.finish(0, TypeBuilder::synthetic(env).integer());
+    body.id = DefId::new(0);
+    body
 }
 
 /// Creates a branching CFG body with a diamond pattern for benchmarking.
@@ -113,7 +119,9 @@ fn create_diamond_cfg<'heap>(env: &Environment<'heap>, interner: &Interner<'heap
         .assign_place(result, |rv| rv.load(p))
         .ret(result);
 
-    builder.finish(1, TypeBuilder::synthetic(env).integer())
+    let mut body = builder.finish(1, TypeBuilder::synthetic(env).integer());
+    body.id = DefId::new(0);
+    body
 }
 
 /// Creates a body with dead code for dead store elimination benchmarking.
@@ -149,7 +157,9 @@ fn create_dead_store_cfg<'heap>(
         .assign_place(y, |rv| rv.binary(x, op![==], const_2))
         .ret(y);
 
-    builder.finish(0, TypeBuilder::synthetic(env).integer())
+    let mut body = builder.finish(0, TypeBuilder::synthetic(env).integer());
+    body.id = DefId::new(0);
+    body
 }
 
 /// Creates a body with patterns that `InstSimplify` can optimize.
@@ -205,7 +215,9 @@ fn create_inst_simplify_cfg<'heap>(
         .assign_place(f, |rv| rv.binary(e, op![&], d))
         .ret(f);
 
-    builder.finish(0, TypeBuilder::synthetic(env).boolean())
+    let mut body = builder.finish(0, TypeBuilder::synthetic(env).boolean());
+    body.id = DefId::new(0);
+    body
 }
 
 /// Creates a larger CFG with multiple branches and join points for more realistic benchmarking.
@@ -440,54 +452,39 @@ fn pipeline(criterion: &mut Criterion) {
         let mut scratch = Scratch::new();
 
         run_bencher(bencher, create_linear_cfg, |context, body| {
-            let mut changed = CfgSimplify::new_in(&mut scratch).run(context, body);
-            changed = cmp::max(
-                changed,
-                ForwardSubstitution::new_in(&mut scratch).run(context, body),
-            );
-            changed = cmp::max(changed, InstSimplify::new().run(context, body));
-            changed = cmp::max(
-                changed,
-                DeadStoreElimination::new_in(&mut scratch).run(context, body),
-            );
+            let bodies = IdSlice::from_raw_mut(core::slice::from_mut(body));
 
-            changed
+            PreInlining::new_in(&mut scratch).run(
+                context,
+                &mut GlobalTransformState::new_in(bodies, context.heap),
+                bodies,
+            )
         });
     });
     group.bench_function("diamond", |bencher| {
         let mut scratch = Scratch::new();
 
         run_bencher(bencher, create_diamond_cfg, |context, body| {
-            let mut changed = CfgSimplify::new_in(&mut scratch).run(context, body);
-            changed = cmp::max(
-                changed,
-                ForwardSubstitution::new_in(&mut scratch).run(context, body),
-            );
-            changed = cmp::max(changed, InstSimplify::new().run(context, body));
-            changed = cmp::max(
-                changed,
-                DeadStoreElimination::new_in(&mut scratch).run(context, body),
-            );
+            let bodies = IdSlice::from_raw_mut(core::slice::from_mut(body));
 
-            changed
+            PreInlining::new_in(&mut scratch).run(
+                context,
+                &mut GlobalTransformState::new_in(bodies, context.heap),
+                bodies,
+            )
         });
     });
     group.bench_function("complex", |bencher| {
         let mut scratch = Scratch::new();
 
         run_bencher(bencher, create_complex_cfg, |context, body| {
-            let mut changed = CfgSimplify::new_in(&mut scratch).run(context, body);
-            changed = cmp::max(
-                changed,
-                ForwardSubstitution::new_in(&mut scratch).run(context, body),
-            );
-            changed = cmp::max(changed, InstSimplify::new().run(context, body));
-            changed = cmp::max(
-                changed,
-                DeadStoreElimination::new_in(&mut scratch).run(context, body),
-            );
+            let bodies = IdSlice::from_raw_mut(core::slice::from_mut(body));
 
-            changed
+            PreInlining::new_in(&mut scratch).run(
+                context,
+                &mut GlobalTransformState::new_in(bodies, context.heap),
+                bodies,
+            )
         });
     });
 }
