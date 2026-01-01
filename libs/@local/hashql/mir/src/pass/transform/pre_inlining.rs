@@ -177,6 +177,8 @@ impl<'env, 'heap, A: ResetAllocator> GlobalTransformPass<'env, 'heap> for PreInl
         _: &mut GlobalTransformState<'_>,
         bodies: &mut DefIdSlice<Body<'heap>>,
     ) -> Changed {
+        self.alloc.reset();
+
         // We would be able to move this to the scratch space, if we only had proper checkpointing
         // support.
         let mut state = DefIdVec::from_domain_in(Changed::No, bodies, Global);
