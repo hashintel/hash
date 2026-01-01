@@ -8,16 +8,23 @@
 //   Iter 2: FS propagates `b = true`, CFG folds second if → `c = true`
 //   Iter 3: FS propagates `c = true`, CFG folds final if → "yes"
 [
-  "if", {"#literal": true},
+  "if",
+  { "#literal": true },
   [
-    "let", "a", {"#literal": true},
+    "let",
+    "a",
+    { "#literal": true },
     [
-      "let", "b", ["if", "a", {"#literal": true}, {"#literal": false}],
+      "let",
+      "b",
+      ["if", "a", { "#literal": true }, { "#literal": false }],
       [
-        "let", "c", ["if", "b", {"#literal": true}, {"#literal": false}],
-        ["if", "c", {"#literal": "yes"}, {"#literal": "no"}]
+        "let",
+        "c",
+        ["if", "b", { "#literal": true }, { "#literal": false }],
+        ["if", "c", { "#literal": "yes" }, { "#literal": "no" }]
       ]
     ]
   ],
-  {"#literal": 0}
+  { "#literal": 0 }
 ]
