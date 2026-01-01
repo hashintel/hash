@@ -40,7 +40,7 @@ use hashql_core::{
         Predecessors as _,
         algorithms::{IteratedDominanceFrontier, dominance_frontiers, iterated_dominance_frontier},
     },
-    heap::{BumpAllocator, Heap, ResetAllocator, Scratch},
+    heap::{BumpAllocator, Heap, Scratch},
     intern::Interned,
 };
 
@@ -161,9 +161,8 @@ impl Default for SsaRepair {
     }
 }
 
-impl<'env, 'heap, A: ResetAllocator> TransformPass<'env, 'heap> for SsaRepair<A> {
+impl<'env, 'heap, A: BumpAllocator> TransformPass<'env, 'heap> for SsaRepair<A> {
     fn run(&mut self, context: &mut MirContext<'env, 'heap>, body: &mut Body<'heap>) -> Changed {
-        self.alloc.reset();
         let mut sites = DefSites::new_in(body, &self.alloc);
         sites.visit_body(body);
 

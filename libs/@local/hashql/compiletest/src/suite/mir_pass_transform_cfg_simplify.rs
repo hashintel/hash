@@ -5,7 +5,7 @@ use std::{
 
 use hashql_ast::node::expr::Expr;
 use hashql_core::{
-    heap::{Heap, Scratch},
+    heap::{Heap, ResetAllocator, Scratch},
     r#type::environment::Environment,
 };
 use hashql_diagnostics::DiagnosticIssues;
@@ -65,6 +65,7 @@ pub(crate) fn mir_pass_transform_cfg_simplify<'heap>(
     for body in bodies.as_mut_slice() {
         let _: Changed = pass.run(&mut context, body);
     }
+    scratch.reset();
 
     process_issues(diagnostics, context.diagnostics)?;
 

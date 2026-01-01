@@ -85,7 +85,7 @@ where
     #[must_use]
     pub fn new_in(domain_size: usize, alloc: A) -> Self {
         Self {
-            queue: VecDeque::new_in(alloc),
+            queue: VecDeque::with_capacity_in(domain_size, alloc),
             set: DenseBitSet::new_empty(domain_size),
         }
     }

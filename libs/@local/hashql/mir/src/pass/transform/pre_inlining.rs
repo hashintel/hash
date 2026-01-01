@@ -6,7 +6,10 @@
 use alloc::alloc::Global;
 use core::alloc::Allocator;
 
-use hashql_core::{heap::ResetAllocator, id::bit_vec::DenseBitSet};
+use hashql_core::{
+    heap::{BumpAllocator, ResetAllocator},
+    id::bit_vec::DenseBitSet,
+};
 
 use super::{
     AdministrativeReduction, CfgSimplify, DeadStoreElimination, ForwardSubstitution, InstSimplify,
@@ -50,7 +53,7 @@ pub struct PreInlining<A: Allocator> {
     alloc: A,
 }
 
-impl<A: ResetAllocator> PreInlining<A> {
+impl<A: BumpAllocator> PreInlining<A> {
     /// Creates a new pre-inlining pass with the given allocator.
     ///
     /// The allocator is used for temporary data structures within sub-passes and is reset
@@ -107,8 +110,10 @@ impl<A: ResetAllocator> PreInlining<A> {
         unstable: &DenseBitSet<DefId>,
         state: &mut DefIdSlice<Changed>,
     ) -> Changed {
-        let pass = CopyPropagation::new_in(&mut self.alloc);
-        Self::run_local_pass(context, bodies, pass, unstable, state)
+        self.alloc.scoped(|alloc| {
+            let pass = CopyPropagation::new_in(alloc);
+            Self::run_local_pass(context, bodies, pass, unstable, state)
+        })
     }
 
     fn cfg_simplify<'heap>(
@@ -118,8 +123,10 @@ impl<A: ResetAllocator> PreInlining<A> {
         unstable: &DenseBitSet<DefId>,
         state: &mut DefIdSlice<Changed>,
     ) -> Changed {
-        let pass = CfgSimplify::new_in(&mut self.alloc);
-        Self::run_local_pass(context, bodies, pass, unstable, state)
+        self.alloc.scoped(|alloc| {
+            let pass = CfgSimplify::new_in(alloc);
+            Self::run_local_pass(context, bodies, pass, unstable, state)
+        })
     }
 
     fn inst_simplify<'heap>(
@@ -129,8 +136,10 @@ impl<A: ResetAllocator> PreInlining<A> {
         unstable: &DenseBitSet<DefId>,
         state: &mut DefIdSlice<Changed>,
     ) -> Changed {
-        let pass = InstSimplify::new_in(&mut self.alloc);
-        Self::run_local_pass(context, bodies, pass, unstable, state)
+        self.alloc.scoped(|alloc| {
+            let pass = InstSimplify::new_in(alloc);
+            Self::run_local_pass(context, bodies, pass, unstable, state)
+        })
     }
 
     fn forward_substitution<'heap>(
@@ -140,8 +149,10 @@ impl<A: ResetAllocator> PreInlining<A> {
         unstable: &DenseBitSet<DefId>,
         state: &mut DefIdSlice<Changed>,
     ) -> Changed {
-        let pass = ForwardSubstitution::new_in(&mut self.alloc);
-        Self::run_local_pass(context, bodies, pass, unstable, state)
+        self.alloc.scoped(|alloc| {
+            let pass = ForwardSubstitution::new_in(alloc);
+            Self::run_local_pass(context, bodies, pass, unstable, state)
+        })
     }
 
     fn administrative_reduction<'heap>(
@@ -151,8 +162,10 @@ impl<A: ResetAllocator> PreInlining<A> {
 
         state: &mut DefIdSlice<Changed>,
     ) -> Changed {
-        let pass = AdministrativeReduction::new_in(&mut self.alloc);
-        Self::run_global_pass(context, bodies, pass, state)
+        self.alloc.scoped(|alloc| {
+            let pass = AdministrativeReduction::new_in(alloc);
+            Self::run_global_pass(context, bodies, pass, state)
+        })
     }
 
     fn dse<'heap>(
@@ -162,14 +175,16 @@ impl<A: ResetAllocator> PreInlining<A> {
         unstable: &DenseBitSet<DefId>,
         state: &mut DefIdSlice<Changed>,
     ) -> Changed {
-        let pass = DeadStoreElimination::new_in(&mut self.alloc);
-        Self::run_local_pass(context, bodies, pass, unstable, state)
+        self.alloc.scoped(|alloc| {
+            let pass = DeadStoreElimination::new_in(alloc);
+            Self::run_local_pass(context, bodies, pass, unstable, state)
+        })
     }
 }
 
 const MAX_ITERATIONS: usize = 16;
 
-impl<'env, 'heap, A: ResetAllocator> GlobalTransformPass<'env, 'heap> for PreInlining<A> {
+impl<'env, 'heap, A: BumpAllocator> GlobalTransformPass<'env, 'heap> for PreInlining<A> {
     #[expect(clippy::integer_division_remainder_used)]
     fn run(
         &mut self,
@@ -177,11 +192,13 @@ impl<'env, 'heap, A: ResetAllocator> GlobalTransformPass<'env, 'heap> for PreInl
         _: &mut GlobalTransformState<'_>,
         bodies: &mut DefIdSlice<Body<'heap>>,
     ) -> Changed {
-        self.alloc.reset();
+        let state = {
+            let uninit = self.alloc.allocate_slice_uninit(bodies.len());
+            let init = uninit.write_filled(Changed::No);
 
-        // We would be able to move this to the scratch space, if we only had proper checkpointing
-        // support.
-        let mut state = DefIdVec::from_domain_in(Changed::No, bodies, Global);
+            DefIdSlice::from_raw_mut(init)
+        };
+
         let mut unstable = DenseBitSet::new_filled(bodies.len());
 
         // Pre-pass: run CP + CFG once before the fixpoint loop.
@@ -191,8 +208,8 @@ impl<'env, 'heap, A: ResetAllocator> GlobalTransformPass<'env, 'heap> for PreInl
         // merges straight-line code. This shrinks the MIR upfront so more expensive passes
         // run on smaller, cleaner bodies.
         let mut global_changed = Changed::No;
-        global_changed |= self.copy_propagation(context, bodies, &unstable, &mut state);
-        global_changed |= self.cfg_simplify(context, bodies, &unstable, &mut state);
+        global_changed |= self.copy_propagation(context, bodies, &unstable, state);
+        global_changed |= self.cfg_simplify(context, bodies, &unstable, state);
 
         let mut iter = 0;
         loop {
@@ -217,8 +234,8 @@ impl<'env, 'heap, A: ResetAllocator> GlobalTransformPass<'env, 'heap> for PreInl
             //    producing a minimal CFG that maximizes the next iteration's effectiveness.
 
             let mut changed = Changed::No;
-            changed |= self.administrative_reduction(context, bodies, &mut state);
-            changed |= self.inst_simplify(context, bodies, &unstable, &mut state);
+            changed |= self.administrative_reduction(context, bodies, state);
+            changed |= self.inst_simplify(context, bodies, &unstable, state);
 
             // FS vs CP strategy: ForwardSubstitution is more powerful but expensive;
             // CopyPropagation is cheaper but weaker. We start with FS (iter=0) to
@@ -226,13 +243,13 @@ impl<'env, 'heap, A: ResetAllocator> GlobalTransformPass<'env, 'heap> for PreInl
             // redundancy. Subsequent iterations alternate: CP maintains propagation
             // cheaply, while periodic FS picks up deeper opportunities.
             changed |= if iter % 2 == 0 {
-                self.forward_substitution(context, bodies, &unstable, &mut state)
+                self.forward_substitution(context, bodies, &unstable, state)
             } else {
-                self.copy_propagation(context, bodies, &unstable, &mut state)
+                self.copy_propagation(context, bodies, &unstable, state)
             };
 
-            changed |= self.dse(context, bodies, &unstable, &mut state);
-            changed |= self.cfg_simplify(context, bodies, &unstable, &mut state);
+            changed |= self.dse(context, bodies, &unstable, state);
+            changed |= self.cfg_simplify(context, bodies, &unstable, state);
 
             global_changed |= changed;
             if changed == Changed::No {

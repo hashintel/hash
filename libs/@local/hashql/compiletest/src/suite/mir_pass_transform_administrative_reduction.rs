@@ -2,7 +2,7 @@ use std::io::Write as _;
 
 use hashql_ast::node::expr::Expr;
 use hashql_core::{
-    heap::{Heap, Scratch},
+    heap::{Heap, ResetAllocator, Scratch},
     id::IdVec,
     r#type::environment::Environment,
 };
@@ -52,6 +52,7 @@ pub(crate) fn mir_pass_transform_administrative_reduction<'heap>(
         &mut GlobalTransformState::new(&mut changed),
         &mut bodies,
     );
+    scratch.reset();
 
     process_issues(diagnostics, context.diagnostics)?;
     Ok((root, bodies, scratch))

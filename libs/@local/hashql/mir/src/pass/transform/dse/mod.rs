@@ -50,7 +50,7 @@ use core::{alloc::Allocator, convert::Infallible};
 
 use hashql_core::{
     collections::WorkQueue,
-    heap::{BumpAllocator, ResetAllocator, Scratch},
+    heap::{BumpAllocator, Scratch},
     id::{
         Id as _,
         bit_vec::{BitMatrix, DenseBitSet},
@@ -106,8 +106,8 @@ impl<A: BumpAllocator> DeadStoreElimination<A> {
     /// Uses a backwards "mark-live" algorithm: starting from root uses (observable uses like
     /// return values and branch conditions), propagates liveness through the dependency graph.
     /// Returns the complement (all locals not marked live).
-    fn dead_locals(&self, body: &Body<'_>) -> DenseBitSet<Local> {
-        let mut dependencies = DependencyVisitor::new_in(body, &self.alloc);
+    fn dead_locals<S: Allocator>(body: &Body<'_>, scratch: &S) -> DenseBitSet<Local> {
+        let mut dependencies = DependencyVisitor::new_in(body, scratch);
         dependencies.visit_body(body);
 
         let DependencyVisitor {
@@ -137,35 +137,38 @@ impl Default for DeadStoreElimination {
     }
 }
 
-impl<'env, 'heap, A: ResetAllocator> TransformPass<'env, 'heap> for DeadStoreElimination<A> {
+impl<'env, 'heap, A: BumpAllocator> TransformPass<'env, 'heap> for DeadStoreElimination<A> {
     fn run(&mut self, context: &mut MirContext<'env, 'heap>, body: &mut Body<'heap>) -> Changed {
-        self.alloc.reset();
-        let dead = self.dead_locals(body);
+        let dead = self.alloc.scoped(|alloc| Self::dead_locals(body, &alloc));
 
         if dead.is_empty() {
             return Changed::No;
         }
 
-        let mut visitor = EliminationVisitor {
-            dead: &dead,
-            params: BasicBlockVec::from_fn_in(
-                body.basic_blocks.len(),
-                |block| body.basic_blocks[block].params,
-                &self.alloc,
-            ),
-            interner: context.interner,
-            changed: false,
-            scratch_locals: Vec::new_in(&self.alloc),
-            scratch_operands: Vec::new_in(&self.alloc),
-        };
+        let mut changed = self.alloc.scoped(|alloc| {
+            let mut visitor = EliminationVisitor {
+                dead: &dead,
+                params: BasicBlockVec::from_fn_in(
+                    body.basic_blocks.len(),
+                    |block| body.basic_blocks[block].params,
+                    &alloc,
+                ),
+                interner: context.interner,
+                changed: false,
+                scratch_locals: Vec::new_in(&alloc),
+                scratch_operands: Vec::new_in(&alloc),
+            };
 
-        Ok(()) = visitor.visit_body_preserving_cfg(body);
+            Ok(()) = visitor.visit_body_preserving_cfg(body);
 
-        let mut changed = Changed::from(visitor.changed);
-        drop(visitor);
+            Changed::from(visitor.changed)
+        });
 
-        let mut dle = DeadLocalElimination::new_in(&mut self.alloc).with_dead(dead);
-        changed = changed.max(dle.run(context, body));
+        changed |= self.alloc.scoped(|alloc| {
+            DeadLocalElimination::new_in(alloc)
+                .with_dead(dead)
+                .run(context, body)
+        });
 
         changed
     }
