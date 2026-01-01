@@ -2,4 +2,4 @@
 //@ description: Pre-pass CP + CFG folds constant branch and simplifies control flow
 // The `if true` should be folded away by the initial CP + CFG simplification pass,
 // leaving only the "then" branch.
-["if", {"#literal": true}, {"#literal": "then"}, {"#literal": "else"}]
+["if", { "#literal": true }, { "#literal": "then" }, { "#literal": "else" }]
