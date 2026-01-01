@@ -1,0 +1,12 @@
+//@ run: pass
+//@ description: Instruction simplification combined with value propagation
+// A let binding stores a value that is used in a comparison.
+// InstSimplify can fold the comparison after FS propagates the constant.
+[
+  "let", "x", {"#literal": true},
+  [
+    "if", "x",
+    {"#literal": "was-true"},
+    {"#literal": "was-false"}
+  ]
+]

@@ -1,0 +1,17 @@
+//@ run: pass
+//@ description: Nested constant conditionals are fully simplified
+// Multiple levels of constant if-then-else that should all fold away.
+// Tests that CFG simplification works across multiple iterations.
+[
+  "if", {"#literal": true},
+  [
+    "if", {"#literal": false},
+    {"#literal": "unreachable"},
+    [
+      "if", {"#literal": true},
+      {"#literal": "result"},
+      {"#literal": "also-unreachable"}
+    ]
+  ],
+  {"#literal": "outer-else"}
+]

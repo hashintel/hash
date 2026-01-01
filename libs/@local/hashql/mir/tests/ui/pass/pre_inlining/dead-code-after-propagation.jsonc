@@ -1,0 +1,13 @@
+//@ run: pass
+//@ description: Forward substitution propagates value, DSE eliminates dead store
+// The value of `x` is propagated to the return, making `dead` unused.
+// FS propagates `x` into the result, then DSE removes the dead assignment to `dead`.
+// Wrapped in `if true` to keep as a single body rather than separate thunks.
+[
+  "if", {"#literal": true},
+  [
+    "let", "x", {"#literal": 42},
+    ["let", "dead", {"#literal": 100}, "x"]
+  ],
+  {"#literal": 0}
+]

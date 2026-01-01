@@ -1,0 +1,23 @@
+//@ run: pass
+//@ description: Cascading conditionals require multiple fixpoint iterations to fully simplify
+// Each conditional depends on the result of the previous one being simplified.
+// The loop order is: AR → InstSimplify → FS/CP → DSE → CFG
+// Since FS runs before CFG, each iteration can only propagate values that were
+// already constants at the start of that iteration:
+//   Iter 1: FS propagates `a = true`, CFG folds first if → `b = true`
+//   Iter 2: FS propagates `b = true`, CFG folds second if → `c = true`
+//   Iter 3: FS propagates `c = true`, CFG folds final if → "yes"
+[
+  "if", {"#literal": true},
+  [
+    "let", "a", {"#literal": true},
+    [
+      "let", "b", ["if", "a", {"#literal": true}, {"#literal": false}],
+      [
+        "let", "c", ["if", "b", {"#literal": true}, {"#literal": false}],
+        ["if", "c", {"#literal": "yes"}, {"#literal": "no"}]
+      ]
+    ]
+  ],
+  {"#literal": 0}
+]

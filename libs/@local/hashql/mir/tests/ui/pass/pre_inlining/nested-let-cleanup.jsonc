@@ -1,0 +1,22 @@
+//@ run: pass
+//@ description: Nested let bindings with dead stores are cleaned up by CP + DSE + CFG
+// Multiple nested let bindings where some values are unused.
+// CP propagates used values, DSE removes dead stores, CFG cleans up the result.
+// Wrapped in `if true` to keep as a single body rather than separate thunks.
+[
+  "if", {"#literal": true},
+  [
+    "let", "a", {"#literal": 1},
+    [
+      "let", "b", {"#literal": 2},
+      [
+        "let", "c", {"#literal": 3},
+        [
+          "let", "unused1", "a",
+          ["let", "unused2", "b", "c"]
+        ]
+      ]
+    ]
+  ],
+  {"#literal": 0}
+]
