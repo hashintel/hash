@@ -412,18 +412,28 @@ impl<A: BumpAllocator> CfgSimplify<A> {
         body: &mut Body<'heap>,
         id: BasicBlockId,
     ) -> bool {
+        let kind = &body.basic_blocks[id].terminator.kind;
+        match kind {
+            &TerminatorKind::Goto(_) | TerminatorKind::SwitchInt(_) => {}
+            TerminatorKind::Return(_)
+            | TerminatorKind::GraphRead(_)
+            | TerminatorKind::Unreachable => return false,
+        }
+
         // Snapshot reachable blocks before modification to detect newly dead blocks.
+        // This is done *after* we check the terminator, to ensure that we don't recompute postorder
+        // if we don't need to.
         let previous_reverse_postorder = body
             .basic_blocks
             .reverse_postorder()
             .transfer_into(&self.alloc);
 
-        let changed = match &body.basic_blocks[id].terminator.kind {
+        let changed = match kind {
             &TerminatorKind::Goto(goto) => Self::simplify_goto(body, id, goto),
             TerminatorKind::SwitchInt(_) => Self::simplify_switch_int(context, body, id),
             TerminatorKind::Return(_)
             | TerminatorKind::GraphRead(_)
-            | TerminatorKind::Unreachable => false,
+            | TerminatorKind::Unreachable => unreachable!(),
         };
 
         if changed {
