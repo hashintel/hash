@@ -116,6 +116,10 @@ impl<A: Allocator> Reducable<A> {
     fn contains(&self, id: DefId) -> bool {
         self.inner.contains(id)
     }
+
+    fn is_empty(&self) -> bool {
+        self.inner.is_empty()
+    }
 }
 
 /// Pre-allocated scratch space reused across per-body transformations.
@@ -200,9 +204,13 @@ impl<'env, 'heap, A: ResetAllocator> GlobalTransformPass<'env, 'heap>
     ) -> Changed {
         self.alloc.reset();
 
+        let mut reducable = Reducable::new(bodies, &self.alloc);
+        if reducable.is_empty() {
+            return Changed::No;
+        }
+
         // Build the call graph (edges: caller → callee) and seed the reducibility set.
         let callgraph = CallGraph::analyze_in(bodies, &self.alloc);
-        let mut reducable = Reducable::new(bodies, &self.alloc);
 
         // Compute DFS postorder over the call graph. Since edges go caller → callee, postorder
         // yields callees before callers. This ensures that when we process a caller, all its
