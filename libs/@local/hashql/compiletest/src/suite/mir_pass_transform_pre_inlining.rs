@@ -58,7 +58,15 @@ impl<R> MirRenderer for Option<R>
 where
     R: MirRenderer,
 {
-    fn render<'heap>(&mut self, _: &mut RenderContext<'_, 'heap>, _: &DefIdSlice<Body<'heap>>) {}
+    fn render<'heap>(
+        &mut self,
+        context: &mut RenderContext<'_, 'heap>,
+        bodies: &DefIdSlice<Body<'heap>>,
+    ) {
+        if let Some(renderer) = self.as_mut() {
+            renderer.render(context, bodies);
+        }
+    }
 }
 
 pub(crate) struct TextRenderer<W> {
