@@ -2,7 +2,7 @@ use std::io::Write as _;
 
 use hashql_ast::node::expr::Expr;
 use hashql_core::{
-    heap::{Heap, ResetAllocator, Scratch},
+    heap::{Heap, ResetAllocator as _, Scratch},
     id::IdVec,
     r#type::environment::Environment,
 };
