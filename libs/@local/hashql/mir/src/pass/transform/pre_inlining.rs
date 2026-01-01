@@ -188,14 +188,10 @@ impl<'env, 'heap, A: BumpAllocator> GlobalTransformPass<'env, 'heap> for PreInli
         _: &mut GlobalTransformState<'_>,
         bodies: &mut DefIdSlice<Body<'heap>>,
     ) -> Changed {
-        // In a perfect world, we'd be able to use the scratch space here instead of the heap, but
-        // that isn't possible, because we need `&mut` access to the state in later
-        // iterations due to bump scope. Because our allocator is generic we're unable to
-        // directly use lifetimes, without introducing bounds on `&` and `&mut` instead
-        // which is awkward and not worth the tradeoff. Using pointer manipulation, we could
-        // also create a the desired effect, but that isn't worth the unsafe code.
-        // Considering that this a meta-pass and only run once, using the heap here instead of
-        // scratch space is acceptable.
+        // We allocate state on the heap rather than scratch because bump scopes require
+        // `&mut` access across iterations, and our generic allocator can't express the
+        // necessary lifetime bounds cleanly (limitation of the underlying bump-scope crate).
+        // Acceptable since this meta-pass runs once and the data is a single byte per body.
         let state = {
             let uninit = context.heap.allocate_slice_uninit(bodies.len());
             let init = uninit.write_filled(Changed::No);
