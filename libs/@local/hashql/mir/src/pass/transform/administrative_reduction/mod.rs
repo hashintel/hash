@@ -71,7 +71,7 @@ use crate::{
     context::MirContext,
     def::{DefId, DefIdSlice, DefIdVec},
     pass::{
-        Changed, GlobalTransformPass, TransformPass, analysis::CallGraph,
+        Changed, GlobalTransformPass, GlobalTransformState, TransformPass, analysis::CallGraph,
         transform::copy_propagation::propagate_block_params,
     },
     visit::VisitorMut as _,
@@ -115,6 +115,10 @@ impl<A: Allocator> Reducable<A> {
 
     fn contains(&self, id: DefId) -> bool {
         self.inner.contains(id)
+    }
+
+    fn is_empty(&self) -> bool {
+        self.inner.is_empty()
     }
 }
 
@@ -195,13 +199,18 @@ impl<'env, 'heap, A: ResetAllocator> GlobalTransformPass<'env, 'heap>
     fn run(
         &mut self,
         context: &mut MirContext<'env, 'heap>,
+        state: &mut GlobalTransformState<'_>,
         bodies: &mut DefIdSlice<Body<'heap>>,
     ) -> Changed {
         self.alloc.reset();
 
+        let mut reducable = Reducable::new(bodies, &self.alloc);
+        if reducable.is_empty() {
+            return Changed::No;
+        }
+
         // Build the call graph (edges: caller → callee) and seed the reducibility set.
         let callgraph = CallGraph::analyze_in(bodies, &self.alloc);
-        let mut reducable = Reducable::new(bodies, &self.alloc);
 
         // Compute DFS postorder over the call graph. Since edges go caller → callee, postorder
         // yields callees before callers. This ensures that when we process a caller, all its
@@ -229,6 +238,7 @@ impl<'env, 'heap, A: ResetAllocator> GlobalTransformPass<'env, 'heap>
 
             let body_changed = pass.run(context, body);
             changed |= body_changed;
+            state.mark(id, body_changed);
 
             // If this body was transformed and wasn't already reducible, reclassify it.
             // This enables callers (processed later in postorder) to reduce calls to this body.

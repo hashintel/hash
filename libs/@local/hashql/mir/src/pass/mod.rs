@@ -17,9 +17,18 @@
 //! - [`analysis`]: Static analysis infrastructure including dataflow analysis framework
 //! - [`transform`]: MIR transformation passes
 
-use core::ops::{BitOr, BitOrAssign};
+use core::{
+    alloc::Allocator,
+    ops::{BitOr, BitOrAssign},
+};
 
-use crate::{body::Body, context::MirContext, def::DefIdSlice};
+use hashql_core::heap::BumpAllocator;
+
+use crate::{
+    body::Body,
+    context::MirContext,
+    def::{DefId, DefIdSlice, DefIdVec},
+};
 
 pub mod analysis;
 pub mod transform;
@@ -175,6 +184,118 @@ pub trait TransformPass<'env, 'heap> {
     }
 }
 
+/// Owned storage for tracking per-body change status during global transformations.
+///
+/// This type owns the underlying [`DefIdVec`] that tracks which bodies have been modified.
+/// Use this when you need the change-tracking state to outlive a single pass invocation,
+/// such as when running multiple passes in a fixpoint loop.
+///
+/// For arena-allocated or short-lived state, prefer [`GlobalTransformState::new_in`] which
+/// allocates directly from a bump allocator.
+///
+/// # Example
+///
+/// ```ignore
+/// let mut state = OwnedGlobalTransformState::new_in(bodies, Global);
+///
+/// loop {
+///     let changed = pass.run(context, &mut state.as_mut(), bodies);
+///     if changed == Changed::No {
+///         break;
+///     }
+/// }
+/// ```
+pub struct OwnedGlobalTransformState<A: Allocator> {
+    changed: DefIdVec<Changed, A>,
+}
+
+impl<A: Allocator> OwnedGlobalTransformState<A> {
+    /// Creates a new owned state initialized to [`Changed::No`] for all bodies.
+    ///
+    /// The `bodies` parameter is used only to determine the domain size; the actual
+    /// body contents are not accessed.
+    pub fn new_in(bodies: &DefIdSlice<impl Sized>, alloc: A) -> Self {
+        Self {
+            changed: DefIdVec::from_domain_in(Changed::No, bodies, alloc),
+        }
+    }
+
+    /// Returns a borrowed [`GlobalTransformState`] view of this owned state.
+    ///
+    /// This allows passing the state to [`GlobalTransformPass::run`] while retaining
+    /// ownership for subsequent iterations.
+    pub fn as_mut(&mut self) -> GlobalTransformState<'_> {
+        GlobalTransformState::new(&mut self.changed)
+    }
+}
+
+/// Tracks per-body change status during a [`GlobalTransformPass`] execution.
+///
+/// This type provides a borrowed view into change-tracking storage, allowing passes to
+/// record which bodies they modified. The storage can come from either:
+///
+/// - An [`OwnedGlobalTransformState`] via [`as_mut`](OwnedGlobalTransformState::as_mut)
+/// - A bump allocator via [`new_in`](Self::new_in)
+/// - An existing mutable slice via [`new`](Self::new)
+///
+/// # Usage in Passes
+///
+/// Global passes receive this as a parameter and should call [`mark`](Self::mark) whenever
+/// they modify a body:
+///
+/// ```ignore
+/// fn run(
+///     &mut self,
+///     context: &mut MirContext<'env, 'heap>,
+///     state: &mut GlobalTransformState<'_>,
+///     bodies: &mut DefIdSlice<Body<'heap>>,
+/// ) -> Changed {
+///     for (id, body) in bodies.iter_enumerated_mut() {
+///         if self.transform(body) {
+///             state.mark(id, Changed::Yes);
+///         }
+///     }
+///     Changed::Yes
+/// }
+/// ```
+pub struct GlobalTransformState<'ctx> {
+    changed: &'ctx mut DefIdSlice<Changed>,
+}
+
+impl<'ctx> GlobalTransformState<'ctx> {
+    /// Creates a new state from an existing mutable slice.
+    ///
+    /// The slice must be pre-sized to match the number of bodies being processed.
+    pub const fn new(changed: &'ctx mut DefIdSlice<Changed>) -> Self {
+        Self { changed }
+    }
+
+    /// Creates a new state by allocating from a bump allocator.
+    ///
+    /// The allocated storage is initialized to [`Changed::No`] for all bodies. The `bodies`
+    /// parameter is used only to determine the domain size; the actual body contents are
+    /// not accessed.
+    ///
+    /// This is useful when the state only needs to live for a single pass invocation and
+    /// can be discarded when the allocator is reset.
+    pub fn new_in<A: BumpAllocator>(bodies: &DefIdSlice<impl Sized>, alloc: &'ctx A) -> Self {
+        let uninit_slice = alloc.allocate_slice_uninit(bodies.len());
+        let changed = uninit_slice.write_filled(Changed::No);
+
+        Self {
+            changed: DefIdSlice::from_raw_mut(changed),
+        }
+    }
+
+    /// Records that the body with the given [`DefId`] has changed.
+    ///
+    /// This uses `|=` semantics, so marking a body as [`Changed::Yes`] will not be
+    /// downgraded by a subsequent [`Changed::No`] mark.
+    pub fn mark(&mut self, id: DefId, changed: Changed) {
+        self.changed[id] |= changed;
+    }
+}
+
 /// A global transformation pass over MIR.
 ///
 /// Unlike [`TransformPass`] which operates on a single [`Body`], global passes have access to
@@ -217,6 +338,7 @@ pub trait GlobalTransformPass<'env, 'heap> {
     fn run(
         &mut self,
         context: &mut MirContext<'env, 'heap>,
+        state: &mut GlobalTransformState<'_>,
         bodies: &mut DefIdSlice<Body<'heap>>,
     ) -> Changed;
 
