@@ -3,13 +3,9 @@
 //! This module contains the [`PreInlining`] pass, which runs a fixpoint loop of local and global
 //! transformations to optimize MIR bodies before inlining occurs.
 
-use alloc::alloc::Global;
 use core::alloc::Allocator;
 
-use hashql_core::{
-    heap::{BumpAllocator, ResetAllocator},
-    id::bit_vec::DenseBitSet,
-};
+use hashql_core::{heap::BumpAllocator, id::bit_vec::DenseBitSet};
 
 use super::{
     AdministrativeReduction, CfgSimplify, DeadStoreElimination, ForwardSubstitution, InstSimplify,
@@ -17,7 +13,7 @@ use super::{
 use crate::{
     body::Body,
     context::MirContext,
-    def::{DefId, DefIdSlice, DefIdVec},
+    def::{DefId, DefIdSlice},
     pass::{
         Changed, GlobalTransformPass, GlobalTransformState, TransformPass,
         transform::CopyPropagation,
@@ -192,13 +188,20 @@ impl<'env, 'heap, A: BumpAllocator> GlobalTransformPass<'env, 'heap> for PreInli
         _: &mut GlobalTransformState<'_>,
         bodies: &mut DefIdSlice<Body<'heap>>,
     ) -> Changed {
+        // In a perfect world, we'd be able to use the scratch space here instead of the heap, but
+        // that isn't possible, because we need `&mut` access to the state in later
+        // iterations due to bump scope. Because our allocator is generic we're unable to
+        // directly use lifetimes, without introducing bounds on `&` and `&mut` instead
+        // which is awkward and not worth the tradeoff. Using pointer manipulation, we could
+        // also create a the desired effect, but that isn't worth the unsafe code.
+        // Considering that this a meta-pass and only run once, using the heap here instead of
+        // scratch space is acceptable.
         let state = {
-            let uninit = self.alloc.allocate_slice_uninit(bodies.len());
+            let uninit = context.heap.allocate_slice_uninit(bodies.len());
             let init = uninit.write_filled(Changed::No);
 
             DefIdSlice::from_raw_mut(init)
         };
-
         let mut unstable = DenseBitSet::new_filled(bodies.len());
 
         // Pre-pass: run CP + CFG once before the fixpoint loop.
