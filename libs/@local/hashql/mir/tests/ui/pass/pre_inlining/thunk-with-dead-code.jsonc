@@ -1,0 +1,19 @@
+//@ run: pass
+//@ description: Thunk inlining combined with dead code elimination
+// A thunk (zero-argument closure) is called, and its result used in a branch.
+// AR inlines the thunk, then the constant propagates and dead code is eliminated.
+[
+  "let", "get_flag",
+  ["fn", {"#tuple": []}, {"#struct": {}}, "_", {"#literal": true}],
+  [
+    "let", "flag", ["get_flag"],
+    [
+      "let", "unused", {"#literal": "dead"},
+      [
+        "if", "flag",
+        {"#literal": "active"},
+        {"#literal": "inactive"}
+      ]
+    ]
+  ]
+]

@@ -1,0 +1,14 @@
+//@ run: pass
+//@ description: Administrative reduction inlines closure, CFG simplifies dead branch
+// A closure that returns a constant is defined and called with a constant condition.
+// AR inlines the closure, then CP + CFG simplifies the constant branch.
+[
+  "let", "identity",
+  ["fn", {"#tuple": []}, {"#struct": {"x": "Boolean"}}, "_", "x"],
+  [
+    "if",
+    ["identity", {"#literal": true}],
+    {"#literal": "yes"},
+    {"#literal": "no"}
+  ]
+]

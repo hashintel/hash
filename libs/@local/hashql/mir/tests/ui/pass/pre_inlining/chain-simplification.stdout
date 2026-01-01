@@ -1,0 +1,71 @@
+════ Initial MIR ═══════════════════════════════════════════════════════════════
+
+*thunk {thunk#4}() -> String | Integer {
+    let %0: String | Integer
+    let %1: Boolean
+    let %2: Boolean
+    let %3: Boolean
+    let %4: String
+
+    bb0(): {
+        switchInt(1) -> [0: bb11(), 1: bb1()]
+    }
+
+    bb1(): {
+        %1 = 1
+
+        switchInt(%1) -> [0: bb3(), 1: bb2()]
+    }
+
+    bb2(): {
+        goto -> bb4(1)
+    }
+
+    bb3(): {
+        goto -> bb4(0)
+    }
+
+    bb4(%2): {
+        switchInt(%2) -> [0: bb6(), 1: bb5()]
+    }
+
+    bb5(): {
+        goto -> bb7(1)
+    }
+
+    bb6(): {
+        goto -> bb7(0)
+    }
+
+    bb7(%3): {
+        switchInt(%3) -> [0: bb9(), 1: bb8()]
+    }
+
+    bb8(): {
+        goto -> bb10("yes")
+    }
+
+    bb9(): {
+        goto -> bb10("no")
+    }
+
+    bb10(%4): {
+        goto -> bb12(%4)
+    }
+
+    bb11(): {
+        goto -> bb12(0)
+    }
+
+    bb12(%0): {
+        return %0
+    }
+}
+
+════ Pre-inlining MIR ══════════════════════════════════════════════════════════
+
+*thunk {thunk#4}() -> String | Integer {
+    bb0(): {
+        return "yes"
+    }
+}
