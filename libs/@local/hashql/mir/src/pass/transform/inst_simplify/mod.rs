@@ -92,7 +92,7 @@ mod tests;
 use core::{alloc::Allocator, convert::Infallible};
 
 use hashql_core::{
-    heap::{BumpAllocator, ResetAllocator, Scratch, TransferInto as _},
+    heap::{BumpAllocator, Scratch, TransferInto as _},
     id::IdVec,
     r#type::{environment::Environment, kind::PrimitiveType},
 };
@@ -171,10 +171,8 @@ impl<A: BumpAllocator> InstSimplify<A> {
     }
 }
 
-impl<'env, 'heap, A: ResetAllocator> TransformPass<'env, 'heap> for InstSimplify<A> {
+impl<'env, 'heap, A: BumpAllocator> TransformPass<'env, 'heap> for InstSimplify<A> {
     fn run(&mut self, context: &mut MirContext<'env, 'heap>, body: &mut Body<'heap>) -> Changed {
-        self.alloc.reset();
-
         let mut visitor = InstSimplifyVisitor {
             env: context.env,
             interner: context.interner,

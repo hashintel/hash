@@ -2,7 +2,11 @@
 
 use core::{alloc, mem, ptr};
 
-use super::{AllocatorScope, BumpAllocator, allocator::Allocator, bump::ResetAllocator};
+use super::{
+    AllocatorScope, BumpAllocator,
+    allocator::{Allocator, Checkpoint},
+    bump::ResetAllocator,
+};
 
 /// A resettable scratch allocator for temporary allocations.
 ///
@@ -53,11 +57,23 @@ impl Default for Scratch {
 }
 
 impl BumpAllocator for Scratch {
+    type Checkpoint = Checkpoint;
     type Scoped<'scope> = AllocatorScope<'scope>;
 
     #[inline]
     fn scoped<T>(&mut self, func: impl FnOnce(Self::Scoped<'_>) -> T) -> T {
         self.inner.scoped(func)
+    }
+
+    #[inline]
+    fn checkpoint(&self) -> Self::Checkpoint {
+        self.inner.checkpoint()
+    }
+
+    #[inline]
+    unsafe fn rollback(&self, checkpoint: Self::Checkpoint) {
+        // SAFETY: Same safety guarantees as `Allocator::rollback`.
+        unsafe { self.inner.rollback(checkpoint) }
     }
 
     #[inline]
