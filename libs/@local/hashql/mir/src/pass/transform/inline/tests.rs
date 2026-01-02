@@ -475,6 +475,73 @@ fn inline_budget_exhaustion() {
     );
 }
 
+/// Tests that candidates are processed in max-heap order (highest score first).
+///
+/// This is a regression test for a bug where the ordering was accidentally reversed.
+#[test]
+fn candidates_ordered_by_descending_score() {
+    use alloc::collections::BinaryHeap;
+
+    use super::Candidate;
+
+    let heap = Heap::new();
+    let interner = Interner::new(&heap);
+    let env = Environment::new(&heap);
+
+    // Create callsites with different scores
+    let callsite_low = CallSite {
+        caller: DefId::new(1),
+        kind: Location {
+            block: BasicBlockId::new(0),
+            statement_index: 0,
+        },
+        target: DefId::new(0),
+    };
+    let callsite_mid = CallSite {
+        caller: DefId::new(1),
+        kind: Location {
+            block: BasicBlockId::new(0),
+            statement_index: 1,
+        },
+        target: DefId::new(0),
+    };
+    let callsite_high = CallSite {
+        caller: DefId::new(1),
+        kind: Location {
+            block: BasicBlockId::new(0),
+            statement_index: 2,
+        },
+        target: DefId::new(0),
+    };
+
+    let mut candidates: BinaryHeap<Candidate> = BinaryHeap::new();
+    candidates.push(Candidate {
+        score: 10.0,
+        callsite: callsite_low,
+    });
+    candidates.push(Candidate {
+        score: 50.0,
+        callsite: callsite_high,
+    });
+    candidates.push(Candidate {
+        score: 30.0,
+        callsite: callsite_mid,
+    });
+
+    // drain_sorted should return highest score first (max-heap behavior)
+    let drained: Vec<_> = candidates.drain_sorted().collect();
+
+    assert_eq!(drained.len(), 3);
+    assert!(
+        drained[0].score > drained[1].score && drained[1].score > drained[2].score,
+        "Expected descending order: {:?}",
+        drained.iter().map(|c| c.score).collect::<Vec<_>>()
+    );
+    assert_eq!(drained[0].score, 50.0, "Highest score should be first");
+    assert_eq!(drained[1].score, 30.0, "Middle score should be second");
+    assert_eq!(drained[2].score, 10.0, "Lowest score should be last");
+}
+
 // ============================================================================
 // Analysis Tests
 // ============================================================================
