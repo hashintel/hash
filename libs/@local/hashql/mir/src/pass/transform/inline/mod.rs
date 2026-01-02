@@ -228,7 +228,7 @@ impl<'heap, A: Allocator> InlineState<'_, 'heap, A> {
                 span: SpanId::SYNTHETIC,
                 kind: TerminatorKind::Goto(Goto {
                     // +1 because patch_callsite pushes the continuation block first.
-                    target: Target::block(BasicBlockId::START.plus(bb_offset + 1), self.interner),
+                    target: Target::block(BasicBlockId::START.plus(bb_offset + 1)),
                 }),
             },
         );
@@ -269,7 +269,7 @@ impl<'heap, A: Allocator> InlineState<'_, 'heap, A> {
                     span: callsite.span,
                     kind: StatementKind::Assign(Assign {
                         lhs,
-                        rhs: RValue::Load(Operand::Place(Place::local(local, self.interner))),
+                        rhs: RValue::Load(Operand::Place(Place::local(local))),
                     }),
                 },
             );
@@ -285,7 +285,7 @@ impl<'heap, A: Allocator> InlineState<'_, 'heap, A> {
             block.statements.push(Statement {
                 span: callsite.span,
                 kind: StatementKind::Assign(Assign {
-                    lhs: Place::local(Local::new(local_offset + index), self.interner),
+                    lhs: Place::local(Local::new(local_offset + index)),
                     rhs: RValue::Load(arg),
                 }),
             });

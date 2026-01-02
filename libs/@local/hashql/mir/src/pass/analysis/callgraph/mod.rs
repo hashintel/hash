@@ -238,50 +238,6 @@ impl<A: Allocator> CallGraph<'_, A> {
     }
 }
 
-impl<A: Allocator> DirectedGraph for CallGraph<'_, A> {
-    type Edge<'this>
-        = ()
-    where
-        Self: 'this;
-    type EdgeId = EdgeId;
-    type Node<'this>
-        = DefId
-    where
-        Self: 'this;
-    type NodeId = DefId;
-
-    fn node_count(&self) -> usize {
-        self.inner.node_count()
-    }
-
-    fn edge_count(&self) -> usize {
-        self.inner.edge_count()
-    }
-
-    fn iter_nodes(&self) -> impl ExactSizeIterator<Item = Self::Node<'_>> + DoubleEndedIterator {
-        self.inner
-            .iter_nodes()
-            .map(|node| DefId::new(node.id().as_u32()))
-    }
-
-    fn iter_edges(&self) -> impl ExactSizeIterator<Item = Self::Edge<'_>> + DoubleEndedIterator {
-        self.inner.iter_edges().map(|_| ())
-    }
-}
-
-impl<A: Allocator> Successors for CallGraph<'_, A> {
-    type SuccIter<'this>
-        = impl Iterator<Item = Self::NodeId>
-    where
-        Self: 'this;
-
-    fn successors(&self, node: Self::NodeId) -> Self::SuccIter<'_> {
-        self.inner
-            .successors(NodeId::new(node.as_usize()))
-            .map(|node| DefId::new(node.as_u32()))
-    }
-}
-
 impl<A: Allocator> fmt::Display for CallGraph<'_, A> {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         for edge in self.inner.edges() {
@@ -392,11 +348,6 @@ impl<'graph, 'heap, A: Allocator> CallGraphAnalysis<'graph, 'heap, A> {
         };
 
         Ok(()) = visitor.visit_body(body);
-    }
-
-impl<'env, 'heap, A: Allocator> AnalysisPass<'env, 'heap> for CallGraphAnalysis<'_, 'heap, A> {
-    fn run(&mut self, _: &mut MirContext<'env, 'heap>, body: &Body<'heap>) {
-        self.analyze(body);
     }
 }
 
