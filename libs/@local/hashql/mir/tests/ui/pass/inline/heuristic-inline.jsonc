@@ -1,0 +1,19 @@
+//@ run: pass
+//@ description: Small function with side effect (input) gets inlined via normal heuristics (cost < 15)
+[
+  "let",
+  "load_flag",
+  ["fn", {"#tuple": []}, {"#struct": {}}, "Boolean", ["input", "flag", "Boolean"]],
+  [
+    "let",
+    "use_flag",
+    [
+      "fn",
+      {"#tuple": []},
+      {"#struct": {}},
+      "Boolean",
+      ["&&", ["load_flag"], ["load_flag"]]
+    ],
+    ["use_flag"]
+  ]
+]

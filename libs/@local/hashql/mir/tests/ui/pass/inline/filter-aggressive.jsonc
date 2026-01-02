@@ -1,5 +1,5 @@
 //@ run: pass
-//@ description: Filter functions receive aggressive inlining until fixpoint
+//@ description: Filter body (marked *) triggers aggressive inlining of thunks with side effects
 [
   "::graph::tail::collect",
   [

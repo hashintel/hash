@@ -1,0 +1,787 @@
+════ Initial MIR ═══════════════════════════════════════════════════════════════
+
+fn {closure#37}(%0: ()) -> Boolean {
+    let %1: Boolean
+    let %2: Boolean
+    let %3: Boolean
+    let %4: Boolean
+    let %5: Boolean
+    let %6: Boolean
+    let %7: Boolean
+    let %8: Boolean
+    let %9: Boolean
+    let %10: Boolean
+    let %11: Boolean
+    let %12: Boolean
+    let %13: Boolean
+    let %14: Boolean
+    let %15: Boolean
+    let %16: Boolean
+    let %17: Boolean
+    let %18: Boolean
+    let %19: Boolean
+    let %20: Boolean
+    let %21: Boolean
+    let %22: Boolean
+    let %23: Boolean
+    let %24: Boolean
+    let %25: Boolean
+    let %26: Boolean
+    let %27: Boolean
+    let %28: Boolean
+    let %29: Boolean
+    let %30: Boolean
+    let %31: Boolean
+    let %32: Boolean
+    let %33: Boolean
+
+    bb0(): {
+        %1 = input LOAD v1
+
+        switchInt(%1) -> [0: bb2(), 1: bb1()]
+    }
+
+    bb1(): {
+        %3 = input LOAD v2
+
+        goto -> bb3(%3)
+    }
+
+    bb2(): {
+        goto -> bb3(0)
+    }
+
+    bb3(%2): {
+        switchInt(%2) -> [0: bb5(), 1: bb4()]
+    }
+
+    bb4(): {
+        %5 = input LOAD v3
+
+        goto -> bb6(%5)
+    }
+
+    bb5(): {
+        goto -> bb6(0)
+    }
+
+    bb6(%4): {
+        switchInt(%4) -> [0: bb8(), 1: bb7()]
+    }
+
+    bb7(): {
+        %7 = input LOAD v4
+
+        goto -> bb9(%7)
+    }
+
+    bb8(): {
+        goto -> bb9(0)
+    }
+
+    bb9(%6): {
+        switchInt(%6) -> [0: bb11(), 1: bb10()]
+    }
+
+    bb10(): {
+        %9 = input LOAD v5
+
+        goto -> bb12(%9)
+    }
+
+    bb11(): {
+        goto -> bb12(0)
+    }
+
+    bb12(%8): {
+        switchInt(%8) -> [0: bb14(), 1: bb13()]
+    }
+
+    bb13(): {
+        %11 = input LOAD v6
+
+        goto -> bb15(%11)
+    }
+
+    bb14(): {
+        goto -> bb15(0)
+    }
+
+    bb15(%10): {
+        switchInt(%10) -> [0: bb17(), 1: bb16()]
+    }
+
+    bb16(): {
+        %13 = input LOAD v7
+
+        goto -> bb18(%13)
+    }
+
+    bb17(): {
+        goto -> bb18(0)
+    }
+
+    bb18(%12): {
+        switchInt(%12) -> [0: bb20(), 1: bb19()]
+    }
+
+    bb19(): {
+        %15 = input LOAD v8
+
+        goto -> bb21(%15)
+    }
+
+    bb20(): {
+        goto -> bb21(0)
+    }
+
+    bb21(%14): {
+        switchInt(%14) -> [0: bb23(), 1: bb22()]
+    }
+
+    bb22(): {
+        %17 = input LOAD v9
+
+        goto -> bb24(%17)
+    }
+
+    bb23(): {
+        goto -> bb24(0)
+    }
+
+    bb24(%16): {
+        switchInt(%16) -> [0: bb26(), 1: bb25()]
+    }
+
+    bb25(): {
+        %19 = input LOAD v10
+
+        goto -> bb27(%19)
+    }
+
+    bb26(): {
+        goto -> bb27(0)
+    }
+
+    bb27(%18): {
+        switchInt(%18) -> [0: bb29(), 1: bb28()]
+    }
+
+    bb28(): {
+        %21 = input LOAD v11
+
+        goto -> bb30(%21)
+    }
+
+    bb29(): {
+        goto -> bb30(0)
+    }
+
+    bb30(%20): {
+        switchInt(%20) -> [0: bb32(), 1: bb31()]
+    }
+
+    bb31(): {
+        %23 = input LOAD v12
+
+        goto -> bb33(%23)
+    }
+
+    bb32(): {
+        goto -> bb33(0)
+    }
+
+    bb33(%22): {
+        switchInt(%22) -> [0: bb35(), 1: bb34()]
+    }
+
+    bb34(): {
+        %25 = input LOAD v13
+
+        goto -> bb36(%25)
+    }
+
+    bb35(): {
+        goto -> bb36(0)
+    }
+
+    bb36(%24): {
+        switchInt(%24) -> [0: bb38(), 1: bb37()]
+    }
+
+    bb37(): {
+        %27 = input LOAD v14
+
+        goto -> bb39(%27)
+    }
+
+    bb38(): {
+        goto -> bb39(0)
+    }
+
+    bb39(%26): {
+        switchInt(%26) -> [0: bb41(), 1: bb40()]
+    }
+
+    bb40(): {
+        %29 = input LOAD v15
+
+        goto -> bb42(%29)
+    }
+
+    bb41(): {
+        goto -> bb42(0)
+    }
+
+    bb42(%28): {
+        switchInt(%28) -> [0: bb44(), 1: bb43()]
+    }
+
+    bb43(): {
+        %31 = input LOAD v16
+
+        goto -> bb45(%31)
+    }
+
+    bb44(): {
+        goto -> bb45(0)
+    }
+
+    bb45(%30): {
+        switchInt(%30) -> [0: bb47(), 1: bb46()]
+    }
+
+    bb46(): {
+        %33 = input LOAD v17
+
+        goto -> bb48(%33)
+    }
+
+    bb47(): {
+        goto -> bb48(0)
+    }
+
+    bb48(%32): {
+        return %32
+    }
+}
+
+thunk big_func:0() -> () -> Boolean {
+    let %0: () -> Boolean
+    let %1: ()
+
+    bb0(): {
+        %1 = ()
+        %0 = closure(({closure#37} as FnPtr), %1)
+
+        return %0
+    }
+}
+
+fn {closure#39}(%0: ()) -> Boolean {
+    let %1: () -> Boolean
+    let %2: Boolean
+
+    bb0(): {
+        %1 = apply (big_func:0 as FnPtr)
+        %2 = apply %1.0 %1.1
+
+        return %2
+    }
+}
+
+thunk caller:0() -> () -> Boolean {
+    let %0: () -> Boolean
+    let %1: ()
+
+    bb0(): {
+        %1 = ()
+        %0 = closure(({closure#39} as FnPtr), %1)
+
+        return %0
+    }
+}
+
+*thunk {thunk#36}() -> Boolean {
+    let %0: () -> Boolean
+    let %1: Boolean
+
+    bb0(): {
+        %0 = apply (caller:0 as FnPtr)
+        %1 = apply %0.0 %0.1
+
+        return %1
+    }
+}
+
+════ Pre-inlining MIR ══════════════════════════════════════════════════════════
+
+fn {closure#37}(%0: ()) -> Boolean {
+    let %1: Boolean
+    let %2: Boolean
+    let %3: Boolean
+    let %4: Boolean
+    let %5: Boolean
+    let %6: Boolean
+    let %7: Boolean
+    let %8: Boolean
+    let %9: Boolean
+    let %10: Boolean
+    let %11: Boolean
+    let %12: Boolean
+    let %13: Boolean
+    let %14: Boolean
+    let %15: Boolean
+    let %16: Boolean
+    let %17: Boolean
+
+    bb0(): {
+        %1 = input LOAD v1
+
+        switchInt(%1) -> [0: bb2(), 1: bb1()]
+    }
+
+    bb1(): {
+        %2 = input LOAD v2
+
+        switchInt(%2) -> [0: bb4(), 1: bb3()]
+    }
+
+    bb2(): {
+        return 0
+    }
+
+    bb3(): {
+        %3 = input LOAD v3
+
+        switchInt(%3) -> [0: bb6(), 1: bb5()]
+    }
+
+    bb4(): {
+        return 0
+    }
+
+    bb5(): {
+        %4 = input LOAD v4
+
+        switchInt(%4) -> [0: bb8(), 1: bb7()]
+    }
+
+    bb6(): {
+        return 0
+    }
+
+    bb7(): {
+        %5 = input LOAD v5
+
+        switchInt(%5) -> [0: bb10(), 1: bb9()]
+    }
+
+    bb8(): {
+        return 0
+    }
+
+    bb9(): {
+        %6 = input LOAD v6
+
+        switchInt(%6) -> [0: bb12(), 1: bb11()]
+    }
+
+    bb10(): {
+        return 0
+    }
+
+    bb11(): {
+        %7 = input LOAD v7
+
+        switchInt(%7) -> [0: bb14(), 1: bb13()]
+    }
+
+    bb12(): {
+        return 0
+    }
+
+    bb13(): {
+        %8 = input LOAD v8
+
+        switchInt(%8) -> [0: bb16(), 1: bb15()]
+    }
+
+    bb14(): {
+        return 0
+    }
+
+    bb15(): {
+        %9 = input LOAD v9
+
+        switchInt(%9) -> [0: bb18(), 1: bb17()]
+    }
+
+    bb16(): {
+        return 0
+    }
+
+    bb17(): {
+        %10 = input LOAD v10
+
+        switchInt(%10) -> [0: bb20(), 1: bb19()]
+    }
+
+    bb18(): {
+        return 0
+    }
+
+    bb19(): {
+        %11 = input LOAD v11
+
+        switchInt(%11) -> [0: bb22(), 1: bb21()]
+    }
+
+    bb20(): {
+        return 0
+    }
+
+    bb21(): {
+        %12 = input LOAD v12
+
+        switchInt(%12) -> [0: bb24(), 1: bb23()]
+    }
+
+    bb22(): {
+        return 0
+    }
+
+    bb23(): {
+        %13 = input LOAD v13
+
+        switchInt(%13) -> [0: bb26(), 1: bb25()]
+    }
+
+    bb24(): {
+        return 0
+    }
+
+    bb25(): {
+        %14 = input LOAD v14
+
+        switchInt(%14) -> [0: bb28(), 1: bb27()]
+    }
+
+    bb26(): {
+        return 0
+    }
+
+    bb27(): {
+        %15 = input LOAD v15
+
+        switchInt(%15) -> [0: bb30(), 1: bb29()]
+    }
+
+    bb28(): {
+        return 0
+    }
+
+    bb29(): {
+        %16 = input LOAD v16
+
+        switchInt(%16) -> [0: bb32(), 1: bb31()]
+    }
+
+    bb30(): {
+        return 0
+    }
+
+    bb31(): {
+        %17 = input LOAD v17
+
+        return %17
+    }
+
+    bb32(): {
+        return 0
+    }
+}
+
+thunk big_func:0() -> () -> Boolean {
+    let %0: () -> Boolean
+    let %1: ()
+
+    bb0(): {
+        %1 = ()
+        %0 = closure(({closure#37} as FnPtr), %1)
+
+        return %0
+    }
+}
+
+fn {closure#39}(%0: ()) -> Boolean {
+    let %1: Boolean
+    let %2: ()
+
+    bb0(): {
+        %2 = ()
+        %1 = apply ({closure#37} as FnPtr) %2
+
+        return %1
+    }
+}
+
+thunk caller:0() -> () -> Boolean {
+    let %0: () -> Boolean
+    let %1: ()
+
+    bb0(): {
+        %1 = ()
+        %0 = closure(({closure#39} as FnPtr), %1)
+
+        return %0
+    }
+}
+
+*thunk {thunk#36}() -> Boolean {
+    let %0: Boolean
+    let %1: ()
+
+    bb0(): {
+        %1 = ()
+        %0 = apply ({closure#37} as FnPtr) %1
+
+        return %0
+    }
+}
+
+════ Inlined MIR ═══════════════════════════════════════════════════════════════
+
+fn {closure#37}(%0: ()) -> Boolean {
+    let %1: Boolean
+    let %2: Boolean
+    let %3: Boolean
+    let %4: Boolean
+    let %5: Boolean
+    let %6: Boolean
+    let %7: Boolean
+    let %8: Boolean
+    let %9: Boolean
+    let %10: Boolean
+    let %11: Boolean
+    let %12: Boolean
+    let %13: Boolean
+    let %14: Boolean
+    let %15: Boolean
+    let %16: Boolean
+    let %17: Boolean
+
+    bb0(): {
+        %1 = input LOAD v1
+
+        switchInt(%1) -> [0: bb2(), 1: bb1()]
+    }
+
+    bb1(): {
+        %2 = input LOAD v2
+
+        switchInt(%2) -> [0: bb4(), 1: bb3()]
+    }
+
+    bb2(): {
+        return 0
+    }
+
+    bb3(): {
+        %3 = input LOAD v3
+
+        switchInt(%3) -> [0: bb6(), 1: bb5()]
+    }
+
+    bb4(): {
+        return 0
+    }
+
+    bb5(): {
+        %4 = input LOAD v4
+
+        switchInt(%4) -> [0: bb8(), 1: bb7()]
+    }
+
+    bb6(): {
+        return 0
+    }
+
+    bb7(): {
+        %5 = input LOAD v5
+
+        switchInt(%5) -> [0: bb10(), 1: bb9()]
+    }
+
+    bb8(): {
+        return 0
+    }
+
+    bb9(): {
+        %6 = input LOAD v6
+
+        switchInt(%6) -> [0: bb12(), 1: bb11()]
+    }
+
+    bb10(): {
+        return 0
+    }
+
+    bb11(): {
+        %7 = input LOAD v7
+
+        switchInt(%7) -> [0: bb14(), 1: bb13()]
+    }
+
+    bb12(): {
+        return 0
+    }
+
+    bb13(): {
+        %8 = input LOAD v8
+
+        switchInt(%8) -> [0: bb16(), 1: bb15()]
+    }
+
+    bb14(): {
+        return 0
+    }
+
+    bb15(): {
+        %9 = input LOAD v9
+
+        switchInt(%9) -> [0: bb18(), 1: bb17()]
+    }
+
+    bb16(): {
+        return 0
+    }
+
+    bb17(): {
+        %10 = input LOAD v10
+
+        switchInt(%10) -> [0: bb20(), 1: bb19()]
+    }
+
+    bb18(): {
+        return 0
+    }
+
+    bb19(): {
+        %11 = input LOAD v11
+
+        switchInt(%11) -> [0: bb22(), 1: bb21()]
+    }
+
+    bb20(): {
+        return 0
+    }
+
+    bb21(): {
+        %12 = input LOAD v12
+
+        switchInt(%12) -> [0: bb24(), 1: bb23()]
+    }
+
+    bb22(): {
+        return 0
+    }
+
+    bb23(): {
+        %13 = input LOAD v13
+
+        switchInt(%13) -> [0: bb26(), 1: bb25()]
+    }
+
+    bb24(): {
+        return 0
+    }
+
+    bb25(): {
+        %14 = input LOAD v14
+
+        switchInt(%14) -> [0: bb28(), 1: bb27()]
+    }
+
+    bb26(): {
+        return 0
+    }
+
+    bb27(): {
+        %15 = input LOAD v15
+
+        switchInt(%15) -> [0: bb30(), 1: bb29()]
+    }
+
+    bb28(): {
+        return 0
+    }
+
+    bb29(): {
+        %16 = input LOAD v16
+
+        switchInt(%16) -> [0: bb32(), 1: bb31()]
+    }
+
+    bb30(): {
+        return 0
+    }
+
+    bb31(): {
+        %17 = input LOAD v17
+
+        return %17
+    }
+
+    bb32(): {
+        return 0
+    }
+}
+
+thunk big_func:0() -> () -> Boolean {
+    let %0: () -> Boolean
+    let %1: ()
+
+    bb0(): {
+        %1 = ()
+        %0 = closure(({closure#37} as FnPtr), %1)
+
+        return %0
+    }
+}
+
+fn {closure#39}(%0: ()) -> Boolean {
+    let %1: Boolean
+    let %2: ()
+
+    bb0(): {
+        %2 = ()
+        %1 = apply ({closure#37} as FnPtr) %2
+
+        return %1
+    }
+}
+
+thunk caller:0() -> () -> Boolean {
+    let %0: () -> Boolean
+    let %1: ()
+
+    bb0(): {
+        %1 = ()
+        %0 = closure(({closure#39} as FnPtr), %1)
+
+        return %0
+    }
+}
+
+*thunk {thunk#36}() -> Boolean {
+    let %0: Boolean
+    let %1: ()
+
+    bb0(): {
+        %1 = ()
+        %0 = apply ({closure#37} as FnPtr) %1
+
+        return %0
+    }
+}

@@ -1,5 +1,5 @@
 //@ run: pass
-//@ description: Constructors inside filter functions are inlined during aggressive phase
+//@ description: Filter with ctor: ctors inlined by AR, thunk with input LOAD by aggressive inline
 [
   "::graph::tail::collect",
   [
