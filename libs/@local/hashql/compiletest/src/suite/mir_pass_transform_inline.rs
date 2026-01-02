@@ -116,6 +116,27 @@ impl Suite for MirPassTransformInline {
             config.aggressive_inline_cutoff = aggressive_inline_cutoff as usize;
         }
 
+        #[expect(clippy::cast_possible_truncation)]
+        if let Some(rvalue_input_cost) = suite_directives
+            .get("rvalue-input-cost")
+            .and_then(toml::Value::as_float)
+        {
+            config.cost.rvalue_input = rvalue_input_cost as f32;
+        }
+
+        #[expect(clippy::cast_possible_truncation)]
+        if let Some(max_cost) = suite_directives
+            .get("max-cost")
+            .and_then(toml::Value::as_float)
+        {
+            config.heuristics.max = max_cost as f32;
+        }
+
+        let skip_output = suite_directives
+            .get("skip-output")
+            .and_then(toml::Value::as_bool)
+            .unwrap_or(false);
+
         let mut buffer = Vec::new();
         let mut d2 = d2_output_enabled(self, suite_directives, reports).then(mir_spawn_d2);
 
@@ -140,6 +161,10 @@ impl Suite for MirPassTransformInline {
             let diagram = String::from_utf8_lossy_owned(diagram);
 
             secondary_outputs.insert("svg", diagram);
+        }
+
+        if skip_output {
+            return Ok("[output intentionally skipped]".to_owned());
         }
 
         Ok(String::from_utf8_lossy_owned(buffer))
