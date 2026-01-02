@@ -18,6 +18,7 @@ protoc            = "32.1"
 
 # CLI tools
 biome                  = "1.9.5-nightly.ff02a0b"
+"cargo:cargo-codspeed" = "4.1.0"
 "cargo:cargo-hack"     = "0.6.37"
 "cargo:cargo-insta"    = "1.43.1"
 "cargo:cargo-llvm-cov" = "0.6.18"
