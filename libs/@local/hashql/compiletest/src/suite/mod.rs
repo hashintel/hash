@@ -163,11 +163,8 @@ const SUITES: &[&dyn Suite] = &[
     &MirPassTransformAdministrativeReduction,
     &MirPassTransformCfgSimplify,
     &MirPassTransformDse,
-<<<<<<< HEAD
     &MirPassTransformForwardSubstitution,
-=======
     &MirPassTransformInline,
->>>>>>> bd155017cf (feat: double inlining)
     &MirPassTransformInstSimplify,
     &MirPassTransformPreInlining,
     &MirReifySuite,
