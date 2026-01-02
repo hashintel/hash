@@ -184,7 +184,7 @@ const dimensionNameInputStyle = cva({
     padding: "[5px 8px]",
     border: "[1px solid rgba(0, 0, 0, 0.15)]",
     borderRadius: "[3px]",
-    flex: 1,
+    flex: "1",
   },
   variants: {
     isDisabled: {
