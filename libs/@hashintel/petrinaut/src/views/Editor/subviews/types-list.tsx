@@ -135,7 +135,7 @@ const TYPE_COLOR_POOL = [
  */
 function getNextAvailableColor(existingColors: string[]): string {
   const unusedColor = TYPE_COLOR_POOL.find(
-    (color) => !existingColors.includes(color)
+    (color) => !existingColors.includes(color),
   );
   return unusedColor ?? TYPE_COLOR_POOL[0]!;
 }
@@ -170,10 +170,10 @@ const TypesSectionContent: React.FC = () => {
   } = useSDCPNContext();
 
   const selectedResourceId = useEditorStore(
-    (state) => state.selectedResourceId
+    (state) => state.selectedResourceId,
   );
   const setSelectedResourceId = useEditorStore(
-    (state) => state.setSelectedResourceId
+    (state) => state.setSelectedResourceId,
   );
 
   // Check if simulation is running or paused
@@ -220,7 +220,7 @@ const TypesSectionContent: React.FC = () => {
                 if (
                   // eslint-disable-next-line no-alert
                   window.confirm(
-                    `Delete token type "${type.name}"? All places using this type will have their type set to null.`
+                    `Delete token type "${type.name}"? All places using this type will have their type set to null.`,
                   )
                 ) {
                   removeType(type.id);

@@ -100,7 +100,7 @@ const positionStyle = css({
  * Formats a TypeScript diagnostic message to a readable string
  */
 function formatDiagnosticMessage(
-  messageText: string | ts.DiagnosticMessageChain
+  messageText: string | ts.DiagnosticMessageChain,
 ): string {
   if (typeof messageText === "string") {
     return messageText;
@@ -130,11 +130,11 @@ const DiagnosticsContent: React.FC = () => {
   const { checkResult, totalDiagnosticsCount } = useCheckerContext();
   const { petriNetDefinition } = useSDCPNContext();
   const setSelectedResourceId = useEditorStore(
-    (state) => state.setSelectedResourceId
+    (state) => state.setSelectedResourceId,
   );
   // Track collapsed entities (all expanded by default)
   const [collapsedEntities, setCollapsedEntities] = useState<Set<string>>(
-    new Set()
+    new Set(),
   );
 
   // Handler to select an entity when clicking on a diagnostic
@@ -142,7 +142,7 @@ const DiagnosticsContent: React.FC = () => {
     (entityId: string) => {
       setSelectedResourceId(entityId);
     },
-    [setSelectedResourceId]
+    [setSelectedResourceId],
   );
 
   // Group diagnostics by entity (transition or differential equation)
@@ -158,14 +158,14 @@ const DiagnosticsContent: React.FC = () => {
       if (item.itemType === "differential-equation") {
         entityType = "differential-equation";
         const de = petriNetDefinition.differentialEquations.find(
-          (deItem) => deItem.id === entityId
+          (deItem) => deItem.id === entityId,
         );
         entityName = de?.name ?? entityId;
         subType = null;
       } else {
         entityType = "transition";
         const transition = petriNetDefinition.transitions.find(
-          (tr) => tr.id === entityId
+          (tr) => tr.id === entityId,
         );
         entityName = transition?.name ?? entityId;
         subType = item.itemType === "transition-lambda" ? "lambda" : "kernel";

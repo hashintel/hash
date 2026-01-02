@@ -30,7 +30,7 @@ export const usePlacePropertiesContext = (): PlacePropertiesContextValue => {
   const context = useContext(PlacePropertiesContext);
   if (!context) {
     throw new Error(
-      "usePlacePropertiesContext must be used within a PlacePropertiesProvider"
+      "usePlacePropertiesContext must be used within a PlacePropertiesProvider",
     );
   }
   return context;

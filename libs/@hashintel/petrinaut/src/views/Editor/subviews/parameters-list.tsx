@@ -141,7 +141,7 @@ const ParametersHeaderAction: React.FC = () => {
   const globalMode = useEditorStore((state) => state.globalMode);
   const simulationState = useSimulationStore((state) => state.state);
   const setSelectedResourceId = useEditorStore(
-    (state) => state.setSelectedResourceId
+    (state) => state.setSelectedResourceId,
   );
 
   const isSimulationMode = globalMode === "simulate";
@@ -190,14 +190,14 @@ const ParametersList: React.FC = () => {
   const globalMode = useEditorStore((state) => state.globalMode);
   const simulationState = useSimulationStore((state) => state.state);
   const selectedResourceId = useEditorStore(
-    (state) => state.selectedResourceId
+    (state) => state.selectedResourceId,
   );
   const setSelectedResourceId = useEditorStore(
-    (state) => state.setSelectedResourceId
+    (state) => state.setSelectedResourceId,
   );
   const parameterValues = useSimulationStore((state) => state.parameterValues);
   const setParameterValue = useSimulationStore(
-    (state) => state.setParameterValue
+    (state) => state.setParameterValue,
   );
 
   const isSimulationNotRun =

@@ -38,10 +38,10 @@ const PlaceInitialStateContent: React.FC = () => {
   const simulation = useSimulationStore((state) => state.simulation);
   const initialMarking = useSimulationStore((state) => state.initialMarking);
   const setInitialMarking = useSimulationStore(
-    (state) => state.setInitialMarking
+    (state) => state.setInitialMarking,
   );
   const currentlyViewedFrame = useSimulationStore(
-    (state) => state.currentlyViewedFrame
+    (state) => state.currentlyViewedFrame,
   );
 
   // Determine if simulation is running (has frames)
@@ -74,7 +74,7 @@ const PlaceInitialStateContent: React.FC = () => {
           onChange={(event) => {
             const count = Math.max(
               0,
-              Number.parseInt(event.target.value, 10) || 0
+              Number.parseInt(event.target.value, 10) || 0,
             );
             setInitialMarking(place.id, {
               values: new Float64Array(0), // Empty array for places without type

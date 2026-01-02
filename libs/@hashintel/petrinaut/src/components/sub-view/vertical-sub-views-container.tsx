@@ -113,7 +113,7 @@ const resizeHandleStyle = cva({
  */
 const useResizable = (
   config: SubViewResizeConfig,
-  handlePosition: "top" | "bottom"
+  handlePosition: "top" | "bottom",
 ) => {
   const [height, setHeight] = useState(config.defaultHeight);
   const [isResizing, setIsResizing] = useState(false);
@@ -127,7 +127,7 @@ const useResizable = (
       resizeStartY.current = event.clientY;
       resizeStartHeight.current = height;
     },
-    [height]
+    [height],
   );
 
   const handleResizeMove = useCallback(
@@ -146,7 +146,7 @@ const useResizable = (
 
       setHeight(Math.max(minHeight, Math.min(maxHeight, newHeight)));
     },
-    [isResizing, config.minHeight, config.maxHeight, handlePosition]
+    [isResizing, config.minHeight, config.maxHeight, handlePosition],
   );
 
   const handleResizeEnd = useCallback(() => {
@@ -235,7 +235,7 @@ const VerticalSubViewSection: React.FC<VerticalSubViewSectionProps> = ({
   // Use the resize hook - it will be used only if resizable is defined
   const { height, isResizing, handleResizeStart } = useResizable(
     resizable ?? DEFAULT_RESIZE_CONFIG,
-    resizeHandlePosition
+    resizeHandlePosition,
   );
 
   // Last item should grow if it has flexGrow, but shouldn't have bottom border
