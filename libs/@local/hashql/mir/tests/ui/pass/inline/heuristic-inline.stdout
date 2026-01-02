@@ -237,62 +237,11 @@ thunk use_flag:0() -> () -> Boolean {
 *thunk {thunk#6}() -> Boolean {
     let %0: Boolean
     let %1: ()
-    let %2: ()
-    let %3: Boolean
-    let %4: Boolean
-    let %5: ()
-    let %6: ()
-    let %7: ()
-    let %8: Boolean
-    let %9: ()
-    let %10: Boolean
 
     bb0(): {
         %1 = ()
-        %2 = %1
+        %0 = apply ({closure#10} as FnPtr) %1
 
-        goto -> bb2()
-    }
-
-    bb1(%0): {
         return %0
-    }
-
-    bb2(): {
-        %5 = ()
-        %9 = %5
-
-        goto -> bb8()
-    }
-
-    bb3(): {
-        %6 = ()
-        %7 = %6
-
-        goto -> bb6()
-    }
-
-    bb4(): {
-        goto -> bb1(0)
-    }
-
-    bb5(%4): {
-        goto -> bb1(%4)
-    }
-
-    bb6(): {
-        %8 = input LOAD flag
-
-        goto -> bb5(%8)
-    }
-
-    bb7(%3): {
-        switchInt(%3) -> [0: bb4(), 1: bb3()]
-    }
-
-    bb8(): {
-        %10 = input LOAD flag
-
-        goto -> bb7(%10)
     }
 }

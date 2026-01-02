@@ -23,15 +23,15 @@ pub struct InlineHeuristicsConfig {
 impl Default for InlineHeuristicsConfig {
     fn default() -> Self {
         Self {
-            always_inline: 15.0,
-            max: 80.0,
+            always_inline: 10.0,
+            max: 60.0,
             max_loop_multiplier: 1.5,
 
-            loop_bonus: 80.0,
-            leaf_bonus: 40.0,
-            single_caller_bonus: 20.0,
-            unique_callsite_bonus: 30.0,
-            size_penalty_factor: 1.0,
+            loop_bonus: 20.0,
+            leaf_bonus: 10.0,
+            single_caller_bonus: 5.0,
+            unique_callsite_bonus: 12.0,
+            size_penalty_factor: 1.1,
         }
     }
 }
