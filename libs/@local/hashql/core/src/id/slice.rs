@@ -75,6 +75,8 @@ where
     pub const fn as_raw_mut(&mut self) -> &mut [T] {
         // SAFETY: `IdSlice` is repr(transparent) and has the same layout as `[T]`.
         unsafe { &mut *(ptr::from_mut(self) as *mut [T]) }
+    }
+
     /// Creates an `IdSlice` from a boxed slice.
     #[inline]
     #[expect(unsafe_code, reason = "repr(transparent)")]
