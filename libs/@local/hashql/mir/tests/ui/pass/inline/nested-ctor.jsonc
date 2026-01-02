@@ -2,5 +2,5 @@
 //@ description: Nested constructors are both inlined (via AR pre-inlining since trivial)
 [
   "::graph::types::knowledge::entity::EntityUuid",
-  ["::core::uuid::Uuid", {"#literal": "e2851dbb-7376-4959-9bca-f72cafc4448f"}]
+  ["::core::uuid::Uuid", { "#literal": "e2851dbb-7376-4959-9bca-f72cafc4448f" }]
 ]

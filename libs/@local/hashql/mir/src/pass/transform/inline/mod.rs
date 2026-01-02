@@ -150,6 +150,7 @@ impl<'heap, A: Allocator> InlineState<'_, 'heap, A> {
         }
     }
 
+    #[expect(clippy::cast_precision_loss)]
     fn collect_callsites(&mut self, body: DefId, mem: &mut InlineStateMemory<A>) {
         if self.filters.contains(body) {
             return self.collect_all_callsites(body, mem);
@@ -196,6 +197,24 @@ impl<'heap, A: Allocator> InlineState<'_, 'heap, A> {
                 remaining_budget -= target_cost;
                 targets.push(candidate.callsite);
             }
+        }
+
+        // Remove the cost of each callsite from the overall cost, we know that each callsite is...
+        // a call.
+        self.properties[body].cost -= (targets.len() as f32) * self.config.cost.rvalue_apply;
+        for target in targets {
+            debug_assert_eq!(target.caller, body);
+
+            // for each callsite, add the cost of the body to the overall cost, we know that they're
+            // disjoint.
+            let Ok([caller, target]) = self
+                .properties
+                .get_disjoint_mut([target.caller, target.target])
+            else {
+                unreachable!("`inlinable_callsites` should have filtered out self-calls")
+            };
+
+            caller.cost += target.cost;
         }
     }
 
@@ -450,6 +469,10 @@ impl<A: BumpAllocator> Inline<A> {
                 iteration += 1;
             }
 
+            tracing::warn!(
+                "Aggressive inlining finished after {} iterations",
+                iteration
+            );
             if iteration == self.config.aggressive_inline_cutoff {
                 context.diagnostics.push(error::excessive_inlining_depth(
                     bodies[filter].span,

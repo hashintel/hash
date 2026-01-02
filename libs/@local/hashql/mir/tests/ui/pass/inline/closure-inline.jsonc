@@ -5,8 +5,8 @@
   "get_axis",
   [
     "fn",
-    {"#tuple": []},
-    {"#struct": {}},
+    { "#tuple": [] },
+    { "#struct": {} },
     "::graph::QueryTemporalAxes",
     ["input", "axis", "::graph::QueryTemporalAxes"]
   ],

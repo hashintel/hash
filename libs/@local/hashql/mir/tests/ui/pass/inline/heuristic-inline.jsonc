@@ -3,14 +3,20 @@
 [
   "let",
   "load_flag",
-  ["fn", {"#tuple": []}, {"#struct": {}}, "Boolean", ["input", "flag", "Boolean"]],
+  [
+    "fn",
+    { "#tuple": [] },
+    { "#struct": {} },
+    "Boolean",
+    ["input", "flag", "Boolean"]
+  ],
   [
     "let",
     "use_flag",
     [
       "fn",
-      {"#tuple": []},
-      {"#struct": {}},
+      { "#tuple": [] },
+      { "#struct": {} },
       "Boolean",
       ["&&", ["load_flag"], ["load_flag"]]
     ],

@@ -29,6 +29,7 @@ use crate::suite::{
 pub(crate) fn mir_pass_transform_inline<'heap>(
     heap: &'heap Heap,
     expr: Expr<'heap>,
+    config: InlineConfig,
     interner: &Interner<'heap>,
     mut render: impl MirRenderer,
     environment: &mut Environment<'heap>,
@@ -50,7 +51,7 @@ pub(crate) fn mir_pass_transform_inline<'heap>(
         diagnostics: DiagnosticIssues::new(),
     };
 
-    let mut pass = Inline::new_in(InlineConfig::default(), &mut scratch);
+    let mut pass = Inline::new_in(config, &mut scratch);
     pass.run(&mut context, &mut bodies);
 
     process_issues(diagnostics, context.diagnostics)?;
@@ -105,12 +106,23 @@ impl Suite for MirPassTransformInline {
         let mut environment = Environment::new(heap);
         let interner = Interner::new(heap);
 
+        let mut config = InlineConfig::default();
+
+        #[expect(clippy::cast_sign_loss, clippy::cast_possible_truncation)]
+        if let Some(aggressive_inline_cutoff) = suite_directives
+            .get("aggressive-inline-cutoff")
+            .and_then(toml::Value::as_integer)
+        {
+            config.aggressive_inline_cutoff = aggressive_inline_cutoff as usize;
+        }
+
         let mut buffer = Vec::new();
         let mut d2 = d2_output_enabled(self, suite_directives, reports).then(mir_spawn_d2);
 
         mir_pass_transform_inline(
             heap,
             expr,
+            config,
             &interner,
             (
                 TextRenderer::new(&mut buffer),

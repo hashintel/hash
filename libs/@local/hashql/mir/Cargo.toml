@@ -17,9 +17,10 @@ hashql-hir         = { workspace = true, public = true }
 # Private workspace dependencies
 
 # Private third-party dependencies
-anstyle-svg    = { workspace = true }
-bstr           = { workspace = true }
-simple-mermaid = { workspace = true }
+anstyle-svg       = { workspace = true }
+bstr              = { workspace = true }
+simple-mermaid    = { workspace = true }
+tracing.workspace = true
 
 [dev-dependencies]
 codspeed-criterion-compat = { workspace = true }
