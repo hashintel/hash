@@ -267,17 +267,24 @@ where
         let mut nodes_written = DenseBitSet::new_empty(num_nodes);
 
         for (node, &scc) in self.data.nodes.iter_enumerated() {
-            debug_assert!(
-                nodes_written.insert(N::from_usize(cursor[scc])),
-                "Cursor {} has been visited multiple times.",
-                cursor[scc]
-            );
+            #[cfg(debug_assertions)]
+            {
+                debug_assert!(
+                    nodes_written.insert(N::from_usize(cursor[scc])),
+                    "Cursor {} has been visited multiple times.",
+                    cursor[scc]
+                );
+            }
+
             nodes[cursor[scc]].write(node);
 
             cursor[scc] += 1;
         }
 
-        debug_assert_eq!(nodes_written.count(), num_nodes);
+        #[cfg(debug_assertions)]
+        {
+            debug_assert_eq!(nodes_written.count(), num_nodes);
+        }
 
         // SAFETY: Every element in `nodes[0..num_nodes]` is initialized exactly once:
         // - The loop iterates over all `num_nodes` nodes exactly once.
