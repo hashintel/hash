@@ -1,12 +1,65 @@
 import { css } from "@hashintel/ds-helpers/css";
-import { BiRun } from "react-icons/bi";
-import { TbCircle, TbRefresh, TbSquare } from "react-icons/tb";
+import { IoMdPause, IoMdPlay } from "react-icons/io";
+import { MdRotateLeft } from "react-icons/md";
 
-import { Tooltip } from "../../../../components/tooltip";
-import { FEATURE_FLAGS } from "../../../../feature-flags";
+import { useEditorStore } from "../../../../state/editor-provider";
 import { useSimulationStore } from "../../../../state/simulation-provider";
+import { ToolbarButton } from "./toolbar-button";
 
-export const SimulationControls: React.FC = () => {
+const frameInfoStyle = css({
+  display: "flex",
+  flexDirection: "column",
+  alignItems: "center",
+  fontSize: "[11px]",
+  color: "core.gray.60",
+  fontWeight: "[500]",
+  lineHeight: "[1]",
+  minWidth: "[80px]",
+});
+
+const elapsedTimeStyle = css({
+  fontSize: "[10px]",
+  color: "core.gray.50",
+  marginTop: "[2px]",
+});
+
+const sliderStyle = css({
+  width: "[400px]",
+  height: "[4px]",
+  appearance: "none",
+  background: "core.gray.30",
+  borderRadius: "[2px]",
+  outline: "none",
+  cursor: "pointer",
+  "&:disabled": {
+    opacity: "[0.5]",
+    cursor: "not-allowed",
+  },
+  "&::-webkit-slider-thumb": {
+    appearance: "none",
+    width: "[12px]",
+    height: "[12px]",
+    borderRadius: "[50%]",
+    background: "core.blue.50",
+    cursor: "pointer",
+  },
+  "&::-moz-range-thumb": {
+    width: "[12px]",
+    height: "[12px]",
+    borderRadius: "[50%]",
+    background: "core.blue.50",
+    cursor: "pointer",
+    border: "none",
+  },
+});
+
+interface SimulationControlsProps {
+  disabled?: boolean;
+}
+
+export const SimulationControls: React.FC<SimulationControlsProps> = ({
+  disabled = false,
+}) => {
   const simulation = useSimulationStore((state) => state.simulation);
   const simulationState = useSimulationStore((state) => state.state);
   const reset = useSimulationStore((state) => state.reset);
@@ -21,12 +74,58 @@ export const SimulationControls: React.FC = () => {
     (state) => state.setCurrentlyViewedFrame,
   );
 
+  const setBottomPanelOpen = useEditorStore(
+    (state) => state.setBottomPanelOpen,
+  );
+  const setActiveBottomPanelTab = useEditorStore(
+    (state) => state.setActiveBottomPanelTab,
+  );
+
+  const isDisabled = disabled;
+
+  const openDiagnosticsPanel = () => {
+    setActiveBottomPanelTab("diagnostics");
+    setBottomPanelOpen(true);
+  };
+
   const totalFrames = simulation?.frames.length ?? 0;
   const hasSimulation = simulation !== null;
   const isRunning = simulationState === "Running";
   const elapsedTime = simulation ? currentlyViewedFrame * simulation.dt : 0;
 
+  const getPlayPauseTooltip = () => {
+    if (isDisabled) {
+      return "Fix errors to run simulation";
+    }
+    if (simulationState === "NotRun") {
+      return "Start Simulation";
+    }
+    if (isRunning) {
+      return "Pause Simulation";
+    }
+    return "Continue Simulation";
+  };
+
+  const getPlayPauseAriaLabel = () => {
+    if (isDisabled) {
+      return "Fix errors to run simulation";
+    }
+    if (simulationState === "NotRun") {
+      return "Run simulation";
+    }
+    if (isRunning) {
+      return "Pause simulation";
+    }
+    return "Continue simulation";
+  };
+
   const handlePlayPause = () => {
+    // If disabled due to errors, open diagnostics panel instead
+    if (isDisabled) {
+      openDiagnosticsPanel();
+      return;
+    }
+
     if (simulationState === "NotRun") {
       // Initialize and start continuous simulation
       initialize({
@@ -52,170 +151,52 @@ export const SimulationControls: React.FC = () => {
 
   return (
     <>
-      <div
-        className={css({
-          background: "core.gray.20",
-          width: "[1px]",
-          height: "[40px]",
-        })}
-        style={{ margin: "0 4px" }}
-      />
-      <div
-        className={css({
-          display: "flex",
-          alignItems: "center",
-        })}
-        style={{ padding: "0 12px", gap: 12 }}
+      {/* Play/Pause button - always visible */}
+      <ToolbarButton
+        tooltip={getPlayPauseTooltip()}
+        onClick={handlePlayPause}
+        disabled={isDisabled}
+        ariaLabel={getPlayPauseAriaLabel()}
       >
-        {/* Record/Stop button - always visible */}
-        <Tooltip
-          content={
-            simulationState === "NotRun"
-              ? "Start Simulation"
-              : isRunning
-                ? "Pause Simulation"
-                : "Continue Simulation"
-          }
-        >
-          <button
-            type="button"
-            onClick={handlePlayPause}
-            className={css({
-              cursor: "pointer",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              width: "[32px]",
-              height: "[32px]",
-              borderRadius: "[50%]",
-              border: "none",
-              background: "core.red.50",
-              color: "[white]",
-              fontSize: "[20px]",
-              transition: "[all 0.2s ease]",
-              "&:hover:not(:disabled)": {
-                background: "core.red.60",
-                transform: "[scale(1.05)]",
-              },
-              "&:disabled": {
-                opacity: "[0.5]",
-                cursor: "not-allowed",
-              },
-            })}
-            aria-label={
-              simulationState === "NotRun"
-                ? "Run simulation"
-                : isRunning
-                  ? "Pause simulation"
-                  : "Continue simulation"
+        {isRunning ? <IoMdPause /> : <IoMdPlay />}
+      </ToolbarButton>
+
+      {/* Frame controls - only visible when simulation exists */}
+      {hasSimulation && (
+        <>
+          <div className={frameInfoStyle}>
+            <div>Frame</div>
+            <div>
+              {currentlyViewedFrame + 1} / {totalFrames}
+            </div>
+            <div className={elapsedTimeStyle}>{elapsedTime.toFixed(3)}s</div>
+          </div>
+
+          <input
+            type="range"
+            min="0"
+            max={Math.max(0, totalFrames - 1)}
+            value={currentlyViewedFrame}
+            disabled={isDisabled}
+            onChange={(event) =>
+              setCurrentlyViewedFrame(Number(event.target.value))
             }
-          >
-            {isRunning ? (
-              <TbSquare style={{ fontSize: "14px" }} />
-            ) : FEATURE_FLAGS.RUNNING_MAN_ICON ? (
-              <BiRun style={{ fontSize: "20px", marginRight: 2 }} />
-            ) : (
-              <TbCircle style={{ fontSize: "14px" }} />
-            )}
-          </button>
-        </Tooltip>
+            className={sliderStyle}
+          />
+        </>
+      )}
 
-        {/* Frame controls - only visible when simulation exists */}
-        {hasSimulation && (
-          <>
-            <span
-              className={css({
-                display: "flex",
-                flexDirection: "column",
-                alignItems: "center",
-                fontSize: "[11px]",
-                color: "core.gray.60",
-                fontWeight: "[500]",
-                minWidth: "[80px]",
-              })}
-            >
-              <div>Frame</div>
-              <div>
-                {currentlyViewedFrame + 1} / {totalFrames}
-              </div>
-              <div
-                className={css({
-                  fontSize: "[10px]",
-                  color: "core.gray.50",
-                  marginTop: "[2px]",
-                })}
-              >
-                {elapsedTime.toFixed(3)}s
-              </div>
-            </span>
-            <input
-              type="range"
-              min="0"
-              max={Math.max(0, totalFrames - 1)}
-              value={currentlyViewedFrame}
-              onChange={(event) =>
-                setCurrentlyViewedFrame(Number(event.target.value))
-              }
-              className={css({
-                width: "[400px]",
-                height: "[4px]",
-                appearance: "none",
-                background: "core.gray.30",
-                borderRadius: "[2px]",
-                outline: "none",
-                cursor: "pointer",
-                "&::-webkit-slider-thumb": {
-                  appearance: "none",
-                  width: "[12px]",
-                  height: "[12px]",
-                  borderRadius: "[50%]",
-                  background: "core.blue.50",
-                  cursor: "pointer",
-                },
-                "&::-moz-range-thumb": {
-                  width: "[12px]",
-                  height: "[12px]",
-                  borderRadius: "[50%]",
-                  background: "core.blue.50",
-                  cursor: "pointer",
-                  border: "none",
-                },
-              })}
-            />
-          </>
-        )}
-
-        {/* Reset button - only visible when simulation exists */}
-        {hasSimulation && (
-          <Tooltip content="Reset">
-            <button
-              type="button"
-              onClick={handleReset}
-              className={css({
-                cursor: "pointer",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                width: "[36px]",
-                height: "[36px]",
-                borderRadius: "[6px]",
-                border: "none",
-                background: "[transparent]",
-                color: "core.gray.80",
-                fontSize: "[18px]",
-                transition: "[all 0.2s ease]",
-                "&:hover": {
-                  background: "core.gray.10",
-                  transform: "[scale(1.05)]",
-                },
-              })}
-              aria-label="Reset simulation"
-            >
-              <TbRefresh />
-            </button>
-          </Tooltip>
-        )}
-      </div>
+      {/* Stop button - only visible when simulation exists */}
+      {hasSimulation && (
+        <ToolbarButton
+          tooltip="Stop simulation"
+          onClick={handleReset}
+          disabled={isDisabled}
+          ariaLabel="Reset simulation"
+        >
+          <MdRotateLeft />
+        </ToolbarButton>
+      )}
     </>
   );
 };

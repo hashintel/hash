@@ -1,6 +1,13 @@
 import { css } from "@hashintel/ds-helpers/css";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
+import { GlassPanel } from "../../../../components/glass-panel";
+import {
+  DEFAULT_PROPERTIES_PANEL_WIDTH,
+  MAX_PROPERTIES_PANEL_WIDTH,
+  MIN_PROPERTIES_PANEL_WIDTH,
+  PANEL_MARGIN,
+} from "../../../../constants/ui";
 import { useEditorStore } from "../../../../state/editor-provider";
 import { useSDCPNContext } from "../../../../state/sdcpn-provider";
 import { DifferentialEquationProperties } from "./differential-equation-properties";
@@ -9,9 +16,6 @@ import { PlaceProperties } from "./place-properties";
 import { TransitionProperties } from "./transition-properties";
 import { TypeProperties } from "./type-properties";
 
-const startingWidth = 450;
-const PANEL_MARGIN = 12;
-
 /**
  * PropertiesPanel displays properties and controls for the selected node/edge.
  */
@@ -19,16 +23,11 @@ export const PropertiesPanel: React.FC = () => {
   const selectedResourceId = useEditorStore(
     (state) => state.selectedResourceId,
   );
-  const globalMode = useEditorStore((state) => state.globalMode);
   const setPropertiesPanelWidth = useEditorStore(
     (state) => state.setPropertiesPanelWidth,
   );
-  const isDiagnosticsPanelOpen = useEditorStore(
-    (state) => state.isDiagnosticsPanelOpen,
-  );
-  const diagnosticsPanelHeight = useEditorStore(
-    (state) => state.diagnosticsPanelHeight,
-  );
+  const isBottomPanelOpen = useEditorStore((state) => state.isBottomPanelOpen);
+  const bottomPanelHeight = useEditorStore((state) => state.bottomPanelHeight);
 
   const {
     getItemType,
@@ -41,74 +40,23 @@ export const PropertiesPanel: React.FC = () => {
     updateParameter,
   } = useSDCPNContext();
 
-  // Resize functionality
-  const [panelWidth, setPanelWidthLocal] = useState(startingWidth);
-  const [isResizing, setIsResizing] = useState(false);
-  const resizeStartXRef = useRef(0);
-  const resizeStartWidthRef = useRef(startingWidth);
+  const [panelWidth, setPanelWidthLocal] = useState(
+    DEFAULT_PROPERTIES_PANEL_WIDTH,
+  );
 
   // Sync panel width with global store
-  const setPanelWidth = useCallback(
-    (width: number | ((prev: number) => number)) => {
-      setPanelWidthLocal((prev) => {
-        const newWidth = typeof width === "function" ? width(prev) : width;
-        setPropertiesPanelWidth(newWidth);
-        return newWidth;
-      });
+  const handleResize = useCallback(
+    (newWidth: number) => {
+      setPanelWidthLocal(newWidth);
+      setPropertiesPanelWidth(newWidth);
     },
     [setPropertiesPanelWidth],
   );
 
   // Initialize store with starting width
   useEffect(() => {
-    setPropertiesPanelWidth(startingWidth);
+    setPropertiesPanelWidth(DEFAULT_PROPERTIES_PANEL_WIDTH);
   }, [setPropertiesPanelWidth]);
-
-  const handleResizeStart = useCallback(
-    (event: React.MouseEvent) => {
-      event.preventDefault();
-      setIsResizing(true);
-      resizeStartXRef.current = event.clientX;
-      resizeStartWidthRef.current = panelWidth;
-    },
-    [panelWidth],
-  );
-
-  const handleResizeMove = useCallback(
-    (event: MouseEvent) => {
-      if (!isResizing) {
-        return;
-      }
-
-      const deltaX = resizeStartXRef.current - event.clientX;
-      const newWidth = Math.max(
-        250,
-        Math.min(800, resizeStartWidthRef.current + deltaX),
-      );
-      setPanelWidth(newWidth);
-    },
-    [isResizing, setPanelWidth],
-  );
-
-  const handleResizeEnd = useCallback(() => {
-    setIsResizing(false);
-  }, []);
-
-  useEffect(() => {
-    if (isResizing) {
-      document.addEventListener("mousemove", handleResizeMove);
-      document.addEventListener("mouseup", handleResizeEnd);
-      document.body.style.cursor = "ew-resize";
-      document.body.style.userSelect = "none";
-
-      return () => {
-        document.removeEventListener("mousemove", handleResizeMove);
-        document.removeEventListener("mouseup", handleResizeEnd);
-        document.body.style.cursor = "";
-        document.body.style.userSelect = "";
-      };
-    }
-  }, [isResizing, handleResizeMove, handleResizeEnd]);
 
   // Don't show panel if nothing is selected
   if (!selectedResourceId) {
@@ -139,7 +87,6 @@ export const PropertiesPanel: React.FC = () => {
             place={placeData}
             types={petriNetDefinition.types}
             differentialEquations={petriNetDefinition.differentialEquations}
-            globalMode={globalMode}
             updatePlace={updatePlace}
           />
         );
@@ -157,7 +104,6 @@ export const PropertiesPanel: React.FC = () => {
             transition={transitionData}
             places={petriNetDefinition.places}
             types={petriNetDefinition.types}
-            globalMode={globalMode}
             onArcWeightUpdate={updateArcWeight}
             updateTransition={updateTransition}
           />
@@ -171,13 +117,7 @@ export const PropertiesPanel: React.FC = () => {
         (type) => type.id === selectedId,
       );
       if (typeData) {
-        content = (
-          <TypeProperties
-            type={typeData}
-            updateType={updateType}
-            globalMode={globalMode}
-          />
-        );
+        content = <TypeProperties type={typeData} updateType={updateType} />;
       }
       break;
     }
@@ -192,7 +132,6 @@ export const PropertiesPanel: React.FC = () => {
             differentialEquation={equationData}
             types={petriNetDefinition.types}
             places={petriNetDefinition.places}
-            globalMode={globalMode}
             updateDifferentialEquation={updateDifferentialEquation}
           />
         );
@@ -209,7 +148,6 @@ export const PropertiesPanel: React.FC = () => {
           <ParameterProperties
             parameter={parameterData}
             updateParameter={updateParameter}
-            globalMode={globalMode}
           />
         );
       }
@@ -232,11 +170,9 @@ export const PropertiesPanel: React.FC = () => {
       );
   }
 
-  // Calculate bottom offset based on diagnostics panel visibility
-  // Gap between PropertiesPanel and DiagnosticsPanel matches gap between LeftSideBar and DiagnosticsPanel
-  const bottomOffset = isDiagnosticsPanelOpen
-    ? diagnosticsPanelHeight + PANEL_MARGIN
-    : 0;
+  // Calculate bottom offset based on bottom panel visibility
+  // Gap between PropertiesPanel and BottomPanel matches gap between LeftSideBar and BottomPanel
+  const bottomOffset = isBottomPanelOpen ? bottomPanelHeight + PANEL_MARGIN : 0;
 
   return (
     <div
@@ -246,90 +182,33 @@ export const PropertiesPanel: React.FC = () => {
         top: 0,
         right: 0,
         bottom: bottomOffset,
-        padding: "12px",
+        padding: PANEL_MARGIN,
         zIndex: 1000,
         pointerEvents: "none",
       }}
     >
-      <div
+      <GlassPanel
+        className={css({
+          height: "[100%]",
+        })}
         style={{
-          position: "relative",
-          display: "flex",
           width: panelWidth,
           pointerEvents: "auto",
         }}
+        contentStyle={{
+          padding: 16,
+          overflowY: "auto",
+        }}
+        resizable={{
+          edge: "left",
+          size: panelWidth,
+          onResize: handleResize,
+          minSize: MIN_PROPERTIES_PANEL_WIDTH,
+          maxSize: MAX_PROPERTIES_PANEL_WIDTH,
+        }}
       >
-        {/* Resize Handle */}
-        <button
-          type="button"
-          aria-label="Resize properties panel"
-          onMouseDown={handleResizeStart}
-          onKeyDown={(event) => {
-            if (event.key === "ArrowLeft") {
-              setPanelWidth((prev) => Math.max(250, prev - 10));
-            } else if (event.key === "ArrowRight") {
-              setPanelWidth((prev) => Math.min(800, prev + 10));
-            }
-          }}
-          style={{
-            position: "absolute",
-            left: 0,
-            top: 0,
-            bottom: 0,
-            width: 9,
-            cursor: "ew-resize",
-            zIndex: 1001,
-            background: "transparent",
-            border: "none",
-            padding: 0,
-            borderRadius: "12px 0 0 12px",
-            backgroundColor: "transparent",
-            transition: "background-color 0.4s",
-            transitionDelay: "0.2s",
-          }}
-        />
-
-        <div
-          className={css({
-            borderRadius: "[12px]",
-            height: "[100%]",
-            width: "[100%]",
-            backgroundColor: "[rgba(255, 255, 255, 0.7)]",
-            boxShadow: "[0 3px 13px rgba(0, 0, 0, 0.1)]",
-            border: "[1px solid rgba(255, 255, 255, 0.8)]",
-          })}
-          style={{
-            borderRadius: 12,
-            overflow: "hidden",
-          }}
-        >
-          {/* Elements with backdrop-filter should not be parent of Monaco Editor,
-              otherwise Monaco's Hover Widget do not show */}
-          <div
-            style={{
-              borderRadius: 12,
-              position: "absolute",
-              top: 0,
-              left: 0,
-              right: 0,
-              bottom: 0,
-              pointerEvents: "none",
-              backdropFilter: "blur(24px)",
-            }}
-          />
-
-          <div
-            style={{
-              position: "relative",
-              height: "100%",
-              padding: 16,
-              overflowY: "auto",
-            }}
-          >
-            {content}
-          </div>
-        </div>
-      </div>
+        {content}
+      </GlassPanel>
     </div>
   );
 };

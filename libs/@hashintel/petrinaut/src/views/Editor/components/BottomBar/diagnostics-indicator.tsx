@@ -2,35 +2,26 @@ import { css, cva } from "@hashintel/ds-helpers/css";
 import { FaCheck, FaXmark } from "react-icons/fa6";
 
 import { useCheckerContext } from "../../../../state/checker-provider";
+import { ToolbarButton } from "./toolbar-button";
 
-const buttonStyle = cva({
+const iconContainerStyle = cva({
   base: {
     display: "flex",
     alignItems: "center",
-    border: "none",
-    borderRadius: "[8px]",
-    cursor: "pointer",
-    transition: "[all 0.2s ease]",
-    padding: "[2px 6px]",
-    marginLeft: "[12px]",
-    marginRight: "[3px]",
     gap: "[2px]",
+    borderRadius: "[6px]",
+    padding: "[1px 6px]",
+    height: "[25px]",
   },
   variants: {
     status: {
       error: {
         backgroundColor: "[rgba(239, 68, 68, 0.1)]",
         color: "[#dc2626]",
-        _hover: {
-          backgroundColor: "[rgba(239, 68, 68, 0.2)]",
-        },
       },
       success: {
         backgroundColor: "[rgba(34, 197, 94, 0.1)]",
         color: "[#16a34a]",
-        _hover: {
-          backgroundColor: "[rgba(34, 197, 94, 0.2)]",
-        },
       },
     },
   },
@@ -60,25 +51,30 @@ export const DiagnosticsIndicator: React.FC<DiagnosticsIndicatorProps> = ({
   const hasErrors = totalDiagnosticsCount > 0;
 
   return (
-    <button
-      type="button"
+    <ToolbarButton
+      tooltip="Show Diagnostics"
       onClick={onClick}
-      className={buttonStyle({ status: hasErrors ? "error" : "success" })}
-      aria-label={
+      ariaLabel={
         hasErrors
           ? `${totalDiagnosticsCount} diagnostic issues found`
           : "No diagnostic issues"
       }
-      aria-expanded={isExpanded}
+      ariaExpanded={isExpanded}
     >
-      {hasErrors ? (
-        <>
-          <FaXmark size={16} />
-          <span className={countStyle}>{totalDiagnosticsCount}</span>
-        </>
-      ) : (
-        <FaCheck size={16} />
-      )}
-    </button>
+      <div
+        className={iconContainerStyle({
+          status: hasErrors ? "error" : "success",
+        })}
+      >
+        {hasErrors ? (
+          <>
+            <FaXmark size={16} />
+            <span className={countStyle}>{totalDiagnosticsCount}</span>
+          </>
+        ) : (
+          <FaCheck size={16} />
+        )}
+      </div>
+    </ToolbarButton>
   );
 };

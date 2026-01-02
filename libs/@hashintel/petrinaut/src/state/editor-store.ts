@@ -1,6 +1,12 @@
 import { create } from "zustand";
 import { devtools } from "zustand/middleware";
 
+import {
+  DEFAULT_BOTTOM_PANEL_HEIGHT,
+  DEFAULT_LEFT_SIDEBAR_WIDTH,
+  DEFAULT_PROPERTIES_PANEL_WIDTH,
+} from "../constants/ui";
+
 export type DraggingStateByNodeId = Record<
   string,
   { dragging: boolean; position: { x: number; y: number } }
@@ -8,6 +14,10 @@ export type DraggingStateByNodeId = Record<
 
 type EditorGlobalMode = "edit" | "simulate";
 type EditorEditionMode = "select" | "pan" | "add-place" | "add-transition";
+export type BottomPanelTab =
+  | "diagnostics"
+  | "simulation-settings"
+  | "parameters";
 
 export type EditorState = {
   globalMode: EditorGlobalMode;
@@ -19,17 +29,21 @@ export type EditorState = {
   // UI state
   isLeftSidebarOpen: boolean;
   setLeftSidebarOpen: (isOpen: boolean) => void;
+  leftSidebarWidth: number;
+  setLeftSidebarWidth: (width: number) => void;
 
-  // Properties panel width (for DiagnosticsPanel positioning)
+  // Properties panel width (for BottomPanel positioning)
   propertiesPanelWidth: number;
   setPropertiesPanelWidth: (width: number) => void;
 
-  // Diagnostics panel visibility and height
-  isDiagnosticsPanelOpen: boolean;
-  setDiagnosticsPanelOpen: (isOpen: boolean) => void;
-  toggleDiagnosticsPanel: () => void;
-  diagnosticsPanelHeight: number;
-  setDiagnosticsPanelHeight: (height: number) => void;
+  // Bottom panel visibility, height, and active tab
+  isBottomPanelOpen: boolean;
+  setBottomPanelOpen: (isOpen: boolean) => void;
+  toggleBottomPanel: () => void;
+  bottomPanelHeight: number;
+  setBottomPanelHeight: (height: number) => void;
+  activeBottomPanelTab: BottomPanelTab;
+  setActiveBottomPanelTab: (tab: BottomPanelTab) => void;
 
   // Selected Resource ID (for properties panel)
   selectedResourceId: string | null;
@@ -77,35 +91,47 @@ export function createEditorStore() {
               type: "setLeftSidebarOpen",
               isOpen,
             }),
+          leftSidebarWidth: DEFAULT_LEFT_SIDEBAR_WIDTH,
+          setLeftSidebarWidth: (width) =>
+            set({ leftSidebarWidth: width }, false, {
+              type: "setLeftSidebarWidth",
+              width,
+            }),
 
           // Properties panel width
-          propertiesPanelWidth: 450,
+          propertiesPanelWidth: DEFAULT_PROPERTIES_PANEL_WIDTH,
           setPropertiesPanelWidth: (width) =>
             set({ propertiesPanelWidth: width }, false, {
               type: "setPropertiesPanelWidth",
               width,
             }),
 
-          // Diagnostics panel visibility and height
-          isDiagnosticsPanelOpen: false,
-          setDiagnosticsPanelOpen: (isOpen) =>
-            set({ isDiagnosticsPanelOpen: isOpen }, false, {
-              type: "setDiagnosticsPanelOpen",
+          // Bottom panel visibility and height
+          isBottomPanelOpen: false,
+          setBottomPanelOpen: (isOpen) =>
+            set({ isBottomPanelOpen: isOpen }, false, {
+              type: "setBottomPanelOpen",
               isOpen,
             }),
-          toggleDiagnosticsPanel: () =>
+          toggleBottomPanel: () =>
             set(
               (state) => ({
-                isDiagnosticsPanelOpen: !state.isDiagnosticsPanelOpen,
+                isBottomPanelOpen: !state.isBottomPanelOpen,
               }),
               false,
-              "toggleDiagnosticsPanel",
+              "toggleBottomPanel",
             ),
-          diagnosticsPanelHeight: 180,
-          setDiagnosticsPanelHeight: (height) =>
-            set({ diagnosticsPanelHeight: height }, false, {
-              type: "setDiagnosticsPanelHeight",
+          bottomPanelHeight: DEFAULT_BOTTOM_PANEL_HEIGHT,
+          setBottomPanelHeight: (height) =>
+            set({ bottomPanelHeight: height }, false, {
+              type: "setBottomPanelHeight",
               height,
+            }),
+          activeBottomPanelTab: "diagnostics",
+          setActiveBottomPanelTab: (tab) =>
+            set({ activeBottomPanelTab: tab }, false, {
+              type: "setActiveBottomPanelTab",
+              tab,
             }),
 
           // Selected Resource ID
@@ -171,9 +197,11 @@ export function createEditorStore() {
                 globalMode: "edit",
                 editionMode: "select",
                 isLeftSidebarOpen: true,
-                propertiesPanelWidth: 450,
-                isDiagnosticsPanelOpen: false,
-                diagnosticsPanelHeight: 180,
+                leftSidebarWidth: DEFAULT_LEFT_SIDEBAR_WIDTH,
+                propertiesPanelWidth: DEFAULT_PROPERTIES_PANEL_WIDTH,
+                isBottomPanelOpen: false,
+                bottomPanelHeight: DEFAULT_BOTTOM_PANEL_HEIGHT,
+                activeBottomPanelTab: "diagnostics",
                 selectedResourceId: null,
                 selectedItemIds: new Set(),
                 draggingStateByNodeId: {},
