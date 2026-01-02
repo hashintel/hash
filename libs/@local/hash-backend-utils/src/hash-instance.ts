@@ -1,10 +1,10 @@
-import type { ActorEntityUuid } from "@blockprotocol/type-system";
+import {
+  type ActorEntityUuid,
+  extractBaseUrl,
+} from "@blockprotocol/type-system";
 import type { GraphApi } from "@local/hash-graph-client";
 import { type HashEntity, queryEntities } from "@local/hash-graph-sdk/entity";
-import {
-  currentTimeInstantTemporalAxes,
-  generateVersionedUrlMatchingFilter,
-} from "@local/hash-isomorphic-utils/graph-queries";
+import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type { SimpleProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
@@ -27,8 +27,10 @@ export const getHashInstanceFromEntity = ({
   entity: HashEntity<HASHInstanceEntity>;
 }): HashInstance => {
   if (
-    !entity.metadata.entityTypeIds.includes(
-      systemEntityTypes.hashInstance.entityTypeId,
+    !entity.metadata.entityTypeIds.some(
+      (entityTypeId) =>
+        extractBaseUrl(entityTypeId) ===
+        systemEntityTypes.hashInstance.entityTypeBaseUrl,
     )
   ) {
     throw new EntityTypeMismatchError(
@@ -54,10 +56,12 @@ export const getHashInstance = async (
   const { entities } = await backOff(
     () =>
       queryEntities<HASHInstanceEntity>(context, authentication, {
-        filter: generateVersionedUrlMatchingFilter(
-          systemEntityTypes.hashInstance.entityTypeId,
-          { ignoreParents: true },
-        ),
+        filter: {
+          equal: [
+            { path: ["type", "baseUrl"] },
+            { parameter: systemEntityTypes.hashInstance.entityTypeBaseUrl },
+          ],
+        },
         temporalAxes: currentTimeInstantTemporalAxes,
         includeDrafts: false,
         includePermissions: false,
