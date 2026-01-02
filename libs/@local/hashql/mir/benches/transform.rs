@@ -366,18 +366,31 @@ fn run_bencher<T>(
             (env, interner, body)
         },
         |(env, interner, body)| {
+            // SAFETY: We create a shared `&Heap` reference. This is sound because:
+            // - The `&mut Heap` from setup no longer exists (setup closure has returned)
+            // - The `env`, `interner`, and `body` already hold shared borrows of `heap`
+            // - Adding another `&Heap` is just shared-shared aliasing, which is allowed
+            let heap = unsafe { &*heap_ptr };
+            // SAFETY: We create a mutable `&mut Scratch` reference. This is sound because:
+            // - The `&mut Scratch` from setup no longer exists (setup closure has returned), it is
+            //   only used to reset.
+            // - The `env`, `interner`, and `body` do *not* reference `scratch`.
+            // - Therefore due to the sequential nature of the code, `scratch` is the sole reference
+            //   to the variable and not aliased.
+            // - Scratch space data does *not* escape the closure, the return type `T` of `func` is
+            //   irrespective of the scratch space and even if, is immediately dropped after
+            //   execution through criterion, only after which the scratch space is reset.
+            //   Therefore, no additional references exist.
+            let scratch = unsafe { &mut *scratch_ptr };
+
             let mut context = MirContext {
-                heap: &heap,
+                heap,
                 env,
                 interner,
                 diagnostics: DiagnosticIssues::new(),
             };
 
-            let value = func(
-                black_box(&mut context),
-                black_box(body),
-                black_box(&mut scratch),
-            );
+            let value = func(black_box(&mut context), black_box(body), black_box(scratch));
             (context.diagnostics, value)
         },
         BatchSize::PerIteration,
