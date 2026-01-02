@@ -4,7 +4,7 @@
 //! MIR bodies, including user-defined functions, closures, constants, and
 //! built-in operations that require MIR representation.
 
-use hashql_core::id;
+use hashql_core::id::{self, Id as _};
 
 id::newtype!(
     /// A unique identifier for definitions that have a body associated with them in the HashQL MIR.
@@ -72,4 +72,5 @@ impl DefId {
     /// the original list. Used for imperative-style list manipulation
     /// where performance is critical.
     pub const LIST_PUSH_MUT: Self = Self(0xFFFF_FE07);
+    pub const PLACEHOLDER: Self = Self::MAX;
 }

@@ -33,15 +33,12 @@ thunk double:0() -> (Integer) -> Boolean {
         return %1
     }
 }
-════ MIR after Inlining ════════════════════════════════════════════════════════
+
+════ Pre-inlining MIR ══════════════════════════════════════════════════════════
 
 fn {closure#4}(%0: (), %1: Integer) -> Boolean {
-    let %2: Boolean
-
     bb0(): {
-        %2 = 1
-
-        return %2
+        return 1
     }
 }
 
@@ -58,25 +55,33 @@ thunk double:0() -> (Integer) -> Boolean {
 }
 
 *thunk {thunk#3}() -> Boolean {
+    bb0(): {
+        return 1
+    }
+}
+
+════ Inlined MIR ═══════════════════════════════════════════════════════════════
+
+fn {closure#4}(%0: (), %1: Integer) -> Boolean {
+    bb0(): {
+        return 1
+    }
+}
+
+thunk double:0() -> (Integer) -> Boolean {
     let %0: (Integer) -> Boolean
-    let %1: Boolean
-    let %2: (Integer) -> Boolean
-    let %3: ()
+    let %1: ()
 
     bb0(): {
-        goto -> bb2()
+        %1 = ()
+        %0 = closure(({closure#4} as FnPtr), %1)
+
+        return %0
     }
+}
 
-    bb1(%0): {
-        %1 = apply %0.0 %0.1 21
-
-        return %1
-    }
-
-    bb2(): {
-        %3 = ()
-        %2 = closure(({closure#4} as FnPtr), %3)
-
-        goto -> bb1(%2)
+*thunk {thunk#3}() -> Boolean {
+    bb0(): {
+        return 1
     }
 }
