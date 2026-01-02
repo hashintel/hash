@@ -127,7 +127,7 @@ impl Ord for Candidate {
         let Self { score, callsite: _ } = self;
 
         // Reverse ordering: higher scores come first (max-heap behavior).
-        score.total_cmp(&other.score).reverse()
+        score.total_cmp(&other.score)
     }
 }
 
