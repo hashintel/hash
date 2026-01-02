@@ -66,9 +66,8 @@
 //! [`DataDependencyAnalysis`]: crate::pass::analysis::DataDependencyAnalysis
 //! [`CfgSimplify`]: super::CfgSimplify
 
+use alloc::alloc::Global;
 use core::{alloc::Allocator, convert::Infallible};
-
-use hashql_core::heap::{BumpAllocator, ResetAllocator, Scratch};
 
 use crate::{
     body::{Body, location::Location, operand::Operand},
@@ -120,30 +119,26 @@ impl<'heap, A: Allocator + Clone> VisitorMut<'heap> for PlaceVisitor<'_, 'heap, 
 /// projections, assignments, and block parameters. This enables downstream passes to work with
 /// simplified operands and, when combined with dead store elimination, achieves SROA-like
 /// decomposition of aggregates.
-pub struct ForwardSubstitution<A: BumpAllocator = Scratch> {
+pub struct ForwardSubstitution<A: Allocator = Global> {
     alloc: A,
 }
 
 impl ForwardSubstitution {
     #[must_use]
-    pub fn new() -> Self {
-        Self {
-            alloc: Scratch::new(),
-        }
+    pub const fn new() -> Self {
+        Self { alloc: Global }
     }
 }
 
-impl<A: BumpAllocator> ForwardSubstitution<A> {
+impl<A: Allocator> ForwardSubstitution<A> {
     #[must_use]
     pub const fn new_in(alloc: A) -> Self {
         Self { alloc }
     }
 }
 
-impl<'env, 'heap, A: ResetAllocator> TransformPass<'env, 'heap> for ForwardSubstitution<A> {
+impl<'env, 'heap, A: Allocator> TransformPass<'env, 'heap> for ForwardSubstitution<A> {
     fn run(&mut self, context: &mut MirContext<'env, 'heap>, body: &mut Body<'heap>) -> Changed {
-        self.alloc.reset();
-
         let mut analysis = DataDependencyAnalysis::new_in(&self.alloc);
         analysis.run(context, body);
         let analysis = analysis.finish();

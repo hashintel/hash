@@ -6,6 +6,8 @@ use bump_scope::{Bump, BumpBox, BumpScope};
 
 use super::{BumpAllocator, bump::ResetAllocator};
 
+pub struct Checkpoint(bump_scope::Checkpoint);
+
 /// Internal arena allocator.
 #[derive(Debug)]
 pub(super) struct Allocator(Bump);
@@ -32,11 +34,23 @@ impl Allocator {
 }
 
 impl BumpAllocator for Allocator {
+    type Checkpoint = Checkpoint;
     type Scoped<'scope> = AllocatorScope<'scope>;
 
     #[inline]
     fn scoped<T>(&mut self, func: impl FnOnce(Self::Scoped<'_>) -> T) -> T {
         self.0.scoped(|scope| func(AllocatorScope(scope)))
+    }
+
+    #[inline]
+    fn checkpoint(&self) -> Self::Checkpoint {
+        Checkpoint(self.0.checkpoint())
+    }
+
+    #[inline]
+    unsafe fn rollback(&self, checkpoint: Self::Checkpoint) {
+        // SAFETY: The same safety preconditions apply
+        unsafe { self.0.reset_to(checkpoint.0) }
     }
 
     #[inline]
@@ -144,11 +158,23 @@ unsafe impl alloc::Allocator for Allocator {
 pub struct AllocatorScope<'scope>(BumpScope<'scope>);
 
 impl BumpAllocator for AllocatorScope<'_> {
+    type Checkpoint = Checkpoint;
     type Scoped<'scope> = AllocatorScope<'scope>;
 
     #[inline]
     fn scoped<T>(&mut self, func: impl FnOnce(Self::Scoped<'_>) -> T) -> T {
         self.0.scoped(|scope| func(AllocatorScope(scope)))
+    }
+
+    #[inline]
+    fn checkpoint(&self) -> Self::Checkpoint {
+        Checkpoint(self.0.checkpoint())
+    }
+
+    #[inline]
+    unsafe fn rollback(&self, checkpoint: Self::Checkpoint) {
+        // SAFETY: The same safety preconditions apply
+        unsafe { self.0.reset_to(checkpoint.0) }
     }
 
     #[inline]

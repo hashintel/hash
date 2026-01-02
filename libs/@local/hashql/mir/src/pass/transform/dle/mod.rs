@@ -53,7 +53,7 @@ mod tests;
 use core::convert::Infallible;
 
 use hashql_core::{
-    heap::{BumpAllocator, ResetAllocator},
+    heap::BumpAllocator,
     id::{Id as _, bit_vec::DenseBitSet},
 };
 
@@ -103,10 +103,8 @@ impl<A: BumpAllocator> DeadLocalElimination<A> {
     }
 }
 
-impl<'env, 'heap, A: ResetAllocator> TransformPass<'env, 'heap> for DeadLocalElimination<A> {
+impl<'env, 'heap, A: BumpAllocator> TransformPass<'env, 'heap> for DeadLocalElimination<A> {
     fn run(&mut self, context: &mut MirContext<'env, 'heap>, body: &mut Body<'heap>) -> Changed {
-        self.alloc.reset();
-
         let mut dead = if let Some(dead) = self.dead.take() {
             dead
         } else {
