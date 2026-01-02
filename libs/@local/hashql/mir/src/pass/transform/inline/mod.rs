@@ -203,7 +203,7 @@ struct InlineState<'env, 'heap, A: Allocator> {
     /// has been inlined into a filter, it won't be inlined again.
     inlined: SparseBitMatrix<DefId, SccId, A>,
 
-    /// Body properties (cost, directive, is_leaf) for each function.
+    /// Body properties for each function.
     properties: DefIdVec<BodyProperties, A>,
     /// For each function, which basic blocks are inside loops.
     loops: BasicBlockLoopVec<A>,

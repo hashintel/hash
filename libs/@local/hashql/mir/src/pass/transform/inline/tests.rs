@@ -37,10 +37,6 @@ use crate::{
     pretty::TextFormat,
 };
 
-// =============================================================================
-// Test Harness
-// =============================================================================
-
 /// Formats multiple bodies for snapshot testing.
 fn format_bodies<'heap>(
     bodies: &DefIdSlice<Body<'heap>>,
@@ -96,10 +92,6 @@ fn assert_inline_pass<'heap>(
     let _drop = settings.bind_to_scope();
     assert_snapshot!(name, output);
 }
-
-// =============================================================================
-// Transformation Tests (insta snapshots)
-// =============================================================================
 
 /// Tests basic inlining of a simple leaf function.
 ///
@@ -283,10 +275,6 @@ fn inline_continuation_terminator() {
         InlineConfig::default(),
     );
 }
-
-// =============================================================================
-// BodyAnalysis Tests (assertions)
-// =============================================================================
 
 /// Tests that `Source::Ctor` produces `InlineDirective::Always`.
 #[test]
@@ -481,10 +469,6 @@ fn analysis_is_leaf() {
         "non_leaf should not be marked as leaf"
     );
 }
-
-// =============================================================================
-// InlineHeuristics Tests (assertions)
-// =============================================================================
 
 /// Tests that `InlineDirective::Always` produces +∞ score.
 #[test]
@@ -864,5 +848,632 @@ fn heuristics_leaf_bonus() {
         (score_leaf - score_non_leaf - config.leaf_bonus).abs() < f32::EPSILON,
         "Leaf should add leaf_bonus: leaf={score_leaf}, non_leaf={score_non_leaf}, bonus={}",
         config.leaf_bonus
+    );
+}
+
+/// Tests that callsite in a loop gets loop bonus and higher max threshold.
+#[test]
+fn heuristics_loop_bonus() {
+    let heap = Heap::new();
+    let interner = Interner::new(&heap);
+    let env = Environment::new(&heap);
+
+    // Create callee
+    let callee = body!(interner, env; fn@0/1 -> Int {
+        decl x: Int;
+
+        bb0() {
+            return x;
+        }
+    });
+
+    // Create caller with a loop (bb1 jumps back to bb0)
+    let caller = body!(interner, env; thunk@1/0 -> Int {
+        decl out: Int, cond: Bool;
+
+        bb0() {
+            out = apply (callee.id), 1;
+            cond = bin.== out 10;
+            if cond then bb1() else bb0();
+        },
+        bb1() {
+            return out;
+        }
+    });
+
+    let bodies = [callee, caller];
+    let bodies_slice = DefIdSlice::from_raw(&bodies);
+
+    let graph = CallGraph::analyze_in(bodies_slice, &heap);
+
+    let config = InlineHeuristicsConfig::default();
+    let cost = 30.0; // Between always_inline and max
+
+    let properties = DefIdVec::from_raw(vec![
+        BodyProperties {
+            directive: InlineDirective::Heuristic,
+            cost,
+            is_leaf: true,
+        },
+        BodyProperties {
+            directive: InlineDirective::Heuristic,
+            cost: 50.0,
+            is_leaf: false,
+        },
+    ]);
+
+    // Run analysis to detect loops
+    let mut analysis = BodyAnalysis::new(
+        &graph,
+        bodies_slice,
+        InlineCostEstimationConfig::default(),
+        &heap,
+    );
+    for body in &bodies {
+        analysis.run(body);
+    }
+    let result = analysis.finish();
+
+    let heuristics_with_loops = InlineHeuristics {
+        config,
+        graph: &graph,
+        loops: &result.loops,
+        properties: properties.as_slice(),
+    };
+
+    // Empty loops (callsite not in loop)
+    let empty_loops = DefIdVec::new_in(&heap);
+    let heuristics_no_loops = InlineHeuristics {
+        config,
+        graph: &graph,
+        loops: &empty_loops,
+        properties: properties.as_slice(),
+    };
+
+    // Callsite in bb0 which is in a loop
+    let callsite = CallSite {
+        caller: DefId::new(1),
+        kind: Location {
+            block: BasicBlockId::new(0),
+            statement_index: 1,
+        },
+        target: DefId::new(0),
+    };
+
+    let score_in_loop = heuristics_with_loops.score(callsite);
+    let score_not_in_loop = heuristics_no_loops.score(callsite);
+
+    assert!(
+        (score_in_loop - score_not_in_loop - config.loop_bonus).abs() < f32::EPSILON,
+        "Loop should add loop_bonus: in_loop={score_in_loop}, not_in_loop={score_not_in_loop}, \
+         bonus={}",
+        config.loop_bonus
+    );
+}
+
+/// Tests that max threshold is raised by `max_loop_multiplier` for callsites in loops.
+#[test]
+fn heuristics_max_loop_multiplier() {
+    let heap = Heap::new();
+    let interner = Interner::new(&heap);
+    let env = Environment::new(&heap);
+
+    let callee = body!(interner, env; fn@0/1 -> Int {
+        decl x: Int;
+
+        bb0() {
+            return x;
+        }
+    });
+
+    // Caller with a loop
+    let caller = body!(interner, env; thunk@1/0 -> Int {
+        decl out: Int, cond: Bool;
+
+        bb0() {
+            out = apply (callee.id), 1;
+            cond = bin.== out 10;
+            if cond then bb1() else bb0();
+        },
+        bb1() {
+            return out;
+        }
+    });
+
+    let bodies = [callee, caller];
+    let bodies_slice = DefIdSlice::from_raw(&bodies);
+
+    let graph = CallGraph::analyze_in(bodies_slice, &heap);
+    let config = InlineHeuristicsConfig::default();
+
+    // Cost between max and max * max_loop_multiplier
+    let cost = config.max + 5.0; // 65.0 with defaults (max=60, multiplier=1.5 -> 90)
+
+    let properties = DefIdVec::from_raw(vec![
+        BodyProperties {
+            directive: InlineDirective::Heuristic,
+            cost,
+            is_leaf: true,
+        },
+        BodyProperties {
+            directive: InlineDirective::Heuristic,
+            cost: 50.0,
+            is_leaf: false,
+        },
+    ]);
+
+    // Run analysis to detect loops
+    let mut analysis = BodyAnalysis::new(
+        &graph,
+        bodies_slice,
+        InlineCostEstimationConfig::default(),
+        &heap,
+    );
+    for body in &bodies {
+        analysis.run(body);
+    }
+    let result = analysis.finish();
+
+    let heuristics_with_loops = InlineHeuristics {
+        config,
+        graph: &graph,
+        loops: &result.loops,
+        properties: properties.as_slice(),
+    };
+
+    let empty_loops = DefIdVec::new_in(&heap);
+    let heuristics_no_loops = InlineHeuristics {
+        config,
+        graph: &graph,
+        loops: &empty_loops,
+        properties: properties.as_slice(),
+    };
+
+    let callsite = CallSite {
+        caller: DefId::new(1),
+        kind: Location {
+            block: BasicBlockId::new(0),
+            statement_index: 1,
+        },
+        target: DefId::new(0),
+    };
+
+    let score_in_loop = heuristics_with_loops.score(callsite);
+    let score_not_in_loop = heuristics_no_loops.score(callsite);
+
+    // In loop: cost 65 < max * 1.5 = 90, so should get a finite score
+    assert!(
+        score_in_loop.is_finite(),
+        "Cost {cost} should be allowed in loop (max * multiplier = {})",
+        config.max * config.max_loop_multiplier
+    );
+
+    // Not in loop: cost 65 > max = 60, so should get -∞
+    assert!(
+        score_not_in_loop.is_infinite() && score_not_in_loop.is_sign_negative(),
+        "Cost {cost} should be rejected outside loop (max = {})",
+        config.max
+    );
+}
+
+/// Tests that `single_caller_bonus` is applied when caller is the only caller.
+#[test]
+fn heuristics_single_caller_bonus() {
+    let heap = Heap::new();
+    let interner = Interner::new(&heap);
+    let env = Environment::new(&heap);
+
+    // Callee called by only one caller
+    let callee = body!(interner, env; fn@0/1 -> Int {
+        decl x: Int;
+
+        bb0() {
+            return x;
+        }
+    });
+
+    let caller = body!(interner, env; thunk@1/0 -> Int {
+        decl out: Int;
+
+        bb0() {
+            out = apply (callee.id), 1;
+            return out;
+        }
+    });
+
+    let bodies = [callee, caller];
+    let bodies_slice = DefIdSlice::from_raw(&bodies);
+
+    let graph = CallGraph::analyze_in(bodies_slice, &heap);
+    let config = InlineHeuristicsConfig::default();
+    let cost = 30.0;
+
+    let properties = DefIdVec::from_raw(vec![
+        BodyProperties {
+            directive: InlineDirective::Heuristic,
+            cost,
+            is_leaf: true,
+        },
+        BodyProperties {
+            directive: InlineDirective::Heuristic,
+            cost: 50.0,
+            is_leaf: false,
+        },
+    ]);
+
+    let loops = DefIdVec::new_in(&heap);
+
+    let heuristics = InlineHeuristics {
+        config,
+        graph: &graph,
+        loops: &loops,
+        properties: properties.as_slice(),
+    };
+
+    let callsite = CallSite {
+        caller: DefId::new(1),
+        kind: Location {
+            block: BasicBlockId::new(0),
+            statement_index: 1,
+        },
+        target: DefId::new(0),
+    };
+
+    let score = heuristics.score(callsite);
+
+    // Expected: leaf_bonus + single_caller_bonus + unique_callsite_bonus - cost * penalty
+    // Since there's only one caller with one callsite, both bonuses apply
+    let expected = config.leaf_bonus + config.single_caller_bonus + config.unique_callsite_bonus
+        - cost * config.size_penalty_factor;
+
+    assert!(
+        (score - expected).abs() < f32::EPSILON,
+        "Expected score {expected}, got {score}"
+    );
+}
+
+/// Tests that `unique_callsite_bonus` is NOT applied when there are multiple callsites.
+#[test]
+fn heuristics_no_unique_callsite_bonus_multiple_calls() {
+    let heap = Heap::new();
+    let interner = Interner::new(&heap);
+    let env = Environment::new(&heap);
+
+    let callee = body!(interner, env; fn@0/1 -> Int {
+        decl x: Int;
+
+        bb0() {
+            return x;
+        }
+    });
+
+    // Caller with two calls to the same callee
+    let caller = body!(interner, env; thunk@1/0 -> Bool {
+        decl out1: Int, out2: Int, result: Bool;
+
+        bb0() {
+            out1 = apply (callee.id), 1;
+            out2 = apply (callee.id), 2;
+            result = bin.== out1 out2;
+            return result;
+        }
+    });
+
+    let bodies = [callee, caller];
+    let bodies_slice = DefIdSlice::from_raw(&bodies);
+
+    let graph = CallGraph::analyze_in(bodies_slice, &heap);
+    let config = InlineHeuristicsConfig::default();
+    let cost = 30.0;
+
+    let properties = DefIdVec::from_raw(vec![
+        BodyProperties {
+            directive: InlineDirective::Heuristic,
+            cost,
+            is_leaf: true,
+        },
+        BodyProperties {
+            directive: InlineDirective::Heuristic,
+            cost: 50.0,
+            is_leaf: false,
+        },
+    ]);
+
+    let loops = DefIdVec::new_in(&heap);
+
+    let heuristics = InlineHeuristics {
+        config,
+        graph: &graph,
+        loops: &loops,
+        properties: properties.as_slice(),
+    };
+
+    let callsite = CallSite {
+        caller: DefId::new(1),
+        kind: Location {
+            block: BasicBlockId::new(0),
+            statement_index: 1,
+        },
+        target: DefId::new(0),
+    };
+
+    let score = heuristics.score(callsite);
+
+    // Expected: leaf_bonus + single_caller_bonus (still single caller) - cost * penalty
+    // NO unique_callsite_bonus because there are 2 callsites
+    let expected =
+        config.leaf_bonus + config.single_caller_bonus - cost * config.size_penalty_factor;
+
+    assert!(
+        (score - expected).abs() < f32::EPSILON,
+        "Expected score {expected} (no unique_callsite_bonus), got {score}"
+    );
+}
+
+/// Tests that loop detection correctly identifies blocks in loops.
+#[test]
+fn analysis_loop_detection() {
+    let heap = Heap::new();
+    let interner = Interner::new(&heap);
+    let env = Environment::new(&heap);
+
+    // Body with a loop: bb0 -> bb1 -> bb0 (loop), bb1 -> bb2 (exit)
+    let body = body!(interner, env; fn@0/1 -> Int {
+        decl i: Int, cond: Bool;
+
+        bb0() {
+            cond = bin.== i 10;
+            goto bb1();
+        },
+        bb1() {
+            if cond then bb2() else bb0();
+        },
+        bb2() {
+            return i;
+        }
+    });
+
+    let bodies = [body];
+    let bodies_slice = DefIdSlice::from_raw(&bodies);
+
+    let graph = CallGraph::analyze_in(bodies_slice, &heap);
+    let mut analysis = BodyAnalysis::new(
+        &graph,
+        bodies_slice,
+        InlineCostEstimationConfig::default(),
+        &heap,
+    );
+
+    analysis.run(&bodies[0]);
+    let result = analysis.finish();
+
+    let loops = result.loops.lookup(DefId::new(0));
+    assert!(loops.is_some(), "Should detect loops in body");
+
+    let loop_blocks = loops.expect("should have at least one loop");
+    assert!(
+        loop_blocks.contains(BasicBlockId::new(0)),
+        "bb0 should be in loop"
+    );
+    assert!(
+        loop_blocks.contains(BasicBlockId::new(1)),
+        "bb1 should be in loop"
+    );
+    assert!(
+        !loop_blocks.contains(BasicBlockId::new(2)),
+        "bb2 should NOT be in loop"
+    );
+}
+
+/// Tests that self-loop (single block looping to itself) is detected.
+#[test]
+fn analysis_self_loop_detection() {
+    let heap = Heap::new();
+    let interner = Interner::new(&heap);
+    let env = Environment::new(&heap);
+
+    // Body with self-loop: bb0 -> bb0
+    let body = body!(interner, env; fn@0/1 -> Int {
+        decl i: Int, cond: Bool;
+
+        bb0() {
+            cond = bin.< i 10;
+            if cond then bb0() else bb1();
+        },
+        bb1() {
+            return i;
+        }
+    });
+
+    let bodies = [body];
+    let bodies_slice = DefIdSlice::from_raw(&bodies);
+
+    let graph = CallGraph::analyze_in(bodies_slice, &heap);
+    let mut analysis = BodyAnalysis::new(
+        &graph,
+        bodies_slice,
+        InlineCostEstimationConfig::default(),
+        &heap,
+    );
+
+    analysis.run(&bodies[0]);
+    let result = analysis.finish();
+
+    let loops = result.loops.lookup(DefId::new(0));
+    assert!(loops.is_some(), "Should detect self-loop");
+
+    let loop_blocks = loops.expect("should have at least one loop");
+    assert!(
+        loop_blocks.contains(BasicBlockId::new(0)),
+        "bb0 should be in self-loop"
+    );
+    assert!(
+        !loop_blocks.contains(BasicBlockId::new(1)),
+        "bb1 should NOT be in loop"
+    );
+}
+
+/// Tests inlining with chained calls (A calls B calls C, all get inlined).
+#[test]
+fn inline_chained_calls() {
+    let heap = Heap::new();
+    let interner = Interner::new(&heap);
+    let env = Environment::new(&heap);
+
+    // C: leaf function
+    let c = body!(interner, env; fn@0/1 -> Int {
+        decl x: Int;
+
+        bb0() {
+            return x;
+        }
+    });
+
+    // B: calls C
+    let b = body!(interner, env; fn@1/1 -> Int {
+        decl y: Int, tmp: Int;
+
+        bb0() {
+            tmp = apply (c.id), y;
+            return tmp;
+        }
+    });
+
+    // A: calls B
+    let a = body!(interner, env; thunk@2/0 -> Int {
+        decl out: Int;
+
+        bb0() {
+            out = apply (b.id), 42;
+            return out;
+        }
+    });
+
+    let mut bodies = [c, b, a];
+
+    assert_inline_pass(
+        "inline_chained_calls",
+        &mut bodies,
+        &mut MirContext {
+            heap: &heap,
+            env: &env,
+            interner: &interner,
+            diagnostics: DiagnosticIssues::new(),
+        },
+        InlineConfig::default(),
+    );
+}
+
+/// Tests that recursive calls (same SCC) are not inlined.
+#[test]
+fn inline_recursive_not_inlined() {
+    let heap = Heap::new();
+    let interner = Interner::new(&heap);
+    let env = Environment::new(&heap);
+
+    // Recursive function: calls itself
+    let recursive = body!(interner, env; fn@0/1 -> Int {
+        decl n: Int, cond: Bool, result: Int, sub_result: Int;
+
+        bb0() {
+            cond = bin.== n 0;
+            if cond then bb1() else bb2();
+        },
+        bb1() {
+            goto bb3(n);
+        },
+        bb2() {
+            sub_result = apply (DefId::new(0)), n;
+            goto bb3(sub_result);
+        },
+        bb3(result) {
+            return result;
+        }
+    });
+
+    let caller = body!(interner, env; thunk@1/0 -> Int {
+        decl out: Int;
+
+        bb0() {
+            out = apply (recursive.id), 5;
+            return out;
+        }
+    });
+
+    let mut bodies = [recursive, caller];
+
+    assert_inline_pass(
+        "inline_recursive_not_inlined",
+        &mut bodies,
+        &mut MirContext {
+            heap: &heap,
+            env: &env,
+            interner: &interner,
+            diagnostics: DiagnosticIssues::new(),
+        },
+        InlineConfig::default(),
+    );
+}
+
+/// Tests that budget limits how many callsites are inlined.
+#[test]
+fn inline_budget_exhaustion() {
+    let heap = Heap::new();
+    let interner = Interner::new(&heap);
+    let env = Environment::new(&heap);
+
+    // Medium-cost callee (cost ~15-20 with comparisons)
+    let callee = body!(interner, env; fn@0/1 -> Bool {
+        decl x: Int, a: Bool, b: Bool, c: Bool, d: Bool, e: Bool;
+
+        bb0() {
+            a = bin.== x 1;
+            b = bin.> x 2;
+            c = bin.< x 3;
+            d = bin.== x 4;
+            e = bin.> x 5;
+            return e;
+        }
+    });
+
+    // Caller with many calls to the same callee
+    let caller = body!(interner, env; thunk@1/0 -> Bool {
+        decl o1: Bool, o2: Bool, o3: Bool, o4: Bool, o5: Bool, o6: Bool, result: Bool;
+
+        bb0() {
+            o1 = apply (callee.id), 1;
+            o2 = apply (callee.id), 2;
+            o3 = apply (callee.id), 3;
+            o4 = apply (callee.id), 4;
+            o5 = apply (callee.id), 5;
+            o6 = apply (callee.id), 6;
+            result = bin.== o1 o2;
+            return result;
+        }
+    });
+
+    let mut bodies = [callee, caller];
+
+    // Use a tight budget that can only inline a few calls
+    let config = InlineConfig {
+        heuristics: InlineHeuristicsConfig {
+            always_inline: 5.0, // Low so callee doesn't auto-inline
+            max: 100.0,
+            ..InlineHeuristicsConfig::default()
+        },
+        budget_multiplier: 0.5, // Very tight budget: 100 * 0.5 = 50
+        ..InlineConfig::default()
+    };
+
+    assert_inline_pass(
+        "inline_budget_exhaustion",
+        &mut bodies,
+        &mut MirContext {
+            heap: &heap,
+            env: &env,
+            interner: &interner,
+            diagnostics: DiagnosticIssues::new(),
+        },
+        config,
     );
 }
