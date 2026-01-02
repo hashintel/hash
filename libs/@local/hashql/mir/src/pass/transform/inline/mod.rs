@@ -95,7 +95,7 @@ impl Default for InlineConfig {
         Self {
             cost: InlineCostEstimationConfig::default(),
             heuristics: InlineHeuristicsConfig::default(),
-            budget_multiplier: 5.0,
+            budget_multiplier: 2.0,
             aggressive_inline_cutoff: 16,
         }
     }
@@ -469,10 +469,6 @@ impl<A: BumpAllocator> Inline<A> {
                 iteration += 1;
             }
 
-            tracing::warn!(
-                "Aggressive inlining finished after {} iterations",
-                iteration
-            );
             if iteration == self.config.aggressive_inline_cutoff {
                 context.diagnostics.push(error::excessive_inlining_depth(
                     bodies[filter].span,

@@ -88,7 +88,7 @@ impl Default for InlineCostEstimationConfig {
 
             terminator_switch_int_base: 1.0,
             terminator_switch_int_branch_multiplier: 0.5,
-            terminator_graph_read: 5.0,
+            terminator_graph_read: 7.0,
             terminator_goto: 1.0,
             terminator_return: 1.0,
             terminator_unreachable: 0.0,
