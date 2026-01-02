@@ -1,5 +1,5 @@
 //@ run: pass
-//@ description: Filter with deeply nested call chain triggers excessive-inlining-depth warning
+//@ description: Deep call chain with input side effects in filter exceeds aggressive_inline_cutoff (16)
 [
   "::graph::tail::collect",
   [
@@ -14,40 +14,61 @@
       {"#struct": {"vertex": "_"}},
       "_",
       [
-        "let", "f1", ["fn", {"#tuple": []}, {"#struct": {"x": "Boolean"}}, "_", "x"],
+        "let", "f1", ["fn", {"#tuple": []}, {"#struct": {"x": "Boolean"}}, "_", 
+          ["&&", "x", ["input", "v1", "Boolean"]]],
         [
-          "let", "f2", ["fn", {"#tuple": []}, {"#struct": {"x": "Boolean"}}, "_", ["f1", "x"]],
+          "let", "f2", ["fn", {"#tuple": []}, {"#struct": {"x": "Boolean"}}, "_", 
+            ["&&", ["f1", "x"], ["input", "v2", "Boolean"]]],
           [
-            "let", "f3", ["fn", {"#tuple": []}, {"#struct": {"x": "Boolean"}}, "_", ["f2", "x"]],
+            "let", "f3", ["fn", {"#tuple": []}, {"#struct": {"x": "Boolean"}}, "_", 
+              ["&&", ["f2", "x"], ["input", "v3", "Boolean"]]],
             [
-              "let", "f4", ["fn", {"#tuple": []}, {"#struct": {"x": "Boolean"}}, "_", ["f3", "x"]],
+              "let", "f4", ["fn", {"#tuple": []}, {"#struct": {"x": "Boolean"}}, "_", 
+                ["&&", ["f3", "x"], ["input", "v4", "Boolean"]]],
               [
-                "let", "f5", ["fn", {"#tuple": []}, {"#struct": {"x": "Boolean"}}, "_", ["f4", "x"]],
+                "let", "f5", ["fn", {"#tuple": []}, {"#struct": {"x": "Boolean"}}, "_", 
+                  ["&&", ["f4", "x"], ["input", "v5", "Boolean"]]],
                 [
-                  "let", "f6", ["fn", {"#tuple": []}, {"#struct": {"x": "Boolean"}}, "_", ["f5", "x"]],
+                  "let", "f6", ["fn", {"#tuple": []}, {"#struct": {"x": "Boolean"}}, "_", 
+                    ["&&", ["f5", "x"], ["input", "v6", "Boolean"]]],
                   [
-                    "let", "f7", ["fn", {"#tuple": []}, {"#struct": {"x": "Boolean"}}, "_", ["f6", "x"]],
+                    "let", "f7", ["fn", {"#tuple": []}, {"#struct": {"x": "Boolean"}}, "_", 
+                      ["&&", ["f6", "x"], ["input", "v7", "Boolean"]]],
                     [
-                      "let", "f8", ["fn", {"#tuple": []}, {"#struct": {"x": "Boolean"}}, "_", ["f7", "x"]],
+                      "let", "f8", ["fn", {"#tuple": []}, {"#struct": {"x": "Boolean"}}, "_", 
+                        ["&&", ["f7", "x"], ["input", "v8", "Boolean"]]],
                       [
-                        "let", "f9", ["fn", {"#tuple": []}, {"#struct": {"x": "Boolean"}}, "_", ["f8", "x"]],
+                        "let", "f9", ["fn", {"#tuple": []}, {"#struct": {"x": "Boolean"}}, "_", 
+                          ["&&", ["f8", "x"], ["input", "v9", "Boolean"]]],
                         [
-                          "let", "f10", ["fn", {"#tuple": []}, {"#struct": {"x": "Boolean"}}, "_", ["f9", "x"]],
+                          "let", "f10", ["fn", {"#tuple": []}, {"#struct": {"x": "Boolean"}}, "_", 
+                            ["&&", ["f9", "x"], ["input", "v10", "Boolean"]]],
                           [
-                            "let", "f11", ["fn", {"#tuple": []}, {"#struct": {"x": "Boolean"}}, "_", ["f10", "x"]],
+                            "let", "f11", ["fn", {"#tuple": []}, {"#struct": {"x": "Boolean"}}, "_", 
+                              ["&&", ["f10", "x"], ["input", "v11", "Boolean"]]],
                             [
-                              "let", "f12", ["fn", {"#tuple": []}, {"#struct": {"x": "Boolean"}}, "_", ["f11", "x"]],
+                              "let", "f12", ["fn", {"#tuple": []}, {"#struct": {"x": "Boolean"}}, "_", 
+                                ["&&", ["f11", "x"], ["input", "v12", "Boolean"]]],
                               [
-                                "let", "f13", ["fn", {"#tuple": []}, {"#struct": {"x": "Boolean"}}, "_", ["f12", "x"]],
+                                "let", "f13", ["fn", {"#tuple": []}, {"#struct": {"x": "Boolean"}}, "_", 
+                                  ["&&", ["f12", "x"], ["input", "v13", "Boolean"]]],
                                 [
-                                  "let", "f14", ["fn", {"#tuple": []}, {"#struct": {"x": "Boolean"}}, "_", ["f13", "x"]],
+                                  "let", "f14", ["fn", {"#tuple": []}, {"#struct": {"x": "Boolean"}}, "_", 
+                                    ["&&", ["f13", "x"], ["input", "v14", "Boolean"]]],
                                   [
-                                    "let", "f15", ["fn", {"#tuple": []}, {"#struct": {"x": "Boolean"}}, "_", ["f14", "x"]],
+                                    "let", "f15", ["fn", {"#tuple": []}, {"#struct": {"x": "Boolean"}}, "_", 
+                                      ["&&", ["f14", "x"], ["input", "v15", "Boolean"]]],
                                     [
-                                      "let", "f16", ["fn", {"#tuple": []}, {"#struct": {"x": "Boolean"}}, "_", ["f15", "x"]],
+                                      "let", "f16", ["fn", {"#tuple": []}, {"#struct": {"x": "Boolean"}}, "_", 
+                                        ["&&", ["f15", "x"], ["input", "v16", "Boolean"]]],
                                       [
-                                        "let", "f17", ["fn", {"#tuple": []}, {"#struct": {"x": "Boolean"}}, "_", ["f16", "x"]],
-                                        ["f17", ["==", "vertex.link_data", {"#literal": null}]]
+                                        "let", "f17", ["fn", {"#tuple": []}, {"#struct": {"x": "Boolean"}}, "_", 
+                                          ["&&", ["f16", "x"], ["input", "v17", "Boolean"]]],
+                                        [
+                                          "let", "f18", ["fn", {"#tuple": []}, {"#struct": {"x": "Boolean"}}, "_", 
+                                            ["&&", ["f17", "x"], ["input", "v18", "Boolean"]]],
+                                          ["f18", ["==", "vertex.link_data", {"#literal": null}]]
+                                        ]
                                       ]
                                     ]
                                   ]

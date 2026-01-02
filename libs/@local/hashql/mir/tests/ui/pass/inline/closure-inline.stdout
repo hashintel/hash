@@ -1,34 +1,34 @@
 ════ Initial MIR ═══════════════════════════════════════════════════════════════
 
-fn {closure#4}(%0: (), %1: Integer) -> Boolean {
-    let %2: Boolean
+fn {closure#3}(%0: ()) -> ::graph::TimeAxis {
+    let %1: ::graph::TimeAxis
 
     bb0(): {
-        %2 = %1 == %1
+        %1 = input LOAD axis
 
-        return %2
+        return %1
     }
 }
 
-thunk double:0() -> (Integer) -> Boolean {
-    let %0: (Integer) -> Boolean
+thunk get_axis:0() -> () -> ::graph::TimeAxis {
+    let %0: () -> ::graph::TimeAxis
     let %1: ()
 
     bb0(): {
         %1 = ()
-        %0 = closure(({closure#4} as FnPtr), %1)
+        %0 = closure(({closure#3} as FnPtr), %1)
 
         return %0
     }
 }
 
-*thunk {thunk#3}() -> Boolean {
-    let %0: (Integer) -> Boolean
-    let %1: Boolean
+*thunk {thunk#2}() -> ::graph::TimeAxis {
+    let %0: () -> ::graph::TimeAxis
+    let %1: ::graph::TimeAxis
 
     bb0(): {
-        %0 = apply (double:0 as FnPtr)
-        %1 = apply %0.0 %0.1 21
+        %0 = apply (get_axis:0 as FnPtr)
+        %1 = apply %0.0 %0.1
 
         return %1
     }
@@ -36,52 +36,84 @@ thunk double:0() -> (Integer) -> Boolean {
 
 ════ Pre-inlining MIR ══════════════════════════════════════════════════════════
 
-fn {closure#4}(%0: (), %1: Integer) -> Boolean {
+fn {closure#3}(%0: ()) -> ::graph::TimeAxis {
+    let %1: ::graph::TimeAxis
+
     bb0(): {
-        return 1
+        %1 = input LOAD axis
+
+        return %1
     }
 }
 
-thunk double:0() -> (Integer) -> Boolean {
-    let %0: (Integer) -> Boolean
+thunk get_axis:0() -> () -> ::graph::TimeAxis {
+    let %0: () -> ::graph::TimeAxis
     let %1: ()
 
     bb0(): {
         %1 = ()
-        %0 = closure(({closure#4} as FnPtr), %1)
+        %0 = closure(({closure#3} as FnPtr), %1)
 
         return %0
     }
 }
 
-*thunk {thunk#3}() -> Boolean {
+*thunk {thunk#2}() -> ::graph::TimeAxis {
+    let %0: ::graph::TimeAxis
+    let %1: ()
+
     bb0(): {
-        return 1
+        %1 = ()
+        %0 = apply ({closure#3} as FnPtr) %1
+
+        return %0
     }
 }
 
 ════ Inlined MIR ═══════════════════════════════════════════════════════════════
 
-fn {closure#4}(%0: (), %1: Integer) -> Boolean {
+fn {closure#3}(%0: ()) -> ::graph::TimeAxis {
+    let %1: ::graph::TimeAxis
+
     bb0(): {
-        return 1
+        %1 = input LOAD axis
+
+        return %1
     }
 }
 
-thunk double:0() -> (Integer) -> Boolean {
-    let %0: (Integer) -> Boolean
+thunk get_axis:0() -> () -> ::graph::TimeAxis {
+    let %0: () -> ::graph::TimeAxis
     let %1: ()
 
     bb0(): {
         %1 = ()
-        %0 = closure(({closure#4} as FnPtr), %1)
+        %0 = closure(({closure#3} as FnPtr), %1)
 
         return %0
     }
 }
 
-*thunk {thunk#3}() -> Boolean {
+*thunk {thunk#2}() -> ::graph::TimeAxis {
+    let %0: ::graph::TimeAxis
+    let %1: ()
+    let %2: ()
+    let %3: ::graph::TimeAxis
+
     bb0(): {
-        return 1
+        %1 = ()
+        %2 = %1
+
+        goto -> bb2()
+    }
+
+    bb1(%0): {
+        return %0
+    }
+
+    bb2(): {
+        %3 = input LOAD axis
+
+        goto -> bb1(%3)
     }
 }
