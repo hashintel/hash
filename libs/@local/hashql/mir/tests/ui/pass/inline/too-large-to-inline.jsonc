@@ -1,5 +1,8 @@
 //@ run: pass
-//@ description: Function with cost > 80 (many input ops) is not inlined by normal heuristics
+//@ description: Function with cost > max is not inlined by normal heuristics
+//@ suite#rvalue-input-cost: 100.0
+//@ suite#max-cost: 50.0
+// With rvalue_input=100 and max=50, 1 input = cost 100 (exceeds max of 50).
 [
   "let",
   "big_func",
@@ -8,71 +11,7 @@
     { "#tuple": [] },
     { "#struct": {} },
     "Boolean",
-    [
-      "&&",
-      [
-        "&&",
-        [
-          "&&",
-          [
-            "&&",
-            [
-              "&&",
-              [
-                "&&",
-                [
-                  "&&",
-                  [
-                    "&&",
-                    [
-                      "&&",
-                      [
-                        "&&",
-                        [
-                          "&&",
-                          [
-                            "&&",
-                            [
-                              "&&",
-                              [
-                                "&&",
-                                [
-                                  "&&",
-                                  [
-                                    "&&",
-                                    ["input", "v1", "Boolean"],
-                                    ["input", "v2", "Boolean"]
-                                  ],
-                                  ["input", "v3", "Boolean"]
-                                ],
-                                ["input", "v4", "Boolean"]
-                              ],
-                              ["input", "v5", "Boolean"]
-                            ],
-                            ["input", "v6", "Boolean"]
-                          ],
-                          ["input", "v7", "Boolean"]
-                        ],
-                        ["input", "v8", "Boolean"]
-                      ],
-                      ["input", "v9", "Boolean"]
-                    ],
-                    ["input", "v10", "Boolean"]
-                  ],
-                  ["input", "v11", "Boolean"]
-                ],
-                ["input", "v12", "Boolean"]
-              ],
-              ["input", "v13", "Boolean"]
-            ],
-            ["input", "v14", "Boolean"]
-          ],
-          ["input", "v15", "Boolean"]
-        ],
-        ["input", "v16", "Boolean"]
-      ],
-      ["input", "v17", "Boolean"]
-    ]
+    ["input", "v", "Boolean"]
   ],
   [
     "let",

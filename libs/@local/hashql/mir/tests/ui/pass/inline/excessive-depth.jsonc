@@ -1,6 +1,11 @@
 //@ run: pass
 //@ description: Deep call chain of heavy functions in filter exceeds aggressive_inline_cutoff
-//@ suite#aggressive-inline-cutoff: 3
+//@ suite#aggressive-inline-cutoff: 1
+//@ suite#rvalue-input-cost: 120.0
+//@ suite#max-cost: 20.0
+//@ suite#skip-output: true
+// With rvalue_input=120 and max=20, 1 input = cost 120 (far exceeds max).
+// Chain of 4 functions triggers depth cutoff warning.
 [
   "::graph::tail::collect",
   [
@@ -22,67 +27,7 @@
           { "#tuple": [] },
           { "#struct": { "x": "Boolean" } },
           "_",
-          [
-            "&&",
-            [
-              "&&",
-              [
-                "&&",
-                [
-                  "&&",
-                  [
-                    "&&",
-                    [
-                      "&&",
-                      [
-                        "&&",
-                        [
-                          "&&",
-                          [
-                            "&&",
-                            [
-                              "&&",
-                              [
-                                "&&",
-                                [
-                                  "&&",
-                                  [
-                                    "&&",
-                                    [
-                                      "&&",
-                                      [
-                                        "&&",
-                                        ["&&", "x", ["input", "a1", "Boolean"]],
-                                        ["input", "a2", "Boolean"]
-                                      ],
-                                      ["input", "a3", "Boolean"]
-                                    ],
-                                    ["input", "a4", "Boolean"]
-                                  ],
-                                  ["input", "a5", "Boolean"]
-                                ],
-                                ["input", "a6", "Boolean"]
-                              ],
-                              ["input", "a7", "Boolean"]
-                            ],
-                            ["input", "a8", "Boolean"]
-                          ],
-                          ["input", "a9", "Boolean"]
-                        ],
-                        ["input", "a10", "Boolean"]
-                      ],
-                      ["input", "a11", "Boolean"]
-                    ],
-                    ["input", "a12", "Boolean"]
-                  ],
-                  ["input", "a13", "Boolean"]
-                ],
-                ["input", "a14", "Boolean"]
-              ],
-              ["input", "a15", "Boolean"]
-            ],
-            ["input", "a16", "Boolean"]
-          ]
+          ["input", "a", "Boolean"]
         ],
         [
           "let",
@@ -92,67 +37,7 @@
             { "#tuple": [] },
             { "#struct": { "x": "Boolean" } },
             "_",
-            [
-              "&&",
-              [
-                "&&",
-                [
-                  "&&",
-                  [
-                    "&&",
-                    [
-                      "&&",
-                      [
-                        "&&",
-                        [
-                          "&&",
-                          [
-                            "&&",
-                            [
-                              "&&",
-                              [
-                                "&&",
-                                [
-                                  "&&",
-                                  [
-                                    "&&",
-                                    [
-                                      "&&",
-                                      [
-                                        "&&",
-                                        [
-                                          "&&",
-                                          ["f4", "x"],
-                                          ["input", "b1", "Boolean"]
-                                        ],
-                                        ["input", "b2", "Boolean"]
-                                      ],
-                                      ["input", "b3", "Boolean"]
-                                    ],
-                                    ["input", "b4", "Boolean"]
-                                  ],
-                                  ["input", "b5", "Boolean"]
-                                ],
-                                ["input", "b6", "Boolean"]
-                              ],
-                              ["input", "b7", "Boolean"]
-                            ],
-                            ["input", "b8", "Boolean"]
-                          ],
-                          ["input", "b9", "Boolean"]
-                        ],
-                        ["input", "b10", "Boolean"]
-                      ],
-                      ["input", "b11", "Boolean"]
-                    ],
-                    ["input", "b12", "Boolean"]
-                  ],
-                  ["input", "b13", "Boolean"]
-                ],
-                ["input", "b14", "Boolean"]
-              ],
-              ["input", "b15", "Boolean"]
-            ]
+            ["&&", ["f4", "x"], ["input", "b", "Boolean"]]
           ],
           [
             "let",
@@ -162,67 +47,7 @@
               { "#tuple": [] },
               { "#struct": { "x": "Boolean" } },
               "_",
-              [
-                "&&",
-                [
-                  "&&",
-                  [
-                    "&&",
-                    [
-                      "&&",
-                      [
-                        "&&",
-                        [
-                          "&&",
-                          [
-                            "&&",
-                            [
-                              "&&",
-                              [
-                                "&&",
-                                [
-                                  "&&",
-                                  [
-                                    "&&",
-                                    [
-                                      "&&",
-                                      [
-                                        "&&",
-                                        [
-                                          "&&",
-                                          [
-                                            "&&",
-                                            ["f3", "x"],
-                                            ["input", "c1", "Boolean"]
-                                          ],
-                                          ["input", "c2", "Boolean"]
-                                        ],
-                                        ["input", "c3", "Boolean"]
-                                      ],
-                                      ["input", "c4", "Boolean"]
-                                    ],
-                                    ["input", "c5", "Boolean"]
-                                  ],
-                                  ["input", "c6", "Boolean"]
-                                ],
-                                ["input", "c7", "Boolean"]
-                              ],
-                              ["input", "c8", "Boolean"]
-                            ],
-                            ["input", "c9", "Boolean"]
-                          ],
-                          ["input", "c10", "Boolean"]
-                        ],
-                        ["input", "c11", "Boolean"]
-                      ],
-                      ["input", "c12", "Boolean"]
-                    ],
-                    ["input", "c13", "Boolean"]
-                  ],
-                  ["input", "c14", "Boolean"]
-                ],
-                ["input", "c15", "Boolean"]
-              ]
+              ["&&", ["f3", "x"], ["input", "c", "Boolean"]]
             ],
             [
               "let",
@@ -232,67 +57,7 @@
                 { "#tuple": [] },
                 { "#struct": { "x": "Boolean" } },
                 "_",
-                [
-                  "&&",
-                  [
-                    "&&",
-                    [
-                      "&&",
-                      [
-                        "&&",
-                        [
-                          "&&",
-                          [
-                            "&&",
-                            [
-                              "&&",
-                              [
-                                "&&",
-                                [
-                                  "&&",
-                                  [
-                                    "&&",
-                                    [
-                                      "&&",
-                                      [
-                                        "&&",
-                                        [
-                                          "&&",
-                                          [
-                                            "&&",
-                                            [
-                                              "&&",
-                                              ["f2", "x"],
-                                              ["input", "d1", "Boolean"]
-                                            ],
-                                            ["input", "d2", "Boolean"]
-                                          ],
-                                          ["input", "d3", "Boolean"]
-                                        ],
-                                        ["input", "d4", "Boolean"]
-                                      ],
-                                      ["input", "d5", "Boolean"]
-                                    ],
-                                    ["input", "d6", "Boolean"]
-                                  ],
-                                  ["input", "d7", "Boolean"]
-                                ],
-                                ["input", "d8", "Boolean"]
-                              ],
-                              ["input", "d9", "Boolean"]
-                            ],
-                            ["input", "d10", "Boolean"]
-                          ],
-                          ["input", "d11", "Boolean"]
-                        ],
-                        ["input", "d12", "Boolean"]
-                      ],
-                      ["input", "d13", "Boolean"]
-                    ],
-                    ["input", "d14", "Boolean"]
-                  ],
-                  ["input", "d15", "Boolean"]
-                ]
+                ["&&", ["f2", "x"], ["input", "d", "Boolean"]]
               ],
               ["f1", ["==", "vertex.link_data", { "#literal": null }]]
             ]
