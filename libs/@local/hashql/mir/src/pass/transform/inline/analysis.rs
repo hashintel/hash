@@ -19,7 +19,7 @@
 //!
 //! With default weights:
 //! - Simple helper (1 block, 2 loads, 1 binary, 1 return): ~6
-//! - Medium function (3 blocks, 5 loads, 2 aggregates, 1 graph_read): ~21
+//! - Medium function (3 blocks, 5 loads, 2 aggregates, 1 graph read): ~21
 //! - Complex filter (5 blocks, 10 loads, 3 switches, 2 applies): ~29
 
 use core::{alloc::Allocator, f32};
@@ -106,6 +106,10 @@ impl<N, S> Metadata<N, S> for MemberCount {
         1
     }
 
+    fn annotate_scc(&mut self, _: S, _: N) -> Self::Annotation {
+        0
+    }
+
     fn merge_into_scc(&mut self, lhs: &mut Self::Annotation, other: Self::Annotation) {
         *lhs += other;
     }
@@ -188,7 +192,7 @@ impl Default for InlineCostEstimationConfig {
 
 /// Results from body analysis, consumed by the inline pass.
 pub(crate) struct CostEstimationResidual<A: Allocator> {
-    /// Properties (directive, cost, is_leaf) for each function body.
+    /// Properties for each function body.
     pub properties: DefIdVec<BodyProperties, A>,
     /// For each function, which basic blocks are inside loops.
     pub loops: BasicBlockLoopVec<A>,
