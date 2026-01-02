@@ -38,7 +38,49 @@ fn {closure@7}(%0: (), %1: ::graph::types::knowledge::entity::Entity) -> Boolean
         return %1
     }
 }
-════ MIR after Inlining ════════════════════════════════════════════════════════
+
+════ Pre-inlining MIR ══════════════════════════════════════════════════════════
+
+thunk {thunk#1}() -> ::graph::TimeAxis {
+    let %0: ::graph::TimeAxis
+
+    bb0(): {
+        %0 = input LOAD axis
+
+        return %0
+    }
+}
+
+fn {closure@7}(%0: (), %1: ::graph::types::knowledge::entity::Entity) -> Boolean {
+    let %2: Boolean
+
+    bb0(): {
+        %2 = %1.link_data == null
+
+        return %2
+    }
+}
+
+*thunk {thunk#3}() -> List<::graph::types::knowledge::entity::Entity> {
+    let %0: ::graph::TimeAxis
+    let %1: List<::graph::types::knowledge::entity::Entity>
+    let %2: ()
+
+    bb0(): {
+        %0 = apply ({thunk#1} as FnPtr)
+        %2 = ()
+
+        graph read entities(%0)
+        |> filter({closure@7}, %2)
+        |> collect -> bb1(_)
+    }
+
+    bb1(%1): {
+        return %1
+    }
+}
+
+════ Inlined MIR ═══════════════════════════════════════════════════════════════
 
 thunk {thunk#1}() -> ::graph::TimeAxis {
     let %0: ::graph::TimeAxis

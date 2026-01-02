@@ -9,31 +9,39 @@ use hashql_diagnostics::DiagnosticIssues;
 use hashql_mir::{
     body::Body,
     context::MirContext,
-    def::{DefId, DefIdSlice, DefIdVec},
+    def::{DefId, DefIdVec},
     intern::Interner,
     pass::transform::{Inline, InlineConfig},
 };
 
 use super::{
-    RunContext, Suite, SuiteDiagnostic, common::process_issues,
-    mir_pass_transform_dse::mir_pass_transform_dse,
+    RunContext, Suite, SuiteDiagnostic,
+    common::process_issues,
+    mir_pass_transform_pre_inlining::{
+        MirRenderer, RenderContext, Stage, mir_pass_transform_pre_inlining,
+    },
 };
 use crate::suite::{
-    common::Header,
-    mir_pass_transform_cfg_simplify::mir_pass_transform_cfg_simplify_default_renderer,
-    mir_reify::{d2_output_enabled, mir_format_d2, mir_format_text, mir_spawn_d2},
+    mir_pass_transform_pre_inlining::{D2Renderer, TextRenderer},
+    mir_reify::{d2_output_enabled, mir_spawn_d2},
 };
 
 pub(crate) fn mir_pass_transform_inline<'heap>(
     heap: &'heap Heap,
     expr: Expr<'heap>,
     interner: &Interner<'heap>,
-    render: impl FnOnce(&'heap Heap, &Environment<'heap>, DefId, &DefIdSlice<Body<'heap>>),
+    mut render: impl MirRenderer,
     environment: &mut Environment<'heap>,
     diagnostics: &mut Vec<SuiteDiagnostic>,
 ) -> Result<(DefId, DefIdVec<Body<'heap>>, Scratch), SuiteDiagnostic> {
-    let (root, mut bodies, mut scratch) =
-        mir_pass_transform_dse(heap, expr, interner, render, environment, diagnostics)?;
+    let (root, mut bodies, mut scratch) = mir_pass_transform_pre_inlining(
+        heap,
+        expr,
+        interner,
+        &mut render,
+        environment,
+        diagnostics,
+    )?;
 
     let mut context = MirContext {
         heap,
@@ -46,6 +54,20 @@ pub(crate) fn mir_pass_transform_inline<'heap>(
     pass.run(&mut context, &mut bodies);
 
     process_issues(diagnostics, context.diagnostics)?;
+
+    render.render(
+        &mut RenderContext {
+            heap,
+            env: environment,
+            stage: Stage {
+                id: "inline",
+                title: "Inlined MIR",
+            },
+            root,
+        },
+        &bodies,
+    );
+
     Ok((root, bodies, scratch))
 }
 
@@ -86,27 +108,19 @@ impl Suite for MirPassTransformInline {
         let mut buffer = Vec::new();
         let mut d2 = d2_output_enabled(self, suite_directives, reports).then(mir_spawn_d2);
 
-        let (root, bodies, _) = mir_pass_transform_inline(
+        mir_pass_transform_inline(
             heap,
             expr,
             &interner,
-            mir_pass_transform_cfg_simplify_default_renderer(
-                &mut buffer,
-                d2.as_mut().map(|(writer, _)| writer),
+            (
+                TextRenderer::new(&mut buffer),
+                d2.as_mut().map(|(writer, _)| D2Renderer::new(writer)),
             ),
             &mut environment,
             diagnostics,
         )?;
 
-        let _ = writeln!(buffer, "\n{}\n", Header::new("MIR after Inlining"));
-        mir_format_text(heap, &environment, &mut buffer, root, &bodies);
-
         if let Some((mut writer, handle)) = d2 {
-            writeln!(writer, "final: 'MIR after Inlining' {{")
-                .expect("should be able to write to buffer");
-            mir_format_d2(heap, &environment, &mut writer, root, &bodies);
-            writeln!(writer, "}}").expect("should be able to write to buffer");
-
             writer.flush().expect("should be able to write to buffer");
             drop(writer);
 

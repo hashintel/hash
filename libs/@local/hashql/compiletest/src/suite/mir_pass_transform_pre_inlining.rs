@@ -22,8 +22,8 @@ use crate::suite::{
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub(crate) struct Stage {
-    id: &'static str,
-    title: &'static str,
+    pub id: &'static str,
+    pub title: &'static str,
 }
 
 pub(crate) struct RenderContext<'env, 'heap> {

@@ -162,7 +162,7 @@ impl<'env, 'heap> Deref for BodyBuilder<'env, 'heap> {
 ///
 /// ## Header
 ///
-/// - `<source>`: Either `fn` (closure) or `thunk`
+/// - `<source>`: `fn` (closure), `thunk`, `[ctor sym::path]`, or `intrinsic`
 /// - `<id>`: Numeric literal for `DefId`
 /// - `<arity>`: Number of function arguments
 /// - `<return_type>`: Return type (`Int`, `Bool`, tuple `(Int, Bool)`, or custom `|t| t.foo()`)
@@ -260,7 +260,7 @@ impl<'env, 'heap> Deref for BodyBuilder<'env, 'heap> {
 macro_rules! body {
     (
         $interner:ident, $env:ident;
-        $type:ident @ $id:tt / $arity:literal -> $body_type:tt {
+        $type:tt @ $id:tt / $arity:literal -> $body_type:tt {
             decl $($param:ident: $param_type:tt),*;
             $(@proj $($proj:ident = $proj_base:ident.$field:literal: $proj_type:tt),*;)?
 
@@ -338,6 +338,12 @@ macro_rules! body {
     };
     (@source fn) => {
         $crate::body::Source::Closure(hashql_hir::node::HirId::PLACEHOLDER, None)
+    };
+    (@source [ctor $name:expr]) => {
+        $crate::body::Source::Ctor($name)
+    };
+    (@source intrinsic) => {
+        $crate::body::Source::Intrinsic($crate::def::DefId::PLACEHOLDER)
     };
 }
 

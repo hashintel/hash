@@ -14,20 +14,20 @@ use hashql_core::{
     heap::Heap,
     pretty::Formatter,
     symbol::sym,
-    r#type::{TypeBuilder, TypeFormatter, TypeFormatterOptions, environment::Environment},
+    r#type::{TypeFormatter, TypeFormatterOptions, environment::Environment},
 };
 use hashql_diagnostics::DiagnosticIssues;
-use hashql_hir::node::HirId;
 use insta::{Settings, assert_snapshot};
 
 use super::{
     BodyAnalysis, Inline, InlineConfig, InlineCostEstimationConfig, InlineHeuristicsConfig,
 };
 use crate::{
-    body::{Body, Source, basic_block::BasicBlockId, location::Location},
-    builder::{BodyBuilder, op, scaffold},
+    body::{Body, basic_block::BasicBlockId, location::Location},
+    builder::body,
     context::MirContext,
     def::{DefId, DefIdSlice, DefIdVec},
+    intern::Interner,
     pass::{
         analysis::{CallGraph, CallSite},
         transform::inline::{
@@ -109,40 +109,27 @@ fn assert_inline_pass<'heap>(
 /// - Return is transformed to goto(continuation)
 #[test]
 fn inline_simple_leaf() {
-    scaffold!(heap, interner, builder);
+    let heap = Heap::new();
+    let interner = Interner::new(&heap);
     let env = Environment::new(&heap);
-    let int_ty = TypeBuilder::synthetic(&env).integer();
-    let bool_ty = TypeBuilder::synthetic(&env).boolean();
 
-    // Build callee: fn callee(x: Int) -> Boolean { x == x }
-    let x = builder.local("x", int_ty);
-    let result = builder.local("result", bool_ty);
+    let callee = body!(interner, env; fn@0/1 -> Bool {
+        decl x: Int, result: Bool;
 
-    let bb0 = builder.reserve_block([]);
-    builder
-        .build_block(bb0)
-        .assign_place(result, |rv| rv.binary(x, op![==], x))
-        .ret(result);
+        bb0() {
+            result = bin.== x x;
+            return result;
+        }
+    });
 
-    let mut callee = builder.finish(1, bool_ty);
-    callee.id = DefId::new(0);
-    callee.source = Source::Closure(HirId::PLACEHOLDER, None);
+    let caller = body!(interner, env; thunk@1/0 -> Bool {
+        decl out: Bool;
 
-    // Build caller: fn caller() -> Boolean { callee(21) }
-    let mut builder = BodyBuilder::new(&interner);
-    let out = builder.local("out", bool_ty);
-    let const_21 = builder.const_int(21);
-    let callee_fn = builder.const_fn(callee.id);
-
-    let bb0 = builder.reserve_block([]);
-    builder
-        .build_block(bb0)
-        .assign_place(out, |rv| rv.apply(callee_fn, [const_21]))
-        .ret(out);
-
-    let mut caller = builder.finish(0, bool_ty);
-    caller.id = DefId::new(1);
-    caller.source = Source::Thunk(HirId::PLACEHOLDER, None);
+        bb0() {
+            out = apply (callee.id), 21;
+            return out;
+        }
+    });
 
     let mut bodies = [callee, caller];
 
@@ -164,50 +151,31 @@ fn inline_simple_leaf() {
 /// Verifies argument assignment statements are correctly added before the goto.
 #[test]
 fn inline_multiple_args() {
-    scaffold!(heap, interner, builder);
+    let heap = Heap::new();
+    let interner = Interner::new(&heap);
     let env = Environment::new(&heap);
-    let int_ty = TypeBuilder::synthetic(&env).integer();
-    let bool_ty = TypeBuilder::synthetic(&env).boolean();
 
-    // Build callee: fn compare3(a: Int, b: Int, c: Int) -> Boolean { (a == b) & (b == c) }
-    let a = builder.local("a", int_ty);
-    let b = builder.local("b", int_ty);
-    let c = builder.local("c", int_ty);
-    let tmp1 = builder.local("tmp1", bool_ty);
-    let tmp2 = builder.local("tmp2", bool_ty);
-    let result = builder.local("result", bool_ty);
+    let compare3 = body!(interner, env; fn@0/3 -> Bool {
+        decl a: Int, b: Int, c: Int, tmp1: Bool, tmp2: Bool, result: Bool;
 
-    let bb0 = builder.reserve_block([]);
-    builder
-        .build_block(bb0)
-        .assign_place(tmp1, |rv| rv.binary(a, op![==], b))
-        .assign_place(tmp2, |rv| rv.binary(b, op![==], c))
-        .assign_place(result, |rv| rv.binary(tmp1, op![&], tmp2))
-        .ret(result);
+        bb0() {
+            tmp1 = bin.== a b;
+            tmp2 = bin.== b c;
+            result = bin.& tmp1 tmp2;
+            return result;
+        }
+    });
 
-    let mut callee = builder.finish(3, bool_ty);
-    callee.id = DefId::new(0);
-    callee.source = Source::Closure(HirId::PLACEHOLDER, None);
+    let caller = body!(interner, env; thunk@1/0 -> Bool {
+        decl out: Bool;
 
-    // Build caller
-    let mut builder = BodyBuilder::new(&interner);
-    let out = builder.local("out", bool_ty);
-    let const_1 = builder.const_int(1);
-    let const_2 = builder.const_int(2);
-    let const_3 = builder.const_int(3);
-    let callee_fn = builder.const_fn(callee.id);
+        bb0() {
+            out = apply (compare3.id), 1, 2, 3;
+            return out;
+        }
+    });
 
-    let bb0 = builder.reserve_block([]);
-    builder
-        .build_block(bb0)
-        .assign_place(out, |rv| rv.apply(callee_fn, [const_1, const_2, const_3]))
-        .ret(out);
-
-    let mut caller = builder.finish(0, bool_ty);
-    caller.id = DefId::new(1);
-    caller.source = Source::Thunk(HirId::PLACEHOLDER, None);
-
-    let mut bodies = [callee, caller];
+    let mut bodies = [compare3, caller];
 
     assert_inline_pass(
         "inline_multiple_args",
@@ -227,51 +195,37 @@ fn inline_multiple_args() {
 /// Verifies all callee blocks are copied and renumbered correctly.
 #[test]
 fn inline_multiple_blocks() {
-    scaffold!(heap, interner, builder);
+    let heap = Heap::new();
+    let interner = Interner::new(&heap);
     let env = Environment::new(&heap);
-    let int_ty = TypeBuilder::synthetic(&env).integer();
-    let bool_ty = TypeBuilder::synthetic(&env).boolean();
 
     // Build callee: fn max(a: Int, b: Int) -> Int { if a > b then a else b }
-    let a = builder.local("a", int_ty);
-    let b = builder.local("b", int_ty);
-    let cond = builder.local("cond", bool_ty);
-    let result = builder.local("result", int_ty);
+    let callee = body!(interner, env; fn@0/2 -> Int {
+        decl a: Int, b: Int, cond: Bool, result: Int;
 
-    let bb0 = builder.reserve_block([]);
-    let bb1 = builder.reserve_block([]);
-    let bb2 = builder.reserve_block([]);
-    let bb3 = builder.reserve_block([result.local]);
+        bb0() {
+            cond = bin.> a b;
+            if cond then bb1() else bb2();
+        },
+        bb1() {
+            goto bb3(a);
+        },
+        bb2() {
+            goto bb3(b);
+        },
+        bb3(result) {
+            return result;
+        }
+    });
 
-    builder
-        .build_block(bb0)
-        .assign_place(cond, |rv| rv.binary(a, op![>], b))
-        .if_else(cond, bb1, [], bb2, []);
+    let caller = body!(interner, env; thunk@1/0 -> Int {
+        decl out: Int;
 
-    builder.build_block(bb1).goto(bb3, [a.into()]);
-    builder.build_block(bb2).goto(bb3, [b.into()]);
-    builder.build_block(bb3).ret(result);
-
-    let mut callee = builder.finish(2, int_ty);
-    callee.id = DefId::new(0);
-    callee.source = Source::Closure(HirId::PLACEHOLDER, None);
-
-    // Build caller
-    let mut builder = BodyBuilder::new(&interner);
-    let out = builder.local("out", int_ty);
-    let const_10 = builder.const_int(10);
-    let const_20 = builder.const_int(20);
-    let callee_fn = builder.const_fn(callee.id);
-
-    let bb0 = builder.reserve_block([]);
-    builder
-        .build_block(bb0)
-        .assign_place(out, |rv| rv.apply(callee_fn, [const_10, const_20]))
-        .ret(out);
-
-    let mut caller = builder.finish(0, int_ty);
-    caller.id = DefId::new(1);
-    caller.source = Source::Thunk(HirId::PLACEHOLDER, None);
+        bb0() {
+            out = apply (callee.id), 10, 20;
+            return out;
+        }
+    });
 
     let mut bodies = [callee, caller];
 
@@ -291,38 +245,29 @@ fn inline_multiple_blocks() {
 /// Tests that statements after the call are preserved in continuation block.
 #[test]
 fn inline_continuation_terminator() {
-    scaffold!(heap, interner, builder);
+    let heap = Heap::new();
+    let interner = Interner::new(&heap);
     let env = Environment::new(&heap);
-    let int_ty = TypeBuilder::synthetic(&env).integer();
-    let bool_ty = TypeBuilder::synthetic(&env).boolean();
 
     // Simple callee: fn identity(x: Int) -> Int { x }
-    let x = builder.local("x", int_ty);
-    let bb0 = builder.reserve_block([]);
-    builder.build_block(bb0).ret(x);
+    let callee = body!(interner, env; fn@0/1 -> Int {
+        decl x: Int;
 
-    let mut callee = builder.finish(1, int_ty);
-    callee.id = DefId::new(0);
-    callee.source = Source::Closure(HirId::PLACEHOLDER, None);
+        bb0() {
+            return x;
+        }
+    });
 
     // Caller with statements after the call
-    let mut builder = BodyBuilder::new(&interner);
-    let tmp = builder.local("tmp", int_ty);
-    let out = builder.local("out", bool_ty);
-    let const_5 = builder.const_int(5);
-    let const_10 = builder.const_int(10);
-    let callee_fn = builder.const_fn(callee.id);
+    let caller = body!(interner, env; thunk@1/0 -> Bool {
+        decl tmp: Int, out: Bool;
 
-    let bb0 = builder.reserve_block([]);
-    builder
-        .build_block(bb0)
-        .assign_place(tmp, |rv| rv.apply(callee_fn, [const_5]))
-        .assign_place(out, |rv| rv.binary(tmp, op![==], const_10))
-        .ret(out);
-
-    let mut caller = builder.finish(0, bool_ty);
-    caller.id = DefId::new(1);
-    caller.source = Source::Thunk(HirId::PLACEHOLDER, None);
+        bb0() {
+            tmp = apply (callee.id), 5;
+            out = bin.== tmp 10;
+            return out;
+        }
+    });
 
     let mut bodies = [callee, caller];
 
@@ -346,17 +291,17 @@ fn inline_continuation_terminator() {
 /// Tests that `Source::Ctor` produces `InlineDirective::Always`.
 #[test]
 fn analysis_ctor_directive() {
-    scaffold!(heap, interner, builder);
+    let heap = Heap::new();
+    let interner = Interner::new(&heap);
     let env = Environment::new(&heap);
-    let int_ty = TypeBuilder::synthetic(&env).integer();
 
-    let x = builder.local("x", int_ty);
-    let bb0 = builder.reserve_block([]);
-    builder.build_block(bb0).ret(x);
+    let body = body!(interner, env; [ctor sym::lexical::Some]@0/1 -> Int {
+        decl x: Int;
 
-    let mut body = builder.finish(1, int_ty);
-    body.id = DefId::new(0);
-    body.source = Source::Ctor(sym::lexical::Some);
+        bb0() {
+            return x;
+        }
+    });
 
     let bodies = [body];
     let bodies_slice = DefIdSlice::from_raw(&bodies);
@@ -381,17 +326,17 @@ fn analysis_ctor_directive() {
 /// Tests that `Source::Intrinsic` produces `InlineDirective::Never`.
 #[test]
 fn analysis_intrinsic_directive() {
-    scaffold!(heap, interner, builder);
+    let heap = Heap::new();
+    let interner = Interner::new(&heap);
     let env = Environment::new(&heap);
-    let int_ty = TypeBuilder::synthetic(&env).integer();
 
-    let x = builder.local("x", int_ty);
-    let bb0 = builder.reserve_block([]);
-    builder.build_block(bb0).ret(x);
+    let body = body!(interner, env; intrinsic@0/1 -> Int {
+        decl x: Int;
 
-    let mut body = builder.finish(1, int_ty);
-    body.id = DefId::new(0);
-    body.source = Source::Intrinsic(DefId::new(0));
+        bb0() {
+            return x;
+        }
+    });
 
     let bodies = [body];
     let bodies_slice = DefIdSlice::from_raw(&bodies);
@@ -416,17 +361,17 @@ fn analysis_intrinsic_directive() {
 /// Tests that `Source::Closure` produces `InlineDirective::Heuristic`.
 #[test]
 fn analysis_closure_directive() {
-    scaffold!(heap, interner, builder);
+    let heap = Heap::new();
+    let interner = Interner::new(&heap);
     let env = Environment::new(&heap);
-    let int_ty = TypeBuilder::synthetic(&env).integer();
 
-    let x = builder.local("x", int_ty);
-    let bb0 = builder.reserve_block([]);
-    builder.build_block(bb0).ret(x);
+    let body = body!(interner, env; fn@0/1 -> Int {
+        decl x: Int;
 
-    let mut body = builder.finish(1, int_ty);
-    body.id = DefId::new(0);
-    body.source = Source::Closure(HirId::PLACEHOLDER, None);
+        bb0() {
+            return x;
+        }
+    });
 
     let bodies = [body];
     let bodies_slice = DefIdSlice::from_raw(&bodies);
@@ -451,23 +396,19 @@ fn analysis_closure_directive() {
 /// Tests that cost estimation calculates correctly from rvalues and terminators.
 #[test]
 fn analysis_cost_estimation() {
-    scaffold!(heap, interner, builder);
+    let heap = Heap::new();
+    let interner = Interner::new(&heap);
     let env = Environment::new(&heap);
-    let int_ty = TypeBuilder::synthetic(&env).integer();
 
     // Body with: 1 binary, 1 basic_block, 1 return
-    let bool_ty = TypeBuilder::synthetic(&env).boolean();
-    let x = builder.local("x", int_ty);
-    let y = builder.local("y", bool_ty);
-    let bb0 = builder.reserve_block([]);
-    builder
-        .build_block(bb0)
-        .assign_place(y, |rv| rv.binary(x, op![==], x))
-        .ret(y);
+    let body = body!(interner, env; fn@0/1 -> Int {
+        decl x: Int, y: Bool;
 
-    let mut body = builder.finish(1, int_ty);
-    body.id = DefId::new(0);
-    body.source = Source::Closure(HirId::PLACEHOLDER, None);
+        bb0() {
+            y = bin.== x x;
+            return y;
+        }
+    });
 
     let bodies = [body];
     let bodies_slice = DefIdSlice::from_raw(&bodies);
@@ -492,34 +433,28 @@ fn analysis_cost_estimation() {
 /// Tests that leaf detection works (no outgoing calls except intrinsics).
 #[test]
 fn analysis_is_leaf() {
-    scaffold!(heap, interner, builder);
+    let heap = Heap::new();
+    let interner = Interner::new(&heap);
     let env = Environment::new(&heap);
-    let int_ty = TypeBuilder::synthetic(&env).integer();
 
     // Leaf function (no calls)
-    let x = builder.local("x", int_ty);
-    let bb0 = builder.reserve_block([]);
-    builder.build_block(bb0).ret(x);
+    let leaf = body!(interner, env; fn@0/1 -> Int {
+        decl x: Int;
 
-    let mut leaf = builder.finish(1, int_ty);
-    leaf.id = DefId::new(0);
-    leaf.source = Source::Closure(HirId::PLACEHOLDER, None);
+        bb0() {
+            return x;
+        }
+    });
 
     // Non-leaf function (calls leaf)
-    let mut builder = BodyBuilder::new(&interner);
-    let out = builder.local("out", int_ty);
-    let const_5 = builder.const_int(5);
-    let leaf_fn = builder.const_fn(leaf.id);
+    let non_leaf = body!(interner, env; thunk@1/0 -> Int {
+        decl out: Int;
 
-    let bb0 = builder.reserve_block([]);
-    builder
-        .build_block(bb0)
-        .assign_place(out, |rv| rv.apply(leaf_fn, [const_5]))
-        .ret(out);
-
-    let mut non_leaf = builder.finish(0, int_ty);
-    non_leaf.id = DefId::new(1);
-    non_leaf.source = Source::Thunk(HirId::PLACEHOLDER, None);
+        bb0() {
+            out = apply (leaf.id), 5;
+            return out;
+        }
+    });
 
     let bodies = [leaf, non_leaf];
     let bodies_slice = DefIdSlice::from_raw(&bodies);
@@ -554,34 +489,28 @@ fn analysis_is_leaf() {
 /// Tests that `InlineDirective::Always` produces +∞ score.
 #[test]
 fn heuristics_always_directive() {
-    scaffold!(heap, interner, builder);
+    let heap = Heap::new();
+    let interner = Interner::new(&heap);
     let env = Environment::new(&heap);
-    let int_ty = TypeBuilder::synthetic(&env).integer();
 
     // Create minimal callee
-    let x = builder.local("x", int_ty);
-    let bb0 = builder.reserve_block([]);
-    builder.build_block(bb0).ret(x);
+    let callee = body!(interner, env; [ctor sym::lexical::Some]@0/1 -> Int {
+        decl x: Int;
 
-    let mut callee = builder.finish(1, int_ty);
-    callee.id = DefId::new(0);
-    callee.source = Source::Ctor(sym::lexical::Some);
+        bb0() {
+            return x;
+        }
+    });
 
     // Create caller
-    let mut builder = BodyBuilder::new(&interner);
-    let out = builder.local("out", int_ty);
-    let callee_fn = builder.const_fn(callee.id);
-    let const_1 = builder.const_int(1);
+    let caller = body!(interner, env; thunk@1/0 -> Int {
+        decl out: Int;
 
-    let bb0 = builder.reserve_block([]);
-    builder
-        .build_block(bb0)
-        .assign_place(out, |rv| rv.apply(callee_fn, [const_1]))
-        .ret(out);
-
-    let mut caller = builder.finish(0, int_ty);
-    caller.id = DefId::new(1);
-    caller.source = Source::Thunk(HirId::PLACEHOLDER, None);
+        bb0() {
+            out = apply (callee.id), 1;
+            return out;
+        }
+    });
 
     let bodies = [callee, caller];
     let bodies_slice = DefIdSlice::from_raw(&bodies);
@@ -630,34 +559,28 @@ fn heuristics_always_directive() {
 /// Tests that `InlineDirective::Never` produces -∞ score.
 #[test]
 fn heuristics_never_directive() {
-    scaffold!(heap, interner, builder);
+    let heap = Heap::new();
+    let interner = Interner::new(&heap);
     let env = Environment::new(&heap);
-    let int_ty = TypeBuilder::synthetic(&env).integer();
 
     // Create callee
-    let x = builder.local("x", int_ty);
-    let bb0 = builder.reserve_block([]);
-    builder.build_block(bb0).ret(x);
+    let callee = body!(interner, env; intrinsic@0/1 -> Int {
+        decl x: Int;
 
-    let mut callee = builder.finish(1, int_ty);
-    callee.id = DefId::new(0);
-    callee.source = Source::Intrinsic(DefId::new(0));
+        bb0() {
+            return x;
+        }
+    });
 
     // Create caller
-    let mut builder = BodyBuilder::new(&interner);
-    let out = builder.local("out", int_ty);
-    let callee_fn = builder.const_fn(callee.id);
-    let const_1 = builder.const_int(1);
+    let caller = body!(interner, env; thunk@1/0 -> Int {
+        decl out: Int;
 
-    let bb0 = builder.reserve_block([]);
-    builder
-        .build_block(bb0)
-        .assign_place(out, |rv| rv.apply(callee_fn, [const_1]))
-        .ret(out);
-
-    let mut caller = builder.finish(0, int_ty);
-    caller.id = DefId::new(1);
-    caller.source = Source::Thunk(HirId::PLACEHOLDER, None);
+        bb0() {
+            out = apply (callee.id), 1;
+            return out;
+        }
+    });
 
     let bodies = [callee, caller];
     let bodies_slice = DefIdSlice::from_raw(&bodies);
@@ -706,34 +629,28 @@ fn heuristics_never_directive() {
 /// Tests that cost below `always_inline` threshold gives +∞.
 #[test]
 fn heuristics_small_cost() {
-    scaffold!(heap, interner, builder);
+    let heap = Heap::new();
+    let interner = Interner::new(&heap);
     let env = Environment::new(&heap);
-    let int_ty = TypeBuilder::synthetic(&env).integer();
 
     // Create callee
-    let x = builder.local("x", int_ty);
-    let bb0 = builder.reserve_block([]);
-    builder.build_block(bb0).ret(x);
+    let callee = body!(interner, env; fn@0/1 -> Int {
+        decl x: Int;
 
-    let mut callee = builder.finish(1, int_ty);
-    callee.id = DefId::new(0);
-    callee.source = Source::Closure(HirId::PLACEHOLDER, None);
+        bb0() {
+            return x;
+        }
+    });
 
     // Create caller
-    let mut builder = BodyBuilder::new(&interner);
-    let out = builder.local("out", int_ty);
-    let callee_fn = builder.const_fn(callee.id);
-    let const_1 = builder.const_int(1);
+    let caller = body!(interner, env; thunk@1/0 -> Int {
+        decl out: Int;
 
-    let bb0 = builder.reserve_block([]);
-    builder
-        .build_block(bb0)
-        .assign_place(out, |rv| rv.apply(callee_fn, [const_1]))
-        .ret(out);
-
-    let mut caller = builder.finish(0, int_ty);
-    caller.id = DefId::new(1);
-    caller.source = Source::Thunk(HirId::PLACEHOLDER, None);
+        bb0() {
+            out = apply (callee.id), 1;
+            return out;
+        }
+    });
 
     let bodies = [callee, caller];
     let bodies_slice = DefIdSlice::from_raw(&bodies);
@@ -784,34 +701,28 @@ fn heuristics_small_cost() {
 /// Tests that cost above `max` threshold gives -∞.
 #[test]
 fn heuristics_large_cost() {
-    scaffold!(heap, interner, builder);
+    let heap = Heap::new();
+    let interner = Interner::new(&heap);
     let env = Environment::new(&heap);
-    let int_ty = TypeBuilder::synthetic(&env).integer();
 
     // Create callee
-    let x = builder.local("x", int_ty);
-    let bb0 = builder.reserve_block([]);
-    builder.build_block(bb0).ret(x);
+    let callee = body!(interner, env; fn@0/1 -> Int {
+        decl x: Int;
 
-    let mut callee = builder.finish(1, int_ty);
-    callee.id = DefId::new(0);
-    callee.source = Source::Closure(HirId::PLACEHOLDER, None);
+        bb0() {
+            return x;
+        }
+    });
 
     // Create caller
-    let mut builder = BodyBuilder::new(&interner);
-    let out = builder.local("out", int_ty);
-    let callee_fn = builder.const_fn(callee.id);
-    let const_1 = builder.const_int(1);
+    let caller = body!(interner, env; thunk@1/0 -> Int {
+        decl out: Int;
 
-    let bb0 = builder.reserve_block([]);
-    builder
-        .build_block(bb0)
-        .assign_place(out, |rv| rv.apply(callee_fn, [const_1]))
-        .ret(out);
-
-    let mut caller = builder.finish(0, int_ty);
-    caller.id = DefId::new(1);
-    caller.source = Source::Thunk(HirId::PLACEHOLDER, None);
+        bb0() {
+            out = apply (callee.id), 1;
+            return out;
+        }
+    });
 
     let bodies = [callee, caller];
     let bodies_slice = DefIdSlice::from_raw(&bodies);
@@ -862,34 +773,28 @@ fn heuristics_large_cost() {
 /// Tests that leaf callee gets leaf bonus in score.
 #[test]
 fn heuristics_leaf_bonus() {
-    scaffold!(heap, interner, builder);
+    let heap = Heap::new();
+    let interner = Interner::new(&heap);
     let env = Environment::new(&heap);
-    let int_ty = TypeBuilder::synthetic(&env).integer();
 
     // Create callee
-    let x = builder.local("x", int_ty);
-    let bb0 = builder.reserve_block([]);
-    builder.build_block(bb0).ret(x);
+    let callee = body!(interner, env; fn@0/1 -> Int {
+        decl x: Int;
 
-    let mut callee = builder.finish(1, int_ty);
-    callee.id = DefId::new(0);
-    callee.source = Source::Closure(HirId::PLACEHOLDER, None);
+        bb0() {
+            return x;
+        }
+    });
 
     // Create caller
-    let mut builder = BodyBuilder::new(&interner);
-    let out = builder.local("out", int_ty);
-    let callee_fn = builder.const_fn(callee.id);
-    let const_1 = builder.const_int(1);
+    let caller = body!(interner, env; thunk@1/0 -> Int {
+        decl out: Int;
 
-    let bb0 = builder.reserve_block([]);
-    builder
-        .build_block(bb0)
-        .assign_place(out, |rv| rv.apply(callee_fn, [const_1]))
-        .ret(out);
-
-    let mut caller = builder.finish(0, int_ty);
-    caller.id = DefId::new(1);
-    caller.source = Source::Thunk(HirId::PLACEHOLDER, None);
+        bb0() {
+            out = apply (callee.id), 1;
+            return out;
+        }
+    });
 
     let bodies = [callee, caller];
     let bodies_slice = DefIdSlice::from_raw(&bodies);
