@@ -1,3 +1,50 @@
+//! Function inlining pass for MIR.
+//!
+//! This pass inlines function calls to reduce call overhead and enable further optimizations.
+//! It operates in two phases:
+//!
+//! 1. **Normal phase**: Processes all functions using heuristic scoring and budget constraints.
+//! 2. **Aggressive phase**: For filter closures only, inlines until fixpoint or cutoff.
+//!
+//! # Architecture
+//!
+//! The inliner uses several key components:
+//!
+//! - [`BodyAnalysis`]: Computes cost, directive, and loop information for each function.
+//! - [`InlineHeuristics`]: Scores callsites based on cost, bonuses, and penalties.
+//! - [`InlineState`]: Tracks inlining state including SCC membership and budget.
+//!
+//! # Normal Phase
+//!
+//! For non-filter functions, the normal phase:
+//! 1. Processes SCCs in dependency order (callees before callers).
+//! 2. For each callsite, computes a score using [`InlineHeuristics::score`].
+//! 3. Selects candidates with positive scores, limited by per-caller budget.
+//! 4. Updates caller costs after inlining to prevent cascade explosions.
+//!
+//! Recursive calls (same SCC) are never inlined to prevent infinite expansion.
+//!
+//! # Aggressive Phase
+//!
+//! Filter closures (used in graph read pipelines) bypass normal heuristics and get
+//! aggressive inlining to fully flatten the filter logic. The aggressive phase:
+//! 1. Iterates up to `aggressive_inline_cutoff` times per filter.
+//! 2. On each iteration, inlines all eligible callsites found in the filter.
+//! 3. Tracks which SCCs have been inlined to prevent cycles.
+//! 4. Emits a diagnostic if the cutoff is reached.
+//!
+//! # Budget System
+//!
+//! Each caller has a budget of `max × budget_multiplier` cost units. When selecting
+//! candidates:
+//! - Candidates are sorted by score (highest first).
+//! - Each inlined callee consumes its cost from the budget.
+//! - Callsites with infinite score (directive or `always_inline`) bypass budget entirely.
+//!
+//! After inlining, the caller's cost is updated: the `Apply` cost is removed and the
+//! callee's cost is added. This ensures subsequent inlining decisions see the true
+//! accumulated cost.
+
 #![expect(clippy::float_arithmetic)]
 use alloc::collections::BinaryHeap;
 use core::{alloc::Allocator, cmp, mem};
@@ -55,6 +102,7 @@ mod rename;
 #[cfg(test)]
 mod tests;
 
+/// A candidate callsite for inlining, with its computed score.
 struct Candidate {
     score: f32,
     callsite: CallSite<Location>,
@@ -78,15 +126,34 @@ impl Ord for Candidate {
     fn cmp(&self, other: &Self) -> cmp::Ordering {
         let Self { score, callsite: _ } = self;
 
-        score.total_cmp(&other.score).reverse() // Higher scores first (max-heap).
+        // Reverse ordering: higher scores come first (max-heap behavior).
+        score.total_cmp(&other.score).reverse()
     }
 }
 
+/// Top-level configuration for the inline pass.
+///
+/// Combines cost estimation, heuristics, and pass-level parameters.
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub struct InlineConfig {
+    /// Weights for computing function body costs.
     pub cost: InlineCostEstimationConfig,
+    /// Thresholds and bonuses for scoring callsites.
     pub heuristics: InlineHeuristicsConfig,
+    /// Multiplier for computing per-caller budget.
+    ///
+    /// Budget = `heuristics.max × budget_multiplier`.
+    /// Limits how much code can be inlined into a single function.
+    ///
+    /// Default: `2.0` (budget of 120 with default max of 60).
     pub budget_multiplier: f32,
+    /// Maximum iterations for aggressive filter inlining.
+    ///
+    /// The aggressive phase runs up to this many iterations per filter,
+    /// inlining all eligible callsites each iteration. If the limit is
+    /// reached, a diagnostic is emitted.
+    ///
+    /// Default: `16` (generous for deep pipelines).
     pub aggressive_inline_cutoff: usize,
 }
 
@@ -101,8 +168,11 @@ impl Default for InlineConfig {
     }
 }
 
+/// Reusable memory for callsite collection during inlining.
 struct InlineStateMemory<A: Allocator> {
+    /// Collected callsites to inline.
     callsites: Vec<CallSite<Location>, A>,
+    /// Priority queue of candidates sorted by score.
     candidates: BinaryHeap<Candidate, A>,
 }
 
@@ -118,22 +188,34 @@ impl<A: Allocator> InlineStateMemory<A> {
     }
 }
 
+/// State maintained during the inlining process.
 struct InlineState<'env, 'heap, A: Allocator> {
     config: InlineConfig,
     interner: &'env Interner<'heap>,
 
     graph: CallGraph<'heap, A>,
 
-    filters: DenseBitSet<DefId>, // Bodies requiring aggressive inlining.
-    inlined: SparseBitMatrix<DefId, SccId, A>, /* Tracks which SCCs have been inlined into each
-                                  * body. */
+    /// Functions that require aggressive inlining (filter closures).
+    filters: DenseBitSet<DefId>,
+    /// Tracks which SCCs have been inlined into each function.
+    ///
+    /// Used to prevent cycles during aggressive inlining: once an SCC
+    /// has been inlined into a filter, it won't be inlined again.
+    inlined: SparseBitMatrix<DefId, SccId, A>,
 
+    /// Body properties (cost, directive, is_leaf) for each function.
     properties: DefIdVec<BodyProperties, A>,
+    /// For each function, which basic blocks are inside loops.
     loops: BasicBlockLoopVec<A>,
+    /// SCC membership for cycle detection.
     components: StronglyConnectedComponents<DefId, SccId, (), A>,
 }
 
 impl<'heap, A: Allocator> InlineState<'_, 'heap, A> {
+    /// Collect all non-recursive callsites for aggressive inlining.
+    ///
+    /// Used for filter functions which bypass normal heuristics.
+    /// Records inlined SCCs to prevent cycles in subsequent iterations.
     fn collect_all_callsites(&mut self, body: DefId, mem: &mut InlineStateMemory<A>) {
         let component = self.components.scc(body);
 
@@ -142,7 +224,6 @@ impl<'heap, A: Allocator> InlineState<'_, 'heap, A> {
             .filter(|callsite| self.components.scc(callsite.target) != component)
             .collect_into(&mut mem.callsites);
 
-        // Record inlined SCCs to prevent cycles during aggressive inlining.
         self.inlined.insert(body, component);
         for callsite in &mem.callsites {
             self.inlined
@@ -150,6 +231,15 @@ impl<'heap, A: Allocator> InlineState<'_, 'heap, A> {
         }
     }
 
+    /// Collect callsites using heuristic scoring and budget.
+    ///
+    /// For filter functions, delegates to [`collect_all_callsites`](Self::collect_all_callsites).
+    /// For normal functions:
+    /// 1. Scores each callsite using [`InlineHeuristics`].
+    /// 2. Skips negative scores (not beneficial) and recursive calls (same SCC).
+    /// 3. Infinite scores bypass budget; finite positive scores are ranked.
+    /// 4. Selects candidates in score order until budget is exhausted.
+    /// 5. Updates caller cost to reflect inlined code.
     #[expect(clippy::cast_precision_loss)]
     fn collect_callsites(&mut self, body: DefId, mem: &mut InlineStateMemory<A>) {
         if self.filters.contains(body) {
@@ -169,18 +259,15 @@ impl<'heap, A: Allocator> InlineState<'_, 'heap, A> {
 
         for callsite in self.graph.apply_callsites(body) {
             if self.components.scc(callsite.target) == component {
-                // Cannot inline recursive calls (same SCC).
                 continue;
             }
 
             let score = scorer.score(callsite);
             if score.is_sign_negative() {
-                // Negative score means inlining is not beneficial.
                 continue;
             }
 
             if score.is_infinite() {
-                // Infinite score means always inline without contributing to budget.
                 targets.push(callsite);
                 continue;
             }
@@ -199,14 +286,12 @@ impl<'heap, A: Allocator> InlineState<'_, 'heap, A> {
             }
         }
 
-        // Remove the cost of each callsite from the overall cost, we know that each callsite is...
-        // a call.
+        // Update caller cost: remove Apply costs and add callee costs.
+        // This ensures subsequent callers see the true accumulated cost.
         self.properties[body].cost -= (targets.len() as f32) * self.config.cost.rvalue_apply;
         for target in targets {
             debug_assert_eq!(target.caller, body);
 
-            // for each callsite, add the cost of the body to the overall cost, we know that they're
-            // disjoint.
             let Ok([caller, target]) = self
                 .properties
                 .get_disjoint_mut([target.caller, target.target])
@@ -218,6 +303,14 @@ impl<'heap, A: Allocator> InlineState<'_, 'heap, A> {
         }
     }
 
+    /// Perform the actual inlining of a callsite.
+    ///
+    /// This involves:
+    /// 1. Splitting the caller's basic block at the call statement.
+    /// 2. Creating a continuation block for code after the call.
+    /// 3. Copying the callee's basic blocks and locals into the caller.
+    /// 4. Renaming all references to account for the new offsets.
+    /// 5. Redirecting the call to jump into the inlined code.
     fn inline(
         &self,
         bodies: &mut IdSlice<DefId, Body<'heap>>,
@@ -231,7 +324,8 @@ impl<'heap, A: Allocator> InlineState<'_, 'heap, A> {
         let Ok([source, target]) = bodies.get_disjoint_mut([caller, target]) else {
             unreachable!("`inlinable_callsites` should have filtered out self-calls")
         };
-        let target = &*target; // Downgrade to shared ref to prevent accidental modification.
+        // Downgrade to shared ref to prevent accidental modification.
+        let target = &*target;
 
         let bb_offset = source.basic_blocks.len();
 
@@ -241,12 +335,13 @@ impl<'heap, A: Allocator> InlineState<'_, 'heap, A> {
             target.basic_blocks[BasicBlockId::START].params.is_empty(),
             "function entry block must have no params"
         );
+        // Replace the block's terminator with a goto to the inlined entry block.
+        // +1 because we push the continuation block first (see `apply`).
         let terminator = mem::replace(
             &mut block.terminator,
             Terminator {
                 span: SpanId::SYNTHETIC,
                 kind: TerminatorKind::Goto(Goto {
-                    // +1 because patch_callsite pushes the continuation block first.
                     target: Target::block(BasicBlockId::START.plus(bb_offset + 1)),
                 }),
             },
@@ -255,8 +350,8 @@ impl<'heap, A: Allocator> InlineState<'_, 'heap, A> {
             location.statement_index > 0,
             "callsite location must point to a statement, not block params"
         );
-        // statement_index is 1-based: split_off gives statements after the call,
-        // pop removes the call statement itself.
+        // statement_index is 1-based (0 = block params), so split_off gives statements
+        // after the call, and pop removes the call statement itself.
         let mut after = block.statements.split_off(location.statement_index);
         let callsite = block.statements.pop().unwrap_or_else(|| unreachable!());
 
@@ -270,7 +365,9 @@ impl<'heap, A: Allocator> InlineState<'_, 'heap, A> {
             unreachable!("`inlinable_callsites` should only point to apply statements")
         };
 
-        // If lhs has projections, create a temp local and assign to lhs after the call.
+        // Determine where to store the return value.
+        // If lhs has projections (e.g., `foo.bar = call()`), we can't use it directly as a
+        // block param. Create a temp local and prepend an assignment to write it back.
         let result = if lhs.projections.is_empty() {
             lhs.local
         } else {
@@ -298,7 +395,7 @@ impl<'heap, A: Allocator> InlineState<'_, 'heap, A> {
 
         let local_offset = source.local_decls.len();
 
-        // For all arguments, add assignment expressions before the goto
+        // Assign arguments to the callee's parameter locals.
         debug_assert_eq!(apply.arguments.len(), target.args);
         for (index, arg) in apply.arguments.into_iter().enumerate() {
             block.statements.push(Statement {
@@ -313,6 +410,10 @@ impl<'heap, A: Allocator> InlineState<'_, 'heap, A> {
         self.apply(source, target, result, after, terminator);
     }
 
+    /// Apply the callee's code to the caller body.
+    ///
+    /// Creates the continuation block, copies callee blocks and locals,
+    /// and renames all references to use the new offsets.
     fn apply(
         &self,
         source: &mut Body<'heap>,
@@ -322,17 +423,20 @@ impl<'heap, A: Allocator> InlineState<'_, 'heap, A> {
         statements: Vec<Statement<'heap>, &'heap Heap>,
         terminator: Terminator<'heap>,
     ) {
-        // Create continuation block with result as block param.
+        // Create continuation block first. The inlined code's returns will jump here,
+        // passing the return value as a block argument to `result`.
         let continuation = source.basic_blocks.as_mut().push(BasicBlock {
             params: self.interner.locals.intern_slice(&[result]),
             statements,
             terminator,
         });
 
+        // Record offsets before extending - these are used to rename all references.
         let bb_offset = source.basic_blocks.bound();
         // This must match the `local_offset` used in `inline` for argument assignments.
         let local_offset = source.local_decls.len();
 
+        // Copy callee's blocks and locals into caller.
         source
             .basic_blocks
             .as_mut()
@@ -342,6 +446,7 @@ impl<'heap, A: Allocator> InlineState<'_, 'heap, A> {
             .local_decls
             .extend(callee.local_decls.iter().copied());
 
+        // Rename all references in the copied blocks to use the new offsets.
         let mut visitor = RenameVisitor {
             local_offset,
             bb_offset: bb_offset.as_usize(),
@@ -357,6 +462,7 @@ impl<'heap, A: Allocator> InlineState<'_, 'heap, A> {
         }
     }
 
+    /// Process a single function: collect callsites and inline them.
     fn run(
         &mut self,
         bodies: &mut DefIdSlice<Body<'heap>>,
@@ -364,7 +470,8 @@ impl<'heap, A: Allocator> InlineState<'_, 'heap, A> {
         mem: &mut InlineStateMemory<A>,
     ) {
         self.collect_callsites(body, mem);
-        // Sort in reverse order so later callsites are processed first (avoids index shifting).
+        // Sort in reverse order so later callsites are processed first.
+        // This avoids index shifting issues when modifying the body.
         mem.callsites
             .sort_unstable_by(|lhs, rhs| lhs.kind.cmp(&rhs.kind).reverse());
 
@@ -374,6 +481,9 @@ impl<'heap, A: Allocator> InlineState<'_, 'heap, A> {
     }
 }
 
+/// The main inline pass.
+///
+/// Inlines function calls to reduce overhead and enable optimizations.
 pub struct Inline<A: BumpAllocator> {
     alloc: A,
 
@@ -385,6 +495,7 @@ impl<A: BumpAllocator> Inline<A> {
         Self { alloc, config }
     }
 
+    /// Build initial state by analyzing all bodies.
     fn state<'env, 'heap>(
         &self,
         interner: &'env Interner<'heap>,
@@ -419,13 +530,16 @@ impl<A: BumpAllocator> Inline<A> {
         }
     }
 
+    /// Run the normal inlining phase.
+    ///
+    /// Processes SCCs in dependency order (callees before callers) so that
+    /// cost updates propagate correctly.
     fn normal<'heap, 'alloc>(
         &self,
         state: &mut InlineState<'_, 'heap, &'alloc A>,
         bodies: &mut IdSlice<DefId, Body<'heap>>,
         mem: &mut InlineStateMemory<&'alloc A>,
     ) {
-        // Process SCCs in dependency order (callees before callers).
         let members = state.components.members_in(&self.alloc);
 
         for scc in members.sccs() {
@@ -435,6 +549,10 @@ impl<A: BumpAllocator> Inline<A> {
         }
     }
 
+    /// Run the aggressive inlining phase for filter functions.
+    ///
+    /// For each filter, iteratively inlines all eligible callsites until
+    /// no more are found or the cutoff is reached.
     fn aggressive<'heap, 'alloc>(
         &self,
         context: &mut MirContext<'_, 'heap>,
@@ -442,7 +560,6 @@ impl<A: BumpAllocator> Inline<A> {
         bodies: &mut IdSlice<DefId, Body<'heap>>,
         mem: &mut InlineStateMemory<&'alloc A>,
     ) {
-        // For each filter, inline all eligible callsites until fixpoint or cutoff.
         for filter in &state.filters {
             let mut iteration = 0;
             while iteration < self.config.aggressive_inline_cutoff {
@@ -478,6 +595,9 @@ impl<A: BumpAllocator> Inline<A> {
         }
     }
 
+    /// Run the complete inline pass.
+    ///
+    /// Executes both normal and aggressive phases.
     pub fn run<'heap>(
         &mut self,
         context: &mut MirContext<'_, 'heap>,
