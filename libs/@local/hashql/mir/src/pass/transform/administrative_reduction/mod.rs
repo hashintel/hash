@@ -186,8 +186,7 @@ impl<A: Allocator> AdministrativeReduction<A> {
     /// Creates a new administrative reduction pass using the given allocator.
     ///
     /// The allocator is used for temporary data structures during the pass (call graph,
-    /// reducibility tracking, scratch memory). It should implement [`ResetAllocator`] so
-    /// that memory can be efficiently reclaimed before running the pass.
+    /// reducibility tracking, scratch memory).
     pub const fn new_in(alloc: A) -> Self {
         Self { alloc }
     }
