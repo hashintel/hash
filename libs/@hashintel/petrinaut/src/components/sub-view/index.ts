@@ -6,4 +6,3 @@ export {
   HorizontalTabsHeaderAction,
   HorizontalTabsContent,
 } from "./horizontal-tabs-container";
-

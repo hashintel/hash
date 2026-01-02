@@ -198,11 +198,11 @@ const SimulationSettingsContent: React.FC = () => {
   const dt = useSimulationStore((state) => state.dt);
   const setDt = useSimulationStore((state) => state.setDt);
   const setSelectedResourceId = useEditorStore(
-    (state) => state.setSelectedResourceId
+    (state) => state.setSelectedResourceId,
   );
   const parameterValues = useSimulationStore((state) => state.parameterValues);
   const setParameterValue = useSimulationStore(
-    (state) => state.setParameterValue
+    (state) => state.setParameterValue,
   );
 
   const {

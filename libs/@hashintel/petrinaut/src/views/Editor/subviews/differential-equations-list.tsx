@@ -119,10 +119,10 @@ const DifferentialEquationsSectionContent: React.FC = () => {
   } = useSDCPNContext();
 
   const selectedResourceId = useEditorStore(
-    (state) => state.selectedResourceId
+    (state) => state.selectedResourceId,
   );
   const setSelectedResourceId = useEditorStore(
-    (state) => state.setSelectedResourceId
+    (state) => state.setSelectedResourceId,
   );
 
   // Check if simulation is running or paused
@@ -167,7 +167,7 @@ const DifferentialEquationsSectionContent: React.FC = () => {
                 if (
                   // eslint-disable-next-line no-alert
                   window.confirm(
-                    `Delete equation "${eq.name}"? Any places referencing this equation will have their differential equation reset.`
+                    `Delete equation "${eq.name}"? Any places referencing this equation will have their differential equation reset.`,
                   )
                 ) {
                   removeDifferentialEquation(eq.id);
@@ -197,7 +197,7 @@ const DifferentialEquationsSectionHeaderAction: React.FC = () => {
     addDifferentialEquation,
   } = useSDCPNContext();
   const setSelectedResourceId = useEditorStore(
-    (state) => state.setSelectedResourceId
+    (state) => state.setSelectedResourceId,
   );
 
   // Check if simulation is running or paused

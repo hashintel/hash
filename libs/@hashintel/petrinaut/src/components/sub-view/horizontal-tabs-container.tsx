@@ -54,7 +54,11 @@ interface TabButtonProps {
   onClick: () => void;
 }
 
-const TabButton: React.FC<TabButtonProps> = ({ subView, isActive, onClick }) => {
+const TabButton: React.FC<TabButtonProps> = ({
+  subView,
+  isActive,
+  onClick,
+}) => {
   return (
     <button
       type="button"
@@ -85,12 +89,11 @@ interface HorizontalTabsContainerProps {
  * This component returns both the tabs header and the content area as separate
  * parts that can be composed into the parent layout.
  */
-export const HorizontalTabsContainer: React.FC<HorizontalTabsContainerProps> = ({
-  subViews,
-  activeTabId,
-  onTabChange,
-}) => {
-  const activeSubView = subViews.find((sv) => sv.id === activeTabId) ?? subViews[0];
+export const HorizontalTabsContainer: React.FC<
+  HorizontalTabsContainerProps
+> = ({ subViews, activeTabId, onTabChange }) => {
+  const activeSubView =
+    subViews.find((sv) => sv.id === activeTabId) ?? subViews[0];
 
   if (!activeSubView) {
     return null;
@@ -113,7 +116,11 @@ export const HorizontalTabsContainer: React.FC<HorizontalTabsContainerProps> = (
       </div>
 
       {/* Content */}
-      <div className={contentStyle} role="tabpanel" aria-labelledby={activeTabId}>
+      <div
+        className={contentStyle}
+        role="tabpanel"
+        aria-labelledby={activeTabId}
+      >
         <Component />
       </div>
     </>
@@ -169,7 +176,8 @@ export const HorizontalTabsContent: React.FC<{
   subViews: SubView[];
   activeTabId: string;
 }> = ({ subViews, activeTabId }) => {
-  const activeSubView = subViews.find((sv) => sv.id === activeTabId) ?? subViews[0];
+  const activeSubView =
+    subViews.find((sv) => sv.id === activeTabId) ?? subViews[0];
 
   if (!activeSubView) {
     return null;
@@ -183,4 +191,3 @@ export const HorizontalTabsContent: React.FC<{
     </div>
   );
 };
-

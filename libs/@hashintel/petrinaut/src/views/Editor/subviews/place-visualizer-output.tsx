@@ -32,7 +32,7 @@ const PlaceVisualizerOutputContent: React.FC = () => {
   const initialMarking = useSimulationStore((state) => state.initialMarking);
   const parameterValues = useSimulationStore((state) => state.parameterValues);
   const currentlyViewedFrame = useSimulationStore(
-    (state) => state.currentlyViewedFrame
+    (state) => state.currentlyViewedFrame,
   );
 
   // Get default parameter values from SDCPN definition
@@ -89,7 +89,7 @@ const PlaceVisualizerOutputContent: React.FC = () => {
     const { offset, count } = placeState;
     const placeSize = count * dimensions;
     const tokenValues = Array.from(
-      currentFrame.buffer.slice(offset, offset + placeSize)
+      currentFrame.buffer.slice(offset, offset + placeSize),
     );
 
     // Format tokens as array of objects with named dimensions

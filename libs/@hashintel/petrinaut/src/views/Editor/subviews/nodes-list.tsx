@@ -92,10 +92,10 @@ const NodesSectionContent: React.FC = () => {
     petriNetDefinition: { places, transitions },
   } = useSDCPNContext();
   const selectedResourceId = useEditorStore(
-    (state) => state.selectedResourceId
+    (state) => state.selectedResourceId,
   );
   const setSelectedResourceId = useEditorStore(
-    (state) => state.setSelectedResourceId
+    (state) => state.setSelectedResourceId,
   );
 
   const handleLayerClick = (id: string) => {

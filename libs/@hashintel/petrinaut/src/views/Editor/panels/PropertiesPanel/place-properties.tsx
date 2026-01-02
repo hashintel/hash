@@ -272,7 +272,7 @@ export const PlaceProperties: React.FC<PlacePropertiesProps> = ({
   const globalMode = useEditorStore((state) => state.globalMode);
 
   const setSelectedResourceId = useEditorStore(
-    (state) => state.setSelectedResourceId
+    (state) => state.setSelectedResourceId,
   );
 
   const {
@@ -282,7 +282,7 @@ export const PlaceProperties: React.FC<PlacePropertiesProps> = ({
 
   // Get the place type for context
   const placeType = place.colorId
-    ? types.find((tp) => tp.id === place.colorId) ?? null
+    ? (types.find((tp) => tp.id === place.colorId) ?? null)
     : null;
 
   // Store previous visualizer code when toggling off (in case user toggled off by mistake)
@@ -346,7 +346,7 @@ export const PlaceProperties: React.FC<PlacePropertiesProps> = ({
 
     if (!isPascalCase(nameInputValue)) {
       setNameError(
-        "Name must be in PascalCase (e.g., MyPlaceName or Place2). Any numbers must appear at the end."
+        "Name must be in PascalCase (e.g., MyPlaceName or Place2). Any numbers must appear at the end.",
       );
       return;
     }
@@ -396,7 +396,7 @@ export const PlaceProperties: React.FC<PlacePropertiesProps> = ({
                   if (
                     // eslint-disable-next-line no-alert
                     window.confirm(
-                      `Are you sure you want to delete "${place.name}"? All arcs connected to this place will also be removed.`
+                      `Are you sure you want to delete "${place.name}"? All arcs connected to this place will also be removed.`,
                     )
                   ) {
                     removePlace(place.id);
@@ -511,8 +511,8 @@ export const PlaceProperties: React.FC<PlacePropertiesProps> = ({
               {place.colorId !== null
                 ? "Create a differential equation for the selected type in the left-hand sidebar first"
                 : availableTypes.length === 0
-                ? "Create a type in the left-hand sidebar first, then select it to enable dynamics."
-                : "Select a type to enable dynamics"}
+                  ? "Create a type in the left-hand sidebar first, then select it to enable dynamics."
+                  : "Select a type to enable dynamics"}
             </div>
           )}
         </div>
