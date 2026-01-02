@@ -15,7 +15,7 @@ import {
   sortableKeyboardCoordinates,
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
-import { css } from "@hashintel/ds-helpers/css";
+import { css, cva } from "@hashintel/ds-helpers/css";
 import MonacoEditor from "@monaco-editor/react";
 import { TbDotsVertical, TbSparkles, TbTrash } from "react-icons/tb";
 
@@ -28,9 +28,206 @@ import {
   generateDefaultTransitionKernelCode,
 } from "../../../../core/default-codes";
 import type { Color, Place, Transition } from "../../../../core/types/sdcpn";
+import { useEditorStore } from "../../../../state/editor-provider";
 import { useSDCPNContext } from "../../../../state/sdcpn-provider";
 import { useIsReadOnly } from "../../../../state/use-is-read-only";
 import { SortableArcItem } from "./sortable-arc-item";
+
+const containerStyle = css({
+  display: "flex",
+  flexDirection: "column",
+  gap: "[12px]",
+});
+
+const headerContainerStyle = css({
+  display: "flex",
+  justifyContent: "space-between",
+  alignItems: "center",
+  marginBottom: "[8px]",
+});
+
+const headerTitleStyle = css({
+  fontWeight: 600,
+  fontSize: "[16px]",
+});
+
+const deleteButtonStyle = css({
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  width: "[24px]",
+  height: "[24px]",
+  padding: "spacing.0",
+  border: "none",
+  background: "[transparent]",
+  cursor: "pointer",
+  color: "core.gray.60",
+  borderRadius: "radius.4",
+  _hover: {
+    color: "core.red.60",
+    backgroundColor: "core.red.10",
+  },
+});
+
+const fieldLabelStyle = css({
+  fontWeight: 500,
+  fontSize: "[12px]",
+  marginBottom: "[4px]",
+});
+
+const inputStyle = cva({
+  base: {
+    fontSize: "[14px]",
+    padding: "[6px 8px]",
+    border: "[1px solid rgba(0, 0, 0, 0.1)]",
+    borderRadius: "[4px]",
+    width: "[100%]",
+    boxSizing: "border-box",
+  },
+  variants: {
+    isReadOnly: {
+      true: {
+        backgroundColor: "[rgba(0, 0, 0, 0.05)]",
+        cursor: "not-allowed",
+      },
+      false: {
+        backgroundColor: "[white]",
+        cursor: "text",
+      },
+    },
+  },
+});
+
+const sectionContainerStyle = css({
+  marginTop: "[20px]",
+});
+
+const emptyArcMessageStyle = css({
+  fontSize: "[12px]",
+  color: "[#999]",
+});
+
+const arcListContainerStyle = css({
+  border: "[1px solid rgba(0, 0, 0, 0.1)]",
+  borderRadius: "[6px]",
+  overflow: "hidden",
+});
+
+const segmentGroupWrapperStyle = cva({
+  base: {},
+  variants: {
+    isReadOnly: {
+      true: {
+        opacity: "[0.6]",
+        pointerEvents: "none",
+      },
+      false: {
+        opacity: "[1]",
+        pointerEvents: "auto",
+      },
+    },
+  },
+});
+
+const infoBoxStyle = css({
+  fontSize: "[12px]",
+  color: "[#666]",
+  backgroundColor: "[rgba(0, 0, 0, 0.03)]",
+  padding: "[8px]",
+  borderRadius: "[4px]",
+  lineHeight: "[1.5]",
+});
+
+const codeHeaderStyle = css({
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "space-between",
+  marginBottom: "[4px]",
+  height: "[30px]",
+});
+
+const codeHeaderLabelStyle = css({
+  fontWeight: 500,
+  fontSize: "[12px]",
+});
+
+const menuButtonStyle = css({
+  background: "[transparent]",
+  border: "none",
+  cursor: "pointer",
+  padding: "[4px]",
+  display: "flex",
+  alignItems: "center",
+  fontSize: "[18px]",
+  color: "[rgba(0, 0, 0, 0.6)]",
+});
+
+const editorContainerStyle = cva({
+  base: {
+    border: "[1px solid rgba(0, 0, 0, 0.1)]",
+    borderRadius: "[4px]",
+    overflow: "hidden",
+  },
+  variants: {
+    size: {
+      lambda: { height: "[340px]" },
+      kernel: { height: "[400px]" },
+    },
+    isReadOnly: {
+      true: {
+        filter: "[grayscale(20%) brightness(98%)]",
+        pointerEvents: "none",
+      },
+      false: {
+        pointerEvents: "auto",
+      },
+    },
+  },
+});
+
+const aiMenuItemStyle = css({
+  display: "flex",
+  alignItems: "center",
+  gap: "[6px]",
+});
+
+const aiIconStyle = css({
+  fontSize: "[16px]",
+});
+
+const sectionTitleStyle = css({
+  fontWeight: 500,
+  fontSize: "[13px]",
+});
+
+const resultsHeaderStyle = css({
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "space-between",
+  marginBottom: "[4px]",
+  marginTop: "[20px]",
+  height: "[30px]",
+});
+
+const noOutputTypesBoxStyle = css({
+  backgroundColor: "[rgba(0, 0, 0, 0.03)]",
+  border: "[1px solid rgba(0, 0, 0, 0.1)]",
+  borderRadius: "[4px]",
+  padding: "[12px]",
+  fontSize: "[12px]",
+  color: "[#666]",
+  lineHeight: "[1.5]",
+  marginTop: "[20px]",
+});
+
+const noOutputTitleStyle = css({
+  fontWeight: 500,
+  marginBottom: "[4px]",
+});
+
+const spacerStyle = css({
+  height: "[40px]",
+});
 
 interface TransitionPropertiesProps {
   transition: Transition;
@@ -56,6 +253,7 @@ export const TransitionProperties: React.FC<TransitionPropertiesProps> = ({
   onArcWeightUpdate,
 }) => {
   const isReadOnly = useIsReadOnly();
+  const globalMode = useEditorStore((state) => state.globalMode);
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -136,17 +334,10 @@ export const TransitionProperties: React.FC<TransitionPropertiesProps> = ({
   const { removeTransition } = useSDCPNContext();
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+    <div className={containerStyle}>
       <div>
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            marginBottom: 8,
-          }}
-        >
-          <div style={{ fontWeight: 600, fontSize: 16 }}>Transition</div>
+        <div className={headerContainerStyle}>
+          <div className={headerTitleStyle}>Transition</div>
           <Tooltip content="Delete">
             <button
               type="button"
@@ -160,23 +351,7 @@ export const TransitionProperties: React.FC<TransitionPropertiesProps> = ({
                   removeTransition(transition.id);
                 }
               }}
-              className={css({
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                width: "[24px]",
-                height: "[24px]",
-                padding: "spacing.0",
-                border: "none",
-                background: "[transparent]",
-                cursor: "pointer",
-                color: "core.gray.60",
-                borderRadius: "radius.4",
-                _hover: {
-                  color: "core.red.60",
-                  backgroundColor: "core.red.10",
-                },
-              })}
+              className={deleteButtonStyle}
             >
               <TbTrash size={16} />
             </button>
@@ -185,9 +360,7 @@ export const TransitionProperties: React.FC<TransitionPropertiesProps> = ({
       </div>
 
       <div>
-        <div style={{ fontWeight: 500, fontSize: 12, marginBottom: 4 }}>
-          Name
-        </div>
+        <div className={fieldLabelStyle}>Name</div>
         <input
           type="text"
           value={transition.name}
@@ -197,35 +370,18 @@ export const TransitionProperties: React.FC<TransitionPropertiesProps> = ({
             });
           }}
           disabled={isReadOnly}
-          style={{
-            fontSize: 14,
-            padding: "6px 8px",
-            border: "1px solid rgba(0, 0, 0, 0.1)",
-            borderRadius: 4,
-            width: "100%",
-            boxSizing: "border-box",
-            backgroundColor: isReadOnly ? "rgba(0, 0, 0, 0.05)" : "white",
-            cursor: isReadOnly ? "not-allowed" : "text",
-          }}
+          className={inputStyle({ isReadOnly })}
         />
       </div>
 
-      <div style={{ marginTop: 20 }}>
-        <div style={{ fontWeight: 500, fontSize: 12, marginBottom: 4 }}>
-          Input Arcs
-        </div>
+      <div className={sectionContainerStyle}>
+        <div className={fieldLabelStyle}>Input Arcs</div>
         {transition.inputArcs.length === 0 ? (
-          <div style={{ fontSize: 12, color: "#999" }}>
+          <div className={emptyArcMessageStyle}>
             Connect inputs to the transition's left side.
           </div>
         ) : (
-          <div
-            style={{
-              border: "1px solid rgba(0, 0, 0, 0.1)",
-              borderRadius: 6,
-              overflow: "hidden",
-            }}
-          >
+          <div className={arcListContainerStyle}>
             <DndContext
               sensors={isReadOnly ? [] : sensors}
               collisionDetection={closestCenter}
@@ -265,21 +421,13 @@ export const TransitionProperties: React.FC<TransitionPropertiesProps> = ({
       </div>
 
       <div>
-        <div style={{ fontWeight: 500, fontSize: 12, marginBottom: 4 }}>
-          Output Arcs
-        </div>
+        <div className={fieldLabelStyle}>Output Arcs</div>
         {transition.outputArcs.length === 0 ? (
-          <div style={{ fontSize: 12, color: "#999" }}>
+          <div className={emptyArcMessageStyle}>
             Connect outputs to the transition's right side.
           </div>
         ) : (
-          <div
-            style={{
-              border: "1px solid rgba(0, 0, 0, 0.1)",
-              borderRadius: 6,
-              overflow: "hidden",
-            }}
-          >
+          <div className={arcListContainerStyle}>
             <DndContext
               sensors={isReadOnly ? [] : sensors}
               collisionDetection={closestCenter}
@@ -318,17 +466,12 @@ export const TransitionProperties: React.FC<TransitionPropertiesProps> = ({
         )}
       </div>
 
-      <div style={{ marginTop: 20 }}>
-        <div style={{ fontWeight: 500, fontSize: 13, marginBottom: 8 }}>
+      <div className={sectionContainerStyle}>
+        <div className={sectionTitleStyle}>
           Firing time
           <InfoIconTooltip tooltip="Define the rate at or conditions under which this will transition will fire, optionally based on each set of input tokens' data (where input tokens have types)." />
         </div>
-        <div
-          style={{
-            opacity: isReadOnly ? 0.6 : 1,
-            pointerEvents: isReadOnly ? "none" : "auto",
-          }}
-        >
+        <div className={segmentGroupWrapperStyle({ isReadOnly })}>
           <SegmentGroup
             value={transition.lambdaType}
             options={[
@@ -347,16 +490,7 @@ export const TransitionProperties: React.FC<TransitionPropertiesProps> = ({
       </div>
 
       <div>
-        <div
-          style={{
-            fontSize: 12,
-            color: "#666",
-            backgroundColor: "rgba(0, 0, 0, 0.03)",
-            padding: 8,
-            borderRadius: 4,
-            lineHeight: 1.5,
-          }}
-        >
+        <div className={infoBoxStyle}>
           {transition.lambdaType === "predicate"
             ? "For a simple predicate firing check, define a boolean guard condition that must be satisfied. The transition will fire when the function returns true, enabling discrete control flow."
             : "For a stochastic firing rate, return a value that represents the average rate per second at which the transition will fire."}
@@ -364,90 +498,51 @@ export const TransitionProperties: React.FC<TransitionPropertiesProps> = ({
       </div>
 
       <div>
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            marginBottom: 4,
-            height: 30,
-          }}
-        >
-          <div
-            style={{
-              fontWeight: 500,
-              fontSize: 12,
-            }}
-          >
+        <div className={codeHeaderStyle}>
+          <div className={codeHeaderLabelStyle}>
             {transition.lambdaType === "predicate"
               ? "Predicate Firing Code"
               : "Stochastic Firing Rate Code"}
           </div>
-
-          <Menu
-            trigger={
-              <button
-                type="button"
-                style={{
-                  background: "transparent",
-                  border: "none",
-                  cursor: "pointer",
-                  padding: 4,
-                  display: "flex",
-                  alignItems: "center",
-                  fontSize: 18,
-                  color: "rgba(0, 0, 0, 0.6)",
-                }}
-              >
-                <TbDotsVertical />
-              </button>
-            }
-            items={[
-              {
-                id: "load-default",
-                label: "Load default template",
-                onClick: () => {
-                  updateTransition(transition.id, (existingTransition) => {
-                    existingTransition.lambdaCode = generateDefaultLambdaCode(
-                      existingTransition.lambdaType,
-                    );
-                  });
+          {globalMode === "edit" && (
+            <Menu
+              trigger={
+                <button type="button" className={menuButtonStyle}>
+                  <TbDotsVertical />
+                </button>
+              }
+              items={[
+                {
+                  id: "load-default",
+                  label: "Load default template",
+                  onClick: () => {
+                    updateTransition(transition.id, (existingTransition) => {
+                      existingTransition.lambdaCode = generateDefaultLambdaCode(
+                        existingTransition.lambdaType,
+                      );
+                    });
+                  },
                 },
-              },
-              {
-                id: "generate-ai",
-                label: (
-                  <Tooltip content={UI_MESSAGES.AI_FEATURE_COMING_SOON}>
-                    <div
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 6,
-                      }}
-                    >
-                      <TbSparkles style={{ fontSize: 16 }} />
-                      Generate with AI
-                    </div>
-                  </Tooltip>
-                ),
-                disabled: true,
-                onClick: () => {
-                  // TODO: Implement AI generation
+                {
+                  id: "generate-ai",
+                  label: (
+                    <Tooltip content={UI_MESSAGES.AI_FEATURE_COMING_SOON}>
+                      <div className={aiMenuItemStyle}>
+                        <TbSparkles className={aiIconStyle} />
+                        Generate with AI
+                      </div>
+                    </Tooltip>
+                  ),
+                  disabled: true,
+                  onClick: () => {
+                    // TODO: Implement AI generation
+                  },
                 },
-              },
-            ]}
-          />
+              ]}
+            />
+          )}
         </div>
-        <div
-          style={{
-            border: "1px solid rgba(0, 0, 0, 0.1)",
-            borderRadius: 4,
-            overflow: "hidden",
-            height: 340,
-            filter: isReadOnly ? "grayscale(20%) brightness(98%)" : "none",
-            pointerEvents: isReadOnly ? "none" : "auto",
-          }}
-        >
+        <div className={editorContainerStyle({ isReadOnly, size: "lambda" })}>
           <MonacoEditor
             key={`lambda-${transition.lambdaType}-${transition.inputArcs
               .map((a) => `${a.placeId}:${a.weight}`)
@@ -481,112 +576,86 @@ export const TransitionProperties: React.FC<TransitionPropertiesProps> = ({
       {/* Only show Transition Results if at least one output place has a type */}
       {hasOutputPlaceWithType ? (
         <div>
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-              marginBottom: 4,
-              marginTop: 20,
-              height: 30,
-            }}
-          >
-            <div style={{ fontWeight: 500, fontSize: 13 }}>
+          <div className={resultsHeaderStyle}>
+            <div className={sectionTitleStyle}>
               Transition Results
               <InfoIconTooltip tooltip="This function determines the data for output tokens, optionally based on the input token data and any global parameters defined." />
             </div>
-            <Menu
-              trigger={
-                <button
-                  type="button"
-                  style={{
-                    background: "transparent",
-                    border: "none",
-                    cursor: "pointer",
-                    padding: 4,
-                    display: "flex",
-                    alignItems: "center",
-                    fontSize: 18,
-                    color: "rgba(0, 0, 0, 0.6)",
-                  }}
-                >
-                  <TbDotsVertical />
-                </button>
-              }
-              items={[
-                {
-                  id: "load-default",
-                  label: "Load default template",
-                  onClick: () => {
-                    // Build input and output arc information for code generation
-                    const inputs = transition.inputArcs
-                      .map((arc) => {
-                        const place = places.find((p) => p.id === arc.placeId);
-                        if (!place || !place.colorId) return null;
-                        const type = types.find((t) => t.id === place.colorId);
-                        if (!type) return null;
-                        return {
-                          placeName: place.name,
-                          type,
-                          weight: arc.weight,
-                        };
-                      })
-                      .filter((i) => i !== null);
+            {globalMode === "edit" && (
+              <Menu
+                trigger={
+                  <button type="button" className={menuButtonStyle}>
+                    <TbDotsVertical />
+                  </button>
+                }
+                items={[
+                  {
+                    id: "load-default",
+                    label: "Load default template",
+                    onClick: () => {
+                      // Build input and output arc information for code generation
+                      const inputs = transition.inputArcs
+                        .map((arc) => {
+                          const place = places.find(
+                            (p) => p.id === arc.placeId,
+                          );
+                          if (!place || !place.colorId) return null;
+                          const type = types.find(
+                            (t) => t.id === place.colorId,
+                          );
+                          if (!type) return null;
+                          return {
+                            placeName: place.name,
+                            type,
+                            weight: arc.weight,
+                          };
+                        })
+                        .filter((i) => i !== null);
 
-                    const outputs = transition.outputArcs
-                      .map((arc) => {
-                        const place = places.find((p) => p.id === arc.placeId);
-                        if (!place || !place.colorId) return null;
-                        const type = types.find((t) => t.id === place.colorId);
-                        if (!type) return null;
-                        return {
-                          placeName: place.name,
-                          type,
-                          weight: arc.weight,
-                        };
-                      })
-                      .filter((o) => o !== null);
+                      const outputs = transition.outputArcs
+                        .map((arc) => {
+                          const place = places.find(
+                            (p) => p.id === arc.placeId,
+                          );
+                          if (!place || !place.colorId) return null;
+                          const type = types.find(
+                            (t) => t.id === place.colorId,
+                          );
+                          if (!type) return null;
+                          return {
+                            placeName: place.name,
+                            type,
+                            weight: arc.weight,
+                          };
+                        })
+                        .filter((o) => o !== null);
 
-                    updateTransition(transition.id, (existingTransition) => {
-                      existingTransition.transitionKernelCode =
-                        generateDefaultTransitionKernelCode(inputs, outputs);
-                    });
+                      updateTransition(transition.id, (existingTransition) => {
+                        existingTransition.transitionKernelCode =
+                          generateDefaultTransitionKernelCode(inputs, outputs);
+                      });
+                    },
                   },
-                },
-                {
-                  id: "generate-ai",
-                  label: (
-                    <Tooltip content={UI_MESSAGES.AI_FEATURE_COMING_SOON}>
-                      <div
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          gap: 6,
-                        }}
-                      >
-                        <TbSparkles style={{ fontSize: 16 }} />
-                        Generate with AI
-                      </div>
-                    </Tooltip>
-                  ),
-                  disabled: true,
-                  onClick: () => {
-                    // TODO: Implement AI generation
+                  {
+                    id: "generate-ai",
+                    label: (
+                      <Tooltip content={UI_MESSAGES.AI_FEATURE_COMING_SOON}>
+                        <div className={aiMenuItemStyle}>
+                          <TbSparkles className={aiIconStyle} />
+                          Generate with AI
+                        </div>
+                      </Tooltip>
+                    ),
+                    disabled: true,
+                    onClick: () => {
+                      // TODO: Implement AI generation
+                    },
                   },
-                },
-              ]}
-            />
+                ]}
+              />
+            )}
           </div>
-          <div
-            style={{
-              border: "1px solid rgba(0, 0, 0, 0.1)",
-              borderRadius: 4,
-              overflow: "hidden",
-              height: 400,
-              filter: isReadOnly ? "grayscale(20%) brightness(98%)" : "none",
-              pointerEvents: isReadOnly ? "none" : "auto",
-            }}
-          >
+          <div className={editorContainerStyle({ isReadOnly, size: "kernel" })}>
             <MonacoEditor
               key={`kernel-${transition.inputArcs
                 .map((a) => `${a.placeId}:${a.weight}`)
@@ -619,21 +688,8 @@ export const TransitionProperties: React.FC<TransitionPropertiesProps> = ({
           </div>
         </div>
       ) : (
-        <div
-          style={{
-            backgroundColor: "rgba(0, 0, 0, 0.03)",
-            border: "1px solid rgba(0, 0, 0, 0.1)",
-            borderRadius: 4,
-            padding: 12,
-            fontSize: 12,
-            color: "#666",
-            lineHeight: 1.5,
-            marginTop: 20,
-          }}
-        >
-          <div style={{ fontWeight: 500, marginBottom: 4 }}>
-            Transition Results
-          </div>
+        <div className={noOutputTypesBoxStyle}>
+          <div className={noOutputTitleStyle}>Transition Results</div>
           <div>
             The Transition Results section is not available because none of the
             output places have a type defined. To enable this feature, assign a
@@ -642,7 +698,7 @@ export const TransitionProperties: React.FC<TransitionPropertiesProps> = ({
         </div>
       )}
 
-      <div style={{ height: 40 }} />
+      <div className={spacerStyle} />
     </div>
   );
 };

@@ -1,3 +1,5 @@
+import { css } from "@hashintel/ds-helpers/css";
+
 import { Box } from "../../components/box";
 import { Stack } from "../../components/stack";
 import { productionMachines } from "../../examples/broken-machines";
@@ -16,6 +18,29 @@ import { ModeSelector } from "./components/mode-selector";
 import { PropertiesPanel } from "./components/PropertiesPanel/properties-panel";
 import { exportSDCPN } from "./lib/export-sdcpn";
 import { importSDCPN } from "./lib/import-sdcpn";
+
+const fullHeightStyle = css({
+  height: "[100%]",
+});
+
+const rowContainerStyle = css({
+  height: "[100%]",
+  userSelect: "none",
+});
+
+const canvasContainerStyle = css({
+  width: "[100%]",
+  position: "relative",
+  flexGrow: 1,
+});
+
+const modeSelectorPositionStyle = css({
+  position: "absolute",
+  top: "[24px]",
+  left: "[50%]",
+  transform: "translateX(-50%)",
+  zIndex: 1000,
+});
 
 /**
  * EditorView is responsible for the overall editor UI layout and controls.
@@ -95,25 +120,11 @@ export const EditorView = ({
   }
 
   return (
-    <Stack style={{ height: "100%" }} className="petrinaut-root">
-      <Stack direction="row" style={{ height: "100%", userSelect: "none" }}>
-        <Box
-          style={{
-            width: "100%",
-            position: "relative",
-            flexGrow: 1,
-          }}
-        >
+    <Stack className={`${fullHeightStyle} petrinaut-root`}>
+      <Stack direction="row" className={rowContainerStyle}>
+        <Box className={canvasContainerStyle}>
           {/* Floating Mode Selector - Top Center */}
-          <div
-            style={{
-              position: "absolute",
-              top: "24px",
-              left: "50%",
-              transform: "translateX(-50%)",
-              zIndex: 1000,
-            }}
-          >
+          <div className={modeSelectorPositionStyle}>
             <ModeSelector mode={mode} onChange={handleModeChange} />
           </div>
 

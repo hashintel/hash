@@ -1,10 +1,232 @@
-import { css } from "@hashintel/ds-helpers/css";
+import { css, cva } from "@hashintel/ds-helpers/css";
 import { useState } from "react";
 import { v4 as uuidv4 } from "uuid";
 
 import type { Color } from "../../../../core/types/sdcpn";
 import { useIsReadOnly } from "../../../../state/use-is-read-only";
 import { ColorSelect } from "./color-select";
+
+const containerStyle = css({
+  display: "flex",
+  flexDirection: "column",
+  gap: "[12px]",
+});
+
+const headerTitleStyle = css({
+  fontWeight: 600,
+  fontSize: "[16px]",
+  marginBottom: "[8px]",
+});
+
+const fieldLabelStyle = css({
+  fontWeight: 500,
+  fontSize: "[12px]",
+  marginBottom: "[4px]",
+});
+
+const inputStyle = cva({
+  base: {
+    fontSize: "[14px]",
+    padding: "[6px 8px]",
+    border: "[1px solid rgba(0, 0, 0, 0.1)]",
+    borderRadius: "[4px]",
+    width: "[100%]",
+    boxSizing: "border-box",
+  },
+  variants: {
+    isDisabled: {
+      true: {
+        backgroundColor: "[rgba(0, 0, 0, 0.05)]",
+        cursor: "not-allowed",
+      },
+      false: {
+        backgroundColor: "[white]",
+        cursor: "text",
+      },
+    },
+  },
+});
+
+const dimensionsHeaderStyle = css({
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "space-between",
+  marginBottom: "[8px]",
+});
+
+const dimensionsLabelStyle = css({
+  fontWeight: 500,
+  fontSize: "[12px]",
+});
+
+const dimensionsHintStyle = css({
+  marginLeft: "[6px]",
+  fontSize: "[11px]",
+  color: "[#666]",
+  fontWeight: 400,
+});
+
+const addDimensionButtonStyle = cva({
+  base: {
+    fontSize: "[16px]",
+    padding: "[2px 8px]",
+    borderRadius: "[4px]",
+    border: "[1px solid rgba(0, 0, 0, 0.1)]",
+    fontWeight: 600,
+    cursor: "pointer",
+  },
+  variants: {
+    isDisabled: {
+      true: {
+        backgroundColor: "[rgba(0, 0, 0, 0.05)]",
+        color: "[#999]",
+        cursor: "not-allowed",
+      },
+      false: {
+        backgroundColor: "[rgba(59, 130, 246, 0.1)]",
+        color: "[#3b82f6]",
+        cursor: "pointer",
+      },
+    },
+  },
+});
+
+const emptyDimensionsStyle = css({
+  fontSize: "[12px]",
+  color: "[#999]",
+  fontStyle: "italic",
+  padding: "[8px]",
+  backgroundColor: "[rgba(0, 0, 0, 0.02)]",
+  borderRadius: "[4px]",
+  textAlign: "center",
+});
+
+const dimensionsListStyle = css({
+  display: "flex",
+  flexDirection: "column",
+  gap: "[6px]",
+});
+
+const dimensionRowStyle = cva({
+  base: {
+    display: "flex",
+    alignItems: "center",
+    gap: "[6px]",
+    padding: "[6px]",
+    borderRadius: "[3px]",
+    transition: "[all 0.15s ease]",
+  },
+  variants: {
+    isDragged: {
+      true: {
+        backgroundColor: "[rgba(59, 130, 246, 0.1)]",
+        border: "[1px solid rgba(0, 0, 0, 0.1)]",
+      },
+      false: {
+        backgroundColor: "[rgba(0, 0, 0, 0.03)]",
+        border: "[1px solid rgba(0, 0, 0, 0.1)]",
+      },
+    },
+    isDragOver: {
+      true: {
+        backgroundColor: "[rgba(59, 130, 246, 0.05)]",
+        border: "[1px dashed #3b82f6]",
+      },
+      false: {},
+    },
+  },
+});
+
+const dragHandleStyle = cva({
+  base: {
+    display: "flex",
+    flexDirection: "column",
+    gap: "[1.5px]",
+    opacity: "[0.4]",
+    flexShrink: 0,
+  },
+  variants: {
+    isDisabled: {
+      true: {
+        cursor: "default",
+      },
+      false: {
+        cursor: "grab",
+      },
+    },
+  },
+});
+
+const dragHandleLineStyle = css({
+  width: "[10px]",
+  height: "[1.5px]",
+  backgroundColor: "[#666]",
+  borderRadius: "[1px]",
+});
+
+const indexChipStyle = css({
+  fontSize: "[11px]",
+  fontWeight: 600,
+  color: "[#666]",
+  backgroundColor: "[rgba(0, 0, 0, 0.08)]",
+  borderRadius: "[3px]",
+  width: "[24px]",
+  height: "[24px]",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  flexShrink: 0,
+});
+
+const dimensionNameInputStyle = cva({
+  base: {
+    fontSize: "[13px]",
+    padding: "[5px 8px]",
+    border: "[1px solid rgba(0, 0, 0, 0.15)]",
+    borderRadius: "[3px]",
+    flex: "1",
+  },
+  variants: {
+    isDisabled: {
+      true: {
+        backgroundColor: "[rgba(0, 0, 0, 0.02)]",
+        cursor: "not-allowed",
+      },
+      false: {
+        backgroundColor: "[white]",
+        cursor: "text",
+      },
+    },
+  },
+});
+
+const deleteDimensionButtonStyle = css({
+  fontSize: "[16px]",
+  width: "[28px]",
+  height: "[28px]",
+  borderRadius: "[3px]",
+  border: "[1px solid rgba(239, 68, 68, 0.2)]",
+  backgroundColor: "[rgba(239, 68, 68, 0.08)]",
+  color: "[#ef4444]",
+  cursor: "pointer",
+  fontWeight: 600,
+  lineHeight: "[1]",
+  transition: "[all 0.15s ease]",
+  flexShrink: 0,
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  _hover: {
+    backgroundColor: "[rgba(239, 68, 68, 0.15)]",
+  },
+  _disabled: {
+    backgroundColor: "[rgba(0, 0, 0, 0.02)]",
+    color: "[#ccc]",
+    cursor: "not-allowed",
+  },
+});
+
+// --- Helpers ---
 
 /**
  * Slugify a string to make it a valid JavaScript identifier
@@ -173,285 +395,130 @@ export const TypeProperties: React.FC<TypePropertiesProps> = ({
   };
 
   return (
-    <>
-      <style>
-        {`
-          .element-delete-button:not(:disabled):hover {
-            background-color: rgba(239, 68, 68, 0.15) !important;
-          }
-        `}
-      </style>
-      <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-        <div>
-          <div style={{ fontWeight: 600, fontSize: 16, marginBottom: 8 }}>
-            Type
-          </div>
-        </div>
-
-        <div>
-          <div style={{ fontWeight: 500, fontSize: 12, marginBottom: 4 }}>
-            Name
-          </div>
-          <input
-            type="text"
-            value={type.name}
-            onChange={(event) => {
-              updateType(type.id, (existingType) => {
-                existingType.name = event.target.value;
-              });
-            }}
-            disabled={isDisabled}
-            style={{
-              fontSize: 14,
-              padding: "6px 8px",
-              border: "1px solid rgba(0, 0, 0, 0.1)",
-              borderRadius: 4,
-              width: "100%",
-              boxSizing: "border-box",
-              backgroundColor: isDisabled ? "rgba(0, 0, 0, 0.05)" : "white",
-              cursor: isDisabled ? "not-allowed" : "text",
-            }}
-          />
-        </div>
-
-        <div>
-          <div style={{ fontWeight: 500, fontSize: 12, marginBottom: 4 }}>
-            Color
-          </div>
-          <ColorSelect
-            value={type.displayColor}
-            onChange={(color) => {
-              updateType(type.id, (existingType) => {
-                existingType.displayColor = color;
-              });
-            }}
-            disabled={isDisabled}
-          />
-        </div>
-
-        {/* Dimensions Section - Editable with drag-to-reorder */}
-        <div>
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-              marginBottom: 8,
-            }}
-          >
-            <div style={{ fontWeight: 500, fontSize: 12 }}>
-              Dimensions
-              <span
-                style={{
-                  marginLeft: 6,
-                  fontSize: 11,
-                  color: "#666",
-                  fontWeight: 400,
-                }}
-              >
-                (order matters)
-              </span>
-            </div>
-            <button
-              type="button"
-              onClick={handleAddElement}
-              disabled={isDisabled}
-              style={{
-                fontSize: 16,
-                padding: "2px 8px",
-                borderRadius: 4,
-                border: "1px solid rgba(0, 0, 0, 0.1)",
-                backgroundColor: isDisabled
-                  ? "rgba(0, 0, 0, 0.05)"
-                  : "rgba(59, 130, 246, 0.1)",
-                color: isDisabled ? "#999" : "#3b82f6",
-                cursor: isDisabled ? "not-allowed" : "pointer",
-                fontWeight: 600,
-              }}
-              aria-label="Add dimension"
-            >
-              +
-            </button>
-          </div>
-
-          {type.elements.length === 0 ? (
-            <div
-              style={{
-                fontSize: 12,
-                color: "#999",
-                fontStyle: "italic",
-                padding: 8,
-                backgroundColor: "rgba(0, 0, 0, 0.02)",
-                borderRadius: 4,
-                textAlign: "center",
-              }}
-            >
-              No dimensions defined. Click + to add.
-            </div>
-          ) : (
-            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-              {type.elements.map((element, index) => (
-                <div
-                  key={element.elementId}
-                  draggable={!isDisabled}
-                  onDragStart={() => {
-                    handleDragStart(index);
-                  }}
-                  onDragOver={(event) => {
-                    handleDragOver(event, index);
-                  }}
-                  onDrop={(event) => {
-                    handleDrop(event, index);
-                  }}
-                  onDragEnd={handleDragEnd}
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 6,
-                    padding: 6,
-                    backgroundColor:
-                      draggedIndex === index
-                        ? "rgba(59, 130, 246, 0.1)"
-                        : dragOverIndex === index
-                          ? "rgba(59, 130, 246, 0.05)"
-                          : "rgba(0, 0, 0, 0.03)",
-                    borderRadius: 3,
-                    border:
-                      dragOverIndex === index
-                        ? "1px dashed #3b82f6"
-                        : "1px solid rgba(0, 0, 0, 0.1)",
-                    transition: "all 0.15s ease",
-                  }}
-                >
-                  {/* Drag handle */}
-                  <div
-                    style={{
-                      display: "flex",
-                      flexDirection: "column",
-                      gap: 1.5,
-                      cursor: isDisabled ? "default" : "grab",
-                      opacity: 0.4,
-                      flexShrink: 0,
-                    }}
-                  >
-                    <div
-                      style={{
-                        width: 10,
-                        height: 1.5,
-                        backgroundColor: "#666",
-                        borderRadius: 1,
-                      }}
-                    />
-                    <div
-                      style={{
-                        width: 10,
-                        height: 1.5,
-                        backgroundColor: "#666",
-                        borderRadius: 1,
-                      }}
-                    />
-                    <div
-                      style={{
-                        width: 10,
-                        height: 1.5,
-                        backgroundColor: "#666",
-                        borderRadius: 1,
-                      }}
-                    />
-                  </div>
-
-                  {/* Index chip */}
-                  <div
-                    style={{
-                      fontSize: 11,
-                      fontWeight: 600,
-                      color: "#666",
-                      backgroundColor: "rgba(0, 0, 0, 0.08)",
-                      borderRadius: 3,
-                      width: 24,
-                      height: 24,
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      flexShrink: 0,
-                    }}
-                  >
-                    {index}
-                  </div>
-
-                  {/* Name input */}
-                  <input
-                    type="text"
-                    value={element.name}
-                    onChange={(event) => {
-                      handleUpdateElementName(
-                        element.elementId,
-                        event.target.value,
-                      );
-                    }}
-                    onBlur={(event) => {
-                      handleBlurElementName(
-                        element.elementId,
-                        event.target.value,
-                      );
-                    }}
-                    disabled={isDisabled}
-                    placeholder="dimension_name"
-                    style={{
-                      fontSize: 13,
-                      padding: "5px 8px",
-                      border: "1px solid rgba(0, 0, 0, 0.15)",
-                      borderRadius: 3,
-                      flex: 1,
-                      backgroundColor: isDisabled
-                        ? "rgba(0, 0, 0, 0.02)"
-                        : "white",
-                      cursor: isDisabled ? "not-allowed" : "text",
-                    }}
-                  />
-
-                  {/* Delete button */}
-                  <button
-                    type="button"
-                    onClick={() => {
-                      handleDeleteElement(element.elementId, element.name);
-                    }}
-                    disabled={isDisabled || type.elements.length === 1}
-                    className={css({
-                      fontSize: "[16px]",
-                      width: "[28px]",
-                      height: "[28px]",
-                      borderRadius: "[3px]",
-                      border: "1px solid [rgba(239, 68, 68, 0.2)]",
-                      backgroundColor: "[rgba(239, 68, 68, 0.08)]",
-                      color: "[#ef4444]",
-                      cursor: "pointer",
-                      fontWeight: "[600]",
-                      lineHeight: "[1]",
-                      transition: "[all 0.15s ease]",
-                      flexShrink: "[0]",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      _hover: {
-                        backgroundColor: "[rgba(239, 68, 68, 0.15)]",
-                      },
-                      _disabled: {
-                        backgroundColor: "[rgba(0, 0, 0, 0.02)]",
-                        color: "[#ccc]",
-                        cursor: "not-allowed",
-                      },
-                    })}
-                    aria-label={`Delete dimension ${element.name}`}
-                  >
-                    ×
-                  </button>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
+    <div className={containerStyle}>
+      <div>
+        <div className={headerTitleStyle}>Type</div>
       </div>
-    </>
+
+      <div>
+        <div className={fieldLabelStyle}>Name</div>
+        <input
+          type="text"
+          value={type.name}
+          onChange={(event) => {
+            updateType(type.id, (existingType) => {
+              existingType.name = event.target.value;
+            });
+          }}
+          disabled={isDisabled}
+          className={inputStyle({ isDisabled })}
+        />
+      </div>
+
+      <div>
+        <div className={fieldLabelStyle}>Color</div>
+        <ColorSelect
+          value={type.displayColor}
+          onChange={(color) => {
+            updateType(type.id, (existingType) => {
+              existingType.displayColor = color;
+            });
+          }}
+          disabled={isDisabled}
+        />
+      </div>
+
+      {/* Dimensions Section - Editable with drag-to-reorder */}
+      <div>
+        <div className={dimensionsHeaderStyle}>
+          <div className={dimensionsLabelStyle}>
+            Dimensions
+            <span className={dimensionsHintStyle}>(order matters)</span>
+          </div>
+          <button
+            type="button"
+            onClick={handleAddElement}
+            disabled={isDisabled}
+            className={addDimensionButtonStyle({ isDisabled })}
+            aria-label="Add dimension"
+          >
+            +
+          </button>
+        </div>
+
+        {type.elements.length === 0 ? (
+          <div className={emptyDimensionsStyle}>
+            No dimensions defined. Click + to add.
+          </div>
+        ) : (
+          <div className={dimensionsListStyle}>
+            {type.elements.map((element, index) => (
+              <div
+                key={element.elementId}
+                draggable={!isDisabled}
+                onDragStart={() => {
+                  handleDragStart(index);
+                }}
+                onDragOver={(event) => {
+                  handleDragOver(event, index);
+                }}
+                onDrop={(event) => {
+                  handleDrop(event, index);
+                }}
+                onDragEnd={handleDragEnd}
+                className={dimensionRowStyle({
+                  isDragged: draggedIndex === index,
+                  isDragOver: dragOverIndex === index && draggedIndex !== index,
+                })}
+              >
+                {/* Drag handle */}
+                <div className={dragHandleStyle({ isDisabled })}>
+                  <div className={dragHandleLineStyle} />
+                  <div className={dragHandleLineStyle} />
+                  <div className={dragHandleLineStyle} />
+                </div>
+
+                {/* Index chip */}
+                <div className={indexChipStyle}>{index}</div>
+
+                {/* Name input */}
+                <input
+                  type="text"
+                  value={element.name}
+                  onChange={(event) => {
+                    handleUpdateElementName(
+                      element.elementId,
+                      event.target.value,
+                    );
+                  }}
+                  onBlur={(event) => {
+                    handleBlurElementName(
+                      element.elementId,
+                      event.target.value,
+                    );
+                  }}
+                  disabled={isDisabled}
+                  placeholder="dimension_name"
+                  className={dimensionNameInputStyle({ isDisabled })}
+                />
+
+                {/* Delete button */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    handleDeleteElement(element.elementId, element.name);
+                  }}
+                  disabled={isDisabled || type.elements.length === 1}
+                  className={deleteDimensionButtonStyle}
+                  aria-label={`Delete dimension ${element.name}`}
+                >
+                  ×
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
   );
 };
