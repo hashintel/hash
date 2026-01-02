@@ -5,41 +5,79 @@
   "big_func",
   [
     "fn",
-    {"#tuple": []},
-    {"#struct": {}},
+    { "#tuple": [] },
+    { "#struct": {} },
     "Boolean",
     [
       "&&",
-      ["&&", ["&&", ["&&", ["&&", ["&&", ["&&", ["&&",
-        ["&&", ["&&", ["&&", ["&&", ["&&", ["&&", ["&&", ["&&",
-          ["input", "v1", "Boolean"],
-          ["input", "v2", "Boolean"]],
-        ["input", "v3", "Boolean"]],
-      ["input", "v4", "Boolean"]],
-    ["input", "v5", "Boolean"]],
-  ["input", "v6", "Boolean"]],
-["input", "v7", "Boolean"]],
-["input", "v8", "Boolean"]],
-["input", "v9", "Boolean"]],
-["input", "v10", "Boolean"]],
-["input", "v11", "Boolean"]],
-["input", "v12", "Boolean"]],
-["input", "v13", "Boolean"]],
-["input", "v14", "Boolean"]],
-["input", "v15", "Boolean"]],
-["input", "v16", "Boolean"]],
-["input", "v17", "Boolean"]]
-    ],
+      [
+        "&&",
+        [
+          "&&",
+          [
+            "&&",
+            [
+              "&&",
+              [
+                "&&",
+                [
+                  "&&",
+                  [
+                    "&&",
+                    [
+                      "&&",
+                      [
+                        "&&",
+                        [
+                          "&&",
+                          [
+                            "&&",
+                            [
+                              "&&",
+                              [
+                                "&&",
+                                [
+                                  "&&",
+                                  [
+                                    "&&",
+                                    ["input", "v1", "Boolean"],
+                                    ["input", "v2", "Boolean"]
+                                  ],
+                                  ["input", "v3", "Boolean"]
+                                ],
+                                ["input", "v4", "Boolean"]
+                              ],
+                              ["input", "v5", "Boolean"]
+                            ],
+                            ["input", "v6", "Boolean"]
+                          ],
+                          ["input", "v7", "Boolean"]
+                        ],
+                        ["input", "v8", "Boolean"]
+                      ],
+                      ["input", "v9", "Boolean"]
+                    ],
+                    ["input", "v10", "Boolean"]
+                  ],
+                  ["input", "v11", "Boolean"]
+                ],
+                ["input", "v12", "Boolean"]
+              ],
+              ["input", "v13", "Boolean"]
+            ],
+            ["input", "v14", "Boolean"]
+          ],
+          ["input", "v15", "Boolean"]
+        ],
+        ["input", "v16", "Boolean"]
+      ],
+      ["input", "v17", "Boolean"]
+    ]
+  ],
   [
     "let",
     "caller",
-    [
-      "fn",
-      {"#tuple": []},
-      {"#struct": {}},
-      "Boolean",
-      ["big_func"]
-    ],
+    ["fn", { "#tuple": [] }, { "#struct": {} }, "Boolean", ["big_func"]],
     ["caller"]
   ]
 ]

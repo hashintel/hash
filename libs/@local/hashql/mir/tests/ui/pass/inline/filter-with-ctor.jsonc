@@ -10,8 +10,8 @@
     ],
     [
       "fn",
-      {"#tuple": []},
-      {"#struct": {"vertex": "_"}},
+      { "#tuple": [] },
+      { "#struct": { "vertex": "_" } },
       "_",
       [
         "==",
@@ -20,7 +20,7 @@
           "::graph::types::knowledge::entity::EntityUuid",
           [
             "::core::uuid::Uuid",
-            {"#literal": "e2851dbb-7376-4959-9bca-f72cafc4448f"}
+            { "#literal": "e2851dbb-7376-4959-9bca-f72cafc4448f" }
           ]
         ]
       ]

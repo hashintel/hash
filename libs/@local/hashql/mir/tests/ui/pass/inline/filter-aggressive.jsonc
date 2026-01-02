@@ -10,10 +10,10 @@
     ],
     [
       "fn",
-      {"#tuple": []},
-      {"#struct": {"vertex": "_"}},
+      { "#tuple": [] },
+      { "#struct": { "vertex": "_" } },
       "_",
-      ["==", "vertex.link_data", {"#literal": null}]
+      ["==", "vertex.link_data", { "#literal": null }]
     ]
   ]
 ]
