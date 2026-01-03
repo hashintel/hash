@@ -1,7 +1,7 @@
 //! Pre-inlining optimization pass.
 //!
-//! This module contains the [`PreInline`] pass, which runs a fixpoint loop of local and global
-//! transformations to optimize MIR bodies before inlining occurs.
+//! This module contains the [`PreInline`] pass, a thin wrapper around [`Canonicalization`] that
+//! runs with settings tuned for pre-inlining optimization.
 
 use core::alloc::Allocator;
 
@@ -17,29 +17,14 @@ use crate::{
 
 /// Pre-inlining optimization driver.
 ///
-/// This pass orchestrates a sequence of local and global transformations in a fixpoint loop,
-/// preparing MIR bodies for inlining. By running these optimizations before inlining, we ensure
-/// that:
+/// A thin wrapper around [`Canonicalization`] configured for pre-inlining optimization. By running
+/// canonicalization before inlining, we ensure that:
 ///
 /// - Inlined code is already simplified, reducing work after inlining
 /// - Call sites see optimized callees, enabling better inlining decisions
 /// - The overall MIR size is reduced before the potential code explosion from inlining
 ///
-/// # Pass Ordering
-///
-/// The pass ordering is carefully chosen so each pass feeds the next with new opportunities:
-///
-/// 1. **Administrative reduction** - Removes structural clutter and normalizes shape
-/// 2. **Instruction simplification** - Constant folding and algebraic simplification
-/// 3. **Value propagation** (FS/CP alternating) - Propagates values through the code
-/// 4. **Dead store elimination** - Removes stores made dead by propagation
-/// 5. **CFG simplification** - Cleans up control flow after local changes
-///
-/// # Implementation Notes
-///
-/// This pass manages its own per-body change tracking and does not populate the caller-provided
-/// [`GlobalTransformState`]. Callers receive a combined [`Changed`] result indicating whether any
-/// body was modified.
+/// See [`Canonicalization`] for details on the pass ordering and implementation.
 pub struct PreInline<A: Allocator> {
     canonicalization: Canonicalization<A>,
 }
@@ -52,7 +37,7 @@ impl<A: BumpAllocator> PreInline<A> {
     pub const fn new_in(alloc: A) -> Self {
         Self {
             canonicalization: Canonicalization::new_in(
-                CanonicalizationConfig { max_iterations: 16 },
+                CanonicalizationConfig { max_iterations: 8 },
                 alloc,
             ),
         }

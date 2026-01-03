@@ -111,15 +111,6 @@ impl Changed {
         }
     }
 
-    const fn from_u8(value: u8) -> Self {
-        match value {
-            0 => Self::No,
-            1 => Self::Unknown,
-            3 => Self::Yes,
-            _ => unreachable!(),
-        }
-    }
-
     /// Convert from a `u8` value.
     ///
     /// # Safety
