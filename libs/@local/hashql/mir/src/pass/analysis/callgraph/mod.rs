@@ -216,7 +216,8 @@ impl<A: Allocator> CallGraph<'_, A> {
 
         self.inner
             .incoming_edges(target)
-            .all(|edge| matches!(edge.data, CallKind::Apply(_)) && edge.source() == caller)
+            .filter(|edge| matches!(edge.data, CallKind::Apply(_)))
+            .all(|edge| edge.source() == caller)
     }
 
     #[inline]
@@ -224,17 +225,17 @@ impl<A: Allocator> CallGraph<'_, A> {
         // Same as is_single_caller, but makes sure that there is exactly one edge
         let callee = NodeId::new(callee.as_usize());
 
-        let mut incoming = self.inner.incoming_edges(callee);
+        let mut incoming = self
+            .inner
+            .incoming_edges(callee)
+            .filter(|edge| matches!(edge.data, CallKind::Apply(_)));
         let edge = incoming.next()?;
 
         if incoming.next().is_some() {
             return None;
         }
 
-        match edge.data {
-            CallKind::Apply(_) => Some(DefId::new(edge.source().as_u32())),
-            CallKind::Filter(_) | CallKind::Opaque => None,
-        }
+        Some(DefId::new(edge.source().as_u32()))
     }
 }
 
