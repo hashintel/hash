@@ -69,11 +69,9 @@ fn {closure#4}(%0: ()) -> Boolean {
 
 thunk get_flag:0() -> () -> Boolean {
     let %0: () -> Boolean
-    let %1: ()
 
     bb0(): {
-        %1 = ()
-        %0 = closure(({closure#4} as FnPtr), %1)
+        %0 = closure(({closure#4} as FnPtr), ())
 
         return %0
     }

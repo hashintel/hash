@@ -64,10 +64,6 @@ fn assert_inst_simplify_pass<'heap>(
     assert_snapshot!(name, value);
 }
 
-// =============================================================================
-// Constant Folding (Bitwise on integers, Unary - not in source language)
-// =============================================================================
-
 /// Tests constant folding for bitwise AND on integers.
 #[test]
 fn const_fold_bit_and() {
@@ -180,10 +176,6 @@ fn const_fold_unary_neg() {
     );
 }
 
-// =============================================================================
-// Bitwise Identity on Integers (x | 0 => x - not in source language)
-// =============================================================================
-
 /// Tests identity simplification for bitwise OR with zero.
 #[test]
 fn identity_bit_or_zero() {
@@ -211,10 +203,6 @@ fn identity_bit_or_zero() {
         },
     );
 }
-
-// =============================================================================
-// Identical Operand Patterns (BitAnd/BitOr on integers - not in source)
-// =============================================================================
 
 /// Tests idempotent simplification for bitwise AND with identical operands.
 #[test]
@@ -271,10 +259,6 @@ fn identical_operand_bit_or() {
         },
     );
 }
-
-// =============================================================================
-// Block Parameter Propagation (requires CFG control)
-// =============================================================================
 
 /// Tests constant propagation through block params with single predecessor.
 #[test]
@@ -380,10 +364,6 @@ fn block_param_predecessors_disagree() {
         },
     );
 }
-
-// =============================================================================
-// Idempotent to Constant Forwarding (requires bitwise op)
-// =============================================================================
 
 /// Tests that idempotent simplification propagates constants through the result.
 #[test]

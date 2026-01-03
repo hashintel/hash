@@ -72,11 +72,9 @@ fn {closure#5}(%0: ()) -> Boolean {
 
 thunk big_func:0() -> () -> Boolean {
     let %0: () -> Boolean
-    let %1: ()
 
     bb0(): {
-        %1 = ()
-        %0 = closure(({closure#5} as FnPtr), %1)
+        %0 = closure(({closure#5} as FnPtr), ())
 
         return %0
     }
@@ -84,11 +82,9 @@ thunk big_func:0() -> () -> Boolean {
 
 fn {closure#7}(%0: ()) -> Boolean {
     let %1: Boolean
-    let %2: ()
 
     bb0(): {
-        %2 = ()
-        %1 = apply ({closure#5} as FnPtr) %2
+        %1 = apply ({closure#5} as FnPtr) ()
 
         return %1
     }
@@ -96,11 +92,9 @@ fn {closure#7}(%0: ()) -> Boolean {
 
 thunk caller:0() -> () -> Boolean {
     let %0: () -> Boolean
-    let %1: ()
 
     bb0(): {
-        %1 = ()
-        %0 = closure(({closure#7} as FnPtr), %1)
+        %0 = closure(({closure#7} as FnPtr), ())
 
         return %0
     }
@@ -108,11 +102,9 @@ thunk caller:0() -> () -> Boolean {
 
 *thunk {thunk#4}() -> Boolean {
     let %0: Boolean
-    let %1: ()
 
     bb0(): {
-        %1 = ()
-        %0 = apply ({closure#5} as FnPtr) %1
+        %0 = apply ({closure#5} as FnPtr) ()
 
         return %0
     }
@@ -132,11 +124,9 @@ fn {closure#5}(%0: ()) -> Boolean {
 
 thunk big_func:0() -> () -> Boolean {
     let %0: () -> Boolean
-    let %1: ()
 
     bb0(): {
-        %1 = ()
-        %0 = closure(({closure#5} as FnPtr), %1)
+        %0 = closure(({closure#5} as FnPtr), ())
 
         return %0
     }
@@ -144,11 +134,9 @@ thunk big_func:0() -> () -> Boolean {
 
 fn {closure#7}(%0: ()) -> Boolean {
     let %1: Boolean
-    let %2: ()
 
     bb0(): {
-        %2 = ()
-        %1 = apply ({closure#5} as FnPtr) %2
+        %1 = apply ({closure#5} as FnPtr) ()
 
         return %1
     }
@@ -156,11 +144,9 @@ fn {closure#7}(%0: ()) -> Boolean {
 
 thunk caller:0() -> () -> Boolean {
     let %0: () -> Boolean
-    let %1: ()
 
     bb0(): {
-        %1 = ()
-        %0 = closure(({closure#7} as FnPtr), %1)
+        %0 = closure(({closure#7} as FnPtr), ())
 
         return %0
     }
@@ -168,11 +154,9 @@ thunk caller:0() -> () -> Boolean {
 
 *thunk {thunk#4}() -> Boolean {
     let %0: Boolean
-    let %1: ()
 
     bb0(): {
-        %1 = ()
-        %0 = apply ({closure#5} as FnPtr) %1
+        %0 = apply ({closure#5} as FnPtr) ()
 
         return %0
     }
