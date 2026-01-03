@@ -9,6 +9,7 @@ pub mod error;
 mod forward_substitution;
 mod inline;
 mod inst_simplify;
+mod post_inline;
 mod pre_inline;
 mod ssa_repair;
 
@@ -23,6 +24,7 @@ pub use self::{
     forward_substitution::ForwardSubstitution,
     inline::{Inline, InlineConfig, InlineCostEstimationConfig, InlineHeuristicsConfig},
     inst_simplify::InstSimplify,
+    post_inline::PostInline,
     pre_inline::PreInline,
     ssa_repair::SsaRepair,
 };
