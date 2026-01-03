@@ -31,15 +31,11 @@ impl Default for CanonicalizationConfig {
     }
 }
 
-/// Pre-inlining optimization driver.
+/// MIR canonicalization driver.
 ///
 /// This pass orchestrates a sequence of local and global transformations in a fixpoint loop,
-/// preparing MIR bodies for inlining. By running these optimizations before inlining, we ensure
-/// that:
-///
-/// - Inlined code is already simplified, reducing work after inlining
-/// - Call sites see optimized callees, enabling better inlining decisions
-/// - The overall MIR size is reduced before the potential code explosion from inlining
+/// simplifying MIR bodies into a canonical form. Canonicalization reduces redundancy, propagates
+/// values, and eliminates dead code to produce cleaner, more uniform MIR.
 ///
 /// # Pass Ordering
 ///
@@ -50,12 +46,6 @@ impl Default for CanonicalizationConfig {
 /// 3. **Value propagation** (FS/CP alternating) - Propagates values through the code
 /// 4. **Dead store elimination** - Removes stores made dead by propagation
 /// 5. **CFG simplification** - Cleans up control flow after local changes
-///
-/// # Implementation Notes
-///
-/// This pass manages its own per-body change tracking and does not populate the caller-provided
-/// [`GlobalTransformState`]. Callers receive a combined [`Changed`] result indicating whether any
-/// body was modified.
 pub struct Canonicalization<A: Allocator> {
     alloc: A,
     config: CanonicalizationConfig,
