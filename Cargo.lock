@@ -3847,7 +3847,6 @@ dependencies = [
  "hashql-hir",
  "insta",
  "simple-mermaid",
- "tracing",
 ]
 
 [[package]]
