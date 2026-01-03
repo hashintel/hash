@@ -9,6 +9,7 @@
     "fix:clippy": "just clippy --fix",
     "lint:clippy": "just clippy",
     "test:codspeed": "cargo codspeed run -p hashql-mir",
+    "test:miri": "cargo miri nextest run -- changed_bitor",
     "test:unit": "mise run test:unit @rust/hashql-mir"
   },
   "dependencies": {
