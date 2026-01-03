@@ -1,6 +1,6 @@
 //! Pre-inlining optimization pass.
 //!
-//! This module contains the [`PreInlining`] pass, which runs a fixpoint loop of local and global
+//! This module contains the [`PreInline`] pass, which runs a fixpoint loop of local and global
 //! transformations to optimize MIR bodies before inlining occurs.
 
 use core::alloc::Allocator;
