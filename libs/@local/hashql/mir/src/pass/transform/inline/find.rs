@@ -27,17 +27,17 @@ use crate::{
 ///
 /// The SCC check prevents cycles: once we've inlined a function (or any function
 /// in its SCC) into a filter, we won't inline it again.
-pub(crate) struct FindCallsiteVisitor<'ctx, 'env, 'heap, A: Allocator> {
+pub(crate) struct FindCallsiteVisitor<'ctx, 'state, 'env, 'heap, A: Allocator> {
     /// The filter function we're finding callsites in.
     pub caller: DefId,
 
     /// Shared inlining state for SCC and inlined-set lookups.
-    pub state: &'ctx InlineState<'env, 'heap, A>,
+    pub state: &'ctx InlineState<'ctx, 'state, 'env, 'heap, A>,
     /// Memory to collect discovered callsites into.
     pub mem: &'ctx mut InlineStateMemory<A>,
 }
 
-impl<'heap, A: Allocator> Visitor<'heap> for FindCallsiteVisitor<'_, '_, 'heap, A> {
+impl<'heap, A: Allocator> Visitor<'heap> for FindCallsiteVisitor<'_, '_, '_, 'heap, A> {
     type Result = Result<(), !>;
 
     fn visit_rvalue_apply(

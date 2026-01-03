@@ -2,7 +2,7 @@ use std::io::Write as _;
 
 use hashql_ast::node::expr::Expr;
 use hashql_core::{
-    heap::{Heap, Scratch},
+    heap::{Heap, ResetAllocator as _, Scratch},
     r#type::environment::Environment,
 };
 use hashql_diagnostics::DiagnosticIssues;
@@ -11,7 +11,10 @@ use hashql_mir::{
     context::MirContext,
     def::{DefId, DefIdVec},
     intern::Interner,
-    pass::transform::{Inline, InlineConfig},
+    pass::{
+        Changed, GlobalTransformPass as _, GlobalTransformState,
+        transform::{Inline, InlineConfig},
+    },
 };
 
 use super::{
@@ -52,7 +55,12 @@ pub(crate) fn mir_pass_transform_inline<'heap>(
     };
 
     let mut pass = Inline::new_in(config, &mut scratch);
-    pass.run(&mut context, &mut bodies);
+    let _: Changed = pass.run(
+        &mut context,
+        &mut GlobalTransformState::new_in(&bodies, heap),
+        &mut bodies,
+    );
+    scratch.reset();
 
     process_issues(diagnostics, context.diagnostics)?;
 
