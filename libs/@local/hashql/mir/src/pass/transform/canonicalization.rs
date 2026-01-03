@@ -157,13 +157,25 @@ impl<A: BumpAllocator> Canonicalization<A> {
         &mut self,
         context: &mut MirContext<'_, 'heap>,
         bodies: &mut DefIdSlice<Body<'heap>>,
-
+        unstable: &mut DenseBitSet<DefId>,
         state: &mut DefIdSlice<Changed>,
     ) -> Changed {
-        self.alloc.scoped(|alloc| {
+        let changed: Changed = self.alloc.scoped(|alloc| {
             let pass = AdministrativeReduction::new_in(alloc);
             Self::run_global_pass(context, bodies, pass, state)
-        })
+        });
+
+        if changed != Changed::No {
+            // If we've changed, re-queue any that have changed. This allows us to propagate changes
+            // earlier and potentially skip redundant iterations.
+            for (id, &changed) in state.iter_enumerated() {
+                if changed != Changed::No {
+                    unstable.insert(id);
+                }
+            }
+        }
+
+        changed
     }
 
     fn dse<'heap>(
@@ -237,7 +249,7 @@ impl<'env, 'heap, A: BumpAllocator> GlobalTransformPass<'env, 'heap> for Canonic
             //    producing a minimal CFG that maximizes the next iteration's effectiveness.
 
             let mut changed = Changed::No;
-            changed |= self.administrative_reduction(context, bodies, state);
+            changed |= self.administrative_reduction(context, bodies, &mut unstable, state);
             changed |= self.inst_simplify(context, bodies, &unstable, state);
 
             // FS vs CP strategy: ForwardSubstitution is more powerful but expensive;
@@ -277,6 +289,7 @@ impl<'env, 'heap, A: BumpAllocator> GlobalTransformPass<'env, 'heap> for Canonic
             iter += 1;
         }
 
+        global.overlay(state);
         global_changed
     }
 }
