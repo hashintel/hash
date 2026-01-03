@@ -1,4 +1,7 @@
-import { deriveDefaultParameterValues } from "../../hooks/use-default-parameter-values";
+import {
+  deriveDefaultParameterValues,
+  mergeParameterValues,
+} from "../../hooks/use-default-parameter-values";
 import { SDCPNItemError } from "../errors";
 import type {
   DifferentialEquationFn,
@@ -17,7 +20,7 @@ import { compileUserCode } from "./compile-user-code";
  */
 function getPlaceDimensions(
   place: SimulationInput["sdcpn"]["places"][0],
-  sdcpn: SimulationInput["sdcpn"],
+  sdcpn: SimulationInput["sdcpn"]
 ): number {
   if (!place.colorId) {
     return 0;
@@ -25,7 +28,7 @@ function getPlaceDimensions(
   const type = sdcpn.types.find((tp) => tp.id === place.colorId);
   if (!type) {
     throw new Error(
-      `Type with ID ${place.colorId} referenced by place ${place.id} does not exist in SDCPN`,
+      `Type with ID ${place.colorId} referenced by place ${place.id} does not exist in SDCPN`
     );
   }
   return type.elements.length;
@@ -52,23 +55,34 @@ function getPlaceDimensions(
  * @throws {Error} if user code fails to compile
  */
 export function buildSimulation(input: SimulationInput): SimulationInstance {
-  const { sdcpn, initialMarking, seed, dt } = input;
+  const {
+    sdcpn,
+    initialMarking,
+    parameterValues: inputParameterValues,
+    seed,
+    dt,
+  } = input;
 
   // Build maps for quick lookup
   const placesMap = new Map(sdcpn.places.map((place) => [place.id, place]));
   const transitionsMap = new Map(
-    sdcpn.transitions.map((transition) => [transition.id, transition]),
+    sdcpn.transitions.map((transition) => [transition.id, transition])
   );
   const typesMap = new Map(sdcpn.types.map((type) => [type.id, type]));
 
-  // Build parameter values from SDCPN parameters using the shared utility
-  const parameterValues = deriveDefaultParameterValues(sdcpn.parameters);
+  // Build parameter values: merge input values with SDCPN defaults
+  // Input values (from simulation store) take precedence over defaults
+  const defaultParameterValues = deriveDefaultParameterValues(sdcpn.parameters);
+  const parameterValues = mergeParameterValues(
+    inputParameterValues,
+    defaultParameterValues
+  );
 
   // Validate that all places in initialMarking exist in SDCPN
   for (const placeId of initialMarking.keys()) {
     if (!placesMap.has(placeId)) {
       throw new Error(
-        `Place with ID ${placeId} in initialMarking does not exist in SDCPN`,
+        `Place with ID ${placeId} in initialMarking does not exist in SDCPN`
       );
     }
   }
@@ -80,7 +94,7 @@ export function buildSimulation(input: SimulationInput): SimulationInstance {
     const expectedSize = dimensions * marking.count;
     if (marking.values.length !== expectedSize) {
       throw new Error(
-        `Token dimension mismatch for place ${placeId}. Expected ${expectedSize} values (${dimensions} dimensions × ${marking.count} tokens), got ${marking.values.length}`,
+        `Token dimension mismatch for place ${placeId}. Expected ${expectedSize} values (${dimensions} dimensions × ${marking.count} tokens), got ${marking.values.length}`
       );
     }
   }
@@ -94,11 +108,11 @@ export function buildSimulation(input: SimulationInput): SimulationInstance {
     }
 
     const differentialEquation = sdcpn.differentialEquations.find(
-      (de) => de.id === place.differentialEquationId,
+      (de) => de.id === place.differentialEquationId
     );
     if (!differentialEquation) {
       throw new Error(
-        `Differential equation with ID ${place.differentialEquationId} referenced by place ${place.id} does not exist in SDCPN`,
+        `Differential equation with ID ${place.differentialEquationId} referenced by place ${place.id} does not exist in SDCPN`
       );
     }
     const { code } = differentialEquation;
@@ -106,15 +120,15 @@ export function buildSimulation(input: SimulationInput): SimulationInstance {
     try {
       const fn = compileUserCode<[Record<string, number>[], ParameterValues]>(
         code,
-        "Dynamics",
+        "Dynamics"
       );
       differentialEquationFns.set(place.id, fn as DifferentialEquationFn);
     } catch (error) {
       throw new SDCPNItemError(
-        `Failed to compile differential equation for place \`${place.name}\`:\n\n${
-          error instanceof Error ? error.message : String(error)
-        }`,
-        place.id,
+        `Failed to compile differential equation for place \`${
+          place.name
+        }\`:\n\n${error instanceof Error ? error.message : String(error)}`,
+        place.id
       );
     }
   }
@@ -129,10 +143,10 @@ export function buildSimulation(input: SimulationInput): SimulationInstance {
       lambdaFns.set(transition.id, fn as LambdaFn);
     } catch (error) {
       throw new SDCPNItemError(
-        `Failed to compile Lambda function for transition \`${transition.name}\`:\n\n${
-          error instanceof Error ? error.message : String(error)
-        }`,
-        transition.id,
+        `Failed to compile Lambda function for transition \`${
+          transition.name
+        }\`:\n\n${error instanceof Error ? error.message : String(error)}`,
+        transition.id
       );
     }
   }
@@ -152,7 +166,7 @@ export function buildSimulation(input: SimulationInput): SimulationInstance {
       // without typed output places (they don't need to generate token data)
       transitionKernelFns.set(
         transition.id,
-        (() => ({})) as TransitionKernelFn,
+        (() => ({})) as TransitionKernelFn
       );
       continue;
     }
@@ -164,10 +178,10 @@ export function buildSimulation(input: SimulationInput): SimulationInstance {
       transitionKernelFns.set(transition.id, fn as TransitionKernelFn);
     } catch (error) {
       throw new SDCPNItemError(
-        `Failed to compile transition kernel for transition \`${transition.name}\`:\n\n${
-          error instanceof Error ? error.message : String(error)
-        }`,
-        transition.id,
+        `Failed to compile transition kernel for transition \`${
+          transition.name
+        }\`:\n\n${error instanceof Error ? error.message : String(error)}`,
+        transition.id
       );
     }
   }
@@ -224,7 +238,7 @@ export function buildSimulation(input: SimulationInput): SimulationInstance {
         instance: transition,
         timeSinceLastFiring: 0,
       },
-    ]),
+    ])
   );
 
   // Create the simulation instance (without frames initially)
