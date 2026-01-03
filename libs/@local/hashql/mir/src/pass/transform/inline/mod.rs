@@ -265,12 +265,6 @@ impl<'heap, A: Allocator> InlineState<'_, '_, '_, 'heap, A> {
             }
 
             let score = scorer.score(callsite);
-            tracing::warn!(
-                "{:?} -> {:?} -> {}",
-                self.costs.properties[callsite.caller].source,
-                self.costs.properties[callsite.target].source,
-                score
-            );
             if score.is_sign_negative() {
                 continue;
             }
