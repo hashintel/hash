@@ -48,11 +48,9 @@ fn {closure#3}(%0: ()) -> ::graph::TimeAxis {
 
 thunk get_axis:0() -> () -> ::graph::TimeAxis {
     let %0: () -> ::graph::TimeAxis
-    let %1: ()
 
     bb0(): {
-        %1 = ()
-        %0 = closure(({closure#3} as FnPtr), %1)
+        %0 = closure(({closure#3} as FnPtr), ())
 
         return %0
     }
@@ -60,11 +58,9 @@ thunk get_axis:0() -> () -> ::graph::TimeAxis {
 
 *thunk {thunk#2}() -> ::graph::TimeAxis {
     let %0: ::graph::TimeAxis
-    let %1: ()
 
     bb0(): {
-        %1 = ()
-        %0 = apply ({closure#3} as FnPtr) %1
+        %0 = apply ({closure#3} as FnPtr) ()
 
         return %0
     }
@@ -84,11 +80,9 @@ fn {closure#3}(%0: ()) -> ::graph::TimeAxis {
 
 thunk get_axis:0() -> () -> ::graph::TimeAxis {
     let %0: () -> ::graph::TimeAxis
-    let %1: ()
 
     bb0(): {
-        %1 = ()
-        %0 = closure(({closure#3} as FnPtr), %1)
+        %0 = closure(({closure#3} as FnPtr), ())
 
         return %0
     }
@@ -97,12 +91,10 @@ thunk get_axis:0() -> () -> ::graph::TimeAxis {
 *thunk {thunk#2}() -> ::graph::TimeAxis {
     let %0: ::graph::TimeAxis
     let %1: ()
-    let %2: ()
-    let %3: ::graph::TimeAxis
+    let %2: ::graph::TimeAxis
 
     bb0(): {
         %1 = ()
-        %2 = %1
 
         goto -> bb2()
     }
@@ -112,8 +104,8 @@ thunk get_axis:0() -> () -> ::graph::TimeAxis {
     }
 
     bb2(): {
-        %3 = input LOAD axis
+        %2 = input LOAD axis
 
-        goto -> bb1(%3)
+        goto -> bb1(%2)
     }
 }
