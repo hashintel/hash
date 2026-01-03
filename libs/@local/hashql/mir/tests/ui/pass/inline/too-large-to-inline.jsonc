@@ -1,0 +1,22 @@
+//@ run: pass
+//@ description: Function with cost > max is not inlined by normal heuristics
+//@ suite#rvalue-input-cost: 100.0
+//@ suite#max-cost: 50.0
+// With rvalue_input=100 and max=50, 1 input = cost 100 (exceeds max of 50).
+[
+  "let",
+  "big_func",
+  [
+    "fn",
+    { "#tuple": [] },
+    { "#struct": {} },
+    "Boolean",
+    ["input", "v", "Boolean"]
+  ],
+  [
+    "let",
+    "caller",
+    ["fn", { "#tuple": [] }, { "#struct": {} }, "Boolean", ["big_func"]],
+    ["caller"]
+  ]
+]

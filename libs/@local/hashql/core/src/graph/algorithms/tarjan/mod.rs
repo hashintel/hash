@@ -12,12 +12,16 @@ mod tests;
 use alloc::{alloc::Global, vec::Vec};
 use core::{alloc::Allocator, iter, ops::Range, slice};
 
+#[cfg(debug_assertions)]
+use crate::id::bit_vec::DenseBitSet;
 use crate::{
     collections::{FastHashSet, fast_hash_set_in},
     graph::{DirectedGraph, EdgeId, Successors},
-    id::{HasId, Id, IdVec},
+    id::{HasId, Id, IdSlice, IdVec},
     newtype,
 };
+
+newtype!(pub struct SccId(u32 is 0..=u32::MAX));
 
 newtype!(struct DiscoveryTime(usize is 0..=usize::MAX));
 
@@ -147,6 +151,27 @@ struct Component<A> {
     successors: Range<usize>,
 }
 
+pub struct Members<N, S, A: Allocator = Global> {
+    offsets: Box<IdSlice<S, usize>, A>,
+    nodes: Box<[N], A>,
+}
+
+impl<N, S, A: Allocator> Members<N, S, A>
+where
+    S: Id,
+{
+    pub fn sccs(&self) -> impl ExactSizeIterator<Item = S> + DoubleEndedIterator {
+        // Offsets is 1 longer than the number of SCCs
+        self.offsets.ids().take(self.offsets.len() - 1)
+    }
+
+    pub fn of(&self, id: S) -> &[N] {
+        let range = self.offsets[id]..self.offsets[id.plus(1)];
+
+        &self.nodes[range]
+    }
+}
+
 /// Storage for the computed SCCs and their relationships.
 ///
 /// Intentionally opaque to avoid exposing internal details.
@@ -165,6 +190,8 @@ struct Data<N, S, M, A: Allocator = Global> {
 /// connected component from the original graph. Two SCCs are connected if there was an
 /// edge between any of their constituent nodes in the original graph.
 pub struct StronglyConnectedComponents<N, S, M: Metadata<N, S> = (), A: Allocator = Global> {
+    alloc: A,
+
     /// Metadata tracker used during construction.
     pub metadata: M,
 
@@ -185,6 +212,89 @@ where
     /// Returns the metadata annotation for the given SCC.
     pub fn annotation(&self, scc: S) -> &M::Annotation {
         &self.data.components[scc].annotation
+    }
+
+    #[inline]
+    pub fn members(&self) -> Members<N, S, A>
+    where
+        A: Clone,
+    {
+        self.members_in(Global)
+    }
+
+    #[expect(unsafe_code, clippy::debug_assert_with_mut_call)]
+    pub fn members_in<B: Allocator>(&self, scratch: B) -> Members<N, S, A>
+    where
+        A: Clone,
+    {
+        let num_sccs = self.data.components.len();
+        let num_nodes = self.data.nodes.len();
+
+        // Pass 1: count nodes per SCC
+        let mut counts = IdVec::from_domain_in(0, &self.data.components, scratch);
+        for &scc in &self.data.nodes {
+            counts[scc] += 1;
+        }
+
+        // Build offsets via prefix sum
+        let mut offsets =
+            IdSlice::from_boxed_slice(Box::new_uninit_slice_in(num_sccs + 1, self.alloc.clone()));
+
+        let mut total = 0;
+        for (index, &count) in counts.iter_enumerated() {
+            offsets[index].write(total);
+            total += count;
+        }
+        offsets[S::from_usize(num_sccs)].write(total);
+
+        // SAFETY: All `num_sccs + 1` elements are initialized:
+        // - The loop writes indices 0..num_sccs (one per SCC via iter_enumerated)
+        // - Final index at num_sccs is written just before this
+        let offsets = unsafe { IdSlice::boxed_assume_init(offsets) };
+
+        // Reuse the counts vector, for cursors, copying from the offsets vector
+        let mut cursor = counts;
+        cursor
+            .raw
+            .copy_from_slice(&offsets[..S::from_usize(num_sccs)]);
+
+        debug_assert_eq!(total, num_nodes);
+        debug_assert_eq!(offsets.len(), num_sccs + 1);
+
+        // Pass 2: place nodes
+        let mut nodes = Box::new_uninit_slice_in(num_nodes, self.alloc.clone());
+        #[cfg(debug_assertions)]
+        let mut nodes_written = DenseBitSet::new_empty(num_nodes);
+
+        for (node, &scc) in self.data.nodes.iter_enumerated() {
+            #[cfg(debug_assertions)]
+            {
+                debug_assert!(
+                    nodes_written.insert(N::from_usize(cursor[scc])),
+                    "Cursor {} has been visited multiple times.",
+                    cursor[scc]
+                );
+            }
+
+            nodes[cursor[scc]].write(node);
+
+            cursor[scc] += 1;
+        }
+
+        #[cfg(debug_assertions)]
+        {
+            debug_assert_eq!(nodes_written.count(), num_nodes);
+        }
+
+        // SAFETY: Every element in `nodes[0..num_nodes]` is initialized exactly once:
+        // - The loop iterates over all `num_nodes` nodes exactly once.
+        // - Each node writes to `nodes[cursor[scc]]` then increments `cursor[scc]`.
+        // - Cursors start at disjoint offsets (prefix sum of counts per SCC).
+        // - The sum of all counts equals `num_nodes` (each node belongs to exactly one SCC).
+        // - Therefore, the cursor writes partition and fully cover `0..num_nodes`.
+        let nodes = unsafe { nodes.assume_init() };
+
+        Members { offsets, nodes }
     }
 }
 
@@ -249,6 +359,8 @@ where
 /// - **Time**: O(V + E) where V is nodes and E is edges
 /// - **Space**: O(V) for the various stacks and state tracking
 pub struct Tarjan<'graph, G, N, S, M: Metadata<N, S> = (), A: Allocator = Global> {
+    alloc: A,
+
     /// Reference to the input graph.
     graph: &'graph G,
     /// Metadata tracker for annotations.
@@ -326,6 +438,8 @@ where
         let node_count = graph.node_count();
 
         Self {
+            alloc: alloc.clone(),
+
             graph,
             metadata,
 
@@ -362,6 +476,7 @@ where
         }
 
         StronglyConnectedComponents {
+            alloc: self.alloc,
             data: self.data,
             metadata: self.metadata,
         }

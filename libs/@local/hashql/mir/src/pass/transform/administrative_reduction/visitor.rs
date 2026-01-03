@@ -38,6 +38,22 @@ struct Reduction<'heap> {
     args: ArgVec<Operand<'heap>, &'heap Heap>,
 }
 
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub(crate) enum ClosureEnv<'heap> {
+    Place(Place<'heap>),
+    Unit,
+}
+
+impl<'heap> ClosureEnv<'heap> {
+    const fn from_operand(operand: Operand<'heap>) -> Option<Self> {
+        match operand {
+            Operand::Place(place) => Some(ClosureEnv::Place(place)),
+            Operand::Constant(Constant::Unit) => Some(ClosureEnv::Unit),
+            Operand::Constant(_) => None,
+        }
+    }
+}
+
 /// Represents a known function or closure value assigned to a local.
 ///
 /// The visitor tracks these assignments to resolve indirect calls (calls through locals)
@@ -47,7 +63,7 @@ pub(crate) enum Callee<'heap> {
     /// A bare function pointer.
     Fn { ptr: DefId },
     /// A closure: function pointer plus captured environment.
-    Closure { ptr: DefId, env: Place<'heap> },
+    Closure { ptr: DefId, env: ClosureEnv<'heap> },
 }
 
 /// Header information for the body being transformed.
@@ -289,13 +305,18 @@ impl<'heap, A: Allocator> VisitorMut<'heap> for AdministrativeReductionVisitor<'
             return Ok(());
         }
 
-        let &[Operand::Constant(Constant::FnPtr(ptr)), Operand::Place(env)] =
-            &aggregate.operands[..]
-        else {
+        let &[Operand::Constant(Constant::FnPtr(ptr)), env] = &aggregate.operands[..] else {
             unreachable!(
                 "Closure must have exactly two operands, with the first being a function pointer \
                  and the second being a place to the environment."
             )
+        };
+
+        let Some(env) = ClosureEnv::from_operand(env) else {
+            unreachable!(
+                "Closure must have exactly two operands, with the first being a function pointer \
+                 and the second being a place to the environment."
+            );
         };
 
         self.callees

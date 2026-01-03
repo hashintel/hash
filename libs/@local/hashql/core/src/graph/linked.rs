@@ -87,6 +87,7 @@ pub struct Node<N> {
 impl<N> HasId for Node<N> {
     type Id = NodeId;
 
+    #[inline]
     fn id(&self) -> Self::Id {
         self.id
     }
@@ -427,7 +428,7 @@ impl<N, E, A: Allocator> LinkedGraph<N, E, A> {
     /// Removes all edges from the graph while preserving nodes.
     pub fn clear_edges(&mut self) {
         self.edges.clear();
-        for node in self.nodes.iter_mut() {
+        for node in &mut self.nodes {
             node.edges = [TOMBSTONE; DIRECTIONS];
         }
     }

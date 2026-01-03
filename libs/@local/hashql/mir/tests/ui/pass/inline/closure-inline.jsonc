@@ -1,0 +1,14 @@
+//@ run: pass
+//@ description: Closure with input side effect requires main inline pass (not pre-inlined)
+[
+  "let",
+  "get_axis",
+  [
+    "fn",
+    { "#tuple": [] },
+    { "#struct": {} },
+    "::graph::QueryTemporalAxes",
+    ["input", "axis", "::graph::QueryTemporalAxes"]
+  ],
+  ["get_axis"]
+]

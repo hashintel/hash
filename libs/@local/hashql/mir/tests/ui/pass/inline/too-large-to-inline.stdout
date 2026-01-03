@@ -1,0 +1,179 @@
+════ Initial MIR ═══════════════════════════════════════════════════════════════
+
+fn {closure#5}(%0: ()) -> Boolean {
+    let %1: Boolean
+
+    bb0(): {
+        %1 = input LOAD v
+
+        return %1
+    }
+}
+
+thunk big_func:0() -> () -> Boolean {
+    let %0: () -> Boolean
+    let %1: ()
+
+    bb0(): {
+        %1 = ()
+        %0 = closure(({closure#5} as FnPtr), %1)
+
+        return %0
+    }
+}
+
+fn {closure#7}(%0: ()) -> Boolean {
+    let %1: () -> Boolean
+    let %2: Boolean
+
+    bb0(): {
+        %1 = apply (big_func:0 as FnPtr)
+        %2 = apply %1.0 %1.1
+
+        return %2
+    }
+}
+
+thunk caller:0() -> () -> Boolean {
+    let %0: () -> Boolean
+    let %1: ()
+
+    bb0(): {
+        %1 = ()
+        %0 = closure(({closure#7} as FnPtr), %1)
+
+        return %0
+    }
+}
+
+*thunk {thunk#4}() -> Boolean {
+    let %0: () -> Boolean
+    let %1: Boolean
+
+    bb0(): {
+        %0 = apply (caller:0 as FnPtr)
+        %1 = apply %0.0 %0.1
+
+        return %1
+    }
+}
+
+════ Pre-inlining MIR ══════════════════════════════════════════════════════════
+
+fn {closure#5}(%0: ()) -> Boolean {
+    let %1: Boolean
+
+    bb0(): {
+        %1 = input LOAD v
+
+        return %1
+    }
+}
+
+thunk big_func:0() -> () -> Boolean {
+    let %0: () -> Boolean
+    let %1: ()
+
+    bb0(): {
+        %1 = ()
+        %0 = closure(({closure#5} as FnPtr), %1)
+
+        return %0
+    }
+}
+
+fn {closure#7}(%0: ()) -> Boolean {
+    let %1: Boolean
+    let %2: ()
+
+    bb0(): {
+        %2 = ()
+        %1 = apply ({closure#5} as FnPtr) %2
+
+        return %1
+    }
+}
+
+thunk caller:0() -> () -> Boolean {
+    let %0: () -> Boolean
+    let %1: ()
+
+    bb0(): {
+        %1 = ()
+        %0 = closure(({closure#7} as FnPtr), %1)
+
+        return %0
+    }
+}
+
+*thunk {thunk#4}() -> Boolean {
+    let %0: Boolean
+    let %1: ()
+
+    bb0(): {
+        %1 = ()
+        %0 = apply ({closure#5} as FnPtr) %1
+
+        return %0
+    }
+}
+
+════ Inlined MIR ═══════════════════════════════════════════════════════════════
+
+fn {closure#5}(%0: ()) -> Boolean {
+    let %1: Boolean
+
+    bb0(): {
+        %1 = input LOAD v
+
+        return %1
+    }
+}
+
+thunk big_func:0() -> () -> Boolean {
+    let %0: () -> Boolean
+    let %1: ()
+
+    bb0(): {
+        %1 = ()
+        %0 = closure(({closure#5} as FnPtr), %1)
+
+        return %0
+    }
+}
+
+fn {closure#7}(%0: ()) -> Boolean {
+    let %1: Boolean
+    let %2: ()
+
+    bb0(): {
+        %2 = ()
+        %1 = apply ({closure#5} as FnPtr) %2
+
+        return %1
+    }
+}
+
+thunk caller:0() -> () -> Boolean {
+    let %0: () -> Boolean
+    let %1: ()
+
+    bb0(): {
+        %1 = ()
+        %0 = closure(({closure#7} as FnPtr), %1)
+
+        return %0
+    }
+}
+
+*thunk {thunk#4}() -> Boolean {
+    let %0: Boolean
+    let %1: ()
+
+    bb0(): {
+        %1 = ()
+        %0 = apply ({closure#5} as FnPtr) %1
+
+        return %0
+    }
+}

@@ -1,0 +1,195 @@
+════ Initial MIR ═══════════════════════════════════════════════════════════════
+
+fn {ctor#::core::uuid::Uuid}(%0: (), %1: String) -> ::core::uuid::Uuid {
+    let %2: ::core::uuid::Uuid
+
+    bb0(): {
+        %2 = opaque(::core::uuid::Uuid, %1)
+
+        return %2
+    }
+}
+
+thunk {thunk#0}() -> (String) -> ::core::uuid::Uuid {
+    let %0: (String) -> ::core::uuid::Uuid
+
+    bb0(): {
+        %0 = closure(({ctor#::core::uuid::Uuid} as FnPtr), ())
+
+        return %0
+    }
+}
+
+thunk {thunk#1}() -> ::core::uuid::Uuid {
+    let %0: (String) -> ::core::uuid::Uuid
+    let %1: ::core::uuid::Uuid
+
+    bb0(): {
+        %0 = apply ({thunk#0} as FnPtr)
+        %1 = apply %0.0 %0.1 "e2851dbb-7376-4959-9bca-f72cafc4448f"
+
+        return %1
+    }
+}
+
+fn {ctor#::graph::types::knowledge::entity::EntityUuid}(%0: (), %1: ::core::uuid::Uuid) -> ::graph::types::knowledge::entity::EntityUuid {
+    let %2: ::graph::types::knowledge::entity::EntityUuid
+
+    bb0(): {
+        %2 = opaque(::graph::types::knowledge::entity::EntityUuid, %1)
+
+        return %2
+    }
+}
+
+thunk {thunk#2}() -> (::core::uuid::Uuid) -> ::graph::types::knowledge::entity::EntityUuid {
+    let %0: (::core::uuid::Uuid) -> ::graph::types::knowledge::entity::EntityUuid
+
+    bb0(): {
+        %0 = closure(({ctor#::graph::types::knowledge::entity::EntityUuid} as FnPtr), ())
+
+        return %0
+    }
+}
+
+*thunk {thunk#3}() -> ::graph::types::knowledge::entity::EntityUuid {
+    let %0: ::core::uuid::Uuid
+    let %1: (::core::uuid::Uuid) -> ::graph::types::knowledge::entity::EntityUuid
+    let %2: ::graph::types::knowledge::entity::EntityUuid
+
+    bb0(): {
+        %0 = apply ({thunk#1} as FnPtr)
+        %1 = apply ({thunk#2} as FnPtr)
+        %2 = apply %1.0 %1.1 %0
+
+        return %2
+    }
+}
+
+════ Pre-inlining MIR ══════════════════════════════════════════════════════════
+
+fn {ctor#::core::uuid::Uuid}(%0: (), %1: String) -> ::core::uuid::Uuid {
+    let %2: ::core::uuid::Uuid
+
+    bb0(): {
+        %2 = opaque(::core::uuid::Uuid, %1)
+
+        return %2
+    }
+}
+
+thunk {thunk#0}() -> (String) -> ::core::uuid::Uuid {
+    let %0: (String) -> ::core::uuid::Uuid
+
+    bb0(): {
+        %0 = closure(({ctor#::core::uuid::Uuid} as FnPtr), ())
+
+        return %0
+    }
+}
+
+thunk {thunk#1}() -> ::core::uuid::Uuid {
+    let %0: ::core::uuid::Uuid
+
+    bb0(): {
+        %0 = opaque(::core::uuid::Uuid, "e2851dbb-7376-4959-9bca-f72cafc4448f")
+
+        return %0
+    }
+}
+
+fn {ctor#::graph::types::knowledge::entity::EntityUuid}(%0: (), %1: ::core::uuid::Uuid) -> ::graph::types::knowledge::entity::EntityUuid {
+    let %2: ::graph::types::knowledge::entity::EntityUuid
+
+    bb0(): {
+        %2 = opaque(::graph::types::knowledge::entity::EntityUuid, %1)
+
+        return %2
+    }
+}
+
+thunk {thunk#2}() -> (::core::uuid::Uuid) -> ::graph::types::knowledge::entity::EntityUuid {
+    let %0: (::core::uuid::Uuid) -> ::graph::types::knowledge::entity::EntityUuid
+
+    bb0(): {
+        %0 = closure(({ctor#::graph::types::knowledge::entity::EntityUuid} as FnPtr), ())
+
+        return %0
+    }
+}
+
+*thunk {thunk#3}() -> ::graph::types::knowledge::entity::EntityUuid {
+    let %0: ::core::uuid::Uuid
+    let %1: ::graph::types::knowledge::entity::EntityUuid
+
+    bb0(): {
+        %0 = opaque(::core::uuid::Uuid, "e2851dbb-7376-4959-9bca-f72cafc4448f")
+        %1 = opaque(::graph::types::knowledge::entity::EntityUuid, %0)
+
+        return %1
+    }
+}
+
+════ Inlined MIR ═══════════════════════════════════════════════════════════════
+
+fn {ctor#::core::uuid::Uuid}(%0: (), %1: String) -> ::core::uuid::Uuid {
+    let %2: ::core::uuid::Uuid
+
+    bb0(): {
+        %2 = opaque(::core::uuid::Uuid, %1)
+
+        return %2
+    }
+}
+
+thunk {thunk#0}() -> (String) -> ::core::uuid::Uuid {
+    let %0: (String) -> ::core::uuid::Uuid
+
+    bb0(): {
+        %0 = closure(({ctor#::core::uuid::Uuid} as FnPtr), ())
+
+        return %0
+    }
+}
+
+thunk {thunk#1}() -> ::core::uuid::Uuid {
+    let %0: ::core::uuid::Uuid
+
+    bb0(): {
+        %0 = opaque(::core::uuid::Uuid, "e2851dbb-7376-4959-9bca-f72cafc4448f")
+
+        return %0
+    }
+}
+
+fn {ctor#::graph::types::knowledge::entity::EntityUuid}(%0: (), %1: ::core::uuid::Uuid) -> ::graph::types::knowledge::entity::EntityUuid {
+    let %2: ::graph::types::knowledge::entity::EntityUuid
+
+    bb0(): {
+        %2 = opaque(::graph::types::knowledge::entity::EntityUuid, %1)
+
+        return %2
+    }
+}
+
+thunk {thunk#2}() -> (::core::uuid::Uuid) -> ::graph::types::knowledge::entity::EntityUuid {
+    let %0: (::core::uuid::Uuid) -> ::graph::types::knowledge::entity::EntityUuid
+
+    bb0(): {
+        %0 = closure(({ctor#::graph::types::knowledge::entity::EntityUuid} as FnPtr), ())
+
+        return %0
+    }
+}
+
+*thunk {thunk#3}() -> ::graph::types::knowledge::entity::EntityUuid {
+    let %0: ::core::uuid::Uuid
+    let %1: ::graph::types::knowledge::entity::EntityUuid
+
+    bb0(): {
+        %0 = opaque(::core::uuid::Uuid, "e2851dbb-7376-4959-9bca-f72cafc4448f")
+        %1 = opaque(::graph::types::knowledge::entity::EntityUuid, %0)
+
+        return %1
+    }
+}

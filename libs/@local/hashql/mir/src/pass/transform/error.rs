@@ -15,9 +15,15 @@ const UNREACHABLE_SWITCH_ARM: TerminalDiagnosticCategory = TerminalDiagnosticCat
     name: "Unreachable switch arm",
 };
 
+const EXCESSIVE_INLINING_DEPTH: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
+    id: "excessive-inlining-depth",
+    name: "Excessive inlining depth",
+};
+
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum TransformationDiagnosticCategory {
     UnreachableSwitchArm,
+    ExcessiveInliningDepth,
 }
 
 impl DiagnosticCategory for TransformationDiagnosticCategory {
@@ -32,6 +38,7 @@ impl DiagnosticCategory for TransformationDiagnosticCategory {
     fn subcategory(&self) -> Option<&dyn DiagnosticCategory> {
         match *self {
             Self::UnreachableSwitchArm => Some(&UNREACHABLE_SWITCH_ARM),
+            Self::ExcessiveInliningDepth => Some(&EXCESSIVE_INLINING_DEPTH),
         }
     }
 }
@@ -60,6 +67,34 @@ pub fn unreachable_switch_arm(span: SpanId) -> MirDiagnostic {
 
     diagnostic.add_message(Message::note(
         "this likely indicates a bug in type checking or MIR construction",
+    ));
+
+    diagnostic
+}
+
+/// Creates a diagnostic warning when aggressive inlining reaches its iteration limit.
+///
+/// This indicates the filter function has deeply nested call chains that couldn't be fully
+/// inlined within the configured cutoff. The code will still work correctly, but some
+/// call overhead may remain.
+pub fn excessive_inlining_depth(span: SpanId, cutoff: usize) -> MirDiagnostic {
+    let mut diagnostic = Diagnostic::new(
+        MirDiagnosticCategory::Transformation(
+            TransformationDiagnosticCategory::ExcessiveInliningDepth,
+        ),
+        Severity::Warning,
+    )
+    .primary(Label::new(
+        span,
+        "filter has deeply nested calls that could not be fully inlined",
+    ));
+
+    diagnostic.add_message(Message::note(format!(
+        "aggressive inlining stopped after {cutoff} iterations"
+    )));
+
+    diagnostic.add_message(Message::help(
+        "consider refactoring to reduce call chain depth",
     ));
 
     diagnostic

@@ -56,12 +56,21 @@ body!(interner, env; <source> @ <id> / <arity> -> <return_type> {
 
 | Component | Description | Example |
 | --------- | ----------- | ------- |
-| `<source>` | Body source type | `fn` (closure) or `thunk` |
+| `<source>` | Body source type | `fn`, `thunk`, `[ctor expr]`, `intrinsic` |
 | `<id>` | DefId (literal or variable) | `0`, `42`, `my_def_id` |
 | `<arity>` | Number of function arguments | `0`, `1`, `2` |
 | `<return_type>` | Return type | `Int`, `Bool`, `(Int, Bool)` |
 
 The `<id>` can be a numeric literal (`0`, `1`, `42`) or a variable identifier (`callee_id`, `my_def_id`). When using a variable, it must be a `DefId` in scope.
+
+**Source types:**
+
+| Syntax | Maps to | Use case |
+| ------ | ------- | -------- |
+| `fn` | `Source::Closure` | Regular closures/functions |
+| `thunk` | `Source::Thunk` | Thunk bodies (zero-arg delayed computations) |
+| `[ctor sym::path]` | `Source::Ctor(sym)` | Constructor bodies (always inlined) |
+| `intrinsic` | `Source::Intrinsic` | Intrinsic bodies (never inlined) |
 
 ### Types
 

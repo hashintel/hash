@@ -473,3 +473,70 @@ fn metadata_merge_within_scc() {
     assert_eq!(sccs.annotation(sccs.scc(n!(3))).max, 4);
     assert_eq!(sccs.annotation(sccs.scc(n!(5))).min, 5);
 }
+
+/// Tests that `members()` correctly returns nodes for each SCC in a simple DAG.
+#[test]
+fn members_simple_dag() {
+    let graph = TestGraph::new(&[(0, 1), (0, 2), (1, 3), (2, 3)]);
+    let sccs: Sccs = Tarjan::new(&graph).run();
+
+    let members = sccs.members();
+
+    // Each node is its own SCC in a DAG
+    for i in 0..4 {
+        let scc = sccs.scc(n!(i));
+        let scc_members = members.of(scc);
+        assert_eq!(scc_members.len(), 1);
+        assert_eq!(scc_members[0], n!(i));
+    }
+}
+
+/// Tests that `members()` correctly returns all nodes in a single large SCC.
+#[test]
+fn members_single_scc() {
+    let graph = TestGraph::new(&[(0, 1), (1, 2), (1, 3), (2, 0), (3, 2)]);
+    let sccs: Sccs = Tarjan::new(&graph).run();
+
+    let members = sccs.members();
+    let scc = sccs.scc(n!(0));
+
+    let mut scc_members: Vec<_> = members.of(scc).to_vec();
+    scc_members.sort();
+
+    assert_eq!(scc_members, vec![n!(0), n!(1), n!(2), n!(3)]);
+}
+
+/// Tests that `members()` correctly partitions nodes across multiple SCCs.
+#[test]
+fn members_multiple_sccs() {
+    let graph = TestGraph::new(&[(0, 1), (1, 2), (2, 1), (3, 2)]);
+    let sccs: Sccs = Tarjan::new(&graph).run();
+
+    let members = sccs.members();
+
+    // Nodes 1 and 2 form a cycle (same SCC)
+    let scc_1_2 = sccs.scc(n!(1));
+    assert_eq!(sccs.scc(n!(2)), scc_1_2);
+
+    let mut members_1_2: Vec<_> = members.of(scc_1_2).to_vec();
+    members_1_2.sort();
+    assert_eq!(members_1_2, vec![n!(1), n!(2)]);
+
+    // Nodes 0 and 3 are their own SCCs
+    let scc_0 = sccs.scc(n!(0));
+    let scc_3 = sccs.scc(n!(3));
+
+    assert_eq!(members.of(scc_0), &[n!(0)]);
+    assert_eq!(members.of(scc_3), &[n!(3)]);
+}
+
+/// Tests that `members()` works correctly on an empty graph.
+#[test]
+fn members_empty() {
+    let graph = TestGraph::new(&[]);
+    let sccs: Sccs = Tarjan::new(&graph).run();
+
+    let members = sccs.members();
+    assert_eq!(members.offsets.len(), 1); // Just the sentinel
+    assert!(members.nodes.is_empty());
+}
