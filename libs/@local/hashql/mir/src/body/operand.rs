@@ -59,6 +59,12 @@ impl<'heap> Operand<'heap> {
     }
 }
 
+impl From<!> for Operand<'_> {
+    fn from(value: !) -> Self {
+        value
+    }
+}
+
 impl From<Local> for Operand<'_> {
     fn from(local: Local) -> Self {
         Operand::Place(Place::local(local))

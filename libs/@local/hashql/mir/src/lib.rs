@@ -14,16 +14,15 @@
     // Library Features
     allocator_api,
     assert_matches,
+    binary_heap_drain_sorted,
     const_type_name,
     iter_array_chunks,
     iter_collect_into,
     iter_intersperse,
+    maybe_uninit_fill,
+    step_trait,
     string_from_utf8_lossy_owned,
     try_trait_v2,
-    step_trait,
-    maybe_uninit_fill,
-    binary_heap_into_iter_sorted,
-    binary_heap_drain_sorted,
 )]
 #![expect(clippy::indexing_slicing)]
 extern crate alloc;
