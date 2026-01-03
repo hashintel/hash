@@ -1,0 +1,371 @@
+════ Initial MIR ═══════════════════════════════════════════════════════════════
+
+fn {closure#10}(%0: (), %1: Integer) -> Boolean {
+    let %2: Boolean
+
+    bb0(): {
+        %2 = %1 > 50
+
+        return %2
+    }
+}
+
+thunk is_large:0() -> (Integer) -> Boolean {
+    let %0: (Integer) -> Boolean
+    let %1: ()
+
+    bb0(): {
+        %1 = ()
+        %0 = closure(({closure#10} as FnPtr), %1)
+
+        return %0
+    }
+}
+
+fn {closure#11}(%0: (), %1: Boolean, %2: Boolean) -> Boolean {
+    let %3: Boolean
+
+    bb0(): {
+        %3 = %1 & %2
+
+        return %3
+    }
+}
+
+thunk check_both:0() -> (Boolean, Boolean) -> Boolean {
+    let %0: (Boolean, Boolean) -> Boolean
+    let %1: ()
+
+    bb0(): {
+        %1 = ()
+        %0 = closure(({closure#11} as FnPtr), %1)
+
+        return %0
+    }
+}
+
+thunk {thunk#7}() -> Boolean {
+    let %0: (Integer) -> Boolean
+    let %1: Boolean
+
+    bb0(): {
+        %0 = apply (is_large:0 as FnPtr)
+        %1 = apply %0.0 %0.1 100
+
+        return %1
+    }
+}
+
+thunk {thunk#8}() -> Boolean {
+    let %0: (Integer) -> Boolean
+    let %1: Boolean
+
+    bb0(): {
+        %0 = apply (is_large:0 as FnPtr)
+        %1 = apply %0.0 %0.1 75
+
+        return %1
+    }
+}
+
+*thunk {thunk#9}() -> Boolean {
+    let %0: Boolean
+    let %1: Boolean
+    let %2: (Boolean, Boolean) -> Boolean
+    let %3: Boolean
+
+    bb0(): {
+        %0 = apply ({thunk#7} as FnPtr)
+        %1 = apply ({thunk#8} as FnPtr)
+        %2 = apply (check_both:0 as FnPtr)
+        %3 = apply %2.0 %2.1 %0 %1
+
+        return %3
+    }
+}
+
+════ Pre-inlining MIR ══════════════════════════════════════════════════════════
+
+fn {closure#10}(%0: (), %1: Integer) -> Boolean {
+    let %2: Boolean
+
+    bb0(): {
+        %2 = %1 > 50
+
+        return %2
+    }
+}
+
+thunk is_large:0() -> (Integer) -> Boolean {
+    let %0: (Integer) -> Boolean
+
+    bb0(): {
+        %0 = closure(({closure#10} as FnPtr), ())
+
+        return %0
+    }
+}
+
+fn {closure#11}(%0: (), %1: Boolean, %2: Boolean) -> Boolean {
+    let %3: Boolean
+
+    bb0(): {
+        %3 = %1 & %2
+
+        return %3
+    }
+}
+
+thunk check_both:0() -> (Boolean, Boolean) -> Boolean {
+    let %0: (Boolean, Boolean) -> Boolean
+
+    bb0(): {
+        %0 = closure(({closure#11} as FnPtr), ())
+
+        return %0
+    }
+}
+
+thunk {thunk#7}() -> Boolean {
+    let %0: Boolean
+
+    bb0(): {
+        %0 = apply ({closure#10} as FnPtr) () 100
+
+        return %0
+    }
+}
+
+thunk {thunk#8}() -> Boolean {
+    let %0: Boolean
+
+    bb0(): {
+        %0 = apply ({closure#10} as FnPtr) () 75
+
+        return %0
+    }
+}
+
+*thunk {thunk#9}() -> Boolean {
+    let %0: Boolean
+    let %1: Boolean
+    let %2: Boolean
+
+    bb0(): {
+        %1 = apply ({closure#10} as FnPtr) () 100
+        %2 = apply ({closure#10} as FnPtr) () 75
+        %0 = apply ({closure#11} as FnPtr) () %1 %2
+
+        return %0
+    }
+}
+
+════ Inlined MIR ═══════════════════════════════════════════════════════════════
+
+fn {closure#10}(%0: (), %1: Integer) -> Boolean {
+    let %2: Boolean
+
+    bb0(): {
+        %2 = %1 > 50
+
+        return %2
+    }
+}
+
+thunk is_large:0() -> (Integer) -> Boolean {
+    let %0: (Integer) -> Boolean
+
+    bb0(): {
+        %0 = closure(({closure#10} as FnPtr), ())
+
+        return %0
+    }
+}
+
+fn {closure#11}(%0: (), %1: Boolean, %2: Boolean) -> Boolean {
+    let %3: Boolean
+
+    bb0(): {
+        %3 = %1 & %2
+
+        return %3
+    }
+}
+
+thunk check_both:0() -> (Boolean, Boolean) -> Boolean {
+    let %0: (Boolean, Boolean) -> Boolean
+
+    bb0(): {
+        %0 = closure(({closure#11} as FnPtr), ())
+
+        return %0
+    }
+}
+
+thunk {thunk#7}() -> Boolean {
+    let %0: Boolean
+    let %1: ()
+    let %2: Integer
+    let %3: Boolean
+
+    bb0(): {
+        %1 = ()
+        %2 = 100
+
+        goto -> bb2()
+    }
+
+    bb1(%0): {
+        return %0
+    }
+
+    bb2(): {
+        %3 = %2 > 50
+
+        goto -> bb1(%3)
+    }
+}
+
+thunk {thunk#8}() -> Boolean {
+    let %0: Boolean
+    let %1: ()
+    let %2: Integer
+    let %3: Boolean
+
+    bb0(): {
+        %1 = ()
+        %2 = 75
+
+        goto -> bb2()
+    }
+
+    bb1(%0): {
+        return %0
+    }
+
+    bb2(): {
+        %3 = %2 > 50
+
+        goto -> bb1(%3)
+    }
+}
+
+*thunk {thunk#9}() -> Boolean {
+    let %0: Boolean
+    let %1: Boolean
+    let %2: Boolean
+    let %3: ()
+    let %4: Boolean
+    let %5: Boolean
+    let %6: Boolean
+    let %7: ()
+    let %8: Integer
+    let %9: Boolean
+    let %10: ()
+    let %11: Integer
+    let %12: Boolean
+
+    bb0(): {
+        %10 = ()
+        %11 = 100
+
+        goto -> bb6()
+    }
+
+    bb1(%0): {
+        return %0
+    }
+
+    bb2(): {
+        %6 = %4 & %5
+
+        goto -> bb1(%6)
+    }
+
+    bb3(%2): {
+        %3 = ()
+        %4 = %1
+        %5 = %2
+
+        goto -> bb2()
+    }
+
+    bb4(): {
+        %9 = %8 > 50
+
+        goto -> bb3(%9)
+    }
+
+    bb5(%1): {
+        %7 = ()
+        %8 = 75
+
+        goto -> bb4()
+    }
+
+    bb6(): {
+        %12 = %11 > 50
+
+        goto -> bb5(%12)
+    }
+}
+
+════ Post Inline MIR ═══════════════════════════════════════════════════════════
+
+fn {closure#10}(%0: (), %1: Integer) -> Boolean {
+    let %2: Boolean
+
+    bb0(): {
+        %2 = %1 > 50
+
+        return %2
+    }
+}
+
+thunk is_large:0() -> (Integer) -> Boolean {
+    let %0: (Integer) -> Boolean
+
+    bb0(): {
+        %0 = closure(({closure#10} as FnPtr), ())
+
+        return %0
+    }
+}
+
+fn {closure#11}(%0: (), %1: Boolean, %2: Boolean) -> Boolean {
+    let %3: Boolean
+
+    bb0(): {
+        %3 = %1 & %2
+
+        return %3
+    }
+}
+
+thunk check_both:0() -> (Boolean, Boolean) -> Boolean {
+    let %0: (Boolean, Boolean) -> Boolean
+
+    bb0(): {
+        %0 = closure(({closure#11} as FnPtr), ())
+
+        return %0
+    }
+}
+
+thunk {thunk#7}() -> Boolean {
+    bb0(): {
+        return 1
+    }
+}
+
+thunk {thunk#8}() -> Boolean {
+    bb0(): {
+        return 1
+    }
+}
+
+*thunk {thunk#9}() -> Boolean {
+    bb0(): {
+        return 1
+    }
+}

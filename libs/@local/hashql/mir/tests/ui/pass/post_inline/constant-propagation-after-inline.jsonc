@@ -1,0 +1,17 @@
+//@ run: pass
+//@ description: Post-inline pass propagates constants exposed by inlining
+// After inlining, the constant argument becomes visible at the call site.
+// PostInline's forward substitution propagates this constant through the
+// inlined code, enabling constant folding of the comparison.
+[
+  "let",
+  "is_positive",
+  [
+    "fn",
+    { "#tuple": [] },
+    { "#struct": { "n": "Integer" } },
+    "Boolean",
+    [">", "n", { "#literal": 0 }]
+  ],
+  ["is_positive", { "#literal": 42 }]
+]
