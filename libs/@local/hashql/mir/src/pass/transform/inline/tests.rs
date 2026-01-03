@@ -685,11 +685,13 @@ fn heuristics_directive_scores() {
     // Test Always -> +∞
     let properties = DefIdVec::from_raw(vec![
         BodyProperties {
+            source: Source::Intrinsic(DefId::PLACEHOLDER),
             directive: InlineDirective::Always,
             cost: 100.0,
             is_leaf: true,
         },
         BodyProperties {
+            source: Source::Intrinsic(DefId::PLACEHOLDER),
             directive: InlineDirective::Heuristic,
             cost: 10.0,
             is_leaf: false,
@@ -707,11 +709,13 @@ fn heuristics_directive_scores() {
     // Test Never -> -∞
     let properties = DefIdVec::from_raw(vec![
         BodyProperties {
+            source: Source::Intrinsic(DefId::PLACEHOLDER),
             directive: InlineDirective::Never,
             cost: 5.0,
             is_leaf: true,
         },
         BodyProperties {
+            source: Source::Intrinsic(DefId::PLACEHOLDER),
             directive: InlineDirective::Heuristic,
             cost: 10.0,
             is_leaf: false,
@@ -744,11 +748,13 @@ fn heuristics_cost_thresholds() {
     // Below always_inline -> +∞
     let properties = DefIdVec::from_raw(vec![
         BodyProperties {
+            source: Source::Intrinsic(DefId::PLACEHOLDER),
             directive: InlineDirective::Heuristic,
             cost: config.always_inline - 1.0,
             is_leaf: true,
         },
         BodyProperties {
+            source: Source::Intrinsic(DefId::PLACEHOLDER),
             directive: InlineDirective::Heuristic,
             cost: 10.0,
             is_leaf: false,
@@ -767,11 +773,13 @@ fn heuristics_cost_thresholds() {
     // Above max -> -∞
     let properties = DefIdVec::from_raw(vec![
         BodyProperties {
+            source: Source::Intrinsic(DefId::PLACEHOLDER),
             directive: InlineDirective::Heuristic,
             cost: config.max + 1.0,
             is_leaf: true,
         },
         BodyProperties {
+            source: Source::Intrinsic(DefId::PLACEHOLDER),
             directive: InlineDirective::Heuristic,
             cost: 10.0,
             is_leaf: false,
@@ -805,11 +813,13 @@ fn heuristics_leaf_bonus() {
 
     let props_leaf = DefIdVec::from_raw(vec![
         BodyProperties {
+            source: Source::Intrinsic(DefId::PLACEHOLDER),
             directive: InlineDirective::Heuristic,
             cost,
             is_leaf: true,
         },
         BodyProperties {
+            source: Source::Intrinsic(DefId::PLACEHOLDER),
             directive: InlineDirective::Heuristic,
             cost: 10.0,
             is_leaf: false,
@@ -817,11 +827,13 @@ fn heuristics_leaf_bonus() {
     ]);
     let props_non_leaf = DefIdVec::from_raw(vec![
         BodyProperties {
+            source: Source::Intrinsic(DefId::PLACEHOLDER),
             directive: InlineDirective::Heuristic,
             cost,
             is_leaf: false,
         },
         BodyProperties {
+            source: Source::Intrinsic(DefId::PLACEHOLDER),
             directive: InlineDirective::Heuristic,
             cost: 10.0,
             is_leaf: false,
@@ -875,11 +887,13 @@ fn heuristics_loop_bonus() {
 
     let properties = DefIdVec::from_raw(vec![
         BodyProperties {
+            source: Source::Intrinsic(DefId::PLACEHOLDER),
             directive: InlineDirective::Heuristic,
             cost,
             is_leaf: true,
         },
         BodyProperties {
+            source: Source::Intrinsic(DefId::PLACEHOLDER),
             directive: InlineDirective::Heuristic,
             cost: 50.0,
             is_leaf: false,
@@ -947,11 +961,13 @@ fn heuristics_max_loop_multiplier() {
 
     let properties = DefIdVec::from_raw(vec![
         BodyProperties {
+            source: Source::Intrinsic(DefId::PLACEHOLDER),
             directive: InlineDirective::Heuristic,
             cost,
             is_leaf: true,
         },
         BodyProperties {
+            source: Source::Intrinsic(DefId::PLACEHOLDER),
             directive: InlineDirective::Heuristic,
             cost: 50.0,
             is_leaf: false,
@@ -1009,11 +1025,13 @@ fn heuristics_caller_bonuses() {
 
     let properties = DefIdVec::from_raw(vec![
         BodyProperties {
+            source: Source::Intrinsic(DefId::PLACEHOLDER),
             directive: InlineDirective::Heuristic,
             cost,
             is_leaf: true,
         },
         BodyProperties {
+            source: Source::Intrinsic(DefId::PLACEHOLDER),
             directive: InlineDirective::Heuristic,
             cost: 50.0,
             is_leaf: false,
@@ -1063,11 +1081,13 @@ fn heuristics_no_unique_callsite_bonus_multiple_calls() {
 
     let properties = DefIdVec::from_raw(vec![
         BodyProperties {
+            source: Source::Intrinsic(DefId::PLACEHOLDER),
             directive: InlineDirective::Heuristic,
             cost,
             is_leaf: true,
         },
         BodyProperties {
+            source: Source::Intrinsic(DefId::PLACEHOLDER),
             directive: InlineDirective::Heuristic,
             cost: 50.0,
             is_leaf: false,

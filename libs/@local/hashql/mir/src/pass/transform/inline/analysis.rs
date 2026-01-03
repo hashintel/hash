@@ -35,6 +35,7 @@ use hashql_core::{
     id::{IdVec, bit_vec::DenseBitSet},
 };
 
+use super::find::FindApplyCall;
 use crate::{
     body::{
         Body, Source,
@@ -72,7 +73,9 @@ pub(super) enum InlineDirective {
 
 /// Properties of a function body relevant to inlining decisions.
 #[derive(Debug, Copy, Clone, PartialEq)]
-pub(super) struct BodyProperties {
+pub(super) struct BodyProperties<'heap> {
+    pub source: Source<'heap>,
+
     /// How this function should be treated for inlining.
     pub directive: InlineDirective,
     /// Estimated cost/complexity of the function body.
@@ -191,11 +194,19 @@ impl Default for InlineCostEstimationConfig {
 }
 
 /// Results from body analysis, consumed by the inline pass.
-pub(crate) struct CostEstimationResidual<A: Allocator> {
+pub(crate) struct CostEstimationResidual<'heap, A: Allocator> {
     /// Properties for each function body.
-    pub properties: DefIdVec<BodyProperties, A>,
+    pub properties: DefIdVec<BodyProperties<'heap>, A>,
     /// For each function, which basic blocks are inside loops.
     pub loops: BasicBlockLoopVec<A>,
+}
+
+impl<'heap, A: Allocator> CostEstimationResidual<'heap, A> {
+    pub(crate) fn is_leaf(&self, body: &Body<'heap>) -> bool {
+        FindApplyCall::new(&self.properties)
+            .visit_body(body)
+            .is_continue()
+    }
 }
 
 /// Analyzes all function bodies to compute inlining-relevant properties.
@@ -209,7 +220,7 @@ pub(crate) struct BodyAnalysis<'ctx, 'heap, A: Allocator> {
     alloc: A,
     config: InlineCostEstimationConfig,
 
-    properties: DefIdVec<BodyProperties, A>,
+    properties: DefIdVec<BodyProperties<'heap>, A>,
     loops: BasicBlockLoopVec<A>,
     graph: &'ctx CallGraph<'heap, A>,
 }
@@ -225,8 +236,9 @@ impl<'ctx, 'heap, A: Allocator> BodyAnalysis<'ctx, 'heap, A> {
     where
         A: Clone,
     {
-        let properties = DefIdVec::from_domain_in(
-            BodyProperties {
+        let properties = DefIdVec::from_domain_derive_in(
+            |_, body| BodyProperties {
+                source: body.source,
                 directive: InlineDirective::Heuristic,
                 cost: 0.0,
                 is_leaf: true,
@@ -245,7 +257,7 @@ impl<'ctx, 'heap, A: Allocator> BodyAnalysis<'ctx, 'heap, A> {
         }
     }
 
-    pub(crate) fn finish(self) -> CostEstimationResidual<A> {
+    pub(crate) fn finish(self) -> CostEstimationResidual<'heap, A> {
         CostEstimationResidual {
             properties: self.properties,
             loops: self.loops,
@@ -291,6 +303,7 @@ impl<'ctx, 'heap, A: Allocator> BodyAnalysis<'ctx, 'heap, A> {
         visitor.visit_body(body);
 
         self.properties[body.id] = BodyProperties {
+            source: body.source,
             directive: inline,
             cost: visitor.total,
             is_leaf: self.graph.is_leaf(body.id),
