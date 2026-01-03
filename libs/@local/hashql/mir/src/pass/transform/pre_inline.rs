@@ -45,11 +45,11 @@ use crate::{
 /// This pass manages its own per-body change tracking and does not populate the caller-provided
 /// [`GlobalTransformState`]. Callers receive a combined [`Changed`] result indicating whether any
 /// body was modified.
-pub struct PreInlining<A: Allocator> {
+pub struct PreInline<A: Allocator> {
     alloc: A,
 }
 
-impl<A: BumpAllocator> PreInlining<A> {
+impl<A: BumpAllocator> PreInline<A> {
     /// Creates a new pre-inlining pass with the given allocator.
     ///
     /// The allocator is used for temporary data structures within sub-passes and is reset
@@ -180,7 +180,7 @@ impl<A: BumpAllocator> PreInlining<A> {
 
 const MAX_ITERATIONS: usize = 16;
 
-impl<'env, 'heap, A: BumpAllocator> GlobalTransformPass<'env, 'heap> for PreInlining<A> {
+impl<'env, 'heap, A: BumpAllocator> GlobalTransformPass<'env, 'heap> for PreInline<A> {
     #[expect(clippy::integer_division_remainder_used)]
     fn run(
         &mut self,

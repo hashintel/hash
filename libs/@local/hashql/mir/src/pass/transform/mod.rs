@@ -21,6 +21,6 @@ pub use self::{
     forward_substitution::ForwardSubstitution,
     inline::{Inline, InlineConfig, InlineCostEstimationConfig, InlineHeuristicsConfig},
     inst_simplify::InstSimplify,
-    pre_inline::PreInlining,
+    pre_inline::PreInline,
     ssa_repair::SsaRepair,
 };
