@@ -6,7 +6,7 @@ import {
 
 import { GlassPanel } from "../../../../components/glass-panel";
 import type { MenuItem } from "../../../../components/menu";
-import { VerticalSubViewsContainer } from "../../../../components/sub-view";
+import { VerticalSubViewsContainer } from "../../../../components/sub-view/vertical-sub-views-container";
 import {
   LEFT_SIDEBAR_SUBVIEWS,
   MAX_LEFT_SIDEBAR_WIDTH,
