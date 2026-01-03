@@ -156,7 +156,7 @@ where
     }
 }
 
-pub(crate) fn mir_pass_transform_pre_inlining<'heap>(
+pub(crate) fn mir_pass_transform_pre_inline<'heap>(
     heap: &'heap Heap,
     expr: Expr<'heap>,
     interner: &Interner<'heap>,
@@ -212,9 +212,9 @@ pub(crate) fn mir_pass_transform_pre_inlining<'heap>(
     Ok((root, bodies, scratch))
 }
 
-pub(crate) struct MirPassTransformPreInlining;
+pub(crate) struct MirPassTransformPreInline;
 
-impl Suite for MirPassTransformPreInlining {
+impl Suite for MirPassTransformPreInline {
     fn priority(&self) -> usize {
         1
     }
@@ -224,7 +224,7 @@ impl Suite for MirPassTransformPreInlining {
     }
 
     fn name(&self) -> &'static str {
-        "mir/pass/transform/pre-inlining"
+        "mir/pass/transform/pre-inline"
     }
 
     fn description(&self) -> &'static str {
@@ -249,7 +249,7 @@ impl Suite for MirPassTransformPreInlining {
         let mut buffer = Vec::new();
         let mut d2 = d2_output_enabled(self, suite_directives, reports).then(mir_spawn_d2);
 
-        mir_pass_transform_pre_inlining(
+        mir_pass_transform_pre_inline(
             heap,
             expr,
             &interner,
