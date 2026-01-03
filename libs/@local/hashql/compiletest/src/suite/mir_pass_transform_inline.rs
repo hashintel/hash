@@ -20,12 +20,12 @@ use hashql_mir::{
 use super::{
     RunContext, Suite, SuiteDiagnostic,
     common::process_issues,
-    mir_pass_transform_pre_inlining::{
-        MirRenderer, RenderContext, Stage, mir_pass_transform_pre_inlining,
+    mir_pass_transform_pre_inline::{
+        MirRenderer, RenderContext, Stage, mir_pass_transform_pre_inline,
     },
 };
 use crate::suite::{
-    mir_pass_transform_pre_inlining::{D2Renderer, TextRenderer},
+    mir_pass_transform_pre_inline::{D2Renderer, TextRenderer},
     mir_reify::{d2_output_enabled, mir_spawn_d2},
 };
 
@@ -38,14 +38,8 @@ pub(crate) fn mir_pass_transform_inline<'heap>(
     environment: &mut Environment<'heap>,
     diagnostics: &mut Vec<SuiteDiagnostic>,
 ) -> Result<(DefId, DefIdVec<Body<'heap>>, Scratch), SuiteDiagnostic> {
-    let (root, mut bodies, mut scratch) = mir_pass_transform_pre_inlining(
-        heap,
-        expr,
-        interner,
-        &mut render,
-        environment,
-        diagnostics,
-    )?;
+    let (root, mut bodies, mut scratch) =
+        mir_pass_transform_pre_inline(heap, expr, interner, &mut render, environment, diagnostics)?;
 
     let mut context = MirContext {
         heap,
