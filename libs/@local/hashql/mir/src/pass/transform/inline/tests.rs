@@ -1,11 +1,6 @@
-#![expect(
-    clippy::min_ident_chars,
-    clippy::similar_names,
-    clippy::non_ascii_literal,
-    reason = "tests"
-)]
+#![expect(clippy::min_ident_chars, clippy::similar_names, reason = "tests")]
 
-use alloc::vec;
+use alloc::{alloc::Global, collections::BinaryHeap, vec};
 use core::{f32, fmt::Write as _};
 use std::path::PathBuf;
 
@@ -29,17 +24,14 @@ use crate::{
     def::{DefId, DefIdSlice, DefIdVec},
     intern::Interner,
     pass::{
+        Changed, GlobalTransformPass as _, OwnedGlobalTransformState,
         analysis::{CallGraph, CallSite},
         transform::inline::{
-            BodyProperties, analysis::InlineDirective, heuristics::InlineHeuristics,
+            BodyProperties, Candidate, analysis::InlineDirective, heuristics::InlineHeuristics,
         },
     },
     pretty::TextFormat,
 };
-
-// ============================================================================
-// Common Body Builders
-// ============================================================================
 
 /// Creates an identity function: `fn(x: Int) -> Int { return x; }`.
 fn identity_callee<'heap>(
@@ -82,10 +74,6 @@ fn callee_caller_pair<'heap>(
     )
 }
 
-// ============================================================================
-// Test Harnesses
-// ============================================================================
-
 fn format_bodies<'heap>(
     bodies: &DefIdSlice<Body<'heap>>,
     context: &MirContext<'_, 'heap>,
@@ -117,15 +105,18 @@ fn assert_inline_pass<'heap>(
     context: &mut MirContext<'_, 'heap>,
     config: InlineConfig,
 ) {
-    let bodies_slice = DefIdSlice::from_raw(bodies);
-    let before = format_bodies(bodies_slice, context);
+    let bodies = DefIdSlice::from_raw_mut(bodies);
+    let before = format_bodies(bodies, context);
 
     let mut heap = Heap::new();
     let mut pass = Inline::new_in(config, &mut heap);
-    pass.run(context, DefIdSlice::from_raw_mut(bodies));
+    let _: Changed = pass.run(
+        context,
+        &mut OwnedGlobalTransformState::new_in(bodies, Global).as_mut(),
+        bodies,
+    );
 
-    let bodies_slice = DefIdSlice::from_raw(bodies);
-    let after = format_bodies(bodies_slice, context);
+    let after = format_bodies(bodies, context);
 
     let mut output = before;
     write!(output, "\n\n{:=^50}\n\n", " After Inlining ").expect("infallible");
@@ -150,10 +141,6 @@ fn default_callsite() -> CallSite<Location> {
         target: DefId::new(0),
     }
 }
-
-// ============================================================================
-// Inline Transform Tests
-// ============================================================================
 
 #[test]
 fn inline_simple_leaf() {
@@ -479,15 +466,8 @@ fn inline_budget_exhaustion() {
 ///
 /// This is a regression test for a bug where the ordering was accidentally reversed.
 #[test]
+#[expect(clippy::float_cmp)]
 fn candidates_ordered_by_descending_score() {
-    use alloc::collections::BinaryHeap;
-
-    use super::Candidate;
-
-    let heap = Heap::new();
-    let interner = Interner::new(&heap);
-    let env = Environment::new(&heap);
-
     // Create callsites with different scores
     let callsite_low = CallSite {
         caller: DefId::new(1),
@@ -528,7 +508,6 @@ fn candidates_ordered_by_descending_score() {
         callsite: callsite_mid,
     });
 
-    // drain_sorted should return highest score first (max-heap behavior)
     let drained: Vec<_> = candidates.drain_sorted().collect();
 
     assert_eq!(drained.len(), 3);
@@ -541,10 +520,6 @@ fn candidates_ordered_by_descending_score() {
     assert_eq!(drained[1].score, 30.0, "Middle score should be second");
     assert_eq!(drained[2].score, 10.0, "Lowest score should be last");
 }
-
-// ============================================================================
-// Analysis Tests
-// ============================================================================
 
 #[test]
 fn analysis_directives_by_source() {
@@ -693,10 +668,6 @@ fn analysis_loop_detection() {
     assert!(!loop_blocks.contains(BasicBlockId::new(2)));
 }
 
-// ============================================================================
-// Heuristics Tests
-// ============================================================================
-
 #[test]
 fn heuristics_directive_scores() {
     let heap = Heap::new();
@@ -731,10 +702,7 @@ fn heuristics_directive_scores() {
         properties: properties.as_slice(),
     };
     let score = heuristics.score(callsite);
-    assert!(
-        score.is_infinite() && score.is_sign_positive(),
-        "Always -> +∞"
-    );
+    assert!(score.is_infinite() && score.is_sign_positive());
 
     // Test Never -> -∞
     let properties = DefIdVec::from_raw(vec![
@@ -756,10 +724,7 @@ fn heuristics_directive_scores() {
         properties: properties.as_slice(),
     };
     let score = heuristics.score(callsite);
-    assert!(
-        score.is_infinite() && score.is_sign_negative(),
-        "Never -> -∞"
-    );
+    assert!(score.is_infinite() && score.is_sign_negative());
 }
 
 #[test]
