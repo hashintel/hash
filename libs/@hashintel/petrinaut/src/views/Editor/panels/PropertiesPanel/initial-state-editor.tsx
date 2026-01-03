@@ -2,7 +2,6 @@ import { css, cva } from "@hashintel/ds-helpers/css";
 import { useEffect, useRef, useState } from "react";
 import { TbTrash } from "react-icons/tb";
 
-import { InfoIconTooltip } from "../../../../components/tooltip";
 import type { Color } from "../../../../core/types/sdcpn";
 import { useSimulationStore } from "../../../../state/simulation-provider";
 
@@ -12,11 +11,6 @@ const headerRowStyle = css({
   justifyContent: "space-between",
   marginBottom: "[4px]",
   height: "[20px]",
-});
-
-const headerLabelStyle = css({
-  fontWeight: 500,
-  fontSize: "[12px]",
 });
 
 const clearButtonStyle = css({
@@ -744,12 +738,6 @@ export const InitialStateEditor: React.FC<InitialStateEditorProps> = ({
   return (
     <div>
       <div className={headerRowStyle}>
-        <div className={headerLabelStyle}>
-          {isSimulationNotRun ? "Initial State" : "State"}
-          {isSimulationNotRun && (
-            <InfoIconTooltip tooltip="To delete an existing row, click its number in the left-most cell and press delete on your keyboard." />
-          )}
-        </div>
         {isSimulationNotRun && tableData.length > 0 && (
           <button
             type="button"

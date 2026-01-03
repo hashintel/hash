@@ -2,10 +2,11 @@ import { css } from "@hashintel/ds-helpers/css";
 import { useState } from "react";
 import { TbArrowRight } from "react-icons/tb";
 
-import { InfoIconTooltip } from "../../../../components/tooltip";
-import { useEditorStore } from "../../../../state/editor-provider";
-import { useSDCPNContext } from "../../../../state/sdcpn-provider";
-import { useSimulationStore } from "../../../../state/simulation-provider";
+import type { SubView } from "../../../components/sub-view/types";
+import { InfoIconTooltip } from "../../../components/tooltip";
+import { useEditorStore } from "../../../state/editor-provider";
+import { useSDCPNContext } from "../../../state/sdcpn-provider";
+import { useSimulationStore } from "../../../state/simulation-provider";
 
 const containerStyle = css({
   display: "flex",
@@ -189,7 +190,7 @@ const editButtonIconStyle = css({
  * SimulationSettingsContent displays simulation settings in the BottomPanel.
  * Split into two sections: Computation and Parameters.
  */
-export const SimulationSettingsContent: React.FC = () => {
+const SimulationSettingsContent: React.FC = () => {
   const setGlobalMode = useEditorStore((state) => state.setGlobalMode);
   const simulationState = useSimulationStore((state) => state.state);
   const simulationError = useSimulationStore((state) => state.error);
@@ -324,4 +325,15 @@ export const SimulationSettingsContent: React.FC = () => {
       )}
     </div>
   );
+};
+
+/**
+ * SubView definition for Simulation Settings tab.
+ */
+export const simulationSettingsSubView: SubView = {
+  id: "simulation-settings",
+  title: "Simulation Settings",
+  tooltip:
+    "Configure simulation parameters including time step and ODE solver method.",
+  component: SimulationSettingsContent,
 };
