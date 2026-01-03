@@ -1,4 +1,5 @@
 mod administrative_reduction;
+mod canonicalization;
 mod cfg_simplify;
 mod copy_propagation;
 mod dbe;
@@ -13,6 +14,7 @@ mod ssa_repair;
 
 pub use self::{
     administrative_reduction::AdministrativeReduction,
+    canonicalization::{Canonicalization, CanonicalizationConfig},
     cfg_simplify::CfgSimplify,
     copy_propagation::CopyPropagation,
     dbe::DeadBlockElimination,

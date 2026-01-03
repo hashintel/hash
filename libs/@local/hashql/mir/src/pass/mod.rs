@@ -111,12 +111,21 @@ impl Changed {
         }
     }
 
-    const fn from_u8(value: u8) -> Self {
+    /// Convert from a `u8` value.
+    ///
+    /// # Safety
+    ///
+    /// The caller must ensure that the value is either `0`, `1`, or `3`.
+    #[expect(unsafe_code)]
+    const unsafe fn from_u8_unchecked(value: u8) -> Self {
+        debug_assert!(value == 0 || value == 1 || value == 3);
+
         match value {
             0 => Self::No,
             1 => Self::Unknown,
             3 => Self::Yes,
-            _ => unreachable!(),
+            // SAFETY: caller guarantees that the value is valid.
+            _ => unsafe { core::hint::unreachable_unchecked() },
         }
     }
 
@@ -128,12 +137,21 @@ impl Changed {
 impl BitOr for Changed {
     type Output = Self;
 
+    #[inline]
+    #[expect(unsafe_code)]
     fn bitor(self, rhs: Self) -> Self::Output {
-        Self::from_u8(self.into_u8() | rhs.into_u8())
+        let result = self.into_u8() | rhs.into_u8();
+
+        // We use `from_u8_unchecked` here because the safe version prevents LLVM from vectorizing
+        // loops that use `|=` on slices of `Changed` values.
+        // SAFETY: Both operands have valid discriminants (0, 1, or 3). The bitwise OR of any
+        // combination of these values produces only 0, 1, or 3, which are all valid discriminants.
+        unsafe { Self::from_u8_unchecked(result) }
     }
 }
 
 impl BitOrAssign for Changed {
+    #[inline]
     fn bitor_assign(&mut self, rhs: Self) {
         *self = *self | rhs;
     }
@@ -293,6 +311,22 @@ impl<'ctx> GlobalTransformState<'ctx> {
     /// downgraded by a subsequent [`Changed::No`] mark.
     pub fn mark(&mut self, id: DefId, changed: Changed) {
         self.changed[id] |= changed;
+    }
+
+    /// Overlays the state from another [`GlobalTransformState`] onto this one.
+    ///
+    /// This is useful when you want to combine the results of multiple passes into a single
+    /// state.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the lengths of the two states are not equal.
+    pub fn overlay(&mut self, other: &DefIdSlice<Changed>) {
+        assert_eq!(self.changed.len(), other.len());
+
+        for (target, &value) in self.changed.iter_mut().zip(other) {
+            *target |= value;
+        }
     }
 }
 
