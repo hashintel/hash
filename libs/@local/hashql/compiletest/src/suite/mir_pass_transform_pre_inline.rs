@@ -11,7 +11,7 @@ use hashql_mir::{
     context::MirContext,
     def::{DefId, DefIdSlice, DefIdVec},
     intern::Interner,
-    pass::{Changed, GlobalTransformPass as _, GlobalTransformState, transform::PreInlining},
+    pass::{Changed, GlobalTransformPass as _, GlobalTransformState, transform::PreInline},
 };
 
 use super::{RunContext, Suite, SuiteDiagnostic, common::process_issues, mir_reify::mir_reify};
@@ -187,7 +187,7 @@ pub(crate) fn mir_pass_transform_pre_inline<'heap>(
     };
     let mut scratch = Scratch::new();
 
-    let mut pass = PreInlining::new_in(&mut scratch);
+    let mut pass = PreInline::new_in(&mut scratch);
     let _: Changed = pass.run(
         &mut context,
         &mut GlobalTransformState::new_in(&bodies, heap),

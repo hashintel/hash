@@ -24,7 +24,7 @@ use hashql_mir::{
     pass::{
         GlobalTransformPass as _, GlobalTransformState, TransformPass as _,
         transform::{
-            CfgSimplify, DeadStoreElimination, ForwardSubstitution, InstSimplify, PreInlining,
+            CfgSimplify, DeadStoreElimination, ForwardSubstitution, InstSimplify, PreInline,
         },
     },
 };
@@ -505,7 +505,7 @@ fn pipeline(criterion: &mut Criterion) {
         run_bencher(bencher, create_linear_cfg, |context, body, scratch| {
             let bodies = IdSlice::from_raw_mut(core::slice::from_mut(body));
 
-            PreInlining::new_in(scratch).run(
+            PreInline::new_in(scratch).run(
                 context,
                 &mut GlobalTransformState::new_in(bodies, context.heap),
                 bodies,
@@ -516,7 +516,7 @@ fn pipeline(criterion: &mut Criterion) {
         run_bencher(bencher, create_diamond_cfg, |context, body, scratch| {
             let bodies = IdSlice::from_raw_mut(core::slice::from_mut(body));
 
-            PreInlining::new_in(scratch).run(
+            PreInline::new_in(scratch).run(
                 context,
                 &mut GlobalTransformState::new_in(bodies, context.heap),
                 bodies,
@@ -527,7 +527,7 @@ fn pipeline(criterion: &mut Criterion) {
         run_bencher(bencher, create_complex_cfg, |context, body, scratch| {
             let bodies = IdSlice::from_raw_mut(core::slice::from_mut(body));
 
-            PreInlining::new_in(scratch).run(
+            PreInline::new_in(scratch).run(
                 context,
                 &mut GlobalTransformState::new_in(bodies, context.heap),
                 bodies,
