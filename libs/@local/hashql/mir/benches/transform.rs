@@ -24,7 +24,8 @@ use hashql_mir::{
     pass::{
         GlobalTransformPass as _, GlobalTransformState, TransformPass as _,
         transform::{
-            CfgSimplify, DeadStoreElimination, ForwardSubstitution, InstSimplify, PreInline,
+            CfgSimplify, DeadStoreElimination, ForwardSubstitution, Inline, InlineConfig,
+            InstSimplify, PostInline, PreInline,
         },
     },
 };
@@ -504,34 +505,46 @@ fn pipeline(criterion: &mut Criterion) {
     group.bench_function("linear", |bencher| {
         run_bencher(bencher, create_linear_cfg, |context, body, scratch| {
             let bodies = IdSlice::from_raw_mut(core::slice::from_mut(body));
+            let mut state = GlobalTransformState::new_in(bodies, context.heap);
 
-            PreInline::new_in(scratch).run(
-                context,
-                &mut GlobalTransformState::new_in(bodies, context.heap),
-                bodies,
-            )
+            let mut changed = PreInline::new_in(&mut *scratch).run(context, &mut state, bodies);
+            scratch.reset();
+            changed |= Inline::new_in(InlineConfig::default(), &mut *scratch)
+                .run(context, &mut state, bodies);
+            scratch.reset();
+            changed |= PostInline::new_in(&mut *scratch).run(context, &mut state, bodies);
+            scratch.reset();
+            changed
         });
     });
     group.bench_function("diamond", |bencher| {
         run_bencher(bencher, create_diamond_cfg, |context, body, scratch| {
             let bodies = IdSlice::from_raw_mut(core::slice::from_mut(body));
+            let mut state = GlobalTransformState::new_in(bodies, context.heap);
 
-            PreInline::new_in(scratch).run(
-                context,
-                &mut GlobalTransformState::new_in(bodies, context.heap),
-                bodies,
-            )
+            let mut changed = PreInline::new_in(&mut *scratch).run(context, &mut state, bodies);
+            scratch.reset();
+            changed |= Inline::new_in(InlineConfig::default(), &mut *scratch)
+                .run(context, &mut state, bodies);
+            scratch.reset();
+            changed |= PostInline::new_in(&mut *scratch).run(context, &mut state, bodies);
+            scratch.reset();
+            changed
         });
     });
     group.bench_function("complex", |bencher| {
         run_bencher(bencher, create_complex_cfg, |context, body, scratch| {
             let bodies = IdSlice::from_raw_mut(core::slice::from_mut(body));
+            let mut state = GlobalTransformState::new_in(bodies, context.heap);
 
-            PreInline::new_in(scratch).run(
-                context,
-                &mut GlobalTransformState::new_in(bodies, context.heap),
-                bodies,
-            )
+            let mut changed = PreInline::new_in(&mut *scratch).run(context, &mut state, bodies);
+            scratch.reset();
+            changed |= Inline::new_in(InlineConfig::default(), &mut *scratch)
+                .run(context, &mut state, bodies);
+            scratch.reset();
+            changed |= PostInline::new_in(&mut *scratch).run(context, &mut state, bodies);
+            scratch.reset();
+            changed
         });
     });
 }
