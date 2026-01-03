@@ -84,7 +84,6 @@ interface HorizontalTabsContainerProps {
 
 /**
  * Container that displays subviews as horizontal tabs.
- * Used in the BottomPanel for Diagnostics, Parameters, and Simulation Settings.
  *
  * This component returns both the tabs header and the content area as separate
  * parts that can be composed into the parent layout.

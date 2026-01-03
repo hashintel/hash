@@ -336,7 +336,6 @@ interface VerticalSubViewsContainerProps {
 
 /**
  * Container that displays subviews as vertically stacked collapsible sections.
- * Used in the LeftSideBar for Token Types, Differential Equations, and Nodes.
  */
 export const VerticalSubViewsContainer: React.FC<
   VerticalSubViewsContainerProps

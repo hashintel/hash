@@ -7,7 +7,7 @@ import {
   HorizontalTabsContent,
   HorizontalTabsHeader,
   HorizontalTabsHeaderAction,
-} from "../../../../components/sub-view";
+} from "../../../../components/sub-view/horizontal-tabs-container";
 import {
   BOTTOM_PANEL_SUBVIEWS,
   MAX_BOTTOM_PANEL_HEIGHT,
