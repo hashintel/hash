@@ -1,5 +1,5 @@
 #![expect(clippy::min_ident_chars, reason = "tests")]
-use std::{io::Write as _, path::PathBuf};
+use std::{assert_matches::assert_matches, io::Write as _, path::PathBuf};
 
 use bstr::ByteVec as _;
 use hashql_core::{
@@ -12,8 +12,20 @@ use insta::{Settings, assert_snapshot};
 
 use super::InstSimplify;
 use crate::{
-    body::Body, builder::body, context::MirContext, def::DefIdSlice, intern::Interner,
-    pass::TransformPass as _, pretty::TextFormat,
+    body::{
+        Body,
+        basic_block::BasicBlockId,
+        constant::Constant,
+        operand::Operand,
+        rvalue::RValue,
+        statement::{Assign, StatementKind},
+    },
+    builder::body,
+    context::MirContext,
+    def::DefIdSlice,
+    intern::Interner,
+    pass::{Changed, TransformPass as _},
+    pretty::TextFormat,
 };
 
 #[track_caller]
@@ -392,5 +404,40 @@ fn idempotent_to_const_forwarding() {
             interner: &interner,
             diagnostics: DiagnosticIssues::new(),
         },
+    );
+}
+
+/// Tests that an empty tuple aggregate is simplified to a unit constant.
+#[test]
+fn empty_tuple_to_unit() {
+    let heap = Heap::new();
+    let interner = Interner::new(&heap);
+    let env = Environment::new(&heap);
+
+    let mut body = body!(interner, env; fn@0/0 -> () {
+        decl result: ();
+
+        bb0() {
+            result = tuple;
+            return result;
+        }
+    });
+
+    let changed = InstSimplify::new().run(
+        &mut MirContext {
+            heap: &heap,
+            env: &env,
+            interner: &interner,
+            diagnostics: DiagnosticIssues::new(),
+        },
+        &mut body,
+    );
+    assert_eq!(changed, Changed::Yes);
+    assert_matches!(
+        body.basic_blocks[BasicBlockId::START].statements[0].kind,
+        StatementKind::Assign(Assign {
+            lhs: _,
+            rhs: RValue::Load(Operand::Constant(Constant::Unit))
+        })
     );
 }
