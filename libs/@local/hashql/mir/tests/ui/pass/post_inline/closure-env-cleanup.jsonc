@@ -23,11 +23,6 @@
         [">", "x", "threshold"]
       ]
     ],
-    [
-      "let",
-      "checker",
-      ["make_checker"],
-      ["checker", { "#literal": 150 }]
-    ]
+    ["let", "checker", ["make_checker"], ["checker", { "#literal": 150 }]]
   ]
 ]
