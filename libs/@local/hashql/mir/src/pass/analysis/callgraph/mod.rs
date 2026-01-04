@@ -198,15 +198,18 @@ impl<A: Allocator> CallGraph<'_, A> {
     pub fn is_leaf(&self, def: DefId) -> bool {
         let def = NodeId::new(def.as_usize());
 
-        self.inner.outgoing_edges(def).all(|edge| {
-            let target = self
-                .inner
-                .node(edge.target())
-                .unwrap_or_else(|| unreachable!("target must exist"));
+        self.inner
+            .outgoing_edges(def)
+            .filter(|edge| matches!(edge.data, CallKind::Apply(_)))
+            .all(|edge| {
+                let target = self
+                    .inner
+                    .node(edge.target())
+                    .unwrap_or_else(|| unreachable!("target must exist"));
 
-            // Leafs are functions, which can only have intrinsic edges
-            matches!(target.data, Source::Intrinsic(_))
-        })
+                // Leafs are functions, which can only have intrinsic edges
+                matches!(target.data, Source::Intrinsic(_))
+            })
     }
 
     #[inline]

@@ -16,7 +16,7 @@ use hashql_core::{
 use hashql_diagnostics::DiagnosticIssues;
 use hashql_mir::{
     body::Body,
-    builder::BodyBuilder,
+    builder::{BodyBuilder, body},
     context::MirContext,
     def::DefId,
     intern::Interner,
@@ -38,7 +38,10 @@ use hashql_mir::{
 /// bb1: y = x == 2; goto bb2
 /// bb2: z = y == 3; return z
 /// ```
-fn create_linear_cfg<'heap>(env: &Environment<'heap>, interner: &Interner<'heap>) -> Body<'heap> {
+fn create_linear_cfg<'heap>(
+    env: &Environment<'heap>,
+    interner: &Interner<'heap>,
+) -> [Body<'heap>; 1] {
     let mut builder = BodyBuilder::new(interner);
     let int_ty = TypeBuilder::synthetic(env).integer();
 
@@ -71,7 +74,8 @@ fn create_linear_cfg<'heap>(env: &Environment<'heap>, interner: &Interner<'heap>
 
     let mut body = builder.finish(0, TypeBuilder::synthetic(env).integer());
     body.id = DefId::new(0);
-    body
+
+    [body]
 }
 
 /// Creates a branching CFG body with a diamond pattern for benchmarking.
@@ -83,7 +87,10 @@ fn create_linear_cfg<'heap>(env: &Environment<'heap>, interner: &Interner<'heap>
 /// bb2: b = 20; goto bb3
 /// bb3(p): result = p; return result
 /// ```
-fn create_diamond_cfg<'heap>(env: &Environment<'heap>, interner: &Interner<'heap>) -> Body<'heap> {
+fn create_diamond_cfg<'heap>(
+    env: &Environment<'heap>,
+    interner: &Interner<'heap>,
+) -> [Body<'heap>; 1] {
     let mut builder = BodyBuilder::new(interner);
     let int_ty = TypeBuilder::synthetic(env).integer();
 
@@ -122,7 +129,7 @@ fn create_diamond_cfg<'heap>(env: &Environment<'heap>, interner: &Interner<'heap
 
     let mut body = builder.finish(1, TypeBuilder::synthetic(env).integer());
     body.id = DefId::new(0);
-    body
+    [body]
 }
 
 /// Creates a body with dead code for dead store elimination benchmarking.
@@ -134,7 +141,7 @@ fn create_diamond_cfg<'heap>(env: &Environment<'heap>, interner: &Interner<'heap
 fn create_dead_store_cfg<'heap>(
     env: &Environment<'heap>,
     interner: &Interner<'heap>,
-) -> Body<'heap> {
+) -> [Body<'heap>; 1] {
     let mut builder = BodyBuilder::new(interner);
     let int_ty = TypeBuilder::synthetic(env).integer();
 
@@ -160,7 +167,7 @@ fn create_dead_store_cfg<'heap>(
 
     let mut body = builder.finish(0, TypeBuilder::synthetic(env).integer());
     body.id = DefId::new(0);
-    body
+    [body]
 }
 
 /// Creates a body with patterns that `InstSimplify` can optimize.
@@ -181,7 +188,7 @@ fn create_dead_store_cfg<'heap>(
 fn create_inst_simplify_cfg<'heap>(
     env: &Environment<'heap>,
     interner: &Interner<'heap>,
-) -> Body<'heap> {
+) -> [Body<'heap>; 1] {
     let mut builder = BodyBuilder::new(interner);
     let int_ty = TypeBuilder::synthetic(env).integer();
     let bool_ty = TypeBuilder::synthetic(env).boolean();
@@ -218,10 +225,10 @@ fn create_inst_simplify_cfg<'heap>(
 
     let mut body = builder.finish(0, TypeBuilder::synthetic(env).boolean());
     body.id = DefId::new(0);
-    body
+    [body]
 }
 
-/// Creates a larger CFG with multiple branches and join points for more realistic benchmarking.
+/// Creates a complex CFG with nested loops, back edges, unreachable blocks, and deep nesting.
 ///
 /// Structure:
 /// ```text
@@ -234,7 +241,10 @@ fn create_inst_simplify_cfg<'heap>(
 /// bb6(p2): f = p2 == 20; goto bb7
 /// bb7(p3): result = p3; return result
 /// ```
-fn create_complex_cfg<'heap>(env: &Environment<'heap>, interner: &Interner<'heap>) -> Body<'heap> {
+fn create_complex_cfg<'heap>(
+    env: &Environment<'heap>,
+    interner: &Interner<'heap>,
+) -> [Body<'heap>; 1] {
     let mut builder = BodyBuilder::new(interner);
     let int_ty = TypeBuilder::synthetic(env).integer();
 
@@ -309,17 +319,90 @@ fn create_complex_cfg<'heap>(env: &Environment<'heap>, interner: &Interner<'heap
         .assign_place(result, |rv| rv.load(p3))
         .ret(result);
 
-    builder.finish(1, TypeBuilder::synthetic(env).integer())
+    let mut body = builder.finish(1, TypeBuilder::synthetic(env).integer());
+    body.id = DefId::new(0);
+    [body]
+}
+
+/// Creates multiple bodies for inlining benchmarks: a caller with call sites and a callee.
+///
+/// The caller has multiple call sites in different control flow paths.
+///
+/// Structure:
+/// ```text
+/// callee (DefId 0):
+///   bb0(arg): cond = arg < 5; if cond then bb1() else bb2()
+///   bb1: r1 = arg == 0; return r1
+///   bb2: r2 = arg > 10; return r2
+///
+/// caller (DefId 1):
+///   bb0: switch mode [0 => bb1, 1 => bb2, _ => bb3]
+///   bb1: x1 = apply callee, 3; goto bb4(x1)
+///   bb2: x2 = apply callee, 7; goto bb4(x2)
+///   bb3: x3 = apply callee, 0; goto bb4(x3)
+///   bb4(p): return p
+/// ```
+fn create_inlinable_cfg<'heap>(
+    env: &Environment<'heap>,
+    interner: &Interner<'heap>,
+) -> [Body<'heap>; 2] {
+    let callee_id = DefId::new(0);
+    let caller_id = DefId::new(1);
+
+    // Callee: non-trivial function with control flow
+    // Takes one Int arg, returns Bool based on comparisons
+    let callee = body!(interner, env; fn@callee_id/1 -> Bool {
+        decl arg0: Int, cond0: Bool, r1: Bool, r2: Bool;
+
+        bb0() {
+            cond0 = bin.< arg0 5;
+            if cond0 then bb1() else bb2();
+        },
+        bb1() {
+            r1 = bin.== arg0 0;
+            return r1;
+        },
+        bb2() {
+            r2 = bin.> arg0 10;
+            return r2;
+        }
+    });
+
+    // Caller: calls callee from multiple paths
+    let caller = body!(interner, env; fn@caller_id/1 -> Bool {
+        decl mode0: Int, x1: Bool, x2: Bool, x3: Bool, p4: Bool;
+
+        bb0() {
+            switch mode0 [0 => bb1(), 1 => bb2(), _ => bb3()];
+        },
+        bb1() {
+            x1 = apply callee_id, 3;
+            goto bb4(x1);
+        },
+        bb2() {
+            x2 = apply callee_id, 7;
+            goto bb4(x2);
+        },
+        bb3() {
+            x3 = apply callee_id, 0;
+            goto bb4(x3);
+        },
+        bb4(p4) {
+            return p4;
+        }
+    });
+
+    [callee, caller]
 }
 
 #[expect(unsafe_code)]
 #[inline]
-fn run_bencher<T>(
+fn run_bencher<T, const N: usize>(
     bencher: &mut Bencher,
-    body: for<'heap> fn(&Environment<'heap>, &Interner<'heap>) -> Body<'heap>,
+    body: for<'heap> fn(&Environment<'heap>, &Interner<'heap>) -> [Body<'heap>; N],
     mut func: impl for<'env, 'heap> FnMut(
         &mut MirContext<'env, 'heap>,
-        &mut Body<'heap>,
+        &mut [Body<'heap>; N],
         &mut Scratch,
     ) -> T,
 ) {
@@ -402,19 +485,19 @@ fn cfg_simplify(criterion: &mut Criterion) {
     let mut group = criterion.benchmark_group("cfg_simplify");
 
     group.bench_function("linear", |bencher| {
-        run_bencher(bencher, create_linear_cfg, |context, body, scratch| {
+        run_bencher(bencher, create_linear_cfg, |context, [body], scratch| {
             CfgSimplify::new_in(scratch).run(context, body)
         });
     });
 
     group.bench_function("diamond", |bencher| {
-        run_bencher(bencher, create_diamond_cfg, |context, body, scratch| {
+        run_bencher(bencher, create_diamond_cfg, |context, [body], scratch| {
             CfgSimplify::new_in(scratch).run(context, body)
         });
     });
 
     group.bench_function("complex", |bencher| {
-        run_bencher(bencher, create_complex_cfg, |context, body, scratch| {
+        run_bencher(bencher, create_complex_cfg, |context, [body], scratch| {
             CfgSimplify::new_in(scratch).run(context, body)
         });
     });
@@ -424,19 +507,19 @@ fn forward_substitution(criterion: &mut Criterion) {
     let mut group = criterion.benchmark_group("forward_substitution");
 
     group.bench_function("linear", |bencher| {
-        run_bencher(bencher, create_linear_cfg, |context, body, scratch| {
+        run_bencher(bencher, create_linear_cfg, |context, [body], scratch| {
             ForwardSubstitution::new_in(scratch).run(context, body)
         });
     });
 
     group.bench_function("diamond", |bencher| {
-        run_bencher(bencher, create_diamond_cfg, |context, body, scratch| {
+        run_bencher(bencher, create_diamond_cfg, |context, [body], scratch| {
             ForwardSubstitution::new_in(scratch).run(context, body)
         });
     });
 
     group.bench_function("complex", |bencher| {
-        run_bencher(bencher, create_complex_cfg, |context, body, scratch| {
+        run_bencher(bencher, create_complex_cfg, |context, [body], scratch| {
             ForwardSubstitution::new_in(scratch).run(context, body)
         });
     });
@@ -446,25 +529,27 @@ fn dse(criterion: &mut Criterion) {
     let mut group = criterion.benchmark_group("dse");
 
     group.bench_function("dead stores", |bencher| {
-        run_bencher(bencher, create_dead_store_cfg, |context, body, scratch| {
-            DeadStoreElimination::new_in(scratch).run(context, body)
-        });
+        run_bencher(
+            bencher,
+            create_dead_store_cfg,
+            |context, [body], scratch| DeadStoreElimination::new_in(scratch).run(context, body),
+        );
     });
 
     group.bench_function("linear", |bencher| {
-        run_bencher(bencher, create_linear_cfg, |context, body, scratch| {
+        run_bencher(bencher, create_linear_cfg, |context, [body], scratch| {
             DeadStoreElimination::new_in(scratch).run(context, body)
         });
     });
 
     group.bench_function("diamond", |bencher| {
-        run_bencher(bencher, create_diamond_cfg, |context, body, scratch| {
+        run_bencher(bencher, create_diamond_cfg, |context, [body], scratch| {
             DeadStoreElimination::new_in(scratch).run(context, body)
         });
     });
 
     group.bench_function("complex", |bencher| {
-        run_bencher(bencher, create_complex_cfg, |context, body, scratch| {
+        run_bencher(bencher, create_complex_cfg, |context, [body], scratch| {
             DeadStoreElimination::new_in(scratch).run(context, body)
         });
     });
@@ -477,23 +562,23 @@ fn inst_simplify(criterion: &mut Criterion) {
         run_bencher(
             bencher,
             create_inst_simplify_cfg,
-            |context, body, scratch| InstSimplify::new_in(scratch).run(context, body),
+            |context, [body], scratch| InstSimplify::new_in(scratch).run(context, body),
         );
     });
     group.bench_function("linear", |bencher| {
-        run_bencher(bencher, create_linear_cfg, |context, body, scratch| {
+        run_bencher(bencher, create_linear_cfg, |context, [body], scratch| {
             InstSimplify::new_in(scratch).run(context, body)
         });
     });
 
     group.bench_function("diamond", |bencher| {
-        run_bencher(bencher, create_diamond_cfg, |context, body, scratch| {
+        run_bencher(bencher, create_diamond_cfg, |context, [body], scratch| {
             InstSimplify::new_in(scratch).run(context, body)
         });
     });
 
     group.bench_function("complex", |bencher| {
-        run_bencher(bencher, create_complex_cfg, |context, body, scratch| {
+        run_bencher(bencher, create_complex_cfg, |context, [body], scratch| {
             InstSimplify::new_in(scratch).run(context, body)
         });
     });
@@ -503,8 +588,8 @@ fn pipeline(criterion: &mut Criterion) {
     let mut group = criterion.benchmark_group("pipeline");
 
     group.bench_function("linear", |bencher| {
-        run_bencher(bencher, create_linear_cfg, |context, body, scratch| {
-            let bodies = IdSlice::from_raw_mut(core::slice::from_mut(body));
+        run_bencher(bencher, create_linear_cfg, |context, bodies, scratch| {
+            let bodies = IdSlice::from_raw_mut(bodies);
             let mut state = GlobalTransformState::new_in(bodies, context.heap);
 
             let mut changed = PreInline::new_in(&mut *scratch).run(context, &mut state, bodies);
@@ -518,8 +603,8 @@ fn pipeline(criterion: &mut Criterion) {
         });
     });
     group.bench_function("diamond", |bencher| {
-        run_bencher(bencher, create_diamond_cfg, |context, body, scratch| {
-            let bodies = IdSlice::from_raw_mut(core::slice::from_mut(body));
+        run_bencher(bencher, create_diamond_cfg, |context, bodies, scratch| {
+            let bodies = IdSlice::from_raw_mut(bodies);
             let mut state = GlobalTransformState::new_in(bodies, context.heap);
 
             let mut changed = PreInline::new_in(&mut *scratch).run(context, &mut state, bodies);
@@ -533,8 +618,23 @@ fn pipeline(criterion: &mut Criterion) {
         });
     });
     group.bench_function("complex", |bencher| {
-        run_bencher(bencher, create_complex_cfg, |context, body, scratch| {
-            let bodies = IdSlice::from_raw_mut(core::slice::from_mut(body));
+        run_bencher(bencher, create_complex_cfg, |context, bodies, scratch| {
+            let bodies = IdSlice::from_raw_mut(bodies);
+            let mut state = GlobalTransformState::new_in(bodies, context.heap);
+
+            let mut changed = PreInline::new_in(&mut *scratch).run(context, &mut state, bodies);
+            scratch.reset();
+            changed |= Inline::new_in(InlineConfig::default(), &mut *scratch)
+                .run(context, &mut state, bodies);
+            scratch.reset();
+            changed |= PostInline::new_in(&mut *scratch).run(context, &mut state, bodies);
+            scratch.reset();
+            changed
+        });
+    });
+    group.bench_function("inline", |bencher| {
+        run_bencher(bencher, create_inlinable_cfg, |context, bodies, scratch| {
+            let bodies = IdSlice::from_raw_mut(bodies);
             let mut state = GlobalTransformState::new_in(bodies, context.heap);
 
             let mut changed = PreInline::new_in(&mut *scratch).run(context, &mut state, bodies);
