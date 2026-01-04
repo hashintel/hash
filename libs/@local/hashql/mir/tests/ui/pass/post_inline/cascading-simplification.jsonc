@@ -27,6 +27,10 @@
       "Boolean",
       ["&&", "a", "b"]
     ],
-    ["check_both", ["is_large", { "#literal": 100 }], ["is_large", { "#literal": 75 }]]
+    [
+      "check_both",
+      ["is_large", { "#literal": 100 }],
+      ["is_large", { "#literal": 75 }]
+    ]
   ]
 ]
