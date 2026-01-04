@@ -1,0 +1,28 @@
+//@ run: pass
+//@ description: Post-inline pass cleans up redundant closure environment after inlining
+// After inlining a closure, its captured environment may become unnecessary.
+// PostInline's DSE eliminates dead stores to environment variables,
+// and forward substitution removes intermediary loads.
+[
+  "let",
+  "threshold",
+  { "#literal": 100 },
+  [
+    "let",
+    "make_checker",
+    [
+      "fn",
+      { "#tuple": [] },
+      { "#struct": {} },
+      "_",
+      [
+        "fn",
+        { "#tuple": [] },
+        { "#struct": { "x": "Integer" } },
+        "Boolean",
+        [">", "x", "threshold"]
+      ]
+    ],
+    ["let", "checker", ["make_checker"], ["checker", { "#literal": 150 }]]
+  ]
+]

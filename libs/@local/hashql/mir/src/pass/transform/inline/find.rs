@@ -6,12 +6,12 @@
 //! Unlike the normal phase which uses the call graph, the aggressive phase needs to
 //! re-discover callsites after each inlining iteration because the body has changed.
 
-use core::alloc::Allocator;
+use core::{alloc::Allocator, ops::ControlFlow};
 
-use super::{InlineState, InlineStateMemory};
+use super::{BodyProperties, InlineState, InlineStateMemory};
 use crate::{
-    body::{constant::Constant, location::Location, operand::Operand, rvalue::Apply},
-    def::DefId,
+    body::{Source, constant::Constant, location::Location, operand::Operand, rvalue::Apply},
+    def::{DefId, DefIdSlice},
     pass::analysis::CallSite,
     visit::Visitor,
 };
@@ -67,5 +67,40 @@ impl<'heap, A: Allocator> Visitor<'heap> for FindCallsiteVisitor<'_, '_, '_, 'he
         });
 
         Ok(())
+    }
+}
+
+pub(crate) struct FindApplyCall<'ctx, 'heap> {
+    properties: &'ctx DefIdSlice<BodyProperties<'heap>>,
+}
+
+impl<'ctx, 'heap> FindApplyCall<'ctx, 'heap> {
+    pub(crate) const fn new(properties: &'ctx DefIdSlice<BodyProperties<'heap>>) -> Self {
+        Self { properties }
+    }
+}
+
+impl<'heap> Visitor<'heap> for FindApplyCall<'_, 'heap> {
+    type Result = ControlFlow<(), ()>;
+
+    fn visit_rvalue_apply(
+        &mut self,
+        _: Location,
+        Apply {
+            function,
+            arguments: _,
+        }: &Apply<'heap>,
+    ) -> Self::Result {
+        // Only handle direct calls (constant function pointers).
+        let &Operand::Constant(Constant::FnPtr(ptr)) = function else {
+            return ControlFlow::Continue(());
+        };
+
+        let target_source = self.properties[ptr].source;
+        if matches!(target_source, Source::Intrinsic(_)) {
+            return ControlFlow::Continue(());
+        }
+
+        ControlFlow::Break(()) // We have found a call to a non-intrinsic function, and are therefore not a leaf
     }
 }

@@ -198,15 +198,18 @@ impl<A: Allocator> CallGraph<'_, A> {
     pub fn is_leaf(&self, def: DefId) -> bool {
         let def = NodeId::new(def.as_usize());
 
-        self.inner.outgoing_edges(def).all(|edge| {
-            let target = self
-                .inner
-                .node(edge.target())
-                .unwrap_or_else(|| unreachable!("target must exist"));
+        self.inner
+            .outgoing_edges(def)
+            .filter(|edge| matches!(edge.data, CallKind::Apply(_)))
+            .all(|edge| {
+                let target = self
+                    .inner
+                    .node(edge.target())
+                    .unwrap_or_else(|| unreachable!("target must exist"));
 
-            // Leafs are functions, which can only have intrinsic edges
-            matches!(target.data, Source::Intrinsic(_))
-        })
+                // Leafs are functions, which can only have intrinsic edges
+                matches!(target.data, Source::Intrinsic(_))
+            })
     }
 
     #[inline]
@@ -216,7 +219,8 @@ impl<A: Allocator> CallGraph<'_, A> {
 
         self.inner
             .incoming_edges(target)
-            .all(|edge| matches!(edge.data, CallKind::Apply(_)) && edge.source() == caller)
+            .filter(|edge| matches!(edge.data, CallKind::Apply(_)))
+            .all(|edge| edge.source() == caller)
     }
 
     #[inline]
@@ -224,17 +228,17 @@ impl<A: Allocator> CallGraph<'_, A> {
         // Same as is_single_caller, but makes sure that there is exactly one edge
         let callee = NodeId::new(callee.as_usize());
 
-        let mut incoming = self.inner.incoming_edges(callee);
+        let mut incoming = self
+            .inner
+            .incoming_edges(callee)
+            .filter(|edge| matches!(edge.data, CallKind::Apply(_)));
         let edge = incoming.next()?;
 
         if incoming.next().is_some() {
             return None;
         }
 
-        match edge.data {
-            CallKind::Apply(_) => Some(DefId::new(edge.source().as_u32())),
-            CallKind::Filter(_) | CallKind::Opaque => None,
-        }
+        Some(DefId::new(edge.source().as_u32()))
     }
 }
 

@@ -1,0 +1,38 @@
+//@ run: pass
+//@ description: Post-inline eliminates nested branches after inlining exposes constants
+// After inlining the predicate functions, PostInline sees constant comparisons
+// at each branch point. It folds these constants and eliminates unreachable
+// branches, collapsing the nested if-else chain to a single return.
+[
+  "let",
+  "check_high",
+  [
+    "fn",
+    { "#tuple": [] },
+    { "#struct": { "x": "Integer" } },
+    "Boolean",
+    [">", "x", { "#literal": 100 }]
+  ],
+  [
+    "let",
+    "check_low",
+    [
+      "fn",
+      { "#tuple": [] },
+      { "#struct": { "x": "Integer" } },
+      "Boolean",
+      ["<", "x", { "#literal": 0 }]
+    ],
+    [
+      "if",
+      ["check_high", { "#literal": 50 }],
+      { "#literal": "too high" },
+      [
+        "if",
+        ["check_low", { "#literal": 50 }],
+        { "#literal": "too low" },
+        { "#literal": "in range" }
+      ]
+    ]
+  ]
+]

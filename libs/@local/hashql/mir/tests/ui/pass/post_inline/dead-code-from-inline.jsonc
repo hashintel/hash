@@ -1,0 +1,17 @@
+//@ run: pass
+//@ description: Post-inline pass eliminates dead code exposed by inlining
+// After inlining the wrapper function, the conditional with a constant
+// argument becomes a constant branch. PostInline's CFG simplification
+// eliminates the dead branch entirely.
+[
+  "let",
+  "select_branch",
+  [
+    "fn",
+    { "#tuple": [] },
+    { "#struct": { "cond": "Boolean" } },
+    "String",
+    ["if", "cond", { "#literal": "taken" }, { "#literal": "dead" }]
+  ],
+  ["select_branch", { "#literal": true }]
+]
