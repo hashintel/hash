@@ -38,5 +38,6 @@ pub mod reify;
 pub mod visit;
 
 pub mod builder;
+mod interpret;
 #[cfg(test)]
 pub(crate) mod tests;
