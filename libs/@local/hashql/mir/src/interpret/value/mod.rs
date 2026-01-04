@@ -1,35 +1,95 @@
 // Value v2, now even better™
 
-use std::{
-    alloc::{Allocator, Global},
-    rc::Rc,
-};
+use alloc::rc::Rc;
+use core::cmp;
 
 use hashql_core::{intern::Interned, symbol::Symbol};
+use imbl::shared_ptr::RcK;
 
 use crate::def::DefId;
 
-enum Value<'heap, A: Allocator = Global> {
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+enum Value<'heap> {
+    // Primitives
     Unit,
-    Struct(Struct<'heap, A>),
-    Tuple(Tuple<'heap, A>),
-    Integer(i128), // boolean no longer exists, null is unit
-    // Number(Real), // <- TODO: proper real
-    String(Rc<str>),
-    Opaque(Opaque<'heap, A>),
-    FnPtr(DefId),
+    Integer(Int), // boolean no longer exists, null is unit
+    Number(Num),
+    String(Str),
+    Pointer(Ptr),
+
+    // Aggregates
+    Opaque(Opaque<'heap>),
+    Struct(Struct<'heap>),
+    Tuple(Tuple<'heap>),
+
+    // Collections
+    List(List<'heap>),
+    Dict(Dict<'heap>),
 }
 
-struct Struct<'heap, A: Allocator = Global> {
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+struct List<'heap> {
+    inner: imbl::GenericVector<Value<'heap>, RcK>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+struct Dict<'heap> {
+    inner: imbl::GenericOrdMap<Value<'heap>, Value<'heap>, RcK>,
+}
+
+#[derive(Debug, Copy, Clone)]
+struct Num {
+    value: f64, // For now no arbitrary precision
+}
+
+impl PartialEq for Num {
+    fn eq(&self, other: &Self) -> bool {
+        self.cmp(other).is_eq()
+    }
+}
+
+impl Eq for Num {}
+
+impl PartialOrd for Num {
+    fn partial_cmp(&self, other: &Self) -> Option<cmp::Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl Ord for Num {
+    fn cmp(&self, other: &Self) -> cmp::Ordering {
+        self.value.total_cmp(&other.value)
+    }
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
+struct Int {
+    value: i128,
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
+struct Ptr {
+    value: DefId,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+struct Str {
+    value: Rc<str>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+struct Struct<'heap> {
     fields: Interned<'heap, [Symbol<'heap>]>,
-    values: Rc<[Value<'heap, A>], A>,
+    values: Rc<[Value<'heap>]>,
 }
 
-struct Tuple<'heap, A: Allocator = Global> {
-    values: Rc<[Value<'heap, A>], A>, // MUST BE NON-EMPTY, otherwise it's a Unit
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+struct Tuple<'heap> {
+    values: Rc<[Value<'heap>]>, // MUST BE NON-EMPTY, otherwise it's a Unit
 }
 
-struct Opaque<'heap, A: Allocator = Global> {
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+struct Opaque<'heap> {
     name: Symbol<'heap>,
-    value: Rc<Value<'heap, A>, A>,
+    value: Rc<Value<'heap>>,
 }
