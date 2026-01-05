@@ -3,10 +3,17 @@
 use alloc::rc::Rc;
 use core::cmp;
 
-use hashql_core::{intern::Interned, symbol::Symbol};
+use hashql_core::{
+    intern::Interned,
+    symbol::Symbol,
+    value::{Float, Primitive, String},
+};
 use imbl::shared_ptr::RcK;
 
-use crate::def::DefId;
+use crate::{
+    body::constant::{Constant, Int},
+    def::DefId,
+};
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 enum Value<'heap> {
@@ -14,7 +21,7 @@ enum Value<'heap> {
     Unit,
     Integer(Int), // boolean no longer exists, null is unit
     Number(Num),
-    String(Str),
+    String(Str<'heap>),
     Pointer(Ptr),
 
     // Aggregates
@@ -25,6 +32,22 @@ enum Value<'heap> {
     // Collections
     List(List<'heap>),
     Dict(Dict<'heap>),
+}
+
+impl<'heap> From<Constant<'heap>> for Value<'heap> {
+    fn from(value: Constant<'heap>) -> Self {
+        match value {
+            Constant::Int(int) => Value::Integer(int),
+            Constant::Primitive(Primitive::Null) | Constant::Unit => Value::Unit,
+            Constant::Primitive(Primitive::Boolean(bool)) => Value::Integer(Int::from(bool)),
+            Constant::Primitive(Primitive::Integer(int)) => Value::Integer(Int::from(
+                int.as_i128().expect("value should be in i128 range"),
+            )),
+            Constant::Primitive(Primitive::Float(float)) => Value::Number(Num::from(float)),
+            Constant::Primitive(Primitive::String(string)) => Value::String(Str::from(string)),
+            Constant::FnPtr(def_id) => Value::Pointer(Ptr::new(def_id)),
+        }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
@@ -40,6 +63,14 @@ struct Dict<'heap> {
 #[derive(Debug, Copy, Clone)]
 struct Num {
     value: f64, // For now no arbitrary precision
+}
+
+impl<'heap> From<Float<'heap>> for Num {
+    fn from(value: Float<'heap>) -> Self {
+        Self {
+            value: value.as_f64(),
+        }
+    }
 }
 
 impl PartialEq for Num {
@@ -63,18 +94,33 @@ impl Ord for Num {
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
-struct Int {
-    value: i128,
-}
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
 struct Ptr {
     value: DefId,
 }
 
+impl Ptr {
+    fn new(value: DefId) -> Self {
+        Self { value }
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
-struct Str {
-    value: Rc<str>,
+enum StrInner<'heap> {
+    Owned(Rc<str>),
+    Borrowed(Symbol<'heap>),
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+struct Str<'heap> {
+    inner: StrInner<'heap>,
+}
+
+impl<'heap> From<String<'heap>> for Str<'heap> {
+    fn from(value: String<'heap>) -> Self {
+        Self {
+            inner: StrInner::Borrowed(value.as_symbol()),
+        }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
