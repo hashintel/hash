@@ -39,6 +39,7 @@ id::newtype!(
 impl FieldIndex {
     pub const ENV: Self = Self(1);
     pub const FN_PTR: Self = Self(0);
+    pub const OPAQUE_VALUE: Self = Self(0);
 }
 
 /// Context for reading from a [`Place`].
