@@ -5,6 +5,7 @@ use core::iter::FusedIterator;
 use imbl::shared_ptr::RcK;
 
 use super::Value;
+use crate::body::constant::Int;
 
 /// An ordered list of values.
 ///
@@ -35,8 +36,16 @@ impl<'heap> List<'heap> {
 
     /// Returns a reference to the element at the given `index`.
     #[must_use]
-    pub fn get(&self, index: usize) -> Option<&Value<'heap>> {
+    pub fn get(&self, index: Int) -> Option<&Value<'heap>> {
+        let index = index.as_usize()?;
+
         self.inner.get(index)
+    }
+
+    pub fn iter(
+        &self,
+    ) -> impl ExactSizeIterator<Item = &Value<'heap>> + DoubleEndedIterator + FusedIterator {
+        self.inner.iter()
     }
 }
 

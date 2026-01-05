@@ -35,7 +35,9 @@ impl<'heap> Tuple<'heap> {
     ///
     /// Returns [`None`] if `values` is empty.
     #[must_use]
-    pub fn new(values: Rc<[Value<'heap>]>) -> Option<Self> {
+    pub fn new(values: impl Into<Rc<[Value<'heap>]>>) -> Option<Self> {
+        let values = values.into();
+
         (!values.is_empty()).then_some(Self::new_unchecked(values))
     }
 
@@ -56,6 +58,10 @@ impl<'heap> Tuple<'heap> {
     pub fn get(&self, index: FieldIndex) -> Option<&Value<'heap>> {
         self.values.get(index.as_usize())
     }
+
+    pub fn iter(&self) -> core::slice::Iter<'_, Value<'heap>> {
+        self.values.iter()
+    }
 }
 
 impl<'heap> Index<FieldIndex> for Tuple<'heap> {
@@ -66,9 +72,9 @@ impl<'heap> Index<FieldIndex> for Tuple<'heap> {
     }
 }
 
-impl<'a, 'heap> IntoIterator for &'a Tuple<'heap> {
-    type IntoIter = core::slice::Iter<'a, Value<'heap>>;
-    type Item = &'a Value<'heap>;
+impl<'this, 'heap> IntoIterator for &'this Tuple<'heap> {
+    type IntoIter = core::slice::Iter<'this, Value<'heap>>;
+    type Item = &'this Value<'heap>;
 
     fn into_iter(self) -> Self::IntoIter {
         self.values.iter()

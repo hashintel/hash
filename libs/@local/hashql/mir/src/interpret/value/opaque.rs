@@ -20,8 +20,11 @@ pub struct Opaque<'heap> {
 impl<'heap> Opaque<'heap> {
     /// Creates a new opaque value with the given `name` and wrapped `value`.
     #[must_use]
-    pub const fn new(name: Symbol<'heap>, value: Rc<Value<'heap>>) -> Self {
-        Self { name, value }
+    pub fn new(name: Symbol<'heap>, value: impl Into<Rc<Value<'heap>>>) -> Self {
+        Self {
+            name,
+            value: value.into(),
+        }
     }
 
     /// Returns the type name of this opaque value.

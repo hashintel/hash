@@ -21,7 +21,7 @@ pub struct Str<'heap> {
     inner: StrInner<'heap>,
 }
 
-impl<'heap> Str<'heap> {
+impl Str<'_> {
     /// Returns this string as a string slice.
     #[must_use]
     pub fn as_str(&self) -> &str {

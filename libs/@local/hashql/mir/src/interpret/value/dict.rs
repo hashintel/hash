@@ -42,6 +42,14 @@ impl<'heap> Dict<'heap> {
     pub fn get(&self, key: &Value<'heap>) -> Option<&Value<'heap>> {
         self.inner.get(key)
     }
+
+    pub fn iter(
+        &self,
+    ) -> impl ExactSizeIterator<Item = (&Value<'heap>, &Value<'heap>)>
+    + DoubleEndedIterator
+    + FusedIterator {
+        self.inner.iter()
+    }
 }
 
 impl Default for Dict<'_> {

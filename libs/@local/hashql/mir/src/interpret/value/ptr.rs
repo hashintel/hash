@@ -20,7 +20,7 @@ impl Ptr {
 
     /// Returns the [`DefId`] this pointer references.
     #[must_use]
-    pub const fn def_id(self) -> DefId {
+    pub const fn def(self) -> DefId {
         self.value
     }
 }
