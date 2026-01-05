@@ -41,13 +41,19 @@ mod str;
 mod r#struct;
 mod tuple;
 
-use hashql_core::value::Primitive;
+use core::ops::Index;
+use std::borrow::Cow;
+
+use hashql_core::{symbol::Symbol, value::Primitive};
 
 pub use self::{
     dict::Dict, list::List, num::Num, opaque::Opaque, ptr::Ptr, str::Str, r#struct::Struct,
     tuple::Tuple,
 };
-use crate::body::constant::{Constant, Int};
+use crate::body::{
+    constant::{Constant, Int},
+    place::FieldIndex,
+};
 
 /// A runtime value in the MIR interpreter.
 ///
@@ -86,6 +92,47 @@ pub enum Value<'heap> {
     List(List<'heap>),
     /// An ordered dictionary.
     Dict(Dict<'heap>),
+}
+
+impl<'heap> Value<'heap> {
+    pub fn subscript<'this>(&'this self, index: &Self) -> Cow<'this, Self> {
+        match self {
+            Self::List(list) => match index {
+                &Self::Integer(int) => list
+                    .get(int)
+                    .map_or_else(|| Cow::Owned(Self::Unit), Cow::Borrowed),
+                _ => todo!("diagnostic: cannot index list with non-integer index"),
+            },
+            Self::Dict(dict) => dict
+                .get(index)
+                .map_or_else(|| Cow::Owned(Self::Unit), Cow::Borrowed),
+            _ => todo!("diagnostic: cannot index non-list/dict value"),
+        }
+    }
+}
+
+impl<'heap> Index<Symbol<'heap>> for Value<'heap> {
+    type Output = Value<'heap>;
+
+    fn index(&self, index: Symbol<'heap>) -> &Self::Output {
+        let Self::Struct(r#struct) = self else {
+            todo!("diagnostic: cannot index non-struct value");
+        };
+
+        &r#struct[index]
+    }
+}
+
+impl<'heap> Index<FieldIndex> for Value<'heap> {
+    type Output = Value<'heap>;
+
+    fn index(&self, index: FieldIndex) -> &Self::Output {
+        match self {
+            Self::Struct(r#struct) => &r#struct[index],
+            Self::Tuple(tuple) => &tuple[index],
+            _ => todo!("diagnostic: cannot index non-struct or non-tuple value"),
+        }
+    }
 }
 
 impl<'heap> From<Constant<'heap>> for Value<'heap> {

@@ -17,6 +17,12 @@ pub struct Dict<'heap> {
 }
 
 impl<'heap> Dict<'heap> {
+    pub fn new() -> Self {
+        Self {
+            inner: imbl::GenericOrdMap::new(),
+        }
+    }
+
     /// Returns the number of key-value pairs in the dictionary.
     #[must_use]
     pub fn len(&self) -> usize {
