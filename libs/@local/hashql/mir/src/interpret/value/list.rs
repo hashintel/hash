@@ -17,6 +17,12 @@ pub struct List<'heap> {
 }
 
 impl<'heap> List<'heap> {
+    pub fn new() -> Self {
+        Self {
+            inner: imbl::GenericVector::new(),
+        }
+    }
+
     /// Returns the number of elements in the list.
     #[must_use]
     pub fn len(&self) -> usize {
