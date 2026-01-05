@@ -41,7 +41,7 @@ use hashql_core::value::{Integer, Primitive};
 /// // Raw value access always succeeds
 /// assert_eq!(large.as_int(), 1000);
 /// ```
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Int {
     value: i128,
 }
