@@ -39,8 +39,10 @@ impl<'heap> Struct<'heap> {
     #[must_use]
     pub fn new(
         fields: Interned<'heap, [Symbol<'heap>]>,
-        values: Rc<[Value<'heap>]>,
+        values: impl Into<Rc<[Value<'heap>]>>,
     ) -> Option<Self> {
+        let values = values.into();
+
         (fields.len() == values.len()).then(|| Self::new_unchecked(fields, values))
     }
 
@@ -81,6 +83,13 @@ impl<'heap> Struct<'heap> {
     pub fn get_by_index(&self, index: FieldIndex) -> Option<&Value<'heap>> {
         self.values.get(index.as_usize())
     }
+
+    pub fn iter(&self) -> StructIter<'_, 'heap> {
+        StructIter {
+            fields: self.fields.iter().copied(),
+            values: self.values.iter(),
+        }
+    }
 }
 
 impl<'heap> Index<Symbol<'heap>> for Struct<'heap> {
@@ -99,33 +108,36 @@ impl<'heap> Index<FieldIndex> for Struct<'heap> {
     }
 }
 
-impl<'a, 'heap> IntoIterator for &'a Struct<'heap> {
-    type IntoIter = StructIter<'a, 'heap>;
-    type Item = (Symbol<'heap>, &'a Value<'heap>);
+impl<'this, 'heap> IntoIterator for &'this Struct<'heap> {
+    type IntoIter = StructIter<'this, 'heap>;
+    type Item = (Symbol<'heap>, &'this Value<'heap>);
 
     fn into_iter(self) -> Self::IntoIter {
-        StructIter {
-            fields: self.fields.iter(),
-            values: self.values.iter(),
-        }
+        self.iter()
     }
 }
 
 /// Iterator over (field name, value) pairs of a [`Struct`].
-pub struct StructIter<'a, 'heap> {
-    fields: core::slice::Iter<'a, Symbol<'heap>>,
-    values: core::slice::Iter<'a, Value<'heap>>,
+pub struct StructIter<'this, 'heap> {
+    fields: core::iter::Copied<core::slice::Iter<'this, Symbol<'heap>>>,
+    values: core::slice::Iter<'this, Value<'heap>>,
 }
 
-impl<'a, 'heap> Iterator for StructIter<'a, 'heap> {
-    type Item = (Symbol<'heap>, &'a Value<'heap>);
+impl<'this, 'heap> Iterator for StructIter<'this, 'heap> {
+    type Item = (Symbol<'heap>, &'this Value<'heap>);
 
     fn next(&mut self) -> Option<Self::Item> {
-        Some((*self.fields.next()?, self.values.next()?))
+        Some((self.fields.next()?, self.values.next()?))
     }
 
     fn size_hint(&self) -> (usize, Option<usize>) {
         self.fields.size_hint()
+    }
+}
+
+impl DoubleEndedIterator for StructIter<'_, '_> {
+    fn next_back(&mut self) -> Option<Self::Item> {
+        Some((self.fields.next_back()?, self.values.next_back()?))
     }
 }
 

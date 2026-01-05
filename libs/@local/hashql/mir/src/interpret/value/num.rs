@@ -22,15 +22,11 @@ impl Num {
     }
 }
 
-impl From<f64> for Num {
-    fn from(value: f64) -> Self {
-        Self { value }
-    }
-}
-
 impl<'heap> From<Float<'heap>> for Num {
     fn from(value: Float<'heap>) -> Self {
-        Self::from(value.as_f64())
+        Self {
+            value: value.as_f64(),
+        }
     }
 }
 
