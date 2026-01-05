@@ -1,141 +1,105 @@
-// Value v2, now even better™
+//! Runtime values for the MIR interpreter.
+//!
+//! This module defines the value representation used during interpretation of
+//! MIR code. Values are the runtime counterparts to MIR constants and are
+//! produced by evaluating expressions.
+//!
+//! # Value Types
+//!
+//! Values are organized into three categories:
+//!
+//! ## Primitives
+//!
+//! - [`Value::Unit`] - The unit value (also represents null)
+//! - [`Value::Integer`] - Arbitrary-precision integers (also represents booleans)
+//! - [`Value::Number`] - Floating-point numbers ([`Num`])
+//! - [`Value::String`] - String values ([`Str`])
+//! - [`Value::Pointer`] - Function pointers ([`Ptr`])
+//!
+//! ## Aggregates
+//!
+//! - [`Value::Struct`] - Named-field structs ([`Struct`])
+//! - [`Value::Tuple`] - Positional tuples ([`Tuple`])
+//! - [`Value::Opaque`] - Opaque/newtype wrappers ([`Opaque`])
+//!
+//! ## Collections
+//!
+//! - [`Value::List`] - Ordered lists ([`List`])
+//! - [`Value::Dict`] - Ordered dictionaries ([`Dict`])
+//!
+//! # Construction
+//!
+//! Values can be constructed from MIR constants via the [`From<Constant>`]
+//! implementation, or directly using each type's constructor methods.
 
-use alloc::rc::Rc;
-use core::cmp;
+mod dict;
+mod list;
+mod num;
+mod opaque;
+mod ptr;
+mod str;
+mod r#struct;
+mod tuple;
 
-use hashql_core::{
-    intern::Interned,
-    symbol::Symbol,
-    value::{Float, Primitive, String},
+use hashql_core::value::Primitive;
+
+pub use self::{
+    dict::Dict, list::List, num::Num, opaque::Opaque, ptr::Ptr, str::Str, r#struct::Struct,
+    tuple::Tuple,
 };
-use imbl::shared_ptr::RcK;
+use crate::body::constant::{Constant, Int};
 
-use crate::{
-    body::constant::{Constant, Int},
-    def::DefId,
-};
-
+/// A runtime value in the MIR interpreter.
+///
+/// Represents all possible values that can be produced during interpretation.
+/// Values are immutable and use structural sharing (via [`Rc`]) for efficient
+/// cloning.
+///
+/// # Representation Notes
+///
+/// - Booleans are represented as [`Value::Integer`] (0 = false, 1 = true)
+/// - Null is represented as [`Value::Unit`]
+/// - Empty tuples should use [`Value::Unit`], not an empty [`Tuple`]
+///
+/// [`Rc`]: alloc::rc::Rc
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
-enum Value<'heap> {
-    // Primitives
+pub enum Value<'heap> {
+    /// The unit value, also used for null.
     Unit,
-    Integer(Int), // boolean no longer exists, null is unit
+    /// An integer value (also represents booleans).
+    Integer(Int),
+    /// A floating-point number.
     Number(Num),
+    /// A string value.
     String(Str<'heap>),
+    /// A function pointer.
     Pointer(Ptr),
 
-    // Aggregates
+    /// An opaque/newtype wrapper.
     Opaque(Opaque<'heap>),
+    /// A named-field struct.
     Struct(Struct<'heap>),
+    /// A positional tuple.
     Tuple(Tuple<'heap>),
 
-    // Collections
+    /// An ordered list.
     List(List<'heap>),
+    /// An ordered dictionary.
     Dict(Dict<'heap>),
 }
 
 impl<'heap> From<Constant<'heap>> for Value<'heap> {
     fn from(value: Constant<'heap>) -> Self {
         match value {
-            Constant::Int(int) => Value::Integer(int),
-            Constant::Primitive(Primitive::Null) | Constant::Unit => Value::Unit,
-            Constant::Primitive(Primitive::Boolean(bool)) => Value::Integer(Int::from(bool)),
-            Constant::Primitive(Primitive::Integer(int)) => Value::Integer(Int::from(
+            Constant::Int(int) => Self::Integer(int),
+            Constant::Primitive(Primitive::Null) | Constant::Unit => Self::Unit,
+            Constant::Primitive(Primitive::Boolean(bool)) => Self::Integer(Int::from(bool)),
+            Constant::Primitive(Primitive::Integer(int)) => Self::Integer(Int::from(
                 int.as_i128().expect("value should be in i128 range"),
             )),
-            Constant::Primitive(Primitive::Float(float)) => Value::Number(Num::from(float)),
-            Constant::Primitive(Primitive::String(string)) => Value::String(Str::from(string)),
-            Constant::FnPtr(def_id) => Value::Pointer(Ptr::new(def_id)),
+            Constant::Primitive(Primitive::Float(float)) => Self::Number(Num::from(float)),
+            Constant::Primitive(Primitive::String(string)) => Self::String(Str::from(string)),
+            Constant::FnPtr(def_id) => Self::Pointer(Ptr::new(def_id)),
         }
     }
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
-struct List<'heap> {
-    inner: imbl::GenericVector<Value<'heap>, RcK>,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
-struct Dict<'heap> {
-    inner: imbl::GenericOrdMap<Value<'heap>, Value<'heap>, RcK>,
-}
-
-#[derive(Debug, Copy, Clone)]
-struct Num {
-    value: f64, // For now no arbitrary precision
-}
-
-impl<'heap> From<Float<'heap>> for Num {
-    fn from(value: Float<'heap>) -> Self {
-        Self {
-            value: value.as_f64(),
-        }
-    }
-}
-
-impl PartialEq for Num {
-    fn eq(&self, other: &Self) -> bool {
-        self.cmp(other).is_eq()
-    }
-}
-
-impl Eq for Num {}
-
-impl PartialOrd for Num {
-    fn partial_cmp(&self, other: &Self) -> Option<cmp::Ordering> {
-        Some(self.cmp(other))
-    }
-}
-
-impl Ord for Num {
-    fn cmp(&self, other: &Self) -> cmp::Ordering {
-        self.value.total_cmp(&other.value)
-    }
-}
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
-struct Ptr {
-    value: DefId,
-}
-
-impl Ptr {
-    fn new(value: DefId) -> Self {
-        Self { value }
-    }
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
-enum StrInner<'heap> {
-    Owned(Rc<str>),
-    Borrowed(Symbol<'heap>),
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
-struct Str<'heap> {
-    inner: StrInner<'heap>,
-}
-
-impl<'heap> From<String<'heap>> for Str<'heap> {
-    fn from(value: String<'heap>) -> Self {
-        Self {
-            inner: StrInner::Borrowed(value.as_symbol()),
-        }
-    }
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
-struct Struct<'heap> {
-    fields: Interned<'heap, [Symbol<'heap>]>,
-    values: Rc<[Value<'heap>]>,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
-struct Tuple<'heap> {
-    values: Rc<[Value<'heap>]>, // MUST BE NON-EMPTY, otherwise it's a Unit
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
-struct Opaque<'heap> {
-    name: Symbol<'heap>,
-    value: Rc<Value<'heap>>,
 }
