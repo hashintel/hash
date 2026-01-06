@@ -56,6 +56,13 @@ impl<'heap, A: Allocator> Dict<'heap, A> {
         self.inner.get(key)
     }
 
+    pub fn get_mut(&mut self, key: Value<'heap, A>) -> &mut Value<'heap, A>
+    where
+        A: Clone,
+    {
+        self.inner.entry(key).or_insert(Value::Unit)
+    }
+
     pub fn iter(
         &self,
     ) -> impl ExactSizeIterator<Item = (&Value<'heap, A>, &Value<'heap, A>)>

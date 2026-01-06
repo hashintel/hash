@@ -30,6 +30,12 @@ impl<'heap> From<Float<'heap>> for Num {
     }
 }
 
+impl From<f64> for Num {
+    fn from(value: f64) -> Self {
+        Self { value }
+    }
+}
+
 impl PartialEq for Num {
     fn eq(&self, other: &Self) -> bool {
         self.cmp(other).is_eq()

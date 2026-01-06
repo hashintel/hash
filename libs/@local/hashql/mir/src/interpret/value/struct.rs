@@ -83,9 +83,30 @@ impl<'heap, A: Allocator> Struct<'heap, A> {
             .map(|index| &self.values[index])
     }
 
+    /// Returns a mutable reference to the value for the given `field` name.
+    #[must_use]
+    pub fn get_by_name_mut(&mut self, field: Symbol<'heap>) -> Option<&mut Value<'heap, A>>
+    where
+        A: Clone,
+    {
+        let values = Rc::make_mut(&mut self.values);
+        self.fields
+            .iter()
+            .position(|&symbol| symbol == field)
+            .map(|index| &mut values[index])
+    }
+
     #[must_use]
     pub fn get_by_index(&self, index: FieldIndex) -> Option<&Value<'heap, A>> {
         self.values.get(index.as_usize())
+    }
+
+    pub fn get_by_index_mut(&mut self, index: FieldIndex) -> Option<&mut Value<'heap, A>>
+    where
+        A: Clone,
+    {
+        let values = Rc::make_mut(&mut self.values);
+        values.get_mut(index.as_usize())
     }
 
     pub fn iter(&self) -> StructIter<'_, 'heap, A> {

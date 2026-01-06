@@ -60,6 +60,24 @@ impl<'heap, A: Allocator> List<'heap, A> {
         }
     }
 
+    pub fn get_mut(&mut self, index: Int) -> Option<&mut Value<'heap, A>>
+    where
+        A: Clone,
+    {
+        let index = index.as_isize()?;
+
+        if index.is_negative() {
+            let abs = index.unsigned_abs();
+            if abs <= self.len() {
+                self.inner.get_mut(self.len() - abs)
+            } else {
+                None
+            }
+        } else {
+            self.inner.get_mut(index.cast_unsigned())
+        }
+    }
+
     pub fn iter(
         &self,
     ) -> impl ExactSizeIterator<Item = &Value<'heap, A>> + DoubleEndedIterator + FusedIterator {
