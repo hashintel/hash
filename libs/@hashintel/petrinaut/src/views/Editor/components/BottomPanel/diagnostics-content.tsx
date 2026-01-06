@@ -7,28 +7,28 @@ import { useCheckerContext } from "../../../../state/checker-provider";
 import { useEditorStore } from "../../../../state/editor-provider";
 import { useSDCPNContext } from "../../../../state/sdcpn-provider";
 
-/**
- * Formats a TypeScript diagnostic message to a readable string
- */
-const formatDiagnosticMessage = (
-  messageText: string | ts.DiagnosticMessageChain,
-): string => {
-  if (typeof messageText === "string") {
-    return messageText;
-  }
-  return ts.flattenDiagnosticMessageText(messageText, "\n");
-};
-
 const emptyMessageStyle = css({
   color: "core.gray.50",
   fontStyle: "italic",
 });
 
+const entityGroupStyle = css({
+  marginBottom: "[8px]",
+});
+
 const entityButtonStyle = css({
+  display: "flex",
+  alignItems: "center",
+  gap: "[6px]",
+  width: "[100%]",
+  padding: "[4px 0]",
+  border: "none",
+  cursor: "pointer",
+  textAlign: "left",
   fontSize: "[12px]",
   fontWeight: "medium",
   color: "core.gray.80",
-  "&:hover": {
+  _hover: {
     color: "core.gray.90",
   },
 });
@@ -38,18 +38,35 @@ const errorCountStyle = css({
   fontWeight: "normal",
 });
 
+const expandedContentStyle = css({
+  paddingLeft: "[16px]",
+  marginTop: "[4px]",
+});
+
+const itemGroupStyle = css({
+  marginBottom: "[8px]",
+});
+
 const subTypeStyle = css({
   fontSize: "[11px]",
   fontWeight: "medium",
   color: "core.gray.60",
+  marginBottom: "[2px]",
 });
 
 const diagnosticsListStyle = css({
   margin: "[0]",
+  paddingLeft: "[12px]",
   listStyle: "none",
 });
 
+const diagnosticItemStyle = css({
+  marginBottom: "[4px]",
+});
+
 const diagnosticButtonStyle = css({
+  marginLeft: "[8px]",
+  padding: "[2px 4px]",
   fontSize: "[11px]",
   fontFamily:
     "[ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace]",
@@ -62,14 +79,35 @@ const diagnosticButtonStyle = css({
   border: "none",
   textAlign: "left",
   width: "[100%]",
-  "&:hover": {
+  _hover: {
     backgroundColor: "[rgba(220, 38, 38, 0.08)]",
   },
 });
 
+const bulletStyle = css({
+  marginRight: "[4px]",
+});
+
 const positionStyle = css({
   color: "core.gray.50",
+  marginLeft: "[8px]",
 });
+
+// --- Helpers ---
+
+/**
+ * Formats a TypeScript diagnostic message to a readable string
+ */
+const formatDiagnosticMessage = (
+  messageText: string | ts.DiagnosticMessageChain,
+): string => {
+  if (typeof messageText === "string") {
+    return messageText;
+  }
+  return ts.flattenDiagnosticMessageText(messageText, "\n");
+};
+
+// --- Types ---
 
 type EntityType = "transition" | "differential-equation";
 
@@ -183,22 +221,11 @@ export const DiagnosticsContent: React.FC = () => {
             : `Differential Equation: ${group.entityName}`;
 
         return (
-          <div key={entityKey} style={{ marginBottom: 8 }}>
+          <div key={entityKey} className={entityGroupStyle}>
             {/* Collapsible entity header */}
             <button
               type="button"
               onClick={() => toggleEntity(entityKey)}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 6,
-                width: "100%",
-                padding: "4px 0",
-                background: "none",
-                border: "none",
-                cursor: "pointer",
-                textAlign: "left",
-              }}
               className={entityButtonStyle}
             >
               {isExpanded ? (
@@ -215,44 +242,37 @@ export const DiagnosticsContent: React.FC = () => {
 
             {/* Expanded diagnostics */}
             {isExpanded && (
-              <div style={{ paddingLeft: 16, marginTop: 4 }}>
+              <div className={expandedContentStyle}>
                 {group.items.map((itemGroup) => (
                   <div
                     key={`${group.entityId}-${itemGroup.subType ?? "de"}`}
-                    style={{ marginBottom: 8 }}
+                    className={itemGroupStyle}
                   >
                     {/* Show sub-type for transitions */}
                     {itemGroup.subType && (
-                      <div className={subTypeStyle} style={{ marginBottom: 2 }}>
+                      <div className={subTypeStyle}>
                         {itemGroup.subType === "lambda" ? "Lambda" : "Kernel"}
                       </div>
                     )}
 
                     {/* Diagnostics list */}
-                    <ul
-                      className={diagnosticsListStyle}
-                      style={{ paddingLeft: 12 }}
-                    >
+                    <ul className={diagnosticsListStyle}>
                       {itemGroup.diagnostics.map((diagnostic, index) => (
                         <li
                           key={`${group.entityId}-${itemGroup.subType}-${
                             diagnostic.start ?? index
                           }`}
-                          style={{ marginBottom: 4 }}
+                          className={diagnosticItemStyle}
                         >
                           <button
                             type="button"
                             onClick={() => handleSelectEntity(group.entityId)}
                             className={diagnosticButtonStyle}
-                            style={{ marginLeft: 8, padding: "2px 4px" }}
                           >
-                            <span style={{ marginRight: 4 }}>•</span>
+                            <span className={bulletStyle}>•</span>
                             {formatDiagnosticMessage(diagnostic.messageText)}
                             {diagnostic.start !== undefined && (
-                              <span
-                                className={positionStyle}
-                                style={{ marginLeft: 8 }}
-                              >
+                              <span className={positionStyle}>
                                 (pos: {diagnostic.start})
                               </span>
                             )}
