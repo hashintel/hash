@@ -1,15 +1,23 @@
-use super::value::ValueTypeName;
-use crate::body::{constant::Int, local::Local};
+use hashql_core::symbol::Symbol;
 
-pub enum RuntimeError<'value, 'heap> {
+use super::value::ValueTypeName;
+use crate::body::{local::Local, place::FieldIndex};
+
+#[derive(Debug, Copy, Clone)]
+pub enum RuntimeError<'value, 'index, 'heap> {
     // Local hasn't been initialized yet, by all intents and purposes this is an ICE, because
     // *any* step before should have handled this. Be it the MIR or the HIR.
     UninitializedLocal(Local),
     // Again: this is an ICE. typechk should have handled this.
-    InvalidIndexType(ValueTypeName<'value, 'heap>, ValueTypeName<'value, 'heap>),
+    InvalidIndexType(ValueTypeName<'value, 'heap>, ValueTypeName<'index, 'heap>),
     // Again: this is an ICE. typechk should have handled this.
     InvalidSubscriptType(ValueTypeName<'value, 'heap>),
-    // Value is too large to be used as an index, this is an actual execution error,
-    // instead of an ICE (although it should never happen).
-    InvalidIndex(Int),
+    // Again: this is an ICE. typechk should have handled this.
+    InvalidProjectionType(ValueTypeName<'value, 'heap>),
+    // Again: this is an ICE. typechk should have handled this.
+    InvalidProjectionByNameType(ValueTypeName<'value, 'heap>),
+    // Again: this is an ICE. typechk should have handled this.
+    UnknownField(ValueTypeName<'value, 'heap>, FieldIndex),
+    // Again: this is an ICE. typechk should have handled this.
+    UnknownFieldByName(ValueTypeName<'value, 'heap>, Symbol<'heap>),
 }

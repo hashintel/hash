@@ -4,7 +4,7 @@ use core::iter::FusedIterator;
 
 use imbl::shared_ptr::RcK;
 
-use super::{Value, ValueRef};
+use super::Value;
 use crate::body::constant::Int;
 
 /// An ordered list of values.
@@ -42,18 +42,18 @@ impl<'heap> List<'heap> {
 
     /// Returns a reference to the element at the given `index`.
     #[must_use]
-    pub fn get(&self, index: Int) -> Option<ValueRef<'_, 'heap>> {
+    pub fn get(&self, index: Int) -> Option<&Value<'heap>> {
         let index = index.as_isize()?;
 
         if index.is_negative() {
             let abs = index.unsigned_abs();
             if abs <= self.len() {
-                self.inner.get(self.len() - abs).map(Value::as_ref)
+                self.inner.get(self.len() - abs)
             } else {
                 None
             }
         } else {
-            self.inner.get(index.cast_unsigned()).map(Value::as_ref)
+            self.inner.get(index.cast_unsigned())
         }
     }
 

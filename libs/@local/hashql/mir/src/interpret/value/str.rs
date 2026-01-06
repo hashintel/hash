@@ -1,14 +1,44 @@
 //! String representation for the MIR interpreter.
 
-use alloc::rc::Rc;
+use alloc::{alloc::Global, rc::Rc};
+use core::{alloc::Allocator, cmp};
 
 use hashql_core::{symbol::Symbol, value::String};
 
 /// Internal storage for string values.
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
-enum StrInner<'heap> {
-    Owned(Rc<str>),
+#[derive(Debug, Clone)]
+enum StrInner<'heap, A: Allocator> {
+    Owned(Rc<str, A>),
     Interned(Symbol<'heap>),
+}
+
+impl<A: Allocator> StrInner<'_, A> {
+    fn as_str(&self) -> &str {
+        match self {
+            StrInner::Owned(value) => value,
+            StrInner::Interned(value) => value.as_str(),
+        }
+    }
+}
+
+impl<A: Allocator> PartialEq for StrInner<'_, A> {
+    fn eq(&self, other: &Self) -> bool {
+        self.as_str() == other.as_str()
+    }
+}
+
+impl<A: Allocator> Eq for StrInner<'_, A> {}
+
+impl<A: Allocator> PartialOrd for StrInner<'_, A> {
+    fn partial_cmp(&self, other: &Self) -> Option<cmp::Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl<A: Allocator> Ord for StrInner<'_, A> {
+    fn cmp(&self, other: &Self) -> cmp::Ordering {
+        self.as_str().cmp(other.as_str())
+    }
 }
 
 /// A string value.
@@ -16,12 +46,12 @@ enum StrInner<'heap> {
 /// Supports both owned strings (via [`Rc<str>`]) and borrowed interned
 /// symbols. This dual representation allows efficient handling of both
 /// dynamically created strings and compile-time literals.
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
-pub struct Str<'heap> {
-    inner: StrInner<'heap>,
+#[derive(Debug, Clone)]
+pub struct Str<'heap, A: Allocator = Global> {
+    inner: StrInner<'heap, A>,
 }
 
-impl<'heap> Str<'heap> {
+impl Str<'_> {
     /// Returns this string as a string slice.
     #[must_use]
     pub fn as_str(&self) -> &str {
@@ -30,16 +60,28 @@ impl<'heap> Str<'heap> {
             StrInner::Interned(value) => value.as_str(),
         }
     }
+}
 
-    pub const fn as_ref(&self) -> StrRef<'_, 'heap> {
-        match &self.inner {
-            StrInner::Owned(value) => StrRef {
-                inner: StrRefInner::Borrowed(value),
-            },
-            &StrInner::Interned(value) => StrRef {
-                inner: StrRefInner::Interned(value),
-            },
-        }
+impl<A: Allocator> PartialEq for Str<'_, A> {
+    fn eq(&self, other: &Self) -> bool {
+        let Self { inner } = self;
+        *inner == other.inner
+    }
+}
+
+impl<A: Allocator> Eq for Str<'_, A> {}
+
+impl<A: Allocator> PartialOrd for Str<'_, A> {
+    fn partial_cmp(&self, other: &Self) -> Option<cmp::Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl<A: Allocator> Ord for Str<'_, A> {
+    fn cmp(&self, other: &Self) -> cmp::Ordering {
+        let Self { inner } = self;
+
+        inner.cmp(&other.inner)
     }
 }
 
@@ -47,39 +89,6 @@ impl<'heap> From<String<'heap>> for Str<'heap> {
     fn from(value: String<'heap>) -> Self {
         Self {
             inner: StrInner::Interned(value.as_symbol()),
-        }
-    }
-}
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
-enum StrRefInner<'value, 'heap> {
-    Borrowed(&'value Rc<str>),
-    Interned(Symbol<'heap>),
-}
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
-pub struct StrRef<'value, 'heap> {
-    inner: StrRefInner<'value, 'heap>,
-}
-
-impl<'heap> StrRef<'_, 'heap> {
-    /// Returns this string as a string slice.
-    #[must_use]
-    pub fn as_str(&self) -> &str {
-        match &self.inner {
-            StrRefInner::Borrowed(value) => value,
-            StrRefInner::Interned(value) => value.as_str(),
-        }
-    }
-
-    pub fn into_owned(self) -> Str<'heap> {
-        match self.inner {
-            StrRefInner::Borrowed(value) => Str {
-                inner: StrInner::Owned(Rc::clone(value)),
-            },
-            StrRefInner::Interned(value) => Str {
-                inner: StrInner::Interned(value),
-            },
         }
     }
 }
