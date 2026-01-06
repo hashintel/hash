@@ -19,13 +19,6 @@ export interface ErrorTracker {
   captureException: (error: unknown, context?: ErrorTrackerContextData) => void;
 }
 
-/**
- * Error tracker context value
- * This is a one-way interface for sending errors to tracking services.
- * For UI error display, use separate state management (e.g., error boundaries, toast notifications).
- */
-export type ErrorTrackerContextType = ErrorTracker;
-
-export const ErrorTrackerContext = createContext<ErrorTrackerContextType>({
+export const ErrorTrackerContext = createContext<ErrorTracker>({
   captureException: () => {},
 });
