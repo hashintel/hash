@@ -10,7 +10,6 @@ use super::{error::RuntimeError, value::Value};
 use crate::{
     body::{
         Body,
-        basic_block::BasicBlock,
         local::{Local, LocalVec},
         operand::Operand,
         place::{FieldIndex, Place, ProjectionKind},
@@ -24,20 +23,60 @@ pub(crate) struct Locals<'heap, A: Allocator = Global> {
     inner: LocalVec<Option<Value<'heap, A>>, A>,
 }
 
+impl<'heap> Locals<'heap> {
+    pub(crate) fn new<E>(
+        body: &Body<'heap>,
+        args: impl IntoIterator<Item = Result<Value<'heap>, E>>,
+    ) -> Result<Self, E> {
+        Self::new_in(body, args, Global)
+    }
+}
+
 impl<'heap, A: Allocator> Locals<'heap, A> {
-    pub(crate) fn local<'this, 'index>(
-        &self,
-        local: Local,
-    ) -> Result<&Value<'heap, A>, RuntimeError<'this, 'index, 'heap, A>> {
+    pub(crate) fn new_in<E>(
+        body: &Body<'heap>,
+        args: impl IntoIterator<Item = Result<Value<'heap, A>, E>>,
+        alloc: A,
+    ) -> Result<Self, E>
+    where
+        A: Clone,
+    {
+        let mut locals = LocalVec::with_capacity_in(body.local_decls.len(), alloc.clone());
+        for arg in args {
+            locals.push(Some(arg?));
+        }
+
+        debug_assert_eq!(locals.len(), body.args);
+
+        Ok(Self {
+            alloc,
+            inner: locals,
+        })
+    }
+
+    pub(crate) fn insert(&mut self, local: Local, value: Value<'heap, A>) {
+        self.inner.insert(local, value);
+    }
+
+    pub(crate) fn local(&self, local: Local) -> Result<&Value<'heap, A>, RuntimeError<'heap>> {
         self.inner
             .lookup(local)
+            .ok_or(RuntimeError::UninitializedLocal(local))
+    }
+
+    pub(crate) fn local_mut(
+        &mut self,
+        local: Local,
+    ) -> Result<&mut Value<'heap, A>, RuntimeError<'heap>> {
+        self.inner
+            .lookup_mut(local)
             .ok_or(RuntimeError::UninitializedLocal(local))
     }
 
     pub(crate) fn place(
         &self,
         Place { local, projections }: Place<'heap>,
-    ) -> Result<&Value<'heap, A>, RuntimeError<'_, '_, 'heap, A>> {
+    ) -> Result<&Value<'heap, A>, RuntimeError<'heap>> {
         let mut value = self.local(local)?;
 
         for projection in projections {
@@ -58,10 +97,54 @@ impl<'heap, A: Allocator> Locals<'heap, A> {
         Ok(value)
     }
 
+    pub(crate) fn place_mut(
+        &mut self,
+        place: Place<'heap>,
+    ) -> Result<&mut Value<'heap, A>, RuntimeError<'heap>>
+    where
+        A: Clone,
+    {
+        let index_projections = place
+            .projections
+            .iter()
+            .filter(|projection| matches!(projection.kind, ProjectionKind::Index(_)))
+            .count();
+        let mut indices = Vec::with_capacity_in(index_projections, self.alloc.clone());
+        place
+            .projections
+            .iter()
+            .filter_map(|projection| match projection.kind {
+                ProjectionKind::Index(local) => Some(self.local(local).cloned()),
+                _ => None,
+            })
+            .collect_into(&mut indices);
+        // They're in order of operations, but we need to reverse them to actually use them
+        indices.reverse();
+
+        let mut value = self.local_mut(place.local)?;
+
+        for projection in place.projections {
+            match projection.kind {
+                ProjectionKind::Field(field_index) => {
+                    value = value.project_mut(field_index)?;
+                }
+                ProjectionKind::FieldByName(symbol) => {
+                    value = value.project_by_name_mut(symbol)?;
+                }
+                ProjectionKind::Index(_) => {
+                    let index = indices.pop().unwrap_or_else(|| unreachable!())?;
+                    value = value.subscript_mut(index)?;
+                }
+            }
+        }
+
+        Ok(value)
+    }
+
     pub(crate) fn operand(
         &self,
         operand: Operand<'heap>,
-    ) -> Result<Cow<'_, Value<'heap, A>>, RuntimeError<'_, '_, 'heap, A>>
+    ) -> Result<Cow<'_, Value<'heap, A>>, RuntimeError<'heap>>
     where
         A: Clone,
     {
@@ -77,7 +160,7 @@ impl<'heap, A: Allocator> Locals<'heap, A> {
         &self,
         slice: &mut [MaybeUninit<Value<'heap, A>>],
         operands: &[Operand<'heap>],
-    ) -> Result<(), RuntimeError<'_, '_, 'heap, A>>
+    ) -> Result<(), RuntimeError<'heap>>
     where
         A: Clone,
     {
@@ -126,7 +209,7 @@ impl<'heap, A: Allocator> Locals<'heap, A> {
     fn aggregate_tuple(
         &self,
         operands: &IdSlice<FieldIndex, Operand<'heap>>,
-    ) -> Result<Value<'heap, A>, RuntimeError<'_, '_, 'heap, A>>
+    ) -> Result<Value<'heap, A>, RuntimeError<'heap>>
     where
         A: Clone,
     {
@@ -155,7 +238,7 @@ impl<'heap, A: Allocator> Locals<'heap, A> {
         &self,
         fields: Interned<'heap, [Symbol<'heap>]>,
         operands: &IdSlice<FieldIndex, Operand<'heap>>,
-    ) -> Result<Value<'heap, A>, RuntimeError<'_, '_, 'heap, A>>
+    ) -> Result<Value<'heap, A>, RuntimeError<'heap>>
     where
         A: Clone,
     {
@@ -186,7 +269,7 @@ impl<'heap, A: Allocator> Locals<'heap, A> {
     pub(crate) fn aggregate(
         &self,
         Aggregate { kind, operands }: &Aggregate<'heap>,
-    ) -> Result<Value<'heap, A>, RuntimeError<'_, '_, 'heap, A>>
+    ) -> Result<Value<'heap, A>, RuntimeError<'heap>>
     where
         A: Clone,
     {

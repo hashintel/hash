@@ -64,6 +64,16 @@ impl<'heap, A: Allocator> Tuple<'heap, A> {
         self.values.get(index.as_usize())
     }
 
+    /// Returns a mutable reference to the element at the given `index`.
+    #[must_use]
+    pub fn get_mut(&mut self, index: FieldIndex) -> Option<&mut Value<'heap, A>>
+    where
+        A: Clone,
+    {
+        let values = Rc::make_mut(&mut self.values);
+        values.get_mut(index.as_usize())
+    }
+
     pub fn iter(&self) -> core::slice::Iter<'_, Value<'heap, A>> {
         self.values.iter()
     }
