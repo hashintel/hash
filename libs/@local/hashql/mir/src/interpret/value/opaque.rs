@@ -1,10 +1,33 @@
 //! Opaque wrapper type for the MIR interpreter.
 
 use alloc::rc::Rc;
+use core::fmt::{self, Display};
 
 use hashql_core::symbol::Symbol;
 
 use super::Value;
+
+fn opaque_type_name<'heap>(name: &Symbol<'heap>, value: &Value) -> impl Display {
+    fmt::from_fn(|fmt| {
+        // check if the inner type is a struct or tuple, in which case we elide the `()`
+        // surrounding the type to remove some noise.
+        let has_parens = !matches!(value, Value::Struct(_) | Value::Tuple(_));
+
+        fmt.write_str(name.as_str())?;
+        if has_parens {
+            fmt.write_str("(")?;
+        }
+
+        let type_name = value.type_name();
+        Display::fmt(&type_name, fmt)?;
+
+        if has_parens {
+            fmt.write_str(")")?;
+        }
+
+        Ok(())
+    })
+}
 
 /// An opaque wrapper around a value.
 ///
@@ -37,5 +60,35 @@ impl<'heap> Opaque<'heap> {
     #[must_use]
     pub fn value(&self) -> &Value<'heap> {
         &self.value
+    }
+
+    pub const fn as_ref(&self) -> OpaqueRef<'_, 'heap> {
+        OpaqueRef {
+            name: self.name,
+            value: &self.value,
+        }
+    }
+
+    pub fn type_name(&self) -> impl Display {
+        opaque_type_name(&self.name, &self.value)
+    }
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
+pub struct OpaqueRef<'value, 'heap> {
+    name: Symbol<'heap>,
+    value: &'value Rc<Value<'heap>>,
+}
+
+impl<'value, 'heap> OpaqueRef<'value, 'heap> {
+    pub fn into_owned(self) -> Opaque<'heap> {
+        Opaque {
+            name: self.name,
+            value: Rc::clone(self.value),
+        }
+    }
+
+    pub fn type_name(&self) -> impl Display {
+        opaque_type_name(&self.name, &self.value)
     }
 }

@@ -19,6 +19,8 @@ use crate::{
     def::{DefId, DefIdSlice},
 };
 
+mod error;
+mod runtime;
 mod value;
 
 type LocalValueVec<'heap> = LocalVec<Option<Value<'heap>>>;
@@ -60,10 +62,11 @@ fn load_place<'locals, 'heap>(
             ProjectionKind::Index(local) => {
                 let index = load_local(locals, local);
 
-                value = match value {
-                    Cow::Borrowed(value) => value.subscript(index),
-                    Cow::Owned(value) => Cow::Owned(value.subscript(index).into_owned()),
-                };
+                todo!()
+                // value = match value {
+                //     Cow::Borrowed(value) => value.subscript(index),
+                //     Cow::Owned(value) => Cow::Owned(value.subscript(index).into_owned()),
+                // };
             }
         }
     }
