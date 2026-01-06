@@ -2,7 +2,7 @@
  * UI-related constants for the Petrinaut editor.
  */
 
-import type { SubView } from "../components/sub-view";
+import type { SubView } from "../components/sub-view/types";
 import { diagnosticsSubView } from "../views/Editor/subviews/diagnostics";
 import { differentialEquationsListSubView } from "../views/Editor/subviews/differential-equations-list";
 import { nodesListSubView } from "../views/Editor/subviews/nodes-list";
