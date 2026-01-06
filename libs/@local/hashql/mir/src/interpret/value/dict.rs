@@ -1,6 +1,6 @@
 //! Dictionary collection for the MIR interpreter.
 
-use core::iter::FusedIterator;
+use core::{alloc::Allocator, cmp, iter::FusedIterator};
 
 use imbl::shared_ptr::RcK;
 
@@ -11,12 +11,12 @@ use super::Value;
 /// Backed by an immutable persistent ordered map, enabling efficient structural
 /// sharing when values are cloned or modified. Keys are ordered using their
 /// [`Ord`] implementation.
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
-pub struct Dict<'heap> {
-    inner: imbl::GenericOrdMap<Value<'heap>, Value<'heap>, RcK>,
+#[derive(Debug, Clone)]
+pub struct Dict<'heap, A: Allocator> {
+    inner: imbl::GenericOrdMap<Value<'heap, A>, Value<'heap, A>, RcK>,
 }
 
-impl<'heap> Dict<'heap> {
+impl<'heap, A: Allocator> Dict<'heap, A> {
     pub fn new() -> Self {
         Self {
             inner: imbl::GenericOrdMap::new(),
@@ -39,26 +39,56 @@ impl<'heap> Dict<'heap> {
     ///
     /// If the key already exists, its value is replaced and the old value
     /// is returned.
-    pub fn insert(&mut self, key: Value<'heap>, value: Value<'heap>) -> Option<Value<'heap>> {
+    pub fn insert(
+        &mut self,
+        key: Value<'heap, A>,
+        value: Value<'heap, A>,
+    ) -> Option<Value<'heap, A>>
+    where
+        A: Clone,
+    {
         self.inner.insert(key, value)
     }
 
     /// Returns a reference to the value associated with the `key`.
     #[must_use]
-    pub fn get(&self, key: &Value<'heap>) -> Option<&Value<'heap>> {
+    pub fn get(&self, key: &Value<'heap, A>) -> Option<&Value<'heap, A>> {
         self.inner.get(key)
     }
 
     pub fn iter(
         &self,
-    ) -> impl ExactSizeIterator<Item = (&Value<'heap>, &Value<'heap>)>
+    ) -> impl ExactSizeIterator<Item = (&Value<'heap, A>, &Value<'heap, A>)>
     + DoubleEndedIterator
     + FusedIterator {
         self.inner.iter()
     }
 }
 
-impl Default for Dict<'_> {
+impl<A: Allocator> PartialEq for Dict<'_, A> {
+    #[inline]
+    fn eq(&self, other: &Self) -> bool {
+        self.inner == other.inner
+    }
+}
+
+impl<A: Allocator> Eq for Dict<'_, A> {}
+
+impl<A: Allocator> PartialOrd for Dict<'_, A> {
+    #[inline]
+    fn partial_cmp(&self, other: &Self) -> Option<cmp::Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl<A: Allocator> Ord for Dict<'_, A> {
+    #[inline]
+    fn cmp(&self, other: &Self) -> cmp::Ordering {
+        self.inner.cmp(&other.inner)
+    }
+}
+
+impl<A: Allocator> Default for Dict<'_, A> {
     fn default() -> Self {
         Self {
             inner: imbl::GenericOrdMap::new(),
@@ -66,18 +96,10 @@ impl Default for Dict<'_> {
     }
 }
 
-impl<'heap> FromIterator<(Value<'heap>, Value<'heap>)> for Dict<'heap> {
-    fn from_iter<T: IntoIterator<Item = (Value<'heap>, Value<'heap>)>>(iter: T) -> Self {
-        Self {
-            inner: iter.into_iter().collect(),
-        }
-    }
-}
+impl<'this, 'heap, A: Allocator> IntoIterator for &'this Dict<'heap, A> {
+    type Item = (&'this Value<'heap, A>, &'this Value<'heap, A>);
 
-impl<'this, 'heap> IntoIterator for &'this Dict<'heap> {
-    type Item = (&'this Value<'heap>, &'this Value<'heap>);
-
-    type IntoIter = impl ExactSizeIterator<Item = (&'this Value<'heap>, &'this Value<'heap>)>
+    type IntoIter = impl ExactSizeIterator<Item = (&'this Value<'heap, A>, &'this Value<'heap, A>)>
         + DoubleEndedIterator
         + FusedIterator;
 
