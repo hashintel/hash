@@ -20,6 +20,7 @@ use crate::{
 };
 
 mod error;
+mod locals;
 mod runtime;
 mod value;
 

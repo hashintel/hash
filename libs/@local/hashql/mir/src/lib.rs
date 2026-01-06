@@ -23,6 +23,7 @@
     step_trait,
     string_from_utf8_lossy_owned,
     try_trait_v2,
+    get_mut_unchecked,
 )]
 #![expect(clippy::indexing_slicing)]
 extern crate alloc;
