@@ -1,7 +1,11 @@
 //! Opaque wrapper type for the MIR interpreter.
 
 use alloc::rc::Rc;
-use core::fmt::{self, Display};
+use core::{
+    alloc::Allocator,
+    cmp,
+    fmt::{self, Display},
+};
 
 use hashql_core::symbol::Symbol;
 
@@ -12,16 +16,16 @@ use super::Value;
 /// Wraps a value with a named type tag, representing nominal types or
 /// newtype wrappers. The name distinguishes different opaque types even
 /// when their underlying values are structurally identical.
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
-pub struct Opaque<'heap> {
+#[derive(Debug, Clone)]
+pub struct Opaque<'heap, A: Allocator> {
     name: Symbol<'heap>,
-    value: Rc<Value<'heap>>,
+    value: Rc<Value<'heap, A>, A>,
 }
 
-impl<'heap> Opaque<'heap> {
+impl<'heap, A: Allocator> Opaque<'heap, A> {
     /// Creates a new opaque value with the given `name` and wrapped `value`.
     #[must_use]
-    pub fn new(name: Symbol<'heap>, value: impl Into<Rc<Value<'heap>>>) -> Self {
+    pub fn new(name: Symbol<'heap>, value: impl Into<Rc<Value<'heap, A>, A>>) -> Self {
         Self {
             name,
             value: value.into(),
@@ -36,7 +40,7 @@ impl<'heap> Opaque<'heap> {
 
     /// Returns a reference to the wrapped value.
     #[must_use]
-    pub fn value(&self) -> &Value<'heap> {
+    pub fn value(&self) -> &Value<'heap, A> {
         &self.value
     }
 
@@ -60,5 +64,31 @@ impl<'heap> Opaque<'heap> {
 
             Ok(())
         })
+    }
+}
+
+impl<A: Allocator> PartialEq for Opaque<'_, A> {
+    #[inline]
+    fn eq(&self, other: &Self) -> bool {
+        let Self { name, value } = self;
+        *name == other.name && *value == other.value
+    }
+}
+
+impl<A: Allocator> Eq for Opaque<'_, A> {}
+
+impl<A: Allocator> PartialOrd for Opaque<'_, A> {
+    #[inline]
+    fn partial_cmp(&self, other: &Self) -> Option<cmp::Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl<A: Allocator> Ord for Opaque<'_, A> {
+    #[inline]
+    fn cmp(&self, other: &Self) -> cmp::Ordering {
+        let Self { name, value } = self;
+
+        name.cmp(&other.name).then_with(|| value.cmp(&other.value))
     }
 }

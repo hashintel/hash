@@ -2,12 +2,9 @@
 
 use alloc::rc::Rc;
 use core::{
-    fmt::{self, Display},
-    ops::Index,
-};
-use std::{
-    alloc::{Allocator, Global},
+    alloc::Allocator,
     cmp,
+    fmt::{self, Display},
 };
 
 use hashql_core::{id::Id as _, intern::Interned, symbol::Symbol};
@@ -25,15 +22,15 @@ use crate::body::place::FieldIndex;
 /// - `fields.len() == values.len()`
 /// - Field names should be unique (not enforced at construction)
 #[derive(Debug, Clone)]
-pub struct Struct<'heap, A: Allocator = Global> {
+pub struct Struct<'heap, A: Allocator> {
     fields: Interned<'heap, [Symbol<'heap>]>,
-    values: Rc<[Value<'heap>], A>,
+    values: Rc<[Value<'heap, A>], A>,
 }
 
 impl<'heap, A: Allocator> Struct<'heap, A> {
     pub fn new_unchecked(
         fields: Interned<'heap, [Symbol<'heap>]>,
-        values: Rc<[Value<'heap>], A>,
+        values: Rc<[Value<'heap, A>], A>,
     ) -> Self {
         debug_assert_eq!(fields.len(), values.len());
 
@@ -46,7 +43,7 @@ impl<'heap, A: Allocator> Struct<'heap, A> {
     #[must_use]
     pub fn new(
         fields: Interned<'heap, [Symbol<'heap>]>,
-        values: impl Into<Rc<[Value<'heap>], A>>,
+        values: impl Into<Rc<[Value<'heap, A>], A>>,
     ) -> Option<Self> {
         let values = values.into();
 
@@ -61,7 +58,7 @@ impl<'heap, A: Allocator> Struct<'heap, A> {
 
     /// Returns the field values.
     #[must_use]
-    pub fn values(&self) -> &[Value<'heap>] {
+    pub fn values(&self) -> &[Value<'heap, A>] {
         &self.values
     }
 
@@ -79,7 +76,7 @@ impl<'heap, A: Allocator> Struct<'heap, A> {
 
     /// Returns the value for the given `field` name.
     #[must_use]
-    pub fn get_by_name(&self, field: Symbol<'heap>) -> Option<&Value<'heap>> {
+    pub fn get_by_name(&self, field: Symbol<'heap>) -> Option<&Value<'heap, A>> {
         self.fields
             .iter()
             .position(|&symbol| symbol == field)
@@ -87,11 +84,11 @@ impl<'heap, A: Allocator> Struct<'heap, A> {
     }
 
     #[must_use]
-    pub fn get_by_index(&self, index: FieldIndex) -> Option<&Value<'heap>> {
+    pub fn get_by_index(&self, index: FieldIndex) -> Option<&Value<'heap, A>> {
         self.values.get(index.as_usize())
     }
 
-    pub fn iter(&self) -> StructIter<'_, 'heap> {
+    pub fn iter(&self) -> StructIter<'_, 'heap, A> {
         StructIter {
             fields: self.fields.iter().copied(),
             values: self.values.iter(),
@@ -117,25 +114,9 @@ impl<'heap, A: Allocator> Struct<'heap, A> {
     }
 }
 
-impl<'heap> Index<Symbol<'heap>> for Struct<'heap> {
-    type Output = Value<'heap>;
-
-    fn index(&self, index: Symbol<'heap>) -> &Self::Output {
-        self.get_by_name(index).expect("struct field not found")
-    }
-}
-
-impl<'heap> Index<FieldIndex> for Struct<'heap> {
-    type Output = Value<'heap>;
-
-    fn index(&self, index: FieldIndex) -> &Self::Output {
-        &self.values[index.as_usize()]
-    }
-}
-
-impl<'this, 'heap> IntoIterator for &'this Struct<'heap> {
-    type IntoIter = StructIter<'this, 'heap>;
-    type Item = (Symbol<'heap>, &'this Value<'heap>);
+impl<'this, 'heap, A: Allocator> IntoIterator for &'this Struct<'heap, A> {
+    type IntoIter = StructIter<'this, 'heap, A>;
+    type Item = (Symbol<'heap>, &'this Value<'heap, A>);
 
     fn into_iter(self) -> Self::IntoIter {
         self.iter()
@@ -143,6 +124,7 @@ impl<'this, 'heap> IntoIterator for &'this Struct<'heap> {
 }
 
 impl<A: Allocator> PartialEq for Struct<'_, A> {
+    #[inline]
     fn eq(&self, other: &Self) -> bool {
         let Self { fields, values } = self;
 
@@ -153,12 +135,14 @@ impl<A: Allocator> PartialEq for Struct<'_, A> {
 impl<A: Allocator> Eq for Struct<'_, A> {}
 
 impl<A: Allocator> PartialOrd for Struct<'_, A> {
+    #[inline]
     fn partial_cmp(&self, other: &Self) -> Option<cmp::Ordering> {
         Some(self.cmp(other))
     }
 }
 
 impl<A: Allocator> Ord for Struct<'_, A> {
+    #[inline]
     fn cmp(&self, other: &Self) -> cmp::Ordering {
         let Self { fields, values } = self;
 
@@ -169,13 +153,13 @@ impl<A: Allocator> Ord for Struct<'_, A> {
 }
 
 /// Iterator over (field name, value) pairs of a [`Struct`].
-pub struct StructIter<'this, 'heap> {
+pub struct StructIter<'this, 'heap, A: Allocator> {
     fields: core::iter::Copied<core::slice::Iter<'this, Symbol<'heap>>>,
-    values: core::slice::Iter<'this, Value<'heap>>,
+    values: core::slice::Iter<'this, Value<'heap, A>>,
 }
 
-impl<'this, 'heap> Iterator for StructIter<'this, 'heap> {
-    type Item = (Symbol<'heap>, &'this Value<'heap>);
+impl<'this, 'heap, A: Allocator> Iterator for StructIter<'this, 'heap, A> {
+    type Item = (Symbol<'heap>, &'this Value<'heap, A>);
 
     fn next(&mut self) -> Option<Self::Item> {
         Some((self.fields.next()?, self.values.next()?))
@@ -186,10 +170,10 @@ impl<'this, 'heap> Iterator for StructIter<'this, 'heap> {
     }
 }
 
-impl DoubleEndedIterator for StructIter<'_, '_> {
+impl<A: Allocator> DoubleEndedIterator for StructIter<'_, '_, A> {
     fn next_back(&mut self) -> Option<Self::Item> {
         Some((self.fields.next_back()?, self.values.next_back()?))
     }
 }
 
-impl ExactSizeIterator for StructIter<'_, '_> {}
+impl<A: Allocator> ExactSizeIterator for StructIter<'_, '_, A> {}

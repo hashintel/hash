@@ -41,7 +41,12 @@ mod str;
 mod r#struct;
 mod tuple;
 
-use core::fmt::{self, Display};
+use alloc::alloc::Global;
+use core::{
+    alloc::Allocator,
+    cmp,
+    fmt::{self, Display},
+};
 
 use hashql_core::{symbol::Symbol, value::Primitive};
 
@@ -54,6 +59,37 @@ use crate::body::{
     constant::{Constant, Int},
     place::FieldIndex,
 };
+
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+enum ValueDiscriminant {
+    Unit,
+    Integer,
+    Number,
+    String,
+    List,
+    Dict,
+    Pointer,
+    Opaque,
+    Struct,
+    Tuple,
+}
+
+impl ValueDiscriminant {
+    const fn new<A: Allocator>(value: &Value<'_, A>) -> Self {
+        match value {
+            Value::Unit => Self::Unit,
+            Value::Integer(_) => Self::Integer,
+            Value::Number(_) => Self::Number,
+            Value::String(_) => Self::String,
+            Value::List(_) => Self::List,
+            Value::Dict(_) => Self::Dict,
+            Value::Pointer(_) => Self::Pointer,
+            Value::Opaque(_) => Self::Opaque,
+            Value::Struct(_) => Self::Struct,
+            Value::Tuple(_) => Self::Tuple,
+        }
+    }
+}
 
 /// A runtime value in the MIR interpreter.
 ///
@@ -68,8 +104,8 @@ use crate::body::{
 /// - Empty tuples should use [`Value::Unit`], not an empty [`Tuple`]
 ///
 /// [`Rc`]: alloc::rc::Rc
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
-pub enum Value<'heap> {
+#[derive(Debug, Clone)]
+pub enum Value<'heap, A: Allocator = Global> {
     /// The unit value.
     Unit,
     /// An integer value (also represents booleans).
@@ -77,43 +113,43 @@ pub enum Value<'heap> {
     /// A floating-point number.
     Number(Num),
     /// A string value.
-    String(Str<'heap>),
+    String(Str<'heap, A>),
     /// A function pointer.
     Pointer(Ptr),
 
     /// An opaque/newtype wrapper.
-    Opaque(Opaque<'heap>),
+    Opaque(Opaque<'heap, A>),
     /// A named-field struct.
-    Struct(Struct<'heap>),
+    Struct(Struct<'heap, A>),
     /// A positional tuple.
-    Tuple(Tuple<'heap>),
+    Tuple(Tuple<'heap, A>),
 
     /// An ordered list.
-    List(List<'heap>),
+    List(List<'heap, A>),
     /// An ordered dictionary.
-    Dict(Dict<'heap>),
+    Dict(Dict<'heap, A>),
 }
 
-const UNIT_REF: &Value<'_> = &Value::Unit;
+impl<'heap, A: Allocator> Value<'heap, A> {
+    const UNIT: Self = Self::Unit;
 
-impl<'heap> Value<'heap> {
-    fn type_name(&self) -> ValueTypeName<'_, 'heap> {
+    fn type_name(&self) -> ValueTypeName<'_, 'heap, A> {
         ValueTypeName::from(self)
     }
 
     pub fn subscript<'this, 'index>(
         &'this self,
         index: &'index Self,
-    ) -> Result<&'this Self, RuntimeError<'this, 'index, 'heap>> {
+    ) -> Result<&'this Self, RuntimeError<'this, 'index, 'heap, A>> {
         match self {
             Self::List(list) if let &Self::Integer(value) = index => {
-                Ok(list.get(value).unwrap_or(UNIT_REF))
+                Ok(list.get(value).unwrap_or(&Self::UNIT))
             }
             Self::List(_) => Err(RuntimeError::InvalidIndexType(
                 self.type_name(),
                 index.type_name(),
             )),
-            Self::Dict(dict) => Ok(dict.get(index).unwrap_or(UNIT_REF)),
+            Self::Dict(dict) => Ok(dict.get(index).unwrap_or(&Self::UNIT)),
             Self::Unit
             | Self::Integer(_)
             | Self::Number(_)
@@ -128,7 +164,7 @@ impl<'heap> Value<'heap> {
     pub fn project<'this, 'index>(
         &'this self,
         index: FieldIndex,
-    ) -> Result<&'this Self, RuntimeError<'this, 'index, 'heap>> {
+    ) -> Result<&'this Self, RuntimeError<'this, 'index, 'heap, A>> {
         match self {
             Self::Struct(r#struct) => r#struct
                 .get_by_index(index)
@@ -150,7 +186,7 @@ impl<'heap> Value<'heap> {
     pub fn project_by_name<'this, 'index>(
         &'this self,
         index: Symbol<'heap>,
-    ) -> Result<&'this Self, RuntimeError<'this, 'index, 'heap>> {
+    ) -> Result<&'this Self, RuntimeError<'this, 'index, 'heap, A>> {
         let Self::Struct(r#struct) = self else {
             return Err(RuntimeError::InvalidProjectionType(self.type_name()));
         };
@@ -177,16 +213,64 @@ impl<'heap> From<Constant<'heap>> for Value<'heap> {
     }
 }
 
-#[derive(Debug, Copy, Clone)]
-enum ValueTypeNameInner<'value, 'heap> {
-    Const(&'static str),
-    Pointer(Ptr),
-    Opaque(&'value Opaque<'heap>),
-    Struct(&'value Struct<'heap>),
-    Tuple(&'value Tuple<'heap>),
+impl<A: Allocator> PartialEq for Value<'_, A> {
+    #[inline]
+    fn eq(&self, other: &Self) -> bool {
+        match (self, other) {
+            (Self::Integer(this), Self::Integer(other)) => this == other,
+            (Self::Number(this), Self::Number(other)) => this == other,
+            (Self::String(this), Self::String(other)) => this == other,
+            (Self::Pointer(this), Self::Pointer(other)) => this == other,
+            (Self::Opaque(this), Self::Opaque(other)) => this == other,
+            (Self::Struct(this), Self::Struct(other)) => this == other,
+            (Self::Tuple(this), Self::Tuple(other)) => this == other,
+            (Self::List(this), Self::List(other)) => this == other,
+            (Self::Dict(this), Self::Dict(other)) => this == other,
+            _ => core::mem::discriminant(self) == core::mem::discriminant(other),
+        }
+    }
 }
 
-impl Display for ValueTypeNameInner<'_, '_> {
+impl<A: Allocator> Eq for Value<'_, A> {}
+
+impl<A: Allocator> PartialOrd for Value<'_, A> {
+    #[inline]
+    fn partial_cmp(&self, other: &Self) -> Option<cmp::Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl<A: Allocator> Ord for Value<'_, A> {
+    #[inline]
+    fn cmp(&self, other: &Self) -> cmp::Ordering {
+        let self_discr = ValueDiscriminant::new(self);
+        let other_discr = ValueDiscriminant::new(other);
+
+        match (self, other) {
+            (Value::Integer(this), Value::Integer(other)) => this.cmp(other),
+            (Value::Number(this), Value::Number(other)) => this.cmp(other),
+            (Value::String(this), Value::String(other)) => this.cmp(other),
+            (Value::Pointer(this), Value::Pointer(other)) => this.cmp(other),
+            (Value::Opaque(this), Value::Opaque(other)) => this.cmp(other),
+            (Value::Struct(this), Value::Struct(other)) => this.cmp(other),
+            (Value::Tuple(this), Value::Tuple(other)) => this.cmp(other),
+            (Value::List(this), Value::List(other)) => this.cmp(other),
+            (Value::Dict(this), Value::Dict(other)) => this.cmp(other),
+            _ => self_discr.cmp(&other_discr),
+        }
+    }
+}
+
+#[derive(Debug, Copy, Clone)]
+enum ValueTypeNameInner<'value, 'heap, A: Allocator> {
+    Const(&'static str),
+    Pointer(Ptr),
+    Opaque(&'value Opaque<'heap, A>),
+    Struct(&'value Struct<'heap, A>),
+    Tuple(&'value Tuple<'heap, A>),
+}
+
+impl<A: Allocator> Display for ValueTypeNameInner<'_, '_, A> {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         match *self {
             Self::Const(value) => fmt.write_str(value),
@@ -199,16 +283,18 @@ impl Display for ValueTypeNameInner<'_, '_> {
 }
 
 #[derive(Debug, Copy, Clone)]
-pub struct ValueTypeName<'value, 'heap>(ValueTypeNameInner<'value, 'heap>);
+pub struct ValueTypeName<'value, 'heap, A: Allocator>(ValueTypeNameInner<'value, 'heap, A>);
 
-impl Display for ValueTypeName<'_, '_> {
+impl<A: Allocator> Display for ValueTypeName<'_, '_, A> {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         self.0.fmt(fmt)
     }
 }
 
-impl<'value, 'heap> From<&'value Value<'heap>> for ValueTypeName<'value, 'heap> {
-    fn from(value: &'value Value<'heap>) -> Self {
+impl<'value, 'heap, A: Allocator> From<&'value Value<'heap, A>>
+    for ValueTypeName<'value, 'heap, A>
+{
+    fn from(value: &'value Value<'heap, A>) -> Self {
         match value {
             Value::Unit => Self(ValueTypeNameInner::Const("()")),
             Value::Integer(_) => Self(ValueTypeNameInner::Const("Integer")),
