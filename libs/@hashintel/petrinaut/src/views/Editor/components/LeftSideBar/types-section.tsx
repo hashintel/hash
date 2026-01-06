@@ -5,6 +5,7 @@ import { FaChevronDown, FaChevronRight } from "react-icons/fa6";
 import { InfoIconTooltip } from "../../../../components/tooltip";
 import { useEditorStore } from "../../../../state/editor-provider";
 import { useSDCPNContext } from "../../../../state/sdcpn-provider";
+import { useSimulationStore } from "../../../../state/simulation-provider";
 
 // Pool of 10 well-differentiated colors for types
 const TYPE_COLOR_POOL = [
@@ -66,6 +67,11 @@ export const TypesSection: React.FC = () => {
     (state) => state.setSelectedResourceId,
   );
 
+  // Check if simulation is running or paused
+  const simulationState = useSimulationStore((state) => state.state);
+  const isSimulationActive =
+    simulationState === "Running" || simulationState === "Paused";
+
   return (
     <div
       style={{
@@ -115,6 +121,7 @@ export const TypesSection: React.FC = () => {
         </button>
         <button
           type="button"
+          disabled={isSimulationActive}
           onClick={() => {
             const existingColors = types.map((type) => type.displayColor);
             const existingNames = types.map((type) => type.name);
@@ -148,6 +155,14 @@ export const TypesSection: React.FC = () => {
             _hover: {
               backgroundColor: "[rgba(0, 0, 0, 0.05)]",
               color: "core.gray.90",
+            },
+            _disabled: {
+              cursor: "not-allowed",
+              opacity: "[0.4]",
+              _hover: {
+                backgroundColor: "[transparent]",
+                color: "core.gray.60",
+              },
             },
           })}
           style={{ width: 24, height: 24 }}
@@ -232,6 +247,7 @@ export const TypesSection: React.FC = () => {
                 </span>
                 <button
                   type="button"
+                  disabled={isSimulationActive}
                   onClick={() => {
                     if (
                       // eslint-disable-next-line no-alert
@@ -254,6 +270,14 @@ export const TypesSection: React.FC = () => {
                     _hover: {
                       backgroundColor: "[rgba(239, 68, 68, 0.1)]",
                       color: "core.red.60",
+                    },
+                    _disabled: {
+                      cursor: "not-allowed",
+                      opacity: "[0.3]",
+                      _hover: {
+                        backgroundColor: "[transparent]",
+                        color: "core.gray.40",
+                      },
                     },
                   })}
                   style={{ width: 20, height: 20 }}

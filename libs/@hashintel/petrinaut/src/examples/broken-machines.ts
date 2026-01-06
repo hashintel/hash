@@ -303,7 +303,7 @@ export const productionMachines: { title: string; petriNetDefinition: SDCPN } =
           lambdaType: "predicate",
           lambdaCode: "export default Lambda(() => true)",
           transitionKernelCode:
-            "/**\n* This function defines the kernel for the transition.\n* It receives tokens from input places,\n* and any global parameters defined,\n* and should return tokens for output places keyed by place name.\n*/\nexport default TransitionKernel((tokens) => {\n  // tokens is an object which looks like:\n  //   { PlaceA: [{ x: 0, y: 0 }], PlaceB: [...] }\n  // where 'x' and 'y' are examples of dimensions (properties)\n  // of the token's type.\n\n  // Return an object with output place names as keys\n  return {\n    MachinesBeingRepaired: [\n      { machine_damage_ratio: tokens.BrokenMachines[0].machine_damage_ratio }\n    ],\n  };\n});",
+            "/**\n* This function defines the kernel for the transition.\n* It receives tokens from input places,\n* and any global parameters defined,\n* and should return tokens for output places keyed by place name.\n*/\nexport default TransitionKernel((tokens) => {\n  // tokens is an object which looks like:\n  //   { PlaceA: [{ x: 0, y: 0 }], PlaceB: [...] }\n  // where 'x' and 'y' are examples of dimensions (properties)\n  // of the token's type.\n\n  // Return an object with output place names as keys\n  return {\n    MachinesBeingRepaired: [\n      { machine_damage_ratio: tokens.MachinesToRepair[0].machine_damage_ratio }\n    ],\n  };\n});",
           x: 1635,
           y: 480,
           width: 160,

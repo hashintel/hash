@@ -12,6 +12,7 @@ import {
 } from "../../core/default-codes";
 import { useEditorStore } from "../../state/editor-provider";
 import { useSDCPNContext } from "../../state/sdcpn-provider";
+import { useSimulationStore } from "../../state/simulation-provider";
 import type { ArcData, NodeData } from "../../state/types-for-editor-to-remove";
 import { Arc } from "./components/arc";
 import { PlaceNode } from "./components/place-node";
@@ -72,6 +73,8 @@ export const SDCPNView: React.FC = () => {
   );
   const clearSelection = useEditorStore((state) => state.clearSelection);
 
+  const simulationState = useSimulationStore((state) => state.state);
+
   // Center viewport on SDCPN load
   useEffect(() => {
     if (reactFlowInstance) {
@@ -79,8 +82,10 @@ export const SDCPNView: React.FC = () => {
     }
   }, [reactFlowInstance, petriNetId]);
 
-  // Readonly if in simulate mode, or readonly has been provided by external consumer.
-  const isReadonly = mode === "simulate" || readonly;
+  // Readonly if in simulate mode, simulation is running/paused, or readonly has been provided by external consumer.
+  const isSimulationActive =
+    simulationState === "Running" || simulationState === "Paused";
+  const isReadonly = mode === "simulate" || isSimulationActive || readonly;
 
   function isValidConnection(connection: Connection) {
     const sourceNode = nodes.find((node) => node.id === connection.source);

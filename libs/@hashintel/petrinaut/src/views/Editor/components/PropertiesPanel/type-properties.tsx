@@ -3,6 +3,7 @@ import { useState } from "react";
 import { v4 as uuidv4 } from "uuid";
 
 import type { Color } from "../../../../core/types/sdcpn";
+import { useIsReadOnly } from "../../../../state/use-is-read-only";
 import { ColorSelect } from "./color-select";
 
 /**
@@ -39,15 +40,13 @@ const slugifyToIdentifier = (input: string): string => {
 interface TypePropertiesProps {
   type: Color;
   updateType: (typeId: string, updateFn: (type: Color) => void) => void;
-  globalMode: "edit" | "simulate";
 }
 
 export const TypeProperties: React.FC<TypePropertiesProps> = ({
   type,
   updateType,
-  globalMode,
 }) => {
-  const isDisabled = globalMode === "simulate";
+  const isDisabled = useIsReadOnly();
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
 

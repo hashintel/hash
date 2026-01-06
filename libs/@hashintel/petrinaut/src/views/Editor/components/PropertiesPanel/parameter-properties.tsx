@@ -1,4 +1,5 @@
 import type { Parameter } from "../../../../core/types/sdcpn";
+import { useIsReadOnly } from "../../../../state/use-is-read-only";
 
 /**
  * Slugifies a string to a valid JavaScript identifier.
@@ -28,15 +29,13 @@ interface ParameterPropertiesProps {
     parameterId: string,
     updateFn: (parameter: Parameter) => void,
   ) => void;
-  globalMode: "edit" | "simulate";
 }
 
 export const ParameterProperties: React.FC<ParameterPropertiesProps> = ({
   parameter,
   updateParameter,
-  globalMode,
 }) => {
-  const isDisabled = globalMode === "simulate";
+  const isDisabled = useIsReadOnly();
 
   const handleUpdateName = (event: React.ChangeEvent<HTMLInputElement>) => {
     updateParameter(parameter.id, (existingParameter) => {
