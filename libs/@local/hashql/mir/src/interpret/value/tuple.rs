@@ -1,7 +1,11 @@
 //! Tuple aggregate for the MIR interpreter.
 
 use alloc::rc::Rc;
-use core::{num::NonZero, ops::Index};
+use core::{
+    fmt::{self, Display},
+    num::NonZero,
+    ops::Index,
+};
 
 use hashql_core::id::Id as _;
 
@@ -61,6 +65,21 @@ impl<'heap> Tuple<'heap> {
 
     pub fn iter(&self) -> core::slice::Iter<'_, Value<'heap>> {
         self.values.iter()
+    }
+
+    pub fn type_name(&self) -> impl Display {
+        fmt::from_fn(|fmt| {
+            fmt.write_str("(")?;
+            for (index, value) in self.values.iter().enumerate() {
+                if index > 0 {
+                    fmt.write_str(", ")?;
+                }
+
+                value.as_ref().type_name().fmt(fmt)?;
+            }
+
+            fmt.write_str(")")
+        })
     }
 }
 

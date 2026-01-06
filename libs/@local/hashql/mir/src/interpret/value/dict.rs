@@ -4,7 +4,7 @@ use core::iter::FusedIterator;
 
 use imbl::shared_ptr::RcK;
 
-use super::Value;
+use super::{Value, ValueRef};
 
 /// An ordered dictionary mapping values to values.
 ///
@@ -45,8 +45,8 @@ impl<'heap> Dict<'heap> {
 
     /// Returns a reference to the value associated with the `key`.
     #[must_use]
-    pub fn get(&self, key: &Value<'heap>) -> Option<&Value<'heap>> {
-        self.inner.get(key)
+    pub fn get(&self, key: &ValueRef<'_, 'heap>) -> Option<ValueRef<'_, 'heap>> {
+        self.inner.get(key).map(Value::as_ref)
     }
 
     pub fn iter(

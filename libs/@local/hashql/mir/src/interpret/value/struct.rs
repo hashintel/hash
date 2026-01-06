@@ -1,7 +1,10 @@
 //! Struct aggregate for the MIR interpreter.
 
 use alloc::rc::Rc;
-use core::ops::Index;
+use core::{
+    fmt::{self, Display},
+    ops::Index,
+};
 
 use hashql_core::{id::Id as _, intern::Interned, symbol::Symbol};
 
@@ -89,6 +92,24 @@ impl<'heap> Struct<'heap> {
             fields: self.fields.iter().copied(),
             values: self.values.iter(),
         }
+    }
+
+    pub fn type_name(&self) -> impl Display {
+        fmt::from_fn(|fmt| {
+            fmt.write_str("(")?;
+
+            for (index, (key, value)) in self.fields.iter().zip(self.values.iter()).enumerate() {
+                if index > 0 {
+                    fmt.write_str(", ")?;
+                }
+
+                write!(fmt, "{}: {}", key, value.as_ref().type_name())?;
+            }
+
+            fmt.write_str(")")?;
+
+            Ok(())
+        })
     }
 }
 
