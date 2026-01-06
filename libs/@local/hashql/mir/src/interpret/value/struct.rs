@@ -5,6 +5,10 @@ use core::{
     fmt::{self, Display},
     ops::Index,
 };
+use std::{
+    alloc::{Allocator, Global},
+    cmp,
+};
 
 use hashql_core::{id::Id as _, intern::Interned, symbol::Symbol};
 
@@ -20,16 +24,16 @@ use crate::body::place::FieldIndex;
 ///
 /// - `fields.len() == values.len()`
 /// - Field names should be unique (not enforced at construction)
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
-pub struct Struct<'heap> {
+#[derive(Debug, Clone)]
+pub struct Struct<'heap, A: Allocator = Global> {
     fields: Interned<'heap, [Symbol<'heap>]>,
-    values: Rc<[Value<'heap>]>,
+    values: Rc<[Value<'heap>], A>,
 }
 
-impl<'heap> Struct<'heap> {
+impl<'heap, A: Allocator> Struct<'heap, A> {
     pub fn new_unchecked(
         fields: Interned<'heap, [Symbol<'heap>]>,
-        values: Rc<[Value<'heap>]>,
+        values: Rc<[Value<'heap>], A>,
     ) -> Self {
         debug_assert_eq!(fields.len(), values.len());
 
@@ -42,7 +46,7 @@ impl<'heap> Struct<'heap> {
     #[must_use]
     pub fn new(
         fields: Interned<'heap, [Symbol<'heap>]>,
-        values: impl Into<Rc<[Value<'heap>]>>,
+        values: impl Into<Rc<[Value<'heap>], A>>,
     ) -> Option<Self> {
         let values = values.into();
 
@@ -103,7 +107,7 @@ impl<'heap> Struct<'heap> {
                     fmt.write_str(", ")?;
                 }
 
-                write!(fmt, "{}: {}", key, value.as_ref().type_name())?;
+                write!(fmt, "{}: {}", key, value.type_name())?;
             }
 
             fmt.write_str(")")?;
@@ -135,6 +139,32 @@ impl<'this, 'heap> IntoIterator for &'this Struct<'heap> {
 
     fn into_iter(self) -> Self::IntoIter {
         self.iter()
+    }
+}
+
+impl<A: Allocator> PartialEq for Struct<'_, A> {
+    fn eq(&self, other: &Self) -> bool {
+        let Self { fields, values } = self;
+
+        *fields == other.fields && *values == other.values
+    }
+}
+
+impl<A: Allocator> Eq for Struct<'_, A> {}
+
+impl<A: Allocator> PartialOrd for Struct<'_, A> {
+    fn partial_cmp(&self, other: &Self) -> Option<cmp::Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl<A: Allocator> Ord for Struct<'_, A> {
+    fn cmp(&self, other: &Self) -> cmp::Ordering {
+        let Self { fields, values } = self;
+
+        fields
+            .cmp(&other.fields)
+            .then_with(|| values.cmp(&other.values))
     }
 }
 

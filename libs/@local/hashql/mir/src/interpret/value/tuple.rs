@@ -6,6 +6,10 @@ use core::{
     num::NonZero,
     ops::Index,
 };
+use std::{
+    alloc::{Allocator, Global},
+    cmp,
+};
 
 use hashql_core::id::Id as _;
 
@@ -23,13 +27,13 @@ use crate::body::place::FieldIndex;
 /// - Must be non-empty (empty tuples should use [`Value::Unit`])
 ///
 /// [`Value::Unit`]: super::Value::Unit
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
-pub struct Tuple<'heap> {
-    values: Rc<[Value<'heap>]>,
+#[derive(Debug, Clone)]
+pub struct Tuple<'heap, A: Allocator = Global> {
+    values: Rc<[Value<'heap>], A>,
 }
 
-impl<'heap> Tuple<'heap> {
-    pub fn new_unchecked(values: Rc<[Value<'heap>]>) -> Self {
+impl<'heap, A: Allocator> Tuple<'heap, A> {
+    pub fn new_unchecked(values: Rc<[Value<'heap>], A>) -> Self {
         debug_assert!(!values.is_empty(), "tuple is non-empty by construction");
 
         Self { values }
@@ -39,7 +43,7 @@ impl<'heap> Tuple<'heap> {
     ///
     /// Returns [`None`] if `values` is empty.
     #[must_use]
-    pub fn new(values: impl Into<Rc<[Value<'heap>]>>) -> Option<Self> {
+    pub fn new(values: impl Into<Rc<[Value<'heap>], A>>) -> Option<Self> {
         let values = values.into();
 
         (!values.is_empty()).then_some(Self::new_unchecked(values))
@@ -75,7 +79,7 @@ impl<'heap> Tuple<'heap> {
                     fmt.write_str(", ")?;
                 }
 
-                value.as_ref().type_name().fmt(fmt)?;
+                Display::fmt(&value.type_name(), fmt)?;
             }
 
             fmt.write_str(")")
@@ -97,5 +101,29 @@ impl<'this, 'heap> IntoIterator for &'this Tuple<'heap> {
 
     fn into_iter(self) -> Self::IntoIter {
         self.values.iter()
+    }
+}
+
+impl<'heap, A: Allocator> PartialEq for Tuple<'heap, A> {
+    fn eq(&self, other: &Self) -> bool {
+        let Self { values } = self;
+
+        *values == other.values
+    }
+}
+
+impl<'heap, A: Allocator> Eq for Tuple<'heap, A> {}
+
+impl<'heap, A: Allocator> PartialOrd for Tuple<'heap, A> {
+    fn partial_cmp(&self, other: &Self) -> Option<cmp::Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl<'heap, A: Allocator> Ord for Tuple<'heap, A> {
+    fn cmp(&self, other: &Self) -> cmp::Ordering {
+        let Self { values } = self;
+
+        values.cmp(&other.values)
     }
 }

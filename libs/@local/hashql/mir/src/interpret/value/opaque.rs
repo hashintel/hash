@@ -7,28 +7,6 @@ use hashql_core::symbol::Symbol;
 
 use super::Value;
 
-fn opaque_type_name<'heap>(name: &Symbol<'heap>, value: &Value) -> impl Display {
-    fmt::from_fn(|fmt| {
-        // check if the inner type is a struct or tuple, in which case we elide the `()`
-        // surrounding the type to remove some noise.
-        let has_parens = !matches!(value, Value::Struct(_) | Value::Tuple(_));
-
-        fmt.write_str(name.as_str())?;
-        if has_parens {
-            fmt.write_str("(")?;
-        }
-
-        let type_name = value.type_name();
-        Display::fmt(&type_name, fmt)?;
-
-        if has_parens {
-            fmt.write_str(")")?;
-        }
-
-        Ok(())
-    })
-}
-
 /// An opaque wrapper around a value.
 ///
 /// Wraps a value with a named type tag, representing nominal types or
@@ -62,33 +40,25 @@ impl<'heap> Opaque<'heap> {
         &self.value
     }
 
-    pub const fn as_ref(&self) -> OpaqueRef<'_, 'heap> {
-        OpaqueRef {
-            name: self.name,
-            value: &self.value,
-        }
-    }
-
     pub fn type_name(&self) -> impl Display {
-        opaque_type_name(&self.name, &self.value)
-    }
-}
+        fmt::from_fn(|fmt| {
+            // check if the inner type is a struct or tuple, in which case we elide the `()`
+            // surrounding the type to remove some noise.
+            let has_parens = !matches!(self.value.as_ref(), Value::Struct(_) | Value::Tuple(_));
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
-pub struct OpaqueRef<'value, 'heap> {
-    name: Symbol<'heap>,
-    value: &'value Rc<Value<'heap>>,
-}
+            fmt.write_str(self.name.as_str())?;
+            if has_parens {
+                fmt.write_str("(")?;
+            }
 
-impl<'value, 'heap> OpaqueRef<'value, 'heap> {
-    pub fn into_owned(self) -> Opaque<'heap> {
-        Opaque {
-            name: self.name,
-            value: Rc::clone(self.value),
-        }
-    }
+            let type_name = self.value.type_name();
+            Display::fmt(&type_name, fmt)?;
 
-    pub fn type_name(&self) -> impl Display {
-        opaque_type_name(&self.name, &self.value)
+            if has_parens {
+                fmt.write_str(")")?;
+            }
+
+            Ok(())
+        })
     }
 }

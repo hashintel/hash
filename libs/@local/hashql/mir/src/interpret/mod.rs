@@ -1,6 +1,6 @@
-use std::{assert_matches::debug_assert_matches, borrow::Cow, rc::Rc};
+use std::{assert_matches::debug_assert_matches, borrow::Cow};
 
-use hashql_core::{collections::FastHashMap, id::Id, symbol::Symbol};
+use hashql_core::{collections::FastHashMap, symbol::Symbol};
 use hashql_hir::node::operation::InputOp;
 
 use self::value::{Dict, List, Opaque, Struct, Tuple, Value};
@@ -11,7 +11,7 @@ use crate::{
         constant::Int,
         local::{Local, LocalVec},
         operand::Operand,
-        place::{FieldIndex, Place, Projection, ProjectionKind},
+        place::{FieldIndex, Place, Projection},
         rvalue::{Aggregate, AggregateKind, Apply, Input, RValue},
         statement::{Assign, StatementKind},
         terminator::{Goto, Return, SwitchInt, Target, TerminatorKind},
@@ -46,29 +46,29 @@ fn load_place<'locals, 'heap>(
 ) -> Cow<'locals, Value<'heap>> {
     let mut value = Cow::Borrowed(load_local(locals, local));
     for &Projection { r#type: _, kind } in projections {
-        match kind {
-            ProjectionKind::Field(field_index) => {
-                value = match value {
-                    Cow::Borrowed(value) => Cow::Borrowed(&value[field_index]),
-                    Cow::Owned(value) => Cow::Owned(value[field_index].clone()),
-                };
-            }
-            ProjectionKind::FieldByName(symbol) => {
-                value = match value {
-                    Cow::Borrowed(value) => Cow::Borrowed(&value[symbol]),
-                    Cow::Owned(value) => Cow::Owned(value[symbol].clone()),
-                };
-            }
-            ProjectionKind::Index(local) => {
-                let index = load_local(locals, local);
+        // match kind {
+        //     ProjectionKind::Field(field_index) => {
+        //         value = match value {
+        //             Cow::Borrowed(value) => Cow::Borrowed(&value[field_index]),
+        //             Cow::Owned(value) => Cow::Owned(value[field_index].clone()),
+        //         };
+        //     }
+        //     ProjectionKind::FieldByName(symbol) => {
+        //         value = match value {
+        //             Cow::Borrowed(value) => Cow::Borrowed(&value[symbol]),
+        //             Cow::Owned(value) => Cow::Owned(value[symbol].clone()),
+        //         };
+        //     }
+        //     ProjectionKind::Index(local) => {
+        //         let index = load_local(locals, local);
 
-                todo!()
-                // value = match value {
-                //     Cow::Borrowed(value) => value.subscript(index),
-                //     Cow::Owned(value) => Cow::Owned(value.subscript(index).into_owned()),
-                // };
-            }
-        }
+        //         todo!()
+        //         // value = match value {
+        //         //     Cow::Borrowed(value) => value.subscript(index),
+        //         //     Cow::Owned(value) => Cow::Owned(value.subscript(index).into_owned()),
+        //         // };
+        //     }
+        // }
     }
 
     value
