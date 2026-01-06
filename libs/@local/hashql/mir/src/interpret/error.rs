@@ -1,4 +1,5 @@
-use std::alloc::{Allocator, Global};
+use alloc::alloc::Global;
+use core::alloc::Allocator;
 
 use hashql_core::symbol::Symbol;
 
@@ -25,4 +26,9 @@ pub enum RuntimeError<'value, 'index, 'heap, A: Allocator = Global> {
     UnknownField(ValueTypeName<'value, 'heap, A>, FieldIndex),
     // Again: this is an ICE. typechk should have handled this.
     UnknownFieldByName(ValueTypeName<'value, 'heap, A>, Symbol<'heap>),
+    // Again: this is an ICE. This should just... never happen.
+    StructFieldLengthMismatch {
+        values: usize,
+        fields: usize,
+    },
 }

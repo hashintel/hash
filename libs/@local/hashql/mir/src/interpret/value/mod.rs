@@ -75,6 +75,7 @@ enum ValueDiscriminant {
 }
 
 impl ValueDiscriminant {
+    #[inline]
     const fn new<A: Allocator>(value: &Value<'_, A>) -> Self {
         match value {
             Value::Unit => Self::Unit,
@@ -197,7 +198,7 @@ impl<'heap, A: Allocator> Value<'heap, A> {
     }
 }
 
-impl<'heap> From<Constant<'heap>> for Value<'heap> {
+impl<'heap, A: Allocator> From<Constant<'heap>> for Value<'heap, A> {
     fn from(value: Constant<'heap>) -> Self {
         match value {
             Constant::Int(int) => Self::Integer(int),
