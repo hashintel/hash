@@ -618,9 +618,8 @@ __metadata:
     sanitize-html: "npm:2.17.0"
     tsx: "npm:4.20.6"
     typescript: "npm:5.9.3"
-    vitest: "npm:4.0.16"
     vite: "npm:7.0.7"
-    vitest: "npm:4.0.15"
+    vitest: "npm:4.0.16"
     zod: "npm:4.1.12"
     zod-from-json-schema: "npm:0.5.2"
   languageName: unknown
