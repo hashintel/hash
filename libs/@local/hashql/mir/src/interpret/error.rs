@@ -2,7 +2,7 @@ use core::alloc::Allocator;
 
 use hashql_core::symbol::Symbol;
 
-use super::value::ValueTypeName;
+use super::value::{Value, ValueTypeName};
 use crate::body::{constant::Int, local::Local, place::FieldIndex};
 
 #[derive(Debug, Clone)]
@@ -21,6 +21,22 @@ impl<A: Allocator> From<ValueTypeName<'_, '_, A>> for TypeName {
     fn from(value: ValueTypeName<'_, '_, A>) -> Self {
         Self::Detailed(value.to_string())
     }
+}
+
+#[derive(Debug, Clone)]
+pub struct BinaryTypeMismatch<'heap> {
+    pub lhs_expected: TypeName,
+    pub rhs_expected: TypeName,
+
+    pub lhs: Value<'heap>,
+    pub rhs: Value<'heap>,
+}
+
+#[derive(Debug, Clone)]
+pub struct UnaryTypeMismatch<'heap> {
+    pub expected: TypeName,
+
+    pub value: Value<'heap>,
 }
 
 #[derive(Debug, Clone)]
@@ -48,6 +64,14 @@ pub enum RuntimeError<'heap> {
     InvalidDiscriminant(Int),
     // Again: this is an ICE. This should just... never happen.
     UnreachableReached,
+    // Again: this is an ICE. This should just... never happen.
+    BinaryTypeMismatch(Box<BinaryTypeMismatch<'heap>>),
+    // Again: this is an ICE. This should just... never happen.
+    UnaryTypeMismatch(Box<UnaryTypeMismatch<'heap>>),
+    // Again: this is an ICE. This should just... never happen.
+    ApplyNonPointer(TypeName),
+    // Again: this is an ICE. This should just... never happen.
+    CallstackEmpty,
 
     // This is actually a proper error, in a future this should be removed. Potentially ICE
     // because the user can't actually use this, so this would only happen if the compiler
