@@ -14,7 +14,7 @@ const environment =
 
 Sentry.init({
   dsn: sentryDsn,
-  // enabled: environment === "production",
+  enabled: environment === "production",
   environment,
   integrations: [
     Sentry.browserApiErrorsIntegration(),
