@@ -1,7 +1,7 @@
 use alloc::borrow::Cow;
 use core::{assert_matches::debug_assert_matches, ops::ControlFlow};
 
-use hashql_core::{collections::FastHashMap, symbol::Symbol};
+use hashql_core::{collections::FastHashMap, span::SpanId, symbol::Symbol};
 use hashql_hir::node::operation::{InputOp, UnOp};
 
 use super::{
@@ -21,7 +21,7 @@ use crate::{
 };
 
 struct Frame<'ctx, 'heap> {
-    locals: Locals<'heap>,
+    locals: Locals<'ctx, 'heap>,
 
     body: &'ctx Body<'heap>,
     current_block: &'ctx BasicBlock<'heap>,
@@ -43,6 +43,19 @@ impl<'ctx, 'heap> CallStack<'ctx, 'heap> {
         Self {
             frames: vec![frame],
         }
+    }
+
+    pub fn unwind(&self) -> impl Iterator<Item = (DefId, SpanId)> {
+        self.frames.iter().rev().map(|frame| {
+            let body = frame.body.id;
+            let span = if frame.current_statement >= frame.current_block.statements.len() {
+                frame.current_block.terminator.span
+            } else {
+                frame.current_block.statements[frame.current_statement].span
+            };
+
+            (body, span)
+        })
     }
 }
 
@@ -391,8 +404,17 @@ impl<'ctx, 'heap> Runtime<'ctx, 'heap> {
         mut callstack: CallStack<'ctx, 'heap>,
     ) -> Result<Value<'heap>, RuntimeError<'heap>> {
         loop {
-            // TODO: error unwinding
-            if let ControlFlow::Break(value) = self.step(&mut callstack)? {
+            let result = self.step(&mut callstack);
+            let next = match result {
+                Ok(next) => next,
+                Err(error) => {
+                    let spans = callstack.unwind();
+
+                    todo!("convert to diagnostic")
+                }
+            };
+
+            if let ControlFlow::Break(value) = next {
                 return Ok(value);
             }
         }

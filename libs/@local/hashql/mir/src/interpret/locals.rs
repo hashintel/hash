@@ -10,7 +10,7 @@ use super::{error::RuntimeError, value::Value};
 use crate::{
     body::{
         Body,
-        local::{Local, LocalVec},
+        local::{Local, LocalDecl, LocalSlice, LocalVec},
         operand::Operand,
         place::{FieldIndex, Place, ProjectionKind},
         rvalue::{Aggregate, AggregateKind},
@@ -18,23 +18,24 @@ use crate::{
     interpret::value::{Dict, List, Opaque, Struct, Tuple},
 };
 
-pub(crate) struct Locals<'heap, A: Allocator = Global> {
+pub(crate) struct Locals<'ctx, 'heap, A: Allocator = Global> {
     alloc: A,
+    decl: &'ctx LocalSlice<LocalDecl<'heap>>,
     inner: LocalVec<Option<Value<'heap, A>>, A>,
 }
 
-impl<'heap> Locals<'heap> {
+impl<'ctx, 'heap> Locals<'ctx, 'heap> {
     pub(crate) fn new<E>(
-        body: &Body<'heap>,
+        body: &'ctx Body<'heap>,
         args: impl IntoIterator<Item = Result<Value<'heap>, E>>,
     ) -> Result<Self, E> {
         Self::new_in(body, args, Global)
     }
 }
 
-impl<'heap, A: Allocator> Locals<'heap, A> {
+impl<'ctx, 'heap, A: Allocator> Locals<'ctx, 'heap, A> {
     pub(crate) fn new_in<E>(
-        body: &Body<'heap>,
+        body: &'ctx Body<'heap>,
         args: impl IntoIterator<Item = Result<Value<'heap, A>, E>>,
         alloc: A,
     ) -> Result<Self, E>
@@ -50,6 +51,7 @@ impl<'heap, A: Allocator> Locals<'heap, A> {
 
         Ok(Self {
             alloc,
+            decl: &body.local_decls,
             inner: locals,
         })
     }
@@ -59,18 +61,20 @@ impl<'heap, A: Allocator> Locals<'heap, A> {
     }
 
     pub(crate) fn local(&self, local: Local) -> Result<&Value<'heap, A>, RuntimeError<'heap>> {
-        self.inner
-            .lookup(local)
-            .ok_or(RuntimeError::UninitializedLocal(local))
+        self.inner.lookup(local).ok_or_else(|| {
+            let decl = self.decl[local];
+            RuntimeError::UninitializedLocal(local, decl)
+        })
     }
 
     pub(crate) fn local_mut(
         &mut self,
         local: Local,
     ) -> Result<&mut Value<'heap, A>, RuntimeError<'heap>> {
-        self.inner
-            .lookup_mut(local)
-            .ok_or(RuntimeError::UninitializedLocal(local))
+        self.inner.lookup_mut(local).ok_or_else(|| {
+            let decl = self.decl[local];
+            RuntimeError::UninitializedLocal(local, decl)
+        })
     }
 
     pub(crate) fn place(
