@@ -3,7 +3,11 @@ use core::alloc::Allocator;
 use hashql_core::symbol::Symbol;
 
 use super::value::{Value, ValueTypeName};
-use crate::body::{constant::Int, local::Local, place::FieldIndex};
+use crate::body::{
+    constant::Int,
+    local::{Local, LocalDecl},
+    place::FieldIndex,
+};
 
 #[derive(Debug, Clone)]
 pub enum TypeName {
@@ -43,7 +47,7 @@ pub struct UnaryTypeMismatch<'heap> {
 pub enum RuntimeError<'heap> {
     // Local hasn't been initialized yet, by all intents and purposes this is an ICE, because
     // *any* step before should have handled this. Be it the MIR or the HIR.
-    UninitializedLocal(Local),
+    UninitializedLocal(Local, LocalDecl<'heap>),
     // Again: this is an ICE. typechk should have handled this.
     InvalidIndexType(TypeName, TypeName),
     // Again: this is an ICE. typechk should have handled this.
