@@ -327,3 +327,254 @@ impl<'ctx, 'heap, A: Allocator> Locals<'ctx, 'heap, A> {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    #![expect(unsafe_code)]
+    use alloc::{alloc::Global, vec::Vec};
+    use core::mem::MaybeUninit;
+    use std::assert_matches::assert_matches;
+
+    use hashql_core::{
+        heap::Heap,
+        id::{Id, IdSlice},
+        span::SpanId,
+        r#type::TypeId,
+    };
+
+    use super::Locals;
+    use crate::{
+        body::{
+            constant::{Constant, Int},
+            local::{Local, LocalDecl, LocalSlice, LocalVec},
+            operand::Operand,
+            place::{FieldIndex, Place},
+        },
+        intern::Interner,
+        interpret::{error::RuntimeError, value::Value},
+    };
+
+    fn fill_decl(decl: &mut LocalVec<LocalDecl<'_>>, max_index: Local) {
+        decl.fill_until(max_index, || LocalDecl {
+            span: SpanId::SYNTHETIC,
+            r#type: TypeId::PLACEHOLDER,
+            name: None,
+        });
+    }
+
+    fn make_empty_locals<'ctx, 'heap>(
+        decl: &'ctx LocalSlice<LocalDecl<'heap>>,
+    ) -> Locals<'ctx, 'heap> {
+        Locals {
+            alloc: Global,
+            decl,
+            inner: LocalVec::new(),
+        }
+    }
+
+    fn make_locals_with_single_int<'ctx, 'heap>(
+        decl: &'ctx mut LocalVec<LocalDecl<'heap>>,
+        local: Local,
+        value: i128,
+    ) -> Locals<'ctx, 'heap> {
+        let mut inner = LocalVec::new();
+        inner.insert(local, Value::Integer(Int::from(value)));
+        fill_decl(decl, local);
+
+        Locals {
+            alloc: Global,
+            decl,
+            inner,
+        }
+    }
+
+    /// Normal success case: mix of constant and place operands.
+    ///
+    /// Verifies that:
+    /// - values are written into the `MaybeUninit` slice correctly
+    /// - both `Constant` and `Place` operands are handled
+    #[test]
+    fn write_operands_success_with_place_and_constant() {
+        let mut decl = LocalVec::new();
+        let place = Local::new(0);
+
+        let locals = make_locals_with_single_int(&mut decl, place, 21);
+
+        let operands = [
+            Operand::Constant(Constant::Int(Int::from(1_i128))),
+            Operand::Place(Place::local(place)),
+        ];
+
+        let mut buf = [MaybeUninit::uninit(), MaybeUninit::uninit()];
+
+        // SAFETY: The buffer has not been written to yet and operands == buf
+        unsafe {
+            locals
+                .write_operands(&mut buf, &operands)
+                .expect("write_operands should not fail");
+        }
+
+        // SAFETY: `write_operands` has initialized all elements on success.
+        let [v0, v1] = unsafe { MaybeUninit::array_assume_init(buf) };
+
+        assert_eq!(v0, Value::Integer(Int::from(1_i128)));
+        assert_eq!(v1, Value::Integer(Int::from(21_i128)));
+    }
+
+    /// Error / partial-init case:
+    ///
+    /// - First operand is a constant and is written successfully.
+    /// - Second operand is a `Place` that refers to an uninitialized local and errors.
+    ///
+    /// This exercises the `Guard::drop` path that calls `assume_init_drop` on the
+    /// already-initialized prefix of the slice. The test itself does not read from
+    /// the slice after the error; under Miri this will catch any double-drop or
+    /// use of uninitialized memory inside `write_operands`.
+    #[test]
+    fn write_operands_partial_init_error_drops_initialized() {
+        // No locals initialized at all.
+        let mut decl = LocalVec::new();
+        fill_decl(&mut decl, Local::new(2));
+        let locals = make_empty_locals(&decl);
+
+        let operands = [
+            // This will be written successfully.
+            Operand::Constant(Constant::Int(Int::from(1_i128))),
+            // This will attempt to read an uninitialized local and error.
+            Operand::Place(Place::local(Local::new(1))),
+            // This won't be written because the error occurs before it.
+            Operand::Constant(Constant::Int(Int::from(2_i128))),
+        ];
+
+        let mut buf = [
+            MaybeUninit::uninit(),
+            MaybeUninit::uninit(),
+            MaybeUninit::uninit(),
+        ];
+
+        // SAFETY: The buffer has not been written to yet and operands == buf
+        let result = unsafe { locals.write_operands(&mut buf, &operands) };
+        assert_matches!(result, Err(RuntimeError::UninitializedLocal(local, _)) if local == Local::new(1));
+
+        // IMPORTANT: Do not read from `buf` here. On error, the internal Guard has
+        // already dropped all initialized elements using `assume_init_drop`, and the
+        // memory is now logically uninitialized. Miri will verify that this path is
+        // memory-safe.
+    }
+
+    /// Empty operands edge case:
+    ///
+    /// - Calls `write_operands` with an empty slice and empty operands (no-op).
+    /// - Also constructs an empty `IdSlice<FieldIndex, Operand>` and uses `aggregate_tuple` to
+    ///   ensure that the empty-aggregate fast path returns `Value::Unit`.
+    #[test]
+    fn write_operands_handles_empty_operands_and_id_slice() {
+        let decl = LocalVec::new();
+        let locals = make_empty_locals(&decl);
+
+        // Direct call to `write_operands` on an empty slice.
+        let mut buf: [_; 0] = [];
+        let operands: [_; 0] = [];
+
+        // SAFETY: The buffer is empty, so no writes are performed.
+        unsafe {
+            locals
+                .write_operands(&mut buf, &operands)
+                .expect("should not fail");
+        }
+
+        let value = locals
+            .aggregate_tuple(IdSlice::from_raw(&[]))
+            .expect("should not fail");
+        assert_eq!(value, Value::Unit);
+    }
+
+    /// Success path through `aggregate_tuple` with non-empty operands.
+    ///
+    /// Exercises the full unsafe chain:
+    /// - `Rc::new_uninit_slice_in`
+    /// - `Rc::get_mut_unchecked`
+    /// - `write_operands` (success path)
+    /// - `Rc::assume_init`
+    /// - `Tuple::new_unchecked`
+    ///
+    /// Miri will catch double-drop if `mem::forget(guard)` is missing, or
+    /// uninitialized reads if the slice isn't fully written.
+    #[test]
+    fn aggregate_tuple_success_exercises_full_unsafe_chain() {
+        let mut decl = LocalVec::new();
+        let place = Local::new(0);
+
+        let locals = make_locals_with_single_int(&mut decl, place, 42);
+
+        let operands: Vec<Operand<'_>> = vec![
+            Operand::Constant(Constant::Int(Int::from(1_i128))),
+            Operand::Constant(Constant::Int(Int::from(2_i128))),
+            Operand::Place(Place::local(place)),
+        ];
+
+        let value = locals
+            .aggregate_tuple(IdSlice::from_raw(&operands))
+            .expect("aggregate_tuple should succeed");
+
+        let Value::Tuple(tuple) = value else {
+            panic!("expected Value::Tuple, got {value:?}");
+        };
+
+        assert_eq!(tuple.len().get(), 3);
+        assert_eq!(
+            tuple.get(FieldIndex::from_usize(0)),
+            Some(&Value::Integer(Int::from(1_i128)))
+        );
+        assert_eq!(
+            tuple.get(FieldIndex::from_usize(1)),
+            Some(&Value::Integer(Int::from(2_i128)))
+        );
+        assert_eq!(
+            tuple.get(FieldIndex::from_usize(2)),
+            Some(&Value::Integer(Int::from(42_i128)))
+        );
+    }
+
+    /// Success path through `aggregate_struct` with non-empty operands.
+    ///
+    /// Exercises the same unsafe chain as `aggregate_tuple`, plus the field names handling.
+    /// Miri will catch any memory safety issues in the struct aggregate path.
+    #[test]
+    fn aggregate_struct_success_exercises_full_unsafe_chain() {
+        let heap = Heap::new();
+        let interner = Interner::new(&heap);
+
+        let mut decl = LocalVec::new();
+        let place = Local::new(0);
+
+        let locals = make_locals_with_single_int(&mut decl, place, 99);
+
+        let fields = interner
+            .symbols
+            .intern_slice(&[heap.intern_symbol("a"), heap.intern_symbol("b")]);
+
+        let operands: Vec<Operand<'_>> = vec![
+            Operand::Constant(Constant::Int(Int::from(10_i128))),
+            Operand::Place(Place::local(place)),
+        ];
+
+        let value = locals
+            .aggregate_struct(fields, IdSlice::from_raw(&operands))
+            .expect("aggregate_struct should succeed");
+
+        let Value::Struct(r#struct) = value else {
+            panic!("expected Value::Struct, got {value:?}");
+        };
+
+        assert_eq!(r#struct.len(), 2);
+        assert_eq!(
+            r#struct.get_by_index(FieldIndex::from_usize(0)),
+            Some(&Value::Integer(Int::from(10_i128)))
+        );
+        assert_eq!(
+            r#struct.get_by_index(FieldIndex::from_usize(1)),
+            Some(&Value::Integer(Int::from(99_i128)))
+        );
+    }
+}
