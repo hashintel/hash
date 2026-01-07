@@ -98,18 +98,21 @@ impl<'heap> From<Float<'heap>> for Num {
 }
 
 impl From<f64> for Num {
+    #[inline]
     fn from(value: f64) -> Self {
         Self { value }
     }
 }
 
 impl PartialEq for Num {
+    #[inline]
     fn eq(&self, other: &Self) -> bool {
         self.cmp(other).is_eq()
     }
 }
 
 impl PartialEq<Int> for Num {
+    #[inline]
     fn eq(&self, other: &Int) -> bool {
         self.cmp_int(other) == cmp::Ordering::Equal
     }
@@ -118,18 +121,21 @@ impl PartialEq<Int> for Num {
 impl Eq for Num {}
 
 impl PartialOrd for Num {
+    #[inline]
     fn partial_cmp(&self, other: &Self) -> Option<cmp::Ordering> {
         Some(self.cmp(other))
     }
 }
 
 impl PartialOrd<Int> for Num {
+    #[inline]
     fn partial_cmp(&self, other: &Int) -> Option<cmp::Ordering> {
         Some(self.cmp_int(other))
     }
 }
 
 impl Ord for Num {
+    #[inline]
     fn cmp(&self, other: &Self) -> cmp::Ordering {
         self.value.total_cmp(&other.value)
     }
@@ -142,20 +148,13 @@ mod tests {
     use super::Num;
     use crate::body::constant::Int;
 
-    fn pos_nan() -> f64 {
-        // Canonical positive quiet NaN
-        f64::from_bits(0x7FF8_0000_0000_0000)
-    }
-
-    fn neg_nan() -> f64 {
-        // Same payload, negative sign bit
-        f64::from_bits(0xFFF8_0000_0000_0000)
-    }
+    const POS_NAN: f64 = f64::from_bits(0x7FF8_0000_0000_0000);
+    const NEG_NAN: f64 = f64::from_bits(0xFFF8_0000_0000_0000);
 
     #[test]
     fn num_total_order_special_values() {
-        let neg_nan = Num::from(neg_nan());
-        let pos_nan = Num::from(pos_nan());
+        let neg_nan = Num::from(NEG_NAN);
+        let pos_nan = Num::from(POS_NAN);
         let neg_inf = Num::from(f64::NEG_INFINITY);
         let pos_inf = Num::from(f64::INFINITY);
         let neg_zero = Num::from(-0.0);
@@ -219,8 +218,8 @@ mod tests {
     fn cmp_int_nan_ordering() {
         let zero = Int::from(0_i32);
 
-        let neg_nan = Num::from(neg_nan());
-        let pos_nan = Num::from(pos_nan());
+        let neg_nan = Num::from(NEG_NAN);
+        let pos_nan = Num::from(POS_NAN);
 
         assert!(neg_nan.as_f64().is_nan() && neg_nan.as_f64().is_sign_negative());
         assert!(pos_nan.as_f64().is_nan() && !pos_nan.as_f64().is_sign_negative());
