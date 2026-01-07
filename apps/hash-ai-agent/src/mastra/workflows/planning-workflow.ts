@@ -13,14 +13,14 @@
  * @see docs/PLAN-task-decomposition.md for design documentation
  */
 
-import { createStep, createWorkflow } from "@mastra/core/workflows";
-import { z } from "zod";
+import { createStep, createWorkflow } from '@mastra/core/workflows';
+import { z } from 'zod';
 
-import { generatePlan } from "../agents/planner-agent";
-import { zPlanSpec } from "../schemas/plan-spec";
-import { buildRevisionFeedback } from "../utils/build-revision-feedback";
-import type { ValidationError } from "../utils/plan-validator";
-import { validatePlan } from "../utils/plan-validator";
+import { generatePlan } from '../agents/planner-agent';
+import { zPlanSpec } from '../schemas/plan-spec';
+import { buildRevisionFeedback } from '../utils/build-revision-feedback';
+import type { ValidationError } from '../utils/plan-validator';
+import { validatePlan } from '../utils/plan-validator';
 
 // =============================================================================
 // SCHEMAS
@@ -54,13 +54,9 @@ const revisionLoopSchema = z.object({
  * Workflow input schema.
  */
 const planningInputSchema = z.object({
-  goal: z.string().describe("The goal to decompose into a plan"),
-  context: z.string().optional().describe("Additional context for planning"),
-  maxAttempts: z
-    .number()
-    .optional()
-    .default(3)
-    .describe("Maximum revision attempts"),
+  goal: z.string().describe('The goal to decompose into a plan'),
+  context: z.string().optional().describe('Additional context for planning'),
+  maxAttempts: z.number().optional().default(3).describe('Maximum revision attempts'),
 });
 
 /**
@@ -88,12 +84,11 @@ const planningOutputSchema = z.object({
  * 4. Validate and update state
  */
 const planRevisionStep = createStep({
-  id: "plan-revision",
+  id: 'plan-revision',
   inputSchema: revisionLoopSchema,
   outputSchema: revisionLoopSchema,
   execute: async ({ inputData }) => {
-    const { plan, valid, attempts, maxAttempts, goal, context, errors } =
-      inputData;
+    const { plan, valid, attempts, maxAttempts, goal, context, errors } = inputData;
 
     // If already valid or max attempts reached, pass through
     if (valid || attempts >= maxAttempts) {
@@ -106,7 +101,7 @@ const planRevisionStep = createStep({
     if (errors && errors.length > 0) {
       // Convert zod-parsed errors back to ValidationError type
       const validationErrors: ValidationError[] = errors.map((err) => ({
-        code: err.code as unknown as ValidationError["code"],
+        code: err.code as unknown as ValidationError['code'],
         message: err.message,
         context: err.context,
         details: err.details,
@@ -116,9 +111,7 @@ const planRevisionStep = createStep({
 
     // Generate new plan with COMBINED context (original + revision feedback)
     // This ensures the LLM has both the original context AND the fix instructions
-    const combinedContext = [context, revisionFeedback]
-      .filter(Boolean)
-      .join("\n\n");
+    const combinedContext = [context, revisionFeedback].filter(Boolean).join('\n\n');
 
     const result = await generatePlan({
       goal,
@@ -153,7 +146,7 @@ const planRevisionStep = createStep({
  * 3. `.map()` — Extract final result
  */
 export const planningWorkflow = createWorkflow({
-  id: "planning-workflow",
+  id: 'planning-workflow',
   inputSchema: planningInputSchema,
   outputSchema: planningOutputSchema,
 })
