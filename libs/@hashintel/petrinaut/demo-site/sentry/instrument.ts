@@ -14,11 +14,18 @@ const environment =
 
 Sentry.init({
   dsn: sentryDsn,
-  enabled: environment === "production",
+  // enabled: environment === "production",
   environment,
   integrations: [
     Sentry.browserApiErrorsIntegration(),
     Sentry.browserTracingIntegration(),
+    Sentry.feedbackIntegration({
+      colorScheme: "system",
+      triggerLabel: "",
+      formTitle: "Give feedback",
+      messagePlaceholder: "Report a bug or suggest an improvement",
+      submitButtonLabel: "Submit feedback",
+    }),
   ],
   tracesSampleRate: environment === "production" ? 1.0 : 0,
 });
