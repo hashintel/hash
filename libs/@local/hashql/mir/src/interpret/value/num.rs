@@ -118,6 +118,13 @@ impl PartialEq<Int> for Num {
     }
 }
 
+impl PartialEq<Num> for Int {
+    #[inline]
+    fn eq(&self, other: &Num) -> bool {
+        other.cmp_int(self) == cmp::Ordering::Equal
+    }
+}
+
 impl Eq for Num {}
 
 impl PartialOrd for Num {
@@ -131,6 +138,13 @@ impl PartialOrd<Int> for Num {
     #[inline]
     fn partial_cmp(&self, other: &Int) -> Option<cmp::Ordering> {
         Some(self.cmp_int(other))
+    }
+}
+
+impl PartialOrd<Num> for Int {
+    #[inline]
+    fn partial_cmp(&self, other: &Num) -> Option<cmp::Ordering> {
+        Some(other.cmp_int(self).reverse())
     }
 }
 
