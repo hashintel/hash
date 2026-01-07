@@ -24,6 +24,8 @@
     string_from_utf8_lossy_owned,
     try_trait_v2,
     get_mut_unchecked,
+    clone_from_ref,
+    iterator_try_collect
 )]
 #![expect(clippy::indexing_slicing)]
 extern crate alloc;
@@ -39,7 +41,7 @@ pub mod reify;
 pub mod visit;
 
 pub mod builder;
-mod interpret;
+pub mod interpret;
 mod macros;
 #[cfg(test)]
 pub(crate) mod tests;

@@ -3854,6 +3854,7 @@ dependencies = [
  "imbl",
  "insta",
  "simple-mermaid",
+ "smallvec 2.0.0-alpha.12",
 ]
 
 [[package]]

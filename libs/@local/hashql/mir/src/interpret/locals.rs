@@ -4,7 +4,7 @@ use core::{
     mem::{self, MaybeUninit},
 };
 
-use hashql_core::{id::IdSlice, intern::Interned, symbol::Symbol};
+use hashql_core::{collections::InlineVec, id::IdSlice, intern::Interned, symbol::Symbol};
 
 use super::{error::RuntimeError, value::Value};
 use crate::{
@@ -104,22 +104,15 @@ impl<'heap, A: Allocator> Locals<'heap, A> {
     where
         A: Clone,
     {
-        let index_projections = place
+        let mut indices: InlineVec<_, 1> = place
             .projections
             .iter()
-            .filter(|projection| matches!(projection.kind, ProjectionKind::Index(_)))
-            .count();
-        let mut indices = Vec::with_capacity_in(index_projections, self.alloc.clone());
-        place
-            .projections
-            .iter()
+            .rev()
             .filter_map(|projection| match projection.kind {
                 ProjectionKind::Index(local) => Some(self.local(local).cloned()),
-                _ => None,
+                ProjectionKind::Field(_) | ProjectionKind::FieldByName(_) => None,
             })
-            .collect_into(&mut indices);
-        // They're in order of operations, but we need to reverse them to actually use them
-        indices.reverse();
+            .try_collect()?;
 
         let mut value = self.local_mut(place.local)?;
 
@@ -132,7 +125,7 @@ impl<'heap, A: Allocator> Locals<'heap, A> {
                     value = value.project_by_name_mut(symbol)?;
                 }
                 ProjectionKind::Index(_) => {
-                    let index = indices.pop().unwrap_or_else(|| unreachable!())?;
+                    let index = indices.pop().unwrap_or_else(|| unreachable!());
                     value = value.subscript_mut(index)?;
                 }
             }

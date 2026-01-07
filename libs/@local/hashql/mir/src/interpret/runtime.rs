@@ -1,10 +1,14 @@
-use core::ops::ControlFlow;
-use std::{alloc::Global, assert_matches::debug_assert_matches, borrow::Cow};
+use alloc::borrow::Cow;
+use core::{assert_matches::debug_assert_matches, ops::ControlFlow};
 
 use hashql_core::{collections::FastHashMap, symbol::Symbol};
 use hashql_hir::node::operation::{InputOp, UnOp};
 
-use super::{error::RuntimeError, locals::Locals, value::Value};
+use super::{
+    error::{BinaryTypeMismatch, RuntimeError, TypeName, UnaryTypeMismatch},
+    locals::Locals,
+    value::Value,
+};
 use crate::{
     body::{
         Body,
@@ -24,12 +28,12 @@ struct Frame<'ctx, 'heap> {
     current_statement: usize,
 }
 
-struct CallStack<'ctx, 'heap> {
+pub struct CallStack<'ctx, 'heap> {
     frames: Vec<Frame<'ctx, 'heap>>,
 }
 
 impl<'ctx, 'heap> CallStack<'ctx, 'heap> {
-    fn new(
+    pub fn new(
         runtime: &Runtime<'ctx, 'heap>,
         entry: DefId,
         args: impl IntoIterator<Item = Value<'heap>>,
@@ -47,13 +51,14 @@ enum PopFrame {
     No,
 }
 
-struct Runtime<'ctx, 'heap> {
+pub struct Runtime<'ctx, 'heap> {
     bodies: &'ctx DefIdSlice<Body<'heap>>,
     inputs: FastHashMap<Symbol<'heap>, Value<'heap>>,
 }
 
 impl<'ctx, 'heap> Runtime<'ctx, 'heap> {
-    const fn new(
+    #[must_use]
+    pub const fn new(
         bodies: &'ctx DefIdSlice<Body<'heap>>,
         inputs: FastHashMap<Symbol<'heap>, Value<'heap>>,
     ) -> Self {
@@ -164,19 +169,42 @@ impl<'ctx, 'heap> Runtime<'ctx, 'heap> {
         let lhs = frame.locals.operand(left)?;
         let rhs = frame.locals.operand(right)?;
 
-        // TODO: implement proper comparison on the value type that takes into consideration Int and
-        // Number.
-        match op {
-            BinOp::BitAnd => todo!(),
-            BinOp::BitOr => todo!(),
-            BinOp::Eq => todo!(), /* TODO: comparison of numbers is non-straightforward/needs to */
-            // be properly implemented
-            BinOp::Ne => todo!(),
-            BinOp::Lt => todo!(),
-            BinOp::Lte => todo!(),
-            BinOp::Gt => todo!(),
-            BinOp::Gte => todo!(),
-        }
+        let value = match op {
+            BinOp::BitAnd => {
+                return match (lhs.as_ref(), rhs.as_ref()) {
+                    (Value::Integer(lhs), Value::Integer(rhs)) => Ok(Value::Integer(lhs & rhs)),
+                    _ => Err(RuntimeError::BinaryTypeMismatch(Box::new(
+                        BinaryTypeMismatch {
+                            lhs_expected: TypeName::terse("Integer"),
+                            rhs_expected: TypeName::terse("Integer"),
+                            lhs: lhs.into_owned(),
+                            rhs: rhs.into_owned(),
+                        },
+                    ))),
+                };
+            }
+            BinOp::BitOr => {
+                return match (lhs.as_ref(), rhs.as_ref()) {
+                    (Value::Integer(lhs), Value::Integer(rhs)) => Ok(Value::Integer(lhs | rhs)),
+                    _ => Err(RuntimeError::BinaryTypeMismatch(Box::new(
+                        BinaryTypeMismatch {
+                            lhs_expected: TypeName::terse("Integer"),
+                            rhs_expected: TypeName::terse("Integer"),
+                            lhs: lhs.into_owned(),
+                            rhs: rhs.into_owned(),
+                        },
+                    ))),
+                };
+            }
+            BinOp::Eq => lhs == rhs,
+            BinOp::Ne => lhs != rhs,
+            BinOp::Lt => lhs < rhs,
+            BinOp::Lte => lhs <= rhs,
+            BinOp::Gt => lhs > rhs,
+            BinOp::Gte => lhs >= rhs,
+        };
+
+        Ok(Value::Integer(value.into()))
     }
 
     fn eval_rvalue_unary(
@@ -190,16 +218,55 @@ impl<'ctx, 'heap> Runtime<'ctx, 'heap> {
                 Value::Integer(int) if let Some(bool) = int.as_bool() => {
                     Ok(Value::Integer((!bool).into()))
                 }
-                _ => todo!("this should be an ICE"),
+                Value::Unit
+                | Value::Integer(_)
+                | Value::Number(_)
+                | Value::String(_)
+                | Value::Pointer(_)
+                | Value::Opaque(_)
+                | Value::Struct(_)
+                | Value::Tuple(_)
+                | Value::List(_)
+                | Value::Dict(_) => Err(RuntimeError::UnaryTypeMismatch(Box::new(
+                    UnaryTypeMismatch {
+                        expected: TypeName::terse("Boolean"),
+                        value: operand.into_owned(),
+                    },
+                ))),
             },
             UnOp::BitNot => match operand.as_ref() {
                 Value::Integer(int) => Ok(Value::Integer(!int)),
-                _ => todo!("this should be an ICE"),
+                Value::Unit
+                | Value::Number(_)
+                | Value::String(_)
+                | Value::Pointer(_)
+                | Value::Opaque(_)
+                | Value::Struct(_)
+                | Value::Tuple(_)
+                | Value::List(_)
+                | Value::Dict(_) => Err(RuntimeError::UnaryTypeMismatch(Box::new(
+                    UnaryTypeMismatch {
+                        expected: TypeName::terse("Integer"),
+                        value: operand.into_owned(),
+                    },
+                ))),
             },
             UnOp::Neg => match operand.as_ref() {
                 Value::Integer(int) => Ok(Value::Integer(-int)),
                 Value::Number(number) => Ok(Value::Number(-number)),
-                _ => todo!("this should be an ICE"),
+                Value::Unit
+                | Value::String(_)
+                | Value::Pointer(_)
+                | Value::Opaque(_)
+                | Value::Struct(_)
+                | Value::Tuple(_)
+                | Value::List(_)
+                | Value::Dict(_) => Err(RuntimeError::UnaryTypeMismatch(Box::new(
+                    UnaryTypeMismatch {
+                        expected: TypeName::terse("Number"),
+                        value: operand.into_owned(),
+                    },
+                ))),
             },
         }
     }
@@ -227,7 +294,7 @@ impl<'ctx, 'heap> Runtime<'ctx, 'heap> {
     ) -> Result<Frame<'ctx, 'heap>, RuntimeError<'heap>> {
         let function = frame.locals.operand(*function)?;
         let &Value::Pointer(pointer) = function.as_ref() else {
-            todo!("ICE diagnostic")
+            return Err(RuntimeError::ApplyNonPointer(function.type_name().into()));
         };
 
         self.make_frame(
@@ -286,8 +353,7 @@ impl<'ctx, 'heap> Runtime<'ctx, 'heap> {
         callstack: &mut CallStack<'ctx, 'heap>,
     ) -> Result<ControlFlow<Value<'heap>>, RuntimeError<'heap>> {
         let Some((frame, stack)) = callstack.frames.split_last_mut() else {
-            // TODO: should this be a runtime error instead?
-            unreachable!("step must be called with at least one call frame");
+            return Err(RuntimeError::CallstackEmpty);
         };
 
         if frame.current_statement >= frame.current_block.statements.len() {

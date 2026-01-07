@@ -1,6 +1,6 @@
 //! Floating-point number representation for the MIR interpreter.
 
-use core::{cmp, num::FpCategory, ops::Neg};
+use core::{cmp, ops::Neg};
 
 use hashql_core::value::Float;
 
@@ -9,20 +9,7 @@ use crate::{body::constant::Int, macros::forward_ref_unop};
 /// A floating-point number value with total ordering semantics.
 ///
 /// Wraps an [`f64`] and implements [`Ord`] using [`f64::total_cmp`], which follows
-/// the IEEE 754 `totalOrder` predicate. This enables use in ordered collections
-/// and provides deterministic comparisons for all values including NaN and signed zeros.
-///
-/// # Ordering
-///
-/// Values are ordered according to IEEE 754 `totalOrder`:
-///
-/// negative NaN < -∞ < negative finite < -0 < +0 < positive finite < +∞ < positive NaN
-///
-/// # Cross-type Comparison
-///
-/// Comparisons with [`Int`] follow the same ordering semantics, with integers treated
-/// as their exact mathematical values. For floats outside the [`i128`] range (including
-/// infinities and NaNs), the sign determines ordering relative to all integers.
+/// the IEEE 754 `totalOrder` predicate.
 #[derive(Debug, Copy, Clone)]
 pub struct Num {
     value: f64,

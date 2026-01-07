@@ -51,13 +51,24 @@ pub struct Str<'heap, A: Allocator = Global> {
     inner: StrInner<'heap, A>,
 }
 
-impl Str<'_> {
+impl<A: Allocator> Str<'_, A> {
     /// Returns this string as a string slice.
     #[must_use]
     pub fn as_str(&self) -> &str {
         match &self.inner {
             StrInner::Owned(value) => value,
             StrInner::Interned(value) => value.as_str(),
+        }
+    }
+
+    pub fn into_owned_in<'lifetime>(self, alloc: A) -> Str<'lifetime, A> {
+        match self.inner {
+            StrInner::Owned(value) => Str {
+                inner: StrInner::Owned(value),
+            },
+            StrInner::Interned(value) => Str {
+                inner: StrInner::Owned(Rc::clone_from_ref_in(value.as_str(), alloc)),
+            },
         }
     }
 }
