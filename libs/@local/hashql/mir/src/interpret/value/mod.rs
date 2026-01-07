@@ -138,7 +138,7 @@ impl<'heap, A: Allocator> Value<'heap, A> {
         ValueTypeName::from(self)
     }
 
-    fn type_name_terse(&self) -> &'static str {
+    const fn type_name_terse(&self) -> &'static str {
         match self {
             Value::Unit => "()",
             Value::Integer(_) => "Integer",
