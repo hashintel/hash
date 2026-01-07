@@ -193,12 +193,12 @@ impl<'ctx, 'heap> Runtime<'ctx, 'heap> {
                 _ => todo!("this should be an ICE"),
             },
             UnOp::BitNot => match operand.as_ref() {
-                Value::Integer(int) => Ok(Value::Integer((!int.as_int()).into())),
+                Value::Integer(int) => Ok(Value::Integer(!int)),
                 _ => todo!("this should be an ICE"),
             },
             UnOp::Neg => match operand.as_ref() {
-                Value::Integer(int) => Ok(Value::Integer((-int.as_int()).into())),
-                Value::Number(number) => Ok(Value::Number((-number.as_f64()).into())),
+                Value::Integer(int) => Ok(Value::Integer(-int)),
+                Value::Number(number) => Ok(Value::Number(-number)),
                 _ => todo!("this should be an ICE"),
             },
         }
