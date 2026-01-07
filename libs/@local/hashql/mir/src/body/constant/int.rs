@@ -2,9 +2,12 @@ use core::{
     error::Error,
     fmt::{self, Display},
     num::TryFromIntError,
+    ops::{BitAnd, BitAndAssign, BitOr, BitOrAssign, BitXor, BitXorAssign, Neg, Not},
 };
 
 use hashql_core::value::{Integer, Primitive};
+
+use crate::macros::{forward_ref_binop, forward_ref_op_assign, forward_ref_unop};
 
 /// A finite-precision integer constant in the MIR.
 ///
@@ -52,6 +55,7 @@ pub struct Int {
     clippy::cast_sign_loss
 )]
 impl Int {
+    #[inline]
     const fn from_value_unchecked(value: i128) -> Self {
         Self { value }
     }
@@ -607,3 +611,78 @@ impl<'heap> TryFrom<Primitive<'heap>> for Int {
         }
     }
 }
+
+impl Not for Int {
+    type Output = Self;
+
+    #[inline]
+    fn not(self) -> Self::Output {
+        Self::from_value_unchecked(!self.as_int())
+    }
+}
+
+impl Neg for Int {
+    type Output = Self;
+
+    #[inline]
+    fn neg(self) -> Self::Output {
+        Self::from_value_unchecked(-self.as_int())
+    }
+}
+
+impl BitOr for Int {
+    type Output = Self;
+
+    #[inline]
+    fn bitor(self, rhs: Self) -> Self::Output {
+        Self::from_value_unchecked(self.as_int() | rhs.as_int())
+    }
+}
+
+impl BitOrAssign for Int {
+    #[inline]
+    fn bitor_assign(&mut self, rhs: Self) {
+        self.value |= rhs.value;
+    }
+}
+
+impl BitAnd for Int {
+    type Output = Self;
+
+    #[inline]
+    fn bitand(self, rhs: Self) -> Self::Output {
+        Self::from_value_unchecked(self.as_int() & rhs.as_int())
+    }
+}
+
+impl BitAndAssign for Int {
+    #[inline]
+    fn bitand_assign(&mut self, rhs: Self) {
+        self.value &= rhs.value;
+    }
+}
+
+impl BitXor for Int {
+    type Output = Self;
+
+    #[inline]
+    fn bitxor(self, rhs: Self) -> Self::Output {
+        Self::from_value_unchecked(self.as_int() ^ rhs.as_int())
+    }
+}
+
+impl BitXorAssign for Int {
+    #[inline]
+    fn bitxor_assign(&mut self, rhs: Self) {
+        self.value ^= rhs.value;
+    }
+}
+
+forward_ref_unop!(impl Not::not for Int);
+forward_ref_unop!(impl Neg::neg for Int);
+forward_ref_binop!(impl BitOr<Int>::bitor for Int);
+forward_ref_binop!(impl BitAnd<Int>::bitand for Int);
+forward_ref_binop!(impl BitXor<Int>::bitxor for Int);
+forward_ref_op_assign!(impl BitOrAssign<Int>::bitor_assign for Int);
+forward_ref_op_assign!(impl BitAndAssign<Int>::bitand_assign for Int);
+forward_ref_op_assign!(impl BitXorAssign<Int>::bitxor_assign for Int);

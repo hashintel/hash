@@ -1,10 +1,10 @@
 //! Floating-point number representation for the MIR interpreter.
 
-use core::cmp;
+use core::{cmp, num::FpCategory, ops::Neg};
 
 use hashql_core::value::Float;
 
-use crate::body::constant::Int;
+use crate::{body::constant::Int, macros::forward_ref_unop};
 
 /// A floating-point number value with total ordering semantics.
 ///
@@ -66,7 +66,7 @@ impl Num {
     /// first, then uses the fractional part as a tiebreaker. For out-of-range
     /// values (including NaN and infinities), the sign bit determines ordering:
     /// negative values are less than all integers, positive values are greater.
-    fn cmp_int(self, int: &Int) -> cmp::Ordering {
+    pub(crate) fn cmp_int(self, int: &Int) -> cmp::Ordering {
         let Some(this_int) = self.to_i128() else {
             return if self.as_f64().is_sign_negative() {
                 cmp::Ordering::Less
@@ -151,9 +151,26 @@ impl PartialOrd<Num> for Int {
 impl Ord for Num {
     #[inline]
     fn cmp(&self, other: &Self) -> cmp::Ordering {
+        // To have uniform behaviour when looking at `Int` and `Num` we collapse `0` to a single
+        // order value.
+        if self.value == 0.0 && other.value == 0.0 {
+            return cmp::Ordering::Equal;
+        }
+
         self.value.total_cmp(&other.value)
     }
 }
+
+impl Neg for Num {
+    type Output = Self;
+
+    #[inline]
+    fn neg(self) -> Self::Output {
+        Self::from(f64::neg(self.value))
+    }
+}
+
+forward_ref_unop!(impl Neg::neg for Num);
 
 #[cfg(test)]
 mod tests {

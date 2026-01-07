@@ -40,5 +40,6 @@ pub mod visit;
 
 pub mod builder;
 mod interpret;
+mod macros;
 #[cfg(test)]
 pub(crate) mod tests;

@@ -189,7 +189,7 @@ impl<'heap, A: Allocator> Value<'heap, A> {
             Self::List(list) if let Self::Integer(value) = index => {
                 let len = list.len();
 
-                list.get_mut(value).ok_or_else(|| RuntimeError::OutOfRange {
+                list.get_mut(value).ok_or(RuntimeError::OutOfRange {
                     length: len,
                     index: value,
                 })
@@ -212,7 +212,7 @@ impl<'heap, A: Allocator> Value<'heap, A> {
         }
     }
 
-    pub fn project<'this, 'index>(
+    pub fn project<'this>(
         &'this self,
         index: FieldIndex,
     ) -> Result<&'this Self, RuntimeError<'heap>> {
@@ -234,7 +234,7 @@ impl<'heap, A: Allocator> Value<'heap, A> {
         }
     }
 
-    pub fn project_mut<'this, 'index>(
+    pub fn project_mut<'this>(
         &'this mut self,
         index: FieldIndex,
     ) -> Result<&'this mut Self, RuntimeError<'heap>>
@@ -260,7 +260,7 @@ impl<'heap, A: Allocator> Value<'heap, A> {
         }
     }
 
-    pub fn project_by_name<'this, 'index>(
+    pub fn project_by_name<'this>(
         &'this self,
         index: Symbol<'heap>,
     ) -> Result<&'this Self, RuntimeError<'heap>> {
@@ -273,7 +273,7 @@ impl<'heap, A: Allocator> Value<'heap, A> {
             .ok_or_else(|| RuntimeError::UnknownFieldByName(self.type_name().into(), index))
     }
 
-    pub fn project_by_name_mut<'this, 'index>(
+    pub fn project_by_name_mut<'this>(
         &'this mut self,
         index: Symbol<'heap>,
     ) -> Result<&'this mut Self, RuntimeError<'heap>>
@@ -318,6 +318,10 @@ impl<A: Allocator> PartialEq for Value<'_, A> {
         match (self, other) {
             (Self::Integer(this), Self::Integer(other)) => this == other,
             (Self::Number(this), Self::Number(other)) => this == other,
+
+            (Self::Integer(this), Self::Number(other)) => this == other,
+            (Self::Number(this), Self::Integer(other)) => this == other,
+
             (Self::String(this), Self::String(other)) => this == other,
             (Self::Pointer(this), Self::Pointer(other)) => this == other,
             (Self::Opaque(this), Self::Opaque(other)) => this == other,
@@ -348,6 +352,10 @@ impl<A: Allocator> Ord for Value<'_, A> {
         match (self, other) {
             (Value::Integer(this), Value::Integer(other)) => this.cmp(other),
             (Value::Number(this), Value::Number(other)) => this.cmp(other),
+
+            (Value::Integer(this), Value::Number(other)) => other.cmp_int(this).reverse(),
+            (Value::Number(this), Value::Integer(other)) => this.cmp_int(other),
+
             (Value::String(this), Value::String(other)) => this.cmp(other),
             (Value::Pointer(this), Value::Pointer(other)) => this.cmp(other),
             (Value::Opaque(this), Value::Opaque(other)) => this.cmp(other),
