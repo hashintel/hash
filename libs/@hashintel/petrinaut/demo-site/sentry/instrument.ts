@@ -1,14 +1,16 @@
 import * as Sentry from "@sentry/react";
 
-// Get Sentry DSN from environment variable (optional for demo)
-// Vite provides import.meta.env, but TypeScript needs help with the types
-const metaEnv = (import.meta as { env?: Record<string, unknown> }).env;
-
+// Get Sentry DSN from environment variable (injected at build time via vite.config.ts)
+// The value is read from .env files and exposed via import.meta.env.SENTRY_DSN
 const sentryDsn =
-  typeof metaEnv?.SENTRY_DSN === "string" ? metaEnv.SENTRY_DSN : undefined;
+  typeof import.meta.env.SENTRY_DSN === "string"
+    ? import.meta.env.SENTRY_DSN
+    : undefined;
 
 const environment =
-  typeof metaEnv?.MODE === "string" ? metaEnv.MODE : "development";
+  typeof import.meta.env.MODE === "string"
+    ? import.meta.env.MODE
+    : "development";
 
 Sentry.init({
   dsn: sentryDsn,
