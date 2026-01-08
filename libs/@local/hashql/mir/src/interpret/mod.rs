@@ -17,6 +17,8 @@
 mod error;
 mod locals;
 mod runtime;
+#[cfg(test)]
+mod tests;
 pub mod value;
 
 pub use runtime::{CallStack, Runtime, RuntimeConfig};

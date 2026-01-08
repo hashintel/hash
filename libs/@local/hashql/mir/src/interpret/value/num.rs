@@ -191,11 +191,11 @@ mod tests {
         assert_eq!(plus_one.cmp(&pos_inf), Ordering::Less);
 
         // Negative zero vs positive zero
-        assert_eq!(neg_zero.cmp(&pos_zero), Ordering::Less);
+        assert_eq!(neg_zero.cmp(&pos_zero), Ordering::Equal);
+        assert_eq!(neg_zero.cmp(&pos_zero), Ordering::Equal);
 
         // Sanity around zeros and ones
         assert_eq!(minus_one.cmp(&neg_zero), Ordering::Less);
-        assert_eq!(neg_zero.cmp(&pos_zero), Ordering::Less);
         assert_eq!(pos_zero.cmp(&plus_one), Ordering::Less);
     }
 
@@ -306,8 +306,8 @@ mod tests {
         assert_eq!(neg_zero.cmp_int(&zero_int), Ordering::Equal);
         assert_eq!(pos_zero.cmp_int(&zero_int), Ordering::Equal);
 
-        // But Num's own total ordering still distinguishes them
-        assert_eq!(neg_zero.cmp(&pos_zero), Ordering::Less);
+        // to keep being reflexive, `Num` also doesn't distinguish them
+        assert_eq!(neg_zero.cmp(&pos_zero), Ordering::Equal);
     }
 
     #[test]
