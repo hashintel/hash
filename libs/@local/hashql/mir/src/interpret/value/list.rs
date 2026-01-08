@@ -1,15 +1,13 @@
 //! List collection for the MIR interpreter.
 
-use core::{alloc::Allocator, cmp, iter::FusedIterator};
-
-use imbl::shared_ptr::RcK;
+use core::{alloc::Allocator, cmp};
 
 use super::{Int, Value};
 
 /// An ordered list of values.
 #[derive(Debug, Clone)]
 pub struct List<'heap, A: Allocator> {
-    inner: imbl::GenericVector<Value<'heap, A>, RcK>,
+    inner: rpds::Vector<Value<'heap, A>>,
 }
 
 impl<'heap, A: Allocator> List<'heap, A> {
@@ -17,7 +15,7 @@ impl<'heap, A: Allocator> List<'heap, A> {
     #[must_use]
     pub fn new() -> Self {
         Self {
-            inner: imbl::GenericVector::new(),
+            inner: rpds::Vector::new(),
         }
     }
 
@@ -38,7 +36,7 @@ impl<'heap, A: Allocator> List<'heap, A> {
     where
         A: Clone,
     {
-        self.inner.push_back(value);
+        self.inner.push_back_mut(value);
     }
 
     /// Returns a reference to the element at the given `index`.
@@ -81,9 +79,7 @@ impl<'heap, A: Allocator> List<'heap, A> {
 
     /// Returns an iterator over the list's elements.
     #[must_use]
-    pub fn iter(
-        &self,
-    ) -> impl ExactSizeIterator<Item = &Value<'heap, A>> + DoubleEndedIterator + FusedIterator {
+    pub fn iter(&self) -> impl ExactSizeIterator<Item = &Value<'heap, A>> + DoubleEndedIterator {
         self.inner.iter()
     }
 }
@@ -113,17 +109,14 @@ impl<A: Allocator> Ord for List<'_, A> {
 
 impl<A: Allocator> Default for List<'_, A> {
     fn default() -> Self {
-        Self {
-            inner: imbl::GenericVector::new(),
-        }
+        Self::new()
     }
 }
 
 impl<'this, 'heap, A: Allocator> IntoIterator for &'this List<'heap, A> {
     type Item = &'this Value<'heap, A>;
 
-    type IntoIter =
-        impl ExactSizeIterator<Item = &'this Value<'heap, A>> + DoubleEndedIterator + FusedIterator;
+    type IntoIter = impl ExactSizeIterator<Item = &'this Value<'heap, A>> + DoubleEndedIterator;
 
     fn into_iter(self) -> Self::IntoIter {
         self.inner.iter()

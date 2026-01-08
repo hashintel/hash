@@ -211,6 +211,7 @@ impl<'ctx, 'heap, A: Allocator + Clone> Runtime<'ctx, 'heap, A> {
         args: impl IntoIterator<Item = Result<Value<'heap, A>, E>>,
     ) -> Result<Frame<'ctx, 'heap, A>, E> {
         let body = &self.bodies[func];
+
         let locals = Locals::new_in(body, args, self.alloc.clone())?;
 
         Ok(Frame {
@@ -559,6 +560,7 @@ impl<'ctx, 'heap, A: Allocator + Clone> Runtime<'ctx, 'heap, A> {
             return match next {
                 ControlFlow::Continue(PopFrame::Yes) => {
                     callstack.frames.pop();
+
                     Ok(ControlFlow::Continue(()))
                 }
                 ControlFlow::Continue(PopFrame::No) => Ok(ControlFlow::Continue(())),

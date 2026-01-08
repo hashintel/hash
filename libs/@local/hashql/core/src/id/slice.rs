@@ -306,6 +306,7 @@ where
     /// assert_eq!(vec.lookup(MyId::from_usize(0)), Some(&"hello".to_string()));
     /// assert_eq!(vec.lookup(MyId::from_usize(1)), None); // out of bounds
     /// ```
+    #[inline]
     pub fn lookup(&self, index: I) -> Option<&T> {
         self.get(index).and_then(Option::as_ref)
     }
@@ -330,6 +331,7 @@ where
     ///     Some(&"hello world".to_string())
     /// );
     /// ```
+    #[inline]
     pub fn lookup_mut(&mut self, index: I) -> Option<&mut T> {
         self.get_mut(index).and_then(Option::as_mut)
     }
