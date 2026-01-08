@@ -313,7 +313,7 @@ const VerticalSubViewSection: React.FC<VerticalSubViewSectionProps> = ({
             {tooltip && <InfoIconTooltip tooltip={tooltip} />}
           </span>
         </button>
-        {renderHeaderAction?.()}
+        {isExpanded && renderHeaderAction?.()}
       </div>
 
       {isExpanded && renderContent()}
