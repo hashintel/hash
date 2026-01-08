@@ -6,9 +6,17 @@ use hashql_core::value::Float;
 
 use crate::{body::constant::Int, macros::forward_ref_unop};
 
+/// A numeric value, either a floating-point number or an integer.
+///
+/// This is a subset of [`Value`] that encompasses all numeric variants, providing
+/// a unified type for operations that accept any numeric value.
+///
+/// [`Value`]: super::Value
 #[derive(Debug, Copy, Clone)]
 pub enum Numeric {
+    /// A floating-point number with total ordering semantics.
     Num(Num),
+    /// An arbitrary-precision integer.
     Int(Int),
 }
 
