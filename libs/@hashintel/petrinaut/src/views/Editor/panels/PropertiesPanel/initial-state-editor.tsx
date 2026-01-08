@@ -346,8 +346,12 @@ export const InitialStateEditor: React.FC<InitialStateEditorProps> = ({
         }
         setTableData(tokens);
       } else {
-        // When count is 0, set empty table data
+        // When count is 0, set empty table data and reset selection state
+        // This handles external clearing (e.g., via ClearStateHeaderAction)
         setTableData([]);
+        setSelectedRow(null);
+        setFocusedCell(null);
+        setEditingCell(null);
       }
     }
   }, [currentMarking, placeType.elements.length]);
