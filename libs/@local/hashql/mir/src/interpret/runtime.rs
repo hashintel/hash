@@ -397,6 +397,8 @@ impl<'ctx, 'heap> Runtime<'ctx, 'heap> {
         Input { op, name }: &Input<'heap>,
     ) -> Result<Value<'heap>, RuntimeError<'heap>> {
         match op {
+            // `required` is used only by static control-flow analysis; at runtime we always
+            // error if the input is missing.
             InputOp::Load { required: _ } => self.inputs.get(name).map_or_else(
                 || Err(RuntimeError::InputNotFound { name: *name }),
                 |value| Ok(value.clone()),
