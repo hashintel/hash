@@ -19,7 +19,7 @@ hashql-hir         = { workspace = true, public = true }
 # Private third-party dependencies
 anstyle-svg    = { workspace = true }
 bstr           = { workspace = true }
-imbl           = { workspace = true }
+rpds           = { workspace = true }
 simple-mermaid = { workspace = true }
 
 [dev-dependencies]

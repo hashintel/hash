@@ -115,7 +115,6 @@ pub enum Value<'heap, A: Allocator = Global> {
     Struct(Struct<'heap, A>),
     /// A positional tuple.
     Tuple(Tuple<'heap, A>),
-
     /// An ordered list.
     List(List<'heap, A>),
     /// An ordered dictionary.
@@ -190,14 +189,14 @@ impl<'heap, A: Allocator> Value<'heap, A> {
     /// is invalid, or if a list index is out of bounds.
     pub fn subscript_mut<'this>(
         &'this mut self,
-        index: Self,
+        index: &Self,
     ) -> Result<&'this mut Self, RuntimeError<'heap, A>>
     where
         A: Clone,
     {
         let terse_name = self.type_name_terse();
         match self {
-            Self::List(list) if let Self::Integer(value) = index => {
+            Self::List(list) if let &Self::Integer(value) = index => {
                 let len = list.len();
 
                 list.get_mut(value).ok_or(RuntimeError::OutOfRange {
@@ -379,6 +378,7 @@ impl<'heap, A: Allocator> From<Constant<'heap>> for Value<'heap, A> {
 }
 
 impl<A: Allocator> From<Numeric> for Value<'_, A> {
+    #[inline]
     fn from(value: Numeric) -> Self {
         match value {
             Numeric::Int(int) => Self::Integer(int),

@@ -27,6 +27,7 @@
     string_from_utf8_lossy_owned,
     try_trait_v2,
     maybe_uninit_array_assume_init,
+    likely_unlikely,
 )]
 #![expect(clippy::indexing_slicing)]
 extern crate alloc;
