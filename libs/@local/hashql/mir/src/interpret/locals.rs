@@ -1,3 +1,13 @@
+//! Local variable storage for interpreter frames.
+//!
+//! This module provides [`Locals`], the storage container for local variables
+//! within a single call frame. It supports:
+//!
+//! - Reading and writing individual locals
+//! - Place projection (field access, indexing)
+//! - Operand evaluation (constants and places)
+//! - Aggregate construction (structs, tuples, lists, dicts)
+
 use alloc::{alloc::Global, borrow::Cow, rc::Rc};
 use core::{
     alloc::Allocator,
@@ -18,13 +28,24 @@ use crate::{
     interpret::value::{Dict, List, Opaque, Struct, Tuple},
 };
 
+/// Local variable storage for a single call frame.
+///
+/// Stores the values of local variables during interpretation of a function.
+/// Locals are indexed by [`Local`] and may be uninitialized (represented as
+/// `None` in the internal storage).
 pub(crate) struct Locals<'ctx, 'heap, A: Allocator = Global> {
+    /// Allocator for creating new values.
     alloc: A,
+    /// Local variable declarations (for error reporting).
     decl: &'ctx LocalSlice<LocalDecl<'heap>>,
+    /// Storage for local variable values.
     inner: LocalVec<Option<Value<'heap, A>>, A>,
 }
 
 impl<'ctx, 'heap> Locals<'ctx, 'heap> {
+    /// Creates a new locals storage with the global allocator.
+    ///
+    /// Initializes the storage with the provided arguments as the first locals.
     pub(crate) fn new<E>(
         body: &'ctx Body<'heap>,
         args: impl IntoIterator<Item = Result<Value<'heap>, E>>,
@@ -34,6 +55,10 @@ impl<'ctx, 'heap> Locals<'ctx, 'heap> {
 }
 
 impl<'ctx, 'heap, A: Allocator> Locals<'ctx, 'heap, A> {
+    /// Creates a new locals storage with a custom allocator.
+    ///
+    /// Initializes the storage with the provided arguments as the first locals.
+    /// The number of arguments must match the body's `args` count.
     pub(crate) fn new_in<E>(
         body: &'ctx Body<'heap>,
         args: impl IntoIterator<Item = Result<Value<'heap, A>, E>>,
@@ -56,10 +81,17 @@ impl<'ctx, 'heap, A: Allocator> Locals<'ctx, 'heap, A> {
         })
     }
 
+    /// Inserts or updates a local variable value.
     pub(crate) fn insert(&mut self, local: Local, value: Value<'heap, A>) {
         self.inner.insert(local, value);
     }
 
+    /// Gets a reference to a local variable's value.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`RuntimeError::UninitializedLocal`] if the local has not been
+    /// initialized.
     pub(crate) fn local(&self, local: Local) -> Result<&Value<'heap, A>, RuntimeError<'heap>> {
         self.inner.lookup(local).ok_or_else(|| {
             let decl = self.decl[local];
@@ -67,6 +99,12 @@ impl<'ctx, 'heap, A: Allocator> Locals<'ctx, 'heap, A> {
         })
     }
 
+    /// Gets a mutable reference to a local variable's value.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`RuntimeError::UninitializedLocal`] if the local has not been
+    /// initialized.
     pub(crate) fn local_mut(
         &mut self,
         local: Local,
@@ -77,6 +115,10 @@ impl<'ctx, 'heap, A: Allocator> Locals<'ctx, 'heap, A> {
         })
     }
 
+    /// Evaluates a place expression to get a reference to the value.
+    ///
+    /// Follows the chain of projections (field access, indexing) to reach
+    /// the final value.
     pub(crate) fn place(
         &self,
         Place { local, projections }: Place<'heap>,
@@ -101,6 +143,11 @@ impl<'ctx, 'heap, A: Allocator> Locals<'ctx, 'heap, A> {
         Ok(value)
     }
 
+    /// Evaluates a place expression to get a mutable reference to the value.
+    ///
+    /// Follows the chain of projections (field access, indexing) to reach
+    /// the final value. Index projections are evaluated before the mutable
+    /// borrow to avoid borrowing conflicts.
     pub(crate) fn place_mut(
         &mut self,
         place: Place<'heap>,
@@ -138,6 +185,10 @@ impl<'ctx, 'heap, A: Allocator> Locals<'ctx, 'heap, A> {
         Ok(value)
     }
 
+    /// Evaluates an operand to get its value.
+    ///
+    /// - For place operands: evaluates the place and borrows the value
+    /// - For constant operands: converts the constant to a value
     pub(crate) fn operand(
         &self,
         operand: Operand<'heap>,
@@ -151,7 +202,11 @@ impl<'ctx, 'heap, A: Allocator> Locals<'ctx, 'heap, A> {
         }
     }
 
-    // SAFETY: the caller must ensure that operands and slice have the same length.
+    /// Writes operand values into an uninitialized slice.
+    ///
+    /// # Safety
+    ///
+    /// The caller must ensure that `operands` and `slice` have the same length.
     #[expect(unsafe_code, clippy::mem_forget)]
     unsafe fn write_operands(
         &self,
@@ -202,6 +257,9 @@ impl<'ctx, 'heap, A: Allocator> Locals<'ctx, 'heap, A> {
         Ok(())
     }
 
+    /// Constructs a tuple value from operands.
+    ///
+    /// Returns [`Value::Unit`] for empty tuples.
     #[expect(unsafe_code, clippy::panic_in_result_fn)]
     fn aggregate_tuple(
         &self,
@@ -230,6 +288,12 @@ impl<'ctx, 'heap, A: Allocator> Locals<'ctx, 'heap, A> {
         Ok(Value::Tuple(Tuple::new_unchecked(values)))
     }
 
+    /// Constructs a struct value from field names and operands.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`RuntimeError::StructFieldLengthMismatch`] if the number of
+    /// fields does not match the number of operands.
     #[expect(unsafe_code, clippy::panic_in_result_fn)]
     fn aggregate_struct(
         &self,
@@ -262,6 +326,10 @@ impl<'ctx, 'heap, A: Allocator> Locals<'ctx, 'heap, A> {
         Ok(Value::Struct(Struct::new_unchecked(fields, values)))
     }
 
+    /// Constructs an aggregate value (tuple, struct, list, dict, opaque, closure).
+    ///
+    /// Dispatches to the appropriate construction method based on the aggregate
+    /// kind and evaluates all operands to build the result.
     #[expect(clippy::integer_division_remainder_used)]
     pub(crate) fn aggregate(
         &self,

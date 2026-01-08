@@ -30,6 +30,9 @@ pub struct Tuple<'heap, A: Allocator> {
 }
 
 impl<'heap, A: Allocator> Tuple<'heap, A> {
+    /// Creates a new tuple without checking invariants.
+    ///
+    /// The caller must ensure that `values` is non-empty.
     pub fn new_unchecked(values: Rc<[Value<'heap, A>], A>) -> Self {
         debug_assert!(!values.is_empty(), "tuple is non-empty by construction");
 
@@ -55,7 +58,8 @@ impl<'heap, A: Allocator> Tuple<'heap, A> {
     /// Returns the number of elements.
     #[must_use]
     pub fn len(&self) -> NonZero<usize> {
-        NonZero::new(self.values.len()).expect("tuple is non-empty by construction")
+        NonZero::new(self.values.len())
+            .unwrap_or_else(|| unreachable!("tuple is non-empty by construction"))
     }
 
     /// Returns a reference to the element at the given `index`.
@@ -74,10 +78,12 @@ impl<'heap, A: Allocator> Tuple<'heap, A> {
         values.get_mut(index.as_usize())
     }
 
+    /// Returns an iterator over the tuple's elements.
     pub fn iter(&self) -> core::slice::Iter<'_, Value<'heap, A>> {
         self.values.iter()
     }
 
+    /// Returns a displayable representation of this tuple's type.
     pub fn type_name(&self) -> impl Display {
         fmt::from_fn(|fmt| {
             fmt.write_str("(")?;

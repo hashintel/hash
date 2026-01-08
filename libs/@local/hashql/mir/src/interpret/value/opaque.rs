@@ -44,6 +44,7 @@ impl<'heap, A: Allocator> Opaque<'heap, A> {
         &self.value
     }
 
+    /// Returns a displayable representation of this opaque type's name.
     pub fn type_name(&self) -> impl Display {
         fmt::from_fn(|fmt| {
             // check if the inner type is a struct or tuple, in which case we elide the `()`

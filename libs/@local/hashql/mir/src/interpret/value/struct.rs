@@ -28,6 +28,9 @@ pub struct Struct<'heap, A: Allocator> {
 }
 
 impl<'heap, A: Allocator> Struct<'heap, A> {
+    /// Creates a new struct without checking invariants.
+    ///
+    /// The caller must ensure that `fields` and `values` have the same length.
     pub fn new_unchecked(
         fields: Interned<'heap, [Symbol<'heap>]>,
         values: Rc<[Value<'heap, A>], A>,
@@ -96,11 +99,13 @@ impl<'heap, A: Allocator> Struct<'heap, A> {
             .map(|index| &mut values[index])
     }
 
+    /// Returns a reference to the value at the given field `index`.
     #[must_use]
     pub fn get_by_index(&self, index: FieldIndex) -> Option<&Value<'heap, A>> {
         self.values.get(index.as_usize())
     }
 
+    /// Returns a mutable reference to the value at the given field `index`.
     pub fn get_by_index_mut(&mut self, index: FieldIndex) -> Option<&mut Value<'heap, A>>
     where
         A: Clone,
@@ -109,6 +114,7 @@ impl<'heap, A: Allocator> Struct<'heap, A> {
         values.get_mut(index.as_usize())
     }
 
+    /// Returns an iterator over (field name, value) pairs.
     pub fn iter(&self) -> StructIter<'_, 'heap, A> {
         StructIter {
             fields: self.fields.iter().copied(),
@@ -116,6 +122,7 @@ impl<'heap, A: Allocator> Struct<'heap, A> {
         }
     }
 
+    /// Returns a displayable representation of this struct's type.
     pub fn type_name(&self) -> impl Display {
         fmt::from_fn(|fmt| {
             fmt.write_str("(")?;

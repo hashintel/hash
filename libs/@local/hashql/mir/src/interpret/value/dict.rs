@@ -7,16 +7,14 @@ use imbl::shared_ptr::RcK;
 use super::Value;
 
 /// An ordered dictionary mapping values to values.
-///
-/// Backed by an immutable persistent ordered map, enabling efficient structural
-/// sharing when values are cloned or modified. Keys are ordered using their
-/// [`Ord`] implementation.
 #[derive(Debug, Clone)]
 pub struct Dict<'heap, A: Allocator> {
     inner: imbl::GenericOrdMap<Value<'heap, A>, Value<'heap, A>, RcK>,
 }
 
 impl<'heap, A: Allocator> Dict<'heap, A> {
+    /// Creates a new empty dictionary.
+    #[must_use]
     pub fn new() -> Self {
         Self {
             inner: imbl::GenericOrdMap::new(),
@@ -56,6 +54,7 @@ impl<'heap, A: Allocator> Dict<'heap, A> {
         self.inner.get(key)
     }
 
+    /// Returns a mutable reference to the value for `key`, inserting [`Value::Unit`] if absent.
     pub fn get_mut(&mut self, key: Value<'heap, A>) -> &mut Value<'heap, A>
     where
         A: Clone,
@@ -63,6 +62,8 @@ impl<'heap, A: Allocator> Dict<'heap, A> {
         self.inner.entry(key).or_insert(Value::Unit)
     }
 
+    /// Returns an iterator over key-value pairs.
+    #[must_use]
     pub fn iter(
         &self,
     ) -> impl ExactSizeIterator<Item = (&Value<'heap, A>, &Value<'heap, A>)>

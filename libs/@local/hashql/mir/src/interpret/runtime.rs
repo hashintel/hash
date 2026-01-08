@@ -1,3 +1,25 @@
+//! Runtime execution engine for MIR interpretation.
+//!
+//! This module provides the core execution machinery for interpreting MIR code.
+//! It implements a stack-based interpreter that steps through basic blocks,
+//! executing statements and following terminators.
+//!
+//! # Key Types
+//!
+//! - [`Runtime`]: The main interpreter, holding configuration, function bodies, and inputs
+//! - [`RuntimeConfig`]: Configuration options like recursion limits
+//! - [`CallStack`]: Manages call frames during execution
+//!
+//! # Execution Model
+//!
+//! The interpreter executes MIR by:
+//!
+//! 1. Starting at the entry block of the entry function
+//! 2. Executing statements in order (assignments, storage markers)
+//! 3. Following terminators to navigate between blocks
+//! 4. Pushing/popping call frames for function calls and returns
+//! 5. Returning the final value when the entry function returns
+
 use alloc::borrow::Cow;
 use core::{assert_matches::debug_assert_matches, ops::ControlFlow};
 
@@ -20,19 +42,38 @@ use crate::{
     def::{DefId, DefIdSlice},
 };
 
+/// A single call frame in the interpreter's call stack.
+///
+/// Each frame represents an active function call and tracks:
+/// - Local variable storage
+/// - The function body being executed
+/// - Current position (block and statement index)
 struct Frame<'ctx, 'heap> {
+    /// Local variable storage for this function call.
     locals: Locals<'ctx, 'heap>,
-
+    /// The MIR body being executed.
     body: &'ctx Body<'heap>,
+    /// The current basic block.
     current_block: &'ctx BasicBlock<'heap>,
+    /// Index of the next statement to execute in the current block.
     current_statement: usize,
 }
 
+/// The call stack for the MIR interpreter.
+///
+/// Manages the stack of active function calls during interpretation.
+///
+/// The call stack also provides [`unwind`](Self::unwind) for error reporting,
+/// which walks the stack to collect span information for diagnostics.
 pub struct CallStack<'ctx, 'heap> {
     frames: Vec<Frame<'ctx, 'heap>>,
 }
 
 impl<'ctx, 'heap> CallStack<'ctx, 'heap> {
+    /// Creates a new call stack with an initial call to the entry function.
+    ///
+    /// The entry function is called with the provided arguments, which become
+    /// the initial values of the function's parameter locals.
     pub fn new(
         runtime: &Runtime<'ctx, 'heap>,
         entry: DefId,
@@ -45,6 +86,14 @@ impl<'ctx, 'heap> CallStack<'ctx, 'heap> {
         }
     }
 
+    /// Unwinds the call stack to produce a trace of definition IDs and spans.
+    ///
+    /// Returns an iterator over `(DefId, SpanId)` pairs, starting from the
+    /// innermost (most recent) call frame. This is used for error reporting
+    /// to show where an error occurred and the chain of calls that led to it.
+    ///
+    /// The span for each frame is either the current statement's span or the
+    /// terminator's span if all statements have been executed.
     pub fn unwind(&self) -> impl Iterator<Item = (DefId, SpanId)> {
         self.frames.iter().rev().map(|frame| {
             let body = frame.body.id;
@@ -59,13 +108,25 @@ impl<'ctx, 'heap> CallStack<'ctx, 'heap> {
     }
 }
 
+/// Internal signal indicating whether to pop the current frame after a terminator.
 enum PopFrame {
+    /// Pop the current frame (function returned).
     Yes,
+    /// Keep the current frame (control flow within function).
     No,
 }
 
+/// Configuration options for the MIR interpreter.
+///
+/// Controls resource limits and other runtime behavior.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub struct RuntimeConfig {
+    /// Maximum call stack depth before raising a recursion limit error.
+    ///
+    /// When the call stack would exceed this depth, interpretation stops
+    /// with a recursion limit exceeded error.
+    ///
+    /// Default: 1024.
     pub recursion_limit: usize,
 }
 
@@ -77,13 +138,36 @@ impl Default for RuntimeConfig {
     }
 }
 
+/// The MIR interpreter runtime.
+///
+/// Executes MIR code by stepping through basic blocks, handling statements
+/// and terminators, and managing function calls. The runtime holds:
+///
+/// - Configuration options (recursion limits, etc.)
+/// - All function bodies available for execution
+/// - Input values that can be loaded by [`Input`] rvalues
+///
+/// # Usage
+///
+/// 1. Create a runtime with [`Runtime::new`]
+/// 2. Create a call stack with [`CallStack::new`] targeting the entry function
+/// 3. Execute with [`Runtime::run`] to get the result
+///
+/// [`Input`]: crate::body::rvalue::Input
 pub struct Runtime<'ctx, 'heap> {
+    /// Runtime configuration.
     config: RuntimeConfig,
+    /// All available function bodies, indexed by [`DefId`].
     bodies: &'ctx DefIdSlice<Body<'heap>>,
+    /// Input values available for [`InputOp::Load`] operations.
     inputs: FastHashMap<Symbol<'heap>, Value<'heap>>,
 }
 
 impl<'ctx, 'heap> Runtime<'ctx, 'heap> {
+    /// Creates a new runtime with the given configuration, bodies, and inputs.
+    ///
+    /// The `bodies` slice must contain all functions that may be called during
+    /// interpretation. The `inputs` map provides values for input operations.
     #[must_use]
     pub const fn new(
         config: RuntimeConfig,
@@ -431,6 +515,20 @@ impl<'ctx, 'heap> Runtime<'ctx, 'heap> {
         Ok(ControlFlow::Continue(()))
     }
 
+    /// Executes the MIR starting from the given call stack.
+    ///
+    /// Runs the interpreter until the entry function returns or an error occurs.
+    /// The call stack should be initialized with [`CallStack::new`] pointing to
+    /// the entry function.
+    ///
+    /// # Returns
+    ///
+    /// The value returned by the entry function.
+    ///
+    /// # Errors
+    ///
+    /// Returns a diagnostic if any runtime error occurs. The diagnostic includes
+    /// the error message and a call stack trace for error localization.
     pub fn run(
         &self,
         mut callstack: CallStack<'ctx, 'heap>,
