@@ -59,12 +59,17 @@ const TabButton: React.FC<TabButtonProps> = ({
   isActive,
   onClick,
 }) => {
+  const tabId = `tab-${subView.id}`;
+  const tabpanelId = `tabpanel-${subView.id}`;
+
   return (
     <button
       type="button"
+      id={tabId}
       onClick={onClick}
       className={tabButtonStyle({ active: isActive })}
       aria-selected={isActive}
+      aria-controls={tabpanelId}
       role="tab"
     >
       {subView.title}
@@ -116,9 +121,10 @@ export const HorizontalTabsContainer: React.FC<
 
       {/* Content */}
       <div
+        id={`tabpanel-${activeTabId}`}
         className={contentStyle}
         role="tabpanel"
-        aria-labelledby={activeTabId}
+        aria-labelledby={`tab-${activeTabId}`}
       >
         <Component />
       </div>
@@ -184,8 +190,16 @@ export const HorizontalTabsContent: React.FC<{
 
   const Component = activeSubView.component;
 
+  const tabpanelId = `tabpanel-${activeTabId}`;
+  const tabId = `tab-${activeTabId}`;
+
   return (
-    <div className={contentStyle} role="tabpanel" aria-labelledby={activeTabId}>
+    <div
+      id={tabpanelId}
+      className={contentStyle}
+      role="tabpanel"
+      aria-labelledby={tabId}
+    >
       <Component />
     </div>
   );
