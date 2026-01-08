@@ -250,8 +250,6 @@ const aiIconStyle = css({
 
 const subviewsContainerStyle = css({
   flexShrink: 0,
-  borderTop: "[1px solid rgba(0, 0, 0, 0.1)]",
-  paddingTop: "[16px]",
 });
 
 interface PlacePropertiesProps {
