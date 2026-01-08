@@ -18,4 +18,9 @@ impl<A: Allocator> Scratch<'_, A> {
             target_args: Vec::new_in(alloc),
         }
     }
+
+    pub(crate) fn clear(&mut self) {
+        self.indices.clear();
+        self.target_args.clear();
+    }
 }

@@ -573,6 +573,8 @@ impl<'ctx, 'heap, A: Allocator + Clone> Runtime<'ctx, 'heap, A> {
         &mut self,
         mut callstack: CallStack<'ctx, 'heap, A>,
     ) -> Result<Value<'heap, A>, InterpretDiagnostic> {
+        self.scratch.clear();
+
         loop {
             let result = self.step(&mut callstack);
             let next = match result {
