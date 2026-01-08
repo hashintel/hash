@@ -368,7 +368,7 @@ impl<'ctx, 'heap> Runtime<'ctx, 'heap> {
                 ))),
             },
             UnOp::Neg => match operand.as_ref() {
-                Value::Integer(int) => Ok(Value::Integer(-int)),
+                Value::Integer(int) => Ok(-int),
                 Value::Number(number) => Ok(Value::Number(-number)),
                 Value::Unit
                 | Value::String(_)
