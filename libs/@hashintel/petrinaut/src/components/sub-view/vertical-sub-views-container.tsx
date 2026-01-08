@@ -35,6 +35,7 @@ const sectionToggleButtonStyle = css({
 
 const resizeHandleStyle = cva({
   base: {
+    width: "[100%]",
     height: "[4px]",
     cursor: "ns-resize",
     backgroundColor: "[transparent]",
@@ -217,6 +218,7 @@ const proportionalContainerStyle = css({
 /**
  * Wrapper style that controls flex distribution.
  * This is the direct child of the flex container.
+ * Includes transition for smooth expand/collapse animation (disabled during resize).
  */
 const proportionalSectionWrapperStyle = cva({
   base: {
@@ -231,11 +233,85 @@ const proportionalSectionWrapperStyle = cva({
         // Flex value controlled by inline style for proportional sizing
       },
       false: {
-        // Collapsed: just fit header, don't grow
+        // Collapsed: shrink to header height only
         flex: "[0 0 auto]",
       },
     },
+    isResizing: {
+      true: {
+        // No transition during resize for immediate feedback
+        transition: "[none]",
+      },
+      false: {
+        // Animate flex changes for smooth expand/collapse
+        transition: "[flex 0.2s ease-out, min-height 0.2s ease-out]",
+      },
+    },
   },
+});
+
+/**
+ * CSS Grid wrapper for animating content expand/collapse in proportional container.
+ * Uses grid-template-rows transition for smooth height animation.
+ * Uses flex: 1 to fill remaining space in the section (so sash stays at bottom).
+ */
+const proportionalContentAnimationWrapperStyle = cva({
+  base: {
+    display: "grid",
+    minHeight: "[0]",
+  },
+  variants: {
+    isExpanded: {
+      true: {
+        gridTemplateRows: "[1fr]",
+        flex: "[1]",
+      },
+      false: {
+        gridTemplateRows: "[0fr]",
+      },
+    },
+    isResizing: {
+      true: {
+        transition: "[none]",
+      },
+      false: {
+        transition: "[grid-template-rows 0.2s ease-out]",
+      },
+    },
+  },
+});
+
+/**
+ * CSS Grid wrapper for animating content expand/collapse in fixed container.
+ * Does NOT use flex: 1 so that fixed heights are respected.
+ */
+const fixedContentAnimationWrapperStyle = cva({
+  base: {
+    display: "grid",
+    minHeight: "[0]",
+    transition: "[grid-template-rows 0.2s ease-out]",
+  },
+  variants: {
+    isExpanded: {
+      true: {
+        gridTemplateRows: "[1fr]",
+      },
+      false: {
+        gridTemplateRows: "[0fr]",
+      },
+    },
+  },
+});
+
+/**
+ * Inner content container that collapses with overflow hidden.
+ * Uses flex layout so children can scroll independently.
+ */
+const contentInnerStyle = css({
+  overflow: "hidden",
+  minHeight: "[0]",
+  display: "flex",
+  flexDirection: "column",
 });
 
 const proportionalContentStyle = css({
@@ -249,6 +325,7 @@ const proportionalContentStyle = css({
 
 const sashStyle = cva({
   base: {
+    width: "[100%]",
     height: "[4px]",
     cursor: "ns-resize",
     backgroundColor: "[transparent]",
@@ -473,11 +550,16 @@ export const ProportionalSubViewsContainer: React.FC<
         const isLastExpanded = expandedIndex === expandedSections.length - 1;
         const showSash = isExpanded && !isLastExpanded;
 
+        const isCurrentlyResizing = resizingIndex !== null;
+
         return (
           <div
             key={subView.id}
             id={`subview-section-${subView.id}`}
-            className={proportionalSectionWrapperStyle({ isExpanded })}
+            className={proportionalSectionWrapperStyle({
+              isExpanded,
+              isResizing: isCurrentlyResizing,
+            })}
             style={
               isExpanded
                 ? {
@@ -496,27 +578,33 @@ export const ProportionalSubViewsContainer: React.FC<
               renderHeaderAction={subView.renderHeaderAction}
             />
 
-            {isExpanded && (
-              <>
+            {/* Animated content wrapper - always rendered for smooth transitions */}
+            <div
+              className={proportionalContentAnimationWrapperStyle({
+                isExpanded,
+                isResizing: isCurrentlyResizing,
+              })}
+            >
+              <div className={contentInnerStyle}>
                 <div
                   id={`subview-content-${subView.id}`}
                   className={proportionalContentStyle}
                 >
                   <Component />
                 </div>
+              </div>
+            </div>
 
-                {/* Sash between this section and next expanded section */}
-                {showSash && (
-                  <button
-                    type="button"
-                    aria-label="Resize sections"
-                    className={sashStyle({
-                      isResizing: resizingIndex === expandedIndex,
-                    })}
-                    onMouseDown={handleSashMouseDown(expandedIndex)}
-                  />
-                )}
-              </>
+            {/* Sash between this section and next expanded section - outside animation wrapper */}
+            {showSash && (
+              <button
+                type="button"
+                aria-label="Resize sections"
+                className={sashStyle({
+                  isResizing: resizingIndex === expandedIndex,
+                })}
+                onMouseDown={handleSashMouseDown(expandedIndex)}
+              />
             )}
           </div>
         );
@@ -561,6 +649,7 @@ const fixedContentStyle = cva({
     flexDirection: "column",
     gap: "[2px]",
     overflowY: "auto",
+    minHeight: "[0]",
   },
   variants: {
     flexGrow: {
@@ -579,6 +668,8 @@ const resizableContentStyle = css({
   flexDirection: "column",
   gap: "[2px]",
   overflowY: "auto",
+  minHeight: "[0]",
+  flex: "[1]",
 });
 
 interface FixedSectionProps {
@@ -626,23 +717,13 @@ const FixedSection: React.FC<FixedSectionProps> = ({
     if (resizable) {
       // Resizable content with controlled height
       return (
-        <>
-          <div
-            id={`subview-content-${id}`}
-            className={resizableContentStyle}
-            style={{ height: `${height}px` }}
-          >
-            <Component />
-          </div>
-          {/* Bottom handle rendered after content */}
-          {resizeHandlePosition === "bottom" && (
-            <ResizeHandle
-              position="bottom"
-              isResizing={isResizing}
-              onMouseDown={handleResizeStart}
-            />
-          )}
-        </>
+        <div
+          id={`subview-content-${id}`}
+          className={resizableContentStyle}
+          style={{ height: `${height}px` }}
+        >
+          <Component />
+        </div>
       );
     }
 
@@ -681,7 +762,19 @@ const FixedSection: React.FC<FixedSectionProps> = ({
         renderHeaderAction={renderHeaderAction}
       />
 
-      {isExpanded && renderContent()}
+      {/* Animated content wrapper */}
+      <div className={fixedContentAnimationWrapperStyle({ isExpanded })}>
+        <div className={contentInnerStyle}>{renderContent()}</div>
+      </div>
+
+      {/* Bottom handle rendered after content - outside animation wrapper */}
+      {resizable && resizeHandlePosition === "bottom" && isExpanded && (
+        <ResizeHandle
+          position="bottom"
+          isResizing={isResizing}
+          onMouseDown={handleResizeStart}
+        />
+      )}
     </div>
   );
 };
