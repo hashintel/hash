@@ -413,8 +413,8 @@ export const ProportionalSubViewsContainer: React.FC<
   const getExpandedSections = useCallback(() => {
     return subViews
       .map((sv, idx) => ({ subView: sv, index: idx }))
-      .filter(({ subView }) => expandedState[subView.id]);
-  }, [subViews, expandedState]);
+      .filter(({ subView }) => expandedState[subView.id] ?? defaultExpanded);
+  }, [subViews, expandedState, defaultExpanded]);
 
   // Handle sash mouse down - start resizing between sections
   const handleSashMouseDown = useCallback(
@@ -550,7 +550,7 @@ export const ProportionalSubViewsContainer: React.FC<
   return (
     <div ref={containerRef} className={proportionalContainerStyle}>
       {subViews.map((subView) => {
-        const isExpanded = expandedState[subView.id] ?? true;
+        const isExpanded = expandedState[subView.id] ?? defaultExpanded;
         const flexBasis = flexBases[subView.id] ?? 100;
         const Component = subView.component;
 
