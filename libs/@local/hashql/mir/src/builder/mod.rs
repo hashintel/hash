@@ -124,6 +124,7 @@ pub use self::{
 ///
 /// assert!(matches!(op![!], UnOp::Not));
 /// assert!(matches!(op![neg], UnOp::Neg)); // `neg` is used since `-` alone is ambiguous
+/// assert!(matches!(op![~], UnOp::BitNot));
 /// ```
 #[macro_export]
 macro_rules! op {
@@ -144,6 +145,7 @@ macro_rules! op {
     // Unary operators
     [!] => { hashql_hir::node::operation::UnOp::Not };
     [neg] => { hashql_hir::node::operation::UnOp::Neg };
+    [~] => { hashql_hir::node::operation::UnOp::BitNot };
 }
 
 #[doc(hidden)]

@@ -100,19 +100,8 @@ impl<'ctx, 'heap, A: Allocator> Locals<'ctx, 'heap, A> {
     }
 
     /// Gets a mutable reference to a local variable's value.
-    ///
-    /// # Errors
-    ///
-    /// Returns [`RuntimeError::UninitializedLocal`] if the local has not been
-    /// initialized.
-    pub(crate) fn local_mut(
-        &mut self,
-        local: Local,
-    ) -> Result<&mut Value<'heap, A>, RuntimeError<'heap>> {
-        self.inner.lookup_mut(local).ok_or_else(|| {
-            let decl = self.decl[local];
-            RuntimeError::UninitializedLocal { local, decl }
-        })
+    pub(crate) fn local_mut(&mut self, local: Local) -> &mut Value<'heap, A> {
+        self.inner.get_or_insert_with(local, || Value::Unit)
     }
 
     /// Evaluates a place expression to get a reference to the value.
@@ -165,7 +154,7 @@ impl<'ctx, 'heap, A: Allocator> Locals<'ctx, 'heap, A> {
             })
             .try_collect()?;
 
-        let mut value = self.local_mut(place.local)?;
+        let mut value = self.local_mut(place.local);
 
         for projection in place.projections {
             match projection.kind {
