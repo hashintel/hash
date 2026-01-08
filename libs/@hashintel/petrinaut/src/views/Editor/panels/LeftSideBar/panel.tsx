@@ -6,7 +6,7 @@ import {
 
 import { GlassPanel } from "../../../../components/glass-panel";
 import type { MenuItem } from "../../../../components/menu";
-import { VerticalSubViewsContainer } from "../../../../components/sub-view/vertical-sub-views-container";
+import { ProportionalSubViewsContainer } from "../../../../components/sub-view/vertical-sub-views-container";
 import {
   LEFT_SIDEBAR_SUBVIEWS,
   MAX_LEFT_SIDEBAR_WIDTH,
@@ -207,7 +207,7 @@ export const LeftSideBar: React.FC<LeftSideBarProps> = ({
 
         {/* Content sections - only visible when open */}
         {isOpen && (
-          <VerticalSubViewsContainer subViews={LEFT_SIDEBAR_SUBVIEWS} />
+          <ProportionalSubViewsContainer subViews={LEFT_SIDEBAR_SUBVIEWS} />
         )}
       </GlassPanel>
     </div>

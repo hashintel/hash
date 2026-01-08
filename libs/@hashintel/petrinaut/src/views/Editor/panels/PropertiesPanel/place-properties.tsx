@@ -11,7 +11,7 @@ import {
 
 import { Menu } from "../../../../components/menu";
 import type { SubView } from "../../../../components/sub-view/types";
-import { VerticalSubViewsContainer } from "../../../../components/sub-view/vertical-sub-views-container";
+import { FixedHeightSubViewsContainer } from "../../../../components/sub-view/vertical-sub-views-container";
 import { Switch } from "../../../../components/switch";
 import { InfoIconTooltip, Tooltip } from "../../../../components/tooltip";
 import { UI_MESSAGES } from "../../../../constants/ui-messages";
@@ -679,7 +679,7 @@ export const PlaceProperties: React.FC<PlacePropertiesProps> = ({
           isReadOnly={isReadOnly}
           updatePlace={updatePlace}
         >
-          <VerticalSubViewsContainer
+          <FixedHeightSubViewsContainer
             subViews={subViews}
             resizeHandlePosition="top"
           />
