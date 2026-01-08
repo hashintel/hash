@@ -1,5 +1,7 @@
 //! Function pointer representation for the MIR interpreter.
 
+use core::{fmt, fmt::Display};
+
 use crate::def::DefId;
 
 /// A function pointer value.
@@ -28,5 +30,11 @@ impl Ptr {
 impl From<DefId> for Ptr {
     fn from(value: DefId) -> Self {
         Self::new(value)
+    }
+}
+
+impl Display for Ptr {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(fmt, "*{}", self.value)
     }
 }

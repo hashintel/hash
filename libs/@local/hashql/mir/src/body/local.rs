@@ -8,6 +8,7 @@ use hashql_core::{id, span::SpanId, symbol::Symbol, r#type::TypeId};
 
 id::newtype!(
     #[steppable]
+    #[display = "%{}"]
     /// A unique identifier for a local variable in the HashQL MIR.
     ///
     /// Local variables represent storage locations within a function's execution context.
