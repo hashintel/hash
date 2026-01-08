@@ -19,6 +19,32 @@ const chartContainerStyle = css({
   cursor: "pointer",
 });
 
+const playheadStyle = css({
+  position: "absolute",
+  top: "[0]",
+  bottom: "[0]",
+  width: "[1px]",
+  pointerEvents: "none",
+  display: "flex",
+  flexDirection: "column",
+  alignItems: "center",
+});
+
+const playheadLineStyle = css({
+  flex: "[1]",
+  width: "[1.5px]",
+  background: "[#333]",
+});
+
+const playheadArrowStyle = css({
+  width: "[0]",
+  height: "[0]",
+  borderLeft: "[5px solid transparent]",
+  borderRight: "[5px solid transparent]",
+  borderTop: "[7px solid #333]",
+  marginBottom: "[-1px]",
+});
+
 const svgStyle = css({
   width: "[100%]",
   height: "[100%]",
@@ -319,25 +345,18 @@ const CompartmentTimeSeries: React.FC = () => {
                   strokeLinecap="round"
                 />
               ))}
-
-          {/* Playhead indicator */}
-          <line
-            x1={chartMetrics.xScale(currentlyViewedFrame, 100)}
-            y1="0"
-            x2={chartMetrics.xScale(currentlyViewedFrame, 100)}
-            y2="100"
-            stroke="#333"
-            strokeWidth="1.5"
-            vectorEffect="non-scaling-stroke"
-          />
-          <circle
-            cx={chartMetrics.xScale(currentlyViewedFrame, 100)}
-            cy="0"
-            r="3"
-            fill="#333"
-            vectorEffect="non-scaling-stroke"
-          />
         </svg>
+
+        {/* Playhead indicator (HTML overlay) */}
+        <div
+          className={playheadStyle}
+          style={{
+            left: `${(currentlyViewedFrame / Math.max(1, chartMetrics.totalFrames - 1)) * 100}%`,
+          }}
+        >
+          <div className={playheadArrowStyle} />
+          <div className={playheadLineStyle} />
+        </div>
       </div>
 
       {/* Legend */}
