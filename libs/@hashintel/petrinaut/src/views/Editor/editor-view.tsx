@@ -237,7 +237,7 @@ export const EditorView = ({
           {/* SDCPN Visualization */}
           <SDCPNView />
 
-          {/* Bottom Panel - Diagnostics, Simulation Settings, Parameters */}
+          {/* Bottom Panel - Diagnostics, Simulation Settings */}
           <BottomPanel />
 
           <BottomBar

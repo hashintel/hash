@@ -14,10 +14,7 @@ export type DraggingStateByNodeId = Record<
 
 type EditorGlobalMode = "edit" | "simulate";
 type EditorEditionMode = "select" | "pan" | "add-place" | "add-transition";
-export type BottomPanelTab =
-  | "diagnostics"
-  | "simulation-settings"
-  | "parameters";
+export type BottomPanelTab = "diagnostics" | "simulation-settings";
 
 export type EditorState = {
   globalMode: EditorGlobalMode;

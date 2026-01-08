@@ -61,7 +61,7 @@ const closeButtonStyle = css({
 });
 
 /**
- * BottomPanel shows tabs for Diagnostics, Simulation Settings, and Parameters.
+ * BottomPanel shows tabs for Diagnostics and Simulation Settings.
  * Positioned at the bottom of the viewport.
  * When LeftSideBar is visible, positioned to its right. Otherwise full-width.
  * Resizable from the top edge.
