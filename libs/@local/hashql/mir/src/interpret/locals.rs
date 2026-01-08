@@ -70,6 +70,7 @@ impl<'ctx, 'heap, A: Allocator> Locals<'ctx, 'heap, A> {
     }
 
     /// Inserts or updates a local variable value.
+    #[inline]
     pub(crate) fn insert(&mut self, local: Local, value: Value<'heap, A>) {
         self.inner.insert(local, value);
     }
@@ -80,6 +81,7 @@ impl<'ctx, 'heap, A: Allocator> Locals<'ctx, 'heap, A> {
     ///
     /// Returns [`RuntimeError::UninitializedLocal`] if the local has not been
     /// initialized.
+    #[inline]
     pub(crate) fn local(&self, local: Local) -> Result<&Value<'heap, A>, RuntimeError<'heap, A>> {
         self.inner.lookup(local).ok_or_else(|| {
             let decl = self.decl[local];
@@ -88,6 +90,7 @@ impl<'ctx, 'heap, A: Allocator> Locals<'ctx, 'heap, A> {
     }
 
     /// Gets a mutable reference to a local variable's value.
+    #[inline]
     pub(crate) fn local_mut(&mut self, local: Local) -> &mut Value<'heap, A> {
         self.inner.get_or_insert_with(local, || Value::Unit)
     }
