@@ -362,9 +362,10 @@ impl<'heap, A: Allocator> From<Constant<'heap>> for Value<'heap, A> {
             Constant::Int(int) => Self::Integer(int),
             Constant::Primitive(Primitive::Null) | Constant::Unit => Self::Unit,
             Constant::Primitive(Primitive::Boolean(bool)) => Self::Integer(Int::from(bool)),
-            Constant::Primitive(Primitive::Integer(int)) => Self::Integer(Int::from(
-                int.as_i128().expect("value should be in i128 range"),
-            )),
+            Constant::Primitive(Primitive::Integer(int)) => int
+                .as_i128()
+                .map(Int::from)
+                .map_or_else(|| Self::Number(Num::from(int.as_f64())), Self::Integer),
             Constant::Primitive(Primitive::Float(float)) => Self::Number(Num::from(float)),
             Constant::Primitive(Primitive::String(string)) => Self::String(Str::from(string)),
             Constant::FnPtr(def_id) => Self::Pointer(Ptr::new(def_id)),
@@ -454,8 +455,6 @@ pub struct ValueTypeName<'value, 'heap, A: Allocator>(ValueTypeNameInner<'value,
 
 impl<A: Allocator> ValueTypeName<'_, '_, A> {
     pub(super) fn into_type_name(self) -> TypeName {
-        // Try to recover as much information as possible, which is only possible (pun intended), in
-        // the case that the value is constant
         match self.0 {
             ValueTypeNameInner::Const(value) => TypeName::Static(Cow::Borrowed(value)),
             ValueTypeNameInner::Pointer(ptr) => TypeName::Pointer(ptr),
