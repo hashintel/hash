@@ -1,4 +1,5 @@
 import { css, cva } from "@hashintel/ds-helpers/css";
+import { TbTrash } from "react-icons/tb";
 
 import type { SubView } from "../../../components/sub-view/types";
 import { useSimulationStore } from "../../../state/simulation-provider";
@@ -42,6 +43,57 @@ const simpleStateContainerStyle = css({
   flexDirection: "column",
   gap: "[8px]",
 });
+
+const clearButtonStyle = css({
+  fontSize: "[11px]",
+  padding: "[2px 8px]",
+  border: "[1px solid rgba(0, 0, 0, 0.2)]",
+  borderRadius: "[3px]",
+  backgroundColor: "[white]",
+  cursor: "pointer",
+  color: "[#666]",
+  display: "flex",
+  alignItems: "center",
+  gap: "[4px]",
+});
+
+/**
+ * Header action component for the Clear State button.
+ * Only shown when not in simulation mode and there's data to clear.
+ */
+const ClearStateHeaderAction: React.FC = () => {
+  const { place } = usePlacePropertiesContext();
+  const isSimulationNotRun = useSimulationStore(
+    (state) => state.state === "NotRun",
+  );
+  const initialMarking = useSimulationStore((state) => state.initialMarking);
+  const setInitialMarking = useSimulationStore(
+    (state) => state.setInitialMarking,
+  );
+
+  // Check if there's data to clear
+  const currentMarking = initialMarking.get(place.id);
+  const hasData = currentMarking && currentMarking.count > 0;
+
+  // Only show when simulation hasn't run and there's data
+  if (!isSimulationNotRun || !hasData) {
+    return null;
+  }
+
+  const handleClear = () => {
+    setInitialMarking(place.id, {
+      values: new Float64Array(0),
+      count: 0,
+    });
+  };
+
+  return (
+    <button type="button" onClick={handleClear} className={clearButtonStyle}>
+      <TbTrash size={12} color="#a72b2bff" />
+      Clear state
+    </button>
+  );
+};
 
 /**
  * PlaceInitialStateContent - Renders the initial state editor for a place.
@@ -124,6 +176,7 @@ export const placeInitialStateSubView: SubView = {
   tooltip:
     "Define the initial tokens in this place. During simulation, shows current state.",
   component: PlaceInitialStateContent,
+  renderHeaderAction: () => <ClearStateHeaderAction />,
   resizable: {
     defaultHeight: 250,
     minHeight: 180,

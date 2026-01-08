@@ -1,6 +1,5 @@
 import { css, cva } from "@hashintel/ds-helpers/css";
 import { useEffect, useRef, useState } from "react";
-import { TbTrash } from "react-icons/tb";
 
 import type { Color } from "../../../../core/types/sdcpn";
 import { useSimulationStore } from "../../../../state/simulation-provider";
@@ -9,28 +8,6 @@ const wrapperStyle = css({
   display: "flex",
   flexDirection: "column",
   height: "[100%]",
-});
-
-const headerRowStyle = css({
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "space-between",
-  marginBottom: "[4px]",
-  height: "[20px]",
-  flexShrink: 0,
-});
-
-const clearButtonStyle = css({
-  fontSize: "[11px]",
-  padding: "[2px 8px]",
-  border: "[1px solid rgba(0, 0, 0, 0.2)]",
-  borderRadius: "[3px]",
-  backgroundColor: "[white]",
-  cursor: "pointer",
-  color: "[#666]",
-  display: "flex",
-  alignItems: "center",
-  gap: "[4px]",
 });
 
 const tableContainerStyle = css({
@@ -277,10 +254,6 @@ export const InitialStateEditor: React.FC<InitialStateEditorProps> = ({
   const internalResize = useResizable(250);
   const { height, isResizing, containerRef, startResize } = internalResize;
 
-  const isSimulationNotRun = useSimulationStore(
-    (state) => state.state === "NotRun",
-  );
-
   const initialMarking = useSimulationStore((state) => state.initialMarking);
   const setInitialMarking = useSimulationStore(
     (state) => state.setInitialMarking,
@@ -459,14 +432,6 @@ export const InitialStateEditor: React.FC<InitialStateEditorProps> = ({
 
       return newData;
     });
-  };
-
-  const clearState = () => {
-    setTableData([]);
-    saveToStore([]);
-    setSelectedRow(null);
-    setFocusedCell(null);
-    setEditingCell(null);
   };
 
   const handleKeyDown = (
@@ -771,18 +736,6 @@ export const InitialStateEditor: React.FC<InitialStateEditorProps> = ({
 
   return (
     <div className={fillContainer ? wrapperStyle : undefined}>
-      <div className={headerRowStyle}>
-        {isSimulationNotRun && tableData.length > 0 && (
-          <button
-            type="button"
-            onClick={clearState}
-            className={clearButtonStyle}
-          >
-            <TbTrash size={12} color="#a72b2bff" />
-            Clear state
-          </button>
-        )}
-      </div>
       <div
         ref={fillContainer ? undefined : containerRef}
         className={tableContainerStyle}
