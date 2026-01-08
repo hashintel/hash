@@ -161,7 +161,7 @@ impl<'ctx, 'heap, A: Allocator> Locals<'ctx, 'heap, A> {
                 }
                 ProjectionKind::Index(_) => {
                     let index = scratch.indices.pop().unwrap_or_else(|| unreachable!());
-                    value = value.subscript_mut(index)?;
+                    value = value.subscript_mut(&index)?;
                 }
             }
         }
