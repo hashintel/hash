@@ -63,7 +63,7 @@ impl<'ctx, 'heap, A: Allocator> Locals<'ctx, 'heap, A> {
     pub(crate) fn local(&self, local: Local) -> Result<&Value<'heap, A>, RuntimeError<'heap>> {
         self.inner.lookup(local).ok_or_else(|| {
             let decl = self.decl[local];
-            RuntimeError::UninitializedLocal(local, decl)
+            RuntimeError::UninitializedLocal { local, decl }
         })
     }
 
@@ -73,7 +73,7 @@ impl<'ctx, 'heap, A: Allocator> Locals<'ctx, 'heap, A> {
     ) -> Result<&mut Value<'heap, A>, RuntimeError<'heap>> {
         self.inner.lookup_mut(local).ok_or_else(|| {
             let decl = self.decl[local];
-            RuntimeError::UninitializedLocal(local, decl)
+            RuntimeError::UninitializedLocal { local, decl }
         })
     }
 
@@ -337,7 +337,7 @@ mod tests {
 
     use hashql_core::{
         heap::Heap,
-        id::{Id, IdSlice},
+        id::{Id as _, IdSlice},
         span::SpanId,
         r#type::TypeId,
     };
@@ -454,7 +454,7 @@ mod tests {
 
         // SAFETY: The buffer has not been written to yet and operands == buf
         let result = unsafe { locals.write_operands(&mut buf, &operands) };
-        assert_matches!(result, Err(RuntimeError::UninitializedLocal(local, _)) if local == Local::new(1));
+        assert_matches!(result, Err(RuntimeError::UninitializedLocal{local, ..}) if local == Local::new(1));
 
         // IMPORTANT: Do not read from `buf` here. On error, the internal Guard has
         // already dropped all initialized elements using `assume_init_drop`, and the

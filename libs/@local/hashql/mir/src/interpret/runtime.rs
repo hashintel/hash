@@ -64,7 +64,21 @@ enum PopFrame {
     No,
 }
 
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+pub struct RuntimeConfig {
+    pub recursion_limit: usize,
+}
+
+impl Default for RuntimeConfig {
+    fn default() -> Self {
+        Self {
+            recursion_limit: 1024,
+        }
+    }
+}
+
 pub struct Runtime<'ctx, 'heap> {
+    config: RuntimeConfig,
     bodies: &'ctx DefIdSlice<Body<'heap>>,
     inputs: FastHashMap<Symbol<'heap>, Value<'heap>>,
 }
@@ -72,10 +86,15 @@ pub struct Runtime<'ctx, 'heap> {
 impl<'ctx, 'heap> Runtime<'ctx, 'heap> {
     #[must_use]
     pub const fn new(
+        config: RuntimeConfig,
         bodies: &'ctx DefIdSlice<Body<'heap>>,
         inputs: FastHashMap<Symbol<'heap>, Value<'heap>>,
     ) -> Self {
-        Self { bodies, inputs }
+        Self {
+            config,
+            bodies,
+            inputs,
+        }
     }
 
     fn make_frame<E>(
@@ -129,13 +148,13 @@ impl<'ctx, 'heap> Runtime<'ctx, 'heap> {
             }) => {
                 let discriminant = frame.locals.operand(*discriminant)?;
                 let &Value::Integer(int) = discriminant.as_ref() else {
-                    return Err(RuntimeError::InvalidDiscriminantType(
-                        discriminant.type_name().into(),
-                    ));
+                    return Err(RuntimeError::InvalidDiscriminantType {
+                        r#type: discriminant.type_name().into(),
+                    });
                 };
 
                 let Some(target) = targets.target(int.as_uint()) else {
-                    return Err(RuntimeError::InvalidDiscriminant(int));
+                    return Err(RuntimeError::InvalidDiscriminant { value: int });
                 };
 
                 Self::step_terminator_goto(frame, target)?;
@@ -188,6 +207,7 @@ impl<'ctx, 'heap> Runtime<'ctx, 'heap> {
                     (Value::Integer(lhs), Value::Integer(rhs)) => Ok(Value::Integer(lhs & rhs)),
                     _ => Err(RuntimeError::BinaryTypeMismatch(Box::new(
                         BinaryTypeMismatch {
+                            op,
                             lhs_expected: TypeName::terse("Integer"),
                             rhs_expected: TypeName::terse("Integer"),
                             lhs: lhs.into_owned(),
@@ -201,6 +221,7 @@ impl<'ctx, 'heap> Runtime<'ctx, 'heap> {
                     (Value::Integer(lhs), Value::Integer(rhs)) => Ok(Value::Integer(lhs | rhs)),
                     _ => Err(RuntimeError::BinaryTypeMismatch(Box::new(
                         BinaryTypeMismatch {
+                            op,
                             lhs_expected: TypeName::terse("Integer"),
                             rhs_expected: TypeName::terse("Integer"),
                             lhs: lhs.into_owned(),
@@ -242,6 +263,7 @@ impl<'ctx, 'heap> Runtime<'ctx, 'heap> {
                 | Value::List(_)
                 | Value::Dict(_) => Err(RuntimeError::UnaryTypeMismatch(Box::new(
                     UnaryTypeMismatch {
+                        op,
                         expected: TypeName::terse("Boolean"),
                         value: operand.into_owned(),
                     },
@@ -259,6 +281,7 @@ impl<'ctx, 'heap> Runtime<'ctx, 'heap> {
                 | Value::List(_)
                 | Value::Dict(_) => Err(RuntimeError::UnaryTypeMismatch(Box::new(
                     UnaryTypeMismatch {
+                        op,
                         expected: TypeName::terse("Integer"),
                         value: operand.into_owned(),
                     },
@@ -276,6 +299,7 @@ impl<'ctx, 'heap> Runtime<'ctx, 'heap> {
                 | Value::List(_)
                 | Value::Dict(_) => Err(RuntimeError::UnaryTypeMismatch(Box::new(
                     UnaryTypeMismatch {
+                        op,
                         expected: TypeName::terse("Number"),
                         value: operand.into_owned(),
                     },
@@ -290,7 +314,7 @@ impl<'ctx, 'heap> Runtime<'ctx, 'heap> {
     ) -> Result<Value<'heap>, RuntimeError<'heap>> {
         match op {
             InputOp::Load { required: _ } => self.inputs.get(name).map_or_else(
-                || Err(RuntimeError::InputNotFound(*name)),
+                || Err(RuntimeError::InputNotFound { name: *name }),
                 |value| Ok(value.clone()),
             ),
             InputOp::Exists => Ok(Value::Integer(self.inputs.contains_key(name).into())),
@@ -307,7 +331,9 @@ impl<'ctx, 'heap> Runtime<'ctx, 'heap> {
     ) -> Result<Frame<'ctx, 'heap>, RuntimeError<'heap>> {
         let function = frame.locals.operand(*function)?;
         let &Value::Pointer(pointer) = function.as_ref() else {
-            return Err(RuntimeError::ApplyNonPointer(function.type_name().into()));
+            return Err(RuntimeError::ApplyNonPointer {
+                r#type: function.type_name().into(),
+            });
         };
 
         self.make_frame(
@@ -394,6 +420,12 @@ impl<'ctx, 'heap> Runtime<'ctx, 'heap> {
             frame.current_statement += 1;
             return Ok(ControlFlow::Continue(()));
         };
+
+        if callstack.frames.len() >= self.config.recursion_limit {
+            return Err(RuntimeError::RecursionLimitExceeded {
+                limit: self.config.recursion_limit,
+            });
+        }
 
         callstack.frames.push(frame);
         Ok(ControlFlow::Continue(()))
