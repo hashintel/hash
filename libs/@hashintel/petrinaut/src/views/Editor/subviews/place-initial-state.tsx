@@ -1,19 +1,34 @@
-import { css } from "@hashintel/ds-helpers/css";
+import { css, cva } from "@hashintel/ds-helpers/css";
 
 import type { SubView } from "../../../components/sub-view/types";
 import { useSimulationStore } from "../../../state/simulation-provider";
 import { InitialStateEditor } from "../panels/PropertiesPanel/initial-state-editor";
 import { usePlacePropertiesContext } from "../panels/PropertiesPanel/place-properties-context";
 
-const inputStyle = css({
-  fontSize: "[14px]",
-  padding: "[6px 8px]",
-  borderRadius: "[4px]",
-  width: "[100%]",
-  boxSizing: "border-box",
-  border: "[1px solid rgba(0, 0, 0, 0.1)]",
-  backgroundColor: "[rgba(0, 0, 0, 0.05)]",
-  cursor: "not-allowed",
+const inputStyle = cva({
+  base: {
+    fontSize: "[14px]",
+    padding: "[6px 8px]",
+    borderRadius: "[4px]",
+    width: "[100%]",
+    boxSizing: "border-box",
+    border: "[1px solid rgba(0, 0, 0, 0.1)]",
+  },
+  variants: {
+    isDisabled: {
+      true: {
+        backgroundColor: "[rgba(0, 0, 0, 0.05)]",
+        cursor: "not-allowed",
+      },
+      false: {
+        backgroundColor: "[white]",
+        cursor: "text",
+      },
+    },
+  },
+  defaultVariants: {
+    isDisabled: false,
+  },
 });
 
 const fieldLabelStyle = css({
@@ -82,7 +97,7 @@ const PlaceInitialStateContent: React.FC = () => {
             });
           }}
           disabled={hasSimulationFrames}
-          className={inputStyle}
+          className={inputStyle({ isDisabled: hasSimulationFrames })}
         />
       </div>
     );
