@@ -74,6 +74,7 @@ const headerStyle = cva({
         flexDirection: "column",
         gap: "[12px]",
         paddingBottom: "[12px]",
+        marginBottom: "[12px]",
         borderBottom: "[1px solid rgba(0, 0, 0, 0.1)]",
         alignItems: "stretch",
       },
