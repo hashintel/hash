@@ -45,8 +45,8 @@ const simpleStateContainerStyle = css({
 });
 
 const clearButtonStyle = css({
-  fontSize: "[11px]",
-  padding: "[2px 8px]",
+  fontSize: "[10px]",
+  padding: "[1px 4px]",
   border: "[1px solid rgba(0, 0, 0, 0.2)]",
   borderRadius: "[3px]",
   backgroundColor: "[white]",
@@ -55,6 +55,9 @@ const clearButtonStyle = css({
   display: "flex",
   alignItems: "center",
   gap: "[4px]",
+  _hover: {
+    backgroundColor: "[rgba(0, 0, 0, 0.03)]",
+  },
 });
 
 /**

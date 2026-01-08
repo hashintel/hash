@@ -686,7 +686,6 @@ const resizableContentStyle = css({
   gap: "[2px]",
   overflowY: "auto",
   minHeight: "[0]",
-  flex: "[1]",
 });
 
 interface FixedSectionProps {
