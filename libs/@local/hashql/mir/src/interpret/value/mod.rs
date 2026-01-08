@@ -161,10 +161,10 @@ impl<'heap, A: Allocator> Value<'heap, A> {
             Self::List(list) if let &Self::Integer(value) = index => {
                 Ok(list.get(value).unwrap_or(&Self::UNIT))
             }
-            Self::List(_) => Err(RuntimeError::InvalidIndexType(
-                self.type_name().into(),
-                index.type_name().into(),
-            )),
+            Self::List(_) => Err(RuntimeError::InvalidIndexType {
+                base: self.type_name().into(),
+                index: index.type_name().into(),
+            }),
             Self::Dict(dict) => Ok(dict.get(index).unwrap_or(&Self::UNIT)),
             Self::Unit
             | Self::Integer(_)
@@ -173,7 +173,9 @@ impl<'heap, A: Allocator> Value<'heap, A> {
             | Self::Pointer(_)
             | Self::Opaque(_)
             | Self::Struct(_)
-            | Self::Tuple(_) => Err(RuntimeError::InvalidSubscriptType(self.type_name().into())),
+            | Self::Tuple(_) => Err(RuntimeError::InvalidSubscriptType {
+                base: self.type_name().into(),
+            }),
         }
     }
 
@@ -194,10 +196,10 @@ impl<'heap, A: Allocator> Value<'heap, A> {
                     index: value,
                 })
             }
-            Self::List(_) => Err(RuntimeError::InvalidIndexType(
-                TypeName::terse(terse_name),
-                index.type_name().into(),
-            )),
+            Self::List(_) => Err(RuntimeError::InvalidIndexType {
+                base: TypeName::terse(terse_name),
+                index: index.type_name().into(),
+            }),
             Self::Dict(dict) => Ok(dict.get_mut(index)),
             Self::Unit
             | Self::Integer(_)
@@ -206,9 +208,9 @@ impl<'heap, A: Allocator> Value<'heap, A> {
             | Self::Pointer(_)
             | Self::Opaque(_)
             | Self::Struct(_)
-            | Self::Tuple(_) => Err(RuntimeError::InvalidSubscriptType(TypeName::terse(
-                terse_name,
-            ))),
+            | Self::Tuple(_) => Err(RuntimeError::InvalidSubscriptType {
+                base: TypeName::terse(terse_name),
+            }),
         }
     }
 
@@ -217,12 +219,18 @@ impl<'heap, A: Allocator> Value<'heap, A> {
         index: FieldIndex,
     ) -> Result<&'this Self, RuntimeError<'heap>> {
         match self {
-            Self::Struct(r#struct) => r#struct
-                .get_by_index(index)
-                .ok_or_else(|| RuntimeError::UnknownField(self.type_name().into(), index)),
-            Self::Tuple(tuple) => tuple
-                .get(index)
-                .ok_or_else(|| RuntimeError::UnknownField(self.type_name().into(), index)),
+            Self::Struct(r#struct) => {
+                r#struct
+                    .get_by_index(index)
+                    .ok_or_else(|| RuntimeError::UnknownField {
+                        base: self.type_name().into(),
+                        field: index,
+                    })
+            }
+            Self::Tuple(tuple) => tuple.get(index).ok_or_else(|| RuntimeError::UnknownField {
+                base: self.type_name().into(),
+                field: index,
+            }),
             Self::Unit
             | Self::Integer(_)
             | Self::Number(_)
@@ -230,7 +238,9 @@ impl<'heap, A: Allocator> Value<'heap, A> {
             | Self::Pointer(_)
             | Self::Opaque(_)
             | Self::List(_)
-            | Self::Dict(_) => Err(RuntimeError::InvalidProjectionType(self.type_name().into())),
+            | Self::Dict(_) => Err(RuntimeError::InvalidProjectionType {
+                base: self.type_name().into(),
+            }),
         }
     }
 
@@ -242,13 +252,22 @@ impl<'heap, A: Allocator> Value<'heap, A> {
         A: Clone,
     {
         let terse_name = self.type_name_terse();
+
         match self {
-            Self::Struct(r#struct) => r#struct
-                .get_by_index_mut(index)
-                .ok_or_else(|| RuntimeError::UnknownField(TypeName::terse(terse_name), index)),
+            Self::Struct(r#struct) => {
+                r#struct
+                    .get_by_index_mut(index)
+                    .ok_or_else(|| RuntimeError::UnknownField {
+                        base: TypeName::terse(terse_name),
+                        field: index,
+                    })
+            }
             Self::Tuple(tuple) => tuple
                 .get_mut(index)
-                .ok_or_else(|| RuntimeError::UnknownField(TypeName::terse(terse_name), index)),
+                .ok_or_else(|| RuntimeError::UnknownField {
+                    base: TypeName::terse(terse_name),
+                    field: index,
+                }),
             Self::Unit
             | Self::Integer(_)
             | Self::Number(_)
@@ -256,7 +275,9 @@ impl<'heap, A: Allocator> Value<'heap, A> {
             | Self::Pointer(_)
             | Self::Opaque(_)
             | Self::List(_)
-            | Self::Dict(_) => Err(RuntimeError::InvalidProjectionType(self.type_name().into())),
+            | Self::Dict(_) => Err(RuntimeError::InvalidProjectionType {
+                base: self.type_name().into(),
+            }),
         }
     }
 
@@ -265,12 +286,17 @@ impl<'heap, A: Allocator> Value<'heap, A> {
         index: Symbol<'heap>,
     ) -> Result<&'this Self, RuntimeError<'heap>> {
         let Self::Struct(r#struct) = self else {
-            return Err(RuntimeError::InvalidProjectionType(self.type_name().into()));
+            return Err(RuntimeError::InvalidProjectionByNameType {
+                base: self.type_name().into(),
+            });
         };
 
         r#struct
             .get_by_name(index)
-            .ok_or_else(|| RuntimeError::UnknownFieldByName(self.type_name().into(), index))
+            .ok_or_else(|| RuntimeError::UnknownFieldByName {
+                base: self.type_name().into(),
+                field: index,
+            })
     }
 
     pub fn project_by_name_mut<'this>(
@@ -282,17 +308,19 @@ impl<'heap, A: Allocator> Value<'heap, A> {
     {
         let terse_name = self.type_name_terse();
         let Self::Struct(r#struct) = self else {
-            return Err(RuntimeError::InvalidProjectionType(self.type_name().into()));
+            return Err(RuntimeError::InvalidProjectionType {
+                base: self.type_name().into(),
+            });
         };
 
         if let Some(value) = r#struct.get_by_name_mut(index) {
             return Ok(value);
         }
 
-        Err(RuntimeError::UnknownFieldByName(
-            TypeName::terse(terse_name),
-            index,
-        ))
+        Err(RuntimeError::UnknownFieldByName {
+            base: TypeName::terse(terse_name),
+            field: index,
+        })
     }
 }
 
