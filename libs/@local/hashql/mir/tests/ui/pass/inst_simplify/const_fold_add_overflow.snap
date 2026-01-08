@@ -1,0 +1,25 @@
+---
+source: libs/@local/hashql/mir/src/pass/transform/inst_simplify/tests.rs
+expression: value
+---
+fn {closure@4294967040}() -> Integer {
+    let %0: Integer
+
+    bb0(): {
+        %0 = 170141183460469231731687303715884105727 + 1
+
+        return %0
+    }
+}
+
+================== Changed: No ===================
+
+fn {closure@4294967040}() -> Integer {
+    let %0: Integer
+
+    bb0(): {
+        %0 = 170141183460469231731687303715884105727 + 1
+
+        return %0
+    }
+}
