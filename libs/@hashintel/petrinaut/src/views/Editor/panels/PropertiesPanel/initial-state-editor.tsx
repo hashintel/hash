@@ -5,12 +5,19 @@ import { TbTrash } from "react-icons/tb";
 import type { Color } from "../../../../core/types/sdcpn";
 import { useSimulationStore } from "../../../../state/simulation-provider";
 
+const wrapperStyle = css({
+  display: "flex",
+  flexDirection: "column",
+  height: "[100%]",
+});
+
 const headerRowStyle = css({
   display: "flex",
   alignItems: "center",
   justifyContent: "space-between",
   marginBottom: "[4px]",
   height: "[20px]",
+  flexShrink: 0,
 });
 
 const clearButtonStyle = css({
@@ -235,13 +242,20 @@ const useResizable = (initialHeight: number) => {
 interface InitialStateEditorProps {
   placeId: string;
   placeType: Color;
+  /**
+   * When true, the editor fills the container height instead of using internal resize logic.
+   * Used when the component is inside a resizable SubView container.
+   */
+  fillContainer?: boolean;
 }
 
 export const InitialStateEditor: React.FC<InitialStateEditorProps> = ({
   placeId,
   placeType,
+  fillContainer = false,
 }) => {
-  const { height, isResizing, containerRef, startResize } = useResizable(250);
+  const internalResize = useResizable(250);
+  const { height, isResizing, containerRef, startResize } = internalResize;
 
   const isSimulationNotRun = useSimulationStore(
     (state) => state.state === "NotRun",
@@ -736,7 +750,7 @@ export const InitialStateEditor: React.FC<InitialStateEditorProps> = ({
   const columnWidth = Math.max(60, 100 / placeType.elements.length);
 
   return (
-    <div>
+    <div className={fillContainer ? wrapperStyle : undefined}>
       <div className={headerRowStyle}>
         {isSimulationNotRun && tableData.length > 0 && (
           <button
@@ -750,9 +764,11 @@ export const InitialStateEditor: React.FC<InitialStateEditorProps> = ({
         )}
       </div>
       <div
-        ref={containerRef}
+        ref={fillContainer ? undefined : containerRef}
         className={tableContainerStyle}
-        style={{ height: `${height}px` }}
+        style={
+          fillContainer ? { flex: 1, minHeight: 0 } : { height: `${height}px` }
+        }
       >
         <table className={tableStyle}>
           <thead>
@@ -876,12 +892,15 @@ export const InitialStateEditor: React.FC<InitialStateEditorProps> = ({
             })()}
           </tbody>
         </table>
-        <button
-          type="button"
-          aria-label="Resize table"
-          onMouseDown={startResize}
-          className={resizeHandleStyle({ isResizing })}
-        />
+
+        {!fillContainer && (
+          <button
+            type="button"
+            aria-label="Resize table"
+            onMouseDown={startResize}
+            className={resizeHandleStyle({ isResizing })}
+          />
+        )}
       </div>
     </div>
   );

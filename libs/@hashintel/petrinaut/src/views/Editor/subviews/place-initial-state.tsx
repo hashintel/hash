@@ -108,6 +108,7 @@ const PlaceInitialStateContent: React.FC = () => {
       key={place.id}
       placeId={place.id}
       placeType={placeType}
+      fillContainer
     />
   );
 };
@@ -115,6 +116,7 @@ const PlaceInitialStateContent: React.FC = () => {
 /**
  * SubView definition for Place Initial State.
  * Note: This subview requires PlacePropertiesProvider to be in the component tree.
+ * The SubView container handles resizing, and InitialStateEditor fills the container height.
  */
 export const placeInitialStateSubView: SubView = {
   id: "place-initial-state",
@@ -123,8 +125,8 @@ export const placeInitialStateSubView: SubView = {
     "Define the initial tokens in this place. During simulation, shows current state.",
   component: PlaceInitialStateContent,
   resizable: {
-    defaultHeight: 150,
-    minHeight: 80,
-    maxHeight: 400,
+    defaultHeight: 250,
+    minHeight: 180,
+    maxHeight: 600,
   },
 };
