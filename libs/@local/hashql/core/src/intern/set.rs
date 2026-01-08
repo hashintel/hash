@@ -202,7 +202,7 @@ where
     /// ```
     /// # use hashql_core::{heap::Heap, intern::InternSet};
     /// let heap = Heap::new();
-    /// let interner = InternSet::new(&heap);
+    /// let interner: InternSet<u32> = InternSet::new(&heap);
     ///
     /// interner.reserve(100);
     /// ```
