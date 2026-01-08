@@ -3,9 +3,10 @@ import { useCallback, useMemo, useState } from "react";
 import { FaChevronDown, FaChevronRight } from "react-icons/fa6";
 import ts from "typescript";
 
-import { useCheckerContext } from "../../../../state/checker-provider";
-import { useEditorStore } from "../../../../state/editor-provider";
-import { useSDCPNContext } from "../../../../state/sdcpn-provider";
+import type { SubView } from "../../../components/sub-view/types";
+import { useCheckerContext } from "../../../state/checker-provider";
+import { useEditorStore } from "../../../state/editor-provider";
+import { useSDCPNContext } from "../../../state/sdcpn-provider";
 
 const emptyMessageStyle = css({
   color: "core.gray.50",
@@ -98,14 +99,14 @@ const positionStyle = css({
 /**
  * Formats a TypeScript diagnostic message to a readable string
  */
-const formatDiagnosticMessage = (
+function formatDiagnosticMessage(
   messageText: string | ts.DiagnosticMessageChain,
-): string => {
+): string {
   if (typeof messageText === "string") {
     return messageText;
   }
   return ts.flattenDiagnosticMessageText(messageText, "\n");
-};
+}
 
 // --- Types ---
 
@@ -125,7 +126,7 @@ interface GroupedDiagnostics {
 /**
  * DiagnosticsContent shows the full list of diagnostics grouped by entity.
  */
-export const DiagnosticsContent: React.FC = () => {
+const DiagnosticsContent: React.FC = () => {
   const { checkResult, totalDiagnosticsCount } = useCheckerContext();
   const { petriNetDefinition } = useSDCPNContext();
   const setSelectedResourceId = useEditorStore(
@@ -289,4 +290,14 @@ export const DiagnosticsContent: React.FC = () => {
       })}
     </>
   );
+};
+
+/**
+ * SubView definition for Diagnostics.
+ */
+export const diagnosticsSubView: SubView = {
+  id: "diagnostics",
+  title: "Diagnostics",
+  tooltip: "View compilation errors and warnings in your model code.",
+  component: DiagnosticsContent,
 };

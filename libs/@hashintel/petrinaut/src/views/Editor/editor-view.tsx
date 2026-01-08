@@ -12,12 +12,12 @@ import { useSDCPNContext } from "../../state/sdcpn-provider";
 import { useSimulationStore } from "../../state/simulation-provider";
 import { SDCPNView } from "../SDCPN/sdcpn-view";
 import { BottomBar } from "./components/BottomBar/bottom-bar";
-import { BottomPanel } from "./components/BottomPanel/bottom-panel";
-import { LeftSideBar } from "./components/LeftSideBar/left-sidebar";
 import { ModeSelector } from "./components/mode-selector";
-import { PropertiesPanel } from "./components/PropertiesPanel/properties-panel";
 import { exportSDCPN } from "./lib/export-sdcpn";
 import { importSDCPN } from "./lib/import-sdcpn";
+import { BottomPanel } from "./panels/BottomPanel/panel";
+import { LeftSideBar } from "./panels/LeftSideBar/panel";
+import { PropertiesPanel } from "./panels/PropertiesPanel/panel";
 
 const fullHeightStyle = css({
   height: "[100%]",
@@ -237,7 +237,7 @@ export const EditorView = ({
           {/* SDCPN Visualization */}
           <SDCPNView />
 
-          {/* Bottom Panel - Diagnostics, Simulation Settings, Parameters */}
+          {/* Bottom Panel - Diagnostics, Simulation Settings */}
           <BottomPanel />
 
           <BottomBar

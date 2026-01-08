@@ -1,39 +1,23 @@
 import { css, cva } from "@hashintel/ds-helpers/css";
 import { v4 as uuidv4 } from "uuid";
 
-import { useEditorStore } from "../../../../state/editor-provider";
-import { useSDCPNContext } from "../../../../state/sdcpn-provider";
-import { useSimulationStore } from "../../../../state/simulation-provider";
-
-const headerStyle = css({
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "space-between",
-  marginBottom: "[12px]",
-});
-
-const titleStyle = css({
-  display: "flex",
-  alignItems: "center",
-  gap: "[6px]",
-  fontWeight: 600,
-  fontSize: "[13px]",
-  color: "[#333]",
-});
+import type { SubView } from "../../../components/sub-view/types";
+import { useEditorStore } from "../../../state/editor-provider";
+import { useSDCPNContext } from "../../../state/sdcpn-provider";
+import { useSimulationStore } from "../../../state/simulation-provider";
 
 const addButtonStyle = css({
   display: "flex",
   alignItems: "center",
   justifyContent: "center",
-  padding: "spacing.1",
-  borderRadius: "radius.2",
+  borderRadius: "radius.1",
   cursor: "pointer",
-  fontSize: "[18px]",
+  fontSize: "[16px]",
   color: "core.gray.60",
   background: "[transparent]",
   border: "none",
-  width: "[24px]",
-  height: "[24px]",
+  width: "[20px]",
+  height: "[20px]",
   _hover: {
     backgroundColor: "[rgba(0, 0, 0, 0.05)]",
     color: "core.gray.90",
@@ -145,12 +129,61 @@ const emptyMessageStyle = css({
 });
 
 /**
- * ParametersContent displays global parameters in the BottomPanel.
+ * Header action component for adding parameters.
+ * Shown in the panel header when not in simulation mode.
  */
-export const ParametersContent: React.FC = () => {
+const ParametersHeaderAction: React.FC = () => {
   const {
     petriNetDefinition: { parameters },
     addParameter,
+  } = useSDCPNContext();
+  const globalMode = useEditorStore((state) => state.globalMode);
+  const simulationState = useSimulationStore((state) => state.state);
+  const setSelectedResourceId = useEditorStore(
+    (state) => state.setSelectedResourceId,
+  );
+
+  const isSimulationMode = globalMode === "simulate";
+  const isSimulationActive =
+    simulationState === "Running" || simulationState === "Paused";
+
+  const handleAddParameter = () => {
+    const name = `param${parameters.length + 1}`;
+    const id = uuidv4();
+    addParameter({
+      id,
+      name: `Parameter ${parameters.length + 1}`,
+      variableName: name,
+      type: "real",
+      defaultValue: "0",
+    });
+    setSelectedResourceId(id);
+  };
+
+  // Don't show add button in simulation mode
+  if (isSimulationMode) {
+    return null;
+  }
+
+  return (
+    <button
+      type="button"
+      disabled={isSimulationActive}
+      onClick={handleAddParameter}
+      className={addButtonStyle}
+      aria-label="Add parameter"
+    >
+      +
+    </button>
+  );
+};
+
+/**
+ * ParametersList displays global parameters list as a SubView.
+ */
+const ParametersList: React.FC = () => {
+  const {
+    petriNetDefinition: { parameters },
     removeParameter,
   } = useSDCPNContext();
   const globalMode = useEditorStore((state) => state.globalMode);
@@ -174,38 +207,8 @@ export const ParametersContent: React.FC = () => {
   const isSimulationActive =
     simulationState === "Running" || simulationState === "Paused";
 
-  const handleAddParameter = () => {
-    const name = `param${parameters.length + 1}`;
-    const id = uuidv4();
-    addParameter({
-      id,
-      name: `Parameter ${parameters.length + 1}`,
-      variableName: name,
-      type: "real",
-      defaultValue: "0",
-    });
-    setSelectedResourceId(id);
-  };
-
   return (
     <div>
-      <div className={headerStyle}>
-        <div className={titleStyle}>
-          Parameters are injected into dynamics, lambda, and kernel functions.
-        </div>
-        {!isSimulationMode && (
-          <button
-            type="button"
-            disabled={isSimulationActive}
-            onClick={handleAddParameter}
-            className={addButtonStyle}
-            aria-label="Add parameter"
-          >
-            +
-          </button>
-        )}
-      </div>
-
       <div className={listContainerStyle}>
         {parameters.map((param) => {
           const isSelected = selectedResourceId === param.id;
@@ -281,4 +284,21 @@ export const ParametersContent: React.FC = () => {
       </div>
     </div>
   );
+};
+
+/**
+ * SubView definition for Global Parameters List.
+ */
+export const parametersListSubView: SubView = {
+  id: "parameters-list",
+  title: "Global Parameters",
+  tooltip:
+    "Parameters are injected into dynamics, lambda, and kernel functions.",
+  component: ParametersList,
+  renderHeaderAction: () => <ParametersHeaderAction />,
+  resizable: {
+    defaultHeight: 100,
+    minHeight: 60,
+    maxHeight: 250,
+  },
 };

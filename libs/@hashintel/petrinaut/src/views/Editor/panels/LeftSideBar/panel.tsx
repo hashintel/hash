@@ -6,17 +6,16 @@ import {
 
 import { GlassPanel } from "../../../../components/glass-panel";
 import type { MenuItem } from "../../../../components/menu";
+import { ProportionalSubViewsContainer } from "../../../../components/sub-view/vertical-sub-views-container";
 import {
+  LEFT_SIDEBAR_SUBVIEWS,
   MAX_LEFT_SIDEBAR_WIDTH,
   MIN_LEFT_SIDEBAR_WIDTH,
   PANEL_MARGIN,
 } from "../../../../constants/ui";
 import { useEditorStore } from "../../../../state/editor-provider";
-import { DifferentialEquationsSection } from "./differential-equations-section";
 import { FloatingTitle } from "./floating-title";
 import { HamburgerMenu } from "./hamburger-menu";
-import { NodesSection } from "./nodes-section";
-import { TypesSection } from "./types-section";
 
 const outerContainerStyle = cva({
   base: {
@@ -49,8 +48,9 @@ const panelContentStyle = cva({
       true: {
         height: "[100%]",
         padding: "[16px]",
+        paddingBottom: "[0]",
         flexDirection: "column",
-        gap: "[16px]",
+        gap: "[4px]",
         alignItems: "stretch",
       },
       false: {
@@ -75,6 +75,7 @@ const headerStyle = cva({
         flexDirection: "column",
         gap: "[12px]",
         paddingBottom: "[12px]",
+        marginBottom: "[12px]",
         borderBottom: "[1px solid rgba(0, 0, 0, 0.1)]",
         alignItems: "stretch",
       },
@@ -208,16 +209,7 @@ export const LeftSideBar: React.FC<LeftSideBarProps> = ({
 
         {/* Content sections - only visible when open */}
         {isOpen && (
-          <>
-            {/* Types Section - only in Edit mode */}
-            <TypesSection />
-
-            {/* Differential Equations Section - only in Edit mode */}
-            <DifferentialEquationsSection />
-
-            {/* Nodes Section */}
-            <NodesSection />
-          </>
+          <ProportionalSubViewsContainer subViews={LEFT_SIDEBAR_SUBVIEWS} />
         )}
       </GlassPanel>
     </div>
