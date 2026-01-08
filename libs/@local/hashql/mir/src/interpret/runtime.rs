@@ -228,8 +228,8 @@ impl<'ctx, 'heap, A: Allocator + Clone> Runtime<'ctx, 'heap, A> {
     ) -> Result<(), RuntimeError<'heap, A>> {
         debug_assert_eq!(args.len(), frame.body.basic_blocks[block].params.len());
 
-        // We must not clobber the params, re-assignment makes it that we might re-assign in the
-        // case that it isn't in strict SSA.
+        // We must ensure that the assignments are not clobbered, this may happen in the case that
+        // we assign `(b, a)` to `(a, b)` inside of the block params.
         frame.body.basic_blocks[block]
             .params
             .iter()
