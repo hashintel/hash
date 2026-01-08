@@ -22,11 +22,15 @@ use hashql_core::{
     r#type::{TypeId, environment::Environment},
 };
 
-use super::{CallStack, Runtime, RuntimeConfig, error::InterpretDiagnostic, value::Value};
+use super::{
+    CallStack, Runtime, RuntimeConfig,
+    error::InterpretDiagnostic,
+    value::{Int, Value},
+};
 use crate::{
     body::{
         Body,
-        constant::{Constant, Int},
+        constant::Constant,
         operand::Operand,
         rvalue::{Aggregate, AggregateKind, RValue},
     },

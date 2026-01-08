@@ -2,7 +2,7 @@ use core::{
     error::Error,
     fmt::{self, Display},
     num::TryFromIntError,
-    ops::{BitAnd, BitAndAssign, BitOr, BitOrAssign, BitXor, BitXorAssign, Neg, Not},
+    ops::{Add, BitAnd, BitAndAssign, BitOr, BitOrAssign, BitXor, BitXorAssign, Neg, Not, Sub},
 };
 
 use hashql_core::value::{Integer, Primitive};
@@ -642,6 +642,58 @@ impl Neg for Int {
     }
 }
 
+impl Add for Int {
+    type Output = Numeric;
+
+    #[inline]
+    #[expect(clippy::float_arithmetic)]
+    fn add(self, rhs: Self) -> Self::Output {
+        let (value, overflow) = self.as_int().overflowing_add(rhs.as_int());
+
+        if overflow {
+            Numeric::Num(Num::from(self.as_f64() + rhs.as_f64()))
+        } else {
+            Numeric::Int(Self::from_value_unchecked(value))
+        }
+    }
+}
+
+impl Add<Num> for Int {
+    type Output = Num;
+
+    #[inline]
+    #[expect(clippy::float_arithmetic)]
+    fn add(self, rhs: Num) -> Self::Output {
+        Num::from(self.as_f64() + rhs.as_f64())
+    }
+}
+
+impl Sub for Int {
+    type Output = Numeric;
+
+    #[inline]
+    #[expect(clippy::float_arithmetic)]
+    fn sub(self, rhs: Self) -> Self::Output {
+        let (value, overflow) = self.as_int().overflowing_sub(rhs.as_int());
+
+        if overflow {
+            Numeric::Num(Num::from(self.as_f64() - rhs.as_f64()))
+        } else {
+            Numeric::Int(Self::from_value_unchecked(value))
+        }
+    }
+}
+
+impl Sub<Num> for Int {
+    type Output = Num;
+
+    #[inline]
+    #[expect(clippy::float_arithmetic)]
+    fn sub(self, rhs: Num) -> Self::Output {
+        Num::from(self.as_f64() - rhs.as_f64())
+    }
+}
+
 impl BitOr for Int {
     type Output = Self;
 
@@ -692,6 +744,10 @@ impl BitXorAssign for Int {
 
 forward_ref_unop!(impl Not::not for Int);
 forward_ref_unop!(impl Neg::neg for Int);
+forward_ref_binop!(impl Add<Int>::add for Int);
+forward_ref_binop!(impl Add<Num>::add for Int);
+forward_ref_binop!(impl Sub<Int>::sub for Int);
+forward_ref_binop!(impl Sub<Num>::sub for Int);
 forward_ref_binop!(impl BitOr<Int>::bitor for Int);
 forward_ref_binop!(impl BitAnd<Int>::bitand for Int);
 forward_ref_binop!(impl BitXor<Int>::bitxor for Int);
@@ -707,7 +763,7 @@ mod tests {
         clippy::float_cmp
     )]
 
-    use crate::{body::constant::Int, interpret::value::Numeric};
+    use crate::interpret::value::{Int, Numeric};
 
     #[test]
     fn neg_positive() {

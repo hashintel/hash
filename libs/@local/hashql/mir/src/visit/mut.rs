@@ -17,7 +17,7 @@ use crate::{
     body::{
         Body, Source,
         basic_block::{BasicBlock, BasicBlockId},
-        constant::{Constant, Int},
+        constant::Constant,
         local::{Local, LocalDecl},
         location::Location,
         operand::Operand,
@@ -34,6 +34,7 @@ use crate::{
     },
     def::DefId,
     intern::Interner,
+    interpret::value::Int,
 };
 
 macro_rules! Ok {
