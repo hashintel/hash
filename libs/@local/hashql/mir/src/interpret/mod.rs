@@ -17,6 +17,7 @@
 mod error;
 mod locals;
 mod runtime;
+mod scratch;
 #[cfg(test)]
 mod tests;
 pub mod value;

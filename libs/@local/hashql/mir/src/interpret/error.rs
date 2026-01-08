@@ -156,7 +156,7 @@ impl<A: Allocator> From<ValueTypeName<'_, '_, A>> for TypeName {
 /// Contains the operator, expected types, and actual values for diagnostic
 /// reporting when a binary operation receives operands of incorrect types.
 #[derive(Debug, Clone)]
-pub struct BinaryTypeMismatch<'heap> {
+pub struct BinaryTypeMismatch<'heap, A: Allocator> {
     /// The binary operator that was applied.
     pub op: BinOp,
     /// The expected type of the left-hand operand.
@@ -164,9 +164,9 @@ pub struct BinaryTypeMismatch<'heap> {
     /// The expected type of the right-hand operand.
     pub rhs_expected: TypeName,
     /// The actual left-hand value.
-    pub lhs: Value<'heap>,
+    pub lhs: Value<'heap, A>,
     /// The actual right-hand value.
-    pub rhs: Value<'heap>,
+    pub rhs: Value<'heap, A>,
 }
 
 /// Details of a unary operator type mismatch.
@@ -174,13 +174,13 @@ pub struct BinaryTypeMismatch<'heap> {
 /// Contains the operator, expected type, and actual value for diagnostic
 /// reporting when a unary operation receives an operand of incorrect type.
 #[derive(Debug, Clone)]
-pub struct UnaryTypeMismatch<'heap> {
+pub struct UnaryTypeMismatch<'heap, A: Allocator> {
     /// The unary operator that was applied.
     pub op: UnOp,
     /// The expected type of the operand.
     pub expected: TypeName,
     /// The actual value.
-    pub value: Value<'heap>,
+    pub value: Value<'heap, A>,
 }
 
 /// Errors that can occur during MIR interpretation.
@@ -192,7 +192,7 @@ pub struct UnaryTypeMismatch<'heap> {
 /// A few variants represent legitimate runtime errors that can occur in valid
 /// programs (marked in their documentation).
 #[derive(Debug, Clone)]
-pub enum RuntimeError<'heap> {
+pub enum RuntimeError<'heap, A: Allocator> {
     /// Attempted to read an uninitialized local variable.
     ///
     /// This is an ICE: MIR construction should ensure locals are initialized
@@ -266,13 +266,13 @@ pub enum RuntimeError<'heap> {
     ///
     /// This is an ICE: type checking should ensure operand types match
     /// the operator's requirements.
-    BinaryTypeMismatch(Box<BinaryTypeMismatch<'heap>>),
+    BinaryTypeMismatch(Box<BinaryTypeMismatch<'heap, A>>),
 
     /// Unary operator received an operand of incorrect type.
     ///
     /// This is an ICE: type checking should ensure operand type matches
     /// the operator's requirements.
-    UnaryTypeMismatch(Box<UnaryTypeMismatch<'heap>>),
+    UnaryTypeMismatch(Box<UnaryTypeMismatch<'heap, A>>),
 
     /// Function call applied to a non-pointer value.
     ///
@@ -305,7 +305,7 @@ pub enum RuntimeError<'heap> {
     RecursionLimitExceeded { limit: usize },
 }
 
-impl RuntimeError<'_> {
+impl<A: Allocator> RuntimeError<'_, A> {
     /// Converts this runtime error into a diagnostic using the provided callstack.
     ///
     /// The callstack provides span information for error localization. The first
@@ -474,15 +474,16 @@ fn invalid_discriminant_type(span: SpanId, r#type: &TypeName) -> InterpretDiagno
     diagnostic
 }
 
-fn binary_type_mismatch(span: SpanId, mismatch: BinaryTypeMismatch) -> InterpretDiagnostic {
-    let BinaryTypeMismatch {
+fn binary_type_mismatch<A: Allocator>(
+    span: SpanId,
+    BinaryTypeMismatch {
         op,
         lhs_expected,
         rhs_expected,
         lhs,
         rhs,
-    } = mismatch;
-
+    }: BinaryTypeMismatch<A>,
+) -> InterpretDiagnostic {
     let mut diagnostic = Diagnostic::new(InterpretDiagnosticCategory::TypeInvariant, Severity::Bug)
         .primary(Label::new(
             span,
@@ -505,13 +506,14 @@ fn binary_type_mismatch(span: SpanId, mismatch: BinaryTypeMismatch) -> Interpret
     diagnostic
 }
 
-fn unary_type_mismatch(span: SpanId, mismatch: UnaryTypeMismatch) -> InterpretDiagnostic {
-    let UnaryTypeMismatch {
+fn unary_type_mismatch<A: Allocator>(
+    span: SpanId,
+    UnaryTypeMismatch {
         op,
         expected,
         value,
-    } = mismatch;
-
+    }: UnaryTypeMismatch<A>,
+) -> InterpretDiagnostic {
     let mut diagnostic = Diagnostic::new(InterpretDiagnosticCategory::TypeInvariant, Severity::Bug)
         .primary(Label::new(
             span,

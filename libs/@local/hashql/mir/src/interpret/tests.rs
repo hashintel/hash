@@ -48,7 +48,7 @@ fn run_body_with_inputs<'heap>(
     let bodies = [body];
     let bodies = DefIdSlice::from_raw(&bodies);
 
-    let runtime = Runtime::new(RuntimeConfig::default(), bodies, inputs);
+    let mut runtime = Runtime::new(RuntimeConfig::default(), bodies, inputs);
     let callstack = CallStack::new(&runtime, DefId::new(0), []);
 
     runtime.run(callstack)
@@ -59,7 +59,7 @@ fn run_bodies<'heap>(
     entry: DefId,
     args: impl IntoIterator<Item = Value<'heap>>,
 ) -> Result<Value<'heap>, InterpretDiagnostic> {
-    let runtime = Runtime::new(RuntimeConfig::default(), bodies, FastHashMap::default());
+    let mut runtime = Runtime::new(RuntimeConfig::default(), bodies, FastHashMap::default());
     let callstack = CallStack::new(&runtime, entry, args);
 
     runtime.run(callstack)
@@ -160,7 +160,7 @@ fn entry_function_with_args() {
     let bodies = [body];
     let bodies = DefIdSlice::from_raw(&bodies);
 
-    let runtime = Runtime::new(RuntimeConfig::default(), bodies, FastHashMap::default());
+    let mut runtime = Runtime::new(RuntimeConfig::default(), bodies, FastHashMap::default());
     let args = [
         Value::Integer(Int::from(10_i128)),
         Value::Integer(Int::from(20_i128)),
@@ -940,7 +940,7 @@ fn recursion_limit_exceeded() {
     let bodies = DefIdSlice::from_raw(&bodies);
 
     let config = RuntimeConfig { recursion_limit: 5 };
-    let runtime = Runtime::new(config, bodies, FastHashMap::default());
+    let mut runtime = Runtime::new(config, bodies, FastHashMap::default());
     let callstack = CallStack::new(&runtime, DefId::new(0), []);
 
     let result = runtime
