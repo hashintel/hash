@@ -8,15 +8,15 @@
 //! - Operand evaluation (constants and places)
 //! - Aggregate construction (structs, tuples, lists, dicts)
 
-use alloc::{alloc::Global, borrow::Cow, rc::Rc};
+use alloc::{borrow::Cow, rc::Rc};
 use core::{
     alloc::Allocator,
     mem::{self, MaybeUninit},
 };
 
-use hashql_core::{collections::InlineVec, id::IdSlice, intern::Interned, symbol::Symbol};
+use hashql_core::{id::IdSlice, intern::Interned, symbol::Symbol};
 
-use super::{error::RuntimeError, value::Value};
+use super::{error::RuntimeError, scratch::Scratch, value::Value};
 use crate::{
     body::{
         Body,
@@ -33,25 +33,13 @@ use crate::{
 /// Stores the values of local variables during interpretation of a function.
 /// Locals are indexed by [`Local`] and may be uninitialized (represented as
 /// `None` in the internal storage).
-pub(crate) struct Locals<'ctx, 'heap, A: Allocator = Global> {
+pub(crate) struct Locals<'ctx, 'heap, A: Allocator> {
     /// Allocator for creating new values.
     alloc: A,
     /// Local variable declarations (for error reporting).
     decl: &'ctx LocalSlice<LocalDecl<'heap>>,
     /// Storage for local variable values.
     inner: LocalVec<Option<Value<'heap, A>>, A>,
-}
-
-impl<'ctx, 'heap> Locals<'ctx, 'heap> {
-    /// Creates a new locals storage with the global allocator.
-    ///
-    /// Initializes the storage with the provided arguments as the first locals.
-    pub(crate) fn new<E>(
-        body: &'ctx Body<'heap>,
-        args: impl IntoIterator<Item = Result<Value<'heap>, E>>,
-    ) -> Result<Self, E> {
-        Self::new_in(body, args, Global)
-    }
 }
 
 impl<'ctx, 'heap, A: Allocator> Locals<'ctx, 'heap, A> {
@@ -92,7 +80,7 @@ impl<'ctx, 'heap, A: Allocator> Locals<'ctx, 'heap, A> {
     ///
     /// Returns [`RuntimeError::UninitializedLocal`] if the local has not been
     /// initialized.
-    pub(crate) fn local(&self, local: Local) -> Result<&Value<'heap, A>, RuntimeError<'heap>> {
+    pub(crate) fn local(&self, local: Local) -> Result<&Value<'heap, A>, RuntimeError<'heap, A>> {
         self.inner.lookup(local).ok_or_else(|| {
             let decl = self.decl[local];
             RuntimeError::UninitializedLocal { local, decl }
@@ -111,7 +99,7 @@ impl<'ctx, 'heap, A: Allocator> Locals<'ctx, 'heap, A> {
     pub(crate) fn place(
         &self,
         Place { local, projections }: Place<'heap>,
-    ) -> Result<&Value<'heap, A>, RuntimeError<'heap>> {
+    ) -> Result<&Value<'heap, A>, RuntimeError<'heap, A>> {
         let mut value = self.local(local)?;
 
         for projection in projections {
@@ -140,11 +128,12 @@ impl<'ctx, 'heap, A: Allocator> Locals<'ctx, 'heap, A> {
     pub(crate) fn place_mut(
         &mut self,
         place: Place<'heap>,
-    ) -> Result<&mut Value<'heap, A>, RuntimeError<'heap>>
+        scratch: &mut Scratch<'heap, A>,
+    ) -> Result<&mut Value<'heap, A>, RuntimeError<'heap, A>>
     where
         A: Clone,
     {
-        let mut indices: InlineVec<_, 1> = place
+        place
             .projections
             .iter()
             .rev()
@@ -152,7 +141,10 @@ impl<'ctx, 'heap, A: Allocator> Locals<'ctx, 'heap, A> {
                 ProjectionKind::Index(local) => Some(self.local(local).cloned()),
                 ProjectionKind::Field(_) | ProjectionKind::FieldByName(_) => None,
             })
-            .try_collect()?;
+            .try_fold(&mut scratch.indices, |acc, index| {
+                acc.push(index?);
+                Ok(acc)
+            })?;
 
         let mut value = self.local_mut(place.local);
 
@@ -165,11 +157,13 @@ impl<'ctx, 'heap, A: Allocator> Locals<'ctx, 'heap, A> {
                     value = value.project_by_name_mut(symbol)?;
                 }
                 ProjectionKind::Index(_) => {
-                    let index = indices.pop().unwrap_or_else(|| unreachable!());
+                    let index = scratch.indices.pop().unwrap_or_else(|| unreachable!());
                     value = value.subscript_mut(index)?;
                 }
             }
         }
+
+        debug_assert!(scratch.indices.is_empty());
 
         Ok(value)
     }
@@ -181,7 +175,7 @@ impl<'ctx, 'heap, A: Allocator> Locals<'ctx, 'heap, A> {
     pub(crate) fn operand(
         &self,
         operand: Operand<'heap>,
-    ) -> Result<Cow<'_, Value<'heap, A>>, RuntimeError<'heap>>
+    ) -> Result<Cow<'_, Value<'heap, A>>, RuntimeError<'heap, A>>
     where
         A: Clone,
     {
@@ -201,7 +195,7 @@ impl<'ctx, 'heap, A: Allocator> Locals<'ctx, 'heap, A> {
         &self,
         slice: &mut [MaybeUninit<Value<'heap, A>>],
         operands: &[Operand<'heap>],
-    ) -> Result<(), RuntimeError<'heap>>
+    ) -> Result<(), RuntimeError<'heap, A>>
     where
         A: Clone,
     {
@@ -253,7 +247,7 @@ impl<'ctx, 'heap, A: Allocator> Locals<'ctx, 'heap, A> {
     fn aggregate_tuple(
         &self,
         operands: &IdSlice<FieldIndex, Operand<'heap>>,
-    ) -> Result<Value<'heap, A>, RuntimeError<'heap>>
+    ) -> Result<Value<'heap, A>, RuntimeError<'heap, A>>
     where
         A: Clone,
     {
@@ -288,7 +282,7 @@ impl<'ctx, 'heap, A: Allocator> Locals<'ctx, 'heap, A> {
         &self,
         fields: Interned<'heap, [Symbol<'heap>]>,
         operands: &IdSlice<FieldIndex, Operand<'heap>>,
-    ) -> Result<Value<'heap, A>, RuntimeError<'heap>>
+    ) -> Result<Value<'heap, A>, RuntimeError<'heap, A>>
     where
         A: Clone,
     {
@@ -323,7 +317,7 @@ impl<'ctx, 'heap, A: Allocator> Locals<'ctx, 'heap, A> {
     pub(crate) fn aggregate(
         &self,
         Aggregate { kind, operands }: &Aggregate<'heap>,
-    ) -> Result<Value<'heap, A>, RuntimeError<'heap>>
+    ) -> Result<Value<'heap, A>, RuntimeError<'heap, A>>
     where
         A: Clone,
     {
@@ -421,7 +415,7 @@ mod tests {
 
     fn make_empty_locals<'ctx, 'heap>(
         decl: &'ctx LocalSlice<LocalDecl<'heap>>,
-    ) -> Locals<'ctx, 'heap> {
+    ) -> Locals<'ctx, 'heap, Global> {
         Locals {
             alloc: Global,
             decl,
@@ -433,7 +427,7 @@ mod tests {
         decl: &'ctx mut LocalVec<LocalDecl<'heap>>,
         local: Local,
         value: i128,
-    ) -> Locals<'ctx, 'heap> {
+    ) -> Locals<'ctx, 'heap, Global> {
         let mut inner = LocalVec::new();
         inner.insert(local, Value::Integer(Int::from(value)));
         fill_decl(decl, local);

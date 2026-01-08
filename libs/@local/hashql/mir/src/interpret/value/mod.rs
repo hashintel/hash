@@ -46,7 +46,13 @@ use core::{
 use hashql_core::{symbol::Symbol, value::Primitive};
 
 pub use self::{
-    dict::Dict, list::List, num::Num, opaque::Opaque, ptr::Ptr, str::Str, r#struct::Struct,
+    dict::Dict,
+    list::List,
+    num::{Num, Numeric},
+    opaque::Opaque,
+    ptr::Ptr,
+    str::Str,
+    r#struct::Struct,
     tuple::Tuple,
 };
 use super::error::{RuntimeError, TypeName};
@@ -151,7 +157,7 @@ impl<'heap, A: Allocator> Value<'heap, A> {
     pub fn subscript<'this, 'index>(
         &'this self,
         index: &'index Self,
-    ) -> Result<&'this Self, RuntimeError<'heap>> {
+    ) -> Result<&'this Self, RuntimeError<'heap, A>> {
         match self {
             Self::List(list) if let &Self::Integer(value) = index => {
                 Ok(list.get(value).unwrap_or(&Self::UNIT))
@@ -186,7 +192,7 @@ impl<'heap, A: Allocator> Value<'heap, A> {
     pub fn subscript_mut<'this>(
         &'this mut self,
         index: Self,
-    ) -> Result<&'this mut Self, RuntimeError<'heap>>
+    ) -> Result<&'this mut Self, RuntimeError<'heap, A>>
     where
         A: Clone,
     {
@@ -228,7 +234,7 @@ impl<'heap, A: Allocator> Value<'heap, A> {
     pub fn project<'this>(
         &'this self,
         index: FieldIndex,
-    ) -> Result<&'this Self, RuntimeError<'heap>> {
+    ) -> Result<&'this Self, RuntimeError<'heap, A>> {
         match self {
             Self::Struct(r#struct) => {
                 r#struct
@@ -265,7 +271,7 @@ impl<'heap, A: Allocator> Value<'heap, A> {
     pub fn project_mut<'this>(
         &'this mut self,
         index: FieldIndex,
-    ) -> Result<&'this mut Self, RuntimeError<'heap>>
+    ) -> Result<&'this mut Self, RuntimeError<'heap, A>>
     where
         A: Clone,
     {
@@ -309,7 +315,7 @@ impl<'heap, A: Allocator> Value<'heap, A> {
     pub fn project_by_name<'this>(
         &'this self,
         index: Symbol<'heap>,
-    ) -> Result<&'this Self, RuntimeError<'heap>> {
+    ) -> Result<&'this Self, RuntimeError<'heap, A>> {
         let Self::Struct(r#struct) = self else {
             return Err(RuntimeError::InvalidProjectionByNameType {
                 base: self.type_name().into(),
@@ -334,7 +340,7 @@ impl<'heap, A: Allocator> Value<'heap, A> {
     pub fn project_by_name_mut<'this>(
         &'this mut self,
         index: Symbol<'heap>,
-    ) -> Result<&'this mut Self, RuntimeError<'heap>>
+    ) -> Result<&'this mut Self, RuntimeError<'heap, A>>
     where
         A: Clone,
     {
@@ -369,6 +375,15 @@ impl<'heap, A: Allocator> From<Constant<'heap>> for Value<'heap, A> {
             Constant::Primitive(Primitive::Float(float)) => Self::Number(Num::from(float)),
             Constant::Primitive(Primitive::String(string)) => Self::String(Str::from(string)),
             Constant::FnPtr(def_id) => Self::Pointer(Ptr::new(def_id)),
+        }
+    }
+}
+
+impl<A: Allocator> From<Numeric> for Value<'_, A> {
+    fn from(value: Numeric) -> Self {
+        match value {
+            Numeric::Int(int) => Self::Integer(int),
+            Numeric::Num(num) => Self::Number(num),
         }
     }
 }

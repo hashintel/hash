@@ -20,8 +20,8 @@
 //! 4. Pushing/popping call frames for function calls and returns
 //! 5. Returning the final value when the entry function returns
 
-use alloc::borrow::Cow;
-use core::{assert_matches::debug_assert_matches, ops::ControlFlow};
+use alloc::{alloc::Global, borrow::Cow};
+use core::{alloc::Allocator, assert_matches::debug_assert_matches, ops::ControlFlow};
 
 use hashql_core::{collections::FastHashMap, span::SpanId, symbol::Symbol};
 use hashql_hir::node::operation::{InputOp, UnOp};
@@ -29,6 +29,7 @@ use hashql_hir::node::operation::{InputOp, UnOp};
 use super::{
     error::{BinaryTypeMismatch, InterpretDiagnostic, RuntimeError, TypeName, UnaryTypeMismatch},
     locals::Locals,
+    scratch::Scratch,
     value::Value,
 };
 use crate::{
@@ -48,9 +49,9 @@ use crate::{
 /// - Local variable storage
 /// - The function body being executed
 /// - Current position (block and statement index)
-struct Frame<'ctx, 'heap> {
+struct Frame<'ctx, 'heap, A: Allocator> {
     /// Local variable storage for this function call.
-    locals: Locals<'ctx, 'heap>,
+    locals: Locals<'ctx, 'heap, A>,
     /// The MIR body being executed.
     body: &'ctx Body<'heap>,
     /// The current basic block.
@@ -65,25 +66,29 @@ struct Frame<'ctx, 'heap> {
 ///
 /// The call stack also provides [`unwind`](Self::unwind) for error reporting,
 /// which walks the stack to collect span information for diagnostics.
-pub struct CallStack<'ctx, 'heap> {
-    frames: Vec<Frame<'ctx, 'heap>>,
+pub struct CallStack<'ctx, 'heap, A: Allocator = Global> {
+    frames: Vec<Frame<'ctx, 'heap, A>, A>,
 }
 
-impl<'ctx, 'heap> CallStack<'ctx, 'heap> {
+impl<'ctx, 'heap, A: Allocator> CallStack<'ctx, 'heap, A> {
     /// Creates a new call stack with an initial call to the entry function.
     ///
     /// The entry function is called with the provided arguments, which become
     /// the initial values of the function's parameter locals.
     pub fn new(
-        runtime: &Runtime<'ctx, 'heap>,
+        runtime: &Runtime<'ctx, 'heap, A>,
         entry: DefId,
-        args: impl IntoIterator<Item = Value<'heap>>,
-    ) -> Self {
+        args: impl IntoIterator<Item = Value<'heap, A>>,
+    ) -> Self
+    where
+        A: Clone,
+    {
         let Ok(frame) = runtime.make_frame(entry, args.into_iter().map(Ok::<_, !>));
 
-        Self {
-            frames: vec![frame],
-        }
+        let mut frames = Vec::new_in(runtime.alloc.clone());
+        frames.push(frame);
+
+        Self { frames }
     }
 
     /// Unwinds the call stack to produce a trace of definition IDs and spans.
@@ -154,13 +159,17 @@ impl Default for RuntimeConfig {
 /// 3. Execute with [`Runtime::run`] to get the result
 ///
 /// [`Input`]: crate::body::rvalue::Input
-pub struct Runtime<'ctx, 'heap> {
+pub struct Runtime<'ctx, 'heap, A: Allocator = Global> {
+    alloc: A,
+
     /// Runtime configuration.
     config: RuntimeConfig,
     /// All available function bodies, indexed by [`DefId`].
     bodies: &'ctx DefIdSlice<Body<'heap>>,
     /// Input values available for [`InputOp::Load`] operations.
-    inputs: FastHashMap<Symbol<'heap>, Value<'heap>>,
+    inputs: FastHashMap<Symbol<'heap>, Value<'heap, A>>,
+
+    scratch: Scratch<'heap, A>,
 }
 
 impl<'ctx, 'heap> Runtime<'ctx, 'heap> {
@@ -169,25 +178,40 @@ impl<'ctx, 'heap> Runtime<'ctx, 'heap> {
     /// The `bodies` slice must contain all functions that may be called during
     /// interpretation. The `inputs` map provides values for input operations.
     #[must_use]
-    pub const fn new(
+    #[inline]
+    pub fn new(
         config: RuntimeConfig,
         bodies: &'ctx DefIdSlice<Body<'heap>>,
         inputs: FastHashMap<Symbol<'heap>, Value<'heap>>,
     ) -> Self {
+        Self::new_in(config, bodies, inputs, Global)
+    }
+}
+
+impl<'ctx, 'heap, A: Allocator + Clone> Runtime<'ctx, 'heap, A> {
+    #[must_use]
+    pub fn new_in(
+        config: RuntimeConfig,
+        bodies: &'ctx DefIdSlice<Body<'heap>>,
+        inputs: FastHashMap<Symbol<'heap>, Value<'heap, A>>,
+        alloc: A,
+    ) -> Self {
         Self {
+            alloc: alloc.clone(),
             config,
             bodies,
             inputs,
+            scratch: Scratch::new_in(alloc),
         }
     }
 
     fn make_frame<E>(
         &self,
         func: DefId,
-        args: impl IntoIterator<Item = Result<Value<'heap>, E>>,
-    ) -> Result<Frame<'ctx, 'heap>, E> {
+        args: impl IntoIterator<Item = Result<Value<'heap, A>, E>>,
+    ) -> Result<Frame<'ctx, 'heap, A>, E> {
         let body = &self.bodies[func];
-        let locals = Locals::new(body, args)?;
+        let locals = Locals::new_in(body, args, self.alloc.clone())?;
 
         Ok(Frame {
             locals,
@@ -198,14 +222,31 @@ impl<'ctx, 'heap> Runtime<'ctx, 'heap> {
     }
 
     fn step_terminator_goto(
-        frame: &mut Frame<'ctx, 'heap>,
+        &mut self,
+        frame: &mut Frame<'ctx, 'heap, A>,
         Target { block, args }: Target<'heap>,
-    ) -> Result<(), RuntimeError<'heap>> {
+    ) -> Result<(), RuntimeError<'heap, A>> {
         debug_assert_eq!(args.len(), frame.body.basic_blocks[block].params.len());
 
-        for (&param, &arg) in frame.body.basic_blocks[block].params.iter().zip(args) {
-            let value = frame.locals.operand(arg)?.into_owned();
+        // We must not clobber the params, re-assignment makes it that we might re-assign in the
+        // case that it isn't in strict SSA.
+        frame.body.basic_blocks[block]
+            .params
+            .iter()
+            .zip(args)
+            .map(|(&param, &arg)| {
+                frame
+                    .locals
+                    .operand(arg)
+                    .map(Cow::into_owned)
+                    .map(|value| (param, value))
+            })
+            .try_fold(&mut self.scratch.target_args, |acc, res| {
+                acc.push(res?);
+                Ok(acc)
+            })?;
 
+        for (param, value) in self.scratch.target_args.drain(..) {
             frame.locals.insert(param, value);
         }
 
@@ -215,14 +256,15 @@ impl<'ctx, 'heap> Runtime<'ctx, 'heap> {
     }
 
     fn step_terminator(
-        stack: &mut [Frame<'ctx, 'heap>],
-        frame: &mut Frame<'ctx, 'heap>,
-    ) -> Result<ControlFlow<Value<'heap>, PopFrame>, RuntimeError<'heap>> {
+        &mut self,
+        stack: &mut [Frame<'ctx, 'heap, A>],
+        frame: &mut Frame<'ctx, 'heap, A>,
+    ) -> Result<ControlFlow<Value<'heap, A>, PopFrame>, RuntimeError<'heap, A>> {
         let terminator = &frame.current_block.terminator.kind;
 
         match terminator {
             &TerminatorKind::Goto(Goto { target }) => {
-                Self::step_terminator_goto(frame, target)?;
+                self.step_terminator_goto(frame, target)?;
 
                 Ok(ControlFlow::Continue(PopFrame::No))
             }
@@ -241,7 +283,7 @@ impl<'ctx, 'heap> Runtime<'ctx, 'heap> {
                     return Err(RuntimeError::InvalidDiscriminant { value: int });
                 };
 
-                Self::step_terminator_goto(frame, target)?;
+                self.step_terminator_goto(frame, target)?;
                 Ok(ControlFlow::Continue(PopFrame::No))
             }
             &TerminatorKind::Return(Return { value }) => {
@@ -260,7 +302,7 @@ impl<'ctx, 'heap> Runtime<'ctx, 'heap> {
                 };
                 debug_assert_matches!(rhs, RValue::Apply(_));
 
-                let lhs = caller.locals.place_mut(*lhs)?;
+                let lhs = caller.locals.place_mut(*lhs, &mut self.scratch)?;
                 *lhs = value;
 
                 caller.current_statement += 1;
@@ -275,9 +317,9 @@ impl<'ctx, 'heap> Runtime<'ctx, 'heap> {
     }
 
     fn eval_rvalue_binary(
-        frame: &Frame<'ctx, 'heap>,
+        frame: &Frame<'ctx, 'heap, A>,
         Binary { op, left, right }: Binary<'heap>,
-    ) -> Result<Value<'heap>, RuntimeError<'heap>> {
+    ) -> Result<Value<'heap, A>, RuntimeError<'heap, A>> {
         let lhs = frame.locals.operand(left)?;
         let rhs = frame.locals.operand(right)?;
 
@@ -322,9 +364,9 @@ impl<'ctx, 'heap> Runtime<'ctx, 'heap> {
     }
 
     fn eval_rvalue_unary(
-        frame: &Frame<'ctx, 'heap>,
+        frame: &Frame<'ctx, 'heap, A>,
         Unary { op, operand }: Unary<'heap>,
-    ) -> Result<Value<'heap>, RuntimeError<'heap>> {
+    ) -> Result<Value<'heap, A>, RuntimeError<'heap, A>> {
         let operand = frame.locals.operand(operand)?;
 
         match op {
@@ -368,7 +410,7 @@ impl<'ctx, 'heap> Runtime<'ctx, 'heap> {
                 ))),
             },
             UnOp::Neg => match operand.as_ref() {
-                Value::Integer(int) => Ok(-int),
+                Value::Integer(int) => Ok((-int).into()),
                 Value::Number(number) => Ok(Value::Number(-number)),
                 Value::Unit
                 | Value::String(_)
@@ -391,7 +433,7 @@ impl<'ctx, 'heap> Runtime<'ctx, 'heap> {
     fn eval_rvalue_input(
         &self,
         Input { op, name }: &Input<'heap>,
-    ) -> Result<Value<'heap>, RuntimeError<'heap>> {
+    ) -> Result<Value<'heap, A>, RuntimeError<'heap, A>> {
         match op {
             // `required` is used only by static control-flow analysis; at runtime we always
             // error if the input is missing.
@@ -405,12 +447,12 @@ impl<'ctx, 'heap> Runtime<'ctx, 'heap> {
 
     fn eval_rvalue_apply(
         &self,
-        frame: &Frame<'ctx, 'heap>,
+        frame: &Frame<'ctx, 'heap, A>,
         Apply {
             function,
             arguments,
         }: &Apply<'heap>,
-    ) -> Result<Frame<'ctx, 'heap>, RuntimeError<'heap>> {
+    ) -> Result<Frame<'ctx, 'heap, A>, RuntimeError<'heap, A>> {
         let function = frame.locals.operand(*function)?;
         let &Value::Pointer(pointer) = function.as_ref() else {
             return Err(RuntimeError::ApplyNonPointer {
@@ -429,9 +471,9 @@ impl<'ctx, 'heap> Runtime<'ctx, 'heap> {
 
     fn eval_rvalue(
         &self,
-        frame: &Frame<'ctx, 'heap>,
+        frame: &Frame<'ctx, 'heap, A>,
         rvalue: &RValue<'heap>,
-    ) -> Result<ControlFlow<Frame<'ctx, 'heap>, Value<'heap>>, RuntimeError<'heap>> {
+    ) -> Result<ControlFlow<Frame<'ctx, 'heap, A>, Value<'heap, A>>, RuntimeError<'heap, A>> {
         match rvalue {
             &RValue::Load(operand) => frame
                 .locals
@@ -453,32 +495,32 @@ impl<'ctx, 'heap> Runtime<'ctx, 'heap> {
     }
 
     fn step_statement_assign(
-        &self,
-        frame: &mut Frame<'ctx, 'heap>,
+        &mut self,
+        frame: &mut Frame<'ctx, 'heap, A>,
         Assign { lhs, rhs }: &Assign<'heap>,
-    ) -> Result<Option<Frame<'ctx, 'heap>>, RuntimeError<'heap>> {
+    ) -> Result<Option<Frame<'ctx, 'heap, A>>, RuntimeError<'heap, A>> {
         let value = self.eval_rvalue(frame, rhs)?;
         let value = match value {
             ControlFlow::Continue(value) => value,
             ControlFlow::Break(frame) => return Ok(Some(frame)),
         };
 
-        let lhs = frame.locals.place_mut(*lhs)?;
+        let lhs = frame.locals.place_mut(*lhs, &mut self.scratch)?;
         *lhs = value;
 
         Ok(None)
     }
 
     fn step(
-        &self,
-        callstack: &mut CallStack<'ctx, 'heap>,
-    ) -> Result<ControlFlow<Value<'heap>>, RuntimeError<'heap>> {
+        &mut self,
+        callstack: &mut CallStack<'ctx, 'heap, A>,
+    ) -> Result<ControlFlow<Value<'heap, A>>, RuntimeError<'heap, A>> {
         let Some((frame, stack)) = callstack.frames.split_last_mut() else {
             return Err(RuntimeError::CallstackEmpty);
         };
 
         if frame.current_statement >= frame.current_block.statements.len() {
-            let next = Self::step_terminator(stack, frame)?;
+            let next = self.step_terminator(stack, frame)?;
 
             return match next {
                 ControlFlow::Continue(PopFrame::Yes) => {
@@ -528,9 +570,9 @@ impl<'ctx, 'heap> Runtime<'ctx, 'heap> {
     /// Returns a diagnostic if any runtime error occurs. The diagnostic includes
     /// the error message and a call stack trace for error localization.
     pub fn run(
-        &self,
-        mut callstack: CallStack<'ctx, 'heap>,
-    ) -> Result<Value<'heap>, InterpretDiagnostic> {
+        &mut self,
+        mut callstack: CallStack<'ctx, 'heap, A>,
+    ) -> Result<Value<'heap, A>, InterpretDiagnostic> {
         loop {
             let result = self.step(&mut callstack);
             let next = match result {

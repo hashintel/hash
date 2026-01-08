@@ -6,6 +6,12 @@ use hashql_core::value::Float;
 
 use crate::{body::constant::Int, macros::forward_ref_unop};
 
+#[derive(Debug, Copy, Clone)]
+pub enum Numeric {
+    Num(Num),
+    Int(Int),
+}
+
 /// A floating-point number value with total ordering semantics.
 ///
 /// Wraps an [`f64`] and implements [`Ord`] using [`f64::total_cmp`], which follows

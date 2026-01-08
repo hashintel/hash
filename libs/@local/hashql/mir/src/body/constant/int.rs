@@ -8,7 +8,7 @@ use core::{
 use hashql_core::value::{Integer, Primitive};
 
 use crate::{
-    interpret::value::{Num, Value},
+    interpret::value::{Num, Numeric},
     macros::{forward_ref_binop, forward_ref_op_assign, forward_ref_unop},
 };
 
@@ -625,7 +625,7 @@ impl Not for Int {
 }
 
 impl Neg for Int {
-    type Output = Value<'static>;
+    type Output = Numeric;
 
     #[inline]
     #[expect(clippy::cast_precision_loss, clippy::float_arithmetic)]
@@ -635,9 +635,9 @@ impl Neg for Int {
         if overflow {
             // There's only a single reason why this overflowed: the value was i128::MIN, in this
             // case we return `i128::MAX + 1` as a Num.
-            Value::Number(Num::from((i128::MAX as f64) + 1.0))
+            Numeric::Num(Num::from((i128::MAX as f64) + 1.0))
         } else {
-            Value::Integer(Self::from_value_unchecked(value))
+            Numeric::Int(Self::from_value_unchecked(value))
         }
     }
 }
@@ -707,34 +707,34 @@ mod tests {
         clippy::float_cmp
     )]
 
-    use crate::{body::constant::Int, interpret::value::Value};
+    use crate::{body::constant::Int, interpret::value::Numeric};
 
     #[test]
     fn neg_positive() {
         let int = Int::from(42_i64);
         let result = -int;
-        assert!(matches!(result, Value::Integer(i) if i.as_i64() == Some(-42)));
+        assert!(matches!(result, Numeric::Int(int) if int.as_i64() == Some(-42)));
     }
 
     #[test]
     fn neg_negative() {
         let int = Int::from(-100_i64);
         let result = -int;
-        assert!(matches!(result, Value::Integer(i) if i.as_i64() == Some(100)));
+        assert!(matches!(result, Numeric::Int(int) if int.as_i64() == Some(100)));
     }
 
     #[test]
     fn neg_zero() {
         let int = Int::from(0_i64);
         let result = -int;
-        assert!(matches!(result, Value::Integer(i) if i.as_i64() == Some(0)));
+        assert!(matches!(result, Numeric::Int(int) if int.as_i64() == Some(0)));
     }
 
     #[test]
     fn neg_i128_max() {
         let int = Int::from(i128::MAX);
         let result = -int;
-        assert!(matches!(result, Value::Integer(i) if i.as_int() == -i128::MAX));
+        assert!(matches!(result, Numeric::Int(int) if int.as_int() == -i128::MAX));
     }
 
     #[test]
@@ -742,8 +742,8 @@ mod tests {
         let int = Int::from(i128::MIN);
         let result = -int;
 
-        let Value::Number(num) = result else {
-            panic!("expected Value::Number for -i128::MIN, got {result:?}");
+        let Numeric::Num(num) = result else {
+            panic!("expected Numeric::Num for -i128::MIN, got {result:?}");
         };
 
         let expected = -(i128::MIN as f64);
