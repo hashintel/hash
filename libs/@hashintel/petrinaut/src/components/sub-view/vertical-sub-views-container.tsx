@@ -609,6 +609,10 @@ export const ProportionalSubViewsContainer: React.FC<
           </div>
         );
       })}
+
+      {/* Spacer div that fills remaining height when all sections are collapsed.
+          This ensures smooth animation when collapsing the last open section. */}
+      <div style={{ flex: 1, minHeight: 0 }} />
     </div>
   );
 };
