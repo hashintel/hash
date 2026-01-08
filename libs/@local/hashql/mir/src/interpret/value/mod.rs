@@ -28,6 +28,7 @@
 //! - [`Value::Dict`] - Ordered dictionaries
 
 mod dict;
+mod int;
 mod list;
 mod num;
 mod opaque;
@@ -47,6 +48,7 @@ use hashql_core::{symbol::Symbol, value::Primitive};
 
 pub use self::{
     dict::Dict,
+    int::{Int, TryFromIntegerError, TryFromPrimitiveError},
     list::List,
     num::{Num, Numeric},
     opaque::Opaque,
@@ -56,10 +58,7 @@ pub use self::{
     tuple::Tuple,
 };
 use super::error::{RuntimeError, TypeName};
-use crate::body::{
-    constant::{Constant, Int},
-    place::FieldIndex,
-};
+use crate::body::{constant::Constant, place::FieldIndex};
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 enum ValueDiscriminant {

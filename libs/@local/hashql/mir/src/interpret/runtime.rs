@@ -324,6 +324,40 @@ impl<'ctx, 'heap, A: Allocator + Clone> Runtime<'ctx, 'heap, A> {
         let rhs = frame.locals.operand(right)?;
 
         let value = match op {
+            BinOp::Add => {
+                return match (lhs.as_ref(), rhs.as_ref()) {
+                    (Value::Integer(lhs), Value::Integer(rhs)) => Ok(Value::from(lhs + rhs)),
+                    (Value::Integer(lhs), Value::Number(rhs)) => Ok(Value::Number(lhs + rhs)),
+                    (Value::Number(lhs), Value::Integer(rhs)) => Ok(Value::Number(lhs + rhs)),
+                    (Value::Number(lhs), Value::Number(rhs)) => Ok(Value::Number(lhs + rhs)),
+                    _ => Err(RuntimeError::BinaryTypeMismatch(Box::new(
+                        BinaryTypeMismatch {
+                            op,
+                            lhs_expected: TypeName::terse("Number"),
+                            rhs_expected: TypeName::terse("Number"),
+                            lhs: lhs.into_owned(),
+                            rhs: rhs.into_owned(),
+                        },
+                    ))),
+                };
+            }
+            BinOp::Sub => {
+                return match (lhs.as_ref(), rhs.as_ref()) {
+                    (Value::Integer(lhs), Value::Integer(rhs)) => Ok(Value::from(lhs - rhs)),
+                    (Value::Integer(lhs), Value::Number(rhs)) => Ok(Value::Number(lhs - rhs)),
+                    (Value::Number(lhs), Value::Integer(rhs)) => Ok(Value::Number(lhs - rhs)),
+                    (Value::Number(lhs), Value::Number(rhs)) => Ok(Value::Number(lhs - rhs)),
+                    _ => Err(RuntimeError::BinaryTypeMismatch(Box::new(
+                        BinaryTypeMismatch {
+                            op,
+                            lhs_expected: TypeName::terse("Number"),
+                            rhs_expected: TypeName::terse("Number"),
+                            lhs: lhs.into_owned(),
+                            rhs: rhs.into_owned(),
+                        },
+                    ))),
+                };
+            }
             BinOp::BitAnd => {
                 return match (lhs.as_ref(), rhs.as_ref()) {
                     (Value::Integer(lhs), Value::Integer(rhs)) => Ok(Value::Integer(lhs & rhs)),

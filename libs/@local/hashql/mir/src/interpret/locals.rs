@@ -396,13 +396,16 @@ mod tests {
     use super::Locals;
     use crate::{
         body::{
-            constant::{Constant, Int},
+            constant::Constant,
             local::{Local, LocalDecl, LocalSlice, LocalVec},
             operand::Operand,
             place::{FieldIndex, Place},
         },
         intern::Interner,
-        interpret::{error::RuntimeError, value::Value},
+        interpret::{
+            error::RuntimeError,
+            value::{Int, Value},
+        },
     };
 
     fn fill_decl(decl: &mut LocalVec<LocalDecl<'_>>, max_index: Local) {

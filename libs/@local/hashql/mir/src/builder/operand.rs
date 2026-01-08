@@ -21,8 +21,8 @@ impl<'heap> BuildOperand<'heap, f64> for OperandBuilder<'_, 'heap> {
     }
 }
 
-impl<'heap> BuildOperand<'heap, i64> for OperandBuilder<'_, 'heap> {
-    fn build_operand(&self, value: i64) -> Operand<'heap> {
+impl<'heap> BuildOperand<'heap, i128> for OperandBuilder<'_, 'heap> {
+    fn build_operand(&self, value: i128) -> Operand<'heap> {
         self.base.const_int(value)
     }
 }
