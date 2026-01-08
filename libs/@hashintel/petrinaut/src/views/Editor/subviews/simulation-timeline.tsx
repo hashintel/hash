@@ -52,31 +52,6 @@ const legendColorStyle = css({
   borderRadius: "[2px]",
 });
 
-const statsRowStyle = css({
-  display: "flex",
-  alignItems: "center",
-  gap: "[16px]",
-  fontSize: "[12px]",
-  color: "[#666]",
-});
-
-const statItemStyle = css({
-  display: "flex",
-  alignItems: "center",
-  gap: "[4px]",
-});
-
-const statLabelStyle = css({
-  fontWeight: 500,
-  color: "[#999]",
-});
-
-const statValueStyle = css({
-  fontWeight: 600,
-  color: "[#333]",
-  fontVariantNumeric: "tabular-nums",
-});
-
 // Default color palette for places without a specific color
 const DEFAULT_COLORS = [
   "#3b82f6", // blue
@@ -103,12 +78,11 @@ interface CompartmentData {
 const CompartmentTimeSeries: React.FC = () => {
   const simulation = useSimulationStore((state) => state.simulation);
   const currentlyViewedFrame = useSimulationStore(
-    (state) => state.currentlyViewedFrame
+    (state) => state.currentlyViewedFrame,
   );
   const setCurrentlyViewedFrame = useSimulationStore(
-    (state) => state.setCurrentlyViewedFrame
+    (state) => state.setCurrentlyViewedFrame,
   );
-  const dt = useSimulationStore((state) => state.dt);
 
   const {
     petriNetDefinition: { places, types },
@@ -176,7 +150,7 @@ const CompartmentTimeSeries: React.FC = () => {
     const totalFrames = simulation.frames.length;
     const maxValue = Math.max(
       1,
-      ...compartmentData.flatMap((data) => data.values)
+      ...compartmentData.flatMap((data) => data.values),
     );
 
     // Add some padding to max value for visual breathing room
@@ -210,7 +184,7 @@ const CompartmentTimeSeries: React.FC = () => {
 
       setCurrentlyViewedFrame(frameIndex);
     },
-    [chartMetrics, setCurrentlyViewedFrame]
+    [chartMetrics, setCurrentlyViewedFrame],
   );
 
   const handleMouseDown = useCallback(
@@ -218,7 +192,7 @@ const CompartmentTimeSeries: React.FC = () => {
       isDraggingRef.current = true;
       handleScrub(event);
     },
-    [handleScrub]
+    [handleScrub],
   );
 
   const handleMouseMove = useCallback(
@@ -227,7 +201,7 @@ const CompartmentTimeSeries: React.FC = () => {
         handleScrub(event);
       }
     },
-    [handleScrub]
+    [handleScrub],
   );
 
   const handleMouseUp = useCallback(() => {
@@ -253,41 +227,21 @@ const CompartmentTimeSeries: React.FC = () => {
 
       return `M ${points.join(" L ")}`;
     },
-    [chartMetrics]
+    [chartMetrics],
   );
 
   if (!simulation || compartmentData.length === 0 || !chartMetrics) {
     return (
       <div className={containerStyle}>
-        <div className={statsRowStyle}>
-          <span className={statLabelStyle}>No simulation data available</span>
-        </div>
+        <span style={{ fontSize: 12, color: "#999" }}>
+          No simulation data available
+        </span>
       </div>
     );
   }
 
-  const totalFrames = chartMetrics.totalFrames;
-  const currentTime = currentlyViewedFrame * dt;
-  const totalTime = (totalFrames - 1) * dt;
-
   return (
     <div className={containerStyle}>
-      {/* Stats row */}
-      <div className={statsRowStyle}>
-        <div className={statItemStyle}>
-          <span className={statLabelStyle}>Frame:</span>
-          <span className={statValueStyle}>
-            {currentlyViewedFrame} / {totalFrames - 1}
-          </span>
-        </div>
-        <div className={statItemStyle}>
-          <span className={statLabelStyle}>Time:</span>
-          <span className={statValueStyle}>
-            {currentTime.toFixed(3)}s / {totalTime.toFixed(3)}s
-          </span>
-        </div>
-      </div>
-
       {/* Chart */}
       <div className={chartContainerStyle}>
         <svg
