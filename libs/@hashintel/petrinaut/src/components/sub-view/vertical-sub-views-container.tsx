@@ -14,6 +14,15 @@ const headerRowStyle = css({
   alignItems: "center",
   justifyContent: "space-between",
   flexShrink: 0,
+  padding: "[4px 0]",
+});
+
+const headerActionStyle = css({
+  display: "flex",
+  alignItems: "center",
+  /** Constrain height so buttons don't grow the header */
+  maxHeight: "[20px]",
+  overflow: "hidden",
 });
 
 const sectionToggleButtonStyle = css({
@@ -120,7 +129,9 @@ const SubViewHeader: React.FC<SubViewHeaderProps> = ({
         {tooltip && <InfoIconTooltip tooltip={tooltip} />}
       </span>
     </button>
-    {isExpanded && renderHeaderAction?.()}
+    {isExpanded && renderHeaderAction && (
+      <div className={headerActionStyle}>{renderHeaderAction()}</div>
+    )}
   </div>
 );
 
@@ -612,7 +623,9 @@ export const ProportionalSubViewsContainer: React.FC<
 
       {/* Spacer div that fills remaining height when all sections are collapsed.
           This ensures smooth animation when collapsing the last open section. */}
-      <div style={{ flex: 1, minHeight: 0 }} />
+      <div
+        style={{ flex: expandedSections.length === 0 ? 1 : 0, minHeight: 0 }}
+      />
     </div>
   );
 };
