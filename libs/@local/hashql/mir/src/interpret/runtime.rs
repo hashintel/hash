@@ -245,29 +245,25 @@ impl<'ctx, 'heap> Runtime<'ctx, 'heap> {
                 Ok(ControlFlow::Continue(PopFrame::No))
             }
             &TerminatorKind::Return(Return { value }) => {
-                // depends on the return value, this is either:
-                // A) if underlying frame exists: set the value of the underlying frame
-                // B) return the value to the caller
                 let value = frame.locals.operand(value)?.into_owned();
 
-                // In any case this means that we need to pop the frame, because we already the
-                // frames mutably, we need to remove stuff.
-                let Some(top) = stack.last_mut() else {
+                // No caller frame means we're returning from the entry function.
+                let Some(caller) = stack.last_mut() else {
                     return Ok(ControlFlow::Break(value));
                 };
 
-                let statement = &top.current_block.statements[top.current_statement];
+                // The caller is suspended at an `Assign` statement with an `Apply` rvalue.
+                // We write the return value to the LHS of that assignment and resume.
+                let statement = &caller.current_block.statements[caller.current_statement];
                 let StatementKind::Assign(Assign { lhs, rhs }) = &statement.kind else {
                     unreachable!("we can only be called from an apply");
                 };
                 debug_assert_matches!(rhs, RValue::Apply(_));
 
-                let lhs = frame.locals.place_mut(*lhs)?;
+                let lhs = caller.locals.place_mut(*lhs)?;
                 *lhs = value;
 
-                // increase the statement index, as we have "finished" this statement
-                // completes the apply suspend call
-                top.current_statement += 1;
+                caller.current_statement += 1;
 
                 Ok(ControlFlow::Continue(PopFrame::Yes))
             }
