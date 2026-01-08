@@ -356,7 +356,6 @@ impl RuntimeError<'_> {
     }
 }
 
-#[coverage(off)]
 fn uninitialized_local(span: SpanId, local: Local, decl: LocalDecl) -> InterpretDiagnostic {
     let name = core::fmt::from_fn(|fmt| {
         if let Some(symbol) = decl.name {
@@ -384,7 +383,6 @@ fn uninitialized_local(span: SpanId, local: Local, decl: LocalDecl) -> Interpret
 // ICE: Type Invariant
 // =============================================================================
 
-#[coverage(off)]
 fn invalid_index_type(span: SpanId, base: &TypeName, index: &TypeName) -> InterpretDiagnostic {
     let mut diagnostic =
         Diagnostic::new(InterpretDiagnosticCategory::TypeInvariant, Severity::Bug).primary(
@@ -398,7 +396,6 @@ fn invalid_index_type(span: SpanId, base: &TypeName, index: &TypeName) -> Interp
     diagnostic
 }
 
-#[coverage(off)]
 fn invalid_subscript_type(span: SpanId, base: &TypeName) -> InterpretDiagnostic {
     let mut diagnostic = Diagnostic::new(InterpretDiagnosticCategory::TypeInvariant, Severity::Bug)
         .primary(Label::new(span, format!("cannot subscript `{base}`")));
@@ -410,7 +407,6 @@ fn invalid_subscript_type(span: SpanId, base: &TypeName) -> InterpretDiagnostic 
     diagnostic
 }
 
-#[coverage(off)]
 fn invalid_projection_type(span: SpanId, base: &TypeName) -> InterpretDiagnostic {
     let mut diagnostic =
         Diagnostic::new(InterpretDiagnosticCategory::TypeInvariant, Severity::Bug).primary(
@@ -424,7 +420,6 @@ fn invalid_projection_type(span: SpanId, base: &TypeName) -> InterpretDiagnostic
     diagnostic
 }
 
-#[coverage(off)]
 fn invalid_projection_by_name_type(span: SpanId, base: &TypeName) -> InterpretDiagnostic {
     let mut diagnostic =
         Diagnostic::new(InterpretDiagnosticCategory::TypeInvariant, Severity::Bug).primary(
@@ -438,7 +433,6 @@ fn invalid_projection_by_name_type(span: SpanId, base: &TypeName) -> InterpretDi
     diagnostic
 }
 
-#[coverage(off)]
 fn unknown_field(span: SpanId, base: &TypeName, field: FieldIndex) -> InterpretDiagnostic {
     let mut diagnostic = Diagnostic::new(InterpretDiagnosticCategory::TypeInvariant, Severity::Bug)
         .primary(Label::new(
@@ -453,7 +447,6 @@ fn unknown_field(span: SpanId, base: &TypeName, field: FieldIndex) -> InterpretD
     diagnostic
 }
 
-#[coverage(off)]
 fn unknown_field_by_name(span: SpanId, base: &TypeName, field: Symbol) -> InterpretDiagnostic {
     let mut diagnostic =
         Diagnostic::new(InterpretDiagnosticCategory::TypeInvariant, Severity::Bug).primary(
@@ -467,7 +460,6 @@ fn unknown_field_by_name(span: SpanId, base: &TypeName, field: Symbol) -> Interp
     diagnostic
 }
 
-#[coverage(off)]
 fn invalid_discriminant_type(span: SpanId, r#type: &TypeName) -> InterpretDiagnostic {
     let mut diagnostic = Diagnostic::new(InterpretDiagnosticCategory::TypeInvariant, Severity::Bug)
         .primary(Label::new(
@@ -482,7 +474,6 @@ fn invalid_discriminant_type(span: SpanId, r#type: &TypeName) -> InterpretDiagno
     diagnostic
 }
 
-#[coverage(off)]
 fn binary_type_mismatch(span: SpanId, mismatch: BinaryTypeMismatch) -> InterpretDiagnostic {
     let BinaryTypeMismatch {
         op,
@@ -514,7 +505,6 @@ fn binary_type_mismatch(span: SpanId, mismatch: BinaryTypeMismatch) -> Interpret
     diagnostic
 }
 
-#[coverage(off)]
 fn unary_type_mismatch(span: SpanId, mismatch: UnaryTypeMismatch) -> InterpretDiagnostic {
     let UnaryTypeMismatch {
         op,
@@ -537,7 +527,6 @@ fn unary_type_mismatch(span: SpanId, mismatch: UnaryTypeMismatch) -> InterpretDi
     diagnostic
 }
 
-#[coverage(off)]
 fn apply_non_pointer(span: SpanId, r#type: &TypeName) -> InterpretDiagnostic {
     let mut diagnostic =
         Diagnostic::new(InterpretDiagnosticCategory::TypeInvariant, Severity::Bug).primary(
@@ -555,7 +544,6 @@ fn apply_non_pointer(span: SpanId, r#type: &TypeName) -> InterpretDiagnostic {
 // ICE: Structural Invariant
 // =============================================================================
 
-#[coverage(off)]
 fn struct_field_length_mismatch(span: SpanId, values: usize, fields: usize) -> InterpretDiagnostic {
     let mut diagnostic = Diagnostic::new(
         InterpretDiagnosticCategory::StructuralInvariant,
@@ -577,7 +565,6 @@ fn struct_field_length_mismatch(span: SpanId, values: usize, fields: usize) -> I
 // ICE: Control Flow
 // =============================================================================
 
-#[coverage(off)]
 fn invalid_discriminant(span: SpanId, value: Int) -> InterpretDiagnostic {
     let mut diagnostic = Diagnostic::new(InterpretDiagnosticCategory::ControlFlow, Severity::Bug)
         .primary(Label::new(
@@ -592,7 +579,6 @@ fn invalid_discriminant(span: SpanId, value: Int) -> InterpretDiagnostic {
     diagnostic
 }
 
-#[coverage(off)]
 fn unreachable_reached(span: SpanId) -> InterpretDiagnostic {
     let mut diagnostic = Diagnostic::new(InterpretDiagnosticCategory::ControlFlow, Severity::Bug)
         .primary(Label::new(span, "reached unreachable code"));
@@ -620,7 +606,6 @@ fn callstack_empty(span: SpanId) -> InterpretDiagnostic {
 // Error: Bounds Check (ICE in the future)
 // =============================================================================
 
-#[coverage(off)]
 fn out_of_range(span: SpanId, length: usize, index: Int) -> InterpretDiagnostic {
     let mut diagnostic = Diagnostic::new(InterpretDiagnosticCategory::BoundsCheck, Severity::Error)
         .primary(Label::new(
@@ -637,7 +622,6 @@ fn out_of_range(span: SpanId, length: usize, index: Int) -> InterpretDiagnostic 
 // Error: Input Resolution (ICE in the future)
 // =============================================================================
 
-#[coverage(off)]
 fn input_not_found(span: SpanId, name: Symbol) -> InterpretDiagnostic {
     let mut diagnostic = Diagnostic::new(
         InterpretDiagnosticCategory::InputResolution,
@@ -654,7 +638,6 @@ fn input_not_found(span: SpanId, name: Symbol) -> InterpretDiagnostic {
 // Error: Runtime Limit
 // =============================================================================
 
-#[coverage(off)]
 fn recursion_limit_exceeded(span: SpanId, limit: usize) -> InterpretDiagnostic {
     let mut diagnostic =
         Diagnostic::new(InterpretDiagnosticCategory::RuntimeLimit, Severity::Error).primary(

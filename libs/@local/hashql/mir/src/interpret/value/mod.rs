@@ -340,7 +340,7 @@ impl<'heap, A: Allocator> Value<'heap, A> {
     {
         let terse_name = self.type_name_terse();
         let Self::Struct(r#struct) = self else {
-            return Err(RuntimeError::InvalidProjectionType {
+            return Err(RuntimeError::InvalidProjectionByNameType {
                 base: self.type_name().into(),
             });
         };

@@ -15,13 +15,22 @@
 )]
 
 use hashql_core::{
-    collections::FastHashMap, heap::Heap, symbol::Symbol, r#type::environment::Environment,
+    collections::FastHashMap,
+    heap::{FromIteratorIn as _, Heap},
+    id::{Id as _, IdVec},
+    symbol::Symbol,
+    r#type::{TypeId, environment::Environment},
 };
 
 use super::{CallStack, Runtime, RuntimeConfig, error::InterpretDiagnostic, value::Value};
 use crate::{
-    body::{Body, constant::Int},
-    builder::body,
+    body::{
+        Body,
+        constant::{Constant, Int},
+        operand::Operand,
+        rvalue::{Aggregate, AggregateKind, RValue},
+    },
+    builder::{BodyBuilder, body},
     def::{DefId, DefIdSlice},
     intern::Interner,
     interpret::error::InterpretDiagnosticCategory,
@@ -938,4 +947,455 @@ fn recursion_limit_exceeded() {
         .run(callstack)
         .expect_err("should fail with recursion limit");
     assert_eq!(result.category, InterpretDiagnosticCategory::RuntimeLimit);
+}
+
+#[test]
+fn out_of_range_list_index() {
+    let heap = Heap::new();
+    let interner = Interner::new(&heap);
+    let mut builder = BodyBuilder::new(&interner);
+
+    let list = builder.local("list", TypeId::MAX);
+    let idx = builder.local("idx", TypeId::MAX);
+    let result = builder.local("result", TypeId::MAX);
+
+    let const1 = builder.const_int(1);
+    let const2 = builder.const_int(2);
+    let const99 = builder.const_int(99);
+
+    let list_indexed = builder.place(|place| place.from(list).index(idx.local, TypeId::MAX));
+
+    let bb0 = builder.reserve_block([]);
+
+    builder
+        .build_block(bb0)
+        .assign_place(idx, |rv| rv.load(const99))
+        .assign_place(list, |rv| rv.list([const1, const2]))
+        .assign_place(list_indexed, |rv| rv.load(const99))
+        .assign_place(result, |rv| rv.load(list_indexed))
+        .ret(result);
+
+    let mut body = builder.finish(0, TypeId::MAX);
+    body.id = DefId::new(0);
+
+    let result = run_body(body).expect_err("should fail with out of range");
+    assert_eq!(result.category, InterpretDiagnosticCategory::BoundsCheck);
+}
+
+// =============================================================================
+// ICE Tests (Internal Compiler Errors)
+// =============================================================================
+// These tests verify that the interpreter correctly detects invariant violations
+// in malformed MIR that should never be produced by a correct compiler.
+
+#[test]
+fn ice_uninitialized_local() {
+    let heap = Heap::new();
+    let interner = Interner::new(&heap);
+    let env = Environment::new(&heap);
+
+    let body = body!(interner, env; fn@0/0 -> Int {
+        decl x: Int;
+
+        bb0() {
+            return x;
+        }
+    });
+
+    let result = run_body(body).expect_err("should fail with uninitialized local");
+    assert_eq!(result.category, InterpretDiagnosticCategory::LocalAccess);
+}
+
+#[test]
+fn ice_unreachable_reached() {
+    let heap = Heap::new();
+    let interner = Interner::new(&heap);
+    let env = Environment::new(&heap);
+
+    let body = body!(interner, env; fn@0/0 -> Int {
+        decl;
+
+        bb0() {
+            unreachable;
+        }
+    });
+
+    let result = run_body(body).expect_err("should fail with unreachable");
+    assert_eq!(result.category, InterpretDiagnosticCategory::ControlFlow);
+}
+
+#[test]
+fn ice_invalid_discriminant() {
+    let heap = Heap::new();
+    let interner = Interner::new(&heap);
+    let env = Environment::new(&heap);
+
+    let body = body!(interner, env; fn@0/0 -> Int {
+        decl selector: Int;
+
+        bb0() {
+            selector = load 99;
+            switch selector [0 => bb1(), 1 => bb2()];
+        },
+        bb1() {
+            return 1;
+        },
+        bb2() {
+            return 2;
+        }
+    });
+
+    let result = run_body(body).expect_err("should fail with invalid discriminant");
+    assert_eq!(result.category, InterpretDiagnosticCategory::ControlFlow);
+}
+
+#[test]
+fn ice_apply_non_pointer() {
+    let heap = Heap::new();
+    let interner = Interner::new(&heap);
+    let env = Environment::new(&heap);
+
+    let body = body!(interner, env; fn@0/0 -> Int {
+        decl x: Int, result: Int;
+
+        bb0() {
+            x = load 42;
+            result = apply x;
+            return result;
+        }
+    });
+
+    let result = run_body(body).expect_err("should fail with apply non-pointer");
+    assert_eq!(result.category, InterpretDiagnosticCategory::TypeInvariant);
+}
+
+#[test]
+fn ice_invalid_projection_type() {
+    let heap = Heap::new();
+    let interner = Interner::new(&heap);
+    let env = Environment::new(&heap);
+
+    let body = body!(interner, env; fn@0/0 -> Int {
+        decl x: Int, result: Int;
+        @proj field = x.0: Int;
+
+        bb0() {
+            x = load 42;
+            result = load field;
+            return result;
+        }
+    });
+
+    let result = run_body(body).expect_err("should fail with invalid projection type");
+    assert_eq!(result.category, InterpretDiagnosticCategory::TypeInvariant);
+}
+
+#[test]
+fn ice_unknown_field() {
+    let heap = Heap::new();
+    let interner = Interner::new(&heap);
+    let env = Environment::new(&heap);
+
+    let body = body!(interner, env; fn@0/0 -> Int {
+        decl tup: (Int, Int), result: Int;
+        @proj field = tup.5: Int;
+
+        bb0() {
+            tup = tuple 1, 2;
+            result = load field;
+            return result;
+        }
+    });
+
+    let result = run_body(body).expect_err("should fail with unknown field");
+    assert_eq!(result.category, InterpretDiagnosticCategory::TypeInvariant);
+}
+
+#[test]
+fn ice_binary_bitand_type_mismatch() {
+    let heap = Heap::new();
+    let interner = Interner::new(&heap);
+    let env = Environment::new(&heap);
+
+    let body = body!(interner, env; fn@0/0 -> Int {
+        decl tup: (Int, Int), result: Int;
+
+        bb0() {
+            tup = tuple 1, 2;
+            result = bin.& tup 3;
+            return result;
+        }
+    });
+
+    let result = run_body(body).expect_err("should fail with binary bitand type mismatch");
+    assert_eq!(result.category, InterpretDiagnosticCategory::TypeInvariant);
+}
+
+#[test]
+fn ice_binary_bitor_type_mismatch() {
+    let heap = Heap::new();
+    let interner = Interner::new(&heap);
+    let env = Environment::new(&heap);
+
+    let body = body!(interner, env; fn@0/0 -> Int {
+        decl tup: (Int, Int), result: Int;
+
+        bb0() {
+            tup = tuple 1, 2;
+            result = bin.| 3 tup;
+            return result;
+        }
+    });
+
+    let result = run_body(body).expect_err("should fail with binary bitor type mismatch");
+    assert_eq!(result.category, InterpretDiagnosticCategory::TypeInvariant);
+}
+
+#[test]
+fn ice_unary_not_type_mismatch() {
+    let heap = Heap::new();
+    let interner = Interner::new(&heap);
+    let env = Environment::new(&heap);
+
+    let body = body!(interner, env; fn@0/0 -> Int {
+        decl x: Int, result: Int;
+
+        bb0() {
+            x = load 42;
+            result = un.! x;
+            return result;
+        }
+    });
+
+    let result = run_body(body).expect_err("should fail with unary not type mismatch");
+    assert_eq!(result.category, InterpretDiagnosticCategory::TypeInvariant);
+}
+
+#[test]
+fn ice_unary_bitnot_type_mismatch() {
+    let heap = Heap::new();
+    let interner = Interner::new(&heap);
+    let env = Environment::new(&heap);
+
+    let body = body!(interner, env; fn@0/0 -> Int {
+        decl tup: (Int, Int), result: Int;
+
+        bb0() {
+            tup = tuple 1, 2;
+            result = un.~ tup;
+            return result;
+        }
+    });
+
+    let result = run_body(body).expect_err("should fail with unary bitnot type mismatch");
+    assert_eq!(result.category, InterpretDiagnosticCategory::TypeInvariant);
+}
+
+#[test]
+fn ice_unary_neg_type_mismatch() {
+    let heap = Heap::new();
+    let interner = Interner::new(&heap);
+    let env = Environment::new(&heap);
+
+    let body = body!(interner, env; fn@0/0 -> Int {
+        decl tup: (Int, Int), result: Int;
+
+        bb0() {
+            tup = tuple 1, 2;
+            result = un.neg tup;
+            return result;
+        }
+    });
+
+    let result = run_body(body).expect_err("should fail with unary neg type mismatch");
+    assert_eq!(result.category, InterpretDiagnosticCategory::TypeInvariant);
+}
+
+#[test]
+fn ice_invalid_discriminant_type() {
+    let heap = Heap::new();
+    let interner = Interner::new(&heap);
+    let env = Environment::new(&heap);
+
+    let body = body!(interner, env; fn@0/0 -> Int {
+        decl tup: (Int, Int);
+
+        bb0() {
+            tup = tuple 0, 1;
+            switch tup [0 => bb1(), _ => bb2()];
+        },
+        bb1() {
+            return 1;
+        },
+        bb2() {
+            return 2;
+        }
+    });
+
+    let result = run_body(body).expect_err("should fail with invalid discriminant type");
+    assert_eq!(result.category, InterpretDiagnosticCategory::TypeInvariant);
+}
+
+// =============================================================================
+// ICE Tests using Fluent Builder API
+// =============================================================================
+// These tests use the fluent builder for constructs not supported by the macro.
+
+#[test]
+fn ice_invalid_subscript_type() {
+    let heap = Heap::new();
+    let interner = Interner::new(&heap);
+    let mut builder = BodyBuilder::new(&interner);
+
+    let x = builder.local("x", TypeId::MAX);
+    let idx = builder.local("idx", TypeId::MAX);
+    let result = builder.local("result", TypeId::MAX);
+
+    let const0 = builder.const_int(0);
+    let const42 = builder.const_int(42);
+
+    let x_indexed = builder.place(|place| place.from(x).index(idx.local, TypeId::MAX));
+
+    let bb0 = builder.reserve_block([]);
+
+    builder
+        .build_block(bb0)
+        .assign_place(x, |rv| rv.load(const42))
+        .assign_place(idx, |rv| rv.load(const0))
+        .assign_place(result, |rv| rv.load(x_indexed))
+        .ret(result);
+
+    let mut body = builder.finish(0, TypeId::MAX);
+    body.id = DefId::new(0);
+
+    let result = run_body(body).expect_err("should fail with invalid subscript type");
+    assert_eq!(result.category, InterpretDiagnosticCategory::TypeInvariant);
+}
+
+#[test]
+fn ice_invalid_index_type() {
+    let heap = Heap::new();
+    let interner = Interner::new(&heap);
+    let mut builder = BodyBuilder::new(&interner);
+
+    let list = builder.local("list", TypeId::MAX);
+    let idx = builder.local("idx", TypeId::MAX);
+    let result = builder.local("result", TypeId::MAX);
+
+    let const0 = builder.const_int(0);
+    let const1 = builder.const_int(1);
+    let const2 = builder.const_int(2);
+
+    let list_indexed = builder.place(|place| place.from(list).index(idx.local, TypeId::MAX));
+
+    let bb0 = builder.reserve_block([]);
+
+    builder
+        .build_block(bb0)
+        .assign_place(list, |rv| rv.list([const1, const2]))
+        .assign_place(idx, |rv| rv.tuple([const0]))
+        .assign_place(result, |rv| rv.load(list_indexed))
+        .ret(result);
+
+    let mut body = builder.finish(0, TypeId::MAX);
+    body.id = DefId::new(0);
+
+    let result = run_body(body).expect_err("should fail with invalid index type");
+    assert_eq!(result.category, InterpretDiagnosticCategory::TypeInvariant);
+}
+
+#[test]
+fn ice_invalid_projection_by_name_type() {
+    let heap = Heap::new();
+    let interner = Interner::new(&heap);
+    let mut builder = BodyBuilder::new(&interner);
+
+    let x = builder.local("x", TypeId::MAX);
+    let result = builder.local("result", TypeId::MAX);
+
+    let const42 = builder.const_int(42);
+
+    let field_name = heap.intern_symbol("field");
+    let x_field = builder.place(|place| place.from(x).field_by_name(field_name, TypeId::MAX));
+
+    let bb0 = builder.reserve_block([]);
+
+    builder
+        .build_block(bb0)
+        .assign_place(x, |rv| rv.load(const42))
+        .assign_place(result, |rv| rv.load(x_field))
+        .ret(result);
+
+    let mut body = builder.finish(0, TypeId::MAX);
+    body.id = DefId::new(0);
+
+    let result = run_body(body).expect_err("should fail with invalid projection by name type");
+    assert_eq!(result.category, InterpretDiagnosticCategory::TypeInvariant);
+}
+
+#[test]
+fn ice_unknown_field_by_name() {
+    let heap = Heap::new();
+    let interner = Interner::new(&heap);
+    let mut builder = BodyBuilder::new(&interner);
+
+    let s = builder.local("s", TypeId::MAX);
+    let result = builder.local("result", TypeId::MAX);
+
+    let const42 = builder.const_int(42);
+
+    let wrong_field = heap.intern_symbol("nonexistent");
+    let s_field = builder.place(|place| place.from(s).field_by_name(wrong_field, TypeId::MAX));
+
+    let bb0 = builder.reserve_block([]);
+
+    let field_a = heap.intern_symbol("a");
+
+    builder
+        .build_block(bb0)
+        .assign_place(s, |rv| rv.r#struct([(field_a, const42)]))
+        .assign_place(result, |rv| rv.load(s_field))
+        .ret(result);
+
+    let mut body = builder.finish(0, TypeId::MAX);
+    body.id = DefId::new(0);
+
+    let result = run_body(body).expect_err("should fail with unknown field by name");
+    assert_eq!(result.category, InterpretDiagnosticCategory::TypeInvariant);
+}
+
+#[test]
+fn ice_struct_field_length_mismatch() {
+    let heap = Heap::new();
+    let interner = Interner::new(&heap);
+    let mut builder = BodyBuilder::new(&interner);
+
+    let s = builder.local("s", TypeId::MAX);
+
+    let bb0 = builder.reserve_block([]);
+
+    let field_a = heap.intern_symbol("a");
+    let field_b = heap.intern_symbol("b");
+    let field_c = heap.intern_symbol("c");
+
+    let fields = interner.symbols.intern_slice(&[field_a, field_b, field_c]);
+
+    let malformed_aggregate = RValue::Aggregate(Aggregate {
+        kind: AggregateKind::Struct { fields },
+        operands: IdVec::from_iter_in([Operand::Constant(Constant::Int(Int::from(1_i128)))], &heap),
+    });
+
+    builder
+        .build_block(bb0)
+        .assign_place(s, |_rv| malformed_aggregate)
+        .ret(s);
+
+    let mut body = builder.finish(0, TypeId::MAX);
+    body.id = DefId::new(0);
+
+    let result = run_body(body).expect_err("should fail with struct field length mismatch");
+    assert_eq!(
+        result.category,
+        InterpretDiagnosticCategory::StructuralInvariant
+    );
 }
