@@ -343,7 +343,7 @@ impl<'ctx, 'heap, A: Allocator> Locals<'ctx, 'heap, A> {
                 debug_assert_eq!(operands.len() % 2, 0);
                 let mut dict = Dict::new();
 
-                for &[key, value] in operands[..].array_windows() {
+                for [&key, &value] in operands[..].iter().array_chunks() {
                     let key = self.operand(key)?.into_owned();
                     let value = self.operand(value)?.into_owned();
 
