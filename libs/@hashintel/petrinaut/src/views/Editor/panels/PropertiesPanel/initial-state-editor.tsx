@@ -86,6 +86,15 @@ const rowStyle = cva({
       true: { backgroundColor: "[rgba(59, 130, 246, 0.1)]" },
       false: { backgroundColor: "[white]" },
     },
+    isSticky: {
+      true: {
+        position: "sticky",
+        bottom: "[0]",
+        zIndex: 1,
+        backgroundColor: "[white]",
+        boxShadow: "[0 -1px 4px rgba(0, 0, 0, 0.1)]",
+      },
+    },
   },
 });
 
@@ -114,10 +123,21 @@ const rowNumberCellStyle = cva({
   },
 });
 
-const cellContainerStyle = css({
-  borderBottom: "[1px solid rgba(0, 0, 0, 0.05)]",
-  padding: "spacing.0",
-  height: "[28px]",
+const cellContainerStyle = cva({
+  base: {
+    borderBottom: "[1px solid rgba(0, 0, 0, 0.05)]",
+    padding: "spacing.0",
+    height: "[28px]",
+  },
+  variants: {
+    isSticky: {
+      true: {
+        position: "sticky",
+        bottom: "[0]",
+        backgroundColor: "[white]",
+      },
+    },
+  },
 });
 
 const readOnlyCellStyle = css({
@@ -797,98 +817,109 @@ export const InitialStateEditor: React.FC<InitialStateEditorProps> = ({
                     ...tableData,
                     Array(placeType.elements.length).fill(0) as number[],
                   ];
-              return displayRows.map((row, rowIndex) => (
-                <tr
-                  // eslint-disable-next-line react/no-array-index-key -- Row position is stable and meaningful
-                  key={`row-${rowIndex}-${row.join("-")}`}
-                  className={rowStyle({ isSelected: selectedRow === rowIndex })}
-                >
-                  <td
-                    data-row={rowIndex}
-                    onClick={() => handleRowClick(rowIndex)}
-                    onKeyDown={(event) => handleRowKeyDown(event, rowIndex)}
-                    tabIndex={0}
-                    className={rowNumberCellStyle({
+              return displayRows.map((row, rowIndex) => {
+                const isPhantomRow =
+                  !hasSimulation && rowIndex === tableData.length;
+                return (
+                  <tr
+                    // eslint-disable-next-line react/no-array-index-key -- Row position is stable and meaningful
+                    key={`row-${rowIndex}-${row.join("-")}`}
+                    className={rowStyle({
                       isSelected: selectedRow === rowIndex,
-                      isPhantom: rowIndex === tableData.length,
-                      hasSimulation,
+                      isSticky: isPhantomRow,
                     })}
                   >
-                    {rowIndex === tableData.length ? "" : rowIndex + 1}
-                  </td>
-                  {row.map((value, colIndex) => {
-                    const isEditing =
-                      editingCell?.row === rowIndex &&
-                      editingCell.col === colIndex;
-                    const isFocused =
-                      focusedCell?.row === rowIndex &&
-                      focusedCell.col === colIndex;
-                    const isPhantomRow = rowIndex === tableData.length;
-
-                    return (
-                      <td
-                        // eslint-disable-next-line react/no-array-index-key -- Column position is stable and meaningful
-                        key={`cell-${rowIndex}-${colIndex}`}
-                        className={cellContainerStyle}
-                        style={{ width: `${columnWidth}%` }}
-                      >
-                        {hasSimulation ? (
-                          <div className={readOnlyCellStyle}>
-                            {isPhantomRow ? "" : value}
-                          </div>
-                        ) : isEditing ? (
-                          <input
-                            ref={inputRef}
-                            type="number"
-                            value={editingValue}
-                            onChange={(event) =>
-                              setEditingValue(event.target.value)
-                            }
-                            onKeyDown={(event) =>
-                              handleKeyDown(event, rowIndex, colIndex)
-                            }
-                            onBlur={() => {
-                              // Save on blur
-                              const val = Number.parseFloat(editingValue) || 0;
-                              updateCell(rowIndex, colIndex, val);
-                              setEditingCell(null);
-                              setEditingValue("");
-                            }}
-                            className={editingInputStyle}
-                          />
-                        ) : (
-                          <div
-                            ref={(el) => {
-                              if (el) {
-                                cellRefs.current.set(
-                                  `${rowIndex}-${colIndex}`,
-                                  el,
-                                );
-                              } else {
-                                cellRefs.current.delete(
-                                  `${rowIndex}-${colIndex}`,
-                                );
+                    <td
+                      data-row={rowIndex}
+                      onClick={() => handleRowClick(rowIndex)}
+                      onKeyDown={(event) => handleRowKeyDown(event, rowIndex)}
+                      tabIndex={0}
+                      className={rowNumberCellStyle({
+                        isSelected: selectedRow === rowIndex,
+                        isPhantom: rowIndex === tableData.length,
+                        hasSimulation,
+                      })}
+                    >
+                      {rowIndex === tableData.length ? "" : rowIndex + 1}
+                    </td>
+                    {row.map((value, colIndex) => {
+                      const isEditing =
+                        editingCell?.row === rowIndex &&
+                        editingCell.col === colIndex;
+                      const isFocused =
+                        focusedCell?.row === rowIndex &&
+                        focusedCell.col === colIndex;
+                      return (
+                        <td
+                          // eslint-disable-next-line react/no-array-index-key -- Column position is stable and meaningful
+                          key={`cell-${rowIndex}-${colIndex}`}
+                          className={cellContainerStyle({
+                            isSticky: isPhantomRow,
+                          })}
+                          style={{ width: `${columnWidth}%` }}
+                        >
+                          {hasSimulation ? (
+                            <div className={readOnlyCellStyle}>
+                              {isPhantomRow ? "" : value}
+                            </div>
+                          ) : isEditing ? (
+                            <input
+                              ref={inputRef}
+                              type="number"
+                              value={editingValue}
+                              onChange={(event) =>
+                                setEditingValue(event.target.value)
                               }
-                            }}
-                            role="button"
-                            tabIndex={0}
-                            onFocus={() => {
-                              setFocusedCell({ row: rowIndex, col: colIndex });
-                              setSelectedRow(null);
-                            }}
-                            onKeyDown={(event) =>
-                              handleKeyDown(event, rowIndex, colIndex)
-                            }
-                            className={cellButtonStyle({ isFocused })}
-                          >
-                            {isPhantomRow ? "" : value}
-                          </div>
-                        )}
-                      </td>
-                    );
-                  })}
-                </tr>
-              ));
+                              onKeyDown={(event) =>
+                                handleKeyDown(event, rowIndex, colIndex)
+                              }
+                              onBlur={() => {
+                                // Save on blur
+                                const val =
+                                  Number.parseFloat(editingValue) || 0;
+                                updateCell(rowIndex, colIndex, val);
+                                setEditingCell(null);
+                                setEditingValue("");
+                              }}
+                              className={editingInputStyle}
+                            />
+                          ) : (
+                            <div
+                              ref={(el) => {
+                                if (el) {
+                                  cellRefs.current.set(
+                                    `${rowIndex}-${colIndex}`,
+                                    el,
+                                  );
+                                } else {
+                                  cellRefs.current.delete(
+                                    `${rowIndex}-${colIndex}`,
+                                  );
+                                }
+                              }}
+                              role="button"
+                              tabIndex={0}
+                              onFocus={() => {
+                                setFocusedCell({
+                                  row: rowIndex,
+                                  col: colIndex,
+                                });
+                                setSelectedRow(null);
+                              }}
+                              onKeyDown={(event) =>
+                                handleKeyDown(event, rowIndex, colIndex)
+                              }
+                              className={cellButtonStyle({ isFocused })}
+                            >
+                              {isPhantomRow ? "" : value}
+                            </div>
+                          )}
+                        </td>
+                      );
+                    })}
+                  </tr>
+                );
+              });
             })()}
           </tbody>
         </table>
