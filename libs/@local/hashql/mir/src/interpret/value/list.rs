@@ -8,15 +8,14 @@ use super::Value;
 use crate::body::constant::Int;
 
 /// An ordered list of values.
-///
-/// Backed by an immutable persistent vector, enabling efficient structural
-/// sharing when values are cloned or modified.
 #[derive(Debug, Clone)]
 pub struct List<'heap, A: Allocator> {
     inner: imbl::GenericVector<Value<'heap, A>, RcK>,
 }
 
 impl<'heap, A: Allocator> List<'heap, A> {
+    /// Creates a new empty list.
+    #[must_use]
     pub fn new() -> Self {
         Self {
             inner: imbl::GenericVector::new(),
@@ -60,6 +59,9 @@ impl<'heap, A: Allocator> List<'heap, A> {
         }
     }
 
+    /// Returns a mutable reference to the element at the given `index`.
+    ///
+    /// Supports negative indexing: `-1` is the last element, `-2` is second-to-last, etc.
     pub fn get_mut(&mut self, index: Int) -> Option<&mut Value<'heap, A>>
     where
         A: Clone,
@@ -78,6 +80,8 @@ impl<'heap, A: Allocator> List<'heap, A> {
         }
     }
 
+    /// Returns an iterator over the list's elements.
+    #[must_use]
     pub fn iter(
         &self,
     ) -> impl ExactSizeIterator<Item = &Value<'heap, A>> + DoubleEndedIterator + FusedIterator {

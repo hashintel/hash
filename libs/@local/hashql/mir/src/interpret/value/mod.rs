@@ -12,25 +12,20 @@
 //!
 //! - [`Value::Unit`] - The unit value (also represents null)
 //! - [`Value::Integer`] - Arbitrary-precision integers (also represents booleans)
-//! - [`Value::Number`] - Floating-point numbers ([`Num`])
-//! - [`Value::String`] - String values ([`Str`])
-//! - [`Value::Pointer`] - Function pointers ([`Ptr`])
+//! - [`Value::Number`] - Floating-point numbers
+//! - [`Value::String`] - String values
+//! - [`Value::Pointer`] - Function pointers
 //!
 //! ## Aggregates
 //!
-//! - [`Value::Struct`] - Named-field structs ([`Struct`])
-//! - [`Value::Tuple`] - Positional tuples ([`Tuple`])
-//! - [`Value::Opaque`] - Opaque/newtype wrappers ([`Opaque`])
+//! - [`Value::Struct`] - Named-field structs
+//! - [`Value::Tuple`] - Positional tuples
+//! - [`Value::Opaque`] - Opaque/newtype wrappers
 //!
 //! ## Collections
 //!
-//! - [`Value::List`] - Ordered lists ([`List`])
-//! - [`Value::Dict`] - Ordered dictionaries ([`Dict`])
-//!
-//! # Construction
-//!
-//! Values can be constructed from MIR constants via the [`From<Constant>`]
-//! implementation, or directly using each type's constructor methods.
+//! - [`Value::List`] - Ordered lists
+//! - [`Value::Dict`] - Ordered dictionaries
 
 mod dict;
 mod list;
@@ -50,7 +45,7 @@ use core::{
 
 use hashql_core::{symbol::Symbol, value::Primitive};
 
-pub(crate) use self::{
+pub use self::{
     dict::Dict, list::List, num::Num, opaque::Opaque, ptr::Ptr, str::Str, r#struct::Struct,
     tuple::Tuple,
 };
@@ -95,16 +90,7 @@ impl ValueDiscriminant {
 /// A runtime value in the MIR interpreter.
 ///
 /// Represents all possible values that can be produced during interpretation.
-/// Values are immutable and use structural sharing (via [`Rc`]) for efficient
-/// cloning.
-///
-/// # Representation Notes
-///
-/// - Booleans are represented as [`Value::Integer`] (0 = false, 1 = true)
-/// - Null is represented as [`Value::Unit`]
-/// - Empty tuples should use [`Value::Unit`], not an empty [`Tuple`]
-///
-/// [`Rc`]: alloc::rc::Rc
+/// Values are immutable and use structural sharing.
 #[derive(Debug, Clone)]
 pub enum Value<'heap, A: Allocator = Global> {
     /// The unit value.
@@ -153,6 +139,15 @@ impl<'heap, A: Allocator> Value<'heap, A> {
         }
     }
 
+    /// Indexes into this value using another value as the index.
+    ///
+    /// For lists, the index must be an integer. For dicts, any value can be used as a key.
+    /// Returns [`Value::Unit`] if the index is not found.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if this value is not subscriptable (not a list or dict),
+    /// or if the index type is invalid for the collection type.
     pub fn subscript<'this, 'index>(
         &'this self,
         index: &'index Self,
@@ -179,6 +174,15 @@ impl<'heap, A: Allocator> Value<'heap, A> {
         }
     }
 
+    /// Mutably indexes into this value using another value as the index.
+    ///
+    /// For lists, returns an error if the index is out of bounds.
+    /// For dicts, inserts [`Value::Unit`] if the key is not present.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if this value is not subscriptable, if the index type
+    /// is invalid, or if a list index is out of bounds.
     pub fn subscript_mut<'this>(
         &'this mut self,
         index: Self,
@@ -214,6 +218,13 @@ impl<'heap, A: Allocator> Value<'heap, A> {
         }
     }
 
+    /// Projects a field from this value by index.
+    ///
+    /// Works on structs and tuples.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if this value is not projectable or the field index is invalid.
     pub fn project<'this>(
         &'this self,
         index: FieldIndex,
@@ -244,6 +255,13 @@ impl<'heap, A: Allocator> Value<'heap, A> {
         }
     }
 
+    /// Mutably projects a field from this value by index.
+    ///
+    /// Works on structs and tuples.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if this value is not projectable or the field index is invalid.
     pub fn project_mut<'this>(
         &'this mut self,
         index: FieldIndex,
@@ -281,6 +299,13 @@ impl<'heap, A: Allocator> Value<'heap, A> {
         }
     }
 
+    /// Projects a field from this value by name.
+    ///
+    /// Only works on structs.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if this value is not a struct or the field name is not found.
     pub fn project_by_name<'this>(
         &'this self,
         index: Symbol<'heap>,
@@ -299,6 +324,13 @@ impl<'heap, A: Allocator> Value<'heap, A> {
             })
     }
 
+    /// Mutably projects a field from this value by name.
+    ///
+    /// Only works on structs.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if this value is not a struct or the field name is not found.
     pub fn project_by_name_mut<'this>(
         &'this mut self,
         index: Symbol<'heap>,

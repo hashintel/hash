@@ -1,3 +1,8 @@
+//! Interpreter error types and diagnostic conversion.
+//!
+//! This module defines the error types that can occur during MIR interpretation
+//! and provides conversion to diagnostics for user-friendly error reporting.
+
 use alloc::borrow::Cow;
 use core::{
     alloc::Allocator,
@@ -21,6 +26,9 @@ use crate::body::{
     rvalue::BinOp,
 };
 
+/// Type alias for interpreter diagnostics.
+///
+/// The default severity kind is [`Severity`], which allows any severity level.
 pub(crate) type InterpretDiagnostic<K = Severity> =
     Diagnostic<InterpretDiagnosticCategory, SpanId, K>;
 
@@ -61,14 +69,26 @@ const INPUT_RESOLUTION: TerminalDiagnosticCategory = TerminalDiagnosticCategory 
     name: "Input Resolution",
 };
 
+/// Diagnostic category for interpreter errors.
+///
+/// Each category corresponds to a specific class of error that can occur
+/// during interpretation. Categories are used to organize and filter
+/// diagnostics in error reporting.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum InterpretDiagnosticCategory {
+    /// Error accessing a local variable (e.g., uninitialized local).
     LocalAccess,
+    /// Type system invariant violation (should have been caught by typeck).
     TypeInvariant,
+    /// MIR structural invariant violation (malformed MIR).
     StructuralInvariant,
+    /// Invalid control flow (e.g., unreachable code reached).
     ControlFlow,
+    /// Index out of bounds error.
     BoundsCheck,
+    /// Resource limit exceeded (e.g., recursion limit).
     RuntimeLimit,
+    /// Required input not provided.
     InputResolution,
 }
 
@@ -94,13 +114,23 @@ impl DiagnosticCategory for InterpretDiagnosticCategory {
     }
 }
 
+/// A type name for use in error messages.
+///
+/// This is a simplified type representation used in diagnostics. It captures
+/// enough information to display a meaningful type name without requiring
+/// the full type system infrastructure.
 #[derive(Debug, Clone)]
 pub enum TypeName {
+    /// A static type name (e.g., "Integer", "String").
     Static(Cow<'static, str>),
+    /// A function pointer type, displaying its definition ID.
     Pointer(Ptr),
 }
 
 impl TypeName {
+    /// Creates a type name from a static string.
+    ///
+    /// Used for simple type names like "Integer", "String", etc.
     pub const fn terse(str: &'static str) -> Self {
         Self::Static(Cow::Borrowed(str))
     }
@@ -121,103 +151,158 @@ impl<A: Allocator> From<ValueTypeName<'_, '_, A>> for TypeName {
     }
 }
 
+/// Details of a binary operator type mismatch.
+///
+/// Contains the operator, expected types, and actual values for diagnostic
+/// reporting when a binary operation receives operands of incorrect types.
 #[derive(Debug, Clone)]
 pub struct BinaryTypeMismatch<'heap> {
+    /// The binary operator that was applied.
     pub op: BinOp,
-
+    /// The expected type of the left-hand operand.
     pub lhs_expected: TypeName,
+    /// The expected type of the right-hand operand.
     pub rhs_expected: TypeName,
-
+    /// The actual left-hand value.
     pub lhs: Value<'heap>,
+    /// The actual right-hand value.
     pub rhs: Value<'heap>,
 }
 
+/// Details of a unary operator type mismatch.
+///
+/// Contains the operator, expected type, and actual value for diagnostic
+/// reporting when a unary operation receives an operand of incorrect type.
 #[derive(Debug, Clone)]
 pub struct UnaryTypeMismatch<'heap> {
+    /// The unary operator that was applied.
     pub op: UnOp,
-
+    /// The expected type of the operand.
     pub expected: TypeName,
-
+    /// The actual value.
     pub value: Value<'heap>,
 }
 
+/// Errors that can occur during MIR interpretation.
+///
+/// Most variants represent Internal Compiler Errors (ICEs) that indicate bugs
+/// in the compiler. These should never occur in correctly compiled code because
+/// earlier phases (type checking, MIR construction) should prevent them.
+///
+/// A few variants represent legitimate runtime errors that can occur in valid
+/// programs (marked in their documentation).
 #[derive(Debug, Clone)]
 pub enum RuntimeError<'heap> {
-    // Local hasn't been initialized yet, by all intents and purposes this is an ICE, because
-    // *any* step before should have handled this. Be it the MIR or the HIR.
+    /// Attempted to read an uninitialized local variable.
+    ///
+    /// This is an ICE: MIR construction should ensure locals are initialized
+    /// before use, or HIR should have caught the use of undefined variables.
     UninitializedLocal {
         local: Local,
         decl: LocalDecl<'heap>,
     },
-    // Again: this is an ICE. typechk should have handled this.
-    InvalidIndexType {
-        base: TypeName,
-        index: TypeName,
-    },
-    // Again: this is an ICE. typechk should have handled this.
-    InvalidSubscriptType {
-        base: TypeName,
-    },
-    // Again: this is an ICE. typechk should have handled this.
-    InvalidProjectionType {
-        base: TypeName,
-    },
-    // Again: this is an ICE. typechk should have handled this.
-    InvalidProjectionByNameType {
-        base: TypeName,
-    },
-    // Again: this is an ICE. typechk should have handled this.
-    UnknownField {
-        base: TypeName,
-        field: FieldIndex,
-    },
-    // Again: this is an ICE. typechk should have handled this.
+
+    /// Index operation used an invalid type for the index.
+    ///
+    /// This is an ICE: type checking should ensure index types are valid.
+    InvalidIndexType { base: TypeName, index: TypeName },
+
+    /// Subscript operation applied to a non-subscriptable type.
+    ///
+    /// This is an ICE: type checking should ensure subscript targets are
+    /// lists or dicts.
+    InvalidSubscriptType { base: TypeName },
+
+    /// Field projection applied to a non-projectable type.
+    ///
+    /// This is an ICE: type checking should ensure projection targets are
+    /// structs or tuples.
+    InvalidProjectionType { base: TypeName },
+
+    /// Named field projection applied to a non-struct type.
+    ///
+    /// This is an ICE: type checking should ensure named field access is
+    /// only used on structs.
+    InvalidProjectionByNameType { base: TypeName },
+
+    /// Field index does not exist on the aggregate type.
+    ///
+    /// This is an ICE: type checking should validate field indices.
+    UnknownField { base: TypeName, field: FieldIndex },
+
+    /// Field name does not exist on the struct type.
+    ///
+    /// This is an ICE: type checking should validate field names.
     UnknownFieldByName {
         base: TypeName,
         field: Symbol<'heap>,
     },
-    // Again: this is an ICE. This should just... never happen.
-    StructFieldLengthMismatch {
-        values: usize,
-        fields: usize,
-    },
-    // Again: this is an ICE. This should just... never happen.
-    InvalidDiscriminantType {
-        r#type: TypeName,
-    },
-    // Again: this is an ICE. This should just... never happen.
-    InvalidDiscriminant {
-        value: Int,
-    },
-    // Again: this is an ICE. This should just... never happen.
+
+    /// Struct aggregate has mismatched value and field counts.
+    ///
+    /// This is an ICE: MIR construction should ensure aggregates have the
+    /// correct number of values for their fields.
+    StructFieldLengthMismatch { values: usize, fields: usize },
+
+    /// Switch discriminant has a non-integer type.
+    ///
+    /// This is an ICE: type checking should ensure switch discriminants
+    /// are integers.
+    InvalidDiscriminantType { r#type: TypeName },
+
+    /// Switch discriminant value has no matching branch.
+    ///
+    /// This is an ICE: MIR construction should ensure all possible
+    /// discriminant values have corresponding branches.
+    InvalidDiscriminant { value: Int },
+
+    /// Execution reached unreachable code.
+    ///
+    /// This is an ICE: control flow analysis should prevent reaching
+    /// unreachable terminators.
     UnreachableReached,
-    // Again: this is an ICE. This should just... never happen.
+
+    /// Binary operator received operands of incorrect types.
+    ///
+    /// This is an ICE: type checking should ensure operand types match
+    /// the operator's requirements.
     BinaryTypeMismatch(Box<BinaryTypeMismatch<'heap>>),
-    // Again: this is an ICE. This should just... never happen.
+
+    /// Unary operator received an operand of incorrect type.
+    ///
+    /// This is an ICE: type checking should ensure operand type matches
+    /// the operator's requirements.
     UnaryTypeMismatch(Box<UnaryTypeMismatch<'heap>>),
-    // Again: this is an ICE. This should just... never happen.
-    ApplyNonPointer {
-        r#type: TypeName,
-    },
-    // Again: this is an ICE. This should just... never happen.
+
+    /// Function call applied to a non-pointer value.
+    ///
+    /// This is an ICE: type checking should ensure only function pointers
+    /// are called.
+    ApplyNonPointer { r#type: TypeName },
+
+    /// Attempted to step execution with an empty callstack.
+    ///
+    /// This is an ICE: interpreter logic should prevent this state.
     CallstackEmpty,
 
-    // This is actually a proper error, in a future this should be removed. Potentially ICE
-    // because the user can't actually use this, so this would only happen if the compiler
-    // determined that it fine to turn into a mutable assignment but then turned out that wasn't
-    // the case.
-    OutOfRange {
-        length: usize,
-        index: Int,
-    },
-    // ICE, should be caught in program analysis, for now just an ERR because program analysis is
-    // not yet implemented.
-    InputNotFound {
-        name: Symbol<'heap>,
-    },
-    RecursionLimitExceeded {
-        limit: usize,
-    },
+    /// Index is out of bounds for the collection.
+    ///
+    /// This is currently a user-facing error but may become an ICE once
+    /// bounds checking is implemented in program analysis.
+    OutOfRange { length: usize, index: Int },
+
+    /// Required input was not provided to the runtime.
+    ///
+    /// This is currently a user-facing error but may become an ICE once
+    /// input validation is implemented in program analysis.
+    InputNotFound { name: Symbol<'heap> },
+
+    /// Recursion depth exceeded the configured limit.
+    ///
+    /// This is a user-facing error that occurs when a program recurses
+    /// too deeply, likely due to infinite recursion or deeply nested
+    /// data structures.
+    RecursionLimitExceeded { limit: usize },
 }
 
 impl RuntimeError<'_> {
