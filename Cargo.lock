@@ -176,7 +176,7 @@ version = "1.1.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "40c48f72fd53cd289104fc64099abca73db4166ad86ea0b4341abe65af83dadc"
 dependencies = [
- "windows-sys 0.61.2",
+ "windows-sys 0.60.2",
 ]
 
 [[package]]
@@ -200,7 +200,7 @@ checksum = "291e6a250ff86cd4a820112fb8898808a366d8f9f58ce16d1f538353ad55747d"
 dependencies = [
  "anstyle",
  "once_cell_polyfill",
- "windows-sys 0.61.2",
+ "windows-sys 0.60.2",
 ]
 
 [[package]]
@@ -2344,7 +2344,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "39cab71617ae0d63f51a36d69f866391735b51691dbda63cf6f96d042b63efeb"
 dependencies = [
  "libc",
- "windows-sys 0.59.0",
+ "windows-sys 0.60.2",
 ]
 
 [[package]]
@@ -3069,7 +3069,7 @@ dependencies = [
  "mimalloc",
  "multiaddr",
  "regex",
- "reqwest",
+ "reqwest 0.12.28",
  "simple-mermaid",
  "tarpc",
  "time",
@@ -3155,7 +3155,7 @@ dependencies = [
  "insta",
  "postgres-types",
  "pretty_assertions",
- "reqwest",
+ "reqwest 0.12.28",
  "serde",
  "serde_json",
  "serde_plain",
@@ -3427,8 +3427,8 @@ dependencies = [
  "hash-temporal-client",
  "include_dir",
  "opentelemetry",
- "reqwest",
- "reqwest-middleware",
+ "reqwest 0.12.28",
+ "reqwest-middleware 0.4.2",
  "reqwest-tracing",
  "serde",
  "serde_json",
@@ -5515,7 +5515,7 @@ version = "0.50.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7957b9740744892f114936ab4a57b3f487491bbeafaf8083688b16841a4240e5"
 dependencies = [
- "windows-sys 0.61.2",
+ "windows-sys 0.60.2",
 ]
 
 [[package]]
@@ -6670,7 +6670,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "be769465445e8c1474e9c5dac2018218498557af32d9ed057325ec9a41ae81bf"
 dependencies = [
  "heck",
- "itertools 0.13.0",
+ "itertools 0.14.0",
  "log",
  "multimap",
  "once_cell",
@@ -6690,7 +6690,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8a56d757972c98b346a9b766e3f02746cde6dd1cd1d1d563472929fdd74bec4d"
 dependencies = [
  "anyhow",
- "itertools 0.13.0",
+ "itertools 0.14.0",
  "proc-macro2",
  "quote",
  "syn 2.0.111",
@@ -6845,7 +6845,7 @@ dependencies = [
  "once_cell",
  "socket2 0.5.10",
  "tracing",
- "windows-sys 0.59.0",
+ "windows-sys 0.60.2",
 ]
 
 [[package]]
@@ -7167,6 +7167,35 @@ dependencies = [
 ]
 
 [[package]]
+name = "reqwest"
+version = "0.13.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "04e9018c9d814e5f30cc16a0f03271aeab3571e609612d9fe78c1aa8d11c2f62"
+dependencies = [
+ "base64",
+ "bytes",
+ "futures-core",
+ "http 1.4.0",
+ "http-body 1.0.1",
+ "http-body-util",
+ "hyper",
+ "hyper-util",
+ "js-sys",
+ "log",
+ "percent-encoding",
+ "pin-project-lite",
+ "sync_wrapper",
+ "tokio",
+ "tower 0.5.2",
+ "tower-http",
+ "tower-service",
+ "url",
+ "wasm-bindgen",
+ "wasm-bindgen-futures",
+ "web-sys",
+]
+
+[[package]]
 name = "reqwest-middleware"
 version = "0.4.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -7175,25 +7204,39 @@ dependencies = [
  "anyhow",
  "async-trait",
  "http 1.4.0",
- "reqwest",
+ "reqwest 0.12.28",
  "serde",
  "thiserror 1.0.69",
  "tower-service",
 ]
 
 [[package]]
-name = "reqwest-tracing"
-version = "0.5.8"
+name = "reqwest-middleware"
+version = "0.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d70ea85f131b2ee9874f0b160ac5976f8af75f3c9badfe0d955880257d10bd83"
+checksum = "f42e2f48018a33d679ee7f477a446b697663a14e91ab0b3a0206792a22dd3aa8"
+dependencies = [
+ "anyhow",
+ "async-trait",
+ "http 1.4.0",
+ "reqwest 0.13.1",
+ "thiserror 2.0.17",
+ "tower-service",
+]
+
+[[package]]
+name = "reqwest-tracing"
+version = "0.6.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3bce5a3624f12d0f1eb94d352abdef80902e29a612c40d26147f0e236d049352"
 dependencies = [
  "anyhow",
  "async-trait",
  "getrandom 0.2.16",
  "http 1.4.0",
  "matchit 0.8.4",
- "reqwest",
- "reqwest-middleware",
+ "reqwest 0.13.1",
+ "reqwest-middleware 0.5.0",
  "tracing",
 ]
 
@@ -7352,7 +7395,7 @@ dependencies = [
  "errno",
  "libc",
  "linux-raw-sys",
- "windows-sys 0.59.0",
+ "windows-sys 0.60.2",
 ]
 
 [[package]]
@@ -7552,7 +7595,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d9794f69ad475e76c057e326175d3088509649e3aed98473106b9fe94ba59424"
 dependencies = [
  "httpdate",
- "reqwest",
+ "reqwest 0.12.28",
  "rustls",
  "sentry-backtrace",
  "sentry-contexts",
@@ -8287,7 +8330,7 @@ dependencies = [
  "getrandom 0.3.4",
  "once_cell",
  "rustix",
- "windows-sys 0.59.0",
+ "windows-sys 0.60.2",
 ]
 
 [[package]]
@@ -8366,7 +8409,7 @@ version = "1.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d8c27177b12a6399ffc08b98f76f7c9a1f4fe9fc967c784c5a071fa8d93cf7e1"
 dependencies = [
- "windows-sys 0.61.2",
+ "windows-sys 0.60.2",
 ]
 
 [[package]]
@@ -9653,7 +9696,7 @@ version = "0.1.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c2a7b1c03c876122aa43f3020e6c3c3ee5c05081c9a00739faf7503aeba10d22"
 dependencies = [
- "windows-sys 0.48.0",
+ "windows-sys 0.60.2",
 ]
 
 [[package]]
