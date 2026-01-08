@@ -35,31 +35,26 @@ const sectionToggleButtonStyle = css({
 
 const resizeHandleStyle = cva({
   base: {
-    height: "[6px]",
+    height: "[4px]",
     cursor: "ns-resize",
     backgroundColor: "[transparent]",
     border: "none",
     padding: "[0]",
-    borderRadius: "[3px]",
-    transition: "[background-color 0.15s ease]",
     flexShrink: 0,
+    transition: "[background-color 0.15s ease]",
     _hover: {
-      backgroundColor: "[rgba(0, 0, 0, 0.08)]",
+      backgroundColor: "[rgba(0, 0, 0, 0.1)]",
     },
   },
   variants: {
     isResizing: {
       true: {
-        backgroundColor: "[rgba(59, 130, 246, 0.3)]",
+        backgroundColor: "[rgba(59, 130, 246, 0.4)]",
       },
     },
     position: {
-      top: {
-        marginBottom: "[2px]",
-      },
-      bottom: {
-        marginTop: "[2px]",
-      },
+      top: {},
+      bottom: {},
     },
   },
 });
