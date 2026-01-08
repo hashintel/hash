@@ -485,7 +485,7 @@ impl fmt::Display for ProjectionKind<'_> {
         match self {
             ProjectionKind::Field(index) => write!(fmt, ".{index}"),
             ProjectionKind::FieldByName(name) => write!(fmt, ".{name}"),
-            ProjectionKind::Index(index) => write!(fmt, "[%{index}]"),
+            ProjectionKind::Index(index) => write!(fmt, "[{index}]"),
         }
     }
 }

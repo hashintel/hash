@@ -238,28 +238,32 @@ macro_rules! newtype {
         concat!("ID value must be between ", stringify!($min), " and ", stringify!($max))
     };
 
-    // Entry point: separate steppable from other attributes
     ($(#[$($attr:tt)*])* $vis:vis struct $name:ident($type:ident is $min:literal..=$max:expr)) => {
-        $crate::id::newtype!(@parse_attrs [] [] ; $(#[$($attr)*])* ; $vis struct $name($type is $min..=$max));
+        $crate::id::newtype!(@parse_attrs [] [] [] ; $(#[$($attr)*])* ; $vis struct $name($type is $min..=$max));
     };
 
-    // Parse attributes: found steppable
-    (@parse_attrs [$($other:tt)*] [] ; #[steppable] $(#[$rest:meta])* ; $($tail:tt)*) => {
-        $crate::id::newtype!(@parse_attrs [$($other)*] [steppable] ; $(#[$rest])* ; $($tail)*);
+    (@parse_attrs [$($other:tt)*] [$($step:tt)*] [$($display:tt)*]; #[steppable] $(#[$($rest:tt)*])* ; $($tail:tt)*) => {
+        $crate::id::newtype!(@parse_attrs [$($other)*] [$($step)* steppable] [$($display)*] ; $(#[$($rest)*])* ; $($tail)*);
     };
 
-    // Parse attributes: other attribute
-    (@parse_attrs [$($other:tt)*] [$($step:tt)*] ; #[$attr:meta] $(#[$rest:meta])* ; $($tail:tt)*) => {
-        $crate::id::newtype!(@parse_attrs [$($other)* #[$attr]] [$($step)*] ; $(#[$rest])* ; $($tail)*);
+    (@parse_attrs [$($other:tt)*] [$($step:tt)*] [$($display:tt)*]; #[display = $display_expr:expr] $(#[$($rest:tt)*])* ; $($tail:tt)*) => {
+        $crate::id::newtype!(@parse_attrs [$($other)*] [$($step)*] [$($display)* display = $display_expr] ; $(#[$($rest)*])* ; $($tail)*);
     };
 
-    // Parse attributes: done parsing
-    (@parse_attrs [$($other:tt)*] [$($step:tt)*] ; ; $vis:vis struct $name:ident($type:ident is $min:literal..=$max:expr)) => {
-        $crate::id::newtype!(@impl [$($other)*] [$($step)*] $vis struct $name($type is $min..=$max));
+    (@parse_attrs [$($other:tt)*] [$($step:tt)*] [$($display:tt)*]; #[no_display] $(#[$($rest:tt)*])* ; $($tail:tt)*) => {
+        $crate::id::newtype!(@parse_attrs [$($other)*] [$($step)*] [$($display)* no_display] ; $(#[$($rest)*])* ; $($tail)*);
+    };
+
+    (@parse_attrs [$($other:tt)*] [$($step:tt)*] [$($display:tt)*]; #[$attr:meta] $(#[$($rest:tt)*])* ; $($tail:tt)*) => {
+        $crate::id::newtype!(@parse_attrs [$($other)* #[$attr]] [$($step)*] [$($display)*] ; $(#[$($rest)*])* ; $($tail)*);
+    };
+
+    (@parse_attrs [$($other:tt)*] [$($step:tt)*] [$($display:tt)*]; ; $vis:vis struct $name:ident($type:ident is $min:literal..=$max:expr)) => {
+        $crate::id::newtype!(@impl [$($other)*] [$($step)*] [$($display)*] $vis struct $name($type is $min..=$max));
     };
 
     // Implementation
-    (@impl [$(#[$attr:meta])*] [$($step:tt)*] $vis:vis struct $name:ident($type:ident is $min:literal..=$max:expr)) => {
+    (@impl [$(#[$attr:meta])*] [$($step:tt)*] [$($display:tt)*] $vis:vis struct $name:ident($type:ident is $min:literal..=$max:expr)) => {
         $(#[$attr])*
         #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
         $vis struct $name($type);
@@ -343,12 +347,6 @@ macro_rules! newtype {
             }
         }
 
-        impl ::core::fmt::Display for $name {
-            fn fmt(&self, fmt: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-                ::core::fmt::Display::fmt(&self.0, fmt)
-            }
-        }
-
         #[expect(clippy::allow_attributes, reason = "automatically generated")]
         #[allow(clippy::cast_possible_truncation, clippy::cast_lossless, clippy::checked_conversions)]
         impl ::core::convert::TryFrom<u32> for $name {
@@ -411,6 +409,7 @@ macro_rules! newtype {
             }
         }
 
+        $crate::id::newtype!(@maybe_display $name ; $($display)*);
         $crate::id::newtype!(@maybe_step $name ; $($step)*);
     };
 
@@ -443,6 +442,24 @@ macro_rules! newtype {
 
     // No Step implementation if steppable was not specified
     (@maybe_step $name:ident ; ) => {};
+
+    (@maybe_display $name:ident ; no_display) => {};
+
+    (@maybe_display $name:ident ; display = $display:expr) => {
+        impl ::core::fmt::Display for $name {
+            fn fmt(&self, fmt: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
+                fmt.write_fmt(format_args!($display, self.0))
+            }
+        }
+    };
+
+    (@maybe_display $name:ident ; ) => {
+        impl ::core::fmt::Display for $name {
+            fn fmt(&self, fmt: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
+                ::core::fmt::Display::fmt(&self.0, fmt)
+            }
+        }
+    }
 }
 
 /// Thread-safe ID generator that produces unique IDs.

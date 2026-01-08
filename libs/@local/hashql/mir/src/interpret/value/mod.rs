@@ -41,7 +41,7 @@ mod str;
 mod r#struct;
 mod tuple;
 
-use alloc::alloc::Global;
+use alloc::{alloc::Global, borrow::Cow};
 use core::{
     alloc::Allocator,
     cmp,
@@ -419,6 +419,20 @@ impl<A: Allocator> Display for ValueTypeNameInner<'_, '_, A> {
 
 #[derive(Debug, Copy, Clone)]
 pub struct ValueTypeName<'value, 'heap, A: Allocator>(ValueTypeNameInner<'value, 'heap, A>);
+
+impl<A: Allocator> ValueTypeName<'_, '_, A> {
+    pub(super) fn into_type_name(self) -> TypeName {
+        // Try to recover as much information as possible, which is only possible (pun intended), in
+        // the case that the value is constant
+        match self.0 {
+            ValueTypeNameInner::Const(value) => TypeName::Static(Cow::Borrowed(value)),
+            ValueTypeNameInner::Pointer(ptr) => TypeName::Pointer(ptr),
+            ValueTypeNameInner::Opaque(_)
+            | ValueTypeNameInner::Struct(_)
+            | ValueTypeNameInner::Tuple(_) => TypeName::Static(Cow::Owned(self.to_string())),
+        }
+    }
+}
 
 impl<A: Allocator> Display for ValueTypeName<'_, '_, A> {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {

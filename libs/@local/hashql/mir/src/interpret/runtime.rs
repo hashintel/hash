@@ -5,7 +5,7 @@ use hashql_core::{collections::FastHashMap, span::SpanId, symbol::Symbol};
 use hashql_hir::node::operation::{InputOp, UnOp};
 
 use super::{
-    error::{BinaryTypeMismatch, RuntimeError, TypeName, UnaryTypeMismatch},
+    error::{BinaryTypeMismatch, InterpretDiagnostic, RuntimeError, TypeName, UnaryTypeMismatch},
     locals::Locals,
     value::Value,
 };
@@ -434,7 +434,7 @@ impl<'ctx, 'heap> Runtime<'ctx, 'heap> {
     pub fn run(
         &self,
         mut callstack: CallStack<'ctx, 'heap>,
-    ) -> Result<Value<'heap>, RuntimeError<'heap>> {
+    ) -> Result<Value<'heap>, InterpretDiagnostic> {
         loop {
             let result = self.step(&mut callstack);
             let next = match result {
@@ -442,7 +442,7 @@ impl<'ctx, 'heap> Runtime<'ctx, 'heap> {
                 Err(error) => {
                     let spans = callstack.unwind();
 
-                    todo!("convert to diagnostic")
+                    return Err(error.into_diagnostic(spans.map(|(_, span)| span)));
                 }
             };
 
