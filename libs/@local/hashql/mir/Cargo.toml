@@ -39,6 +39,10 @@ harness = false
 name    = "transform"
 harness = false
 
+[[bench]]
+name    = "interpret"
+harness = false
+
 [package.metadata.sync.turborepo]
 ignore-dev-dependencies = [
     "hashql-compiletest",
