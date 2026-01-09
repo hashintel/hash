@@ -212,7 +212,22 @@ function displayPlanVisualization(plan: PlanSpec): void {
   // Requirements
   if (plan.requirements.length > 0) {
     writeLine("");
-    writeLine(color.bold("Requirements:"));
+
+    // Count by priority
+    const mustCount = plan.requirements.filter(
+      (req) => req.priority === "must",
+    ).length;
+    const shouldCount = plan.requirements.filter(
+      (req) => req.priority === "should",
+    ).length;
+    const couldCount = plan.requirements.filter(
+      (req) => req.priority === "could",
+    ).length;
+
+    writeLine(
+      `${color.bold("Requirements:")} ${color.red(`${mustCount} must`)}, ${color.yellow(`${shouldCount} should`)}, ${color.dim(`${couldCount} could`)}`,
+    );
+
     for (const req of plan.requirements) {
       const priorityColor =
         req.priority === "must"
