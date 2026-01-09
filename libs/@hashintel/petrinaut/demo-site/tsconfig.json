@@ -1,10 +1,4 @@
 {
   "extends": "../tsconfig.json",
-  "include": [
-    "./*.tsx",
-    "./*.ts",
-    "./*.d.ts",
-    "main/app.tsx",
-    "sentry/init-sentry.ts"
-  ]
+  "include": ["./*.tsx", "./*.ts", "./*.d.ts", "main/app.tsx", "sentry/*.ts"]
 }
