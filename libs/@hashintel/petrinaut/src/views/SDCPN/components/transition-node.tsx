@@ -30,26 +30,39 @@ const transitionBoxStyle = cva({
     position: "relative",
     cursor: "default",
     transition: "[all 0.2s ease]",
+    outline: "[0px solid rgba(75, 126, 156, 0)]",
     _hover: {
       borderColor: "core.gray.70",
-      boxShadow: "0 0 0 4px rgba(59, 130, 246, 0.1)",
+      outline: "[4px solid rgba(75, 126, 156, 0.2)]",
     },
   },
   variants: {
     selection: {
       resource: {
-        boxShadow:
-          "0 0 0 3px rgba(59, 178, 246, 0.4), 0 0 0 5px rgba(59, 190, 246, 0.2)",
+        outline: "[4px solid rgba(59, 178, 246, 0.6)]",
+        _hover: {
+          outline: "[4px solid rgba(59, 178, 246, 0.7)]",
+        },
       },
       reactflow: {
-        boxShadow:
-          "0 0 0 4px rgba(249, 115, 22, 0.4), 0 0 0 6px rgba(249, 115, 22, 0.2)",
+        outline: "[4px solid rgba(40, 172, 233, 0.6)]",
       },
       none: {},
+    },
+    fired: {
+      true: {
+        background: "core.yellow.20/70",
+        boxShadow: "0 0 6px 1px rgba(255, 132, 0, 0.59)",
+        transition: "[background 0s, box-shadow 0s, outline 0.3s]",
+      },
+      false: {
+        transition: "[background 0.3s, box-shadow 0.3s, outline 0.3s]",
+      },
     },
   },
   defaultVariants: {
     selection: "none",
+    fired: false,
   },
 });
 
@@ -85,7 +98,7 @@ const firingIndicatorStyle = cva({
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
-    fontSize: "[18px]",
+    fontSize: "[20px]",
     color: "core.yellow.60",
   },
   variants: {
@@ -93,9 +106,13 @@ const firingIndicatorStyle = cva({
       true: {
         opacity: "[1]",
         transform: "scale(1)",
+        transition: "[opacity 0s, transform 0s]",
       },
       false: {
-        animation: "firingRelease 1s ease-out forwards",
+        opacity: "[0]",
+        transform: "scale(0.5)",
+        transition:
+          "[opacity 1s cubic-bezier(0.4, 0, 0.2, 1), transform 1s cubic-bezier(0,-1.41,.17,.9)]",
       },
     },
   },
@@ -146,7 +163,12 @@ export const TransitionNode: React.FC<NodeProps<TransitionNodeData>> = ({
         isConnectable={isConnectable}
         style={handleStyling}
       />
-      <div className={transitionBoxStyle({ selection: selectionVariant })}>
+      <div
+        className={transitionBoxStyle({
+          selection: selectionVariant,
+          fired: justFired,
+        })}
+      >
         {data.lambdaType === "stochastic" && (
           <div className={stochasticIconStyle}>
             <TbLambda />

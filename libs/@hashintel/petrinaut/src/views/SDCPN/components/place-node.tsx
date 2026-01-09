@@ -29,19 +29,21 @@ const placeCircleStyle = cva({
     lineHeight: "[1.3]",
     cursor: "default",
     transition: "[all 0.2s ease]",
+    outline: "[0px solid rgba(75, 126, 156, 0)]",
     _hover: {
-      boxShadow: "0 0 0 4px rgba(59, 130, 246, 0.1)",
+      outline: "[4px solid rgba(75, 126, 156, 0.2)]",
     },
   },
   variants: {
     selection: {
       resource: {
-        boxShadow:
-          "0 0 0 3px rgba(59, 178, 246, 0.4), 0 0 0 5px rgba(59, 190, 246, 0.2)",
+        outline: "[4px solid rgba(59, 178, 246, 0.6)]",
+        _hover: {
+          outline: "[4px solid rgba(59, 178, 246, 0.7)]",
+        },
       },
       reactflow: {
-        boxShadow:
-          "0 0 0 4px rgba(249, 115, 22, 0.4), 0 0 0 6px rgba(249, 115, 22, 0.2)",
+        outline: "[4px solid rgba(40, 172, 233, 0.6)]",
       },
       none: {},
     },
