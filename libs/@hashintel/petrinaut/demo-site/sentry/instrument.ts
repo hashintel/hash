@@ -8,8 +8,8 @@ const sentryDsn =
     : undefined;
 
 const environment =
-  typeof import.meta.env.MODE === "string"
-    ? import.meta.env.MODE
+  typeof import.meta.env.ENVIRONMENT === "string"
+    ? import.meta.env.ENVIRONMENT
     : "development";
 
 Sentry.init({

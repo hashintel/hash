@@ -2,7 +2,7 @@
 
 interface ImportMetaEnv {
   readonly SENTRY_DSN?: string;
-  readonly MODE: string;
+  readonly ENVIRONMENT?: string;
 }
 
 interface ImportMeta {
