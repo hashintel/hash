@@ -999,13 +999,25 @@ async function runDemoIteration(cliArgs: CliArgs): Promise<boolean> {
   let plan: PlanSpec;
   let fromCache: boolean;
   try {
-    const result = await generatePlanFromFixture(
-      selectedFixture,
-      cliArgs.mock,
-      genSpinner,
-    );
-    plan = result.plan;
-    fromCache = result.fromCache;
+    // Check if custom goal has a cached plan
+    if (customGoalRef?.cachedPlan) {
+      await delay(300); // Brief delay for visual feedback
+      plan = customGoalRef.cachedPlan;
+      fromCache = true;
+    } else {
+      const result = await generatePlanFromFixture(
+        selectedFixture,
+        cliArgs.mock,
+        genSpinner,
+      );
+      plan = result.plan;
+      fromCache = result.fromCache;
+
+      // Cache the generated plan on custom goal for future runs
+      if (customGoalRef && !fromCache) {
+        customGoalRef.cachedPlan = plan;
+      }
+    }
     genSpinner.stop(
       `Plan ${fromCache ? "loaded" : "generated"}: ${color.cyan(plan.id)} (${plan.steps.length} steps)`,
     );
