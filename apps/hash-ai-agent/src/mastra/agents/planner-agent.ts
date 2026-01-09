@@ -9,13 +9,13 @@
  * @see docs/PLAN-task-decomposition.md for design documentation
  */
 
-import { Agent } from "@mastra/core/agent";
-import dedent from "dedent";
+import { Agent } from '@mastra/core/agent';
+import dedent from 'dedent';
 
-import { DEFAULT_MODEL } from "../constants";
-import type { PlanSpec } from "../schemas/plan-spec";
-import { zPlanSpec } from "../schemas/plan-spec";
-import { formatAgentsForPrompt } from "../utils/plan-executors";
+import { DEFAULT_MODEL } from '../constants';
+import type { PlanSpec } from '../schemas/plan-spec';
+import { zPlanSpec } from '../schemas/plan-spec';
+import { formatAgentsForPrompt } from '../utils/plan-executors';
 
 /**
  * System instructions for the planner agent.
@@ -138,8 +138,8 @@ Structure your uncertainties into four categories (all are required):
  * properly typed structured output.
  */
 export const plannerAgent = new Agent({
-  id: "planner-agent",
-  name: "Research & Development Planner",
+  id: 'planner-agent',
+  name: 'Research & Development Planner',
   instructions: PLANNER_INSTRUCTIONS,
   model: DEFAULT_MODEL,
 });
@@ -183,9 +183,7 @@ export interface PlanGenerationResult {
  * }
  * ```
  */
-export async function generatePlan(
-  input: PlanGenerationInput,
-): Promise<PlanGenerationResult> {
+export async function generatePlan(input: PlanGenerationInput): Promise<PlanGenerationResult> {
   const { goal, context } = input;
 
   // Build the user prompt
@@ -194,7 +192,7 @@ export async function generatePlan(
 
     ${goal}
 
-    ${context ? `## Context\n\n${context}` : ""}
+    ${context ? `## Context\n\n${context}` : ''}
 
     ## Available Executors
 

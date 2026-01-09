@@ -14,7 +14,7 @@ export type OpenRouterModelId = `openrouter/${ModelForProvider<"openrouter">}`;
  * Uses OpenRouter routing to Google's Gemini 2.5 Flash Lite model.
  */
 export const DEFAULT_MODEL =
-  "openrouter/google/gemini-2.5-flash-lite" as const satisfies OpenRouterModelId;
+  "openrouter/google/gemini-3-flash-preview" as const satisfies OpenRouterModelId;
 
 /**
  * Block Protocol property type URL for entity names.
