@@ -838,6 +838,10 @@ async function runDemoIteration(cliArgs: CliArgs): Promise<boolean> {
     );
   }
 
+  // Score the plan and display results
+  const scores = scorePlanComposite(plan);
+  displayPlanScores(scores);
+
   // Ask whether to execute and select delay
   let delayMs: number;
   if (cliArgs.fast) {
