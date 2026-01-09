@@ -50,6 +50,7 @@
     "@hashintel/ds-helpers": "0.0.1-b",
     "@local/eslint": "0.0.0-private",
     "@pandacss/dev": "1.4.3",
+    "@sentry/react": "10.22.0",
     "@types/babel__standalone": "7.1.9",
     "@types/d3-array": "3.2.2",
     "@types/d3-scale": "4.0.9",

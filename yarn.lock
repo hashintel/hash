@@ -8604,6 +8604,7 @@ __metadata:
     "@monaco-editor/react": "npm:4.8.0-rc.3"
     "@mui/material": "npm:5.18.0"
     "@pandacss/dev": "npm:1.4.3"
+    "@sentry/react": "npm:10.22.0"
     "@types/babel__standalone": "npm:7.1.9"
     "@types/d3-array": "npm:3.2.2"
     "@types/d3-scale": "npm:4.0.9"

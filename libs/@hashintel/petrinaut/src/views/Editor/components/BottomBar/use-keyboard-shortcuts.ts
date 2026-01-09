@@ -18,7 +18,8 @@ export function useKeyboardShortcuts(
         target.tagName === "TEXTAREA" ||
         target.isContentEditable ||
         // Check if we're inside a Monaco editor
-        target.closest(".monaco-editor") !== null;
+        target.closest(".monaco-editor") !== null ||
+        target.closest("#sentry-feedback") !== null;
 
       if (isInputFocused) {
         return;
