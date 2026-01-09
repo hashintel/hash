@@ -297,7 +297,7 @@ const useYAxisScale = (
           }
           maxCumulative = Math.max(maxCumulative, cumulative);
         }
-        maxValue = maxCumulative;
+        maxValue = Math.max(1, maxCumulative);
       }
     } else {
       // For run chart, find the maximum individual value
