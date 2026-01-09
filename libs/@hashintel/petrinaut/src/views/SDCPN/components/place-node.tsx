@@ -162,8 +162,8 @@ export const PlaceNode: React.FC<NodeProps<PlaceNodeData>> = ({
         style={{
           borderColor: data.typeColor ?? undefined,
           backgroundColor: data.typeColor
-            ? hexToRgba(data.typeColor, 0.1)
-            : undefined,
+            ? hexToRgba(data.typeColor, 0.3)
+            : "#FCFCF9CC",
         }}
       >
         {data.dynamicsEnabled && (
