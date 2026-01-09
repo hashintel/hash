@@ -301,18 +301,38 @@ function displayPlanVisualization(plan: PlanSpec): void {
     }
   }
 
-  // Unknowns map summary
+  // Unknowns map - show all items
   writeLine("");
   writeLine(color.bold("Unknowns Map:"));
+
+  // Known knowns
   writeLine(
-    `  ${color.green("Known knowns:")} ${plan.unknownsMap.knownKnowns.length} items`,
+    `  ${color.green(`Known Knowns (${plan.unknownsMap.knownKnowns.length}):`)}`,
   );
+  for (const item of plan.unknownsMap.knownKnowns) {
+    writeLine(`    ${color.dim("•")} ${item}`);
+  }
+
+  // Known unknowns
   writeLine(
-    `  ${color.yellow("Known unknowns:")} ${plan.unknownsMap.knownUnknowns.length} items`,
+    `  ${color.yellow(`Known Unknowns (${plan.unknownsMap.knownUnknowns.length}):`)}`,
   );
+  for (const item of plan.unknownsMap.knownUnknowns) {
+    writeLine(`    ${color.dim("•")} ${item}`);
+  }
+
+  // Unknown unknowns with detection signals
   writeLine(
-    `  ${color.red("Unknown unknowns:")} ${plan.unknownsMap.unknownUnknowns.length} items`,
+    `  ${color.red(`Unknown Unknowns (${plan.unknownsMap.unknownUnknowns.length}):`)}`,
   );
+  for (const uu of plan.unknownsMap.unknownUnknowns) {
+    writeLine(`    ${color.dim("•")} Surprise: ${uu.potentialSurprise}`);
+    writeLine(`      ${color.dim("Signal:")} ${uu.detectionSignal}`);
+  }
+
+  // Community check
+  writeLine(`  ${color.cyan("Community Check:")}`);
+  writeLine(`    ${color.dim(plan.unknownsMap.communityCheck)}`);
 }
 
 // =============================================================================
