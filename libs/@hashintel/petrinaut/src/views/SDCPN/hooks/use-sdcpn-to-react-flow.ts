@@ -1,6 +1,7 @@
 import { MarkerType } from "reactflow";
 
 import type { SDCPN } from "../../../core/types/sdcpn";
+import { hexToHsl } from "../../../lib/hsl-color";
 import { useEditorStore } from "../../../state/editor-provider";
 import { generateArcId } from "../../../state/sdcpn-provider";
 import type {
@@ -95,7 +96,9 @@ export function useSdcpnToReactFlow(sdcpn: SDCPN): PetriNetDefinitionObject {
       const placeType = place?.colorId
         ? sdcpn.types.find((type) => type.id === place.colorId)
         : null;
-      const arcColor = placeType?.displayColor ?? "#999";
+      const arcColor = placeType?.displayColor
+        ? hexToHsl(placeType.displayColor).lighten(-15).saturate(-30).css(1)
+        : "#777";
 
       arcs.push({
         id: arcId,
@@ -133,7 +136,9 @@ export function useSdcpnToReactFlow(sdcpn: SDCPN): PetriNetDefinitionObject {
       const placeType = place?.colorId
         ? sdcpn.types.find((type) => type.id === place.colorId)
         : null;
-      const arcColor = placeType?.displayColor ?? "#999";
+      const arcColor = placeType?.displayColor
+        ? hexToHsl(placeType.displayColor).lighten(-15).saturate(-30).css(1)
+        : "#777";
 
       arcs.push({
         id: arcId,

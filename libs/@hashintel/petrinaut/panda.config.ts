@@ -12,7 +12,9 @@ export default defineConfig({
 
   // Useful for theme customization
   theme: {
-    extend: {},
+    extend: {
+      keyframes: {},
+    },
   },
 
   importMap: "@hashintel/ds-helpers",

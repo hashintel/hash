@@ -5,14 +5,13 @@ import { Stack } from "../../components/stack";
 import { productionMachines } from "../../examples/broken-machines";
 import { satellitesSDCPN } from "../../examples/satellites";
 import { sirModel } from "../../examples/sir-model";
-import { supplyChainStochasticSDCPN } from "../../examples/supply-chain-stochastic";
 import { convertOldFormatToSDCPN } from "../../old-formats/convert-old-format";
 import { useEditorStore } from "../../state/editor-provider";
 import { useSDCPNContext } from "../../state/sdcpn-provider";
-import { useSimulationStore } from "../../state/simulation-provider";
+// import { useSimulationStore } from "../../state/simulation-provider";
 import { SDCPNView } from "../SDCPN/sdcpn-view";
 import { BottomBar } from "./components/BottomBar/bottom-bar";
-import { ModeSelector } from "./components/mode-selector";
+// import { ModeSelector } from "./components/mode-selector";
 import { exportSDCPN } from "./lib/export-sdcpn";
 import { importSDCPN } from "./lib/import-sdcpn";
 import { BottomPanel } from "./panels/BottomPanel/panel";
@@ -34,13 +33,13 @@ const canvasContainerStyle = css({
   flexGrow: 1,
 });
 
-const modeSelectorPositionStyle = css({
-  position: "absolute",
-  top: "[24px]",
-  left: "[50%]",
-  transform: "translateX(-50%)",
-  zIndex: 1000,
-});
+// const modeSelectorPositionStyle = css({
+//   position: "absolute",
+//   top: "[24px]",
+//   left: "[50%]",
+//   transform: "translateX(-50%)",
+//   zIndex: 1000,
+// });
 
 /**
  * EditorView is responsible for the overall editor UI layout and controls.
@@ -64,26 +63,26 @@ export const EditorView = ({
 
   // Get editor store methods
   const mode = useEditorStore((state) => state.globalMode);
-  const setMode = useEditorStore((state) => state.setGlobalMode);
+  // const setMode = useEditorStore((state) => state.setGlobalMode);
   const editionMode = useEditorStore((state) => state.editionMode);
   const setEditionMode = useEditorStore((state) => state.setEditionMode);
   const clearSelection = useEditorStore((state) => state.clearSelection);
 
   // Get simulation store method to initialize parameter values
-  const initializeParameterValuesFromDefaults = useSimulationStore(
-    (state) => state.initializeParameterValuesFromDefaults,
-  );
+  // const initializeParameterValuesFromDefaults = useSimulationStore(
+  //   (state) => state.initializeParameterValuesFromDefaults,
+  // );
 
   // Handler for mode change that initializes parameter values when switching to simulate mode
-  function handleModeChange(newMode: "edit" | "simulate") {
-    if (newMode === "simulate" && mode !== "simulate") {
-      // Initialize parameter values from SDCPN defaults when switching to simulate mode
-      initializeParameterValuesFromDefaults();
-      // Clear selection when entering simulate mode
-      clearSelection();
-    }
-    setMode(newMode);
-  }
+  // function handleModeChange(newMode: "edit" | "simulate") {
+  //   if (newMode === "simulate" && mode !== "simulate") {
+  //     // Initialize parameter values from SDCPN defaults when switching to simulate mode
+  //     initializeParameterValuesFromDefaults();
+  //     // Clear selection when entering simulate mode
+  //     clearSelection();
+  //   }
+  //   setMode(newMode);
+  // }
 
   function handleNew() {
     createNewNet({
@@ -124,9 +123,9 @@ export const EditorView = ({
       <Stack direction="row" className={rowContainerStyle}>
         <Box className={canvasContainerStyle}>
           {/* Floating Mode Selector - Top Center */}
-          <div className={modeSelectorPositionStyle}>
+          {/* <div className={modeSelectorPositionStyle}>
             <ModeSelector mode={mode} onChange={handleModeChange} />
-          </div>
+          </div> */}
 
           {/* Left Sidebar with Menu, Title, and Tools */}
           <LeftSideBar
@@ -192,14 +191,14 @@ export const EditorView = ({
                   //     clearSelection();
                   //   },
                   // },
-                  {
-                    id: "load-example-supply-chain-stochastic",
-                    label: "Supply Chain (Stochastic)",
-                    onClick: () => {
-                      createNewNet(supplyChainStochasticSDCPN);
-                      clearSelection();
-                    },
-                  },
+                  // {
+                  //   id: "load-example-supply-chain-stochastic",
+                  //   label: "Supply Chain (Stochastic)",
+                  //   onClick: () => {
+                  //     createNewNet(supplyChainStochasticSDCPN);
+                  //     clearSelection();
+                  //   },
+                  // },
                   {
                     id: "load-example-satellites",
                     label: "Satellites",

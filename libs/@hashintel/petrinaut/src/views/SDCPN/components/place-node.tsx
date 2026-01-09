@@ -2,6 +2,7 @@ import { css, cva } from "@hashintel/ds-helpers/css";
 import { TbMathFunction } from "react-icons/tb";
 import { Handle, type NodeProps, Position } from "reactflow";
 
+import { hexToHsl } from "../../../lib/hsl-color";
 import { splitPascalCase } from "../../../lib/split-pascal-case";
 import { useEditorStore } from "../../../state/editor-provider";
 import { useSimulationStore } from "../../../state/simulation-provider";
@@ -29,19 +30,21 @@ const placeCircleStyle = cva({
     lineHeight: "[1.3]",
     cursor: "default",
     transition: "[all 0.2s ease]",
+    outline: "[0px solid rgba(75, 126, 156, 0)]",
     _hover: {
-      boxShadow: "0 0 0 4px rgba(59, 130, 246, 0.1)",
+      outline: "[4px solid rgba(75, 126, 156, 0.2)]",
     },
   },
   variants: {
     selection: {
       resource: {
-        boxShadow:
-          "0 0 0 3px rgba(59, 178, 246, 0.4), 0 0 0 5px rgba(59, 190, 246, 0.2)",
+        outline: "[4px solid rgba(59, 178, 246, 0.6)]",
+        _hover: {
+          outline: "[4px solid rgba(59, 178, 246, 0.7)]",
+        },
       },
       reactflow: {
-        boxShadow:
-          "0 0 0 4px rgba(249, 115, 22, 0.4), 0 0 0 6px rgba(249, 115, 22, 0.2)",
+        outline: "[4px solid rgba(40, 172, 233, 0.6)]",
       },
       none: {},
     },
@@ -77,6 +80,7 @@ const labelContainerStyle = css({
   flexWrap: "wrap",
   justifyContent: "center",
   padding: "[12px]",
+  lineHeight: "[1.1]",
 });
 
 const labelSegmentStyle = css({
@@ -131,14 +135,6 @@ export const PlaceNode: React.FC<NodeProps<PlaceNodeData>> = ({
     tokenCount = marking?.count ?? 0;
   }
 
-  // Helper function to convert hex color to rgba with opacity
-  const hexToRgba = (hex: string, opacity: number): string => {
-    const red = Number.parseInt(hex.slice(1, 3), 16);
-    const green = Number.parseInt(hex.slice(3, 5), 16);
-    const blue = Number.parseInt(hex.slice(5, 7), 16);
-    return `rgba(${red}, ${green}, ${blue}, ${opacity})`;
-  };
-
   // Determine selection state
   const isSelectedByResource = selectedResourceId === id;
   const selectionVariant = isSelectedByResource
@@ -158,10 +154,12 @@ export const PlaceNode: React.FC<NodeProps<PlaceNodeData>> = ({
       <div
         className={placeCircleStyle({ selection: selectionVariant })}
         style={{
-          borderColor: data.typeColor ?? undefined,
-          backgroundColor: data.typeColor
-            ? hexToRgba(data.typeColor, 0.1)
+          borderColor: data.typeColor
+            ? hexToHsl(data.typeColor).lighten(-10).saturate(-30).css(1)
             : undefined,
+          backgroundColor: data.typeColor
+            ? hexToHsl(data.typeColor).lighten(30).css(0.8)
+            : "#FCFCFACC",
         }}
       >
         {data.dynamicsEnabled && (
