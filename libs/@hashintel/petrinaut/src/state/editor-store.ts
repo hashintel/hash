@@ -14,7 +14,12 @@ export type DraggingStateByNodeId = Record<
 
 type EditorGlobalMode = "edit" | "simulate";
 type EditorEditionMode = "select" | "pan" | "add-place" | "add-transition";
-export type BottomPanelTab = "diagnostics" | "simulation-settings";
+export type BottomPanelTab =
+  | "diagnostics"
+  | "simulation-settings"
+  | "simulation-timeline";
+
+export type TimelineChartType = "run" | "stacked";
 
 export type EditorState = {
   globalMode: EditorGlobalMode;
@@ -60,6 +65,10 @@ export type EditorState = {
     updater: (state: DraggingStateByNodeId) => DraggingStateByNodeId,
   ) => void;
   resetDraggingState: () => void;
+
+  // Timeline chart type (run chart vs stacked area chart)
+  timelineChartType: TimelineChartType;
+  setTimelineChartType: (chartType: TimelineChartType) => void;
 
   __reinitialize: () => void;
 };
@@ -188,6 +197,14 @@ export function createEditorStore() {
           resetDraggingState: () =>
             set({ draggingStateByNodeId: {} }, false, "resetDraggingState"),
 
+          // Timeline chart type
+          timelineChartType: "run",
+          setTimelineChartType: (chartType) =>
+            set({ timelineChartType: chartType }, false, {
+              type: "setTimelineChartType",
+              chartType,
+            }),
+
           __reinitialize: () => {
             set(
               {
@@ -202,6 +219,7 @@ export function createEditorStore() {
                 selectedResourceId: null,
                 selectedItemIds: new Set(),
                 draggingStateByNodeId: {},
+                timelineChartType: "run",
               },
               false,
               { type: "initializeEditorStore" },

@@ -67,10 +67,7 @@ export type SimulationStoreState = {
   initializeParameterValuesFromDefaults: () => void;
 
   // Initialize the simulation with seed and dt (uses stored initialMarking)
-  initialize: (params: {
-    seed: number;
-    dt: number;
-  }) => void;
+  initialize: (params: { seed: number; dt: number }) => void;
 
   // Advance the simulation by one frame
   step: () => void;
@@ -191,10 +188,11 @@ export function createSimulationStore(getSDCPN: () => { sdcpn: SDCPN }) {
                     };
                   }
 
-                  // Build the simulation instance using stored initialMarking
+                  // Build the simulation instance using stored initialMarking and parameterValues
                   const simulationInstance = buildSimulation({
                     sdcpn,
                     initialMarking: state.initialMarking,
+                    parameterValues: state.parameterValues,
                     seed,
                     dt,
                   });
