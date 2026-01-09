@@ -11,12 +11,12 @@ const containerStyle = cva({
   variants: {
     size: {
       md: {
-        borderRadius: "[12px]",
+        borderRadius: "[18px]",
         padding: "[4px]",
       },
       sm: {
         borderRadius: "[12px]",
-        padding: "[2px]",
+        padding: "[3px]",
       },
     },
   },
@@ -38,7 +38,7 @@ const indicatorStyle = cva({
   variants: {
     size: {
       md: {
-        borderRadius: "[8px]",
+        borderRadius: "[14px]",
       },
       sm: {
         borderRadius: "[10px]",
@@ -69,12 +69,12 @@ const itemStyle = cva({
       md: {
         fontSize: "[13px]",
         borderRadius: "radius.6",
-        padding: "[4px 6px]",
+        padding: "[4px 8px]",
       },
       sm: {
         fontSize: "[11px]",
         borderRadius: "radius.4",
-        padding: "[2px 6px]",
+        padding: "[1px 8px]",
       },
     },
   },
