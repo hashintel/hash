@@ -825,18 +825,8 @@ async function runDemoIteration(cliArgs: CliArgs): Promise<boolean> {
     return !cliArgs.fixture; // Continue loop if interactive, exit if CLI-specified fixture
   }
 
-  // Show plan visualization (especially important for non-mock mode)
-  if (!fromCache) {
-    displayPlanVisualization(plan);
-  } else {
-    // Brief summary for cached plans
-    p.log.info(`Goal summary: ${color.cyan(plan.goalSummary)}`);
-    p.log.info(
-      `Steps: ${color.yellow(String(plan.steps.length))}, ` +
-        `Requirements: ${plan.requirements.length}, ` +
-        `Hypotheses: ${plan.hypotheses.length}`,
-    );
-  }
+  // Show full plan visualization for both real and cached plans
+  displayPlanVisualization(plan);
 
   // Score the plan and display results
   const scores = scorePlanComposite(plan);
