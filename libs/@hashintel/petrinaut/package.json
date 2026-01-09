@@ -48,6 +48,7 @@
     "@hashintel/ds-helpers": "0.0.1-b",
     "@local/eslint": "0.0.0-private",
     "@pandacss/dev": "1.4.3",
+    "@sentry/react": "10.22.0",
     "@types/babel__standalone": "7.1.9",
     "@types/react": "19.2.7",
     "@types/react-dom": "19.2.3",
