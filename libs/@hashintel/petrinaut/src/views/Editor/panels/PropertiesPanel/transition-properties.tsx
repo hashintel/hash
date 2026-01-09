@@ -114,7 +114,9 @@ const arcListContainerStyle = css({
 });
 
 const segmentGroupWrapperStyle = cva({
-  base: {},
+  base: {
+    marginTop: "[8px]",
+  },
   variants: {
     isReadOnly: {
       true: {
