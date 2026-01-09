@@ -274,6 +274,25 @@ function displayPlanVisualization(plan: PlanSpec): void {
   // Goal summary
   writeLine(`${color.bold("Goal:")} ${plan.goalSummary}`);
 
+  // Plan metadata (optional fields)
+  if (plan.aimType || plan.estimatedComplexity) {
+    writeLine("");
+    if (plan.aimType) {
+      writeLine(`${color.dim("Aim Type:")} ${plan.aimType}`);
+    }
+    if (plan.estimatedComplexity) {
+      const complexityColor =
+        plan.estimatedComplexity === "high"
+          ? color.red
+          : plan.estimatedComplexity === "medium"
+            ? color.yellow
+            : color.green;
+      writeLine(
+        `${color.dim("Estimated Complexity:")} ${complexityColor(plan.estimatedComplexity)}`,
+      );
+    }
+  }
+
   // Requirements
   if (plan.requirements.length > 0) {
     writeLine("");
