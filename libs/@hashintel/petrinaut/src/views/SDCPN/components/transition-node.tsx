@@ -76,11 +76,32 @@ const labelStyle = css({
   textAlign: "center",
 });
 
-const firingIndicatorStyle = css({
-  fontSize: "[16px]",
-  color: "core.yellow.60",
-  display: "flex",
-  alignItems: "center",
+const firingIndicatorStyle = cva({
+  base: {
+    position: "absolute",
+    bottom: "[8px]",
+    left: "[0px]",
+    width: "[100%]",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    fontSize: "[18px]",
+    color: "core.yellow.60",
+  },
+  variants: {
+    fired: {
+      true: {
+        opacity: "[1]",
+        transform: "scale(1)",
+      },
+      false: {
+        animation: "firingRelease 1s ease-out forwards",
+      },
+    },
+  },
+  defaultVariants: {
+    fired: false,
+  },
 });
 
 export const TransitionNode: React.FC<NodeProps<TransitionNodeData>> = ({
@@ -133,11 +154,9 @@ export const TransitionNode: React.FC<NodeProps<TransitionNodeData>> = ({
         )}
         <div className={contentWrapperStyle}>
           <div className={labelStyle}>{label}</div>
-          {justFired && (
-            <div className={firingIndicatorStyle}>
-              <TbBolt />
-            </div>
-          )}
+        </div>
+        <div className={firingIndicatorStyle({ fired: justFired })}>
+          <TbBolt />
         </div>
       </div>
       <Handle
