@@ -1,4 +1,5 @@
 import { css } from "@hashintel/ds-helpers/css";
+import { scaleLinear } from "d3-scale";
 import { useCallback, useMemo, useRef, useState } from "react";
 
 import { SegmentGroup } from "../../../components/segment-group";
@@ -15,9 +16,34 @@ const containerStyle = css({
   gap: "[8px]",
 });
 
-const chartContainerStyle = css({
+const chartRowStyle = css({
+  display: "flex",
   flex: "[1]",
   minHeight: "[60px]",
+  gap: "[4px]",
+});
+
+const yAxisStyle = css({
+  position: "relative",
+  display: "flex",
+  flexDirection: "column",
+  alignItems: "flex-end",
+  fontSize: "[10px]",
+  color: "[#666]",
+  paddingRight: "[4px]",
+  minWidth: "[32px]",
+  userSelect: "none",
+});
+
+const yAxisTickStyle = css({
+  position: "absolute",
+  right: "[4px]",
+  lineHeight: "[1]",
+  transform: "translateY(-50%)",
+});
+
+const chartContainerStyle = css({
+  flex: "[1]",
   position: "relative",
   cursor: "pointer",
 });
@@ -173,6 +199,101 @@ const useCompartmentData = (): CompartmentData[] => {
 };
 
 /**
+ * Represents the Y-axis scale configuration.
+ */
+interface YAxisScale {
+  /** The maximum value for the Y-axis (after applying .nice()) */
+  yMax: number;
+  /** Tick values to display on the Y-axis */
+  ticks: number[];
+  /** Convert a data value to a percentage (0-100) for SVG positioning */
+  toPercent: (value: number) => number;
+}
+
+/**
+ * Computes a nice Y-axis scale using D3's scale utilities.
+ * Returns tick values that are round numbers appropriate for the data range.
+ */
+const useYAxisScale = (
+  compartmentData: CompartmentData[],
+  chartType: TimelineChartType,
+  hiddenPlaces: Set<string>,
+): YAxisScale => {
+  return useMemo(() => {
+    if (compartmentData.length === 0) {
+      return {
+        yMax: 10,
+        ticks: [0, 5, 10],
+        toPercent: (value: number) => 100 - (value / 10) * 100,
+      };
+    }
+
+    // Filter to visible data
+    const visibleData = compartmentData.filter(
+      (item) => !hiddenPlaces.has(item.placeId),
+    );
+
+    let maxValue: number;
+
+    if (chartType === "stacked") {
+      // For stacked chart, calculate the maximum cumulative value
+      if (visibleData.length === 0) {
+        maxValue = 1;
+      } else {
+        const frameCount = visibleData[0]?.values.length ?? 0;
+        let maxCumulative = 0;
+        for (let frameIdx = 0; frameIdx < frameCount; frameIdx++) {
+          let cumulative = 0;
+          for (const data of visibleData) {
+            cumulative += data.values[frameIdx] ?? 0;
+          }
+          maxCumulative = Math.max(maxCumulative, cumulative);
+        }
+        maxValue = maxCumulative;
+      }
+    } else {
+      // For run chart, find the maximum individual value
+      maxValue = Math.max(1, ...visibleData.flatMap((item) => item.values));
+    }
+
+    // Use D3 to create a nice scale
+    const scale = scaleLinear().domain([0, maxValue]).nice();
+    const niceDomain = scale.domain();
+    const yMax = niceDomain[1] ?? maxValue;
+
+    // Get tick values (aim for 3-5 ticks based on the range)
+    const ticks = scale.ticks(4);
+
+    return {
+      yMax,
+      ticks,
+      toPercent: (value: number) => 100 - (value / yMax) * 100,
+    };
+  }, [compartmentData, chartType, hiddenPlaces]);
+};
+
+/**
+ * Y-axis component that displays tick labels.
+ */
+const YAxis: React.FC<{ scale: YAxisScale }> = ({ scale }) => {
+  return (
+    <div className={yAxisStyle}>
+      {scale.ticks.map((tick) => (
+        <span
+          key={tick}
+          className={yAxisTickStyle}
+          style={{
+            top: `${scale.toPercent(tick)}%`,
+          }}
+        >
+          {tick}
+        </span>
+      ))}
+    </div>
+  );
+};
+
+/**
  * Shared playhead indicator component for timeline charts.
  */
 const PlayheadIndicator: React.FC<{ totalFrames: number }> = ({
@@ -256,6 +377,7 @@ const TimelineLegend: React.FC<{
 interface ChartProps {
   compartmentData: CompartmentData[];
   legendState: LegendState;
+  yAxisScale: YAxisScale;
 }
 
 /**
@@ -265,6 +387,7 @@ interface ChartProps {
 const CompartmentTimeSeries: React.FC<ChartProps> = ({
   compartmentData,
   legendState,
+  yAxisScale,
 }) => {
   const simulation = useSimulationStore((state) => state.simulation);
   const setCurrentlyViewedFrame = useSimulationStore(
@@ -283,24 +406,15 @@ const CompartmentTimeSeries: React.FC<ChartProps> = ({
     }
 
     const totalFrames = simulation.frames.length;
-    const maxValue = Math.max(
-      1,
-      ...compartmentData.flatMap((data) => data.values),
-    );
-
-    // Add some padding to max value for visual breathing room
-    const yMax = Math.ceil(maxValue * 1.1);
 
     return {
       totalFrames,
-      maxValue,
-      yMax,
       xScale: (frameIndex: number, width: number) =>
         (frameIndex / Math.max(1, totalFrames - 1)) * width,
       yScale: (value: number, height: number) =>
-        height - (value / yMax) * height,
+        height - (value / yAxisScale.yMax) * height,
     };
-  }, [compartmentData, simulation]);
+  }, [compartmentData, simulation, yAxisScale.yMax]);
 
   // Handle mouse interaction for scrubbing
   const handleScrub = useCallback(
@@ -457,6 +571,7 @@ const CompartmentTimeSeries: React.FC<ChartProps> = ({
 const StackedAreaChart: React.FC<ChartProps> = ({
   compartmentData,
   legendState,
+  yAxisScale,
 }) => {
   const simulation = useSimulationStore((state) => state.simulation);
   const setCurrentlyViewedFrame = useSimulationStore(
@@ -511,23 +626,17 @@ const StackedAreaChart: React.FC<ChartProps> = ({
       });
     }
 
-    // Find the max stacked value for scaling
-    const maxValue = Math.max(1, ...cumulativeAtFrame);
-    const yMax = Math.ceil(maxValue * 1.1);
-
     return {
       stackedData: stacked,
       chartMetrics: {
         totalFrames,
-        maxValue,
-        yMax,
         xScale: (frameIndex: number, width: number) =>
           (frameIndex / Math.max(1, totalFrames - 1)) * width,
         yScale: (value: number, height: number) =>
-          height - (value / yMax) * height,
+          height - (value / yAxisScale.yMax) * height,
       },
     };
-  }, [visibleCompartmentData, simulation]);
+  }, [visibleCompartmentData, simulation, yAxisScale.yMax]);
 
   // Handle mouse interaction for scrubbing
   const handleScrub = useCallback(
@@ -691,6 +800,9 @@ const SimulationTimelineContent: React.FC = () => {
     [hiddenPlaces, hoveredPlaceId],
   );
 
+  // Compute Y-axis scale based on data and chart type
+  const yAxisScale = useYAxisScale(compartmentData, chartType, hiddenPlaces);
+
   // Toggle visibility handler
   const togglePlaceVisibility = useCallback((placeId: string) => {
     setHiddenPlaces((prev) => {
@@ -722,19 +834,24 @@ const SimulationTimelineContent: React.FC = () => {
 
   return (
     <div className={containerStyle}>
-      <div className={chartContainerStyle}>
-        {chartType === "stacked" ? (
-          <StackedAreaChart
-            compartmentData={compartmentData}
-            legendState={legendState}
-          />
-        ) : (
-          <CompartmentTimeSeries
-            compartmentData={compartmentData}
-            legendState={legendState}
-          />
-        )}
-        <PlayheadIndicator totalFrames={totalFrames} />
+      <div className={chartRowStyle}>
+        <YAxis scale={yAxisScale} />
+        <div className={chartContainerStyle}>
+          {chartType === "stacked" ? (
+            <StackedAreaChart
+              compartmentData={compartmentData}
+              legendState={legendState}
+              yAxisScale={yAxisScale}
+            />
+          ) : (
+            <CompartmentTimeSeries
+              compartmentData={compartmentData}
+              legendState={legendState}
+              yAxisScale={yAxisScale}
+            />
+          )}
+          <PlayheadIndicator totalFrames={totalFrames} />
+        </div>
       </div>
       <TimelineLegend
         compartmentData={compartmentData}
