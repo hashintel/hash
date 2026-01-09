@@ -192,14 +192,14 @@ export const EditorView = ({
                   //     clearSelection();
                   //   },
                   // },
-                  {
-                    id: "load-example-supply-chain-stochastic",
-                    label: "Supply Chain (Stochastic)",
-                    onClick: () => {
-                      createNewNet(supplyChainStochasticSDCPN);
-                      clearSelection();
-                    },
-                  },
+                  // {
+                  //   id: "load-example-supply-chain-stochastic",
+                  //   label: "Supply Chain (Stochastic)",
+                  //   onClick: () => {
+                  //     createNewNet(supplyChainStochasticSDCPN);
+                  //     clearSelection();
+                  //   },
+                  // },
                   {
                     id: "load-example-satellites",
                     label: "Satellites",
