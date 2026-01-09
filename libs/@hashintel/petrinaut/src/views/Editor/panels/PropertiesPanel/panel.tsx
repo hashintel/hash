@@ -16,13 +16,6 @@ import { PlaceProperties } from "./place-properties";
 import { TransitionProperties } from "./transition-properties";
 import { TypeProperties } from "./type-properties";
 
-const unknownItemStyle = css({
-  padding: "[16px]",
-  textAlign: "center",
-  color: "[#999]",
-  fontSize: "[14px]",
-});
-
 const positionContainerStyle = css({
   display: "flex",
   position: "fixed",
@@ -95,7 +88,8 @@ export const PropertiesPanel: React.FC = () => {
   const itemType = getItemType(selectedId);
 
   // Don't show panel for arcs - they can only be deleted, not edited
-  if (itemType === "arc") {
+  // Don't show panel if the selected item doesn't exist (e.g. after switching documents)
+  if (itemType === "arc" || itemType === null) {
     return null;
   }
 
@@ -178,10 +172,6 @@ export const PropertiesPanel: React.FC = () => {
       }
       break;
     }
-
-    default:
-      // Unknown item type
-      content = <div className={unknownItemStyle}>Unknown item selected</div>;
   }
 
   // Calculate bottom offset based on bottom panel visibility
