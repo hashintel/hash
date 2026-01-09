@@ -15,7 +15,7 @@ const containerStyle = css({
 const transitionBoxStyle = cva({
   base: {
     padding: "spacing.4",
-    borderRadius: "radius.8",
+    borderRadius: "radius.6",
     width: "[160px]",
     height: "[80px]",
     display: "flex",
