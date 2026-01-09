@@ -196,6 +196,71 @@ function formatStepForDisplay(step: PlanStep, depth: number): string[] {
     `${indent}   ${color.dim(`executor: ${getExecutorRef(step.executor)}`)}`,
   );
 
+  // Type-specific metadata
+  switch (step.type) {
+    case "research":
+      lines.push(`${indent}   ${color.dim("query:")} ${step.query}`);
+      lines.push(
+        `${indent}   ${color.dim("stopping rule:")} ${step.stoppingRule}`,
+      );
+      break;
+
+    case "experiment":
+      lines.push(`${indent}   ${color.dim("mode:")} ${step.mode}`);
+      if (step.hypothesisIds.length > 0) {
+        lines.push(
+          `${indent}   ${color.dim("hypotheses:")} ${step.hypothesisIds.join(", ")}`,
+        );
+      }
+      if (step.successCriteria.length > 0) {
+        lines.push(`${indent}   ${color.dim("success criteria:")}`);
+        for (const criterion of step.successCriteria) {
+          lines.push(`${indent}     ${color.dim("•")} ${criterion}`);
+        }
+      }
+      if (
+        step.preregisteredCommitments &&
+        step.preregisteredCommitments.length > 0
+      ) {
+        lines.push(`${indent}   ${color.dim("preregistered commitments:")}`);
+        for (const commitment of step.preregisteredCommitments) {
+          lines.push(`${indent}     ${color.dim("•")} ${commitment}`);
+        }
+      }
+      if (step.expectedOutcomes.length > 0) {
+        lines.push(`${indent}   ${color.dim("expected outcomes:")}`);
+        for (const outcome of step.expectedOutcomes) {
+          lines.push(`${indent}     ${color.dim("•")} ${outcome}`);
+        }
+      }
+      break;
+
+    case "synthesize":
+      lines.push(`${indent}   ${color.dim("mode:")} ${step.mode}`);
+      if (
+        step.mode === "evaluative" &&
+        step.evaluateAgainst &&
+        step.evaluateAgainst.length > 0
+      ) {
+        lines.push(
+          `${indent}   ${color.dim("evaluate against:")} ${step.evaluateAgainst.join(", ")}`,
+        );
+      }
+      break;
+
+    case "develop":
+      lines.push(
+        `${indent}   ${color.dim("specification:")} ${step.specification}`,
+      );
+      if (step.deliverables.length > 0) {
+        lines.push(`${indent}   ${color.dim("deliverables:")}`);
+        for (const deliverable of step.deliverables) {
+          lines.push(`${indent}     ${color.dim("•")} ${deliverable}`);
+        }
+      }
+      break;
+  }
+
   return lines;
 }
 
