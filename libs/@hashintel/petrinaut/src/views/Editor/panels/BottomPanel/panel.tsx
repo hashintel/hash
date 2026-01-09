@@ -96,7 +96,8 @@ export const BottomPanel: React.FC = () => {
     ? [...BOTTOM_PANEL_SUBVIEWS, ...SIMULATION_ONLY_SUBVIEWS]
     : BOTTOM_PANEL_SUBVIEWS;
 
-  // Automatically open bottom panel and switch to timeline when simulation starts
+  // Automatically open bottom panel and switch to timeline when simulation starts,
+  // and fall back to diagnostics when simulation stops
   useEffect(() => {
     const wasActive = prevSimulationActiveRef.current;
     prevSimulationActiveRef.current = isSimulationActive;
@@ -106,7 +107,17 @@ export const BottomPanel: React.FC = () => {
       setBottomPanelOpen(true);
       setActiveTab("simulation-timeline");
     }
-  }, [isSimulationActive, setBottomPanelOpen, setActiveTab]);
+
+    // Simulation just stopped (transition from active to inactive)
+    // If the current tab is simulation-only, fall back to diagnostics
+    if (
+      !isSimulationActive &&
+      wasActive &&
+      activeTab === "simulation-timeline"
+    ) {
+      setActiveTab("diagnostics");
+    }
+  }, [isSimulationActive, setBottomPanelOpen, setActiveTab, activeTab]);
 
   // Handler for tab change that casts string to BottomPanelTab
   const handleTabChange = useCallback(
