@@ -1,21 +1,9 @@
 import * as Sentry from "@sentry/react";
 
-// Get Sentry DSN from environment variable (injected at build time via vite.config.ts)
-// The value is read from .env files and exposed via import.meta.env.SENTRY_DSN
-const sentryDsn =
-  typeof import.meta.env.SENTRY_DSN === "string"
-    ? import.meta.env.SENTRY_DSN
-    : undefined;
-
-const environment =
-  typeof import.meta.env.ENVIRONMENT === "string"
-    ? import.meta.env.ENVIRONMENT
-    : "development";
-
 Sentry.init({
-  dsn: sentryDsn,
-  enabled: environment === "production",
-  environment,
+  dsn: __SENTRY_DSN__,
+  enabled: __ENVIRONMENT__ === "production",
+  environment: __ENVIRONMENT__,
   integrations: [
     Sentry.browserApiErrorsIntegration(),
     Sentry.browserTracingIntegration(),
@@ -27,5 +15,5 @@ Sentry.init({
       submitButtonLabel: "Submit feedback",
     }),
   ],
-  tracesSampleRate: environment === "production" ? 1.0 : 0,
+  tracesSampleRate: __ENVIRONMENT__ === "production" ? 1.0 : 0,
 });

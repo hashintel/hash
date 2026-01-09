@@ -8,12 +8,10 @@ export default defineConfig(({ mode }) => {
   const isLibMode = mode === "lib" || !!process.env.VITEST;
 
   // Load environment variables from .env files
-  // For demo-site builds, load from the package root directory
-  const envDir = isLibMode ? undefined : path.resolve(__dirname);
-  const env = loadEnv(mode, envDir ?? process.cwd(), "");
+  const env = loadEnv(mode, process.cwd(), "");
 
-  // Get SENTRY_DSN from environment variables
-  const sentryDsn = env.SENTRY_DSN ?? process.env.SENTRY_DSN;
+  const environment = env.VITE_VERCEL_ENV ?? "development";
+  const sentryDsn: string | undefined = env.SENTRY_DSN;
 
   return {
     root: isLibMode ? undefined : "demo-site",
@@ -78,10 +76,10 @@ export default defineConfig(({ mode }) => {
     ],
 
     define: {
+      __ENVIRONMENT__: JSON.stringify(environment),
+      __SENTRY_DSN__: JSON.stringify(sentryDsn),
       // Provide minimal process shim for TypeScript language service in browser
       "process.versions": JSON.stringify({ pnp: undefined }),
-      // Expose SENTRY_DSN at build time
-      "import.meta.env.SENTRY_DSN": JSON.stringify(sentryDsn),
     },
     optimizeDeps: {
       include: ["@babel/standalone"],

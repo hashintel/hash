@@ -1,10 +1,4 @@
 /// <reference types="vite/client" />
 
-interface ImportMetaEnv {
-  readonly SENTRY_DSN?: string;
-  readonly ENVIRONMENT?: string;
-}
-
-interface ImportMeta {
-  readonly env: ImportMetaEnv;
-}
+declare const __SENTRY_DSN__: string | undefined;
+declare const __ENVIRONMENT__: string;
