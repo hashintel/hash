@@ -440,9 +440,10 @@ fn mark_dead_blocks<A: BumpAllocator>(
     }
 
     // Mark blocks that disappeared from the reachable set.
+    let basic_blocks = body.basic_blocks.as_mut();
     for &block in previous_reverse_postorder {
         if !reverse_postorder.contains(&block) {
-            body.basic_blocks.as_mut()[block].terminator.kind = TerminatorKind::Unreachable;
+            basic_blocks[block].terminator.kind = TerminatorKind::Unreachable;
         }
     }
 }

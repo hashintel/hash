@@ -154,6 +154,7 @@ hifijson                           = { version = "0.4.0", default-features = fal
 http                               = { version = "1.3.1", default-features = false }
 humansize                          = { version = "2.1.3", default-features = false }
 hyper                              = { version = "1.7.0", default-features = false }
+imbl                               = { version = "6.1.0", default-features = false }
 include_dir                        = { version = "0.7.4", default-features = false }
 include_dir_macros                 = { version = "0.7.4", default-features = false }
 indexmap                           = { version = "2.12.0", default-features = false }

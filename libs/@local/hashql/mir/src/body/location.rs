@@ -41,6 +41,6 @@ impl Display for Location {
             statement_index,
         } = self;
 
-        write!(fmt, "bb{block}:{statement_index}")
+        write!(fmt, "{block}:{statement_index}")
     }
 }

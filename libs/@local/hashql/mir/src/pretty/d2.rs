@@ -250,7 +250,7 @@ struct BasicBlockName(BasicBlockId);
 
 impl fmt::Display for BasicBlockName {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(fmt, "bb{}", self.0)
+        write!(fmt, "{}", self.0)
     }
 }
 
@@ -330,7 +330,7 @@ where
                 write!(self.writer, ", ")?;
             }
 
-            write!(self.writer, "%{param}")?;
+            write!(self.writer, "{param}")?;
         }
         write!(self.writer, ")</td>")?;
 

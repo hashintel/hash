@@ -39,6 +39,7 @@ id::newtype!(
 impl FieldIndex {
     pub const ENV: Self = Self(1);
     pub const FN_PTR: Self = Self(0);
+    pub const OPAQUE_VALUE: Self = Self(0);
 }
 
 /// Context for reading from a [`Place`].
@@ -484,7 +485,7 @@ impl fmt::Display for ProjectionKind<'_> {
         match self {
             ProjectionKind::Field(index) => write!(fmt, ".{index}"),
             ProjectionKind::FieldByName(name) => write!(fmt, ".{name}"),
-            ProjectionKind::Index(index) => write!(fmt, "[%{index}]"),
+            ProjectionKind::Index(index) => write!(fmt, "[{index}]"),
         }
     }
 }

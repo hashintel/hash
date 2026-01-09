@@ -9,6 +9,7 @@ use hashql_core::{heap, id, intern::Interned};
 use super::{local::Local, statement::Statement, terminator::Terminator};
 
 id::newtype!(
+    #[display = "bb{}"]
     /// A unique identifier for a basic block in the HashQL MIR.
     ///
     /// Basic blocks are identified by unique IDs that allow efficient referencing

@@ -193,6 +193,23 @@ where
         "Cannot intern a zero-sized type"
     );
 
+    /// Reserves capacity for at least `capacity` elements to be inserted into the set.
+    ///
+    /// This method is useful for preallocating memory to avoid frequent reallocations.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use hashql_core::{heap::Heap, intern::InternSet};
+    /// let heap = Heap::new();
+    /// let interner: InternSet<u32> = InternSet::new(&heap);
+    ///
+    /// interner.reserve(100);
+    /// ```
+    pub fn reserve(&self, capacity: usize) {
+        self.inner.lock().reserve(capacity);
+    }
+
     /// Interns a value into the set.
     ///
     /// This method ensures that only one copy of a value exists in memory. When a value

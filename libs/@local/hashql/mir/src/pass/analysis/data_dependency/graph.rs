@@ -395,7 +395,7 @@ impl<A: Allocator> fmt::Display for DataDependencyGraph<'_, A> {
 
         for (local, bindings) in self.constant_bindings.inner.iter_enumerated() {
             for ConstantBinding { kind, constant } in bindings {
-                writeln!(fmt, "%{local} -> {constant} [{kind:?}]")?;
+                writeln!(fmt, "{local} -> {constant} [{kind:?}]")?;
             }
         }
 
