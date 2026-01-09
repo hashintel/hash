@@ -1,3 +1,6 @@
+// Sentry is only used in the demo site, which is bundled by Vite,
+// so we can keep @sentry/react a dev dependency.
+// eslint-disable-next-line import/no-extraneous-dependencies
 import * as Sentry from "@sentry/react";
 
 Sentry.init({
