@@ -231,8 +231,27 @@ function displayPlanVisualization(plan: PlanSpec): void {
     writeLine("");
     writeLine(color.bold("Hypotheses:"));
     for (const hyp of plan.hypotheses) {
+      // Status color coding
+      const statusColors: Record<string, (s: string) => string> = {
+        untested: color.dim,
+        testing: color.yellow,
+        supported: color.green,
+        refuted: color.red,
+        inconclusive: color.gray,
+      };
+      const statusColorFn = statusColors[hyp.status] ?? color.dim;
+
       writeLine(`  ${color.cyan(hyp.id)}: ${hyp.statement}`);
-      writeLine(`    ${color.dim(`testable via: ${hyp.testableVia}`)}`);
+      writeLine(`    ${color.dim("status:")} ${statusColorFn(hyp.status)}`);
+      writeLine(`    ${color.dim("testable via:")} ${hyp.testableVia}`);
+
+      // Show assumptions if present
+      if (hyp.assumptions.length > 0) {
+        writeLine(`    ${color.dim("assumptions:")}`);
+        for (const assumption of hyp.assumptions) {
+          writeLine(`      ${color.dim("•")} ${assumption}`);
+        }
+      }
     }
   }
 
