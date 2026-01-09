@@ -82,6 +82,19 @@ const FIXTURES: Array<{
   },
 ];
 
+/**
+ * Custom goals added by the user during this session.
+ * Persists across demo iterations until the process exits.
+ */
+interface CustomGoal {
+  id: string;
+  label: string;
+  input: PlanningGoal["input"];
+  cachedPlan?: PlanSpec;
+}
+
+const customGoals: CustomGoal[] = [];
+
 // =============================================================================
 // CLI ARGUMENT PARSING
 // =============================================================================
@@ -113,6 +126,114 @@ function parseCliArgs(): CliArgs {
   }
 
   return result;
+}
+
+// =============================================================================
+// CUSTOM GOAL INPUT
+// =============================================================================
+
+/**
+ * Prompt user for a custom research goal with guided input and confirmation.
+ * Returns the CustomGoal object, or undefined if cancelled.
+ */
+async function promptForCustomGoal(): Promise<CustomGoal | undefined> {
+  let goalText = "";
+  let contextText = "";
+  let confirmed = false;
+
+  // Loop until confirmed or cancelled
+  while (!confirmed) {
+    // Goal input with hints
+    p.note(
+      `A good research goal is specific and outcome-focused.\n` +
+        `Examples:\n` +
+        `  • "Validate whether RAG improves accuracy for legal Q&A"\n` +
+        `  • "Compare embedding models for scientific paper search"\n` +
+        `  • "Determine optimal chunk size for document retrieval"`,
+      "Goal guidance",
+    );
+
+    const goalResult = await p.text({
+      message: "Describe your research goal:",
+      placeholder: "Determine whether X is more effective than Y for Z",
+      initialValue: goalText,
+      validate: (value) => {
+        if (value.length < 10) {
+          return "Please provide a more detailed goal (at least 10 characters)";
+        }
+      },
+    });
+
+    if (p.isCancel(goalResult)) {
+      return undefined;
+    }
+    goalText = goalResult;
+
+    // Context input with hints
+    p.note(
+      `Context helps the planner understand constraints and background.\n` +
+        `Examples:\n` +
+        `  • Available resources, timeline, or technical constraints\n` +
+        `  • Domain knowledge or assumptions to consider\n` +
+        `  • Prior work or approaches already attempted`,
+      "Context guidance",
+    );
+
+    const contextResult = await p.text({
+      message: "Provide context:",
+      placeholder: "Background information, constraints, assumptions...",
+      initialValue: contextText,
+      validate: (value) => {
+        if (value.length < 10) {
+          return "Please provide some context (at least 10 characters)";
+        }
+      },
+    });
+
+    if (p.isCancel(contextResult)) {
+      return undefined;
+    }
+    contextText = contextResult;
+
+    // Confirmation step
+    p.note(
+      `${color.bold("Goal:")}\n${goalText}\n\n${color.bold("Context:")}\n${contextText}`,
+      "Review your input",
+    );
+
+    const confirmResult = await p.select({
+      message: "Proceed with this goal?",
+      options: [
+        { value: "yes", label: "Yes, generate plan" },
+        { value: "edit", label: "Edit goal and context" },
+        { value: "cancel", label: "Cancel" },
+      ],
+    });
+
+    if (p.isCancel(confirmResult) || confirmResult === "cancel") {
+      return undefined;
+    }
+
+    if (confirmResult === "yes") {
+      confirmed = true;
+    }
+    // If "edit", loop continues with pre-filled values
+  }
+
+  // Create and return the custom goal
+  const goalId = `custom-${Date.now()}`;
+  const truncatedLabel =
+    goalText.length > 40 ? `${goalText.slice(0, 37)}...` : goalText;
+
+  return {
+    id: goalId,
+    label: truncatedLabel,
+    input: {
+      id: goalId,
+      goal: goalText,
+      context: contextText,
+    },
+  };
 }
 
 // =============================================================================
@@ -749,7 +870,9 @@ async function executePlan(
  */
 async function runDemoIteration(cliArgs: CliArgs): Promise<boolean> {
   // Fixture selection - use CLI arg or prompt
-  let selectedFixture: PlanningGoal;
+  // Using definite assignment assertion - the loop logic guarantees assignment before use
+  let selectedFixture!: PlanningGoal;
+  let customGoalRef: CustomGoal | undefined; // Track if this is a custom goal (for caching)
 
   if (cliArgs.fixture) {
     const found = FIXTURES.find(
@@ -765,25 +888,95 @@ async function runDemoIteration(cliArgs: CliArgs): Promise<boolean> {
     selectedFixture = found.fixture;
     p.log.info(`Fixture: ${color.cyan(found.label)} (from CLI)`);
   } else {
-    const fixtureChoice = await p.select({
-      message: "Select a fixture:",
-      options: [
-        ...FIXTURES.map((item) => ({
-          value: item.fixture.input.id,
-          label: item.label,
-          hint: item.hint,
-        })),
-        { value: "__exit__", label: "Exit", hint: "Quit the demo" },
-      ],
-    });
+    // Fixture selection loop (allows retry on cancel from custom goal prompt)
+    let selectionComplete = false;
+    while (!selectionComplete) {
+      // Build options: presets + custom goals + add option (real mode only) + exit
+      const presetOptions = FIXTURES.map((item) => ({
+        value: item.fixture.input.id,
+        label: item.label,
+        hint: item.hint,
+      }));
 
-    if (p.isCancel(fixtureChoice) || fixtureChoice === "__exit__") {
-      return false;
+      const customGoalOptions = customGoals.map((cg) => ({
+        value: cg.id,
+        label: cg.label,
+        hint: cg.cachedPlan ? "Custom (cached)" : "Custom",
+      }));
+
+      const addCustomOption = cliArgs.mock
+        ? [] // Don't show "Add custom goal" in mock mode
+        : [
+            {
+              value: "__add_custom__",
+              label: "Add custom goal...",
+              hint: "Enter your own research goal",
+            },
+          ];
+
+      const fixtureChoice = await p.select({
+        message: "Select a fixture:",
+        options: [
+          ...presetOptions,
+          ...customGoalOptions,
+          ...addCustomOption,
+          { value: "__exit__", label: "Exit", hint: "Quit the demo" },
+        ],
+      });
+
+      if (p.isCancel(fixtureChoice) || fixtureChoice === "__exit__") {
+        return false;
+      }
+
+      // Handle "Add custom goal" selection
+      if (fixtureChoice === "__add_custom__") {
+        const newCustomGoal = await promptForCustomGoal();
+        if (!newCustomGoal) {
+          // User cancelled, restart fixture selection
+          continue;
+        }
+        customGoals.push(newCustomGoal);
+        customGoalRef = newCustomGoal;
+        // Create a minimal PlanningGoal for custom goals
+        selectedFixture = {
+          input: newCustomGoal.input,
+          expected: {
+            shouldHaveHypotheses: false,
+            shouldHaveExperiments: false,
+            shouldHaveConcurrentResearch: true,
+            minSteps: 3,
+            maxSteps: 15,
+            expectedStepTypes: ["research"],
+          },
+        };
+        selectionComplete = true;
+      } else {
+        // Check if it's a custom goal
+        const existingCustomGoal = customGoals.find(
+          (cg) => cg.id === fixtureChoice,
+        );
+        if (existingCustomGoal) {
+          customGoalRef = existingCustomGoal;
+          selectedFixture = {
+            input: existingCustomGoal.input,
+            expected: {
+              shouldHaveHypotheses: false,
+              shouldHaveExperiments: false,
+              shouldHaveConcurrentResearch: true,
+              minSteps: 3,
+              maxSteps: 15,
+              expectedStepTypes: ["research"],
+            },
+          };
+        } else {
+          // It's a preset fixture
+          selectedFixture = FIXTURES.find(
+            (item) => item.fixture.input.id === fixtureChoice,
+          )!.fixture;
+        }
+        selectionComplete = true;
+      }
     }
-
-    selectedFixture = FIXTURES.find(
-      (item) => item.fixture.input.id === fixtureChoice,
-    )!.fixture;
   }
 
   // Display goal
