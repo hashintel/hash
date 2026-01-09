@@ -4,17 +4,17 @@ export type ParameterValues = Record<string, number | boolean>;
 
 export type DifferentialEquationFn = (
   tokens: Record<string, number>[],
-  parameters: ParameterValues
+  parameters: ParameterValues,
 ) => Record<string, number>[];
 
 export type LambdaFn = (
   tokenValues: Record<string, Record<string, number>[]>,
-  parameters: ParameterValues
+  parameters: ParameterValues,
 ) => number | boolean;
 
 export type TransitionKernelFn = (
   tokenValues: Record<string, Record<string, number>[]>,
-  parameters: ParameterValues
+  parameters: ParameterValues,
 ) => Record<string, Record<string, number>[]>;
 
 export type SimulationInput = {

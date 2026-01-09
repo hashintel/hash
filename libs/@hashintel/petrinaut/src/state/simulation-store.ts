@@ -54,7 +54,7 @@ export type SimulationStoreState = {
   // Set initial marking for a specific place
   setInitialMarking: (
     placeId: string,
-    marking: { values: Float64Array; count: number }
+    marking: { values: Float64Array; count: number },
   ) => void;
 
   // Set a parameter value
@@ -117,7 +117,7 @@ export function createSimulationStore(getSDCPN: () => { sdcpn: SDCPN }) {
                 return { initialMarking: newMarking };
               },
               false,
-              { type: "setInitialMarking", placeId, marking }
+              { type: "setInitialMarking", placeId, marking },
             ),
 
           setParameterValue: (parameterId, value) =>
@@ -129,7 +129,7 @@ export function createSimulationStore(getSDCPN: () => { sdcpn: SDCPN }) {
                 },
               }),
               false,
-              { type: "setParameterValue", parameterId, value }
+              { type: "setParameterValue", parameterId, value },
             ),
 
           setDt: (dt) => set({ dt }, false, { type: "setDt", dt }),
@@ -139,7 +139,7 @@ export function createSimulationStore(getSDCPN: () => { sdcpn: SDCPN }) {
               () => {
                 const { sdcpn } = getSDCPN();
                 const defaultValues = deriveDefaultParameterValues(
-                  sdcpn.parameters
+                  sdcpn.parameters,
                 );
 
                 // Convert to string format for storage (matching the parameterValues type)
@@ -151,7 +151,7 @@ export function createSimulationStore(getSDCPN: () => { sdcpn: SDCPN }) {
                 return { parameterValues };
               },
               false,
-              "initializeParameterValuesFromDefaults"
+              "initializeParameterValuesFromDefaults",
             ),
 
           initialize: ({ seed, dt }) =>
@@ -160,7 +160,7 @@ export function createSimulationStore(getSDCPN: () => { sdcpn: SDCPN }) {
                 // Prevent initialization if already running
                 if (state.state === "Running") {
                   throw new Error(
-                    "Cannot initialize simulation while it is running. Please reset first."
+                    "Cannot initialize simulation while it is running. Please reset first.",
                   );
                 }
 
@@ -177,7 +177,7 @@ export function createSimulationStore(getSDCPN: () => { sdcpn: SDCPN }) {
                         ? firstDiagnostic.messageText
                         : ts.flattenDiagnosticMessageText(
                             firstDiagnostic.messageText,
-                            "\n"
+                            "\n",
                           );
 
                     return {
@@ -221,7 +221,7 @@ export function createSimulationStore(getSDCPN: () => { sdcpn: SDCPN }) {
                 }
               },
               false,
-              "initialize"
+              "initialize",
             ),
 
           step: () =>
@@ -229,19 +229,19 @@ export function createSimulationStore(getSDCPN: () => { sdcpn: SDCPN }) {
               (state) => {
                 if (!state.simulation) {
                   throw new Error(
-                    "Cannot step simulation: No simulation initialized. Call initialize() first."
+                    "Cannot step simulation: No simulation initialized. Call initialize() first.",
                   );
                 }
 
                 if (state.state === "Error") {
                   throw new Error(
-                    "Cannot step simulation: Simulation is in error state. Please reset."
+                    "Cannot step simulation: Simulation is in error state. Please reset.",
                   );
                 }
 
                 if (state.state === "Complete") {
                   throw new Error(
-                    "Cannot step simulation: Simulation is complete. Please reset to run again."
+                    "Cannot step simulation: Simulation is complete. Please reset to run again.",
                   );
                 }
 
@@ -272,7 +272,7 @@ export function createSimulationStore(getSDCPN: () => { sdcpn: SDCPN }) {
                 }
               },
               false,
-              "step"
+              "step",
             ),
 
           run: () =>
@@ -280,19 +280,19 @@ export function createSimulationStore(getSDCPN: () => { sdcpn: SDCPN }) {
               (state) => {
                 if (!state.simulation) {
                   throw new Error(
-                    "Cannot run simulation: No simulation initialized. Call initialize() first."
+                    "Cannot run simulation: No simulation initialized. Call initialize() first.",
                   );
                 }
 
                 if (state.state === "Error") {
                   throw new Error(
-                    "Cannot run simulation: Simulation is in error state. Please reset."
+                    "Cannot run simulation: Simulation is in error state. Please reset.",
                   );
                 }
 
                 if (state.state === "Complete") {
                   throw new Error(
-                    "Cannot run simulation: Simulation is complete. Please reset to run again."
+                    "Cannot run simulation: Simulation is complete. Please reset to run again.",
                   );
                 }
 
@@ -319,7 +319,7 @@ export function createSimulationStore(getSDCPN: () => { sdcpn: SDCPN }) {
                         set(
                           { _runTimeoutId: timeoutId },
                           false,
-                          "run:scheduleNext"
+                          "run:scheduleNext",
                         );
                       } catch {
                         // Error is already handled by step()
@@ -329,7 +329,7 @@ export function createSimulationStore(getSDCPN: () => { sdcpn: SDCPN }) {
 
                   const initialTimeoutId = setTimeout(
                     executeStep,
-                    20
+                    20,
                   ) as unknown as number;
                   return { state: "Running", _runTimeoutId: initialTimeoutId };
                 }
@@ -337,7 +337,7 @@ export function createSimulationStore(getSDCPN: () => { sdcpn: SDCPN }) {
                 return { state: "Running" };
               },
               false,
-              "run"
+              "run",
             ),
 
           pause: () =>
@@ -354,7 +354,7 @@ export function createSimulationStore(getSDCPN: () => { sdcpn: SDCPN }) {
                 };
               },
               false,
-              "pause"
+              "pause",
             ),
 
           reset: () =>
@@ -368,7 +368,7 @@ export function createSimulationStore(getSDCPN: () => { sdcpn: SDCPN }) {
                 // Get default parameter values from SDCPN
                 const { sdcpn } = getSDCPN();
                 const defaultValues = deriveDefaultParameterValues(
-                  sdcpn.parameters
+                  sdcpn.parameters,
                 );
 
                 // Convert to string format for storage
@@ -389,7 +389,7 @@ export function createSimulationStore(getSDCPN: () => { sdcpn: SDCPN }) {
                 };
               },
               false,
-              "reset"
+              "reset",
             ),
 
           setState: (newState) =>
@@ -398,26 +398,26 @@ export function createSimulationStore(getSDCPN: () => { sdcpn: SDCPN }) {
                 // Validate state transitions
                 if (!state.simulation && newState !== "NotRun") {
                   throw new Error(
-                    "Cannot change state: No simulation initialized."
+                    "Cannot change state: No simulation initialized.",
                   );
                 }
 
                 if (state.state === "Error" && newState === "Running") {
                   throw new Error(
-                    "Cannot start simulation: Simulation is in error state. Please reset."
+                    "Cannot start simulation: Simulation is in error state. Please reset.",
                   );
                 }
 
                 if (state.state === "Complete" && newState === "Running") {
                   throw new Error(
-                    "Cannot start simulation: Simulation is complete. Please reset."
+                    "Cannot start simulation: Simulation is complete. Please reset.",
                   );
                 }
 
                 return { state: newState };
               },
               false,
-              { type: "setState", newState }
+              { type: "setState", newState },
             ),
 
           setCurrentlyViewedFrame: (frameIndex) =>
@@ -425,20 +425,20 @@ export function createSimulationStore(getSDCPN: () => { sdcpn: SDCPN }) {
               (state) => {
                 if (!state.simulation) {
                   throw new Error(
-                    "Cannot set viewed frame: No simulation initialized."
+                    "Cannot set viewed frame: No simulation initialized.",
                   );
                 }
 
                 const totalFrames = state.simulation.frames.length;
                 const clampedIndex = Math.max(
                   0,
-                  Math.min(frameIndex, totalFrames - 1)
+                  Math.min(frameIndex, totalFrames - 1),
                 );
 
                 return { currentlyViewedFrame: clampedIndex };
               },
               false,
-              { type: "setCurrentlyViewedFrame", frameIndex }
+              { type: "setCurrentlyViewedFrame", frameIndex },
             ),
 
           __reinitialize: () => {
@@ -452,13 +452,13 @@ export function createSimulationStore(getSDCPN: () => { sdcpn: SDCPN }) {
                 _runTimeoutId: null,
               },
               false,
-              "reinitialize"
+              "reinitialize",
             );
           },
           // for some reason 'create' doesn't raise an error if a function in the type is missing
-        } satisfies SimulationStoreState),
-      { name: "Simulation Store" }
-    )
+        }) satisfies SimulationStoreState,
+      { name: "Simulation Store" },
+    ),
   );
 
   return store;

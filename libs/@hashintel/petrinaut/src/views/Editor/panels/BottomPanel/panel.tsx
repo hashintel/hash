@@ -71,7 +71,7 @@ const closeButtonStyle = css({
 export const BottomPanel: React.FC = () => {
   const isOpen = useEditorStore((state) => state.isBottomPanelOpen);
   const setBottomPanelOpen = useEditorStore(
-    (state) => state.setBottomPanelOpen
+    (state) => state.setBottomPanelOpen,
   );
   const isLeftSidebarOpen = useEditorStore((state) => state.isLeftSidebarOpen);
   const leftSidebarWidth = useEditorStore((state) => state.leftSidebarWidth);
