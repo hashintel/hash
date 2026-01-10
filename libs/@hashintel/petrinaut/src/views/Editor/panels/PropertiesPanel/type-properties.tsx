@@ -2,6 +2,7 @@ import { css, cva } from "@hashintel/ds-helpers/css";
 import { useState } from "react";
 import { v4 as uuidv4 } from "uuid";
 
+import { DisabledTooltip } from "../../../../components/disabled-tooltip";
 import type { Color } from "../../../../core/types/sdcpn";
 import { useIsReadOnly } from "../../../../state/use-is-read-only";
 import { ColorSelect } from "./color-select";
@@ -402,30 +403,34 @@ export const TypeProperties: React.FC<TypePropertiesProps> = ({
 
       <div>
         <div className={fieldLabelStyle}>Name</div>
-        <input
-          type="text"
-          value={type.name}
-          onChange={(event) => {
-            updateType(type.id, (existingType) => {
-              existingType.name = event.target.value;
-            });
-          }}
-          disabled={isDisabled}
-          className={inputStyle({ isDisabled })}
-        />
+        <DisabledTooltip disabled={isDisabled}>
+          <input
+            type="text"
+            value={type.name}
+            onChange={(event) => {
+              updateType(type.id, (existingType) => {
+                existingType.name = event.target.value;
+              });
+            }}
+            disabled={isDisabled}
+            className={inputStyle({ isDisabled })}
+          />
+        </DisabledTooltip>
       </div>
 
       <div>
         <div className={fieldLabelStyle}>Color</div>
-        <ColorSelect
-          value={type.displayColor}
-          onChange={(color) => {
-            updateType(type.id, (existingType) => {
-              existingType.displayColor = color;
-            });
-          }}
-          disabled={isDisabled}
-        />
+        <DisabledTooltip disabled={isDisabled}>
+          <ColorSelect
+            value={type.displayColor}
+            onChange={(color) => {
+              updateType(type.id, (existingType) => {
+                existingType.displayColor = color;
+              });
+            }}
+            disabled={isDisabled}
+          />
+        </DisabledTooltip>
       </div>
 
       {/* Dimensions Section - Editable with drag-to-reorder */}
@@ -435,15 +440,17 @@ export const TypeProperties: React.FC<TypePropertiesProps> = ({
             Dimensions
             <span className={dimensionsHintStyle}>(order matters)</span>
           </div>
-          <button
-            type="button"
-            onClick={handleAddElement}
-            disabled={isDisabled}
-            className={addDimensionButtonStyle({ isDisabled })}
-            aria-label="Add dimension"
-          >
-            +
-          </button>
+          <DisabledTooltip disabled={isDisabled}>
+            <button
+              type="button"
+              onClick={handleAddElement}
+              disabled={isDisabled}
+              className={addDimensionButtonStyle({ isDisabled })}
+              aria-label="Add dimension"
+            >
+              +
+            </button>
+          </DisabledTooltip>
         </div>
 
         {type.elements.length === 0 ? (
@@ -482,38 +489,42 @@ export const TypeProperties: React.FC<TypePropertiesProps> = ({
                 <div className={indexChipStyle}>{index}</div>
 
                 {/* Name input */}
-                <input
-                  type="text"
-                  value={element.name}
-                  onChange={(event) => {
-                    handleUpdateElementName(
-                      element.elementId,
-                      event.target.value,
-                    );
-                  }}
-                  onBlur={(event) => {
-                    handleBlurElementName(
-                      element.elementId,
-                      event.target.value,
-                    );
-                  }}
-                  disabled={isDisabled}
-                  placeholder="dimension_name"
-                  className={dimensionNameInputStyle({ isDisabled })}
-                />
+                <DisabledTooltip disabled={isDisabled}>
+                  <input
+                    type="text"
+                    value={element.name}
+                    onChange={(event) => {
+                      handleUpdateElementName(
+                        element.elementId,
+                        event.target.value,
+                      );
+                    }}
+                    onBlur={(event) => {
+                      handleBlurElementName(
+                        element.elementId,
+                        event.target.value,
+                      );
+                    }}
+                    disabled={isDisabled}
+                    placeholder="dimension_name"
+                    className={dimensionNameInputStyle({ isDisabled })}
+                  />
+                </DisabledTooltip>
 
                 {/* Delete button */}
-                <button
-                  type="button"
-                  onClick={() => {
-                    handleDeleteElement(element.elementId, element.name);
-                  }}
-                  disabled={isDisabled || type.elements.length === 1}
-                  className={deleteDimensionButtonStyle}
-                  aria-label={`Delete dimension ${element.name}`}
-                >
-                  ×
-                </button>
+                <DisabledTooltip disabled={isDisabled}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      handleDeleteElement(element.elementId, element.name);
+                    }}
+                    disabled={isDisabled || type.elements.length === 1}
+                    className={deleteDimensionButtonStyle}
+                    aria-label={`Delete dimension ${element.name}`}
+                  >
+                    ×
+                  </button>
+                </DisabledTooltip>
               </div>
             ))}
           </div>
