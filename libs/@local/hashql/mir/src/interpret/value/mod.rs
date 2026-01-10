@@ -152,6 +152,7 @@ impl<'heap, A: Allocator> Value<'heap, A> {
     ///
     /// Returns an error if this value is not subscriptable (not a list or dict),
     /// or if the index type is invalid for the collection type.
+    #[inline]
     pub fn subscript<'this, 'index>(
         &'this self,
         index: &'index Self,
@@ -229,6 +230,7 @@ impl<'heap, A: Allocator> Value<'heap, A> {
     /// # Errors
     ///
     /// Returns an error if this value is not projectable or the field index is invalid.
+    #[inline]
     pub fn project<'this>(
         &'this self,
         index: FieldIndex,

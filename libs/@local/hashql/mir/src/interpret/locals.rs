@@ -14,7 +14,11 @@ use core::{
     mem::{self, MaybeUninit},
 };
 
-use hashql_core::{id::IdSlice, intern::Interned, symbol::Symbol};
+use hashql_core::{
+    id::{IdSlice, bit_vec::DenseBitSet},
+    intern::Interned,
+    symbol::Symbol,
+};
 
 use super::{error::RuntimeError, scratch::Scratch, value::Value};
 use crate::{
@@ -47,14 +51,22 @@ impl<'ctx, 'heap, A: Allocator> Locals<'ctx, 'heap, A> {
     ///
     /// Initializes the storage with the provided arguments as the first locals.
     /// The number of arguments must match the body's `args` count.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the number of arguments does not match the body's `args` count.
+    #[inline]
+    #[expect(clippy::panic_in_result_fn)]
     pub(crate) fn new_in<E>(
         body: &'ctx Body<'heap>,
-        args: impl IntoIterator<Item = Result<Value<'heap, A>, E>>,
+        args: impl ExactSizeIterator<Item = Result<Value<'heap, A>, E>>,
         alloc: A,
     ) -> Result<Self, E>
     where
         A: Clone,
     {
+        assert!(body.local_decls.len() >= args.len());
+
         let mut locals = LocalVec::with_capacity_in(body.local_decls.len(), alloc.clone());
         for arg in args {
             locals.push(Some(arg?));
@@ -99,6 +111,7 @@ impl<'ctx, 'heap, A: Allocator> Locals<'ctx, 'heap, A> {
     ///
     /// Follows the chain of projections (field access, indexing) to reach
     /// the final value.
+    #[inline]
     pub(crate) fn place(
         &self,
         Place { local, projections }: Place<'heap>,
@@ -128,6 +141,7 @@ impl<'ctx, 'heap, A: Allocator> Locals<'ctx, 'heap, A> {
     /// Follows the chain of projections (field access, indexing) to reach
     /// the final value. Index projections are evaluated before the mutable
     /// borrow to avoid borrowing conflicts.
+    #[inline]
     pub(crate) fn place_mut(
         &mut self,
         place: Place<'heap>,

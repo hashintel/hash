@@ -628,7 +628,6 @@ impl Not for Int {
 impl Neg for Int {
     type Output = Numeric;
 
-    #[inline]
     #[expect(clippy::cast_precision_loss, clippy::float_arithmetic)]
     fn neg(self) -> Self::Output {
         let (value, overflow) = self.as_int().overflowing_neg();
@@ -646,7 +645,6 @@ impl Neg for Int {
 impl Add for Int {
     type Output = Numeric;
 
-    #[inline]
     #[expect(clippy::float_arithmetic)]
     fn add(self, rhs: Self) -> Self::Output {
         let (value, overflow) = self.as_int().overflowing_add(rhs.as_int());
@@ -672,7 +670,6 @@ impl Add<Num> for Int {
 impl Sub for Int {
     type Output = Numeric;
 
-    #[inline]
     #[expect(clippy::float_arithmetic)]
     fn sub(self, rhs: Self) -> Self::Output {
         let (value, overflow) = self.as_int().overflowing_sub(rhs.as_int());
