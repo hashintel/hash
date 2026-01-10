@@ -1,0 +1,40 @@
+classDiagram
+    class PlanSpec {
+        +string goal
+        +Assumption[] assumptions
+        +Step[] steps
+    }
+
+    class Assumption {
+        +string id
+        +string claim
+        +float confidence
+        +string basis
+    }
+
+    class Step {
+        +string id
+        +string name
+        +string description
+        +StepType type
+        +string[] dependsOn
+        +string[] assumptionIds
+        +TypeMetadata metadata
+    }
+
+    class ResearchMeta {
+        +string[] searchStrategies
+        +string[] sourceTypes
+        +string[] targetQuestions
+    }
+
+    class ExperimentMeta {
+        +string hypothesis
+        +string[] successCriteria
+        +string[] controlConditions
+    }
+
+    PlanSpec "1" *-- "*" Assumption
+    PlanSpec "1" *-- "*" Step
+    Step <|-- ResearchMeta : type=research
+    Step <|-- ExperimentMeta : type=experiment

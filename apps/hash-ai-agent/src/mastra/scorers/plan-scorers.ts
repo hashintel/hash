@@ -13,14 +13,9 @@
  * Each scorer returns a normalized score [0, 1] and detailed breakdown.
  */
 
-import {
-  isParallelizable,
-  type PlanSpec,
-  type PlanStep,
-  type StepType,
-} from "../schemas/plan-spec";
-import { validatePlan } from "../tools/plan-validator";
-import { analyzePlanTopology } from "../tools/topology-analyzer";
+import type { PlanSpec, PlanStep, StepType } from "../schemas/plan-spec";
+import { validatePlan } from "../utils/plan-validator";
+import { analyzePlanTopology } from "../utils/topology-analyzer";
 
 // =============================================================================
 // SCORER RESULT TYPES
@@ -57,7 +52,7 @@ export interface PlanStructureDetails {
   criticalPathLength: number;
   /** Maximum parallelism (max steps that can run concurrently) */
   maxParallelism: number;
-  /** Ratio of parallelizable steps to total steps */
+  /** Ratio of concurrent steps to total steps */
   parallelismRatio: number;
   /** Step type distribution */
   stepTypeDistribution: Record<StepType, number>;
@@ -108,7 +103,9 @@ export function scorePlanStructure(
   if (!validation.valid) {
     return {
       score: 0,
-      reason: `Invalid plan structure: ${validation.errors.length} validation errors. First error: ${validation.errors[0]?.message ?? "unknown"}`,
+      reason: `Invalid plan structure: ${validation.errors.length} validation errors. First error: ${
+        validation.errors[0]?.message ?? "unknown"
+      }`,
       details,
     };
   }
@@ -120,15 +117,15 @@ export function scorePlanStructure(
   details.criticalPathLength = topology.criticalPath.length;
   details.maxParallelism = Math.max(
     1,
-    ...topology.parallelGroups.map(
-      (group) => group.parallelizableStepIds.length,
-    ),
+    ...topology.parallelGroups.map((group) => group.concurrentStepIds.length),
   );
 
   // Calculate parallelism ratio
-  const parallelizableSteps = plan.steps.filter(isParallelizable);
+  const concurrentSteps = plan.steps.filter(
+    (step) => step.concurrent !== false,
+  );
   details.parallelismRatio =
-    plan.steps.length > 0 ? parallelizableSteps.length / plan.steps.length : 0;
+    plan.steps.length > 0 ? concurrentSteps.length / plan.steps.length : 0;
 
   // Calculate component scores
   const dagScore = 1.0; // Valid if we got here
@@ -273,7 +270,9 @@ export function scorePlanCoverage(
 
   const reason =
     `Requirements: ${details.coveredRequirementCount}/${details.requirementCount} covered ` +
-    `(must: ${(details.mustCoverageRatio * 100).toFixed(0)}%, should: ${(details.shouldCoverageRatio * 100).toFixed(0)}%). ` +
+    `(must: ${(details.mustCoverageRatio * 100).toFixed(0)}%, should: ${(
+      details.shouldCoverageRatio * 100
+    ).toFixed(0)}%). ` +
     `Hypotheses: ${details.testedHypothesisCount}/${details.hypothesisCount} tested.`;
 
   return { score, reason, details };

@@ -1,0 +1,15 @@
+flowchart TD
+    P[Generated Plan] --> SV[Structural Validation]
+    SV -->|invalid| F1[Schema/Graph Errors]
+    SV -->|valid| DS[Deterministic Scoring]
+    DS --> LS[LLM Scoring]
+    LS --> TH{Meets Threshold?}
+    TH -->|no| F2[Score Feedback]
+    F1 --> AGG[Aggregate Feedback]
+    F2 --> AGG
+    AGG --> N{Max Iterations?}
+    N -->|no| REV[Revision Prompt]
+    REV --> PA[Planner Agent]
+    PA --> P
+    N -->|yes| FAIL[Fail with Best Attempt]
+    TH -->|yes| PASS[Accept Plan]
