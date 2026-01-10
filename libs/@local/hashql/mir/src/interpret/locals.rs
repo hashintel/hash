@@ -31,8 +31,7 @@ use crate::{
 /// Local variable storage for a single call frame.
 ///
 /// Stores the values of local variables during interpretation of a function.
-/// Locals are indexed by [`Local`] and may be uninitialized (represented as
-/// `None` in the internal storage).
+/// Locals are indexed by [`Local`] and may be uninitialized.
 pub(crate) struct Locals<'ctx, 'heap, A: Allocator> {
     /// Allocator for creating new values.
     alloc: A,
@@ -50,7 +49,7 @@ impl<'ctx, 'heap, A: Allocator> Locals<'ctx, 'heap, A> {
     ///
     /// # Panics
     ///
-    /// Panics if the number of arguments does not match the body's `args` count.
+    /// Panics if the number of arguments is larger than the set of local declarations.
     #[inline]
     #[expect(clippy::panic_in_result_fn)]
     pub(crate) fn new_in<E>(
