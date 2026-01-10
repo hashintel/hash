@@ -48,6 +48,7 @@ impl Num {
     ///
     /// Adapted from the `num-traits` crate.
     #[expect(unsafe_code, clippy::cast_precision_loss)]
+    #[inline]
     fn to_i128(self) -> Option<i128> {
         // We can't represent `i128::MIN - 1` exactly, but there's no fractional part
         // at this magnitude, so we use an inclusive `MIN` boundary.
@@ -72,6 +73,7 @@ impl Num {
     /// first, then uses the fractional part as a tiebreaker. For out-of-range
     /// values (including NaN and infinities), the sign bit determines ordering:
     /// negative values are less than all integers, positive values are greater.
+    #[inline]
     pub(crate) fn cmp_int(self, int: &Int) -> cmp::Ordering {
         let Some(this_int) = self.to_i128() else {
             return if self.as_f64().is_sign_negative() {
@@ -83,20 +85,34 @@ impl Num {
 
         let frac = self.as_f64().fract();
 
-        this_int.cmp(&int.as_int()).then_with(|| {
-            if frac > 0.0 {
-                cmp::Ordering::Greater
-            } else if frac < 0.0 {
-                cmp::Ordering::Less
-            } else {
-                cmp::Ordering::Equal
+        match this_int.cmp(&int.as_int()) {
+            cmp::Ordering::Equal => {
+                if frac.is_sign_positive() {
+                    cmp::Ordering::Greater
+                } else if frac.is_sign_negative() {
+                    cmp::Ordering::Less
+                } else {
+                    cmp::Ordering::Equal
+                }
             }
-        })
+            cmp::Ordering::Less => cmp::Ordering::Less,
+            cmp::Ordering::Greater => cmp::Ordering::Greater,
+        }
     }
 }
 
 impl<'heap> From<Float<'heap>> for Num {
+    #[inline]
     fn from(value: Float<'heap>) -> Self {
+        Self {
+            value: value.as_f64(),
+        }
+    }
+}
+
+impl<'heap> From<&Float<'heap>> for Num {
+    #[inline]
+    fn from(value: &Float<'heap>) -> Self {
         Self {
             value: value.as_f64(),
         }

@@ -6,6 +6,7 @@
     // Language Features
     associated_type_defaults,
     coverage_attribute,
+    exhaustive_patterns,
     if_let_guard,
     impl_trait_in_assoc_type,
     macro_metavar_expr_concat,
@@ -16,18 +17,19 @@
     assert_matches,
     binary_heap_drain_sorted,
     clone_from_ref,
+    cold_path,
     const_type_name,
     get_mut_unchecked,
     iter_array_chunks,
     iter_collect_into,
     iter_intersperse,
     iterator_try_collect,
+    likely_unlikely,
+    maybe_uninit_array_assume_init,
     maybe_uninit_fill,
     step_trait,
     string_from_utf8_lossy_owned,
     try_trait_v2,
-    maybe_uninit_array_assume_init,
-    likely_unlikely,
 )]
 #![expect(clippy::indexing_slicing)]
 extern crate alloc;
