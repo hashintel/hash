@@ -42,6 +42,7 @@ use core::{
     alloc::Allocator,
     cmp,
     fmt::{self, Display},
+    hint::cold_path,
 };
 
 use hashql_core::{symbol::Symbol, value::Primitive};
@@ -363,18 +364,51 @@ impl<'heap, A: Allocator> Value<'heap, A> {
 }
 
 impl<'heap, A: Allocator> From<Constant<'heap>> for Value<'heap, A> {
+    #[inline]
     fn from(value: Constant<'heap>) -> Self {
         match value {
             Constant::Int(int) => Self::Integer(int),
             Constant::Primitive(Primitive::Null) | Constant::Unit => Self::Unit,
-            Constant::Primitive(Primitive::Boolean(bool)) => Self::Integer(Int::from(bool)),
-            Constant::Primitive(Primitive::Integer(int)) => int
-                .as_i128()
-                .map(Int::from)
-                .map_or_else(|| Self::Number(Num::from(int.as_f64())), Self::Integer),
+            Constant::Primitive(Primitive::Boolean(bool)) => {
+                cold_path(); // This branch is unlikely, because there is no natural way for it to occur.
+
+                Self::Integer(Int::from(bool))
+            }
+            Constant::Primitive(Primitive::Integer(int)) => {
+                cold_path(); // This branch is unlikely, because it'll only happen in the case that the value is outside of the bounds of i128.
+
+                // Conversion earlier guarantees that any value within the bounds of i128 will be
+                // promoted to `Constant::Int`.
+                Self::Number(Num::from(int.as_f64()))
+            }
             Constant::Primitive(Primitive::Float(float)) => Self::Number(Num::from(float)),
             Constant::Primitive(Primitive::String(string)) => Self::String(Str::from(string)),
             Constant::FnPtr(def_id) => Self::Pointer(Ptr::new(def_id)),
+        }
+    }
+}
+
+impl<'heap, A: Allocator> From<&Constant<'heap>> for Value<'heap, A> {
+    #[inline]
+    fn from(value: &Constant<'heap>) -> Self {
+        match value {
+            &Constant::Int(int) => Self::Integer(int),
+            Constant::Primitive(Primitive::Null) | Constant::Unit => Self::Unit,
+            &Constant::Primitive(Primitive::Boolean(bool)) => {
+                cold_path(); // This branch is unlikely, because there is no natural way for it to occur.
+
+                Self::Integer(Int::from(bool))
+            }
+            Constant::Primitive(Primitive::Integer(int)) => {
+                cold_path(); // This branch is unlikely, because it'll only happen in the case that the value is outside of the bounds of i128.
+
+                // Conversion earlier guarantees that any value within the bounds of i128 will be
+                // promoted to `Constant::Int`.
+                Self::Number(Num::from(int.as_f64()))
+            }
+            Constant::Primitive(Primitive::Float(float)) => Self::Number(Num::from(float)),
+            Constant::Primitive(Primitive::String(string)) => Self::String(Str::from(string)),
+            &Constant::FnPtr(def_id) => Self::Pointer(Ptr::new(def_id)),
         }
     }
 }
