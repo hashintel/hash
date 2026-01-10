@@ -14,11 +14,7 @@ use core::{
     mem::{self, MaybeUninit},
 };
 
-use hashql_core::{
-    id::{IdSlice, bit_vec::DenseBitSet},
-    intern::Interned,
-    symbol::Symbol,
-};
+use hashql_core::{id::IdSlice, intern::Interned, symbol::Symbol};
 
 use super::{error::RuntimeError, scratch::Scratch, value::Value};
 use crate::{
@@ -43,7 +39,7 @@ pub(crate) struct Locals<'ctx, 'heap, A: Allocator> {
     /// Local variable declarations (for error reporting).
     decl: &'ctx LocalSlice<LocalDecl<'heap>>,
     /// Storage for local variable values.
-    inner: LocalVec<Option<Value<'heap, A>>, A>,
+    inner: LocalVec<Value<'heap, A>, A>,
 }
 
 impl<'ctx, 'heap, A: Allocator> Locals<'ctx, 'heap, A> {
@@ -69,7 +65,7 @@ impl<'ctx, 'heap, A: Allocator> Locals<'ctx, 'heap, A> {
 
         let mut locals = LocalVec::with_capacity_in(body.local_decls.len(), alloc.clone());
         for arg in args {
-            locals.push(Some(arg?));
+            locals.push(arg?);
         }
 
         debug_assert_eq!(locals.len(), body.args);
@@ -84,7 +80,7 @@ impl<'ctx, 'heap, A: Allocator> Locals<'ctx, 'heap, A> {
     /// Inserts or updates a local variable value.
     #[inline]
     pub(crate) fn insert(&mut self, local: Local, value: Value<'heap, A>) {
-        self.inner.insert(local, value);
+        *self.inner.fill_until(local, || Value::Unit) = value;
     }
 
     /// Gets a reference to a local variable's value.
@@ -95,7 +91,7 @@ impl<'ctx, 'heap, A: Allocator> Locals<'ctx, 'heap, A> {
     /// initialized.
     #[inline]
     pub(crate) fn local(&self, local: Local) -> Result<&Value<'heap, A>, RuntimeError<'heap, A>> {
-        self.inner.lookup(local).ok_or_else(|| {
+        self.inner.get(local).ok_or_else(|| {
             let decl = self.decl[local];
             RuntimeError::UninitializedLocal { local, decl }
         })
@@ -104,7 +100,7 @@ impl<'ctx, 'heap, A: Allocator> Locals<'ctx, 'heap, A> {
     /// Gets a mutable reference to a local variable's value.
     #[inline]
     pub(crate) fn local_mut(&mut self, local: Local) -> &mut Value<'heap, A> {
-        self.inner.get_or_insert_with(local, || Value::Unit)
+        self.inner.fill_until(local, || Value::Unit)
     }
 
     /// Evaluates a place expression to get a reference to the value.
@@ -114,9 +110,9 @@ impl<'ctx, 'heap, A: Allocator> Locals<'ctx, 'heap, A> {
     #[inline]
     pub(crate) fn place(
         &self,
-        Place { local, projections }: Place<'heap>,
+        Place { local, projections }: &Place<'heap>,
     ) -> Result<&Value<'heap, A>, RuntimeError<'heap, A>> {
-        let mut value = self.local(local)?;
+        let mut value = self.local(*local)?;
 
         for projection in projections {
             match projection.kind {
@@ -191,7 +187,7 @@ impl<'ctx, 'heap, A: Allocator> Locals<'ctx, 'heap, A> {
     /// - For constant operands: converts the constant to a value
     pub(crate) fn operand(
         &self,
-        operand: Operand<'heap>,
+        operand: &Operand<'heap>,
     ) -> Result<Cow<'_, Value<'heap, A>>, RuntimeError<'heap, A>>
     where
         A: Clone,
@@ -242,7 +238,7 @@ impl<'ctx, 'heap, A: Allocator> Locals<'ctx, 'heap, A> {
             initialized: 0,
         };
 
-        for (element, &operand) in guard.slice.iter_mut().zip(operands.iter()) {
+        for (element, operand) in guard.slice.iter_mut().zip(operands.iter()) {
             // Returning a value here is fine, we do not return anything from the actual operand,
             // just an error from existing data!
             let value = self.operand(operand)?.into_owned();
@@ -344,7 +340,7 @@ impl<'ctx, 'heap, A: Allocator> Locals<'ctx, 'heap, A> {
             AggregateKind::List => {
                 let mut list = List::new();
 
-                for &operand in operands {
+                for operand in operands {
                     list.push_back(self.operand(operand)?.into_owned());
                 }
 
@@ -354,7 +350,7 @@ impl<'ctx, 'heap, A: Allocator> Locals<'ctx, 'heap, A> {
                 debug_assert_eq!(operands.len() % 2, 0);
                 let mut dict = Dict::new();
 
-                for [&key, &value] in operands[..].iter().array_chunks() {
+                for [key, value] in operands[..].iter().array_chunks() {
                     let key = self.operand(key)?.into_owned();
                     let value = self.operand(value)?.into_owned();
 
@@ -367,7 +363,7 @@ impl<'ctx, 'heap, A: Allocator> Locals<'ctx, 'heap, A> {
                 debug_assert_eq!(operands.len(), 1);
 
                 let value = self
-                    .operand(operands[FieldIndex::OPAQUE_VALUE])?
+                    .operand(&operands[FieldIndex::OPAQUE_VALUE])?
                     .into_owned();
 
                 Ok(Value::Opaque(Opaque::new(
@@ -384,8 +380,8 @@ impl<'ctx, 'heap, A: Allocator> Locals<'ctx, 'heap, A> {
                 // possible with a dedicated type easily.
                 let operands = Rc::new_in(
                     [
-                        self.operand(operands[FieldIndex::FN_PTR])?.into_owned(),
-                        self.operand(operands[FieldIndex::ENV])?.into_owned(),
+                        self.operand(&operands[FieldIndex::FN_PTR])?.into_owned(),
+                        self.operand(&operands[FieldIndex::ENV])?.into_owned(),
                     ],
                     self.alloc.clone(),
                 );
@@ -449,7 +445,7 @@ mod tests {
         value: i128,
     ) -> Locals<'ctx, 'heap, Global> {
         let mut inner = LocalVec::new();
-        inner.insert(local, Value::Integer(Int::from(value)));
+        *inner.fill_until(local, || Value::Unit) = Value::Integer(Int::from(value));
         fill_decl(decl, local);
 
         Locals {
