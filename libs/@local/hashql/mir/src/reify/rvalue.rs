@@ -167,6 +167,7 @@ impl<'mir, 'heap> Reifier<'_, 'mir, '_, '_, 'heap> {
     }
 
     fn rvalue_operation(&mut self, hir: HirPtr, operation: Operation<'heap>) -> RValue<'heap> {
+        #[expect(unreachable_patterns)]
         match operation {
             Operation::Type(type_operation) => self.rvalue_type_operation(hir, type_operation),
             Operation::Binary(binary_operation) => self.rvalue_binary_operation(binary_operation),
