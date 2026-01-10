@@ -523,7 +523,7 @@ describe("checkTransitionEnablement", () => {
     expect(result.transitionStatus.get("t2")).toBe(false);
   });
 
-  it("returns hasEnabledTransition=true when there are no transitions", () => {
+  it("returns hasEnabledTransition=false when there are no transitions", () => {
     const simulation: SimulationInstance = {
       places: new Map(),
       transitions: new Map(),

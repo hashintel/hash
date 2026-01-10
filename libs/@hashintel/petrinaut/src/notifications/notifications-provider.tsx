@@ -18,9 +18,9 @@ interface Notification {
 
 const containerStyle = css({
   position: "absolute",
-  top: "[50%]",
+  top: "[40px]",
   left: "[50%]",
-  transform: "[translate(-50%, -50%)]",
+  transform: "[translateX(-50%)]",
   zIndex: "[10000]",
   display: "flex",
   flexDirection: "column",
@@ -39,10 +39,10 @@ const exitingWrapperStyle = css({
 });
 
 const notificationStyle = css({
-  backgroundColor: "[rgba(255, 255, 255, 0.8)]",
-  color: "core.neutral.black",
+  backgroundColor: "[rgba(34, 197, 94, 0.1)]",
+  color: "[#16a34a]",
   fontFamily: "[Inter, sans-serif]",
-  fontSize: "[14px]",
+  fontSize: "[15px]",
   boxShadow: "[0 6px 12px rgba(0, 0, 0, 0.1)]",
   padding: "[20px 40px]",
   maxWidth: "[600px]",
@@ -70,13 +70,16 @@ export const NotificationsProvider: React.FC<NotificationsProviderProps> = ({
     ]);
 
     // Start exit animation before removing
-    setTimeout(() => {
-      setNotifications((prev) =>
-        prev.map((notif) =>
-          notif.id === id ? { ...notif, exiting: true } : notif,
-        ),
-      );
-    }, duration - 200);
+    setTimeout(
+      () => {
+        setNotifications((prev) =>
+          prev.map((notif) =>
+            notif.id === id ? { ...notif, exiting: true } : notif,
+          ),
+        );
+      },
+      Math.max(duration - 200, 100),
+    );
 
     // Remove after exit animation completes
     setTimeout(() => {
