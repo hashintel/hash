@@ -83,13 +83,13 @@ impl Num {
             };
         };
 
-        let frac = self.as_f64().fract();
-
         match this_int.cmp(&int.as_int()) {
             cmp::Ordering::Equal => {
-                if frac.is_sign_positive() {
+                let frac = self.as_f64().fract();
+
+                if frac > 0.0 {
                     cmp::Ordering::Greater
-                } else if frac.is_sign_negative() {
+                } else if frac < 0.0 {
                     cmp::Ordering::Less
                 } else {
                     cmp::Ordering::Equal
