@@ -22,11 +22,15 @@ use hashql_core::{
     r#type::{TypeId, environment::Environment},
 };
 
-use super::{CallStack, Runtime, RuntimeConfig, error::InterpretDiagnostic, value::Value};
+use super::{
+    CallStack, Runtime, RuntimeConfig,
+    error::InterpretDiagnostic,
+    value::{Int, Num, Value},
+};
 use crate::{
     body::{
         Body,
-        constant::{Constant, Int},
+        constant::Constant,
         operand::Operand,
         rvalue::{Aggregate, AggregateKind, RValue},
     },
@@ -287,6 +291,158 @@ fn binary_gte_integers() {
 
     let result = run_body(body).expect("should succeed");
     assert_eq!(result, Value::Integer(Int::from(true)));
+}
+
+#[test]
+fn binary_add_integers() {
+    let heap = Heap::new();
+    let interner = Interner::new(&heap);
+    let env = Environment::new(&heap);
+
+    let body = body!(interner, env; fn@0/0 -> Int {
+        decl result: Int;
+
+        bb0() {
+            result = bin.+ 2 3;
+            return result;
+        }
+    });
+
+    let result = run_body(body).expect("should succeed");
+    assert_eq!(result, Value::Integer(Int::from(5_i128)));
+}
+
+#[test]
+fn binary_sub_integers() {
+    let heap = Heap::new();
+    let interner = Interner::new(&heap);
+    let env = Environment::new(&heap);
+
+    let body = body!(interner, env; fn@0/0 -> Int {
+        decl result: Int;
+
+        bb0() {
+            result = bin.- 5 3;
+            return result;
+        }
+    });
+
+    let result = run_body(body).expect("should succeed");
+    assert_eq!(result, Value::Integer(Int::from(2_i128)));
+}
+
+#[test]
+fn binary_add_numbers() {
+    let heap = Heap::new();
+    let interner = Interner::new(&heap);
+    let env = Environment::new(&heap);
+
+    let body = body!(interner, env; fn@0/0 -> Num {
+        decl result: Num;
+
+        bb0() {
+            result = bin.+ 2.5 3.5;
+            return result;
+        }
+    });
+
+    let result = run_body(body).expect("should succeed");
+    assert_eq!(result, Value::Number(Num::from(6.0)));
+}
+
+#[test]
+fn binary_sub_numbers() {
+    let heap = Heap::new();
+    let interner = Interner::new(&heap);
+    let env = Environment::new(&heap);
+
+    let body = body!(interner, env; fn@0/0 -> Num {
+        decl result: Num;
+
+        bb0() {
+            result = bin.- 5.5 3.0;
+            return result;
+        }
+    });
+
+    let result = run_body(body).expect("should succeed");
+    assert_eq!(result, Value::Number(Num::from(2.5)));
+}
+
+#[test]
+fn binary_add_int_number() {
+    let heap = Heap::new();
+    let interner = Interner::new(&heap);
+    let env = Environment::new(&heap);
+
+    let body = body!(interner, env; fn@0/0 -> Num {
+        decl result: Num;
+
+        bb0() {
+            result = bin.+ 2 3.5;
+            return result;
+        }
+    });
+
+    let result = run_body(body).expect("should succeed");
+    assert_eq!(result, Value::Number(Num::from(5.5)));
+}
+
+#[test]
+fn binary_add_number_int() {
+    let heap = Heap::new();
+    let interner = Interner::new(&heap);
+    let env = Environment::new(&heap);
+
+    let body = body!(interner, env; fn@0/0 -> Num {
+        decl result: Num;
+
+        bb0() {
+            result = bin.+ 2.5 3;
+            return result;
+        }
+    });
+
+    let result = run_body(body).expect("should succeed");
+    assert_eq!(result, Value::Number(Num::from(5.5)));
+}
+
+#[test]
+fn binary_sub_int_number() {
+    let heap = Heap::new();
+    let interner = Interner::new(&heap);
+    let env = Environment::new(&heap);
+
+    let body = body!(interner, env; fn@0/0 -> Num {
+        decl result: Num;
+
+        bb0() {
+            result = bin.- 5 3.5;
+            return result;
+        }
+    });
+
+    let result = run_body(body).expect("should succeed");
+    assert_eq!(result, Value::Number(Num::from(1.5)));
+}
+
+#[test]
+fn binary_sub_number_int() {
+    let heap = Heap::new();
+    let interner = Interner::new(&heap);
+    let env = Environment::new(&heap);
+
+    let body = body!(interner, env; fn@0/0 -> Num {
+        decl result: Num;
+
+        bb0() {
+            result = bin.- 5.5 3;
+            return result;
+        }
+    });
+
+    let result = run_body(body).expect("should succeed");
+    assert_eq!(result, Value::Number(Num::from(2.5)));
 }
 
 #[test]
@@ -1108,6 +1264,46 @@ fn ice_unknown_field() {
     });
 
     let result = run_body(body).expect_err("should fail with unknown field");
+    assert_eq!(result.category, InterpretDiagnosticCategory::TypeInvariant);
+}
+
+#[test]
+fn ice_binary_add_type_mismatch() {
+    let heap = Heap::new();
+    let interner = Interner::new(&heap);
+    let env = Environment::new(&heap);
+
+    let body = body!(interner, env; fn@0/0 -> Int {
+        decl tup: (Int, Int), result: Int;
+
+        bb0() {
+            tup = tuple 1, 2;
+            result = bin.+ tup 3;
+            return result;
+        }
+    });
+
+    let result = run_body(body).expect_err("should fail with binary add type mismatch");
+    assert_eq!(result.category, InterpretDiagnosticCategory::TypeInvariant);
+}
+
+#[test]
+fn ice_binary_sub_type_mismatch() {
+    let heap = Heap::new();
+    let interner = Interner::new(&heap);
+    let env = Environment::new(&heap);
+
+    let body = body!(interner, env; fn@0/0 -> Int {
+        decl tup: (Int, Int), result: Int;
+
+        bb0() {
+            tup = tuple 1, 2;
+            result = bin.- 3 tup;
+            return result;
+        }
+    });
+
+    let result = run_body(body).expect_err("should fail with binary sub type mismatch");
     assert_eq!(result.category, InterpretDiagnosticCategory::TypeInvariant);
 }
 

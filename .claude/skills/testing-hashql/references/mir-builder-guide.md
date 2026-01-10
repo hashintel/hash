@@ -77,6 +77,7 @@ The `<id>` can be a numeric literal (`0`, `1`, `42`) or a variable identifier (`
 | Syntax | Description | Example |
 | ------ | ----------- | ------- |
 | `Int` | Integer type | `Int` |
+| `Num` | Number (float) type | `Num` |
 | `Bool` | Boolean type | `Bool` |
 | `Null` | Null type | `Null` |
 | `(T1, T2, ...)` | Tuple types | `(Int, Bool, Int)` |

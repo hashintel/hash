@@ -102,7 +102,7 @@ use super::copy_propagation::propagate_block_params;
 use crate::{
     body::{
         Body,
-        constant::{Constant, Int},
+        constant::Constant,
         local::{LocalDecl, LocalSlice, LocalVec},
         location::Location,
         operand::Operand,
@@ -112,6 +112,7 @@ use crate::{
     },
     context::MirContext,
     intern::Interner,
+    interpret::value::Int,
     pass::{Changed, TransformPass},
     visit::{self, VisitorMut, r#mut::filter},
 };
@@ -250,11 +251,13 @@ impl<'heap, A: Allocator> InstSimplifyVisitor<'_, 'heap, A> {
     }
 
     /// Evaluates a binary operation on two constant integers.
-    fn eval_bin_op(lhs: Int, op: BinOp, rhs: Int) -> Int {
+    fn eval_bin_op(lhs: Int, op: BinOp, rhs: Int) -> Option<Int> {
         let lhs = lhs.as_int();
         let rhs = rhs.as_int();
 
         let result = match op {
+            BinOp::Add => return lhs.checked_add(rhs).map(Int::from),
+            BinOp::Sub => return lhs.checked_sub(rhs).map(Int::from),
             BinOp::BitAnd => lhs & rhs,
             BinOp::BitOr => lhs | rhs,
             BinOp::Eq => i128::from(lhs == rhs),
@@ -265,7 +268,7 @@ impl<'heap, A: Allocator> InstSimplifyVisitor<'_, 'heap, A> {
             BinOp::Gte => i128::from(lhs >= rhs),
         };
 
-        Int::from(result)
+        Some(Int::from(result))
     }
 
     /// Evaluates a unary operation on a constant integer.
@@ -304,6 +307,15 @@ impl<'heap, A: Allocator> InstSimplifyVisitor<'_, 'heap, A> {
             self.env.r#type(rhs_type).kind.primitive().copied() == Some(PrimitiveType::Boolean);
 
         match (op, lhs.as_int()) {
+            // 0 + rhs => rhs (identity)
+            (BinOp::Add, 0) => Some(RValue::Load(Operand::Place(rhs))),
+            (BinOp::Add, _) => None,
+            // 0 - rhs => -rhs
+            (BinOp::Sub, 0) => Some(RValue::Unary(Unary {
+                op: UnOp::Neg,
+                operand: Operand::Place(rhs),
+            })),
+            (BinOp::Sub, _) => None,
             // true && rhs => rhs (identity)
             (BinOp::BitAnd, 1) if is_bool => Some(RValue::Load(Operand::Place(rhs))),
             // false && rhs => false (annihilator)
@@ -358,6 +370,12 @@ impl<'heap, A: Allocator> InstSimplifyVisitor<'_, 'heap, A> {
             self.env.r#type(lhs_type).kind.primitive().copied() == Some(PrimitiveType::Boolean);
 
         match (op, rhs.as_int()) {
+            // lhs + 0 => lhs (identity)
+            (BinOp::Add, 0) => Some(RValue::Load(Operand::Place(lhs))),
+            (BinOp::Add, _) => None,
+            // lhs - 0 => lhs (identity)
+            (BinOp::Sub, 0) => Some(RValue::Load(Operand::Place(lhs))),
+            (BinOp::Sub, _) => None,
             // lhs && true => lhs (identity)
             (BinOp::BitAnd, 1) if is_bool => Some(RValue::Load(Operand::Place(lhs))),
             // lhs && false => false (annihilator)
@@ -419,6 +437,10 @@ impl<'heap, A: Allocator> InstSimplifyVisitor<'_, 'heap, A> {
         }
 
         let bool = match op {
+            // x + x
+            BinOp::Add => return None,
+            // x - x => 0 (self-inverse)
+            BinOp::Sub => return Some(RValue::Load(Operand::Constant(Constant::Int(0.into())))),
             // x & x => x (idempotent)
             BinOp::BitAnd => return Some(RValue::Load(Operand::Place(lhs))),
             // x | x => x (idempotent)
@@ -463,8 +485,10 @@ impl<'heap, A: Allocator> VisitorMut<'heap> for InstSimplifyVisitor<'_, 'heap, A
         // directly visible.
         match (self.try_eval(*left), self.try_eval(*right)) {
             (OperandKind::Int(lhs), OperandKind::Int(rhs)) => {
-                let result = Self::eval_bin_op(lhs, *op, rhs);
-                self.trampoline = Some(RValue::Load(Operand::Constant(Constant::Int(result))));
+                // The result may be none in case of overflow or division by zero.
+                if let Some(result) = Self::eval_bin_op(lhs, *op, rhs) {
+                    self.trampoline = Some(RValue::Load(Operand::Constant(Constant::Int(result))));
+                }
             }
             (OperandKind::Place(lhs), OperandKind::Int(rhs)) => {
                 let result = self.simplify_bin_op_right(lhs, *op, rhs);

@@ -1,0 +1,25 @@
+---
+source: libs/@local/hashql/mir/src/pass/transform/inst_simplify/tests.rs
+expression: value
+---
+fn {closure@4294967040}(%0: Integer) -> Integer {
+    let %1: Integer
+
+    bb0(): {
+        %1 = 0 - %0
+
+        return %1
+    }
+}
+
+================== Changed: Yes ==================
+
+fn {closure@4294967040}(%0: Integer) -> Integer {
+    let %1: Integer
+
+    bb0(): {
+        %1 = -%0
+
+        return %1
+    }
+}

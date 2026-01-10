@@ -18,9 +18,8 @@ use hashql_diagnostics::{
 };
 use hashql_hir::node::operation::UnOp;
 
-use super::value::{Ptr, Value, ValueTypeName};
+use super::value::{Int, Ptr, Value, ValueTypeName};
 use crate::body::{
-    constant::Int,
     local::{Local, LocalDecl},
     place::FieldIndex,
     rvalue::BinOp,

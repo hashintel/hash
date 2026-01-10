@@ -1,10 +1,15 @@
 //! Floating-point number representation for the MIR interpreter.
+#![expect(clippy::float_arithmetic)]
 
-use core::{cmp, ops::Neg};
+use core::{
+    cmp,
+    ops::{Add, Neg, Sub},
+};
 
 use hashql_core::value::Float;
 
-use crate::{body::constant::Int, macros::forward_ref_unop};
+use super::Int;
+use crate::macros::{forward_ref_binop, forward_ref_unop};
 
 /// A numeric value, either a floating-point number or an integer.
 ///
@@ -171,14 +176,54 @@ impl Neg for Num {
     }
 }
 
+impl Add for Num {
+    type Output = Self;
+
+    #[inline]
+    fn add(self, rhs: Self) -> Self::Output {
+        Self::from(self.value + rhs.value)
+    }
+}
+
+impl Add<Int> for Num {
+    type Output = Self;
+
+    #[inline]
+    fn add(self, rhs: Int) -> Self::Output {
+        Self::from(self.value + rhs.as_f64())
+    }
+}
+
+impl Sub for Num {
+    type Output = Self;
+
+    #[inline]
+    fn sub(self, rhs: Self) -> Self::Output {
+        Self::from(self.value - rhs.value)
+    }
+}
+
+impl Sub<Int> for Num {
+    type Output = Self;
+
+    #[inline]
+    fn sub(self, rhs: Int) -> Self::Output {
+        Self::from(self.value - rhs.as_f64())
+    }
+}
+
 forward_ref_unop!(impl Neg::neg for Num);
+forward_ref_binop!(impl Add<Num>::add for Num);
+forward_ref_binop!(impl Add<Int>::add for Num);
+forward_ref_binop!(impl Sub<Num>::sub for Num);
+forward_ref_binop!(impl Sub<Int>::sub for Num);
 
 #[cfg(test)]
 mod tests {
     use core::cmp::Ordering;
 
     use super::Num;
-    use crate::body::constant::Int;
+    use crate::interpret::value::Int;
 
     const POS_NAN: f64 = f64::from_bits(0x7FF8_0000_0000_0000);
     const NEG_NAN: f64 = f64::from_bits(0xFFF8_0000_0000_0000);

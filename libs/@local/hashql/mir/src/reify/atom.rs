@@ -13,11 +13,12 @@ use super::{
 };
 use crate::{
     body::{
-        constant::{Constant, Int, TryFromPrimitiveError},
+        constant::Constant,
         local::Local,
         operand::Operand,
         place::{FieldIndex, Place, Projection, ProjectionKind},
     },
+    interpret::value::{Int, TryFromPrimitiveError},
     reify::{
         error::{field_index_too_large, local_variable_unmapped},
         types::unwrap_union_type,
