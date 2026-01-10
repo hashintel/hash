@@ -71,14 +71,16 @@ describe("computeNextFrame", () => {
     });
 
     // WHEN computing the next frame
-    const updatedSimulation = computeNextFrame(simulation);
+    const result = computeNextFrame(simulation);
 
     // THEN the simulation should have 2 frames now
-    expect(updatedSimulation.frames).toHaveLength(2);
-    expect(updatedSimulation.currentFrameNumber).toBe(1);
+    expect(result.simulation.frames).toHaveLength(2);
+    expect(result.simulation.currentFrameNumber).toBe(1);
+    // No transition should have fired (low probability)
+    expect(result.transitionFired).toBe(false);
 
     // The new frame should have time = dt
-    const nextFrame = updatedSimulation.frames[1]!;
+    const nextFrame = result.simulation.frames[1]!;
     expect(nextFrame.time).toBe(0.1);
 
     // The buffer should reflect dynamics (values should have increased by derivative * dt)
@@ -121,10 +123,11 @@ describe("computeNextFrame", () => {
     });
 
     // WHEN computing the next frame
-    const updatedSimulation = computeNextFrame(simulation);
+    const result = computeNextFrame(simulation);
 
     // THEN it should complete without error
-    expect(updatedSimulation.frames).toHaveLength(2);
+    expect(result.simulation.frames).toHaveLength(2);
+    expect(result.transitionFired).toBe(false);
   });
 
   it("should skip dynamics for places with dynamics disabled", () => {
@@ -175,10 +178,11 @@ describe("computeNextFrame", () => {
     });
 
     // WHEN computing the next frame
-    const updatedSimulation = computeNextFrame(simulation);
+    const result = computeNextFrame(simulation);
 
     // THEN the buffer should be unchanged (no dynamics applied)
-    const nextFrame = updatedSimulation.frames[1]!;
+    const nextFrame = result.simulation.frames[1]!;
     expect(nextFrame.buffer[0]).toBe(10.0);
+    expect(result.transitionFired).toBe(false);
   });
 });
