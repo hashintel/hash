@@ -78,7 +78,7 @@ impl<'ctx, 'heap, A: Allocator> CallStack<'ctx, 'heap, A> {
     pub fn new(
         runtime: &Runtime<'ctx, 'heap, A>,
         entry: DefId,
-        args: impl IntoIterator<Item = Value<'heap, A>>,
+        args: impl IntoIterator<Item = Value<'heap, A>, IntoIter: ExactSizeIterator>,
     ) -> Self
     where
         A: Clone,
@@ -208,7 +208,7 @@ impl<'ctx, 'heap, A: Allocator + Clone> Runtime<'ctx, 'heap, A> {
     fn make_frame<E>(
         &self,
         func: DefId,
-        args: impl IntoIterator<Item = Result<Value<'heap, A>, E>>,
+        args: impl ExactSizeIterator<Item = Result<Value<'heap, A>, E>>,
     ) -> Result<Frame<'ctx, 'heap, A>, E> {
         let body = &self.bodies[func];
 

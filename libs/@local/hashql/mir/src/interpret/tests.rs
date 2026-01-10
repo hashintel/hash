@@ -61,7 +61,7 @@ fn run_body_with_inputs<'heap>(
 fn run_bodies<'heap>(
     bodies: &DefIdSlice<Body<'heap>>,
     entry: DefId,
-    args: impl IntoIterator<Item = Value<'heap>>,
+    args: impl IntoIterator<Item = Value<'heap>, IntoIter: ExactSizeIterator>,
 ) -> Result<Value<'heap>, InterpretDiagnostic> {
     let mut runtime = Runtime::new(RuntimeConfig::default(), bodies, FastHashMap::default());
     let callstack = CallStack::new(&runtime, entry, args);
