@@ -19,6 +19,7 @@ import { css, cva } from "@hashintel/ds-helpers/css";
 import MonacoEditor from "@monaco-editor/react";
 import { TbDotsVertical, TbSparkles, TbTrash } from "react-icons/tb";
 
+import { DisabledTooltip } from "../../../../components/disabled-tooltip";
 import { Menu } from "../../../../components/menu";
 import { SegmentGroup } from "../../../../components/segment-group";
 import { InfoIconTooltip, Tooltip } from "../../../../components/tooltip";
@@ -114,7 +115,9 @@ const arcListContainerStyle = css({
 });
 
 const segmentGroupWrapperStyle = cva({
-  base: {},
+  base: {
+    marginTop: "[8px]",
+  },
   variants: {
     isReadOnly: {
       true: {
@@ -361,17 +364,19 @@ export const TransitionProperties: React.FC<TransitionPropertiesProps> = ({
 
       <div>
         <div className={fieldLabelStyle}>Name</div>
-        <input
-          type="text"
-          value={transition.name}
-          onChange={(event) => {
-            updateTransition(transition.id, (existingTransition) => {
-              existingTransition.name = event.target.value;
-            });
-          }}
-          disabled={isReadOnly}
-          className={inputStyle({ isReadOnly })}
-        />
+        <DisabledTooltip disabled={isReadOnly}>
+          <input
+            type="text"
+            value={transition.name}
+            onChange={(event) => {
+              updateTransition(transition.id, (existingTransition) => {
+                existingTransition.name = event.target.value;
+              });
+            }}
+            disabled={isReadOnly}
+            className={inputStyle({ isReadOnly })}
+          />
+        </DisabledTooltip>
       </div>
 
       <div className={sectionContainerStyle}>
@@ -471,22 +476,24 @@ export const TransitionProperties: React.FC<TransitionPropertiesProps> = ({
           Firing time
           <InfoIconTooltip tooltip="Define the rate at or conditions under which this will transition will fire, optionally based on each set of input tokens' data (where input tokens have types)." />
         </div>
-        <div className={segmentGroupWrapperStyle({ isReadOnly })}>
-          <SegmentGroup
-            value={transition.lambdaType}
-            options={[
-              { value: "predicate", label: "Predicate" },
-              { value: "stochastic", label: "Stochastic Rate" },
-            ]}
-            onChange={(value) => {
-              updateTransition(transition.id, (existingTransition) => {
-                existingTransition.lambdaType = value as
-                  | "predicate"
-                  | "stochastic";
-              });
-            }}
-          />
-        </div>
+        <DisabledTooltip disabled={isReadOnly}>
+          <div className={segmentGroupWrapperStyle({ isReadOnly })}>
+            <SegmentGroup
+              value={transition.lambdaType}
+              options={[
+                { value: "predicate", label: "Predicate" },
+                { value: "stochastic", label: "Stochastic Rate" },
+              ]}
+              onChange={(value) => {
+                updateTransition(transition.id, (existingTransition) => {
+                  existingTransition.lambdaType = value as
+                    | "predicate"
+                    | "stochastic";
+                });
+              }}
+            />
+          </div>
+        </DisabledTooltip>
       </div>
 
       <div>
@@ -542,35 +549,37 @@ export const TransitionProperties: React.FC<TransitionPropertiesProps> = ({
             />
           )}
         </div>
-        <div className={editorContainerStyle({ isReadOnly, size: "lambda" })}>
-          <MonacoEditor
-            key={`lambda-${transition.lambdaType}-${transition.inputArcs
-              .map((a) => `${a.placeId}:${a.weight}`)
-              .join("-")}`}
-            language="typescript"
-            value={transition.lambdaCode || ""}
-            path={`inmemory://sdcpn/transitions/${transition.id}/lambda.ts`}
-            onChange={(value) => {
-              updateTransition(transition.id, (existingTransition) => {
-                existingTransition.lambdaCode = value ?? "";
-              });
-            }}
-            theme="vs-light"
-            options={{
-              minimap: { enabled: false },
-              scrollBeyondLastLine: false,
-              fontSize: 12,
-              lineNumbers: "off",
-              folding: true,
-              glyphMargin: false,
-              lineDecorationsWidth: 0,
-              lineNumbersMinChars: 3,
-              padding: { top: 8, bottom: 8 },
-              readOnly: isReadOnly,
-              fixedOverflowWidgets: true,
-            }}
-          />
-        </div>
+        <DisabledTooltip disabled={isReadOnly}>
+          <div className={editorContainerStyle({ isReadOnly, size: "lambda" })}>
+            <MonacoEditor
+              key={`lambda-${transition.lambdaType}-${transition.inputArcs
+                .map((a) => `${a.placeId}:${a.weight}`)
+                .join("-")}`}
+              language="typescript"
+              value={transition.lambdaCode || ""}
+              path={`inmemory://sdcpn/transitions/${transition.id}/lambda.ts`}
+              onChange={(value) => {
+                updateTransition(transition.id, (existingTransition) => {
+                  existingTransition.lambdaCode = value ?? "";
+                });
+              }}
+              theme="vs-light"
+              options={{
+                minimap: { enabled: false },
+                scrollBeyondLastLine: false,
+                fontSize: 12,
+                lineNumbers: "off",
+                folding: true,
+                glyphMargin: false,
+                lineDecorationsWidth: 0,
+                lineNumbersMinChars: 3,
+                padding: { top: 8, bottom: 8 },
+                readOnly: isReadOnly,
+                fixedOverflowWidgets: true,
+              }}
+            />
+          </div>
+        </DisabledTooltip>
       </div>
 
       {/* Only show Transition Results if at least one output place has a type */}
@@ -655,37 +664,41 @@ export const TransitionProperties: React.FC<TransitionPropertiesProps> = ({
               />
             )}
           </div>
-          <div className={editorContainerStyle({ isReadOnly, size: "kernel" })}>
-            <MonacoEditor
-              key={`kernel-${transition.inputArcs
-                .map((a) => `${a.placeId}:${a.weight}`)
-                .join("-")}-${transition.outputArcs
-                .map((a) => `${a.placeId}:${a.weight}`)
-                .join("-")}`}
-              language="typescript"
-              value={transition.transitionKernelCode || ""}
-              path={`inmemory://sdcpn/transitions/${transition.id}/transition-kernel.ts`}
-              onChange={(value) => {
-                updateTransition(transition.id, (existingTransition) => {
-                  existingTransition.transitionKernelCode = value ?? "";
-                });
-              }}
-              theme="vs-light"
-              options={{
-                minimap: { enabled: false },
-                scrollBeyondLastLine: false,
-                fontSize: 12,
-                lineNumbers: "off",
-                folding: true,
-                glyphMargin: false,
-                lineDecorationsWidth: 0,
-                lineNumbersMinChars: 3,
-                padding: { top: 8, bottom: 8 },
-                readOnly: isReadOnly,
-                fixedOverflowWidgets: true,
-              }}
-            />
-          </div>
+          <DisabledTooltip disabled={isReadOnly}>
+            <div
+              className={editorContainerStyle({ isReadOnly, size: "kernel" })}
+            >
+              <MonacoEditor
+                key={`kernel-${transition.inputArcs
+                  .map((a) => `${a.placeId}:${a.weight}`)
+                  .join("-")}-${transition.outputArcs
+                  .map((a) => `${a.placeId}:${a.weight}`)
+                  .join("-")}`}
+                language="typescript"
+                value={transition.transitionKernelCode || ""}
+                path={`inmemory://sdcpn/transitions/${transition.id}/transition-kernel.ts`}
+                onChange={(value) => {
+                  updateTransition(transition.id, (existingTransition) => {
+                    existingTransition.transitionKernelCode = value ?? "";
+                  });
+                }}
+                theme="vs-light"
+                options={{
+                  minimap: { enabled: false },
+                  scrollBeyondLastLine: false,
+                  fontSize: 12,
+                  lineNumbers: "off",
+                  folding: true,
+                  glyphMargin: false,
+                  lineDecorationsWidth: 0,
+                  lineNumbersMinChars: 3,
+                  padding: { top: 8, bottom: 8 },
+                  readOnly: isReadOnly,
+                  fixedOverflowWidgets: true,
+                }}
+              />
+            </div>
+          </DisabledTooltip>
         </div>
       ) : (
         <div className={noOutputTypesBoxStyle}>

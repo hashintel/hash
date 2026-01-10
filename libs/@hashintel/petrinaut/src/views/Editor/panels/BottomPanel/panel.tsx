@@ -86,7 +86,9 @@ export const BottomPanel: React.FC = () => {
   // Simulation state for conditional subviews
   const simulationState = useSimulationStore((state) => state.state);
   const isSimulationActive =
-    simulationState === "Running" || simulationState === "Paused";
+    simulationState === "Running" ||
+    simulationState === "Paused" ||
+    simulationState === "Complete";
 
   // Track previous simulation state to detect when simulation starts
   const prevSimulationActiveRef = useRef(isSimulationActive);

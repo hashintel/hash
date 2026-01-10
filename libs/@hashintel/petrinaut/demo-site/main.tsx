@@ -1,4 +1,4 @@
-import "./sentry/instrument.js";
+import "./sentry/instrument";
 
 import * as Sentry from "@sentry/react";
 import { StrictMode } from "react";

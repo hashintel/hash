@@ -1,5 +1,6 @@
 import { css, cva } from "@hashintel/ds-helpers/css";
 
+import { DisabledTooltip } from "../../../../components/disabled-tooltip";
 import type { Parameter } from "../../../../core/types/sdcpn";
 import { useIsReadOnly } from "../../../../state/use-is-read-only";
 
@@ -141,26 +142,30 @@ export const ParameterProperties: React.FC<ParameterPropertiesProps> = ({
       {/* Name field */}
       <div>
         <div className={fieldLabelStyle}>Name</div>
-        <input
-          type="text"
-          value={parameter.name}
-          onChange={handleUpdateName}
-          disabled={isDisabled}
-          className={inputStyle({ isDisabled })}
-        />
+        <DisabledTooltip disabled={isDisabled}>
+          <input
+            type="text"
+            value={parameter.name}
+            onChange={handleUpdateName}
+            disabled={isDisabled}
+            className={inputStyle({ isDisabled })}
+          />
+        </DisabledTooltip>
       </div>
 
       {/* Variable Name field */}
       <div>
         <div className={fieldLabelStyle}>Variable Name</div>
-        <input
-          type="text"
-          value={parameter.variableName}
-          onChange={handleUpdateVariableName}
-          onBlur={handleBlurVariableName}
-          disabled={isDisabled}
-          className={inputStyle({ isDisabled, isMonospace: true })}
-        />
+        <DisabledTooltip disabled={isDisabled}>
+          <input
+            type="text"
+            value={parameter.variableName}
+            onChange={handleUpdateVariableName}
+            onBlur={handleBlurVariableName}
+            disabled={isDisabled}
+            className={inputStyle({ isDisabled, isMonospace: true })}
+          />
+        </DisabledTooltip>
       </div>
 
       {/* Type selector - hidden for now as internal code relies on "real" type */}
@@ -168,13 +173,15 @@ export const ParameterProperties: React.FC<ParameterPropertiesProps> = ({
       {/* Default Value field */}
       <div>
         <div className={fieldLabelStyle}>Default Value</div>
-        <input
-          type="text"
-          value={parameter.defaultValue}
-          onChange={handleUpdateDefaultValue}
-          disabled={isDisabled}
-          className={inputStyle({ isDisabled, isMonospace: true })}
-        />
+        <DisabledTooltip disabled={isDisabled}>
+          <input
+            type="text"
+            value={parameter.defaultValue}
+            onChange={handleUpdateDefaultValue}
+            disabled={isDisabled}
+            className={inputStyle({ isDisabled, isMonospace: true })}
+          />
+        </DisabledTooltip>
       </div>
     </div>
   );

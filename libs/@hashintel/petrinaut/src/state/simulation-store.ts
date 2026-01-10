@@ -5,6 +5,7 @@ import { devtools } from "zustand/middleware";
 import { checkSDCPN } from "../core/checker/checker";
 import { SDCPNItemError } from "../core/errors";
 import { buildSimulation } from "../core/simulation/build-simulation";
+import { checkTransitionEnablement } from "../core/simulation/check-transition-enablement";
 import { computeNextFrame } from "../core/simulation/compute-next-frame";
 import type { SDCPN } from "../core/types/sdcpn";
 import type { SimulationInstance } from "../core/types/simulation";
@@ -247,11 +248,32 @@ export function createSimulationStore(getSDCPN: () => { sdcpn: SDCPN }) {
 
                 try {
                   // Compute the next frame (applies dynamics + transitions)
-                  const updatedSimulation = computeNextFrame(state.simulation);
+                  const { simulation: updatedSimulation, transitionFired } =
+                    computeNextFrame(state.simulation);
+
+                  // Check for terminal state (deadlock) when no transition fired
+                  let newState: SimulationState =
+                    state.state === "Running" ? "Running" : "Paused";
+
+                  if (!transitionFired) {
+                    // Check if any transition has sufficient tokens to potentially fire
+                    const currentFrame =
+                      updatedSimulation.frames[
+                        updatedSimulation.currentFrameNumber
+                      ];
+                    if (currentFrame) {
+                      const enablementResult =
+                        checkTransitionEnablement(currentFrame);
+                      if (!enablementResult.hasEnabledTransition) {
+                        // No transition can fire - simulation reached terminal state
+                        newState = "Complete";
+                      }
+                    }
+                  }
 
                   return {
                     simulation: updatedSimulation,
-                    state: state.state === "Running" ? "Running" : "Paused",
+                    state: newState,
                     error: null,
                     errorItemId: null,
                     currentlyViewedFrame: updatedSimulation.currentFrameNumber,

@@ -5,6 +5,7 @@ import MonacoEditor from "@monaco-editor/react";
 import { useState } from "react";
 import { TbDotsVertical, TbSparkles } from "react-icons/tb";
 
+import { DisabledTooltip } from "../../../../components/disabled-tooltip";
 import { Menu } from "../../../../components/menu";
 import { Tooltip } from "../../../../components/tooltip";
 import { UI_MESSAGES } from "../../../../constants/ui-messages";
@@ -331,42 +332,46 @@ export const DifferentialEquationProperties: React.FC<
 
       <div>
         <div className={fieldLabelStyle}>Name</div>
-        <input
-          type="text"
-          value={differentialEquation.name}
-          onChange={(event) => {
-            updateDifferentialEquation(
-              differentialEquation.id,
-              (existingEquation) => {
-                existingEquation.name = event.target.value;
-              },
-            );
-          }}
-          disabled={isReadOnly}
-          className={inputStyle({ isReadOnly })}
-        />
+        <DisabledTooltip disabled={isReadOnly}>
+          <input
+            type="text"
+            value={differentialEquation.name}
+            onChange={(event) => {
+              updateDifferentialEquation(
+                differentialEquation.id,
+                (existingEquation) => {
+                  existingEquation.name = event.target.value;
+                },
+              );
+            }}
+            disabled={isReadOnly}
+            className={inputStyle({ isReadOnly })}
+          />
+        </DisabledTooltip>
       </div>
 
       <div>
         <div className={fieldLabelStyle}>Associated Type</div>
         <div style={{ position: "relative" }}>
-          <button
-            type="button"
-            onClick={() => setShowTypeDropdown(!showTypeDropdown)}
-            onBlur={() => setTimeout(() => setShowTypeDropdown(false), 200)}
-            disabled={isReadOnly}
-            className={typeDropdownButtonStyle({ isReadOnly })}
-          >
-            {associatedType && (
-              <>
-                <div
-                  className={colorDotStyle}
-                  style={{ backgroundColor: associatedType.displayColor }}
-                />
-                <span>{associatedType.name}</span>
-              </>
-            )}
-          </button>
+          <DisabledTooltip disabled={isReadOnly}>
+            <button
+              type="button"
+              onClick={() => setShowTypeDropdown(!showTypeDropdown)}
+              onBlur={() => setTimeout(() => setShowTypeDropdown(false), 200)}
+              disabled={isReadOnly}
+              className={typeDropdownButtonStyle({ isReadOnly })}
+            >
+              {associatedType && (
+                <>
+                  <div
+                    className={colorDotStyle}
+                    style={{ backgroundColor: associatedType.displayColor }}
+                  />
+                  <span>{associatedType.name}</span>
+                </>
+              )}
+            </button>
+          </DisabledTooltip>
           {showTypeDropdown && !isReadOnly && (
             <div className={dropdownMenuStyle}>
               {types.map((type) => (
@@ -514,35 +519,37 @@ export const DifferentialEquationProperties: React.FC<
             />
           )}
         </div>
-        <div className={editorContainerStyle({ isReadOnly })}>
-          <MonacoEditor
-            language="typescript"
-            value={differentialEquation.code}
-            onChange={(newCode) => {
-              updateDifferentialEquation(
-                differentialEquation.id,
-                (existingEquation) => {
-                  existingEquation.code = newCode ?? "";
-                },
-              );
-            }}
-            path={`inmemory://sdcpn/differential-equations/${differentialEquation.id}.ts`}
-            theme="vs-light"
-            options={{
-              minimap: { enabled: false },
-              scrollBeyondLastLine: false,
-              fontSize: 12,
-              lineNumbers: "off",
-              folding: true,
-              glyphMargin: false,
-              lineDecorationsWidth: 0,
-              lineNumbersMinChars: 3,
-              padding: { top: 8, bottom: 8 },
-              fixedOverflowWidgets: true,
-              readOnly: isReadOnly,
-            }}
-          />
-        </div>
+        <DisabledTooltip disabled={isReadOnly}>
+          <div className={editorContainerStyle({ isReadOnly })}>
+            <MonacoEditor
+              language="typescript"
+              value={differentialEquation.code}
+              onChange={(newCode) => {
+                updateDifferentialEquation(
+                  differentialEquation.id,
+                  (existingEquation) => {
+                    existingEquation.code = newCode ?? "";
+                  },
+                );
+              }}
+              path={`inmemory://sdcpn/differential-equations/${differentialEquation.id}.ts`}
+              theme="vs-light"
+              options={{
+                minimap: { enabled: false },
+                scrollBeyondLastLine: false,
+                fontSize: 12,
+                lineNumbers: "off",
+                folding: true,
+                glyphMargin: false,
+                lineDecorationsWidth: 0,
+                lineNumbersMinChars: 3,
+                padding: { top: 8, bottom: 8 },
+                fixedOverflowWidgets: true,
+                readOnly: isReadOnly,
+              }}
+            />
+          </div>
+        </DisabledTooltip>
       </div>
     </div>
   );

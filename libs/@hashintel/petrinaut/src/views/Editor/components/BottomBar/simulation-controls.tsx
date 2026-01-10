@@ -1,5 +1,9 @@
 import { css } from "@hashintel/ds-helpers/css";
-import { IoMdPause, IoMdPlay } from "react-icons/io";
+import {
+  IoMdCheckmarkCircleOutline,
+  IoMdPause,
+  IoMdPlay,
+} from "react-icons/io";
 import { MdRotateLeft } from "react-icons/md";
 
 import { useEditorStore } from "../../../../state/editor-provider";
@@ -91,6 +95,7 @@ export const SimulationControls: React.FC<SimulationControlsProps> = ({
   const totalFrames = simulation?.frames.length ?? 0;
   const hasSimulation = simulation !== null;
   const isRunning = simulationState === "Running";
+  const isComplete = simulationState === "Complete";
   const elapsedTime = simulation ? currentlyViewedFrame * simulation.dt : 0;
 
   const getPlayPauseTooltip = () => {
@@ -99,6 +104,9 @@ export const SimulationControls: React.FC<SimulationControlsProps> = ({
     }
     if (simulationState === "NotRun") {
       return "Start Simulation";
+    }
+    if (simulationState === "Complete") {
+      return "Simulation Complete - Reset to run again";
     }
     if (isRunning) {
       return "Pause Simulation";
@@ -112,6 +120,9 @@ export const SimulationControls: React.FC<SimulationControlsProps> = ({
     }
     if (simulationState === "NotRun") {
       return "Run simulation";
+    }
+    if (simulationState === "Complete") {
+      return "Simulation complete";
     }
     if (isRunning) {
       return "Pause simulation";
@@ -155,10 +166,16 @@ export const SimulationControls: React.FC<SimulationControlsProps> = ({
       <ToolbarButton
         tooltip={getPlayPauseTooltip()}
         onClick={handlePlayPause}
-        disabled={isDisabled}
+        disabled={isDisabled || isComplete}
         ariaLabel={getPlayPauseAriaLabel()}
       >
-        {isRunning ? <IoMdPause /> : <IoMdPlay />}
+        {isComplete ? (
+          <IoMdCheckmarkCircleOutline />
+        ) : isRunning ? (
+          <IoMdPause />
+        ) : (
+          <IoMdPlay />
+        )}
       </ToolbarButton>
 
       {/* Frame controls - only visible when simulation exists */}
