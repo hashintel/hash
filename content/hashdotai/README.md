@@ -16,7 +16,11 @@
 
 ## Overview
 
-The [hash.ai] website code resides in our private [`internal` monorepo]. However, certain site content is made publicly editable, and/or is distributed under Creative Commons/open-source licenses. Please check the individual `LICENSE` information within each file or sub-directory as appropriate, per the [license determination instructions].
+The [hash.ai] website code resides in our private [`internal` monorepo].
+
+Certain website content is, however, made publicly editable, and/or is distributed under Creative Commons/open-source licenses. Please check the individual `LICENSE` information within each file or sub-directory as appropriate, per the [license determination instructions].
 
 - **User Guide** ([hash.ai/docs]): in the [`docs`] sub-directory
 - **Glossary Definitions** ([hash.ai/glossary]): in the [`glossary`] sub-directory
+
+Not all website content is publicly editable; for example, our legal pages, "about" pages, and marketing pages are not.
