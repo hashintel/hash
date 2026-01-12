@@ -23,6 +23,9 @@
     "preview": "ladle build && ladle preview"
   },
   "dependencies": {
+    "@suspensive/react": "3.18.0",
+    "@tanstack/react-query": "5.90.16",
+    "nuqs": "2.8.6",
     "zod": "4.1.12"
   },
   "devDependencies": {
