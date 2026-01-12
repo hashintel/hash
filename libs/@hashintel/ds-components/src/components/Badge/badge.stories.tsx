@@ -1,4 +1,4 @@
-import { css } from "@hashintel/ds-helpers/css";
+import { css } from "../../../styled-system/css";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 
 import { Badge, type BadgeProps } from "./badge";

@@ -1,5 +1,5 @@
 import { RadioGroup as BaseRadioGroup } from "@ark-ui/react/radio-group";
-import { css, cva } from "@hashintel/ds-helpers/css";
+import { css, cva } from "../../../styled-system/css";
 import type { ReactNode } from "react";
 
 export interface RadioGroupOption {

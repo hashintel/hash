@@ -1,5 +1,5 @@
 import { Slider as BaseSlider } from "@ark-ui/react/slider";
-import { css, cx } from "@hashintel/ds-helpers/css";
+import { css, cx } from "../../../styled-system/css";
 import { refractive } from "@hashintel/refractive";
 
 const THUMB_WIDTH = 18;
@@ -65,7 +65,7 @@ export const Slider: React.FC<SliderProps> = ({
           className={css({
             fontSize: "size.textsm",
             fontWeight: "medium",
-            color: "core.gray.90",
+            color: "gray.90",
           })}
         >
           {label}
@@ -76,7 +76,7 @@ export const Slider: React.FC<SliderProps> = ({
         <BaseSlider.ValueText
           className={css({
             fontSize: "size.textxs",
-            color: "core.gray.60",
+            color: "gray.60",
           })}
         />
       )}
@@ -95,14 +95,14 @@ export const Slider: React.FC<SliderProps> = ({
             height: "[4px]",
             alignItems: "center",
             borderRadius: "radius.full",
-            backgroundColor: "core.gray.40",
+            backgroundColor: "gray.40",
           })}
         >
           <BaseSlider.Range
             className={css({
               top: "[0px]",
               bottom: "[0px]",
-              backgroundColor: "core.blue.70",
+              backgroundColor: "blue.70",
               borderRadius: "radius.full",
             })}
           />
@@ -113,7 +113,7 @@ export const Slider: React.FC<SliderProps> = ({
           className={css({
             outline: "none",
             "& > div": {
-              backgroundColor: "core.blue.70",
+              backgroundColor: "blue.70",
               transformOrigin: "center",
               transition:
                 "[transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275), background-color 0.2s ease]",

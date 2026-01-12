@@ -1,4 +1,4 @@
-import { css, cva, cx } from "@hashintel/ds-helpers/css";
+import { css, cva, cx } from "../../../styled-system/css";
 import type { ReactNode } from "react";
 
 export interface ButtonProps
@@ -116,17 +116,17 @@ const buttonRecipe = cva({
       variant: "primary",
       colorScheme: "brand",
       css: {
-        backgroundColor: "bg.brand.bold.default",
+        backgroundColor: "bg.accent.bold.default",
         color: "text.inverted",
         _hover: {
-          backgroundColor: "bg.brand.bold.hover",
+          backgroundColor: "bg.accent.bold.hover",
         },
         _active: {
-          backgroundColor: "bg.brand.bold.active",
+          backgroundColor: "bg.accent.bold.active",
         },
         _focusVisible: {
           outline: "[2px solid]",
-          outlineColor: "core.custom.30",
+          outlineColor: "accent.30",
           outlineOffset: "[2px]",
         },
       },
@@ -146,7 +146,7 @@ const buttonRecipe = cva({
         },
         _focusVisible: {
           outline: "[2px solid]",
-          outlineColor: "core.gray.30",
+          outlineColor: "gray.30",
           outlineOffset: "[2px]",
         },
       },
@@ -166,7 +166,7 @@ const buttonRecipe = cva({
         },
         _focusVisible: {
           outline: "[2px solid]",
-          outlineColor: "core.red.30",
+          outlineColor: "red.30",
           outlineOffset: "[2px]",
         },
       },
@@ -178,21 +178,21 @@ const buttonRecipe = cva({
       css: {
         backgroundColor: "bg.neutral.subtle.default",
         border: "[1px solid]",
-        borderColor: "bg.brand.bold.default",
+        borderColor: "bg.accent.bold.default",
         color: "text.link",
         _hover: {
-          backgroundColor: "bg.brand.subtle.hover",
-          borderColor: "bg.brand.bold.hover",
-          color: "text.linkhover",
+          backgroundColor: "bg.accent.subtle.hover",
+          borderColor: "bg.accent.bold.hover",
+          color: "text.linkHover",
         },
         _active: {
-          backgroundColor: "bg.brand.subtle.active",
-          borderColor: "bg.brand.bold.active",
-          color: "text.linkhover",
+          backgroundColor: "bg.accent.subtle.active",
+          borderColor: "bg.accent.bold.active",
+          color: "text.linkHover",
         },
         _focusVisible: {
           outline: "[2px solid]",
-          outlineColor: "core.custom.30",
+          outlineColor: "accent.30",
           outlineOffset: "[2px]",
         },
       },
@@ -216,7 +216,7 @@ const buttonRecipe = cva({
         },
         _focusVisible: {
           outline: "[2px solid]",
-          outlineColor: "core.gray.30",
+          outlineColor: "gray.30",
           outlineOffset: "[2px]",
         },
       },
@@ -229,20 +229,20 @@ const buttonRecipe = cva({
         backgroundColor: "bg.neutral.subtle.default",
         border: "[1px solid]",
         borderColor: "bg.status.critical.strong.default",
-        color: "text.semantic.critical",
+        color: "text.status.critical",
         _hover: {
           backgroundColor: "bg.status.critical.subtle.hover",
           borderColor: "bg.status.critical.strong.hover",
-          color: "text.semantic.critical",
+          color: "text.status.critical",
         },
         _active: {
           backgroundColor: "bg.status.critical.subtle.active",
           borderColor: "bg.status.critical.strong.active",
-          color: "text.semantic.critical",
+          color: "text.status.critical",
         },
         _focusVisible: {
           outline: "[2px solid]",
-          outlineColor: "core.red.30",
+          outlineColor: "red.30",
           outlineOffset: "[2px]",
         },
       },
@@ -255,16 +255,16 @@ const buttonRecipe = cva({
         backgroundColor: "[transparent]",
         color: "text.link",
         _hover: {
-          backgroundColor: "bg.brand.subtle.hover",
-          color: "text.linkhover",
+          backgroundColor: "bg.accent.subtle.hover",
+          color: "text.linkHover",
         },
         _active: {
-          backgroundColor: "bg.brand.subtle.active",
-          color: "text.linkhover",
+          backgroundColor: "bg.accent.subtle.active",
+          color: "text.linkHover",
         },
         _focusVisible: {
           outline: "[2px solid]",
-          outlineColor: "core.custom.30",
+          outlineColor: "accent.30",
           outlineOffset: "[2px]",
         },
       },
@@ -286,7 +286,7 @@ const buttonRecipe = cva({
         },
         _focusVisible: {
           outline: "[2px solid]",
-          outlineColor: "core.gray.30",
+          outlineColor: "gray.30",
           outlineOffset: "[2px]",
         },
       },
@@ -297,18 +297,18 @@ const buttonRecipe = cva({
       colorScheme: "critical",
       css: {
         backgroundColor: "[transparent]",
-        color: "text.semantic.critical",
+        color: "text.status.critical",
         _hover: {
           backgroundColor: "bg.status.critical.subtle.hover",
-          color: "text.semantic.critical",
+          color: "text.status.critical",
         },
         _active: {
           backgroundColor: "bg.status.critical.subtle.active",
-          color: "text.semantic.critical",
+          color: "text.status.critical",
         },
         _focusVisible: {
           outline: "[2px solid]",
-          outlineColor: "core.red.30",
+          outlineColor: "red.30",
           outlineOffset: "[2px]",
         },
       },
