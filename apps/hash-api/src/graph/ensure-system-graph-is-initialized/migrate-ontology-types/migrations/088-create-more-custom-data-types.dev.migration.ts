@@ -182,6 +182,9 @@ const migrate: MigrationFunction = async ({
     migrationState,
   });
 
+  /**
+   * @todo we will need to rename the existing Year data type to "Calendar Year" (it covers things such as '1999')
+   */
   await createSystemDataTypeIfNotExists(context, authentication, {
     dataTypeDefinition: {
       allOf: [{ $ref: durationDataType.schema.$id }],
