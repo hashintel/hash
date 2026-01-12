@@ -183,7 +183,7 @@ const migrate: MigrationFunction = async ({
   });
 
   /**
-   * @todo we will need to rename the existing Year data type to "Calendar Year" (it covers things such as '1999')
+   * @todo H-5852 we will need to rename the existing Year data type to "Calendar Year" (it covers things such as '1999') before un-deving this migration
    */
   await createSystemDataTypeIfNotExists(context, authentication, {
     dataTypeDefinition: {
