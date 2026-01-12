@@ -42,6 +42,96 @@ const figmaColorCoreSchema = z
 const colorCore = figmaColorCoreSchema.parse(figmaVariables["color.core"]);
 
 /**
+ * A semantic token value is a reference string like `{gray.90}` or `{neutral.white}`.
+ */
+const semanticTokenRefSchema = z
+  .object({
+    value: z.string().describe("Token reference like {gray.90}"),
+    type: z.literal("color"),
+    resolvedType: z.literal("COLOR").optional(),
+    description: z.string().optional(),
+  })
+  .describe("Semantic token with reference value");
+
+type SemanticTokenRef = z.infer<typeof semanticTokenRefSchema>;
+
+/**
+ * Semantic tokens can be nested arbitrarily deep.
+ * Leaf nodes have `value`/`type`, intermediate nodes are plain objects.
+ */
+type SemanticTokenNode = SemanticTokenRef | { [key: string]: SemanticTokenNode };
+
+const semanticTokenNodeSchema: z.ZodType<SemanticTokenNode> = z.lazy(() =>
+  z.union([
+    semanticTokenRefSchema,
+    z.record(z.string(), semanticTokenNodeSchema),
+  ]),
+);
+
+/** The top-level `color.semantic` export containing nested semantic tokens. */
+const figmaColorSemanticSchema = z
+  .record(z.string(), semanticTokenNodeSchema)
+  .describe("color.semantic section of Figma variables export");
+
+/** Parse and validate `color.semantic` from the Figma JSON (if present). */
+const colorSemantic = figmaVariables["color.semantic"]
+  ? figmaColorSemanticSchema.parse(figmaVariables["color.semantic"])
+  : null;
+
+/**
+ * Convert a Figma reference like `{gray.90}` to a Panda token reference `{colors.gray.90}`.
+ * Handles kebab-case to camelCase conversion for color names.
+ */
+function transformTokenReference(ref: string): string {
+  // Match pattern like {colorName.step} or {colorName.nested.step}
+  const match = ref.match(/^\{(.+)\}$/);
+  if (!match) {
+    // Not a reference, return as-is (shouldn't happen with well-formed data)
+    return ref;
+  }
+
+  const parts = match[1].split(".");
+  // Convert the color name (first part) from kebab-case to camelCase
+  const colorName = camelCase(parts[0]);
+  const rest = parts.slice(1).join(".");
+
+  return `{colors.${colorName}.${rest}}`;
+}
+
+/**
+ * Check if a node is a leaf (has `value` and `type` properties).
+ */
+function isSemanticLeaf(node: SemanticTokenNode): node is SemanticTokenRef {
+  return (
+    typeof node === "object" &&
+    node !== null &&
+    "value" in node &&
+    "type" in node &&
+    typeof node.value === "string"
+  );
+}
+
+/**
+ * Recursively transform semantic tokens, converting Figma references to Panda references.
+ * Only keeps `value` property, discarding `type`, `resolvedType`, `description`.
+ */
+function transformSemanticTokens(
+  node: SemanticTokenNode,
+): Record<string, unknown> | { value: string } {
+  if (isSemanticLeaf(node)) {
+    return { value: transformTokenReference(node.value) };
+  }
+
+  const result: Record<string, unknown> = {};
+  for (const [key, child] of Object.entries(node)) {
+    // Convert kebab-case keys to camelCase (e.g., "link-hover" -> "linkHover")
+    const camelKey = camelCase(key);
+    result[camelKey] = transformSemanticTokens(child as SemanticTokenNode);
+  }
+  return result;
+}
+
+/**
  * Strip the Figma-export metadata (`type`) and keep only the `{ value }` shape
  * expected by Panda's `defineSemanticTokens.colors()`.
  */
@@ -120,19 +210,40 @@ export const ${varName} = defineSemanticTokens.colors(${formattedTokens});
 /**
  * Generate `index.ts` that re-exports all generated color token groups.
  */
-function writeIndexFile(colorNames: string[]): void {
+function writeIndexFile(
+  coreColorNames: string[],
+  semanticColorNames: string[],
+): void {
   const filePath = join(process.cwd(), OUTPUT_DIR, "index.ts");
 
-  const imports = colorNames
+  const coreImports = coreColorNames
     .map((name) => `import { ${camelCase(name)} } from "./${kebabCase(name)}";`)
     .join("\n");
 
-  const exports = colorNames.map((name) => camelCase(name)).join(",\n  ");
+  const semanticImports = semanticColorNames
+    .map((name) => `import { ${camelCase(name)} } from "./semantic-${kebabCase(name)}";`)
+    .join("\n");
 
-  const content = `${imports}
+  const coreExports = coreColorNames.map((name) => camelCase(name)).join(",\n  ");
+  const semanticExports = semanticColorNames.map((name) => camelCase(name)).join(",\n  ");
 
+  const content = `${coreImports}
+${semanticImports}
+
+/** Core color scales (gray, red, blue, etc.) with light/dark mode values. */
+export const coreColors = {
+  ${coreExports},
+};
+
+/** Semantic color tokens (bg, text, border, etc.) that reference core colors. */
+export const semanticColors = {
+  ${semanticExports},
+};
+
+/** Combined colors export for use in Panda preset. */
 export const colors = {
-  ${exports},
+  ...coreColors,
+  ...semanticColors,
 };
 `;
 
@@ -141,28 +252,61 @@ export const colors = {
 }
 
 /**
+ * Generate a semantic color token file (references other tokens).
+ */
+function writeSemanticColorFile(
+  name: string,
+  tokens: Record<string, unknown>,
+): void {
+  const fileName = `semantic-${kebabCase(name)}`;
+  const varName = camelCase(name);
+  const filePath = join(process.cwd(), OUTPUT_DIR, `${fileName}.ts`);
+  const formattedTokens = formatTokensForOutput(tokens);
+
+  const content = `import { defineSemanticTokens } from "@pandacss/dev";
+
+export const ${varName} = defineSemanticTokens.colors(${formattedTokens});
+`;
+
+  fs.writeFileSync(filePath, content, "utf8");
+  console.log(`📄 Created ${fileName}.ts`);
+}
+
+/**
  * Script entry point.
  *
  * Note: this deletes and recreates the output directory before writing files.
  */
 function main(): void {
-  console.log("🎨 Generating semantic color tokens from Figma export...");
+  console.log("🎨 Generating color tokens from Figma export...");
 
   const outputPath = join(process.cwd(), OUTPUT_DIR);
   fs.rmSync(outputPath, { recursive: true, force: true });
   fs.mkdirSync(outputPath, { recursive: true });
 
-  const colorNames: string[] = [];
-
+  // Generate core color files
+  const coreColorNames: string[] = [];
+  console.log("\n📦 Core colors:");
   for (const [colorName, scale] of Object.entries(colorCore)) {
     const tokens = transformColorScale(scale);
     writeColorFile(colorName, tokens);
-    colorNames.push(colorName);
+    coreColorNames.push(colorName);
   }
 
-  writeIndexFile(colorNames);
+  // Generate semantic color files
+  const semanticColorNames: string[] = [];
+  if (colorSemantic) {
+    console.log("\n🎯 Semantic colors:");
+    for (const [categoryName, node] of Object.entries(colorSemantic)) {
+      const tokens = transformSemanticTokens(node as SemanticTokenNode);
+      writeSemanticColorFile(categoryName, tokens);
+      semanticColorNames.push(categoryName);
+    }
+  }
 
-  console.log(`✅ Generated ${colorNames.length} color files`);
+  writeIndexFile(coreColorNames, semanticColorNames);
+
+  console.log(`\n✅ Generated ${coreColorNames.length} core + ${semanticColorNames.length} semantic color files`);
 }
 
 main();
