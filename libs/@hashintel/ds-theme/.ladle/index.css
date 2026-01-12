@@ -1,1 +1,21 @@
 @layer reset, base, tokens, recipes, utilities;
+
+:root {
+  /* colors */
+  --ladle-bg-color-primary: var(--colors-gray-95) !important;
+  --ladle-bg-color-secondary: var(--colors-gray-90) !important;
+  --ladle-color-primary: var(--colors-gray-10) !important;
+  --ladle-color-secondary: var(--colors-gray-20) !important;
+  --ladle-color-hover: var(--colors-gray-40) !important;
+  --ladle-color-accent: var(--colors-blue-20);
+  --ladle-blueprint: var(--colors-blue-40);
+
+  /* dimensions */
+  --ladle-ring-size: 64px;
+  --ladle-ring-thickness: 6px;
+  --ladle-mode-overflow: hidden;
+  --ladle-mode-height: 100vh;
+  --ladle-main-padding: 1.5em;
+  --ladle-main-padding-mobile: 0.5em;
+  --reach-dialog: 1;
+}
