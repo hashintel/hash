@@ -1,4 +1,3 @@
-import { css } from "../../styled-system/css";
 import { refractive } from "@hashintel/refractive";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import {
@@ -14,6 +13,7 @@ import {
 import { AnimatePresence, motion } from "motion/react";
 import { useState } from "react";
 
+import { css } from "../../styled-system/css";
 import { Button } from "../components/Button/button";
 import { SegmentedControl } from "../components/SegmentedControl/segmented-control";
 import { Slider } from "../components/Slider/slider";
@@ -43,15 +43,11 @@ const Playground = () => {
       backgroundColor: isSelected ? "blue.60" : undefined,
       _hover: {
         transform: "scale(1.05)",
-        backgroundColor: isSelected
-          ? "blue.70"
-          : "[rgba(255,255,255,0.2)]",
+        backgroundColor: isSelected ? "blue.70" : "[rgba(255,255,255,0.2)]",
       },
       _active: {
         transform: "scale(0.95)",
-        backgroundColor: isSelected
-          ? "blue.80"
-          : "[rgba(255,255,255,0.3)]",
+        backgroundColor: isSelected ? "blue.80" : "[rgba(255,255,255,0.3)]",
       },
     });
 

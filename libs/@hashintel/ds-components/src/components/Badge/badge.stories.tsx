@@ -1,6 +1,6 @@
-import { css } from "../../../styled-system/css";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 
+import { css } from "../../../styled-system/css";
 import { Badge, type BadgeProps } from "./badge";
 
 const meta: Meta<BadgeProps> = {
