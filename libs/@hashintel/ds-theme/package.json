@@ -13,14 +13,22 @@
   "main": "src/main.ts",
   "scripts": {
     "codegen": "tsx src/scripts/generate-colors.ts",
-    "lint:tsc": "tsc --noEmit"
+    "lint:tsc": "tsc --noEmit",
+    "dev": "ladle serve",
+    "build": "ladle build",
+    "preview": "ladle build && ladle preview"
   },
   "dependencies": {
     "zod": "4.1.12"
   },
   "devDependencies": {
+    "@ladle/react": "5.1.1",
     "@pandacss/dev": "1.4.3",
+    "@types/react": "19.2.7",
+    "@types/react-dom": "19.2.3",
     "case-anything": "3.1.0",
+    "react": "19.2.3",
+    "react-dom": "19.2.3",
     "tsx": "4.20.6",
     "typescript": "5.9.3"
   }

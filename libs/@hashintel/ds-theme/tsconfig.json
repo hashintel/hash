@@ -1,14 +1,18 @@
 {
-  "extends": "@local/tsconfig/legacy-base-tsconfig-to-refactor.json",
+  "extends": "@total-typescript/tsconfig/tsc/dom/library-monorepo",
   "compilerOptions": {
     "module": "ESNext",
     "target": "es2022",
     "moduleResolution": "bundler",
-    "lib": ["ES2021"],
+    "jsx": "react-jsx",
+    "lib": ["dom", "dom.iterable", "ES2021"],
     "noEmit": true,
-    "isolatedModules": true,
-    "resolveJsonModule": true
+    "isolatedModules": true
   },
-  "include": ["src/**/*", "generate-colors.ts"],
-  "exclude": ["node_modules", "dist"]
+  "include": ["src/**/*"],
+  "exclude": [
+    "node_modules",
+    "dist",
+    ".storybook/**/*"
+  ]
 }
