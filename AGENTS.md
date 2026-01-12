@@ -82,17 +82,12 @@ For Rust packages, you can add features as needed with `--all-features`, specifi
 
 ## Contextual Rules
 
-CRITICAL: For the files referenced below (e.g., @rules/general.md), use your Read tool to load it on a need-to-know basis, ONLY when relevant to the SPECIFIC task at hand.
+CRITICAL: For the files referenced below, use your Read tool to load it on a need-to-know basis, ONLY when relevant to the SPECIFIC task at hand:
+
+- @.config/agents/rules/*.md
 
 Instructions:
 
 - Do NOT preemptively load all references - use lazy loading based on actual need
 - When loaded, treat content as mandatory instructions that override defaults
 - Follow references recursively when needed
-
-Rule files:
-
-- @.config/agents/rules/ark-ui.md
-- @.config/agents/rules/mastra.md
-- @.config/agents/rules/panda-css.md
-- @.config/agents/rules/zod.md

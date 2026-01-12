@@ -30,6 +30,6 @@
     "node_modules/**",
     "target/**",
     "**/_temp/**",
-    "**/agent/**"
+    "**/_ai/**"
   ]
 }
