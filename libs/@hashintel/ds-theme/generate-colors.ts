@@ -1,12 +1,14 @@
 import fs from "node:fs";
 import { join } from "node:path";
 import { camelCase, kebabCase } from "case-anything";
-import figmaVariables from "./data/variables.json" with { type: "json" };
+import figmaVariables from "./data/figma-variables.json" with { type: "json" };
 
 const OUTPUT_DIR = "src/theme/colors";
 
+type ColorModeValue = { _light: string; _dark: string };
+
 type FigmaColorValue = {
-  value: { _light: string; _dark: string };
+  value: ColorModeValue;
   type: "color";
 };
 
@@ -16,18 +18,42 @@ type FigmaColorCore = Record<string, FigmaColorScale>;
 
 const colorCore = figmaVariables["color.core"] as FigmaColorCore;
 
+/**
+ * Strip the Figma-export metadata (`type`) and keep only the `{ value }` shape
+ * expected by Panda's `defineSemanticTokens.colors()`.
+ */
 function transformColorScale(
-  scale: FigmaColorScale
-): Record<string, { value: { _light: string; _dark: string } }> {
+  scale: FigmaColorScale,
+): Record<string, { value: ColorModeValue }> {
   return Object.fromEntries(
-    Object.entries(scale).map(([step, { value }]) => [step, { value }])
+    Object.entries(scale).map(([step, { value }]) => [step, { value }]),
   );
 }
 
+const VALID_IDENTIFIER_RE = /^[a-zA-Z_$][a-zA-Z0-9_$]*$/;
+
+/**
+ * Convert a token object into a *TypeScript object-literal string*.
+ *
+ * We intentionally don't use `JSON.stringify()` for the whole structure because
+ * we want unquoted keys where possible (cleaner generated code), while still
+ * correctly quoting keys that are not valid identifiers.
+ */
 function formatTokensForOutput(tokens: Record<string, unknown>): string {
+  /**
+   * Recursive formatter for unknown nested values.
+   *
+   * It's defined inside `formatTokensForOutput()` so it can remain private and
+   * so recursion is expressed naturally without exporting a helper.
+   */
   const formatValue = (value: unknown): string => {
+    if (value === undefined) {
+      // `JSON.stringify(undefined)` returns `undefined`, which is not a string.
+      return "undefined";
+    }
+
     if (typeof value !== "object" || value === null) {
-      return JSON.stringify(value);
+      return JSON.stringify(value) ?? "undefined";
     }
 
     if (Array.isArray(value)) {
@@ -37,7 +63,7 @@ function formatTokensForOutput(tokens: Record<string, unknown>): string {
     const entries = Object.entries(value);
     const formatted = entries
       .map(([key, val]) => {
-        const keyStr = /^[a-zA-Z_$][a-zA-Z0-9_$]*$/.test(key)
+        const keyStr = VALID_IDENTIFIER_RE.test(key)
           ? key
           : JSON.stringify(key);
         return `${keyStr}: ${formatValue(val)}`;
@@ -50,6 +76,9 @@ function formatTokensForOutput(tokens: Record<string, unknown>): string {
   return formatValue(tokens);
 }
 
+/**
+ * Generate a single color token file (one exported `defineSemanticTokens` call).
+ */
 function writeColorFile(name: string, tokens: Record<string, unknown>): void {
   const fileName = kebabCase(name);
   const varName = camelCase(name);
@@ -65,6 +94,9 @@ export const ${varName} = defineSemanticTokens.colors(${formattedTokens});
   console.log(`📄 Created ${fileName}.ts`);
 }
 
+/**
+ * Generate `index.ts` that re-exports all generated color token groups.
+ */
 function writeIndexFile(colorNames: string[]): void {
   const filePath = join(process.cwd(), OUTPUT_DIR, "index.ts");
 
@@ -85,6 +117,11 @@ export const colors = {
   console.log(`📄 Created index.ts`);
 }
 
+/**
+ * Script entry point.
+ *
+ * Note: this deletes and recreates the output directory before writing files.
+ */
 function main(): void {
   console.log("🎨 Generating semantic color tokens from Figma export...");
 

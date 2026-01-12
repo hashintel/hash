@@ -12,8 +12,11 @@
   "type": "module",
   "main": "src/index.ts",
   "scripts": {
-    "generate:colors": "tsx generate-colors.ts",
+    "codegen": "tsx generate-colors.ts",
     "lint:tsc": "tsc --noEmit"
+  },
+  "dependencies": {
+    "zod": "4.1.12"
   },
   "devDependencies": {
     "@pandacss/dev": "1.4.3",
