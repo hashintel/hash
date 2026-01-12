@@ -9,6 +9,7 @@ import {
   TbTrash,
 } from "react-icons/tb";
 
+import { DisabledTooltip } from "../../../../components/disabled-tooltip";
 import { Menu } from "../../../../components/menu";
 import type { SubView } from "../../../../components/sub-view/types";
 import { FixedHeightSubViewsContainer } from "../../../../components/sub-view/vertical-sub-views-container";
@@ -410,25 +411,27 @@ export const PlaceProperties: React.FC<PlacePropertiesProps> = ({
 
         <div>
           <div className={fieldLabelStyle}>Name</div>
-          <input
-            ref={nameInputRef}
-            type="text"
-            value={nameInputValue}
-            onChange={(event) => {
-              setNameInputValue(event.target.value);
-              // Clear error when user starts typing
-              if (nameError) {
-                setNameError(null);
-              }
-            }}
-            onFocus={() => setIsNameInputFocused(true)}
-            onBlur={() => {
-              setIsNameInputFocused(false);
-              handleNameBlur();
-            }}
-            disabled={isReadOnly}
-            className={inputStyle({ isReadOnly, hasError: !!nameError })}
-          />
+          <DisabledTooltip disabled={isReadOnly}>
+            <input
+              ref={nameInputRef}
+              type="text"
+              value={nameInputValue}
+              onChange={(event) => {
+                setNameInputValue(event.target.value);
+                // Clear error when user starts typing
+                if (nameError) {
+                  setNameError(null);
+                }
+              }}
+              onFocus={() => setIsNameInputFocused(true)}
+              onBlur={() => {
+                setIsNameInputFocused(false);
+                handleNameBlur();
+              }}
+              disabled={isReadOnly}
+              className={inputStyle({ isReadOnly, hasError: !!nameError })}
+            />
+          </DisabledTooltip>
           {nameError && <div className={errorMessageStyle}>{nameError}</div>}
         </div>
 
@@ -443,32 +446,34 @@ export const PlaceProperties: React.FC<PlacePropertiesProps> = ({
               } Tokens in places don't have to carry data, but they need one to enable dynamics (token data changing over time when in a place).`}
             />
           </div>
-          <select
-            value={place.colorId ?? ""}
-            onChange={(event) => {
-              const value = event.target.value;
-              const newType = value === "" ? null : value;
-              updatePlace(place.id, (existingPlace) => {
-                existingPlace.colorId = newType;
-                // Disable dynamics if type is being set to null
-                if (newType === null && existingPlace.dynamicsEnabled) {
-                  existingPlace.dynamicsEnabled = false;
-                }
-              });
-            }}
-            disabled={isReadOnly}
-            className={selectStyle({
-              isReadOnly,
-              hasMarginBottom: !!place.colorId,
-            })}
-          >
-            <option value="">None</option>
-            {types.map((type) => (
-              <option key={type.id} value={type.id}>
-                {type.name}
-              </option>
-            ))}
-          </select>
+          <DisabledTooltip disabled={isReadOnly}>
+            <select
+              value={place.colorId ?? ""}
+              onChange={(event) => {
+                const value = event.target.value;
+                const newType = value === "" ? null : value;
+                updatePlace(place.id, (existingPlace) => {
+                  existingPlace.colorId = newType;
+                  // Disable dynamics if type is being set to null
+                  if (newType === null && existingPlace.dynamicsEnabled) {
+                    existingPlace.dynamicsEnabled = false;
+                  }
+                });
+              }}
+              disabled={isReadOnly}
+              className={selectStyle({
+                isReadOnly,
+                hasMarginBottom: !!place.colorId,
+              })}
+            >
+              <option value="">None</option>
+              {types.map((type) => (
+                <option key={type.id} value={type.id}>
+                  {type.name}
+                </option>
+              ))}
+            </select>
+          </DisabledTooltip>
 
           {place.colorId && (
             <div className={jumpButtonContainerStyle}>
@@ -489,15 +494,17 @@ export const PlaceProperties: React.FC<PlacePropertiesProps> = ({
         <div className={sectionContainerStyle}>
           <div className={switchRowStyle}>
             <div className={switchContainerStyle}>
-              <Switch
-                checked={!!place.colorId && place.dynamicsEnabled}
-                disabled={isReadOnly || place.colorId === null}
-                onCheckedChange={(checked) => {
-                  updatePlace(place.id, (existingPlace) => {
-                    existingPlace.dynamicsEnabled = checked;
-                  });
-                }}
-              />
+              <DisabledTooltip disabled={isReadOnly}>
+                <Switch
+                  checked={!!place.colorId && place.dynamicsEnabled}
+                  disabled={isReadOnly || place.colorId === null}
+                  onCheckedChange={(checked) => {
+                    updatePlace(place.id, (existingPlace) => {
+                      existingPlace.dynamicsEnabled = checked;
+                    });
+                  }}
+                />
+              </DisabledTooltip>
             </div>
             <div className={fieldLabelWithTooltipStyle}>
               Dynamics
@@ -520,25 +527,27 @@ export const PlaceProperties: React.FC<PlacePropertiesProps> = ({
           availableDiffEqs.length > 0 && (
             <div className={diffEqContainerStyle}>
               <div className={fieldLabelStyle}>Differential Equation</div>
-              <select
-                value={place.differentialEquationId ?? undefined}
-                onChange={(event) => {
-                  const value = event.target.value;
+              <DisabledTooltip disabled={isReadOnly}>
+                <select
+                  value={place.differentialEquationId ?? undefined}
+                  onChange={(event) => {
+                    const value = event.target.value;
 
-                  updatePlace(place.id, (existingPlace) => {
-                    existingPlace.differentialEquationId = value || null;
-                  });
-                }}
-                disabled={isReadOnly}
-                className={selectStyle({ isReadOnly, hasMarginBottom: true })}
-              >
-                <option value="">None</option>
-                {availableDiffEqs.map((eq) => (
-                  <option key={eq.id} value={eq.id}>
-                    {eq.name}
-                  </option>
-                ))}
-              </select>
+                    updatePlace(place.id, (existingPlace) => {
+                      existingPlace.differentialEquationId = value || null;
+                    });
+                  }}
+                  disabled={isReadOnly}
+                  className={selectStyle({ isReadOnly, hasMarginBottom: true })}
+                >
+                  <option value="">None</option>
+                  {availableDiffEqs.map((eq) => (
+                    <option key={eq.id} value={eq.id}>
+                      {eq.name}
+                    </option>
+                  ))}
+                </select>
+              </DisabledTooltip>
 
               {place.differentialEquationId && (
                 <div className={jumpButtonContainerStyle}>

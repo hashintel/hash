@@ -12,6 +12,7 @@ import type {
   Transition,
 } from "./core/types/sdcpn";
 import { useMonacoGlobalTypings } from "./hooks/use-monaco-global-typings";
+import { NotificationsProvider } from "./notifications/notifications-provider";
 import { CheckerProvider } from "./state/checker-provider";
 import { EditorProvider } from "./state/editor-provider";
 import { SDCPNProvider } from "./state/sdcpn-provider";
@@ -101,15 +102,19 @@ export const Petrinaut = ({
   ...rest
 }: PetrinautProps) => {
   return (
-    <SDCPNProvider {...rest}>
-      <CheckerProvider>
-        <SimulationProvider>
-          <EditorProvider>
-            <MonacoSetup />
-            <EditorView hideNetManagementControls={hideNetManagementControls} />
-          </EditorProvider>
-        </SimulationProvider>
-      </CheckerProvider>
-    </SDCPNProvider>
+    <NotificationsProvider>
+      <SDCPNProvider {...rest}>
+        <CheckerProvider>
+          <SimulationProvider>
+            <EditorProvider>
+              <MonacoSetup />
+              <EditorView
+                hideNetManagementControls={hideNetManagementControls}
+              />
+            </EditorProvider>
+          </SimulationProvider>
+        </CheckerProvider>
+      </SDCPNProvider>
+    </NotificationsProvider>
   );
 };

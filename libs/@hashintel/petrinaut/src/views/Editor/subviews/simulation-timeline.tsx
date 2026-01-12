@@ -1157,7 +1157,7 @@ const SimulationTimelineContent: React.FC = () => {
 
 /**
  * SubView definition for Simulation Timeline tab.
- * This tab is only visible when simulation is running or paused.
+ * This tab is visible when simulation is running, paused, or complete.
  */
 export const simulationTimelineSubView: SubView = {
   id: "simulation-timeline",

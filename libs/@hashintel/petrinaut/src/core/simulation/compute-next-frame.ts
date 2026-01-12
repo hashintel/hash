@@ -3,6 +3,22 @@ import { computePlaceNextState } from "./compute-place-next-state";
 import { executeTransitions } from "./execute-transitions";
 
 /**
+ * Result of computing the next frame.
+ */
+export type ComputeNextFrameResult = {
+  /**
+   * The updated simulation instance with the new frame appended.
+   */
+  simulation: SimulationInstance;
+
+  /**
+   * Whether any transition fired during this frame.
+   * When false, the token distribution did not change due to discrete events.
+   */
+  transitionFired: boolean;
+};
+
+/**
  * Computes the next frame of the simulation by:
  * 1. Applying differential equations to all places with dynamics enabled (that have a type)
  * 2. Executing all possible transitions
@@ -10,11 +26,11 @@ import { executeTransitions } from "./execute-transitions";
  * This integrates continuous dynamics (ODEs) and discrete transitions into a single step.
  *
  * @param simulation - The simulation instance containing the current state
- * @returns A new SimulationInstance with frames array updated to include the new frame
+ * @returns An object containing the updated SimulationInstance and whether any transition fired
  */
 export function computeNextFrame(
   simulation: SimulationInstance,
-): SimulationInstance {
+): ComputeNextFrameResult {
   // Get the current frame
   const currentFrame = simulation.frames[simulation.currentFrameNumber]!;
 
@@ -138,29 +154,35 @@ export function computeNextFrame(
   // Step 2: Execute all transitions on the frame with updated dynamics
   const frameAfterTransitions = executeTransitions(frameAfterDynamics);
 
+  // Detect if any transition fired by checking if time changed
+  // (executeTransitions only increments time when transitions fire)
+  const transitionFired = frameAfterTransitions.time !== currentFrame.time;
+
   // Step 3: Ensure time is always incremented (executeTransitions only increments if transitions fire)
-  const finalFrame =
-    frameAfterTransitions.time === currentFrame.time
-      ? {
-          ...frameAfterTransitions,
-          time: currentFrame.time + simulation.dt,
-          // Also update transition timeSinceLastFiring since time advanced
-          transitions: new Map(
-            Array.from(frameAfterTransitions.transitions).map(([id, state]) => [
-              id,
-              {
-                ...state,
-                timeSinceLastFiring: state.timeSinceLastFiring + simulation.dt,
-              },
-            ]),
-          ),
-        }
-      : frameAfterTransitions;
+  const finalFrame = transitionFired
+    ? frameAfterTransitions
+    : {
+        ...frameAfterTransitions,
+        time: currentFrame.time + simulation.dt,
+        // Also update transition timeSinceLastFiring since time advanced
+        transitions: new Map(
+          Array.from(frameAfterTransitions.transitions).map(([id, state]) => [
+            id,
+            {
+              ...state,
+              timeSinceLastFiring: state.timeSinceLastFiring + simulation.dt,
+            },
+          ]),
+        ),
+      };
 
   // Step 4: Return updated simulation instance with new frame added
   return {
-    ...simulation,
-    frames: [...simulation.frames, finalFrame],
-    currentFrameNumber: simulation.currentFrameNumber + 1,
+    simulation: {
+      ...simulation,
+      frames: [...simulation.frames, finalFrame],
+      currentFrameNumber: simulation.currentFrameNumber + 1,
+    },
+    transitionFired,
   };
 }
