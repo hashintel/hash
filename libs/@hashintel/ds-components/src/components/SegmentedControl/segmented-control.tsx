@@ -1,6 +1,7 @@
 import { SegmentGroup } from "@ark-ui/react/segment-group";
-import { css, cx } from "../../../styled-system/css";
 import { refractive } from "@hashintel/refractive";
+
+import { css, cx } from "../../../styled-system/css";
 
 // TODO: Segmented Control should just be implemented as in the Figma, without refractive effects.
 // This version is just legacy for demo purposes.

@@ -166,11 +166,11 @@ export const SemanticBorder: Story = () => (
         Semantic border colors for alerts and status indicators
       </p>
       <HStack gap="4" flexWrap="wrap">
-        {(
-          ["info", "success", "caution", "warning", "critical"] as const
-        ).map((key) => (
-          <BorderSwatch key={key} label={key} tokenPath={statusTokens[key]} />
-        ))}
+        {(["info", "success", "caution", "warning", "critical"] as const).map(
+          (key) => (
+            <BorderSwatch key={key} label={key} tokenPath={statusTokens[key]} />
+          ),
+        )}
       </HStack>
     </VStack>
   </VStack>

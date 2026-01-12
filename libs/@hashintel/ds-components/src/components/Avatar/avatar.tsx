@@ -1,6 +1,7 @@
 import { Avatar as BaseAvatar } from "@ark-ui/react/avatar";
-import { css, cva } from "../../../styled-system/css";
 import type { ReactNode } from "react";
+
+import { css, cva } from "../../../styled-system/css";
 
 export interface AvatarProps {
   /** Image source URL */

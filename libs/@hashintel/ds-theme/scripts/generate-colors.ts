@@ -2,9 +2,7 @@ import fs from "node:fs";
 import { join } from "node:path";
 import { camelCase, kebabCase } from "case-anything";
 import { z } from "zod";
-import figmaVariables from "./figma-variables.json" with {
-  type: "json",
-};
+import figmaVariables from "./figma-variables.json" with { type: "json" };
 
 const OUTPUT_DIR = "src/theme/colors";
 
@@ -59,7 +57,9 @@ type SemanticTokenRef = z.infer<typeof semanticTokenRefSchema>;
  * Semantic tokens can be nested arbitrarily deep.
  * Leaf nodes have `value`/`type`, intermediate nodes are plain objects.
  */
-type SemanticTokenNode = SemanticTokenRef | { [key: string]: SemanticTokenNode };
+type SemanticTokenNode =
+  | SemanticTokenRef
+  | { [key: string]: SemanticTokenNode };
 
 const semanticTokenNodeSchema: z.ZodType<SemanticTokenNode> = z.lazy(() =>
   z.union([
@@ -221,11 +221,18 @@ function writeIndexFile(
     .join("\n");
 
   const semanticImports = semanticColorNames
-    .map((name) => `import { ${camelCase(name)} } from "./semantic-${kebabCase(name)}";`)
+    .map(
+      (name) =>
+        `import { ${camelCase(name)} } from "./semantic-${kebabCase(name)}";`,
+    )
     .join("\n");
 
-  const coreExports = coreColorNames.map((name) => camelCase(name)).join(",\n  ");
-  const semanticExports = semanticColorNames.map((name) => camelCase(name)).join(",\n  ");
+  const coreExports = coreColorNames
+    .map((name) => camelCase(name))
+    .join(",\n  ");
+  const semanticExports = semanticColorNames
+    .map((name) => camelCase(name))
+    .join(",\n  ");
 
   const content = `${coreImports}
 ${semanticImports}
@@ -306,7 +313,9 @@ function main(): void {
 
   writeIndexFile(coreColorNames, semanticColorNames);
 
-  console.log(`\n✅ Generated ${coreColorNames.length} core + ${semanticColorNames.length} semantic color files`);
+  console.log(
+    `\n✅ Generated ${coreColorNames.length} core + ${semanticColorNames.length} semantic color files`,
+  );
 }
 
 main();

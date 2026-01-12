@@ -1,5 +1,6 @@
-import { css, cva } from "../../../styled-system/css";
 import type { ReactNode } from "react";
+
+import { css, cva } from "../../../styled-system/css";
 
 export interface BadgeProps {
   /** The content of the badge */
