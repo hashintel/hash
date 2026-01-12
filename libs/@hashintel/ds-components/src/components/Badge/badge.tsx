@@ -1,4 +1,4 @@
-import { css, cva } from "@hashintel/ds-helpers/css";
+import { css, cva } from "../../../styled-system/css";
 import type { ReactNode } from "react";
 
 export interface BadgeProps {
@@ -40,36 +40,36 @@ const badgeRecipe = cva({
   variants: {
     colorScheme: {
       gray: {
-        backgroundColor: "core.gray.20",
-        color: "core.gray.80",
+        backgroundColor: "gray.20",
+        color: "gray.80",
       },
       brand: {
-        backgroundColor: "core.blue.10",
-        color: "core.blue.80",
+        backgroundColor: "blue.10",
+        color: "blue.80",
       },
       green: {
-        backgroundColor: "core.green.10",
-        color: "core.green.80",
+        backgroundColor: "green.10",
+        color: "green.80",
       },
       orange: {
-        backgroundColor: "core.orange.10",
-        color: "core.orange.80",
+        backgroundColor: "orange.10",
+        color: "orange.80",
       },
       red: {
-        backgroundColor: "core.red.00",
-        color: "core.red.80",
+        backgroundColor: "red.00",
+        color: "red.80",
       },
       purple: {
-        backgroundColor: "core.purple.00",
-        color: "core.purple.80",
+        backgroundColor: "purple.00",
+        color: "purple.80",
       },
       pink: {
-        backgroundColor: "core.pink.10",
-        color: "core.pink.80",
+        backgroundColor: "pink.10",
+        color: "pink.80",
       },
       yellow: {
-        backgroundColor: "core.yellow.10",
-        color: "core.yellow.80",
+        backgroundColor: "yellow.10",
+        color: "yellow.80",
       },
     },
     size: {

@@ -1,5 +1,5 @@
 import { Switch as BaseSwitch } from "@ark-ui/react/switch";
-import { css } from "@hashintel/ds-helpers/css";
+import { css } from "../../../styled-system/css";
 import { LIP, refractive } from "@hashintel/refractive";
 
 // Layout constants
@@ -22,9 +22,9 @@ const switchControlStyles = (disabled: boolean) =>
     display: "inline-block",
     cursor: disabled ? "not-allowed" : "pointer",
     transition: "[all 0.2s ease]",
-    backgroundColor: "core.gray.40",
+    backgroundColor: "gray.40",
     _checked: {
-      backgroundColor: "core.green.40",
+      backgroundColor: "green.40",
     },
   });
 

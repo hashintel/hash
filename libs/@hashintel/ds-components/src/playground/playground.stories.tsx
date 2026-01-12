@@ -1,4 +1,4 @@
-import { css } from "@hashintel/ds-helpers/css";
+import { css } from "../../styled-system/css";
 import { refractive } from "@hashintel/refractive";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import {
@@ -40,17 +40,17 @@ const Playground = () => {
       cursor: "pointer",
       transition: "all",
       transitionDuration: "200ms",
-      backgroundColor: isSelected ? "core.blue.60" : undefined,
+      backgroundColor: isSelected ? "blue.60" : undefined,
       _hover: {
         transform: "scale(1.05)",
         backgroundColor: isSelected
-          ? "core.blue.70"
+          ? "blue.70"
           : "[rgba(255,255,255,0.2)]",
       },
       _active: {
         transform: "scale(0.95)",
         backgroundColor: isSelected
-          ? "core.blue.80"
+          ? "blue.80"
           : "[rgba(255,255,255,0.3)]",
       },
     });
@@ -131,7 +131,7 @@ const Playground = () => {
                     flexDirection: "column",
                     gap: "spacing.1",
                     alignItems: "center",
-                    backgroundColor: "core.gray.20/40",
+                    backgroundColor: "gray.20/40",
                     pointerEvents: "auto",
                   })}
                   style={{
@@ -183,7 +183,7 @@ const Playground = () => {
                       onValueChange={setCurrentPage}
                       className={css({
                         color: "[rgba(0,0,0,0.8)]",
-                        backgroundColor: "core.gray.30",
+                        backgroundColor: "gray.30",
                         marginBottom: "spacing.5",
                       })}
                     />

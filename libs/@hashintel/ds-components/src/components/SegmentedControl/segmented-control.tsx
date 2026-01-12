@@ -1,5 +1,5 @@
 import { SegmentGroup } from "@ark-ui/react/segment-group";
-import { css, cx } from "@hashintel/ds-helpers/css";
+import { css, cx } from "../../../styled-system/css";
 import { refractive } from "@hashintel/refractive";
 
 // TODO: Segmented Control should just be implemented as in the Figma, without refractive effects.
@@ -20,7 +20,7 @@ const rootBackdropStyles = css({
   position: "absolute",
   display: "flex",
   alignItems: "center",
-  backgroundColor: "core.gray.10/20",
+  backgroundColor: "gray.10/20",
   left: "[0px]",
   top: "[0px]",
   right: "[0px]",
@@ -34,9 +34,9 @@ const indicatorStyles = css({
   left: "var(--left)",
   top: "var(--top)",
   boxShadow: "sm",
-  backgroundColor: "core.neutral.white/60",
+  backgroundColor: "neutral.white/60",
   "[data-part='root']:active &": {
-    backgroundColor: "core.neutral.white/60",
+    backgroundColor: "neutral.white/60",
   },
 });
 
@@ -60,7 +60,7 @@ const itemStyles = css({
     shadow: "lg",
   },
   _hover: {
-    backgroundColor: "core.neutral.white/60",
+    backgroundColor: "neutral.white/60",
   },
 });
 

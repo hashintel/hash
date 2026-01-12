@@ -1,5 +1,5 @@
 import { Avatar as BaseAvatar } from "@ark-ui/react/avatar";
-import { css, cva } from "@hashintel/ds-helpers/css";
+import { css, cva } from "../../../styled-system/css";
 import type { ReactNode } from "react";
 
 export interface AvatarProps {
@@ -229,28 +229,28 @@ const avatarIndicatorRootRecipe = cva({
     },
     colorScheme: {
       red: {
-        backgroundColor: "core.red.50",
+        backgroundColor: "red.50",
       },
       orange: {
-        backgroundColor: "core.orange.50",
+        backgroundColor: "orange.50",
       },
       yellow: {
-        backgroundColor: "core.yellow.50",
+        backgroundColor: "yellow.50",
       },
       green: {
-        backgroundColor: "core.green.50",
+        backgroundColor: "green.50",
       },
       blue: {
-        backgroundColor: "core.blue.50",
+        backgroundColor: "blue.50",
       },
       purple: {
-        backgroundColor: "core.purple.50",
+        backgroundColor: "purple.50",
       },
       pink: {
-        backgroundColor: "core.pink.50",
+        backgroundColor: "pink.50",
       },
       gray: {
-        backgroundColor: "core.gray.50",
+        backgroundColor: "gray.50",
       },
       white: {
         backgroundColor: "surface.default",
