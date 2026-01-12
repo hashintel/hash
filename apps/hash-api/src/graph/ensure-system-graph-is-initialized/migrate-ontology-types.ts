@@ -2,11 +2,13 @@ import { readdir } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
+import { extractVersion } from "@blockprotocol/type-system";
 import type { HashInstance } from "@local/hash-backend-utils/hash-instance";
 import { getHashInstance } from "@local/hash-backend-utils/hash-instance";
 import type { Logger } from "@local/hash-backend-utils/logger";
 import { systemPropertyTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type { MigrationsCompletedPropertyValueWithMetadata } from "@local/hash-isomorphic-utils/system-types/hashinstance";
+import { NotFoundError } from "openai";
 
 import { isProdEnv } from "../../lib/env-config";
 import type { ImpureGraphContext } from "../context-types";
@@ -172,17 +174,36 @@ export const migrateOntologyTypes = async (params: {
           params.context,
           authentication,
         );
+
+        const hashInstanceVersion = extractVersion(
+          hashInstance.entity.metadata.entityTypeIds[0],
+        );
+
+        if (parseInt(hashInstanceVersion, 10) < 2) {
+          params.logger.debug(
+            `Skipping migration state save in migration ${migrationNumber} as HASH Instance v${hashInstanceVersion} will not yet have migration state properties`,
+          );
+          /** HASH instance will not have migration state properties yet */
+          continue;
+        }
+
         await saveMigrationState({
           context: params.context,
           hashInstance,
           migrationsCompleted,
           migrationState,
         });
-      } catch {
+      } catch (saveMigrationStateError) {
         /**
-         * If HASH Instance doesn't exist yet or the migration state properties
-         * haven't been created yet, we can't save. This is expected before migration 025 has run.
+         * If HASH Instance doesn't exist yet, we can't save.
          */
+        if (saveMigrationStateError instanceof NotFoundError) {
+          params.logger.debug(
+            `Skipping migration state save in migration ${migrationNumber} as HASH Instance does not exist`,
+          );
+        } else {
+          throw saveMigrationStateError;
+        }
       }
     }
   }

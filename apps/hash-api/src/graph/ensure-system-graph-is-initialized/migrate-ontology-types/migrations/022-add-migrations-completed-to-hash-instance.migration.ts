@@ -1,4 +1,4 @@
-import type { EntityType } from "@blockprotocol/type-system";
+import { type EntityType, extractVersion } from "@blockprotocol/type-system";
 import { getWebMachineId } from "@local/hash-backend-utils/machine-actors";
 import { getEntityTypeById } from "@local/hash-graph-sdk/entity-type";
 import { createPolicy, deletePolicyById } from "@local/hash-graph-sdk/policy";
@@ -123,7 +123,7 @@ const migrate: MigrationFunction = async ({
     [updatedEntityTypeId, currentHashInstanceEntityTypeId].map(
       async (entityTypeId) =>
         createPolicy(context.graphApi, authentication, {
-          name: "tmp-hash-instance-instantiate",
+          name: `tmp-hash-instance-instantiate-hash-instance-v${extractVersion(entityTypeId)}`,
           effect: "permit",
           principal: {
             type: "actor",
