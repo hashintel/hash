@@ -1,6 +1,6 @@
 /* PLACEHOLDER IMPORTED FROM @park-ui/preset */
 
-import { defineTokens } from '@pandacss/dev';
+import { defineTokens } from "@pandacss/dev";
 
 export const zIndex = defineTokens.zIndex({
   hide: {

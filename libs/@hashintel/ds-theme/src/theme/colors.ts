@@ -1,16 +1,16 @@
-import { gray } from "./gray";
-import { red } from "./red";
-import { orange } from "./orange";
-import { green } from "./green";
-import { blue } from "./blue";
-import { neutral } from "./neutral";
-import { purple } from "./purple";
-import { pink } from "./pink";
-import { yellow } from "./yellow";
-import { accent } from "./accent";
-import { accentGray } from "./accent-gray";
-import { accentAlpha } from "./accent-alpha";
-import { whiteAlpha } from "./white-alpha";
+import { gray } from "./colors/gray";
+import { red } from "./colors/red";
+import { orange } from "./colors/orange";
+import { green } from "./colors/green";
+import { blue } from "./colors/blue";
+import { neutral } from "./colors/neutral";
+import { purple } from "./colors/purple";
+import { pink } from "./colors/pink";
+import { yellow } from "./colors/yellow";
+import { accent } from "./colors/accent";
+import { accentGray } from "./colors/accent-gray";
+import { accentAlpha } from "./colors/accent-alpha";
+import { whiteAlpha } from "./colors/white-alpha";
 
 export const colors = {
   gray,
