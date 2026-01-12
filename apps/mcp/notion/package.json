@@ -19,7 +19,7 @@
   "dependencies": {
     "@local/eslint": "0.0.0-private",
     "@local/tsconfig": "0.0.0-private",
-    "@modelcontextprotocol/sdk": "1.24.0",
+    "@modelcontextprotocol/sdk": "1.25.2",
     "@notionhq/client": "5.3.0",
     "dotenv-flow": "3.3.0",
     "notion-to-md": "3.1.9",
