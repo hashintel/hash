@@ -10,9 +10,9 @@
   "license": "(MIT OR Apache-2.0)",
   "sideEffects": false,
   "type": "module",
-  "main": "src/index.ts",
+  "main": "src/main.ts",
   "scripts": {
-    "codegen": "tsx generate-colors.ts",
+    "codegen": "tsx src/scripts/generate-colors.ts",
     "lint:tsc": "tsc --noEmit"
   },
   "dependencies": {
