@@ -1,5 +1,5 @@
 export default {
-  title: 'Theme/Colors',
+  title: "Tokens",
 };
 
-export { DEMO } from './colors.story';
+export { Colors } from "./colors.story";
