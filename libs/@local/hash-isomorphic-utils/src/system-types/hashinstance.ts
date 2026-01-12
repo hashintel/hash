@@ -7,6 +7,8 @@ import type { ArrayMetadata, ObjectMetadata } from "@blockprotocol/type-system";
 import type {
   BooleanDataType,
   BooleanDataTypeWithMetadata,
+  ObjectDataType,
+  ObjectDataTypeWithMetadata,
   TextDataType,
   TextDataTypeWithMetadata,
 } from "./shared.js";
@@ -14,6 +16,8 @@ import type {
 export type {
   BooleanDataType,
   BooleanDataTypeWithMetadata,
+  ObjectDataType,
+  ObjectDataTypeWithMetadata,
   TextDataType,
   TextDataTypeWithMetadata,
 };
@@ -35,6 +39,7 @@ export type HASHInstanceOutgoingLinksByLinkEntityTypeId = {};
  * An instance of HASH.
  */
 export type HASHInstanceProperties = {
+  "https://hash.ai/@h/types/property-type/migration-state/"?: MigrationStatePropertyValue;
   "https://hash.ai/@h/types/property-type/migrations-completed/"?: MigrationsCompletedPropertyValue;
   "https://hash.ai/@h/types/property-type/org-self-registration-is-enabled/": OrgSelfRegistrationIsEnabledPropertyValue;
   "https://hash.ai/@h/types/property-type/pages-are-enabled/": PagesAreEnabledPropertyValue;
@@ -45,6 +50,7 @@ export type HASHInstanceProperties = {
 export type HASHInstancePropertiesWithMetadata = {
   metadata?: ObjectMetadata;
   value: {
+    "https://hash.ai/@h/types/property-type/migration-state/"?: MigrationStatePropertyValueWithMetadata;
     "https://hash.ai/@h/types/property-type/migrations-completed/"?: MigrationsCompletedPropertyValueWithMetadata;
     "https://hash.ai/@h/types/property-type/org-self-registration-is-enabled/": OrgSelfRegistrationIsEnabledPropertyValueWithMetadata;
     "https://hash.ai/@h/types/property-type/pages-are-enabled/": PagesAreEnabledPropertyValueWithMetadata;
@@ -52,6 +58,14 @@ export type HASHInstancePropertiesWithMetadata = {
     "https://hash.ai/@h/types/property-type/user-self-registration-is-enabled/": UserSelfRegistrationIsEnabledPropertyValueWithMetadata;
   };
 };
+
+/**
+ * The accumulated state of type versions from running migrations, stored as a JSON object.
+ */
+export type MigrationStatePropertyValue = ObjectDataType;
+
+export type MigrationStatePropertyValueWithMetadata =
+  ObjectDataTypeWithMetadata;
 
 /**
  * The migrations that have been completed for this instance

@@ -2,7 +2,7 @@ import { readdir } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-import type { ProvidedEntityEditionProvenance } from "@blockprotocol/type-system";
+import type { HashInstance } from "@local/hash-backend-utils/hash-instance";
 import { getHashInstance } from "@local/hash-backend-utils/hash-instance";
 import type { Logger } from "@local/hash-backend-utils/logger";
 import { systemPropertyTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
@@ -18,6 +18,55 @@ import type {
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+
+/**
+ * Save migration state to the HASH Instance entity.
+ * Saves both the list of completed migrations and the accumulated type version state.
+ */
+const saveMigrationState = async (params: {
+  context: ImpureGraphContext<false, true>;
+  hashInstance: HashInstance;
+  migrationsCompleted: string[];
+  migrationState: MigrationState;
+}) => {
+  const { context, hashInstance, migrationsCompleted, migrationState } = params;
+  const authentication = { actorId: systemAccountId };
+
+  await hashInstance.entity.patch(context.graphApi, authentication, {
+    propertyPatches: [
+      {
+        op: "add",
+        path: [systemPropertyTypes.migrationsCompleted.propertyTypeBaseUrl],
+        property: {
+          value: migrationsCompleted.map((migration) => ({
+            value: migration,
+            metadata: {
+              dataTypeId:
+                "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+            },
+          })),
+        } satisfies MigrationsCompletedPropertyValueWithMetadata,
+      },
+      {
+        op: "add",
+        path: [systemPropertyTypes.migrationState.propertyTypeBaseUrl],
+        property: {
+          value: migrationState,
+          metadata: {
+            dataTypeId:
+              "https://blockprotocol.org/@blockprotocol/types/data-type/object/v/1",
+          },
+        },
+      },
+    ],
+    provenance: {
+      actorType: "machine",
+      origin: {
+        type: "migration",
+      },
+    },
+  });
+};
 
 /**
  * Migrate the ontology types in the Graph API.
@@ -45,11 +94,30 @@ export const migrateOntologyTypes = async (params: {
 
   const migrationsCompleted: string[] = [];
 
+  /**
+   * Try to load previously saved migration state.
+   * Instances either have both migrationsCompleted and migrationState saved, or neither.
+   */
   try {
     const hashInstance = await getHashInstance(params.context, authentication);
-    migrationsCompleted.push(...(hashInstance.migrationsCompleted ?? []));
+
+    const storedMigrationsCompleted = hashInstance.migrationsCompleted;
+    const storedMigrationState = hashInstance.migrationState as
+      | MigrationState
+      | undefined;
+
+    if (storedMigrationsCompleted && storedMigrationState) {
+      migrationsCompleted.push(...storedMigrationsCompleted);
+      migrationState = storedMigrationState;
+      params.logger.debug(
+        `Loaded migration state: ${migrationsCompleted.length} migrations completed, ` +
+          `${Object.keys(migrationState.entityTypeVersions).length} entity types, ` +
+          `${Object.keys(migrationState.propertyTypeVersions).length} property types, ` +
+          `${Object.keys(migrationState.dataTypeVersions).length} data types`,
+      );
+    }
   } catch {
-    // HASH Instance entity not available, this may be the first time the instance is being initialized
+    // HASH Instance entity not available, this is the first time the instance is being initialized
   }
 
   for (const migrationFileName of migrationFileNames) {
@@ -94,32 +162,37 @@ export const migrateOntologyTypes = async (params: {
       migrationsCompleted.push(migrationNumber);
 
       params.logger.info(`Processed migration ${migrationFileName}`);
+
+      /**
+       * Save migration state after each migration completes.
+       * This ensures we can resume from the correct state if the process is interrupted.
+       */
+      try {
+        const hashInstance = await getHashInstance(
+          params.context,
+          authentication,
+        );
+        await saveMigrationState({
+          context: params.context,
+          hashInstance,
+          migrationsCompleted,
+          migrationState,
+        });
+      } catch {
+        /**
+         * If HASH Instance doesn't exist yet or the migration state properties
+         * haven't been created yet, we can't save. This is expected before migration 025 has run.
+         */
+      }
     }
   }
 
   const hashInstance = await getHashInstance(params.context, authentication);
 
-  await hashInstance.entity.patch(params.context.graphApi, authentication, {
-    propertyPatches: [
-      {
-        op: "add",
-        path: [systemPropertyTypes.migrationsCompleted.propertyTypeBaseUrl],
-        property: {
-          value: migrationsCompleted.map((migration) => ({
-            value: migration,
-            metadata: {
-              dataTypeId:
-                "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
-            },
-          })),
-        } satisfies MigrationsCompletedPropertyValueWithMetadata,
-      },
-    ],
-    provenance: {
-      actorType: "machine",
-      origin: {
-        type: "migration",
-      },
-    } satisfies ProvidedEntityEditionProvenance,
+  await saveMigrationState({
+    context: params.context,
+    hashInstance,
+    migrationsCompleted,
+    migrationState,
   });
 };

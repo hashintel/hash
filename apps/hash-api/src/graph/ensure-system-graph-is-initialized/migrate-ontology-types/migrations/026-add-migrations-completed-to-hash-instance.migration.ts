@@ -14,11 +14,22 @@ import {
   upgradeEntitiesToNewTypeVersion,
 } from "../util";
 
+/**
+ * This migration adds tracking properties to the HASH Instance entity type:
+ * - `migrationsCompleted`: Array of migration numbers that have been run
+ * - `migrationState`: JSON object containing type version state from migrations
+ *
+ * Together these allow subsequent startups to skip already-completed migrations
+ * while still having access to the correct type version information.
+ */
 const migrate: MigrationFunction = async ({
   context,
   authentication,
   migrationState,
 }) => {
+  /**
+   * Step 1: Create the property types for tracking migration state.
+   */
   const migrationsCompletedPropertyType =
     await createSystemPropertyTypeIfNotExists(context, authentication, {
       propertyTypeDefinition: {
@@ -31,6 +42,24 @@ const migrate: MigrationFunction = async ({
       migrationState,
     });
 
+  const migrationStatePropertyType = await createSystemPropertyTypeIfNotExists(
+    context,
+    authentication,
+    {
+      propertyTypeDefinition: {
+        title: "Migration State",
+        description:
+          "The accumulated state of type versions from running migrations, stored as a JSON object.",
+        possibleValues: [{ primitiveDataType: "object" }],
+      },
+      webShortname: "h",
+      migrationState,
+    },
+  );
+
+  /**
+   * Step 2: Update HASH Instance entity type to include both properties.
+   */
   const currentHashInstanceEntityTypeId = getCurrentHashSystemEntityTypeId({
     entityTypeKey: "hashInstance",
     migrationState,
@@ -51,14 +80,15 @@ const migrate: MigrationFunction = async ({
     );
   }
 
-  const hashInstanceEntityTypeSchema = hashInstanceEntityType.schema;
-
   const newHashInstanceEntityTypeSchema: EntityType = {
-    ...hashInstanceEntityTypeSchema,
+    ...hashInstanceEntityType.schema,
     properties: {
-      ...hashInstanceEntityTypeSchema.properties,
+      ...hashInstanceEntityType.schema.properties,
       [migrationsCompletedPropertyType.metadata.recordId.baseUrl]: {
         $ref: migrationsCompletedPropertyType.schema.$id,
+      },
+      [migrationStatePropertyType.metadata.recordId.baseUrl]: {
+        $ref: migrationStatePropertyType.schema.$id,
       },
     },
   };
@@ -73,6 +103,9 @@ const migrate: MigrationFunction = async ({
     },
   );
 
+  /**
+   * Step 3: Create temporary policies and upgrade HASH Instance entities.
+   */
   const { webId: hashWebId } = await getOrCreateOwningWebId(context, "h");
 
   const hashWebBotAccountId = await getWebMachineId(context, authentication, {

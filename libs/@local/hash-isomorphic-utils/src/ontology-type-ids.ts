@@ -954,6 +954,12 @@ export const systemPropertyTypes = {
     propertyTypeBaseUrl:
       "https://hash.ai/@h/types/property-type/migrations-completed/" as BaseUrl,
   },
+  migrationState: {
+    propertyTypeId:
+      "https://hash.ai/@h/types/property-type/migration-state/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@h/types/property-type/migration-state/" as BaseUrl,
+  },
   nctId: {
     propertyTypeId: "https://hash.ai/@h/types/property-type/nct-id/v/1",
     propertyTypeBaseUrl:
