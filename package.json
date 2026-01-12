@@ -9,11 +9,11 @@
   },
   "workspaces": {
     "packages": [
+      "!**/pkg",
       ".claude/hooks",
       "apps/**",
       "libs/**",
-      "tests/**",
-      "!**/pkg"
+      "tests/**"
     ]
   },
   "scripts": {
