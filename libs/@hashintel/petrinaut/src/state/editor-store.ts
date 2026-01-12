@@ -1,6 +1,12 @@
 import { create } from "zustand";
 import { devtools } from "zustand/middleware";
 
+import {
+  DEFAULT_BOTTOM_PANEL_HEIGHT,
+  DEFAULT_LEFT_SIDEBAR_WIDTH,
+  DEFAULT_PROPERTIES_PANEL_WIDTH,
+} from "../constants/ui";
+
 export type DraggingStateByNodeId = Record<
   string,
   { dragging: boolean; position: { x: number; y: number } }
@@ -8,6 +14,12 @@ export type DraggingStateByNodeId = Record<
 
 type EditorGlobalMode = "edit" | "simulate";
 type EditorEditionMode = "select" | "pan" | "add-place" | "add-transition";
+export type BottomPanelTab =
+  | "diagnostics"
+  | "simulation-settings"
+  | "simulation-timeline";
+
+export type TimelineChartType = "run" | "stacked";
 
 export type EditorState = {
   globalMode: EditorGlobalMode;
@@ -19,6 +31,21 @@ export type EditorState = {
   // UI state
   isLeftSidebarOpen: boolean;
   setLeftSidebarOpen: (isOpen: boolean) => void;
+  leftSidebarWidth: number;
+  setLeftSidebarWidth: (width: number) => void;
+
+  // Properties panel width (for BottomPanel positioning)
+  propertiesPanelWidth: number;
+  setPropertiesPanelWidth: (width: number) => void;
+
+  // Bottom panel visibility, height, and active tab
+  isBottomPanelOpen: boolean;
+  setBottomPanelOpen: (isOpen: boolean) => void;
+  toggleBottomPanel: () => void;
+  bottomPanelHeight: number;
+  setBottomPanelHeight: (height: number) => void;
+  activeBottomPanelTab: BottomPanelTab;
+  setActiveBottomPanelTab: (tab: BottomPanelTab) => void;
 
   // Selected Resource ID (for properties panel)
   selectedResourceId: string | null;
@@ -38,6 +65,10 @@ export type EditorState = {
     updater: (state: DraggingStateByNodeId) => DraggingStateByNodeId,
   ) => void;
   resetDraggingState: () => void;
+
+  // Timeline chart type (run chart vs stacked area chart)
+  timelineChartType: TimelineChartType;
+  setTimelineChartType: (chartType: TimelineChartType) => void;
 
   __reinitialize: () => void;
 };
@@ -65,6 +96,48 @@ export function createEditorStore() {
             set({ isLeftSidebarOpen: isOpen }, false, {
               type: "setLeftSidebarOpen",
               isOpen,
+            }),
+          leftSidebarWidth: DEFAULT_LEFT_SIDEBAR_WIDTH,
+          setLeftSidebarWidth: (width) =>
+            set({ leftSidebarWidth: width }, false, {
+              type: "setLeftSidebarWidth",
+              width,
+            }),
+
+          // Properties panel width
+          propertiesPanelWidth: DEFAULT_PROPERTIES_PANEL_WIDTH,
+          setPropertiesPanelWidth: (width) =>
+            set({ propertiesPanelWidth: width }, false, {
+              type: "setPropertiesPanelWidth",
+              width,
+            }),
+
+          // Bottom panel visibility and height
+          isBottomPanelOpen: false,
+          setBottomPanelOpen: (isOpen) =>
+            set({ isBottomPanelOpen: isOpen }, false, {
+              type: "setBottomPanelOpen",
+              isOpen,
+            }),
+          toggleBottomPanel: () =>
+            set(
+              (state) => ({
+                isBottomPanelOpen: !state.isBottomPanelOpen,
+              }),
+              false,
+              "toggleBottomPanel",
+            ),
+          bottomPanelHeight: DEFAULT_BOTTOM_PANEL_HEIGHT,
+          setBottomPanelHeight: (height) =>
+            set({ bottomPanelHeight: height }, false, {
+              type: "setBottomPanelHeight",
+              height,
+            }),
+          activeBottomPanelTab: "diagnostics",
+          setActiveBottomPanelTab: (tab) =>
+            set({ activeBottomPanelTab: tab }, false, {
+              type: "setActiveBottomPanelTab",
+              tab,
             }),
 
           // Selected Resource ID
@@ -124,15 +197,29 @@ export function createEditorStore() {
           resetDraggingState: () =>
             set({ draggingStateByNodeId: {} }, false, "resetDraggingState"),
 
+          // Timeline chart type
+          timelineChartType: "run",
+          setTimelineChartType: (chartType) =>
+            set({ timelineChartType: chartType }, false, {
+              type: "setTimelineChartType",
+              chartType,
+            }),
+
           __reinitialize: () => {
             set(
               {
                 globalMode: "edit",
                 editionMode: "select",
                 isLeftSidebarOpen: true,
+                leftSidebarWidth: DEFAULT_LEFT_SIDEBAR_WIDTH,
+                propertiesPanelWidth: DEFAULT_PROPERTIES_PANEL_WIDTH,
+                isBottomPanelOpen: false,
+                bottomPanelHeight: DEFAULT_BOTTOM_PANEL_HEIGHT,
+                activeBottomPanelTab: "diagnostics",
                 selectedResourceId: null,
                 selectedItemIds: new Set(),
                 draggingStateByNodeId: {},
+                timelineChartType: "run",
               },
               false,
               { type: "initializeEditorStore" },

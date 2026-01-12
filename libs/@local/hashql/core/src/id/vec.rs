@@ -370,7 +370,7 @@ where
 }
 
 // Map-like APIs for IdVec<I, Option<T>>
-impl<I, T> IdVec<I, Option<T>>
+impl<I, T, A: Allocator> IdVec<I, Option<T>, A>
 where
     I: Id,
 {

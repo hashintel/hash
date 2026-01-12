@@ -2,6 +2,7 @@ import type {
   OriginProvenance,
   ProvidedEntityEditionProvenance,
 } from "@blockprotocol/type-system";
+import type { FlowActionActivity } from "@local/hash-backend-utils/flows";
 import { queryEntities } from "@local/hash-graph-sdk/entity";
 import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
 import {
@@ -18,7 +19,6 @@ import {
 } from "./research-entities-action/checkpoints.js";
 import { runCoordinatingAgent } from "./research-entities-action/coordinating-agent.js";
 import type { CoordinatingAgentState } from "./research-entities-action/shared/coordinators.js";
-import type { FlowActionActivity } from "./types.js";
 
 /**
  * An action to research entities of requested types according to the user's research goal.

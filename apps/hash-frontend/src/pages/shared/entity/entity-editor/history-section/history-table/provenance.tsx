@@ -11,7 +11,6 @@ import {
 import { generateWorkerRunPath } from "@local/hash-isomorphic-utils/flows/frontend-paths";
 import type { SvgIconProps, SxProps, Theme } from "@mui/material";
 import { Box, Stack, Typography } from "@mui/material";
-import { useRouter } from "next/router";
 import type { FunctionComponent, PropsWithChildren } from "react";
 import { useState } from "react";
 
@@ -58,9 +57,11 @@ const ProvenanceRow = ({ children }: PropsWithChildren) => (
 
 export const Provenance = ({
   event,
+  shortname,
   subgraph,
 }: {
   event: HistoryEvent;
+  shortname: string;
   subgraph: Subgraph;
 }) => {
   const {
@@ -72,9 +73,6 @@ export const Provenance = ({
   });
 
   const [showSourcesSlideover, setShowSourcesSlideover] = useState(false);
-
-  const { query } = useRouter();
-  const shortname = query.shortname as string;
 
   if (loading) {
     return (

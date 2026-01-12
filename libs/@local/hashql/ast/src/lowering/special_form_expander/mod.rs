@@ -154,7 +154,7 @@ impl<'heap> SpecialFormExpander<'heap> {
             return None;
         };
 
-        let mut types = self.heap.vec(Some(expr.arguments.len()));
+        let mut types = Vec::with_capacity_in(expr.arguments.len(), self.heap);
 
         let arguments_len = expr.arguments.len();
         for argument in expr.arguments {
@@ -185,7 +185,7 @@ impl<'heap> SpecialFormExpander<'heap> {
         }
 
         let entries_len = expr.entries.len();
-        let mut fields = self.heap.vec(Some(entries_len));
+        let mut fields = Vec::with_capacity_in(entries_len, self.heap);
 
         for entry in expr.entries {
             let Some(r#type) = self.lower_expr_to_type(*entry.value) else {
@@ -224,7 +224,7 @@ impl<'heap> SpecialFormExpander<'heap> {
         }
 
         let elements_len = expr.elements.len();
-        let mut fields = self.heap.vec(Some(elements_len));
+        let mut fields = Vec::with_capacity_in(elements_len, self.heap);
 
         for element in expr.elements {
             let Some(r#type) = self.lower_expr_to_type(*element.value) else {
@@ -403,7 +403,7 @@ impl<'heap> SpecialFormExpander<'heap> {
             id: call.id,
             span: call.span,
             value: value.value,
-            r#type: self.heap.boxed(r#type),
+            r#type: Box::new_in(r#type, self.heap),
         }))
     }
 
@@ -518,7 +518,7 @@ impl<'heap> SpecialFormExpander<'heap> {
         &mut self,
         arguments: heap::Vec<'heap, PathSegmentArgument<'heap>>,
     ) -> Option<heap::Vec<'heap, GenericConstraint<'heap>>> {
-        let mut constraints = self.heap.vec(Some(arguments.len()));
+        let mut constraints = Vec::with_capacity_in(arguments.len(), self.heap);
 
         let mut seen = fast_hash_map_with_capacity(arguments.len());
 
@@ -632,7 +632,7 @@ impl<'heap> SpecialFormExpander<'heap> {
             span: call.span,
             name,
             value: value.value,
-            r#type: Some(self.heap.boxed(r#type)),
+            r#type: Some(Box::new_in(r#type, self.heap)),
             body: body.value,
         }))
     }
@@ -694,7 +694,7 @@ impl<'heap> SpecialFormExpander<'heap> {
             name,
             constraints,
 
-            value: self.heap.boxed(value),
+            value: Box::new_in(value, self.heap),
             body: body.value,
         }))
     }
@@ -732,7 +732,7 @@ impl<'heap> SpecialFormExpander<'heap> {
             name,
             constraints,
 
-            value: self.heap.boxed(value),
+            value: Box::new_in(value, self.heap),
             body: body.value,
         }))
     }
@@ -753,7 +753,7 @@ impl<'heap> SpecialFormExpander<'heap> {
         }
 
         let entries_len = r#struct.entries.len();
-        let mut bindings = self.heap.vec(Some(entries_len));
+        let mut bindings = Vec::with_capacity_in(entries_len, self.heap);
 
         for entry in r#struct.entries {
             let path = match entry.value.kind {
@@ -827,7 +827,7 @@ impl<'heap> SpecialFormExpander<'heap> {
         }
 
         let elements_len = tuple.elements.len();
-        let mut bindings = self.heap.vec(Some(elements_len));
+        let mut bindings = Vec::with_capacity_in(elements_len, self.heap);
 
         for element in tuple.elements {
             let ExprKind::Path(path) = element.value.kind else {
@@ -971,7 +971,7 @@ impl<'heap> SpecialFormExpander<'heap> {
         }
 
         let elements_len = tuple.elements.len();
-        let mut params = self.heap.vec(Some(elements_len));
+        let mut params = Vec::with_capacity_in(elements_len, self.heap);
 
         for element in tuple.elements {
             let ExprKind::Path(path) = element.value.kind else {
@@ -1021,13 +1021,13 @@ impl<'heap> SpecialFormExpander<'heap> {
         }
 
         let entries_len = r#struct.entries.len();
-        let mut params = self.heap.vec(Some(entries_len));
+        let mut params = Vec::with_capacity_in(entries_len, self.heap);
 
         for entry in r#struct.entries {
             let bound = if matches!(entry.value.kind, ExprKind::Underscore) {
                 None
             } else if let Some(bound) = self.lower_expr_to_type(*entry.value) {
-                Some(self.heap.boxed(bound))
+                Some(Box::new_in(bound, self.heap))
             } else {
                 continue;
             };
@@ -1111,7 +1111,7 @@ impl<'heap> SpecialFormExpander<'heap> {
         }
 
         let entries_len = r#struct.entries.len();
-        let mut params = self.heap.vec(Some(entries_len));
+        let mut params = Vec::with_capacity_in(entries_len, self.heap);
 
         for entry in r#struct.entries {
             let Some(bound) = self.lower_expr_to_type(*entry.value) else {
@@ -1122,7 +1122,7 @@ impl<'heap> SpecialFormExpander<'heap> {
                 id: entry.id,
                 span: entry.span,
                 name: entry.key,
-                bound: self.heap.boxed(bound),
+                bound: Box::new_in(bound, self.heap),
             });
         }
 
@@ -1198,13 +1198,13 @@ impl<'heap> SpecialFormExpander<'heap> {
             span: call.span,
             generics,
             inputs: params,
-            output: self.heap.boxed(return_type),
+            output: Box::new_in(return_type, self.heap),
         };
 
         Some(ExprKind::Closure(ClosureExpr {
             id: call.id,
             span: call.span,
-            signature: self.heap.boxed(signature),
+            signature: Box::new_in(signature, self.heap),
             body: body.value,
         }))
     }
@@ -1228,7 +1228,7 @@ impl<'heap> SpecialFormExpander<'heap> {
             id: call.id,
             span: call.span,
             name,
-            r#type: self.heap.boxed(r#type),
+            r#type: Box::new_in(r#type, self.heap),
             default: None,
         }))
     }
@@ -1252,7 +1252,7 @@ impl<'heap> SpecialFormExpander<'heap> {
             id: call.id,
             span: call.span,
             name,
-            r#type: self.heap.boxed(r#type),
+            r#type: Box::new_in(r#type, self.heap),
             default: Some(default.value),
         }))
     }

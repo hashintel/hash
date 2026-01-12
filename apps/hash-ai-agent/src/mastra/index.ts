@@ -1,29 +1,36 @@
 /* eslint-disable canonical/filename-no-index */
+import path from "node:path";
+import { fileURLToPath, pathToFileURL } from "node:url";
+
 import { Mastra } from "@mastra/core/mastra";
 import { LibSQLStore } from "@mastra/libsql";
 import { PinoLogger } from "@mastra/loggers";
+import { Observability } from "@mastra/observability";
 
-import { claimExtractionsAgent } from "./agents/claim-extraction-agent";
-import { entitySummaryAgent } from "./agents/entity-summary-agent";
+import { genericAgent } from "./agents/generic-agent";
+import { nerAgent } from "./agents/ner-agent";
+import { plannerAgent } from "./agents/planner-agent";
+import { nerPeopleScorer } from "./scorers/ner-people-scorer";
+import { nerPeopleWorkflow } from "./workflows/ner-people-workflow";
+
+const metaFilename = fileURLToPath(import.meta.url);
+const metaDirname = path.dirname(metaFilename);
+const dbFilename = path.resolve(metaDirname, "../../data/mastra.db");
 
 export const mastra = new Mastra({
-  workflows: {},
-  agents: { claimExtractionAgent: claimExtractionsAgent, entitySummaryAgent },
-  scorers: {},
+  workflows: { nerPeopleWorkflow },
+  agents: {
+    nerAgent,
+    genericAgent,
+    plannerAgent,
+  },
+  scorers: { nerPeopleScorer },
+  logger: new PinoLogger(),
   storage: new LibSQLStore({
-    id: "mastra-memory-id",
-    url: ":memory:",
+    id: "mastra-storage",
+    url: pathToFileURL(dbFilename).toString(),
   }),
-  logger: new PinoLogger({
-    name: "Mastra",
-    level: "info",
+  observability: new Observability({
+    default: { enabled: true },
   }),
-  // telemetry: {
-  //   // Telemetry is deprecated and will be removed in the Nov 4th release
-  //   enabled: false,
-  // },
-  // observability: {
-  //   // Enables DefaultExporter and CloudExporter for AI tracing
-  //   default: { enabled: true },
-  // },
 });

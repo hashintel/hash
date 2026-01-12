@@ -12,6 +12,7 @@ import type {
   Transition,
 } from "./core/types/sdcpn";
 import { useMonacoGlobalTypings } from "./hooks/use-monaco-global-typings";
+import { CheckerProvider } from "./state/checker-provider";
 import { EditorProvider } from "./state/editor-provider";
 import { SDCPNProvider } from "./state/sdcpn-provider";
 import { SimulationProvider } from "./state/simulation-provider";
@@ -45,10 +46,7 @@ export type PetrinautProps = {
   /**
    * Create a new net and load it into the editor.
    */
-  createNewNet: (params: {
-    petriNetDefinition: SDCPN;
-    title: string;
-  }) => void;
+  createNewNet: (params: { petriNetDefinition: SDCPN; title: string }) => void;
   /**
    * Whether to hide controls relating to net loading, creation and title.
    */
@@ -104,12 +102,14 @@ export const Petrinaut = ({
 }: PetrinautProps) => {
   return (
     <SDCPNProvider {...rest}>
-      <EditorProvider>
+      <CheckerProvider>
         <SimulationProvider>
-          <MonacoSetup />
-          <EditorView hideNetManagementControls={hideNetManagementControls} />
+          <EditorProvider>
+            <MonacoSetup />
+            <EditorView hideNetManagementControls={hideNetManagementControls} />
+          </EditorProvider>
         </SimulationProvider>
-      </EditorProvider>
+      </CheckerProvider>
     </SDCPNProvider>
   );
 };

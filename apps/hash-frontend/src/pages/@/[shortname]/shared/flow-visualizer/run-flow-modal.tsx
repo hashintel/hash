@@ -1,12 +1,14 @@
 import type { WebId } from "@blockprotocol/type-system";
 import { typedValues } from "@local/advanced-types/typed-entries";
 import type {
+  FlowActionDefinitionId,
   FlowDefinition,
   FlowTrigger,
   OutputDefinition,
   StepOutput,
 } from "@local/hash-isomorphic-utils/flows/types";
 import { Box, Typography } from "@mui/material";
+import { format } from "date-fns";
 import type { PropsWithChildren } from "react";
 import { useState } from "react";
 
@@ -53,6 +55,8 @@ const generateInitialFormState = (outputDefinitions: OutputDefinition[]) =>
         defaultValue = false;
       } else if (outputDefinition.payloadKind === "Entity") {
         defaultValue = undefined;
+      } else if (outputDefinition.payloadKind === "Date") {
+        defaultValue = format(new Date(), "yyyy-MM-dd");
       }
 
       acc[outputDefinition.name] = {
@@ -67,9 +71,9 @@ const generateInitialFormState = (outputDefinitions: OutputDefinition[]) =>
   }, {});
 
 type RunFlowModalProps = {
-  flowDefinition: FlowDefinition;
-  open: boolean;
+  flowDefinition: FlowDefinition<FlowActionDefinitionId>;
   onClose: () => void;
+  open: boolean;
   runFlow: (outputs: FlowTrigger["outputs"], webId: WebId) => Promise<void>;
 };
 

@@ -14,6 +14,7 @@ use crate::knowledge::entity::EntityId;
 pub enum SourceType {
     Webpage,
     Document,
+    Integration,
 }
 
 /// A location where the source material can be found.

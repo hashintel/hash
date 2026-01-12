@@ -12,6 +12,7 @@ import {
 } from "../../core/default-codes";
 import { useEditorStore } from "../../state/editor-provider";
 import { useSDCPNContext } from "../../state/sdcpn-provider";
+import { useSimulationStore } from "../../state/simulation-provider";
 import type { ArcData, NodeData } from "../../state/types-for-editor-to-remove";
 import { Arc } from "./components/arc";
 import { PlaceNode } from "./components/place-node";
@@ -30,6 +31,15 @@ const REACTFLOW_NODE_TYPES = {
 const REACTFLOW_EDGE_TYPES = {
   default: Arc,
 };
+
+const canvasContainerStyle = css({
+  width: "[100%]",
+  height: "[100%]",
+  position: "relative",
+  "& .react-flow__pane": {
+    cursor: `var(--pane-cursor) !important`,
+  },
+});
 
 /**
  * SDCPNView is responsible for rendering the SDCPN using ReactFlow.
@@ -72,6 +82,8 @@ export const SDCPNView: React.FC = () => {
   );
   const clearSelection = useEditorStore((state) => state.clearSelection);
 
+  const simulationState = useSimulationStore((state) => state.state);
+
   // Center viewport on SDCPN load
   useEffect(() => {
     if (reactFlowInstance) {
@@ -79,8 +91,10 @@ export const SDCPNView: React.FC = () => {
     }
   }, [reactFlowInstance, petriNetId]);
 
-  // Readonly if in simulate mode, or readonly has been provided by external consumer.
-  const isReadonly = mode === "simulate" || readonly;
+  // Readonly if in simulate mode, simulation is running/paused, or readonly has been provided by external consumer.
+  const isSimulationActive =
+    simulationState === "Running" || simulationState === "Paused";
+  const isReadonly = mode === "simulate" || isSimulationActive || readonly;
 
   function isValidConnection(connection: Connection) {
     const sourceNode = nodes.find((node) => node.id === connection.source);
@@ -289,18 +303,11 @@ export const SDCPNView: React.FC = () => {
     // eslint-disable-next-line jsx-a11y/no-static-element-interactions
     <div
       ref={canvasContainer}
+      className={canvasContainerStyle}
       style={{
-        width: "100%",
-        height: "100%",
-        position: "relative",
         // @ts-expect-error CSS variables work at runtime, but are not in the type system
         "--pane-cursor": getCursorStyle() as string,
       }}
-      className={css({
-        "& .react-flow__pane": {
-          cursor: `var(--pane-cursor) !important`,
-        },
-      })}
       onKeyDown={({ key }) => {
         // Quick-and-dirty way to delete selected items with keyboard
         // with two different keys (Delete and Backspace), not possible with ReactFlow `deleteKeyCode` prop

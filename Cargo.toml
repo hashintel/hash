@@ -93,6 +93,7 @@ hashql-syntax-jexpr.path            = "libs/@local/hashql/syntax-jexpr"
 type-system.path                    = "libs/@blockprotocol/type-system/rust"
 
 # External dependencies
+allocator-api2                     = { version = "0.2.8", default-features = false }
 annotate-snippets                  = { version = "0.12.8", default-features = false }
 ansi-to-html                       = { version = "0.2.2", default-features = false }
 anstream                           = { version = "0.6.21", default-features = false }
@@ -108,7 +109,7 @@ axum-core                          = { version = "0.5.5" }
 bitvec                             = { version = "1.0.1", default-features = false }
 bon                                = { version = "3.8.1", default-features = false, features = ["implied-bounds"] }
 bstr                               = { version = "1.12.1" }
-bumpalo                            = { version = "3.19.0", default-features = false, features = ["allocator_api"] }
+bumpalo                            = { version = "3.19.0", default-features = false, features = ["allocator-api2"] }
 bytes                              = { version = "1.10.1" }
 bytes-utils                        = { version = "0.1.4", default-features = false }
 camino                             = { version = "1.1.12", default-features = false }
@@ -147,7 +148,7 @@ futures-util                       = { version = "0.3.31", default-features = fa
 glob                               = { version = "0.3.3" }
 globset                            = { version = "0.4.18", default-features = false }
 guppy                              = { version = "0.17.20", default-features = false }
-hashbrown                          = { version = "0.16.0", default-features = false, features = ["inline-more", "nightly"] }
+hashbrown                          = { version = "0.16.0", default-features = false, features = ["inline-more", "nightly", "raw-entry"] }
 hifijson                           = { version = "0.4.0", default-features = false }
 http                               = { version = "1.3.1", default-features = false }
 humansize                          = { version = "2.1.3", default-features = false }
@@ -190,7 +191,7 @@ opentelemetry-otlp                 = { version = "0.30.0", default-features = fa
 opentelemetry-semantic-conventions = { version = "0.30.0", default-features = false }
 opentelemetry_sdk                  = { version = "0.30.0", default-features = false }
 owo-colors                         = { version = "4.2.3", default-features = false }
-oxc                                = { version = "0.95.0", default-features = false, features = ["allocator_api"] }
+oxc                                = { version = "0.95.0", default-features = false }
 pin-project                        = { version = "1.1.10", default-features = false }
 pin-project-lite                   = { version = "0.2.16", default-features = false }
 postgres-protocol                  = { version = "0.6.9", default-features = false }

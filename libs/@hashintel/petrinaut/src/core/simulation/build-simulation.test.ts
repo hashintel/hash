@@ -50,6 +50,7 @@ describe("buildSimulation", () => {
           },
         ],
       ]),
+      parameterValues: {},
       seed: 42,
       dt: 0.1,
     };
@@ -196,6 +197,7 @@ describe("buildSimulation", () => {
         ],
         // p3 has no initial tokens
       ]),
+      parameterValues: {},
       seed: 123,
       dt: 0.05,
     };
@@ -305,6 +307,7 @@ describe("buildSimulation", () => {
           },
         ],
       ]),
+      parameterValues: {},
       seed: 42,
       dt: 0.1,
     };
@@ -360,6 +363,7 @@ describe("buildSimulation", () => {
           },
         ],
       ]),
+      parameterValues: {},
       seed: 42,
       dt: 0.1,
     };

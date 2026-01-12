@@ -1,20 +1,20 @@
+import type { FlowActionActivity } from "@local/hash-backend-utils/flows";
 import {
-  getSimplifiedActionInputs,
-  type OutputNameForAction,
+  getSimplifiedAiFlowActionInputs,
+  type OutputNameForAiFlowAction,
 } from "@local/hash-isomorphic-utils/flows/action-definitions";
 import { StatusCode } from "@local/status";
 import { Context } from "@temporalio/activity";
 
 import { logProgress } from "../shared/log-progress.js";
 import { createFileEntityFromUrl } from "./shared/create-file-entity-from-url.js";
-import type { FlowActionActivity } from "./types.js";
 
 export const getFileFromUrlAction: FlowActionActivity = async ({ inputs }) => {
   const {
     description,
     displayName,
     url: originalUrl,
-  } = getSimplifiedActionInputs({
+  } = getSimplifiedAiFlowActionInputs({
     inputs,
     actionType: "getFileFromUrl",
   });
@@ -58,7 +58,7 @@ export const getFileFromUrlAction: FlowActionActivity = async ({ inputs }) => {
         outputs: [
           {
             outputName:
-              "fileEntity" satisfies OutputNameForAction<"getFileFromUrl">,
+              "fileEntity" satisfies OutputNameForAiFlowAction<"getFileFromUrl">,
             payload: {
               kind: "Entity",
               value: fileEntity,

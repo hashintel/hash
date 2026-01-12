@@ -1,0 +1,52 @@
+---
+source: libs/@local/hashql/mir/src/pass/transform/dse/tests.rs
+expression: value
+---
+fn {intrinsic#4294967040}() -> Integer {
+    let %0: Boolean
+    let %1: Integer
+    let %2: Integer
+
+    bb0(): {
+        %0 = input LOAD cond
+
+        switchInt(%0) -> [0: bb2(), 1: bb1()]
+    }
+
+    bb1(): {
+        goto -> bb3(1, 10)
+    }
+
+    bb2(): {
+        goto -> bb3(2, 20)
+    }
+
+    bb3(%1, %2): {
+        return %2
+    }
+}
+
+------------------------------------
+
+fn {intrinsic#4294967040}() -> Integer {
+    let %0: Boolean
+    let %1: Integer
+
+    bb0(): {
+        %0 = input LOAD cond
+
+        switchInt(%0) -> [0: bb2(), 1: bb1()]
+    }
+
+    bb1(): {
+        goto -> bb3(10)
+    }
+
+    bb2(): {
+        goto -> bb3(20)
+    }
+
+    bb3(%1): {
+        return %1
+    }
+}

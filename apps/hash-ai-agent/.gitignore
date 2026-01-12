@@ -6,3 +6,9 @@ dist
 .env
 *.db
 *.db-*
+
+# Fixtures
+src/mastra/fixtures/entity-schemas/*.json
+
+# Quokka files
+*.quokka.*

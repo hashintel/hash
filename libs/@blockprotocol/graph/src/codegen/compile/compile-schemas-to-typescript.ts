@@ -35,6 +35,7 @@ const compileIndividualSchemaToTypescript = async (
       },
       resolve: {
         http: {
+          safeUrlResolver: false,
           read({ url }) {
             if (validateVersionedUrl(url).type === "Err") {
               throw new Error(

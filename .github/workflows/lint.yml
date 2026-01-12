@@ -281,17 +281,18 @@ jobs:
       - name: Validate Claude Code skills
         if: ${{ success() || failure() }}
         run: |
-          if ! yarn lint:skill; then
+          yarn lint:skill
+
+          yarn agents:skill-management generate-skill-rules
+          if ! git diff --exit-code .claude/skills/skill-rules.json; then
             echo ''
             echo ''
             echo 'ℹ️ ℹ️ ℹ️'
-            echo 'Claude Code skill validation failed. Common issues:'
-            echo '  • Invalid JSON in .claude/skills/skill-rules.json'
-            echo '  • Missing SKILL.md files'
-            echo '  • Invalid regex patterns in intentPatterns'
-            echo 'Try running `yarn lint:skill` locally to see details.'
+            echo 'Changes were detected in .claude/skills/skill-rules.json file after running `yarn agents:skill-management generate-skill-rules`.'
+            echo 'This indicates that there are changes inside of the skill files that haven not yet been upstreamed into the skill-rules.json file.'
+            echo 'Try running `yarn agents:skill-management generate-skill-rules` locally to apply autofixes.'
             echo 'ℹ️ ℹ️ ℹ️'
-            exit 1
+            exit 1;
           fi
 
       - name: Run yarn lint:taplo

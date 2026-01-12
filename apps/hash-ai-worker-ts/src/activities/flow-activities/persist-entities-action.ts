@@ -1,9 +1,10 @@
 import type { EntityId } from "@blockprotocol/type-system";
+import type { FlowActionActivity } from "@local/hash-backend-utils/flows";
 import {
   flattenPropertyMetadata,
   HashEntity,
 } from "@local/hash-graph-sdk/entity";
-import { getSimplifiedActionInputs } from "@local/hash-isomorphic-utils/flows/action-definitions";
+import { getSimplifiedAiFlowActionInputs } from "@local/hash-isomorphic-utils/flows/action-definitions";
 import type {
   FailedEntityProposal,
   PersistedEntities,
@@ -16,10 +17,9 @@ import {
   fileEntityTypeIds,
   persistEntityAction,
 } from "./persist-entity-action.js";
-import type { FlowActionActivity } from "./types.js";
 
 export const persistEntitiesAction: FlowActionActivity = async ({ inputs }) => {
-  const { draft, proposedEntities } = getSimplifiedActionInputs({
+  const { draft, proposedEntities } = getSimplifiedAiFlowActionInputs({
     inputs,
     actionType: "persistEntities",
   });

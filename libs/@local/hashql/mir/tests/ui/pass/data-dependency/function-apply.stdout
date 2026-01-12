@@ -52,15 +52,15 @@ fn max:0(%0: (), %1: Integer, %2: Integer) -> Integer {
 ════ Data Dependency Graph ═════════════════════════════════════════════════════
 
 %1 -> %2 [ClosureEnv]
-%3 -> %1 [ApplyPtr, projections: .0]
-%3 -> %1 [ApplyArg(ArgIndex(0)), projections: .1]
-%0 -> %3 [Param(BasicBlockId(1), None)]
+%0 -> %3 [Param]
+%0 -> 0 [Param]
+%1 -> fn(0) [ClosurePtr]
 
 
 ════ Transient Data Dependency Graph ═══════════════════════════════════════════
 
 %1 -> %2 [ClosureEnv]
-%3 -> %1 [ApplyPtr, projections: .0]
-%3 -> %2 [ApplyArg(ArgIndex(0))]
-%0 -> %3 [Param(BasicBlockId(1), None)]
+%0 -> %3 [Param]
+%0 -> 0 [Param]
+%1 -> fn(0) [ClosurePtr]
 

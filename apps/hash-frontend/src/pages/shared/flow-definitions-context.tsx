@@ -18,19 +18,23 @@ import {
   goalFlowDefinitionWithReportDeliverable,
   goalFlowDefinitionWithSpreadsheetDeliverable,
 } from "@local/hash-isomorphic-utils/flows/goal-flow-definitions";
-import type { FlowDefinition } from "@local/hash-isomorphic-utils/flows/types";
+import { scheduledFlightsFlowDefinition } from "@local/hash-isomorphic-utils/flows/integration-flow-definitions";
+import type {
+  FlowActionDefinitionId,
+  FlowDefinition,
+} from "@local/hash-isomorphic-utils/flows/types";
 import type { PropsWithChildren } from "react";
 import { createContext, useContext, useMemo, useState } from "react";
 
 export type FlowDefinitionsContextType = {
-  flowDefinitions: FlowDefinition[];
+  flowDefinitions: FlowDefinition<FlowActionDefinitionId>[];
   selectedFlowDefinitionId: EntityUuid | null;
 };
 
 export const FlowDefinitionsContext =
   createContext<FlowDefinitionsContextType | null>(null);
 
-const exampleFlows: FlowDefinition[] = [
+const exampleFlows: FlowDefinition<FlowActionDefinitionId>[] = [
   researchTaskFlowDefinition,
   researchEntitiesFlowDefinition,
   ftseInvestorsFlowDefinition,
@@ -44,6 +48,7 @@ const exampleFlows: FlowDefinition[] = [
   goalFlowDefinitionWithReportDeliverable,
   goalFlowDefinitionWithSpreadsheetDeliverable,
   goalFlowDefinitionWithReportAndSpreadsheetDeliverable,
+  scheduledFlightsFlowDefinition,
 ];
 
 export const FlowDefinitionsContextProvider = ({
@@ -51,7 +56,7 @@ export const FlowDefinitionsContextProvider = ({
   selectedFlowDefinitionId,
 }: PropsWithChildren<{ selectedFlowDefinitionId: EntityUuid | null }>) => {
   const [flowDefinitions, setFlowDefinitions] =
-    useState<FlowDefinition[]>(exampleFlows);
+    useState<FlowDefinition<FlowActionDefinitionId>[]>(exampleFlows);
 
   const context = useMemo<FlowDefinitionsContextType>(
     () => ({

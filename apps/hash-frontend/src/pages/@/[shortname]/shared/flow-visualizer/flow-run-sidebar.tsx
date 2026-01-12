@@ -8,7 +8,10 @@ import {
   goalFlowDefinitionIds,
   type GoalFlowTriggerInput,
 } from "@local/hash-isomorphic-utils/flows/goal-flow-definitions";
-import type { FlowDefinition } from "@local/hash-isomorphic-utils/flows/types";
+import type {
+  FlowActionDefinitionId,
+  FlowDefinition,
+} from "@local/hash-isomorphic-utils/flows/types";
 import { Box, Collapse, Stack, Typography } from "@mui/material";
 import type { PropsWithChildren } from "react";
 import { useMemo, useState } from "react";
@@ -38,7 +41,7 @@ const SidebarSection = ({ children }: PropsWithChildren) => (
 );
 
 type FlowRunSidebarProps = {
-  flowDefinition: FlowDefinition;
+  flowDefinition: FlowDefinition<FlowActionDefinitionId>;
   flowRunId: EntityUuid;
   groups: FlowMaybeGrouped["groups"];
   name: FlowRun["name"];

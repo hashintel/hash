@@ -1,7 +1,8 @@
 import { extractEntityUuidFromEntityId } from "@blockprotocol/type-system";
+import type { FlowActionActivity } from "@local/hash-backend-utils/flows";
 import { getSimpleGraph } from "@local/hash-backend-utils/simplified-graph";
 import { queryEntitySubgraph } from "@local/hash-graph-sdk/entity";
-import { getSimplifiedActionInputs } from "@local/hash-isomorphic-utils/flows/action-definitions";
+import { getSimplifiedAiFlowActionInputs } from "@local/hash-isomorphic-utils/flows/action-definitions";
 import type {
   FormattedText,
   StepOutput,
@@ -32,7 +33,6 @@ import { mapActionInputEntitiesToEntities } from "../shared/map-action-input-ent
 import { openAiSeed } from "../shared/open-ai-seed.js";
 import type { PermittedOpenAiModel } from "../shared/openai-client.js";
 import { stringify } from "../shared/stringify.js";
-import type { FlowActionActivity } from "./types.js";
 
 const answerTools: LlmToolDefinition[] = [
   {
@@ -403,7 +403,7 @@ export const answerQuestionAction: FlowActionActivity = async ({ inputs }) => {
     context,
     entities: inputEntities,
     question,
-  } = getSimplifiedActionInputs({
+  } = getSimplifiedAiFlowActionInputs({
     inputs,
     actionType: "answerQuestion",
   });

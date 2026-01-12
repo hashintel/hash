@@ -1,4 +1,7 @@
-import type { FlowDefinition } from "@local/hash-isomorphic-utils/flows/types";
+import type {
+  FlowActionDefinitionId,
+  FlowDefinition,
+} from "@local/hash-isomorphic-utils/flows/types";
 import { Stack, Typography } from "@mui/material";
 import { format } from "date-fns";
 import { ReactFlowProvider } from "reactflow";
@@ -16,7 +19,7 @@ export const DAG = ({
   selectedFlowDefinition,
 }: {
   groups: [UngroupedEdgesAndNodes] | GroupWithEdgesAndNodes[];
-  selectedFlowDefinition: FlowDefinition;
+  selectedFlowDefinition: FlowDefinition<FlowActionDefinitionId>;
 }) => {
   const { selectedFlowRun } = useFlowRunsContext();
 

@@ -1,5 +1,4 @@
 import { useTheme } from "@mui/material";
-import Head from "next/head";
 import { useRouter } from "next/router";
 import type { DefaultSeoProps } from "next-seo";
 import { DefaultSeo } from "next-seo";
@@ -38,9 +37,6 @@ export const PlainLayout: FunctionComponent<{
 
   return (
     <>
-      <Head>
-        {!isProduction ? <meta name="robots" content="noindex" /> : null}
-      </Head>
       <DefaultSeo
         {...defaultSeoProps}
         additionalLinkTags={[
@@ -49,6 +45,7 @@ export const PlainLayout: FunctionComponent<{
             href: `/favicon.png?v=${router.asPath}`, // force favicon refresh on route change
           },
         ]}
+        dangerouslySetAllPagesToNoIndex={!isProduction}
       />
       <NextNProgress
         color={palette.primary.main}

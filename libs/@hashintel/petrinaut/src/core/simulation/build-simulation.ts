@@ -1,4 +1,7 @@
-import { deriveDefaultParameterValues } from "../../hooks/use-default-parameter-values";
+import {
+  deriveDefaultParameterValues,
+  mergeParameterValues,
+} from "../../hooks/use-default-parameter-values";
 import { SDCPNItemError } from "../errors";
 import type {
   DifferentialEquationFn,
@@ -52,7 +55,13 @@ function getPlaceDimensions(
  * @throws {Error} if user code fails to compile
  */
 export function buildSimulation(input: SimulationInput): SimulationInstance {
-  const { sdcpn, initialMarking, seed, dt } = input;
+  const {
+    sdcpn,
+    initialMarking,
+    parameterValues: inputParameterValues,
+    seed,
+    dt,
+  } = input;
 
   // Build maps for quick lookup
   const placesMap = new Map(sdcpn.places.map((place) => [place.id, place]));
@@ -61,8 +70,13 @@ export function buildSimulation(input: SimulationInput): SimulationInstance {
   );
   const typesMap = new Map(sdcpn.types.map((type) => [type.id, type]));
 
-  // Build parameter values from SDCPN parameters using the shared utility
-  const parameterValues = deriveDefaultParameterValues(sdcpn.parameters);
+  // Build parameter values: merge input values with SDCPN defaults
+  // Input values (from simulation store) take precedence over defaults
+  const defaultParameterValues = deriveDefaultParameterValues(sdcpn.parameters);
+  const parameterValues = mergeParameterValues(
+    inputParameterValues,
+    defaultParameterValues,
+  );
 
   // Validate that all places in initialMarking exist in SDCPN
   for (const placeId of initialMarking.keys()) {
@@ -111,9 +125,9 @@ export function buildSimulation(input: SimulationInput): SimulationInstance {
       differentialEquationFns.set(place.id, fn as DifferentialEquationFn);
     } catch (error) {
       throw new SDCPNItemError(
-        `Failed to compile differential equation for place \`${place.name}\`:\n\n${
-          error instanceof Error ? error.message : String(error)
-        }`,
+        `Failed to compile differential equation for place \`${
+          place.name
+        }\`:\n\n${error instanceof Error ? error.message : String(error)}`,
         place.id,
       );
     }
@@ -129,9 +143,9 @@ export function buildSimulation(input: SimulationInput): SimulationInstance {
       lambdaFns.set(transition.id, fn as LambdaFn);
     } catch (error) {
       throw new SDCPNItemError(
-        `Failed to compile Lambda function for transition \`${transition.name}\`:\n\n${
-          error instanceof Error ? error.message : String(error)
-        }`,
+        `Failed to compile Lambda function for transition \`${
+          transition.name
+        }\`:\n\n${error instanceof Error ? error.message : String(error)}`,
         transition.id,
       );
     }
@@ -164,9 +178,9 @@ export function buildSimulation(input: SimulationInput): SimulationInstance {
       transitionKernelFns.set(transition.id, fn as TransitionKernelFn);
     } catch (error) {
       throw new SDCPNItemError(
-        `Failed to compile transition kernel for transition \`${transition.name}\`:\n\n${
-          error instanceof Error ? error.message : String(error)
-        }`,
+        `Failed to compile transition kernel for transition \`${
+          transition.name
+        }\`:\n\n${error instanceof Error ? error.message : String(error)}`,
         transition.id,
       );
     }

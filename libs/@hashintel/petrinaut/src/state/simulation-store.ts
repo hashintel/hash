@@ -1,6 +1,8 @@
+import ts from "typescript";
 import { create } from "zustand";
 import { devtools } from "zustand/middleware";
 
+import { checkSDCPN } from "../core/checker/checker";
 import { SDCPNItemError } from "../core/errors";
 import { buildSimulation } from "../core/simulation/build-simulation";
 import { computeNextFrame } from "../core/simulation/compute-next-frame";
@@ -65,10 +67,7 @@ export type SimulationStoreState = {
   initializeParameterValuesFromDefaults: () => void;
 
   // Initialize the simulation with seed and dt (uses stored initialMarking)
-  initialize: (params: {
-    seed: number;
-    dt: number;
-  }) => void;
+  initialize: (params: { seed: number; dt: number }) => void;
 
   // Advance the simulation by one frame
   step: () => void;
@@ -168,10 +167,32 @@ export function createSimulationStore(getSDCPN: () => { sdcpn: SDCPN }) {
                 try {
                   const { sdcpn } = getSDCPN();
 
-                  // Build the simulation instance using stored initialMarking
+                  // Check SDCPN validity before building simulation
+                  const checkResult = checkSDCPN(sdcpn);
+                  if (!checkResult.isValid) {
+                    const firstError = checkResult.itemDiagnostics[0]!;
+                    const firstDiagnostic = firstError.diagnostics[0]!;
+                    const errorMessage =
+                      typeof firstDiagnostic.messageText === "string"
+                        ? firstDiagnostic.messageText
+                        : ts.flattenDiagnosticMessageText(
+                            firstDiagnostic.messageText,
+                            "\n",
+                          );
+
+                    return {
+                      simulation: null,
+                      state: "Error" as const,
+                      error: `TypeScript error in ${firstError.itemType} (${firstError.itemId}): ${errorMessage}`,
+                      errorItemId: firstError.itemId,
+                    };
+                  }
+
+                  // Build the simulation instance using stored initialMarking and parameterValues
                   const simulationInstance = buildSimulation({
                     sdcpn,
                     initialMarking: state.initialMarking,
+                    parameterValues: state.parameterValues,
                     seed,
                     dt,
                   });

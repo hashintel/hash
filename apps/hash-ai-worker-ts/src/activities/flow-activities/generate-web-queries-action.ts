@@ -1,5 +1,6 @@
+import type { FlowActionActivity } from "@local/hash-backend-utils/flows";
 import { isInferenceModelName } from "@local/hash-isomorphic-utils/ai-inference-types";
-import { getSimplifiedActionInputs } from "@local/hash-isomorphic-utils/flows/action-definitions";
+import { getSimplifiedAiFlowActionInputs } from "@local/hash-isomorphic-utils/flows/action-definitions";
 import { StatusCode } from "@local/status";
 import dedent from "dedent";
 
@@ -9,7 +10,6 @@ import { getToolCallsFromLlmAssistantMessage } from "../shared/get-llm-response/
 import type { LlmToolDefinition } from "../shared/get-llm-response/types.js";
 import { graphApiClient } from "../shared/graph-api-client.js";
 import { inferenceModelAliasToSpecificModel } from "../shared/inference-model-alias-to-llm-model.js";
-import type { FlowActionActivity } from "./types.js";
 
 const webQueriesSystemPrompt = dedent(`
     You are a Web Search Assistant.
@@ -43,7 +43,7 @@ type ProposeQueryFunctionCallArguments = {
 export const generateWebQueriesAction: FlowActionActivity = async ({
   inputs,
 }) => {
-  const { prompt, model } = getSimplifiedActionInputs({
+  const { prompt, model } = getSimplifiedAiFlowActionInputs({
     inputs,
     actionType: "generateWebQueries",
   });

@@ -7,7 +7,7 @@
     "doc:dependency-diagram": "cargo run -p hash-repo-chores -- dependency-diagram --output docs/dependency-diagram.mmd --root hashql-core --root-deps-and-dependents --link-mode non-roots --include-dev-deps --include-build-deps --logging-console-level info",
     "fix:clippy": "just clippy --fix",
     "lint:clippy": "just clippy",
-    "test:miri": "cargo miri nextest run -- co_sort try_scan",
+    "test:miri": "cargo miri nextest run -- co_sort try_scan heap::transfer",
     "test:unit": "mise run test:unit @rust/hashql-core"
   },
   "dependencies": {

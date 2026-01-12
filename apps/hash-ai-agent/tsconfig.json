@@ -3,6 +3,7 @@
     "target": "ES2022",
     "module": "ES2022",
     "moduleResolution": "bundler",
+    "resolveJsonModule": true,
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,
     "noUncheckedIndexedAccess": true,
@@ -10,5 +11,11 @@
     "skipLibCheck": true,
     "noEmit": true
   },
-  "include": ["src/**/*", "scripts/**/*", "eslint.config.js"]
+  "include": [
+    "src/**/*",
+    "scripts/**/*",
+    "eslint.config.js",
+    "vitest.config.ts"
+  ],
+  "exclude": ["_temp"]
 }

@@ -41,7 +41,7 @@ where
         id: NodeId::PLACEHOLDER,
         span: input.state.span(span),
         name: ident,
-        arguments: arguments.unwrap_or_else(|| input.state.heap.vec(None)),
+        arguments: arguments.unwrap_or_else(|| Vec::new_in(input.state.heap)),
     })
 }
 

@@ -9,6 +9,7 @@
     if_let_guard,
 
     // Library Features
+    allocator_api,
     ascii_char,
     assert_matches,
     box_into_boxed_slice,

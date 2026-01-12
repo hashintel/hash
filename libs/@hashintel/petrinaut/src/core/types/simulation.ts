@@ -20,6 +20,8 @@ export type TransitionKernelFn = (
 export type SimulationInput = {
   sdcpn: SDCPN;
   initialMarking: Map<string, { values: Float64Array; count: number }>;
+  /** Parameter values from the simulation store (overrides SDCPN defaults) */
+  parameterValues: Record<string, string>;
   seed: number;
   dt: number;
 };

@@ -22,8 +22,11 @@ bstr           = { workspace = true }
 simple-mermaid = { workspace = true }
 
 [dev-dependencies]
+criterion          = { workspace = true }
+criterion-macro    = { workspace = true }
 hashql-compiletest = { workspace = true }
 insta              = { workspace = true }
+
 
 [lints]
 workspace = true

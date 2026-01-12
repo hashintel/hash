@@ -378,6 +378,6 @@ Please see [SECURITY](.github/SECURITY.md) for instructions around reporting iss
 
 ## [![a](/.github/assets/gh_icon_contact_20px-base.svg)][gh-contact] &nbsp; Contact
 
-Find us on 𝕏 at [@hashintel](https://x.com/hashintel), email [hey@hash.ai](mailto:hey@hash.ai), create a [discussion](https://github.com/orgs/hashintel/discussions), or open an [issue](https://github.com/hashintel/hash/issues/new/choose) for quick help and community support.
+Find us on 𝕏 at [@hashai](https://x.com/hashai), email [hey@hash.ai](mailto:hey@hash.ai), create a [discussion](https://github.com/orgs/hashintel/discussions), or open an [issue](https://github.com/hashintel/hash/issues/new/choose) for quick help and community support.
 
 Project permalink: `https://github.com/hashintel/hash`

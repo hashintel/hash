@@ -144,23 +144,26 @@ where
             Access::IndexByLiteral(literal) => ExprKind::Index(IndexExpr {
                 id: NodeId::PLACEHOLDER,
                 span,
-                value: input.state.heap.boxed(expr),
-                index: input.state.heap.boxed(Expr {
-                    id: NodeId::PLACEHOLDER,
-                    span: literal.span,
-                    kind: ExprKind::Literal(literal),
-                }),
+                value: Box::new_in(expr, input.state.heap),
+                index: Box::new_in(
+                    Expr {
+                        id: NodeId::PLACEHOLDER,
+                        span: literal.span,
+                        kind: ExprKind::Literal(literal),
+                    },
+                    input.state.heap,
+                ),
             }),
             Access::IndexByExpr(index) => ExprKind::Index(IndexExpr {
                 id: NodeId::PLACEHOLDER,
                 span,
-                value: input.state.heap.boxed(expr),
-                index: input.state.heap.boxed(index),
+                value: Box::new_in(expr, input.state.heap),
+                index: Box::new_in(index, input.state.heap),
             }),
             Access::Field(ident) => ExprKind::Field(FieldExpr {
                 id: NodeId::PLACEHOLDER,
                 span,
-                value: input.state.heap.boxed(expr),
+                value: Box::new_in(expr, input.state.heap),
                 field: ident,
             }),
         };

@@ -303,7 +303,7 @@ export const productionMachines: { title: string; petriNetDefinition: SDCPN } =
           lambdaType: "predicate",
           lambdaCode: "export default Lambda(() => true)",
           transitionKernelCode:
-            "/**\n* This function defines the kernel for the transition.\n* It receives tokens from input places,\n* and any global parameters defined,\n* and should return tokens for output places keyed by place name.\n*/\nexport default TransitionKernel((tokens) => {\n  // tokens is an object which looks like:\n  //   { PlaceA: [{ x: 0, y: 0 }], PlaceB: [...] }\n  // where 'x' and 'y' are examples of dimensions (properties)\n  // of the token's type.\n\n  // Return an object with output place names as keys\n  return {\n    MachinesBeingRepaired: [\n      { machine_damage_ratio: tokens.BrokenMachines[0].machine_damage_ratio }\n    ],\n  };\n});",
+            "/**\n* This function defines the kernel for the transition.\n* It receives tokens from input places,\n* and any global parameters defined,\n* and should return tokens for output places keyed by place name.\n*/\nexport default TransitionKernel((tokens) => {\n  // tokens is an object which looks like:\n  //   { PlaceA: [{ x: 0, y: 0 }], PlaceB: [...] }\n  // where 'x' and 'y' are examples of dimensions (properties)\n  // of the token's type.\n\n  // Return an object with output place names as keys\n  return {\n    MachinesBeingRepaired: [\n      { machine_damage_ratio: tokens.MachinesToRepair[0].machine_damage_ratio }\n    ],\n  };\n});",
           x: 1635,
           y: 480,
           width: 160,
@@ -361,13 +361,13 @@ export const productionMachines: { title: string; petriNetDefinition: SDCPN } =
           id: "5bfea547-faaf-4626-8662-6400d07c049e",
           name: "Reparation Dynamics",
           colorId: "type__1762560152725",
-          code: '// This function defines the differential equation for the place of type "Machine".\n// The function receives the current tokens in all places and the parameters.\n// It should return the derivative of the token value in this place.\nexport default Dynamics((tokens, parameters) => {\n  return tokens.map(({ machine_damage_ratio }) => {\n    // ...Do some computation with input token here if needed\n\n    return {\n      machine_damage_ratio: -1 / 3\n    };\n  });\n});',
+          code: '// This function defines the differential equation for the place of type "Machine".\n// The function receives the current tokens in all places and the parameters.\n// It should return the derivative of the token value in this place.\nexport default Dynamics((tokens, parameters) => {\n  return tokens.map(({ machine_damage_ratio }) => {\n    // ...Do some computation with input token here if needed\n\n    return {\n      machine_damage_ratio: -parameters.damage_reparation_per_second\n    };\n  });\n});',
         },
         {
           id: "ca26e5e2-0373-46a9-920e-a6eacadd92e8",
           name: "Production Dynamics",
           colorId: "type__1762560154179",
-          code: '// This function defines the differential equation for the place of type "Machine Producing Product".\n// The function receives the current tokens in all places and the parameters.\n// It should return the derivative of the token value in this place.\nexport default Dynamics((tokens, parameters) => {\n  return tokens.map(({ machine_damage_ratio, transformation_progress }) => {\n    // ...Do some computation with input token here if needed\n\n    return {\n      machine_damage_ratio: 1 / 1000,\n      transformation_progress: 1 / 3\n    };\n  });\n});',
+          code: '// This function defines the differential equation for the place of type "Machine Producing Product".\n// The function receives the current tokens in all places and the parameters.\n// It should return the derivative of the token value in this place.\nexport default Dynamics((tokens, parameters) => {\n  return tokens.map(({ machine_damage_ratio, transformation_progress }) => {\n    // ...Do some computation with input token here if needed\n\n    return {\n      machine_damage_ratio: parameters.damage_per_second,\n      transformation_progress: 1 / 3\n    };\n  });\n});',
         },
         {
           id: "887245c3-183c-4dac-a1aa-d602d21b6450",
@@ -376,6 +376,21 @@ export const productionMachines: { title: string; petriNetDefinition: SDCPN } =
           code: '// This function defines the differential equation for the place of type "Technician".\n// The function receives the current tokens in all places and the parameters.\n// It should return the derivative of the token value in this place.\nexport default Dynamics((tokens, parameters) => {\n  return tokens.map(({ distance_to_site }) => {\n    // ...Do some computation with input token here if needed\n\n    return {\n      distance_to_site: -1\n    };\n  });\n});',
         },
       ],
-      parameters: [],
+      parameters: [
+        {
+          id: "param__damage_per_second",
+          name: "Damage Per Second",
+          variableName: "damage_per_second",
+          type: "real",
+          defaultValue: "0.001",
+        },
+        {
+          id: "param__damage_reparation_per_second",
+          name: "Damage Reparation Per Second",
+          variableName: "damage_reparation_per_second",
+          type: "real",
+          defaultValue: "0.333",
+        },
+      ],
     },
   };

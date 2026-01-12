@@ -4,6 +4,16 @@ import type { SvgIconProps } from "@mui/material";
 import { SvgIcon, Tooltip as MuiTooltip } from "@mui/material";
 import type { FunctionComponent, ReactNode } from "react";
 
+const tooltipContentStyle = css({
+  backgroundColor: "core.gray.90",
+  color: "core.gray.10",
+  borderRadius: "radius.6",
+  fontSize: "[13px]",
+  zIndex: "[10000]",
+  boxShadow: "[0 2px 8px rgba(0, 0, 0, 0.15)]",
+  padding: "[6px 10px]",
+});
+
 interface TooltipProps {
   content: string;
   children: ReactNode;
@@ -18,19 +28,7 @@ export const Tooltip: React.FC<TooltipProps> = ({ content, children }) => {
     >
       <ArkTooltip.Trigger asChild>{children}</ArkTooltip.Trigger>
       <ArkTooltip.Positioner>
-        <ArkTooltip.Content
-          className={css({
-            backgroundColor: "core.gray.90",
-            color: "core.gray.10",
-            borderRadius: "radius.6",
-            fontSize: "[13px]",
-            zIndex: "[10000]",
-            boxShadow: "[0 2px 8px rgba(0, 0, 0, 0.15)]",
-          })}
-          style={{
-            padding: "6px 10px",
-          }}
-        >
+        <ArkTooltip.Content className={tooltipContentStyle}>
           {content}
         </ArkTooltip.Content>
       </ArkTooltip.Positioner>
