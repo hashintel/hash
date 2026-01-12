@@ -12,7 +12,8 @@
       ".claude/hooks",
       "apps/**",
       "libs/**",
-      "tests/**"
+      "tests/**",
+      "!**/pkg"
     ]
   },
   "scripts": {
