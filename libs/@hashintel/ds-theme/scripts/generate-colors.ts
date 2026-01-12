@@ -2,7 +2,7 @@ import fs from "node:fs";
 import { join } from "node:path";
 import { camelCase, kebabCase } from "case-anything";
 import { z } from "zod";
-import figmaVariables from "../../data/figma-variables.json" with {
+import figmaVariables from "./figma-variables.json" with {
   type: "json",
 };
 
