@@ -118,8 +118,14 @@ export const migrateOntologyTypes = async (params: {
           `${Object.keys(migrationState.dataTypeVersions).length} data types`,
       );
     }
-  } catch {
-    // HASH Instance entity not available, this is the first time the instance is being initialized
+  } catch (getHashInstanceError) {
+    if (getHashInstanceError instanceof NotFoundError) {
+      params.logger.debug(
+        `HASH Instance entity not available, this is the first time the instance is being initialized`,
+      );
+    } else {
+      throw getHashInstanceError;
+    }
   }
 
   for (const migrationFileName of migrationFileNames) {
