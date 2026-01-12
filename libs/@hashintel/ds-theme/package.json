@@ -13,10 +13,11 @@
   "main": "src/main.ts",
   "scripts": {
     "build": "panda codegen && ladle build",
-    "codegen": "tsx src/scripts/generate-colors.ts",
     "dev": "panda codegen && ladle serve",
     "lint:tsc": "tsc --noEmit",
-    "panda:codegen": "panda codegen --clean",
+    "codegen": "yarn codegen:tokens && yarn codegen:panda",
+    "codegen:tokens": "tsx scripts/generate-colors.ts",
+    "codegen:panda": "panda codegen --clean",
     "preview": "ladle build && ladle preview"
   },
   "dependencies": {

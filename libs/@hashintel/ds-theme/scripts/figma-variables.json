@@ -1,4 +1,497 @@
 {
+  "color.semantic": {
+    "border": {
+      "neutral": {
+        "hover": {
+          "value": "{gray.35}",
+          "type": "color",
+          "resolvedType": "COLOR",
+          "description": "input:hover"
+        },
+        "default": {
+          "value": "{gray.20}",
+          "type": "color",
+          "resolvedType": "COLOR",
+          "description": "{gray-300}\ninputs, button border, anything interactive"
+        },
+        "subtle": {
+          "value": "{gray.20}",
+          "type": "color",
+          "resolvedType": "COLOR",
+          "description": "{gray-200}\ncontainer borders"
+        },
+        "muted": {
+          "value": "{gray.10}",
+          "type": "color",
+          "resolvedType": "COLOR"
+        },
+        "active": {
+          "value": "{gray.90}",
+          "type": "color",
+          "resolvedType": "COLOR",
+          "description": "input:hover"
+        },
+        "emphasis": {
+          "value": "{gray.30}",
+          "type": "color",
+          "resolvedType": "COLOR",
+          "description": "{gray-200}\ncontainer borders"
+        }
+      },
+      "status": {
+        "info": {
+          "value": "{blue.10}",
+          "type": "color",
+          "resolvedType": "COLOR"
+        },
+        "caution": {
+          "value": "{yellow.10}",
+          "type": "color",
+          "resolvedType": "COLOR"
+        },
+        "warning": {
+          "value": "{orange.10}",
+          "type": "color",
+          "resolvedType": "COLOR"
+        },
+        "critical": {
+          "value": "{red.10}",
+          "type": "color",
+          "resolvedType": "COLOR"
+        },
+        "success": {
+          "value": "{green.10}",
+          "type": "color",
+          "resolvedType": "COLOR"
+        }
+      }
+    },
+    "text": {
+      "primary": {
+        "value": "{gray.90}",
+        "type": "color",
+        "resolvedType": "COLOR",
+        "description": "{gray-900} \nPrimary color for text and icons in any given interface. It should be used for titles and labels."
+      },
+      "secondary": {
+        "value": "{gray.70}",
+        "type": "color",
+        "resolvedType": "COLOR",
+        "description": "{gray-700}\nUse for content that is secondary or that provides additional context but is not critical to understanding the flow of an interface. Body text"
+      },
+      "tertiary": {
+        "value": "{gray.50}",
+        "type": "color",
+        "resolvedType": "COLOR",
+        "description": "{gray-500}\nUse for secondary text, icons"
+      },
+      "disabled": {
+        "value": "{gray.40}",
+        "type": "color",
+        "resolvedType": "COLOR",
+        "description": "{gray-400}\nUse for secondary text, icons"
+      },
+      "inverted": {
+        "value": "{neutral.white}",
+        "type": "color",
+        "resolvedType": "COLOR"
+      },
+      "status": {
+        "info": {
+          "value": "{blue.90}",
+          "type": "color",
+          "resolvedType": "COLOR",
+          "description": "Use for interactive text or icons like links or buttons."
+        },
+        "success": {
+          "value": "{green.80}",
+          "type": "color",
+          "resolvedType": "COLOR",
+          "description": "Use to emphasize a positive message."
+        },
+        "warning": {
+          "value": "{orange.80}",
+          "type": "color",
+          "resolvedType": "COLOR",
+          "description": "Use to highlight elements that require a user's attention or pending statuses."
+        },
+        "critical": {
+          "value": "{red.80}",
+          "type": "color",
+          "resolvedType": "COLOR",
+          "description": "Use to emphasize content for an error. Action is required."
+        }
+      },
+      "link": {
+        "value": "{accent.60}",
+        "type": "color",
+        "resolvedType": "COLOR"
+      },
+      "link-hover": {
+        "value": "{accent.70}",
+        "type": "color",
+        "resolvedType": "COLOR"
+      }
+    },
+    "surface": {
+      "default": {
+        "value": "{neutral.white}",
+        "type": "color",
+        "resolvedType": "COLOR",
+        "description": "{gray-300}\ninputs, button border, anything interactive"
+      },
+      "emphasis": {
+        "value": "{gray.20}",
+        "type": "color",
+        "resolvedType": "COLOR",
+        "description": "input:hover"
+      },
+      "subtle": {
+        "value": "{gray.20}",
+        "type": "color",
+        "resolvedType": "COLOR",
+        "description": "{gray-200}\ncontainer borders"
+      },
+      "alt": {
+        "value": "{gray.00}",
+        "type": "color",
+        "resolvedType": "COLOR"
+      },
+      "muted": {
+        "value": "{gray.10}",
+        "type": "color",
+        "resolvedType": "COLOR",
+        "description": "{gray-300}\ninputs, button border, anything interactive"
+      },
+      "inverted": {
+        "value": "{gray.90}",
+        "type": "color",
+        "resolvedType": "COLOR",
+        "description": "input:hover"
+      }
+    },
+    "bg": {
+      "accent": {
+        "subtle": {
+          "default": {
+            "value": "{accent.00}",
+            "type": "color",
+            "resolvedType": "COLOR",
+            "description": "{gray-300}\ninputs, button border, anything interactive"
+          },
+          "hover": {
+            "value": "{accent.10}",
+            "type": "color",
+            "resolvedType": "COLOR"
+          },
+          "active": {
+            "value": "{accent.00}",
+            "type": "color",
+            "resolvedType": "COLOR",
+            "description": "{gray-200}\ncontainer borders"
+          }
+        },
+        "bold": {
+          "default": {
+            "value": "{accent.50}",
+            "type": "color",
+            "resolvedType": "COLOR",
+            "description": "{gray-300}\ninputs, button border, anything interactive"
+          },
+          "hover": {
+            "value": "{accent.60}",
+            "type": "color",
+            "resolvedType": "COLOR"
+          },
+          "pressed": {
+            "value": "{accent.60}",
+            "type": "color",
+            "resolvedType": "COLOR",
+            "description": "{gray-200}\ncontainer borders"
+          },
+          "active": {
+            "value": "{accent.50}",
+            "type": "color",
+            "resolvedType": "COLOR",
+            "description": "{gray-200}\ncontainer borders"
+          }
+        }
+      },
+      "neutral": {
+        "subtle": {
+          "default": {
+            "value": "{neutral.white}",
+            "type": "color",
+            "resolvedType": "COLOR"
+          },
+          "hover": {
+            "value": "{gray.10}",
+            "type": "color",
+            "resolvedType": "COLOR"
+          },
+          "active": {
+            "value": "{gray.20}",
+            "type": "color",
+            "resolvedType": "COLOR"
+          },
+          "pressed": {
+            "value": "{gray.10}",
+            "type": "color",
+            "resolvedType": "COLOR"
+          }
+        },
+        "bold": {
+          "default": {
+            "value": "{gray.80}",
+            "type": "color",
+            "resolvedType": "COLOR",
+            "description": "{gray-300}\ninputs, button border, anything interactive"
+          },
+          "hover": {
+            "value": "{gray.70}",
+            "type": "color",
+            "resolvedType": "COLOR"
+          },
+          "active": {
+            "value": "{gray.80}",
+            "type": "color",
+            "resolvedType": "COLOR",
+            "description": "{gray-200}\ncontainer borders"
+          },
+          "pressed": {
+            "value": "{gray.70}",
+            "type": "color",
+            "resolvedType": "COLOR",
+            "description": "{gray-200}\ncontainer borders"
+          }
+        }
+      },
+      "status": {
+        "info": {
+          "subtle": {
+            "default": {
+              "value": "{blue.00}",
+              "type": "color",
+              "resolvedType": "COLOR",
+              "description": "{gray-300}\ninputs, button border, anything interactive"
+            },
+            "hover": {
+              "value": "{blue.10}",
+              "type": "color",
+              "resolvedType": "COLOR"
+            },
+            "active": {
+              "value": "{blue.00}",
+              "type": "color",
+              "resolvedType": "COLOR",
+              "description": "{gray-200}\ncontainer borders"
+            }
+          }
+        },
+        "success": {
+          "subtle": {
+            "default": {
+              "value": "{green.00}",
+              "type": "color",
+              "resolvedType": "COLOR",
+              "description": "{gray-300}\ninputs, button border, anything interactive"
+            },
+            "hover": {
+              "value": "{green.10}",
+              "type": "color",
+              "resolvedType": "COLOR"
+            },
+            "active": {
+              "value": "{green.00}",
+              "type": "color",
+              "resolvedType": "COLOR",
+              "description": "{gray-200}\ncontainer borders"
+            }
+          }
+        },
+        "caution": {
+          "subtle": {
+            "default": {
+              "value": "{yellow.00}",
+              "type": "color",
+              "resolvedType": "COLOR",
+              "description": "{gray-300}\ninputs, button border, anything interactive"
+            },
+            "hover": {
+              "value": "{yellow.10}",
+              "type": "color",
+              "resolvedType": "COLOR"
+            },
+            "active": {
+              "value": "{yellow.00}",
+              "type": "color",
+              "resolvedType": "COLOR",
+              "description": "{gray-200}\ncontainer borders"
+            }
+          }
+        },
+        "warning": {
+          "subtle": {
+            "default": {
+              "value": "{orange.00}",
+              "type": "color",
+              "resolvedType": "COLOR",
+              "description": "{gray-300}\ninputs, button border, anything interactive"
+            },
+            "hover": {
+              "value": "{orange.10}",
+              "type": "color",
+              "resolvedType": "COLOR"
+            },
+            "active": {
+              "value": "{orange.00}",
+              "type": "color",
+              "resolvedType": "COLOR",
+              "description": "{gray-200}\ncontainer borders"
+            }
+          }
+        },
+        "critical": {
+          "subtle": {
+            "default": {
+              "value": "{red.00}",
+              "type": "color",
+              "resolvedType": "COLOR",
+              "description": "{gray-300}\ninputs, button border, anything interactive"
+            },
+            "hover": {
+              "value": "{red.10}",
+              "type": "color",
+              "resolvedType": "COLOR"
+            },
+            "active": {
+              "value": "{red.00}",
+              "type": "color",
+              "resolvedType": "COLOR",
+              "description": "{gray-200}\ncontainer borders"
+            }
+          },
+          "strong": {
+            "default": {
+              "value": "{red.50}",
+              "type": "color",
+              "resolvedType": "COLOR",
+              "description": "{gray-300}\ninputs, button border, anything interactive"
+            },
+            "hover": {
+              "value": "{red.60}",
+              "type": "color",
+              "resolvedType": "COLOR"
+            },
+            "active": {
+              "value": "{red.50}",
+              "type": "color",
+              "resolvedType": "COLOR",
+              "description": "{gray-200}\ncontainer borders"
+            }
+          }
+        }
+      }
+    },
+    "icon": {
+      "primary": {
+        "value": "{gray.70}",
+        "type": "color",
+        "resolvedType": "COLOR",
+        "description": "{gray-900} \nPrimary color for text and icons in any given interface. It should be used for titles and labels."
+      },
+      "secondary": {
+        "value": "{gray.50}",
+        "type": "color",
+        "resolvedType": "COLOR",
+        "description": "{gray-700}\nUse for content that is secondary or that provides additional context but is not critical to understanding the flow of an interface. Body text"
+      },
+      "tertiary": {
+        "value": "{gray.40}",
+        "type": "color",
+        "resolvedType": "COLOR",
+        "description": "{gray-500}\nUse for secondary text, icons"
+      },
+      "disabled": {
+        "value": "{gray.30}",
+        "type": "color",
+        "resolvedType": "COLOR",
+        "description": "{gray-400}\nUse for secondary text, icons"
+      },
+      "inverted": {
+        "value": "{neutral.white}",
+        "type": "color",
+        "resolvedType": "COLOR"
+      },
+      "link": {
+        "value": "{accent.60}",
+        "type": "color",
+        "resolvedType": "COLOR"
+      },
+      "link-hover": {
+        "value": "{accent.70}",
+        "type": "color",
+        "resolvedType": "COLOR"
+      },
+      "status": {
+        "info": {
+          "value": "{blue.90}",
+          "type": "color",
+          "resolvedType": "COLOR",
+          "description": "Use for interactive text or icons like links or buttons."
+        },
+        "success": {
+          "value": "{green.80}",
+          "type": "color",
+          "resolvedType": "COLOR",
+          "description": "Use to emphasize a positive message."
+        },
+        "warning": {
+          "value": "{orange.70}",
+          "type": "color",
+          "resolvedType": "COLOR",
+          "description": "Use to highlight elements that require a user's attention or pending statuses."
+        },
+        "critical": {
+          "value": "{red.70}",
+          "type": "color",
+          "resolvedType": "COLOR",
+          "description": "Use to emphasize content for an error. Action is required."
+        }
+      }
+    },
+    "surface-glass": {
+      "50": {
+        "value": "{gray.20}",
+        "type": "color",
+        "resolvedType": "COLOR",
+        "description": "input:hover"
+      },
+      "60": {
+        "value": "{white-alpha.60}",
+        "type": "color",
+        "resolvedType": "COLOR",
+        "description": "{gray-200}\ncontainer borders"
+      },
+      "70": {
+        "value": "{white-alpha.70}",
+        "type": "color",
+        "resolvedType": "COLOR",
+        "description": "{gray-300}\ninputs, button border, anything interactive"
+      },
+      "default": {
+        "value": "{white-alpha.90}",
+        "type": "color",
+        "resolvedType": "COLOR",
+        "description": "{gray-300}\ninputs, button border, anything interactive"
+      },
+      "alt": {
+        "value": "{white-alpha.60}",
+        "type": "color",
+        "resolvedType": "COLOR"
+      }
+    }
+  },
   "color.core": {
     "gray": {
       "10": {
