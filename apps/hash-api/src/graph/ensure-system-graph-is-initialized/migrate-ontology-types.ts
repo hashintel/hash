@@ -189,7 +189,6 @@ export const migrateOntologyTypes = async (params: {
           params.logger.debug(
             `Skipping migration state save in migration ${migrationNumber} as HASH Instance v${hashInstanceVersion} will not yet have migration state properties`,
           );
-          /** HASH instance will not have migration state properties yet */
           continue;
         }
 
@@ -200,12 +199,9 @@ export const migrateOntologyTypes = async (params: {
           migrationState,
         });
       } catch (saveMigrationStateError) {
-        /**
-         * If HASH Instance doesn't exist yet, we can't save.
-         */
         if (saveMigrationStateError instanceof NotFoundError) {
           params.logger.debug(
-            `Skipping migration state save in migration ${migrationNumber} as HASH Instance does not exist`,
+            `Skipping migration state save in migration ${migrationNumber} as HASH Instance does not yet exist`,
           );
         } else {
           throw saveMigrationStateError;
