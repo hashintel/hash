@@ -1,22 +1,43 @@
 import fs from "node:fs";
 import { join } from "node:path";
 import { camelCase, kebabCase } from "case-anything";
+import { z } from "zod";
 import figmaVariables from "./data/figma-variables.json" with { type: "json" };
 
 const OUTPUT_DIR = "src/theme/colors";
 
-type ColorModeValue = { _light: string; _dark: string };
+/** Light/dark mode color pair as exported by Figma. */
+const colorModeValueSchema = z
+  .object({
+    _light: z.string().describe("Light mode hex color"),
+    _dark: z.string().describe("Dark mode hex color"),
+  })
+  .describe("Light/dark mode color pair");
 
-type FigmaColorValue = {
-  value: ColorModeValue;
-  type: "color";
-};
+type ColorModeValue = z.infer<typeof colorModeValueSchema>;
 
-type FigmaColorScale = Record<string, FigmaColorValue>;
+/** A single Figma color variable (one step in a scale). */
+const figmaColorValueSchema = z
+  .object({
+    value: colorModeValueSchema,
+    type: z.literal("color"),
+  })
+  .describe("Single Figma color variable");
 
-type FigmaColorCore = Record<string, FigmaColorScale>;
+/** A named scale of color steps (e.g. `{ "100": …, "200": … }`). */
+const figmaColorScaleSchema = z
+  .record(z.string(), figmaColorValueSchema)
+  .describe("Scale of color steps keyed by step name");
 
-const colorCore = figmaVariables["color.core"] as FigmaColorCore;
+type FigmaColorScale = z.infer<typeof figmaColorScaleSchema>;
+
+/** The top-level `color.core` export containing multiple named scales. */
+const figmaColorCoreSchema = z
+  .record(z.string(), figmaColorScaleSchema)
+  .describe("color.core section of Figma variables export");
+
+/** Parse and validate `color.core` from the Figma JSON. */
+const colorCore = figmaColorCoreSchema.parse(figmaVariables["color.core"]);
 
 /**
  * Strip the Figma-export metadata (`type`) and keep only the `{ value }` shape
