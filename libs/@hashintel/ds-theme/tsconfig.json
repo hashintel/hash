@@ -1,14 +1,19 @@
 {
-  "extends": "@total-typescript/tsconfig/tsc/dom/library-monorepo",
+  "extends": "@tsconfig/strictest/tsconfig.json",
   "compilerOptions": {
-    "module": "ESNext",
-    "target": "es2022",
-    "moduleResolution": "bundler",
+    "target": "esnext",
     "jsx": "react-jsx",
-    "lib": ["dom", "dom.iterable", "ES2021"],
-    "noEmit": true,
+    "lib": ["es2023", "DOM"],
+    "moduleDetection": "force",
+    "module": "preserve",
+    "moduleResolution": "bundler",
+    "resolveJsonModule": true,
+    "types": [],
+    "declaration": true,
+    "emitDeclarationOnly": true,
+    "verbatimModuleSyntax": true,
     "isolatedModules": true
   },
-  "include": ["src/**/*"],
-  "exclude": ["node_modules", "dist", ".storybook/**/*"]
+  "include": ["src"],
+  "exclude": ["node_modules", "dist", ".build"]
 }
