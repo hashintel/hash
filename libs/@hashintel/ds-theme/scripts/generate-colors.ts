@@ -3,6 +3,7 @@ import { join } from "node:path";
 import { camelCase, kebabCase } from "case-anything";
 import { z } from "zod";
 import figmaVariables from "./figma-variables.json" with { type: "json" };
+import { cleanDescription, transformPropertyKey } from "./transforms";
 
 const OUTPUT_DIR = "src/theme/colors";
 
@@ -113,20 +114,30 @@ function isSemanticLeaf(node: SemanticTokenNode): node is SemanticTokenRef {
 
 /**
  * Recursively transform semantic tokens, converting Figma references to Panda references.
- * Only keeps `value` property, discarding `type`, `resolvedType`, `description`.
+ * Retains `value` and `description` properties, discarding `type` and `resolvedType`.
+ * Converts `default` keys to `DEFAULT` for Panda's nested default token syntax.
  */
 function transformSemanticTokens(
   node: SemanticTokenNode,
-): Record<string, unknown> | { value: string } {
+): Record<string, unknown> | { value: string; description?: string } {
   if (isSemanticLeaf(node)) {
-    return { value: transformTokenReference(node.value) };
+    const result: { value: string; description?: string } = {
+      value: transformTokenReference(node.value),
+    };
+    if (node.description) {
+      result.description = cleanDescription(node.description);
+    }
+    return result;
   }
 
   const result: Record<string, unknown> = {};
   for (const [key, child] of Object.entries(node)) {
     // Convert kebab-case keys to camelCase (e.g., "link-hover" -> "linkHover")
-    const camelKey = camelCase(key);
-    result[camelKey] = transformSemanticTokens(child as SemanticTokenNode);
+    // Also convert "default" to "DEFAULT" for Panda's nested default syntax
+    const transformedKey = transformPropertyKey(camelCase(key));
+    result[transformedKey] = transformSemanticTokens(
+      child as SemanticTokenNode,
+    );
   }
   return result;
 }

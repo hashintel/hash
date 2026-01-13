@@ -5,6 +5,23 @@
 const VALID_IDENTIFIER_RE = /^[a-zA-Z_$][a-zA-Z0-9_$]*$/;
 
 /**
+ * Clean a description string from Figma export.
+ * Removes leading weird characters and newlines before the actual description.
+ */
+export function cleanDescription(description: string): string {
+  // Remove leading non-printable chars, braces with content like "{gray-300}", and newlines
+  return description.replace(/^\{[^}]*\}\s*\n?/, "").trim();
+}
+
+/**
+ * Transform a property key for Panda CSS compatibility.
+ * Converts "default" to "DEFAULT" (Panda's special nested default token key).
+ */
+export function transformPropertyKey(key: string): string {
+  return key === "default" ? "DEFAULT" : key;
+}
+
+/**
  * Convert a token object into a TypeScript object-literal string.
  * Handles proper key quoting for non-identifier keys.
  */

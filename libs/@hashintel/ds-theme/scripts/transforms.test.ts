@@ -1,11 +1,51 @@
 import { describe, expect, it } from "vitest";
 import {
+  cleanDescription,
+  transformPropertyKey,
   formatTokensForOutput,
   transformSpacingScale,
   transformRadiusScale,
   transformLineHeightReference,
   transformRadiusReference,
 } from "./transforms";
+
+describe("cleanDescription", () => {
+  it("removes leading braced content and newlines", () => {
+    expect(cleanDescription("{gray-300}\ninputs, button border")).toBe(
+      "inputs, button border",
+    );
+  });
+
+  it("removes leading braced content with spaces and newlines", () => {
+    expect(cleanDescription("{gray-200}\ncontainer borders")).toBe(
+      "container borders",
+    );
+  });
+
+  it("preserves plain descriptions", () => {
+    expect(cleanDescription("input:hover")).toBe("input:hover");
+  });
+
+  it("trims whitespace", () => {
+    expect(cleanDescription("  some description  ")).toBe("some description");
+  });
+
+  it("handles descriptions with only braced content", () => {
+    expect(cleanDescription("{gray-900}")).toBe("");
+  });
+});
+
+describe("transformPropertyKey", () => {
+  it("converts 'default' to 'DEFAULT'", () => {
+    expect(transformPropertyKey("default")).toBe("DEFAULT");
+  });
+
+  it("leaves other keys unchanged", () => {
+    expect(transformPropertyKey("hover")).toBe("hover");
+    expect(transformPropertyKey("active")).toBe("active");
+    expect(transformPropertyKey("subtle")).toBe("subtle");
+  });
+});
 
 describe("formatTokensForOutput", () => {
   it("formats simple key-value pairs", () => {

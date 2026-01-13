@@ -36,11 +36,13 @@ const valueStyles = css({
 });
 
 const SpacingBar = ({ scale, step }: { scale: string; step: string }) => {
-  const tokenPath = `spacing.${scale}.${step}` as Token;
+  // For default scale, use just the step number (Panda's DEFAULT pattern)
+  const tokenPath =
+    scale === "default" ? (`spacing.${step}` as Token) : (`spacing.${scale}.${step}` as Token);
   const value = token(tokenPath);
 
   return (
-    <HStack gap="default.4" alignItems="center">
+    <HStack gap="4" alignItems="center">
       <span className={stepLabelStyles}>{step}</span>
       <div
         className={css({
@@ -57,12 +59,12 @@ const SpacingBar = ({ scale, step }: { scale: string; step: string }) => {
 };
 
 const ScaleColumn = ({ scale }: { scale: string }) => (
-  <VStack gap="default.1" alignItems="flex-start">
+  <VStack gap="1" alignItems="flex-start">
     <span
       className={css({
         fontSize: "sm",
         fontWeight: "semibold",
-        mb: "default.2",
+        mb: "2",
         textTransform: "capitalize",
       })}
     >
@@ -75,7 +77,7 @@ const ScaleColumn = ({ scale }: { scale: string }) => (
 );
 
 export const Spacing: Story = () => (
-  <VStack gap="default.6" alignItems="flex-start" p="default.6">
+  <VStack gap="6" alignItems="flex-start" p="6">
     <h1 className={css({ fontSize: "2xl", fontWeight: "semibold" })}>
       Spacing Tokens
     </h1>
@@ -90,7 +92,7 @@ export const Spacing: Story = () => (
       compact reduces spacing for dense UIs, and comfortable increases spacing
       for more relaxed layouts.
     </p>
-    <HStack gap="default.12" alignItems="flex-start">
+    <HStack gap="12" alignItems="flex-start">
       {scales.map((scale) => (
         <ScaleColumn key={scale} scale={scale} />
       ))}
