@@ -85,20 +85,20 @@ const avatarRootRecipe = cva({
     },
     shape: {
       circle: {
-        borderRadius: "radius.full",
+        borderRadius: "md.full",
       },
       square: {},
     },
   },
   compoundVariants: [
     // Square border radius by size
-    { shape: "square", size: "16", css: { borderRadius: "radius.2" } },
-    { shape: "square", size: "20", css: { borderRadius: "radius.2" } },
-    { shape: "square", size: "24", css: { borderRadius: "radius.3" } },
-    { shape: "square", size: "32", css: { borderRadius: "radius.4" } },
-    { shape: "square", size: "40", css: { borderRadius: "radius.5" } },
-    { shape: "square", size: "48", css: { borderRadius: "radius.6" } },
-    { shape: "square", size: "64", css: { borderRadius: "radius.7" } },
+    { shape: "square", size: "16", css: { borderRadius: "md.2" } },
+    { shape: "square", size: "20", css: { borderRadius: "md.2" } },
+    { shape: "square", size: "24", css: { borderRadius: "md.3" } },
+    { shape: "square", size: "32", css: { borderRadius: "md.4" } },
+    { shape: "square", size: "40", css: { borderRadius: "md.5" } },
+    { shape: "square", size: "48", css: { borderRadius: "md.6" } },
+    { shape: "square", size: "64", css: { borderRadius: "md.7" } },
   ],
   defaultVariants: {
     size: "32",
@@ -260,7 +260,7 @@ const avatarIndicatorRootRecipe = cva({
     squared: {
       true: {},
       false: {
-        borderRadius: "radius.full",
+        borderRadius: "md.full",
       },
     },
   },
@@ -272,7 +272,7 @@ const avatarIndicatorRootRecipe = cva({
       css: {
         border: "1px solid",
         borderColor: "border.neutral.default",
-        borderRadius: "radius.1",
+        borderRadius: "md.1",
       },
     },
     {
@@ -281,7 +281,7 @@ const avatarIndicatorRootRecipe = cva({
       css: {
         border: "1px solid",
         borderColor: "border.neutral.default",
-        borderRadius: "radius.1",
+        borderRadius: "md.1",
       },
     },
     {
@@ -290,7 +290,7 @@ const avatarIndicatorRootRecipe = cva({
       css: {
         border: "1px solid",
         borderColor: "border.neutral.default",
-        borderRadius: "radius.1",
+        borderRadius: "md.1",
       },
     },
     {
@@ -299,7 +299,7 @@ const avatarIndicatorRootRecipe = cva({
       css: {
         border: "1px solid",
         borderColor: "border.neutral.default",
-        borderRadius: "radius.1",
+        borderRadius: "md.1",
       },
     },
     {
@@ -308,7 +308,7 @@ const avatarIndicatorRootRecipe = cva({
       css: {
         border: "1px solid",
         borderColor: "border.neutral.default",
-        borderRadius: "radius.2",
+        borderRadius: "md.2",
       },
     },
     {
@@ -317,7 +317,7 @@ const avatarIndicatorRootRecipe = cva({
       css: {
         border: "1px solid",
         borderColor: "border.neutral.default",
-        borderRadius: "radius.2",
+        borderRadius: "md.2",
       },
     },
     {
@@ -326,7 +326,7 @@ const avatarIndicatorRootRecipe = cva({
       css: {
         border: "1px solid",
         borderColor: "border.neutral.default",
-        borderRadius: "radius.3",
+        borderRadius: "md.3",
       },
     },
   ],

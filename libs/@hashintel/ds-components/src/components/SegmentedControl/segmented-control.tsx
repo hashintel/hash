@@ -13,7 +13,7 @@ const rootStyles = css({
   position: "relative",
   display: "flex",
   alignItems: "center",
-  gap: "spacing.1",
+  gap: "default.1",
   userSelect: "none",
 });
 
@@ -46,8 +46,8 @@ const itemStyles = css({
   alignItems: "center",
   justifyContent: "center",
   position: "relative",
-  paddingX: "spacing.4",
-  paddingY: "spacing.2",
+  paddingX: "default.4",
+  paddingY: "default.2",
   width: "auto",
   textAlign: "center",
   cursor: "pointer",
@@ -66,7 +66,7 @@ const itemStyles = css({
 });
 
 const itemTextStyles = css({
-  fontSize: "size.textsm",
+  fontSize: "sm",
   fontWeight: "medium",
   _disabled: {
     opacity: "0.4",
