@@ -82,12 +82,7 @@ const TextSample = ({
 );
 
 export const SemanticText: Story = () => (
-  <VStack
-    gap="8"
-    alignItems="flex-start"
-    p="6"
-    maxWidth="[800px]"
-  >
+  <VStack gap="8" alignItems="flex-start" p="6" maxWidth="[800px]">
     <h1 className={css({ fontSize: "2xl", fontWeight: "semibold" })}>
       Text Color Tokens
     </h1>
