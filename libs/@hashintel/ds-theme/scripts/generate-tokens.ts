@@ -1,77 +1,48 @@
 import fs from "node:fs";
 import { join } from "node:path";
-import { camelCase, kebabCase } from "case-anything";
+import { camelCase } from "case-anything";
 import { z } from "zod";
 import figmaVariables from "./figma-variables.json" with { type: "json" };
+import {
+  formatTokensForOutput,
+  transformSpacingScale,
+  transformRadiusScale,
+  transformLineHeightReference,
+  transformRadiusReference,
+} from "./transforms";
 
 const OUTPUT_DIR = "src/theme/tokens";
 
-const VALID_IDENTIFIER_RE = /^[a-zA-Z_$][a-zA-Z0-9_$]*$/;
+// ============================================================================
+// FIGMA VARIABLE TYPES - Literal types for known Figma export structure
+// ============================================================================
 
-/**
- * Convert a token object into a TypeScript object-literal string.
- */
-function formatTokensForOutput(tokens: Record<string, unknown>): string {
-  const formatValue = (value: unknown): string => {
-    if (value === undefined) {
-      return "undefined";
-    }
+/** Known resolved types from Figma Variables Plugin */
+const resolvedTypeSchema = z.enum(["FLOAT", "STRING", "COLOR"]);
 
-    if (typeof value !== "object" || value === null) {
-      return JSON.stringify(value) ?? "undefined";
-    }
-
-    if (Array.isArray(value)) {
-      return `[${value.map((v) => formatValue(v)).join(", ")}]`;
-    }
-
-    const entries = Object.entries(value);
-    const formatted = entries
-      .map(([key, val]) => {
-        const keyStr = VALID_IDENTIFIER_RE.test(key)
-          ? key
-          : JSON.stringify(key);
-        return `${keyStr}: ${formatValue(val)}`;
-      })
-      .join(", ");
-
-    return `{ ${formatted} }`;
-  };
-
-  return formatValue(tokens);
-}
+/** Known variable types from Figma Variables Plugin */
+const variableTypeSchema = z.enum([
+  "spacing",
+  "fontSize",
+  "fontWeight",
+  "fontFamily",
+  "lineHeight",
+  "borderRadius",
+  "color",
+]);
 
 // ============================================================================
 // SPACING TOKENS
 // ============================================================================
 
-/** Schema for a single spacing value */
 const spacingValueSchema = z.object({
   value: z.number(),
   type: z.literal("spacing"),
   resolvedType: z.literal("FLOAT"),
 });
 
-/** Schema for a spacing scale (e.g., compact, comfortable) */
 const spacingScaleSchema = z.record(z.string(), spacingValueSchema);
-
-/** Schema for the spacing section */
 const spacingSchema = z.record(z.string(), spacingScaleSchema);
-
-/**
- * Transform spacing values to Panda token format.
- * Adds "px" suffix to numeric values.
- */
-function transformSpacingScale(
-  scale: z.infer<typeof spacingScaleSchema>,
-): Record<string, { value: string }> {
-  return Object.fromEntries(
-    Object.entries(scale).map(([step, { value }]) => [
-      step,
-      { value: `${value}px` },
-    ]),
-  );
-}
 
 function generateSpacingTokens(): void {
   const spacing = figmaVariables.spacing;
@@ -101,35 +72,30 @@ export const spacing = defineTokens.spacing(${formatTokensForOutput(tokens)});
 // TYPOGRAPHY TOKENS
 // ============================================================================
 
-/** Schema for font family */
 const fontFamilyValueSchema = z.object({
   value: z.string(),
   type: z.literal("fontFamily"),
   resolvedType: z.literal("STRING"),
 });
 
-/** Schema for font weight */
 const fontWeightValueSchema = z.object({
   value: z.number(),
   type: z.literal("fontWeight"),
   resolvedType: z.literal("FLOAT"),
 });
 
-/** Schema for font size */
 const fontSizeValueSchema = z.object({
   value: z.number(),
   type: z.literal("fontSize"),
   resolvedType: z.literal("FLOAT"),
 });
 
-/** Schema for line height (can be number or reference) */
 const lineHeightValueSchema = z.object({
   value: z.union([z.number(), z.string()]),
   type: z.literal("lineHeight"),
   resolvedType: z.literal("FLOAT"),
 });
 
-/** Schema for the typography section */
 const typographySchema = z.object({
   family: z.record(z.string(), fontFamilyValueSchema).optional(),
   weight: z.record(z.string(), z.union([fontWeightValueSchema, z.any()])),
@@ -170,7 +136,6 @@ function generateTypographyTokens(): void {
   const fontSizes: Record<string, { value: string }> = {};
   if (parsed.size) {
     for (const [name, { value }] of Object.entries(parsed.size)) {
-      // Keep size names as-is (xs, sm, base, lg, xl, 2xl, 3xl, 4xl)
       fontSizes[name] = { value: `${value}px` };
     }
   }
@@ -181,13 +146,7 @@ function generateTypographyTokens(): void {
     for (const [category, scales] of Object.entries(parsed.leading)) {
       const categoryTokens: Record<string, { value: string }> = {};
       for (const [name, { value }] of Object.entries(scales)) {
-        // Convert references like "{size.3xl}" to Panda format "{fontSizes.3xl}"
-        const tokenValue =
-          typeof value === "string"
-            ? value.replace(/\{size\.([^}]+)\}/g, "{fontSizes.$1}")
-            : `${value}px`;
-        // Keep original key (e.g., "text-3xl")
-        categoryTokens[name] = { value: tokenValue };
+        categoryTokens[name] = { value: transformLineHeightReference(value) };
       }
       lineHeights[category] = categoryTokens;
     }
@@ -212,37 +171,20 @@ export const lineHeights = defineTokens.lineHeights(${formatTokensForOutput(line
 // BORDER RADIUS TOKENS
 // ============================================================================
 
-/** Schema for a single border radius value */
 const radiusValueSchema = z.object({
   value: z.union([z.number(), z.string()]),
   type: z.literal("borderRadius"),
   resolvedType: z.literal("FLOAT"),
 });
 
-/** Schema for a radius scale */
 const radiusScaleSchema = z.record(z.string(), radiusValueSchema);
 
-/** Schema for the radius section */
 const radiusSchema = z.object({
   core: z.record(z.string(), radiusScaleSchema).optional(),
-  component: z.record(z.string(), z.record(z.string(), radiusValueSchema)).optional(),
+  component: z
+    .record(z.string(), z.record(z.string(), radiusValueSchema))
+    .optional(),
 });
-
-/**
- * Transform radius values to Panda token format.
- */
-function transformRadiusScale(
-  scale: z.infer<typeof radiusScaleSchema>,
-): Record<string, { value: string }> {
-  return Object.fromEntries(
-    Object.entries(scale).map(([step, { value }]) => {
-      // Handle references like "{radius.4}"
-      const tokenValue =
-        typeof value === "string" ? value : value === 9999 ? "9999px" : `${value}px`;
-      return [step, { value: tokenValue }];
-    }),
-  );
-}
 
 function generateRadiusTokens(): void {
   const radius = figmaVariables.radius;
@@ -268,13 +210,7 @@ function generateRadiusTokens(): void {
     for (const [componentName, sizes] of Object.entries(parsed.component)) {
       const sizeTokens: Record<string, { value: string }> = {};
       for (const [size, { value }] of Object.entries(sizes)) {
-        // Transform references like "{radius.4}" to Panda format "{radii.md.4}"
-        // For now, we'll use the raw value
-        const tokenValue =
-          typeof value === "string"
-            ? value.replace(/\{radius\.(\d+)\}/g, "{radii.md.$1}")
-            : `${value}px`;
-        sizeTokens[camelCase(size)] = { value: tokenValue };
+        sizeTokens[camelCase(size)] = { value: transformRadiusReference(value) };
       }
       componentRadii[camelCase(componentName)] = sizeTokens;
     }
@@ -296,9 +232,6 @@ export const radii = defineTokens.radii(${formatTokensForOutput(allRadii)});
 // BARREL FILE
 // ============================================================================
 
-/**
- * Generate barrel file at parent level (src/theme/tokens.ts) instead of index.ts inside the directory.
- */
 function generateBarrelFile(): void {
   const filePath = join(process.cwd(), "src/theme/tokens.ts");
 
@@ -312,11 +245,26 @@ export { radii } from "./tokens/radii";
 }
 
 // ============================================================================
+// TOP-LEVEL SCHEMA - Validates expected structure of Figma export
+// ============================================================================
+
+/** Top-level keys we expect in the Figma variables export */
+const figmaVariablesSchema = z.object({
+  "color.semantic": z.record(z.string(), z.unknown()),
+  spacing: spacingSchema,
+  typography: typographySchema,
+  radius: radiusSchema,
+});
+
+// ============================================================================
 // MAIN
 // ============================================================================
 
 function main(): void {
   console.log("🎨 Generating design tokens from Figma export...\n");
+
+  // Validate top-level structure
+  figmaVariablesSchema.parse(figmaVariables);
 
   const outputPath = join(process.cwd(), OUTPUT_DIR);
 
