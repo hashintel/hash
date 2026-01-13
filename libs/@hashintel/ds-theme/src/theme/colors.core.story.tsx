@@ -2,7 +2,7 @@ import type { Story } from "@ladle/react";
 import { css } from "../../styled-system/css";
 import { token } from "../../styled-system/tokens";
 import { VStack, HStack } from "../../styled-system/jsx";
-import { colors } from "./colors";
+import { coreColors } from "./colors";
 import type { Token } from "../../styled-system/tokens/tokens";
 
 /** Extract shade keys from each color scale, sorted numerically */
@@ -19,7 +19,7 @@ const getShades = (colorObj: Record<string, unknown>): string[] => {
 /** Order of color scales to display (neutral first, then alphabetical) */
 const colorOrder = [
   "neutral",
-  ...Object.keys(colors)
+  ...Object.keys(coreColors)
     .filter((k) => k !== "neutral")
     .sort(),
 ] as const;
@@ -78,11 +78,11 @@ const ColorScale = ({ name, shades }: { name: string; shades: string[] }) => (
 export const Colors: Story = () => (
   <VStack gap="default.6" alignItems="flex-start" p="default.6">
     <h1 className={css({ fontSize: "2xl", fontWeight: "semibold" })}>
-      Color Tokens
+      Core Color Tokens
     </h1>
     <VStack gap="default.4" alignItems="flex-start">
       {colorOrder.map((name) => {
-        const colorObj = colors[name as keyof typeof colors];
+        const colorObj = coreColors[name as keyof typeof coreColors];
         return (
           <ColorScale
             key={name}
