@@ -45,7 +45,7 @@ export const Slider: React.FC<SliderProps> = ({
           position: "relative",
           display: "flex",
           flexDirection: "column",
-          gap: "spacing.1",
+          gap: "default.1",
         }),
         className,
       )}
@@ -64,7 +64,7 @@ export const Slider: React.FC<SliderProps> = ({
       {label && (
         <BaseSlider.Label
           className={css({
-            fontSize: "size.textsm",
+            fontSize: "sm",
             fontWeight: "medium",
             color: "gray.90",
           })}
@@ -76,7 +76,7 @@ export const Slider: React.FC<SliderProps> = ({
       {showValueText && (
         <BaseSlider.ValueText
           className={css({
-            fontSize: "size.textxs",
+            fontSize: "xs",
             color: "gray.60",
           })}
         />
@@ -95,7 +95,7 @@ export const Slider: React.FC<SliderProps> = ({
             position: "relative",
             height: "[4px]",
             alignItems: "center",
-            borderRadius: "radius.full",
+            borderRadius: "md.full",
             backgroundColor: "gray.40",
           })}
         >
@@ -104,7 +104,7 @@ export const Slider: React.FC<SliderProps> = ({
               top: "[0px]",
               bottom: "[0px]",
               backgroundColor: "blue.70",
-              borderRadius: "radius.full",
+              borderRadius: "md.full",
             })}
           />
         </BaseSlider.Track>

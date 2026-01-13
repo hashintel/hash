@@ -28,6 +28,7 @@
     "build": "vite build",
     "dev": "vite build --watch",
     "fix": "npm-run-all --continue-on-error \"fix:*\"",
+    "fix:format": "biome format --write",
     "fix:eslint": "eslint --fix .",
     "lint": "npm-run-all --continue-on-error \"lint:*\"",
     "lint:eslint": "eslint --report-unused-disable-directives .",

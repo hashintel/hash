@@ -43,7 +43,7 @@ const checkboxRootStyles = (disabled: boolean) =>
   css({
     display: "inline-flex",
     alignItems: "center",
-    gap: "spacing.4",
+    gap: "default.4",
     cursor: disabled ? "not-allowed" : "pointer",
   });
 
@@ -54,7 +54,7 @@ const checkboxControlStyles = css({
   justifyContent: "center",
   width: "[16px]",
   height: "[16px]",
-  borderRadius: "radius.2",
+  borderRadius: "md.2",
   border: "1px solid",
   borderColor: "border.neutral.default",
   backgroundColor: "bg.neutral.subtle.default",

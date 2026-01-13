@@ -28,7 +28,7 @@ export interface RadioGroupProps {
 const radioGroupRootStyles = css({
   display: "flex",
   flexDirection: "column",
-  gap: "spacing.3", // 4px gap between items
+  gap: "default.3", // 4px gap between items
 });
 
 // Recipe for radio group items with variant support
@@ -63,16 +63,16 @@ const radioItemRecipe = cva({
     variant: {
       default: {
         cursor: "pointer",
-        padding: "spacing.3", // 6px
-        borderRadius: "radius.4", // 8px
-        gap: "spacing.5", // 8px
+        padding: "default.3", // 6px
+        borderRadius: "md.4", // 8px
+        gap: "default.5", // 8px
         "&:hover:not([data-disabled])": {
           backgroundColor: "bg.neutral.subtle.hover",
         },
       },
       card: {
-        gap: "spacing.6", // 12px
-        padding: "spacing.6", // 12px
+        gap: "default.6", // 12px
+        padding: "default.6", // 12px
         backgroundColor: "bg.neutral.subtle.default",
         border: "1px solid",
         borderColor: "border.neutral.subtle",
@@ -132,9 +132,9 @@ const cardIconBadgeStyles = css({
   width: "[32px]",
   height: "[32px]",
   backgroundColor: "bg.neutral.subtle.default",
-  borderRadius: "radius.4", // 8px
-  paddingX: "spacing.5", // 8px
-  paddingY: "spacing.0",
+  borderRadius: "md.4", // 8px
+  paddingX: "default.5", // 8px
+  paddingY: "default.0",
   overflow: "clip",
   flexShrink: "0",
 });
@@ -143,7 +143,7 @@ const cardIconBadgeStyles = css({
 const cardContentWrapperStyles = css({
   display: "flex",
   flex: "1",
-  gap: "spacing.6", // 12px
+  gap: "default.6", // 12px
   alignItems: "center",
   minWidth: "[0]",
   minHeight: "[0]",
@@ -154,7 +154,7 @@ const cardTextGroupStyles = css({
   display: "flex",
   flex: "1",
   flexDirection: "column",
-  gap: "spacing.1", // 4px
+  gap: "default.1", // 4px
   alignItems: "flex-start",
   justifyContent: "center",
   height: "[38px]",
@@ -164,9 +164,9 @@ const cardTextGroupStyles = css({
 
 // Label text styles
 const labelTextStyles = css({
-  fontSize: "size.textsm", // 14px
+  fontSize: "sm", // 14px
   fontWeight: "medium",
-  lineHeight: "leading.none.textsm", // 14px
+  lineHeight: "none.text-sm", // 14px
   color: "text.primary",
   whiteSpace: "nowrap",
   "&[data-disabled]": {
@@ -176,9 +176,9 @@ const labelTextStyles = css({
 
 // Card label text styles (with ellipsis)
 const cardLabelTextStyles = css({
-  fontSize: "size.textsm", // 14px
+  fontSize: "sm", // 14px
   fontWeight: "medium",
-  lineHeight: "leading.none.textsm", // 14px
+  lineHeight: "none.text-sm", // 14px
   color: "text.primary",
   overflow: "hidden",
   textOverflow: "ellipsis",
@@ -191,7 +191,7 @@ const cardLabelTextStyles = css({
 
 // Description text styles
 const descriptionTextStyles = css({
-  fontSize: "size.textxs", // 12px
+  fontSize: "xs", // 12px
   fontWeight: "normal",
   lineHeight: "[1.5]",
   color: "text.secondary",
