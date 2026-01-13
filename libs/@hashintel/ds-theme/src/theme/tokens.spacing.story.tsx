@@ -38,7 +38,9 @@ const valueStyles = css({
 const SpacingBar = ({ scale, step }: { scale: string; step: string }) => {
   // For default scale, use just the step number (Panda's DEFAULT pattern)
   const tokenPath =
-    scale === "default" ? (`spacing.${step}` as Token) : (`spacing.${scale}.${step}` as Token);
+    scale === "default"
+      ? (`spacing.${step}` as Token)
+      : (`spacing.${scale}.${step}` as Token);
   const value = token(tokenPath);
 
   return (
