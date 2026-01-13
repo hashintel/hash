@@ -20,30 +20,23 @@
   "files": [
     "dist"
   ],
-  "publishConfig": {
-    "access": "public"
-  },
   "scripts": {
-    "build:ladle": "panda codegen && ladle build",
     "build": "panda codegen && tsdown",
-    "codegen:panda": "panda codegen --clean",
-    "codegen:colors": "tsx scripts/generate-colors.ts",
-    "codegen:tokens": "tsx scripts/generate-tokens.ts",
     "codegen": "yarn codegen:colors && yarn codegen:tokens && yarn codegen:panda",
-    "dev:ladle": "panda codegen && ladle serve",
+    "codegen:colors": "tsx scripts/generate-colors.ts",
+    "codegen:panda": "panda codegen --clean",
+    "codegen:tokens": "tsx scripts/generate-tokens.ts",
     "dev": "panda codegen && tsdown --watch",
     "fix": "npm-run-all --continue-on-error \"fix:*\"",
-    "lint:tsc": "tsc --noEmit",
+    "ladle:build": "panda codegen && ladle build",
+    "ladle:dev": "panda codegen && ladle serve",
+    "ladle:preflight": "ladle build && ladle preview",
     "lint": "npm-run-all --continue-on-error \"lint:*\"",
-    "prepublishOnly": "pnpm run build",
+    "lint:tsc": "tsc --noEmit",
+    "prepublishOnly": "pnpm run build && ladle build",
     "release": "echo \"we need to implement release script\" && pnpm publish",
-    "test": "vitest",
-    "typecheck": "tsc --noEmit",
-    "preview": "ladle build && ladle preview"
-  },
-  "peerDependencies": {
-    "react": "^19.2.0",
-    "react-dom": "^19.2.0"
+    "test": "vitest run",
+    "test:dev": "vitest dev"
   },
   "devDependencies": {
     "@ladle/react": "5.1.1",
@@ -69,5 +62,12 @@
     "vitest": "^4.0.16",
     "vitest-browser-react": "^2.0.2",
     "zod": "4.1.12"
+  },
+  "peerDependencies": {
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0"
+  },
+  "publishConfig": {
+    "access": "public"
   }
 }
