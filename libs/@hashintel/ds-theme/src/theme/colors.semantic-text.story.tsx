@@ -2,7 +2,7 @@ import type { Story } from "@ladle/react";
 import { css } from "../../styled-system/css";
 import { token } from "../../styled-system/tokens";
 import { VStack, HStack, Box } from "../../styled-system/jsx";
-import type { Token } from "../../styled-system/tokens/tokens";
+import type { Token, ColorToken } from "../../styled-system/tokens/tokens";
 
 /**
  * Text color tokens for typography across the design system.
@@ -36,33 +36,33 @@ const sampleText = "The quick brown fox jumps over the lazy dog.";
 const TextSample = ({
   label,
   tokenPath,
-  bgColor = "white",
+  bgColor = "neutral.white",
 }: {
   label: string;
   tokenPath: string;
-  bgColor?: string;
+  bgColor?: ColorToken;
 }) => (
-  <HStack gap="4" alignItems="center" width="full">
+  <HStack gap="default.4" alignItems="center" width="[100%]">
     <span
       className={css({
         fontSize: "sm",
         fontWeight: "medium",
-        minWidth: "120px",
-        color: "gray.50",
+        minWidth: "[120px]",
+        color: "text.tertiary",
       })}
     >
       {label}
     </span>
     <Box
       bg={bgColor}
-      px="4"
-      py="3"
-      borderRadius="md"
+      px="default.4"
+      py="default.3"
+      borderRadius="md.3"
       flex="1"
-      boxShadow="inset 0 0 0 1px rgba(0,0,0,0.08)"
+      boxShadow="[inset_0_0_0_1px_rgba(0,0,0,0.08)]"
     >
       <p
-        className={css({ fontSize: "md", lineHeight: "relaxed" })}
+        className={css({ fontSize: "base" })}
         style={{ color: token(`colors.${tokenPath}` as Token) }}
       >
         {sampleText}
@@ -70,9 +70,8 @@ const TextSample = ({
       <span
         className={css({
           fontSize: "xs",
-          fontFamily: "mono",
-          color: "gray.40",
-          mt: "1",
+          color: "text.disabled",
+          mt: "default.1",
           display: "block",
         })}
       >
@@ -83,18 +82,23 @@ const TextSample = ({
 );
 
 export const SemanticText: Story = () => (
-  <VStack gap="8" alignItems="flex-start" p="6" maxWidth="800px">
-    <h1 className={css({ fontSize: "2xl", fontWeight: "bold" })}>
+  <VStack
+    gap="default.8"
+    alignItems="flex-start"
+    p="default.6"
+    maxWidth="[800px]"
+  >
+    <h1 className={css({ fontSize: "2xl", fontWeight: "semibold" })}>
       Text Color Tokens
     </h1>
 
     {/* Hierarchy */}
-    <VStack gap="2" alignItems="flex-start" width="full">
+    <VStack gap="default.2" alignItems="flex-start" width="[100%]">
       <h2
         className={css({
           fontSize: "lg",
           fontWeight: "semibold",
-          color: "gray.70",
+          color: "text.secondary",
         })}
       >
         Hierarchy
@@ -107,12 +111,12 @@ export const SemanticText: Story = () => (
     </VStack>
 
     {/* Inverted (on dark background) */}
-    <VStack gap="2" alignItems="flex-start" width="full">
+    <VStack gap="default.2" alignItems="flex-start" width="[100%]">
       <h2
         className={css({
           fontSize: "lg",
           fontWeight: "semibold",
-          color: "gray.70",
+          color: "text.secondary",
         })}
       >
         Inverted
@@ -125,12 +129,12 @@ export const SemanticText: Story = () => (
     </VStack>
 
     {/* Links */}
-    <VStack gap="2" alignItems="flex-start" width="full">
+    <VStack gap="default.2" alignItems="flex-start" width="[100%]">
       <h2
         className={css({
           fontSize: "lg",
           fontWeight: "semibold",
-          color: "gray.70",
+          color: "text.secondary",
         })}
       >
         Links
@@ -140,12 +144,12 @@ export const SemanticText: Story = () => (
     </VStack>
 
     {/* Status */}
-    <VStack gap="2" alignItems="flex-start" width="full">
+    <VStack gap="default.2" alignItems="flex-start" width="[100%]">
       <h2
         className={css({
           fontSize: "lg",
           fontWeight: "semibold",
-          color: "gray.70",
+          color: "text.secondary",
         })}
       >
         Status

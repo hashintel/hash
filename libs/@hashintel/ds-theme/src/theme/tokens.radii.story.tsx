@@ -5,29 +5,42 @@ import { VStack, HStack } from "../../styled-system/jsx";
 import type { Token } from "../../styled-system/tokens/tokens";
 
 const scales = ["sm", "md", "lg"] as const;
-const steps = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "full"] as const;
+const steps = [
+  "0",
+  "1",
+  "2",
+  "3",
+  "4",
+  "5",
+  "6",
+  "7",
+  "8",
+  "9",
+  "10",
+  "full",
+] as const;
 
 const labelStyles = css({
   fontSize: "xs",
   fontWeight: "medium",
-  color: "neutral.500",
+  color: "text.tertiary",
   textAlign: "center",
 });
 
 const valueStyles = css({
-  fontSize: "10px",
-  color: "neutral.400",
+  fontSize: "[10px]",
+  color: "text.disabled",
   textAlign: "center",
 });
 
 const sectionTitleStyles = css({
   fontSize: "lg",
   fontWeight: "semibold",
-  borderBottom: "1px solid",
-  borderColor: "neutral.200",
-  pb: "2",
-  mb: "4",
-  width: "100%",
+  borderBottom: "[1px_solid]",
+  borderColor: "border.neutral.subtle",
+  pb: "default.2",
+  mb: "default.4",
+  width: "[100%]",
 });
 
 const RadiusSwatch = ({ scale, step }: { scale: string; step: string }) => {
@@ -35,13 +48,13 @@ const RadiusSwatch = ({ scale, step }: { scale: string; step: string }) => {
   const value = token(tokenPath);
 
   return (
-    <VStack gap="1" alignItems="center">
+    <VStack gap="default.1" alignItems="center">
       <div
         className={css({
-          width: "48px",
-          height: "48px",
-          bg: "blue.500",
-          transition: "border-radius 0.2s",
+          width: "[48px]",
+          height: "[48px]",
+          bg: "blue.50",
+          transition: "[border-radius_0.2s]",
         })}
         style={{ borderRadius: value }}
       />
@@ -52,11 +65,18 @@ const RadiusSwatch = ({ scale, step }: { scale: string; step: string }) => {
 };
 
 const ScaleRow = ({ scale }: { scale: string }) => (
-  <VStack gap="4" alignItems="flex-start">
-    <span className={css({ fontSize: "sm", fontWeight: "semibold", textTransform: "uppercase", letterSpacing: "wide" })}>
+  <VStack gap="default.4" alignItems="flex-start">
+    <span
+      className={css({
+        fontSize: "sm",
+        fontWeight: "semibold",
+        textTransform: "uppercase",
+        letterSpacing: "[0.05em]",
+      })}
+    >
       {scale}
     </span>
-    <HStack gap="4" flexWrap="wrap">
+    <HStack gap="default.4" flexWrap="wrap">
       {steps.map((step) => (
         <RadiusSwatch key={step} scale={scale} step={step} />
       ))}
@@ -64,25 +84,34 @@ const ScaleRow = ({ scale }: { scale: string }) => (
   </VStack>
 );
 
-const ComponentRadiusDemo = ({ component, variants }: { component: string; variants: { name: string; tokenPath: Token }[] }) => (
-  <VStack gap="3" alignItems="flex-start">
-    <span className={css({ fontSize: "sm", fontWeight: "semibold", textTransform: "capitalize" })}>
+const ComponentRadiusDemo = ({
+  component,
+  variants,
+}: { component: string; variants: { name: string; tokenPath: Token }[] }) => (
+  <VStack gap="default.3" alignItems="flex-start">
+    <span
+      className={css({
+        fontSize: "sm",
+        fontWeight: "semibold",
+        textTransform: "capitalize",
+      })}
+    >
       {component}
     </span>
-    <HStack gap="4">
+    <HStack gap="default.4">
       {variants.map(({ name, tokenPath }) => {
         const value = token(tokenPath);
         return (
-          <VStack key={name} gap="1" alignItems="center">
+          <VStack key={name} gap="default.1" alignItems="center">
             <div
               className={css({
-                width: "64px",
-                height: "32px",
-                bg: "neutral.800",
+                width: "[64px]",
+                height: "[32px]",
+                bg: "gray.80",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
-                color: "white",
+                color: "neutral.white",
                 fontSize: "xs",
                 fontWeight: "medium",
               })}
@@ -99,22 +128,29 @@ const ComponentRadiusDemo = ({ component, variants }: { component: string; varia
 );
 
 export const Radii: Story = () => (
-  <VStack gap="8" alignItems="flex-start" p="6">
-    <h1 className={css({ fontSize: "2xl", fontWeight: "bold" })}>
+  <VStack gap="default.8" alignItems="flex-start" p="default.6">
+    <h1 className={css({ fontSize: "2xl", fontWeight: "semibold" })}>
       Border Radius Tokens
     </h1>
-    <p className={css({ fontSize: "sm", color: "neutral.600", maxWidth: "600px" })}>
-      Radius scales for different component sizes. SM for small/compact elements, MD for default, LG for larger components.
+    <p
+      className={css({
+        fontSize: "sm",
+        color: "text.secondary",
+        maxWidth: "[600px]",
+      })}
+    >
+      Radius scales for different component sizes. SM for small/compact
+      elements, MD for default, LG for larger components.
     </p>
 
-    <VStack gap="8" alignItems="flex-start" width="100%">
+    <VStack gap="default.8" alignItems="flex-start" width="[100%]">
       <h2 className={sectionTitleStyles}>Scales</h2>
       {scales.map((scale) => (
         <ScaleRow key={scale} scale={scale} />
       ))}
     </VStack>
 
-    <VStack gap="6" alignItems="flex-start" width="100%">
+    <VStack gap="default.6" alignItems="flex-start" width="[100%]">
       <h2 className={sectionTitleStyles}>Component-Specific Radii</h2>
       <ComponentRadiusDemo
         component="button"

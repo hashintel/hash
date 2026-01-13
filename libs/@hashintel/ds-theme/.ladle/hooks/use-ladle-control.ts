@@ -1,9 +1,12 @@
-import { ActionType, ModeState, useLadleContext } from '@ladle/react';
-import { useIsFirstRender } from '@mantine/hooks';
-import { isFunction } from '@tool-belt/type-predicates';
-import { useCallback, useLayoutEffect, useRef } from 'react';
+import { ActionType, ModeState, useLadleContext } from "@ladle/react";
+import { useIsFirstRender } from "@mantine/hooks";
+import { isFunction } from "@tool-belt/type-predicates";
+import { useCallback, useLayoutEffect, useRef } from "react";
 
-export function useLadleControl<T>(paramName: string, initialValue?: T | (() => T)) {
+export function useLadleControl<T>(
+  paramName: string,
+  initialValue?: T | (() => T),
+) {
   const {
     globalState: { control: state },
     dispatch,
@@ -35,7 +38,9 @@ export function useLadleControl<T>(paramName: string, initialValue?: T | (() => 
           ...state,
           [paramName]: {
             ...state[paramName],
-            value: isFunction(value) ? value(state[paramName]?.value) : (value ?? 'transparent'),
+            value: isFunction(value)
+              ? value(state[paramName]?.value)
+              : (value ?? "transparent"),
           },
         },
       });
@@ -55,12 +60,12 @@ export function useLadleIsPreview(): boolean {
 }
 
 export const mantineSchemeBGColors = [
-  'var(--mantine-scheme-color-r0)',
-  'var(--mantine-scheme-color-r1)',
-  'var(--mantine-scheme-color-r2)',
-  'var(--mantine-scheme-color-b0)',
-  'var(--mantine-scheme-color-b1)',
-  'var(--mantine-scheme-color-b2)',
+  "var(--mantine-scheme-color-r0)",
+  "var(--mantine-scheme-color-r1)",
+  "var(--mantine-scheme-color-r2)",
+  "var(--mantine-scheme-color-b0)",
+  "var(--mantine-scheme-color-b1)",
+  "var(--mantine-scheme-color-b2)",
 ] as const;
 
 export type MantineSchemeBGColor = (typeof mantineSchemeBGColors)[number];
@@ -71,8 +76,10 @@ export type MantineSchemeBGColor = (typeof mantineSchemeBGColors)[number];
  * @param initialColor - Initial background color (optional)
  * @returns A function to set the background color
  */
-export function useLadleBackground(initialColor?: (string & {}) | MantineSchemeBGColor) {
-  const setLadleBackground = useLadleControl('background', initialColor);
+export function useLadleBackground(
+  initialColor?: (string & {}) | MantineSchemeBGColor,
+) {
+  const setLadleBackground = useLadleControl("background", initialColor);
   const isFirstRender = useIsFirstRender();
   useLayoutEffect(() => {
     if (initialColor && isFirstRender) {

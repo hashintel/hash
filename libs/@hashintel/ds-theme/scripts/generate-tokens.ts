@@ -210,7 +210,9 @@ function generateRadiusTokens(): void {
     for (const [componentName, sizes] of Object.entries(parsed.component)) {
       const sizeTokens: Record<string, { value: string }> = {};
       for (const [size, { value }] of Object.entries(sizes)) {
-        sizeTokens[camelCase(size)] = { value: transformRadiusReference(value) };
+        sizeTokens[camelCase(size)] = {
+          value: transformRadiusReference(value),
+        };
       }
       componentRadii[camelCase(componentName)] = sizeTokens;
     }

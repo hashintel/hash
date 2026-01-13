@@ -14,6 +14,6 @@
     "verbatimModuleSyntax": true,
     "isolatedModules": true
   },
-  "include": ["src"],
+  "include": ["src", "styled-system/**/*.d.ts"],
   "exclude": ["node_modules", "dist", ".build"]
 }

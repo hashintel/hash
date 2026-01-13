@@ -26,11 +26,11 @@ const BgSwatch = ({
   textColor?: string;
 }) => (
   <Box
-    px="4"
-    py="3"
-    borderRadius="md"
-    minWidth="120px"
-    boxShadow="inset 0 0 0 1px rgba(0,0,0,0.06)"
+    px="default.4"
+    py="default.3"
+    borderRadius="md.3"
+    minWidth="[120px]"
+    boxShadow="[inset_0_0_0_1px_rgba(0,0,0,0.06)]"
     style={{ backgroundColor: token(`colors.${tokenPath}` as Token) }}
   >
     <span
@@ -41,11 +41,10 @@ const BgSwatch = ({
     </span>
     <span
       className={css({
-        fontSize: "10px",
-        fontFamily: "mono",
+        fontSize: "[10px]",
         display: "block",
-        mt: "1",
-        opacity: 0.7,
+        mt: "default.1",
+        opacity: "[0.7]",
       })}
       style={{ color: token(`colors.${textColor}` as Token) }}
     >
@@ -65,18 +64,18 @@ const StateRow = ({
   states: StateKey[];
   textColor?: string;
 }) => (
-  <VStack gap="2" alignItems="flex-start">
+  <VStack gap="default.2" alignItems="flex-start">
     <span
       className={css({
         fontSize: "sm",
         fontWeight: "semibold",
-        color: "gray.60",
+        color: "text.secondary",
         textTransform: "capitalize",
       })}
     >
       {category}.{intensity}
     </span>
-    <HStack gap="2" flexWrap="wrap">
+    <HStack gap="default.2" flexWrap="wrap">
       {states.map((state) => (
         <BgSwatch
           key={state}
@@ -100,18 +99,18 @@ const StatusRow = ({
   states: StateKey[];
   textColor?: string;
 }) => (
-  <VStack gap="2" alignItems="flex-start">
+  <VStack gap="default.2" alignItems="flex-start">
     <span
       className={css({
         fontSize: "sm",
         fontWeight: "semibold",
-        color: "gray.60",
+        color: "text.secondary",
         textTransform: "capitalize",
       })}
     >
       status.{status}.{intensity}
     </span>
-    <HStack gap="2" flexWrap="wrap">
+    <HStack gap="default.2" flexWrap="wrap">
       {states.map((state) => (
         <BgSwatch
           key={state}
@@ -125,26 +124,26 @@ const StatusRow = ({
 );
 
 export const SemanticBg: Story = () => (
-  <VStack gap="10" alignItems="flex-start" p="6">
-    <h1 className={css({ fontSize: "2xl", fontWeight: "bold" })}>
+  <VStack gap="default.10" alignItems="flex-start" p="default.6">
+    <h1 className={css({ fontSize: "2xl", fontWeight: "semibold" })}>
       Background Color Tokens
     </h1>
 
     {/* Accent */}
-    <VStack gap="4" alignItems="flex-start">
+    <VStack gap="default.4" alignItems="flex-start">
       <h2
         className={css({
           fontSize: "lg",
           fontWeight: "semibold",
-          color: "gray.70",
+          color: "text.secondary",
         })}
       >
         Accent
       </h2>
-      <p className={css({ fontSize: "sm", color: "gray.50" })}>
+      <p className={css({ fontSize: "sm", color: "text.tertiary" })}>
         Primary brand/action backgrounds
       </p>
-      <Grid gap="4" columns={1}>
+      <Grid gap="default.4" columns={1}>
         <StateRow
           category="accent"
           intensity="subtle"
@@ -160,20 +159,20 @@ export const SemanticBg: Story = () => (
     </VStack>
 
     {/* Neutral */}
-    <VStack gap="4" alignItems="flex-start">
+    <VStack gap="default.4" alignItems="flex-start">
       <h2
         className={css({
           fontSize: "lg",
           fontWeight: "semibold",
-          color: "gray.70",
+          color: "text.secondary",
         })}
       >
         Neutral
       </h2>
-      <p className={css({ fontSize: "sm", color: "gray.50" })}>
+      <p className={css({ fontSize: "sm", color: "text.tertiary" })}>
         Default UI surfaces and secondary actions
       </p>
-      <Grid gap="4" columns={1}>
+      <Grid gap="default.4" columns={1}>
         <StateRow
           category="neutral"
           intensity="subtle"
@@ -189,20 +188,20 @@ export const SemanticBg: Story = () => (
     </VStack>
 
     {/* Status */}
-    <VStack gap="4" alignItems="flex-start">
+    <VStack gap="default.4" alignItems="flex-start">
       <h2
         className={css({
           fontSize: "lg",
           fontWeight: "semibold",
-          color: "gray.70",
+          color: "text.secondary",
         })}
       >
         Status
       </h2>
-      <p className={css({ fontSize: "sm", color: "gray.50" })}>
+      <p className={css({ fontSize: "sm", color: "text.tertiary" })}>
         Semantic backgrounds for alerts, badges, and notifications
       </p>
-      <Grid gap="4" columns={1}>
+      <Grid gap="default.4" columns={1}>
         {(["info", "success", "caution", "warning"] as const).map((status) => (
           <StatusRow
             key={status}
