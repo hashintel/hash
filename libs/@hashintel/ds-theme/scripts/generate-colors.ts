@@ -208,22 +208,23 @@ export const ${varName} = defineSemanticTokens.colors(${formattedTokens});
 }
 
 /**
- * Generate `index.ts` that re-exports all generated color token groups.
+ * Generate barrel file that re-exports all generated color token groups.
+ * Output at parent level (src/theme/colors.ts) instead of index.ts inside the directory.
  */
-function writeIndexFile(
+function writeBarrelFile(
   coreColorNames: string[],
   semanticColorNames: string[],
 ): void {
-  const filePath = join(process.cwd(), OUTPUT_DIR, "index.ts");
+  const filePath = join(process.cwd(), "src/theme/colors.ts");
 
   const coreImports = coreColorNames
-    .map((name) => `import { ${camelCase(name)} } from "./${kebabCase(name)}";`)
+    .map((name) => `import { ${camelCase(name)} } from "./colors/${kebabCase(name)}";`)
     .join("\n");
 
   const semanticImports = semanticColorNames
     .map(
       (name) =>
-        `import { ${camelCase(name)} } from "./semantic-${kebabCase(name)}";`,
+        `import { ${camelCase(name)} } from "./colors/semantic-${kebabCase(name)}";`,
     )
     .join("\n");
 
@@ -255,7 +256,7 @@ export const colors = {
 `;
 
   fs.writeFileSync(filePath, content, "utf8");
-  console.log(`📄 Created index.ts`);
+  console.log(`📄 Created colors.ts (barrel file)`);
 }
 
 /**
@@ -311,7 +312,7 @@ function main(): void {
     }
   }
 
-  writeIndexFile(coreColorNames, semanticColorNames);
+  writeBarrelFile(coreColorNames, semanticColorNames);
 
   console.log(
     `\n✅ Generated ${coreColorNames.length} core + ${semanticColorNames.length} semantic color files`,
