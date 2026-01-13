@@ -2,6 +2,9 @@ import { defineConfig } from "@pandacss/dev";
 import { preset } from "./src/main";
 
 export default defineConfig({
+  // get strict feedback
+  strictTokens: true,
+
   // Use ds-theme's own preset for the stories
   presets: [preset],
 

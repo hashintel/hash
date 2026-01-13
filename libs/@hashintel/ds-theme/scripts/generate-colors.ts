@@ -218,7 +218,10 @@ function writeBarrelFile(
   const filePath = join(process.cwd(), "src/theme/colors.ts");
 
   const coreImports = coreColorNames
-    .map((name) => `import { ${camelCase(name)} } from "./colors/${kebabCase(name)}";`)
+    .map(
+      (name) =>
+        `import { ${camelCase(name)} } from "./colors/${kebabCase(name)}";`,
+    )
     .join("\n");
 
   const semanticImports = semanticColorNames

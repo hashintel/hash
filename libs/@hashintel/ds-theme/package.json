@@ -28,6 +28,7 @@
     "codegen:tokens": "tsx scripts/generate-tokens.ts",
     "dev": "panda codegen && tsdown --watch",
     "fix": "npm-run-all --continue-on-error \"fix:*\"",
+    "fix:format": "biome format --write",
     "ladle": "panda codegen && ladle serve",
     "ladle:build": "panda codegen && ladle build",
     "ladle:preflight": "ladle build && ladle preview",

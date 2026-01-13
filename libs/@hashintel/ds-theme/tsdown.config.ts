@@ -1,6 +1,6 @@
-import { defineConfig } from 'tsdown';
+import { defineConfig } from "tsdown";
 
 export default defineConfig({
-  platform: 'neutral',
-  entry: './src/main.ts',
+  platform: "neutral",
+  entry: "./src/main.ts",
 });

@@ -8,7 +8,6 @@ import type { Token } from "../../styled-system/tokens/tokens";
 /** Extract shade keys from each color scale, sorted numerically */
 const getShades = (colorObj: Record<string, unknown>): string[] => {
   const keys = Object.keys(colorObj);
-  // Sort numerically for numeric keys, alphabetically for others
   return keys.sort((a, b) => {
     const numA = Number.parseInt(a, 10);
     const numB = Number.parseInt(b, 10);
@@ -26,23 +25,23 @@ const colorOrder = [
 ] as const;
 
 const swatchStyles = css({
-  width: "64px",
-  height: "48px",
-  borderRadius: "md",
+  width: "[64px]",
+  height: "[48px]",
+  borderRadius: "md.3",
   display: "flex",
   alignItems: "flex-end",
   justifyContent: "center",
-  fontSize: "10px",
+  fontSize: "[10px]",
   fontWeight: "medium",
-  pb: "1",
-  boxShadow: "inset 0 0 0 1px rgba(0,0,0,0.1)",
+  pb: "default.1",
+  boxShadow: "[inset_0_0_0_1px_rgba(0,0,0,0.1)]",
 });
 
 const labelStyles = css({
   fontSize: "sm",
   fontWeight: "semibold",
   textTransform: "capitalize",
-  minWidth: "100px",
+  minWidth: "[100px]",
 });
 
 const ColorSwatch = ({
@@ -58,7 +57,7 @@ const ColorSwatch = ({
       <span
         className={css({
           color: "neutral.white",
-          textShadow: "0 1px 2px rgba(0,0,0,0.5)",
+          textShadow: "[0_1px_2px_rgba(0,0,0,0.5)]",
         })}
       >
         {shade}
@@ -68,7 +67,7 @@ const ColorSwatch = ({
 };
 
 const ColorScale = ({ name, shades }: { name: string; shades: string[] }) => (
-  <HStack gap="2" alignItems="center">
+  <HStack gap="default.2" alignItems="center">
     <span className={labelStyles}>{name}</span>
     {shades.map((shade) => (
       <ColorSwatch key={shade} colorName={name} shade={shade} />
@@ -77,11 +76,11 @@ const ColorScale = ({ name, shades }: { name: string; shades: string[] }) => (
 );
 
 export const Colors: Story = () => (
-  <VStack gap="6" alignItems="flex-start" p="6">
-    <h1 className={css({ fontSize: "2xl", fontWeight: "bold" })}>
+  <VStack gap="default.6" alignItems="flex-start" p="default.6">
+    <h1 className={css({ fontSize: "2xl", fontWeight: "semibold" })}>
       Color Tokens
     </h1>
-    <VStack gap="4" alignItems="flex-start">
+    <VStack gap="default.4" alignItems="flex-start">
       {colorOrder.map((name) => {
         const colorObj = colors[name as keyof typeof colors];
         return (
