@@ -42,7 +42,7 @@ const TextSample = ({
   tokenPath: string;
   bgColor?: ColorToken;
 }) => (
-  <HStack gap="default.4" alignItems="center" width="[100%]">
+  <HStack gap="4" alignItems="center" width="[100%]">
     <span
       className={css({
         fontSize: "sm",
@@ -55,8 +55,8 @@ const TextSample = ({
     </span>
     <Box
       bg={bgColor}
-      px="default.4"
-      py="default.3"
+      px="4"
+      py="3"
       borderRadius="md.3"
       flex="1"
       boxShadow="[inset_0_0_0_1px_rgba(0,0,0,0.08)]"
@@ -71,7 +71,7 @@ const TextSample = ({
         className={css({
           fontSize: "xs",
           color: "text.disabled",
-          mt: "default.1",
+          mt: "1",
           display: "block",
         })}
       >
@@ -83,9 +83,9 @@ const TextSample = ({
 
 export const SemanticText: Story = () => (
   <VStack
-    gap="default.8"
+    gap="8"
     alignItems="flex-start"
-    p="default.6"
+    p="6"
     maxWidth="[800px]"
   >
     <h1 className={css({ fontSize: "2xl", fontWeight: "semibold" })}>
@@ -93,7 +93,7 @@ export const SemanticText: Story = () => (
     </h1>
 
     {/* Hierarchy */}
-    <VStack gap="default.2" alignItems="flex-start" width="[100%]">
+    <VStack gap="2" alignItems="flex-start" width="[100%]">
       <h2
         className={css({
           fontSize: "lg",
@@ -111,7 +111,7 @@ export const SemanticText: Story = () => (
     </VStack>
 
     {/* Inverted (on dark background) */}
-    <VStack gap="default.2" alignItems="flex-start" width="[100%]">
+    <VStack gap="2" alignItems="flex-start" width="[100%]">
       <h2
         className={css({
           fontSize: "lg",
@@ -129,7 +129,7 @@ export const SemanticText: Story = () => (
     </VStack>
 
     {/* Links */}
-    <VStack gap="default.2" alignItems="flex-start" width="[100%]">
+    <VStack gap="2" alignItems="flex-start" width="[100%]">
       <h2
         className={css({
           fontSize: "lg",
@@ -144,7 +144,7 @@ export const SemanticText: Story = () => (
     </VStack>
 
     {/* Status */}
-    <VStack gap="default.2" alignItems="flex-start" width="[100%]">
+    <VStack gap="2" alignItems="flex-start" width="[100%]">
       <h2
         className={css({
           fontSize: "lg",

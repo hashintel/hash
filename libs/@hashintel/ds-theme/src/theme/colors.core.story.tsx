@@ -33,7 +33,7 @@ const swatchStyles = css({
   justifyContent: "center",
   fontSize: "[10px]",
   fontWeight: "medium",
-  pb: "default.1",
+  pb: "1",
   boxShadow: "[inset_0_0_0_1px_rgba(0,0,0,0.1)]",
 });
 
@@ -67,7 +67,7 @@ const ColorSwatch = ({
 };
 
 const ColorScale = ({ name, shades }: { name: string; shades: string[] }) => (
-  <HStack gap="default.2" alignItems="center">
+  <HStack gap="2" alignItems="center">
     <span className={labelStyles}>{name}</span>
     {shades.map((shade) => (
       <ColorSwatch key={shade} colorName={name} shade={shade} />
@@ -76,11 +76,11 @@ const ColorScale = ({ name, shades }: { name: string; shades: string[] }) => (
 );
 
 export const Colors: Story = () => (
-  <VStack gap="default.6" alignItems="flex-start" p="default.6">
+  <VStack gap="6" alignItems="flex-start" p="6">
     <h1 className={css({ fontSize: "2xl", fontWeight: "semibold" })}>
       Core Color Tokens
     </h1>
-    <VStack gap="default.4" alignItems="flex-start">
+    <VStack gap="4" alignItems="flex-start">
       {colorOrder.map((name) => {
         const colorObj = coreColors[name as keyof typeof coreColors];
         return (

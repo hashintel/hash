@@ -36,7 +36,7 @@ const BorderSwatch = ({
   label: string;
   tokenPath: string;
 }) => (
-  <VStack gap="default.1" alignItems="center">
+  <VStack gap="1" alignItems="center">
     <Box
       width="[80px]"
       height="[56px]"
@@ -85,7 +85,7 @@ const StateDemo = ({
   label: string;
   tokenPath: string;
 }) => (
-  <HStack gap="default.4" alignItems="center" width="[100%]">
+  <HStack gap="4" alignItems="center" width="[100%]">
     <span
       className={css({
         fontSize: "sm",
@@ -97,8 +97,8 @@ const StateDemo = ({
       {label}
     </span>
     <Box
-      px="default.4"
-      py="default.3"
+      px="4"
+      py="3"
       borderRadius="md.3"
       bg="neutral.white"
       flex="1"
@@ -124,9 +124,9 @@ const StateDemo = ({
 
 export const SemanticBorder: Story = () => (
   <VStack
-    gap="default.8"
+    gap="8"
     alignItems="flex-start"
-    p="default.6"
+    p="6"
     maxWidth="[800px]"
   >
     <h1 className={css({ fontSize: "2xl", fontWeight: "semibold" })}>
@@ -134,7 +134,7 @@ export const SemanticBorder: Story = () => (
     </h1>
 
     {/* Neutral states as input-like demos */}
-    <VStack gap="default.2" alignItems="flex-start" width="[100%]">
+    <VStack gap="2" alignItems="flex-start" width="[100%]">
       <h2
         className={css({
           fontSize: "lg",
@@ -148,7 +148,7 @@ export const SemanticBorder: Story = () => (
         className={css({
           fontSize: "sm",
           color: "text.tertiary",
-          mb: "default.2",
+          mb: "2",
         })}
       >
         Border colors for form inputs and interactive containers
@@ -161,7 +161,7 @@ export const SemanticBorder: Story = () => (
     </VStack>
 
     {/* Status borders as colored cards */}
-    <VStack gap="default.2" alignItems="flex-start" width="[100%]">
+    <VStack gap="2" alignItems="flex-start" width="[100%]">
       <h2
         className={css({
           fontSize: "lg",
@@ -175,12 +175,12 @@ export const SemanticBorder: Story = () => (
         className={css({
           fontSize: "sm",
           color: "text.tertiary",
-          mb: "default.2",
+          mb: "2",
         })}
       >
         Semantic border colors for alerts and status indicators
       </p>
-      <HStack gap="default.4" flexWrap="wrap">
+      <HStack gap="4" flexWrap="wrap">
         {(["info", "success", "caution", "warning", "critical"] as const).map(
           (key) => (
             <BorderSwatch key={key} label={key} tokenPath={statusTokens[key]} />

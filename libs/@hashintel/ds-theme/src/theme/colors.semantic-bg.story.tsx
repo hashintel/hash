@@ -26,8 +26,8 @@ const BgSwatch = ({
   textColor?: string;
 }) => (
   <Box
-    px="default.4"
-    py="default.3"
+    px="4"
+    py="3"
     borderRadius="md.3"
     minWidth="[120px]"
     boxShadow="[inset_0_0_0_1px_rgba(0,0,0,0.06)]"
@@ -43,7 +43,7 @@ const BgSwatch = ({
       className={css({
         fontSize: "[10px]",
         display: "block",
-        mt: "default.1",
+        mt: "1",
         opacity: "[0.7]",
       })}
       style={{ color: token(`colors.${textColor}` as Token) }}
@@ -64,7 +64,7 @@ const StateRow = ({
   states: StateKey[];
   textColor?: string;
 }) => (
-  <VStack gap="default.2" alignItems="flex-start">
+  <VStack gap="2" alignItems="flex-start">
     <span
       className={css({
         fontSize: "sm",
@@ -75,7 +75,7 @@ const StateRow = ({
     >
       {category}.{intensity}
     </span>
-    <HStack gap="default.2" flexWrap="wrap">
+    <HStack gap="2" flexWrap="wrap">
       {states.map((state) => (
         <BgSwatch
           key={state}
@@ -99,7 +99,7 @@ const StatusRow = ({
   states: StateKey[];
   textColor?: string;
 }) => (
-  <VStack gap="default.2" alignItems="flex-start">
+  <VStack gap="2" alignItems="flex-start">
     <span
       className={css({
         fontSize: "sm",
@@ -110,7 +110,7 @@ const StatusRow = ({
     >
       status.{status}.{intensity}
     </span>
-    <HStack gap="default.2" flexWrap="wrap">
+    <HStack gap="2" flexWrap="wrap">
       {states.map((state) => (
         <BgSwatch
           key={state}
@@ -124,13 +124,13 @@ const StatusRow = ({
 );
 
 export const SemanticBg: Story = () => (
-  <VStack gap="default.10" alignItems="flex-start" p="default.6">
+  <VStack gap="10" alignItems="flex-start" p="6">
     <h1 className={css({ fontSize: "2xl", fontWeight: "semibold" })}>
       Background Color Tokens
     </h1>
 
     {/* Accent */}
-    <VStack gap="default.4" alignItems="flex-start">
+    <VStack gap="4" alignItems="flex-start">
       <h2
         className={css({
           fontSize: "lg",
@@ -143,7 +143,7 @@ export const SemanticBg: Story = () => (
       <p className={css({ fontSize: "sm", color: "text.tertiary" })}>
         Primary brand/action backgrounds
       </p>
-      <Grid gap="default.4" columns={1}>
+      <Grid gap="4" columns={1}>
         <StateRow
           category="accent"
           intensity="subtle"
@@ -159,7 +159,7 @@ export const SemanticBg: Story = () => (
     </VStack>
 
     {/* Neutral */}
-    <VStack gap="default.4" alignItems="flex-start">
+    <VStack gap="4" alignItems="flex-start">
       <h2
         className={css({
           fontSize: "lg",
@@ -172,7 +172,7 @@ export const SemanticBg: Story = () => (
       <p className={css({ fontSize: "sm", color: "text.tertiary" })}>
         Default UI surfaces and secondary actions
       </p>
-      <Grid gap="default.4" columns={1}>
+      <Grid gap="4" columns={1}>
         <StateRow
           category="neutral"
           intensity="subtle"
@@ -188,7 +188,7 @@ export const SemanticBg: Story = () => (
     </VStack>
 
     {/* Status */}
-    <VStack gap="default.4" alignItems="flex-start">
+    <VStack gap="4" alignItems="flex-start">
       <h2
         className={css({
           fontSize: "lg",
@@ -201,7 +201,7 @@ export const SemanticBg: Story = () => (
       <p className={css({ fontSize: "sm", color: "text.tertiary" })}>
         Semantic backgrounds for alerts, badges, and notifications
       </p>
-      <Grid gap="default.4" columns={1}>
+      <Grid gap="4" columns={1}>
         {(["info", "success", "caution", "warning"] as const).map((status) => (
           <StatusRow
             key={status}

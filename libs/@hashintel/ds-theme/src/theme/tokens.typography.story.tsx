@@ -38,8 +38,8 @@ const sectionTitleStyles = css({
   fontWeight: "semibold",
   borderBottom: "[1px_solid]",
   borderColor: "border.neutral.subtle",
-  pb: "default.2",
-  mb: "default.4",
+  pb: "2",
+  mb: "4",
   width: "[100%]",
 });
 
@@ -47,7 +47,7 @@ const FontFamilyDemo = ({
   name,
   tokenPath,
 }: { name: string; tokenPath: Token }) => (
-  <HStack gap="default.4" alignItems="baseline">
+  <HStack gap="4" alignItems="baseline">
     <span className={labelStyles}>{name}</span>
     <span
       className={css({ fontSize: "xl" })}
@@ -63,7 +63,7 @@ const FontSizeDemo = ({ size }: { size: string }) => {
   const value = token(tokenPath);
 
   return (
-    <HStack gap="default.4" alignItems="baseline">
+    <HStack gap="4" alignItems="baseline">
       <span className={labelStyles}>{size}</span>
       <span className={valueStyles}>{value}</span>
       <span style={{ fontSize: value }}>The quick brown fox</span>
@@ -72,7 +72,7 @@ const FontSizeDemo = ({ size }: { size: string }) => {
 };
 
 const FontWeightDemo = ({ name, value }: { name: string; value: number }) => (
-  <HStack gap="default.4" alignItems="baseline">
+  <HStack gap="4" alignItems="baseline">
     <span className={labelStyles}>{name}</span>
     <span className={valueStyles}>{value}</span>
     <span className={css({ fontSize: "lg" })} style={{ fontWeight: value }}>
@@ -90,7 +90,7 @@ const LineHeightDemo = ({
   const fontSize = size.replace("text-", "");
 
   return (
-    <HStack gap="default.4" alignItems="flex-start">
+    <HStack gap="4" alignItems="flex-start">
       <span className={labelStyles}>{size}</span>
       <span className={valueStyles}>{value}</span>
       <div
@@ -111,39 +111,39 @@ const LineHeightDemo = ({
 };
 
 export const Typography: Story = () => (
-  <VStack gap="default.8" alignItems="flex-start" p="default.6">
+  <VStack gap="8" alignItems="flex-start" p="6">
     <h1 className={css({ fontSize: "2xl", fontWeight: "semibold" })}>
       Typography Tokens
     </h1>
 
-    <VStack gap="default.4" alignItems="flex-start" width="[100%]">
+    <VStack gap="4" alignItems="flex-start" width="[100%]">
       <h2 className={sectionTitleStyles}>Font Families</h2>
       <FontFamilyDemo name="display" tokenPath="fonts.display" />
       <FontFamilyDemo name="body" tokenPath="fonts.body" />
     </VStack>
 
-    <VStack gap="default.4" alignItems="flex-start" width="[100%]">
+    <VStack gap="4" alignItems="flex-start" width="[100%]">
       <h2 className={sectionTitleStyles}>Font Sizes</h2>
       {fontSizeOrder.map((size) => (
         <FontSizeDemo key={size} size={size} />
       ))}
     </VStack>
 
-    <VStack gap="default.4" alignItems="flex-start" width="[100%]">
+    <VStack gap="4" alignItems="flex-start" width="[100%]">
       <h2 className={sectionTitleStyles}>Font Weights</h2>
       {fontWeightEntries.map(({ name, value }) => (
         <FontWeightDemo key={name} name={name} value={value} />
       ))}
     </VStack>
 
-    <HStack gap="default.12" alignItems="flex-start" width="[100%]">
-      <VStack gap="default.4" alignItems="flex-start" flex="1">
+    <HStack gap="12" alignItems="flex-start" width="[100%]">
+      <VStack gap="4" alignItems="flex-start" flex="1">
         <h2 className={sectionTitleStyles}>Line Heights: None (Tight)</h2>
         <p
           className={css({
             fontSize: "xs",
             color: "text.tertiary",
-            mb: "default.2",
+            mb: "2",
           })}
         >
           Line height equals font size — for single-line text
@@ -155,13 +155,13 @@ export const Typography: Story = () => (
         )}
       </VStack>
 
-      <VStack gap="default.4" alignItems="flex-start" flex="1">
+      <VStack gap="4" alignItems="flex-start" flex="1">
         <h2 className={sectionTitleStyles}>Line Heights: Normal</h2>
         <p
           className={css({
             fontSize: "xs",
             color: "text.tertiary",
-            mb: "default.2",
+            mb: "2",
           })}
         >
           Comfortable line height for multi-line text

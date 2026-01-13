@@ -5,6 +5,7 @@ import { z } from "zod";
 import figmaVariables from "./figma-variables.json" with { type: "json" };
 import {
   formatTokensForOutput,
+  transformPropertyKey,
   transformSpacingScale,
   transformRadiusScale,
   transformLineHeightReference,
@@ -55,7 +56,9 @@ function generateSpacingTokens(): void {
   const tokens: Record<string, Record<string, { value: string }>> = {};
 
   for (const [scaleName, scale] of Object.entries(parsed)) {
-    tokens[camelCase(scaleName)] = transformSpacingScale(scale);
+    // Convert "default" to "DEFAULT" for Panda's nested default token syntax
+    const key = transformPropertyKey(camelCase(scaleName));
+    tokens[key] = transformSpacingScale(scale);
   }
 
   const filePath = join(process.cwd(), OUTPUT_DIR, "spacing.ts");
