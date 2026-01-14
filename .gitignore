@@ -85,6 +85,9 @@ blocks/**/.env
 # next.js build output
 **/.next
 
+# next.js build output – once upgraded to Next.js 16, this can be removed, as it will be generated in the dist/ directory instead
+**/next-env.d.ts
+
 # build files
 **/dist
 **/build
