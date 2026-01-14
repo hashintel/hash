@@ -45,7 +45,7 @@ export const Slider: React.FC<SliderProps> = ({
           position: "relative",
           display: "flex",
           flexDirection: "column",
-          gap: "default.1",
+          gap: "5",
         }),
         className,
       )}

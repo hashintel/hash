@@ -14,13 +14,13 @@ const containerStyle = css({
 });
 
 const headerTitleStyle = css({
-  fontWeight: 600,
+  fontWeight: "semibold",
   fontSize: "[16px]",
   marginBottom: "[8px]",
 });
 
 const fieldLabelStyle = css({
-  fontWeight: 500,
+  fontWeight: "medium",
   fontSize: "[12px]",
   marginBottom: "[4px]",
 });
@@ -56,7 +56,7 @@ const dimensionsHeaderStyle = css({
 });
 
 const dimensionsLabelStyle = css({
-  fontWeight: 500,
+  fontWeight: "medium",
   fontSize: "[12px]",
 });
 
@@ -64,7 +64,7 @@ const dimensionsHintStyle = css({
   marginLeft: "[6px]",
   fontSize: "[11px]",
   color: "[#666]",
-  fontWeight: 400,
+  fontWeight: "normal",
 });
 
 const addDimensionButtonStyle = cva({
@@ -73,7 +73,7 @@ const addDimensionButtonStyle = cva({
     padding: "[2px 8px]",
     borderRadius: "[4px]",
     border: "[1px solid rgba(0, 0, 0, 0.1)]",
-    fontWeight: 600,
+    fontWeight: "semibold",
     cursor: "pointer",
   },
   variants: {
@@ -167,7 +167,7 @@ const dragHandleLineStyle = css({
 
 const indexChipStyle = css({
   fontSize: "[11px]",
-  fontWeight: 600,
+  fontWeight: "semibold",
   color: "[#666]",
   backgroundColor: "[rgba(0, 0, 0, 0.08)]",
   borderRadius: "[3px]",
@@ -210,7 +210,7 @@ const deleteDimensionButtonStyle = css({
   backgroundColor: "[rgba(239, 68, 68, 0.08)]",
   color: "[#ef4444]",
   cursor: "pointer",
-  fontWeight: 600,
+  fontWeight: "semibold",
   lineHeight: "[1]",
   transition: "[all 0.15s ease]",
   flexShrink: 0,

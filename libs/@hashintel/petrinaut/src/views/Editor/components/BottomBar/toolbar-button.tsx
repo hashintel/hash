@@ -13,17 +13,17 @@ const buttonStyle = cva({
     cursor: "pointer",
     transition: "[all 0.2s ease]",
     backgroundColor: "[transparent]",
-    color: "core.gray.70",
+    color: "gray.70",
     width: "[40px]",
     height: "[40px]",
     fontSize: "[20px]",
     _hover: {
       transform: "[scale(1.1)]",
-      color: "core.gray.90",
+      color: "gray.90",
     },
     _active: {
       transform: "[scale(0.95)]",
-      color: "core.gray.90",
+      color: "gray.90",
     },
   },
   variants: {

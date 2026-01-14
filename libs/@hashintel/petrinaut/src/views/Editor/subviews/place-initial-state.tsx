@@ -33,7 +33,7 @@ const inputStyle = cva({
 });
 
 const fieldLabelStyle = css({
-  fontWeight: 500,
+  fontWeight: "medium",
   fontSize: "[12px]",
   marginBottom: "[4px]",
 });

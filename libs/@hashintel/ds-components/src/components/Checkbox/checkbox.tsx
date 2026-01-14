@@ -43,7 +43,7 @@ const checkboxRootStyles = (disabled: boolean) =>
   css({
     display: "inline-flex",
     alignItems: "center",
-    gap: "default.4",
+    gap: "5",
     cursor: disabled ? "not-allowed" : "pointer",
   });
 
@@ -56,8 +56,8 @@ const checkboxControlStyles = css({
   height: "[16px]",
   borderRadius: "md.2",
   border: "1px solid",
-  borderColor: "border.neutral.default",
-  backgroundColor: "bg.neutral.subtle.default",
+  borderColor: "border.neutral",
+  backgroundColor: "bg.neutral.subtle",
   transition: "[all 0.2s ease]",
   flexShrink: "0",
 
@@ -74,7 +74,7 @@ const checkboxControlStyles = css({
   // Checked and indeterminate states
   "&[data-state='checked'], &[data-state='indeterminate']": {
     borderColor: "border.neutral.active",
-    backgroundColor: "bg.neutral.bold.default",
+    backgroundColor: "bg.neutral.bold",
     color: "text.inverted",
   },
 

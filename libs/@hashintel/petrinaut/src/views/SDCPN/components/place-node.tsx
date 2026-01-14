@@ -15,7 +15,7 @@ const containerStyle = css({
 
 const placeCircleStyle = cva({
   base: {
-    padding: "spacing.4",
+    padding: "4",
     borderRadius: "[50%]",
     width: "[130px]",
     height: "[130px]",
@@ -61,9 +61,9 @@ const dynamicsIconStyle = css({
   width: "[100%]",
   display: "flex",
   alignItems: "center",
-  gap: "spacing.4",
+  gap: "4",
   justifyContent: "center",
-  color: "core.blue.60",
+  color: "blue.60",
   fontSize: "[18px]",
 });
 
@@ -71,7 +71,7 @@ const contentWrapperStyle = css({
   display: "flex",
   flexDirection: "column",
   alignItems: "center",
-  gap: "spacing.2",
+  gap: "3",
 });
 
 const labelContainerStyle = css({

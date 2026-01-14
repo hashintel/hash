@@ -34,7 +34,7 @@ const rowNumberHeaderStyle = css({
   borderRight: "[1px solid rgba(0, 0, 0, 0.1)]",
   padding: "[4px 8px]",
   textAlign: "center",
-  fontWeight: 500,
+  fontWeight: "medium",
   width: "[40px]",
   minWidth: "[40px]",
 });
@@ -46,7 +46,7 @@ const columnHeaderStyle = css({
   borderBottom: "[1px solid rgba(0, 0, 0, 0.1)]",
   padding: "[4px 8px]",
   textAlign: "left",
-  fontWeight: 500,
+  fontWeight: "medium",
   fontFamily: "[monospace]",
   minWidth: "[60px]",
   overflow: "hidden",
@@ -81,7 +81,7 @@ const rowNumberCellStyle = cva({
     borderBottom: "[1px solid rgba(0, 0, 0, 0.05)]",
     padding: "[4px 8px]",
     textAlign: "center",
-    fontWeight: 500,
+    fontWeight: "medium",
     outline: "none",
   },
   variants: {
@@ -103,7 +103,7 @@ const rowNumberCellStyle = cva({
 const cellContainerStyle = cva({
   base: {
     borderBottom: "[1px solid rgba(0, 0, 0, 0.05)]",
-    padding: "spacing.0",
+    padding: "0",
     height: "[28px]",
   },
   variants: {
@@ -176,7 +176,7 @@ const resizeHandleStyle = cva({
     height: "[8px]",
     cursor: "ns-resize",
     border: "none",
-    padding: "spacing.0",
+    padding: "0",
     zIndex: 10,
   },
   variants: {

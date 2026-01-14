@@ -4,8 +4,8 @@ import { cva } from "@hashintel/ds-helpers/css";
 const containerStyle = cva({
   base: {
     display: "flex",
-    backgroundColor: "core.gray.20",
-    gap: "spacing.1",
+    backgroundColor: "gray.20",
+    gap: "1",
     position: "relative",
   },
   variants: {
@@ -27,7 +27,7 @@ const containerStyle = cva({
 
 const indicatorStyle = cva({
   base: {
-    backgroundColor: "core.gray.90",
+    backgroundColor: "gray.90",
     position: "absolute",
     transition: "[all 0.2s ease]",
     width: "var(--width)",
@@ -53,7 +53,7 @@ const indicatorStyle = cva({
 const itemStyle = cva({
   base: {
     flex: "1",
-    fontWeight: 500,
+    fontWeight: "medium",
     textAlign: "center",
     cursor: "pointer",
     transition: "[all 0.2s ease]",
@@ -62,18 +62,18 @@ const itemStyle = cva({
   },
   variants: {
     isSelected: {
-      true: { color: "core.gray.10" },
-      false: { color: "core.gray.70" },
+      true: { color: "gray.10" },
+      false: { color: "gray.70" },
     },
     size: {
       md: {
         fontSize: "[13px]",
-        borderRadius: "radius.6",
+        borderRadius: "md.6",
         padding: "[4px 8px]",
       },
       sm: {
         fontSize: "[11px]",
-        borderRadius: "radius.4",
+        borderRadius: "md.4",
         padding: "[1px 8px]",
       },
     },

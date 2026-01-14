@@ -254,7 +254,7 @@ const avatarIndicatorRootRecipe = cva({
         backgroundColor: "gray.50",
       },
       white: {
-        backgroundColor: "surface.default",
+        backgroundColor: "surface",
       },
     },
     squared: {
@@ -271,7 +271,7 @@ const avatarIndicatorRootRecipe = cva({
       size: "16",
       css: {
         border: "1px solid",
-        borderColor: "border.neutral.default",
+        borderColor: "border.neutral",
         borderRadius: "md.1",
       },
     },
@@ -280,7 +280,7 @@ const avatarIndicatorRootRecipe = cva({
       size: "20",
       css: {
         border: "1px solid",
-        borderColor: "border.neutral.default",
+        borderColor: "border.neutral",
         borderRadius: "md.1",
       },
     },
@@ -289,7 +289,7 @@ const avatarIndicatorRootRecipe = cva({
       size: "24",
       css: {
         border: "1px solid",
-        borderColor: "border.neutral.default",
+        borderColor: "border.neutral",
         borderRadius: "md.1",
       },
     },
@@ -298,7 +298,7 @@ const avatarIndicatorRootRecipe = cva({
       size: "32",
       css: {
         border: "1px solid",
-        borderColor: "border.neutral.default",
+        borderColor: "border.neutral",
         borderRadius: "md.1",
       },
     },
@@ -307,7 +307,7 @@ const avatarIndicatorRootRecipe = cva({
       size: "40",
       css: {
         border: "1px solid",
-        borderColor: "border.neutral.default",
+        borderColor: "border.neutral",
         borderRadius: "md.2",
       },
     },
@@ -316,7 +316,7 @@ const avatarIndicatorRootRecipe = cva({
       size: "48",
       css: {
         border: "1px solid",
-        borderColor: "border.neutral.default",
+        borderColor: "border.neutral",
         borderRadius: "md.2",
       },
     },
@@ -325,7 +325,7 @@ const avatarIndicatorRootRecipe = cva({
       size: "64",
       css: {
         border: "1px solid",
-        borderColor: "border.neutral.default",
+        borderColor: "border.neutral",
         borderRadius: "md.3",
       },
     },
