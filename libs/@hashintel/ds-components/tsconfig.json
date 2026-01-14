@@ -1,15 +1,19 @@
 {
-  "extends": "@local/tsconfig/legacy-base-tsconfig-to-refactor.json",
+  "extends": "@tsconfig/strictest/tsconfig.json",
   "compilerOptions": {
-    "module": "ESNext",
-    "target": "es2022",
-    "moduleResolution": "bundler",
+    "target": "esnext",
     "jsx": "react-jsx",
-    "lib": ["dom", "dom.iterable", "ES2021"],
-    "noEmit": true,
-    "isolatedModules": true
+    "lib": ["es2023", "DOM"],
+    "moduleDetection": "force",
+    "module": "preserve",
+    "moduleResolution": "bundler",
+    "resolveJsonModule": true,
+    "types": [],
+    "declaration": true,
+    "emitDeclarationOnly": true,
+    "verbatimModuleSyntax": true
   },
-  "include": ["src/**/*"],
+  "include": ["src", "tsdown.config.ts"],
   "exclude": [
     "node_modules",
     "dist",

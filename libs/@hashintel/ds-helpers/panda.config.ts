@@ -1,8 +1,7 @@
 import { defineConfig } from "@pandacss/dev";
 
 export default defineConfig({
-  importMap: "@hashintel/ds-helpers",
-  include: ["./src/**/*.{ts,tsx}"],
+  include: ["./stories/**/*.{ts,tsx}", "../ds-components/src/**/*.{ts,tsx}"],
   jsxFramework: "react",
   outExtension: "mjs",
   preflight: false,
