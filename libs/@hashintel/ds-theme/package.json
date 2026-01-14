@@ -11,7 +11,14 @@
   "sideEffects": false,
   "type": "module",
   "exports": {
-    ".": "./dist/main.js",
+    ".": {
+      "types": "./dist/main.d.ts",
+      "default": "./dist/main.js"
+    },
+    "./theme": {
+      "types": "./dist/theme.d.ts",
+      "default": "./dist/theme.js"
+    },
     "./package.json": "./package.json"
   },
   "main": "./dist/main.js",
@@ -21,56 +28,30 @@
     "dist"
   ],
   "scripts": {
-    "build": "panda codegen && tsdown",
-    "build:ladle": "panda codegen && ladle build",
+    "build": "tsdown",
     "codegen": "npm-run-all --continue-on-error \"codegen:*\"",
     "codegen:colors": "tsx scripts/generate-colors.ts",
-    "codegen:panda": "panda codegen --clean",
     "codegen:tokens": "tsx scripts/generate-tokens.ts",
-    "dev": "panda codegen && tsdown --watch",
-    "dev:ladle": "panda codegen && ladle serve",
-    "dev:tests": "vitest dev",
+    "dev": "tsdown --watch",
     "fix": "npm-run-all --continue-on-error \"fix:*\"",
     "fix:format": "biome format --write",
     "lint": "npm-run-all --continue-on-error \"lint:*\"",
     "lint:tsc": "tsc --noEmit",
-    "preflight:ladle": "ladle build && ladle preview",
     "prepublishOnly": "yarn run build && ladle build",
     "release": "echo \"we need to implement release script\" && yarn publish",
-    "test": "yarn test:units && yarn test:snapshots",
-    "test:snapshots": "ladle build && playwright test",
-    "test:snapshots:update": "ladle build && playwright test --update-snapshots",
-    "test:units": "vitest run"
+    "test": "vitest run",
+    "test:dev": "vitest dev"
   },
   "devDependencies": {
-    "@ladle/react": "5.1.1",
-    "@pandacss/dev": "1.4.3",
-    "@playwright/test": "1.57.0",
-    "@suspensive/react": "3.18.0",
-    "@tanstack/react-query": "5.90.16",
-    "@total-typescript/tsconfig": "1.0.4",
     "@tsconfig/strictest": "^2.0.8",
     "@types/node": "22.18.13",
-    "@types/react": "19.2.7",
-    "@types/react-dom": "19.2.3",
-    "@vitejs/plugin-react": "5.0.4",
     "case-anything": "3.1.0",
     "npm-run-all": "4.1.5",
-    "nuqs": "2.8.6",
-    "react": "19.2.3",
-    "react-dom": "19.2.3",
-    "sync-fetch": "0.5.2",
     "tsdown": "^0.18.1",
-    "tsx": "4.20.6",
+    "tsx": "4.21.0",
     "typescript": "5.9.3",
-    "vite": "7.1.11",
     "vitest": "^4.0.16",
-    "vitest-browser-react": "^2.0.2",
     "zod": "4.1.12"
-  },
-  "peerDependencies": {
-    "react": "19.2.0",
-    "react-dom": "19.2.0"
   },
   "publishConfig": {
     "access": "public"

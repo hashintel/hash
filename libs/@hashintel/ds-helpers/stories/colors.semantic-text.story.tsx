@@ -1,8 +1,8 @@
 import type { Story } from "@ladle/react";
-import { css } from "../../styled-system/css";
-import { token } from "../../styled-system/tokens";
-import { VStack, HStack, Box } from "../../styled-system/jsx";
-import type { Token, ColorToken } from "../../styled-system/tokens/tokens";
+import { css } from "../styled-system/css";
+import { token } from "../styled-system/tokens";
+import { VStack, HStack, Box } from "../styled-system/jsx";
+import type { Token, ColorToken } from "../styled-system/tokens/tokens";
 
 /**
  * Text color tokens for typography across the design system.

@@ -4,9 +4,6 @@
   "tasks": {
     "build": {
       "outputs": ["dist/**"]
-    },
-    "build:ladle": {
-      "outputs": [".build/ladle/**"]
     }
   }
 }
