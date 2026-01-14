@@ -41,13 +41,13 @@ export const getFileFromUrlAction: FlowActionActivity = async ({ inputs }) => {
 
   logProgress([
     {
-      persistedEntity: {
-        entity: fileEntity,
+      persistedEntityMetadata: {
+        entityId: createFileEntityFromUrlStatus.entity.entityId,
         operation, // @todo update this to "update" if an existing entity was found
       },
       recordedAt: new Date().toISOString(),
       stepId: Context.current().info.activityId,
-      type: "PersistedEntity",
+      type: "PersistedEntityMetadata",
     },
   ]);
 

@@ -69,7 +69,7 @@ export const googleSheetStep = {
 export const googleSheetDeliverable = {
   stepOutputName:
     "googleSheetEntity" satisfies OutputNameForAiFlowAction<"writeGoogleSheet">,
-  payloadKind: "PersistedEntity",
+  payloadKind: "PersistedEntityMetadata",
   name: "googleSheetEntity" as const,
   array: false,
   required: true,

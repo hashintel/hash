@@ -84,7 +84,11 @@ const parseAndResolveCoordinatorInputs = async (params: {
    * @todo: simplify the properties in the existing entities
    */
   const existingEntities = inputExistingEntities
-    ? mapActionInputEntitiesToEntities({ inputEntities: inputExistingEntities })
+    ? await mapActionInputEntitiesToEntities({
+        actorId: userAuthentication.actorId,
+        graphApiClient,
+        inputEntities: inputExistingEntities,
+      })
     : undefined;
 
   let existingEntitySummaries: ExistingEntitySummary[] | undefined = undefined;

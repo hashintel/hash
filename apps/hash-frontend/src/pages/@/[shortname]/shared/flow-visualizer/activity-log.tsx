@@ -51,15 +51,19 @@ import { formatTimeTaken } from "./shared/format-time-taken";
 import type { LocalProgressLog, LogDisplay } from "./shared/types";
 
 const getEntityLabelFromLog = (log: StepProgressLog): string => {
-  if (log.type !== "ProposedEntity" && log.type !== "PersistedEntity") {
+  if (log.type !== "ProposedEntity" && log.type !== "PersistedEntityMetadata") {
     throw new Error(`Unexpected log type ${log.type}`);
   }
 
   const isPersistedEntity = "persistedEntity" in log;
 
+  /**
+   * Here we instead need to use useEntityById to get the entity and then generate the label from that.
+   * So this will need to be a hook instead.
+   */
   const entity = isPersistedEntity
-    ? log.persistedEntity.entity
-      ? new HashEntity(log.persistedEntity.entity)
+    ? log.persistedEntityMetadata.entityId
+      ? new HashEntity(log.persistedEntityMetadata.entity)
       : undefined
     : log.proposedEntity;
 

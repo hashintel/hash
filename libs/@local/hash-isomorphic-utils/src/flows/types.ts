@@ -69,21 +69,20 @@ export type ProposedEntityWithResolvedLinks = Omit<
   };
 };
 
-export type PersistedEntity = {
-  entity?: SerializedEntity;
-  existingEntity?: SerializedEntity;
+export type PersistedEntityMetadata = {
+  entityId: EntityId;
   operation: "create" | "update" | "already-exists-as-proposed";
 };
 
 export type FailedEntityProposal = {
-  existingEntity?: SerializedEntity;
+  existingEntityId?: EntityId;
   operation?: "create" | "update" | "already-exists-as-proposed";
   proposedEntity: ProposedEntityWithResolvedLinks;
   message: string;
 };
 
-export type PersistedEntities = {
-  persistedEntities: PersistedEntity[];
+export type PersistedEntitiesMetadata = {
+  persistedEntities: PersistedEntityMetadata[];
   failedEntityProposals: FailedEntityProposal[];
 };
 
@@ -123,8 +122,8 @@ export type PayloadKindValues = {
   GoogleAccountId: string;
   GoogleSheet: GoogleSheet;
   Number: number;
-  PersistedEntities: PersistedEntities;
-  PersistedEntity: PersistedEntity;
+  PersistedEntitiesMetadata: PersistedEntitiesMetadata;
+  PersistedEntityMetadata: PersistedEntityMetadata;
   ProposedEntity: ProposedEntity;
   ProposedEntityWithResolvedLinks: ProposedEntityWithResolvedLinks;
   Text: string;
@@ -580,8 +579,8 @@ export type ProposedEntityLog = WorkerProgressLogBase & {
 };
 
 export type PersistedEntityLog = ProgressLogBase & {
-  persistedEntity: PersistedEntity;
-  type: "PersistedEntity";
+  persistedEntityMetadata: PersistedEntityMetadata;
+  type: "PersistedEntityMetadata";
 };
 
 export type ActivityFailedLog = ProgressLogBase & {

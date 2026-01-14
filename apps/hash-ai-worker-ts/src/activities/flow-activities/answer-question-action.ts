@@ -408,14 +408,18 @@ export const answerQuestionAction: FlowActionActivity = async ({ inputs }) => {
     actionType: "answerQuestion",
   });
 
+  const { userAuthentication } = await getFlowContext();
+
   const entities = inputEntities
-    ? mapActionInputEntitiesToEntities({ inputEntities })
+    ? await mapActionInputEntitiesToEntities({
+        actorId: userAuthentication.actorId,
+        graphApiClient,
+        inputEntities,
+      })
     : undefined;
 
   let contextFilePath;
   let contextToUpload;
-
-  const { userAuthentication } = await getFlowContext();
 
   if (entities) {
     /**

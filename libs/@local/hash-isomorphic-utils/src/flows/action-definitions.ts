@@ -224,8 +224,8 @@ const aiFlowActionDefinitionsAsConst = {
         required: true,
       },
       {
-        payloadKind: "PersistedEntity",
-        description: "The entity representing the Google Sheet synced to.",
+        payloadKind: "PersistedEntityMetadata",
+        description: "The metadata representing the updated document entity.",
         name: "updatedDocumentEntity",
         array: false,
         required: true,
@@ -257,7 +257,7 @@ const aiFlowActionDefinitionsAsConst = {
     ],
     outputs: [
       {
-        payloadKind: "PersistedEntity",
+        payloadKind: "PersistedEntityMetadata",
         name: "persistedEntity",
         array: false,
         required: true,
@@ -289,7 +289,7 @@ const aiFlowActionDefinitionsAsConst = {
     ],
     outputs: [
       {
-        payloadKind: "PersistedEntities",
+        payloadKind: "PersistedEntitiesMetadata",
         name: "persistedEntities",
         array: false,
         required: true,
@@ -323,7 +323,7 @@ const aiFlowActionDefinitionsAsConst = {
     ],
     outputs: [
       {
-        payloadKind: "PersistedEntity",
+        payloadKind: "PersistedEntityMetadata",
         name: "fileEntity",
         array: false,
         required: true,
@@ -362,7 +362,7 @@ const aiFlowActionDefinitionsAsConst = {
        * @todo make this do something / rethink it as needed
        */
       {
-        oneOfPayloadKinds: ["Entity", "PersistedEntities"],
+        oneOfPayloadKinds: ["Entity", "PersistedEntitiesMetadata"],
         name: "existingEntities",
         required: false,
         array: true,
@@ -451,7 +451,7 @@ const aiFlowActionDefinitionsAsConst = {
         array: false,
       },
       {
-        oneOfPayloadKinds: ["Entity", "PersistedEntities"],
+        oneOfPayloadKinds: ["Entity", "PersistedEntitiesMetadata"],
         name: "entities",
         required: false,
         array: true,
@@ -512,7 +512,11 @@ const aiFlowActionDefinitionsAsConst = {
         array: false,
       },
       {
-        oneOfPayloadKinds: ["FormattedText", "PersistedEntities", "EntityId"],
+        oneOfPayloadKinds: [
+          "FormattedText",
+          "PersistedEntitiesMetadata",
+          "EntityId",
+        ],
         description:
           "The data to write to the Google Sheet, as one of: CSV-formatted text; entities; or the id of a query to retrieve the data via.",
         name: "dataToWrite",
@@ -530,8 +534,9 @@ const aiFlowActionDefinitionsAsConst = {
     ],
     outputs: [
       {
-        payloadKind: "PersistedEntity",
-        description: "The entity representing the Google Sheet synced to.",
+        payloadKind: "PersistedEntityMetadata",
+        description:
+          "The metadata representing the updated Google Sheet entity.",
         name: "googleSheetEntity",
         array: false,
         required: false,
@@ -595,7 +600,7 @@ const integrationFlowActionDefinitionsAsConst = {
     ],
     outputs: [
       {
-        payloadKind: "PersistedEntities",
+        payloadKind: "PersistedEntitiesMetadata",
         name: "persistedEntities",
         description:
           "The result of persisting the entities, including any failures",

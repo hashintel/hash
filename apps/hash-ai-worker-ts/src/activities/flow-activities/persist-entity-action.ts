@@ -12,7 +12,7 @@ import {
   getSimplifiedAiFlowActionInputs,
   type OutputNameForAiFlowAction,
 } from "@local/hash-isomorphic-utils/flows/action-definitions";
-import type { PersistedEntity } from "@local/hash-isomorphic-utils/flows/types";
+import type { PersistedEntityMetadata } from "@local/hash-isomorphic-utils/flows/types";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type {
   HasObject,
@@ -247,11 +247,10 @@ export const persistEntityAction: FlowActionActivity = async ({ inputs }) => {
     }
   }
 
-  const persistedEntity = {
-    entity: entity.toJSON(),
-    existingEntity: matchedEntityUpdate?.existingEntity.toJSON(),
+  const persistedEntityMetadata = {
+    entityId: entity.metadata.recordId.entityId,
     operation,
-  } satisfies PersistedEntity;
+  } satisfies PersistedEntityMetadata;
 
   const createLinkFromClaimToEntity = async <
     T extends "has-object" | "has-subject",
@@ -307,10 +306,10 @@ export const persistEntityAction: FlowActionActivity = async ({ inputs }) => {
 
   logProgress([
     {
-      persistedEntity,
+      persistedEntityMetadata,
       recordedAt: new Date().toISOString(),
       stepId: Context.current().info.activityId,
-      type: "PersistedEntity",
+      type: "PersistedEntityMetadata",
     },
   ]);
 
@@ -330,8 +329,8 @@ export const persistEntityAction: FlowActionActivity = async ({ inputs }) => {
             outputName:
               "persistedEntity" as OutputNameForAiFlowAction<"persistEntity">,
             payload: {
-              kind: "PersistedEntity",
-              value: persistedEntity,
+              kind: "PersistedEntityMetadata",
+              value: persistedEntityMetadata,
             },
           },
         ],

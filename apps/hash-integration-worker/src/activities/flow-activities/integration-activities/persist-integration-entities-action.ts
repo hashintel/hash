@@ -23,8 +23,8 @@ import {
 import { getSimplifiedIntegrationFlowActionInputs } from "@local/hash-isomorphic-utils/flows/action-definitions";
 import type {
   FailedEntityProposal,
-  PersistedEntities,
-  PersistedEntity,
+  PersistedEntitiesMetadata,
+  PersistedEntityMetadata,
   ProposedEntity,
 } from "@local/hash-isomorphic-utils/flows/types";
 import {
@@ -142,7 +142,7 @@ const persistEntities = async (params: {
   provenance: ProvidedEntityEditionProvenance;
   webId: WebId;
 }): Promise<{
-  persistedEntities: PersistedEntity[];
+  persistedEntitiesMetadata: PersistedEntityMetadata[];
   failedEntityProposals: FailedEntityProposal[];
   entityIdsByLocalId: Map<EntityId, EntityId>;
 }> => {
@@ -154,7 +154,7 @@ const persistEntities = async (params: {
     webId,
   } = params;
 
-  const persistedEntities: PersistedEntity[] = [];
+  const persistedEntitiesMetadata: PersistedEntityMetadata[] = [];
   const failedEntityProposals: FailedEntityProposal[] = [];
   const entityIdsByLocalId = new Map<EntityId, EntityId>();
 
@@ -197,9 +197,9 @@ const persistEntities = async (params: {
           proposedEntity.localEntityId,
           updatedEntity.metadata.recordId.entityId,
         );
-        persistedEntities.push({
-          entity: updatedEntity.toJSON(),
-          existingEntity: existingEntity.toJSON(),
+
+        persistedEntitiesMetadata.push({
+          entityId: updatedEntity.metadata.recordId.entityId,
           operation:
             propertyPatches.length > 0
               ? "update"
@@ -229,8 +229,8 @@ const persistEntities = async (params: {
           newEntity.metadata.recordId.entityId,
         );
 
-        persistedEntities.push({
-          entity: newEntity.toJSON(),
+        persistedEntitiesMetadata.push({
+          entityId: newEntity.metadata.recordId.entityId,
           operation: "create",
         });
       }
@@ -244,7 +244,11 @@ const persistEntities = async (params: {
     }
   }
 
-  return { persistedEntities, failedEntityProposals, entityIdsByLocalId };
+  return {
+    persistedEntitiesMetadata,
+    failedEntityProposals,
+    entityIdsByLocalId,
+  };
 };
 
 /**
@@ -258,7 +262,7 @@ const persistLinks = async (params: {
   provenance: ProvidedEntityEditionProvenance;
   webId: WebId;
 }): Promise<{
-  persistedEntities: PersistedEntity[];
+  persistedEntitiesMetadata: PersistedEntityMetadata[];
   failedEntityProposals: FailedEntityProposal[];
 }> => {
   const {
@@ -270,7 +274,7 @@ const persistLinks = async (params: {
     webId,
   } = params;
 
-  const persistedEntities: PersistedEntity[] = [];
+  const persistedEntitiesMetadata: PersistedEntityMetadata[] = [];
   const failedEntityProposals: FailedEntityProposal[] = [];
 
   const linkEntities = proposedEntities.filter(
@@ -340,9 +344,8 @@ const persistLinks = async (params: {
               })
             : existingLink;
 
-        persistedEntities.push({
-          entity: updatedLink.toJSON(),
-          existingEntity: existingLink.toJSON(),
+        persistedEntitiesMetadata.push({
+          entityId: updatedLink.metadata.recordId.entityId,
           operation:
             propertyPatches.length > 0
               ? "update"
@@ -371,8 +374,8 @@ const persistLinks = async (params: {
           },
         );
 
-        persistedEntities.push({
-          entity: newLink.toJSON(),
+        persistedEntitiesMetadata.push({
+          entityId: newLink.metadata.recordId.entityId,
           operation: "create",
         });
       }
@@ -386,7 +389,7 @@ const persistLinks = async (params: {
     }
   }
 
-  return { persistedEntities, failedEntityProposals };
+  return { persistedEntitiesMetadata, failedEntityProposals };
 };
 
 /**
@@ -416,7 +419,7 @@ export const createPersistIntegrationEntitiesAction = ({
         } satisfies OriginProvenance,
       };
       const {
-        persistedEntities: persistedNonLinkEntities,
+        persistedEntitiesMetadata: persistedNonLinkEntities,
         failedEntityProposals: failedNonLinkProposals,
         entityIdsByLocalId,
       } = await persistEntities({
@@ -428,7 +431,7 @@ export const createPersistIntegrationEntitiesAction = ({
       });
 
       const {
-        persistedEntities: persistedLinkEntities,
+        persistedEntitiesMetadata: persistedLinkEntitiesMetadata,
         failedEntityProposals: failedLinkProposals,
       } = await persistLinks({
         authentication: userAuthentication,
@@ -441,14 +444,14 @@ export const createPersistIntegrationEntitiesAction = ({
 
       const allPersistedEntities = [
         ...persistedNonLinkEntities,
-        ...persistedLinkEntities,
+        ...persistedLinkEntitiesMetadata,
       ];
       const allFailedProposals = [
         ...failedNonLinkProposals,
         ...failedLinkProposals,
       ];
 
-      const result: PersistedEntities = {
+      const result: PersistedEntitiesMetadata = {
         persistedEntities: allPersistedEntities,
         failedEntityProposals: allFailedProposals,
       };
@@ -476,7 +479,7 @@ export const createPersistIntegrationEntitiesAction = ({
               {
                 outputName: "persistedEntities",
                 payload: {
-                  kind: "PersistedEntities",
+                  kind: "PersistedEntitiesMetadata",
                   value: result,
                 },
               },

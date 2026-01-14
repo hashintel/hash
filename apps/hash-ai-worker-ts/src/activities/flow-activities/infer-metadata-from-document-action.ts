@@ -12,7 +12,7 @@ import {
   getSimplifiedAiFlowActionInputs,
   type OutputNameForAiFlowAction,
 } from "@local/hash-isomorphic-utils/flows/action-definitions";
-import type { PersistedEntity } from "@local/hash-isomorphic-utils/flows/types";
+import type { PersistedEntityMetadata } from "@local/hash-isomorphic-utils/flows/types";
 import {
   blockProtocolPropertyTypes,
   systemPropertyTypes,
@@ -196,8 +196,6 @@ export const inferMetadataFromDocumentAction: FlowActionActivity = async ({
     provenance: propertyProvenance,
   });
 
-  const existingEntity = documentEntity.toJSON();
-
   const updatedEntity = await documentEntity.patch(
     graphApiClient,
     { actorId: aiAssistantAccountId },
@@ -215,18 +213,17 @@ export const inferMetadataFromDocumentAction: FlowActionActivity = async ({
     notifiedUserAccountId: userActorId,
   });
 
-  const persistedDocumentEntity: PersistedEntity = {
-    entity: updatedEntity.toJSON(),
-    existingEntity,
+  const persistedDocumentEntityMetadata: PersistedEntityMetadata = {
+    entityId: updatedEntity.entityId,
     operation: "update",
   };
 
   logProgress([
     {
-      persistedEntity: persistedDocumentEntity,
+      persistedEntityMetadata: persistedDocumentEntityMetadata,
       recordedAt: new Date().toISOString(),
       stepId: Context.current().info.activityId,
-      type: "PersistedEntity",
+      type: "PersistedEntityMetadata",
     },
   ]);
 
@@ -257,8 +254,8 @@ export const inferMetadataFromDocumentAction: FlowActionActivity = async ({
             outputName:
               "updatedDocumentEntity" satisfies OutputNameForAiFlowAction<"inferMetadataFromDocument">,
             payload: {
-              kind: "PersistedEntity",
-              value: persistedDocumentEntity,
+              kind: "PersistedEntityMetadata",
+              value: persistedDocumentEntityMetadata,
             },
           },
         ],

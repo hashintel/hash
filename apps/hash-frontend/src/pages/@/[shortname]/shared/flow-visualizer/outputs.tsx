@@ -1,6 +1,6 @@
 import { useQuery } from "@apollo/client";
 import type { EntityRootType, Subgraph } from "@blockprotocol/graph";
-import { buildSubgraph } from "@blockprotocol/graph/stdlib";
+import { buildSubgraph, getRoots } from "@blockprotocol/graph/stdlib";
 import type {
   EntityEditionId,
   EntityId,
@@ -30,7 +30,7 @@ import type {
 } from "@local/hash-graph-sdk/ontology";
 import { deserializeSubgraph } from "@local/hash-graph-sdk/subgraph";
 import { goalFlowDefinitionIds } from "@local/hash-isomorphic-utils/flows/goal-flow-definitions";
-import type { PersistedEntity } from "@local/hash-isomorphic-utils/flows/types";
+import type { PersistedEntityMetadata } from "@local/hash-isomorphic-utils/flows/types";
 import {
   almostFullOntologyResolveDepths,
   currentTimeInstantTemporalAxes,
@@ -83,8 +83,14 @@ export const getDeliverables = (
         });
       }
     }
-    if (payload.kind === "PersistedEntity" && !Array.isArray(payload.value)) {
-      if (!payload.value.entity) {
+    /**
+     * Here we should have fetched the persisted entities in flow-visualizer already, so we can pass them through rather than doing this
+     */
+    if (
+      payload.kind === "PersistedEntityMetadata" &&
+      !Array.isArray(payload.value)
+    ) {
+      if (!payload.value.entityId) {
         continue;
       }
       const entity = new HashEntity(payload.value.entity);
@@ -292,7 +298,7 @@ const mockEntityFromProposedEntity = (
 };
 
 type OutputsProps = {
-  persistedEntities: PersistedEntity[];
+  persistedEntitiesMetadata: PersistedEntityMetadata[];
   proposedEntities: ProposedEntityOutput[];
   relevantEntityIds: EntityId[];
 };
@@ -304,7 +310,7 @@ type OutputsProps = {
  * 3. Any deliverables produced by the flow (e.g. a spreadsheet or report document)
  */
 export const Outputs = ({
-  persistedEntities,
+  persistedEntitiesMetadata,
   proposedEntities,
   relevantEntityIds,
 }: OutputsProps) => {
@@ -317,7 +323,7 @@ export const Outputs = ({
     );
 
   const hasEntities =
-    persistedEntities.length > 0 || proposedEntities.length > 0;
+    persistedEntitiesMetadata.length > 0 || proposedEntities.length > 0;
 
   const deliverables = useMemo(
     () => getDeliverables(selectedFlowRun?.outputs),
@@ -334,19 +340,14 @@ export const Outputs = ({
 
   const persistedEntitiesFilter = useMemo<Filter>(
     () => ({
-      any: persistedEntities
-        .map((persistedEntity) => {
-          if (!persistedEntity.entity) {
-            return null;
-          }
-
-          const entity = new HashEntity(persistedEntity.entity);
+      any: persistedEntitiesMetadata
+        .map((persistedEntityMetadata) => {
           return {
             equal: [
               { path: ["uuid"] },
               {
                 parameter: extractEntityUuidFromEntityId(
-                  entity.metadata.recordId.entityId,
+                  persistedEntityMetadata.entityId,
                 ),
               },
             ],
@@ -354,7 +355,7 @@ export const Outputs = ({
         })
         .filter(isNotNullish),
     }),
-    [persistedEntities],
+    [persistedEntitiesMetadata],
   );
 
   const uniqueProposedEntityTypeSets = useMemo(() => {
@@ -435,7 +436,7 @@ export const Outputs = ({
           includePermissions: false,
         },
       },
-      skip: !persistedEntities.length,
+      skip: !persistedEntitiesMetadata.length,
       fetchPolicy: "network-only",
     },
   );
@@ -501,15 +502,12 @@ export const Outputs = ({
 
       const selectedEntityId = item.itemId;
 
-      const persistedEntity = persistedEntities.find(
-        ({ entity }) =>
-          entity &&
-          new HashEntity(entity).metadata.recordId.entityId ===
-            selectedEntityId,
+      const isPersistedEntity = persistedEntitiesMetadata.some(
+        ({ entityId }) => entityId === selectedEntityId,
       );
 
       // If it's a persisted entity, no need to modify the slide item. The slide will get it from the database.
-      if (persistedEntity) {
+      if (isPersistedEntity) {
         return item;
       }
 
@@ -568,7 +566,7 @@ export const Outputs = ({
         proposedEntitySubgraph: mockSubgraph,
       };
     },
-    [persistedEntities, proposedEntities, proposedEntitiesTypesInfo],
+    [persistedEntitiesMetadata, proposedEntities, proposedEntitiesTypesInfo],
   );
 
   useEffect(() => {
@@ -578,30 +576,26 @@ export const Outputs = ({
   }, [hasClaims, hasEntities, visibleSection]);
 
   const entitiesForGraph = useMemo<EntityForGraphChart[]>(() => {
-    const entities: EntityForGraphChart[] = [];
+    const persistedEntities = persistedEntitiesSubgraph
+      ? getRoots(persistedEntitiesSubgraph)
+      : [];
 
     if (persistedEntities.length > 0) {
-      for (const { entity } of persistedEntities) {
-        if (!entity) {
-          continue;
-        }
-        entities.push(new HashEntity(entity));
-      }
-      return entities;
+      return persistedEntities;
     }
 
-    for (const entity of proposedEntities) {
+    return proposedEntities.map((proposedEntity) => {
       const {
         entityTypeIds,
         localEntityId,
         properties,
         sourceEntityId,
         targetEntityId,
-      } = entity;
+      } = proposedEntity;
 
       const editionId = new Date().toISOString() as EntityEditionId;
 
-      entities.push({
+      return {
         linkData:
           sourceEntityId && targetEntityId
             ? {
@@ -623,10 +617,9 @@ export const Outputs = ({
           entityTypeIds,
         },
         properties,
-      });
-    }
-    return entities;
-  }, [persistedEntities, proposedEntities]);
+      };
+    });
+  }, [persistedEntitiesSubgraph, proposedEntities]);
 
   return (
     <SlideStackProvider rewriteSlideItemOverride={rewriteSlideItemOverride}>

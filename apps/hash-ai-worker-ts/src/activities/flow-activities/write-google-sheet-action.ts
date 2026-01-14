@@ -22,7 +22,6 @@ import type {
   AssociatedWithAccount,
   GoogleSheetsFile,
 } from "@local/hash-isomorphic-utils/system-types/google/googlesheetsfile";
-import { isNotNullish } from "@local/hash-isomorphic-utils/types";
 import { StatusCode } from "@local/status";
 import { Context } from "@temporalio/activity";
 import type { sheets_v4 } from "googleapis";
@@ -156,17 +155,12 @@ export const writeGoogleSheetAction: FlowActionActivity<{
     const isPersistedEntities = "persistedEntities" in dataToWrite;
     const queryFilter = isPersistedEntities
       ? {
-          any: dataToWrite.persistedEntities
-            .map((persistedEntity) =>
-              persistedEntity.entity
-                ? new HashEntity(persistedEntity.entity).metadata.recordId
-                    .entityId
-                : undefined,
-            )
-            .filter(isNotNullish)
-            .map((entityId) =>
-              generateEntityIdFilter({ entityId, includeArchived: false }),
-            ),
+          any: dataToWrite.persistedEntities.map((persistedEntityMetadata) =>
+            generateEntityIdFilter({
+              entityId: persistedEntityMetadata.entityId,
+              includeArchived: false,
+            }),
+          ),
         }
       : await getFilterFromBlockProtocolQueryEntity({
           authentication: { actorId: userAccountId },
@@ -491,9 +485,9 @@ export const writeGoogleSheetAction: FlowActionActivity<{
           {
             outputName: "googleSheetEntity",
             payload: {
-              kind: "PersistedEntity",
+              kind: "PersistedEntityMetadata",
               value: {
-                entity: entityToReturn.toJSON(),
+                entityId: entityToReturn.entityId,
                 operation: "create",
               },
             },

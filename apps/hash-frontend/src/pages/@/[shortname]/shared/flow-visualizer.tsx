@@ -13,7 +13,7 @@ import type {
   FlowDefinition as FlowDefinitionType,
   FlowInputs,
   FlowTrigger,
-  PersistedEntity,
+  PersistedEntityMetadata,
 } from "@local/hash-isomorphic-utils/flows/types";
 import { Box, Collapse, Fade, Stack } from "@mui/material";
 import { useRouter } from "next/router";
@@ -314,7 +314,7 @@ export const FlowVisualizer = () => {
   const { logs, persistedEntities, proposedEntities, relevantEntityIds } =
     useMemo<{
       logs: LocalProgressLog[];
-      persistedEntities: PersistedEntity[];
+      persistedEntities: PersistedEntityMetadata[];
       proposedEntities: ProposedEntityOutput[];
       relevantEntityIds: EntityId[];
     }>(() => {
@@ -338,7 +338,7 @@ export const FlowVisualizer = () => {
         },
       ];
 
-      const persisted: PersistedEntity[] = [];
+      const persisted: PersistedEntityMetadata[] = [];
       const proposed: ProposedEntityOutput[] = [];
       const highlightedEntityIds: EntityId[] = [];
 
@@ -456,8 +456,8 @@ export const FlowVisualizer = () => {
                 ),
               });
             }
-            if (log.type === "PersistedEntity" && log.persistedEntity.entity) {
-              persisted.push(log.persistedEntity);
+            if (log.type === "PersistedEntityMetadata") {
+              persisted.push(log.persistedEntityMetadata);
             }
           }
         }
@@ -479,14 +479,14 @@ export const FlowVisualizer = () => {
                 });
               }
               break;
-            case "PersistedEntity":
+            case "PersistedEntityMetadata":
               if (Array.isArray(output.payload.value)) {
                 persisted.push(...output.payload.value);
-              } else if (output.payload.value.entity) {
+              } else if (output.payload.value.entityId) {
                 persisted.push(output.payload.value);
               }
               break;
-            case "PersistedEntities":
+            case "PersistedEntitiesMetadata":
               if (Array.isArray(output.payload.value)) {
                 persisted.push(
                   ...output.payload.value.flatMap(
@@ -717,7 +717,7 @@ export const FlowVisualizer = () => {
             {selectedFlowRun ? (
               <Outputs
                 key={`${flowRunStateKey}-outputs`}
-                persistedEntities={persistedEntities}
+                persistedEntitiesMetadata={persistedEntities}
                 proposedEntities={proposedEntities}
                 relevantEntityIds={relevantEntityIds}
               />
