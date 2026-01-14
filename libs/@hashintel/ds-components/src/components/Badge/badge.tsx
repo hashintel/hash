@@ -36,7 +36,7 @@ const badgeRecipe = cva({
     whiteSpace: "nowrap",
     userSelect: "none",
     overflow: "clip",
-    paddingY: "default.0",
+    paddingY: "2",
   },
   variants: {
     colorScheme: {
@@ -77,25 +77,25 @@ const badgeRecipe = cva({
       xs: {
         fontSize: "[9px]",
         lineHeight: "[12px]",
-        gap: "default.3",
+        gap: "3",
         height: "[14px]",
       },
       sm: {
         fontSize: "xs",
         lineHeight: "none.text-xs",
-        gap: "default.3",
+        gap: "3",
         height: "[16px]",
       },
       md: {
         fontSize: "sm",
         lineHeight: "none.text-sm",
-        gap: "default.3",
+        gap: "3",
         height: "[20px]",
       },
       lg: {
         fontSize: "base",
         lineHeight: "none.text-base",
-        gap: "default.3",
+        gap: "3",
         height: "[24px]",
       },
     },
@@ -110,7 +110,7 @@ const badgeRecipe = cva({
       isSquare: false,
       size: "xs",
       css: {
-        paddingX: "default.3",
+        paddingX: "3",
         borderRadius: "md.2",
       },
     },
@@ -118,7 +118,7 @@ const badgeRecipe = cva({
       isSquare: false,
       size: "sm",
       css: {
-        paddingX: "default.3",
+        paddingX: "3",
         borderRadius: "md.2",
       },
     },
@@ -126,7 +126,7 @@ const badgeRecipe = cva({
       isSquare: false,
       size: "md",
       css: {
-        paddingX: "default.5",
+        paddingX: "4",
         borderRadius: "md.3",
       },
     },
@@ -134,7 +134,7 @@ const badgeRecipe = cva({
       isSquare: false,
       size: "lg",
       css: {
-        paddingX: "default.5",
+        paddingX: "4",
         borderRadius: "md.3",
       },
     },
@@ -143,7 +143,7 @@ const badgeRecipe = cva({
       isSquare: true,
       size: "xs",
       css: {
-        paddingX: "default.3",
+        paddingX: "3",
         width: "[14px]",
         borderRadius: "md.2",
       },
@@ -152,7 +152,7 @@ const badgeRecipe = cva({
       isSquare: true,
       size: "sm",
       css: {
-        paddingX: "default.3",
+        paddingX: "3",
         width: "[16px]",
         borderRadius: "md.2",
       },
@@ -161,7 +161,7 @@ const badgeRecipe = cva({
       isSquare: true,
       size: "md",
       css: {
-        paddingX: "default.0",
+        paddingX: "4",
         width: "[20px]",
         borderRadius: "md.3",
       },
@@ -170,7 +170,7 @@ const badgeRecipe = cva({
       isSquare: true,
       size: "lg",
       css: {
-        paddingX: "default.5",
+        paddingX: "4",
         width: "[24px]",
         borderRadius: "md.3",
       },

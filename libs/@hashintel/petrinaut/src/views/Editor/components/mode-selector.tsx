@@ -16,9 +16,9 @@ const refractiveContainerStyle = css({
 });
 
 const segmentRootStyle = css({
-  padding: "spacing.3",
+  padding: "3",
   display: "flex",
-  gap: "spacing.1",
+  gap: "1",
   position: "relative",
 });
 
@@ -38,8 +38,8 @@ const segmentItemStyle = cva({
   base: {
     position: "relative",
     zIndex: 1,
-    padding: "spacing.3",
-    fontSize: "size.textsm",
+    padding: "3",
+    fontSize: "sm",
     fontWeight: "medium",
     cursor: "pointer",
     transition: "[color 200ms]",
@@ -70,7 +70,7 @@ const segmentItemTextStyle = cva({
         color: "[white]",
       },
       false: {
-        color: "core.gray.70",
+        color: "gray.70",
       },
     },
   },

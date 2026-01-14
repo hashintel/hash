@@ -72,34 +72,34 @@ const buttonRecipe = cva({
     size: {
       xs: {
         height: "[24px]",
-        paddingX: "default.5",
-        paddingY: "default.4",
+        paddingX: "5",
+        paddingY: "5",
         fontSize: "sm",
-        gap: "default.1",
+        gap: "3",
         borderRadius: "component.button.xs",
       },
       sm: {
         height: "[28px]",
-        paddingX: "default.5",
-        paddingY: "default.4",
+        paddingX: "5",
+        paddingY: "5",
         fontSize: "sm",
-        gap: "default.2",
+        gap: "3",
         borderRadius: "component.button.sm",
       },
       md: {
         height: "[32px]",
-        paddingX: "default.6",
-        paddingY: "default.5",
+        paddingX: "6",
+        paddingY: "6",
         fontSize: "sm",
-        gap: "default.2",
+        gap: "4",
         borderRadius: "component.button.md",
       },
       lg: {
         height: "[40px]",
-        paddingX: "default.8",
-        paddingY: "default.6",
+        paddingX: "7",
+        paddingY: "7",
         fontSize: "base",
-        gap: "default.2",
+        gap: "4",
         borderRadius: "component.button.lg",
       },
     },
@@ -117,7 +117,7 @@ const buttonRecipe = cva({
       variant: "primary",
       colorScheme: "brand",
       css: {
-        backgroundColor: "bg.accent.bold.default",
+        backgroundColor: "bg.accent.bold",
         color: "text.inverted",
         _hover: {
           backgroundColor: "bg.accent.bold.hover",
@@ -137,7 +137,7 @@ const buttonRecipe = cva({
       variant: "primary",
       colorScheme: "neutral",
       css: {
-        backgroundColor: "bg.neutral.bold.default",
+        backgroundColor: "bg.neutral.bold",
         color: "text.inverted",
         _hover: {
           backgroundColor: "bg.neutral.bold.hover",
@@ -157,7 +157,7 @@ const buttonRecipe = cva({
       variant: "primary",
       colorScheme: "critical",
       css: {
-        backgroundColor: "bg.status.critical.strong.default",
+        backgroundColor: "bg.status.critical.strong",
         color: "text.inverted",
         _hover: {
           backgroundColor: "bg.status.critical.strong.hover",
@@ -177,9 +177,9 @@ const buttonRecipe = cva({
       variant: "secondary",
       colorScheme: "brand",
       css: {
-        backgroundColor: "bg.neutral.subtle.default",
+        backgroundColor: "bg.neutral.subtle",
         border: "[1px solid]",
-        borderColor: "bg.accent.bold.default",
+        borderColor: "bg.accent.bold",
         color: "text.link",
         _hover: {
           backgroundColor: "bg.accent.subtle.hover",
@@ -203,9 +203,9 @@ const buttonRecipe = cva({
       variant: "secondary",
       colorScheme: "neutral",
       css: {
-        backgroundColor: "bg.neutral.subtle.default",
+        backgroundColor: "bg.neutral.subtle",
         border: "[1px solid]",
-        borderColor: "border.neutral.default",
+        borderColor: "border.neutral",
         color: "text.secondary",
         _hover: {
           backgroundColor: "bg.neutral.subtle.hover",
@@ -227,9 +227,9 @@ const buttonRecipe = cva({
       variant: "secondary",
       colorScheme: "critical",
       css: {
-        backgroundColor: "bg.neutral.subtle.default",
+        backgroundColor: "bg.neutral.subtle",
         border: "[1px solid]",
-        borderColor: "bg.status.critical.strong.default",
+        borderColor: "bg.status.critical.strong",
         color: "text.status.critical",
         _hover: {
           backgroundColor: "bg.status.critical.subtle.hover",
@@ -364,7 +364,7 @@ export const Button: React.FC<ButtonProps> = ({
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          gap: "default.2",
+          gap: "4",
           opacity: isLoading ? 0 : 1,
         })}
       >

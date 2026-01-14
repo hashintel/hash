@@ -7,10 +7,10 @@ const menuButtonStyle = css({
   alignItems: "center",
   justifyContent: "center",
   padding: "[3px]",
-  borderRadius: "radius.2",
+  borderRadius: "md.2",
   cursor: "pointer",
   _hover: {
-    backgroundColor: "core.gray.10",
+    backgroundColor: "gray.10",
   },
 });
 

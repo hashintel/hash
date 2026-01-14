@@ -42,8 +42,7 @@
     "styled-system"
   ],
   "scripts": {
-    "build": "panda codegen",
-    "build:ladle": "panda codegen && ladle build",
+    "build": "panda codegen && ladle build",
     "codegen": "panda codegen --clean",
     "dev": "panda codegen --watch & ladle serve",
     "fix": "npm-run-all --continue-on-error \"fix:*\"",

@@ -35,7 +35,7 @@ const Playground = () => {
       display: "flex",
       alignItems: "center",
       justifyContent: "center",
-      padding: "default.2",
+      padding: "5",
       border: "none",
       cursor: "pointer",
       transition: "all",
@@ -125,7 +125,7 @@ const Playground = () => {
                     shadow: "[0 7px 29px 0 rgba(13, 13, 42, 0.37)]",
                     display: "flex",
                     flexDirection: "column",
-                    gap: "default.1",
+                    gap: "5",
                     alignItems: "center",
                     backgroundColor: "gray.20/40",
                     pointerEvents: "auto",
@@ -144,7 +144,7 @@ const Playground = () => {
                 >
                   <div
                     className={css({
-                      padding: "default.6",
+                      padding: "5",
                       flexDirection: "column",
                       display: "flex",
                       alignItems: "center",
@@ -164,7 +164,7 @@ const Playground = () => {
                         fontSize: "2xl",
                         fontWeight: "medium",
                         textAlign: "center",
-                        marginBottom: "default.5",
+                        marginBottom: "5",
                       })}
                     >
                       Interactive Playground
@@ -180,7 +180,7 @@ const Playground = () => {
                       className={css({
                         color: "[rgba(0,0,0,0.8)]",
                         backgroundColor: "gray.30",
-                        marginBottom: "default.5",
+                        marginBottom: "5",
                       })}
                     />
 
@@ -373,9 +373,9 @@ const Playground = () => {
                   </div>
                   <div
                     className={css({
-                      padding: "default.2",
+                      padding: "5",
                       display: "flex",
-                      gap: "default.1",
+                      gap: "5",
                       justifyContent: "end",
                       width: "[100%]",
                     })}
@@ -401,7 +401,7 @@ const Playground = () => {
           className={css({
             display: "flex",
             alignItems: "center",
-            gap: "default.1",
+            gap: "5",
             shadow: "[0 7px 29px 0 rgba(13, 13, 54, 0.37)]",
             backgroundColor: "[rgba(255,255,255,0.4)]",
             transition: "[all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)]",
@@ -411,7 +411,7 @@ const Playground = () => {
               backgroundColor: "[rgba(255,255,255,0.6)]",
             },
             pointerEvents: "auto",
-            padding: "default.4",
+            padding: "5",
           })}
           refraction={{
             radius: 13,

@@ -28,7 +28,7 @@ export interface RadioGroupProps {
 const radioGroupRootStyles = css({
   display: "flex",
   flexDirection: "column",
-  gap: "default.3", // 4px gap between items
+  gap: "3", // 4px gap between items
 });
 
 // Recipe for radio group items with variant support
@@ -63,24 +63,24 @@ const radioItemRecipe = cva({
     variant: {
       default: {
         cursor: "pointer",
-        padding: "default.3", // 6px
+        padding: "4", // 6px
         borderRadius: "md.4", // 8px
-        gap: "default.5", // 8px
+        gap: "5", // 8px
         "&:hover:not([data-disabled])": {
           backgroundColor: "bg.neutral.subtle.hover",
         },
       },
       card: {
-        gap: "default.6", // 12px
-        padding: "default.6", // 12px
-        backgroundColor: "bg.neutral.subtle.default",
+        gap: "7", // 12px
+        padding: "7", // 12px
+        backgroundColor: "bg.neutral.subtle",
         border: "1px solid",
         borderColor: "border.neutral.subtle",
         borderRadius: "[10px]",
         cursor: "pointer",
         width: "[316px]",
         "&:hover:not([data-disabled])": {
-          borderColor: "border.neutral.default",
+          borderColor: "border.neutral",
         },
       },
     },
@@ -131,10 +131,10 @@ const cardIconBadgeStyles = css({
   justifyContent: "center",
   width: "[32px]",
   height: "[32px]",
-  backgroundColor: "bg.neutral.subtle.default",
+  backgroundColor: "bg.neutral.subtle",
   borderRadius: "md.4", // 8px
-  paddingX: "default.5", // 8px
-  paddingY: "default.0",
+  paddingX: "5", // 8px
+  paddingY: "5",
   overflow: "clip",
   flexShrink: "0",
 });
@@ -143,7 +143,7 @@ const cardIconBadgeStyles = css({
 const cardContentWrapperStyles = css({
   display: "flex",
   flex: "1",
-  gap: "default.6", // 12px
+  gap: "7", // 12px
   alignItems: "center",
   minWidth: "[0]",
   minHeight: "[0]",
@@ -154,7 +154,7 @@ const cardTextGroupStyles = css({
   display: "flex",
   flex: "1",
   flexDirection: "column",
-  gap: "default.1", // 4px
+  gap: "3", // 4px
   alignItems: "flex-start",
   justifyContent: "center",
   height: "[38px]",

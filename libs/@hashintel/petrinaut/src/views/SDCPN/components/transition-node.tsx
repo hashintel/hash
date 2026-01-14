@@ -14,17 +14,17 @@ const containerStyle = css({
 
 const transitionBoxStyle = cva({
   base: {
-    padding: "spacing.4",
-    borderRadius: "radius.6",
+    padding: "4",
+    borderRadius: "md.6",
     width: "[160px]",
     height: "[80px]",
     display: "flex",
     flexDirection: "column",
     justifyContent: "center",
     alignItems: "center",
-    background: "core.gray.20",
+    background: "gray.20",
     border: "2px solid",
-    borderColor: "core.gray.50",
+    borderColor: "gray.50",
     fontSize: "[15px]",
     boxSizing: "border-box",
     position: "relative",
@@ -32,7 +32,7 @@ const transitionBoxStyle = cva({
     transition: "[all 0.2s ease]",
     outline: "[0px solid rgba(75, 126, 156, 0)]",
     _hover: {
-      borderColor: "core.gray.70",
+      borderColor: "gray.70",
       outline: "[4px solid rgba(75, 126, 156, 0.2)]",
     },
   },
@@ -51,7 +51,7 @@ const transitionBoxStyle = cva({
     },
     fired: {
       true: {
-        background: "core.yellow.20/70",
+        background: "yellow.20/70",
         boxShadow: "0 0 6px 1px rgba(255, 132, 0, 0.59)",
         transition: "[background 0s, box-shadow 0s, outline 0.3s]",
       },
@@ -74,7 +74,7 @@ const stochasticIconStyle = css({
   display: "flex",
   alignItems: "center",
   justifyContent: "center",
-  color: "core.blue.60",
+  color: "blue.60",
   fontSize: "[18px]",
 });
 
@@ -82,7 +82,7 @@ const contentWrapperStyle = css({
   display: "flex",
   flexDirection: "column",
   alignItems: "center",
-  gap: "spacing.2",
+  gap: "3",
 });
 
 const labelStyle = css({
@@ -99,7 +99,7 @@ const firingIndicatorStyle = cva({
     alignItems: "center",
     justifyContent: "center",
     fontSize: "[20px]",
-    color: "core.yellow.60",
+    color: "yellow.60",
   },
   variants: {
     fired: {

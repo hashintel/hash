@@ -13,7 +13,7 @@ const rootStyles = css({
   position: "relative",
   display: "flex",
   alignItems: "center",
-  gap: "default.1",
+  gap: "3",
   userSelect: "none",
 });
 
@@ -46,8 +46,8 @@ const itemStyles = css({
   alignItems: "center",
   justifyContent: "center",
   position: "relative",
-  paddingX: "default.4",
-  paddingY: "default.2",
+  paddingX: "5",
+  paddingY: "4",
   width: "auto",
   textAlign: "center",
   cursor: "pointer",
