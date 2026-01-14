@@ -5,8 +5,8 @@
     "build": {
       "outputs": ["dist/**"]
     },
-    "ladle:build": {
-      "outputs": [".build/**"]
+    "build:ladle": {
+      "outputs": [".build/ladle/**"]
     }
   }
 }

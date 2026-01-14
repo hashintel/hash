@@ -8433,6 +8433,7 @@ __metadata:
   dependencies:
     "@ladle/react": "npm:5.1.1"
     "@pandacss/dev": "npm:1.4.3"
+    "@playwright/test": "npm:1.57.0"
     "@suspensive/react": "npm:3.18.0"
     "@tanstack/react-query": "npm:5.90.16"
     "@total-typescript/tsconfig": "npm:1.0.4"
@@ -8446,6 +8447,7 @@ __metadata:
     nuqs: "npm:2.8.6"
     react: "npm:19.2.3"
     react-dom: "npm:19.2.3"
+    sync-fetch: "npm:0.5.2"
     tsdown: "npm:^0.18.1"
     tsx: "npm:4.20.6"
     typescript: "npm:5.9.3"
@@ -45730,6 +45732,15 @@ __metadata:
   version: 3.2.4
   resolution: "symbol-tree@npm:3.2.4"
   checksum: 10c0/dfbe201ae09ac6053d163578778c53aa860a784147ecf95705de0cd23f42c851e1be7889241495e95c37cabb058edb1052f141387bef68f705afc8f9dd358509
+  languageName: node
+  linkType: hard
+
+"sync-fetch@npm:0.5.2":
+  version: 0.5.2
+  resolution: "sync-fetch@npm:0.5.2"
+  dependencies:
+    node-fetch: "npm:^2.6.1"
+  checksum: 10c0/2dd3e081171ddbee7f60f48b8ce44015367ea2a67f94521b301633bb0edc90a320415660e3e1ef6df75c2c1374de20a5006a7d8abdf7eb762d3a2687b56c928f
   languageName: node
   linkType: hard
 
