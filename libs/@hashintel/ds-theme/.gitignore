@@ -1,6 +1,10 @@
-.build
-styled-system
 node_modules
+styled-system
+.build
 dist
 *.log
 .DS_Store
+
+# Playwright
+test-results/
+playwright-report/

@@ -26,6 +26,7 @@
       "**/_temp/**",
       "**/.mastra/**",
       "**/.build/**",
+      "**/__snapshots__/**",
       "@local/graph/api/openapi/**",
       "@local/graph/client/typescript/*.ts",
       "**/*.snap",
