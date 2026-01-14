@@ -1,9 +1,9 @@
 import type { Story } from "@ladle/react";
-import { css } from "../../styled-system/css";
-import { token } from "../../styled-system/tokens";
-import { VStack, HStack } from "../../styled-system/jsx";
+import { css } from "../styled-system/css";
+import { token } from "../styled-system/tokens";
+import { VStack, HStack } from "../styled-system/jsx";
 import { coreColors } from "./colors";
-import type { Token } from "../../styled-system/tokens/tokens";
+import type { Token } from "../styled-system/tokens/tokens";
 
 /** Extract shade keys from each color scale, sorted numerically */
 const getShades = (colorObj: Record<string, unknown>): string[] => {
