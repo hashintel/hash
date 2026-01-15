@@ -1,4 +1,5 @@
 import { css, cva } from "@hashintel/ds-helpers/css";
+import { use } from "react";
 import {
   TbLayoutSidebarLeftCollapse,
   TbLayoutSidebarRightCollapse,
@@ -13,7 +14,7 @@ import {
   MIN_LEFT_SIDEBAR_WIDTH,
   PANEL_MARGIN,
 } from "../../../../constants/ui";
-import { useEditorStore } from "../../../../state/editor-provider";
+import { EditorContext } from "../../../../state/editor-context";
 import { FloatingTitle } from "./floating-title";
 import { HamburgerMenu } from "./hamburger-menu";
 
@@ -147,14 +148,12 @@ export const LeftSideBar: React.FC<LeftSideBarProps> = ({
   title,
   onTitleChange,
 }) => {
-  const isOpen = useEditorStore((state) => state.isLeftSidebarOpen);
-  const setLeftSidebarOpen = useEditorStore(
-    (state) => state.setLeftSidebarOpen,
-  );
-  const leftSidebarWidth = useEditorStore((state) => state.leftSidebarWidth);
-  const setLeftSidebarWidth = useEditorStore(
-    (state) => state.setLeftSidebarWidth,
-  );
+  const {
+    isLeftSidebarOpen: isOpen,
+    setLeftSidebarOpen,
+    leftSidebarWidth,
+    setLeftSidebarWidth,
+  } = use(EditorContext);
 
   return (
     <div

@@ -4,8 +4,10 @@ import { use, useCallback, useEffect } from "react";
 import { FaChevronDown, FaChevronUp } from "react-icons/fa6";
 
 import { CheckerContext } from "../../../../state/checker-context";
-import type { EditorState } from "../../../../state/editor-provider";
-import { useEditorStore } from "../../../../state/editor-provider";
+import {
+  EditorContext,
+  type EditorState,
+} from "../../../../state/editor-context";
 import { DiagnosticsIndicator } from "./diagnostics-indicator";
 import { SimulationControls } from "./simulation-controls";
 import { ToolbarButton } from "./toolbar-button";
@@ -58,14 +60,12 @@ export const BottomBar: React.FC<BottomBarProps> = ({
   editionMode,
   onEditionModeChange,
 }) => {
-  const isBottomPanelOpen = useEditorStore((state) => state.isBottomPanelOpen);
-  const setBottomPanelOpen = useEditorStore(
-    (state) => state.setBottomPanelOpen,
-  );
-  const setActiveBottomPanelTab = useEditorStore(
-    (state) => state.setActiveBottomPanelTab,
-  );
-  const bottomPanelHeight = useEditorStore((state) => state.bottomPanelHeight);
+  const {
+    isBottomPanelOpen,
+    setBottomPanelOpen,
+    setActiveBottomPanelTab,
+    bottomPanelHeight,
+  } = use(EditorContext);
 
   const { totalDiagnosticsCount } = use(CheckerContext);
   const hasDiagnostics = totalDiagnosticsCount > 0;

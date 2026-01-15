@@ -5,7 +5,7 @@ import ts from "typescript";
 
 import type { SubView } from "../../../components/sub-view/types";
 import { CheckerContext } from "../../../state/checker-context";
-import { useEditorStore } from "../../../state/editor-provider";
+import { EditorContext } from "../../../state/editor-context";
 import { SDCPNContext } from "../../../state/sdcpn-context";
 
 const emptyMessageStyle = css({
@@ -129,9 +129,7 @@ interface GroupedDiagnostics {
 const DiagnosticsContent: React.FC = () => {
   const { checkResult, totalDiagnosticsCount } = use(CheckerContext);
   const { petriNetDefinition } = use(SDCPNContext);
-  const setSelectedResourceId = useEditorStore(
-    (state) => state.setSelectedResourceId,
-  );
+  const { setSelectedResourceId } = use(EditorContext);
   // Track collapsed entities (all expanded by default)
   const [collapsedEntities, setCollapsedEntities] = useState<Set<string>>(
     new Set(),

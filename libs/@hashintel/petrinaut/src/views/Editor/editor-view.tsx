@@ -7,7 +7,7 @@ import { productionMachines } from "../../examples/broken-machines";
 import { satellitesSDCPN } from "../../examples/satellites";
 import { sirModel } from "../../examples/sir-model";
 import { convertOldFormatToSDCPN } from "../../old-formats/convert-old-format";
-import { useEditorStore } from "../../state/editor-provider";
+import { EditorContext } from "../../state/editor-context";
 import { SDCPNContext } from "../../state/sdcpn-context";
 // import { useSimulationStore } from "../../state/simulation-provider";
 import { SDCPNView } from "../SDCPN/sdcpn-view";
@@ -62,12 +62,13 @@ export const EditorView = ({
     setTitle,
   } = use(SDCPNContext);
 
-  // Get editor store methods
-  const mode = useEditorStore((state) => state.globalMode);
-  // const setMode = useEditorStore((state) => state.setGlobalMode);
-  const editionMode = useEditorStore((state) => state.editionMode);
-  const setEditionMode = useEditorStore((state) => state.setEditionMode);
-  const clearSelection = useEditorStore((state) => state.clearSelection);
+  // Get editor context
+  const {
+    globalMode: mode,
+    editionMode,
+    setEditionMode,
+    clearSelection,
+  } = use(EditorContext);
 
   // Get simulation store method to initialize parameter values
   // const initializeParameterValuesFromDefaults = useSimulationStore(

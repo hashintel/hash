@@ -8,7 +8,7 @@ import {
   MIN_PROPERTIES_PANEL_WIDTH,
   PANEL_MARGIN,
 } from "../../../../constants/ui";
-import { useEditorStore } from "../../../../state/editor-provider";
+import { EditorContext } from "../../../../state/editor-context";
 import { SDCPNContext } from "../../../../state/sdcpn-context";
 import { DifferentialEquationProperties } from "./differential-equation-properties";
 import { ParameterProperties } from "./parameter-properties";
@@ -38,14 +38,12 @@ const glassPanelContentStyle = css({
  * PropertiesPanel displays properties and controls for the selected node/edge.
  */
 export const PropertiesPanel: React.FC = () => {
-  const selectedResourceId = useEditorStore(
-    (state) => state.selectedResourceId,
-  );
-  const setPropertiesPanelWidth = useEditorStore(
-    (state) => state.setPropertiesPanelWidth,
-  );
-  const isBottomPanelOpen = useEditorStore((state) => state.isBottomPanelOpen);
-  const bottomPanelHeight = useEditorStore((state) => state.bottomPanelHeight);
+  const {
+    selectedResourceId,
+    setPropertiesPanelWidth,
+    isBottomPanelOpen,
+    bottomPanelHeight,
+  } = use(EditorContext);
 
   const {
     getItemType,

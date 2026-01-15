@@ -3,7 +3,7 @@ import { use } from "react";
 import { FaCircle, FaSquare } from "react-icons/fa6";
 
 import type { SubView } from "../../../components/sub-view/types";
-import { useEditorStore } from "../../../state/editor-provider";
+import { EditorContext } from "../../../state/editor-context";
 import { SDCPNContext } from "../../../state/sdcpn-context";
 
 const listContainerStyle = css({
@@ -92,12 +92,7 @@ const NodesSectionContent: React.FC = () => {
   const {
     petriNetDefinition: { places, transitions },
   } = use(SDCPNContext);
-  const selectedResourceId = useEditorStore(
-    (state) => state.selectedResourceId,
-  );
-  const setSelectedResourceId = useEditorStore(
-    (state) => state.setSelectedResourceId,
-  );
+  const { selectedResourceId, setSelectedResourceId } = use(EditorContext);
 
   const handleLayerClick = (id: string) => {
     // Single select: replace selection

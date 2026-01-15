@@ -25,7 +25,7 @@ import type {
   DifferentialEquation,
   Place,
 } from "../../../../core/types/sdcpn";
-import { useEditorStore } from "../../../../state/editor-provider";
+import { EditorContext } from "../../../../state/editor-context";
 import { SDCPNContext } from "../../../../state/sdcpn-context";
 import { SimulationContext } from "../../../../state/simulation-context";
 import { useIsReadOnly } from "../../../../state/use-is-read-only";
@@ -268,11 +268,7 @@ export const PlaceProperties: React.FC<PlacePropertiesProps> = ({
 }) => {
   const { simulation } = use(SimulationContext);
   const isReadOnly = useIsReadOnly();
-  const globalMode = useEditorStore((state) => state.globalMode);
-
-  const setSelectedResourceId = useEditorStore(
-    (state) => state.setSelectedResourceId,
-  );
+  const { globalMode, setSelectedResourceId } = use(EditorContext);
 
   const {
     petriNetDefinition: { types: availableTypes },

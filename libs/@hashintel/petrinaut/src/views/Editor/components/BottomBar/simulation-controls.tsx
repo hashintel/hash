@@ -7,8 +7,8 @@ import {
 } from "react-icons/io";
 import { MdRotateLeft } from "react-icons/md";
 
-import { useEditorStore } from "../../../../state/editor-provider";
-import { SimulationContext } from "../../../../state/simulation-provider";
+import { EditorContext } from "../../../../state/editor-context";
+import { SimulationContext } from "../../../../state/simulation-context";
 import { ToolbarButton } from "./toolbar-button";
 
 const frameInfoStyle = css({
@@ -77,12 +77,7 @@ export const SimulationControls: React.FC<SimulationControlsProps> = ({
     setCurrentlyViewedFrame,
   } = use(SimulationContext);
 
-  const setBottomPanelOpen = useEditorStore(
-    (state) => state.setBottomPanelOpen,
-  );
-  const setActiveBottomPanelTab = useEditorStore(
-    (state) => state.setActiveBottomPanelTab,
-  );
+  const { setBottomPanelOpen, setActiveBottomPanelTab } = use(EditorContext);
 
   const isDisabled = disabled;
 

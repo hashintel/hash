@@ -12,7 +12,7 @@ import {
 } from "../../core/default-codes";
 import { use } from "react";
 
-import { useEditorStore } from "../../state/editor-provider";
+import { EditorContext } from "../../state/editor-context";
 import { SDCPNContext } from "../../state/sdcpn-context";
 import { SimulationContext } from "../../state/simulation-context";
 import type { ArcData, NodeData } from "../../state/types-for-editor-to-remove";
@@ -72,17 +72,15 @@ export const SDCPNView: React.FC = () => {
   const { nodes, arcs } = useSdcpnToReactFlow(petriNetDefinition);
 
   // Editor state
-  const mode = useEditorStore((state) => state.globalMode);
-  const editionMode = useEditorStore((state) => state.editionMode);
-  const setEditionMode = useEditorStore((state) => state.setEditionMode);
-  const selectedItemIds = useEditorStore((state) => state.selectedItemIds);
-  const setSelectedItemIds = useEditorStore(
-    (state) => state.setSelectedItemIds,
-  );
-  const setSelectedResourceId = useEditorStore(
-    (state) => state.setSelectedResourceId,
-  );
-  const clearSelection = useEditorStore((state) => state.clearSelection);
+  const {
+    globalMode: mode,
+    editionMode,
+    setEditionMode,
+    selectedItemIds,
+    setSelectedItemIds,
+    setSelectedResourceId,
+    clearSelection,
+  } = use(EditorContext);
 
   const { state: simulationState } = use(SimulationContext);
 

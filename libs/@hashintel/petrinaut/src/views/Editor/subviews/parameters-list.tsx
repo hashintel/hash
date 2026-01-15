@@ -3,7 +3,7 @@ import { use } from "react";
 import { v4 as uuidv4 } from "uuid";
 
 import type { SubView } from "../../../components/sub-view/types";
-import { useEditorStore } from "../../../state/editor-provider";
+import { EditorContext } from "../../../state/editor-context";
 import { SDCPNContext } from "../../../state/sdcpn-context";
 import { SimulationContext } from "../../../state/simulation-context";
 
@@ -138,11 +138,8 @@ const ParametersHeaderAction: React.FC = () => {
     petriNetDefinition: { parameters },
     addParameter,
   } = use(SDCPNContext);
-  const globalMode = useEditorStore((state) => state.globalMode);
+  const { globalMode, setSelectedResourceId } = use(EditorContext);
   const { state: simulationState } = use(SimulationContext);
-  const setSelectedResourceId = useEditorStore(
-    (state) => state.setSelectedResourceId,
-  );
 
   const isSimulationMode = globalMode === "simulate";
   const isSimulationActive =
@@ -187,18 +184,13 @@ const ParametersList: React.FC = () => {
     petriNetDefinition: { parameters },
     removeParameter,
   } = use(SDCPNContext);
-  const globalMode = useEditorStore((state) => state.globalMode);
+  const { globalMode, selectedResourceId, setSelectedResourceId } =
+    use(EditorContext);
   const {
     state: simulationState,
     parameterValues,
     setParameterValue,
   } = use(SimulationContext);
-  const selectedResourceId = useEditorStore(
-    (state) => state.selectedResourceId,
-  );
-  const setSelectedResourceId = useEditorStore(
-    (state) => state.setSelectedResourceId,
-  );
 
   const isSimulationNotRun =
     globalMode === "simulate" && simulationState === "NotRun";

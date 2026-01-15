@@ -1,8 +1,8 @@
 import { css } from "@hashintel/ds-helpers/css";
-import type { CSSProperties } from "react";
+import { type CSSProperties, use } from "react";
 import { BaseEdge, type EdgeProps, getBezierPath } from "reactflow";
 
-import { useEditorStore } from "../../../state/editor-provider";
+import { EditorContext } from "../../../state/editor-context";
 
 const selectionIndicatorStyle: CSSProperties = {
   stroke: "rgba(249, 115, 22, 0.4)",
@@ -41,8 +41,8 @@ export const Arc: React.FC<EdgeProps<ArcData>> = ({
   style,
   markerEnd,
 }) => {
-  // Derive selected state from EditorStore
-  const selectedItemIds = useEditorStore((state) => state.selectedItemIds);
+  // Derive selected state from EditorContext
+  const { selectedItemIds } = use(EditorContext);
 
   // Check if this arc is selected by its ID
   const selected = selectedItemIds.has(id);

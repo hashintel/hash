@@ -3,21 +3,20 @@ import { useState } from "react";
 import {
   type DraggingStateByNodeId,
   type EditorActions,
-  EditorActionsContext,
+  EditorContext,
+  type EditorContextValue,
   type EditorState,
-  EditorStateContext,
   initialEditorState,
 } from "./editor-context";
 
 export {
-  BottomPanelTab,
-  DraggingStateByNodeId,
-  EditorActions,
-  EditorState,
-  TimelineChartType,
-  useEditorActions,
-  useEditorState,
-  useEditorStore,
+  type BottomPanelTab,
+  type DraggingStateByNodeId,
+  type EditorActions,
+  EditorContext,
+  type EditorContextValue,
+  type EditorState,
+  type TimelineChartType,
 } from "./editor-context";
 
 export type EditorProviderProps = React.PropsWithChildren;
@@ -79,11 +78,14 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
     __reinitialize: () => setState(initialEditorState),
   };
 
+  const contextValue: EditorContextValue = {
+    ...state,
+    ...actions,
+  };
+
   return (
-    <EditorStateContext.Provider value={state}>
-      <EditorActionsContext.Provider value={actions}>
-        {children}
-      </EditorActionsContext.Provider>
-    </EditorStateContext.Provider>
+    <EditorContext.Provider value={contextValue}>
+      {children}
+    </EditorContext.Provider>
   );
 };

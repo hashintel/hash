@@ -30,7 +30,7 @@ import {
   generateDefaultTransitionKernelCode,
 } from "../../../../core/default-codes";
 import type { Color, Place, Transition } from "../../../../core/types/sdcpn";
-import { useEditorStore } from "../../../../state/editor-provider";
+import { EditorContext } from "../../../../state/editor-context";
 import { SDCPNContext } from "../../../../state/sdcpn-context";
 import { useIsReadOnly } from "../../../../state/use-is-read-only";
 import { SortableArcItem } from "./sortable-arc-item";
@@ -257,7 +257,7 @@ export const TransitionProperties: React.FC<TransitionPropertiesProps> = ({
   onArcWeightUpdate,
 }) => {
   const isReadOnly = useIsReadOnly();
-  const globalMode = useEditorStore((state) => state.globalMode);
+  const { globalMode } = use(EditorContext);
 
   const sensors = useSensors(
     useSensor(PointerSensor),

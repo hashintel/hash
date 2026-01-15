@@ -1,4 +1,4 @@
-import { createContext, use } from "react";
+import { createContext } from "react";
 
 import {
   DEFAULT_BOTTOM_PANEL_HEIGHT,
@@ -22,7 +22,6 @@ export type TimelineChartType = "run" | "stacked";
 
 /**
  * The state values for the editor.
- * Components that consume this context will re-render when any of these values change.
  */
 export type EditorState = {
   globalMode: EditorGlobalMode;
@@ -41,7 +40,6 @@ export type EditorState = {
 
 /**
  * The action functions for the editor.
- * These are stable and won't cause re-renders when consumed.
  */
 export type EditorActions = {
   setGlobalMode: (mode: EditorGlobalMode) => void;
@@ -67,8 +65,7 @@ export type EditorActions = {
   __reinitialize: () => void;
 };
 
-export const EditorStateContext = createContext<EditorState | null>(null);
-export const EditorActionsContext = createContext<EditorActions | null>(null);
+export type EditorContextValue = EditorState & EditorActions;
 
 export const initialEditorState: EditorState = {
   globalMode: "edit",
@@ -85,52 +82,28 @@ export const initialEditorState: EditorState = {
   timelineChartType: "run",
 };
 
-/**
- * Hook to access the editor state.
- * Components using this will re-render when any state value changes.
- */
-export function useEditorState(): EditorState {
-  const context = use(EditorStateContext);
+const defaultContextValue: EditorContextValue = {
+  ...initialEditorState,
+  setGlobalMode: () => {},
+  setEditionMode: () => {},
+  setLeftSidebarOpen: () => {},
+  setLeftSidebarWidth: () => {},
+  setPropertiesPanelWidth: () => {},
+  setBottomPanelOpen: () => {},
+  toggleBottomPanel: () => {},
+  setBottomPanelHeight: () => {},
+  setActiveBottomPanelTab: () => {},
+  setSelectedResourceId: () => {},
+  setSelectedItemIds: () => {},
+  addSelectedItemId: () => {},
+  removeSelectedItemId: () => {},
+  clearSelection: () => {},
+  setDraggingStateByNodeId: () => {},
+  updateDraggingStateByNodeId: () => {},
+  resetDraggingState: () => {},
+  setTimelineChartType: () => {},
+  __reinitialize: () => {},
+};
 
-  if (!context) {
-    throw new Error("useEditorState must be used within EditorProvider");
-  }
-
-  return context;
-}
-
-/**
- * Hook to access the editor actions.
- * These are stable and won't cause re-renders.
- */
-export function useEditorActions(): EditorActions {
-  const context = use(EditorActionsContext);
-
-  if (!context) {
-    throw new Error("useEditorActions must be used within EditorProvider");
-  }
-
-  return context;
-}
-
-/**
- * Hook to access a specific piece of editor state using a selector.
- * This is provided for backward compatibility but note that it will
- * still re-render when any state changes (unlike Zustand's selector).
- * For optimal performance, use useEditorState() or useEditorActions() directly.
- */
-export function useEditorStore<T>(
-  selector: (state: EditorState & EditorActions) => T,
-): T {
-  const stateContext = use(EditorStateContext);
-  const actionsContext = use(EditorActionsContext);
-
-  if (!stateContext || !actionsContext) {
-    throw new Error("useEditorStore must be used within EditorProvider");
-  }
-
-  // Combine state and actions for backward compatibility
-  const combined = { ...stateContext, ...actionsContext };
-
-  return selector(combined);
-}
+export const EditorContext =
+  createContext<EditorContextValue>(defaultContextValue);

@@ -4,7 +4,7 @@ import { TbArrowRight } from "react-icons/tb";
 
 import type { SubView } from "../../../components/sub-view/types";
 import { InfoIconTooltip } from "../../../components/tooltip";
-import { useEditorStore } from "../../../state/editor-provider";
+import { EditorContext } from "../../../state/editor-context";
 import { SDCPNContext } from "../../../state/sdcpn-context";
 import { SimulationContext } from "../../../state/simulation-context";
 
@@ -191,7 +191,7 @@ const editButtonIconStyle = css({
  * Split into two sections: Computation and Parameters.
  */
 const SimulationSettingsContent: React.FC = () => {
-  const setGlobalMode = useEditorStore((state) => state.setGlobalMode);
+  const { setGlobalMode, setSelectedResourceId } = use(EditorContext);
   const {
     state: simulationState,
     error: simulationError,
@@ -201,9 +201,6 @@ const SimulationSettingsContent: React.FC = () => {
     parameterValues,
     setParameterValue,
   } = use(SimulationContext);
-  const setSelectedResourceId = useEditorStore(
-    (state) => state.setSelectedResourceId,
-  );
 
   const {
     petriNetDefinition: { parameters },

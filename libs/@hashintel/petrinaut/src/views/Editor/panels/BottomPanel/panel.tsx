@@ -17,9 +17,11 @@ import {
 } from "../../../../constants/ui";
 import { use } from "react";
 
-import type { BottomPanelTab } from "../../../../state/editor-provider";
-import { useEditorStore } from "../../../../state/editor-provider";
-import { SimulationContext } from "../../../../state/simulation-provider";
+import {
+  type BottomPanelTab,
+  EditorContext,
+} from "../../../../state/editor-context";
+import { SimulationContext } from "../../../../state/simulation-context";
 
 const glassPanelBaseStyle = css({
   position: "fixed",
@@ -71,19 +73,17 @@ const closeButtonStyle = css({
  * Resizable from the top edge.
  */
 export const BottomPanel: React.FC = () => {
-  const isOpen = useEditorStore((state) => state.isBottomPanelOpen);
-  const setBottomPanelOpen = useEditorStore(
-    (state) => state.setBottomPanelOpen,
-  );
-  const isLeftSidebarOpen = useEditorStore((state) => state.isLeftSidebarOpen);
-  const leftSidebarWidth = useEditorStore((state) => state.leftSidebarWidth);
-  const panelHeight = useEditorStore((state) => state.bottomPanelHeight);
-  const setBottomPanelHeight = useEditorStore(
-    (state) => state.setBottomPanelHeight,
-  );
-  const activeTab = useEditorStore((state) => state.activeBottomPanelTab);
-  const setActiveTab = useEditorStore((state) => state.setActiveBottomPanelTab);
-  const toggleBottomPanel = useEditorStore((state) => state.toggleBottomPanel);
+  const {
+    isBottomPanelOpen: isOpen,
+    setBottomPanelOpen,
+    isLeftSidebarOpen,
+    leftSidebarWidth,
+    bottomPanelHeight: panelHeight,
+    setBottomPanelHeight,
+    activeBottomPanelTab: activeTab,
+    setActiveBottomPanelTab: setActiveTab,
+    toggleBottomPanel,
+  } = use(EditorContext);
 
   // Simulation state for conditional subviews
   const { state: simulationState } = use(SimulationContext);

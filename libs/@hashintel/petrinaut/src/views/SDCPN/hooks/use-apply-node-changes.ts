@@ -1,7 +1,7 @@
 import { use } from "react";
 import type { EdgeChange, NodeChange } from "reactflow";
 
-import { useEditorStore } from "../../../state/editor-provider";
+import { EditorContext } from "../../../state/editor-context";
 import { SDCPNContext } from "../../../state/sdcpn-context";
 
 /**
@@ -11,19 +11,14 @@ import { SDCPNContext } from "../../../state/sdcpn-context";
  * @see https://github.com/xyflow/xyflow/blob/04055c9625cbd92cf83a2f4c340d6fae5199bfa3/packages/react/src/utils/changes.ts#L107
  */
 export function useApplyNodeChanges() {
-  const { getItemType } = use(SDCPNContext);
-
-  const draggingStateByNodeId = useEditorStore(
-    (state) => state.draggingStateByNodeId,
-  );
-  const updateDraggingStateByNodeId = useEditorStore(
-    (state) => state.updateDraggingStateByNodeId,
-  );
-  const setSelectedItemIds = useEditorStore(
-    (state) => state.setSelectedItemIds,
-  );
-  const selectedItemIds = useEditorStore((state) => state.selectedItemIds);
-  const { updatePlacePosition, updateTransitionPosition } = use(SDCPNContext);
+  const { getItemType, updatePlacePosition, updateTransitionPosition } =
+    use(SDCPNContext);
+  const {
+    draggingStateByNodeId,
+    updateDraggingStateByNodeId,
+    setSelectedItemIds,
+    selectedItemIds,
+  } = use(EditorContext);
 
   return (changes: (NodeChange | EdgeChange)[]) => {
     const positionUpdates: Array<{

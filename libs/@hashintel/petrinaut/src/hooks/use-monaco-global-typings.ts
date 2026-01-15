@@ -9,7 +9,7 @@ import type {
   Place,
   Transition,
 } from "../core/types/sdcpn";
-import { useEditorStore } from "../state/editor-provider";
+import { EditorContext } from "../state/editor-context";
 import { SDCPNContext } from "../state/sdcpn-context";
 
 interface ReactTypeDefinitions {
@@ -303,9 +303,7 @@ export function useMonacoGlobalTypings() {
     },
   } = use(SDCPNContext);
 
-  const currentlySelectedItemId = useEditorStore(
-    (state) => state.selectedResourceId,
-  );
+  const { selectedResourceId: currentlySelectedItemId } = use(EditorContext);
 
   const [reactTypes, setReactTypes] = useState<ReactTypeDefinitions | null>(
     null,

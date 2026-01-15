@@ -4,8 +4,10 @@ import { use, useCallback, useMemo, useRef, useState } from "react";
 
 import { SegmentGroup } from "../../../components/segment-group";
 import type { SubView } from "../../../components/sub-view/types";
-import type { TimelineChartType } from "../../../state/editor-provider";
-import { useEditorStore } from "../../../state/editor-provider";
+import {
+  EditorContext,
+  type TimelineChartType,
+} from "../../../state/editor-context";
 import { SDCPNContext } from "../../../state/sdcpn-context";
 import { SimulationContext } from "../../../state/simulation-context";
 
@@ -162,8 +164,8 @@ const CHART_TYPE_OPTIONS = [
  * Header action component that renders a chart type selector.
  */
 const TimelineChartTypeSelector: React.FC = () => {
-  const chartType = useEditorStore((state) => state.timelineChartType);
-  const setChartType = useEditorStore((state) => state.setTimelineChartType);
+  const { timelineChartType: chartType, setTimelineChartType: setChartType } =
+    use(EditorContext);
 
   return (
     <SegmentGroup
@@ -1058,7 +1060,7 @@ const StackedAreaChart: React.FC<ChartProps> = ({
  * Shows a compartment time-series chart with interactive scrubbing.
  */
 const SimulationTimelineContent: React.FC = () => {
-  const chartType = useEditorStore((state) => state.timelineChartType);
+  const { timelineChartType: chartType } = use(EditorContext);
   const { simulation } = use(SimulationContext);
   const compartmentData = useCompartmentData();
 

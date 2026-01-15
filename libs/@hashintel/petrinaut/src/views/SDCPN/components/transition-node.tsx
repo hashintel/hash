@@ -3,8 +3,8 @@ import { use } from "react";
 import { TbBolt, TbLambda } from "react-icons/tb";
 import { Handle, type NodeProps, Position } from "reactflow";
 
-import { useEditorStore } from "../../../state/editor-provider";
-import { SimulationContext } from "../../../state/simulation-provider";
+import { EditorContext } from "../../../state/editor-context";
+import { SimulationContext } from "../../../state/simulation-context";
 import type { TransitionNodeData } from "../../../state/types-for-editor-to-remove";
 import { handleStyling } from "../styles/styling";
 
@@ -130,9 +130,7 @@ export const TransitionNode: React.FC<NodeProps<TransitionNodeData>> = ({
 }: NodeProps<TransitionNodeData>) => {
   const { label } = data;
 
-  const selectedResourceId = useEditorStore(
-    (state) => state.selectedResourceId,
-  );
+  const { selectedResourceId } = use(EditorContext);
   const { simulation, currentlyViewedFrame } = use(SimulationContext);
 
   // Check if this transition just fired (time since last fire is zero)

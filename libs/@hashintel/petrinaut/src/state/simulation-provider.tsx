@@ -18,10 +18,10 @@ import {
 } from "./simulation-context";
 
 export {
-  InitialMarking,
+  type InitialMarking,
   SimulationContext,
-  SimulationContextValue,
-  SimulationState,
+  type SimulationContextValue,
+  type SimulationState,
   useSimulationContext,
 } from "./simulation-context";
 
