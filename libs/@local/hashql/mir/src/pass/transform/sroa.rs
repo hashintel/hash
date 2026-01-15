@@ -66,7 +66,7 @@ use crate::{
     context::MirContext,
     intern::Interner,
     pass::{
-        AnalysisPass as _, TransformPass,
+        AnalysisPass as _, Changed, TransformPass,
         analysis::{DataDependencyAnalysis, TransientDataDependencyGraph},
     },
     visit::{VisitorMut, r#mut::filter},
@@ -76,6 +76,7 @@ use crate::{
 struct PlaceVisitor<'env, 'heap, A: Allocator> {
     interner: &'env Interner<'heap>,
     graph: TransientDataDependencyGraph<'heap, A>,
+    changed: bool,
 }
 
 impl<'heap, A: Allocator + Clone> VisitorMut<'heap> for PlaceVisitor<'_, 'heap, A> {
@@ -94,7 +95,10 @@ impl<'heap, A: Allocator + Clone> VisitorMut<'heap> for PlaceVisitor<'_, 'heap, 
         // We do not walk the operand, as we're only interested in operands themselves, with cannot
         // be nested.
         if let Operand::Place(place) = operand {
-            *operand = self.graph.resolve(self.interner, place.as_ref());
+            let next = self.graph.resolve(self.interner, place.as_ref());
+            self.changed |= next != *operand;
+
+            *operand = next;
         }
 
         Ok(())
@@ -127,7 +131,7 @@ impl<A: BumpAllocator> Sroa<A> {
 }
 
 impl<'env, 'heap, A: BumpAllocator> TransformPass<'env, 'heap> for Sroa<A> {
-    fn run(&mut self, context: &mut MirContext<'env, 'heap>, body: &mut Body<'heap>) {
+    fn run(&mut self, context: &mut MirContext<'env, 'heap>, body: &mut Body<'heap>) -> Changed {
         self.alloc.reset();
 
         let mut analysis = DataDependencyAnalysis::new_in(&self.alloc);
@@ -135,12 +139,15 @@ impl<'env, 'heap, A: BumpAllocator> TransformPass<'env, 'heap> for Sroa<A> {
         let analysis = analysis.finish();
         let transient = analysis.transient(context.interner);
 
-        Ok(()) = PlaceVisitor {
+        let mut visitor = PlaceVisitor {
             interner: context.interner,
             graph: transient,
-        }
-        .visit_body_preserving_cfg(body);
+            changed: false,
+        };
+        Ok(()) = visitor.visit_body_preserving_cfg(body);
         drop(analysis);
+
+        visitor.changed.into()
     }
 }
 

@@ -1,12 +1,13 @@
-#![feature(custom_test_frameworks)]
-#![test_runner(criterion::runner)]
-#![expect(clippy::min_ident_chars, clippy::many_single_char_names)]
+#![expect(
+    clippy::min_ident_chars,
+    clippy::many_single_char_names,
+    clippy::significant_drop_tightening,
+    clippy::similar_names
+)]
 
-use core::{hint::black_box, time::Duration};
-use std::time::Instant;
+use core::{cmp, hint::black_box};
 
-use criterion::Criterion;
-use criterion_macro::criterion;
+use codspeed_criterion_compat::{BatchSize, Bencher, Criterion, criterion_group, criterion_main};
 use hashql_core::{
     heap::{BumpAllocator as _, Heap, Scratch},
     r#type::{TypeBuilder, environment::Environment},
@@ -20,7 +21,7 @@ use hashql_mir::{
     op,
     pass::{
         TransformPass,
-        transform::{CfgSimplify, DeadStoreElimination, Sroa},
+        transform::{CfgSimplify, DeadStoreElimination, InstSimplify, Sroa},
     },
 };
 
@@ -151,6 +152,62 @@ fn create_dead_store_cfg<'heap>(
     builder.finish(0, TypeBuilder::synthetic(env).integer())
 }
 
+/// Creates a body with patterns that `InstSimplify` can optimize.
+///
+/// Structure:
+/// ```text
+/// bb0:
+///     a = 1 == 2              // const fold -> false
+///     b = 3 < 5               // const fold -> true
+///     c = b && true           // identity -> b
+///     x = 42
+///     y = x & x               // idempotent -> x
+///     d = x == x              // identical operand -> true
+///     e = a || c              // const fold (a=false, c=true) -> true
+///     f = e && d              // const fold -> true
+///     return f
+/// ```
+fn create_inst_simplify_cfg<'heap>(
+    env: &Environment<'heap>,
+    interner: &Interner<'heap>,
+) -> Body<'heap> {
+    let mut builder = BodyBuilder::new(interner);
+    let int_ty = TypeBuilder::synthetic(env).integer();
+    let bool_ty = TypeBuilder::synthetic(env).boolean();
+
+    let a = builder.local("a", bool_ty);
+    let b = builder.local("b", bool_ty);
+    let c = builder.local("c", bool_ty);
+    let x = builder.local("x", int_ty);
+    let y = builder.local("y", int_ty);
+    let d = builder.local("d", bool_ty);
+    let e = builder.local("e", bool_ty);
+    let f = builder.local("f", bool_ty);
+
+    let const_1 = builder.const_int(1);
+    let const_2 = builder.const_int(2);
+    let const_3 = builder.const_int(3);
+    let const_5 = builder.const_int(5);
+    let const_42 = builder.const_int(42);
+    let const_true = builder.const_bool(true);
+
+    let bb0 = builder.reserve_block([]);
+
+    builder
+        .build_block(bb0)
+        .assign_place(a, |rv| rv.binary(const_1, op![==], const_2))
+        .assign_place(b, |rv| rv.binary(const_3, op![<], const_5))
+        .assign_place(c, |rv| rv.binary(b, op![&], const_true))
+        .assign_place(x, |rv| rv.load(const_42))
+        .assign_place(y, |rv| rv.binary(x, op![&], x))
+        .assign_place(d, |rv| rv.binary(x, op![==], x))
+        .assign_place(e, |rv| rv.binary(a, op![|], c))
+        .assign_place(f, |rv| rv.binary(e, op![&], d))
+        .ret(f);
+
+    builder.finish(0, TypeBuilder::synthetic(env).boolean())
+}
+
 /// Creates a larger CFG with multiple branches and join points for more realistic benchmarking.
 ///
 /// Structure:
@@ -242,133 +299,189 @@ fn create_complex_cfg<'heap>(env: &Environment<'heap>, interner: &Interner<'heap
     builder.finish(1, TypeBuilder::synthetic(env).integer())
 }
 
-fn run_fn(
-    iters: u64,
+#[expect(unsafe_code)]
+#[inline]
+fn run_bencher<T>(
+    bencher: &mut Bencher,
     body: for<'heap> fn(&Environment<'heap>, &Interner<'heap>) -> Body<'heap>,
-    mut func: impl for<'env, 'heap> FnMut(&mut MirContext<'env, 'heap>, &mut Body<'heap>),
-) -> Duration {
+    mut func: impl for<'env, 'heap> FnMut(&mut MirContext<'env, 'heap>, &mut Body<'heap>) -> T,
+) {
+    // NOTE: `heap` must not be moved or reassigned; `heap_ptr` assumes its address is stable
+    // for the entire duration of this function.
     let mut heap = Heap::new();
-    let mut total = Duration::ZERO;
+    let heap_ptr = &raw mut heap;
 
-    for _ in 0..iters {
-        heap.reset();
-        let env = Environment::new(&heap);
-        let interner = Interner::new(&heap);
-        let mut body = black_box(body(&env, &interner));
+    // Using `iter_custom` here would be better, but codspeed doesn't support it yet.
+    //
+    // IMPORTANT: `BatchSize::PerIteration` is critical for soundness. Do NOT change this to
+    // `SmallInput`, `LargeInput`, or any other batch size. Doing so will cause undefined
+    // behavior (use-after-free of arena allocations).
+    bencher.iter_batched_ref(
+        || {
+            // SAFETY: We create a `&mut Heap` from the raw pointer to call `reset()` and build
+            // the environment/interner/body. This is sound because:
+            // - `heap` outlives the entire `iter_batched` call (it's a local in the outer scope).
+            // - `BatchSize::PerIteration` ensures only one `(env, interner, body)` tuple exists at
+            //   a time, and it is dropped before the next `setup()` call.
+            // - No other references to `heap` exist during this closure's execution.
+            // - This code runs single-threaded.
+            let heap = unsafe { &mut *heap_ptr };
+            heap.reset();
 
-        let mut context = MirContext {
-            heap: &heap,
-            env: &env,
-            interner: &interner,
-            diagnostics: DiagnosticIssues::new(),
-        };
+            let env = Environment::new(heap);
+            let interner = Interner::new(heap);
+            let body = body(&env, &interner);
 
-        let start = Instant::now();
-        func(&mut context, &mut body);
-        total += start.elapsed();
+            (env, interner, body)
+        },
+        |(env, interner, body)| {
+            // SAFETY: We create a shared `&Heap` reference. This is sound because:
+            // - The `&mut Heap` from setup no longer exists (setup closure has returned)
+            // - The `env`, `interner`, and `body` already hold shared borrows of `heap`
+            // - Adding another `&Heap` is just shared-shared aliasing, which is allowed
+            let heap = unsafe { &*heap_ptr };
 
-        drop(black_box(body));
-    }
+            let mut context = MirContext {
+                heap,
+                env,
+                interner,
+                diagnostics: DiagnosticIssues::new(),
+            };
 
-    total
+            let value = func(black_box(&mut context), black_box(body));
+            (context.diagnostics, value)
+        },
+        BatchSize::PerIteration,
+    );
 }
 
+#[inline]
 fn run(
-    iters: u64,
+    bencher: &mut Bencher,
     body: for<'heap> fn(&Environment<'heap>, &Interner<'heap>) -> Body<'heap>,
     mut pass: impl for<'env, 'heap> TransformPass<'env, 'heap>,
-) -> Duration {
-    run_fn(
-        iters,
+) {
+    run_bencher(
+        bencher,
         body,
         #[inline]
         |context, body| pass.run(context, body),
-    )
+    );
 }
 
-#[criterion]
 fn cfg_simplify(criterion: &mut Criterion) {
     let mut group = criterion.benchmark_group("cfg_simplify");
 
     group.bench_function("linear", |bencher| {
-        bencher.iter_custom(|iters| run(iters, create_linear_cfg, CfgSimplify::new()));
+        run(bencher, create_linear_cfg, CfgSimplify::new());
     });
+
     group.bench_function("diamond", |bencher| {
-        bencher.iter_custom(|iters| run(iters, create_diamond_cfg, CfgSimplify::new()));
+        run(bencher, create_diamond_cfg, CfgSimplify::new());
     });
+
     group.bench_function("complex", |bencher| {
-        bencher.iter_custom(|iters| run(iters, create_complex_cfg, CfgSimplify::new()));
+        run(bencher, create_complex_cfg, CfgSimplify::new());
     });
 }
 
-#[criterion]
 fn sroa(criterion: &mut Criterion) {
     let mut group = criterion.benchmark_group("sroa");
 
     group.bench_function("linear", |bencher| {
-        bencher.iter_custom(|iters| run(iters, create_linear_cfg, Sroa::new()));
+        run(bencher, create_linear_cfg, Sroa::new());
     });
     group.bench_function("diamond", |bencher| {
-        bencher.iter_custom(|iters| run(iters, create_diamond_cfg, Sroa::new()));
+        run(bencher, create_diamond_cfg, Sroa::new());
     });
     group.bench_function("complex", |bencher| {
-        bencher.iter_custom(|iters| run(iters, create_complex_cfg, Sroa::new()));
+        run(bencher, create_complex_cfg, Sroa::new());
     });
 }
 
-#[criterion]
 fn dse(criterion: &mut Criterion) {
     let mut group = criterion.benchmark_group("dse");
 
     group.bench_function("dead stores", |bencher| {
-        bencher.iter_custom(|iters| run(iters, create_dead_store_cfg, DeadStoreElimination::new()));
+        run(bencher, create_dead_store_cfg, DeadStoreElimination::new());
     });
     group.bench_function("linear", |bencher| {
-        bencher.iter_custom(|iters| run(iters, create_linear_cfg, DeadStoreElimination::new()));
+        run(bencher, create_linear_cfg, DeadStoreElimination::new());
     });
     group.bench_function("diamond", |bencher| {
-        bencher.iter_custom(|iters| run(iters, create_diamond_cfg, DeadStoreElimination::new()));
+        run(bencher, create_diamond_cfg, DeadStoreElimination::new());
     });
     group.bench_function("complex", |bencher| {
-        bencher.iter_custom(|iters| run(iters, create_complex_cfg, DeadStoreElimination::new()));
+        run(bencher, create_complex_cfg, DeadStoreElimination::new());
     });
 }
 
-#[criterion]
+fn inst_simplify(criterion: &mut Criterion) {
+    let mut group = criterion.benchmark_group("inst_simplify");
+
+    group.bench_function("foldable", |bencher| {
+        run(bencher, create_inst_simplify_cfg, InstSimplify::new());
+    });
+    group.bench_function("linear", |bencher| {
+        run(bencher, create_linear_cfg, InstSimplify::new());
+    });
+    group.bench_function("diamond", |bencher| {
+        run(bencher, create_diamond_cfg, InstSimplify::new());
+    });
+    group.bench_function("complex", |bencher| {
+        run(bencher, create_complex_cfg, InstSimplify::new());
+    });
+}
+
 fn pipeline(criterion: &mut Criterion) {
     let mut group = criterion.benchmark_group("pipeline");
 
     group.bench_function("linear", |bencher| {
         let mut scratch = Scratch::new();
 
-        bencher.iter_custom(|iters| {
-            run_fn(iters, create_linear_cfg, |context, body| {
-                CfgSimplify::new_in(&mut scratch).run(context, body);
-                Sroa::new_in(&mut scratch).run(context, body);
-                DeadStoreElimination::new_in(&mut scratch).run(context, body);
-            })
+        run_bencher(bencher, create_linear_cfg, |context, body| {
+            let mut changed = CfgSimplify::new_in(&mut scratch).run(context, body);
+            changed = cmp::max(changed, Sroa::new_in(&mut scratch).run(context, body));
+            changed = cmp::max(changed, InstSimplify::new().run(context, body));
+            changed = cmp::max(
+                changed,
+                DeadStoreElimination::new_in(&mut scratch).run(context, body),
+            );
+
+            changed
         });
     });
     group.bench_function("diamond", |bencher| {
         let mut scratch = Scratch::new();
 
-        bencher.iter_custom(|iters| {
-            run_fn(iters, create_diamond_cfg, |context, body| {
-                CfgSimplify::new_in(&mut scratch).run(context, body);
-                Sroa::new_in(&mut scratch).run(context, body);
-                DeadStoreElimination::new_in(&mut scratch).run(context, body);
-            })
+        run_bencher(bencher, create_diamond_cfg, |context, body| {
+            let mut changed = CfgSimplify::new_in(&mut scratch).run(context, body);
+            changed = cmp::max(changed, Sroa::new_in(&mut scratch).run(context, body));
+            changed = cmp::max(changed, InstSimplify::new().run(context, body));
+            changed = cmp::max(
+                changed,
+                DeadStoreElimination::new_in(&mut scratch).run(context, body),
+            );
+
+            changed
         });
     });
     group.bench_function("complex", |bencher| {
         let mut scratch = Scratch::new();
 
-        bencher.iter_custom(|iters| {
-            run_fn(iters, create_complex_cfg, |context, body| {
-                CfgSimplify::new_in(&mut scratch).run(context, body);
-                Sroa::new_in(&mut scratch).run(context, body);
-                DeadStoreElimination::new_in(&mut scratch).run(context, body);
-            })
+        run_bencher(bencher, create_complex_cfg, |context, body| {
+            let mut changed = CfgSimplify::new_in(&mut scratch).run(context, body);
+            changed = cmp::max(changed, Sroa::new_in(&mut scratch).run(context, body));
+            changed = cmp::max(changed, InstSimplify::new().run(context, body));
+            changed = cmp::max(
+                changed,
+                DeadStoreElimination::new_in(&mut scratch).run(context, body),
+            );
+
+            changed
         });
     });
 }
+
+criterion_group!(benches, cfg_simplify, sroa, dse, inst_simplify, pipeline);
+criterion_main!(benches);

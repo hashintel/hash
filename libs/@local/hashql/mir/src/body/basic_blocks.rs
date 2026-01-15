@@ -341,6 +341,7 @@ impl graph::Successors for BasicBlocks<'_> {
     where
         Self: 'this;
 
+    #[inline]
     fn successors(&self, node: Self::NodeId) -> Self::SuccIter<'_> {
         self.blocks[node].terminator.kind.successor_blocks()
     }
@@ -348,7 +349,7 @@ impl graph::Successors for BasicBlocks<'_> {
 
 impl graph::Predecessors for BasicBlocks<'_> {
     type PredIter<'this>
-        = impl ExactSizeIterator<Item = BasicBlockId> + DoubleEndedIterator
+        = impl ExactSizeIterator<Item = BasicBlockId> + DoubleEndedIterator + Clone
     where
         Self: 'this;
 

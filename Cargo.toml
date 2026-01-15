@@ -119,6 +119,7 @@ circular-buffer                    = { version = "1.1.0", default-features = fal
 clap                               = { version = "4.5.51", features = ["color", "error-context", "help", "std", "suggestions", "usage"] }
 clap_builder                       = { version = "4.5.51", default-features = false, features = ["std"] }
 clap_complete                      = { version = "4.5.60", default-features = false }
+codspeed-criterion-compat          = { version = "4.1.0" }
 console_error_panic_hook           = { version = "0.1.7", default-features = false }
 convert_case                       = { version = "0.10.0", default-features = false }
 criterion                          = { version = "0.8.0" }
@@ -174,7 +175,7 @@ libp2p-swarm                       = { version = "0.47.0", default-features = fa
 libp2p-yamux                       = { version = "0.47.0", default-features = false }
 libtest-mimic                      = { version = "0.8.1", default-features = false }
 line-index                         = { version = "0.1.2", default-features = false }
-logos                              = { version = "0.15.1", default-features = false }
+logos                              = { version = "0.16.0", default-features = false }
 memchr                             = { version = "2.7.6", default-features = false }
 mimalloc                           = { version = "0.1.48", default-features = false }
 mime                               = { version = "0.3.17", default-features = false }

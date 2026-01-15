@@ -1,0 +1,25 @@
+---
+source: libs/@local/hashql/mir/src/pass/transform/inst_simplify/tests.rs
+expression: value
+---
+fn {intrinsic#4294967040}() -> Integer {
+    let %0: Integer
+
+    bb0(): {
+        %0 = 2 & 3
+
+        return %0
+    }
+}
+
+================== Changed: Yes ==================
+
+fn {intrinsic#4294967040}() -> Integer {
+    let %0: Integer
+
+    bb0(): {
+        %0 = 2
+
+        return %0
+    }
+}

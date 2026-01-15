@@ -28,6 +28,9 @@
     "build:types": {
       "dependsOn": ["^build:types"]
     },
+    "build:codspeed": {
+      "cache": false
+    },
     "compile": {
       "cache": false
     },
@@ -69,6 +72,9 @@
     "test:integration": {
       "dependsOn": ["codegen", "^start:test:healthcheck"],
       "env": ["TEST_COVERAGE"]
+    },
+    "test:codspeed": {
+      "cache": false
     },
     "test:miri": {},
     // Benchmarks
