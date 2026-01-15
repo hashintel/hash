@@ -3,6 +3,6 @@
     "silent": true,
     "autoJobCancelation": true
   },
-  "buildCommand": "turbo run build --filter=@hashintel/ds-helpers",
+  "buildCommand": "turbo run build",
   "outputDirectory": ".build/ladle"
 }
