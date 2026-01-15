@@ -9,16 +9,6 @@ import {
   initialEditorState,
 } from "./editor-context";
 
-export {
-  type BottomPanelTab,
-  type DraggingStateByNodeId,
-  type EditorActions,
-  EditorContext,
-  type EditorContextValue,
-  type EditorState,
-  type TimelineChartType,
-} from "./editor-context";
-
 export type EditorProviderProps = React.PropsWithChildren;
 
 export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {

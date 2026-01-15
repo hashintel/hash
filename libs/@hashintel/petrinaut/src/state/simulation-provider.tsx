@@ -17,14 +17,6 @@ import {
   type SimulationState,
 } from "./simulation-context";
 
-export {
-  type InitialMarking,
-  SimulationContext,
-  type SimulationContextValue,
-  type SimulationState,
-  useSimulationContext,
-} from "./simulation-context";
-
 type SimulationStateValues = {
   simulation: SimulationContextValue["simulation"];
   state: SimulationState;
@@ -47,8 +39,6 @@ const initialStateValues: SimulationStateValues = {
   dt: 0.01,
 };
 
-export type SimulationProviderProps = React.PropsWithChildren;
-
 /**
  * Internal component that subscribes to simulation state changes
  * and shows notifications when appropriate.
@@ -70,6 +60,8 @@ const SimulationStateNotifier: React.FC = () => {
 
   return null;
 };
+
+type SimulationProviderProps = React.PropsWithChildren;
 
 export const SimulationProvider: React.FC<SimulationProviderProps> = ({
   children,

@@ -1,4 +1,4 @@
-import { createContext, use } from "react";
+import { createContext } from "react";
 
 import type { SimulationInstance } from "../core/types/simulation";
 
@@ -27,6 +27,7 @@ export type SimulationContextValue = {
   initialMarking: InitialMarking;
   currentlyViewedFrame: number;
   dt: number;
+
   // Actions
   setInitialMarking: (
     placeId: string,
@@ -71,10 +72,3 @@ const DEFAULT_CONTEXT_VALUE: SimulationContextValue = {
 export const SimulationContext = createContext<SimulationContextValue>(
   DEFAULT_CONTEXT_VALUE,
 );
-
-/**
- * Hook to access the full simulation context.
- */
-export function useSimulationContext(): SimulationContextValue {
-  return use(SimulationContext);
-}

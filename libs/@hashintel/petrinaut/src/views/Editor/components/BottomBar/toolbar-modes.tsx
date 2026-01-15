@@ -1,8 +1,8 @@
 import { use } from "react";
 import { FaArrowPointer, FaCircle, FaHand, FaSquare } from "react-icons/fa6";
 
-import type { EditorState } from "../../../../state/editor-provider";
-import { SimulationContext } from "../../../../state/simulation-provider";
+import type { EditorState } from "../../../../state/editor-context";
+import { SimulationContext } from "../../../../state/simulation-context";
 import { ToolbarButton } from "./toolbar-button";
 
 type EditorMode = EditorState["globalMode"];

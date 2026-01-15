@@ -2,7 +2,7 @@ import { css, cva } from "@hashintel/ds-helpers/css";
 import { use, useEffect, useRef, useState } from "react";
 
 import type { Color } from "../../../../core/types/sdcpn";
-import { SimulationContext } from "../../../../state/simulation-provider";
+import { SimulationContext } from "../../../../state/simulation-context";
 
 const wrapperStyle = css({
   display: "flex",

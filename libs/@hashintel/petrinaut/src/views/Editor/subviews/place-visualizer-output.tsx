@@ -7,7 +7,7 @@ import {
   mergeParameterValues,
   useDefaultParameterValues,
 } from "../../../hooks/use-default-parameter-values";
-import { SimulationContext } from "../../../state/simulation-provider";
+import { SimulationContext } from "../../../state/simulation-context";
 import { usePlacePropertiesContext } from "../panels/PropertiesPanel/place-properties-context";
 import { VisualizerErrorBoundary } from "../panels/PropertiesPanel/visualizer-error-boundary";
 
