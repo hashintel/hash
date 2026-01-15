@@ -343,10 +343,18 @@ export const Outputs = ({
       ]),
     );
 
-    return persistedEntities.map((entity) => ({
-      entity,
-      operation: metadataByEntityId.get(entity.entityId) ?? "create",
-    }));
+    return persistedEntities.map((entity) => {
+      const operation = metadataByEntityId.get(entity.entityId);
+
+      if (!operation) {
+        throw new Error(`Operation not found for entity ${entity.entityId}`);
+      }
+
+      return {
+        entity,
+        operation,
+      };
+    });
   }, [persistedEntities, persistedEntitiesMetadata]);
 
   const [entityDisplay, setEntityDisplay] = useState<"table" | "graph">(
