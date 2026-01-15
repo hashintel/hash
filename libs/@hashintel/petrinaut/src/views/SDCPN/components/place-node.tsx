@@ -103,6 +103,7 @@ const tokenCountBadgeStyle = css({
   borderRadius: "[13px]",
   padding: "[0 6px]",
   fontWeight: "semibold",
+  fontVariantNumeric: "tabular-nums",
 });
 
 export const PlaceNode: React.FC<NodeProps<PlaceNodeData>> = ({
