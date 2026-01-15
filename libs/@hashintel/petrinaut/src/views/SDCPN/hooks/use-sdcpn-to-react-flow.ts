@@ -5,10 +5,7 @@ import type { SDCPN } from "../../../core/types/sdcpn";
 import { hexToHsl } from "../../../lib/hsl-color";
 import { EditorContext } from "../../../state/editor-context";
 import { generateArcId } from "../../../state/sdcpn-context";
-import type {
-  NodeType,
-  PetriNetDefinitionObject,
-} from "../../../state/types-for-editor-to-remove";
+import type { NodeType, PetriNetDefinitionObject } from "../reactflow-types";
 
 /**
  * Converts SDCPN state to ReactFlow format (nodes and edges), and combines

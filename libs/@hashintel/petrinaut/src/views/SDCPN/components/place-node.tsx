@@ -7,7 +7,7 @@ import { hexToHsl } from "../../../lib/hsl-color";
 import { splitPascalCase } from "../../../lib/split-pascal-case";
 import { EditorContext } from "../../../state/editor-context";
 import { SimulationContext } from "../../../state/simulation-context";
-import type { PlaceNodeData } from "../../../state/types-for-editor-to-remove";
+import type { PlaceNodeData } from "../reactflow-types";
 import { handleStyling } from "../styles/styling";
 
 const containerStyle = css({

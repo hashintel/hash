@@ -1,8 +1,8 @@
-import type { Edge, Node } from "reactflow";
+import type { Edge, Node, ReactFlowInstance } from "reactflow";
 
 //
-// These types are React-Flow specific, and should not appear in the global state.
-// Instead we should only use them in SDCPNView and related components/mappers.
+// Specific types for ReactFlow nodes, arcs, and instance.
+// Serve for mapping between Petrinaut Contexts and ReactFlow.
 //
 
 export type ArcData = {
@@ -44,3 +44,5 @@ export type PetriNetDefinitionObject = {
 export type NodeData = PlaceNodeData | TransitionNodeData;
 
 export type NodeType = Node<TransitionNodeData | PlaceNodeData>;
+
+export type PetrinautReactFlowInstance = ReactFlowInstance<NodeData, ArcData>;

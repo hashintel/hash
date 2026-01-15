@@ -13,12 +13,16 @@ import {
 import { EditorContext } from "../../state/editor-context";
 import { SDCPNContext } from "../../state/sdcpn-context";
 import { SimulationContext } from "../../state/simulation-context";
-import type { ArcData, NodeData } from "../../state/types-for-editor-to-remove";
 import { Arc } from "./components/arc";
 import { PlaceNode } from "./components/place-node";
 import { TransitionNode } from "./components/transition-node";
 import { useApplyNodeChanges } from "./hooks/use-apply-node-changes";
 import { useSdcpnToReactFlow } from "./hooks/use-sdcpn-to-react-flow";
+import type {
+  ArcData,
+  NodeData,
+  PetrinautReactFlowInstance,
+} from "./reactflow-types";
 import { nodeDimensions } from "./styles/styling";
 
 const SNAP_GRID_SIZE = 15;
@@ -47,10 +51,8 @@ const canvasContainerStyle = css({
  */
 export const SDCPNView: React.FC = () => {
   const canvasContainer = useRef<HTMLDivElement>(null);
-  const [reactFlowInstance, setReactFlowInstance] = useState<ReactFlowInstance<
-    NodeData,
-    ArcData
-  > | null>(null);
+  const [reactFlowInstance, setReactFlowInstance] =
+    useState<PetrinautReactFlowInstance | null>(null);
 
   // SDCPN store
   const {
