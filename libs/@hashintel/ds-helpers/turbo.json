@@ -14,6 +14,10 @@
       "cache": false,
       "dependsOn": ["^build"],
       "persistent": true
+    },
+    "test": {
+      "dependsOn": ["build"],
+      "outputs": ["playwright-report/**"]
     }
   }
 }
