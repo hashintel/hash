@@ -1,24 +1,25 @@
 {
-  "extends": "@tsconfig/strictest/tsconfig.json",
   "compilerOptions": {
-    "target": "esnext",
-    "jsx": "react-jsx",
-    "lib": ["es2023", "DOM"],
-    "moduleDetection": "force",
-    "module": "preserve",
-    "moduleResolution": "bundler",
-    "resolveJsonModule": true,
-    "types": [],
     "declaration": true,
     "emitDeclarationOnly": true,
+    "exactOptionalPropertyTypes": false,
+    "jsx": "react-jsx",
+    "lib": ["es2023", "DOM"],
+    "module": "preserve",
+    "moduleDetection": "force",
+    "moduleResolution": "bundler",
+    "resolveJsonModule": true,
+    "target": "esnext",
+    "types": [],
     "verbatimModuleSyntax": true
   },
-  "include": ["src", "tsdown.config.ts"],
   "exclude": [
     "node_modules",
     "dist",
     "**/*.test.*",
     "**/*.spec.*",
     ".storybook/**/*"
-  ]
+  ],
+  "extends": "@tsconfig/strictest/tsconfig.json",
+  "include": ["src", "tsdown.config.ts"]
 }

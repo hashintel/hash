@@ -8,6 +8,7 @@
     "module": "preserve",
     "moduleResolution": "bundler",
     "resolveJsonModule": true,
+    "exactOptionalPropertyTypes": false,
     "types": [],
     "declaration": true,
     "emitDeclarationOnly": true,
