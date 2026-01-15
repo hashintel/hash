@@ -8472,6 +8472,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@hashintel/ds-theme@workspace:libs/@hashintel/ds-theme"
   dependencies:
+    "@pandacss/dev": "npm:1.4.3"
     "@tsconfig/strictest": "npm:^2.0.8"
     "@types/node": "npm:22.18.13"
     case-anything: "npm:3.1.0"

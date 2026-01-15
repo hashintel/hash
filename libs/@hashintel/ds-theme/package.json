@@ -48,6 +48,7 @@
     "test:dev": "vitest dev"
   },
   "devDependencies": {
+    "@pandacss/dev": "1.4.3",
     "@tsconfig/strictest": "^2.0.8",
     "@types/node": "22.18.13",
     "case-anything": "3.1.0",
