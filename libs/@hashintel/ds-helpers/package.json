@@ -60,7 +60,7 @@
     "test:update": "ladle build && playwright test --update-snapshots"
   },
   "devDependencies": {
-    "@hashintel/ds-theme": "workspace:*",
+    "@hashintel/ds-theme": "0.0.1",
     "@ladle/react": "5.1.1",
     "@pandacss/dev": "1.4.3",
     "@playwright/test": "1.57.0",
