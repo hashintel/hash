@@ -1,6 +1,5 @@
+import { css, cva, cx } from "@hashintel/ds-helpers/css";
 import type { ReactNode } from "react";
-
-import { css, cva, cx } from "../../../styled-system/css";
 
 export interface ButtonProps
   extends Omit<React.ButtonHTMLAttributes<HTMLButtonElement>, "type"> {

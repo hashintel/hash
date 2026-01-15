@@ -1,6 +1,5 @@
 import { Checkbox as BaseCheckbox } from "@ark-ui/react/checkbox";
-
-import { css } from "../../../styled-system/css";
+import { css } from "@hashintel/ds-helpers/css";
 
 const CHECK_ICON = (
   <svg

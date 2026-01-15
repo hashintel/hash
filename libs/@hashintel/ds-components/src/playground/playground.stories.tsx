@@ -1,3 +1,4 @@
+import { css } from "@hashintel/ds-helpers/css";
 import { refractive } from "@hashintel/refractive";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import {
@@ -13,7 +14,6 @@ import {
 import { AnimatePresence, motion } from "motion/react";
 import { useState } from "react";
 
-import { css } from "../../styled-system/css";
 import { Button } from "../components/Button/button";
 import { SegmentedControl } from "../components/SegmentedControl/segmented-control";
 import { Slider } from "../components/Slider/slider";

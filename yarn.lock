@@ -8581,9 +8581,9 @@ __metadata:
   dependencies:
     "@ark-ui/react": "npm:5.26.2"
     "@figma/code-connect": "npm:1.3.11"
-    "@hashintel/ds-helpers": "npm:0.0.1"
-    "@hashintel/ds-theme": "npm:0.0.1"
-    "@hashintel/refractive": "npm:0.0.0"
+    "@hashintel/ds-helpers": "workspace:*"
+    "@hashintel/ds-theme": "workspace:*"
+    "@hashintel/refractive": "workspace:*"
     "@local/eslint": "npm:0.0.0-private"
     "@local/tsconfig": "npm:0.0.0-private"
     "@pandacss/dev": "npm:1.4.3"
@@ -8612,16 +8612,20 @@ __metadata:
     vitest: "npm:^4.0.16"
     vitest-browser-react: "npm:^2.0.2"
   peerDependencies:
+    "@ark-ui/react": ^5.26.2
+    "@hashintel/ds-helpers": "workspace:*"
+    "@hashintel/ds-theme": "workspace:*"
+    "@hashintel/refractive": "workspace:*"
     react: ^19.2.0
     react-dom: ^19.2.0
   languageName: unknown
   linkType: soft
 
-"@hashintel/ds-helpers@npm:0.0.1, @hashintel/ds-helpers@workspace:libs/@hashintel/ds-helpers":
+"@hashintel/ds-helpers@npm:0.0.1, @hashintel/ds-helpers@workspace:*, @hashintel/ds-helpers@workspace:libs/@hashintel/ds-helpers":
   version: 0.0.0-use.local
   resolution: "@hashintel/ds-helpers@workspace:libs/@hashintel/ds-helpers"
   dependencies:
-    "@hashintel/ds-theme": "npm:0.0.1"
+    "@hashintel/ds-theme": "workspace:*"
     "@ladle/react": "npm:5.1.1"
     "@pandacss/dev": "npm:1.4.3"
     "@playwright/test": "npm:1.57.0"
@@ -8645,7 +8649,7 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@hashintel/ds-theme@npm:0.0.1, @hashintel/ds-theme@workspace:libs/@hashintel/ds-theme":
+"@hashintel/ds-theme@workspace:*, @hashintel/ds-theme@workspace:libs/@hashintel/ds-theme":
   version: 0.0.0-use.local
   resolution: "@hashintel/ds-theme@workspace:libs/@hashintel/ds-theme"
   dependencies:
@@ -8774,7 +8778,7 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@hashintel/refractive@npm:0.0.0, @hashintel/refractive@workspace:libs/@hashintel/refractive":
+"@hashintel/refractive@npm:0.0.0, @hashintel/refractive@workspace:*, @hashintel/refractive@workspace:libs/@hashintel/refractive":
   version: 0.0.0-use.local
   resolution: "@hashintel/refractive@workspace:libs/@hashintel/refractive"
   dependencies:

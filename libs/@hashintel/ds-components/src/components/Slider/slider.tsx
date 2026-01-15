@@ -1,7 +1,6 @@
 import { Slider as BaseSlider } from "@ark-ui/react/slider";
+import { css, cx } from "@hashintel/ds-helpers/css";
 import { refractive } from "@hashintel/refractive";
-
-import { css, cx } from "../../../styled-system/css";
 
 const THUMB_WIDTH = 18;
 const THUMB_HEIGHT = 16;

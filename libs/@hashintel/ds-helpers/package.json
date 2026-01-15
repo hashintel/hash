@@ -57,12 +57,10 @@
     "preflight:ladle": "ladle build && ladle preview",
     "prepare": "yarn run codegen",
     "test": "ladle build && playwright test",
-    "test:update": "ladle build && playwright test --update-snapshots",
-    "turbo:build": "turbo run build --filter=@hashintel/ds-helpers",
-    "turbo:dev": "turbo run dev --filter=@hashintel/ds-helpers"
+    "test:update": "ladle build && playwright test --update-snapshots"
   },
   "devDependencies": {
-    "@hashintel/ds-theme": "0.0.1",
+    "@hashintel/ds-theme": "workspace:*",
     "@ladle/react": "5.1.1",
     "@pandacss/dev": "1.4.3",
     "@playwright/test": "1.57.0",

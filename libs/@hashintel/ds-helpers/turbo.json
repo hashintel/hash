@@ -7,7 +7,7 @@
       "outputs": [".build/ladle/**"]
     },
     "codegen": {
-      "dependsOn": ["^codegen"],
+      "dependsOn": ["^codegen", "@hashintel/ds-theme#build"],
       "outputs": ["styled-system/**"]
     },
     "dev": {
