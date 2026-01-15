@@ -1,23 +1,24 @@
 {
+  "$schema": "https://turborepo.org/schema.json",
   "extends": ["//"],
   "tasks": {
     "build": {
-      "outputs": ["./dist/**"],
-      "dependsOn": ["^build"]
+      "dependsOn": ["^build"],
+      "outputs": ["dist/**"]
     },
     "dev": {
       "cache": false,
-      "persistent": true,
-      "dependsOn": ["^build"]
+      "dependsOn": ["^build"],
+      "persistent": true
     },
     "storybook": {
       "cache": false,
-      "persistent": true,
-      "dependsOn": ["^build"]
+      "dependsOn": ["^build"],
+      "persistent": true
     },
     "storybook:build": {
-      "outputs": ["./storybook-static/**"],
-      "dependsOn": ["^build"]
+      "dependsOn": ["^build"],
+      "outputs": ["storybook-static/**"]
     }
   }
 }

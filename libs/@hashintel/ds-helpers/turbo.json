@@ -3,10 +3,17 @@
   "extends": ["//"],
   "tasks": {
     "build": {
-      "outputs": ["dist/**"]
+      "dependsOn": ["codegen", "^build"],
+      "outputs": ["dist/**", ".build/ladle/**"]
     },
-    "build:ladle": {
-      "outputs": [".build/ladle/**"]
+    "codegen": {
+      "dependsOn": ["^codegen"],
+      "outputs": ["styled-system/**"]
+    },
+    "dev": {
+      "cache": false,
+      "dependsOn": ["^build"],
+      "persistent": true
     }
   }
 }
