@@ -39,7 +39,9 @@
     "storybook": "storybook dev -p 6006",
     "storybook:build": "storybook build",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "turbo:build": "turbo run build --filter=@hashintel/ds-components",
+    "turbo:dev": "turbo run dev --filter=@hashintel/ds-components"
   },
   "dependencies": {
     "@ark-ui/react": "5.26.2",

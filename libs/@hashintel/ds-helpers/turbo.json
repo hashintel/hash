@@ -4,7 +4,7 @@
   "tasks": {
     "build": {
       "dependsOn": ["codegen", "^build"],
-      "outputs": ["dist/**", ".build/ladle/**"]
+      "outputs": [".build/ladle/**"]
     },
     "codegen": {
       "dependsOn": ["^codegen"],
