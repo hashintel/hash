@@ -175,7 +175,7 @@ libp2p-swarm                       = { version = "0.47.0", default-features = fa
 libp2p-yamux                       = { version = "0.47.0", default-features = false }
 libtest-mimic                      = { version = "0.8.1", default-features = false }
 line-index                         = { version = "0.1.2", default-features = false }
-logos                              = { version = "0.15.1", default-features = false }
+logos                              = { version = "0.16.0", default-features = false }
 memchr                             = { version = "2.7.6", default-features = false }
 mimalloc                           = { version = "0.1.48", default-features = false }
 mime                               = { version = "0.3.17", default-features = false }
