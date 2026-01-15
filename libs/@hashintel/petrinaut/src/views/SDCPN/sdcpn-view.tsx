@@ -57,7 +57,6 @@ export const SDCPNView: React.FC = () => {
   // SDCPN store
   const {
     petriNetId,
-    petriNetDefinition,
     addPlace,
     addTransition,
     addArc,
@@ -81,7 +80,7 @@ export const SDCPNView: React.FC = () => {
   const applyNodeChanges = useApplyNodeChanges();
 
   // Convert SDCPN to ReactFlow format with dragging state
-  const { nodes, arcs } = useSdcpnToReactFlow(petriNetDefinition);
+  const { nodes, arcs } = useSdcpnToReactFlow();
 
   // Center viewport on SDCPN load
   useEffect(() => {
