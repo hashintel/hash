@@ -6,6 +6,9 @@
       "dependsOn": ["^build"],
       "outputs": ["dist/**"]
     },
+    "lint:eslint": {
+      "dependsOn": []
+    },
     "dev": {
       "cache": false,
       "dependsOn": ["^build"],
