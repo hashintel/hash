@@ -21,7 +21,7 @@ export const ToolbarModes: React.FC<ToolbarModesProps> = ({
 
   return (
     <>
-      {isReadOnly && (
+      {!isReadOnly && (
         <>
           <ToolbarButton
             tooltip="Add Place (N)"
