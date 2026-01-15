@@ -34,9 +34,8 @@
   ],
   "scripts": {
     "build": "tsdown",
-    "codegen": "npm-run-all --continue-on-error codegen:colors codegen:tokens codegen:format",
+    "codegen": "npm-run-all --continue-on-error codegen:colors codegen:tokens fix:format",
     "codegen:colors": "tsx scripts/generate-colors.ts",
-    "codegen:format": "biome format --write src/theme/tokens src/theme/colors src/theme/tokens.ts src/theme/colors.ts",
     "codegen:tokens": "tsx scripts/generate-tokens.ts",
     "dev": "tsdown --watch",
     "fix": "npm-run-all --continue-on-error \"fix:*\"",
