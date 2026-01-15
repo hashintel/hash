@@ -1,9 +1,9 @@
 import { css } from "@hashintel/ds-helpers/css";
 import { refractive } from "@hashintel/refractive";
-import { useCallback, useEffect } from "react";
+import { use, useCallback, useEffect } from "react";
 import { FaChevronDown, FaChevronUp } from "react-icons/fa6";
 
-import { useCheckerContext } from "../../../../state/checker-provider";
+import { CheckerContext } from "../../../../state/checker-context";
 import type { EditorState } from "../../../../state/editor-provider";
 import { useEditorStore } from "../../../../state/editor-provider";
 import { DiagnosticsIndicator } from "./diagnostics-indicator";
@@ -67,7 +67,7 @@ export const BottomBar: React.FC<BottomBarProps> = ({
   );
   const bottomPanelHeight = useEditorStore((state) => state.bottomPanelHeight);
 
-  const { totalDiagnosticsCount } = useCheckerContext();
+  const { totalDiagnosticsCount } = use(CheckerContext);
   const hasDiagnostics = totalDiagnosticsCount > 0;
 
   const showDiagnostics = useCallback(() => {

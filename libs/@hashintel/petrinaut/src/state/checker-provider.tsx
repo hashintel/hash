@@ -4,12 +4,6 @@ import { checkSDCPN, type SDCPNCheckResult } from "../core/checker/checker";
 import { CheckerContext } from "./checker-context";
 import { useSDCPNContext } from "./sdcpn-context";
 
-export {
-  CheckerContextValue,
-  CheckResult,
-  useCheckerContext,
-} from "./checker-context";
-
 export const CheckerProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => {

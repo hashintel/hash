@@ -1,4 +1,4 @@
-import { createContext, use } from "react";
+import { createContext } from "react";
 
 import type { SDCPNCheckResult } from "../core/checker/checker";
 
@@ -11,14 +11,13 @@ export interface CheckerContextValue {
   totalDiagnosticsCount: number;
 }
 
-export const CheckerContext = createContext<CheckerContextValue | null>(null);
+const defaultContextValue: CheckerContextValue = {
+  checkResult: {
+    isValid: true,
+    itemDiagnostics: [],
+  },
+  totalDiagnosticsCount: 0,
+};
 
-export function useCheckerContext(): CheckerContextValue {
-  const context = use(CheckerContext);
-
-  if (!context) {
-    throw new Error("useCheckerContext must be used within CheckerProvider");
-  }
-
-  return context;
-}
+export const CheckerContext =
+  createContext<CheckerContextValue>(defaultContextValue);

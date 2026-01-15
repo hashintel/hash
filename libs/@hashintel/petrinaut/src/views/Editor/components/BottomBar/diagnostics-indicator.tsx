@@ -1,7 +1,8 @@
 import { css, cva } from "@hashintel/ds-helpers/css";
+import { use } from "react";
 import { FaCheck, FaXmark } from "react-icons/fa6";
 
-import { useCheckerContext } from "../../../../state/checker-provider";
+import { CheckerContext } from "../../../../state/checker-context";
 import { ToolbarButton } from "./toolbar-button";
 
 const iconContainerStyle = cva({
@@ -46,7 +47,7 @@ export const DiagnosticsIndicator: React.FC<DiagnosticsIndicatorProps> = ({
   onClick,
   isExpanded,
 }) => {
-  const { totalDiagnosticsCount } = useCheckerContext();
+  const { totalDiagnosticsCount } = use(CheckerContext);
 
   const hasErrors = totalDiagnosticsCount > 0;
 
