@@ -1,4 +1,3 @@
-/* eslint-disable react/jsx-no-constructed-context-values */
 import { createContext, type ReactNode, use } from "react";
 
 import type { Color, Place } from "../../../../core/types/sdcpn";

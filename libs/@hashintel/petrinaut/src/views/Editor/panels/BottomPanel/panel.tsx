@@ -1,5 +1,5 @@
 import { css } from "@hashintel/ds-helpers/css";
-import { useCallback, useEffect, useRef } from "react";
+import { use, useCallback, useEffect, useRef } from "react";
 import { FaXmark } from "react-icons/fa6";
 
 import { GlassPanel } from "../../../../components/glass-panel";
@@ -15,8 +15,6 @@ import {
   PANEL_MARGIN,
   SIMULATION_ONLY_SUBVIEWS,
 } from "../../../../constants/ui";
-import { use } from "react";
-
 import {
   type BottomPanelTab,
   EditorContext,

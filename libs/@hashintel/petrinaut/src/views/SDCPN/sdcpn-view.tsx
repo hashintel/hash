@@ -1,7 +1,7 @@
 import "reactflow/dist/style.css";
 
 import { css } from "@hashintel/ds-helpers/css";
-import { useEffect, useRef, useState } from "react";
+import { use, useEffect, useRef, useState } from "react";
 import type { Connection, Node, ReactFlowInstance } from "reactflow";
 import ReactFlow, { Background, ConnectionLineType } from "reactflow";
 import { v4 as generateUuid } from "uuid";
@@ -10,8 +10,6 @@ import {
   DEFAULT_TRANSITION_KERNEL_CODE,
   generateDefaultLambdaCode,
 } from "../../core/default-codes";
-import { use } from "react";
-
 import { EditorContext } from "../../state/editor-context";
 import { SDCPNContext } from "../../state/sdcpn-context";
 import { SimulationContext } from "../../state/simulation-context";
