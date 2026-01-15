@@ -45,7 +45,7 @@ export type SimulationContextValue = {
   __reinitialize: () => void;
 };
 
-const defaultContextValue: SimulationContextValue = {
+const DEFAULT_CONTEXT_VALUE: SimulationContextValue = {
   simulation: null,
   state: "NotRun",
   error: null,
@@ -68,8 +68,9 @@ const defaultContextValue: SimulationContextValue = {
   __reinitialize: () => {},
 };
 
-export const SimulationContext =
-  createContext<SimulationContextValue>(defaultContextValue);
+export const SimulationContext = createContext<SimulationContextValue>(
+  DEFAULT_CONTEXT_VALUE,
+);
 
 /**
  * Hook to access the full simulation context.

@@ -11,7 +11,7 @@ export interface CheckerContextValue {
   totalDiagnosticsCount: number;
 }
 
-const defaultContextValue: CheckerContextValue = {
+const DEFAULT_CONTEXT_VALUE: CheckerContextValue = {
   checkResult: {
     isValid: true,
     itemDiagnostics: [],
@@ -19,5 +19,6 @@ const defaultContextValue: CheckerContextValue = {
   totalDiagnosticsCount: 0,
 };
 
-export const CheckerContext =
-  createContext<CheckerContextValue>(defaultContextValue);
+export const CheckerContext = createContext<CheckerContextValue>(
+  DEFAULT_CONTEXT_VALUE,
+);

@@ -82,7 +82,7 @@ export const initialEditorState: EditorState = {
   timelineChartType: "run",
 };
 
-const defaultContextValue: EditorContextValue = {
+const DEFAULT_CONTEXT_VALUE: EditorContextValue = {
   ...initialEditorState,
   setGlobalMode: () => {},
   setEditionMode: () => {},
@@ -105,5 +105,6 @@ const defaultContextValue: EditorContextValue = {
   __reinitialize: () => {},
 };
 
-export const EditorContext =
-  createContext<EditorContextValue>(defaultContextValue);
+export const EditorContext = createContext<EditorContextValue>(
+  DEFAULT_CONTEXT_VALUE,
+);

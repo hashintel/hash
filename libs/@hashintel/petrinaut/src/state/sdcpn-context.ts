@@ -107,7 +107,7 @@ export const generateArcId = ({
 
 export type SDCPNContextValue = SDCPNProviderProps & MutationHelperFunctions;
 
-const defaultContextValue: SDCPNContextValue = {
+const DEFAULT_CONTEXT_VALUE: SDCPNContextValue = {
   createNewNet: () => {},
   existingNets: [],
   loadPetriNet: () => {},
@@ -148,5 +148,6 @@ const defaultContextValue: SDCPNContextValue = {
   layoutGraph: async () => {},
 };
 
-export const SDCPNContext =
-  createContext<SDCPNContextValue>(defaultContextValue);
+export const SDCPNContext = createContext<SDCPNContextValue>(
+  DEFAULT_CONTEXT_VALUE,
+);
