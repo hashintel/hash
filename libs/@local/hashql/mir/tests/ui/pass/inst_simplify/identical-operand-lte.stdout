@@ -1,0 +1,41 @@
+════ Initial MIR ═══════════════════════════════════════════════════════════════
+
+*thunk {thunk#2}() -> Boolean {
+    let %0: Boolean
+    let %1: Integer
+    let %2: Boolean
+
+    bb0(): {
+        switchInt(1) -> [0: bb2(), 1: bb1()]
+    }
+
+    bb1(): {
+        %1 = 42
+        %2 = %1 <= %1
+
+        goto -> bb3(%2)
+    }
+
+    bb2(): {
+        goto -> bb3(0)
+    }
+
+    bb3(%0): {
+        return %0
+    }
+}
+════ MIR after InstSimplify ════════════════════════════════════════════════════
+
+*thunk {thunk#2}() -> Boolean {
+    let %0: Boolean
+    let %1: Integer
+    let %2: Boolean
+
+    bb0(): {
+        %1 = 42
+        %2 = 1
+        %0 = %2
+
+        return %2
+    }
+}

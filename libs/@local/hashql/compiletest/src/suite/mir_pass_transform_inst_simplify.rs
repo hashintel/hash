@@ -11,12 +11,12 @@ use hashql_mir::{
     context::MirContext,
     def::{DefId, DefIdSlice, DefIdVec},
     intern::Interner,
-    pass::{TransformPass as _, transform::DeadStoreElimination},
+    pass::{TransformPass as _, transform::InstSimplify},
 };
 
 use super::{
     RunContext, Suite, SuiteDiagnostic, common::process_issues,
-    mir_pass_transform_inst_simplify::mir_pass_transform_inst_simplify,
+    mir_pass_transform_sroa::mir_pass_transform_sroa,
 };
 use crate::suite::{
     common::Header,
@@ -24,7 +24,7 @@ use crate::suite::{
     mir_reify::{d2_output_enabled, mir_format_d2, mir_format_text, mir_spawn_d2},
 };
 
-pub(crate) fn mir_pass_transform_dse<'heap>(
+pub(crate) fn mir_pass_transform_inst_simplify<'heap>(
     heap: &'heap Heap,
     expr: Expr<'heap>,
     interner: &Interner<'heap>,
@@ -33,7 +33,7 @@ pub(crate) fn mir_pass_transform_dse<'heap>(
     diagnostics: &mut Vec<SuiteDiagnostic>,
 ) -> Result<(DefId, DefIdVec<Body<'heap>>, Scratch), SuiteDiagnostic> {
     let (root, mut bodies, mut scratch) =
-        mir_pass_transform_inst_simplify(heap, expr, interner, render, environment, diagnostics)?;
+        mir_pass_transform_sroa(heap, expr, interner, render, environment, diagnostics)?;
 
     let mut context = MirContext {
         heap,
@@ -42,8 +42,7 @@ pub(crate) fn mir_pass_transform_dse<'heap>(
         diagnostics: DiagnosticIssues::new(),
     };
 
-    // CFG -> SROA -> Inst -> DSE
-    let mut pass = DeadStoreElimination::new_in(&mut scratch);
+    let mut pass = InstSimplify::new_in(&mut scratch);
     for body in bodies.as_mut_slice() {
         pass.run(&mut context, body);
     }
@@ -52,19 +51,19 @@ pub(crate) fn mir_pass_transform_dse<'heap>(
     Ok((root, bodies, scratch))
 }
 
-pub(crate) struct MirPassTransformDse;
+pub(crate) struct MirPassTransformInstSimplify;
 
-impl Suite for MirPassTransformDse {
+impl Suite for MirPassTransformInstSimplify {
     fn priority(&self) -> usize {
         1
     }
 
     fn name(&self) -> &'static str {
-        "mir/pass/transform/dse"
+        "mir/pass/transform/inst-simplify"
     }
 
     fn description(&self) -> &'static str {
-        "Dead Store Elimination in the MIR"
+        "Instruction Simplification in the MIR"
     }
 
     fn secondary_file_extensions(&self) -> &[&str] {
@@ -89,7 +88,7 @@ impl Suite for MirPassTransformDse {
         let mut buffer = Vec::new();
         let mut d2 = d2_output_enabled(self, suite_directives, reports).then(mir_spawn_d2);
 
-        let (root, bodies, _) = mir_pass_transform_dse(
+        let (root, bodies, _) = mir_pass_transform_inst_simplify(
             heap,
             expr,
             &interner,
@@ -101,11 +100,11 @@ impl Suite for MirPassTransformDse {
             diagnostics,
         )?;
 
-        let _ = writeln!(buffer, "\n{}\n", Header::new("MIR after DSE"));
+        let _ = writeln!(buffer, "\n{}\n", Header::new("MIR after InstSimplify"));
         mir_format_text(heap, &environment, &mut buffer, root, &bodies);
 
         if let Some((mut writer, handle)) = d2 {
-            writeln!(writer, "final: 'MIR after DSE' {{")
+            writeln!(writer, "final: 'MIR after InstSimplify' {{")
                 .expect("should be able to write to buffer");
             mir_format_d2(heap, &environment, &mut writer, root, &bodies);
             writeln!(writer, "}}").expect("should be able to write to buffer");

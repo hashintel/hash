@@ -1,0 +1,8 @@
+//@ run: pass
+//@ description: Identical operand simplification: x > x => false (irreflexive)
+[
+  "if",
+  { "#literal": true },
+  ["let", "x", { "#literal": 42 }, [">", "x", "x"]],
+  { "#literal": true }
+]
