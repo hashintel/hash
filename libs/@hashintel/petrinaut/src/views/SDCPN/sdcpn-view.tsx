@@ -43,7 +43,7 @@ const canvasContainerStyle = css({
 
 /**
  * SDCPNView is responsible for rendering the SDCPN using ReactFlow.
- * It reads from sdcpn-store and editor-store, and handles all ReactFlow interactions.
+ * It reads from SDCPNContext and EditorContext, and handles all ReactFlow interactions.
  */
 export const SDCPNView: React.FC = () => {
   const canvasContainer = useRef<HTMLDivElement>(null);
@@ -63,13 +63,6 @@ export const SDCPNView: React.FC = () => {
     readonly,
   } = use(SDCPNContext);
 
-  // Hook for applying node changes
-  const applyNodeChanges = useApplyNodeChanges();
-
-  // Convert SDCPN to ReactFlow format with dragging state
-  const { nodes, arcs } = useSdcpnToReactFlow(petriNetDefinition);
-
-  // Editor state
   const {
     globalMode: mode,
     editionMode,
@@ -82,11 +75,15 @@ export const SDCPNView: React.FC = () => {
 
   const { state: simulationState } = use(SimulationContext);
 
+  // Hook for applying node changes
+  const applyNodeChanges = useApplyNodeChanges();
+
+  // Convert SDCPN to ReactFlow format with dragging state
+  const { nodes, arcs } = useSdcpnToReactFlow(petriNetDefinition);
+
   // Center viewport on SDCPN load
   useEffect(() => {
-    if (reactFlowInstance) {
-      reactFlowInstance.fitView({ padding: 0.4, minZoom: 0.4, maxZoom: 1.1 });
-    }
+    reactFlowInstance?.fitView({ padding: 0.4, minZoom: 0.4, maxZoom: 1.1 });
   }, [reactFlowInstance, petriNetId]);
 
   // Readonly if in simulate mode, simulation is running/paused, or readonly has been provided by external consumer.
