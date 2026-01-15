@@ -26,8 +26,8 @@ import type {
   Place,
 } from "../../../../core/types/sdcpn";
 import { useEditorStore } from "../../../../state/editor-provider";
-import { useSDCPNContext } from "../../../../state/sdcpn-provider";
-import { SimulationContext } from "../../../../state/simulation-provider";
+import { SDCPNContext } from "../../../../state/sdcpn-context";
+import { SimulationContext } from "../../../../state/simulation-context";
 import { useIsReadOnly } from "../../../../state/use-is-read-only";
 import { placeInitialStateSubView } from "../../subviews/place-initial-state";
 import { placeVisualizerOutputSubView } from "../../subviews/place-visualizer-output";
@@ -277,7 +277,7 @@ export const PlaceProperties: React.FC<PlacePropertiesProps> = ({
   const {
     petriNetDefinition: { types: availableTypes },
     removePlace,
-  } = useSDCPNContext();
+  } = use(SDCPNContext);
 
   // Get the place type for context
   const placeType = place.colorId

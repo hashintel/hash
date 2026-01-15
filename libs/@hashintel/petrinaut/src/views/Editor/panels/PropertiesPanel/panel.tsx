@@ -1,5 +1,5 @@
 import { css } from "@hashintel/ds-helpers/css";
-import { useCallback, useEffect, useState } from "react";
+import { use, useCallback, useEffect, useState } from "react";
 
 import { GlassPanel } from "../../../../components/glass-panel";
 import {
@@ -9,7 +9,7 @@ import {
   PANEL_MARGIN,
 } from "../../../../constants/ui";
 import { useEditorStore } from "../../../../state/editor-provider";
-import { useSDCPNContext } from "../../../../state/sdcpn-provider";
+import { SDCPNContext } from "../../../../state/sdcpn-context";
 import { DifferentialEquationProperties } from "./differential-equation-properties";
 import { ParameterProperties } from "./parameter-properties";
 import { PlaceProperties } from "./place-properties";
@@ -56,7 +56,7 @@ export const PropertiesPanel: React.FC = () => {
     updateType,
     updateDifferentialEquation,
     updateParameter,
-  } = useSDCPNContext();
+  } = use(SDCPNContext);
 
   const [panelWidth, setPanelWidthLocal] = useState(
     DEFAULT_PROPERTIES_PANEL_WIDTH,

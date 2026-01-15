@@ -1,6 +1,6 @@
 import { loader } from "@monaco-editor/react";
 import type * as Monaco from "monaco-editor";
-import { useEffect, useState } from "react";
+import { use, useEffect, useState } from "react";
 
 import type {
   Color,
@@ -10,7 +10,7 @@ import type {
   Transition,
 } from "../core/types/sdcpn";
 import { useEditorStore } from "../state/editor-provider";
-import { useSDCPNContext } from "../state/sdcpn-provider";
+import { SDCPNContext } from "../state/sdcpn-context";
 
 interface ReactTypeDefinitions {
   react: string;
@@ -301,7 +301,7 @@ export function useMonacoGlobalTypings() {
       places,
       differentialEquations,
     },
-  } = useSDCPNContext();
+  } = use(SDCPNContext);
 
   const currentlySelectedItemId = useEditorStore(
     (state) => state.selectedResourceId,

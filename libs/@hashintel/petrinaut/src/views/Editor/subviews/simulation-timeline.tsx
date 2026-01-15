@@ -6,8 +6,8 @@ import { SegmentGroup } from "../../../components/segment-group";
 import type { SubView } from "../../../components/sub-view/types";
 import type { TimelineChartType } from "../../../state/editor-provider";
 import { useEditorStore } from "../../../state/editor-provider";
-import { useSDCPNContext } from "../../../state/sdcpn-provider";
-import { SimulationContext } from "../../../state/simulation-provider";
+import { SDCPNContext } from "../../../state/sdcpn-context";
+import { SimulationContext } from "../../../state/simulation-context";
 
 const containerStyle = css({
   display: "flex",
@@ -211,7 +211,7 @@ const useCompartmentData = (): CompartmentData[] => {
   const { simulation } = use(SimulationContext);
   const {
     petriNetDefinition: { places, types },
-  } = useSDCPNContext();
+  } = use(SDCPNContext);
 
   return useMemo((): CompartmentData[] => {
     if (!simulation || simulation.frames.length === 0) {

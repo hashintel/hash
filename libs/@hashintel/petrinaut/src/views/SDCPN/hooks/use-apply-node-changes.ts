@@ -1,7 +1,8 @@
+import { use } from "react";
 import type { EdgeChange, NodeChange } from "reactflow";
 
 import { useEditorStore } from "../../../state/editor-provider";
-import { useSDCPNContext } from "../../../state/sdcpn-provider";
+import { SDCPNContext } from "../../../state/sdcpn-context";
 
 /**
  * A hook that provides a callback to apply ReactFlow node changes to the SDCPN store.
@@ -10,7 +11,7 @@ import { useSDCPNContext } from "../../../state/sdcpn-provider";
  * @see https://github.com/xyflow/xyflow/blob/04055c9625cbd92cf83a2f4c340d6fae5199bfa3/packages/react/src/utils/changes.ts#L107
  */
 export function useApplyNodeChanges() {
-  const { getItemType } = useSDCPNContext();
+  const { getItemType } = use(SDCPNContext);
 
   const draggingStateByNodeId = useEditorStore(
     (state) => state.draggingStateByNodeId,
@@ -22,7 +23,7 @@ export function useApplyNodeChanges() {
     (state) => state.setSelectedItemIds,
   );
   const selectedItemIds = useEditorStore((state) => state.selectedItemIds);
-  const { updatePlacePosition, updateTransitionPosition } = useSDCPNContext();
+  const { updatePlacePosition, updateTransitionPosition } = use(SDCPNContext);
 
   return (changes: (NodeChange | EdgeChange)[]) => {
     const positionUpdates: Array<{

@@ -1,4 +1,4 @@
-import { createContext, use } from "react";
+import { createContext } from "react";
 
 import type {
   Color,
@@ -107,14 +107,46 @@ export const generateArcId = ({
 
 export type SDCPNContextValue = SDCPNProviderProps & MutationHelperFunctions;
 
-export const SDCPNContext = createContext<SDCPNContextValue | null>(null);
+const defaultContextValue: SDCPNContextValue = {
+  createNewNet: () => {},
+  existingNets: [],
+  loadPetriNet: () => {},
+  petriNetId: null,
+  petriNetDefinition: {
+    places: [],
+    transitions: [],
+    types: [],
+    differentialEquations: [],
+    parameters: [],
+  },
+  readonly: true,
+  mutatePetriNetDefinition: () => {},
+  setTitle: () => {},
+  title: "",
+  addPlace: () => {},
+  updatePlace: () => {},
+  updatePlacePosition: () => {},
+  removePlace: () => {},
+  addTransition: () => {},
+  updateTransition: () => {},
+  updateTransitionPosition: () => {},
+  removeTransition: () => {},
+  addArc: () => {},
+  removeArc: () => {},
+  updateArcWeight: () => {},
+  addType: () => {},
+  updateType: () => {},
+  removeType: () => {},
+  addDifferentialEquation: () => {},
+  updateDifferentialEquation: () => {},
+  removeDifferentialEquation: () => {},
+  addParameter: () => {},
+  updateParameter: () => {},
+  removeParameter: () => {},
+  getItemType: () => null,
+  deleteItemsByIds: () => {},
+  layoutGraph: async () => {},
+};
 
-export function useSDCPNContext(): SDCPNContextValue {
-  const context = use(SDCPNContext);
-
-  if (!context) {
-    throw new Error("useSDCPNContext must be used within SDCPNProvider");
-  }
-
-  return context;
-}
+export const SDCPNContext =
+  createContext<SDCPNContextValue>(defaultContextValue);

@@ -13,8 +13,8 @@ import {
 import { use } from "react";
 
 import { useEditorStore } from "../../state/editor-provider";
-import { useSDCPNContext } from "../../state/sdcpn-provider";
-import { SimulationContext } from "../../state/simulation-provider";
+import { SDCPNContext } from "../../state/sdcpn-context";
+import { SimulationContext } from "../../state/simulation-context";
 import type { ArcData, NodeData } from "../../state/types-for-editor-to-remove";
 import { Arc } from "./components/arc";
 import { PlaceNode } from "./components/place-node";
@@ -63,7 +63,7 @@ export const SDCPNView: React.FC = () => {
     addArc,
     deleteItemsByIds,
     readonly,
-  } = useSDCPNContext();
+  } = use(SDCPNContext);
 
   // Hook for applying node changes
   const applyNodeChanges = useApplyNodeChanges();

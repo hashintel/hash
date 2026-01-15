@@ -4,8 +4,8 @@ import { v4 as uuidv4 } from "uuid";
 
 import type { SubView } from "../../../components/sub-view/types";
 import { useEditorStore } from "../../../state/editor-provider";
-import { useSDCPNContext } from "../../../state/sdcpn-provider";
-import { SimulationContext } from "../../../state/simulation-provider";
+import { SDCPNContext } from "../../../state/sdcpn-context";
+import { SimulationContext } from "../../../state/simulation-context";
 
 const addButtonStyle = css({
   display: "flex",
@@ -137,7 +137,7 @@ const ParametersHeaderAction: React.FC = () => {
   const {
     petriNetDefinition: { parameters },
     addParameter,
-  } = useSDCPNContext();
+  } = use(SDCPNContext);
   const globalMode = useEditorStore((state) => state.globalMode);
   const { state: simulationState } = use(SimulationContext);
   const setSelectedResourceId = useEditorStore(
@@ -186,7 +186,7 @@ const ParametersList: React.FC = () => {
   const {
     petriNetDefinition: { parameters },
     removeParameter,
-  } = useSDCPNContext();
+  } = use(SDCPNContext);
   const globalMode = useEditorStore((state) => state.globalMode);
   const {
     state: simulationState,

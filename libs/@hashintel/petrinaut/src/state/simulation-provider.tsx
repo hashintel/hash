@@ -9,7 +9,7 @@ import { computeNextFrame } from "../core/simulation/compute-next-frame";
 import type { SDCPN } from "../core/types/sdcpn";
 import { deriveDefaultParameterValues } from "../hooks/use-default-parameter-values";
 import { useNotifications } from "../notifications/notifications-context";
-import { useSDCPNContext } from "./sdcpn-context";
+import { SDCPNContext } from "./sdcpn-context";
 import {
   type InitialMarking,
   SimulationContext,
@@ -74,7 +74,7 @@ const SimulationStateNotifier: React.FC = () => {
 export const SimulationProvider: React.FC<SimulationProviderProps> = ({
   children,
 }) => {
-  const sdcpnContext = useSDCPNContext();
+  const sdcpnContext = use(SDCPNContext);
   const { petriNetId, petriNetDefinition } = sdcpnContext;
 
   const sdcpnRef = useRef<SDCPN>(petriNetDefinition);

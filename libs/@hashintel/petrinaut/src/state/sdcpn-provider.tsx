@@ -12,7 +12,6 @@ export {
   SDCPNContext,
   SDCPNContextValue,
   SDCPNProviderProps,
-  useSDCPNContext,
 } from "./sdcpn-context";
 
 export const SDCPNProvider: React.FC<SDCPNProviderProps> = ({

@@ -5,8 +5,8 @@ import { v4 as uuidv4 } from "uuid";
 import type { SubView } from "../../../components/sub-view/types";
 import { DEFAULT_DIFFERENTIAL_EQUATION_CODE } from "../../../core/default-codes";
 import { useEditorStore } from "../../../state/editor-provider";
-import { useSDCPNContext } from "../../../state/sdcpn-provider";
-import { SimulationContext } from "../../../state/simulation-provider";
+import { SDCPNContext } from "../../../state/sdcpn-context";
+import { SimulationContext } from "../../../state/simulation-context";
 
 const listContainerStyle = css({
   display: "flex",
@@ -116,7 +116,7 @@ const DifferentialEquationsSectionContent: React.FC = () => {
   const {
     petriNetDefinition: { differentialEquations },
     removeDifferentialEquation,
-  } = useSDCPNContext();
+  } = use(SDCPNContext);
 
   const selectedResourceId = useEditorStore(
     (state) => state.selectedResourceId,
@@ -195,7 +195,7 @@ const DifferentialEquationsSectionHeaderAction: React.FC = () => {
   const {
     petriNetDefinition: { types, differentialEquations },
     addDifferentialEquation,
-  } = useSDCPNContext();
+  } = use(SDCPNContext);
   const setSelectedResourceId = useEditorStore(
     (state) => state.setSelectedResourceId,
   );

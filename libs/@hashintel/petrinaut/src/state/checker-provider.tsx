@@ -1,13 +1,13 @@
-import { useEffect, useState } from "react";
+import { use, useEffect, useState } from "react";
 
 import { checkSDCPN, type SDCPNCheckResult } from "../core/checker/checker";
 import { CheckerContext } from "./checker-context";
-import { useSDCPNContext } from "./sdcpn-context";
+import { SDCPNContext } from "./sdcpn-context";
 
 export const CheckerProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
-  const { petriNetDefinition } = useSDCPNContext();
+  const { petriNetDefinition } = use(SDCPNContext);
 
   const [checkResult, setCheckResult] = useState<SDCPNCheckResult>(() =>
     checkSDCPN(petriNetDefinition),

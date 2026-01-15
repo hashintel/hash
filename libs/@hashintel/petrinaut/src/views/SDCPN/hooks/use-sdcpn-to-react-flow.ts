@@ -3,7 +3,7 @@ import { MarkerType } from "reactflow";
 import type { SDCPN } from "../../../core/types/sdcpn";
 import { hexToHsl } from "../../../lib/hsl-color";
 import { useEditorStore } from "../../../state/editor-provider";
-import { generateArcId } from "../../../state/sdcpn-provider";
+import { generateArcId } from "../../../state/sdcpn-context";
 import type {
   NodeType,
   PetriNetDefinitionObject,

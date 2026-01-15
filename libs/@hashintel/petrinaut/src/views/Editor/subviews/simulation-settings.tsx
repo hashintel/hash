@@ -5,8 +5,8 @@ import { TbArrowRight } from "react-icons/tb";
 import type { SubView } from "../../../components/sub-view/types";
 import { InfoIconTooltip } from "../../../components/tooltip";
 import { useEditorStore } from "../../../state/editor-provider";
-import { useSDCPNContext } from "../../../state/sdcpn-provider";
-import { SimulationContext } from "../../../state/simulation-provider";
+import { SDCPNContext } from "../../../state/sdcpn-context";
+import { SimulationContext } from "../../../state/simulation-context";
 
 const containerStyle = css({
   display: "flex",
@@ -207,7 +207,7 @@ const SimulationSettingsContent: React.FC = () => {
 
   const {
     petriNetDefinition: { parameters },
-  } = useSDCPNContext();
+  } = use(SDCPNContext);
 
   // Local state for ODE solver (not used in simulation yet, but UI is ready)
   const [odeSolver, setOdeSolver] = useState("euler");

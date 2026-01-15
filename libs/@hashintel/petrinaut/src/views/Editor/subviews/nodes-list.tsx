@@ -1,9 +1,10 @@
 import { css, cva } from "@hashintel/ds-helpers/css";
+import { use } from "react";
 import { FaCircle, FaSquare } from "react-icons/fa6";
 
 import type { SubView } from "../../../components/sub-view/types";
 import { useEditorStore } from "../../../state/editor-provider";
-import { useSDCPNContext } from "../../../state/sdcpn-provider";
+import { SDCPNContext } from "../../../state/sdcpn-context";
 
 const listContainerStyle = css({
   display: "flex",
@@ -90,7 +91,7 @@ const emptyMessageStyle = css({
 const NodesSectionContent: React.FC = () => {
   const {
     petriNetDefinition: { places, transitions },
-  } = useSDCPNContext();
+  } = use(SDCPNContext);
   const selectedResourceId = useEditorStore(
     (state) => state.selectedResourceId,
   );

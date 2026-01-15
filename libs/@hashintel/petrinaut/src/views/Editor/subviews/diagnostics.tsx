@@ -6,7 +6,7 @@ import ts from "typescript";
 import type { SubView } from "../../../components/sub-view/types";
 import { CheckerContext } from "../../../state/checker-context";
 import { useEditorStore } from "../../../state/editor-provider";
-import { useSDCPNContext } from "../../../state/sdcpn-provider";
+import { SDCPNContext } from "../../../state/sdcpn-context";
 
 const emptyMessageStyle = css({
   color: "gray.50",
@@ -128,7 +128,7 @@ interface GroupedDiagnostics {
  */
 const DiagnosticsContent: React.FC = () => {
   const { checkResult, totalDiagnosticsCount } = use(CheckerContext);
-  const { petriNetDefinition } = useSDCPNContext();
+  const { petriNetDefinition } = use(SDCPNContext);
   const setSelectedResourceId = useEditorStore(
     (state) => state.setSelectedResourceId,
   );

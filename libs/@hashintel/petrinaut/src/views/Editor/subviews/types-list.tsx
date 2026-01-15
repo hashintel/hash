@@ -3,8 +3,8 @@ import { use } from "react";
 
 import type { SubView } from "../../../components/sub-view/types";
 import { useEditorStore } from "../../../state/editor-provider";
-import { useSDCPNContext } from "../../../state/sdcpn-provider";
-import { SimulationContext } from "../../../state/simulation-provider";
+import { SDCPNContext } from "../../../state/sdcpn-context";
+import { SimulationContext } from "../../../state/simulation-context";
 
 const listContainerStyle = css({
   display: "flex",
@@ -167,7 +167,7 @@ const TypesSectionContent: React.FC = () => {
   const {
     petriNetDefinition: { types },
     removeType,
-  } = useSDCPNContext();
+  } = use(SDCPNContext);
 
   const selectedResourceId = useEditorStore(
     (state) => state.selectedResourceId,
@@ -248,7 +248,7 @@ const TypesSectionHeaderAction: React.FC = () => {
   const {
     petriNetDefinition: { types },
     addType,
-  } = useSDCPNContext();
+  } = use(SDCPNContext);
 
   // Check if simulation is running or paused
   const { state: simulationState } = use(SimulationContext);
