@@ -1,18 +1,14 @@
-import { createContext, use, useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 
 import { checkSDCPN, type SDCPNCheckResult } from "../core/checker/checker";
-import { useSDCPNContext } from "./sdcpn-provider";
+import { CheckerContext } from "./checker-context";
+import { useSDCPNContext } from "./sdcpn-context";
 
-export type CheckResult = SDCPNCheckResult;
-
-interface CheckerContextValue {
-  /** The result of the last SDCPN check */
-  checkResult: SDCPNCheckResult;
-  /** Total count of all diagnostics across all items */
-  totalDiagnosticsCount: number;
-}
-
-const CheckerContext = createContext<CheckerContextValue | null>(null);
+export {
+  CheckerContextValue,
+  CheckResult,
+  useCheckerContext,
+} from "./checker-context";
 
 export const CheckerProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
@@ -29,34 +25,19 @@ export const CheckerProvider: React.FC<{ children: React.ReactNode }> = ({
     setCheckResult(result);
   }, [petriNetDefinition]);
 
-  const totalDiagnosticsCount = useMemo(
-    () =>
-      checkResult.itemDiagnostics.reduce(
-        (sum, item) => sum + item.diagnostics.length,
-        0,
-      ),
-    [checkResult],
-  );
-
-  const value = useMemo<CheckerContextValue>(
-    () => ({
-      checkResult,
-      totalDiagnosticsCount,
-    }),
-    [checkResult, totalDiagnosticsCount],
+  const totalDiagnosticsCount = checkResult.itemDiagnostics.reduce(
+    (sum, item) => sum + item.diagnostics.length,
+    0,
   );
 
   return (
-    <CheckerContext.Provider value={value}>{children}</CheckerContext.Provider>
+    <CheckerContext.Provider
+      value={{
+        checkResult,
+        totalDiagnosticsCount,
+      }}
+    >
+      {children}
+    </CheckerContext.Provider>
   );
 };
-
-export function useCheckerContext(): CheckerContextValue {
-  const context = use(CheckerContext);
-
-  if (!context) {
-    throw new Error("useCheckerContext must be used within CheckerProvider");
-  }
-
-  return context;
-}

@@ -1,4 +1,4 @@
-import { createContext, use, useEffect, useRef, useState } from "react";
+import { use, useEffect, useRef, useState } from "react";
 import ts from "typescript";
 
 import { checkSDCPN } from "../core/checker/checker";
@@ -7,82 +7,26 @@ import { buildSimulation } from "../core/simulation/build-simulation";
 import { checkTransitionEnablement } from "../core/simulation/check-transition-enablement";
 import { computeNextFrame } from "../core/simulation/compute-next-frame";
 import type { SDCPN } from "../core/types/sdcpn";
-import type { SimulationInstance } from "../core/types/simulation";
 import { deriveDefaultParameterValues } from "../hooks/use-default-parameter-values";
 import { useNotifications } from "../notifications/notifications-context";
-import { useSDCPNContext } from "./sdcpn-provider";
+import { useSDCPNContext } from "./sdcpn-context";
+import {
+  type InitialMarking,
+  SimulationContext,
+  type SimulationContextValue,
+  type SimulationState,
+} from "./simulation-context";
 
-export type SimulationState =
-  | "NotRun"
-  | "Running"
-  | "Complete"
-  | "Error"
-  | "Paused";
-
-export type InitialMarking = Map<
-  string,
-  { values: Float64Array; count: number }
->;
-
-/**
- * The combined simulation context containing both state and actions.
- */
-export type SimulationContextValue = {
-  // State values
-  simulation: SimulationInstance | null;
-  state: SimulationState;
-  error: string | null;
-  errorItemId: string | null;
-  parameterValues: Record<string, string>;
-  initialMarking: InitialMarking;
-  currentlyViewedFrame: number;
-  dt: number;
-  // Actions
-  setInitialMarking: (
-    placeId: string,
-    marking: { values: Float64Array; count: number },
-  ) => void;
-  setParameterValue: (parameterId: string, value: string) => void;
-  setDt: (dt: number) => void;
-  initializeParameterValuesFromDefaults: () => void;
-  initialize: (params: { seed: number; dt: number }) => void;
-  step: () => void;
-  run: () => void;
-  pause: () => void;
-  reset: () => void;
-  setState: (state: SimulationState) => void;
-  setCurrentlyViewedFrame: (frameIndex: number) => void;
-  __reinitialize: () => void;
-};
-
-const defaultContextValue: SimulationContextValue = {
-  simulation: null,
-  state: "NotRun",
-  error: null,
-  errorItemId: null,
-  parameterValues: {},
-  initialMarking: new Map(),
-  currentlyViewedFrame: 0,
-  dt: 0.01,
-  setInitialMarking: () => {},
-  setParameterValue: () => {},
-  setDt: () => {},
-  initializeParameterValuesFromDefaults: () => {},
-  initialize: () => {},
-  step: () => {},
-  run: () => {},
-  pause: () => {},
-  reset: () => {},
-  setState: () => {},
-  setCurrentlyViewedFrame: () => {},
-  __reinitialize: () => {},
-};
-
-export const SimulationContext =
-  createContext<SimulationContextValue>(defaultContextValue);
+export {
+  InitialMarking,
+  SimulationContext,
+  SimulationContextValue,
+  SimulationState,
+  useSimulationContext,
+} from "./simulation-context";
 
 type SimulationStateValues = {
-  simulation: SimulationInstance | null;
+  simulation: SimulationContextValue["simulation"];
   state: SimulationState;
   error: string | null;
   errorItemId: string | null;
@@ -465,10 +409,3 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
     </SimulationContext.Provider>
   );
 };
-
-/**
- * Hook to access the full simulation context.
- */
-export function useSimulationContext(): SimulationContextValue {
-  return use(SimulationContext);
-}
