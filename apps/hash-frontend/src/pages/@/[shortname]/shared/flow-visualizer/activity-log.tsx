@@ -1,20 +1,27 @@
-import { useMutation } from "@apollo/client";
+import { useMutation, useQuery } from "@apollo/client";
+import type { EntityRootType } from "@blockprotocol/graph";
+import { getRoots } from "@blockprotocol/graph/stdlib";
 import type {
   EntityEditionId,
+  EntityId,
   EntityMetadata,
   EntityRecordId,
 } from "@blockprotocol/type-system";
+import { extractEntityUuidFromEntityId } from "@blockprotocol/type-system";
 import {
   CaretDownSolidIcon,
   IconButton,
   RotateRegularIcon,
 } from "@hashintel/design-system";
-import { HashEntity } from "@local/hash-graph-sdk/entity";
+import type { Filter } from "@local/hash-graph-client";
+import type { HashEntity } from "@local/hash-graph-sdk/entity";
+import { deserializeSubgraph } from "@local/hash-graph-sdk/subgraph";
 import type {
   CheckpointLog,
   StepProgressLog,
 } from "@local/hash-isomorphic-utils/flows/types";
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
+import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 import type { Theme } from "@mui/material";
 import {
   Box,
@@ -29,9 +36,12 @@ import type { ReactElement } from "react";
 import { memo, useEffect, useMemo, useState } from "react";
 
 import type {
+  QueryEntitySubgraphQuery,
+  QueryEntitySubgraphQueryVariables,
   ResetFlowMutation,
   ResetFlowMutationVariables,
 } from "../../../../../graphql/api-types.gen";
+import { queryEntitySubgraphQuery } from "../../../../../graphql/queries/knowledge/entity.queries";
 import { resetFlowMutation } from "../../../../../graphql/queries/knowledge/flow.queries";
 import { CircleInfoIcon } from "../../../../../shared/icons/circle-info-icon";
 import { Link } from "../../../../../shared/ui/link";
@@ -50,47 +60,45 @@ import { SectionLabel } from "./section-label";
 import { formatTimeTaken } from "./shared/format-time-taken";
 import type { LocalProgressLog, LogDisplay } from "./shared/types";
 
-const getEntityLabelFromLog = (log: StepProgressLog): string => {
+const getEntityLabelFromLog = (
+  log: StepProgressLog,
+  persistedEntities: HashEntity[],
+): string => {
   if (log.type !== "ProposedEntity" && log.type !== "PersistedEntityMetadata") {
     throw new Error(`Unexpected log type ${log.type}`);
   }
 
-  const isPersistedEntity = "persistedEntity" in log;
+  if (log.type === "PersistedEntityMetadata") {
+    const { entityId } = log.persistedEntityMetadata;
+    if (!entityId) {
+      return "Entity persistence failed";
+    }
 
-  /**
-   * Here we instead need to use useEntityById to get the entity and then generate the label from that.
-   * So this will need to be a hook instead.
-   */
-  const entity = isPersistedEntity
-    ? log.persistedEntityMetadata.entityId
-      ? new HashEntity(log.persistedEntityMetadata.entity)
-      : undefined
-    : log.proposedEntity;
+    const entity = persistedEntities.find(
+      (persisted) => persisted.entityId === entityId,
+    );
 
-  if (!entity) {
-    return "Entity persistence failed";
+    if (!entity) {
+      // Entity not yet loaded - return a placeholder
+      return "Loading entity...";
+    }
+
+    return generateEntityLabel(null, entity, true);
   }
 
-  const entityId =
-    "localEntityId" in entity
-      ? entity.localEntityId
-      : entity.metadata.recordId.entityId;
-
-  const entityTypeIds =
-    "entityTypeIds" in entity
-      ? entity.entityTypeIds
-      : entity.metadata.entityTypeIds;
+  // ProposedEntity - we have the full entity in the log
+  const { proposedEntity } = log;
 
   const entityLabel = generateEntityLabel(
     null,
     {
-      properties: entity.properties,
+      properties: proposedEntity.properties,
       metadata: {
         recordId: {
           editionId: "irrelevant-here" as EntityEditionId,
-          entityId,
+          entityId: proposedEntity.localEntityId,
         } satisfies EntityRecordId,
-        entityTypeIds,
+        entityTypeIds: proposedEntity.entityTypeIds,
       } as EntityMetadata,
     },
     true,
@@ -100,13 +108,11 @@ const getEntityLabelFromLog = (log: StepProgressLog): string => {
 };
 
 const getEntityPrefixFromLog = (log: StepProgressLog): string => {
-  if (log.type !== "ProposedEntity" && log.type !== "PersistedEntity") {
+  if (log.type !== "ProposedEntity" && log.type !== "PersistedEntityMetadata") {
     throw new Error(`Unexpected log type ${log.type}`);
   }
 
-  const isPersistedEntity = "persistedEntity" in log;
-
-  return isPersistedEntity
+  return log.type === "PersistedEntityMetadata"
     ? "Persisted entity"
     : log.isUpdateToExistingProposal
       ? "Updated proposed entity"
@@ -131,19 +137,22 @@ const checkpointResetMessage = "Flow resumed from checkpoint";
 const createdPlanMessage = "Created research plan";
 const updatedPlanMessage = "Updated research plan";
 
-const getRawTextFromLog = (log: LocalProgressLog): string => {
+const getRawTextFromLog = (
+  log: LocalProgressLog,
+  persistedEntities: HashEntity[],
+): string => {
   switch (log.type) {
     case "VisitedWebPage": {
       return `${visitedWebPagePrefix}${log.webPage.title}`;
     }
     case "QueriedWeb": {
-      return `${queriedWebPrefix}“${log.query}”`;
+      return `${queriedWebPrefix}"${log.query}"`;
     }
     case "ProposedEntity":
-    case "PersistedEntity": {
+    case "PersistedEntityMetadata": {
       const prefix = getEntityPrefixFromLog(log);
 
-      const entityLabel = getEntityLabelFromLog(log);
+      const entityLabel = getEntityLabelFromLog(log, persistedEntities);
 
       return `${prefix} ${entityLabel}`;
     }
@@ -265,8 +274,10 @@ const Checkpoint = ({ log }: { log: CheckpointLog }) => {
 
 const LogDetail = ({
   log,
+  persistedEntities,
 }: {
   log: LocalProgressLog;
+  persistedEntities: HashEntity[];
 }): ReactElement | string => {
   switch (log.type) {
     case "Thread": {
@@ -310,10 +321,10 @@ const LogDetail = ({
       );
     }
     case "ProposedEntity":
-    case "PersistedEntity": {
-      const isPersistedEntity = "persistedEntity" in log;
+    case "PersistedEntityMetadata": {
+      const isPersistedEntity = log.type === "PersistedEntityMetadata";
 
-      const entityLabel = getEntityLabelFromLog(log);
+      const entityLabel = getEntityLabelFromLog(log, persistedEntities);
 
       return (
         <Stack direction="row" alignItems="center" gap={0.5}>
@@ -565,63 +576,74 @@ const LogThread = ({
   );
 };
 
-const TableRow = memo(({ log }: { log: LogWithThreadSettings }) => {
-  const todaysDate = format(new Date(), "yyyy-MM-dd");
-  const logDate = format(new Date(log.recordedAt), "yyyy-MM-dd");
+const TableRow = memo(
+  ({
+    log,
+    persistedEntities,
+  }: {
+    log: LogWithThreadSettings;
+    persistedEntities: HashEntity[];
+  }) => {
+    const todaysDate = format(new Date(), "yyyy-MM-dd");
+    const logDate = format(new Date(log.recordedAt), "yyyy-MM-dd");
 
-  const background = ({ palette }: Theme) =>
-    log.level === 1
-      ? palette.common.white
-      : palette.gray[log.level === 2 ? 15 : 20];
+    const background = ({ palette }: Theme) =>
+      log.level === 1
+        ? palette.common.white
+        : palette.gray[log.level === 2 ? 15 : 20];
 
-  return (
-    <>
-      <TableCell sx={{ ...defaultCellSx, background, fontSize: 13 }}>
-        {log.number}
-      </TableCell>
-      <TableCell
-        sx={{
-          ...defaultCellSx,
-          background,
-          fontSize: 11,
-          fontFamily: "monospace",
-        }}
-      >
-        {todaysDate !== logDate && (
-          <>
-            {format(new Date(log.recordedAt), "yyyy-MM-dd")}
-            <br />
-          </>
-        )}
-        <Tooltip
-          title={
-            todaysDate === logDate
-              ? format(new Date(log.recordedAt), "yyyy-MM-dd h:mm:ss a")
-              : ""
-          }
+    return (
+      <>
+        <TableCell sx={{ ...defaultCellSx, background, fontSize: 13 }}>
+          {log.number}
+        </TableCell>
+        <TableCell
+          sx={{
+            ...defaultCellSx,
+            background,
+            fontSize: 11,
+            fontFamily: "monospace",
+          }}
         >
-          <strong>{format(new Date(log.recordedAt), "h:mm:ss a")}</strong>
-        </Tooltip>
-      </TableCell>
-      <TableCell
-        sx={{ ...defaultCellSx, background, fontSize: 13, lineHeight: 1.4 }}
-      >
-        <Box sx={{ position: "relative", pr: 3, maxWidth: "auto" }}>
-          {log.type === "Thread" ? (
-            <LogThread log={log} />
-          ) : (
-            <LogDetail log={log} />
+          {todaysDate !== logDate && (
+            <>
+              {format(new Date(log.recordedAt), "yyyy-MM-dd")}
+              <br />
+            </>
           )}
-        </Box>
-      </TableCell>
-    </>
-  );
-});
+          <Tooltip
+            title={
+              todaysDate === logDate
+                ? format(new Date(log.recordedAt), "yyyy-MM-dd h:mm:ss a")
+                : ""
+            }
+          >
+            <strong>{format(new Date(log.recordedAt), "h:mm:ss a")}</strong>
+          </Tooltip>
+        </TableCell>
+        <TableCell
+          sx={{ ...defaultCellSx, background, fontSize: 13, lineHeight: 1.4 }}
+        >
+          <Box sx={{ position: "relative", pr: 3, maxWidth: "auto" }}>
+            {log.type === "Thread" ? (
+              <LogThread log={log} />
+            ) : (
+              <LogDetail log={log} persistedEntities={persistedEntities} />
+            )}
+          </Box>
+        </TableCell>
+      </>
+    );
+  },
+);
 
-const createRowContent: CreateVirtualizedRowContentFn<LogWithThreadSettings> = (
-  _index,
-  row,
-) => <TableRow log={row.data} />;
+const createRowContent =
+  (
+    persistedEntities: HashEntity[],
+  ): CreateVirtualizedRowContentFn<LogWithThreadSettings> =>
+  (_index, { data }) => (
+    <TableRow log={data} persistedEntities={persistedEntities} />
+  );
 
 type LogWithThreadSettings = LocalProgressLog & {
   number: string;
@@ -635,6 +657,7 @@ const sortLogs = (
   a: LocalProgressLog,
   b: LocalProgressLog,
   sort: VirtualizedTableSort<FieldId>,
+  persistedEntities: HashEntity[],
 ) => {
   if (sort.fieldId === "time") {
     if (a.recordedAt === b.recordedAt) {
@@ -647,8 +670,8 @@ const sortLogs = (
     return a.recordedAt > b.recordedAt ? -1 : 1;
   }
 
-  const aText = getRawTextFromLog(a);
-  const bText = getRawTextFromLog(b);
+  const aText = getRawTextFromLog(a, persistedEntities);
+  const bText = getRawTextFromLog(b, persistedEntities);
 
   if (sort.direction === "asc") {
     return aText.localeCompare(bText);
@@ -657,14 +680,40 @@ const sortLogs = (
   return bText.localeCompare(aText);
 };
 
+/**
+ * Recursively extracts entity IDs from PersistedEntityMetadata logs.
+ * This is used to identify entities that appear in progress logs but may not yet
+ * be included in the main batch of persisted entities.
+ */
+const extractEntityIdsFromLogs = (logs: LocalProgressLog[]): Set<EntityId> => {
+  const entityIds = new Set<EntityId>();
+
+  for (const log of logs) {
+    if (
+      log.type === "PersistedEntityMetadata" &&
+      log.persistedEntityMetadata.entityId
+    ) {
+      entityIds.add(log.persistedEntityMetadata.entityId);
+    } else if (log.type === "Thread") {
+      for (const entityId of extractEntityIdsFromLogs(log.logs)) {
+        entityIds.add(entityId);
+      }
+    }
+  }
+
+  return entityIds;
+};
+
 export const ActivityLog = memo(
   ({
     logs,
     logDisplay,
+    persistedEntities,
     setLogDisplay,
   }: {
     logs: LocalProgressLog[];
     logDisplay: LogDisplay;
+    persistedEntities: HashEntity[];
     setLogDisplay: (display: LogDisplay) => void;
   }) => {
     const [sort, setSort] = useState<VirtualizedTableSort<FieldId>>({
@@ -674,12 +723,96 @@ export const ActivityLog = memo(
 
     const [openThreads, setOpenThreads] = useState<Set<string>>(new Set());
 
+    /**
+     * Find entity IDs from logs reporting persisted entities that haven't yet appeared in step outputs.
+     * These need to be fetched separately as a fallback, as they can be reported before the step is finished.
+     */
+    const missingEntityIds = useMemo(() => {
+      const idsFromLogs = extractEntityIdsFromLogs(logs);
+      const loadedEntityIds = new Set(
+        persistedEntities.map((entity) => entity.entityId),
+      );
+
+      return Array.from(idsFromLogs.difference(loadedEntityIds));
+    }, [logs, persistedEntities]);
+
+    const missingEntitiesFilter = useMemo<Filter>(
+      () => ({
+        any: missingEntityIds.map((entityId) => ({
+          equal: [
+            { path: ["uuid"] },
+            { parameter: extractEntityUuidFromEntityId(entityId) },
+          ],
+        })),
+      }),
+      [missingEntityIds],
+    );
+
+    const { data: missingEntitiesData } = useQuery<
+      QueryEntitySubgraphQuery,
+      QueryEntitySubgraphQueryVariables
+    >(queryEntitySubgraphQuery, {
+      variables: {
+        request: {
+          filter: missingEntitiesFilter,
+          graphResolveDepths: {
+            constrainsValuesOn: 0,
+            constrainsPropertiesOn: 0,
+            constrainsLinksOn: 0,
+            constrainsLinkDestinationsOn: 0,
+            inheritsFrom: 0,
+            isOfType: false,
+          },
+          traversalPaths: [],
+          temporalAxes: currentTimeInstantTemporalAxes,
+          includeDrafts: true,
+          includePermissions: false,
+        },
+      },
+      skip: missingEntityIds.length === 0,
+      /**
+       * Use cache-first with a poll interval to avoid refetching on every render
+       * as new logs come in, but still pick up any new entities in the background.
+       */
+      fetchPolicy: "cache-first",
+      pollInterval: 10_000,
+    });
+
+    /**
+     * Merge the main batch of persisted entities with any missing ones we fetched.
+     */
+    const allPersistedEntities = useMemo(() => {
+      if (!missingEntitiesData) {
+        return persistedEntities;
+      }
+
+      const subgraph = deserializeSubgraph<EntityRootType<HashEntity>>(
+        missingEntitiesData.queryEntitySubgraph.subgraph,
+      );
+
+      const fetchedEntities = getRoots(subgraph);
+
+      // Merge, avoiding duplicates
+      const entityMap = new Map(
+        persistedEntities.map((entity) => [entity.entityId, entity]),
+      );
+      for (const entity of fetchedEntities) {
+        if (!entityMap.has(entity.entityId)) {
+          entityMap.set(entity.entityId, entity);
+        }
+      }
+
+      return [...entityMap.values()];
+    }, [missingEntitiesData, persistedEntities]);
+
     const rows = useMemo<VirtualizedTableRow<LogWithThreadSettings>[]>(() => {
       /**
        * Sort the parents first, because we want to keep the children as appearing directly after their parent in all
        * cases.
        */
-      const sortedParents = logs.sort((a, b) => sortLogs(a, b, sort));
+      const sortedParents = logs.sort((a, b) =>
+        sortLogs(a, b, sort, allPersistedEntities),
+      );
 
       const logsWithThreadSettings: VirtualizedTableRow<LogWithThreadSettings>[] =
         [];
@@ -725,7 +858,7 @@ export const ActivityLog = memo(
                * Children will be sorted as an individual group, e.g. so that if 'time / ascending' sort is selected,
                * the child logs will appear latest first, after their parent.
                */
-              .sort((a, b) => sortLogs(a, b, sort))
+              .sort((a, b) => sortLogs(a, b, sort, allPersistedEntities))
               .entries()) {
               addPossibleThread({
                 log: childLog,
@@ -768,7 +901,7 @@ export const ActivityLog = memo(
       }
 
       return logsWithThreadSettings;
-    }, [logs, openThreads, sort]);
+    }, [logs, openThreads, allPersistedEntities, sort]);
 
     const columns = useMemo(() => createColumns(rows.length), [rows.length]);
 
@@ -821,7 +954,7 @@ export const ActivityLog = memo(
         <Box flex={1}>
           <VirtualizedTable
             columns={columns}
-            createRowContent={createRowContent}
+            createRowContent={createRowContent(allPersistedEntities)}
             rows={rows}
             sort={sort}
             setSort={setSort}

@@ -1,8 +1,18 @@
 import "reactflow/dist/style.css";
 
-import { useApolloClient, useMutation } from "@apollo/client";
+import { useApolloClient, useMutation, useQuery } from "@apollo/client";
+import type { EntityRootType, Subgraph } from "@blockprotocol/graph";
+import { getRoots } from "@blockprotocol/graph/stdlib";
 import type { EntityId, WebId } from "@blockprotocol/type-system";
+import { extractEntityUuidFromEntityId } from "@blockprotocol/type-system";
 import { IconButton, Skeleton } from "@hashintel/design-system";
+import type { Filter } from "@local/hash-graph-client";
+import type { HashEntity } from "@local/hash-graph-sdk/entity";
+import type {
+  ClosedMultiEntityTypesDefinitions,
+  ClosedMultiEntityTypesRootMap,
+} from "@local/hash-graph-sdk/ontology";
+import { deserializeSubgraph } from "@local/hash-graph-sdk/subgraph";
 import type { OutputNameForAiFlowAction } from "@local/hash-isomorphic-utils/flows/action-definitions";
 import { actionDefinitions } from "@local/hash-isomorphic-utils/flows/action-definitions";
 import { manualBrowserInferenceFlowDefinition } from "@local/hash-isomorphic-utils/flows/browser-plugin-flow-definitions";
@@ -15,6 +25,10 @@ import type {
   FlowTrigger,
   PersistedEntityMetadata,
 } from "@local/hash-isomorphic-utils/flows/types";
+import {
+  almostFullOntologyResolveDepths,
+  currentTimeInstantTemporalAxes,
+} from "@local/hash-isomorphic-utils/graph-queries";
 import { Box, Collapse, Fade, Stack } from "@mui/material";
 import { useRouter } from "next/router";
 import { useCallback, useMemo, useState } from "react";
@@ -22,9 +36,12 @@ import { useCallback, useMemo, useState } from "react";
 import { useGetOwnerForEntity } from "../../../../components/hooks/use-get-owner-for-entity";
 import {
   FlowType,
+  type QueryEntitySubgraphQuery,
+  type QueryEntitySubgraphQueryVariables,
   type StartFlowMutation,
   type StartFlowMutationVariables,
 } from "../../../../graphql/api-types.gen";
+import { queryEntitySubgraphQuery } from "../../../../graphql/queries/knowledge/entity.queries";
 import { startFlowMutation } from "../../../../graphql/queries/knowledge/flow.queries";
 import { ArrowRightToLineIcon } from "../../../../shared/icons/arrow-right-to-line-icon";
 import { HEADER_HEIGHT } from "../../../../shared/layout/layout-with-header/page-header";
@@ -311,225 +328,321 @@ export const FlowVisualizer = () => {
     return graphsByGroup;
   }, [derivedNodes, derivedEdges, selectedFlowDefinition]);
 
-  const { logs, persistedEntities, proposedEntities, relevantEntityIds } =
-    useMemo<{
-      logs: LocalProgressLog[];
-      persistedEntities: PersistedEntityMetadata[];
-      proposedEntities: ProposedEntityOutput[];
-      relevantEntityIds: EntityId[];
-    }>(() => {
-      if (!selectedFlowRun) {
-        return {
-          claimEntityIds: [],
-          logs: [],
-          persistedEntities: [],
-          proposedEntities: [],
-          relevantEntityIds: [],
-        };
-      }
+  const {
+    logs,
+    persistedEntitiesMetadata,
+    proposedEntities,
+    relevantEntityIds,
+  } = useMemo<{
+    logs: LocalProgressLog[];
+    persistedEntitiesMetadata: PersistedEntityMetadata[];
+    proposedEntities: ProposedEntityOutput[];
+    relevantEntityIds: EntityId[];
+  }>(() => {
+    if (!selectedFlowRun) {
+      return {
+        claimEntityIds: [],
+        logs: [],
+        persistedEntitiesMetadata: [],
+        proposedEntities: [],
+        relevantEntityIds: [],
+      };
+    }
 
-      const progressLogs: LocalProgressLog[] = [
-        {
-          level: 1,
-          message: "Flow run started",
-          recordedAt: selectedFlowRun.startedAt,
-          stepId: "trigger",
-          type: "StateChange",
-        },
-      ];
+    const progressLogs: LocalProgressLog[] = [
+      {
+        level: 1,
+        message: "Flow run started",
+        recordedAt: selectedFlowRun.startedAt,
+        stepId: "trigger",
+        type: "StateChange",
+      },
+    ];
 
-      const persisted: PersistedEntityMetadata[] = [];
-      const proposed: ProposedEntityOutput[] = [];
-      const highlightedEntityIds: EntityId[] = [];
+    const persisted: PersistedEntityMetadata[] = [];
+    const proposed: ProposedEntityOutput[] = [];
+    const highlightedEntityIds: EntityId[] = [];
 
-      /**
-       * A map between a workerInstanceId and (1) the list of logs associated with that worker, and (2) the id of its parent
-       * This is used to help build the tree of logs grouped by worker, when 'grouped' log display is selected.
-       */
-      const workerIdToLogsAndParent: Record<
-        string,
-        { logs: LocalProgressLog[]; level: number; thread?: LogThread }
-      > = {};
+    /**
+     * A map between a workerInstanceId and (1) the list of logs associated with that worker, and (2) the id of its parent
+     * This is used to help build the tree of logs grouped by worker, when 'grouped' log display is selected.
+     */
+    const workerIdToLogsAndParent: Record<
+      string,
+      { logs: LocalProgressLog[]; level: number; thread?: LogThread }
+    > = {};
 
-      for (const step of selectedFlowRun.steps) {
-        const outputs = step.outputs?.[0]?.contents[0]?.outputs ?? [];
+    for (const step of selectedFlowRun.steps) {
+      const outputs = step.outputs?.[0]?.contents[0]?.outputs ?? [];
 
-        for (const log of step.logs) {
-          if (
-            logDisplay === "stream" ||
-            !("parentInstanceId" in log) ||
-            !log.parentInstanceId
-          ) {
+      for (const log of step.logs) {
+        if (
+          logDisplay === "stream" ||
+          !("parentInstanceId" in log) ||
+          !log.parentInstanceId
+        ) {
+          /**
+           * If we're in 'stream' display, or if this log doesn't have a parent worker, it should appear at the top level.
+           */
+          progressLogs.push({
+            ...log,
+            level: 1,
+          });
+
+          if ("workerInstanceId" in log) {
             /**
-             * If we're in 'stream' display, or if this log doesn't have a parent worker, it should appear at the top level.
+             * If the log has a workerInstanceId, it may have groups of logs nested under it,
+             * so we need to record the fact that any child workers should start a group in the top-level logs array.
              */
-            progressLogs.push({
-              ...log,
+            workerIdToLogsAndParent[log.workerInstanceId] = {
               level: 1,
-            });
+              logs: progressLogs,
+            };
+          }
+        } else {
+          /**
+           * This log has a parent worker, so we need to group it with its siblings.
+           * We also need to add the group to the parent's logs if it doesn't already exist.
+           */
+          const parentLogList = workerIdToLogsAndParent[log.parentInstanceId];
+          if (!parentLogList) {
+            throw new Error(
+              `No parent log found with id ${log.parentInstanceId}`,
+            );
+          }
 
-            if ("workerInstanceId" in log) {
-              /**
-               * If the log has a workerInstanceId, it may have groups of logs nested under it,
-               * so we need to record the fact that any child workers should start a group in the top-level logs array.
-               */
-              workerIdToLogsAndParent[log.workerInstanceId] = {
-                level: 1,
-                logs: progressLogs,
-              };
-            }
-          } else {
-            /**
-             * This log has a parent worker, so we need to group it with its siblings.
-             * We also need to add the group to the parent's logs if it doesn't already exist.
-             */
-            const parentLogList = workerIdToLogsAndParent[log.parentInstanceId];
-            if (!parentLogList) {
+          const thisThread = workerIdToLogsAndParent[log.workerInstanceId];
+          if (!thisThread) {
+            let threadLabel: string;
+            if (log.type === "StartedSubCoordinator") {
+              threadLabel = `Sub-coordinator: ${log.input.goal}`;
+            } else if (log.type === "StartedLinkExplorerTask") {
+              threadLabel = `Link explorer: ${log.input.goal}`;
+            } else {
               throw new Error(
-                `No parent log found with id ${log.parentInstanceId}`,
+                `Expect new child worker threads to be started with a StartedSubCoordinator or StartedLinkExplorerTask event, got ${log.type}`,
               );
             }
 
-            const thisThread = workerIdToLogsAndParent[log.workerInstanceId];
-            if (!thisThread) {
-              let threadLabel: string;
-              if (log.type === "StartedSubCoordinator") {
-                threadLabel = `Sub-coordinator: ${log.input.goal}`;
-              } else if (log.type === "StartedLinkExplorerTask") {
-                threadLabel = `Link explorer: ${log.input.goal}`;
-              } else {
-                throw new Error(
-                  `Expect new child worker threads to be started with a StartedSubCoordinator or StartedLinkExplorerTask event, got ${log.type}`,
-                );
-              }
+            const newThread = {
+              type: "Thread" as const,
+              label: threadLabel,
+              level: parentLogList.level,
+              threadStartedAt: log.recordedAt,
+              /**
+               * Default to closing the thread at the time the flow run was closed.
+               * If we have a specific, earlier closed event for the thread it will be overwritten when we process that child log.
+               */
+              threadClosedAt: selectedFlowRun.closedAt ?? undefined,
+              closedDueToFlowClosure: !!selectedFlowRun.closedAt,
+              threadWorkerId: log.workerInstanceId,
+              recordedAt: log.recordedAt,
+              logs: [
+                {
+                  level: parentLogList.level + 1,
+                  ...log,
+                },
+              ],
+            };
 
-              const newThread = {
-                type: "Thread" as const,
-                label: threadLabel,
-                level: parentLogList.level,
-                threadStartedAt: log.recordedAt,
-                /**
-                 * Default to closing the thread at the time the flow run was closed.
-                 * If we have a specific, earlier closed event for the thread it will be overwritten when we process that child log.
-                 */
-                threadClosedAt: selectedFlowRun.closedAt ?? undefined,
-                closedDueToFlowClosure: !!selectedFlowRun.closedAt,
-                threadWorkerId: log.workerInstanceId,
-                recordedAt: log.recordedAt,
-                logs: [
-                  {
-                    level: parentLogList.level + 1,
-                    ...log,
-                  },
-                ],
-              };
+            parentLogList.logs.push(newThread);
 
-              parentLogList.logs.push(newThread);
+            workerIdToLogsAndParent[log.workerInstanceId] = {
+              logs: newThread.logs,
+              level: newThread.level,
+              thread: newThread,
+            };
+          } else {
+            thisThread.logs.push({
+              level: parentLogList.level + 1,
+              ...log,
+            });
 
-              workerIdToLogsAndParent[log.workerInstanceId] = {
-                logs: newThread.logs,
-                level: newThread.level,
-                thread: newThread,
-              };
-            } else {
-              thisThread.logs.push({
-                level: parentLogList.level + 1,
-                ...log,
-              });
-
-              if (
-                log.type === "ClosedLinkExplorerTask" ||
-                log.type === "ClosedSubCoordinator"
-              ) {
-                thisThread.thread!.threadClosedAt = log.recordedAt;
-                thisThread.thread!.closedDueToFlowClosure = false;
-              }
-            }
-          }
-
-          if (outputs.length === 0) {
-            if (log.type === "ProposedEntity") {
-              proposed.push({
-                ...log.proposedEntity,
-                researchOngoing: !["CANCELLED", "FAILED", "TIMED_OUT"].includes(
-                  step.status,
-                ),
-              });
-            }
-            if (log.type === "PersistedEntityMetadata") {
-              persisted.push(log.persistedEntityMetadata);
+            if (
+              log.type === "ClosedLinkExplorerTask" ||
+              log.type === "ClosedSubCoordinator"
+            ) {
+              thisThread.thread!.threadClosedAt = log.recordedAt;
+              thisThread.thread!.closedDueToFlowClosure = false;
             }
           }
         }
 
-        for (const output of outputs) {
-          switch (output.payload.kind) {
-            case "ProposedEntity":
-              if (Array.isArray(output.payload.value)) {
-                proposed.push(
-                  ...output.payload.value.map((entity) => ({
-                    ...entity,
-                    researchOngoing: false,
-                  })),
-                );
-              } else {
-                proposed.push({
-                  ...output.payload.value,
+        if (outputs.length === 0) {
+          if (log.type === "ProposedEntity") {
+            proposed.push({
+              ...log.proposedEntity,
+              researchOngoing: !["CANCELLED", "FAILED", "TIMED_OUT"].includes(
+                step.status,
+              ),
+            });
+          }
+          if (log.type === "PersistedEntityMetadata") {
+            persisted.push(log.persistedEntityMetadata);
+          }
+        }
+      }
+
+      for (const output of outputs) {
+        switch (output.payload.kind) {
+          case "ProposedEntity":
+            if (Array.isArray(output.payload.value)) {
+              proposed.push(
+                ...output.payload.value.map((entity) => ({
+                  ...entity,
                   researchOngoing: false,
-                });
-              }
-              break;
-            case "PersistedEntityMetadata":
+                })),
+              );
+            } else {
+              proposed.push({
+                ...output.payload.value,
+                researchOngoing: false,
+              });
+            }
+            break;
+          case "PersistedEntityMetadata":
+            if (Array.isArray(output.payload.value)) {
+              persisted.push(...output.payload.value);
+            } else if (output.payload.value.entityId) {
+              persisted.push(output.payload.value);
+            }
+            break;
+          case "PersistedEntitiesMetadata":
+            if (Array.isArray(output.payload.value)) {
+              persisted.push(
+                ...output.payload.value.flatMap(
+                  (innerMap) => innerMap.persistedEntities,
+                ),
+              );
+            } else {
+              persisted.push(...output.payload.value.persistedEntities);
+            }
+            break;
+          case "EntityId":
+            if (
+              output.outputName ===
+              ("highlightedEntities" satisfies OutputNameForAiFlowAction<"researchEntities">)
+            ) {
               if (Array.isArray(output.payload.value)) {
-                persisted.push(...output.payload.value);
-              } else if (output.payload.value.entityId) {
-                persisted.push(output.payload.value);
-              }
-              break;
-            case "PersistedEntitiesMetadata":
-              if (Array.isArray(output.payload.value)) {
-                persisted.push(
-                  ...output.payload.value.flatMap(
-                    (innerMap) => innerMap.persistedEntities,
-                  ),
-                );
+                highlightedEntityIds.push(...output.payload.value);
               } else {
-                persisted.push(...output.payload.value.persistedEntities);
+                highlightedEntityIds.push(output.payload.value);
               }
-              break;
-            case "EntityId":
-              if (
-                output.outputName ===
-                ("highlightedEntities" satisfies OutputNameForAiFlowAction<"researchEntities">)
-              ) {
-                if (Array.isArray(output.payload.value)) {
-                  highlightedEntityIds.push(...output.payload.value);
-                } else {
-                  highlightedEntityIds.push(output.payload.value);
-                }
-              }
-              break;
-          }
+            }
+            break;
         }
       }
+    }
 
-      if (selectedFlowRun.closedAt) {
-        progressLogs.push({
-          level: 1,
-          message: `Flow run closed: ${selectedFlowRun.failureMessage?.toLowerCase() ?? selectedFlowRun.status.toLowerCase()}`,
-          recordedAt: selectedFlowRun.closedAt,
-          stepId: "closure",
-          type: "StateChange",
-        });
-      }
+    if (selectedFlowRun.closedAt) {
+      progressLogs.push({
+        level: 1,
+        message: `Flow run closed: ${selectedFlowRun.failureMessage?.toLowerCase() ?? selectedFlowRun.status.toLowerCase()}`,
+        recordedAt: selectedFlowRun.closedAt,
+        stepId: "closure",
+        type: "StateChange",
+      });
+    }
 
+    return {
+      logs: progressLogs,
+      proposedEntities: proposed,
+      persistedEntitiesMetadata: persisted,
+      relevantEntityIds: highlightedEntityIds,
+    };
+  }, [logDisplay, selectedFlowRun]);
+
+  /**
+   * Build filter to fetch all persisted entities from the database.
+   * We query by entity UUID to get the latest version of each entity.
+   */
+  const persistedEntitiesFilter = useMemo<Filter>(
+    () => ({
+      any: persistedEntitiesMetadata.map((persistedEntityMetadata) => ({
+        equal: [
+          { path: ["uuid"] },
+          {
+            parameter: extractEntityUuidFromEntityId(
+              persistedEntityMetadata.entityId,
+            ),
+          },
+        ],
+      })),
+    }),
+    [persistedEntitiesMetadata],
+  );
+
+  const {
+    data: persistedEntitiesSubgraphData,
+    previousData: previousPersistedEntitiesSubgraphData,
+  } = useQuery<QueryEntitySubgraphQuery, QueryEntitySubgraphQueryVariables>(
+    queryEntitySubgraphQuery,
+    {
+      variables: {
+        request: {
+          filter: persistedEntitiesFilter,
+          graphResolveDepths: almostFullOntologyResolveDepths,
+          traversalPaths: [],
+          temporalAxes: currentTimeInstantTemporalAxes,
+          includeDrafts: true,
+          includeEntityTypes: "resolved",
+          includePermissions: false,
+        },
+      },
+      skip: !persistedEntitiesMetadata.length,
+      /**
+       * Use cache-first with a poll interval to avoid refetching on every render
+       * as new logs come in, but still pick up changes to entities in the background.
+       */
+      fetchPolicy: "cache-first",
+      pollInterval: 5_000,
+    },
+  );
+
+  const {
+    persistedEntities,
+    persistedEntitiesSubgraph,
+    persistedEntitiesTypesInfo,
+  } = useMemo<{
+    persistedEntities: HashEntity[];
+    persistedEntitiesSubgraph?: Subgraph<EntityRootType<HashEntity>>;
+    persistedEntitiesTypesInfo?: {
+      entityTypes: ClosedMultiEntityTypesRootMap;
+      definitions: ClosedMultiEntityTypesDefinitions;
+    };
+  }>(() => {
+    const data =
+      persistedEntitiesSubgraphData ?? previousPersistedEntitiesSubgraphData;
+
+    if (!data) {
+      return { persistedEntities: [] };
+    }
+
+    const subgraph = deserializeSubgraph<EntityRootType<HashEntity>>(
+      data.queryEntitySubgraph.subgraph,
+    );
+
+    const entities = getRoots(subgraph);
+
+    if (
+      !data.queryEntitySubgraph.closedMultiEntityTypes ||
+      !data.queryEntitySubgraph.definitions
+    ) {
       return {
-        logs: progressLogs,
-        proposedEntities: proposed,
-        persistedEntities: persisted,
-        relevantEntityIds: highlightedEntityIds,
+        persistedEntities: entities,
+        persistedEntitiesSubgraph: subgraph,
       };
-    }, [logDisplay, selectedFlowRun]);
+    }
+
+    return {
+      persistedEntities: entities,
+      persistedEntitiesSubgraph: subgraph,
+      persistedEntitiesTypesInfo: {
+        entityTypes: data.queryEntitySubgraph.closedMultiEntityTypes,
+        definitions: data.queryEntitySubgraph.definitions,
+      },
+    };
+  }, [persistedEntitiesSubgraphData, previousPersistedEntitiesSubgraphData]);
 
   const [startFlow] = useMutation<
     StartFlowMutation,
@@ -717,7 +830,10 @@ export const FlowVisualizer = () => {
             {selectedFlowRun ? (
               <Outputs
                 key={`${flowRunStateKey}-outputs`}
-                persistedEntitiesMetadata={persistedEntities}
+                persistedEntities={persistedEntities}
+                persistedEntitiesMetadata={persistedEntitiesMetadata}
+                persistedEntitiesSubgraph={persistedEntitiesSubgraph}
+                persistedEntitiesTypesInfo={persistedEntitiesTypesInfo}
                 proposedEntities={proposedEntities}
                 relevantEntityIds={relevantEntityIds}
               />
@@ -766,6 +882,7 @@ export const FlowVisualizer = () => {
                   key={`${flowRunStateKey}-activity-log`}
                   logs={logs}
                   logDisplay={logDisplay}
+                  persistedEntities={persistedEntities}
                   setLogDisplay={setLogDisplay}
                 />
               </Stack>
