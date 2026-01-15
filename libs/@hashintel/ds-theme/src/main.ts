@@ -14,6 +14,7 @@ export const preset = definePreset({
   conditions: {
     extend: {
       light: ":root &, .light &, [data-theme=light] &",
+      dark: '.dark &, [data-theme="dark"] &',
     },
   },
   theme: {
