@@ -1,4 +1,4 @@
-import { use, useEffect, useRef, useState } from "react";
+import { use, useEffect, useEffectEvent, useRef, useState } from "react";
 import ts from "typescript";
 
 import { checkSDCPN } from "../core/checker/checker";
@@ -86,6 +86,21 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
 
   const getSDCPN = () => sdcpnRef.current;
   const getState = () => stateValuesRef.current;
+
+  const __reinitialize = useEffectEvent(() => {
+    if (runTimeoutIdRef.current !== null) {
+      clearTimeout(runTimeoutIdRef.current);
+      runTimeoutIdRef.current = null;
+    }
+    setStateValues(initialStateValues);
+  });
+
+  // Reinitialize when petriNetId changes
+  useEffect(() => {
+    if (petriNetId) {
+      __reinitialize();
+    }
+  }, [petriNetId]);
 
   const actions = {
     setInitialMarking: (
@@ -371,23 +386,7 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
 
         return { ...prev, currentlyViewedFrame: clampedIndex };
       }),
-
-    __reinitialize: () => {
-      if (runTimeoutIdRef.current !== null) {
-        clearTimeout(runTimeoutIdRef.current);
-        runTimeoutIdRef.current = null;
-      }
-      setStateValues(initialStateValues);
-    },
   };
-
-  // Reinitialize when petriNetId changes
-  useEffect(() => {
-    if (petriNetId) {
-      actions.__reinitialize();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- Only reinitialize when petriNetId changes
-  }, [petriNetId]);
 
   const contextValue: SimulationContextValue = {
     ...stateValues,

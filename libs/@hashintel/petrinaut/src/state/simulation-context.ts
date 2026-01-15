@@ -41,9 +41,7 @@ export type SimulationContextValue = {
   run: () => void;
   pause: () => void;
   reset: () => void;
-  setState: (state: SimulationState) => void;
   setCurrentlyViewedFrame: (frameIndex: number) => void;
-  __reinitialize: () => void;
 };
 
 const DEFAULT_CONTEXT_VALUE: SimulationContextValue = {
@@ -64,9 +62,7 @@ const DEFAULT_CONTEXT_VALUE: SimulationContextValue = {
   run: () => {},
   pause: () => {},
   reset: () => {},
-  setState: () => {},
   setCurrentlyViewedFrame: () => {},
-  __reinitialize: () => {},
 };
 
 export const SimulationContext = createContext<SimulationContextValue>(
