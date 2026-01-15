@@ -1,5 +1,5 @@
 import { css } from "@hashintel/ds-helpers/css";
-import { useMemo } from "react";
+import { use, useMemo } from "react";
 
 import type { SubView } from "../../../components/sub-view/types";
 import { compileVisualizer } from "../../../core/simulation/compile-visualizer";
@@ -7,7 +7,7 @@ import {
   mergeParameterValues,
   useDefaultParameterValues,
 } from "../../../hooks/use-default-parameter-values";
-import { useSimulationStore } from "../../../state/simulation-provider";
+import { SimulationContext } from "../../../state/simulation-provider";
 import { usePlacePropertiesContext } from "../panels/PropertiesPanel/place-properties-context";
 import { VisualizerErrorBoundary } from "../panels/PropertiesPanel/visualizer-error-boundary";
 
@@ -28,12 +28,8 @@ const visualizerErrorStyle = css({
 const PlaceVisualizerOutputContent: React.FC = () => {
   const { place, placeType } = usePlacePropertiesContext();
 
-  const simulation = useSimulationStore((state) => state.simulation);
-  const initialMarking = useSimulationStore((state) => state.initialMarking);
-  const parameterValues = useSimulationStore((state) => state.parameterValues);
-  const currentlyViewedFrame = useSimulationStore(
-    (state) => state.currentlyViewedFrame,
-  );
+  const { simulation, initialMarking, parameterValues, currentlyViewedFrame } =
+    use(SimulationContext);
 
   // Get default parameter values from SDCPN definition
   const defaultParameterValues = useDefaultParameterValues();

@@ -1,12 +1,12 @@
 import { css } from "@hashintel/ds-helpers/css";
-import { useState } from "react";
+import { use, useState } from "react";
 import { TbArrowRight } from "react-icons/tb";
 
 import type { SubView } from "../../../components/sub-view/types";
 import { InfoIconTooltip } from "../../../components/tooltip";
 import { useEditorStore } from "../../../state/editor-provider";
 import { useSDCPNContext } from "../../../state/sdcpn-provider";
-import { useSimulationStore } from "../../../state/simulation-provider";
+import { SimulationContext } from "../../../state/simulation-provider";
 
 const containerStyle = css({
   display: "flex",
@@ -192,17 +192,17 @@ const editButtonIconStyle = css({
  */
 const SimulationSettingsContent: React.FC = () => {
   const setGlobalMode = useEditorStore((state) => state.setGlobalMode);
-  const simulationState = useSimulationStore((state) => state.state);
-  const simulationError = useSimulationStore((state) => state.error);
-  const errorItemId = useSimulationStore((state) => state.errorItemId);
-  const dt = useSimulationStore((state) => state.dt);
-  const setDt = useSimulationStore((state) => state.setDt);
+  const {
+    state: simulationState,
+    error: simulationError,
+    errorItemId,
+    dt,
+    setDt,
+    parameterValues,
+    setParameterValue,
+  } = use(SimulationContext);
   const setSelectedResourceId = useEditorStore(
     (state) => state.setSelectedResourceId,
-  );
-  const parameterValues = useSimulationStore((state) => state.parameterValues);
-  const setParameterValue = useSimulationStore(
-    (state) => state.setParameterValue,
   );
 
   const {

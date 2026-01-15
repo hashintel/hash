@@ -1,7 +1,8 @@
+import { use } from "react";
 import { FaArrowPointer, FaCircle, FaHand, FaSquare } from "react-icons/fa6";
 
-import type { EditorState } from "../../../../state/editor-store";
-import { useSimulationStore } from "../../../../state/simulation-provider";
+import type { EditorState } from "../../../../state/editor-provider";
+import { SimulationContext } from "../../../../state/simulation-provider";
 import { ToolbarButton } from "./toolbar-button";
 
 type EditorMode = EditorState["globalMode"];
@@ -18,7 +19,7 @@ export const ToolbarModes: React.FC<ToolbarModesProps> = ({
   editionMode,
   onEditionModeChange,
 }) => {
-  const simulationState = useSimulationStore((state) => state.state);
+  const { state: simulationState } = use(SimulationContext);
   const isSimulationRunning =
     simulationState === "Running" || simulationState === "Paused";
 

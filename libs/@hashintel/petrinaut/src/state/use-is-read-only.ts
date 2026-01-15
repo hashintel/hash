@@ -1,5 +1,7 @@
+import { use } from "react";
+
 import { useEditorStore } from "./editor-provider";
-import { useSimulationStore } from "./simulation-provider";
+import { SimulationContext } from "./simulation-provider";
 
 /**
  * Hook that determines if the editor is in read-only mode.
@@ -13,7 +15,7 @@ import { useSimulationStore } from "./simulation-provider";
  */
 export const useIsReadOnly = (): boolean => {
   const globalMode = useEditorStore((state) => state.globalMode);
-  const simulationState = useSimulationStore((state) => state.state);
+  const { state: simulationState } = use(SimulationContext);
 
   const isSimulationActive =
     simulationState === "Running" || simulationState === "Paused";

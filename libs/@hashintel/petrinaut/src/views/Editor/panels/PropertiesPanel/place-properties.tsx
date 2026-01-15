@@ -1,7 +1,7 @@
 /* eslint-disable id-length */
 import { css, cva } from "@hashintel/ds-helpers/css";
 import MonacoEditor from "@monaco-editor/react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { use, useEffect, useMemo, useRef, useState } from "react";
 import {
   TbArrowRight,
   TbDotsVertical,
@@ -27,7 +27,7 @@ import type {
 } from "../../../../core/types/sdcpn";
 import { useEditorStore } from "../../../../state/editor-provider";
 import { useSDCPNContext } from "../../../../state/sdcpn-provider";
-import { useSimulationStore } from "../../../../state/simulation-provider";
+import { SimulationContext } from "../../../../state/simulation-provider";
 import { useIsReadOnly } from "../../../../state/use-is-read-only";
 import { placeInitialStateSubView } from "../../subviews/place-initial-state";
 import { placeVisualizerOutputSubView } from "../../subviews/place-visualizer-output";
@@ -266,7 +266,7 @@ export const PlaceProperties: React.FC<PlacePropertiesProps> = ({
   differentialEquations,
   updatePlace,
 }) => {
-  const simulation = useSimulationStore((state) => state.simulation);
+  const { simulation } = use(SimulationContext);
   const isReadOnly = useIsReadOnly();
   const globalMode = useEditorStore((state) => state.globalMode);
 

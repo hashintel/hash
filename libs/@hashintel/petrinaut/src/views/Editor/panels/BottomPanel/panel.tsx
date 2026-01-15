@@ -15,9 +15,11 @@ import {
   PANEL_MARGIN,
   SIMULATION_ONLY_SUBVIEWS,
 } from "../../../../constants/ui";
+import { use } from "react";
+
+import type { BottomPanelTab } from "../../../../state/editor-provider";
 import { useEditorStore } from "../../../../state/editor-provider";
-import type { BottomPanelTab } from "../../../../state/editor-store";
-import { useSimulationStore } from "../../../../state/simulation-provider";
+import { SimulationContext } from "../../../../state/simulation-provider";
 
 const glassPanelBaseStyle = css({
   position: "fixed",
@@ -84,7 +86,7 @@ export const BottomPanel: React.FC = () => {
   const toggleBottomPanel = useEditorStore((state) => state.toggleBottomPanel);
 
   // Simulation state for conditional subviews
-  const simulationState = useSimulationStore((state) => state.state);
+  const { state: simulationState } = use(SimulationContext);
   const isSimulationActive =
     simulationState === "Running" ||
     simulationState === "Paused" ||

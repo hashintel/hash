@@ -10,9 +10,11 @@ import {
   DEFAULT_TRANSITION_KERNEL_CODE,
   generateDefaultLambdaCode,
 } from "../../core/default-codes";
+import { use } from "react";
+
 import { useEditorStore } from "../../state/editor-provider";
 import { useSDCPNContext } from "../../state/sdcpn-provider";
-import { useSimulationStore } from "../../state/simulation-provider";
+import { SimulationContext } from "../../state/simulation-provider";
 import type { ArcData, NodeData } from "../../state/types-for-editor-to-remove";
 import { Arc } from "./components/arc";
 import { PlaceNode } from "./components/place-node";
@@ -82,7 +84,7 @@ export const SDCPNView: React.FC = () => {
   );
   const clearSelection = useEditorStore((state) => state.clearSelection);
 
-  const simulationState = useSimulationStore((state) => state.state);
+  const { state: simulationState } = use(SimulationContext);
 
   // Center viewport on SDCPN load
   useEffect(() => {

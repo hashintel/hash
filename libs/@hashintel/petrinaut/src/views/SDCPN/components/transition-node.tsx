@@ -1,9 +1,10 @@
 import { css, cva } from "@hashintel/ds-helpers/css";
+import { use } from "react";
 import { TbBolt, TbLambda } from "react-icons/tb";
 import { Handle, type NodeProps, Position } from "reactflow";
 
 import { useEditorStore } from "../../../state/editor-provider";
-import { useSimulationStore } from "../../../state/simulation-provider";
+import { SimulationContext } from "../../../state/simulation-provider";
 import type { TransitionNodeData } from "../../../state/types-for-editor-to-remove";
 import { handleStyling } from "../styles/styling";
 
@@ -132,10 +133,7 @@ export const TransitionNode: React.FC<NodeProps<TransitionNodeData>> = ({
   const selectedResourceId = useEditorStore(
     (state) => state.selectedResourceId,
   );
-  const simulation = useSimulationStore((state) => state.simulation);
-  const currentlyViewedFrame = useSimulationStore(
-    (state) => state.currentlyViewedFrame,
-  );
+  const { simulation, currentlyViewedFrame } = use(SimulationContext);
 
   // Check if this transition just fired (time since last fire is zero)
   let justFired = false;

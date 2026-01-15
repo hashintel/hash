@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 
-import type { EditorState } from "../../../../state/editor-store";
+import type { EditorState } from "../../../../state/editor-provider";
 
 type EditorMode = EditorState["globalMode"];
 type EditorEditionMode = EditorState["editionMode"];

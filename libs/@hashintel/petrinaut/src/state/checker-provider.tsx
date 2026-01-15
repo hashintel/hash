@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useMemo, useState } from "react";
+import { createContext, use, useEffect, useMemo, useState } from "react";
 
 import { checkSDCPN, type SDCPNCheckResult } from "../core/checker/checker";
 import { useSDCPNContext } from "./sdcpn-provider";
@@ -52,7 +52,7 @@ export const CheckerProvider: React.FC<{ children: React.ReactNode }> = ({
 };
 
 export function useCheckerContext(): CheckerContextValue {
-  const context = useContext(CheckerContext);
+  const context = use(CheckerContext);
 
   if (!context) {
     throw new Error("useCheckerContext must be used within CheckerProvider");

@@ -1,8 +1,9 @@
 import { css, cva } from "@hashintel/ds-helpers/css";
+import { use } from "react";
 import { TbTrash } from "react-icons/tb";
 
 import type { SubView } from "../../../components/sub-view/types";
-import { useSimulationStore } from "../../../state/simulation-provider";
+import { SimulationContext } from "../../../state/simulation-provider";
 import { InitialStateEditor } from "../panels/PropertiesPanel/initial-state-editor";
 import { usePlacePropertiesContext } from "../panels/PropertiesPanel/place-properties-context";
 
@@ -66,13 +67,8 @@ const clearButtonStyle = css({
  */
 const ClearStateHeaderAction: React.FC = () => {
   const { place } = usePlacePropertiesContext();
-  const isSimulationNotRun = useSimulationStore(
-    (state) => state.state === "NotRun",
-  );
-  const initialMarking = useSimulationStore((state) => state.initialMarking);
-  const setInitialMarking = useSimulationStore(
-    (state) => state.setInitialMarking,
-  );
+  const { state, initialMarking, setInitialMarking } = use(SimulationContext);
+  const isSimulationNotRun = state === "NotRun";
 
   // Check if there's data to clear
   const currentMarking = initialMarking.get(place.id);
@@ -105,14 +101,12 @@ const ClearStateHeaderAction: React.FC = () => {
 const PlaceInitialStateContent: React.FC = () => {
   const { place, placeType } = usePlacePropertiesContext();
 
-  const simulation = useSimulationStore((state) => state.simulation);
-  const initialMarking = useSimulationStore((state) => state.initialMarking);
-  const setInitialMarking = useSimulationStore(
-    (state) => state.setInitialMarking,
-  );
-  const currentlyViewedFrame = useSimulationStore(
-    (state) => state.currentlyViewedFrame,
-  );
+  const {
+    simulation,
+    initialMarking,
+    setInitialMarking,
+    currentlyViewedFrame,
+  } = use(SimulationContext);
 
   // Determine if simulation is running (has frames)
   const hasSimulationFrames =

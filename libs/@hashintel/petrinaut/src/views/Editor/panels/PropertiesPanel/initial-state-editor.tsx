@@ -1,8 +1,8 @@
 import { css, cva } from "@hashintel/ds-helpers/css";
-import { useEffect, useRef, useState } from "react";
+import { use, useEffect, useRef, useState } from "react";
 
 import type { Color } from "../../../../core/types/sdcpn";
-import { useSimulationStore } from "../../../../state/simulation-provider";
+import { SimulationContext } from "../../../../state/simulation-provider";
 
 const wrapperStyle = css({
   display: "flex",
@@ -254,14 +254,12 @@ export const InitialStateEditor: React.FC<InitialStateEditorProps> = ({
   const internalResize = useResizable(250);
   const { height, isResizing, containerRef, startResize } = internalResize;
 
-  const initialMarking = useSimulationStore((state) => state.initialMarking);
-  const setInitialMarking = useSimulationStore(
-    (state) => state.setInitialMarking,
-  );
-  const simulation = useSimulationStore((state) => state.simulation);
-  const currentlyViewedFrame = useSimulationStore(
-    (state) => state.currentlyViewedFrame,
-  );
+  const {
+    initialMarking,
+    setInitialMarking,
+    simulation,
+    currentlyViewedFrame,
+  } = use(SimulationContext);
 
   // Determine if we should show current simulation state or initial marking
   const hasSimulation = simulation !== null && simulation.frames.length > 0;

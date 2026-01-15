@@ -1,4 +1,5 @@
 import { css } from "@hashintel/ds-helpers/css";
+import { use } from "react";
 import {
   IoMdCheckmarkCircleOutline,
   IoMdPause,
@@ -7,7 +8,7 @@ import {
 import { MdRotateLeft } from "react-icons/md";
 
 import { useEditorStore } from "../../../../state/editor-provider";
-import { useSimulationStore } from "../../../../state/simulation-provider";
+import { SimulationContext } from "../../../../state/simulation-provider";
 import { ToolbarButton } from "./toolbar-button";
 
 const frameInfoStyle = css({
@@ -64,19 +65,17 @@ interface SimulationControlsProps {
 export const SimulationControls: React.FC<SimulationControlsProps> = ({
   disabled = false,
 }) => {
-  const simulation = useSimulationStore((state) => state.simulation);
-  const simulationState = useSimulationStore((state) => state.state);
-  const reset = useSimulationStore((state) => state.reset);
-  const initialize = useSimulationStore((state) => state.initialize);
-  const run = useSimulationStore((state) => state.run);
-  const pause = useSimulationStore((state) => state.pause);
-  const dt = useSimulationStore((state) => state.dt);
-  const currentlyViewedFrame = useSimulationStore(
-    (state) => state.currentlyViewedFrame,
-  );
-  const setCurrentlyViewedFrame = useSimulationStore(
-    (state) => state.setCurrentlyViewedFrame,
-  );
+  const {
+    simulation,
+    state: simulationState,
+    reset,
+    initialize,
+    run,
+    pause,
+    dt,
+    currentlyViewedFrame,
+    setCurrentlyViewedFrame,
+  } = use(SimulationContext);
 
   const setBottomPanelOpen = useEditorStore(
     (state) => state.setBottomPanelOpen,

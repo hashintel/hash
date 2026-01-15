@@ -1,13 +1,13 @@
 import { css } from "@hashintel/ds-helpers/css";
 import { scaleLinear } from "d3-scale";
-import { useCallback, useMemo, useRef, useState } from "react";
+import { use, useCallback, useMemo, useRef, useState } from "react";
 
 import { SegmentGroup } from "../../../components/segment-group";
 import type { SubView } from "../../../components/sub-view/types";
+import type { TimelineChartType } from "../../../state/editor-provider";
 import { useEditorStore } from "../../../state/editor-provider";
-import type { TimelineChartType } from "../../../state/editor-store";
 import { useSDCPNContext } from "../../../state/sdcpn-provider";
-import { useSimulationStore } from "../../../state/simulation-provider";
+import { SimulationContext } from "../../../state/simulation-provider";
 
 const containerStyle = css({
   display: "flex",
@@ -208,7 +208,7 @@ interface TooltipState {
  * Hook to extract compartment data from simulation frames.
  */
 const useCompartmentData = (): CompartmentData[] => {
-  const simulation = useSimulationStore((state) => state.simulation);
+  const { simulation } = use(SimulationContext);
   const {
     petriNetDefinition: { places, types },
   } = useSDCPNContext();
@@ -383,9 +383,7 @@ const ChartTooltip: React.FC<{ tooltip: TooltipState | null }> = ({
 const PlayheadIndicator: React.FC<{ totalFrames: number }> = ({
   totalFrames,
 }) => {
-  const currentlyViewedFrame = useSimulationStore(
-    (state) => state.currentlyViewedFrame,
-  );
+  const { currentlyViewedFrame } = use(SimulationContext);
 
   return (
     <div
@@ -477,10 +475,7 @@ const CompartmentTimeSeries: React.FC<ChartProps> = ({
   onTooltipChange,
   onPlaceHover,
 }) => {
-  const simulation = useSimulationStore((state) => state.simulation);
-  const setCurrentlyViewedFrame = useSimulationStore(
-    (state) => state.setCurrentlyViewedFrame,
-  );
+  const { simulation, setCurrentlyViewedFrame } = use(SimulationContext);
 
   const chartRef = useRef<SVGSVGElement>(null);
   const isDraggingRef = useRef(false);
@@ -771,10 +766,7 @@ const StackedAreaChart: React.FC<ChartProps> = ({
   onTooltipChange,
   onPlaceHover,
 }) => {
-  const simulation = useSimulationStore((state) => state.simulation);
-  const setCurrentlyViewedFrame = useSimulationStore(
-    (state) => state.setCurrentlyViewedFrame,
-  );
+  const { simulation, setCurrentlyViewedFrame } = use(SimulationContext);
 
   const chartRef = useRef<SVGSVGElement>(null);
   const isDraggingRef = useRef(false);
@@ -1067,7 +1059,7 @@ const StackedAreaChart: React.FC<ChartProps> = ({
  */
 const SimulationTimelineContent: React.FC = () => {
   const chartType = useEditorStore((state) => state.timelineChartType);
-  const simulation = useSimulationStore((state) => state.simulation);
+  const { simulation } = use(SimulationContext);
   const compartmentData = useCompartmentData();
 
   // Shared legend state - persists across chart type switches

@@ -1,9 +1,10 @@
 import { css, cva } from "@hashintel/ds-helpers/css";
+import { use } from "react";
 
 import type { SubView } from "../../../components/sub-view/types";
 import { useEditorStore } from "../../../state/editor-provider";
 import { useSDCPNContext } from "../../../state/sdcpn-provider";
-import { useSimulationStore } from "../../../state/simulation-provider";
+import { SimulationContext } from "../../../state/simulation-provider";
 
 const listContainerStyle = css({
   display: "flex",
@@ -176,7 +177,7 @@ const TypesSectionContent: React.FC = () => {
   );
 
   // Check if simulation is running or paused
-  const simulationState = useSimulationStore((state) => state.state);
+  const { state: simulationState } = use(SimulationContext);
   const isSimulationActive =
     simulationState === "Running" || simulationState === "Paused";
 
@@ -250,7 +251,7 @@ const TypesSectionHeaderAction: React.FC = () => {
   } = useSDCPNContext();
 
   // Check if simulation is running or paused
-  const simulationState = useSimulationStore((state) => state.state);
+  const { state: simulationState } = use(SimulationContext);
   const isSimulationActive =
     simulationState === "Running" || simulationState === "Paused";
 

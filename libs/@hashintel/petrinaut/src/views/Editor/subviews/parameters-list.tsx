@@ -1,10 +1,11 @@
 import { css, cva } from "@hashintel/ds-helpers/css";
+import { use } from "react";
 import { v4 as uuidv4 } from "uuid";
 
 import type { SubView } from "../../../components/sub-view/types";
 import { useEditorStore } from "../../../state/editor-provider";
 import { useSDCPNContext } from "../../../state/sdcpn-provider";
-import { useSimulationStore } from "../../../state/simulation-provider";
+import { SimulationContext } from "../../../state/simulation-provider";
 
 const addButtonStyle = css({
   display: "flex",
@@ -138,7 +139,7 @@ const ParametersHeaderAction: React.FC = () => {
     addParameter,
   } = useSDCPNContext();
   const globalMode = useEditorStore((state) => state.globalMode);
-  const simulationState = useSimulationStore((state) => state.state);
+  const { state: simulationState } = use(SimulationContext);
   const setSelectedResourceId = useEditorStore(
     (state) => state.setSelectedResourceId,
   );
@@ -187,16 +188,16 @@ const ParametersList: React.FC = () => {
     removeParameter,
   } = useSDCPNContext();
   const globalMode = useEditorStore((state) => state.globalMode);
-  const simulationState = useSimulationStore((state) => state.state);
+  const {
+    state: simulationState,
+    parameterValues,
+    setParameterValue,
+  } = use(SimulationContext);
   const selectedResourceId = useEditorStore(
     (state) => state.selectedResourceId,
   );
   const setSelectedResourceId = useEditorStore(
     (state) => state.setSelectedResourceId,
-  );
-  const parameterValues = useSimulationStore((state) => state.parameterValues);
-  const setParameterValue = useSimulationStore(
-    (state) => state.setParameterValue,
   );
 
   const isSimulationNotRun =
