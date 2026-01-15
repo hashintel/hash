@@ -43,9 +43,9 @@
   },
   "dependencies": {
     "@ark-ui/react": "5.26.2",
-    "@hashintel/ds-helpers": "workspace:*",
-    "@hashintel/ds-theme": "workspace:*",
-    "@hashintel/refractive": "workspace:*",
+    "@hashintel/ds-helpers": "0.0.1",
+    "@hashintel/ds-theme": "0.0.1",
+    "@hashintel/refractive": "0.0.0",
     "canvas": "3.2.0",
     "motion": "12.23.24"
   },
@@ -59,7 +59,7 @@
     "@storybook/react": "9.1.13",
     "@storybook/react-vite": "9.1.13",
     "@tsconfig/strictest": "^2.0.8",
-    "@types/node": "^25.0.3",
+    "@types/node": "22.18.13",
     "@types/react": "19.2.7",
     "@types/react-dom": "19.2.3",
     "@vitejs/plugin-react": "5.0.4",
@@ -79,9 +79,9 @@
   },
   "peerDependencies": {
     "@ark-ui/react": "^5.26.2",
-    "@hashintel/ds-helpers": "workspace:*",
-    "@hashintel/ds-theme": "workspace:*",
-    "@hashintel/refractive": "workspace:*",
+    "@hashintel/ds-helpers": "0.0.1",
+    "@hashintel/ds-theme": "0.0.1",
+    "@hashintel/refractive": "0.0.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.0"
   },
