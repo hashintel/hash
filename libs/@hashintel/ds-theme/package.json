@@ -25,7 +25,12 @@
   "module": "./dist/main.js",
   "types": "./dist/main.d.ts",
   "files": [
-    "dist"
+    "dist",
+    "CHANGELOG.md",
+    "LICENSE-APACHE.md",
+    "LICENSE-MIT.md",
+    "LICENSE",
+    "README.md"
   ],
   "scripts": {
     "build": "tsdown",
@@ -37,8 +42,7 @@
     "fix:format": "biome format --write",
     "lint": "npm-run-all --continue-on-error \"lint:*\"",
     "lint:tsc": "tsc --noEmit",
-    "prepublishOnly": "yarn run build && ladle build",
-    "release": "echo \"we need to implement release script\" && yarn publish",
+    "prepare": "yarn run codegen",
     "test": "vitest run",
     "test:dev": "vitest dev"
   },
