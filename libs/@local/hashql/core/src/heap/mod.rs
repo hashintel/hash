@@ -241,6 +241,12 @@ impl Heap {
         }
     }
 
+    /// Sets the allocation limit for the heap.
+    #[inline]
+    pub fn set_allocation_limit(&self, capacity: Option<usize>) {
+        self.inner.set_allocation_limit(capacity);
+    }
+
     /// Allocates a value in the arena, returning a mutable reference.
     ///
     /// Only accepts types that do **not** require [`Drop`]. Types requiring destructors

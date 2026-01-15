@@ -24,6 +24,12 @@ impl Allocator {
         Self(Bump::with_capacity(capacity))
     }
 
+    /// Sets the allocation limit for the allocator.
+    #[inline]
+    pub(crate) fn set_allocation_limit(&self, capacity: Option<usize>) {
+        self.0.set_allocation_limit(capacity);
+    }
+
     /// Allocates a value using a closure to avoid moving before allocation.
     #[inline]
     pub(crate) fn alloc_with<T>(&self, func: impl FnOnce() -> T) -> &mut T {

@@ -30,9 +30,18 @@ pub struct Scratch {
 impl Scratch {
     /// Creates a new scratch allocator.
     #[must_use]
+    #[inline]
     pub fn new() -> Self {
         Self {
             inner: Allocator::new(),
+        }
+    }
+
+    #[must_use]
+    #[inline]
+    pub fn with_capacity(capacity: usize) -> Self {
+        Self {
+            inner: Allocator::with_capacity(capacity),
         }
     }
 }
