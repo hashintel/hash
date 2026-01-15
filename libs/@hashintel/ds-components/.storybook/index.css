@@ -4,9 +4,10 @@
 @layer reset {
   html,
   :host {
-    --font-fallback: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
-      'Helvetica Neue', Arial, 'Noto Sans', sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
-      'Segoe UI Symbol', 'Noto Color Emoji';
+    --font-fallback:
+      ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+      "Helvetica Neue", Arial, "Noto Sans", sans-serif, "Apple Color Emoji", "Segoe UI Emoji",
+      "Segoe UI Symbol", "Noto Color Emoji";
     line-height: 1.5;
     -webkit-text-size-adjust: 100%;
     -webkit-font-smoothing: antialiased;
@@ -91,7 +92,7 @@
   }
 
   button,
-  input:where([type='button'], [type='reset'], [type='submit']),
+  input:where([type="button"], [type="reset"], [type="submit"]),
   ::file-selector-button {
     appearance: button;
     -webkit-appearance: button;
@@ -117,7 +118,8 @@
     color: var(--global-color-placeholder, var(--placeholder-fallback));
   }
 
-  @supports (not (-webkit-appearance: -apple-pay-button)) or (contain-intrinsic-size: 1px) {
+  @supports (not (-webkit-appearance: -apple-pay-button)) or
+    (contain-intrinsic-size: 1px) {
     ::placeholder {
       --placeholder-fallback: color-mix(in oklab, currentcolor 50%, transparent);
     }
@@ -183,8 +185,8 @@
   kbd,
   samp,
   pre {
-    --font-mono-fallback: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono',
-      'Courier New';
+    --font-mono-fallback: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+      "Liberation Mono", "Courier New";
     font-family: var(--global-font-mono, var(--font-mono-fallback));
     font-size: 1em;
     font-feature-settings: normal;
@@ -213,7 +215,7 @@
     outline: auto;
   }
 
-  [hidden]:where(:not([hidden='until-found'])) {
+  [hidden]:where(:not([hidden="until-found"])) {
     display: none !important;
   }
 }
