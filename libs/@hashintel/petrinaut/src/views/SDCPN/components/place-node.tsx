@@ -98,9 +98,10 @@ const tokenCountBadgeStyle = css({
   justifyContent: "center",
   color: "[white]",
   backgroundColor: "[black]",
-  width: "[27px]",
-  height: "[27px]",
-  borderRadius: "[50%]",
+  minWidth: "[26px]",
+  height: "[26px]",
+  borderRadius: "[13px]",
+  padding: "[0 6px]",
   fontWeight: "semibold",
 });
 
