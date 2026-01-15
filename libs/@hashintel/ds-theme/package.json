@@ -45,7 +45,8 @@
     "lint:tsc": "tsc --noEmit",
     "prepare": "yarn run codegen",
     "test": "vitest run",
-    "test:dev": "vitest dev"
+    "test:dev": "vitest dev",
+    "turbo:build": "turbo run build --filter=@hashintel/ds-theme"
   },
   "devDependencies": {
     "@tsconfig/strictest": "^2.0.8",
