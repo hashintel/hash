@@ -97,9 +97,7 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
 
   // Reinitialize when petriNetId changes
   useEffect(() => {
-    if (petriNetId) {
-      __reinitialize();
-    }
+    __reinitialize();
   }, [petriNetId]);
 
   const actions = {
