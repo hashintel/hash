@@ -16,5 +16,5 @@
   },
   "exclude": ["node_modules", "dist", ".build"],
   "extends": "@tsconfig/strictest/tsconfig.json",
-  "include": ["src", "styled-system/**/*.d.ts"]
+  "include": ["src", "styled-system/**/*.d.ts",".ladle"]
 }

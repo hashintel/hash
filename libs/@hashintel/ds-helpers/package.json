@@ -64,6 +64,7 @@
     "@ladle/react": "5.1.1",
     "@pandacss/dev": "1.4.3",
     "@playwright/test": "1.57.0",
+    "@tool-belt/type-predicates": "1.4.1",
     "@tsconfig/strictest": "^2.0.8",
     "@types/node": "22.18.13",
     "@types/react": "19.2.7",
