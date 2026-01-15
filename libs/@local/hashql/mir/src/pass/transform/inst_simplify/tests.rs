@@ -1,4 +1,4 @@
-use std::path::PathBuf;
+use std::{io::Write as _, path::PathBuf};
 
 use bstr::ByteVec as _;
 use hashql_core::{
@@ -43,11 +43,13 @@ fn assert_inst_simplify_pass<'heap>(
         .format(DefIdSlice::from_raw(&bodies), &[])
         .expect("should be able to write bodies");
 
-    text_format
-        .writer
-        .extend(b"\n\n------------------------------------\n\n");
-
-    InstSimplify::new().run(context, &mut bodies[0]);
+    let changed = InstSimplify::new().run(context, &mut bodies[0]);
+    write!(
+        text_format.writer,
+        "\n\n{:=^50}\n\n",
+        format!(" Changed: {changed:?} ")
+    )
+    .expect("infallible");
 
     text_format
         .format(DefIdSlice::from_raw(&bodies), &[])

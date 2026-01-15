@@ -25,7 +25,7 @@ fn {intrinsic#4294967040}(%0: Integer) -> Boolean {
     }
 }
 
-------------------------------------
+================== Changed: Yes ==================
 
 fn {intrinsic#4294967040}(%0: Integer) -> Boolean {
     let %1: Integer

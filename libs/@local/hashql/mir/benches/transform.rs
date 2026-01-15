@@ -5,7 +5,7 @@
     clippy::similar_names
 )]
 
-use core::hint::black_box;
+use core::{cmp, hint::black_box};
 
 use codspeed_criterion_compat::{BatchSize, Bencher, Criterion, criterion_group, criterion_main};
 use hashql_core::{
@@ -301,10 +301,10 @@ fn create_complex_cfg<'heap>(env: &Environment<'heap>, interner: &Interner<'heap
 
 #[expect(unsafe_code)]
 #[inline]
-fn run_bencher(
+fn run_bencher<T>(
     bencher: &mut Bencher,
     body: for<'heap> fn(&Environment<'heap>, &Interner<'heap>) -> Body<'heap>,
-    mut func: impl for<'env, 'heap> FnMut(&mut MirContext<'env, 'heap>, &mut Body<'heap>),
+    mut func: impl for<'env, 'heap> FnMut(&mut MirContext<'env, 'heap>, &mut Body<'heap>) -> T,
 ) {
     // NOTE: `heap` must not be moved or reassigned; `heap_ptr` assumes its address is stable
     // for the entire duration of this function.
@@ -348,8 +348,8 @@ fn run_bencher(
                 diagnostics: DiagnosticIssues::new(),
             };
 
-            func(black_box(&mut context), black_box(body));
-            context.diagnostics
+            let value = func(black_box(&mut context), black_box(body));
+            (context.diagnostics, value)
         },
         BatchSize::PerIteration,
     );
@@ -440,30 +440,45 @@ fn pipeline(criterion: &mut Criterion) {
         let mut scratch = Scratch::new();
 
         run_bencher(bencher, create_linear_cfg, |context, body| {
-            CfgSimplify::new_in(&mut scratch).run(context, body);
-            Sroa::new_in(&mut scratch).run(context, body);
-            InstSimplify::new().run(context, body);
-            DeadStoreElimination::new_in(&mut scratch).run(context, body);
+            let mut changed = CfgSimplify::new_in(&mut scratch).run(context, body);
+            changed = cmp::max(changed, Sroa::new_in(&mut scratch).run(context, body));
+            changed = cmp::max(changed, InstSimplify::new().run(context, body));
+            changed = cmp::max(
+                changed,
+                DeadStoreElimination::new_in(&mut scratch).run(context, body),
+            );
+
+            changed
         });
     });
     group.bench_function("diamond", |bencher| {
         let mut scratch = Scratch::new();
 
         run_bencher(bencher, create_diamond_cfg, |context, body| {
-            CfgSimplify::new_in(&mut scratch).run(context, body);
-            Sroa::new_in(&mut scratch).run(context, body);
-            InstSimplify::new().run(context, body);
-            DeadStoreElimination::new_in(&mut scratch).run(context, body);
+            let mut changed = CfgSimplify::new_in(&mut scratch).run(context, body);
+            changed = cmp::max(changed, Sroa::new_in(&mut scratch).run(context, body));
+            changed = cmp::max(changed, InstSimplify::new().run(context, body));
+            changed = cmp::max(
+                changed,
+                DeadStoreElimination::new_in(&mut scratch).run(context, body),
+            );
+
+            changed
         });
     });
     group.bench_function("complex", |bencher| {
         let mut scratch = Scratch::new();
 
         run_bencher(bencher, create_complex_cfg, |context, body| {
-            CfgSimplify::new_in(&mut scratch).run(context, body);
-            Sroa::new_in(&mut scratch).run(context, body);
-            InstSimplify::new().run(context, body);
-            DeadStoreElimination::new_in(&mut scratch).run(context, body);
+            let mut changed = CfgSimplify::new_in(&mut scratch).run(context, body);
+            changed = cmp::max(changed, Sroa::new_in(&mut scratch).run(context, body));
+            changed = cmp::max(changed, InstSimplify::new().run(context, body));
+            changed = cmp::max(
+                changed,
+                DeadStoreElimination::new_in(&mut scratch).run(context, body),
+            );
+
+            changed
         });
     });
 }
