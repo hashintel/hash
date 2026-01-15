@@ -8447,6 +8447,7 @@ __metadata:
     "@ladle/react": "npm:5.1.1"
     "@pandacss/dev": "npm:1.4.3"
     "@playwright/test": "npm:1.57.0"
+    "@tool-belt/type-predicates": "npm:1.4.1"
     "@tsconfig/strictest": "npm:^2.0.8"
     "@types/node": "npm:22.18.13"
     "@types/react": "npm:19.2.7"
@@ -19334,6 +19335,13 @@ __metadata:
   version: 0.3.0
   resolution: "@tokenizer/token@npm:0.3.0"
   checksum: 10c0/7ab9a822d4b5ff3f5bca7f7d14d46bdd8432528e028db4a52be7fbf90c7f495cc1af1324691dda2813c6af8dc4b8eb29de3107d4508165f9aa5b53e7d501f155
+  languageName: node
+  linkType: hard
+
+"@tool-belt/type-predicates@npm:1.4.1":
+  version: 1.4.1
+  resolution: "@tool-belt/type-predicates@npm:1.4.1"
+  checksum: 10c0/9490155bfea98d977174f127b9443492448e7f07d459fd43cbf3ebae913fa70ab2c129f1aff14366f199a628947ad2e6f29d101d4423b78aef65ab700c678372
   languageName: node
   linkType: hard
 

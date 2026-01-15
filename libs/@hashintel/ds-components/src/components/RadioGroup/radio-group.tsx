@@ -133,7 +133,7 @@ const cardIconBadgeStyles = css({
   backgroundColor: "bg.neutral.subtle",
   borderRadius: "md.4", // 8px
   paddingX: "5", // 8px
-  paddingY: "5",
+  paddingY: "0",
   overflow: "clip",
   flexShrink: "0",
 });
