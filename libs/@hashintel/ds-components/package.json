@@ -39,15 +39,13 @@
     "storybook": "storybook dev -p 6006",
     "storybook:build": "storybook build",
     "test": "vitest run",
-    "test:watch": "vitest",
-    "turbo:build": "turbo run build --filter=@hashintel/ds-components",
-    "turbo:dev": "turbo run dev --filter=@hashintel/ds-components"
+    "test:watch": "vitest"
   },
   "dependencies": {
     "@ark-ui/react": "5.26.2",
-    "@hashintel/ds-helpers": "0.0.1",
-    "@hashintel/ds-theme": "0.0.1",
-    "@hashintel/refractive": "0.0.0",
+    "@hashintel/ds-helpers": "workspace:*",
+    "@hashintel/ds-theme": "workspace:*",
+    "@hashintel/refractive": "workspace:*",
     "canvas": "3.2.0",
     "motion": "12.23.24"
   },
@@ -80,6 +78,10 @@
     "vitest-browser-react": "^2.0.2"
   },
   "peerDependencies": {
+    "@ark-ui/react": "^5.26.2",
+    "@hashintel/ds-helpers": "workspace:*",
+    "@hashintel/ds-theme": "workspace:*",
+    "@hashintel/refractive": "workspace:*",
     "react": "^19.2.0",
     "react-dom": "^19.2.0"
   },

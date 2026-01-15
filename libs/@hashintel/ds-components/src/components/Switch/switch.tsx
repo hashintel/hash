@@ -1,7 +1,6 @@
 import { Switch as BaseSwitch } from "@ark-ui/react/switch";
+import { css } from "@hashintel/ds-helpers/css";
 import { LIP, refractive } from "@hashintel/refractive";
-
-import { css } from "../../../styled-system/css";
 
 // Layout constants
 const SLIDER_HEIGHT = 20;
