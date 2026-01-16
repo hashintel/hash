@@ -59,7 +59,7 @@ export const getFileFromUrlAction: AiFlowActionActivity<
               kind: "PersistedEntityMetadata",
               value: {
                 entityId: createFileEntityFromUrlStatus.entity.entityId,
-                operation: "create",
+                operation,
               },
             },
           },
