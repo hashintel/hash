@@ -23,9 +23,11 @@ A **Panda CSS preset** that exports design tokens generated from Figma variables
 Tokens are generated from Figma design variables:
 
 ```
-scripts/figma-variables.json  →  generate-colors.ts  →  src/theme/colors/*.ts
-                              →  generate-tokens.ts  →  src/theme/tokens/*.ts
+scripts/figma-variables.json  →  generate-colors.ts  →  src/theme/colors/*.gen.ts
+                              →  generate-tokens.ts  →  src/theme/tokens/*.gen.ts
 ```
+
+Note: Generated files use `.gen.ts` suffix and are gitignored (per repo convention).
 
 ### Generation Workflow
 
@@ -35,19 +37,19 @@ scripts/figma-variables.json  →  generate-colors.ts  →  src/theme/colors/*.t
 
 ### Codegen Scripts
 
-| Script | Description |
-|--------|-------------|
-| `yarn codegen` | Run all generators + format output |
-| `yarn codegen:colors` | Generate color tokens from Figma |
+| Script                | Description                                  |
+| --------------------- | -------------------------------------------- |
+| `yarn codegen`        | Run all generators + format output           |
+| `yarn codegen:colors` | Generate color tokens from Figma             |
 | `yarn codegen:tokens` | Generate spacing/typography/radii from Figma |
-| `yarn codegen:format` | Format generated files with Biome |
+| `yarn codegen:format` | Format generated files with Biome            |
 
 ## Exports
 
-| Entry Point | Description |
-|-------------|-------------|
-| `@hashintel/ds-theme` | Panda CSS preset (use in `presets: [...]`) |
-| `@hashintel/ds-theme/theme` | Direct theme object access |
+| Entry Point                 | Description                                |
+| --------------------------- | ------------------------------------------ |
+| `@hashintel/ds-theme`       | Panda CSS preset (use in `presets: [...]`) |
+| `@hashintel/ds-theme/theme` | Direct theme object access                 |
 
 ### Usage in Consumer Packages
 
@@ -105,10 +107,10 @@ libs/@hashintel/ds-theme/
 │   ├── main.ts                # Panda CSS preset definition
 │   ├── theme.ts               # Theme object export
 │   └── theme/
-│       ├── colors/            # Generated color token files
-│       ├── colors.ts          # Colors barrel export
-│       ├── tokens/            # Generated token files
-│       ├── tokens.ts          # Tokens barrel export
+│       ├── colors/            # Generated color token files (*.gen.ts, gitignored)
+│       ├── colors.gen.ts      # Colors barrel export (generated, gitignored)
+│       ├── tokens/            # Generated + manual token files (*.gen.ts gitignored)
+│       ├── tokens.gen.ts      # Tokens barrel export (generated, gitignored)
 │       └── recipes/           # Panda CSS recipes (if any)
 ├── dist/                      # Built output
 ├── package.json
@@ -117,13 +119,13 @@ libs/@hashintel/ds-theme/
 
 ## Scripts
 
-| Script | Description |
-|--------|-------------|
-| `yarn build` | Build with tsdown |
-| `yarn dev` | Build in watch mode |
-| `yarn codegen` | Regenerate all tokens from Figma |
-| `yarn lint:tsc` | TypeScript type checking |
-| `yarn test` | Run tests |
+| Script          | Description                      |
+| --------------- | -------------------------------- |
+| `yarn build`    | Build with tsdown                |
+| `yarn dev`      | Build in watch mode              |
+| `yarn codegen`  | Regenerate all tokens from Figma |
+| `yarn lint:tsc` | TypeScript type checking         |
+| `yarn test`     | Run tests                        |
 
 ## Related Packages
 

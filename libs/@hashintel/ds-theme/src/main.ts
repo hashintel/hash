@@ -1,5 +1,5 @@
 import { definePreset } from "@pandacss/dev";
-import { colors } from "./theme/colors";
+import { colors } from "./theme/colors.gen";
 import {
   spacing,
   fonts,
@@ -7,7 +7,7 @@ import {
   fontSizes,
   lineHeights,
   radii,
-} from "./theme/tokens";
+} from "./theme/tokens.gen";
 
 export const preset = definePreset({
   name: "@hashintel/ds-theme",
