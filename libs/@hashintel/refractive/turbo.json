@@ -1,8 +1,17 @@
 {
-  "extends": ["//"],
+  "extends": [
+    "//"
+  ],
   "tasks": {
     "build": {
-      "outputs": ["./dist/**"]
+      "outputs": [
+        "./dist/**"
+      ]
+    },
+    "build:types": {
+      "outputs": [
+        "./dist/**"
+      ]
     }
   }
 }

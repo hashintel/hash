@@ -23,6 +23,7 @@
   ],
   "scripts": {
     "build": "vite build",
+    "build:types": "vite build",
     "dev": "vite",
     "dev:lib": "vite build --watch",
     "fix:eslint": "eslint --fix .",
