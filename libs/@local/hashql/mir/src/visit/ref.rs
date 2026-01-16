@@ -362,6 +362,7 @@ pub fn walk_params<'heap, T: Visitor<'heap> + ?Sized>(
 pub fn walk_body<'heap, T: Visitor<'heap> + ?Sized>(
     visitor: &mut T,
     Body {
+        id: _,
         span,
         return_type: r#type,
         source,
@@ -370,6 +371,7 @@ pub fn walk_body<'heap, T: Visitor<'heap> + ?Sized>(
         args: _,
     }: &Body<'heap>,
 ) -> T::Result {
+    // We do not visit the `DefId` here, as it doesn't make sense.
     visitor.visit_span(*span)?;
     visitor.visit_type_id(*r#type)?;
     visitor.visit_source(source)?;

@@ -271,16 +271,15 @@ impl<'ctx, 'mir, 'hir, 'env, 'heap> Reifier<'ctx, 'mir, 'hir, 'env, 'heap> {
             &mut self.blocks,
         );
 
-        let block = Body {
+        self.context.bodies.push_with(|id| Body {
+            id,
             span,
             return_type: returns,
             source,
             local_decls: self.local_decls,
             basic_blocks: BasicBlocks::new(self.blocks),
             args,
-        };
-
-        self.context.bodies.push(block)
+        })
     }
 
     /// Lowers a closure to a MIR body with proper capture handling.
