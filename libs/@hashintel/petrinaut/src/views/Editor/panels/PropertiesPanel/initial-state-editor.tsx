@@ -254,15 +254,12 @@ export const InitialStateEditor: React.FC<InitialStateEditorProps> = ({
   const internalResize = useResizable(250);
   const { height, isResizing, containerRef, startResize } = internalResize;
 
-  const {
-    initialMarking,
-    setInitialMarking,
-    simulation,
-    currentlyViewedFrame,
-  } = use(SimulationContext);
+  const { initialMarking, setInitialMarking, simulation, currentViewedFrame } =
+    use(SimulationContext);
 
   // Determine if we should show current simulation state or initial marking
   const hasSimulation = simulation !== null && simulation.frames.length > 0;
+  const frameIndex = currentViewedFrame?.number ?? 0;
 
   // Get current marking for this place - either from simulation frame or initial marking
   const getCurrentMarkingData = (): {
@@ -270,8 +267,8 @@ export const InitialStateEditor: React.FC<InitialStateEditorProps> = ({
     count: number;
   } | null => {
     if (hasSimulation) {
-      // Get from currently viewed frame
-      const currentFrame = simulation.frames[currentlyViewedFrame];
+      // Get from currently viewed frame (need raw frame for buffer access)
+      const currentFrame = simulation.frames[frameIndex];
       if (!currentFrame) {
         return null;
       }

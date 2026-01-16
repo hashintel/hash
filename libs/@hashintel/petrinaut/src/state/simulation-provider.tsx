@@ -14,6 +14,8 @@ import {
   type InitialMarking,
   SimulationContext,
   type SimulationContextValue,
+  type SimulationFrameState,
+  type SimulationFrameStateDiff,
   type SimulationState,
 } from "./simulation-context";
 
@@ -24,7 +26,10 @@ type SimulationStateValues = {
   errorItemId: string | null;
   parameterValues: Record<string, string>;
   initialMarking: InitialMarking;
-  currentlyViewedFrame: number;
+  /** Internal frame index for tracking which frame is being viewed */
+  currentViewedFrameIndex: number | null;
+  /** Internal frame index for tracking which frame was previously viewed */
+  previousViewedFrameIndex: number | null;
   dt: number;
 };
 
@@ -35,7 +40,8 @@ const initialStateValues: SimulationStateValues = {
   errorItemId: null,
   parameterValues: {},
   initialMarking: new Map(),
-  currentlyViewedFrame: 0,
+  currentViewedFrameIndex: null,
+  previousViewedFrameIndex: null,
   dt: 0.01,
 };
 
@@ -118,7 +124,8 @@ const useSimulationRunner = ({
           state: finalState,
           error: null,
           errorItemId: null,
-          currentlyViewedFrame: simulation?.currentFrameNumber ?? 0,
+          previousViewedFrameIndex: prev.currentViewedFrameIndex,
+          currentViewedFrameIndex: simulation?.currentFrameNumber ?? 0,
         }));
 
         // Continue the loop if still running
@@ -152,6 +159,82 @@ const useSimulationRunner = ({
     };
   }, [isRunning, getState, setStateValues]);
 };
+
+/**
+ * Converts a simulation frame to a SimulationFrameState.
+ */
+function buildFrameState(
+  simulation: SimulationContextValue["simulation"],
+  frameIndex: number,
+): SimulationFrameState | null {
+  if (!simulation || simulation.frames.length === 0) {
+    return null;
+  }
+
+  const frame = simulation.frames[frameIndex];
+  if (!frame) {
+    return null;
+  }
+
+  const places: SimulationFrameState["places"] = {};
+  for (const [placeId, placeData] of frame.places) {
+    places[placeId] = {
+      tokenCount: placeData.count,
+    };
+  }
+
+  const transitions: SimulationFrameState["transitions"] = {};
+  for (const [transitionId, transitionData] of frame.transitions) {
+    transitions[transitionId] = {
+      timeSinceLastFiring: transitionData.timeSinceLastFiring,
+    };
+  }
+
+  return {
+    number: frameIndex,
+    time: frame.time,
+    places,
+    transitions,
+  };
+}
+
+/**
+ * Computes the difference between two simulation frames.
+ */
+function buildFrameStateDiff(
+  currentFrame: SimulationFrameState,
+  comparedFrame: SimulationFrameState,
+): SimulationFrameStateDiff {
+  const places: SimulationFrameStateDiff["places"] = {};
+  for (const placeId of Object.keys(currentFrame.places)) {
+    const currentTokenCount = currentFrame.places[placeId]?.tokenCount ?? 0;
+    const comparedTokenCount = comparedFrame.places[placeId]?.tokenCount ?? 0;
+    places[placeId] = {
+      tokenCount: currentTokenCount - comparedTokenCount,
+    };
+  }
+
+  const transitions: SimulationFrameStateDiff["transitions"] = {};
+  for (const transitionId of Object.keys(currentFrame.transitions)) {
+    const currentTimeSinceLastFiring =
+      currentFrame.transitions[transitionId]?.timeSinceLastFiring ?? 0;
+    // Count firings: if timeSinceLastFiring is 0, the transition just fired
+    // We need to count how many times it fired between the two frames
+    // For simplicity, we count 1 if it fired in current frame (timeSinceLastFiring === 0)
+    // and the compared frame had a non-zero timeSinceLastFiring
+    const justFired = currentTimeSinceLastFiring === 0;
+    transitions[transitionId] = {
+      firingCount: justFired ? 1 : 0,
+    };
+  }
+
+  return {
+    currentFrame,
+    comparedFrame,
+    places,
+    transitions,
+  };
+}
 
 /**
  * Internal component that subscribes to simulation state changes
@@ -312,7 +395,8 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
           state: "Paused",
           error: null,
           errorItemId: null,
-          currentlyViewedFrame: 0,
+          currentViewedFrameIndex: 0,
+          previousViewedFrameIndex: null,
         };
       } catch (error) {
         // eslint-disable-next-line no-console
@@ -373,12 +457,13 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
       error: null,
       errorItemId: null,
       parameterValues,
-      currentlyViewedFrame: 0,
+      currentViewedFrameIndex: null,
+      previousViewedFrameIndex: null,
       // Keep initialMarking when resetting - it's configuration, not simulation state
     }));
   };
 
-  const setCurrentlyViewedFrame: SimulationContextValue["setCurrentlyViewedFrame"] =
+  const setCurrentViewedFrame: SimulationContextValue["setCurrentViewedFrame"] =
     (frameIndex) => {
       setStateValues((prev) => {
         if (!prev.simulation) {
@@ -390,12 +475,52 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
         const totalFrames = prev.simulation.frames.length;
         const clampedIndex = Math.max(0, Math.min(frameIndex, totalFrames - 1));
 
-        return { ...prev, currentlyViewedFrame: clampedIndex };
+        return {
+          ...prev,
+          previousViewedFrameIndex: prev.currentViewedFrameIndex,
+          currentViewedFrameIndex: clampedIndex,
+        };
       });
     };
 
+  // Compute the currently viewed frame state
+  const currentViewedFrame =
+    stateValues.currentViewedFrameIndex !== null
+      ? buildFrameState(
+          stateValues.simulation,
+          stateValues.currentViewedFrameIndex,
+        )
+      : null;
+
+  // Compute the frame diff (comparing current frame with previous frame)
+  let currentViewedFrameDiff: SimulationFrameStateDiff | null = null;
+  if (
+    currentViewedFrame &&
+    stateValues.currentViewedFrameIndex !== null &&
+    stateValues.previousViewedFrameIndex !== null
+  ) {
+    const previousFrame = buildFrameState(
+      stateValues.simulation,
+      stateValues.previousViewedFrameIndex,
+    );
+    if (previousFrame) {
+      currentViewedFrameDiff = buildFrameStateDiff(
+        currentViewedFrame,
+        previousFrame,
+      );
+    }
+  }
+
   const contextValue: SimulationContextValue = {
-    ...stateValues,
+    simulation: stateValues.simulation,
+    state: stateValues.state,
+    error: stateValues.error,
+    errorItemId: stateValues.errorItemId,
+    parameterValues: stateValues.parameterValues,
+    initialMarking: stateValues.initialMarking,
+    dt: stateValues.dt,
+    currentViewedFrame,
+    currentViewedFrameDiff,
     setInitialMarking,
     setParameterValue,
     setDt,
@@ -404,7 +529,7 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
     run,
     pause,
     reset,
-    setCurrentlyViewedFrame,
+    setCurrentViewedFrame,
   };
 
   return (

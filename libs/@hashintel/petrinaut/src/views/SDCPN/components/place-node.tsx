@@ -114,18 +114,13 @@ export const PlaceNode: React.FC<NodeProps<PlaceNodeData>> = ({
 }: NodeProps<PlaceNodeData>) => {
   const { globalMode, selectedResourceId } = use(EditorContext);
   const isSimulateMode = globalMode === "simulate";
-  const { simulation, currentlyViewedFrame, initialMarking } =
-    use(SimulationContext);
+  const { currentViewedFrame, initialMarking } = use(SimulationContext);
 
   // Get token count from the currently viewed frame or initial marking
   let tokenCount: number | null = null;
-  if (simulation && simulation.frames.length > 0) {
-    const frame = simulation.frames[currentlyViewedFrame];
-    const placeData = frame?.places.get(id);
-    if (placeData) {
-      tokenCount = placeData.count;
-    }
-  } else if (isSimulateMode && !simulation) {
+  if (currentViewedFrame) {
+    tokenCount = currentViewedFrame.places[id]?.tokenCount ?? null;
+  } else if (isSimulateMode) {
     // In simulate mode but no simulation running - show initial marking
     const marking = initialMarking.get(id);
     tokenCount = marking?.count ?? 0;

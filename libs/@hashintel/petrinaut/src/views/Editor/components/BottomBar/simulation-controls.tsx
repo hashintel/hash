@@ -73,8 +73,8 @@ export const SimulationControls: React.FC<SimulationControlsProps> = ({
     run,
     pause,
     dt,
-    currentlyViewedFrame,
-    setCurrentlyViewedFrame,
+    currentViewedFrame,
+    setCurrentViewedFrame,
   } = use(SimulationContext);
 
   const { setBottomPanelOpen, setActiveBottomPanelTab } = use(EditorContext);
@@ -90,7 +90,8 @@ export const SimulationControls: React.FC<SimulationControlsProps> = ({
   const hasSimulation = simulation !== null;
   const isRunning = simulationState === "Running";
   const isComplete = simulationState === "Complete";
-  const elapsedTime = simulation ? currentlyViewedFrame * simulation.dt : 0;
+  const frameIndex = currentViewedFrame?.number ?? 0;
+  const elapsedTime = currentViewedFrame?.time ?? 0;
 
   const getPlayPauseTooltip = () => {
     if (isDisabled) {
@@ -178,7 +179,7 @@ export const SimulationControls: React.FC<SimulationControlsProps> = ({
           <div className={frameInfoStyle}>
             <div>Frame</div>
             <div>
-              {currentlyViewedFrame + 1} / {totalFrames}
+              {frameIndex + 1} / {totalFrames}
             </div>
             <div className={elapsedTimeStyle}>{elapsedTime.toFixed(3)}s</div>
           </div>
@@ -187,10 +188,10 @@ export const SimulationControls: React.FC<SimulationControlsProps> = ({
             type="range"
             min="0"
             max={Math.max(0, totalFrames - 1)}
-            value={currentlyViewedFrame}
+            value={frameIndex}
             disabled={isDisabled}
             onChange={(event) =>
-              setCurrentlyViewedFrame(Number(event.target.value))
+              setCurrentViewedFrame(Number(event.target.value))
             }
             className={sliderStyle}
           />

@@ -131,16 +131,15 @@ export const TransitionNode: React.FC<NodeProps<TransitionNodeData>> = ({
   const { label } = data;
 
   const { selectedResourceId } = use(EditorContext);
-  const { simulation, currentlyViewedFrame } = use(SimulationContext);
+  const { currentViewedFrame } = use(SimulationContext);
 
   // Check if this transition just fired (time since last fire is zero)
   let justFired = false;
-  if (simulation && simulation.frames.length > 0) {
-    const frame = simulation.frames[currentlyViewedFrame];
-    const transitionData = frame?.transitions.get(id);
-    // Ugly hack: check if currentlyViewedFrame is greater than 0 to avoid showing the transition as fired on the first frame.
-    // This will be fixed when define proper simulation state interface.
-    if (transitionData && currentlyViewedFrame > 0) {
+  // Check if this transition just fired (time since last fire is zero)
+  // Ugly hack: check if currentViewedFrame is greater than 0 to avoid showing the transition as fired on the first frame.
+  if (currentViewedFrame && currentViewedFrame.number > 0) {
+    const transitionData = currentViewedFrame.transitions[id];
+    if (transitionData) {
       justFired = transitionData.timeSinceLastFiring === 0;
     }
   }

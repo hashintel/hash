@@ -421,13 +421,14 @@ const ChartTooltip: React.FC<{ tooltip: TooltipState | null }> = ({
 const PlayheadIndicator: React.FC<{ totalFrames: number }> = ({
   totalFrames,
 }) => {
-  const { currentlyViewedFrame } = use(SimulationContext);
+  const { currentViewedFrame } = use(SimulationContext);
+  const frameIndex = currentViewedFrame?.number ?? 0;
 
   return (
     <div
       className={playheadStyle}
       style={{
-        left: `${(currentlyViewedFrame / Math.max(1, totalFrames - 1)) * 100}%`,
+        left: `${(frameIndex / Math.max(1, totalFrames - 1)) * 100}%`,
       }}
     >
       <div className={playheadArrowStyle} />
@@ -513,7 +514,7 @@ const CompartmentTimeSeries: React.FC<ChartProps> = ({
   onTooltipChange,
   onPlaceHover,
 }) => {
-  const { simulation, setCurrentlyViewedFrame } = use(SimulationContext);
+  const { simulation, setCurrentViewedFrame } = use(SimulationContext);
 
   const chartRef = useRef<SVGSVGElement>(null);
   const isDraggingRef = useRef(false);
@@ -567,10 +568,10 @@ const CompartmentTimeSeries: React.FC<ChartProps> = ({
     (event: React.MouseEvent<SVGSVGElement>) => {
       const frameIndex = getFrameFromEvent(event);
       if (frameIndex !== null) {
-        setCurrentlyViewedFrame(frameIndex);
+        setCurrentViewedFrame(frameIndex);
       }
     },
-    [getFrameFromEvent, setCurrentlyViewedFrame],
+    [getFrameFromEvent, setCurrentViewedFrame],
   );
 
   // Update tooltip based on mouse position and hovered place
@@ -804,7 +805,7 @@ const StackedAreaChart: React.FC<ChartProps> = ({
   onTooltipChange,
   onPlaceHover,
 }) => {
-  const { simulation, setCurrentlyViewedFrame } = use(SimulationContext);
+  const { simulation, setCurrentViewedFrame } = use(SimulationContext);
 
   const chartRef = useRef<SVGSVGElement>(null);
   const isDraggingRef = useRef(false);
@@ -896,10 +897,10 @@ const StackedAreaChart: React.FC<ChartProps> = ({
     (event: React.MouseEvent<SVGSVGElement>) => {
       const frameIndex = getFrameFromEvent(event);
       if (frameIndex !== null) {
-        setCurrentlyViewedFrame(frameIndex);
+        setCurrentViewedFrame(frameIndex);
       }
     },
-    [getFrameFromEvent, setCurrentlyViewedFrame],
+    [getFrameFromEvent, setCurrentViewedFrame],
   );
 
   // Update tooltip based on mouse position and hovered place
