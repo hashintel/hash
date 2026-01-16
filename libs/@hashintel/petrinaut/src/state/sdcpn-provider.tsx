@@ -1,5 +1,6 @@
 import { calculateGraphLayout } from "../lib/calculate-graph-layout";
 import {
+  ARC_ID_PREFIX,
   generateArcId,
   SDCPNContext,
   type SDCPNContextValue,
@@ -233,7 +234,8 @@ export const SDCPNProvider: React.FC<SDCPNProviderProps> = ({
     getItemType(id) {
       const sdcpn = rest.petriNetDefinition;
 
-      if (id.startsWith("$A_")) {
+      // TODO: Selection and elements IDs should be reworked
+      if (id.startsWith(ARC_ID_PREFIX)) {
         return "arc";
       }
 

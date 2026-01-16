@@ -11,6 +11,21 @@ import type {
   Transition,
 } from "../core/types/sdcpn";
 
+export const ARC_ID_PREFIX = "$A_";
+export type ArcIdPrefix = typeof ARC_ID_PREFIX;
+
+export const ARC_ID_SEPARATOR = "___";
+
+/**
+ * Arc ID format: {@link ARC_ID_PREFIX}<inputId>{@link ARC_ID_SEPARATOR}<outputId>
+ */
+export function generateArcId({
+  inputId,
+  outputId,
+}: { inputId: string; outputId: string }): `${ArcIdPrefix}${string}` {
+  return `${ARC_ID_PREFIX}${inputId}${ARC_ID_SEPARATOR}${outputId}`;
+}
+
 export type SDCPNProviderProps = {
   createNewNet: (params: {
     petriNetDefinition: SDCPN;
@@ -88,21 +103,6 @@ export type MutationHelperFunctions = {
     | null;
   deleteItemsByIds: (ids: Set<string>) => void;
   layoutGraph: () => Promise<void>;
-};
-
-export const ARC_ID_PREFIX = "$A_";
-export type ArcIdPrefix = typeof ARC_ID_PREFIX;
-
-export const ARC_ID_SEPARATOR = "___";
-
-/**
- * Arc ID format: {@link ARC_ID_PREFIX}<inputId>{@link ARC_ID_SEPARATOR}<outputId>
- */
-export const generateArcId = ({
-  inputId,
-  outputId,
-}: { inputId: string; outputId: string }): `${ArcIdPrefix}${string}` => {
-  return `${ARC_ID_PREFIX}${inputId}${ARC_ID_SEPARATOR}${outputId}`;
 };
 
 export type SDCPNContextValue = SDCPNProviderProps & MutationHelperFunctions;
