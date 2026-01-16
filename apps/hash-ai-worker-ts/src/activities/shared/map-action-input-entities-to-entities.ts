@@ -1,32 +1,62 @@
+import type { ActorEntityUuid, EntityId } from "@blockprotocol/type-system";
+import { extractEntityUuidFromEntityId } from "@blockprotocol/type-system";
+import type { GraphApi } from "@local/hash-graph-client";
 import type { SerializedEntity } from "@local/hash-graph-sdk/entity";
-import { HashEntity } from "@local/hash-graph-sdk/entity";
+import { HashEntity, queryEntities } from "@local/hash-graph-sdk/entity";
 import type {
-  PersistedEntities,
-  PersistedEntity,
+  PersistedEntitiesMetadata,
+  PersistedEntityMetadata,
 } from "@local/hash-isomorphic-utils/flows/types";
+import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 
-export const mapActionInputEntitiesToEntities = (params: {
-  inputEntities: (SerializedEntity | PersistedEntity | PersistedEntities)[];
-}): HashEntity[] =>
-  params.inputEntities.flatMap((inputEntity) => {
+export const mapActionInputEntitiesToEntities = async (params: {
+  actorId: ActorEntityUuid;
+  graphApiClient: GraphApi;
+  inputEntities: (
+    | SerializedEntity
+    | PersistedEntityMetadata
+    | PersistedEntitiesMetadata
+  )[];
+}): Promise<HashEntity[]> => {
+  const { actorId, graphApiClient, inputEntities } = params;
+
+  const entityIdsToFetch: EntityId[] = [];
+  const directEntities: HashEntity[] = [];
+
+  for (const inputEntity of inputEntities) {
     if ("operation" in inputEntity) {
-      if (inputEntity.entity) {
-        return new HashEntity(inputEntity.entity);
-      } else {
-        return [];
+      entityIdsToFetch.push(inputEntity.entityId);
+    } else if ("persistedEntities" in inputEntity) {
+      for (const persistedEntity of inputEntity.persistedEntities) {
+        entityIdsToFetch.push(persistedEntity.entityId);
       }
+    } else {
+      // SerializedEntity - convert directly
+      directEntities.push(new HashEntity(inputEntity));
     }
+  }
 
-    if ("persistedEntities" in inputEntity) {
-      return inputEntity.persistedEntities.flatMap(
-        ({ entity, existingEntity }) =>
-          entity
-            ? new HashEntity(entity)
-            : existingEntity
-              ? new HashEntity(existingEntity)
-              : [],
-      );
-    }
+  if (entityIdsToFetch.length === 0) {
+    return directEntities;
+  }
 
-    return new HashEntity(inputEntity);
-  });
+  const { entities: fetchedEntities } = await queryEntities(
+    { graphApi: graphApiClient },
+    { actorId },
+    {
+      filter: {
+        any: entityIdsToFetch.map((entityId) => ({
+          equal: [
+            { path: ["uuid"] },
+            { parameter: extractEntityUuidFromEntityId(entityId) },
+          ],
+        })),
+      },
+      temporalAxes: currentTimeInstantTemporalAxes,
+      includeDrafts: true,
+      includePermissions: false,
+    },
+  );
+
+  return [...directEntities, ...fetchedEntities];
+};

@@ -1,4 +1,10 @@
 import type {
+  AiActionStepOutput,
+  AiFlowActionDefinitionId,
+  IntegrationActionStepOutput,
+  IntegrationFlowActionDefinitionId,
+} from "@local/hash-isomorphic-utils/flows/action-definitions";
+import type {
   StepInput,
   StepOutput,
 } from "@local/hash-isomorphic-utils/flows/types";
@@ -11,6 +17,40 @@ export type FlowActionActivity<AdditionalParams extends object = object> = (
 ) => Promise<
   Status<{
     outputs: StepOutput[];
+  }>
+>;
+
+/**
+ * A type-safe version of FlowActionActivity that properly types the outputs
+ * based on the action definition.
+ */
+export type AiFlowActionActivity<
+  T extends AiFlowActionDefinitionId,
+  AdditionalParams extends object = object,
+> = (
+  params: {
+    inputs: StepInput[];
+  } & AdditionalParams,
+) => Promise<
+  Status<{
+    outputs: AiActionStepOutput<T>[];
+  }>
+>;
+
+/**
+ * A type-safe version of FlowActionActivity for integration actions that
+ * properly types the outputs based on the action definition.
+ */
+export type IntegrationFlowActionActivity<
+  T extends IntegrationFlowActionDefinitionId,
+  AdditionalParams extends object = object,
+> = (
+  params: {
+    inputs: StepInput[];
+  } & AdditionalParams,
+) => Promise<
+  Status<{
+    outputs: IntegrationActionStepOutput<T>[];
   }>
 >;
 

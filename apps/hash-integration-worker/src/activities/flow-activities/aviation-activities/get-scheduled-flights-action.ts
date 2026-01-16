@@ -4,7 +4,7 @@ import {
   type OriginProvenance,
   type ProvidedEntityEditionProvenance,
 } from "@blockprotocol/type-system";
-import type { FlowActionActivity } from "@local/hash-backend-utils/flows";
+import type { IntegrationFlowActionActivity } from "@local/hash-backend-utils/flows";
 import type { AviationProposedEntity } from "@local/hash-backend-utils/integrations/aviation";
 import { getScheduledArrivalEntities } from "@local/hash-backend-utils/integrations/aviation";
 import { getSimplifiedIntegrationFlowActionInputs } from "@local/hash-isomorphic-utils/flows/action-definitions";
@@ -61,9 +61,9 @@ export const aviationProposedEntityToFlowProposedEntity = (
 /**
  * Fetches scheduled flights from AeroAPI for a given airport and date and returns them as ProposedEntity objects.
  */
-export const getScheduledFlightsAction: FlowActionActivity = async ({
-  inputs,
-}) => {
+export const getScheduledFlightsAction: IntegrationFlowActionActivity<
+  "getScheduledFlights"
+> = async ({ inputs }) => {
   try {
     const { airportIcao, date } = getSimplifiedIntegrationFlowActionInputs({
       inputs,

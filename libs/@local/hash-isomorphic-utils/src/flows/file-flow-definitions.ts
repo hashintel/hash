@@ -151,7 +151,7 @@ export const inferMetadataFromDocumentFlowDefinition: FlowDefinition<AiFlowActio
         stepId: "2",
         stepOutputName: "persistedEntities",
         name: "persistedEntities" as const,
-        payloadKind: "PersistedEntity",
+        payloadKind: "PersistedEntityMetadata",
         array: true,
         required: true,
       },

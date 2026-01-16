@@ -1,15 +1,14 @@
-import type { FlowActionActivity } from "@local/hash-backend-utils/flows";
-import {
-  getSimplifiedAiFlowActionInputs,
-  type OutputNameForAiFlowAction,
-} from "@local/hash-isomorphic-utils/flows/action-definitions";
+import type { AiFlowActionActivity } from "@local/hash-backend-utils/flows";
+import { getSimplifiedAiFlowActionInputs } from "@local/hash-isomorphic-utils/flows/action-definitions";
 import { StatusCode } from "@local/status";
 import { Context } from "@temporalio/activity";
 
 import { logProgress } from "../shared/log-progress.js";
 import { createFileEntityFromUrl } from "./shared/create-file-entity-from-url.js";
 
-export const getFileFromUrlAction: FlowActionActivity = async ({ inputs }) => {
+export const getFileFromUrlAction: AiFlowActionActivity<
+  "getFileFromUrl"
+> = async ({ inputs }) => {
   const {
     description,
     displayName,
@@ -37,17 +36,15 @@ export const getFileFromUrlAction: FlowActionActivity = async ({ inputs }) => {
   // @todo look for an existing file with the same originalUrl in the graph, and update it if found?
   const operation = "create";
 
-  const fileEntity = createFileEntityFromUrlStatus.entity.toJSON();
-
   logProgress([
     {
-      persistedEntity: {
-        entity: fileEntity,
+      persistedEntityMetadata: {
+        entityId: createFileEntityFromUrlStatus.entity.entityId,
         operation, // @todo update this to "update" if an existing entity was found
       },
       recordedAt: new Date().toISOString(),
       stepId: Context.current().info.activityId,
-      type: "PersistedEntity",
+      type: "PersistedEntityMetadata",
     },
   ]);
 
@@ -57,11 +54,13 @@ export const getFileFromUrlAction: FlowActionActivity = async ({ inputs }) => {
       {
         outputs: [
           {
-            outputName:
-              "fileEntity" satisfies OutputNameForAiFlowAction<"getFileFromUrl">,
+            outputName: "fileEntity",
             payload: {
-              kind: "Entity",
-              value: fileEntity,
+              kind: "PersistedEntityMetadata",
+              value: {
+                entityId: createFileEntityFromUrlStatus.entity.entityId,
+                operation,
+              },
             },
           },
         ],

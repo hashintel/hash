@@ -6,7 +6,6 @@ import type {
 import { actionDefinitions } from "@local/hash-isomorphic-utils/flows/action-definitions";
 import type {
   StepInput,
-  WebSearchResult,
   WorkerIdentifiers,
 } from "@local/hash-isomorphic-utils/flows/types";
 import { StatusCode } from "@local/status";
@@ -65,19 +64,13 @@ export const handleWebSearchToolCall = async (params: {
 
   const { outputs: webSearchOutputs } = response.contents[0]!;
 
-  const webPageUrlsOutput = webSearchOutputs.find(
-    ({ outputName }) =>
-      outputName ===
-      ("webSearchResult" satisfies OutputNameForAiFlowAction<"webSearch">),
-  );
+  const searchResults = webSearchOutputs[0]?.payload.value;
 
-  if (!webPageUrlsOutput) {
+  if (!searchResults) {
     return {
-      error: `No web page URLs output was found when calling "webSearch" for the query ${query}.`,
+      error: `No web search results output was found when calling "webSearch" for the query ${query}.`,
     };
   }
-
-  const searchResults = webPageUrlsOutput.payload.value as WebSearchResult[];
 
   const webPageUrlsWithSummaries = (
     await Promise.all(
@@ -122,7 +115,7 @@ export const handleWebSearchToolCall = async (params: {
           };
         }
 
-        const summary = summaryOutput.payload.value as string;
+        const summary = summaryOutput.payload.value;
 
         return {
           fromSearchQuery: query,
