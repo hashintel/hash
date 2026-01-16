@@ -37,8 +37,10 @@ export { getFlowRunEntityById };
 
 export type {
   ActionName,
+  AiFlowActionActivity,
   CreateFlowActivities,
   FlowActionActivity,
+  IntegrationFlowActionActivity,
   ProxyFlowActivity,
 } from "./flows/action-types.js";
 export { createCommonFlowActivities } from "./flows/process-flow-workflow/common-activities.js";

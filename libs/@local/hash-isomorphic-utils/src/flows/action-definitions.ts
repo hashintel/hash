@@ -362,7 +362,7 @@ const aiFlowActionDefinitionsAsConst = {
        * @todo make this do something / rethink it as needed
        */
       {
-        oneOfPayloadKinds: ["Entity", "PersistedEntitiesMetadata"],
+        oneOfPayloadKinds: ["PersistedEntitiesMetadata"],
         name: "existingEntities",
         required: false,
         array: true,
@@ -451,7 +451,7 @@ const aiFlowActionDefinitionsAsConst = {
         array: false,
       },
       {
-        oneOfPayloadKinds: ["Entity", "PersistedEntitiesMetadata"],
+        oneOfPayloadKinds: ["PersistedEntitiesMetadata"],
         name: "entities",
         required: false,
         array: true,
@@ -665,6 +665,14 @@ export type InputPayloadKindForIntegrationFlowAction<
   { name: N }
 >["oneOfPayloadKinds"][number];
 
+export type OutputPayloadKindForAiFlowAction<
+  T extends AiFlowActionDefinitionId,
+  N extends OutputNameForAiFlowAction<T>,
+> = Extract<
+  (typeof aiFlowActionDefinitionsAsConst)[T]["outputs"][number],
+  { name: N }
+>["payloadKind"];
+
 type AiFlowInputPayloadType<
   T extends AiFlowActionDefinitionId,
   N extends InputNameForAiFlowAction<T>,
@@ -767,3 +775,51 @@ export const getSimplifiedIntegrationFlowActionInputs = <
     {} as SimplifiedIntegrationActionInputsObject<T>,
   );
 };
+
+/**
+ * Type-safe output types for flow actions
+ */
+
+/**
+ * Helper type to get a single StepOutput for a specific output definition.
+ * If the output is an array, the payload value will be an array type.
+ *
+ * Uses a distributive conditional type to ensure that when OutputDef is a union,
+ * each member is processed individually, creating a proper discriminated union
+ * where outputName and payload are correctly paired.
+ */
+type ActionStepOutput<
+  OutputDef extends {
+    name: string;
+    payloadKind: keyof PayloadKindValues;
+    array: boolean;
+  },
+> = OutputDef extends {
+  name: infer N extends string;
+  payloadKind: infer K extends keyof PayloadKindValues;
+  array: infer A extends boolean;
+}
+  ? {
+      outputName: N;
+      payload: A extends true
+        ? { kind: K; value: PayloadKindValues[K][] }
+        : { kind: K; value: PayloadKindValues[K] };
+    }
+  : never;
+
+/**
+ * Get the union of all typed StepOutput types for a given AI flow action.
+ */
+export type AiActionStepOutput<T extends AiFlowActionDefinitionId> =
+  ActionStepOutput<
+    (typeof aiFlowActionDefinitionsAsConst)[T]["outputs"][number]
+  >;
+
+/**
+ * Get the union of all typed StepOutput types for a given integration flow action.
+ */
+export type IntegrationActionStepOutput<
+  T extends IntegrationFlowActionDefinitionId,
+> = ActionStepOutput<
+  (typeof integrationFlowActionDefinitionsAsConst)[T]["outputs"][number]
+>;

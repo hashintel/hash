@@ -196,7 +196,7 @@ export const researchTaskFlowDefinition: FlowDefinition<AiFlowActionDefinitionId
         stepId: "4",
         stepOutputName:
           "googleSheetEntity" satisfies OutputNameForAiFlowAction<"writeGoogleSheet">,
-        payloadKind: "Entity",
+        payloadKind: "PersistedEntityMetadata",
         name: "googleSheetEntity" as const,
         array: false,
         required: true,

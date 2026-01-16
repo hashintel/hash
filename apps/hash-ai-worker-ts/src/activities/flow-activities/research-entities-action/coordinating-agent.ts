@@ -4,12 +4,9 @@ import type {
   Url,
 } from "@blockprotocol/type-system";
 import { entityIdFromComponents } from "@blockprotocol/type-system";
-import type { FlowActionActivity } from "@local/hash-backend-utils/flows";
+import type { AiFlowActionActivity } from "@local/hash-backend-utils/flows";
 import { flattenPropertyMetadata } from "@local/hash-graph-sdk/entity";
-import {
-  getSimplifiedAiFlowActionInputs,
-  type OutputNameForAiFlowAction,
-} from "@local/hash-isomorphic-utils/flows/action-definitions";
+import { getSimplifiedAiFlowActionInputs } from "@local/hash-isomorphic-utils/flows/action-definitions";
 import type {
   ProposedEntity,
   StepInput,
@@ -145,14 +142,17 @@ const parseAndResolveCoordinatorInputs = async (params: {
  * 1. Any claims inferred during the process will be saved to the graph, in the web chosen for the overall flow run
  * 2. Any metered API usage incurred will be recorded
  */
-export const runCoordinatingAgent: FlowActionActivity<{
-  state: CoordinatingAgentState;
-  testingParams?: {
-    humanInputCanBeRequested?: boolean;
-    persistState?: (state: CoordinatingAgentState) => void;
-    resumeFromState?: CoordinatingAgentState;
-  };
-}> = async ({ inputs: stepInputs, state, testingParams }) => {
+export const runCoordinatingAgent: AiFlowActionActivity<
+  "researchEntities",
+  {
+    state: CoordinatingAgentState;
+    testingParams?: {
+      humanInputCanBeRequested?: boolean;
+      persistState?: (state: CoordinatingAgentState) => void;
+      resumeFromState?: CoordinatingAgentState;
+    };
+  }
+> = async ({ inputs: stepInputs, state, testingParams }) => {
   const workerIdentifiers = state.coordinatorIdentifiers;
 
   const input = await parseAndResolveCoordinatorInputs({
@@ -589,16 +589,14 @@ export const runCoordinatingAgent: FlowActionActivity<{
       {
         outputs: [
           {
-            outputName:
-              "proposedEntities" satisfies OutputNameForAiFlowAction<"researchEntities">,
+            outputName: "proposedEntities",
             payload: {
               kind: "ProposedEntity",
               value: [...allProposedEntities, ...fileEntityProposals],
             },
           },
           {
-            outputName:
-              "highlightedEntities" satisfies OutputNameForAiFlowAction<"researchEntities">,
+            outputName: "highlightedEntities",
             payload: {
               kind: "EntityId",
               value: submittedEntities.map(

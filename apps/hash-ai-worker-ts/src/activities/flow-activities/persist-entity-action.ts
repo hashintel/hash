@@ -1,6 +1,6 @@
 import type { EntityId, VersionedUrl } from "@blockprotocol/type-system";
 import { extractEntityUuidFromEntityId } from "@blockprotocol/type-system";
-import type { FlowActionActivity } from "@local/hash-backend-utils/flows";
+import type { AiFlowActionActivity } from "@local/hash-backend-utils/flows";
 import { getWebMachineId } from "@local/hash-backend-utils/machine-actors";
 import type { CreateEntityParameters } from "@local/hash-graph-sdk/entity";
 import {
@@ -8,10 +8,7 @@ import {
   HashLinkEntity,
   mergePropertyObjectAndMetadata,
 } from "@local/hash-graph-sdk/entity";
-import {
-  getSimplifiedAiFlowActionInputs,
-  type OutputNameForAiFlowAction,
-} from "@local/hash-isomorphic-utils/flows/action-definitions";
+import { getSimplifiedAiFlowActionInputs } from "@local/hash-isomorphic-utils/flows/action-definitions";
 import type { PersistedEntityMetadata } from "@local/hash-isomorphic-utils/flows/types";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type {
@@ -50,7 +47,9 @@ export const fileEntityTypeIds: VersionedUrl[] = [
   systemEntityTypes.pptxPresentation.entityTypeId,
 ];
 
-export const persistEntityAction: FlowActionActivity = async ({ inputs }) => {
+export const persistEntityAction: AiFlowActionActivity<
+  "persistEntity"
+> = async ({ inputs }) => {
   const {
     flowEntityId,
     stepId,
@@ -326,8 +325,7 @@ export const persistEntityAction: FlowActionActivity = async ({ inputs }) => {
       {
         outputs: [
           {
-            outputName:
-              "persistedEntity" as OutputNameForAiFlowAction<"persistEntity">,
+            outputName: "persistedEntity",
             payload: {
               kind: "PersistedEntityMetadata",
               value: persistedEntityMetadata,

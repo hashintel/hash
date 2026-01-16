@@ -2,7 +2,7 @@ import type {
   OriginProvenance,
   ProvidedEntityEditionProvenance,
 } from "@blockprotocol/type-system";
-import type { FlowActionActivity } from "@local/hash-backend-utils/flows";
+import type { AiFlowActionActivity } from "@local/hash-backend-utils/flows";
 import {
   createGoogleOAuth2Client,
   getGoogleAccountById,
@@ -70,9 +70,12 @@ type ActivityHeartbeatDetails = {
   spreadsheetId?: string;
 };
 
-export const writeGoogleSheetAction: FlowActionActivity<{
-  vaultClient: VaultClient;
-}> = async ({ inputs, vaultClient }) => {
+export const writeGoogleSheetAction: AiFlowActionActivity<
+  "writeGoogleSheet",
+  {
+    vaultClient: VaultClient;
+  }
+> = async ({ inputs, vaultClient }) => {
   const { flowEntityId, stepId, userAuthentication, webId } =
     await getFlowContext();
 

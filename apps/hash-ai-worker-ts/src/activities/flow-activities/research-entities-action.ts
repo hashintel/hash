@@ -2,7 +2,7 @@ import type {
   OriginProvenance,
   ProvidedEntityEditionProvenance,
 } from "@blockprotocol/type-system";
-import type { FlowActionActivity } from "@local/hash-backend-utils/flows";
+import type { AiFlowActionActivity } from "@local/hash-backend-utils/flows";
 import { queryEntities } from "@local/hash-graph-sdk/entity";
 import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
 import {
@@ -30,13 +30,16 @@ import type { CoordinatingAgentState } from "./research-entities-action/shared/c
  * unless (a) the action was reset to a specific time, and (b) the claims were created prior to this time.
  * LLM usage is never archived.
  */
-export const researchEntitiesAction: FlowActionActivity<{
-  testingParams?: {
-    humanInputCanBeRequested?: boolean;
-    persistState?: (state: CoordinatingAgentState) => void;
-    resumeFromState?: CoordinatingAgentState;
-  };
-}> = async (params) => {
+export const researchEntitiesAction: AiFlowActionActivity<
+  "researchEntities",
+  {
+    testingParams?: {
+      humanInputCanBeRequested?: boolean;
+      persistState?: (state: CoordinatingAgentState) => void;
+      resumeFromState?: CoordinatingAgentState;
+    };
+  }
+> = async (params) => {
   const stateAtResetCheckpoint = await getCheckpoint();
 
   const state: CoordinatingAgentState = params.testingParams?.resumeFromState ??

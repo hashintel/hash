@@ -1,12 +1,10 @@
 import { extractEntityUuidFromEntityId } from "@blockprotocol/type-system";
-import type { FlowActionActivity } from "@local/hash-backend-utils/flows";
+import type { AiFlowActionActivity } from "@local/hash-backend-utils/flows";
 import { getSimpleGraph } from "@local/hash-backend-utils/simplified-graph";
 import { queryEntitySubgraph } from "@local/hash-graph-sdk/entity";
+import type { AiActionStepOutput } from "@local/hash-isomorphic-utils/flows/action-definitions";
 import { getSimplifiedAiFlowActionInputs } from "@local/hash-isomorphic-utils/flows/action-definitions";
-import type {
-  FormattedText,
-  StepOutput,
-} from "@local/hash-isomorphic-utils/flows/types";
+import type { FormattedText } from "@local/hash-isomorphic-utils/flows/types";
 import { textFormats } from "@local/hash-isomorphic-utils/flows/types";
 import {
   almostFullOntologyResolveDepths,
@@ -159,7 +157,7 @@ const callModel = async (
   iteration: number,
 ): Promise<
   Status<{
-    outputs: StepOutput[];
+    outputs: AiActionStepOutput<"answerQuestion">[];
   }>
 > => {
   const { flowEntityId, userAuthentication, stepId, webId } =
@@ -225,7 +223,7 @@ const callModel = async (
         const { answer, confidence } = parsedArguments;
         explanation = parsedArguments.explanation;
 
-        const outputs: StepOutput[] = [];
+        const outputs: AiActionStepOutput<"answerQuestion">[] = [];
         if (answer) {
           outputs.push({
             outputName: "answer",
@@ -237,7 +235,7 @@ const callModel = async (
         }
         if (codeUsed) {
           outputs.push({
-            outputName: "code",
+            outputName: "sourceCode",
             payload: {
               kind: "Text",
               value: codeUsed,
@@ -336,7 +334,7 @@ const callModel = async (
   }
 
   if (iteration > maximumIterations) {
-    const outputs: StepOutput[] = [];
+    const outputs: AiActionStepOutput<"answerQuestion">[] = [];
     if (explanation) {
       outputs.push({
         outputName: "explanation",
@@ -348,7 +346,7 @@ const callModel = async (
     }
     if (code) {
       outputs.push({
-        outputName: "code",
+        outputName: "sourceCode",
         payload: {
           kind: "Text",
           value: code,
@@ -398,7 +396,9 @@ const callModel = async (
   );
 };
 
-export const answerQuestionAction: FlowActionActivity = async ({ inputs }) => {
+export const answerQuestionAction: AiFlowActionActivity<
+  "answerQuestion"
+> = async ({ inputs }) => {
   const {
     context,
     entities: inputEntities,

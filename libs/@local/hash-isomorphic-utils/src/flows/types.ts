@@ -10,7 +10,6 @@ import type {
   WebId,
 } from "@blockprotocol/type-system";
 import type { DistributiveOmit } from "@local/advanced-types/distribute";
-import type { SerializedEntity } from "@local/hash-graph-sdk/entity";
 import type { Status } from "@local/status";
 
 import type { FlowRun, FlowType } from "../graphql/api-types.gen.js";
@@ -116,7 +115,6 @@ export type PayloadKindValues = {
   ActorType: ActorTypeDataType;
   Boolean: boolean;
   Date: string; // e.g. "2025-01-01"
-  Entity: SerializedEntity;
   EntityId: EntityId;
   FormattedText: FormattedText;
   GoogleAccountId: string;

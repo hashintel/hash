@@ -1,14 +1,13 @@
 import type { Url } from "@blockprotocol/type-system";
-import type { FlowActionActivity } from "@local/hash-backend-utils/flows";
-import {
-  getSimplifiedAiFlowActionInputs,
-  type OutputNameForAiFlowAction,
-} from "@local/hash-isomorphic-utils/flows/action-definitions";
+import type { AiFlowActionActivity } from "@local/hash-backend-utils/flows";
+import { getSimplifiedAiFlowActionInputs } from "@local/hash-isomorphic-utils/flows/action-definitions";
 import { StatusCode } from "@local/status";
 
 import { getWebPageActivity } from "../get-web-page-activity.js";
 
-export const getWebPageByUrlAction: FlowActionActivity = async ({ inputs }) => {
+export const getWebPageByUrlAction: AiFlowActionActivity<
+  "getWebPageByUrl"
+> = async ({ inputs }) => {
   const { url } = getSimplifiedAiFlowActionInputs({
     inputs,
     actionType: "getWebPageByUrl",
@@ -34,8 +33,7 @@ export const getWebPageByUrlAction: FlowActionActivity = async ({ inputs }) => {
       {
         outputs: [
           {
-            outputName:
-              "webPage" satisfies OutputNameForAiFlowAction<"getWebPageByUrl">,
+            outputName: "webPage",
             payload: {
               kind: "WebPage",
               value: webPage,

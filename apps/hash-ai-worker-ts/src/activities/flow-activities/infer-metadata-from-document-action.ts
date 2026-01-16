@@ -6,12 +6,9 @@ import type {
   Url,
 } from "@blockprotocol/type-system";
 import { extractEntityUuidFromEntityId } from "@blockprotocol/type-system";
-import type { FlowActionActivity } from "@local/hash-backend-utils/flows";
+import type { AiFlowActionActivity } from "@local/hash-backend-utils/flows";
 import type { HashEntity } from "@local/hash-graph-sdk/entity";
-import {
-  getSimplifiedAiFlowActionInputs,
-  type OutputNameForAiFlowAction,
-} from "@local/hash-isomorphic-utils/flows/action-definitions";
+import { getSimplifiedAiFlowActionInputs } from "@local/hash-isomorphic-utils/flows/action-definitions";
 import type { PersistedEntityMetadata } from "@local/hash-isomorphic-utils/flows/types";
 import {
   blockProtocolPropertyTypes,
@@ -38,9 +35,9 @@ const isFileEntity = (entity: HashEntity): entity is HashEntity<File> =>
   systemPropertyTypes.fileStorageKey.propertyTypeBaseUrl in entity.properties &&
   blockProtocolPropertyTypes.fileUrl.propertyTypeBaseUrl in entity.properties;
 
-export const inferMetadataFromDocumentAction: FlowActionActivity = async ({
-  inputs,
-}) => {
+export const inferMetadataFromDocumentAction: AiFlowActionActivity<
+  "inferMetadataFromDocument"
+> = async ({ inputs }) => {
   const {
     flowEntityId,
     stepId,
@@ -243,16 +240,14 @@ export const inferMetadataFromDocumentAction: FlowActionActivity = async ({
       {
         outputs: [
           {
-            outputName:
-              "proposedEntities" satisfies OutputNameForAiFlowAction<"inferMetadataFromDocument">,
+            outputName: "proposedEntities",
             payload: {
               kind: "ProposedEntity",
               value: proposedEntities,
             },
           },
           {
-            outputName:
-              "updatedDocumentEntity" satisfies OutputNameForAiFlowAction<"inferMetadataFromDocument">,
+            outputName: "updatedDocumentEntity",
             payload: {
               kind: "PersistedEntityMetadata",
               value: persistedDocumentEntityMetadata,

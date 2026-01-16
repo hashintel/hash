@@ -1,5 +1,5 @@
 import type { EntityId } from "@blockprotocol/type-system";
-import type { FlowActionActivity } from "@local/hash-backend-utils/flows";
+import type { AiFlowActionActivity } from "@local/hash-backend-utils/flows";
 import { flattenPropertyMetadata } from "@local/hash-graph-sdk/entity";
 import { getSimplifiedAiFlowActionInputs } from "@local/hash-isomorphic-utils/flows/action-definitions";
 import type {
@@ -14,7 +14,9 @@ import {
   persistEntityAction,
 } from "./persist-entity-action.js";
 
-export const persistEntitiesAction: FlowActionActivity = async ({ inputs }) => {
+export const persistEntitiesAction: AiFlowActionActivity<
+  "persistEntities"
+> = async ({ inputs }) => {
   const { draft, proposedEntities } = getSimplifiedAiFlowActionInputs({
     inputs,
     actionType: "persistEntities",
@@ -174,14 +176,6 @@ export const persistEntitiesAction: FlowActionActivity = async ({ inputs }) => {
 
     const output = persistedEntityOutputs.contents[0]?.outputs[0]?.payload;
 
-    if (output && output.kind !== "PersistedEntityMetadata") {
-      failedEntitiesByLocalId[unresolvedEntity.localEntityId] = {
-        proposedEntity: unresolvedEntity,
-        message: `Unexpected output kind ${output.kind}`,
-      };
-      continue;
-    }
-
     if (!output) {
       failedEntitiesByLocalId[unresolvedEntity.localEntityId] = {
         proposedEntity: unresolvedEntity,
@@ -202,7 +196,7 @@ export const persistEntitiesAction: FlowActionActivity = async ({ inputs }) => {
 
     if (persistedEntityOutputs.code !== StatusCode.Ok) {
       failedEntitiesByLocalId[unresolvedEntity.localEntityId] = {
-        ...output.value,
+        existingEntityId: output.value.entityId,
         proposedEntity: entityWithResolvedLinks,
         message: `${persistedEntityOutputs.code}: ${
           persistedEntityOutputs.message ?? `no further details available`
