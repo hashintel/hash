@@ -87,11 +87,15 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
   const getSDCPN = () => sdcpnRef.current;
   const getState = () => stateValuesRef.current;
 
-  const __reinitialize = useEffectEvent(() => {
+  const cleanupTimeout = useEffectEvent(() => {
     if (runTimeoutIdRef.current !== null) {
       clearTimeout(runTimeoutIdRef.current);
       runTimeoutIdRef.current = null;
     }
+  });
+
+  const __reinitialize = useEffectEvent(() => {
+    cleanupTimeout();
     setStateValues(initialStateValues);
   });
 
@@ -99,6 +103,9 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
   useEffect(() => {
     __reinitialize();
   }, [petriNetId]);
+
+  // Clean up timeout when component unmounts
+  useEffect(() => cleanupTimeout, []);
 
   const actions = {
     setInitialMarking: (
@@ -266,6 +273,12 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
 
     run: () => {
       const currentState = getState();
+
+      if (currentState.state === "Running") {
+        throw new Error(
+          "Cannot run simulation: Simulation is already running.",
+        );
+      }
 
       if (!currentState.simulation) {
         throw new Error(
