@@ -26,7 +26,11 @@ mod tests;
 
 use core::convert::Infallible;
 
-use hashql_core::{collections::fast_hash_set_with_capacity_in, heap::BumpAllocator, id::Id as _};
+use hashql_core::{
+    collections::fast_hash_set_with_capacity_in,
+    heap::{BumpAllocator, ResetAllocator},
+    id::Id as _,
+};
 
 use crate::{
     body::{
@@ -55,7 +59,7 @@ impl<A: BumpAllocator> DeadBlockElimination<A> {
     }
 }
 
-impl<'env, 'heap, A: BumpAllocator> TransformPass<'env, 'heap> for DeadBlockElimination<A> {
+impl<'env, 'heap, A: ResetAllocator> TransformPass<'env, 'heap> for DeadBlockElimination<A> {
     fn run(&mut self, context: &mut MirContext<'env, 'heap>, body: &mut Body<'heap>) -> Changed {
         self.alloc.reset();
 
