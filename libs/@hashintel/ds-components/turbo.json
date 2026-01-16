@@ -15,9 +15,6 @@
       "dependsOn": ["^build"],
       "persistent": true
     },
-    "lint:eslint": {
-      "dependsOn": []
-    },
     "storybook": {
       "cache": false,
       "dependsOn": ["^build"],
