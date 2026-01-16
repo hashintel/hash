@@ -2,6 +2,20 @@
   "$schema": "https://turborepo.org/schema.json",
   "extends": ["//"],
   "tasks": {
+    "lint:eslint": {
+      "dependsOn": [
+        "codegen",
+        "@local/eslint#build",
+        "@hashintel/refractive#build:types"
+      ]
+    },
+    "lint:tsc": {
+      "dependsOn": [
+        "codegen",
+        "build:types",
+        "@hashintel/refractive#build:types"
+      ]
+    },
     "build": {
       "dependsOn": ["codegen", "^build"],
       "outputs": ["dist/**"]

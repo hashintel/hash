@@ -11,6 +11,7 @@ const external = [
   "react-dom",
   "react/jsx-runtime",
   "react/jsx-dev-runtime",
+  "react/compiler-runtime",
 ];
 
 export default defineConfig(({ command }) => ({
