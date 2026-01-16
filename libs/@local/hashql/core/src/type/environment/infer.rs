@@ -11,11 +11,24 @@ use crate::{
         TypeId,
         inference::{
             Constraint, DeferralDepth, Inference as _, InferenceSolver, ResolutionStrategy,
-            SelectionConstraint, Subject, Variable, VariableDependencyCollector, VariableKind,
+            SelectionConstraint, Subject, Variable, VariableDependencyCollector,
+            VariableDependencyCollectorSkeleton, VariableKind,
         },
         recursion::RecursionBoundary,
     },
 };
+
+#[derive(Debug)]
+#[expect(
+    dead_code,
+    reason = "used during benchmarking to delay signficiant drop"
+)]
+pub struct InferenceEnvironmentSkeleton<'heap> {
+    boundary: RecursionBoundary<'heap>,
+    variables: VariableDependencyCollectorSkeleton<'heap>,
+    constraints: Vec<Constraint<'heap>>,
+    variance: VarianceState,
+}
 
 #[derive(Debug)]
 pub struct InferenceEnvironment<'env, 'heap> {
@@ -36,6 +49,16 @@ impl<'env, 'heap> InferenceEnvironment<'env, 'heap> {
             variables: VariableDependencyCollector::new(environment),
             constraints: Vec::new(),
             variance: VarianceState::new(Variance::Covariant),
+        }
+    }
+
+    #[must_use]
+    pub fn into_skeleton(self) -> InferenceEnvironmentSkeleton<'heap> {
+        InferenceEnvironmentSkeleton {
+            boundary: self.boundary,
+            variables: self.variables.into_skeleton(),
+            constraints: self.constraints,
+            variance: self.variance,
         }
     }
 
