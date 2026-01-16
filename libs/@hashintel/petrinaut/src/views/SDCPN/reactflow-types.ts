@@ -19,6 +19,8 @@ export type PlaceNodeData = {
   typeColor?: string; // Color code from the type, if assigned
 };
 
+export type PlaceNodeType = Node<PlaceNodeData, "place">;
+
 export type TransitionNodeData = {
   label: string;
   /**
@@ -29,18 +31,21 @@ export type TransitionNodeData = {
   lambdaType: "predicate" | "stochastic";
 };
 
-export type TransitionNodeType = Omit<
-  Node<TransitionNodeData, "transition">,
-  "selected" | "dragging"
->;
+export type TransitionNodeType = Node<TransitionNodeData, "transition">;
 
-export type PetriNetDefinitionObject = {
+export type NodeData = PlaceNodeData | TransitionNodeData;
+
+export type NodeType = TransitionNodeType | PlaceNodeType;
+
+/**
+ * Object containing the nodes and arcs for the ReactFlow instance.
+ */
+export type PetrinautReactFlowDefinitionObject = {
   arcs: ArcType[];
   nodes: NodeType[];
 };
 
-export type NodeData = PlaceNodeData | TransitionNodeData;
-
-export type NodeType = Node<TransitionNodeData | PlaceNodeData>;
-
+/**
+ * ReactFlow instance type for Petrinaut.
+ */
 export type PetrinautReactFlowInstance = ReactFlowInstance<NodeData, ArcData>;
