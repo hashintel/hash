@@ -15,7 +15,6 @@ export default [
             "vite.config.ts",
             "panda.config.ts",
             "postcss.config.cjs",
-            "styled-system/css/*",
             ".storybook/*.ts",
           ],
         },
@@ -26,12 +25,6 @@ export default [
   {
     rules: {
       "import/no-default-export": "error",
-      "import/no-unresolved": [
-        "error",
-        {
-          ignore: ["^(\\.\\./)+styled-system/"],
-        },
-      ],
       "no-restricted-imports": [
         "error",
         {
