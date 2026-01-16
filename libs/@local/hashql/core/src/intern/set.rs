@@ -5,7 +5,7 @@ use hashbrown::hash_map::RawEntryMut;
 
 use super::Interned;
 use crate::{
-    collections::{FastHashMap, fast_hash_map_with_capacity},
+    collections::{FastHashMap, fast_hash_map, fast_hash_map_with_capacity},
     heap::{Heap, TransferInto as _},
     sync::lock::LocalLock,
 };
@@ -117,7 +117,7 @@ impl<'heap, T: ?Sized> InternSet<'heap, T> {
     /// ```
     pub fn new(heap: &'heap Heap) -> Self {
         Self {
-            inner: LocalLock::default(),
+            inner: LocalLock::new(fast_hash_map()),
             heap,
         }
     }
@@ -372,6 +372,10 @@ where
     pub fn intern_slice(&self, value: &[T]) -> Interned<'heap, [T]> {
         const { Self::ASSERT_T_IS_NOT_DROP };
         const { Self::ASSERT_T_IS_NOT_ZERO_SIZED };
+
+        if value.is_empty() {
+            return Interned::empty();
+        }
 
         let heap = self.heap;
 
