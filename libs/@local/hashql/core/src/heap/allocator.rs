@@ -1,6 +1,6 @@
 //! Internal allocator wrapper around bumpalo.
 
-use core::{alloc, ptr};
+use core::{alloc, mem, ptr};
 
 use bump_scope::{Bump, BumpBox, BumpScope};
 
@@ -43,6 +43,24 @@ impl BumpAllocator for Allocator {
     fn try_allocate_slice_copy<T: Copy>(&self, slice: &[T]) -> Result<&mut [T], alloc::AllocError> {
         self.0
             .try_alloc_slice_copy(slice)
+            .map(BumpBox::leak)
+            .map_err(|_err| alloc::AllocError)
+    }
+
+    #[inline]
+    fn try_allocate_slice_uninit<T>(
+        &self,
+        len: usize,
+    ) -> Result<&mut [mem::MaybeUninit<T>], alloc::AllocError> {
+        const {
+            assert!(
+                !core::mem::needs_drop::<T>(),
+                "Cannot allocate a type that needs drop"
+            );
+        };
+
+        self.0
+            .try_alloc_uninit_slice(len)
             .map(BumpBox::leak)
             .map_err(|_err| alloc::AllocError)
     }
@@ -137,6 +155,24 @@ impl BumpAllocator for AllocatorScope<'_> {
     fn try_allocate_slice_copy<T: Copy>(&self, slice: &[T]) -> Result<&mut [T], alloc::AllocError> {
         self.0
             .try_alloc_slice_copy(slice)
+            .map(BumpBox::leak)
+            .map_err(|_err| alloc::AllocError)
+    }
+
+    #[inline]
+    fn try_allocate_slice_uninit<T>(
+        &self,
+        len: usize,
+    ) -> Result<&mut [mem::MaybeUninit<T>], alloc::AllocError> {
+        const {
+            assert!(
+                !core::mem::needs_drop::<T>(),
+                "Cannot allocate a type that needs drop"
+            );
+        };
+
+        self.0
+            .try_alloc_uninit_slice(len)
             .map(BumpBox::leak)
             .map_err(|_err| alloc::AllocError)
     }

@@ -1,0 +1,14 @@
+//@ run: pass
+//@ description: Thunk returning aggregate (tuple) is inlined
+[
+  "let",
+  "make_pair",
+  [
+    "fn",
+    { "#tuple": [] },
+    { "#struct": {} },
+    "_",
+    { "#tuple": [{ "#literal": 1 }, { "#literal": 2 }] }
+  ],
+  ["make_pair"]
+]

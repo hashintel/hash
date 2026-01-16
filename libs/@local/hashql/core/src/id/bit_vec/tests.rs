@@ -798,3 +798,76 @@ fn dense_contains_any() {
     set.insert(TestId::from_usize(22));
     assert!(set.contains_any(TestId::from_usize(20)..TestId::from_usize(59)));
 }
+
+#[test]
+fn dense_first_unset() {
+    fn naive_first_unset(set: &DenseBitSet<TestId>) -> Option<TestId> {
+        (0..set.domain_size())
+            .find(|&i| !set.contains(TestId::from_usize(i)))
+            .map(TestId::from_usize)
+    }
+
+    // Empty set: first unset is 0
+    let set = DenseBitSet::<TestId>::new_empty(100);
+    assert_eq!(set.first_unset(), Some(TestId::from_usize(0)));
+    assert_eq!(set.first_unset(), naive_first_unset(&set));
+
+    // Filled set: no unset bits
+    let set = DenseBitSet::<TestId>::new_filled(100);
+    assert_eq!(set.first_unset(), None);
+    assert_eq!(set.first_unset(), naive_first_unset(&set));
+
+    // First bit set, second unset
+    let mut set = DenseBitSet::new_empty(100);
+    set.insert(TestId::from_usize(0));
+    assert_eq!(set.first_unset(), Some(TestId::from_usize(1)));
+    assert_eq!(set.first_unset(), naive_first_unset(&set));
+
+    // First few bits set
+    let mut set = DenseBitSet::new_empty(100);
+    for i in 0..10 {
+        set.insert(TestId::from_usize(i));
+    }
+    assert_eq!(set.first_unset(), Some(TestId::from_usize(10)));
+    assert_eq!(set.first_unset(), naive_first_unset(&set));
+
+    // Test at word boundary (64 bits)
+    let mut set = DenseBitSet::new_empty(200);
+    for i in 0..WORD_BITS {
+        set.insert(TestId::from_usize(i));
+    }
+    assert_eq!(set.first_unset(), Some(TestId::from_usize(WORD_BITS)));
+    assert_eq!(set.first_unset(), naive_first_unset(&set));
+
+    // Test across word boundary
+    let mut set = DenseBitSet::new_empty(200);
+    for i in 0..WORD_BITS + 5 {
+        set.insert(TestId::from_usize(i));
+    }
+    assert_eq!(set.first_unset(), Some(TestId::from_usize(WORD_BITS + 5)));
+    assert_eq!(set.first_unset(), naive_first_unset(&set));
+
+    // Gap in the middle of first word
+    let mut set = DenseBitSet::new_empty(100);
+    set.insert(TestId::from_usize(0));
+    set.insert(TestId::from_usize(1));
+    set.insert(TestId::from_usize(3));
+    assert_eq!(set.first_unset(), Some(TestId::from_usize(2)));
+    assert_eq!(set.first_unset(), naive_first_unset(&set));
+
+    // Exhaustive test for small domain sizes
+    for domain_size in 1..=WORD_BITS * 2 {
+        for num_set in 0..=domain_size {
+            let mut set = DenseBitSet::new_empty(domain_size);
+            for i in 0..num_set {
+                set.insert(TestId::from_usize(i));
+            }
+
+            assert_eq!(
+                set.first_unset(),
+                naive_first_unset(&set),
+                "domain_size={domain_size}, num_set={num_set}"
+            );
+        }
+    }
+}

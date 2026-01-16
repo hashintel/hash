@@ -40,7 +40,7 @@
 use core::ops::Deref;
 
 use hashql_core::{
-    heap::{self, Heap},
+    heap::{self, FromIteratorIn as _, Heap},
     id::{Id as _, IdVec},
     span::SpanId,
     r#type::{TypeId, builder::IntoSymbol},
@@ -652,6 +652,20 @@ impl<'env, 'heap> RValueBuilder<'env, 'heap> {
         })
     }
 
+    #[must_use]
+    pub fn closure(self, fn_ptr: DefId, env: Place<'heap>) -> RValue<'heap> {
+        RValue::Aggregate(Aggregate {
+            kind: AggregateKind::Closure,
+            operands: IdVec::from_iter_in(
+                [
+                    Operand::Constant(Constant::FnPtr(fn_ptr)),
+                    Operand::Place(env),
+                ],
+                self.interner.heap,
+            ),
+        })
+    }
+
     /// Creates a tuple aggregate r-value.
     #[must_use]
     pub fn tuple(
@@ -737,6 +751,11 @@ impl<'env, 'heap> RValueBuilder<'env, 'heap> {
             function: func.into(),
             arguments: IdVec::from_raw(arguments),
         })
+    }
+
+    #[must_use]
+    pub fn call(self, func: impl Into<Operand<'heap>>) -> RValue<'heap> {
+        self.apply(func, [] as [Operand<'heap>; 0])
     }
 
     /// Creates an input r-value.

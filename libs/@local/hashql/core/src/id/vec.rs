@@ -10,7 +10,7 @@ use core::{
 };
 
 use super::{Id, slice::IdSlice};
-use crate::heap::TryCloneIn;
+use crate::heap::{FromIteratorIn, TryCloneIn};
 
 /// A growable vector that uses typed IDs for indexing instead of raw `usize` values.
 ///
@@ -368,6 +368,14 @@ where
     pub fn truncate(&mut self, index: I) {
         self.raw.truncate(index.as_usize());
     }
+
+    #[inline]
+    pub fn extend_from_slice(&mut self, other: &IdSlice<I, T>)
+    where
+        T: Clone,
+    {
+        self.raw.extend_from_slice(other.as_raw());
+    }
 }
 
 // Map-like APIs for IdVec<I, Option<T>>
@@ -560,6 +568,23 @@ where
     }
 }
 
+impl<I, T, A: Allocator> Extend<T> for IdVec<I, T, A>
+where
+    I: Id,
+{
+    fn extend<U: IntoIterator<Item = T>>(&mut self, iter: U) {
+        self.raw.extend(iter);
+    }
+
+    fn extend_one(&mut self, item: T) {
+        self.raw.extend_one(item);
+    }
+
+    fn extend_reserve(&mut self, additional: usize) {
+        self.raw.extend_reserve(additional);
+    }
+}
+
 impl<I, T, A, B> TryCloneIn<B> for IdVec<I, T, A>
 where
     I: Id,
@@ -576,5 +601,19 @@ where
 
     fn try_clone_into(&self, into: &mut Self::Cloned, allocator: B) -> Result<(), AllocError> {
         self.raw.try_clone_into(&mut into.raw, allocator)
+    }
+}
+
+impl<I, T, A> FromIteratorIn<T, A> for IdVec<I, T, A>
+where
+    I: Id,
+    A: Allocator,
+{
+    #[inline]
+    fn from_iter_in<U>(iter: U, alloc: A) -> Self
+    where
+        U: IntoIterator<Item = T>,
+    {
+        Self::from_raw(Vec::from_iter_in(iter, alloc))
     }
 }

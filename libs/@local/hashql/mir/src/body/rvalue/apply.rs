@@ -1,7 +1,4 @@
-use hashql_core::{
-    heap::Heap,
-    id::{self, IdVec},
-};
+use hashql_core::{heap::Heap, id};
 
 use crate::body::operand::Operand;
 
@@ -16,6 +13,8 @@ id::newtype!(
     /// passed to the function.
     pub struct ArgIndex(u32 is 0..=0xFFFF_FF00)
 );
+
+id::newtype_collections!(pub type Arg* from ArgIndex);
 
 /// Function application r-value.
 ///
@@ -51,11 +50,11 @@ pub struct Apply<'heap> {
 
     /// The arguments to pass to the function.
     ///
-    /// This [`IdVec`] contains the ordered list of argument [`Operand`]s that
+    /// This [`ArgVec`] contains the ordered list of argument [`Operand`]s that
     /// will be evaluated and passed to the function.
     ///
     /// The number and types of arguments must match the function's signature,
     /// though this compatibility is typically verified during earlier compilation
     /// phases rather than at the MIR level.
-    pub arguments: IdVec<ArgIndex, Operand<'heap>, &'heap Heap>,
+    pub arguments: ArgVec<Operand<'heap>, &'heap Heap>,
 }

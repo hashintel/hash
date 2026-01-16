@@ -54,7 +54,10 @@
 //! [`Scratch`]: super::Scratch
 #![expect(clippy::mut_from_ref, reason = "allocator")]
 use alloc::alloc::handle_alloc_error;
-use core::alloc::{AllocError, Allocator, Layout};
+use core::{
+    alloc::{AllocError, Allocator, Layout},
+    mem,
+};
 
 /// A bump allocator with scoped arenas and efficient slice copying.
 ///
@@ -124,6 +127,52 @@ pub trait BumpAllocator: Allocator {
             }
         }
     }
+
+    /// Allocates an uninitialized slice in the arena.
+    ///
+    /// Returns a mutable slice of [`MaybeUninit<T>`] with the specified `len`.
+    /// The caller is responsible for initializing the elements before reading them.
+    ///
+    /// This is useful when building a slice incrementally or when copying from
+    /// an iterator where [`try_allocate_slice_copy`](Self::try_allocate_slice_copy)
+    /// cannot be used.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`AllocError`] if memory allocation fails.
+    ///
+    /// [`MaybeUninit<T>`]: mem::MaybeUninit
+    fn try_allocate_slice_uninit<T>(
+        &self,
+        len: usize,
+    ) -> Result<&mut [mem::MaybeUninit<T>], AllocError>;
+
+    /// Allocates an uninitialized slice in the arena.
+    ///
+    /// This is the infallible version of
+    /// [`try_allocate_slice_uninit`](Self::try_allocate_slice_uninit).
+    ///
+    /// # Panics
+    ///
+    /// Panics if memory allocation fails.
+    #[expect(
+        clippy::single_match_else,
+        clippy::option_if_let_else,
+        reason = "clarity"
+    )]
+    #[inline]
+    fn allocate_slice_uninit<T>(&self, len: usize) -> &mut [mem::MaybeUninit<T>] {
+        match self.try_allocate_slice_uninit(len) {
+            Ok(slice) => slice,
+            Err(_) => {
+                let Ok(layout) = Layout::array::<T>(len) else {
+                    panic!("stack overflow");
+                };
+
+                handle_alloc_error(layout)
+            }
+        }
+    }
 }
 
 /// A bump allocator that supports bulk deallocation.
@@ -164,6 +213,24 @@ where
     #[inline]
     fn try_allocate_slice_copy<T: Copy>(&self, slice: &[T]) -> Result<&mut [T], AllocError> {
         A::try_allocate_slice_copy(self, slice)
+    }
+
+    #[inline]
+    fn allocate_slice_copy<T: Copy>(&self, slice: &[T]) -> &mut [T] {
+        A::allocate_slice_copy(self, slice)
+    }
+
+    #[inline]
+    fn allocate_slice_uninit<T>(&self, len: usize) -> &mut [mem::MaybeUninit<T>] {
+        A::allocate_slice_uninit(self, len)
+    }
+
+    #[inline]
+    fn try_allocate_slice_uninit<T>(
+        &self,
+        len: usize,
+    ) -> Result<&mut [mem::MaybeUninit<T>], AllocError> {
+        A::try_allocate_slice_uninit(self, len)
     }
 }
 

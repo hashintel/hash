@@ -1,0 +1,19 @@
+//@ run: pass
+//@ description: Closure that forwards to another closure is inlined
+[
+  "let",
+  "f1",
+  ["fn", { "#tuple": [] }, { "#struct": { "x": "Boolean" } }, "_", "x"],
+  [
+    "let",
+    "f2",
+    [
+      "fn",
+      { "#tuple": [] },
+      { "#struct": { "x": "Boolean" } },
+      "_",
+      ["f1", "x"]
+    ],
+    ["f2", { "#literal": true }]
+  ]
+]
