@@ -80,9 +80,7 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
 
   // Use refs to access latest state in callbacks
   const stateValuesRef = useRef(stateValues);
-  useEffect(() => {
-    stateValuesRef.current = stateValues;
-  }, [stateValues]);
+  stateValuesRef.current = stateValues;
 
   const getSDCPN = () => sdcpnRef.current;
   const getState = () => stateValuesRef.current;
