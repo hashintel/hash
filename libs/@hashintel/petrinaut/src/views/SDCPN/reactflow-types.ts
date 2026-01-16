@@ -6,9 +6,7 @@ import type { Edge, Node, ReactFlowInstance } from "reactflow";
 //
 
 export type ArcData = {
-  tokenWeights: {
-    [tokenTypeId: string]: number | undefined;
-  };
+  weight: number;
 };
 
 export type ArcType = Omit<Edge<ArcData>, "style">;

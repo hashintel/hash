@@ -3,6 +3,7 @@ import { type CSSProperties, use } from "react";
 import { BaseEdge, type EdgeProps, getBezierPath } from "reactflow";
 
 import { EditorContext } from "../../../state/editor-context";
+import type { ArcData } from "../reactflow-types";
 
 const selectionIndicatorStyle: CSSProperties = {
   stroke: "rgba(249, 115, 22, 0.4)",
@@ -22,12 +23,6 @@ const weightTextStyle = css({
   fill: "[#333]",
   pointerEvents: "none",
 });
-
-interface ArcData {
-  tokenWeights: {
-    [tokenTypeId: string]: number;
-  };
-}
 
 export const Arc: React.FC<EdgeProps<ArcData>> = ({
   id,
@@ -72,47 +67,41 @@ export const Arc: React.FC<EdgeProps<ArcData>> = ({
 
       {/* Weight label - only show for weights > 1 */}
       <g transform={`translate(${labelX}, ${labelY})`}>
-        {Object.entries(data?.tokenWeights ?? {})
-          .filter(([_, weight]) => weight > 1)
-          .map(([_tokenTypeId, weight], index, nonZeroWeights) => {
-            const yOffset = (index - (nonZeroWeights.length - 1) / 2) * 24;
-
-            return (
-              <g key={_tokenTypeId} transform={`translate(0, ${yOffset})`}>
-                {/* White background for readability */}
-                <rect
-                  x="-16"
-                  y="-10"
-                  width="32"
-                  height="20"
-                  fill="white"
-                  stroke="#ddd"
-                  strokeWidth="1"
-                  rx="3"
-                />
-                {/* Multiplication symbol (grayed out) */}
-                <text
-                  x="-6"
-                  y="0"
-                  textAnchor="middle"
-                  dominantBaseline="middle"
-                  className={symbolTextStyle}
-                >
-                  ×
-                </text>
-                {/* Weight number */}
-                <text
-                  x="6"
-                  y="0"
-                  textAnchor="middle"
-                  dominantBaseline="middle"
-                  className={weightTextStyle}
-                >
-                  {weight}
-                </text>
-              </g>
-            );
-          })}
+        {data && data.weight > 1 ? (
+          <g>
+            {/* White background for readability */}
+            <rect
+              x="-16"
+              y="-10"
+              width="32"
+              height="20"
+              fill="white"
+              stroke="#ddd"
+              strokeWidth="1"
+              rx="3"
+            />
+            {/* Multiplication symbol (grayed out) */}
+            <text
+              x="-6"
+              y="0"
+              textAnchor="middle"
+              dominantBaseline="middle"
+              className={symbolTextStyle}
+            >
+              ×
+            </text>
+            {/* Weight number */}
+            <text
+              x="6"
+              y="0"
+              textAnchor="middle"
+              dominantBaseline="middle"
+              className={weightTextStyle}
+            >
+              {data.weight}
+            </text>
+          </g>
+        ) : null}
       </g>
     </>
   );

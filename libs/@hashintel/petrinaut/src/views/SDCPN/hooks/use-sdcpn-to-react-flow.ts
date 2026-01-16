@@ -113,9 +113,7 @@ export function useSdcpnToReactFlow(): PetriNetDefinitionObject {
           strokeWidth: 2,
         },
         data: {
-          tokenWeights: {
-            default: inputArc.weight,
-          },
+          weight: inputArc.weight,
         },
       });
     }
@@ -155,9 +153,7 @@ export function useSdcpnToReactFlow(): PetriNetDefinitionObject {
           strokeWidth: 2,
         },
         data: {
-          tokenWeights: {
-            default: outputArc.weight,
-          },
+          weight: outputArc.weight,
         },
       });
     }
