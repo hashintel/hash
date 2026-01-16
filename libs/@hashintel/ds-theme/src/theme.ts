@@ -1,4 +1,4 @@
-export { coreColors, semanticColors, colors } from "./theme/colors";
+export { coreColors, semanticColors, colors } from "./theme/colors.gen";
 export {
   spacing,
   fonts,
@@ -6,4 +6,4 @@ export {
   fontSizes,
   lineHeights,
   radii,
-} from "./theme/tokens";
+} from "./theme/tokens.gen";

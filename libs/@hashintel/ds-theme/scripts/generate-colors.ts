@@ -202,11 +202,12 @@ function formatTokensForOutput(tokens: Record<string, unknown>): string {
 
 /**
  * Generate a single color token file (one exported `defineSemanticTokens` call).
+ * Files are named with .gen.ts suffix to be gitignored.
  */
 function writeColorFile(name: string, tokens: Record<string, unknown>): void {
   const fileName = kebabCase(name);
   const varName = camelCase(name);
-  const filePath = join(process.cwd(), OUTPUT_DIR, `${fileName}.ts`);
+  const filePath = join(process.cwd(), OUTPUT_DIR, `${fileName}.gen.ts`);
   const formattedTokens = formatTokensForOutput(tokens);
 
   const content = `import { defineSemanticTokens } from "@pandacss/dev";
@@ -215,30 +216,31 @@ export const ${varName} = defineSemanticTokens.colors(${formattedTokens});
 `;
 
   fs.writeFileSync(filePath, content, "utf8");
-  console.log(`📄 Created ${fileName}.ts`);
+  console.log(`📄 Created ${fileName}.gen.ts`);
 }
 
 /**
  * Generate barrel file that re-exports all generated color token groups.
- * Output at parent level (src/theme/colors.ts) instead of index.ts inside the directory.
+ * Output at parent level (src/theme/colors.gen.ts) instead of index.ts inside the directory.
+ * The barrel file is also .gen.ts since it's fully generated.
  */
 function writeBarrelFile(
   coreColorNames: string[],
   semanticColorNames: string[],
 ): void {
-  const filePath = join(process.cwd(), "src/theme/colors.ts");
+  const filePath = join(process.cwd(), "src/theme/colors.gen.ts");
 
   const coreImports = coreColorNames
     .map(
       (name) =>
-        `import { ${camelCase(name)} } from "./colors/${kebabCase(name)}";`,
+        `import { ${camelCase(name)} } from "./colors/${kebabCase(name)}.gen";`,
     )
     .join("\n");
 
   const semanticImports = semanticColorNames
     .map(
       (name) =>
-        `import { ${camelCase(name)} } from "./colors/semantic-${kebabCase(name)}";`,
+        `import { ${camelCase(name)} } from "./colors/semantic-${kebabCase(name)}.gen";`,
     )
     .join("\n");
 
@@ -270,11 +272,12 @@ export const colors = {
 `;
 
   fs.writeFileSync(filePath, content, "utf8");
-  console.log(`📄 Created colors.ts (barrel file)`);
+  console.log(`📄 Created colors.gen.ts (barrel file)`);
 }
 
 /**
  * Generate a semantic color token file (references other tokens).
+ * Files are named with .gen.ts suffix to be gitignored.
  */
 function writeSemanticColorFile(
   name: string,
@@ -282,7 +285,7 @@ function writeSemanticColorFile(
 ): void {
   const fileName = `semantic-${kebabCase(name)}`;
   const varName = camelCase(name);
-  const filePath = join(process.cwd(), OUTPUT_DIR, `${fileName}.ts`);
+  const filePath = join(process.cwd(), OUTPUT_DIR, `${fileName}.gen.ts`);
   const formattedTokens = formatTokensForOutput(tokens);
 
   const content = `import { defineSemanticTokens } from "@pandacss/dev";
@@ -291,7 +294,7 @@ export const ${varName} = defineSemanticTokens.colors(${formattedTokens});
 `;
 
   fs.writeFileSync(filePath, content, "utf8");
-  console.log(`📄 Created ${fileName}.ts`);
+  console.log(`📄 Created ${fileName}.gen.ts`);
 }
 
 /**

@@ -61,14 +61,14 @@ function generateSpacingTokens(): void {
     tokens[key] = transformSpacingScale(scale);
   }
 
-  const filePath = join(process.cwd(), OUTPUT_DIR, "spacing.ts");
+  const filePath = join(process.cwd(), OUTPUT_DIR, "spacing.gen.ts");
   const content = `import { defineTokens } from "@pandacss/dev";
 
 export const spacing = defineTokens.spacing(${formatTokensForOutput(tokens)});
 `;
 
   fs.writeFileSync(filePath, content, "utf8");
-  console.log("📄 Created spacing.ts");
+  console.log("📄 Created spacing.gen.ts");
 }
 
 // ============================================================================
@@ -116,7 +116,7 @@ function generateTypographyTokens(): void {
   }
 
   const parsed = typographySchema.parse(typography);
-  const filePath = join(process.cwd(), OUTPUT_DIR, "typography.ts");
+  const filePath = join(process.cwd(), OUTPUT_DIR, "typography.gen.ts");
 
   // Font families
   const fonts: Record<string, { value: string }> = {};
@@ -167,7 +167,7 @@ export const lineHeights = defineTokens.lineHeights(${formatTokensForOutput(line
 `;
 
   fs.writeFileSync(filePath, content, "utf8");
-  console.log("📄 Created typography.ts");
+  console.log("📄 Created typography.gen.ts");
 }
 
 // ============================================================================
@@ -197,7 +197,7 @@ function generateRadiusTokens(): void {
   }
 
   const parsed = radiusSchema.parse(radius);
-  const filePath = join(process.cwd(), OUTPUT_DIR, "radii.ts");
+  const filePath = join(process.cwd(), OUTPUT_DIR, "radii.gen.ts");
 
   // Core radii scales (sm, md, lg, etc.)
   const coreRadii: Record<string, Record<string, { value: string }>> = {};
@@ -230,7 +230,7 @@ export const radii = defineTokens.radii(${formatTokensForOutput(allRadii)});
 `;
 
   fs.writeFileSync(filePath, content, "utf8");
-  console.log("📄 Created radii.ts");
+  console.log("📄 Created radii.gen.ts");
 }
 
 // ============================================================================
@@ -238,15 +238,15 @@ export const radii = defineTokens.radii(${formatTokensForOutput(allRadii)});
 // ============================================================================
 
 function generateBarrelFile(): void {
-  const filePath = join(process.cwd(), "src/theme/tokens.ts");
+  const filePath = join(process.cwd(), "src/theme/tokens.gen.ts");
 
-  const content = `export { spacing } from "./tokens/spacing";
-export { fonts, fontWeights, fontSizes, lineHeights } from "./tokens/typography";
-export { radii } from "./tokens/radii";
+  const content = `export { spacing } from "./tokens/spacing.gen";
+export { fonts, fontWeights, fontSizes, lineHeights } from "./tokens/typography.gen";
+export { radii } from "./tokens/radii.gen";
 `;
 
   fs.writeFileSync(filePath, content, "utf8");
-  console.log("📄 Created tokens.ts (barrel file)");
+  console.log("📄 Created tokens.gen.ts (barrel file)");
 }
 
 // ============================================================================
