@@ -7,7 +7,7 @@ import {
   type VersionedUrl,
   type WebId,
 } from "@blockprotocol/type-system";
-import type { FlowActionActivity } from "@local/hash-backend-utils/flows";
+import type { IntegrationFlowActionActivity } from "@local/hash-backend-utils/flows";
 import {
   generateEntityMatcher,
   generateLinkMatcher,
@@ -399,7 +399,7 @@ export const createPersistIntegrationEntitiesAction = ({
   graphApiClient,
 }: {
   graphApiClient: GraphApi;
-}): FlowActionActivity => {
+}): IntegrationFlowActionActivity<"persistIntegrationEntities"> => {
   return async ({ inputs }) => {
     try {
       const { flowEntityId, stepId, userAuthentication, webId } =
