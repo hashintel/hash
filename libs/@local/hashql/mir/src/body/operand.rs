@@ -3,7 +3,7 @@
 //! Operands represent the inputs to MIR operations. They can either reference
 //! a storage location (place) or contain an immediate constant value.
 
-use super::{constant::Constant, place::Place};
+use super::{constant::Constant, local::Local, place::Place};
 
 /// An operand in a HashQL MIR operation.
 ///
@@ -56,6 +56,12 @@ impl<'heap> Operand<'heap> {
             Operand::Constant(constant) => Some(constant),
             Operand::Place(_) => None,
         }
+    }
+}
+
+impl From<Local> for Operand<'_> {
+    fn from(local: Local) -> Self {
+        Operand::Place(Place::local(local))
     }
 }
 

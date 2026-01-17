@@ -70,7 +70,7 @@ impl<'env, 'heap> BodyBuilder<'env, 'heap> {
         };
         let local = self.local_decls.push(decl);
 
-        Place::local(local, self.interner)
+        Place::local(local)
     }
 
     /// Reserves a new basic block and returns its ID.

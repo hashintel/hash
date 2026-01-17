@@ -1,0 +1,61 @@
+---
+source: libs/@local/hashql/mir/src/pass/transform/copy_propagation/tests.rs
+expression: value
+---
+fn {closure@4294967040}() -> Boolean {
+    let %0: Integer
+    let %1: Integer
+    let %2: Boolean
+    let %3: Integer
+    let %4: Boolean
+
+    bb0(): {
+        %2 = 1
+
+        switchInt(%2) -> [0: bb2(), 1: bb1()]
+    }
+
+    bb1(): {
+        goto -> bb3(%0)
+    }
+
+    bb2(): {
+        goto -> bb3(%1)
+    }
+
+    bb3(%3): {
+        %4 = %3 == %3
+
+        return %4
+    }
+}
+
+================== Changed: Yes ==================
+
+fn {closure@4294967040}() -> Boolean {
+    let %0: Integer
+    let %1: Integer
+    let %2: Boolean
+    let %3: Integer
+    let %4: Boolean
+
+    bb0(): {
+        %2 = 1
+
+        switchInt(1) -> [0: bb2(), 1: bb1()]
+    }
+
+    bb1(): {
+        goto -> bb3(%0)
+    }
+
+    bb2(): {
+        goto -> bb3(%1)
+    }
+
+    bb3(%3): {
+        %4 = %3 == %3
+
+        return %4
+    }
+}

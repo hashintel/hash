@@ -377,3 +377,138 @@ fn loop_back_edge() {
         },
     );
 }
+
+/// Tests simple copy propagation: `_2 = _1; use(_2)` → `use(_1)`.
+#[test]
+fn simple_copy() {
+    let heap = Heap::new();
+    let interner = Interner::new(&heap);
+    let env = Environment::new(&heap);
+
+    let body = body!(interner, env; fn@0/0 -> Bool {
+        decl x: Int, y: Int, r: Bool;
+
+        bb0() {
+            y = load x;
+            r = bin.== y y;
+            return r;
+        }
+    });
+
+    assert_cp_pass(
+        "simple_copy",
+        body,
+        &mut MirContext {
+            heap: &heap,
+            env: &env,
+            interner: &interner,
+            diagnostics: DiagnosticIssues::new(),
+        },
+    );
+}
+
+/// Tests chained copy propagation: `_2 = _1; _3 = _2; use(_3)` → `use(_1)`.
+#[test]
+fn copy_chain() {
+    let heap = Heap::new();
+    let interner = Interner::new(&heap);
+    let env = Environment::new(&heap);
+
+    let body = body!(interner, env; fn@0/0 -> Bool {
+        decl x: Int, y: Int, z: Int, r: Bool;
+
+        bb0() {
+            y = load x;
+            z = load y;
+            r = bin.== z z;
+            return r;
+        }
+    });
+
+    assert_cp_pass(
+        "copy_chain",
+        body,
+        &mut MirContext {
+            heap: &heap,
+            env: &env,
+            interner: &interner,
+            diagnostics: DiagnosticIssues::new(),
+        },
+    );
+}
+
+/// Tests block parameter propagation when all predecessors pass the same local (copy).
+#[test]
+fn block_param_copy() {
+    let heap = Heap::new();
+    let interner = Interner::new(&heap);
+    let env = Environment::new(&heap);
+
+    let body = body!(interner, env; fn@0/0 -> Bool {
+        decl x: Int, cond: Bool, p: Int, r: Bool;
+
+        bb0() {
+            cond = load true;
+            if cond then bb1() else bb2();
+        },
+        bb1() {
+            goto bb3(x);
+        },
+        bb2() {
+            goto bb3(x);
+        },
+        bb3(p) {
+            r = bin.== p p;
+            return r;
+        }
+    });
+
+    assert_cp_pass(
+        "block_param_copy",
+        body,
+        &mut MirContext {
+            heap: &heap,
+            env: &env,
+            interner: &interner,
+            diagnostics: DiagnosticIssues::new(),
+        },
+    );
+}
+
+/// Tests that block parameters are not propagated when predecessors pass different locals.
+#[test]
+fn block_param_copy_disagreement() {
+    let heap = Heap::new();
+    let interner = Interner::new(&heap);
+    let env = Environment::new(&heap);
+
+    let body = body!(interner, env; fn@0/0 -> Bool {
+        decl x: Int, y: Int, cond: Bool, p: Int, r: Bool;
+
+        bb0() {
+            cond = load true;
+            if cond then bb1() else bb2();
+        },
+        bb1() {
+            goto bb3(x);
+        },
+        bb2() {
+            goto bb3(y);
+        },
+        bb3(p) {
+            r = bin.== p p;
+            return r;
+        }
+    });
+
+    assert_cp_pass(
+        "block_param_copy_disagreement",
+        body,
+        &mut MirContext {
+            heap: &heap,
+            env: &env,
+            interner: &interner,
+            diagnostics: DiagnosticIssues::new(),
+        },
+    );
+}

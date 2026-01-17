@@ -299,7 +299,7 @@ fn resolve_params_const<'heap, A: Allocator + Clone>(
     } else {
         // We have finished (we have terminated on a param, which is divergent, therefore the place
         // is still valid, just doesn't have a constant value)
-        ResolutionResult::Resolved(Operand::Place(Place::local(place.local, state.interner)))
+        ResolutionResult::Resolved(Operand::Place(Place::local(place.local)))
     }
 }
 
@@ -382,15 +382,14 @@ pub(crate) fn resolve<'heap, A: Allocator + Clone>(
         [] => {
             // Base case: no more projections to resolve.
             // Check for constant propagation through Load.
-            let operand = if let Some(constant) = state
+            let operand = state
                 .graph
                 .constant_bindings
                 .find_by_kind(place.local, EdgeKind::Load)
-            {
-                Operand::Constant(constant)
-            } else {
-                Operand::Place(Place::local(place.local, state.interner))
-            };
+                .map_or_else(
+                    || Operand::Place(Place::local(place.local)),
+                    Operand::Constant,
+                );
 
             return ResolutionResult::Resolved(operand);
         }
