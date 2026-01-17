@@ -3,6 +3,9 @@
 
 extern crate alloc;
 
+#[path = "common/run.rs"]
+mod run;
+
 use alloc::alloc::Global;
 
 use codspeed_criterion_compat::{BenchmarkId, Criterion, criterion_group, criterion_main};
@@ -29,8 +32,6 @@ use hashql_mir::{
 };
 
 use self::run::run_bencher;
-
-mod run;
 
 fn create_fibonacci_body<'heap>(
     env: &Environment<'heap>,

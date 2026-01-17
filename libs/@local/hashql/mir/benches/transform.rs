@@ -5,6 +5,7 @@
     clippy::similar_names
 )]
 
+#[path = "common/run.rs"]
 mod run;
 
 use codspeed_criterion_compat::{Criterion, criterion_group, criterion_main};
