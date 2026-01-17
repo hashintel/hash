@@ -12,13 +12,16 @@ use std::collections::HashMap;
 use axum::{
     Extension, Router,
     body::Body,
-    response::{IntoResponse as _, Response},
+    response::IntoResponse as _,
     routing::{delete, get, post},
 };
 use error_stack::Report;
 use futures::TryStreamExt as _;
 use hash_codec::bytes::JsonLinesDecoder;
-use hash_graph_api::rest::{http_tracing_layer, status::status_to_response};
+use hash_graph_api::rest::{
+    http_tracing_layer,
+    status::{BoxedResponse, status_to_response},
+};
 use hash_graph_postgres_store::{snapshot::SnapshotStore, store::PostgresStorePool};
 use hash_graph_store::pool::StorePool as _;
 use hash_graph_type_defs::error::{ErrorInfo, StatusPayloadInfo};
@@ -46,7 +49,7 @@ pub fn routes(store_pool: PostgresStorePool) -> Router {
     clippy::needless_pass_by_value,
     reason = "This is used inside of error-mapping functions only"
 )]
-fn store_acquisition_error(report: Report<impl Error + Send + Sync + 'static>) -> Response {
+fn store_acquisition_error(report: Report<impl Error + Send + Sync + 'static>) -> BoxedResponse {
     tracing::error!(error=?report, "Could not acquire store");
     status_to_response(Status::new(
         StatusCode::Internal,
@@ -66,7 +69,7 @@ fn store_acquisition_error(report: Report<impl Error + Send + Sync + 'static>) -
     ))
 }
 
-fn report_to_response<C>(report: &Report<C>, code: impl Into<String>) -> Response {
+fn report_to_response<C>(report: &Report<C>, code: impl Into<String>) -> BoxedResponse {
     status_to_response(Status::new(
         report
             .request_ref::<StatusCode>()
@@ -84,7 +87,7 @@ fn report_to_response<C>(report: &Report<C>, code: impl Into<String>) -> Respons
 async fn restore_snapshot(
     store_pool: Extension<Arc<PostgresStorePool>>,
     snapshot: Body,
-) -> Result<Response, Response> {
+) -> Result<BoxedResponse, BoxedResponse> {
     let store = store_pool
         .acquire(None)
         .await
@@ -112,7 +115,9 @@ async fn restore_snapshot(
     )))
 }
 
-async fn delete_accounts(pool: Extension<Arc<PostgresStorePool>>) -> Result<Response, Response> {
+async fn delete_accounts(
+    pool: Extension<Arc<PostgresStorePool>>,
+) -> Result<BoxedResponse, BoxedResponse> {
     pool.acquire(None)
         .await
         .map_err(store_acquisition_error)?
@@ -130,7 +135,9 @@ async fn delete_accounts(pool: Extension<Arc<PostgresStorePool>>) -> Result<Resp
     )))
 }
 
-async fn delete_data_types(pool: Extension<Arc<PostgresStorePool>>) -> Result<Response, Response> {
+async fn delete_data_types(
+    pool: Extension<Arc<PostgresStorePool>>,
+) -> Result<BoxedResponse, BoxedResponse> {
     pool.acquire(None)
         .await
         .map_err(store_acquisition_error)?
@@ -161,7 +168,7 @@ async fn delete_data_types(pool: Extension<Arc<PostgresStorePool>>) -> Result<Re
 
 async fn delete_property_types(
     pool: Extension<Arc<PostgresStorePool>>,
-) -> Result<Response, Response> {
+) -> Result<BoxedResponse, BoxedResponse> {
     pool.acquire(None)
         .await
         .map_err(store_acquisition_error)?
@@ -181,7 +188,7 @@ async fn delete_property_types(
 
 async fn delete_entity_types(
     pool: Extension<Arc<PostgresStorePool>>,
-) -> Result<Response, Response> {
+) -> Result<BoxedResponse, BoxedResponse> {
     pool.acquire(None)
         .await
         .map_err(store_acquisition_error)?
@@ -199,7 +206,9 @@ async fn delete_entity_types(
     )))
 }
 
-async fn delete_entities(pool: Extension<Arc<PostgresStorePool>>) -> Result<Response, Response> {
+async fn delete_entities(
+    pool: Extension<Arc<PostgresStorePool>>,
+) -> Result<BoxedResponse, BoxedResponse> {
     pool.acquire(None)
         .await
         .map_err(store_acquisition_error)?
