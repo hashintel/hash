@@ -86,6 +86,7 @@ export const makeBegin = (begin: RequestBegin.RequestBegin): RequestBody =>
 export const makeFrame = (frame: RequestFrame.RequestFrame): RequestBody =>
   make(Either.left(frame));
 
+// eslint-disable-next-line fsecond/no-inline-interfaces
 export const match: {
   <A, B = A>(options: {
     readonly onBegin: (begin: RequestBegin.RequestBegin) => A;
@@ -102,6 +103,7 @@ export const match: {
   2,
   <A, B = A>(
     self: RequestBody,
+    // eslint-disable-next-line fsecond/no-inline-interfaces
     options: {
       readonly onBegin: (begin: RequestBegin.RequestBegin) => A;
       readonly onFrame: (frame: RequestFrame.RequestFrame) => B;
@@ -113,6 +115,7 @@ export const match: {
     }),
 );
 
+// eslint-disable-next-line fsecond/no-inline-interfaces
 export const mapBoth: {
   <A>(
     fn: (

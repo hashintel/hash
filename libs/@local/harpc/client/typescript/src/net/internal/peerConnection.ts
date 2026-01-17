@@ -105,6 +105,7 @@ const PeerConnectionProto: Omit<PeerConnection, "inner"> = {
   removeEventListener(
     event: string,
     listener: EventHandler<unknown>,
+    // eslint-disable-next-line fsecond/no-inline-interfaces
     options: boolean | { capture?: boolean } | undefined,
   ) {
     (this as PeerConnection).inner.removeEventListener(
