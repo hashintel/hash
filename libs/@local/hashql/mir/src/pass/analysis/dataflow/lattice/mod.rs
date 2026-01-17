@@ -254,7 +254,7 @@ impl<S, T> Lattice<T> for S where S: JoinSemiLattice<T> + MeetSemiLattice<T> {}
 /// # Implementation
 ///
 /// Use [`laws::assert_is_bottom_consistent`] to verify consistency in tests.
-pub trait HasBottom<T> {
+pub trait HasBottom<T = Self> {
     /// Returns the bottom element (least element).
     fn bottom(&self) -> T;
 
@@ -273,7 +273,7 @@ pub trait HasBottom<T> {
 /// # Implementation
 ///
 /// Use [`laws::assert_is_top_consistent`] to verify consistency in tests.
-pub trait HasTop<T> {
+pub trait HasTop<T = Self> {
     /// Returns the top element (greatest element).
     fn top(&self) -> T;
 
