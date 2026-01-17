@@ -74,6 +74,7 @@ pub trait BumpAllocator: Allocator {
     /// This associated type allows each allocator to define its own scoped variant
     /// while ensuring it also implements [`BumpAllocator`].
     type Scoped<'scope>: BumpAllocator;
+    type Checkpoint;
 
     /// Executes a closure with a scoped sub-arena.
     ///
@@ -85,6 +86,26 @@ pub trait BumpAllocator: Allocator {
     /// This is useful for temporary intermediate allocations during a computation that
     /// should not outlive the computation itself.
     fn scoped<T>(&mut self, func: impl FnOnce(Self::Scoped<'_>) -> T) -> T;
+
+    /// Creates a checkpoint of the current bump position.
+    ///
+    /// The checkpoint can later be passed to [`rollback`] to reset the allocator
+    /// to this position, freeing all allocations made after the checkpoint.
+    ///
+    /// [`rollback`]: Self::rollback
+    fn checkpoint(&self) -> Self::Checkpoint;
+
+    /// Resets the bump position to a previously created checkpoint.
+    ///
+    /// All memory allocated after the checkpoint was created becomes available
+    /// for reuse by future allocations.
+    ///
+    /// # Safety
+    ///
+    /// - The `checkpoint` must have been created by this allocator instance.
+    /// - [`ResetAllocator::reset`] must not have been called since the checkpoint was created.
+    /// - There must be no live references to memory allocated after the checkpoint.
+    unsafe fn rollback(&self, checkpoint: Self::Checkpoint);
 
     /// Copies a slice into the arena, returning a mutable reference to the copy.
     ///
@@ -203,11 +224,24 @@ impl<A> BumpAllocator for &mut A
 where
     A: BumpAllocator,
 {
+    type Checkpoint = A::Checkpoint;
     type Scoped<'scope> = A::Scoped<'scope>;
 
     #[inline]
     fn scoped<T>(&mut self, func: impl FnOnce(Self::Scoped<'_>) -> T) -> T {
         A::scoped(self, func)
+    }
+
+    #[inline]
+    fn checkpoint(&self) -> Self::Checkpoint {
+        A::checkpoint(self)
+    }
+
+    unsafe fn rollback(&self, checkpoint: Self::Checkpoint) {
+        // SAFETY: same safety requirements as `A::rollback`
+        unsafe {
+            A::rollback(self, checkpoint);
+        }
     }
 
     #[inline]

@@ -58,7 +58,7 @@ use core::{alloc::Allocator, cmp, mem};
 
 use hashql_core::{
     graph::{Successors as _, Traverse as _},
-    heap::ResetAllocator,
+    heap::BumpAllocator,
 };
 
 use self::{
@@ -186,14 +186,13 @@ impl<A: Allocator> AdministrativeReduction<A> {
     /// Creates a new administrative reduction pass using the given allocator.
     ///
     /// The allocator is used for temporary data structures during the pass (call graph,
-    /// reducibility tracking, scratch memory). It should implement [`ResetAllocator`] so
-    /// that memory can be efficiently reclaimed before running the pass.
+    /// reducibility tracking, scratch memory).
     pub const fn new_in(alloc: A) -> Self {
         Self { alloc }
     }
 }
 
-impl<'env, 'heap, A: ResetAllocator> GlobalTransformPass<'env, 'heap>
+impl<'env, 'heap, A: BumpAllocator> GlobalTransformPass<'env, 'heap>
     for AdministrativeReduction<A>
 {
     fn run(
@@ -202,8 +201,6 @@ impl<'env, 'heap, A: ResetAllocator> GlobalTransformPass<'env, 'heap>
         state: &mut GlobalTransformState<'_>,
         bodies: &mut DefIdSlice<Body<'heap>>,
     ) -> Changed {
-        self.alloc.reset();
-
         let mut reducable = Reducable::new(bodies, &self.alloc);
         if reducable.is_empty() {
             return Changed::No;

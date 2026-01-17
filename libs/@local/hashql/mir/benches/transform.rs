@@ -22,7 +22,7 @@ use hashql_mir::{
     intern::Interner,
     op,
     pass::{
-        GlobalTransformPass as _, GlobalTransformState, TransformPass,
+        GlobalTransformPass as _, GlobalTransformState, TransformPass as _,
         transform::{
             CfgSimplify, DeadStoreElimination, ForwardSubstitution, InstSimplify, PreInlining,
         },
@@ -316,12 +316,20 @@ fn create_complex_cfg<'heap>(env: &Environment<'heap>, interner: &Interner<'heap
 fn run_bencher<T>(
     bencher: &mut Bencher,
     body: for<'heap> fn(&Environment<'heap>, &Interner<'heap>) -> Body<'heap>,
-    mut func: impl for<'env, 'heap> FnMut(&mut MirContext<'env, 'heap>, &mut Body<'heap>) -> T,
+    mut func: impl for<'env, 'heap> FnMut(
+        &mut MirContext<'env, 'heap>,
+        &mut Body<'heap>,
+        &mut Scratch,
+    ) -> T,
 ) {
     // NOTE: `heap` must not be moved or reassigned; `heap_ptr` assumes its address is stable
     // for the entire duration of this function.
     let mut heap = Heap::new();
     let heap_ptr = &raw mut heap;
+    // NOTE: `scratch` must not be moved or reassigned; `scratch_ptr` assumes its address is stable
+    // for the entire duration of this function.
+    let mut scratch = Scratch::new();
+    let scratch_ptr = &raw mut scratch;
 
     // Using `iter_custom` here would be better, but codspeed doesn't support it yet.
     //
@@ -340,6 +348,17 @@ fn run_bencher<T>(
             let heap = unsafe { &mut *heap_ptr };
             heap.reset();
 
+            // SAFETY: We create a `&mut Scratch` from the raw pointer to call `reset()`. This is
+            // sound because:
+            // - `scratch` outlives the entire `iter_batched` call (it's a local in the outer
+            //   scope).
+            // - `BatchSize::PerIteration` ensures this closure completes and its borrows end before
+            //   the routine closure runs, so no aliasing occurs.
+            // - No other references to `scratch` exist during this closure's execution.
+            // - This code runs single-threaded.
+            let scratch = unsafe { &mut *scratch_ptr };
+            scratch.reset();
+
             let env = Environment::new(heap);
             let interner = Interner::new(heap);
             let body = body(&env, &interner);
@@ -352,6 +371,17 @@ fn run_bencher<T>(
             // - The `env`, `interner`, and `body` already hold shared borrows of `heap`
             // - Adding another `&Heap` is just shared-shared aliasing, which is allowed
             let heap = unsafe { &*heap_ptr };
+            // SAFETY: We create a mutable `&mut Scratch` reference. This is sound because:
+            // - The `&mut Scratch` from setup no longer exists (setup closure has returned), it is
+            //   only used to reset.
+            // - The `env`, `interner`, and `body` do *not* reference `scratch`.
+            // - Therefore due to the sequential nature of the code, `scratch` is the sole reference
+            //   to the variable and not aliased.
+            // - Scratch space data does *not* escape the closure, the return type `T` of `func` is
+            //   irrespective of the scratch space and even if, is immediately dropped after
+            //   execution through criterion, only after which the scratch space is reset.
+            //   Therefore, no additional references exist.
+            let scratch = unsafe { &mut *scratch_ptr };
 
             let mut context = MirContext {
                 heap,
@@ -360,24 +390,10 @@ fn run_bencher<T>(
                 diagnostics: DiagnosticIssues::new(),
             };
 
-            let value = func(black_box(&mut context), black_box(body));
+            let value = func(black_box(&mut context), black_box(body), black_box(scratch));
             (context.diagnostics, value)
         },
         BatchSize::PerIteration,
-    );
-}
-
-#[inline]
-fn run(
-    bencher: &mut Bencher,
-    body: for<'heap> fn(&Environment<'heap>, &Interner<'heap>) -> Body<'heap>,
-    mut pass: impl for<'env, 'heap> TransformPass<'env, 'heap>,
-) {
-    run_bencher(
-        bencher,
-        body,
-        #[inline]
-        |context, body| pass.run(context, body),
     );
 }
 
@@ -385,15 +401,21 @@ fn cfg_simplify(criterion: &mut Criterion) {
     let mut group = criterion.benchmark_group("cfg_simplify");
 
     group.bench_function("linear", |bencher| {
-        run(bencher, create_linear_cfg, CfgSimplify::new());
+        run_bencher(bencher, create_linear_cfg, |context, body, scratch| {
+            CfgSimplify::new_in(scratch).run(context, body)
+        });
     });
 
     group.bench_function("diamond", |bencher| {
-        run(bencher, create_diamond_cfg, CfgSimplify::new());
+        run_bencher(bencher, create_diamond_cfg, |context, body, scratch| {
+            CfgSimplify::new_in(scratch).run(context, body)
+        });
     });
 
     group.bench_function("complex", |bencher| {
-        run(bencher, create_complex_cfg, CfgSimplify::new());
+        run_bencher(bencher, create_complex_cfg, |context, body, scratch| {
+            CfgSimplify::new_in(scratch).run(context, body)
+        });
     });
 }
 
@@ -401,13 +423,21 @@ fn forward_substitution(criterion: &mut Criterion) {
     let mut group = criterion.benchmark_group("forward_substitution");
 
     group.bench_function("linear", |bencher| {
-        run(bencher, create_linear_cfg, ForwardSubstitution::new());
+        run_bencher(bencher, create_linear_cfg, |context, body, scratch| {
+            ForwardSubstitution::new_in(scratch).run(context, body)
+        });
     });
+
     group.bench_function("diamond", |bencher| {
-        run(bencher, create_diamond_cfg, ForwardSubstitution::new());
+        run_bencher(bencher, create_diamond_cfg, |context, body, scratch| {
+            ForwardSubstitution::new_in(scratch).run(context, body)
+        });
     });
+
     group.bench_function("complex", |bencher| {
-        run(bencher, create_complex_cfg, ForwardSubstitution::new());
+        run_bencher(bencher, create_complex_cfg, |context, body, scratch| {
+            ForwardSubstitution::new_in(scratch).run(context, body)
+        });
     });
 }
 
@@ -415,16 +445,27 @@ fn dse(criterion: &mut Criterion) {
     let mut group = criterion.benchmark_group("dse");
 
     group.bench_function("dead stores", |bencher| {
-        run(bencher, create_dead_store_cfg, DeadStoreElimination::new());
+        run_bencher(bencher, create_dead_store_cfg, |context, body, scratch| {
+            DeadStoreElimination::new_in(scratch).run(context, body)
+        });
     });
+
     group.bench_function("linear", |bencher| {
-        run(bencher, create_linear_cfg, DeadStoreElimination::new());
+        run_bencher(bencher, create_linear_cfg, |context, body, scratch| {
+            DeadStoreElimination::new_in(scratch).run(context, body)
+        });
     });
+
     group.bench_function("diamond", |bencher| {
-        run(bencher, create_diamond_cfg, DeadStoreElimination::new());
+        run_bencher(bencher, create_diamond_cfg, |context, body, scratch| {
+            DeadStoreElimination::new_in(scratch).run(context, body)
+        });
     });
+
     group.bench_function("complex", |bencher| {
-        run(bencher, create_complex_cfg, DeadStoreElimination::new());
+        run_bencher(bencher, create_complex_cfg, |context, body, scratch| {
+            DeadStoreElimination::new_in(scratch).run(context, body)
+        });
     });
 }
 
@@ -432,16 +473,28 @@ fn inst_simplify(criterion: &mut Criterion) {
     let mut group = criterion.benchmark_group("inst_simplify");
 
     group.bench_function("foldable", |bencher| {
-        run(bencher, create_inst_simplify_cfg, InstSimplify::new());
+        run_bencher(
+            bencher,
+            create_inst_simplify_cfg,
+            |context, body, scratch| InstSimplify::new_in(scratch).run(context, body),
+        );
     });
     group.bench_function("linear", |bencher| {
-        run(bencher, create_linear_cfg, InstSimplify::new());
+        run_bencher(bencher, create_linear_cfg, |context, body, scratch| {
+            InstSimplify::new_in(scratch).run(context, body)
+        });
     });
+
     group.bench_function("diamond", |bencher| {
-        run(bencher, create_diamond_cfg, InstSimplify::new());
+        run_bencher(bencher, create_diamond_cfg, |context, body, scratch| {
+            InstSimplify::new_in(scratch).run(context, body)
+        });
     });
+
     group.bench_function("complex", |bencher| {
-        run(bencher, create_complex_cfg, InstSimplify::new());
+        run_bencher(bencher, create_complex_cfg, |context, body, scratch| {
+            InstSimplify::new_in(scratch).run(context, body)
+        });
     });
 }
 
@@ -449,12 +502,10 @@ fn pipeline(criterion: &mut Criterion) {
     let mut group = criterion.benchmark_group("pipeline");
 
     group.bench_function("linear", |bencher| {
-        let mut scratch = Scratch::new();
-
-        run_bencher(bencher, create_linear_cfg, |context, body| {
+        run_bencher(bencher, create_linear_cfg, |context, body, scratch| {
             let bodies = IdSlice::from_raw_mut(core::slice::from_mut(body));
 
-            PreInlining::new_in(&mut scratch).run(
+            PreInlining::new_in(scratch).run(
                 context,
                 &mut GlobalTransformState::new_in(bodies, context.heap),
                 bodies,
@@ -462,12 +513,10 @@ fn pipeline(criterion: &mut Criterion) {
         });
     });
     group.bench_function("diamond", |bencher| {
-        let mut scratch = Scratch::new();
-
-        run_bencher(bencher, create_diamond_cfg, |context, body| {
+        run_bencher(bencher, create_diamond_cfg, |context, body, scratch| {
             let bodies = IdSlice::from_raw_mut(core::slice::from_mut(body));
 
-            PreInlining::new_in(&mut scratch).run(
+            PreInlining::new_in(scratch).run(
                 context,
                 &mut GlobalTransformState::new_in(bodies, context.heap),
                 bodies,
@@ -475,12 +524,10 @@ fn pipeline(criterion: &mut Criterion) {
         });
     });
     group.bench_function("complex", |bencher| {
-        let mut scratch = Scratch::new();
-
-        run_bencher(bencher, create_complex_cfg, |context, body| {
+        run_bencher(bencher, create_complex_cfg, |context, body, scratch| {
             let bodies = IdSlice::from_raw_mut(core::slice::from_mut(body));
 
-            PreInlining::new_in(&mut scratch).run(
+            PreInlining::new_in(scratch).run(
                 context,
                 &mut GlobalTransformState::new_in(bodies, context.heap),
                 bodies,
