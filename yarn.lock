@@ -8224,7 +8224,7 @@ __metadata:
     "@vitejs/plugin-react": "npm:5.0.4"
     canvas: "npm:3.2.0"
     eslint: "npm:9.39.2"
-    eslint-plugin-storybook: "npm:10.1.10"
+    eslint-plugin-storybook: "npm:10.1.11"
     lucide-react: "npm:0.544.0"
     motion: "npm:12.23.24"
     storybook: "npm:9.1.17"
@@ -8353,7 +8353,7 @@ __metadata:
     "@mui/system": "npm:5.18.0"
     clsx: "npm:2.1.1"
     eslint: "npm:9.39.2"
-    eslint-plugin-storybook: "npm:10.1.10"
+    eslint-plugin-storybook: "npm:10.1.11"
     react: "npm:19.2.3"
     react-dom: "npm:19.2.3"
     react-hook-form: "npm:7.65.0"
@@ -8406,7 +8406,7 @@ __metadata:
     "@types/lodash.uniqueid": "npm:4.0.9"
     clsx: "npm:2.1.1"
     eslint: "npm:9.39.2"
-    eslint-plugin-storybook: "npm:10.1.10"
+    eslint-plugin-storybook: "npm:10.1.11"
     lodash.memoize: "npm:4.1.2"
     lodash.uniqueid: "npm:4.0.1"
     material-ui-popup-state: "npm:4.1.0"
@@ -10144,7 +10144,7 @@ __metadata:
     eslint-plugin-canonical: "npm:5.1.3"
     eslint-plugin-import: "npm:2.32.0"
     eslint-plugin-react-hooks: "npm:7.0.1"
-    eslint-plugin-storybook: "npm:10.1.10"
+    eslint-plugin-storybook: "npm:10.1.11"
     eslint-unicorn: "npm:55.0.0"
     globals: "npm:16.4.0"
     rimraf: "npm:6.1.2"
@@ -28092,15 +28092,15 @@ __metadata:
   languageName: node
   linkType: hard
 
-"eslint-plugin-storybook@npm:10.1.10":
-  version: 10.1.10
-  resolution: "eslint-plugin-storybook@npm:10.1.10"
+"eslint-plugin-storybook@npm:10.1.11":
+  version: 10.1.11
+  resolution: "eslint-plugin-storybook@npm:10.1.11"
   dependencies:
     "@typescript-eslint/utils": "npm:^8.8.1"
   peerDependencies:
     eslint: ">=8"
-    storybook: ^10.1.10
-  checksum: 10c0/7c891a849481e68fec354752f00c69b94c689c6b382671c48fb539cb086a626273be668b0fb7ceceb170a4b0f5dcb38a57d6cd093f349c1ff6f5ba2565fae765
+    storybook: ^10.1.11
+  checksum: 10c0/2d9d57155554c7f4cb1d1c123a7d77325c0e7eed89eca12c463e79e20122a8f5ab3e1ac40f0b416ecdb7b43ee80cc2987d35d5a0ce9b76c81fb69ea4499352f6
   languageName: node
   linkType: hard
 
