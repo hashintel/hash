@@ -65,7 +65,7 @@ fn assert_cp_pass<'heap>(
 
     let dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
     let mut settings = Settings::clone_current();
-    settings.set_snapshot_path(dir.join("tests/ui/pass/cp"));
+    settings.set_snapshot_path(dir.join("tests/ui/pass/copy_propagation"));
     settings.set_prepend_module_to_snapshot(false);
 
     let _drop = settings.bind_to_scope();

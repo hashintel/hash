@@ -24,8 +24,8 @@ mod mir_pass_analysis_data_dependency;
 mod mir_pass_transform_administrative_reduction;
 mod mir_pass_transform_cfg_simplify;
 mod mir_pass_transform_dse;
+mod mir_pass_transform_forward_substitution;
 mod mir_pass_transform_inst_simplify;
-mod mir_pass_transform_sroa;
 mod mir_reify;
 mod parse_syntax_dump;
 
@@ -59,8 +59,8 @@ use self::{
     mir_pass_transform_administrative_reduction::MirPassTransformAdministrativeReduction,
     mir_pass_transform_cfg_simplify::MirPassTransformCfgSimplify,
     mir_pass_transform_dse::MirPassTransformDse,
-    mir_pass_transform_inst_simplify::MirPassTransformInstSimplify,
-    mir_pass_transform_sroa::MirPassTransformSroa, mir_reify::MirReifySuite,
+    mir_pass_transform_forward_substitution::MirPassTransformForwardSubstitution,
+    mir_pass_transform_inst_simplify::MirPassTransformInstSimplify, mir_reify::MirReifySuite,
     parse_syntax_dump::ParseSyntaxDumpSuite,
 };
 use crate::executor::TrialError;
@@ -159,8 +159,8 @@ const SUITES: &[&dyn Suite] = &[
     &MirPassTransformAdministrativeReduction,
     &MirPassTransformCfgSimplify,
     &MirPassTransformDse,
+    &MirPassTransformForwardSubstitution,
     &MirPassTransformInstSimplify,
-    &MirPassTransformSroa,
     &MirReifySuite,
     &ParseSyntaxDumpSuite,
 ];

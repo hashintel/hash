@@ -16,7 +16,7 @@ use hashql_mir::{
 
 use super::{
     RunContext, Suite, SuiteDiagnostic, common::process_issues,
-    mir_pass_transform_sroa::mir_pass_transform_sroa,
+    mir_pass_transform_forward_substitution::mir_pass_transform_forward_substitution,
 };
 use crate::suite::{
     common::Header,
@@ -32,8 +32,14 @@ pub(crate) fn mir_pass_transform_inst_simplify<'heap>(
     environment: &mut Environment<'heap>,
     diagnostics: &mut Vec<SuiteDiagnostic>,
 ) -> Result<(DefId, DefIdVec<Body<'heap>>, Scratch), SuiteDiagnostic> {
-    let (root, mut bodies, mut scratch) =
-        mir_pass_transform_sroa(heap, expr, interner, render, environment, diagnostics)?;
+    let (root, mut bodies, mut scratch) = mir_pass_transform_forward_substitution(
+        heap,
+        expr,
+        interner,
+        render,
+        environment,
+        diagnostics,
+    )?;
 
     let mut context = MirContext {
         heap,

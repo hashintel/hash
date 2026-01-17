@@ -21,7 +21,7 @@ use hashql_mir::{
     op,
     pass::{
         TransformPass,
-        transform::{CfgSimplify, DeadStoreElimination, InstSimplify, Sroa},
+        transform::{CfgSimplify, DeadStoreElimination, ForwardSubstitution, InstSimplify},
     },
 };
 
@@ -385,17 +385,17 @@ fn cfg_simplify(criterion: &mut Criterion) {
     });
 }
 
-fn sroa(criterion: &mut Criterion) {
-    let mut group = criterion.benchmark_group("sroa");
+fn forward_substitution(criterion: &mut Criterion) {
+    let mut group = criterion.benchmark_group("forward_substitution");
 
     group.bench_function("linear", |bencher| {
-        run(bencher, create_linear_cfg, Sroa::new());
+        run(bencher, create_linear_cfg, ForwardSubstitution::new());
     });
     group.bench_function("diamond", |bencher| {
-        run(bencher, create_diamond_cfg, Sroa::new());
+        run(bencher, create_diamond_cfg, ForwardSubstitution::new());
     });
     group.bench_function("complex", |bencher| {
-        run(bencher, create_complex_cfg, Sroa::new());
+        run(bencher, create_complex_cfg, ForwardSubstitution::new());
     });
 }
 
@@ -441,7 +441,10 @@ fn pipeline(criterion: &mut Criterion) {
 
         run_bencher(bencher, create_linear_cfg, |context, body| {
             let mut changed = CfgSimplify::new_in(&mut scratch).run(context, body);
-            changed = cmp::max(changed, Sroa::new_in(&mut scratch).run(context, body));
+            changed = cmp::max(
+                changed,
+                ForwardSubstitution::new_in(&mut scratch).run(context, body),
+            );
             changed = cmp::max(changed, InstSimplify::new().run(context, body));
             changed = cmp::max(
                 changed,
@@ -456,7 +459,10 @@ fn pipeline(criterion: &mut Criterion) {
 
         run_bencher(bencher, create_diamond_cfg, |context, body| {
             let mut changed = CfgSimplify::new_in(&mut scratch).run(context, body);
-            changed = cmp::max(changed, Sroa::new_in(&mut scratch).run(context, body));
+            changed = cmp::max(
+                changed,
+                ForwardSubstitution::new_in(&mut scratch).run(context, body),
+            );
             changed = cmp::max(changed, InstSimplify::new().run(context, body));
             changed = cmp::max(
                 changed,
@@ -471,7 +477,10 @@ fn pipeline(criterion: &mut Criterion) {
 
         run_bencher(bencher, create_complex_cfg, |context, body| {
             let mut changed = CfgSimplify::new_in(&mut scratch).run(context, body);
-            changed = cmp::max(changed, Sroa::new_in(&mut scratch).run(context, body));
+            changed = cmp::max(
+                changed,
+                ForwardSubstitution::new_in(&mut scratch).run(context, body),
+            );
             changed = cmp::max(changed, InstSimplify::new().run(context, body));
             changed = cmp::max(
                 changed,
@@ -483,5 +492,12 @@ fn pipeline(criterion: &mut Criterion) {
     });
 }
 
-criterion_group!(benches, cfg_simplify, sroa, dse, inst_simplify, pipeline);
+criterion_group!(
+    benches,
+    cfg_simplify,
+    forward_substitution,
+    dse,
+    inst_simplify,
+    pipeline
+);
 criterion_main!(benches);
