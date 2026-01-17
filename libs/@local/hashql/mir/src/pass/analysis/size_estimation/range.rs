@@ -5,18 +5,21 @@ use core::{
 };
 
 use super::unit::{Cardinal, InformationUnit};
-use crate::macros::{forward_ref_binop, forward_ref_op_assign};
+use crate::{
+    macros::{forward_ref_binop, forward_ref_op_assign},
+    pass::analysis::dataflow::lattice::{HasBottom, SaturatingSemiring},
+};
 
 fn compare_max(lhs: &Bound<u32>, rhs: &Bound<u32>) -> cmp::Ordering {
     match (lhs, rhs) {
-        (Bound::Included(a), Bound::Included(b)) => a.cmp(b),
+        (Bound::Included(lhs), Bound::Included(rhs))
+        | (Bound::Excluded(lhs), Bound::Excluded(rhs)) => lhs.cmp(rhs),
 
         (Bound::Included(_), Bound::Excluded(0)) => cmp::Ordering::Greater,
-        (Bound::Included(a), Bound::Excluded(b)) => a.cmp(&(b - 1)),
+        (Bound::Included(lhs), Bound::Excluded(rhs)) => lhs.cmp(&(rhs - 1)),
 
         (Bound::Excluded(0), Bound::Included(_)) => cmp::Ordering::Less,
-        (Bound::Excluded(a), Bound::Included(b)) => (a - 1).cmp(&b),
-        (Bound::Excluded(a), Bound::Excluded(b)) => a.cmp(b),
+        (Bound::Excluded(lhs), Bound::Included(rhs)) => (lhs - 1).cmp(rhs),
 
         (Bound::Unbounded, Bound::Unbounded) => cmp::Ordering::Equal,
         (_, Bound::Unbounded) => cmp::Ordering::Less,
@@ -26,16 +29,15 @@ fn compare_max(lhs: &Bound<u32>, rhs: &Bound<u32>) -> cmp::Ordering {
 
 fn add_bound(lhs: &Bound<u32>, rhs: &Bound<u32>) -> Bound<u32> {
     match (lhs, rhs) {
-        (Bound::Included(a), Bound::Included(b)) => Bound::Included(a + b),
-        (&Bound::Included(a), Bound::Excluded(0)) => Bound::Included(a),
-        (Bound::Included(a), Bound::Excluded(b)) => Bound::Included(a + (b - 1)),
+        (Bound::Included(lhs), Bound::Included(rhs)) => Bound::Included(lhs + rhs),
+        (&Bound::Included(lhs), Bound::Excluded(0)) => Bound::Included(lhs),
+        (Bound::Included(lhs), Bound::Excluded(rhs)) => Bound::Included(lhs + (rhs - 1)),
 
-        (Bound::Excluded(0), &Bound::Included(b)) => Bound::Included(b),
-        (Bound::Excluded(a), Bound::Included(b)) => Bound::Included((a - 1) + b),
-        (Bound::Excluded(a), Bound::Excluded(b)) => Bound::Excluded(a + b),
+        (Bound::Excluded(0), &Bound::Included(rhs)) => Bound::Included(rhs),
+        (Bound::Excluded(lhs), Bound::Included(rhs)) => Bound::Included((lhs - 1) + rhs),
+        (Bound::Excluded(lhs), Bound::Excluded(rhs)) => Bound::Excluded(lhs + rhs),
 
-        (Bound::Unbounded, _) => Bound::Unbounded,
-        (_, Bound::Unbounded) => Bound::Unbounded,
+        (Bound::Unbounded, _) | (_, Bound::Unbounded) => Bound::Unbounded,
     }
 }
 
@@ -64,6 +66,12 @@ macro_rules! range {
             pub const fn empty() -> Self {
                 let zero = <$inner>::new(0);
                 Self { min: zero, max: Bound::Excluded(zero) }
+            }
+
+            #[inline]
+            pub const fn one() -> Self {
+                let one = <$inner>::new(1);
+                Self { min: one, max: Bound::Included(one) }
             }
 
             #[inline]
@@ -125,6 +133,18 @@ macro_rules! range {
             }
         }
 
+        impl HasBottom<$name> for SaturatingSemiring {
+            #[inline]
+            fn bottom(&self) -> $name {
+                $name::empty()
+            }
+
+            #[inline]
+            fn is_bottom(&self, value: &$name) -> bool {
+                value.is_empty()
+            }
+        }
+
         impl Add<Self> for $name {
             type Output = Self;
 
@@ -145,6 +165,7 @@ macro_rules! range {
         }
 
         impl From<$inner> for $name {
+            #[inline]
             fn from(value: $inner) -> Self {
                 Self::new(value, Bound::Included(value))
             }

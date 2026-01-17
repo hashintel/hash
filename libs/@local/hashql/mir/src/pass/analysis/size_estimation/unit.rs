@@ -4,9 +4,10 @@ use core::{
     ops::{Add, AddAssign, Sub, SubAssign},
 };
 
-use hashql_core::collections::InlineVec;
-
-use crate::macros::{forward_ref_binop, forward_ref_op_assign};
+use crate::{
+    macros::{forward_ref_binop, forward_ref_op_assign},
+    pass::analysis::dataflow::lattice::{HasBottom, HasTop, SaturatingSemiring},
+};
 
 macro_rules! unit {
     ($(#[$meta:meta])* $vis:vis struct $name:ident($inner:ty)) => {
@@ -37,6 +38,41 @@ macro_rules! unit {
                     Some(raw) => Some(Self { raw }),
                     None => None,
                 }
+            }
+
+            #[inline]
+            pub const fn saturating_add(self, rhs: Self) -> Self {
+                Self { raw: self.raw.saturating_add(rhs.raw) }
+            }
+
+            #[inline]
+            pub const fn saturating_sub(self, rhs: Self) -> Self {
+                Self { raw: self.raw.saturating_sub(rhs.raw) }
+            }
+        }
+
+
+        impl HasBottom<$name> for SaturatingSemiring {
+            #[inline]
+            fn bottom(&self) -> $name {
+                $name::new(0)
+            }
+
+            #[inline]
+            fn is_bottom(&self, value: &$name) -> bool {
+                self.is_bottom(&value.raw)
+            }
+        }
+
+        impl HasTop<$name> for SaturatingSemiring {
+            #[inline]
+            fn top(&self) -> $name {
+                $name::new(u32::MAX)
+            }
+
+            #[inline]
+            fn is_top(&self, value: &$name) -> bool {
+                self.is_top(&value.raw)
             }
         }
 
@@ -101,18 +137,3 @@ macro_rules! unit {
 
 unit!(pub struct InformationUnit(u32));
 unit!(pub struct Cardinal(u32));
-
-// For dynamic values, we use a linear equation that takes into account the params. this means we
-// have two parts, we first have the first part, which is the dynamic value, and then the underlying
-// unit as base value.
-// Our linear equation is of the form `y = ma + nb + .. + x`, we use a u16 here because that's large
-// enough.
-type Coefficient = u16;
-#[expect(clippy::integer_division, clippy::integer_division_remainder_used)]
-const MAX_INLINE_COEFFICIENTS: usize = size_of::<usize>() / size_of::<Coefficient>() * 2;
-
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-struct Equation<T> {
-    coefficients: InlineVec<Coefficient, MAX_INLINE_COEFFICIENTS>,
-    constant: T,
-}

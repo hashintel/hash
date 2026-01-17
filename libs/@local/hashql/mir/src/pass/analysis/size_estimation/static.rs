@@ -1,7 +1,7 @@
 use core::{alloc::Allocator, ops::ControlFlow};
 
 use hashql_core::{
-    collections::FastHashMap,
+    collections::{FastHashMap, fast_hash_map_in},
     r#type::{
         TypeId,
         environment::Environment,
@@ -14,38 +14,61 @@ use hashql_core::{
 
 use super::{range::InformationRange, unit::InformationUnit};
 
-// The naive size estimation pass uses size estimation by checking if the type can be used for the
-// data.
-struct StaticSizeEstimation<'env, 'heap, A: Allocator> {
-    env: &'env Environment<'heap>,
-    cache: FastHashMap<TypeId, Option<InformationRange>, A>,
+pub(crate) struct StaticSizeEstimationCache<A: Allocator> {
+    inner: FastHashMap<TypeId, Option<InformationRange>, A>,
     dirty: bool,
 }
 
-impl<A: Allocator> StaticSizeEstimation<'_, '_, A> {
-    fn run(&mut self, type_id: TypeId) -> ControlFlow<(), InformationRange> {
+impl<A: Allocator> StaticSizeEstimationCache<A> {
+    pub(crate) fn new_in(alloc: A) -> Self {
+        Self {
+            inner: fast_hash_map_in(alloc),
+            dirty: false,
+        }
+    }
+}
+
+// The naive size estimation pass uses size estimation by checking if the type can be used for the
+// data.
+pub(crate) struct StaticSizeEstimation<'cache, 'env, 'heap, A: Allocator> {
+    env: &'env Environment<'heap>,
+    cache: &'cache mut StaticSizeEstimationCache<A>,
+}
+
+impl<'cache, 'env, 'heap, A: Allocator> StaticSizeEstimation<'cache, 'env, 'heap, A> {
+    pub(crate) const fn new(
+        env: &'env Environment<'heap>,
+        cache: &'cache mut StaticSizeEstimationCache<A>,
+    ) -> Self {
+        Self { env, cache }
+    }
+}
+
+impl<A: Allocator> StaticSizeEstimation<'_, '_, '_, A> {
+    pub(crate) fn run(&mut self, type_id: TypeId) -> Option<InformationRange> {
         // remove any `None` from the cache, as we're restarting evaluation
-        if self.dirty {
-            self.cache.retain(|_, value| value.is_some());
+        if self.cache.dirty {
+            self.cache.inner.retain(|_, value| value.is_some());
         }
 
         let result = self.eval(type_id);
-        self.dirty = result.is_break();
-        result
+        self.cache.dirty = result.is_break();
+
+        result.continue_value()
     }
 
     #[expect(unsafe_code)]
     fn eval(&mut self, type_id: TypeId) -> ControlFlow<(), InformationRange> {
-        if let Some(&cached) = self.cache.get(&type_id) {
+        if let Some(&cached) = self.cache.inner.get(&type_id) {
             return cached.map_or(ControlFlow::Break(()), ControlFlow::Continue);
         }
 
         // SAFETY: we just verified that the type is not in the cache
         unsafe {
-            self.cache.insert_unique_unchecked(type_id, None);
+            self.cache.inner.insert_unique_unchecked(type_id, None);
         }
         let value = self.compute(type_id)?;
-        self.cache.insert(type_id, Some(value));
+        self.cache.inner.insert(type_id, Some(value));
 
         ControlFlow::Continue(value)
     }
