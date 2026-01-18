@@ -82,3 +82,7 @@ pub fn fast_hash_set<T>() -> FastHashSet<T> {
 pub type TinyVec<T> = smallvec::SmallVec<T, 4>;
 pub type SmallVec<T> = smallvec::SmallVec<T, 16>;
 pub type InlineVec<T, const N: usize> = smallvec::SmallVec<T, N>;
+
+pub fn small_vec_from_elem<T: Clone, const N: usize>(length: usize, value: T) -> InlineVec<T, N> {
+    smallvec::from_elem(value, length)
+}

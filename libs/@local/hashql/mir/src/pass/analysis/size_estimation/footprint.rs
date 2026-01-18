@@ -3,6 +3,7 @@ use core::alloc::Allocator;
 use hashql_core::heap::TryCloneIn;
 
 use super::{
+    affine::AffineEquation,
     estimate::Estimate,
     range::{Cardinality, InformationRange},
 };
@@ -16,10 +17,12 @@ use crate::{
 pub(crate) struct BodyFootprintSemilattice<A: Allocator> {
     pub alloc: A,
     pub domain_size: usize,
+    pub args: usize,
 }
 
 #[derive(Debug, PartialEq, Eq, Hash)]
 pub struct BodyFootprint<A: Allocator> {
+    pub args: usize,
     pub locals: LocalVec<Footprint, A>,
     pub returns: Footprint,
 }
@@ -28,11 +31,16 @@ impl<A: Allocator, B: Allocator> TryCloneIn<B> for BodyFootprint<A> {
     type Cloned = BodyFootprint<B>;
 
     fn try_clone_in(&self, allocator: B) -> Result<Self::Cloned, core::alloc::AllocError> {
-        let Self { locals, returns } = self;
+        let Self {
+            args: params,
+            locals,
+            returns,
+        } = self;
 
         let locals = locals.try_clone_in(allocator)?;
 
         Ok(BodyFootprint {
+            args: *params,
             locals,
             returns: returns.clone(),
         })
@@ -43,8 +51,13 @@ impl<A: Allocator, B: Allocator> TryCloneIn<B> for BodyFootprint<A> {
         into: &mut Self::Cloned,
         allocator: B,
     ) -> Result<(), core::alloc::AllocError> {
-        let Self { locals, returns } = self;
+        let Self {
+            args: params,
+            locals,
+            returns,
+        } = self;
 
+        into.args = *params;
         locals.try_clone_into(&mut into.locals, allocator)?;
         into.returns.clone_from(returns);
 
@@ -56,14 +69,20 @@ impl<A: Allocator + Clone> Clone for BodyFootprint<A> {
     #[inline]
     fn clone(&self) -> Self {
         Self {
+            args: self.args,
             locals: self.locals.clone(),
             returns: self.returns.clone(),
         }
     }
 
     fn clone_from(&mut self, source: &Self) {
-        let Self { locals, returns } = self;
+        let Self {
+            args: params,
+            locals,
+            returns,
+        } = self;
 
+        *params = source.args;
         locals.clone_from(&source.locals);
         returns.clone_from(&source.returns);
     }
@@ -86,6 +105,7 @@ impl<A: Allocator> JoinSemiLattice<BodyFootprint<A>> for BodyFootprintSemilattic
 impl<A: Allocator + Clone> HasBottom<BodyFootprint<A>> for BodyFootprintSemilattice<A> {
     fn bottom(&self) -> BodyFootprint<A> {
         BodyFootprint {
+            args: self.args,
             locals: LocalVec::from_elem_in(
                 SaturatingSemiring.bottom(),
                 self.domain_size,
@@ -122,6 +142,20 @@ impl Footprint {
         Self {
             units: Estimate::Constant(InformationRange::full()),
             cardinality: Estimate::Constant(Cardinality::one()),
+        }
+    }
+
+    pub fn coefficient(index: usize, length: usize) -> Self {
+        Self {
+            units: Estimate::Affine(AffineEquation::coefficient(index, length)),
+            cardinality: Estimate::Affine(AffineEquation::coefficient(index, length)),
+        }
+    }
+
+    pub fn saturating_mul(&self, units_coefficient: u16, cardinality_coefficient: u16) -> Self {
+        Self {
+            units: self.units.saturating_mul(units_coefficient),
+            cardinality: self.cardinality.saturating_mul(cardinality_coefficient),
         }
     }
 }
