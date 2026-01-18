@@ -466,6 +466,7 @@ where
     T: Clone,
     A: Allocator + Clone,
 {
+    #[inline]
     fn clone(&self) -> Self {
         Self {
             _marker: PhantomData,
@@ -473,6 +474,7 @@ where
         }
     }
 
+    #[inline]
     fn clone_from(&mut self, source: &Self) {
         self.raw.clone_from(&source.raw);
     }
@@ -483,6 +485,7 @@ where
     T: PartialEq,
     A: Allocator,
 {
+    #[inline]
     fn eq(&self, other: &Self) -> bool {
         self.raw == other.raw
     }
@@ -500,6 +503,7 @@ where
     T: PartialOrd,
     A: Allocator,
 {
+    #[inline]
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
         self.raw.partial_cmp(&other.raw)
     }
@@ -510,6 +514,7 @@ where
     T: Ord,
     A: Allocator,
 {
+    #[inline]
     fn cmp(&self, other: &Self) -> Ordering {
         self.raw.cmp(&other.raw)
     }
@@ -520,6 +525,7 @@ where
     T: Hash,
     A: Allocator,
 {
+    #[inline]
     fn hash<H: Hasher>(&self, state: &mut H) {
         self.raw.hash(state);
     }
@@ -627,14 +633,17 @@ impl<I, T, A: Allocator> Extend<T> for IdVec<I, T, A>
 where
     I: Id,
 {
+    #[inline]
     fn extend<U: IntoIterator<Item = T>>(&mut self, iter: U) {
         self.raw.extend(iter);
     }
 
+    #[inline]
     fn extend_one(&mut self, item: T) {
         self.raw.extend_one(item);
     }
 
+    #[inline]
     fn extend_reserve(&mut self, additional: usize) {
         self.raw.extend_reserve(additional);
     }
@@ -654,6 +663,7 @@ where
         self.raw.try_clone_in(allocator).map(IdVec::from_raw)
     }
 
+    #[inline]
     fn try_clone_into(&self, into: &mut Self::Cloned, allocator: B) -> Result<(), AllocError> {
         self.raw.try_clone_into(&mut into.raw, allocator)
     }
