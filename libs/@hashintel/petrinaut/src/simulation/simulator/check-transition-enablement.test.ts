@@ -1,10 +1,10 @@
 import { describe, expect, it } from "vitest";
 
-import type { SimulationFrame, SimulationInstance } from "./types";
 import {
   checkTransitionEnablement,
   isTransitionStructurallyEnabled,
 } from "./check-transition-enablement";
+import type { SimulationFrame, SimulationInstance } from "./types";
 
 describe("isTransitionStructurallyEnabled", () => {
   it("returns true when input place has sufficient tokens", () => {

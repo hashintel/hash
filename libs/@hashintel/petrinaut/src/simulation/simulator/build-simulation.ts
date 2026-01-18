@@ -1,8 +1,8 @@
+import { SDCPNItemError } from "../../core/errors";
 import {
   deriveDefaultParameterValues,
   mergeParameterValues,
 } from "../../hooks/use-default-parameter-values";
-import { SDCPNItemError } from "../../core/errors";
 import { compileUserCode } from "./compile-user-code";
 import type {
   DifferentialEquationFn,

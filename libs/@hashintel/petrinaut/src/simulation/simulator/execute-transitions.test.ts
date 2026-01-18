@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
-import type { SimulationFrame, SimulationInstance } from "./types";
 import { executeTransitions } from "./execute-transitions";
+import type { SimulationFrame, SimulationInstance } from "./types";
 
 describe("executeTransitions", () => {
   it("returns the original frame when no transitions can fire", () => {
