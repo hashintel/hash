@@ -57,6 +57,7 @@ describe("executeTransitions", () => {
               y: 0,
             },
             timeSinceLastFiring: 1.0,
+            firingCount: 0,
           },
         ],
       ]),

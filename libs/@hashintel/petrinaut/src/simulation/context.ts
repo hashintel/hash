@@ -28,28 +28,7 @@ export type SimulationFrameState = {
       | {
           /** Time since last firing of the transition at the time of the frame. */
           timeSinceLastFiring: number;
-        }
-      | undefined;
-  };
-};
-
-/**
- * Difference between two simulation frame states.
- */
-export type SimulationFrameStateDiff = {
-  currentFrame: SimulationFrameState;
-  comparedFrame: SimulationFrameState;
-  places: {
-    [placeId: string]:
-      | {
-          tokenCount: number;
-        }
-      | undefined;
-  };
-  transitions: {
-    [transitionId: string]:
-      | {
-          /** Number of times this transition fired since the compared frame. */
+          /** Total number of times this transition has fired up to this frame. */
           firingCount: number;
         }
       | undefined;
@@ -77,11 +56,6 @@ export type SimulationContextValue = {
    * Null when no simulation is running or no frames exist.
    */
   currentViewedFrame: SimulationFrameState | null;
-  /**
-   * The difference between the currently viewed frame and the previous frame.
-   * Null when no simulation is running, no frames exist, or viewing frame 0.
-   */
-  currentViewedFrameDiff: SimulationFrameStateDiff | null;
   dt: number;
 
   // Actions
@@ -107,7 +81,6 @@ const DEFAULT_CONTEXT_VALUE: SimulationContextValue = {
   parameterValues: {},
   initialMarking: new Map(),
   currentViewedFrame: null,
-  currentViewedFrameDiff: null,
   dt: 0.01,
   setInitialMarking: () => {},
   setParameterValue: () => {},

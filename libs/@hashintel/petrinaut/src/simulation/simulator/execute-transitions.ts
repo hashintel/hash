@@ -187,14 +187,15 @@ export function executeTransitions(frame: SimulationFrame): SimulationFrame {
   // Add all new tokens at once
   const newFrame = addTokensToSimulationFrame(currentFrame, tokensToAdd);
 
-  // Update transition timeSinceLastFiring
+  // Update transition timeSinceLastFiring and firingCount
   const newTransitions = new Map(newFrame.transitions);
   for (const [transitionId, transitionState] of newFrame.transitions) {
     if (transitionsFired.has(transitionId)) {
-      // Reset time since last firing for transitions that fired
+      // Reset time since last firing and increment firing count for transitions that fired
       newTransitions.set(transitionId, {
         ...transitionState,
         timeSinceLastFiring: 0,
+        firingCount: transitionState.firingCount + 1,
       });
     } else {
       // Increment time for transitions that didn't fire

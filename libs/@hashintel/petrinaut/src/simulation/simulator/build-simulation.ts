@@ -237,6 +237,7 @@ export function buildSimulation(input: SimulationInput): SimulationInstance {
       {
         instance: transition,
         timeSinceLastFiring: 0,
+        firingCount: 0,
       },
     ]),
   );
