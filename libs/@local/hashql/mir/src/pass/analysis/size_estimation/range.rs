@@ -43,6 +43,20 @@ fn add_bound(lhs: &Bound<u32>, rhs: &Bound<u32>) -> Bound<u32> {
     }
 }
 
+fn saturating_add_bound(lhs: Bound<u32>, rhs: Bound<u32>) -> Bound<u32> {
+    match (lhs, rhs) {
+        (Bound::Included(lhs), Bound::Included(rhs)) => Bound::Included(lhs.saturating_add(rhs)),
+        (Bound::Included(lhs), Bound::Excluded(0)) => Bound::Included(lhs),
+        (Bound::Included(lhs), Bound::Excluded(rhs)) => Bound::Included(lhs.saturating_add(rhs)),
+
+        (Bound::Excluded(0), Bound::Included(rhs)) => Bound::Included(rhs),
+        (Bound::Excluded(lhs), Bound::Included(rhs)) => Bound::Included(lhs.saturating_add(rhs)),
+        (Bound::Excluded(lhs), Bound::Excluded(rhs)) => Bound::Excluded(lhs.saturating_add(rhs)),
+
+        (Bound::Unbounded, _) | (_, Bound::Unbounded) => Bound::Unbounded,
+    }
+}
+
 macro_rules! range {
     ($(#[$meta:meta])* $vis:vis struct $name:ident($inner:ty)) => {
         $(#[$meta])*
@@ -188,7 +202,13 @@ impl AdditiveMonoid<InformationRange> for SaturatingSemiring {
 
     fn plus(&self, lhs: &mut InformationRange, rhs: &InformationRange) -> bool {
         let prev = *lhs;
-        lhs.add_assign(rhs);
+
+        lhs.min = lhs.min.saturating_add(rhs.min);
+        lhs.max = saturating_add_bound(
+            lhs.max.map(|value| value.raw),
+            rhs.max.map(|value| value.raw),
+        )
+        .map(InformationUnit::new);
 
         *lhs != prev
     }
@@ -198,6 +218,25 @@ impl JoinSemiLattice<InformationRange> for SaturatingSemiring {
     fn join(&self, lhs: &mut InformationRange, rhs: &InformationRange) -> bool {
         let prev = *lhs;
         *lhs = lhs.cover(*rhs);
+
+        *lhs != prev
+    }
+}
+
+impl AdditiveMonoid<Cardinality> for SaturatingSemiring {
+    fn zero(&self) -> Cardinality {
+        Cardinality::empty()
+    }
+
+    fn plus(&self, lhs: &mut Cardinality, rhs: &Cardinality) -> bool {
+        let prev = *lhs;
+
+        lhs.min = lhs.min.saturating_add(rhs.min);
+        lhs.max = saturating_add_bound(
+            lhs.max.map(|value| value.raw),
+            rhs.max.map(|value| value.raw),
+        )
+        .map(Cardinal::new);
 
         *lhs != prev
     }
