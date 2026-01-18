@@ -24,6 +24,10 @@ function useFiringDelta(firingCount: number | null): FiringDelta | null {
     return null;
   }
 
+  if (firingCount === prevFiringCountRef.current) {
+    return null;
+  }
+
   const prevCount = prevFiringCountRef.current ?? 0;
   const delta = firingCount - prevCount;
 
