@@ -7,7 +7,9 @@ use core::{
 use super::unit::{Cardinal, InformationUnit};
 use crate::{
     macros::{forward_ref_binop, forward_ref_op_assign},
-    pass::analysis::dataflow::lattice::{HasBottom, SaturatingSemiring},
+    pass::analysis::dataflow::lattice::{
+        AdditiveMonoid, HasBottom, JoinSemiLattice, SaturatingSemiring,
+    },
 };
 
 fn compare_max(lhs: &Bound<u32>, rhs: &Bound<u32>) -> cmp::Ordering {
@@ -178,3 +180,34 @@ macro_rules! range {
 
 range!(pub struct InformationRange(InformationUnit));
 range!(pub struct Cardinality(Cardinal));
+
+impl AdditiveMonoid<InformationRange> for SaturatingSemiring {
+    fn zero(&self) -> InformationRange {
+        InformationRange::empty()
+    }
+
+    fn plus(&self, lhs: &mut InformationRange, rhs: &InformationRange) -> bool {
+        let prev = *lhs;
+        lhs.add_assign(rhs);
+
+        *lhs != prev
+    }
+}
+
+impl JoinSemiLattice<InformationRange> for SaturatingSemiring {
+    fn join(&self, lhs: &mut InformationRange, rhs: &InformationRange) -> bool {
+        let prev = *lhs;
+        *lhs = lhs.cover(*rhs);
+
+        *lhs != prev
+    }
+}
+
+impl JoinSemiLattice<Cardinality> for SaturatingSemiring {
+    fn join(&self, lhs: &mut Cardinality, rhs: &Cardinality) -> bool {
+        let prev = *lhs;
+        *lhs = lhs.cover(*rhs);
+
+        *lhs != prev
+    }
+}
