@@ -1,6 +1,6 @@
-use core::cmp;
+use core::{cmp, hint::cold_path};
 
-use hashql_core::collections::InlineVec;
+use hashql_core::collections::{InlineVec, small_vec_from_elem};
 
 use crate::pass::analysis::dataflow::lattice::{
     AdditiveMonoid, JoinSemiLattice, SaturatingSemiring,
@@ -19,6 +19,21 @@ const MAX_INLINE_COEFFICIENTS: usize = size_of::<usize>() / size_of::<Coefficien
 pub struct AffineEquation<T> {
     pub coefficients: InlineVec<Coefficient, MAX_INLINE_COEFFICIENTS>,
     pub constant: T,
+}
+
+impl<T> AffineEquation<T> {
+    pub fn coefficient(index: usize, length: usize) -> Self
+    where
+        SaturatingSemiring: AdditiveMonoid<T>,
+    {
+        let mut coefficients = small_vec_from_elem(length, 0 as Coefficient);
+        coefficients[index] = 1;
+
+        Self {
+            coefficients,
+            constant: SaturatingSemiring.zero(),
+        }
+    }
 }
 
 impl<T: Clone> Clone for AffineEquation<T> {
@@ -56,6 +71,13 @@ where
     fn plus(&self, lhs: &mut AffineEquation<T>, rhs: &AffineEquation<T>) -> bool {
         let mut changed = false;
 
+        if rhs.coefficients.len() > lhs.coefficients.len() {
+            // TODO: benchmark
+            cold_path(); // This path only exists for correctness, in general this path is unlikely to be taken
+
+            lhs.coefficients.resize(rhs.coefficients.len(), self.zero());
+        }
+
         for (lhs_coeff, rhs_coeff) in lhs.coefficients.iter_mut().zip(rhs.coefficients.iter()) {
             self.plus(lhs_coeff, rhs_coeff);
         }
@@ -72,6 +94,12 @@ where
 {
     fn join(&self, lhs: &mut AffineEquation<T>, rhs: &AffineEquation<T>) -> bool {
         let mut changed = false;
+
+        if rhs.coefficients.len() > lhs.coefficients.len() {
+            cold_path(); // This path only exists for correctness, in general this path is unlikely to be taken
+
+            lhs.coefficients.resize(rhs.coefficients.len(), self.zero());
+        }
 
         for (lhs_coeff, rhs_coeff) in lhs.coefficients.iter_mut().zip(rhs.coefficients.iter()) {
             let prev = *lhs_coeff;

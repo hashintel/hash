@@ -1,6 +1,10 @@
 use core::{alloc::Allocator, cell::RefCell};
 
-use hashql_core::{heap::CloneIn as _, id::bit_vec::DenseBitSet, r#type::environment::Environment};
+use hashql_core::{
+    heap::CloneIn as _,
+    id::{Id, bit_vec::DenseBitSet},
+    r#type::environment::Environment,
+};
 use hashql_hir::node::operation::{InputOp, UnOp};
 
 use super::{
@@ -11,6 +15,7 @@ use crate::{
     body::{
         Body,
         basic_block::BasicBlockId,
+        constant::Constant,
         local::{Local, LocalDecl, LocalSlice},
         location::Location,
         operand::Operand,
@@ -18,7 +23,7 @@ use crate::{
         rvalue::{Aggregate, Apply, BinOp, Binary, Input, RValue, Unary},
         statement::{Assign, Statement, StatementKind},
     },
-    def::{DefId, DefIdSlice},
+    def::DefIdSlice,
     pass::analysis::{
         dataflow::{
             framework::{DataflowAnalysis, Direction},
@@ -66,24 +71,27 @@ struct SizeEstimationDataflowAnalysis<'ctx, 'env, 'heap, A: Allocator> {
     env: &'env Environment<'heap>,
     decl: &'env LocalSlice<LocalDecl<'heap>>,
 
-    body: DefId,
     footprints: &'ctx DefIdSlice<BodyFootprint<A>>,
     dynamic: DenseBitSet<Local>,
     cache: RefCell<&'ctx mut StaticSizeEstimationCache<A>>,
 }
 
 impl<'ctx, 'env, 'heap, A: Allocator> SizeEstimationDataflowAnalysis<'ctx, 'env, 'heap, A> {
-    fn eval_operand(&self, operand: &Operand<'heap>) -> Eval {
+    fn eval_operand<B: Allocator>(
+        &self,
+        domain: &BodyFootprint<B>,
+        operand: &Operand<'heap>,
+    ) -> Eval {
         match operand {
             Operand::Constant(_) => Eval::Footprint(Footprint::scalar()),
-            Operand::Place(place) => self.footprint(place),
+            Operand::Place(place) => self.footprint(domain, place),
         }
     }
 
     fn eval_rvalue<B: Allocator>(&self, domain: &BodyFootprint<B>, rvalue: &RValue<'heap>) -> Eval {
         #[expect(clippy::match_same_arms, reason = "intent")]
         match rvalue {
-            RValue::Load(operand) => self.eval_operand(operand),
+            RValue::Load(operand) => self.eval_operand(domain, operand),
             RValue::Binary(Binary {
                 op:
                     BinOp::Add
@@ -109,7 +117,7 @@ impl<'ctx, 'env, 'heap, A: Allocator> SizeEstimationDataflowAnalysis<'ctx, 'env,
                 let mut total: Footprint = SaturatingSemiring.zero();
 
                 for operand in operands {
-                    let eval = self.eval_operand(operand);
+                    let eval = self.eval_operand(domain, operand);
 
                     SaturatingSemiring.plus(&mut total, eval.as_ref(domain));
                 }
@@ -135,14 +143,59 @@ impl<'ctx, 'env, 'heap, A: Allocator> SizeEstimationDataflowAnalysis<'ctx, 'env,
                 function,
                 arguments, // TODO: needs a remapping anyway
             }) => {
-                // TODO: lookup the size of the function's output type
-                todo!()
+                let &Operand::Constant(Constant::FnPtr(ptr)) = function else {
+                    // We're unable to determine the size of the function call, because we don't
+                    // know what function is going to be called.
+                    return Eval::Footprint(Footprint::unknown());
+                };
+
+                let returns = &self.footprints[ptr].returns;
+                // We're given a return, that footprint may be dependent on the arguments, to do
+                // that we simply take the argument, and then multiply by the number given, once
+                // done we add everything up.
+                let mut total: Footprint = SaturatingSemiring.zero();
+
+                for (index, operand) in arguments.iter_enumerated() {
+                    let units_coefficient = returns.units.coefficients()[index.as_usize()];
+                    let cardinality_coefficient =
+                        returns.cardinality.coefficients()[index.as_usize()];
+
+                    if units_coefficient == 0 && cardinality_coefficient == 0 {
+                        continue;
+                    }
+
+                    let argument_footprint = self.eval_operand(domain, operand);
+                    let argument_footprint = argument_footprint.as_ref(domain);
+
+                    SaturatingSemiring.plus(
+                        &mut total,
+                        &argument_footprint
+                            .saturating_mul(units_coefficient, cardinality_coefficient),
+                    );
+                }
+
+                SaturatingSemiring.plus(total.units.constant_mut(), returns.units.constant());
+                SaturatingSemiring.plus(
+                    total.cardinality.constant_mut(),
+                    returns.cardinality.constant(),
+                );
+
+                Eval::Footprint(total)
             }
         }
     }
 
-    fn footprint(&self, place: &Place<'heap>) -> Eval {
+    fn footprint<B: Allocator>(&self, domain: &BodyFootprint<B>, place: &Place<'heap>) -> Eval {
         if place.projections.is_empty() {
+            // if the place is dynamic, and one of the params of the body, then we instead use a
+            // parametrized footprint
+            if self.dynamic.contains(place.local) && place.local.as_usize() < domain.args {
+                return Eval::Footprint(Footprint::coefficient(
+                    place.local.as_usize(),
+                    domain.args,
+                ));
+            }
+
             return Eval::Copy(place.local);
         }
 
@@ -190,6 +243,7 @@ impl<'heap, B: Allocator> DataflowAnalysis<'heap>
 
     fn lattice_in<A: Allocator + Clone>(&self, body: &Body<'heap>, alloc: A) -> Self::Lattice<A> {
         BodyFootprintSemilattice {
+            args: body.args,
             alloc,
             domain_size: body.local_decls.len(),
         }
@@ -235,7 +289,7 @@ impl<'heap, B: Allocator> DataflowAnalysis<'heap>
     ) {
         for (&param, arg) in target_params.iter().zip(source_args) {
             if self.requires_transfer_local(param) {
-                let footprint = self.eval_operand(arg);
+                let footprint = self.eval_operand(state, arg);
                 footprint.apply(param, state);
             }
         }

@@ -2,7 +2,7 @@ use core::mem;
 
 use super::affine::AffineEquation;
 use crate::pass::analysis::dataflow::lattice::{
-    AdditiveMonoid, HasBottom, JoinSemiLattice, SaturatingSemiring,
+    AdditiveMonoid, HasBottom, JoinSemiLattice, MultiplicativeMonoid, SaturatingSemiring,
 };
 
 #[derive(Debug, PartialEq, Eq, Hash)]
@@ -31,11 +31,39 @@ impl<T: Clone> Clone for Estimate<T> {
 }
 
 impl<T> Estimate<T> {
-    const fn constant_mut(&mut self) -> &mut T {
+    pub(crate) const fn constant(&self) -> &T {
+        match self {
+            Self::Constant(value) => value,
+            Self::Affine(equation) => &equation.constant,
+        }
+    }
+
+    pub(crate) fn coefficients(&self) -> &[u16] {
+        match self {
+            Self::Constant(_) => &[],
+            Self::Affine(equation) => &equation.coefficients,
+        }
+    }
+
+    pub(crate) const fn constant_mut(&mut self) -> &mut T {
         match self {
             Self::Constant(value) => value,
             Self::Affine(equation) => &mut equation.constant,
         }
+    }
+
+    pub(crate) fn saturating_mul(&self, coefficient: u16) -> Estimate<T> {
+        todo!("we need a trait for MultiplicativeMonoid but with a coefficient")
+        // match self {
+        //     Self::Constant(value) => value.saturating_mul(coefficient),
+        //     Self::Affine(equation) => {
+        //         equation.constant.saturating_mul(coefficient);
+
+        //         for coeff in &mut equation.coefficients {
+        //             *coeff = coeff.saturating_mul(coefficient)
+        //         }
+        //     }
+        // }
     }
 }
 
