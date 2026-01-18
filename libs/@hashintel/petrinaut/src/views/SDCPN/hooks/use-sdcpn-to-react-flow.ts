@@ -2,6 +2,7 @@ import { use } from "react";
 import { MarkerType } from "reactflow";
 
 import { hexToHsl } from "../../../lib/hsl-color";
+import { SimulationContext } from "../../../simulation/context";
 import { EditorContext } from "../../../state/editor-context";
 import { generateArcId, SDCPNContext } from "../../../state/sdcpn-context";
 import type {
@@ -22,6 +23,7 @@ import type {
 export function useSdcpnToReactFlow(): PetrinautReactFlowDefinitionObject {
   const { petriNetDefinition } = use(SDCPNContext);
   const { draggingStateByNodeId, selectedItemIds } = use(EditorContext);
+  const { currentViewedFrame } = use(SimulationContext);
 
   const nodes: NodeType[] = [];
 
@@ -117,6 +119,8 @@ export function useSdcpnToReactFlow(): PetrinautReactFlowDefinitionObject {
         },
         data: {
           weight: inputArc.weight,
+          firingCount:
+            currentViewedFrame?.transitions[transition.id]?.firingCount ?? null,
         },
       });
     }
@@ -157,6 +161,8 @@ export function useSdcpnToReactFlow(): PetrinautReactFlowDefinitionObject {
         },
         data: {
           weight: outputArc.weight,
+          firingCount:
+            currentViewedFrame?.transitions[transition.id]?.firingCount ?? null,
         },
       });
     }

@@ -7,6 +7,8 @@ import type { Edge, Node, ReactFlowInstance } from "reactflow";
 
 export type ArcData = {
   weight: number;
+  /** Number of times the transition connected to this arc has fired, or null if no simulation. */
+  firingCount: number | null;
 };
 
 export type ArcType = Omit<Edge<ArcData>, "style">;
