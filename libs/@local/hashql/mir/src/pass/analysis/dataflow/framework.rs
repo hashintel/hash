@@ -91,10 +91,10 @@ pub trait DataflowAnalysis<'heap> {
     /// using types that support in-place cloning via [`clone_from`](Clone::clone_from),
     /// such as [`DenseBitSet`](hashql_core::id::bit_vec::DenseBitSet), which can reuse
     /// existing allocations.
-    type Domain<A: Allocator>: Clone;
+    type Domain<A: Allocator>;
 
     /// The lattice providing algebraic operations over the domain.
-    type Lattice<A: Allocator>: BoundedJoinSemiLattice<Self::Domain<A>>;
+    type Lattice<A: Allocator + Clone>: BoundedJoinSemiLattice<Self::Domain<A>>;
 
     /// Optional data computed for switch terminators to enable edge-specific refinement.
     ///
@@ -119,7 +119,7 @@ pub trait DataflowAnalysis<'heap> {
     }
 
     /// Creates a lattice instance for this analysis.
-    fn lattice_in<A: Allocator>(&self, body: &Body<'heap>, alloc: A) -> Self::Lattice<A>;
+    fn lattice_in<A: Allocator + Clone>(&self, body: &Body<'heap>, alloc: A) -> Self::Lattice<A>;
 
     /// Initializes the boundary condition for the analysis.
     ///
@@ -129,7 +129,12 @@ pub trait DataflowAnalysis<'heap> {
     ///
     /// The `domain` is pre-initialized to [`bottom`](super::lattice::HasBottom::bottom);
     /// this method should modify it to represent the boundary condition.
-    fn initialize_boundary<A: Allocator>(&self, body: &Body<'heap>, domain: &mut Self::Domain<A>);
+    fn initialize_boundary<A: Allocator>(
+        &self,
+        body: &Body<'heap>,
+        domain: &mut Self::Domain<A>,
+        alloc: A,
+    );
 
     /// Computes optional data for a switch terminator to enable edge-specific refinement.
     ///
@@ -283,6 +288,7 @@ pub trait DataflowAnalysis<'heap> {
     ) -> DataflowResults<'heap, Self, A>
     where
         Self: Sized,
+        Self::Domain<A>: Clone,
         A: Allocator + Clone,
     {
         let lattice = self.lattice_in(body, alloc.clone());
@@ -303,19 +309,19 @@ pub trait DataflowAnalysis<'heap> {
         let mut derived_states = IdVec::from_fn_in(
             body.basic_blocks.len(),
             |_: BasicBlockId| lattice.bottom(),
-            alloc,
+            alloc.clone(),
         );
 
         match Self::DIRECTION {
             Direction::Forward => {
                 // Boundary is entry state of START block
-                self.initialize_boundary(body, &mut join_states[BasicBlockId::START]);
+                self.initialize_boundary(body, &mut join_states[BasicBlockId::START], alloc);
             }
             Direction::Backward => {
                 // Boundary is exit state of return blocks
                 for (bb, block) in body.basic_blocks.iter_enumerated() {
                     if matches!(block.terminator.kind, TerminatorKind::Return(_)) {
-                        self.initialize_boundary(body, &mut join_states[bb]);
+                        self.initialize_boundary(body, &mut join_states[bb], alloc.clone());
                     }
                 }
             }
@@ -389,6 +395,7 @@ pub trait DataflowAnalysis<'heap> {
     fn iterate_to_fixpoint(self, body: &Body<'heap>) -> DataflowResults<'heap, Self>
     where
         Self: Sized,
+        Self::Domain<Global>: Clone,
     {
         self.iterate_to_fixpoint_in(body, Global)
     }
@@ -399,7 +406,7 @@ pub trait DataflowAnalysis<'heap> {
 /// Encapsulates the logic for applying transfer functions within a block and propagating
 /// the resulting state to neighboring blocks. The `propagate` callback handles joining
 /// state into neighbors and re-queueing changed blocks.
-struct Driver<'analysis, 'heap, D: DataflowAnalysis<'heap> + ?Sized, A: Allocator, F> {
+struct Driver<'analysis, 'heap, D: DataflowAnalysis<'heap> + ?Sized, A: Allocator + Clone, F> {
     analysis: &'analysis D,
     lattice: &'analysis D::Lattice<A>,
 
@@ -415,8 +422,8 @@ struct Driver<'analysis, 'heap, D: DataflowAnalysis<'heap> + ?Sized, A: Allocato
 
 impl<
     'heap,
-    D: DataflowAnalysis<'heap> + ?Sized,
-    A: Allocator,
+    D: DataflowAnalysis<'heap, Domain<A>: Clone> + ?Sized,
+    A: Allocator + Clone,
     F: FnMut(BasicBlockId, &D::Domain<A>),
 > Driver<'_, 'heap, D, A, F>
 {
