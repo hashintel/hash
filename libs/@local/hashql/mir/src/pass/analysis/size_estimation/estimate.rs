@@ -1,7 +1,9 @@
 use core::mem;
 
 use super::affine::AffineEquation;
-use crate::pass::analysis::dataflow::lattice::{HasBottom, JoinSemiLattice, SaturatingSemiring};
+use crate::pass::analysis::dataflow::lattice::{
+    AdditiveMonoid, HasBottom, JoinSemiLattice, SaturatingSemiring,
+};
 
 #[derive(Debug, PartialEq, Eq, Hash)]
 pub enum Estimate<T> {
@@ -33,6 +35,36 @@ impl<T> Estimate<T> {
         match self {
             Self::Constant(value) => value,
             Self::Affine(equation) => &mut equation.constant,
+        }
+    }
+}
+
+impl<T> AdditiveMonoid<Estimate<T>> for SaturatingSemiring
+where
+    Self: AdditiveMonoid<T> + AdditiveMonoid<AffineEquation<T>>,
+    T: Clone,
+{
+    fn zero(&self) -> Estimate<T> {
+        Estimate::Constant(self.zero())
+    }
+
+    fn plus(&self, lhs: &mut Estimate<T>, rhs: &Estimate<T>) -> bool {
+        match (lhs, rhs) {
+            (Estimate::Constant(lhs), Estimate::Constant(rhs)) => self.plus(lhs, rhs),
+            (lhs @ Estimate::Constant(_), Estimate::Affine(rhs)) => {
+                let Estimate::Constant(constant) = mem::replace(lhs, Estimate::Affine(rhs.clone()))
+                else {
+                    unreachable!("we have just verified that this is a constant")
+                };
+
+                // The additive monoid is commutative and associative, so we are allowed to swap the
+                // order of addition
+                self.plus(lhs.constant_mut(), &constant);
+
+                true
+            }
+            (Estimate::Affine(lhs), Estimate::Constant(rhs)) => self.plus(&mut lhs.constant, rhs),
+            (Estimate::Affine(lhs), Estimate::Affine(rhs)) => self.plus(lhs, rhs),
         }
     }
 }
