@@ -2,7 +2,9 @@ use core::cmp;
 
 use hashql_core::collections::InlineVec;
 
-use crate::pass::analysis::dataflow::lattice::{JoinSemiLattice, SaturatingSemiring};
+use crate::pass::analysis::dataflow::lattice::{
+    AdditiveMonoid, JoinSemiLattice, SaturatingSemiring,
+};
 
 // For dynamic values, we use a linear equation that takes into account the params. this means we
 // have two parts, we first have the first part, which is the dynamic value, and then the underlying
@@ -37,6 +39,30 @@ impl<T: Clone> Clone for AffineEquation<T> {
 
         coefficients.clone_from(&source.coefficients);
         constant.clone_from(&source.constant);
+    }
+}
+
+impl<T> AdditiveMonoid<AffineEquation<T>> for SaturatingSemiring
+where
+    SaturatingSemiring: AdditiveMonoid<T> + AdditiveMonoid<u16>,
+{
+    fn zero(&self) -> AffineEquation<T> {
+        AffineEquation {
+            coefficients: InlineVec::new(),
+            constant: self.zero(),
+        }
+    }
+
+    fn plus(&self, lhs: &mut AffineEquation<T>, rhs: &AffineEquation<T>) -> bool {
+        let mut changed = false;
+
+        for (lhs_coeff, rhs_coeff) in lhs.coefficients.iter_mut().zip(rhs.coefficients.iter()) {
+            self.plus(lhs_coeff, rhs_coeff);
+        }
+
+        changed |= self.plus(&mut lhs.constant, &rhs.constant);
+
+        changed
     }
 }
 

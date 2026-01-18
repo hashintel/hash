@@ -8,7 +8,9 @@ use super::{
 };
 use crate::{
     body::local::LocalVec,
-    pass::analysis::dataflow::lattice::{HasBottom, JoinSemiLattice, SaturatingSemiring},
+    pass::analysis::dataflow::lattice::{
+        AdditiveMonoid, HasBottom, JoinSemiLattice, SaturatingSemiring,
+    },
 };
 
 pub(crate) struct BodyFootprintSemilattice<A: Allocator> {
@@ -108,6 +110,22 @@ pub struct Footprint {
     pub cardinality: Estimate<Cardinality>,
 }
 
+impl Footprint {
+    pub const fn scalar() -> Self {
+        Self {
+            units: Estimate::Constant(InformationRange::one()),
+            cardinality: Estimate::Constant(Cardinality::one()),
+        }
+    }
+
+    pub const fn unknown() -> Self {
+        Self {
+            units: Estimate::Constant(InformationRange::full()),
+            cardinality: Estimate::Constant(Cardinality::one()),
+        }
+    }
+}
+
 impl Clone for Footprint {
     #[inline]
     fn clone(&self) -> Self {
@@ -123,6 +141,19 @@ impl Clone for Footprint {
 
         units.clone_from(&source.units);
         cardinality.clone_from(&source.cardinality);
+    }
+}
+
+impl AdditiveMonoid<Footprint> for SaturatingSemiring {
+    fn zero(&self) -> Footprint {
+        Footprint {
+            units: self.zero(),
+            cardinality: self.zero(),
+        }
+    }
+
+    fn plus(&self, lhs: &mut Footprint, rhs: &Footprint) -> bool {
+        self.plus(&mut lhs.units, &rhs.units) || self.plus(&mut lhs.cardinality, &rhs.cardinality)
     }
 }
 
