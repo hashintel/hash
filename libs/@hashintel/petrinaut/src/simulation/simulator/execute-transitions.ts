@@ -1,7 +1,7 @@
-import type { ID } from "../types/sdcpn";
-import type { SimulationFrame } from "../types/simulation";
+import type { ID } from "../../core/types/sdcpn";
 import { computePossibleTransition } from "./compute-possible-transition";
 import { removeTokensFromSimulationFrame } from "./remove-tokens-from-simulation-frame";
+import type { SimulationFrame } from "./types";
 
 type PlaceID = ID;
 

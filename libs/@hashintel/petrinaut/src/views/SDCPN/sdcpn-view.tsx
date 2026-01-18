@@ -12,7 +12,7 @@ import {
 } from "../../core/default-codes";
 import { EditorContext } from "../../state/editor-context";
 import { SDCPNContext } from "../../state/sdcpn-context";
-import { SimulationContext } from "../../state/simulation-context";
+import { SimulationContext } from "../../simulation/context";
 import { Arc } from "./components/arc";
 import { PlaceNode } from "./components/place-node";
 import { TransitionNode } from "./components/transition-node";

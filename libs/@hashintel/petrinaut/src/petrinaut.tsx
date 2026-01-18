@@ -16,7 +16,7 @@ import { NotificationsProvider } from "./notifications/notifications-provider";
 import { CheckerProvider } from "./state/checker-provider";
 import { EditorProvider } from "./state/editor-provider";
 import { SDCPNProvider } from "./state/sdcpn-provider";
-import { SimulationProvider } from "./state/simulation-provider";
+import { SimulationProvider } from "./simulation/provider";
 import { EditorView } from "./views/Editor/editor-view";
 
 export type {

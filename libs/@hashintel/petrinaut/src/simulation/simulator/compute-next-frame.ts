@@ -1,6 +1,6 @@
-import type { SimulationInstance } from "../types/simulation";
 import { computePlaceNextState } from "./compute-place-next-state";
 import { executeTransitions } from "./execute-transitions";
+import type { SimulationInstance } from "./types";
 
 /**
  * Result of computing the next frame.

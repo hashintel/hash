@@ -1,8 +1,8 @@
-import { SDCPNItemError } from "../errors";
-import type { ID } from "../types/sdcpn";
-import type { SimulationFrame } from "../types/simulation";
+import { SDCPNItemError } from "../../core/errors";
+import type { ID } from "../../core/types/sdcpn";
 import { enumerateWeightedMarkingIndicesGenerator } from "./enumerate-weighted-markings";
 import { nextRandom } from "./seeded-rng";
+import type { SimulationFrame } from "./types";
 
 type PlaceID = ID;
 

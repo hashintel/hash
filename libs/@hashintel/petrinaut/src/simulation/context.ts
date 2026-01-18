@@ -1,6 +1,6 @@
 import { createContext } from "react";
 
-import type { SimulationInstance } from "../core/types/simulation";
+import type { SimulationInstance } from "./simulator/types";
 
 export type SimulationState =
   | "NotRun"

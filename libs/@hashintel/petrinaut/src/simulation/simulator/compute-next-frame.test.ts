@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import type { SDCPN } from "../types/sdcpn";
+import type { SDCPN } from "../../core/types/sdcpn";
 import { buildSimulation } from "./build-simulation";
 import { computeNextFrame } from "./compute-next-frame";
 

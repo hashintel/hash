@@ -1,4 +1,10 @@
-import type { Color, ID, Place, SDCPN, Transition } from "./sdcpn";
+import type {
+  Color,
+  ID,
+  Place,
+  SDCPN,
+  Transition,
+} from "../../core/types/sdcpn";
 
 export type ParameterValues = Record<string, number | boolean>;
 

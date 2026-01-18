@@ -4,7 +4,7 @@ import { TbBolt, TbLambda } from "react-icons/tb";
 import { Handle, type NodeProps, Position } from "reactflow";
 
 import { EditorContext } from "../../../state/editor-context";
-import { SimulationContext } from "../../../state/simulation-context";
+import { SimulationContext } from "../../../simulation/context";
 import type { TransitionNodeData } from "../reactflow-types";
 import { handleStyling } from "../styles/styling";
 

@@ -3,13 +3,13 @@ import ts from "typescript";
 
 import { checkSDCPN } from "../core/checker/checker";
 import { SDCPNItemError } from "../core/errors";
-import { buildSimulation } from "../core/simulation/build-simulation";
-import { checkTransitionEnablement } from "../core/simulation/check-transition-enablement";
-import { computeNextFrame } from "../core/simulation/compute-next-frame";
 import type { SDCPN } from "../core/types/sdcpn";
 import { deriveDefaultParameterValues } from "../hooks/use-default-parameter-values";
 import { useNotifications } from "../notifications/notifications-context";
-import { SDCPNContext } from "./sdcpn-context";
+import { SDCPNContext } from "../state/sdcpn-context";
+import { buildSimulation } from "./simulator/build-simulation";
+import { checkTransitionEnablement } from "./simulator/check-transition-enablement";
+import { computeNextFrame } from "./simulator/compute-next-frame";
 import {
   type InitialMarking,
   SimulationContext,
@@ -17,7 +17,7 @@ import {
   type SimulationFrameState,
   type SimulationFrameStateDiff,
   type SimulationState,
-} from "./simulation-context";
+} from "./context";
 
 type SimulationStateValues = {
   simulation: SimulationContextValue["simulation"];

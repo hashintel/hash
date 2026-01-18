@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import type { SimulationInput } from "../types/simulation";
+import type { SimulationInput } from "./types";
 import { buildSimulation } from "./build-simulation";
 
 describe("buildSimulation", () => {

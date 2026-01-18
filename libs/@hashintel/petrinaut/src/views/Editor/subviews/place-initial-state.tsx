@@ -3,7 +3,7 @@ import { use } from "react";
 import { TbTrash } from "react-icons/tb";
 
 import type { SubView } from "../../../components/sub-view/types";
-import { SimulationContext } from "../../../state/simulation-context";
+import { SimulationContext } from "../../../simulation/context";
 import { InitialStateEditor } from "../panels/PropertiesPanel/initial-state-editor";
 import { usePlacePropertiesContext } from "../panels/PropertiesPanel/place-properties-context";
 

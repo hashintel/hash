@@ -2,12 +2,12 @@ import { css } from "@hashintel/ds-helpers/css";
 import { use, useMemo } from "react";
 
 import type { SubView } from "../../../components/sub-view/types";
-import { compileVisualizer } from "../../../core/simulation/compile-visualizer";
+import { compileVisualizer } from "../../../simulation/simulator/compile-visualizer";
 import {
   mergeParameterValues,
   useDefaultParameterValues,
 } from "../../../hooks/use-default-parameter-values";
-import { SimulationContext } from "../../../state/simulation-context";
+import { SimulationContext } from "../../../simulation/context";
 import { usePlacePropertiesContext } from "../panels/PropertiesPanel/place-properties-context";
 import { VisualizerErrorBoundary } from "../panels/PropertiesPanel/visualizer-error-boundary";
 

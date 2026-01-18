@@ -9,7 +9,7 @@ import {
   type TimelineChartType,
 } from "../../../state/editor-context";
 import { SDCPNContext } from "../../../state/sdcpn-context";
-import { SimulationContext } from "../../../state/simulation-context";
+import { SimulationContext } from "../../../simulation/context";
 
 /**
  * Computes the maximum value from an array using a selector function.

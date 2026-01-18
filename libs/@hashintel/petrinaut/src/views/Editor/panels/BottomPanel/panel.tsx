@@ -19,7 +19,7 @@ import {
   type BottomPanelTab,
   EditorContext,
 } from "../../../../state/editor-context";
-import { SimulationContext } from "../../../../state/simulation-context";
+import { SimulationContext } from "../../../../simulation/context";
 
 const glassPanelBaseStyle = css({
   position: "fixed",

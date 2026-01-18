@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import type { SimulationFrame, SimulationInstance } from "../types/simulation";
+import type { SimulationFrame, SimulationInstance } from "./types";
 import { computePossibleTransition } from "./compute-possible-transition";
 
 describe("computePossibleTransition", () => {
