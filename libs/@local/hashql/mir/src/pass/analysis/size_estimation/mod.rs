@@ -1,6 +1,7 @@
 mod affine;
 mod bandwidth;
 mod estimate;
+mod footprint;
 pub(crate) mod range;
 mod r#static;
 pub(crate) mod unit;
