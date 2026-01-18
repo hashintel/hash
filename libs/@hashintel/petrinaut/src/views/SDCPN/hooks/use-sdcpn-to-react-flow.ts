@@ -4,7 +4,10 @@ import { MarkerType } from "reactflow";
 import { hexToHsl } from "../../../lib/hsl-color";
 import { EditorContext } from "../../../state/editor-context";
 import { generateArcId, SDCPNContext } from "../../../state/sdcpn-context";
-import type { NodeType, PetriNetDefinitionObject } from "../reactflow-types";
+import type {
+  NodeType,
+  PetrinautReactFlowDefinitionObject,
+} from "../reactflow-types";
 
 /**
  * Converts SDCPN state to ReactFlow format (nodes and edges), and combines
@@ -16,7 +19,7 @@ import type { NodeType, PetriNetDefinitionObject } from "../reactflow-types";
  *
  * @returns An object with nodes (including dragging state) and arcs for ReactFlow
  */
-export function useSdcpnToReactFlow(): PetriNetDefinitionObject {
+export function useSdcpnToReactFlow(): PetrinautReactFlowDefinitionObject {
   const { petriNetDefinition } = use(SDCPNContext);
   const { draggingStateByNodeId, selectedItemIds } = use(EditorContext);
 
