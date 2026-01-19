@@ -2,7 +2,7 @@ use core::{
     error::Error,
     fmt::{self, Display},
     num::TryFromIntError,
-    ops::{BitAnd, BitAndAssign, BitOr, BitOrAssign, BitXor, BitXorAssign, Neg, Not},
+    ops::{Add, BitAnd, BitAndAssign, BitOr, BitOrAssign, BitXor, BitXorAssign, Neg, Not, Sub},
 };
 
 use hashql_core::value::{Integer, Primitive};
@@ -27,7 +27,7 @@ use crate::{
 /// # Examples
 ///
 /// ```
-/// use hashql_mir::body::constant::Int;
+/// use hashql_mir::interpret::value::Int;
 ///
 /// // Values that fit in the target range succeed
 /// let small = Int::from(42_i64);
@@ -70,7 +70,7 @@ impl Int {
     /// # Examples
     ///
     /// ```
-    /// use hashql_mir::body::constant::Int;
+    /// use hashql_mir::interpret::value::Int;
     ///
     /// assert_eq!(Int::from(true).as_bool(), Some(true));
     /// assert_eq!(Int::from(false).as_bool(), Some(false));
@@ -96,7 +96,7 @@ impl Int {
     /// # Examples
     ///
     /// ```
-    /// use hashql_mir::body::constant::Int;
+    /// use hashql_mir::interpret::value::Int;
     ///
     /// assert_eq!(Int::from(42_i8).as_i8(), Some(42));
     /// assert_eq!(Int::from(42_i64).as_i8(), Some(42));
@@ -122,7 +122,7 @@ impl Int {
     /// # Examples
     ///
     /// ```
-    /// use hashql_mir::body::constant::Int;
+    /// use hashql_mir::interpret::value::Int;
     ///
     /// assert_eq!(Int::from(42_i8).as_u8(), Some(42));
     /// assert_eq!(Int::from(255_u8).as_u8(), Some(255));
@@ -147,7 +147,7 @@ impl Int {
     /// # Examples
     ///
     /// ```
-    /// use hashql_mir::body::constant::Int;
+    /// use hashql_mir::interpret::value::Int;
     ///
     /// assert_eq!(Int::from(1000_i16).as_i16(), Some(1000));
     /// assert_eq!(Int::from(1000_i64).as_i16(), Some(1000));
@@ -171,7 +171,7 @@ impl Int {
     /// # Examples
     ///
     /// ```
-    /// use hashql_mir::body::constant::Int;
+    /// use hashql_mir::interpret::value::Int;
     ///
     /// assert_eq!(Int::from(1000_i16).as_u16(), Some(1000));
     /// assert_eq!(Int::from(65535_u16).as_u16(), Some(65535));
@@ -196,7 +196,7 @@ impl Int {
     /// # Examples
     ///
     /// ```
-    /// use hashql_mir::body::constant::Int;
+    /// use hashql_mir::interpret::value::Int;
     ///
     /// assert_eq!(Int::from(100_000_i32).as_i32(), Some(100_000));
     /// assert_eq!(Int::from(100_000_i64).as_i32(), Some(100_000));
@@ -220,7 +220,7 @@ impl Int {
     /// # Examples
     ///
     /// ```
-    /// use hashql_mir::body::constant::Int;
+    /// use hashql_mir::interpret::value::Int;
     ///
     /// assert_eq!(Int::from(100_000_i32).as_u32(), Some(100_000));
     /// assert_eq!(Int::from(3_000_000_000_u32).as_u32(), Some(3_000_000_000));
@@ -245,7 +245,7 @@ impl Int {
     /// # Examples
     ///
     /// ```
-    /// use hashql_mir::body::constant::Int;
+    /// use hashql_mir::interpret::value::Int;
     ///
     /// assert_eq!(Int::from(10_000_000_000_i64).as_i64(), Some(10_000_000_000));
     /// assert_eq!(
@@ -272,7 +272,7 @@ impl Int {
     /// # Examples
     ///
     /// ```
-    /// use hashql_mir::body::constant::Int;
+    /// use hashql_mir::interpret::value::Int;
     ///
     /// assert_eq!(Int::from(10_000_000_000_i64).as_u64(), Some(10_000_000_000));
     /// assert_eq!(Int::from(100_i32).as_u64(), Some(100));
@@ -297,7 +297,7 @@ impl Int {
     /// # Examples
     ///
     /// ```
-    /// use hashql_mir::body::constant::Int;
+    /// use hashql_mir::interpret::value::Int;
     ///
     /// assert_eq!(Int::from(i128::MAX).as_i128(), i128::MAX);
     /// assert_eq!(Int::from(i128::MIN).as_i128(), i128::MIN);
@@ -314,7 +314,7 @@ impl Int {
     /// # Examples
     ///
     /// ```
-    /// use hashql_mir::body::constant::Int;
+    /// use hashql_mir::interpret::value::Int;
     ///
     /// assert_eq!(Int::from(i128::MAX).as_u128(), Some(i128::MAX as u128));
     /// assert_eq!(Int::from(42_i8).as_u128(), Some(42));
@@ -337,7 +337,7 @@ impl Int {
     /// # Examples
     ///
     /// ```
-    /// use hashql_mir::body::constant::Int;
+    /// use hashql_mir::interpret::value::Int;
     ///
     /// assert_eq!(Int::from(42_isize).as_isize(), Some(42));
     /// assert_eq!(Int::from(-42_i32).as_isize(), Some(-42));
@@ -358,7 +358,7 @@ impl Int {
     /// # Examples
     ///
     /// ```
-    /// use hashql_mir::body::constant::Int;
+    /// use hashql_mir::interpret::value::Int;
     ///
     /// assert_eq!(Int::from(42_usize).as_usize(), Some(42));
     /// assert_eq!(Int::from(1000_i64).as_usize(), Some(1000));
@@ -383,7 +383,7 @@ impl Int {
     /// # Examples
     ///
     /// ```
-    /// use hashql_mir::body::constant::Int;
+    /// use hashql_mir::interpret::value::Int;
     ///
     /// assert_eq!(Int::from(42_i8).as_int(), 42);
     /// assert_eq!(Int::from(-1_i64).as_int(), -1);
@@ -418,7 +418,7 @@ impl Int {
     /// # Examples
     ///
     /// ```
-    /// use hashql_mir::body::constant::Int;
+    /// use hashql_mir::interpret::value::Int;
     ///
     /// // Positive values convert directly
     /// assert_eq!(Int::from(42_i8).as_uint(), 42);
@@ -441,7 +441,7 @@ impl Int {
     /// # Examples
     ///
     /// ```
-    /// use hashql_mir::body::constant::Int;
+    /// use hashql_mir::interpret::value::Int;
     ///
     /// assert_eq!(Int::from(42_i32).as_f32(), 42.0_f32);
     /// assert_eq!(Int::from(-1_i8).as_f32(), -1.0_f32);
@@ -460,7 +460,7 @@ impl Int {
     /// # Examples
     ///
     /// ```
-    /// use hashql_mir::body::constant::Int;
+    /// use hashql_mir::interpret::value::Int;
     ///
     /// assert_eq!(Int::from(42_i64).as_f64(), 42.0_f64);
     /// assert_eq!(Int::from(-1_i8).as_f64(), -1.0_f64);
@@ -642,6 +642,58 @@ impl Neg for Int {
     }
 }
 
+impl Add for Int {
+    type Output = Numeric;
+
+    #[inline]
+    #[expect(clippy::float_arithmetic)]
+    fn add(self, rhs: Self) -> Self::Output {
+        let (value, overflow) = self.as_int().overflowing_add(rhs.as_int());
+
+        if overflow {
+            Numeric::Num(Num::from(self.as_f64() + rhs.as_f64()))
+        } else {
+            Numeric::Int(Self::from_value_unchecked(value))
+        }
+    }
+}
+
+impl Add<Num> for Int {
+    type Output = Num;
+
+    #[inline]
+    #[expect(clippy::float_arithmetic)]
+    fn add(self, rhs: Num) -> Self::Output {
+        Num::from(self.as_f64() + rhs.as_f64())
+    }
+}
+
+impl Sub for Int {
+    type Output = Numeric;
+
+    #[inline]
+    #[expect(clippy::float_arithmetic)]
+    fn sub(self, rhs: Self) -> Self::Output {
+        let (value, overflow) = self.as_int().overflowing_sub(rhs.as_int());
+
+        if overflow {
+            Numeric::Num(Num::from(self.as_f64() - rhs.as_f64()))
+        } else {
+            Numeric::Int(Self::from_value_unchecked(value))
+        }
+    }
+}
+
+impl Sub<Num> for Int {
+    type Output = Num;
+
+    #[inline]
+    #[expect(clippy::float_arithmetic)]
+    fn sub(self, rhs: Num) -> Self::Output {
+        Num::from(self.as_f64() - rhs.as_f64())
+    }
+}
+
 impl BitOr for Int {
     type Output = Self;
 
@@ -692,6 +744,10 @@ impl BitXorAssign for Int {
 
 forward_ref_unop!(impl Not::not for Int);
 forward_ref_unop!(impl Neg::neg for Int);
+forward_ref_binop!(impl Add<Int>::add for Int);
+forward_ref_binop!(impl Add<Num>::add for Int);
+forward_ref_binop!(impl Sub<Int>::sub for Int);
+forward_ref_binop!(impl Sub<Num>::sub for Int);
 forward_ref_binop!(impl BitOr<Int>::bitor for Int);
 forward_ref_binop!(impl BitAnd<Int>::bitand for Int);
 forward_ref_binop!(impl BitXor<Int>::bitxor for Int);
@@ -707,7 +763,7 @@ mod tests {
         clippy::float_cmp
     )]
 
-    use crate::{body::constant::Int, interpret::value::Numeric};
+    use crate::interpret::value::{Int, Numeric};
 
     #[test]
     fn neg_positive() {

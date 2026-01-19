@@ -4,8 +4,7 @@ use core::{alloc::Allocator, cmp, iter::FusedIterator};
 
 use imbl::shared_ptr::RcK;
 
-use super::Value;
-use crate::body::constant::Int;
+use super::{Int, Value};
 
 /// An ordered list of values.
 #[derive(Debug, Clone)]
