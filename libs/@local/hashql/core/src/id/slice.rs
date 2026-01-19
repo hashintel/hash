@@ -1,6 +1,8 @@
 use core::{
+    alloc::Allocator,
     fmt::{self, Debug},
     marker::PhantomData,
+    mem::MaybeUninit,
     ops::{Index, IndexMut},
     ptr,
     slice::{self, GetDisjointMutError, GetDisjointMutIndex, SliceIndex},
@@ -73,6 +75,37 @@ where
     pub const fn as_raw_mut(&mut self) -> &mut [T] {
         // SAFETY: `IdSlice` is repr(transparent) and has the same layout as `[T]`.
         unsafe { &mut *(ptr::from_mut(self) as *mut [T]) }
+    }
+
+    /// Creates an `IdSlice` from a boxed slice.
+    #[inline]
+    #[expect(unsafe_code, reason = "repr(transparent)")]
+    pub fn from_boxed_slice<A: Allocator>(slice: Box<[T], A>) -> Box<Self, A> {
+        let (ptr, alloc) = Box::into_raw_with_allocator(slice);
+
+        // SAFETY: `IdSlice` is repr(transparent) and we simply cast the underlying pointer.
+        unsafe { Box::from_raw_in(ptr as *mut Self, alloc) }
+    }
+
+    /// Converts to `Box<IdSlice<I, T>, A>`.
+    ///
+    /// See [`Box::assume_init`] for additional details.
+    ///
+    /// # Safety
+    ///
+    /// As with [`MaybeUninit::assume_init`], it is up to the caller to guarantee that the values
+    /// really are in an initialized state. Calling this when the content is not yet fully
+    /// initialized causes immediate undefined behavior.
+    #[expect(unsafe_code)]
+    pub unsafe fn boxed_assume_init<A: Allocator>(
+        slice: Box<IdSlice<I, MaybeUninit<T>>, A>,
+    ) -> Box<Self, A> {
+        let (ptr, alloc) = Box::into_raw_with_allocator(slice);
+
+        // SAFETY: The caller guarantees all elements are initialized and valid `T`s.
+        // `MaybeUninit<T>` is #[repr(transparent)] over `T`, and `IdSlice` is #[repr(transparent)]
+        // over `[T]`, so the pointer cast (and its slice metadata) is layout-correct.
+        unsafe { Box::from_raw_in(ptr as *mut [MaybeUninit<T>] as *mut [T] as *mut Self, alloc) }
     }
 
     /// Gets a reference to an element or subslice by ID index.
@@ -381,5 +414,98 @@ where
 {
     fn default() -> Self {
         IdSlice::from_raw_mut(Default::default())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    #![expect(unsafe_code, clippy::cast_possible_truncation)]
+    use alloc::boxed::Box;
+    use core::mem::MaybeUninit;
+
+    use super::IdSlice;
+    use crate::{id::Id as _, newtype};
+
+    newtype!(struct TestId(u32 is 0..=0xFFFF_FF00));
+
+    #[test]
+    fn from_raw_indexing() {
+        let data = [10, 20, 30];
+        let slice = IdSlice::<TestId, _>::from_raw(&data);
+
+        assert_eq!(slice.len(), 3);
+        assert_eq!(slice[TestId::from_usize(0)], 10);
+        assert_eq!(slice[TestId::from_usize(1)], 20);
+        assert_eq!(slice[TestId::from_usize(2)], 30);
+    }
+
+    #[test]
+    fn from_raw_empty() {
+        let data: [u32; 0] = [];
+        let slice = IdSlice::<TestId, _>::from_raw(&data);
+
+        assert!(slice.is_empty());
+    }
+
+    #[test]
+    fn from_raw_mut_modification() {
+        let mut data = [1, 2, 3];
+        let slice = IdSlice::<TestId, _>::from_raw_mut(&mut data);
+
+        slice[TestId::from_usize(1)] = 42;
+
+        assert_eq!(data[1], 42);
+    }
+
+    #[test]
+    fn from_raw_mut_empty() {
+        let mut data: [u32; 0] = [];
+        let slice = IdSlice::<TestId, _>::from_raw_mut(&mut data);
+
+        assert!(slice.is_empty());
+    }
+
+    #[test]
+    fn from_boxed_slice_roundtrip() {
+        let boxed: Box<[u32]> = Box::new([1, 2, 3]);
+        let id_slice = IdSlice::<TestId, _>::from_boxed_slice(boxed);
+
+        assert_eq!(id_slice.len(), 3);
+        assert_eq!(id_slice[TestId::from_usize(0)], 1);
+        assert_eq!(id_slice[TestId::from_usize(2)], 3);
+    }
+
+    #[test]
+    fn from_boxed_slice_empty() {
+        let boxed: Box<[u32]> = Box::new([]);
+        let id_slice = IdSlice::<TestId, _>::from_boxed_slice(boxed);
+
+        assert!(id_slice.is_empty());
+    }
+
+    #[test]
+    fn boxed_assume_init_fully_initialized() {
+        let mut uninit: Box<[MaybeUninit<u32>]> = Box::new_uninit_slice(4);
+        for (i, slot) in uninit.iter_mut().enumerate() {
+            slot.write(i as u32 * 10);
+        }
+
+        let id_slice = IdSlice::<TestId, _>::from_boxed_slice(uninit);
+        // SAFETY: All elements were initialized in the loop above
+        let init = unsafe { IdSlice::boxed_assume_init(id_slice) };
+
+        assert_eq!(init.len(), 4);
+        assert_eq!(init[TestId::from_usize(0)], 0);
+        assert_eq!(init[TestId::from_usize(3)], 30);
+    }
+
+    #[test]
+    fn boxed_assume_init_empty() {
+        let uninit: Box<[MaybeUninit<u32>]> = Box::new_uninit_slice(0);
+        let id_slice = IdSlice::<TestId, _>::from_boxed_slice(uninit);
+        // SAFETY: Empty slice is trivially initialized
+        let init = unsafe { IdSlice::boxed_assume_init(id_slice) };
+
+        assert!(init.is_empty());
     }
 }

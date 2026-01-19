@@ -1,0 +1,19 @@
+//@ run: pass
+//@ description: Filter body (marked *) triggers aggressive inlining of thunks with side effects
+[
+  "::graph::tail::collect",
+  [
+    "::graph::body::filter",
+    [
+      "::graph::head::entities",
+      ["input", "axis", "::graph::QueryTemporalAxes"]
+    ],
+    [
+      "fn",
+      { "#tuple": [] },
+      { "#struct": { "vertex": "_" } },
+      "_",
+      ["==", "vertex.link_data", { "#literal": null }]
+    ]
+  ]
+]

@@ -1,0 +1,87 @@
+---
+source: libs/@local/hashql/mir/src/pass/transform/inline/tests.rs
+expression: output
+---
+fn {closure@4294967040}(%0: Integer) -> Integer {
+    bb0(): {
+        return %0
+    }
+}
+
+fn {closure@4294967040}(%0: Integer) -> Integer {
+    let %1: Integer
+
+    bb0(): {
+        %1 = apply ({def@0} as FnPtr) %0
+
+        return %1
+    }
+}
+
+thunk {thunk@4294967040}() -> Integer {
+    let %0: Integer
+
+    bb0(): {
+        %0 = apply ({def@1} as FnPtr) 1
+
+        return %0
+    }
+}
+
+================= After Inlining =================
+
+fn {closure@4294967040}(%0: Integer) -> Integer {
+    bb0(): {
+        return %0
+    }
+}
+
+fn {closure@4294967040}(%0: Integer) -> Integer {
+    let %1: Integer
+    let %2: Integer
+
+    bb0(): {
+        %2 = %0
+
+        goto -> bb2()
+    }
+
+    bb1(%1): {
+        return %1
+    }
+
+    bb2(): {
+        goto -> bb1(%2)
+    }
+}
+
+thunk {thunk@4294967040}() -> Integer {
+    let %0: Integer
+    let %1: Integer
+    let %2: Integer
+    let %3: Integer
+
+    bb0(): {
+        %1 = 1
+
+        goto -> bb2()
+    }
+
+    bb1(%0): {
+        return %0
+    }
+
+    bb2(): {
+        %3 = %1
+
+        goto -> bb4()
+    }
+
+    bb3(%2): {
+        goto -> bb1(%2)
+    }
+
+    bb4(): {
+        goto -> bb3(%3)
+    }
+}

@@ -71,7 +71,7 @@ use crate::{
 /// Each edge in the [`CallGraph`] is annotated with a `CallKind` to distinguish direct call sites
 /// from other kinds of references. This enables consumers to differentiate between actual function
 /// invocations and incidental references.
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum CallKind {
     /// Direct function application at the given MIR [`Location`].
     ///
@@ -93,6 +93,14 @@ pub enum CallKind {
     /// Includes type references, constant uses, function pointer assignments, and indirect call
     /// targets. For indirect calls, this edge appears at the assignment site, not the call site.
     Opaque,
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+pub struct CallSite<C = CallKind> {
+    pub caller: DefId,
+    pub kind: C,
+
+    pub target: DefId,
 }
 
 /// A directed graph of [`DefId`] references across MIR bodies.
@@ -143,6 +151,90 @@ impl<'heap, A: Allocator + Clone> CallGraph<'heap, A> {
         }
 
         graph
+    }
+}
+
+impl<A: Allocator> CallGraph<'_, A> {
+    #[inline]
+    pub fn callsites(&self, def: DefId) -> impl Iterator<Item = CallSite> {
+        let node = NodeId::new(def.as_usize());
+
+        self.inner.outgoing_edges(node).map(move |edge| CallSite {
+            caller: def,
+            kind: edge.data,
+            target: DefId::new(edge.target().as_u32()),
+        })
+    }
+
+    #[inline]
+    pub fn apply_callsites(&self, def: DefId) -> impl Iterator<Item = CallSite<Location>> {
+        let node = NodeId::new(def.as_usize());
+
+        self.inner
+            .outgoing_edges(node)
+            .filter_map(move |edge| match edge.data {
+                CallKind::Apply(location) => Some(CallSite {
+                    caller: def,
+                    kind: location,
+                    target: DefId::new(edge.target().as_u32()),
+                }),
+                CallKind::Filter(_) | CallKind::Opaque => None,
+            })
+    }
+
+    pub fn filters(&self) -> impl Iterator<Item = DefId> {
+        self.inner
+            .nodes()
+            .ids()
+            .filter(|&node| {
+                self.inner
+                    .incoming_edges(node)
+                    .any(|edge| matches!(edge.data, CallKind::Filter(_)))
+            })
+            .map(|node| DefId::new(node.as_u32()))
+    }
+
+    #[inline]
+    pub fn is_leaf(&self, def: DefId) -> bool {
+        let def = NodeId::new(def.as_usize());
+
+        self.inner.outgoing_edges(def).all(|edge| {
+            let target = self
+                .inner
+                .node(edge.target())
+                .unwrap_or_else(|| unreachable!("target must exist"));
+
+            // Leafs are functions, which can only have intrinsic edges
+            matches!(target.data, Source::Intrinsic(_))
+        })
+    }
+
+    #[inline]
+    pub fn is_single_caller(&self, caller: DefId, target: DefId) -> bool {
+        let caller = NodeId::new(caller.as_usize());
+        let target = NodeId::new(target.as_usize());
+
+        self.inner
+            .incoming_edges(target)
+            .all(|edge| matches!(edge.data, CallKind::Apply(_)) && edge.source() == caller)
+    }
+
+    #[inline]
+    pub fn unique_caller(&self, callee: DefId) -> Option<DefId> {
+        // Same as is_single_caller, but makes sure that there is exactly one edge
+        let callee = NodeId::new(callee.as_usize());
+
+        let mut incoming = self.inner.incoming_edges(callee);
+        let edge = incoming.next()?;
+
+        if incoming.next().is_some() {
+            return None;
+        }
+
+        match edge.data {
+            CallKind::Apply(_) => Some(DefId::new(edge.source().as_u32())),
+            CallKind::Filter(_) | CallKind::Opaque => None,
+        }
     }
 }
 
@@ -319,7 +411,7 @@ impl<'heap, A: Allocator> Visitor<'heap> for CallGraphVisitor<'_, 'heap, A> {
             return Ok(());
         }
 
-        for argument in arguments.iter() {
+        for argument in arguments {
             self.visit_operand(location, argument)?;
         }
 
