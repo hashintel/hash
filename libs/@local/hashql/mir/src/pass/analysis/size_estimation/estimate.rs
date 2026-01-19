@@ -1,6 +1,11 @@
 use core::mem;
 
-use super::affine::AffineEquation;
+use hashql_core::collections::small_vec_from_elem;
+
+use super::{
+    affine::AffineEquation,
+    range::{SaturatingMul, SaturatingMulAssign},
+};
 use crate::pass::analysis::dataflow::lattice::{
     AdditiveMonoid, HasBottom, JoinSemiLattice, MultiplicativeMonoid, SaturatingSemiring,
 };
@@ -45,6 +50,13 @@ impl<T> Estimate<T> {
         }
     }
 
+    pub(crate) fn coefficients_mut(&mut self) -> &mut [u16] {
+        match self {
+            Self::Constant(_) => &mut [],
+            Self::Affine(equation) => &mut equation.coefficients,
+        }
+    }
+
     pub(crate) const fn constant_mut(&mut self) -> &mut T {
         match self {
             Self::Constant(value) => value,
@@ -52,18 +64,64 @@ impl<T> Estimate<T> {
         }
     }
 
-    pub(crate) fn saturating_mul(&self, coefficient: u16) -> Estimate<T> {
-        todo!("we need a trait for MultiplicativeMonoid but with a coefficient")
-        // match self {
-        //     Self::Constant(value) => value.saturating_mul(coefficient),
-        //     Self::Affine(equation) => {
-        //         equation.constant.saturating_mul(coefficient);
+    pub(crate) fn saturating_mul(&self, coefficient: u16) -> Self
+    where
+        for<'a> &'a T: SaturatingMul<u16, Output = T>,
+    {
+        match self {
+            Self::Constant(value) => Self::Constant(value.saturating_mul(coefficient)),
+            Self::Affine(equation) => {
+                let constant = equation.constant.saturating_mul(coefficient);
+                let mut coefficients = equation.coefficients.clone();
 
-        //         for coeff in &mut equation.coefficients {
-        //             *coeff = coeff.saturating_mul(coefficient)
-        //         }
-        //     }
-        // }
+                for coeff in &mut coefficients {
+                    *coeff = coeff.saturating_mul(coefficient);
+                }
+
+                Self::Affine(AffineEquation {
+                    coefficients,
+                    constant,
+                })
+            }
+        }
+    }
+
+    fn resize_coefficients(&mut self, length: usize)
+    where
+        T: Clone,
+    {
+        match self {
+            Self::Constant(_) if length == 0 => {}
+            Self::Constant(constant) => {
+                let constant = constant.clone();
+
+                *self = Self::Affine(AffineEquation {
+                    coefficients: small_vec_from_elem(length, 0),
+                    constant,
+                });
+            }
+            Self::Affine(equation) => {
+                let len = equation.coefficients.len().max(length);
+                equation.coefficients.resize(len, 0);
+            }
+        }
+    }
+
+    pub(crate) fn saturating_mul_add(&mut self, other: &Self, coefficient: u16)
+    where
+        T: Clone + SaturatingMulAssign<u16>,
+    {
+        self.resize_coefficients(other.coefficients().len());
+
+        for (coeff, other_coeff) in self
+            .coefficients_mut()
+            .iter_mut()
+            .zip(other.coefficients().iter())
+        {
+            *coeff = coeff.saturating_add(other_coeff.saturating_mul(coefficient));
+        }
+
+        self.constant_mut().saturating_mul_assign(coefficient);
     }
 }
 
