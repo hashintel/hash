@@ -422,6 +422,14 @@ pub trait AnalysisPass<'env, 'heap> {
     }
 }
 
+pub trait GlobalAnalysisPass<'env, 'heap> {
+    fn run(&mut self, context: &mut MirContext<'env, 'heap>, bodies: &DefIdSlice<Body<'heap>>);
+
+    fn name(&self) -> &'static str {
+        const { simplify_type_name(core::any::type_name::<Self>()) }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::Changed;

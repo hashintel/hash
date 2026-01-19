@@ -114,6 +114,7 @@ macro_rules! range {
             }
 
             #[inline]
+            #[must_use]
             pub fn cover(self, other: Self) -> Self {
                 if self.is_empty() {
                     return other;
@@ -132,6 +133,7 @@ macro_rules! range {
             }
 
             #[inline]
+            #[must_use]
             pub fn intersect(self, other: Self) -> Self {
                 if self.is_empty() { return self; }
                 if other.is_empty() { return other; }
@@ -259,25 +261,8 @@ impl JoinSemiLattice<Cardinality> for SaturatingSemiring {
     }
 }
 
-pub(crate) trait SaturatingMul<R> {
-    type Output;
-    fn saturating_mul(self, rhs: R) -> Self::Output;
-}
 pub(crate) trait SaturatingMulAssign<R> {
     fn saturating_mul_assign(&mut self, rhs: R);
-}
-
-impl SaturatingMul<u16> for InformationRange {
-    type Output = Self;
-
-    fn saturating_mul(self, rhs: u16) -> Self {
-        let min = InformationUnit::new(self.min.raw.saturating_mul(u32::from(rhs)));
-        let max = self
-            .max
-            .map(|value| InformationUnit::new(value.raw.saturating_mul(u32::from(rhs))));
-
-        Self { min, max }
-    }
 }
 
 impl SaturatingMulAssign<u16> for InformationRange {
@@ -293,22 +278,7 @@ impl SaturatingMulAssign<u16> for InformationRange {
     }
 }
 
-forward_ref_binop!(impl SaturatingMul<u16>::saturating_mul for InformationRange);
 forward_ref_op_assign!(impl SaturatingMulAssign<u16>::saturating_mul_assign for InformationRange);
-
-impl SaturatingMul<u16> for Cardinality {
-    type Output = Self;
-
-    #[inline]
-    fn saturating_mul(self, rhs: u16) -> Self {
-        let min = Cardinal::new(self.min.raw.saturating_mul(u32::from(rhs)));
-        let max = self
-            .max
-            .map(|value| Cardinal::new(value.raw.saturating_mul(u32::from(rhs))));
-
-        Self { min, max }
-    }
-}
 
 impl SaturatingMulAssign<u16> for Cardinality {
     #[inline]
@@ -323,5 +293,4 @@ impl SaturatingMulAssign<u16> for Cardinality {
     }
 }
 
-forward_ref_binop!(impl SaturatingMul<u16>::saturating_mul for Cardinality);
 forward_ref_op_assign!(impl SaturatingMulAssign<u16>::saturating_mul_assign for Cardinality);

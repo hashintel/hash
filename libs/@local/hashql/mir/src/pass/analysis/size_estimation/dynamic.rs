@@ -2,7 +2,7 @@ use core::{alloc::Allocator, cell::RefCell};
 
 use hashql_core::{
     heap::CloneIn as _,
-    id::{Id, IdSlice, bit_vec::DenseBitSet},
+    id::{Id as _, bit_vec::DenseBitSet},
     r#type::environment::Environment,
 };
 use hashql_hir::node::operation::{InputOp, UnOp};
@@ -33,7 +33,7 @@ use crate::{
     },
 };
 
-enum Eval {
+pub(crate) enum Eval {
     Footprint(Footprint),
     Copy(Local),
 }
@@ -56,7 +56,7 @@ impl Eval {
         }
     }
 
-    fn as_ref<'domain, A: Allocator>(
+    pub(crate) fn as_ref<'domain, A: Allocator>(
         &'domain self,
         domain: &'domain BodyFootprint<A>,
     ) -> &'domain Footprint {
@@ -67,17 +67,35 @@ impl Eval {
     }
 }
 
-struct SizeEstimationDataflowAnalysis<'ctx, 'env, 'heap, A: Allocator> {
+pub(crate) struct SizeEstimationDataflowAnalysis<'ctx, 'env, 'heap, A: Allocator, C: Allocator> {
     env: &'env Environment<'heap>,
     decl: &'env LocalSlice<LocalDecl<'heap>>,
 
     footprints: &'ctx DefIdSlice<BodyFootprint<A>>,
     dynamic: DenseBitSet<Local>,
-    cache: RefCell<&'ctx mut StaticSizeEstimationCache<A>>,
+    cache: RefCell<&'ctx mut StaticSizeEstimationCache<C>>,
 }
 
-impl<'heap, A: Allocator> SizeEstimationDataflowAnalysis<'_, '_, 'heap, A> {
-    fn eval_operand<B: Allocator>(
+impl<'ctx, 'env, 'heap, A: Allocator, C: Allocator>
+    SizeEstimationDataflowAnalysis<'ctx, 'env, 'heap, A, C>
+{
+    pub(crate) const fn new(
+        env: &'env Environment<'heap>,
+        decl: &'env LocalSlice<LocalDecl<'heap>>,
+        footprints: &'ctx DefIdSlice<BodyFootprint<A>>,
+        dynamic: DenseBitSet<Local>,
+        cache: &'ctx mut StaticSizeEstimationCache<C>,
+    ) -> Self {
+        Self {
+            env,
+            decl,
+            footprints,
+            dynamic,
+            cache: RefCell::new(cache),
+        }
+    }
+
+    pub(crate) fn eval_operand<B: Allocator>(
         &self,
         domain: &BodyFootprint<B>,
         operand: &Operand<'heap>,
@@ -255,8 +273,8 @@ impl<'heap, A: Allocator> SizeEstimationDataflowAnalysis<'_, '_, 'heap, A> {
     }
 }
 
-impl<'heap, B: Allocator> DataflowAnalysis<'heap>
-    for SizeEstimationDataflowAnalysis<'_, '_, 'heap, B>
+impl<'heap, B: Allocator, C: Allocator> DataflowAnalysis<'heap>
+    for SizeEstimationDataflowAnalysis<'_, '_, 'heap, B, C>
 {
     type Domain<A: Allocator> = BodyFootprint<A>;
     type Lattice<A: Allocator + Clone> = BodyFootprintSemilattice<A>;

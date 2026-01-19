@@ -41,11 +41,13 @@ macro_rules! unit {
             }
 
             #[inline]
+            #[must_use]
             pub const fn saturating_add(self, rhs: Self) -> Self {
                 Self { raw: self.raw.saturating_add(rhs.raw) }
             }
 
             #[inline]
+            #[must_use]
             pub const fn saturating_sub(self, rhs: Self) -> Self {
                 Self { raw: self.raw.saturating_sub(rhs.raw) }
             }
