@@ -54,6 +54,16 @@ export const flowTypedef = gql`
   scalar StepInput
   scalar StepRunOutput
   scalar StepProgressLog
+  # FlowActionDefinitionId is just here so that the type is generated along with the other scalars,
+  # as we need to pass it to FlowDefinition.
+  scalar FlowActionDefinitionId
+  scalar FlowDefinition
+  scalar FlowDataSources
+  scalar FlowTrigger
+  scalar ExternalInputResponseWithoutUser
+  scalar ScheduleSpec
+  scalar CreateFlowScheduleInput
+  scalar UpdateFlowScheduleInput
 
   type StepRun {
     """
@@ -180,6 +190,8 @@ export const flowTypedef = gql`
     steps: [StepRun!]!
   }
 
+
+
   extend type Query {
     getFlowRuns(
       """
@@ -195,13 +207,6 @@ export const flowTypedef = gql`
     getFlowRunById(flowRunId: String!): FlowRun!
   }
 
-  # FlowActionDefinitionId is just here so that the type is generated along with the other scalars,
-  # as we need to pass it to FlowDefinition.
-  scalar FlowActionDefinitionId
-  scalar FlowDefinition
-  scalar FlowDataSources
-  scalar FlowTrigger
-  scalar ExternalInputResponseWithoutUser
 
   enum FlowType {
     ai
@@ -244,5 +249,30 @@ export const flowTypedef = gql`
       response: ExternalInputResponseWithoutUser!
       flowUuid: ID!
     ): Boolean!
+
+    """
+    Create a new flow schedule for recurring executions
+    """
+    createFlowSchedule(input: CreateFlowScheduleInput!): EntityUuid!
+
+    """
+    Update an existing flow schedule
+    """
+    updateFlowSchedule(scheduleEntityId: EntityId!, input: UpdateFlowScheduleInput!): Boolean!
+
+    """
+    Pause a flow schedule, stopping future executions until resumed
+    """
+    pauseFlowSchedule(scheduleEntityId: EntityId!, note: String): Boolean!
+
+    """
+    Resume a paused flow schedule
+    """
+    resumeFlowSchedule(scheduleEntityId: EntityId!): Boolean!
+
+    """
+    Archive a flow schedule, permanently stopping executions
+    """
+    archiveFlowSchedule(scheduleEntityId: EntityId!): Boolean!
   }
 `;

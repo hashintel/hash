@@ -573,6 +573,21 @@ export type DraftNotePropertyValue = TextDataType;
 export type DraftNotePropertyValueWithMetadata = TextDataTypeWithMetadata;
 
 /**
+ * A measure of the length of time.
+ */
+export type DurationDataType = NumberDataType;
+
+export type DurationDataTypeWithMetadata = {
+  value: DurationDataType;
+  metadata: DurationDataTypeMetadata;
+};
+export type DurationDataTypeMetadata = {
+  provenance?: PropertyProvenance;
+  confidence?: Confidence;
+  dataTypeId: "https://hash.ai/@h/types/data-type/duration/v/1";
+};
+
+/**
  * An identifier for an email box to which messages are delivered.
  */
 export type EmailDataType = TextDataType;
@@ -775,6 +790,14 @@ export type FlowDefinition = {
   propertiesWithMetadata: FlowDefinitionPropertiesWithMetadata;
 };
 
+/**
+ * The ID of a flow definition.
+ */
+export type FlowDefinitionIDPropertyValue = TextDataType;
+
+export type FlowDefinitionIDPropertyValueWithMetadata =
+  TextDataTypeWithMetadata;
+
 export type FlowDefinitionOutgoingLinkAndTarget = never;
 
 export type FlowDefinitionOutgoingLinksByLinkEntityTypeId = {};
@@ -824,6 +847,7 @@ export type FlowRunOutgoingLinksByLinkEntityTypeId = {
  */
 export type FlowRunProperties = {
   "https://blockprotocol.org/@blockprotocol/types/property-type/name/": NamePropertyValue;
+  "https://hash.ai/@h/types/property-type/flow-definition-id/": FlowDefinitionIDPropertyValue;
   "https://hash.ai/@h/types/property-type/outputs/"?: OutputsPropertyValue;
   "https://hash.ai/@h/types/property-type/step/": StepPropertyValue;
   "https://hash.ai/@h/types/property-type/trigger/": TriggerPropertyValue;
@@ -833,6 +857,7 @@ export type FlowRunPropertiesWithMetadata = {
   metadata?: ObjectMetadata;
   value: {
     "https://blockprotocol.org/@blockprotocol/types/property-type/name/": NamePropertyValueWithMetadata;
+    "https://hash.ai/@h/types/property-type/flow-definition-id/": FlowDefinitionIDPropertyValueWithMetadata;
     "https://hash.ai/@h/types/property-type/outputs/"?: OutputsPropertyValueWithMetadata;
     "https://hash.ai/@h/types/property-type/step/": StepPropertyValueWithMetadata;
     "https://hash.ai/@h/types/property-type/trigger/": TriggerPropertyValueWithMetadata;
@@ -867,6 +892,7 @@ export type FlowScheduleOutgoingLinksByLinkEntityTypeId = {
 export type FlowScheduleProperties = {
   "https://blockprotocol.org/@blockprotocol/types/property-type/name/": NamePropertyValue;
   "https://hash.ai/@h/types/property-type/data-sources/"?: DataSourcesPropertyValue;
+  "https://hash.ai/@h/types/property-type/flow-definition-id/": FlowDefinitionIDPropertyValue;
   "https://hash.ai/@h/types/property-type/flow-type/": FlowTypePropertyValue;
   "https://hash.ai/@h/types/property-type/pause-on-failure/"?: PauseOnFailurePropertyValue;
   "https://hash.ai/@h/types/property-type/schedule-catchup-window/"?: ScheduleCatchupWindowPropertyValue;
@@ -882,6 +908,7 @@ export type FlowSchedulePropertiesWithMetadata = {
   value: {
     "https://blockprotocol.org/@blockprotocol/types/property-type/name/": NamePropertyValueWithMetadata;
     "https://hash.ai/@h/types/property-type/data-sources/"?: DataSourcesPropertyValueWithMetadata;
+    "https://hash.ai/@h/types/property-type/flow-definition-id/": FlowDefinitionIDPropertyValueWithMetadata;
     "https://hash.ai/@h/types/property-type/flow-type/": FlowTypePropertyValueWithMetadata;
     "https://hash.ai/@h/types/property-type/pause-on-failure/"?: PauseOnFailurePropertyValueWithMetadata;
     "https://hash.ai/@h/types/property-type/schedule-catchup-window/"?: ScheduleCatchupWindowPropertyValueWithMetadata;
@@ -901,7 +928,7 @@ export type FlowScheduleUsesLink = {
 /**
  * The type of a flow, determining which task queue it runs on.
  */
-export type FlowTypeDataType = "ai" | "integration";
+export type FlowTypeDataType = "ai" | "integration" | "external";
 
 export type FlowTypeDataTypeWithMetadata = {
   value: FlowTypeDataType;
@@ -1475,6 +1502,21 @@ export type MethodologyPropertyValue = TextDataType;
 export type MethodologyPropertyValueWithMetadata = TextDataTypeWithMetadata;
 
 /**
+ * A measure of the length of time in the International System of Units (SI), defined as exactly 1/1000 of a second.
+ */
+export type MillisecondDataType = DurationDataType;
+
+export type MillisecondDataTypeWithMetadata = {
+  value: MillisecondDataType;
+  metadata: MillisecondDataTypeMetadata;
+};
+export type MillisecondDataTypeMetadata = {
+  provenance?: PropertyProvenance;
+  confidence?: Confidence;
+  dataTypeId: "https://hash.ai/@h/types/data-type/millisecond/v/1";
+};
+
+/**
  * A word or set of words by which something is known, addressed, or referred to.
  */
 export type NamePropertyValue = TextDataType;
@@ -1963,12 +2005,12 @@ export type ResolvedAtPropertyValue = DateTimeDataType;
 export type ResolvedAtPropertyValueWithMetadata = DateTimeDataTypeWithMetadata;
 
 /**
- * How far back to catch up missed runs after downtime. Specified as a duration string (e.g., '1h', '30m').
+ * How far back to catch up missed runs after downtime.
  */
-export type ScheduleCatchupWindowPropertyValue = TextDataType;
+export type ScheduleCatchupWindowPropertyValue = MillisecondDataType;
 
 export type ScheduleCatchupWindowPropertyValueWithMetadata =
-  TextDataTypeWithMetadata;
+  MillisecondDataTypeWithMetadata;
 
 /**
  * The policy for handling overlapping runs in a schedule when a new execution is due but the previous one is still running.

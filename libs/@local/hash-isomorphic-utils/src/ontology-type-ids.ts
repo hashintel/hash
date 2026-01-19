@@ -822,6 +822,12 @@ export const systemPropertyTypes = {
     propertyTypeBaseUrl:
       "https://hash.ai/@h/types/property-type/flight-type/" as BaseUrl,
   },
+  flowDefinitionId: {
+    propertyTypeId:
+      "https://hash.ai/@h/types/property-type/flow-definition-id/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@h/types/property-type/flow-definition-id/" as BaseUrl,
+  },
   flowType: {
     propertyTypeId: "https://hash.ai/@h/types/property-type/flow-type/v/1",
     propertyTypeBaseUrl:
@@ -2328,30 +2334,12 @@ export const blockProtocolEntityTypes = {
     entityTypeBaseUrl:
       "https://blockprotocol.org/@blockprotocol/types/entity-type/link/" as BaseUrl,
   },
-  query: {
-    entityTypeId: "https://blockprotocol.org/@hash/types/entity-type/query/v/1",
-    entityTypeBaseUrl:
-      "https://blockprotocol.org/@hash/types/entity-type/query/" as BaseUrl,
-  },
-  thing: {
-    entityTypeId:
-      "https://blockprotocol.org/@blockprotocol/types/entity-type/thing/v/1",
-    entityTypeBaseUrl:
-      "https://blockprotocol.org/@blockprotocol/types/entity-type/thing/" as BaseUrl,
-  },
 } as const satisfies Record<
   string,
   { entityTypeId: VersionedUrl; entityTypeBaseUrl: BaseUrl }
 >;
 
-export const blockProtocolLinkEntityTypes = {
-  hasQuery: {
-    linkEntityTypeId:
-      "https://blockprotocol.org/@h/types/entity-type/has-query/v/1",
-    linkEntityTypeBaseUrl:
-      "https://blockprotocol.org/@h/types/entity-type/has-query/" as BaseUrl,
-  },
-} as const satisfies Record<
+export const blockProtocolLinkEntityTypes = {} as const satisfies Record<
   string,
   { linkEntityTypeId: VersionedUrl; linkEntityTypeBaseUrl: BaseUrl }
 >;
@@ -2422,12 +2410,6 @@ export const blockProtocolPropertyTypes = {
       "https://blockprotocol.org/@blockprotocol/types/property-type/original-url/v/1",
     propertyTypeBaseUrl:
       "https://blockprotocol.org/@blockprotocol/types/property-type/original-url/" as BaseUrl,
-  },
-  query: {
-    propertyTypeId:
-      "https://blockprotocol.org/@h/types/property-type/query/v/1",
-    propertyTypeBaseUrl:
-      "https://blockprotocol.org/@h/types/property-type/query/" as BaseUrl,
   },
   textualContent: {
     propertyTypeId:

@@ -294,13 +294,17 @@ const migrate: MigrationFunction = async ({
       migrationState,
     });
 
+  const millisecondDataTypeId = getCurrentHashDataTypeId({
+    dataTypeKey: "millisecond",
+    migrationState,
+  });
+
   const scheduleCatchupWindowPropertyType =
     await createSystemPropertyTypeIfNotExists(context, authentication, {
       propertyTypeDefinition: {
         title: "Schedule Catchup Window",
-        description:
-          "How far back to catch up missed runs after downtime. Specified as a duration string (e.g., '1h', '30m').",
-        possibleValues: [{ primitiveDataType: "text" }],
+        description: "How far back to catch up missed runs after downtime.",
+        possibleValues: [{ dataTypeId: millisecondDataTypeId }],
       },
       webShortname: "h",
       migrationState,
@@ -467,9 +471,20 @@ const migrate: MigrationFunction = async ({
   );
 
   /**
-   * Note: flowDefinitionIdPropertyType is intentionally removed - FlowRun now links
-   * to FlowDefinition via the "Uses" link type instead.
+   * Flow Definition ID property type - stores the ID of the flow definition.
+   * This is used until we start persisting Flow Definitions to the graph,
+   * at which point we'll use the "Uses" link type instead.
    */
+  const flowDefinitionIdPropertyType =
+    await createSystemPropertyTypeIfNotExists(context, authentication, {
+      propertyTypeDefinition: {
+        title: "Flow Definition ID",
+        description: "The ID of a flow definition.",
+        possibleValues: [{ primitiveDataType: "text" }],
+      },
+      webShortname: "h",
+      migrationState,
+    });
 
   const stepsPropertyType = await createSystemPropertyTypeIfNotExists(
     context,
@@ -512,6 +527,10 @@ const migrate: MigrationFunction = async ({
             required: true,
           },
           {
+            propertyType: flowDefinitionIdPropertyType,
+            required: true,
+          },
+          {
             propertyType: flowTypePropertyType,
             required: true,
           },
@@ -544,11 +563,15 @@ const migrate: MigrationFunction = async ({
             required: true,
           },
         ],
+        /**
+         * Note: The "Uses" link to FlowDefinition is defined here for future use,
+         * but is not currently created since Flow Definitions aren't persisted to the graph yet.
+         */
         outgoingLinks: [
           {
             linkEntityType: usesLinkEntityType,
             destinationEntityTypes: [flowDefinitionEntityType],
-            minItems: 1,
+            minItems: 0,
             maxItems: 1,
           },
         ],
@@ -559,8 +582,10 @@ const migrate: MigrationFunction = async ({
   );
 
   /**
-   * FlowRun entity type - links to FlowDefinition via "Uses" and optionally
-   * to FlowSchedule via "Scheduled By".
+   * FlowRun entity type - has flowDefinitionId property and optionally
+   * links to FlowSchedule via "Scheduled By".
+   * Note: The "Uses" link to FlowDefinition is defined for future use,
+   * but flowDefinitionId property is used until Flow Definitions are persisted.
    */
   const flowEntityType = await createSystemEntityTypeIfNotExists(
     context,
@@ -575,6 +600,10 @@ const migrate: MigrationFunction = async ({
         properties: [
           {
             propertyType: blockProtocolPropertyTypes.name.propertyTypeId,
+            required: true,
+          },
+          {
+            propertyType: flowDefinitionIdPropertyType,
             required: true,
           },
           {
@@ -593,7 +622,7 @@ const migrate: MigrationFunction = async ({
           {
             linkEntityType: usesLinkEntityType,
             destinationEntityTypes: [flowDefinitionEntityType],
-            minItems: 1,
+            minItems: 0,
             maxItems: 1,
           },
           {
