@@ -24,7 +24,7 @@ import { SimulationContext } from "../../../state/simulation-context";
 const max = <T,>(
   array: readonly T[],
   selector: (item: T) => number | readonly number[],
-  initialValue = -Infinity,
+  initialValue = Number.NEGATIVE_INFINITY,
 ): number => {
   let result = initialValue;
 
