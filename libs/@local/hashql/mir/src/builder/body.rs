@@ -311,7 +311,10 @@ macro_rules! body {
     (@type $types:ident; Int) => {
         $types.integer()
     };
-    (@type $types:ident; ($($sub:tt),*)) => {
+    (@type $types:ident; ()) => {
+        $types.tuple([] as [hashql_core::r#type::TypeId; 0])
+    };
+    (@type $types:ident; ($($sub:tt),+)) => {
         $types.tuple([$($crate::builder::body!(@type $types; $sub)),*])
     };
     (@type $types:ident; ($($name:ident: $sub:tt),*)) => {

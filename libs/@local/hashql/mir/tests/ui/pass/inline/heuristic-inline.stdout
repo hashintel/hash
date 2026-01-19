@@ -90,11 +90,9 @@ fn {closure#7}(%0: ()) -> Boolean {
 
 thunk load_flag:0() -> () -> Boolean {
     let %0: () -> Boolean
-    let %1: ()
 
     bb0(): {
-        %1 = ()
-        %0 = closure(({closure#7} as FnPtr), %1)
+        %0 = closure(({closure#7} as FnPtr), ())
 
         return %0
     }
@@ -103,19 +101,15 @@ thunk load_flag:0() -> () -> Boolean {
 fn {closure#10}(%0: ()) -> Boolean {
     let %1: Boolean
     let %2: Boolean
-    let %3: ()
-    let %4: ()
 
     bb0(): {
-        %3 = ()
-        %1 = apply ({closure#7} as FnPtr) %3
+        %1 = apply ({closure#7} as FnPtr) ()
 
         switchInt(%1) -> [0: bb2(), 1: bb1()]
     }
 
     bb1(): {
-        %4 = ()
-        %2 = apply ({closure#7} as FnPtr) %4
+        %2 = apply ({closure#7} as FnPtr) ()
 
         return %2
     }
@@ -127,11 +121,9 @@ fn {closure#10}(%0: ()) -> Boolean {
 
 thunk use_flag:0() -> () -> Boolean {
     let %0: () -> Boolean
-    let %1: ()
 
     bb0(): {
-        %1 = ()
-        %0 = closure(({closure#10} as FnPtr), %1)
+        %0 = closure(({closure#10} as FnPtr), ())
 
         return %0
     }
@@ -139,11 +131,9 @@ thunk use_flag:0() -> () -> Boolean {
 
 *thunk {thunk#6}() -> Boolean {
     let %0: Boolean
-    let %1: ()
 
     bb0(): {
-        %1 = ()
-        %0 = apply ({closure#10} as FnPtr) %1
+        %0 = apply ({closure#10} as FnPtr) ()
 
         return %0
     }
@@ -163,11 +153,9 @@ fn {closure#7}(%0: ()) -> Boolean {
 
 thunk load_flag:0() -> () -> Boolean {
     let %0: () -> Boolean
-    let %1: ()
 
     bb0(): {
-        %1 = ()
-        %0 = closure(({closure#7} as FnPtr), %1)
+        %0 = closure(({closure#7} as FnPtr), ())
 
         return %0
     }
@@ -177,22 +165,18 @@ fn {closure#10}(%0: ()) -> Boolean {
     let %1: Boolean
     let %2: Boolean
     let %3: ()
-    let %4: ()
+    let %4: Boolean
     let %5: ()
     let %6: Boolean
-    let %7: ()
-    let %8: Boolean
 
     bb0(): {
-        %3 = ()
-        %7 = %3
+        %5 = ()
 
         goto -> bb6()
     }
 
     bb1(): {
-        %4 = ()
-        %5 = %4
+        %3 = ()
 
         goto -> bb4()
     }
@@ -206,9 +190,9 @@ fn {closure#10}(%0: ()) -> Boolean {
     }
 
     bb4(): {
-        %6 = input LOAD flag
+        %4 = input LOAD flag
 
-        goto -> bb3(%6)
+        goto -> bb3(%4)
     }
 
     bb5(%1): {
@@ -216,19 +200,17 @@ fn {closure#10}(%0: ()) -> Boolean {
     }
 
     bb6(): {
-        %8 = input LOAD flag
+        %6 = input LOAD flag
 
-        goto -> bb5(%8)
+        goto -> bb5(%6)
     }
 }
 
 thunk use_flag:0() -> () -> Boolean {
     let %0: () -> Boolean
-    let %1: ()
 
     bb0(): {
-        %1 = ()
-        %0 = closure(({closure#10} as FnPtr), %1)
+        %0 = closure(({closure#10} as FnPtr), ())
 
         return %0
     }
@@ -236,11 +218,9 @@ thunk use_flag:0() -> () -> Boolean {
 
 *thunk {thunk#6}() -> Boolean {
     let %0: Boolean
-    let %1: ()
 
     bb0(): {
-        %1 = ()
-        %0 = apply ({closure#10} as FnPtr) %1
+        %0 = apply ({closure#10} as FnPtr) ()
 
         return %0
     }

@@ -107,7 +107,7 @@ use crate::{
         location::Location,
         operand::Operand,
         place::Place,
-        rvalue::{BinOp, Binary, RValue, Unary},
+        rvalue::{Aggregate, AggregateKind, BinOp, Binary, RValue, Unary},
         statement::Assign,
     },
     context::MirContext,
@@ -498,6 +498,19 @@ impl<'heap, A: Allocator> VisitorMut<'heap> for InstSimplifyVisitor<'_, 'heap, A
         if let OperandKind::Int(value) = self.try_eval(*operand) {
             let result = Self::eval_un_op(*op, value);
             self.trampoline = Some(RValue::Load(Operand::Constant(Constant::Int(result))));
+        }
+
+        Ok(())
+    }
+
+    fn visit_rvalue_aggregate(
+        &mut self,
+        _: Location,
+        aggregate: &mut Aggregate<'heap>,
+    ) -> Self::Result<()> {
+        // Specialize into a unit if it's an empty tuple
+        if aggregate.kind == AggregateKind::Tuple && aggregate.operands.is_empty() {
+            self.trampoline = Some(RValue::Load(Operand::Constant(Constant::Unit)));
         }
 
         Ok(())

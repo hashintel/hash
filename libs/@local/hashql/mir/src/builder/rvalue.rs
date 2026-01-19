@@ -224,6 +224,11 @@ macro_rules! rvalue {
             rv.closure($def, $env)
         }; $payload; $($rest)*)
     };
+    ($resume:path; $payload:tt; tuple; $($rest:tt)*) => {
+        $resume!(@rvalue |rv| {
+            rv.tuple([] as [!; 0])
+        }; $payload; $($rest)*)
+    };
     ($resume:path; $payload:tt; tuple $($members:tt),+; $($rest:tt)*) => {
         $resume!(@rvalue |rv| {
             let members = [$($crate::builder::_private::operand!(rv; $members)),*];

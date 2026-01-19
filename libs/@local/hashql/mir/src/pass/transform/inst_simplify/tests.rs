@@ -1,5 +1,5 @@
 #![expect(clippy::min_ident_chars, reason = "tests")]
-use std::{io::Write as _, path::PathBuf};
+use std::{assert_matches::assert_matches, io::Write as _, path::PathBuf};
 
 use bstr::ByteVec as _;
 use hashql_core::{
@@ -12,8 +12,20 @@ use insta::{Settings, assert_snapshot};
 
 use super::InstSimplify;
 use crate::{
-    body::Body, builder::body, context::MirContext, def::DefIdSlice, intern::Interner,
-    pass::TransformPass as _, pretty::TextFormat,
+    body::{
+        Body,
+        basic_block::BasicBlockId,
+        constant::Constant,
+        operand::Operand,
+        rvalue::RValue,
+        statement::{Assign, StatementKind},
+    },
+    builder::body,
+    context::MirContext,
+    def::DefIdSlice,
+    intern::Interner,
+    pass::{Changed, TransformPass as _},
+    pretty::TextFormat,
 };
 
 #[track_caller]
@@ -63,10 +75,6 @@ fn assert_inst_simplify_pass<'heap>(
     let value = text_format.writer.into_string_lossy();
     assert_snapshot!(name, value);
 }
-
-// =============================================================================
-// Constant Folding (Bitwise on integers, Unary - not in source language)
-// =============================================================================
 
 /// Tests constant folding for bitwise AND on integers.
 #[test]
@@ -180,10 +188,6 @@ fn const_fold_unary_neg() {
     );
 }
 
-// =============================================================================
-// Bitwise Identity on Integers (x | 0 => x - not in source language)
-// =============================================================================
-
 /// Tests identity simplification for bitwise OR with zero.
 #[test]
 fn identity_bit_or_zero() {
@@ -211,10 +215,6 @@ fn identity_bit_or_zero() {
         },
     );
 }
-
-// =============================================================================
-// Identical Operand Patterns (BitAnd/BitOr on integers - not in source)
-// =============================================================================
 
 /// Tests idempotent simplification for bitwise AND with identical operands.
 #[test]
@@ -271,10 +271,6 @@ fn identical_operand_bit_or() {
         },
     );
 }
-
-// =============================================================================
-// Block Parameter Propagation (requires CFG control)
-// =============================================================================
 
 /// Tests constant propagation through block params with single predecessor.
 #[test]
@@ -381,10 +377,6 @@ fn block_param_predecessors_disagree() {
     );
 }
 
-// =============================================================================
-// Idempotent to Constant Forwarding (requires bitwise op)
-// =============================================================================
-
 /// Tests that idempotent simplification propagates constants through the result.
 #[test]
 fn idempotent_to_const_forwarding() {
@@ -412,5 +404,40 @@ fn idempotent_to_const_forwarding() {
             interner: &interner,
             diagnostics: DiagnosticIssues::new(),
         },
+    );
+}
+
+/// Tests that an empty tuple aggregate is simplified to a unit constant.
+#[test]
+fn empty_tuple_to_unit() {
+    let heap = Heap::new();
+    let interner = Interner::new(&heap);
+    let env = Environment::new(&heap);
+
+    let mut body = body!(interner, env; fn@0/0 -> () {
+        decl result: ();
+
+        bb0() {
+            result = tuple;
+            return result;
+        }
+    });
+
+    let changed = InstSimplify::new().run(
+        &mut MirContext {
+            heap: &heap,
+            env: &env,
+            interner: &interner,
+            diagnostics: DiagnosticIssues::new(),
+        },
+        &mut body,
+    );
+    assert_eq!(changed, Changed::Yes);
+    assert_matches!(
+        body.basic_blocks[BasicBlockId::START].statements[0].kind,
+        StatementKind::Assign(Assign {
+            lhs: _,
+            rhs: RValue::Load(Operand::Constant(Constant::Unit))
+        })
     );
 }
