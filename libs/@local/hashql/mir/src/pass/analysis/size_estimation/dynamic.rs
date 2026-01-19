@@ -67,7 +67,7 @@ impl Eval {
     }
 }
 
-struct SizeEstimationLookup<'ctx, 'env, 'heap, C: Allocator> {
+pub(crate) struct SizeEstimationLookup<'ctx, 'env, 'heap, C: Allocator> {
     env: &'env Environment<'heap>,
     decl: &'env LocalSlice<LocalDecl<'heap>>,
 
@@ -75,7 +75,7 @@ struct SizeEstimationLookup<'ctx, 'env, 'heap, C: Allocator> {
     cache: RefCell<&'ctx mut StaticSizeEstimationCache<C>>,
 }
 
-impl<'ctx, 'env, 'heap, C: Allocator> SizeEstimationLookup<'ctx, 'env, 'heap, C> {
+impl<'heap, C: Allocator> SizeEstimationLookup<'_, '_, 'heap, C> {
     pub(crate) fn operand<A: Allocator>(
         &self,
         domain: &BodyFootprint<A>,
@@ -121,19 +121,26 @@ impl<'ctx, 'env, 'heap, C: Allocator> SizeEstimationLookup<'ctx, 'env, 'heap, C>
     }
 }
 
-pub(crate) struct SizeEstimationDataflowAnalysis<'ctx, 'env, 'heap, A: Allocator, C: Allocator> {
+pub(crate) struct SizeEstimationDataflowAnalysis<
+    'ctx,
+    'footprints,
+    'env,
+    'heap,
+    A: Allocator,
+    C: Allocator,
+> {
     lookup: SizeEstimationLookup<'ctx, 'env, 'heap, C>,
 
-    footprints: &'ctx DefIdSlice<BodyFootprint<A>>,
+    footprints: &'footprints DefIdSlice<BodyFootprint<A>>,
 }
 
-impl<'ctx, 'env, 'heap, A: Allocator, C: Allocator>
-    SizeEstimationDataflowAnalysis<'ctx, 'env, 'heap, A, C>
+impl<'ctx, 'footprints, 'env, 'heap, A: Allocator, C: Allocator>
+    SizeEstimationDataflowAnalysis<'ctx, 'footprints, 'env, 'heap, A, C>
 {
     pub(crate) const fn new(
         env: &'env Environment<'heap>,
         decl: &'env LocalSlice<LocalDecl<'heap>>,
-        footprints: &'ctx DefIdSlice<BodyFootprint<A>>,
+        footprints: &'footprints DefIdSlice<BodyFootprint<A>>,
         dynamic: &'ctx DenseBitSet<Local>,
         cache: &'ctx mut StaticSizeEstimationCache<C>,
     ) -> Self {
@@ -149,7 +156,7 @@ impl<'ctx, 'env, 'heap, A: Allocator, C: Allocator>
         }
     }
 
-    pub(crate) fn into_lookup(self) -> SizeEstimationLookup<'ctx, 'env, 'heap, C> {
+    pub(crate) const fn into_lookup(self) -> SizeEstimationLookup<'ctx, 'env, 'heap, C> {
         self.lookup
     }
 
@@ -288,7 +295,7 @@ impl<'ctx, 'env, 'heap, A: Allocator, C: Allocator>
 }
 
 impl<'heap, B: Allocator, C: Allocator> DataflowAnalysis<'heap>
-    for SizeEstimationDataflowAnalysis<'_, '_, 'heap, B, C>
+    for SizeEstimationDataflowAnalysis<'_, '_, '_, 'heap, B, C>
 {
     type Domain<A: Allocator> = BodyFootprint<A>;
     type Lattice<A: Allocator + Clone> = BodyFootprintSemilattice<A>;
