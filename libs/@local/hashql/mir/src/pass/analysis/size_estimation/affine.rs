@@ -59,7 +59,7 @@ impl<T: Clone> Clone for AffineEquation<T> {
 
 impl<T> AdditiveMonoid<AffineEquation<T>> for SaturatingSemiring
 where
-    SaturatingSemiring: AdditiveMonoid<T> + AdditiveMonoid<u16>,
+    Self: AdditiveMonoid<T> + AdditiveMonoid<u16>,
 {
     fn zero(&self) -> AffineEquation<T> {
         AffineEquation {

@@ -158,6 +158,18 @@ impl Footprint {
             cardinality: self.cardinality.saturating_mul(cardinality_coefficient),
         }
     }
+
+    pub fn saturating_mul_add(
+        &mut self,
+        other: &Self,
+        units_coefficient: u16,
+        cardinality_coefficient: u16,
+    ) {
+        self.units
+            .saturating_mul_add(&other.units, units_coefficient);
+        self.cardinality
+            .saturating_mul_add(&other.cardinality, cardinality_coefficient);
+    }
 }
 
 impl Clone for Footprint {
