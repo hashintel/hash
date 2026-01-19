@@ -39,6 +39,96 @@ const initialStateValues: SimulationStateValues = {
   dt: 0.01,
 };
 
+const FRAME_INTERVAL_MS = 20;
+
+type UseSimulationRunnerParams = {
+  isRunning: boolean;
+  getState: () => Pick<SimulationStateValues, "simulation" | "state">;
+  setStateValues: React.Dispatch<React.SetStateAction<SimulationStateValues>>;
+};
+
+/**
+ * Hook that handles running the simulation with a 20ms interval between frames.
+ * When the simulation state is "Running", it automatically computes frames in a loop.
+ */
+const useSimulationRunner = ({
+  isRunning,
+  getState,
+  setStateValues,
+}: UseSimulationRunnerParams) => {
+  useEffect(() => {
+    if (!isRunning) {
+      return;
+    }
+
+    let timeoutId: number | null = null;
+    let cancelled = false;
+
+    const step = () => {
+      const currentState = getState();
+
+      if (!currentState.simulation || currentState.state !== "Running") {
+        return;
+      }
+
+      try {
+        const { simulation: updatedSimulation, transitionFired } =
+          computeNextFrame(currentState.simulation);
+
+        let newState: SimulationState = "Running";
+
+        if (!transitionFired) {
+          const currentFrame =
+            updatedSimulation.frames[updatedSimulation.currentFrameNumber];
+          if (currentFrame) {
+            const enablementResult = checkTransitionEnablement(currentFrame);
+            if (!enablementResult.hasEnabledTransition) {
+              newState = "Complete";
+            }
+          }
+        }
+
+        setStateValues((prev) => ({
+          ...prev,
+          simulation: updatedSimulation,
+          state: newState,
+          error: null,
+          errorItemId: null,
+          currentlyViewedFrame: updatedSimulation.currentFrameNumber,
+        }));
+
+        // Continue the loop if still running
+        if (!cancelled && newState === "Running") {
+          timeoutId = window.setTimeout(step, FRAME_INTERVAL_MS);
+        }
+      } catch (error) {
+        // eslint-disable-next-line no-console
+        console.error("Error during simulation step:", error);
+
+        setStateValues((prev) => ({
+          ...prev,
+          state: "Error",
+          error:
+            error instanceof Error
+              ? error.message
+              : "Unknown error occurred during step",
+          errorItemId: error instanceof SDCPNItemError ? error.itemId : null,
+        }));
+      }
+    };
+
+    // Start the loop
+    timeoutId = window.setTimeout(step, FRAME_INTERVAL_MS);
+
+    return () => {
+      cancelled = true;
+      if (timeoutId !== null) {
+        clearTimeout(timeoutId);
+      }
+    };
+  }, [isRunning, getState, setStateValues]);
+};
+
 /**
  * Internal component that subscribes to simulation state changes
  * and shows notifications when appropriate.
@@ -90,6 +180,13 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
   useEffect(() => {
     setStateValues(initialStateValues);
   }, [petriNetId]);
+
+  // Run the simulation runner
+  useSimulationRunner({
+    isRunning: stateValues.state === "Running",
+    getState,
+    setStateValues,
+  });
 
   //
   // Actions
@@ -206,84 +303,6 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
       });
     }
   };
-
-  const step = useCallback(() => {
-    const currentState = getState();
-
-    if (!currentState.simulation) {
-      throw new Error(
-        "Cannot step simulation: No simulation initialized. Call initialize() first.",
-      );
-    }
-
-    if (currentState.state === "Error") {
-      throw new Error(
-        "Cannot step simulation: Simulation is in error state. Please reset.",
-      );
-    }
-
-    if (currentState.state === "Complete") {
-      throw new Error(
-        "Cannot step simulation: Simulation is complete. Please reset to run again.",
-      );
-    }
-
-    try {
-      const { simulation: updatedSimulation, transitionFired } =
-        computeNextFrame(currentState.simulation);
-
-      let newState: SimulationState =
-        currentState.state === "Running" ? "Running" : "Paused";
-
-      if (!transitionFired) {
-        const currentFrame =
-          updatedSimulation.frames[updatedSimulation.currentFrameNumber];
-        if (currentFrame) {
-          const enablementResult = checkTransitionEnablement(currentFrame);
-          if (!enablementResult.hasEnabledTransition) {
-            newState = "Complete";
-          }
-        }
-      }
-
-      setStateValues({
-        ...currentState,
-        simulation: updatedSimulation,
-        state: newState,
-        error: null,
-        errorItemId: null,
-        currentlyViewedFrame: updatedSimulation.currentFrameNumber,
-      });
-    } catch (error) {
-      // eslint-disable-next-line no-console
-      console.error("Error during simulation step:", error);
-
-      setStateValues({
-        ...currentState,
-        state: "Error",
-        error:
-          error instanceof Error
-            ? error.message
-            : "Unknown error occurred during step",
-        errorItemId: error instanceof SDCPNItemError ? error.itemId : null,
-      });
-    }
-  }, [getState]);
-
-  // Auto-step when state is "Running"
-  useEffect(() => {
-    if (stateValues.state !== "Running") {
-      return;
-    }
-
-    const timeoutId = setTimeout(() => {
-      step();
-    }, 20);
-
-    return () => {
-      clearTimeout(timeoutId);
-    };
-  }, [step, stateValues.state, stateValues.simulation?.currentFrameNumber]);
 
   const run: SimulationContextValue["run"] = () => {
     const currentState = getState();
