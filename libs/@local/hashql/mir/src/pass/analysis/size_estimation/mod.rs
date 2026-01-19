@@ -29,8 +29,6 @@ use crate::{
     },
 };
 
-struct Size {}
-
 struct SizeEstimationPass<'ctx, A: Allocator> {
     alloc: A,
     constant: StaticSizeEstimationCache<A>,
@@ -77,40 +75,6 @@ impl<'env, 'heap, A: Allocator + Clone> AnalysisPass<'env, 'heap> for SizeEstima
             // already have the dataflow framework so that's great!
         }
 
-        self.footprints[body.id] = BodyFootprint { locals, returns };
+        // self.footprints[body.id] = BodyFootprint { locals, returns };
     }
 }
-
-// TODO: idk if this is the right way tbh, this feels like shoehorning this, but then again, it
-// would work... the problem is that I dont know how to extract the value.
-struct SizeEstimationDataflowAnalysis;
-
-// #[derive(Debug)]
-// struct BandwidthLattice<A> {
-//     _marker: PhantomData<A>,
-// }
-
-// impl<A> Copy for BandwidthLattice<A> {}
-// impl<A> Clone for BandwidthLattice<A> {
-//     fn clone(&self) -> Self {
-//         *self
-//     }
-// }
-
-// impl<A> JoinSemiLattice<Bandwidth> for BandwidthLattice<A> {
-//     fn join(&self, lhs: &mut Bandwidth, rhs: &Bandwidth) -> bool {
-//         todo!()
-//     }
-// }
-
-// impl<A: Allocator> JoinSemiLattice<BodyBandwith<A>> for BandwidthLattice<A> {
-//     fn join(&self, lhs: &mut BodyBandwith<A>, rhs: &BodyBandwith<A>) -> bool {
-//         let mut changed = false;
-
-//         for (lhs_local, rhs_local) in lhs.locals.iter_mut().zip(rhs.locals.iter()) {
-//             changed |= self.join(lhs_local, rhs_local);
-//         }
-
-//         changed
-//     }
-// }

@@ -12,6 +12,10 @@ use crate::{
     },
 };
 
+#[expect(
+    clippy::trivially_copy_pass_by_ref,
+    reason = "used as cmp that requires ref"
+)]
 fn compare_max(lhs: &Bound<u32>, rhs: &Bound<u32>) -> cmp::Ordering {
     match (lhs, rhs) {
         (Bound::Included(lhs), Bound::Included(rhs))
@@ -29,13 +33,13 @@ fn compare_max(lhs: &Bound<u32>, rhs: &Bound<u32>) -> cmp::Ordering {
     }
 }
 
-fn add_bound(lhs: &Bound<u32>, rhs: &Bound<u32>) -> Bound<u32> {
+const fn add_bound(lhs: Bound<u32>, rhs: Bound<u32>) -> Bound<u32> {
     match (lhs, rhs) {
         (Bound::Included(lhs), Bound::Included(rhs)) => Bound::Included(lhs + rhs),
-        (&Bound::Included(lhs), Bound::Excluded(0)) => Bound::Included(lhs),
+        (Bound::Included(lhs), Bound::Excluded(0)) => Bound::Included(lhs),
         (Bound::Included(lhs), Bound::Excluded(rhs)) => Bound::Included(lhs + (rhs - 1)),
 
-        (Bound::Excluded(0), &Bound::Included(rhs)) => Bound::Included(rhs),
+        (Bound::Excluded(0), Bound::Included(rhs)) => Bound::Included(rhs),
         (Bound::Excluded(lhs), Bound::Included(rhs)) => Bound::Included((lhs - 1) + rhs),
         (Bound::Excluded(lhs), Bound::Excluded(rhs)) => Bound::Excluded(lhs + rhs),
 
@@ -43,14 +47,18 @@ fn add_bound(lhs: &Bound<u32>, rhs: &Bound<u32>) -> Bound<u32> {
     }
 }
 
-fn saturating_add_bound(lhs: Bound<u32>, rhs: Bound<u32>) -> Bound<u32> {
+const fn saturating_add_bound(lhs: Bound<u32>, rhs: Bound<u32>) -> Bound<u32> {
     match (lhs, rhs) {
         (Bound::Included(lhs), Bound::Included(rhs)) => Bound::Included(lhs.saturating_add(rhs)),
         (Bound::Included(lhs), Bound::Excluded(0)) => Bound::Included(lhs),
-        (Bound::Included(lhs), Bound::Excluded(rhs)) => Bound::Included(lhs.saturating_add(rhs)),
+        (Bound::Included(lhs), Bound::Excluded(rhs)) => {
+            Bound::Included(lhs.saturating_add(rhs - 1))
+        }
 
         (Bound::Excluded(0), Bound::Included(rhs)) => Bound::Included(rhs),
-        (Bound::Excluded(lhs), Bound::Included(rhs)) => Bound::Included(lhs.saturating_add(rhs)),
+        (Bound::Excluded(lhs), Bound::Included(rhs)) => {
+            Bound::Included((lhs - 1).saturating_add(rhs))
+        }
         (Bound::Excluded(lhs), Bound::Excluded(rhs)) => Bound::Excluded(lhs.saturating_add(rhs)),
 
         (Bound::Unbounded, _) | (_, Bound::Unbounded) => Bound::Unbounded,
@@ -167,7 +175,7 @@ macro_rules! range {
             #[inline]
             fn add(self, other: Self) -> Self {
                 let min = self.min + other.min;
-                let max = add_bound(&self.max.map(|value| value.raw), &other.max.map(|value| value.raw));
+                let max = add_bound(self.max.map(|value| value.raw), other.max.map(|value| value.raw));
 
                 Self { min, max: max.map(<$inner>::new) }
             }
@@ -250,3 +258,70 @@ impl JoinSemiLattice<Cardinality> for SaturatingSemiring {
         *lhs != prev
     }
 }
+
+pub(crate) trait SaturatingMul<R> {
+    type Output;
+    fn saturating_mul(self, rhs: R) -> Self::Output;
+}
+pub(crate) trait SaturatingMulAssign<R> {
+    fn saturating_mul_assign(&mut self, rhs: R);
+}
+
+impl SaturatingMul<u16> for InformationRange {
+    type Output = Self;
+
+    fn saturating_mul(self, rhs: u16) -> Self {
+        let min = InformationUnit::new(self.min.raw.saturating_mul(u32::from(rhs)));
+        let max = self
+            .max
+            .map(|value| InformationUnit::new(value.raw.saturating_mul(u32::from(rhs))));
+
+        Self { min, max }
+    }
+}
+
+impl SaturatingMulAssign<u16> for InformationRange {
+    #[inline]
+    fn saturating_mul_assign(&mut self, rhs: u16) {
+        self.min.raw = self.min.raw.saturating_mul(u32::from(rhs));
+        match &mut self.max {
+            Bound::Included(max) | Bound::Excluded(max) => {
+                max.raw = max.raw.saturating_mul(u32::from(rhs));
+            }
+            Bound::Unbounded => {}
+        }
+    }
+}
+
+forward_ref_binop!(impl SaturatingMul<u16>::saturating_mul for InformationRange);
+forward_ref_op_assign!(impl SaturatingMulAssign<u16>::saturating_mul_assign for InformationRange);
+
+impl SaturatingMul<u16> for Cardinality {
+    type Output = Self;
+
+    #[inline]
+    fn saturating_mul(self, rhs: u16) -> Self {
+        let min = Cardinal::new(self.min.raw.saturating_mul(u32::from(rhs)));
+        let max = self
+            .max
+            .map(|value| Cardinal::new(value.raw.saturating_mul(u32::from(rhs))));
+
+        Self { min, max }
+    }
+}
+
+impl SaturatingMulAssign<u16> for Cardinality {
+    #[inline]
+    fn saturating_mul_assign(&mut self, rhs: u16) {
+        self.min.raw = self.min.raw.saturating_mul(u32::from(rhs));
+        match &mut self.max {
+            Bound::Included(max) | Bound::Excluded(max) => {
+                max.raw = max.raw.saturating_mul(u32::from(rhs));
+            }
+            Bound::Unbounded => {}
+        }
+    }
+}
+
+forward_ref_binop!(impl SaturatingMul<u16>::saturating_mul for Cardinality);
+forward_ref_op_assign!(impl SaturatingMulAssign<u16>::saturating_mul_assign for Cardinality);

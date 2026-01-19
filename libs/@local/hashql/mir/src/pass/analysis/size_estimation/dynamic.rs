@@ -2,7 +2,7 @@ use core::{alloc::Allocator, cell::RefCell};
 
 use hashql_core::{
     heap::CloneIn as _,
-    id::{Id, bit_vec::DenseBitSet},
+    id::{Id, IdSlice, bit_vec::DenseBitSet},
     r#type::environment::Environment,
 };
 use hashql_hir::node::operation::{InputOp, UnOp};
@@ -20,10 +20,10 @@ use crate::{
         location::Location,
         operand::Operand,
         place::Place,
-        rvalue::{Aggregate, Apply, BinOp, Binary, Input, RValue, Unary},
+        rvalue::{Aggregate, Apply, ArgSlice, BinOp, Binary, Input, RValue, Unary},
         statement::{Assign, Statement, StatementKind},
     },
-    def::DefIdSlice,
+    def::{DefId, DefIdSlice},
     pass::analysis::{
         dataflow::{
             framework::{DataflowAnalysis, Direction},
@@ -76,7 +76,7 @@ struct SizeEstimationDataflowAnalysis<'ctx, 'env, 'heap, A: Allocator> {
     cache: RefCell<&'ctx mut StaticSizeEstimationCache<A>>,
 }
 
-impl<'ctx, 'env, 'heap, A: Allocator> SizeEstimationDataflowAnalysis<'ctx, 'env, 'heap, A> {
+impl<'heap, A: Allocator> SizeEstimationDataflowAnalysis<'_, '_, 'heap, A> {
     fn eval_operand<B: Allocator>(
         &self,
         domain: &BodyFootprint<B>,
@@ -141,7 +141,7 @@ impl<'ctx, 'env, 'heap, A: Allocator> SizeEstimationDataflowAnalysis<'ctx, 'env,
             }
             RValue::Apply(Apply {
                 function,
-                arguments, // TODO: needs a remapping anyway
+                arguments,
             }) => {
                 let &Operand::Constant(Constant::FnPtr(ptr)) = function else {
                     // We're unable to determine the size of the function call, because we don't
@@ -149,40 +149,63 @@ impl<'ctx, 'env, 'heap, A: Allocator> SizeEstimationDataflowAnalysis<'ctx, 'env,
                     return Eval::Footprint(Footprint::unknown());
                 };
 
-                let returns = &self.footprints[ptr].returns;
-                // We're given a return, that footprint may be dependent on the arguments, to do
-                // that we simply take the argument, and then multiply by the number given, once
-                // done we add everything up.
-                let mut total: Footprint = SaturatingSemiring.zero();
-
-                for (index, operand) in arguments.iter_enumerated() {
-                    let units_coefficient = returns.units.coefficients()[index.as_usize()];
-                    let cardinality_coefficient =
-                        returns.cardinality.coefficients()[index.as_usize()];
-
-                    if units_coefficient == 0 && cardinality_coefficient == 0 {
-                        continue;
-                    }
-
-                    let argument_footprint = self.eval_operand(domain, operand);
-                    let argument_footprint = argument_footprint.as_ref(domain);
-
-                    SaturatingSemiring.plus(
-                        &mut total,
-                        &argument_footprint
-                            .saturating_mul(units_coefficient, cardinality_coefficient),
-                    );
-                }
-
-                SaturatingSemiring.plus(total.units.constant_mut(), returns.units.constant());
-                SaturatingSemiring.plus(
-                    total.cardinality.constant_mut(),
-                    returns.cardinality.constant(),
-                );
-
-                Eval::Footprint(total)
+                Eval::Footprint(self.eval_apply(domain, ptr, arguments))
             }
         }
+    }
+
+    fn eval_returns<B: Allocator>(
+        &self,
+        domain: &BodyFootprint<B>,
+
+        arguments: &ArgSlice<Operand<'heap>>,
+        returns: &Footprint,
+    ) -> Footprint {
+        // We're given a return, that footprint may be dependent on the arguments, to do
+        // that we simply take the argument, and then multiply by the number given, once
+        // done we add everything up.
+        let mut total: Footprint = SaturatingSemiring.zero();
+
+        // We do this in two parts, first we go over the coefficients, and convert them to our
+        // "universe"
+        for (index, operand) in arguments.iter_enumerated() {
+            let units_coefficient = returns.units.coefficients()[index.as_usize()];
+            let cardinality_coefficient = returns.cardinality.coefficients()[index.as_usize()];
+
+            if units_coefficient == 0 && cardinality_coefficient == 0 {
+                continue;
+            }
+
+            let argument_footprint = self.eval_operand(domain, operand);
+            let argument_footprint = argument_footprint.as_ref(domain);
+
+            total.saturating_mul_add(
+                argument_footprint,
+                units_coefficient,
+                cardinality_coefficient,
+            );
+        }
+
+        // Once completed, we add the constant footprint to the total footprint.
+        SaturatingSemiring.plus(total.units.constant_mut(), returns.units.constant());
+        SaturatingSemiring.plus(
+            total.cardinality.constant_mut(),
+            returns.cardinality.constant(),
+        );
+
+        total
+    }
+
+    fn eval_apply<B: Allocator>(
+        &self,
+        domain: &BodyFootprint<B>,
+
+        function: DefId,
+        arguments: &ArgSlice<Operand<'heap>>,
+    ) -> Footprint {
+        let returns = &self.footprints[function].returns;
+
+        self.eval_returns(domain, arguments, returns)
     }
 
     fn footprint<B: Allocator>(&self, domain: &BodyFootprint<B>, place: &Place<'heap>) -> Eval {
@@ -272,7 +295,6 @@ impl<'heap, B: Allocator> DataflowAnalysis<'heap>
             return;
         }
 
-        // Time to transfer the statement
         let footprint = self.eval_rvalue(state, rhs);
         footprint.apply(lhs.local, state);
     }
