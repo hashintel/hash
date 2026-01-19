@@ -403,6 +403,18 @@ where
     {
         self.raw.extend_from_slice(other.as_raw());
     }
+
+    pub fn into_iter_enumerated(
+        self,
+    ) -> impl DoubleEndedIterator<Item = (I, T)> + ExactSizeIterator {
+        // Elide bound checks from subsequent calls to `I::from_usize`
+        let _: I = I::from_usize(self.len().saturating_sub(1));
+
+        self.raw
+            .into_iter()
+            .enumerate()
+            .map(|(index, value)| (I::from_usize(index), value))
+    }
 }
 
 // Map-like APIs for IdVec<I, Option<T>>

@@ -131,6 +131,7 @@ pub struct Footprint {
 }
 
 impl Footprint {
+    #[must_use]
     pub const fn scalar() -> Self {
         Self {
             units: Estimate::Constant(InformationRange::one()),
@@ -138,6 +139,7 @@ impl Footprint {
         }
     }
 
+    #[must_use]
     pub const fn unknown() -> Self {
         Self {
             units: Estimate::Constant(InformationRange::full()),
@@ -145,6 +147,7 @@ impl Footprint {
         }
     }
 
+    #[must_use]
     pub fn coefficient(index: usize, length: usize) -> Self {
         Self {
             units: Estimate::Affine(AffineEquation::coefficient(index, length)),
@@ -152,14 +155,7 @@ impl Footprint {
         }
     }
 
-    pub fn saturating_mul(&self, units_coefficient: u16, cardinality_coefficient: u16) -> Self {
-        Self {
-            units: self.units.saturating_mul(units_coefficient),
-            cardinality: self.cardinality.saturating_mul(cardinality_coefficient),
-        }
-    }
-
-    pub fn saturating_mul_add(
+    pub(crate) fn saturating_mul_add(
         &mut self,
         other: &Self,
         units_coefficient: u16,

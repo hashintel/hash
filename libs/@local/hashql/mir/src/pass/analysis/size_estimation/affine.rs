@@ -22,6 +22,7 @@ pub struct AffineEquation<T> {
 }
 
 impl<T> AffineEquation<T> {
+    #[must_use]
     pub fn coefficient(index: usize, length: usize) -> Self
     where
         SaturatingSemiring: AdditiveMonoid<T>,

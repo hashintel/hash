@@ -2,12 +2,9 @@ use core::mem;
 
 use hashql_core::collections::small_vec_from_elem;
 
-use super::{
-    affine::AffineEquation,
-    range::{SaturatingMul, SaturatingMulAssign},
-};
+use super::{affine::AffineEquation, range::SaturatingMulAssign};
 use crate::pass::analysis::dataflow::lattice::{
-    AdditiveMonoid, HasBottom, JoinSemiLattice, MultiplicativeMonoid, SaturatingSemiring,
+    AdditiveMonoid, HasBottom, JoinSemiLattice, SaturatingSemiring,
 };
 
 #[derive(Debug, PartialEq, Eq, Hash)]
@@ -61,28 +58,6 @@ impl<T> Estimate<T> {
         match self {
             Self::Constant(value) => value,
             Self::Affine(equation) => &mut equation.constant,
-        }
-    }
-
-    pub(crate) fn saturating_mul(&self, coefficient: u16) -> Self
-    where
-        for<'a> &'a T: SaturatingMul<u16, Output = T>,
-    {
-        match self {
-            Self::Constant(value) => Self::Constant(value.saturating_mul(coefficient)),
-            Self::Affine(equation) => {
-                let constant = equation.constant.saturating_mul(coefficient);
-                let mut coefficients = equation.coefficients.clone();
-
-                for coeff in &mut coefficients {
-                    *coeff = coeff.saturating_mul(coefficient);
-                }
-
-                Self::Affine(AffineEquation {
-                    coefficients,
-                    constant,
-                })
-            }
         }
     }
 
