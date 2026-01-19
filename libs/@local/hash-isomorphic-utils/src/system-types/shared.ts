@@ -444,6 +444,13 @@ export type DOIPropertyValue = DOIDataType;
 export type DOIPropertyValueWithMetadata = DOIDataTypeWithMetadata;
 
 /**
+ * The data sources configuration for an AI flow.
+ */
+export type DataSourcesPropertyValue = ObjectDataType;
+
+export type DataSourcesPropertyValueWithMetadata = ObjectDataTypeWithMetadata;
+
+/**
  * A reference to a particular day represented within a calendar system, formatted according to RFC 3339.
  */
 export type DateDataType = TextDataType;
@@ -612,6 +619,13 @@ export type ExpiredAtPropertyValue = DateTimeDataType;
 export type ExpiredAtPropertyValueWithMetadata = DateTimeDataTypeWithMetadata;
 
 /**
+ * An explanation or justification for something.
+ */
+export type ExplanationPropertyValue = TextDataType;
+
+export type ExplanationPropertyValueWithMetadata = TextDataTypeWithMetadata;
+
+/**
  * The name of a feature
  */
 export type FeatureNamePropertyValue = TextDataType;
@@ -753,12 +767,39 @@ export type FileURLPropertyValue = URIDataType;
 export type FileURLPropertyValueWithMetadata = URIDataTypeWithMetadata;
 
 /**
- * The ID of the flow definition (the `entityId` of the flow definition entity).
+ * The definition of a HASH flow.
  */
-export type FlowDefinitionIDPropertyValue = TextDataType;
+export type FlowDefinition = {
+  entityTypeIds: ["https://hash.ai/@h/types/entity-type/flow-definition/v/1"];
+  properties: FlowDefinitionProperties;
+  propertiesWithMetadata: FlowDefinitionPropertiesWithMetadata;
+};
 
-export type FlowDefinitionIDPropertyValueWithMetadata =
-  TextDataTypeWithMetadata;
+export type FlowDefinitionOutgoingLinkAndTarget = never;
+
+export type FlowDefinitionOutgoingLinksByLinkEntityTypeId = {};
+
+/**
+ * The definition of a HASH flow.
+ */
+export type FlowDefinitionProperties = {
+  "https://blockprotocol.org/@blockprotocol/types/property-type/description/": DescriptionPropertyValue;
+  "https://blockprotocol.org/@blockprotocol/types/property-type/name/": NamePropertyValue;
+  "https://hash.ai/@h/types/property-type/output-definitions/": OutputDefinitionsPropertyValue;
+  "https://hash.ai/@h/types/property-type/step-definitions/": StepDefinitionsPropertyValue;
+  "https://hash.ai/@h/types/property-type/trigger-definition/": TriggerDefinitionPropertyValue;
+};
+
+export type FlowDefinitionPropertiesWithMetadata = {
+  metadata?: ObjectMetadata;
+  value: {
+    "https://blockprotocol.org/@blockprotocol/types/property-type/description/": DescriptionPropertyValueWithMetadata;
+    "https://blockprotocol.org/@blockprotocol/types/property-type/name/": NamePropertyValueWithMetadata;
+    "https://hash.ai/@h/types/property-type/output-definitions/": OutputDefinitionsPropertyValueWithMetadata;
+    "https://hash.ai/@h/types/property-type/step-definitions/": StepDefinitionsPropertyValueWithMetadata;
+    "https://hash.ai/@h/types/property-type/trigger-definition/": TriggerDefinitionPropertyValueWithMetadata;
+  };
+};
 
 /**
  * An execution run of a flow.
@@ -769,16 +810,20 @@ export type FlowRun = {
   propertiesWithMetadata: FlowRunPropertiesWithMetadata;
 };
 
-export type FlowRunOutgoingLinkAndTarget = never;
+export type FlowRunOutgoingLinkAndTarget =
+  | FlowRunScheduledByLink
+  | FlowRunUsesLink;
 
-export type FlowRunOutgoingLinksByLinkEntityTypeId = {};
+export type FlowRunOutgoingLinksByLinkEntityTypeId = {
+  "https://hash.ai/@h/types/entity-type/scheduled-by/v/1": FlowRunScheduledByLink;
+  "https://hash.ai/@h/types/entity-type/uses/v/1": FlowRunUsesLink;
+};
 
 /**
  * An execution run of a flow.
  */
 export type FlowRunProperties = {
   "https://blockprotocol.org/@blockprotocol/types/property-type/name/": NamePropertyValue;
-  "https://hash.ai/@h/types/property-type/flow-definition-id/": FlowDefinitionIDPropertyValue;
   "https://hash.ai/@h/types/property-type/outputs/"?: OutputsPropertyValue;
   "https://hash.ai/@h/types/property-type/step/": StepPropertyValue;
   "https://hash.ai/@h/types/property-type/trigger/": TriggerPropertyValue;
@@ -788,12 +833,92 @@ export type FlowRunPropertiesWithMetadata = {
   metadata?: ObjectMetadata;
   value: {
     "https://blockprotocol.org/@blockprotocol/types/property-type/name/": NamePropertyValueWithMetadata;
-    "https://hash.ai/@h/types/property-type/flow-definition-id/": FlowDefinitionIDPropertyValueWithMetadata;
     "https://hash.ai/@h/types/property-type/outputs/"?: OutputsPropertyValueWithMetadata;
     "https://hash.ai/@h/types/property-type/step/": StepPropertyValueWithMetadata;
     "https://hash.ai/@h/types/property-type/trigger/": TriggerPropertyValueWithMetadata;
   };
 };
+
+export type FlowRunScheduledByLink = {
+  linkEntity: ScheduledBy;
+  rightEntity: FlowSchedule;
+};
+
+export type FlowRunUsesLink = { linkEntity: Uses; rightEntity: FlowDefinition };
+
+/**
+ * A schedule that triggers recurring executions of a flow definition.
+ */
+export type FlowSchedule = {
+  entityTypeIds: ["https://hash.ai/@h/types/entity-type/flow-schedule/v/1"];
+  properties: FlowScheduleProperties;
+  propertiesWithMetadata: FlowSchedulePropertiesWithMetadata;
+};
+
+export type FlowScheduleOutgoingLinkAndTarget = FlowScheduleUsesLink;
+
+export type FlowScheduleOutgoingLinksByLinkEntityTypeId = {
+  "https://hash.ai/@h/types/entity-type/uses/v/1": FlowScheduleUsesLink;
+};
+
+/**
+ * A schedule that triggers recurring executions of a flow definition.
+ */
+export type FlowScheduleProperties = {
+  "https://blockprotocol.org/@blockprotocol/types/property-type/name/": NamePropertyValue;
+  "https://hash.ai/@h/types/property-type/data-sources/"?: DataSourcesPropertyValue;
+  "https://hash.ai/@h/types/property-type/flow-type/": FlowTypePropertyValue;
+  "https://hash.ai/@h/types/property-type/pause-on-failure/"?: PauseOnFailurePropertyValue;
+  "https://hash.ai/@h/types/property-type/schedule-catchup-window/"?: ScheduleCatchupWindowPropertyValue;
+  "https://hash.ai/@h/types/property-type/schedule-overlap-policy/": ScheduleOverlapPolicyPropertyValue;
+  "https://hash.ai/@h/types/property-type/schedule-pause-state/"?: SchedulePauseStatePropertyValue;
+  "https://hash.ai/@h/types/property-type/schedule-spec/": ScheduleSpecPropertyValue;
+  "https://hash.ai/@h/types/property-type/schedule-status/": ScheduleStatusPropertyValue;
+  "https://hash.ai/@h/types/property-type/trigger/": TriggerPropertyValue;
+};
+
+export type FlowSchedulePropertiesWithMetadata = {
+  metadata?: ObjectMetadata;
+  value: {
+    "https://blockprotocol.org/@blockprotocol/types/property-type/name/": NamePropertyValueWithMetadata;
+    "https://hash.ai/@h/types/property-type/data-sources/"?: DataSourcesPropertyValueWithMetadata;
+    "https://hash.ai/@h/types/property-type/flow-type/": FlowTypePropertyValueWithMetadata;
+    "https://hash.ai/@h/types/property-type/pause-on-failure/"?: PauseOnFailurePropertyValueWithMetadata;
+    "https://hash.ai/@h/types/property-type/schedule-catchup-window/"?: ScheduleCatchupWindowPropertyValueWithMetadata;
+    "https://hash.ai/@h/types/property-type/schedule-overlap-policy/": ScheduleOverlapPolicyPropertyValueWithMetadata;
+    "https://hash.ai/@h/types/property-type/schedule-pause-state/"?: SchedulePauseStatePropertyValueWithMetadata;
+    "https://hash.ai/@h/types/property-type/schedule-spec/": ScheduleSpecPropertyValueWithMetadata;
+    "https://hash.ai/@h/types/property-type/schedule-status/": ScheduleStatusPropertyValueWithMetadata;
+    "https://hash.ai/@h/types/property-type/trigger/": TriggerPropertyValueWithMetadata;
+  };
+};
+
+export type FlowScheduleUsesLink = {
+  linkEntity: Uses;
+  rightEntity: FlowDefinition;
+};
+
+/**
+ * The type of a flow, determining which task queue it runs on.
+ */
+export type FlowTypeDataType = "ai" | "integration";
+
+export type FlowTypeDataTypeWithMetadata = {
+  value: FlowTypeDataType;
+  metadata: FlowTypeDataTypeMetadata;
+};
+export type FlowTypeDataTypeMetadata = {
+  provenance?: PropertyProvenance;
+  confidence?: Confidence;
+  dataTypeId: "https://hash.ai/@h/types/data-type/flow-type/v/1";
+};
+
+/**
+ * The type of a flow, determining which task queue it runs on.
+ */
+export type FlowTypePropertyValue = FlowTypeDataType;
+
+export type FlowTypePropertyValueWithMetadata = FlowTypeDataTypeWithMetadata;
 
 /**
  * The fractional index indicating the current position of something.
@@ -1603,6 +1728,16 @@ export type OriginalURLPropertyValue = URIDataType;
 export type OriginalURLPropertyValueWithMetadata = URIDataTypeWithMetadata;
 
 /**
+ * The output definitions of something.
+ */
+export type OutputDefinitionsPropertyValue = ObjectDataType[];
+
+export type OutputDefinitionsPropertyValueWithMetadata = {
+  value: ObjectDataTypeWithMetadata[];
+  metadata?: ArrayMetadata;
+};
+
+/**
  * The cost of an output unit
  */
 export type OutputUnitCostPropertyValue = NumberDataType;
@@ -1659,6 +1794,21 @@ export type PagePropertiesWithMetadata =
       "https://hash.ai/@h/types/property-type/title/": TitlePropertyValueWithMetadata;
     };
   };
+
+/**
+ * Whether to automatically pause something when it fails.
+ */
+export type PauseOnFailurePropertyValue = BooleanDataType;
+
+export type PauseOnFailurePropertyValueWithMetadata =
+  BooleanDataTypeWithMetadata;
+
+/**
+ * The timestamp at which something was paused.
+ */
+export type PausedAtPropertyValue = DateTimeDataType;
+
+export type PausedAtPropertyValueWithMetadata = DateTimeDataTypeWithMetadata;
 
 /**
  * A human being
@@ -1813,6 +1963,110 @@ export type ResolvedAtPropertyValue = DateTimeDataType;
 export type ResolvedAtPropertyValueWithMetadata = DateTimeDataTypeWithMetadata;
 
 /**
+ * How far back to catch up missed runs after downtime. Specified as a duration string (e.g., '1h', '30m').
+ */
+export type ScheduleCatchupWindowPropertyValue = TextDataType;
+
+export type ScheduleCatchupWindowPropertyValueWithMetadata =
+  TextDataTypeWithMetadata;
+
+/**
+ * The policy for handling overlapping runs in a schedule when a new execution is due but the previous one is still running.
+ */
+export type ScheduleOverlapPolicyDataType =
+  | "SKIP"
+  | "BUFFER_ONE"
+  | "ALLOW_ALL"
+  | "CANCEL_OTHER";
+
+export type ScheduleOverlapPolicyDataTypeWithMetadata = {
+  value: ScheduleOverlapPolicyDataType;
+  metadata: ScheduleOverlapPolicyDataTypeMetadata;
+};
+export type ScheduleOverlapPolicyDataTypeMetadata = {
+  provenance?: PropertyProvenance;
+  confidence?: Confidence;
+  dataTypeId: "https://hash.ai/@h/types/data-type/schedule-overlap-policy/v/1";
+};
+
+/**
+ * The policy for handling overlapping runs when a new scheduled execution is due but the previous one is still running.
+ */
+export type ScheduleOverlapPolicyPropertyValue = ScheduleOverlapPolicyDataType;
+
+export type ScheduleOverlapPolicyPropertyValueWithMetadata =
+  ScheduleOverlapPolicyDataTypeWithMetadata;
+
+/**
+ * The state of a paused schedule, including when it was paused and an optional note.
+ */
+export type SchedulePauseStatePropertyValue = {
+  "https://hash.ai/@h/types/property-type/explanation/"?: ExplanationPropertyValue;
+  "https://hash.ai/@h/types/property-type/paused-at/": PausedAtPropertyValue;
+};
+
+export type SchedulePauseStatePropertyValueWithMetadata = {
+  metadata?: ObjectMetadata;
+  value: {
+    "https://hash.ai/@h/types/property-type/explanation/"?: ExplanationPropertyValueWithMetadata;
+    "https://hash.ai/@h/types/property-type/paused-at/": PausedAtPropertyValueWithMetadata;
+  };
+};
+
+/**
+ * The scheduling specification for a recurring flow.
+ */
+export type ScheduleSpecPropertyValue = ObjectDataType;
+
+export type ScheduleSpecPropertyValueWithMetadata = ObjectDataTypeWithMetadata;
+
+/**
+ * The status of a schedule, indicating whether it is currently running or has been temporarily stopped.
+ */
+export type ScheduleStatusDataType = "active" | "paused";
+
+export type ScheduleStatusDataTypeWithMetadata = {
+  value: ScheduleStatusDataType;
+  metadata: ScheduleStatusDataTypeMetadata;
+};
+export type ScheduleStatusDataTypeMetadata = {
+  provenance?: PropertyProvenance;
+  confidence?: Confidence;
+  dataTypeId: "https://hash.ai/@h/types/data-type/schedule-status/v/1";
+};
+
+/**
+ * The current status of a schedule - either active or paused.
+ */
+export type ScheduleStatusPropertyValue = ScheduleStatusDataType;
+
+export type ScheduleStatusPropertyValueWithMetadata =
+  ScheduleStatusDataTypeWithMetadata;
+
+/**
+ * Something that was scheduled by something.
+ */
+export type ScheduledBy = {
+  entityTypeIds: ["https://hash.ai/@h/types/entity-type/scheduled-by/v/1"];
+  properties: ScheduledByProperties;
+  propertiesWithMetadata: ScheduledByPropertiesWithMetadata;
+};
+
+export type ScheduledByOutgoingLinkAndTarget = never;
+
+export type ScheduledByOutgoingLinksByLinkEntityTypeId = {};
+
+/**
+ * Something that was scheduled by something.
+ */
+export type ScheduledByProperties = LinkProperties & {};
+
+export type ScheduledByPropertiesWithMetadata = LinkPropertiesWithMetadata & {
+  metadata?: ObjectMetadata;
+  value: {};
+};
+
+/**
  * A service account.
  */
 export type ServiceAccount = {
@@ -1908,6 +2162,16 @@ export type ShortnamePropertyValue = TextDataType;
 export type ShortnamePropertyValueWithMetadata = TextDataTypeWithMetadata;
 
 /**
+ * The step definitions of a flow.
+ */
+export type StepDefinitionsPropertyValue = ObjectDataType[];
+
+export type StepDefinitionsPropertyValueWithMetadata = {
+  value: ObjectDataTypeWithMetadata[];
+  metadata?: ArrayMetadata;
+};
+
+/**
  * A step in a flow run.
  */
 export type StepPropertyValue = ObjectDataType[];
@@ -1999,6 +2263,22 @@ export type TriggerDefinitionIDPropertyValue = TextDataType;
 
 export type TriggerDefinitionIDPropertyValueWithMetadata =
   TextDataTypeWithMetadata;
+
+/**
+ * The trigger definition of a flow.
+ */
+export type TriggerDefinitionPropertyValue = {
+  "https://hash.ai/@h/types/property-type/output-definitions/"?: OutputDefinitionsPropertyValue;
+  "https://hash.ai/@h/types/property-type/trigger-definition-id/": TriggerDefinitionIDPropertyValue;
+};
+
+export type TriggerDefinitionPropertyValueWithMetadata = {
+  metadata?: ObjectMetadata;
+  value: {
+    "https://hash.ai/@h/types/property-type/output-definitions/"?: OutputDefinitionsPropertyValueWithMetadata;
+    "https://hash.ai/@h/types/property-type/trigger-definition-id/": TriggerDefinitionIDPropertyValueWithMetadata;
+  };
+};
 
 /**
  * The trigger of a flow.
@@ -2214,6 +2494,29 @@ export type UserSecretPropertiesWithMetadata = {
     "https://hash.ai/@h/types/property-type/expired-at/": ExpiredAtPropertyValueWithMetadata;
     "https://hash.ai/@h/types/property-type/vault-path/": VaultPathPropertyValueWithMetadata;
   };
+};
+
+/**
+ * Something that uses something else.
+ */
+export type Uses = {
+  entityTypeIds: ["https://hash.ai/@h/types/entity-type/uses/v/1"];
+  properties: UsesProperties;
+  propertiesWithMetadata: UsesPropertiesWithMetadata;
+};
+
+export type UsesOutgoingLinkAndTarget = never;
+
+export type UsesOutgoingLinksByLinkEntityTypeId = {};
+
+/**
+ * Something that uses something else.
+ */
+export type UsesProperties = LinkProperties & {};
+
+export type UsesPropertiesWithMetadata = LinkPropertiesWithMetadata & {
+  metadata?: ObjectMetadata;
+  value: {};
 };
 
 /**

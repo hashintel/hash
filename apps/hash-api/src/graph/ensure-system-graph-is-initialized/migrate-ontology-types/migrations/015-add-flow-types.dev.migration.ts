@@ -3,6 +3,7 @@ import { NotFoundError } from "@local/hash-backend-utils/error";
 import { getEntityTypeById } from "@local/hash-graph-sdk/entity-type";
 import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 import {
+  blockProtocolDataTypes,
   blockProtocolEntityTypes,
   blockProtocolPropertyTypes,
   systemEntityTypes,
@@ -10,8 +11,10 @@ import {
 
 import type { MigrationFunction } from "../types";
 import {
+  createSystemDataTypeIfNotExists,
   createSystemEntityTypeIfNotExists,
   createSystemPropertyTypeIfNotExists,
+  getCurrentHashDataTypeId,
   getCurrentHashSystemEntityTypeId,
   updateSystemEntityType,
   upgradeEntitiesToNewTypeVersion,
@@ -23,7 +26,58 @@ const migrate: MigrationFunction = async ({
   migrationState,
 }) => {
   /**
-   * Step 1: create the `Flow Definition` entity type.
+   * Step 1: Create generic link types that will be used by Flow types.
+   */
+
+  /**
+   * "Uses" link type - generic link for when something uses another thing.
+   * Used by FlowRun and FlowSchedule to link to FlowDefinition.
+   */
+  const usesLinkEntityType = await createSystemEntityTypeIfNotExists(
+    context,
+    authentication,
+    {
+      entityTypeDefinition: {
+        allOf: [blockProtocolEntityTypes.link.entityTypeId],
+        title: "Uses",
+        titlePlural: "Uses",
+        icon: "🔗",
+        inverse: {
+          title: "Used By",
+        },
+        description: "Something that uses something else.",
+        properties: [],
+      },
+      webShortname: "h",
+      migrationState,
+    },
+  );
+
+  /**
+   * "Scheduled By" link type - links a FlowRun to the FlowSchedule that triggered it.
+   */
+  const scheduledByLinkEntityType = await createSystemEntityTypeIfNotExists(
+    context,
+    authentication,
+    {
+      entityTypeDefinition: {
+        allOf: [blockProtocolEntityTypes.link.entityTypeId],
+        title: "Scheduled By",
+        titlePlural: "Scheduled By",
+        icon: "📅",
+        inverse: {
+          title: "Scheduled",
+        },
+        description: "Something that was scheduled by something.",
+        properties: [],
+      },
+      webShortname: "h",
+      migrationState,
+    },
+  );
+
+  /**
+   * Step 2: create the `Flow Definition` entity type.
    */
 
   const triggerDefinitionIdPropertyType =
@@ -97,15 +151,14 @@ const migrate: MigrationFunction = async ({
     },
   );
 
-  const _flowDefinitionEntityType = await createSystemEntityTypeIfNotExists(
+  const flowDefinitionEntityType = await createSystemEntityTypeIfNotExists(
     context,
     authentication,
     {
       entityTypeDefinition: {
         title: "Flow Definition",
         titlePlural: "Flow Definitions",
-        /** @todo icon */
-
+        icon: "📋",
         description: "The definition of a HASH flow.",
         labelProperty: blockProtocolPropertyTypes.name.propertyTypeBaseUrl,
         properties: [
@@ -132,6 +185,230 @@ const migrate: MigrationFunction = async ({
         ],
       },
 
+      webShortname: "h",
+      migrationState,
+    },
+  );
+
+  /**
+   * Step 3: Create data types and property types for Flow Schedule.
+   */
+
+  /**
+   * Flow Type data type - whether a flow is an AI flow or an integration flow.
+   */
+  const flowTypeDataType = await createSystemDataTypeIfNotExists(
+    context,
+    authentication,
+    {
+      dataTypeDefinition: {
+        allOf: [{ $ref: blockProtocolDataTypes.text.dataTypeId }],
+        title: "Flow Type",
+        description:
+          "The type of a flow, determining which task queue it runs on.",
+        enum: ["ai", "integration"],
+        type: "string",
+      },
+      conversions: {},
+      webShortname: "h",
+      migrationState,
+    },
+  );
+
+  const scheduleStatusDataType = await createSystemDataTypeIfNotExists(
+    context,
+    authentication,
+    {
+      dataTypeDefinition: {
+        allOf: [{ $ref: blockProtocolDataTypes.text.dataTypeId }],
+        title: "Schedule Status",
+        description:
+          "The status of a schedule, indicating whether it is currently running or has been temporarily stopped.",
+        enum: ["active", "paused"],
+        type: "string",
+      },
+      conversions: {},
+      webShortname: "h",
+      migrationState,
+    },
+  );
+
+  const scheduleOverlapPolicyDataType = await createSystemDataTypeIfNotExists(
+    context,
+    authentication,
+    {
+      dataTypeDefinition: {
+        allOf: [{ $ref: blockProtocolDataTypes.text.dataTypeId }],
+        title: "Schedule Overlap Policy",
+        description:
+          "The policy for handling overlapping runs in a schedule when a new execution is due but the previous one is still running.",
+        enum: ["SKIP", "BUFFER_ONE", "ALLOW_ALL", "CANCEL_OTHER"],
+        type: "string",
+      },
+      conversions: {},
+      webShortname: "h",
+      migrationState,
+    },
+  );
+
+  const flowTypePropertyType = await createSystemPropertyTypeIfNotExists(
+    context,
+    authentication,
+    {
+      propertyTypeDefinition: {
+        title: "Flow Type",
+        description:
+          "The type of a flow, determining which task queue it runs on.",
+        possibleValues: [{ dataTypeId: flowTypeDataType.schema.$id }],
+      },
+      webShortname: "h",
+      migrationState,
+    },
+  );
+
+  const scheduleSpecPropertyType = await createSystemPropertyTypeIfNotExists(
+    context,
+    authentication,
+    {
+      propertyTypeDefinition: {
+        title: "Schedule Spec",
+        description: "The scheduling specification for a recurring flow.",
+        possibleValues: [{ primitiveDataType: "object" }],
+      },
+      webShortname: "h",
+      migrationState,
+    },
+  );
+
+  const scheduleOverlapPolicyPropertyType =
+    await createSystemPropertyTypeIfNotExists(context, authentication, {
+      propertyTypeDefinition: {
+        title: "Schedule Overlap Policy",
+        description:
+          "The policy for handling overlapping runs when a new scheduled execution is due but the previous one is still running.",
+        possibleValues: [
+          { dataTypeId: scheduleOverlapPolicyDataType.schema.$id },
+        ],
+      },
+      webShortname: "h",
+      migrationState,
+    });
+
+  const scheduleCatchupWindowPropertyType =
+    await createSystemPropertyTypeIfNotExists(context, authentication, {
+      propertyTypeDefinition: {
+        title: "Schedule Catchup Window",
+        description:
+          "How far back to catch up missed runs after downtime. Specified as a duration string (e.g., '1h', '30m').",
+        possibleValues: [{ primitiveDataType: "text" }],
+      },
+      webShortname: "h",
+      migrationState,
+    });
+
+  const pauseOnFailurePropertyType = await createSystemPropertyTypeIfNotExists(
+    context,
+    authentication,
+    {
+      propertyTypeDefinition: {
+        title: "Pause On Failure",
+        description: "Whether to automatically pause something when it fails.",
+        possibleValues: [{ primitiveDataType: "boolean" }],
+      },
+      webShortname: "h",
+      migrationState,
+    },
+  );
+
+  /**
+   * Schedule Status property type.
+   */
+  const scheduleStatusPropertyType = await createSystemPropertyTypeIfNotExists(
+    context,
+    authentication,
+    {
+      propertyTypeDefinition: {
+        title: "Schedule Status",
+        description:
+          "The current status of a schedule - either active or paused.",
+        possibleValues: [{ dataTypeId: scheduleStatusDataType.schema.$id }],
+      },
+      webShortname: "h",
+      migrationState,
+    },
+  );
+
+  const dateTimeDataTypeId = getCurrentHashDataTypeId({
+    dataTypeKey: "datetime",
+    migrationState,
+  });
+
+  const schedulePausedAtPropertyType =
+    await createSystemPropertyTypeIfNotExists(context, authentication, {
+      propertyTypeDefinition: {
+        title: "Paused At",
+        description: "The timestamp at which something was paused.",
+        possibleValues: [{ dataTypeId: dateTimeDataTypeId }],
+      },
+      webShortname: "h",
+      migrationState,
+    });
+
+  const explanationPropertyType = await createSystemPropertyTypeIfNotExists(
+    context,
+    authentication,
+    {
+      propertyTypeDefinition: {
+        title: "Explanation",
+        description: "An explanation or justification for something.",
+        possibleValues: [{ primitiveDataType: "text" }],
+      },
+      webShortname: "h",
+      migrationState,
+    },
+  );
+
+  /**
+   * Schedule Pause State property type - an object containing pausedAt and optional note.
+   */
+  const schedulePauseStatePropertyType =
+    await createSystemPropertyTypeIfNotExists(context, authentication, {
+      propertyTypeDefinition: {
+        title: "Schedule Pause State",
+        description:
+          "The state of a paused schedule, including when it was paused and an optional note.",
+        possibleValues: [
+          {
+            propertyTypeObjectProperties: {
+              [schedulePausedAtPropertyType.metadata.recordId.baseUrl]: {
+                $ref: schedulePausedAtPropertyType.schema.$id,
+              },
+              [explanationPropertyType.metadata.recordId.baseUrl]: {
+                $ref: explanationPropertyType.schema.$id,
+              },
+            },
+            propertyTypeObjectRequiredProperties: [
+              schedulePausedAtPropertyType.metadata.recordId.baseUrl,
+            ],
+          },
+        ],
+      },
+      webShortname: "h",
+      migrationState,
+    });
+
+  /**
+   * Data Sources property type - stores data sources configuration for AI flows.
+   */
+  const dataSourcesPropertyType = await createSystemPropertyTypeIfNotExists(
+    context,
+    authentication,
+    {
+      propertyTypeDefinition: {
+        title: "Data Sources",
+        description: "The data sources configuration for an AI flow.",
+        possibleValues: [{ primitiveDataType: "object" }],
+      },
       webShortname: "h",
       migrationState,
     },
@@ -189,17 +466,10 @@ const migrate: MigrationFunction = async ({
     },
   );
 
-  const flowDefinitionIdPropertyType =
-    await createSystemPropertyTypeIfNotExists(context, authentication, {
-      propertyTypeDefinition: {
-        title: "Flow Definition ID",
-        description:
-          "The ID of the flow definition (the `entityId` of the flow definition entity).",
-        possibleValues: [{ primitiveDataType: "text" }],
-      },
-      webShortname: "h",
-      migrationState,
-    });
+  /**
+   * Note: flowDefinitionIdPropertyType is intentionally removed - FlowRun now links
+   * to FlowDefinition via the "Uses" link type instead.
+   */
 
   const stepsPropertyType = await createSystemPropertyTypeIfNotExists(
     context,
@@ -221,6 +491,77 @@ const migrate: MigrationFunction = async ({
     },
   );
 
+  /**
+   * Step 2b: Create the Flow Schedule entity type.
+   * This must be created before FlowRun so we can reference it in FlowRun's links.
+   */
+  const flowScheduleEntityType = await createSystemEntityTypeIfNotExists(
+    context,
+    authentication,
+    {
+      entityTypeDefinition: {
+        title: "Flow Schedule",
+        titlePlural: "Flow Schedules",
+        icon: "🗓️",
+        description:
+          "A schedule that triggers recurring executions of a flow definition.",
+        labelProperty: blockProtocolPropertyTypes.name.propertyTypeBaseUrl,
+        properties: [
+          {
+            propertyType: blockProtocolPropertyTypes.name.propertyTypeId,
+            required: true,
+          },
+          {
+            propertyType: flowTypePropertyType,
+            required: true,
+          },
+          {
+            propertyType: scheduleSpecPropertyType,
+            required: true,
+          },
+          {
+            propertyType: scheduleOverlapPolicyPropertyType,
+            required: true,
+          },
+          {
+            propertyType: scheduleCatchupWindowPropertyType,
+          },
+          {
+            propertyType: pauseOnFailurePropertyType,
+          },
+          {
+            propertyType: scheduleStatusPropertyType,
+            required: true,
+          },
+          {
+            propertyType: schedulePauseStatePropertyType,
+          },
+          {
+            propertyType: dataSourcesPropertyType,
+          },
+          {
+            propertyType: triggerPropertyType,
+            required: true,
+          },
+        ],
+        outgoingLinks: [
+          {
+            linkEntityType: usesLinkEntityType,
+            destinationEntityTypes: [flowDefinitionEntityType],
+            minItems: 1,
+            maxItems: 1,
+          },
+        ],
+      },
+      webShortname: "h",
+      migrationState,
+    },
+  );
+
+  /**
+   * FlowRun entity type - links to FlowDefinition via "Uses" and optionally
+   * to FlowSchedule via "Scheduled By".
+   */
   const flowEntityType = await createSystemEntityTypeIfNotExists(
     context,
     authentication,
@@ -228,7 +569,7 @@ const migrate: MigrationFunction = async ({
       entityTypeDefinition: {
         title: "Flow Run",
         titlePlural: "Flow Runs",
-        /** @todo icon */
+        icon: "▶️",
         description: "An execution run of a flow.",
         labelProperty: blockProtocolPropertyTypes.name.propertyTypeBaseUrl,
         properties: [
@@ -241,15 +582,24 @@ const migrate: MigrationFunction = async ({
             required: true,
           },
           {
-            propertyType: flowDefinitionIdPropertyType,
-            required: true,
-          },
-          {
             propertyType: stepsPropertyType,
             required: true,
           },
           {
             propertyType: outputsPropertyType,
+          },
+        ],
+        outgoingLinks: [
+          {
+            linkEntityType: usesLinkEntityType,
+            destinationEntityTypes: [flowDefinitionEntityType],
+            minItems: 1,
+            maxItems: 1,
+          },
+          {
+            linkEntityType: scheduledByLinkEntityType,
+            destinationEntityTypes: [flowScheduleEntityType],
+            maxItems: 1,
           },
         ],
       },
@@ -337,7 +687,7 @@ const migrate: MigrationFunction = async ({
       entityTypeDefinition: {
         title: "Claim",
         titlePlural: "Claims",
-        /** @todo icon */
+        icon: "💬",
         description: "A claim made about something.",
         properties: [
           {
@@ -378,7 +728,7 @@ const migrate: MigrationFunction = async ({
       entityTypeDefinition: {
         allOf: [blockProtocolEntityTypes.link.entityTypeId],
         title: "Incurred In",
-        /** @todo icon */
+        icon: "💰",
         inverse: {
           title: "Incurred",
         },

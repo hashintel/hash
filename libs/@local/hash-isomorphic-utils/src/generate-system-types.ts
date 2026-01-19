@@ -69,10 +69,6 @@ const generateTypes = async (
 
 /**
  * Generate TypeScript types for the system types. The API and frontend must be running, i.e. `yarn dev`
- *
- * @todo H-2307 – if you run this as shown (with multiple namespaces), there will be an error
- *   – you have to comment the others out and run them one at a time, in which case they all work fine.
- *   need to hunt down where the interaction or shared state is between them.
  */
 const generateSystemTypeTypes = async () => {
   await generateTypes(systemEntityTypes, "system");
