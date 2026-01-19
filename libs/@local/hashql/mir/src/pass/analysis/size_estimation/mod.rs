@@ -81,11 +81,7 @@ impl<'heap, A: Allocator> SizeEstimationAnalysis<'heap, A> {
         let mut static_size_estimation = StaticSizeEstimation::new(context.env, &mut self.cache);
         let mut requires_dynamic_analysis = DenseBitSet::new_empty(body.local_decls.len());
         let mut returns_requires_dynamic_analysis = false;
-        let semiring = SaturatingSemiring;
 
-        // The locals outlive this computation and therefore cannot be reset, because we use them
-        // later, we promote them to the heap.
-        let mut returns = semiring.bottom();
         let locals = &mut footprints[body.id].locals;
 
         for (local, &LocalDecl { r#type, .. }) in body.local_decls.iter_enumerated() {
@@ -101,14 +97,18 @@ impl<'heap, A: Allocator> SizeEstimationAnalysis<'heap, A> {
             }
         }
 
-        if let Some(range) = static_size_estimation.run(body.return_type) {
-            returns = Footprint {
+        let mut returns = static_size_estimation.run(body.return_type).map_or_else(
+            || {
+                returns_requires_dynamic_analysis = true;
+                SaturatingSemiring.bottom()
+            },
+            |range| Footprint {
                 units: Estimate::Constant(range),
                 cardinality: Estimate::Constant(Cardinality::one()),
-            };
-        } else {
-            returns_requires_dynamic_analysis = true;
-        }
+            },
+        );
+
+        // TODO: split this so we can re-use it!
 
         if !requires_dynamic_analysis.is_empty() || returns_requires_dynamic_analysis {
             let dynamic = SizeEstimationDataflowAnalysis::new(
@@ -161,7 +161,7 @@ impl<'heap, A: Allocator> SizeEstimationAnalysis<'heap, A> {
             // Move the final footprint into the heap
             CloneIn::clone_into(&footprint, &mut footprints[body.id], context.heap);
         } else {
-            // Args and locals have been pre-populated, only returns remains
+            // args and locals have been pre-populated, only returns remains
             footprints[body.id].returns = returns;
         }
     }
