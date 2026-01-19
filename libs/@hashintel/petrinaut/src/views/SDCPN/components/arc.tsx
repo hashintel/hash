@@ -12,19 +12,30 @@ const ANIMATION_DURATION_MS = 300;
 /**
  * Hook to animate stroke width when firing delta changes.
  * Animates from (BASE_STROKE_WIDTH + delta * weight) back to BASE_STROKE_WIDTH linearly.
+ *
+ * Only starts a new animation when firingDelta > 0, allowing previous animations
+ * to complete naturally when firingDelta is 0 or null.
  */
 function useFiringAnimation(
   pathRef: React.RefObject<SVGPathElement | null>,
   firingDelta: number | null,
   weight: number,
 ): void {
+  const animationRef = useRef<Animation | null>(null);
+
   useEffect(() => {
-    if (firingDelta === null || pathRef.current === null) {
+    // Only start a new animation when there's an actual firing (delta > 0)
+    if (firingDelta === null || firingDelta <= 0 || pathRef.current === null) {
       return;
     }
 
+    // Cancel any existing animation before starting a new one
+    if (animationRef.current) {
+      animationRef.current.cancel();
+    }
+
     const path = pathRef.current;
-    const peakStrokeWidth = BASE_STROKE_WIDTH + Math.abs(firingDelta) * weight;
+    const peakStrokeWidth = BASE_STROKE_WIDTH + firingDelta * weight;
 
     const animation = path.animate(
       [
@@ -38,10 +49,25 @@ function useFiringAnimation(
       },
     );
 
-    return () => {
-      animation.cancel();
+    animationRef.current = animation;
+
+    // Clean up animation reference when it finishes
+    animation.onfinish = () => {
+      if (animationRef.current === animation) {
+        animationRef.current = null;
+      }
     };
   }, [firingDelta, pathRef, weight]);
+
+  // Cancel animation on unmount
+  useEffect(() => {
+    return () => {
+      if (animationRef.current) {
+        animationRef.current.cancel();
+        animationRef.current = null;
+      }
+    };
+  }, []);
 }
 
 const selectionIndicatorStyle: CSSProperties = {
