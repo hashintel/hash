@@ -11,11 +11,12 @@ const ANIMATION_DURATION_MS = 300;
 
 /**
  * Hook to animate stroke width when firing delta changes.
- * Animates from (BASE_STROKE_WIDTH + delta) back to BASE_STROKE_WIDTH linearly.
+ * Animates from (BASE_STROKE_WIDTH + delta * weight) back to BASE_STROKE_WIDTH linearly.
  */
 function useFiringAnimation(
   pathRef: React.RefObject<SVGPathElement | null>,
   firingDelta: number | null,
+  weight: number,
 ): void {
   useEffect(() => {
     if (firingDelta === null || pathRef.current === null) {
@@ -23,7 +24,7 @@ function useFiringAnimation(
     }
 
     const path = pathRef.current;
-    const peakStrokeWidth = BASE_STROKE_WIDTH + Math.abs(firingDelta);
+    const peakStrokeWidth = BASE_STROKE_WIDTH + Math.abs(firingDelta) * weight;
 
     const animation = path.animate(
       [
@@ -40,7 +41,7 @@ function useFiringAnimation(
     return () => {
       animation.cancel();
     };
-  }, [firingDelta, pathRef]);
+  }, [firingDelta, pathRef, weight]);
 }
 
 const selectionIndicatorStyle: CSSProperties = {
@@ -86,8 +87,8 @@ export const Arc: React.FC<EdgeProps<ArcData>> = ({
   // Ref for the main arc path to animate stroke width
   const arcPathRef = useRef<SVGPathElement | null>(null);
 
-  // Animate stroke width when firing delta changes
-  useFiringAnimation(arcPathRef, firingDelta);
+  // Animate stroke width when firing delta changes (scaled by arc weight)
+  useFiringAnimation(arcPathRef, firingDelta, data?.weight ?? 1);
 
   const [arcPath, labelX, labelY] = getBezierPath({
     sourceX,
