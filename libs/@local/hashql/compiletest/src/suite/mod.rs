@@ -27,7 +27,7 @@ mod mir_pass_transform_dse;
 mod mir_pass_transform_forward_substitution;
 mod mir_pass_transform_inline;
 mod mir_pass_transform_inst_simplify;
-mod mir_pass_transform_pre_inlining;
+mod mir_pass_transform_pre_inline;
 mod mir_reify;
 mod parse_syntax_dump;
 
@@ -64,7 +64,7 @@ use self::{
     mir_pass_transform_forward_substitution::MirPassTransformForwardSubstitution,
     mir_pass_transform_inline::MirPassTransformInline,
     mir_pass_transform_inst_simplify::MirPassTransformInstSimplify,
-    mir_pass_transform_pre_inlining::MirPassTransformPreInlining, mir_reify::MirReifySuite,
+    mir_pass_transform_pre_inline::MirPassTransformPreInline, mir_reify::MirReifySuite,
     parse_syntax_dump::ParseSyntaxDumpSuite,
 };
 use crate::executor::TrialError;
@@ -166,7 +166,7 @@ const SUITES: &[&dyn Suite] = &[
     &MirPassTransformForwardSubstitution,
     &MirPassTransformInline,
     &MirPassTransformInstSimplify,
-    &MirPassTransformPreInlining,
+    &MirPassTransformPreInline,
     &MirReifySuite,
     &ParseSyntaxDumpSuite,
 ];
