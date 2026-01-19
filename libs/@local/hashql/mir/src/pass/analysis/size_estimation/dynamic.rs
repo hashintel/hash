@@ -67,13 +67,64 @@ impl Eval {
     }
 }
 
-pub(crate) struct SizeEstimationDataflowAnalysis<'ctx, 'env, 'heap, A: Allocator, C: Allocator> {
+struct SizeEstimationLookup<'ctx, 'env, 'heap, C: Allocator> {
     env: &'env Environment<'heap>,
     decl: &'env LocalSlice<LocalDecl<'heap>>,
 
-    footprints: &'ctx DefIdSlice<BodyFootprint<A>>,
-    dynamic: DenseBitSet<Local>,
+    dynamic: &'ctx DenseBitSet<Local>,
     cache: RefCell<&'ctx mut StaticSizeEstimationCache<C>>,
+}
+
+impl<'ctx, 'env, 'heap, C: Allocator> SizeEstimationLookup<'ctx, 'env, 'heap, C> {
+    pub(crate) fn operand<A: Allocator>(
+        &self,
+        domain: &BodyFootprint<A>,
+        operand: &Operand<'heap>,
+    ) -> Eval {
+        match operand {
+            Operand::Constant(_) => Eval::Footprint(Footprint::scalar()),
+            Operand::Place(place) => self.place(domain, place),
+        }
+    }
+
+    fn place<A: Allocator>(&self, domain: &BodyFootprint<A>, place: &Place<'heap>) -> Eval {
+        if place.projections.is_empty() {
+            // if the place is dynamic, and one of the params of the body, then we instead use a
+            // parametrized footprint
+            if self.dynamic.contains(place.local) && place.local.as_usize() < domain.args {
+                return Eval::Footprint(Footprint::coefficient(
+                    place.local.as_usize(),
+                    domain.args,
+                ));
+            }
+
+            return Eval::Copy(place.local);
+        }
+
+        let type_id = place.type_id(self.decl);
+        let static_size = {
+            let mut cache = self.cache.borrow_mut();
+            let mut analyzer = StaticSizeEstimation::new(self.env, *cache);
+            analyzer.run(type_id)
+        };
+
+        static_size.map_or_else(
+            // Over-estimate by using the size of the actual domain
+            || Eval::Copy(place.local),
+            |size| {
+                Eval::Footprint(Footprint {
+                    units: Estimate::Constant(size),
+                    cardinality: Estimate::Constant(Cardinality::one()),
+                })
+            },
+        )
+    }
+}
+
+pub(crate) struct SizeEstimationDataflowAnalysis<'ctx, 'env, 'heap, A: Allocator, C: Allocator> {
+    lookup: SizeEstimationLookup<'ctx, 'env, 'heap, C>,
+
+    footprints: &'ctx DefIdSlice<BodyFootprint<A>>,
 }
 
 impl<'ctx, 'env, 'heap, A: Allocator, C: Allocator>
@@ -83,33 +134,29 @@ impl<'ctx, 'env, 'heap, A: Allocator, C: Allocator>
         env: &'env Environment<'heap>,
         decl: &'env LocalSlice<LocalDecl<'heap>>,
         footprints: &'ctx DefIdSlice<BodyFootprint<A>>,
-        dynamic: DenseBitSet<Local>,
+        dynamic: &'ctx DenseBitSet<Local>,
         cache: &'ctx mut StaticSizeEstimationCache<C>,
     ) -> Self {
         Self {
-            env,
-            decl,
+            lookup: SizeEstimationLookup {
+                env,
+                decl,
+                dynamic,
+                cache: RefCell::new(cache),
+            },
+
             footprints,
-            dynamic,
-            cache: RefCell::new(cache),
         }
     }
 
-    pub(crate) fn eval_operand<B: Allocator>(
-        &self,
-        domain: &BodyFootprint<B>,
-        operand: &Operand<'heap>,
-    ) -> Eval {
-        match operand {
-            Operand::Constant(_) => Eval::Footprint(Footprint::scalar()),
-            Operand::Place(place) => self.footprint(domain, place),
-        }
+    pub(crate) fn into_lookup(self) -> SizeEstimationLookup<'ctx, 'env, 'heap, C> {
+        self.lookup
     }
 
     fn eval_rvalue<B: Allocator>(&self, domain: &BodyFootprint<B>, rvalue: &RValue<'heap>) -> Eval {
         #[expect(clippy::match_same_arms, reason = "intent")]
         match rvalue {
-            RValue::Load(operand) => self.eval_operand(domain, operand),
+            RValue::Load(operand) => self.lookup.operand(domain, operand),
             RValue::Binary(Binary {
                 op:
                     BinOp::Add
@@ -135,7 +182,7 @@ impl<'ctx, 'env, 'heap, A: Allocator, C: Allocator>
                 let mut total: Footprint = SaturatingSemiring.zero();
 
                 for operand in operands {
-                    let eval = self.eval_operand(domain, operand);
+                    let eval = self.lookup.operand(domain, operand);
 
                     SaturatingSemiring.plus(&mut total, eval.as_ref(domain));
                 }
@@ -194,7 +241,7 @@ impl<'ctx, 'env, 'heap, A: Allocator, C: Allocator>
                 continue;
             }
 
-            let argument_footprint = self.eval_operand(domain, operand);
+            let argument_footprint = self.lookup.operand(domain, operand);
             let argument_footprint = argument_footprint.as_ref(domain);
 
             total.saturating_mul_add(
@@ -226,42 +273,9 @@ impl<'ctx, 'env, 'heap, A: Allocator, C: Allocator>
         self.eval_returns(domain, arguments, returns)
     }
 
-    fn footprint<B: Allocator>(&self, domain: &BodyFootprint<B>, place: &Place<'heap>) -> Eval {
-        if place.projections.is_empty() {
-            // if the place is dynamic, and one of the params of the body, then we instead use a
-            // parametrized footprint
-            if self.dynamic.contains(place.local) && place.local.as_usize() < domain.args {
-                return Eval::Footprint(Footprint::coefficient(
-                    place.local.as_usize(),
-                    domain.args,
-                ));
-            }
-
-            return Eval::Copy(place.local);
-        }
-
-        let type_id = place.type_id(self.decl);
-        let static_size = {
-            let mut cache = self.cache.borrow_mut();
-            let mut analyzer = StaticSizeEstimation::new(self.env, *cache);
-            analyzer.run(type_id)
-        };
-
-        static_size.map_or_else(
-            // Over-estimate by using the size of the actual domain
-            || Eval::Copy(place.local),
-            |size| {
-                Eval::Footprint(Footprint {
-                    units: Estimate::Constant(size),
-                    cardinality: Estimate::Constant(Cardinality::one()),
-                })
-            },
-        )
-    }
-
     fn requires_transfer(&self, place: &Place<'heap>) -> bool {
         if place.projections.is_empty() {
-            self.dynamic.contains(place.local)
+            self.lookup.dynamic.contains(place.local)
         } else {
             // We cannot recompute the size of a projection
             false
@@ -269,7 +283,7 @@ impl<'ctx, 'env, 'heap, A: Allocator, C: Allocator>
     }
 
     fn requires_transfer_local(&self, local: Local) -> bool {
-        self.dynamic.contains(local)
+        self.lookup.dynamic.contains(local)
     }
 }
 
@@ -329,7 +343,7 @@ impl<'heap, B: Allocator, C: Allocator> DataflowAnalysis<'heap>
     ) {
         for (&param, arg) in target_params.iter().zip(source_args) {
             if self.requires_transfer_local(param) {
-                let footprint = self.eval_operand(state, arg);
+                let footprint = self.lookup.operand(state, arg);
                 footprint.apply(param, state);
             }
         }

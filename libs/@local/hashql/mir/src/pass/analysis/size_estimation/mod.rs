@@ -39,7 +39,7 @@ use super::{
 use crate::{
     body::{
         Body,
-        local::LocalDecl,
+        local::{Local, LocalDecl},
         terminator::{Return, TerminatorKind},
     },
     context::MirContext,
@@ -49,6 +49,45 @@ use crate::{
         analysis::dataflow::lattice::{HasBottom as _, SaturatingSemiring},
     },
 };
+
+struct DynamicComponents {
+    inner: DenseBitSet<Local>,
+}
+
+impl DynamicComponents {
+    fn new(body: &Body<'_>) -> Self {
+        let inner = DenseBitSet::new_empty(body.local_decls.len() + 1);
+        Self { inner }
+    }
+
+    const fn returns_slot(&self) -> Local {
+        Local::new(self.inner.domain_size() - 1)
+    }
+
+    fn mark(&mut self, local: Local) {
+        self.inner.insert(local);
+    }
+
+    fn mark_return(&mut self) {
+        self.inner.insert(self.returns_slot());
+    }
+
+    fn is_dynamic(&self, local: Local) -> bool {
+        self.inner.contains(local)
+    }
+
+    fn dynamic_return(&self) -> bool {
+        self.inner.contains(self.returns_slot())
+    }
+
+    fn requires_dynamic_analysis(&self) -> bool {
+        !self.inner.is_empty()
+    }
+
+    const fn as_set(&self) -> &DenseBitSet<Local> {
+        &self.inner
+    }
+}
 
 pub struct SizeEstimationAnalysis<'heap, A: Allocator> {
     alloc: A,
@@ -70,6 +109,40 @@ impl<'heap, A: Allocator> SizeEstimationAnalysis<'heap, A> {
         }
     }
 
+    fn static_analysis<H: Allocator>(
+        &mut self,
+        context: &MirContext<'_, 'heap>,
+        body: &Body<'heap>,
+        footprints: &mut DefIdSlice<BodyFootprint<H>>,
+    ) -> DynamicComponents {
+        let mut dynamic = DynamicComponents::new(body);
+        let mut analysis = StaticSizeEstimation::new(context.env, &mut self.cache);
+
+        let locals = &mut footprints[body.id].locals;
+
+        for (local, &LocalDecl { r#type, .. }) in body.local_decls.iter_enumerated() {
+            if let Some(range) = analysis.run(r#type) {
+                locals[local] = Footprint {
+                    units: Estimate::Constant(range),
+                    cardinality: Estimate::Constant(Cardinality::one()),
+                };
+            } else {
+                dynamic.mark(local);
+            }
+        }
+
+        if let Some(returns) = analysis.run(body.return_type) {
+            footprints[body.id].returns = Footprint {
+                units: Estimate::Constant(returns),
+                cardinality: Estimate::Constant(Cardinality::one()),
+            };
+        } else {
+            dynamic.mark_return();
+        }
+
+        dynamic
+    }
+
     fn single(
         &mut self,
         context: &MirContext<'_, 'heap>,
@@ -78,44 +151,14 @@ impl<'heap, A: Allocator> SizeEstimationAnalysis<'heap, A> {
     ) where
         A: Clone,
     {
-        let mut static_size_estimation = StaticSizeEstimation::new(context.env, &mut self.cache);
-        let mut requires_dynamic_analysis = DenseBitSet::new_empty(body.local_decls.len());
-        let mut returns_requires_dynamic_analysis = false;
+        let dynamic = self.static_analysis(context, body, footprints);
 
-        let locals = &mut footprints[body.id].locals;
-
-        for (local, &LocalDecl { r#type, .. }) in body.local_decls.iter_enumerated() {
-            // for each local decl, try to figure out if we can estimate its size, based on the type
-            // of the declaration, if that isn't possible we degrade to dynamic analysis
-            if let Some(range) = static_size_estimation.run(r#type) {
-                locals[local] = Footprint {
-                    units: Estimate::Constant(range),
-                    cardinality: Estimate::Constant(Cardinality::one()),
-                };
-            } else {
-                requires_dynamic_analysis.insert(local);
-            }
-        }
-
-        let mut returns = static_size_estimation.run(body.return_type).map_or_else(
-            || {
-                returns_requires_dynamic_analysis = true;
-                SaturatingSemiring.bottom()
-            },
-            |range| Footprint {
-                units: Estimate::Constant(range),
-                cardinality: Estimate::Constant(Cardinality::one()),
-            },
-        );
-
-        // TODO: split this so we can re-use it!
-
-        if !requires_dynamic_analysis.is_empty() || returns_requires_dynamic_analysis {
-            let dynamic = SizeEstimationDataflowAnalysis::new(
+        if dynamic.requires_dynamic_analysis() {
+            let analysis = SizeEstimationDataflowAnalysis::new(
                 context.env,
                 &body.local_decls,
                 footprints,
-                requires_dynamic_analysis,
+                dynamic.as_set(),
                 &mut self.cache,
             );
 
@@ -123,13 +166,16 @@ impl<'heap, A: Allocator> SizeEstimationAnalysis<'heap, A> {
                 analysis,
                 entry_states: _,
                 exit_states,
-            } = dynamic.iterate_to_fixpoint_in(body, self.alloc.clone());
+            } = analysis.iterate_to_fixpoint_in(body, self.alloc.clone());
+            let lookup = analysis.into_lookup();
+
+            let body_footprint = &mut footprints[body.id];
             let lattice = analysis.lattice_in(body, self.alloc.clone());
 
             // bbs are non-zero, so there's always at least one exit state, if not then that means
             // that all bb's are unreachable, in which case dynamic analysis cannot be used (because
             // we have no point to observe).
-            let mut footprint: Option<BodyFootprint<A>> = None;
+            // let mut footprint: Option<BodyFootprint<A>> = None;
 
             for (bb, exit_state) in exit_states.into_iter_enumerated() {
                 let bb = &body.basic_blocks[bb];
@@ -137,10 +183,10 @@ impl<'heap, A: Allocator> SizeEstimationAnalysis<'heap, A> {
                     continue;
                 };
 
-                if returns_requires_dynamic_analysis {
-                    let rhs = analysis.eval_operand(&exit_state, value);
+                if dynamic.dynamic_return() {
+                    let rhs = lookup.operand(&exit_state, value);
 
-                    SaturatingSemiring.join(&mut returns, rhs.as_ref(&exit_state));
+                    SaturatingSemiring.join(&mut body_footprint.returns, rhs.as_ref(&exit_state));
                 }
 
                 match &mut footprint {
