@@ -11,6 +11,42 @@ import {
 import { SDCPNContext } from "../../../state/sdcpn-context";
 import { SimulationContext } from "../../../state/simulation-context";
 
+/**
+ * Computes the maximum value from an array using a selector function.
+ * Performs a single pass over the array without creating intermediate copies.
+ *
+ * @param array - The array to iterate over
+ * @param selector - A function that extracts values to compare from each element.
+ *                   Can return a single number or an array of numbers.
+ * @param initialValue - The initial maximum value (defaults to -Infinity)
+ * @returns The maximum value found, or initialValue if array is empty
+ */
+const max = <T,>(
+  array: readonly T[],
+  selector: (item: T) => number | readonly number[],
+  initialValue = -Infinity,
+): number => {
+  let result = initialValue;
+
+  for (const item of array) {
+    const value = selector(item);
+
+    if (typeof value === "number") {
+      if (value > result) {
+        result = value;
+      }
+    } else {
+      for (const val of value) {
+        if (val > result) {
+          result = val;
+        }
+      }
+    }
+  }
+
+  return result;
+};
+
 const containerStyle = css({
   display: "flex",
   flexDirection: "column",
@@ -303,7 +339,7 @@ const useYAxisScale = (
       }
     } else {
       // For run chart, find the maximum individual value
-      maxValue = Math.max(1, ...visibleData.flatMap((item) => item.values));
+      maxValue = max(visibleData, (item) => item.values, 1);
     }
 
     // Use D3 to create a nice scale

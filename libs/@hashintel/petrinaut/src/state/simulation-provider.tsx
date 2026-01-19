@@ -39,7 +39,18 @@ const initialStateValues: SimulationStateValues = {
   dt: 0.01,
 };
 
-const FRAME_INTERVAL_MS = 20;
+/**
+ * Time between each batch of simulation frames (in milliseconds).
+ * This is the interval between setTimeout calls to allow the UI to remain responsive.
+ */
+const TICK_INTERVAL_MS = 45;
+
+/**
+ * Maximum time budget for computing frames within a single tick (in milliseconds).
+ * The simulation will compute as many frames as possible within this time budget
+ * before yielding control back to the browser for rendering and event handling.
+ */
+const TICK_TIME_BUDGET_MS = 5;
 
 type UseSimulationRunnerParams = {
   isRunning: boolean;
@@ -48,8 +59,9 @@ type UseSimulationRunnerParams = {
 };
 
 /**
- * Hook that handles running the simulation with a 20ms interval between frames.
- * When the simulation state is "Running", it automatically computes frames in a loop.
+ * Hook that handles running the simulation with batched frame computation.
+ * When the simulation state is "Running", it computes as many frames as possible
+ * within the time budget, then yields to allow UI updates.
  */
 const useSimulationRunner = ({
   isRunning,
@@ -64,42 +76,59 @@ const useSimulationRunner = ({
     let timeoutId: number | null = null;
     let cancelled = false;
 
-    const step = () => {
-      const currentState = getState();
+    const tick = () => {
+      const tickStart = performance.now();
+      let framesComputed = 0;
+      let simulation = getState().simulation;
+      let shouldContinue = true;
 
-      if (!currentState.simulation || currentState.state !== "Running") {
+      if (!simulation || getState().state !== "Running") {
         return;
       }
 
       try {
-        const { simulation: updatedSimulation, transitionFired } =
-          computeNextFrame(currentState.simulation);
+        // Compute as many frames as possible within the time budget
+        while (
+          shouldContinue &&
+          performance.now() - tickStart < TICK_TIME_BUDGET_MS
+        ) {
+          const { simulation: updatedSimulation, transitionFired } =
+            computeNextFrame(simulation);
 
-        let newState: SimulationState = "Running";
+          simulation = updatedSimulation;
+          framesComputed++;
 
-        if (!transitionFired) {
-          const currentFrame =
-            updatedSimulation.frames[updatedSimulation.currentFrameNumber];
-          if (currentFrame) {
-            const enablementResult = checkTransitionEnablement(currentFrame);
-            if (!enablementResult.hasEnabledTransition) {
-              newState = "Complete";
+          if (!transitionFired) {
+            const currentFrame =
+              updatedSimulation.frames[updatedSimulation.currentFrameNumber];
+            if (currentFrame) {
+              const enablementResult = checkTransitionEnablement(currentFrame);
+              if (!enablementResult.hasEnabledTransition) {
+                shouldContinue = false;
+              }
             }
           }
         }
 
+        // eslint-disable-next-line no-console
+        console.log(`Computed ${framesComputed} frames in this tick`);
+
+        const finalState: SimulationState = shouldContinue
+          ? "Running"
+          : "Complete";
+
         setStateValues((prev) => ({
           ...prev,
-          simulation: updatedSimulation,
-          state: newState,
+          simulation,
+          state: finalState,
           error: null,
           errorItemId: null,
-          currentlyViewedFrame: updatedSimulation.currentFrameNumber,
+          currentlyViewedFrame: simulation?.currentFrameNumber ?? 0,
         }));
 
         // Continue the loop if still running
-        if (!cancelled && newState === "Running") {
-          timeoutId = window.setTimeout(step, FRAME_INTERVAL_MS);
+        if (!cancelled && finalState === "Running") {
+          timeoutId = window.setTimeout(tick, TICK_INTERVAL_MS);
         }
       } catch (error) {
         // eslint-disable-next-line no-console
@@ -118,7 +147,7 @@ const useSimulationRunner = ({
     };
 
     // Start the loop
-    timeoutId = window.setTimeout(step, FRAME_INTERVAL_MS);
+    timeoutId = window.setTimeout(tick, TICK_INTERVAL_MS);
 
     return () => {
       cancelled = true;
