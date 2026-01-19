@@ -39,7 +39,7 @@ function useFiringAnimation(
       return;
     }
 
-    let tokensToAnimate = firingDelta;
+    let transitionsToAnimate = firingDelta;
 
     // Calculate remaining tokens from previous animation if one is in progress
     if (animationStateRef.current) {
@@ -50,14 +50,15 @@ function useFiringAnimation(
 
       // Linear interpolation: remaining tokens = tokensAnimating * (1 - progress)
       const remainingTokens = tokensAnimating * (1 - progress);
-      tokensToAnimate += remainingTokens;
+      transitionsToAnimate += remainingTokens;
 
       // Cancel the previous animation
       animation.cancel();
     }
 
     const path = pathRef.current;
-    const peakStrokeWidth = BASE_STROKE_WIDTH + tokensToAnimate * weight;
+    const peakStrokeWidth =
+      BASE_STROKE_WIDTH + Math.log(1 + transitionsToAnimate) * weight;
 
     const animation = path.animate(
       [
@@ -74,7 +75,7 @@ function useFiringAnimation(
     animationStateRef.current = {
       animation,
       startTime: performance.now(),
-      tokensAnimating: tokensToAnimate,
+      tokensAnimating: transitionsToAnimate,
     };
 
     // Clean up animation reference when it finishes
