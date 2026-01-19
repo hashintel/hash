@@ -9,19 +9,29 @@ import type { ArcData } from "../reactflow-types";
 const BASE_STROKE_WIDTH = 2;
 const ANIMATION_DURATION_MS = 300;
 
+type AnimationState = {
+  animation: Animation;
+  startTime: number;
+  tokensAnimating: number;
+};
+
 /**
  * Hook to animate stroke width when firing delta changes.
- * Animates from (BASE_STROKE_WIDTH + delta * weight) back to BASE_STROKE_WIDTH linearly.
+ * Animates from (BASE_STROKE_WIDTH + tokens * weight) back to BASE_STROKE_WIDTH linearly.
  *
  * Only starts a new animation when firingDelta > 0, allowing previous animations
  * to complete naturally when firingDelta is 0 or null.
+ *
+ * If a new firing occurs while an animation is in progress, the remaining tokens
+ * from the previous animation are added to the new firing delta, creating a
+ * cumulative effect.
  */
 function useFiringAnimation(
   pathRef: React.RefObject<SVGPathElement | null>,
   firingDelta: number | null,
   weight: number,
 ): void {
-  const animationRef = useRef<Animation | null>(null);
+  const animationStateRef = useRef<AnimationState | null>(null);
 
   useEffect(() => {
     // Only start a new animation when there's an actual firing (delta > 0)
@@ -29,13 +39,25 @@ function useFiringAnimation(
       return;
     }
 
-    // Cancel any existing animation before starting a new one
-    if (animationRef.current) {
-      animationRef.current.cancel();
+    let tokensToAnimate = firingDelta;
+
+    // Calculate remaining tokens from previous animation if one is in progress
+    if (animationStateRef.current) {
+      const { animation, startTime, tokensAnimating } =
+        animationStateRef.current;
+      const elapsed = performance.now() - startTime;
+      const progress = Math.min(elapsed / ANIMATION_DURATION_MS, 1);
+
+      // Linear interpolation: remaining tokens = tokensAnimating * (1 - progress)
+      const remainingTokens = tokensAnimating * (1 - progress);
+      tokensToAnimate += remainingTokens;
+
+      // Cancel the previous animation
+      animation.cancel();
     }
 
     const path = pathRef.current;
-    const peakStrokeWidth = BASE_STROKE_WIDTH + firingDelta * weight;
+    const peakStrokeWidth = BASE_STROKE_WIDTH + tokensToAnimate * weight;
 
     const animation = path.animate(
       [
@@ -49,12 +71,16 @@ function useFiringAnimation(
       },
     );
 
-    animationRef.current = animation;
+    animationStateRef.current = {
+      animation,
+      startTime: performance.now(),
+      tokensAnimating: tokensToAnimate,
+    };
 
     // Clean up animation reference when it finishes
     animation.onfinish = () => {
-      if (animationRef.current === animation) {
-        animationRef.current = null;
+      if (animationStateRef.current?.animation === animation) {
+        animationStateRef.current = null;
       }
     };
   }, [firingDelta, pathRef, weight]);
@@ -62,9 +88,9 @@ function useFiringAnimation(
   // Cancel animation on unmount
   useEffect(() => {
     return () => {
-      if (animationRef.current) {
-        animationRef.current.cancel();
-        animationRef.current = null;
+      if (animationStateRef.current) {
+        animationStateRef.current.animation.cancel();
+        animationStateRef.current = null;
       }
     };
   }, []);
