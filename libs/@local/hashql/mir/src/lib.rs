@@ -15,14 +15,18 @@
     allocator_api,
     assert_matches,
     binary_heap_drain_sorted,
+    clone_from_ref,
     const_type_name,
+    get_mut_unchecked,
     iter_array_chunks,
     iter_collect_into,
     iter_intersperse,
+    iterator_try_collect,
     maybe_uninit_fill,
     step_trait,
     string_from_utf8_lossy_owned,
     try_trait_v2,
+    maybe_uninit_array_assume_init,
 )]
 #![expect(clippy::indexing_slicing)]
 extern crate alloc;
@@ -38,5 +42,7 @@ pub mod reify;
 pub mod visit;
 
 pub mod builder;
+pub mod interpret;
+mod macros;
 #[cfg(test)]
 pub(crate) mod tests;

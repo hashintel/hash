@@ -204,6 +204,7 @@ impl<'heap> Environment<'heap> {
 }
 
 fn prefill_environment(env: &Environment) {
+    env.kinds.reserve(1024);
     env.kinds.intern(TypeKind::Never);
     env.kinds.intern(TypeKind::Unknown);
 

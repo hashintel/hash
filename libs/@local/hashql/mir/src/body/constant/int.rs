@@ -2,9 +2,15 @@ use core::{
     error::Error,
     fmt::{self, Display},
     num::TryFromIntError,
+    ops::{BitAnd, BitAndAssign, BitOr, BitOrAssign, BitXor, BitXorAssign, Neg, Not},
 };
 
 use hashql_core::value::{Integer, Primitive};
+
+use crate::{
+    interpret::value::{Num, Numeric},
+    macros::{forward_ref_binop, forward_ref_op_assign, forward_ref_unop},
+};
 
 /// A finite-precision integer constant in the MIR.
 ///
@@ -41,7 +47,7 @@ use hashql_core::value::{Integer, Primitive};
 /// // Raw value access always succeeds
 /// assert_eq!(large.as_int(), 1000);
 /// ```
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Int {
     value: i128,
 }
@@ -52,6 +58,7 @@ pub struct Int {
     clippy::cast_sign_loss
 )]
 impl Int {
+    #[inline]
     const fn from_value_unchecked(value: i128) -> Self {
         Self { value }
     }
@@ -605,5 +612,141 @@ impl<'heap> TryFrom<Primitive<'heap>> for Int {
                 })
             }
         }
+    }
+}
+
+impl Not for Int {
+    type Output = Self;
+
+    #[inline]
+    fn not(self) -> Self::Output {
+        Self::from_value_unchecked(!self.as_int())
+    }
+}
+
+impl Neg for Int {
+    type Output = Numeric;
+
+    #[inline]
+    #[expect(clippy::cast_precision_loss, clippy::float_arithmetic)]
+    fn neg(self) -> Self::Output {
+        let (value, overflow) = self.as_int().overflowing_neg();
+
+        if overflow {
+            // There's only a single reason why this overflowed: the value was i128::MIN, in this
+            // case we return `i128::MAX + 1` as a Num.
+            Numeric::Num(Num::from((i128::MAX as f64) + 1.0))
+        } else {
+            Numeric::Int(Self::from_value_unchecked(value))
+        }
+    }
+}
+
+impl BitOr for Int {
+    type Output = Self;
+
+    #[inline]
+    fn bitor(self, rhs: Self) -> Self::Output {
+        Self::from_value_unchecked(self.as_int() | rhs.as_int())
+    }
+}
+
+impl BitOrAssign for Int {
+    #[inline]
+    fn bitor_assign(&mut self, rhs: Self) {
+        self.value |= rhs.value;
+    }
+}
+
+impl BitAnd for Int {
+    type Output = Self;
+
+    #[inline]
+    fn bitand(self, rhs: Self) -> Self::Output {
+        Self::from_value_unchecked(self.as_int() & rhs.as_int())
+    }
+}
+
+impl BitAndAssign for Int {
+    #[inline]
+    fn bitand_assign(&mut self, rhs: Self) {
+        self.value &= rhs.value;
+    }
+}
+
+impl BitXor for Int {
+    type Output = Self;
+
+    #[inline]
+    fn bitxor(self, rhs: Self) -> Self::Output {
+        Self::from_value_unchecked(self.as_int() ^ rhs.as_int())
+    }
+}
+
+impl BitXorAssign for Int {
+    #[inline]
+    fn bitxor_assign(&mut self, rhs: Self) {
+        self.value ^= rhs.value;
+    }
+}
+
+forward_ref_unop!(impl Not::not for Int);
+forward_ref_unop!(impl Neg::neg for Int);
+forward_ref_binop!(impl BitOr<Int>::bitor for Int);
+forward_ref_binop!(impl BitAnd<Int>::bitand for Int);
+forward_ref_binop!(impl BitXor<Int>::bitxor for Int);
+forward_ref_op_assign!(impl BitOrAssign<Int>::bitor_assign for Int);
+forward_ref_op_assign!(impl BitAndAssign<Int>::bitand_assign for Int);
+forward_ref_op_assign!(impl BitXorAssign<Int>::bitxor_assign for Int);
+
+#[cfg(test)]
+mod tests {
+    #![allow(
+        clippy::cast_precision_loss,
+        clippy::float_arithmetic,
+        clippy::float_cmp
+    )]
+
+    use crate::{body::constant::Int, interpret::value::Numeric};
+
+    #[test]
+    fn neg_positive() {
+        let int = Int::from(42_i64);
+        let result = -int;
+        assert!(matches!(result, Numeric::Int(int) if int.as_i64() == Some(-42)));
+    }
+
+    #[test]
+    fn neg_negative() {
+        let int = Int::from(-100_i64);
+        let result = -int;
+        assert!(matches!(result, Numeric::Int(int) if int.as_i64() == Some(100)));
+    }
+
+    #[test]
+    fn neg_zero() {
+        let int = Int::from(0_i64);
+        let result = -int;
+        assert!(matches!(result, Numeric::Int(int) if int.as_i64() == Some(0)));
+    }
+
+    #[test]
+    fn neg_i128_max() {
+        let int = Int::from(i128::MAX);
+        let result = -int;
+        assert!(matches!(result, Numeric::Int(int) if int.as_int() == -i128::MAX));
+    }
+
+    #[test]
+    fn neg_i128_min_overflows_to_float() {
+        let int = Int::from(i128::MIN);
+        let result = -int;
+
+        let Numeric::Num(num) = result else {
+            panic!("expected Numeric::Num for -i128::MIN, got {result:?}");
+        };
+
+        let expected = -(i128::MIN as f64);
+        assert_eq!(num.as_f64(), expected);
     }
 }
