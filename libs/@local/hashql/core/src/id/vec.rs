@@ -187,6 +187,14 @@ where
         Self::from_domain_in(elem, domain, domain.raw.allocator().clone())
     }
 
+    #[inline]
+    pub fn from_domain_derive<U>(func: impl FnMut(I, &U) -> T, domain: &IdVec<I, U, A>) -> Self
+    where
+        A: Clone,
+    {
+        Self::from_domain_derive_in(func, domain, domain.raw.allocator().clone())
+    }
+
     /// Creates an `IdVec` with the same length as `domain`, initialized to `elem`, using a custom
     /// allocator.
     ///
@@ -199,6 +207,15 @@ where
         T: Clone,
     {
         Self::from_raw(alloc::vec::from_elem_in(elem, domain.len(), alloc))
+    }
+
+    #[inline]
+    pub fn from_domain_derive_in<U>(
+        mut func: impl FnMut(I, &U) -> T,
+        domain: &IdSlice<I, U>,
+        alloc: A,
+    ) -> Self {
+        Self::from_fn_in(domain.len(), |index| func(index, &domain[index]), alloc)
     }
 
     /// Creates an `IdVec` by calling a closure on each ID in sequence, using a custom allocator.

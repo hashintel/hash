@@ -1,0 +1,350 @@
+════ Initial MIR ═══════════════════════════════════════════════════════════════
+
+fn {closure#10}(%0: (), %1: Integer) -> Boolean {
+    let %2: Boolean
+
+    bb0(): {
+        %2 = %1 > 100
+
+        return %2
+    }
+}
+
+thunk check_high:0() -> (Integer) -> Boolean {
+    let %0: (Integer) -> Boolean
+    let %1: ()
+
+    bb0(): {
+        %1 = ()
+        %0 = closure(({closure#10} as FnPtr), %1)
+
+        return %0
+    }
+}
+
+fn {closure#11}(%0: (), %1: Integer) -> Boolean {
+    let %2: Boolean
+
+    bb0(): {
+        %2 = %1 < 0
+
+        return %2
+    }
+}
+
+thunk check_low:0() -> (Integer) -> Boolean {
+    let %0: (Integer) -> Boolean
+    let %1: ()
+
+    bb0(): {
+        %1 = ()
+        %0 = closure(({closure#11} as FnPtr), %1)
+
+        return %0
+    }
+}
+
+thunk {thunk#8}() -> Boolean {
+    let %0: (Integer) -> Boolean
+    let %1: Boolean
+
+    bb0(): {
+        %0 = apply (check_high:0 as FnPtr)
+        %1 = apply %0.0 %0.1 50
+
+        return %1
+    }
+}
+
+*thunk {thunk#9}() -> String {
+    let %0: Boolean
+    let %1: String
+    let %2: (Integer) -> Boolean
+    let %3: Boolean
+    let %4: String
+
+    bb0(): {
+        %0 = apply ({thunk#8} as FnPtr)
+
+        switchInt(%0) -> [0: bb1(), 1: bb4()]
+    }
+
+    bb1(): {
+        %2 = apply (check_low:0 as FnPtr)
+        %3 = apply %2.0 %2.1 50
+
+        switchInt(%3) -> [0: bb3(), 1: bb2()]
+    }
+
+    bb2(): {
+        goto -> bb5("too low")
+    }
+
+    bb3(): {
+        goto -> bb5("in range")
+    }
+
+    bb4(): {
+        goto -> bb6("too high")
+    }
+
+    bb5(%4): {
+        goto -> bb6(%4)
+    }
+
+    bb6(%1): {
+        return %1
+    }
+}
+
+════ Pre-inlining MIR ══════════════════════════════════════════════════════════
+
+fn {closure#10}(%0: (), %1: Integer) -> Boolean {
+    let %2: Boolean
+
+    bb0(): {
+        %2 = %1 > 100
+
+        return %2
+    }
+}
+
+thunk check_high:0() -> (Integer) -> Boolean {
+    let %0: (Integer) -> Boolean
+
+    bb0(): {
+        %0 = closure(({closure#10} as FnPtr), ())
+
+        return %0
+    }
+}
+
+fn {closure#11}(%0: (), %1: Integer) -> Boolean {
+    let %2: Boolean
+
+    bb0(): {
+        %2 = %1 < 0
+
+        return %2
+    }
+}
+
+thunk check_low:0() -> (Integer) -> Boolean {
+    let %0: (Integer) -> Boolean
+
+    bb0(): {
+        %0 = closure(({closure#11} as FnPtr), ())
+
+        return %0
+    }
+}
+
+thunk {thunk#8}() -> Boolean {
+    let %0: Boolean
+
+    bb0(): {
+        %0 = apply ({closure#10} as FnPtr) () 50
+
+        return %0
+    }
+}
+
+*thunk {thunk#9}() -> String {
+    let %0: Boolean
+    let %1: String
+    let %2: Boolean
+
+    bb0(): {
+        %2 = apply ({closure#10} as FnPtr) () 50
+
+        switchInt(%2) -> [0: bb1(), 1: bb2()]
+    }
+
+    bb1(): {
+        %0 = apply ({closure#11} as FnPtr) () 50
+
+        switchInt(%0) -> [0: bb3("in range"), 1: bb3("too low")]
+    }
+
+    bb2(): {
+        return "too high"
+    }
+
+    bb3(%1): {
+        return %1
+    }
+}
+
+════ Inlined MIR ═══════════════════════════════════════════════════════════════
+
+fn {closure#10}(%0: (), %1: Integer) -> Boolean {
+    let %2: Boolean
+
+    bb0(): {
+        %2 = %1 > 100
+
+        return %2
+    }
+}
+
+thunk check_high:0() -> (Integer) -> Boolean {
+    let %0: (Integer) -> Boolean
+
+    bb0(): {
+        %0 = closure(({closure#10} as FnPtr), ())
+
+        return %0
+    }
+}
+
+fn {closure#11}(%0: (), %1: Integer) -> Boolean {
+    let %2: Boolean
+
+    bb0(): {
+        %2 = %1 < 0
+
+        return %2
+    }
+}
+
+thunk check_low:0() -> (Integer) -> Boolean {
+    let %0: (Integer) -> Boolean
+
+    bb0(): {
+        %0 = closure(({closure#11} as FnPtr), ())
+
+        return %0
+    }
+}
+
+thunk {thunk#8}() -> Boolean {
+    let %0: Boolean
+    let %1: ()
+    let %2: Integer
+    let %3: Boolean
+
+    bb0(): {
+        %1 = ()
+        %2 = 50
+
+        goto -> bb2()
+    }
+
+    bb1(%0): {
+        return %0
+    }
+
+    bb2(): {
+        %3 = %2 > 100
+
+        goto -> bb1(%3)
+    }
+}
+
+*thunk {thunk#9}() -> String {
+    let %0: Boolean
+    let %1: String
+    let %2: Boolean
+    let %3: ()
+    let %4: Integer
+    let %5: Boolean
+    let %6: ()
+    let %7: Integer
+    let %8: Boolean
+
+    bb0(): {
+        %6 = ()
+        %7 = 50
+
+        goto -> bb7()
+    }
+
+    bb1(): {
+        %3 = ()
+        %4 = 50
+
+        goto -> bb5()
+    }
+
+    bb2(): {
+        return "too high"
+    }
+
+    bb3(%1): {
+        return %1
+    }
+
+    bb4(%0): {
+        switchInt(%0) -> [0: bb3("in range"), 1: bb3("too low")]
+    }
+
+    bb5(): {
+        %5 = %4 < 0
+
+        goto -> bb4(%5)
+    }
+
+    bb6(%2): {
+        switchInt(%2) -> [0: bb1(), 1: bb2()]
+    }
+
+    bb7(): {
+        %8 = %7 > 100
+
+        goto -> bb6(%8)
+    }
+}
+
+════ Post Inline MIR ═══════════════════════════════════════════════════════════
+
+fn {closure#10}(%0: (), %1: Integer) -> Boolean {
+    let %2: Boolean
+
+    bb0(): {
+        %2 = %1 > 100
+
+        return %2
+    }
+}
+
+thunk check_high:0() -> (Integer) -> Boolean {
+    let %0: (Integer) -> Boolean
+
+    bb0(): {
+        %0 = closure(({closure#10} as FnPtr), ())
+
+        return %0
+    }
+}
+
+fn {closure#11}(%0: (), %1: Integer) -> Boolean {
+    let %2: Boolean
+
+    bb0(): {
+        %2 = %1 < 0
+
+        return %2
+    }
+}
+
+thunk check_low:0() -> (Integer) -> Boolean {
+    let %0: (Integer) -> Boolean
+
+    bb0(): {
+        %0 = closure(({closure#11} as FnPtr), ())
+
+        return %0
+    }
+}
+
+thunk {thunk#8}() -> Boolean {
+    bb0(): {
+        return 0
+    }
+}
+
+*thunk {thunk#9}() -> String {
+    bb0(): {
+        return "in range"
+    }
+}

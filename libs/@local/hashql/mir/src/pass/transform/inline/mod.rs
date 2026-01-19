@@ -67,7 +67,7 @@ use hashql_core::{
 
 pub use self::{analysis::InlineCostEstimationConfig, heuristics::InlineHeuristicsConfig};
 use self::{
-    analysis::{BasicBlockLoopVec, BodyAnalysis, BodyProperties},
+    analysis::{BodyAnalysis, BodyProperties, CostEstimationResidual},
     find::FindCallsiteVisitor,
     heuristics::InlineHeuristics,
     rename::RenameVisitor,
@@ -85,7 +85,7 @@ use crate::{
         terminator::{Goto, Target, Terminator, TerminatorKind},
     },
     context::MirContext,
-    def::{DefId, DefIdSlice, DefIdVec},
+    def::{DefId, DefIdSlice},
     intern::Interner,
     pass::{
         Changed, GlobalTransformPass, GlobalTransformState,
@@ -204,10 +204,9 @@ struct InlineState<'ctx, 'state, 'env, 'heap, A: Allocator> {
     /// has been inlined into a filter, it won't be inlined again.
     inlined: SparseBitMatrix<DefId, SccId, A>,
 
-    /// Body properties for each function.
-    properties: DefIdVec<BodyProperties, A>,
-    /// For each function, which basic blocks are inside loops.
-    loops: BasicBlockLoopVec<A>,
+    // cost estimation properties
+    costs: CostEstimationResidual<'heap, A>,
+
     /// SCC membership for cycle detection.
     components: StronglyConnectedComponents<DefId, SccId, (), A>,
 
@@ -253,8 +252,8 @@ impl<'heap, A: Allocator> InlineState<'_, '_, '_, 'heap, A> {
         let scorer = InlineHeuristics {
             config: self.config.heuristics,
             graph: &self.graph,
-            loops: &self.loops,
-            properties: &self.properties,
+            loops: &self.costs.loops,
+            properties: &self.costs.properties,
         };
 
         let targets = &mut mem.callsites;
@@ -281,7 +280,7 @@ impl<'heap, A: Allocator> InlineState<'_, '_, '_, 'heap, A> {
         let mut remaining_budget = self.config.heuristics.max * self.config.budget_multiplier;
 
         for candidate in candidates.drain_sorted() {
-            let target_cost = self.properties[candidate.callsite.target].cost;
+            let target_cost = self.costs.properties[candidate.callsite.target].cost;
 
             if remaining_budget >= target_cost {
                 remaining_budget -= target_cost;
@@ -291,11 +290,12 @@ impl<'heap, A: Allocator> InlineState<'_, '_, '_, 'heap, A> {
 
         // Update caller cost: remove Apply costs and add callee costs.
         // This ensures subsequent callers see the true accumulated cost.
-        self.properties[body].cost -= (targets.len() as f32) * self.config.cost.rvalue_apply;
+        self.costs.properties[body].cost -= (targets.len() as f32) * self.config.cost.rvalue_apply;
         for target in targets {
             debug_assert_eq!(target.caller, body);
 
             let Ok([caller, target]) = self
+                .costs
                 .properties
                 .get_disjoint_mut([target.caller, target.target])
             else {
@@ -486,6 +486,10 @@ impl<'heap, A: Allocator> InlineState<'_, '_, '_, 'heap, A> {
             self.inline(bodies, callsite);
         }
 
+        // Once finished we must recompute the `is_leaf` to propagate the changes
+        let is_leaf = self.costs.is_leaf(&bodies[body]);
+        self.costs.properties[body].is_leaf = is_leaf;
+
         Changed::Yes
     }
 }
@@ -534,8 +538,7 @@ impl<A: BumpAllocator> Inline<A> {
             inlined: SparseBitMatrix::new_in(components.node_count(), &self.alloc),
             interner,
             graph,
-            properties: costs.properties,
-            loops: costs.loops,
+            costs,
             components,
             global: state,
         }

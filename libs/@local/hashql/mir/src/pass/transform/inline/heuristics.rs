@@ -140,7 +140,7 @@ pub struct InlineHeuristicsConfig {
 impl Default for InlineHeuristicsConfig {
     fn default() -> Self {
         Self {
-            always_inline: 10.0,
+            always_inline: 16.0,
             max: 60.0,
             max_loop_multiplier: 1.5,
 
@@ -148,7 +148,7 @@ impl Default for InlineHeuristicsConfig {
             leaf_bonus: 10.0,
             single_caller_bonus: 5.0,
             unique_callsite_bonus: 12.0,
-            size_penalty_factor: 1.1,
+            size_penalty_factor: 0.9,
         }
     }
 }
@@ -161,7 +161,7 @@ pub(crate) struct InlineHeuristics<'ctx, 'heap, A: Allocator> {
     pub config: InlineHeuristicsConfig,
     pub graph: &'ctx CallGraph<'heap, A>,
     pub loops: &'ctx BasicBlockLoopVec<A>,
-    pub properties: &'ctx DefIdSlice<BodyProperties>,
+    pub properties: &'ctx DefIdSlice<BodyProperties<'heap>>,
 }
 
 impl<A: Allocator> InlineHeuristics<'_, '_, A> {
