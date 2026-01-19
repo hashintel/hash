@@ -75,6 +75,8 @@ export function useSdcpnToReactFlow(): PetrinautReactFlowDefinitionObject {
         label: transition.name,
         type: "transition",
         lambdaType: transition.lambdaType,
+        firingCount:
+          currentViewedFrame?.transitions[transition.id]?.firingCount ?? null,
       },
     });
   }

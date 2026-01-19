@@ -4,7 +4,7 @@ import { TbBolt, TbLambda } from "react-icons/tb";
 import { Handle, type NodeProps, Position } from "reactflow";
 
 import { EditorContext } from "../../../state/editor-context";
-import { SimulationContext } from "../../../simulation/context";
+import { useFiringDelta } from "../hooks/use-firing-delta";
 import type { TransitionNodeData } from "../reactflow-types";
 import { handleStyling } from "../styles/styling";
 
@@ -131,18 +131,12 @@ export const TransitionNode: React.FC<NodeProps<TransitionNodeData>> = ({
   const { label } = data;
 
   const { selectedResourceId } = use(EditorContext);
-  const { currentViewedFrame } = use(SimulationContext);
 
-  // Check if this transition just fired (time since last fire is zero)
-  let justFired = false;
-  // Check if this transition just fired (time since last fire is zero)
-  // Ugly hack: check if currentViewedFrame is greater than 0 to avoid showing the transition as fired on the first frame.
-  if (currentViewedFrame && currentViewedFrame.number > 0) {
-    const transitionData = currentViewedFrame.transitions[id];
-    if (transitionData) {
-      justFired = transitionData.timeSinceLastFiring === 0;
-    }
-  }
+  // Track firing count delta for simulation visualization
+  const firingDelta = useFiringDelta(data.firingCount ?? null);
+
+  // Transition just fired if firingDelta is non-null (firing count changed)
+  const justFired = firingDelta !== null;
 
   // Determine selection state
   const isSelectedByResource = selectedResourceId === id;

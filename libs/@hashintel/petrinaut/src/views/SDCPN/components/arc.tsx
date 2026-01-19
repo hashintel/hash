@@ -3,38 +3,44 @@ import { type CSSProperties, use, useEffect, useRef } from "react";
 import { BaseEdge, type EdgeProps, getBezierPath } from "reactflow";
 
 import { EditorContext } from "../../../state/editor-context";
+import { useFiringDelta } from "../hooks/use-firing-delta";
 import type { ArcData } from "../reactflow-types";
 
-type FiringDelta = { delta: number; sign: string };
+const BASE_STROKE_WIDTH = 2;
+const ANIMATION_DURATION_MS = 300;
 
 /**
- * Hook to track the previous firingCount and compute the delta.
- * Returns the delta and sign symbol when firingCount changes.
+ * Hook to animate stroke width when firing delta changes.
+ * Animates from (BASE_STROKE_WIDTH + delta) back to BASE_STROKE_WIDTH linearly.
  */
-function useFiringDelta(firingCount: number | null): FiringDelta | null {
-  const prevFiringCountRef = useRef<number | null>(null);
-
+function useFiringAnimation(
+  pathRef: React.RefObject<SVGPathElement | null>,
+  firingDelta: number | null,
+): void {
   useEffect(() => {
-    if (firingCount !== null) {
-      prevFiringCountRef.current = firingCount;
+    if (firingDelta === null || pathRef.current === null) {
+      return;
     }
-  }, [firingCount]);
 
-  if (firingCount === null) {
-    return null;
-  }
+    const path = pathRef.current;
+    const peakStrokeWidth = BASE_STROKE_WIDTH + Math.abs(firingDelta);
 
-  if (firingCount === prevFiringCountRef.current) {
-    return null;
-  }
+    const animation = path.animate(
+      [
+        { strokeWidth: `${peakStrokeWidth}px` },
+        { strokeWidth: `${BASE_STROKE_WIDTH}px` },
+      ],
+      {
+        duration: ANIMATION_DURATION_MS,
+        easing: "linear",
+        fill: "forwards",
+      },
+    );
 
-  const prevCount = prevFiringCountRef.current ?? 0;
-  const delta = firingCount - prevCount;
-
-  return {
-    delta: Math.abs(delta),
-    sign: delta >= 0 ? "+" : "−",
-  };
+    return () => {
+      animation.cancel();
+    };
+  }, [firingDelta, pathRef]);
 }
 
 const selectionIndicatorStyle: CSSProperties = {
@@ -77,7 +83,11 @@ export const Arc: React.FC<EdgeProps<ArcData>> = ({
   // Track firing count delta for simulation visualization
   const firingDelta = useFiringDelta(data?.firingCount ?? null);
 
-  console.log("firingDelta", firingDelta);
+  // Ref for the main arc path to animate stroke width
+  const arcPathRef = useRef<SVGPathElement | null>(null);
+
+  // Animate stroke width when firing delta changes
+  useFiringAnimation(arcPathRef, firingDelta);
 
   const [arcPath, labelX, labelY] = getBezierPath({
     sourceX,
@@ -99,8 +109,27 @@ export const Arc: React.FC<EdgeProps<ArcData>> = ({
         />
       )}
 
-      {/* Main edge with original style */}
-      <BaseEdge id={id} path={arcPath} markerEnd={markerEnd} style={style} />
+      {/* Main edge with marker */}
+      <path
+        id={id}
+        d={arcPath}
+        markerEnd={markerEnd}
+        fill="none"
+        stroke={style?.stroke ?? "#b1b1b7"}
+        strokeWidth={style?.strokeWidth ?? BASE_STROKE_WIDTH}
+        className="react-flow__edge-path"
+        style={style}
+      />
+
+      {/* Animated overlay path for firing visualization (no marker) */}
+      <path
+        ref={arcPathRef}
+        d={arcPath}
+        fill="none"
+        stroke={style?.stroke ?? "#b1b1b7"}
+        strokeWidth={BASE_STROKE_WIDTH}
+        style={{ pointerEvents: "none" }}
+      />
 
       {/* Labels container */}
       <g transform={`translate(${labelX}, ${labelY})`}>

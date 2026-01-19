@@ -31,6 +31,8 @@ export type TransitionNodeData = {
    */
   type: "transition";
   lambdaType: "predicate" | "stochastic";
+  /** Number of times this transition has fired, or null if no simulation. */
+  firingCount: number | null;
 };
 
 export type TransitionNodeType = Node<TransitionNodeData, "transition">;
