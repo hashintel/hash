@@ -13,7 +13,7 @@ use hashql_core::{
         Tarjan,
         tarjan::{SccId, StronglyConnectedComponents},
     },
-    heap::{CloneIn, Heap},
+    heap::Heap,
     id::{IdVec, bit_vec::DenseBitSet},
 };
 
@@ -70,10 +70,6 @@ impl DynamicComponents {
 
     fn mark_return(&mut self) {
         self.inner.insert(self.returns_slot());
-    }
-
-    fn is_dynamic(&self, local: Local) -> bool {
-        self.inner.contains(local)
     }
 
     fn dynamic_return(&self) -> bool {
@@ -143,6 +139,54 @@ impl<'heap, A: Allocator> SizeEstimationAnalysis<'heap, A> {
         dynamic
     }
 
+    fn dynamic_analysis(
+        &mut self,
+        context: &MirContext<'_, 'heap>,
+        body: &Body<'heap>,
+        footprints: &mut DefIdSlice<BodyFootprint<&'heap Heap>>,
+        dynamic: &DynamicComponents,
+    ) -> bool
+    where
+        A: Clone,
+    {
+        let analysis = SizeEstimationDataflowAnalysis::new(
+            context.env,
+            &body.local_decls,
+            footprints,
+            dynamic.as_set(),
+            &mut self.cache,
+        );
+
+        let DataflowResults {
+            analysis,
+            entry_states: _,
+            exit_states,
+        } = analysis.iterate_to_fixpoint_in(body, self.alloc.clone());
+
+        let lattice = analysis.lattice_in(body, context.heap);
+
+        let lookup = analysis.into_lookup();
+        let body_footprint = &mut footprints[body.id];
+
+        let mut changed = false;
+        for (bb, exit_state) in exit_states.into_iter_enumerated() {
+            let bb = &body.basic_blocks[bb];
+            let TerminatorKind::Return(Return { value }) = &bb.terminator.kind else {
+                continue;
+            };
+
+            if dynamic.dynamic_return() {
+                let rhs = lookup.operand(&exit_state, value);
+
+                SaturatingSemiring.join(&mut body_footprint.returns, rhs.as_ref(&exit_state));
+            }
+
+            changed |= lattice.join(body_footprint, &exit_state);
+        }
+
+        changed
+    }
+
     fn single(
         &mut self,
         context: &MirContext<'_, 'heap>,
@@ -154,61 +198,39 @@ impl<'heap, A: Allocator> SizeEstimationAnalysis<'heap, A> {
         let dynamic = self.static_analysis(context, body, footprints);
 
         if dynamic.requires_dynamic_analysis() {
-            let analysis = SizeEstimationDataflowAnalysis::new(
-                context.env,
-                &body.local_decls,
-                footprints,
-                dynamic.as_set(),
-                &mut self.cache,
-            );
+            self.dynamic_analysis(context, body, footprints, &dynamic);
+        }
+    }
 
-            let DataflowResults {
-                analysis,
-                entry_states: _,
-                exit_states,
-            } = analysis.iterate_to_fixpoint_in(body, self.alloc.clone());
-            let lookup = analysis.into_lookup();
+    fn multiple(
+        &mut self,
+        context: &MirContext<'_, 'heap>,
+        bodies: &DefIdSlice<Body<'heap>>,
+        members: &[DefId],
+        footprints: &mut DefIdSlice<BodyFootprint<&'heap Heap>>,
+    ) where
+        A: Clone,
+    {
+        const MAX_ITERATIONS: usize = 16;
 
-            let body_footprint = &mut footprints[body.id];
-            let lattice = analysis.lattice_in(body, self.alloc.clone());
+        let mut dynamic = Vec::with_capacity_in(members.len(), self.alloc.clone());
+        for &member in members {
+            dynamic.push(self.static_analysis(context, &bodies[member], footprints));
+        }
 
-            // bbs are non-zero, so there's always at least one exit state, if not then that means
-            // that all bb's are unreachable, in which case dynamic analysis cannot be used (because
-            // we have no point to observe).
-            // let mut footprint: Option<BodyFootprint<A>> = None;
+        // We now enter fixpoint iteration, until we hit MAX_ITERATIONS or nothing changes anymore
+        for _ in 0..MAX_ITERATIONS {
+            let mut changed = false;
 
-            for (bb, exit_state) in exit_states.into_iter_enumerated() {
-                let bb = &body.basic_blocks[bb];
-                let TerminatorKind::Return(Return { value }) = &bb.terminator.kind else {
-                    continue;
-                };
-
-                if dynamic.dynamic_return() {
-                    let rhs = lookup.operand(&exit_state, value);
-
-                    SaturatingSemiring.join(&mut body_footprint.returns, rhs.as_ref(&exit_state));
-                }
-
-                match &mut footprint {
-                    Some(footprint) => {
-                        lattice.join(footprint, &exit_state);
-                    }
-                    None => {
-                        footprint = Some(exit_state);
-                    }
+            for (&member, dynamic) in members.iter().zip(&dynamic) {
+                if dynamic.requires_dynamic_analysis() {
+                    changed |= self.dynamic_analysis(context, &bodies[member], footprints, dynamic);
                 }
             }
 
-            let Some(mut footprint) = footprint else {
-                return;
-            };
-            footprint.returns = returns;
-
-            // Move the final footprint into the heap
-            CloneIn::clone_into(&footprint, &mut footprints[body.id], context.heap);
-        } else {
-            // args and locals have been pre-populated, only returns remains
-            footprints[body.id].returns = returns;
+            if !changed {
+                break;
+            }
         }
     }
 
@@ -266,10 +288,7 @@ impl<'env, 'heap, A: Allocator + Clone> GlobalAnalysisPass<'env, 'heap>
                     self.single(context, &bodies[member], &mut footprints);
                 }
                 _ => {
-                    // This is more complex, we need to attempt cycle breaking first, if that
-                    // doesn't work we need to run fix-point iteration.
-                    // We may just want to skip the cycle breaking, because fix-point would just
-                    // converge to it anyway.
+                    self.multiple(context, bodies, members, &mut footprints);
                 }
             }
         }

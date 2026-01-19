@@ -88,8 +88,10 @@ impl<A: Allocator + Clone> Clone for BodyFootprint<A> {
     }
 }
 
-impl<A: Allocator> JoinSemiLattice<BodyFootprint<A>> for BodyFootprintSemilattice<A> {
-    fn join(&self, lhs: &mut BodyFootprint<A>, rhs: &BodyFootprint<A>) -> bool {
+impl<A: Allocator, B: Allocator> JoinSemiLattice<BodyFootprint<A>, BodyFootprint<B>>
+    for BodyFootprintSemilattice<A>
+{
+    fn join(&self, lhs: &mut BodyFootprint<A>, rhs: &BodyFootprint<B>) -> bool {
         assert_eq!(lhs.locals.len(), rhs.locals.len());
 
         let mut changed = false;
