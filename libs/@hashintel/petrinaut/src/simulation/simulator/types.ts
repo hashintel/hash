@@ -55,7 +55,12 @@ export type SimulationFrame = {
   >;
   transitions: Map<
     ID,
-    { instance: Transition; timeSinceLastFiring: number; firingCount: number }
+    {
+      instance: Transition;
+      timeSinceLastFiring: number;
+      justFired: boolean;
+      firingCount: number;
+    }
   >;
   /**
    * Buffer containing all place values concatenated.

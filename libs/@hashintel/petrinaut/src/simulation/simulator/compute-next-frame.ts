@@ -164,13 +164,14 @@ export function computeNextFrame(
     : {
         ...frameAfterTransitions,
         time: currentFrame.time + simulation.dt,
-        // Also update transition timeSinceLastFiring since time advanced
+        // Also update transition timeSinceLastFiring and justFired since time advanced
         transitions: new Map(
           Array.from(frameAfterTransitions.transitions).map(([id, state]) => [
             id,
             {
               ...state,
               timeSinceLastFiring: state.timeSinceLastFiring + simulation.dt,
+              justFired: false,
             },
           ]),
         ),

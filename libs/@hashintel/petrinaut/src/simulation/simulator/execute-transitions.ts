@@ -187,7 +187,7 @@ export function executeTransitions(frame: SimulationFrame): SimulationFrame {
   // Add all new tokens at once
   const newFrame = addTokensToSimulationFrame(currentFrame, tokensToAdd);
 
-  // Update transition timeSinceLastFiring and firingCount
+  // Update transition timeSinceLastFiring, justFired, and firingCount
   const newTransitions = new Map(newFrame.transitions);
   for (const [transitionId, transitionState] of newFrame.transitions) {
     if (transitionsFired.has(transitionId)) {
@@ -195,6 +195,7 @@ export function executeTransitions(frame: SimulationFrame): SimulationFrame {
       newTransitions.set(transitionId, {
         ...transitionState,
         timeSinceLastFiring: 0,
+        justFired: true,
         firingCount: transitionState.firingCount + 1,
       });
     } else {
@@ -203,6 +204,7 @@ export function executeTransitions(frame: SimulationFrame): SimulationFrame {
         ...transitionState,
         timeSinceLastFiring:
           transitionState.timeSinceLastFiring + frame.simulation.dt,
+        justFired: false,
       });
     }
   }
