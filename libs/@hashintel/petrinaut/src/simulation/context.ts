@@ -28,6 +28,8 @@ export type SimulationFrameState = {
       | {
           /** Time since last firing of the transition at the time of the frame. */
           timeSinceLastFiring: number;
+          /** Whether this transition fired in this frame. */
+          justFired: boolean;
           /** Total number of times this transition has fired up to this frame. */
           firingCount: number;
         }

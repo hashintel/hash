@@ -182,6 +182,7 @@ function buildFrameState(
   for (const [transitionId, transitionData] of frame.transitions) {
     transitions[transitionId] = {
       timeSinceLastFiring: transitionData.timeSinceLastFiring,
+      justFired: transitionData.justFired,
       firingCount: transitionData.firingCount,
     };
   }
