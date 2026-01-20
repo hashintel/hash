@@ -164,3 +164,44 @@ unit!(
     /// collections have cardinality equal to their length.
     pub struct Cardinal(u32)
 );
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::pass::analysis::dataflow::lattice::{
+        SaturatingSemiring,
+        laws::{assert_is_bottom_consistent, assert_is_top_consistent},
+    };
+
+    #[test]
+    fn saturating_arithmetic_never_panics() {
+        // Overflow saturates to MAX
+        assert_eq!(
+            InformationUnit::new(u32::MAX).saturating_add(InformationUnit::new(1)),
+            InformationUnit::new(u32::MAX)
+        );
+        assert_eq!(
+            Cardinal::new(u32::MAX).saturating_add(Cardinal::new(1)),
+            Cardinal::new(u32::MAX)
+        );
+
+        // Underflow saturates to 0
+        assert_eq!(
+            InformationUnit::new(0).saturating_sub(InformationUnit::new(1)),
+            InformationUnit::new(0)
+        );
+        assert_eq!(
+            Cardinal::new(0).saturating_sub(Cardinal::new(1)),
+            Cardinal::new(0)
+        );
+    }
+
+    #[test]
+    fn laws() {
+        assert_is_bottom_consistent::<SaturatingSemiring, InformationUnit>(&SaturatingSemiring);
+        assert_is_top_consistent::<SaturatingSemiring, InformationUnit>(&SaturatingSemiring);
+
+        assert_is_bottom_consistent::<SaturatingSemiring, Cardinal>(&SaturatingSemiring);
+        assert_is_top_consistent::<SaturatingSemiring, Cardinal>(&SaturatingSemiring);
+    }
+}
