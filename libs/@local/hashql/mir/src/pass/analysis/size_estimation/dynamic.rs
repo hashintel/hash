@@ -30,7 +30,9 @@ use crate::{
             framework::{DataflowAnalysis, Direction},
             lattice::{AdditiveMonoid as _, SaturatingSemiring},
         },
-        size_estimation::{estimate::Estimate, range::Cardinality, r#static::StaticSizeEstimation},
+        size_estimation::{
+            AffineEquation, estimate::Estimate, range::Cardinality, r#static::StaticSizeEstimation,
+        },
     },
 };
 
@@ -112,7 +114,16 @@ impl<'heap, C: Allocator> SizeEstimationLookup<'_, '_, 'heap, C> {
             // We have a single place projection, this indicates that we have a dynamic place
             // (because we can only index into lists and dicts.) We can simply return
             // the size of the value, with a cardinality of one.
-            let units = domain.locals[place.local].units.clone();
+            let units =
+                if self.dynamic.contains(place.local) && place.local.as_usize() < domain.args {
+                    Estimate::Affine(AffineEquation::coefficient(
+                        place.local.as_usize(),
+                        domain.args,
+                    ))
+                } else {
+                    domain.locals[place.local].units.clone()
+                };
+
             let cardinality = Estimate::Constant(Cardinality::one());
             return Eval::Footprint(Footprint { units, cardinality });
         }
