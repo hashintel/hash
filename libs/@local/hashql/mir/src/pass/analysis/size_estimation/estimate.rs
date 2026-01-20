@@ -238,7 +238,10 @@ mod tests {
     use crate::pass::analysis::{
         dataflow::lattice::{
             AdditiveMonoid as _, HasBottom as _, JoinSemiLattice as _, SaturatingSemiring,
-            laws::{assert_additive_monoid, assert_bounded_join_semilattice},
+            laws::{
+                assert_additive_monoid, assert_bounded_join_semilattice,
+                assert_is_bottom_consistent,
+            },
         },
         size_estimation::{AffineEquation, InformationRange, InformationUnit},
     };
@@ -369,6 +372,7 @@ mod tests {
 
         assert_additive_monoid(&semiring, a.clone(), b.clone(), c.clone());
         assert_bounded_join_semilattice(&semiring, a, b, c);
+        assert_is_bottom_consistent::<SaturatingSemiring, Estimate<InformationRange>>(&semiring);
     }
 
     #[test]

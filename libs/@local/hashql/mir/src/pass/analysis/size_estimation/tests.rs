@@ -4,14 +4,18 @@ use alloc::alloc::Global;
 use core::{fmt::Write as _, slice};
 use std::path::PathBuf;
 
-use hashql_core::{heap::Heap, id::Id as _, r#type::environment::Environment};
+use hashql_core::{
+    heap::Heap,
+    id::Id as _,
+    r#type::{TypeBuilder, environment::Environment},
+};
 use hashql_diagnostics::DiagnosticIssues;
 use insta::{Settings, assert_snapshot};
 
 use super::SizeEstimationAnalysis;
 use crate::{
     body::Body,
-    builder::body,
+    builder::{BodyBuilder, body},
     context::MirContext,
     def::{DefId, DefIdSlice},
     intern::Interner,
@@ -234,6 +238,81 @@ fn input_exists_is_scalar() {
 
     assert_size_estimation(
         "input_exists_is_scalar",
+        slice::from_mut(&mut body),
+        &heap,
+        &interner,
+        &env,
+    );
+}
+
+/// Index projection extracts one element from a collection.
+/// The element inherits the collection's unit size but has cardinality 1.
+#[test]
+fn index_projection_extracts_one_element() {
+    let heap = Heap::new();
+    let interner = Interner::new(&heap);
+    let env = Environment::new(&heap);
+    let types = TypeBuilder::synthetic(&env);
+
+    let int_ty = types.integer();
+    let list_ty = types.list(types.unknown());
+
+    let mut builder = BodyBuilder::new(&interner);
+
+    // Declare locals: xs (list parameter), idx (index), elem (result)
+    let xs = builder.local("xs", list_ty);
+    let idx = builder.local("idx", int_ty);
+    let elem = builder.local("elem", types.unknown());
+
+    // Create index projection: xs[idx]
+    let xs_idx = builder.place(|p| p.from(xs).index(idx.local, types.unknown()));
+
+    // Constants
+    let const_0 = builder.const_int(0);
+
+    let bb0 = builder.reserve_block([]);
+    builder
+        .build_block(bb0)
+        .assign_place(idx, |rv| rv.load(const_0))
+        .assign_place(elem, |rv| rv.load(xs_idx))
+        .ret(elem);
+
+    let mut body = builder.finish(1, int_ty);
+    body.id = DefId::new(0);
+
+    assert_size_estimation(
+        "index_projection_extracts_one_element",
+        slice::from_mut(&mut body),
+        &heap,
+        &interner,
+        &env,
+    );
+}
+
+/// Static type projection uses static analysis on the projected type.
+/// When accessing a statically-sized field from a tuple containing unknown types,
+/// the projected field's size is determined statically.
+#[test]
+fn static_type_projection_fallback() {
+    let heap = Heap::new();
+    let interner = Interner::new(&heap);
+    let env = Environment::new(&heap);
+
+    // Tuple with (Int, ?) - first field is statically sized, second is unknown
+    // Accessing .0 should give us the static size of Int (1..=1)
+    let mut body = body!(interner, env; fn@0/0 -> Int {
+        decl tup: (Int, ?), elem: ?;
+        @proj tup_0 = tup.0: Int;
+
+        bb0() {
+            tup = input.load! "data";
+            elem = load tup_0;
+            return elem;
+        }
+    });
+
+    assert_size_estimation(
+        "static_type_projection_fallback",
         slice::from_mut(&mut body),
         &heap,
         &interner,
