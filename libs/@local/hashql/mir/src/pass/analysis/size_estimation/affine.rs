@@ -30,13 +30,31 @@ const MAX_INLINE_COEFFICIENTS: usize = size_of::<usize>() / size_of::<Coefficien
 ///
 /// Models `y = c₁·a + c₂·b + ... + k` where coefficients track how each parameter
 /// contributes to the total size.
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug)]
 pub struct AffineEquation<T> {
     /// Coefficients for each function parameter (index matches parameter position).
     pub coefficients: InlineVec<Coefficient, MAX_INLINE_COEFFICIENTS>,
     /// The constant term (size independent of parameters).
     pub constant: T,
 }
+
+impl<T: PartialEq> PartialEq for AffineEquation<T> {
+    fn eq(&self, other: &Self) -> bool {
+        let Self {
+            coefficients,
+            constant,
+        } = self;
+
+        // Compare constant first, then prefix, then verify trailing coefficients are zero
+        let min = coefficients.len().min(other.coefficients.len());
+        *constant == other.constant
+            && coefficients[..min] == other.coefficients[..min]
+            && coefficients[min..].iter().all(|&value| value == 0)
+            && other.coefficients[min..].iter().all(|&value| value == 0)
+    }
+}
+
+impl<T: Eq> Eq for AffineEquation<T> {}
 
 impl<T> AffineEquation<T> {
     /// Creates an equation that equals exactly the parameter at `index`.
@@ -126,5 +144,106 @@ where
         changed |= self.join(&mut lhs.constant, &rhs.constant);
 
         changed
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    #![expect(clippy::min_ident_chars)]
+    use crate::pass::analysis::{
+        dataflow::lattice::{
+            AdditiveMonoid as _, JoinSemiLattice as _, SaturatingSemiring,
+            laws::{assert_additive_monoid, assert_join_semilattice},
+        },
+        size_estimation::{AffineEquation, InformationRange},
+    };
+
+    fn make_affine(
+        coeffs: impl IntoIterator<Item = u16>,
+        constant: InformationRange,
+    ) -> AffineEquation<InformationRange> {
+        AffineEquation {
+            coefficients: coeffs.into_iter().collect(),
+            constant,
+        }
+    }
+
+    #[test]
+    fn coefficient_constructor_correctness() {
+        let eq: AffineEquation<InformationRange> = AffineEquation::coefficient(2, 5);
+
+        assert_eq!(eq.coefficients.as_slice(), &[0, 0, 1, 0, 0]);
+        assert_eq!(eq.constant, InformationRange::empty());
+    }
+
+    #[test]
+    fn plus_handles_mismatched_lengths() {
+        let mut lhs = make_affine([1, 2, 3], InformationRange::empty());
+        let rhs = make_affine([4, 5, 6, 7, 8], InformationRange::empty());
+
+        SaturatingSemiring.plus(&mut lhs, &rhs);
+
+        assert_eq!(lhs.coefficients.len(), 5);
+    }
+
+    #[test]
+    fn plus_computes_pointwise_sum() {
+        let mut lhs = make_affine([1, 2, 3], InformationRange::one());
+        let rhs = make_affine([4, 5, 6], InformationRange::one());
+
+        SaturatingSemiring.plus(&mut lhs, &rhs);
+
+        assert_eq!(lhs.coefficients.as_slice(), &[5, 7, 9]);
+
+        let expected_constant = {
+            let mut c = InformationRange::one();
+            SaturatingSemiring.plus(&mut c, &InformationRange::one());
+            c
+        };
+        assert_eq!(lhs.constant, expected_constant);
+    }
+
+    #[test]
+    fn join_computes_pointwise_max() {
+        let mut lhs = make_affine([1, 5, 3], InformationRange::empty());
+        let rhs = make_affine([4, 2, 6], InformationRange::one());
+
+        SaturatingSemiring.join(&mut lhs, &rhs);
+
+        assert_eq!(lhs.coefficients.as_slice(), &[4, 5, 6]);
+        assert_eq!(lhs.constant, InformationRange::one());
+    }
+
+    #[test]
+    fn laws() {
+        let a = make_affine([1, 2], InformationRange::one());
+        let b = make_affine([3, 4], InformationRange::empty());
+        let c = make_affine([5, 6], InformationRange::full());
+
+        assert_additive_monoid(&SaturatingSemiring, a.clone(), b.clone(), c.clone());
+        assert_join_semilattice(&SaturatingSemiring, a, b, c);
+    }
+
+    #[test]
+    fn partial_eq_ignores_trailing_zeros() {
+        let short = make_affine([1, 2], InformationRange::one());
+        let long_with_zeros = make_affine([1, 2, 0, 0, 0], InformationRange::one());
+        let long_with_nonzero = make_affine([1, 2, 0, 0, 1], InformationRange::one());
+
+        assert_eq!(short, long_with_zeros);
+        assert_eq!(long_with_zeros, short);
+        assert_ne!(short, long_with_nonzero);
+        assert_ne!(long_with_nonzero, short);
+    }
+
+    #[test]
+    fn partial_eq_empty_coefficients_equals_all_zeros() {
+        let empty = make_affine([], InformationRange::one());
+        let all_zeros = make_affine([0, 0, 0], InformationRange::one());
+        let not_all_zeros = make_affine([0, 1, 0], InformationRange::one());
+
+        assert_eq!(empty, all_zeros);
+        assert_eq!(all_zeros, empty);
+        assert_ne!(empty, not_all_zeros);
     }
 }
