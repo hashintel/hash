@@ -20,7 +20,7 @@ use crate::{
         local::{Local, LocalDecl, LocalSlice},
         location::Location,
         operand::Operand,
-        place::Place,
+        place::{Place, Projection, ProjectionKind},
         rvalue::{Aggregate, Apply, ArgSlice, BinOp, Binary, Input, RValue, Unary},
         statement::{Assign, Statement, StatementKind},
     },
@@ -100,6 +100,21 @@ impl<'heap, C: Allocator> SizeEstimationLookup<'_, '_, 'heap, C> {
             }
 
             return Eval::Copy(place.local);
+        }
+
+        if matches!(
+            &*place.projections,
+            [Projection {
+                kind: ProjectionKind::Index(_),
+                ..
+            }]
+        ) {
+            // We have a single place projection, this indicates that we have a dynamic place
+            // (because we can only index into lists and dicts.) We can simply return
+            // the size of the value, with a cardinality of one.
+            let units = domain.locals[place.local].units.clone();
+            let cardinality = Estimate::Constant(Cardinality::one());
+            return Eval::Footprint(Footprint { units, cardinality });
         }
 
         let type_id = place.type_id(self.decl);
