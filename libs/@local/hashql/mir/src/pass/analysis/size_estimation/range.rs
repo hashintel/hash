@@ -218,21 +218,7 @@ macro_rules! range {
             }
         }
 
-        impl SaturatingMulAssign<u16> for $name {
-            #[inline]
-            fn saturating_mul_assign(&mut self, rhs: u16) {
-                self.min.raw = self.min.raw.saturating_mul(u32::from(rhs));
-                match &mut self.max {
-                    Bound::Included(max) | Bound::Excluded(max) => {
-                        max.raw = max.raw.saturating_mul(u32::from(rhs));
-                    }
-                    Bound::Unbounded => {}
-                }
-            }
-        }
-
         forward_ref_binop!(impl SaturatingMul<u16>::saturating_mul for $name);
-        forward_ref_op_assign!(impl SaturatingMulAssign<u16>::saturating_mul_assign for $name);
     };
 }
 
@@ -299,7 +285,4 @@ pub(crate) trait SaturatingMul<R> {
     type Output;
 
     fn saturating_mul(self, rhs: R) -> Self::Output;
-}
-pub(crate) trait SaturatingMulAssign<R> {
-    fn saturating_mul_assign(&mut self, rhs: R);
 }
