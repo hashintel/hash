@@ -19,6 +19,8 @@ const config: PlaywrightTestConfig = {
   retries: ci ? 2 : 0,
   testDir: "tests",
   snapshotDir: "tests/__snapshots__",
+  // Use platform/browser-agnostic snapshot names (just the test name)
+  snapshotPathTemplate: "{snapshotDir}/{arg}{ext}",
   use: {
     baseURL: "http://localhost:61000",
     trace: "retain-on-failure",
