@@ -1,3 +1,9 @@
+//! Static size estimation from type information.
+//!
+//! Computes size estimates purely from type structure, without dataflow analysis.
+//! Returns `None` for types that cannot be statically sized (e.g., lists, dicts,
+//! intrinsics), which signals that dynamic analysis is needed.
+
 use core::{alloc::Allocator, ops::ControlFlow};
 
 use hashql_core::{
@@ -14,6 +20,10 @@ use hashql_core::{
 
 use super::{range::InformationRange, unit::InformationUnit};
 
+/// Cache for memoizing static size computations.
+///
+/// Uses `None` as a sentinel during recursive evaluation to detect cycles.
+/// The `dirty` flag tracks whether sentinels remain that need cleanup.
 pub(crate) struct StaticSizeEstimationCache<A: Allocator> {
     inner: FastHashMap<TypeId, Option<InformationRange>, A>,
     dirty: bool,
@@ -28,8 +38,10 @@ impl<A: Allocator> StaticSizeEstimationCache<A> {
     }
 }
 
-// The naive size estimation pass uses size estimation by checking if the type can be used for the
-// data.
+/// Static size estimator that computes sizes from type structure.
+///
+/// Handles primitives, structs, tuples, unions (cover), and intersections (intersect).
+/// Returns `None` for types requiring dynamic analysis.
 pub(crate) struct StaticSizeEstimation<'cache, 'env, 'heap, A: Allocator> {
     env: &'env Environment<'heap>,
     cache: &'cache mut StaticSizeEstimationCache<A>,
@@ -45,8 +57,8 @@ impl<'cache, 'env, 'heap, A: Allocator> StaticSizeEstimation<'cache, 'env, 'heap
 }
 
 impl<A: Allocator> StaticSizeEstimation<'_, '_, '_, A> {
+    /// Estimates the size of a type, returning `None` if it cannot be statically determined.
     pub(crate) fn run(&mut self, type_id: TypeId) -> Option<InformationRange> {
-        // remove any `None` from the cache, as we're restarting evaluation
         if self.cache.dirty {
             self.cache.inner.retain(|_, value| value.is_some());
         }
@@ -57,12 +69,14 @@ impl<A: Allocator> StaticSizeEstimation<'_, '_, '_, A> {
         result.continue_value()
     }
 
+    /// Evaluates a type with cycle detection via sentinel values.
     #[expect(unsafe_code)]
     fn eval(&mut self, type_id: TypeId) -> ControlFlow<(), InformationRange> {
         if let Some(&cached) = self.cache.inner.get(&type_id) {
             return cached.map_or(ControlFlow::Break(()), ControlFlow::Continue);
         }
 
+        // Insert sentinel to detect recursive references
         // SAFETY: we just verified that the type is not in the cache
         unsafe {
             self.cache.inner.insert_unique_unchecked(type_id, None);
@@ -73,6 +87,7 @@ impl<A: Allocator> StaticSizeEstimation<'_, '_, '_, A> {
         ControlFlow::Continue(value)
     }
 
+    /// Computes size for a type based on its structure.
     fn compute(&mut self, type_id: TypeId) -> ControlFlow<(), InformationRange> {
         let r#type = self.env.r#type(type_id);
 
@@ -92,7 +107,8 @@ impl<A: Allocator> StaticSizeEstimation<'_, '_, '_, A> {
             TypeKind::Primitive(_) | TypeKind::Closure(_) => {
                 ControlFlow::Continue(InformationUnit::new(1).into())
             }
-            TypeKind::Intrinsic(_) | TypeKind::Unknown => ControlFlow::Break(()), // dynamic values
+            // Intrinsics and Unknown require dynamic analysis
+            TypeKind::Intrinsic(_) | TypeKind::Unknown => ControlFlow::Break(()),
             TypeKind::Struct(StructType { fields }) => {
                 let mut total = InformationRange::empty();
 
@@ -129,8 +145,8 @@ impl<A: Allocator> StaticSizeEstimation<'_, '_, '_, A> {
 
                 ControlFlow::Continue(total)
             }
-            // After simplification param and infer shouldn't survive and should have been
-            // simplified away
+            // Param/Infer/Never should be eliminated by type simplification; return empty
+            // as a safe default (the typechecker would reject real occurrences)
             TypeKind::Param(_) | TypeKind::Infer(_) | TypeKind::Never => {
                 ControlFlow::Continue(InformationRange::empty())
             }

@@ -1,3 +1,14 @@
+//! Range types for size estimation bounds.
+//!
+//! This module provides range types that represent min/max bounds on sizes:
+//!
+//! - [`InformationRange`]: Bounds on information content (in [`InformationUnit`]s)
+//! - [`Cardinality`]: Bounds on element count (in [`Cardinal`]s)
+//!
+//! Both support unbounded upper limits (`Bound::Unbounded`) to represent collections
+//! of unknown size. The analysis prefers underestimation, so unbounded upper limits
+//! are common for dynamically-sized types.
+
 use core::{
     cmp, fmt,
     fmt::Debug,
@@ -12,6 +23,7 @@ use crate::{
     },
 };
 
+/// Compares two upper bounds, treating `Unbounded` as greater than any finite bound.
 #[expect(
     clippy::trivially_copy_pass_by_ref,
     reason = "used as cmp that requires ref"
@@ -33,6 +45,7 @@ fn compare_max(lhs: &Bound<u32>, rhs: &Bound<u32>) -> cmp::Ordering {
     }
 }
 
+/// Adds two upper bounds (may panic on overflow).
 const fn add_bound(lhs: Bound<u32>, rhs: Bound<u32>) -> Bound<u32> {
     match (lhs, rhs) {
         (Bound::Included(lhs), Bound::Included(rhs)) => Bound::Included(lhs + rhs),
@@ -47,6 +60,7 @@ const fn add_bound(lhs: Bound<u32>, rhs: Bound<u32>) -> Bound<u32> {
     }
 }
 
+/// Adds two upper bounds with saturation (clamps at `u32::MAX` instead of overflowing).
 const fn saturating_add_bound(lhs: Bound<u32>, rhs: Bound<u32>) -> Bound<u32> {
     match (lhs, rhs) {
         (Bound::Included(lhs), Bound::Included(rhs)) => Bound::Included(lhs.saturating_add(rhs)),
@@ -222,8 +236,21 @@ macro_rules! range {
     };
 }
 
-range!(pub struct InformationRange(InformationUnit));
-range!(pub struct Cardinality(Cardinal));
+range!(
+    /// A range of possible information content values.
+    ///
+    /// Represents `[min, max]` bounds on how much information a value contains.
+    /// The max bound may be `Unbounded` for dynamically-sized types.
+    pub struct InformationRange(InformationUnit)
+);
+
+range!(
+    /// A range of possible cardinality (element count) values.
+    ///
+    /// Represents `[min, max]` bounds on how many elements a value contains.
+    /// Scalars always have cardinality `1..=1`.
+    pub struct Cardinality(Cardinal)
+);
 
 impl AdditiveMonoid<InformationRange> for SaturatingSemiring {
     fn zero(&self) -> InformationRange {
@@ -281,6 +308,7 @@ impl JoinSemiLattice<Cardinality> for SaturatingSemiring {
     }
 }
 
+/// Multiplication that saturates at the type's maximum value instead of overflowing.
 pub(crate) trait SaturatingMul<R> {
     type Output;
 

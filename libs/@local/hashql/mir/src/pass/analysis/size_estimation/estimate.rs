@@ -1,3 +1,9 @@
+//! Estimate type that can be either constant or parameter-dependent.
+//!
+//! An [`Estimate`] wraps a value type (like [`InformationRange`] or [`Cardinality`]) and
+//! tracks whether it's a fixed constant or depends on function parameters via an
+//! [`AffineEquation`].
+
 use core::mem;
 
 use hashql_core::collections::small_vec_from_elem;
@@ -7,9 +13,15 @@ use crate::pass::analysis::dataflow::lattice::{
     AdditiveMonoid, HasBottom, JoinSemiLattice, SaturatingSemiring,
 };
 
+/// A size estimate that may be constant or depend on function parameters.
+///
+/// - `Constant`: A fixed value independent of inputs
+/// - `Affine`: A value computed as a linear combination of parameter sizes
 #[derive(Debug, PartialEq, Eq, Hash)]
 pub enum Estimate<T> {
+    /// A fixed constant value.
     Constant(T),
+    /// A value that depends on function parameters via an affine equation.
     Affine(AffineEquation<T>),
 }
 
@@ -33,6 +45,7 @@ impl<T: Clone> Clone for Estimate<T> {
 }
 
 impl<T> Estimate<T> {
+    /// Returns the constant term (for `Constant`) or the equation's constant (for `Affine`).
     pub(crate) const fn constant(&self) -> &T {
         match self {
             Self::Constant(value) => value,
@@ -40,6 +53,7 @@ impl<T> Estimate<T> {
         }
     }
 
+    /// Returns the coefficients (empty slice for `Constant`).
     pub(crate) fn coefficients(&self) -> &[u16] {
         match self {
             Self::Constant(_) => &[],
@@ -47,6 +61,7 @@ impl<T> Estimate<T> {
         }
     }
 
+    /// Returns mutable access to the coefficients.
     pub(crate) fn coefficients_mut(&mut self) -> &mut [u16] {
         match self {
             Self::Constant(_) => &mut [],
@@ -54,6 +69,7 @@ impl<T> Estimate<T> {
         }
     }
 
+    /// Returns mutable access to the constant term.
     pub(crate) const fn constant_mut(&mut self) -> &mut T {
         match self {
             Self::Constant(value) => value,
@@ -61,6 +77,9 @@ impl<T> Estimate<T> {
         }
     }
 
+    /// Ensures the estimate has at least `length` coefficient slots.
+    ///
+    /// Upgrades `Constant` to `Affine` if coefficients are needed.
     fn resize_coefficients(&mut self, length: usize)
     where
         T: Clone,
@@ -82,6 +101,9 @@ impl<T> Estimate<T> {
         }
     }
 
+    /// Computes `self += other * coefficient` with saturation.
+    ///
+    /// Adds `other`'s coefficients and constant (scaled by `coefficient`) to `self`.
     pub(crate) fn saturating_mul_add(&mut self, other: &Self, coefficient: u16)
     where
         T: Clone,
@@ -118,15 +140,15 @@ where
         match (lhs, rhs) {
             (Estimate::Constant(lhs), Estimate::Constant(rhs)) => self.plus(lhs, rhs),
             (lhs @ Estimate::Constant(_), Estimate::Affine(rhs)) => {
+                // Result must be Affine to preserve rhs's parameter dependencies.
+                // We compute rhs + lhs instead of lhs + rhs, which is valid because
+                // the additive monoid is commutative.
                 let Estimate::Constant(constant) = mem::replace(lhs, Estimate::Affine(rhs.clone()))
                 else {
-                    unreachable!("we have just verified that this is a constant")
+                    unreachable!("lhs was just verified to be Constant")
                 };
 
-                // The additive monoid is commutative and associative, so we are allowed to swap the
-                // order of addition
                 self.plus(lhs.constant_mut(), &constant);
-
                 true
             }
             (Estimate::Affine(lhs), Estimate::Constant(rhs)) => self.plus(&mut lhs.constant, rhs),
@@ -145,15 +167,16 @@ where
             (Estimate::Constant(lhs), Estimate::Constant(rhs)) => self.join(lhs, rhs),
             (Estimate::Affine(lhs), Estimate::Affine(rhs)) => self.join(lhs, rhs),
             (lhs @ Estimate::Constant(_), Estimate::Affine(rhs)) => {
+                // Result must be Affine to preserve rhs's parameter dependencies.
+                // We compute rhs ⊔ lhs instead of lhs ⊔ rhs, which is valid because
+                // the semilattice join is commutative.
                 let Estimate::Constant(constant) = mem::replace(lhs, Estimate::Affine(rhs.clone()))
                 else {
-                    unreachable!("we have just verified that this is a constant")
+                    unreachable!("lhs was just verified to be Constant")
                 };
 
-                // semilattice is commutative and associative, so we can just swap the operands
                 self.join(lhs.constant_mut(), &constant);
-
-                true // We **have** changed something by cloning the coefficients
+                true
             }
             (Estimate::Affine(lhs), Estimate::Constant(rhs)) => self.join(&mut lhs.constant, rhs),
         }
