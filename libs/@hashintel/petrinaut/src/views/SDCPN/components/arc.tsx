@@ -12,16 +12,16 @@ const ANIMATION_DURATION_MS = 300;
 type AnimationState = {
   animation: Animation;
   startTime: number;
-  tokensAnimating: number;
+  transitionsAnimating: number;
 };
 
 /**
- * Hook to animate stroke dash offset when firing delta changes.
- * Creates a "flowing" effect along the arc path.
+ * Hook to animate stroke width when firing delta changes.
+ * Creates a "pulse" effect on the arc when transitions fire.
  *
  * The animation accumulates: if a new firing occurs while an animation is
- * in progress, we calculate the remaining offset from the previous animation
- * and add it to the new one for smooth visual continuity.
+ * in progress, we calculate the remaining stroke width from the previous
+ * animation and add it to the new one for smooth visual continuity.
  */
 function useFiringAnimation(
   pathRef: React.RefObject<SVGPathElement | null>,
@@ -37,17 +37,16 @@ function useFiringAnimation(
     }
 
     let transitionsToAnimate = firingDelta;
-    let remainingTransitions = 0;
 
     // Calculate remaining transitions from previous animation (if any)
     if (animationStateRef.current) {
-      const { animation, startTime, tokensAnimating } =
+      const { animation, startTime, transitionsAnimating } =
         animationStateRef.current;
       const elapsed = performance.now() - startTime;
       const progress = Math.min(elapsed / ANIMATION_DURATION_MS, 1);
 
       // Remaining transitions decrease linearly as animation progresses
-      remainingTransitions = tokensAnimating * (1 - progress);
+      const remainingTransitions = transitionsAnimating * (1 - progress);
       transitionsToAnimate += remainingTransitions;
 
       // Cancel the previous animation
@@ -56,41 +55,27 @@ function useFiringAnimation(
 
     const path = pathRef.current;
 
-    // Stroke width based on total transitions (original formula)
+    // Stroke width based on total transitions
     const peakStrokeWidth =
       BASE_STROKE_WIDTH + Math.log(1 + transitionsToAnimate) * 3 * weight;
 
-    // Start offset: interpolated from remaining transitions (0 if no previous animation)
-    const startOffset = remainingTransitions * 3;
-
-    // End offset: cumulative offset for all transitions
-    const endOffset = transitionsToAnimate * 3;
-
     const animation = path.animate(
       [
-        {
-          strokeWidth: `${peakStrokeWidth}px`,
-          strokeDasharray: `${peakStrokeWidth}px 10px`,
-          strokeDashoffset: `${startOffset}px`,
-        },
-        {
-          strokeWidth: `${BASE_STROKE_WIDTH}px`,
-          strokeDasharray: `${peakStrokeWidth + 10}px 0`,
-          strokeDashoffset: `${endOffset}px`,
-        },
+        { strokeWidth: `${peakStrokeWidth}px` },
+        { strokeWidth: `${BASE_STROKE_WIDTH}px` },
       ],
       {
         duration: ANIMATION_DURATION_MS,
-        easing: "linear",
+        easing: "ease-out",
         fill: "forwards",
       },
     );
 
-    // Store total transitions for calculating remaining offset later
+    // Store total transitions for calculating remaining stroke width later
     animationStateRef.current = {
       animation,
       startTime: performance.now(),
-      tokensAnimating: transitionsToAnimate,
+      transitionsAnimating: transitionsToAnimate,
     };
 
     // Clean up animation reference when it finishes
