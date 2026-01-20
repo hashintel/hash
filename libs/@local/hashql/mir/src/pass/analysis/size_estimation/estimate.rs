@@ -4,7 +4,7 @@
 //! tracks whether it's a fixed constant or depends on function parameters via an
 //! [`AffineEquation`].
 
-use core::mem;
+use core::{fmt, mem};
 
 use hashql_core::collections::small_vec_from_elem;
 
@@ -42,6 +42,15 @@ impl<T: PartialEq> PartialEq for Estimate<T> {
 }
 
 impl<T: Eq> Eq for Estimate<T> {}
+
+impl<T: fmt::Display> fmt::Display for Estimate<T> {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Constant(value) => fmt::Display::fmt(value, fmt),
+            Self::Affine(affine) => fmt::Display::fmt(affine, fmt),
+        }
+    }
+}
 
 impl<T: Clone> Clone for Estimate<T> {
     #[inline]

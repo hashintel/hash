@@ -1,0 +1,12 @@
+---
+source: libs/@local/hashql/mir/src/pass/analysis/size_estimation/tests.rs
+assertion_line: 47
+expression: output
+---
+fn@0 (1 args)
+  _0: units: 1..=1, card: 1..=1
+  returns: units: 1..=1, card: 1..=1
+
+fn@1 (0 args)
+  _0: units: 1..=1, card: 1..=1
+  returns: units: 1..=1, card: 1..=1

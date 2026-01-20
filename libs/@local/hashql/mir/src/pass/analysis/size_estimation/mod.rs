@@ -38,6 +38,8 @@ mod estimate;
 mod footprint;
 pub(crate) mod range;
 mod r#static;
+#[cfg(test)]
+mod tests;
 pub(crate) mod unit;
 
 use core::alloc::Allocator;
@@ -149,6 +151,16 @@ impl<'heap, A: Allocator> SizeEstimationAnalysis<'heap, A> {
             cache,
             footprints: None,
         }
+    }
+
+    /// Finishes the analysis and returns the computed footprints.
+    ///
+    /// # Panics
+    /// Panics if the analysis pass has not been run before.
+    pub fn finish(mut self) -> DefIdVec<BodyFootprint<&'heap Heap>, &'heap Heap> {
+        self.footprints
+            .take()
+            .expect("finish called before analysis")
     }
 
     /// Performs static analysis on a single body, marking locals that need dynamic analysis.
