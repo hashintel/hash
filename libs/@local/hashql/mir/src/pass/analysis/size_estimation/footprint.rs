@@ -34,7 +34,7 @@ pub(crate) struct BodyFootprintSemilattice<A: Allocator> {
 /// Size estimates for all values in a function body.
 ///
 /// Contains footprints for each local variable and the return value.
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug)]
 pub struct BodyFootprint<A: Allocator> {
     /// Number of function arguments (used to size affine coefficient vectors).
     pub args: usize,
@@ -43,6 +43,20 @@ pub struct BodyFootprint<A: Allocator> {
     /// Footprint for the function's return value.
     pub returns: Footprint,
 }
+
+impl<A: Allocator, B: Allocator> PartialEq<BodyFootprint<B>> for BodyFootprint<A> {
+    fn eq(&self, other: &BodyFootprint<B>) -> bool {
+        let Self {
+            args,
+            locals,
+            returns,
+        } = self;
+
+        *args == other.args && *locals == other.locals && *returns == other.returns
+    }
+}
+
+impl<A: Allocator> Eq for BodyFootprint<A> {}
 
 impl<A: Allocator, B: Allocator> TryCloneIn<B> for BodyFootprint<A> {
     type Cloned = BodyFootprint<B>;
@@ -279,15 +293,24 @@ impl HasBottom<Footprint> for SaturatingSemiring {
 #[cfg(test)]
 mod tests {
     #![expect(clippy::min_ident_chars)]
+    use alloc::alloc::Global;
     use core::ops::Bound;
 
-    use crate::pass::analysis::{
-        dataflow::lattice::{
-            SaturatingSemiring,
-            laws::{assert_additive_monoid, assert_bounded_join_semilattice},
-        },
-        size_estimation::{
-            Cardinal, Cardinality, Footprint, InformationRange, InformationUnit, estimate::Estimate,
+    use super::{BodyFootprint, BodyFootprintSemilattice};
+    use crate::{
+        body::local::LocalVec,
+        pass::analysis::{
+            dataflow::lattice::{
+                SaturatingSemiring,
+                laws::{
+                    assert_additive_monoid, assert_bounded_join_semilattice,
+                    assert_is_bottom_consistent,
+                },
+            },
+            size_estimation::{
+                Cardinal, Cardinality, Footprint, InformationRange, InformationUnit,
+                estimate::Estimate,
+            },
         },
     };
 
@@ -371,5 +394,31 @@ mod tests {
 
         assert_additive_monoid(&SaturatingSemiring, a.clone(), b.clone(), c.clone());
         assert_bounded_join_semilattice(&SaturatingSemiring, a, b, c);
+        assert_is_bottom_consistent::<SaturatingSemiring, Footprint>(&SaturatingSemiring);
+
+        let lattice = BodyFootprintSemilattice {
+            alloc: Global,
+            domain_size: 4,
+            args: 2,
+        };
+
+        let body_a = BodyFootprint {
+            args: 2,
+            locals: LocalVec::from_elem_in(Footprint::scalar(), 4, Global),
+            returns: Footprint::scalar(),
+        };
+        let body_b = BodyFootprint {
+            args: 2,
+            locals: LocalVec::from_elem_in(Footprint::unknown(), 4, Global),
+            returns: Footprint::unknown(),
+        };
+        let body_c = BodyFootprint {
+            args: 2,
+            locals: LocalVec::from_elem_in(Footprint::coefficient(0, 2), 4, Global),
+            returns: Footprint::coefficient(1, 2),
+        };
+
+        assert_bounded_join_semilattice(&lattice, body_a, body_b, body_c);
+        assert_is_bottom_consistent::<_, BodyFootprint<Global>>(&lattice);
     }
 }
