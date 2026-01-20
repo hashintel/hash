@@ -34,7 +34,7 @@ pub(crate) struct BodyFootprintSemilattice<A: Allocator> {
 /// Size estimates for all values in a function body.
 ///
 /// Contains footprints for each local variable and the return value.
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct BodyFootprint<A: Allocator> {
     /// Number of function arguments (used to size affine coefficient vectors).
     pub args: usize,
@@ -146,7 +146,7 @@ impl<A: Allocator + Clone> HasBottom<BodyFootprint<A>> for BodyFootprintSemilatt
 /// Combined size measure tracking both information content and element count.
 ///
 /// Each measure can be either a constant range or an affine equation of the function's parameters.
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct Footprint {
     /// The amount of information this value contains.
     pub units: Estimate<InformationRange>,
@@ -229,13 +229,15 @@ impl AdditiveMonoid<Footprint> for SaturatingSemiring {
     }
 
     fn plus(&self, lhs: &mut Footprint, rhs: &Footprint) -> bool {
-        self.plus(&mut lhs.units, &rhs.units) || self.plus(&mut lhs.cardinality, &rhs.cardinality)
+        // Use `|` not `||` to ensure both fields are updated
+        self.plus(&mut lhs.units, &rhs.units) | self.plus(&mut lhs.cardinality, &rhs.cardinality)
     }
 }
 
 impl JoinSemiLattice<Footprint> for SaturatingSemiring {
     fn join(&self, lhs: &mut Footprint, rhs: &Footprint) -> bool {
-        self.join(&mut lhs.units, &rhs.units) || self.join(&mut lhs.cardinality, &rhs.cardinality)
+        // Use `|` not `||` to ensure both fields are updated
+        self.join(&mut lhs.units, &rhs.units) | self.join(&mut lhs.cardinality, &rhs.cardinality)
     }
 }
 
@@ -249,5 +251,103 @@ impl HasBottom<Footprint> for SaturatingSemiring {
 
     fn is_bottom(&self, value: &Footprint) -> bool {
         self.is_bottom(&value.units) && self.is_bottom(&value.cardinality)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    #![expect(clippy::min_ident_chars)]
+    use core::ops::Bound;
+
+    use crate::pass::analysis::{
+        dataflow::lattice::{
+            SaturatingSemiring,
+            laws::{assert_additive_monoid, assert_bounded_join_semilattice},
+        },
+        size_estimation::{
+            Cardinal, Cardinality, Footprint, InformationRange, InformationUnit, estimate::Estimate,
+        },
+    };
+
+    #[test]
+    fn scalar_footprint_values() {
+        let scalar = Footprint::scalar();
+
+        let Estimate::Constant(units_range) = &scalar.units else {
+            panic!("expected Constant variant for units");
+        };
+        assert_eq!(units_range, &InformationRange::one());
+
+        let Estimate::Constant(card_range) = &scalar.cardinality else {
+            panic!("expected Constant variant for cardinality");
+        };
+        assert_eq!(card_range, &Cardinality::one());
+    }
+
+    #[test]
+    fn unknown_footprint_values() {
+        let unknown = Footprint::unknown();
+
+        let Estimate::Constant(units_range) = &unknown.units else {
+            panic!("expected Constant variant for units");
+        };
+        assert_eq!(units_range, &InformationRange::full());
+
+        let Estimate::Constant(card_range) = &unknown.cardinality else {
+            panic!("expected Constant variant for cardinality");
+        };
+        assert_eq!(card_range, &Cardinality::one());
+    }
+
+    #[test]
+    fn coefficient_footprint_structure() {
+        let footprint = Footprint::coefficient(2, 5);
+
+        let Estimate::Affine(units_eq) = &footprint.units else {
+            panic!("expected Affine variant for units");
+        };
+        assert_eq!(units_eq.coefficients.as_slice(), &[0, 0, 1, 0, 0]);
+
+        let Estimate::Affine(card_eq) = &footprint.cardinality else {
+            panic!("expected Affine variant for cardinality");
+        };
+        assert_eq!(card_eq.coefficients.as_slice(), &[0, 0, 1, 0, 0]);
+    }
+
+    #[test]
+    fn saturating_mul_add_applies_coefficients_independently() {
+        let mut footprint = Footprint::scalar();
+        let other = Footprint::scalar();
+
+        footprint.saturating_mul_add(&other, 3, 5);
+
+        let Estimate::Constant(units_range) = &footprint.units else {
+            panic!("expected Constant variant for units");
+        };
+        assert_eq!(
+            units_range,
+            &InformationRange::new(
+                InformationUnit::new(4),
+                Bound::Included(InformationUnit::new(4))
+            )
+        );
+
+        let Estimate::Constant(card_range) = &footprint.cardinality else {
+            panic!("expected Constant variant for cardinality");
+        };
+        assert_eq!(
+            card_range,
+            &Cardinality::new(Cardinal::new(6), Bound::Included(Cardinal::new(6)))
+        );
+    }
+
+    #[test]
+    fn laws() {
+        let a = Footprint::scalar();
+        let b = Footprint::unknown();
+        let c = Footprint::coefficient(0, 3);
+
+        assert_additive_monoid(&SaturatingSemiring, a.clone(), b.clone(), c.clone());
+        assert_bounded_join_semilattice(&SaturatingSemiring, a, b, c);
     }
 }

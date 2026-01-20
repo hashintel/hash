@@ -101,6 +101,11 @@ macro_rules! range {
             }
 
             #[inline]
+            pub const fn value(value: $inner) -> Self {
+                Self::new(value, Bound::Included(value))
+            }
+
+            #[inline]
             pub const fn empty() -> Self {
                 let zero = <$inner>::new(0);
                 Self { min: zero, max: Bound::Excluded(zero) }
@@ -313,4 +318,171 @@ pub(crate) trait SaturatingMul<R> {
     type Output;
 
     fn saturating_mul(self, rhs: R) -> Self::Output;
+}
+
+#[cfg(test)]
+mod tests {
+    use core::ops::Bound;
+
+    use super::{Cardinality, InformationRange, SaturatingMul as _};
+    use crate::pass::analysis::{
+        dataflow::lattice::{
+            SaturatingSemiring,
+            laws::{assert_additive_monoid, assert_bounded_join_semilattice},
+        },
+        size_estimation::unit::{Cardinal, InformationUnit},
+    };
+
+    #[test]
+    fn empty_range_semantics() {
+        assert!(InformationRange::empty().is_empty());
+
+        let invalid_info = InformationRange {
+            min: InformationUnit::new(5),
+            max: Bound::Included(InformationUnit::new(3)),
+        };
+        assert!(invalid_info.is_empty());
+
+        assert!(Cardinality::empty().is_empty());
+
+        let invalid_card = Cardinality {
+            min: Cardinal::new(5),
+            max: Bound::Included(Cardinal::new(3)),
+        };
+        assert!(invalid_card.is_empty());
+    }
+
+    #[test]
+    fn cover_is_smallest_containing_range() {
+        let range1 = InformationRange::new(
+            InformationUnit::new(2),
+            Bound::Included(InformationUnit::new(5)),
+        );
+        let range2 = InformationRange::new(
+            InformationUnit::new(3),
+            Bound::Included(InformationUnit::new(7)),
+        );
+
+        let covered = range1.cover(range2);
+
+        let expected = InformationRange::new(
+            InformationUnit::new(2),
+            Bound::Included(InformationUnit::new(7)),
+        );
+        assert_eq!(covered, expected);
+    }
+
+    #[test]
+    fn intersect_is_largest_contained_range() {
+        let range1 = InformationRange::new(
+            InformationUnit::new(2),
+            Bound::Included(InformationUnit::new(7)),
+        );
+        let range2 = InformationRange::new(
+            InformationUnit::new(5),
+            Bound::Included(InformationUnit::new(10)),
+        );
+
+        let intersected = range1.intersect(range2);
+
+        let expected = InformationRange::new(
+            InformationUnit::new(5),
+            Bound::Included(InformationUnit::new(7)),
+        );
+        assert_eq!(intersected, expected);
+    }
+
+    #[test]
+    fn intersect_disjoint_is_empty() {
+        let range1 = InformationRange::new(
+            InformationUnit::new(1),
+            Bound::Included(InformationUnit::new(3)),
+        );
+        let range2 = InformationRange::new(
+            InformationUnit::new(5),
+            Bound::Included(InformationUnit::new(7)),
+        );
+
+        let intersected = range1.intersect(range2);
+
+        assert!(intersected.is_empty());
+    }
+
+    #[test]
+    fn add_sums_bounds_correctly() {
+        let range1 = InformationRange::new(
+            InformationUnit::new(1),
+            Bound::Included(InformationUnit::new(2)),
+        );
+        let range2 = InformationRange::new(
+            InformationUnit::new(3),
+            Bound::Included(InformationUnit::new(4)),
+        );
+
+        let sum = range1 + range2;
+
+        let expected = InformationRange::new(
+            InformationUnit::new(4),
+            Bound::Included(InformationUnit::new(6)),
+        );
+        assert_eq!(sum, expected);
+    }
+
+    #[test]
+    fn unbounded_propagates_through_add() {
+        let full = InformationRange::full();
+        let finite = InformationRange::new(
+            InformationUnit::new(5),
+            Bound::Included(InformationUnit::new(10)),
+        );
+
+        let sum = full + finite;
+
+        let expected = InformationRange::new(InformationUnit::new(5), Bound::Unbounded);
+        assert_eq!(sum, expected);
+    }
+
+    #[test]
+    fn saturating_mul_prevents_overflow() {
+        let large = InformationRange::new(
+            InformationUnit::new(u32::MAX),
+            Bound::Included(InformationUnit::new(u32::MAX)),
+        );
+
+        let result = large.saturating_mul(2);
+
+        let expected = InformationRange::new(
+            InformationUnit::new(u32::MAX),
+            Bound::Included(InformationUnit::new(u32::MAX)),
+        );
+        assert_eq!(result, expected);
+    }
+
+    #[test]
+    fn laws() {
+        let semiring = SaturatingSemiring;
+
+        let info_a = InformationRange::new(
+            InformationUnit::new(1),
+            Bound::Included(InformationUnit::new(5)),
+        );
+        let info_b = InformationRange::new(
+            InformationUnit::new(2),
+            Bound::Included(InformationUnit::new(8)),
+        );
+        let info_c = InformationRange::new(
+            InformationUnit::new(3),
+            Bound::Included(InformationUnit::new(10)),
+        );
+
+        assert_additive_monoid(&semiring, info_a, info_b, info_c);
+        assert_bounded_join_semilattice(&semiring, info_a, info_b, info_c);
+
+        let card_a = Cardinality::new(Cardinal::new(1), Bound::Included(Cardinal::new(5)));
+        let card_b = Cardinality::new(Cardinal::new(2), Bound::Included(Cardinal::new(8)));
+        let card_c = Cardinality::new(Cardinal::new(3), Bound::Included(Cardinal::new(10)));
+
+        assert_additive_monoid(&semiring, card_a, card_b, card_c);
+        assert_bounded_join_semilattice(&semiring, card_a, card_b, card_c);
+    }
 }
