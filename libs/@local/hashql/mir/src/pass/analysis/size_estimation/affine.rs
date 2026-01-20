@@ -1,4 +1,18 @@
-use core::{cmp, hint::cold_path};
+//! Affine equations for tracking size dependencies on function parameters.
+//!
+//! When a function's output size depends on its input sizes, we model this as an affine equation:
+//!
+//! ```text
+//! y = c₁·param₁ + c₂·param₂ + ... + k
+//! ```
+//!
+//! Where:
+//! - `cᵢ` are coefficients (how much each parameter contributes to the output size)
+//! - `k` is the constant term (size contribution independent of parameters)
+//!
+//! This allows the analysis to propagate size information through function calls.
+
+use core::cmp;
 
 use hashql_core::collections::{InlineVec, small_vec_from_elem};
 
@@ -6,22 +20,28 @@ use crate::pass::analysis::dataflow::lattice::{
     AdditiveMonoid, JoinSemiLattice, SaturatingSemiring,
 };
 
-// For dynamic values, we use a linear equation that takes into account the params. this means we
-// have two parts, we first have the first part, which is the dynamic value, and then the underlying
-// unit as base value.
-// Our linear equation is of the form `y = ma + nb + .. + x`, we use a u16 here because that's large
-// enough.
 type Coefficient = u16;
+
+/// Maximum coefficients stored inline before spilling to heap.
 #[expect(clippy::integer_division, clippy::integer_division_remainder_used)]
 const MAX_INLINE_COEFFICIENTS: usize = size_of::<usize>() / size_of::<Coefficient>() * 2;
 
+/// An affine equation representing size as a linear function of parameters.
+///
+/// Models `y = c₁·a + c₂·b + ... + k` where coefficients track how each parameter
+/// contributes to the total size.
 #[derive(Debug, PartialEq, Eq, Hash)]
 pub struct AffineEquation<T> {
+    /// Coefficients for each function parameter (index matches parameter position).
     pub coefficients: InlineVec<Coefficient, MAX_INLINE_COEFFICIENTS>,
+    /// The constant term (size independent of parameters).
     pub constant: T,
 }
 
 impl<T> AffineEquation<T> {
+    /// Creates an equation that equals exactly the parameter at `index`.
+    ///
+    /// Produces `y = 1·paramᵢ + 0` (coefficient 1 at position `index`, zero elsewhere).
     #[must_use]
     pub fn coefficient(index: usize, length: usize) -> Self
     where
@@ -73,9 +93,6 @@ where
         let mut changed = false;
 
         if rhs.coefficients.len() > lhs.coefficients.len() {
-            // TODO: benchmark
-            cold_path(); // This path only exists for correctness, in general this path is unlikely to be taken
-
             lhs.coefficients.resize(rhs.coefficients.len(), self.zero());
         }
 
@@ -97,8 +114,6 @@ where
         let mut changed = false;
 
         if rhs.coefficients.len() > lhs.coefficients.len() {
-            cold_path(); // This path only exists for correctness, in general this path is unlikely to be taken
-
             lhs.coefficients.resize(rhs.coefficients.len(), self.zero());
         }
 

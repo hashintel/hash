@@ -1,3 +1,37 @@
+//! Size estimation analysis for MIR.
+//!
+//! This module provides static and dynamic analysis to estimate the size of values flowing through
+//! a MIR program. The analysis is conservative during dynamic analysis, preferring underestimation
+//! over widening to unknown values.
+//!
+//! # Architecture
+//!
+//! The analysis operates in two phases:
+//!
+//! 1. **Static analysis**: Estimates sizes purely from type information (primitives, structs,
+//!    tuples, unions, intersections). Types that cannot be statically sized (e.g., lists, dicts)
+//!    are marked for dynamic analysis.
+//!
+//! 2. **Dynamic analysis**: Uses dataflow analysis to track how sizes propagate through the
+//!    program. Sizes that depend on function parameters are represented as affine equations (y =
+//!    c₁·a + c₂·b + ... + k) where the coefficients track the contribution of each parameter.
+//!
+//! # Key Types
+//!
+//! - [`InformationUnit`]: A scalar measure of information content (abstract size units)
+//! - [`InformationRange`]: Min/max bounds on information content, with support for unbounded upper
+//!   limits
+//! - [`Cardinal`] / [`Cardinality`]: Element count (how many items in a collection)
+//! - [`Footprint`]: Combined measure of both units and cardinality
+//! - [`AffineEquation`]: Represents size as a linear function of input parameters
+//!
+//! # SCC Processing
+//!
+//! Mutually recursive functions are handled by:
+//! 1. Building a call graph and identifying strongly connected components (SCCs)
+//! 2. Processing SCCs in topological order
+//! 3. Using fixpoint iteration within each SCC until convergence
+
 mod affine;
 mod dynamic;
 mod estimate;
@@ -50,16 +84,22 @@ use crate::{
     },
 };
 
+/// Tracks which locals require dynamic (dataflow) analysis.
+///
+/// After static analysis, locals whose types cannot be statically sized are marked here.
+/// The return slot is tracked separately using a synthetic local beyond the normal local range.
 struct DynamicComponents {
     inner: DenseBitSet<Local>,
 }
 
 impl DynamicComponents {
     fn new(body: &Body<'_>) -> Self {
+        // +1 for the synthetic return slot
         let inner = DenseBitSet::new_empty(body.local_decls.len() + 1);
         Self { inner }
     }
 
+    /// Returns the synthetic local used to track whether the return type needs dynamic analysis.
     const fn returns_slot(&self) -> Local {
         Local::new(self.inner.domain_size() - 1)
     }
@@ -85,6 +125,11 @@ impl DynamicComponents {
     }
 }
 
+/// Global analysis pass that estimates the size of values in all function bodies.
+///
+/// The analysis produces a [`BodyFootprint`] for each function, containing size estimates
+/// for all locals and the return value. Sizes are expressed as [`Footprint`]s which may be
+/// either constant or affine expressions depending on function parameters.
 pub struct SizeEstimationAnalysis<'heap, A: Allocator> {
     alloc: A,
     cache: StaticSizeEstimationCache<A>,
@@ -92,6 +137,7 @@ pub struct SizeEstimationAnalysis<'heap, A: Allocator> {
 }
 
 impl<'heap, A: Allocator> SizeEstimationAnalysis<'heap, A> {
+    /// Creates a new size estimation analysis using the given allocator.
     pub fn new_in(alloc: A) -> Self
     where
         A: Clone,
@@ -105,6 +151,9 @@ impl<'heap, A: Allocator> SizeEstimationAnalysis<'heap, A> {
         }
     }
 
+    /// Performs static analysis on a single body, marking locals that need dynamic analysis.
+    ///
+    /// Returns a [`DynamicComponents`] indicating which locals could not be statically sized.
     fn static_analysis<H: Allocator>(
         &mut self,
         context: &MirContext<'_, 'heap>,
@@ -139,6 +188,9 @@ impl<'heap, A: Allocator> SizeEstimationAnalysis<'heap, A> {
         dynamic
     }
 
+    /// Performs dataflow analysis to refine size estimates for dynamically-sized locals.
+    ///
+    /// Returns `true` if any footprint changed, enabling fixpoint iteration for SCCs.
     fn dynamic_analysis(
         &mut self,
         context: &MirContext<'_, 'heap>,
@@ -187,6 +239,7 @@ impl<'heap, A: Allocator> SizeEstimationAnalysis<'heap, A> {
         changed
     }
 
+    /// Analyzes a single non-recursive function body.
     fn single(
         &mut self,
         context: &MirContext<'_, 'heap>,
@@ -202,6 +255,9 @@ impl<'heap, A: Allocator> SizeEstimationAnalysis<'heap, A> {
         }
     }
 
+    /// Analyzes an SCC containing multiple mutually recursive functions.
+    ///
+    /// Uses fixpoint iteration until all footprints stabilize or `MAX_ITERATIONS` is reached.
     fn multiple(
         &mut self,
         context: &MirContext<'_, 'heap>,
@@ -218,7 +274,6 @@ impl<'heap, A: Allocator> SizeEstimationAnalysis<'heap, A> {
             dynamic.push(self.static_analysis(context, &bodies[member], footprints));
         }
 
-        // We now enter fixpoint iteration, until we hit MAX_ITERATIONS or nothing changes anymore
         for _ in 0..MAX_ITERATIONS {
             let mut changed = false;
 
@@ -234,6 +289,7 @@ impl<'heap, A: Allocator> SizeEstimationAnalysis<'heap, A> {
         }
     }
 
+    /// Initializes all body footprints to bottom (empty ranges).
     fn init_footprint(
         context: &MirContext<'_, 'heap>,
         bodies: &DefIdSlice<Body<'heap>>,
@@ -258,9 +314,8 @@ impl<'env, 'heap, A: Allocator + Clone> GlobalAnalysisPass<'env, 'heap>
     for SizeEstimationAnalysis<'heap, A>
 {
     fn run(&mut self, context: &mut MirContext<'env, 'heap>, bodies: &DefIdSlice<Body<'heap>>) {
-        // Because we're dependent on the calls, we must first create a call graph, identify any
-        // strongly connected components, try to break them up (using static analysis), and then
-        // process everything.
+        // Build a call graph to identify SCCs. We process SCCs in topological order so that
+        // callee footprints are available when analyzing callers.
         let cg = {
             let mut graph = CallGraph::new_in(bodies, self.alloc.clone());
             let mut visitor =

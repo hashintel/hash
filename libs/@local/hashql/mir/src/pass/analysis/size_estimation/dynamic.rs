@@ -1,3 +1,11 @@
+//! Dynamic size estimation via dataflow analysis.
+//!
+//! For values that cannot be statically sized, this module uses forward dataflow analysis
+//! to track how sizes propagate through assignments, function calls, and control flow.
+//!
+//! The analysis tracks sizes as [`Footprint`]s that may depend on function parameters
+//! via affine equations.
+
 use core::{alloc::Allocator, cell::RefCell};
 
 use hashql_core::{
@@ -36,12 +44,18 @@ use crate::{
     },
 };
 
+/// Result of evaluating an operand's footprint.
+///
+/// Either a computed footprint or a reference to copy from another local.
 pub(crate) enum Eval {
+    /// A newly computed footprint value.
     Footprint(Footprint),
+    /// Copy the footprint from the specified local.
     Copy(Local),
 }
 
 impl Eval {
+    /// Applies this evaluation result to the target local in the domain.
     fn apply<A: Allocator>(self, target: Local, domain: &mut BodyFootprint<A>) {
         match self {
             Self::Footprint(footprint) => {
@@ -49,8 +63,7 @@ impl Eval {
             }
             Self::Copy(local) => {
                 let Ok([target, local]) = domain.locals.get_disjoint_mut([target, local]) else {
-                    // error means that they are overlapping, therefore we would copy into copy,
-                    // which just means, nothing is happening
+                    // Same local: self-assignment is a no-op
                     return;
                 };
 
@@ -59,6 +72,7 @@ impl Eval {
         }
     }
 
+    /// Borrows the footprint, resolving `Copy` variants against the domain.
     pub(crate) fn as_ref<'domain, A: Allocator>(
         &'domain self,
         domain: &'domain BodyFootprint<A>,
@@ -70,6 +84,7 @@ impl Eval {
     }
 }
 
+/// Helper for looking up operand footprints during dataflow analysis.
 pub(crate) struct SizeEstimationLookup<'ctx, 'env, 'heap, C: Allocator> {
     env: &'env Environment<'heap>,
     decl: &'env LocalSlice<LocalDecl<'heap>>,
@@ -79,6 +94,7 @@ pub(crate) struct SizeEstimationLookup<'ctx, 'env, 'heap, C: Allocator> {
 }
 
 impl<'heap, C: Allocator> SizeEstimationLookup<'_, '_, 'heap, C> {
+    /// Evaluates an operand to produce its footprint.
     pub(crate) fn operand<A: Allocator>(
         &self,
         domain: &BodyFootprint<A>,
@@ -90,10 +106,10 @@ impl<'heap, C: Allocator> SizeEstimationLookup<'_, '_, 'heap, C> {
         }
     }
 
+    /// Evaluates a place (local + projections) to produce its footprint.
     fn place<A: Allocator>(&self, domain: &BodyFootprint<A>, place: &Place<'heap>) -> Eval {
         if place.projections.is_empty() {
-            // if the place is dynamic, and one of the params of the body, then we instead use a
-            // parametrized footprint
+            // For a bare local that's a dynamic parameter, create an affine dependency
             if self.dynamic.contains(place.local) && place.local.as_usize() < domain.args {
                 return Eval::Footprint(Footprint::coefficient(
                     place.local.as_usize(),
@@ -104,6 +120,8 @@ impl<'heap, C: Allocator> SizeEstimationLookup<'_, '_, 'heap, C> {
             return Eval::Copy(place.local);
         }
 
+        // Single Index projection: extracts one element from a collection.
+        // The element inherits the collection's unit size but has cardinality 1.
         if matches!(
             &*place.projections,
             [Projection {
@@ -111,9 +129,6 @@ impl<'heap, C: Allocator> SizeEstimationLookup<'_, '_, 'heap, C> {
                 ..
             }]
         ) {
-            // We have a single place projection, this indicates that we have a dynamic place
-            // (because we can only index into lists and dicts.) We can simply return
-            // the size of the value, with a cardinality of one.
             let units =
                 if self.dynamic.contains(place.local) && place.local.as_usize() < domain.args {
                     Estimate::Affine(AffineEquation::coefficient(
@@ -128,6 +143,7 @@ impl<'heap, C: Allocator> SizeEstimationLookup<'_, '_, 'heap, C> {
             return Eval::Footprint(Footprint { units, cardinality });
         }
 
+        // For other projections, try static analysis on the projected type
         let type_id = place.type_id(self.decl);
         let static_size = {
             let mut cache = self.cache.borrow_mut();
@@ -136,7 +152,7 @@ impl<'heap, C: Allocator> SizeEstimationLookup<'_, '_, 'heap, C> {
         };
 
         static_size.map_or_else(
-            // Over-estimate by using the size of the actual domain
+            // Fallback: use the base local's footprint as an over-approximation
             || Eval::Copy(place.local),
             |size| {
                 Eval::Footprint(Footprint {
@@ -148,6 +164,7 @@ impl<'heap, C: Allocator> SizeEstimationLookup<'_, '_, 'heap, C> {
     }
 }
 
+/// Dataflow analysis that propagates size estimates through a function body.
 pub(crate) struct SizeEstimationDataflowAnalysis<
     'ctx,
     'footprints,
@@ -183,12 +200,14 @@ impl<'ctx, 'footprints, 'env, 'heap, A: Allocator, C: Allocator>
         }
     }
 
+    /// Consumes the analysis and returns the lookup helper for final return processing.
     pub(crate) const fn into_lookup(self) -> SizeEstimationLookup<'ctx, 'env, 'heap, C> {
         self.lookup
     }
 
+    /// Evaluates an rvalue to determine its footprint.
     fn eval_rvalue<B: Allocator>(&self, domain: &BodyFootprint<B>, rvalue: &RValue<'heap>) -> Eval {
-        #[expect(clippy::match_same_arms, reason = "intent")]
+        #[expect(clippy::match_same_arms, reason = "explicit case handling for clarity")]
         match rvalue {
             RValue::Load(operand) => self.lookup.operand(domain, operand),
             RValue::Binary(Binary {
@@ -205,13 +224,11 @@ impl<'ctx, 'footprints, 'env, 'heap, A: Allocator, C: Allocator>
                     | BinOp::Gt,
                 left: _,
                 right: _,
-            }) => {
-                Eval::Footprint(Footprint::scalar()) // All of these return scalars by definition
-            }
+            }) => Eval::Footprint(Footprint::scalar()),
             RValue::Unary(Unary {
                 op: UnOp::BitNot | UnOp::Neg | UnOp::Not,
                 operand: _,
-            }) => Eval::Footprint(Footprint::scalar()), // All of these return scalars by definition
+            }) => Eval::Footprint(Footprint::scalar()),
             RValue::Aggregate(Aggregate { kind: _, operands }) => {
                 let mut total: Footprint = SaturatingSemiring.zero();
 
@@ -226,16 +243,12 @@ impl<'ctx, 'footprints, 'env, 'heap, A: Allocator, C: Allocator>
             RValue::Input(Input {
                 op: InputOp::Exists,
                 name: _,
-            }) => Eval::Footprint(Footprint::scalar()), // exists is just a boolean
+            }) => Eval::Footprint(Footprint::scalar()),
             RValue::Input(Input {
                 op: InputOp::Load { .. },
                 name: _,
             }) => {
-                // the only way we can know the size of a load is if we know the type, which would
-                // mean that static analysis would've caught this. This means that dynamic analysis
-                // is unable to determine the size of the load accurately.
-                // In theory it could be specified, if we specify the inputs during planning, but
-                // that would defeat the purpose of compilation.
+                // External inputs have unknown size at compile time
                 Eval::Footprint(Footprint::unknown())
             }
             RValue::Apply(Apply {
@@ -243,8 +256,7 @@ impl<'ctx, 'footprints, 'env, 'heap, A: Allocator, C: Allocator>
                 arguments,
             }) => {
                 let &Operand::Constant(Constant::FnPtr(ptr)) = function else {
-                    // We're unable to determine the size of the function call, because we don't
-                    // know what function is going to be called.
+                    // Dynamic function call: cannot determine callee's return size
                     return Eval::Footprint(Footprint::unknown());
                 };
 
@@ -253,6 +265,9 @@ impl<'ctx, 'footprints, 'env, 'heap, A: Allocator, C: Allocator>
         }
     }
 
+    /// Computes the footprint of a function's return value given the call's arguments.
+    ///
+    /// Substitutes the callee's affine coefficients with the actual argument footprints.
     fn eval_returns<B: Allocator>(
         &self,
         domain: &BodyFootprint<B>,
@@ -260,16 +275,12 @@ impl<'ctx, 'footprints, 'env, 'heap, A: Allocator, C: Allocator>
         arguments: &ArgSlice<Operand<'heap>>,
         returns: &Footprint,
     ) -> Footprint {
-        // We're given a return, that footprint may be dependent on the arguments, to do
-        // that we simply take the argument, and then multiply by the number given, once
-        // done we add everything up.
         let mut total: Footprint = SaturatingSemiring.zero();
 
         let units_coefficient = returns.units.coefficients();
         let cardinality_coefficient = returns.cardinality.coefficients();
 
-        // We do this in two parts, first we go over the coefficients, and convert them to our
-        // "universe"
+        // Substitute each parameter's coefficient with the actual argument's footprint
         for (index, operand) in arguments.iter_enumerated() {
             let units_coefficient = units_coefficient
                 .get(index.as_usize())
@@ -294,7 +305,7 @@ impl<'ctx, 'footprints, 'env, 'heap, A: Allocator, C: Allocator>
             );
         }
 
-        // Once completed, we add the constant footprint to the total footprint.
+        // Add the constant term from the callee's return footprint
         SaturatingSemiring.plus(total.units.constant_mut(), returns.units.constant());
         SaturatingSemiring.plus(
             total.cardinality.constant_mut(),
@@ -304,6 +315,7 @@ impl<'ctx, 'footprints, 'env, 'heap, A: Allocator, C: Allocator>
         total
     }
 
+    /// Evaluates a function application to determine the return footprint.
     fn eval_apply<B: Allocator>(
         &self,
         domain: &BodyFootprint<B>,
@@ -316,13 +328,12 @@ impl<'ctx, 'footprints, 'env, 'heap, A: Allocator, C: Allocator>
         self.eval_returns(domain, arguments, returns)
     }
 
+    /// Returns whether the place needs transfer function application.
+    ///
+    /// Only bare locals marked as dynamic require transfer; projections are handled
+    /// by the place evaluation logic.
     fn requires_transfer(&self, place: &Place<'heap>) -> bool {
-        if place.projections.is_empty() {
-            self.lookup.dynamic.contains(place.local)
-        } else {
-            // We cannot recompute the size of a projection
-            false
-        }
+        place.projections.is_empty() && self.lookup.dynamic.contains(place.local)
     }
 
     fn requires_transfer_local(&self, local: Local) -> bool {
@@ -434,11 +445,10 @@ impl<'heap, B: Allocator, C: Allocator> DataflowAnalysis<'heap>
         state: &mut Self::Domain<A>,
     ) {
         let &[param] = target_params else {
-            unreachable!("the target param may only have a single param");
+            unreachable!("graph read edges have exactly one target parameter");
         };
 
-        // TODO: heuristic estimate about the size of the graph read operation, for now just
-        // unbounded
+        // Graph reads have unbounded size (could return any number of entities)
         state.locals[param] = Footprint::unknown();
     }
 }
