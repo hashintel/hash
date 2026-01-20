@@ -4,12 +4,12 @@ import { use, useCallback, useMemo, useRef, useState } from "react";
 
 import { SegmentGroup } from "../../../components/segment-group";
 import type { SubView } from "../../../components/sub-view/types";
+import { SimulationContext } from "../../../simulation/context";
 import {
   EditorContext,
   type TimelineChartType,
 } from "../../../state/editor-context";
 import { SDCPNContext } from "../../../state/sdcpn-context";
-import { SimulationContext } from "../../../simulation/context";
 
 /**
  * Computes the maximum value from an array using a selector function.
