@@ -10,6 +10,30 @@ export type SimulationState =
   | "Paused";
 
 /**
+ * State of a transition within a simulation frame.
+ *
+ * Contains timing information and firing counts for tracking transition behavior
+ * during simulation execution.
+ */
+export type SimulationFrameState_Transition = {
+  /**
+   * Time elapsed since this transition last fired, in milliseconds.
+   * Resets to 0 when the transition fires.
+   */
+  timeSinceLastFiringMs: number;
+  /**
+   * Whether this transition fired in this specific frame.
+   * True only during the frame when the firing occurred.
+   */
+  firedInThisFrame: boolean;
+  /**
+   * Total cumulative count of times this transition has fired
+   * since the start of the simulation (frame 0).
+   */
+  firingCount: number;
+};
+
+/**
  * State of a simulation frame.
  */
 export type SimulationFrameState = {
@@ -24,16 +48,7 @@ export type SimulationFrameState = {
       | undefined;
   };
   transitions: {
-    [transitionId: string]:
-      | {
-          /** Time since last firing of the transition at the time of the frame. */
-          timeSinceLastFiring: number;
-          /** Whether this transition fired in this frame. */
-          justFired: boolean;
-          /** Total number of times this transition has fired up to this frame. */
-          firingCount: number;
-        }
-      | undefined;
+    [transitionId: string]: SimulationFrameState_Transition | undefined;
   };
 };
 

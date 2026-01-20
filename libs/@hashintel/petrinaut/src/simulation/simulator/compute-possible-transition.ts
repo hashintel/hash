@@ -74,7 +74,7 @@ export function computePossibleTransition(
 
   // Generate random number using seeded RNG and update state
   const [U1, newRngState] = nextRandom(simulation.rngState);
-  const { timeSinceLastFiring } = transition;
+  const { timeSinceLastFiringMs } = transition;
 
   // TODO: This should acumulate lambda over time, but for now we just consider that lambda is constant per combination.
   // (just multiply by time since last transition)
@@ -170,7 +170,7 @@ export function computePossibleTransition(
           : 0
         : lambdaResult;
 
-    const lambdaValue = lambdaNumeric * timeSinceLastFiring;
+    const lambdaValue = lambdaNumeric * timeSinceLastFiringMs;
 
     // Find the first combination of tokens where e^(-lambda) < U1
     // We should normally find the minimum for all possibilities, but we try to reduce as much as we can here.

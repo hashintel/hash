@@ -167,7 +167,7 @@ export const TransitionNode: React.FC<NodeProps<TransitionNodeData>> = ({
   const boltRef = useRef<HTMLDivElement | null>(null);
 
   // Track firing count delta for simulation visualization
-  const firingDelta = useFiringDelta(data.firingCount ?? null);
+  const firingDelta = useFiringDelta(data.frame?.firingCount ?? null);
 
   // Animate when firing occurs
   useFiringAnimation(boxRef, boltRef, firingDelta);

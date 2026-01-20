@@ -135,7 +135,7 @@ export const Arc: React.FC<EdgeProps<ArcData>> = ({
   const selected = selectedItemIds.has(id);
 
   // Track firing count delta for simulation visualization
-  const firingDelta = useFiringDelta(data?.firingCount ?? null);
+  const firingDelta = useFiringDelta(data?.frame?.firingCount ?? null);
 
   // Ref for the main arc path to animate stroke width
   const arcPathRef = useRef<SVGPathElement | null>(null);

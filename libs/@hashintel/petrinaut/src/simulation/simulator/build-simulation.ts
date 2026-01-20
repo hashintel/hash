@@ -236,8 +236,8 @@ export function buildSimulation(input: SimulationInput): SimulationInstance {
       transition.id,
       {
         instance: transition,
-        timeSinceLastFiring: 0,
-        justFired: false,
+        timeSinceLastFiringMs: 0,
+        firedInThisFrame: false,
         firingCount: 0,
       },
     ]),

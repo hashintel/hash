@@ -181,8 +181,8 @@ function buildFrameState(
   const transitions: SimulationFrameState["transitions"] = {};
   for (const [transitionId, transitionData] of frame.transitions) {
     transitions[transitionId] = {
-      timeSinceLastFiring: transitionData.timeSinceLastFiring,
-      justFired: transitionData.justFired,
+      timeSinceLastFiringMs: transitionData.timeSinceLastFiringMs,
+      firedInThisFrame: transitionData.firedInThisFrame,
       firingCount: transitionData.firingCount,
     };
   }

@@ -246,8 +246,8 @@ describe("buildSimulation", () => {
 
     // Verify transitions exist with initial state
     expect(frame.transitions.size).toBe(2);
-    expect(frame.transitions.get("t1")?.timeSinceLastFiring).toBe(0);
-    expect(frame.transitions.get("t2")?.timeSinceLastFiring).toBe(0);
+    expect(frame.transitions.get("t1")?.timeSinceLastFiringMs).toBe(0);
+    expect(frame.transitions.get("t2")?.timeSinceLastFiringMs).toBe(0);
 
     // Verify all compiled functions exist
     expect(simulationInstance.differentialEquationFns.size).toBe(3);

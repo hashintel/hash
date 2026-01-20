@@ -1,5 +1,7 @@
 import type { Edge, Node, ReactFlowInstance } from "reactflow";
 
+import type { SimulationFrameState_Transition } from "../../simulation/context";
+
 //
 // Specific types for ReactFlow nodes, arcs, and instance.
 // Serve for mapping between Petrinaut Contexts and ReactFlow.
@@ -7,8 +9,11 @@ import type { Edge, Node, ReactFlowInstance } from "reactflow";
 
 export type ArcData = {
   weight: number;
-  /** Number of times the transition connected to this arc has fired, or null if no simulation. */
-  firingCount: number | null;
+  /**
+   * State of the transition connected to this arc in the current simulation frame.
+   * Null when no simulation is running.
+   */
+  frame: SimulationFrameState_Transition | null;
 };
 
 export type ArcType = Omit<Edge<ArcData>, "style">;
@@ -31,8 +36,11 @@ export type TransitionNodeData = {
    */
   type: "transition";
   lambdaType: "predicate" | "stochastic";
-  /** Number of times this transition has fired, or null if no simulation. */
-  firingCount: number | null;
+  /**
+   * State of this transition in the current simulation frame.
+   * Null when no simulation is running.
+   */
+  frame: SimulationFrameState_Transition | null;
 };
 
 export type TransitionNodeType = Node<TransitionNodeData, "transition">;

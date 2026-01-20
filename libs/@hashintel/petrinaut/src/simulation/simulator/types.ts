@@ -5,6 +5,7 @@ import type {
   SDCPN,
   Transition,
 } from "../../core/types/sdcpn";
+import type { SimulationFrameState_Transition } from "../context";
 
 export type ParameterValues = Record<string, number | boolean>;
 
@@ -55,12 +56,7 @@ export type SimulationFrame = {
   >;
   transitions: Map<
     ID,
-    {
-      instance: Transition;
-      timeSinceLastFiring: number;
-      justFired: boolean;
-      firingCount: number;
-    }
+    SimulationFrameState_Transition & { instance: Transition }
   >;
   /**
    * Buffer containing all place values concatenated.

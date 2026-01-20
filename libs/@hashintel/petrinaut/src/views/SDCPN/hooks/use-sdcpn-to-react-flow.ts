@@ -75,8 +75,7 @@ export function useSdcpnToReactFlow(): PetrinautReactFlowDefinitionObject {
         label: transition.name,
         type: "transition",
         lambdaType: transition.lambdaType,
-        firingCount:
-          currentViewedFrame?.transitions[transition.id]?.firingCount ?? null,
+        frame: currentViewedFrame?.transitions[transition.id] ?? null,
       },
     });
   }
@@ -121,8 +120,7 @@ export function useSdcpnToReactFlow(): PetrinautReactFlowDefinitionObject {
         },
         data: {
           weight: inputArc.weight,
-          firingCount:
-            currentViewedFrame?.transitions[transition.id]?.firingCount ?? null,
+          frame: currentViewedFrame?.transitions[transition.id] ?? null,
         },
       });
     }
@@ -163,8 +161,7 @@ export function useSdcpnToReactFlow(): PetrinautReactFlowDefinitionObject {
         },
         data: {
           weight: outputArc.weight,
-          firingCount:
-            currentViewedFrame?.transitions[transition.id]?.firingCount ?? null,
+          frame: currentViewedFrame?.transitions[transition.id] ?? null,
         },
       });
     }
