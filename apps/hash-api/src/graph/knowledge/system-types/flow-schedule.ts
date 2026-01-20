@@ -17,7 +17,8 @@ import {
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type {
   FlowSchedule,
-  SchedulePauseStatePropertyValue,
+  SchedulePauseStatePropertyValueWithMetadata,
+  ScheduleStatusPropertyValueWithMetadata,
 } from "@local/hash-isomorphic-utils/system-types/shared";
 
 import type { ImpureGraphFunction } from "../../context-types";
@@ -308,14 +309,6 @@ export const pauseFlowSchedule: ImpureGraphFunction<
     scheduleEntityId,
   });
 
-  const pauseState: SchedulePauseStatePropertyValue = {
-    "https://hash.ai/@h/types/property-type/paused-at/":
-      new Date().toISOString(),
-    ...(note
-      ? { "https://hash.ai/@h/types/property-type/explanation/": note }
-      : {}),
-  };
-
   const updatedEntity = await updateEntity<FlowSchedule>(
     context,
     authentication,
@@ -331,18 +324,32 @@ export const pauseFlowSchedule: ImpureGraphFunction<
               dataTypeId:
                 "https://hash.ai/@h/types/data-type/schedule-status/v/1",
             },
-          },
+          } satisfies ScheduleStatusPropertyValueWithMetadata,
         },
         {
-          op: "add",
+          op: "replace",
           path: [systemPropertyTypes.schedulePauseState.propertyTypeBaseUrl],
           property: {
-            value: pauseState,
-            metadata: {
-              dataTypeId:
-                "https://blockprotocol.org/@blockprotocol/types/data-type/object/v/1",
+            value: {
+              "https://hash.ai/@h/types/property-type/paused-at/": {
+                value: new Date().toISOString(),
+                metadata: {
+                  dataTypeId: "https://hash.ai/@h/types/data-type/datetime/v/1",
+                },
+              },
+              ...(note
+                ? {
+                    "https://hash.ai/@h/types/property-type/explanation/": {
+                      value: note,
+                      metadata: {
+                        dataTypeId:
+                          "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+                      },
+                    },
+                  }
+                : {}),
             },
-          },
+          } satisfies SchedulePauseStatePropertyValueWithMetadata,
         },
       ],
     },

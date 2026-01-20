@@ -1,5 +1,8 @@
-import type { WebId } from "@blockprotocol/type-system";
+import { useMutation } from "@apollo/client";
+import type { EntityUuid, WebId } from "@blockprotocol/type-system";
+import { Select, TextField } from "@hashintel/design-system";
 import { typedValues } from "@local/advanced-types/typed-entries";
+import type { CreateFlowScheduleInput } from "@local/hash-isomorphic-utils/flows/schedule-types";
 import type {
   FlowActionDefinitionId,
   FlowDefinition,
@@ -7,12 +10,18 @@ import type {
   OutputDefinition,
   StepOutput,
 } from "@local/hash-isomorphic-utils/flows/types";
-import { Box, Typography } from "@mui/material";
+import { Box, FormControlLabel, Switch, Typography } from "@mui/material";
 import { format } from "date-fns";
 import type { PropsWithChildren } from "react";
 import { useState } from "react";
 
+import type {
+  CreateFlowScheduleMutation,
+  CreateFlowScheduleMutationVariables,
+} from "../../../../../graphql/api-types.gen";
+import { createFlowScheduleMutation } from "../../../../../graphql/queries/knowledge/flow.queries";
 import { Button } from "../../../../../shared/ui/button";
+import { MenuItem } from "../../../../../shared/ui/menu-item";
 import { Modal } from "../../../../../shared/ui/modal";
 import { useAuthenticatedUser } from "../../../../shared/auth-info-context";
 import { GoogleAuthProvider } from "../../../../shared/integrations/google/google-auth-context";
@@ -68,11 +77,20 @@ const generateInitialFormState = (outputDefinitions: OutputDefinition[]) =>
     return acc;
   }, {});
 
+type IntervalUnit = "minutes" | "hours" | "days";
+
+const intervalUnitToMs: Record<IntervalUnit, number> = {
+  minutes: 60 * 1000,
+  hours: 60 * 60 * 1000,
+  days: 24 * 60 * 60 * 1000,
+};
+
 type RunFlowModalProps = {
   flowDefinition: FlowDefinition<FlowActionDefinitionId>;
   onClose: () => void;
   open: boolean;
   runFlow: (outputs: FlowTrigger["outputs"], webId: WebId) => Promise<void>;
+  onScheduleCreated: (scheduleId: EntityUuid) => void;
 };
 
 export const RunFlowModal = ({
@@ -80,6 +98,7 @@ export const RunFlowModal = ({
   open,
   onClose,
   runFlow,
+  onScheduleCreated,
 }: RunFlowModalProps) => {
   const { outputs } = flowDefinition.trigger;
 
@@ -95,6 +114,16 @@ export const RunFlowModal = ({
 
   const [pending, setPending] = useState(false);
 
+  const [isScheduleMode, setIsScheduleMode] = useState(false);
+  const [scheduleName, setScheduleName] = useState("");
+  const [intervalValue, setIntervalValue] = useState(10);
+  const [intervalUnit, setIntervalUnit] = useState<IntervalUnit>("minutes");
+
+  const [createSchedule] = useMutation<
+    CreateFlowScheduleMutation,
+    CreateFlowScheduleMutationVariables
+  >(createFlowScheduleMutation);
+
   const allRequiredValuesPresent = (outputs ?? []).every((output) => {
     const stateValue = formState[output.name]?.payload.value;
     return (
@@ -105,11 +134,7 @@ export const RunFlowModal = ({
     );
   });
 
-  const submitValues = async () => {
-    if (!allRequiredValuesPresent) {
-      return;
-    }
-
+  const buildOutputValues = (): FlowTrigger["outputs"] => {
     const outputValues: FlowTrigger["outputs"] = [];
     for (const { outputName, payload } of typedValues(formState)) {
       if (typeof payload.value !== "undefined") {
@@ -140,20 +165,74 @@ export const RunFlowModal = ({
         }
       }
     }
+    return outputValues;
+  };
+
+  const submitValues = async () => {
+    if (!allRequiredValuesPresent) {
+      return;
+    }
+
+    const outputValues = buildOutputValues();
 
     setPending(true);
 
     try {
-      await runFlow(outputValues, webId);
+      if (isScheduleMode) {
+        const intervalMs = intervalValue * intervalUnitToMs[intervalUnit];
+
+        const scheduleInput: CreateFlowScheduleInput = {
+          name: scheduleName || `${flowDefinition.name} schedule`,
+          flowDefinitionId: flowDefinition.flowDefinitionId,
+          flowType: flowDefinition.type === "ai" ? "ai" : "integration",
+          webId,
+          scheduleSpec: {
+            type: "interval",
+            intervalMs,
+          },
+          flowTrigger: {
+            outputs: outputValues,
+            triggerDefinitionId: "scheduledTrigger",
+          },
+          dataSources:
+            flowDefinition.type === "ai"
+              ? {
+                  files: { fileEntityIds: [] },
+                  internetAccess: {
+                    browserPlugin: { domains: [], enabled: false },
+                    enabled: true,
+                  },
+                }
+              : undefined,
+        };
+
+        const result = await createSchedule({
+          variables: {
+            input: scheduleInput,
+          },
+        });
+
+        const scheduleId = result.data?.createFlowSchedule;
+        if (scheduleId) {
+          onScheduleCreated(scheduleId);
+        }
+
+        onClose();
+      } else {
+        await runFlow(outputValues, webId);
+      }
     } finally {
       setPending(false);
     }
   };
 
+  const scheduleValid =
+    !isScheduleMode || (intervalValue > 0 && scheduleName.trim().length > 0);
+
   return (
     <Modal
       contentStyle={{ p: { xs: 0, md: 0 } }}
-      header={{ title: "Run flow" }}
+      header={{ title: isScheduleMode ? "Schedule flow" : "Run flow" }}
       open={open}
       onClose={onClose}
       sx={{ zIndex: 1000 }} // Google File Picker has zIndex 1001, MUI Modal default is 1300
@@ -170,9 +249,77 @@ export const RunFlowModal = ({
               mb: 2.5,
             }}
           >
-            In order to run the <strong>{flowDefinition.name}</strong> flow,
-            you'll need to provide a bit more information first.
+            {`In order to ${isScheduleMode ? "schedule" : "run"} the ${flowDefinition.name} flow, you'll need to provide a bit more information first.`}
           </Typography>
+
+          <FormControlLabel
+            control={
+              <Switch
+                checked={isScheduleMode}
+                onChange={(event) => setIsScheduleMode(event.target.checked)}
+                size="small"
+              />
+            }
+            label={
+              <Typography
+                variant="smallTextLabels"
+                sx={{
+                  fontWeight: 500,
+                  ml: 1.5,
+                  color: ({ palette }) =>
+                    isScheduleMode ? palette.gray[70] : palette.gray[50],
+                }}
+              >
+                Recurring
+              </Typography>
+            }
+            sx={{ mb: 2.5, ml: 0 }}
+          />
+
+          {isScheduleMode && (
+            <>
+              <InputWrapper label="Schedule name" required>
+                <TextField
+                  fullWidth
+                  size="small"
+                  value={scheduleName}
+                  onChange={(event) => setScheduleName(event.target.value)}
+                  placeholder={`${flowDefinition.name} schedule`}
+                  sx={{ mt: 0.5 }}
+                />
+              </InputWrapper>
+
+              <InputWrapper label="Run every" required>
+                <Box sx={{ display: "flex", gap: 1, mt: 0.5 }}>
+                  <TextField
+                    type="number"
+                    size="small"
+                    value={intervalValue}
+                    onChange={(event) =>
+                      setIntervalValue(
+                        Math.max(1, parseInt(event.target.value, 10) || 1),
+                      )
+                    }
+                    inputProps={{ min: 1 }}
+                    sx={{ width: 100 }}
+                  />
+                  <Select
+                    size="small"
+                    value={intervalUnit}
+                    onChange={(event) =>
+                      setIntervalUnit(event.target.value as IntervalUnit)
+                    }
+                    sx={{ minWidth: 120 }}
+                  >
+                    <MenuItem value="minutes">minutes</MenuItem>
+                    <MenuItem value="hours">hours</MenuItem>
+                    <MenuItem value="days">days</MenuItem>
+                  </Select>
+                </Box>
+              </InputWrapper>
+            </>
+          )}
+
           {(outputs ?? []).map((outputDef) => {
             if (!isSupportedPayloadKind(outputDef.payloadKind)) {
               throw new Error("Unsupported input kind");
@@ -218,12 +365,18 @@ export const RunFlowModal = ({
             setSelectedWebId={(newWebId) => setWebId(newWebId)}
           />
           <Button
-            disabled={!allRequiredValuesPresent || pending}
+            disabled={!allRequiredValuesPresent || !scheduleValid || pending}
             size="small"
             onClick={submitValues}
-            sx={{ mt: 1 }}
+            sx={{ mt: 2.5 }}
           >
-            {pending ? "Starting..." : "Run flow"}
+            {pending
+              ? isScheduleMode
+                ? "Creating schedule..."
+                : "Starting..."
+              : isScheduleMode
+                ? "Create schedule"
+                : "Run flow"}
           </Button>
         </Box>
       </GoogleAuthProvider>

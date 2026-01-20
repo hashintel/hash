@@ -48,6 +48,7 @@ import { defaultBrowserPluginDomains } from "../../../goals/new.page/internet-se
 import { useFlowDefinitionsContext } from "../../../shared/flow-definitions-context";
 import { useFlowRunsContext } from "../../../shared/flow-runs-context";
 import { NotFound } from "../../../shared/not-found";
+import { useFlowSchedules } from "../../../shared/use-flow-schedules";
 import { ActivityLog } from "./flow-visualizer/activity-log";
 import { DAG } from "./flow-visualizer/dag";
 import { DagSlide } from "./flow-visualizer/dag-slide";
@@ -248,6 +249,19 @@ export const FlowVisualizer = () => {
     useFlowDefinitionsContext();
 
   const { selectedFlowRun } = useFlowRunsContext();
+
+  const { schedulesByEntityUuid } = useFlowSchedules();
+
+  /**
+   * The schedule that triggered this flow run, if any.
+   * Can be used to display schedule information in the UI.
+   */
+  const _selectedFlowRunSchedule = useMemo(() => {
+    if (!selectedFlowRun?.flowScheduleId) {
+      return null;
+    }
+    return schedulesByEntityUuid.get(selectedFlowRun.flowScheduleId) ?? null;
+  }, [selectedFlowRun?.flowScheduleId, schedulesByEntityUuid]);
 
   const getOwner = useGetOwnerForEntity();
 
@@ -775,6 +789,9 @@ export const FlowVisualizer = () => {
             flowDefinition={selectedFlowDefinition}
             open={showRunModal}
             onClose={() => setShowRunModal(false)}
+            onScheduleCreated={() => {
+              void push("/workers");
+            }}
             runFlow={async (outputs: FlowTrigger["outputs"], webId) => {
               await runFlow({ outputs, webId });
             }}
