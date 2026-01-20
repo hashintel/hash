@@ -15,17 +15,27 @@ const frameInfoStyle = css({
   display: "flex",
   flexDirection: "column",
   alignItems: "center",
-  fontSize: "[11px]",
+  fontSize: "[10px]",
   color: "gray.60",
   fontWeight: "medium",
   lineHeight: "[1]",
-  minWidth: "[80px]",
+  width: "[90px]",
+  fontVariantNumeric: "tabular-nums",
+  overflow: "hidden",
+  whiteSpace: "nowrap",
 });
 
 const elapsedTimeStyle = css({
-  fontSize: "[10px]",
+  fontSize: "[9px]",
   color: "gray.50",
   marginTop: "[2px]",
+});
+
+const frameIndexStyle = css({
+  fontSize: "[11px]",
+  color: "core.gray.50",
+  letterSpacing: "[-0.2px]",
+  marginTop: "[1px]",
 });
 
 const sliderStyle = css({
@@ -178,7 +188,7 @@ export const SimulationControls: React.FC<SimulationControlsProps> = ({
         <>
           <div className={frameInfoStyle}>
             <div>Frame</div>
-            <div>
+            <div className={frameIndexStyle}>
               {frameIndex + 1} / {totalFrames}
             </div>
             <div className={elapsedTimeStyle}>{elapsedTime.toFixed(3)}s</div>
