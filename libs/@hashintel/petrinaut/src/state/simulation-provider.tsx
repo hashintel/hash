@@ -78,7 +78,6 @@ const useSimulationRunner = ({
 
     const tick = () => {
       const tickStart = performance.now();
-      let framesComputed = 0;
       let simulation = getState().simulation;
       let shouldContinue = true;
 
@@ -96,7 +95,6 @@ const useSimulationRunner = ({
             computeNextFrame(simulation);
 
           simulation = updatedSimulation;
-          framesComputed++;
 
           if (!transitionFired) {
             const currentFrame =
@@ -109,9 +107,6 @@ const useSimulationRunner = ({
             }
           }
         }
-
-        // eslint-disable-next-line no-console
-        console.log(`Computed ${framesComputed} frames in this tick`);
 
         const finalState: SimulationState = shouldContinue
           ? "Running"
