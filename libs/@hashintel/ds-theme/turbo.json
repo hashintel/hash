@@ -3,7 +3,6 @@
   "extends": ["//"],
   "tasks": {
     "build": {
-      "dependsOn": ["codegen"],
       "outputs": ["dist/**"]
     },
     "codegen": {

@@ -18,8 +18,7 @@
     "./theme": {
       "types": "./dist/theme.d.ts",
       "default": "./dist/theme.js"
-    },
-    "./package.json": "./package.json"
+    }
   },
   "main": "./dist/main.js",
   "module": "./dist/main.js",
