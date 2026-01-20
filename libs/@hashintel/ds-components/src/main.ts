@@ -1,15 +1,15 @@
-export { Avatar, type AvatarProps } from "./components/Avatar/avatar";
-export { Badge, type BadgeProps } from "./components/Badge/badge";
-export { Button, type ButtonProps } from "./components/Button/button";
-export { Checkbox, type CheckboxProps } from "./components/Checkbox/checkbox";
+export { Avatar, type AvatarProps } from "./components/avatar";
+export { Badge, type BadgeProps } from "./components/badge";
+export { Button, type ButtonProps } from "./components/button";
+export { Checkbox, type CheckboxProps } from "./components/checkbox";
 export {
   RadioGroup,
   type RadioGroupOption,
   type RadioGroupProps,
-} from "./components/RadioGroup/radio-group";
+} from "./components/radio-group";
 export {
   SegmentedControl,
   type SegmentedControlProps,
-} from "./components/SegmentedControl/segmented-control";
-export { Slider, type SliderProps } from "./components/Slider/slider";
-export { Switch, type SwitchProps } from "./components/Switch/switch";
+} from "./components/segmented-control";
+export { Slider, type SliderProps } from "./components/slider";
+export { Switch, type SwitchProps } from "./components/switch";

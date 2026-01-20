@@ -14,10 +14,10 @@ import {
 import { AnimatePresence, motion } from "motion/react";
 import { useState } from "react";
 
-import { Button } from "../components/Button/button";
-import { SegmentedControl } from "../components/SegmentedControl/segmented-control";
-import { Slider } from "../components/Slider/slider";
-import { Switch } from "../components/Switch/switch";
+import { Button } from "../components/button";
+import { SegmentedControl } from "../components/segmented-control";
+import { Slider } from "../components/slider";
+import { Switch } from "../components/switch";
 import { ExampleArticle } from "./example-article";
 
 const PADDING = 6;

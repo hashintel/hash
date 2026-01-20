@@ -11,7 +11,14 @@
   "sideEffects": false,
   "type": "module",
   "exports": {
-    ".": "./dist/main.js"
+    "./*": {
+      "types": "./dist/components/*.d.ts",
+      "import": "./dist/components/*.js"
+    },
+    ".": {
+      "types": "./dist/main.d.ts",
+      "import": "./dist/main.js"
+    }
   },
   "main": "./dist/main.js",
   "module": "./dist/main.js",
