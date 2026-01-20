@@ -239,11 +239,20 @@ impl<'ctx, 'footprints, 'env, 'heap, A: Allocator, C: Allocator>
         // done we add everything up.
         let mut total: Footprint = SaturatingSemiring.zero();
 
+        let units_coefficient = returns.units.coefficients();
+        let cardinality_coefficient = returns.cardinality.coefficients();
+
         // We do this in two parts, first we go over the coefficients, and convert them to our
         // "universe"
         for (index, operand) in arguments.iter_enumerated() {
-            let units_coefficient = returns.units.coefficients()[index.as_usize()];
-            let cardinality_coefficient = returns.cardinality.coefficients()[index.as_usize()];
+            let units_coefficient = units_coefficient
+                .get(index.as_usize())
+                .copied()
+                .unwrap_or_default();
+            let cardinality_coefficient = cardinality_coefficient
+                .get(index.as_usize())
+                .copied()
+                .unwrap_or_default();
 
             if units_coefficient == 0 && cardinality_coefficient == 0 {
                 continue;

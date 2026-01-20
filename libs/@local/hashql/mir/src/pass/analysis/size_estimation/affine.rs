@@ -80,7 +80,7 @@ where
         }
 
         for (lhs_coeff, rhs_coeff) in lhs.coefficients.iter_mut().zip(rhs.coefficients.iter()) {
-            self.plus(lhs_coeff, rhs_coeff);
+            changed |= self.plus(lhs_coeff, rhs_coeff);
         }
 
         changed |= self.plus(&mut lhs.constant, &rhs.constant);

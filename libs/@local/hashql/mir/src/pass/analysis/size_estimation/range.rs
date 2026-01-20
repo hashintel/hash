@@ -199,6 +199,40 @@ macro_rules! range {
 
         forward_ref_binop!(impl Add<Self>::add for $name);
         forward_ref_op_assign!(impl AddAssign<Self>::add_assign for $name);
+
+
+        impl SaturatingMul<u16> for $name {
+            type Output = Self;
+
+            #[inline]
+            fn saturating_mul(self, rhs: u16) -> Self::Output {
+                let min = <$inner>::new(self.min.raw.saturating_mul(u32::from(rhs)));
+                let max = self
+                    .max
+                    .map(|max| <$inner>::new(max.raw.saturating_mul(u32::from(rhs))));
+
+                Self {
+                    min,
+                    max,
+                }
+            }
+        }
+
+        impl SaturatingMulAssign<u16> for $name {
+            #[inline]
+            fn saturating_mul_assign(&mut self, rhs: u16) {
+                self.min.raw = self.min.raw.saturating_mul(u32::from(rhs));
+                match &mut self.max {
+                    Bound::Included(max) | Bound::Excluded(max) => {
+                        max.raw = max.raw.saturating_mul(u32::from(rhs));
+                    }
+                    Bound::Unbounded => {}
+                }
+            }
+        }
+
+        forward_ref_binop!(impl SaturatingMul<u16>::saturating_mul for $name);
+        forward_ref_op_assign!(impl SaturatingMulAssign<u16>::saturating_mul_assign for $name);
     };
 }
 
@@ -261,36 +295,11 @@ impl JoinSemiLattice<Cardinality> for SaturatingSemiring {
     }
 }
 
+pub(crate) trait SaturatingMul<R> {
+    type Output;
+
+    fn saturating_mul(self, rhs: R) -> Self::Output;
+}
 pub(crate) trait SaturatingMulAssign<R> {
     fn saturating_mul_assign(&mut self, rhs: R);
 }
-
-impl SaturatingMulAssign<u16> for InformationRange {
-    #[inline]
-    fn saturating_mul_assign(&mut self, rhs: u16) {
-        self.min.raw = self.min.raw.saturating_mul(u32::from(rhs));
-        match &mut self.max {
-            Bound::Included(max) | Bound::Excluded(max) => {
-                max.raw = max.raw.saturating_mul(u32::from(rhs));
-            }
-            Bound::Unbounded => {}
-        }
-    }
-}
-
-forward_ref_op_assign!(impl SaturatingMulAssign<u16>::saturating_mul_assign for InformationRange);
-
-impl SaturatingMulAssign<u16> for Cardinality {
-    #[inline]
-    fn saturating_mul_assign(&mut self, rhs: u16) {
-        self.min.raw = self.min.raw.saturating_mul(u32::from(rhs));
-        match &mut self.max {
-            Bound::Included(max) | Bound::Excluded(max) => {
-                max.raw = max.raw.saturating_mul(u32::from(rhs));
-            }
-            Bound::Unbounded => {}
-        }
-    }
-}
-
-forward_ref_op_assign!(impl SaturatingMulAssign<u16>::saturating_mul_assign for Cardinality);
