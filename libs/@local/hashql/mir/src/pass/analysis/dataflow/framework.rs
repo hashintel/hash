@@ -105,6 +105,34 @@ pub trait DataflowAnalysis<'heap> {
     /// The default type `!` (never) indicates no edge effects are used.
     type SwitchIntData = !;
 
+    /// Optional metadata for controlling fixpoint iteration behavior.
+    ///
+    /// This associated type enables bounded fixpoint iteration and custom termination
+    /// conditions. When set to a concrete type (not `!`), the framework will:
+    ///
+    /// 1. Call [`initialize_metadata`](Self::initialize_metadata) before iteration begins
+    /// 2. Pass the metadata to [`should_process_block`](Self::should_process_block) and
+    ///    [`should_propagate_between`](Self::should_propagate_between) for each operation
+    ///
+    /// # Example: Bounded Loop Iteration
+    ///
+    /// For analyses over programs with loops, fixpoint iteration may require many passes
+    /// before converging. Use metadata to bound the number of times each block is processed:
+    ///
+    /// ```ignore
+    /// type Metadata<A: Allocator> = IdVec<BasicBlockId, usize, A>;
+    ///
+    /// fn initialize_metadata<A: Allocator>(&self, body: &Body<'heap>, alloc: A) -> Option<Self::Metadata<A>> {
+    ///     Some(IdVec::from_elem_in(0, body.basic_blocks.len(), alloc))
+    /// }
+    ///
+    /// fn should_process_block<A: Allocator>(&self, _: &Body<'heap>, block: BasicBlockId, counts: &mut Self::Metadata<A>) -> bool {
+    ///     counts[block] += 1;
+    ///     counts[block] <= 16 // Process each block at most 16 times
+    /// }
+    /// ```
+    type Metadata<A: Allocator> = !;
+
     /// The direction of dataflow propagation.
     ///
     /// Defaults to [`Direction::Forward`].
@@ -135,6 +163,79 @@ pub trait DataflowAnalysis<'heap> {
         domain: &mut Self::Domain<A>,
         alloc: A,
     );
+
+    /// Initializes the metadata for controlling fixpoint iteration.
+    ///
+    /// Called once before iteration begins. Return `Some(metadata)` to enable
+    /// [`should_process_block`](Self::should_process_block) and
+    /// [`should_propagate_between`](Self::should_propagate_between) callbacks,
+    /// or `None` to disable them entirely (the default).
+    #[expect(unused_variables, reason = "trait definition")]
+    fn initialize_metadata<A: Allocator>(
+        &self,
+        body: &Body<'heap>,
+        alloc: A,
+    ) -> Option<Self::Metadata<A>> {
+        None
+    }
+
+    /// Controls whether a dequeued block should be processed.
+    ///
+    /// Called when a block is dequeued from the worklist. Return `false` to skip
+    /// processing this block entirely—no transfer functions will be applied and
+    /// no propagation to successors will occur.
+    ///
+    /// # Staleness Warning
+    ///
+    /// When this returns `false`, the block's exit state becomes stale: the entry
+    /// state reflects the join that caused the enqueue, but the exit state is from
+    /// the previous processing. If your analysis consumes exit states of blocks that
+    /// may be skipped, prefer [`should_propagate_between`](Self::should_propagate_between)
+    /// instead, which prevents the join entirely and maintains entry/exit consistency.
+    ///
+    /// This method is useful when staleness is acceptable (e.g., you only consume
+    /// exit states of terminal blocks like returns, which are never loop headers).
+    ///
+    /// The default implementation always returns `true` (process all blocks).
+    #[expect(unused_variables, reason = "trait definition")]
+    fn should_process_block<A: Allocator>(
+        &self,
+        body: &Body<'heap>,
+        block: BasicBlockId,
+        metadata: &mut Self::Metadata<A>,
+    ) -> bool {
+        true
+    }
+
+    /// Controls whether state should propagate along a specific edge.
+    ///
+    /// Called before joining state into the target block's entry. Return `false`
+    /// to skip both the join and the enqueue – the target's entry state will not
+    /// be updated and it will not be re-added to the worklist.
+    ///
+    /// This is the preferred mechanism for bounding loop iteration when you need
+    /// entry/exit state consistency. Because the join is skipped entirely, the
+    /// target block's entry and exit states remain consistent with each other
+    /// (both from the last successful processing).
+    ///
+    /// The tradeoff compared to [`should_process_block`](Self::should_process_block)
+    /// is that counting is per-edge rather than per-dequeue, so blocks with multiple
+    /// incoming edges may reach the bound faster. For loop headers (the typical
+    /// bounding target), this is usually acceptable since back-edges are the
+    /// primary concern.
+    ///
+    /// The default implementation always returns `true` (propagate all edges).
+    #[expect(unused_variables, reason = "trait definition")]
+    fn should_propagate_between<A: Allocator>(
+        &self,
+        body: &Body<'heap>,
+        source: BasicBlockId,
+        target: BasicBlockId,
+        state: &Self::Domain<A>,
+        metadata: &mut Self::Metadata<A>,
+    ) -> bool {
+        true
+    }
 
     /// Computes optional data for a switch terminator to enable edge-specific refinement.
     ///
@@ -292,6 +393,7 @@ pub trait DataflowAnalysis<'heap> {
         A: Allocator + Clone,
     {
         let lattice = self.lattice_in(body, alloc.clone());
+        let mut metadata = self.initialize_metadata(body, alloc.clone());
 
         let mut queue = WorkQueue::new_in(body.basic_blocks.len(), alloc.clone());
 
@@ -344,6 +446,12 @@ pub trait DataflowAnalysis<'heap> {
         let mut state = lattice.bottom();
 
         while let Some(bb) = queue.dequeue() {
+            if let Some(metadata) = &mut metadata
+                && !self.should_process_block(body, bb, metadata)
+            {
+                continue;
+            }
+
             // Using a cloned state here allows us to liberally modify the state inside of the
             // driver, as the value isn't persisted.
             state.clone_from(&join_states[bb]);
@@ -358,6 +466,12 @@ pub trait DataflowAnalysis<'heap> {
                 id: bb,
                 block: &body.basic_blocks[bb],
                 propagate: |target: BasicBlockId, state: &Self::Domain<A>| {
+                    if let Some(metadata) = &mut metadata
+                        && !self.should_propagate_between(body, bb, target, state, metadata)
+                    {
+                        return;
+                    }
+
                     // Join the propagated state into the target's join state.
                     // If this changed the target's state, re-queue it for processing.
                     let changed = lattice.join(&mut join_states[target], state);
