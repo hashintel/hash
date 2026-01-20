@@ -320,6 +320,86 @@ fn static_type_projection_fallback() {
     );
 }
 
+/// Field projection on dynamic type uses fallback to base local's footprint.
+/// Accessing `.1` on `(Int, ?)` where the second field is unknown-typed
+/// falls back to copying the base local's footprint.
+#[test]
+fn dynamic_field_projection_fallback() {
+    let heap = Heap::new();
+    let interner = Interner::new(&heap);
+    let env = Environment::new(&heap);
+
+    let mut body = body!(interner, env; fn@0/0 -> ? {
+        decl tup: (Int, ?), elem: ?;
+        @proj tup_1 = tup.1: ?;
+
+        bb0() {
+            tup = input.load! "data";
+            elem = load tup_1;
+            return elem;
+        }
+    });
+
+    assert_size_estimation(
+        "dynamic_field_projection_fallback",
+        slice::from_mut(&mut body),
+        &heap,
+        &interner,
+        &env,
+    );
+}
+
+/// Index projection on a non-parameter local inherits units from that local.
+/// When indexing into a list stored in a local (not a parameter), the result
+/// inherits the local's unit footprint with cardinality 1.
+#[test]
+fn index_projection_non_parameter_local() {
+    let heap = Heap::new();
+    let interner = Interner::new(&heap);
+    let env = Environment::new(&heap);
+    let types = TypeBuilder::synthetic(&env);
+
+    let int_ty = types.integer();
+    let list_ty = types.list(types.unknown());
+
+    let mut builder = BodyBuilder::new(&interner);
+
+    // xs is a local (not a parameter) that gets a list from input
+    let xs = builder.local("xs", list_ty);
+    let idx = builder.local("idx", int_ty);
+    let elem = builder.local("elem", types.unknown());
+
+    // Create index projection: xs[idx]
+    let xs_idx = builder.place(|p| p.from(xs).index(idx.local, types.unknown()));
+
+    let const_0 = builder.const_int(0);
+
+    let bb0 = builder.reserve_block([]);
+    builder
+        .build_block(bb0)
+        .assign_place(xs, |rv| {
+            rv.input(
+                hashql_hir::node::operation::InputOp::Load { required: true },
+                "data",
+            )
+        })
+        .assign_place(idx, |rv| rv.load(const_0))
+        .assign_place(elem, |rv| rv.load(xs_idx))
+        .ret(elem);
+
+    // 0 params - xs is not a parameter
+    let mut body = builder.finish(0, types.unknown());
+    body.id = DefId::new(0);
+
+    assert_size_estimation(
+        "index_projection_non_parameter_local",
+        slice::from_mut(&mut body),
+        &heap,
+        &interner,
+        &env,
+    );
+}
+
 /// Reading a dynamically-sized parameter creates an affine dependency.
 /// The return footprint should depend on parameter 0.
 #[test]
