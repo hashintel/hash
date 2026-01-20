@@ -178,6 +178,12 @@ macro_rules! range {
             }
         }
 
+        impl fmt::Display for $name {
+            fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+                <Self as Debug>::fmt(self, fmt)
+            }
+        }
+
         impl HasBottom<$name> for SaturatingSemiring {
             #[inline]
             fn bottom(&self) -> $name {

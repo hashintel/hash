@@ -12,7 +12,7 @@
 //!
 //! This allows the analysis to propagate size information through function calls.
 
-use core::cmp;
+use core::{cmp, fmt};
 
 use hashql_core::collections::{InlineVec, small_vec_from_elem};
 
@@ -55,6 +55,20 @@ impl<T: PartialEq> PartialEq for AffineEquation<T> {
 }
 
 impl<T: Eq> Eq for AffineEquation<T> {}
+
+impl<T: fmt::Display> fmt::Display for AffineEquation<T> {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        fmt::Display::fmt(&self.constant, fmt)?;
+
+        for (i, &coeff) in self.coefficients.iter().enumerate() {
+            if coeff != 0 {
+                write!(fmt, " + {coeff}*%{i}")?;
+            }
+        }
+
+        Ok(())
+    }
+}
 
 impl<T> AffineEquation<T> {
     /// Creates an equation that equals exactly the parameter at `index`.

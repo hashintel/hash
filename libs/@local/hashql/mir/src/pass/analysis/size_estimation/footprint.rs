@@ -8,7 +8,7 @@
 //!
 //! A [`BodyFootprint`] aggregates footprints for all locals and the return value of a function.
 
-use core::alloc::Allocator;
+use core::{alloc::Allocator, fmt};
 
 use hashql_core::heap::TryCloneIn;
 
@@ -143,6 +143,18 @@ impl<A: Allocator + Clone> HasBottom<BodyFootprint<A>> for BodyFootprintSemilatt
     }
 }
 
+impl<A: Allocator> fmt::Display for BodyFootprint<A> {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        writeln!(fmt, "({} args)", self.args)?;
+
+        for (local, footprint) in self.locals.iter_enumerated() {
+            writeln!(fmt, "  {local}: {footprint}")?;
+        }
+
+        writeln!(fmt, "  returns: {}", self.returns)
+    }
+}
+
 /// Combined size measure tracking both information content and element count.
 ///
 /// Each measure can be either a constant range or an affine equation of the function's parameters.
@@ -217,6 +229,16 @@ impl Clone for Footprint {
 
         units.clone_from(&source.units);
         cardinality.clone_from(&source.cardinality);
+    }
+}
+
+impl fmt::Display for Footprint {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            fmt,
+            "units: {}, cardinality: {}",
+            self.units, self.cardinality
+        )
     }
 }
 
