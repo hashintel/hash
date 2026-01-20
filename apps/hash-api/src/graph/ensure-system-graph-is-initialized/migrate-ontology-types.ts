@@ -95,6 +95,7 @@ export const migrateOntologyTypes = async (params: {
   };
 
   const migrationsCompleted: string[] = [];
+  let migrationsPreviouslyCompletedCount = 0;
 
   /**
    * Try to load previously saved migration state.
@@ -110,6 +111,7 @@ export const migrateOntologyTypes = async (params: {
 
     if (storedMigrationsCompleted && storedMigrationState) {
       migrationsCompleted.push(...storedMigrationsCompleted);
+      migrationsPreviouslyCompletedCount = migrationsCompleted.length;
       migrationState = storedMigrationState;
       params.logger.debug(
         `Loaded migration state: ${migrationsCompleted.length} migrations completed, ` +
@@ -210,12 +212,14 @@ export const migrateOntologyTypes = async (params: {
     }
   }
 
-  const hashInstance = await getHashInstance(params.context, authentication);
+  if (migrationsCompleted.length > migrationsPreviouslyCompletedCount) {
+    const hashInstance = await getHashInstance(params.context, authentication);
 
-  await saveMigrationState({
-    context: params.context,
-    hashInstance,
-    migrationsCompleted,
-    migrationState,
-  });
+    await saveMigrationState({
+      context: params.context,
+      hashInstance,
+      migrationsCompleted,
+      migrationState,
+    });
+  }
 };
