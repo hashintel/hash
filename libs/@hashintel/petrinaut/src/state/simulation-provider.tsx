@@ -260,100 +260,97 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
     };
 
   const initialize: SimulationContextValue["initialize"] = ({ seed, dt }) => {
-    const currentState = getState();
+    // Use functional update to ensure we see the latest state at processing time.
+    // This prevents race conditions where another action (like run()) modifies
+    // state between when we read it and when the update is processed.
+    setStateValues((prev) => {
+      if (prev.state === "Running") {
+        // Don't overwrite if another action changed state to Running.
+        // We can't throw inside a state updater, so we just return unchanged.
+        // The UI should prevent this case, but this is a safety guard.
+        return prev;
+      }
 
-    if (currentState.state === "Running") {
-      throw new Error(
-        "Cannot initialize simulation while it is running. Please reset first.",
-      );
-    }
+      try {
+        const sdcpn = getSDCPN();
 
-    try {
-      const sdcpn = getSDCPN();
+        // Check SDCPN validity before building simulation
+        const checkResult = checkSDCPN(sdcpn);
 
-      // Check SDCPN validity before building simulation
-      const checkResult = checkSDCPN(sdcpn);
+        if (!checkResult.isValid) {
+          const firstError = checkResult.itemDiagnostics[0]!;
+          const firstDiagnostic = firstError.diagnostics[0]!;
+          const errorMessage =
+            typeof firstDiagnostic.messageText === "string"
+              ? firstDiagnostic.messageText
+              : ts.flattenDiagnosticMessageText(
+                  firstDiagnostic.messageText,
+                  "\n",
+                );
 
-      if (!checkResult.isValid) {
-        const firstError = checkResult.itemDiagnostics[0]!;
-        const firstDiagnostic = firstError.diagnostics[0]!;
-        const errorMessage =
-          typeof firstDiagnostic.messageText === "string"
-            ? firstDiagnostic.messageText
-            : ts.flattenDiagnosticMessageText(
-                firstDiagnostic.messageText,
-                "\n",
-              );
+          return {
+            ...prev,
+            simulation: null,
+            state: "Error" as const,
+            error: `TypeScript error in ${firstError.itemType} (${firstError.itemId}): ${errorMessage}`,
+            errorItemId: firstError.itemId,
+          };
+        }
 
-        setStateValues({
-          ...currentState,
-          simulation: null,
-          state: "Error" as const,
-          error: `TypeScript error in ${firstError.itemType} (${firstError.itemId}): ${errorMessage}`,
-          errorItemId: firstError.itemId,
-        });
-      } else {
         // Build the simulation instance using stored initialMarking and parameterValues
         const simulationInstance = buildSimulation({
           sdcpn,
-          initialMarking: currentState.initialMarking,
-          parameterValues: currentState.parameterValues,
+          initialMarking: prev.initialMarking,
+          parameterValues: prev.parameterValues,
           seed,
           dt,
         });
 
-        setStateValues({
-          ...currentState,
+        return {
+          ...prev,
           simulation: simulationInstance,
           state: "Paused",
           error: null,
           errorItemId: null,
           currentlyViewedFrame: 0,
-        });
-      }
-    } catch (error) {
-      // eslint-disable-next-line no-console
-      console.error("Error initializing simulation:", error);
+        };
+      } catch (error) {
+        // eslint-disable-next-line no-console
+        console.error("Error initializing simulation:", error);
 
-      setStateValues({
-        ...currentState,
-        simulation: null,
-        state: "Error",
-        error:
-          error instanceof Error
-            ? error.message
-            : "Unknown error occurred during initialization",
-        errorItemId: error instanceof SDCPNItemError ? error.itemId : null,
-      });
-    }
+        return {
+          ...prev,
+          simulation: null,
+          state: "Error",
+          error:
+            error instanceof Error
+              ? error.message
+              : "Unknown error occurred during initialization",
+          errorItemId: error instanceof SDCPNItemError ? error.itemId : null,
+        };
+      }
+    });
   };
 
   const run: SimulationContextValue["run"] = () => {
-    const currentState = getState();
+    // Use functional update to ensure we see the latest state at processing time.
+    // This prevents race conditions where state changes between validation and update.
+    setStateValues((prev) => {
+      // Guard against invalid states - return unchanged if we can't run
+      if (prev.state === "Running") {
+        return prev; // Already running
+      }
 
-    if (currentState.state === "Running") {
-      throw new Error("Cannot run simulation: Simulation is already running.");
-    }
+      if (!prev.simulation) {
+        return prev; // No simulation initialized
+      }
 
-    if (!currentState.simulation) {
-      throw new Error(
-        "Cannot run simulation: No simulation initialized. Call initialize() first.",
-      );
-    }
+      if (prev.state === "Error" || prev.state === "Complete") {
+        return prev; // Can't run from these states
+      }
 
-    if (currentState.state === "Error") {
-      throw new Error(
-        "Cannot run simulation: Simulation is in error state. Please reset.",
-      );
-    }
-
-    if (currentState.state === "Complete") {
-      throw new Error(
-        "Cannot run simulation: Simulation is complete. Please reset to run again.",
-      );
-    }
-
-    setStateValues((prev) => ({ ...prev, state: "Running" }));
+      return { ...prev, state: "Running" };
+    });
   };
 
   const pause: SimulationContextValue["pause"] = () => {
