@@ -11,8 +11,7 @@
   "sideEffects": false,
   "type": "module",
   "exports": {
-    ".": "./dist/main.js",
-    "./package.json": "./package.json"
+    ".": "./dist/main.js"
   },
   "main": "./dist/main.js",
   "module": "./dist/main.js",
