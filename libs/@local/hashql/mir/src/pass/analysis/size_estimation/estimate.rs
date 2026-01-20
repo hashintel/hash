@@ -2,7 +2,7 @@ use core::mem;
 
 use hashql_core::collections::small_vec_from_elem;
 
-use super::{affine::AffineEquation, range::SaturatingMulAssign};
+use super::{affine::AffineEquation, range::SaturatingMul};
 use crate::pass::analysis::dataflow::lattice::{
     AdditiveMonoid, HasBottom, JoinSemiLattice, SaturatingSemiring,
 };
@@ -84,7 +84,9 @@ impl<T> Estimate<T> {
 
     pub(crate) fn saturating_mul_add(&mut self, other: &Self, coefficient: u16)
     where
-        T: Clone + SaturatingMulAssign<u16>,
+        T: Clone,
+        for<'a> &'a T: SaturatingMul<u16, Output = T>,
+        SaturatingSemiring: AdditiveMonoid<T>,
     {
         self.resize_coefficients(other.coefficients().len());
 
@@ -96,7 +98,10 @@ impl<T> Estimate<T> {
             *coeff = coeff.saturating_add(other_coeff.saturating_mul(coefficient));
         }
 
-        self.constant_mut().saturating_mul_assign(coefficient);
+        SaturatingSemiring.plus(
+            self.constant_mut(),
+            &other.constant().saturating_mul(coefficient),
+        );
     }
 }
 
