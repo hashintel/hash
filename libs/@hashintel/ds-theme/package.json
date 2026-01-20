@@ -37,13 +37,13 @@
     "codegen:colors": "tsx scripts/generate-colors.ts",
     "codegen:tokens": "tsx scripts/generate-tokens.ts",
     "dev": "tsdown --watch",
+    "dev:test": "vitest dev",
     "fix": "npm-run-all --continue-on-error \"fix:*\"",
     "fix:format": "biome format --write",
     "lint": "npm-run-all --continue-on-error \"lint:*\"",
     "lint:tsc": "tsc --noEmit",
     "prepare": "yarn run codegen",
-    "test": "vitest run",
-    "test:dev": "vitest dev"
+    "test:unit": "vitest run"
   },
   "devDependencies": {
     "@pandacss/dev": "1.4.3",

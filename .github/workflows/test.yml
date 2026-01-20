@@ -284,7 +284,7 @@ jobs:
         run: mkdir -p var/logs
 
       - name: Install playwright
-        if: matrix.name == '@tests/hash-playwright'
+        if: matrix.name == '@tests/hash-playwright' || matrix.name == '@hashintel/ds-helpers'
         uses: nick-fields/retry@ce71cc2ab81d554ebbe88c79ab5975992d79ba08 # v3.0.2
         with:
           max_attempts: 3
