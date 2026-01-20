@@ -1,6 +1,7 @@
 use core::{alloc::Allocator, cell::RefCell};
 
 use hashql_core::{
+    collections::{InlineVec, small_vec_from_elem},
     heap::CloneIn as _,
     id::{Id as _, bit_vec::DenseBitSet},
     r#type::environment::Environment,
@@ -299,6 +300,7 @@ impl<'heap, B: Allocator, C: Allocator> DataflowAnalysis<'heap>
 {
     type Domain<A: Allocator> = BodyFootprint<A>;
     type Lattice<A: Allocator + Clone> = BodyFootprintSemilattice<A>;
+    type Metadata<A: Allocator> = InlineVec<u8, 16>;
     type SwitchIntData = !;
 
     const DIRECTION: Direction = Direction::Forward;
@@ -318,6 +320,37 @@ impl<'heap, B: Allocator, C: Allocator> DataflowAnalysis<'heap>
         alloc: A,
     ) {
         self.footprints[body.id].clone_into(domain, alloc);
+    }
+
+    fn initialize_metadata<A: Allocator>(
+        &self,
+        body: &Body<'heap>,
+        _: A,
+    ) -> Option<Self::Metadata<A>> {
+        Some(small_vec_from_elem(body.basic_blocks.len(), 0))
+    }
+
+    fn should_process_block<A: Allocator>(
+        &self,
+        _: &Body<'heap>,
+        block: BasicBlockId,
+        metadata: &mut Self::Metadata<A>,
+    ) -> bool {
+        metadata[block.as_usize()] = metadata[block.as_usize()].saturating_add(1);
+        true
+    }
+
+    fn should_propagate_between<A: Allocator>(
+        &self,
+        _: &Body<'heap>,
+        _: BasicBlockId,
+        target: BasicBlockId,
+        _: &Self::Domain<A>,
+        metadata: &mut Self::Metadata<A>,
+    ) -> bool {
+        const MAX_ITERATION_COUNT: u8 = 16;
+
+        metadata[target.as_usize()] <= MAX_ITERATION_COUNT
     }
 
     fn transfer_statement<A: Allocator>(
