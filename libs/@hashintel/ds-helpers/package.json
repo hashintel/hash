@@ -56,7 +56,7 @@
     "lint:tsc": "tsc --noEmit",
     "preflight:ladle": "ladle build && ladle preview",
     "prepare": "yarn run codegen",
-    "test:integration": "ladle build && playwright test",
+    "test:snapshots": "ladle build && playwright test",
     "test:update": "ladle build && playwright test --update-snapshots"
   },
   "devDependencies": {
