@@ -120,6 +120,21 @@ impl<'heap, C: Allocator> SizeEstimationLookup<'_, '_, 'heap, C> {
             return Eval::Copy(place.local);
         }
 
+        // For other projections, try static analysis on the projected type
+        let type_id = place.type_id(self.decl);
+        let static_size = {
+            let mut cache = self.cache.borrow_mut();
+            let mut analyzer = StaticSizeEstimation::new(self.env, *cache);
+            analyzer.run(type_id)
+        };
+
+        if let Some(static_size) = static_size {
+            return Eval::Footprint(Footprint {
+                units: Estimate::Constant(static_size),
+                cardinality: Estimate::Constant(Cardinality::one()),
+            });
+        }
+
         // Single Index projection: extracts one element from a collection.
         // The element inherits the collection's unit size but has cardinality 1.
         if matches!(
@@ -143,24 +158,8 @@ impl<'heap, C: Allocator> SizeEstimationLookup<'_, '_, 'heap, C> {
             return Eval::Footprint(Footprint { units, cardinality });
         }
 
-        // For other projections, try static analysis on the projected type
-        let type_id = place.type_id(self.decl);
-        let static_size = {
-            let mut cache = self.cache.borrow_mut();
-            let mut analyzer = StaticSizeEstimation::new(self.env, *cache);
-            analyzer.run(type_id)
-        };
-
-        static_size.map_or_else(
-            // Fallback: use the base local's footprint as an over-approximation
-            || Eval::Copy(place.local),
-            |size| {
-                Eval::Footprint(Footprint {
-                    units: Estimate::Constant(size),
-                    cardinality: Estimate::Constant(Cardinality::one()),
-                })
-            },
-        )
+        // Fallback: use the base local's footprint as an over-approximation
+        Eval::Copy(place.local)
     }
 }
 

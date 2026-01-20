@@ -334,7 +334,10 @@ mod tests {
     use crate::pass::analysis::{
         dataflow::lattice::{
             SaturatingSemiring,
-            laws::{assert_additive_monoid, assert_bounded_join_semilattice},
+            laws::{
+                assert_additive_monoid, assert_bounded_join_semilattice,
+                assert_is_bottom_consistent,
+            },
         },
         size_estimation::unit::{Cardinal, InformationUnit},
     };
@@ -490,5 +493,8 @@ mod tests {
 
         assert_additive_monoid(&semiring, card_a, card_b, card_c);
         assert_bounded_join_semilattice(&semiring, card_a, card_b, card_c);
+
+        assert_is_bottom_consistent::<SaturatingSemiring, InformationRange>(&semiring);
+        assert_is_bottom_consistent::<SaturatingSemiring, Cardinality>(&semiring);
     }
 }

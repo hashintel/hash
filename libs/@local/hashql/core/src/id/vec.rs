@@ -492,13 +492,14 @@ where
     }
 }
 
-impl<I, T, A> PartialEq for IdVec<I, T, A>
+impl<I, T, U, A, B> PartialEq<IdVec<I, U, B>> for IdVec<I, T, A>
 where
-    T: PartialEq,
+    T: PartialEq<U>,
     A: Allocator,
+    B: Allocator,
 {
     #[inline]
-    fn eq(&self, other: &Self) -> bool {
+    fn eq(&self, other: &IdVec<I, U, B>) -> bool {
         self.raw == other.raw
     }
 }
@@ -510,13 +511,14 @@ where
 {
 }
 
-impl<I, T, A> PartialOrd for IdVec<I, T, A>
+impl<I, T, A, B> PartialOrd<IdVec<I, T, B>> for IdVec<I, T, A>
 where
     T: PartialOrd,
     A: Allocator,
+    B: Allocator,
 {
     #[inline]
-    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+    fn partial_cmp(&self, other: &IdVec<I, T, B>) -> Option<Ordering> {
         self.raw.partial_cmp(&other.raw)
     }
 }
