@@ -1,7 +1,10 @@
 import { createContext } from "react";
 
-import type { SimulationInstance } from "./simulator/types";
+import type { Color, ID, Place, SDCPN, Transition } from "../core/types/sdcpn";
 
+/**
+ * Current state of the simulation lifecycle.
+ */
 export type SimulationState =
   | "NotRun"
   | "Running"
@@ -33,12 +36,141 @@ export type SimulationFrameState_Transition = {
   firingCount: number;
 };
 
+//
+// Simulation Instance Types
+//
+// These types define the internal simulation data structures. They are defined
+// here to ensure the context module has no dependencies on the simulator module,
+// making the context the source of truth for type definitions.
+//
+// TODO FE-207: This is a temporary solution that leaks implementation details of the
+// SDCPN simulator (e.g., compiled function types, buffer layouts) into the
+// context module. Ideally, the context should only expose a minimal public
+// interface, and these internal types should live in the simulator module.
+// This would require refactoring SimulationContextValue to not expose the
+// full SimulationInstance, but instead provide accessor methods or a
+// simplified public state type.
+//
+
 /**
- * State of a simulation frame.
+ * Runtime parameter values used during simulation execution.
+ * Maps parameter names to their resolved numeric or boolean values.
+ */
+export type ParameterValues = Record<string, number | boolean>;
+
+/**
+ * Compiled differential equation function for continuous dynamics.
+ * Computes the rate of change for tokens in a place with dynamics enabled.
+ */
+export type DifferentialEquationFn = (
+  tokens: Record<string, number>[],
+  parameters: ParameterValues,
+) => Record<string, number>[];
+
+/**
+ * Compiled lambda function for transition firing probability.
+ * Returns a rate (number) for stochastic transitions or a boolean for predicate transitions.
+ */
+export type LambdaFn = (
+  tokenValues: Record<string, Record<string, number>[]>,
+  parameters: ParameterValues,
+) => number | boolean;
+
+/**
+ * Compiled transition kernel function for token generation.
+ * Computes the output tokens to create when a transition fires.
+ */
+export type TransitionKernelFn = (
+  tokenValues: Record<string, Record<string, number>[]>,
+  parameters: ParameterValues,
+) => Record<string, Record<string, number>[]>;
+
+/**
+ * Input configuration for building a new simulation instance.
+ */
+export type SimulationInput = {
+  /** The SDCPN definition to simulate */
+  sdcpn: SDCPN;
+  /** Initial token distribution across places */
+  initialMarking: Map<string, { values: Float64Array; count: number }>;
+  /** Parameter values from the simulation store (overrides SDCPN defaults) */
+  parameterValues: Record<string, string>;
+  /** Random seed for deterministic stochastic behavior */
+  seed: number;
+  /** Time step for simulation advancement */
+  dt: number;
+};
+
+/**
+ * A running simulation instance with compiled functions and frame history.
+ * Contains all state needed to execute and advance the simulation.
+ */
+export type SimulationInstance = {
+  /** Place definitions indexed by ID */
+  places: Map<string, Place>;
+  /** Transition definitions indexed by ID */
+  transitions: Map<string, Transition>;
+  /** Color type definitions indexed by ID */
+  types: Map<string, Color>;
+  /** Compiled differential equation functions indexed by place ID */
+  differentialEquationFns: Map<string, DifferentialEquationFn>;
+  /** Compiled lambda functions indexed by transition ID */
+  lambdaFns: Map<string, LambdaFn>;
+  /** Compiled transition kernel functions indexed by transition ID */
+  transitionKernelFns: Map<string, TransitionKernelFn>;
+  /** Resolved parameter values for this simulation run */
+  parameterValues: ParameterValues;
+  /** Time step for simulation advancement */
+  dt: number;
+  /** Current state of the seeded random number generator */
+  rngState: number;
+  /** History of all computed frames */
+  frames: SimulationFrame[];
+  /** Index of the current frame in the frames array */
+  currentFrameNumber: number;
+};
+
+/**
+ * A single frame (snapshot) of the simulation state at a point in time.
+ * Contains the complete token distribution and transition states.
+ */
+export type SimulationFrame = {
+  /** Back-reference to the parent simulation instance */
+  simulation: SimulationInstance;
+  /** Simulation time at this frame */
+  time: number;
+  /** Place states with token buffer offsets */
+  places: Map<
+    ID,
+    { instance: Place; offset: number; count: number; dimensions: number }
+  >;
+  /** Transition states with firing information */
+  transitions: Map<
+    ID,
+    SimulationFrameState_Transition & { instance: Transition }
+  >;
+  /**
+   * Buffer containing all place values concatenated.
+   *
+   * Size: sum of (place.dimensions * place.count) for all places.
+   *
+   * Layout: For each place, its tokens are stored contiguously.
+   *
+   * Access to a place's token values can be done via the offset and count in the `places` map.
+   */
+  buffer: Float64Array;
+};
+
+/**
+ * Simplified view of a simulation frame for UI consumption.
+ * Provides easy access to place and transition states without internal details.
  */
 export type SimulationFrameState = {
+  /** Frame index in the simulation history */
   number: number;
+  /** Simulation time at this frame */
   time: number;
+  /** Place states indexed by place ID */
   places: {
     [placeId: string]:
       | {
@@ -47,11 +179,16 @@ export type SimulationFrameState = {
         }
       | undefined;
   };
+  /** Transition states indexed by transition ID */
   transitions: {
     [transitionId: string]: SimulationFrameState_Transition | undefined;
   };
 };
 
+/**
+ * Initial token distribution for starting a simulation.
+ * Maps place IDs to their initial token values and counts.
+ */
 export type InitialMarking = Map<
   string,
   { values: Float64Array; count: number }
