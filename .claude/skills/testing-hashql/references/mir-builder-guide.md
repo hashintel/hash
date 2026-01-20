@@ -80,9 +80,11 @@ The `<id>` can be a numeric literal (`0`, `1`, `42`) or a variable identifier (`
 | `Num` | Number (float) type | `Num` |
 | `Bool` | Boolean type | `Bool` |
 | `Null` | Null type | `Null` |
+| `?` | Unknown type (dynamic) | `?` |
 | `(T1, T2, ...)` | Tuple types | `(Int, Bool, Int)` |
 | `(T,)` | Single-element tuple | `(Int,)` |
 | `(a: T1, b: T2)` | Struct types | `(a: Int, b: Bool)` |
+| `[List T]` | List type (intrinsic) | `[List Int]`, `[List (Int, Bool)]` |
 | `[fn(T1, T2) -> R]` | Closure types | `[fn(Int) -> Int]`, `[fn() -> Bool]` |
 | `\|types\| types.custom()` | Custom type expression | `\|t\| t.null()` |
 
