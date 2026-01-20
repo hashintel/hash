@@ -1,0 +1,29 @@
+════ Initial MIR ═══════════════════════════════════════════════════════════════
+
+*thunk {thunk#0}() -> String {
+    let %0: String
+
+    bb0(): {
+        switchInt(1) -> [0: bb2(), 1: bb1()]
+    }
+
+    bb1(): {
+        goto -> bb3("then")
+    }
+
+    bb2(): {
+        goto -> bb3("else")
+    }
+
+    bb3(%0): {
+        return %0
+    }
+}
+
+════ Pre-inlining MIR ══════════════════════════════════════════════════════════
+
+*thunk {thunk#0}() -> String {
+    bb0(): {
+        return "then"
+    }
+}

@@ -1,0 +1,105 @@
+---
+source: libs/@local/hashql/mir/src/pass/transform/inline/tests.rs
+expression: output
+---
+fn {closure@4294967040}(%0: Integer) -> Integer {
+    let %1: Boolean
+    let %2: Integer
+    let %3: Integer
+
+    bb0(): {
+        %1 = %0 == 0
+
+        switchInt(%1) -> [0: bb2(), 1: bb1()]
+    }
+
+    bb1(): {
+        goto -> bb3(%0)
+    }
+
+    bb2(): {
+        %3 = apply ({def@0} as FnPtr) %0
+
+        goto -> bb3(%3)
+    }
+
+    bb3(%2): {
+        return %2
+    }
+}
+
+thunk {thunk@4294967040}() -> Integer {
+    let %0: Integer
+
+    bb0(): {
+        %0 = apply ({def@0} as FnPtr) 1
+
+        return %0
+    }
+}
+
+================= After Inlining =================
+
+fn {closure@4294967040}(%0: Integer) -> Integer {
+    let %1: Boolean
+    let %2: Integer
+    let %3: Integer
+
+    bb0(): {
+        %1 = %0 == 0
+
+        switchInt(%1) -> [0: bb2(), 1: bb1()]
+    }
+
+    bb1(): {
+        goto -> bb3(%0)
+    }
+
+    bb2(): {
+        %3 = apply ({def@0} as FnPtr) %0
+
+        goto -> bb3(%3)
+    }
+
+    bb3(%2): {
+        return %2
+    }
+}
+
+thunk {thunk@4294967040}() -> Integer {
+    let %0: Integer
+    let %1: Integer
+    let %2: Boolean
+    let %3: Integer
+    let %4: Integer
+
+    bb0(): {
+        %1 = 1
+
+        goto -> bb2()
+    }
+
+    bb1(%0): {
+        return %0
+    }
+
+    bb2(): {
+        %2 = %1 == 0
+
+        switchInt(%2) -> [0: bb4(), 1: bb3()]
+    }
+
+    bb3(): {
+        goto -> bb5(%1)
+    }
+
+    bb4(): {
+        %4 = apply ({def@0} as FnPtr) %1
+
+        goto -> bb5(%4)
+    }
+
+    bb5(%3): {
+        goto -> bb1(%3)
+    }
+}

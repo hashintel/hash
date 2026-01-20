@@ -191,7 +191,7 @@ where
     W: io::Write,
 {
     fn format_part(&mut self, value: Local) -> io::Result<()> {
-        write!(self.writer, "%{value}")
+        write!(self.writer, "{value}")
     }
 }
 
@@ -288,7 +288,7 @@ where
     fn format_part(&mut self, (id, block): (BasicBlockId, &BasicBlock<'heap>)) -> io::Result<()> {
         self.indent(1)?;
 
-        write!(self.writer, "bb{id}(")?;
+        write!(self.writer, "{id}(")?;
         self.csv(block.params.iter().copied())?;
         writeln!(self.writer, "): {{")?;
 
@@ -333,7 +333,7 @@ where
     S: SourceLookup<'heap>,
 {
     fn format_part(&mut self, Target { block, args }: Target<'heap>) -> io::Result<()> {
-        write!(self.writer, "bb{block}")?;
+        write!(self.writer, "{block}")?;
         self.format_part(TargetParams(args))
     }
 }
@@ -346,7 +346,7 @@ where
     S: SourceLookup<'heap>,
 {
     fn format_part(&mut self, AnonymousTarget(id): AnonymousTarget) -> io::Result<()> {
-        write!(self.writer, "bb{id}(_)")
+        write!(self.writer, "{id}(_)")
     }
 }
 
@@ -711,7 +711,7 @@ where
         self.writer.write_all(b"apply ")?;
         self.format_part(*function)?;
 
-        for argument in arguments.iter() {
+        for argument in arguments {
             self.writer.write_all(b" ")?;
             self.format_part(*argument)?;
         }
@@ -794,7 +794,7 @@ where
         // Do not render locals that are arguments, as they are already rendered in the signature
         for (local, decl) in body.local_decls.iter_enumerated().skip(body.args) {
             self.indent(1)?;
-            write!(self.writer, "let %{local}: ")?;
+            write!(self.writer, "let {local}: ")?;
             self.format_part(Type(
                 decl.r#type,
                 TypeOptions {

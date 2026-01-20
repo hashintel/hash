@@ -3,7 +3,7 @@
 //! Operands represent the inputs to MIR operations. They can either reference
 //! a storage location (place) or contain an immediate constant value.
 
-use super::{constant::Constant, place::Place};
+use super::{constant::Constant, local::Local, place::Place};
 
 /// An operand in a HashQL MIR operation.
 ///
@@ -33,6 +33,42 @@ pub enum Operand<'heap> {
     /// literal number, string, or function pointer. No memory access is required to obtain the
     /// value.
     Constant(Constant<'heap>),
+}
+
+impl<'heap> Operand<'heap> {
+    /// Returns the contained [`Place`] if this operand is a place reference.
+    ///
+    /// Returns [`None`] if this operand is a constant.
+    #[must_use]
+    pub const fn as_place(&self) -> Option<&Place<'heap>> {
+        match self {
+            Operand::Place(place) => Some(place),
+            Operand::Constant(_) => None,
+        }
+    }
+
+    /// Returns the contained [`Constant`] if this operand is an immediate value.
+    ///
+    /// Returns [`None`] if this operand is a place reference.
+    #[must_use]
+    pub const fn as_constant(&self) -> Option<&Constant<'heap>> {
+        match self {
+            Operand::Constant(constant) => Some(constant),
+            Operand::Place(_) => None,
+        }
+    }
+}
+
+impl From<!> for Operand<'_> {
+    fn from(value: !) -> Self {
+        value
+    }
+}
+
+impl From<Local> for Operand<'_> {
+    fn from(local: Local) -> Self {
+        Operand::Place(Place::local(local))
+    }
 }
 
 impl<'heap> From<Place<'heap>> for Operand<'heap> {

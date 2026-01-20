@@ -1,0 +1,3 @@
+//@ run: pass
+//@ description: Simple constructor is inlined (via AR pre-inlining since trivial)
+["Some", { "#literal": 42 }]

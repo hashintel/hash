@@ -1,10 +1,7 @@
 import type { Url } from "@blockprotocol/type-system";
-import type { FlowActionActivity } from "@local/hash-backend-utils/flows";
+import type { AiFlowActionActivity } from "@local/hash-backend-utils/flows";
 import { isInferenceModelName } from "@local/hash-isomorphic-utils/ai-inference-types";
-import {
-  getSimplifiedAiFlowActionInputs,
-  type OutputNameForAiFlowAction,
-} from "@local/hash-isomorphic-utils/flows/action-definitions";
+import { getSimplifiedAiFlowActionInputs } from "@local/hash-isomorphic-utils/flows/action-definitions";
 import { StatusCode } from "@local/status";
 import dedent from "dedent";
 
@@ -31,9 +28,9 @@ const generateSummarizeWebPageSystemPrompt = (params: {
     - 'The page mentions products relating to Y'
   `);
 
-export const getWebPageSummaryAction: FlowActionActivity = async ({
-  inputs,
-}) => {
+export const getWebPageSummaryAction: AiFlowActionActivity<
+  "getWebPageSummary"
+> = async ({ inputs }) => {
   const { url, model, numberOfSentences } = getSimplifiedAiFlowActionInputs({
     inputs,
     actionType: "getWebPageSummary",
@@ -123,16 +120,14 @@ export const getWebPageSummaryAction: FlowActionActivity = async ({
       {
         outputs: [
           {
-            outputName:
-              "summary" satisfies OutputNameForAiFlowAction<"getWebPageSummary">,
+            outputName: "summary",
             payload: {
               kind: "Text",
               value: summary,
             },
           },
           {
-            outputName:
-              "title" satisfies OutputNameForAiFlowAction<"getWebPageSummary">,
+            outputName: "title",
             payload: {
               kind: "Text",
               value: webPage.title,

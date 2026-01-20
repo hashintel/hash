@@ -1,0 +1,44 @@
+════ Initial MIR ═══════════════════════════════════════════════════════════════
+
+thunk x:0() -> Boolean {
+    bb0(): {
+        return 1
+    }
+}
+
+*thunk {thunk#1}() -> String {
+    let %0: Boolean
+    let %1: String
+
+    bb0(): {
+        %0 = apply (x:0 as FnPtr)
+
+        switchInt(%0) -> [0: bb2(), 1: bb1()]
+    }
+
+    bb1(): {
+        goto -> bb3("was-true")
+    }
+
+    bb2(): {
+        goto -> bb3("was-false")
+    }
+
+    bb3(%1): {
+        return %1
+    }
+}
+
+════ Pre-inlining MIR ══════════════════════════════════════════════════════════
+
+thunk x:0() -> Boolean {
+    bb0(): {
+        return 1
+    }
+}
+
+*thunk {thunk#1}() -> String {
+    bb0(): {
+        return "was-true"
+    }
+}

@@ -4,7 +4,13 @@ import type { Linter } from "eslint";
 import { JS_EXTENSIONS, JSX_EXTENSIONS } from "./constants.js";
 import { defineConfig, type ESConfig } from "./utils.js";
 
-const namingConvention = ({ tsx }: { tsx: boolean }): Linter.RuleEntry => [
+interface NamingConventionOptions {
+  readonly tsx: boolean;
+}
+
+const namingConvention = ({
+  tsx,
+}: NamingConventionOptions): Linter.RuleEntry => [
   "error",
   // adapted from https://github.com/AndreaPontrandolfo/sheriff/blob/3a6e3c9873c4b8fbbfbd01b6051c55fd1e57609a/packages/eslint-config-sheriff/src/getTsNamingConventionRule.ts#L9
   {

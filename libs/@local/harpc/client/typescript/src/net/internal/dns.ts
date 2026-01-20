@@ -82,12 +82,14 @@ const logEnvironment = Effect.fn("logEnvironment")(function* (
   );
 });
 
+interface Query {
+  readonly records: NonEmptyReadonlyArray<RecordType>;
+}
+
 /** @internal */
 export const resolve = Effect.fn("resolve")(function* (
   hostname: string,
-  query: {
-    records: NonEmptyReadonlyArray<RecordType>;
-  },
+  query: Query,
 ) {
   const resolvers: Effect.Effect<DnsRecord[], DnsError>[] = [];
 
@@ -154,9 +156,7 @@ export const resolve = Effect.fn("resolve")(function* (
 /** @internal */
 export const lookup = Effect.fn("lookup")(function* (
   hostname: string,
-  query: {
-    records: NonEmptyReadonlyArray<RecordType>;
-  },
+  query: Query,
 ) {
   const records = yield* Effect.tryPromise({
     try: () => dns.lookup(hostname, { all: true }),

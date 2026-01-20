@@ -19,13 +19,13 @@ hashql-hir         = { workspace = true, public = true }
 # Private third-party dependencies
 anstyle-svg    = { workspace = true }
 bstr           = { workspace = true }
+imbl           = { workspace = true }
 simple-mermaid = { workspace = true }
 
 [dev-dependencies]
-criterion          = { workspace = true }
-criterion-macro    = { workspace = true }
-hashql-compiletest = { workspace = true }
-insta              = { workspace = true }
+codspeed-criterion-compat = { workspace = true }
+hashql-compiletest        = { workspace = true }
+insta                     = { workspace = true }
 
 
 [lints]
@@ -33,6 +33,10 @@ workspace = true
 
 [[test]]
 name    = "compiletest"
+harness = false
+
+[[bench]]
+name    = "transform"
 harness = false
 
 [package.metadata.sync.turborepo]

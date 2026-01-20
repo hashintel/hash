@@ -3,7 +3,10 @@ use core::ops::Deref;
 
 use smallvec::SmallVec;
 
-use super::{AnalysisEnvironment, Environment, Variance, context::provision::ProvisionedGuard};
+use super::{
+    AnalysisEnvironment, Environment, Variance, analysis::AnalysisEnvironmentSkeleton,
+    context::provision::ProvisionedGuard,
+};
 use crate::{
     intern::Provisioned,
     pretty::{Formatter, RenderOptions},
@@ -16,6 +19,16 @@ use crate::{
         recursion::RecursionBoundary,
     },
 };
+
+#[derive(Debug)]
+#[expect(
+    dead_code,
+    reason = "used during benchmarking to delay signficiant drop"
+)]
+pub struct SimplifyEnvironmentSkeleton<'heap> {
+    boundary: RecursionBoundary<'heap>,
+    analysis: AnalysisEnvironmentSkeleton<'heap>,
+}
 
 #[derive(Debug)]
 pub struct SimplifyEnvironment<'env, 'heap> {
@@ -31,6 +44,14 @@ impl<'env, 'heap> SimplifyEnvironment<'env, 'heap> {
             environment,
             boundary: RecursionBoundary::new(),
             analysis: AnalysisEnvironment::new(environment),
+        }
+    }
+
+    #[must_use]
+    pub fn into_skeleton(self) -> SimplifyEnvironmentSkeleton<'heap> {
+        SimplifyEnvironmentSkeleton {
+            boundary: self.boundary,
+            analysis: self.analysis.into_skeleton(),
         }
     }
 

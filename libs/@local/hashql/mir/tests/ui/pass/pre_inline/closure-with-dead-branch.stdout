@@ -1,0 +1,84 @@
+════ Initial MIR ═══════════════════════════════════════════════════════════════
+
+fn {closure#4}(%0: (), %1: Boolean) -> Boolean {
+    bb0(): {
+        return %1
+    }
+}
+
+thunk identity:0() -> (Boolean) -> Boolean {
+    let %0: (Boolean) -> Boolean
+    let %1: ()
+
+    bb0(): {
+        %1 = ()
+        %0 = closure(({closure#4} as FnPtr), %1)
+
+        return %0
+    }
+}
+
+thunk {thunk#2}() -> Boolean {
+    let %0: (Boolean) -> Boolean
+    let %1: Boolean
+
+    bb0(): {
+        %0 = apply (identity:0 as FnPtr)
+        %1 = apply %0.0 %0.1 1
+
+        return %1
+    }
+}
+
+*thunk {thunk#3}() -> String {
+    let %0: Boolean
+    let %1: String
+
+    bb0(): {
+        %0 = apply ({thunk#2} as FnPtr)
+
+        switchInt(%0) -> [0: bb2(), 1: bb1()]
+    }
+
+    bb1(): {
+        goto -> bb3("yes")
+    }
+
+    bb2(): {
+        goto -> bb3("no")
+    }
+
+    bb3(%1): {
+        return %1
+    }
+}
+
+════ Pre-inlining MIR ══════════════════════════════════════════════════════════
+
+fn {closure#4}(%0: (), %1: Boolean) -> Boolean {
+    bb0(): {
+        return %1
+    }
+}
+
+thunk identity:0() -> (Boolean) -> Boolean {
+    let %0: (Boolean) -> Boolean
+
+    bb0(): {
+        %0 = closure(({closure#4} as FnPtr), ())
+
+        return %0
+    }
+}
+
+thunk {thunk#2}() -> Boolean {
+    bb0(): {
+        return 1
+    }
+}
+
+*thunk {thunk#3}() -> String {
+    bb0(): {
+        return "yes"
+    }
+}

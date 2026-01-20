@@ -1,10 +1,10 @@
 #![expect(clippy::min_ident_chars, reason = "tests")]
 
-use std::path::PathBuf;
+use std::{io::Write as _, path::PathBuf};
 
 use bstr::ByteVec as _;
 use hashql_core::{
-    heap::Scratch,
+    heap::{Heap, Scratch},
     pretty::Formatter,
     r#type::{TypeBuilder, TypeFormatter, TypeFormatterOptions, environment::Environment},
 };
@@ -13,7 +13,12 @@ use insta::{Settings, assert_snapshot};
 
 use super::DeadLocalElimination;
 use crate::{
-    body::Body, builder::scaffold, context::MirContext, def::DefIdSlice, pass::TransformPass as _,
+    body::Body,
+    builder::{BodyBuilder, body},
+    context::MirContext,
+    def::DefIdSlice,
+    intern::Interner,
+    pass::TransformPass as _,
     pretty::TextFormat,
 };
 
@@ -42,11 +47,13 @@ fn assert_dle_pass<'heap>(
         .format(DefIdSlice::from_raw(&bodies), &[])
         .expect("should be able to write bodies");
 
-    text_format
-        .writer
-        .extend(b"\n\n------------------------------------\n\n");
-
-    DeadLocalElimination::new_in(Scratch::new()).run(context, &mut bodies[0]);
+    let changed = DeadLocalElimination::new_in(Scratch::new()).run(context, &mut bodies[0]);
+    write!(
+        text_format.writer,
+        "\n\n{:=^50}\n\n",
+        format!(" Changed: {changed:?} ")
+    )
+    .expect("infallible");
 
     text_format
         .format(DefIdSlice::from_raw(&bodies), &[])
@@ -64,33 +71,21 @@ fn assert_dle_pass<'heap>(
 }
 
 /// Tests that a body with all locals used is unchanged.
-///
-/// ```text
-/// _0 = const 1
-/// _1 = _0
-/// return _1
-/// ```
 #[test]
 fn all_live() {
-    scaffold!(heap, interner, builder);
+    let heap = Heap::new();
+    let interner = Interner::new(&heap);
     let env = Environment::new(&heap);
 
-    let ty = TypeBuilder::synthetic(&env).integer();
+    let body = body!(interner, env; fn@0/0 -> Int {
+        decl x: Int, y: Int;
 
-    let x = builder.local("x", ty);
-    let y = builder.local("y", ty);
-
-    let const_1 = builder.const_int(1);
-
-    let bb0 = builder.reserve_block([]);
-
-    builder
-        .build_block(bb0)
-        .assign_place(x, |rv| rv.load(const_1))
-        .assign_place(y, |rv| rv.load(x))
-        .ret(y);
-
-    let body = builder.finish(0, ty);
+        bb0() {
+            x = load 1;
+            y = load x;
+            return y;
+        }
+    });
 
     assert_dle_pass(
         "all_live",
@@ -105,40 +100,20 @@ fn all_live() {
 }
 
 /// Tests removal of a single unreferenced local at the end.
-///
-/// Before:
-/// ```text
-/// locals: [_0, _1]  // _1 is never referenced
-/// _0 = const 1
-/// return _0
-/// ```
-///
-/// After:
-/// ```text
-/// locals: [_0]
-/// _0 = const 1
-/// return _0
-/// ```
 #[test]
 fn single_dead_at_end() {
-    scaffold!(heap, interner, builder);
+    let heap = Heap::new();
+    let interner = Interner::new(&heap);
     let env = Environment::new(&heap);
 
-    let ty = TypeBuilder::synthetic(&env).integer();
+    let body = body!(interner, env; fn@0/0 -> Int {
+        decl x: Int, dead: Int; // dead is unused
 
-    let x = builder.local("x", ty);
-    let _dead = builder.local("dead", ty); // unused
-
-    let const_1 = builder.const_int(1);
-
-    let bb0 = builder.reserve_block([]);
-
-    builder
-        .build_block(bb0)
-        .assign_place(x, |rv| rv.load(const_1))
-        .ret(x);
-
-    let body = builder.finish(0, ty);
+        bb0() {
+            x = load 1;
+            return x;
+        }
+    });
 
     assert_dle_pass(
         "single_dead_at_end",
@@ -153,44 +128,21 @@ fn single_dead_at_end() {
 }
 
 /// Tests removal of an unreferenced local in the middle, requiring ID remapping.
-///
-/// Before:
-/// ```text
-/// locals: [_0, _1, _2]  // _1 is never referenced
-/// _0 = const 1
-/// _2 = _0
-/// return _2
-/// ```
-///
-/// After:
-/// ```text
-/// locals: [_0, _1]  // old _2 remapped to _1
-/// _0 = const 1
-/// _1 = _0
-/// return _1
-/// ```
 #[test]
 fn dead_in_middle() {
-    scaffold!(heap, interner, builder);
+    let heap = Heap::new();
+    let interner = Interner::new(&heap);
     let env = Environment::new(&heap);
 
-    let ty = TypeBuilder::synthetic(&env).integer();
+    let body = body!(interner, env; fn@0/0 -> Int {
+        decl x: Int, dead: Int, y: Int; // dead is unused, in middle
 
-    let x = builder.local("x", ty);
-    let _dead = builder.local("dead", ty); // unused, in middle
-    let y = builder.local("y", ty);
-
-    let const_1 = builder.const_int(1);
-
-    let bb0 = builder.reserve_block([]);
-
-    builder
-        .build_block(bb0)
-        .assign_place(x, |rv| rv.load(const_1))
-        .assign_place(y, |rv| rv.load(x))
-        .ret(y);
-
-    let body = builder.finish(0, ty);
+        bb0() {
+            x = load 1;
+            y = load x;
+            return y;
+        }
+    });
 
     assert_dle_pass(
         "dead_in_middle",
@@ -205,49 +157,22 @@ fn dead_in_middle() {
 }
 
 /// Tests removal of multiple scattered unreferenced locals.
-///
-/// Before:
-/// ```text
-/// locals: [_0, _1, _2, _3, _4]  // _1 and _3 are never referenced
-/// _0 = const 1
-/// _2 = _0
-/// _4 = _2
-/// return _4
-/// ```
-///
-/// After:
-/// ```text
-/// locals: [_0, _1, _2]  // old _2 -> _1, old _4 -> _2
-/// _0 = const 1
-/// _1 = _0
-/// _2 = _1
-/// return _2
-/// ```
 #[test]
 fn scattered_dead() {
-    scaffold!(heap, interner, builder);
+    let heap = Heap::new();
+    let interner = Interner::new(&heap);
     let env = Environment::new(&heap);
 
-    let ty = TypeBuilder::synthetic(&env).integer();
+    let body = body!(interner, env; fn@0/0 -> Int {
+        decl a: Int, dead1: Int, b: Int, dead2: Int, c: Int; // dead1 and dead2 unused
 
-    let a = builder.local("a", ty);
-    let _dead1 = builder.local("dead1", ty); // unused
-    let b = builder.local("b", ty);
-    let _dead2 = builder.local("dead2", ty); // unused
-    let c = builder.local("c", ty);
-
-    let const_1 = builder.const_int(1);
-
-    let bb0 = builder.reserve_block([]);
-
-    builder
-        .build_block(bb0)
-        .assign_place(a, |rv| rv.load(const_1))
-        .assign_place(b, |rv| rv.load(a))
-        .assign_place(c, |rv| rv.load(b))
-        .ret(c);
-
-    let body = builder.finish(0, ty);
+        bb0() {
+            a = load 1;
+            b = load a;
+            c = load b;
+            return c;
+        }
+    });
 
     assert_dle_pass(
         "scattered_dead",
@@ -262,46 +187,20 @@ fn scattered_dead() {
 }
 
 /// Tests that function arguments are preserved even when not referenced.
-///
-/// Before:
-/// ```text
-/// fn body(_0: int, _1: int) -> int {  // 2 args, _1 unused
-///     locals: [_0, _1, _2]
-///     bb0:
-///         _2 = _0
-///         return _2
-/// }
-/// ```
-///
-/// After:
-/// ```text
-/// fn body(_0: int, _1: int) -> int {  // args preserved
-///     locals: [_0, _1, _2]
-///     bb0:
-///         _2 = _0
-///         return _2
-/// }
-/// ```
 #[test]
 fn unused_args_preserved() {
-    scaffold!(heap, interner, builder);
+    let heap = Heap::new();
+    let interner = Interner::new(&heap);
     let env = Environment::new(&heap);
 
-    let ty = TypeBuilder::synthetic(&env).integer();
+    let body = body!(interner, env; fn@0/2 -> Int {
+        decl arg0: Int, arg1: Int, result: Int; // arg1 is unused arg
 
-    let arg0 = builder.local("arg0", ty);
-    let _arg1 = builder.local("arg1", ty); // unused arg
-    let result = builder.local("result", ty);
-
-    let bb0 = builder.reserve_block([]);
-
-    builder
-        .build_block(bb0)
-        .assign_place(result, |rv| rv.load(arg0))
-        .ret(result);
-
-    // 2 function arguments
-    let body = builder.finish(2, ty);
+        bb0() {
+            result = load arg0;
+            return result;
+        }
+    });
 
     assert_dle_pass(
         "unused_args_preserved",
@@ -319,14 +218,18 @@ fn unused_args_preserved() {
 ///
 /// When a local is accessed through a projection (e.g., `list[idx]`), both the base
 /// local and any index locals must be preserved.
+///
+/// Uses fluent builder API because index projections are not supported by the `body!` macro.
 #[test]
 fn projection_locals_preserved() {
-    scaffold!(heap, interner, builder);
+    let heap = Heap::new();
+    let interner = Interner::new(&heap);
     let env = Environment::new(&heap);
 
     let int_ty = TypeBuilder::synthetic(&env).integer();
     let list_ty = TypeBuilder::synthetic(&env).list(int_ty);
 
+    let mut builder = BodyBuilder::new(&interner);
     let list = builder.local("list", list_ty);
     let index = builder.local("index", int_ty);
     let element = builder.local("element", int_ty);

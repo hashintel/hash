@@ -21,9 +21,14 @@ mod hir_lower_specialization;
 mod hir_lower_thunking;
 mod hir_reify;
 mod mir_pass_analysis_data_dependency;
+mod mir_pass_transform_administrative_reduction;
 mod mir_pass_transform_cfg_simplify;
 mod mir_pass_transform_dse;
-mod mir_pass_transform_sroa;
+mod mir_pass_transform_forward_substitution;
+mod mir_pass_transform_inline;
+mod mir_pass_transform_inst_simplify;
+mod mir_pass_transform_post_inline;
+mod mir_pass_transform_pre_inline;
 mod mir_reify;
 mod parse_syntax_dump;
 
@@ -54,9 +59,15 @@ use self::{
     hir_lower_specialization::HirLowerSpecializationSuite,
     hir_lower_thunking::HirLowerThunkingSuite, hir_reify::HirReifySuite,
     mir_pass_analysis_data_dependency::MirPassAnalysisDataDependency,
+    mir_pass_transform_administrative_reduction::MirPassTransformAdministrativeReduction,
     mir_pass_transform_cfg_simplify::MirPassTransformCfgSimplify,
-    mir_pass_transform_dse::MirPassTransformDse, mir_pass_transform_sroa::MirPassTransformSroa,
-    mir_reify::MirReifySuite, parse_syntax_dump::ParseSyntaxDumpSuite,
+    mir_pass_transform_dse::MirPassTransformDse,
+    mir_pass_transform_forward_substitution::MirPassTransformForwardSubstitution,
+    mir_pass_transform_inline::MirPassTransformInline,
+    mir_pass_transform_inst_simplify::MirPassTransformInstSimplify,
+    mir_pass_transform_post_inline::MirPassTransformPostInline,
+    mir_pass_transform_pre_inline::MirPassTransformPreInline, mir_reify::MirReifySuite,
+    parse_syntax_dump::ParseSyntaxDumpSuite,
 };
 use crate::executor::TrialError;
 
@@ -151,9 +162,14 @@ const SUITES: &[&dyn Suite] = &[
     &HirLowerTypeInferenceSuite,
     &HirReifySuite,
     &MirPassAnalysisDataDependency,
+    &MirPassTransformAdministrativeReduction,
     &MirPassTransformCfgSimplify,
     &MirPassTransformDse,
-    &MirPassTransformSroa,
+    &MirPassTransformForwardSubstitution,
+    &MirPassTransformInline,
+    &MirPassTransformInstSimplify,
+    &MirPassTransformPostInline,
+    &MirPassTransformPreInline,
     &MirReifySuite,
     &ParseSyntaxDumpSuite,
 ];

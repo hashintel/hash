@@ -1,4 +1,4 @@
-import type { FlowActionActivity } from "@local/hash-backend-utils/flows";
+import type { AiFlowActionActivity } from "@local/hash-backend-utils/flows";
 import { isInferenceModelName } from "@local/hash-isomorphic-utils/ai-inference-types";
 import { getSimplifiedAiFlowActionInputs } from "@local/hash-isomorphic-utils/flows/action-definitions";
 import { StatusCode } from "@local/status";
@@ -40,9 +40,9 @@ type ProposeQueryFunctionCallArguments = {
   query: string;
 };
 
-export const generateWebQueriesAction: FlowActionActivity = async ({
-  inputs,
-}) => {
+export const generateWebQueriesAction: AiFlowActionActivity<
+  "generateWebQueries"
+> = async ({ inputs }) => {
   const { prompt, model } = getSimplifiedAiFlowActionInputs({
     inputs,
     actionType: "generateWebQueries",

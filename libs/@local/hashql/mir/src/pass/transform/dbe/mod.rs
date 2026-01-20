@@ -36,7 +36,7 @@ use crate::{
     },
     context::MirContext,
     intern::Interner,
-    pass::TransformPass,
+    pass::{Changed, TransformPass},
     visit::{VisitorMut, r#mut::filter},
 };
 
@@ -56,9 +56,7 @@ impl<A: BumpAllocator> DeadBlockElimination<A> {
 }
 
 impl<'env, 'heap, A: BumpAllocator> TransformPass<'env, 'heap> for DeadBlockElimination<A> {
-    fn run(&mut self, context: &mut MirContext<'env, 'heap>, body: &mut Body<'heap>) {
-        self.alloc.reset();
-
+    fn run(&mut self, context: &mut MirContext<'env, 'heap>, body: &mut Body<'heap>) -> Changed {
         let mut reachable = fast_hash_set_with_capacity_in(
             body.basic_blocks.reverse_postorder().len(),
             &self.alloc,
@@ -75,7 +73,7 @@ impl<'env, 'heap, A: BumpAllocator> TransformPass<'env, 'heap> for DeadBlockElim
 
         // Early exit if all blocks are reachable
         if reachable.len() == body.basic_blocks.len() {
-            return;
+            return Changed::No;
         }
 
         // Step 2: Build the remapping table
@@ -139,9 +137,9 @@ impl<'env, 'heap, A: BumpAllocator> TransformPass<'env, 'heap> for DeadBlockElim
             write_index.increment_by(1);
         }
 
-        body.basic_blocks
-            .as_mut_preserving_cfg()
-            .truncate(write_index);
+        // We **remove** the blocks, so cfg must be invalidated.
+        body.basic_blocks.as_mut().truncate(write_index);
+        Changed::Yes
     }
 }
 

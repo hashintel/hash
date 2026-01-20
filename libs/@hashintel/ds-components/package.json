@@ -1,6 +1,6 @@
 {
   "name": "@hashintel/ds-components",
-  "version": "0.0.1-c",
+  "version": "0.0.1",
   "description": "HASH Component Library built with React, Ark UI, and PandaCSS",
   "repository": {
     "type": "git",
@@ -36,7 +36,7 @@
   },
   "dependencies": {
     "@ark-ui/react": "5.26.2",
-    "@hashintel/ds-helpers": "0.0.1-b",
+    "@hashintel/ds-helpers": "0.0.1",
     "@hashintel/refractive": "0.0.0",
     "canvas": "3.2.0",
     "motion": "12.23.24"
@@ -53,8 +53,8 @@
     "@types/react": "19.2.7",
     "@types/react-dom": "19.2.3",
     "@vitejs/plugin-react": "5.0.4",
-    "eslint": "9.38.0",
-    "eslint-plugin-storybook": "9.1.13",
+    "eslint": "9.39.2",
+    "eslint-plugin-storybook": "10.1.10",
     "lucide-react": "0.544.0",
     "storybook": "9.1.17",
     "typescript": "5.9.3",

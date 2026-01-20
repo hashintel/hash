@@ -17,10 +17,11 @@
 
     // Library Features
     allocator_api,
-
     assert_matches,
     binary_heap_into_iter_sorted,
+    clone_from_ref,
     debug_closure_helpers,
+    extend_one,
     formatting_options,
     get_disjoint_mut_helpers,
     iter_intersperse,
@@ -31,7 +32,6 @@
     step_trait,
     try_trait_v2,
     variant_count,
-    clone_from_ref
 )]
 
 extern crate alloc;

@@ -8,7 +8,7 @@ use crate::{
     body::{
         Body, Source,
         basic_block::{BasicBlock, BasicBlockId},
-        constant::{Constant, Int},
+        constant::Constant,
         local::{Local, LocalDecl},
         location::Location,
         operand::Operand,
@@ -24,6 +24,7 @@ use crate::{
         },
     },
     def::DefId,
+    interpret::value::Int,
 };
 
 macro_rules! Ok {
@@ -362,6 +363,7 @@ pub fn walk_params<'heap, T: Visitor<'heap> + ?Sized>(
 pub fn walk_body<'heap, T: Visitor<'heap> + ?Sized>(
     visitor: &mut T,
     Body {
+        id: _,
         span,
         return_type: r#type,
         source,
@@ -370,6 +372,7 @@ pub fn walk_body<'heap, T: Visitor<'heap> + ?Sized>(
         args: _,
     }: &Body<'heap>,
 ) -> T::Result {
+    // We do not visit the `DefId` here, as it doesn't make sense.
     visitor.visit_span(*span)?;
     visitor.visit_type_id(*r#type)?;
     visitor.visit_source(source)?;
@@ -628,7 +631,7 @@ pub fn walk_rvalue_aggregate<'heap, T: Visitor<'heap> + ?Sized>(
         | AggregateKind::Closure => {}
     }
 
-    for operand in operands.iter() {
+    for operand in operands {
         visitor.visit_operand(location, operand)?;
     }
 
@@ -654,7 +657,7 @@ pub fn walk_rvalue_apply<'heap, T: Visitor<'heap> + ?Sized>(
 ) -> T::Result {
     visitor.visit_operand(location, function)?;
 
-    for argument in arguments.iter() {
+    for argument in arguments {
         visitor.visit_operand(location, argument)?;
     }
 

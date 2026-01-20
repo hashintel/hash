@@ -32,7 +32,7 @@
     "@dnd-kit/core": "6.3.1",
     "@dnd-kit/sortable": "10.0.0",
     "@dnd-kit/utilities": "3.2.2",
-    "@hashintel/ds-components": "0.0.1-c",
+    "@hashintel/ds-components": "0.0.1",
     "@hashintel/refractive": "0.0.0",
     "@mantine/hooks": "8.3.5",
     "@monaco-editor/react": "4.8.0-rc.3",
@@ -49,7 +49,7 @@
     "zustand": "5.0.8"
   },
   "devDependencies": {
-    "@hashintel/ds-helpers": "0.0.1-b",
+    "@hashintel/ds-helpers": "0.0.1",
     "@local/eslint": "0.0.0-private",
     "@pandacss/dev": "1.4.3",
     "@sentry/react": "10.22.0",
@@ -60,7 +60,7 @@
     "@types/react-dom": "19.2.3",
     "@vitejs/plugin-react": "5.0.4",
     "babel-plugin-react-compiler": "1.0.0",
-    "eslint": "9.38.0",
+    "eslint": "9.39.2",
     "immer": "10.1.3",
     "react": "19.2.3",
     "react-dom": "19.2.3",
@@ -70,7 +70,7 @@
     "vitest": "4.0.16"
   },
   "peerDependencies": {
-    "@hashintel/ds-helpers": "0.0.1-b",
+    "@hashintel/ds-helpers": "0.0.1",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"
   }

@@ -22,10 +22,9 @@ text-size = { workspace = true, public = true }
 # Private workspace dependencies
 
 # Private third-party dependencies
-allocator-api2       = { workspace = true }
 anstyle-lossy        = { workspace = true }
 bitvec               = { workspace = true, features = ["alloc"] }
-bumpalo              = { workspace = true }
+bump-scope           = { workspace = true }
 derive_more          = { workspace = true, features = ["debug", "from"] }
 ena                  = { workspace = true }
 lexical              = { workspace = true, features = ["parse-integers", "parse-floats", "format"] }
@@ -46,7 +45,12 @@ serde = ["dep:serde", "text-size/serde"]
 workspace = true
 
 [dev-dependencies]
-insta         = { workspace = true }
-proptest      = { workspace = true }
-rstest        = { workspace = true }
-test-strategy = { workspace = true }
+codspeed-criterion-compat = { workspace = true }
+insta                     = { workspace = true }
+proptest                  = { workspace = true }
+rstest                    = { workspace = true }
+test-strategy             = { workspace = true }
+
+[[bench]]
+name    = "type_system"
+harness = false

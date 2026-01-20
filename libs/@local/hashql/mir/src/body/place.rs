@@ -10,9 +10,14 @@ use core::{
     hash::{Hash, Hasher},
 };
 
-use hashql_core::{id, intern::Interned, symbol::Symbol, r#type::TypeId};
+use hashql_core::{
+    id::{self, Id as _},
+    intern::Interned,
+    symbol::Symbol,
+    r#type::TypeId,
+};
 
-use super::local::{Local, LocalDecl, LocalVec};
+use super::local::{Local, LocalDecl, LocalSlice};
 use crate::intern::Interner;
 
 id::newtype!(
@@ -30,6 +35,12 @@ id::newtype!(
     /// - Any structured type where field positions are stable and complete
     pub struct FieldIndex(usize is 0..=usize::MAX)
 );
+
+impl FieldIndex {
+    pub const ENV: Self = Self(1);
+    pub const FN_PTR: Self = Self(0);
+    pub const OPAQUE_VALUE: Self = Self(0);
+}
 
 /// Context for reading from a [`Place`].
 ///
@@ -295,15 +306,21 @@ pub struct Place<'heap> {
 }
 
 impl<'heap> Place<'heap> {
+    pub const SYNTHETIC: Self = Place {
+        local: Local::MAX,
+        projections: Interned::empty(),
+    };
+
     /// Creates a new place that directly references a local variable without any projections.
     ///
     /// This is the simplest form of a place, representing direct access to a local variable
     /// without navigating through any structured data. The resulting place has an empty
     /// projection sequence.
-    pub fn local(local: Local, interner: &Interner<'heap>) -> Self {
+    #[must_use]
+    pub const fn local(local: Local) -> Self {
         Self {
             local,
-            projections: interner.projections.intern_slice(&[]),
+            projections: Interned::empty(),
         }
     }
 
@@ -378,7 +395,8 @@ impl<'heap> Place<'heap> {
     }
 
     /// Return the type of the place after applying all projections.
-    pub fn type_id<A: Allocator>(&self, decl: &LocalVec<LocalDecl<'heap>, A>) -> TypeId {
+    #[must_use]
+    pub fn type_id(&self, decl: &LocalSlice<LocalDecl<'heap>>) -> TypeId {
         self.projections
             .last()
             .map_or_else(|| decl[self.local].r#type, |projection| projection.r#type)
@@ -467,7 +485,7 @@ impl fmt::Display for ProjectionKind<'_> {
         match self {
             ProjectionKind::Field(index) => write!(fmt, ".{index}"),
             ProjectionKind::FieldByName(name) => write!(fmt, ".{name}"),
-            ProjectionKind::Index(index) => write!(fmt, "[%{index}]"),
+            ProjectionKind::Index(index) => write!(fmt, "[{index}]"),
         }
     }
 }

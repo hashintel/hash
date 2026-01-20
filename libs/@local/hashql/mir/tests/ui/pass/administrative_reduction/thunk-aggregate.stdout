@@ -1,0 +1,78 @@
+════ Initial MIR ═══════════════════════════════════════════════════════════════
+
+fn {closure#3}(%0: ()) -> (Integer, Integer) {
+    let %1: (Integer, Integer)
+
+    bb0(): {
+        %1 = (1, 2)
+
+        return %1
+    }
+}
+
+thunk make_pair:0() -> () -> (Integer, Integer) {
+    let %0: () -> (Integer, Integer)
+    let %1: ()
+
+    bb0(): {
+        %1 = ()
+        %0 = closure(({closure#3} as FnPtr), %1)
+
+        return %0
+    }
+}
+
+*thunk {thunk#2}() -> (Integer, Integer) {
+    let %0: () -> (Integer, Integer)
+    let %1: (Integer, Integer)
+
+    bb0(): {
+        %0 = apply (make_pair:0 as FnPtr)
+        %1 = apply %0.0 %0.1
+
+        return %1
+    }
+}
+════ MIR after AR ══════════════════════════════════════════════════════════════
+
+fn {closure#3}(%0: ()) -> (Integer, Integer) {
+    let %1: (Integer, Integer)
+
+    bb0(): {
+        %1 = (1, 2)
+
+        return %1
+    }
+}
+
+thunk make_pair:0() -> () -> (Integer, Integer) {
+    let %0: () -> (Integer, Integer)
+    let %1: ()
+
+    bb0(): {
+        %1 = ()
+        %0 = closure(({closure#3} as FnPtr), %1)
+
+        return %0
+    }
+}
+
+*thunk {thunk#2}() -> (Integer, Integer) {
+    let %0: () -> (Integer, Integer)
+    let %1: (Integer, Integer)
+    let %2: () -> (Integer, Integer)
+    let %3: ()
+    let %4: ()
+    let %5: (Integer, Integer)
+
+    bb0(): {
+        %3 = ()
+        %2 = closure(({closure#3} as FnPtr), %3)
+        %0 = %2
+        %4 = %0.1
+        %5 = (1, 2)
+        %1 = %5
+
+        return %1
+    }
+}

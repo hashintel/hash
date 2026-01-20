@@ -1,10 +1,12 @@
+use core::{fmt, fmt::Display};
+
 use super::basic_block::BasicBlockId;
 
 /// A precise location identifying a specific statement within the MIR control flow graph.
 ///
 /// A [`Location`] uniquely identifies a program point by specifying both the basic block
 /// and the statement index within that block.
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Location {
     /// The basic block containing this location.
     ///
@@ -30,4 +32,15 @@ impl Location {
         block: BasicBlockId::PLACEHOLDER,
         statement_index: usize::MAX,
     };
+}
+
+impl Display for Location {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let Self {
+            block,
+            statement_index,
+        } = self;
+
+        write!(fmt, "{block}:{statement_index}")
+    }
 }

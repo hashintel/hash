@@ -100,20 +100,20 @@ mod iter;
 mod scratch;
 mod transfer;
 
-use core::{alloc, ptr};
+use core::{alloc, mem, ptr};
 use std::sync::Mutex;
 
 use ::alloc::{boxed, collections::vec_deque, vec};
 use hashbrown::HashSet;
 
-use self::allocator::Allocator;
+use self::allocator::{Allocator, AllocatorScope, Checkpoint};
 pub use self::{
-    bump::BumpAllocator,
+    bump::{BumpAllocator, ResetAllocator},
     clone::{CloneIn, TryCloneIn},
     convert::{FromIn, IntoIn},
     iter::{CollectIn, FromIteratorIn},
     scratch::Scratch,
-    transfer::{TransferInto, TryTransferInto},
+    transfer::TransferInto,
 };
 use crate::{
     collections::{FastHashSet, fast_hash_set_with_capacity},
@@ -303,11 +303,40 @@ impl Default for Heap {
 }
 
 impl BumpAllocator for Heap {
+    type Checkpoint = Checkpoint;
+    type Scoped<'scope> = AllocatorScope<'scope>;
+
     #[inline]
-    fn allocate_slice_copy<T: Copy>(&self, slice: &[T]) -> Result<&mut [T], alloc::AllocError> {
-        self.inner.try_alloc_slice_copy(slice)
+    fn scoped<T>(&mut self, func: impl FnOnce(Self::Scoped<'_>) -> T) -> T {
+        self.inner.scoped(func)
     }
 
+    #[inline]
+    fn checkpoint(&self) -> Self::Checkpoint {
+        self.inner.checkpoint()
+    }
+
+    #[inline]
+    unsafe fn rollback(&self, checkpoint: Self::Checkpoint) {
+        // SAFETY: Same safety guarantees as `Allocator::rollback`.
+        unsafe { self.inner.rollback(checkpoint) }
+    }
+
+    #[inline]
+    fn try_allocate_slice_copy<T: Copy>(&self, slice: &[T]) -> Result<&mut [T], alloc::AllocError> {
+        self.inner.try_allocate_slice_copy(slice)
+    }
+
+    #[inline]
+    fn try_allocate_slice_uninit<T>(
+        &self,
+        len: usize,
+    ) -> Result<&mut [mem::MaybeUninit<T>], alloc::AllocError> {
+        self.inner.try_allocate_slice_uninit(len)
+    }
+}
+
+impl ResetAllocator for Heap {
     /// Resets the heap, invalidating all previous allocations.
     ///
     /// Clears all allocations and re-primes with common symbols.

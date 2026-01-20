@@ -246,7 +246,7 @@ impl<'ctx, 'mir, 'hir, 'env, 'heap> Reifier<'ctx, 'mir, 'hir, 'env, 'heap> {
                 block.push_statement(Statement {
                     span,
                     kind: StatementKind::Assign(Assign {
-                        lhs: Place::local(local, self.context.mir.interner),
+                        lhs: Place::local(local),
                         rhs: RValue::Load(Operand::Place(Place {
                             local: env,
                             projections: self.context.mir.interner.projections.intern_slice(&[
@@ -271,16 +271,15 @@ impl<'ctx, 'mir, 'hir, 'env, 'heap> Reifier<'ctx, 'mir, 'hir, 'env, 'heap> {
             &mut self.blocks,
         );
 
-        let block = Body {
+        self.context.bodies.push_with(|id| Body {
+            id,
             span,
             return_type: returns,
             source,
             local_decls: self.local_decls,
             basic_blocks: BasicBlocks::new(self.blocks),
             args,
-        };
-
-        self.context.bodies.push(block)
+        })
     }
 
     /// Lowers a closure to a MIR body with proper capture handling.
@@ -373,13 +372,12 @@ impl<'ctx, 'mir, 'hir, 'env, 'heap> Reifier<'ctx, 'mir, 'hir, 'env, 'heap> {
                     r#type: closure_type.returns,
                     name: None,
                 });
-                let lhs = Place::local(output, this.context.mir.interner);
+                let lhs = Place::local(output);
 
                 let operand = if let Some(param) = param {
                     Operand::Place(Place::local(
                         this.locals[param.id]
                             .unwrap_or_else(|| unreachable!("We just verified this local exists")),
-                        this.context.mir.interner,
                     ))
                 } else {
                     Operand::Constant(Constant::Unit)

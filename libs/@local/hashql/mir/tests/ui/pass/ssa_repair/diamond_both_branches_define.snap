@@ -2,7 +2,7 @@
 source: libs/@local/hashql/mir/src/pass/transform/ssa_repair/tests.rs
 expression: value
 ---
-fn {intrinsic#4294967040}() -> Null {
+fn {closure@4294967040}() -> Null {
     let %0: Integer
     let %1: Boolean
 
@@ -31,9 +31,9 @@ fn {intrinsic#4294967040}() -> Null {
     }
 }
 
-------------------------------------
+================== Changed: Yes ==================
 
-fn {intrinsic#4294967040}() -> Null {
+fn {closure@4294967040}() -> Null {
     let %0: Integer
     let %1: Boolean
     let %2: Integer

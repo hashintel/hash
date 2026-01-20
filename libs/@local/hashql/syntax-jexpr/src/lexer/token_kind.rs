@@ -9,7 +9,7 @@ use crate::lexer::parse::{parse_number, parse_string};
 // https://github.com/maciejhirsz/logos/issues/133#issuecomment-619444615
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Logos)]
 #[logos(error = LexerError)]
-#[logos(source = [u8])]
+#[logos(utf8 = false)]
 #[logos(skip r"[ \t\r\n\f]+")]
 #[logos(skip r"//[^\n]*")]
 #[logos(skip r"/\*(?:[^*]|\*[^/])*\*/")]

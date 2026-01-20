@@ -72,7 +72,7 @@ use crate::{
     },
     context::MirContext,
     intern::Interner,
-    pass::TransformPass,
+    pass::{Changed, TransformPass},
     visit::{self, Visitor, VisitorMut, r#mut::filter},
 };
 
@@ -106,8 +106,8 @@ impl<A: BumpAllocator> DeadStoreElimination<A> {
     /// Uses a backwards "mark-live" algorithm: starting from root uses (observable uses like
     /// return values and branch conditions), propagates liveness through the dependency graph.
     /// Returns the complement (all locals not marked live).
-    fn dead_locals(&self, body: &Body<'_>) -> DenseBitSet<Local> {
-        let mut dependencies = DependencyVisitor::new_in(body, &self.alloc);
+    fn dead_locals<S: Allocator>(body: &Body<'_>, scratch: &S) -> DenseBitSet<Local> {
+        let mut dependencies = DependencyVisitor::new_in(body, scratch);
         dependencies.visit_body(body);
 
         let DependencyVisitor {
@@ -138,27 +138,39 @@ impl Default for DeadStoreElimination {
 }
 
 impl<'env, 'heap, A: BumpAllocator> TransformPass<'env, 'heap> for DeadStoreElimination<A> {
-    fn run(&mut self, context: &mut MirContext<'env, 'heap>, body: &mut Body<'heap>) {
-        self.alloc.reset();
-        let dead = self.dead_locals(body);
-        let mut visitor = EliminationVisitor {
-            dead: &dead,
-            params: BasicBlockVec::from_fn_in(
-                body.basic_blocks.len(),
-                |block| body.basic_blocks[block].params,
-                &self.alloc,
-            ),
-            interner: context.interner,
-            scratch_locals: Vec::new_in(&self.alloc),
-            scratch_operands: Vec::new_in(&self.alloc),
-        };
+    fn run(&mut self, context: &mut MirContext<'env, 'heap>, body: &mut Body<'heap>) -> Changed {
+        let dead = self.alloc.scoped(|alloc| Self::dead_locals(body, &alloc));
 
-        Ok(()) = visitor.visit_body_preserving_cfg(body);
+        if dead.is_empty() {
+            return Changed::No;
+        }
 
-        drop(visitor);
+        let mut changed = self.alloc.scoped(|alloc| {
+            let mut visitor = EliminationVisitor {
+                dead: &dead,
+                params: BasicBlockVec::from_fn_in(
+                    body.basic_blocks.len(),
+                    |block| body.basic_blocks[block].params,
+                    &alloc,
+                ),
+                interner: context.interner,
+                changed: false,
+                scratch_locals: Vec::new_in(&alloc),
+                scratch_operands: Vec::new_in(&alloc),
+            };
 
-        let mut dle = DeadLocalElimination::new_in(&mut self.alloc).with_dead(dead);
-        dle.run(context, body);
+            Ok(()) = visitor.visit_body_preserving_cfg(body);
+
+            Changed::from(visitor.changed)
+        });
+
+        changed |= self.alloc.scoped(|alloc| {
+            DeadLocalElimination::new_in(alloc)
+                .with_dead(dead)
+                .run(context, body)
+        });
+
+        changed
     }
 }
 
@@ -312,6 +324,7 @@ struct EliminationVisitor<'dead, 'env, 'heap, A: Allocator> {
     params: BasicBlockVec<Interned<'heap, [Local]>, A>,
 
     interner: &'env Interner<'heap>,
+    changed: bool,
 
     /// Scratch buffer for building new block parameter lists.
     scratch_locals: Vec<Local, A>,
@@ -352,6 +365,8 @@ impl<'heap, A: Allocator> VisitorMut<'heap> for EliminationVisitor<'_, '_, 'heap
                 .retain(|&param| !self.dead.contains(param));
 
             block.params = self.interner.locals.intern_slice(&self.scratch_locals);
+
+            self.changed = true;
         }
 
         Ok(())
@@ -370,6 +385,7 @@ impl<'heap, A: Allocator> VisitorMut<'heap> for EliminationVisitor<'_, '_, 'heap
 
         if self.dead.contains(local) {
             statement.kind = StatementKind::Nop;
+            self.changed = true;
         }
 
         Ok(())
@@ -397,6 +413,7 @@ impl<'heap, A: Allocator> VisitorMut<'heap> for EliminationVisitor<'_, '_, 'heap
         let operands = self.interner.operands.intern_slice(&self.scratch_operands);
 
         target.args = operands;
+        self.changed = true;
 
         Ok(())
     }

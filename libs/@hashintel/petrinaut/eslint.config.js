@@ -21,7 +21,9 @@ export default [
     files: ["demo-site/**/*"],
     languageOptions: {
       parserOptions: {
-        project: "./demo-site/tsconfig.json",
+        projectService: {
+          defaultProject: "./demo-site/tsconfig.json",
+        },
         tsconfigRootDir: import.meta.dirname,
       },
     },

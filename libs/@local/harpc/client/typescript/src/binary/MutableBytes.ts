@@ -35,7 +35,7 @@ const MutableBytesProto: Omit<
   },
 };
 
-export const make = (options?: {
+interface MakeOptions {
   /**
    * The initial capacity of the buffer.
    *
@@ -48,7 +48,9 @@ export const make = (options?: {
    * @defaultValue "doubling"
    */
   readonly growthStrategy?: GrowthStrategy;
-}): MutableBytes =>
+}
+
+export const make = (options?: MakeOptions): MutableBytes =>
   createProto(
     MutableBytesProto,
     {
@@ -62,16 +64,18 @@ export const make = (options?: {
     },
   ) satisfies MutableBytesImpl as MutableBytes;
 
+interface FromOptions {
+  /**
+   * The strategy for growing the buffer when more space is needed.
+   *
+   * @defaultValue "doubling"
+   */
+  readonly growthStrategy?: GrowthStrategy;
+}
+
 export const from = (
   buffer: ArrayBuffer,
-  options?: {
-    /**
-     * The strategy for growing the buffer when more space is needed.
-     *
-     * @defaultValue "doubling"
-     */
-    readonly growthStrategy?: GrowthStrategy;
-  },
+  options?: FromOptions,
 ): MutableBytes =>
   createProto(
     MutableBytesProto,

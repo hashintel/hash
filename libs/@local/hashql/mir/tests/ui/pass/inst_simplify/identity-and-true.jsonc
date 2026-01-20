@@ -1,0 +1,13 @@
+//@ run: pass
+//@ description: Identity simplification: x && true => x
+[
+  "if",
+  { "#literal": true },
+  [
+    "let",
+    "x",
+    ["==", { "#literal": 1 }, { "#literal": 1 }],
+    ["&&", "x", { "#literal": true }]
+  ],
+  { "#literal": false }
+]

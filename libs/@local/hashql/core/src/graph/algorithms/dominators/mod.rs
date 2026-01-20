@@ -465,7 +465,7 @@ fn compute_access_time<N: Id>(
     }
 
     let mut max = EdgeIndex::from_u32(0);
-    for edge in edges.iter_mut() {
+    for edge in &mut edges {
         max.increment_by(edge.end.as_usize());
         edge.start = max;
         edge.end = max;

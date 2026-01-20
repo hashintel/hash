@@ -1,26 +1,32 @@
-#![feature(custom_test_frameworks)]
-#![test_runner(criterion::runner)]
-#![expect(clippy::min_ident_chars, clippy::many_single_char_names)]
+#![expect(
+    clippy::min_ident_chars,
+    clippy::many_single_char_names,
+    clippy::significant_drop_tightening,
+    clippy::similar_names
+)]
 
-use core::{hint::black_box, time::Duration};
-use std::time::Instant;
+use core::hint::black_box;
 
-use criterion::Criterion;
-use criterion_macro::criterion;
+use codspeed_criterion_compat::{BatchSize, Bencher, Criterion, criterion_group, criterion_main};
 use hashql_core::{
-    heap::{BumpAllocator as _, Heap, Scratch},
+    heap::{Heap, ResetAllocator as _, Scratch},
+    id::IdSlice,
     r#type::{TypeBuilder, environment::Environment},
 };
 use hashql_diagnostics::DiagnosticIssues;
 use hashql_mir::{
     body::Body,
-    builder::BodyBuilder,
+    builder::{BodyBuilder, body},
     context::MirContext,
+    def::DefId,
     intern::Interner,
     op,
     pass::{
-        TransformPass,
-        transform::{CfgSimplify, DeadStoreElimination, Sroa},
+        GlobalTransformPass as _, GlobalTransformState, TransformPass as _,
+        transform::{
+            CfgSimplify, DeadStoreElimination, ForwardSubstitution, Inline, InlineConfig,
+            InstSimplify, PostInline, PreInline,
+        },
     },
 };
 
@@ -32,7 +38,10 @@ use hashql_mir::{
 /// bb1: y = x == 2; goto bb2
 /// bb2: z = y == 3; return z
 /// ```
-fn create_linear_cfg<'heap>(env: &Environment<'heap>, interner: &Interner<'heap>) -> Body<'heap> {
+fn create_linear_cfg<'heap>(
+    env: &Environment<'heap>,
+    interner: &Interner<'heap>,
+) -> [Body<'heap>; 1] {
     let mut builder = BodyBuilder::new(interner);
     let int_ty = TypeBuilder::synthetic(env).integer();
 
@@ -63,7 +72,10 @@ fn create_linear_cfg<'heap>(env: &Environment<'heap>, interner: &Interner<'heap>
         .assign_place(z, |rv| rv.binary(y, op![==], const_3))
         .ret(z);
 
-    builder.finish(0, TypeBuilder::synthetic(env).integer())
+    let mut body = builder.finish(0, TypeBuilder::synthetic(env).integer());
+    body.id = DefId::new(0);
+
+    [body]
 }
 
 /// Creates a branching CFG body with a diamond pattern for benchmarking.
@@ -75,7 +87,10 @@ fn create_linear_cfg<'heap>(env: &Environment<'heap>, interner: &Interner<'heap>
 /// bb2: b = 20; goto bb3
 /// bb3(p): result = p; return result
 /// ```
-fn create_diamond_cfg<'heap>(env: &Environment<'heap>, interner: &Interner<'heap>) -> Body<'heap> {
+fn create_diamond_cfg<'heap>(
+    env: &Environment<'heap>,
+    interner: &Interner<'heap>,
+) -> [Body<'heap>; 1] {
     let mut builder = BodyBuilder::new(interner);
     let int_ty = TypeBuilder::synthetic(env).integer();
 
@@ -112,7 +127,9 @@ fn create_diamond_cfg<'heap>(env: &Environment<'heap>, interner: &Interner<'heap
         .assign_place(result, |rv| rv.load(p))
         .ret(result);
 
-    builder.finish(1, TypeBuilder::synthetic(env).integer())
+    let mut body = builder.finish(1, TypeBuilder::synthetic(env).integer());
+    body.id = DefId::new(0);
+    [body]
 }
 
 /// Creates a body with dead code for dead store elimination benchmarking.
@@ -124,7 +141,7 @@ fn create_diamond_cfg<'heap>(env: &Environment<'heap>, interner: &Interner<'heap
 fn create_dead_store_cfg<'heap>(
     env: &Environment<'heap>,
     interner: &Interner<'heap>,
-) -> Body<'heap> {
+) -> [Body<'heap>; 1] {
     let mut builder = BodyBuilder::new(interner);
     let int_ty = TypeBuilder::synthetic(env).integer();
 
@@ -148,10 +165,70 @@ fn create_dead_store_cfg<'heap>(
         .assign_place(y, |rv| rv.binary(x, op![==], const_2))
         .ret(y);
 
-    builder.finish(0, TypeBuilder::synthetic(env).integer())
+    let mut body = builder.finish(0, TypeBuilder::synthetic(env).integer());
+    body.id = DefId::new(0);
+    [body]
 }
 
-/// Creates a larger CFG with multiple branches and join points for more realistic benchmarking.
+/// Creates a body with patterns that `InstSimplify` can optimize.
+///
+/// Structure:
+/// ```text
+/// bb0:
+///     a = 1 == 2              // const fold -> false
+///     b = 3 < 5               // const fold -> true
+///     c = b && true           // identity -> b
+///     x = 42
+///     y = x & x               // idempotent -> x
+///     d = x == x              // identical operand -> true
+///     e = a || c              // const fold (a=false, c=true) -> true
+///     f = e && d              // const fold -> true
+///     return f
+/// ```
+fn create_inst_simplify_cfg<'heap>(
+    env: &Environment<'heap>,
+    interner: &Interner<'heap>,
+) -> [Body<'heap>; 1] {
+    let mut builder = BodyBuilder::new(interner);
+    let int_ty = TypeBuilder::synthetic(env).integer();
+    let bool_ty = TypeBuilder::synthetic(env).boolean();
+
+    let a = builder.local("a", bool_ty);
+    let b = builder.local("b", bool_ty);
+    let c = builder.local("c", bool_ty);
+    let x = builder.local("x", int_ty);
+    let y = builder.local("y", int_ty);
+    let d = builder.local("d", bool_ty);
+    let e = builder.local("e", bool_ty);
+    let f = builder.local("f", bool_ty);
+
+    let const_1 = builder.const_int(1);
+    let const_2 = builder.const_int(2);
+    let const_3 = builder.const_int(3);
+    let const_5 = builder.const_int(5);
+    let const_42 = builder.const_int(42);
+    let const_true = builder.const_bool(true);
+
+    let bb0 = builder.reserve_block([]);
+
+    builder
+        .build_block(bb0)
+        .assign_place(a, |rv| rv.binary(const_1, op![==], const_2))
+        .assign_place(b, |rv| rv.binary(const_3, op![<], const_5))
+        .assign_place(c, |rv| rv.binary(b, op![&], const_true))
+        .assign_place(x, |rv| rv.load(const_42))
+        .assign_place(y, |rv| rv.binary(x, op![&], x))
+        .assign_place(d, |rv| rv.binary(x, op![==], x))
+        .assign_place(e, |rv| rv.binary(a, op![|], c))
+        .assign_place(f, |rv| rv.binary(e, op![&], d))
+        .ret(f);
+
+    let mut body = builder.finish(0, TypeBuilder::synthetic(env).boolean());
+    body.id = DefId::new(0);
+    [body]
+}
+
+/// Creates a complex CFG with nested loops, back edges, unreachable blocks, and deep nesting.
 ///
 /// Structure:
 /// ```text
@@ -164,7 +241,10 @@ fn create_dead_store_cfg<'heap>(
 /// bb6(p2): f = p2 == 20; goto bb7
 /// bb7(p3): result = p3; return result
 /// ```
-fn create_complex_cfg<'heap>(env: &Environment<'heap>, interner: &Interner<'heap>) -> Body<'heap> {
+fn create_complex_cfg<'heap>(
+    env: &Environment<'heap>,
+    interner: &Interner<'heap>,
+) -> [Body<'heap>; 1] {
     let mut builder = BodyBuilder::new(interner);
     let int_ty = TypeBuilder::synthetic(env).integer();
 
@@ -239,136 +319,342 @@ fn create_complex_cfg<'heap>(env: &Environment<'heap>, interner: &Interner<'heap
         .assign_place(result, |rv| rv.load(p3))
         .ret(result);
 
-    builder.finish(1, TypeBuilder::synthetic(env).integer())
+    let mut body = builder.finish(1, TypeBuilder::synthetic(env).integer());
+    body.id = DefId::new(0);
+    [body]
 }
 
-fn run_fn(
-    iters: u64,
-    body: for<'heap> fn(&Environment<'heap>, &Interner<'heap>) -> Body<'heap>,
-    mut func: impl for<'env, 'heap> FnMut(&mut MirContext<'env, 'heap>, &mut Body<'heap>),
-) -> Duration {
+/// Creates multiple bodies for inlining benchmarks: a caller with call sites and a callee.
+///
+/// The caller has multiple call sites in different control flow paths.
+///
+/// Structure:
+/// ```text
+/// callee (DefId 0):
+///   bb0(arg): cond = arg < 5; if cond then bb1() else bb2()
+///   bb1: r1 = arg == 0; return r1
+///   bb2: r2 = arg > 10; return r2
+///
+/// caller (DefId 1):
+///   bb0: switch mode [0 => bb1, 1 => bb2, _ => bb3]
+///   bb1: x1 = apply callee, 3; goto bb4(x1)
+///   bb2: x2 = apply callee, 7; goto bb4(x2)
+///   bb3: x3 = apply callee, 0; goto bb4(x3)
+///   bb4(p): return p
+/// ```
+fn create_inlinable_cfg<'heap>(
+    env: &Environment<'heap>,
+    interner: &Interner<'heap>,
+) -> [Body<'heap>; 2] {
+    let callee_id = DefId::new(0);
+    let caller_id = DefId::new(1);
+
+    // Callee: non-trivial function with control flow
+    // Takes one Int arg, returns Bool based on comparisons
+    let callee = body!(interner, env; fn@callee_id/1 -> Bool {
+        decl arg0: Int, cond0: Bool, r1: Bool, r2: Bool;
+
+        bb0() {
+            cond0 = bin.< arg0 5;
+            if cond0 then bb1() else bb2();
+        },
+        bb1() {
+            r1 = bin.== arg0 0;
+            return r1;
+        },
+        bb2() {
+            r2 = bin.> arg0 10;
+            return r2;
+        }
+    });
+
+    // Caller: calls callee from multiple paths
+    let caller = body!(interner, env; fn@caller_id/1 -> Bool {
+        decl mode0: Int, x1: Bool, x2: Bool, x3: Bool, p4: Bool;
+
+        bb0() {
+            switch mode0 [0 => bb1(), 1 => bb2(), _ => bb3()];
+        },
+        bb1() {
+            x1 = apply callee_id, 3;
+            goto bb4(x1);
+        },
+        bb2() {
+            x2 = apply callee_id, 7;
+            goto bb4(x2);
+        },
+        bb3() {
+            x3 = apply callee_id, 0;
+            goto bb4(x3);
+        },
+        bb4(p4) {
+            return p4;
+        }
+    });
+
+    [callee, caller]
+}
+
+#[expect(unsafe_code)]
+#[inline]
+fn run_bencher<T, const N: usize>(
+    bencher: &mut Bencher,
+    body: for<'heap> fn(&Environment<'heap>, &Interner<'heap>) -> [Body<'heap>; N],
+    mut func: impl for<'env, 'heap> FnMut(
+        &mut MirContext<'env, 'heap>,
+        &mut [Body<'heap>; N],
+        &mut Scratch,
+    ) -> T,
+) {
+    // NOTE: `heap` must not be moved or reassigned; `heap_ptr` assumes its address is stable
+    // for the entire duration of this function.
     let mut heap = Heap::new();
-    let mut total = Duration::ZERO;
+    let heap_ptr = &raw mut heap;
+    // NOTE: `scratch` must not be moved or reassigned; `scratch_ptr` assumes its address is stable
+    // for the entire duration of this function.
+    let mut scratch = Scratch::new();
+    let scratch_ptr = &raw mut scratch;
 
-    for _ in 0..iters {
-        heap.reset();
-        let env = Environment::new(&heap);
-        let interner = Interner::new(&heap);
-        let mut body = black_box(body(&env, &interner));
+    // Using `iter_custom` here would be better, but codspeed doesn't support it yet.
+    //
+    // IMPORTANT: `BatchSize::PerIteration` is critical for soundness. Do NOT change this to
+    // `SmallInput`, `LargeInput`, or any other batch size. Doing so will cause undefined
+    // behavior (use-after-free of arena allocations).
+    bencher.iter_batched_ref(
+        || {
+            // SAFETY: We create a `&mut Heap` from the raw pointer to call `reset()` and build
+            // the environment/interner/body. This is sound because:
+            // - `heap` outlives the entire `iter_batched` call (it's a local in the outer scope).
+            // - `BatchSize::PerIteration` ensures only one `(env, interner, body)` tuple exists at
+            //   a time, and it is dropped before the next `setup()` call.
+            // - No other references to `heap` exist during this closure's execution.
+            // - This code runs single-threaded.
+            let heap = unsafe { &mut *heap_ptr };
+            heap.reset();
 
-        let mut context = MirContext {
-            heap: &heap,
-            env: &env,
-            interner: &interner,
-            diagnostics: DiagnosticIssues::new(),
-        };
+            // SAFETY: We create a `&mut Scratch` from the raw pointer to call `reset()`. This is
+            // sound because:
+            // - `scratch` outlives the entire `iter_batched` call (it's a local in the outer
+            //   scope).
+            // - `BatchSize::PerIteration` ensures this closure completes and its borrows end before
+            //   the routine closure runs, so no aliasing occurs.
+            // - No other references to `scratch` exist during this closure's execution.
+            // - This code runs single-threaded.
+            let scratch = unsafe { &mut *scratch_ptr };
+            scratch.reset();
 
-        let start = Instant::now();
-        func(&mut context, &mut body);
-        total += start.elapsed();
+            let env = Environment::new(heap);
+            let interner = Interner::new(heap);
+            let body = body(&env, &interner);
 
-        drop(black_box(body));
-    }
+            (env, interner, body)
+        },
+        |(env, interner, body)| {
+            // SAFETY: We create a shared `&Heap` reference. This is sound because:
+            // - The `&mut Heap` from setup no longer exists (setup closure has returned)
+            // - The `env`, `interner`, and `body` already hold shared borrows of `heap`
+            // - Adding another `&Heap` is just shared-shared aliasing, which is allowed
+            let heap = unsafe { &*heap_ptr };
+            // SAFETY: We create a mutable `&mut Scratch` reference. This is sound because:
+            // - The `&mut Scratch` from setup no longer exists (setup closure has returned), it is
+            //   only used to reset.
+            // - The `env`, `interner`, and `body` do *not* reference `scratch`.
+            // - Therefore due to the sequential nature of the code, `scratch` is the sole reference
+            //   to the variable and not aliased.
+            // - Scratch space data does *not* escape the closure, the return type `T` of `func` is
+            //   irrespective of the scratch space and even if, is immediately dropped after
+            //   execution through criterion, only after which the scratch space is reset.
+            //   Therefore, no additional references exist.
+            let scratch = unsafe { &mut *scratch_ptr };
 
-    total
+            let mut context = MirContext {
+                heap,
+                env,
+                interner,
+                diagnostics: DiagnosticIssues::new(),
+            };
+
+            let value = func(black_box(&mut context), black_box(body), black_box(scratch));
+            (context.diagnostics, value)
+        },
+        BatchSize::PerIteration,
+    );
 }
 
-fn run(
-    iters: u64,
-    body: for<'heap> fn(&Environment<'heap>, &Interner<'heap>) -> Body<'heap>,
-    mut pass: impl for<'env, 'heap> TransformPass<'env, 'heap>,
-) -> Duration {
-    run_fn(
-        iters,
-        body,
-        #[inline]
-        |context, body| pass.run(context, body),
-    )
-}
-
-#[criterion]
 fn cfg_simplify(criterion: &mut Criterion) {
     let mut group = criterion.benchmark_group("cfg_simplify");
 
     group.bench_function("linear", |bencher| {
-        bencher.iter_custom(|iters| run(iters, create_linear_cfg, CfgSimplify::new()));
+        run_bencher(bencher, create_linear_cfg, |context, [body], scratch| {
+            CfgSimplify::new_in(scratch).run(context, body)
+        });
     });
+
     group.bench_function("diamond", |bencher| {
-        bencher.iter_custom(|iters| run(iters, create_diamond_cfg, CfgSimplify::new()));
+        run_bencher(bencher, create_diamond_cfg, |context, [body], scratch| {
+            CfgSimplify::new_in(scratch).run(context, body)
+        });
     });
+
     group.bench_function("complex", |bencher| {
-        bencher.iter_custom(|iters| run(iters, create_complex_cfg, CfgSimplify::new()));
+        run_bencher(bencher, create_complex_cfg, |context, [body], scratch| {
+            CfgSimplify::new_in(scratch).run(context, body)
+        });
     });
 }
 
-#[criterion]
-fn sroa(criterion: &mut Criterion) {
-    let mut group = criterion.benchmark_group("sroa");
+fn forward_substitution(criterion: &mut Criterion) {
+    let mut group = criterion.benchmark_group("forward_substitution");
 
     group.bench_function("linear", |bencher| {
-        bencher.iter_custom(|iters| run(iters, create_linear_cfg, Sroa::new()));
+        run_bencher(bencher, create_linear_cfg, |context, [body], scratch| {
+            ForwardSubstitution::new_in(scratch).run(context, body)
+        });
     });
+
     group.bench_function("diamond", |bencher| {
-        bencher.iter_custom(|iters| run(iters, create_diamond_cfg, Sroa::new()));
+        run_bencher(bencher, create_diamond_cfg, |context, [body], scratch| {
+            ForwardSubstitution::new_in(scratch).run(context, body)
+        });
     });
+
     group.bench_function("complex", |bencher| {
-        bencher.iter_custom(|iters| run(iters, create_complex_cfg, Sroa::new()));
+        run_bencher(bencher, create_complex_cfg, |context, [body], scratch| {
+            ForwardSubstitution::new_in(scratch).run(context, body)
+        });
     });
 }
 
-#[criterion]
 fn dse(criterion: &mut Criterion) {
     let mut group = criterion.benchmark_group("dse");
 
     group.bench_function("dead stores", |bencher| {
-        bencher.iter_custom(|iters| run(iters, create_dead_store_cfg, DeadStoreElimination::new()));
+        run_bencher(
+            bencher,
+            create_dead_store_cfg,
+            |context, [body], scratch| DeadStoreElimination::new_in(scratch).run(context, body),
+        );
     });
+
     group.bench_function("linear", |bencher| {
-        bencher.iter_custom(|iters| run(iters, create_linear_cfg, DeadStoreElimination::new()));
+        run_bencher(bencher, create_linear_cfg, |context, [body], scratch| {
+            DeadStoreElimination::new_in(scratch).run(context, body)
+        });
     });
+
     group.bench_function("diamond", |bencher| {
-        bencher.iter_custom(|iters| run(iters, create_diamond_cfg, DeadStoreElimination::new()));
+        run_bencher(bencher, create_diamond_cfg, |context, [body], scratch| {
+            DeadStoreElimination::new_in(scratch).run(context, body)
+        });
     });
+
     group.bench_function("complex", |bencher| {
-        bencher.iter_custom(|iters| run(iters, create_complex_cfg, DeadStoreElimination::new()));
+        run_bencher(bencher, create_complex_cfg, |context, [body], scratch| {
+            DeadStoreElimination::new_in(scratch).run(context, body)
+        });
     });
 }
 
-#[criterion]
+fn inst_simplify(criterion: &mut Criterion) {
+    let mut group = criterion.benchmark_group("inst_simplify");
+
+    group.bench_function("foldable", |bencher| {
+        run_bencher(
+            bencher,
+            create_inst_simplify_cfg,
+            |context, [body], scratch| InstSimplify::new_in(scratch).run(context, body),
+        );
+    });
+    group.bench_function("linear", |bencher| {
+        run_bencher(bencher, create_linear_cfg, |context, [body], scratch| {
+            InstSimplify::new_in(scratch).run(context, body)
+        });
+    });
+
+    group.bench_function("diamond", |bencher| {
+        run_bencher(bencher, create_diamond_cfg, |context, [body], scratch| {
+            InstSimplify::new_in(scratch).run(context, body)
+        });
+    });
+
+    group.bench_function("complex", |bencher| {
+        run_bencher(bencher, create_complex_cfg, |context, [body], scratch| {
+            InstSimplify::new_in(scratch).run(context, body)
+        });
+    });
+}
+
 fn pipeline(criterion: &mut Criterion) {
     let mut group = criterion.benchmark_group("pipeline");
 
     group.bench_function("linear", |bencher| {
-        let mut scratch = Scratch::new();
+        run_bencher(bencher, create_linear_cfg, |context, bodies, scratch| {
+            let bodies = IdSlice::from_raw_mut(bodies);
+            let mut state = GlobalTransformState::new_in(bodies, context.heap);
 
-        bencher.iter_custom(|iters| {
-            run_fn(iters, create_linear_cfg, |context, body| {
-                CfgSimplify::new_in(&mut scratch).run(context, body);
-                Sroa::new_in(&mut scratch).run(context, body);
-                DeadStoreElimination::new_in(&mut scratch).run(context, body);
-            })
+            let mut changed = PreInline::new_in(&mut *scratch).run(context, &mut state, bodies);
+            scratch.reset();
+            changed |= Inline::new_in(InlineConfig::default(), &mut *scratch)
+                .run(context, &mut state, bodies);
+            scratch.reset();
+            changed |= PostInline::new_in(&mut *scratch).run(context, &mut state, bodies);
+            scratch.reset();
+            changed
         });
     });
     group.bench_function("diamond", |bencher| {
-        let mut scratch = Scratch::new();
+        run_bencher(bencher, create_diamond_cfg, |context, bodies, scratch| {
+            let bodies = IdSlice::from_raw_mut(bodies);
+            let mut state = GlobalTransformState::new_in(bodies, context.heap);
 
-        bencher.iter_custom(|iters| {
-            run_fn(iters, create_diamond_cfg, |context, body| {
-                CfgSimplify::new_in(&mut scratch).run(context, body);
-                Sroa::new_in(&mut scratch).run(context, body);
-                DeadStoreElimination::new_in(&mut scratch).run(context, body);
-            })
+            let mut changed = PreInline::new_in(&mut *scratch).run(context, &mut state, bodies);
+            scratch.reset();
+            changed |= Inline::new_in(InlineConfig::default(), &mut *scratch)
+                .run(context, &mut state, bodies);
+            scratch.reset();
+            changed |= PostInline::new_in(&mut *scratch).run(context, &mut state, bodies);
+            scratch.reset();
+            changed
         });
     });
     group.bench_function("complex", |bencher| {
-        let mut scratch = Scratch::new();
+        run_bencher(bencher, create_complex_cfg, |context, bodies, scratch| {
+            let bodies = IdSlice::from_raw_mut(bodies);
+            let mut state = GlobalTransformState::new_in(bodies, context.heap);
 
-        bencher.iter_custom(|iters| {
-            run_fn(iters, create_complex_cfg, |context, body| {
-                CfgSimplify::new_in(&mut scratch).run(context, body);
-                Sroa::new_in(&mut scratch).run(context, body);
-                DeadStoreElimination::new_in(&mut scratch).run(context, body);
-            })
+            let mut changed = PreInline::new_in(&mut *scratch).run(context, &mut state, bodies);
+            scratch.reset();
+            changed |= Inline::new_in(InlineConfig::default(), &mut *scratch)
+                .run(context, &mut state, bodies);
+            scratch.reset();
+            changed |= PostInline::new_in(&mut *scratch).run(context, &mut state, bodies);
+            scratch.reset();
+            changed
+        });
+    });
+    group.bench_function("inline", |bencher| {
+        run_bencher(bencher, create_inlinable_cfg, |context, bodies, scratch| {
+            let bodies = IdSlice::from_raw_mut(bodies);
+            let mut state = GlobalTransformState::new_in(bodies, context.heap);
+
+            let mut changed = PreInline::new_in(&mut *scratch).run(context, &mut state, bodies);
+            scratch.reset();
+            changed |= Inline::new_in(InlineConfig::default(), &mut *scratch)
+                .run(context, &mut state, bodies);
+            scratch.reset();
+            changed |= PostInline::new_in(&mut *scratch).run(context, &mut state, bodies);
+            scratch.reset();
+            changed
         });
     });
 }
+
+criterion_group!(
+    benches,
+    cfg_simplify,
+    forward_substitution,
+    dse,
+    inst_simplify,
+    pipeline
+);
+criterion_main!(benches);

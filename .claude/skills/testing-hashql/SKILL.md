@@ -180,31 +180,50 @@ For testing MIR transformation and analysis passes directly with programmaticall
 - Edge cases requiring specific MIR structures hard to produce from source
 - Benchmarking pass performance
 
-**Quick Example:**
+**Key features:**
+
+- Transform passes return `Changed` enum (`Yes`, `No`, `Unknown`) to indicate modifications
+- Test harness captures and includes `Changed` value in snapshots for verification
+- Snapshot format: before MIR → `Changed: Yes/No/Unknown` separator → after MIR
+
+### Important: Missing Macro Features
+
+The `body!` macro does not support all MIR constructs. If you need a feature that is not supported, **do not work around it manually** - instead, stop and request that the feature be added to the macro.
+
+### Quick Example (using `body!` macro)
 
 ```rust
-use hashql_core::r#type::{TypeBuilder, environment::Environment};
-use hashql_mir::{builder::BodyBuilder, op, scaffold};
+use hashql_core::{heap::Heap, r#type::environment::Environment};
+use hashql_mir::{builder::body, intern::Interner};
 
-scaffold!(heap, interner, builder);
+let heap = Heap::new();
+let interner = Interner::new(&heap);
 let env = Environment::new(&heap);
 
-let x = builder.local("x", TypeBuilder::synthetic(&env).integer());
-let const_1 = builder.const_int(1);
+let body = body!(interner, env; fn@0/1 -> Int {
+    decl x: Int, cond: Bool;
 
-let bb0 = builder.reserve_block([]);
-builder
-    .build_block(bb0)
-    .assign_place(x, |rv| rv.load(const_1))
-    .ret(x);
-
-let body = builder.finish(0, TypeBuilder::synthetic(&env).integer());
+    bb0() {
+        cond = load true;
+        if cond then bb1() else bb2();
+    },
+    bb1() {
+        goto bb3(1);
+    },
+    bb2() {
+        goto bb3(2);
+    },
+    bb3(x) {
+        return x;
+    }
+});
 ```
 
-📖 **Full Guide:** [resources/mir-builder-guide.md](resources/mir-builder-guide.md)
+📖 **Full Guide:** [references/mir-builder-guide.md](references/mir-builder-guide.md)
 
 ## References
 
-- [compiletest Guide](resources/compiletest-guide.md) - Detailed UI test documentation
-- [Testing Strategies](resources/testing-strategies.md) - Choosing the right approach
-- [MIR Builder Guide](resources/mir-builder-guide.md) - Programmatic MIR construction for tests
+- [compiletest Guide](references/compiletest-guide.md) - Detailed UI test documentation
+- [Testing Strategies](references/testing-strategies.md) - Choosing the right approach
+- [MIR Builder Guide](references/mir-builder-guide.md) - `body!` macro for MIR construction in tests
+- [MIR Fluent Builder](references/mir-fluent-builder.md) - Programmatic builder API (for advanced cases)

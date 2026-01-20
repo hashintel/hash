@@ -5,7 +5,7 @@ use hashbrown::hash_map::RawEntryMut;
 
 use super::Interned;
 use crate::{
-    collections::{FastHashMap, fast_hash_map_with_capacity},
+    collections::{FastHashMap, fast_hash_map, fast_hash_map_with_capacity},
     heap::{Heap, TransferInto as _},
     sync::lock::LocalLock,
 };
@@ -117,7 +117,7 @@ impl<'heap, T: ?Sized> InternSet<'heap, T> {
     /// ```
     pub fn new(heap: &'heap Heap) -> Self {
         Self {
-            inner: LocalLock::default(),
+            inner: LocalLock::new(fast_hash_map()),
             heap,
         }
     }
@@ -192,6 +192,23 @@ where
         core::mem::size_of::<T>() != 0,
         "Cannot intern a zero-sized type"
     );
+
+    /// Reserves capacity for at least `capacity` elements to be inserted into the set.
+    ///
+    /// This method is useful for preallocating memory to avoid frequent reallocations.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use hashql_core::{heap::Heap, intern::InternSet};
+    /// let heap = Heap::new();
+    /// let interner: InternSet<u32> = InternSet::new(&heap);
+    ///
+    /// interner.reserve(100);
+    /// ```
+    pub fn reserve(&self, capacity: usize) {
+        self.inner.lock().reserve(capacity);
+    }
 
     /// Interns a value into the set.
     ///
@@ -372,6 +389,10 @@ where
     pub fn intern_slice(&self, value: &[T]) -> Interned<'heap, [T]> {
         const { Self::ASSERT_T_IS_NOT_DROP };
         const { Self::ASSERT_T_IS_NOT_ZERO_SIZED };
+
+        if value.is_empty() {
+            return Interned::empty();
+        }
 
         let heap = self.heap;
 

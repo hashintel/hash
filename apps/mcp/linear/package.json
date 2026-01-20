@@ -21,7 +21,7 @@
     "@local/eslint": "0.0.0-private",
     "@local/hash-backend-utils": "0.0.0-private",
     "@local/tsconfig": "0.0.0-private",
-    "@modelcontextprotocol/sdk": "1.24.0",
+    "@modelcontextprotocol/sdk": "1.25.2",
     "dotenv-flow": "3.3.0",
     "zod": "4.1.12",
     "zod-to-json-schema": "3.24.6"
@@ -30,7 +30,7 @@
     "@types/dotenv-flow": "3.3.3",
     "@types/node": "22.18.13",
     "chokidar-cli": "3.0.0",
-    "eslint": "9.38.0",
+    "eslint": "9.39.2",
     "rimraf": "6.1.2",
     "shx": "0.4.0",
     "tsx": "4.20.6",

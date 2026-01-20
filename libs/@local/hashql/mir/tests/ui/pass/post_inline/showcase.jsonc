@@ -1,0 +1,53 @@
+//@ run: pass
+//@ description: Comprehensive post-inline showcase - chained function calls fully simplified
+//@ suite#d2: true
+// This showcase demonstrates the full power of post-inline optimization:
+// 1. Three simple predicate functions that get inlined
+// 2. Chained calls with constant arguments
+// 3. After inlining: constant comparisons exposed at each level
+// 4. PostInline folds constants, eliminates dead branches, simplifies CFG
+// Result: Complex nested conditionals collapse to a single return value
+[
+  "let",
+  "is_large",
+  [
+    "fn",
+    { "#tuple": [] },
+    { "#struct": { "n": "Integer" } },
+    "Boolean",
+    [">", "n", { "#literal": 50 }]
+  ],
+  [
+    "let",
+    "is_small",
+    [
+      "fn",
+      { "#tuple": [] },
+      { "#struct": { "n": "Integer" } },
+      "Boolean",
+      ["<", "n", { "#literal": 10 }]
+    ],
+    [
+      "let",
+      "classify",
+      [
+        "fn",
+        { "#tuple": [] },
+        { "#struct": { "val": "Integer" } },
+        "String",
+        [
+          "if",
+          ["is_large", "val"],
+          { "#literal": "large" },
+          [
+            "if",
+            ["is_small", "val"],
+            { "#literal": "small" },
+            { "#literal": "medium" }
+          ]
+        ]
+      ],
+      ["classify", { "#literal": 75 }]
+    ]
+  ]
+]

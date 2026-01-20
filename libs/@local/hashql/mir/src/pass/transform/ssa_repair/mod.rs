@@ -58,7 +58,7 @@ use crate::{
     },
     context::MirContext,
     intern::Interner,
-    pass::TransformPass,
+    pass::{Changed, TransformPass},
     visit::{self, Visitor, VisitorMut, r#mut::filter},
 };
 
@@ -162,8 +162,7 @@ impl Default for SsaRepair {
 }
 
 impl<'env, 'heap, A: BumpAllocator> TransformPass<'env, 'heap> for SsaRepair<A> {
-    fn run(&mut self, context: &mut MirContext<'env, 'heap>, body: &mut Body<'heap>) {
-        self.alloc.reset();
+    fn run(&mut self, context: &mut MirContext<'env, 'heap>, body: &mut Body<'heap>) -> Changed {
         let mut sites = DefSites::new_in(body, &self.alloc);
         sites.visit_body(body);
 
@@ -174,7 +173,11 @@ impl<'env, 'heap, A: BumpAllocator> TransformPass<'env, 'heap> for SsaRepair<A> 
         );
 
         let mut prev_repair: Option<SsaViolationRepair<'_, '_, '_, 'heap, &A>> = None;
+        let mut changed = false;
+
         for (violation, locations) in sites.iter_violations() {
+            changed = true;
+
             let iterated = iterated_dominance_frontier(
                 &body.basic_blocks,
                 &frontiers,
@@ -200,6 +203,8 @@ impl<'env, 'heap, A: BumpAllocator> TransformPass<'env, 'heap> for SsaRepair<A> 
 
             prev_repair = Some(repair);
         }
+
+        changed.into()
     }
 }
 
@@ -587,7 +592,7 @@ impl<'heap> VisitorMut<'heap> for RewireBody<'_, 'heap> {
 
         // Sanity check to ensure that our previous analysis step isn't divergent
         debug_assert_eq!(Some(current_local), self.last_def);
-        let operand = Operand::Place(Place::local(current_local, self.interner));
+        let operand = Operand::Place(Place::local(current_local));
 
         let mut args = TinyVec::from_slice_copy(&target.args);
         args.push(operand);

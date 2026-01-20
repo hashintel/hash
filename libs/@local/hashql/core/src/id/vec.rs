@@ -1,15 +1,17 @@
 use alloc::{alloc::Global, vec};
 use core::{
-    alloc::Allocator,
+    alloc::{AllocError, Allocator},
     borrow::{Borrow, BorrowMut},
     cmp::Ordering,
     fmt::{self, Debug},
     hash::{Hash, Hasher},
     marker::PhantomData,
     ops::{Deref, DerefMut},
+    slice,
 };
 
 use super::{Id, slice::IdSlice};
+use crate::heap::{FromIteratorIn, TryCloneIn};
 
 /// A growable vector that uses typed IDs for indexing instead of raw `usize` values.
 ///
@@ -185,6 +187,14 @@ where
         Self::from_domain_in(elem, domain, domain.raw.allocator().clone())
     }
 
+    #[inline]
+    pub fn from_domain_derive<U>(func: impl FnMut(I, &U) -> T, domain: &IdVec<I, U, A>) -> Self
+    where
+        A: Clone,
+    {
+        Self::from_domain_derive_in(func, domain, domain.raw.allocator().clone())
+    }
+
     /// Creates an `IdVec` with the same length as `domain`, initialized to `elem`, using a custom
     /// allocator.
     ///
@@ -197,6 +207,15 @@ where
         T: Clone,
     {
         Self::from_raw(alloc::vec::from_elem_in(elem, domain.len(), alloc))
+    }
+
+    #[inline]
+    pub fn from_domain_derive_in<U>(
+        mut func: impl FnMut(I, &U) -> T,
+        domain: &IdSlice<I, U>,
+        alloc: A,
+    ) -> Self {
+        Self::from_fn_in(domain.len(), |index| func(index, &domain[index]), alloc)
     }
 
     /// Creates an `IdVec` by calling a closure on each ID in sequence, using a custom allocator.
@@ -366,6 +385,14 @@ where
     #[inline]
     pub fn truncate(&mut self, index: I) {
         self.raw.truncate(index.as_usize());
+    }
+
+    #[inline]
+    pub fn extend_from_slice(&mut self, other: &IdSlice<I, T>)
+    where
+        T: Clone,
+    {
+        self.raw.extend_from_slice(other.as_raw());
     }
 }
 
@@ -549,6 +576,34 @@ where
     }
 }
 
+impl<'this, I, T, A> IntoIterator for &'this IdVec<I, T, A>
+where
+    I: Id,
+    A: Allocator,
+{
+    type IntoIter = slice::Iter<'this, T>;
+    type Item = &'this T;
+
+    #[inline]
+    fn into_iter(self) -> Self::IntoIter {
+        self.raw.iter()
+    }
+}
+
+impl<'this, I, T, A> IntoIterator for &'this mut IdVec<I, T, A>
+where
+    I: Id,
+    A: Allocator,
+{
+    type IntoIter = slice::IterMut<'this, T>;
+    type Item = &'this mut T;
+
+    #[inline]
+    fn into_iter(self) -> Self::IntoIter {
+        self.raw.iter_mut()
+    }
+}
+
 impl<I, T> Default for IdVec<I, T, Global>
 where
     I: Id,
@@ -556,5 +611,55 @@ where
     #[inline]
     fn default() -> Self {
         Self::new()
+    }
+}
+
+impl<I, T, A: Allocator> Extend<T> for IdVec<I, T, A>
+where
+    I: Id,
+{
+    fn extend<U: IntoIterator<Item = T>>(&mut self, iter: U) {
+        self.raw.extend(iter);
+    }
+
+    fn extend_one(&mut self, item: T) {
+        self.raw.extend_one(item);
+    }
+
+    fn extend_reserve(&mut self, additional: usize) {
+        self.raw.extend_reserve(additional);
+    }
+}
+
+impl<I, T, A, B> TryCloneIn<B> for IdVec<I, T, A>
+where
+    I: Id,
+    T: Clone,
+    A: Allocator,
+    B: Allocator,
+{
+    type Cloned = IdVec<I, T, B>;
+
+    #[inline]
+    fn try_clone_in(&self, allocator: B) -> Result<Self::Cloned, AllocError> {
+        self.raw.try_clone_in(allocator).map(IdVec::from_raw)
+    }
+
+    fn try_clone_into(&self, into: &mut Self::Cloned, allocator: B) -> Result<(), AllocError> {
+        self.raw.try_clone_into(&mut into.raw, allocator)
+    }
+}
+
+impl<I, T, A> FromIteratorIn<T, A> for IdVec<I, T, A>
+where
+    I: Id,
+    A: Allocator,
+{
+    #[inline]
+    fn from_iter_in<U>(iter: U, alloc: A) -> Self
+    where
+        U: IntoIterator<Item = T>,
+    {
+        Self::from_raw(Vec::from_iter_in(iter, alloc))
     }
 }

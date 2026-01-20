@@ -1,18 +1,21 @@
-use std::path::PathBuf;
+#![expect(clippy::min_ident_chars, reason = "tests")]
+use std::{io::Write as _, path::PathBuf};
 
 use bstr::ByteVec as _;
 use hashql_core::{
+    heap::Heap,
     pretty::Formatter,
-    r#type::{TypeBuilder, TypeFormatter, TypeFormatterOptions, environment::Environment},
+    r#type::{TypeFormatter, TypeFormatterOptions, environment::Environment},
 };
 use hashql_diagnostics::DiagnosticIssues;
 use insta::{Settings, assert_snapshot};
 
 use crate::{
     body::Body,
-    builder::{op, scaffold},
+    builder::body,
     context::MirContext,
     def::DefIdSlice,
+    intern::Interner,
     pass::{TransformPass as _, transform::ssa_repair::SsaRepair},
     pretty::TextFormat,
 };
@@ -42,11 +45,13 @@ fn assert_ssa_pass<'heap>(
         .format(DefIdSlice::from_raw(&bodies), &[])
         .expect("should be able to write bodies");
 
-    text_format
-        .writer
-        .extend(b"\n\n------------------------------------\n\n");
-
-    SsaRepair::new().run(&mut context, &mut bodies[0]);
+    let changed = SsaRepair::new().run(&mut context, &mut bodies[0]);
+    write!(
+        text_format.writer,
+        "\n\n{:=^50}\n\n",
+        format!(" Changed: {changed:?} ")
+    )
+    .expect("infallible");
 
     text_format
         .format(DefIdSlice::from_raw(&bodies), &[])
@@ -65,30 +70,23 @@ fn assert_ssa_pass<'heap>(
 
 #[test]
 fn linear() {
-    scaffold!(heap, interner, builder);
+    let heap = Heap::new();
+    let interner = Interner::new(&heap);
     let env = Environment::new(&heap);
 
-    let x = builder.local("x", TypeBuilder::synthetic(&env).integer());
-    let y = builder.local("y", TypeBuilder::synthetic(&env).integer());
-    let const_1 = builder.const_int(1);
-    let const_2 = builder.const_int(2);
-    let const_unit = builder.const_unit();
+    let body = body!(interner, env; fn@0/0 -> Null {
+        decl x: Int, y: Int;
 
-    let bb0 = builder.reserve_block([]);
-    let bb1 = builder.reserve_block([]);
-
-    builder
-        .build_block(bb0)
-        .assign_place(x, |rv| rv.load(const_1))
-        .goto(bb1, []);
-
-    builder
-        .build_block(bb1)
-        .assign_place(x, |rv| rv.load(const_2))
-        .assign_place(y, |rv| rv.binary(x, op![==], x))
-        .ret(const_unit);
-
-    let body = builder.finish(0, TypeBuilder::synthetic(&env).null());
+        bb0() {
+            x = load 1;
+            goto bb1();
+        },
+        bb1() {
+            x = load 2;
+            y = bin.== x x;
+            return ();
+        }
+    });
 
     assert_ssa_pass(
         "linear",
@@ -104,23 +102,19 @@ fn linear() {
 
 #[test]
 fn single_def_use() {
-    scaffold!(heap, interner, builder);
+    let heap = Heap::new();
+    let interner = Interner::new(&heap);
     let env = Environment::new(&heap);
 
-    let x = builder.local("x", TypeBuilder::synthetic(&env).integer());
-    let y = builder.local("y", TypeBuilder::synthetic(&env).integer());
-    let const_1 = builder.const_int(1);
-    let const_unit = builder.const_unit();
+    let body = body!(interner, env; fn@0/0 -> Null {
+        decl x: Int, y: Int;
 
-    let bb0 = builder.reserve_block([]);
-
-    builder
-        .build_block(bb0)
-        .assign_place(x, |rv| rv.load(const_1))
-        .assign_place(y, |rv| rv.binary(x, op![==], x))
-        .ret(const_unit);
-
-    let body = builder.finish(0, TypeBuilder::synthetic(&env).null());
+        bb0() {
+            x = load 1;
+            y = bin.== x x;
+            return ();
+        }
+    });
 
     assert_ssa_pass(
         "single_def_use",
@@ -136,44 +130,31 @@ fn single_def_use() {
 
 #[test]
 fn diamond_both_branches_define() {
-    scaffold!(heap, interner, builder);
+    let heap = Heap::new();
+    let interner = Interner::new(&heap);
     let env = Environment::new(&heap);
 
-    let x = builder.local("x", TypeBuilder::synthetic(&env).integer());
-    let cond = builder.local("cond", TypeBuilder::synthetic(&env).boolean());
+    let body = body!(interner, env; fn@0/0 -> Null {
+        decl x: Int, cond: Bool;
 
-    let const_true = builder.const_bool(true);
-    let const_1 = builder.const_int(1);
-    let const_2 = builder.const_int(2);
-    let const_unit = builder.const_unit();
-
-    let bb0 = builder.reserve_block([]);
-    let bb1 = builder.reserve_block([]);
-    let bb2 = builder.reserve_block([]);
-    let bb3 = builder.reserve_block([]);
-
-    builder
-        .build_block(bb0)
-        .assign_place(cond, |rv| rv.load(const_true))
-        .if_else(cond, bb1, [], bb2, []);
-
-    builder
-        .build_block(bb1)
-        .assign_place(x, |rv| rv.load(const_1))
-        .goto(bb3, []);
-
-    builder
-        .build_block(bb2)
-        .assign_place(x, |rv| rv.load(const_2))
-        .goto(bb3, []);
-
-    // Use of x here requires a block param after repair
-    builder
-        .build_block(bb3)
-        .assign_place(cond, |rv| rv.binary(x, op![==], x))
-        .ret(const_unit);
-
-    let body = builder.finish(0, TypeBuilder::synthetic(&env).null());
+        bb0() {
+            cond = load true;
+            if cond then bb1() else bb2();
+        },
+        bb1() {
+            x = load 1;
+            goto bb3();
+        },
+        bb2() {
+            x = load 2;
+            goto bb3();
+        },
+        bb3() {
+            // Use of x here requires a block param after repair
+            cond = bin.== x x;
+            return ();
+        }
+    });
 
     assert_ssa_pass(
         "diamond_both_branches_define",
@@ -189,45 +170,34 @@ fn diamond_both_branches_define() {
 
 #[test]
 fn diamond_one_branch_redefines() {
-    scaffold!(heap, interner, builder);
+    let heap = Heap::new();
+    let interner = Interner::new(&heap);
     let env = Environment::new(&heap);
 
-    let x = builder.local("x", TypeBuilder::synthetic(&env).integer());
-    let cond = builder.local("cond", TypeBuilder::synthetic(&env).boolean());
+    let body = body!(interner, env; fn@0/0 -> Null {
+        decl x: Int, cond: Bool;
 
-    let const_true = builder.const_bool(true);
-    let const_1 = builder.const_int(1);
-    let const_2 = builder.const_int(2);
-    let const_unit = builder.const_unit();
-
-    let bb0 = builder.reserve_block([]);
-    let bb1 = builder.reserve_block([]);
-    let bb2 = builder.reserve_block([]);
-    let bb3 = builder.reserve_block([]);
-
-    // Define x before branch
-    builder
-        .build_block(bb0)
-        .assign_place(cond, |rv| rv.load(const_true))
-        .assign_place(x, |rv| rv.load(const_1))
-        .if_else(cond, bb1, [], bb2, []);
-
-    // Redefine x in one branch only
-    builder
-        .build_block(bb1)
-        .assign_place(x, |rv| rv.load(const_2))
-        .goto(bb3, []);
-
-    // No redefinition here - passthrough
-    builder.build_block(bb2).goto(bb3, []);
-
-    // bb3 needs param: x0 from bb2, x1 from bb1
-    builder
-        .build_block(bb3)
-        .assign_place(cond, |rv| rv.binary(x, op![==], x))
-        .ret(const_unit);
-
-    let body = builder.finish(0, TypeBuilder::synthetic(&env).null());
+        bb0() {
+            // Define x before branch
+            cond = load true;
+            x = load 1;
+            if cond then bb1() else bb2();
+        },
+        bb1() {
+            // Redefine x in one branch only
+            x = load 2;
+            goto bb3();
+        },
+        bb2() {
+            // No redefinition here - passthrough
+            goto bb3();
+        },
+        bb3() {
+            // bb3 needs param: x0 from bb2, x1 from bb1
+            cond = bin.== x x;
+            return ();
+        }
+    });
 
     assert_ssa_pass(
         "diamond_one_branch_redefines",
@@ -243,37 +213,28 @@ fn diamond_one_branch_redefines() {
 
 #[test]
 fn simple_loop() {
-    scaffold!(heap, interner, builder);
+    let heap = Heap::new();
+    let interner = Interner::new(&heap);
     let env = Environment::new(&heap);
 
-    let x = builder.local("x", TypeBuilder::synthetic(&env).integer());
-    let cond = builder.local("cond", TypeBuilder::synthetic(&env).boolean());
+    let body = body!(interner, env; fn@0/0 -> Null {
+        decl x: Int, cond: Bool;
 
-    let const_true = builder.const_bool(true);
-    let const_0 = builder.const_int(0);
-    let const_1 = builder.const_int(1);
-    let const_unit = builder.const_unit();
-
-    let bb0 = builder.reserve_block([]);
-    let bb1 = builder.reserve_block([]); // loop header
-    let bb2 = builder.reserve_block([]); // exit
-
-    builder
-        .build_block(bb0)
-        .assign_place(x, |rv| rv.load(const_0))
-        .assign_place(cond, |rv| rv.load(const_true))
-        .goto(bb1, []);
-
-    // Loop header: use x, redefine x, branch back or exit
-    builder
-        .build_block(bb1)
-        .assign_place(cond, |rv| rv.binary(x, op![==], x))
-        .assign_place(x, |rv| rv.load(const_1))
-        .if_else(cond, bb1, [], bb2, []);
-
-    builder.build_block(bb2).ret(const_unit);
-
-    let body = builder.finish(0, TypeBuilder::synthetic(&env).null());
+        bb0() {
+            x = load 0;
+            cond = load true;
+            goto bb1();
+        },
+        bb1() {
+            // Loop header: use x, redefine x, branch back or exit
+            cond = bin.== x x;
+            x = load 1;
+            if cond then bb1() else bb2();
+        },
+        bb2() {
+            return ();
+        }
+    });
 
     assert_ssa_pass(
         "simple_loop",
@@ -289,41 +250,32 @@ fn simple_loop() {
 
 #[test]
 fn passthrough_chain() {
-    scaffold!(heap, interner, builder);
+    let heap = Heap::new();
+    let interner = Interner::new(&heap);
     let env = Environment::new(&heap);
 
-    let x = builder.local("x", TypeBuilder::synthetic(&env).integer());
-    let y = builder.local("y", TypeBuilder::synthetic(&env).integer());
-    let const_1 = builder.const_int(1);
-    let const_2 = builder.const_int(2);
-    let const_unit = builder.const_unit();
+    let body = body!(interner, env; fn@0/0 -> Null {
+        decl x: Int, y: Int;
 
-    let bb0 = builder.reserve_block([]);
-    let bb1 = builder.reserve_block([]);
-    let bb2 = builder.reserve_block([]);
-    let bb3 = builder.reserve_block([]);
-
-    builder
-        .build_block(bb0)
-        .assign_place(x, |rv| rv.load(const_1))
-        .goto(bb1, []);
-
-    // Passthrough - no def of x
-    builder.build_block(bb1).goto(bb2, []);
-
-    // Passthrough - no def of x
-    builder.build_block(bb2).goto(bb3, []);
-
-    // USE x first (from bb0 via passthrough), then redefine
-    builder
-        .build_block(bb3)
-        .assign_place(y, |rv| {
-            rv.binary(x, op![==], x) // use before def in this block
-        })
-        .assign_place(x, |rv| rv.load(const_2))
-        .ret(const_unit);
-
-    let body = builder.finish(0, TypeBuilder::synthetic(&env).null());
+        bb0() {
+            x = load 1;
+            goto bb1();
+        },
+        bb1() {
+            // Passthrough - no def of x
+            goto bb2();
+        },
+        bb2() {
+            // Passthrough - no def of x
+            goto bb3();
+        },
+        bb3() {
+            // USE x first (from bb0 via passthrough), then redefine
+            y = bin.== x x;
+            x = load 2;
+            return ();
+        }
+    });
 
     assert_ssa_pass(
         "passthrough_chain",
@@ -339,31 +291,24 @@ fn passthrough_chain() {
 
 #[test]
 fn use_before_def_in_block() {
-    scaffold!(heap, interner, builder);
+    let heap = Heap::new();
+    let interner = Interner::new(&heap);
     let env = Environment::new(&heap);
 
-    let x = builder.local("x", TypeBuilder::synthetic(&env).integer());
-    let y = builder.local("y", TypeBuilder::synthetic(&env).integer());
-    let const_1 = builder.const_int(1);
-    let const_2 = builder.const_int(2);
-    let const_unit = builder.const_unit();
+    let body = body!(interner, env; fn@0/0 -> Null {
+        decl x: Int, y: Int;
 
-    let bb0 = builder.reserve_block([]);
-    let bb1 = builder.reserve_block([]);
-
-    builder
-        .build_block(bb0)
-        .assign_place(x, |rv| rv.load(const_1))
-        .goto(bb1, []);
-
-    // Use x (from bb0), then redefine x
-    builder
-        .build_block(bb1)
-        .assign_place(y, |rv| rv.binary(x, op![==], x))
-        .assign_place(x, |rv| rv.load(const_2))
-        .ret(const_unit);
-
-    let body = builder.finish(0, TypeBuilder::synthetic(&env).null());
+        bb0() {
+            x = load 1;
+            goto bb1();
+        },
+        bb1() {
+            // Use x (from bb0), then redefine x
+            y = bin.== x x;
+            x = load 2;
+            return ();
+        }
+    });
 
     assert_ssa_pass(
         "use_before_def_in_block",
@@ -379,28 +324,22 @@ fn use_before_def_in_block() {
 
 #[test]
 fn multiple_defs_same_block() {
-    scaffold!(heap, interner, builder);
+    let heap = Heap::new();
+    let interner = Interner::new(&heap);
     let env = Environment::new(&heap);
 
-    let x = builder.local("x", TypeBuilder::synthetic(&env).integer());
-    let y = builder.local("y", TypeBuilder::synthetic(&env).integer());
-    let const_1 = builder.const_int(1);
-    let const_2 = builder.const_int(2);
-    let const_3 = builder.const_int(3);
-    let const_unit = builder.const_unit();
+    let body = body!(interner, env; fn@0/0 -> Null {
+        decl x: Int, y: Int;
 
-    let bb0 = builder.reserve_block([]);
-
-    // Three defs of x in the same block
-    builder
-        .build_block(bb0)
-        .assign_place(x, |rv| rv.load(const_1))
-        .assign_place(x, |rv| rv.load(const_2))
-        .assign_place(x, |rv| rv.load(const_3))
-        .assign_place(y, |rv| rv.binary(x, op![==], x))
-        .ret(const_unit);
-
-    let body = builder.finish(0, TypeBuilder::synthetic(&env).null());
+        bb0() {
+            // Three defs of x in the same block
+            x = load 1;
+            x = load 2;
+            x = load 3;
+            y = bin.== x x;
+            return ();
+        }
+    });
 
     assert_ssa_pass(
         "multiple_defs_same_block",
@@ -416,54 +355,35 @@ fn multiple_defs_same_block() {
 
 #[test]
 fn three_way_merge() {
-    scaffold!(heap, interner, builder);
+    let heap = Heap::new();
+    let interner = Interner::new(&heap);
     let env = Environment::new(&heap);
 
-    let x = builder.local("x", TypeBuilder::synthetic(&env).integer());
-    let y = builder.local("y", TypeBuilder::synthetic(&env).integer());
-    let selector = builder.local("selector", TypeBuilder::synthetic(&env).integer());
+    let body = body!(interner, env; fn@0/0 -> Null {
+        decl x: Int, y: Int, selector: Int;
 
-    let const_0 = builder.const_int(0);
-    let const_1 = builder.const_int(1);
-    let const_2 = builder.const_int(2);
-    let const_3 = builder.const_int(3);
-    let const_unit = builder.const_unit();
-
-    let bb0 = builder.reserve_block([]);
-    let bb1 = builder.reserve_block([]);
-    let bb2 = builder.reserve_block([]);
-    let bb3 = builder.reserve_block([]);
-    let bb4 = builder.reserve_block([]); // merge point
-
-    builder
-        .build_block(bb0)
-        .assign_place(selector, |rv| rv.load(const_0))
-        .switch(selector, |switch| {
-            switch.case(0, bb1, []).case(1, bb2, []).otherwise(bb3, [])
-        });
-
-    builder
-        .build_block(bb1)
-        .assign_place(x, |rv| rv.load(const_1))
-        .goto(bb4, []);
-
-    builder
-        .build_block(bb2)
-        .assign_place(x, |rv| rv.load(const_2))
-        .goto(bb4, []);
-
-    builder
-        .build_block(bb3)
-        .assign_place(x, |rv| rv.load(const_3))
-        .goto(bb4, []);
-
-    // Three predecessors, each with different def of x
-    builder
-        .build_block(bb4)
-        .assign_place(y, |rv| rv.binary(x, op![==], x))
-        .ret(const_unit);
-
-    let body = builder.finish(0, TypeBuilder::synthetic(&env).null());
+        bb0() {
+            selector = load 0;
+            switch selector [0 => bb1(), 1 => bb2(), _ => bb3()];
+        },
+        bb1() {
+            x = load 1;
+            goto bb4();
+        },
+        bb2() {
+            x = load 2;
+            goto bb4();
+        },
+        bb3() {
+            x = load 3;
+            goto bb4();
+        },
+        bb4() {
+            // Three predecessors, each with different def of x
+            y = bin.== x x;
+            return ();
+        }
+    });
 
     assert_ssa_pass(
         "three_way_merge",
@@ -479,49 +399,37 @@ fn three_way_merge() {
 
 #[test]
 fn nested_loop() {
-    scaffold!(heap, interner, builder);
+    let heap = Heap::new();
+    let interner = Interner::new(&heap);
     let env = Environment::new(&heap);
 
-    let x = builder.local("x", TypeBuilder::synthetic(&env).integer());
-    let outer_cond = builder.local("outer_cond", TypeBuilder::synthetic(&env).boolean());
-    let inner_cond = builder.local("inner_cond", TypeBuilder::synthetic(&env).boolean());
+    let body = body!(interner, env; fn@0/0 -> Null {
+        decl x: Int, outer_cond: Bool, inner_cond: Bool;
 
-    let const_true = builder.const_bool(true);
-    let const_0 = builder.const_int(0);
-    let const_1 = builder.const_int(1);
-    let const_unit = builder.const_unit();
-
-    let bb0 = builder.reserve_block([]); // entry
-    let bb1 = builder.reserve_block([]); // outer header
-    let bb2 = builder.reserve_block([]); // inner header
-    let bb3 = builder.reserve_block([]); // outer latch
-    let bb4 = builder.reserve_block([]); // exit
-
-    builder
-        .build_block(bb0)
-        .assign_place(x, |rv| rv.load(const_0))
-        .assign_place(outer_cond, |rv| rv.load(const_true))
-        .assign_place(inner_cond, |rv| rv.load(const_true))
-        .goto(bb1, []);
-
-    // Outer loop header
-    builder.build_block(bb1).goto(bb2, []);
-
-    // Inner loop: use and redefine x
-    builder
-        .build_block(bb2)
-        .assign_place(outer_cond, |rv| rv.binary(x, op![==], x))
-        .assign_place(x, |rv| rv.load(const_1))
-        .if_else(inner_cond, bb2, [], bb3, []);
-
-    // Outer latch
-    builder
-        .build_block(bb3)
-        .if_else(outer_cond, bb1, [], bb4, []);
-
-    builder.build_block(bb4).ret(const_unit);
-
-    let body = builder.finish(0, TypeBuilder::synthetic(&env).null());
+        bb0() {
+            x = load 0;
+            outer_cond = load true;
+            inner_cond = load true;
+            goto bb1();
+        },
+        bb1() {
+            // Outer loop header
+            goto bb2();
+        },
+        bb2() {
+            // Inner loop: use and redefine x
+            outer_cond = bin.== x x;
+            x = load 1;
+            if inner_cond then bb2() else bb3();
+        },
+        bb3() {
+            // Outer latch
+            if outer_cond then bb1() else bb4();
+        },
+        bb4() {
+            return ();
+        }
+    });
 
     assert_ssa_pass(
         "nested_loop",
@@ -537,50 +445,35 @@ fn nested_loop() {
 
 #[test]
 fn multiple_variables_violated() {
-    scaffold!(heap, interner, builder);
+    let heap = Heap::new();
+    let interner = Interner::new(&heap);
     let env = Environment::new(&heap);
 
-    let x = builder.local("x", TypeBuilder::synthetic(&env).integer());
-    let y = builder.local("y", TypeBuilder::synthetic(&env).integer());
-    let z = builder.local("z", TypeBuilder::synthetic(&env).integer());
-    let cond = builder.local("cond", TypeBuilder::synthetic(&env).boolean());
+    let body = body!(interner, env; fn@0/0 -> Null {
+        decl x: Int, y: Int, z: Int, cond: Bool;
 
-    let const_true = builder.const_bool(true);
-    let const_1 = builder.const_int(1);
-    let const_2 = builder.const_int(2);
-    let const_unit = builder.const_unit();
-
-    let bb0 = builder.reserve_block([]);
-    let bb1 = builder.reserve_block([]);
-    let bb2 = builder.reserve_block([]);
-    let bb3 = builder.reserve_block([]);
-
-    builder
-        .build_block(bb0)
-        .assign_place(cond, |rv| rv.load(const_true))
-        .if_else(cond, bb1, [], bb2, []);
-
-    // Both x and y defined here
-    builder
-        .build_block(bb1)
-        .assign_place(x, |rv| rv.load(const_1))
-        .assign_place(y, |rv| rv.load(const_1))
-        .goto(bb3, []);
-
-    // Both x and y defined here too
-    builder
-        .build_block(bb2)
-        .assign_place(x, |rv| rv.load(const_2))
-        .assign_place(y, |rv| rv.load(const_2))
-        .goto(bb3, []);
-
-    // Use both x and y - both need block params
-    builder
-        .build_block(bb3)
-        .assign_place(z, |rv| rv.binary(x, op![==], y))
-        .ret(const_unit);
-
-    let body = builder.finish(0, TypeBuilder::synthetic(&env).null());
+        bb0() {
+            cond = load true;
+            if cond then bb1() else bb2();
+        },
+        bb1() {
+            // Both x and y defined here
+            x = load 1;
+            y = load 1;
+            goto bb3();
+        },
+        bb2() {
+            // Both x and y defined here too
+            x = load 2;
+            y = load 2;
+            goto bb3();
+        },
+        bb3() {
+            // Use both x and y - both need block params
+            z = bin.== x y;
+            return ();
+        }
+    });
 
     assert_ssa_pass(
         "multiple_variables_violated",
@@ -596,56 +489,41 @@ fn multiple_variables_violated() {
 
 #[test]
 fn loop_with_conditional_def() {
-    scaffold!(heap, interner, builder);
+    let heap = Heap::new();
+    let interner = Interner::new(&heap);
     let env = Environment::new(&heap);
 
-    let x = builder.local("x", TypeBuilder::synthetic(&env).integer());
-    let y = builder.local("y", TypeBuilder::synthetic(&env).integer());
-    let loop_cond = builder.local("loop_cond", TypeBuilder::synthetic(&env).boolean());
-    let inner_cond = builder.local("inner_cond", TypeBuilder::synthetic(&env).boolean());
+    let body = body!(interner, env; fn@0/0 -> Null {
+        decl x: Int, y: Int, loop_cond: Bool, inner_cond: Bool;
 
-    let const_true = builder.const_bool(true);
-    let const_0 = builder.const_int(0);
-    let const_1 = builder.const_int(1);
-    let const_unit = builder.const_unit();
-
-    let bb0 = builder.reserve_block([]);
-    let bb1 = builder.reserve_block([]); // loop header
-    let bb2 = builder.reserve_block([]); // conditional def
-    let bb3 = builder.reserve_block([]); // skip def
-    let bb4 = builder.reserve_block([]); // loop latch, use x
-    let bb5 = builder.reserve_block([]); // exit
-
-    builder
-        .build_block(bb0)
-        .assign_place(x, |rv| rv.load(const_0))
-        .assign_place(loop_cond, |rv| rv.load(const_true))
-        .assign_place(inner_cond, |rv| rv.load(const_true))
-        .goto(bb1, []);
-
-    // Loop header
-    builder
-        .build_block(bb1)
-        .if_else(inner_cond, bb2, [], bb3, []);
-
-    // Redefine x on some iterations
-    builder
-        .build_block(bb2)
-        .assign_place(x, |rv| rv.load(const_1))
-        .goto(bb4, []);
-
-    // Skip - no redef
-    builder.build_block(bb3).goto(bb4, []);
-
-    // Use x, then loop or exit
-    builder
-        .build_block(bb4)
-        .assign_place(y, |rv| rv.binary(x, op![==], x))
-        .if_else(loop_cond, bb1, [], bb5, []);
-
-    builder.build_block(bb5).ret(const_unit);
-
-    let body = builder.finish(0, TypeBuilder::synthetic(&env).null());
+        bb0() {
+            x = load 0;
+            loop_cond = load true;
+            inner_cond = load true;
+            goto bb1();
+        },
+        bb1() {
+            // Loop header
+            if inner_cond then bb2() else bb3();
+        },
+        bb2() {
+            // Redefine x on some iterations
+            x = load 1;
+            goto bb4();
+        },
+        bb3() {
+            // Skip - no redef
+            goto bb4();
+        },
+        bb4() {
+            // Use x, then loop or exit
+            y = bin.== x x;
+            if loop_cond then bb1() else bb5();
+        },
+        bb5() {
+            return ();
+        }
+    });
 
     assert_ssa_pass(
         "loop_with_conditional_def",
@@ -658,56 +536,41 @@ fn loop_with_conditional_def() {
         },
     );
 }
+
 #[test]
 fn irreducible() {
-    scaffold!(heap, interner, builder);
+    let heap = Heap::new();
+    let interner = Interner::new(&heap);
     let env = Environment::new(&heap);
 
-    let x = builder.local("x", TypeBuilder::synthetic(&env).integer());
-    let y = builder.local("y", TypeBuilder::synthetic(&env).integer());
-    let cond1 = builder.local("cond1", TypeBuilder::synthetic(&env).boolean());
-    let cond2 = builder.local("cond2", TypeBuilder::synthetic(&env).boolean());
+    let body = body!(interner, env; fn@0/0 -> Null {
+        decl x: Int, y: Int, cond1: Bool, cond2: Bool;
 
-    let const_true = builder.const_bool(true);
-    let const_0 = builder.const_int(0);
-    let const_1 = builder.const_int(1);
-    let const_2 = builder.const_int(2);
-    let const_unit = builder.const_unit();
-
-    let bb0 = builder.reserve_block([]);
-    let bb1 = builder.reserve_block([]);
-    let bb2 = builder.reserve_block([]);
-    let bb3 = builder.reserve_block([]);
-
-    // Entry: define x, branch into cycle at either point
-    builder
-        .build_block(bb0)
-        .assign_place(x, |rv| rv.load(const_0))
-        .assign_place(cond1, |rv| rv.load(const_true))
-        .assign_place(cond2, |rv| rv.load(const_true))
-        .if_else(cond1, bb1, [], bb2, []);
-
-    // bb1: USE x first (needs value from bb0 or bb2), then define x
-    builder
-        .build_block(bb1)
-        .assign_place(y, |rv| rv.binary(x, op![==], x))
-        .assign_place(x, |rv| rv.load(const_1))
-        .goto(bb2, []);
-
-    // bb2: USE x first (needs value from bb0 or bb1), then define x, loop or exit
-    builder
-        .build_block(bb2)
-        .assign_place(y, |rv| rv.binary(x, op![==], x))
-        .assign_place(x, |rv| rv.load(const_2))
-        .if_else(cond2, bb1, [], bb3, []);
-
-    // bb3: use x
-    builder
-        .build_block(bb3)
-        .assign_place(y, |rv| rv.binary(x, op![==], x))
-        .ret(const_unit);
-
-    let body = builder.finish(0, TypeBuilder::synthetic(&env).null());
+        bb0() {
+            // Entry: define x, branch into cycle at either point
+            x = load 0;
+            cond1 = load true;
+            cond2 = load true;
+            if cond1 then bb1() else bb2();
+        },
+        bb1() {
+            // bb1: USE x first (needs value from bb0 or bb2), then define x
+            y = bin.== x x;
+            x = load 1;
+            goto bb2();
+        },
+        bb2() {
+            // bb2: USE x first (needs value from bb0 or bb1), then define x, loop or exit
+            y = bin.== x x;
+            x = load 2;
+            if cond2 then bb1() else bb3();
+        },
+        bb3() {
+            // bb3: use x
+            y = bin.== x x;
+            return ();
+        }
+    });
 
     assert_ssa_pass(
         "irreducible",
@@ -723,24 +586,22 @@ fn irreducible() {
 
 #[test]
 fn reassign_rodeo() {
-    scaffold!(heap, interner, builder);
+    let heap = Heap::new();
+    let interner = Interner::new(&heap);
     let env = Environment::new(&heap);
 
-    let x = builder.local("x", TypeBuilder::synthetic(&env).integer());
-    let const_0 = builder.const_int(0);
+    let body = body!(interner, env; fn@0/0 -> Null {
+        decl x: Int;
 
-    let bb0 = builder.reserve_block([]);
-    let bb1 = builder.reserve_block([x.local]);
-
-    builder
-        .build_block(bb0)
-        .assign_place(x, |rv| rv.load(const_0))
-        .assign_place(x, |rv| rv.load(x))
-        .goto(bb1, [x.into()]);
-
-    builder.build_block(bb1).goto(bb1, [x.into()]);
-
-    let body = builder.finish(0, TypeBuilder::synthetic(&env).null());
+        bb0() {
+            x = load 0;
+            x = load x;
+            goto bb1(x);
+        },
+        bb1(x) {
+            goto bb1(x);
+        }
+    });
 
     assert_ssa_pass(
         "reassign_rodeo",

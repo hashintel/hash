@@ -83,7 +83,7 @@ export const scheduledFlightsFlowDefinition: FlowDefinition<IntegrationFlowActio
         stepId: "2",
         stepOutputName:
           "persistedEntities" satisfies OutputNameForIntegrationFlowAction<"persistIntegrationEntities">,
-        payloadKind: "PersistedEntities",
+        payloadKind: "PersistedEntitiesMetadata",
         name: "persistedEntities" as const,
         array: false,
         required: true,

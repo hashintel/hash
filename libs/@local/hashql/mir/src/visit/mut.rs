@@ -17,7 +17,7 @@ use crate::{
     body::{
         Body, Source,
         basic_block::{BasicBlock, BasicBlockId},
-        constant::{Constant, Int},
+        constant::Constant,
         local::{Local, LocalDecl},
         location::Location,
         operand::Operand,
@@ -34,6 +34,7 @@ use crate::{
     },
     def::DefId,
     intern::Interner,
+    interpret::value::Int,
 };
 
 macro_rules! Ok {
@@ -610,6 +611,7 @@ pub fn walk_params<'heap, T: VisitorMut<'heap> + ?Sized>(
 pub fn walk_body<'heap, T: VisitorMut<'heap> + ?Sized>(
     visitor: &mut T,
     Body {
+        id: _,
         span,
         return_type: r#type,
         source,
@@ -618,6 +620,7 @@ pub fn walk_body<'heap, T: VisitorMut<'heap> + ?Sized>(
         args: _,
     }: &mut Body<'heap>,
 ) -> T::Result<()> {
+    // We do not visit the `DefId` here, as it doesn't make sense.
     visitor.visit_span(span)?;
     visitor.visit_type_id(r#type)?;
     visitor.visit_source(source)?;
@@ -636,6 +639,7 @@ pub fn walk_body<'heap, T: VisitorMut<'heap> + ?Sized>(
 pub fn walk_body_preserving_cfg<'heap, T: VisitorMut<'heap> + ?Sized>(
     visitor: &mut T,
     Body {
+        id: _,
         span,
         return_type: r#type,
         source,
@@ -644,6 +648,7 @@ pub fn walk_body_preserving_cfg<'heap, T: VisitorMut<'heap> + ?Sized>(
         args: _,
     }: &mut Body<'heap>,
 ) -> T::Result<()> {
+    // We do not visit the `DefId` here, as it doesn't make sense.
     visitor.visit_span(span)?;
     visitor.visit_type_id(r#type)?;
     visitor.visit_source(source)?;

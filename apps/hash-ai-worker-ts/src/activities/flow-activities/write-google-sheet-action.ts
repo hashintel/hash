@@ -2,7 +2,7 @@ import type {
   OriginProvenance,
   ProvidedEntityEditionProvenance,
 } from "@blockprotocol/type-system";
-import type { FlowActionActivity } from "@local/hash-backend-utils/flows";
+import type { AiFlowActionActivity } from "@local/hash-backend-utils/flows";
 import {
   createGoogleOAuth2Client,
   getGoogleAccountById,
@@ -22,7 +22,6 @@ import type {
   AssociatedWithAccount,
   GoogleSheetsFile,
 } from "@local/hash-isomorphic-utils/system-types/google/googlesheetsfile";
-import { isNotNullish } from "@local/hash-isomorphic-utils/types";
 import { StatusCode } from "@local/status";
 import { Context } from "@temporalio/activity";
 import type { sheets_v4 } from "googleapis";
@@ -71,9 +70,12 @@ type ActivityHeartbeatDetails = {
   spreadsheetId?: string;
 };
 
-export const writeGoogleSheetAction: FlowActionActivity<{
-  vaultClient: VaultClient;
-}> = async ({ inputs, vaultClient }) => {
+export const writeGoogleSheetAction: AiFlowActionActivity<
+  "writeGoogleSheet",
+  {
+    vaultClient: VaultClient;
+  }
+> = async ({ inputs, vaultClient }) => {
   const { flowEntityId, stepId, userAuthentication, webId } =
     await getFlowContext();
 
@@ -156,17 +158,12 @@ export const writeGoogleSheetAction: FlowActionActivity<{
     const isPersistedEntities = "persistedEntities" in dataToWrite;
     const queryFilter = isPersistedEntities
       ? {
-          any: dataToWrite.persistedEntities
-            .map((persistedEntity) =>
-              persistedEntity.entity
-                ? new HashEntity(persistedEntity.entity).metadata.recordId
-                    .entityId
-                : undefined,
-            )
-            .filter(isNotNullish)
-            .map((entityId) =>
-              generateEntityIdFilter({ entityId, includeArchived: false }),
-            ),
+          any: dataToWrite.persistedEntities.map((persistedEntityMetadata) =>
+            generateEntityIdFilter({
+              entityId: persistedEntityMetadata.entityId,
+              includeArchived: false,
+            }),
+          ),
         }
       : await getFilterFromBlockProtocolQueryEntity({
           authentication: { actorId: userAccountId },
@@ -491,9 +488,9 @@ export const writeGoogleSheetAction: FlowActionActivity<{
           {
             outputName: "googleSheetEntity",
             payload: {
-              kind: "PersistedEntity",
+              kind: "PersistedEntityMetadata",
               value: {
-                entity: entityToReturn.toJSON(),
+                entityId: entityToReturn.entityId,
                 operation: "create",
               },
             },

@@ -11,12 +11,12 @@ use hashql_mir::{
     context::MirContext,
     def::{DefId, DefIdSlice, DefIdVec},
     intern::Interner,
-    pass::{TransformPass as _, transform::DeadStoreElimination},
+    pass::{Changed, TransformPass as _, transform::DeadStoreElimination},
 };
 
 use super::{
     RunContext, Suite, SuiteDiagnostic, common::process_issues,
-    mir_pass_transform_sroa::mir_pass_transform_sroa,
+    mir_pass_transform_inst_simplify::mir_pass_transform_inst_simplify,
 };
 use crate::suite::{
     common::Header,
@@ -33,7 +33,7 @@ pub(crate) fn mir_pass_transform_dse<'heap>(
     diagnostics: &mut Vec<SuiteDiagnostic>,
 ) -> Result<(DefId, DefIdVec<Body<'heap>>, Scratch), SuiteDiagnostic> {
     let (root, mut bodies, mut scratch) =
-        mir_pass_transform_sroa(heap, expr, interner, render, environment, diagnostics)?;
+        mir_pass_transform_inst_simplify(heap, expr, interner, render, environment, diagnostics)?;
 
     let mut context = MirContext {
         heap,
@@ -42,9 +42,10 @@ pub(crate) fn mir_pass_transform_dse<'heap>(
         diagnostics: DiagnosticIssues::new(),
     };
 
+    // CFG -> SROA -> Inst -> DSE
     let mut pass = DeadStoreElimination::new_in(&mut scratch);
     for body in bodies.as_mut_slice() {
-        pass.run(&mut context, body);
+        let _: Changed = pass.run(&mut context, body);
     }
 
     process_issues(diagnostics, context.diagnostics)?;

@@ -224,8 +224,8 @@ const aiFlowActionDefinitionsAsConst = {
         required: true,
       },
       {
-        payloadKind: "PersistedEntity",
-        description: "The entity representing the Google Sheet synced to.",
+        payloadKind: "PersistedEntityMetadata",
+        description: "The metadata representing the updated document entity.",
         name: "updatedDocumentEntity",
         array: false,
         required: true,
@@ -257,7 +257,7 @@ const aiFlowActionDefinitionsAsConst = {
     ],
     outputs: [
       {
-        payloadKind: "PersistedEntity",
+        payloadKind: "PersistedEntityMetadata",
         name: "persistedEntity",
         array: false,
         required: true,
@@ -289,7 +289,7 @@ const aiFlowActionDefinitionsAsConst = {
     ],
     outputs: [
       {
-        payloadKind: "PersistedEntities",
+        payloadKind: "PersistedEntitiesMetadata",
         name: "persistedEntities",
         array: false,
         required: true,
@@ -323,7 +323,7 @@ const aiFlowActionDefinitionsAsConst = {
     ],
     outputs: [
       {
-        payloadKind: "PersistedEntity",
+        payloadKind: "PersistedEntityMetadata",
         name: "fileEntity",
         array: false,
         required: true,
@@ -362,7 +362,7 @@ const aiFlowActionDefinitionsAsConst = {
        * @todo make this do something / rethink it as needed
        */
       {
-        oneOfPayloadKinds: ["Entity", "PersistedEntities"],
+        oneOfPayloadKinds: ["PersistedEntitiesMetadata"],
         name: "existingEntities",
         required: false,
         array: true,
@@ -451,7 +451,7 @@ const aiFlowActionDefinitionsAsConst = {
         array: false,
       },
       {
-        oneOfPayloadKinds: ["Entity", "PersistedEntities"],
+        oneOfPayloadKinds: ["PersistedEntitiesMetadata"],
         name: "entities",
         required: false,
         array: true,
@@ -512,7 +512,11 @@ const aiFlowActionDefinitionsAsConst = {
         array: false,
       },
       {
-        oneOfPayloadKinds: ["FormattedText", "PersistedEntities", "EntityId"],
+        oneOfPayloadKinds: [
+          "FormattedText",
+          "PersistedEntitiesMetadata",
+          "EntityId",
+        ],
         description:
           "The data to write to the Google Sheet, as one of: CSV-formatted text; entities; or the id of a query to retrieve the data via.",
         name: "dataToWrite",
@@ -530,8 +534,9 @@ const aiFlowActionDefinitionsAsConst = {
     ],
     outputs: [
       {
-        payloadKind: "PersistedEntity",
-        description: "The entity representing the Google Sheet synced to.",
+        payloadKind: "PersistedEntityMetadata",
+        description:
+          "The metadata representing the updated Google Sheet entity.",
         name: "googleSheetEntity",
         array: false,
         required: false,
@@ -595,7 +600,7 @@ const integrationFlowActionDefinitionsAsConst = {
     ],
     outputs: [
       {
-        payloadKind: "PersistedEntities",
+        payloadKind: "PersistedEntitiesMetadata",
         name: "persistedEntities",
         description:
           "The result of persisting the entities, including any failures",
@@ -659,6 +664,14 @@ export type InputPayloadKindForIntegrationFlowAction<
   (typeof integrationFlowActionDefinitionsAsConst)[T]["inputs"][number],
   { name: N }
 >["oneOfPayloadKinds"][number];
+
+export type OutputPayloadKindForAiFlowAction<
+  T extends AiFlowActionDefinitionId,
+  N extends OutputNameForAiFlowAction<T>,
+> = Extract<
+  (typeof aiFlowActionDefinitionsAsConst)[T]["outputs"][number],
+  { name: N }
+>["payloadKind"];
 
 type AiFlowInputPayloadType<
   T extends AiFlowActionDefinitionId,
@@ -762,3 +775,51 @@ export const getSimplifiedIntegrationFlowActionInputs = <
     {} as SimplifiedIntegrationActionInputsObject<T>,
   );
 };
+
+/**
+ * Type-safe output types for flow actions
+ */
+
+/**
+ * Helper type to get a single StepOutput for a specific output definition.
+ * If the output is an array, the payload value will be an array type.
+ *
+ * Uses a distributive conditional type to ensure that when OutputDef is a union,
+ * each member is processed individually, creating a proper discriminated union
+ * where outputName and payload are correctly paired.
+ */
+type ActionStepOutput<
+  OutputDef extends {
+    name: string;
+    payloadKind: keyof PayloadKindValues;
+    array: boolean;
+  },
+> = OutputDef extends {
+  name: infer N extends string;
+  payloadKind: infer K extends keyof PayloadKindValues;
+  array: infer A extends boolean;
+}
+  ? {
+      outputName: N;
+      payload: A extends true
+        ? { kind: K; value: PayloadKindValues[K][] }
+        : { kind: K; value: PayloadKindValues[K] };
+    }
+  : never;
+
+/**
+ * Get the union of all typed StepOutput types for a given AI flow action.
+ */
+export type AiActionStepOutput<T extends AiFlowActionDefinitionId> =
+  ActionStepOutput<
+    (typeof aiFlowActionDefinitionsAsConst)[T]["outputs"][number]
+  >;
+
+/**
+ * Get the union of all typed StepOutput types for a given integration flow action.
+ */
+export type IntegrationActionStepOutput<
+  T extends IntegrationFlowActionDefinitionId,
+> = ActionStepOutput<
+  (typeof integrationFlowActionDefinitionsAsConst)[T]["outputs"][number]
+>;

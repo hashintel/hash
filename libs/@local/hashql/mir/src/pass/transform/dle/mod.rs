@@ -66,7 +66,7 @@ use crate::{
     },
     context::MirContext,
     intern::Interner,
-    pass::TransformPass,
+    pass::{Changed, TransformPass},
     visit::{Visitor, VisitorMut, r#mut::filter},
 };
 
@@ -104,9 +104,7 @@ impl<A: BumpAllocator> DeadLocalElimination<A> {
 }
 
 impl<'env, 'heap, A: BumpAllocator> TransformPass<'env, 'heap> for DeadLocalElimination<A> {
-    fn run(&mut self, context: &mut MirContext<'env, 'heap>, body: &mut Body<'heap>) {
-        self.alloc.reset();
-
+    fn run(&mut self, context: &mut MirContext<'env, 'heap>, body: &mut Body<'heap>) -> Changed {
         let mut dead = if let Some(dead) = self.dead.take() {
             dead
         } else {
@@ -119,6 +117,12 @@ impl<'env, 'heap, A: BumpAllocator> TransformPass<'env, 'heap> for DeadLocalElim
         // The function args cannot be dead
         for index in 0..body.args {
             dead.remove(Local::new(index));
+        }
+
+        if dead.is_empty() {
+            // If there are no dead locals, we can skip further analysis, as no locals will be
+            // removed.
+            return Changed::No;
         }
 
         let mut remap = LocalVec::new_in(&self.alloc);
@@ -159,6 +163,7 @@ impl<'env, 'heap, A: BumpAllocator> TransformPass<'env, 'heap> for DeadLocalElim
 
         // Remove unused locals
         body.local_decls.truncate(write_index);
+        Changed::Yes
     }
 }
 

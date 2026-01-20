@@ -53,8 +53,6 @@ const generateInitialFormState = (outputDefinitions: OutputDefinition[]) =>
         defaultValue = [];
       } else if (outputDefinition.payloadKind === "Boolean") {
         defaultValue = false;
-      } else if (outputDefinition.payloadKind === "Entity") {
-        defaultValue = undefined;
       } else if (outputDefinition.payloadKind === "Date") {
         defaultValue = format(new Date(), "yyyy-MM-dd");
       }

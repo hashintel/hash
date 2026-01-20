@@ -1,8 +1,12 @@
 //! Scratch allocator for temporary allocations.
 
-use core::{alloc, ptr};
+use core::{alloc, mem, ptr};
 
-use super::{BumpAllocator, allocator::Allocator};
+use super::{
+    AllocatorScope, BumpAllocator,
+    allocator::{Allocator, Checkpoint},
+    bump::ResetAllocator,
+};
 
 /// A resettable scratch allocator for temporary allocations.
 ///
@@ -11,7 +15,7 @@ use super::{BumpAllocator, allocator::Allocator};
 ///
 /// ```
 /// # #![feature(allocator_api)]
-/// # use hashql_core::heap::{Scratch, BumpAllocator};
+/// # use hashql_core::heap::{Scratch, ResetAllocator};
 /// let mut scratch = Scratch::new();
 /// let mut vec: Vec<u32, &Scratch> = Vec::new_in(&scratch);
 /// vec.push(42);
@@ -30,9 +34,18 @@ pub struct Scratch {
 impl Scratch {
     /// Creates a new scratch allocator.
     #[must_use]
+    #[inline]
     pub fn new() -> Self {
         Self {
             inner: Allocator::new(),
+        }
+    }
+
+    #[must_use]
+    #[inline]
+    pub fn with_capacity(capacity: usize) -> Self {
+        Self {
+            inner: Allocator::with_capacity(capacity),
         }
     }
 }
@@ -44,11 +57,40 @@ impl Default for Scratch {
 }
 
 impl BumpAllocator for Scratch {
+    type Checkpoint = Checkpoint;
+    type Scoped<'scope> = AllocatorScope<'scope>;
+
     #[inline]
-    fn allocate_slice_copy<T: Copy>(&self, slice: &[T]) -> Result<&mut [T], alloc::AllocError> {
-        self.inner.try_alloc_slice_copy(slice)
+    fn scoped<T>(&mut self, func: impl FnOnce(Self::Scoped<'_>) -> T) -> T {
+        self.inner.scoped(func)
     }
 
+    #[inline]
+    fn checkpoint(&self) -> Self::Checkpoint {
+        self.inner.checkpoint()
+    }
+
+    #[inline]
+    unsafe fn rollback(&self, checkpoint: Self::Checkpoint) {
+        // SAFETY: Same safety guarantees as `Allocator::rollback`.
+        unsafe { self.inner.rollback(checkpoint) }
+    }
+
+    #[inline]
+    fn try_allocate_slice_copy<T: Copy>(&self, slice: &[T]) -> Result<&mut [T], alloc::AllocError> {
+        self.inner.try_allocate_slice_copy(slice)
+    }
+
+    #[inline]
+    fn try_allocate_slice_uninit<T>(
+        &self,
+        len: usize,
+    ) -> Result<&mut [mem::MaybeUninit<T>], alloc::AllocError> {
+        self.inner.try_allocate_slice_uninit(len)
+    }
+}
+
+impl ResetAllocator for Scratch {
     #[inline]
     fn reset(&mut self) {
         self.inner.reset();

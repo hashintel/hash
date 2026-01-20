@@ -34,6 +34,7 @@ export const makeUnchecked = (
 ): Transaction =>
   createProto(TransactionProto, { id, read: readQueue, drop }) as Transaction;
 
+// eslint-disable-next-line fsecond/no-inline-interfaces
 export const registerDestructor: {
   (
     destructor: Effect.Effect<void>,

@@ -1,0 +1,169 @@
+---
+source: libs/@local/hashql/mir/src/pass/transform/inline/tests.rs
+expression: output
+---
+fn {closure@4294967040}(%0: Integer) -> Boolean {
+    let %1: Boolean
+    let %2: Boolean
+    let %3: Boolean
+    let %4: Boolean
+    let %5: Boolean
+
+    bb0(): {
+        %1 = %0 == 1
+        %2 = %0 > 2
+        %3 = %0 < 3
+        %4 = %0 == 4
+        %5 = %0 > 5
+
+        return %5
+    }
+}
+
+thunk {thunk@4294967040}() -> Boolean {
+    let %0: Boolean
+    let %1: Boolean
+    let %2: Boolean
+    let %3: Boolean
+    let %4: Boolean
+    let %5: Boolean
+    let %6: Boolean
+
+    bb0(): {
+        %0 = apply ({def@0} as FnPtr) 1
+        %1 = apply ({def@0} as FnPtr) 2
+        %2 = apply ({def@0} as FnPtr) 3
+        %3 = apply ({def@0} as FnPtr) 4
+        %4 = apply ({def@0} as FnPtr) 5
+        %5 = apply ({def@0} as FnPtr) 6
+        %6 = %0 == %1
+
+        return %6
+    }
+}
+
+================= After Inlining =================
+
+fn {closure@4294967040}(%0: Integer) -> Boolean {
+    let %1: Boolean
+    let %2: Boolean
+    let %3: Boolean
+    let %4: Boolean
+    let %5: Boolean
+
+    bb0(): {
+        %1 = %0 == 1
+        %2 = %0 > 2
+        %3 = %0 < 3
+        %4 = %0 == 4
+        %5 = %0 > 5
+
+        return %5
+    }
+}
+
+thunk {thunk@4294967040}() -> Boolean {
+    let %0: Boolean
+    let %1: Boolean
+    let %2: Boolean
+    let %3: Boolean
+    let %4: Boolean
+    let %5: Boolean
+    let %6: Boolean
+    let %7: Integer
+    let %8: Boolean
+    let %9: Boolean
+    let %10: Boolean
+    let %11: Boolean
+    let %12: Boolean
+    let %13: Integer
+    let %14: Boolean
+    let %15: Boolean
+    let %16: Boolean
+    let %17: Boolean
+    let %18: Boolean
+    let %19: Integer
+    let %20: Boolean
+    let %21: Boolean
+    let %22: Boolean
+    let %23: Boolean
+    let %24: Boolean
+    let %25: Integer
+    let %26: Boolean
+    let %27: Boolean
+    let %28: Boolean
+    let %29: Boolean
+    let %30: Boolean
+
+    bb0(): {
+        %25 = 1
+
+        goto -> bb8()
+    }
+
+    bb1(%5): {
+        %6 = %0 == %1
+
+        return %6
+    }
+
+    bb2(): {
+        %8 = %7 == 1
+        %9 = %7 > 2
+        %10 = %7 < 3
+        %11 = %7 == 4
+        %12 = %7 > 5
+
+        goto -> bb1(%12)
+    }
+
+    bb3(%3): {
+        %4 = apply ({def@0} as FnPtr) 5
+        %7 = 6
+
+        goto -> bb2()
+    }
+
+    bb4(): {
+        %14 = %13 == 1
+        %15 = %13 > 2
+        %16 = %13 < 3
+        %17 = %13 == 4
+        %18 = %13 > 5
+
+        goto -> bb3(%18)
+    }
+
+    bb5(%1): {
+        %2 = apply ({def@0} as FnPtr) 3
+        %13 = 4
+
+        goto -> bb4()
+    }
+
+    bb6(): {
+        %20 = %19 == 1
+        %21 = %19 > 2
+        %22 = %19 < 3
+        %23 = %19 == 4
+        %24 = %19 > 5
+
+        goto -> bb5(%24)
+    }
+
+    bb7(%0): {
+        %19 = 2
+
+        goto -> bb6()
+    }
+
+    bb8(): {
+        %26 = %25 == 1
+        %27 = %25 > 2
+        %28 = %25 < 3
+        %29 = %25 == 4
+        %30 = %25 > 5
+
+        goto -> bb7(%30)
+    }
+}

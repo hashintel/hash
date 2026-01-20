@@ -1,0 +1,59 @@
+---
+source: libs/@local/hashql/mir/src/pass/transform/administrative_reduction/tests.rs
+expression: value
+---
+fn {closure@4294967040}(%0: Integer) -> Integer {
+    let %1: Integer
+    let %2: Integer
+
+    bb0(): {
+        %1 = 10
+        %2 = %0
+
+        return %2
+    }
+}
+
+fn {closure@4294967040}() -> Integer {
+    let %0: Integer
+    let %1: Integer
+
+    bb0(): {
+        %0 = 5
+        %1 = apply ({def@0} as FnPtr) %0
+
+        return %1
+    }
+}
+
+================== Changed: Yes ==================
+
+fn {closure@4294967040}(%0: Integer) -> Integer {
+    let %1: Integer
+    let %2: Integer
+
+    bb0(): {
+        %1 = 10
+        %2 = %0
+
+        return %2
+    }
+}
+
+fn {closure@4294967040}() -> Integer {
+    let %0: Integer
+    let %1: Integer
+    let %2: Integer
+    let %3: Integer
+    let %4: Integer
+
+    bb0(): {
+        %0 = 5
+        %2 = %0
+        %3 = 10
+        %4 = %2
+        %1 = %4
+
+        return %1
+    }
+}
