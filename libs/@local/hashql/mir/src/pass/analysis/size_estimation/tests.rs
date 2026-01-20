@@ -1,7 +1,7 @@
 #![expect(clippy::min_ident_chars, clippy::similar_names, reason = "tests")]
 
 use alloc::alloc::Global;
-use core::fmt::Write as _;
+use core::{fmt::Write as _, slice};
 use std::path::PathBuf;
 
 use hashql_core::{heap::Heap, id::Id as _, r#type::environment::Environment};
@@ -55,17 +55,20 @@ fn assert_size_estimation<'heap>(
 
 // ============================================================================
 // Dynamic dataflow tests
+// These tests use intrinsic types (list, unknown) that cannot be statically
+// sized, forcing the analysis to use dynamic dataflow.
 // ============================================================================
 
-/// Constants produce scalar footprints (1 unit, 1 element).
+/// Constants produce scalar footprints even with dynamic types.
 #[test]
 fn constants_are_scalar() {
     let heap = Heap::new();
     let interner = Interner::new(&heap);
     let env = Environment::new(&heap);
 
+    // Use Int which is statically sized - constants are always scalar
     let mut body = body!(interner, env; fn@0/0 -> Int {
-        decl x: Int;
+        decl x: ?;
 
         bb0() {
             x = load 42;
@@ -75,7 +78,7 @@ fn constants_are_scalar() {
 
     assert_size_estimation(
         "constants_are_scalar",
-        core::slice::from_mut(&mut body),
+        slice::from_mut(&mut body),
         &heap,
         &interner,
         &env,
@@ -90,7 +93,7 @@ fn binary_ops_produce_scalar() {
     let env = Environment::new(&heap);
 
     let mut body = body!(interner, env; fn@0/0 -> Int {
-        decl a: Int, b: Int, result: Int;
+        decl a: Int, b: Int, result: ?;
 
         bb0() {
             a = load 10;
@@ -102,7 +105,7 @@ fn binary_ops_produce_scalar() {
 
     assert_size_estimation(
         "binary_ops_produce_scalar",
-        core::slice::from_mut(&mut body),
+        slice::from_mut(&mut body),
         &heap,
         &interner,
         &env,
@@ -117,7 +120,7 @@ fn unary_ops_produce_scalar() {
     let env = Environment::new(&heap);
 
     let mut body = body!(interner, env; fn@0/0 -> Int {
-        decl x: Int, result: Int;
+        decl x: Int, result: ?;
 
         bb0() {
             x = load 5;
@@ -128,7 +131,7 @@ fn unary_ops_produce_scalar() {
 
     assert_size_estimation(
         "unary_ops_produce_scalar",
-        core::slice::from_mut(&mut body),
+        slice::from_mut(&mut body),
         &heap,
         &interner,
         &env,
@@ -143,7 +146,7 @@ fn tuple_aggregate_sums_operands() {
     let env = Environment::new(&heap);
 
     let mut body = body!(interner, env; fn@0/0 -> (Int, Int) {
-        decl a: Int, b: Int, result: (Int, Int);
+        decl a: Int, b: Int, result: (Int, ?);
 
         bb0() {
             a = load 1;
@@ -155,7 +158,7 @@ fn tuple_aggregate_sums_operands() {
 
     assert_size_estimation(
         "tuple_aggregate_sums_operands",
-        core::slice::from_mut(&mut body),
+        slice::from_mut(&mut body),
         &heap,
         &interner,
         &env,
@@ -170,7 +173,7 @@ fn struct_aggregate_sums_operands() {
     let env = Environment::new(&heap);
 
     let mut body = body!(interner, env; fn@0/0 -> (x: Int, y: Int) {
-        decl a: Int, b: Int, result: (x: Int, y: Int);
+        decl a: Int, b: Int, result: (x: Int, y: ?);
 
         bb0() {
             a = load 1;
@@ -182,22 +185,21 @@ fn struct_aggregate_sums_operands() {
 
     assert_size_estimation(
         "struct_aggregate_sums_operands",
-        core::slice::from_mut(&mut body),
+        slice::from_mut(&mut body),
         &heap,
         &interner,
         &env,
     );
 }
 
-/// External input loads have unbounded size.
 #[test]
 fn input_load_is_unbounded() {
     let heap = Heap::new();
     let interner = Interner::new(&heap);
     let env = Environment::new(&heap);
 
-    let mut body = body!(interner, env; fn@0/0 -> Int {
-        decl x: Int;
+    let mut body = body!(interner, env; fn@0/0 -> ? {
+        decl x: ?;
 
         bb0() {
             x = input.load! "data";
@@ -207,7 +209,7 @@ fn input_load_is_unbounded() {
 
     assert_size_estimation(
         "input_load_is_unbounded",
-        core::slice::from_mut(&mut body),
+        slice::from_mut(&mut body),
         &heap,
         &interner,
         &env,
@@ -222,7 +224,7 @@ fn input_exists_is_scalar() {
     let env = Environment::new(&heap);
 
     let mut body = body!(interner, env; fn@0/0 -> Bool {
-        decl exists: Bool;
+        decl exists: ?;
 
         bb0() {
             exists = input.exists "data";
@@ -232,25 +234,27 @@ fn input_exists_is_scalar() {
 
     assert_size_estimation(
         "input_exists_is_scalar",
-        core::slice::from_mut(&mut body),
+        slice::from_mut(&mut body),
         &heap,
         &interner,
         &env,
     );
 }
 
-/// Reading a parameter creates an affine dependency.
+/// Reading a dynamically-sized parameter creates an affine dependency.
+/// The return footprint should depend on parameter 0.
 #[test]
 fn parameter_creates_affine_dependency() {
     let heap = Heap::new();
     let interner = Interner::new(&heap);
     let env = Environment::new(&heap);
 
-    let mut body = body!(interner, env; fn@0/1 -> Int {
-        decl x: Int, result: Int;
+    // Function takes a list (dynamically sized) and returns it
+    // The return size should be 1*p0 (affine dependency on parameter 0)
+    let mut body = body!(interner, env; fn@0/1 -> [List Int] {
+        decl x: [List Int], result: [List Int];
 
         bb0() {
-            x = input.load! "data";
             result = load x;
             return result;
         }
@@ -258,7 +262,7 @@ fn parameter_creates_affine_dependency() {
 
     assert_size_estimation(
         "parameter_creates_affine_dependency",
-        core::slice::from_mut(&mut body),
+        slice::from_mut(&mut body),
         &heap,
         &interner,
         &env,
@@ -266,34 +270,37 @@ fn parameter_creates_affine_dependency() {
 }
 
 /// Diamond CFG joins branches correctly.
+/// Both branches contribute to the result via join.
 #[test]
 fn diamond_cfg_joins_branches() {
     let heap = Heap::new();
     let interner = Interner::new(&heap);
     let env = Environment::new(&heap);
 
-    let mut body = body!(interner, env; fn@0/0 -> Int {
-        decl cond: Bool, x: Int, result: Int;
+    // Use unknown type to force dynamic analysis
+    let mut body = body!(interner, env; fn@0/0 -> ? {
+        decl cond: Bool, a: (Int, Int), b: Int, x: ?;
 
         bb0() {
+            a = input.load! "a";
+            b = input.load! "b";
             cond = load true;
             if cond then bb1() else bb2();
         },
         bb1() {
-            goto bb3(1);
+            goto bb3(a);
         },
         bb2() {
-            goto bb3(2);
+            goto bb3(b);
         },
         bb3(x) {
-            result = load x;
-            return result;
+            return x;
         }
     });
 
     assert_size_estimation(
         "diamond_cfg_joins_branches",
-        core::slice::from_mut(&mut body),
+        slice::from_mut(&mut body),
         &heap,
         &interner,
         &env,
@@ -305,6 +312,7 @@ fn diamond_cfg_joins_branches() {
 // ============================================================================
 
 /// Callee is analyzed before caller (topological order).
+/// The caller's return footprint should reflect the callee's constant return.
 #[test]
 fn callee_analyzed_before_caller() {
     let heap = Heap::new();
@@ -314,6 +322,7 @@ fn callee_analyzed_before_caller() {
     let callee_id = DefId::new(0);
     let caller_id = DefId::new(1);
 
+    // Callee returns a constant - static analysis handles this
     let callee = body!(interner, env; fn@callee_id/0 -> Int {
         decl result: Int;
 
@@ -324,7 +333,7 @@ fn callee_analyzed_before_caller() {
     });
 
     let caller = body!(interner, env; fn@caller_id/0 -> Int {
-        decl result: Int;
+        decl result: ?;
 
         bb0() {
             result = apply callee_id;
@@ -342,7 +351,8 @@ fn callee_analyzed_before_caller() {
     );
 }
 
-/// Apply substitutes callee's return footprint based on arguments.
+/// Apply substitutes callee's affine return footprint based on arguments.
+/// Callee returns its parameter (identity), caller passes an unknown input.
 #[test]
 fn apply_substitutes_callee_coefficients() {
     let heap = Heap::new();
@@ -352,21 +362,24 @@ fn apply_substitutes_callee_coefficients() {
     let callee_id = DefId::new(0);
     let caller_id = DefId::new(1);
 
-    // Callee returns its parameter (identity function)
-    let callee = body!(interner, env; fn@callee_id/1 -> Int {
-        decl x: Int;
+    // Callee: identity function on list - returns its parameter
+    // Return footprint should be affine: 1*p0
+    let callee = body!(interner, env; fn@callee_id/1 -> ? {
+        decl x: ?;
 
         bb0() {
             return x;
         }
     });
 
-    // Caller passes a scalar constant
-    let caller = body!(interner, env; fn@caller_id/0 -> Int {
-        decl result: Int;
+    // Caller: loads unknown input, passes to callee
+    // Result should inherit the unbounded nature of the input
+    let caller = body!(interner, env; fn@caller_id/0 -> ? {
+        decl input: Int, result: ?;
 
         bb0() {
-            result = apply callee_id, 10;
+            input = input.load! "data";
+            result = apply callee_id, input;
             return result;
         }
     });
@@ -382,6 +395,8 @@ fn apply_substitutes_callee_coefficients() {
 }
 
 /// Mutual recursion converges (SCC fixpoint iteration).
+/// Two functions that call each other should both reach a stable footprint.
+/// Each function has a base case that returns the parameter, ensuring data flows.
 #[test]
 fn mutual_recursion_converges() {
     let heap = Heap::new();
@@ -391,22 +406,46 @@ fn mutual_recursion_converges() {
     let fn_a_id = DefId::new(0);
     let fn_b_id = DefId::new(1);
 
-    // fn_a calls fn_b
-    let fn_a = body!(interner, env; fn@fn_a_id/0 -> Int {
-        decl result: Int;
+    // fn_a: base case returns x, recursive case calls fn_b
+    let fn_a = body!(interner, env; fn@fn_a_id/1 -> [List Int] {
+        decl x: [List Int], cond: Bool, result: [List Int];
 
         bb0() {
-            result = apply fn_b_id;
+            cond = load true;
+            if cond then bb1() else bb2();
+        },
+        bb1() {
+            // Base case: return parameter directly
+            goto bb3(x);
+        },
+        bb2() {
+            // Recursive case: call fn_b
+            result = apply fn_b_id, x;
+            goto bb3(result);
+        },
+        bb3(result) {
             return result;
         }
     });
 
-    // fn_b calls fn_a (mutual recursion)
-    let fn_b = body!(interner, env; fn@fn_b_id/0 -> Int {
-        decl result: Int;
+    // fn_b: base case returns x, recursive case calls fn_a
+    let fn_b = body!(interner, env; fn@fn_b_id/1 -> [List Int] {
+        decl x: [List Int], cond: Bool, result: [List Int];
 
         bb0() {
-            result = apply fn_a_id;
+            cond = load true;
+            if cond then bb1() else bb2();
+        },
+        bb1() {
+            // Base case: return parameter directly
+            goto bb3(x);
+        },
+        bb2() {
+            // Recursive case: call fn_a
+            result = apply fn_a_id, x;
+            goto bb3(result);
+        },
+        bb3(result) {
             return result;
         }
     });
@@ -414,6 +453,48 @@ fn mutual_recursion_converges() {
     let mut bodies = [fn_a, fn_b];
     assert_size_estimation(
         "mutual_recursion_converges",
+        &mut bodies,
+        &heap,
+        &interner,
+        &env,
+    );
+}
+
+/// Self-recursion converges to a stable footprint.
+/// Has a base case that returns the parameter, ensuring data flows.
+#[test]
+fn self_recursion_converges() {
+    let heap = Heap::new();
+    let interner = Interner::new(&heap);
+    let env = Environment::new(&heap);
+
+    let fn_id = DefId::new(0);
+
+    // Function with base case (return x) and recursive case (call self)
+    let func = body!(interner, env; fn@fn_id/1 -> [List Int] {
+        decl x: [List Int], cond: Bool, result: [List Int];
+
+        bb0() {
+            cond = load true;
+            if cond then bb1() else bb2();
+        },
+        bb1() {
+            // Base case: return parameter directly
+            goto bb3(x);
+        },
+        bb2() {
+            // Recursive case: call self
+            result = apply fn_id, x;
+            goto bb3(result);
+        },
+        bb3(result) {
+            return result;
+        }
+    });
+
+    let mut bodies = [func];
+    assert_size_estimation(
+        "self_recursion_converges",
         &mut bodies,
         &heap,
         &interner,

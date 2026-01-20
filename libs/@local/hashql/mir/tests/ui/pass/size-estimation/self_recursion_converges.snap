@@ -1,0 +1,9 @@
+---
+source: libs/@local/hashql/mir/src/pass/analysis/size_estimation/tests.rs
+expression: output
+---
+fn@0 (1 args)
+  %0: units: 0..0, cardinality: 0..0
+  %1: units: 1..=1, cardinality: 1..=1
+  %2: units: 0..0 + 1*%0, cardinality: 0..0 + 1*%0
+  returns: units: 0..0 + 1*%0, cardinality: 0..0 + 1*%0
