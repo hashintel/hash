@@ -80,7 +80,6 @@ export const mapFlowRunToEntityProperties = (
           "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
       },
     },
-    // @ts-expect-error - this property doesn't exist in the flow run properties
     "https://hash.ai/@h/types/property-type/flow-definition-id/": {
       value: flowRun.flowDefinitionId,
       metadata: {
@@ -142,7 +141,6 @@ export const mapFlowEntityToFlow = (
 ): LocalFlowRun => {
   const {
     name,
-    // @ts-expect-error - this property doesn't exist in the flow run properties
     flowDefinitionId,
     outputs,
     step: steps,

@@ -12,8 +12,9 @@ import type {
 import type { DistributiveOmit } from "@local/advanced-types/distribute";
 import type { Status } from "@local/status";
 
-import type { FlowRun, FlowType } from "../graphql/api-types.gen.js";
+import type { FlowRun } from "../graphql/api-types.gen.js";
 import type { ActorTypeDataType } from "../system-types/google/googlesheetsfile.js";
+import type { FlowTypeDataType } from "../system-types/shared.js";
 import type {
   AiFlowActionDefinitionId,
   IntegrationFlowActionDefinitionId,
@@ -87,7 +88,7 @@ export type PersistedEntitiesMetadata = {
 
 type BaseFlowInputs = {
   flowDefinition: FlowDefinition<FlowActionDefinitionId>;
-  flowType: FlowType;
+  flowType: FlowTypeDataType;
   flowTrigger: FlowTrigger;
   webId: WebId;
 };

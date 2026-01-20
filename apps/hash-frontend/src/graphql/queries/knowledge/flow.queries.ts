@@ -5,7 +5,7 @@ export const startFlowMutation = gql`
     $dataSources: FlowDataSources
     $flowDefinition: FlowDefinition!
     $flowTrigger: FlowTrigger!
-    $flowType: FlowType!
+    $flowType: FlowTypeDataType!
     $webId: WebId!
   ) {
     startFlow(

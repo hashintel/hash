@@ -18,6 +18,10 @@ import type {
 import { FlowStepStatus } from "@local/hash-isomorphic-utils/graphql/api-types.gen";
 import { StatusCode } from "@local/status";
 import type { Client as TemporalClient } from "@temporalio/client";
+import {
+  defineSearchAttributeKey,
+  SearchAttributeType,
+} from "@temporalio/common";
 import proto from "@temporalio/proto";
 
 import { temporalNamespace } from "../temporal.js";
@@ -612,14 +616,29 @@ export const getSparseFlowRunFromWorkflowId = async ({
 }): Promise<SparseFlowRun> => {
   const handle = temporalClient.workflow.getHandle(workflowId);
 
-  const { startTime, executionTime, closeTime, memo, status } =
-    await handle.describe();
+  const {
+    startTime,
+    executionTime,
+    closeTime,
+    memo,
+    typedSearchAttributes,
+    status,
+  } = await handle.describe();
+
+  const temporalScheduledByIdKey = defineSearchAttributeKey(
+    "TemporalScheduledById",
+    SearchAttributeType.KEYWORD,
+  );
+  const flowScheduleId = typedSearchAttributes.get(temporalScheduledByIdKey) as
+    | EntityUuid
+    | undefined;
 
   return {
     name,
     flowDefinitionId:
       (memo?.flowDefinitionId as string | undefined) ?? "unknown",
     flowRunId: workflowId,
+    flowScheduleId,
     status: status.name as FlowRunStatus,
     startedAt: startTime.toISOString(),
     executedAt: executionTime?.toISOString(),

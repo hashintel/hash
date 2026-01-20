@@ -3,7 +3,6 @@ import type { EntityUuid, WebId } from "@blockprotocol/type-system";
 import type {
   FlowTypeDataType,
   ScheduleOverlapPolicyDataType,
-  ScheduleStatusDataType,
 } from "../system-types/shared.js";
 import type { FlowDataSources, FlowTrigger } from "./types.js";
 
@@ -35,10 +34,6 @@ export type CronScheduleSpec = {
  */
 export type ScheduleSpec = IntervalScheduleSpec | CronScheduleSpec;
 
-export type ScheduleOverlapPolicy = ScheduleOverlapPolicyDataType;
-export type ScheduleStatus = ScheduleStatusDataType;
-export type FlowScheduleType = FlowTypeDataType;
-
 /** Default catchup window: 1 hour in milliseconds */
 export const defaultScheduleCatchupWindowMs = 60 * 60 * 1000;
 
@@ -51,13 +46,13 @@ export type CreateFlowScheduleInput = {
   /** The flow definition to execute */
   flowDefinitionId: EntityUuid;
   /** The type of flow (ai or integration) */
-  flowType: FlowScheduleType;
+  flowType: FlowTypeDataType;
   /** The web this schedule belongs to */
   webId: WebId;
   /** The scheduling specification */
   scheduleSpec: ScheduleSpec;
   /** Policy for handling overlapping runs (defaults to CANCEL_OTHER) */
-  overlapPolicy?: ScheduleOverlapPolicy;
+  overlapPolicy?: ScheduleOverlapPolicyDataType;
   /** How far back to catch up missed runs after downtime, in milliseconds (defaults to 1 hour) */
   catchupWindowMs?: number;
   /** Whether to pause the schedule if a run fails (defaults to false) */
@@ -77,7 +72,7 @@ export type UpdateFlowScheduleInput = {
   /** Updated scheduling specification */
   scheduleSpec?: ScheduleSpec;
   /** Updated overlap policy */
-  overlapPolicy?: ScheduleOverlapPolicy;
+  overlapPolicy?: ScheduleOverlapPolicyDataType;
   /** Updated catchup window in milliseconds */
   catchupWindowMs?: number;
   /** Updated pause on failure setting */
@@ -89,7 +84,7 @@ export type UpdateFlowScheduleInput = {
 /**
  * The default schedule overlap policy.
  */
-export const defaultScheduleOverlapPolicy: ScheduleOverlapPolicy =
+export const defaultScheduleOverlapPolicy: ScheduleOverlapPolicyDataType =
   "CANCEL_OTHER";
 
 /**
@@ -117,9 +112,9 @@ export const scheduleSpecToTemporalSpec = (spec: ScheduleSpec) => {
  * Converts our ScheduleOverlapPolicy to Temporal's ScheduleOverlapPolicy enum value.
  */
 export const overlapPolicyToTemporal = (
-  policy: ScheduleOverlapPolicy,
+  policy: ScheduleOverlapPolicyDataType,
 ): number => {
-  const policyMap: Record<ScheduleOverlapPolicy, number> = {
+  const policyMap: Record<ScheduleOverlapPolicyDataType, number> = {
     SKIP: 1,
     BUFFER_ONE: 2,
     ALLOW_ALL: 3,

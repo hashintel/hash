@@ -35,7 +35,6 @@ import { useCallback, useMemo, useState } from "react";
 
 import { useGetOwnerForEntity } from "../../../../components/hooks/use-get-owner-for-entity";
 import {
-  FlowType,
   type QueryEntitySubgraphQuery,
   type QueryEntitySubgraphQueryVariables,
   type StartFlowMutation,
@@ -667,10 +666,7 @@ export const FlowVisualizer = () => {
         const { inputs } = selectedFlowRun;
         flowInputs = {
           ...inputs[0],
-          flowType:
-            selectedFlowDefinition.type === "ai"
-              ? FlowType.Ai
-              : FlowType.Integration,
+          flowType: selectedFlowDefinition.type === "ai" ? "ai" : "integration",
         };
       } else {
         const { webId, outputs } = args;
@@ -686,10 +682,7 @@ export const FlowVisualizer = () => {
             },
           },
           flowDefinition: selectedFlowDefinition,
-          flowType:
-            selectedFlowDefinition.type === "ai"
-              ? FlowType.Ai
-              : FlowType.Integration,
+          flowType: selectedFlowDefinition.type === "ai" ? "ai" : "integration",
           flowTrigger: {
             outputs,
             triggerDefinitionId: "userTrigger",

@@ -40,7 +40,6 @@ import { useMemo, useState } from "react";
 
 import { useGetOwnerForEntity } from "../../components/hooks/use-get-owner-for-entity";
 import {
-  FlowType,
   type StartFlowMutation,
   type StartFlowMutationVariables,
 } from "../../graphql/api-types.gen";
@@ -350,7 +349,7 @@ const NewGoalPageContent = () => {
           internetAccess: internetSettings,
         },
         flowDefinition,
-        flowType: FlowType.Ai,
+        flowType: "ai",
         flowTrigger: {
           outputs: triggerOutputs,
           triggerDefinitionId: "userTrigger",

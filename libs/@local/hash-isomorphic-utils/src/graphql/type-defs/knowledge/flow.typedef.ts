@@ -59,6 +59,7 @@ export const flowTypedef = gql`
   scalar FlowActionDefinitionId
   scalar FlowDefinition
   scalar FlowDataSources
+  scalar FlowTypeDataType
   scalar FlowTrigger
   scalar ExternalInputResponseWithoutUser
   scalar ScheduleSpec
@@ -140,6 +141,11 @@ export const flowTypedef = gql`
     """
     flowRunId: EntityUuid!
     """
+    The id of the schedule that triggered this run, if any.
+    Only present for flow runs triggered by a FlowSchedule.
+    """
+    flowScheduleId: EntityUuid
+    """
     The id for the definition of the flow this run is executing (the template for the flow)
     """
     flowDefinitionId: String!
@@ -207,12 +213,6 @@ export const flowTypedef = gql`
     getFlowRunById(flowRunId: String!): FlowRun!
   }
 
-
-  enum FlowType {
-    ai
-    integration
-  }
-
   extend type Mutation {
     """
     Start a new flow run, and return its flowRunId to allow for identifying it later.
@@ -221,7 +221,7 @@ export const flowTypedef = gql`
       dataSources: FlowDataSources
       flowDefinition: FlowDefinition!
       flowTrigger: FlowTrigger!
-      flowType: FlowType!
+      flowType: FlowTypeDataType!
       webId: WebId!
     ): EntityUuid!
 

@@ -183,12 +183,12 @@ export const getFlowScheduleById: ImpureGraphFunction<
 };
 
 export const updateFlowSchedule: ImpureGraphFunction<
-  UpdateFlowScheduleInput,
+  { scheduleEntityId: EntityId; input: UpdateFlowScheduleInput },
   Promise<HashEntity<FlowSchedule>>,
   false,
   true
 > = async (context, authentication, params) => {
-  const { scheduleEntityId, ...updates } = params;
+  const { scheduleEntityId, input: updates } = params;
 
   const existingEntity = await getFlowScheduleById(context, authentication, {
     scheduleEntityId,

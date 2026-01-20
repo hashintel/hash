@@ -7,7 +7,6 @@ import { validateFlowDefinition } from "@local/hash-isomorphic-utils/flows/util"
 import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
 
 import {
-  FlowType,
   type MutationStartFlowArgs,
   type ResolverFn,
 } from "../../api-types.gen";
@@ -26,7 +25,7 @@ export const startFlow: ResolverFn<
 ) => {
   const { temporal, user } = graphQLContext;
 
-  if (flowType === FlowType.Ai && !user.enabledFeatureFlags.includes("ai")) {
+  if (flowType === "ai" && !user.enabledFeatureFlags.includes("ai")) {
     throw Error.forbidden("AI flows are not enabled for this user");
   }
 
@@ -34,12 +33,12 @@ export const startFlow: ResolverFn<
 
   const workflowId = generateUuid();
 
-  if (flowType === FlowType.Ai && !dataSources) {
+  if (flowType === "ai" && !dataSources) {
     throw Error.badRequest("Data sources are required for AI flows");
   }
 
   const params: RunFlowWorkflowParams = {
-    ...(flowType === FlowType.Ai ? { dataSources } : {}),
+    ...(flowType === "ai" ? { dataSources } : {}),
     flowTrigger,
     flowDefinition,
     userAuthentication: { actorId: user.accountId },

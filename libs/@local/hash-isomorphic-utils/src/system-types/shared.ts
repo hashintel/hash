@@ -928,7 +928,7 @@ export type FlowScheduleUsesLink = {
 /**
  * The type of a flow, determining which task queue it runs on.
  */
-export type FlowTypeDataType = "ai" | "integration" | "external";
+export type FlowTypeDataType = "ai" | "integration";
 
 export type FlowTypeDataTypeWithMetadata = {
   value: FlowTypeDataType;
