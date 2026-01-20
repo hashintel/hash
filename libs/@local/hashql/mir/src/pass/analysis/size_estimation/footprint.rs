@@ -1,3 +1,13 @@
+//! Footprint types for tracking size estimates.
+//!
+//! A [`Footprint`] combines two measures:
+//! - **Units**: How much information a value contains ([`InformationRange`])
+//! - **Cardinality**: How many elements it contains ([`Cardinality`])
+//!
+//! Both measures can be either constant or depend on function parameters via [`AffineEquation`]s.
+//!
+//! A [`BodyFootprint`] aggregates footprints for all locals and the return value of a function.
+
 use core::alloc::Allocator;
 
 use hashql_core::heap::TryCloneIn;
@@ -14,16 +24,23 @@ use crate::{
     },
 };
 
+/// Semilattice for joining [`BodyFootprint`]s during fixpoint iteration.
 pub(crate) struct BodyFootprintSemilattice<A: Allocator> {
     pub alloc: A,
     pub domain_size: usize,
     pub args: usize,
 }
 
+/// Size estimates for all values in a function body.
+///
+/// Contains footprints for each local variable and the return value.
 #[derive(Debug, PartialEq, Eq, Hash)]
 pub struct BodyFootprint<A: Allocator> {
+    /// Number of function arguments (used to size affine coefficient vectors).
     pub args: usize,
+    /// Footprint for each local variable, indexed by [`Local`](crate::body::local::Local).
     pub locals: LocalVec<Footprint, A>,
+    /// Footprint for the function's return value.
     pub returns: Footprint,
 }
 
@@ -126,13 +143,21 @@ impl<A: Allocator + Clone> HasBottom<BodyFootprint<A>> for BodyFootprintSemilatt
     }
 }
 
+/// Combined size measure tracking both information content and element count.
+///
+/// Each measure can be either a constant range or an affine equation of the function's parameters.
 #[derive(Debug, PartialEq, Eq, Hash)]
 pub struct Footprint {
+    /// The amount of information this value contains.
     pub units: Estimate<InformationRange>,
+    /// The number of elements this value contains.
     pub cardinality: Estimate<Cardinality>,
 }
 
 impl Footprint {
+    /// A footprint for scalar values (primitives, unit, function pointers).
+    ///
+    /// Has exactly 1 unit of information and cardinality of 1.
     #[must_use]
     pub const fn scalar() -> Self {
         Self {
@@ -141,6 +166,9 @@ impl Footprint {
         }
     }
 
+    /// A footprint for values with unknown size (e.g., external inputs).
+    ///
+    /// Has unbounded information content but cardinality of 1.
     #[must_use]
     pub const fn unknown() -> Self {
         Self {
@@ -149,6 +177,9 @@ impl Footprint {
         }
     }
 
+    /// A footprint that tracks dependency on a function parameter.
+    ///
+    /// Both units and cardinality are set to equal the parameter at `index`.
     #[must_use]
     pub fn coefficient(index: usize, length: usize) -> Self {
         Self {
@@ -157,6 +188,7 @@ impl Footprint {
         }
     }
 
+    /// Adds `other * coefficient` to this footprint (component-wise).
     pub(crate) fn saturating_mul_add(
         &mut self,
         other: &Self,

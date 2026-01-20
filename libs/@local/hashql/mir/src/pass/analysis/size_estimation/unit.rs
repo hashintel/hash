@@ -1,3 +1,15 @@
+//! Atomic units of measurement for size estimation.
+//!
+//! This module defines two fundamental units:
+//!
+//! - [`InformationUnit`]: Measures information content in abstract units. A primitive value
+//!   (integer, boolean, etc.) has size 1. Composite types sum their fields' sizes.
+//!
+//! - [`Cardinal`]: Measures element count (cardinality). A single value has cardinality 1; a
+//!   collection has cardinality equal to its element count.
+//!
+//! Both types are thin wrappers around `u32` with saturating arithmetic to prevent overflow.
+
 use core::{
     fmt,
     fmt::{Debug, Display},
@@ -137,5 +149,18 @@ macro_rules! unit {
     };
 }
 
-unit!(pub struct InformationUnit(u32));
-unit!(pub struct Cardinal(u32));
+unit!(
+    /// A unit of information content (abstract size).
+    ///
+    /// One unit represents the information content of a single primitive value.
+    /// Composite types have sizes equal to the sum of their components.
+    pub struct InformationUnit(u32)
+);
+
+unit!(
+    /// A unit of cardinality (element count).
+    ///
+    /// Represents how many elements are contained in a value. Scalars have cardinality 1;
+    /// collections have cardinality equal to their length.
+    pub struct Cardinal(u32)
+);
