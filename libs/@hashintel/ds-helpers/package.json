@@ -62,6 +62,7 @@
   "devDependencies": {
     "@hashintel/ds-theme": "0.0.1",
     "@ladle/react": "5.1.1",
+    "@mantine/hooks": "8.3.5",
     "@pandacss/dev": "1.4.3",
     "@playwright/test": "1.57.0",
     "@tool-belt/type-predicates": "1.4.1",

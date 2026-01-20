@@ -8444,6 +8444,7 @@ __metadata:
   dependencies:
     "@hashintel/ds-theme": "npm:0.0.1"
     "@ladle/react": "npm:5.1.1"
+    "@mantine/hooks": "npm:8.3.5"
     "@pandacss/dev": "npm:1.4.3"
     "@playwright/test": "npm:1.57.0"
     "@tool-belt/type-predicates": "npm:1.4.1"
