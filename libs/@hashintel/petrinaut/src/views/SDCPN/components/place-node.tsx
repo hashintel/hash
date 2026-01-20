@@ -5,8 +5,8 @@ import { Handle, type NodeProps, Position } from "reactflow";
 
 import { hexToHsl } from "../../../lib/hsl-color";
 import { splitPascalCase } from "../../../lib/split-pascal-case";
-import { EditorContext } from "../../../state/editor-context";
 import { SimulationContext } from "../../../simulation/context";
+import { EditorContext } from "../../../state/editor-context";
 import type { PlaceNodeData } from "../reactflow-types";
 import { handleStyling } from "../styles/styling";
 

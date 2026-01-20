@@ -1,7 +1,7 @@
 import { use } from "react";
 
-import { EditorContext } from "./editor-context";
 import { SimulationContext } from "../simulation/context";
+import { EditorContext } from "./editor-context";
 
 /**
  * Hook that determines if the editor is in read-only mode.

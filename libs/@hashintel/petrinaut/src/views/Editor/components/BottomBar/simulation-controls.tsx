@@ -7,8 +7,8 @@ import {
 } from "react-icons/io";
 import { MdRotateLeft } from "react-icons/md";
 
-import { EditorContext } from "../../../../state/editor-context";
 import { SimulationContext } from "../../../../simulation/context";
+import { EditorContext } from "../../../../state/editor-context";
 import { ToolbarButton } from "./toolbar-button";
 
 const frameInfoStyle = css({

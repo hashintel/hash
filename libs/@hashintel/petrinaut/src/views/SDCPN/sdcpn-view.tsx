@@ -10,9 +10,9 @@ import {
   DEFAULT_TRANSITION_KERNEL_CODE,
   generateDefaultLambdaCode,
 } from "../../core/default-codes";
+import { SimulationContext } from "../../simulation/context";
 import { EditorContext } from "../../state/editor-context";
 import { SDCPNContext } from "../../state/sdcpn-context";
-import { SimulationContext } from "../../simulation/context";
 import { Arc } from "./components/arc";
 import { PlaceNode } from "./components/place-node";
 import { TransitionNode } from "./components/transition-node";

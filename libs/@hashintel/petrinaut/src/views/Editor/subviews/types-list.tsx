@@ -2,9 +2,9 @@ import { css, cva } from "@hashintel/ds-helpers/css";
 import { use } from "react";
 
 import type { SubView } from "../../../components/sub-view/types";
+import { SimulationContext } from "../../../simulation/context";
 import { EditorContext } from "../../../state/editor-context";
 import { SDCPNContext } from "../../../state/sdcpn-context";
-import { SimulationContext } from "../../../simulation/context";
 
 const listContainerStyle = css({
   display: "flex",

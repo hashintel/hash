@@ -15,11 +15,11 @@ import {
   PANEL_MARGIN,
   SIMULATION_ONLY_SUBVIEWS,
 } from "../../../../constants/ui";
+import { SimulationContext } from "../../../../simulation/context";
 import {
   type BottomPanelTab,
   EditorContext,
 } from "../../../../state/editor-context";
-import { SimulationContext } from "../../../../simulation/context";
 
 const glassPanelBaseStyle = css({
   position: "fixed",
