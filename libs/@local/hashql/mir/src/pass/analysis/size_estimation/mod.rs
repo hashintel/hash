@@ -88,11 +88,11 @@ use crate::{
 ///
 /// After static analysis, locals whose types cannot be statically sized are marked here.
 /// The return slot is tracked separately using a synthetic local beyond the normal local range.
-struct DynamicComponents {
+struct PendingDataflow {
     inner: DenseBitSet<Local>,
 }
 
-impl DynamicComponents {
+impl PendingDataflow {
     fn new(body: &Body<'_>) -> Self {
         // +1 for the synthetic return slot
         let inner = DenseBitSet::new_empty(body.local_decls.len() + 1);
@@ -100,23 +100,23 @@ impl DynamicComponents {
     }
 
     /// Returns the synthetic local used to track whether the return type needs dynamic analysis.
-    const fn returns_slot(&self) -> Local {
+    const fn return_slot(&self) -> Local {
         Local::new(self.inner.domain_size() - 1)
     }
 
-    fn mark(&mut self, local: Local) {
+    fn insert(&mut self, local: Local) {
         self.inner.insert(local);
     }
 
-    fn mark_return(&mut self) {
-        self.inner.insert(self.returns_slot());
+    fn insert_return(&mut self) {
+        self.inner.insert(self.return_slot());
     }
 
-    fn dynamic_return(&self) -> bool {
-        self.inner.contains(self.returns_slot())
+    fn contains_return(&self) -> bool {
+        self.inner.contains(self.return_slot())
     }
 
-    fn requires_dynamic_analysis(&self) -> bool {
+    fn any(&self) -> bool {
         !self.inner.is_empty()
     }
 
@@ -159,8 +159,8 @@ impl<'heap, A: Allocator> SizeEstimationAnalysis<'heap, A> {
         context: &MirContext<'_, 'heap>,
         body: &Body<'heap>,
         footprints: &mut DefIdSlice<BodyFootprint<H>>,
-    ) -> DynamicComponents {
-        let mut dynamic = DynamicComponents::new(body);
+    ) -> PendingDataflow {
+        let mut pending = PendingDataflow::new(body);
         let mut analysis = StaticSizeEstimation::new(context.env, &mut self.cache);
 
         let locals = &mut footprints[body.id].locals;
@@ -172,7 +172,7 @@ impl<'heap, A: Allocator> SizeEstimationAnalysis<'heap, A> {
                     cardinality: Estimate::Constant(Cardinality::one()),
                 };
             } else {
-                dynamic.mark(local);
+                pending.insert(local);
             }
         }
 
@@ -182,10 +182,10 @@ impl<'heap, A: Allocator> SizeEstimationAnalysis<'heap, A> {
                 cardinality: Estimate::Constant(Cardinality::one()),
             };
         } else {
-            dynamic.mark_return();
+            pending.insert_return();
         }
 
-        dynamic
+        pending
     }
 
     /// Performs dataflow analysis to refine size estimates for dynamically-sized locals.
@@ -196,7 +196,7 @@ impl<'heap, A: Allocator> SizeEstimationAnalysis<'heap, A> {
         context: &MirContext<'_, 'heap>,
         body: &Body<'heap>,
         footprints: &mut DefIdSlice<BodyFootprint<&'heap Heap>>,
-        dynamic: &DynamicComponents,
+        pending: &PendingDataflow,
     ) -> bool
     where
         A: Clone,
@@ -205,7 +205,7 @@ impl<'heap, A: Allocator> SizeEstimationAnalysis<'heap, A> {
             context.env,
             &body.local_decls,
             footprints,
-            dynamic.as_set(),
+            pending.as_set(),
             &mut self.cache,
         );
 
@@ -227,7 +227,7 @@ impl<'heap, A: Allocator> SizeEstimationAnalysis<'heap, A> {
                 continue;
             };
 
-            if dynamic.dynamic_return() {
+            if pending.contains_return() {
                 let rhs = lookup.operand(&exit_state, value);
 
                 SaturatingSemiring.join(&mut body_footprint.returns, rhs.as_ref(&exit_state));
@@ -248,10 +248,10 @@ impl<'heap, A: Allocator> SizeEstimationAnalysis<'heap, A> {
     ) where
         A: Clone,
     {
-        let dynamic = self.static_analysis(context, body, footprints);
+        let pending = self.static_analysis(context, body, footprints);
 
-        if dynamic.requires_dynamic_analysis() {
-            self.dynamic_analysis(context, body, footprints, &dynamic);
+        if pending.any() {
+            self.dynamic_analysis(context, body, footprints, &pending);
         }
     }
 
@@ -278,7 +278,7 @@ impl<'heap, A: Allocator> SizeEstimationAnalysis<'heap, A> {
             let mut changed = false;
 
             for (&member, dynamic) in members.iter().zip(&dynamic) {
-                if dynamic.requires_dynamic_analysis() {
+                if dynamic.any() {
                     changed |= self.dynamic_analysis(context, &bodies[member], footprints, dynamic);
                 }
             }
