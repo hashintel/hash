@@ -11,3 +11,4 @@ pub mod benches;
 pub mod cli;
 pub(crate) mod dependency_diagram;
 pub(crate) mod lcov;
+pub(crate) mod sync_turborepo;

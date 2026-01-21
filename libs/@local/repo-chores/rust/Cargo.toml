@@ -15,27 +15,29 @@ authors.workspace = true
 error-stack = { workspace = true, public = false, features = ["unstable"] }
 
 # Private third-party dependencies
-aws-config     = { workspace = true }
-aws-sdk-s3     = { workspace = true }
-aws-types      = { workspace = true }
-bytes          = { workspace = true }
-cargo_metadata = { workspace = true }
-clap           = { workspace = true, features = ["cargo", "derive", "env", "wrap_help"] }
-clap_complete  = { workspace = true }
-criterion      = { workspace = true }
-derive_more    = { workspace = true, features = ["display"] }
-globset        = { workspace = true }
-guppy          = { workspace = true }
-hash-telemetry = { workspace = true, features = ["clap"] }
-inferno        = { workspace = true }
-lcov           = { workspace = true }
-serde          = { workspace = true, features = ["derive", "std"] }
-serde_json     = { workspace = true }
-simple-mermaid = { workspace = true }
-thiserror      = { workspace = true }
-tokio          = { workspace = true, features = ["rt-multi-thread", "macros"] }
-tracing        = { workspace = true }
-walkdir        = { workspace = true }
+aws-config          = { workspace = true }
+aws-sdk-s3          = { workspace = true }
+aws-types           = { workspace = true }
+bytes               = { workspace = true }
+cargo_metadata      = { workspace = true }
+clap                = { workspace = true, features = ["cargo", "derive", "env", "wrap_help"] }
+clap_complete       = { workspace = true }
+criterion           = { workspace = true }
+derive_more         = { workspace = true, features = ["display"] }
+globset             = { workspace = true }
+guppy               = { workspace = true }
+hash-telemetry      = { workspace = true, features = ["clap"] }
+inferno             = { workspace = true }
+lcov                = { workspace = true }
+nodejs_package_json = { version = "0.4.4", features = ["protocols", "serialize"] }
+serde               = { workspace = true, features = ["derive", "std"] }
+serde_json          = { workspace = true }
+simple-mermaid      = { workspace = true }
+sort-package-json   = "0.0.9"
+thiserror           = { workspace = true }
+tokio               = { workspace = true, features = ["rt-multi-thread", "macros"] }
+tracing             = { workspace = true }
+walkdir             = { workspace = true }
 
 [dev-dependencies]
 
