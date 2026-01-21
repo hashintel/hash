@@ -64,20 +64,26 @@ const fn add_bound(lhs: Bound<u32>, rhs: Bound<u32>) -> Bound<u32> {
 /// Adds two upper bounds with saturation (clamps at `u32::MAX` instead of overflowing).
 const fn saturating_add_bound(lhs: Bound<u32>, rhs: Bound<u32>) -> Bound<u32> {
     match (lhs, rhs) {
-        (Bound::Included(lhs), Bound::Included(rhs)) => Bound::Included(lhs.saturating_add(rhs)),
+        (Bound::Included(lhs), Bound::Included(rhs)) => match lhs.checked_add(rhs) {
+            Some(sum) => Bound::Included(sum),
+            None => Bound::Unbounded,
+        },
         (Bound::Included(lhs), Bound::Excluded(0)) => Bound::Included(lhs),
-        (Bound::Included(lhs), Bound::Excluded(rhs)) => {
-            Bound::Included(lhs.saturating_add(rhs - 1))
-        }
+        (Bound::Included(lhs), Bound::Excluded(rhs)) => match lhs.checked_add(rhs - 1) {
+            Some(sum) => Bound::Included(sum),
+            None => Bound::Unbounded,
+        },
 
         (Bound::Excluded(0), Bound::Included(rhs)) => Bound::Included(rhs),
-        (Bound::Excluded(lhs), Bound::Included(rhs)) => {
-            Bound::Included((lhs - 1).saturating_add(rhs))
-        }
+        (Bound::Excluded(lhs), Bound::Included(rhs)) => match (lhs - 1).checked_add(rhs) {
+            Some(sum) => Bound::Included(sum),
+            None => Bound::Unbounded,
+        },
         (Bound::Excluded(0), Bound::Excluded(0)) => Bound::Excluded(0),
-        (Bound::Excluded(lhs), Bound::Excluded(rhs)) => {
-            Bound::Excluded(lhs.saturating_add(rhs) - 1)
-        }
+        (Bound::Excluded(lhs), Bound::Excluded(rhs)) => match (lhs - 1).checked_add(rhs - 1) {
+            Some(sum) => Bound::Included(sum),
+            None => Bound::Unbounded,
+        },
 
         (Bound::Unbounded, _) | (_, Bound::Unbounded) => Bound::Unbounded,
     }
