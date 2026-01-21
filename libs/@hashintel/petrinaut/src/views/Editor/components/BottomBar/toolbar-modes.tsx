@@ -4,11 +4,9 @@ import type { EditorState } from "../../../../state/editor-context";
 import { useIsReadOnly } from "../../../../state/use-is-read-only";
 import { ToolbarButton } from "./toolbar-button";
 
-type EditorMode = EditorState["globalMode"];
 type EditorEditionMode = EditorState["editionMode"];
 
 interface ToolbarModesProps {
-  mode: EditorMode;
   editionMode: EditorEditionMode;
   onEditionModeChange: (mode: EditorEditionMode) => void;
 }

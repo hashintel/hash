@@ -127,7 +127,6 @@ export const BottomBar: React.FC<BottomBarProps> = ({
           />
           <div className={dividerStyle} />
           <ToolbarModes
-            mode={mode}
             editionMode={editionMode}
             onEditionModeChange={onEditionModeChange}
           />
