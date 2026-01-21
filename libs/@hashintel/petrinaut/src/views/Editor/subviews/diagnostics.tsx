@@ -1,12 +1,12 @@
 import { css } from "@hashintel/ds-helpers/css";
-import { useCallback, useMemo, useState } from "react";
+import { use, useCallback, useMemo, useState } from "react";
 import { FaChevronDown, FaChevronRight } from "react-icons/fa6";
 import ts from "typescript";
 
 import type { SubView } from "../../../components/sub-view/types";
-import { useCheckerContext } from "../../../state/checker-provider";
-import { useEditorStore } from "../../../state/editor-provider";
-import { useSDCPNContext } from "../../../state/sdcpn-provider";
+import { CheckerContext } from "../../../state/checker-context";
+import { EditorContext } from "../../../state/editor-context";
+import { SDCPNContext } from "../../../state/sdcpn-context";
 
 const emptyMessageStyle = css({
   color: "gray.50",
@@ -127,11 +127,9 @@ interface GroupedDiagnostics {
  * DiagnosticsContent shows the full list of diagnostics grouped by entity.
  */
 const DiagnosticsContent: React.FC = () => {
-  const { checkResult, totalDiagnosticsCount } = useCheckerContext();
-  const { petriNetDefinition } = useSDCPNContext();
-  const setSelectedResourceId = useEditorStore(
-    (state) => state.setSelectedResourceId,
-  );
+  const { checkResult, totalDiagnosticsCount } = use(CheckerContext);
+  const { petriNetDefinition } = use(SDCPNContext);
+  const { setSelectedResourceId } = use(EditorContext);
   // Track collapsed entities (all expanded by default)
   const [collapsedEntities, setCollapsedEntities] = useState<Set<string>>(
     new Set(),

@@ -38,6 +38,7 @@ export default [
     rules: {
       // Disabled because React Compiler handles optimization automatically
       "react/jsx-no-bind": "off",
+      "react/jsx-no-constructed-context-values": "off",
       "no-restricted-imports": [
         "error",
         {

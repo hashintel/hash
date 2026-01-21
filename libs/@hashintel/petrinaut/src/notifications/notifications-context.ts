@@ -1,4 +1,4 @@
-import { createContext, useContext } from "react";
+import { createContext, use } from "react";
 
 export interface NotifyOptions {
   message: string;
@@ -13,7 +13,7 @@ export const NotificationsContext =
   createContext<NotificationsContextValue | null>(null);
 
 export const useNotifications = (): NotificationsContextValue => {
-  const context = useContext(NotificationsContext);
+  const context = use(NotificationsContext);
 
   if (!context) {
     throw new Error(

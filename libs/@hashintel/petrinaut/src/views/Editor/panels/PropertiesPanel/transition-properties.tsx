@@ -17,6 +17,7 @@ import {
 } from "@dnd-kit/sortable";
 import { css, cva } from "@hashintel/ds-helpers/css";
 import MonacoEditor from "@monaco-editor/react";
+import { use } from "react";
 import { TbDotsVertical, TbSparkles, TbTrash } from "react-icons/tb";
 
 import { DisabledTooltip } from "../../../../components/disabled-tooltip";
@@ -29,8 +30,8 @@ import {
   generateDefaultTransitionKernelCode,
 } from "../../../../core/default-codes";
 import type { Color, Place, Transition } from "../../../../core/types/sdcpn";
-import { useEditorStore } from "../../../../state/editor-provider";
-import { useSDCPNContext } from "../../../../state/sdcpn-provider";
+import { EditorContext } from "../../../../state/editor-context";
+import { SDCPNContext } from "../../../../state/sdcpn-context";
 import { useIsReadOnly } from "../../../../state/use-is-read-only";
 import { SortableArcItem } from "./sortable-arc-item";
 
@@ -256,7 +257,7 @@ export const TransitionProperties: React.FC<TransitionPropertiesProps> = ({
   onArcWeightUpdate,
 }) => {
   const isReadOnly = useIsReadOnly();
-  const globalMode = useEditorStore((state) => state.globalMode);
+  const { globalMode } = use(EditorContext);
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -334,7 +335,7 @@ export const TransitionProperties: React.FC<TransitionPropertiesProps> = ({
     return place && place.colorId;
   });
 
-  const { removeTransition } = useSDCPNContext();
+  const { removeTransition } = use(SDCPNContext);
 
   return (
     <div className={containerStyle}>

@@ -1,5 +1,5 @@
 import { css } from "@hashintel/ds-helpers/css";
-import { useCallback, useEffect, useState } from "react";
+import { use, useCallback, useEffect, useState } from "react";
 
 import { GlassPanel } from "../../../../components/glass-panel";
 import {
@@ -8,8 +8,8 @@ import {
   MIN_PROPERTIES_PANEL_WIDTH,
   PANEL_MARGIN,
 } from "../../../../constants/ui";
-import { useEditorStore } from "../../../../state/editor-provider";
-import { useSDCPNContext } from "../../../../state/sdcpn-provider";
+import { EditorContext } from "../../../../state/editor-context";
+import { SDCPNContext } from "../../../../state/sdcpn-context";
 import { DifferentialEquationProperties } from "./differential-equation-properties";
 import { ParameterProperties } from "./parameter-properties";
 import { PlaceProperties } from "./place-properties";
@@ -38,14 +38,12 @@ const glassPanelContentStyle = css({
  * PropertiesPanel displays properties and controls for the selected node/edge.
  */
 export const PropertiesPanel: React.FC = () => {
-  const selectedResourceId = useEditorStore(
-    (state) => state.selectedResourceId,
-  );
-  const setPropertiesPanelWidth = useEditorStore(
-    (state) => state.setPropertiesPanelWidth,
-  );
-  const isBottomPanelOpen = useEditorStore((state) => state.isBottomPanelOpen);
-  const bottomPanelHeight = useEditorStore((state) => state.bottomPanelHeight);
+  const {
+    selectedResourceId,
+    setPropertiesPanelWidth,
+    isBottomPanelOpen,
+    bottomPanelHeight,
+  } = use(EditorContext);
 
   const {
     getItemType,
@@ -56,7 +54,7 @@ export const PropertiesPanel: React.FC = () => {
     updateType,
     updateDifferentialEquation,
     updateParameter,
-  } = useSDCPNContext();
+  } = use(SDCPNContext);
 
   const [panelWidth, setPanelWidthLocal] = useState(
     DEFAULT_PROPERTIES_PANEL_WIDTH,

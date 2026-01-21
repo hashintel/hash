@@ -1,33 +1,25 @@
 import { FaArrowPointer, FaCircle, FaHand, FaSquare } from "react-icons/fa6";
 
-import type { EditorState } from "../../../../state/editor-store";
-import { useSimulationStore } from "../../../../state/simulation-provider";
+import type { EditorState } from "../../../../state/editor-context";
+import { useIsReadOnly } from "../../../../state/use-is-read-only";
 import { ToolbarButton } from "./toolbar-button";
 
-type EditorMode = EditorState["globalMode"];
 type EditorEditionMode = EditorState["editionMode"];
 
 interface ToolbarModesProps {
-  mode: EditorMode;
   editionMode: EditorEditionMode;
   onEditionModeChange: (mode: EditorEditionMode) => void;
 }
 
 export const ToolbarModes: React.FC<ToolbarModesProps> = ({
-  mode,
   editionMode,
   onEditionModeChange,
 }) => {
-  const simulationState = useSimulationStore((state) => state.state);
-  const isSimulationRunning =
-    simulationState === "Running" || simulationState === "Paused";
-
-  // Show Place/Transition buttons only in edit mode and when simulation is not running
-  const showMutativeButtons = mode === "edit" && !isSimulationRunning;
+  const isReadOnly = useIsReadOnly();
 
   return (
     <>
-      {showMutativeButtons && (
+      {!isReadOnly && (
         <>
           <ToolbarButton
             tooltip="Add Place (N)"

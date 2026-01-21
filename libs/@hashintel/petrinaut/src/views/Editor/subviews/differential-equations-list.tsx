@@ -1,11 +1,12 @@
 import { css, cva } from "@hashintel/ds-helpers/css";
+import { use } from "react";
 import { v4 as uuidv4 } from "uuid";
 
 import type { SubView } from "../../../components/sub-view/types";
 import { DEFAULT_DIFFERENTIAL_EQUATION_CODE } from "../../../core/default-codes";
-import { useEditorStore } from "../../../state/editor-provider";
-import { useSDCPNContext } from "../../../state/sdcpn-provider";
-import { useSimulationStore } from "../../../state/simulation-provider";
+import { EditorContext } from "../../../state/editor-context";
+import { SDCPNContext } from "../../../state/sdcpn-context";
+import { SimulationContext } from "../../../state/simulation-context";
 
 const listContainerStyle = css({
   display: "flex",
@@ -115,17 +116,12 @@ const DifferentialEquationsSectionContent: React.FC = () => {
   const {
     petriNetDefinition: { differentialEquations },
     removeDifferentialEquation,
-  } = useSDCPNContext();
+  } = use(SDCPNContext);
 
-  const selectedResourceId = useEditorStore(
-    (state) => state.selectedResourceId,
-  );
-  const setSelectedResourceId = useEditorStore(
-    (state) => state.setSelectedResourceId,
-  );
+  const { selectedResourceId, setSelectedResourceId } = use(EditorContext);
 
   // Check if simulation is running or paused
-  const simulationState = useSimulationStore((state) => state.state);
+  const { state: simulationState } = use(SimulationContext);
   const isSimulationActive =
     simulationState === "Running" || simulationState === "Paused";
 
@@ -194,13 +190,11 @@ const DifferentialEquationsSectionHeaderAction: React.FC = () => {
   const {
     petriNetDefinition: { types, differentialEquations },
     addDifferentialEquation,
-  } = useSDCPNContext();
-  const setSelectedResourceId = useEditorStore(
-    (state) => state.setSelectedResourceId,
-  );
+  } = use(SDCPNContext);
+  const { setSelectedResourceId } = use(EditorContext);
 
   // Check if simulation is running or paused
-  const simulationState = useSimulationStore((state) => state.state);
+  const { state: simulationState } = use(SimulationContext);
   const isSimulationActive =
     simulationState === "Running" || simulationState === "Paused";
 

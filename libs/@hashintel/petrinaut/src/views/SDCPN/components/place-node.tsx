@@ -1,11 +1,12 @@
 import { css, cva } from "@hashintel/ds-helpers/css";
+import { use } from "react";
 import { TbMathFunction } from "react-icons/tb";
 import { Handle, type NodeProps, Position } from "reactflow";
 
 import { hexToHsl } from "../../../lib/hsl-color";
 import { splitPascalCase } from "../../../lib/split-pascal-case";
-import { useEditorStore } from "../../../state/editor-provider";
-import { useSimulationStore } from "../../../state/simulation-provider";
+import { EditorContext } from "../../../state/editor-context";
+import { SimulationContext } from "../../../state/simulation-context";
 import type { PlaceNodeData } from "../../../state/types-for-editor-to-remove";
 import { handleStyling } from "../styles/styling";
 
@@ -109,17 +110,10 @@ export const PlaceNode: React.FC<NodeProps<PlaceNodeData>> = ({
   isConnectable,
   selected,
 }: NodeProps<PlaceNodeData>) => {
-  const isSimulateMode = useEditorStore(
-    (state) => state.globalMode === "simulate",
-  );
-  const selectedResourceId = useEditorStore(
-    (state) => state.selectedResourceId,
-  );
-  const simulation = useSimulationStore((state) => state.simulation);
-  const currentlyViewedFrame = useSimulationStore(
-    (state) => state.currentlyViewedFrame,
-  );
-  const initialMarking = useSimulationStore((state) => state.initialMarking);
+  const { globalMode, selectedResourceId } = use(EditorContext);
+  const isSimulateMode = globalMode === "simulate";
+  const { simulation, currentlyViewedFrame, initialMarking } =
+    use(SimulationContext);
 
   // Get token count from the currently viewed frame or initial marking
   let tokenCount: number | null = null;

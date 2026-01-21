@@ -46,8 +46,7 @@
     "reactflow": "11.11.4",
     "typescript": "5.9.3",
     "uuid": "13.0.0",
-    "web-worker": "1.4.1",
-    "zustand": "5.0.8"
+    "web-worker": "1.4.1"
   },
   "devDependencies": {
     "@hashintel/ds-helpers": "0.0.1",

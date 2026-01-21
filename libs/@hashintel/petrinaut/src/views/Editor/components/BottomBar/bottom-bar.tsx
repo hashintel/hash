@@ -1,11 +1,13 @@
 import { css } from "@hashintel/ds-helpers/css";
 import { refractive } from "@hashintel/refractive";
-import { useCallback, useEffect } from "react";
+import { use, useCallback, useEffect } from "react";
 import { FaChevronDown, FaChevronUp } from "react-icons/fa6";
 
-import { useCheckerContext } from "../../../../state/checker-provider";
-import { useEditorStore } from "../../../../state/editor-provider";
-import type { EditorState } from "../../../../state/editor-store";
+import { CheckerContext } from "../../../../state/checker-context";
+import {
+  EditorContext,
+  type EditorState,
+} from "../../../../state/editor-context";
 import { DiagnosticsIndicator } from "./diagnostics-indicator";
 import { SimulationControls } from "./simulation-controls";
 import { ToolbarButton } from "./toolbar-button";
@@ -58,16 +60,14 @@ export const BottomBar: React.FC<BottomBarProps> = ({
   editionMode,
   onEditionModeChange,
 }) => {
-  const isBottomPanelOpen = useEditorStore((state) => state.isBottomPanelOpen);
-  const setBottomPanelOpen = useEditorStore(
-    (state) => state.setBottomPanelOpen,
-  );
-  const setActiveBottomPanelTab = useEditorStore(
-    (state) => state.setActiveBottomPanelTab,
-  );
-  const bottomPanelHeight = useEditorStore((state) => state.bottomPanelHeight);
+  const {
+    isBottomPanelOpen,
+    setBottomPanelOpen,
+    setActiveBottomPanelTab,
+    bottomPanelHeight,
+  } = use(EditorContext);
 
-  const { totalDiagnosticsCount } = useCheckerContext();
+  const { totalDiagnosticsCount } = use(CheckerContext);
   const hasDiagnostics = totalDiagnosticsCount > 0;
 
   const showDiagnostics = useCallback(() => {
@@ -127,7 +127,6 @@ export const BottomBar: React.FC<BottomBarProps> = ({
           />
           <div className={dividerStyle} />
           <ToolbarModes
-            mode={mode}
             editionMode={editionMode}
             onEditionModeChange={onEditionModeChange}
           />
