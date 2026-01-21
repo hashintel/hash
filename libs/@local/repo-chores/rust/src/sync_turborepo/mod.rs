@@ -77,6 +77,19 @@ fn expect_array<P: Display>(
     })
 }
 
+fn expect_object<P: Display>(
+    path: impl FnOnce() -> P,
+    value: &serde_json::Value,
+) -> Result<&serde_json::Map<String, serde_json::Value>, Report<SyncTurborepoError>> {
+    value.as_object().ok_or_else(|| {
+        Report::new(SyncTurborepoError::UnexpectedType {
+            path: path().to_string(),
+            expected: "object",
+            actual: json_type_name(value),
+        })
+    })
+}
+
 #[derive(Debug, Clone)]
 pub(crate) struct SyncTurborepoConfig {
     pub include: Option<GlobSet>,
@@ -114,20 +127,95 @@ fn package_version(metadata: PackageMetadata) -> semver::Version {
     }
 }
 
-fn extract_dependencies<'graph>(
+/// A JavaScript dependency declared directly in Cargo.toml metadata.
+#[derive(Debug, Clone)]
+struct JsDependency {
+    name: String,
+    version: String,
+}
+
+/// Extracts extra JS dependencies from Cargo.toml metadata.
+///
+/// These are declared as objects with `name` and `version` fields:
+/// ```toml
+/// extra-dependencies = [
+///     { name = "@local/status", version = "0.0.0-private" },
+/// ]
+/// ```
+fn extract_javascript_dependencies(
     path: &str,
-    metadata: PackageMetadata<'graph>,
-) -> Result<Vec<PackageMetadata<'graph>>, Report<[SyncTurborepoError]>> {
-    let Some(extra_dependencies) = metadata.metadata_table().pointer(path) else {
+    metadata: PackageMetadata<'_>,
+) -> Result<Vec<JsDependency>, Report<[SyncTurborepoError]>> {
+    let Some(deps) = metadata.metadata_table().pointer(path) else {
         return Ok(Vec::new());
     };
 
-    let extra_dependencies = expect_array(|| path, extra_dependencies)?;
+    let deps = expect_array(|| path, deps)?;
 
-    let mut output = Vec::with_capacity(extra_dependencies.len());
+    let mut output = Vec::with_capacity(deps.len());
     let mut sink: ReportSink<SyncTurborepoError> = ReportSink::new_armed();
 
-    for (index, dependency) in extra_dependencies.iter().enumerate() {
+    for (index, dep) in deps.iter().enumerate() {
+        let dep_path = format!("{path}/{index}");
+        let Some(obj) = sink.attempt(expect_object(|| &dep_path, dep)) else {
+            continue;
+        };
+
+        let name = obj.get("name").ok_or_else(|| {
+            Report::new(SyncTurborepoError::UnexpectedType {
+                path: format!("{dep_path}/name"),
+                expected: "string",
+                actual: "missing",
+            })
+        });
+        let Some(name) = sink.attempt(name) else {
+            continue;
+        };
+        let Some(name) = sink.attempt(expect_string(|| format!("{dep_path}/name"), name)) else {
+            continue;
+        };
+
+        let version = obj.get("version").ok_or_else(|| {
+            Report::new(SyncTurborepoError::UnexpectedType {
+                path: format!("{dep_path}/version"),
+                expected: "string",
+                actual: "missing",
+            })
+        });
+        let Some(version) = sink.attempt(version) else {
+            continue;
+        };
+        let Some(version) = sink.attempt(expect_string(|| format!("{dep_path}/version"), version))
+        else {
+            continue;
+        };
+
+        output.push(JsDependency { name, version });
+    }
+
+    sink.finish_ok(output)
+}
+
+/// Extracts Cargo package names from metadata for ignore lists.
+///
+/// These are declared as simple strings (Cargo package names):
+/// ```toml
+/// ignore-dependencies = ["some-crate"]
+/// ```
+fn extract_cargo_dependencies<'graph>(
+    path: &str,
+    metadata: PackageMetadata<'graph>,
+) -> Result<Vec<PackageMetadata<'graph>>, Report<[SyncTurborepoError]>> {
+    let Some(deps) = metadata.metadata_table().pointer(path) else {
+        return Ok(Vec::new());
+    };
+
+    let deps = expect_array(|| path, deps)?;
+
+    let mut output = Vec::with_capacity(deps.len());
+    let mut sink: ReportSink<SyncTurborepoError> = ReportSink::new_armed();
+
+    for (index, dependency) in deps.iter().enumerate() {
         let dependency = expect_string(|| format!("{path}/{index}"), dependency);
         let Some(dependency) = sink.attempt(dependency) else {
             continue;
@@ -149,29 +237,36 @@ fn extract_dependencies<'graph>(
     sink.finish_ok(output)
 }
 
-struct Dependencies<'graph> {
+struct ExtraDependencies {
+    normal: Vec<JsDependency>,
+    dev: Vec<JsDependency>,
+}
+
+impl ExtraDependencies {
+    fn new(metadata: PackageMetadata<'_>) -> Result<Self, Report<[SyncTurborepoError]>> {
+        let normal =
+            extract_javascript_dependencies("/sync/turborepo/extra-dependencies", metadata);
+        let dev =
+            extract_javascript_dependencies("/sync/turborepo/extra-dev-dependencies", metadata);
+
+        let (normal, dev) = (normal, dev).try_collect()?;
+        Ok(Self { normal, dev })
+    }
+}
+
+struct IgnoreDependencies<'graph> {
     normal: Vec<PackageMetadata<'graph>>,
     dev: Vec<PackageMetadata<'graph>>,
 }
 
-fn extra_dependencies(
-    metadata: PackageMetadata<'_>,
-) -> Result<Dependencies<'_>, Report<[SyncTurborepoError]>> {
-    let normal = extract_dependencies("/sync/turborepo/extra-dependencies", metadata);
-    let dev = extract_dependencies("/sync/turborepo/extra-dev-dependencies", metadata);
+impl<'graph> IgnoreDependencies<'graph> {
+    fn new(metadata: PackageMetadata<'graph>) -> Result<Self, Report<[SyncTurborepoError]>> {
+        let normal = extract_cargo_dependencies("/sync/turborepo/ignore-dependencies", metadata);
+        let dev = extract_cargo_dependencies("/sync/turborepo/ignore-dev-dependencies", metadata);
 
-    let (normal, dev) = (normal, dev).try_collect()?;
-    Ok(Dependencies { normal, dev })
-}
-
-fn ignore_dependencies(
-    metadata: PackageMetadata<'_>,
-) -> Result<Dependencies<'_>, Report<[SyncTurborepoError]>> {
-    let normal = extract_dependencies("/sync/turborepo/ignore-dependencies", metadata);
-    let dev = extract_dependencies("/sync/turborepo/ignore-dev-dependencies", metadata);
-
-    let (normal, dev) = (normal, dev).try_collect()?;
-    Ok(Dependencies { normal, dev })
+        let (normal, dev) = (normal, dev).try_collect()?;
+        Ok(Self { normal, dev })
+    }
 }
 
 fn is_ignored(metadata: PackageMetadata) -> bool {
@@ -223,6 +318,10 @@ fn compute_package_json(
     let mut dev_dependencies = BTreeMap::new();
 
     for dependency in metadata.direct_links() {
+        if !dependency.to().in_workspace() {
+            continue;
+        }
+
         if dependency.dev_only() {
             dev_dependencies.insert(
                 package_name(dependency.to())?,
@@ -236,21 +335,15 @@ fn compute_package_json(
         }
     }
 
-    let Dependencies { normal, dev } = extra_dependencies(metadata)?;
-    for dep_metadata in normal {
-        dependencies.insert(
-            package_name(dep_metadata)?,
-            VersionProtocol::Version(package_version(dep_metadata)),
-        );
+    let ExtraDependencies { normal, dev } = ExtraDependencies::new(metadata)?;
+    for js_dep in normal {
+        dependencies.insert(js_dep.name, VersionProtocol::Tag(js_dep.version));
     }
-    for dep_metadata in dev {
-        dev_dependencies.insert(
-            package_name(dep_metadata)?,
-            VersionProtocol::Version(package_version(dep_metadata)),
-        );
+    for js_dep in dev {
+        dev_dependencies.insert(js_dep.name, VersionProtocol::Tag(js_dep.version));
     }
 
-    let Dependencies { normal, dev } = ignore_dependencies(metadata)?;
+    let IgnoreDependencies { normal, dev } = IgnoreDependencies::new(metadata)?;
     for dep_metadata in normal {
         dependencies.remove(&package_name(dep_metadata)?);
     }
@@ -322,7 +415,7 @@ pub(crate) async fn sync_turborepo(
     SyncTurborepoConfig { include }: SyncTurborepoConfig,
 ) -> Result<(), Report<[SyncTurborepoError]>> {
     tracing::debug!("Retrieving cargo metadata using guppy");
-    let graph = PackageGraph::from_command(MetadataCommand::new().no_deps())
+    let graph = PackageGraph::from_command(&mut MetadataCommand::new())
         .change_context(SyncTurborepoError::CargoMetadata)?;
 
     tracing::info!(packages = graph.package_count(), "Package graph loaded");

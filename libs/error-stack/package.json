@@ -12,6 +12,6 @@
     "test:unit:bless": "TRYBUILD=overwrite INSTA_FORCE_PASS=1 INSTA_UPDATE=new UPDATE_EXPECT=1 yarn test:unit"
   },
   "dependencies": {
-    "@rust/error-stack-macros": "0.0.0-reserved-private"
+    "@rust/error-stack-macros": "0.0.0-private"
   }
 }

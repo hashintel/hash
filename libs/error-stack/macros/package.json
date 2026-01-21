@@ -1,6 +1,6 @@
 {
   "name": "@rust/error-stack-macros",
-  "version": "0.0.0-reserved-private",
+  "version": "0.0.0-private",
   "private": true,
   "license": "MIT OR Apache-2.0",
   "scripts": {
