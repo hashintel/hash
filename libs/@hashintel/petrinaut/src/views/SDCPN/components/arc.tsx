@@ -163,17 +163,8 @@ export const Arc: React.FC<EdgeProps<ArcData>> = ({
         />
       )}
 
-      {/* Main edge with marker */}
-      <path
-        id={id}
-        d={arcPath}
-        markerEnd={markerEnd}
-        fill="none"
-        stroke={style?.stroke ?? "#b1b1b7"}
-        strokeWidth={style?.strokeWidth ?? BASE_STROKE_WIDTH}
-        className="react-flow__edge-path"
-        style={style}
-      />
+      {/* Main edge with marker - using BaseEdge for proper interaction handling */}
+      <BaseEdge id={id} path={arcPath} markerEnd={markerEnd} style={style} />
 
       {/* Animated overlay path for firing visualization (no marker) */}
       <path
