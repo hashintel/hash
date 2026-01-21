@@ -29,9 +29,9 @@ export const Switch: React.FC<SwitchProps> = ({
           borderRadius: "[10px]",
           cursor: disabled ? "not-allowed" : "pointer",
           transition: "[all 0.2s ease]",
-          backgroundColor: "core.gray.40",
+          backgroundColor: "gray.40",
           _checked: {
-            backgroundColor: "core.green.40",
+            backgroundColor: "green.40",
           },
         })}
       >

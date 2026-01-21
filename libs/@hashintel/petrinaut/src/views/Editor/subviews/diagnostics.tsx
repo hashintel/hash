@@ -9,7 +9,7 @@ import { useEditorStore } from "../../../state/editor-provider";
 import { useSDCPNContext } from "../../../state/sdcpn-provider";
 
 const emptyMessageStyle = css({
-  color: "core.gray.50",
+  color: "gray.50",
   fontStyle: "italic",
 });
 
@@ -28,9 +28,9 @@ const entityButtonStyle = css({
   textAlign: "left",
   fontSize: "[12px]",
   fontWeight: "medium",
-  color: "core.gray.80",
+  color: "gray.80",
   _hover: {
-    color: "core.gray.90",
+    color: "gray.90",
   },
 });
 
@@ -51,7 +51,7 @@ const itemGroupStyle = css({
 const subTypeStyle = css({
   fontSize: "[11px]",
   fontWeight: "medium",
-  color: "core.gray.60",
+  color: "gray.60",
   marginBottom: "[2px]",
 });
 
@@ -90,7 +90,7 @@ const bulletStyle = css({
 });
 
 const positionStyle = css({
-  color: "core.gray.50",
+  color: "gray.50",
   marginLeft: "[8px]",
 });
 

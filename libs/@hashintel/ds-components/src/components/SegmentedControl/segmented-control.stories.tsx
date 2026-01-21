@@ -1,7 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { useState } from "react";
 
-import { SegmentedControl } from "./segmented-control";
+import { SegmentedControl } from "../segmented-control";
 
 const meta: Meta<typeof SegmentedControl> = {
   title: "Components/SegmentedControl",

@@ -11,13 +11,13 @@ const containerStyle = css({
 });
 
 const headerTitleStyle = css({
-  fontWeight: 600,
+  fontWeight: "semibold",
   fontSize: "[16px]",
   marginBottom: "[8px]",
 });
 
 const fieldLabelStyle = css({
-  fontWeight: 500,
+  fontWeight: "medium",
   fontSize: "[12px]",
   marginBottom: "[4px]",
 });

@@ -33,6 +33,7 @@
     "@dnd-kit/sortable": "10.0.0",
     "@dnd-kit/utilities": "3.2.2",
     "@hashintel/ds-components": "0.0.1",
+    "@hashintel/ds-helpers": "0.0.1",
     "@hashintel/refractive": "0.0.0",
     "@mantine/hooks": "8.3.5",
     "@monaco-editor/react": "4.8.0-rc.3",
@@ -70,6 +71,7 @@
     "vitest": "4.0.16"
   },
   "peerDependencies": {
+    "@hashintel/ds-components": "0.0.1",
     "@hashintel/ds-helpers": "0.0.1",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"

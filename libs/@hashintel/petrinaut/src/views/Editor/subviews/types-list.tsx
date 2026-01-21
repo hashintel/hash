@@ -58,25 +58,25 @@ const deleteButtonStyle = css({
   display: "flex",
   alignItems: "center",
   justifyContent: "center",
-  padding: "spacing.1",
-  borderRadius: "radius.2",
+  padding: "1",
+  borderRadius: "md.2",
   cursor: "pointer",
   fontSize: "[14px]",
-  color: "core.gray.40",
+  color: "gray.40",
   background: "[transparent]",
   border: "none",
   width: "[20px]",
   height: "[20px]",
   _hover: {
     backgroundColor: "[rgba(239, 68, 68, 0.1)]",
-    color: "core.red.60",
+    color: "red.60",
   },
   _disabled: {
     cursor: "not-allowed",
     opacity: "[0.3]",
     _hover: {
       backgroundColor: "[transparent]",
-      color: "core.gray.40",
+      color: "gray.40",
     },
   },
 });
@@ -84,7 +84,7 @@ const deleteButtonStyle = css({
 const emptyMessageStyle = css({
   fontSize: "[13px]",
   color: "[#9ca3af]",
-  padding: "spacing.4",
+  padding: "4",
   textAlign: "center",
 });
 
@@ -92,24 +92,24 @@ const addButtonStyle = css({
   display: "flex",
   alignItems: "center",
   justifyContent: "center",
-  borderRadius: "radius.1",
+  borderRadius: "md.1",
   cursor: "pointer",
   fontSize: "[16px]",
-  color: "core.gray.60",
+  color: "gray.60",
   background: "[transparent]",
   border: "none",
   width: "[20px]",
   height: "[20px]",
   _hover: {
     backgroundColor: "[rgba(0, 0, 0, 0.05)]",
-    color: "core.gray.90",
+    color: "gray.90",
   },
   _disabled: {
     cursor: "not-allowed",
     opacity: "[0.4]",
     _hover: {
       backgroundColor: "[transparent]",
-      color: "core.gray.60",
+      color: "gray.60",
     },
   },
 });

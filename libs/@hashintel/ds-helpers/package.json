@@ -12,42 +12,75 @@
   "type": "module",
   "exports": {
     "./css": {
-      "types": "./dist/css/index.d.ts",
-      "require": "./dist/css/index.mjs",
-      "import": "./dist/css/index.mjs"
+      "types": "./styled-system/css/index.d.ts",
+      "require": "./styled-system/css/index.mjs",
+      "import": "./styled-system/css/index.mjs"
     },
     "./tokens": {
-      "types": "./dist/tokens/index.d.ts",
-      "require": "./dist/tokens/index.mjs",
-      "import": "./dist/tokens/index.mjs"
+      "types": "./styled-system/tokens/index.d.ts",
+      "require": "./styled-system/tokens/index.mjs",
+      "import": "./styled-system/tokens/index.mjs"
     },
     "./types": {
-      "types": "./dist/types/index.d.ts",
-      "require": "./dist/types/index.mjs",
-      "import": "./dist/types/index.mjs"
+      "types": "./styled-system/types/index.d.ts",
+      "require": "./styled-system/types/index.mjs",
+      "import": "./styled-system/types/index.mjs"
     },
     "./patterns": {
-      "types": "./dist/patterns/index.d.ts",
-      "require": "./dist/patterns/index.mjs",
-      "import": "./dist/patterns/index.mjs"
+      "types": "./styled-system/patterns/index.d.ts",
+      "require": "./styled-system/patterns/index.mjs",
+      "import": "./styled-system/patterns/index.mjs"
     },
     "./jsx": {
-      "types": "./dist/jsx/index.d.ts",
-      "require": "./dist/jsx/index.mjs",
-      "import": "./dist/jsx/index.mjs"
+      "types": "./styled-system/jsx/index.d.ts",
+      "require": "./styled-system/jsx/index.mjs",
+      "import": "./styled-system/jsx/index.mjs"
     },
-    "./styles.css": "./dist/styles.css"
+    "./styles.css": "./styled-system/styles.css"
   },
   "files": [
-    "dist"
+    "styled-system",
+    "CHANGELOG.md",
+    "LICENSE-APACHE.md",
+    "LICENSE-MIT.md",
+    "LICENSE",
+    "README.md"
   ],
   "scripts": {
-    "build": "panda codegen",
-    "dev": "panda codegen --watch",
-    "prepare": "panda codegen --clean"
+    "build": "ladle build",
+    "codegen": "panda codegen --clean",
+    "dev": "panda codegen --watch & ladle serve",
+    "fix": "npm-run-all --continue-on-error \"fix:*\"",
+    "fix:format": "biome format --write",
+    "lint": "npm-run-all --continue-on-error \"lint:*\"",
+    "lint:tsc": "tsc --noEmit",
+    "preflight:ladle": "ladle build && ladle preview",
+    "prepare": "yarn run codegen",
+    "test:snapshots": "ladle build && playwright test",
+    "test:update": "ladle build && playwright test --update-snapshots"
   },
   "devDependencies": {
     "@hashintel/ds-theme": "0.0.1",
-    "@pandacss/dev": "1.4.3"
+    "@ladle/react": "5.1.1",
+    "@mantine/hooks": "8.3.5",
+    "@pandacss/dev": "1.4.3",
+    "@playwright/test": "1.57.0",
+    "@tool-belt/type-predicates": "1.4.1",
+    "@tsconfig/strictest": "^2.0.8",
+    "@types/node": "22.18.13",
+    "@types/react": "19.2.7",
+    "@types/react-dom": "19.2.3",
+    "@vitejs/plugin-react": "5.0.4",
+    "npm-run-all": "4.1.5",
+    "react": "19.2.3",
+    "react-dom": "19.2.3",
+    "sync-fetch": "0.5.2",
+    "tsdown": "^0.18.1",
+    "typescript": "5.9.3",
+    "vite": "7.1.11",
+    "vitest": "^4.0.16"
+  },
+  "publishConfig": {
+    "access": "public"
   }
 }

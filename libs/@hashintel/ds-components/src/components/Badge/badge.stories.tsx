@@ -1,7 +1,7 @@
 import { css } from "@hashintel/ds-helpers/css";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 
-import { Badge, type BadgeProps } from "./badge";
+import { Badge, type BadgeProps } from "../badge";
 
 const meta: Meta<BadgeProps> = {
   title: "Components/Badge",

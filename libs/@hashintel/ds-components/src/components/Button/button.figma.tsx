@@ -1,6 +1,6 @@
 import figma from "@figma/code-connect";
 
-import { Button } from "./button";
+import { Button } from "../button";
 
 /**
  * Code Connect mapping for Button component

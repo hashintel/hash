@@ -1,6 +1,6 @@
 import figma from "@figma/code-connect";
 
-import { Avatar } from "./avatar";
+import { Avatar } from "../avatar";
 
 /**
  * Avatar Component

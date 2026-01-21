@@ -13,8 +13,8 @@ import { ToolbarModes } from "./toolbar-modes";
 import { useKeyboardShortcuts } from "./use-keyboard-shortcuts";
 
 const refractiveContainerStyle = css({
-  paddingX: "spacing.2",
-  paddingY: "spacing.1",
+  paddingX: "2",
+  paddingY: "1",
   backgroundColor: "[rgba(255, 255, 255, 0.6)]",
   boxShadow: "[0 3px 11px rgba(0, 0, 0, 0.1)]",
   transition: "[all 0.3s ease]",
@@ -27,11 +27,11 @@ const refractiveContainerStyle = css({
 const toolbarContainerStyle = css({
   display: "flex",
   alignItems: "center",
-  gap: "spacing.4",
+  gap: "4",
 });
 
 const dividerStyle = css({
-  background: "core.gray.20",
+  background: "gray.20",
   width: "[1px]",
   height: "[16px]",
   margin: "[0 4px]",

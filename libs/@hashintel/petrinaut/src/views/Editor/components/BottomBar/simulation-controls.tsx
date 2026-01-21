@@ -15,15 +15,15 @@ const frameInfoStyle = css({
   flexDirection: "column",
   alignItems: "center",
   fontSize: "[11px]",
-  color: "core.gray.60",
-  fontWeight: "[500]",
+  color: "gray.60",
+  fontWeight: "medium",
   lineHeight: "[1]",
   minWidth: "[80px]",
 });
 
 const elapsedTimeStyle = css({
   fontSize: "[10px]",
-  color: "core.gray.50",
+  color: "gray.50",
   marginTop: "[2px]",
 });
 
@@ -31,7 +31,7 @@ const sliderStyle = css({
   width: "[400px]",
   height: "[4px]",
   appearance: "none",
-  background: "core.gray.30",
+  background: "gray.30",
   borderRadius: "[2px]",
   outline: "none",
   cursor: "pointer",
@@ -44,14 +44,14 @@ const sliderStyle = css({
     width: "[12px]",
     height: "[12px]",
     borderRadius: "[50%]",
-    background: "core.blue.50",
+    background: "blue.50",
     cursor: "pointer",
   },
   "&::-moz-range-thumb": {
     width: "[12px]",
     height: "[12px]",
     borderRadius: "[50%]",
-    background: "core.blue.50",
+    background: "blue.50",
     cursor: "pointer",
     border: "none",
   },

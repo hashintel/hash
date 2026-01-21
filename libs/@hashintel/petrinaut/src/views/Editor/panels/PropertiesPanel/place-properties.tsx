@@ -57,7 +57,7 @@ const headerContainerStyle = css({
 });
 
 const headerTitleStyle = css({
-  fontWeight: 600,
+  fontWeight: "semibold",
   fontSize: "[16px]",
 });
 
@@ -67,26 +67,26 @@ const deleteButtonStyle = css({
   justifyContent: "center",
   width: "[24px]",
   height: "[24px]",
-  padding: "spacing.0",
+  padding: "0",
   border: "none",
   background: "[transparent]",
   cursor: "pointer",
-  color: "core.gray.60",
-  borderRadius: "radius.4",
+  color: "gray.60",
+  borderRadius: "md.4",
   _hover: {
-    color: "core.red.60",
-    backgroundColor: "core.red.10",
+    color: "red.60",
+    backgroundColor: "red.10",
   },
 });
 
 const fieldLabelStyle = css({
-  fontWeight: 500,
+  fontWeight: "medium",
   fontSize: "[12px]",
   marginBottom: "[4px]",
 });
 
 const fieldLabelWithTooltipStyle = css({
-  fontWeight: 500,
+  fontWeight: "medium",
   fontSize: "[12px]",
   marginBottom: "[4px]",
   display: "flex",
@@ -229,7 +229,7 @@ const codeHeaderStyle = css({
 });
 
 const codeHeaderLabelStyle = css({
-  fontWeight: 500,
+  fontWeight: "medium",
   fontSize: "[12px]",
 });
 

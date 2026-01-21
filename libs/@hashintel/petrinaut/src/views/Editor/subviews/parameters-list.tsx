@@ -10,24 +10,24 @@ const addButtonStyle = css({
   display: "flex",
   alignItems: "center",
   justifyContent: "center",
-  borderRadius: "radius.1",
+  borderRadius: "md.1",
   cursor: "pointer",
   fontSize: "[16px]",
-  color: "core.gray.60",
+  color: "gray.60",
   background: "[transparent]",
   border: "none",
   width: "[20px]",
   height: "[20px]",
   _hover: {
     backgroundColor: "[rgba(0, 0, 0, 0.05)]",
-    color: "core.gray.90",
+    color: "gray.90",
   },
   _disabled: {
     cursor: "not-allowed",
     opacity: "[0.4]",
     _hover: {
       backgroundColor: "[transparent]",
-      color: "core.gray.60",
+      color: "gray.60",
     },
   },
 });
@@ -82,15 +82,15 @@ const actionsContainerStyle = css({
 const inputStyle = css({
   padding: "[2px 6px]",
   fontSize: "[12px]",
-  borderRadius: "radius.2",
+  borderRadius: "md.2",
   border: "1px solid",
-  borderColor: "core.gray.30",
+  borderColor: "gray.30",
   backgroundColor: "[white]",
   width: "[80px]",
   textAlign: "right",
   _focus: {
     outline: "none",
-    borderColor: "core.blue.50",
+    borderColor: "blue.50",
   },
 });
 
@@ -98,11 +98,11 @@ const deleteButtonStyle = css({
   display: "flex",
   alignItems: "center",
   justifyContent: "center",
-  padding: "spacing.1",
-  borderRadius: "radius.2",
+  padding: "1",
+  borderRadius: "md.2",
   cursor: "pointer",
   fontSize: "[14px]",
-  color: "core.gray.50",
+  color: "gray.50",
   background: "[transparent]",
   border: "none",
   width: "[20px]",
@@ -116,7 +116,7 @@ const deleteButtonStyle = css({
     opacity: "[0.3]",
     _hover: {
       backgroundColor: "[transparent]",
-      color: "core.gray.50",
+      color: "gray.50",
     },
   },
 });
@@ -124,7 +124,7 @@ const deleteButtonStyle = css({
 const emptyMessageStyle = css({
   fontSize: "[13px]",
   color: "[#9ca3af]",
-  padding: "spacing.4",
+  padding: "4",
   textAlign: "center",
 });
 
