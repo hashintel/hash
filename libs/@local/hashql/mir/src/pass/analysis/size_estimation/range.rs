@@ -54,7 +54,8 @@ const fn add_bound(lhs: Bound<u32>, rhs: Bound<u32>) -> Bound<u32> {
 
         (Bound::Excluded(0), Bound::Included(rhs)) => Bound::Included(rhs),
         (Bound::Excluded(lhs), Bound::Included(rhs)) => Bound::Included((lhs - 1) + rhs),
-        (Bound::Excluded(lhs), Bound::Excluded(rhs)) => Bound::Excluded(lhs + rhs),
+        (Bound::Excluded(0), Bound::Excluded(0)) => Bound::Excluded(0),
+        (Bound::Excluded(lhs), Bound::Excluded(rhs)) => Bound::Excluded(lhs + rhs - 1),
 
         (Bound::Unbounded, _) | (_, Bound::Unbounded) => Bound::Unbounded,
     }
@@ -73,7 +74,10 @@ const fn saturating_add_bound(lhs: Bound<u32>, rhs: Bound<u32>) -> Bound<u32> {
         (Bound::Excluded(lhs), Bound::Included(rhs)) => {
             Bound::Included((lhs - 1).saturating_add(rhs))
         }
-        (Bound::Excluded(lhs), Bound::Excluded(rhs)) => Bound::Excluded(lhs.saturating_add(rhs)),
+        (Bound::Excluded(0), Bound::Excluded(0)) => Bound::Excluded(0),
+        (Bound::Excluded(lhs), Bound::Excluded(rhs)) => {
+            Bound::Excluded(lhs.saturating_add(rhs) - 1)
+        }
 
         (Bound::Unbounded, _) | (_, Bound::Unbounded) => Bound::Unbounded,
     }

@@ -448,6 +448,6 @@ impl<'heap, B: Allocator, C: Allocator> DataflowAnalysis<'heap>
         };
 
         // Graph reads have unbounded size (could return any number of entities)
-        state.locals[param] = Footprint::unknown();
+        state.locals[param] = Footprint::full();
     }
 }

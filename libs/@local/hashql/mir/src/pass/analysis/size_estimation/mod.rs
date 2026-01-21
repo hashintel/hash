@@ -242,7 +242,8 @@ impl<'heap, A: Allocator> SizeEstimationAnalysis<'heap, A> {
             if pending.contains_return() {
                 let rhs = lookup.operand(&exit_state, value);
 
-                SaturatingSemiring.join(&mut body_footprint.returns, rhs.as_ref(&exit_state));
+                changed |=
+                    SaturatingSemiring.join(&mut body_footprint.returns, rhs.as_ref(&exit_state));
             }
 
             changed |= lattice.join(body_footprint, &exit_state);

@@ -203,6 +203,17 @@ impl Footprint {
         }
     }
 
+    /// A footprint for values with unknown size (e.g., external inputs).
+    ///
+    /// Has unbounded information content and cardinality.
+    #[must_use]
+    pub const fn full() -> Self {
+        Self {
+            units: Estimate::Constant(InformationRange::full()),
+            cardinality: Estimate::Constant(Cardinality::full()),
+        }
+    }
+
     /// A footprint that tracks dependency on a function parameter.
     ///
     /// Both units and cardinality are set to equal the parameter at `index`.
