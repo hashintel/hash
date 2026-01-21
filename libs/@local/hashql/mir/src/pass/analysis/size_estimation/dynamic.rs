@@ -395,7 +395,7 @@ impl<'heap, B: Allocator, C: Allocator> DataflowAnalysis<'heap>
     ) -> bool {
         const MAX_ITERATION_COUNT: u8 = 16;
 
-        metadata[target.as_usize()] <= MAX_ITERATION_COUNT
+        metadata[target.as_usize()] < MAX_ITERATION_COUNT
     }
 
     fn transfer_statement<A: Allocator>(
