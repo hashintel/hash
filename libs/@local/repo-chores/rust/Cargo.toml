@@ -35,7 +35,7 @@ serde_json          = { workspace = true }
 simple-mermaid      = { workspace = true }
 sort-package-json   = "0.0.9"
 thiserror           = { workspace = true }
-tokio               = { workspace = true, features = ["rt-multi-thread", "macros"] }
+tokio               = { workspace = true, features = ["rt-multi-thread", "macros", "fs"] }
 tracing             = { workspace = true }
 walkdir             = { workspace = true }
 
