@@ -324,9 +324,6 @@ const migrate: MigrationFunction = async ({
     },
   );
 
-  /**
-   * Schedule Status property type.
-   */
   const scheduleStatusPropertyType = await createSystemPropertyTypeIfNotExists(
     context,
     authentication,
@@ -372,9 +369,6 @@ const migrate: MigrationFunction = async ({
     },
   );
 
-  /**
-   * Schedule Pause State property type - an object containing pausedAt and optional note.
-   */
   const schedulePauseStatePropertyType =
     await createSystemPropertyTypeIfNotExists(context, authentication, {
       propertyTypeDefinition: {
@@ -401,9 +395,6 @@ const migrate: MigrationFunction = async ({
       migrationState,
     });
 
-  /**
-   * Data Sources property type - stores data sources configuration for AI flows.
-   */
   const dataSourcesPropertyType = await createSystemPropertyTypeIfNotExists(
     context,
     authentication,
@@ -419,8 +410,22 @@ const migrate: MigrationFunction = async ({
   );
 
   /**
-   * Step 2: create the `Flow Run` entity type.
+   * Step 2: create the `Flow Run` and `Flow Schedule` entity types.
    */
+
+  const workflowIdPropertyType = await createSystemPropertyTypeIfNotExists(
+    context,
+    authentication,
+    {
+      propertyTypeDefinition: {
+        title: "Workflow ID",
+        description: "An identifier for a workflow.",
+        possibleValues: [{ primitiveDataType: "text" }],
+      },
+      webShortname: "h",
+      migrationState,
+    },
+  );
 
   const outputsPropertyType = await createSystemPropertyTypeIfNotExists(
     context,
@@ -506,10 +511,6 @@ const migrate: MigrationFunction = async ({
     },
   );
 
-  /**
-   * Step 2b: Create the Flow Schedule entity type.
-   * This must be created before FlowRun so we can reference it in FlowRun's links.
-   */
   const flowScheduleEntityType = await createSystemEntityTypeIfNotExists(
     context,
     authentication,
@@ -600,6 +601,10 @@ const migrate: MigrationFunction = async ({
         properties: [
           {
             propertyType: blockProtocolPropertyTypes.name.propertyTypeId,
+            required: true,
+          },
+          {
+            propertyType: workflowIdPropertyType,
             required: true,
           },
           {

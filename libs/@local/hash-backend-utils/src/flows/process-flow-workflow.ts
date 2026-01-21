@@ -1,7 +1,3 @@
-import {
-  entityIdFromComponents,
-  type EntityUuid,
-} from "@blockprotocol/type-system";
 import { actionDefinitions } from "@local/hash-isomorphic-utils/flows/action-definitions";
 import type {
   BaseRunFlowWorkflowParams,
@@ -173,6 +169,7 @@ export const processFlowWorkflow = async <
 ): Promise<RunFlowWorkflowResponse> => {
   const {
     flowDefinition,
+    flowRunName,
     flowType,
     flowTrigger,
     proxyFlowActivity,
@@ -217,23 +214,24 @@ export const processFlowWorkflow = async <
     });
   }
 
-  log(`Initializing ${flowDefinition.name} Flow`);
+  const initialFlowName = flowRunName ?? flowDefinition.name;
+  log(`Initializing ${initialFlowName} Flow`);
 
   const { workflowId } = workflowInfo();
 
   const flow = initializeFlow({
     flowDefinition,
     flowTrigger,
-    flowRunId: workflowId as EntityUuid,
-    /** use the flow definition's name as a placeholder – we need the Flow persisted to link the generating name usage to it */
-    name: flowDefinition.name,
+    temporalWorkflowId: workflowId,
+    /**
+     * Use flowRunName if provided (e.g. from a schedule), otherwise use the flow definition's name.
+     * This may be overwritten by generateFlowRunName if provided.
+     */
+    name: initialFlowName,
   });
-
-  const flowEntityId = entityIdFromComponents(webId, workflowId as EntityUuid);
 
   await persistFlowActivity({
     flow,
-    flowEntityId,
     stepIds: ["initialize-flow"],
     userAuthentication,
     webId,
@@ -245,9 +243,9 @@ export const processFlowWorkflow = async <
       flowTrigger,
     });
     flow.name = generatedName;
+
     await persistFlowActivity({
       flow,
-      flowEntityId,
       stepIds: ["generate-flow-run-name"],
       userAuthentication,
       webId,
@@ -475,7 +473,6 @@ export const processFlowWorkflow = async <
 
     await persistFlowActivity({
       flow,
-      flowEntityId,
       stepIds: lastStepIds,
       userAuthentication,
       webId,
@@ -600,7 +597,6 @@ export const processFlowWorkflow = async <
 
   await persistFlowActivity({
     flow,
-    flowEntityId,
     stepIds: ["complete-flow"],
     userAuthentication,
     webId,

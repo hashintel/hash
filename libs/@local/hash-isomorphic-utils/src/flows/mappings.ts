@@ -87,6 +87,13 @@ export const mapFlowRunToEntityProperties = (
           "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
       },
     },
+    "https://hash.ai/@h/types/property-type/workflow-id/": {
+      value: flowRun.temporalWorkflowId,
+      metadata: {
+        dataTypeId:
+          "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+      },
+    },
     ...(flowRun.outputs
       ? {
           "https://hash.ai/@h/types/property-type/outputs/": {
@@ -145,11 +152,12 @@ export const mapFlowEntityToFlow = (
     outputs,
     step: steps,
     trigger,
+    workflowId,
   } = simplifyProperties(entity.properties);
 
   return {
     name,
-    flowRunId: extractEntityUuidFromEntityId(entity.metadata.recordId.entityId),
+    temporalWorkflowId: workflowId,
     flowDefinitionId: flowDefinitionId as EntityUuid,
     outputs: outputs as LocalFlowRun["outputs"],
     steps: steps as LocalFlowRun["steps"],

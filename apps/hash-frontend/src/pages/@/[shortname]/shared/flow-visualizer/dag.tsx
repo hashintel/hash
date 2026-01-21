@@ -57,7 +57,11 @@ export const DAG = ({
             variant="smallTextParagraphs"
             sx={{ color: ({ palette }) => palette.gray[60] }}
           >
-            Started <strong>manually</strong> when triggered on{" "}
+            Started{" "}
+            <strong>
+              {selectedFlowRun.flowScheduleId ? "by a schedule" : "manually"}
+            </strong>{" "}
+            at{" "}
             {format(
               new Date(selectedFlowRun.startedAt),
               "yyyy-MM-dd 'at' h:mm a",

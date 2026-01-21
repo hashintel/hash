@@ -1,13 +1,10 @@
 import { extractEntityUuidFromEntityId } from "@blockprotocol/type-system";
-import type { HashEntity } from "@local/hash-graph-sdk/entity";
-import type { ScheduleSpec } from "@local/hash-isomorphic-utils/flows/schedule-types";
 import {
   defaultScheduleCatchupWindowMs,
   scheduleSpecToTemporalSpec,
 } from "@local/hash-isomorphic-utils/flows/schedule-types";
 import type { RunFlowWorkflowParams } from "@local/hash-isomorphic-utils/flows/temporal-types";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
-import type { FlowSchedule } from "@local/hash-isomorphic-utils/system-types/shared";
 
 import {
   createFlowSchedule as createFlowScheduleEntity,
@@ -17,6 +14,7 @@ import {
   updateFlowSchedule as updateFlowScheduleEntity,
 } from "../../../graph/knowledge/system-types/flow-schedule";
 import type {
+  Mutation,
   MutationArchiveFlowScheduleArgs,
   MutationCreateFlowScheduleArgs,
   MutationPauseFlowScheduleArgs,
@@ -29,7 +27,7 @@ import * as GraphQLError from "../../error";
 import { graphQLContextToImpureGraphContext } from "../util";
 
 export const createFlowScheduleResolver: ResolverFn<
-  Promise<HashEntity<FlowSchedule>>,
+  Promise<Mutation["createFlowSchedule"]>,
   Record<string, never>,
   LoggedInGraphQLContext,
   MutationCreateFlowScheduleArgs
@@ -38,9 +36,10 @@ export const createFlowScheduleResolver: ResolverFn<
   const context = graphQLContextToImpureGraphContext(graphQLContext);
   const { authentication } = graphQLContext;
 
-  const { flowType } = input;
+  const { flowDefinition } = input;
+  const flowType = flowDefinition.type;
 
-  if (input.flowType === "ai" && !user.enabledFeatureFlags.includes("ai")) {
+  if (flowType === "ai" && !user.enabledFeatureFlags.includes("ai")) {
     throw GraphQLError.forbidden("AI flows are not enabled for this user");
   }
 
@@ -65,22 +64,9 @@ export const createFlowScheduleResolver: ResolverFn<
     ...(flowType === "ai" && input.dataSources
       ? { dataSources: input.dataSources }
       : {}),
+    flowDefinition,
+    flowRunName: input.name,
     flowTrigger: input.flowTrigger,
-    flowDefinition: {
-      flowDefinitionId: input.flowDefinitionId,
-      type: flowType,
-      name: input.name,
-      description: "",
-      trigger: {
-        kind: "scheduled",
-        description: "Scheduled trigger",
-        triggerDefinitionId: "scheduledTrigger",
-        active: true,
-        cronSchedule: "",
-      },
-      steps: [],
-      outputs: [],
-    },
     userAuthentication: { actorId: user.accountId },
     webId: input.webId,
   };
@@ -95,7 +81,7 @@ export const createFlowScheduleResolver: ResolverFn<
         taskQueue,
         args: [workflowParams],
         memo: {
-          flowDefinitionId: input.flowDefinitionId,
+          flowDefinitionId: flowDefinition.flowDefinitionId,
           userAccountId: user.accountId,
           webId: input.webId,
         },
@@ -108,21 +94,28 @@ export const createFlowScheduleResolver: ResolverFn<
             : defaultScheduleCatchupWindowMs,
         pauseOnFailure: props.pauseOnFailure ?? false,
       },
+      state: {
+        triggerImmediately: input.triggerImmediately,
+      },
     });
   } catch (err) {
-    // If Temporal schedule creation fails, we should ideally roll back the entity
-    // For now, log the error and throw
-    const message = err instanceof globalThis.Error ? err.message : String(err);
+    await schedule.archive(
+      context.graphApi,
+      authentication,
+      context.provenance,
+    );
+
+    const message = err instanceof Error ? err.message : String(err);
     throw GraphQLError.internal(
       `Failed to create Temporal schedule: ${message}`,
     );
   }
 
-  return schedule;
+  return scheduleId;
 };
 
 export const updateFlowScheduleResolver: ResolverFn<
-  Promise<HashEntity<FlowSchedule>>,
+  Promise<Mutation["updateFlowSchedule"]>,
   Record<string, never>,
   LoggedInGraphQLContext,
   MutationUpdateFlowScheduleArgs
@@ -149,7 +142,7 @@ export const updateFlowScheduleResolver: ResolverFn<
     if (input.scheduleSpec) {
       await handle.update((prev) => ({
         ...prev,
-        spec: scheduleSpecToTemporalSpec(input.scheduleSpec as ScheduleSpec),
+        spec: scheduleSpecToTemporalSpec(input.scheduleSpec!),
       }));
     }
 
@@ -174,16 +167,16 @@ export const updateFlowScheduleResolver: ResolverFn<
       }));
     }
   } catch (err) {
-    // Log but don't fail if Temporal update fails - the entity is already updated
-    // eslint-disable-next-line no-console
-    console.error(`Failed to update Temporal schedule ${scheduleId}:`, err);
+    throw GraphQLError.internal(
+      `Failed to update Temporal schedule for schedule entity ${scheduleEntityId}: ${err instanceof Error ? err.message : String(err)}`,
+    );
   }
 
-  return schedule;
+  return true;
 };
 
 export const pauseFlowScheduleResolver: ResolverFn<
-  Promise<HashEntity<FlowSchedule>>,
+  Promise<Mutation["pauseFlowSchedule"]>,
   Record<string, never>,
   LoggedInGraphQLContext,
   MutationPauseFlowScheduleArgs
@@ -207,15 +200,16 @@ export const pauseFlowScheduleResolver: ResolverFn<
     const handle = temporal.schedule.getHandle(scheduleId);
     await handle.pause(note ?? undefined);
   } catch (err) {
-    // eslint-disable-next-line no-console
-    console.error(`Failed to pause Temporal schedule ${scheduleId}:`, err);
+    throw GraphQLError.internal(
+      `Failed to pause Temporal schedule for schedule entity ${scheduleEntityId}: ${err instanceof Error ? err.message : String(err)}`,
+    );
   }
 
-  return schedule;
+  return true;
 };
 
 export const resumeFlowScheduleResolver: ResolverFn<
-  Promise<HashEntity<FlowSchedule>>,
+  Promise<Mutation["resumeFlowSchedule"]>,
   Record<string, never>,
   LoggedInGraphQLContext,
   MutationResumeFlowScheduleArgs
@@ -238,15 +232,16 @@ export const resumeFlowScheduleResolver: ResolverFn<
     const handle = temporal.schedule.getHandle(scheduleId);
     await handle.unpause();
   } catch (err) {
-    // eslint-disable-next-line no-console
-    console.error(`Failed to resume Temporal schedule ${scheduleId}:`, err);
+    throw GraphQLError.internal(
+      `Failed to resume Temporal schedule for schedule entity ${scheduleEntityId}: ${err instanceof Error ? err.message : String(err)}`,
+    );
   }
 
-  return schedule;
+  return true;
 };
 
 export const archiveFlowScheduleResolver: ResolverFn<
-  Promise<boolean>,
+  Promise<Mutation["archiveFlowSchedule"]>,
   Record<string, never>,
   LoggedInGraphQLContext,
   MutationArchiveFlowScheduleArgs
@@ -267,8 +262,9 @@ export const archiveFlowScheduleResolver: ResolverFn<
     const handle = temporal.schedule.getHandle(scheduleId);
     await handle.delete();
   } catch (err) {
-    // eslint-disable-next-line no-console
-    console.error(`Failed to delete Temporal schedule ${scheduleId}:`, err);
+    throw GraphQLError.internal(
+      `Failed to delete Temporal schedule for schedule entity ${scheduleEntityId}: ${err instanceof Error ? err.message : String(err)}`,
+    );
   }
 
   await schedule.archive(context.graphApi, authentication, context.provenance);

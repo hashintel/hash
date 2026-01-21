@@ -42,6 +42,9 @@ export const useFlowSchedules = (): UseFlowSchedulesResult => {
                 { parameter: systemEntityTypes.flowSchedule.entityTypeId },
               ],
             },
+            {
+              equal: [{ path: ["archived"] }, { parameter: false }],
+            },
           ],
         },
         graphResolveDepths: {

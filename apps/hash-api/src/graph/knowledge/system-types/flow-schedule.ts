@@ -41,8 +41,7 @@ export const createFlowSchedule: ImpureGraphFunction<
 > = async (context, authentication, params) => {
   const {
     name,
-    flowDefinitionId,
-    flowType,
+    flowDefinition,
     webId,
     scheduleSpec,
     overlapPolicy = defaultScheduleOverlapPolicy,
@@ -51,6 +50,8 @@ export const createFlowSchedule: ImpureGraphFunction<
     dataSources,
     flowTrigger,
   } = params;
+
+  const { flowDefinitionId, type: flowType } = flowDefinition;
 
   /**
    * Note: Using 'any' for properties because the generated types don't include
@@ -327,7 +328,7 @@ export const pauseFlowSchedule: ImpureGraphFunction<
           } satisfies ScheduleStatusPropertyValueWithMetadata,
         },
         {
-          op: "replace",
+          op: "add",
           path: [systemPropertyTypes.schedulePauseState.propertyTypeBaseUrl],
           property: {
             value: {

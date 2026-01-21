@@ -603,18 +603,22 @@ const getFlowRunDetailedFields = async ({
   };
 };
 
-export const getSparseFlowRunFromWorkflowId = async ({
+export const getSparseFlowRunFromTemporalWorkflowId = async ({
+  flowRunId,
   name,
-  webId,
-  workflowId,
   temporalClient,
+  temporalWorkflowId,
+  webId,
 }: {
+  /** The entity UUID of the flow run */
+  flowRunId: EntityUuid;
   name: string;
-  webId: WebId;
-  workflowId: EntityUuid;
   temporalClient: TemporalClient;
+  /** the identifier for the Temporal workflow */
+  temporalWorkflowId: string;
+  webId: WebId;
 }): Promise<SparseFlowRun> => {
-  const handle = temporalClient.workflow.getHandle(workflowId);
+  const handle = temporalClient.workflow.getHandle(temporalWorkflowId);
 
   const {
     startTime,
@@ -629,6 +633,7 @@ export const getSparseFlowRunFromWorkflowId = async ({
     "TemporalScheduledById",
     SearchAttributeType.KEYWORD,
   );
+
   const flowScheduleId = typedSearchAttributes.get(temporalScheduledByIdKey) as
     | EntityUuid
     | undefined;
@@ -637,7 +642,7 @@ export const getSparseFlowRunFromWorkflowId = async ({
     name,
     flowDefinitionId:
       (memo?.flowDefinitionId as string | undefined) ?? "unknown",
-    flowRunId: workflowId,
+    flowRunId,
     flowScheduleId,
     status: status.name as FlowRunStatus,
     startedAt: startTime.toISOString(),
@@ -647,14 +652,20 @@ export const getSparseFlowRunFromWorkflowId = async ({
   };
 };
 
-export const getFlowRunFromWorkflowId = async (args: {
+export const getFlowRunFromTemporalWorkflowId = async (args: {
+  /** The entity UUID of the flow run */
+  flowRunId: EntityUuid;
   name: string;
-  webId: WebId;
-  workflowId: EntityUuid;
   temporalClient: TemporalClient;
+  /** the identifier for the Temporal workflow */
+  temporalWorkflowId: string;
+  webId: WebId;
 }): Promise<FlowRun> => {
-  const baseFields = await getSparseFlowRunFromWorkflowId(args);
-  const detailedFields = await getFlowRunDetailedFields(args);
+  const baseFields = await getSparseFlowRunFromTemporalWorkflowId(args);
+  const detailedFields = await getFlowRunDetailedFields({
+    workflowId: args.temporalWorkflowId,
+    temporalClient: args.temporalClient,
+  });
 
   return {
     ...baseFields,

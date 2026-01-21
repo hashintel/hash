@@ -1,4 +1,3 @@
-import type { EntityUuid } from "@blockprotocol/type-system";
 import { actionDefinitions } from "@local/hash-isomorphic-utils/flows/action-definitions";
 import type {
   ActionStep,
@@ -169,16 +168,16 @@ export const initializeParallelGroup = (params: {
 };
 
 export const initializeFlow = (params: {
-  flowRunId: EntityUuid;
   flowDefinition: FlowDefinition<FlowActionDefinitionId>;
   flowTrigger: FlowTrigger;
   name: string;
+  temporalWorkflowId: string;
 }): LocalFlowRun => {
-  const { flowRunId, flowDefinition, flowTrigger, name } = params;
+  const { flowDefinition, flowTrigger, name, temporalWorkflowId } = params;
 
   return {
     name,
-    flowRunId,
+    temporalWorkflowId,
     trigger: {
       triggerDefinitionId: flowTrigger.triggerDefinitionId,
       outputs: flowTrigger.outputs,

@@ -1307,6 +1307,11 @@ export const systemPropertyTypes = {
     propertyTypeBaseUrl:
       "https://hash.ai/@h/types/property-type/willing-to-pay/" as BaseUrl,
   },
+  workflowId: {
+    propertyTypeId: "https://hash.ai/@h/types/property-type/workflow-id/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@h/types/property-type/workflow-id/" as BaseUrl,
+  },
   xPosition: {
     propertyTypeId: "https://hash.ai/@h/types/property-type/x-position/v/1",
     propertyTypeBaseUrl:

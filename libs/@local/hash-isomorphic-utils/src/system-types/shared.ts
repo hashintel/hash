@@ -851,6 +851,7 @@ export type FlowRunProperties = {
   "https://hash.ai/@h/types/property-type/outputs/"?: OutputsPropertyValue;
   "https://hash.ai/@h/types/property-type/step/": StepPropertyValue;
   "https://hash.ai/@h/types/property-type/trigger/": TriggerPropertyValue;
+  "https://hash.ai/@h/types/property-type/workflow-id/": WorkflowIDPropertyValue;
 };
 
 export type FlowRunPropertiesWithMetadata = {
@@ -861,6 +862,7 @@ export type FlowRunPropertiesWithMetadata = {
     "https://hash.ai/@h/types/property-type/outputs/"?: OutputsPropertyValueWithMetadata;
     "https://hash.ai/@h/types/property-type/step/": StepPropertyValueWithMetadata;
     "https://hash.ai/@h/types/property-type/trigger/": TriggerPropertyValueWithMetadata;
+    "https://hash.ai/@h/types/property-type/workflow-id/": WorkflowIDPropertyValueWithMetadata;
   };
 };
 
@@ -2574,6 +2576,13 @@ export type VaultPathPropertyValueWithMetadata = TextDataTypeWithMetadata;
 export type WebsiteURLPropertyValue = URIDataType;
 
 export type WebsiteURLPropertyValueWithMetadata = URIDataTypeWithMetadata;
+
+/**
+ * An identifier for a workflow.
+ */
+export type WorkflowIDPropertyValue = TextDataType;
+
+export type WorkflowIDPropertyValueWithMetadata = TextDataTypeWithMetadata;
 
 /**
  * A year in the Gregorian calendar.

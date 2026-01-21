@@ -12,14 +12,11 @@ import type { FlowRun } from "@local/hash-isomorphic-utils/graphql/api-types.gen
 import {
   Box,
   Stack,
-  TableBody as MuiTableBody,
   TableCell as MuiTableCell,
-  TableRow as MuiTableRow,
   Tooltip,
   Typography,
 } from "@mui/material";
 import { format } from "date-fns";
-import type { PropsWithChildren } from "react";
 import { memo, useCallback, useMemo, useState } from "react";
 
 import { Link } from "../../shared/ui/link";
@@ -44,6 +41,10 @@ import type {
 import { VirtualizedTable } from "../shared/virtualized-table";
 import { virtualizedTableHeaderHeight } from "../shared/virtualized-table/header";
 import type { VirtualizedTableSort } from "../shared/virtualized-table/header/sort";
+import {
+  PlaceholderContainer,
+  placeholderHeight,
+} from "./shared/table-placeholder";
 
 type FieldId =
   | "web"
@@ -182,7 +183,7 @@ const TableRow = memo(({ workerSummary }: { workerSummary: WorkerSummary }) => {
             {name}
           </Link>
           {flowScheduleId && (
-            <Tooltip title="Triggered by schedule">
+            <Tooltip title="Triggered by a schedule">
               <ClockRegularIcon
                 sx={{
                   fontSize: 14,
@@ -240,21 +241,6 @@ const createRowContent: CreateVirtualizedRowContentFn<WorkerSummary> = (
   _index,
   row,
 ) => <TableRow workerSummary={row.data} />;
-
-const placeholderHeight = 200;
-
-const PlaceholderContainer = ({
-  children,
-  columnCount,
-}: PropsWithChildren<{ columnCount: number }>) => (
-  <MuiTableBody>
-    <MuiTableRow>
-      <MuiTableCell colSpan={columnCount} sx={{ height: placeholderHeight }}>
-        {children}
-      </MuiTableCell>
-    </MuiTableRow>
-  </MuiTableBody>
-);
 
 const EmptyComponent = ({
   columnCount,

@@ -14,13 +14,10 @@ import type { FlowSchedule } from "@local/hash-isomorphic-utils/system-types/sha
 import {
   Box,
   Stack,
-  TableBody as MuiTableBody,
   TableCell as MuiTableCell,
-  TableRow as MuiTableRow,
   Tooltip,
   Typography,
 } from "@mui/material";
-import type { PropsWithChildren } from "react";
 import { memo, useCallback, useMemo, useState } from "react";
 
 import type {
@@ -47,6 +44,10 @@ import type {
 import { VirtualizedTable } from "../shared/virtualized-table";
 import { virtualizedTableHeaderHeight } from "../shared/virtualized-table/header";
 import type { VirtualizedTableSort } from "../shared/virtualized-table/header/sort";
+import {
+  PlaceholderContainer,
+  placeholderHeight,
+} from "./shared/table-placeholder";
 
 type FieldId = "name" | "interval" | "status" | "actions";
 
@@ -170,21 +171,6 @@ const ScheduleRow = memo(
       </>
     );
   },
-);
-
-const placeholderHeight = 150;
-
-const PlaceholderContainer = ({
-  children,
-  columnCount,
-}: PropsWithChildren<{ columnCount: number }>) => (
-  <MuiTableBody>
-    <MuiTableRow>
-      <MuiTableCell colSpan={columnCount} sx={{ height: placeholderHeight }}>
-        {children}
-      </MuiTableCell>
-    </MuiTableRow>
-  </MuiTableBody>
 );
 
 const EmptyComponent = ({ columnCount }: { columnCount: number }) => (

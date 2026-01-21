@@ -19,6 +19,7 @@ import type {
   AiFlowActionDefinitionId,
   IntegrationFlowActionDefinitionId,
 } from "./action-definitions.js";
+import type { ScheduleSpec } from "./schedule-types.js";
 import type { TriggerDefinitionId } from "./trigger-definitions.js";
 
 export type FlowActionDefinitionId =
@@ -302,8 +303,7 @@ type FlowDefinitionTrigger =
       kind: "scheduled";
       description: string;
       triggerDefinitionId: "scheduledTrigger";
-      active: boolean;
-      cronSchedule: string;
+      scheduleSpec: ScheduleSpec;
       outputs?: OutputDefinition[];
     };
 
@@ -406,7 +406,7 @@ export type LocalFlowRun<
   ActionDefinitionId extends FlowActionDefinitionId = FlowActionDefinitionId,
 > = {
   name: string;
-  flowRunId: EntityUuid;
+  temporalWorkflowId: string;
   trigger: FlowTrigger;
   flowDefinitionId: EntityUuid;
   steps: FlowStep<ActionDefinitionId>[];

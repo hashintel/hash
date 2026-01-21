@@ -6,17 +6,24 @@ import type {
   WebId,
 } from "@blockprotocol/type-system";
 import type { GraphApi } from "@local/hash-graph-client";
-import { HashEntity } from "@local/hash-graph-sdk/entity";
+import { HashEntity, queryEntities } from "@local/hash-graph-sdk/entity";
 import { mapFlowRunToEntityProperties } from "@local/hash-isomorphic-utils/flows/mappings";
 import type { LocalFlowRun } from "@local/hash-isomorphic-utils/flows/types";
-import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import type { FlowRun } from "@local/hash-isomorphic-utils/system-types/shared";
-
-import { getFlowRunEntityById } from "../../shared/get-flow-run-entity-by-id.js";
+import {
+  currentTimeInstantTemporalAxes,
+  generateVersionedUrlMatchingFilter,
+} from "@local/hash-isomorphic-utils/graph-queries";
+import {
+  systemEntityTypes,
+  systemPropertyTypes,
+} from "@local/hash-isomorphic-utils/ontology-type-ids";
+import type {
+  FlowRun,
+  FlowRun as FlowRunEntity,
+} from "@local/hash-isomorphic-utils/system-types/shared";
 
 export type PersistFlowActivityParams = {
   flow: LocalFlowRun;
-  flowEntityId: EntityId;
   stepIds: string[];
   userAuthentication: { actorId: ActorEntityUuid };
   webId: WebId;
@@ -24,36 +31,56 @@ export type PersistFlowActivityParams = {
 
 export const persistFlowActivity = async (
   params: PersistFlowActivityParams & { graphApiClient: GraphApi },
-) => {
-  const {
-    flow,
-    flowEntityId,
-    graphApiClient,
-    stepIds,
-    userAuthentication,
-    webId,
-  } = params;
+): Promise<{ flowEntityId: EntityId }> => {
+  const { flow, graphApiClient, stepIds, userAuthentication, webId } = params;
 
-  const { flowRunId } = flow;
+  const { temporalWorkflowId } = flow;
 
   const flowRunProperties = mapFlowRunToEntityProperties(flow);
 
-  const existingFlowEntity = await getFlowRunEntityById({
-    flowRunId,
-    graphApiClient,
+  const {
+    entities: [existingFlowEntity],
+  } = await queryEntities<FlowRunEntity>(
+    { graphApi: graphApiClient },
     userAuthentication,
-  });
-
-  const provenance: ProvidedEntityEditionProvenance = {
-    actorType: "machine",
-    origin: {
-      type: "flow",
-      id: flowEntityId,
-      stepIds,
-    } satisfies OriginProvenance,
-  };
+    {
+      filter: {
+        all: [
+          {
+            equal: [
+              {
+                path: [
+                  "properties",
+                  systemPropertyTypes.workflowId.propertyTypeBaseUrl,
+                ],
+              },
+              { parameter: temporalWorkflowId },
+            ],
+          },
+          generateVersionedUrlMatchingFilter(
+            systemEntityTypes.flowRun.entityTypeId,
+            { ignoreParents: true },
+          ),
+        ],
+      },
+      temporalAxes: currentTimeInstantTemporalAxes,
+      includeDrafts: false,
+      includePermissions: false,
+    },
+  );
 
   if (existingFlowEntity) {
+    const flowEntityId = existingFlowEntity.metadata.recordId.entityId;
+
+    const provenance: ProvidedEntityEditionProvenance = {
+      actorType: "machine",
+      origin: {
+        type: "flow",
+        id: flowEntityId,
+        stepIds,
+      } satisfies OriginProvenance,
+    };
+
     await existingFlowEntity.patch(graphApiClient, userAuthentication, {
       propertyPatches: [
         {
@@ -64,14 +91,28 @@ export const persistFlowActivity = async (
       ],
       provenance,
     });
-  } else {
-    await HashEntity.create<FlowRun>(graphApiClient, userAuthentication, {
+
+    return { flowEntityId };
+  }
+
+  const provenance: ProvidedEntityEditionProvenance = {
+    actorType: "machine",
+    origin: {
+      type: "flow",
+    } satisfies OriginProvenance,
+  };
+
+  const newEntity = await HashEntity.create<FlowRun>(
+    graphApiClient,
+    userAuthentication,
+    {
       webId,
-      entityUuid: flowRunId,
       entityTypeIds: [systemEntityTypes.flowRun.entityTypeId],
       properties: flowRunProperties,
       provenance,
       draft: false,
-    });
-  }
+    },
+  );
+
+  return { flowEntityId: newEntity.metadata.recordId.entityId };
 };

@@ -33,12 +33,12 @@ const createDummyFlow = async (params: { actorId: ActorEntityUuid }) => {
 
   const dummyFlowRunProperties = mapFlowRunToEntityProperties({
     name: "dummy-name",
-    flowRunId: generateUuid() as EntityUuid,
     trigger: {
       triggerDefinitionId: "userTrigger",
     },
     flowDefinitionId: generateUuid() as EntityUuid,
     steps: [],
+    temporalWorkflowId: generateUuid(),
   });
 
   const dummyFlowEntity = await HashEntity.create(

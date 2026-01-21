@@ -70,7 +70,7 @@ const recursivelyValidateSteps = <T extends FlowActionDefinitionId>(params: {
         ...(sourceStep.kind === "action"
           ? actionDefinitions[sourceStep.actionDefinitionId].outputs
           : []),
-        ...(sourceStep.kind === "trigger"
+        ...(sourceStep.kind === "trigger" || sourceStep.kind === "scheduled"
           ? [
               ...(triggerDefinitions[sourceStep.triggerDefinitionId].outputs ??
                 []),
@@ -244,7 +244,7 @@ const recursivelyValidateSteps = <T extends FlowActionDefinitionId>(params: {
           ...(sourceStep.kind === "action"
             ? actionDefinitions[sourceStep.actionDefinitionId].outputs
             : []),
-          ...(sourceStep.kind === "trigger"
+          ...(sourceStep.kind === "trigger" || sourceStep.kind === "scheduled"
             ? [
                 ...(triggerDefinitions[sourceStep.triggerDefinitionId]
                   .outputs ?? []),

@@ -118,6 +118,7 @@ export const RunFlowModal = ({
   const [scheduleName, setScheduleName] = useState("");
   const [intervalValue, setIntervalValue] = useState(10);
   const [intervalUnit, setIntervalUnit] = useState<IntervalUnit>("minutes");
+  const [triggerImmediately, setTriggerImmediately] = useState(true);
 
   const [createSchedule] = useMutation<
     CreateFlowScheduleMutation,
@@ -183,8 +184,7 @@ export const RunFlowModal = ({
 
         const scheduleInput: CreateFlowScheduleInput = {
           name: scheduleName || `${flowDefinition.name} schedule`,
-          flowDefinitionId: flowDefinition.flowDefinitionId,
-          flowType: flowDefinition.type === "ai" ? "ai" : "integration",
+          flowDefinition,
           webId,
           scheduleSpec: {
             type: "interval",
@@ -194,6 +194,7 @@ export const RunFlowModal = ({
             outputs: outputValues,
             triggerDefinitionId: "scheduledTrigger",
           },
+          triggerImmediately,
           dataSources:
             flowDefinition.type === "ai"
               ? {
@@ -317,6 +318,34 @@ export const RunFlowModal = ({
                   </Select>
                 </Box>
               </InputWrapper>
+
+              <FormControlLabel
+                control={
+                  <Switch
+                    checked={triggerImmediately}
+                    onChange={(event) =>
+                      setTriggerImmediately(event.target.checked)
+                    }
+                    size="small"
+                  />
+                }
+                label={
+                  <Typography
+                    variant="smallTextLabels"
+                    sx={{
+                      fontWeight: 500,
+                      ml: 1.5,
+                      color: ({ palette }) =>
+                        triggerImmediately
+                          ? palette.gray[70]
+                          : palette.gray[50],
+                    }}
+                  >
+                    Trigger first run immediately
+                  </Typography>
+                }
+                sx={{ mb: 2.5, ml: 0 }}
+              />
             </>
           )}
 

@@ -15,6 +15,11 @@ export type BaseRunFlowWorkflowParams<
     FlowActionDefinitionId = FlowActionDefinitionId,
 > = {
   flowDefinition: FlowDefinition<ValidActionDefinitionId>;
+  /**
+   * Optional name for the flow run. If not provided, the flow definition name is used.
+   * For scheduled flows, this is typically the schedule name.
+   */
+  flowRunName?: string;
   flowTrigger: FlowTrigger;
   userAuthentication: { actorId: UserId };
   webId: WebId;

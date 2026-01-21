@@ -1,10 +1,12 @@
-import type { EntityUuid, WebId } from "@blockprotocol/type-system";
+import type { WebId } from "@blockprotocol/type-system";
 
+import type { ScheduleOverlapPolicyDataType } from "../system-types/shared.js";
 import type {
-  FlowTypeDataType,
-  ScheduleOverlapPolicyDataType,
-} from "../system-types/shared.js";
-import type { FlowDataSources, FlowTrigger } from "./types.js";
+  FlowActionDefinitionId,
+  FlowDataSources,
+  FlowDefinition,
+  FlowTrigger,
+} from "./types.js";
 
 /**
  * Interval-based schedule specification.
@@ -43,10 +45,8 @@ export const defaultScheduleCatchupWindowMs = 60 * 60 * 1000;
 export type CreateFlowScheduleInput = {
   /** Human-readable name for this schedule */
   name: string;
-  /** The flow definition to execute */
-  flowDefinitionId: EntityUuid;
-  /** The type of flow (ai or integration) */
-  flowType: FlowTypeDataType;
+  /** The full flow definition to execute (including steps) */
+  flowDefinition: FlowDefinition<FlowActionDefinitionId>;
   /** The web this schedule belongs to */
   webId: WebId;
   /** The scheduling specification */
@@ -61,6 +61,8 @@ export type CreateFlowScheduleInput = {
   dataSources?: FlowDataSources;
   /** The trigger configuration for the flow */
   flowTrigger: FlowTrigger;
+  /** Whether to trigger the first run immediately when the schedule is created */
+  triggerImmediately: boolean;
 };
 
 /**
@@ -106,19 +108,4 @@ export const scheduleSpecToTemporalSpec = (spec: ScheduleSpec) => {
     cronExpressions: [spec.cronExpression],
     ...(spec.timezone ? { timezone: spec.timezone } : {}),
   };
-};
-
-/**
- * Converts our ScheduleOverlapPolicy to Temporal's ScheduleOverlapPolicy enum value.
- */
-export const overlapPolicyToTemporal = (
-  policy: ScheduleOverlapPolicyDataType,
-): number => {
-  const policyMap: Record<ScheduleOverlapPolicyDataType, number> = {
-    SKIP: 1,
-    BUFFER_ONE: 2,
-    ALLOW_ALL: 3,
-    CANCEL_OTHER: 4,
-  };
-  return policyMap[policy];
 };

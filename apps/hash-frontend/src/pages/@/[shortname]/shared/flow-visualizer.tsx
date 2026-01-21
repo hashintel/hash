@@ -823,6 +823,7 @@ export const FlowVisualizer = () => {
             <FlowRunSidebar
               flowDefinition={selectedFlowDefinition}
               flowRunId={selectedFlowRun.flowRunId}
+              flowScheduleId={selectedFlowRun.flowScheduleId ?? null}
               groups={flowMaybeGrouped.groups}
               name={selectedFlowRun.name}
               showDag={() => setShowDag(true)}
