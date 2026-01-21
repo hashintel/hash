@@ -33,7 +33,7 @@ const elapsedTimeStyle = css({
 
 const frameIndexStyle = css({
   fontSize: "[11px]",
-  color: "core.gray.50",
+  color: "gray.50",
   letterSpacing: "[-0.2px]",
   marginTop: "[1px]",
 });

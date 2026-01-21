@@ -90,7 +90,7 @@ const firingIndicatorStyle = css({
   alignItems: "center",
   justifyContent: "center",
   fontSize: "[20px]",
-  color: "core.yellow.60",
+  color: "yellow.60",
   // Initial state: hidden
   opacity: "[0]",
   transform: "scale(0.5)",
