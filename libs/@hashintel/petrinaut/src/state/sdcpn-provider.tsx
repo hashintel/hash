@@ -270,7 +270,7 @@ export const SDCPNProvider: React.FC<SDCPNProviderProps> = ({
          * in case they, an arc within them or a place referenced by an arc is being deleted.
          */
         for (let i = sdcpn.transitions.length - 1; i >= 0; i--) {
-          const transition = sdcpn.transitions[i];
+          const transition = sdcpn.transitions[i]!;
           if (idsToProcess.has(transition.id)) {
             sdcpn.transitions.splice(i, 1);
             idsToProcess.delete(transition.id);
@@ -282,7 +282,7 @@ export const SDCPNProvider: React.FC<SDCPNProviderProps> = ({
             inputArcIndex >= 0;
             inputArcIndex--
           ) {
-            const inputArc = transition.inputArcs[inputArcIndex];
+            const inputArc = transition.inputArcs[inputArcIndex]!;
             const arcId = generateArcId({
               inputId: inputArc.placeId,
               outputId: transition.id,
@@ -299,7 +299,7 @@ export const SDCPNProvider: React.FC<SDCPNProviderProps> = ({
             outputArcIndex >= 0;
             outputArcIndex--
           ) {
-            const outputArc = transition.outputArcs[outputArcIndex];
+            const outputArc = transition.outputArcs[outputArcIndex]!;
             const arcId = generateArcId({
               inputId: transition.id,
               outputId: outputArc.placeId,
@@ -324,7 +324,7 @@ export const SDCPNProvider: React.FC<SDCPNProviderProps> = ({
         }
 
         for (let i = sdcpn.places.length - 1; i >= 0; i--) {
-          const place = sdcpn.places[i];
+          const place = sdcpn.places[i]!;
           if (idsToProcess.has(place.id)) {
             sdcpn.places.splice(i, 1);
             idsToProcess.delete(place.id);
