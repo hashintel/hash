@@ -269,16 +269,20 @@ export const SDCPNProvider: React.FC<SDCPNProviderProps> = ({
          * Deal with the transitions first because we always need to check them,
          * in case they, an arc within them or a place referenced by an arc is being deleted.
          */
-        for (const [index, transition] of sdcpn.transitions.entries()) {
+        for (let i = sdcpn.transitions.length - 1; i >= 0; i--) {
+          const transition = sdcpn.transitions[i];
           if (idsToProcess.has(transition.id)) {
-            sdcpn.transitions.splice(index, 1);
+            sdcpn.transitions.splice(i, 1);
             idsToProcess.delete(transition.id);
+            continue;
           }
 
-          for (const [
-            inputArcIndex,
-            inputArc,
-          ] of transition.inputArcs.entries()) {
+          for (
+            let inputArcIndex = transition.inputArcs.length - 1;
+            inputArcIndex >= 0;
+            inputArcIndex--
+          ) {
+            const inputArc = transition.inputArcs[inputArcIndex];
             const arcId = generateArcId({
               inputId: inputArc.placeId,
               outputId: transition.id,
@@ -290,10 +294,12 @@ export const SDCPNProvider: React.FC<SDCPNProviderProps> = ({
             }
           }
 
-          for (const [
-            outputArcIndex,
-            outputArc,
-          ] of transition.outputArcs.entries()) {
+          for (
+            let outputArcIndex = transition.outputArcs.length - 1;
+            outputArcIndex >= 0;
+            outputArcIndex--
+          ) {
+            const outputArc = transition.outputArcs[outputArcIndex];
             const arcId = generateArcId({
               inputId: transition.id,
               outputId: outputArc.placeId,
@@ -317,9 +323,10 @@ export const SDCPNProvider: React.FC<SDCPNProviderProps> = ({
           }
         }
 
-        for (const [index, place] of sdcpn.places.entries()) {
+        for (let i = sdcpn.places.length - 1; i >= 0; i--) {
+          const place = sdcpn.places[i];
           if (idsToProcess.has(place.id)) {
-            sdcpn.places.splice(index, 1);
+            sdcpn.places.splice(i, 1);
             idsToProcess.delete(place.id);
           }
         }
