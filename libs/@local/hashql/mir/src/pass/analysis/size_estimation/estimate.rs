@@ -1,6 +1,7 @@
 //! Estimate type that can be either constant or parameter-dependent.
 //!
-//! An [`Estimate`] wraps a value type (like [`InformationRange`] or [`Cardinality`]) and
+//! An [`Estimate`] wraps a value type (like [`InformationRange`](super::range::InformationRange) or
+//! [`Cardinality`](super::range::Cardinality)) and
 //! tracks whether it's a fixed constant or depends on function parameters via an
 //! [`AffineEquation`].
 

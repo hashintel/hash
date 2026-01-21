@@ -165,7 +165,7 @@ impl<'heap, A: Allocator> SizeEstimationAnalysis<'heap, A> {
 
     /// Performs static analysis on a single body, marking locals that need dynamic analysis.
     ///
-    /// Returns a [`DynamicComponents`] indicating which locals could not be statically sized.
+    /// Returns a [`PendingDataflow`] indicating which locals could not be statically sized.
     fn static_analysis<H: Allocator>(
         &mut self,
         context: &MirContext<'_, 'heap>,
