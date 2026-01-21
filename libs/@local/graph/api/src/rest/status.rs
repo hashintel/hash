@@ -3,7 +3,7 @@ use std::collections::HashMap;
 
 use axum::{
     Json,
-    response::{IntoResponse as _, Response},
+    response::{IntoResponse, Response},
 };
 use error_stack::Report;
 use hash_graph_postgres_store::store::error::BaseUrlAlreadyExists;
@@ -11,13 +11,27 @@ use hash_graph_store::entity::EntityValidationReport;
 use hash_status::{Status, StatusCode};
 use serde::Serialize;
 
+pub struct BoxedResponse(Box<Response>);
+
+impl IntoResponse for BoxedResponse {
+    fn into_response(self) -> Response {
+        *self.0
+    }
+}
+
+impl From<Response> for BoxedResponse {
+    fn from(response: Response) -> Self {
+        Self(Box::new(response))
+    }
+}
+
 /// Converts a `Status` into an `axum::Response`.
 ///
 /// # Panics
 ///
 /// Panics if the `Status` code does not map to a valid HTTP status code.
 #[must_use]
-pub fn status_to_response<T>(status: Status<T>) -> Response
+pub fn status_to_response<T>(status: Status<T>) -> BoxedResponse
 where
     T: Serialize + Send + Sync + Debug,
 {
@@ -25,7 +39,8 @@ where
         .expect("HASH Status code should map to a valid HTTP status code");
     let mut response = Json(status).into_response();
     *response.status_mut() = status_code;
-    response
+
+    response.into()
 }
 
 #[derive(Debug, Serialize)]
@@ -35,7 +50,7 @@ struct ValidationContent<C> {
     report: Report<[C]>,
 }
 
-pub(crate) fn report_to_response<C>(report: impl Into<Report<[C]>>) -> Response
+pub(crate) fn report_to_response<C>(report: impl Into<Report<[C]>>) -> BoxedResponse
 where
     C: Error + Send + Sync + 'static,
 {
