@@ -61,25 +61,31 @@ const fn add_bound(lhs: Bound<u32>, rhs: Bound<u32>) -> Bound<u32> {
     }
 }
 
-/// Adds two upper bounds with saturation (clamps at `u32::MAX` instead of overflowing).
+/// Adds two upper bounds, returning `Unbounded` on overflow.
 const fn saturating_add_bound(lhs: Bound<u32>, rhs: Bound<u32>) -> Bound<u32> {
     match (lhs, rhs) {
         (Bound::Included(lhs), Bound::Included(rhs)) => match lhs.checked_add(rhs) {
             Some(sum) => Bound::Included(sum),
             None => Bound::Unbounded,
         },
+
         (Bound::Included(lhs), Bound::Excluded(0)) => Bound::Included(lhs),
+        (Bound::Excluded(0), Bound::Included(rhs)) => Bound::Included(rhs),
+
         (Bound::Included(lhs), Bound::Excluded(rhs)) => match lhs.checked_add(rhs - 1) {
             Some(sum) => Bound::Included(sum),
             None => Bound::Unbounded,
         },
-
-        (Bound::Excluded(0), Bound::Included(rhs)) => Bound::Included(rhs),
         (Bound::Excluded(lhs), Bound::Included(rhs)) => match (lhs - 1).checked_add(rhs) {
             Some(sum) => Bound::Included(sum),
             None => Bound::Unbounded,
         },
+
         (Bound::Excluded(0), Bound::Excluded(0)) => Bound::Excluded(0),
+
+        (Bound::Excluded(0), Bound::Excluded(rhs)) => Bound::Excluded(rhs),
+        (Bound::Excluded(lhs), Bound::Excluded(0)) => Bound::Excluded(lhs),
+
         (Bound::Excluded(lhs), Bound::Excluded(rhs)) => match (lhs - 1).checked_add(rhs - 1) {
             Some(sum) => Bound::Included(sum),
             None => Bound::Unbounded,
@@ -349,7 +355,10 @@ mod tests {
                 assert_is_bottom_consistent,
             },
         },
-        size_estimation::unit::{Cardinal, InformationUnit},
+        size_estimation::{
+            range::saturating_add_bound,
+            unit::{Cardinal, InformationUnit},
+        },
     };
 
     #[test]
@@ -475,6 +484,72 @@ mod tests {
             Bound::Included(InformationUnit::new(u32::MAX)),
         );
         assert_eq!(result, expected);
+    }
+
+    #[test]
+    fn saturating_add_bound_overflow_to_unbounded() {
+        // Included + Included overflow → Unbounded
+        assert_eq!(
+            saturating_add_bound(Bound::Included(u32::MAX), Bound::Included(1)),
+            Bound::Unbounded
+        );
+        assert_eq!(
+            saturating_add_bound(Bound::Included(u32::MAX), Bound::Included(u32::MAX)),
+            Bound::Unbounded
+        );
+
+        // Excluded + Included: (MAX-1) + 1 = MAX, no overflow
+        assert_eq!(
+            saturating_add_bound(Bound::Excluded(u32::MAX), Bound::Included(1)),
+            Bound::Included(u32::MAX)
+        );
+
+        // Included + Excluded: MAX + (1-1) = MAX, no overflow
+        assert_eq!(
+            saturating_add_bound(Bound::Included(u32::MAX), Bound::Excluded(1)),
+            Bound::Included(u32::MAX)
+        );
+
+        // Excluded + Excluded: (MAX-1) + (MAX-1) overflows → Unbounded
+        assert_eq!(
+            saturating_add_bound(Bound::Excluded(u32::MAX), Bound::Excluded(u32::MAX)),
+            Bound::Unbounded
+        );
+
+        // Edge case: Excluded(2) + Excluded(2) = (1) + (1) = 2 → Included(2)
+        assert_eq!(
+            saturating_add_bound(Bound::Excluded(2), Bound::Excluded(2)),
+            Bound::Included(2)
+        );
+    }
+
+    #[test]
+    fn saturating_add_bound_identity_with_excluded_zero() {
+        // Excluded(0) is additive identity
+        assert_eq!(
+            saturating_add_bound(Bound::Included(42), Bound::Excluded(0)),
+            Bound::Included(42)
+        );
+        assert_eq!(
+            saturating_add_bound(Bound::Excluded(0), Bound::Included(42)),
+            Bound::Included(42)
+        );
+        assert_eq!(
+            saturating_add_bound(Bound::Excluded(10), Bound::Excluded(0)),
+            Bound::Excluded(10)
+        );
+        assert_eq!(
+            saturating_add_bound(Bound::Excluded(0), Bound::Excluded(10)),
+            Bound::Excluded(10)
+        );
+        assert_eq!(
+            saturating_add_bound(Bound::Excluded(0), Bound::Excluded(0)),
+            Bound::Excluded(0)
+        );
+        assert_eq!(
+            saturating_add_bound(Bound::Unbounded, Bound::Excluded(0)),
+            Bound::Unbounded
+        );
     }
 
     #[test]
