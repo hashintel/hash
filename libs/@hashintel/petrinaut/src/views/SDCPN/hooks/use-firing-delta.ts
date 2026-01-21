@@ -16,12 +16,18 @@ export function useFiringDelta(firingCount: number | null): number | null {
     return null;
   }
 
-  if (firingCount === prevFiringCountRef.current) {
+  // On first render (ref not yet initialized) or no change, return null
+  // This prevents triggering a large "fake" animation when mounting
+  // while viewing a later frame
+  if (
+    prevFiringCountRef.current === null ||
+    firingCount === prevFiringCountRef.current
+  ) {
     return null;
   }
 
-  const prevCount = prevFiringCountRef.current ?? 0;
-  const delta = firingCount - prevCount;
+  const delta = firingCount - prevFiringCountRef.current;
 
-  return delta;
+  // Ignore negative deltas (e.g., when scrubbing backwards)
+  return delta > 0 ? delta : null;
 }
