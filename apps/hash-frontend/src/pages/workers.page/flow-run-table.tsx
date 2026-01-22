@@ -385,7 +385,7 @@ export const FlowRunTable = ({ flowDefinitionIdFilter }: FlowRunTableProps) => {
       }
 
       if (field === "cost") {
-        return (a.data[field] ?? 0) - (b.data[field] ?? 0) * direction;
+        return ((a.data[field] ?? 0) - (b.data[field] ?? 0)) * direction;
       }
 
       return (
