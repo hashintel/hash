@@ -20,6 +20,8 @@
   "devDependencies": {
     "@local/eslint": "0.0.0-private",
     "eslint": "9.39.2",
+    "quicktype": "16.0.43",
+    "tsx": "4.20.6",
     "typescript": "5.9.3"
   }
 }

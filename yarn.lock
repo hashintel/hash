@@ -15680,6 +15680,8 @@ __metadata:
     "@local/status": "npm:0.0.0-private"
     "@rust/hash-status": "npm:0.0.0-private"
     eslint: "npm:9.39.2"
+    quicktype: "npm:16.0.43"
+    tsx: "npm:4.20.6"
     typescript: "npm:5.9.3"
   languageName: unknown
   linkType: soft
