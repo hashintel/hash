@@ -17,6 +17,7 @@ import {
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type {
   FlowSchedule,
+  FlowSchedulePropertiesWithMetadata,
   SchedulePauseStatePropertyValueWithMetadata,
   ScheduleStatusPropertyValueWithMetadata,
 } from "@local/hash-isomorphic-utils/system-types/shared";
@@ -53,13 +54,7 @@ export const createFlowSchedule: ImpureGraphFunction<
 
   const { flowDefinitionId, type: flowType } = flowDefinition;
 
-  /**
-   * Note: Using 'any' for properties because the generated types don't include
-   * flowDefinitionId yet (needs codegen to be run after migration).
-   * @todo remove 'any' cast after running codegen
-   */
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const properties: any = {
+  const properties: FlowSchedulePropertiesWithMetadata = {
     value: {
       "https://blockprotocol.org/@blockprotocol/types/property-type/name/": {
         value: name,
