@@ -6,6 +6,8 @@ use crate::{
     context::MirContext,
 };
 
+// TODO: Implement the StatementPlacementVisitor via Dataflow
+
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Cost(u32);
 
@@ -80,6 +82,7 @@ struct PostgresVisitor;
 // 4) Therefore we *must* have a list of items that are supported, then represent them, check if
 //    they are part, if not, we must bail.
 // 5) At this point we *do not* need to do alias analysis, which is nice.
+// 6) depending on bitwise ops, these may or may not be supported.
 // This must happen depending on the source, be it filter or whatever
 impl<'env, 'heap> StatementPlacementVisitor<'env, 'heap> for PostgresVisitor {
     type State<'ctx, A: Allocator> = ();
