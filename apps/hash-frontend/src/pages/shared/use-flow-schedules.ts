@@ -2,7 +2,7 @@ import { useQuery } from "@apollo/client";
 import type { EntityRootType } from "@blockprotocol/graph";
 import { getRoots } from "@blockprotocol/graph/stdlib";
 import type { EntityUuid } from "@blockprotocol/type-system";
-import { extractEntityUuidFromEntityId } from "@blockprotocol/type-system/dist/es-slim/native";
+import { extractEntityUuidFromEntityId } from "@blockprotocol/type-system";
 import type { HashEntity } from "@local/hash-graph-sdk/entity";
 import { deserializeSubgraph } from "@local/hash-graph-sdk/subgraph";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
