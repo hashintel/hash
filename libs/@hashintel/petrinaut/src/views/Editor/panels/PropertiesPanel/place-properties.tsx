@@ -514,7 +514,13 @@ export const PlaceProperties: React.FC<PlacePropertiesProps> = ({
               <Switch
                 checked={!!place.colorId && place.dynamicsEnabled}
                 disabled={isReadOnly || place.colorId === null}
-                tooltip={isReadOnly ? UI_MESSAGES.READ_ONLY_MODE : undefined}
+                tooltip={
+                  isReadOnly
+                    ? UI_MESSAGES.READ_ONLY_MODE
+                    : place.colorId === null
+                      ? UI_MESSAGES.DYNAMICS_REQUIRES_TYPE
+                      : undefined
+                }
                 onCheckedChange={(checked) => {
                   updatePlace(place.id, (existingPlace) => {
                     existingPlace.dynamicsEnabled = checked;
