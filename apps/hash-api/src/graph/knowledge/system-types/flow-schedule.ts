@@ -294,17 +294,11 @@ export const updateFlowSchedule: ImpureGraphFunction<
 };
 
 export const pauseFlowSchedule: ImpureGraphFunction<
-  { scheduleEntityId: EntityId; note?: string },
+  { existingEntity: HashEntity<FlowSchedule>; note?: string },
   Promise<HashEntity<FlowSchedule>>,
   false,
   true
-> = async (context, authentication, params) => {
-  const { scheduleEntityId, note } = params;
-
-  const existingEntity = await getFlowScheduleById(context, authentication, {
-    scheduleEntityId,
-  });
-
+> = async (context, authentication, { existingEntity, note }) => {
   const updatedEntity = await updateEntity<FlowSchedule>(
     context,
     authentication,
@@ -355,41 +349,129 @@ export const pauseFlowSchedule: ImpureGraphFunction<
 };
 
 export const resumeFlowSchedule: ImpureGraphFunction<
-  { scheduleEntityId: EntityId },
+  {
+    existingEntity: HashEntity<FlowSchedule>;
+    hasSchedulePauseState: boolean;
+  },
   Promise<HashEntity<FlowSchedule>>,
   false,
   true
-> = async (context, authentication, params) => {
-  const { scheduleEntityId } = params;
+> = async (
+  context,
+  authentication,
+  { existingEntity, hasSchedulePauseState },
+) => {
+  const propertyPatches: Parameters<typeof updateEntity>[2]["propertyPatches"] =
+    [
+      {
+        op: "replace",
+        path: [systemPropertyTypes.scheduleStatus.propertyTypeBaseUrl],
+        property: {
+          value: "active",
+          metadata: {
+            dataTypeId:
+              "https://hash.ai/@h/types/data-type/schedule-status/v/1",
+          },
+        },
+      },
+    ];
 
-  const existingEntity = await getFlowScheduleById(context, authentication, {
-    scheduleEntityId,
-  });
+  if (hasSchedulePauseState) {
+    propertyPatches.push({
+      op: "remove",
+      path: [systemPropertyTypes.schedulePauseState.propertyTypeBaseUrl],
+    });
+  }
 
   const updatedEntity = await updateEntity<FlowSchedule>(
     context,
     authentication,
     {
       entity: existingEntity,
-      propertyPatches: [
-        {
-          op: "replace",
-          path: [systemPropertyTypes.scheduleStatus.propertyTypeBaseUrl],
-          property: {
-            value: "active",
-            metadata: {
-              dataTypeId:
-                "https://hash.ai/@h/types/data-type/schedule-status/v/1",
-            },
-          },
-        },
-        {
-          op: "remove",
-          path: [systemPropertyTypes.schedulePauseState.propertyTypeBaseUrl],
-        },
-      ],
+      propertyPatches,
     },
   );
 
   return updatedEntity;
+};
+
+/**
+ * Reverts a pause operation by setting the schedule back to active.
+ * Used when Temporal operations fail after the entity has been updated.
+ */
+export const revertFlowSchedulePause: ImpureGraphFunction<
+  { pausedEntity: HashEntity<FlowSchedule> },
+  Promise<void>,
+  false,
+  true
+> = async (context, authentication, { pausedEntity }) => {
+  await updateEntity<FlowSchedule>(context, authentication, {
+    entity: pausedEntity,
+    propertyPatches: [
+      {
+        op: "replace",
+        path: [systemPropertyTypes.scheduleStatus.propertyTypeBaseUrl],
+        property: {
+          value: "active",
+          metadata: {
+            dataTypeId:
+              "https://hash.ai/@h/types/data-type/schedule-status/v/1",
+          },
+        },
+      },
+      {
+        op: "remove",
+        path: [systemPropertyTypes.schedulePauseState.propertyTypeBaseUrl],
+      },
+    ],
+  });
+};
+
+/**
+ * Reverts a resume operation by setting the schedule back to paused.
+ * Used when Temporal operations fail after the entity has been updated.
+ */
+export const revertFlowScheduleResume: ImpureGraphFunction<
+  {
+    resumedEntity: HashEntity<FlowSchedule>;
+    previousPauseState: FlowSchedule["properties"]["https://hash.ai/@h/types/property-type/schedule-pause-state/"];
+  },
+  Promise<void>,
+  false,
+  true
+> = async (context, authentication, { resumedEntity, previousPauseState }) => {
+  const propertyPatches: Parameters<typeof updateEntity>[2]["propertyPatches"] =
+    [
+      {
+        op: "replace",
+        path: [systemPropertyTypes.scheduleStatus.propertyTypeBaseUrl],
+        property: {
+          value: "paused",
+          metadata: {
+            dataTypeId:
+              "https://hash.ai/@h/types/data-type/schedule-status/v/1",
+          },
+        } satisfies ScheduleStatusPropertyValueWithMetadata,
+      },
+    ];
+
+  // Only restore schedulePauseState if it existed before
+  if (previousPauseState !== undefined) {
+    propertyPatches.push({
+      op: "add",
+      path: [systemPropertyTypes.schedulePauseState.propertyTypeBaseUrl],
+      property: {
+        value: previousPauseState,
+        metadata: {
+          dataTypeId:
+            "https://blockprotocol.org/@blockprotocol/types/data-type/object/v/1",
+        },
+      },
+    });
+  }
+
+  await updateEntity<FlowSchedule>(context, authentication, {
+    entity: resumedEntity,
+    propertyPatches,
+  });
 };
