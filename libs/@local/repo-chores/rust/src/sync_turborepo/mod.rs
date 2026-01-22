@@ -351,6 +351,8 @@ fn compute_package_json(
         package_json
             .other_fields
             .insert("description".to_owned(), description.to_owned().into());
+    } else {
+        package_json.other_fields.remove("description");
     }
 
     if let Some(license) = metadata.license() {
