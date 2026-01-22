@@ -5,7 +5,6 @@ use std::collections::{HashSet, hash_map};
 
 use axum::{
     Extension, Router,
-    response::Response,
     routing::{post, put},
 };
 use error_stack::{Report, ResultExt as _};
@@ -45,6 +44,7 @@ use type_system::{
 };
 use utoipa::{OpenApi, ToSchema};
 
+use super::status::BoxedResponse;
 use crate::rest::{
     AuthenticatedUserHeader, OpenApiQuery, QueryLogger, RestApiStore,
     json::Json,
@@ -150,7 +150,7 @@ async fn has_permission_for_entity_types<S>(
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
     store_pool: Extension<Arc<S>>,
     Json(params): Json<HasPermissionForEntityTypesParams<'static>>,
-) -> Result<Json<HashSet<VersionedUrl>>, Response>
+) -> Result<Json<HashSet<VersionedUrl>>, BoxedResponse>
 where
     S: StorePool + Send + Sync,
     for<'p> S::Store<'p>: EntityTypeStore,
@@ -199,7 +199,7 @@ async fn create_entity_type<S>(
     body: Json<CreateEntityTypeRequest>,
     // TODO: We want to be able to return `Status` here we should try and create a general way to
     //       call `status_to_response` for our routes that return Status
-) -> Result<Json<ListOrValue<EntityTypeMetadata>>, Response>
+) -> Result<Json<ListOrValue<EntityTypeMetadata>>, BoxedResponse>
 where
     S: StorePool + Send + Sync,
     for<'pool> S::Store<'pool>: RestApiStore,
@@ -269,7 +269,7 @@ where
                     conflict_behavior: ConflictBehavior::Fail,
                     provenance: provenance.clone(),
                 })
-            }).collect::<Result<Vec<_>, _>>()?
+            }).collect::<Result<Vec<_>, BoxedResponse>>()?
         )
         .await
         .map_err(|report| {
@@ -369,7 +369,7 @@ async fn load_external_entity_type<S>(
     Json(request): Json<LoadExternalEntityTypeRequest>,
     // TODO: We want to be able to return `Status` here we should try and create a general way to
     //       call `status_to_response` for our routes that return Status
-) -> Result<Json<EntityTypeMetadata>, Response>
+) -> Result<Json<EntityTypeMetadata>, BoxedResponse>
 where
     S: StorePool + Send + Sync,
     for<'pool> S::Store<'pool>: RestApiStore,
@@ -472,7 +472,7 @@ async fn query_entity_types<S>(
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
     mut query_logger: Option<Extension<QueryLogger>>,
     Json(request): Json<serde_json::Value>,
-) -> Result<Json<QueryEntityTypesResponse>, Response>
+) -> Result<Json<QueryEntityTypesResponse>, BoxedResponse>
 where
     S: StorePool + Send + Sync,
 {
@@ -529,7 +529,7 @@ async fn get_closed_multi_entity_types<S>(
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
     mut query_logger: Option<Extension<QueryLogger>>,
     Json(request): Json<serde_json::Value>,
-) -> Result<Json<GetClosedMultiEntityTypesResponse>, Response>
+) -> Result<Json<GetClosedMultiEntityTypesResponse>, BoxedResponse>
 where
     S: StorePool + Send + Sync,
 {
@@ -607,7 +607,7 @@ async fn query_entity_type_subgraph<S>(
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
     mut query_logger: Option<Extension<QueryLogger>>,
     Json(request): Json<serde_json::Value>,
-) -> Result<Json<QueryEntityTypeSubgraphResponse>, Response>
+) -> Result<Json<QueryEntityTypeSubgraphResponse>, BoxedResponse>
 where
     S: StorePool + Send + Sync,
 {
@@ -674,7 +674,7 @@ async fn update_entity_type<S>(
     store_pool: Extension<Arc<S>>,
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
     body: Json<UpdateEntityTypeRequest>,
-) -> Result<Json<EntityTypeMetadata>, Response>
+) -> Result<Json<EntityTypeMetadata>, BoxedResponse>
 where
     S: StorePool + Send + Sync,
 {
@@ -727,7 +727,7 @@ async fn update_entity_types<S>(
     store_pool: Extension<Arc<S>>,
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
     bodies: Json<Vec<UpdateEntityTypeRequest>>,
-) -> Result<Json<Vec<EntityTypeMetadata>>, Response>
+) -> Result<Json<Vec<EntityTypeMetadata>>, BoxedResponse>
 where
     S: StorePool + Send + Sync,
 {
@@ -754,7 +754,7 @@ where
                 })
             },
         )
-        .collect::<Result<Vec<_>, Response>>()?;
+        .collect::<Result<Vec<_>, BoxedResponse>>()?;
     store
         .update_entity_types(actor_id, params)
         .await
@@ -782,7 +782,7 @@ async fn update_entity_type_embeddings<S>(
     store_pool: Extension<Arc<S>>,
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
     Json(body): Json<serde_json::Value>,
-) -> Result<(), Response>
+) -> Result<(), BoxedResponse>
 where
     S: StorePool + Send + Sync,
 {
@@ -825,7 +825,7 @@ async fn archive_entity_type<S>(
     store_pool: Extension<Arc<S>>,
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
     Json(body): Json<serde_json::Value>,
-) -> Result<Json<OntologyTemporalMetadata>, Response>
+) -> Result<Json<OntologyTemporalMetadata>, BoxedResponse>
 where
     S: StorePool + Send + Sync,
 {
@@ -877,7 +877,7 @@ async fn unarchive_entity_type<S>(
     store_pool: Extension<Arc<S>>,
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
     Json(body): Json<serde_json::Value>,
-) -> Result<Json<OntologyTemporalMetadata>, Response>
+) -> Result<Json<OntologyTemporalMetadata>, BoxedResponse>
 where
     S: StorePool + Send + Sync,
 {

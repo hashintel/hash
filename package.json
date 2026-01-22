@@ -9,6 +9,7 @@
   },
   "workspaces": {
     "packages": [
+      "!**/pkg",
       ".claude/hooks",
       "apps/**",
       "libs/**",

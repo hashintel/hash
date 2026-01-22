@@ -1,7 +1,7 @@
 import { css } from "@hashintel/ds-helpers/css";
 
 const titleStyle = css({
-  fontWeight: 600,
+  fontWeight: "semibold",
   fontSize: "[14px]",
 });
 

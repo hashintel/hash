@@ -1,11 +1,12 @@
 import { css, cva } from "@hashintel/ds-helpers/css";
+import { use } from "react";
 import { v4 as uuidv4 } from "uuid";
 
 import type { SubView } from "../../../components/sub-view/types";
 import { DEFAULT_DIFFERENTIAL_EQUATION_CODE } from "../../../core/default-codes";
-import { useEditorStore } from "../../../state/editor-provider";
-import { useSDCPNContext } from "../../../state/sdcpn-provider";
-import { useSimulationStore } from "../../../state/simulation-provider";
+import { EditorContext } from "../../../state/editor-context";
+import { SDCPNContext } from "../../../state/sdcpn-context";
+import { SimulationContext } from "../../../state/simulation-context";
 
 const listContainerStyle = css({
   display: "flex",
@@ -51,25 +52,25 @@ const deleteButtonStyle = css({
   display: "flex",
   alignItems: "center",
   justifyContent: "center",
-  padding: "spacing.1",
-  borderRadius: "radius.2",
+  padding: "1",
+  borderRadius: "md.2",
   cursor: "pointer",
   fontSize: "[14px]",
-  color: "core.gray.40",
+  color: "gray.40",
   background: "[transparent]",
   border: "none",
   width: "[20px]",
   height: "[20px]",
   _hover: {
     backgroundColor: "[rgba(239, 68, 68, 0.1)]",
-    color: "core.red.60",
+    color: "red.60",
   },
   _disabled: {
     cursor: "not-allowed",
     opacity: "[0.3]",
     _hover: {
       backgroundColor: "[transparent]",
-      color: "core.gray.40",
+      color: "gray.40",
     },
   },
 });
@@ -77,7 +78,7 @@ const deleteButtonStyle = css({
 const emptyMessageStyle = css({
   fontSize: "[13px]",
   color: "[#9ca3af]",
-  padding: "spacing.4",
+  padding: "4",
   textAlign: "center",
 });
 
@@ -85,24 +86,24 @@ const addButtonStyle = css({
   display: "flex",
   alignItems: "center",
   justifyContent: "center",
-  borderRadius: "radius.2",
+  borderRadius: "md.2",
   cursor: "pointer",
   fontSize: "[16px]",
-  color: "core.gray.60",
+  color: "gray.60",
   background: "[transparent]",
   border: "none",
   width: "[20px]",
   height: "[20px]",
   _hover: {
     backgroundColor: "[rgba(0, 0, 0, 0.05)]",
-    color: "core.gray.90",
+    color: "gray.90",
   },
   _disabled: {
     cursor: "not-allowed",
     opacity: "[0.4]",
     _hover: {
       backgroundColor: "[transparent]",
-      color: "core.gray.60",
+      color: "gray.60",
     },
   },
 });
@@ -115,17 +116,12 @@ const DifferentialEquationsSectionContent: React.FC = () => {
   const {
     petriNetDefinition: { differentialEquations },
     removeDifferentialEquation,
-  } = useSDCPNContext();
+  } = use(SDCPNContext);
 
-  const selectedResourceId = useEditorStore(
-    (state) => state.selectedResourceId,
-  );
-  const setSelectedResourceId = useEditorStore(
-    (state) => state.setSelectedResourceId,
-  );
+  const { selectedResourceId, setSelectedResourceId } = use(EditorContext);
 
   // Check if simulation is running or paused
-  const simulationState = useSimulationStore((state) => state.state);
+  const { state: simulationState } = use(SimulationContext);
   const isSimulationActive =
     simulationState === "Running" || simulationState === "Paused";
 
@@ -194,13 +190,11 @@ const DifferentialEquationsSectionHeaderAction: React.FC = () => {
   const {
     petriNetDefinition: { types, differentialEquations },
     addDifferentialEquation,
-  } = useSDCPNContext();
-  const setSelectedResourceId = useEditorStore(
-    (state) => state.setSelectedResourceId,
-  );
+  } = use(SDCPNContext);
+  const { setSelectedResourceId } = use(EditorContext);
 
   // Check if simulation is running or paused
-  const simulationState = useSimulationStore((state) => state.state);
+  const { state: simulationState } = use(SimulationContext);
   const isSimulationActive =
     simulationState === "Running" || simulationState === "Paused";
 

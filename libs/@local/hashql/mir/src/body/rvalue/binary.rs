@@ -15,9 +15,9 @@ use crate::body::operand::Operand;
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum BinOp {
     /// The `+` operator (addition).
-    Add(!),
+    Add,
     /// The `-` operator (subtraction).
-    Sub(!),
+    Sub,
     /// The `*` operator (multiplication).
     Mul(!),
     /// The `/` operator (division).
@@ -56,6 +56,8 @@ impl BinOp {
     #[must_use]
     pub const fn as_str(self) -> &'static str {
         match self {
+            Self::Add => "+",
+            Self::Sub => "-",
             Self::BitAnd => "&",
             Self::BitOr => "|",
             Self::Eq => "==",
@@ -70,6 +72,8 @@ impl BinOp {
     #[must_use]
     pub const fn as_symbol(self) -> Symbol<'static> {
         match self {
+            Self::Add => sym::symbol::add,
+            Self::Sub => sym::symbol::sub,
             Self::BitAnd => sym::symbol::ampersand,
             Self::BitOr => sym::symbol::pipe,
             Self::Eq => sym::symbol::eq,

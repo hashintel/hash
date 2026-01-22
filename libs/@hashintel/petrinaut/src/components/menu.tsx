@@ -7,7 +7,7 @@ const menuContentStyle = css({
   borderRadius: "[6px]",
   boxShadow: "0 4px 16px rgba(0, 0, 0, 0.15)",
   border: "1px solid",
-  borderColor: "core.gray.20",
+  borderColor: "gray.20",
   minWidth: "[180px]",
   zIndex: "[1001]",
   padding: "[7px]",
@@ -18,24 +18,24 @@ const submenuContentStyle = css({
   borderRadius: "[6px]",
   boxShadow: "0 4px 16px rgba(0, 0, 0, 0.15)",
   border: "1px solid",
-  borderColor: "core.gray.20",
+  borderColor: "gray.20",
   minWidth: "[180px]",
   zIndex: "[1002]",
   padding: "[7px]",
 });
 
 const triggerItemStyle = css({
-  fontSize: "size.textsm",
+  fontSize: "sm",
   cursor: "pointer",
   borderRadius: "[1px]",
-  color: "core.gray.90",
+  color: "gray.90",
   display: "flex",
   justifyContent: "space-between",
   alignItems: "center",
   paddingBlock: "[4px]",
   paddingInline: "[7px]",
   _hover: {
-    backgroundColor: "core.gray.10",
+    backgroundColor: "gray.10",
   },
 });
 
@@ -44,14 +44,14 @@ const triggerItemArrowStyle = css({
 });
 
 const itemStyle = css({
-  fontSize: "size.textsm",
+  fontSize: "sm",
   cursor: "pointer",
   borderRadius: "[3px]",
-  color: "core.gray.90",
+  color: "gray.90",
   paddingBlock: "[4px]",
   paddingInline: "[7px]",
   _hover: {
-    backgroundColor: "core.gray.10",
+    backgroundColor: "gray.10",
   },
   _disabled: {
     cursor: "not-allowed",

@@ -1,6 +1,6 @@
 import figma from "@figma/code-connect";
 
-import { Badge } from "./badge";
+import { Badge } from "../badge";
 
 /**
  * Code Connect mapping for the Badge component.

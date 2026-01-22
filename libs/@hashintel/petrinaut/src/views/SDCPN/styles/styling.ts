@@ -6,16 +6,16 @@ export const nodeDimensions = {
 };
 
 export const placeStyling = css({
-  padding: "spacing.4",
+  padding: "4",
   borderRadius: "[50%]",
   width: `[${nodeDimensions.place.width}px]`,
   height: `[${nodeDimensions.place.height}px]`,
   display: "flex",
   justifyContent: "center",
   alignItems: "center",
-  background: "core.gray.10",
+  background: "gray.10",
   border: "2px solid",
-  borderColor: "core.gray.50",
+  borderColor: "gray.50",
   fontSize: "[15px]",
   boxSizing: "border-box",
   position: "relative",
@@ -24,17 +24,17 @@ export const placeStyling = css({
 });
 
 export const transitionStyling = css({
-  padding: "spacing.4",
-  borderRadius: "radius.8",
+  padding: "4",
+  borderRadius: "md.8",
   width: `[${nodeDimensions.transition.width}px]`,
   height: `[${nodeDimensions.transition.height}px]`,
   display: "flex",
   flexDirection: "column",
   justifyContent: "center",
   alignItems: "center",
-  background: "core.gray.20",
+  background: "gray.20",
   border: "2px solid",
-  borderColor: "core.gray.50",
+  borderColor: "gray.50",
   fontSize: "[15px]",
   boxSizing: "border-box",
   position: "relative",

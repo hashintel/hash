@@ -1,7 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { useState } from "react";
 
-import { RadioGroup, type RadioGroupProps } from "./radio-group";
+import { RadioGroup, type RadioGroupProps } from "../radio-group";
 
 const meta: Meta<RadioGroupProps> = {
   title: "Components/RadioGroup",

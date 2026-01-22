@@ -13,7 +13,7 @@ const errorContainerStyle = css({
 });
 
 const errorTitleStyle = css({
-  fontWeight: 600,
+  fontWeight: "semibold",
   fontSize: "[14px]",
   marginBottom: "[8px]",
 });

@@ -1,9 +1,22 @@
 {
+  "$schema": "https://turborepo.org/schema.json",
   "extends": ["//"],
   "tasks": {
     "build": {
-      "outputs": ["./dist/**"],
-      "dependsOn": ["^build"]
+      "dependsOn": ["codegen", "^build"],
+      "outputs": [".build/ladle/**"]
+    },
+    "codegen": {
+      "outputs": ["styled-system/**"]
+    },
+    "dev": {
+      "cache": false,
+      "dependsOn": ["^build"],
+      "persistent": true
+    },
+    "test": {
+      "dependsOn": ["build"],
+      "outputs": ["playwright-report/**"]
     }
   }
 }

@@ -311,6 +311,9 @@ macro_rules! body {
     (@type $types:ident; Int) => {
         $types.integer()
     };
+    (@type $types:ident; Num) => {
+        $types.number()
+    };
     (@type $types:ident; ()) => {
         $types.tuple([] as [hashql_core::r#type::TypeId; 0])
     };

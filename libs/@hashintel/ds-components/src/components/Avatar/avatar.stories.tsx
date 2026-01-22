@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 
-import { Avatar, type AvatarProps } from "./avatar";
+import { Avatar, type AvatarProps } from "../avatar";
 
 // User icon SVG
 const UserIcon = (

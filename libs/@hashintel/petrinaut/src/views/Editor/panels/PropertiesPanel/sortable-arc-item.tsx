@@ -57,7 +57,7 @@ const weightLabelStyle = css({
   color: "[#999]",
   textTransform: "uppercase",
   letterSpacing: "[0.5px]",
-  fontWeight: 500,
+  fontWeight: "medium",
 });
 
 const weightInputStyle = cva({
@@ -89,16 +89,16 @@ const deleteButtonStyle = css({
   justifyContent: "center",
   width: "[24px]",
   height: "[24px]",
-  padding: "spacing.0",
+  padding: "0",
   border: "none",
   background: "[transparent]",
   cursor: "pointer",
-  color: "core.gray.60",
+  color: "gray.60",
   flexShrink: 0,
-  borderRadius: "radius.4",
+  borderRadius: "md.4",
   _hover: {
-    color: "core.red.60",
-    backgroundColor: "core.red.10",
+    color: "red.60",
+    backgroundColor: "red.10",
   },
 });
 

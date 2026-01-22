@@ -1,8 +1,8 @@
 import { css, cva } from "@hashintel/ds-helpers/css";
-import { useEffect, useRef, useState } from "react";
+import { use, useEffect, useRef, useState } from "react";
 
 import type { Color } from "../../../../core/types/sdcpn";
-import { useSimulationStore } from "../../../../state/simulation-provider";
+import { SimulationContext } from "../../../../state/simulation-context";
 
 const wrapperStyle = css({
   display: "flex",
@@ -34,7 +34,7 @@ const rowNumberHeaderStyle = css({
   borderRight: "[1px solid rgba(0, 0, 0, 0.1)]",
   padding: "[4px 8px]",
   textAlign: "center",
-  fontWeight: 500,
+  fontWeight: "medium",
   width: "[40px]",
   minWidth: "[40px]",
 });
@@ -46,7 +46,7 @@ const columnHeaderStyle = css({
   borderBottom: "[1px solid rgba(0, 0, 0, 0.1)]",
   padding: "[4px 8px]",
   textAlign: "left",
-  fontWeight: 500,
+  fontWeight: "medium",
   fontFamily: "[monospace]",
   minWidth: "[60px]",
   overflow: "hidden",
@@ -81,7 +81,7 @@ const rowNumberCellStyle = cva({
     borderBottom: "[1px solid rgba(0, 0, 0, 0.05)]",
     padding: "[4px 8px]",
     textAlign: "center",
-    fontWeight: 500,
+    fontWeight: "medium",
     outline: "none",
   },
   variants: {
@@ -103,7 +103,7 @@ const rowNumberCellStyle = cva({
 const cellContainerStyle = cva({
   base: {
     borderBottom: "[1px solid rgba(0, 0, 0, 0.05)]",
-    padding: "spacing.0",
+    padding: "0",
     height: "[28px]",
   },
   variants: {
@@ -176,7 +176,7 @@ const resizeHandleStyle = cva({
     height: "[8px]",
     cursor: "ns-resize",
     border: "none",
-    padding: "spacing.0",
+    padding: "0",
     zIndex: 10,
   },
   variants: {
@@ -254,14 +254,12 @@ export const InitialStateEditor: React.FC<InitialStateEditorProps> = ({
   const internalResize = useResizable(250);
   const { height, isResizing, containerRef, startResize } = internalResize;
 
-  const initialMarking = useSimulationStore((state) => state.initialMarking);
-  const setInitialMarking = useSimulationStore(
-    (state) => state.setInitialMarking,
-  );
-  const simulation = useSimulationStore((state) => state.simulation);
-  const currentlyViewedFrame = useSimulationStore(
-    (state) => state.currentlyViewedFrame,
-  );
+  const {
+    initialMarking,
+    setInitialMarking,
+    simulation,
+    currentlyViewedFrame,
+  } = use(SimulationContext);
 
   // Determine if we should show current simulation state or initial marking
   const hasSimulation = simulation !== null && simulation.frames.length > 0;
