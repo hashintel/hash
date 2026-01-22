@@ -30,6 +30,7 @@ import {
   createPropertyTypeEmbeddings,
 } from "./activities/shared/embeddings.js";
 
+export { createDashboardConfigurationActivities } from "./activities/dashboard-configuration.js";
 export { createGraphActivities } from "./activities/graph.js";
 
 export const createAiActivities = ({

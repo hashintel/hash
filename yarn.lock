@@ -633,6 +633,8 @@ __metadata:
     "@types/react": "npm:19.2.7"
     "@types/react-beautiful-dnd": "npm:13.1.8"
     "@types/react-dom": "npm:19.2.3"
+    "@types/react-grid-layout": "npm:2.1.0"
+    "@types/react-resizable": "npm:^3"
     "@types/react-window": "npm:1.8.8"
     "@types/url-regex-safe": "npm:1.0.2"
     "@vercel/edge-config": "npm:0.4.1"
@@ -681,9 +683,11 @@ __metadata:
     react-dom: "npm:19.2.3"
     react-dropzone: "npm:14.3.8"
     react-full-screen: "npm:1.1.1"
+    react-grid-layout: "npm:2.2.2"
     react-hook-form: "npm:7.65.0"
     react-markdown: "npm:10.1.0"
     react-pdf: "npm:9.2.1"
+    react-resizable: "npm:3.1.3"
     react-responsive-carousel: "npm:3.2.23"
     react-transition-group: "npm:4.4.5"
     react-virtuoso: "npm:4.14.1"
@@ -19747,6 +19751,15 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@types/react-grid-layout@npm:2.1.0":
+  version: 2.1.0
+  resolution: "@types/react-grid-layout@npm:2.1.0"
+  dependencies:
+    react-grid-layout: "npm:*"
+  checksum: 10c0/1e21a924afba01efce825bb6050e5e9302994bcb643db7a3882854f57c810c5063bd54e78768c8772b589572388d0c8c2f4a99ddf4c5fb2468009bb10b60def7
+  languageName: node
+  linkType: hard
+
 "@types/react-redux@npm:^7.1.20":
   version: 7.1.34
   resolution: "@types/react-redux@npm:7.1.34"
@@ -19756,6 +19769,15 @@ __metadata:
     hoist-non-react-statics: "npm:^3.3.0"
     redux: "npm:^4.0.0"
   checksum: 10c0/6750964ec656eb6973b0e4fda787549aee5dbc266a0f0e78fc9efb417b4965c0b060d10b99a7b7fa0c8812b8a0a07d97a1ef46d094bf64fee07144e8bbad781a
+  languageName: node
+  linkType: hard
+
+"@types/react-resizable@npm:^3":
+  version: 3.0.8
+  resolution: "@types/react-resizable@npm:3.0.8"
+  dependencies:
+    "@types/react": "npm:*"
+  checksum: 10c0/77d7896703531a32e8efdf0c7208c0f6af8eadf3d8dc5fd2b5e6032ed834f4d8ea52f14ebee8b39af6fb63642bbaacf785dd9962b1f284f070a63143251315fb
   languageName: node
   linkType: hard
 
@@ -29489,6 +29511,13 @@ __metadata:
   version: 3.1.3
   resolution: "fast-deep-equal@npm:3.1.3"
   checksum: 10c0/40dedc862eb8992c54579c66d914635afbec43350afbbe991235fdcb4e3a8d5af1b23ae7e79bef7d4882d0ecee06c3197488026998fb19f72dc95acff1d1b1d0
+  languageName: node
+  linkType: hard
+
+"fast-equals@npm:^4.0.3":
+  version: 4.0.3
+  resolution: "fast-equals@npm:4.0.3"
+  checksum: 10c0/87fd2609c945ee61e9ed4d041eb2a8f92723fc02884115f67e429dd858d880279e962334894f116b3e9b223f387d246e3db5424ae779287849015ddadbf5ff27
   languageName: node
   linkType: hard
 
@@ -40508,7 +40537,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"prop-types@npm:^15.5.8, prop-types@npm:^15.6.2, prop-types@npm:^15.7.2, prop-types@npm:^15.8.1":
+"prop-types@npm:15.x, prop-types@npm:^15.5.8, prop-types@npm:^15.6.2, prop-types@npm:^15.7.2, prop-types@npm:^15.8.1":
   version: 15.8.1
   resolution: "prop-types@npm:15.8.1"
   dependencies:
@@ -41300,6 +41329,19 @@ __metadata:
   languageName: node
   linkType: hard
 
+"react-draggable@npm:^4.4.6, react-draggable@npm:^4.5.0":
+  version: 4.5.0
+  resolution: "react-draggable@npm:4.5.0"
+  dependencies:
+    clsx: "npm:^2.1.1"
+    prop-types: "npm:^15.8.1"
+  peerDependencies:
+    react: ">= 16.3.0"
+    react-dom: ">= 16.3.0"
+  checksum: 10c0/6f7591fe450555218bf0d9e31984be02451bf3f678fb121f51ac0a0a645d01a1b5ea8248ef9afddcd24239028911fd88032194b9c00b30ad5ece76ea13397fc3
+  languageName: node
+  linkType: hard
+
 "react-dropzone@npm:14.3.8":
   version: 14.3.8
   resolution: "react-dropzone@npm:14.3.8"
@@ -41330,6 +41372,23 @@ __metadata:
   peerDependencies:
     react: ">= 16.8.0"
   checksum: 10c0/02c6034c6aca5c68b4067d2cbfe0328b2461a0ef3b27735cf2711aca53308242cf0f31f888e6fc22e9ea34ae28c61a8d8acaddfd497f100c8e84f87b58530439
+  languageName: node
+  linkType: hard
+
+"react-grid-layout@npm:*, react-grid-layout@npm:2.2.2":
+  version: 2.2.2
+  resolution: "react-grid-layout@npm:2.2.2"
+  dependencies:
+    clsx: "npm:^2.1.1"
+    fast-equals: "npm:^4.0.3"
+    prop-types: "npm:^15.8.1"
+    react-draggable: "npm:^4.4.6"
+    react-resizable: "npm:^3.0.5"
+    resize-observer-polyfill: "npm:^1.5.1"
+  peerDependencies:
+    react: ">= 16.3.0"
+    react-dom: ">= 16.3.0"
+  checksum: 10c0/4b38496948136b3d63689c141bcdfaece5e6ce9d228bffad89f751d3b510f6ab1589609982c6fa340a805bda7e0533b212bdff0185b8a52293e031a2e57ebdb9
   languageName: node
   linkType: hard
 
@@ -41574,6 +41633,19 @@ __metadata:
     "@types/react":
       optional: true
   checksum: 10c0/c5881c537477d986e8d25d2588a9b6f7fe1254e05946fb4f4b55baeead502b0e1875fc3c42bb6f82736772cd96a50266e41d84e3c4cd25e9525bdfe2d838e96d
+  languageName: node
+  linkType: hard
+
+"react-resizable@npm:3.1.3, react-resizable@npm:^3.0.5":
+  version: 3.1.3
+  resolution: "react-resizable@npm:3.1.3"
+  dependencies:
+    prop-types: "npm:15.x"
+    react-draggable: "npm:^4.5.0"
+  peerDependencies:
+    react: ">= 16.3"
+    react-dom: ">= 16.3"
+  checksum: 10c0/de0f4447369381a446c0ce5f5770e85ec3a522a540d8eaf11998ec2d0b37835f879eb58f1765a89269ead53018c1eabf10b293eae5cb41c41a89057f2741563d
   languageName: node
   linkType: hard
 
@@ -42421,6 +42493,13 @@ __metadata:
   version: 1.0.0
   resolution: "requires-port@npm:1.0.0"
   checksum: 10c0/b2bfdd09db16c082c4326e573a82c0771daaf7b53b9ce8ad60ea46aa6e30aaf475fe9b164800b89f93b748d2c234d8abff945d2551ba47bf5698e04cd7713267
+  languageName: node
+  linkType: hard
+
+"resize-observer-polyfill@npm:^1.5.1":
+  version: 1.5.1
+  resolution: "resize-observer-polyfill@npm:1.5.1"
+  checksum: 10c0/5e882475067f0b97dc07e0f37c3e335ac5bc3520d463f777cec7e894bb273eddbfecb857ae668e6fb6881fd6f6bb7148246967172139302da50fa12ea3a15d95
   languageName: node
   linkType: hard
 

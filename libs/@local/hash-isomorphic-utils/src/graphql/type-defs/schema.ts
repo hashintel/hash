@@ -7,6 +7,7 @@ import { linearTypedef } from "./integration/linear.typedef.js";
 import { blockTypedef } from "./knowledge/block.typedef.js";
 import { blockCollectionTypedef } from "./knowledge/block-collection.typedef.js";
 import { commentTypedef } from "./knowledge/comment.typedef.js";
+import { dashboardTypedef } from "./knowledge/dashboard.typedef.js";
 import { entityTypedef } from "./knowledge/entity.typedef.js";
 import { fileTypedef } from "./knowledge/file.typedef.js";
 import { flowTypedef } from "./knowledge/flow.typedef.js";
@@ -43,6 +44,7 @@ const knowledge = [
   blockCollectionTypedef,
   blockTypedef,
   commentTypedef,
+  dashboardTypedef,
   entityTypedef,
   fileTypedef,
   flowTypedef,

@@ -10,7 +10,10 @@ import type {
  * Activities that are registered to the 'ai' temporal task queue.
  */
 export type AiFlowActionDefinitionId =
+  | "analyzeDashboardData"
   | "answerQuestion"
+  | "generateChartConfig"
+  | "generateDashboardQuery"
   | "generateWebQueries"
   | "getFileFromUrl"
   | "getWebPageByUrl"
@@ -32,6 +35,66 @@ export type IntegrationFlowActionDefinitionId =
   | "persistIntegrationEntities";
 
 const aiFlowActionDefinitionsAsConst = {
+  analyzeDashboardData: {
+    actionDefinitionId: "analyzeDashboardData",
+    name: "Analyze Dashboard Data",
+    description:
+      "Transform query results into chart-ready data using Python code execution.",
+    kind: "action",
+    inputs: [
+      {
+        oneOfPayloadKinds: ["Text"],
+        name: "structuredQuery",
+        description: "The structural query filter as JSON",
+        required: true,
+        array: false,
+      },
+      {
+        oneOfPayloadKinds: ["Text"],
+        name: "userGoal",
+        description: "The user's visualization goal",
+        required: true,
+        array: false,
+      },
+      {
+        oneOfPayloadKinds: ["Text"],
+        name: "targetChartType",
+        description: "Optional target chart type",
+        required: false,
+        array: false,
+      },
+    ],
+    outputs: [
+      {
+        payloadKind: "Text",
+        name: "pythonScript",
+        description: "The Python script used for data transformation",
+        array: false,
+        required: true,
+      },
+      {
+        payloadKind: "Text",
+        name: "chartData",
+        description: "The transformed chart data as JSON",
+        array: false,
+        required: true,
+      },
+      {
+        payloadKind: "Text",
+        name: "suggestedChartType",
+        description: "The recommended chart type",
+        array: false,
+        required: true,
+      },
+      {
+        payloadKind: "Text",
+        name: "explanation",
+        description: "Explanation of the data transformation approach",
+        array: false,
+        required: true,
+      },
+    ],
+  },
   generateWebQueries: {
     actionDefinitionId: "generateWebQueries",
     name: "Generate Web Query",
@@ -485,6 +548,91 @@ const aiFlowActionDefinitionsAsConst = {
         description: "Any source code used to generate the answer .",
         payloadKind: "Text",
         name: "sourceCode",
+        array: false,
+        required: false,
+      },
+    ],
+  },
+  generateChartConfig: {
+    actionDefinitionId: "generateChartConfig",
+    name: "Generate Chart Config",
+    description:
+      "Generate Apache ECharts configuration for chart data based on the user's visualization goal.",
+    kind: "action",
+    inputs: [
+      {
+        oneOfPayloadKinds: ["Text"],
+        name: "chartData",
+        description: "The chart data as JSON",
+        required: true,
+        array: false,
+      },
+      {
+        oneOfPayloadKinds: ["Text"],
+        name: "chartType",
+        description: "The type of chart to configure",
+        required: true,
+        array: false,
+      },
+      {
+        oneOfPayloadKinds: ["Text"],
+        name: "userGoal",
+        description: "The user's visualization goal",
+        required: true,
+        array: false,
+      },
+    ],
+    outputs: [
+      {
+        payloadKind: "Text",
+        name: "chartConfig",
+        description: "The chart configuration as JSON",
+        array: false,
+        required: true,
+      },
+      {
+        payloadKind: "Text",
+        name: "explanation",
+        description: "Explanation of why this configuration was chosen",
+        array: false,
+        required: true,
+      },
+    ],
+  },
+  generateDashboardQuery: {
+    actionDefinitionId: "generateDashboardQuery",
+    name: "Generate Dashboard Query",
+    description:
+      "Generate a structural query for dashboard data based on a natural language goal.",
+    kind: "action",
+    inputs: [
+      {
+        oneOfPayloadKinds: ["Text"],
+        name: "userGoal",
+        description: "The user's visualization goal in natural language",
+        required: true,
+        array: false,
+      },
+    ],
+    outputs: [
+      {
+        payloadKind: "Text",
+        name: "structuredQuery",
+        description: "The generated structural query as JSON",
+        array: false,
+        required: true,
+      },
+      {
+        payloadKind: "Text",
+        name: "explanation",
+        description: "Explanation of what the query does",
+        array: false,
+        required: true,
+      },
+      {
+        payloadKind: "Text",
+        name: "suggestedChartTypes",
+        description: "Suggested chart types as JSON array",
         array: false,
         required: false,
       },

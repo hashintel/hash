@@ -31,6 +31,7 @@ import type {
   createAiActivities,
   createGraphActivities,
 } from "./activities.js";
+import { configureDashboardItemWorkflow } from "./workflows/configure-dashboard-item-workflow.js";
 import { runFlowWorkflow } from "./workflows/run-flow-workflow.js";
 
 const aiActivities = proxyActivities<ReturnType<typeof createAiActivities>>({
@@ -498,3 +499,5 @@ export const parseTextFromFile = async (
 };
 
 export const runFlow = runFlowWorkflow;
+
+export { configureDashboardItemWorkflow };

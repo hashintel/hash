@@ -345,6 +345,21 @@ export type BytesDataTypeMetadata = {
 };
 
 /**
+ * Configuration options for rendering a chart.
+ */
+export type ChartConfigurationPropertyValue = ObjectDataType;
+
+export type ChartConfigurationPropertyValueWithMetadata =
+  ObjectDataTypeWithMetadata;
+
+/**
+ * A type of data visualization chart.
+ */
+export type ChartTypePropertyValue = TextDataType;
+
+export type ChartTypePropertyValueWithMetadata = TextDataTypeWithMetadata;
+
+/**
  * The city where something is located, occurred, etc.
  */
 export type CityPropertyValue = TextDataType;
@@ -407,6 +422,14 @@ export type ComponentIdPropertyValue = TextDataType;
 export type ComponentIdPropertyValueWithMetadata = TextDataTypeWithMetadata;
 
 /**
+ * The status of a configuration process.
+ */
+export type ConfigurationStatusPropertyValue = TextDataType;
+
+export type ConfigurationStatusPropertyValueWithMetadata =
+  TextDataTypeWithMetadata;
+
+/**
  * The name of the connection source.
  */
 export type ConnectionSourceNamePropertyValue = TextDataType;
@@ -442,6 +465,49 @@ export type DOILinkPropertyValueWithMetadata = URIDataTypeWithMetadata;
 export type DOIPropertyValue = DOIDataType;
 
 export type DOIPropertyValueWithMetadata = DOIDataTypeWithMetadata;
+
+/**
+ * A visualization item within a dashboard.
+ */
+export type DashboardItem = {
+  entityTypeIds: ["https://hash.ai/@h/types/entity-type/dashboard-item/v/1"];
+  properties: DashboardItemProperties;
+  propertiesWithMetadata: DashboardItemPropertiesWithMetadata;
+};
+
+export type DashboardItemOutgoingLinkAndTarget = never;
+
+export type DashboardItemOutgoingLinksByLinkEntityTypeId = {};
+
+/**
+ * A visualization item within a dashboard.
+ */
+export type DashboardItemProperties = {
+  "https://blockprotocol.org/@blockprotocol/types/property-type/description/"?: DescriptionPropertyValue;
+  "https://blockprotocol.org/@blockprotocol/types/property-type/name/": NamePropertyValue;
+  "https://hash.ai/@h/types/property-type/chart-configuration/"?: ChartConfigurationPropertyValue;
+  "https://hash.ai/@h/types/property-type/chart-type/"?: ChartTypePropertyValue;
+  "https://hash.ai/@h/types/property-type/configuration-status/": ConfigurationStatusPropertyValue;
+  "https://hash.ai/@h/types/property-type/goal/": GoalPropertyValue;
+  "https://hash.ai/@h/types/property-type/grid-position/": GridPositionPropertyValue;
+  "https://hash.ai/@h/types/property-type/python-script/"?: PythonScriptPropertyValue;
+  "https://hash.ai/@h/types/property-type/structural-query/"?: StructuralQueryPropertyValue;
+};
+
+export type DashboardItemPropertiesWithMetadata = {
+  metadata?: ObjectMetadata;
+  value: {
+    "https://blockprotocol.org/@blockprotocol/types/property-type/description/"?: DescriptionPropertyValueWithMetadata;
+    "https://blockprotocol.org/@blockprotocol/types/property-type/name/": NamePropertyValueWithMetadata;
+    "https://hash.ai/@h/types/property-type/chart-configuration/"?: ChartConfigurationPropertyValueWithMetadata;
+    "https://hash.ai/@h/types/property-type/chart-type/"?: ChartTypePropertyValueWithMetadata;
+    "https://hash.ai/@h/types/property-type/configuration-status/": ConfigurationStatusPropertyValueWithMetadata;
+    "https://hash.ai/@h/types/property-type/goal/": GoalPropertyValueWithMetadata;
+    "https://hash.ai/@h/types/property-type/grid-position/": GridPositionPropertyValueWithMetadata;
+    "https://hash.ai/@h/types/property-type/python-script/"?: PythonScriptPropertyValueWithMetadata;
+    "https://hash.ai/@h/types/property-type/structural-query/"?: StructuralQueryPropertyValueWithMetadata;
+  };
+};
 
 /**
  * The data sources configuration for an AI flow.
@@ -955,6 +1021,20 @@ export type FlowTypePropertyValueWithMetadata = FlowTypeDataTypeWithMetadata;
 export type FractionalIndexPropertyValue = TextDataType;
 
 export type FractionalIndexPropertyValueWithMetadata = TextDataTypeWithMetadata;
+
+/**
+ * A natural language description of the objective of something.
+ */
+export type GoalPropertyValue = TextDataType;
+
+export type GoalPropertyValueWithMetadata = TextDataTypeWithMetadata;
+
+/**
+ * The position and dimensions of an item within a grid layout.
+ */
+export type GridPositionPropertyValue = ObjectDataType;
+
+export type GridPositionPropertyValueWithMetadata = ObjectDataTypeWithMetadata;
 
 /**
  * Something that something has
@@ -1985,6 +2065,13 @@ export type PublicationYearPropertyValue = YearDataType;
 export type PublicationYearPropertyValueWithMetadata = YearDataTypeWithMetadata;
 
 /**
+ * A script written in the Python programming language.
+ */
+export type PythonScriptPropertyValue = TextDataType;
+
+export type PythonScriptPropertyValueWithMetadata = TextDataTypeWithMetadata;
+
+/**
  * The timestamp of when something was read.
  */
 export type ReadAtPropertyValue = DateTimeDataType;
@@ -2224,6 +2311,14 @@ export type StepPropertyValueWithMetadata = {
   value: ObjectDataTypeWithMetadata[];
   metadata?: ArrayMetadata;
 };
+
+/**
+ * A HASH Graph API structural query.
+ */
+export type StructuralQueryPropertyValue = ObjectDataType;
+
+export type StructuralQueryPropertyValueWithMetadata =
+  ObjectDataTypeWithMetadata;
 
 /**
  * The summary of the something.
