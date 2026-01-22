@@ -206,7 +206,7 @@ jobs:
       - name: Validate package.json generated from Cargo.toml
         if: ${{ success() || failure() }}
         run: |
-          cargo -Zscript run --manifest-path ".github/scripts/rust/sync-turborepo.rs" . | xargs yarn fix:package-json
+          mise run sync:turborepo
           git --no-pager diff --exit-code --color '**/package.json'
 
       - name: Validate Dependency Diagrams

@@ -2,16 +2,16 @@
   "name": "@hashintel/petrinaut",
   "version": "0.0.6-canary.6",
   "description": "A visual editor for Petri nets",
+  "license": "(MIT OR Apache-2.0)",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/hashintel/hash.git",
     "directory": "libs/@hashintel/petrinaut"
   },
-  "license": "(MIT OR Apache-2.0)",
+  "type": "module",
   "sideEffects": [
     "demo-site/**/*.ts"
   ],
-  "type": "module",
   "main": "dist/main.js",
   "types": "dist/main.d.ts",
   "scripts": {

@@ -2,14 +2,22 @@
   "name": "@hashintel/ds-helpers",
   "version": "0.0.1",
   "description": "HASH PandaCSS Styled System",
+  "license": "(MIT OR Apache-2.0)",
   "repository": {
     "type": "git",
     "url": "https://github.com/hashintel/hash.git",
     "directory": "libs/@hashintel/ds-helpers"
   },
-  "license": "(MIT OR Apache-2.0)",
-  "sideEffects": false,
+  "files": [
+    "CHANGELOG.md",
+    "LICENSE",
+    "LICENSE-APACHE.md",
+    "LICENSE-MIT.md",
+    "README.md",
+    "styled-system"
+  ],
   "type": "module",
+  "sideEffects": false,
   "exports": {
     "./css": {
       "types": "./styled-system/css/index.d.ts",
@@ -38,14 +46,9 @@
     },
     "./styles.css": "./styled-system/styles.css"
   },
-  "files": [
-    "styled-system",
-    "CHANGELOG.md",
-    "LICENSE-APACHE.md",
-    "LICENSE-MIT.md",
-    "LICENSE",
-    "README.md"
-  ],
+  "publishConfig": {
+    "access": "public"
+  },
   "scripts": {
     "build": "ladle build",
     "codegen": "panda codegen --clean",
@@ -79,8 +82,5 @@
     "typescript": "5.9.3",
     "vite": "7.1.11",
     "vitest": "^4.0.16"
-  },
-  "publishConfig": {
-    "access": "public"
   }
 }

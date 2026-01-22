@@ -2,14 +2,14 @@
   "name": "@hashintel/query-editor",
   "version": "0.0.3",
   "description": "A visual editor for Block Protocol entity queries",
+  "license": "AGPL-3.0",
   "repository": {
     "type": "git",
     "url": "https://github.com/hashintel/hash.git",
     "directory": "libs/@hashintel/query-editor"
   },
-  "license": "AGPL-3.0",
-  "sideEffects": false,
   "type": "module",
+  "sideEffects": false,
   "main": "src/main.ts",
   "types": "src/main.ts",
   "scripts": {
