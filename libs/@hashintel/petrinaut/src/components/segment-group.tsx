@@ -1,16 +1,15 @@
+import { ark } from "@ark-ui/react/factory";
 import { SegmentGroup as ArkSegmentGroup } from "@ark-ui/react/segment-group";
-import { Tooltip as ArkTooltip } from "@ark-ui/react/tooltip";
 import { css, cva } from "@hashintel/ds-helpers/css";
-import { useId } from "react";
 
-const tooltipContentStyle = css({
-  backgroundColor: "gray.90",
-  color: "gray.10",
-  borderRadius: "md.6",
-  fontSize: "[13px]",
-  zIndex: "[10000]",
-  boxShadow: "[0 2px 8px rgba(0, 0, 0, 0.15)]",
-  padding: "[6px 10px]",
+import { Tooltip } from "./tooltip";
+
+/**
+ * Wrapper style using display:contents to be invisible to layout
+ * while still forwarding tooltip event handlers.
+ */
+const tooltipWrapperStyle = css({
+  display: "contents",
 });
 
 const containerStyle = cva({
@@ -137,8 +136,6 @@ export const SegmentGroup: React.FC<SegmentGroupProps> = ({
   disabled = false,
   tooltip,
 }) => {
-  const triggerId = useId();
-
   const segmentGroupElement = (
     <ArkSegmentGroup.Root
       value={value}
@@ -149,11 +146,7 @@ export const SegmentGroup: React.FC<SegmentGroupProps> = ({
         }
       }}
     >
-      {/* Use the container div as the tooltip trigger via shared ID */}
-      <div
-        id={tooltip ? triggerId : undefined}
-        className={containerStyle({ size, isDisabled: disabled })}
-      >
+      <div className={containerStyle({ size, isDisabled: disabled })}>
         <ArkSegmentGroup.Indicator className={indicatorStyle({ size })} />
         {options.map((option) => (
           <ArkSegmentGroup.Item
@@ -175,22 +168,14 @@ export const SegmentGroup: React.FC<SegmentGroupProps> = ({
   );
 
   if (tooltip) {
-    // Use ID composition to coordinate Tooltip with the SegmentGroup container
-    // This avoids wrapper elements that break layout
+    // Use ark.span with display:contents to forward tooltip events
+    // without affecting layout
     return (
-      <ArkTooltip.Root
-        ids={{ trigger: triggerId }}
-        openDelay={200}
-        closeDelay={0}
-        positioning={{ placement: "top" }}
-      >
-        {segmentGroupElement}
-        <ArkTooltip.Positioner>
-          <ArkTooltip.Content className={tooltipContentStyle}>
-            {tooltip}
-          </ArkTooltip.Content>
-        </ArkTooltip.Positioner>
-      </ArkTooltip.Root>
+      <Tooltip content={tooltip}>
+        <ark.span className={tooltipWrapperStyle}>
+          {segmentGroupElement}
+        </ark.span>
+      </Tooltip>
     );
   }
 
