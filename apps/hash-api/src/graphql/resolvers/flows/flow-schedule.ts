@@ -148,8 +148,8 @@ export const updateFlowScheduleResolver: ResolverFn<
 
     // Update policies if changed
     if (
-      input.overlapPolicy ??
-      input.catchupWindowMs ??
+      input.overlapPolicy !== undefined ||
+      input.catchupWindowMs !== undefined ||
       input.pauseOnFailure !== undefined
     ) {
       await handle.update((prev) => ({

@@ -213,10 +213,6 @@ export async function getFlowRuns({
           "https://blockprotocol.org/@blockprotocol/types/property-type/name/"
         ];
 
-      /**
-       * For ad-hoc flows created before the temporalWorkflowId property existed,
-       * the entity UUID is the Temporal workflow ID.
-       */
       const temporalWorkflowId =
         entity.properties[
           "https://hash.ai/@h/types/property-type/workflow-id/"
