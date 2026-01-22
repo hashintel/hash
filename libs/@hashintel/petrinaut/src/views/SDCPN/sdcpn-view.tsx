@@ -3,9 +3,10 @@ import "reactflow/dist/style.css";
 import { css } from "@hashintel/ds-helpers/css";
 import { use, useEffect, useRef, useState } from "react";
 import type { Connection, Node, ReactFlowInstance } from "reactflow";
-import ReactFlow, { Background, ConnectionLineType } from "reactflow";
+import ReactFlow, { Background, ConnectionLineType, MiniMap } from "reactflow";
 import { v4 as generateUuid } from "uuid";
 
+import { PANEL_MARGIN } from "../../constants/ui";
 import {
   DEFAULT_TRANSITION_KERNEL_CODE,
   generateDefaultLambdaCode,
@@ -71,6 +72,7 @@ export const SDCPNView: React.FC = () => {
     setSelectedItemIds,
     setSelectedResourceId,
     clearSelection,
+    visibleViewport,
   } = use(EditorContext);
 
   // Hook for applying node changes
@@ -341,6 +343,16 @@ export const SDCPNView: React.FC = () => {
         zoomOnScroll
       >
         <Background gap={SNAP_GRID_SIZE} size={1} />
+        <MiniMap
+          style={{
+            top: visibleViewport.top + PANEL_MARGIN,
+            right: visibleViewport.right + PANEL_MARGIN,
+            bottom: "auto",
+            left: "auto",
+          }}
+          pannable
+          zoomable
+        />
       </ReactFlow>
     </div>
   );
