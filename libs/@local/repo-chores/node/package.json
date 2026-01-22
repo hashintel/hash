@@ -26,7 +26,6 @@
     "ignore": "7.0.5",
     "js-yaml": "4.1.1",
     "regex-parser": "2.3.1",
-    "sort-package-json": "3.4.0",
     "tsx": "4.20.6",
     "typescript": "5.9.3",
     "zod": "4.1.12",

@@ -3,14 +3,14 @@
   "version": "0.0.5",
   "private": true,
   "description": "A visual editor for Petri nets",
+  "license": "(MIT OR Apache-2.0)",
   "repository": {
     "type": "git",
     "url": "https://github.com/hashintel/hash.git",
     "directory": "libs/@hashintel/petrinaut-old"
   },
-  "license": "(MIT OR Apache-2.0)",
-  "sideEffects": false,
   "type": "module",
+  "sideEffects": false,
   "main": "src/main.ts",
   "types": "src/main.ts",
   "scripts": {

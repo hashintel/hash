@@ -47,5 +47,5 @@ workspace = true
 
 [package.metadata.sync.turborepo]
 ignore-dev-dependencies = [
-    "@rust/hash-graph-test-data",
+    "hash-graph-test-data",
 ]

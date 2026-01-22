@@ -2,13 +2,9 @@
   "name": "@blockprotocol/type-system-rs",
   "version": "0.0.0-private",
   "private": true,
+  "description": "Definitions of types within the Block Protocol Type System",
   "license": "MIT OR Apache-2.0",
   "type": "module",
-  "exports": {
-    ".": "./pkg/type-system.js",
-    "./types": "./types/index.snap.js",
-    "./wasm": "./pkg/type-system_bg.wasm"
-  },
   "typesVersions": {
     "*": {
       "*": [
@@ -21,6 +17,11 @@
         "./pkg/type-system_bg.wasm.d.ts"
       ]
     }
+  },
+  "exports": {
+    ".": "./pkg/type-system.js",
+    "./types": "./types/index.snap.js",
+    "./wasm": "./pkg/type-system_bg.wasm"
   },
   "scripts": {
     "build:types": "INSTA_UPDATE=always mise exec --env dev cargo:cargo-insta -- cargo-insta test --features codegen --test codegen",

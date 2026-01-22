@@ -2,6 +2,7 @@
   "name": "@rust/hash-graph-api",
   "version": "0.0.0-private",
   "private": true,
+  "description": "HASH Graph API",
   "license": "AGPL-3",
   "scripts": {
     "codegen:generate-openapi-specs": "cargo run --bin openapi-spec-generator",

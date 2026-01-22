@@ -4,10 +4,10 @@
   "private": true,
   "description": "Performance testing for the HASH backend",
   "license": "AGPL-3.0",
+  "files": [
+    "dist"
+  ],
   "type": "module",
-  "exports": {
-    ".": "./dist/esm/main.mjs"
-  },
   "main": "./dist/esm/main.mjs",
   "types": "./dist/esm/main.d.ts",
   "typesVersions": {
@@ -17,9 +17,9 @@
       ]
     }
   },
-  "files": [
-    "dist"
-  ],
+  "exports": {
+    ".": "./dist/esm/main.mjs"
+  },
   "scripts": {
     "bench:load-testing": "for file in scenarios/*.yml; do artillery run --config artillery.yml $file --output reports/$(basename ${file%.*}).json --quiet --environment local; done",
     "build": "rimraf dist && rollup --config rollup.config.ts --configPlugin @rollup/plugin-typescript",
