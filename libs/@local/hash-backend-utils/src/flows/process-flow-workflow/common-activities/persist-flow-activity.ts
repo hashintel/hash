@@ -1,6 +1,7 @@
 import type {
   ActorEntityUuid,
   EntityId,
+  EntityUuid,
   OriginProvenance,
   ProvidedEntityEditionProvenance,
   WebId,
@@ -24,6 +25,7 @@ import type {
 
 export type PersistFlowActivityParams = {
   flow: LocalFlowRun;
+  flowRunId?: EntityUuid;
   stepIds: string[];
   userAuthentication: { actorId: ActorEntityUuid };
   webId: WebId;
@@ -32,7 +34,14 @@ export type PersistFlowActivityParams = {
 export const persistFlowActivity = async (
   params: PersistFlowActivityParams & { graphApiClient: GraphApi },
 ): Promise<{ flowEntityId: EntityId }> => {
-  const { flow, graphApiClient, stepIds, userAuthentication, webId } = params;
+  const {
+    flow,
+    flowRunId,
+    graphApiClient,
+    stepIds,
+    userAuthentication,
+    webId,
+  } = params;
 
   const { temporalWorkflowId } = flow;
 
@@ -106,6 +115,7 @@ export const persistFlowActivity = async (
     graphApiClient,
     userAuthentication,
     {
+      entityUuid: flowRunId,
       webId,
       entityTypeIds: [systemEntityTypes.flowRun.entityTypeId],
       properties: flowRunProperties,

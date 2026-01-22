@@ -31,7 +31,7 @@ export const startFlow: ResolverFn<
 
   validateFlowDefinition(flowDefinition, flowType);
 
-  const workflowId = generateUuid();
+  const workflowId = generateUuid() as EntityUuid;
 
   if (flowType === "ai" && !dataSources) {
     throw Error.badRequest("Data sources are required for AI flows");
@@ -39,6 +39,7 @@ export const startFlow: ResolverFn<
 
   const params: RunFlowWorkflowParams = {
     ...(flowType === "ai" ? { dataSources } : {}),
+    flowRunId: workflowId,
     flowTrigger,
     flowDefinition,
     userAuthentication: { actorId: user.accountId },
@@ -61,5 +62,5 @@ export const startFlow: ResolverFn<
     },
   });
 
-  return workflowId as EntityUuid;
+  return workflowId;
 };

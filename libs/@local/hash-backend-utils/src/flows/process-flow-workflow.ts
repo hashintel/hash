@@ -169,6 +169,7 @@ export const processFlowWorkflow = async <
 ): Promise<RunFlowWorkflowResponse> => {
   const {
     flowDefinition,
+    flowRunId,
     flowRunName,
     flowType,
     flowTrigger,
@@ -232,6 +233,7 @@ export const processFlowWorkflow = async <
 
   await persistFlowActivity({
     flow,
+    flowRunId,
     stepIds: ["initialize-flow"],
     userAuthentication,
     webId,
