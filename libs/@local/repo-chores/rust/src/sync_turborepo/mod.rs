@@ -293,17 +293,17 @@ async fn get_yarn_workspace_packages() -> Result<BTreeSet<String>, Report<SyncTu
         .exit_ok()
         .change_context(SyncTurborepoError::GitRoot)?;
     let cwd = String::from_utf8(cwd.stdout).change_context(SyncTurborepoError::GitRoot)?;
+    let cwd = cwd.trim();
+    tracing::debug!(cwd, "Determined git root");
 
-    let output = Command::new("yarn")
-        .args(["workspaces", "list", "--json"])
-        .current_dir(&cwd)
+    let output = Command::new("mise")
+        .args(["exec", "--", "yarn", "workspaces", "list", "--json"])
+        .current_dir(cwd)
         .output()
         .await
+        .change_context(SyncTurborepoError::YarnWorkspacesList)?
+        .exit_ok()
         .change_context(SyncTurborepoError::YarnWorkspacesList)?;
-
-    if !output.status.success() {
-        return Err(Report::new(SyncTurborepoError::YarnWorkspacesList));
-    }
 
     let stdout =
         String::from_utf8(output.stdout).change_context(SyncTurborepoError::YarnWorkspacesList)?;
@@ -357,7 +357,7 @@ fn compute_package_json(
 
     package_json
         .other_fields
-        .insert("private".to_owned(), metadata.publish().is_never().into());
+        .insert("private".to_owned(), true.into());
 
     // Start with existing dependencies, but filter out local workspace packages
     let mut dependencies: BTreeMap<_, _> = package_json.dependencies.unwrap_or_default();
