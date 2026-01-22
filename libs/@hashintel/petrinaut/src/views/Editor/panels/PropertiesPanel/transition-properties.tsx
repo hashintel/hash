@@ -16,11 +16,10 @@ import {
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { css, cva } from "@hashintel/ds-helpers/css";
-import MonacoEditor from "@monaco-editor/react";
 import { use } from "react";
 import { TbDotsVertical, TbSparkles, TbTrash } from "react-icons/tb";
 
-import { DisabledTooltip } from "../../../../components/disabled-tooltip";
+import { CodeEditor } from "../../../../components/code-editor";
 import { Menu } from "../../../../components/menu";
 import { SegmentGroup } from "../../../../components/segment-group";
 import { InfoIconTooltip, Tooltip } from "../../../../components/tooltip";
@@ -164,29 +163,6 @@ const menuButtonStyle = css({
   alignItems: "center",
   fontSize: "[18px]",
   color: "[rgba(0, 0, 0, 0.6)]",
-});
-
-const editorContainerStyle = cva({
-  base: {
-    border: "[1px solid rgba(0, 0, 0, 0.1)]",
-    borderRadius: "[4px]",
-    overflow: "hidden",
-  },
-  variants: {
-    size: {
-      lambda: { height: "[340px]" },
-      kernel: { height: "[400px]" },
-    },
-    isReadOnly: {
-      true: {
-        filter: "[grayscale(20%) brightness(98%)]",
-        pointerEvents: "none",
-      },
-      false: {
-        pointerEvents: "auto",
-      },
-    },
-  },
 });
 
 const aiMenuItemStyle = css({
@@ -365,7 +341,7 @@ export const TransitionProperties: React.FC<TransitionPropertiesProps> = ({
 
       <div>
         <div className={fieldLabelStyle}>Name</div>
-        <DisabledTooltip disabled={isReadOnly}>
+        <Tooltip content={isReadOnly ? UI_MESSAGES.READ_ONLY_MODE : undefined}>
           <input
             type="text"
             value={transition.name}
@@ -377,7 +353,7 @@ export const TransitionProperties: React.FC<TransitionPropertiesProps> = ({
             disabled={isReadOnly}
             className={inputStyle({ isReadOnly })}
           />
-        </DisabledTooltip>
+        </Tooltip>
       </div>
 
       <div className={sectionContainerStyle}>
@@ -477,7 +453,7 @@ export const TransitionProperties: React.FC<TransitionPropertiesProps> = ({
           Firing time
           <InfoIconTooltip tooltip="Define the rate at or conditions under which this will transition will fire, optionally based on each set of input tokens' data (where input tokens have types)." />
         </div>
-        <DisabledTooltip disabled={isReadOnly}>
+        <Tooltip content={isReadOnly ? UI_MESSAGES.READ_ONLY_MODE : undefined}>
           <div className={segmentGroupWrapperStyle({ isReadOnly })}>
             <SegmentGroup
               value={transition.lambdaType}
@@ -494,7 +470,7 @@ export const TransitionProperties: React.FC<TransitionPropertiesProps> = ({
               }}
             />
           </div>
-        </DisabledTooltip>
+        </Tooltip>
       </div>
 
       <div>
@@ -550,37 +526,22 @@ export const TransitionProperties: React.FC<TransitionPropertiesProps> = ({
             />
           )}
         </div>
-        <DisabledTooltip disabled={isReadOnly}>
-          <div className={editorContainerStyle({ isReadOnly, size: "lambda" })}>
-            <MonacoEditor
-              key={`lambda-${transition.lambdaType}-${transition.inputArcs
-                .map((a) => `${a.placeId}:${a.weight}`)
-                .join("-")}`}
-              language="typescript"
-              value={transition.lambdaCode || ""}
-              path={`inmemory://sdcpn/transitions/${transition.id}/lambda.ts`}
-              onChange={(value) => {
-                updateTransition(transition.id, (existingTransition) => {
-                  existingTransition.lambdaCode = value ?? "";
-                });
-              }}
-              theme="vs-light"
-              options={{
-                minimap: { enabled: false },
-                scrollBeyondLastLine: false,
-                fontSize: 12,
-                lineNumbers: "off",
-                folding: true,
-                glyphMargin: false,
-                lineDecorationsWidth: 0,
-                lineNumbersMinChars: 3,
-                padding: { top: 8, bottom: 8 },
-                readOnly: isReadOnly,
-                fixedOverflowWidgets: true,
-              }}
-            />
-          </div>
-        </DisabledTooltip>
+        <CodeEditor
+          key={`lambda-${transition.lambdaType}-${transition.inputArcs
+            .map((a) => `${a.placeId}:${a.weight}`)
+            .join("-")}`}
+          language="typescript"
+          value={transition.lambdaCode || ""}
+          path={`inmemory://sdcpn/transitions/${transition.id}/lambda.ts`}
+          height={340}
+          onChange={(value) => {
+            updateTransition(transition.id, (existingTransition) => {
+              existingTransition.lambdaCode = value ?? "";
+            });
+          }}
+          options={{ readOnly: isReadOnly }}
+          tooltip={isReadOnly ? UI_MESSAGES.READ_ONLY_MODE : undefined}
+        />
       </div>
 
       {/* Only show Transition Results if at least one output place has a type */}
@@ -665,41 +626,24 @@ export const TransitionProperties: React.FC<TransitionPropertiesProps> = ({
               />
             )}
           </div>
-          <DisabledTooltip disabled={isReadOnly}>
-            <div
-              className={editorContainerStyle({ isReadOnly, size: "kernel" })}
-            >
-              <MonacoEditor
-                key={`kernel-${transition.inputArcs
-                  .map((a) => `${a.placeId}:${a.weight}`)
-                  .join("-")}-${transition.outputArcs
-                  .map((a) => `${a.placeId}:${a.weight}`)
-                  .join("-")}`}
-                language="typescript"
-                value={transition.transitionKernelCode || ""}
-                path={`inmemory://sdcpn/transitions/${transition.id}/transition-kernel.ts`}
-                onChange={(value) => {
-                  updateTransition(transition.id, (existingTransition) => {
-                    existingTransition.transitionKernelCode = value ?? "";
-                  });
-                }}
-                theme="vs-light"
-                options={{
-                  minimap: { enabled: false },
-                  scrollBeyondLastLine: false,
-                  fontSize: 12,
-                  lineNumbers: "off",
-                  folding: true,
-                  glyphMargin: false,
-                  lineDecorationsWidth: 0,
-                  lineNumbersMinChars: 3,
-                  padding: { top: 8, bottom: 8 },
-                  readOnly: isReadOnly,
-                  fixedOverflowWidgets: true,
-                }}
-              />
-            </div>
-          </DisabledTooltip>
+          <CodeEditor
+            key={`kernel-${transition.inputArcs
+              .map((a) => `${a.placeId}:${a.weight}`)
+              .join("-")}-${transition.outputArcs
+              .map((a) => `${a.placeId}:${a.weight}`)
+              .join("-")}`}
+            language="typescript"
+            value={transition.transitionKernelCode || ""}
+            path={`inmemory://sdcpn/transitions/${transition.id}/transition-kernel.ts`}
+            height={400}
+            onChange={(value) => {
+              updateTransition(transition.id, (existingTransition) => {
+                existingTransition.transitionKernelCode = value ?? "";
+              });
+            }}
+            options={{ readOnly: isReadOnly }}
+            tooltip={isReadOnly ? UI_MESSAGES.READ_ONLY_MODE : undefined}
+          />
         </div>
       ) : (
         <div className={noOutputTypesBoxStyle}>

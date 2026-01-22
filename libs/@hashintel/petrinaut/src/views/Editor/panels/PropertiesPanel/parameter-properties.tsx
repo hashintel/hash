@@ -1,6 +1,7 @@
 import { css, cva } from "@hashintel/ds-helpers/css";
 
-import { DisabledTooltip } from "../../../../components/disabled-tooltip";
+import { Tooltip } from "../../../../components/tooltip";
+import { UI_MESSAGES } from "../../../../constants/ui-messages";
 import type { Parameter } from "../../../../core/types/sdcpn";
 import { useIsReadOnly } from "../../../../state/use-is-read-only";
 
@@ -142,7 +143,7 @@ export const ParameterProperties: React.FC<ParameterPropertiesProps> = ({
       {/* Name field */}
       <div>
         <div className={fieldLabelStyle}>Name</div>
-        <DisabledTooltip disabled={isDisabled}>
+        <Tooltip content={isDisabled ? UI_MESSAGES.READ_ONLY_MODE : undefined}>
           <input
             type="text"
             value={parameter.name}
@@ -150,13 +151,13 @@ export const ParameterProperties: React.FC<ParameterPropertiesProps> = ({
             disabled={isDisabled}
             className={inputStyle({ isDisabled })}
           />
-        </DisabledTooltip>
+        </Tooltip>
       </div>
 
       {/* Variable Name field */}
       <div>
         <div className={fieldLabelStyle}>Variable Name</div>
-        <DisabledTooltip disabled={isDisabled}>
+        <Tooltip content={isDisabled ? UI_MESSAGES.READ_ONLY_MODE : undefined}>
           <input
             type="text"
             value={parameter.variableName}
@@ -165,7 +166,7 @@ export const ParameterProperties: React.FC<ParameterPropertiesProps> = ({
             disabled={isDisabled}
             className={inputStyle({ isDisabled, isMonospace: true })}
           />
-        </DisabledTooltip>
+        </Tooltip>
       </div>
 
       {/* Type selector - hidden for now as internal code relies on "real" type */}
@@ -173,7 +174,7 @@ export const ParameterProperties: React.FC<ParameterPropertiesProps> = ({
       {/* Default Value field */}
       <div>
         <div className={fieldLabelStyle}>Default Value</div>
-        <DisabledTooltip disabled={isDisabled}>
+        <Tooltip content={isDisabled ? UI_MESSAGES.READ_ONLY_MODE : undefined}>
           <input
             type="text"
             value={parameter.defaultValue}
@@ -181,7 +182,7 @@ export const ParameterProperties: React.FC<ParameterPropertiesProps> = ({
             disabled={isDisabled}
             className={inputStyle({ isDisabled, isMonospace: true })}
           />
-        </DisabledTooltip>
+        </Tooltip>
       </div>
     </div>
   );

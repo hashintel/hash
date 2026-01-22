@@ -1,18 +1,22 @@
 import { Switch as ArkSwitch } from "@ark-ui/react/switch";
 import { css } from "@hashintel/ds-helpers/css";
 
+import { Tooltip } from "./tooltip";
+
 interface SwitchProps {
   checked?: boolean;
   onCheckedChange?: (checked: boolean) => void;
   disabled?: boolean;
+  tooltip?: string;
 }
 
 export const Switch: React.FC<SwitchProps> = ({
   checked,
   onCheckedChange,
   disabled = false,
+  tooltip,
 }) => {
-  return (
+  const switchElement = (
     <ArkSwitch.Root
       checked={checked}
       onCheckedChange={(details) => {
@@ -55,4 +59,10 @@ export const Switch: React.FC<SwitchProps> = ({
       <ArkSwitch.HiddenInput />
     </ArkSwitch.Root>
   );
+
+  if (tooltip) {
+    return <Tooltip content={tooltip}>{switchElement}</Tooltip>;
+  }
+
+  return switchElement;
 };

@@ -15,11 +15,18 @@ const tooltipContentStyle = css({
 });
 
 interface TooltipProps {
-  content: string;
+  /**
+   * The tooltip content. When empty/undefined, children are rendered without tooltip wrapper.
+   */
+  content?: string;
   children: ReactNode;
 }
 
 export const Tooltip: React.FC<TooltipProps> = ({ content, children }) => {
+  if (!content) {
+    return children;
+  }
+
   return (
     <ArkTooltip.Root
       openDelay={200}

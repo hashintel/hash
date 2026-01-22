@@ -2,7 +2,8 @@ import { css, cva } from "@hashintel/ds-helpers/css";
 import { useState } from "react";
 import { v4 as uuidv4 } from "uuid";
 
-import { DisabledTooltip } from "../../../../components/disabled-tooltip";
+import { Tooltip } from "../../../../components/tooltip";
+import { UI_MESSAGES } from "../../../../constants/ui-messages";
 import type { Color } from "../../../../core/types/sdcpn";
 import { useIsReadOnly } from "../../../../state/use-is-read-only";
 import { ColorSelect } from "./color-select";
@@ -403,7 +404,7 @@ export const TypeProperties: React.FC<TypePropertiesProps> = ({
 
       <div>
         <div className={fieldLabelStyle}>Name</div>
-        <DisabledTooltip disabled={isDisabled}>
+        <Tooltip content={isDisabled ? UI_MESSAGES.READ_ONLY_MODE : undefined}>
           <input
             type="text"
             value={type.name}
@@ -415,12 +416,12 @@ export const TypeProperties: React.FC<TypePropertiesProps> = ({
             disabled={isDisabled}
             className={inputStyle({ isDisabled })}
           />
-        </DisabledTooltip>
+        </Tooltip>
       </div>
 
       <div>
         <div className={fieldLabelStyle}>Color</div>
-        <DisabledTooltip disabled={isDisabled}>
+        <Tooltip content={isDisabled ? UI_MESSAGES.READ_ONLY_MODE : undefined}>
           <ColorSelect
             value={type.displayColor}
             onChange={(color) => {
@@ -430,7 +431,7 @@ export const TypeProperties: React.FC<TypePropertiesProps> = ({
             }}
             disabled={isDisabled}
           />
-        </DisabledTooltip>
+        </Tooltip>
       </div>
 
       {/* Dimensions Section - Editable with drag-to-reorder */}
@@ -440,7 +441,9 @@ export const TypeProperties: React.FC<TypePropertiesProps> = ({
             Dimensions
             <span className={dimensionsHintStyle}>(order matters)</span>
           </div>
-          <DisabledTooltip disabled={isDisabled}>
+          <Tooltip
+            content={isDisabled ? UI_MESSAGES.READ_ONLY_MODE : undefined}
+          >
             <button
               type="button"
               onClick={handleAddElement}
@@ -450,7 +453,7 @@ export const TypeProperties: React.FC<TypePropertiesProps> = ({
             >
               +
             </button>
-          </DisabledTooltip>
+          </Tooltip>
         </div>
 
         {type.elements.length === 0 ? (
@@ -489,7 +492,9 @@ export const TypeProperties: React.FC<TypePropertiesProps> = ({
                 <div className={indexChipStyle}>{index}</div>
 
                 {/* Name input */}
-                <DisabledTooltip disabled={isDisabled}>
+                <Tooltip
+                  content={isDisabled ? UI_MESSAGES.READ_ONLY_MODE : undefined}
+                >
                   <input
                     type="text"
                     value={element.name}
@@ -509,10 +514,12 @@ export const TypeProperties: React.FC<TypePropertiesProps> = ({
                     placeholder="dimension_name"
                     className={dimensionNameInputStyle({ isDisabled })}
                   />
-                </DisabledTooltip>
+                </Tooltip>
 
                 {/* Delete button */}
-                <DisabledTooltip disabled={isDisabled}>
+                <Tooltip
+                  content={isDisabled ? UI_MESSAGES.READ_ONLY_MODE : undefined}
+                >
                   <button
                     type="button"
                     onClick={() => {
@@ -524,7 +531,7 @@ export const TypeProperties: React.FC<TypePropertiesProps> = ({
                   >
                     ×
                   </button>
-                </DisabledTooltip>
+                </Tooltip>
               </div>
             ))}
           </div>

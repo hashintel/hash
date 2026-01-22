@@ -1,11 +1,10 @@
 /* eslint-disable id-length */
 
 import { css, cva } from "@hashintel/ds-helpers/css";
-import MonacoEditor from "@monaco-editor/react";
 import { useState } from "react";
 import { TbDotsVertical, TbSparkles } from "react-icons/tb";
 
-import { DisabledTooltip } from "../../../../components/disabled-tooltip";
+import { CodeEditor } from "../../../../components/code-editor";
 import { Menu } from "../../../../components/menu";
 import { Tooltip } from "../../../../components/tooltip";
 import { UI_MESSAGES } from "../../../../constants/ui-messages";
@@ -223,28 +222,6 @@ const menuButtonStyle = css({
   color: "[rgba(0, 0, 0, 0.6)]",
 });
 
-const editorContainerStyle = cva({
-  base: {
-    border: "[1px solid rgba(0, 0, 0, 0.1)]",
-    borderRadius: "[4px]",
-    overflow: "hidden",
-    flex: "[1]",
-    minHeight: "[0]",
-  },
-  variants: {
-    isReadOnly: {
-      true: {
-        filter: "[grayscale(20%) brightness(98%)]",
-        pointerEvents: "none",
-      },
-      false: {
-        filter: "[none]",
-        pointerEvents: "auto",
-      },
-    },
-  },
-});
-
 const aiMenuItemStyle = css({
   display: "flex",
   alignItems: "center",
@@ -332,7 +309,7 @@ export const DifferentialEquationProperties: React.FC<
 
       <div>
         <div className={fieldLabelStyle}>Name</div>
-        <DisabledTooltip disabled={isReadOnly}>
+        <Tooltip content={isReadOnly ? UI_MESSAGES.READ_ONLY_MODE : undefined}>
           <input
             type="text"
             value={differentialEquation.name}
@@ -347,13 +324,15 @@ export const DifferentialEquationProperties: React.FC<
             disabled={isReadOnly}
             className={inputStyle({ isReadOnly })}
           />
-        </DisabledTooltip>
+        </Tooltip>
       </div>
 
       <div>
         <div className={fieldLabelStyle}>Associated Type</div>
         <div style={{ position: "relative" }}>
-          <DisabledTooltip disabled={isReadOnly}>
+          <Tooltip
+            content={isReadOnly ? UI_MESSAGES.READ_ONLY_MODE : undefined}
+          >
             <button
               type="button"
               onClick={() => setShowTypeDropdown(!showTypeDropdown)}
@@ -371,7 +350,7 @@ export const DifferentialEquationProperties: React.FC<
                 </>
               )}
             </button>
-          </DisabledTooltip>
+          </Tooltip>
           {showTypeDropdown && !isReadOnly && (
             <div className={dropdownMenuStyle}>
               {types.map((type) => (
@@ -519,37 +498,22 @@ export const DifferentialEquationProperties: React.FC<
             />
           )}
         </div>
-        <DisabledTooltip disabled={isReadOnly}>
-          <div className={editorContainerStyle({ isReadOnly })}>
-            <MonacoEditor
-              language="typescript"
-              value={differentialEquation.code}
-              onChange={(newCode) => {
-                updateDifferentialEquation(
-                  differentialEquation.id,
-                  (existingEquation) => {
-                    existingEquation.code = newCode ?? "";
-                  },
-                );
-              }}
-              path={`inmemory://sdcpn/differential-equations/${differentialEquation.id}.ts`}
-              theme="vs-light"
-              options={{
-                minimap: { enabled: false },
-                scrollBeyondLastLine: false,
-                fontSize: 12,
-                lineNumbers: "off",
-                folding: true,
-                glyphMargin: false,
-                lineDecorationsWidth: 0,
-                lineNumbersMinChars: 3,
-                padding: { top: 8, bottom: 8 },
-                fixedOverflowWidgets: true,
-                readOnly: isReadOnly,
-              }}
-            />
-          </div>
-        </DisabledTooltip>
+        <CodeEditor
+          language="typescript"
+          value={differentialEquation.code}
+          height="100%"
+          onChange={(newCode) => {
+            updateDifferentialEquation(
+              differentialEquation.id,
+              (existingEquation) => {
+                existingEquation.code = newCode ?? "";
+              },
+            );
+          }}
+          path={`inmemory://sdcpn/differential-equations/${differentialEquation.id}.ts`}
+          options={{ readOnly: isReadOnly }}
+          tooltip={isReadOnly ? UI_MESSAGES.READ_ONLY_MODE : undefined}
+        />
       </div>
     </div>
   );
