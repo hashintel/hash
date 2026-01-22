@@ -433,10 +433,6 @@ async fn write_package_json_if_changed(
     let mut output = sort_package_json::sort_package_json(&serialized)
         .change_context(SyncTurborepoError::SerializePackageJson)?;
 
-    if !output.ends_with('\n') {
-        output.push('\n');
-    }
-
     let current = fs::read_to_string(path).await.ok();
     if current.as_ref() == Some(&output) {
         tracing::debug!("Skipping unchanged package.json: {path}");
