@@ -347,18 +347,18 @@ fn compute_package_json(
     package_json.name = Some(package_name(metadata)?);
     package_json.version = Some(package_version(metadata));
 
+    if let Some(description) = metadata.description() {
+        package_json
+            .other_fields
+            .insert("description".to_owned(), description.to_owned().into());
+    }
+
     if let Some(license) = metadata.license() {
         package_json
             .other_fields
             .insert("license".to_owned(), license.to_owned().into());
     } else {
         package_json.other_fields.remove("license");
-    }
-
-    if let Some(description) = metadata.description() {
-        package_json
-            .other_fields
-            .insert("description".to_owned(), description.to_owned().into());
     }
 
     package_json
