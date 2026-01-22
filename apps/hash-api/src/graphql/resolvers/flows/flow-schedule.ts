@@ -157,7 +157,7 @@ export const updateFlowScheduleResolver: ResolverFn<
         policies: {
           ...prev.policies,
           ...(input.overlapPolicy ? { overlap: input.overlapPolicy } : {}),
-          ...(input.catchupWindowMs
+          ...(typeof input.catchupWindowMs === "number"
             ? { catchupWindow: input.catchupWindowMs }
             : {}),
           ...(input.pauseOnFailure !== undefined
