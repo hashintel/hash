@@ -2,6 +2,7 @@
   "name": "@rust/hash-graph-type-fetcher",
   "version": "0.0.0-private",
   "private": true,
+  "description": "RPC service definition to fetch external BP types",
   "license": "AGPL-3",
   "scripts": {
     "doc:dependency-diagram": "cargo run -p hash-repo-chores -- dependency-diagram --output docs/dependency-diagram.mmd --root hash-graph-type-fetcher --root-deps-and-dependents --link-mode non-roots --include-dev-deps --include-build-deps --logging-console-level info",

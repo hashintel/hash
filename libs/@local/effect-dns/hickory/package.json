@@ -2,7 +2,6 @@
   "name": "@local/effect-dns-hickory",
   "version": "0.0.0-private",
   "private": true,
-  "description": "Hickory DNS implementation of DNS effect library",
   "license": "MIT OR Apache-2.0",
   "type": "module",
   "main": "dist/index.js",

@@ -2,6 +2,7 @@
   "name": "@rust/error-stack-macros",
   "version": "0.0.0-private",
   "private": true,
+  "description": "Macros for the `error-stack` crate",
   "license": "MIT OR Apache-2.0",
   "scripts": {
     "fix:clippy": "just clippy --fix",

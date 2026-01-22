@@ -2,6 +2,7 @@
   "name": "@rust/hash-graph-postgres-store",
   "version": "0.0.0-private",
   "private": true,
+  "description": "HASH Graph API",
   "license": "AGPL-3",
   "scripts": {
     "doc:dependency-diagram": "cargo run -p hash-repo-chores -- dependency-diagram --output docs/dependency-diagram.mmd --root hash-graph-postgres-store --root-deps-and-dependents --link-mode non-roots --include-dev-deps --include-build-deps --logging-console-level info",

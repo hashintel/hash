@@ -2,6 +2,7 @@
   "name": "@rust/hash-graph-type-defs",
   "version": "0.0.0-private",
   "private": true,
+  "description": "HASH Graph type definitions",
   "license": "AGPL-3",
   "type": "module",
   "scripts": {

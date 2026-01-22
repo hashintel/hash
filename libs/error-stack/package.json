@@ -2,7 +2,7 @@
   "name": "@rust/error-stack",
   "version": "0.6.0",
   "private": true,
-  "description": "This is a Rust crate – look at Cargo.toml for details",
+  "description": "A context-aware error-handling library that supports arbitrary attached user data",
   "license": "MIT OR Apache-2.0",
   "scripts": {
     "fix:clippy": "just clippy --fix",
