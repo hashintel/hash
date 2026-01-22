@@ -4,6 +4,10 @@
 //!
 //! ## Workspace dependencies
 #![cfg_attr(doc, doc = simple_mermaid::mermaid!("../docs/dependency-diagram.mmd"))]
+#![feature(
+    // Library Features
+    exit_status_error
+)]
 
 extern crate alloc;
 
