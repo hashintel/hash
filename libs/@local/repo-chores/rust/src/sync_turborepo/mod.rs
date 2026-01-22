@@ -430,7 +430,7 @@ async fn write_package_json_if_changed(
 ) -> Result<(), Report<SyncTurborepoError>> {
     let serialized = serde_json::to_string(&package_json)
         .change_context(SyncTurborepoError::SerializePackageJson)?;
-    let mut output = sort_package_json::sort_package_json(&serialized)
+    let output = sort_package_json::sort_package_json(&serialized)
         .change_context(SyncTurborepoError::SerializePackageJson)?;
 
     let current = fs::read_to_string(path).await.ok();
