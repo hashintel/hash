@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
-import type { SimulationFrame, SimulationInstance } from "../types/simulation";
 import { computePossibleTransition } from "./compute-possible-transition";
+import type { SimulationFrame, SimulationInstance } from "./types";
 
 describe("computePossibleTransition", () => {
   it("returns null when transition is not enabled due to insufficient tokens", () => {
@@ -57,7 +57,9 @@ describe("computePossibleTransition", () => {
               x: 100,
               y: 0,
             },
-            timeSinceLastFiring: 1.0,
+            timeSinceLastFiringMs: 1.0,
+            firedInThisFrame: false,
+            firingCount: 0,
           },
         ],
       ]),
@@ -187,7 +189,9 @@ describe("computePossibleTransition", () => {
               x: 100,
               y: 0,
             },
-            timeSinceLastFiring: 1.0,
+            timeSinceLastFiringMs: 1.0,
+            firedInThisFrame: false,
+            firingCount: 0,
           },
         ],
       ]),

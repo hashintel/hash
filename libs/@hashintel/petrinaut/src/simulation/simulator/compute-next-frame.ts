@@ -1,6 +1,6 @@
-import type { SimulationInstance } from "../types/simulation";
 import { computePlaceNextState } from "./compute-place-next-state";
 import { executeTransitions } from "./execute-transitions";
+import type { SimulationInstance } from "./types";
 
 /**
  * Result of computing the next frame.
@@ -164,13 +164,15 @@ export function computeNextFrame(
     : {
         ...frameAfterTransitions,
         time: currentFrame.time + simulation.dt,
-        // Also update transition timeSinceLastFiring since time advanced
+        // Also update transition timeSinceLastFiringMs and firedInThisFrame since time advanced
         transitions: new Map(
           Array.from(frameAfterTransitions.transitions).map(([id, state]) => [
             id,
             {
               ...state,
-              timeSinceLastFiring: state.timeSinceLastFiring + simulation.dt,
+              timeSinceLastFiringMs:
+                state.timeSinceLastFiringMs + simulation.dt,
+              firedInThisFrame: false,
             },
           ]),
         ),

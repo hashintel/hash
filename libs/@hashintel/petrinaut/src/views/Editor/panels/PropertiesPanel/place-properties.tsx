@@ -25,9 +25,9 @@ import type {
   DifferentialEquation,
   Place,
 } from "../../../../core/types/sdcpn";
+import { SimulationContext } from "../../../../simulation/context";
 import { EditorContext } from "../../../../state/editor-context";
 import { SDCPNContext } from "../../../../state/sdcpn-context";
-import { SimulationContext } from "../../../../state/simulation-context";
 import { useIsReadOnly } from "../../../../state/use-is-read-only";
 import { placeInitialStateSubView } from "../../subviews/place-initial-state";
 import { placeVisualizerOutputSubView } from "../../subviews/place-visualizer-output";

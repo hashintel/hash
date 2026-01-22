@@ -1,4 +1,4 @@
-import type { SimulationFrame } from "../types/simulation";
+import type { SimulationFrame } from "./types";
 
 /**
  * Result of checking transition enablement for a simulation frame.

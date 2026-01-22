@@ -4,9 +4,9 @@ import { TbArrowRight } from "react-icons/tb";
 
 import type { SubView } from "../../../components/sub-view/types";
 import { InfoIconTooltip } from "../../../components/tooltip";
+import { SimulationContext } from "../../../simulation/context";
 import { EditorContext } from "../../../state/editor-context";
 import { SDCPNContext } from "../../../state/sdcpn-context";
-import { SimulationContext } from "../../../state/simulation-context";
 
 const containerStyle = css({
   display: "flex",

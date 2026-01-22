@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
-import type { SimulationFrame, SimulationInstance } from "../types/simulation";
 import { executeTransitions } from "./execute-transitions";
+import type { SimulationFrame, SimulationInstance } from "./types";
 
 describe("executeTransitions", () => {
   it("returns the original frame when no transitions can fire", () => {
@@ -56,7 +56,9 @@ describe("executeTransitions", () => {
               x: 0,
               y: 0,
             },
-            timeSinceLastFiring: 1.0,
+            timeSinceLastFiringMs: 1.0,
+            firedInThisFrame: false,
+            firingCount: 0,
           },
         ],
       ]),
@@ -175,7 +177,9 @@ describe("executeTransitions", () => {
               x: 0,
               y: 0,
             },
-            timeSinceLastFiring: 1.0,
+            timeSinceLastFiringMs: 1.0,
+            firedInThisFrame: false,
+            firingCount: 0,
           },
         ],
       ]),
@@ -195,8 +199,8 @@ describe("executeTransitions", () => {
     // Time should be incremented
     expect(result.time).toBe(0.1);
 
-    // Transition that fired should have timeSinceLastFiring reset to 0
-    expect(result.transitions.get("t1")?.timeSinceLastFiring).toBe(0);
+    // Transition that fired should have timeSinceLastFiringMs reset to 0
+    expect(result.transitions.get("t1")?.timeSinceLastFiringMs).toBe(0);
   });
 
   it("executes multiple transitions sequentially with proper token removal between each", () => {
@@ -342,7 +346,9 @@ describe("executeTransitions", () => {
               x: 0,
               y: 0,
             },
-            timeSinceLastFiring: 1.0,
+            timeSinceLastFiringMs: 1.0,
+            firedInThisFrame: false,
+            firingCount: 0,
           },
         ],
         [
@@ -359,7 +365,9 @@ describe("executeTransitions", () => {
               x: 0,
               y: 0,
             },
-            timeSinceLastFiring: 1.0,
+            timeSinceLastFiringMs: 1.0,
+            firedInThisFrame: false,
+            firingCount: 0,
           },
         ],
       ]),
@@ -378,9 +386,9 @@ describe("executeTransitions", () => {
     // p3 should have 1 token added by t2
     expect(result.places.get("p3")?.count).toBe(1);
 
-    // Both transitions should have their timeSinceLastFiring reset
-    expect(result.transitions.get("t1")?.timeSinceLastFiring).toBe(0);
-    expect(result.transitions.get("t2")?.timeSinceLastFiring).toBe(0);
+    // Both transitions should have their timeSinceLastFiringMs reset
+    expect(result.transitions.get("t1")?.timeSinceLastFiringMs).toBe(0);
+    expect(result.transitions.get("t2")?.timeSinceLastFiringMs).toBe(0);
   });
 
   it("handles transitions with multi-dimensional tokens", () => {
@@ -499,7 +507,9 @@ describe("executeTransitions", () => {
               x: 0,
               y: 0,
             },
-            timeSinceLastFiring: 1.0,
+            timeSinceLastFiringMs: 1.0,
+            firedInThisFrame: false,
+            firingCount: 0,
           },
         ],
       ]),
@@ -517,7 +527,7 @@ describe("executeTransitions", () => {
     expect(result.buffer[1]).toBe(4.0);
   });
 
-  it("updates timeSinceLastFiring for transitions that did not fire", () => {
+  it("updates timeSinceLastFiringMs for transitions that did not fire", () => {
     const simulation: SimulationInstance = {
       places: new Map([
         [
@@ -631,7 +641,9 @@ describe("executeTransitions", () => {
               x: 0,
               y: 0,
             },
-            timeSinceLastFiring: 0.5,
+            timeSinceLastFiringMs: 0.5,
+            firedInThisFrame: false,
+            firingCount: 0,
           },
         ],
         [
@@ -648,7 +660,9 @@ describe("executeTransitions", () => {
               x: 0,
               y: 0,
             },
-            timeSinceLastFiring: 0.3,
+            timeSinceLastFiringMs: 0.3,
+            firedInThisFrame: false,
+            firingCount: 0,
           },
         ],
       ]),
@@ -657,10 +671,10 @@ describe("executeTransitions", () => {
 
     const result = executeTransitions(frame);
 
-    // t1 should have fired and timeSinceLastFiring reset
-    expect(result.transitions.get("t1")?.timeSinceLastFiring).toBe(0);
+    // t1 should have fired and timeSinceLastFiringMs reset
+    expect(result.transitions.get("t1")?.timeSinceLastFiringMs).toBe(0);
 
-    // t2 should not have fired and timeSinceLastFiring incremented by dt
-    expect(result.transitions.get("t2")?.timeSinceLastFiring).toBe(0.4);
+    // t2 should not have fired and timeSinceLastFiringMs incremented by dt
+    expect(result.transitions.get("t2")?.timeSinceLastFiringMs).toBe(0.4);
   });
 });
