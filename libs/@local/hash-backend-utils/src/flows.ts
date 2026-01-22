@@ -245,6 +245,13 @@ export async function getFlowRuns({
     )}"`;
   }
 
+  /**
+   * Order by StartTime DESC so that the latest run for each workflowId comes first.
+   * This allows the `workflowIdToLatestRunTime` logic below to correctly skip older runs
+   * (e.g. from workflow resets) by only recording the first (latest) start time we see.
+   */
+  query += ` ORDER BY StartTime DESC`;
+
   const workflowIterable = temporalClient.workflow.list({ query });
 
   const workflowIdToLatestRunTime: Record<string, string> = {};
@@ -297,7 +304,7 @@ export async function getFlowRuns({
       const startTime = workflow.startTime.toISOString();
       workflowIdToLatestRunTime[temporalWorkflowId] ??= startTime;
 
-      if (workflowIdToLatestRunTime[temporalWorkflowId] < startTime) {
+      if (startTime < workflowIdToLatestRunTime[temporalWorkflowId]) {
         /**
          * This is an earlier run of the same workflow – it is a flow run that has been reset and started from a specific point.
          *
