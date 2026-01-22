@@ -35,5 +35,5 @@ harness = false
 
 [package.metadata.sync.turborepo]
 ignore-dev-dependencies = [
-    "@rust/hashql-compiletest",
+    "hashql-compiletest",
 ]

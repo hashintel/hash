@@ -1106,7 +1106,7 @@ version = "3.8.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "89ec27229c38ed0eb3c0feee3d2c1d6a4379ae44f418a29a658890e062d8f365"
 dependencies = [
- "darling 0.20.11",
+ "darling 0.21.3",
  "ident_case",
  "prettyplease",
  "proc-macro2",
@@ -3625,9 +3625,11 @@ dependencies = [
  "hash-telemetry",
  "inferno",
  "lcov",
+ "nodejs_package_json",
  "serde",
  "serde_json",
  "simple-mermaid",
+ "sort-package-json",
  "thiserror 2.0.17",
  "tokio",
  "tracing",
@@ -5643,6 +5645,21 @@ dependencies = [
  "cfg-if",
  "cfg_aliases",
  "libc",
+]
+
+[[package]]
+name = "nodejs_package_json"
+version = "0.4.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4348324b8f1beb94088c4119d6d5fbd92346da4a048194d9652f62171e1dfd38"
+dependencies = [
+ "indexmap 2.12.1",
+ "regex",
+ "rustc-hash",
+ "semver",
+ "serde",
+ "serde_json",
+ "thiserror 2.0.17",
 ]
 
 [[package]]
@@ -8157,6 +8174,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "sort-package-json"
+version = "0.0.9"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a2dee1e50f76b4774a6e04790105fb7c68a42a90a528b1287981092e95362cf5"
+dependencies = [
+ "serde_json",
+]
+
+[[package]]
 name = "specta"
 version = "2.0.0-rc.22"
 source = "git+https://github.com/specta-rs/specta?rev=ab7d924#ab7d9245d5e2ace951707c3c383b0211ca7fc8ce"
@@ -9842,7 +9868,7 @@ version = "0.1.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c2a7b1c03c876122aa43f3020e6c3c3ee5c05081c9a00739faf7503aeba10d22"
 dependencies = [
- "windows-sys 0.48.0",
+ "windows-sys 0.60.2",
 ]
 
 [[package]]

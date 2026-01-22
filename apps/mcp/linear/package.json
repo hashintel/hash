@@ -4,8 +4,8 @@
   "private": true,
   "description": "MCP server for basic Linear operations",
   "license": "AGPL-3.0",
-  "type": "module",
   "bin": "./dist/index.js",
+  "type": "module",
   "scripts": {
     "build": "rimraf dist && tsc --project tsconfig.build.json && shx chmod +x dist/*.js",
     "dev": "chokidar 'dist/main.js' -c 'chmod +x dist/main.js' & tsc --noCheck --watch & yarn inspector & shx chmod +x dist/*.js",

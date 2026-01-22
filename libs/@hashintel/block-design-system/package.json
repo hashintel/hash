@@ -5,15 +5,15 @@
   "bugs": {
     "url": "https://github.com/hashintel/hash/issues"
   },
-  "repository": {
-    "type": "git",
-    "url": "git@github.com:hashintel/hash.git",
-    "directory": "libs/@hashintel/block-design-system"
-  },
   "license": "(MIT OR Apache-2.0)",
   "author": {
     "name": "HASH",
     "url": "https://hash.ai"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git@github.com:hashintel/hash.git",
+    "directory": "libs/@hashintel/block-design-system"
   },
   "type": "module",
   "main": "src/main.ts",

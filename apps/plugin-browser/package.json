@@ -3,17 +3,17 @@
   "version": "0.0.9",
   "private": true,
   "description": "A browser extension for gathering info from the web into your HASH account.",
+  "license": "AGPL-3.0",
   "repository": {
     "type": "git",
     "url": "https://github.com/hashintel/hash.git"
   },
-  "license": "AGPL-3.0",
-  "type": "module",
   "workspaces": {
     "nohoist": [
       "@sentry/webpack-plugin"
     ]
   },
+  "type": "module",
   "scripts": {
     "build": "yarn lint:tsc && NODE_ENV=production node utils/build.js",
     "build:firefox": "yarn lint:tsc && BROWSER=firefox NODE_ENV=production node utils/build.js",

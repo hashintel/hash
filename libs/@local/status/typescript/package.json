@@ -4,11 +4,11 @@
   "private": true,
   "license": "(MIT OR Apache-2.0)",
   "type": "module",
+  "types": "./dist/src/main.d.ts",
   "exports": {
     ".": "./dist/src/main.js",
     "./type-defs/*": "./dist/type-defs/*.js"
   },
-  "types": "./dist/src/main.d.ts",
   "scripts": {
     "build": "rimraf dist && tsc --build tsconfig.build.json",
     "fix:eslint": "eslint --fix .",

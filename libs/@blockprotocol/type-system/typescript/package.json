@@ -3,23 +3,21 @@
   "version": "0.1.2-canary.1",
   "description": "Definitions of types within the Block Protocol Type System",
   "homepage": "https://blockprotocol.org",
-  "repository": {
-    "type": "git",
-    "url": "git@github.com:hashintel/hash.git",
-    "directory": "libs/@blockprotocol/type-system/typescript"
-  },
   "license": "MIT",
   "author": {
     "name": "HASH",
     "url": "https://hash.ai"
   },
-  "sideEffects": false,
-  "type": "module",
-  "exports": {
-    ".": "./dist/es/main.js",
-    "./slim": "./dist/es-slim/main-slim.js",
-    "./wasm": "./dist/wasm/type-system.wasm"
+  "repository": {
+    "type": "git",
+    "url": "git@github.com:hashintel/hash.git",
+    "directory": "libs/@blockprotocol/type-system/typescript"
   },
+  "files": [
+    "dist"
+  ],
+  "type": "module",
+  "sideEffects": false,
   "main": "./dist/es/main.js",
   "types": "./dist/es/main.d.ts",
   "typesVersions": {
@@ -35,9 +33,11 @@
       ]
     }
   },
-  "files": [
-    "dist"
-  ],
+  "exports": {
+    ".": "./dist/es/main.js",
+    "./slim": "./dist/es-slim/main-slim.js",
+    "./wasm": "./dist/wasm/type-system.wasm"
+  },
   "scripts": {
     "build": "yarn clean && rollup -c --bundleConfigAsCjs",
     "clean": "rimraf ./dist/",

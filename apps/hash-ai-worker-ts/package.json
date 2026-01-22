@@ -5,11 +5,6 @@
   "description": "A TypeScript 'AI' worker for HASH",
   "license": "HASH License – see LICENSE.md",
   "type": "module",
-  "exports": {
-    ".": "./src/main.ts",
-    "./workflows": "./src/workflows.ts",
-    "./activities": "./src/activities.ts"
-  },
   "typesVersions": {
     "*": {
       ".": [
@@ -22,6 +17,11 @@
         "./src/activities.ts"
       ]
     }
+  },
+  "exports": {
+    ".": "./src/main.ts",
+    "./workflows": "./src/workflows.ts",
+    "./activities": "./src/activities.ts"
   },
   "scripts": {
     "build": "rimraf ./dist/ && tsc -p tsconfig.build.json && yarn exe ./scripts/bundle-workflow-code.ts",
