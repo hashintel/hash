@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 
+import { PANEL_MARGIN } from "../constants/ui";
 import {
   type DraggingStateByNodeId,
   type EditorActions,
@@ -7,9 +8,32 @@ import {
   type EditorContextValue,
   type EditorState,
   initialEditorState,
+  type VisibleViewport,
 } from "./editor-context";
 
 export type EditorProviderProps = React.PropsWithChildren;
+
+function computeVisibleViewport(params: {
+  isLeftSidebarOpen: boolean;
+  leftSidebarWidth: number;
+  selectedResourceId: string | null;
+  propertiesPanelWidth: number;
+  isBottomPanelOpen: boolean;
+  bottomPanelHeight: number;
+}): VisibleViewport {
+  return {
+    top: PANEL_MARGIN,
+    left: params.isLeftSidebarOpen
+      ? params.leftSidebarWidth + PANEL_MARGIN * 2
+      : PANEL_MARGIN,
+    right: params.selectedResourceId
+      ? params.propertiesPanelWidth + PANEL_MARGIN * 2
+      : PANEL_MARGIN,
+    bottom: params.isBottomPanelOpen
+      ? params.bottomPanelHeight + PANEL_MARGIN * 2
+      : PANEL_MARGIN,
+  };
+}
 
 export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
   const [state, setState] = useState<EditorState>(initialEditorState);
@@ -68,9 +92,30 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
     __reinitialize: () => setState(initialEditorState),
   };
 
+  const visibleViewport = useMemo(
+    () =>
+      computeVisibleViewport({
+        isLeftSidebarOpen: state.isLeftSidebarOpen,
+        leftSidebarWidth: state.leftSidebarWidth,
+        selectedResourceId: state.selectedResourceId,
+        propertiesPanelWidth: state.propertiesPanelWidth,
+        isBottomPanelOpen: state.isBottomPanelOpen,
+        bottomPanelHeight: state.bottomPanelHeight,
+      }),
+    [
+      state.isLeftSidebarOpen,
+      state.leftSidebarWidth,
+      state.selectedResourceId,
+      state.propertiesPanelWidth,
+      state.isBottomPanelOpen,
+      state.bottomPanelHeight,
+    ],
+  );
+
   const contextValue: EditorContextValue = {
     ...state,
     ...actions,
+    visibleViewport,
   };
 
   return (
