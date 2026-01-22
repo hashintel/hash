@@ -307,7 +307,7 @@ export const SDCPNView: React.FC = () => {
       onKeyDown={({ key }) => {
         // Quick-and-dirty way to delete selected items with keyboard
         // with two different keys (Delete and Backspace), not possible with ReactFlow `deleteKeyCode` prop
-        if (key === "Delete" || key === "Backspace") {
+        if ((key === "Delete" || key === "Backspace") && !isReadonly) {
           setSelectedResourceId(null);
           clearSelection();
           deleteItemsByIds(selectedItemIds);
