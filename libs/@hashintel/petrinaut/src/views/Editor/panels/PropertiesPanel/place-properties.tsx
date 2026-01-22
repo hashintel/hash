@@ -597,6 +597,8 @@ export const PlaceProperties: React.FC<PlacePropertiesProps> = ({
               <div className={switchContainerStyle}>
                 <Switch
                   checked={place.visualizerCode !== undefined}
+                  disabled={isReadOnly}
+                  tooltip={isReadOnly ? UI_MESSAGES.READ_ONLY_MODE : undefined}
                   onCheckedChange={(checked) => {
                     if (checked) {
                       // Turning on: use saved code if available, otherwise default
