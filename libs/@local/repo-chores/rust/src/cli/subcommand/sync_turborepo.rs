@@ -6,7 +6,7 @@ use crate::sync_turborepo::{SyncTurborepoConfig, SyncTurborepoError, sync_turbor
 
 /// Arguments for the sync-turborepo subcommand.
 ///
-/// This tool syncs Cargo.toml metadata to package.json files for Turborepo integration.
+/// Syncs Cargo.toml metadata to package.json files for Turborepo integration.
 /// It reads Rust package metadata and generates corresponding package.json files with
 /// the correct name, version, and dependencies.
 #[derive(Debug, Parser)]
@@ -30,16 +30,14 @@ pub(super) async fn run(args: Args) -> Result<(), Report<[SyncTurborepoError]>> 
     } else {
         let mut builder = GlobSetBuilder::new();
         for pattern in &args.include {
-            let glob = Glob::new(pattern)
-                .change_context(SyncTurborepoError::CargoMetadata)
-                .attach_with(|| format!("Invalid glob pattern: {pattern}"))?;
+            let glob = Glob::new(pattern).change_context(SyncTurborepoError::MalformedGlob)?;
             builder.add(glob);
         }
+
         Some(
             builder
                 .build()
-                .change_context(SyncTurborepoError::CargoMetadata)
-                .attach_with(|| "Failed to build glob set")?,
+                .change_context(SyncTurborepoError::MalformedGlob)?,
         )
     };
 

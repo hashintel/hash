@@ -18,6 +18,8 @@ use tokio::fs;
 pub(crate) enum SyncTurborepoError {
     #[display("Failed to execute cargo metadata")]
     CargoMetadata,
+    #[display("Malformed glob pattern")]
+    MalformedGlob,
     #[display("Unexpected type expected {expected}, but found {actual} at {path}")]
     UnexpectedType {
         path: String,

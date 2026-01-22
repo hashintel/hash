@@ -15380,7 +15380,7 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@rust/error-stack-macros@npm:0.0.0-reserved-private, @rust/error-stack-macros@workspace:libs/error-stack/macros":
+"@rust/error-stack-macros@npm:0.0.0-private, @rust/error-stack-macros@workspace:libs/error-stack/macros":
   version: 0.0.0-use.local
   resolution: "@rust/error-stack-macros@workspace:libs/error-stack/macros"
   languageName: unknown
@@ -15390,7 +15390,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@rust/error-stack@workspace:libs/error-stack"
   dependencies:
-    "@rust/error-stack-macros": "npm:0.0.0-reserved-private"
+    "@rust/error-stack-macros": "npm:0.0.0-private"
   languageName: unknown
   linkType: soft
 
@@ -15618,7 +15618,6 @@ __metadata:
     "@rust/hash-status": "npm:0.0.0-private"
     "@rust/hash-telemetry": "npm:0.0.0-private"
     "@rust/hash-temporal-client": "npm:0.0.0-private"
-    tsx: "npm:4.20.6"
   languageName: unknown
   linkType: soft
 
@@ -15682,8 +15681,6 @@ __metadata:
     "@local/status": "npm:0.0.0-private"
     "@rust/hash-status": "npm:0.0.0-private"
     eslint: "npm:9.39.2"
-    quicktype: "npm:16.0.43"
-    tsx: "npm:4.20.6"
     typescript: "npm:5.9.3"
   languageName: unknown
   linkType: soft
