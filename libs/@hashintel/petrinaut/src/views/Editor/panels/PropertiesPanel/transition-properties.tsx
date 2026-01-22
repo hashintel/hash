@@ -114,22 +114,8 @@ const arcListContainerStyle = css({
   overflow: "hidden",
 });
 
-const segmentGroupWrapperStyle = cva({
-  base: {
-    marginTop: "[8px]",
-  },
-  variants: {
-    isReadOnly: {
-      true: {
-        opacity: "[0.6]",
-        pointerEvents: "none",
-      },
-      false: {
-        opacity: "[1]",
-        pointerEvents: "auto",
-      },
-    },
-  },
+const segmentGroupContainerStyle = css({
+  marginTop: "[8px]",
 });
 
 const infoBoxStyle = css({
@@ -453,24 +439,24 @@ export const TransitionProperties: React.FC<TransitionPropertiesProps> = ({
           Firing time
           <InfoIconTooltip tooltip="Define the rate at or conditions under which this will transition will fire, optionally based on each set of input tokens' data (where input tokens have types)." />
         </div>
-        <Tooltip content={isReadOnly ? UI_MESSAGES.READ_ONLY_MODE : undefined}>
-          <div className={segmentGroupWrapperStyle({ isReadOnly })}>
-            <SegmentGroup
-              value={transition.lambdaType}
-              options={[
-                { value: "predicate", label: "Predicate" },
-                { value: "stochastic", label: "Stochastic Rate" },
-              ]}
-              onChange={(value) => {
-                updateTransition(transition.id, (existingTransition) => {
-                  existingTransition.lambdaType = value as
-                    | "predicate"
-                    | "stochastic";
-                });
-              }}
-            />
-          </div>
-        </Tooltip>
+        <div className={segmentGroupContainerStyle}>
+          <SegmentGroup
+            value={transition.lambdaType}
+            options={[
+              { value: "predicate", label: "Predicate" },
+              { value: "stochastic", label: "Stochastic Rate" },
+            ]}
+            onChange={(value) => {
+              updateTransition(transition.id, (existingTransition) => {
+                existingTransition.lambdaType = value as
+                  | "predicate"
+                  | "stochastic";
+              });
+            }}
+            disabled={isReadOnly}
+            tooltip={isReadOnly ? UI_MESSAGES.READ_ONLY_MODE : undefined}
+          />
+        </div>
       </div>
 
       <div>
