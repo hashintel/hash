@@ -1,9 +1,10 @@
 import { css, cva } from "@hashintel/ds-helpers/css";
+import { use } from "react";
 import { FaCircle, FaSquare } from "react-icons/fa6";
 
 import type { SubView } from "../../../components/sub-view/types";
-import { useEditorStore } from "../../../state/editor-provider";
-import { useSDCPNContext } from "../../../state/sdcpn-provider";
+import { EditorContext } from "../../../state/editor-context";
+import { SDCPNContext } from "../../../state/sdcpn-context";
 
 const listContainerStyle = css({
   display: "flex",
@@ -17,16 +18,16 @@ const nodeRowStyle = cva({
     alignItems: "center",
     gap: "[6px]",
     padding: "[4px 9px]",
-    borderRadius: "radius.4",
+    borderRadius: "md.4",
     cursor: "default",
     transition: "[all 0.15s ease]",
   },
   variants: {
     isSelected: {
       true: {
-        backgroundColor: "core.blue.20",
+        backgroundColor: "blue.20",
         _hover: {
-          backgroundColor: "core.blue.30",
+          backgroundColor: "blue.30",
         },
       },
       false: {
@@ -66,11 +67,11 @@ const nodeNameStyle = cva({
     isSelected: {
       true: {
         color: "[#1e40af]",
-        fontWeight: 500,
+        fontWeight: "medium",
       },
       false: {
         color: "[#374151]",
-        fontWeight: 400,
+        fontWeight: "normal",
       },
     },
   },
@@ -79,7 +80,7 @@ const nodeNameStyle = cva({
 const emptyMessageStyle = css({
   fontSize: "[13px]",
   color: "[#9ca3af]",
-  padding: "spacing.4",
+  padding: "4",
   textAlign: "center",
 });
 
@@ -90,13 +91,8 @@ const emptyMessageStyle = css({
 const NodesSectionContent: React.FC = () => {
   const {
     petriNetDefinition: { places, transitions },
-  } = useSDCPNContext();
-  const selectedResourceId = useEditorStore(
-    (state) => state.selectedResourceId,
-  );
-  const setSelectedResourceId = useEditorStore(
-    (state) => state.setSelectedResourceId,
-  );
+  } = use(SDCPNContext);
+  const { selectedResourceId, setSelectedResourceId } = use(EditorContext);
 
   const handleLayerClick = (id: string) => {
     // Single select: replace selection

@@ -1,0 +1,20 @@
+{
+  "compilerOptions": {
+    "declaration": true,
+    "emitDeclarationOnly": true,
+    "exactOptionalPropertyTypes": false,
+    "isolatedModules": true,
+    "jsx": "react-jsx",
+    "lib": ["es2023", "DOM"],
+    "module": "preserve",
+    "moduleDetection": "force",
+    "moduleResolution": "bundler",
+    "resolveJsonModule": true,
+    "target": "esnext",
+    "types": [],
+    "verbatimModuleSyntax": true
+  },
+  "exclude": ["node_modules", "dist", ".build"],
+  "extends": "@tsconfig/strictest/tsconfig.json",
+  "include": ["src", "styled-system/**/*.d.ts"]
+}

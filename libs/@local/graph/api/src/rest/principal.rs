@@ -6,7 +6,6 @@ use std::collections::HashMap;
 use axum::{
     Extension, Router,
     extract::Path,
-    response::Response,
     routing::{get, post},
 };
 use hash_graph_authorization::policies::store::{
@@ -27,6 +26,7 @@ use type_system::principal::{
 };
 use utoipa::OpenApi;
 
+use super::status::BoxedResponse;
 use crate::rest::{AuthenticatedUserHeader, json::Json, status::report_to_response};
 
 #[derive(OpenApi)]
@@ -180,7 +180,7 @@ async fn get_or_create_system_machine<S>(
     Path(identifier): Path<String>,
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
     store_pool: Extension<Arc<S>>,
-) -> Result<Json<MachineId>, Response>
+) -> Result<Json<MachineId>, BoxedResponse>
 where
     S: StorePool + Send + Sync,
     for<'p> S::Store<'p>: PrincipalStore,
@@ -214,7 +214,7 @@ async fn get_machine_by_identifier<S>(
     Path(identifier): Path<String>,
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
     store_pool: Extension<Arc<S>>,
-) -> Result<Json<Option<Machine>>, Response>
+) -> Result<Json<Option<Machine>>, BoxedResponse>
 where
     S: StorePool + Send + Sync,
     for<'p> S::Store<'p>: PrincipalStore,
@@ -248,7 +248,7 @@ async fn create_user_actor<S>(
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
     store_pool: Extension<Arc<S>>,
     Json(params): Json<CreateUserActorParams>,
-) -> Result<Json<CreateUserActorResponse>, Response>
+) -> Result<Json<CreateUserActorResponse>, BoxedResponse>
 where
     S: StorePool + Send + Sync,
 {
@@ -281,7 +281,7 @@ async fn create_ai_actor<S>(
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
     store_pool: Extension<Arc<S>>,
     Json(params): Json<CreateAiActorParams>,
-) -> Result<Json<AiId>, Response>
+) -> Result<Json<AiId>, BoxedResponse>
 where
     S: StorePool + Send + Sync,
 {
@@ -314,7 +314,7 @@ async fn get_ai_by_identifier<S>(
     Path(identifier): Path<String>,
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
     store_pool: Extension<Arc<S>>,
-) -> Result<Json<Option<Ai>>, Response>
+) -> Result<Json<Option<Ai>>, BoxedResponse>
 where
     S: StorePool + Send + Sync,
     for<'p> S::Store<'p>: PrincipalStore,
@@ -348,7 +348,7 @@ async fn create_org_web<S>(
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
     store_pool: Extension<Arc<S>>,
     Json(params): Json<CreateOrgWebParams>,
-) -> Result<Json<CreateWebResponse>, Response>
+) -> Result<Json<CreateWebResponse>, BoxedResponse>
 where
     S: StorePool + Send + Sync,
     for<'p> S::Store<'p>: PrincipalStore,
@@ -384,7 +384,7 @@ async fn get_web_by_id<S>(
     Path(web_id): Path<WebId>,
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
     store_pool: Extension<Arc<S>>,
-) -> Result<Json<Option<Web>>, Response>
+) -> Result<Json<Option<Web>>, BoxedResponse>
 where
     S: StorePool + Send + Sync,
     for<'p> S::Store<'p>: PrincipalStore,
@@ -418,7 +418,7 @@ async fn get_web_by_shortname<S>(
     Path(shortname): Path<String>,
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
     store_pool: Extension<Arc<S>>,
-) -> Result<Json<Option<Web>>, Response>
+) -> Result<Json<Option<Web>>, BoxedResponse>
 where
     S: StorePool + Send + Sync,
     for<'p> S::Store<'p>: PrincipalStore,
@@ -452,7 +452,7 @@ async fn get_web_roles<S>(
     Path(web_id): Path<WebId>,
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
     store_pool: Extension<Arc<S>>,
-) -> Result<Json<HashMap<WebRoleId, WebRole>>, Response>
+) -> Result<Json<HashMap<WebRoleId, WebRole>>, BoxedResponse>
 where
     S: StorePool + Send + Sync,
     for<'p> S::Store<'p>: PrincipalStore,
@@ -486,7 +486,7 @@ async fn get_team_by_name<S>(
     Path(name): Path<String>,
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
     store_pool: Extension<Arc<S>>,
-) -> Result<Json<Option<Team>>, Response>
+) -> Result<Json<Option<Team>>, BoxedResponse>
 where
     S: StorePool + Send + Sync,
     for<'p> S::Store<'p>: PrincipalStore,
@@ -520,7 +520,7 @@ async fn get_team_roles<S>(
     Path(team_id): Path<TeamId>,
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
     store_pool: Extension<Arc<S>>,
-) -> Result<Json<HashMap<TeamRoleId, TeamRole>>, Response>
+) -> Result<Json<HashMap<TeamRoleId, TeamRole>>, BoxedResponse>
 where
     S: StorePool + Send + Sync,
     for<'p> S::Store<'p>: PrincipalStore,
@@ -556,7 +556,7 @@ async fn get_actor_group_role_assignments<S>(
     Path((actor_group_id, role_name)): Path<(ActorGroupEntityUuid, RoleName)>,
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
     store_pool: Extension<Arc<S>>,
-) -> Result<Json<Vec<ActorEntityUuid>>, Response>
+) -> Result<Json<Vec<ActorEntityUuid>>, BoxedResponse>
 where
     S: StorePool + Send + Sync,
     for<'p> S::Store<'p>: PrincipalStore,
@@ -594,7 +594,7 @@ async fn get_actor_group_role<S>(
     Path((actor_group_id, actor_id)): Path<(ActorGroupEntityUuid, ActorEntityUuid)>,
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
     store_pool: Extension<Arc<S>>,
-) -> Result<Json<Option<RoleName>>, Response>
+) -> Result<Json<Option<RoleName>>, BoxedResponse>
 where
     S: StorePool + Send + Sync,
     for<'p> S::Store<'p>: PrincipalStore,
@@ -637,7 +637,7 @@ async fn assign_actor_group_role<S>(
     )>,
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
     store_pool: Extension<Arc<S>>,
-) -> Result<Json<RoleAssignmentStatus>, Response>
+) -> Result<Json<RoleAssignmentStatus>, BoxedResponse>
 where
     S: StorePool + Send + Sync,
     for<'p> S::Store<'p>: PrincipalStore,
@@ -678,7 +678,7 @@ async fn unassign_actor_group_role<S>(
     )>,
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
     store_pool: Extension<Arc<S>>,
-) -> Result<Json<RoleUnassignmentStatus>, Response>
+) -> Result<Json<RoleUnassignmentStatus>, BoxedResponse>
 where
     S: StorePool + Send + Sync,
     for<'p> S::Store<'p>: PrincipalStore,

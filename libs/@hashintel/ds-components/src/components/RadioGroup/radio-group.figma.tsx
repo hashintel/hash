@@ -1,6 +1,6 @@
 import figma from "@figma/code-connect";
 
-import { RadioGroup } from "./radio-group";
+import { RadioGroup } from "../radio-group";
 
 /**
  * RadioGroup - Default variant

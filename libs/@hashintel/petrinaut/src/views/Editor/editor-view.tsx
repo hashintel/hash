@@ -1,4 +1,5 @@
 import { css } from "@hashintel/ds-helpers/css";
+import { use } from "react";
 
 import { Box } from "../../components/box";
 import { Stack } from "../../components/stack";
@@ -6,8 +7,8 @@ import { productionMachines } from "../../examples/broken-machines";
 import { satellitesSDCPN } from "../../examples/satellites";
 import { sirModel } from "../../examples/sir-model";
 import { convertOldFormatToSDCPN } from "../../old-formats/convert-old-format";
-import { useEditorStore } from "../../state/editor-provider";
-import { useSDCPNContext } from "../../state/sdcpn-provider";
+import { EditorContext } from "../../state/editor-context";
+import { SDCPNContext } from "../../state/sdcpn-context";
 // import { useSimulationStore } from "../../state/simulation-provider";
 import { SDCPNView } from "../SDCPN/sdcpn-view";
 import { BottomBar } from "./components/BottomBar/bottom-bar";
@@ -59,14 +60,15 @@ export const EditorView = ({
     petriNetDefinition,
     title,
     setTitle,
-  } = useSDCPNContext();
+  } = use(SDCPNContext);
 
-  // Get editor store methods
-  const mode = useEditorStore((state) => state.globalMode);
-  // const setMode = useEditorStore((state) => state.setGlobalMode);
-  const editionMode = useEditorStore((state) => state.editionMode);
-  const setEditionMode = useEditorStore((state) => state.setEditionMode);
-  const clearSelection = useEditorStore((state) => state.clearSelection);
+  // Get editor context
+  const {
+    globalMode: mode,
+    editionMode,
+    setEditionMode,
+    clearSelection,
+  } = use(EditorContext);
 
   // Get simulation store method to initialize parameter values
   // const initializeParameterValuesFromDefaults = useSimulationStore(

@@ -3,7 +3,7 @@
 use alloc::sync::Arc;
 use std::collections::HashMap;
 
-use axum::{Extension, Router, response::Response, routing::post};
+use axum::{Extension, Router, routing::post};
 use error_stack::{Report, ResultExt as _};
 use hash_graph_authorization::policies::principal::actor::AuthenticatedActor;
 use hash_graph_postgres_store::store::error::{EntityDoesNotExist, RaceConditionOnUpdate};
@@ -75,7 +75,7 @@ use type_system::{
 };
 use utoipa::{OpenApi, ToSchema};
 
-use super::InteractiveHeader;
+use super::{InteractiveHeader, status::BoxedResponse};
 pub use crate::rest::entity_query_request::{
     EntityQuery, EntityQueryOptions, QueryEntitiesRequest, QueryEntitySubgraphRequest,
 };
@@ -255,7 +255,7 @@ async fn create_entity<S>(
     store_pool: Extension<Arc<S>>,
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
     Json(body): Json<serde_json::Value>,
-) -> Result<Json<Entity>, Response>
+) -> Result<Json<Entity>, BoxedResponse>
 where
     S: StorePool + Send + Sync,
 {
@@ -296,7 +296,7 @@ async fn create_entities<S>(
     store_pool: Extension<Arc<S>>,
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
     Json(body): Json<serde_json::Value>,
-) -> Result<Json<Vec<Entity>>, Response>
+) -> Result<Json<Vec<Entity>>, BoxedResponse>
 where
     S: StorePool + Send + Sync,
 {
@@ -338,7 +338,7 @@ async fn validate_entity<S>(
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
     mut query_logger: Option<Extension<QueryLogger>>,
     Json(body): Json<serde_json::Value>,
-) -> Result<Json<HashMap<usize, EntityValidationReport>>, Response>
+) -> Result<Json<HashMap<usize, EntityValidationReport>>, BoxedResponse>
 where
     S: StorePool + Send + Sync,
 {
@@ -385,7 +385,7 @@ async fn has_permission_for_entities<S>(
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
     store_pool: Extension<Arc<S>>,
     Json(params): Json<HasPermissionForEntitiesParams<'static>>,
-) -> Result<Json<HashMap<EntityId, Vec<EntityEditionId>>>, Response>
+) -> Result<Json<HashMap<EntityId, Vec<EntityEditionId>>>, BoxedResponse>
 where
     S: StorePool + Send + Sync,
     for<'p> S::Store<'p>: EntityStore,
@@ -429,7 +429,7 @@ async fn query_entities<S>(
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
     mut query_logger: Option<Extension<QueryLogger>>,
     Json(request): Json<Box<RawJsonvalue>>,
-) -> Result<Json<QueryEntitiesResponse<'static>>, Response>
+) -> Result<Json<QueryEntitiesResponse<'static>>, BoxedResponse>
 where
     S: StorePool + Send + Sync,
 {
@@ -546,7 +546,7 @@ async fn query_entity_subgraph<S>(
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
     mut query_logger: Option<Extension<QueryLogger>>,
     Json(request): Json<serde_json::Value>,
-) -> Result<Json<QueryEntitySubgraphResponse<'static>>, Response>
+) -> Result<Json<QueryEntitySubgraphResponse<'static>>, BoxedResponse>
 where
     S: StorePool + Send + Sync,
 {
@@ -629,7 +629,7 @@ async fn count_entities<S>(
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
     mut query_logger: Option<Extension<QueryLogger>>,
     Json(request): Json<serde_json::Value>,
-) -> Result<Json<usize>, Response>
+) -> Result<Json<usize>, BoxedResponse>
 where
     S: StorePool + Send + Sync,
 {
@@ -680,7 +680,7 @@ async fn patch_entity<S>(
     store_pool: Extension<Arc<S>>,
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
     Json(params): Json<PatchEntityParams>,
-) -> Result<Json<Entity>, Response>
+) -> Result<Json<Entity>, BoxedResponse>
 where
     S: StorePool + Send + Sync,
 {
@@ -725,7 +725,7 @@ async fn update_entity_embeddings<S>(
     store_pool: Extension<Arc<S>>,
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
     Json(body): Json<serde_json::Value>,
-) -> Result<(), Response>
+) -> Result<(), BoxedResponse>
 where
     S: StorePool + Send + Sync,
 {
@@ -768,7 +768,7 @@ async fn diff_entity<S>(
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
     mut query_logger: Option<Extension<QueryLogger>>,
     Json(params): Json<DiffEntityParams>,
-) -> Result<Json<DiffEntityResult<'static>>, Response>
+) -> Result<Json<DiffEntityResult<'static>>, BoxedResponse>
 where
     S: StorePool + Send + Sync,
 {

@@ -1,7 +1,7 @@
 import "reactflow/dist/style.css";
 
 import { css } from "@hashintel/ds-helpers/css";
-import { useEffect, useRef, useState } from "react";
+import { use, useEffect, useRef, useState } from "react";
 import type { Connection, Node, ReactFlowInstance } from "reactflow";
 import ReactFlow, { Background, ConnectionLineType } from "reactflow";
 import { v4 as generateUuid } from "uuid";
@@ -10,9 +10,9 @@ import {
   DEFAULT_TRANSITION_KERNEL_CODE,
   generateDefaultLambdaCode,
 } from "../../core/default-codes";
-import { useEditorStore } from "../../state/editor-provider";
-import { useSDCPNContext } from "../../state/sdcpn-provider";
-import { useSimulationStore } from "../../state/simulation-provider";
+import { EditorContext } from "../../state/editor-context";
+import { SDCPNContext } from "../../state/sdcpn-context";
+import { SimulationContext } from "../../state/simulation-context";
 import type { ArcData, NodeData } from "../../state/types-for-editor-to-remove";
 import { Arc } from "./components/arc";
 import { PlaceNode } from "./components/place-node";
@@ -61,7 +61,7 @@ export const SDCPNView: React.FC = () => {
     addArc,
     deleteItemsByIds,
     readonly,
-  } = useSDCPNContext();
+  } = use(SDCPNContext);
 
   // Hook for applying node changes
   const applyNodeChanges = useApplyNodeChanges();
@@ -70,19 +70,17 @@ export const SDCPNView: React.FC = () => {
   const { nodes, arcs } = useSdcpnToReactFlow(petriNetDefinition);
 
   // Editor state
-  const mode = useEditorStore((state) => state.globalMode);
-  const editionMode = useEditorStore((state) => state.editionMode);
-  const setEditionMode = useEditorStore((state) => state.setEditionMode);
-  const selectedItemIds = useEditorStore((state) => state.selectedItemIds);
-  const setSelectedItemIds = useEditorStore(
-    (state) => state.setSelectedItemIds,
-  );
-  const setSelectedResourceId = useEditorStore(
-    (state) => state.setSelectedResourceId,
-  );
-  const clearSelection = useEditorStore((state) => state.clearSelection);
+  const {
+    globalMode: mode,
+    editionMode,
+    setEditionMode,
+    selectedItemIds,
+    setSelectedItemIds,
+    setSelectedResourceId,
+    clearSelection,
+  } = use(EditorContext);
 
-  const simulationState = useSimulationStore((state) => state.state);
+  const { state: simulationState } = use(SimulationContext);
 
   // Center viewport on SDCPN load
   useEffect(() => {

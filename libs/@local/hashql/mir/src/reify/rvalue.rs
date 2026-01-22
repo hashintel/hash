@@ -20,12 +20,15 @@ use super::{
     CurrentBlock, Reifier,
     error::{fat_call_on_constant, nested_let_bindings_in_anf, unexpected_assertion},
 };
-use crate::body::{
-    constant::{Constant, Int, TryFromPrimitiveError},
-    local::Local,
-    operand::Operand,
-    place::{FieldIndex, Place, ProjectionKind},
-    rvalue::{Aggregate, AggregateKind, Apply, Binary, Input, RValue, Unary},
+use crate::{
+    body::{
+        constant::Constant,
+        local::Local,
+        operand::Operand,
+        place::{FieldIndex, Place, ProjectionKind},
+        rvalue::{Aggregate, AggregateKind, Apply, Binary, Input, RValue, Unary},
+    },
+    interpret::value::{Int, TryFromPrimitiveError},
 };
 
 impl<'mir, 'heap> Reifier<'_, 'mir, '_, '_, 'heap> {

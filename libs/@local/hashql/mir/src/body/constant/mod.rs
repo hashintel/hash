@@ -27,14 +27,11 @@
 //! while preserving the semantics of complex primitive types that should not be
 //! evaluated at compile time.
 
-mod int;
-
 use core::fmt;
 
 use hashql_core::value::Primitive;
 
-pub use self::int::{Int, TryFromIntegerError, TryFromPrimitiveError};
-use crate::def::DefId;
+use crate::{def::DefId, interpret::value::Int};
 
 /// A constant value in the HashQL MIR.
 ///

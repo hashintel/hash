@@ -1,5 +1,4 @@
-/* eslint-disable react/jsx-no-constructed-context-values */
-import { createContext, type ReactNode, useContext } from "react";
+import { createContext, type ReactNode, use } from "react";
 
 import type { Color, Place } from "../../../../core/types/sdcpn";
 
@@ -28,7 +27,7 @@ const PlacePropertiesContext =
  * Must be used within a PlacePropertiesProvider.
  */
 export const usePlacePropertiesContext = (): PlacePropertiesContextValue => {
-  const context = useContext(PlacePropertiesContext);
+  const context = use(PlacePropertiesContext);
   if (!context) {
     throw new Error(
       "usePlacePropertiesContext must be used within a PlacePropertiesProvider",

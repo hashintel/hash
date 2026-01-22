@@ -1,4 +1,3 @@
-/* eslint-disable react/jsx-no-constructed-context-values */
 import * as Sentry from "@sentry/react";
 
 import { ErrorTrackerContext } from "../../src/error-tracker/error-tracker.context";

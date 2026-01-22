@@ -1,12 +1,12 @@
 import { css } from "@hashintel/ds-helpers/css";
-import { useState } from "react";
+import { use, useState } from "react";
 import { TbArrowRight } from "react-icons/tb";
 
 import type { SubView } from "../../../components/sub-view/types";
 import { InfoIconTooltip } from "../../../components/tooltip";
-import { useEditorStore } from "../../../state/editor-provider";
-import { useSDCPNContext } from "../../../state/sdcpn-provider";
-import { useSimulationStore } from "../../../state/simulation-provider";
+import { EditorContext } from "../../../state/editor-context";
+import { SDCPNContext } from "../../../state/sdcpn-context";
+import { SimulationContext } from "../../../state/simulation-context";
 
 const containerStyle = css({
   display: "flex",
@@ -191,23 +191,20 @@ const editButtonIconStyle = css({
  * Split into two sections: Computation and Parameters.
  */
 const SimulationSettingsContent: React.FC = () => {
-  const setGlobalMode = useEditorStore((state) => state.setGlobalMode);
-  const simulationState = useSimulationStore((state) => state.state);
-  const simulationError = useSimulationStore((state) => state.error);
-  const errorItemId = useSimulationStore((state) => state.errorItemId);
-  const dt = useSimulationStore((state) => state.dt);
-  const setDt = useSimulationStore((state) => state.setDt);
-  const setSelectedResourceId = useEditorStore(
-    (state) => state.setSelectedResourceId,
-  );
-  const parameterValues = useSimulationStore((state) => state.parameterValues);
-  const setParameterValue = useSimulationStore(
-    (state) => state.setParameterValue,
-  );
+  const { setGlobalMode, setSelectedResourceId } = use(EditorContext);
+  const {
+    state: simulationState,
+    error: simulationError,
+    errorItemId,
+    dt,
+    setDt,
+    parameterValues,
+    setParameterValue,
+  } = use(SimulationContext);
 
   const {
     petriNetDefinition: { parameters },
-  } = useSDCPNContext();
+  } = use(SDCPNContext);
 
   // Local state for ODE solver (not used in simulation yet, but UI is ready)
   const [odeSolver, setOdeSolver] = useState("euler");

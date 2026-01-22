@@ -1,7 +1,7 @@
 /* eslint-disable id-length */
 import { css, cva } from "@hashintel/ds-helpers/css";
 import MonacoEditor from "@monaco-editor/react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { use, useEffect, useMemo, useRef, useState } from "react";
 import {
   TbArrowRight,
   TbDotsVertical,
@@ -25,9 +25,9 @@ import type {
   DifferentialEquation,
   Place,
 } from "../../../../core/types/sdcpn";
-import { useEditorStore } from "../../../../state/editor-provider";
-import { useSDCPNContext } from "../../../../state/sdcpn-provider";
-import { useSimulationStore } from "../../../../state/simulation-provider";
+import { EditorContext } from "../../../../state/editor-context";
+import { SDCPNContext } from "../../../../state/sdcpn-context";
+import { SimulationContext } from "../../../../state/simulation-context";
 import { useIsReadOnly } from "../../../../state/use-is-read-only";
 import { placeInitialStateSubView } from "../../subviews/place-initial-state";
 import { placeVisualizerOutputSubView } from "../../subviews/place-visualizer-output";
@@ -57,7 +57,7 @@ const headerContainerStyle = css({
 });
 
 const headerTitleStyle = css({
-  fontWeight: 600,
+  fontWeight: "semibold",
   fontSize: "[16px]",
 });
 
@@ -67,26 +67,26 @@ const deleteButtonStyle = css({
   justifyContent: "center",
   width: "[24px]",
   height: "[24px]",
-  padding: "spacing.0",
+  padding: "0",
   border: "none",
   background: "[transparent]",
   cursor: "pointer",
-  color: "core.gray.60",
-  borderRadius: "radius.4",
+  color: "gray.60",
+  borderRadius: "md.4",
   _hover: {
-    color: "core.red.60",
-    backgroundColor: "core.red.10",
+    color: "red.60",
+    backgroundColor: "red.10",
   },
 });
 
 const fieldLabelStyle = css({
-  fontWeight: 500,
+  fontWeight: "medium",
   fontSize: "[12px]",
   marginBottom: "[4px]",
 });
 
 const fieldLabelWithTooltipStyle = css({
-  fontWeight: 500,
+  fontWeight: "medium",
   fontSize: "[12px]",
   marginBottom: "[4px]",
   display: "flex",
@@ -229,7 +229,7 @@ const codeHeaderStyle = css({
 });
 
 const codeHeaderLabelStyle = css({
-  fontWeight: 500,
+  fontWeight: "medium",
   fontSize: "[12px]",
 });
 
@@ -266,18 +266,14 @@ export const PlaceProperties: React.FC<PlacePropertiesProps> = ({
   differentialEquations,
   updatePlace,
 }) => {
-  const simulation = useSimulationStore((state) => state.simulation);
+  const { simulation } = use(SimulationContext);
   const isReadOnly = useIsReadOnly();
-  const globalMode = useEditorStore((state) => state.globalMode);
-
-  const setSelectedResourceId = useEditorStore(
-    (state) => state.setSelectedResourceId,
-  );
+  const { globalMode, setSelectedResourceId } = use(EditorContext);
 
   const {
     petriNetDefinition: { types: availableTypes },
     removePlace,
-  } = useSDCPNContext();
+  } = use(SDCPNContext);
 
   // Get the place type for context
   const placeType = place.colorId

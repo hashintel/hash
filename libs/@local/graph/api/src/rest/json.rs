@@ -16,6 +16,7 @@ use hash_status::StatusCode;
 use serde::{Serialize, de::DeserializeOwned};
 use serde_json::error::Category;
 
+use super::status::BoxedResponse;
 use crate::rest::status::status_to_response;
 
 #[derive(Debug, Clone, Copy, Default)]
@@ -27,7 +28,7 @@ where
     T: DeserializeOwned,
     S: Send + Sync,
 {
-    type Rejection = Response;
+    type Rejection = BoxedResponse;
 
     // TODO: can we generally add `RequestInfo` including information such as the route
     //   see https://github.com/tokio-rs/axum/blob/main/examples/customize-extractor-error/src/custom_extractor.rs
@@ -147,7 +148,8 @@ where
                     )]),
                     "UNKNOWN".to_owned(),
                 ))],
-            )),
+            ))
+            .into_response(),
         }
     }
 }

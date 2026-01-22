@@ -76,6 +76,118 @@ fn assert_inst_simplify_pass<'heap>(
     assert_snapshot!(name, value);
 }
 
+/// Tests constant folding for addition.
+#[test]
+fn const_fold_add() {
+    let heap = Heap::new();
+    let interner = Interner::new(&heap);
+    let env = Environment::new(&heap);
+
+    let body = body!(interner, env; fn@0/0 -> Int {
+        decl result: Int;
+
+        bb0() {
+            result = bin.+ 2 3;
+            return result;
+        }
+    });
+
+    assert_inst_simplify_pass(
+        "const_fold_add",
+        body,
+        &mut MirContext {
+            heap: &heap,
+            env: &env,
+            interner: &interner,
+            diagnostics: DiagnosticIssues::new(),
+        },
+    );
+}
+
+/// Tests constant folding for subtraction.
+#[test]
+fn const_fold_sub() {
+    let heap = Heap::new();
+    let interner = Interner::new(&heap);
+    let env = Environment::new(&heap);
+
+    let body = body!(interner, env; fn@0/0 -> Int {
+        decl result: Int;
+
+        bb0() {
+            result = bin.- 5 3;
+            return result;
+        }
+    });
+
+    assert_inst_simplify_pass(
+        "const_fold_sub",
+        body,
+        &mut MirContext {
+            heap: &heap,
+            env: &env,
+            interner: &interner,
+            diagnostics: DiagnosticIssues::new(),
+        },
+    );
+}
+
+/// Tests that addition overflow is not folded (returns None from `checked_add`).
+#[test]
+fn const_fold_add_overflow() {
+    let heap = Heap::new();
+    let interner = Interner::new(&heap);
+    let env = Environment::new(&heap);
+
+    let body = body!(interner, env; fn@0/0 -> Int {
+        decl result: Int;
+
+        bb0() {
+            result = bin.+ 170141183460469231731687303715884105727 1;
+            return result;
+        }
+    });
+
+    assert_inst_simplify_pass(
+        "const_fold_add_overflow",
+        body,
+        &mut MirContext {
+            heap: &heap,
+            env: &env,
+            interner: &interner,
+            diagnostics: DiagnosticIssues::new(),
+        },
+    );
+}
+
+/// Tests that subtraction underflow is not folded (returns None from `checked_sub`).
+#[test]
+fn const_fold_sub_overflow() {
+    let heap = Heap::new();
+    let interner = Interner::new(&heap);
+    let env = Environment::new(&heap);
+
+    let body = body!(interner, env; fn@0/0 -> Int {
+        decl result: Int;
+
+        bb0() {
+            result = bin.- (-0x8000_0000_0000_0000_0000_0000_0000_0000) 1;
+            return result;
+        }
+    });
+
+    assert_inst_simplify_pass(
+        "const_fold_sub_overflow",
+        body,
+        &mut MirContext {
+            heap: &heap,
+            env: &env,
+            interner: &interner,
+            diagnostics: DiagnosticIssues::new(),
+        },
+    );
+}
+
 /// Tests constant folding for bitwise AND on integers.
 #[test]
 fn const_fold_bit_and() {
@@ -178,6 +290,146 @@ fn const_fold_unary_neg() {
 
     assert_inst_simplify_pass(
         "const_fold_unary_neg",
+        body,
+        &mut MirContext {
+            heap: &heap,
+            env: &env,
+            interner: &interner,
+            diagnostics: DiagnosticIssues::new(),
+        },
+    );
+}
+
+/// Tests identity simplification for addition with zero on the right (x + 0 => x).
+#[test]
+fn identity_add_zero() {
+    let heap = Heap::new();
+    let interner = Interner::new(&heap);
+    let env = Environment::new(&heap);
+
+    let body = body!(interner, env; fn@0/1 -> Int {
+        decl x: Int, result: Int;
+
+        bb0() {
+            result = bin.+ x 0;
+            return result;
+        }
+    });
+
+    assert_inst_simplify_pass(
+        "identity_add_zero",
+        body,
+        &mut MirContext {
+            heap: &heap,
+            env: &env,
+            interner: &interner,
+            diagnostics: DiagnosticIssues::new(),
+        },
+    );
+}
+
+/// Tests identity simplification for addition with zero on the left (0 + x => x).
+#[test]
+fn identity_add_zero_left() {
+    let heap = Heap::new();
+    let interner = Interner::new(&heap);
+    let env = Environment::new(&heap);
+
+    let body = body!(interner, env; fn@0/1 -> Int {
+        decl x: Int, result: Int;
+
+        bb0() {
+            result = bin.+ 0 x;
+            return result;
+        }
+    });
+
+    assert_inst_simplify_pass(
+        "identity_add_zero_left",
+        body,
+        &mut MirContext {
+            heap: &heap,
+            env: &env,
+            interner: &interner,
+            diagnostics: DiagnosticIssues::new(),
+        },
+    );
+}
+
+/// Tests identity simplification for subtraction with zero (x - 0 => x).
+#[test]
+fn identity_sub_zero() {
+    let heap = Heap::new();
+    let interner = Interner::new(&heap);
+    let env = Environment::new(&heap);
+
+    let body = body!(interner, env; fn@0/1 -> Int {
+        decl x: Int, result: Int;
+
+        bb0() {
+            result = bin.- x 0;
+            return result;
+        }
+    });
+
+    assert_inst_simplify_pass(
+        "identity_sub_zero",
+        body,
+        &mut MirContext {
+            heap: &heap,
+            env: &env,
+            interner: &interner,
+            diagnostics: DiagnosticIssues::new(),
+        },
+    );
+}
+
+/// Tests simplification of 0 - x => -x.
+#[test]
+fn zero_sub_place() {
+    let heap = Heap::new();
+    let interner = Interner::new(&heap);
+    let env = Environment::new(&heap);
+
+    let body = body!(interner, env; fn@0/1 -> Int {
+        decl x: Int, result: Int;
+
+        bb0() {
+            result = bin.- 0 x;
+            return result;
+        }
+    });
+
+    assert_inst_simplify_pass(
+        "zero_sub_place",
+        body,
+        &mut MirContext {
+            heap: &heap,
+            env: &env,
+            interner: &interner,
+            diagnostics: DiagnosticIssues::new(),
+        },
+    );
+}
+
+/// Tests cancellation simplification for subtraction with identical operands (x - x => 0).
+#[test]
+fn identical_operand_sub() {
+    let heap = Heap::new();
+    let interner = Interner::new(&heap);
+    let env = Environment::new(&heap);
+
+    let body = body!(interner, env; fn@0/1 -> Int {
+        decl x: Int, result: Int;
+
+        bb0() {
+            result = bin.- x x;
+            return result;
+        }
+    });
+
+    assert_inst_simplify_pass(
+        "identical_operand_sub",
         body,
         &mut MirContext {
             heap: &heap,

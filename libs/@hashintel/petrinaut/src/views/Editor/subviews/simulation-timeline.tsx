@@ -1,13 +1,51 @@
 import { css } from "@hashintel/ds-helpers/css";
 import { scaleLinear } from "d3-scale";
-import { useCallback, useMemo, useRef, useState } from "react";
+import { use, useCallback, useMemo, useRef, useState } from "react";
 
 import { SegmentGroup } from "../../../components/segment-group";
 import type { SubView } from "../../../components/sub-view/types";
-import { useEditorStore } from "../../../state/editor-provider";
-import type { TimelineChartType } from "../../../state/editor-store";
-import { useSDCPNContext } from "../../../state/sdcpn-provider";
-import { useSimulationStore } from "../../../state/simulation-provider";
+import {
+  EditorContext,
+  type TimelineChartType,
+} from "../../../state/editor-context";
+import { SDCPNContext } from "../../../state/sdcpn-context";
+import { SimulationContext } from "../../../state/simulation-context";
+
+/**
+ * Computes the maximum value from an array using a selector function.
+ * Performs a single pass over the array without creating intermediate copies.
+ *
+ * @param array - The array to iterate over
+ * @param selector - A function that extracts values to compare from each element.
+ *                   Can return a single number or an array of numbers.
+ * @param initialValue - The initial maximum value (defaults to -Infinity)
+ * @returns The maximum value found, or initialValue if array is empty
+ */
+const max = <T,>(
+  array: readonly T[],
+  selector: (item: T) => number | readonly number[],
+  initialValue = Number.NEGATIVE_INFINITY,
+): number => {
+  let result = initialValue;
+
+  for (const item of array) {
+    const value = selector(item);
+
+    if (typeof value === "number") {
+      if (value > result) {
+        result = value;
+      }
+    } else {
+      for (const val of value) {
+        if (val > result) {
+          result = val;
+        }
+      }
+    }
+  }
+
+  return result;
+};
 
 const containerStyle = css({
   display: "flex",
@@ -162,8 +200,8 @@ const CHART_TYPE_OPTIONS = [
  * Header action component that renders a chart type selector.
  */
 const TimelineChartTypeSelector: React.FC = () => {
-  const chartType = useEditorStore((state) => state.timelineChartType);
-  const setChartType = useEditorStore((state) => state.setTimelineChartType);
+  const { timelineChartType: chartType, setTimelineChartType: setChartType } =
+    use(EditorContext);
 
   return (
     <SegmentGroup
@@ -208,10 +246,10 @@ interface TooltipState {
  * Hook to extract compartment data from simulation frames.
  */
 const useCompartmentData = (): CompartmentData[] => {
-  const simulation = useSimulationStore((state) => state.simulation);
+  const { simulation } = use(SimulationContext);
   const {
     petriNetDefinition: { places, types },
-  } = useSDCPNContext();
+  } = use(SDCPNContext);
 
   return useMemo((): CompartmentData[] => {
     if (!simulation || simulation.frames.length === 0) {
@@ -301,7 +339,7 @@ const useYAxisScale = (
       }
     } else {
       // For run chart, find the maximum individual value
-      maxValue = Math.max(1, ...visibleData.flatMap((item) => item.values));
+      maxValue = max(visibleData, (item) => item.values, 1);
     }
 
     // Use D3 to create a nice scale
@@ -383,9 +421,7 @@ const ChartTooltip: React.FC<{ tooltip: TooltipState | null }> = ({
 const PlayheadIndicator: React.FC<{ totalFrames: number }> = ({
   totalFrames,
 }) => {
-  const currentlyViewedFrame = useSimulationStore(
-    (state) => state.currentlyViewedFrame,
-  );
+  const { currentlyViewedFrame } = use(SimulationContext);
 
   return (
     <div
@@ -477,10 +513,7 @@ const CompartmentTimeSeries: React.FC<ChartProps> = ({
   onTooltipChange,
   onPlaceHover,
 }) => {
-  const simulation = useSimulationStore((state) => state.simulation);
-  const setCurrentlyViewedFrame = useSimulationStore(
-    (state) => state.setCurrentlyViewedFrame,
-  );
+  const { simulation, setCurrentlyViewedFrame } = use(SimulationContext);
 
   const chartRef = useRef<SVGSVGElement>(null);
   const isDraggingRef = useRef(false);
@@ -771,10 +804,7 @@ const StackedAreaChart: React.FC<ChartProps> = ({
   onTooltipChange,
   onPlaceHover,
 }) => {
-  const simulation = useSimulationStore((state) => state.simulation);
-  const setCurrentlyViewedFrame = useSimulationStore(
-    (state) => state.setCurrentlyViewedFrame,
-  );
+  const { simulation, setCurrentlyViewedFrame } = use(SimulationContext);
 
   const chartRef = useRef<SVGSVGElement>(null);
   const isDraggingRef = useRef(false);
@@ -1066,8 +1096,8 @@ const StackedAreaChart: React.FC<ChartProps> = ({
  * Shows a compartment time-series chart with interactive scrubbing.
  */
 const SimulationTimelineContent: React.FC = () => {
-  const chartType = useEditorStore((state) => state.timelineChartType);
-  const simulation = useSimulationStore((state) => state.simulation);
+  const { timelineChartType: chartType } = use(EditorContext);
+  const { simulation } = use(SimulationContext);
   const compartmentData = useCompartmentData();
 
   // Shared legend state - persists across chart type switches

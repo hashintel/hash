@@ -1,7 +1,7 @@
 {
   "name": "@hashintel/ds-theme",
   "version": "0.0.1",
-  "description": "HASH UI Preset",
+  "description": "HASH PandaCSS Preset",
   "repository": {
     "type": "git",
     "url": "https://github.com/hashintel/hash.git",
@@ -10,12 +10,54 @@
   "license": "(MIT OR Apache-2.0)",
   "sideEffects": false,
   "type": "module",
-  "main": "src/index.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/main.d.ts",
+      "default": "./dist/main.js"
+    },
+    "./theme": {
+      "types": "./dist/theme.d.ts",
+      "default": "./dist/theme.js"
+    }
+  },
+  "main": "./dist/main.js",
+  "module": "./dist/main.js",
+  "types": "./dist/main.d.ts",
+  "files": [
+    "dist",
+    "CHANGELOG.md",
+    "LICENSE-APACHE.md",
+    "LICENSE-MIT.md",
+    "LICENSE",
+    "README.md"
+  ],
   "scripts": {
-    "generate:panda": "tsx scripts/toPanda.ts"
+    "build": "tsdown",
+    "codegen": "npm-run-all --continue-on-error codegen:colors codegen:tokens",
+    "codegen:colors": "tsx scripts/generate-colors.ts",
+    "codegen:tokens": "tsx scripts/generate-tokens.ts",
+    "dev": "tsdown --watch",
+    "dev:test": "vitest dev",
+    "fix": "npm-run-all --continue-on-error \"fix:*\"",
+    "fix:format": "biome format --write",
+    "lint": "npm-run-all --continue-on-error \"lint:*\"",
+    "lint:tsc": "tsc --noEmit",
+    "prepare": "yarn run codegen",
+    "test:unit": "vitest run"
   },
   "devDependencies": {
-    "es-toolkit": "1.41.0",
-    "tsx": "4.20.6"
+    "@pandacss/dev": "1.4.3",
+    "@tsconfig/strictest": "^2.0.8",
+    "@types/node": "22.18.13",
+    "case-anything": "3.1.0",
+    "npm-run-all": "4.1.5",
+    "tsdown": "^0.18.1",
+    "tsx": "4.20.6",
+    "typescript": "5.9.3",
+    "vitest": "^4.0.16",
+    "zod": "4.1.12"
+  },
+  "publishConfig": {
+    "access": "public"
   }
 }

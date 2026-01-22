@@ -26,7 +26,7 @@ fn format_liveness_state(mut write: impl fmt::Write, state: &DenseBitSet<Local>)
             write!(write, ", ")?;
         }
 
-        write!(write, "%{local}")?;
+        write!(write, "{local}")?;
     }
 
     Ok(())
@@ -40,7 +40,7 @@ fn format_liveness_result(
     let entry = &results.entry_states[bb];
     let exit = &results.exit_states[bb];
 
-    write!(write, "bb{bb}: {{")?;
+    write!(write, "{bb}: {{")?;
     format_liveness_state(&mut write, entry)?;
     write!(write, "}} -> {{")?;
     format_liveness_state(&mut write, exit)?;

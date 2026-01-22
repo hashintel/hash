@@ -27,6 +27,7 @@
   "globs": ["*.md", "**/*.md", "**/*.mdc"],
   "ignores": [
     "**/LICENSE*.md",
+    "**/AGENTS*.md",
     "node_modules/**",
     "target/**",
     "**/_temp/**",
