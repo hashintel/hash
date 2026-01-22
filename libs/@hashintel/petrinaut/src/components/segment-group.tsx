@@ -1,15 +1,16 @@
 import { ark } from "@ark-ui/react/factory";
 import { SegmentGroup as ArkSegmentGroup } from "@ark-ui/react/segment-group";
+import { Tooltip as ArkTooltip } from "@ark-ui/react/tooltip";
 import { css, cva } from "@hashintel/ds-helpers/css";
 
-import { Tooltip } from "./tooltip";
-
-/**
- * Wrapper style using display:contents to be invisible to layout
- * while still forwarding tooltip event handlers.
- */
-const tooltipWrapperStyle = css({
-  display: "contents",
+const tooltipContentStyle = css({
+  backgroundColor: "gray.90",
+  color: "gray.10",
+  borderRadius: "md.6",
+  fontSize: "[13px]",
+  zIndex: "[10000]",
+  boxShadow: "[0 2px 8px rgba(0, 0, 0, 0.15)]",
+  padding: "[6px 10px]",
 });
 
 const containerStyle = cva({
@@ -136,7 +137,60 @@ export const SegmentGroup: React.FC<SegmentGroupProps> = ({
   disabled = false,
   tooltip,
 }) => {
-  const segmentGroupElement = (
+  const containerClassName = containerStyle({ size, isDisabled: disabled });
+
+  const containerContent = (
+    <>
+      <ArkSegmentGroup.Indicator className={indicatorStyle({ size })} />
+      {options.map((option) => (
+        <ArkSegmentGroup.Item
+          key={option.value}
+          value={option.value}
+          className={itemStyle({
+            isSelected: value === option.value,
+            size,
+            isDisabled: disabled,
+          })}
+        >
+          <ArkSegmentGroup.ItemText>{option.label}</ArkSegmentGroup.ItemText>
+          <ArkSegmentGroup.ItemControl />
+          <ArkSegmentGroup.ItemHiddenInput />
+        </ArkSegmentGroup.Item>
+      ))}
+    </>
+  );
+
+  if (tooltip) {
+    return (
+      <ArkTooltip.Root
+        openDelay={200}
+        closeDelay={0}
+        positioning={{ placement: "top" }}
+      >
+        <ArkSegmentGroup.Root
+          value={value}
+          disabled={disabled}
+          onValueChange={(details) => {
+            if (details.value) {
+              onChange(details.value);
+            }
+          }}
+        >
+          {/* ArkTooltip.Trigger with asChild merges props with ark.div */}
+          <ArkTooltip.Trigger asChild>
+            <ark.div className={containerClassName}>{containerContent}</ark.div>
+          </ArkTooltip.Trigger>
+        </ArkSegmentGroup.Root>
+        <ArkTooltip.Positioner>
+          <ArkTooltip.Content className={tooltipContentStyle}>
+            {tooltip}
+          </ArkTooltip.Content>
+        </ArkTooltip.Positioner>
+      </ArkTooltip.Root>
+    );
+  }
+
+  return (
     <ArkSegmentGroup.Root
       value={value}
       disabled={disabled}
@@ -146,38 +200,7 @@ export const SegmentGroup: React.FC<SegmentGroupProps> = ({
         }
       }}
     >
-      <div className={containerStyle({ size, isDisabled: disabled })}>
-        <ArkSegmentGroup.Indicator className={indicatorStyle({ size })} />
-        {options.map((option) => (
-          <ArkSegmentGroup.Item
-            key={option.value}
-            value={option.value}
-            className={itemStyle({
-              isSelected: value === option.value,
-              size,
-              isDisabled: disabled,
-            })}
-          >
-            <ArkSegmentGroup.ItemText>{option.label}</ArkSegmentGroup.ItemText>
-            <ArkSegmentGroup.ItemControl />
-            <ArkSegmentGroup.ItemHiddenInput />
-          </ArkSegmentGroup.Item>
-        ))}
-      </div>
+      <div className={containerClassName}>{containerContent}</div>
     </ArkSegmentGroup.Root>
   );
-
-  if (tooltip) {
-    // Use ark.span with display:contents to forward tooltip events
-    // without affecting layout
-    return (
-      <Tooltip content={tooltip}>
-        <ark.span className={tooltipWrapperStyle}>
-          {segmentGroupElement}
-        </ark.span>
-      </Tooltip>
-    );
-  }
-
-  return segmentGroupElement;
 };
