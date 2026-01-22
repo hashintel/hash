@@ -38,7 +38,7 @@
     "fix:eslint": "mise run fix:eslint",
     "fix:format": "biome format --write",
     "fix:markdownlint": "mise exec --env dev markdownlint-cli2 -- markdownlint-cli2 --fix",
-    "fix:package-json": "yarn workspace @local/repo-chores exe scripts/sort-package-json.ts fix",
+    "fix:package-json": "mise run fix:package-json",
     "fix:taplo": "taplo fmt",
     "fix:yarn-deduplicate": "yarn dedupe --strategy highest",
     "generate-ontology-type-ids": "yarn workspace @apps/hash-api generate-ontology-type-ids",
