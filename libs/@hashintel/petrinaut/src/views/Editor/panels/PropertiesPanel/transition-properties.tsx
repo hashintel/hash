@@ -52,21 +52,36 @@ const headerTitleStyle = css({
   fontSize: "[16px]",
 });
 
-const deleteButtonStyle = css({
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-  width: "[24px]",
-  height: "[24px]",
-  padding: "0",
-  border: "none",
-  background: "[transparent]",
-  cursor: "pointer",
-  color: "gray.60",
-  borderRadius: "md.4",
-  _hover: {
-    color: "red.60",
-    backgroundColor: "red.10",
+const deleteButtonStyle = cva({
+  base: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    width: "[24px]",
+    height: "[24px]",
+    padding: "0",
+    border: "none",
+    background: "[transparent]",
+    color: "gray.60",
+    borderRadius: "md.4",
+  },
+  variants: {
+    isDisabled: {
+      true: {
+        cursor: "not-allowed",
+        opacity: "[0.5]",
+      },
+      false: {
+        cursor: "pointer",
+        _hover: {
+          color: "red.60",
+          backgroundColor: "red.10",
+        },
+      },
+    },
+  },
+  defaultVariants: {
+    isDisabled: false,
   },
 });
 
@@ -304,7 +319,7 @@ export const TransitionProperties: React.FC<TransitionPropertiesProps> = ({
       <div>
         <div className={headerContainerStyle}>
           <div className={headerTitleStyle}>Transition</div>
-          <Tooltip content="Delete">
+          <Tooltip content={isReadOnly ? UI_MESSAGES.READ_ONLY_MODE : "Delete"}>
             <button
               type="button"
               onClick={() => {
@@ -317,7 +332,8 @@ export const TransitionProperties: React.FC<TransitionPropertiesProps> = ({
                   removeTransition(transition.id);
                 }
               }}
-              className={deleteButtonStyle}
+              disabled={isReadOnly}
+              className={deleteButtonStyle({ isDisabled: isReadOnly })}
             >
               <TbTrash size={16} />
             </button>
