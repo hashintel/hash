@@ -3,9 +3,12 @@ import { use } from "react";
 import { v4 as uuidv4 } from "uuid";
 
 import type { SubView } from "../../../components/sub-view/types";
+import { Tooltip } from "../../../components/tooltip";
+import { UI_MESSAGES } from "../../../constants/ui-messages";
 import { SimulationContext } from "../../../simulation/context";
 import { EditorContext } from "../../../state/editor-context";
 import { SDCPNContext } from "../../../state/sdcpn-context";
+import { useIsReadOnly } from "../../../state/use-is-read-only";
 
 const addButtonStyle = css({
   display: "flex",
@@ -138,12 +141,9 @@ const ParametersHeaderAction: React.FC = () => {
     petriNetDefinition: { parameters },
     addParameter,
   } = use(SDCPNContext);
-  const { globalMode, setSelectedResourceId } = use(EditorContext);
-  const { state: simulationState } = use(SimulationContext);
+  const { setSelectedResourceId } = use(EditorContext);
 
-  const isSimulationMode = globalMode === "simulate";
-  const isSimulationActive =
-    simulationState === "Running" || simulationState === "Paused";
+  const isReadOnly = useIsReadOnly();
 
   const handleAddParameter = () => {
     const name = `param${parameters.length + 1}`;
@@ -158,21 +158,18 @@ const ParametersHeaderAction: React.FC = () => {
     setSelectedResourceId(id);
   };
 
-  // Don't show add button in simulation mode
-  if (isSimulationMode) {
-    return null;
-  }
-
   return (
-    <button
-      type="button"
-      disabled={isSimulationActive}
-      onClick={handleAddParameter}
-      className={addButtonStyle}
-      aria-label="Add parameter"
-    >
-      +
-    </button>
+    <Tooltip content={isReadOnly ? UI_MESSAGES.READ_ONLY_MODE : undefined}>
+      <button
+        type="button"
+        disabled={isReadOnly}
+        onClick={handleAddParameter}
+        className={addButtonStyle}
+        aria-label="Add parameter"
+      >
+        +
+      </button>
+    </Tooltip>
   );
 };
 
@@ -192,13 +189,10 @@ const ParametersList: React.FC = () => {
     setParameterValue,
   } = use(SimulationContext);
 
+  const isReadOnly = useIsReadOnly();
   const isSimulationNotRun =
     globalMode === "simulate" && simulationState === "NotRun";
   const isSimulationMode = globalMode === "simulate";
-
-  // Check if simulation is running or paused
-  const isSimulationActive =
-    simulationState === "Running" || simulationState === "Paused";
 
   return (
     <div>
@@ -250,22 +244,28 @@ const ParametersList: React.FC = () => {
                     className={inputStyle}
                   />
                 ) : (
-                  <button
-                    type="button"
-                    disabled={isSimulationActive}
-                    onClick={() => {
-                      if (
-                        // eslint-disable-next-line no-alert
-                        window.confirm(`Delete parameter "${param.name}"?`)
-                      ) {
-                        removeParameter(param.id);
-                      }
-                    }}
-                    className={deleteButtonStyle}
-                    aria-label={`Delete ${param.name}`}
+                  <Tooltip
+                    content={
+                      isReadOnly ? UI_MESSAGES.READ_ONLY_MODE : undefined
+                    }
                   >
-                    ×
-                  </button>
+                    <button
+                      type="button"
+                      disabled={isReadOnly}
+                      onClick={() => {
+                        if (
+                          // eslint-disable-next-line no-alert
+                          window.confirm(`Delete parameter "${param.name}"?`)
+                        ) {
+                          removeParameter(param.id);
+                        }
+                      }}
+                      className={deleteButtonStyle}
+                      aria-label={`Delete ${param.name}`}
+                    >
+                      ×
+                    </button>
+                  </Tooltip>
                 )}
               </div>
             </div>

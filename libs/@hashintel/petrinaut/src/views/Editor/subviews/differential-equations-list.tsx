@@ -3,10 +3,12 @@ import { use } from "react";
 import { v4 as uuidv4 } from "uuid";
 
 import type { SubView } from "../../../components/sub-view/types";
+import { Tooltip } from "../../../components/tooltip";
+import { UI_MESSAGES } from "../../../constants/ui-messages";
 import { DEFAULT_DIFFERENTIAL_EQUATION_CODE } from "../../../core/default-codes";
-import { SimulationContext } from "../../../simulation/context";
 import { EditorContext } from "../../../state/editor-context";
 import { SDCPNContext } from "../../../state/sdcpn-context";
+import { useIsReadOnly } from "../../../state/use-is-read-only";
 
 const listContainerStyle = css({
   display: "flex",
@@ -120,10 +122,7 @@ const DifferentialEquationsSectionContent: React.FC = () => {
 
   const { selectedResourceId, setSelectedResourceId } = use(EditorContext);
 
-  // Check if simulation is running or paused
-  const { state: simulationState } = use(SimulationContext);
-  const isSimulationActive =
-    simulationState === "Running" || simulationState === "Paused";
+  const isReadOnly = useIsReadOnly();
 
   return (
     <div className={listContainerStyle}>
@@ -155,24 +154,28 @@ const DifferentialEquationsSectionContent: React.FC = () => {
             <div className={equationNameContainerStyle}>
               <span>{eq.name}</span>
             </div>
-            <button
-              type="button"
-              disabled={isSimulationActive}
-              onClick={() => {
-                if (
-                  // eslint-disable-next-line no-alert
-                  window.confirm(
-                    `Delete equation "${eq.name}"? Any places referencing this equation will have their differential equation reset.`,
-                  )
-                ) {
-                  removeDifferentialEquation(eq.id);
-                }
-              }}
-              className={deleteButtonStyle}
-              aria-label={`Delete equation ${eq.name}`}
+            <Tooltip
+              content={isReadOnly ? UI_MESSAGES.READ_ONLY_MODE : undefined}
             >
-              ×
-            </button>
+              <button
+                type="button"
+                disabled={isReadOnly}
+                onClick={() => {
+                  if (
+                    // eslint-disable-next-line no-alert
+                    window.confirm(
+                      `Delete equation "${eq.name}"? Any places referencing this equation will have their differential equation reset.`,
+                    )
+                  ) {
+                    removeDifferentialEquation(eq.id);
+                  }
+                }}
+                className={deleteButtonStyle}
+                aria-label={`Delete equation ${eq.name}`}
+              >
+                ×
+              </button>
+            </Tooltip>
           </div>
         );
       })}
@@ -193,31 +196,30 @@ const DifferentialEquationsSectionHeaderAction: React.FC = () => {
   } = use(SDCPNContext);
   const { setSelectedResourceId } = use(EditorContext);
 
-  // Check if simulation is running or paused
-  const { state: simulationState } = use(SimulationContext);
-  const isSimulationActive =
-    simulationState === "Running" || simulationState === "Paused";
+  const isReadOnly = useIsReadOnly();
 
   return (
-    <button
-      type="button"
-      disabled={isSimulationActive}
-      onClick={() => {
-        const name = `Equation ${differentialEquations.length + 1}`;
-        const id = uuidv4();
-        addDifferentialEquation({
-          id,
-          name,
-          colorId: types.length > 0 ? types[0]!.id : "",
-          code: DEFAULT_DIFFERENTIAL_EQUATION_CODE,
-        });
-        setSelectedResourceId(id);
-      }}
-      className={addButtonStyle}
-      aria-label="Add differential equation"
-    >
-      +
-    </button>
+    <Tooltip content={isReadOnly ? UI_MESSAGES.READ_ONLY_MODE : undefined}>
+      <button
+        type="button"
+        disabled={isReadOnly}
+        onClick={() => {
+          const name = `Equation ${differentialEquations.length + 1}`;
+          const id = uuidv4();
+          addDifferentialEquation({
+            id,
+            name,
+            colorId: types.length > 0 ? types[0]!.id : "",
+            code: DEFAULT_DIFFERENTIAL_EQUATION_CODE,
+          });
+          setSelectedResourceId(id);
+        }}
+        className={addButtonStyle}
+        aria-label="Add differential equation"
+      >
+        +
+      </button>
+    </Tooltip>
   );
 };
 
