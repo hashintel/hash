@@ -15,17 +15,11 @@ const containerStyle = cva({
     isReadOnly: {
       true: {
         filter: "[grayscale(20%) brightness(98%)]",
+        cursor: "not-allowed",
       },
       false: {},
     },
   },
-});
-
-const tooltipOverlayStyle = css({
-  position: "absolute",
-  inset: "[0]",
-  zIndex: "[1]",
-  cursor: "not-allowed",
 });
 
 type CodeEditorProps = Omit<EditorProps, "theme"> & {
@@ -68,7 +62,6 @@ export const CodeEditor: React.FC<CodeEditorProps> = ({
         options={editorOptions}
         {...props}
       />
-      {tooltip && <div className={tooltipOverlayStyle} />}
     </div>
   );
 
