@@ -11,6 +11,31 @@ import type { Logger } from "./logger.js";
 
 const toBase64 = (str: string) => Buffer.from(str, "utf8").toString("base64");
 
+/**
+ * Vault mount path validation regex based on HashiCorp Vault's GenericNameRegex.
+ * @see https://github.com/hashicorp/vault/blob/main/sdk/framework/path.go
+ *
+ * Allows: alphanumeric, underscore, hyphen (middle), period (middle)
+ * Must start and end with alphanumeric or underscore.
+ */
+const vaultMountPathRegex = /^[a-zA-Z0-9_]([a-zA-Z0-9_.-]*[a-zA-Z0-9_])?$/;
+
+/**
+ * Normalizes and validates a Vault mount path.
+ * - Trims whitespace
+ * - Removes leading/trailing slashes
+ * - Validates against Vault's allowed characters
+ *
+ * @returns The normalized path, or undefined if invalid/empty
+ */
+const normalizeVaultMountPath = (path: string): string | undefined => {
+  const normalized = path.trim().replace(/^\/|\/$/g, "");
+  if (!normalized || !vaultMountPathRegex.test(normalized)) {
+    return undefined;
+  }
+  return normalized;
+};
+
 type VaultLoginResult = {
   client_token: string;
   lease_duration: number; // seconds
@@ -170,11 +195,11 @@ export class VaultClient {
     this.#vaultAddr = params.endpoint;
     this.#logger = params.logger;
 
-    const normalizedMountPath = params.secretMountPath
-      .trim()
-      .replace(/^\/|\/$/g, "");
+    const normalizedMountPath = normalizeVaultMountPath(params.secretMountPath);
     if (!normalizedMountPath) {
-      throw new Error("secretMountPath cannot be empty");
+      throw new Error(
+        `Invalid secretMountPath "${params.secretMountPath}": must be non-empty and contain only alphanumeric characters, underscores, hyphens, and periods (hyphens/periods not at start/end)`,
+      );
     }
     this.#secretMountPath = normalizedMountPath;
 
@@ -329,10 +354,9 @@ export const createVaultClient = async ({
 }: {
   logger: Logger;
 }) => {
-  const secretMountPath = process.env.HASH_VAULT_MOUNT_PATH?.trim().replace(
-    /^\/|\/$/g,
-    "",
-  );
+  const secretMountPath = process.env.HASH_VAULT_MOUNT_PATH
+    ? normalizeVaultMountPath(process.env.HASH_VAULT_MOUNT_PATH)
+    : undefined;
 
   if (
     !process.env.HASH_VAULT_HOST ||
