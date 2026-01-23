@@ -329,18 +329,21 @@ export const createVaultClient = async ({
 }: {
   logger: Logger;
 }) => {
+  const secretMountPath = process.env.HASH_VAULT_MOUNT_PATH?.trim().replace(
+    /^\/|\/$/g,
+    "",
+  );
+
   if (
     !process.env.HASH_VAULT_HOST ||
     !process.env.HASH_VAULT_PORT ||
-    !process.env.HASH_VAULT_MOUNT_PATH
+    !secretMountPath
   ) {
     logger.info(
       "No HASH_VAULT_HOST, HASH_VAULT_PORT, or HASH_VAULT_MOUNT_PATH provided, skipping Vault client creation",
     );
     return undefined;
   }
-
-  const secretMountPath = process.env.HASH_VAULT_MOUNT_PATH;
 
   if (!process.env.HASH_VAULT_ROOT_TOKEN) {
     logger.info("No Vault root token provided, attempting IAM auth");
