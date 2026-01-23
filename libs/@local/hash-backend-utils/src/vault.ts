@@ -7,6 +7,7 @@ import { SignatureV4 } from "@smithy/signature-v4";
 import { type AxiosInstance } from "axios";
 import axios, { AxiosError, AxiosHeaders } from "axios";
 
+import { getRequiredEnv } from "./environment.js";
 import type { Logger } from "./logger.js";
 
 const toBase64 = (str: string) => Buffer.from(str, "utf8").toString("base64");
@@ -155,6 +156,7 @@ type RenewableToken = {
 export class VaultClient {
   readonly #vaultAddr: string;
   readonly #logger: Logger;
+  readonly #secretMountPath: string;
 
   #client: AxiosInstance;
   #token: RenewableToken | string;
@@ -164,9 +166,11 @@ export class VaultClient {
     endpoint: string;
     token: string | RenewableToken;
     logger: Logger;
+    secretMountPath: string;
   }) {
     this.#vaultAddr = params.endpoint;
     this.#logger = params.logger;
+    this.#secretMountPath = params.secretMountPath;
     this.#token = params.token;
 
     this.#client = axios.create({
@@ -276,14 +280,13 @@ export class VaultClient {
   }
 
   async write<D extends object = Record<"value", string>>(params: {
-    secretMountPath: "secret";
     path: UserSecretPath;
     data: D;
   }): Promise<VaultSecret<D>> {
-    const { secretMountPath, path, data } = params;
+    const { path, data } = params;
 
     const response = await this.#client.post<{ data: VaultSecret["metadata"] }>(
-      `/${secretMountPath}/data/${path.replace(/^\//, "")}`,
+      `/${this.#secretMountPath}/data/${path.replace(/^\//, "")}`,
       { data },
     );
 
@@ -294,11 +297,10 @@ export class VaultClient {
   }
 
   async read<D = unknown>(params: {
-    secretMountPath: "secret";
     path: string;
     userAccountId: ActorEntityUuid;
   }): Promise<VaultSecret<D>> {
-    const { secretMountPath, path } = params;
+    const { path } = params;
 
     const userAccountIdInPath = path.split("/").at(1);
     if (userAccountIdInPath !== params.userAccountId) {
@@ -308,7 +310,7 @@ export class VaultClient {
     }
 
     const response = await this.#client.get<{ data: VaultSecret<D> }>(
-      `/${secretMountPath}/data/${path}`,
+      `/${this.#secretMountPath}/data/${path}`,
     );
 
     return response.data.data;
@@ -327,6 +329,8 @@ export const createVaultClient = async ({
     return undefined;
   }
 
+  const secretMountPath = getRequiredEnv("HASH_VAULT_MOUNT_PATH");
+
   if (!process.env.HASH_VAULT_ROOT_TOKEN) {
     logger.info("No Vault root token provided, attempting IAM auth");
 
@@ -342,6 +346,7 @@ export const createVaultClient = async ({
         endpoint: `${process.env.HASH_VAULT_HOST}:${process.env.HASH_VAULT_PORT}`,
         token: login.client_token,
         logger,
+        secretMountPath,
       });
     } catch (error) {
       logger.error(
@@ -360,6 +365,7 @@ export const createVaultClient = async ({
     endpoint: `${process.env.HASH_VAULT_HOST}:${process.env.HASH_VAULT_PORT}`,
     token: process.env.HASH_VAULT_ROOT_TOKEN,
     logger,
+    secretMountPath,
   });
 };
 

@@ -249,7 +249,6 @@ export const getLinearSecretValueByHashWebEntityId: ImpureGraphFunction<
 
   const secret = await vaultClient.read<{ value: string }>({
     path: secretEntity.vaultPath,
-    secretMountPath: "secret",
     userAccountId,
   });
 

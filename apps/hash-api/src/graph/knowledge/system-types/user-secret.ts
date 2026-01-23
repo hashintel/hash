@@ -122,7 +122,6 @@ export const createUserSecret = async <
    */
   await vaultClient.write<Auth.Credentials>({
     data: secretData,
-    secretMountPath: "secret",
     path: vaultPath,
   });
 

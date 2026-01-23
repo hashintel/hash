@@ -15,3 +15,4 @@ The service uses the following environment variables:
 - `HASH_VAULT_HOST`: The host address (including protocol) that the Vault server is running on, e.g. `http://127.0.0.1`
 - `HASH_VAULT_PORT`: The port that the Vault server is running on, e.g. `8200`
 - `HASH_VAULT_ROOT_TOKEN`: The token to authenticate with the Vault server. If not present, login via AWS IAM is attempted instead.
+- `HASH_VAULT_MOUNT_PATH`: The mount path for the KV secrets engine, e.g. `secret`.

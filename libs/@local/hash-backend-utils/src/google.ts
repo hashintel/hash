@@ -119,7 +119,6 @@ export const getTokensForGoogleAccount = async ({
 
   try {
     const vaultResponse = await vaultClient.read<Auth.Credentials>({
-      secretMountPath: "secret",
       path: vaultPath,
       userAccountId,
     });
