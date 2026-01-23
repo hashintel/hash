@@ -393,6 +393,11 @@ impl<'heap, B: Allocator, C: Allocator> DataflowAnalysis<'heap>
         _: &Self::Domain<A>,
         metadata: &mut Self::Metadata<A>,
     ) -> bool {
+        // Maximum number of times we'll revisit a block during analysis.
+        // This is a heuristic balancing analysis accuracy vs. performance.
+        // Higher values provide more accurate results for loops but increase analysis time.
+        // In practice, most blocks only need 1-2 iterations, but we allow up to 16 to
+        // handle complex cases while avoiding excessive computation.
         const MAX_ITERATION_COUNT: u8 = 16;
 
         metadata[target.as_usize()] < MAX_ITERATION_COUNT
