@@ -354,17 +354,23 @@ export const createVaultClient = async ({
 }: {
   logger: Logger;
 }) => {
-  const secretMountPath = process.env.HASH_VAULT_MOUNT_PATH
-    ? normalizeVaultMountPath(process.env.HASH_VAULT_MOUNT_PATH)
-    : undefined;
-
   if (
     !process.env.HASH_VAULT_HOST ||
     !process.env.HASH_VAULT_PORT ||
-    !secretMountPath
+    !process.env.HASH_VAULT_MOUNT_PATH
   ) {
     logger.info(
       "No HASH_VAULT_HOST, HASH_VAULT_PORT, or HASH_VAULT_MOUNT_PATH provided, skipping Vault client creation",
+    );
+    return undefined;
+  }
+
+  const secretMountPath = normalizeVaultMountPath(
+    process.env.HASH_VAULT_MOUNT_PATH,
+  );
+  if (!secretMountPath) {
+    logger.error(
+      `Invalid HASH_VAULT_MOUNT_PATH "${process.env.HASH_VAULT_MOUNT_PATH}": must contain only alphanumeric characters, underscores, hyphens, and periods (hyphens/periods not at start/end)`,
     );
     return undefined;
   }
