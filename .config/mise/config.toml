@@ -1,6 +1,9 @@
 [env]
 _.file = [".env", ".env.local"]
 
+[settings]
+idiomatic_version_file_enable_tools = ["rust"]
+
 [tools]
 # Basic tools
 node        = { version = "22.21.1", postinstall = "corepack enable" }
