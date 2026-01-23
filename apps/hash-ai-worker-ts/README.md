@@ -19,6 +19,7 @@ The service uses the following environment variables:
 - `HASH_VAULT_HOST`: The host address (including protocol) that the Vault server is running on, e.g. `http://127.0.0.1`
 - `HASH_VAULT_PORT`: The port that the Vault server is running on, e.g. `8200`
 - `HASH_VAULT_ROOT_TOKEN`: The token to authenticate with the Vault server.  If not present, login via AWS IAM is attempted instead.
+- `HASH_VAULT_MOUNT_PATH`: The mount path for the KV secrets engine, e.g. `secret`.
 - `GOOGLE_CLOUD_HASH_PROJECT_ID`: The projectId for a Google Cloud Platform project, used in document analysis (Vertex AI and Cloud Storage). Note that this is the Project ID, _not_ the Project Number.
 - `GOOGLE_CLOUD_STORAGE_BUCKET`: The name of the Google Cloud Storage bucket to use for document analysis.
 - `GOOGLE_APPLICATION_CREDENTIALS`: The path to a configuration file for GCP authentication. Automatically set locally by the `gcloud` CLI, and set manually during the build process.
