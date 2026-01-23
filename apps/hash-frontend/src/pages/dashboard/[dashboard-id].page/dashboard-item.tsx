@@ -6,7 +6,7 @@ import {
 import { Box, CircularProgress, Paper, Typography } from "@mui/material";
 
 import { ChartRenderer } from "./chart-renderer";
-import type { DashboardItemData } from "./shared/types";
+import type { DashboardItemData } from "../shared/types";
 
 type DashboardItemProps = {
   item: DashboardItemData;

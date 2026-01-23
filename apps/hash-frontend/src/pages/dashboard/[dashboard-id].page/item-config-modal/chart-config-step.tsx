@@ -15,8 +15,8 @@ import {
   Typography,
 } from "@mui/material";
 
-import { Button } from "../../../shared/ui/button";
-import { MenuItem } from "../../../shared/ui/menu-item";
+import { Button } from "../../../../shared/ui/button";
+import { MenuItem } from "../../../../shared/ui/menu-item";
 import { ChartRenderer } from "../chart-renderer";
 
 type ChartConfigStepProps = {

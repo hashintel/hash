@@ -66,7 +66,7 @@ export type CreateDashboardItemParams = {
 
 export type UpdateDashboardItemParams = {
   itemEntityId: EntityId;
-  structuredQuery?: object;
+  structuralQuery?: object;
   pythonScript?: string;
   chartConfig?: object;
   chartType?: ChartType;
@@ -307,7 +307,7 @@ export const updateDashboardItem: ImpureGraphFunction<
 > = async (context, authentication, params) => {
   const {
     itemEntityId,
-    structuredQuery,
+    structuralQuery,
     pythonScript,
     chartConfig,
     chartType,
@@ -321,12 +321,12 @@ export const updateDashboardItem: ImpureGraphFunction<
   const propertyPatches: Parameters<typeof updateEntity>[2]["propertyPatches"] =
     [];
 
-  if (structuredQuery !== undefined) {
+  if (structuralQuery !== undefined) {
     propertyPatches.push({
       op: "add",
       path: [systemPropertyTypes.structuralQuery.propertyTypeBaseUrl],
       property: {
-        value: structuredQuery,
+        value: structuralQuery,
         metadata: {
           dataTypeId:
             "https://blockprotocol.org/@blockprotocol/types/data-type/object/v/1",

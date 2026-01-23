@@ -2,7 +2,7 @@ import { Chip, TextField } from "@hashintel/design-system";
 import { AutoAwesome as AiIcon } from "@mui/icons-material";
 import { Box, Paper, Stack, Typography } from "@mui/material";
 
-import { Button } from "../../../shared/ui/button";
+import { Button } from "../../../../shared/ui/button";
 
 type GoalInputStepProps = {
   userGoal: string;

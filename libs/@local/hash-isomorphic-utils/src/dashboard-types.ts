@@ -108,7 +108,7 @@ export type DashboardItemConfig = {
   userGoal: string;
 
   /** Generated Graph API filter query */
-  structuredQuery: Filter | null;
+  structuralQuery: Filter | null;
 
   /** Python script for data transformation */
   pythonScript: string | null;
@@ -145,7 +145,7 @@ export type GenerateDashboardQueryInput = {
  * Output from the generate-dashboard-query activity
  */
 export type GenerateDashboardQueryOutput = {
-  structuredQuery: Filter;
+  structuralQuery: Filter;
   explanation: string;
   sampleData?: unknown[];
   suggestedChartTypes?: ChartType[];
@@ -155,7 +155,7 @@ export type GenerateDashboardQueryOutput = {
  * Input for the analyze-dashboard-data activity
  */
 export type AnalyzeDashboardDataInput = {
-  structuredQuery: Filter;
+  structuralQuery: Filter;
   userGoal: string;
   targetChartType?: ChartType;
   webId: WebId;

@@ -158,14 +158,14 @@ export const updateDashboardItemResolver: ResolverFn<
   LoggedInGraphQLContext,
   {
     itemEntityId: string;
-    structuredQuery?: object | null;
+    structuralQuery?: object | null;
     pythonScript?: string | null;
     chartConfig?: object | null;
     chartType?: string | null;
   }
 > = async (
   _,
-  { itemEntityId, structuredQuery, pythonScript, chartConfig, chartType },
+  { itemEntityId, structuralQuery, pythonScript, chartConfig, chartType },
   graphQLContext,
 ) => {
   const context = graphQLContextToImpureGraphContext(graphQLContext);
@@ -173,7 +173,7 @@ export const updateDashboardItemResolver: ResolverFn<
 
   const item = await updateDashboardItem(context, authentication, {
     itemEntityId: itemEntityId as EntityId,
-    structuredQuery: structuredQuery ?? undefined,
+    structuralQuery: structuralQuery ?? undefined,
     pythonScript: pythonScript ?? undefined,
     chartConfig: chartConfig ?? undefined,
     chartType: (chartType as ChartType) ?? undefined,

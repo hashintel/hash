@@ -7,12 +7,13 @@ import {
 import { Box, Typography } from "@mui/material";
 import { useState } from "react";
 
-import { Button } from "../../shared/ui/button";
+import { Button } from "../../../shared/ui/button";
 
 type DashboardHeaderProps = {
   title: string;
   description?: string;
   isEditing: boolean;
+  canEdit: boolean;
   onEditToggle: () => void;
   onTitleChange?: (title: string) => void;
   onDescriptionChange?: (description: string) => void;
@@ -23,6 +24,7 @@ export const DashboardHeader = ({
   title,
   description,
   isEditing,
+  canEdit,
   onEditToggle,
   onTitleChange,
   onDescriptionChange,
@@ -84,20 +86,22 @@ export const DashboardHeader = ({
         )}
       </Box>
 
-      <Box sx={{ display: "flex", gap: 1 }}>
-        {isEditing && (
-          <Button
-            variant="secondary"
-            startIcon={<AddIcon />}
-            onClick={onAddItem}
-          >
-            Add Chart
-          </Button>
-        )}
-        <IconButton onClick={isEditing ? handleSave : onEditToggle}>
-          {isEditing ? <SaveIcon /> : <EditIcon />}
-        </IconButton>
-      </Box>
+      {canEdit && (
+        <Box sx={{ display: "flex", gap: 1 }}>
+          {isEditing && (
+            <Button
+              variant="secondary"
+              startIcon={<AddIcon />}
+              onClick={onAddItem}
+            >
+              Add Item
+            </Button>
+          )}
+          <IconButton onClick={isEditing ? handleSave : onEditToggle}>
+            {isEditing ? <SaveIcon /> : <EditIcon />}
+          </IconButton>
+        </Box>
+      )}
     </Box>
   );
 };
