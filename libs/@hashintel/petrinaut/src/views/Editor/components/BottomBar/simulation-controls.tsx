@@ -7,6 +7,7 @@ import {
 } from "react-icons/io";
 import { MdRotateLeft } from "react-icons/md";
 
+import { PlaybackContext } from "../../../../playback/context";
 import { SimulationContext } from "../../../../simulation/context";
 import { EditorContext } from "../../../../state/editor-context";
 import { ToolbarButton } from "./toolbar-button";
@@ -83,9 +84,14 @@ export const SimulationControls: React.FC<SimulationControlsProps> = ({
     run,
     pause,
     dt,
-    currentViewedFrame,
-    setCurrentViewedFrame,
   } = use(SimulationContext);
+
+  const {
+    currentViewedFrame,
+    currentFrameIndex,
+    totalFrames,
+    setCurrentViewedFrame,
+  } = use(PlaybackContext);
 
   const { setBottomPanelOpen, setActiveBottomPanelTab } = use(EditorContext);
 
@@ -96,11 +102,10 @@ export const SimulationControls: React.FC<SimulationControlsProps> = ({
     setBottomPanelOpen(true);
   };
 
-  const totalFrames = simulation?.frames.length ?? 0;
   const hasSimulation = simulation !== null;
   const isRunning = simulationState === "Running";
   const isComplete = simulationState === "Complete";
-  const frameIndex = currentViewedFrame?.number ?? 0;
+  const frameIndex = currentFrameIndex;
   const elapsedTime = currentViewedFrame?.time ?? 0;
 
   const getPlayPauseTooltip = () => {

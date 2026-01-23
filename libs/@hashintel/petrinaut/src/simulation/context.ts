@@ -205,11 +205,6 @@ export type SimulationContextValue = {
   errorItemId: string | null;
   parameterValues: Record<string, string>;
   initialMarking: InitialMarking;
-  /**
-   * The currently viewed simulation frame state.
-   * Null when no simulation is running or no frames exist.
-   */
-  currentViewedFrame: SimulationFrameState | null;
   dt: number;
 
   // Actions
@@ -224,7 +219,6 @@ export type SimulationContextValue = {
   run: () => void;
   pause: () => void;
   reset: () => void;
-  setCurrentViewedFrame: (frameIndex: number) => void;
 };
 
 const DEFAULT_CONTEXT_VALUE: SimulationContextValue = {
@@ -234,7 +228,6 @@ const DEFAULT_CONTEXT_VALUE: SimulationContextValue = {
   errorItemId: null,
   parameterValues: {},
   initialMarking: new Map(),
-  currentViewedFrame: null,
   dt: 0.01,
   setInitialMarking: () => {},
   setParameterValue: () => {},
@@ -244,7 +237,6 @@ const DEFAULT_CONTEXT_VALUE: SimulationContextValue = {
   run: () => {},
   pause: () => {},
   reset: () => {},
-  setCurrentViewedFrame: () => {},
 };
 
 export const SimulationContext = createContext<SimulationContextValue>(
