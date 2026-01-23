@@ -23,8 +23,7 @@ interface TooltipProps {
 }
 
 const triggerWrapperStyle = css({
-  display: "inline-flex",
-  width: "[100%]",
+  display: "flex",
 });
 
 /**
