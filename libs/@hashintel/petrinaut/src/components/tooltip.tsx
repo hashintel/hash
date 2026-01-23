@@ -44,9 +44,9 @@ export const Tooltip: React.FC<TooltipProps> = ({ content, children }) => {
       closeDelay={0}
       positioning={{ placement: "top" }}
     >
-      {/* Wrapper span ensures tooltip works on disabled elements */}
+      {/* Wrapper div ensures tooltip works on disabled elements */}
       <ArkTooltip.Trigger asChild>
-        <span className={triggerWrapperStyle}>{children}</span>
+        <div className={triggerWrapperStyle}>{children}</div>
       </ArkTooltip.Trigger>
       <ArkTooltip.Positioner>
         <ArkTooltip.Content className={tooltipContentStyle}>
