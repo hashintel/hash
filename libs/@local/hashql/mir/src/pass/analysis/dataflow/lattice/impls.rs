@@ -1,7 +1,6 @@
 //! Built-in semiring implementations for common numeric types.
 
 use core::cmp::Reverse;
-use std::slice::Join;
 
 use hashql_core::id::{
     Id,

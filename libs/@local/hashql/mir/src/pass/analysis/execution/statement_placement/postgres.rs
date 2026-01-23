@@ -2,27 +2,75 @@ use core::{alloc::Allocator, cmp::Reverse};
 
 use hashql_core::id::bit_vec::DenseBitSet;
 
-use super::cost::CostVec;
 use crate::{
-    body::{Body, local::Local},
-    pass::analysis::dataflow::{
-        framework::DataflowAnalysis,
-        lattice::{JoinSemiLattice, MeetSemiLattice, PowersetLattice},
+    body::{
+        Body,
+        constant::Constant,
+        local::Local,
+        location::Location,
+        operand::Operand,
+        place::Place,
+        rvalue::{Aggregate, AggregateKind, Binary, RValue, Unary},
+        statement::{Assign, Statement, StatementKind},
     },
+    pass::analysis::dataflow::{framework::DataflowAnalysis, lattice::PowersetLattice},
 };
 
-struct PostgresSemilattice {
-    powerset: PowersetLattice,
+const fn is_supported_constant(constant: &Constant<'_>) -> bool {
+    match constant {
+        Constant::Int(_) | Constant::Primitive(_) | Constant::Unit => true,
+        Constant::FnPtr(_) => false,
+    }
 }
 
-struct PostgresDomain<A: Allocator> {
-    internal: DenseBitSet<Local>,
+fn is_supported_place(domain: &DenseBitSet<Local>, place: &Place<'_>) -> bool {
+    // TODO: this is a bit more fine grained, for filters, locations for the embeddings are not
+    // supported, and therefore also not any path alongside of it that just loads them, otherwise
+    // just what it says on the tin. For that to matter we must investigate the path used for the
+    // first part.
+    // This should be relatively straightforward.
+    // TODO: we must have a Source that tells us is this a GraphFilter, or a GraphMap or whatever,
+    // to be able to know what we can and what we can't do.
+    // For now it's just place.local
+    domain.contains(place.local)
 }
 
-impl<A: Allocator> JoinSemiLattice<PostgresDomain<A>> for PostgresSemilattice {
-    fn join(&self, lhs: &mut PostgresDomain<A>, rhs: &PostgresDomain<A>) -> bool {
-        // We only join over the internal dense bitset, in reverse (aka via meet)
-        return self.powerset.meet(&mut lhs.internal, &rhs.internal);
+fn is_supported_operand(domain: &DenseBitSet<Local>, operand: &Operand<'_>) -> bool {
+    match operand {
+        Operand::Place(place) => is_supported_place(domain, place),
+        Operand::Constant(constant) => is_supported_constant(constant),
+    }
+}
+
+fn is_supported_rvalue(domain: &DenseBitSet<Local>, rvalue: &RValue<'_>) -> bool {
+    match rvalue {
+        RValue::Load(operand) => is_supported_operand(domain, operand),
+        RValue::Binary(Binary { op: _, left, right }) => {
+            // Any binary operation present and supported is also supported by postgres (given that
+            // the type is first coerced)
+            is_supported_operand(domain, left) && is_supported_operand(domain, right)
+        }
+        RValue::Unary(Unary { op: _, operand }) => {
+            // Any unary operation currently support is also supported by postgres, given a type
+            // coercion.
+            is_supported_operand(domain, operand)
+        }
+        RValue::Aggregate(Aggregate { kind, operands }) => {
+            if *kind == AggregateKind::Closure {
+                return false;
+            }
+
+            // We can construct a JSONB equivalent for each data type (opaques are simply
+            // eliminated) given that we work in JSONB.
+            operands
+                .iter()
+                .all(|operand| is_supported_operand(domain, operand))
+        }
+        // In general input is supported, as long as these parameters are given to the query
+        // beforehand
+        RValue::Input(_) => true,
+        // Function calls are in general **not** supported
+        RValue::Apply(_) => false,
     }
 }
 
@@ -51,10 +99,24 @@ impl<'heap> DataflowAnalysis<'heap> for PostgresAnalysis {
 
     fn transfer_statement<A: Allocator>(
         &self,
-        location: crate::body::location::Location,
-        statement: &crate::body::statement::Statement<'heap>,
+        _: Location,
+        statement: &Statement<'heap>,
         state: &mut Self::Domain<A>,
     ) {
-        // TODO: we need statement residual, maybe in the domain?!
+        let StatementKind::Assign(Assign { lhs, rhs }) = &statement.kind else {
+            return;
+        };
+
+        assert!(
+            lhs.projections.is_empty(),
+            "MIR must be in MIR(SSA) form for analysis to take place"
+        );
+
+        let is_supported = is_supported_rvalue(state, rhs);
+        if is_supported {
+            state.insert(lhs.local);
+        } else {
+            state.remove(lhs.local);
+        }
     }
 }

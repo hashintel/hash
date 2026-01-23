@@ -6,6 +6,7 @@ use std::alloc::{Allocator, Global};
 
 use hashql_core::id::Id;
 
+use self::cost::Cost;
 use super::target::{ExecutionTarget, Interpreter, Postgres};
 use crate::{
     body::{
