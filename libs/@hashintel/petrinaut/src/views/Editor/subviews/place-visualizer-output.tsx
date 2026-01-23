@@ -6,6 +6,7 @@ import {
   mergeParameterValues,
   useDefaultParameterValues,
 } from "../../../hooks/use-default-parameter-values";
+import { PlaybackContext } from "../../../playback/context";
 import { SimulationContext } from "../../../simulation/context";
 import { compileVisualizer } from "../../../simulation/simulator/compile-visualizer";
 import { usePlacePropertiesContext } from "../panels/PropertiesPanel/place-properties-context";
@@ -28,8 +29,9 @@ const visualizerErrorStyle = css({
 const PlaceVisualizerOutputContent: React.FC = () => {
   const { place, placeType } = usePlacePropertiesContext();
 
-  const { simulation, initialMarking, parameterValues, currentViewedFrame } =
+  const { simulation, initialMarking, parameterValues } =
     use(SimulationContext);
+  const { currentFrameIndex } = use(PlaybackContext);
 
   // Get default parameter values from SDCPN definition
   const defaultParameterValues = useDefaultParameterValues();
@@ -64,7 +66,7 @@ const PlaceVisualizerOutputContent: React.FC = () => {
   const dimensions = placeType.elements.length;
   const tokens: Record<string, number>[] = [];
   let parameters: Record<string, number | boolean> = {};
-  const frameIndex = currentViewedFrame?.number ?? 0;
+  const frameIndex = currentFrameIndex;
 
   // Check if we have simulation frames or use initial marking
   if (simulation && simulation.frames.length > 0) {

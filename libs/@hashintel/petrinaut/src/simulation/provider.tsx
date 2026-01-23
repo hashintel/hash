@@ -11,7 +11,6 @@ import {
   type InitialMarking,
   SimulationContext,
   type SimulationContextValue,
-  type SimulationFrameState,
   type SimulationState,
 } from "./context";
 import { buildSimulation } from "./simulator/build-simulation";
@@ -25,8 +24,6 @@ type SimulationStateValues = {
   errorItemId: string | null;
   parameterValues: Record<string, string>;
   initialMarking: InitialMarking;
-  /** Internal frame index for tracking which frame is being viewed */
-  currentViewedFrameIndex: number | null;
   dt: number;
 };
 
@@ -37,7 +34,6 @@ const initialStateValues: SimulationStateValues = {
   errorItemId: null,
   parameterValues: {},
   initialMarking: new Map(),
-  currentViewedFrameIndex: null,
   dt: 0.01,
 };
 
@@ -120,7 +116,6 @@ const useSimulationRunner = ({
           state: finalState,
           error: null,
           errorItemId: null,
-          currentViewedFrameIndex: simulation?.currentFrameNumber ?? 0,
         }));
 
         // Continue the loop if still running
@@ -154,46 +149,6 @@ const useSimulationRunner = ({
     };
   }, [isRunning, getState, setStateValues]);
 };
-
-/**
- * Converts a simulation frame to a SimulationFrameState.
- */
-function buildFrameState(
-  simulation: SimulationContextValue["simulation"],
-  frameIndex: number,
-): SimulationFrameState | null {
-  if (!simulation || simulation.frames.length === 0) {
-    return null;
-  }
-
-  const frame = simulation.frames[frameIndex];
-  if (!frame) {
-    return null;
-  }
-
-  const places: SimulationFrameState["places"] = {};
-  for (const [placeId, placeData] of frame.places) {
-    places[placeId] = {
-      tokenCount: placeData.count,
-    };
-  }
-
-  const transitions: SimulationFrameState["transitions"] = {};
-  for (const [transitionId, transitionData] of frame.transitions) {
-    transitions[transitionId] = {
-      timeSinceLastFiringMs: transitionData.timeSinceLastFiringMs,
-      firedInThisFrame: transitionData.firedInThisFrame,
-      firingCount: transitionData.firingCount,
-    };
-  }
-
-  return {
-    number: frameIndex,
-    time: frame.time,
-    places,
-    transitions,
-  };
-}
 
 /**
  * Internal component that subscribes to simulation state changes
@@ -354,7 +309,6 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
           state: "Paused",
           error: null,
           errorItemId: null,
-          currentViewedFrameIndex: 0,
         };
       } catch (error) {
         // eslint-disable-next-line no-console
@@ -415,38 +369,9 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
       error: null,
       errorItemId: null,
       parameterValues,
-      currentViewedFrameIndex: null,
       // Keep initialMarking when resetting - it's configuration, not simulation state
     }));
   };
-
-  const setCurrentViewedFrame: SimulationContextValue["setCurrentViewedFrame"] =
-    (frameIndex) => {
-      setStateValues((prev) => {
-        if (!prev.simulation) {
-          throw new Error(
-            "Cannot set viewed frame: No simulation initialized.",
-          );
-        }
-
-        const totalFrames = prev.simulation.frames.length;
-        const clampedIndex = Math.max(0, Math.min(frameIndex, totalFrames - 1));
-
-        return {
-          ...prev,
-          currentViewedFrameIndex: clampedIndex,
-        };
-      });
-    };
-
-  // Compute the currently viewed frame state
-  const currentViewedFrame =
-    stateValues.currentViewedFrameIndex !== null
-      ? buildFrameState(
-          stateValues.simulation,
-          stateValues.currentViewedFrameIndex,
-        )
-      : null;
 
   const contextValue: SimulationContextValue = {
     simulation: stateValues.simulation,
@@ -456,7 +381,6 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
     parameterValues: stateValues.parameterValues,
     initialMarking: stateValues.initialMarking,
     dt: stateValues.dt,
-    currentViewedFrame,
     setInitialMarking,
     setParameterValue,
     setDt,
@@ -465,7 +389,6 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
     run,
     pause,
     reset,
-    setCurrentViewedFrame,
   };
 
   return (

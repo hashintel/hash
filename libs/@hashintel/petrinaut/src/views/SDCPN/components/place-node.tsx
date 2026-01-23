@@ -5,6 +5,7 @@ import { Handle, type NodeProps, Position } from "reactflow";
 
 import { hexToHsl } from "../../../lib/hsl-color";
 import { splitPascalCase } from "../../../lib/split-pascal-case";
+import { PlaybackContext } from "../../../playback/context";
 import { SimulationContext } from "../../../simulation/context";
 import { EditorContext } from "../../../state/editor-context";
 import type { PlaceNodeData } from "../reactflow-types";
@@ -114,7 +115,8 @@ export const PlaceNode: React.FC<NodeProps<PlaceNodeData>> = ({
 }: NodeProps<PlaceNodeData>) => {
   const { globalMode, selectedResourceId } = use(EditorContext);
   const isSimulateMode = globalMode === "simulate";
-  const { currentViewedFrame, initialMarking } = use(SimulationContext);
+  const { initialMarking } = use(SimulationContext);
+  const { currentViewedFrame } = use(PlaybackContext);
 
   // Get token count from the currently viewed frame or initial marking
   let tokenCount: number | null = null;
