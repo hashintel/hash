@@ -1,15 +1,46 @@
-import { use } from "react";
+import { use, useEffect, useState } from "react";
 
-import { checkSDCPN } from "../core/checker/checker";
-import { CheckerContext } from "./checker-context";
-import { SDCPNContext } from "./sdcpn-context";
+import { LSPContext } from "../lsp/lsp-context";
+import type { SDCPNItemDiagnostic } from "../lsp/protocol";
+import {
+  CheckerContext,
+  type CheckerResult,
+  lspToCheckerDiagnostics,
+} from "./checker-context";
 
 export const CheckerProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
-  const { petriNetDefinition } = use(SDCPNContext);
+  const { client, isReady } = use(LSPContext);
+  const [checkResult, setCheckResult] = useState<CheckerResult>({
+    isValid: true,
+    itemDiagnostics: [],
+  });
 
-  const checkResult = checkSDCPN(petriNetDefinition);
+  // Subscribe to LSP diagnostics
+  useEffect(() => {
+    if (!client || !isReady) {
+      return;
+    }
+
+    const handleDiagnostics = (diagnostics: SDCPNItemDiagnostic[]) => {
+      const checkerDiagnostics = lspToCheckerDiagnostics(diagnostics);
+      setCheckResult({
+        isValid: checkerDiagnostics.length === 0,
+        itemDiagnostics: checkerDiagnostics,
+      });
+    };
+
+    // Subscribe to diagnostic updates
+    const unsubscribe = client.onDiagnostics(handleDiagnostics);
+
+    // Request initial diagnostics
+    void client.getDiagnostics([]).then(handleDiagnostics);
+
+    return () => {
+      unsubscribe();
+    };
+  }, [client, isReady]);
 
   const totalDiagnosticsCount = checkResult.itemDiagnostics.reduce(
     (sum, item) => sum + item.diagnostics.length,

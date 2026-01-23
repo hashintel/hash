@@ -644,7 +644,6 @@ export const PlaceProperties: React.FC<PlacePropertiesProps> = ({
             </div>
             <div className={editorBorderStyle}>
               <MonacoEditor
-                key={`visualizer-${place.colorId ?? "no-type"}`}
                 language="typescript"
                 path={`inmemory://sdcpn/places/${place.id}/visualizer.tsx`}
                 height={400}
