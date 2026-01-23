@@ -1,21 +1,24 @@
-use std::alloc::Allocator;
+mod cost;
+mod postgres;
+
+use core::{iter, num::NonZero, ops::Index};
+use std::alloc::{Allocator, Global};
+
+use hashql_core::id::Id;
 
 use super::target::{ExecutionTarget, Interpreter, Postgres};
 use crate::{
-    body::{Body, basic_block::BasicBlockId, location::Location, statement::Statement},
+    body::{
+        Body,
+        basic_block::{BasicBlockId, BasicBlockSlice, BasicBlockVec},
+        basic_blocks::BasicBlocks,
+        location::Location,
+        statement::Statement,
+    },
     context::MirContext,
 };
 
 // TODO: Implement the StatementPlacementVisitor via Dataflow
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
-pub struct Cost(u32);
-
-impl Cost {
-    pub const fn new(value: u32) -> Self {
-        Self(value)
-    }
-}
 
 pub trait StatementPlacementVisitor<'env, 'heap> {
     type Target: ExecutionTarget;
@@ -68,7 +71,8 @@ impl<'env, 'heap> StatementPlacementVisitor<'env, 'heap> for InterpreterVisitor 
         // By design, the interpreter must support any statement (but not terminator), to allow for
         // execution in case no other exists.
         // By default, the cost is a bit high, to encourage other strategies to be chosen.
-        Some(Cost::new(8))
+        // Some(Cost::new(8))
+        todo!()
     }
 }
 
