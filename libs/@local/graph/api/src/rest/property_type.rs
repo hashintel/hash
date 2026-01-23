@@ -5,6 +5,7 @@ use std::collections::HashSet;
 
 use axum::{
     Extension, Router,
+    response::Response,
     routing::{post, put},
 };
 use error_stack::{Report, ResultExt as _};
@@ -41,7 +42,6 @@ use type_system::{
 };
 use utoipa::{OpenApi, ToSchema};
 
-use super::status::BoxedResponse;
 use crate::rest::{
     AuthenticatedUserHeader, OpenApiQuery, QueryLogger, RestApiStore,
     json::Json,
@@ -153,7 +153,7 @@ async fn create_property_type<S>(
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
     domain_validator: Extension<DomainValidator>,
     body: Json<CreatePropertyTypeRequest>,
-) -> Result<Json<ListOrValue<PropertyTypeMetadata>>, BoxedResponse>
+) -> Result<Json<ListOrValue<PropertyTypeMetadata>>, Response>
 where
     S: StorePool + Send + Sync,
     for<'pool> S::Store<'pool>: RestApiStore,
@@ -188,7 +188,7 @@ where
                         provenance: provenance.clone(),
                     })
                 })
-                .collect::<Result<Vec<_>, BoxedResponse>>()?,
+                .collect::<Result<Vec<_>, Response>>()?,
         )
         .await
         .map_err(report_to_response)?;
@@ -236,7 +236,7 @@ async fn load_external_property_type<S>(
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
     domain_validator: Extension<DomainValidator>,
     Json(request): Json<LoadExternalPropertyTypeRequest>,
-) -> Result<Json<PropertyTypeMetadata>, BoxedResponse>
+) -> Result<Json<PropertyTypeMetadata>, Response>
 where
     S: StorePool + Send + Sync,
     for<'pool> S::Store<'pool>: RestApiStore,
@@ -317,7 +317,7 @@ async fn query_property_types<S>(
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
     mut query_logger: Option<Extension<QueryLogger>>,
     Json(request): Json<serde_json::Value>,
-) -> Result<Json<QueryPropertyTypesResponse>, BoxedResponse>
+) -> Result<Json<QueryPropertyTypesResponse>, Response>
 where
     S: StorePool + Send + Sync,
 {
@@ -385,7 +385,7 @@ async fn query_property_type_subgraph<S>(
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
     mut query_logger: Option<Extension<QueryLogger>>,
     Json(request): Json<serde_json::Value>,
-) -> Result<Json<QueryPropertyTypeSubgraphResponse>, BoxedResponse>
+) -> Result<Json<QueryPropertyTypeSubgraphResponse>, Response>
 where
     S: StorePool + Send + Sync,
 {
@@ -449,7 +449,7 @@ async fn update_property_type<S>(
     store_pool: Extension<Arc<S>>,
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
     body: Json<UpdatePropertyTypeRequest>,
-) -> Result<Json<PropertyTypeMetadata>, BoxedResponse>
+) -> Result<Json<PropertyTypeMetadata>, Response>
 where
     S: StorePool + Send + Sync,
 {
@@ -502,7 +502,7 @@ async fn update_property_types<S>(
     store_pool: Extension<Arc<S>>,
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
     bodies: Json<Vec<UpdatePropertyTypeRequest>>,
-) -> Result<Json<Vec<PropertyTypeMetadata>>, BoxedResponse>
+) -> Result<Json<Vec<PropertyTypeMetadata>>, Response>
 where
     S: StorePool + Send + Sync,
 {
@@ -529,7 +529,7 @@ where
                 })
             },
         )
-        .collect::<Result<Vec<_>, BoxedResponse>>()?;
+        .collect::<Result<Vec<_>, Response>>()?;
     store
         .update_property_types(actor_id, params)
         .await
@@ -557,7 +557,7 @@ async fn update_property_type_embeddings<S>(
     store_pool: Extension<Arc<S>>,
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
     Json(body): Json<serde_json::Value>,
-) -> Result<(), BoxedResponse>
+) -> Result<(), Response>
 where
     S: StorePool + Send + Sync,
 {
@@ -600,7 +600,7 @@ async fn archive_property_type<S>(
     store_pool: Extension<Arc<S>>,
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
     Json(body): Json<serde_json::Value>,
-) -> Result<Json<OntologyTemporalMetadata>, BoxedResponse>
+) -> Result<Json<OntologyTemporalMetadata>, Response>
 where
     S: StorePool + Send + Sync,
 {
@@ -652,7 +652,7 @@ async fn unarchive_property_type<S>(
     store_pool: Extension<Arc<S>>,
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
     Json(body): Json<serde_json::Value>,
-) -> Result<Json<OntologyTemporalMetadata>, BoxedResponse>
+) -> Result<Json<OntologyTemporalMetadata>, Response>
 where
     S: StorePool + Send + Sync,
 {
@@ -701,7 +701,7 @@ async fn has_permission_for_property_types<S>(
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
     store_pool: Extension<Arc<S>>,
     Json(params): Json<HasPermissionForPropertyTypesParams<'static>>,
-) -> Result<Json<HashSet<VersionedUrl>>, BoxedResponse>
+) -> Result<Json<HashSet<VersionedUrl>>, Response>
 where
     S: StorePool + Send + Sync,
     for<'p> S::Store<'p>: PropertyTypeStore,

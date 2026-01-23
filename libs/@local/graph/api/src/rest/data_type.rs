@@ -5,6 +5,7 @@ use std::collections::{HashMap, HashSet};
 
 use axum::{
     Extension, Router,
+    response::Response,
     routing::{post, put},
 };
 use error_stack::{Report, ResultExt as _};
@@ -45,7 +46,6 @@ use type_system::{
 };
 use utoipa::{OpenApi, ToSchema};
 
-use super::status::BoxedResponse;
 use crate::rest::{
     AuthenticatedUserHeader, OpenApiQuery, QueryLogger, RestApiStore,
     json::Json,
@@ -170,7 +170,7 @@ async fn create_data_type<S>(
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
     domain_validator: Extension<DomainValidator>,
     body: Json<CreateDataTypeRequest>,
-) -> Result<Json<ListOrValue<DataTypeMetadata>>, BoxedResponse>
+) -> Result<Json<ListOrValue<DataTypeMetadata>>, Response>
 where
     S: StorePool + Send + Sync,
     for<'pool> S::Store<'pool>: RestApiStore,
@@ -207,7 +207,7 @@ where
                         conversions: conversions.clone(),
                     })
                 })
-                .collect::<Result<Vec<_>, BoxedResponse>>()?,
+                .collect::<Result<Vec<_>, Response>>()?,
         )
         .await
         .map_err(report_to_response)?;
@@ -256,7 +256,7 @@ async fn load_external_data_type<S>(
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
     domain_validator: Extension<DomainValidator>,
     Json(request): Json<LoadExternalDataTypeRequest>,
-) -> Result<Json<DataTypeMetadata>, BoxedResponse>
+) -> Result<Json<DataTypeMetadata>, Response>
 where
     S: StorePool + Send + Sync,
     for<'pool> S::Store<'pool>: RestApiStore,
@@ -343,7 +343,7 @@ async fn query_data_types<S>(
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
     mut query_logger: Option<Extension<QueryLogger>>,
     Json(request): Json<serde_json::Value>,
-) -> Result<Json<QueryDataTypesResponse>, BoxedResponse>
+) -> Result<Json<QueryDataTypesResponse>, Response>
 where
     S: StorePool + Send + Sync,
 {
@@ -407,7 +407,7 @@ async fn query_data_type_subgraph<S>(
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
     mut query_logger: Option<Extension<QueryLogger>>,
     Json(request): Json<serde_json::Value>,
-) -> Result<Json<QueryDataTypeSubgraphResponse>, BoxedResponse>
+) -> Result<Json<QueryDataTypeSubgraphResponse>, Response>
 where
     S: StorePool + Send + Sync,
 {
@@ -465,7 +465,7 @@ async fn find_data_type_conversion_targets<S>(
     store_pool: Extension<Arc<S>>,
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
     Json(request): Json<FindDataTypeConversionTargetsParams>,
-) -> Result<Json<FindDataTypeConversionTargetsResponse>, BoxedResponse>
+) -> Result<Json<FindDataTypeConversionTargetsResponse>, Response>
 where
     S: StorePool + Send + Sync,
 {
@@ -510,7 +510,7 @@ async fn update_data_type<S>(
     store_pool: Extension<Arc<S>>,
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
     body: Json<UpdateDataTypeRequest>,
-) -> Result<Json<DataTypeMetadata>, BoxedResponse>
+) -> Result<Json<DataTypeMetadata>, Response>
 where
     S: StorePool + Send + Sync,
 {
@@ -565,7 +565,7 @@ async fn update_data_types<S>(
     store_pool: Extension<Arc<S>>,
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
     bodies: Json<Vec<UpdateDataTypeRequest>>,
-) -> Result<Json<Vec<DataTypeMetadata>>, BoxedResponse>
+) -> Result<Json<Vec<DataTypeMetadata>>, Response>
 where
     S: StorePool + Send + Sync,
 {
@@ -594,7 +594,7 @@ where
                 })
             },
         )
-        .collect::<Result<Vec<_>, BoxedResponse>>()?;
+        .collect::<Result<Vec<_>, Response>>()?;
     store
         .update_data_types(actor_id, params)
         .await
@@ -622,7 +622,7 @@ async fn update_data_type_embeddings<S>(
     store_pool: Extension<Arc<S>>,
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
     Json(body): Json<serde_json::Value>,
-) -> Result<(), BoxedResponse>
+) -> Result<(), Response>
 where
     S: StorePool + Send + Sync,
 {
@@ -665,7 +665,7 @@ async fn archive_data_type<S>(
     store_pool: Extension<Arc<S>>,
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
     Json(body): Json<serde_json::Value>,
-) -> Result<Json<OntologyTemporalMetadata>, BoxedResponse>
+) -> Result<Json<OntologyTemporalMetadata>, Response>
 where
     S: StorePool + Send + Sync,
 {
@@ -717,7 +717,7 @@ async fn unarchive_data_type<S>(
     store_pool: Extension<Arc<S>>,
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
     Json(body): Json<serde_json::Value>,
-) -> Result<Json<OntologyTemporalMetadata>, BoxedResponse>
+) -> Result<Json<OntologyTemporalMetadata>, Response>
 where
     S: StorePool + Send + Sync,
 {
@@ -766,7 +766,7 @@ async fn has_permission_for_data_types<S>(
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
     store_pool: Extension<Arc<S>>,
     Json(params): Json<HasPermissionForDataTypesParams<'static>>,
-) -> Result<Json<HashSet<VersionedUrl>>, BoxedResponse>
+) -> Result<Json<HashSet<VersionedUrl>>, Response>
 where
     S: StorePool + Send + Sync,
     for<'p> S::Store<'p>: DataTypeStore,

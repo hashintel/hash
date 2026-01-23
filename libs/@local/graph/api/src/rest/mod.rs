@@ -96,7 +96,7 @@ use utoipa::{
 use uuid::Uuid;
 
 use self::{
-    status::{BoxedResponse, report_to_response, status_to_response},
+    status::{report_to_response, status_to_response},
     utoipa_typedef::{
         MaybeListOfDataTypeMetadata, MaybeListOfEntityTypeMetadata,
         MaybeListOfPropertyTypeMetadata,
@@ -169,7 +169,7 @@ pub trait RestApiStore:
         actor_id: ActorEntityUuid,
         domain_validator: &DomainValidator,
         reference: OntologyTypeReference<'_>,
-    ) -> impl Future<Output = Result<OntologyTypeMetadata, BoxedResponse>> + Send;
+    ) -> impl Future<Output = Result<OntologyTypeMetadata, Response>> + Send;
 }
 
 impl<S> RestApiStore for S
@@ -187,7 +187,7 @@ where
         actor_id: ActorEntityUuid,
         domain_validator: &DomainValidator,
         reference: OntologyTypeReference<'_>,
-    ) -> Result<OntologyTypeMetadata, BoxedResponse> {
+    ) -> Result<OntologyTypeMetadata, Response> {
         if domain_validator.validate_url(reference.url().base_url.as_str()) {
             let error = "Ontology type is not external".to_owned();
             tracing::error!(id=%reference.url(), error);

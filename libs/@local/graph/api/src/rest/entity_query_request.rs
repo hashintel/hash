@@ -19,7 +19,7 @@ use core::{cmp, ops::Range};
 
 use axum::{
     Json,
-    response::{Html, IntoResponse as _},
+    response::{Html, IntoResponse as _, Response},
 };
 use hash_graph_store::{
     entity::{
@@ -63,8 +63,6 @@ use serde::Deserialize;
 use serde_json::value::RawValue as RawJsonValue;
 use type_system::knowledge::Entity;
 use utoipa::ToSchema;
-
-use super::status::BoxedResponse;
 
 #[tracing::instrument(level = "info", skip_all)]
 fn generate_sorting_paths(
@@ -284,7 +282,7 @@ fn issues_to_response(
     source: &str,
     mut spans: &SpanTable<Span>,
     options: CompilationOptions,
-) -> BoxedResponse {
+) -> Response {
     let status_code = match severity {
         Severity::Bug | Severity::Fatal => StatusCode::INTERNAL_SERVER_ERROR,
         Severity::Error => StatusCode::BAD_REQUEST,
@@ -308,7 +306,7 @@ fn issues_to_response(
     };
 
     *response.status_mut() = status_code;
-    response.into()
+    response
 }
 
 fn failure_to_response(
@@ -316,7 +314,7 @@ fn failure_to_response(
     source: &str,
     spans: &SpanTable<Span>,
     options: CompilationOptions,
-) -> BoxedResponse {
+) -> Response {
     // Find the highest diagnostic level
     let severity = cmp::max(
         failure
@@ -447,11 +445,12 @@ impl<'q> EntityQuery<'q> {
     /// # Errors
     ///
     /// Returns an error if the HashQL query cannot be compiled.
+    #[expect(clippy::result_large_err, reason = "precompiled response")]
     pub(crate) fn compile(
         self,
         heap: &'q Heap,
         options: CompilationOptions,
-    ) -> Result<Filter<'q, Entity>, BoxedResponse> {
+    ) -> Result<Filter<'q, Entity>, Response> {
         match self {
             EntityQuery::Filter { filter } => Ok(filter),
             EntityQuery::Query { query } => {
