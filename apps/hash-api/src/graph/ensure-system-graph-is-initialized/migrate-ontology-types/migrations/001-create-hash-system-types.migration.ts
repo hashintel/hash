@@ -1,4 +1,5 @@
 import { getDataTypeById } from "@local/hash-graph-sdk/data-type";
+import { getEntityTypeById } from "@local/hash-graph-sdk/entity-type";
 import { fullTransactionTimeAxis } from "@local/hash-isomorphic-utils/graph-queries";
 import {
   blockProtocolEntityTypes,
@@ -23,6 +24,11 @@ const blockProtocolDataTypeIds = [
   "https://blockprotocol.org/@blockprotocol/types/data-type/object/v/1",
   "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
   "https://blockprotocol.org/@blockprotocol/types/data-type/value/v/1",
+] as const;
+
+const blockProtocolEntityTypeIds = [
+  "https://blockprotocol.org/@hash/types/entity-type/query/v/1",
+  "https://blockprotocol.org/@hash/types/entity-type/has-query/v/1",
 ] as const;
 
 const migrate: MigrationFunction = async ({
@@ -1732,8 +1738,8 @@ const migrate: MigrationFunction = async ({
   /**
    * Ensure the primitive BP data types are loaded
    */
-  await Promise.all(
-    blockProtocolDataTypeIds.map(async (dataTypeId) => {
+  await Promise.all([
+    ...blockProtocolDataTypeIds.map(async (dataTypeId) => {
       const existingDataType = await getDataTypeById(
         context.graphApi,
         authentication,
@@ -1751,7 +1757,25 @@ const migrate: MigrationFunction = async ({
         dataTypeId,
       });
     }),
-  );
+    ...blockProtocolEntityTypeIds.map(async (entityTypeId) => {
+      const existingEntityType = await getEntityTypeById(
+        context.graphApi,
+        authentication,
+        {
+          entityTypeId,
+          temporalAxes: fullTransactionTimeAxis,
+        },
+      );
+
+      if (existingEntityType) {
+        return;
+      }
+
+      return context.graphApi.loadExternalEntityType(authentication.actorId, {
+        entityTypeId,
+      });
+    }),
+  ]);
 
   return migrationState;
 };
