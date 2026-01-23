@@ -7,7 +7,6 @@ import { SignatureV4 } from "@smithy/signature-v4";
 import { type AxiosInstance } from "axios";
 import axios, { AxiosError, AxiosHeaders } from "axios";
 
-import { getRequiredEnv } from "./environment.js";
 import type { Logger } from "./logger.js";
 
 const toBase64 = (str: string) => Buffer.from(str, "utf8").toString("base64");
@@ -170,7 +169,15 @@ export class VaultClient {
   }) {
     this.#vaultAddr = params.endpoint;
     this.#logger = params.logger;
-    this.#secretMountPath = params.secretMountPath;
+
+    const normalizedMountPath = params.secretMountPath
+      .trim()
+      .replace(/^\/|\/$/g, "");
+    if (!normalizedMountPath) {
+      throw new Error("secretMountPath cannot be empty");
+    }
+    this.#secretMountPath = normalizedMountPath;
+
     this.#token = params.token;
 
     this.#client = axios.create({
@@ -322,14 +329,18 @@ export const createVaultClient = async ({
 }: {
   logger: Logger;
 }) => {
-  if (!process.env.HASH_VAULT_HOST || !process.env.HASH_VAULT_PORT) {
+  if (
+    !process.env.HASH_VAULT_HOST ||
+    !process.env.HASH_VAULT_PORT ||
+    !process.env.HASH_VAULT_MOUNT_PATH
+  ) {
     logger.info(
-      "No HASH_VAULT_HOST or HASH_VAULT_PORT provided, skipping Vault client creation",
+      "No HASH_VAULT_HOST, HASH_VAULT_PORT, or HASH_VAULT_MOUNT_PATH provided, skipping Vault client creation",
     );
     return undefined;
   }
 
-  const secretMountPath = getRequiredEnv("HASH_VAULT_MOUNT_PATH");
+  const secretMountPath = process.env.HASH_VAULT_MOUNT_PATH;
 
   if (!process.env.HASH_VAULT_ROOT_TOKEN) {
     logger.info("No Vault root token provided, attempting IAM auth");
