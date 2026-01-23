@@ -167,20 +167,21 @@ export const SegmentGroup: React.FC<SegmentGroupProps> = ({
         closeDelay={0}
         positioning={{ placement: "top" }}
       >
-        <ArkSegmentGroup.Root
-          value={value}
-          disabled={disabled}
-          onValueChange={(details) => {
-            if (details.value) {
-              onChange(details.value);
-            }
-          }}
-        >
-          {/* ArkTooltip.Trigger with asChild merges props with ark.div */}
-          <ArkTooltip.Trigger asChild>
-            <ark.div className={containerClassName}>{containerContent}</ark.div>
-          </ArkTooltip.Trigger>
-        </ArkSegmentGroup.Root>
+        <ArkTooltip.Trigger asChild>
+          <ark.div>
+            <ArkSegmentGroup.Root
+              value={value}
+              disabled={disabled}
+              onValueChange={(details) => {
+                if (details.value) {
+                  onChange(details.value);
+                }
+              }}
+            >
+              <div className={containerClassName}>{containerContent}</div>
+            </ArkSegmentGroup.Root>
+          </ark.div>
+        </ArkTooltip.Trigger>
         <ArkTooltip.Positioner>
           <ArkTooltip.Content className={tooltipContentStyle}>
             {tooltip}
