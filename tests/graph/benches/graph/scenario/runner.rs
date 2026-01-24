@@ -14,8 +14,8 @@ use hash_graph_postgres_store::{
 };
 use hash_graph_store::{
     data_type::CreateDataTypeParams, entity::CreateEntityParams,
-    entity_type::CreateEntityTypeParams, migration::StoreMigration as _, pool::StorePool as _,
-    property_type::CreatePropertyTypeParams,
+    entity_type::CreateEntityTypeParams, filter::protection::FilterProtectionConfig,
+    migration::StoreMigration as _, pool::StorePool as _, property_type::CreatePropertyTypeParams,
 };
 use hash_graph_test_data::seeding::{
     context::{ProduceContext, Provenance, RunId, ShardId, StageId},
@@ -214,6 +214,7 @@ impl Runner {
             PostgresStoreSettings {
                 validate_links: true,
                 skip_embedding_creation: true,
+                filter_protection: FilterProtectionConfig::new(), // Disabled for benchmarks
             },
         )
         .await

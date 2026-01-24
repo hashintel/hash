@@ -43,6 +43,7 @@ use hash_graph_store::{
         WebRetrievalError,
     },
     error::{InsertionError, UpdateError},
+    filter::protection::FilterProtectionConfig,
     query::ConflictBehavior,
 };
 use hash_graph_temporal_versioning::{LeftClosedTemporalInterval, TransactionTime};
@@ -87,6 +88,11 @@ use crate::store::error::{
 pub struct PostgresStoreSettings {
     pub validate_links: bool,
     pub skip_embedding_creation: bool,
+    /// Configuration for filter protection against information leakage.
+    ///
+    /// When set, filters on protected properties will automatically exclude
+    /// specified entity types to prevent enumeration attacks.
+    pub filter_protection: FilterProtectionConfig,
 }
 
 impl Default for PostgresStoreSettings {
@@ -94,6 +100,7 @@ impl Default for PostgresStoreSettings {
         Self {
             validate_links: true,
             skip_embedding_creation: false,
+            filter_protection: FilterProtectionConfig::hash_default(),
         }
     }
 }
