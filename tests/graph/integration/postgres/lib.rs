@@ -16,6 +16,7 @@ extern crate alloc;
 
 mod data_type;
 mod drafts;
+mod email_filter_protection;
 mod entity;
 mod entity_type;
 mod interconnected_graph;

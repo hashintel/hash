@@ -24,7 +24,7 @@ use hash_graph_store::{
     },
     entity_type::{EntityTypeQueryPath, EntityTypeStore as _, IncludeEntityTypeOption},
     error::{CheckPermissionError, InsertionError, QueryError, UpdateError},
-    filter::{Filter, FilterExpression, Parameter, ParameterList},
+    filter::{Filter, FilterExpression, Parameter, ParameterList, protection::transform_filter},
     query::{QueryResult as _, Read},
     subgraph::{
         Subgraph, SubgraphRecord as _,
@@ -78,7 +78,10 @@ use type_system::{
         },
         id::{BaseUrl, OntologyTypeUuid, OntologyTypeVersion, VersionedUrl},
     },
-    principal::{actor::ActorEntityUuid, actor_group::WebId},
+    principal::{
+        actor::{ActorEntityUuid, ActorType},
+        actor_group::WebId,
+    },
 };
 use uuid::Uuid;
 
@@ -101,6 +104,7 @@ use crate::store::{
     validation::StoreProvider,
 };
 
+/// Protected properties that should not be used to filter User entities.
 impl<C> PostgresStore<C>
 where
     C: AsClient,
@@ -522,12 +526,28 @@ where
             policy_components.optimization_data(ActionName::ViewEntity),
         );
 
+        // Machine actors (system) bypass email protection - they need full access.
+        // For all other actors (users, AI), protect email property to prevent enumeration.
+        let should_protect_email = policy_components
+            .actor_id()
+            .map_or(true, |id| id.actor_type() != ActorType::Machine);
+
+        let protected_filter;
+        let filter_to_use = if should_protect_email {
+            // Transform filter to protect against email filtering on Users
+            protected_filter =
+                transform_filter(params.filter.clone(), &self.settings.filter_protection, 0);
+            &protected_filter
+        } else {
+            &params.filter
+        };
+
         let mut compiler = SelectCompiler::new(Some(temporal_axes), params.include_drafts);
         compiler
             .add_filter(&policy_filter)
             .change_context(QueryError)?;
         compiler
-            .add_filter(&params.filter)
+            .add_filter(filter_to_use)
             .change_context(QueryError)?;
 
         let (count, web_ids, created_by_ids, edition_created_by_ids, type_ids, type_titles) =
@@ -1689,13 +1709,30 @@ where
             policy_components.optimization_data(ActionName::ViewEntity),
         );
 
+        // Machine actors (system) bypass email protection - they need full access.
+        // For all other actors (users, AI), protect email property to prevent enumeration.
+        let should_protect_email = policy_components
+            .actor_id()
+            .map_or(true, |id| id.actor_type() != ActorType::Machine);
+
+        let protected_filter;
+        let filter_to_use = if should_protect_email {
+            // Transform filter to protect against email filtering on Users
+            // Note: count_entities has no sorting, so only filter protection applies
+            protected_filter =
+                transform_filter(params.filter.clone(), &self.settings.filter_protection, 0);
+            &protected_filter
+        } else {
+            &params.filter
+        };
+
         let temporal_axes = params.temporal_axes.resolve();
         let mut compiler = SelectCompiler::new(Some(&temporal_axes), params.include_drafts);
         compiler
             .add_filter(&policy_filter)
             .change_context(QueryError)?;
         compiler
-            .add_filter(&params.filter)
+            .add_filter(filter_to_use)
             .change_context(QueryError)?;
 
         compiler.add_distinct_selection_with_ordering(
