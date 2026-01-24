@@ -23,7 +23,7 @@
     "bench:integration": "CARGO_TERM_PROGRESS_WHEN=never turbo run bench:integration --env-mode=loose --",
     "bench:unit": "CARGO_TERM_PROGRESS_WHEN=never turbo run bench:unit --env-mode=loose --",
     "changeset:version": "yarn changeset version && YARN_ENABLE_IMMUTABLE_INSTALLS=false yarn",
-    "codegen": "turbo codegen",
+    "codegen": "CARGO_TERM_PROGRESS_WHEN=never turbo codegen",
     "create-block": "yarn workspace @local/repo-chores exe scripts/create-block.ts",
     "dev": "CARGO_TERM_PROGRESS_WHEN=never turbo dev --log-order stream --filter '@apps/hash-api' --filter '@apps/hash-frontend' --",
     "dev:backend": "CARGO_TERM_PROGRESS_WHEN=never turbo dev --log-order stream --filter '@apps/hash-api' --",
