@@ -23,15 +23,15 @@ interface TooltipProps {
 }
 
 const triggerWrapperStyle = css({
-  display: "flex",
-  width: "[100%]",
+  display: "inline-flex",
+  alignItems: "center",
 });
 
 /**
  * Tooltip component that wraps children and shows a tooltip on hover.
  *
- * Uses a wrapper span to ensure tooltips work on disabled elements,
- * since disabled elements don't receive pointer events.
+ * Uses a wrapper div with inline-flex to ensure tooltips work on disabled elements
+ * and preserve the natural dimensions of input elements.
  */
 export const Tooltip: React.FC<TooltipProps> = ({ content, children }) => {
   if (!content) {
@@ -44,7 +44,7 @@ export const Tooltip: React.FC<TooltipProps> = ({ content, children }) => {
       closeDelay={0}
       positioning={{ placement: "top" }}
     >
-      {/* Wrapper div ensures tooltip works on disabled elements */}
+      {/* Wrapper div with inline-flex preserves input dimensions while enabling tooltips on disabled elements */}
       <ArkTooltip.Trigger asChild>
         <div className={triggerWrapperStyle}>{children}</div>
       </ArkTooltip.Trigger>
