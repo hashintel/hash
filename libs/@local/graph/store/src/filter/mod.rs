@@ -1,5 +1,6 @@
 mod parameter;
 mod path;
+pub mod protection;
 
 use alloc::borrow::Cow;
 use core::{borrow::Borrow as _, fmt, hash::Hash};
