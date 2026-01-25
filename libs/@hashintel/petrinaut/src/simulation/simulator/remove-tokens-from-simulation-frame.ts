@@ -1,4 +1,4 @@
-import type { SimulationFrame } from "../types/simulation";
+import type { SimulationFrame } from "./types";
 
 /**
  * Removes tokens from multiple places in the simulation frame.

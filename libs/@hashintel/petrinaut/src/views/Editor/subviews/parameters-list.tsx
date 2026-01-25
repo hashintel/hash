@@ -3,9 +3,9 @@ import { use } from "react";
 import { v4 as uuidv4 } from "uuid";
 
 import type { SubView } from "../../../components/sub-view/types";
+import { SimulationContext } from "../../../simulation/context";
 import { EditorContext } from "../../../state/editor-context";
 import { SDCPNContext } from "../../../state/sdcpn-context";
-import { SimulationContext } from "../../../state/simulation-context";
 
 const addButtonStyle = css({
   display: "flex",

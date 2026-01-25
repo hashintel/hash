@@ -1,14 +1,14 @@
 import { use } from "react";
 import { MarkerType } from "reactflow";
 
-import type { SDCPN } from "../../../core/types/sdcpn";
 import { hexToHsl } from "../../../lib/hsl-color";
+import { SimulationContext } from "../../../simulation/context";
 import { EditorContext } from "../../../state/editor-context";
-import { generateArcId } from "../../../state/sdcpn-context";
+import { generateArcId, SDCPNContext } from "../../../state/sdcpn-context";
 import type {
   NodeType,
-  PetriNetDefinitionObject,
-} from "../../../state/types-for-editor-to-remove";
+  PetrinautReactFlowDefinitionObject,
+} from "../reactflow-types";
 
 /**
  * Converts SDCPN state to ReactFlow format (nodes and edges), and combines
@@ -18,21 +18,22 @@ import type {
  * - Converting SDCPN places/transitions/arcs to ReactFlow nodes/edges
  * - Folding in the dragging state for proper rendering during drag operations
  *
- * @param sdcpn - The SDCPN state to convert
  * @returns An object with nodes (including dragging state) and arcs for ReactFlow
  */
-export function useSdcpnToReactFlow(sdcpn: SDCPN): PetriNetDefinitionObject {
+export function useSdcpnToReactFlow(): PetrinautReactFlowDefinitionObject {
+  const { petriNetDefinition } = use(SDCPNContext);
   const { draggingStateByNodeId, selectedItemIds } = use(EditorContext);
+  const { currentViewedFrame } = use(SimulationContext);
 
   const nodes: NodeType[] = [];
 
   // Create place nodes
-  for (const place of sdcpn.places) {
+  for (const place of petriNetDefinition.places) {
     const draggingState = draggingStateByNodeId[place.id];
 
     // Check if place has a type with at least one dimension (element)
     const placeType = place.colorId
-      ? sdcpn.types.find((type) => type.id === place.colorId)
+      ? petriNetDefinition.types.find((type) => type.id === place.colorId)
       : null;
     const hasColorType = !!(placeType && placeType.elements.length > 0);
 
@@ -57,7 +58,7 @@ export function useSdcpnToReactFlow(sdcpn: SDCPN): PetriNetDefinitionObject {
   }
 
   // Create transition nodes
-  for (const transition of sdcpn.transitions) {
+  for (const transition of petriNetDefinition.transitions) {
     const draggingState = draggingStateByNodeId[transition.id];
 
     nodes.push({
@@ -74,6 +75,7 @@ export function useSdcpnToReactFlow(sdcpn: SDCPN): PetriNetDefinitionObject {
         label: transition.name,
         type: "transition",
         lambdaType: transition.lambdaType,
+        frame: currentViewedFrame?.transitions[transition.id] ?? null,
       },
     });
   }
@@ -81,7 +83,7 @@ export function useSdcpnToReactFlow(sdcpn: SDCPN): PetriNetDefinitionObject {
   // Create arcs from input and output arcs
   const arcs = [];
 
-  for (const transition of sdcpn.transitions) {
+  for (const transition of petriNetDefinition.transitions) {
     // Input arcs (from places to transition)
     for (const inputArc of transition.inputArcs) {
       const arcId = generateArcId({
@@ -90,9 +92,11 @@ export function useSdcpnToReactFlow(sdcpn: SDCPN): PetriNetDefinitionObject {
       });
 
       // Get the place to determine type color
-      const place = sdcpn.places.find((pl) => pl.id === inputArc.placeId);
+      const place = petriNetDefinition.places.find(
+        (pl) => pl.id === inputArc.placeId,
+      );
       const placeType = place?.colorId
-        ? sdcpn.types.find((type) => type.id === place.colorId)
+        ? petriNetDefinition.types.find((type) => type.id === place.colorId)
         : null;
       const arcColor = placeType?.displayColor
         ? hexToHsl(placeType.displayColor).lighten(-15).saturate(-30).css(1)
@@ -115,9 +119,8 @@ export function useSdcpnToReactFlow(sdcpn: SDCPN): PetriNetDefinitionObject {
           strokeWidth: 2,
         },
         data: {
-          tokenWeights: {
-            default: inputArc.weight,
-          },
+          weight: inputArc.weight,
+          frame: currentViewedFrame?.transitions[transition.id] ?? null,
         },
       });
     }
@@ -130,9 +133,11 @@ export function useSdcpnToReactFlow(sdcpn: SDCPN): PetriNetDefinitionObject {
       });
 
       // Get the place to determine type color
-      const place = sdcpn.places.find((pl) => pl.id === outputArc.placeId);
+      const place = petriNetDefinition.places.find(
+        (pl) => pl.id === outputArc.placeId,
+      );
       const placeType = place?.colorId
-        ? sdcpn.types.find((type) => type.id === place.colorId)
+        ? petriNetDefinition.types.find((type) => type.id === place.colorId)
         : null;
       const arcColor = placeType?.displayColor
         ? hexToHsl(placeType.displayColor).lighten(-15).saturate(-30).css(1)
@@ -155,9 +160,8 @@ export function useSdcpnToReactFlow(sdcpn: SDCPN): PetriNetDefinitionObject {
           strokeWidth: 2,
         },
         data: {
-          tokenWeights: {
-            default: outputArc.weight,
-          },
+          weight: outputArc.weight,
+          frame: currentViewedFrame?.transitions[transition.id] ?? null,
         },
       });
     }

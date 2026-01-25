@@ -2,14 +2,25 @@
   "name": "@hashintel/ds-theme",
   "version": "0.0.1",
   "description": "HASH PandaCSS Preset",
+  "license": "(MIT OR Apache-2.0)",
   "repository": {
     "type": "git",
     "url": "https://github.com/hashintel/hash.git",
     "directory": "libs/@hashintel/ds-theme"
   },
-  "license": "(MIT OR Apache-2.0)",
-  "sideEffects": false,
+  "files": [
+    "CHANGELOG.md",
+    "dist",
+    "LICENSE",
+    "LICENSE-APACHE.md",
+    "LICENSE-MIT.md",
+    "README.md"
+  ],
   "type": "module",
+  "sideEffects": false,
+  "main": "./dist/main.js",
+  "module": "./dist/main.js",
+  "types": "./dist/main.d.ts",
   "exports": {
     ".": {
       "types": "./dist/main.d.ts",
@@ -20,17 +31,9 @@
       "default": "./dist/theme.js"
     }
   },
-  "main": "./dist/main.js",
-  "module": "./dist/main.js",
-  "types": "./dist/main.d.ts",
-  "files": [
-    "dist",
-    "CHANGELOG.md",
-    "LICENSE-APACHE.md",
-    "LICENSE-MIT.md",
-    "LICENSE",
-    "README.md"
-  ],
+  "publishConfig": {
+    "access": "public"
+  },
   "scripts": {
     "build": "tsdown",
     "codegen": "npm-run-all --continue-on-error codegen:colors codegen:tokens",
@@ -56,8 +59,5 @@
     "typescript": "5.9.3",
     "vitest": "^4.0.16",
     "zod": "4.1.12"
-  },
-  "publishConfig": {
-    "access": "public"
   }
 }

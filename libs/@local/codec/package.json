@@ -4,15 +4,15 @@
   "private": true,
   "license": "AGPL-3",
   "type": "module",
-  "exports": {
-    "./types": "./types/index.snap.js"
-  },
   "typesVersions": {
     "*": {
       "types": [
         "./types/index.snap.d.ts"
       ]
     }
+  },
+  "exports": {
+    "./types": "./types/index.snap.js"
   },
   "scripts": {
     "build:types": "INSTA_UPDATE=always mise exec --env dev cargo:cargo-insta -- cargo-insta test --features codegen,numeric --test codegen",

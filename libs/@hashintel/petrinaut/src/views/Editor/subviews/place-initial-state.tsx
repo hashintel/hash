@@ -3,7 +3,7 @@ import { use } from "react";
 import { TbTrash } from "react-icons/tb";
 
 import type { SubView } from "../../../components/sub-view/types";
-import { SimulationContext } from "../../../state/simulation-context";
+import { SimulationContext } from "../../../simulation/context";
 import { InitialStateEditor } from "../panels/PropertiesPanel/initial-state-editor";
 import { usePlacePropertiesContext } from "../panels/PropertiesPanel/place-properties-context";
 
@@ -101,23 +101,20 @@ const ClearStateHeaderAction: React.FC = () => {
 const PlaceInitialStateContent: React.FC = () => {
   const { place, placeType } = usePlacePropertiesContext();
 
-  const {
-    simulation,
-    initialMarking,
-    setInitialMarking,
-    currentlyViewedFrame,
-  } = use(SimulationContext);
+  const { simulation, initialMarking, setInitialMarking, currentViewedFrame } =
+    use(SimulationContext);
 
   // Determine if simulation is running (has frames)
   const hasSimulationFrames =
     simulation !== null && simulation.frames.length > 0;
+  const frameIndex = currentViewedFrame?.number ?? 0;
 
   // If no type or type has 0 dimensions, show simple number input
   if (!placeType || placeType.elements.length === 0) {
     // Get token count from simulation frame or initial marking
     let currentTokenCount = 0;
     if (hasSimulationFrames) {
-      const currentFrame = simulation.frames[currentlyViewedFrame];
+      const currentFrame = simulation.frames[frameIndex];
       if (currentFrame) {
         const placeState = currentFrame.places.get(place.id);
         currentTokenCount = placeState?.count ?? 0;

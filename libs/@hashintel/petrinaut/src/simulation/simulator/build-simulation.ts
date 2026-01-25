@@ -1,8 +1,9 @@
+import { SDCPNItemError } from "../../core/errors";
 import {
   deriveDefaultParameterValues,
   mergeParameterValues,
 } from "../../hooks/use-default-parameter-values";
-import { SDCPNItemError } from "../errors";
+import { compileUserCode } from "./compile-user-code";
 import type {
   DifferentialEquationFn,
   LambdaFn,
@@ -11,8 +12,7 @@ import type {
   SimulationInput,
   SimulationInstance,
   TransitionKernelFn,
-} from "../types/simulation";
-import { compileUserCode } from "./compile-user-code";
+} from "./types";
 
 /**
  * Get the dimensions (number of elements) for a place based on its type.
@@ -236,7 +236,9 @@ export function buildSimulation(input: SimulationInput): SimulationInstance {
       transition.id,
       {
         instance: transition,
-        timeSinceLastFiring: 0,
+        timeSinceLastFiringMs: 0,
+        firedInThisFrame: false,
+        firingCount: 0,
       },
     ]),
   );

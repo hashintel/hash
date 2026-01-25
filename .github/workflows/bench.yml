@@ -26,7 +26,7 @@ jobs:
     steps:
       - name: Optimize CI
         id: check_skip
-        uses: withgraphite/graphite-ci-action@6213dcfab02da542aaf534e087282a928ff4374a
+        uses: withgraphite/graphite-ci-action@ee395f3a78254c006d11339669c6cabddf196f72
         with:
           graphite_token: ${{ secrets.GRAPHITE_CI_OPTIMIZER_TOKEN }}
 
@@ -41,7 +41,7 @@ jobs:
       integration: ${{ steps.packages.outputs.integration }}
     steps:
       - name: Checkout source code
-        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           fetch-depth: 2
 
@@ -80,7 +80,7 @@ jobs:
     steps:
       - name: Checkout base branch
         if: github.event_name == 'pull_request'
-        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           ref: ${{ github.event.pull_request.base.sha }}
 
@@ -114,14 +114,14 @@ jobs:
 
       - name: Checkout head branch
         if: github.event_name == 'pull_request'
-        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           clean: false
           ref: ${{ github.event.pull_request.head.sha }}
 
       - name: Checkout
         if: github.event_name != 'pull_request'
-        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           ref: ${{ github.event.pull_request.head.sha }}
 
@@ -201,7 +201,7 @@ jobs:
     steps:
       - name: Checkout base branch
         if: github.event_name == 'pull_request'
-        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           ref: ${{ github.event.pull_request.base.sha }}
 
@@ -277,14 +277,14 @@ jobs:
 
       - name: Checkout head branch
         if: github.event_name == 'pull_request'
-        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           clean: false
           ref: ${{ github.event.pull_request.head.sha }}
 
       - name: Checkout
         if: github.event_name != 'pull_request'
-        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           ref: ${{ github.event.pull_request.head.sha }}
 
@@ -416,7 +416,7 @@ jobs:
           [[ ${{ needs.integration-benches.result }} =~ success|skipped ]]
 
       - name: Notify Slack on failure
-        uses: rtCamp/action-slack-notify@07cbdbfd6c6190970778d8f98f11d073b2932aae
+        uses: rtCamp/action-slack-notify@c58b60ee33df2229ed2d2eed86eeaf7e6c527c5a
         if: ${{ failure() && github.event_name == 'merge_group' }}
         env:
           SLACK_LINK_NAMES: true
@@ -429,7 +429,7 @@ jobs:
 
       - name: Checkout
         if: github.event_name == 'pull_request' && needs.integration-benches.result == 'success'
-        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
       - name: Download reports' artifacts
         if: github.event_name == 'pull_request' && needs.integration-benches.result == 'success'

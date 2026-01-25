@@ -2,6 +2,7 @@
   "name": "@rust/hash-status",
   "version": "0.0.0-private",
   "private": true,
+  "description": "The HASH Status and Error Model.",
   "license": "MIT OR Apache-2.0",
   "scripts": {
     "doc:dependency-diagram": "cargo run -p hash-repo-chores -- dependency-diagram --output docs/dependency-diagram.mmd --root hash-status --root-deps-and-dependents --link-mode non-roots --include-dev-deps --include-build-deps --logging-console-level info",

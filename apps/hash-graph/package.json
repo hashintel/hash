@@ -2,6 +2,7 @@
   "name": "@apps/hash-graph",
   "version": "0.0.0-private",
   "private": true,
+  "description": "The entity-graph query-layer for the HASH datastore",
   "license": "AGPL-3",
   "scripts": {
     "build:docker": "docker buildx build --build-arg PROFILE=production --build-arg ENABLE_TEST_SERVER=yes --tag hash-graph --file docker/Dockerfile ../../ --load",

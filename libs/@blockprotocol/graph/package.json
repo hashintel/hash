@@ -11,26 +11,17 @@
   "bugs": {
     "url": "https://github.com/blockprotocol/blockprotocol/issues"
   },
-  "repository": {
-    "type": "git",
-    "url": "git@github.com:blockprotocol/blockprotocol.git",
-    "directory": "libs/@blockprotocol/graph"
-  },
   "license": "MIT",
   "author": {
     "name": "HASH",
     "url": "https://hash.ai"
   },
-  "type": "module",
-  "exports": {
-    ".": "./dist/main.js",
-    "./codegen": "./dist/codegen.js",
-    "./custom-element": "./dist/custom-element.js",
-    "./graph-module-json": "./dist/graph-module-json.js",
-    "./internal": "./dist/internal.js",
-    "./react": "./dist/react.js",
-    "./stdlib": "./dist/stdlib.js"
+  "repository": {
+    "type": "git",
+    "url": "git@github.com:blockprotocol/blockprotocol.git",
+    "directory": "libs/@blockprotocol/graph"
   },
+  "type": "module",
   "types": "./dist/main.d.ts",
   "typesVersions": {
     "*": {
@@ -56,6 +47,15 @@
         "./dist/stdlib.d.ts"
       ]
     }
+  },
+  "exports": {
+    ".": "./dist/main.js",
+    "./codegen": "./dist/codegen.js",
+    "./custom-element": "./dist/custom-element.js",
+    "./graph-module-json": "./dist/graph-module-json.js",
+    "./internal": "./dist/internal.js",
+    "./react": "./dist/react.js",
+    "./stdlib": "./dist/stdlib.js"
   },
   "scripts": {
     "build": "rimraf dist && tsc --build tsconfig.build.json",

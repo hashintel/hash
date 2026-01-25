@@ -1,7 +1,7 @@
-import type { ID } from "../types/sdcpn";
-import type { SimulationFrame } from "../types/simulation";
+import type { ID } from "../../core/types/sdcpn";
 import { computePossibleTransition } from "./compute-possible-transition";
 import { removeTokensFromSimulationFrame } from "./remove-tokens-from-simulation-frame";
+import type { SimulationFrame } from "./types";
 
 type PlaceID = ID;
 
@@ -134,7 +134,7 @@ export function executeTransitions(frame: SimulationFrame): SimulationFrame {
   // Map to accumulate all tokens to add: PlaceID -> array of token values
   const tokensToAdd = new Map<PlaceID, number[][]>();
 
-  // Keep track of which transitions fired for updating timeSinceLastFiring
+  // Keep track of which transitions fired for updating timeSinceLastFiringMs
   const transitionsFired = new Set<ID>();
 
   // Start with the current frame and update it as transitions fire
@@ -187,21 +187,24 @@ export function executeTransitions(frame: SimulationFrame): SimulationFrame {
   // Add all new tokens at once
   const newFrame = addTokensToSimulationFrame(currentFrame, tokensToAdd);
 
-  // Update transition timeSinceLastFiring
+  // Update transition timeSinceLastFiringMs, firedInThisFrame, and firingCount
   const newTransitions = new Map(newFrame.transitions);
   for (const [transitionId, transitionState] of newFrame.transitions) {
     if (transitionsFired.has(transitionId)) {
-      // Reset time since last firing for transitions that fired
+      // Reset time since last firing and increment firing count for transitions that fired
       newTransitions.set(transitionId, {
         ...transitionState,
-        timeSinceLastFiring: 0,
+        timeSinceLastFiringMs: 0,
+        firedInThisFrame: true,
+        firingCount: transitionState.firingCount + 1,
       });
     } else {
       // Increment time for transitions that didn't fire
       newTransitions.set(transitionId, {
         ...transitionState,
-        timeSinceLastFiring:
-          transitionState.timeSinceLastFiring + frame.simulation.dt,
+        timeSinceLastFiringMs:
+          transitionState.timeSinceLastFiringMs + frame.simulation.dt,
+        firedInThisFrame: false,
       });
     }
   }

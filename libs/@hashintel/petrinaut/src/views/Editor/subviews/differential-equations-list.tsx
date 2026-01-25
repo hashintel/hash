@@ -4,9 +4,9 @@ import { v4 as uuidv4 } from "uuid";
 
 import type { SubView } from "../../../components/sub-view/types";
 import { DEFAULT_DIFFERENTIAL_EQUATION_CODE } from "../../../core/default-codes";
+import { SimulationContext } from "../../../simulation/context";
 import { EditorContext } from "../../../state/editor-context";
 import { SDCPNContext } from "../../../state/sdcpn-context";
-import { SimulationContext } from "../../../state/simulation-context";
 
 const listContainerStyle = css({
   display: "flex",

@@ -388,6 +388,7 @@ module "application" {
       name  = "HASH_VAULT_PORT", secret = true,
       value = sensitive(data.vault_kv_secret_v2.secrets.data["hash_vault_port"])
     },
+    { name = "HASH_VAULT_MOUNT_PATH", secret = false, value = "secret" },
     {
       name  = "INTERNAL_API_HOST", secret = true,
       value = sensitive(data.vault_kv_secret_v2.secrets.data["internal_api_host"])
@@ -457,6 +458,7 @@ module "application" {
       name  = "HASH_VAULT_PORT", secret = true,
       value = sensitive(data.vault_kv_secret_v2.secrets.data["hash_vault_port"])
     },
+    { name = "HASH_VAULT_MOUNT_PATH", secret = false, value = "secret" },
     {
       name  = "HASH_TEMPORAL_WORKER_AI_SENTRY_DSN", secret = true,
       value = sensitive(data.vault_kv_secret_v2.secrets.data["hash_temporal_worker_ai_sentry_dsn"])
@@ -499,12 +501,13 @@ module "application" {
       name  = "HASH_VAULT_PORT", secret = true,
       value = sensitive(data.vault_kv_secret_v2.secrets.data["hash_vault_port"])
     },
+    { name = "HASH_VAULT_MOUNT_PATH", secret = false, value = "secret" },
     {
       name  = "HASH_TEMPORAL_WORKER_INTEGRATION_SENTRY_DSN", secret = true,
       value = sensitive(data.vault_kv_secret_v2.secrets.data["hash_temporal_worker_integration_sentry_dsn"])
     },
     {
-      name = "AERO_API_KEY", secret = true,
+      name  = "AERO_API_KEY", secret = true,
       value = sensitive(data.vault_kv_secret_v2.secrets.data["aero_api_key"])
     }
   ]

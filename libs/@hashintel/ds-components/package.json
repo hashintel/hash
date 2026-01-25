@@ -2,14 +2,25 @@
   "name": "@hashintel/ds-components",
   "version": "0.0.1",
   "description": "HASH Component Library built with React, Ark UI, and PandaCSS",
+  "license": "(MIT OR Apache-2.0)",
   "repository": {
     "type": "git",
     "url": "https://github.com/hashintel/hash.git",
     "directory": "libs/@hashintel/ds-components"
   },
-  "license": "(MIT OR Apache-2.0)",
-  "sideEffects": false,
+  "files": [
+    "CHANGELOG.md",
+    "dist",
+    "LICENSE",
+    "LICENSE-APACHE.md",
+    "LICENSE-MIT.md",
+    "README.md"
+  ],
   "type": "module",
+  "sideEffects": false,
+  "main": "./dist/main.js",
+  "module": "./dist/main.js",
+  "types": "./dist/main.d.ts",
   "exports": {
     "./*": {
       "types": "./dist/components/*.d.ts",
@@ -20,17 +31,9 @@
       "import": "./dist/main.js"
     }
   },
-  "main": "./dist/main.js",
-  "module": "./dist/main.js",
-  "types": "./dist/main.d.ts",
-  "files": [
-    "dist",
-    "CHANGELOG.md",
-    "LICENSE-APACHE.md",
-    "LICENSE-MIT.md",
-    "LICENSE",
-    "README.md"
-  ],
+  "publishConfig": {
+    "access": "public"
+  },
   "scripts": {
     "build": "tsdown",
     "codegen": "panda codegen --clean",
@@ -88,8 +91,5 @@
     "@hashintel/refractive": "0.0.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.0"
-  },
-  "publishConfig": {
-    "access": "public"
   }
 }

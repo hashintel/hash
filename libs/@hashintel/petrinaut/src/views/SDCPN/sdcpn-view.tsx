@@ -10,15 +10,19 @@ import {
   DEFAULT_TRANSITION_KERNEL_CODE,
   generateDefaultLambdaCode,
 } from "../../core/default-codes";
+import { SimulationContext } from "../../simulation/context";
 import { EditorContext } from "../../state/editor-context";
 import { SDCPNContext } from "../../state/sdcpn-context";
-import { SimulationContext } from "../../state/simulation-context";
-import type { ArcData, NodeData } from "../../state/types-for-editor-to-remove";
 import { Arc } from "./components/arc";
 import { PlaceNode } from "./components/place-node";
 import { TransitionNode } from "./components/transition-node";
 import { useApplyNodeChanges } from "./hooks/use-apply-node-changes";
 import { useSdcpnToReactFlow } from "./hooks/use-sdcpn-to-react-flow";
+import type {
+  ArcData,
+  NodeData,
+  PetrinautReactFlowInstance,
+} from "./reactflow-types";
 import { nodeDimensions } from "./styles/styling";
 
 const SNAP_GRID_SIZE = 15;
@@ -43,19 +47,16 @@ const canvasContainerStyle = css({
 
 /**
  * SDCPNView is responsible for rendering the SDCPN using ReactFlow.
- * It reads from sdcpn-store and editor-store, and handles all ReactFlow interactions.
+ * It reads from SDCPNContext and EditorContext, and handles all ReactFlow interactions.
  */
 export const SDCPNView: React.FC = () => {
   const canvasContainer = useRef<HTMLDivElement>(null);
-  const [reactFlowInstance, setReactFlowInstance] = useState<ReactFlowInstance<
-    NodeData,
-    ArcData
-  > | null>(null);
+  const [reactFlowInstance, setReactFlowInstance] =
+    useState<PetrinautReactFlowInstance | null>(null);
 
   // SDCPN store
   const {
     petriNetId,
-    petriNetDefinition,
     addPlace,
     addTransition,
     addArc,
@@ -63,13 +64,6 @@ export const SDCPNView: React.FC = () => {
     readonly,
   } = use(SDCPNContext);
 
-  // Hook for applying node changes
-  const applyNodeChanges = useApplyNodeChanges();
-
-  // Convert SDCPN to ReactFlow format with dragging state
-  const { nodes, arcs } = useSdcpnToReactFlow(petriNetDefinition);
-
-  // Editor state
   const {
     globalMode: mode,
     editionMode,
@@ -82,11 +76,15 @@ export const SDCPNView: React.FC = () => {
 
   const { state: simulationState } = use(SimulationContext);
 
+  // Hook for applying node changes
+  const applyNodeChanges = useApplyNodeChanges();
+
+  // Convert SDCPN to ReactFlow format with dragging state
+  const { nodes, arcs } = useSdcpnToReactFlow();
+
   // Center viewport on SDCPN load
   useEffect(() => {
-    if (reactFlowInstance) {
-      reactFlowInstance.fitView({ padding: 0.4, minZoom: 0.4, maxZoom: 1.1 });
-    }
+    reactFlowInstance?.fitView({ padding: 0.4, minZoom: 0.4, maxZoom: 1.1 });
   }, [reactFlowInstance, petriNetId]);
 
   // Readonly if in simulate mode, simulation is running/paused, or readonly has been provided by external consumer.

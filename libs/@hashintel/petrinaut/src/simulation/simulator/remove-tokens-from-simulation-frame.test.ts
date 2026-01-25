@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
-import type { SimulationFrame, SimulationInstance } from "../types/simulation";
 import { removeTokensFromSimulationFrame } from "./remove-tokens-from-simulation-frame";
+import type { SimulationFrame, SimulationInstance } from "./types";
 
 describe("removeTokensFromSimulationFrame", () => {
   it("throws error when place ID is not found", () => {

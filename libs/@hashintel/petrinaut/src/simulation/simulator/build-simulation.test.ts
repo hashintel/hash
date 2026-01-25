@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
-import type { SimulationInput } from "../types/simulation";
 import { buildSimulation } from "./build-simulation";
+import type { SimulationInput } from "./types";
 
 describe("buildSimulation", () => {
   it("builds a simulation with a single place and initial tokens", () => {
@@ -246,8 +246,8 @@ describe("buildSimulation", () => {
 
     // Verify transitions exist with initial state
     expect(frame.transitions.size).toBe(2);
-    expect(frame.transitions.get("t1")?.timeSinceLastFiring).toBe(0);
-    expect(frame.transitions.get("t2")?.timeSinceLastFiring).toBe(0);
+    expect(frame.transitions.get("t1")?.timeSinceLastFiringMs).toBe(0);
+    expect(frame.transitions.get("t2")?.timeSinceLastFiringMs).toBe(0);
 
     // Verify all compiled functions exist
     expect(simulationInstance.differentialEquationFns.size).toBe(3);

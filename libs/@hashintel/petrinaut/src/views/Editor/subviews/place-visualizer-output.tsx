@@ -2,12 +2,12 @@ import { css } from "@hashintel/ds-helpers/css";
 import { use, useMemo } from "react";
 
 import type { SubView } from "../../../components/sub-view/types";
-import { compileVisualizer } from "../../../core/simulation/compile-visualizer";
 import {
   mergeParameterValues,
   useDefaultParameterValues,
 } from "../../../hooks/use-default-parameter-values";
-import { SimulationContext } from "../../../state/simulation-context";
+import { SimulationContext } from "../../../simulation/context";
+import { compileVisualizer } from "../../../simulation/simulator/compile-visualizer";
 import { usePlacePropertiesContext } from "../panels/PropertiesPanel/place-properties-context";
 import { VisualizerErrorBoundary } from "../panels/PropertiesPanel/visualizer-error-boundary";
 
@@ -28,7 +28,7 @@ const visualizerErrorStyle = css({
 const PlaceVisualizerOutputContent: React.FC = () => {
   const { place, placeType } = usePlacePropertiesContext();
 
-  const { simulation, initialMarking, parameterValues, currentlyViewedFrame } =
+  const { simulation, initialMarking, parameterValues, currentViewedFrame } =
     use(SimulationContext);
 
   // Get default parameter values from SDCPN definition
@@ -64,11 +64,12 @@ const PlaceVisualizerOutputContent: React.FC = () => {
   const dimensions = placeType.elements.length;
   const tokens: Record<string, number>[] = [];
   let parameters: Record<string, number | boolean> = {};
+  const frameIndex = currentViewedFrame?.number ?? 0;
 
   // Check if we have simulation frames or use initial marking
   if (simulation && simulation.frames.length > 0) {
-    // Use currently viewed simulation frame
-    const currentFrame = simulation.frames[currentlyViewedFrame];
+    // Use currently viewed simulation frame (need raw frame for buffer access)
+    const currentFrame = simulation.frames[frameIndex];
     if (!currentFrame) {
       return (
         <div className={visualizerMessageStyle}>No frame data available</div>

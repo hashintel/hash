@@ -6,12 +6,12 @@
   "type": "module",
   "exports": {
     ".": {
-      "default": "./dist/index.js",
-      "types": "./dist/index.d.ts"
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
     },
     "./deprecated": {
-      "default": "./dist/deprecated/index.js",
-      "types": "./dist/deprecated/index.d.ts"
+      "types": "./dist/deprecated/index.d.ts",
+      "default": "./dist/deprecated/index.js"
     }
   },
   "scripts": {

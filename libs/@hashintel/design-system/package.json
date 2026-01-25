@@ -2,21 +2,24 @@
   "name": "@hashintel/design-system",
   "version": "0.0.9-canary.2",
   "description": "HASH Design System",
+  "license": "(MIT OR Apache-2.0)",
   "repository": {
     "type": "git",
     "url": "https://github.com/hashintel/hash.git",
     "directory": "libs/@hashintel/design-system"
   },
-  "license": "(MIT OR Apache-2.0)",
-  "sideEffects": false,
+  "files": [
+    "assets.d.ts",
+    "CHANGELOG.md",
+    "dist",
+    "LICENSE",
+    "LICENSE-APACHE.md",
+    "LICENSE-MIT.md",
+    "README.md",
+    "theme-override.d.ts"
+  ],
   "type": "module",
-  "exports": {
-    ".": "./src/components.ts",
-    "./constants": "./src/constants.ts",
-    "./palettes": "./src/palettes.ts",
-    "./theme": "./src/theme.ts",
-    "./theme-override": "./theme-override.d.ts"
-  },
+  "sideEffects": false,
   "types": "./src/components.ts",
   "typesVersions": {
     "*": {
@@ -37,16 +40,13 @@
       ]
     }
   },
-  "files": [
-    "dist",
-    "assets.d.ts",
-    "CHANGELOG.md",
-    "LICENSE-APACHE.md",
-    "LICENSE-MIT.md",
-    "LICENSE",
-    "README.md",
-    "theme-override.d.ts"
-  ],
+  "exports": {
+    ".": "./src/components.ts",
+    "./constants": "./src/constants.ts",
+    "./palettes": "./src/palettes.ts",
+    "./theme": "./src/theme.ts",
+    "./theme-override": "./theme-override.d.ts"
+  },
   "scripts": {
     "fix:eslint": "eslint --fix .",
     "lint:eslint": "eslint --report-unused-disable-directives .",
