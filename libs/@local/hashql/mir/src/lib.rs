@@ -30,6 +30,7 @@
     step_trait,
     string_from_utf8_lossy_owned,
     try_trait_v2,
+    temporary_niche_types
 )]
 #![expect(clippy::indexing_slicing)]
 extern crate alloc;
