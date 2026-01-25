@@ -74,7 +74,7 @@ use self::{
 };
 use crate::{
     body::{
-        Body,
+        Body, Source,
         basic_block::{BasicBlock, BasicBlockId},
         local::{Local, LocalDecl},
         location::Location,
@@ -523,8 +523,10 @@ impl<A: BumpAllocator> Inline<A> {
         }
 
         let mut filters = DenseBitSet::new_empty(bodies.len());
-        for filter in graph.filters() {
-            filters.insert(filter);
+        for body in bodies {
+            if matches!(body.source, Source::GraphReadFilter(_)) {
+                filters.insert(body.id);
+            }
         }
 
         let costs = analysis.finish();
