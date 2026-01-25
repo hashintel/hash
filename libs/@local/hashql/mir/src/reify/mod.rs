@@ -183,9 +183,12 @@ impl<'ctx, 'mir, 'hir, 'env, 'heap> Reifier<'ctx, 'mir, 'hir, 'env, 'heap> {
         // In the future we might want to specialize `ctor` in a way that allows us to move them to
         // be thin calls (although that would require that we move functions into a separate type
         // from closures).
-        let env = if matches!(source, Source::Closure(_, _) | Source::Ctor(_)) {
+        let env = if matches!(
+            source,
+            Source::Closure(_, _) | Source::Ctor(_) | Source::GraphReadFilter(_)
+        ) {
             let r#type = if let Some((_, type_id)) = captures {
-                debug_assert_matches!(source, Source::Closure(..));
+                debug_assert_matches!(source, Source::Closure(..) | Source::GraphReadFilter(..));
                 type_id
             } else {
                 // In case there are no captures, the environment will always be a unit type (aka
