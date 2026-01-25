@@ -24,7 +24,10 @@ use hash_graph_store::{
     },
     entity_type::{EntityTypeQueryPath, EntityTypeStore as _, IncludeEntityTypeOption},
     error::{CheckPermissionError, InsertionError, QueryError, UpdateError},
-    filter::{Filter, FilterExpression, Parameter, ParameterList, protection::transform_filter},
+    filter::{
+        Filter, FilterExpression, FilterExpressionList, Parameter, ParameterList,
+        protection::transform_filter,
+    },
     query::{QueryResult as _, Read},
     subgraph::{
         Subgraph, SubgraphRecord as _,
@@ -672,7 +675,9 @@ where
                         FilterExpression::Path {
                             path: EntityTypeQueryPath::OntologyId,
                         },
-                        ParameterList::EntityTypeIds(&type_uuids),
+                        FilterExpressionList::ParameterList {
+                            parameters: ParameterList::EntityTypeIds(&type_uuids),
+                        },
                     );
                     type_compiler
                         .add_filter(&filter)
@@ -2498,7 +2503,9 @@ where
             FilterExpression::Path {
                 path: EntityQueryPath::Uuid,
             },
-            ParameterList::EntityUuids(&entity_uuids),
+            FilterExpressionList::ParameterList {
+                parameters: ParameterList::EntityUuids(&entity_uuids),
+            },
         );
         compiler
             .add_filter(&entity_filter)

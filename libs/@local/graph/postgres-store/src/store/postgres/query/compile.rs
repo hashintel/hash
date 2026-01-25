@@ -5,7 +5,8 @@ use std::collections::{HashMap, HashSet};
 use error_stack::{Report, bail, ensure};
 use hash_graph_store::{
     filter::{
-        Filter, FilterExpression, Parameter, ParameterList, ParameterType, PathToken, QueryRecord,
+        Filter, FilterExpression, FilterExpressionList, Parameter, ParameterList, ParameterType,
+        PathToken, QueryRecord,
     },
     query::{NullOrdering, Ordering},
     subgraph::temporal_axes::QueryTemporalAxes,
@@ -637,7 +638,7 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
             },
             Filter::In(lhs, rhs) => Condition::In(
                 self.compile_filter_expression(lhs).0,
-                self.compile_parameter_list(rhs).0,
+                self.compile_filter_expression_list(rhs).0,
             ),
             Filter::StartsWith(lhs, rhs) => {
                 let (left_filter, left_parameter) = self.compile_filter_expression(lhs);
@@ -964,6 +965,30 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
                     unimplemented!("Cannot convert parameter at this stage");
                 }
                 self.compile_parameter(parameter)
+            }
+        }
+    }
+
+    #[instrument(level = "debug", skip_all)]
+    pub fn compile_filter_expression_list<'f: 'q>(
+        &mut self,
+        expression: &'p FilterExpressionList<'f, R>,
+    ) -> (Expression, ParameterType)
+    where
+        R::QueryPath<'f>: PostgresQueryPath,
+    {
+        match expression {
+            FilterExpressionList::Path { path } => {
+                let (column, json_field) = path.terminating_column();
+                let parameter_type = if let Some(JsonField::StaticText(_)) = json_field {
+                    ParameterType::Text
+                } else {
+                    column.parameter_type()
+                };
+                (self.compile_path_column(path), parameter_type)
+            }
+            FilterExpressionList::ParameterList { parameters } => {
+                self.compile_parameter_list(parameters)
             }
         }
     }

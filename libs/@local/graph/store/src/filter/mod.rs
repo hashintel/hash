@@ -34,7 +34,9 @@ use type_system::{
 };
 
 pub use self::{
-    parameter::{Parameter, ParameterConversionError, ParameterList, ParameterType},
+    parameter::{
+        FilterExpressionList, Parameter, ParameterConversionError, ParameterList, ParameterType,
+    },
     path::{JsonPath, PathToken},
 };
 use crate::{
@@ -135,7 +137,7 @@ pub enum Filter<'p, R: QueryRecord> {
         FilterExpression<'p, R>,
     ),
     #[serde(skip)]
-    In(FilterExpression<'p, R>, ParameterList<'p>),
+    In(FilterExpression<'p, R>, FilterExpressionList<'p, R>),
     StartsWith(FilterExpression<'p, R>, FilterExpression<'p, R>),
     EndsWith(FilterExpression<'p, R>, FilterExpression<'p, R>),
     ContainsSegment(FilterExpression<'p, R>, FilterExpression<'p, R>),
@@ -195,7 +197,9 @@ impl<'p> Filter<'p, DataTypeWithMetadata> {
             FilterExpression::Path {
                 path: DataTypeQueryPath::OntologyId,
             },
-            ParameterList::DataTypeIds(data_type_ids),
+            FilterExpressionList::ParameterList {
+                parameters: ParameterList::DataTypeIds(data_type_ids),
+            },
         )
     }
 
@@ -213,7 +217,9 @@ impl<'p> Filter<'p, DataTypeWithMetadata> {
                     path: Box::new(DataTypeQueryPath::OntologyId),
                 },
             },
-            ParameterList::DataTypeIds(data_type_ids),
+            FilterExpressionList::ParameterList {
+                parameters: ParameterList::DataTypeIds(data_type_ids),
+            },
         )
     }
 
@@ -371,7 +377,9 @@ impl<'p> Filter<'p, DataTypeWithMetadata> {
                     FilterExpression::Path {
                         path: DataTypeQueryPath::OntologyId,
                     },
-                    ParameterList::DataTypeIds(data_type_uuids),
+                    FilterExpressionList::ParameterList {
+                        parameters: ParameterList::DataTypeIds(data_type_uuids),
+                    },
                 ));
             }
         }
@@ -396,7 +404,9 @@ impl<'p> Filter<'p, DataTypeWithMetadata> {
                     FilterExpression::Path {
                         path: DataTypeQueryPath::WebId,
                     },
-                    ParameterList::WebIds(web_ids),
+                    FilterExpressionList::ParameterList {
+                        parameters: ParameterList::WebIds(web_ids),
+                    },
                 ));
             }
         }
@@ -429,7 +439,9 @@ impl<'p> Filter<'p, PropertyTypeWithMetadata> {
             FilterExpression::Path {
                 path: PropertyTypeQueryPath::OntologyId,
             },
-            ParameterList::PropertyTypeIds(property_type_ids),
+            FilterExpressionList::ParameterList {
+                parameters: ParameterList::PropertyTypeIds(property_type_ids),
+            },
         )
     }
 
@@ -566,7 +578,9 @@ impl<'p> Filter<'p, PropertyTypeWithMetadata> {
                     FilterExpression::Path {
                         path: PropertyTypeQueryPath::OntologyId,
                     },
-                    ParameterList::PropertyTypeIds(property_type_uuids),
+                    FilterExpressionList::ParameterList {
+                        parameters: ParameterList::PropertyTypeIds(property_type_uuids),
+                    },
                 ));
             }
         }
@@ -591,7 +605,9 @@ impl<'p> Filter<'p, PropertyTypeWithMetadata> {
                     FilterExpression::Path {
                         path: PropertyTypeQueryPath::WebId,
                     },
-                    ParameterList::WebIds(web_ids),
+                    FilterExpressionList::ParameterList {
+                        parameters: ParameterList::WebIds(web_ids),
+                    },
                 ));
             }
         }
@@ -624,7 +640,9 @@ impl<'p> Filter<'p, EntityTypeWithMetadata> {
             FilterExpression::Path {
                 path: EntityTypeQueryPath::OntologyId,
             },
-            ParameterList::EntityTypeIds(entity_type_ids),
+            FilterExpressionList::ParameterList {
+                parameters: ParameterList::EntityTypeIds(entity_type_ids),
+            },
         )
     }
 
@@ -767,7 +785,9 @@ impl<'p> Filter<'p, EntityTypeWithMetadata> {
                     FilterExpression::Path {
                         path: EntityTypeQueryPath::OntologyId,
                     },
-                    ParameterList::EntityTypeIds(entity_type_uuids),
+                    FilterExpressionList::ParameterList {
+                        parameters: ParameterList::EntityTypeIds(entity_type_uuids),
+                    },
                 ));
             }
         }
@@ -792,7 +812,9 @@ impl<'p> Filter<'p, EntityTypeWithMetadata> {
                     FilterExpression::Path {
                         path: EntityTypeQueryPath::WebId,
                     },
-                    ParameterList::WebIds(web_ids),
+                    FilterExpressionList::ParameterList {
+                        parameters: ParameterList::WebIds(web_ids),
+                    },
                 ));
             }
         }
@@ -905,7 +927,9 @@ impl<'p> Filter<'p, Entity> {
             FilterExpression::Path {
                 path: EntityQueryPath::EditionId,
             },
-            ParameterList::EntityEditionIds(entity_edition_ids),
+            FilterExpressionList::ParameterList {
+                parameters: ParameterList::EntityEditionIds(entity_edition_ids),
+            },
         )
     }
 
@@ -1065,7 +1089,9 @@ impl<'p> Filter<'p, Entity> {
                     FilterExpression::Path {
                         path: EntityQueryPath::Uuid,
                     },
-                    ParameterList::EntityUuids(entity_uuids),
+                    FilterExpressionList::ParameterList {
+                        parameters: ParameterList::EntityUuids(entity_uuids),
+                    },
                 ));
             }
         }
@@ -1090,7 +1116,9 @@ impl<'p> Filter<'p, Entity> {
                     FilterExpression::Path {
                         path: EntityQueryPath::WebId,
                     },
-                    ParameterList::WebIds(web_ids),
+                    FilterExpressionList::ParameterList {
+                        parameters: ParameterList::WebIds(web_ids),
+                    },
                 ));
             }
         }
@@ -1237,13 +1265,19 @@ where
                 } = lhs
                 {
                     match rhs {
-                        ParameterList::DataTypeIds(_)
-                        | ParameterList::PropertyTypeIds(_)
-                        | ParameterList::EntityTypeIds(_)
-                        | ParameterList::EntityEditionIds(_)
-                        | ParameterList::EntityUuids(_)
-                        | ParameterList::WebIds(_) => {
+                        FilterExpressionList::ParameterList {
+                            parameters:
+                                ParameterList::DataTypeIds(_)
+                                | ParameterList::PropertyTypeIds(_)
+                                | ParameterList::EntityTypeIds(_)
+                                | ParameterList::EntityEditionIds(_)
+                                | ParameterList::EntityUuids(_)
+                                | ParameterList::WebIds(_),
+                        } => {
                             parameter.convert_to_parameter_type(&ParameterType::Uuid)?;
+                        }
+                        FilterExpressionList::Path { path: _ } => {
+                            // Nothing to convert
                         }
                     }
                 }
@@ -1806,7 +1840,7 @@ mod tests {
         use uuid::Uuid;
 
         use super::{Filter, FilterExpression, ParameterList};
-        use crate::entity::EntityQueryPath;
+        use crate::{entity::EntityQueryPath, filter::parameter::FilterExpressionList};
 
         /// Tests optimization with remaining non-optimizable policies.
         ///
@@ -1858,7 +1892,9 @@ mod tests {
                                 FilterExpression::Path {
                                     path: EntityQueryPath::Uuid
                                 },
-                                ParameterList::EntityUuids(_)
+                                FilterExpressionList::ParameterList {
+                                    parameters: ParameterList::EntityUuids(_)
+                                }
                             )
                         )
                     });
@@ -1954,7 +1990,9 @@ mod tests {
                                 FilterExpression::Path {
                                     path: EntityQueryPath::Uuid
                                 },
-                                ParameterList::EntityUuids(_)
+                                FilterExpressionList::ParameterList {
+                                    parameters: ParameterList::EntityUuids(_)
+                                }
                             )
                         )
                     });
@@ -2000,7 +2038,9 @@ mod tests {
                                 FilterExpression::Path {
                                     path: EntityQueryPath::WebId
                                 },
-                                ParameterList::WebIds(_)
+                                FilterExpressionList::ParameterList {
+                                    parameters: ParameterList::WebIds(_)
+                                }
                             )
                         )
                     });
@@ -2046,7 +2086,9 @@ mod tests {
                                 FilterExpression::Path {
                                     path: EntityQueryPath::Uuid
                                 },
-                                ParameterList::EntityUuids(_)
+                                FilterExpressionList::ParameterList {
+                                    parameters: ParameterList::EntityUuids(_)
+                                }
                             )
                         )
                     });
@@ -2058,7 +2100,9 @@ mod tests {
                                 FilterExpression::Path {
                                     path: EntityQueryPath::WebId
                                 },
-                                ParameterList::WebIds(_)
+                                FilterExpressionList::ParameterList {
+                                    parameters: ParameterList::WebIds(_)
+                                }
                             )
                         )
                     });

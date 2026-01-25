@@ -554,9 +554,7 @@ use type_system::{
 
 use crate::{
     entity::EntityQueryPath,
-    entity_type::EntityTypeQueryPath,
-    filter::{Filter, FilterExpression, JsonPath, Parameter, PathToken},
-    subgraph::edges::SharedEdgeKind,
+    filter::{Filter, FilterExpression, FilterExpressionList, JsonPath, Parameter, PathToken},
 };
 
 // =============================================================================
@@ -881,32 +879,30 @@ fn wrap_with_protection<'p>(
         // Even depth: AND NOT(type = X) for each excluded type
         let mut filters = vec![filter];
         for excluded_type in excluded_types {
-            filters.push(Filter::Not(Box::new(type_equals_filter(excluded_type))));
+            filters.push(Filter::Not(Box::new(type_contains_filter(excluded_type))));
         }
         Filter::All(filters)
     } else {
         // Odd depth: OR type = X for each excluded type
         let mut filters = vec![filter];
         for excluded_type in excluded_types {
-            filters.push(type_equals_filter(excluded_type));
+            filters.push(type_contains_filter(excluded_type));
         }
         Filter::Any(filters)
     }
 }
 
-/// Creates a filter `type = base_url`.
-fn type_equals_filter<'p>(base_url: &BaseUrl) -> Filter<'p, Entity> {
-    Filter::Equal(
-        FilterExpression::Path {
-            path: EntityQueryPath::EntityTypeEdge {
-                edge_kind: SharedEdgeKind::IsOfType,
-                path: EntityTypeQueryPath::BaseUrl,
-                inheritance_depth: None,
-            },
-        },
+/// Creates a filter that checks if an entity has the given type.
+///
+/// Uses `base_url IN TypeBaseUrls` to correctly handle multi-type entities.
+fn type_contains_filter<'p>(base_url: &BaseUrl) -> Filter<'p, Entity> {
+    Filter::In(
         FilterExpression::Parameter {
             parameter: Parameter::Text(Cow::Owned(base_url.to_string())),
             convert: None,
+        },
+        FilterExpressionList::Path {
+            path: EntityQueryPath::TypeBaseUrls,
         },
     )
 }
@@ -1354,24 +1350,20 @@ mod tests {
     mod transform {
         use super::*;
 
-        /// Creates `type = User` filter
+        /// Creates `User IN TypeBaseUrls` filter (entity has User type)
         fn type_is_user() -> Filter<'static, Entity> {
-            Filter::Equal(
-                FilterExpression::Path {
-                    path: EntityQueryPath::EntityTypeEdge {
-                        edge_kind: SharedEdgeKind::IsOfType,
-                        path: EntityTypeQueryPath::BaseUrl,
-                        inheritance_depth: None,
-                    },
-                },
+            Filter::In(
                 FilterExpression::Parameter {
                     parameter: Parameter::Text(Cow::Owned(USER_TYPE_BASE_URL.to_owned())),
                     convert: None,
                 },
+                FilterExpressionList::Path {
+                    path: EntityQueryPath::TypeBaseUrls,
+                },
             )
         }
 
-        /// Creates `NOT(type = User)` filter
+        /// Creates `NOT(User IN TypeBaseUrls)` filter (entity does not have User type)
         fn type_is_not_user() -> Filter<'static, Entity> {
             not(type_is_user())
         }
