@@ -77,6 +77,16 @@ pub enum Source<'heap> {
     /// The body of an intrinsic function is typically empty, as the intrinsic
     /// operation is handled directly by the compiler or runtime.
     Intrinsic(DefId),
+
+    /// A filter closure for graph read operations.
+    ///
+    /// This variant represents MIR generated from a closure expression used to
+    /// filter entities during a graph read operation. The [`HirId`] identifies
+    /// the filter closure expression in the HIR.
+    ///
+    /// Filter bodies are never inlined and are executed during graph traversal
+    /// to determine which entities should be included in the read results.
+    GraphReadFilter(HirId),
 }
 
 /// The MIR body of a HashQL function or query.
