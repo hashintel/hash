@@ -12,6 +12,7 @@ use super::{
 };
 use crate::{
     body::{
+        Source,
         basic_block::BasicBlockId,
         local::Local,
         terminator::{
@@ -56,7 +57,12 @@ impl<'mir, 'heap> Reifier<'_, 'mir, '_, '_, 'heap> {
                     return GraphReadBody::Filter(DefId::MAX, Local::MAX);
                 };
 
-                let (ptr, env) = self.transform_closure(block, filter.ptr(), None, closure);
+                let (ptr, env) = self.transform_closure(
+                    block,
+                    filter.ptr(),
+                    Source::GraphReadFilter(filter.ptr().id),
+                    closure,
+                );
                 GraphReadBody::Filter(ptr.value, env.value)
             }
         }
