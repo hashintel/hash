@@ -1,6 +1,7 @@
 use alloc::borrow::Cow;
 use core::{error::Error, fmt, mem, str::FromStr as _};
 
+use derive_where::derive_where;
 use error_stack::{Report, ResultExt as _, bail};
 use hash_codec::numeric::Real;
 use hash_graph_temporal_versioning::Timestamp;
@@ -20,6 +21,8 @@ use type_system::{
     principal::actor_group::WebId,
 };
 use uuid::Uuid;
+
+use crate::filter::QueryRecord;
 
 #[derive(Debug, Clone, PartialEq, Deserialize)]
 #[serde(untagged)]
@@ -82,6 +85,13 @@ pub enum ParameterList<'p> {
     EntityEditionIds(&'p [EntityEditionId]),
     EntityUuids(&'p [EntityUuid]),
     WebIds(&'p [WebId]),
+}
+
+/// A leaf value in a [`Filter`].
+#[derive_where(Debug, Clone, PartialEq; R::QueryPath<'p>)]
+pub enum FilterExpressionList<'p, R: QueryRecord> {
+    Path { path: R::QueryPath<'p> },
+    ParameterList { parameters: ParameterList<'p> },
 }
 
 impl Parameter<'_> {

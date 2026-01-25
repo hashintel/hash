@@ -311,6 +311,51 @@ impl DatabaseApi<'_> {
         .expect("could not create invitation entity")
     }
 
+    /// Creates an entity with BOTH User and Invitation types.
+    /// This tests that NOT(type = User) works correctly for multi-type entities.
+    async fn create_user_and_invitation(&mut self, email: &str, shortname: &str) -> Entity {
+        self.create_entity(
+            self.account_id,
+            CreateEntityParams {
+                web_id: WebId::new(self.account_id),
+                entity_uuid: None,
+                decision_time: None,
+                entity_type_ids: HashSet::from([
+                    VersionedUrl {
+                        base_url: BaseUrl::new(USER_ENTITY_TYPE_BASE_URL.to_owned()).unwrap(),
+                        version: OntologyTypeVersion {
+                            major: 1,
+                            pre_release: None,
+                        },
+                    },
+                    VersionedUrl {
+                        base_url: BaseUrl::new(INVITATION_ENTITY_TYPE_BASE_URL.to_owned()).unwrap(),
+                        version: OntologyTypeVersion {
+                            major: 1,
+                            pre_release: None,
+                        },
+                    },
+                ]),
+                properties: PropertyObjectWithMetadata::from_parts(
+                    properties_with(email, shortname),
+                    None,
+                )
+                .unwrap(),
+                confidence: None,
+                link_data: None,
+                draft: false,
+                policies: Vec::new(),
+                provenance: ProvidedEntityEditionProvenance {
+                    actor_type: ActorType::User,
+                    origin: OriginProvenance::from_empty_type(OriginType::Api),
+                    sources: Vec::new(),
+                },
+            },
+        )
+        .await
+        .expect("could not create multi-type entity")
+    }
+
     async fn query(
         &self,
         filter: Filter<'_, Entity>,
@@ -417,6 +462,48 @@ async fn email_eq_mixed_only_returns_invitation() {
     assert_eq!(
         results[0].metadata.record_id.entity_id,
         inv.metadata.record_id.entity_id
+    );
+}
+
+/// Multi-type entity with BOTH User and Invitation types → NOT returned when filtering by email.
+///
+/// This test verifies that our protection uses NOT(type = User) rather than type != User.
+/// With multi-type entities:
+/// - NOT(type = User) correctly excludes entities that have User as ANY of their types
+/// - type != User would incorrectly match because the Invitation type row satisfies != User
+///
+/// An entity with types [User, Invitation] should be excluded because it IS a User.
+#[tokio::test]
+async fn multi_type_entity_with_user_excluded_by_email_filter() {
+    let mut database = DatabaseTestWrapper::new().await;
+    let mut api = seed_with_email_types(&mut database).await;
+
+    // Create a multi-type entity that is BOTH User and Invitation
+    api.create_user_and_invitation("multi@example.com", "multi")
+        .await;
+
+    // Also create a pure Invitation for comparison
+    let pure_inv = api
+        .create_invitation("pure_invite@example.com", "pure")
+        .await;
+
+    // Filter by the multi-type entity's email - should NOT be returned
+    let results = api
+        .query(email_filter("multi@example.com"), no_sorting())
+        .await;
+    assert!(
+        results.is_empty(),
+        "Multi-type entity with User type should NOT be returned when filtering by email"
+    );
+
+    // Filter by the pure invitation's email - should be returned
+    let results = api
+        .query(email_filter("pure_invite@example.com"), no_sorting())
+        .await;
+    assert_eq!(results.len(), 1);
+    assert_eq!(
+        results[0].metadata.record_id.entity_id,
+        pure_inv.metadata.record_id.entity_id
     );
 }
 
