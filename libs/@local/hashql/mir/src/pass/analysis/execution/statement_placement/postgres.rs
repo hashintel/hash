@@ -1,6 +1,9 @@
 use core::{alloc::Allocator, cmp::Reverse};
 
-use hashql_core::{id::bit_vec::DenseBitSet, symbol::sym};
+use hashql_core::{
+    id::bit_vec::DenseBitSet,
+    symbol::{Symbol, sym},
+};
 
 use crate::{
     body::{
@@ -16,12 +19,15 @@ use crate::{
     pass::analysis::dataflow::{framework::DataflowAnalysis, lattice::PowersetLattice},
 };
 
-// The env is always supported, because it is made up of any constituents that we can create
-// ourselves.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 enum Feasibility {
-    Load,
+    /// Maps to a single column or JSONB path. Any operation can be pushed.
+    Direct,
+    /// Maps to multiple columns in the same table. Only comparisons (==, !=) can be pushed,
+    /// requiring the compiler to expand into column-wise comparisons.
     Composite,
+    /// Contains synthesized data or spans multiple tables. Cannot be pushed to Postgres.
+    NotPushable,
 }
 
 const fn is_supported_constant(constant: &Constant<'_>) -> bool {
@@ -31,36 +37,227 @@ const fn is_supported_constant(constant: &Constant<'_>) -> bool {
     }
 }
 
-fn is_supported_entity_projection<'heap>(projections: &[Projection<'heap>]) -> Option<Feasibility> {
-    let [projection, rest] = projections else {
-        return None;
-    };
+/// A node in the path feasibility trie.
+///
+/// Each node represents a field in the entity path hierarchy and defines:
+/// - What feasibility applies when the path ends at this node (`on_end`)
+/// - What children exist for further path traversal
+/// - Whether arbitrary sub-paths are allowed (for JSONB columns)
+struct PathNode {
+    /// Feasibility when the path ends at this node (no more projections).
+    on_end: Feasibility,
+    /// Whether any sub-path from here is allowed (e.g., JSONB columns).
+    any_subpath: bool,
+    /// Child nodes for specific field names (uses Symbol for pointer equality).
+    children: &'static [(Symbol<'static>, Self)],
+}
 
-    let ProjectionKind::FieldByName(name) = projection.kind else {
-        return None;
-    };
+impl PathNode {
+    const fn leaf(feasibility: Feasibility) -> Self {
+        Self {
+            on_end: feasibility,
+            any_subpath: false,
+            children: &[],
+        }
+    }
 
-    match name {
-        sym::lexical::properties => {
-            // anything that is starting out at the properties is directly loadable
-            Some(Feasibility::Load)
+    const fn jsonb() -> Self {
+        Self {
+            on_end: Feasibility::Direct,
+            any_subpath: true,
+            children: &[],
         }
-        sym::lexical::metadata => {
-            // metadata is more complicated
+    }
+
+    const fn branch(on_end: Feasibility, children: &'static [(Symbol<'static>, PathNode)]) -> Self {
+        Self {
+            on_end,
+            any_subpath: false,
+            children,
         }
+    }
+
+    fn lookup(&self, name: Symbol<'_>) -> Option<&PathNode> {
+        self.children
+            .iter()
+            .find(|(n, _)| *n == name)
+            .map(|(_, node)| node)
     }
 }
 
-fn is_supported_place(domain: &DenseBitSet<Local>, place: &Place<'_>) -> bool {
-    // TODO: this is a bit more fine grained, for filters, locations for the embeddings are not
-    // supported, and therefore also not any path alongside of it that just loads them, otherwise
-    // just what it says on the tin. For that to matter we must investigate the path used for the
-    // first part.
-    // This should be relatively straightforward.
-    // TODO: we must have a Source that tells us is this a GraphFilter, or a GraphMap or whatever,
-    // to be able to know what we can and what we can't do.
-    // For now it's just place.local
-    domain.contains(place.local)
+/// Entity path feasibility trie.
+///
+/// Structure mirrors the Entity struct paths from the pushability mapping document.
+/// See `docs/entity-path-pushability.md` for the full mapping.
+static ENTITY_PATHS: PathNode = PathNode::branch(
+    Feasibility::NotPushable, // whole entity is not pushable
+    &[
+        (sym::lexical::properties, PathNode::jsonb()),
+        (
+            sym::lexical::metadata,
+            PathNode::branch(
+                Feasibility::NotPushable,
+                &[
+                    (
+                        sym::lexical::record_id,
+                        PathNode::branch(
+                            Feasibility::Composite, // 4 columns
+                            &[
+                                (
+                                    sym::lexical::entity_id,
+                                    PathNode::branch(
+                                        Feasibility::Composite, // 3 columns
+                                        &[
+                                            (
+                                                sym::lexical::web_id,
+                                                PathNode::leaf(Feasibility::Direct),
+                                            ),
+                                            (
+                                                sym::lexical::entity_uuid,
+                                                PathNode::leaf(Feasibility::Direct),
+                                            ),
+                                            (
+                                                sym::lexical::draft_id,
+                                                PathNode::leaf(Feasibility::Direct),
+                                            ),
+                                        ],
+                                    ),
+                                ),
+                                (
+                                    sym::lexical::edition_id,
+                                    PathNode::leaf(Feasibility::Direct),
+                                ),
+                            ],
+                        ),
+                    ),
+                    (
+                        sym::lexical::temporal_versioning,
+                        PathNode::branch(
+                            Feasibility::Composite, // 2 columns
+                            &[
+                                (
+                                    sym::lexical::decision_time,
+                                    PathNode::leaf(Feasibility::Direct),
+                                ),
+                                (
+                                    sym::lexical::transaction_time,
+                                    PathNode::leaf(Feasibility::Direct),
+                                ),
+                            ],
+                        ),
+                    ),
+                    (
+                        sym::lexical::entity_type_ids,
+                        PathNode::leaf(Feasibility::Direct),
+                    ),
+                    (sym::lexical::archived, PathNode::leaf(Feasibility::Direct)),
+                    (
+                        sym::lexical::confidence,
+                        PathNode::leaf(Feasibility::Direct),
+                    ),
+                    (
+                        sym::lexical::provenance,
+                        PathNode::branch(
+                            Feasibility::NotPushable, // spans multiple tables
+                            &[
+                                (sym::lexical::inferred, PathNode::jsonb()),
+                                (sym::lexical::edition, PathNode::jsonb()),
+                            ],
+                        ),
+                    ),
+                    (sym::lexical::properties, PathNode::jsonb()), // property metadata
+                ],
+            ),
+        ),
+        (
+            sym::lexical::link_data,
+            PathNode::branch(
+                Feasibility::NotPushable, // contains synthesized fields
+                &[
+                    (
+                        sym::lexical::left_entity_id,
+                        PathNode::branch(
+                            Feasibility::NotPushable, // synthesized draft_id
+                            &[
+                                (sym::lexical::web_id, PathNode::leaf(Feasibility::Direct)),
+                                (
+                                    sym::lexical::entity_uuid,
+                                    PathNode::leaf(Feasibility::Direct),
+                                ),
+                                (
+                                    sym::lexical::draft_id,
+                                    PathNode::leaf(Feasibility::NotPushable),
+                                ),
+                            ],
+                        ),
+                    ),
+                    (
+                        sym::lexical::right_entity_id,
+                        PathNode::branch(
+                            Feasibility::NotPushable, // synthesized draft_id
+                            &[
+                                (sym::lexical::web_id, PathNode::leaf(Feasibility::Direct)),
+                                (
+                                    sym::lexical::entity_uuid,
+                                    PathNode::leaf(Feasibility::Direct),
+                                ),
+                                (
+                                    sym::lexical::draft_id,
+                                    PathNode::leaf(Feasibility::NotPushable),
+                                ),
+                            ],
+                        ),
+                    ),
+                    (
+                        sym::lexical::left_entity_confidence,
+                        PathNode::leaf(Feasibility::Direct),
+                    ),
+                    (sym::lexical::left_entity_provenance, PathNode::jsonb()),
+                    (
+                        sym::lexical::right_entity_confidence,
+                        PathNode::leaf(Feasibility::Direct),
+                    ),
+                    (sym::lexical::right_entity_provenance, PathNode::jsonb()),
+                ],
+            ),
+        ),
+    ],
+);
+
+fn is_supported_entity_projection(projections: &[Projection<'_>]) -> Option<Feasibility> {
+    let mut node = &ENTITY_PATHS;
+
+    for projection in projections {
+        let ProjectionKind::FieldByName(name) = projection.kind else {
+            return None;
+        };
+
+        if node.any_subpath {
+            return Some(Feasibility::Direct);
+        }
+
+        node = node.lookup(name)?;
+    }
+
+    Some(node.on_end)
+}
+
+fn is_supported_place<'heap>(domain: &DenseBitSet<Local>, place: &Place<'heap>) -> bool {
+    if !domain.contains(place.local) {
+        return false;
+    }
+
+    // If there are projections, check if the path is pushable for entity types
+    // TODO: We need type information to know if this is an entity projection.
+    // For now, we check if any projections exist and validate them as entity paths.
+    if !place.projections.is_empty() {
+        match is_supported_entity_projection(&place.projections) {
+            Some(Feasibility::Direct | Feasibility::Composite) => true,
+            Some(Feasibility::NotPushable) | None => false,
+        }
+    } else {
+        true
+    }
 }
 
 fn is_supported_operand(domain: &DenseBitSet<Local>, operand: &Operand<'_>) -> bool {
