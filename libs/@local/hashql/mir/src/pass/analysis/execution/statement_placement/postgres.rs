@@ -9,18 +9,25 @@ use crate::{
         local::Local,
         location::Location,
         operand::Operand,
-        place::Place,
+        place::{Place, Projection},
         rvalue::{Aggregate, AggregateKind, Binary, RValue, Unary},
         statement::{Assign, Statement, StatementKind},
     },
     pass::analysis::dataflow::{framework::DataflowAnalysis, lattice::PowersetLattice},
 };
 
+// The env is always supported, because it is made up of any constituents that we can create
+// ourselves.
+
 const fn is_supported_constant(constant: &Constant<'_>) -> bool {
     match constant {
         Constant::Int(_) | Constant::Primitive(_) | Constant::Unit => true,
         Constant::FnPtr(_) => false,
     }
+}
+
+fn is_supported_entity_projection<'heap>(projections: &[Projection<'heap>]) {
+    todo!()
 }
 
 fn is_supported_place(domain: &DenseBitSet<Local>, place: &Place<'_>) -> bool {
