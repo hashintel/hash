@@ -1,6 +1,6 @@
 use core::{alloc::Allocator, cmp::Reverse};
 
-use hashql_core::id::bit_vec::DenseBitSet;
+use hashql_core::{id::bit_vec::DenseBitSet, symbol::sym};
 
 use crate::{
     body::{
@@ -9,7 +9,7 @@ use crate::{
         local::Local,
         location::Location,
         operand::Operand,
-        place::{Place, Projection},
+        place::{Place, Projection, ProjectionKind},
         rvalue::{Aggregate, AggregateKind, Binary, RValue, Unary},
         statement::{Assign, Statement, StatementKind},
     },
@@ -18,6 +18,11 @@ use crate::{
 
 // The env is always supported, because it is made up of any constituents that we can create
 // ourselves.
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+enum Feasibility {
+    Load,
+    Composite,
+}
 
 const fn is_supported_constant(constant: &Constant<'_>) -> bool {
     match constant {
@@ -26,8 +31,24 @@ const fn is_supported_constant(constant: &Constant<'_>) -> bool {
     }
 }
 
-fn is_supported_entity_projection<'heap>(projections: &[Projection<'heap>]) {
-    todo!()
+fn is_supported_entity_projection<'heap>(projections: &[Projection<'heap>]) -> Option<Feasibility> {
+    let [projection, rest] = projections else {
+        return None;
+    };
+
+    let ProjectionKind::FieldByName(name) = projection.kind else {
+        return None;
+    };
+
+    match name {
+        sym::lexical::properties => {
+            // anything that is starting out at the properties is directly loadable
+            Some(Feasibility::Load)
+        }
+        sym::lexical::metadata => {
+            // metadata is more complicated
+        }
+    }
 }
 
 fn is_supported_place(domain: &DenseBitSet<Local>, place: &Place<'_>) -> bool {
