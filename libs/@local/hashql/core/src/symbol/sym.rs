@@ -225,6 +225,7 @@ symbols![path; PATHS;
     graph_head_entities: "::graph::head::entities",
     graph_body_filter: "::graph::body::filter",
     graph_tail_collect: "::graph::tail::collect",
+    Entity: "::graph::types::knowledge::entity::Entity"
 ];
 
 pub(crate) const TABLES: &[&[&Symbol<'static>]] = &[LEXICAL, DIGITS, SYMBOLS, PATHS, INTERNAL];
