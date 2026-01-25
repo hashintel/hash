@@ -289,16 +289,16 @@ impl<'ctx, 'mir, 'hir, 'env, 'heap> Reifier<'ctx, 'mir, 'hir, 'env, 'heap> {
     fn lower_closure(
         self,
         hir: HirPtr,
+        source: Source<'heap>,
         captures: &MixedBitSet<VarId>,
         env_type: TypeId,
-        binder: Option<Binder<'heap>>,
         closure: Closure<'heap>,
         closure_type: ClosureType<'heap>,
     ) -> DefId {
         debug_assert_eq!(closure_type.params.len(), closure.signature.params.len());
 
         self.lower_impl(
-            Source::Closure(hir.id, binder),
+            source,
             hir.span,
             closure
                 .signature
