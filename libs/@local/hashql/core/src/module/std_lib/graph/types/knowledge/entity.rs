@@ -4,7 +4,7 @@ use crate::{
         StandardLibrary,
         std_lib::{self, ItemDef, ModuleDef, StandardLibraryModule, core::option::option},
     },
-    symbol::Symbol,
+    symbol::{Symbol, sym},
 };
 
 pub(in crate::module::std_lib) struct Entity {
@@ -106,7 +106,7 @@ impl<'heap> StandardLibraryModule<'heap> for Entity {
         let entity_ty = lib.ty.generic(
             [t_arg],
             lib.ty.opaque(
-                "::graph::types::knowledge::entity::Entity",
+                sym::path::Entity,
                 lib.ty.r#struct([
                     ("id", entity_record_id_ty),
                     ("properties", t_param),

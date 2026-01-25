@@ -1,19 +1,42 @@
-use core::{iter, num::NonZero, ops::Index};
-use std::alloc::{Allocator, Global};
+use alloc::alloc::Global;
+use core::{
+    alloc::Allocator,
+    iter,
+    ops::{Index, IndexMut},
+};
 
 use hashql_core::id::Id as _;
 
 use crate::body::{basic_block::BasicBlockSlice, basic_blocks::BasicBlocks, location::Location};
 
+macro_rules! cost {
+    ($value:literal) => {{
+        const { assert!($value != 0xFFFF_FFFF_u32) };
+
+        #[expect(unsafe_code)]
+        // SAFETY: macro has verified that the value cannot be 0xffff_ffff
+        unsafe {
+            Cost::new_unchecked($value)
+        }
+    }};
+}
+
+pub(crate) use cost;
+
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
-pub struct Cost(NonZero<u32>);
+pub struct Cost(core::num::niche_types::U32NotAllOnes);
 
 impl Cost {
     pub const fn new(value: u32) -> Option<Self> {
-        match NonZero::new(value) {
+        match core::num::niche_types::U32NotAllOnes::new(value) {
             Some(cost) => Some(Self(cost)),
             None => None,
         }
+    }
+
+    #[expect(unsafe_code)]
+    pub unsafe fn new_unchecked(value: u32) -> Self {
+        Self(unsafe { core::num::niche_types::U32NotAllOnes::new_unchecked(value) })
     }
 }
 
@@ -69,7 +92,7 @@ impl<A: Allocator> CostVec<A> {
     }
 }
 
-impl Index<Location> for CostVec {
+impl<A: Allocator> Index<Location> for CostVec<A> {
     type Output = Option<Cost>;
 
     fn index(&self, index: Location) -> &Self::Output {
@@ -77,5 +100,14 @@ impl Index<Location> for CostVec {
             (self.offsets[index.block] as usize)..(self.offsets[index.block.plus(1)] as usize);
 
         &self.costs[range][index.statement_index - 1] // statement_index is 1 based
+    }
+}
+
+impl<A: Allocator> IndexMut<Location> for CostVec<A> {
+    fn index_mut(&mut self, index: Location) -> &mut Self::Output {
+        let range =
+            (self.offsets[index.block] as usize)..(self.offsets[index.block.plus(1)] as usize);
+
+        &mut self.costs[range][index.statement_index - 1] // statement_index is 1 based
     }
 }
