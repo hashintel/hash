@@ -7,7 +7,7 @@ use hash_graph_store::{
     entity::EntityQueryPath,
     entity_type::EntityTypeQueryPath,
     error::QueryError,
-    filter::{Filter, FilterExpression, ParameterList},
+    filter::{Filter, FilterExpression, FilterExpressionList, ParameterList},
     property_type::PropertyTypeQueryPath,
     query::Read,
     subgraph::{
@@ -43,7 +43,9 @@ where
                 FilterExpression::Path {
                     path: DataTypeQueryPath::OntologyId,
                 },
-                ParameterList::DataTypeIds(data_type_ids),
+                FilterExpressionList::ParameterList {
+                    parameters: ParameterList::DataTypeIds(data_type_ids),
+                },
             )],
             Some(&subgraph.temporal_axes.resolved),
             false,
@@ -71,7 +73,9 @@ where
                 FilterExpression::Path {
                     path: PropertyTypeQueryPath::OntologyId,
                 },
-                ParameterList::PropertyTypeIds(property_type_ids),
+                FilterExpressionList::ParameterList {
+                    parameters: ParameterList::PropertyTypeIds(property_type_ids),
+                },
             )],
             Some(&subgraph.temporal_axes.resolved),
             false,
@@ -99,7 +103,9 @@ where
                 FilterExpression::Path {
                     path: EntityTypeQueryPath::OntologyId,
                 },
-                ParameterList::EntityTypeIds(entity_type_ids),
+                FilterExpressionList::ParameterList {
+                    parameters: ParameterList::EntityTypeIds(entity_type_ids),
+                },
             )],
             Some(&subgraph.temporal_axes.resolved),
             false,
@@ -128,7 +134,9 @@ where
                 FilterExpression::Path {
                     path: EntityQueryPath::EditionId,
                 },
-                ParameterList::EntityEditionIds(edition_ids),
+                FilterExpressionList::ParameterList {
+                    parameters: ParameterList::EntityEditionIds(edition_ids),
+                },
             )],
             Some(&subgraph.temporal_axes.resolved),
             include_drafts,
