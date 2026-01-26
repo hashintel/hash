@@ -1,9 +1,11 @@
-import type {
-  ActorEntityUuid,
-  DataTypeWithMetadata,
-  Entity,
-  EntityTypeWithMetadata,
-  PropertyTypeWithMetadata,
+import {
+  extractBaseUrl,
+  type ActorEntityUuid,
+  type BaseUrl,
+  type DataTypeWithMetadata,
+  type Entity,
+  type EntityTypeWithMetadata,
+  type PropertyTypeWithMetadata,
 } from "@blockprotocol/type-system";
 import { publicUserAccountId } from "@local/hash-backend-utils/public-user-account-id";
 import type {
@@ -19,7 +21,10 @@ import {
   deserializeQueryEntitiesResponse,
   HashEntity,
 } from "@local/hash-graph-sdk/entity";
-import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
+import {
+  systemEntityTypes,
+  systemPropertyTypes,
+} from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type { ParseTextFromFileParams } from "@local/hash-isomorphic-utils/parse-text-from-file-types";
 import {
   ActivityCancellationType,
@@ -375,10 +380,24 @@ export const updateEntityEmbeddings = async (
         subgraph,
       });
 
+      // Exclude sensitive properties from embeddings to prevent enumeration attacks.
+      // For User entities, exclude email to prevent attackers from finding users by
+      // searching for semantically similar email addresses.
+      const excludedProperties: BaseUrl[] = [];
+      if (
+        entity.metadata.entityTypeIds.some(
+          (typeId) =>
+            extractBaseUrl(typeId) == systemEntityTypes.user.entityTypeBaseUrl,
+        )
+      ) {
+        excludedProperties.push(systemPropertyTypes.email.propertyTypeBaseUrl);
+      }
+
       const generatedEmbeddings =
         await aiActivities.createEntityEmbeddingsActivity({
           entityProperties: entity.properties,
           propertyTypes,
+          excludedProperties,
         });
 
       if (generatedEmbeddings.embeddings.length > 0) {
