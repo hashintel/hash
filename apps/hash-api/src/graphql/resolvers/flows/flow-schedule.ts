@@ -169,6 +169,30 @@ export const updateFlowScheduleResolver: ResolverFn<
         },
       }));
     }
+
+    // Update workflow including dataSources in action.args if changed
+    if (input.dataSources !== undefined) {
+      const { dataSources } = input;
+
+      await handle.update((prev) => {
+        const existingParams = prev.action.args?.[0] as
+          | RunFlowWorkflowParams
+          | undefined;
+
+        if (!existingParams) {
+          // This shouldn't happen for a valid existing schedule
+          return prev;
+        }
+
+        return {
+          ...prev,
+          action: {
+            ...prev.action,
+            args: [{ ...existingParams, dataSources }],
+          },
+        };
+      });
+    }
   } catch (err) {
     throw GraphQLError.internal(
       `Failed to update Temporal schedule for schedule entity ${scheduleEntityId}: ${err instanceof Error ? err.message : String(err)}`,
