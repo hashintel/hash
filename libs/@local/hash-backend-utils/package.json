@@ -43,6 +43,7 @@
     "@smithy/signature-v4": "5.3.3",
     "@temporalio/activity": "1.12.1",
     "@temporalio/client": "1.12.1",
+    "@temporalio/common": "1.12.1",
     "@temporalio/proto": "1.12.1",
     "@temporalio/worker": "1.12.1",
     "@temporalio/workflow": "1.12.1",

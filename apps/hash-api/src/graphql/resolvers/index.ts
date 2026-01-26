@@ -10,6 +10,13 @@ import type {
 import { getBlockProtocolBlocksResolver } from "./blockprotocol/get-block";
 import { embedCode } from "./embed";
 import { cancelFlow } from "./flows/cancel-flow";
+import {
+  archiveFlowScheduleResolver,
+  createFlowScheduleResolver,
+  pauseFlowScheduleResolver,
+  resumeFlowScheduleResolver,
+  updateFlowScheduleResolver,
+} from "./flows/flow-schedule";
 import { getFlowRunByIdResolver } from "./flows/get-flow-run-by-id";
 import { getFlowRunsResolver } from "./flows/get-flow-runs";
 import { resetFlow } from "./flows/reset-flow";
@@ -246,6 +253,20 @@ export const resolvers: Omit<Resolvers, "Query" | "Mutation"> & {
     startFlow: loggedInAndSignedUpMiddleware(startFlow),
     submitExternalInputResponse: loggedInAndSignedUpMiddleware(
       submitExternalInputResponse,
+    ),
+
+    createFlowSchedule: loggedInAndSignedUpMiddleware(
+      createFlowScheduleResolver,
+    ),
+    updateFlowSchedule: loggedInAndSignedUpMiddleware(
+      updateFlowScheduleResolver,
+    ),
+    pauseFlowSchedule: loggedInAndSignedUpMiddleware(pauseFlowScheduleResolver),
+    resumeFlowSchedule: loggedInAndSignedUpMiddleware(
+      resumeFlowScheduleResolver,
+    ),
+    archiveFlowSchedule: loggedInAndSignedUpMiddleware(
+      archiveFlowScheduleResolver,
     ),
 
     // Integration

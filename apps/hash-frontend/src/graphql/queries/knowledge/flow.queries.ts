@@ -5,7 +5,7 @@ export const startFlowMutation = gql`
     $dataSources: FlowDataSources
     $flowDefinition: FlowDefinition!
     $flowTrigger: FlowTrigger!
-    $flowType: FlowType!
+    $flowType: FlowTypeDataType!
     $webId: WebId!
   ) {
     startFlow(
@@ -31,5 +31,29 @@ export const resetFlowMutation = gql`
 export const cancelFlowMutation = gql`
   mutation cancelFlow($flowUuid: ID!) {
     cancelFlow(flowUuid: $flowUuid)
+  }
+`;
+
+export const createFlowScheduleMutation = gql`
+  mutation createFlowSchedule($input: CreateFlowScheduleInput!) {
+    createFlowSchedule(input: $input)
+  }
+`;
+
+export const pauseFlowScheduleMutation = gql`
+  mutation pauseFlowSchedule($scheduleEntityId: EntityId!, $note: String) {
+    pauseFlowSchedule(scheduleEntityId: $scheduleEntityId, note: $note)
+  }
+`;
+
+export const resumeFlowScheduleMutation = gql`
+  mutation resumeFlowSchedule($scheduleEntityId: EntityId!) {
+    resumeFlowSchedule(scheduleEntityId: $scheduleEntityId)
+  }
+`;
+
+export const archiveFlowScheduleMutation = gql`
+  mutation archiveFlowSchedule($scheduleEntityId: EntityId!) {
+    archiveFlowSchedule(scheduleEntityId: $scheduleEntityId)
   }
 `;

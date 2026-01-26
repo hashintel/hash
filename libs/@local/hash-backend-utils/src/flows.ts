@@ -27,8 +27,8 @@ import {
 import type { FlowRun as FlowRunEntity } from "@local/hash-isomorphic-utils/system-types/shared";
 
 import {
-  getFlowRunFromWorkflowId,
-  getSparseFlowRunFromWorkflowId,
+  getFlowRunFromTemporalWorkflowId,
+  getSparseFlowRunFromTemporalWorkflowId,
 } from "./flows/get-flow-run-details.js";
 import { getFlowRunEntityById } from "./flows/shared/get-flow-run-entity-by-id.js";
 import type { TemporalClient } from "./temporal.js";
@@ -86,26 +86,34 @@ export async function getFlowRunById({
     existingFlowEntity.metadata.recordId.entityId,
   );
 
+  const entityUuid = extractEntityUuidFromEntityId(
+    existingFlowEntity.metadata.recordId.entityId,
+  );
+
+  const temporalWorkflowId =
+    existingFlowEntity.properties[
+      "https://hash.ai/@h/types/property-type/workflow-id/"
+    ];
+
+  const name =
+    existingFlowEntity.properties[
+      "https://blockprotocol.org/@blockprotocol/types/property-type/name/"
+    ];
+
   if (includeDetails) {
-    return getFlowRunFromWorkflowId({
-      name: existingFlowEntity.properties[
-        "https://blockprotocol.org/@blockprotocol/types/property-type/name/"
-      ],
-      workflowId: extractEntityUuidFromEntityId(
-        existingFlowEntity.metadata.recordId.entityId,
-      ),
+    return getFlowRunFromTemporalWorkflowId({
+      flowRunId: entityUuid,
+      name,
       temporalClient,
+      temporalWorkflowId,
       webId,
     });
   } else {
-    return getSparseFlowRunFromWorkflowId({
-      name: existingFlowEntity.properties[
-        "https://blockprotocol.org/@blockprotocol/types/property-type/name/"
-      ],
-      workflowId: extractEntityUuidFromEntityId(
-        existingFlowEntity.metadata.recordId.entityId,
-      ),
+    return getSparseFlowRunFromTemporalWorkflowId({
+      flowRunId: entityUuid,
+      name,
       temporalClient,
+      temporalWorkflowId,
       webId,
     });
   }
@@ -132,6 +140,13 @@ type GetFlowRunsFnArgs<IncludeDetails extends boolean> = {
   temporalClient: TemporalClient;
 };
 
+type MinimalFlowMetadata = {
+  flowRunId: EntityUuid;
+  name: string;
+  temporalWorkflowId: string;
+  webId: WebId;
+};
+
 export async function getFlowRuns(
   args: GetFlowRunsFnArgs<true>,
 ): Promise<FlowRun[]>;
@@ -151,7 +166,7 @@ export async function getFlowRuns({
   includeDetails,
   temporalClient,
 }: GetFlowRunsFnArgs<boolean>): Promise<SparseFlowRun[] | FlowRun[]> {
-  const relevantFlows = await queryEntities<FlowRunEntity>(
+  const temporalWorkflowIdToFlowDetails = await queryEntities<FlowRunEntity>(
     { graphApi: graphApiClient },
     authentication,
     {
@@ -186,34 +201,42 @@ export async function getFlowRuns({
       includePermissions: false,
     },
   ).then(({ entities }) => {
-    const flowRunIdToOwnedByAndName: Record<
-      EntityUuid,
-      { webId: WebId; name: string }
-    > = {};
+    const result: Record<string, MinimalFlowMetadata> = {};
+
     for (const entity of entities) {
       const [webId, entityUuid] = splitEntityId(
         entity.metadata.recordId.entityId,
       );
 
-      flowRunIdToOwnedByAndName[entityUuid] = {
-        name: entity.properties[
+      const name =
+        entity.properties[
           "https://blockprotocol.org/@blockprotocol/types/property-type/name/"
-        ],
+        ];
+
+      const temporalWorkflowId =
+        entity.properties[
+          "https://hash.ai/@h/types/property-type/workflow-id/"
+        ];
+
+      result[temporalWorkflowId] = {
+        flowRunId: entityUuid,
+        name,
+        temporalWorkflowId,
         webId,
       };
     }
-    return flowRunIdToOwnedByAndName;
+    return result;
   });
 
-  const relevantFlowRunIds = typedKeys(relevantFlows);
+  const temporalWorkflowIds = typedKeys(temporalWorkflowIdToFlowDetails);
 
-  if (!relevantFlowRunIds.length) {
+  if (!temporalWorkflowIds.length) {
     return [];
   }
 
   /** @see https://docs.temporal.io/develop/typescript/observability#search-attributes */
-  let query = `WorkflowType = 'runFlow' AND WorkflowId IN (${relevantFlowRunIds
-    .map((uuid) => `'${uuid}'`)
+  let query = `WorkflowType = 'runFlow' AND WorkflowId IN (${temporalWorkflowIds
+    .map((id) => `'${id}'`)
     .join(", ")})`;
 
   if (filters.executionStatus) {
@@ -221,6 +244,13 @@ export async function getFlowRuns({
       filters.executionStatus,
     )}"`;
   }
+
+  /**
+   * Order by StartTime DESC so that the latest run for each workflowId comes first.
+   * This allows the `workflowIdToLatestRunTime` logic below to correctly skip older runs
+   * (e.g. from workflow resets) by only recording the first (latest) start time we see.
+   */
+  query += ` ORDER BY StartTime DESC`;
 
   const workflowIterable = temporalClient.workflow.list({ query });
 
@@ -230,13 +260,13 @@ export async function getFlowRuns({
     const workflows: FlowRun[] = [];
 
     for await (const workflow of workflowIterable) {
-      const flowRunId = workflow.workflowId as EntityUuid;
-      const flowDetails = relevantFlows[flowRunId];
+      const temporalWorkflowId = workflow.workflowId;
+      const flowDetails = temporalWorkflowIdToFlowDetails[temporalWorkflowId];
 
       const startTime = workflow.startTime.toISOString();
-      workflowIdToLatestRunTime[flowRunId] ??= startTime;
+      workflowIdToLatestRunTime[temporalWorkflowId] ??= startTime;
 
-      if (startTime < workflowIdToLatestRunTime[flowRunId]) {
+      if (startTime < workflowIdToLatestRunTime[temporalWorkflowId]) {
         /**
          * This is an earlier run of the same workflow – it is a flow run that has been reset and started from a specific point.
          *
@@ -254,10 +284,11 @@ export async function getFlowRuns({
         );
       }
 
-      const runInfo = await getFlowRunFromWorkflowId({
+      const runInfo = await getFlowRunFromTemporalWorkflowId({
+        flowRunId: flowDetails.flowRunId,
         name: flowDetails.name,
-        workflowId: flowRunId,
         temporalClient,
+        temporalWorkflowId: flowDetails.temporalWorkflowId,
         webId: flowDetails.webId,
       });
       workflows.push(runInfo);
@@ -268,12 +299,12 @@ export async function getFlowRuns({
     const workflows: SparseFlowRun[] = [];
 
     for await (const workflow of workflowIterable) {
-      const flowRunId = workflow.workflowId as EntityUuid;
+      const temporalWorkflowId = workflow.workflowId;
 
       const startTime = workflow.startTime.toISOString();
-      workflowIdToLatestRunTime[flowRunId] ??= startTime;
+      workflowIdToLatestRunTime[temporalWorkflowId] ??= startTime;
 
-      if (workflowIdToLatestRunTime[flowRunId] < startTime) {
+      if (startTime < workflowIdToLatestRunTime[temporalWorkflowId]) {
         /**
          * This is an earlier run of the same workflow – it is a flow run that has been reset and started from a specific point.
          *
@@ -285,17 +316,19 @@ export async function getFlowRuns({
         continue;
       }
 
-      const flowDetails = relevantFlows[flowRunId];
+      const flowDetails = temporalWorkflowIdToFlowDetails[temporalWorkflowId];
 
       if (!flowDetails) {
         throw new Error(
           `Could not find details for workflowId ${workflow.workflowId}`,
         );
       }
-      const runInfo = await getSparseFlowRunFromWorkflowId({
+
+      const runInfo = await getSparseFlowRunFromTemporalWorkflowId({
+        flowRunId: flowDetails.flowRunId,
         name: flowDetails.name,
-        workflowId: flowRunId,
         temporalClient,
+        temporalWorkflowId: flowDetails.temporalWorkflowId,
         webId: flowDetails.webId,
       });
       workflows.push(runInfo);

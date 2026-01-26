@@ -10313,6 +10313,7 @@ __metadata:
     "@smithy/signature-v4": "npm:5.3.3"
     "@temporalio/activity": "npm:1.12.1"
     "@temporalio/client": "npm:1.12.1"
+    "@temporalio/common": "npm:1.12.1"
     "@temporalio/proto": "npm:1.12.1"
     "@temporalio/worker": "npm:1.12.1"
     "@temporalio/workflow": "npm:1.12.1"

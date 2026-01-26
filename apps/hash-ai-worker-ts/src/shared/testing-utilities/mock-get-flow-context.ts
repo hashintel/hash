@@ -3,7 +3,6 @@ import type {
   EntityUuid,
   WebId,
 } from "@blockprotocol/type-system";
-import { extractEntityUuidFromEntityId } from "@blockprotocol/type-system";
 import { HashEntity } from "@local/hash-graph-sdk/entity";
 import type { AiFlowActionDefinitionId } from "@local/hash-isomorphic-utils/flows/action-definitions";
 import { mapFlowRunToEntityProperties } from "@local/hash-isomorphic-utils/flows/mappings";
@@ -11,6 +10,7 @@ import type { RunAiFlowWorkflowParams } from "@local/hash-isomorphic-utils/flows
 import type { FlowDefinition } from "@local/hash-isomorphic-utils/flows/types";
 import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
+import type { FlowRun } from "@local/hash-isomorphic-utils/system-types/shared";
 import type { Context } from "@temporalio/activity";
 // eslint-disable-next-line import/no-extraneous-dependencies
 import { vi } from "vitest";
@@ -33,15 +33,15 @@ const createDummyFlow = async (params: { actorId: ActorEntityUuid }) => {
 
   const dummyFlowRunProperties = mapFlowRunToEntityProperties({
     name: "dummy-name",
-    flowRunId: generateUuid() as EntityUuid,
     trigger: {
       triggerDefinitionId: "userTrigger",
     },
     flowDefinitionId: generateUuid() as EntityUuid,
     steps: [],
+    temporalWorkflowId: generateUuid(),
   });
 
-  const dummyFlowEntity = await HashEntity.create(
+  const dummyFlowEntity = await HashEntity.create<FlowRun>(
     graphApiClient,
     { actorId },
     {
@@ -81,9 +81,10 @@ vi.mock("@temporalio/activity", async (importOriginal) => {
           cancellationSignal: new AbortController().signal,
           info: {
             workflowExecution: {
-              workflowId: extractEntityUuidFromEntityId(
-                dummyFlowEntity.metadata.recordId.entityId,
-              ),
+              workflowId:
+                dummyFlowEntity.properties[
+                  "https://hash.ai/@h/types/property-type/workflow-id/"
+                ],
             },
             activityId: "test-activity-id",
           },

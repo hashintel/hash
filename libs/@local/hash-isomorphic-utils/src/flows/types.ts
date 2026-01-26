@@ -12,12 +12,14 @@ import type {
 import type { DistributiveOmit } from "@local/advanced-types/distribute";
 import type { Status } from "@local/status";
 
-import type { FlowRun, FlowType } from "../graphql/api-types.gen.js";
+import type { FlowRun } from "../graphql/api-types.gen.js";
 import type { ActorTypeDataType } from "../system-types/google/googlesheetsfile.js";
+import type { FlowTypeDataType } from "../system-types/shared.js";
 import type {
   AiFlowActionDefinitionId,
   IntegrationFlowActionDefinitionId,
 } from "./action-definitions.js";
+import type { ScheduleSpec } from "./schedule-types.js";
 import type { TriggerDefinitionId } from "./trigger-definitions.js";
 
 export type FlowActionDefinitionId =
@@ -87,7 +89,7 @@ export type PersistedEntitiesMetadata = {
 
 type BaseFlowInputs = {
   flowDefinition: FlowDefinition<FlowActionDefinitionId>;
-  flowType: FlowType;
+  flowType: FlowTypeDataType;
   flowTrigger: FlowTrigger;
   webId: WebId;
 };
@@ -301,8 +303,7 @@ type FlowDefinitionTrigger =
       kind: "scheduled";
       description: string;
       triggerDefinitionId: "scheduledTrigger";
-      active: boolean;
-      cronSchedule: string;
+      scheduleSpec: ScheduleSpec;
       outputs?: OutputDefinition[];
     };
 
@@ -405,7 +406,7 @@ export type LocalFlowRun<
   ActionDefinitionId extends FlowActionDefinitionId = FlowActionDefinitionId,
 > = {
   name: string;
-  flowRunId: EntityUuid;
+  temporalWorkflowId: string;
   trigger: FlowTrigger;
   flowDefinitionId: EntityUuid;
   steps: FlowStep<ActionDefinitionId>[];

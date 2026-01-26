@@ -18,6 +18,10 @@ import type {
 import { FlowStepStatus } from "@local/hash-isomorphic-utils/graphql/api-types.gen";
 import { StatusCode } from "@local/status";
 import type { Client as TemporalClient } from "@temporalio/client";
+import {
+  defineSearchAttributeKey,
+  SearchAttributeType,
+} from "@temporalio/common";
 import proto from "@temporalio/proto";
 
 import { temporalNamespace } from "../temporal.js";
@@ -599,27 +603,47 @@ const getFlowRunDetailedFields = async ({
   };
 };
 
-export const getSparseFlowRunFromWorkflowId = async ({
+export const getSparseFlowRunFromTemporalWorkflowId = async ({
+  flowRunId,
   name,
-  webId,
-  workflowId,
   temporalClient,
+  temporalWorkflowId,
+  webId,
 }: {
+  /** The entity UUID of the flow run */
+  flowRunId: EntityUuid;
   name: string;
-  webId: WebId;
-  workflowId: EntityUuid;
   temporalClient: TemporalClient;
+  /** the identifier for the Temporal workflow */
+  temporalWorkflowId: string;
+  webId: WebId;
 }): Promise<SparseFlowRun> => {
-  const handle = temporalClient.workflow.getHandle(workflowId);
+  const handle = temporalClient.workflow.getHandle(temporalWorkflowId);
 
-  const { startTime, executionTime, closeTime, memo, status } =
-    await handle.describe();
+  const {
+    startTime,
+    executionTime,
+    closeTime,
+    memo,
+    typedSearchAttributes,
+    status,
+  } = await handle.describe();
+
+  const temporalScheduledByIdKey = defineSearchAttributeKey(
+    "TemporalScheduledById",
+    SearchAttributeType.KEYWORD,
+  );
+
+  const flowScheduleId = typedSearchAttributes.get(temporalScheduledByIdKey) as
+    | EntityUuid
+    | undefined;
 
   return {
     name,
     flowDefinitionId:
       (memo?.flowDefinitionId as string | undefined) ?? "unknown",
-    flowRunId: workflowId,
+    flowRunId,
+    flowScheduleId,
     status: status.name as FlowRunStatus,
     startedAt: startTime.toISOString(),
     executedAt: executionTime?.toISOString(),
@@ -628,14 +652,20 @@ export const getSparseFlowRunFromWorkflowId = async ({
   };
 };
 
-export const getFlowRunFromWorkflowId = async (args: {
+export const getFlowRunFromTemporalWorkflowId = async (args: {
+  /** The entity UUID of the flow run */
+  flowRunId: EntityUuid;
   name: string;
-  webId: WebId;
-  workflowId: EntityUuid;
   temporalClient: TemporalClient;
+  /** the identifier for the Temporal workflow */
+  temporalWorkflowId: string;
+  webId: WebId;
 }): Promise<FlowRun> => {
-  const baseFields = await getSparseFlowRunFromWorkflowId(args);
-  const detailedFields = await getFlowRunDetailedFields(args);
+  const baseFields = await getSparseFlowRunFromTemporalWorkflowId(args);
+  const detailedFields = await getFlowRunDetailedFields({
+    workflowId: args.temporalWorkflowId,
+    temporalClient: args.temporalClient,
+  });
 
   return {
     ...baseFields,

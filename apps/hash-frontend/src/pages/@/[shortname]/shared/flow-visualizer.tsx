@@ -35,7 +35,6 @@ import { useCallback, useMemo, useState } from "react";
 
 import { useGetOwnerForEntity } from "../../../../components/hooks/use-get-owner-for-entity";
 import {
-  FlowType,
   type QueryEntitySubgraphQuery,
   type QueryEntitySubgraphQueryVariables,
   type StartFlowMutation,
@@ -49,6 +48,7 @@ import { defaultBrowserPluginDomains } from "../../../goals/new.page/internet-se
 import { useFlowDefinitionsContext } from "../../../shared/flow-definitions-context";
 import { useFlowRunsContext } from "../../../shared/flow-runs-context";
 import { NotFound } from "../../../shared/not-found";
+import { useFlowSchedules } from "../../../shared/use-flow-schedules";
 import { ActivityLog } from "./flow-visualizer/activity-log";
 import { DAG } from "./flow-visualizer/dag";
 import { DagSlide } from "./flow-visualizer/dag-slide";
@@ -249,6 +249,19 @@ export const FlowVisualizer = () => {
     useFlowDefinitionsContext();
 
   const { selectedFlowRun } = useFlowRunsContext();
+
+  const { schedulesByEntityUuid } = useFlowSchedules();
+
+  /**
+   * The schedule that triggered this flow run, if any.
+   * Can be used to display schedule information in the UI.
+   */
+  const _selectedFlowRunSchedule = useMemo(() => {
+    if (!selectedFlowRun?.flowScheduleId) {
+      return null;
+    }
+    return schedulesByEntityUuid.get(selectedFlowRun.flowScheduleId) ?? null;
+  }, [selectedFlowRun?.flowScheduleId, schedulesByEntityUuid]);
 
   const getOwner = useGetOwnerForEntity();
 
@@ -667,10 +680,7 @@ export const FlowVisualizer = () => {
         const { inputs } = selectedFlowRun;
         flowInputs = {
           ...inputs[0],
-          flowType:
-            selectedFlowDefinition.type === "ai"
-              ? FlowType.Ai
-              : FlowType.Integration,
+          flowType: selectedFlowDefinition.type === "ai" ? "ai" : "integration",
         };
       } else {
         const { webId, outputs } = args;
@@ -686,10 +696,7 @@ export const FlowVisualizer = () => {
             },
           },
           flowDefinition: selectedFlowDefinition,
-          flowType:
-            selectedFlowDefinition.type === "ai"
-              ? FlowType.Ai
-              : FlowType.Integration,
+          flowType: selectedFlowDefinition.type === "ai" ? "ai" : "integration",
           flowTrigger: {
             outputs,
             triggerDefinitionId: "userTrigger",
@@ -782,6 +789,9 @@ export const FlowVisualizer = () => {
             flowDefinition={selectedFlowDefinition}
             open={showRunModal}
             onClose={() => setShowRunModal(false)}
+            onScheduleCreated={() => {
+              void push("/workers");
+            }}
             runFlow={async (outputs: FlowTrigger["outputs"], webId) => {
               await runFlow({ outputs, webId });
             }}
@@ -813,6 +823,7 @@ export const FlowVisualizer = () => {
             <FlowRunSidebar
               flowDefinition={selectedFlowDefinition}
               flowRunId={selectedFlowRun.flowRunId}
+              flowScheduleId={selectedFlowRun.flowScheduleId ?? null}
               groups={flowMaybeGrouped.groups}
               name={selectedFlowRun.name}
               showDag={() => setShowDag(true)}

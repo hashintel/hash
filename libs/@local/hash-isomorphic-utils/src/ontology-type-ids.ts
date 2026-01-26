@@ -107,6 +107,11 @@ export const systemEntityTypes = {
     entityTypeBaseUrl:
       "https://hash.ai/@h/types/entity-type/flow-run/" as BaseUrl,
   },
+  flowSchedule: {
+    entityTypeId: "https://hash.ai/@h/types/entity-type/flow-schedule/v/1",
+    entityTypeBaseUrl:
+      "https://hash.ai/@h/types/entity-type/flow-schedule/" as BaseUrl,
+  },
   githubAccount: {
     entityTypeId: "https://hash.ai/@h/types/entity-type/github-account/v/1",
     entityTypeBaseUrl:
@@ -452,6 +457,11 @@ export const systemLinkEntityTypes = {
     linkEntityTypeBaseUrl:
       "https://hash.ai/@h/types/entity-type/replied-to-comment/" as BaseUrl,
   },
+  scheduledBy: {
+    linkEntityTypeId: "https://hash.ai/@h/types/entity-type/scheduled-by/v/1",
+    linkEntityTypeBaseUrl:
+      "https://hash.ai/@h/types/entity-type/scheduled-by/" as BaseUrl,
+  },
   sponsoredBy: {
     linkEntityTypeId: "https://hash.ai/@h/types/entity-type/sponsored-by/v/1",
     linkEntityTypeBaseUrl:
@@ -484,6 +494,11 @@ export const systemLinkEntityTypes = {
     linkEntityTypeId: "https://hash.ai/@h/types/entity-type/updated/v/1",
     linkEntityTypeBaseUrl:
       "https://hash.ai/@h/types/entity-type/updated/" as BaseUrl,
+  },
+  uses: {
+    linkEntityTypeId: "https://hash.ai/@h/types/entity-type/uses/v/1",
+    linkEntityTypeBaseUrl:
+      "https://hash.ai/@h/types/entity-type/uses/" as BaseUrl,
   },
   usesAircraft: {
     linkEntityTypeId: "https://hash.ai/@h/types/entity-type/uses-aircraft/v/1",
@@ -619,6 +634,11 @@ export const systemPropertyTypes = {
     propertyTypeBaseUrl:
       "https://hash.ai/@h/types/property-type/data-audience/" as BaseUrl,
   },
+  dataSources: {
+    propertyTypeId: "https://hash.ai/@h/types/property-type/data-sources/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@h/types/property-type/data-sources/" as BaseUrl,
+  },
   definitionObject: {
     propertyTypeId:
       "https://hash.ai/@h/types/property-type/definition-object/v/1",
@@ -726,6 +746,11 @@ export const systemPropertyTypes = {
     propertyTypeBaseUrl:
       "https://hash.ai/@h/types/property-type/expired-at/" as BaseUrl,
   },
+  explanation: {
+    propertyTypeId: "https://hash.ai/@h/types/property-type/explanation/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@h/types/property-type/explanation/" as BaseUrl,
+  },
   featureName: {
     propertyTypeId: "https://hash.ai/@h/types/property-type/feature-name/v/1",
     propertyTypeBaseUrl:
@@ -802,6 +827,11 @@ export const systemPropertyTypes = {
       "https://hash.ai/@h/types/property-type/flow-definition-id/v/1",
     propertyTypeBaseUrl:
       "https://hash.ai/@h/types/property-type/flow-definition-id/" as BaseUrl,
+  },
+  flowType: {
+    propertyTypeId: "https://hash.ai/@h/types/property-type/flow-type/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@h/types/property-type/flow-type/" as BaseUrl,
   },
   fractionalIndex: {
     propertyTypeId:
@@ -1034,6 +1064,17 @@ export const systemPropertyTypes = {
     propertyTypeBaseUrl:
       "https://hash.ai/@h/types/property-type/pages-are-enabled/" as BaseUrl,
   },
+  pauseOnFailure: {
+    propertyTypeId:
+      "https://hash.ai/@h/types/property-type/pause-on-failure/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@h/types/property-type/pause-on-failure/" as BaseUrl,
+  },
+  pausedAt: {
+    propertyTypeId: "https://hash.ai/@h/types/property-type/paused-at/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@h/types/property-type/paused-at/" as BaseUrl,
+  },
   pinnedEntityTypeBaseUrl: {
     propertyTypeId:
       "https://hash.ai/@h/types/property-type/pinned-entity-type-base-url/v/1",
@@ -1093,6 +1134,35 @@ export const systemPropertyTypes = {
     propertyTypeId: "https://hash.ai/@h/types/property-type/runway/v/1",
     propertyTypeBaseUrl:
       "https://hash.ai/@h/types/property-type/runway/" as BaseUrl,
+  },
+  scheduleCatchupWindow: {
+    propertyTypeId:
+      "https://hash.ai/@h/types/property-type/schedule-catchup-window/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@h/types/property-type/schedule-catchup-window/" as BaseUrl,
+  },
+  scheduleOverlapPolicy: {
+    propertyTypeId:
+      "https://hash.ai/@h/types/property-type/schedule-overlap-policy/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@h/types/property-type/schedule-overlap-policy/" as BaseUrl,
+  },
+  schedulePauseState: {
+    propertyTypeId:
+      "https://hash.ai/@h/types/property-type/schedule-pause-state/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@h/types/property-type/schedule-pause-state/" as BaseUrl,
+  },
+  scheduleSpec: {
+    propertyTypeId: "https://hash.ai/@h/types/property-type/schedule-spec/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@h/types/property-type/schedule-spec/" as BaseUrl,
+  },
+  scheduleStatus: {
+    propertyTypeId:
+      "https://hash.ai/@h/types/property-type/schedule-status/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@h/types/property-type/schedule-status/" as BaseUrl,
   },
   scheduledGateTime: {
     propertyTypeId:
@@ -1249,6 +1319,11 @@ export const systemPropertyTypes = {
     propertyTypeBaseUrl:
       "https://hash.ai/@h/types/property-type/willing-to-pay/" as BaseUrl,
   },
+  workflowId: {
+    propertyTypeId: "https://hash.ai/@h/types/property-type/workflow-id/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@h/types/property-type/workflow-id/" as BaseUrl,
+  },
   xPosition: {
     propertyTypeId: "https://hash.ai/@h/types/property-type/x-position/v/1",
     propertyTypeBaseUrl:
@@ -1381,6 +1456,12 @@ export const systemDataTypes = {
     title: "Flight Status",
     description:
       "The current operational status of a flight, indicating whether it is scheduled, in progress, completed, or has encountered issues.",
+  },
+  flowType: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/flow-type/v/1",
+    dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/flow-type/" as BaseUrl,
+    title: "Flow Type",
+    description: "The type of a flow, determining which task queue it runs on.",
   },
   frequency: {
     dataTypeId: "https://hash.ai/@h/types/data-type/frequency/v/1",
@@ -1650,6 +1731,23 @@ export const systemDataTypes = {
     dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/power/" as BaseUrl,
     title: "Power",
     description: "The amount of energy transferred or converted per unit time.",
+  },
+  scheduleOverlapPolicy: {
+    dataTypeId:
+      "https://hash.ai/@h/types/data-type/schedule-overlap-policy/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/schedule-overlap-policy/" as BaseUrl,
+    title: "Schedule Overlap Policy",
+    description:
+      "The policy for handling overlapping runs in a schedule when a new execution is due but the previous one is still running.",
+  },
+  scheduleStatus: {
+    dataTypeId: "https://hash.ai/@h/types/data-type/schedule-status/v/1",
+    dataTypeBaseUrl:
+      "https://hash.ai/@h/types/data-type/schedule-status/" as BaseUrl,
+    title: "Schedule Status",
+    description:
+      "The status of a schedule, indicating whether it is currently running or has been temporarily stopped.",
   },
   second: {
     dataTypeId: "https://hash.ai/@h/types/data-type/second/v/1",
