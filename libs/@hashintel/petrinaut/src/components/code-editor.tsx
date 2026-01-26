@@ -1,6 +1,9 @@
+import { Tooltip as ArkTooltip } from "@ark-ui/react/tooltip";
 import { css, cva } from "@hashintel/ds-helpers/css";
-import type { EditorProps } from "@monaco-editor/react";
+import type { EditorProps, Monaco } from "@monaco-editor/react";
 import MonacoEditor from "@monaco-editor/react";
+import type { editor } from "monaco-editor";
+import { useCallback, useRef, useState } from "react";
 
 import { Tooltip } from "./tooltip";
 
@@ -22,6 +25,16 @@ const containerStyle = cva({
   },
 });
 
+const tooltipContentStyle = css({
+  backgroundColor: "gray.90",
+  color: "gray.10",
+  borderRadius: "md.6",
+  fontSize: "[13px]",
+  zIndex: "[10000]",
+  boxShadow: "[0 2px 8px rgba(0, 0, 0, 0.15)]",
+  padding: "[6px 10px]",
+});
+
 type CodeEditorProps = Omit<EditorProps, "theme"> & {
   tooltip?: string;
 };
@@ -30,15 +43,43 @@ type CodeEditorProps = Omit<EditorProps, "theme"> & {
  * Code editor component that wraps Monaco Editor.
  *
  * @param tooltip - Optional tooltip to show when hovering over the editor.
- *                  When provided, the editor becomes non-interactive (for read-only mode explanations).
+ *                  In read-only mode, the tooltip also appears when attempting to edit.
  */
 export const CodeEditor: React.FC<CodeEditorProps> = ({
   tooltip,
   options,
   height,
+  onMount,
   ...props
 }) => {
   const isReadOnly = options?.readOnly === true;
+  const [showReadOnlyTooltip, setShowReadOnlyTooltip] = useState(false);
+  const hideTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const handleMount = useCallback(
+    (editorInstance: editor.IStandaloneCodeEditor, monaco: Monaco) => {
+      if (isReadOnly && tooltip) {
+        editorInstance.onDidAttemptReadOnlyEdit(() => {
+          // Clear any existing timeout
+          if (hideTimeoutRef.current) {
+            clearTimeout(hideTimeoutRef.current);
+          }
+
+          // Show tooltip
+          setShowReadOnlyTooltip(true);
+
+          // Hide after 2 seconds
+          hideTimeoutRef.current = setTimeout(() => {
+            setShowReadOnlyTooltip(false);
+          }, 2000);
+        });
+      }
+
+      // Call the original onMount if provided
+      onMount?.(editorInstance, monaco);
+    },
+    [isReadOnly, tooltip, onMount],
+  );
 
   const editorOptions: EditorProps["options"] = {
     minimap: { enabled: false },
@@ -60,11 +101,34 @@ export const CodeEditor: React.FC<CodeEditorProps> = ({
         theme="vs-light"
         height="100%"
         options={editorOptions}
+        onMount={handleMount}
         {...props}
       />
     </div>
   );
 
+  // In read-only mode with tooltip, use controlled tooltip that shows on edit attempts
+  if (isReadOnly && tooltip) {
+    return (
+      <ArkTooltip.Root
+        open={showReadOnlyTooltip}
+        openDelay={200}
+        closeDelay={0}
+        positioning={{ placement: "top" }}
+      >
+        <ArkTooltip.Trigger asChild>
+          <div>{editor}</div>
+        </ArkTooltip.Trigger>
+        <ArkTooltip.Positioner>
+          <ArkTooltip.Content className={tooltipContentStyle}>
+            {tooltip}
+          </ArkTooltip.Content>
+        </ArkTooltip.Positioner>
+      </ArkTooltip.Root>
+    );
+  }
+
+  // Regular tooltip for non-read-only mode (if tooltip is provided)
   if (tooltip) {
     return <Tooltip content={tooltip}>{editor}</Tooltip>;
   }

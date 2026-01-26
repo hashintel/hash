@@ -87,7 +87,7 @@ export const ToolbarButton: React.FC<ToolbarButtonProps> = ({
   };
 
   return (
-    <Tooltip content={tooltip}>
+    <Tooltip content={tooltip} display="inline">
       <button
         type="button"
         onClick={onClick}

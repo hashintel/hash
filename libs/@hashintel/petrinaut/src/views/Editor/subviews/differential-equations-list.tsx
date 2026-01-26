@@ -156,6 +156,7 @@ const DifferentialEquationsSectionContent: React.FC = () => {
             </div>
             <Tooltip
               content={isReadOnly ? UI_MESSAGES.READ_ONLY_MODE : undefined}
+              display="inline"
             >
               <button
                 type="button"
@@ -199,7 +200,10 @@ const DifferentialEquationsSectionHeaderAction: React.FC = () => {
   const isReadOnly = useIsReadOnly();
 
   return (
-    <Tooltip content={isReadOnly ? UI_MESSAGES.READ_ONLY_MODE : undefined}>
+    <Tooltip
+      content={isReadOnly ? UI_MESSAGES.READ_ONLY_MODE : undefined}
+      display="inline"
+    >
       <button
         type="button"
         disabled={isReadOnly}

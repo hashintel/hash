@@ -1,17 +1,7 @@
-import { ark } from "@ark-ui/react/factory";
 import { SegmentGroup as ArkSegmentGroup } from "@ark-ui/react/segment-group";
-import { Tooltip as ArkTooltip } from "@ark-ui/react/tooltip";
-import { css, cva } from "@hashintel/ds-helpers/css";
+import { cva } from "@hashintel/ds-helpers/css";
 
-const tooltipContentStyle = css({
-  backgroundColor: "gray.90",
-  color: "gray.10",
-  borderRadius: "md.6",
-  fontSize: "[13px]",
-  zIndex: "[10000]",
-  boxShadow: "[0 2px 8px rgba(0, 0, 0, 0.15)]",
-  padding: "[6px 10px]",
-});
+import { Tooltip } from "./tooltip";
 
 const containerStyle = cva({
   base: {
@@ -160,38 +150,7 @@ export const SegmentGroup: React.FC<SegmentGroupProps> = ({
     </>
   );
 
-  if (tooltip) {
-    return (
-      <ArkTooltip.Root
-        openDelay={200}
-        closeDelay={0}
-        positioning={{ placement: "top" }}
-      >
-        <ArkTooltip.Trigger asChild>
-          <ark.div>
-            <ArkSegmentGroup.Root
-              value={value}
-              disabled={disabled}
-              onValueChange={(details) => {
-                if (details.value) {
-                  onChange(details.value);
-                }
-              }}
-            >
-              <div className={containerClassName}>{containerContent}</div>
-            </ArkSegmentGroup.Root>
-          </ark.div>
-        </ArkTooltip.Trigger>
-        <ArkTooltip.Positioner>
-          <ArkTooltip.Content className={tooltipContentStyle}>
-            {tooltip}
-          </ArkTooltip.Content>
-        </ArkTooltip.Positioner>
-      </ArkTooltip.Root>
-    );
-  }
-
-  return (
+  const segmentGroup = (
     <ArkSegmentGroup.Root
       value={value}
       disabled={disabled}
@@ -204,4 +163,14 @@ export const SegmentGroup: React.FC<SegmentGroupProps> = ({
       <div className={containerClassName}>{containerContent}</div>
     </ArkSegmentGroup.Root>
   );
+
+  if (tooltip) {
+    return (
+      <Tooltip content={tooltip} display="block">
+        {segmentGroup}
+      </Tooltip>
+    );
+  }
+
+  return segmentGroup;
 };

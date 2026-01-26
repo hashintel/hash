@@ -400,6 +400,7 @@ export const PlaceProperties: React.FC<PlacePropertiesProps> = ({
             <div className={headerTitleStyle}>Place</div>
             <Tooltip
               content={isReadOnly ? UI_MESSAGES.READ_ONLY_MODE : "Delete"}
+              display="inline"
             >
               <button
                 type="button"
@@ -657,7 +658,10 @@ export const PlaceProperties: React.FC<PlacePropertiesProps> = ({
                   {
                     id: "generate-ai",
                     label: (
-                      <Tooltip content={UI_MESSAGES.AI_FEATURE_COMING_SOON}>
+                      <Tooltip
+                        content={UI_MESSAGES.AI_FEATURE_COMING_SOON}
+                        display="inline"
+                      >
                         <div className={aiMenuItemStyle}>
                           <TbSparkles className={aiIconStyle} />
                           Generate with AI

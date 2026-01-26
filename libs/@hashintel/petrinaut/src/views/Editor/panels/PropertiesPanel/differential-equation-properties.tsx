@@ -332,6 +332,7 @@ export const DifferentialEquationProperties: React.FC<
         <div style={{ position: "relative" }}>
           <Tooltip
             content={isReadOnly ? UI_MESSAGES.READ_ONLY_MODE : undefined}
+            display="inline"
           >
             <button
               type="button"
@@ -482,7 +483,10 @@ export const DifferentialEquationProperties: React.FC<
                 {
                   id: "generate-ai",
                   label: (
-                    <Tooltip content={UI_MESSAGES.AI_FEATURE_COMING_SOON}>
+                    <Tooltip
+                      content={UI_MESSAGES.AI_FEATURE_COMING_SOON}
+                      display="inline"
+                    >
                       <div className={aiMenuItemStyle}>
                         <TbSparkles className={aiIconStyle} />
                         Generate with AI

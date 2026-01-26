@@ -137,6 +137,7 @@ export const ModeSelector: React.FC<ModeSelectorProps> = ({
                 <Tooltip
                   key={option.value}
                   content="Simulate tab is disabled temporarily. Simulation is available in Edit Mode."
+                  display="inline"
                 >
                   <span>{item}</span>
                 </Tooltip>

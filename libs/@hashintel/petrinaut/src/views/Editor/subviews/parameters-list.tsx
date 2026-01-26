@@ -159,7 +159,10 @@ const ParametersHeaderAction: React.FC = () => {
   };
 
   return (
-    <Tooltip content={isReadOnly ? UI_MESSAGES.READ_ONLY_MODE : undefined}>
+    <Tooltip
+      content={isReadOnly ? UI_MESSAGES.READ_ONLY_MODE : undefined}
+      display="inline"
+    >
       <button
         type="button"
         disabled={isReadOnly}
@@ -248,6 +251,7 @@ const ParametersList: React.FC = () => {
                     content={
                       isReadOnly ? UI_MESSAGES.READ_ONLY_MODE : undefined
                     }
+                    display="inline"
                   >
                     <button
                       type="button"

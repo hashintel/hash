@@ -1,12 +1,7 @@
-import { ark } from "@ark-ui/react/factory";
 import { Switch as ArkSwitch } from "@ark-ui/react/switch";
 import { css } from "@hashintel/ds-helpers/css";
 
 import { Tooltip } from "./tooltip";
-
-const switchContainerStyle = css({
-  display: "inline-flex",
-});
 
 const controlStyle = css({
   position: "relative",
@@ -71,11 +66,9 @@ export const Switch: React.FC<SwitchProps> = ({
   );
 
   if (tooltip) {
-    // Wrap in ark.span to properly forward tooltip event handlers
-    // ArkSwitch.Root is a label element that doesn't forward all props needed by Tooltip
     return (
-      <Tooltip content={tooltip}>
-        <ark.span className={switchContainerStyle}>{switchElement}</ark.span>
+      <Tooltip content={tooltip} display="inline">
+        {switchElement}
       </Tooltip>
     );
   }

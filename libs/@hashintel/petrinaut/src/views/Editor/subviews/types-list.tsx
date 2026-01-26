@@ -209,6 +209,7 @@ const TypesSectionContent: React.FC = () => {
             <span className={typeNameStyle}>{type.name}</span>
             <Tooltip
               content={isReadOnly ? UI_MESSAGES.READ_ONLY_MODE : undefined}
+              display="inline"
             >
               <button
                 type="button"
@@ -251,7 +252,10 @@ const TypesSectionHeaderAction: React.FC = () => {
   const isReadOnly = useIsReadOnly();
 
   return (
-    <Tooltip content={isReadOnly ? UI_MESSAGES.READ_ONLY_MODE : undefined}>
+    <Tooltip
+      content={isReadOnly ? UI_MESSAGES.READ_ONLY_MODE : undefined}
+      display="inline"
+    >
       <button
         type="button"
         disabled={isReadOnly}

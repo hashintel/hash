@@ -1,5 +1,6 @@
+import { ark } from "@ark-ui/react/factory";
 import { Tooltip as ArkTooltip } from "@ark-ui/react/tooltip";
-import { css } from "@hashintel/ds-helpers/css";
+import { css, cva } from "@hashintel/ds-helpers/css";
 import type { SvgIconProps } from "@mui/material";
 import { SvgIcon, Tooltip as MuiTooltip } from "@mui/material";
 import type { FunctionComponent, ReactNode } from "react";
@@ -14,26 +15,49 @@ const tooltipContentStyle = css({
   padding: "[6px 10px]",
 });
 
+const triggerWrapperStyle = cva({
+  variants: {
+    display: {
+      /** For block-level elements like inputs, selects - takes full width */
+      block: {
+        display: "block",
+      },
+      /** For inline elements like buttons in flex containers */
+      inline: {
+        display: "inline-block",
+      },
+    },
+  },
+  defaultVariants: {
+    display: "block",
+  },
+});
+
 interface TooltipProps {
   /**
    * The tooltip content. When empty/undefined, children are rendered without tooltip wrapper.
    */
   content?: string;
   children: ReactNode;
+  /**
+   * Display mode for the wrapper element.
+   * - "block": For full-width elements like inputs/selects (default)
+   * - "inline": For inline elements like buttons in flex containers
+   */
+  display?: "block" | "inline";
 }
-
-const triggerWrapperStyle = css({
-  display: "inline-flex",
-  alignItems: "center",
-});
 
 /**
  * Tooltip component that wraps children and shows a tooltip on hover.
  *
- * Uses a wrapper div with inline-flex to ensure tooltips work on disabled elements
- * and preserve the natural dimensions of input elements.
+ * Uses a wrapper element to capture pointer events, enabling tooltips on disabled elements.
+ * Set `display="inline"` when wrapping inline elements like buttons.
  */
-export const Tooltip: React.FC<TooltipProps> = ({ content, children }) => {
+export const Tooltip: React.FC<TooltipProps> = ({
+  content,
+  children,
+  display = "block",
+}) => {
   if (!content) {
     return children;
   }
@@ -44,9 +68,10 @@ export const Tooltip: React.FC<TooltipProps> = ({ content, children }) => {
       closeDelay={0}
       positioning={{ placement: "top" }}
     >
-      {/* Wrapper div with inline-flex preserves input dimensions while enabling tooltips on disabled elements */}
       <ArkTooltip.Trigger asChild>
-        <div className={triggerWrapperStyle}>{children}</div>
+        <ark.span className={triggerWrapperStyle({ display })}>
+          {children}
+        </ark.span>
       </ArkTooltip.Trigger>
       <ArkTooltip.Positioner>
         <ArkTooltip.Content className={tooltipContentStyle}>

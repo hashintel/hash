@@ -443,6 +443,7 @@ export const TypeProperties: React.FC<TypePropertiesProps> = ({
           </div>
           <Tooltip
             content={isDisabled ? UI_MESSAGES.READ_ONLY_MODE : undefined}
+            display="inline"
           >
             <button
               type="button"
@@ -519,6 +520,7 @@ export const TypeProperties: React.FC<TypePropertiesProps> = ({
                 {/* Delete button */}
                 <Tooltip
                   content={isDisabled ? UI_MESSAGES.READ_ONLY_MODE : undefined}
+                  display="inline"
                 >
                   <button
                     type="button"
