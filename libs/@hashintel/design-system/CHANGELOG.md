@@ -1,5 +1,16 @@
 # @hashintel/design-system
 
+## 0.0.9
+
+### Patch Changes
+
+- [#7714](https://github.com/hashintel/hash/pull/7714) [`f7a47f1`](https://github.com/hashintel/hash/commit/f7a47f15f97eb5ef79a35edf76078a45bdc36cc6) Thanks [@CiaranMn](https://github.com/CiaranMn)! - add data type selector, more icons
+
+- [#7714](https://github.com/hashintel/hash/pull/7714) [`f7a47f1`](https://github.com/hashintel/hash/commit/f7a47f15f97eb5ef79a35edf76078a45bdc36cc6) Thanks [@CiaranMn](https://github.com/CiaranMn)! - remove @blockprotocol/graph dependency
+
+- Updated dependencies [[`f7a47f1`](https://github.com/hashintel/hash/commit/f7a47f15f97eb5ef79a35edf76078a45bdc36cc6)]:
+  - @blockprotocol/type-system@0.2.0
+
 ## 0.0.8
 
 ### Patch Changes

@@ -1,6 +1,6 @@
 {
   "name": "@hashintel/query-editor",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "description": "A visual editor for Block Protocol entity queries",
   "license": "AGPL-3.0",
   "repository": {
@@ -20,11 +20,11 @@
     "postpublish": "PACKAGE_DIR=$(pwd) yarn workspace @local/repo-chores exe scripts/postpublish.ts"
   },
   "dependencies": {
-    "@blockprotocol/graph": "0.4.0-canary.2",
-    "@blockprotocol/type-system": "0.1.2-canary.1",
+    "@blockprotocol/graph": "0.4.0",
+    "@blockprotocol/type-system": "0.2.0",
     "@fortawesome/free-regular-svg-icons": "6.7.2",
     "@fortawesome/free-solid-svg-icons": "6.7.2",
-    "@hashintel/design-system": "0.0.9-canary.2",
+    "@hashintel/design-system": "0.0.9",
     "clsx": "2.1.1"
   },
   "devDependencies": {

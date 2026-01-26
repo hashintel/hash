@@ -30,7 +30,7 @@
     "test:integration": "./scripts/test.sh"
   },
   "dependencies": {
-    "@blockprotocol/type-system": "0.1.2-canary.1",
+    "@blockprotocol/type-system": "0.2.0",
     "@local/hash-backend-utils": "0.0.0-private",
     "@local/hash-graph-client": "0.0.0-private",
     "@local/hash-graph-sdk": "0.0.0-private",

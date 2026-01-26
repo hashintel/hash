@@ -1,5 +1,14 @@
 # @hashintel/type-editor
 
+## 0.0.26
+
+### Patch Changes
+
+- Updated dependencies [[`f7a47f1`](https://github.com/hashintel/hash/commit/f7a47f15f97eb5ef79a35edf76078a45bdc36cc6), [`f7a47f1`](https://github.com/hashintel/hash/commit/f7a47f15f97eb5ef79a35edf76078a45bdc36cc6), [`f7a47f1`](https://github.com/hashintel/hash/commit/f7a47f15f97eb5ef79a35edf76078a45bdc36cc6), [`469eb01`](https://github.com/hashintel/hash/commit/469eb01a176e94f9ba881701e9d41f3c4390ca67)]:
+  - @blockprotocol/type-system@0.2.0
+  - @hashintel/design-system@0.0.9
+  - @blockprotocol/graph@0.4.0
+
 ## 0.0.25
 
 ### Patch Changes

@@ -1,6 +1,6 @@
 {
   "name": "@blockprotocol/graph",
-  "version": "0.4.0-canary.2",
+  "version": "0.4.0",
   "description": "Implementation of the Block Protocol Graph service specification for blocks and embedding applications",
   "keywords": [
     "blockprotocol",
@@ -67,7 +67,7 @@
   },
   "dependencies": {
     "@blockprotocol/core": "0.1.4",
-    "@blockprotocol/type-system": "0.1.2-canary.1",
+    "@blockprotocol/type-system": "0.2.0",
     "ajv": "8.17.1",
     "ajv-formats": "3.0.1",
     "json-schema-to-typescript": "15.0.4",
