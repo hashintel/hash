@@ -36,13 +36,15 @@ const numberInputStyle = cva({
   },
 });
 
-interface NumberInputProps
-  extends Omit<React.InputHTMLAttributes<HTMLInputElement>, "type"> {
+type NumberInputProps = Omit<
+  React.InputHTMLAttributes<HTMLInputElement>,
+  "type"
+> & {
   /** Whether the input has an error */
   hasError?: boolean;
   /** Ref to the input element */
   ref?: React.Ref<HTMLInputElement>;
-}
+};
 
 const NumberInputBase: React.FC<NumberInputProps> = ({
   hasError = false,

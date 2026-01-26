@@ -28,10 +28,10 @@ const selectStyle = cva({
   },
 });
 
-interface SelectProps extends React.SelectHTMLAttributes<HTMLSelectElement> {
+type SelectProps = React.SelectHTMLAttributes<HTMLSelectElement> & {
   /** Ref to the select element */
   ref?: React.Ref<HTMLSelectElement>;
-}
+};
 
 const SelectBase: React.FC<SelectProps> = ({
   disabled,

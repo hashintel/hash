@@ -79,8 +79,7 @@ const iconButtonStyle = cva({
   ],
 });
 
-interface IconButtonProps
-  extends React.ButtonHTMLAttributes<HTMLButtonElement> {
+type IconButtonProps = React.ButtonHTMLAttributes<HTMLButtonElement> & {
   /** Size variant */
   size?: "sm" | "md" | "lg";
   /** Style variant */
@@ -91,7 +90,7 @@ interface IconButtonProps
   "aria-label": string;
   /** Ref to the button element */
   ref?: React.Ref<HTMLButtonElement>;
-}
+};
 
 const IconButtonBase: React.FC<IconButtonProps> = ({
   size = "md",

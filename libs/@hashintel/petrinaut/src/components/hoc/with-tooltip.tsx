@@ -2,7 +2,7 @@ import type { ComponentType } from "react";
 
 import { Tooltip } from "../tooltip";
 
-interface WithTooltipProps {
+type WithTooltipProps = {
   /** Tooltip to show when hovering (useful for explaining disabled state). */
   tooltip?: string;
   /**
@@ -11,7 +11,7 @@ interface WithTooltipProps {
    * - "inline": For inline elements like buttons in flex containers
    */
   tooltipDisplay?: "block" | "inline";
-}
+};
 
 /**
  * Higher-Order Component that adds tooltip support to any component.

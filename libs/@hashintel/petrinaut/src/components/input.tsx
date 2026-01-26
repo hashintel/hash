@@ -42,15 +42,14 @@ const inputStyle = cva({
   },
 });
 
-interface InputProps
-  extends Omit<React.InputHTMLAttributes<HTMLInputElement>, "type"> {
+type InputProps = Omit<React.InputHTMLAttributes<HTMLInputElement>, "type"> & {
   /** Whether to use monospace font */
   monospace?: boolean;
   /** Whether the input has an error */
   hasError?: boolean;
   /** Ref to the input element */
   ref?: React.Ref<HTMLInputElement>;
-}
+};
 
 const InputBase: React.FC<InputProps> = ({
   monospace = false,

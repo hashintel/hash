@@ -51,14 +51,14 @@ const buttonStyle = cva({
   },
 });
 
-interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
+type ButtonProps = React.ButtonHTMLAttributes<HTMLButtonElement> & {
   /** Button variant */
   variant?: "default" | "ghost";
   /** Button content */
   children: React.ReactNode;
   /** Ref to the button element */
   ref?: React.Ref<HTMLButtonElement>;
-}
+};
 
 const ButtonBase: React.FC<ButtonProps> = ({
   variant = "default",

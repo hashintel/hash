@@ -31,11 +31,10 @@ const sliderStyle = css({
   },
 });
 
-interface SliderProps
-  extends Omit<React.InputHTMLAttributes<HTMLInputElement>, "type"> {
+type SliderProps = Omit<React.InputHTMLAttributes<HTMLInputElement>, "type"> & {
   /** Ref to the input element */
   ref?: React.Ref<HTMLInputElement>;
-}
+};
 
 const SliderBase: React.FC<SliderProps> = ({ className, ref, ...props }) => (
   <input
