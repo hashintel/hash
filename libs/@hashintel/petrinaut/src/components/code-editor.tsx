@@ -2,8 +2,8 @@ import { Tooltip as ArkTooltip } from "@ark-ui/react/tooltip";
 import { css, cva } from "@hashintel/ds-helpers/css";
 import type { EditorProps, Monaco } from "@monaco-editor/react";
 import MonacoEditor from "@monaco-editor/react";
-import type { editor } from "monaco-editor";
-import { useCallback, useRef, useState } from "react";
+import type { editor, IDisposable } from "monaco-editor";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import { Tooltip } from "./tooltip";
 
@@ -54,12 +54,32 @@ export const CodeEditor: React.FC<CodeEditorProps> = ({
 }) => {
   const isReadOnly = options?.readOnly === true;
   const [showReadOnlyTooltip, setShowReadOnlyTooltip] = useState(false);
+  const [isHovering, setIsHovering] = useState(false);
   const hideTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const editorRef = useRef<editor.IStandaloneCodeEditor | null>(null);
+  const editAttemptListenerRef = useRef<IDisposable | null>(null);
 
-  const handleMount = useCallback(
-    (editorInstance: editor.IStandaloneCodeEditor, monaco: Monaco) => {
-      if (isReadOnly && tooltip) {
-        editorInstance.onDidAttemptReadOnlyEdit(() => {
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (hideTimeoutRef.current) {
+        clearTimeout(hideTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  // Register/unregister edit attempt listener when isReadOnly changes
+  useEffect(() => {
+    // Dispose previous listener if exists
+    if (editAttemptListenerRef.current) {
+      editAttemptListenerRef.current.dispose();
+      editAttemptListenerRef.current = null;
+    }
+
+    // Register new listener if in read-only mode with tooltip
+    if (isReadOnly && tooltip && editorRef.current) {
+      editAttemptListenerRef.current =
+        editorRef.current.onDidAttemptReadOnlyEdit(() => {
           // Clear any existing timeout
           if (hideTimeoutRef.current) {
             clearTimeout(hideTimeoutRef.current);
@@ -73,6 +93,37 @@ export const CodeEditor: React.FC<CodeEditorProps> = ({
             setShowReadOnlyTooltip(false);
           }, 2000);
         });
+    }
+
+    return () => {
+      if (editAttemptListenerRef.current) {
+        editAttemptListenerRef.current.dispose();
+        editAttemptListenerRef.current = null;
+      }
+    };
+  }, [isReadOnly, tooltip]);
+
+  const handleMount = useCallback(
+    (editorInstance: editor.IStandaloneCodeEditor, monaco: Monaco) => {
+      editorRef.current = editorInstance;
+
+      // Register listener if already in read-only mode
+      if (isReadOnly && tooltip) {
+        editAttemptListenerRef.current =
+          editorInstance.onDidAttemptReadOnlyEdit(() => {
+            // Clear any existing timeout
+            if (hideTimeoutRef.current) {
+              clearTimeout(hideTimeoutRef.current);
+            }
+
+            // Show tooltip
+            setShowReadOnlyTooltip(true);
+
+            // Hide after 2 seconds
+            hideTimeoutRef.current = setTimeout(() => {
+              setShowReadOnlyTooltip(false);
+            }, 2000);
+          });
       }
 
       // Call the original onMount if provided
@@ -95,7 +146,7 @@ export const CodeEditor: React.FC<CodeEditorProps> = ({
     ...options,
   };
 
-  const editor = (
+  const editorElement = (
     <div className={containerStyle({ isReadOnly })} style={{ height }}>
       <MonacoEditor
         theme="vs-light"
@@ -107,17 +158,24 @@ export const CodeEditor: React.FC<CodeEditorProps> = ({
     </div>
   );
 
-  // In read-only mode with tooltip, use controlled tooltip that shows on edit attempts
+  // In read-only mode with tooltip, show on hover OR on edit attempt
   if (isReadOnly && tooltip) {
+    const isTooltipOpen = isHovering || showReadOnlyTooltip;
+
     return (
       <ArkTooltip.Root
-        open={showReadOnlyTooltip}
+        open={isTooltipOpen}
         openDelay={200}
         closeDelay={0}
         positioning={{ placement: "top" }}
       >
         <ArkTooltip.Trigger asChild>
-          <div>{editor}</div>
+          <div
+            onMouseEnter={() => setIsHovering(true)}
+            onMouseLeave={() => setIsHovering(false)}
+          >
+            {editorElement}
+          </div>
         </ArkTooltip.Trigger>
         <ArkTooltip.Positioner>
           <ArkTooltip.Content className={tooltipContentStyle}>
@@ -130,8 +188,8 @@ export const CodeEditor: React.FC<CodeEditorProps> = ({
 
   // Regular tooltip for non-read-only mode (if tooltip is provided)
   if (tooltip) {
-    return <Tooltip content={tooltip}>{editor}</Tooltip>;
+    return <Tooltip content={tooltip}>{editorElement}</Tooltip>;
   }
 
-  return editor;
+  return editorElement;
 };
