@@ -1,6 +1,7 @@
 {
   "name": "@hashintel/query-editor",
   "version": "0.0.4",
+  "private": true,
   "description": "A visual editor for Block Protocol entity queries",
   "license": "AGPL-3.0",
   "repository": {

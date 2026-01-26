@@ -58,7 +58,7 @@
     "lint": "npm-run-all --continue-on-error \"lint:*\"",
     "lint:tsc": "tsc --noEmit",
     "preflight:ladle": "ladle build && ladle preview",
-    "prepare": "yarn run codegen",
+    "prepare": "turbo run codegen",
     "test:snapshots": "ladle build && playwright test",
     "test:update": "ladle build && playwright test --update-snapshots"
   },

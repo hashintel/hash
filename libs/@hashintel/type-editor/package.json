@@ -1,6 +1,7 @@
 {
   "name": "@hashintel/type-editor",
   "version": "0.0.26",
+  "private": true,
   "description": "A visual editor for Block Protocol types",
   "license": "AGPL-3.0",
   "repository": {

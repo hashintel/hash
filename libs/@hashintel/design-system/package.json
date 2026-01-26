@@ -1,6 +1,7 @@
 {
   "name": "@hashintel/design-system",
   "version": "0.0.9",
+  "private": true,
   "description": "HASH Design System",
   "license": "(MIT OR Apache-2.0)",
   "repository": {
