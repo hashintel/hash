@@ -34,7 +34,7 @@
 //!
 //! ## Step 2: What About AND?
 //!
-//! Consider: `email = X AND name = "Alice"`
+//! Consider `email = X AND name = "Alice"`:
 //!
 //! Option A - Apply protection at top level:
 //! ```text
@@ -52,7 +52,7 @@
 //!
 //! ## Step 3: What About OR?
 //!
-//! Consider: `email = X OR name = "Alice"`
+//! Consider `email = X OR name = "Alice"`:
 //!
 //! Option A - Apply protection at top level:
 //! ```text
@@ -84,7 +84,7 @@
 //!
 //! ## Step 4: Handling NOT
 //!
-//! Consider: `NOT(email = X)`
+//! Consider `NOT(email = X)`.
 //!
 //! This returns all entities whose email is NOT equal to X. An attacker can use
 //! this for enumeration: if a User with email X exists, they won't appear in
@@ -123,7 +123,7 @@
 //!
 //! ## Step 5: NOT with OR Inside
 //!
-//! Consider: `NOT(email = X OR name = "Alice")`
+//! Consider `NOT(email = X OR name = "Alice")`.
 //!
 //! We established we need `AND NOT(type = User)` outside the NOT. Let's verify:
 //! ```text
@@ -146,7 +146,7 @@
 //!
 //! ## Step 6: De Morgan to the Rescue
 //!
-//! We want: `NOT(email = X) AND NOT(type = User)`
+//! We want `NOT(email = X) AND NOT(type = User)`.
 //!
 //! Using De Morgan's law in reverse:
 //! ```text
@@ -161,15 +161,15 @@
 //! **Key insight:** Instead of adding `AND NOT(type = User)` outside the NOT,
 //! we can add `OR type = User` INSIDE the NOT!
 //!
-//! Original: `NOT(email = X)`
-//! Transform to: `NOT(email = X OR type = User)`
+//! Original: `NOT(email = X)`.
+//! Transform to: `NOT(email = X OR type = User)`.
 //!
 //! This IS a leaf-level transformation (we modify the email condition),
 //! and De Morgan ensures it produces the protection we need.
 //!
 //! ## Step 7: NOT with OR - Applying at Leaf
 //!
-//! Now consider: `NOT(email = X OR name = "Alice")`
+//! Now consider `NOT(email = X OR name = "Alice")`.
 //!
 //! Apply `OR type = User` at the email leaf:
 //! ```text
@@ -195,7 +195,7 @@
 //!
 //! ## Step 8: NOT with AND Inside
 //!
-//! Now consider: `NOT(email = X AND name = "Alice")`
+//! Now consider `NOT(email = X AND name = "Alice")`.
 //!
 //! By De Morgan, original = `NOT(email=X) OR NOT(name="Alice")`.
 //! Returns entities where email≠X OR name≠Alice (at least one fails).
@@ -228,11 +228,11 @@
 //! Test with Invitation named "Alice" (email: Y):
 //! - Protected: `(true AND true) OR false` = true ✓
 //!
-//! Invitations work normally. ✓
+//! Invitations work normally.
 //!
 //! ## Step 9: Nested NOT
 //!
-//! Consider: `NOT(NOT(email = X))`
+//! Consider `NOT(NOT(email = X))`.
 //!
 //! We count NOT-depth from root to the email condition:
 //! ```text
@@ -264,7 +264,7 @@
 //! = email = X AND NOT(type = User)
 //! ```
 //!
-//! The double De Morgan preserves `AND NOT(type = User)`. ✓
+//! The double De Morgan preserves `AND NOT(type = User)`.
 //!
 //! **What if we mistakenly used `OR type = User` (depth 1 rule)?**
 //!
@@ -333,13 +333,13 @@
 //! - Email match: email = X (✓) vs email ≠ X (✗)
 //! - Name match: name = A (✓) vs name ≠ A (✗)
 //!
-//! Legend: `ret` = returned, `excl` = excluded, `(!)` = WRONG behavior
+//! Legend: `ret` = returned, `excl` = excluded, `(!)` = WRONG behavior.
 //!
 //! ## Case 1: `email = X`
 //!
 //! Original query returns entities where email equals X.
 //!
-//! Protected: `email = X AND NOT(type = User)`
+//! Protected: `email = X AND NOT(type = User)`.
 //!
 //! ```text
 //! | Type | email=X | Original | Protected | Correct? |
@@ -350,13 +350,13 @@
 //! | I    | ✗       | excl     | excl      | ✓        |
 //! ```
 //!
-//! Users never returned via email filter. Invitations work normally. ✓
+//! Users never returned via email filter. Invitations work normally.
 //!
 //! ## Case 2: `email = X AND name = A`
 //!
 //! Original returns entities matching BOTH conditions.
 //!
-//! Protected: `(email = X AND NOT(type = User)) AND name = A`
+//! Protected: `(email = X AND NOT(type = User)) AND name = A`.
 //!
 //! ```text
 //! | Type | email=X | name=A | Original | Protected | Correct? |
@@ -371,13 +371,13 @@
 //! | I    | ✗       | ✗      | excl     | excl      | ✓        |
 //! ```
 //!
-//! Users excluded. Invitations with both matches still returned. ✓
+//! Users excluded. Invitations with both matches still returned.
 //!
 //! ## Case 3: `email = X OR name = A`
 //!
 //! Original returns entities matching EITHER condition.
 //!
-//! Protected: `(email = X AND NOT(type = User)) OR name = A`
+//! Protected: `(email = X AND NOT(type = User)) OR name = A`.
 //!
 //! ```text
 //! | Type | email=X | name=A | Original | Protected | Correct? |
@@ -393,13 +393,13 @@
 //! ```
 //!
 //! Key insight: User with name=A is still returned (legitimate query).
-//! User with ONLY email match is excluded (email enumeration blocked). ✓
+//! User with ONLY email match is excluded (email enumeration blocked).
 //!
 //! ## Case 4: `NOT(email = X)`
 //!
 //! Original returns entities where email is NOT X.
 //!
-//! Protected: `NOT(email = X OR type = User)` = `NOT(email=X) AND NOT(type=User)`
+//! Protected: `NOT(email = X OR type = User)` = `NOT(email=X) AND NOT(type=User)`.
 //!
 //! ```text
 //! | Type | email=X | Original | Protected | Correct? |
@@ -411,14 +411,14 @@
 //! ```
 //!
 //! Without protection, attacker could count Users with email≠X to detect existence.
-//! With protection, Users are always excluded. ✓
+//! With protection, Users are always excluded.
 //!
 //! ## Case 5: `NOT(email = X OR name = A)`
 //!
 //! Original returns entities matching NEITHER condition.
 //!
 //! Protected: `NOT((email = X OR type = User) OR name = A)`
-//!          = `NOT(email=X) AND NOT(type=User) AND NOT(name=A)`
+//!          = `NOT(email=X) AND NOT(type=User) AND NOT(name=A)`.
 //!
 //! ```text
 //! | Type | email=X | name=A | Original | Protected | Correct? |
@@ -433,7 +433,7 @@
 //! | I    | ✗       | ✗      | ret      | ret       | ✓        |
 //! ```
 //!
-//! Users always excluded. Invitations matching neither condition still returned. ✓
+//! Users always excluded. Invitations matching neither condition still returned.
 //!
 //! ## Case 6: `NOT(email = X AND name = A)`
 //!
@@ -441,7 +441,7 @@
 //! By De Morgan: `NOT(email=X) OR NOT(name=A)` - returns if EITHER condition fails.
 //!
 //! The `email = X` is at depth 1 (odd) → add `OR type = User`:
-//! Protected: `NOT((email = X OR type = User) AND name = A)`
+//! Protected: `NOT((email = X OR type = User) AND name = A)`.
 //!
 //! Expanding via De Morgan:
 //! ```text
@@ -450,7 +450,7 @@
 //! = (NOT(email = X) AND NOT(type = User)) OR NOT(name = A)
 //! ```
 //!
-//! So protected query returns: `(email≠X AND not User) OR name≠A`
+//! So protected query returns: `(email≠X AND not User) OR name≠A`.
 //!
 //! ```text
 //! | Type | email=X | name=A | Original | Protected | Correct? |
@@ -467,14 +467,14 @@
 //!
 //! Key insight: In the original, User with email≠X, name=A would be returned
 //! via the `NOT(email=X)` branch - this is email-based and must be blocked.
-//! User with name≠A is still returned (legitimate, not email-based). ✓
+//! User with name≠A is still returned (legitimate, not email-based).
 //!
 //! ## Case 7: `NOT(NOT(email = X))`
 //!
 //! Double negation = `email = X`. Original returns entities where email = X.
 //!
 //! Protected (depth 2, even): `NOT(NOT(email = X AND NOT(type = User)))`
-//!                          = `email = X AND NOT(type = User)`
+//!                          = `email = X AND NOT(type = User)`.
 //!
 //! ```text
 //! | Type | email=X | Original | Protected | Correct? |
@@ -485,7 +485,7 @@
 //! | I    | ✗       | excl     | excl      | ✓        |
 //! ```
 //!
-//! Same as Case 1 - double NOT cancels, protection still works. ✓
+//! Same as Case 1 - double NOT cancels, protection still works.
 //!
 //! ## Case 8: `NOT(NOT(NOT(email = X)))`
 //!
@@ -493,7 +493,7 @@
 //!
 //! Protected (depth 3, odd): `NOT(NOT(NOT(email = X OR type = User)))`
 //!                         = `NOT(email = X OR type = User)`
-//!                         = `NOT(email=X) AND NOT(type=User)`
+//!                         = `NOT(email=X) AND NOT(type=User)`.
 //!
 //! ```text
 //! | Type | email=X | Original | Protected | Correct? |
@@ -504,14 +504,14 @@
 //! | I    | ✗       | ret      | ret       | ✓        |
 //! ```
 //!
-//! Same as Case 4 - triple NOT = single NOT, protection works. ✓
+//! Same as Case 4 - triple NOT = single NOT, protection works.
 //!
 //! ## Case 9: `NOT(name = A OR NOT(email = X))`
 //!
 //! Complex: Returns entities where name≠A AND email=X.
 //!
 //! Inner `NOT(email = X)` is at depth 2 (even) → use `AND NOT(type=User)`:
-//! `NOT(name = A OR NOT(email = X AND NOT(type = User)))`
+//! `NOT(name = A OR NOT(email = X AND NOT(type = User)))`.
 //!
 //! Let's expand: `NOT(email = X AND NOT(type=User))` at depth 1.
 //! This equals: `NOT(email=X) OR type=User` (De Morgan).
@@ -519,7 +519,7 @@
 //! Full: `NOT(name = A OR (NOT(email=X) OR type=User))`
 //!     = `NOT(name=A) AND NOT(NOT(email=X) OR type=User)`
 //!     = `NOT(name=A) AND (email=X AND NOT(type=User))`
-//!     = `name≠A AND email=X AND NOT(type=User)`
+//!     = `name≠A AND email=X AND NOT(type=User)`.
 //!
 //! ```text
 //! | Type | email=X | name=A | Original | Protected | Correct? |
@@ -534,7 +534,7 @@
 //! | I    | ✗       | ✗      | excl     | excl      | ✓        |
 //! ```
 //!
-//! Users excluded even in complex nested case. ✓
+//! Users excluded even in complex nested case.
 //!
 //! # Summary
 //!
@@ -611,6 +611,10 @@ impl FilterProtectionConfig {
     }
 
     /// Returns the default HASH configuration that protects email on User entities.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the hardcoded URLs are invalid (should never happen).
     #[must_use]
     pub fn hash_default() -> Self {
         let email_url = BaseUrl::new("https://hash.ai/@h/types/property-type/email/".to_owned())
@@ -636,7 +640,6 @@ impl FilterProtectionConfig {
     }
 
     /// Returns all protected properties.
-    #[must_use]
     pub fn protected_properties(&self) -> impl Iterator<Item = &BaseUrl> {
         self.property_to_excluded_types.keys()
     }
@@ -651,8 +654,8 @@ impl FilterProtectionConfig {
 /// Collects all entity types that should be excluded based on protected properties in a filter.
 ///
 /// Returns a set of entity type URLs that need `NOT(type = X)` exclusions.
-fn collect_excluded_types<'p>(
-    filter: &Filter<'p, Entity>,
+fn collect_excluded_types(
+    filter: &Filter<'_, Entity>,
     config: &FilterProtectionConfig,
 ) -> HashSet<BaseUrl> {
     let mut excluded = HashSet::new();
@@ -660,15 +663,15 @@ fn collect_excluded_types<'p>(
     excluded
 }
 
-fn collect_excluded_types_recursive<'p>(
-    filter: &Filter<'p, Entity>,
+fn collect_excluded_types_recursive(
+    filter: &Filter<'_, Entity>,
     config: &FilterProtectionConfig,
     excluded: &mut HashSet<BaseUrl>,
 ) {
     match filter {
         Filter::All(filters) | Filter::Any(filters) => {
-            for f in filters {
-                collect_excluded_types_recursive(f, config, excluded);
+            for filter in filters {
+                collect_excluded_types_recursive(filter, config, excluded);
             }
         }
         Filter::Not(inner) => collect_excluded_types_recursive(inner, config, excluded),
@@ -683,10 +686,10 @@ fn collect_excluded_types_recursive<'p>(
         | Filter::ContainsSegment(lhs, rhs) => {
             collect_from_comparison(lhs, rhs, config, excluded);
         }
-        Filter::CosineDistance(a, b, c) => {
-            collect_from_expr(a, config, excluded);
-            collect_from_expr(b, config, excluded);
-            collect_from_expr(c, config, excluded);
+        Filter::CosineDistance(lhs, rhs, distance) => {
+            collect_from_expr(lhs, config, excluded);
+            collect_from_expr(rhs, config, excluded);
+            collect_from_expr(distance, config, excluded);
         }
         Filter::In(expr, _) => collect_from_expr(expr, config, excluded),
         Filter::Exists { path } => collect_from_path(path, config, excluded),
@@ -741,10 +744,10 @@ fn collect_from_parameter(
     if let Parameter::Any(PropertyValue::Object(obj)) = parameter {
         for key in obj.keys() {
             // Try to parse the key as a BaseUrl and check if it's protected
-            if let Ok(url) = BaseUrl::new(key.clone()) {
-                if let Some(types) = config.excluded_types_for(&url) {
-                    excluded.extend(types.iter().cloned());
-                }
+            if let Ok(url) = BaseUrl::new(key.clone())
+                && let Some(types) = config.excluded_types_for(&url)
+            {
+                excluded.extend(types.iter().cloned());
             }
         }
     }
@@ -752,19 +755,16 @@ fn collect_from_parameter(
 
 /// Collects excluded types from a JSON path (property path).
 fn collect_from_json_path(
-    json_path: &Option<JsonPath<'_>>,
+    json_path: Option<&JsonPath<'_>>,
     config: &FilterProtectionConfig,
     excluded: &mut HashSet<BaseUrl>,
 ) {
-    if let Some(jp) = json_path {
-        if let Some(PathToken::Field(field)) = jp.path_tokens().first() {
-            // Try to parse the field as a BaseUrl
-            if let Ok(url) = BaseUrl::new(field.to_string()) {
-                if let Some(types) = config.excluded_types_for(&url) {
-                    excluded.extend(types.iter().cloned());
-                }
-            }
-        }
+    if let Some(jp) = json_path
+        && let Some(PathToken::Field(field)) = jp.path_tokens().first()
+        && let Ok(url) = BaseUrl::new(field.to_string())
+        && let Some(types) = config.excluded_types_for(&url)
+    {
+        excluded.extend(types.iter().cloned());
     }
 }
 
@@ -775,9 +775,11 @@ fn collect_from_path(
 ) {
     use crate::entity::EntityQueryPath;
 
+    // Different TODO comments track distinct future work items, so suppress the warning.
+    #[expect(clippy::match_same_arms, reason = "TODOs track different work items")]
     match path {
         EntityQueryPath::Properties(json_path) | EntityQueryPath::PropertyMetadata(json_path) => {
-            collect_from_json_path(json_path, config, excluded);
+            collect_from_json_path(json_path.as_ref(), config, excluded);
         }
         EntityQueryPath::EntityEdge { path, .. } => collect_from_path(path, config, excluded),
         EntityQueryPath::Label { .. }
@@ -829,6 +831,7 @@ fn collect_from_path(
 ///
 /// This ensures that entities of excluded types are never returned via
 /// protected property filters, while preserving other filter branches.
+#[must_use]
 pub fn transform_filter<'p>(
     filter: Filter<'p, Entity>,
     config: &FilterProtectionConfig,
@@ -845,17 +848,28 @@ pub fn transform_filter<'p>(
         Filter::All(filters) => Filter::All(
             filters
                 .into_iter()
-                .map(|f| transform_filter(f, config, not_depth))
+                .map(|inner| transform_filter(inner, config, not_depth))
                 .collect(),
         ),
         Filter::Any(filters) => Filter::Any(
             filters
                 .into_iter()
-                .map(|f| transform_filter(f, config, not_depth))
+                .map(|inner| transform_filter(inner, config, not_depth))
                 .collect(),
         ),
-        // Leaf nodes - check if protection is needed
-        leaf => {
+        // All comparison/leaf filters are handled uniformly.
+        leaf @ (Filter::Equal(..)
+        | Filter::NotEqual(..)
+        | Filter::Exists { .. }
+        | Filter::Greater(..)
+        | Filter::GreaterOrEqual(..)
+        | Filter::Less(..)
+        | Filter::LessOrEqual(..)
+        | Filter::CosineDistance(..)
+        | Filter::In(..)
+        | Filter::StartsWith(..)
+        | Filter::EndsWith(..)
+        | Filter::ContainsSegment(..)) => {
             let excluded_types = collect_excluded_types(&leaf, config);
             if excluded_types.is_empty() {
                 leaf
@@ -875,7 +889,7 @@ fn wrap_with_protection<'p>(
     excluded_types: &HashSet<BaseUrl>,
     not_depth: usize,
 ) -> Filter<'p, Entity> {
-    if not_depth % 2 == 0 {
+    if not_depth.is_multiple_of(2) {
         // Even depth: AND NOT(type = X) for each excluded type
         let mut filters = vec![filter];
         for excluded_type in excluded_types {
@@ -928,14 +942,14 @@ mod tests {
     const USER_TYPE_BASE_URL: &str = "https://hash.ai/@h/types/entity-type/user/";
 
     fn email_base_url() -> BaseUrl {
-        BaseUrl::new(EMAIL_BASE_URL.to_owned()).unwrap()
+        BaseUrl::new(EMAIL_BASE_URL.to_owned()).expect("should be a valid URL")
     }
 
     fn user_type_base_url() -> BaseUrl {
-        BaseUrl::new(USER_TYPE_BASE_URL.to_owned()).unwrap()
+        BaseUrl::new(USER_TYPE_BASE_URL.to_owned()).expect("should be a valid URL")
     }
 
-    /// Config that protects email on User entities
+    /// Config that protects email on User entities.
     fn email_protection_config() -> FilterProtectionConfig {
         FilterProtectionConfig::new()
             .protect_property(email_base_url(), HashSet::from([user_type_base_url()]))
@@ -1350,7 +1364,7 @@ mod tests {
     mod transform {
         use super::*;
 
-        /// Creates `User IN TypeBaseUrls` filter (entity has User type)
+        /// Creates `User IN TypeBaseUrls` filter (entity has User type).
         fn type_is_user() -> Filter<'static, Entity> {
             Filter::In(
                 FilterExpression::Parameter {
@@ -1363,7 +1377,7 @@ mod tests {
             )
         }
 
-        /// Creates `NOT(User IN TypeBaseUrls)` filter (entity does not have User type)
+        /// Creates `NOT(User IN TypeBaseUrls)` filter (entity does not have User type).
         fn type_is_not_user() -> Filter<'static, Entity> {
             not(type_is_user())
         }

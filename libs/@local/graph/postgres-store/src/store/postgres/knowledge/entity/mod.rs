@@ -533,7 +533,7 @@ where
         // For all other actors (users, AI), protect email property to prevent enumeration.
         let should_protect_email = policy_components
             .actor_id()
-            .map_or(true, |id| id.actor_type() != ActorType::Machine);
+            .is_none_or(|id| id.actor_type() != ActorType::Machine);
 
         let protected_filter;
         let filter_to_use = if should_protect_email {
@@ -1718,7 +1718,7 @@ where
         // For all other actors (users, AI), protect email property to prevent enumeration.
         let should_protect_email = policy_components
             .actor_id()
-            .map_or(true, |id| id.actor_type() != ActorType::Machine);
+            .is_none_or(|id| id.actor_type() != ActorType::Machine);
 
         let protected_filter;
         let filter_to_use = if should_protect_email {
