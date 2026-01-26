@@ -30,7 +30,7 @@
     "fix:eslint": "eslint --fix .",
     "lint:eslint": "eslint --report-unused-disable-directives .",
     "lint:tsc": "tsc --noEmit",
-    "prepare": "turbo run build",
+    "prepublishOnly": "turbo run build",
     "preview": "vite preview",
     "test:unit": "vitest"
   },
