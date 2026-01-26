@@ -126,17 +126,13 @@ export const createFlowSchedule: ImpureGraphFunction<
           dataTypeId: "https://hash.ai/@h/types/data-type/millisecond/v/1",
         },
       },
-      ...(pauseOnFailure !== defaultSchedulePauseOnFailure
-        ? {
-            "https://hash.ai/@h/types/property-type/pause-on-failure/": {
-              value: pauseOnFailure,
-              metadata: {
-                dataTypeId:
-                  "https://blockprotocol.org/@blockprotocol/types/data-type/boolean/v/1",
-              },
-            },
-          }
-        : {}),
+      "https://hash.ai/@h/types/property-type/pause-on-failure/": {
+        value: pauseOnFailure,
+        metadata: {
+          dataTypeId:
+            "https://blockprotocol.org/@blockprotocol/types/data-type/boolean/v/1",
+        },
+      },
       ...(dataSources
         ? {
             "https://hash.ai/@h/types/property-type/data-sources/": {
