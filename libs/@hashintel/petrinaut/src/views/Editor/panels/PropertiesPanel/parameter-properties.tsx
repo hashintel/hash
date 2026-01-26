@@ -1,6 +1,6 @@
-import { css, cva } from "@hashintel/ds-helpers/css";
+import { css } from "@hashintel/ds-helpers/css";
 
-import { Tooltip } from "../../../../components/tooltip";
+import { Input } from "../../../../components/input";
 import { UI_MESSAGES } from "../../../../constants/ui-messages";
 import type { Parameter } from "../../../../core/types/sdcpn";
 import { useIsReadOnly } from "../../../../state/use-is-read-only";
@@ -21,38 +21,6 @@ const fieldLabelStyle = css({
   fontWeight: "medium",
   fontSize: "[12px]",
   marginBottom: "[4px]",
-});
-
-const inputStyle = cva({
-  base: {
-    fontSize: "[14px]",
-    padding: "[6px 8px]",
-    border: "[1px solid rgba(0, 0, 0, 0.15)]",
-    borderRadius: "[4px]",
-    width: "[100%]",
-  },
-  variants: {
-    isDisabled: {
-      true: {
-        backgroundColor: "[rgba(0, 0, 0, 0.02)]",
-        cursor: "not-allowed",
-      },
-      false: {
-        backgroundColor: "[white]",
-        cursor: "text",
-      },
-    },
-    isMonospace: {
-      true: {
-        fontFamily: "[monospace]",
-      },
-      false: {},
-    },
-  },
-  defaultVariants: {
-    isDisabled: false,
-    isMonospace: false,
-  },
 });
 
 /**
@@ -143,30 +111,25 @@ export const ParameterProperties: React.FC<ParameterPropertiesProps> = ({
       {/* Name field */}
       <div>
         <div className={fieldLabelStyle}>Name</div>
-        <Tooltip content={isDisabled ? UI_MESSAGES.READ_ONLY_MODE : undefined}>
-          <input
-            type="text"
-            value={parameter.name}
-            onChange={handleUpdateName}
-            disabled={isDisabled}
-            className={inputStyle({ isDisabled })}
-          />
-        </Tooltip>
+        <Input
+          value={parameter.name}
+          onChange={handleUpdateName}
+          disabled={isDisabled}
+          tooltip={isDisabled ? UI_MESSAGES.READ_ONLY_MODE : undefined}
+        />
       </div>
 
       {/* Variable Name field */}
       <div>
         <div className={fieldLabelStyle}>Variable Name</div>
-        <Tooltip content={isDisabled ? UI_MESSAGES.READ_ONLY_MODE : undefined}>
-          <input
-            type="text"
-            value={parameter.variableName}
-            onChange={handleUpdateVariableName}
-            onBlur={handleBlurVariableName}
-            disabled={isDisabled}
-            className={inputStyle({ isDisabled, isMonospace: true })}
-          />
-        </Tooltip>
+        <Input
+          value={parameter.variableName}
+          onChange={handleUpdateVariableName}
+          onBlur={handleBlurVariableName}
+          disabled={isDisabled}
+          monospace
+          tooltip={isDisabled ? UI_MESSAGES.READ_ONLY_MODE : undefined}
+        />
       </div>
 
       {/* Type selector - hidden for now as internal code relies on "real" type */}
@@ -174,15 +137,13 @@ export const ParameterProperties: React.FC<ParameterPropertiesProps> = ({
       {/* Default Value field */}
       <div>
         <div className={fieldLabelStyle}>Default Value</div>
-        <Tooltip content={isDisabled ? UI_MESSAGES.READ_ONLY_MODE : undefined}>
-          <input
-            type="text"
-            value={parameter.defaultValue}
-            onChange={handleUpdateDefaultValue}
-            disabled={isDisabled}
-            className={inputStyle({ isDisabled, isMonospace: true })}
-          />
-        </Tooltip>
+        <Input
+          value={parameter.defaultValue}
+          onChange={handleUpdateDefaultValue}
+          disabled={isDisabled}
+          monospace
+          tooltip={isDisabled ? UI_MESSAGES.READ_ONLY_MODE : undefined}
+        />
       </div>
     </div>
   );

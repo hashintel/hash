@@ -4,7 +4,9 @@ import { css, cva } from "@hashintel/ds-helpers/css";
 import { useState } from "react";
 import { TbDotsVertical, TbSparkles } from "react-icons/tb";
 
+import { Button } from "../../../../components/button";
 import { CodeEditor } from "../../../../components/code-editor";
+import { Input } from "../../../../components/input";
 import { Menu } from "../../../../components/menu";
 import { Tooltip } from "../../../../components/tooltip";
 import { UI_MESSAGES } from "../../../../constants/ui-messages";
@@ -38,51 +40,19 @@ const fieldLabelStyle = css({
   marginBottom: "[4px]",
 });
 
-const inputStyle = cva({
-  base: {
-    fontSize: "[14px]",
-    padding: "[6px 8px]",
-    border: "[1px solid rgba(0, 0, 0, 0.1)]",
-    borderRadius: "[4px]",
-    width: "[100%]",
-    boxSizing: "border-box",
-  },
-  variants: {
-    isReadOnly: {
-      true: {
-        backgroundColor: "[rgba(0, 0, 0, 0.05)]",
-        cursor: "not-allowed",
-      },
-      false: {
-        backgroundColor: "[white]",
-        cursor: "text",
-      },
-    },
-  },
-});
-
 const typeDropdownButtonStyle = cva({
   base: {
     width: "[100%]",
     fontSize: "[14px]",
     padding: "[6px 8px]",
-    border: "[1px solid rgba(0, 0, 0, 0.1)]",
-    borderRadius: "[4px]",
     display: "flex",
-    alignItems: "center",
     gap: "[8px]",
     textAlign: "left",
   },
   variants: {
-    isReadOnly: {
-      true: {
-        backgroundColor: "[rgba(0, 0, 0, 0.05)]",
-        cursor: "not-allowed",
-      },
-      false: {
-        backgroundColor: "[white]",
-        cursor: "pointer",
-      },
+    isDisabled: {
+      true: {},
+      false: {},
     },
   },
 });
@@ -309,49 +279,41 @@ export const DifferentialEquationProperties: React.FC<
 
       <div>
         <div className={fieldLabelStyle}>Name</div>
-        <Tooltip content={isReadOnly ? UI_MESSAGES.READ_ONLY_MODE : undefined}>
-          <input
-            type="text"
-            value={differentialEquation.name}
-            onChange={(event) => {
-              updateDifferentialEquation(
-                differentialEquation.id,
-                (existingEquation) => {
-                  existingEquation.name = event.target.value;
-                },
-              );
-            }}
-            disabled={isReadOnly}
-            className={inputStyle({ isReadOnly })}
-          />
-        </Tooltip>
+        <Input
+          value={differentialEquation.name}
+          onChange={(event) => {
+            updateDifferentialEquation(
+              differentialEquation.id,
+              (existingEquation) => {
+                existingEquation.name = event.target.value;
+              },
+            );
+          }}
+          disabled={isReadOnly}
+          tooltip={isReadOnly ? UI_MESSAGES.READ_ONLY_MODE : undefined}
+        />
       </div>
 
       <div>
         <div className={fieldLabelStyle}>Associated Type</div>
         <div style={{ position: "relative" }}>
-          <Tooltip
-            content={isReadOnly ? UI_MESSAGES.READ_ONLY_MODE : undefined}
-            display="inline"
+          <Button
+            onClick={() => setShowTypeDropdown(!showTypeDropdown)}
+            onBlur={() => setTimeout(() => setShowTypeDropdown(false), 200)}
+            disabled={isReadOnly}
+            className={typeDropdownButtonStyle({ isDisabled: isReadOnly })}
+            tooltip={isReadOnly ? UI_MESSAGES.READ_ONLY_MODE : undefined}
           >
-            <button
-              type="button"
-              onClick={() => setShowTypeDropdown(!showTypeDropdown)}
-              onBlur={() => setTimeout(() => setShowTypeDropdown(false), 200)}
-              disabled={isReadOnly}
-              className={typeDropdownButtonStyle({ isReadOnly })}
-            >
-              {associatedType && (
-                <>
-                  <div
-                    className={colorDotStyle}
-                    style={{ backgroundColor: associatedType.displayColor }}
-                  />
-                  <span>{associatedType.name}</span>
-                </>
-              )}
-            </button>
-          </Tooltip>
+            {associatedType && (
+              <>
+                <div
+                  className={colorDotStyle}
+                  style={{ backgroundColor: associatedType.displayColor }}
+                />
+                <span>{associatedType.name}</span>
+              </>
+            )}
+          </Button>
           {showTypeDropdown && !isReadOnly && (
             <div className={dropdownMenuStyle}>
               {types.map((type) => (
@@ -429,20 +391,15 @@ export const DifferentialEquationProperties: React.FC<
               you want to continue?
             </div>
             <div className={confirmDialogButtonsStyle}>
-              <button
-                type="button"
-                onClick={cancelTypeChange}
-                className={cancelButtonStyle}
-              >
+              <Button onClick={cancelTypeChange} className={cancelButtonStyle}>
                 Cancel
-              </button>
-              <button
-                type="button"
+              </Button>
+              <Button
                 onClick={confirmTypeChange}
                 className={confirmButtonStyle}
               >
                 Change Type
-              </button>
+              </Button>
             </div>
           </div>
         </div>

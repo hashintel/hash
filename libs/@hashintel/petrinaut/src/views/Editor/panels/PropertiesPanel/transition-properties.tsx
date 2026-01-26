@@ -15,11 +15,13 @@ import {
   sortableKeyboardCoordinates,
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
-import { css, cva } from "@hashintel/ds-helpers/css";
+import { css } from "@hashintel/ds-helpers/css";
 import { use } from "react";
 import { TbDotsVertical, TbSparkles, TbTrash } from "react-icons/tb";
 
 import { CodeEditor } from "../../../../components/code-editor";
+import { IconButton } from "../../../../components/icon-button";
+import { Input } from "../../../../components/input";
 import { Menu } from "../../../../components/menu";
 import { SegmentGroup } from "../../../../components/segment-group";
 import { InfoIconTooltip, Tooltip } from "../../../../components/tooltip";
@@ -52,66 +54,10 @@ const headerTitleStyle = css({
   fontSize: "[16px]",
 });
 
-const deleteButtonStyle = cva({
-  base: {
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    width: "[24px]",
-    height: "[24px]",
-    padding: "0",
-    border: "none",
-    background: "[transparent]",
-    color: "gray.60",
-    borderRadius: "md.4",
-  },
-  variants: {
-    isDisabled: {
-      true: {
-        cursor: "not-allowed",
-        opacity: "[0.5]",
-      },
-      false: {
-        cursor: "pointer",
-        _hover: {
-          color: "red.60",
-          backgroundColor: "red.10",
-        },
-      },
-    },
-  },
-  defaultVariants: {
-    isDisabled: false,
-  },
-});
-
 const fieldLabelStyle = css({
   fontWeight: "medium",
   fontSize: "[12px]",
   marginBottom: "[4px]",
-});
-
-const inputStyle = cva({
-  base: {
-    fontSize: "[14px]",
-    padding: "[6px 8px]",
-    border: "[1px solid rgba(0, 0, 0, 0.1)]",
-    borderRadius: "[4px]",
-    width: "[100%]",
-    boxSizing: "border-box",
-  },
-  variants: {
-    isReadOnly: {
-      true: {
-        backgroundColor: "[rgba(0, 0, 0, 0.05)]",
-        cursor: "not-allowed",
-      },
-      false: {
-        backgroundColor: "[white]",
-        cursor: "text",
-      },
-    },
-  },
 });
 
 const sectionContainerStyle = css({
@@ -319,46 +265,39 @@ export const TransitionProperties: React.FC<TransitionPropertiesProps> = ({
       <div>
         <div className={headerContainerStyle}>
           <div className={headerTitleStyle}>Transition</div>
-          <Tooltip
-            content={isReadOnly ? UI_MESSAGES.READ_ONLY_MODE : "Delete"}
-            display="inline"
+          <IconButton
+            aria-label="Delete"
+            variant="danger"
+            onClick={() => {
+              if (
+                // eslint-disable-next-line no-alert
+                window.confirm(
+                  `Are you sure you want to delete "${transition.name}"? All arcs connected to this transition will also be removed.`,
+                )
+              ) {
+                removeTransition(transition.id);
+              }
+            }}
+            disabled={isReadOnly}
+            tooltip={isReadOnly ? UI_MESSAGES.READ_ONLY_MODE : "Delete"}
           >
-            <button
-              type="button"
-              onClick={() => {
-                if (
-                  // eslint-disable-next-line no-alert
-                  window.confirm(
-                    `Are you sure you want to delete "${transition.name}"? All arcs connected to this transition will also be removed.`,
-                  )
-                ) {
-                  removeTransition(transition.id);
-                }
-              }}
-              disabled={isReadOnly}
-              className={deleteButtonStyle({ isDisabled: isReadOnly })}
-            >
-              <TbTrash size={16} />
-            </button>
-          </Tooltip>
+            <TbTrash size={16} />
+          </IconButton>
         </div>
       </div>
 
       <div>
         <div className={fieldLabelStyle}>Name</div>
-        <Tooltip content={isReadOnly ? UI_MESSAGES.READ_ONLY_MODE : undefined}>
-          <input
-            type="text"
-            value={transition.name}
-            onChange={(event) => {
-              updateTransition(transition.id, (existingTransition) => {
-                existingTransition.name = event.target.value;
-              });
-            }}
-            disabled={isReadOnly}
-            className={inputStyle({ isReadOnly })}
-          />
-        </Tooltip>
+        <Input
+          value={transition.name}
+          onChange={(event) => {
+            updateTransition(transition.id, (existingTransition) => {
+              existingTransition.name = event.target.value;
+            });
+          }}
+          disabled={isReadOnly}
+          tooltip={isReadOnly ? UI_MESSAGES.READ_ONLY_MODE : undefined}
+        />
       </div>
 
       <div className={sectionContainerStyle}>

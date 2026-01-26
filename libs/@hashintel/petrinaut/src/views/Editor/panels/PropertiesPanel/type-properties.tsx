@@ -2,6 +2,8 @@ import { css, cva } from "@hashintel/ds-helpers/css";
 import { useState } from "react";
 import { v4 as uuidv4 } from "uuid";
 
+import { Button } from "../../../../components/button";
+import { Input } from "../../../../components/input";
 import { Tooltip } from "../../../../components/tooltip";
 import { UI_MESSAGES } from "../../../../constants/ui-messages";
 import type { Color } from "../../../../core/types/sdcpn";
@@ -26,29 +28,6 @@ const fieldLabelStyle = css({
   marginBottom: "[4px]",
 });
 
-const inputStyle = cva({
-  base: {
-    fontSize: "[14px]",
-    padding: "[6px 8px]",
-    border: "[1px solid rgba(0, 0, 0, 0.1)]",
-    borderRadius: "[4px]",
-    width: "[100%]",
-    boxSizing: "border-box",
-  },
-  variants: {
-    isDisabled: {
-      true: {
-        backgroundColor: "[rgba(0, 0, 0, 0.05)]",
-        cursor: "not-allowed",
-      },
-      false: {
-        backgroundColor: "[white]",
-        cursor: "text",
-      },
-    },
-  },
-});
-
 const dimensionsHeaderStyle = css({
   display: "flex",
   alignItems: "center",
@@ -68,29 +47,11 @@ const dimensionsHintStyle = css({
   fontWeight: "normal",
 });
 
-const addDimensionButtonStyle = cva({
-  base: {
-    fontSize: "[16px]",
-    padding: "[2px 8px]",
-    borderRadius: "[4px]",
-    border: "[1px solid rgba(0, 0, 0, 0.1)]",
-    fontWeight: "semibold",
-    cursor: "pointer",
-  },
-  variants: {
-    isDisabled: {
-      true: {
-        backgroundColor: "[rgba(0, 0, 0, 0.05)]",
-        color: "[#999]",
-        cursor: "not-allowed",
-      },
-      false: {
-        backgroundColor: "[rgba(59, 130, 246, 0.1)]",
-        color: "[#3b82f6]",
-        cursor: "pointer",
-      },
-    },
-  },
+const addDimensionButtonStyle = css({
+  fontSize: "[16px]",
+  padding: "[2px 8px]",
+  backgroundColor: "[rgba(59, 130, 246, 0.1)]",
+  color: "[#3b82f6]",
 });
 
 const emptyDimensionsStyle = css({
@@ -180,26 +141,10 @@ const indexChipStyle = css({
   flexShrink: 0,
 });
 
-const dimensionNameInputStyle = cva({
-  base: {
-    fontSize: "[13px]",
-    padding: "[5px 8px]",
-    border: "[1px solid rgba(0, 0, 0, 0.15)]",
-    borderRadius: "[3px]",
-    flex: "1",
-  },
-  variants: {
-    isDisabled: {
-      true: {
-        backgroundColor: "[rgba(0, 0, 0, 0.02)]",
-        cursor: "not-allowed",
-      },
-      false: {
-        backgroundColor: "[white]",
-        cursor: "text",
-      },
-    },
-  },
+const dimensionNameInputStyle = css({
+  fontSize: "[13px]",
+  padding: "[5px 8px]",
+  flex: "1",
 });
 
 const deleteDimensionButtonStyle = css({
@@ -210,22 +155,9 @@ const deleteDimensionButtonStyle = css({
   border: "[1px solid rgba(239, 68, 68, 0.2)]",
   backgroundColor: "[rgba(239, 68, 68, 0.08)]",
   color: "[#ef4444]",
-  cursor: "pointer",
   fontWeight: "semibold",
   lineHeight: "[1]",
-  transition: "[all 0.15s ease]",
   flexShrink: 0,
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-  _hover: {
-    backgroundColor: "[rgba(239, 68, 68, 0.15)]",
-  },
-  _disabled: {
-    backgroundColor: "[rgba(0, 0, 0, 0.02)]",
-    color: "[#ccc]",
-    cursor: "not-allowed",
-  },
 });
 
 // --- Helpers ---
@@ -404,19 +336,16 @@ export const TypeProperties: React.FC<TypePropertiesProps> = ({
 
       <div>
         <div className={fieldLabelStyle}>Name</div>
-        <Tooltip content={isDisabled ? UI_MESSAGES.READ_ONLY_MODE : undefined}>
-          <input
-            type="text"
-            value={type.name}
-            onChange={(event) => {
-              updateType(type.id, (existingType) => {
-                existingType.name = event.target.value;
-              });
-            }}
-            disabled={isDisabled}
-            className={inputStyle({ isDisabled })}
-          />
-        </Tooltip>
+        <Input
+          value={type.name}
+          onChange={(event) => {
+            updateType(type.id, (existingType) => {
+              existingType.name = event.target.value;
+            });
+          }}
+          disabled={isDisabled}
+          tooltip={isDisabled ? UI_MESSAGES.READ_ONLY_MODE : undefined}
+        />
       </div>
 
       <div>
@@ -441,20 +370,15 @@ export const TypeProperties: React.FC<TypePropertiesProps> = ({
             Dimensions
             <span className={dimensionsHintStyle}>(order matters)</span>
           </div>
-          <Tooltip
-            content={isDisabled ? UI_MESSAGES.READ_ONLY_MODE : undefined}
-            display="inline"
+          <Button
+            onClick={handleAddElement}
+            disabled={isDisabled}
+            className={addDimensionButtonStyle}
+            aria-label="Add dimension"
+            tooltip={isDisabled ? UI_MESSAGES.READ_ONLY_MODE : undefined}
           >
-            <button
-              type="button"
-              onClick={handleAddElement}
-              disabled={isDisabled}
-              className={addDimensionButtonStyle({ isDisabled })}
-              aria-label="Add dimension"
-            >
-              +
-            </button>
-          </Tooltip>
+            +
+          </Button>
         </div>
 
         {type.elements.length === 0 ? (
@@ -493,47 +417,38 @@ export const TypeProperties: React.FC<TypePropertiesProps> = ({
                 <div className={indexChipStyle}>{index}</div>
 
                 {/* Name input */}
-                <Tooltip
-                  content={isDisabled ? UI_MESSAGES.READ_ONLY_MODE : undefined}
-                >
-                  <input
-                    type="text"
-                    value={element.name}
-                    onChange={(event) => {
-                      handleUpdateElementName(
-                        element.elementId,
-                        event.target.value,
-                      );
-                    }}
-                    onBlur={(event) => {
-                      handleBlurElementName(
-                        element.elementId,
-                        event.target.value,
-                      );
-                    }}
-                    disabled={isDisabled}
-                    placeholder="dimension_name"
-                    className={dimensionNameInputStyle({ isDisabled })}
-                  />
-                </Tooltip>
+                <Input
+                  value={element.name}
+                  onChange={(event) => {
+                    handleUpdateElementName(
+                      element.elementId,
+                      event.target.value,
+                    );
+                  }}
+                  onBlur={(event) => {
+                    handleBlurElementName(
+                      element.elementId,
+                      event.target.value,
+                    );
+                  }}
+                  disabled={isDisabled}
+                  placeholder="dimension_name"
+                  className={dimensionNameInputStyle}
+                  tooltip={isDisabled ? UI_MESSAGES.READ_ONLY_MODE : undefined}
+                />
 
                 {/* Delete button */}
-                <Tooltip
-                  content={isDisabled ? UI_MESSAGES.READ_ONLY_MODE : undefined}
-                  display="inline"
+                <Button
+                  onClick={() => {
+                    handleDeleteElement(element.elementId, element.name);
+                  }}
+                  disabled={isDisabled || type.elements.length === 1}
+                  className={deleteDimensionButtonStyle}
+                  aria-label={`Delete dimension ${element.name}`}
+                  tooltip={isDisabled ? UI_MESSAGES.READ_ONLY_MODE : undefined}
                 >
-                  <button
-                    type="button"
-                    onClick={() => {
-                      handleDeleteElement(element.elementId, element.name);
-                    }}
-                    disabled={isDisabled || type.elements.length === 1}
-                    className={deleteDimensionButtonStyle}
-                    aria-label={`Delete dimension ${element.name}`}
-                  >
-                    ×
-                  </button>
-                </Tooltip>
+                  ×
+                </Button>
               </div>
             ))}
           </div>
