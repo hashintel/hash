@@ -5,6 +5,7 @@ import {
 } from "@local/hash-isomorphic-utils/flows/schedule-types";
 import type { RunFlowWorkflowParams } from "@local/hash-isomorphic-utils/flows/temporal-types";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
+import { ScheduleNotFoundError } from "@temporalio/client";
 
 import {
   createFlowSchedule as createFlowScheduleEntity,
@@ -295,16 +296,26 @@ export const archiveFlowScheduleResolver: ResolverFn<
     schedule.metadata.recordId.entityId,
   );
 
+  await schedule.archive(context.graphApi, authentication, context.provenance);
+
   try {
     const handle = temporal.schedule.getHandle(scheduleId);
     await handle.delete();
   } catch (err) {
-    throw GraphQLError.internal(
-      `Failed to delete Temporal schedule for schedule entity ${scheduleEntityId}: ${err instanceof Error ? err.message : String(err)}`,
-    );
-  }
+    if (!(err instanceof ScheduleNotFoundError)) {
+      await schedule.unarchive(
+        context.graphApi,
+        authentication,
+        context.provenance,
+      );
 
-  await schedule.archive(context.graphApi, authentication, context.provenance);
+      throw GraphQLError.internal(
+        `Failed to delete Temporal schedule for schedule entity ${scheduleEntityId}: ${err instanceof Error ? err.message : String(err)}`,
+      );
+    }
+
+    // If the schedule can't be found, we can leave the entity archived
+  }
 
   return true;
 };
