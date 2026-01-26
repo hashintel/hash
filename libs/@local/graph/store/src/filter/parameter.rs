@@ -88,7 +88,7 @@ pub enum ParameterList<'p> {
 }
 
 /// A leaf value in a [`Filter`].
-#[derive_where(Debug, Clone, PartialEq; R::QueryPath<'p>)]
+#[derive_where(Debug, Clone, PartialEq, Eq; R::QueryPath<'p>)]
 pub enum FilterExpressionList<'p, R: QueryRecord> {
     Path { path: R::QueryPath<'p> },
     ParameterList { parameters: ParameterList<'p> },
