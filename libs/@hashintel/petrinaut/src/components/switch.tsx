@@ -1,7 +1,7 @@
 import { Switch as ArkSwitch } from "@ark-ui/react/switch";
 import { css } from "@hashintel/ds-helpers/css";
 
-import { Tooltip } from "./tooltip";
+import { withTooltip } from "./hoc/with-tooltip";
 
 const controlStyle = css({
   position: "relative",
@@ -41,37 +41,25 @@ interface SwitchProps {
   checked?: boolean;
   onCheckedChange?: (checked: boolean) => void;
   disabled?: boolean;
-  tooltip?: string;
 }
 
-export const Switch: React.FC<SwitchProps> = ({
+const SwitchBase: React.FC<SwitchProps> = ({
   checked,
   onCheckedChange,
   disabled = false,
-  tooltip,
-}) => {
-  const switchElement = (
-    <ArkSwitch.Root
-      checked={checked}
-      onCheckedChange={(details) => {
-        onCheckedChange?.(details.checked);
-      }}
-      disabled={disabled}
-    >
-      <ArkSwitch.Control className={controlStyle}>
-        <ArkSwitch.Thumb className={thumbStyle} />
-      </ArkSwitch.Control>
-      <ArkSwitch.HiddenInput />
-    </ArkSwitch.Root>
-  );
+}) => (
+  <ArkSwitch.Root
+    checked={checked}
+    onCheckedChange={(details) => {
+      onCheckedChange?.(details.checked);
+    }}
+    disabled={disabled}
+  >
+    <ArkSwitch.Control className={controlStyle}>
+      <ArkSwitch.Thumb className={thumbStyle} />
+    </ArkSwitch.Control>
+    <ArkSwitch.HiddenInput />
+  </ArkSwitch.Root>
+);
 
-  if (tooltip) {
-    return (
-      <Tooltip content={tooltip} display="inline">
-        {switchElement}
-      </Tooltip>
-    );
-  }
-
-  return switchElement;
-};
+export const Switch = withTooltip(SwitchBase, "inline");

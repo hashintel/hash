@@ -1,7 +1,7 @@
 import { SegmentGroup as ArkSegmentGroup } from "@ark-ui/react/segment-group";
 import { cva } from "@hashintel/ds-helpers/css";
 
-import { Tooltip } from "./tooltip";
+import { withTooltip } from "./hoc/with-tooltip";
 
 const containerStyle = cva({
   base: {
@@ -115,42 +115,18 @@ interface SegmentGroupProps {
   size?: "md" | "sm";
   /** Whether the segment group is disabled. */
   disabled?: boolean;
-  /** Tooltip to show when hovering (useful for explaining disabled state). */
-  tooltip?: string;
 }
 
-export const SegmentGroup: React.FC<SegmentGroupProps> = ({
+const SegmentGroupBase: React.FC<SegmentGroupProps> = ({
   value,
   options,
   onChange,
   size = "md",
   disabled = false,
-  tooltip,
 }) => {
   const containerClassName = containerStyle({ size, isDisabled: disabled });
 
-  const containerContent = (
-    <>
-      <ArkSegmentGroup.Indicator className={indicatorStyle({ size })} />
-      {options.map((option) => (
-        <ArkSegmentGroup.Item
-          key={option.value}
-          value={option.value}
-          className={itemStyle({
-            isSelected: value === option.value,
-            size,
-            isDisabled: disabled,
-          })}
-        >
-          <ArkSegmentGroup.ItemText>{option.label}</ArkSegmentGroup.ItemText>
-          <ArkSegmentGroup.ItemControl />
-          <ArkSegmentGroup.ItemHiddenInput />
-        </ArkSegmentGroup.Item>
-      ))}
-    </>
-  );
-
-  const segmentGroup = (
+  return (
     <ArkSegmentGroup.Root
       value={value}
       disabled={disabled}
@@ -160,17 +136,26 @@ export const SegmentGroup: React.FC<SegmentGroupProps> = ({
         }
       }}
     >
-      <div className={containerClassName}>{containerContent}</div>
+      <div className={containerClassName}>
+        <ArkSegmentGroup.Indicator className={indicatorStyle({ size })} />
+        {options.map((option) => (
+          <ArkSegmentGroup.Item
+            key={option.value}
+            value={option.value}
+            className={itemStyle({
+              isSelected: value === option.value,
+              size,
+              isDisabled: disabled,
+            })}
+          >
+            <ArkSegmentGroup.ItemText>{option.label}</ArkSegmentGroup.ItemText>
+            <ArkSegmentGroup.ItemControl />
+            <ArkSegmentGroup.ItemHiddenInput />
+          </ArkSegmentGroup.Item>
+        ))}
+      </div>
     </ArkSegmentGroup.Root>
   );
-
-  if (tooltip) {
-    return (
-      <Tooltip content={tooltip} display="block">
-        {segmentGroup}
-      </Tooltip>
-    );
-  }
-
-  return segmentGroup;
 };
+
+export const SegmentGroup = withTooltip(SegmentGroupBase, "block");
