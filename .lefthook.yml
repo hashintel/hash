@@ -29,7 +29,7 @@ pre-commit:
     rust:
       tags: [backend, style]
       glob: "*.rs"
-      run: cargo fmt -- {staged_files} || true
+      run: rustfmt {staged_files} || true
       stage_fixed: true
     toml:
       tags: [backend, style]
