@@ -138,14 +138,7 @@ impl<'heap> DataflowAnalysis<'heap> for SupportedAnalysis<'_, '_, 'heap> {
         Reverse(PowersetLattice::new(body.local_decls.len()))
     }
 
-    fn initialize_boundary<A: Allocator>(
-        &self,
-        body: &Body<'heap>,
-        domain: &mut Self::Domain<A>,
-        _: A,
-    ) {
-        domain.insert_range(Local::new(0)..Local::new(body.args));
-    }
+    fn initialize_boundary<A: Allocator>(&self, _: &Body<'heap>, _: &mut Self::Domain<A>, _: A) {}
 
     fn transfer_statement<A: Allocator>(
         &self,
@@ -175,6 +168,7 @@ struct CostVisitor<'ctx, 'env, 'heap> {
     body: &'ctx Body<'heap>,
     context: &'ctx MirContext<'env, 'heap>,
     dispatchable: &'ctx DenseBitSet<Local>,
+    cost: Cost,
     costs: CostVec<&'heap Heap>,
 }
 
@@ -189,7 +183,7 @@ impl<'heap> Visitor<'heap> for CostVisitor<'_, '_, 'heap> {
         match &statement.kind {
             StatementKind::Assign(Assign { lhs: _, rhs }) => {
                 let cost = is_supported_rvalue(self.context, self.body, self.dispatchable, rhs)
-                    .then_some(cost!(4));
+                    .then_some(self.cost);
 
                 self.costs[location] = cost;
             }
@@ -202,7 +196,9 @@ impl<'heap> Visitor<'heap> for CostVisitor<'_, '_, 'heap> {
     }
 }
 
-struct PostgresStatementPlacement {}
+struct PostgresStatementPlacement {
+    statement_cost: Cost,
+}
 
 impl PostgresStatementPlacement {
     fn compute<'heap, A: Allocator + Clone>(
@@ -231,6 +227,7 @@ impl PostgresStatementPlacement {
             body,
             context,
             dispatchable: &dispatchable,
+            cost: self.statement_cost,
             costs,
         };
         visitor.visit_body(body);
