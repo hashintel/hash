@@ -12,6 +12,15 @@ static ENTITY_PATHS: PathNode = PathNode::root(
     &[
         // entity_editions.properties (JSONB)
         PathNode::jsonb(sym::lexical::properties),
+        // (tbd) encodings
+        PathNode::branch(
+            sym::lexical::encodings,
+            Access::None,
+            &[
+                // Vectors are stored outside the entity inside of an embeddings database
+                PathNode::branch(sym::lexical::vectors, Access::None, &[]),
+            ],
+        ),
         PathNode::branch(
             sym::lexical::metadata,
             Access::None,
