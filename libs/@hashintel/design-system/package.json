@@ -1,6 +1,6 @@
 {
   "name": "@hashintel/design-system",
-  "version": "0.0.9-canary.2",
+  "version": "0.0.9",
   "description": "HASH Design System",
   "license": "(MIT OR Apache-2.0)",
   "repository": {
@@ -55,7 +55,7 @@
     "postpublish": "PACKAGE_DIR=$(pwd) yarn workspace @local/repo-chores exe scripts/postpublish.ts"
   },
   "dependencies": {
-    "@blockprotocol/type-system": "0.1.2-canary.1",
+    "@blockprotocol/type-system": "0.2.0",
     "@fortawesome/free-regular-svg-icons": "6.7.2",
     "@fortawesome/free-solid-svg-icons": "6.7.2",
     "clsx": "2.1.1",

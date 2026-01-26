@@ -25,7 +25,7 @@ jobs:
       packages: ${{ steps.packages.outputs.packages }}
     steps:
       - name: Checkout source code
-        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           fetch-depth: 2
 
@@ -59,7 +59,7 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - name: Checkout
-        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           fetch-depth: 2
 
@@ -189,7 +189,7 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - name: Checkout repository
-        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
       - name: Clean up disk
         uses: ./.github/actions/clean-up-disk
@@ -410,7 +410,7 @@ jobs:
           [[ ${{ needs.global.result }} =~ success|skipped ]]
 
       - name: Notify Slack on failure
-        uses: rtCamp/action-slack-notify@07cbdbfd6c6190970778d8f98f11d073b2932aae
+        uses: rtCamp/action-slack-notify@c58b60ee33df2229ed2d2eed86eeaf7e6c527c5a
         if: ${{ failure() && github.event_name == 'merge_group' }}
         env:
           SLACK_LINK_NAMES: true

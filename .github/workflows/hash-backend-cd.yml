@@ -89,7 +89,7 @@ jobs:
       id-token: write
       contents: read
     steps:
-      - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
       - name: Authenticate Vault
         id: secrets
@@ -145,7 +145,7 @@ jobs:
       id-token: write
       contents: read
     steps:
-      - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
       - name: Authenticate Vault
         id: secrets
@@ -199,7 +199,7 @@ jobs:
       id-token: write
       contents: read
     steps:
-      - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
       - name: Authenticate Vault
         id: secrets
@@ -259,7 +259,7 @@ jobs:
       id-token: write
       contents: read
     steps:
-      - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
       - name: Authenticate Vault
         id: secrets
@@ -317,7 +317,7 @@ jobs:
       id-token: write
       contents: read
     steps:
-      - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
       - name: Authenticate Vault
         id: secrets
@@ -375,7 +375,7 @@ jobs:
       id-token: write
       contents: read
     steps:
-      - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
       - name: Authenticate Vault
         id: secrets
@@ -429,7 +429,7 @@ jobs:
       id-token: write
       contents: read
     steps:
-      - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
       - name: Authenticate Vault
         id: secrets
@@ -471,7 +471,7 @@ jobs:
       id-token: write
       contents: read
     steps:
-      - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
       - name: Authenticate Vault
         id: secrets
@@ -515,7 +515,7 @@ jobs:
       id-token: write
       contents: read
     steps:
-      - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
       - name: Authenticate Vault
         id: secrets
@@ -610,7 +610,7 @@ jobs:
       id-token: write
       contents: read
     steps:
-      - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
       - name: Authenticate Vault
         id: secrets
@@ -715,7 +715,7 @@ jobs:
       id-token: write
       contents: read
     steps:
-      - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
       - name: Authenticate Vault
         id: secrets
@@ -796,7 +796,7 @@ jobs:
       id-token: write
       contents: read
     steps:
-      - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
       - name: Authenticate Vault
         id: secrets
@@ -834,7 +834,7 @@ jobs:
     if: ${{ failure() }}
     steps:
       - name: Slack Notification
-        uses: rtCamp/action-slack-notify@07cbdbfd6c6190970778d8f98f11d073b2932aae
+        uses: rtCamp/action-slack-notify@c58b60ee33df2229ed2d2eed86eeaf7e6c527c5a
         env:
           SLACK_LINK_NAMES: true
           SLACK_MESSAGE: "Error deploying the HASH backend <!subteam^S09KH99698T>" # Notifies @devops

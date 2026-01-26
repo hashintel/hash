@@ -14,7 +14,7 @@ jobs:
       id-token: write
 
     steps:
-      - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           token: ${{ secrets.MACHINE_USER_TOKEN }}
 
@@ -37,7 +37,7 @@ jobs:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Notify Slack on failure
-        uses: rtCamp/action-slack-notify@07cbdbfd6c6190970778d8f98f11d073b2932aae
+        uses: rtCamp/action-slack-notify@c58b60ee33df2229ed2d2eed86eeaf7e6c527c5a
         if: ${{ failure() }}
         env:
           SLACK_LINK_NAMES: true
