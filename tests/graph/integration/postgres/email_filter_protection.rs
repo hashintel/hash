@@ -1,3 +1,12 @@
+#![expect(
+    clippy::large_futures,
+    reason = "Test verification futures are large due to filter complexity; acceptable for tests"
+)]
+#![expect(
+    clippy::print_stderr,
+    reason = "eprintln! used for debug output on test failures"
+)]
+
 //! Integration tests for email filter protection on User entities.
 //!
 //! These tests verify the protection algorithm documented in
@@ -402,11 +411,11 @@ impl DatabaseApi<'_> {
 fn entity_ids(entities: &[Entity]) -> HashSet<EntityId> {
     entities
         .iter()
-        .map(|e| e.metadata.record_id.entity_id)
+        .map(|entity| entity.metadata.record_id.entity_id)
         .collect()
 }
 
-fn no_sorting() -> EntityQuerySorting<'static> {
+const fn no_sorting() -> EntityQuerySorting<'static> {
     EntityQuerySorting {
         paths: Vec::new(),
         cursor: None,
@@ -580,12 +589,13 @@ async fn email_nested_in_any_excludes_user() {
 
 /// Test input row for truth table verification.
 #[derive(Debug, Clone, Copy)]
+#[expect(clippy::struct_excessive_bools, reason = "test data structure")]
 struct Row {
-    /// Entity type: true = User, false = Invitation
+    /// Entity type: true = User, false = Invitation.
     is_user: bool,
-    /// Email matches the filter target (X)
+    /// Email matches the filter target (X).
     email_match: bool,
-    /// Shortname matches the filter target (A)
+    /// Shortname matches the filter target (A).
     shortname_match: bool,
     /// Should this entity be returned by the protected filter?
     expected_returned: bool,
@@ -598,7 +608,7 @@ const TARGET_SHORTNAME: &str = "alice";
 const OTHER_SHORTNAME: &str = "bob";
 
 impl Row {
-    fn email(&self) -> &'static str {
+    const fn email(self) -> &'static str {
         if self.email_match {
             TARGET_EMAIL
         } else {
@@ -606,7 +616,7 @@ impl Row {
         }
     }
 
-    fn shortname(&self) -> &'static str {
+    const fn shortname(self) -> &'static str {
         if self.shortname_match {
             TARGET_SHORTNAME
         } else {
@@ -640,8 +650,16 @@ async fn verify_truth_table(
         eprintln!(
             "[{case_name}] Row {i}: {} email={} shortname={} → expected={}",
             if row.is_user { "User" } else { "Invitation" },
-            if row.email_match { "✓" } else { "✗" },
-            if row.shortname_match { "✓" } else { "✗" },
+            if row.email_match {
+                "\u{2713}"
+            } else {
+                "\u{2717}"
+            },
+            if row.shortname_match {
+                "\u{2713}"
+            } else {
+                "\u{2717}"
+            },
             if row.expected_returned { "ret" } else { "excl" }
         );
     }
