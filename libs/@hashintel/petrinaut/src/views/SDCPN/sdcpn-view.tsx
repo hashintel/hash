@@ -65,7 +65,6 @@ export const SDCPNView: React.FC = () => {
   } = use(SDCPNContext);
 
   const {
-    globalMode: mode,
     editionMode,
     setEditionMode,
     selectedItemIds,
