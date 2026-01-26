@@ -1,11 +1,5 @@
-import type {
-  EntityId,
-  EntityUuid,
-  UserId,
-  WebId,
-} from "@blockprotocol/type-system";
+import type { EntityId, UserId, WebId } from "@blockprotocol/type-system";
 import {
-  entityIdFromComponents,
   extractEntityUuidFromEntityId,
   extractWebIdFromEntityId,
 } from "@blockprotocol/type-system";
@@ -16,9 +10,19 @@ import type { ManualInferenceTriggerInputName } from "@local/hash-isomorphic-uti
 import type { GoalFlowTriggerInput } from "@local/hash-isomorphic-utils/flows/goal-flow-definitions";
 import type { RunAiFlowWorkflowParams } from "@local/hash-isomorphic-utils/flows/temporal-types";
 import type { FlowDataSources } from "@local/hash-isomorphic-utils/flows/types";
-import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
+import {
+  currentTimeInstantTemporalAxes,
+  generateVersionedUrlMatchingFilter,
+} from "@local/hash-isomorphic-utils/graph-queries";
 import { normalizeWhitespace } from "@local/hash-isomorphic-utils/normalize";
-import type { File } from "@local/hash-isomorphic-utils/system-types/shared";
+import {
+  systemEntityTypes,
+  systemPropertyTypes,
+} from "@local/hash-isomorphic-utils/ontology-type-ids";
+import type {
+  File,
+  FlowRun as FlowRunEntity,
+} from "@local/hash-isomorphic-utils/system-types/shared";
 import { Context } from "@temporalio/activity";
 import type { Client as TemporalClient } from "@temporalio/client";
 import type { MemoryCache } from "cache-manager";
@@ -35,6 +39,10 @@ type PartialRunFlowWorkflowParams = Pick<
   "dataSources" | "webId" | "userAuthentication"
 > & { createEntitiesAsDraft: boolean };
 
+type FlowEntityInfo = {
+  flowEntityId: EntityId;
+};
+
 const getCache = async () => {
   _runFlowWorkflowParamsCache =
     _runFlowWorkflowParamsCache ??
@@ -43,6 +51,71 @@ const getCache = async () => {
       ttl: 10 * 60 * 1000, // 10 minutes
     }));
   return _runFlowWorkflowParamsCache;
+};
+
+/**
+ * Get the flow entity ID by querying for the entity with the given workflow ID.
+ * The workflowId is stored as a property on the FlowRun entity.
+ * Results are cached to avoid repeated queries.
+ */
+const getFlowEntityInfo = async (params: {
+  workflowId: string;
+  userAuthentication: { actorId: UserId };
+}): Promise<FlowEntityInfo> => {
+  const { workflowId, userAuthentication } = params;
+
+  const cache = await getCache();
+  const cacheKey = `flowEntity-${workflowId}`;
+
+  const cachedInfo = await cache.get<FlowEntityInfo>(cacheKey);
+  if (cachedInfo) {
+    return cachedInfo;
+  }
+
+  // Query for the flow entity using the workflowId property
+  const {
+    entities: [flowEntity],
+  } = await queryEntities<FlowRunEntity>(
+    { graphApi: graphApiClient },
+    userAuthentication,
+    {
+      filter: {
+        all: [
+          {
+            equal: [
+              {
+                path: [
+                  "properties",
+                  systemPropertyTypes.workflowId.propertyTypeBaseUrl,
+                ],
+              },
+              { parameter: workflowId },
+            ],
+          },
+          generateVersionedUrlMatchingFilter(
+            systemEntityTypes.flowRun.entityTypeId,
+            { ignoreParents: true },
+          ),
+        ],
+      },
+      temporalAxes: currentTimeInstantTemporalAxes,
+      includeDrafts: false,
+      includePermissions: false,
+    },
+  );
+
+  if (!flowEntity) {
+    throw new Error(
+      `Flow entity not found for workflowId ${workflowId}. The flow entity may not have been persisted yet.`,
+    );
+  }
+
+  const flowEntityInfo: FlowEntityInfo = {
+    flowEntityId: flowEntity.metadata.recordId.entityId,
+  };
+
+  await cache.set(cacheKey, flowEntityInfo);
+  return flowEntityInfo;
 };
 
 export const getTemporalClient = async () => {
@@ -158,11 +231,12 @@ export const getFlowContext = async (): Promise<FlowContext> => {
       workflowId,
     });
 
-  const flowEntityId = entityIdFromComponents(
-    webId,
-    // Assumes the flow entity UUID is the same as the workflow ID
-    workflowId as EntityUuid,
-  );
+  // Query for the flow entity by workflowId (stored as a property on the entity)
+  // This is necessary because the entity UUID may not match the workflow ID
+  const { flowEntityId } = await getFlowEntityInfo({
+    workflowId,
+    userAuthentication,
+  });
 
   const { activityId: stepId } = Context.current().info;
 

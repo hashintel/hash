@@ -45,7 +45,7 @@ const migrate: MigrationFunction = async ({
     },
   );
 
-  const structuredQueryPropertyType = await createSystemPropertyTypeIfNotExists(
+  const structuralQueryPropertyType = await createSystemPropertyTypeIfNotExists(
     context,
     authentication,
     {
@@ -156,7 +156,7 @@ const migrate: MigrationFunction = async ({
             required: true,
           },
           {
-            propertyType: structuredQueryPropertyType,
+            propertyType: structuralQueryPropertyType,
             required: false,
           },
           {

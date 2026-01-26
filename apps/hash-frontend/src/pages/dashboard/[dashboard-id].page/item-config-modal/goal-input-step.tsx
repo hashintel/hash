@@ -46,6 +46,7 @@ export const GoalInputStep = ({
       </Typography>
 
       <TextField
+        autoFocus
         fullWidth
         multiline
         rows={3}

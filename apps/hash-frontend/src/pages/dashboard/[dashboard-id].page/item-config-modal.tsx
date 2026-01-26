@@ -185,7 +185,6 @@ export const ItemConfigModal = ({
       open={open}
       onClose={handleClose}
       header={{ title: "Configure Chart" }}
-      sx={{ minHeight: "50vh", maxWidth: 700, width: "100%" }}
       contentStyle={{ p: { xs: 0, md: 0 } }}
     >
       <Box>

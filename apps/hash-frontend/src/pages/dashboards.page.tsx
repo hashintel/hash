@@ -319,18 +319,18 @@ const DashboardsPage: NextPageWithLayout = () => {
             sx={{ mt: 3 }}
           >
             <Button
-              variant="tertiary"
-              onClick={() => setCreateDialogOpen(false)}
-              disabled={creating}
-            >
-              Cancel
-            </Button>
-            <Button
               variant="primary"
               onClick={handleCreateDashboard}
               disabled={creating || !newDashboardTitle.trim()}
             >
               {creating ? "Creating..." : "Create"}
+            </Button>
+            <Button
+              variant="tertiary"
+              onClick={() => setCreateDialogOpen(false)}
+              disabled={creating}
+            >
+              Cancel
             </Button>
           </Stack>
         </Box>

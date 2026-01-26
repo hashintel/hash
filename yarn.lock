@@ -438,6 +438,7 @@ __metadata:
     puppeteer-extra-plugin-stealth: "npm:2.11.2"
     rimraf: "npm:6.1.2"
     sanitize-html: "npm:2.17.0"
+    ts-json-schema-generator: "npm:1.5.1"
     tsconfig-paths-webpack-plugin: "npm:4.2.0"
     tsx: "npm:4.20.6"
     typescript: "npm:5.9.3"

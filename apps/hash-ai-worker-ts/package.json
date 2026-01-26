@@ -30,6 +30,7 @@
     "dev": "LOG_LEVEL=debug NODE_ENV=development NODE_OPTIONS=--max-old-space-size=2048 tsx watch --clear-screen=false ./src/main.ts",
     "exe": "tsx",
     "fix:eslint": "eslint --fix .",
+    "generate:chart-config-schema": "yarn exe ./src/activities/flow-activities/generate-chart-config-schema.ts",
     "lint:eslint": "eslint --report-unused-disable-directives .",
     "lint:tsc": "tsc --noEmit",
     "sanitize-html": "NODE_ENV=development yarn exe ./scripts/sanitize-html.ts",
@@ -105,6 +106,7 @@
     "@vitest/coverage-istanbul": "3.2.4",
     "eslint": "9.39.2",
     "rimraf": "6.1.2",
+    "ts-json-schema-generator": "1.5.1",
     "typescript": "5.9.3",
     "vitest": "3.2.4",
     "wait-on": "9.0.1"

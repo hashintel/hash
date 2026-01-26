@@ -10,10 +10,10 @@ import type {
  * Activities that are registered to the 'ai' temporal task queue.
  */
 export type AiFlowActionDefinitionId =
-  | "analyzeDashboardData"
+  | "analyzeEntityData"
   | "answerQuestion"
   | "generateChartConfig"
-  | "generateDashboardQuery"
+  | "generateStructuralQuery"
   | "generateWebQueries"
   | "getFileFromUrl"
   | "getWebPageByUrl"
@@ -35,16 +35,15 @@ export type IntegrationFlowActionDefinitionId =
   | "persistIntegrationEntities";
 
 const aiFlowActionDefinitionsAsConst = {
-  analyzeDashboardData: {
-    actionDefinitionId: "analyzeDashboardData",
-    name: "Analyze Dashboard Data",
-    description:
-      "Transform query results into chart-ready data using Python code execution.",
+  analyzeEntityData: {
+    actionDefinitionId: "analyzeEntityData",
+    name: "Analyze Entity Data",
+    description: "Analyze entity data using Python code execution.",
     kind: "action",
     inputs: [
       {
         oneOfPayloadKinds: ["Text"],
-        name: "structuredQuery",
+        name: "structuralQuery",
         description: "The structural query filter as JSON",
         required: true,
         array: false,
@@ -599,11 +598,11 @@ const aiFlowActionDefinitionsAsConst = {
       },
     ],
   },
-  generateDashboardQuery: {
-    actionDefinitionId: "generateDashboardQuery",
-    name: "Generate Dashboard Query",
+  generateStructuralQuery: {
+    actionDefinitionId: "generateStructuralQuery",
+    name: "Generate Structural Query",
     description:
-      "Generate a structural query for dashboard data based on a natural language goal.",
+      "Generate a structural query for entity data based on a natural language goal.",
     kind: "action",
     inputs: [
       {
@@ -617,7 +616,7 @@ const aiFlowActionDefinitionsAsConst = {
     outputs: [
       {
         payloadKind: "Text",
-        name: "structuredQuery",
+        name: "structuralQuery",
         description: "The generated structural query as JSON",
         array: false,
         required: true,
