@@ -27,7 +27,7 @@
   "dependencies": {
     "@apollo/client": "3.10.5",
     "@blockprotocol/core": "0.1.4",
-    "@blockprotocol/graph": "0.4.0-canary.2",
+    "@blockprotocol/graph": "0.4.0",
     "@local/advanced-types": "0.0.0-private",
     "@local/hash-graph-client": "0.0.0-private",
     "@local/hash-graph-sdk": "0.0.0-private",
@@ -54,7 +54,7 @@
     "uuid": "13.0.0"
   },
   "devDependencies": {
-    "@blockprotocol/type-system": "0.1.2-canary.1",
+    "@blockprotocol/type-system": "0.2.0",
     "@graphql-codegen/cli": "^5.0.3",
     "@graphql-codegen/fragment-matcher": "3.3.3",
     "@graphql-codegen/typescript": "2.8.8",

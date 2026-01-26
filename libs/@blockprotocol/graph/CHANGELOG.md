@@ -1,5 +1,16 @@
 # @blockprotocol/graph
 
+## 0.4.0
+
+### Minor Changes
+
+- [#8083](https://github.com/hashintel/hash/pull/8083) [`469eb01`](https://github.com/hashintel/hash/commit/469eb01a176e94f9ba881701e9d41f3c4390ca67) Thanks [@CiaranMn](https://github.com/CiaranMn)! - major overhaul that removes temporal/non-temporal split (all now temporal) and implements latest type system
+
+### Patch Changes
+
+- Updated dependencies [[`f7a47f1`](https://github.com/hashintel/hash/commit/f7a47f15f97eb5ef79a35edf76078a45bdc36cc6)]:
+  - @blockprotocol/type-system@0.2.0
+
 ## 0.3.3
 
 ### Patch Changes
