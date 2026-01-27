@@ -1,0 +1,31 @@
+---
+source: libs/@local/hashql/mir/src/pass/transform/traversal_extraction/tests.rs
+expression: value
+---
+fn {graph::read::filter@4294967040}(%0: (), %1: (Integer, Integer)) -> Boolean {
+    let %2: Boolean
+
+    bb0(): {
+        %2 = %1.0 == 42
+
+        return %2
+    }
+}
+
+================== Changed: Yes ==================
+
+fn {graph::read::filter@4294967040}(%0: (), %1: (Integer, Integer)) -> Boolean {
+    let %2: Boolean
+    let %3: Integer
+
+    bb0(): {
+        %3 = %1.0
+        %2 = %3 == 42
+
+        return %2
+    }
+}
+
+=================== Traversals ===================
+
+%3 → %1.0
