@@ -50,7 +50,7 @@ jobs:
           SLACK_USERNAME: GitHub
 
       - name: Print npm logs on failure
-        if: failure() && steps.changesets.outcome == 'failure'
+        if: failure()
         run: |
           echo "🪵 Dumping npm debug logs..."
           find /home/runner/.npm/_logs -type f -exec echo "--- {} ---" \; -exec cat {} \; || echo "No npm logs found."
