@@ -35,8 +35,8 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.MACHINE_USER_TOKEN }}
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
-          NPM_CONFIG_LOGLEVEL: silly
-          TURBO_LOG_LEVEL: trace
+          NPM_CONFIG_LOGLEVEL: verbose
+          TURBO_LOG_LEVEL: debug
           TURBO_TELEMETRY_DISABLED: 1
 
       - name: Notify Slack on failure
@@ -59,7 +59,7 @@ jobs:
         if: failure()
         run: |
           echo "🔍 Searching for turbo logs..."
-          find . -type f -path "*/.turbo/*" -exec echo "--- {} ---" \; -exec cat {} \; || echo "No turbo logs found."
+          find . -type f -path "*/.turbo/*.log" -exec echo "--- {} ---" \; -exec cat {} \; || echo "No turbo logs found."
 
       - name: Upload debug logs
         if: failure()
@@ -68,4 +68,4 @@ jobs:
           name: release-debug-logs
           path: |
             /home/runner/.npm/_logs/
-            **/.turbo/
+            **/.turbo/*.log
