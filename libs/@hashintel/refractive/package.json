@@ -27,7 +27,8 @@
     "dev:lib": "vite build --watch",
     "fix:eslint": "eslint --fix .",
     "lint:eslint": "eslint --report-unused-disable-directives .",
-    "lint:tsc": "tsc --noEmit"
+    "lint:tsc": "tsc --noEmit",
+    "prepublishOnly": "yarn build"
   },
   "dependencies": {
     "canvas": "3.2.0"
