@@ -192,6 +192,15 @@ const menuItemStyle = cva({
         },
       },
     },
+    disabled: {
+      true: {
+        opacity: "[0.4]",
+        cursor: "not-allowed",
+        _hover: {
+          backgroundColor: "[transparent]",
+        },
+      },
+    },
   },
 });
 
@@ -278,21 +287,19 @@ export const SimulationControls: React.FC<SimulationControlsProps> = ({
     totalFrames,
     playbackState,
     playbackSpeed,
+    playMode,
+    isViewOnlyAvailable,
     setCurrentViewedFrame,
     play: playbackPlay,
     pause: playbackPause,
     setPlaybackSpeed,
+    setPlayMode,
   } = use(PlaybackContext);
 
   const { setBottomPanelOpen, setActiveBottomPanelTab } = use(EditorContext);
 
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
-
-  // Dummy state for "When pressing play" option (UI only for now)
-  const [whenPressingPlay, setWhenPressingPlay] = useState<
-    "computed" | "buffer" | "max"
-  >("computed");
 
   // Dummy state for "Stopping conditions" option (UI only for now)
   const [stoppingCondition, setStoppingCondition] = useState<
@@ -463,45 +470,72 @@ export const SimulationControls: React.FC<SimulationControlsProps> = ({
                   <button
                     type="button"
                     className={menuItemStyle({
-                      selected: whenPressingPlay === "computed",
+                      selected: playMode === "viewOnly",
+                      disabled: !isViewOnlyAvailable,
                     })}
-                    onClick={() => setWhenPressingPlay("computed")}
+                    onClick={() =>
+                      isViewOnlyAvailable && setPlayMode("viewOnly")
+                    }
+                    aria-disabled={!isViewOnlyAvailable}
+                    title={
+                      !isViewOnlyAvailable
+                        ? "Only available when simulation is complete"
+                        : undefined
+                    }
                   >
                     <MdOutlinePlayArrow className={menuItemIconStyle} />
                     <span className={menuItemTextStyle}>
                       Play computed steps only
                     </span>
-                    {whenPressingPlay === "computed" && (
+                    {playMode === "viewOnly" && (
                       <MdCheck className={checkIconStyle} />
                     )}
                   </button>
                   <button
                     type="button"
                     className={menuItemStyle({
-                      selected: whenPressingPlay === "buffer",
+                      selected: playMode === "computeBuffer",
+                      disabled: isViewOnlyAvailable,
                     })}
-                    onClick={() => setWhenPressingPlay("buffer")}
+                    onClick={() =>
+                      !isViewOnlyAvailable && setPlayMode("computeBuffer")
+                    }
+                    aria-disabled={isViewOnlyAvailable}
+                    title={
+                      isViewOnlyAvailable
+                        ? "Not available when simulation is complete"
+                        : undefined
+                    }
                   >
                     <TbChartLine className={menuItemIconStyle} />
                     <span className={menuItemTextStyle}>
                       Play + compute buffer
                     </span>
-                    {whenPressingPlay === "buffer" && (
+                    {playMode === "computeBuffer" && (
                       <MdCheck className={checkIconStyle} />
                     )}
                   </button>
                   <button
                     type="button"
                     className={menuItemStyle({
-                      selected: whenPressingPlay === "max",
+                      selected: playMode === "computeMax",
+                      disabled: isViewOnlyAvailable,
                     })}
-                    onClick={() => setWhenPressingPlay("max")}
+                    onClick={() =>
+                      !isViewOnlyAvailable && setPlayMode("computeMax")
+                    }
+                    aria-disabled={isViewOnlyAvailable}
+                    title={
+                      isViewOnlyAvailable
+                        ? "Not available when simulation is complete"
+                        : undefined
+                    }
                   >
                     <TbArrowBarToRight className={menuItemIconStyle} />
                     <span className={menuItemTextStyle}>
                       Play + compute max
                     </span>
-                    {whenPressingPlay === "max" && (
+                    {playMode === "computeMax" && (
                       <MdCheck className={checkIconStyle} />
                     )}
                   </button>
