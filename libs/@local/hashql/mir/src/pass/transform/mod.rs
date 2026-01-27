@@ -12,6 +12,7 @@ mod inst_simplify;
 mod post_inline;
 mod pre_inline;
 mod ssa_repair;
+mod traversal_extraction;
 
 pub use self::{
     administrative_reduction::AdministrativeReduction,
@@ -27,4 +28,5 @@ pub use self::{
     post_inline::PostInline,
     pre_inline::PreInline,
     ssa_repair::SsaRepair,
+    traversal_extraction::{TraversalExtraction, Traversals},
 };
