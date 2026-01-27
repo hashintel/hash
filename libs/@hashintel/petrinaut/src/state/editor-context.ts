@@ -6,17 +6,6 @@ import {
   DEFAULT_PROPERTIES_PANEL_WIDTH,
 } from "../constants/ui";
 
-/**
- * Represents the insets from each edge of the canvas that are covered by panels.
- * These values indicate how much of the canvas is obscured from each direction.
- */
-export type VisibleViewport = {
-  top: number;
-  right: number;
-  bottom: number;
-  left: number;
-};
-
 export type DraggingStateByNodeId = Record<
   string,
   { dragging: boolean; position: { x: number; y: number } }
@@ -47,7 +36,6 @@ export type EditorState = {
   selectedItemIds: Set<string>;
   draggingStateByNodeId: DraggingStateByNodeId;
   timelineChartType: TimelineChartType;
-  visibleViewport: VisibleViewport;
 };
 
 /**
@@ -92,7 +80,6 @@ export const initialEditorState: EditorState = {
   selectedItemIds: new Set(),
   draggingStateByNodeId: {},
   timelineChartType: "run",
-  visibleViewport: { top: 0, right: 0, bottom: 0, left: 0 },
 };
 
 const DEFAULT_CONTEXT_VALUE: EditorContextValue = {
