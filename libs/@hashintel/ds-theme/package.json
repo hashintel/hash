@@ -45,7 +45,7 @@
     "fix:format": "biome format --write",
     "lint": "npm-run-all --continue-on-error \"lint:*\"",
     "lint:tsc": "tsc --noEmit",
-    "prepare": "yarn run codegen",
+    "prepare": "turbo run build",
     "test:unit": "vitest run"
   },
   "devDependencies": {
