@@ -1,5 +1,11 @@
 # @hashintel/ds-theme
 
+## 0.0.2
+
+### Patch Changes
+
+- [#8325](https://github.com/hashintel/hash/pull/8325) [`e05657c`](https://github.com/hashintel/hash/commit/e05657cc72ac702753bd6e5feaa5aac961c5f2e0) Thanks [@CiaranMn](https://github.com/CiaranMn)! - Fix publishing
+
 ## 0.0.1
 
 ### Patch Changes
