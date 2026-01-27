@@ -42,7 +42,7 @@ const systemPrompt = dedent(`
   into a format suitable for visualization (e.g. a table).
 
   You will receive:
-  1. A structured query filter that retrieves entities
+  1. A structured query filter (in JSON format) that was used to retrieve entities
   2. The user's visualization goal
   3. A target chart type (or you'll suggest one)
 
@@ -454,6 +454,9 @@ export const analyzeEntityDataAction: AiFlowActionActivity<
                 User's goal: "${userGoal}"
                 ${targetChartType ? `Target chart type: ${targetChartType}` : "Please suggest an appropriate chart type."}
 
+                The following structural query filter was used to retrieve the entities:
+                ${structuralQuery}
+
                 Entity data is available at the path stored in DATA_FILE_PATH variable.
 
                 Sample of the data structure:
@@ -464,8 +467,8 @@ export const analyzeEntityDataAction: AiFlowActionActivity<
 
                 Please write Python code to:
                 1. Load the JSON data from the file at DATA_FILE_PATH
-                  2. Transform it into a format suitable for visualization
-                  3. Print the result as JSON to stdout
+                2. Transform it into a format suitable for visualization
+                3. Print the result as JSON to stdout
               `),
             },
           ],

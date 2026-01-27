@@ -2,6 +2,7 @@
  * Flow activity for generating a structural query based on a user's goal.
  * This activity explores available entity types, constructs and tests queries iteratively.
  */
+import { extractBaseUrl } from "@blockprotocol/type-system";
 import type { AiFlowActionActivity } from "@local/hash-backend-utils/flows";
 import { getSimpleGraph } from "@local/hash-backend-utils/simplified-graph";
 import type { Filter } from "@local/hash-graph-client";
@@ -63,27 +64,40 @@ const systemPrompt = dedent(`
   retrieve the data needed for the user's visualization goal.
 
   You test your query to see what data it returns, and iterate until the results look correct.
+
+  ## Examples
+
+  These examples may not use real types / paths – rely on the entity types you are provided with instead!
+
+  1. Get all people named "John Doe"
+
+  {
+    all: [
+      {
+        equal: [{ path: ["properties", "https://hash.ai/@h/types/property-type/name/"] }, { parameter: "John Doe" }],
+      },
+      {
+        equal: [{ path: ["type", "baseUrl"] }, { parameter: "https://hash.ai/@h/types/entity-type/person/" }],
+      },
+    ],
+  }
+
+  2. Get all Products
+
+  {
+    all: [
+      {
+        equal: [{ path: ["type", "baseUrl"] }, { parameter: "https://hash.ai/@h/types/entity-type/product/" }],
+      },
+    ],
+  }
+
+
 `);
 
-type ToolName = "get_entity_types" | "test_query" | "submit_query";
+type ToolName = "test_query" | "submit_query";
 
 const tools: LlmToolDefinition<ToolName>[] = [
-  {
-    name: "get_entity_types",
-    description:
-      "Retrieve available entity types to understand what data can be queried. Returns type titles, descriptions, and property schemas.",
-    inputSchema: {
-      type: "object",
-      properties: {
-        searchQuery: {
-          type: "string",
-          description:
-            "Optional: semantic search query to find relevant entity types",
-        },
-      },
-      additionalProperties: false,
-    },
-  },
   {
     name: "test_query",
     description:
@@ -161,49 +175,33 @@ export const generateStructuralQueryAction: AiFlowActionActivity<
   const { userAuthentication, stepId, flowEntityId, webId } =
     await getFlowContext();
 
-  const response = await queryEntityTypes(graphApiClient, userAuthentication, {
-    filter: webId
-      ? { equal: [{ path: ["webId"] }, { parameter: webId }] }
-      : { all: [] },
-    temporalAxes: currentTimeInstantTemporalAxes,
-    includeEntityTypes: "resolved",
-  });
+  const entityTypesResponse = await queryEntityTypes(
+    graphApiClient,
+    userAuthentication,
+    {
+      filter: { any: [] },
+      temporalAxes: currentTimeInstantTemporalAxes,
+      includeEntityTypes: "resolved",
+    },
+  );
 
-  type EntityTypeVertex = {
-    kind: "entityType";
-    inner: {
-      schema: {
-        title: string;
-        $id: string;
-        description?: string;
-        properties?: Record<string, unknown>;
-      };
-    };
-  };
-
-  const entityTypes = Object.values(typesSubgraph.vertices)
-    .flatMap((vertex) => Object.values(vertex))
-    .filter(
-      (vertex): vertex is EntityTypeVertex =>
-        (vertex as { kind: string }).kind === "entityType",
-    )
-    .map((vertex) => ({
-      title: vertex.inner.schema.title,
-      $id: vertex.inner.schema.$id,
-      description: vertex.inner.schema.description,
-      properties: Object.keys(vertex.inner.schema.properties ?? {}),
-    }));
+  const entityTypes = entityTypesResponse.entityTypes.map((entityType) => ({
+    title: entityType.schema.title,
+    baseUrl: extractBaseUrl(entityType.schema.$id),
+    description: entityType.schema.description,
+    properties: Object.keys(entityType.schema.properties),
+  }));
 
   type MessageType = Parameters<typeof getLlmResponse>[0]["messages"];
-
-  let structuralQuery: Filter | null = null;
-  let suggestedChartTypes: ChartType[] = [];
-  let explanation = "";
 
   const callModel = async (
     messages: MessageType,
     iteration: number,
-  ): Promise<void> => {
+  ): Promise<{
+    structuralQuery: Filter;
+    suggestedChartTypes: ChartType[];
+    explanation: string;
+  }> => {
     if (iteration > maximumIterations) {
       throw new Error(
         `Exceeded maximum iterations (${maximumIterations}) for query generation`,
@@ -242,28 +240,6 @@ export const generateStructuralQueryAction: AiFlowActionActivity<
       const args = toolCall.input as Record<string, unknown>;
 
       switch (toolCall.name) {
-        case "get_entity_types": {
-          return callModel(
-            [
-              ...messages,
-              ...mapOpenAiMessagesToLlmMessages({
-                messages: mapLlmMessageToOpenAiMessages({ message }),
-              }),
-              {
-                role: "user",
-                content: [
-                  {
-                    type: "tool_result",
-                    tool_use_id: toolCall.id,
-                    content: `Available entity types:\n${stringify(entityTypes)}`,
-                  },
-                ],
-              },
-            ],
-            iteration + 1,
-          );
-        }
-
         case "test_query": {
           const filter = args.filter as Filter;
           const limit = (args.limit as number | undefined) ?? 10;
@@ -328,10 +304,11 @@ export const generateStructuralQueryAction: AiFlowActionActivity<
         }
 
         case "submit_query": {
-          structuralQuery = args.filter as Filter;
-          suggestedChartTypes = args.suggestedChartTypes as ChartType[];
-          explanation = args.explanation as string;
-          return;
+          const structuralQuery = args.filter as Filter;
+          const suggestedChartTypes = args.suggestedChartTypes as ChartType[];
+          const explanation = args.explanation as string;
+
+          return { structuralQuery, suggestedChartTypes, explanation };
         }
       }
     }
@@ -358,7 +335,7 @@ export const generateStructuralQueryAction: AiFlowActionActivity<
   };
 
   try {
-    await callModel(
+    const response = await callModel(
       [
         {
           role: "user",
@@ -368,13 +345,13 @@ export const generateStructuralQueryAction: AiFlowActionActivity<
               text: dedent(`
                 User's goal: "${userGoal}"
 
-                Web ID (namespace): ${webId}
+                Available entity types:
+                ${JSON.stringify(entityTypes)}
 
                 Please:
-                1. First explore available entity types using get_entity_types
-                2. Construct a query that will retrieve the data needed for this goal
-                3. Test your query to verify it returns appropriate data
-                4. Submit your final query when satisfied
+                1. Construct a query that will retrieve the data needed for this goal
+                2. Test your query to verify it returns appropriate data
+                3. Submit your final query when satisfied
               `),
             },
           ],
@@ -383,10 +360,7 @@ export const generateStructuralQueryAction: AiFlowActionActivity<
       1,
     );
 
-    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- Variable set in recursive async function
-    if (!structuralQuery) {
-      throw new Error("Failed to generate structural query");
-    }
+    const { structuralQuery, suggestedChartTypes, explanation } = response;
 
     const outputs: ActionOutputs = [
       {

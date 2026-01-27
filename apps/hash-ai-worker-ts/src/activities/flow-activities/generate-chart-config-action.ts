@@ -3,10 +3,7 @@
  * This activity generates Apache ECharts configuration based on chart data and user goal.
  */
 import type { AiFlowActionActivity } from "@local/hash-backend-utils/flows";
-import type {
-  ChartConfig,
-  ChartType,
-} from "@local/hash-isomorphic-utils/dashboard-types";
+import type { ChartConfig } from "@local/hash-isomorphic-utils/dashboard-types";
 import type {
   AiActionStepOutput,
   InputNameForAiFlowAction,
@@ -17,7 +14,11 @@ import dedent from "dedent";
 
 import { getFlowContext } from "../shared/get-flow-context.js";
 import { getLlmResponse } from "../shared/get-llm-response.js";
-import { getToolCallsFromLlmAssistantMessage } from "../shared/get-llm-response/llm-message.js";
+import {
+  getToolCallsFromLlmAssistantMessage,
+  mapLlmMessageToOpenAiMessages,
+  mapOpenAiMessagesToLlmMessages,
+} from "../shared/get-llm-response/llm-message.js";
 import type { LlmToolDefinition } from "../shared/get-llm-response/types.js";
 import { graphApiClient } from "../shared/graph-api-client.js";
 import { openAiSeed } from "../shared/open-ai-seed.js";
@@ -67,6 +68,8 @@ const tools: LlmToolDefinition<ToolName>[] = [
   },
 ];
 
+const maximumIterations = 3;
+
 type ActionOutputs = AiActionStepOutput<"generateChartConfig">[];
 
 export const generateChartConfigAction: AiFlowActionActivity<
@@ -94,32 +97,26 @@ export const generateChartConfigAction: AiFlowActionActivity<
     };
   }
 
-  try {
+  let chartConfig: ChartConfig | null = null;
+  let explanation = "";
+
+  type MessageType = Parameters<typeof getLlmResponse>[0]["messages"];
+
+  const callModel = async (
+    messages: MessageType,
+    iteration: number,
+  ): Promise<void> => {
+    if (iteration > maximumIterations) {
+      throw new Error(
+        `Exceeded maximum iterations (${maximumIterations}) for chart config generation`,
+      );
+    }
+
     const llmResponse = await getLlmResponse(
       {
         model,
         systemPrompt,
-        messages: [
-          {
-            role: "user",
-            content: [
-              {
-                type: "text",
-                text: dedent(`
-                  User's goal: "${userGoal}"
-                  Chart type: ${chartType}
-
-                  Chart data (first 5 items):
-                  ${stringify(Array.isArray(parsedChartData) ? parsedChartData.slice(0, 5) : parsedChartData)}
-
-                  Data keys available: ${Array.isArray(parsedChartData) && parsedChartData.length > 0 && parsedChartData[0] ? Object.keys(parsedChartData[0] as object).join(", ") : "unknown"}
-
-                  Generate an appropriate ECharts configuration for this data.
-                `),
-              },
-            ],
-          },
-        ],
+        messages,
         temperature: 0,
         seed: openAiSeed,
         tools,
@@ -143,11 +140,7 @@ export const generateChartConfigAction: AiFlowActionActivity<
     const { message } = llmResponse;
     const toolCalls = getToolCallsFromLlmAssistantMessage({ message });
 
-    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- Type narrowing from tool definition
-    const submitCall = toolCalls.find((tc) => tc.name === "submit_config");
-
-    let chartConfig: ChartConfig;
-    let explanation: string;
+    const submitCall = toolCalls[0];
 
     if (submitCall) {
       const args = submitCall.input as {
@@ -156,31 +149,59 @@ export const generateChartConfigAction: AiFlowActionActivity<
       };
       chartConfig = args.config;
       explanation = args.explanation;
-    } else {
-      // Generate a default config if LLM didn't provide one
-      const sampleItem =
-        Array.isArray(parsedChartData) && parsedChartData.length > 0
-          ? parsedChartData[0]
-          : null;
-      const keys = sampleItem
-        ? Object.keys(sampleItem as object)
-        : ["name", "value"];
+      return;
+    }
 
-      chartConfig = {
-        categoryKey: keys[0] ?? "name",
-        series: [
-          {
-            type: chartType as ChartType,
-            name: "Value",
-            dataKey: keys[1] ?? "value",
-          },
-        ],
-        showLegend: true,
-        showGrid: true,
-        showTooltip: true,
-        colors: ["#8884d8", "#82ca9d", "#ffc658", "#ff7300", "#0088fe"],
-      };
-      explanation = "Generated default configuration based on data structure";
+    // No tool call - ask the LLM to try again
+    return callModel(
+      [
+        ...messages,
+        ...mapOpenAiMessagesToLlmMessages({
+          messages: mapLlmMessageToOpenAiMessages({ message }),
+        }),
+        {
+          role: "user",
+          content: [
+            {
+              type: "text",
+              text: "Please use the submit_config tool to provide the chart configuration.",
+            },
+          ],
+        },
+      ],
+      iteration + 1,
+    );
+  };
+
+  try {
+    await callModel(
+      [
+        {
+          role: "user",
+          content: [
+            {
+              type: "text",
+              text: dedent(`
+                User's goal: "${userGoal}"
+                Chart type: ${chartType}
+
+                Chart data (first 20 items):
+                ${stringify(Array.isArray(parsedChartData) ? parsedChartData.slice(0, 20) : parsedChartData)}
+
+                Data keys available: ${Array.isArray(parsedChartData) && parsedChartData.length > 0 && parsedChartData[0] ? Object.keys(parsedChartData[0] as object).join(", ") : "unknown"}
+
+                Generate an appropriate ECharts configuration for this data.
+              `),
+            },
+          ],
+        },
+      ],
+      1,
+    );
+
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- Variable set in recursive async function
+    if (!chartConfig) {
+      throw new Error("Failed to generate chart configuration");
     }
 
     const outputs: ActionOutputs = [
