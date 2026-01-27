@@ -1264,6 +1264,56 @@ async fn truth_table_case_9_complex_nested() {
 // are protected for the same entity type.
 //
 // Config: email → {User}, phone → {User}
+//
+// Truth Tables:
+//
+// Case MP-1: email = X
+// ┌──────┬─────────┬──────────┐
+// │ Type │ email=X │ Result   │
+// ├──────┼─────────┼──────────┤
+// │ U    │ ✓       │ excluded │  ← email protected for User
+// │ U    │ ✗       │ excluded │  ← no match
+// │ I    │ ✓       │ returned │
+// │ I    │ ✗       │ excluded │  ← no match
+// └──────┴─────────┴──────────┘
+//
+// Case MP-2: phone = Y
+// ┌──────┬─────────┬──────────┐
+// │ Type │ phone=Y │ Result   │
+// ├──────┼─────────┼──────────┤
+// │ U    │ ✓       │ excluded │  ← phone protected for User
+// │ U    │ ✗       │ excluded │  ← no match
+// │ I    │ ✓       │ returned │
+// │ I    │ ✗       │ excluded │  ← no match
+// └──────┴─────────┴──────────┘
+//
+// Case MP-3: email = X AND phone = Y
+// ┌──────┬─────────┬─────────┬──────────┐
+// │ Type │ email=X │ phone=Y │ Result   │
+// ├──────┼─────────┼─────────┼──────────┤
+// │ U    │ ✓       │ ✓       │ excluded │  ← both properties protected
+// │ U    │ ✓       │ ✗       │ excluded │  ← no phone match
+// │ U    │ ✗       │ ✓       │ excluded │  ← no email match
+// │ U    │ ✗       │ ✗       │ excluded │  ← no match
+// │ I    │ ✓       │ ✓       │ returned │
+// │ I    │ ✓       │ ✗       │ excluded │  ← no phone match
+// │ I    │ ✗       │ ✓       │ excluded │  ← no email match
+// │ I    │ ✗       │ ✗       │ excluded │  ← no match
+// └──────┴─────────┴─────────┴──────────┘
+//
+// Case MP-4: email = X OR phone = Y
+// ┌──────┬─────────┬─────────┬──────────┐
+// │ Type │ email=X │ phone=Y │ Result   │
+// ├──────┼─────────┼─────────┼──────────┤
+// │ U    │ ✓       │ ✓       │ excluded │  ← both branches blocked
+// │ U    │ ✓       │ ✗       │ excluded │  ← email blocked, no phone
+// │ U    │ ✗       │ ✓       │ excluded │  ← phone blocked, no email
+// │ U    │ ✗       │ ✗       │ excluded │  ← no match
+// │ I    │ ✓       │ ✓       │ returned │  ← either branch
+// │ I    │ ✓       │ ✗       │ returned │  ← via email
+// │ I    │ ✗       │ ✓       │ returned │  ← via phone
+// │ I    │ ✗       │ ✗       │ excluded │  ← no match
+// └──────┴─────────┴─────────┴──────────┘
 
 /// Phone property base URL for multi-property tests.
 const PHONE_PROPERTY_BASE_URL: &str = "https://hash.ai/@h/types/property-type/phone/";
@@ -1797,6 +1847,56 @@ async fn multi_property_email_or_phone_filter() {
 // are protected for different entity types.
 //
 // Config: email → {User}, secret_code → {SecretEntity}
+//
+// Truth Tables:
+//
+// Case MT-1: email = X (only User excluded)
+// ┌────────┬─────────┬──────────┐
+// │ Type   │ email=X │ Result   │
+// ├────────┼─────────┼──────────┤
+// │ User   │ ✓       │ excluded │  ← email protected for User
+// │ User   │ ✗       │ excluded │  ← no match
+// │ Secret │ ✓       │ returned │  ← email NOT protected for Secret
+// │ Secret │ ✗       │ excluded │  ← no match
+// └────────┴─────────┴──────────┘
+//
+// Case MT-2: secret_code = S (only SecretEntity excluded)
+// ┌────────┬──────────┬──────────┐
+// │ Type   │ secret=S │ Result   │
+// ├────────┼──────────┼──────────┤
+// │ User   │ ✓        │ returned │  ← secret NOT protected for User
+// │ User   │ ✗        │ excluded │  ← no match
+// │ Secret │ ✓        │ excluded │  ← secret protected for Secret
+// │ Secret │ ✗        │ excluded │  ← no match
+// └────────┴──────────┴──────────┘
+//
+// Case MT-3: email = X AND secret_code = S
+// ┌────────┬─────────┬──────────┬──────────┐
+// │ Type   │ email=X │ secret=S │ Result   │
+// ├────────┼─────────┼──────────┼──────────┤
+// │ User   │ ✓       │ ✓        │ excluded │  ← email protected for User
+// │ User   │ ✓       │ ✗        │ excluded │  ← no secret match
+// │ User   │ ✗       │ ✓        │ excluded │  ← no email match
+// │ User   │ ✗       │ ✗        │ excluded │  ← no match
+// │ Secret │ ✓       │ ✓        │ excluded │  ← secret protected for Secret
+// │ Secret │ ✓       │ ✗        │ excluded │  ← no secret match
+// │ Secret │ ✗       │ ✓        │ excluded │  ← no email match
+// │ Secret │ ✗       │ ✗        │ excluded │  ← no match
+// └────────┴─────────┴──────────┴──────────┘
+//
+// Case MT-4: email = X OR secret_code = S
+// ┌────────┬─────────┬──────────┬──────────┐
+// │ Type   │ email=X │ secret=S │ Result   │
+// ├────────┼─────────┼──────────┼──────────┤
+// │ User   │ ✓       │ ✓        │ returned │  ← via secret (not protected)
+// │ User   │ ✓       │ ✗        │ excluded │  ← email blocked, no secret
+// │ User   │ ✗       │ ✓        │ returned │  ← via secret
+// │ User   │ ✗       │ ✗        │ excluded │  ← no match
+// │ Secret │ ✓       │ ✓        │ returned │  ← via email (not protected)
+// │ Secret │ ✓       │ ✗        │ returned │  ← via email
+// │ Secret │ ✗       │ ✓        │ excluded │  ← secret blocked, no email
+// │ Secret │ ✗       │ ✗        │ excluded │  ← no match
+// └────────┴─────────┴──────────┴──────────┘
 
 /// Secret code property base URL for multi-type tests.
 const SECRET_CODE_PROPERTY_BASE_URL: &str =
