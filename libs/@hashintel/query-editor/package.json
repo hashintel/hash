@@ -21,8 +21,8 @@
     "postpublish": "PACKAGE_DIR=$(pwd) yarn workspace @local/repo-chores exe scripts/postpublish.ts"
   },
   "dependencies": {
-    "@blockprotocol/graph": "0.4.0",
-    "@blockprotocol/type-system": "0.2.0",
+    "@blockprotocol/graph": "0.4.1",
+    "@blockprotocol/type-system": "0.2.1",
     "@fortawesome/free-regular-svg-icons": "6.7.2",
     "@fortawesome/free-solid-svg-icons": "6.7.2",
     "@hashintel/design-system": "0.0.9",

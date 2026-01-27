@@ -1,6 +1,6 @@
 {
   "name": "@hashintel/petrinaut",
-  "version": "0.0.7",
+  "version": "0.0.8",
   "description": "A visual editor for Petri nets",
   "license": "(MIT OR Apache-2.0)",
   "repository": {
@@ -42,9 +42,9 @@
     "@dnd-kit/core": "6.3.1",
     "@dnd-kit/sortable": "10.0.0",
     "@dnd-kit/utilities": "3.2.2",
-    "@hashintel/ds-components": "0.0.3",
-    "@hashintel/ds-helpers": "0.0.3",
-    "@hashintel/refractive": "0.0.1",
+    "@hashintel/ds-components": "0.0.4",
+    "@hashintel/ds-helpers": "0.0.4",
+    "@hashintel/refractive": "0.0.2",
     "@mantine/hooks": "8.3.5",
     "@monaco-editor/react": "4.8.0-rc.3",
     "@mui/material": "5.18.0",
@@ -59,7 +59,7 @@
     "web-worker": "1.4.1"
   },
   "devDependencies": {
-    "@hashintel/ds-helpers": "0.0.3",
+    "@hashintel/ds-helpers": "0.0.4",
     "@local/eslint": "0.0.0-private",
     "@pandacss/dev": "1.4.3",
     "@sentry/react": "10.22.0",
@@ -80,8 +80,8 @@
     "vitest": "4.0.16"
   },
   "peerDependencies": {
-    "@hashintel/ds-components": "0.0.3",
-    "@hashintel/ds-helpers": "0.0.3",
+    "@hashintel/ds-components": "0.0.4",
+    "@hashintel/ds-helpers": "0.0.4",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"
   }

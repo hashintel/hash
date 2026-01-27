@@ -1,6 +1,6 @@
 {
   "name": "@hashintel/ds-helpers",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "description": "HASH PandaCSS Styled System",
   "license": "(MIT OR Apache-2.0)",
   "repository": {
@@ -63,7 +63,7 @@
     "test:update": "ladle build && playwright test --update-snapshots"
   },
   "devDependencies": {
-    "@hashintel/ds-theme": "0.0.2",
+    "@hashintel/ds-theme": "0.0.3",
     "@ladle/react": "5.1.1",
     "@mantine/hooks": "8.3.5",
     "@pandacss/dev": "1.4.3",

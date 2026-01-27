@@ -1,5 +1,13 @@
 # @hashintel/ds-components
 
+## 0.0.4
+
+### Patch Changes
+
+- Updated dependencies [[`567b951`](https://github.com/hashintel/hash/commit/567b95178a429aa2c1c00050ca753250db0db094)]:
+  - @hashintel/refractive@0.0.2
+  - @hashintel/ds-helpers@0.0.4
+
 ## 0.0.3
 
 ### Patch Changes

@@ -14,7 +14,7 @@
   },
   "dependencies": {
     "@apps/hash-api": "0.0.0-private",
-    "@blockprotocol/type-system": "0.2.0",
+    "@blockprotocol/type-system": "0.2.1",
     "@local/advanced-types": "0.0.0-private",
     "@local/hash-backend-utils": "0.0.0-private",
     "@local/hash-graph-client": "0.0.0-private",
@@ -32,7 +32,7 @@
     "@apps/hash-ai-worker-ts": "0.0.0-private",
     "@apps/hash-graph": "0.0.0-private",
     "@apps/hash-integration-worker": "0.0.0-private",
-    "@blockprotocol/graph": "0.4.0",
+    "@blockprotocol/graph": "0.4.1",
     "@graphql-codegen/cli": "^5.0.3",
     "@graphql-codegen/introspection": "2.2.3",
     "@graphql-codegen/typescript": "2.8.8",
