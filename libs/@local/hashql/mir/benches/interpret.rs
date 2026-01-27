@@ -78,7 +78,7 @@ fn create_fibonacci_body<'heap>(
     let _: Changed = inline.run(&mut context, &mut state.as_mut(), bodies_mut);
     scratch.reset();
 
-    let mut post = PostInline::new_in(&mut scratch);
+    let mut post = PostInline::new_in(context.heap, &mut scratch);
     let _: Changed = post.run(&mut context, &mut state.as_mut(), bodies_mut);
     scratch.reset();
 

@@ -404,6 +404,11 @@ where
         self.raw.extend_from_slice(other.as_raw());
     }
 
+    #[inline]
+    pub fn append(&mut self, other: &mut Self) {
+        self.raw.append(&mut other.raw);
+    }
+
     pub fn into_iter_enumerated(
         self,
     ) -> impl DoubleEndedIterator<Item = (I, T)> + ExactSizeIterator {
