@@ -529,15 +529,16 @@ where
             policy_components.optimization_data(ActionName::ViewEntity),
         );
 
-        // Machine actors (system) bypass email protection - they need full access.
-        // For all other actors (users, AI), protect email property to prevent enumeration.
-        let should_protect_email = policy_components
-            .actor_id()
-            .is_none_or(|id| id.actor_type() != ActorType::Machine);
+        // Machine actors (system) bypass filter protection - they need full access.
+        // For all other actors (users, AI), protect sensitive properties to prevent enumeration.
+        let should_apply_protection = !self.settings.filter_protection.is_empty()
+            && policy_components
+                .actor_id()
+                .is_none_or(|id| id.actor_type() != ActorType::Machine);
 
         let protected_filter;
-        let filter_to_use = if should_protect_email {
-            // Transform filter to protect against email filtering on Users
+        let filter_to_use = if should_apply_protection {
+            // Transform filter to protect against filtering on protected properties
             protected_filter =
                 transform_filter(params.filter.clone(), &self.settings.filter_protection, 0);
             &protected_filter
