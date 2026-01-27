@@ -4,6 +4,21 @@
 //! intermediate assignments. It is the inverse of projection forwarding — rather than inlining
 //! projections, it materializes them as distinct locals.
 //!
+//! # Pipeline Integration
+//!
+//! Traversal extraction runs as the final phase of [`super::PostInline`], after
+//! [`super::Canonicalization`] has cleaned up redundancy from inlining:
+//!
+//! ```text
+//! Post-Inline
+//! ├── Canonicalization (fixpoint loop)
+//! └── TraversalExtraction (single pass)
+//! ```
+//!
+//! The pass only operates on [`Source::GraphReadFilter`] bodies; other body types are skipped
+//! with [`Changed::No`]. This placement ensures canonicalization has already simplified the MIR
+//! before extraction, minimizing the number of projections that need materialization.
+//!
 //! # Purpose
 //!
 //! The primary use case is preparing graph read filters for entity traversal. When reading from
@@ -76,10 +91,12 @@ use crate::{
 
 /// Maps extracted locals back to their original projection paths.
 ///
-/// This is the output of [`TraversalExtraction`], allowing consumers (such as the graph executor)
-/// to determine which property paths were accessed on the source local.
+/// Produced by [`TraversalExtraction`] and consumed by the graph executor to determine which
+/// property paths were accessed on the vertex local.
 pub struct Traversals<'heap> {
+    /// The source local from which projections were extracted (typically the vertex, `_1`).
     source: Local,
+    /// Sparse map from extracted local to its original projection path.
     derivations: LocalVec<Option<Place<'heap>>, &'heap Heap>,
 }
 
