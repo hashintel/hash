@@ -114,6 +114,10 @@ pub fn init_logging() {
 
 impl DatabaseTestWrapper {
     pub async fn new() -> Self {
+        Self::new_with_settings(PostgresStoreSettings::default()).await
+    }
+
+    pub async fn new_with_settings(settings: PostgresStoreSettings) -> Self {
         load_env(Environment::Test);
         init_logging();
 
@@ -140,7 +144,7 @@ impl DatabaseTestWrapper {
             &connection_info,
             &DatabasePoolConfig::default(),
             NoTls,
-            PostgresStoreSettings::default(),
+            settings,
         )
         .await
         .expect("could not connect to database");
