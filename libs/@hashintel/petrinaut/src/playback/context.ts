@@ -8,6 +8,24 @@ import type { SimulationFrameState } from "../simulation/context";
 export type PlaybackState = "Stopped" | "Playing" | "Paused";
 
 /**
+ * Play mode determines how simulation computation is handled during playback.
+ * - `viewOnly`: Only plays existing frames, no computation. Available when simulation is Complete or Error.
+ * - `computeBuffer`: Computes minimally, only when less than 100 frames are available ahead.
+ * - `computeMax`: Computes as fast as possible while playing.
+ */
+export type PlayMode = (typeof PLAY_MODES)[number];
+
+/**
+ * All available play modes for UI iteration.
+ */
+export const PLAY_MODES = ["viewOnly", "computeBuffer", "computeMax"] as const;
+
+/**
+ * Number of frames to maintain ahead in computeBuffer mode before triggering computation.
+ */
+export const COMPUTE_BUFFER_THRESHOLD = 100;
+
+/**
  * Available playback speed multipliers.
  * Infinity represents "Max" speed (as fast as possible).
  */
@@ -61,6 +79,17 @@ export type PlaybackContextValue = {
    */
   playbackSpeed: PlaybackSpeed;
 
+  /**
+   * Current play mode determining computation behavior.
+   */
+  playMode: PlayMode;
+
+  /**
+   * Whether viewOnly mode is available.
+   * Only true when simulation is Complete or Error.
+   */
+  isViewOnlyAvailable: boolean;
+
   // Actions
   /**
    * Set the currently viewed frame by index.
@@ -88,6 +117,11 @@ export type PlaybackContextValue = {
    * Set the playback speed multiplier.
    */
   setPlaybackSpeed: (speed: PlaybackSpeed) => void;
+
+  /**
+   * Set the play mode for computation behavior.
+   */
+  setPlayMode: (mode: PlayMode) => void;
 };
 
 const DEFAULT_CONTEXT_VALUE: PlaybackContextValue = {
@@ -96,11 +130,14 @@ const DEFAULT_CONTEXT_VALUE: PlaybackContextValue = {
   currentFrameIndex: 0,
   totalFrames: 0,
   playbackSpeed: 1,
+  playMode: "computeMax",
+  isViewOnlyAvailable: false,
   setCurrentViewedFrame: () => {},
   play: () => {},
   pause: () => {},
   stop: () => {},
   setPlaybackSpeed: () => {},
+  setPlayMode: () => {},
 };
 
 export const PlaybackContext = createContext<PlaybackContextValue>(
