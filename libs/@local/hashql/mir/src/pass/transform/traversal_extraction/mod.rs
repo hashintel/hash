@@ -176,7 +176,7 @@ impl<'heap, A: Allocator> VisitorMut<'heap> for TraversalExtractionVisitor<'_, '
         let new_local = if let Some(offset) =
             (self.pending_locals_offset..self.pending_locals.len()).find(|&index| {
                 self.traversals
-                    .lookup(self.total_locals.plus(self.pending_locals_offset + index))
+                    .lookup(self.total_locals.plus(index))
                     .is_some_and(|pending| pending.projections == place.projections)
             }) {
             self.total_locals.plus(offset)

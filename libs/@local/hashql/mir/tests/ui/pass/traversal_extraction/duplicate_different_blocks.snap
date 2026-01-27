@@ -5,28 +5,25 @@ expression: value
 fn {graph::read::filter@4294967040}(%0: (), %1: (Integer, Integer)) -> Boolean {
     let %2: Boolean
     let %3: Boolean
-    let %4: Boolean
 
     bb0(): {
-        %2 = 1
-
-        switchInt(%2) -> [0: bb2(), 1: bb1()]
+        switchInt(1) -> [0: bb2(), 1: bb1()]
     }
 
     bb1(): {
-        %3 = %1.0 == 42
+        %2 = %1.0 == 42
+
+        goto -> bb3(%2)
+    }
+
+    bb2(): {
+        %3 = %1.0 == 100
 
         goto -> bb3(%3)
     }
 
-    bb2(): {
-        %4 = %1.0 == 100
-
-        goto -> bb3(%4)
-    }
-
-    bb3(%3): {
-        return %3
+    bb3(%2): {
+        return %2
     }
 }
 
@@ -35,36 +32,33 @@ fn {graph::read::filter@4294967040}(%0: (), %1: (Integer, Integer)) -> Boolean {
 fn {graph::read::filter@4294967040}(%0: (), %1: (Integer, Integer)) -> Boolean {
     let %2: Boolean
     let %3: Boolean
-    let %4: Boolean
+    let %4: Integer
     let %5: Integer
-    let %6: Integer
 
     bb0(): {
-        %2 = 1
-
-        switchInt(%2) -> [0: bb2(), 1: bb1()]
+        switchInt(1) -> [0: bb2(), 1: bb1()]
     }
 
     bb1(): {
+        %4 = %1.0
+        %2 = %4 == 42
+
+        goto -> bb3(%2)
+    }
+
+    bb2(): {
         %5 = %1.0
-        %3 = %5 == 42
+        %3 = %5 == 100
 
         goto -> bb3(%3)
     }
 
-    bb2(): {
-        %6 = %1.0
-        %4 = %6 == 100
-
-        goto -> bb3(%4)
-    }
-
-    bb3(%3): {
-        return %3
+    bb3(%2): {
+        return %2
     }
 }
 
 =================== Traversals ===================
 
+%4 → %1.0
 %5 → %1.0
-%6 → %1.0
