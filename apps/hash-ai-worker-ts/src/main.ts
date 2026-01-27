@@ -24,11 +24,7 @@ import { defaultSinks, NativeConnection, Worker } from "@temporalio/worker";
 import { config } from "dotenv-flow";
 import { TsconfigPathsPlugin } from "tsconfig-paths-webpack-plugin";
 
-import {
-  createAiActivities,
-  createDashboardConfigurationActivities,
-  createGraphActivities,
-} from "./activities.js";
+import { createAiActivities, createGraphActivities } from "./activities.js";
 import { createFlowActivities } from "./activities/flow-activities.js";
 import { logger } from "./shared/logger.js";
 
@@ -134,7 +130,6 @@ async function run() {
       }),
       ...createFlowActivities({ vaultClient }),
       ...createCommonFlowActivities({ graphApiClient }),
-      ...createDashboardConfigurationActivities({ graphApiClient }),
     },
     connection,
     /**

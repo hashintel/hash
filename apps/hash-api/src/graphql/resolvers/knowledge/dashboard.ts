@@ -5,7 +5,6 @@ import type {
   DashboardGridLayout,
   GridPosition,
 } from "@local/hash-isomorphic-utils/dashboard-types";
-import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
 
 import {
   createDashboard,
@@ -28,11 +27,6 @@ type DashboardItemResponse = {
 type DashboardResponse = {
   entity: SerializedEntity;
   items: DashboardItemResponse[];
-};
-
-type ConfigureDashboardItemResult = {
-  workflowId: string;
-  itemEntityId: EntityId;
 };
 
 // Query Resolvers
@@ -176,53 +170,10 @@ export const updateDashboardItemResolver: ResolverFn<
     structuralQuery: structuralQuery ?? undefined,
     pythonScript: pythonScript ?? undefined,
     chartConfig: chartConfig ?? undefined,
-    chartType: (chartType as ChartType) ?? undefined,
+    chartType: chartType as ChartType,
   });
 
   return {
     entity: item.toJSON(),
-  };
-};
-
-export const configureDashboardItemResolver: ResolverFn<
-  Promise<ConfigureDashboardItemResult>,
-  Record<string, never>,
-  LoggedInGraphQLContext,
-  { itemEntityId: string; webId: string }
-> = async (_, { itemEntityId, webId }, graphQLContext) => {
-  const context = graphQLContextToImpureGraphContext(graphQLContext);
-  const { authentication, temporal, user } = graphQLContext;
-
-  if (!user.enabledFeatureFlags.includes("ai")) {
-    throw new Error("AI features are not enabled for this user");
-  }
-
-  // Update the item status to configuring
-  await updateDashboardItem(context, authentication, {
-    itemEntityId: itemEntityId as EntityId,
-    configurationStatus: "configuring",
-  });
-
-  // Start Temporal workflow
-  const workflowId = `dashboard-item-config-${generateUuid()}`;
-
-  await temporal.workflow.start("configureDashboardItemWorkflow", {
-    taskQueue: "ai",
-    workflowId,
-    args: [
-      {
-        itemEntityId,
-        webId,
-        actorId: authentication.actorId,
-      },
-    ],
-    retry: {
-      maximumAttempts: 1,
-    },
-  });
-
-  return {
-    workflowId,
-    itemEntityId: itemEntityId as EntityId,
   };
 };

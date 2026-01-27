@@ -22,6 +22,7 @@ type DashboardGridProps = {
   onLayoutChange?: (layout: GridPosition[]) => void;
   onItemConfigureClick?: (item: DashboardItemData) => void;
   onItemRefreshClick?: (item: DashboardItemData) => void;
+  onItemDeleteClick?: (item: DashboardItemData) => void;
   onCanvasClick?: () => void;
   isEditing?: boolean;
   canEdit?: boolean;
@@ -32,6 +33,7 @@ export const DashboardGrid = ({
   onLayoutChange,
   onItemConfigureClick,
   onItemRefreshClick,
+  onItemDeleteClick,
   onCanvasClick,
   isEditing = false,
   canEdit = false,
@@ -175,8 +177,10 @@ export const DashboardGrid = ({
             <div key={item.gridPosition.i || item.entityId}>
               <DashboardItem
                 item={item}
+                isEditing={isEditing}
                 onConfigureClick={() => onItemConfigureClick?.(item)}
                 onRefreshClick={() => onItemRefreshClick?.(item)}
+                onDeleteClick={() => onItemDeleteClick?.(item)}
               />
             </div>
           ))}

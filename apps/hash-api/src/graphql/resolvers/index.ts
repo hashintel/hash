@@ -40,7 +40,6 @@ import { commentRepliesResolver } from "./knowledge/comment/replies";
 import { resolveCommentResolver } from "./knowledge/comment/resolve";
 import { commentTextUpdatedAtResolver } from "./knowledge/comment/text-updated-at";
 import { updateCommentTextResolver } from "./knowledge/comment/update-text";
-import { configureDashboardItemResolver } from "./knowledge/dashboard";
 import {
   addEntityViewerResolver,
   archiveEntitiesResolver,
@@ -219,10 +218,6 @@ export const resolvers: Omit<Resolvers, "Query" | "Mutation"> & {
     resolveComment: loggedInAndSignedUpMiddleware(resolveCommentResolver),
     deleteComment: loggedInAndSignedUpMiddleware(deleteCommentResolver),
     updateCommentText: loggedInAndSignedUpMiddleware(updateCommentTextResolver),
-
-    configureDashboardItem: loggedInAndSignedUpMiddleware(
-      configureDashboardItemResolver,
-    ),
 
     createOrg: loggedInAndSignedUpMiddleware(createOrgResolver),
     inviteUserToOrg: loggedInAndSignedUpMiddleware(inviteUserToOrgResolver),

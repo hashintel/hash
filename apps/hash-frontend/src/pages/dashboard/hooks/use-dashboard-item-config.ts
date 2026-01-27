@@ -1,37 +1,33 @@
 import { useLazyQuery, useMutation } from "@apollo/client";
 import type { JsonValue } from "@blockprotocol/core/.";
-import { getRoots } from "@blockprotocol/graph/stdlib";
 import type {
   EntityId,
   PropertyPatchOperation,
   WebId,
 } from "@blockprotocol/type-system";
-import {
-  deserializeQueryEntitySubgraphResponse,
-  HashEntity,
-} from "@local/hash-graph-sdk/entity";
 import type { Filter } from "@local/hash-graph-client";
 import type {
   ChartConfig,
   ChartType,
 } from "@local/hash-isomorphic-utils/dashboard-types";
-import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
+import { configureDashboardItemFlowDefinition } from "@local/hash-isomorphic-utils/flows/frontend-flow-definitions";
+import type { StepOutput } from "@local/hash-isomorphic-utils/flows/types";
+import { getFlowRunById } from "@local/hash-isomorphic-utils/graphql/queries/flow.queries";
 import { systemPropertyTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
-import type { DashboardItem } from "@local/hash-isomorphic-utils/system-types/dashboarditem";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import type {
-  QueryEntitySubgraphQuery,
-  QueryEntitySubgraphQueryVariables,
+  FlowRun,
+  GetFlowRunByIdQuery,
+  GetFlowRunByIdQueryVariables,
+  StartFlowMutation,
+  StartFlowMutationVariables,
   UpdateEntityMutation,
   UpdateEntityMutationVariables,
 } from "../../../graphql/api-types.gen";
-import { configureDashboardItemMutation } from "../../../graphql/queries/knowledge/dashboard.queries";
-import {
-  queryEntitySubgraphQuery,
-  updateEntityMutation,
-} from "../../../graphql/queries/knowledge/entity.queries";
+import { FlowRunStatus } from "../../../graphql/api-types.gen";
+import { updateEntityMutation } from "../../../graphql/queries/knowledge/entity.queries";
+import { startFlowMutation } from "../../../graphql/queries/knowledge/flow.queries";
 
 export type ConfigStep = "goal" | "query" | "analysis" | "chart" | "complete";
 
@@ -47,7 +43,7 @@ export type ConfigState = {
   chartConfig: ChartConfig | null;
   isLoading: boolean;
   error: string | null;
-  workflowId: string | null;
+  flowRunId: string | null;
 };
 
 const initialState: ConfigState = {
@@ -62,7 +58,7 @@ const initialState: ConfigState = {
   chartConfig: null,
   isLoading: false,
   error: null,
-  workflowId: null,
+  flowRunId: null,
 };
 
 type UseDashboardItemConfigParams = {
@@ -72,25 +68,30 @@ type UseDashboardItemConfigParams = {
 };
 
 /**
+ * Extract typed output values from flow outputs
+ */
+const getOutputValue = <T>(
+  outputs: StepOutput[] | undefined | null,
+  name: string,
+): T | null => {
+  if (!outputs) {
+    return null;
+  }
+  const output = outputs.find((op) => op.outputName === name);
+  if (!output) {
+    return null;
+  }
+  return output.payload.value as T;
+};
+
+/**
  * Hook to manage the multi-step dashboard item configuration flow.
  *
  * Flow:
- * 1. User enters goal → saves to entity, triggers Temporal workflow
- * 2. Workflow generates query, analyzes data, creates chart config
- * 3. Workflow updates entity with results
- * 4. Frontend polls entity for updates and advances through steps
- *
- * @todo The backend workflow needs to populate these entity properties:
- *   - configurationStatus: "pending" | "configuring" | "ready" | "error"
- *   - chartType: the determined chart type
- *   - chartConfiguration: the generated ECharts config
- *   - errorMessage: error details if failed (property type TBD)
- *
- * @todo For full preview functionality, these property types need to be created:
- *   - structuralQuery: the generated Graph API filter
- *   - queryExplanation: LLM explanation of the query
- *   - pythonScript: data transformation script
- *   - chartData: transformed data for charting
+ * 1. User enters goal → saves to entity, triggers Flow via startFlow mutation
+ * 2. Flow generates query, analyzes data, creates chart config
+ * 3. Frontend polls flow for completion
+ * 4. When complete, extracts outputs and updates the entity
  */
 export const useDashboardItemConfig = ({
   itemEntityId,
@@ -105,12 +106,18 @@ export const useDashboardItemConfig = ({
     UpdateEntityMutationVariables
   >(updateEntityMutation);
 
-  const [configureDashboardItem] = useMutation(configureDashboardItemMutation);
+  const [startFlow] = useMutation<
+    StartFlowMutation,
+    StartFlowMutationVariables
+  >(startFlowMutation);
 
-  const [fetchDashboardItem] = useLazyQuery<
-    QueryEntitySubgraphQuery,
-    QueryEntitySubgraphQueryVariables
-  >(queryEntitySubgraphQuery, {
+  /**
+   * @todo could probably use useQuery with pollInterval here
+   */
+  const [fetchFlowRun] = useLazyQuery<
+    GetFlowRunByIdQuery,
+    GetFlowRunByIdQueryVariables
+  >(getFlowRunById, {
     fetchPolicy: "network-only",
   });
 
@@ -122,100 +129,218 @@ export const useDashboardItemConfig = ({
   }, []);
 
   /**
-   * Poll the entity to check for workflow updates.
-   * When configurationStatus changes, update state accordingly.
+   * Update the dashboard item entity with the flow outputs.
    */
-  const pollEntityForUpdates = useCallback(async () => {
-    try {
-      const { data } = await fetchDashboardItem({
-        variables: {
-          request: {
-            filter: {
-              equal: [{ path: ["uuid"] }, { parameter: itemEntityId }],
+  const updateEntityWithFlowOutputs = useCallback(
+    async (flowRun: FlowRun) => {
+      const outputs = flowRun.outputs as StepOutput[] | undefined;
+
+      const structuralQueryJson = getOutputValue<string>(
+        outputs,
+        "structuralQuery",
+      );
+      const pythonScript = getOutputValue<string>(outputs, "pythonScript");
+      const chartDataJson = getOutputValue<string>(outputs, "chartData");
+      const chartType = getOutputValue<string>(outputs, "chartType");
+      const chartConfigJson = getOutputValue<string>(outputs, "chartConfig");
+
+      const propertyPatches: PropertyPatchOperation[] = [];
+
+      if (structuralQueryJson) {
+        propertyPatches.push({
+          op: "add",
+          path: [systemPropertyTypes.structuralQuery.propertyTypeBaseUrl],
+          property: {
+            value: JSON.parse(structuralQueryJson),
+            metadata: {
+              dataTypeId:
+                "https://blockprotocol.org/@blockprotocol/types/data-type/object/v/1",
             },
-            graphResolveDepths: {
-              inheritsFrom: 255,
-              isOfType: true,
+          },
+        } as unknown as PropertyPatchOperation);
+      }
+
+      if (pythonScript) {
+        propertyPatches.push({
+          op: "add",
+          path: [systemPropertyTypes.pythonScript.propertyTypeBaseUrl],
+          property: {
+            value: pythonScript,
+            metadata: {
+              dataTypeId:
+                "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
             },
-            traversalPaths: [],
-            temporalAxes: currentTimeInstantTemporalAxes,
-            includeDrafts: false,
-            includePermissions: false,
+          },
+        });
+      }
+
+      if (chartType) {
+        propertyPatches.push({
+          op: "add",
+          path: [systemPropertyTypes.chartType.propertyTypeBaseUrl],
+          property: {
+            value: chartType,
+            metadata: {
+              dataTypeId:
+                "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+            },
+          },
+        });
+      }
+
+      if (chartConfigJson) {
+        propertyPatches.push({
+          op: "add",
+          path: [systemPropertyTypes.chartConfiguration.propertyTypeBaseUrl],
+          property: {
+            value: JSON.parse(chartConfigJson) as Record<string, JsonValue>,
+            metadata: {
+              dataTypeId:
+                "https://blockprotocol.org/@blockprotocol/types/data-type/object/v/1",
+            },
+          },
+        } as PropertyPatchOperation);
+      }
+
+      // Set status to ready
+      propertyPatches.push({
+        op: "replace",
+        path: [systemPropertyTypes.configurationStatus.propertyTypeBaseUrl],
+        property: {
+          value: "ready",
+          metadata: {
+            dataTypeId:
+              "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
           },
         },
       });
 
-      if (!data) {
-        return;
-      }
+      await updateEntity({
+        variables: {
+          entityUpdate: {
+            entityId: itemEntityId,
+            propertyPatches,
+          },
+        },
+      });
 
-      const { subgraph } =
-        deserializeQueryEntitySubgraphResponse<DashboardItem>(
-          data.queryEntitySubgraph,
-        );
-
-      const entities = getRoots(subgraph);
-      const entity = entities[0] as HashEntity<DashboardItem> | undefined;
-
-      if (!entity) {
-        return;
-      }
-
-      const props = simplifyProperties(entity.properties);
-      const status = props.configurationStatus as
-        | "pending"
-        | "configuring"
-        | "ready"
-        | "error";
-
-      // Extract all available properties from the entity
-      const structuralQuery = props.structuralQuery as Filter | undefined;
-      const pythonScript = props.pythonScript as string | undefined;
-      const chartType = props.chartType as ChartType | undefined;
-      const chartConfig = props.chartConfiguration as ChartConfig | undefined;
-
-      // Determine current step based on what data is available
-      let newStep: ConfigStep = state.step;
-
-      if (status === "ready") {
-        stopPolling();
-        newStep = "chart";
-      } else if (status === "error") {
-        stopPolling();
-        setState((prev) => ({
-          ...prev,
-          error:
-            (props as { errorMessage?: string }).errorMessage ??
-            "Configuration failed",
-          isLoading: false,
-        }));
-        return;
-      } else if (status === "configuring") {
-        // Advance steps based on what data has been populated
-        if (chartConfig && chartType) {
-          newStep = "chart";
-        } else if (pythonScript) {
-          newStep = "analysis";
-        } else if (structuralQuery) {
-          newStep = "query";
-        }
-      }
-
+      // Update state with parsed values
       setState((prev) => ({
         ...prev,
-        structuralQuery: structuralQuery ?? prev.structuralQuery,
-        pythonScript: pythonScript ?? prev.pythonScript,
-        chartType: chartType ?? prev.chartType,
-        chartConfig: chartConfig ?? prev.chartConfig,
-        isLoading: status === "configuring",
-        step: newStep,
+        structuralQuery: structuralQueryJson
+          ? (JSON.parse(structuralQueryJson) as Filter)
+          : null,
+        pythonScript,
+        chartData: chartDataJson
+          ? (JSON.parse(chartDataJson) as unknown[])
+          : null,
+        chartType: chartType as ChartType | null,
+        chartConfig: chartConfigJson
+          ? (JSON.parse(chartConfigJson) as ChartConfig)
+          : null,
+        step: "chart",
+        isLoading: false,
       }));
+    },
+    [itemEntityId, updateEntity],
+  );
+
+  /**
+   * Poll the flow run to check for completion.
+   */
+  const pollFlowForCompletion = useCallback(async () => {
+    if (!state.flowRunId) {
+      return;
+    }
+
+    try {
+      const { data } = await fetchFlowRun({
+        variables: { flowRunId: state.flowRunId },
+      });
+
+      if (!data?.getFlowRunById) {
+        return;
+      }
+
+      const flowRun = data.getFlowRunById;
+
+      // Update step based on flow progress
+      const steps = flowRun.steps;
+      const step1 = steps.find((st) => st.stepId === "1");
+      const step2 = steps.find((st) => st.stepId === "2");
+      const step3 = steps.find((st) => st.stepId === "3");
+
+      let newStep: ConfigStep = state.step;
+      if (step3?.closedAt) {
+        newStep = "chart";
+      } else if (step2?.closedAt) {
+        newStep = "analysis";
+      } else if (step1?.closedAt) {
+        newStep = "query";
+      }
+
+      setState((prev) => ({ ...prev, step: newStep }));
+
+      // Check if flow completed
+      if (flowRun.status === FlowRunStatus.Completed) {
+        stopPolling();
+        await updateEntityWithFlowOutputs(flowRun);
+        return;
+      }
+
+      // Check if flow failed
+      if (
+        flowRun.status === FlowRunStatus.Failed ||
+        flowRun.status === FlowRunStatus.Cancelled ||
+        flowRun.status === FlowRunStatus.TimedOut ||
+        flowRun.status === FlowRunStatus.Terminated
+      ) {
+        stopPolling();
+
+        // Update entity status to error
+        await updateEntity({
+          variables: {
+            entityUpdate: {
+              entityId: itemEntityId,
+              propertyPatches: [
+                {
+                  op: "replace",
+                  path: [
+                    systemPropertyTypes.configurationStatus.propertyTypeBaseUrl,
+                  ],
+                  property: {
+                    value: "error",
+                    metadata: {
+                      dataTypeId:
+                        "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+                    },
+                  },
+                },
+              ],
+            },
+          },
+        });
+
+        setState((prev) => ({
+          ...prev,
+          error: flowRun.failureMessage ?? "Flow configuration failed",
+          isLoading: false,
+        }));
+      }
     } catch (err) {
       // Don't stop polling on transient errors, just log
       // eslint-disable-next-line no-console
-      console.error("Error polling dashboard item:", err);
+      console.error("Error polling flow run:", err);
     }
-  }, [fetchDashboardItem, itemEntityId, stopPolling, state.step]);
+  }, [
+    fetchFlowRun,
+    state.flowRunId,
+    state.step,
+    stopPolling,
+    updateEntityWithFlowOutputs,
+    updateEntity,
+    itemEntityId,
+  ]);
 
   const startPolling = useCallback(() => {
     if (pollIntervalRef.current) {
@@ -223,11 +348,11 @@ export const useDashboardItemConfig = ({
     }
 
     // Poll immediately, then every 2 seconds
-    void pollEntityForUpdates();
+    void pollFlowForCompletion();
     pollIntervalRef.current = setInterval(() => {
-      void pollEntityForUpdates();
+      void pollFlowForCompletion();
     }, 2000);
-  }, [pollEntityForUpdates]);
+  }, [pollFlowForCompletion]);
 
   // Cleanup polling on unmount
   useEffect(() => {
@@ -245,8 +370,7 @@ export const useDashboardItemConfig = ({
   }, []);
 
   /**
-   * Generate query by saving goal and triggering the AI workflow.
-   * The workflow will update the entity with results.
+   * Generate query by saving goal and triggering the Flow.
    */
   const generateQuery = useCallback(async () => {
     if (!state.userGoal) {
@@ -292,25 +416,48 @@ export const useDashboardItemConfig = ({
         },
       });
 
-      // Trigger the AI configuration workflow
-      const { data } = await configureDashboardItem({
+      // Start the flow
+      const { data } = await startFlow({
         variables: {
-          itemEntityId,
+          flowDefinition: configureDashboardItemFlowDefinition,
+          flowTrigger: {
+            triggerDefinitionId: "userTrigger",
+            outputs: [
+              {
+                outputName: "userGoal",
+                payload: {
+                  kind: "Text",
+                  value: state.userGoal,
+                },
+              },
+            ],
+          },
+          flowType: "ai",
           webId,
+          dataSources: {
+            files: { fileEntityIds: [] },
+            internetAccess: {
+              enabled: false,
+              browserPlugin: {
+                enabled: false,
+                domains: [],
+              },
+            },
+          },
         },
       });
 
-      if (data?.configureDashboardItem) {
+      if (data?.startFlow) {
         setState((prev) => ({
           ...prev,
-          workflowId: data.configureDashboardItem.workflowId,
-          // Keep isLoading true while we wait for workflow
+          flowRunId: data.startFlow,
+          step: "query",
         }));
 
-        // Start polling for workflow completion
+        // Start polling for flow completion
         startPolling();
       } else {
-        setError("Failed to start configuration workflow");
+        setError("Failed to start configuration flow");
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to generate query");
@@ -321,7 +468,7 @@ export const useDashboardItemConfig = ({
     itemEntityId,
     webId,
     updateEntity,
-    configureDashboardItem,
+    startFlow,
     startPolling,
   ]);
 
@@ -330,15 +477,13 @@ export const useDashboardItemConfig = ({
   }, [generateQuery]);
 
   /**
-   * For now, skip directly to chart step since the workflow handles everything.
-   * In the future, this could be expanded to show intermediate query results.
+   * Skip to chart step since the flow handles everything.
    */
   const confirmQuery = useCallback(() => {
     setState((prev) => ({ ...prev, step: "analysis" }));
   }, []);
 
   const regenerateAnalysis = useCallback(async () => {
-    // Re-trigger the workflow
     await generateQuery();
   }, [generateQuery]);
 

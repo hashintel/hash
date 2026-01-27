@@ -1,23 +1,28 @@
 import { IconButton } from "@hashintel/design-system";
 import {
+  Delete as DeleteIcon,
   Refresh as RefreshIcon,
   Settings as SettingsIcon,
 } from "@mui/icons-material";
 import { Box, CircularProgress, Paper, Typography } from "@mui/material";
 
-import { ChartRenderer } from "./chart-renderer";
 import type { DashboardItemData } from "../shared/types";
+import { ChartRenderer } from "./chart-renderer";
 
 type DashboardItemProps = {
   item: DashboardItemData;
+  isEditing?: boolean;
   onConfigureClick?: () => void;
   onRefreshClick?: () => void;
+  onDeleteClick?: () => void;
 };
 
 export const DashboardItem = ({
   item,
+  isEditing = false,
   onConfigureClick,
   onRefreshClick,
+  onDeleteClick,
 }: DashboardItemProps) => {
   const {
     title,
@@ -154,16 +159,32 @@ export const DashboardItem = ({
         <Typography variant="smallTextLabels" noWrap sx={{ flex: 1 }}>
           {title}
         </Typography>
-        {configurationStatus === "ready" && (
-          <Box sx={{ display: "flex", gap: 0.5 }}>
-            <IconButton size="small" onClick={onRefreshClick}>
-              <RefreshIcon fontSize="small" />
+        <Box sx={{ display: "flex", gap: 0.5 }}>
+          {configurationStatus === "ready" && (
+            <>
+              <IconButton size="small" onClick={onRefreshClick}>
+                <RefreshIcon fontSize="small" />
+              </IconButton>
+              <IconButton size="small" onClick={onConfigureClick}>
+                <SettingsIcon fontSize="small" />
+              </IconButton>
+            </>
+          )}
+          {isEditing && (
+            <IconButton
+              size="small"
+              onClick={onDeleteClick}
+              sx={{
+                color: ({ palette }) => palette.red[70],
+                "&:hover": {
+                  color: ({ palette }) => palette.red[80],
+                },
+              }}
+            >
+              <DeleteIcon fontSize="small" />
             </IconButton>
-            <IconButton size="small" onClick={onConfigureClick}>
-              <SettingsIcon fontSize="small" />
-            </IconButton>
-          </Box>
-        )}
+          )}
+        </Box>
       </Box>
 
       {/* Content */}

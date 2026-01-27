@@ -8,6 +8,7 @@ import type {
 
 export type DashboardItemData = {
   entityId: EntityId;
+  linkEntityId: EntityId;
   title: string;
   userGoal: string;
   chartType: ChartType | null;

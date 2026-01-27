@@ -1,18 +1,150 @@
 /**
- * Flow activity for generating a structured query.
- * This is a thin wrapper around the core generateStructuredQuery function.
+ * Flow activity for generating a structural query based on a user's goal.
+ * This activity explores available entity types, constructs and tests queries iteratively.
  */
 import type { AiFlowActionActivity } from "@local/hash-backend-utils/flows";
+import { getSimpleGraph } from "@local/hash-backend-utils/simplified-graph";
+import type { Filter } from "@local/hash-graph-client";
+import { queryEntitySubgraph } from "@local/hash-graph-sdk/entity";
+import { queryEntityTypeSubgraph } from "@local/hash-graph-sdk/entity-type";
+import type { ChartType } from "@local/hash-isomorphic-utils/dashboard-types";
 import type {
   AiActionStepOutput,
   InputNameForAiFlowAction,
 } from "@local/hash-isomorphic-utils/flows/action-definitions";
 import { getSimplifiedAiFlowActionInputs } from "@local/hash-isomorphic-utils/flows/action-definitions";
+import {
+  almostFullOntologyResolveDepths,
+  currentTimeInstantTemporalAxes,
+} from "@local/hash-isomorphic-utils/graph-queries";
 import { StatusCode } from "@local/status";
+import dedent from "dedent";
 
-import { generateStructuralQuery } from "../shared/generate-structural-query.js";
 import { getFlowContext } from "../shared/get-flow-context.js";
+import { getLlmResponse } from "../shared/get-llm-response.js";
+import {
+  getToolCallsFromLlmAssistantMessage,
+  mapLlmMessageToOpenAiMessages,
+  mapOpenAiMessagesToLlmMessages,
+} from "../shared/get-llm-response/llm-message.js";
+import type { LlmToolDefinition } from "../shared/get-llm-response/types.js";
 import { graphApiClient } from "../shared/graph-api-client.js";
+import { openAiSeed } from "../shared/open-ai-seed.js";
+import type { PermittedOpenAiModel } from "../shared/openai-client.js";
+import { stringify } from "../shared/stringify.js";
+
+const model: PermittedOpenAiModel = "gpt-4o-2024-08-06";
+
+const systemPrompt = dedent(`
+  You are an expert at constructing database queries. You help users create queries to retrieve
+  data from a knowledge graph for visualization in charts and dashboards.
+
+  The knowledge graph stores "entities" which have types, properties, and links to other entities.
+  You construct "structural queries" using a filter syntax that supports:
+  - equal: Exact match on a path
+  - notEqual: Not equal to a value
+  - any: Match any of the conditions (OR)
+  - all: Match all conditions (AND)
+  - not: Negate a condition
+  - greater, greaterOrEqual, less, lessOrEqual: Numeric comparisons
+  - startsWith, endsWith, containsSegment: String operations
+
+  Common filter paths for entities:
+  - ["uuid"] - Entity's unique identifier
+  - ["webId"] - The web (namespace) the entity belongs to
+  - ["type", "baseUrl"] - Filter by entity type base URL
+  - ["type", "title"] - Filter by entity type title
+  - ["properties", "<baseUrl>"] - Filter by a property value
+  - ["archived"] - Whether the entity is archived
+  - ["leftEntity", ...] - For link entities, the source entity
+  - ["rightEntity", ...] - For link entities, the target entity
+
+  You first explore what entity types are available, then construct a query that will
+  retrieve the data needed for the user's visualization goal.
+
+  You test your query to see what data it returns, and iterate until the results look correct.
+`);
+
+type ToolName = "get_entity_types" | "test_query" | "submit_query";
+
+const tools: LlmToolDefinition<ToolName>[] = [
+  {
+    name: "get_entity_types",
+    description:
+      "Retrieve available entity types to understand what data can be queried. Returns type titles, descriptions, and property schemas.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        searchQuery: {
+          type: "string",
+          description:
+            "Optional: semantic search query to find relevant entity types",
+        },
+      },
+      additionalProperties: false,
+    },
+  },
+  {
+    name: "test_query",
+    description:
+      "Execute a structural query and see the results. Use this to validate your query returns the expected data.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        filter: {
+          type: "object",
+          description: "The filter object for the structural query",
+        },
+        limit: {
+          type: "number",
+          description: "Maximum number of results to return (default 10)",
+        },
+      },
+      required: ["filter"],
+      additionalProperties: false,
+    },
+  },
+  {
+    name: "submit_query",
+    description:
+      "Submit the final query once you're satisfied it returns the correct data for the user's goal.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        filter: {
+          type: "object",
+          description: "The final filter object for the structural query",
+        },
+        explanation: {
+          type: "string",
+          description:
+            "Explanation of what the query does and why it suits the user's goal",
+        },
+        suggestedChartTypes: {
+          type: "array",
+          items: {
+            type: "string",
+            enum: [
+              "bar",
+              "line",
+              "area",
+              "pie",
+              "scatter",
+              "radar",
+              "composed",
+            ],
+          },
+          description:
+            "Suggested chart types that would work well with this data",
+        },
+      },
+      required: ["filter", "explanation", "suggestedChartTypes"],
+      additionalProperties: false,
+    },
+  },
+];
+
+const maximumIterations = 8;
 
 type ActionOutputs = AiActionStepOutput<"generateStructuralQuery">[];
 
@@ -29,16 +161,240 @@ export const generateStructuralQueryAction: AiFlowActionActivity<
   const { userAuthentication, stepId, flowEntityId, webId } =
     await getFlowContext();
 
-  try {
-    const { structuralQuery, suggestedChartTypes, explanation } =
-      await generateStructuralQuery({
-        userGoal,
-        webId,
-        authentication: userAuthentication,
+  // Fetch available entity types
+  const { subgraph: typesSubgraph } = await queryEntityTypeSubgraph(
+    graphApiClient,
+    userAuthentication,
+    {
+      filter: webId
+        ? { equal: [{ path: ["webId"] }, { parameter: webId }] }
+        : { all: [] },
+      temporalAxes: currentTimeInstantTemporalAxes,
+      graphResolveDepths: almostFullOntologyResolveDepths,
+      traversalPaths: [],
+    },
+  );
+
+  type EntityTypeVertex = {
+    kind: "entityType";
+    inner: {
+      schema: {
+        title: string;
+        $id: string;
+        description?: string;
+        properties?: Record<string, unknown>;
+      };
+    };
+  };
+
+  const entityTypes = Object.values(
+    typesSubgraph.vertices as Record<string, Record<string, unknown>>,
+  )
+    .flatMap((vertex) => Object.values(vertex))
+    .filter(
+      (vertex): vertex is EntityTypeVertex =>
+        (vertex as { kind: string }).kind === "entityType",
+    )
+    .map((vertex) => ({
+      title: vertex.inner.schema.title,
+      $id: vertex.inner.schema.$id,
+      description: vertex.inner.schema.description,
+      properties: Object.keys(vertex.inner.schema.properties ?? {}),
+    }));
+
+  type MessageType = Parameters<typeof getLlmResponse>[0]["messages"];
+
+  let structuralQuery: Filter | null = null;
+  let suggestedChartTypes: ChartType[] = [];
+  let explanation = "";
+
+  const callModel = async (
+    messages: MessageType,
+    iteration: number,
+  ): Promise<void> => {
+    if (iteration > maximumIterations) {
+      throw new Error(
+        `Exceeded maximum iterations (${maximumIterations}) for query generation`,
+      );
+    }
+
+    const llmResponse = await getLlmResponse(
+      {
+        model,
+        systemPrompt,
+        messages,
+        temperature: 0,
+        seed: openAiSeed,
+        tools,
+      },
+      {
+        customMetadata: {
+          stepId,
+          taskName: "generate-query",
+        },
+        userAccountId: userAuthentication.actorId,
         graphApiClient,
-        incurredInEntityId: flowEntityId,
-        stepId,
-      });
+        incurredInEntities: [{ entityId: flowEntityId }],
+        webId,
+      },
+    );
+
+    if (llmResponse.status !== "ok") {
+      throw new Error(`LLM error: ${llmResponse.status}`);
+    }
+
+    const { message } = llmResponse;
+    const toolCalls = getToolCallsFromLlmAssistantMessage({ message });
+
+    for (const toolCall of toolCalls) {
+      const args = toolCall.input as Record<string, unknown>;
+
+      switch (toolCall.name) {
+        case "get_entity_types": {
+          return callModel(
+            [
+              ...messages,
+              ...mapOpenAiMessagesToLlmMessages({
+                messages: mapLlmMessageToOpenAiMessages({ message }),
+              }),
+              {
+                role: "user",
+                content: [
+                  {
+                    type: "tool_result",
+                    tool_use_id: toolCall.id,
+                    content: `Available entity types:\n${stringify(entityTypes)}`,
+                  },
+                ],
+              },
+            ],
+            iteration + 1,
+          );
+        }
+
+        case "test_query": {
+          const filter = args.filter as Filter;
+          const limit = (args.limit as number | undefined) ?? 10;
+
+          try {
+            const { subgraph } = await queryEntitySubgraph(
+              { graphApi: graphApiClient },
+              userAuthentication,
+              {
+                filter,
+                temporalAxes: currentTimeInstantTemporalAxes,
+                graphResolveDepths: almostFullOntologyResolveDepths,
+                traversalPaths: [],
+                includeDrafts: false,
+                limit,
+                includePermissions: false,
+              },
+            );
+
+            const { entities: simpleEntities } = getSimpleGraph(subgraph);
+
+            return callModel(
+              [
+                ...messages,
+                ...mapOpenAiMessagesToLlmMessages({
+                  messages: mapLlmMessageToOpenAiMessages({ message }),
+                }),
+                {
+                  role: "user",
+                  content: [
+                    {
+                      type: "tool_result",
+                      tool_use_id: toolCall.id,
+                      content: `Query returned ${simpleEntities.length} entities:\n${stringify(simpleEntities.slice(0, limit))}`,
+                    },
+                  ],
+                },
+              ],
+              iteration + 1,
+            );
+          } catch (error) {
+            return callModel(
+              [
+                ...messages,
+                ...mapOpenAiMessagesToLlmMessages({
+                  messages: mapLlmMessageToOpenAiMessages({ message }),
+                }),
+                {
+                  role: "user",
+                  content: [
+                    {
+                      type: "tool_result",
+                      tool_use_id: toolCall.id,
+                      content: `Query error: ${error instanceof Error ? error.message : "Unknown error"}`,
+                    },
+                  ],
+                },
+              ],
+              iteration + 1,
+            );
+          }
+        }
+
+        case "submit_query": {
+          structuralQuery = args.filter as Filter;
+          suggestedChartTypes = args.suggestedChartTypes as ChartType[];
+          explanation = args.explanation as string;
+          return;
+        }
+      }
+    }
+
+    // No tool calls - prompt to use a tool
+    return callModel(
+      [
+        ...messages,
+        ...mapOpenAiMessagesToLlmMessages({
+          messages: mapLlmMessageToOpenAiMessages({ message }),
+        }),
+        {
+          role: "user",
+          content: [
+            {
+              type: "text",
+              text: "Please use one of the available tools to explore entity types, test a query, or submit your final query.",
+            },
+          ],
+        },
+      ],
+      iteration + 1,
+    );
+  };
+
+  try {
+    await callModel(
+      [
+        {
+          role: "user",
+          content: [
+            {
+              type: "text",
+              text: dedent(`
+                User's goal: "${userGoal}"
+
+                Web ID (namespace): ${webId}
+
+                Please:
+                1. First explore available entity types using get_entity_types
+                2. Construct a query that will retrieve the data needed for this goal
+                3. Test your query to verify it returns appropriate data
+                4. Submit your final query when satisfied
+              `),
+            },
+          ],
+        },
+      ],
+      1,
+    );
+
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- Variable set in recursive async function
+    if (!structuralQuery) {
+      throw new Error("Failed to generate structural query");
+    }
 
     const outputs: ActionOutputs = [
       {

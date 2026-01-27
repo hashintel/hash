@@ -1,6 +1,8 @@
 /**
  * Script to generate JSON schema from ChartConfig type.
- * Run with: yarn generate:chart-config-schema (from apps/hash-ai-worker-ts)
+ * Used to pass to the LLM to generate the chart configuration.
+ *
+ * @see src/activities/flow-activities/generate-chart-config-action.ts
  */
 import { writeFileSync } from "node:fs";
 import path from "node:path";
@@ -14,9 +16,9 @@ const __dirname = path.dirname(__filename);
 const config = {
   path: path.resolve(
     __dirname,
-    "../../../../libs/@local/hash-isomorphic-utils/src/dashboard-types.ts",
+    "../../../libs/@local/hash-isomorphic-utils/src/dashboard-types.ts",
   ),
-  tsconfig: path.resolve(__dirname, "../../../tsconfig.json"),
+  tsconfig: path.resolve(__dirname, "../tsconfig.json"),
   type: "ChartConfig",
 } satisfies generator.Config;
 
@@ -30,9 +32,15 @@ export const chartConfigSchema = ${JSON.stringify(schema, null, 2)} as const;
 `;
 
 writeFileSync(
-  path.resolve(__dirname, "chart-config-schema.gen.ts"),
+  path.join(
+    __dirname,
+    "..",
+    "src",
+    "activities",
+    "flow-activities",
+    "chart-config-schema.gen.ts",
+  ),
   schemaContent,
 );
 
-// eslint-disable-next-line no-console
 console.log("Generated chart-config-schema.gen.ts");

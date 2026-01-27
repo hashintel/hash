@@ -29,6 +29,8 @@ import { useRouter } from "next/router";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import type {
+  ArchiveEntitiesMutation,
+  ArchiveEntitiesMutationVariables,
   CreateEntityMutation,
   CreateEntityMutationVariables,
   QueryEntitySubgraphQuery,
@@ -37,6 +39,7 @@ import type {
   UpdateEntityMutationVariables,
 } from "../../graphql/api-types.gen";
 import {
+  archiveEntitiesMutation,
   createEntityMutation,
   queryEntitySubgraphQuery,
   updateEntityMutation,
@@ -144,9 +147,11 @@ const DashboardPage: NextPageWithLayout = () => {
 
       const itemProps = simplifyProperties(itemEntity.properties);
       const itemEntityId = itemEntity.metadata.recordId.entityId;
+      const linkEntityId = link.metadata.recordId.entityId;
 
       items.push({
         entityId: itemEntityId,
+        linkEntityId,
         title: itemProps.name,
         userGoal: itemProps.goal,
         chartType: itemProps.chartType as ChartType,
@@ -192,6 +197,11 @@ const DashboardPage: NextPageWithLayout = () => {
     CreateEntityMutation,
     CreateEntityMutationVariables
   >(createEntityMutation);
+
+  const [archiveEntities] = useMutation<
+    ArchiveEntitiesMutation,
+    ArchiveEntitiesMutationVariables
+  >(archiveEntitiesMutation);
 
   const handleLayoutChange = useCallback(
     async (newLayout: GridPosition[]) => {
@@ -252,6 +262,19 @@ const DashboardPage: NextPageWithLayout = () => {
     await refetch();
   }, [refetch]);
 
+  const handleItemDeleteClick = useCallback(
+    async (item: DashboardItemData) => {
+      // Archive both the item entity and the link entity
+      await archiveEntities({
+        variables: {
+          entityIds: [item.entityId, item.linkEntityId],
+        },
+      });
+      await refetch();
+    },
+    [archiveEntities, refetch],
+  );
+
   const handleAddItem = useCallback(async () => {
     if (!dashboard?.entityId) {
       return;
@@ -289,7 +312,7 @@ const DashboardPage: NextPageWithLayout = () => {
       return;
     }
 
-    await createEntity({
+    const { data: linkData } = await createEntity({
       variables: {
         entityTypeIds: [systemLinkEntityTypes.has.linkEntityTypeId],
         webId: activeWorkspaceWebId,
@@ -301,11 +324,19 @@ const DashboardPage: NextPageWithLayout = () => {
       },
     });
 
+    const newLinkEntity = linkData?.createEntity
+      ? new HashEntity(linkData.createEntity)
+      : null;
+
     // Refetch and open the config modal for the new item
     await refetch();
 
     setSelectedItem({
       entityId: newItemEntity.metadata.recordId.entityId,
+      // Link entity ID will be available after refetch; use item ID as placeholder
+      linkEntityId:
+        newLinkEntity?.metadata.recordId.entityId ??
+        newItemEntity.metadata.recordId.entityId,
       title: "New Chart",
       userGoal: "",
       chartType: null,
@@ -381,6 +412,7 @@ const DashboardPage: NextPageWithLayout = () => {
         onLayoutChange={handleLayoutChange}
         onItemConfigureClick={handleItemConfigureClick}
         onItemRefreshClick={handleItemRefreshClick}
+        onItemDeleteClick={handleItemDeleteClick}
         onCanvasClick={handleAddItem}
         isEditing={isEditing}
         canEdit={canEdit}
