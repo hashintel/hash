@@ -1,6 +1,6 @@
 {
   "name": "@blockprotocol/type-system",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Definitions of types within the Block Protocol Type System",
   "homepage": "https://blockprotocol.org",
   "license": "MIT",

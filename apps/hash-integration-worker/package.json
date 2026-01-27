@@ -20,8 +20,8 @@
     "start:test:healthcheck": "wait-on --timeout 600000 http-get://localhost:4300/health"
   },
   "dependencies": {
-    "@blockprotocol/graph": "0.4.0",
-    "@blockprotocol/type-system": "0.2.0",
+    "@blockprotocol/graph": "0.4.1",
+    "@blockprotocol/type-system": "0.2.1",
     "@linear/sdk": "61.0.0",
     "@local/hash-backend-utils": "0.0.0-private",
     "@local/hash-graph-client": "0.0.0-private",
