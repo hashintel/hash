@@ -3,7 +3,11 @@ import { join } from "node:path";
 import { camelCase, kebabCase } from "case-anything";
 import { z } from "zod";
 import figmaVariables from "./figma-variables.json" with { type: "json" };
-import { cleanDescription, transformPropertyKey } from "./transforms";
+import {
+  cleanDescription,
+  shouldSkipKey,
+  transformPropertyKey,
+} from "./transforms";
 
 const OUTPUT_DIR = "src/theme/colors";
 
@@ -132,6 +136,10 @@ function transformSemanticTokens(
 
   const result: Record<string, unknown> = {};
   for (const [key, child] of Object.entries(node)) {
+    // Skip private/internal keys (starting with "-" or "_")
+    if (shouldSkipKey(key)) {
+      continue;
+    }
     // Convert kebab-case keys to camelCase (e.g., "link-hover" -> "linkHover")
     // Also convert "default" to "DEFAULT" for Panda's nested default syntax
     const transformedKey = transformPropertyKey(camelCase(key));
@@ -145,12 +153,15 @@ function transformSemanticTokens(
 /**
  * Strip the Figma-export metadata (`type`) and keep only the `{ value }` shape
  * expected by Panda's `defineSemanticTokens.colors()`.
+ * Skips keys starting with "-" or "_".
  */
 function transformColorScale(
   scale: FigmaColorScale,
 ): Record<string, { value: ColorModeValue }> {
   return Object.fromEntries(
-    Object.entries(scale).map(([step, { value }]) => [step, { value }]),
+    Object.entries(scale)
+      .filter(([step]) => !shouldSkipKey(step))
+      .map(([step, { value }]) => [step, { value }]),
   );
 }
 
@@ -313,6 +324,10 @@ function main(): void {
   const coreColorNames: string[] = [];
   console.log("\n📦 Core colors:");
   for (const [colorName, scale] of Object.entries(colorCore)) {
+    // Skip private/internal color names (starting with "-" or "_")
+    if (shouldSkipKey(colorName)) {
+      continue;
+    }
     const tokens = transformColorScale(scale);
     writeColorFile(colorName, tokens);
     coreColorNames.push(colorName);
@@ -323,6 +338,10 @@ function main(): void {
   if (colorSemantic) {
     console.log("\n🎯 Semantic colors:");
     for (const [categoryName, node] of Object.entries(colorSemantic)) {
+      // Skip private/internal category names (starting with "-" or "_")
+      if (shouldSkipKey(categoryName)) {
+        continue;
+      }
       const tokens = transformSemanticTokens(node as SemanticTokenNode);
       writeSemanticColorFile(categoryName, tokens);
       semanticColorNames.push(categoryName);
