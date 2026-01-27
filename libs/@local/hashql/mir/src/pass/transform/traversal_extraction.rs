@@ -12,6 +12,7 @@ use crate::{
         place::Place,
         rvalue::RValue,
         statement::{Assign, Statement, StatementKind},
+        terminator::Terminator,
     },
     context::MirContext,
     pass::{Changed, TransformPass},
@@ -51,7 +52,9 @@ struct TraversalExtractionVisitor<'heap, A: Allocator> {
     current_span: SpanId,
 
     total_locals: Local,
+
     pending_locals: Vec<LocalDecl<'heap>, A>,
+    pending_locals_offset: usize,
     pending_statements: Vec<Statement<'heap>, A>,
 
     traversals: Traversals<'heap>,
@@ -77,21 +80,37 @@ impl<'heap, A: Allocator> VisitorMut<'heap> for TraversalExtractionVisitor<'heap
 
         let r#type = place.type_id_unchecked(&self.target_decl);
 
-        // provision a new local
-        let new_local = self.total_locals.plus(self.pending_locals.len());
+        // Before we do anything, verify if we haven't already added a local with the same
+        // projection, inside the same basic block.
+        let new_local = if let Some(offset) =
+            (self.pending_locals_offset..self.pending_locals.len()).find(|&index| {
+                self.traversals
+                    .lookup(self.total_locals.plus(self.pending_locals_offset + index))
+                    .is_some_and(|pending| pending.projections == place.projections)
+            }) {
+            // We already have a local with the same projection inside the same basic block that we
+            // can reuse.
+            self.total_locals.plus(offset)
+        } else {
+            // provision a new local
+            let new_local = self.total_locals.plus(self.pending_locals.len());
+            self.traversals.insert(new_local, *place);
 
-        self.pending_locals.push(LocalDecl {
-            span: self.target_decl.span,
-            r#type,
-            name: None,
-        });
-        self.pending_statements.push(Statement {
-            span: self.current_span,
-            kind: StatementKind::Assign(Assign {
-                lhs: Place::local(new_local),
-                rhs: RValue::Load(Operand::Place(*place)),
-            }),
-        });
+            self.pending_locals.push(LocalDecl {
+                span: self.target_decl.span,
+                r#type,
+                name: None,
+            });
+            self.pending_statements.push(Statement {
+                span: self.current_span,
+                kind: StatementKind::Assign(Assign {
+                    lhs: Place::local(new_local),
+                    rhs: RValue::Load(Operand::Place(*place)),
+                }),
+            });
+
+            new_local
+        };
 
         // Replace the operand with the new local
         *operand = Operand::Place(Place::local(new_local));
@@ -150,6 +169,15 @@ impl<'heap, A: Allocator> VisitorMut<'heap> for TraversalExtractionVisitor<'heap
         visit::r#mut::walk_statement(self, location, statement)
     }
 
+    fn visit_terminator(
+        &mut self,
+        location: Location,
+        terminator: &mut Terminator<'heap>,
+    ) -> Self::Result<()> {
+        self.current_span = terminator.span;
+        visit::r#mut::walk_terminator(self, location, terminator)
+    }
+
     fn visit_basic_block(
         &mut self,
         id: BasicBlockId,
@@ -164,6 +192,8 @@ impl<'heap, A: Allocator> VisitorMut<'heap> for TraversalExtractionVisitor<'heap
             statement_index: 0,
         };
 
+        self.pending_locals_offset = self.pending_locals.len();
+
         // We do not visit the basic block id here because it **cannot** be changed
         self.visit_basic_block_params(location, params)?;
 
@@ -176,19 +206,27 @@ impl<'heap, A: Allocator> VisitorMut<'heap> for TraversalExtractionVisitor<'heap
             let statement = &mut statements[index];
             Ok(()) = self.visit_statement(location, statement);
 
+            location.statement_index += 1;
             if self.pending_statements.is_empty() {
-                location.statement_index += 1;
                 continue;
             }
 
-            // We do not increment the counter on purpose, to allow us to traverse the new
-            // statements again. The second iteration will *not* add any new statements, and is
-            // therefore safe.
+            // We increment the counter to the amount of statements that we are about to add, as we
+            // don't need to visit them again. These are only loads, which are recorded in the load
+            // traversal.
+            location.statement_index += self.pending_statements.len();
+
             statements.splice(index..index, self.pending_statements.drain(..));
             self.changed = Changed::Yes;
         }
 
         self.visit_terminator(location, terminator)?;
+
+        #[expect(clippy::extend_with_drain, reason = "differing allocator")]
+        if !self.pending_statements.is_empty() {
+            statements.extend(self.pending_statements.drain(..));
+            self.changed = Changed::Yes;
+        }
 
         Ok(())
     }
@@ -228,6 +266,7 @@ impl<'env, 'heap, A: Allocator> TransformPass<'env, 'heap> for TraversalExtracti
             target_decl: body.local_decls[vertex],
             current_span: SpanId::SYNTHETIC,
             total_locals: body.local_decls.bound(),
+            pending_locals_offset: 0,
             pending_locals: Vec::new_in(&self.alloc),
             pending_statements: Vec::new_in(&self.alloc),
             traversals: Traversals::with_capacity_in(vertex, body.local_decls.len(), context.heap),
