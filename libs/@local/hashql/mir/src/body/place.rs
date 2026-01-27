@@ -419,6 +419,19 @@ impl<'heap> Place<'heap> {
     }
 }
 
+impl fmt::Display for Place<'_> {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let Self { local, projections } = self;
+        fmt::Display::fmt(local, fmt)?;
+
+        for projection in projections {
+            fmt::Display::fmt(&projection.kind, fmt)?;
+        }
+
+        Ok(())
+    }
+}
+
 /// A single projection step that navigates into structured data, carrying its result type.
 ///
 /// A [`Projection`] represents one step in navigating through structured data, combining
