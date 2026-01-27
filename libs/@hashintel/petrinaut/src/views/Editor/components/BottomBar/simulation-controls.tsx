@@ -1,13 +1,27 @@
-import { css } from "@hashintel/ds-helpers/css";
-import { use } from "react";
+import { css, cva } from "@hashintel/ds-helpers/css";
+import { use, useEffect, useRef, useState } from "react";
+import { IoMdPause, IoMdPlay } from "react-icons/io";
 import {
-  IoMdCheckmarkCircleOutline,
-  IoMdPause,
-  IoMdPlay,
-} from "react-icons/io";
-import { MdRotateLeft } from "react-icons/md";
+  MdCheck,
+  MdCheckBox,
+  MdOutlinePlayArrow,
+  MdRotateLeft,
+} from "react-icons/md";
+import {
+  TbArrowBarToRight,
+  TbChartLine,
+  TbClock,
+  TbInfinity,
+  TbSettings,
+  TbX,
+} from "react-icons/tb";
 
-import { PlaybackContext } from "../../../../playback/context";
+import {
+  formatPlaybackSpeed,
+  PLAYBACK_SPEEDS,
+  PlaybackContext,
+  type PlaybackSpeed,
+} from "../../../../playback/context";
 import { SimulationContext } from "../../../../simulation/context";
 import { EditorContext } from "../../../../state/editor-context";
 import { ToolbarButton } from "./toolbar-button";
@@ -69,6 +83,179 @@ const sliderStyle = css({
   },
 });
 
+const settingsButtonContainerStyle = css({
+  position: "relative",
+});
+
+// Popover styles
+const popoverContainerStyle = css({
+  position: "absolute",
+  bottom: "[100%]",
+  left: "[50%]",
+  transform: "translateX(-50%)",
+  marginBottom: "2",
+  zIndex: 1000,
+});
+
+const popoverStyle = css({
+  backgroundColor: "gray.10",
+  borderRadius: "[12px]",
+  boxShadow:
+    "[0px 0px 0px 1px rgba(0, 0, 0, 0.06), 0px 1px 1px -0.5px rgba(0, 0, 0, 0.04), 0px 4px 4px -12px rgba(0, 0, 0, 0.02), 0px 12px 12px -6px rgba(0, 0, 0, 0.02)]",
+  overflow: "hidden",
+  width: "[280px]",
+});
+
+const popoverHeaderStyle = css({
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "space-between",
+  paddingX: "[12px]",
+  paddingY: "[8px]",
+});
+
+const popoverTitleStyle = css({
+  fontSize: "[12px]",
+  fontWeight: "medium",
+  color: "gray.50",
+  textTransform: "uppercase",
+  letterSpacing: "[0.48px]",
+});
+
+const closeButtonStyle = css({
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  width: "[24px]",
+  height: "[24px]",
+  fontSize: "[14px]",
+  color: "gray.50",
+  backgroundColor: "[transparent]",
+  border: "none",
+  borderRadius: "[6px]",
+  cursor: "pointer",
+  _hover: {
+    backgroundColor: "[rgba(0, 0, 0, 0.05)]",
+  },
+});
+
+const sectionStyle = css({
+  paddingX: "[4px]",
+  paddingBottom: "[4px]",
+});
+
+const sectionCardStyle = css({
+  backgroundColor: "[white]",
+  borderRadius: "[8px]",
+  boxShadow:
+    "[0px 0px 0px 1px rgba(0, 0, 0, 0.06), 0px 1px 1px -0.5px rgba(0, 0, 0, 0.04), 0px 4px 4px -12px rgba(0, 0, 0, 0.02), 0px 12px 12px -6px rgba(0, 0, 0, 0.02)]",
+  overflow: "hidden",
+  padding: "[4px]",
+});
+
+const sectionLabelStyle = css({
+  fontSize: "[12px]",
+  fontWeight: "medium",
+  color: "gray.50",
+  paddingX: "[8px]",
+  paddingTop: "[8px]",
+  paddingBottom: "[6px]",
+});
+
+const menuItemStyle = cva({
+  base: {
+    display: "flex",
+    alignItems: "center",
+    gap: "[8px]",
+    width: "[100%]",
+    minWidth: "[130px]",
+    height: "[28px]",
+    paddingX: "[8px]",
+    borderRadius: "[8px]",
+    fontSize: "[14px]",
+    fontWeight: "medium",
+    color: "gray.90",
+    backgroundColor: "[transparent]",
+    border: "none",
+    cursor: "pointer",
+    textAlign: "left",
+    _hover: {
+      backgroundColor: "gray.10",
+    },
+  },
+  variants: {
+    selected: {
+      true: {
+        backgroundColor: "blue.20",
+        _hover: {
+          backgroundColor: "blue.20",
+        },
+      },
+    },
+  },
+});
+
+const menuItemIconStyle = css({
+  fontSize: "[14px]",
+  color: "gray.50",
+  flexShrink: 0,
+});
+
+const menuItemTextStyle = css({
+  flex: "[1]",
+  overflow: "hidden",
+  textOverflow: "ellipsis",
+  whiteSpace: "nowrap",
+});
+
+const checkIconStyle = css({
+  fontSize: "[14px]",
+  color: "blue.50",
+  flexShrink: 0,
+});
+
+const speedGridStyle = css({
+  display: "grid",
+  gridTemplateColumns: "repeat(4, 1fr)",
+  paddingX: "[8px]",
+  paddingBottom: "[4px]",
+});
+
+const speedButtonStyle = cva({
+  base: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    padding: "[8px]",
+    fontSize: "[14px]",
+    fontWeight: "medium",
+    color: "gray.90",
+    backgroundColor: "[transparent]",
+    border: "none",
+    borderRadius: "[8px]",
+    cursor: "pointer",
+    _hover: {
+      backgroundColor: "gray.10",
+    },
+  },
+  variants: {
+    selected: {
+      true: {
+        backgroundColor: "blue.20",
+        _hover: {
+          backgroundColor: "blue.20",
+        },
+      },
+    },
+  },
+});
+
+const dividerStyle = css({
+  height: "[1px]",
+  backgroundColor: "gray.10",
+  marginTop: "[4px]",
+});
+
 interface SimulationControlsProps {
   disabled?: boolean;
 }
@@ -82,7 +269,6 @@ export const SimulationControls: React.FC<SimulationControlsProps> = ({
     reset,
     initialize,
     run,
-    pause,
     dt,
   } = use(SimulationContext);
 
@@ -90,10 +276,57 @@ export const SimulationControls: React.FC<SimulationControlsProps> = ({
     currentViewedFrame,
     currentFrameIndex,
     totalFrames,
+    playbackState,
+    playbackSpeed,
     setCurrentViewedFrame,
+    play: playbackPlay,
+    pause: playbackPause,
+    setPlaybackSpeed,
   } = use(PlaybackContext);
 
   const { setBottomPanelOpen, setActiveBottomPanelTab } = use(EditorContext);
+
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  // Dummy state for "When pressing play" option (UI only for now)
+  const [whenPressingPlay, setWhenPressingPlay] = useState<
+    "computed" | "buffer" | "max"
+  >("computed");
+
+  // Dummy state for "Stopping conditions" option (UI only for now)
+  const [stoppingCondition, setStoppingCondition] = useState<
+    "indefinitely" | "fixed" | "condition"
+  >("fixed");
+
+  // Close popover when clicking outside
+  useEffect(() => {
+    if (!isMenuOpen) {
+      return;
+    }
+
+    const menuElement = menuRef.current;
+
+    const handleClickOutside = (event: MouseEvent) => {
+      if (menuElement && !menuElement.contains(event.target as Node)) {
+        setIsMenuOpen(false);
+      }
+    };
+
+    const handleFocusOut = (event: FocusEvent) => {
+      if (menuElement && !menuElement.contains(event.relatedTarget as Node)) {
+        setIsMenuOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    menuElement?.addEventListener("focusout", handleFocusOut);
+
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      menuElement?.removeEventListener("focusout", handleFocusOut);
+    };
+  }, [isMenuOpen]);
 
   const isDisabled = disabled;
 
@@ -103,41 +336,48 @@ export const SimulationControls: React.FC<SimulationControlsProps> = ({
   };
 
   const hasSimulation = simulation !== null;
-  const isRunning = simulationState === "Running";
-  const isComplete = simulationState === "Complete";
+  const isSimulationComplete = simulationState === "Complete";
+  const isSimulationErrored = simulationState === "Error";
+  const isPlaybackPlaying = playbackState === "Playing";
   const frameIndex = currentFrameIndex;
   const elapsedTime = currentViewedFrame?.time ?? 0;
+
+  // Disable play button when at the last frame and simulation is complete or errored
+  const isAtLastFrame = totalFrames > 0 && frameIndex >= totalFrames - 1;
+  const isPlayDisabled =
+    isDisabled ||
+    ((isSimulationComplete || isSimulationErrored) && isAtLastFrame);
 
   const getPlayPauseTooltip = () => {
     if (isDisabled) {
       return "Fix errors to run simulation";
     }
+    if ((isSimulationComplete || isSimulationErrored) && isAtLastFrame) {
+      return "Playback finished - Reset to run again";
+    }
     if (simulationState === "NotRun") {
       return "Start Simulation";
     }
-    if (simulationState === "Complete") {
-      return "Simulation Complete - Reset to run again";
+    if (isPlaybackPlaying) {
+      return "Pause Playback";
     }
-    if (isRunning) {
-      return "Pause Simulation";
-    }
-    return "Continue Simulation";
+    return "Play";
   };
 
   const getPlayPauseAriaLabel = () => {
     if (isDisabled) {
       return "Fix errors to run simulation";
     }
+    if ((isSimulationComplete || isSimulationErrored) && isAtLastFrame) {
+      return "Playback finished";
+    }
     if (simulationState === "NotRun") {
       return "Run simulation";
     }
-    if (simulationState === "Complete") {
-      return "Simulation complete";
+    if (isPlaybackPlaying) {
+      return "Pause playback";
     }
-    if (isRunning) {
-      return "Pause simulation";
-    }
-    return "Continue simulation";
+    return "Play";
   };
 
   const handlePlayPause = () => {
@@ -148,21 +388,21 @@ export const SimulationControls: React.FC<SimulationControlsProps> = ({
     }
 
     if (simulationState === "NotRun") {
-      // Initialize and start continuous simulation
+      // Initialize and start simulation computation
+      // PlaybackProvider will auto-start playback when simulation starts running
       initialize({
         seed: Date.now(),
         dt,
       });
-      // Run will be called after initialization completes
       setTimeout(() => {
         run();
       }, 0);
-    } else if (isRunning) {
-      // Pause the running simulation
-      pause();
-    } else if (simulationState === "Paused") {
-      // Resume continuous simulation
-      run();
+    } else if (isPlaybackPlaying) {
+      // Pause playback
+      playbackPause();
+    } else {
+      // Start/resume playback
+      playbackPlay();
     }
   };
 
@@ -170,23 +410,183 @@ export const SimulationControls: React.FC<SimulationControlsProps> = ({
     reset();
   };
 
+  // Split speeds into two rows of 4
+  const speedRows: PlaybackSpeed[][] = [
+    PLAYBACK_SPEEDS.slice(0, 4),
+    PLAYBACK_SPEEDS.slice(4),
+  ];
+
   return (
     <>
       {/* Play/Pause button - always visible */}
       <ToolbarButton
         tooltip={getPlayPauseTooltip()}
         onClick={handlePlayPause}
-        disabled={isDisabled || isComplete}
+        disabled={isPlayDisabled}
         ariaLabel={getPlayPauseAriaLabel()}
       >
-        {isComplete ? (
-          <IoMdCheckmarkCircleOutline />
-        ) : isRunning ? (
-          <IoMdPause />
-        ) : (
-          <IoMdPlay />
-        )}
+        {isPlaybackPlaying ? <IoMdPause /> : <IoMdPlay />}
       </ToolbarButton>
+
+      {/* Settings button with popover */}
+      <div ref={menuRef} className={settingsButtonContainerStyle}>
+        <ToolbarButton
+          tooltip="Playback settings"
+          onClick={() => setIsMenuOpen((prev) => !prev)}
+          ariaLabel="Playback settings"
+          ariaExpanded={isMenuOpen}
+        >
+          <TbSettings />
+        </ToolbarButton>
+
+        {/* Playback settings menu */}
+        {isMenuOpen && (
+          <div className={popoverContainerStyle}>
+            <div className={popoverStyle}>
+              {/* Header */}
+              <div className={popoverHeaderStyle}>
+                <span className={popoverTitleStyle}>Playback Controls</span>
+                <button
+                  type="button"
+                  className={closeButtonStyle}
+                  onClick={() => setIsMenuOpen(false)}
+                  aria-label="Close menu"
+                >
+                  <TbX />
+                </button>
+              </div>
+
+              {/* When pressing play section */}
+              <div className={sectionStyle}>
+                <div className={sectionCardStyle}>
+                  <div className={sectionLabelStyle}>When pressing play</div>
+                  <button
+                    type="button"
+                    className={menuItemStyle({
+                      selected: whenPressingPlay === "computed",
+                    })}
+                    onClick={() => setWhenPressingPlay("computed")}
+                  >
+                    <MdOutlinePlayArrow className={menuItemIconStyle} />
+                    <span className={menuItemTextStyle}>
+                      Play computed steps only
+                    </span>
+                    {whenPressingPlay === "computed" && (
+                      <MdCheck className={checkIconStyle} />
+                    )}
+                  </button>
+                  <button
+                    type="button"
+                    className={menuItemStyle({
+                      selected: whenPressingPlay === "buffer",
+                    })}
+                    onClick={() => setWhenPressingPlay("buffer")}
+                  >
+                    <TbChartLine className={menuItemIconStyle} />
+                    <span className={menuItemTextStyle}>
+                      Play + compute buffer
+                    </span>
+                    {whenPressingPlay === "buffer" && (
+                      <MdCheck className={checkIconStyle} />
+                    )}
+                  </button>
+                  <button
+                    type="button"
+                    className={menuItemStyle({
+                      selected: whenPressingPlay === "max",
+                    })}
+                    onClick={() => setWhenPressingPlay("max")}
+                  >
+                    <TbArrowBarToRight className={menuItemIconStyle} />
+                    <span className={menuItemTextStyle}>
+                      Play + compute max
+                    </span>
+                    {whenPressingPlay === "max" && (
+                      <MdCheck className={checkIconStyle} />
+                    )}
+                  </button>
+                  <div className={dividerStyle} />
+                </div>
+              </div>
+
+              {/* Playback speed section */}
+              <div className={sectionStyle}>
+                <div className={sectionCardStyle}>
+                  <div className={sectionLabelStyle}>Playback speed</div>
+                  {speedRows.map((row) => (
+                    <div key={row[0]} className={speedGridStyle}>
+                      {row.map((speed) => (
+                        <button
+                          key={speed}
+                          type="button"
+                          className={speedButtonStyle({
+                            selected: speed === playbackSpeed,
+                          })}
+                          onClick={() => setPlaybackSpeed(speed)}
+                        >
+                          {formatPlaybackSpeed(speed)}
+                        </button>
+                      ))}
+                    </div>
+                  ))}
+                  <div className={dividerStyle} />
+                </div>
+              </div>
+
+              {/* Stopping conditions section */}
+              <div className={sectionStyle}>
+                <div className={sectionCardStyle}>
+                  <div className={sectionLabelStyle}>Stopping conditions</div>
+                  <button
+                    type="button"
+                    className={menuItemStyle({
+                      selected: stoppingCondition === "indefinitely",
+                    })}
+                    onClick={() => setStoppingCondition("indefinitely")}
+                  >
+                    <TbInfinity className={menuItemIconStyle} />
+                    <span className={menuItemTextStyle}>Run indefinitely</span>
+                    {stoppingCondition === "indefinitely" && (
+                      <MdCheck className={checkIconStyle} />
+                    )}
+                  </button>
+                  <button
+                    type="button"
+                    className={menuItemStyle({
+                      selected: stoppingCondition === "fixed",
+                    })}
+                    onClick={() => setStoppingCondition("fixed")}
+                  >
+                    <TbClock className={menuItemIconStyle} />
+                    <span className={menuItemTextStyle}>
+                      End at fixed steps/time
+                    </span>
+                    {stoppingCondition === "fixed" && (
+                      <MdCheck className={checkIconStyle} />
+                    )}
+                  </button>
+                  <button
+                    type="button"
+                    className={menuItemStyle({
+                      selected: stoppingCondition === "condition",
+                    })}
+                    onClick={() => setStoppingCondition("condition")}
+                  >
+                    <MdCheckBox className={menuItemIconStyle} />
+                    <span className={menuItemTextStyle}>
+                      End when condition satisfied
+                    </span>
+                    {stoppingCondition === "condition" && (
+                      <MdCheck className={checkIconStyle} />
+                    )}
+                  </button>
+                  <div className={dividerStyle} />
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
 
       {/* Frame controls - only visible when simulation exists */}
       {hasSimulation && (
