@@ -1,6 +1,6 @@
-use core::alloc::Allocator;
+use core::{alloc::Allocator, cmp::Reverse};
 
-use hashql_core::heap::Heap;
+use hashql_core::{heap::Heap, id::bit_vec::DenseBitSet};
 
 use super::cost::{Cost, CostVec};
 use crate::{
@@ -40,6 +40,31 @@ struct CostVisitor<'ctx, 'env, 'heap> {
 // that is) because we don't have a materialized view of them (aka the entity) that we can access.
 // This might honestly be a thing where we could/should have a function that fetches the specific
 // encoding if we wanted to.
+// This means we also need to run dataflow analysis, except that we can't do embedding fetches, so
+// it's a lot faster than the postgres one. Or do we? in that case we can just have it special cased
+// in the interpreter, but I dont want special casing in the interpreter >:(
+// We could *also* consider just splitting at these points, and remove the forward substitution on
+// em. The problem is on e.g. `(a, b.encoding.vectors.root, c)`, how do we get `root`? We would need
+// to ask the query store, which we can only do for the sub-statement, so the aggregate would need
+// to run on the interpreter, but the operand wouldn't.
+// That is then a problem, well kind, because that is what the embedded interpreter is for, but the
+// problem is that in this case we would need to split into two statements:
+// let d = b.encoding.vectors.root;
+// (a, d, c)
+// in that case we can run `d` on the embedding server, and then run `(a, d, c)` on the interpreter
+// without issue.
+// We somehow need a way to split these substatements not into two statements, but rather have a way
+// to address these.
+// There may be a lowering way here, in particular, if we move `b.encoding.vectors.root` to a
+// function call inside of the HIR, in that case we wouldn't have that problem *at all*.
+// We need to ask what the people think, because I think that is the only feasible way forward tbh.
+// We can even do this specific splitting inside of the MIR, how? we track the variables, and when
+// we cross the encoding.vectors border, we desugar into a call. I think that is the only feasible
+// way forward.
+// There are some issues associated with this, in particular given: similar(embedding-a,
+// embedding-b), this would still work tho. I mean kinda, there are ways where we layout things, in
+// which this particular thing would then fail, EXCEPT if we move everything exactly one statement
+// up, aka: always above, in that case we guarantee that we don't disrupt any flow and spillage.
 impl<'heap> Visitor<'heap> for CostVisitor<'_, '_, 'heap> {
     type Result = Result<(), !>;
 

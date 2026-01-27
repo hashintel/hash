@@ -7,7 +7,7 @@ use hashql_core::{
     heap::Heap,
     id::{
         Id as _,
-        bit_vec::{BitRelations, DenseBitSet},
+        bit_vec::{BitRelations as _, DenseBitSet},
     },
     symbol::sym,
 };
@@ -64,7 +64,10 @@ fn is_supported_place<'heap>(
             .map_or_else(|| unreachable!(), |opaque| opaque.name);
 
         if type_name == sym::path::Entity {
-            return entity_projection_access(&place.projections) == Access::Direct;
+            return matches!(
+                entity_projection_access(&place.projections),
+                Access::Direct | Access::Composite
+            );
         }
 
         unimplemented!("unimplemented lookup for declared type")
