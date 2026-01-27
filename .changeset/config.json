@@ -11,7 +11,11 @@
     "@local/*",
     "@rust/*",
     "@tests/*",
-    "@hashintel/petrinaut-old"
+    "@hashintel/petrinaut-old",
+    "@hashintel/block-design-system",
+    "@hashintel/design-system",
+    "@hashintel/query-editor",
+    "@hashintel/type-editor"
   ],
   "snapshot": {
     "useCalculatedVersion": true
