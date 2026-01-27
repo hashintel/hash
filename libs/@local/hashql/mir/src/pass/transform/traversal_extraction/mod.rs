@@ -49,6 +49,8 @@
 //! ```
 //!
 //! The [`Traversals`] map records `_5 → _1.0.1` and `_6 → _1.2` for the graph executor to use.
+#[cfg(test)]
+mod tests;
 
 use core::{alloc::Allocator, convert::Infallible};
 
@@ -67,6 +69,7 @@ use crate::{
         terminator::Terminator,
     },
     context::MirContext,
+    intern::Interner,
     pass::{Changed, TransformPass},
     visit::{self, VisitorMut, r#mut::filter},
 };
@@ -103,7 +106,7 @@ impl<'heap> Traversals<'heap> {
 }
 
 /// Visitor that extracts projections from a target local into separate bindings.
-struct TraversalExtractionVisitor<'heap, A: Allocator> {
+struct TraversalExtractionVisitor<'env, 'heap, A: Allocator> {
     /// The local we're extracting projections from (the vertex).
     target: Local,
     /// Declaration of the target local, used to derive types for extracted locals.
@@ -126,15 +129,20 @@ struct TraversalExtractionVisitor<'heap, A: Allocator> {
     /// Accumulated traversal mappings.
     traversals: Traversals<'heap>,
     changed: Changed,
+    interner: &'env Interner<'heap>,
 }
 
-impl<'heap, A: Allocator> VisitorMut<'heap> for TraversalExtractionVisitor<'heap, A> {
+impl<'heap, A: Allocator> VisitorMut<'heap> for TraversalExtractionVisitor<'_, 'heap, A> {
     type Filter = filter::Deep;
     type Residual = Result<Infallible, !>;
     type Result<T>
         = Result<T, !>
     where
         T: 'heap;
+
+    fn interner(&self) -> &Interner<'heap> {
+        self.interner
+    }
 
     fn visit_operand(&mut self, _: Location, operand: &mut Operand<'heap>) -> Self::Result<()> {
         let Some(place) = operand.as_place() else {
@@ -334,6 +342,7 @@ impl<'env, 'heap, A: Allocator> TransformPass<'env, 'heap> for TraversalExtracti
             pending_statements: Vec::new_in(&self.alloc),
             traversals: Traversals::with_capacity_in(vertex, body.local_decls.len(), context.heap),
             changed: Changed::No,
+            interner: context.interner,
         };
         Ok(()) = visitor.visit_body_preserving_cfg(body);
 
