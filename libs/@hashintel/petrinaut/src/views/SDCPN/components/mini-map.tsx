@@ -9,7 +9,7 @@ import type { NodeType } from "../reactflow-types";
 
 const miniMapClassName = css({
   "& svg": {
-    borderRadius: 6,
+    borderRadius: "md.3",
   },
 });
 
