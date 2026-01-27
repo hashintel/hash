@@ -226,7 +226,7 @@ export const analyzeEntityDataAction: AiFlowActionActivity<
       {
         customMetadata: {
           stepId,
-          taskName: "analyze-data",
+          taskName: "analyze-entity-data",
         },
         userAccountId: userAuthentication.actorId,
         graphApiClient,

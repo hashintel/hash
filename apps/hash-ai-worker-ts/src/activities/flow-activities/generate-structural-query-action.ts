@@ -6,7 +6,7 @@ import type { AiFlowActionActivity } from "@local/hash-backend-utils/flows";
 import { getSimpleGraph } from "@local/hash-backend-utils/simplified-graph";
 import type { Filter } from "@local/hash-graph-client";
 import { queryEntitySubgraph } from "@local/hash-graph-sdk/entity";
-import { queryEntityTypeSubgraph } from "@local/hash-graph-sdk/entity-type";
+import { queryEntityTypes } from "@local/hash-graph-sdk/entity-type";
 import type { ChartType } from "@local/hash-isomorphic-utils/dashboard-types";
 import type {
   AiActionStepOutput,
@@ -161,19 +161,13 @@ export const generateStructuralQueryAction: AiFlowActionActivity<
   const { userAuthentication, stepId, flowEntityId, webId } =
     await getFlowContext();
 
-  // Fetch available entity types
-  const { subgraph: typesSubgraph } = await queryEntityTypeSubgraph(
-    graphApiClient,
-    userAuthentication,
-    {
-      filter: webId
-        ? { equal: [{ path: ["webId"] }, { parameter: webId }] }
-        : { all: [] },
-      temporalAxes: currentTimeInstantTemporalAxes,
-      graphResolveDepths: almostFullOntologyResolveDepths,
-      traversalPaths: [],
-    },
-  );
+  const response = await queryEntityTypes(graphApiClient, userAuthentication, {
+    filter: webId
+      ? { equal: [{ path: ["webId"] }, { parameter: webId }] }
+      : { all: [] },
+    temporalAxes: currentTimeInstantTemporalAxes,
+    includeEntityTypes: "resolved",
+  });
 
   type EntityTypeVertex = {
     kind: "entityType";
@@ -187,9 +181,7 @@ export const generateStructuralQueryAction: AiFlowActionActivity<
     };
   };
 
-  const entityTypes = Object.values(
-    typesSubgraph.vertices as Record<string, Record<string, unknown>>,
-  )
+  const entityTypes = Object.values(typesSubgraph.vertices)
     .flatMap((vertex) => Object.values(vertex))
     .filter(
       (vertex): vertex is EntityTypeVertex =>
@@ -230,7 +222,7 @@ export const generateStructuralQueryAction: AiFlowActionActivity<
       {
         customMetadata: {
           stepId,
-          taskName: "generate-query",
+          taskName: "generate-structural-query",
         },
         userAccountId: userAuthentication.actorId,
         graphApiClient,

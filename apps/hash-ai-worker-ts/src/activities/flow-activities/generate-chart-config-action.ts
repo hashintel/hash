@@ -127,7 +127,7 @@ export const generateChartConfigAction: AiFlowActionActivity<
       {
         customMetadata: {
           stepId,
-          taskName: "chart-config",
+          taskName: "generate-chart-config",
         },
         userAccountId: userAuthentication.actorId,
         graphApiClient,
