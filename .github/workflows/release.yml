@@ -35,6 +35,9 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.MACHINE_USER_TOKEN }}
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+          NPM_CONFIG_LOGLEVEL: silly
+          TURBO_LOG_LEVEL: trace
+          TURBO_TELEMETRY_DISABLED: 1
 
       - name: Notify Slack on failure
         uses: rtCamp/action-slack-notify@c58b60ee33df2229ed2d2eed86eeaf7e6c527c5a
@@ -45,3 +48,24 @@ jobs:
           SLACK_TITLE: Package release failed
           SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK_URL }}
           SLACK_USERNAME: GitHub
+
+      - name: Print npm logs on failure
+        if: failure() && steps.changesets.outcome == 'failure'
+        run: |
+          echo "🪵 Dumping npm debug logs..."
+          find /home/runner/.npm/_logs -type f -exec echo "--- {} ---" \; -exec cat {} \; || echo "No npm logs found."
+
+      - name: Print Turbo logs on failure
+        if: failure()
+        run: |
+          echo "🔍 Searching for turbo logs..."
+          find . -type f -path "*/.turbo/*" -exec echo "--- {} ---" \; -exec cat {} \; || echo "No turbo logs found."
+
+      - name: Upload debug logs
+        if: failure()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: release-debug-logs
+          path: |
+            /home/runner/.npm/_logs/
+            **/.turbo/
