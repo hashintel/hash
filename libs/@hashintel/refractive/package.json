@@ -28,7 +28,7 @@
     "fix:eslint": "eslint --fix .",
     "lint:eslint": "eslint --report-unused-disable-directives .",
     "lint:tsc": "tsc --noEmit",
-    "prepubishOnly": "yarn build"
+    "prepublishOnly": "yarn build"
   },
   "dependencies": {
     "canvas": "3.2.0"
