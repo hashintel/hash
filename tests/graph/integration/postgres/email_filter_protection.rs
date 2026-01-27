@@ -20,9 +20,13 @@
 use alloc::borrow::Cow;
 use std::collections::HashSet;
 
+use hash_graph_postgres_store::store::PostgresStoreSettings;
 use hash_graph_store::{
     entity::{CountEntitiesParams, CreateEntityParams, EntityQuerySorting, EntityStore as _},
-    filter::{Filter, FilterExpression, JsonPath, Parameter, PathToken},
+    filter::{
+        Filter, FilterExpression, JsonPath, Parameter, PathToken,
+        protection::FilterProtectionConfig,
+    },
     subgraph::temporal_axes::{
         PinnedTemporalAxisUnresolved, QueryTemporalAxesUnresolved, VariableTemporalAxisUnresolved,
     },
@@ -1248,6 +1252,1103 @@ async fn truth_table_case_9_complex_nested() {
         &rows,
         filter,
         "Case 9: NOT(shortname = A OR NOT(email = X))",
+    )
+    .await;
+}
+
+// =============================================================================
+// Multi-Property Protection Tests (2 properties / 1 type)
+// =============================================================================
+//
+// These tests verify that protection works correctly when multiple properties
+// are protected for the same entity type.
+//
+// Config: email → {User}, phone → {User}
+
+/// Phone property base URL for multi-property tests.
+const PHONE_PROPERTY_BASE_URL: &str = "https://hash.ai/@h/types/property-type/phone/";
+
+/// Phone property type JSON for seeding.
+const PHONE_PROPERTY_TYPE: &str = r#"{
+    "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/property-type",
+    "kind": "propertyType",
+    "$id": "https://hash.ai/@h/types/property-type/phone/v/1",
+    "title": "Phone",
+    "description": "A phone number.",
+    "oneOf": [
+        {
+            "$ref": "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1"
+        }
+    ]
+}"#;
+
+/// User entity type with email, shortname, AND phone properties.
+const USER_WITH_PHONE_ENTITY_TYPE: &str = r#"{
+    "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/entity-type",
+    "kind": "entityType",
+    "$id": "https://hash.ai/@h/types/entity-type/user/v/1",
+    "type": "object",
+    "title": "User",
+    "description": "A user entity with email and phone protection.",
+    "properties": {
+        "https://hash.ai/@h/types/property-type/email/": {
+            "$ref": "https://hash.ai/@h/types/property-type/email/v/1"
+        },
+        "https://hash.ai/@h/types/property-type/shortname/": {
+            "$ref": "https://hash.ai/@h/types/property-type/shortname/v/1"
+        },
+        "https://hash.ai/@h/types/property-type/phone/": {
+            "$ref": "https://hash.ai/@h/types/property-type/phone/v/1"
+        }
+    }
+}"#;
+
+/// Invitation entity type with email, shortname, AND phone properties.
+const INVITATION_WITH_PHONE_ENTITY_TYPE: &str = r#"{
+    "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/entity-type",
+    "kind": "entityType",
+    "$id": "https://blockprotocol.org/@test/types/entity-type/invitation/v/1",
+    "type": "object",
+    "title": "Invitation",
+    "description": "An invitation entity with email and phone (not protected).",
+    "properties": {
+        "https://hash.ai/@h/types/property-type/email/": {
+            "$ref": "https://hash.ai/@h/types/property-type/email/v/1"
+        },
+        "https://hash.ai/@h/types/property-type/shortname/": {
+            "$ref": "https://hash.ai/@h/types/property-type/shortname/v/1"
+        },
+        "https://hash.ai/@h/types/property-type/phone/": {
+            "$ref": "https://hash.ai/@h/types/property-type/phone/v/1"
+        }
+    }
+}"#;
+
+/// Helper to create a properties object with email, shortname, and phone.
+fn properties_with_phone(email: &str, shortname: &str, phone: &str) -> PropertyObject {
+    serde_json::from_value(serde_json::json!({
+        "https://hash.ai/@h/types/property-type/email/": email,
+        "https://hash.ai/@h/types/property-type/shortname/": shortname,
+        "https://hash.ai/@h/types/property-type/phone/": phone
+    }))
+    .expect("could not create properties")
+}
+
+/// Helper to create a filter that matches entities by phone.
+fn phone_filter(phone: &str) -> Filter<'static, type_system::knowledge::entity::Entity> {
+    Filter::Equal(
+        FilterExpression::Path {
+            path: hash_graph_store::entity::EntityQueryPath::Properties(Some(
+                JsonPath::from_path_tokens(vec![PathToken::Field(Cow::Owned(
+                    PHONE_PROPERTY_BASE_URL.to_owned(),
+                ))]),
+            )),
+        },
+        FilterExpression::Parameter {
+            parameter: Parameter::Text(Cow::Owned(phone.to_owned())),
+            convert: None,
+        },
+    )
+}
+
+/// Creates a FilterProtectionConfig that protects both email AND phone for User.
+fn multi_property_config() -> FilterProtectionConfig {
+    let email_url = BaseUrl::new(EMAIL_PROPERTY_BASE_URL.to_owned()).expect("valid email base URL");
+    let phone_url = BaseUrl::new(PHONE_PROPERTY_BASE_URL.to_owned()).expect("valid phone base URL");
+    let user_url = BaseUrl::new(USER_ENTITY_TYPE_BASE_URL.to_owned()).expect("valid user base URL");
+
+    FilterProtectionConfig::new()
+        .protect_property(email_url, HashSet::from([user_url.clone()]))
+        .protect_property(phone_url, HashSet::from([user_url]))
+}
+
+/// Seeds the database with multi-property protection config.
+async fn seed_multi_property(database: &mut DatabaseTestWrapper) -> DatabaseApi<'_> {
+    database
+        .seed(
+            [data_type::VALUE_V1, data_type::TEXT_V1],
+            [
+                EMAIL_PROPERTY_TYPE,
+                SHORTNAME_PROPERTY_TYPE,
+                PHONE_PROPERTY_TYPE,
+            ],
+            [
+                USER_WITH_PHONE_ENTITY_TYPE,
+                INVITATION_WITH_PHONE_ENTITY_TYPE,
+            ],
+        )
+        .await
+        .expect("could not seed database")
+}
+
+impl DatabaseApi<'_> {
+    async fn create_user_with_phone(
+        &mut self,
+        email: &str,
+        shortname: &str,
+        phone: &str,
+    ) -> Entity {
+        self.create_entity(
+            self.account_id,
+            CreateEntityParams {
+                web_id: WebId::new(self.account_id),
+                entity_uuid: None,
+                decision_time: None,
+                entity_type_ids: HashSet::from([VersionedUrl {
+                    base_url: BaseUrl::new(USER_ENTITY_TYPE_BASE_URL.to_owned()).unwrap(),
+                    version: OntologyTypeVersion {
+                        major: 1,
+                        pre_release: None,
+                    },
+                }]),
+                properties: PropertyObjectWithMetadata::from_parts(
+                    properties_with_phone(email, shortname, phone),
+                    None,
+                )
+                .unwrap(),
+                confidence: None,
+                link_data: None,
+                draft: false,
+                policies: Vec::new(),
+                provenance: ProvidedEntityEditionProvenance {
+                    actor_type: ActorType::User,
+                    origin: OriginProvenance::from_empty_type(OriginType::Api),
+                    sources: Vec::new(),
+                },
+            },
+        )
+        .await
+        .expect("could not create user entity with phone")
+    }
+
+    async fn create_invitation_with_phone(
+        &mut self,
+        email: &str,
+        shortname: &str,
+        phone: &str,
+    ) -> Entity {
+        self.create_entity(
+            self.account_id,
+            CreateEntityParams {
+                web_id: WebId::new(self.account_id),
+                entity_uuid: None,
+                decision_time: None,
+                entity_type_ids: HashSet::from([VersionedUrl {
+                    base_url: BaseUrl::new(INVITATION_ENTITY_TYPE_BASE_URL.to_owned()).unwrap(),
+                    version: OntologyTypeVersion {
+                        major: 1,
+                        pre_release: None,
+                    },
+                }]),
+                properties: PropertyObjectWithMetadata::from_parts(
+                    properties_with_phone(email, shortname, phone),
+                    None,
+                )
+                .unwrap(),
+                confidence: None,
+                link_data: None,
+                draft: false,
+                policies: Vec::new(),
+                provenance: ProvidedEntityEditionProvenance {
+                    actor_type: ActorType::User,
+                    origin: OriginProvenance::from_empty_type(OriginType::Api),
+                    sources: Vec::new(),
+                },
+            },
+        )
+        .await
+        .expect("could not create invitation entity with phone")
+    }
+}
+
+const TARGET_PHONE: &str = "+1234567890";
+const OTHER_PHONE: &str = "+0987654321";
+
+/// Test input row for multi-property truth table verification.
+#[derive(Debug, Clone, Copy)]
+#[expect(clippy::struct_excessive_bools, reason = "test data structure")]
+struct MultiPropertyRow {
+    is_user: bool,
+    email_match: bool,
+    phone_match: bool,
+    expected_returned: bool,
+}
+
+impl MultiPropertyRow {
+    const fn email(self) -> &'static str {
+        if self.email_match {
+            TARGET_EMAIL
+        } else {
+            OTHER_EMAIL
+        }
+    }
+
+    const fn phone(self) -> &'static str {
+        if self.phone_match {
+            TARGET_PHONE
+        } else {
+            OTHER_PHONE
+        }
+    }
+}
+
+/// Verifies multi-property truth table.
+async fn verify_multi_property_truth_table(
+    api: &mut DatabaseApi<'_>,
+    rows: &[MultiPropertyRow],
+    filter: Filter<'_, Entity>,
+    case_name: &str,
+) {
+    let mut expected_ids: HashSet<EntityId> = HashSet::new();
+
+    for (i, row) in rows.iter().enumerate() {
+        let entity = if row.is_user {
+            api.create_user_with_phone(row.email(), "test", row.phone())
+                .await
+        } else {
+            api.create_invitation_with_phone(row.email(), "test", row.phone())
+                .await
+        };
+
+        if row.expected_returned {
+            expected_ids.insert(entity.metadata.record_id.entity_id);
+        }
+
+        eprintln!(
+            "[{case_name}] Row {i}: {} email={} phone={} → expected={}",
+            if row.is_user { "User" } else { "Invitation" },
+            if row.email_match { "✓" } else { "✗" },
+            if row.phone_match { "✓" } else { "✗" },
+            if row.expected_returned { "ret" } else { "excl" }
+        );
+    }
+
+    let results = api.query(filter, no_sorting()).await;
+    let actual_ids = entity_ids(&results);
+
+    assert_eq!(
+        actual_ids,
+        expected_ids,
+        "[{case_name}] Mismatch: expected {} entities, got {}",
+        expected_ids.len(),
+        actual_ids.len()
+    );
+}
+
+// -----------------------------------------------------------------------------
+// Multi-Property Case 1: email = X (with multi-property config)
+// -----------------------------------------------------------------------------
+
+#[tokio::test]
+async fn multi_property_email_filter_excludes_user() {
+    let settings = PostgresStoreSettings {
+        filter_protection: multi_property_config(),
+        ..PostgresStoreSettings::default()
+    };
+    let mut database = DatabaseTestWrapper::new_with_settings(settings).await;
+    let mut api = seed_multi_property(&mut database).await;
+
+    let rows = [
+        MultiPropertyRow {
+            is_user: true,
+            email_match: true,
+            phone_match: false,
+            expected_returned: false, // User excluded via email
+        },
+        MultiPropertyRow {
+            is_user: true,
+            email_match: false,
+            phone_match: false,
+            expected_returned: false, // No email match
+        },
+        MultiPropertyRow {
+            is_user: false,
+            email_match: true,
+            phone_match: false,
+            expected_returned: true, // Invitation returned
+        },
+        MultiPropertyRow {
+            is_user: false,
+            email_match: false,
+            phone_match: false,
+            expected_returned: false, // No email match
+        },
+    ];
+
+    verify_multi_property_truth_table(
+        &mut api,
+        &rows,
+        email_filter(TARGET_EMAIL),
+        "Multi-prop: email = X",
+    )
+    .await;
+}
+
+// -----------------------------------------------------------------------------
+// Multi-Property Case 2: phone = Y (with multi-property config)
+// -----------------------------------------------------------------------------
+
+#[tokio::test]
+async fn multi_property_phone_filter_excludes_user() {
+    let settings = PostgresStoreSettings {
+        filter_protection: multi_property_config(),
+        ..PostgresStoreSettings::default()
+    };
+    let mut database = DatabaseTestWrapper::new_with_settings(settings).await;
+    let mut api = seed_multi_property(&mut database).await;
+
+    let rows = [
+        MultiPropertyRow {
+            is_user: true,
+            email_match: false,
+            phone_match: true,
+            expected_returned: false, // User excluded via phone
+        },
+        MultiPropertyRow {
+            is_user: true,
+            email_match: false,
+            phone_match: false,
+            expected_returned: false, // No phone match
+        },
+        MultiPropertyRow {
+            is_user: false,
+            email_match: false,
+            phone_match: true,
+            expected_returned: true, // Invitation returned
+        },
+        MultiPropertyRow {
+            is_user: false,
+            email_match: false,
+            phone_match: false,
+            expected_returned: false, // No phone match
+        },
+    ];
+
+    verify_multi_property_truth_table(
+        &mut api,
+        &rows,
+        phone_filter(TARGET_PHONE),
+        "Multi-prop: phone = Y",
+    )
+    .await;
+}
+
+// -----------------------------------------------------------------------------
+// Multi-Property Case 3: email = X AND phone = Y
+// -----------------------------------------------------------------------------
+
+#[tokio::test]
+async fn multi_property_email_and_phone_filter() {
+    let settings = PostgresStoreSettings {
+        filter_protection: multi_property_config(),
+        ..PostgresStoreSettings::default()
+    };
+    let mut database = DatabaseTestWrapper::new_with_settings(settings).await;
+    let mut api = seed_multi_property(&mut database).await;
+
+    // Both email and phone protected for User
+    // Filter: email = X AND phone = Y
+    // Users excluded regardless of match (both properties protected)
+    let rows = [
+        MultiPropertyRow {
+            is_user: true,
+            email_match: true,
+            phone_match: true,
+            expected_returned: false, // User excluded
+        },
+        MultiPropertyRow {
+            is_user: true,
+            email_match: true,
+            phone_match: false,
+            expected_returned: false, // User excluded
+        },
+        MultiPropertyRow {
+            is_user: true,
+            email_match: false,
+            phone_match: true,
+            expected_returned: false, // User excluded
+        },
+        MultiPropertyRow {
+            is_user: true,
+            email_match: false,
+            phone_match: false,
+            expected_returned: false, // No match
+        },
+        MultiPropertyRow {
+            is_user: false,
+            email_match: true,
+            phone_match: true,
+            expected_returned: true, // Invitation with both matches
+        },
+        MultiPropertyRow {
+            is_user: false,
+            email_match: true,
+            phone_match: false,
+            expected_returned: false, // No phone match
+        },
+        MultiPropertyRow {
+            is_user: false,
+            email_match: false,
+            phone_match: true,
+            expected_returned: false, // No email match
+        },
+        MultiPropertyRow {
+            is_user: false,
+            email_match: false,
+            phone_match: false,
+            expected_returned: false, // No match
+        },
+    ];
+
+    let filter = Filter::All(vec![email_filter(TARGET_EMAIL), phone_filter(TARGET_PHONE)]);
+
+    verify_multi_property_truth_table(
+        &mut api,
+        &rows,
+        filter,
+        "Multi-prop: email = X AND phone = Y",
+    )
+    .await;
+}
+
+// -----------------------------------------------------------------------------
+// Multi-Property Case 4: email = X OR phone = Y
+// -----------------------------------------------------------------------------
+
+#[tokio::test]
+async fn multi_property_email_or_phone_filter() {
+    let settings = PostgresStoreSettings {
+        filter_protection: multi_property_config(),
+        ..PostgresStoreSettings::default()
+    };
+    let mut database = DatabaseTestWrapper::new_with_settings(settings).await;
+    let mut api = seed_multi_property(&mut database).await;
+
+    // Both email and phone protected for User
+    // Filter: email = X OR phone = Y
+    // User excluded from BOTH branches independently
+    let rows = [
+        MultiPropertyRow {
+            is_user: true,
+            email_match: true,
+            phone_match: true,
+            expected_returned: false, // Both branches blocked
+        },
+        MultiPropertyRow {
+            is_user: true,
+            email_match: true,
+            phone_match: false,
+            expected_returned: false, // Email branch blocked
+        },
+        MultiPropertyRow {
+            is_user: true,
+            email_match: false,
+            phone_match: true,
+            expected_returned: false, // Phone branch blocked
+        },
+        MultiPropertyRow {
+            is_user: true,
+            email_match: false,
+            phone_match: false,
+            expected_returned: false, // No match
+        },
+        MultiPropertyRow {
+            is_user: false,
+            email_match: true,
+            phone_match: true,
+            expected_returned: true, // Either branch works
+        },
+        MultiPropertyRow {
+            is_user: false,
+            email_match: true,
+            phone_match: false,
+            expected_returned: true, // Email branch
+        },
+        MultiPropertyRow {
+            is_user: false,
+            email_match: false,
+            phone_match: true,
+            expected_returned: true, // Phone branch
+        },
+        MultiPropertyRow {
+            is_user: false,
+            email_match: false,
+            phone_match: false,
+            expected_returned: false, // No match
+        },
+    ];
+
+    let filter = Filter::Any(vec![email_filter(TARGET_EMAIL), phone_filter(TARGET_PHONE)]);
+
+    verify_multi_property_truth_table(
+        &mut api,
+        &rows,
+        filter,
+        "Multi-prop: email = X OR phone = Y",
+    )
+    .await;
+}
+
+// =============================================================================
+// Multi-Type Protection Tests (2 types / 1 property each)
+// =============================================================================
+//
+// These tests verify that protection works correctly when different properties
+// are protected for different entity types.
+//
+// Config: email → {User}, secret_code → {SecretEntity}
+
+/// Secret code property base URL for multi-type tests.
+const SECRET_CODE_PROPERTY_BASE_URL: &str =
+    "https://blockprotocol.org/@test/types/property-type/secret-code/";
+
+/// SecretEntity type base URL.
+const SECRET_ENTITY_TYPE_BASE_URL: &str =
+    "https://blockprotocol.org/@test/types/entity-type/secret-entity/";
+
+/// Secret code property type JSON for seeding.
+const SECRET_CODE_PROPERTY_TYPE: &str = r#"{
+    "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/property-type",
+    "kind": "propertyType",
+    "$id": "https://blockprotocol.org/@test/types/property-type/secret-code/v/1",
+    "title": "Secret Code",
+    "description": "A secret code that should be protected.",
+    "oneOf": [
+        {
+            "$ref": "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1"
+        }
+    ]
+}"#;
+
+/// User entity type with email AND secret_code for multi-type tests.
+const USER_WITH_SECRET_ENTITY_TYPE: &str = r#"{
+    "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/entity-type",
+    "kind": "entityType",
+    "$id": "https://hash.ai/@h/types/entity-type/user/v/1",
+    "type": "object",
+    "title": "User",
+    "description": "A user entity (email protected, secret_code NOT protected).",
+    "properties": {
+        "https://hash.ai/@h/types/property-type/email/": {
+            "$ref": "https://hash.ai/@h/types/property-type/email/v/1"
+        },
+        "https://hash.ai/@h/types/property-type/shortname/": {
+            "$ref": "https://hash.ai/@h/types/property-type/shortname/v/1"
+        },
+        "https://blockprotocol.org/@test/types/property-type/secret-code/": {
+            "$ref": "https://blockprotocol.org/@test/types/property-type/secret-code/v/1"
+        }
+    }
+}"#;
+
+/// SecretEntity type with email AND secret_code (secret_code protected).
+const SECRET_ENTITY_TYPE: &str = r#"{
+    "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/entity-type",
+    "kind": "entityType",
+    "$id": "https://blockprotocol.org/@test/types/entity-type/secret-entity/v/1",
+    "type": "object",
+    "title": "SecretEntity",
+    "description": "An entity where secret_code is protected.",
+    "properties": {
+        "https://hash.ai/@h/types/property-type/email/": {
+            "$ref": "https://hash.ai/@h/types/property-type/email/v/1"
+        },
+        "https://hash.ai/@h/types/property-type/shortname/": {
+            "$ref": "https://hash.ai/@h/types/property-type/shortname/v/1"
+        },
+        "https://blockprotocol.org/@test/types/property-type/secret-code/": {
+            "$ref": "https://blockprotocol.org/@test/types/property-type/secret-code/v/1"
+        }
+    }
+}"#;
+
+/// Helper to create a properties object with email, shortname, and secret_code.
+fn properties_with_secret(email: &str, shortname: &str, secret_code: &str) -> PropertyObject {
+    serde_json::from_value(serde_json::json!({
+        "https://hash.ai/@h/types/property-type/email/": email,
+        "https://hash.ai/@h/types/property-type/shortname/": shortname,
+        "https://blockprotocol.org/@test/types/property-type/secret-code/": secret_code
+    }))
+    .expect("could not create properties")
+}
+
+/// Helper to create a filter that matches entities by secret_code.
+fn secret_code_filter(
+    secret_code: &str,
+) -> Filter<'static, type_system::knowledge::entity::Entity> {
+    Filter::Equal(
+        FilterExpression::Path {
+            path: hash_graph_store::entity::EntityQueryPath::Properties(Some(
+                JsonPath::from_path_tokens(vec![PathToken::Field(Cow::Owned(
+                    SECRET_CODE_PROPERTY_BASE_URL.to_owned(),
+                ))]),
+            )),
+        },
+        FilterExpression::Parameter {
+            parameter: Parameter::Text(Cow::Owned(secret_code.to_owned())),
+            convert: None,
+        },
+    )
+}
+
+/// Creates a FilterProtectionConfig for multi-type testing:
+/// - email protected for User
+/// - secret_code protected for SecretEntity
+fn multi_type_config() -> FilterProtectionConfig {
+    let email_url = BaseUrl::new(EMAIL_PROPERTY_BASE_URL.to_owned()).expect("valid email base URL");
+    let secret_code_url =
+        BaseUrl::new(SECRET_CODE_PROPERTY_BASE_URL.to_owned()).expect("valid secret_code base URL");
+    let user_url = BaseUrl::new(USER_ENTITY_TYPE_BASE_URL.to_owned()).expect("valid user base URL");
+    let secret_entity_url =
+        BaseUrl::new(SECRET_ENTITY_TYPE_BASE_URL.to_owned()).expect("valid secret_entity base URL");
+
+    FilterProtectionConfig::new()
+        .protect_property(email_url, HashSet::from([user_url]))
+        .protect_property(secret_code_url, HashSet::from([secret_entity_url]))
+}
+
+/// Seeds the database with multi-type protection config.
+async fn seed_multi_type(database: &mut DatabaseTestWrapper) -> DatabaseApi<'_> {
+    database
+        .seed(
+            [data_type::VALUE_V1, data_type::TEXT_V1],
+            [
+                EMAIL_PROPERTY_TYPE,
+                SHORTNAME_PROPERTY_TYPE,
+                SECRET_CODE_PROPERTY_TYPE,
+            ],
+            [USER_WITH_SECRET_ENTITY_TYPE, SECRET_ENTITY_TYPE],
+        )
+        .await
+        .expect("could not seed database")
+}
+
+impl DatabaseApi<'_> {
+    async fn create_user_with_secret(
+        &mut self,
+        email: &str,
+        shortname: &str,
+        secret_code: &str,
+    ) -> Entity {
+        self.create_entity(
+            self.account_id,
+            CreateEntityParams {
+                web_id: WebId::new(self.account_id),
+                entity_uuid: None,
+                decision_time: None,
+                entity_type_ids: HashSet::from([VersionedUrl {
+                    base_url: BaseUrl::new(USER_ENTITY_TYPE_BASE_URL.to_owned()).unwrap(),
+                    version: OntologyTypeVersion {
+                        major: 1,
+                        pre_release: None,
+                    },
+                }]),
+                properties: PropertyObjectWithMetadata::from_parts(
+                    properties_with_secret(email, shortname, secret_code),
+                    None,
+                )
+                .unwrap(),
+                confidence: None,
+                link_data: None,
+                draft: false,
+                policies: Vec::new(),
+                provenance: ProvidedEntityEditionProvenance {
+                    actor_type: ActorType::User,
+                    origin: OriginProvenance::from_empty_type(OriginType::Api),
+                    sources: Vec::new(),
+                },
+            },
+        )
+        .await
+        .expect("could not create user entity with secret")
+    }
+
+    async fn create_secret_entity(
+        &mut self,
+        email: &str,
+        shortname: &str,
+        secret_code: &str,
+    ) -> Entity {
+        self.create_entity(
+            self.account_id,
+            CreateEntityParams {
+                web_id: WebId::new(self.account_id),
+                entity_uuid: None,
+                decision_time: None,
+                entity_type_ids: HashSet::from([VersionedUrl {
+                    base_url: BaseUrl::new(SECRET_ENTITY_TYPE_BASE_URL.to_owned()).unwrap(),
+                    version: OntologyTypeVersion {
+                        major: 1,
+                        pre_release: None,
+                    },
+                }]),
+                properties: PropertyObjectWithMetadata::from_parts(
+                    properties_with_secret(email, shortname, secret_code),
+                    None,
+                )
+                .unwrap(),
+                confidence: None,
+                link_data: None,
+                draft: false,
+                policies: Vec::new(),
+                provenance: ProvidedEntityEditionProvenance {
+                    actor_type: ActorType::User,
+                    origin: OriginProvenance::from_empty_type(OriginType::Api),
+                    sources: Vec::new(),
+                },
+            },
+        )
+        .await
+        .expect("could not create secret entity")
+    }
+}
+
+const TARGET_SECRET: &str = "SECRET123";
+const OTHER_SECRET: &str = "OTHER456";
+
+/// Entity type for multi-type tests.
+#[derive(Debug, Clone, Copy)]
+enum MultiTypeEntityKind {
+    User,
+    SecretEntity,
+}
+
+/// Test input row for multi-type truth table verification.
+#[derive(Debug, Clone, Copy)]
+#[expect(clippy::struct_excessive_bools, reason = "test data structure")]
+struct MultiTypeRow {
+    entity_kind: MultiTypeEntityKind,
+    email_match: bool,
+    secret_code_match: bool,
+    expected_returned: bool,
+}
+
+impl MultiTypeRow {
+    const fn email(self) -> &'static str {
+        if self.email_match {
+            TARGET_EMAIL
+        } else {
+            OTHER_EMAIL
+        }
+    }
+
+    const fn secret_code(self) -> &'static str {
+        if self.secret_code_match {
+            TARGET_SECRET
+        } else {
+            OTHER_SECRET
+        }
+    }
+}
+
+/// Verifies multi-type truth table.
+async fn verify_multi_type_truth_table(
+    api: &mut DatabaseApi<'_>,
+    rows: &[MultiTypeRow],
+    filter: Filter<'_, Entity>,
+    case_name: &str,
+) {
+    let mut expected_ids: HashSet<EntityId> = HashSet::new();
+
+    for (i, row) in rows.iter().enumerate() {
+        let entity = match row.entity_kind {
+            MultiTypeEntityKind::User => {
+                api.create_user_with_secret(row.email(), "test", row.secret_code())
+                    .await
+            }
+            MultiTypeEntityKind::SecretEntity => {
+                api.create_secret_entity(row.email(), "test", row.secret_code())
+                    .await
+            }
+        };
+
+        if row.expected_returned {
+            expected_ids.insert(entity.metadata.record_id.entity_id);
+        }
+
+        eprintln!(
+            "[{case_name}] Row {i}: {:?} email={} secret={} → expected={}",
+            row.entity_kind,
+            if row.email_match { "✓" } else { "✗" },
+            if row.secret_code_match { "✓" } else { "✗" },
+            if row.expected_returned { "ret" } else { "excl" }
+        );
+    }
+
+    let results = api.query(filter, no_sorting()).await;
+    let actual_ids = entity_ids(&results);
+
+    assert_eq!(
+        actual_ids,
+        expected_ids,
+        "[{case_name}] Mismatch: expected {} entities, got {}",
+        expected_ids.len(),
+        actual_ids.len()
+    );
+}
+
+// -----------------------------------------------------------------------------
+// Multi-Type Case 1: email = X (only User excluded)
+// -----------------------------------------------------------------------------
+
+#[tokio::test]
+async fn multi_type_email_filter_excludes_only_user() {
+    let settings = PostgresStoreSettings {
+        filter_protection: multi_type_config(),
+        ..PostgresStoreSettings::default()
+    };
+    let mut database = DatabaseTestWrapper::new_with_settings(settings).await;
+    let mut api = seed_multi_type(&mut database).await;
+
+    // email protected for User only, NOT for SecretEntity
+    let rows = [
+        MultiTypeRow {
+            entity_kind: MultiTypeEntityKind::User,
+            email_match: true,
+            secret_code_match: false,
+            expected_returned: false, // User excluded via email
+        },
+        MultiTypeRow {
+            entity_kind: MultiTypeEntityKind::User,
+            email_match: false,
+            secret_code_match: false,
+            expected_returned: false, // No email match
+        },
+        MultiTypeRow {
+            entity_kind: MultiTypeEntityKind::SecretEntity,
+            email_match: true,
+            secret_code_match: false,
+            expected_returned: true, // SecretEntity NOT protected by email
+        },
+        MultiTypeRow {
+            entity_kind: MultiTypeEntityKind::SecretEntity,
+            email_match: false,
+            secret_code_match: false,
+            expected_returned: false, // No email match
+        },
+    ];
+
+    verify_multi_type_truth_table(
+        &mut api,
+        &rows,
+        email_filter(TARGET_EMAIL),
+        "Multi-type: email = X (User excluded, SecretEntity allowed)",
+    )
+    .await;
+}
+
+// -----------------------------------------------------------------------------
+// Multi-Type Case 2: secret_code = S (only SecretEntity excluded)
+// -----------------------------------------------------------------------------
+
+#[tokio::test]
+async fn multi_type_secret_filter_excludes_only_secret_entity() {
+    let settings = PostgresStoreSettings {
+        filter_protection: multi_type_config(),
+        ..PostgresStoreSettings::default()
+    };
+    let mut database = DatabaseTestWrapper::new_with_settings(settings).await;
+    let mut api = seed_multi_type(&mut database).await;
+
+    // secret_code protected for SecretEntity only, NOT for User
+    let rows = [
+        MultiTypeRow {
+            entity_kind: MultiTypeEntityKind::User,
+            email_match: false,
+            secret_code_match: true,
+            expected_returned: true, // User NOT protected by secret_code
+        },
+        MultiTypeRow {
+            entity_kind: MultiTypeEntityKind::User,
+            email_match: false,
+            secret_code_match: false,
+            expected_returned: false, // No secret_code match
+        },
+        MultiTypeRow {
+            entity_kind: MultiTypeEntityKind::SecretEntity,
+            email_match: false,
+            secret_code_match: true,
+            expected_returned: false, // SecretEntity excluded via secret_code
+        },
+        MultiTypeRow {
+            entity_kind: MultiTypeEntityKind::SecretEntity,
+            email_match: false,
+            secret_code_match: false,
+            expected_returned: false, // No secret_code match
+        },
+    ];
+
+    verify_multi_type_truth_table(
+        &mut api,
+        &rows,
+        secret_code_filter(TARGET_SECRET),
+        "Multi-type: secret_code = S (SecretEntity excluded, User allowed)",
+    )
+    .await;
+}
+
+// -----------------------------------------------------------------------------
+// Multi-Type Case 3: email = X AND secret_code = S
+// -----------------------------------------------------------------------------
+
+#[tokio::test]
+async fn multi_type_email_and_secret_filter() {
+    let settings = PostgresStoreSettings {
+        filter_protection: multi_type_config(),
+        ..PostgresStoreSettings::default()
+    };
+    let mut database = DatabaseTestWrapper::new_with_settings(settings).await;
+    let mut api = seed_multi_type(&mut database).await;
+
+    // email protected for User, secret_code protected for SecretEntity
+    // Filter: email = X AND secret_code = S
+    // User excluded via email, SecretEntity excluded via secret_code
+    // → NO entities should match with protection applied
+    let rows = [
+        MultiTypeRow {
+            entity_kind: MultiTypeEntityKind::User,
+            email_match: true,
+            secret_code_match: true,
+            expected_returned: false, // User excluded via email
+        },
+        MultiTypeRow {
+            entity_kind: MultiTypeEntityKind::User,
+            email_match: true,
+            secret_code_match: false,
+            expected_returned: false, // No secret match
+        },
+        MultiTypeRow {
+            entity_kind: MultiTypeEntityKind::User,
+            email_match: false,
+            secret_code_match: true,
+            expected_returned: false, // No email match
+        },
+        MultiTypeRow {
+            entity_kind: MultiTypeEntityKind::User,
+            email_match: false,
+            secret_code_match: false,
+            expected_returned: false, // No match
+        },
+        MultiTypeRow {
+            entity_kind: MultiTypeEntityKind::SecretEntity,
+            email_match: true,
+            secret_code_match: true,
+            expected_returned: false, // SecretEntity excluded via secret_code
+        },
+        MultiTypeRow {
+            entity_kind: MultiTypeEntityKind::SecretEntity,
+            email_match: true,
+            secret_code_match: false,
+            expected_returned: false, // No secret match
+        },
+        MultiTypeRow {
+            entity_kind: MultiTypeEntityKind::SecretEntity,
+            email_match: false,
+            secret_code_match: true,
+            expected_returned: false, // No email match
+        },
+        MultiTypeRow {
+            entity_kind: MultiTypeEntityKind::SecretEntity,
+            email_match: false,
+            secret_code_match: false,
+            expected_returned: false, // No match
+        },
+    ];
+
+    let filter = Filter::All(vec![
+        email_filter(TARGET_EMAIL),
+        secret_code_filter(TARGET_SECRET),
+    ]);
+
+    verify_multi_type_truth_table(
+        &mut api,
+        &rows,
+        filter,
+        "Multi-type: email = X AND secret_code = S (both types excluded)",
+    )
+    .await;
+}
+
+// -----------------------------------------------------------------------------
+// Multi-Type Case 4: email = X OR secret_code = S
+// -----------------------------------------------------------------------------
+
+#[tokio::test]
+async fn multi_type_email_or_secret_filter() {
+    let settings = PostgresStoreSettings {
+        filter_protection: multi_type_config(),
+        ..PostgresStoreSettings::default()
+    };
+    let mut database = DatabaseTestWrapper::new_with_settings(settings).await;
+    let mut api = seed_multi_type(&mut database).await;
+
+    // email protected for User, secret_code protected for SecretEntity
+    // Filter: email = X OR secret_code = S
+    // User: can match via secret_code branch (not protected for them)
+    // SecretEntity: can match via email branch (not protected for them)
+    let rows = [
+        // User: email branch blocked, secret_code branch allowed
+        MultiTypeRow {
+            entity_kind: MultiTypeEntityKind::User,
+            email_match: true,
+            secret_code_match: true,
+            expected_returned: true, // Via secret_code (User not protected)
+        },
+        MultiTypeRow {
+            entity_kind: MultiTypeEntityKind::User,
+            email_match: true,
+            secret_code_match: false,
+            expected_returned: false, // Email branch blocked, no secret
+        },
+        MultiTypeRow {
+            entity_kind: MultiTypeEntityKind::User,
+            email_match: false,
+            secret_code_match: true,
+            expected_returned: true, // Via secret_code
+        },
+        MultiTypeRow {
+            entity_kind: MultiTypeEntityKind::User,
+            email_match: false,
+            secret_code_match: false,
+            expected_returned: false, // No match
+        },
+        // SecretEntity: secret_code branch blocked, email branch allowed
+        MultiTypeRow {
+            entity_kind: MultiTypeEntityKind::SecretEntity,
+            email_match: true,
+            secret_code_match: true,
+            expected_returned: true, // Via email (SecretEntity not protected)
+        },
+        MultiTypeRow {
+            entity_kind: MultiTypeEntityKind::SecretEntity,
+            email_match: true,
+            secret_code_match: false,
+            expected_returned: true, // Via email
+        },
+        MultiTypeRow {
+            entity_kind: MultiTypeEntityKind::SecretEntity,
+            email_match: false,
+            secret_code_match: true,
+            expected_returned: false, // Secret branch blocked, no email
+        },
+        MultiTypeRow {
+            entity_kind: MultiTypeEntityKind::SecretEntity,
+            email_match: false,
+            secret_code_match: false,
+            expected_returned: false, // No match
+        },
+    ];
+
+    let filter = Filter::Any(vec![
+        email_filter(TARGET_EMAIL),
+        secret_code_filter(TARGET_SECRET),
+    ]);
+
+    verify_multi_type_truth_table(
+        &mut api,
+        &rows,
+        filter,
+        "Multi-type: email = X OR secret_code = S",
     )
     .await;
 }
