@@ -1,5 +1,6 @@
 import { use, useCallback, useEffect, useRef, useState } from "react";
 
+import { useStableCallback } from "../hooks/use-stable-callback";
 import {
   SimulationContext,
   type SimulationContextValue,
@@ -8,25 +9,23 @@ import {
 import {
   PlaybackContext,
   type PlaybackContextValue,
+  type PlaybackSpeed,
   type PlaybackState,
 } from "./context";
-
-/**
- * Minimum interval between frame advances in milliseconds.
- * Corresponds to 60Hz maximum playback rate.
- */
-const MIN_FRAME_INTERVAL_MS = 1000 / 60;
 
 type PlaybackStateValues = {
   /** Current playback state */
   playbackState: PlaybackState;
   /** Index of the currently viewed frame */
   currentFrameIndex: number;
+  /** Playback speed multiplier */
+  playbackSpeed: PlaybackSpeed;
 };
 
 const initialStateValues: PlaybackStateValues = {
   playbackState: "Stopped",
   currentFrameIndex: 0,
+  playbackSpeed: 1,
 };
 
 /**
@@ -74,26 +73,24 @@ type PlaybackProviderProps = React.PropsWithChildren;
 export const PlaybackProvider: React.FC<PlaybackProviderProps> = ({
   children,
 }) => {
-  const { simulation, dt, state: simulationState } = use(SimulationContext);
+  const {
+    simulation,
+    dt,
+    state: simulationState,
+    run: runSimulation,
+    pause: pauseSimulation,
+  } = use(SimulationContext);
 
   const [stateValues, setStateValues] =
     useState<PlaybackStateValues>(initialStateValues);
 
-  // Use refs to access latest state in animation callbacks
-  const stateValuesRef = useRef(stateValues);
-  useEffect(() => {
-    stateValuesRef.current = stateValues;
-  }, [stateValues]);
-
-  const simulationRef = useRef(simulation);
-  useEffect(() => {
-    simulationRef.current = simulation;
-  }, [simulation]);
-
-  const dtRef = useRef(dt);
-  useEffect(() => {
-    dtRef.current = dt;
-  }, [dt]);
+  // Stable getters for accessing latest state in animation callbacks
+  const getStateValues = useStableCallback(() => stateValues);
+  const getSimulation = useStableCallback(() => simulation);
+  const getDt = useStableCallback(() => dt);
+  const getSimulationState = useStableCallback(() => simulationState);
+  const stableRunSimulation = useStableCallback(runSimulation);
+  const stablePauseSimulation = useStableCallback(pauseSimulation);
 
   // Reset playback state when simulation is reset or changes
   useEffect(() => {
@@ -117,12 +114,6 @@ export const PlaybackProvider: React.FC<PlaybackProviderProps> = ({
     }
   }, [simulationState]);
 
-  // Track simulation state for detecting completion
-  const simulationStateRef = useRef(simulationState);
-  useEffect(() => {
-    simulationStateRef.current = simulationState;
-  }, [simulationState]);
-
   // Playback animation loop using requestAnimationFrame
   useEffect(() => {
     if (stateValues.playbackState !== "Playing") {
@@ -134,10 +125,11 @@ export const PlaybackProvider: React.FC<PlaybackProviderProps> = ({
     let accumulatedTime = 0;
 
     const tick = (currentTime: number) => {
-      const sim = simulationRef.current;
-      const currentDt = dtRef.current;
-      const state = stateValuesRef.current;
-      const simState = simulationStateRef.current;
+      const sim = getSimulation();
+      const currentDt = getDt();
+      const state = getStateValues();
+      const simState = getSimulationState();
+      const speed = state.playbackSpeed;
 
       if (!sim || state.playbackState !== "Playing") {
         return;
@@ -155,7 +147,8 @@ export const PlaybackProvider: React.FC<PlaybackProviderProps> = ({
 
       // Accumulate time and calculate how many frames to advance
       // dt is in seconds, deltaTime is in milliseconds
-      accumulatedTime += deltaTime;
+      // Apply playback speed multiplier to make playback faster
+      accumulatedTime += deltaTime * speed;
       const frameDurationMs = currentDt * 1000;
 
       // Calculate frames to advance based on accumulated time
@@ -204,32 +197,47 @@ export const PlaybackProvider: React.FC<PlaybackProviderProps> = ({
         cancelAnimationFrame(animationFrameId);
       }
     };
-  }, [stateValues.playbackState]);
+  }, [
+    stateValues.playbackState,
+    getDt,
+    getSimulation,
+    getSimulationState,
+    getStateValues,
+  ]);
 
   //
   // Actions
   //
 
   const setCurrentViewedFrame: PlaybackContextValue["setCurrentViewedFrame"] =
-    useCallback((frameIndex: number) => {
-      const sim = simulationRef.current;
-      if (!sim) {
-        return;
-      }
+    useCallback(
+      (frameIndex: number) => {
+        const sim = getSimulation();
+        if (!sim) {
+          return;
+        }
 
-      const totalFrames = sim.frames.length;
-      const clampedIndex = Math.max(0, Math.min(frameIndex, totalFrames - 1));
+        const totalFrames = sim.frames.length;
+        const clampedIndex = Math.max(0, Math.min(frameIndex, totalFrames - 1));
 
-      setStateValues((prev) => ({
-        ...prev,
-        currentFrameIndex: clampedIndex,
-      }));
-    }, []);
+        setStateValues((prev) => ({
+          ...prev,
+          currentFrameIndex: clampedIndex,
+        }));
+      },
+      [getSimulation],
+    );
 
   const play: PlaybackContextValue["play"] = useCallback(() => {
-    const sim = simulationRef.current;
+    const sim = getSimulation();
     if (!sim || sim.frames.length === 0) {
       return;
+    }
+
+    // Resume simulation generation if it was paused
+    const simState = getSimulationState();
+    if (simState === "Paused") {
+      stableRunSimulation();
     }
 
     setStateValues((prev) => {
@@ -241,21 +249,36 @@ export const PlaybackProvider: React.FC<PlaybackProviderProps> = ({
         currentFrameIndex: shouldRestart ? 0 : prev.currentFrameIndex,
       };
     });
-  }, []);
+  }, [getSimulation, getSimulationState, stableRunSimulation]);
 
   const pause: PlaybackContextValue["pause"] = useCallback(() => {
+    // Pause simulation generation if it's running
+    const simState = getSimulationState();
+    if (simState === "Running") {
+      stablePauseSimulation();
+    }
+
     setStateValues((prev) => ({
       ...prev,
       playbackState: "Paused",
     }));
-  }, []);
+  }, [getSimulationState, stablePauseSimulation]);
 
   const stop: PlaybackContextValue["stop"] = useCallback(() => {
-    setStateValues({
+    setStateValues((prev) => ({
+      ...prev,
       playbackState: "Stopped",
       currentFrameIndex: 0,
-    });
+    }));
   }, []);
+
+  const setPlaybackSpeed: PlaybackContextValue["setPlaybackSpeed"] =
+    useCallback((speed: PlaybackSpeed) => {
+      setStateValues((prev) => ({
+        ...prev,
+        playbackSpeed: speed,
+      }));
+    }, []);
 
   // Compute the currently viewed frame state
   const currentViewedFrame = buildFrameState(
@@ -270,10 +293,12 @@ export const PlaybackProvider: React.FC<PlaybackProviderProps> = ({
     playbackState: stateValues.playbackState,
     currentFrameIndex: stateValues.currentFrameIndex,
     totalFrames,
+    playbackSpeed: stateValues.playbackSpeed,
     setCurrentViewedFrame,
     play,
     pause,
     stop,
+    setPlaybackSpeed,
   };
 
   return (
