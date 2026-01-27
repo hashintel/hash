@@ -1,9 +1,7 @@
 import { css } from "@hashintel/ds-helpers/css";
-import { use } from "react";
 import type { MiniMapNodeProps, MiniMapProps } from "reactflow";
 import { MiniMap as ReactFlowMiniMap, useStore } from "reactflow";
 
-import { EditorContext } from "../../../state/editor-context";
 import type { NodeType } from "../reactflow-types";
 
 const miniMapClassName = css({
@@ -40,21 +38,15 @@ const MiniMapNode: React.FC<MiniMapNodeProps> = ({
 };
 
 /**
- * A simple wrapper around ReactFlow's MiniMap that positions it
- * to account for panel insets (left sidebar, properties panel, bottom panel).
+ * A wrapper around ReactFlow's MiniMap with custom styling.
+ * Renders place nodes as circles and transition nodes as rectangles.
  */
 export const MiniMap: React.FC<Omit<MiniMapProps, "style">> = (props) => {
-  const { visibleViewport } = use(EditorContext);
-
   return (
     <ReactFlowMiniMap
       {...props}
       className={miniMapClassName}
       style={{
-        top: visibleViewport.top,
-        right: visibleViewport.right,
-        bottom: "auto",
-        left: "auto",
         width: 100,
         height: 64,
       }}
