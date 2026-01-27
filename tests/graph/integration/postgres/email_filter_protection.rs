@@ -1401,7 +1401,7 @@ fn phone_filter(phone: &str) -> Filter<'static, type_system::knowledge::entity::
     )
 }
 
-/// Creates a FilterProtectionConfig that protects both email AND phone for User.
+/// Creates a `FilterProtectionConfig` that protects both email AND phone for User.
 fn multi_property_config() -> FilterProtectionConfig {
     let email_url = BaseUrl::new(EMAIL_PROPERTY_BASE_URL.to_owned()).expect("valid email base URL");
     let phone_url = BaseUrl::new(PHONE_PROPERTY_BASE_URL.to_owned()).expect("valid phone base URL");
@@ -1567,8 +1567,16 @@ async fn verify_multi_property_truth_table(
         eprintln!(
             "[{case_name}] Row {i}: {} email={} phone={} → expected={}",
             if row.is_user { "User" } else { "Invitation" },
-            if row.email_match { "✓" } else { "✗" },
-            if row.phone_match { "✓" } else { "✗" },
+            if row.email_match {
+                "\u{2713}"
+            } else {
+                "\u{2717}"
+            },
+            if row.phone_match {
+                "\u{2713}"
+            } else {
+                "\u{2717}"
+            },
             if row.expected_returned { "ret" } else { "excl" }
         );
     }
@@ -1902,7 +1910,7 @@ async fn multi_property_email_or_phone_filter() {
 const SECRET_CODE_PROPERTY_BASE_URL: &str =
     "https://blockprotocol.org/@test/types/property-type/secret-code/";
 
-/// SecretEntity type base URL.
+/// `SecretEntity` type base URL.
 const SECRET_ENTITY_TYPE_BASE_URL: &str =
     "https://blockprotocol.org/@test/types/entity-type/secret-entity/";
 
@@ -1920,7 +1928,7 @@ const SECRET_CODE_PROPERTY_TYPE: &str = r#"{
     ]
 }"#;
 
-/// User entity type with email AND secret_code for multi-type tests.
+/// User entity type with email AND `secret_code` for multi-type tests.
 const USER_WITH_SECRET_ENTITY_TYPE: &str = r#"{
     "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/entity-type",
     "kind": "entityType",
@@ -1941,7 +1949,7 @@ const USER_WITH_SECRET_ENTITY_TYPE: &str = r#"{
     }
 }"#;
 
-/// SecretEntity type with email AND secret_code (secret_code protected).
+/// `SecretEntity` type with email AND `secret_code` (`secret_code` protected).
 const SECRET_ENTITY_TYPE: &str = r#"{
     "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/entity-type",
     "kind": "entityType",
@@ -1962,7 +1970,7 @@ const SECRET_ENTITY_TYPE: &str = r#"{
     }
 }"#;
 
-/// Helper to create a properties object with email, shortname, and secret_code.
+/// Helper to create a properties object with email, shortname, and `secret_code`.
 fn properties_with_secret(email: &str, shortname: &str, secret_code: &str) -> PropertyObject {
     serde_json::from_value(serde_json::json!({
         "https://hash.ai/@h/types/property-type/email/": email,
@@ -1972,7 +1980,7 @@ fn properties_with_secret(email: &str, shortname: &str, secret_code: &str) -> Pr
     .expect("could not create properties")
 }
 
-/// Helper to create a filter that matches entities by secret_code.
+/// Helper to create a filter that matches entities by `secret_code`.
 fn secret_code_filter(
     secret_code: &str,
 ) -> Filter<'static, type_system::knowledge::entity::Entity> {
@@ -1991,9 +1999,9 @@ fn secret_code_filter(
     )
 }
 
-/// Creates a FilterProtectionConfig for multi-type testing:
+/// Creates a `FilterProtectionConfig` for multi-type testing:
 /// - email protected for User
-/// - secret_code protected for SecretEntity
+/// - `secret_code` protected for `SecretEntity`
 fn multi_type_config() -> FilterProtectionConfig {
     let email_url = BaseUrl::new(EMAIL_PROPERTY_BASE_URL.to_owned()).expect("valid email base URL");
     let secret_code_url =
@@ -2115,7 +2123,6 @@ enum MultiTypeEntityKind {
 
 /// Test input row for multi-type truth table verification.
 #[derive(Debug, Clone, Copy)]
-#[expect(clippy::struct_excessive_bools, reason = "test data structure")]
 struct MultiTypeRow {
     entity_kind: MultiTypeEntityKind,
     email_match: bool,
@@ -2166,11 +2173,22 @@ async fn verify_multi_type_truth_table(
             expected_ids.insert(entity.metadata.record_id.entity_id);
         }
 
+        let kind_str = match row.entity_kind {
+            MultiTypeEntityKind::User => "User",
+            MultiTypeEntityKind::SecretEntity => "Secret",
+        };
         eprintln!(
-            "[{case_name}] Row {i}: {:?} email={} secret={} → expected={}",
-            row.entity_kind,
-            if row.email_match { "✓" } else { "✗" },
-            if row.secret_code_match { "✓" } else { "✗" },
+            "[{case_name}] Row {i}: {kind_str} email={} secret={} → expected={}",
+            if row.email_match {
+                "\u{2713}"
+            } else {
+                "\u{2717}"
+            },
+            if row.secret_code_match {
+                "\u{2713}"
+            } else {
+                "\u{2717}"
+            },
             if row.expected_returned { "ret" } else { "excl" }
         );
     }
