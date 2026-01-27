@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   cleanDescription,
+  shouldSkipKey,
   transformPropertyKey,
   formatTokensForOutput,
   transformSpacingScale,
@@ -8,6 +9,30 @@ import {
   transformLineHeightReference,
   transformRadiusReference,
 } from "./transforms";
+
+describe("shouldSkipKey", () => {
+  it("returns true for keys starting with hyphen", () => {
+    expect(shouldSkipKey("-private")).toBe(true);
+    expect(shouldSkipKey("-internal-value")).toBe(true);
+  });
+
+  it("returns true for keys starting with underscore", () => {
+    expect(shouldSkipKey("_private")).toBe(true);
+    expect(shouldSkipKey("_internal")).toBe(true);
+  });
+
+  it("returns false for normal keys", () => {
+    expect(shouldSkipKey("default")).toBe(false);
+    expect(shouldSkipKey("hover")).toBe(false);
+    expect(shouldSkipKey("gray")).toBe(false);
+    expect(shouldSkipKey("10")).toBe(false);
+  });
+
+  it("returns false for keys with hyphen/underscore not at start", () => {
+    expect(shouldSkipKey("link-hover")).toBe(false);
+    expect(shouldSkipKey("some_value")).toBe(false);
+  });
+});
 
 describe("cleanDescription", () => {
   it("removes leading braced content and newlines", () => {
@@ -109,6 +134,19 @@ describe("transformSpacingScale", () => {
     const result = transformSpacingScale({});
     expect(result).toEqual({});
   });
+
+  it("skips keys starting with hyphen or underscore", () => {
+    const result = transformSpacingScale({
+      "0": { value: 0 },
+      "-private": { value: 10 },
+      "_internal": { value: 20 },
+      "1": { value: 4 },
+    });
+    expect(result).toEqual({
+      "0": { value: "0px" },
+      "1": { value: "4px" },
+    });
+  });
 });
 
 describe("transformRadiusScale", () => {
@@ -138,6 +176,19 @@ describe("transformRadiusScale", () => {
     });
     expect(result).toEqual({
       sm: { value: "{radius.4}" },
+    });
+  });
+
+  it("skips keys starting with hyphen or underscore", () => {
+    const result = transformRadiusScale({
+      "1": { value: 2 },
+      "-private": { value: 10 },
+      "_internal": { value: 20 },
+      full: { value: 9999 },
+    });
+    expect(result).toEqual({
+      "1": { value: "2px" },
+      full: { value: "9999px" },
     });
   });
 });
