@@ -55,6 +55,7 @@ export const CodeEditor: React.FC<CodeEditorProps> = ({
   const isReadOnly = options?.readOnly === true;
   const [showReadOnlyTooltip, setShowReadOnlyTooltip] = useState(false);
   const [isHovering, setIsHovering] = useState(false);
+  const [isEditorMounted, setIsEditorMounted] = useState(false);
   const hideTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const editorRef = useRef<editor.IStandaloneCodeEditor | null>(null);
   const editAttemptListenerRef = useRef<IDisposable | null>(null);
@@ -68,7 +69,7 @@ export const CodeEditor: React.FC<CodeEditorProps> = ({
     };
   }, []);
 
-  // Register/unregister edit attempt listener when isReadOnly changes
+  // Register/unregister edit attempt listener when isReadOnly changes or editor mounts
   useEffect(() => {
     // Dispose previous listener if exists
     if (editAttemptListenerRef.current) {
@@ -76,7 +77,7 @@ export const CodeEditor: React.FC<CodeEditorProps> = ({
       editAttemptListenerRef.current = null;
     }
 
-    // Register new listener if in read-only mode with tooltip
+    // Register new listener if in read-only mode with tooltip and editor is mounted
     if (isReadOnly && tooltip && editorRef.current) {
       editAttemptListenerRef.current =
         editorRef.current.onDidAttemptReadOnlyEdit(() => {
@@ -101,35 +102,16 @@ export const CodeEditor: React.FC<CodeEditorProps> = ({
         editAttemptListenerRef.current = null;
       }
     };
-  }, [isReadOnly, tooltip]);
+  }, [isReadOnly, tooltip, isEditorMounted]);
 
   const handleMount = useCallback(
     (editorInstance: editor.IStandaloneCodeEditor, monaco: Monaco) => {
       editorRef.current = editorInstance;
-
-      // Register listener if already in read-only mode
-      if (isReadOnly && tooltip) {
-        editAttemptListenerRef.current =
-          editorInstance.onDidAttemptReadOnlyEdit(() => {
-            // Clear any existing timeout
-            if (hideTimeoutRef.current) {
-              clearTimeout(hideTimeoutRef.current);
-            }
-
-            // Show tooltip
-            setShowReadOnlyTooltip(true);
-
-            // Hide after 2 seconds
-            hideTimeoutRef.current = setTimeout(() => {
-              setShowReadOnlyTooltip(false);
-            }, 2000);
-          });
-      }
-
+      setIsEditorMounted(true);
       // Call the original onMount if provided
       onMount?.(editorInstance, monaco);
     },
-    [isReadOnly, tooltip, onMount],
+    [onMount],
   );
 
   const editorOptions: EditorProps["options"] = {

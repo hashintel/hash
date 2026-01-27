@@ -328,6 +328,9 @@ export const TransitionProperties: React.FC<TransitionPropertiesProps> = ({
                       placeName={place?.name ?? arc.placeId}
                       weight={arc.weight}
                       disabled={isReadOnly}
+                      tooltip={
+                        isReadOnly ? UI_MESSAGES.READ_ONLY_MODE : undefined
+                      }
                       onWeightChange={(weight) => {
                         onArcWeightUpdate(
                           transition.id,
@@ -374,6 +377,9 @@ export const TransitionProperties: React.FC<TransitionPropertiesProps> = ({
                       placeName={place?.name ?? arc.placeId}
                       weight={arc.weight}
                       disabled={isReadOnly}
+                      tooltip={
+                        isReadOnly ? UI_MESSAGES.READ_ONLY_MODE : undefined
+                      }
                       onWeightChange={(weight) => {
                         onArcWeightUpdate(
                           transition.id,

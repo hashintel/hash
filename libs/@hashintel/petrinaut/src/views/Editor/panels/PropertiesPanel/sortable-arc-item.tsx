@@ -76,6 +76,8 @@ interface SortableArcItemProps {
   placeName: string;
   weight: number;
   disabled?: boolean;
+  /** Tooltip to show when disabled (e.g., for read-only mode) */
+  tooltip?: string;
   onWeightChange: (weight: number) => void;
   onDelete?: () => void;
 }
@@ -85,6 +87,7 @@ export const SortableArcItem: React.FC<SortableArcItemProps> = ({
   placeName,
   weight,
   disabled = false,
+  tooltip,
   onWeightChange,
   onDelete,
 }) => {
@@ -122,6 +125,7 @@ export const SortableArcItem: React.FC<SortableArcItemProps> = ({
           step={1}
           value={weight}
           disabled={disabled}
+          tooltip={tooltip}
           onChange={(event) => {
             const newWeight = Number.parseInt(event.target.value, 10);
             if (!Number.isNaN(newWeight) && newWeight >= 1) {
