@@ -402,6 +402,7 @@ impl<'heap> Place<'heap> {
             .map_or_else(|| decl[self.local].r#type, |projection| projection.r#type)
     }
 
+    #[must_use]
     pub fn type_id_unchecked(&self, decl: &LocalDecl<'heap>) -> TypeId {
         self.projections
             .last()
