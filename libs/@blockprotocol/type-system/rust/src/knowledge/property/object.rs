@@ -50,6 +50,14 @@ impl PropertyObject {
         self.0.iter()
     }
 
+    /// Retains only the properties for which the predicate returns `true`.
+    pub fn retain<F>(&mut self, predicate: F)
+    where
+        F: FnMut(&BaseUrl, &mut Property) -> bool,
+    {
+        self.0.retain(predicate);
+    }
+
     pub fn diff<'a>(
         &'a self,
         other: &'a Self,

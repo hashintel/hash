@@ -605,12 +605,32 @@ pub enum CellFilter<'p> {
 /// let config =
 ///     FilterProtectionConfig::new().protect_property(email_url, HashSet::from([user_url]));
 /// ```
+/// Protection rules for a single property.
+///
+/// Defines when to apply protection (query filter, masking).
+#[derive(Debug, Clone)]
+pub struct PropertyProtectionRules<'p> {
+    /// Filter for WHERE clause - when to block queries filtering on this property.
+    /// Also used for SELECT masking if `masking_filter` is None.
+    pub query_filter: CellFilter<'p>,
+
+    /// Filter for SELECT masking - when to mask property in responses.
+    /// Falls back to `query_filter` if None.
+    pub masking_filter: Option<CellFilter<'p>>,
+}
+
 #[derive(Debug, Default)]
 pub struct FilterProtectionConfig<'p> {
-    /// Maps property base URLs to the set of entity types that should be excluded.
+    /// Maps property base URLs to their protection rules.
     ///
-    /// Key: protected property, Value: entity types to exclude when filtering on this property.
-    property_filters: HashMap<BaseUrl, CellFilter<'p>>,
+    /// Key: protected property, Value: protection rules for this property.
+    property_rules: HashMap<BaseUrl, PropertyProtectionRules<'p>>,
+
+    /// Embedding exclusions: entity type -> properties to exclude.
+    ///
+    /// When generating embeddings for an entity, properties listed here
+    /// are removed before sending to the embedding service.
+    embedding_exclusions: HashMap<Cow<'p, BaseUrl>, Vec<Cow<'p, BaseUrl>>>,
 }
 
 impl<'p> FilterProtectionConfig<'p> {
@@ -618,13 +638,37 @@ impl<'p> FilterProtectionConfig<'p> {
     #[must_use]
     pub fn new() -> Self {
         Self {
-            property_filters: HashMap::new(),
+            property_rules: HashMap::new(),
+            embedding_exclusions: HashMap::new(),
         }
     }
 
+    /// Adds protection for a property with full rules specification.
+    pub fn add_protection(&mut self, property: BaseUrl, rules: PropertyProtectionRules<'p>) {
+        self.property_rules.insert(property, rules);
+    }
+
+    /// Adds embedding exclusion: for the given entity type, exclude the given properties.
+    pub fn add_embedding_exclusion(
+        &mut self,
+        entity_type: Cow<'p, BaseUrl>,
+        properties: Vec<Cow<'p, BaseUrl>>,
+    ) {
+        self.embedding_exclusions.insert(entity_type, properties);
+    }
+
     /// Adds protection for a property, excluding via the given `filter`.
+    ///
+    /// This is a convenience method that creates rules with only a query filter
+    /// (no separate masking filter).
     pub fn protect_property(&mut self, property: BaseUrl, filter: CellFilter<'p>) {
-        self.property_filters.insert(property, filter);
+        self.property_rules.insert(
+            property,
+            PropertyProtectionRules {
+                query_filter: filter,
+                masking_filter: None,
+            },
+        );
     }
 
     /// Returns the default HASH configuration that protects email on User entities.
@@ -636,52 +680,79 @@ impl<'p> FilterProtectionConfig<'p> {
     pub fn hash_default() -> Self {
         let email_url = BaseUrl::new("https://hash.ai/@h/types/property-type/email/".to_owned())
             .expect("valid base URL");
+        let user_type_url = BaseUrl::new("https://hash.ai/@h/types/entity-type/user/".to_owned())
+            .expect("valid base URL");
 
         let mut config = Self::new();
-        config.protect_property(
-            email_url,
-            CellFilter::All(vec![
-                CellFilter::In(
-                    CellFilterExpression::Parameter {
-                        parameter: Parameter::Text(Cow::Borrowed(
-                            "https://hash.ai/@h/types/entity-type/user/",
-                        )),
-                    },
-                    CellFilterExpressionList::Path {
-                        path: EntityQueryPath::TypeBaseUrls,
-                    },
-                ),
-                CellFilter::NotEqual(
-                    CellFilterExpression::Path {
-                        path: EntityQueryPath::Uuid,
-                    },
-                    CellFilterExpression::ActorId,
-                ),
-            ]),
+
+        // Query/masking protection for email on User entities (with self-access bypass)
+        config.add_protection(
+            email_url.clone(),
+            PropertyProtectionRules {
+                query_filter: CellFilter::All(vec![
+                    CellFilter::In(
+                        CellFilterExpression::Parameter {
+                            parameter: Parameter::Text(Cow::Borrowed(
+                                "https://hash.ai/@h/types/entity-type/user/",
+                            )),
+                        },
+                        CellFilterExpressionList::Path {
+                            path: EntityQueryPath::TypeBaseUrls,
+                        },
+                    ),
+                    CellFilter::NotEqual(
+                        CellFilterExpression::Path {
+                            path: EntityQueryPath::Uuid,
+                        },
+                        CellFilterExpression::ActorId,
+                    ),
+                ]),
+                masking_filter: None, // Use same as query_filter
+            },
         );
+
+        // Embedding exclusion: for User entities, exclude email (always, no self-access bypass)
+        config.add_embedding_exclusion(Cow::Owned(user_type_url), vec![Cow::Owned(email_url)]);
+
         config
     }
 
-    /// Returns the entity types to exclude when filtering on the given property.
+    /// Returns the query filter for a protected property.
     ///
     /// O(1) lookup.
     #[must_use]
     pub fn property_exclusion_filter(&self, property: &BaseUrl) -> Option<&CellFilter<'p>> {
-        self.property_filters.get(property)
+        self.property_rules
+            .get(property)
+            .map(|rules| &rules.query_filter)
     }
 
     /// Returns true if this configuration has any protection rules.
     #[must_use]
     pub fn is_empty(&self) -> bool {
-        self.property_filters.is_empty()
+        self.property_rules.is_empty()
     }
 
-    /// Returns an iterator over all protection rules.
+    /// Returns an iterator over all protection rules for masking.
     ///
-    /// Each item is a (protected property `BaseUrl`, exclusion `CellFilter`) pair.
+    /// Each item is a (protected property `BaseUrl`, masking `CellFilter`) pair.
+    /// Uses `masking_filter` if set, otherwise falls back to `query_filter`.
     /// Used by the SQL compiler to build masking expressions.
     pub fn protection_rules(&self) -> impl Iterator<Item = (&BaseUrl, &CellFilter<'p>)> {
-        self.property_filters.iter()
+        self.property_rules.iter().map(|(url, rules)| {
+            (
+                url,
+                rules.masking_filter.as_ref().unwrap_or(&rules.query_filter),
+            )
+        })
+    }
+
+    /// Returns the embedding exclusions map: entity type → properties to exclude.
+    ///
+    /// Use this to pre-filter entity properties before sending to embedding generation.
+    #[must_use]
+    pub const fn embedding_exclusions(&self) -> &HashMap<Cow<'p, BaseUrl>, Vec<Cow<'p, BaseUrl>>> {
+        &self.embedding_exclusions
     }
 }
 

@@ -26,7 +26,7 @@ use hash_graph_store::{
     error::{CheckPermissionError, InsertionError, QueryError, UpdateError},
     filter::{
         Filter, FilterExpression, FilterExpressionList, Parameter, ParameterList,
-        protection::transform_filter,
+        protection::{FilterProtectionConfig, transform_filter},
     },
     query::{QueryResult as _, Read},
     subgraph::{
@@ -107,7 +107,44 @@ use crate::store::{
     validation::StoreProvider,
 };
 
-/// Protected properties that should not be used to filter User entities.
+/// Filters entity properties for embedding generation.
+///
+/// Removes protected properties from entities based on their types before
+/// sending to the embedding service. This prevents sensitive data (e.g., email)
+/// from being included in embeddings.
+fn filter_entities_for_embedding(
+    entities: &[Entity],
+    config: &FilterProtectionConfig<'_>,
+) -> Vec<Entity> {
+    let exclusions = config.embedding_exclusions();
+    if exclusions.is_empty() {
+        return entities.to_vec();
+    }
+
+    entities
+        .iter()
+        .cloned()
+        .map(|mut entity| {
+            // Collect all properties to exclude based on entity's types
+            let properties_to_exclude: HashSet<&BaseUrl> = entity
+                .metadata
+                .entity_type_ids
+                .iter()
+                .filter_map(|type_id| exclusions.get(&type_id.base_url))
+                .flatten()
+                .map(Cow::as_ref)
+                .collect();
+
+            if !properties_to_exclude.is_empty() {
+                entity
+                    .properties
+                    .retain(|key, _| !properties_to_exclude.contains(key));
+            }
+            entity
+        })
+        .collect()
+}
+
 impl<C> PostgresStore<C>
 where
     C: AsClient,
@@ -1304,8 +1341,10 @@ where
         if !self.settings.skip_embedding_creation
             && let Some(temporal_client) = &self.temporal_client
         {
+            let filtered_entities =
+                filter_entities_for_embedding(&entities, &self.settings.filter_protection);
             temporal_client
-                .start_update_entity_embeddings_workflow(actor_uuid, &entities)
+                .start_update_entity_embeddings_workflow(actor_uuid, &filtered_entities)
                 .await
                 .change_context(InsertionError)?;
         }
@@ -2318,8 +2357,10 @@ where
         if !self.settings.skip_embedding_creation
             && let Some(temporal_client) = &self.temporal_client
         {
+            let filtered_entities =
+                filter_entities_for_embedding(&entities, &self.settings.filter_protection);
             temporal_client
-                .start_update_entity_embeddings_workflow(actor_id, &entities)
+                .start_update_entity_embeddings_workflow(actor_id, &filtered_entities)
                 .await
                 .change_context(UpdateError)?;
         }
