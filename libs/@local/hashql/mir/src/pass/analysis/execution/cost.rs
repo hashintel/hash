@@ -9,20 +9,6 @@ use hashql_core::id::Id as _;
 
 use crate::body::{basic_block::BasicBlockSlice, basic_blocks::BasicBlocks, location::Location};
 
-macro_rules! cost {
-    ($value:literal) => {{
-        const { assert!($value != 0xFFFF_FFFF_u32) };
-
-        #[expect(unsafe_code)]
-        // SAFETY: macro has verified that the value cannot be 0xffff_ffff
-        unsafe {
-            Cost::new_unchecked($value)
-        }
-    }};
-}
-
-pub(crate) use cost;
-
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Cost(core::num::niche_types::U32NotAllOnes);
 
@@ -31,6 +17,15 @@ impl Cost {
         match core::num::niche_types::U32NotAllOnes::new(value) {
             Some(cost) => Some(Self(cost)),
             None => None,
+        }
+    }
+
+    #[doc(hidden)]
+    #[track_caller]
+    pub const fn new_panic(value: u32) -> Self {
+        match core::num::niche_types::U32NotAllOnes::new(value) {
+            Some(cost) => Self(cost),
+            None => panic!("invalid cost value"),
         }
     }
 

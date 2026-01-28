@@ -14,10 +14,10 @@ pub(crate) enum Access {
 /// A node in the path access trie.
 ///
 /// Each node represents a field in a path hierarchy and defines:
-/// - The field name this node matches (`name`)
-/// - What access applies when the path ends at this node (`access`)
-/// - What access applies for unknown/deeper paths (`otherwise`)
-/// - What children exist for further path traversal
+/// - The field name this node matches (`name`).
+/// - What access applies when the path ends at this node (`access`).
+/// - What access applies for unknown/deeper paths (`otherwise`).
+/// - What children exist for further path traversal.
 #[derive(Debug, Copy, Clone)]
 pub(crate) struct PathNode {
     /// Field name this node matches (empty string for root).
