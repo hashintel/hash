@@ -32,6 +32,7 @@ const MiniMapNode: React.FC<MiniMapNodeProps> = ({
   width,
   height,
 }) => {
+  // MiniMapNodeProps doesn't include node data, so we look it up from the store
   const node = useStore(
     (state) => state.nodeInternals.get(id) as NodeType | undefined,
   );
