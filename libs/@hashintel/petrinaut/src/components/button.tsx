@@ -79,4 +79,4 @@ const ButtonBase: React.FC<ButtonProps> = ({
   </button>
 );
 
-export const Button = withTooltip(ButtonBase, "inline");
+export const Button = withTooltip(ButtonBase, "block");

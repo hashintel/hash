@@ -1,6 +1,6 @@
 import { ark } from "@ark-ui/react/factory";
 import { Tooltip as ArkTooltip } from "@ark-ui/react/tooltip";
-import { css, cva } from "@hashintel/ds-helpers/css";
+import { css, cva, cx } from "@hashintel/ds-helpers/css";
 import type { SvgIconProps } from "@mui/material";
 import { SvgIcon, Tooltip as MuiTooltip } from "@mui/material";
 import type { FunctionComponent, ReactNode } from "react";
@@ -45,6 +45,10 @@ interface TooltipProps {
    * - "inline": For inline elements like buttons in flex containers
    */
   display?: "block" | "inline";
+  /**
+   * Optional className to apply to the trigger wrapper element.
+   */
+  className?: string;
 }
 
 /**
@@ -57,6 +61,7 @@ export const Tooltip: React.FC<TooltipProps> = ({
   content,
   children,
   display = "block",
+  className,
 }) => {
   if (!content) {
     return children;
@@ -69,7 +74,7 @@ export const Tooltip: React.FC<TooltipProps> = ({
       positioning={{ placement: "top" }}
     >
       <ArkTooltip.Trigger asChild>
-        <ark.span className={triggerWrapperStyle({ display })}>
+        <ark.span className={cx(triggerWrapperStyle({ display }), className)}>
           {children}
         </ark.span>
       </ArkTooltip.Trigger>

@@ -1,9 +1,8 @@
-import { Tooltip as ArkTooltip } from "@ark-ui/react/tooltip";
 import { css, cva } from "@hashintel/ds-helpers/css";
 import type { EditorProps, Monaco } from "@monaco-editor/react";
 import MonacoEditor from "@monaco-editor/react";
-import type { editor, IDisposable } from "monaco-editor";
-import { useCallback, useEffect, useRef, useState } from "react";
+import type { editor } from "monaco-editor";
+import { useCallback, useRef } from "react";
 
 import { Tooltip } from "./tooltip";
 
@@ -25,16 +24,6 @@ const containerStyle = cva({
   },
 });
 
-const tooltipContentStyle = css({
-  backgroundColor: "gray.90",
-  color: "gray.10",
-  borderRadius: "md.6",
-  fontSize: "[13px]",
-  zIndex: "[10000]",
-  boxShadow: "[0 2px 8px rgba(0, 0, 0, 0.15)]",
-  padding: "[6px 10px]",
-});
-
 type CodeEditorProps = Omit<EditorProps, "theme"> & {
   tooltip?: string;
 };
@@ -53,61 +42,11 @@ export const CodeEditor: React.FC<CodeEditorProps> = ({
   ...props
 }) => {
   const isReadOnly = options?.readOnly === true;
-  const [showReadOnlyTooltip, setShowReadOnlyTooltip] = useState(false);
-  const [isHovering, setIsHovering] = useState(false);
-  const [isEditorMounted, setIsEditorMounted] = useState(false);
-  const hideTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const editorRef = useRef<editor.IStandaloneCodeEditor | null>(null);
-  const editAttemptListenerRef = useRef<IDisposable | null>(null);
-
-  // Cleanup timeout on unmount
-  useEffect(() => {
-    return () => {
-      if (hideTimeoutRef.current) {
-        clearTimeout(hideTimeoutRef.current);
-      }
-    };
-  }, []);
-
-  // Register/unregister edit attempt listener when isReadOnly changes or editor mounts
-  useEffect(() => {
-    // Dispose previous listener if exists
-    if (editAttemptListenerRef.current) {
-      editAttemptListenerRef.current.dispose();
-      editAttemptListenerRef.current = null;
-    }
-
-    // Register new listener if in read-only mode with tooltip and editor is mounted
-    if (isReadOnly && tooltip && editorRef.current) {
-      editAttemptListenerRef.current =
-        editorRef.current.onDidAttemptReadOnlyEdit(() => {
-          // Clear any existing timeout
-          if (hideTimeoutRef.current) {
-            clearTimeout(hideTimeoutRef.current);
-          }
-
-          // Show tooltip
-          setShowReadOnlyTooltip(true);
-
-          // Hide after 2 seconds
-          hideTimeoutRef.current = setTimeout(() => {
-            setShowReadOnlyTooltip(false);
-          }, 2000);
-        });
-    }
-
-    return () => {
-      if (editAttemptListenerRef.current) {
-        editAttemptListenerRef.current.dispose();
-        editAttemptListenerRef.current = null;
-      }
-    };
-  }, [isReadOnly, tooltip, isEditorMounted]);
 
   const handleMount = useCallback(
     (editorInstance: editor.IStandaloneCodeEditor, monaco: Monaco) => {
       editorRef.current = editorInstance;
-      setIsEditorMounted(true);
       // Call the original onMount if provided
       onMount?.(editorInstance, monaco);
     },
@@ -140,37 +79,19 @@ export const CodeEditor: React.FC<CodeEditorProps> = ({
     </div>
   );
 
-  // In read-only mode with tooltip, show on hover OR on edit attempt
-  if (isReadOnly && tooltip) {
-    const isTooltipOpen = isHovering || showReadOnlyTooltip;
-
-    return (
-      <ArkTooltip.Root
-        open={isTooltipOpen}
-        openDelay={200}
-        closeDelay={0}
-        positioning={{ placement: "top" }}
-      >
-        <ArkTooltip.Trigger asChild>
-          <div
-            onMouseEnter={() => setIsHovering(true)}
-            onMouseLeave={() => setIsHovering(false)}
-          >
-            {editorElement}
-          </div>
-        </ArkTooltip.Trigger>
-        <ArkTooltip.Positioner>
-          <ArkTooltip.Content className={tooltipContentStyle}>
-            {tooltip}
-          </ArkTooltip.Content>
-        </ArkTooltip.Positioner>
-      </ArkTooltip.Root>
-    );
-  }
-
   // Regular tooltip for non-read-only mode (if tooltip is provided)
   if (tooltip) {
-    return <Tooltip content={tooltip}>{editorElement}</Tooltip>;
+    return (
+      <Tooltip
+        content={tooltip}
+        display="block"
+        className={css({
+          flex: "1",
+        })}
+      >
+        {editorElement}
+      </Tooltip>
+    );
   }
 
   return editorElement;

@@ -46,6 +46,7 @@ const typeDropdownButtonStyle = cva({
     fontSize: "[14px]",
     padding: "[6px 8px]",
     display: "flex",
+    justifyContent: "flex-start",
     gap: "[8px]",
     textAlign: "left",
   },
@@ -62,6 +63,10 @@ const colorDotStyle = css({
   height: "[12px]",
   borderRadius: "[50%]",
   flexShrink: 0,
+});
+
+const placeholderStyle = css({
+  color: "[rgba(0, 0, 0, 0.4)]",
 });
 
 const dropdownMenuStyle = css({
@@ -304,7 +309,7 @@ export const DifferentialEquationProperties: React.FC<
             className={typeDropdownButtonStyle({ isDisabled: isReadOnly })}
             tooltip={isReadOnly ? UI_MESSAGES.READ_ONLY_MODE : undefined}
           >
-            {associatedType && (
+            {associatedType ? (
               <>
                 <div
                   className={colorDotStyle}
@@ -312,45 +317,56 @@ export const DifferentialEquationProperties: React.FC<
                 />
                 <span>{associatedType.name}</span>
               </>
+            ) : (
+              <span className={placeholderStyle}>Select a type</span>
             )}
           </Button>
           {showTypeDropdown && !isReadOnly && (
             <div className={dropdownMenuStyle}>
-              {types.map((type) => (
-                <button
-                  key={type.id}
-                  type="button"
-                  onClick={() => {
-                    handleTypeChange(type.id);
-                    setShowTypeDropdown(false);
-                  }}
+              {types.length === 0 ? (
+                <div
                   className={dropdownItemStyle}
-                  style={{
-                    backgroundColor:
-                      type.id === differentialEquation.colorId
-                        ? "rgba(0, 0, 0, 0.05)"
-                        : "transparent",
-                  }}
-                  onMouseEnter={(event) => {
-                    // eslint-disable-next-line no-param-reassign
-                    event.currentTarget.style.backgroundColor =
-                      "rgba(0, 0, 0, 0.05)";
-                  }}
-                  onMouseLeave={(event) => {
-                    // eslint-disable-next-line no-param-reassign
-                    event.currentTarget.style.backgroundColor =
-                      type.id === differentialEquation.colorId
-                        ? "rgba(0, 0, 0, 0.05)"
-                        : "transparent";
-                  }}
+                  style={{ color: "rgba(0, 0, 0, 0.4)" }}
                 >
-                  <div
-                    className={colorDotStyle}
-                    style={{ backgroundColor: type.displayColor }}
-                  />
-                  <span>{type.name}</span>
-                </button>
-              ))}
+                  Create a type first
+                </div>
+              ) : (
+                types.map((type) => (
+                  <button
+                    key={type.id}
+                    type="button"
+                    onClick={() => {
+                      handleTypeChange(type.id);
+                      setShowTypeDropdown(false);
+                    }}
+                    className={dropdownItemStyle}
+                    style={{
+                      backgroundColor:
+                        type.id === differentialEquation.colorId
+                          ? "rgba(0, 0, 0, 0.05)"
+                          : "transparent",
+                    }}
+                    onMouseEnter={(event) => {
+                      // eslint-disable-next-line no-param-reassign
+                      event.currentTarget.style.backgroundColor =
+                        "rgba(0, 0, 0, 0.05)";
+                    }}
+                    onMouseLeave={(event) => {
+                      // eslint-disable-next-line no-param-reassign
+                      event.currentTarget.style.backgroundColor =
+                        type.id === differentialEquation.colorId
+                          ? "rgba(0, 0, 0, 0.05)"
+                          : "transparent";
+                    }}
+                  >
+                    <div
+                      className={colorDotStyle}
+                      style={{ backgroundColor: type.displayColor }}
+                    />
+                    <span>{type.name}</span>
+                  </button>
+                ))
+              )}
             </div>
           )}
         </div>

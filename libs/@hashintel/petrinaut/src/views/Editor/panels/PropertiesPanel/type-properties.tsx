@@ -47,11 +47,23 @@ const dimensionsHintStyle = css({
   fontWeight: "normal",
 });
 
-const addDimensionButtonStyle = css({
-  fontSize: "[16px]",
-  padding: "[2px 8px]",
-  backgroundColor: "[rgba(59, 130, 246, 0.1)]",
-  color: "[#3b82f6]",
+const addDimensionButtonStyle = cva({
+  base: {
+    fontSize: "[16px]",
+    padding: "[2px 8px]",
+  },
+  variants: {
+    isDisabled: {
+      true: {
+        backgroundColor: "[rgba(0, 0, 0, 0.05)]",
+        color: "[#999]",
+      },
+      false: {
+        backgroundColor: "[rgba(59, 130, 246, 0.1)]",
+        color: "[#3b82f6]",
+      },
+    },
+  },
 });
 
 const emptyDimensionsStyle = css({
@@ -147,17 +159,30 @@ const dimensionNameInputStyle = css({
   flex: "1",
 });
 
-const deleteDimensionButtonStyle = css({
-  fontSize: "[16px]",
-  width: "[28px]",
-  height: "[28px]",
-  borderRadius: "[3px]",
-  border: "[1px solid rgba(239, 68, 68, 0.2)]",
-  backgroundColor: "[rgba(239, 68, 68, 0.08)]",
-  color: "[#ef4444]",
-  fontWeight: "semibold",
-  lineHeight: "[1]",
-  flexShrink: 0,
+const deleteDimensionButtonStyle = cva({
+  base: {
+    fontSize: "[16px]",
+    width: "[28px]",
+    height: "[28px]",
+    borderRadius: "[3px]",
+    fontWeight: "semibold",
+    lineHeight: "[1]",
+    flexShrink: 0,
+  },
+  variants: {
+    isDisabled: {
+      true: {
+        border: "[1px solid rgba(0, 0, 0, 0.1)]",
+        backgroundColor: "[rgba(0, 0, 0, 0.05)]",
+        color: "[#999]",
+      },
+      false: {
+        border: "[1px solid rgba(239, 68, 68, 0.2)]",
+        backgroundColor: "[rgba(239, 68, 68, 0.08)]",
+        color: "[#ef4444]",
+      },
+    },
+  },
 });
 
 // --- Helpers ---
@@ -373,7 +398,7 @@ export const TypeProperties: React.FC<TypePropertiesProps> = ({
           <Button
             onClick={handleAddElement}
             disabled={isDisabled}
-            className={addDimensionButtonStyle}
+            className={addDimensionButtonStyle({ isDisabled })}
             aria-label="Add dimension"
             tooltip={isDisabled ? UI_MESSAGES.READ_ONLY_MODE : undefined}
           >
@@ -443,7 +468,9 @@ export const TypeProperties: React.FC<TypePropertiesProps> = ({
                     handleDeleteElement(element.elementId, element.name);
                   }}
                   disabled={isDisabled || type.elements.length === 1}
-                  className={deleteDimensionButtonStyle}
+                  className={deleteDimensionButtonStyle({
+                    isDisabled: isDisabled || type.elements.length === 1,
+                  })}
                   aria-label={`Delete dimension ${element.name}`}
                   tooltip={isDisabled ? UI_MESSAGES.READ_ONLY_MODE : undefined}
                 >
