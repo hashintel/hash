@@ -11,7 +11,8 @@ import type {
   SDCPN,
   Transition,
 } from "./core/types/sdcpn";
-import { useMonacoGlobalTypings } from "./hooks/use-monaco-global-typings";
+import { useMonacoLSP } from "./hooks/use-monaco-lsp";
+import { LSPProvider } from "./lsp/lsp-provider";
 import { NotificationsProvider } from "./notifications/notifications-provider";
 import { SimulationProvider } from "./simulation/provider";
 import { CheckerProvider } from "./state/checker-provider";
@@ -31,11 +32,11 @@ export type {
 };
 
 /**
- * Internal component to initialize Monaco global typings.
- * Must be inside SDCPNProvider to access the store.
+ * Internal component to initialize Monaco with LSP support.
+ * Must be inside LSPProvider to access the LSP client.
  */
-const MonacoSetup: React.FC = () => {
-  useMonacoGlobalTypings();
+const MonacoLSPSetup: React.FC = () => {
+  useMonacoLSP();
   return null;
 };
 
@@ -104,16 +105,18 @@ export const Petrinaut = ({
   return (
     <NotificationsProvider>
       <SDCPNProvider {...rest}>
-        <CheckerProvider>
-          <SimulationProvider>
-            <EditorProvider>
-              <MonacoSetup />
-              <EditorView
-                hideNetManagementControls={hideNetManagementControls}
-              />
-            </EditorProvider>
-          </SimulationProvider>
-        </CheckerProvider>
+        <LSPProvider>
+          <CheckerProvider>
+            <SimulationProvider>
+              <EditorProvider>
+                <MonacoLSPSetup />
+                <EditorView
+                  hideNetManagementControls={hideNetManagementControls}
+                />
+              </EditorProvider>
+            </SimulationProvider>
+          </CheckerProvider>
+        </LSPProvider>
       </SDCPNProvider>
     </NotificationsProvider>
   );

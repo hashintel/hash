@@ -1,10 +1,13 @@
 import { css } from "@hashintel/ds-helpers/css";
 import { use, useCallback, useMemo, useState } from "react";
 import { FaChevronDown, FaChevronRight } from "react-icons/fa6";
-import ts from "typescript";
 
 import type { SubView } from "../../../components/sub-view/types";
-import { CheckerContext } from "../../../state/checker-context";
+import type { DiagnosticMessageChain } from "../../../lsp/protocol";
+import {
+  CheckerContext,
+  type CheckerDiagnostic,
+} from "../../../state/checker-context";
 import { EditorContext } from "../../../state/editor-context";
 import { SDCPNContext } from "../../../state/sdcpn-context";
 
@@ -97,15 +100,31 @@ const positionStyle = css({
 // --- Helpers ---
 
 /**
+ * Flattens a diagnostic message chain to a readable string
+ */
+function flattenMessageChain(
+  chain: DiagnosticMessageChain,
+  indent = "",
+): string {
+  let result = `${indent}${chain.messageText}`;
+  if (chain.next) {
+    for (const next of chain.next) {
+      result += `\n${flattenMessageChain(next, `${indent}  `)}`;
+    }
+  }
+  return result;
+}
+
+/**
  * Formats a TypeScript diagnostic message to a readable string
  */
 function formatDiagnosticMessage(
-  messageText: string | ts.DiagnosticMessageChain,
+  messageText: string | DiagnosticMessageChain,
 ): string {
   if (typeof messageText === "string") {
     return messageText;
   }
-  return ts.flattenDiagnosticMessageText(messageText, "\n");
+  return flattenMessageChain(messageText);
 }
 
 // --- Types ---
@@ -119,7 +138,7 @@ interface GroupedDiagnostics {
   errorCount: number;
   items: Array<{
     subType: "lambda" | "kernel" | null;
-    diagnostics: ts.Diagnostic[];
+    diagnostics: CheckerDiagnostic[];
   }>;
 }
 
