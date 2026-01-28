@@ -5,14 +5,24 @@ use core::{
     ops::{Index, IndexMut},
 };
 
-use hashql_core::id::Id as _;
+use hashql_core::id::{Id as _, bit_vec::DenseBitSet};
 
-use crate::body::{basic_block::BasicBlockSlice, basic_blocks::BasicBlocks, location::Location};
+use crate::{
+    body::{
+        Body,
+        basic_block::BasicBlockSlice,
+        basic_blocks::BasicBlocks,
+        local::{Local, LocalVec},
+        location::Location,
+    },
+    pass::transform::Traversals,
+};
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Cost(core::num::niche_types::U32NotAllOnes);
 
 impl Cost {
+    #[must_use]
     pub const fn new(value: u32) -> Option<Self> {
         match core::num::niche_types::U32NotAllOnes::new(value) {
             Some(cost) => Some(Self(cost)),
@@ -20,6 +30,7 @@ impl Cost {
         }
     }
 
+    #[must_use]
     #[doc(hidden)]
     #[track_caller]
     pub const fn new_panic(value: u32) -> Self {
@@ -29,9 +40,30 @@ impl Cost {
         }
     }
 
+    #[must_use]
     #[expect(unsafe_code)]
     pub unsafe fn new_unchecked(value: u32) -> Self {
         Self(unsafe { core::num::niche_types::U32NotAllOnes::new_unchecked(value) })
+    }
+}
+
+pub struct TraversalCostVec<A: Allocator = Global> {
+    traversals: DenseBitSet<Local>,
+    costs: LocalVec<Option<Cost>, A>,
+}
+
+impl<A: Allocator> TraversalCostVec<A> {
+    pub fn new<'heap>(body: &Body<'heap>, traversals: &Traversals<'heap>, alloc: A) -> Self {
+        Self {
+            traversals: traversals.enabled(body),
+            costs: LocalVec::new_in(alloc),
+        }
+    }
+
+    pub fn insert(&mut self, local: Local, cost: Cost) {
+        if self.traversals.contains(local) {
+            self.costs.insert(local, cost);
+        }
     }
 }
 

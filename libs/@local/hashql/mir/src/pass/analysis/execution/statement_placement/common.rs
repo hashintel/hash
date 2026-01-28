@@ -21,7 +21,7 @@ use crate::{
             framework::{DataflowAnalysis, DataflowResults},
             lattice::PowersetLattice,
         },
-        execution::{Cost, StatementCostVec},
+        execution::{Cost, StatementCostVec, cost::TraversalCostVec},
     },
     visit::Visitor,
 };
@@ -97,7 +97,9 @@ pub(crate) struct CostVisitor<'ctx, 'env, 'heap> {
     pub context: &'ctx MirContext<'env, 'heap>,
     pub dispatchable: &'ctx DenseBitSet<Local>,
     pub cost: Cost,
-    pub costs: StatementCostVec<&'heap Heap>,
+
+    pub statement_costs: StatementCostVec<&'heap Heap>,
+    pub traversal_costs: TraversalCostVec<&'heap Heap>,
 
     pub is_supported_rvalue: RValueFn<'heap>,
 }
@@ -111,15 +113,21 @@ impl<'heap> Visitor<'heap> for CostVisitor<'_, '_, 'heap> {
         statement: &Statement<'heap>,
     ) -> Self::Result {
         match &statement.kind {
-            StatementKind::Assign(Assign { lhs: _, rhs }) => {
+            StatementKind::Assign(Assign { lhs, rhs }) => {
                 let cost =
                     (self.is_supported_rvalue)(self.context, self.body, self.dispatchable, rhs)
                         .then_some(self.cost);
 
-                self.costs[location] = cost;
+                if let Some(cost) = cost
+                    && lhs.projections.is_empty()
+                {
+                    self.traversal_costs.insert(lhs.local, cost);
+                }
+
+                self.statement_costs[location] = cost;
             }
             StatementKind::StorageDead(_) | StatementKind::StorageLive(_) | StatementKind::Nop => {
-                self.costs[location] = Some(cost!(0));
+                self.statement_costs[location] = Some(cost!(0));
             }
         }
 
