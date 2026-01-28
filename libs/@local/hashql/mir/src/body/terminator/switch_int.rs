@@ -322,6 +322,7 @@ impl<'heap> SwitchTargets<'heap> {
     /// assert_eq!(without_otherwise.otherwise(), None);
     /// ```
     #[must_use]
+    #[inline]
     pub fn otherwise(&self) -> Option<Target<'heap>> {
         self.targets.get(self.values.len()).copied()
     }
@@ -357,12 +358,21 @@ impl<'heap> SwitchTargets<'heap> {
     /// assert_eq!(targets.target(999), Some(otherwise)); // Falls through to otherwise
     /// ```
     #[must_use]
+    #[inline]
+    #[expect(clippy::missing_panics_doc, reason = "compiler hint")]
     pub fn target(&self, value: u128) -> Option<Target<'heap>> {
-        self.values
-            .binary_search(&value)
-            .ok()
-            .map(|i| self.targets[i])
-            .or_else(|| self.otherwise())
+        assert!(self.values.len() <= self.targets.len());
+
+        match &*self.values {
+            &[first] if first == value => Some(self.targets[0]),
+            &[first, _] if first == value => Some(self.targets[0]),
+            &[_, second] if second == value => Some(self.targets[1]),
+            [] | [_] | [_, _] => self.otherwise(),
+            _ => self
+                .values
+                .binary_search(&value)
+                .map_or_else(|_| self.otherwise(), |index| Some(self.targets[index])),
+        }
     }
 
     /// Returns a slice of all targets, including the otherwise target if present.

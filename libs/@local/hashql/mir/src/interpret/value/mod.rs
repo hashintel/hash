@@ -42,6 +42,7 @@ use core::{
     alloc::Allocator,
     cmp,
     fmt::{self, Display},
+    hint::cold_path,
 };
 
 use hashql_core::{symbol::Symbol, value::Primitive};
@@ -115,7 +116,6 @@ pub enum Value<'heap, A: Allocator = Global> {
     Struct(Struct<'heap, A>),
     /// A positional tuple.
     Tuple(Tuple<'heap, A>),
-
     /// An ordered list.
     List(List<'heap, A>),
     /// An ordered dictionary.
@@ -153,6 +153,7 @@ impl<'heap, A: Allocator> Value<'heap, A> {
     ///
     /// Returns an error if this value is not subscriptable (not a list or dict),
     /// or if the index type is invalid for the collection type.
+    #[inline]
     pub fn subscript<'this, 'index>(
         &'this self,
         index: &'index Self,
@@ -190,14 +191,14 @@ impl<'heap, A: Allocator> Value<'heap, A> {
     /// is invalid, or if a list index is out of bounds.
     pub fn subscript_mut<'this>(
         &'this mut self,
-        index: Self,
+        index: &Self,
     ) -> Result<&'this mut Self, RuntimeError<'heap, A>>
     where
         A: Clone,
     {
         let terse_name = self.type_name_terse();
         match self {
-            Self::List(list) if let Self::Integer(value) = index => {
+            Self::List(list) if let &Self::Integer(value) = index => {
                 let len = list.len();
 
                 list.get_mut(value).ok_or(RuntimeError::OutOfRange {
@@ -230,6 +231,7 @@ impl<'heap, A: Allocator> Value<'heap, A> {
     /// # Errors
     ///
     /// Returns an error if this value is not projectable or the field index is invalid.
+    #[inline]
     pub fn project<'this>(
         &'this self,
         index: FieldIndex,
@@ -362,15 +364,23 @@ impl<'heap, A: Allocator> Value<'heap, A> {
 }
 
 impl<'heap, A: Allocator> From<Constant<'heap>> for Value<'heap, A> {
+    #[inline]
     fn from(value: Constant<'heap>) -> Self {
         match value {
             Constant::Int(int) => Self::Integer(int),
             Constant::Primitive(Primitive::Null) | Constant::Unit => Self::Unit,
-            Constant::Primitive(Primitive::Boolean(bool)) => Self::Integer(Int::from(bool)),
-            Constant::Primitive(Primitive::Integer(int)) => int
-                .as_i128()
-                .map(Int::from)
-                .map_or_else(|| Self::Number(Num::from(int.as_f64())), Self::Integer),
+            Constant::Primitive(Primitive::Boolean(bool)) => {
+                cold_path(); // This branch is unlikely, because there is no natural way for it to occur.
+
+                Self::Integer(Int::from(bool))
+            }
+            Constant::Primitive(Primitive::Integer(int)) => {
+                cold_path(); // This branch is unlikely, because it'll only happen in the case that the value is outside of the bounds of i128.
+
+                // Conversion earlier guarantees that any value within the bounds of i128 will be
+                // promoted to `Constant::Int`.
+                Self::Number(Num::from(int.as_f64()))
+            }
             Constant::Primitive(Primitive::Float(float)) => Self::Number(Num::from(float)),
             Constant::Primitive(Primitive::String(string)) => Self::String(Str::from(string)),
             Constant::FnPtr(def_id) => Self::Pointer(Ptr::new(def_id)),
@@ -378,7 +388,33 @@ impl<'heap, A: Allocator> From<Constant<'heap>> for Value<'heap, A> {
     }
 }
 
+impl<'heap, A: Allocator> From<&Constant<'heap>> for Value<'heap, A> {
+    #[inline]
+    fn from(value: &Constant<'heap>) -> Self {
+        match value {
+            &Constant::Int(int) => Self::Integer(int),
+            Constant::Primitive(Primitive::Null) | Constant::Unit => Self::Unit,
+            &Constant::Primitive(Primitive::Boolean(bool)) => {
+                cold_path(); // This branch is unlikely, because there is no natural way for it to occur.
+
+                Self::Integer(Int::from(bool))
+            }
+            Constant::Primitive(Primitive::Integer(int)) => {
+                cold_path(); // This branch is unlikely, because it'll only happen in the case that the value is outside of the bounds of i128.
+
+                // Conversion earlier guarantees that any value within the bounds of i128 will be
+                // promoted to `Constant::Int`.
+                Self::Number(Num::from(int.as_f64()))
+            }
+            Constant::Primitive(Primitive::Float(float)) => Self::Number(Num::from(float)),
+            Constant::Primitive(Primitive::String(string)) => Self::String(Str::from(string)),
+            &Constant::FnPtr(def_id) => Self::Pointer(Ptr::new(def_id)),
+        }
+    }
+}
+
 impl<A: Allocator> From<Numeric> for Value<'_, A> {
+    #[inline]
     fn from(value: Numeric) -> Self {
         match value {
             Numeric::Int(int) => Self::Integer(int),
