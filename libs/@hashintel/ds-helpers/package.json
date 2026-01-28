@@ -82,5 +82,8 @@
     "typescript": "5.9.3",
     "vite": "7.1.11",
     "vitest": "^4.0.16"
+  },
+  "dependencies": {
+    "@radix-ui/colors": "3.0.0"
   }
 }
