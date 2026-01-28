@@ -5,7 +5,6 @@ macro_rules! cost {
 }
 
 mod cost;
-mod iter;
 mod statement_placement;
 mod target;
 
