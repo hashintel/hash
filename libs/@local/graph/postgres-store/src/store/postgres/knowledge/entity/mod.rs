@@ -539,8 +539,12 @@ where
         let protected_filter;
         let filter_to_use = if should_apply_protection {
             // Transform filter to protect against filtering on protected properties
-            protected_filter =
-                transform_filter(params.filter.clone(), &self.settings.filter_protection, 0);
+            protected_filter = transform_filter(
+                params.filter.clone(),
+                &self.settings.filter_protection,
+                0,
+                policy_components.actor_id(),
+            );
             &protected_filter
         } else {
             &params.filter
@@ -1725,8 +1729,12 @@ where
         let filter_to_use = if should_protect_email {
             // Transform filter to protect against email filtering on Users
             // Note: count_entities has no sorting, so only filter protection applies
-            protected_filter =
-                transform_filter(params.filter.clone(), &self.settings.filter_protection, 0);
+            protected_filter = transform_filter(
+                params.filter.clone(),
+                &self.settings.filter_protection,
+                0,
+                policy_components.actor_id(),
+            );
             &protected_filter
         } else {
             &params.filter

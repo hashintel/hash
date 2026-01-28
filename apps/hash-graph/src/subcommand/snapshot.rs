@@ -84,7 +84,12 @@ pub struct SnapshotArgs {
 pub async fn snapshot(args: SnapshotArgs) -> Result<(), Report<GraphError>> {
     SnapshotEntry::install_error_stack_hook();
 
-    let mut pool = PostgresStorePool::new(
+    let mut settings = PostgresStoreSettings::default();
+    if let SnapshotCommand::Restore(args) = &args.command {
+        settings.validate_links = !args.skip_validation;
+    }
+
+    let pool = PostgresStorePool::new(
         &args.db_info,
         &args.pool_config,
         NoTls,
@@ -122,8 +127,6 @@ pub async fn snapshot(args: SnapshotArgs) -> Result<(), Report<GraphError>> {
             tracing::info!("Snapshot dumped successfully");
         }
         SnapshotCommand::Restore(args) => {
-            pool.settings.validate_links = !args.skip_validation;
-
             let read =
                 FramedRead::new(io::BufReader::new(io::stdin()), JsonLinesDecoder::default());
             SnapshotStore::new(

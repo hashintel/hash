@@ -32,6 +32,7 @@ use type_system::{
     },
     principal::actor::{ActorEntityUuid, ActorId},
 };
+use uuid::Uuid;
 
 pub use self::{
     parameter::{
@@ -43,7 +44,10 @@ use crate::{
     data_type::DataTypeQueryPath,
     entity::EntityQueryPath,
     entity_type::EntityTypeQueryPath,
-    filter::parameter::ActualParameterType,
+    filter::{
+        parameter::ActualParameterType,
+        protection::{CellFilter, CellFilterExpression},
+    },
     property_type::PropertyTypeQueryPath,
     subgraph::{
         SubgraphRecord,
@@ -1142,6 +1146,36 @@ impl<'p> Filter<'p, Entity> {
             }
         }
     }
+
+    #[must_use]
+    fn for_cell_filter(filter: CellFilter<'p>, actor_id: Option<ActorId>) -> Self {
+        match filter {
+            CellFilter::All(filters) => Self::All(
+                filters
+                    .into_iter()
+                    .map(|filter| Self::for_cell_filter(filter, actor_id))
+                    .collect(),
+            ),
+            CellFilter::Any(filters) => Self::Any(
+                filters
+                    .into_iter()
+                    .map(|filter| Self::for_cell_filter(filter, actor_id))
+                    .collect(),
+            ),
+            CellFilter::Equal(lhs, rhs) => Self::Equal(
+                FilterExpression::from_cell_filter_expression(lhs, actor_id),
+                FilterExpression::from_cell_filter_expression(rhs, actor_id),
+            ),
+            CellFilter::NotEqual(lhs, rhs) => Self::NotEqual(
+                FilterExpression::from_cell_filter_expression(lhs, actor_id),
+                FilterExpression::from_cell_filter_expression(rhs, actor_id),
+            ),
+            CellFilter::In(lhs, rhs) => Self::In(
+                FilterExpression::from_cell_filter_expression(lhs, actor_id),
+                FilterExpressionList::from(rhs),
+            ),
+        }
+    }
 }
 
 impl<'p, R: QueryRecord> Filter<'p, R>
@@ -1380,6 +1414,26 @@ impl<R: QueryRecord> FilterExpression<'_, R> {
         }
 
         Ok(())
+    }
+}
+
+impl<'p> FilterExpression<'p, Entity> {
+    #[must_use]
+    pub fn from_cell_filter_expression(
+        expression: CellFilterExpression<'p>,
+        actor_id: Option<ActorId>,
+    ) -> Self {
+        match expression {
+            CellFilterExpression::Path { path } => Self::Path { path },
+            CellFilterExpression::Parameter { parameter } => Self::Parameter {
+                parameter,
+                convert: None,
+            },
+            CellFilterExpression::ActorId => Self::Parameter {
+                parameter: Parameter::Uuid(actor_id.map_or_else(Uuid::nil, Uuid::from)),
+                convert: None,
+            },
+        }
     }
 }
 
