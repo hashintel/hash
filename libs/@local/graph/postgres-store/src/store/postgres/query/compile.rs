@@ -4,9 +4,10 @@ use std::collections::{HashMap, HashSet};
 
 use error_stack::{Report, bail, ensure};
 use hash_graph_store::{
+    entity::EntityQueryPath,
     filter::{
         Filter, FilterExpression, FilterExpressionList, Parameter, ParameterList, ParameterType,
-        PathToken, QueryRecord,
+        PathToken, QueryRecord, protection::FilterProtectionConfig,
     },
     query::{NullOrdering, Ordering},
     subgraph::temporal_axes::QueryTemporalAxes,
@@ -14,17 +15,21 @@ use hash_graph_store::{
 use hash_graph_temporal_versioning::TimeAxis;
 use postgres_types::ToSql;
 use tracing::instrument;
+use type_system::{knowledge::Entity, principal::actor::ActorId};
 
-use super::expression::{JoinType, TableName, TableReference};
+use super::{
+    expression::{JoinType, TableName, TableReference},
+    property_masking::{MaskingAliases, build_masking_expression},
+};
 use crate::store::postgres::query::{
     Alias, Column, Condition, Distinctness, EqualityOperator, Expression, Function,
     PostgresQueryPath, PostgresRecord, SelectExpression, SelectStatement, Table, Transpile as _,
     WindowStatement,
     expression::{FromItem, GroupByExpression, PostgresType},
     table::{
-        DataTypeEmbeddings, DatabaseColumn as _, EntityEmbeddings, EntityTemporalMetadata,
-        EntityTypeEmbeddings, EntityTypes, JsonField, OntologyIds, OntologyTemporalMetadata,
-        PropertyTypeEmbeddings,
+        DataTypeEmbeddings, DatabaseColumn as _, EntityEditions, EntityEmbeddings,
+        EntityTemporalMetadata, EntityTypeEmbeddings, EntityTypes, JsonField, OntologyIds,
+        OntologyTemporalMetadata, PropertyTypeEmbeddings,
     },
 };
 
@@ -61,6 +66,16 @@ struct PathSelection {
 
 type TableHook<'p, 'q, T> = fn(&mut SelectCompiler<'p, 'q, T>, Alias) -> Vec<Condition>;
 
+/// Configuration for property masking in SELECT statements.
+struct PropertyMaskingConfig<'a> {
+    /// The filter protection configuration.
+    protection_config: &'a FilterProtectionConfig<'a>,
+    /// The actor ID for self-exclusion bypass.
+    actor_id: Option<ActorId>,
+    /// Table alias for `entity_is_of_type_ids` (for type checks in masking conditions).
+    entity_is_of_type_alias: Alias,
+}
+
 pub struct SelectCompiler<'p, 'q: 'p, T: QueryRecord> {
     statement: SelectStatement,
     artifacts: CompilerArtifacts<'p>,
@@ -68,6 +83,8 @@ pub struct SelectCompiler<'p, 'q: 'p, T: QueryRecord> {
     include_drafts: bool,
     table_hooks: HashMap<TableName<'p>, TableHook<'p, 'q, T>>,
     selections: HashMap<&'p T::QueryPath<'q>, PathSelection>,
+    /// Optional property masking configuration for Entity queries.
+    property_masking: Option<PropertyMaskingConfig<'p>>,
 }
 
 #[derive(Debug, derive_more::Display, derive_more::Error)]
@@ -130,6 +147,7 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
             table_hooks,
             include_drafts,
             selections: HashMap::new(),
+            property_masking: None,
         }
     }
 
@@ -847,6 +865,33 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
 
         let column_expression = Expression::ColumnReference(column.aliased(alias));
 
+        // Apply property masking for Properties and PropertyMetadata columns if configured
+        let column_expression = if let Some(masking_config) = &self.property_masking {
+            let needs_masking = matches!(
+                column,
+                Column::EntityEditions(
+                    EntityEditions::Properties | EntityEditions::PropertyMetadata
+                )
+            );
+            if needs_masking {
+                let aliases = MaskingAliases {
+                    base_alias: Alias::default(),
+                    entity_is_of_type_alias: masking_config.entity_is_of_type_alias,
+                };
+                build_masking_expression(
+                    masking_config.protection_config,
+                    masking_config.actor_id,
+                    column_expression,
+                    aliases,
+                )
+                .unwrap_or_else(|| Expression::ColumnReference(column.aliased(alias)))
+            } else {
+                column_expression
+            }
+        } else {
+            column_expression
+        };
+
         match parameter {
             None => column_expression,
             Some(JsonField::JsonPath(path)) => {
@@ -1169,5 +1214,31 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
             .required_tables
             .insert(current_table.into_owned());
         alias
+    }
+}
+
+/// Entity-specific methods for property masking.
+impl<'p, 'q: 'p> SelectCompiler<'p, 'q, Entity> {
+    /// Configures property masking for Entity queries.
+    ///
+    /// When enabled, protected properties (e.g., email) will be removed from the
+    /// properties JSONB in SELECT statements, unless the actor is the entity owner.
+    ///
+    /// This method automatically adds the necessary table joins and determines
+    /// the correct aliases internally.
+    pub fn with_property_masking(
+        &mut self,
+        protection_config: &'p FilterProtectionConfig<'p>,
+        actor_id: Option<ActorId>,
+    ) {
+        // Add TypeBaseUrls join to get the entity_is_of_type_ids alias.
+        // This ensures the join exists and we know its alias for the masking expression.
+        let entity_is_of_type_alias = self.add_join_statements(&EntityQueryPath::TypeBaseUrls);
+
+        self.property_masking = Some(PropertyMaskingConfig {
+            protection_config,
+            actor_id,
+            entity_is_of_type_alias,
+        });
     }
 }

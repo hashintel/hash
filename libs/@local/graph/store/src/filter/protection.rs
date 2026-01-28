@@ -675,6 +675,14 @@ impl<'p> FilterProtectionConfig<'p> {
     pub fn is_empty(&self) -> bool {
         self.property_filters.is_empty()
     }
+
+    /// Returns an iterator over all protection rules.
+    ///
+    /// Each item is a (protected property `BaseUrl`, exclusion `CellFilter`) pair.
+    /// Used by the SQL compiler to build masking expressions.
+    pub fn protection_rules(&self) -> impl Iterator<Item = (&BaseUrl, &CellFilter<'p>)> {
+        self.property_filters.iter()
+    }
 }
 
 /// Collects all entity types that should be excluded based on protected properties in a filter.
