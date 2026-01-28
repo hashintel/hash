@@ -17,9 +17,12 @@ use crate::{
         rvalue::{Aggregate, AggregateKind, Binary, RValue, Unary},
     },
     context::MirContext,
-    pass::analysis::execution::{
-        cost::{Cost, StatementCostVec},
-        statement_placement::lookup::{Access, entity_projection_access},
+    pass::{
+        analysis::execution::{
+            cost::{Cost, StatementCostVec, TraversalCostVec},
+            statement_placement::lookup::{Access, entity_projection_access},
+        },
+        transform::Traversals,
     },
     visit::Visitor as _,
 };
@@ -130,8 +133,9 @@ impl PostgresStatementPlacement {
         &self,
         context: &MirContext<'_, 'heap>,
         body: &Body<'heap>,
+        traversals: &Traversals<'heap>,
         alloc: A,
-    ) -> StatementCostVec<&'heap Heap> {
+    ) -> (TraversalCostVec<&'heap Heap>, StatementCostVec<&'heap Heap>) {
         let dispatchable = SupportedAnalysis {
             body,
             context,
@@ -139,19 +143,22 @@ impl PostgresStatementPlacement {
         }
         .finish_in(alloc);
 
-        let costs = StatementCostVec::new(&body.basic_blocks, context.heap);
+        let statement_costs = StatementCostVec::new(&body.basic_blocks, context.heap);
+        let traversal_costs = TraversalCostVec::new(body, traversals, context.heap);
 
         let mut visitor = CostVisitor {
             body,
             context,
             dispatchable: &dispatchable,
             cost: self.statement_cost,
-            costs,
+
+            statement_costs,
+            traversal_costs,
 
             is_supported_rvalue,
         };
         visitor.visit_body(body);
 
-        visitor.costs
+        (visitor.traversal_costs, visitor.statement_costs)
     }
 }

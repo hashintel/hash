@@ -7,7 +7,10 @@ use crate::{
         statement::{Statement, StatementKind},
     },
     context::MirContext,
-    pass::analysis::execution::cost::{Cost, StatementCostVec},
+    pass::{
+        analysis::execution::cost::{Cost, StatementCostVec, TraversalCostVec},
+        transform::Traversals,
+    },
     visit::Visitor,
 };
 
@@ -16,7 +19,8 @@ struct CostVisitor<'ctx, 'env, 'heap> {
     context: &'ctx MirContext<'env, 'heap>,
 
     cost: Cost,
-    costs: StatementCostVec<&'heap Heap>,
+
+    statement_costs: StatementCostVec<&'heap Heap>,
 }
 
 impl<'heap> Visitor<'heap> for CostVisitor<'_, '_, 'heap> {
@@ -31,10 +35,10 @@ impl<'heap> Visitor<'heap> for CostVisitor<'_, '_, 'heap> {
         // dedicated traversals from the backend. Therefore the cost keeps being the same.
         match &statement.kind {
             StatementKind::Assign(_) => {
-                self.costs[location] = Some(self.cost);
+                self.statement_costs[location] = Some(self.cost);
             }
             StatementKind::StorageDead(_) | StatementKind::StorageLive(_) | StatementKind::Nop => {
-                self.costs[location] = Some(cost!(0));
+                self.statement_costs[location] = Some(cost!(0));
             }
         }
 
@@ -60,17 +64,19 @@ impl InterpretStatementPlacement {
         &self,
         context: &MirContext<'_, 'heap>,
         body: &Body<'heap>,
-    ) -> StatementCostVec<&'heap Heap> {
-        let costs = StatementCostVec::new(&body.basic_blocks, context.heap);
+        traversals: &Traversals<'heap>,
+    ) -> (TraversalCostVec<&'heap Heap>, StatementCostVec<&'heap Heap>) {
+        let statement_costs = StatementCostVec::new(&body.basic_blocks, context.heap);
+        let traversal_costs = TraversalCostVec::new(body, traversals, context.heap);
 
         let mut visitor = CostVisitor {
             body,
             context,
             cost: self.statement_cost,
-            costs,
+            statement_costs,
         };
         visitor.visit_body(body);
 
-        visitor.costs
+        (traversal_costs, visitor.statement_costs)
     }
 }
