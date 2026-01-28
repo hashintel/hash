@@ -6,16 +6,68 @@ import { VStack, HStack, Box } from "../styled-system/jsx";
 import type { Token } from "../styled-system/tokens/tokens";
 
 /** Radix step keys (1-12) */
-type RadixStep = "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9" | "10" | "11" | "12";
-const radixSteps: RadixStep[] = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12"];
+type RadixStep =
+  | "1"
+  | "2"
+  | "3"
+  | "4"
+  | "5"
+  | "6"
+  | "7"
+  | "8"
+  | "9"
+  | "10"
+  | "11"
+  | "12";
+const radixSteps: RadixStep[] = [
+  "1",
+  "2",
+  "3",
+  "4",
+  "5",
+  "6",
+  "7",
+  "8",
+  "9",
+  "10",
+  "11",
+  "12",
+];
 
 /** Radix alpha step keys (a1-a12) */
-type RadixAlphaStep = "a1" | "a2" | "a3" | "a4" | "a5" | "a6" | "a7" | "a8" | "a9" | "a10" | "a11" | "a12";
-const radixAlphaSteps: RadixAlphaStep[] = ["a1", "a2", "a3", "a4", "a5", "a6", "a7", "a8", "a9", "a10", "a11", "a12"];
+type RadixAlphaStep =
+  | "a1"
+  | "a2"
+  | "a3"
+  | "a4"
+  | "a5"
+  | "a6"
+  | "a7"
+  | "a8"
+  | "a9"
+  | "a10"
+  | "a11"
+  | "a12";
+const radixAlphaSteps: RadixAlphaStep[] = [
+  "a1",
+  "a2",
+  "a3",
+  "a4",
+  "a5",
+  "a6",
+  "a7",
+  "a8",
+  "a9",
+  "a10",
+  "a11",
+  "a12",
+];
 
 /** Convert radix key format (gray1 -> 1) */
-const getRadixColor = (step: RadixStep): string => radixGray[`gray${step}` as keyof typeof radixGray];
-const getRadixAlphaColor = (step: RadixAlphaStep): string => radixGrayA[`gray${step.toUpperCase()}` as keyof typeof radixGrayA];
+const getRadixColor = (step: RadixStep): string =>
+  radixGray[`gray${step}` as keyof typeof radixGray];
+const getRadixAlphaColor = (step: RadixAlphaStep): string =>
+  radixGrayA[`gray${step.toUpperCase()}` as keyof typeof radixGrayA];
 
 /** HASH gray token scale keys */
 type HashGrayKey =
@@ -53,17 +105,17 @@ const hashGrayKeys: HashGrayKey[] = [
  * Tweak this to find the best alignment between Radix steps and HASH gray.
  */
 const radixToHashMapping: Record<RadixStep, HashGrayKey> = {
-  "1": "00",
-  "2": "00",
-  "3": "10",
-  "4": "10",
-  "5": "20",
-  "6": "20",
-  "7": "30",
+  "1": "10",
+  "2": "10",
+  "3": "20",
+  "4": "20",
+  "5": "30",
+  "6": "30",
+  "7": "40",
   "8": "40",
   "9": "50",
-  "10": "60",
-  "11": "70",
+  "10": "50",
+  "11": "60",
   "12": "90",
 };
 
@@ -195,7 +247,11 @@ export const RadixMapping: Story = () => (
       </p>
       <HStack gap="1" alignItems="center" flexWrap="wrap">
         {radixAlphaSteps.map((step) => (
-          <RadixSwatch key={step} step={step} color={getRadixAlphaColor(step)} />
+          <RadixSwatch
+            key={step}
+            step={step}
+            color={getRadixAlphaColor(step)}
+          />
         ))}
       </HStack>
     </VStack>
