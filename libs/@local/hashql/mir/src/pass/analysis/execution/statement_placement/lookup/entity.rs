@@ -15,7 +15,11 @@ pub(super) static ENTITY_PATHS: PathNode = PathNode::root(&[
         None,
         &[
             // Vectors are stored outside the entity inside of an embeddings database
-            PathNode::branch(sym::lexical::vectors, None, &[]),
+            PathNode::branch(
+                sym::lexical::vectors,
+                Access::Embedding(AccessMode::Direct),
+                &[],
+            ),
         ],
     ),
     PathNode::branch(
