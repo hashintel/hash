@@ -551,6 +551,16 @@ where
         };
 
         let mut compiler = SelectCompiler::new(Some(temporal_axes), params.include_drafts);
+
+        // Enable property masking to remove protected properties (e.g., email) from responses
+        // unless the actor is the entity owner
+        if should_apply_protection {
+            compiler.with_property_masking(
+                &self.settings.filter_protection,
+                policy_components.actor_id(),
+            );
+        }
+
         compiler
             .add_filter(&policy_filter)
             .change_context(QueryError)?;
