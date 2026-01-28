@@ -499,6 +499,137 @@ export const useDashboardItemConfig = ({
     setState((prev) => ({ ...prev, chartConfig }));
   }, []);
 
+  const setStructuralQuery = useCallback((structuralQuery: Filter | null) => {
+    setState((prev) => ({ ...prev, structuralQuery }));
+  }, []);
+
+  const setPythonScript = useCallback((pythonScript: string | null) => {
+    setState((prev) => ({ ...prev, pythonScript }));
+  }, []);
+
+  /**
+   * Save the structural query to the entity.
+   */
+  const saveStructuralQuery = useCallback(
+    async (structuralQuery: Filter) => {
+      setState((prev) => ({ ...prev, isLoading: true, error: null }));
+
+      try {
+        await updateEntity({
+          variables: {
+            entityUpdate: {
+              entityId: itemEntityId,
+              propertyPatches: [
+                {
+                  op: "add" as const,
+                  path: [
+                    systemPropertyTypes.structuralQuery.propertyTypeBaseUrl,
+                  ],
+                  property: {
+                    value: structuralQuery,
+                    metadata: {
+                      dataTypeId:
+                        "https://blockprotocol.org/@blockprotocol/types/data-type/object/v/1",
+                    },
+                  },
+                } as unknown as PropertyPatchOperation,
+              ],
+            },
+          },
+        });
+
+        setState((prev) => ({ ...prev, structuralQuery, isLoading: false }));
+      } catch (err) {
+        setError(
+          err instanceof Error
+            ? err.message
+            : "Failed to save structural query",
+        );
+      }
+    },
+    [updateEntity, itemEntityId, setError],
+  );
+
+  /**
+   * Save the python script to the entity.
+   */
+  const savePythonScript = useCallback(
+    async (pythonScript: string) => {
+      setState((prev) => ({ ...prev, isLoading: true, error: null }));
+
+      try {
+        await updateEntity({
+          variables: {
+            entityUpdate: {
+              entityId: itemEntityId,
+              propertyPatches: [
+                {
+                  op: "add" as const,
+                  path: [systemPropertyTypes.pythonScript.propertyTypeBaseUrl],
+                  property: {
+                    value: pythonScript,
+                    metadata: {
+                      dataTypeId:
+                        "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+                    },
+                  },
+                },
+              ],
+            },
+          },
+        });
+
+        setState((prev) => ({ ...prev, pythonScript, isLoading: false }));
+      } catch (err) {
+        setError(
+          err instanceof Error ? err.message : "Failed to save python script",
+        );
+      }
+    },
+    [updateEntity, itemEntityId, setError],
+  );
+
+  /**
+   * Save the chart config to the entity.
+   */
+  const saveChartConfig = useCallback(
+    async (chartConfig: ChartConfig) => {
+      setState((prev) => ({ ...prev, isLoading: true, error: null }));
+
+      try {
+        await updateEntity({
+          variables: {
+            entityUpdate: {
+              entityId: itemEntityId,
+              propertyPatches: [
+                {
+                  op: "add" as const,
+                  path: [
+                    systemPropertyTypes.chartConfiguration.propertyTypeBaseUrl,
+                  ],
+                  property: {
+                    value: chartConfig as Record<string, JsonValue>,
+                    metadata: {
+                      dataTypeId:
+                        "https://blockprotocol.org/@blockprotocol/types/data-type/object/v/1",
+                    },
+                  },
+                },
+              ],
+            },
+          },
+        });
+
+        setState((prev) => ({ ...prev, chartConfig, isLoading: false }));
+      } catch (err) {
+        setError(
+          err instanceof Error ? err.message : "Failed to save chart config",
+        );
+      }
+    },
+    [updateEntity, itemEntityId, setError],
+  );
+
   /**
    * Save the final chart configuration to the entity.
    */
@@ -589,6 +720,11 @@ export const useDashboardItemConfig = ({
     confirmAnalysis,
     setChartType,
     setChartConfig,
+    setStructuralQuery,
+    setPythonScript,
+    saveStructuralQuery,
+    savePythonScript,
+    saveChartConfig,
     saveConfiguration,
     reset,
   };

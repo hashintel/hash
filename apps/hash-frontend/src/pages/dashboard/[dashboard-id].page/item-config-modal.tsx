@@ -1,20 +1,15 @@
 import type { EntityId, WebId } from "@blockprotocol/type-system";
-import { faCheckCircle, faCircle } from "@fortawesome/free-solid-svg-icons";
-import { FontAwesomeIcon } from "@hashintel/design-system";
-import {
-  Box,
-  CircularProgress,
-  LinearProgress,
-  Typography,
-} from "@mui/material";
+import { TextField } from "@hashintel/design-system";
+import type { Filter } from "@local/hash-graph-client";
+import type { ChartConfig } from "@local/hash-isomorphic-utils/dashboard-types";
+import { AutoAwesome as AiIcon } from "@mui/icons-material";
+import { Box, CircularProgress, LinearProgress, Stack } from "@mui/material";
+import { useCallback, useState } from "react";
 
+import { Button } from "../../../shared/ui/button";
 import { Modal } from "../../../shared/ui/modal";
-import {
-  type ConfigStep,
-  useDashboardItemConfig,
-} from "../hooks/use-dashboard-item-config";
-import { ChartConfigStep } from "./item-config-modal/chart-config-step";
-import { GoalInputStep } from "./item-config-modal/goal-input-step";
+import { useDashboardItemConfig } from "../hooks/use-dashboard-item-config";
+import { ConfigAccordion } from "./item-config-modal/config-accordion";
 
 type ItemConfigModalProps = {
   open: boolean;
@@ -22,127 +17,6 @@ type ItemConfigModalProps = {
   itemEntityId: EntityId;
   webId: WebId;
   initialGoal?: string;
-};
-
-const PROGRESS_STEPS = [
-  { key: "query", label: "Generating query..." },
-  { key: "analysis", label: "Analyzing data..." },
-  { key: "chart", label: "Creating chart..." },
-] as const;
-
-/**
- * Shows progress of the AI configuration workflow
- */
-const ConfigurationProgress = ({
-  currentStep,
-  structuralQueryReady,
-  pythonScriptReady,
-  chartConfigReady,
-}: {
-  currentStep: ConfigStep;
-  structuralQueryReady: boolean;
-  pythonScriptReady: boolean;
-  chartConfigReady: boolean;
-}) => {
-  const getStepStatus = (
-    stepKey: string,
-  ): "pending" | "in_progress" | "complete" => {
-    if (stepKey === "query") {
-      if (structuralQueryReady) {
-        return "complete";
-      }
-      if (currentStep === "query") {
-        return "in_progress";
-      }
-      return "pending";
-    }
-    if (stepKey === "analysis") {
-      if (pythonScriptReady) {
-        return "complete";
-      }
-      if (currentStep === "analysis" || structuralQueryReady) {
-        return "in_progress";
-      }
-      return "pending";
-    }
-    if (stepKey === "chart") {
-      if (chartConfigReady) {
-        return "complete";
-      }
-      if (currentStep === "chart" || pythonScriptReady) {
-        return "in_progress";
-      }
-      return "pending";
-    }
-    return "pending";
-  };
-
-  return (
-    <Box
-      sx={{
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        gap: 4,
-        py: 6,
-      }}
-    >
-      <CircularProgress size={48} />
-
-      <Typography variant="h5" sx={{ fontWeight: 500 }}>
-        Configuring your chart...
-      </Typography>
-
-      <Box sx={{ display: "flex", flexDirection: "column", gap: 2, mt: 2 }}>
-        {PROGRESS_STEPS.map((step) => {
-          const status = getStepStatus(step.key);
-          return (
-            <Box
-              key={step.key}
-              sx={{
-                display: "flex",
-                alignItems: "center",
-                gap: 2,
-              }}
-            >
-              {status === "complete" ? (
-                <FontAwesomeIcon
-                  icon={faCheckCircle}
-                  sx={({ palette }) => ({
-                    color: palette.green[70],
-                    fontSize: 20,
-                  })}
-                />
-              ) : status === "in_progress" ? (
-                <CircularProgress size={18} thickness={5} />
-              ) : (
-                <FontAwesomeIcon
-                  icon={faCircle}
-                  sx={({ palette }) => ({
-                    color: palette.gray[30],
-                    fontSize: 20,
-                  })}
-                />
-              )}
-              <Typography
-                sx={({ palette }) => ({
-                  color:
-                    status === "complete"
-                      ? palette.gray[80]
-                      : status === "in_progress"
-                        ? palette.gray[90]
-                        : palette.gray[50],
-                  fontWeight: status === "in_progress" ? 500 : 400,
-                })}
-              >
-                {step.label}
-              </Typography>
-            </Box>
-          );
-        })}
-      </Box>
-    </Box>
-  );
 };
 
 export const ItemConfigModal = ({
@@ -156,9 +30,9 @@ export const ItemConfigModal = ({
     state,
     setUserGoal,
     generateQuery,
-    setChartType,
-    setChartConfig,
-    saveConfiguration,
+    saveStructuralQuery,
+    savePythonScript,
+    saveChartConfig,
     reset,
   } = useDashboardItemConfig({
     itemEntityId,
@@ -168,6 +42,10 @@ export const ItemConfigModal = ({
       reset();
     },
   });
+
+  const [expandedSection, setExpandedSection] = useState<
+    "query" | "analysis" | "config" | null
+  >(null);
 
   const handleClose = () => {
     onClose();
@@ -180,6 +58,48 @@ export const ItemConfigModal = ({
     state.step !== "chart" &&
     state.step !== "complete";
 
+  // Convert state values to strings for the editors
+  const structuralQueryString = state.structuralQuery
+    ? JSON.stringify(state.structuralQuery, null, 2)
+    : "";
+
+  const chartConfigString = state.chartConfig
+    ? JSON.stringify(state.chartConfig, null, 2)
+    : "";
+
+  const handleSaveStructuralQuery = useCallback(
+    async (value: string) => {
+      try {
+        const parsed = JSON.parse(value) as Filter;
+        await saveStructuralQuery(parsed);
+      } catch {
+        // Invalid JSON - don't save
+      }
+    },
+    [saveStructuralQuery],
+  );
+
+  const handleSavePythonScript = useCallback(
+    async (value: string) => {
+      await savePythonScript(value);
+    },
+    [savePythonScript],
+  );
+
+  const handleSaveChartConfig = useCallback(
+    async (value: string) => {
+      try {
+        const parsed = JSON.parse(value) as ChartConfig;
+        await saveChartConfig(parsed);
+      } catch {
+        // Invalid JSON - don't save
+      }
+    },
+    [saveChartConfig],
+  );
+
+  const goalValue = state.userGoal || initialGoal;
+
   return (
     <Modal
       open={open}
@@ -188,48 +108,65 @@ export const ItemConfigModal = ({
       contentStyle={{ p: { xs: 0, md: 0 } }}
     >
       <Box>
-        {state.isLoading && !isConfiguring && <LinearProgress />}
+        {state.isLoading && <LinearProgress />}
 
         <Box sx={{ p: 3 }}>
-          {state.step === "goal" && (
-            <GoalInputStep
-              userGoal={state.userGoal || initialGoal}
-              onGoalChange={setUserGoal}
-              onSubmit={generateQuery}
-              isLoading={state.isLoading}
-              error={state.error}
+          {/* Generation input and button */}
+          <Stack direction="row" spacing={2} sx={{ mb: 3 }}>
+            <TextField
+              fullWidth
+              value={goalValue}
+              onChange={(event) => setUserGoal(event.target.value)}
+              placeholder="Describe what you want to visualize..."
+              disabled={state.isLoading}
+              size="small"
             />
-          )}
+            <Button
+              variant="primary"
+              onClick={generateQuery}
+              disabled={!goalValue.trim() || state.isLoading}
+              startIcon={
+                isConfiguring ? (
+                  <CircularProgress size={16} color="inherit" />
+                ) : (
+                  <AiIcon />
+                )
+              }
+              sx={{ whiteSpace: "nowrap" }}
+            >
+              {isConfiguring ? "Generating..." : "Generate"}
+            </Button>
+          </Stack>
 
-          {isConfiguring && (
-            <ConfigurationProgress
-              currentStep={state.step}
-              structuralQueryReady={!!state.structuralQuery}
-              pythonScriptReady={!!state.pythonScript}
-              chartConfigReady={!!state.chartConfig}
-            />
-          )}
+          {/* Configuration accordion sections */}
+          <ConfigAccordion
+            structuralQuery={structuralQueryString}
+            pythonScript={state.pythonScript ?? ""}
+            chartConfig={chartConfigString}
+            onSaveStructuralQuery={handleSaveStructuralQuery}
+            onSavePythonScript={handleSavePythonScript}
+            onSaveChartConfig={handleSaveChartConfig}
+            expandedSection={expandedSection}
+            onExpandedSectionChange={setExpandedSection}
+            isLoading={state.isLoading}
+          />
 
-          {state.step === "chart" && (
-            <ChartConfigStep
-              chartData={state.chartData}
-              chartType={state.chartType}
-              chartConfig={state.chartConfig}
-              onChartTypeChange={setChartType}
-              onChartConfigChange={setChartConfig}
-              onSave={saveConfiguration}
-              isLoading={state.isLoading}
-            />
+          {/* Error display */}
+          {state.error && (
+            <Box
+              sx={{
+                mt: 2,
+                p: 2,
+                borderRadius: 1,
+                backgroundColor: ({ palette }) => palette.red[20],
+                border: 1,
+                borderColor: ({ palette }) => palette.red[70],
+              }}
+            >
+              {state.error}
+            </Box>
           )}
         </Box>
-
-        {state.error && isConfiguring && (
-          <Box sx={{ px: 3, pb: 3 }}>
-            <Typography color="error" variant="smallTextLabels">
-              {state.error}
-            </Typography>
-          </Box>
-        )}
       </Box>
     </Modal>
   );

@@ -5,17 +5,16 @@ import { faPlusCircle } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@hashintel/design-system";
 import type { GridPosition } from "@local/hash-isomorphic-utils/dashboard-types";
 import { Box, Typography } from "@mui/material";
-import type { MouseEvent } from "react";
 import { useCallback, useMemo } from "react";
-import { GridLayout, type Layout, useContainerWidth } from "react-grid-layout";
+import {
+  GridLayout,
+  type Layout,
+  noCompactor,
+  useContainerWidth,
+} from "react-grid-layout";
 
 import type { DashboardData, DashboardItemData } from "../shared/types";
 import { DashboardItem } from "./dashboard-item";
-
-const GRID_COLS = 12;
-const ROW_HEIGHT = 100;
-const GRID_GAP = 16;
-const MIN_CANVAS_HEIGHT = 600;
 
 type DashboardGridProps = {
   dashboard: DashboardData;
@@ -23,7 +22,6 @@ type DashboardGridProps = {
   onItemConfigureClick?: (item: DashboardItemData) => void;
   onItemRefreshClick?: (item: DashboardItemData) => void;
   onItemDeleteClick?: (item: DashboardItemData) => void;
-  onCanvasClick?: () => void;
   isEditing?: boolean;
   canEdit?: boolean;
 };
@@ -34,7 +32,6 @@ export const DashboardGrid = ({
   onItemConfigureClick,
   onItemRefreshClick,
   onItemDeleteClick,
-  onCanvasClick,
   isEditing = false,
   canEdit = false,
 }: DashboardGridProps) => {
@@ -61,59 +58,17 @@ export const DashboardGrid = ({
     [onLayoutChange],
   );
 
-  const handleCanvasClick = useCallback(
-    (event: MouseEvent<HTMLDivElement>) => {
-      // Only trigger if clicking directly on the canvas (not on an item)
-      if (
-        isEditing &&
-        canEdit &&
-        event.target === event.currentTarget &&
-        onCanvasClick
-      ) {
-        onCanvasClick();
-      }
-    },
-    [isEditing, canEdit, onCanvasClick],
-  );
-
-  // Calculate the cell width for grid background
-  const cellWidth = mounted && width > 0 ? (width - GRID_GAP) / GRID_COLS : 0;
-
-  // Calculate minimum height based on content
-  const contentHeight = useMemo(() => {
-    if (dashboard.items.length === 0) {
-      return MIN_CANVAS_HEIGHT;
-    }
-    const maxY = Math.max(
-      ...dashboard.items.map(
-        (item) => (item.gridPosition.y + item.gridPosition.h) * ROW_HEIGHT,
-      ),
-    );
-    return Math.max(maxY + ROW_HEIGHT * 2, MIN_CANVAS_HEIGHT);
-  }, [dashboard.items]);
-
   const showClickPrompt = isEditing && canEdit && dashboard.items.length === 0;
 
   return (
     <Box
       ref={containerRef}
-      onClick={handleCanvasClick}
       sx={({ palette }) => ({
-        minHeight: contentHeight,
         position: "relative",
         borderRadius: 1,
-        cursor: isEditing && canEdit ? "cell" : "default",
-        // Grid background pattern
-        backgroundImage:
-          cellWidth > 0
-            ? `
-            linear-gradient(to right, ${palette.gray[20]} 1px, transparent 1px),
-            linear-gradient(to bottom, ${palette.gray[20]} 1px, transparent 1px)
-          `
-            : "none",
-        backgroundSize: `${cellWidth}px ${ROW_HEIGHT}px`,
         backgroundColor: palette.gray[10],
         border: `1px dashed ${palette.gray[30]}`,
+        minHeight: dashboard.items.length === 0 ? 600 : "auto",
         transition: "background-color 0.2s ease",
         "&:hover": isEditing &&
           canEdit && {
@@ -155,23 +110,22 @@ export const DashboardGrid = ({
 
       {mounted && (
         <GridLayout
-          className="dashboard-grid"
           layout={layout}
           width={width}
+          compactor={noCompactor}
           gridConfig={{
-            cols: GRID_COLS,
-            rowHeight: ROW_HEIGHT,
-            margin: [GRID_GAP, GRID_GAP] as const,
-            containerPadding: [0, 0] as const,
+            cols: 12,
+            rowHeight: 30,
           }}
           dragConfig={{
+            bounded: true,
             enabled: isEditing,
-            handle: ".drag-handle",
           }}
           resizeConfig={{
             enabled: isEditing,
           }}
-          onLayoutChange={handleLayoutChange}
+          onDragStop={handleLayoutChange}
+          onResizeStop={handleLayoutChange}
         >
           {dashboard.items.map((item) => (
             <div key={item.gridPosition.i || item.entityId}>

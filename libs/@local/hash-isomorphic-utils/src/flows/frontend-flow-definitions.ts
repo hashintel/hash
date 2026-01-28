@@ -41,25 +41,10 @@ export const configureDashboardItemFlowDefinition: FlowDefinition<AiFlowActionDe
         },
       ],
     },
-    groups: [
-      {
-        groupId: 1,
-        description: "Query generation",
-      },
-      {
-        groupId: 2,
-        description: "Data analysis",
-      },
-      {
-        groupId: 3,
-        description: "Chart configuration",
-      },
-    ],
     steps: [
       {
         stepId: "1",
         kind: "action",
-        groupId: 1,
         actionDefinitionId: "generateStructuralQuery",
         description: "Generate a structural query based on the user's goal",
         inputSources: [
@@ -75,7 +60,6 @@ export const configureDashboardItemFlowDefinition: FlowDefinition<AiFlowActionDe
       {
         stepId: "2",
         kind: "action",
-        groupId: 2,
         actionDefinitionId: "analyzeEntityData",
         description:
           "Analyze entity data and generate Python transformation script",
@@ -100,7 +84,6 @@ export const configureDashboardItemFlowDefinition: FlowDefinition<AiFlowActionDe
       {
         stepId: "3",
         kind: "action",
-        groupId: 3,
         actionDefinitionId: "generateChartConfig",
         description: "Generate ECharts configuration",
         inputSources: [

@@ -46,10 +46,12 @@ export type DashboardGridLayout = {
   };
 };
 
+export const chartTypes = ["bar", "line", "pie", "scatter", "heatmap", "map"];
+
 /**
  * Supported chart types (aligned with Apache ECharts)
  */
-export type ChartType = "bar" | "line" | "pie" | "scatter" | "heatmap" | "map";
+export type ChartType = (typeof chartTypes)[number];
 
 /**
  * ECharts series configuration for different chart types

@@ -24,18 +24,13 @@ import { CodeInterpreter } from "e2b";
 import { logger } from "../shared/activity-logger.js";
 import { getFlowContext } from "../shared/get-flow-context.js";
 import { getLlmResponse } from "../shared/get-llm-response.js";
-import {
-  getToolCallsFromLlmAssistantMessage,
-  mapLlmMessageToOpenAiMessages,
-  mapOpenAiMessagesToLlmMessages,
-} from "../shared/get-llm-response/llm-message.js";
+import type { PermittedAnthropicModel } from "../shared/get-llm-response/anthropic-client.js";
+import { getToolCallsFromLlmAssistantMessage } from "../shared/get-llm-response/llm-message.js";
 import type { LlmToolDefinition } from "../shared/get-llm-response/types.js";
 import { graphApiClient } from "../shared/graph-api-client.js";
-import { openAiSeed } from "../shared/open-ai-seed.js";
-import type { PermittedOpenAiModel } from "../shared/openai-client.js";
 import { stringify } from "../shared/stringify.js";
 
-const model: PermittedOpenAiModel = "gpt-4o-2024-08-06";
+const model: PermittedAnthropicModel = "claude-opus-4-5";
 
 const systemPrompt = dedent(`
   You are an expert data analyst. Your job is to transform raw entity data from a knowledge graph
@@ -220,7 +215,6 @@ export const analyzeEntityDataAction: AiFlowActionActivity<
         systemPrompt,
         messages,
         temperature: 0,
-        seed: openAiSeed,
         tools,
       },
       {
@@ -264,9 +258,7 @@ export const analyzeEntityDataAction: AiFlowActionActivity<
               return callModel(
                 [
                   ...messages,
-                  ...mapOpenAiMessagesToLlmMessages({
-                    messages: mapLlmMessageToOpenAiMessages({ message }),
-                  }),
+                  message,
                   {
                     role: "user",
                     content: [
@@ -291,9 +283,7 @@ export const analyzeEntityDataAction: AiFlowActionActivity<
               return callModel(
                 [
                   ...messages,
-                  ...mapOpenAiMessagesToLlmMessages({
-                    messages: mapLlmMessageToOpenAiMessages({ message }),
-                  }),
+                  message,
                   {
                     role: "user",
                     content: [
@@ -321,9 +311,7 @@ export const analyzeEntityDataAction: AiFlowActionActivity<
               return callModel(
                 [
                   ...messages,
-                  ...mapOpenAiMessagesToLlmMessages({
-                    messages: mapLlmMessageToOpenAiMessages({ message }),
-                  }),
+                  message,
                   {
                     role: "user",
                     content: [
@@ -342,9 +330,7 @@ export const analyzeEntityDataAction: AiFlowActionActivity<
             return callModel(
               [
                 ...messages,
-                ...mapOpenAiMessagesToLlmMessages({
-                  messages: mapLlmMessageToOpenAiMessages({ message }),
-                }),
+                message,
                 {
                   role: "user",
                   content: [
@@ -376,9 +362,7 @@ export const analyzeEntityDataAction: AiFlowActionActivity<
               return callModel(
                 [
                   ...messages,
-                  ...mapOpenAiMessagesToLlmMessages({
-                    messages: mapLlmMessageToOpenAiMessages({ message }),
-                  }),
+                  message,
                   {
                     role: "user",
                     content: [
@@ -400,9 +384,7 @@ export const analyzeEntityDataAction: AiFlowActionActivity<
             return callModel(
               [
                 ...messages,
-                ...mapOpenAiMessagesToLlmMessages({
-                  messages: mapLlmMessageToOpenAiMessages({ message }),
-                }),
+                message,
                 {
                   role: "user",
                   content: [
@@ -425,9 +407,7 @@ export const analyzeEntityDataAction: AiFlowActionActivity<
     return callModel(
       [
         ...messages,
-        ...mapOpenAiMessagesToLlmMessages({
-          messages: mapLlmMessageToOpenAiMessages({ message }),
-        }),
+        message,
         {
           role: "user",
           content: [

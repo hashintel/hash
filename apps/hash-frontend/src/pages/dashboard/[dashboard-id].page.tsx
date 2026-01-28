@@ -52,6 +52,12 @@ import { DashboardHeader } from "./[dashboard-id].page/dashboard-header";
 import { ItemConfigModal } from "./[dashboard-id].page/item-config-modal";
 import type { DashboardData, DashboardItemData } from "./shared/types";
 
+const DashbordContainer = ({ children }: { children: React.ReactNode }) => {
+  return (
+    <Container sx={{ maxWidth: { lg: 1400 }, py: 5 }}>{children}</Container>
+  );
+};
+
 const DashboardPage: NextPageWithLayout = () => {
   const router = useRouter();
   const dashboardUuid = router.query["dashboard-id"] as EntityUuid | undefined;
@@ -287,7 +293,7 @@ const DashboardPage: NextPageWithLayout = () => {
         properties: mergePropertyObjectAndMetadata<DashboardItemEntity>(
           {
             "https://blockprotocol.org/@blockprotocol/types/property-type/name/":
-              "New Chart",
+              "",
             "https://hash.ai/@h/types/property-type/goal/": "",
             "https://hash.ai/@h/types/property-type/configuration-status/":
               "pending",
@@ -337,7 +343,7 @@ const DashboardPage: NextPageWithLayout = () => {
       linkEntityId:
         newLinkEntity?.metadata.recordId.entityId ??
         newItemEntity.metadata.recordId.entityId,
-      title: "New Chart",
+      title: "",
       userGoal: "",
       chartType: null,
       chartData: null,
@@ -362,7 +368,7 @@ const DashboardPage: NextPageWithLayout = () => {
 
   if (loading && !dashboard) {
     return (
-      <Container maxWidth={false} sx={{ py: 3 }}>
+      <DashbordContainer>
         <Box
           sx={{
             display: "flex",
@@ -373,13 +379,13 @@ const DashboardPage: NextPageWithLayout = () => {
         >
           <CircularProgress />
         </Box>
-      </Container>
+      </DashbordContainer>
     );
   }
 
   if (!dashboard) {
     return (
-      <Container maxWidth={false} sx={{ py: 3 }}>
+      <DashbordContainer>
         <Box
           sx={{
             display: "flex",
@@ -392,12 +398,12 @@ const DashboardPage: NextPageWithLayout = () => {
             Dashboard not found
           </Typography>
         </Box>
-      </Container>
+      </DashbordContainer>
     );
   }
 
   return (
-    <Container maxWidth={false} sx={{ py: 3 }}>
+    <DashbordContainer>
       <DashboardHeader
         title={dashboard.title}
         description={dashboard.description}
@@ -413,7 +419,6 @@ const DashboardPage: NextPageWithLayout = () => {
         onItemConfigureClick={handleItemConfigureClick}
         onItemRefreshClick={handleItemRefreshClick}
         onItemDeleteClick={handleItemDeleteClick}
-        onCanvasClick={handleAddItem}
         isEditing={isEditing}
         canEdit={canEdit}
       />
@@ -427,10 +432,11 @@ const DashboardPage: NextPageWithLayout = () => {
           initialGoal={selectedItem.userGoal}
         />
       )}
-    </Container>
+    </DashbordContainer>
   );
 };
 
-DashboardPage.getLayout = (page) => getLayoutWithSidebar(page, {});
+DashboardPage.getLayout = (page) =>
+  getLayoutWithSidebar(page, { fullWidth: true });
 
 export default DashboardPage;

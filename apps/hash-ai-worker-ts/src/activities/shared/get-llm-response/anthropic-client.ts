@@ -19,6 +19,7 @@ const permittedAnthropicModels = [
   "claude-3-5-sonnet-20240620",
   "claude-3-opus-20240229",
   "claude-3-haiku-20240307",
+  "claude-opus-4-5",
 ] satisfies MessageCreateParamsBase["model"][];
 
 export type PermittedAnthropicModel = (typeof permittedAnthropicModels)[number];
@@ -36,6 +37,7 @@ export const anthropicMessageModelToContextWindow: Record<
   "claude-3-haiku-20240307": 200_000,
   "claude-3-opus-20240229": 200_000,
   "claude-3-5-sonnet-20240620": 200_000,
+  "claude-opus-4-5": 200_000,
 };
 
 /** @see https://docs.anthropic.com/en/docs/about-claude/models#model-comparison */
@@ -46,6 +48,7 @@ export const anthropicMessageModelToMaxOutput: Record<
   "claude-3-haiku-20240307": 4096,
   "claude-3-opus-20240229": 4096,
   "claude-3-5-sonnet-20240620": 8192,
+  "claude-opus-4-5": 64_000,
 };
 
 export type AnthropicMessagesCreateParams = {

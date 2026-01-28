@@ -8,7 +8,10 @@ import { getSimpleGraph } from "@local/hash-backend-utils/simplified-graph";
 import type { Filter } from "@local/hash-graph-client";
 import { queryEntitySubgraph } from "@local/hash-graph-sdk/entity";
 import { queryEntityTypes } from "@local/hash-graph-sdk/entity-type";
-import type { ChartType } from "@local/hash-isomorphic-utils/dashboard-types";
+import {
+  type ChartType,
+  chartTypes,
+} from "@local/hash-isomorphic-utils/dashboard-types";
 import type {
   AiActionStepOutput,
   InputNameForAiFlowAction,
@@ -23,18 +26,13 @@ import dedent from "dedent";
 
 import { getFlowContext } from "../shared/get-flow-context.js";
 import { getLlmResponse } from "../shared/get-llm-response.js";
-import {
-  getToolCallsFromLlmAssistantMessage,
-  mapLlmMessageToOpenAiMessages,
-  mapOpenAiMessagesToLlmMessages,
-} from "../shared/get-llm-response/llm-message.js";
+import type { PermittedAnthropicModel } from "../shared/get-llm-response/anthropic-client.js";
+import { getToolCallsFromLlmAssistantMessage } from "../shared/get-llm-response/llm-message.js";
 import type { LlmToolDefinition } from "../shared/get-llm-response/types.js";
 import { graphApiClient } from "../shared/graph-api-client.js";
-import { openAiSeed } from "../shared/open-ai-seed.js";
-import type { PermittedOpenAiModel } from "../shared/openai-client.js";
 import { stringify } from "../shared/stringify.js";
 
-const model: PermittedOpenAiModel = "gpt-4o-2024-08-06";
+const model: PermittedAnthropicModel = "claude-opus-4-5";
 
 const systemPrompt = dedent(`
   You are an expert at constructing database queries. You help users create queries to retrieve
@@ -138,15 +136,7 @@ const tools: LlmToolDefinition<ToolName>[] = [
           type: "array",
           items: {
             type: "string",
-            enum: [
-              "bar",
-              "line",
-              "area",
-              "pie",
-              "scatter",
-              "radar",
-              "composed",
-            ],
+            enum: chartTypes,
           },
           description:
             "Suggested chart types that would work well with this data",
@@ -179,7 +169,7 @@ export const generateStructuralQueryAction: AiFlowActionActivity<
     graphApiClient,
     userAuthentication,
     {
-      filter: { any: [] },
+      filter: { all: [] },
       temporalAxes: currentTimeInstantTemporalAxes,
       includeEntityTypes: "resolved",
     },
@@ -214,7 +204,6 @@ export const generateStructuralQueryAction: AiFlowActionActivity<
         systemPrompt,
         messages,
         temperature: 0,
-        seed: openAiSeed,
         tools,
       },
       {
@@ -264,9 +253,7 @@ export const generateStructuralQueryAction: AiFlowActionActivity<
             return callModel(
               [
                 ...messages,
-                ...mapOpenAiMessagesToLlmMessages({
-                  messages: mapLlmMessageToOpenAiMessages({ message }),
-                }),
+                message,
                 {
                   role: "user",
                   content: [
@@ -284,9 +271,7 @@ export const generateStructuralQueryAction: AiFlowActionActivity<
             return callModel(
               [
                 ...messages,
-                ...mapOpenAiMessagesToLlmMessages({
-                  messages: mapLlmMessageToOpenAiMessages({ message }),
-                }),
+                message,
                 {
                   role: "user",
                   content: [
@@ -317,9 +302,7 @@ export const generateStructuralQueryAction: AiFlowActionActivity<
     return callModel(
       [
         ...messages,
-        ...mapOpenAiMessagesToLlmMessages({
-          messages: mapLlmMessageToOpenAiMessages({ message }),
-        }),
+        message,
         {
           role: "user",
           content: [

@@ -4,10 +4,10 @@ import {
   Refresh as RefreshIcon,
   Settings as SettingsIcon,
 } from "@mui/icons-material";
-import { Box, CircularProgress, Paper, Typography } from "@mui/material";
+import { Box, Paper } from "@mui/material";
 
 import type { DashboardItemData } from "../shared/types";
-import { ChartRenderer } from "./chart-renderer";
+import { DashboardItemContent } from "./dashboard-item-content";
 
 type DashboardItemProps = {
   item: DashboardItemData;
@@ -24,114 +24,7 @@ export const DashboardItem = ({
   onRefreshClick,
   onDeleteClick,
 }: DashboardItemProps) => {
-  const {
-    title,
-    chartType,
-    chartData,
-    chartConfig,
-    configurationStatus,
-    errorMessage,
-  } = item;
-
-  const renderContent = () => {
-    switch (configurationStatus) {
-      case "pending":
-        return (
-          <Box
-            sx={{
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center",
-              justifyContent: "center",
-              height: "100%",
-              gap: 2,
-            }}
-          >
-            <Typography
-              variant="smallTextParagraphs"
-              sx={{ color: ({ palette }) => palette.gray[70] }}
-            >
-              Click to configure this chart
-            </Typography>
-            <IconButton onClick={onConfigureClick} size="large">
-              <SettingsIcon />
-            </IconButton>
-          </Box>
-        );
-
-      case "configuring":
-        return (
-          <Box
-            sx={{
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center",
-              justifyContent: "center",
-              height: "100%",
-              gap: 2,
-            }}
-          >
-            <CircularProgress />
-            <Typography
-              variant="smallTextParagraphs"
-              sx={{ color: ({ palette }) => palette.gray[70] }}
-            >
-              AI is configuring your chart...
-            </Typography>
-          </Box>
-        );
-
-      case "error":
-        return (
-          <Box
-            sx={{
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center",
-              justifyContent: "center",
-              height: "100%",
-              gap: 2,
-              p: 2,
-            }}
-          >
-            <Typography
-              variant="smallTextParagraphs"
-              sx={{
-                color: ({ palette }) => palette.red[70],
-                textAlign: "center",
-              }}
-            >
-              {errorMessage ?? "Failed to configure chart"}
-            </Typography>
-            <IconButton onClick={onConfigureClick}>
-              <RefreshIcon />
-            </IconButton>
-          </Box>
-        );
-
-      case "ready":
-        if (!chartType || !chartData || !chartConfig) {
-          return (
-            <Typography
-              variant="smallTextParagraphs"
-              sx={{
-                color: ({ palette }) => palette.gray[70],
-                textAlign: "center",
-              }}
-            >
-              Missing chart configuration
-            </Typography>
-          );
-        }
-        return (
-          <ChartRenderer
-            chartType={chartType}
-            chartData={chartData}
-            chartConfig={chartConfig}
-          />
-        );
-    }
-  };
+  const { configurationStatus } = item;
 
   return (
     <Paper
@@ -140,55 +33,74 @@ export const DashboardItem = ({
         display: "flex",
         flexDirection: "column",
         overflow: "hidden",
+        position: "relative",
       }}
       elevation={2}
     >
-      {/* Header */}
+      {/* Floating action buttons in top right */}
       <Box
         sx={{
-          px: 2,
-          py: 1,
-          borderBottom: 1,
-          borderColor: "divider",
+          position: "absolute",
+          top: 8,
+          right: 8,
           display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          minHeight: 48,
+          gap: 0.5,
+          zIndex: 1,
         }}
       >
-        <Typography variant="smallTextLabels" noWrap sx={{ flex: 1 }}>
-          {title}
-        </Typography>
-        <Box sx={{ display: "flex", gap: 0.5 }}>
-          {configurationStatus === "ready" && (
-            <>
-              <IconButton size="small" onClick={onRefreshClick}>
-                <RefreshIcon fontSize="small" />
-              </IconButton>
-              <IconButton size="small" onClick={onConfigureClick}>
-                <SettingsIcon fontSize="small" />
-              </IconButton>
-            </>
-          )}
-          {isEditing && (
+        {configurationStatus === "ready" && (
+          <>
             <IconButton
               size="small"
-              onClick={onDeleteClick}
+              onClick={onRefreshClick}
               sx={{
-                color: ({ palette }) => palette.red[70],
+                backgroundColor: ({ palette }) => palette.common.white,
+                boxShadow: 1,
                 "&:hover": {
-                  color: ({ palette }) => palette.red[80],
+                  backgroundColor: ({ palette }) => palette.gray[10],
                 },
               }}
             >
-              <DeleteIcon fontSize="small" />
+              <RefreshIcon fontSize="small" />
             </IconButton>
-          )}
-        </Box>
+            <IconButton
+              size="small"
+              onClick={onConfigureClick}
+              sx={{
+                backgroundColor: ({ palette }) => palette.common.white,
+                boxShadow: 1,
+                "&:hover": {
+                  backgroundColor: ({ palette }) => palette.gray[10],
+                },
+              }}
+            >
+              <SettingsIcon fontSize="small" />
+            </IconButton>
+          </>
+        )}
+        {isEditing && (
+          <IconButton
+            size="small"
+            onClick={onDeleteClick}
+            sx={{
+              backgroundColor: ({ palette }) => palette.common.white,
+              boxShadow: 1,
+              color: ({ palette }) => palette.red[70],
+              "&:hover": {
+                backgroundColor: ({ palette }) => palette.red[10],
+                color: ({ palette }) => palette.red[80],
+              },
+            }}
+          >
+            <DeleteIcon fontSize="small" />
+          </IconButton>
+        )}
       </Box>
 
       {/* Content */}
-      <Box sx={{ flex: 1, p: 1, minHeight: 0 }}>{renderContent()}</Box>
+      <Box sx={{ flex: 1, p: 1, minHeight: 0 }}>
+        <DashboardItemContent item={item} onConfigureClick={onConfigureClick} />
+      </Box>
     </Paper>
   );
 };
