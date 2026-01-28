@@ -1,38 +1,27 @@
-use core::{alloc::Allocator, cmp::Reverse};
+use core::alloc::Allocator;
 
 use hashql_core::{
     heap::Heap,
-    id::{
-        Id as _,
-        bit_vec::{BitRelations as _, DenseBitSet},
-    },
+    id::{Id as _, bit_vec::DenseBitSet},
     symbol::sym,
 };
 
+use super::common::{CostVisitor, SupportedAnalysis};
 use crate::{
     body::{
         Body, Source,
         constant::Constant,
         local::Local,
-        location::Location,
         operand::Operand,
         place::Place,
         rvalue::{Aggregate, AggregateKind, Binary, RValue, Unary},
-        statement::{Assign, Statement, StatementKind},
-        terminator::TerminatorKind,
     },
     context::MirContext,
-    pass::analysis::{
-        dataflow::{
-            framework::{DataflowAnalysis, DataflowResults},
-            lattice::PowersetLattice,
-        },
-        execution::{
-            cost::{Cost, StatementCostVec},
-            statement_placement::lookup::{Access, entity_projection_access},
-        },
+    pass::analysis::execution::{
+        cost::{Cost, StatementCostVec},
+        statement_placement::lookup::{Access, entity_projection_access},
     },
-    visit::Visitor,
+    visit::Visitor as _,
 };
 
 const fn is_supported_constant(constant: &Constant<'_>) -> bool {
@@ -124,79 +113,6 @@ fn is_supported_rvalue<'heap>(
     }
 }
 
-struct SupportedAnalysis<'ctx, 'env, 'heap> {
-    body: &'ctx Body<'heap>,
-    context: &'ctx MirContext<'env, 'heap>,
-}
-
-impl<'heap> DataflowAnalysis<'heap> for SupportedAnalysis<'_, '_, 'heap> {
-    type Domain<A: Allocator> = DenseBitSet<Local>;
-    type Lattice<A: Allocator + Clone> = Reverse<PowersetLattice>;
-    type Metadata<A: Allocator> = !;
-    type SwitchIntData = !;
-
-    fn lattice_in<A: Allocator + Clone>(&self, body: &Body<'heap>, _: A) -> Self::Lattice<A> {
-        Reverse(PowersetLattice::new(body.local_decls.len()))
-    }
-
-    fn initialize_boundary<A: Allocator>(&self, _: &Body<'heap>, _: &mut Self::Domain<A>, _: A) {}
-
-    fn transfer_statement<A: Allocator>(
-        &self,
-        _: Location,
-        statement: &Statement<'heap>,
-        state: &mut Self::Domain<A>,
-    ) {
-        let StatementKind::Assign(Assign { lhs, rhs }) = &statement.kind else {
-            return;
-        };
-
-        assert!(
-            lhs.projections.is_empty(),
-            "MIR must be in MIR(SSA) form for analysis to take place"
-        );
-
-        let is_supported = is_supported_rvalue(self.context, self.body, state, rhs);
-        if is_supported {
-            state.insert(lhs.local);
-        } else {
-            state.remove(lhs.local);
-        }
-    }
-}
-
-struct CostVisitor<'ctx, 'env, 'heap> {
-    body: &'ctx Body<'heap>,
-    context: &'ctx MirContext<'env, 'heap>,
-    dispatchable: &'ctx DenseBitSet<Local>,
-    cost: Cost,
-    costs: StatementCostVec<&'heap Heap>,
-}
-
-impl<'heap> Visitor<'heap> for CostVisitor<'_, '_, 'heap> {
-    type Result = Result<(), !>;
-
-    fn visit_statement(
-        &mut self,
-        location: Location,
-        statement: &Statement<'heap>,
-    ) -> Self::Result {
-        match &statement.kind {
-            StatementKind::Assign(Assign { lhs: _, rhs }) => {
-                let cost = is_supported_rvalue(self.context, self.body, self.dispatchable, rhs)
-                    .then_some(self.cost);
-
-                self.costs[location] = cost;
-            }
-            StatementKind::StorageDead(_) | StatementKind::StorageLive(_) | StatementKind::Nop => {
-                self.costs[location] = Some(cost!(0));
-            }
-        }
-
-        Ok(())
-    }
-}
-
 pub(crate) struct PostgresStatementPlacement {
     statement_cost: Cost,
 }
@@ -216,19 +132,12 @@ impl PostgresStatementPlacement {
         body: &Body<'heap>,
         alloc: A,
     ) -> StatementCostVec<&'heap Heap> {
-        let analysis = SupportedAnalysis { body, context };
-        let DataflowResults { exit_states, .. } = analysis.iterate_to_fixpoint_in(body, alloc);
-
-        let mut dispatchable = DenseBitSet::new_filled(body.local_decls.len());
-
-        for (bb, state) in exit_states.iter_enumerated() {
-            if matches!(
-                body.basic_blocks[bb].terminator.kind,
-                TerminatorKind::Return(_)
-            ) {
-                dispatchable.intersect(state);
-            }
+        let dispatchable = SupportedAnalysis {
+            body,
+            context,
+            is_supported_rvalue,
         }
+        .finish_in(alloc);
 
         let costs = StatementCostVec::new(&body.basic_blocks, context.heap);
 
@@ -238,6 +147,8 @@ impl PostgresStatementPlacement {
             dispatchable: &dispatchable,
             cost: self.statement_cost,
             costs,
+
+            is_supported_rvalue,
         };
         visitor.visit_body(body);
 
