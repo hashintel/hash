@@ -119,6 +119,27 @@ const radixToHashMapping: Record<RadixStep, HashGrayKey> = {
   "12": "90",
 };
 
+/**
+ * 🎯 ALPHA MAPPING CONFIGURATION
+ *
+ * Radix alpha colors → HASH solid gray equivalents.
+ * These are approximations since we don't have alpha variants.
+ */
+const radixAlphaToHashMapping: Record<RadixAlphaStep, HashGrayKey> = {
+  a1: "10",
+  a2: "10",
+  a3: "20",
+  a4: "20",
+  a5: "20",
+  a6: "30",
+  a7: "30",
+  a8: "40",
+  a9: "50",
+  a10: "50",
+  a11: "60",
+  a12: "90",
+};
+
 const swatchStyles = css({
   width: "[80px]",
   height: "[48px]",
@@ -241,19 +262,20 @@ export const RadixMapping: Story = () => (
     </VStack>
 
     <VStack gap="4" alignItems="flex-start">
-      <h2 className={sectionTitleStyles}>Radix Alpha Scale (reference)</h2>
+      <h2 className={sectionTitleStyles}>Radix Alpha (a1-a12) → HASH Gray</h2>
       <p className={css({ color: "gray.60", fontSize: "sm", mb: "2" })}>
-        Alpha values for translucent overlays — will map to solid equivalents.
+        Alpha values mapped to solid equivalents (approximations).
       </p>
-      <HStack gap="1" alignItems="center" flexWrap="wrap">
+      <VStack gap="2" alignItems="flex-start">
         {radixAlphaSteps.map((step) => (
-          <RadixSwatch
+          <ComparisonRow
             key={step}
-            step={step}
-            color={getRadixAlphaColor(step)}
+            radixStep={step}
+            radixColor={getRadixAlphaColor(step)}
+            hashShade={radixAlphaToHashMapping[step]}
           />
         ))}
-      </HStack>
+      </VStack>
     </VStack>
   </VStack>
 );
