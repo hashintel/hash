@@ -1,4 +1,5 @@
 import type {
+  BaseUrl,
   DataTypeWithMetadata,
   EntityTypeWithMetadata,
   PropertyObject,
@@ -85,6 +86,7 @@ export const createAiActivities = ({
   async createEntityEmbeddingsActivity(params: {
     entityProperties: PropertyObject;
     propertyTypes: PropertyTypeWithMetadata[];
+    excludedProperties?: BaseUrl[];
   }): Promise<{
     embeddings: EntityEmbedding[];
     usage: OpenAI.CreateEmbeddingResponse.Usage;
@@ -95,6 +97,7 @@ export const createAiActivities = ({
         title: propertyType.schema.title,
         $id: propertyType.schema.$id,
       })),
+      excludedProperties: params.excludedProperties,
     });
   },
 

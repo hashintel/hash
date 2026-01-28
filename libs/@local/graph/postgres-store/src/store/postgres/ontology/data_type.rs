@@ -18,7 +18,7 @@ use hash_graph_store::{
         UnarchiveDataTypeParams, UpdateDataTypeEmbeddingParams, UpdateDataTypesParams,
     },
     error::{CheckPermissionError, InsertionError, QueryError, UpdateError},
-    filter::{Filter, FilterExpression, ParameterList},
+    filter::{Filter, FilterExpression, FilterExpressionList, ParameterList},
     query::{Ordering, QueryResult as _, Read, VersionedUrlSorting},
     subgraph::{
         Subgraph, SubgraphRecord as _,
@@ -621,7 +621,9 @@ where
                         FilterExpression::Path {
                             path: DataTypeQueryPath::OntologyId,
                         },
-                        ParameterList::DataTypeIds(&required_reference_ids),
+                        FilterExpressionList::ParameterList {
+                            parameters: ParameterList::DataTypeIds(&required_reference_ids),
+                        },
                     ),
                     temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
                         pinned: PinnedTemporalAxisUnresolved::new(None),
@@ -1049,7 +1051,9 @@ where
                         FilterExpression::Path {
                             path: DataTypeQueryPath::OntologyId,
                         },
-                        ParameterList::DataTypeIds(&required_parent_ids),
+                        FilterExpressionList::ParameterList {
+                            parameters: ParameterList::DataTypeIds(&required_parent_ids),
+                        },
                     ),
                     temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
                         pinned: PinnedTemporalAxisUnresolved::new(None),
