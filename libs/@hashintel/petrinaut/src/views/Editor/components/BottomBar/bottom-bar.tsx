@@ -14,7 +14,7 @@ import { ToolbarButton } from "./toolbar-button";
 import { ToolbarModes } from "./toolbar-modes";
 import { useKeyboardShortcuts } from "./use-keyboard-shortcuts";
 
-const refractiveContainerStyle = css({
+const glassPanelStyle = css({
   paddingX: "2",
   paddingY: "1",
   backgroundColor: "[rgba(255, 255, 255, 0.6)]",
@@ -44,6 +44,8 @@ const bottomBarPositionStyle = css({
   left: "[50%]",
   transform: "translateX(-50%)",
   zIndex: 1000,
+  display: "flex",
+  gap: "[20px]",
 });
 
 type EditorMode = EditorState["globalMode"];
@@ -99,8 +101,9 @@ export const BottomBar: React.FC<BottomBarProps> = ({
 
   return (
     <div className={bottomBarPositionStyle} style={{ bottom: bottomOffset }}>
+      {/* Edition/Linting segment */}
       <refractive.div
-        className={refractiveContainerStyle}
+        className={glassPanelStyle}
         refraction={{
           radius: 12,
           blur: 3,
@@ -130,7 +133,20 @@ export const BottomBar: React.FC<BottomBarProps> = ({
             editionMode={editionMode}
             onEditionModeChange={onEditionModeChange}
           />
-          <div className={dividerStyle} />
+        </div>
+      </refractive.div>
+
+      {/* Play/PlaybackSettings/Timeline segment */}
+      <refractive.div
+        className={glassPanelStyle}
+        refraction={{
+          radius: 12,
+          blur: 3,
+          bezelWidth: 20,
+          glassThickness: 100,
+        }}
+      >
+        <div className={toolbarContainerStyle}>
           <SimulationControls disabled={hasDiagnostics} />
         </div>
       </refractive.div>
