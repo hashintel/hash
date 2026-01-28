@@ -101,7 +101,7 @@ const popoverStyle = css({
   backgroundColor: "gray.10",
   borderRadius: "[12px]",
   boxShadow:
-    "[0px 0px 0px 1px rgba(0, 0, 0, 0.06), 0px 1px 1px -0.5px rgba(0, 0, 0, 0.04), 0px 4px 4px -12px rgba(0, 0, 0, 0.02), 0px 12px 12px -6px rgba(0, 0, 0, 0.02)]",
+    "[0px 0px 0px 1px rgba(0, 0, 0, 0.08), 0px 4px 6px -1px rgba(0, 0, 0, 0.1), 0px 10px 15px -3px rgba(0, 0, 0, 0.1), 0px 20px 25px -5px rgba(0, 0, 0, 0.1)]",
   overflow: "hidden",
   width: "[280px]",
 });
