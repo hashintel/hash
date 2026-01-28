@@ -545,17 +545,39 @@
 //! - The NOT-depth rule correctly handles arbitrary nesting
 
 use alloc::borrow::Cow;
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 
 use type_system::{
     knowledge::{PropertyValue, entity::Entity},
     ontology::id::BaseUrl,
+    principal::actor::ActorId,
 };
 
 use crate::{
     entity::EntityQueryPath,
-    filter::{Filter, FilterExpression, FilterExpressionList, JsonPath, Parameter, PathToken},
+    filter::{Filter, FilterExpression, JsonPath, Parameter, PathToken},
 };
+
+#[derive(Debug, Clone, PartialEq)]
+pub enum CellFilterExpression<'p> {
+    Path { path: EntityQueryPath<'p> },
+    Parameter { parameter: Parameter<'p> },
+    ActorId,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum CellFilterExpressionList<'p> {
+    Path { path: EntityQueryPath<'p> },
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub enum CellFilter<'p> {
+    All(Vec<Self>),
+    Any(Vec<Self>),
+    Equal(CellFilterExpression<'p>, CellFilterExpression<'p>),
+    NotEqual(CellFilterExpression<'p>, CellFilterExpression<'p>),
+    In(CellFilterExpression<'p>, CellFilterExpressionList<'p>),
+}
 
 // =============================================================================
 // Configuration
@@ -583,31 +605,26 @@ use crate::{
 /// let config =
 ///     FilterProtectionConfig::new().protect_property(email_url, HashSet::from([user_url]));
 /// ```
-#[derive(Debug, Clone, Default)]
-pub struct FilterProtectionConfig {
+#[derive(Debug, Default)]
+pub struct FilterProtectionConfig<'p> {
     /// Maps property base URLs to the set of entity types that should be excluded.
     ///
     /// Key: protected property, Value: entity types to exclude when filtering on this property.
-    property_to_excluded_types: HashMap<BaseUrl, HashSet<BaseUrl>>,
+    property_filters: HashMap<BaseUrl, CellFilter<'p>>,
 }
 
-impl FilterProtectionConfig {
+impl<'p> FilterProtectionConfig<'p> {
     /// Creates a new empty filter protection configuration.
     #[must_use]
     pub fn new() -> Self {
         Self {
-            property_to_excluded_types: HashMap::new(),
+            property_filters: HashMap::new(),
         }
     }
 
-    /// Adds protection for a property, excluding the given entity types.
-    #[must_use]
-    pub fn protect_property(mut self, property: BaseUrl, excluded_types: HashSet<BaseUrl>) -> Self {
-        self.property_to_excluded_types
-            .entry(property)
-            .or_default()
-            .extend(excluded_types);
-        self
+    /// Adds protection for a property, excluding via the given `filter`.
+    pub fn protect_property(&mut self, property: BaseUrl, filter: CellFilter<'p>) {
+        self.property_filters.insert(property, filter);
     }
 
     /// Returns the default HASH configuration that protects email on User entities.
@@ -619,54 +636,63 @@ impl FilterProtectionConfig {
     pub fn hash_default() -> Self {
         let email_url = BaseUrl::new("https://hash.ai/@h/types/property-type/email/".to_owned())
             .expect("valid base URL");
-        let user_url = BaseUrl::new("https://hash.ai/@h/types/entity-type/user/".to_owned())
-            .expect("valid base URL");
 
-        Self::new().protect_property(email_url, HashSet::from([user_url]))
+        let mut config = Self::new();
+        config.protect_property(
+            email_url,
+            CellFilter::All(vec![
+                CellFilter::In(
+                    CellFilterExpression::Parameter {
+                        parameter: Parameter::Text(Cow::Borrowed(
+                            "https://hash.ai/@h/types/entity-type/user/",
+                        )),
+                    },
+                    CellFilterExpressionList::Path {
+                        path: EntityQueryPath::TypeBaseUrls,
+                    },
+                ),
+                CellFilter::NotEqual(
+                    CellFilterExpression::Path {
+                        path: EntityQueryPath::Uuid,
+                    },
+                    CellFilterExpression::ActorId,
+                ),
+            ]),
+        );
+        config
     }
 
     /// Returns the entity types to exclude when filtering on the given property.
     ///
     /// O(1) lookup.
     #[must_use]
-    pub fn excluded_types_for(&self, property: &BaseUrl) -> Option<&HashSet<BaseUrl>> {
-        self.property_to_excluded_types.get(property)
-    }
-
-    /// Returns true if the given property is protected.
-    #[must_use]
-    pub fn is_protected(&self, property: &BaseUrl) -> bool {
-        self.property_to_excluded_types.contains_key(property)
-    }
-
-    /// Returns all protected properties.
-    pub fn protected_properties(&self) -> impl Iterator<Item = &BaseUrl> {
-        self.property_to_excluded_types.keys()
+    pub fn property_exclusion_filter(&self, property: &BaseUrl) -> Option<&CellFilter<'p>> {
+        self.property_filters.get(property)
     }
 
     /// Returns true if this configuration has any protection rules.
     #[must_use]
     pub fn is_empty(&self) -> bool {
-        self.property_to_excluded_types.is_empty()
+        self.property_filters.is_empty()
     }
 }
 
 /// Collects all entity types that should be excluded based on protected properties in a filter.
 ///
 /// Returns a set of entity type URLs that need `NOT(type = X)` exclusions.
-fn collect_excluded_types(
+fn collect_excluded_types<'f, 'p>(
     filter: &Filter<'_, Entity>,
-    config: &FilterProtectionConfig,
-) -> HashSet<BaseUrl> {
-    let mut excluded = HashSet::new();
+    config: &'f FilterProtectionConfig<'p>,
+) -> Vec<&'f CellFilter<'p>> {
+    let mut excluded = Vec::new();
     collect_excluded_types_recursive(filter, config, &mut excluded);
     excluded
 }
 
-fn collect_excluded_types_recursive(
+fn collect_excluded_types_recursive<'f, 'p, I: Extend<&'f CellFilter<'p>>>(
     filter: &Filter<'_, Entity>,
-    config: &FilterProtectionConfig,
-    excluded: &mut HashSet<BaseUrl>,
+    config: &'f FilterProtectionConfig<'p>,
+    excluded: &mut I,
 ) {
     match filter {
         Filter::All(filters) | Filter::Any(filters) => {
@@ -696,10 +722,10 @@ fn collect_excluded_types_recursive(
     }
 }
 
-fn collect_from_expr(
+fn collect_from_expr<'f, 'p, I: Extend<&'f CellFilter<'p>>>(
     expr: &FilterExpression<'_, Entity>,
-    config: &FilterProtectionConfig,
-    excluded: &mut HashSet<BaseUrl>,
+    config: &'f FilterProtectionConfig<'p>,
+    excluded: &mut I,
 ) {
     if let FilterExpression::Path { path } = expr {
         collect_from_path(path, config, excluded);
@@ -707,11 +733,11 @@ fn collect_from_expr(
 }
 
 /// Checks a binary comparison for protected property references.
-fn collect_from_comparison(
+fn collect_from_comparison<'f, 'p, I: Extend<&'f CellFilter<'p>>>(
     lhs: &FilterExpression<'_, Entity>,
     rhs: &FilterExpression<'_, Entity>,
-    config: &FilterProtectionConfig,
-    excluded: &mut HashSet<BaseUrl>,
+    config: &'f FilterProtectionConfig<'p>,
+    excluded: &mut I,
 ) {
     // Check direct property paths
     collect_from_expr(lhs, config, excluded);
@@ -736,42 +762,39 @@ fn collect_from_comparison(
 }
 
 /// Checks if a parameter (typically a JSON object) contains any protected property keys.
-fn collect_from_parameter(
+fn collect_from_parameter<'f, 'p, I: Extend<&'f CellFilter<'p>>>(
     parameter: &Parameter<'_>,
-    config: &FilterProtectionConfig,
-    excluded: &mut HashSet<BaseUrl>,
+    config: &'f FilterProtectionConfig<'p>,
+    excluded: &mut I,
 ) {
     if let Parameter::Any(PropertyValue::Object(obj)) = parameter {
         for key in obj.keys() {
             // Try to parse the key as a BaseUrl and check if it's protected
-            if let Ok(url) = BaseUrl::new(key.clone())
-                && let Some(types) = config.excluded_types_for(&url)
-            {
-                excluded.extend(types.iter().cloned());
+            if let Ok(url) = BaseUrl::new(key.clone()) {
+                excluded.extend(config.property_exclusion_filter(&url));
             }
         }
     }
 }
 
 /// Collects excluded types from a JSON path (property path).
-fn collect_from_json_path(
+fn collect_from_json_path<'f, 'p, I: Extend<&'f CellFilter<'p>>>(
     json_path: Option<&JsonPath<'_>>,
-    config: &FilterProtectionConfig,
-    excluded: &mut HashSet<BaseUrl>,
+    config: &'f FilterProtectionConfig<'p>,
+    excluded: &mut I,
 ) {
     if let Some(jp) = json_path
         && let Some(PathToken::Field(field)) = jp.path_tokens().first()
         && let Ok(url) = BaseUrl::new(field.to_string())
-        && let Some(types) = config.excluded_types_for(&url)
     {
-        excluded.extend(types.iter().cloned());
+        excluded.extend(config.property_exclusion_filter(&url));
     }
 }
 
-fn collect_from_path(
+fn collect_from_path<'f, 'p, I: Extend<&'f CellFilter<'p>>>(
     path: &crate::entity::EntityQueryPath<'_>,
-    config: &FilterProtectionConfig,
-    excluded: &mut HashSet<BaseUrl>,
+    config: &'f FilterProtectionConfig<'p>,
+    excluded: &mut I,
 ) {
     use crate::entity::EntityQueryPath;
 
@@ -832,29 +855,33 @@ fn collect_from_path(
 /// This ensures that entities of excluded types are never returned via
 /// protected property filters, while preserving other filter branches.
 #[must_use]
-pub fn transform_filter<'p>(
-    filter: Filter<'p, Entity>,
-    config: &FilterProtectionConfig,
+pub fn transform_filter<'f, 'p: 'f>(
+    filter: Filter<'f, Entity>,
+    config: &FilterProtectionConfig<'p>,
     not_depth: usize,
-) -> Filter<'p, Entity> {
+    actor_id: Option<ActorId>,
+) -> Filter<'f, Entity> {
     if config.is_empty() {
         return filter;
     }
 
     match filter {
-        Filter::Not(inner) => {
-            Filter::Not(Box::new(transform_filter(*inner, config, not_depth + 1)))
-        }
+        Filter::Not(inner) => Filter::Not(Box::new(transform_filter(
+            *inner,
+            config,
+            not_depth + 1,
+            actor_id,
+        ))),
         Filter::All(filters) => Filter::All(
             filters
                 .into_iter()
-                .map(|inner| transform_filter(inner, config, not_depth))
+                .map(|inner| transform_filter(inner, config, not_depth, actor_id))
                 .collect(),
         ),
         Filter::Any(filters) => Filter::Any(
             filters
                 .into_iter()
-                .map(|inner| transform_filter(inner, config, not_depth))
+                .map(|inner| transform_filter(inner, config, not_depth, actor_id))
                 .collect(),
         ),
         // All comparison/leaf filters are handled uniformly.
@@ -874,7 +901,12 @@ pub fn transform_filter<'p>(
             if excluded_types.is_empty() {
                 leaf
             } else {
-                wrap_with_protection(leaf, &excluded_types, not_depth)
+                wrap_with_protection(
+                    leaf,
+                    excluded_types.into_iter().cloned(),
+                    not_depth,
+                    actor_id,
+                )
             }
         }
     }
@@ -884,53 +916,40 @@ pub fn transform_filter<'p>(
 ///
 /// - Even depth: `filter AND NOT(type = X1) AND NOT(type = X2) ...`
 /// - Odd depth: `filter OR type = X1 OR type = X2 ...`
-fn wrap_with_protection<'p>(
-    filter: Filter<'p, Entity>,
-    excluded_types: &HashSet<BaseUrl>,
+fn wrap_with_protection<'f, 'c: 'f>(
+    filter: Filter<'f, Entity>,
+    excluded_types: impl IntoIterator<Item = CellFilter<'c>>,
     not_depth: usize,
-) -> Filter<'p, Entity> {
+    actor_id: Option<ActorId>,
+) -> Filter<'f, Entity> {
     if not_depth.is_multiple_of(2) {
         // Even depth: AND NOT(type = X) for each excluded type
         let mut filters = vec![filter];
         for excluded_type in excluded_types {
-            filters.push(Filter::Not(Box::new(type_contains_filter(excluded_type))));
+            filters.push(Filter::Not(Box::new(Filter::for_cell_filter(
+                excluded_type,
+                actor_id,
+            ))));
         }
         Filter::All(filters)
     } else {
         // Odd depth: OR type = X for each excluded type
         let mut filters = vec![filter];
         for excluded_type in excluded_types {
-            filters.push(type_contains_filter(excluded_type));
+            filters.push(Filter::for_cell_filter(excluded_type, actor_id));
         }
         Filter::Any(filters)
     }
-}
-
-/// Creates a filter that checks if an entity has the given type.
-///
-/// Uses `base_url IN TypeBaseUrls` to correctly handle multi-type entities.
-fn type_contains_filter<'p>(base_url: &BaseUrl) -> Filter<'p, Entity> {
-    Filter::In(
-        FilterExpression::Parameter {
-            parameter: Parameter::Text(Cow::Owned(base_url.to_string())),
-            convert: None,
-        },
-        FilterExpressionList::Path {
-            path: EntityQueryPath::TypeBaseUrls,
-        },
-    )
 }
 
 #[cfg(test)]
 mod tests {
     use alloc::borrow::Cow;
 
-    use type_system::ontology::id::BaseUrl;
-
     use super::*;
     use crate::{
         entity::EntityQueryPath,
-        filter::{FilterExpression, JsonPath, Parameter, PathToken},
+        filter::{FilterExpression, FilterExpressionList, JsonPath, Parameter, PathToken},
     };
 
     // =========================================================================
@@ -941,18 +960,9 @@ mod tests {
     const NAME_BASE_URL: &str = "https://hash.ai/@h/types/property-type/name/";
     const USER_TYPE_BASE_URL: &str = "https://hash.ai/@h/types/entity-type/user/";
 
-    fn email_base_url() -> BaseUrl {
-        BaseUrl::new(EMAIL_BASE_URL.to_owned()).expect("should be a valid URL")
-    }
-
-    fn user_type_base_url() -> BaseUrl {
-        BaseUrl::new(USER_TYPE_BASE_URL.to_owned()).expect("should be a valid URL")
-    }
-
     /// Config that protects email on User entities.
-    fn email_protection_config() -> FilterProtectionConfig {
-        FilterProtectionConfig::new()
-            .protect_property(email_base_url(), HashSet::from([user_type_base_url()]))
+    fn email_protection_config() -> FilterProtectionConfig<'static> {
+        FilterProtectionConfig::hash_default()
     }
 
     fn property_path(base_url: &str) -> EntityQueryPath<'static> {
@@ -1362,6 +1372,8 @@ mod tests {
     // =========================================================================
 
     mod transform {
+        use uuid::Uuid;
+
         use super::*;
 
         /// Creates `User IN TypeBaseUrls` filter (entity has User type).
@@ -1377,38 +1389,58 @@ mod tests {
             )
         }
 
-        /// Creates `NOT(User IN TypeBaseUrls)` filter (entity does not have User type).
-        fn type_is_not_user() -> Filter<'static, Entity> {
-            not(type_is_user())
+        /// Creates `Uuid != ActorId` filter (entity UUID is not the actor's UUID).
+        /// When `actor_id` is `None`, uses `Uuid::nil()`.
+        fn uuid_not_actor() -> Filter<'static, Entity> {
+            Filter::NotEqual(
+                FilterExpression::Path {
+                    path: EntityQueryPath::Uuid,
+                },
+                FilterExpression::Parameter {
+                    parameter: Parameter::Uuid(Uuid::nil()),
+                    convert: None,
+                },
+            )
+        }
+
+        /// Creates the full exclusion filter: `(type = User AND uuid != ActorId)`.
+        /// This matches the structure from `hash_default()`.
+        fn exclusion_filter() -> Filter<'static, Entity> {
+            all(vec![type_is_user(), uuid_not_actor()])
+        }
+
+        /// Creates `NOT(type = User AND uuid != ActorId)` filter.
+        fn not_exclusion_filter() -> Filter<'static, Entity> {
+            not(exclusion_filter())
         }
 
         fn do_transform(input: Filter<'static, Entity>) -> Filter<'static, Entity> {
-            transform_filter(input, &email_protection_config(), 0)
+            transform_filter(input, &email_protection_config(), 0, None)
         }
 
         // -----------------------------------------------------------------
         // Case 1: email = X
-        // Depth 0 (even) → AND NOT(type = User)
+        // Depth 0 (even) → AND NOT(exclusion_filter)
         // -----------------------------------------------------------------
 
         #[test]
         fn case_1_email_eq() {
             let input = email_eq("test@example.com");
-            let expected = all(vec![email_eq("test@example.com"), type_is_not_user()]);
+            let expected = all(vec![email_eq("test@example.com"), not_exclusion_filter()]);
 
             assert_eq!(do_transform(input), expected);
         }
 
         // -----------------------------------------------------------------
         // Case 2: email = X AND name = A
-        // Depth 0 (even) → AND NOT(type = User)
+        // Depth 0 (even) → AND NOT(exclusion_filter)
         // -----------------------------------------------------------------
 
         #[test]
         fn case_2_email_and_name() {
             let input = all(vec![email_eq("test@example.com"), name_eq("Alice")]);
             let expected = all(vec![
-                all(vec![email_eq("test@example.com"), type_is_not_user()]),
+                all(vec![email_eq("test@example.com"), not_exclusion_filter()]),
                 name_eq("Alice"),
             ]);
 
@@ -1417,14 +1449,14 @@ mod tests {
 
         // -----------------------------------------------------------------
         // Case 3: email = X OR name = A
-        // Depth 0 (even) → AND NOT(type = User) on email branch only
+        // Depth 0 (even) → AND NOT(exclusion_filter) on email branch only
         // -----------------------------------------------------------------
 
         #[test]
         fn case_3_email_or_name() {
             let input = any(vec![email_eq("test@example.com"), name_eq("Alice")]);
             let expected = any(vec![
-                all(vec![email_eq("test@example.com"), type_is_not_user()]),
+                all(vec![email_eq("test@example.com"), not_exclusion_filter()]),
                 name_eq("Alice"),
             ]);
 
@@ -1433,27 +1465,27 @@ mod tests {
 
         // -----------------------------------------------------------------
         // Case 4: NOT(email = X)
-        // Depth 1 (odd) → OR type = User
+        // Depth 1 (odd) → OR exclusion_filter
         // -----------------------------------------------------------------
 
         #[test]
         fn case_4_not_email() {
             let input = not(email_eq("test@example.com"));
-            let expected = not(any(vec![email_eq("test@example.com"), type_is_user()]));
+            let expected = not(any(vec![email_eq("test@example.com"), exclusion_filter()]));
 
             assert_eq!(do_transform(input), expected);
         }
 
         // -----------------------------------------------------------------
         // Case 5: NOT(email = X AND name = A)
-        // Depth 1 (odd) → OR type = User
+        // Depth 1 (odd) → OR exclusion_filter
         // -----------------------------------------------------------------
 
         #[test]
         fn case_5_not_email_and_name() {
             let input = not(all(vec![email_eq("test@example.com"), name_eq("Alice")]));
             let expected = not(all(vec![
-                any(vec![email_eq("test@example.com"), type_is_user()]),
+                any(vec![email_eq("test@example.com"), exclusion_filter()]),
                 name_eq("Alice"),
             ]));
 
@@ -1462,14 +1494,14 @@ mod tests {
 
         // -----------------------------------------------------------------
         // Case 6: NOT(email = X OR name = A)
-        // Depth 1 (odd) → OR type = User
+        // Depth 1 (odd) → OR exclusion_filter
         // -----------------------------------------------------------------
 
         #[test]
         fn case_6_not_email_or_name() {
             let input = not(any(vec![email_eq("test@example.com"), name_eq("Alice")]));
             let expected = not(any(vec![
-                any(vec![email_eq("test@example.com"), type_is_user()]),
+                any(vec![email_eq("test@example.com"), exclusion_filter()]),
                 name_eq("Alice"),
             ]));
 
@@ -1478,7 +1510,7 @@ mod tests {
 
         // -----------------------------------------------------------------
         // Case 7: NOT(NOT(email = X))
-        // Depth 2 (even) → AND NOT(type = User)
+        // Depth 2 (even) → AND NOT(exclusion_filter)
         // -----------------------------------------------------------------
 
         #[test]
@@ -1486,7 +1518,7 @@ mod tests {
             let input = not(not(email_eq("test@example.com")));
             let expected = not(not(all(vec![
                 email_eq("test@example.com"),
-                type_is_not_user(),
+                not_exclusion_filter(),
             ])));
 
             assert_eq!(do_transform(input), expected);
@@ -1494,7 +1526,7 @@ mod tests {
 
         // -----------------------------------------------------------------
         // Case 8: NOT(NOT(email = X AND name = A))
-        // Depth 2 (even) → AND NOT(type = User)
+        // Depth 2 (even) → AND NOT(exclusion_filter)
         // -----------------------------------------------------------------
 
         #[test]
@@ -1504,7 +1536,7 @@ mod tests {
                 name_eq("Alice"),
             ])));
             let expected = not(not(all(vec![
-                all(vec![email_eq("test@example.com"), type_is_not_user()]),
+                all(vec![email_eq("test@example.com"), not_exclusion_filter()]),
                 name_eq("Alice"),
             ])));
 
@@ -1513,7 +1545,7 @@ mod tests {
 
         // -----------------------------------------------------------------
         // Case 9: NOT(NOT(email = X OR name = A))
-        // Depth 2 (even) → AND NOT(type = User)
+        // Depth 2 (even) → AND NOT(exclusion_filter)
         // -----------------------------------------------------------------
 
         #[test]
@@ -1523,7 +1555,7 @@ mod tests {
                 name_eq("Alice"),
             ])));
             let expected = not(not(any(vec![
-                all(vec![email_eq("test@example.com"), type_is_not_user()]),
+                all(vec![email_eq("test@example.com"), not_exclusion_filter()]),
                 name_eq("Alice"),
             ])));
 
@@ -1549,7 +1581,7 @@ mod tests {
         #[test]
         fn complex_nested() {
             // name = A AND NOT(email = X OR name = B)
-            // email at depth 1 → OR type = User
+            // email at depth 1 → OR exclusion_filter
             let input = all(vec![
                 name_eq("Alice"),
                 not(any(vec![email_eq("test@example.com"), name_eq("Bob")])),
@@ -1557,7 +1589,7 @@ mod tests {
             let expected = all(vec![
                 name_eq("Alice"),
                 not(any(vec![
-                    any(vec![email_eq("test@example.com"), type_is_user()]),
+                    any(vec![email_eq("test@example.com"), exclusion_filter()]),
                     name_eq("Bob"),
                 ])),
             ]);

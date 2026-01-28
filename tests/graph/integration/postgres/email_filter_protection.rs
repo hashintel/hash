@@ -22,10 +22,15 @@ use std::collections::HashSet;
 
 use hash_graph_postgres_store::store::PostgresStoreSettings;
 use hash_graph_store::{
-    entity::{CountEntitiesParams, CreateEntityParams, EntityQuerySorting, EntityStore as _},
+    entity::{
+        CountEntitiesParams, CreateEntityParams, EntityQueryPath, EntityQuerySorting,
+        EntityStore as _,
+    },
     filter::{
         Filter, FilterExpression, JsonPath, Parameter, PathToken,
-        protection::FilterProtectionConfig,
+        protection::{
+            CellFilter, CellFilterExpression, CellFilterExpressionList, FilterProtectionConfig,
+        },
     },
     subgraph::temporal_axes::{
         PinnedTemporalAxisUnresolved, QueryTemporalAxesUnresolved, VariableTemporalAxisUnresolved,
@@ -35,13 +40,14 @@ use hash_graph_temporal_versioning::TemporalBound;
 use hash_graph_test_data::data_type;
 use type_system::{
     knowledge::{
-        entity::provenance::ProvidedEntityEditionProvenance,
+        entity::{id::EntityUuid, provenance::ProvidedEntityEditionProvenance},
         property::{PropertyObject, PropertyObjectWithMetadata},
     },
     ontology::id::{BaseUrl, OntologyTypeVersion, VersionedUrl},
     principal::{actor::ActorType, actor_group::WebId},
     provenance::{OriginProvenance, OriginType},
 };
+use uuid::Uuid;
 
 use crate::{DatabaseApi, DatabaseTestWrapper};
 
@@ -1402,14 +1408,36 @@ fn phone_filter(phone: &str) -> Filter<'static, type_system::knowledge::entity::
 }
 
 /// Creates a `FilterProtectionConfig` that protects both email AND phone for User.
-fn multi_property_config() -> FilterProtectionConfig {
+///
+/// Excludes User entities when filtering by email or phone, UNLESS the actor is that User.
+fn multi_property_config() -> FilterProtectionConfig<'static> {
     let email_url = BaseUrl::new(EMAIL_PROPERTY_BASE_URL.to_owned()).expect("valid email base URL");
     let phone_url = BaseUrl::new(PHONE_PROPERTY_BASE_URL.to_owned()).expect("valid phone base URL");
-    let user_url = BaseUrl::new(USER_ENTITY_TYPE_BASE_URL.to_owned()).expect("valid user base URL");
 
-    FilterProtectionConfig::new()
-        .protect_property(email_url, HashSet::from([user_url.clone()]))
-        .protect_property(phone_url, HashSet::from([user_url]))
+    // Helper to create the protection filter: exclude User unless actor is the User
+    let user_protection = || {
+        CellFilter::All(vec![
+            CellFilter::In(
+                CellFilterExpression::Parameter {
+                    parameter: Parameter::Text(Cow::Borrowed(USER_ENTITY_TYPE_BASE_URL)),
+                },
+                CellFilterExpressionList::Path {
+                    path: EntityQueryPath::TypeBaseUrls,
+                },
+            ),
+            CellFilter::NotEqual(
+                CellFilterExpression::Path {
+                    path: EntityQueryPath::Uuid,
+                },
+                CellFilterExpression::ActorId,
+            ),
+        ])
+    };
+
+    let mut config = FilterProtectionConfig::new();
+    config.protect_property(email_url, user_protection());
+    config.protect_property(phone_url, user_protection());
+    config
 }
 
 /// Seeds the database with multi-property protection config.
@@ -2000,19 +2028,53 @@ fn secret_code_filter(
 }
 
 /// Creates a `FilterProtectionConfig` for multi-type testing:
-/// - email protected for User
-/// - `secret_code` protected for `SecretEntity`
-fn multi_type_config() -> FilterProtectionConfig {
+/// - email protected for `User` (unless actor is that `User`)
+/// - `secret_code` protected for `SecretEntity` (unless actor is that `SecretEntity`)
+fn multi_type_config() -> FilterProtectionConfig<'static> {
     let email_url = BaseUrl::new(EMAIL_PROPERTY_BASE_URL.to_owned()).expect("valid email base URL");
     let secret_code_url =
         BaseUrl::new(SECRET_CODE_PROPERTY_BASE_URL.to_owned()).expect("valid secret_code base URL");
-    let user_url = BaseUrl::new(USER_ENTITY_TYPE_BASE_URL.to_owned()).expect("valid user base URL");
-    let secret_entity_url =
-        BaseUrl::new(SECRET_ENTITY_TYPE_BASE_URL.to_owned()).expect("valid secret_entity base URL");
 
-    FilterProtectionConfig::new()
-        .protect_property(email_url, HashSet::from([user_url]))
-        .protect_property(secret_code_url, HashSet::from([secret_entity_url]))
+    let mut config = FilterProtectionConfig::new();
+    config.protect_property(
+        email_url,
+        CellFilter::All(vec![
+            CellFilter::In(
+                CellFilterExpression::Parameter {
+                    parameter: Parameter::Text(Cow::Borrowed(USER_ENTITY_TYPE_BASE_URL)),
+                },
+                CellFilterExpressionList::Path {
+                    path: EntityQueryPath::TypeBaseUrls,
+                },
+            ),
+            CellFilter::NotEqual(
+                CellFilterExpression::Path {
+                    path: EntityQueryPath::Uuid,
+                },
+                CellFilterExpression::ActorId,
+            ),
+        ]),
+    );
+    config.protect_property(
+        secret_code_url,
+        CellFilter::All(vec![
+            CellFilter::In(
+                CellFilterExpression::Parameter {
+                    parameter: Parameter::Text(Cow::Borrowed(SECRET_ENTITY_TYPE_BASE_URL)),
+                },
+                CellFilterExpressionList::Path {
+                    path: EntityQueryPath::TypeBaseUrls,
+                },
+            ),
+            CellFilter::NotEqual(
+                CellFilterExpression::Path {
+                    path: EntityQueryPath::Uuid,
+                },
+                CellFilterExpression::ActorId,
+            ),
+        ]),
+    );
+    config
 }
 
 /// Seeds the database with multi-type protection config.
@@ -2469,4 +2531,143 @@ async fn multi_type_email_or_secret_filter() {
         "Multi-type: email = X OR secret_code = S",
     )
     .await;
+}
+
+// =============================================================================
+// Actor Identity Tests
+// =============================================================================
+//
+// These tests verify that the ActorId-based exclusion works correctly:
+// - A user can query their OWN User entity by email (uuid == ActorId)
+// - A user CANNOT query OTHER User entities by email (uuid != ActorId)
+
+impl DatabaseApi<'_> {
+    /// Creates a `User` entity whose UUID matches the actor's `account_id`.
+    /// This simulates querying for one's own `User` entity.
+    async fn create_user_as_self(&mut self, email: &str, shortname: &str) -> Entity {
+        self.create_entity(
+            self.account_id,
+            CreateEntityParams {
+                web_id: WebId::new(self.account_id),
+                // Set the entity UUID to match the actor's UUID
+                entity_uuid: Some(EntityUuid::new(Uuid::from(self.account_id))),
+                decision_time: None,
+                entity_type_ids: HashSet::from([VersionedUrl {
+                    base_url: BaseUrl::new(USER_ENTITY_TYPE_BASE_URL.to_owned()).unwrap(),
+                    version: OntologyTypeVersion {
+                        major: 1,
+                        pre_release: None,
+                    },
+                }]),
+                properties: PropertyObjectWithMetadata::from_parts(
+                    properties_with(email, shortname),
+                    None,
+                )
+                .unwrap(),
+                confidence: None,
+                link_data: None,
+                draft: false,
+                policies: Vec::new(),
+                provenance: ProvidedEntityEditionProvenance {
+                    actor_type: ActorType::User,
+                    origin: OriginProvenance::from_empty_type(OriginType::Api),
+                    sources: Vec::new(),
+                },
+            },
+        )
+        .await
+        .expect("could not create user entity as self")
+    }
+}
+
+/// Actor CAN query their OWN User entity by email.
+///
+/// The filter protection rule is: `All([type==User, uuid!=ActorId])`
+/// When wrapped in NOT: `NOT(type==User AND uuid!=ActorId)` = `(type!=User) OR (uuid==ActorId)`
+///
+/// For the actor's OWN entity (uuid == ActorId):
+/// - (type!=User) = false (it IS a User)
+/// - (uuid==ActorId) = true (it IS the actor's entity)
+/// - false OR true = true → INCLUDED (correct!)
+#[tokio::test]
+async fn actor_can_query_own_user_entity_by_email() {
+    let mut database = DatabaseTestWrapper::new().await;
+    let mut api = seed_with_user_only(&mut database).await;
+
+    // Create a User entity whose UUID matches the actor's account_id
+    let own_user = api.create_user_as_self("self@example.com", "myself").await;
+
+    // Query by email - actor should be able to see their own entity
+    let results = api
+        .query(email_filter("self@example.com"), no_sorting())
+        .await;
+
+    assert_eq!(
+        results.len(),
+        1,
+        "Actor SHOULD be able to query their own User entity by email"
+    );
+    assert_eq!(
+        results[0].metadata.record_id.entity_id,
+        own_user.metadata.record_id.entity_id
+    );
+}
+
+/// Actor CANNOT query OTHER User entities by email.
+///
+/// The filter protection rule is: `All([type==User, uuid!=ActorId])`
+/// When wrapped in NOT: `NOT(type==User AND uuid!=ActorId)` = `(type!=User) OR (uuid==ActorId)`
+///
+/// For a DIFFERENT user's entity (uuid != ActorId):
+/// - (type!=User) = false (it IS a User)
+/// - (uuid==ActorId) = false (it is NOT the actor's entity)
+/// - false OR false = false → EXCLUDED (correct!)
+#[tokio::test]
+async fn actor_cannot_query_other_user_entity_by_email() {
+    let mut database = DatabaseTestWrapper::new().await;
+    let mut api = seed_with_user_only(&mut database).await;
+
+    // Create a User entity with auto-generated UUID (different from actor's account_id)
+    api.create_user("other@example.com", "other_user").await;
+
+    // Query by email - actor should NOT be able to see other users
+    let results = api
+        .query(email_filter("other@example.com"), no_sorting())
+        .await;
+
+    assert!(
+        results.is_empty(),
+        "Actor should NOT be able to query other User entities by email"
+    );
+}
+
+/// Combined test: Actor can see own entity, but not others, in the same query.
+#[tokio::test]
+async fn actor_sees_own_but_not_others_in_email_query() {
+    let mut database = DatabaseTestWrapper::new().await;
+    let mut api = seed_with_user_only(&mut database).await;
+
+    // Create actor's own User entity
+    let own_user = api
+        .create_user_as_self("shared@example.com", "myself")
+        .await;
+
+    // Create another User entity with a different email
+    api.create_user("shared@example.com", "other_user").await;
+
+    // Query by the shared email
+    let results = api
+        .query(email_filter("shared@example.com"), no_sorting())
+        .await;
+
+    // Only the actor's own entity should be returned
+    assert_eq!(
+        results.len(),
+        1,
+        "Only actor's own User entity should be returned"
+    );
+    assert_eq!(
+        results[0].metadata.record_id.entity_id,
+        own_user.metadata.record_id.entity_id
+    );
 }

@@ -84,7 +84,7 @@ use crate::store::error::{
     StoreError, VersionedUrlAlreadyExists,
 };
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct PostgresStoreSettings {
     pub validate_links: bool,
     pub skip_embedding_creation: bool,
@@ -92,7 +92,7 @@ pub struct PostgresStoreSettings {
     ///
     /// When set, filters on protected properties will automatically exclude
     /// specified entity types to prevent enumeration attacks.
-    pub filter_protection: FilterProtectionConfig,
+    pub filter_protection: FilterProtectionConfig<'static>,
 }
 
 impl Default for PostgresStoreSettings {
@@ -109,7 +109,7 @@ impl Default for PostgresStoreSettings {
 pub struct PostgresStore<C> {
     client: C,
     pub temporal_client: Option<Arc<TemporalClient>>,
-    pub settings: PostgresStoreSettings,
+    pub settings: Arc<PostgresStoreSettings>,
 }
 
 impl PostgresStore<tokio_postgres::Transaction<'_>> {
@@ -2454,7 +2454,7 @@ where
     pub const fn new(
         client: C,
         temporal_client: Option<Arc<TemporalClient>>,
-        settings: PostgresStoreSettings,
+        settings: Arc<PostgresStoreSettings>,
     ) -> Self {
         Self {
             client,
@@ -3157,7 +3157,7 @@ where
                 .await
                 .change_context(StoreError)?,
             self.temporal_client.clone(),
-            self.settings.clone(),
+            Arc::clone(&self.settings),
         ))
     }
 }
