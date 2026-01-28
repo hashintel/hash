@@ -35,12 +35,12 @@ impl Cost {
     }
 }
 
-pub struct CostVec<A: Allocator = Global> {
+pub struct StatementCostVec<A: Allocator = Global> {
     offsets: Box<BasicBlockSlice<u32>, A>,
     costs: Vec<Option<Cost>, A>,
 }
 
-impl<A: Allocator> CostVec<A> {
+impl<A: Allocator> StatementCostVec<A> {
     #[expect(unsafe_code)]
     pub fn new(blocks: &BasicBlocks, alloc: A) -> Self
     where
@@ -87,7 +87,7 @@ impl<A: Allocator> CostVec<A> {
     }
 }
 
-impl<A: Allocator> Index<Location> for CostVec<A> {
+impl<A: Allocator> Index<Location> for StatementCostVec<A> {
     type Output = Option<Cost>;
 
     fn index(&self, index: Location) -> &Self::Output {
@@ -98,7 +98,7 @@ impl<A: Allocator> Index<Location> for CostVec<A> {
     }
 }
 
-impl<A: Allocator> IndexMut<Location> for CostVec<A> {
+impl<A: Allocator> IndexMut<Location> for StatementCostVec<A> {
     fn index_mut(&mut self, index: Location) -> &mut Self::Output {
         let range =
             (self.offsets[index.block] as usize)..(self.offsets[index.block.plus(1)] as usize);

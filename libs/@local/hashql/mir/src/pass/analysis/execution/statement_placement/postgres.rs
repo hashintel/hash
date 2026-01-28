@@ -1,6 +1,3 @@
-mod entity_access;
-mod trie;
-
 use core::{alloc::Allocator, cmp::Reverse};
 
 use hashql_core::{
@@ -12,7 +9,6 @@ use hashql_core::{
     symbol::sym,
 };
 
-use self::{entity_access::entity_projection_access, trie::Access};
 use crate::{
     body::{
         Body, Source,
@@ -31,7 +27,10 @@ use crate::{
             framework::{DataflowAnalysis, DataflowResults},
             lattice::PowersetLattice,
         },
-        execution::cost::{Cost, CostVec},
+        execution::{
+            cost::{Cost, StatementCostVec},
+            statement_placement::lookup::{Access, entity_projection_access},
+        },
     },
     visit::Visitor,
 };
@@ -65,7 +64,7 @@ fn is_supported_place<'heap>(
         if type_name == sym::path::Entity {
             return matches!(
                 entity_projection_access(&place.projections),
-                Access::Direct | Access::Composite
+                Some(Access::Postgres(_))
             );
         }
 
@@ -171,7 +170,7 @@ struct CostVisitor<'ctx, 'env, 'heap> {
     context: &'ctx MirContext<'env, 'heap>,
     dispatchable: &'ctx DenseBitSet<Local>,
     cost: Cost,
-    costs: CostVec<&'heap Heap>,
+    costs: StatementCostVec<&'heap Heap>,
 }
 
 impl<'heap> Visitor<'heap> for CostVisitor<'_, '_, 'heap> {
@@ -216,7 +215,7 @@ impl PostgresStatementPlacement {
         context: &MirContext<'_, 'heap>,
         body: &Body<'heap>,
         alloc: A,
-    ) -> CostVec<&'heap Heap> {
+    ) -> StatementCostVec<&'heap Heap> {
         let analysis = SupportedAnalysis { body, context };
         let DataflowResults { exit_states, .. } = analysis.iterate_to_fixpoint_in(body, alloc);
 
@@ -231,7 +230,7 @@ impl PostgresStatementPlacement {
             }
         }
 
-        let costs = CostVec::new(&body.basic_blocks, context.heap);
+        let costs = StatementCostVec::new(&body.basic_blocks, context.heap);
 
         let mut visitor = CostVisitor {
             body,
