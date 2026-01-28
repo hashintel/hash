@@ -1,8 +1,7 @@
 mod callgraph;
 mod data_dependency;
 pub mod dataflow;
-mod execution;
-mod partioning;
+pub mod execution;
 pub mod size_estimation;
 pub use self::{
     callgraph::{CallGraph, CallGraphAnalysis, CallKind, CallSite},

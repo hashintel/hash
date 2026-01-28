@@ -13,7 +13,6 @@ use hashql_core::{
 };
 
 use self::{entity_access::entity_projection_access, trie::Access};
-use super::cost::CostVec;
 use crate::{
     body::{
         Body, Source,
@@ -32,7 +31,7 @@ use crate::{
             framework::{DataflowAnalysis, DataflowResults},
             lattice::PowersetLattice,
         },
-        execution::statement_placement::cost::{Cost, cost},
+        execution::cost::{Cost, CostVec},
     },
     visit::Visitor,
 };
@@ -199,8 +198,16 @@ impl<'heap> Visitor<'heap> for CostVisitor<'_, '_, 'heap> {
     }
 }
 
-struct PostgresStatementPlacement {
+pub(crate) struct PostgresStatementPlacement {
     statement_cost: Cost,
+}
+
+impl Default for PostgresStatementPlacement {
+    fn default() -> Self {
+        Self {
+            statement_cost: cost!(4),
+        }
+    }
 }
 
 impl PostgresStatementPlacement {
