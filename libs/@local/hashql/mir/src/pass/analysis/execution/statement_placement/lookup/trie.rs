@@ -1,14 +1,16 @@
 use hashql_core::symbol::{Symbol, sym};
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+pub(crate) enum AccessMode {
+    Direct,
+    Composite,
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub(crate) enum Access {
     /// Maps to a single column or JSONB path. Any operation can be pushed.
-    Direct,
-    /// Maps to multiple columns in the same table. Only comparisons (==, !=) can be pushed,
-    /// requiring the compiler to expand into column-wise comparisons.
-    Composite,
-    /// Contains synthesized data or spans multiple tables. Cannot be pushed to Postgres.
-    None,
+    Postgres(AccessMode),
+    Embedding(AccessMode),
 }
 
 /// A node in the path access trie.
@@ -23,28 +25,31 @@ pub(crate) struct PathNode {
     /// Field name this node matches (empty string for root).
     name: Symbol<'static>,
     /// Access level when the path ends at this node (no more projections).
-    pub access: Access,
+    pub access: Option<Access>,
     /// Access level for paths beyond known children (e.g., JSONB allows any sub-path).
-    pub otherwise: Access,
+    pub otherwise: Option<Access>,
     /// Child nodes.
     pub children: &'static [Self],
 }
 
 impl PathNode {
-    pub(crate) const fn root(access: Access, children: &'static [Self]) -> Self {
+    pub(crate) const fn root(children: &'static [Self]) -> Self {
         Self {
             name: sym::lexical::entity,
-            access,
-            otherwise: Access::None,
+            access: None,
+            otherwise: None,
             children,
         }
     }
 
-    pub(crate) const fn leaf(name: Symbol<'static>, access: Access) -> Self {
+    pub(crate) const fn leaf(
+        name: Symbol<'static>,
+        access: impl [const] Into<Option<Access>>,
+    ) -> Self {
         Self {
             name,
-            access,
-            otherwise: Access::None,
+            access: access.into(),
+            otherwise: None,
             children: &[],
         }
     }
@@ -52,21 +57,21 @@ impl PathNode {
     pub(crate) const fn jsonb(name: Symbol<'static>) -> Self {
         Self {
             name,
-            access: Access::Direct,
-            otherwise: Access::Direct,
+            access: Some(Access::Postgres(AccessMode::Direct)),
+            otherwise: Some(Access::Postgres(AccessMode::Direct)),
             children: &[],
         }
     }
 
     pub(crate) const fn branch(
         name: Symbol<'static>,
-        access: Access,
+        access: impl [const] Into<Option<Access>>,
         children: &'static [Self],
     ) -> Self {
         Self {
             name,
-            access,
-            otherwise: Access::None,
+            access: access.into(),
+            otherwise: None,
             children,
         }
     }
