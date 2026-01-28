@@ -1,4 +1,5 @@
 import { css, cva } from "@hashintel/ds-helpers/css";
+import { AnimatePresence, motion } from "motion/react";
 import { use, useEffect, useRef, useState } from "react";
 import { IoMdPause, IoMdPlay } from "react-icons/io";
 import {
@@ -430,62 +431,98 @@ export const SimulationControls: React.FC<SimulationControlsProps> = ({
     PLAYBACK_SPEEDS.slice(4),
   ];
 
+  const animationConfig = {
+    initial: { opacity: 0, scale: 0.8, width: 0 },
+    animate: { opacity: 1, scale: 1, width: "auto" },
+    exit: { opacity: 0, scale: 0.8, width: 0 },
+    transition: { duration: 0.2, ease: "easeInOut" as const },
+  };
+
+  const dividerAnimationConfig = {
+    initial: { opacity: 0, scaleY: 0 },
+    animate: { opacity: 1, scaleY: 1 },
+    exit: { opacity: 0, scaleY: 0 },
+    transition: { duration: 0.15, ease: "easeInOut" as const },
+  };
+
   return (
     <>
       {/* Stop button - only visible when simulation exists */}
-      {hasSimulation && (
-        <>
-          <ToolbarButton
-            tooltip="Stop simulation"
-            onClick={handleReset}
-            disabled={isDisabled}
-            ariaLabel="Reset simulation"
+      <AnimatePresence>
+        {hasSimulation && (
+          <motion.div
+            key="reset-section"
+            layout
+            style={{ display: "flex", alignItems: "center", gap: "inherit" }}
+            {...animationConfig}
           >
-            <MdRotateLeft />
-          </ToolbarButton>
-          <div className={toolbarDividerStyle} />
-        </>
-      )}
+            <ToolbarButton
+              tooltip="Stop simulation"
+              onClick={handleReset}
+              disabled={isDisabled}
+              ariaLabel="Reset simulation"
+            >
+              <MdRotateLeft />
+            </ToolbarButton>
+            <motion.div
+              className={toolbarDividerStyle}
+              {...dividerAnimationConfig}
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Play/Pause button - always visible */}
-      <ToolbarButton
-        tooltip={getPlayPauseTooltip()}
-        onClick={handlePlayPause}
-        disabled={isPlayDisabled}
-        ariaLabel={getPlayPauseAriaLabel()}
-      >
-        {isPlaybackPlaying ? <IoMdPause /> : <IoMdPlay />}
-      </ToolbarButton>
+      <motion.div layout>
+        <ToolbarButton
+          tooltip={getPlayPauseTooltip()}
+          onClick={handlePlayPause}
+          disabled={isPlayDisabled}
+          ariaLabel={getPlayPauseAriaLabel()}
+        >
+          {isPlaybackPlaying ? <IoMdPause /> : <IoMdPlay />}
+        </ToolbarButton>
+      </motion.div>
 
       {/* Frame controls - only visible when simulation exists */}
-      {hasSimulation && (
-        <>
-          <div className={frameInfoStyle}>
-            <div>Frame</div>
-            <div className={frameIndexStyle}>
-              {frameIndex + 1} / {totalFrames}
+      <AnimatePresence>
+        {hasSimulation && (
+          <motion.div
+            key="frame-controls"
+            layout
+            style={{ display: "flex", alignItems: "center", gap: "inherit" }}
+            {...animationConfig}
+          >
+            <div className={frameInfoStyle}>
+              <div>Frame</div>
+              <div className={frameIndexStyle}>
+                {frameIndex + 1} / {totalFrames}
+              </div>
+              <div className={elapsedTimeStyle}>{elapsedTime.toFixed(3)}s</div>
             </div>
-            <div className={elapsedTimeStyle}>{elapsedTime.toFixed(3)}s</div>
-          </div>
 
-          <input
-            type="range"
-            min="0"
-            max={Math.max(0, totalFrames - 1)}
-            value={frameIndex}
-            disabled={isDisabled}
-            onChange={(event) =>
-              setCurrentViewedFrame(Number(event.target.value))
-            }
-            className={sliderStyle}
-          />
+            <input
+              type="range"
+              min="0"
+              max={Math.max(0, totalFrames - 1)}
+              value={frameIndex}
+              disabled={isDisabled}
+              onChange={(event) =>
+                setCurrentViewedFrame(Number(event.target.value))
+              }
+              className={sliderStyle}
+            />
 
-          <div className={toolbarDividerStyle} />
-        </>
-      )}
+            <motion.div
+              className={toolbarDividerStyle}
+              {...dividerAnimationConfig}
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Settings button with popover */}
-      <div ref={menuRef} className={settingsButtonContainerStyle}>
+      <motion.div layout ref={menuRef} className={settingsButtonContainerStyle}>
         <ToolbarButton
           tooltip="Playback settings"
           onClick={() => setIsMenuOpen((prev) => !prev)}
@@ -669,7 +706,7 @@ export const SimulationControls: React.FC<SimulationControlsProps> = ({
             </div>
           </div>
         )}
-      </div>
+      </motion.div>
     </>
   );
 };
