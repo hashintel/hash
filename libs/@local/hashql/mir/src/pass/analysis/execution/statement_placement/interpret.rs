@@ -7,7 +7,7 @@ use crate::{
         statement::{Statement, StatementKind},
     },
     context::MirContext,
-    pass::analysis::execution::cost::{Cost, CostVec},
+    pass::analysis::execution::cost::{Cost, StatementCostVec},
     visit::Visitor,
 };
 
@@ -16,7 +16,7 @@ struct CostVisitor<'ctx, 'env, 'heap> {
     context: &'ctx MirContext<'env, 'heap>,
 
     cost: Cost,
-    costs: CostVec<&'heap Heap>,
+    costs: StatementCostVec<&'heap Heap>,
 }
 
 impl<'heap> Visitor<'heap> for CostVisitor<'_, '_, 'heap> {
@@ -60,8 +60,8 @@ impl InterpretStatementPlacement {
         &self,
         context: &MirContext<'_, 'heap>,
         body: &Body<'heap>,
-    ) -> CostVec<&'heap Heap> {
-        let costs = CostVec::new(&body.basic_blocks, context.heap);
+    ) -> StatementCostVec<&'heap Heap> {
+        let costs = StatementCostVec::new(&body.basic_blocks, context.heap);
 
         let mut visitor = CostVisitor {
             body,

@@ -9,4 +9,4 @@ mod iter;
 mod statement_placement;
 mod target;
 
-pub use self::cost::{Cost, CostVec};
+pub use self::cost::{Cost, StatementCostVec};
