@@ -1,5 +1,11 @@
 # @hashintel/petrinaut
 
+## 0.0.9
+
+### Patch Changes
+
+- [#8285](https://github.com/hashintel/hash/pull/8285) [`673ece2`](https://github.com/hashintel/hash/commit/673ece205d7622936980bf744574654026aad1c3) Thanks [@kube](https://github.com/kube)! - Fix read-only tooltips to always show during simulation mode
+
 ## 0.0.8
 
 ### Patch Changes
