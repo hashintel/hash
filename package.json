@@ -30,6 +30,7 @@
     "dev:backend:api": "CARGO_TERM_PROGRESS_WHEN=never turbo dev --log-order stream --filter '@apps/hash-api' --",
     "dev:frontend": "CARGO_TERM_PROGRESS_WHEN=never turbo dev --log-order stream --filter '@apps/hash-frontend' --",
     "external-services": "turbo deploy --filter '@apps/hash-external-services' --",
+    "external-services:bench": "turbo deploy:bench --filter '@apps/hash-external-services' --",
     "external-services:offline": "turbo deploy:offline --filter '@apps/hash-external-services' --",
     "external-services:prod": "turbo deploy:prod --filter '@apps/hash-external-services' --",
     "external-services:test": "turbo deploy:test --filter '@apps/hash-external-services' --",
