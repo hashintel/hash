@@ -2,7 +2,7 @@ mod entity;
 mod trie;
 
 use self::entity::ENTITY_PATHS;
-pub(crate) use self::trie::{Access, AccessMode};
+pub(crate) use self::trie::Access;
 use crate::body::place::{Projection, ProjectionKind};
 
 pub(crate) fn entity_projection_access(projections: &[Projection<'_>]) -> Option<Access> {
