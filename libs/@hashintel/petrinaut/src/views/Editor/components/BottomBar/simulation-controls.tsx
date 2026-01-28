@@ -259,10 +259,17 @@ const speedButtonStyle = cva({
   },
 });
 
-const dividerStyle = css({
+const popoverDividerStyle = css({
   height: "[1px]",
   backgroundColor: "gray.10",
   marginTop: "[4px]",
+});
+
+const toolbarDividerStyle = css({
+  background: "gray.20",
+  width: "[1px]",
+  height: "[16px]",
+  margin: "[0 4px]",
 });
 
 interface SimulationControlsProps {
@@ -425,6 +432,21 @@ export const SimulationControls: React.FC<SimulationControlsProps> = ({
 
   return (
     <>
+      {/* Stop button - only visible when simulation exists */}
+      {hasSimulation && (
+        <>
+          <ToolbarButton
+            tooltip="Stop simulation"
+            onClick={handleReset}
+            disabled={isDisabled}
+            ariaLabel="Reset simulation"
+          >
+            <MdRotateLeft />
+          </ToolbarButton>
+          <div className={toolbarDividerStyle} />
+        </>
+      )}
+
       {/* Play/Pause button - always visible */}
       <ToolbarButton
         tooltip={getPlayPauseTooltip()}
@@ -434,6 +456,33 @@ export const SimulationControls: React.FC<SimulationControlsProps> = ({
       >
         {isPlaybackPlaying ? <IoMdPause /> : <IoMdPlay />}
       </ToolbarButton>
+
+      {/* Frame controls - only visible when simulation exists */}
+      {hasSimulation && (
+        <>
+          <div className={frameInfoStyle}>
+            <div>Frame</div>
+            <div className={frameIndexStyle}>
+              {frameIndex + 1} / {totalFrames}
+            </div>
+            <div className={elapsedTimeStyle}>{elapsedTime.toFixed(3)}s</div>
+          </div>
+
+          <input
+            type="range"
+            min="0"
+            max={Math.max(0, totalFrames - 1)}
+            value={frameIndex}
+            disabled={isDisabled}
+            onChange={(event) =>
+              setCurrentViewedFrame(Number(event.target.value))
+            }
+            className={sliderStyle}
+          />
+
+          <div className={toolbarDividerStyle} />
+        </>
+      )}
 
       {/* Settings button with popover */}
       <div ref={menuRef} className={settingsButtonContainerStyle}>
@@ -539,7 +588,7 @@ export const SimulationControls: React.FC<SimulationControlsProps> = ({
                       <MdCheck className={checkIconStyle} />
                     )}
                   </button>
-                  <div className={dividerStyle} />
+                  <div className={popoverDividerStyle} />
                 </div>
               </div>
 
@@ -563,7 +612,7 @@ export const SimulationControls: React.FC<SimulationControlsProps> = ({
                       ))}
                     </div>
                   ))}
-                  <div className={dividerStyle} />
+                  <div className={popoverDividerStyle} />
                 </div>
               </div>
 
@@ -614,50 +663,13 @@ export const SimulationControls: React.FC<SimulationControlsProps> = ({
                       <MdCheck className={checkIconStyle} />
                     )}
                   </button>
-                  <div className={dividerStyle} />
+                  <div className={popoverDividerStyle} />
                 </div>
               </div>
             </div>
           </div>
         )}
       </div>
-
-      {/* Frame controls - only visible when simulation exists */}
-      {hasSimulation && (
-        <>
-          <div className={frameInfoStyle}>
-            <div>Frame</div>
-            <div className={frameIndexStyle}>
-              {frameIndex + 1} / {totalFrames}
-            </div>
-            <div className={elapsedTimeStyle}>{elapsedTime.toFixed(3)}s</div>
-          </div>
-
-          <input
-            type="range"
-            min="0"
-            max={Math.max(0, totalFrames - 1)}
-            value={frameIndex}
-            disabled={isDisabled}
-            onChange={(event) =>
-              setCurrentViewedFrame(Number(event.target.value))
-            }
-            className={sliderStyle}
-          />
-        </>
-      )}
-
-      {/* Stop button - only visible when simulation exists */}
-      {hasSimulation && (
-        <ToolbarButton
-          tooltip="Stop simulation"
-          onClick={handleReset}
-          disabled={isDisabled}
-          ariaLabel="Reset simulation"
-        >
-          <MdRotateLeft />
-        </ToolbarButton>
-      )}
     </>
   );
 };
