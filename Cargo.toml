@@ -186,7 +186,7 @@ napi                               = { version = "2.16.17", default-features = f
 napi-build                         = { version = "2.2.4", default-features = false }
 napi-derive                        = { version = "2.16.13", default-features = false }
 nextest-filtering                  = { version = "0.17.0", default-features = false }
-nextest-metadata                   = { version = "0.12.2", default-features = false }
+nextest-metadata                   = { version = "0.13.0", default-features = false }
 nodejs_package_json                = { version = "0.4.4" }
 opentelemetry                      = { version = "0.30.0", default-features = false }
 opentelemetry-appender-tracing     = { version = "0.30.1", default-features = false }
