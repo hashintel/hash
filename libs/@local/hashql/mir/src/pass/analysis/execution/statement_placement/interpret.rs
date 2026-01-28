@@ -1,5 +1,8 @@
+use std::alloc::Allocator;
+
 use hashql_core::heap::Heap;
 
+use super::StatementPlacement;
 use crate::{
     body::{
         Body,
@@ -59,12 +62,13 @@ impl Default for InterpretStatementPlacement {
     }
 }
 
-impl InterpretStatementPlacement {
-    fn compute<'heap>(
+impl<A: Allocator> StatementPlacement<A> for InterpretStatementPlacement {
+    fn statement_placement<'heap>(
         &self,
         context: &MirContext<'_, 'heap>,
         body: &Body<'heap>,
         traversals: &Traversals<'heap>,
+        _: A,
     ) -> (TraversalCostVec<&'heap Heap>, StatementCostVec<&'heap Heap>) {
         let statement_costs = StatementCostVec::new(&body.basic_blocks, context.heap);
         let traversal_costs = TraversalCostVec::new(body, traversals, context.heap);

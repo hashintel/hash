@@ -6,7 +6,10 @@ use hashql_core::{
     symbol::sym,
 };
 
-use super::common::{CostVisitor, SupportedAnalysis};
+use super::{
+    StatementPlacement,
+    common::{CostVisitor, SupportedAnalysis},
+};
 use crate::{
     body::{Body, Source, local::Local, operand::Operand, place::Place, rvalue::RValue},
     context::MirContext,
@@ -94,8 +97,8 @@ impl Default for EmbeddingStatementPlacement {
     }
 }
 
-impl EmbeddingStatementPlacement {
-    fn compute<'heap, A: Allocator + Clone>(
+impl<A: Allocator + Clone> StatementPlacement<A> for EmbeddingStatementPlacement {
+    fn statement_placement<'heap>(
         &self,
         context: &MirContext<'_, 'heap>,
         body: &Body<'heap>,

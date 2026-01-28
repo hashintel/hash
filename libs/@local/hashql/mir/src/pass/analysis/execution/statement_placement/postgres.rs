@@ -6,7 +6,10 @@ use hashql_core::{
     symbol::sym,
 };
 
-use super::common::{CostVisitor, SupportedAnalysis};
+use super::{
+    StatementPlacement,
+    common::{CostVisitor, SupportedAnalysis},
+};
 use crate::{
     body::{
         Body, Source,
@@ -128,8 +131,8 @@ impl Default for PostgresStatementPlacement {
     }
 }
 
-impl PostgresStatementPlacement {
-    fn compute<'heap, A: Allocator + Clone>(
+impl<A: Allocator + Clone> StatementPlacement<A> for PostgresStatementPlacement {
+    fn statement_placement<'heap>(
         &self,
         context: &MirContext<'_, 'heap>,
         body: &Body<'heap>,
