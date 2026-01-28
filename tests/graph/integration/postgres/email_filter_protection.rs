@@ -24,7 +24,7 @@ use hash_graph_postgres_store::store::PostgresStoreSettings;
 use hash_graph_store::{
     entity::{
         CountEntitiesParams, CreateEntityParams, EntityQueryPath, EntityQuerySorting,
-        EntityStore as _,
+        EntityQuerySortingRecord, EntityStore as _,
     },
     filter::{
         Filter, FilterExpression, JsonPath, Parameter, PathToken,
@@ -32,6 +32,7 @@ use hash_graph_store::{
             CellFilter, CellFilterExpression, CellFilterExpressionList, FilterProtectionConfig,
         },
     },
+    query::{NullOrdering, Ordering},
     subgraph::temporal_axes::{
         PinnedTemporalAxisUnresolved, QueryTemporalAxesUnresolved, VariableTemporalAxisUnresolved,
     },
@@ -2669,5 +2670,263 @@ async fn actor_sees_own_but_not_others_in_email_query() {
     assert_eq!(
         results[0].metadata.record_id.entity_id,
         own_user.metadata.record_id.entity_id
+    );
+}
+
+// =============================================================================
+// Response Masking Tests
+// =============================================================================
+//
+// These tests verify that email properties are masked in the response (SELECT),
+// not just filtered from results (WHERE).
+//
+// Even without filtering by email, User entities should have their email
+// property removed from the response unless the actor is the owner.
+
+/// Helper to check if an entity's properties contain the email property.
+fn has_email_property(entity: &Entity) -> bool {
+    let email_url = BaseUrl::new(EMAIL_PROPERTY_BASE_URL.to_owned()).unwrap();
+    entity.properties.properties().contains_key(&email_url)
+}
+
+/// When querying without email filter, User entity should NOT have email in response.
+#[tokio::test]
+async fn user_email_masked_in_response() {
+    let mut database = DatabaseTestWrapper::new().await;
+    let mut api = seed_with_user_only(&mut database).await;
+
+    // Create a User entity
+    let user = api.create_user("hidden@example.com", "alice").await;
+
+    // Query by entity ID (NOT by email) - email should still be masked
+    let filter = Filter::Equal(
+        FilterExpression::Path {
+            path: EntityQueryPath::Uuid,
+        },
+        FilterExpression::Parameter {
+            parameter: Parameter::Uuid(user.metadata.record_id.entity_id.entity_uuid.into()),
+            convert: None,
+        },
+    );
+
+    let results = api.query(filter, no_sorting()).await;
+
+    assert_eq!(results.len(), 1, "User entity should be returned");
+    assert!(
+        !has_email_property(&results[0]),
+        "User entity should NOT have email property in response (masked)"
+    );
+}
+
+/// When querying without email filter, Invitation entity SHOULD have email in response.
+#[tokio::test]
+async fn invitation_email_visible_in_response() {
+    let mut database = DatabaseTestWrapper::new().await;
+    let mut api = seed_with_invitation_only(&mut database).await;
+
+    // Create an Invitation entity
+    let invitation = api.create_invitation("visible@example.com", "bob").await;
+
+    // Query by entity ID
+    let filter = Filter::Equal(
+        FilterExpression::Path {
+            path: EntityQueryPath::Uuid,
+        },
+        FilterExpression::Parameter {
+            parameter: Parameter::Uuid(invitation.metadata.record_id.entity_id.entity_uuid.into()),
+            convert: None,
+        },
+    );
+
+    let results = api.query(filter, no_sorting()).await;
+
+    assert_eq!(results.len(), 1, "Invitation entity should be returned");
+    assert!(
+        has_email_property(&results[0]),
+        "Invitation entity SHOULD have email property in response (not masked)"
+    );
+}
+
+/// When querying own User entity, email SHOULD be visible (self-access).
+#[tokio::test]
+async fn own_user_email_visible_in_response() {
+    let mut database = DatabaseTestWrapper::new().await;
+    let mut api = seed_with_user_only(&mut database).await;
+
+    // Create actor's own User entity
+    let own_user = api.create_user_as_self("self@example.com", "myself").await;
+
+    // Query by entity ID
+    let filter = Filter::Equal(
+        FilterExpression::Path {
+            path: EntityQueryPath::Uuid,
+        },
+        FilterExpression::Parameter {
+            parameter: Parameter::Uuid(own_user.metadata.record_id.entity_id.entity_uuid.into()),
+            convert: None,
+        },
+    );
+
+    let results = api.query(filter, no_sorting()).await;
+
+    assert_eq!(results.len(), 1, "Own User entity should be returned");
+    assert!(
+        has_email_property(&results[0]),
+        "Own User entity SHOULD have email property in response (self-access)"
+    );
+}
+
+/// Mixed query: Own User email visible, other User email masked.
+#[tokio::test]
+async fn mixed_user_response_masking() {
+    let mut database = DatabaseTestWrapper::new().await;
+    let mut api = seed_with_user_only(&mut database).await;
+
+    // Create actor's own User entity
+    let own_user = api.create_user_as_self("own@example.com", "myself").await;
+
+    // Create another User entity
+    let other_user = api.create_user("other@example.com", "other").await;
+
+    // Query all User entities (no email filter)
+    let filter = Filter::All(vec![]);
+
+    let results = api.query(filter, no_sorting()).await;
+
+    assert_eq!(results.len(), 2, "Both User entities should be returned");
+
+    for entity in &results {
+        let is_own = entity.metadata.record_id.entity_id == own_user.metadata.record_id.entity_id;
+        let is_other =
+            entity.metadata.record_id.entity_id == other_user.metadata.record_id.entity_id;
+
+        if is_own {
+            assert!(
+                has_email_property(entity),
+                "Own User entity SHOULD have email (self-access)"
+            );
+        } else if is_other {
+            assert!(
+                !has_email_property(entity),
+                "Other User entity should NOT have email (masked)"
+            );
+        } else {
+            // This branch should not be reached in this test since we only create
+            // own_user and other_user. If we hit this, there's an unexpected entity.
+            panic!(
+                "Unexpected entity in results: {:?}",
+                entity.metadata.record_id.entity_id
+            );
+        }
+    }
+}
+
+// =============================================================================
+// Sorting Protection Tests
+// =============================================================================
+//
+// These tests verify that sorting by protected properties uses masked values.
+// When sorting by email:
+// - For other User entities: email is masked → sort value is NULL
+// - For own User entity: email is visible → sort value is actual email
+// - For Invitation entities: email is visible → sort value is actual email
+
+/// Helper to create sorting by email (ascending, nulls last).
+fn sort_by_email_asc() -> EntityQuerySorting<'static> {
+    EntityQuerySorting {
+        paths: vec![EntityQuerySortingRecord {
+            path: EntityQueryPath::Properties(Some(JsonPath::from_path_tokens(vec![
+                PathToken::Field(Cow::Owned(EMAIL_PROPERTY_BASE_URL.to_owned())),
+            ]))),
+            ordering: Ordering::Ascending,
+            nulls: Some(NullOrdering::Last),
+        }],
+        cursor: None,
+    }
+}
+
+/// Sorting by email on Invitations works normally (email not masked).
+#[tokio::test]
+async fn sorting_by_email_works_for_invitation() {
+    let mut database = DatabaseTestWrapper::new().await;
+    let mut api = seed_with_invitation_only(&mut database).await;
+
+    // Create invitations with different emails (alphabetically: a < b < c)
+    let inv_c = api.create_invitation("charlie@example.com", "c").await;
+    let inv_a = api.create_invitation("alice@example.com", "a").await;
+    let inv_b = api.create_invitation("bob@example.com", "b").await;
+
+    // Query with sorting by email ascending
+    let results = api.query(Filter::All(vec![]), sort_by_email_asc()).await;
+
+    assert_eq!(results.len(), 3, "All invitations should be returned");
+
+    // Should be sorted alphabetically by email: alice, bob, charlie
+    assert_eq!(
+        results[0].metadata.record_id.entity_id, inv_a.metadata.record_id.entity_id,
+        "First should be alice@"
+    );
+    assert_eq!(
+        results[1].metadata.record_id.entity_id, inv_b.metadata.record_id.entity_id,
+        "Second should be bob@"
+    );
+    assert_eq!(
+        results[2].metadata.record_id.entity_id, inv_c.metadata.record_id.entity_id,
+        "Third should be charlie@"
+    );
+}
+
+/// Sorting by email on other User entities effectively sorts by NULL (masked).
+/// Own User entity has visible email, so it sorts correctly.
+///
+/// To ensure this isn't a false positive:
+/// - Own user has email "zzz@" which would sort LAST alphabetically
+/// - Other users have emails "aaa@" and "bbb@" which would sort FIRST
+/// - If masking works: own user (only non-NULL) comes first with NULLS LAST
+/// - If masking fails: "aaa@" would come first, "zzz@" would be last
+#[tokio::test]
+async fn sorting_by_email_masks_other_users() {
+    let mut database = DatabaseTestWrapper::new().await;
+    let mut api = seed_with_user_only(&mut database).await;
+
+    // Create other Users FIRST with emails that would sort at the beginning
+    let other_a = api.create_user("aaa@example.com", "alice").await;
+    let other_b = api.create_user("bbb@example.com", "bob").await;
+
+    // Create actor's own User LAST with email that would sort at the end alphabetically
+    // This ensures the test fails if masking doesn't work
+    let own_user = api.create_user_as_self("zzz@example.com", "myself").await;
+
+    // Query with sorting by email ascending, nulls last
+    let results = api.query(Filter::All(vec![]), sort_by_email_asc()).await;
+
+    assert_eq!(results.len(), 3, "All users should be returned");
+
+    // If masking works:
+    //   - own_user email "zzz@" is visible (not masked because self-access)
+    //   - other users' emails are NULL (masked)
+    //   - With NULLS LAST: own_user comes first, then NULLs
+    //
+    // If masking fails:
+    //   - All emails visible: "aaa@" < "bbb@" < "zzz@"
+    //   - other_a would come first, own_user would be last
+    assert_eq!(
+        results[0].metadata.record_id.entity_id, own_user.metadata.record_id.entity_id,
+        "Own user should come first (only non-NULL email with NULLS LAST). If this fails, email \
+         masking is not working - 'aaa@' would have sorted first."
+    );
+
+    // The other two users have NULL emails, so their relative order is undefined
+    let other_ids: Vec<_> = results[1..]
+        .iter()
+        .map(|entity| entity.metadata.record_id.entity_id)
+        .collect();
+    assert!(
+        other_ids.contains(&other_a.metadata.record_id.entity_id),
+        "alice should be in results"
+    );
+    assert!(
+        other_ids.contains(&other_b.metadata.record_id.entity_id),
+        "bob should be in results"
     );
 }
