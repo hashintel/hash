@@ -20,7 +20,7 @@ use crate::store::{
 #[derive(Debug, Clone)]
 pub struct PostgresStorePool {
     pool: Pool,
-    pub settings: PostgresStoreSettings,
+    pub settings: Arc<PostgresStoreSettings>,
 }
 
 impl PostgresStorePool {
@@ -80,7 +80,7 @@ impl PostgresStorePool {
                 }))
                 .build()
                 .change_context(StoreError)?,
-            settings,
+            settings: Arc::new(settings),
         })
     }
 }
@@ -103,7 +103,7 @@ impl StorePool for PostgresStorePool {
         Ok(PostgresStore::new(
             self.pool.get().await?,
             temporal_client,
-            self.settings.clone(),
+            Arc::clone(&self.settings),
         ))
     }
 }
