@@ -1,11 +1,12 @@
 /* eslint-disable id-length */
 
 import { css, cva } from "@hashintel/ds-helpers/css";
-import MonacoEditor from "@monaco-editor/react";
 import { useState } from "react";
 import { TbDotsVertical, TbSparkles } from "react-icons/tb";
 
-import { DisabledTooltip } from "../../../../components/disabled-tooltip";
+import { Button } from "../../../../components/button";
+import { CodeEditor } from "../../../../components/code-editor";
+import { Input } from "../../../../components/input";
 import { Menu } from "../../../../components/menu";
 import { Tooltip } from "../../../../components/tooltip";
 import { UI_MESSAGES } from "../../../../constants/ui-messages";
@@ -39,51 +40,20 @@ const fieldLabelStyle = css({
   marginBottom: "[4px]",
 });
 
-const inputStyle = cva({
-  base: {
-    fontSize: "[14px]",
-    padding: "[6px 8px]",
-    border: "[1px solid rgba(0, 0, 0, 0.1)]",
-    borderRadius: "[4px]",
-    width: "[100%]",
-    boxSizing: "border-box",
-  },
-  variants: {
-    isReadOnly: {
-      true: {
-        backgroundColor: "[rgba(0, 0, 0, 0.05)]",
-        cursor: "not-allowed",
-      },
-      false: {
-        backgroundColor: "[white]",
-        cursor: "text",
-      },
-    },
-  },
-});
-
 const typeDropdownButtonStyle = cva({
   base: {
     width: "[100%]",
     fontSize: "[14px]",
     padding: "[6px 8px]",
-    border: "[1px solid rgba(0, 0, 0, 0.1)]",
-    borderRadius: "[4px]",
     display: "flex",
-    alignItems: "center",
+    justifyContent: "flex-start",
     gap: "[8px]",
     textAlign: "left",
   },
   variants: {
-    isReadOnly: {
-      true: {
-        backgroundColor: "[rgba(0, 0, 0, 0.05)]",
-        cursor: "not-allowed",
-      },
-      false: {
-        backgroundColor: "[white]",
-        cursor: "pointer",
-      },
+    isDisabled: {
+      true: {},
+      false: {},
     },
   },
 });
@@ -93,6 +63,10 @@ const colorDotStyle = css({
   height: "[12px]",
   borderRadius: "[50%]",
   flexShrink: 0,
+});
+
+const placeholderStyle = css({
+  color: "[rgba(0, 0, 0, 0.4)]",
 });
 
 const dropdownMenuStyle = css({
@@ -223,28 +197,6 @@ const menuButtonStyle = css({
   color: "[rgba(0, 0, 0, 0.6)]",
 });
 
-const editorContainerStyle = cva({
-  base: {
-    border: "[1px solid rgba(0, 0, 0, 0.1)]",
-    borderRadius: "[4px]",
-    overflow: "hidden",
-    flex: "[1]",
-    minHeight: "[0]",
-  },
-  variants: {
-    isReadOnly: {
-      true: {
-        filter: "[grayscale(20%) brightness(98%)]",
-        pointerEvents: "none",
-      },
-      false: {
-        filter: "[none]",
-        pointerEvents: "auto",
-      },
-    },
-  },
-});
-
 const aiMenuItemStyle = css({
   display: "flex",
   alignItems: "center",
@@ -332,83 +284,89 @@ export const DifferentialEquationProperties: React.FC<
 
       <div>
         <div className={fieldLabelStyle}>Name</div>
-        <DisabledTooltip disabled={isReadOnly}>
-          <input
-            type="text"
-            value={differentialEquation.name}
-            onChange={(event) => {
-              updateDifferentialEquation(
-                differentialEquation.id,
-                (existingEquation) => {
-                  existingEquation.name = event.target.value;
-                },
-              );
-            }}
-            disabled={isReadOnly}
-            className={inputStyle({ isReadOnly })}
-          />
-        </DisabledTooltip>
+        <Input
+          value={differentialEquation.name}
+          onChange={(event) => {
+            updateDifferentialEquation(
+              differentialEquation.id,
+              (existingEquation) => {
+                existingEquation.name = event.target.value;
+              },
+            );
+          }}
+          disabled={isReadOnly}
+          tooltip={isReadOnly ? UI_MESSAGES.READ_ONLY_MODE : undefined}
+        />
       </div>
 
       <div>
         <div className={fieldLabelStyle}>Associated Type</div>
         <div style={{ position: "relative" }}>
-          <DisabledTooltip disabled={isReadOnly}>
-            <button
-              type="button"
-              onClick={() => setShowTypeDropdown(!showTypeDropdown)}
-              onBlur={() => setTimeout(() => setShowTypeDropdown(false), 200)}
-              disabled={isReadOnly}
-              className={typeDropdownButtonStyle({ isReadOnly })}
-            >
-              {associatedType && (
-                <>
-                  <div
-                    className={colorDotStyle}
-                    style={{ backgroundColor: associatedType.displayColor }}
-                  />
-                  <span>{associatedType.name}</span>
-                </>
-              )}
-            </button>
-          </DisabledTooltip>
+          <Button
+            onClick={() => setShowTypeDropdown(!showTypeDropdown)}
+            onBlur={() => setTimeout(() => setShowTypeDropdown(false), 200)}
+            disabled={isReadOnly}
+            className={typeDropdownButtonStyle({ isDisabled: isReadOnly })}
+            tooltip={isReadOnly ? UI_MESSAGES.READ_ONLY_MODE : undefined}
+          >
+            {associatedType ? (
+              <>
+                <div
+                  className={colorDotStyle}
+                  style={{ backgroundColor: associatedType.displayColor }}
+                />
+                <span>{associatedType.name}</span>
+              </>
+            ) : (
+              <span className={placeholderStyle}>Select a type</span>
+            )}
+          </Button>
           {showTypeDropdown && !isReadOnly && (
             <div className={dropdownMenuStyle}>
-              {types.map((type) => (
-                <button
-                  key={type.id}
-                  type="button"
-                  onClick={() => {
-                    handleTypeChange(type.id);
-                    setShowTypeDropdown(false);
-                  }}
+              {types.length === 0 ? (
+                <div
                   className={dropdownItemStyle}
-                  style={{
-                    backgroundColor:
-                      type.id === differentialEquation.colorId
-                        ? "rgba(0, 0, 0, 0.05)"
-                        : "transparent",
-                  }}
-                  onMouseEnter={(event) => {
-                    // eslint-disable-next-line no-param-reassign
-                    event.currentTarget.style.backgroundColor =
-                      "rgba(0, 0, 0, 0.05)";
-                  }}
-                  onMouseLeave={(event) => {
-                    // eslint-disable-next-line no-param-reassign
-                    event.currentTarget.style.backgroundColor =
-                      type.id === differentialEquation.colorId
-                        ? "rgba(0, 0, 0, 0.05)"
-                        : "transparent";
-                  }}
+                  style={{ color: "rgba(0, 0, 0, 0.4)" }}
                 >
-                  <div
-                    className={colorDotStyle}
-                    style={{ backgroundColor: type.displayColor }}
-                  />
-                  <span>{type.name}</span>
-                </button>
-              ))}
+                  Create a type first
+                </div>
+              ) : (
+                types.map((type) => (
+                  <button
+                    key={type.id}
+                    type="button"
+                    onClick={() => {
+                      handleTypeChange(type.id);
+                      setShowTypeDropdown(false);
+                    }}
+                    className={dropdownItemStyle}
+                    style={{
+                      backgroundColor:
+                        type.id === differentialEquation.colorId
+                          ? "rgba(0, 0, 0, 0.05)"
+                          : "transparent",
+                    }}
+                    onMouseEnter={(event) => {
+                      // eslint-disable-next-line no-param-reassign
+                      event.currentTarget.style.backgroundColor =
+                        "rgba(0, 0, 0, 0.05)";
+                    }}
+                    onMouseLeave={(event) => {
+                      // eslint-disable-next-line no-param-reassign
+                      event.currentTarget.style.backgroundColor =
+                        type.id === differentialEquation.colorId
+                          ? "rgba(0, 0, 0, 0.05)"
+                          : "transparent";
+                    }}
+                  >
+                    <div
+                      className={colorDotStyle}
+                      style={{ backgroundColor: type.displayColor }}
+                    />
+                    <span>{type.name}</span>
+                  </button>
+                ))
+              )}
             </div>
           )}
         </div>
@@ -449,20 +407,15 @@ export const DifferentialEquationProperties: React.FC<
               you want to continue?
             </div>
             <div className={confirmDialogButtonsStyle}>
-              <button
-                type="button"
-                onClick={cancelTypeChange}
-                className={cancelButtonStyle}
-              >
+              <Button onClick={cancelTypeChange} className={cancelButtonStyle}>
                 Cancel
-              </button>
-              <button
-                type="button"
+              </Button>
+              <Button
                 onClick={confirmTypeChange}
                 className={confirmButtonStyle}
               >
                 Change Type
-              </button>
+              </Button>
             </div>
           </div>
         </div>
@@ -503,7 +456,10 @@ export const DifferentialEquationProperties: React.FC<
                 {
                   id: "generate-ai",
                   label: (
-                    <Tooltip content={UI_MESSAGES.AI_FEATURE_COMING_SOON}>
+                    <Tooltip
+                      content={UI_MESSAGES.AI_FEATURE_COMING_SOON}
+                      display="inline"
+                    >
                       <div className={aiMenuItemStyle}>
                         <TbSparkles className={aiIconStyle} />
                         Generate with AI
@@ -519,37 +475,22 @@ export const DifferentialEquationProperties: React.FC<
             />
           )}
         </div>
-        <DisabledTooltip disabled={isReadOnly}>
-          <div className={editorContainerStyle({ isReadOnly })}>
-            <MonacoEditor
-              language="typescript"
-              value={differentialEquation.code}
-              onChange={(newCode) => {
-                updateDifferentialEquation(
-                  differentialEquation.id,
-                  (existingEquation) => {
-                    existingEquation.code = newCode ?? "";
-                  },
-                );
-              }}
-              path={`inmemory://sdcpn/differential-equations/${differentialEquation.id}.ts`}
-              theme="vs-light"
-              options={{
-                minimap: { enabled: false },
-                scrollBeyondLastLine: false,
-                fontSize: 12,
-                lineNumbers: "off",
-                folding: true,
-                glyphMargin: false,
-                lineDecorationsWidth: 0,
-                lineNumbersMinChars: 3,
-                padding: { top: 8, bottom: 8 },
-                fixedOverflowWidgets: true,
-                readOnly: isReadOnly,
-              }}
-            />
-          </div>
-        </DisabledTooltip>
+        <CodeEditor
+          language="typescript"
+          value={differentialEquation.code}
+          height="100%"
+          onChange={(newCode) => {
+            updateDifferentialEquation(
+              differentialEquation.id,
+              (existingEquation) => {
+                existingEquation.code = newCode ?? "";
+              },
+            );
+          }}
+          path={`inmemory://sdcpn/differential-equations/${differentialEquation.id}.ts`}
+          options={{ readOnly: isReadOnly }}
+          tooltip={isReadOnly ? UI_MESSAGES.READ_ONLY_MODE : undefined}
+        />
       </div>
     </div>
   );

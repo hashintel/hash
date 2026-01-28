@@ -4,6 +4,8 @@ import { css, cva } from "@hashintel/ds-helpers/css";
 import { MdDragIndicator } from "react-icons/md";
 import { TbTrash } from "react-icons/tb";
 
+import { IconButton } from "../../../../components/icon-button";
+import { NumberInput } from "../../../../components/number-input";
 import { FEATURE_FLAGS } from "../../../../feature-flags";
 
 const containerStyle = css({
@@ -60,46 +62,10 @@ const weightLabelStyle = css({
   fontWeight: "medium",
 });
 
-const weightInputStyle = cva({
-  base: {
-    width: "[60px]",
-    fontSize: "[14px]",
-    padding: "[4px 8px]",
-    border: "[1px solid rgba(0, 0, 0, 0.1)]",
-    borderRadius: "[4px]",
-    boxSizing: "border-box",
-  },
-  variants: {
-    isDisabled: {
-      true: {
-        backgroundColor: "[rgba(0, 0, 0, 0.05)]",
-        cursor: "not-allowed",
-      },
-      false: {
-        backgroundColor: "[white]",
-        cursor: "text",
-      },
-    },
-  },
-});
-
-const deleteButtonStyle = css({
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-  width: "[24px]",
-  height: "[24px]",
-  padding: "0",
-  border: "none",
-  background: "[transparent]",
-  cursor: "pointer",
-  color: "gray.60",
-  flexShrink: 0,
-  borderRadius: "md.4",
-  _hover: {
-    color: "red.60",
-    backgroundColor: "red.10",
-  },
+const weightInputStyle = css({
+  width: "[60px]",
+  fontSize: "[14px]",
+  padding: "[4px 8px]",
 });
 
 /**
@@ -110,6 +76,8 @@ interface SortableArcItemProps {
   placeName: string;
   weight: number;
   disabled?: boolean;
+  /** Tooltip to show when disabled (e.g., for read-only mode) */
+  tooltip?: string;
   onWeightChange: (weight: number) => void;
   onDelete?: () => void;
 }
@@ -119,6 +87,7 @@ export const SortableArcItem: React.FC<SortableArcItemProps> = ({
   placeName,
   weight,
   disabled = false,
+  tooltip,
   onWeightChange,
   onDelete,
 }) => {
@@ -151,25 +120,25 @@ export const SortableArcItem: React.FC<SortableArcItemProps> = ({
       <div className={placeNameStyle}>{placeName}</div>
       <div className={weightContainerStyle}>
         <span className={weightLabelStyle}>weight</span>
-        <input
-          type="number"
-          min="1"
-          step="1"
+        <NumberInput
+          min={1}
+          step={1}
           value={weight}
           disabled={disabled}
+          tooltip={tooltip}
           onChange={(event) => {
             const newWeight = Number.parseInt(event.target.value, 10);
             if (!Number.isNaN(newWeight) && newWeight >= 1) {
               onWeightChange(newWeight);
             }
           }}
-          className={weightInputStyle({ isDisabled: disabled })}
+          className={weightInputStyle}
         />
       </div>
       {onDelete && !disabled && (
-        <button type="button" onClick={onDelete} className={deleteButtonStyle}>
+        <IconButton aria-label="Delete" variant="danger" onClick={onDelete}>
           <TbTrash size={16} />
-        </button>
+        </IconButton>
       )}
     </div>
   );

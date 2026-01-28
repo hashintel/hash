@@ -1,5 +1,6 @@
+import { ark } from "@ark-ui/react/factory";
 import { Tooltip as ArkTooltip } from "@ark-ui/react/tooltip";
-import { css } from "@hashintel/ds-helpers/css";
+import { css, cva, cx } from "@hashintel/ds-helpers/css";
 import type { SvgIconProps } from "@mui/material";
 import { SvgIcon, Tooltip as MuiTooltip } from "@mui/material";
 import type { FunctionComponent, ReactNode } from "react";
@@ -14,19 +15,69 @@ const tooltipContentStyle = css({
   padding: "[6px 10px]",
 });
 
+const triggerWrapperStyle = cva({
+  variants: {
+    display: {
+      /** For block-level elements like inputs, selects - takes full width */
+      block: {
+        display: "block",
+      },
+      /** For inline elements like buttons in flex containers */
+      inline: {
+        display: "inline-block",
+      },
+    },
+  },
+  defaultVariants: {
+    display: "block",
+  },
+});
+
 interface TooltipProps {
-  content: string;
+  /**
+   * The tooltip content. When empty/undefined, children are rendered without tooltip wrapper.
+   */
+  content?: string;
   children: ReactNode;
+  /**
+   * Display mode for the wrapper element.
+   * - "block": For full-width elements like inputs/selects (default)
+   * - "inline": For inline elements like buttons in flex containers
+   */
+  display?: "block" | "inline";
+  /**
+   * Optional className to apply to the trigger wrapper element.
+   */
+  className?: string;
 }
 
-export const Tooltip: React.FC<TooltipProps> = ({ content, children }) => {
+/**
+ * Tooltip component that wraps children and shows a tooltip on hover.
+ *
+ * Uses a wrapper element to capture pointer events, enabling tooltips on disabled elements.
+ * Set `display="inline"` when wrapping inline elements like buttons.
+ */
+export const Tooltip: React.FC<TooltipProps> = ({
+  content,
+  children,
+  display = "block",
+  className,
+}) => {
+  if (!content) {
+    return children;
+  }
+
   return (
     <ArkTooltip.Root
       openDelay={200}
       closeDelay={0}
       positioning={{ placement: "top" }}
     >
-      <ArkTooltip.Trigger asChild>{children}</ArkTooltip.Trigger>
+      <ArkTooltip.Trigger asChild>
+        <ark.span className={cx(triggerWrapperStyle({ display }), className)}>
+          {children}
+        </ark.span>
+      </ArkTooltip.Trigger>
       <ArkTooltip.Positioner>
         <ArkTooltip.Content className={tooltipContentStyle}>
           {content}

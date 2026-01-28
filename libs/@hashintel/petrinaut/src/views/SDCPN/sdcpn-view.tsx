@@ -10,9 +10,9 @@ import {
   DEFAULT_TRANSITION_KERNEL_CODE,
   generateDefaultLambdaCode,
 } from "../../core/default-codes";
-import { SimulationContext } from "../../simulation/context";
 import { EditorContext } from "../../state/editor-context";
 import { SDCPNContext } from "../../state/sdcpn-context";
+import { useIsReadOnly } from "../../state/use-is-read-only";
 import { Arc } from "./components/arc";
 import { PlaceNode } from "./components/place-node";
 import { TransitionNode } from "./components/transition-node";
@@ -65,7 +65,6 @@ export const SDCPNView: React.FC = () => {
   } = use(SDCPNContext);
 
   const {
-    globalMode: mode,
     editionMode,
     setEditionMode,
     selectedItemIds,
@@ -73,8 +72,6 @@ export const SDCPNView: React.FC = () => {
     setSelectedResourceId,
     clearSelection,
   } = use(EditorContext);
-
-  const { state: simulationState } = use(SimulationContext);
 
   // Hook for applying node changes
   const applyNodeChanges = useApplyNodeChanges();
@@ -87,10 +84,9 @@ export const SDCPNView: React.FC = () => {
     reactFlowInstance?.fitView({ padding: 0.4, minZoom: 0.4, maxZoom: 1.1 });
   }, [reactFlowInstance, petriNetId]);
 
-  // Readonly if in simulate mode, simulation is running/paused, or readonly has been provided by external consumer.
-  const isSimulationActive =
-    simulationState === "Running" || simulationState === "Paused";
-  const isReadonly = mode === "simulate" || isSimulationActive || readonly;
+  // Readonly if simulation mode or readonly has been provided by external consumer.
+  const isSimulationReadOnly = useIsReadOnly();
+  const isReadonly = isSimulationReadOnly || readonly;
 
   function isValidConnection(connection: Connection) {
     const sourceNode = nodes.find((node) => node.id === connection.source);
@@ -307,7 +303,7 @@ export const SDCPNView: React.FC = () => {
       onKeyDown={({ key }) => {
         // Quick-and-dirty way to delete selected items with keyboard
         // with two different keys (Delete and Backspace), not possible with ReactFlow `deleteKeyCode` prop
-        if (key === "Delete" || key === "Backspace") {
+        if ((key === "Delete" || key === "Backspace") && !isReadonly) {
           setSelectedResourceId(null);
           clearSelection();
           deleteItemsByIds(selectedItemIds);

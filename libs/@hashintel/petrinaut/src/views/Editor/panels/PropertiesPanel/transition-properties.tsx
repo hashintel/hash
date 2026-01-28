@@ -15,12 +15,13 @@ import {
   sortableKeyboardCoordinates,
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
-import { css, cva } from "@hashintel/ds-helpers/css";
-import MonacoEditor from "@monaco-editor/react";
+import { css } from "@hashintel/ds-helpers/css";
 import { use } from "react";
 import { TbDotsVertical, TbSparkles, TbTrash } from "react-icons/tb";
 
-import { DisabledTooltip } from "../../../../components/disabled-tooltip";
+import { CodeEditor } from "../../../../components/code-editor";
+import { IconButton } from "../../../../components/icon-button";
+import { Input } from "../../../../components/input";
 import { Menu } from "../../../../components/menu";
 import { SegmentGroup } from "../../../../components/segment-group";
 import { InfoIconTooltip, Tooltip } from "../../../../components/tooltip";
@@ -53,51 +54,10 @@ const headerTitleStyle = css({
   fontSize: "[16px]",
 });
 
-const deleteButtonStyle = css({
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-  width: "[24px]",
-  height: "[24px]",
-  padding: "0",
-  border: "none",
-  background: "[transparent]",
-  cursor: "pointer",
-  color: "gray.60",
-  borderRadius: "md.4",
-  _hover: {
-    color: "red.60",
-    backgroundColor: "red.10",
-  },
-});
-
 const fieldLabelStyle = css({
   fontWeight: "medium",
   fontSize: "[12px]",
   marginBottom: "[4px]",
-});
-
-const inputStyle = cva({
-  base: {
-    fontSize: "[14px]",
-    padding: "[6px 8px]",
-    border: "[1px solid rgba(0, 0, 0, 0.1)]",
-    borderRadius: "[4px]",
-    width: "[100%]",
-    boxSizing: "border-box",
-  },
-  variants: {
-    isReadOnly: {
-      true: {
-        backgroundColor: "[rgba(0, 0, 0, 0.05)]",
-        cursor: "not-allowed",
-      },
-      false: {
-        backgroundColor: "[white]",
-        cursor: "text",
-      },
-    },
-  },
 });
 
 const sectionContainerStyle = css({
@@ -115,22 +75,8 @@ const arcListContainerStyle = css({
   overflow: "hidden",
 });
 
-const segmentGroupWrapperStyle = cva({
-  base: {
-    marginTop: "[8px]",
-  },
-  variants: {
-    isReadOnly: {
-      true: {
-        opacity: "[0.6]",
-        pointerEvents: "none",
-      },
-      false: {
-        opacity: "[1]",
-        pointerEvents: "auto",
-      },
-    },
-  },
+const segmentGroupContainerStyle = css({
+  marginTop: "[8px]",
 });
 
 const infoBoxStyle = css({
@@ -164,29 +110,6 @@ const menuButtonStyle = css({
   alignItems: "center",
   fontSize: "[18px]",
   color: "[rgba(0, 0, 0, 0.6)]",
-});
-
-const editorContainerStyle = cva({
-  base: {
-    border: "[1px solid rgba(0, 0, 0, 0.1)]",
-    borderRadius: "[4px]",
-    overflow: "hidden",
-  },
-  variants: {
-    size: {
-      lambda: { height: "[340px]" },
-      kernel: { height: "[400px]" },
-    },
-    isReadOnly: {
-      true: {
-        filter: "[grayscale(20%) brightness(98%)]",
-        pointerEvents: "none",
-      },
-      false: {
-        pointerEvents: "auto",
-      },
-    },
-  },
 });
 
 const aiMenuItemStyle = css({
@@ -342,42 +265,39 @@ export const TransitionProperties: React.FC<TransitionPropertiesProps> = ({
       <div>
         <div className={headerContainerStyle}>
           <div className={headerTitleStyle}>Transition</div>
-          <Tooltip content="Delete">
-            <button
-              type="button"
-              onClick={() => {
-                if (
-                  // eslint-disable-next-line no-alert
-                  window.confirm(
-                    `Are you sure you want to delete "${transition.name}"? All arcs connected to this transition will also be removed.`,
-                  )
-                ) {
-                  removeTransition(transition.id);
-                }
-              }}
-              className={deleteButtonStyle}
-            >
-              <TbTrash size={16} />
-            </button>
-          </Tooltip>
+          <IconButton
+            aria-label="Delete"
+            variant="danger"
+            onClick={() => {
+              if (
+                // eslint-disable-next-line no-alert
+                window.confirm(
+                  `Are you sure you want to delete "${transition.name}"? All arcs connected to this transition will also be removed.`,
+                )
+              ) {
+                removeTransition(transition.id);
+              }
+            }}
+            disabled={isReadOnly}
+            tooltip={isReadOnly ? UI_MESSAGES.READ_ONLY_MODE : "Delete"}
+          >
+            <TbTrash size={16} />
+          </IconButton>
         </div>
       </div>
 
       <div>
         <div className={fieldLabelStyle}>Name</div>
-        <DisabledTooltip disabled={isReadOnly}>
-          <input
-            type="text"
-            value={transition.name}
-            onChange={(event) => {
-              updateTransition(transition.id, (existingTransition) => {
-                existingTransition.name = event.target.value;
-              });
-            }}
-            disabled={isReadOnly}
-            className={inputStyle({ isReadOnly })}
-          />
-        </DisabledTooltip>
+        <Input
+          value={transition.name}
+          onChange={(event) => {
+            updateTransition(transition.id, (existingTransition) => {
+              existingTransition.name = event.target.value;
+            });
+          }}
+          disabled={isReadOnly}
+          tooltip={isReadOnly ? UI_MESSAGES.READ_ONLY_MODE : undefined}
+        />
       </div>
 
       <div className={sectionContainerStyle}>
@@ -408,6 +328,9 @@ export const TransitionProperties: React.FC<TransitionPropertiesProps> = ({
                       placeName={place?.name ?? arc.placeId}
                       weight={arc.weight}
                       disabled={isReadOnly}
+                      tooltip={
+                        isReadOnly ? UI_MESSAGES.READ_ONLY_MODE : undefined
+                      }
                       onWeightChange={(weight) => {
                         onArcWeightUpdate(
                           transition.id,
@@ -454,6 +377,9 @@ export const TransitionProperties: React.FC<TransitionPropertiesProps> = ({
                       placeName={place?.name ?? arc.placeId}
                       weight={arc.weight}
                       disabled={isReadOnly}
+                      tooltip={
+                        isReadOnly ? UI_MESSAGES.READ_ONLY_MODE : undefined
+                      }
                       onWeightChange={(weight) => {
                         onArcWeightUpdate(
                           transition.id,
@@ -477,24 +403,24 @@ export const TransitionProperties: React.FC<TransitionPropertiesProps> = ({
           Firing time
           <InfoIconTooltip tooltip="Define the rate at or conditions under which this will transition will fire, optionally based on each set of input tokens' data (where input tokens have types)." />
         </div>
-        <DisabledTooltip disabled={isReadOnly}>
-          <div className={segmentGroupWrapperStyle({ isReadOnly })}>
-            <SegmentGroup
-              value={transition.lambdaType}
-              options={[
-                { value: "predicate", label: "Predicate" },
-                { value: "stochastic", label: "Stochastic Rate" },
-              ]}
-              onChange={(value) => {
-                updateTransition(transition.id, (existingTransition) => {
-                  existingTransition.lambdaType = value as
-                    | "predicate"
-                    | "stochastic";
-                });
-              }}
-            />
-          </div>
-        </DisabledTooltip>
+        <div className={segmentGroupContainerStyle}>
+          <SegmentGroup
+            value={transition.lambdaType}
+            options={[
+              { value: "predicate", label: "Predicate" },
+              { value: "stochastic", label: "Stochastic Rate" },
+            ]}
+            onChange={(value) => {
+              updateTransition(transition.id, (existingTransition) => {
+                existingTransition.lambdaType = value as
+                  | "predicate"
+                  | "stochastic";
+              });
+            }}
+            disabled={isReadOnly}
+            tooltip={isReadOnly ? UI_MESSAGES.READ_ONLY_MODE : undefined}
+          />
+        </div>
       </div>
 
       <div>
@@ -534,7 +460,10 @@ export const TransitionProperties: React.FC<TransitionPropertiesProps> = ({
                 {
                   id: "generate-ai",
                   label: (
-                    <Tooltip content={UI_MESSAGES.AI_FEATURE_COMING_SOON}>
+                    <Tooltip
+                      content={UI_MESSAGES.AI_FEATURE_COMING_SOON}
+                      display="inline"
+                    >
                       <div className={aiMenuItemStyle}>
                         <TbSparkles className={aiIconStyle} />
                         Generate with AI
@@ -550,37 +479,22 @@ export const TransitionProperties: React.FC<TransitionPropertiesProps> = ({
             />
           )}
         </div>
-        <DisabledTooltip disabled={isReadOnly}>
-          <div className={editorContainerStyle({ isReadOnly, size: "lambda" })}>
-            <MonacoEditor
-              key={`lambda-${transition.lambdaType}-${transition.inputArcs
-                .map((a) => `${a.placeId}:${a.weight}`)
-                .join("-")}`}
-              language="typescript"
-              value={transition.lambdaCode || ""}
-              path={`inmemory://sdcpn/transitions/${transition.id}/lambda.ts`}
-              onChange={(value) => {
-                updateTransition(transition.id, (existingTransition) => {
-                  existingTransition.lambdaCode = value ?? "";
-                });
-              }}
-              theme="vs-light"
-              options={{
-                minimap: { enabled: false },
-                scrollBeyondLastLine: false,
-                fontSize: 12,
-                lineNumbers: "off",
-                folding: true,
-                glyphMargin: false,
-                lineDecorationsWidth: 0,
-                lineNumbersMinChars: 3,
-                padding: { top: 8, bottom: 8 },
-                readOnly: isReadOnly,
-                fixedOverflowWidgets: true,
-              }}
-            />
-          </div>
-        </DisabledTooltip>
+        <CodeEditor
+          key={`lambda-${transition.lambdaType}-${transition.inputArcs
+            .map((a) => `${a.placeId}:${a.weight}`)
+            .join("-")}`}
+          language="typescript"
+          value={transition.lambdaCode || ""}
+          path={`inmemory://sdcpn/transitions/${transition.id}/lambda.ts`}
+          height={340}
+          onChange={(value) => {
+            updateTransition(transition.id, (existingTransition) => {
+              existingTransition.lambdaCode = value ?? "";
+            });
+          }}
+          options={{ readOnly: isReadOnly }}
+          tooltip={isReadOnly ? UI_MESSAGES.READ_ONLY_MODE : undefined}
+        />
       </div>
 
       {/* Only show Transition Results if at least one output place has a type */}
@@ -649,7 +563,10 @@ export const TransitionProperties: React.FC<TransitionPropertiesProps> = ({
                   {
                     id: "generate-ai",
                     label: (
-                      <Tooltip content={UI_MESSAGES.AI_FEATURE_COMING_SOON}>
+                      <Tooltip
+                        content={UI_MESSAGES.AI_FEATURE_COMING_SOON}
+                        display="inline"
+                      >
                         <div className={aiMenuItemStyle}>
                           <TbSparkles className={aiIconStyle} />
                           Generate with AI
@@ -665,41 +582,24 @@ export const TransitionProperties: React.FC<TransitionPropertiesProps> = ({
               />
             )}
           </div>
-          <DisabledTooltip disabled={isReadOnly}>
-            <div
-              className={editorContainerStyle({ isReadOnly, size: "kernel" })}
-            >
-              <MonacoEditor
-                key={`kernel-${transition.inputArcs
-                  .map((a) => `${a.placeId}:${a.weight}`)
-                  .join("-")}-${transition.outputArcs
-                  .map((a) => `${a.placeId}:${a.weight}`)
-                  .join("-")}`}
-                language="typescript"
-                value={transition.transitionKernelCode || ""}
-                path={`inmemory://sdcpn/transitions/${transition.id}/transition-kernel.ts`}
-                onChange={(value) => {
-                  updateTransition(transition.id, (existingTransition) => {
-                    existingTransition.transitionKernelCode = value ?? "";
-                  });
-                }}
-                theme="vs-light"
-                options={{
-                  minimap: { enabled: false },
-                  scrollBeyondLastLine: false,
-                  fontSize: 12,
-                  lineNumbers: "off",
-                  folding: true,
-                  glyphMargin: false,
-                  lineDecorationsWidth: 0,
-                  lineNumbersMinChars: 3,
-                  padding: { top: 8, bottom: 8 },
-                  readOnly: isReadOnly,
-                  fixedOverflowWidgets: true,
-                }}
-              />
-            </div>
-          </DisabledTooltip>
+          <CodeEditor
+            key={`kernel-${transition.inputArcs
+              .map((a) => `${a.placeId}:${a.weight}`)
+              .join("-")}-${transition.outputArcs
+              .map((a) => `${a.placeId}:${a.weight}`)
+              .join("-")}`}
+            language="typescript"
+            value={transition.transitionKernelCode || ""}
+            path={`inmemory://sdcpn/transitions/${transition.id}/transition-kernel.ts`}
+            height={400}
+            onChange={(value) => {
+              updateTransition(transition.id, (existingTransition) => {
+                existingTransition.transitionKernelCode = value ?? "";
+              });
+            }}
+            options={{ readOnly: isReadOnly }}
+            tooltip={isReadOnly ? UI_MESSAGES.READ_ONLY_MODE : undefined}
+          />
         </div>
       ) : (
         <div className={noOutputTypesBoxStyle}>

@@ -1,5 +1,5 @@
 /* eslint-disable id-length */
-import { css, cva } from "@hashintel/ds-helpers/css";
+import { css } from "@hashintel/ds-helpers/css";
 import MonacoEditor from "@monaco-editor/react";
 import { use, useEffect, useMemo, useRef, useState } from "react";
 import {
@@ -9,8 +9,11 @@ import {
   TbTrash,
 } from "react-icons/tb";
 
-import { DisabledTooltip } from "../../../../components/disabled-tooltip";
+import { Button } from "../../../../components/button";
+import { IconButton } from "../../../../components/icon-button";
+import { Input } from "../../../../components/input";
 import { Menu } from "../../../../components/menu";
+import { Select } from "../../../../components/select";
 import type { SubView } from "../../../../components/sub-view/types";
 import { FixedHeightSubViewsContainer } from "../../../../components/sub-view/vertical-sub-views-container";
 import { Switch } from "../../../../components/switch";
@@ -61,24 +64,6 @@ const headerTitleStyle = css({
   fontSize: "[16px]",
 });
 
-const deleteButtonStyle = css({
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-  width: "[24px]",
-  height: "[24px]",
-  padding: "0",
-  border: "none",
-  background: "[transparent]",
-  cursor: "pointer",
-  color: "gray.60",
-  borderRadius: "md.4",
-  _hover: {
-    color: "red.60",
-    backgroundColor: "red.10",
-  },
-});
-
 const fieldLabelStyle = css({
   fontWeight: "medium",
   fontSize: "[12px]",
@@ -93,90 +78,14 @@ const fieldLabelWithTooltipStyle = css({
   alignItems: "center",
 });
 
-const inputStyle = cva({
-  base: {
-    fontSize: "[14px]",
-    padding: "[6px 8px]",
-    borderRadius: "[4px]",
-    width: "[100%]",
-    boxSizing: "border-box",
-  },
-  variants: {
-    isReadOnly: {
-      true: {
-        backgroundColor: "[rgba(0, 0, 0, 0.05)]",
-        cursor: "not-allowed",
-      },
-      false: {
-        backgroundColor: "[white]",
-        cursor: "text",
-      },
-    },
-    hasError: {
-      true: {
-        border: "[1px solid #ef4444]",
-      },
-      false: {
-        border: "[1px solid rgba(0, 0, 0, 0.1)]",
-      },
-    },
-  },
-  defaultVariants: {
-    isReadOnly: false,
-    hasError: false,
-  },
-});
-
 const errorMessageStyle = css({
   fontSize: "[12px]",
   color: "[#ef4444]",
   marginTop: "[4px]",
 });
 
-const selectStyle = cva({
-  base: {
-    fontSize: "[14px]",
-    padding: "[6px 8px]",
-    border: "[1px solid rgba(0, 0, 0, 0.1)]",
-    borderRadius: "[4px]",
-    width: "[100%]",
-    boxSizing: "border-box",
-  },
-  variants: {
-    isReadOnly: {
-      true: {
-        backgroundColor: "[rgba(0, 0, 0, 0.05)]",
-        cursor: "not-allowed",
-      },
-      false: {
-        backgroundColor: "[white]",
-        cursor: "pointer",
-      },
-    },
-    hasMarginBottom: {
-      true: {
-        marginBottom: "[8px]",
-      },
-      false: {},
-    },
-  },
-});
-
 const jumpButtonContainerStyle = css({
   textAlign: "right",
-});
-
-const jumpButtonStyle = css({
-  fontSize: "[12px]",
-  padding: "[4px 8px]",
-  border: "[1px solid rgba(0, 0, 0, 0.2)]",
-  borderRadius: "[4px]",
-  backgroundColor: "[white]",
-  cursor: "pointer",
-  color: "[#333]",
-  display: "inline-flex",
-  alignItems: "center",
-  gap: "[6px]",
 });
 
 const jumpIconStyle = css({
@@ -384,50 +293,48 @@ export const PlaceProperties: React.FC<PlacePropertiesProps> = ({
         <div>
           <div className={headerContainerStyle}>
             <div className={headerTitleStyle}>Place</div>
-            <Tooltip content="Delete">
-              <button
-                type="button"
-                onClick={() => {
-                  if (
-                    // eslint-disable-next-line no-alert
-                    window.confirm(
-                      `Are you sure you want to delete "${place.name}"? All arcs connected to this place will also be removed.`,
-                    )
-                  ) {
-                    removePlace(place.id);
-                  }
-                }}
-                className={deleteButtonStyle}
-              >
-                <TbTrash size={16} />
-              </button>
-            </Tooltip>
+            <IconButton
+              aria-label="Delete"
+              variant="danger"
+              onClick={() => {
+                if (
+                  // eslint-disable-next-line no-alert
+                  window.confirm(
+                    `Are you sure you want to delete "${place.name}"? All arcs connected to this place will also be removed.`,
+                  )
+                ) {
+                  removePlace(place.id);
+                }
+              }}
+              disabled={isReadOnly}
+              tooltip={isReadOnly ? UI_MESSAGES.READ_ONLY_MODE : "Delete"}
+            >
+              <TbTrash size={16} />
+            </IconButton>
           </div>
         </div>
 
         <div>
           <div className={fieldLabelStyle}>Name</div>
-          <DisabledTooltip disabled={isReadOnly}>
-            <input
-              ref={nameInputRef}
-              type="text"
-              value={nameInputValue}
-              onChange={(event) => {
-                setNameInputValue(event.target.value);
-                // Clear error when user starts typing
-                if (nameError) {
-                  setNameError(null);
-                }
-              }}
-              onFocus={() => setIsNameInputFocused(true)}
-              onBlur={() => {
-                setIsNameInputFocused(false);
-                handleNameBlur();
-              }}
-              disabled={isReadOnly}
-              className={inputStyle({ isReadOnly, hasError: !!nameError })}
-            />
-          </DisabledTooltip>
+          <Input
+            ref={nameInputRef}
+            value={nameInputValue}
+            onChange={(event) => {
+              setNameInputValue(event.target.value);
+              // Clear error when user starts typing
+              if (nameError) {
+                setNameError(null);
+              }
+            }}
+            onFocus={() => setIsNameInputFocused(true)}
+            onBlur={() => {
+              setIsNameInputFocused(false);
+              handleNameBlur();
+            }}
+            disabled={isReadOnly}
+            hasError={!!nameError}
+            tooltip={isReadOnly ? UI_MESSAGES.READ_ONLY_MODE : undefined}
+          />
           {nameError && <div className={errorMessageStyle}>{nameError}</div>}
         </div>
 
@@ -442,47 +349,41 @@ export const PlaceProperties: React.FC<PlacePropertiesProps> = ({
               } Tokens in places don't have to carry data, but they need one to enable dynamics (token data changing over time when in a place).`}
             />
           </div>
-          <DisabledTooltip disabled={isReadOnly}>
-            <select
-              value={place.colorId ?? ""}
-              onChange={(event) => {
-                const value = event.target.value;
-                const newType = value === "" ? null : value;
-                updatePlace(place.id, (existingPlace) => {
-                  existingPlace.colorId = newType;
-                  // Disable dynamics if type is being set to null
-                  if (newType === null && existingPlace.dynamicsEnabled) {
-                    existingPlace.dynamicsEnabled = false;
-                  }
-                });
-              }}
-              disabled={isReadOnly}
-              className={selectStyle({
-                isReadOnly,
-                hasMarginBottom: !!place.colorId,
-              })}
-            >
-              <option value="">None</option>
-              {types.map((type) => (
-                <option key={type.id} value={type.id}>
-                  {type.name}
-                </option>
-              ))}
-            </select>
-          </DisabledTooltip>
+          <Select
+            value={place.colorId ?? ""}
+            onChange={(event) => {
+              const value = event.target.value;
+              const newType = value === "" ? null : value;
+              updatePlace(place.id, (existingPlace) => {
+                existingPlace.colorId = newType;
+                // Disable dynamics if type is being set to null
+                if (newType === null && existingPlace.dynamicsEnabled) {
+                  existingPlace.dynamicsEnabled = false;
+                }
+              });
+            }}
+            disabled={isReadOnly}
+            style={place.colorId ? { marginBottom: "8px" } : undefined}
+            tooltip={isReadOnly ? UI_MESSAGES.READ_ONLY_MODE : undefined}
+          >
+            <option value="">None</option>
+            {types.map((type) => (
+              <option key={type.id} value={type.id}>
+                {type.name}
+              </option>
+            ))}
+          </Select>
 
           {place.colorId && (
             <div className={jumpButtonContainerStyle}>
-              <button
-                type="button"
+              <Button
                 onClick={() => {
                   setSelectedResourceId(place.colorId);
                 }}
-                className={jumpButtonStyle}
               >
                 Jump to Type
                 <TbArrowRight className={jumpIconStyle} />
-              </button>
+              </Button>
             </div>
           )}
         </div>
@@ -490,17 +391,22 @@ export const PlaceProperties: React.FC<PlacePropertiesProps> = ({
         <div className={sectionContainerStyle}>
           <div className={switchRowStyle}>
             <div className={switchContainerStyle}>
-              <DisabledTooltip disabled={isReadOnly}>
-                <Switch
-                  checked={!!place.colorId && place.dynamicsEnabled}
-                  disabled={isReadOnly || place.colorId === null}
-                  onCheckedChange={(checked) => {
-                    updatePlace(place.id, (existingPlace) => {
-                      existingPlace.dynamicsEnabled = checked;
-                    });
-                  }}
-                />
-              </DisabledTooltip>
+              <Switch
+                checked={!!place.colorId && place.dynamicsEnabled}
+                disabled={isReadOnly || place.colorId === null}
+                tooltip={
+                  isReadOnly
+                    ? UI_MESSAGES.READ_ONLY_MODE
+                    : place.colorId === null
+                      ? UI_MESSAGES.DYNAMICS_REQUIRES_TYPE
+                      : undefined
+                }
+                onCheckedChange={(checked) => {
+                  updatePlace(place.id, (existingPlace) => {
+                    existingPlace.dynamicsEnabled = checked;
+                  });
+                }}
+              />
             </div>
             <div className={fieldLabelWithTooltipStyle}>
               Dynamics
@@ -523,40 +429,37 @@ export const PlaceProperties: React.FC<PlacePropertiesProps> = ({
           availableDiffEqs.length > 0 && (
             <div className={diffEqContainerStyle}>
               <div className={fieldLabelStyle}>Differential Equation</div>
-              <DisabledTooltip disabled={isReadOnly}>
-                <select
-                  value={place.differentialEquationId ?? undefined}
-                  onChange={(event) => {
-                    const value = event.target.value;
+              <Select
+                value={place.differentialEquationId ?? undefined}
+                onChange={(event) => {
+                  const value = event.target.value;
 
-                    updatePlace(place.id, (existingPlace) => {
-                      existingPlace.differentialEquationId = value || null;
-                    });
-                  }}
-                  disabled={isReadOnly}
-                  className={selectStyle({ isReadOnly, hasMarginBottom: true })}
-                >
-                  <option value="">None</option>
-                  {availableDiffEqs.map((eq) => (
-                    <option key={eq.id} value={eq.id}>
-                      {eq.name}
-                    </option>
-                  ))}
-                </select>
-              </DisabledTooltip>
+                  updatePlace(place.id, (existingPlace) => {
+                    existingPlace.differentialEquationId = value || null;
+                  });
+                }}
+                disabled={isReadOnly}
+                style={{ marginBottom: "8px" }}
+                tooltip={isReadOnly ? UI_MESSAGES.READ_ONLY_MODE : undefined}
+              >
+                <option value="">None</option>
+                {availableDiffEqs.map((eq) => (
+                  <option key={eq.id} value={eq.id}>
+                    {eq.name}
+                  </option>
+                ))}
+              </Select>
 
               {place.differentialEquationId && (
                 <div className={jumpButtonContainerStyle}>
-                  <button
-                    type="button"
+                  <Button
                     onClick={() => {
                       setSelectedResourceId(place.differentialEquationId);
                     }}
-                    className={jumpButtonStyle}
                   >
                     Jump to Differential Equation
                     <TbArrowRight className={jumpIconStyle} />
-                  </button>
+                  </Button>
                 </div>
               )}
             </div>
@@ -569,6 +472,8 @@ export const PlaceProperties: React.FC<PlacePropertiesProps> = ({
               <div className={switchContainerStyle}>
                 <Switch
                   checked={place.visualizerCode !== undefined}
+                  disabled={isReadOnly}
+                  tooltip={isReadOnly ? UI_MESSAGES.READ_ONLY_MODE : undefined}
                   onCheckedChange={(checked) => {
                     if (checked) {
                       // Turning on: use saved code if available, otherwise default
@@ -627,7 +532,10 @@ export const PlaceProperties: React.FC<PlacePropertiesProps> = ({
                   {
                     id: "generate-ai",
                     label: (
-                      <Tooltip content={UI_MESSAGES.AI_FEATURE_COMING_SOON}>
+                      <Tooltip
+                        content={UI_MESSAGES.AI_FEATURE_COMING_SOON}
+                        display="inline"
+                      >
                         <div className={aiMenuItemStyle}>
                           <TbSparkles className={aiIconStyle} />
                           Generate with AI

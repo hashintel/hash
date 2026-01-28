@@ -2,9 +2,11 @@ import { css, cva } from "@hashintel/ds-helpers/css";
 import { use } from "react";
 
 import type { SubView } from "../../../components/sub-view/types";
-import { SimulationContext } from "../../../simulation/context";
+import { Tooltip } from "../../../components/tooltip";
+import { UI_MESSAGES } from "../../../constants/ui-messages";
 import { EditorContext } from "../../../state/editor-context";
 import { SDCPNContext } from "../../../state/sdcpn-context";
+import { useIsReadOnly } from "../../../state/use-is-read-only";
 
 const listContainerStyle = css({
   display: "flex",
@@ -171,10 +173,7 @@ const TypesSectionContent: React.FC = () => {
 
   const { selectedResourceId, setSelectedResourceId } = use(EditorContext);
 
-  // Check if simulation is running or paused
-  const { state: simulationState } = use(SimulationContext);
-  const isSimulationActive =
-    simulationState === "Running" || simulationState === "Paused";
+  const isReadOnly = useIsReadOnly();
 
   return (
     <div className={listContainerStyle}>
@@ -208,24 +207,29 @@ const TypesSectionContent: React.FC = () => {
               style={{ backgroundColor: type.displayColor }}
             />
             <span className={typeNameStyle}>{type.name}</span>
-            <button
-              type="button"
-              disabled={isSimulationActive}
-              onClick={() => {
-                if (
-                  // eslint-disable-next-line no-alert
-                  window.confirm(
-                    `Delete token type "${type.name}"? All places using this type will have their type set to null.`,
-                  )
-                ) {
-                  removeType(type.id);
-                }
-              }}
-              className={deleteButtonStyle}
-              aria-label={`Delete token type ${type.name}`}
+            <Tooltip
+              content={isReadOnly ? UI_MESSAGES.READ_ONLY_MODE : undefined}
+              display="inline"
             >
-              ×
-            </button>
+              <button
+                type="button"
+                disabled={isReadOnly}
+                onClick={() => {
+                  if (
+                    // eslint-disable-next-line no-alert
+                    window.confirm(
+                      `Delete token type "${type.name}"? All places using this type will have their type set to null.`,
+                    )
+                  ) {
+                    removeType(type.id);
+                  }
+                }}
+                className={deleteButtonStyle}
+                aria-label={`Delete token type ${type.name}`}
+              >
+                ×
+              </button>
+            </Tooltip>
           </div>
         );
       })}
@@ -245,41 +249,43 @@ const TypesSectionHeaderAction: React.FC = () => {
     addType,
   } = use(SDCPNContext);
 
-  // Check if simulation is running or paused
-  const { state: simulationState } = use(SimulationContext);
-  const isSimulationActive =
-    simulationState === "Running" || simulationState === "Paused";
+  const isReadOnly = useIsReadOnly();
 
   return (
-    <button
-      type="button"
-      disabled={isSimulationActive}
-      onClick={() => {
-        const existingColors = types.map((type) => type.displayColor);
-        const existingNames = types.map((type) => type.name);
-        const nextNumber = getNextTypeNumber(existingNames);
-        const nextColor = getNextAvailableColor(existingColors);
-
-        const newType = {
-          id: `type__${Date.now()}`,
-          name: `Type ${nextNumber}`,
-          iconSlug: "circle",
-          displayColor: nextColor,
-          elements: [
-            {
-              elementId: `element__${Date.now()}`,
-              name: "dimension_1",
-              type: "real" as const,
-            },
-          ],
-        };
-        addType(newType);
-      }}
-      className={addButtonStyle}
-      aria-label="Add token type"
+    <Tooltip
+      content={isReadOnly ? UI_MESSAGES.READ_ONLY_MODE : undefined}
+      display="inline"
     >
-      +
-    </button>
+      <button
+        type="button"
+        disabled={isReadOnly}
+        onClick={() => {
+          const existingColors = types.map((type) => type.displayColor);
+          const existingNames = types.map((type) => type.name);
+          const nextNumber = getNextTypeNumber(existingNames);
+          const nextColor = getNextAvailableColor(existingColors);
+
+          const newType = {
+            id: `type__${Date.now()}`,
+            name: `Type ${nextNumber}`,
+            iconSlug: "circle",
+            displayColor: nextColor,
+            elements: [
+              {
+                elementId: `element__${Date.now()}`,
+                name: "dimension_1",
+                type: "real" as const,
+              },
+            ],
+          };
+          addType(newType);
+        }}
+        className={addButtonStyle}
+        aria-label="Add token type"
+      >
+        +
+      </button>
+    </Tooltip>
   );
 };
 
