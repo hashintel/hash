@@ -42,28 +42,45 @@ const fn source_keyword(source: Source<'_>) -> &'static str {
     }
 }
 
+/// Configuration options for formatting function signatures.
 pub(crate) struct SignatureOptions {
+    /// The output format (plain text or HTML fragment).
     pub format: RenderFormat,
 }
 
 /// A wrapper for formatting function signatures from MIR bodies.
+///
+/// Renders the function keyword, name, parameter list with types, and return type.
 pub(crate) struct Signature<'body, 'heap>(pub &'body Body<'heap>, pub SignatureOptions);
 
 /// A helper struct for formatting key-value pairs with consistent syntax.
 struct KeyValuePair<K, V>(K, V);
 
+/// A set of definition IDs to visually highlight in formatted output.
+///
+/// When formatting multiple MIR bodies, those with IDs in this set will be
+/// marked distinctly (e.g., prefixed with `*` in text output or colored in D2).
 pub(crate) struct HighlightBody<'def>(pub &'def [DefId]);
 
+/// A trait for providing inline annotations during text formatting.
+///
+/// Implementations can attach comments or annotations to statements and local
+/// declarations in the formatted output. Annotations appear as trailing comments
+/// (e.g., `// annotation`) after the formatted line.
 pub trait TextFormatAnnotations {
+    /// The type of annotation displayed after statements.
     type StatementAnnotation<'this, 'heap>: Display
         = !
     where
         Self: 'this;
+
+    /// The type of annotation displayed after local declarations.
     type DeclarationAnnotation<'this, 'heap>: Display
         = !
     where
         Self: 'this;
 
+    /// Returns an optional annotation for the given statement at `location`.
     #[expect(unused_variables, reason = "trait definition")]
     fn annotate_statement<'heap>(
         &self,
@@ -73,6 +90,7 @@ pub trait TextFormatAnnotations {
         None
     }
 
+    /// Returns an optional annotation for the given local declaration.
     #[expect(unused_variables, reason = "trait definition")]
     fn annotate_local_decl<'heap>(
         &self,
@@ -85,11 +103,17 @@ pub trait TextFormatAnnotations {
 
 impl TextFormatAnnotations for () {}
 
+/// Configuration for constructing a [`TextFormat`] formatter.
 pub struct TextFormatOptions<W, S, T, A> {
+    /// The writer where formatted text will be written.
     pub writer: W,
+    /// Number of spaces per indentation level.
     pub indent: usize,
+    /// Source lookup for resolving symbols and identifiers.
     pub sources: S,
+    /// Type formatter for rendering type information.
     pub types: T,
+    /// Annotation provider for adding inline comments.
     pub annotations: A,
 }
 
@@ -419,6 +443,8 @@ where
 }
 
 /// A wrapper for formatting target parameters in MIR terminators.
+///
+/// Renders the argument list as `(arg1, arg2, ...)` for goto and switch targets.
 pub(crate) struct TargetParams<'heap>(pub Interned<'heap, [Operand<'heap>]>);
 
 impl<'heap, W, S, T, A> FormatPart<TargetParams<'heap>> for TextFormat<W, S, T, A>
@@ -456,7 +482,9 @@ where
     }
 }
 
+/// Configuration options for formatting types in MIR output.
 pub(crate) struct TypeOptions {
+    /// The output format (plain text or HTML fragment).
     format: RenderFormat,
 }
 
@@ -470,6 +498,7 @@ impl TypeOptions {
     }
 }
 
+/// A wrapper for formatting a type with specific rendering options.
 pub(crate) struct Type(TypeId, TypeOptions);
 
 impl<'fmt, 'env, 'heap: 'fmt + 'env, W, S, T, A> FormatPart<Type> for TextFormat<W, S, T, A>
