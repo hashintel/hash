@@ -22,6 +22,11 @@ use crate::{
     pretty::text::{Signature, SignatureOptions, TargetParams, TerminatorHead},
 };
 
+/// A double buffer used for HTML escaping during D2 output generation.
+///
+/// This buffer uses a front/back swap pattern to efficiently perform multiple
+/// string replacements (escaping `&`, `<`, `>`, and newlines) without repeated
+/// allocations.
 #[derive(Debug, Default)]
 pub struct D2Buffer {
     front: Vec<u8>,
