@@ -15,14 +15,17 @@ use insta::{Settings, assert_snapshot};
 
 use super::StatementPlacement;
 use crate::{
-    body::{Body, location::Location, statement::Statement},
+    body::{Body, local::Local, location::Location, statement::Statement},
     builder::body,
     context::MirContext,
     intern::Interner,
     pass::{
         Changed, TransformPass as _,
-        analysis::execution::cost::{StatementCostVec, TraversalCostVec},
-        transform::TraversalExtraction,
+        analysis::execution::{
+            cost::{StatementCostVec, TraversalCostVec},
+            statement_placement::{EmbeddingStatementPlacement, PostgresStatementPlacement},
+        },
+        transform::{TraversalExtraction, Traversals},
     },
     pretty::{TextFormatAnnotations, TextFormatOptions},
 };
@@ -166,21 +169,25 @@ fn non_graph_read_filter_returns_empty() {
         }
     });
 
-    let mut context = MirContext {
+    let context = MirContext {
         heap: &heap,
         env: &env,
         interner: &interner,
         diagnostics: DiagnosticIssues::new(),
     };
 
-    // TraversalExtraction returns None for non-GraphReadFilter bodies
-    let mut extraction = TraversalExtraction::new_in(Global);
-    let _: Changed = extraction.run(&mut context, &mut body.clone());
-    assert!(
-        extraction.take_traversals().is_none(),
-        "non-GraphReadFilter body should not produce traversals"
-    );
+    let traversals = Traversals::with_capacity_in(Local::new(1), body.local_decls.len(), &heap);
 
-    // For completeness, verify that Interpreter still works on any body
-    // (it doesn't use traversals internally the same way)
+    let mut postgres = PostgresStatementPlacement::default();
+    let mut embedding = EmbeddingStatementPlacement::default();
+
+    let (postgres_traversal, postgres_statement) =
+        postgres.statement_placement(&context, &body, &traversals, &heap);
+    let (embedding_traversal, embedding_statement) =
+        embedding.statement_placement(&context, &body, &traversals, &heap);
+
+    assert_eq!(postgres_traversal.iter().count(), 0);
+    assert!(postgres_statement.is_empty());
+    assert_eq!(embedding_traversal.iter().count(), 0);
+    assert!(embedding_statement.is_empty());
 }

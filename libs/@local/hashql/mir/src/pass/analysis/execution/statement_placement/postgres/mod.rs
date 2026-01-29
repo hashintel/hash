@@ -170,6 +170,16 @@ impl<'heap, A: Allocator + Clone> StatementPlacement<'heap, A>
         traversals: &Traversals<'heap>,
         alloc: A,
     ) -> (TraversalCostVec<&'heap Heap>, StatementCostVec<&'heap Heap>) {
+        let traversal_costs = TraversalCostVec::new(body, traversals, context.heap);
+        let statement_costs = StatementCostVec::new(&body.basic_blocks, context.heap);
+
+        match body.source {
+            Source::GraphReadFilter(_) => {}
+            Source::Ctor(_) | Source::Closure(..) | Source::Thunk(..) | Source::Intrinsic(_) => {
+                return (traversal_costs, statement_costs);
+            }
+        }
+
         let dispatchable = SupportedAnalysis {
             body,
             context,
@@ -177,14 +187,6 @@ impl<'heap, A: Allocator + Clone> StatementPlacement<'heap, A>
             is_supported_operand,
             initialize_boundary: OnceValue::new(
                 |body: &Body<'heap>, domain: &mut DenseBitSet<Local>| {
-                    match body.source {
-                        Source::GraphReadFilter(_) => {}
-                        Source::Ctor(_)
-                        | Source::Closure(..)
-                        | Source::Thunk(..)
-                        | Source::Intrinsic(_) => return,
-                    }
-
                     debug_assert_eq!(body.args, 2);
 
                     // Environment (local 0) is only transferable if it contains no closures
@@ -206,9 +208,6 @@ impl<'heap, A: Allocator + Clone> StatementPlacement<'heap, A>
             ),
         }
         .finish_in(alloc);
-
-        let statement_costs = StatementCostVec::new(&body.basic_blocks, context.heap);
-        let traversal_costs = TraversalCostVec::new(body, traversals, context.heap);
 
         let mut visitor = CostVisitor {
             body,

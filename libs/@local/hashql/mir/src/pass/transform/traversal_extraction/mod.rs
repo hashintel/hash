@@ -105,7 +105,7 @@ pub struct Traversals<'heap> {
 }
 
 impl<'heap> Traversals<'heap> {
-    fn with_capacity_in(source: Local, capacity: usize, heap: &'heap Heap) -> Self {
+    pub(crate) fn with_capacity_in(source: Local, capacity: usize, heap: &'heap Heap) -> Self {
         Self {
             source,
             derivations: LocalVec::with_capacity_in(capacity, heap),

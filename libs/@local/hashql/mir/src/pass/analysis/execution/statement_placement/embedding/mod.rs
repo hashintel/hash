@@ -111,6 +111,16 @@ impl<'heap, A: Allocator + Clone> StatementPlacement<'heap, A> for EmbeddingStat
         traversals: &Traversals<'heap>,
         alloc: A,
     ) -> (TraversalCostVec<&'heap Heap>, StatementCostVec<&'heap Heap>) {
+        let statement_costs = StatementCostVec::new(&body.basic_blocks, context.heap);
+        let traversal_costs = TraversalCostVec::new(body, traversals, context.heap);
+
+        match body.source {
+            Source::GraphReadFilter(_) => {}
+            Source::Ctor(_) | Source::Closure(..) | Source::Thunk(..) | Source::Intrinsic(_) => {
+                return (traversal_costs, statement_costs);
+            }
+        }
+
         let dispatchable = SupportedAnalysis {
             body,
             context,
@@ -136,9 +146,6 @@ impl<'heap, A: Allocator + Clone> StatementPlacement<'heap, A> for EmbeddingStat
             ),
         }
         .finish_in(alloc);
-
-        let statement_costs = StatementCostVec::new(&body.basic_blocks, context.heap);
-        let traversal_costs = TraversalCostVec::new(body, traversals, context.heap);
 
         let mut visitor = CostVisitor {
             body,

@@ -184,6 +184,10 @@ impl<A: Allocator> StatementCostVec<A> {
         )
     }
 
+    pub fn is_empty(&self) -> bool {
+        self.costs.iter().all(Option::is_none)
+    }
+
     /// Returns the cost at `location`, or `None` if out of bounds or unassigned.
     pub fn get(&self, location: Location) -> Option<Cost> {
         let range = (self.offsets[location.block] as usize)
