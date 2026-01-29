@@ -52,6 +52,18 @@ body!(interner, env; <source> @ <id> / <arity> -> <return_type> {
 })
 ```
 
+**Important:** Only a single `decl` statement is supported. Declare all locals in one comma-separated list:
+
+```rust
+// ✅ Correct - single decl with all locals
+decl env: (), vertex: Entity, x: Int, y: Int, result: Bool;
+
+// ❌ Wrong - multiple decl statements will not compile
+decl env: (), vertex: Entity;
+decl x: Int, y: Int;
+decl result: Bool;
+```
+
 ### Header
 
 | Component | Description | Example |
