@@ -84,6 +84,8 @@ impl<A: Allocator> StatementCostVec<A> {
         let mut remaining = blocks.as_raw();
 
         offsets[0].write(0);
+
+        #[expect(clippy::cast_possible_truncation)]
         let (_, rest) = offsets[1..].write_iter(iter::from_fn(|| {
             let (next, rest) = remaining.split_first()?;
 

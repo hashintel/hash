@@ -2,6 +2,16 @@ use core::alloc::Allocator;
 
 use hashql_core::heap::Heap;
 
+mod common;
+mod embedding;
+mod interpret;
+mod lookup;
+mod postgres;
+
+pub use self::{
+    embedding::EmbeddingStatementPlacement, interpret::InterpreterStatementPlacement,
+    postgres::PostgresStatementPlacement,
+};
 use super::target::ExecutionTarget;
 use crate::{
     body::Body,
@@ -12,13 +22,7 @@ use crate::{
     },
 };
 
-mod common;
-mod embedding;
-mod interpret;
-mod lookup;
-mod postgres;
-
-pub(crate) trait StatementPlacement<'heap, A: Allocator> {
+pub trait StatementPlacement<'heap, A: Allocator> {
     type Target: ExecutionTarget;
 
     fn statement_placement(

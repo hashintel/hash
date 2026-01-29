@@ -1,4 +1,4 @@
-use std::alloc::Allocator;
+use core::alloc::Allocator;
 
 use hashql_core::heap::Heap;
 
@@ -20,16 +20,13 @@ use crate::{
     visit::Visitor,
 };
 
-struct CostVisitor<'ctx, 'env, 'heap> {
-    body: &'ctx Body<'heap>,
-    context: &'ctx MirContext<'env, 'heap>,
-
+struct CostVisitor<'heap> {
     cost: Cost,
 
     statement_costs: StatementCostVec<&'heap Heap>,
 }
 
-impl<'heap> Visitor<'heap> for CostVisitor<'_, '_, 'heap> {
+impl<'heap> Visitor<'heap> for CostVisitor<'heap> {
     type Result = Result<(), !>;
 
     fn visit_statement(
@@ -53,7 +50,7 @@ impl<'heap> Visitor<'heap> for CostVisitor<'_, '_, 'heap> {
 }
 
 #[derive(Debug)]
-pub(crate) struct InterpreterStatementPlacement {
+pub struct InterpreterStatementPlacement {
     statement_cost: Cost,
 }
 
@@ -79,8 +76,6 @@ impl<'heap, A: Allocator> StatementPlacement<'heap, A> for InterpreterStatementP
         let traversal_costs = TraversalCostVec::new(body, traversals, context.heap);
 
         let mut visitor = CostVisitor {
-            body,
-            context,
             cost: self.statement_cost,
             statement_costs,
         };
