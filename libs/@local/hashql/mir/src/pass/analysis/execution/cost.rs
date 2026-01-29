@@ -6,7 +6,7 @@
 use alloc::alloc::Global;
 use core::{
     alloc::Allocator,
-    iter,
+    fmt, iter,
     ops::{Index, IndexMut},
 };
 
@@ -71,6 +71,12 @@ impl Cost {
     }
 }
 
+impl fmt::Display for Cost {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        fmt::Display::fmt(&self.0.as_inner(), fmt)
+    }
+}
+
 /// Sparse cost map for traversal locals.
 ///
 /// Traversals are locals that require data fetching from a backend (e.g., entity field access).
@@ -101,6 +107,22 @@ impl<A: Allocator> TraversalCostVec<A> {
         if self.traversals.contains(local) {
             self.costs.insert(local, cost);
         }
+    }
+
+    pub fn iter(&self) -> impl Iterator<Item = (Local, Cost)> {
+        self.costs
+            .iter_enumerated()
+            .filter_map(|(local, cost)| cost.map(|cost| (local, cost)))
+    }
+}
+
+impl<A: Allocator> IntoIterator for &TraversalCostVec<A> {
+    type Item = (Local, Cost);
+
+    type IntoIter = impl Iterator<Item = (Local, Cost)>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.iter()
     }
 }
 
