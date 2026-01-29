@@ -2,12 +2,7 @@ import { css, cva } from "@hashintel/ds-helpers/css";
 import { AnimatePresence, motion } from "motion/react";
 import { use, useEffect, useRef, useState } from "react";
 import { IoMdPause, IoMdPlay } from "react-icons/io";
-import {
-  MdCheck,
-  MdCheckBox,
-  MdOutlinePlayArrow,
-  MdRotateLeft,
-} from "react-icons/md";
+import { MdCheck, MdOutlinePlayArrow, MdRotateLeft } from "react-icons/md";
 import {
   TbArrowBarToRight,
   TbChartLine,
@@ -266,6 +261,31 @@ const popoverDividerStyle = css({
   marginTop: "[4px]",
 });
 
+const maxTimeInputStyle = css({
+  width: "[60px]",
+  height: "[24px]",
+  padding: "[0 6px]",
+  fontSize: "[13px]",
+  fontWeight: "medium",
+  textAlign: "right",
+  color: "gray.90",
+  backgroundColor: "gray.10",
+  border: "[1px solid]",
+  borderColor: "gray.20",
+  borderRadius: "[6px]",
+  outline: "none",
+  flexShrink: 0,
+  fontVariantNumeric: "tabular-nums",
+  _focus: {
+    borderColor: "blue.50",
+    boxShadow: "[0 0 0 2px rgba(59, 130, 246, 0.2)]",
+  },
+  "&::-webkit-inner-spin-button, &::-webkit-outer-spin-button": {
+    appearance: "none",
+    margin: "[0]",
+  },
+});
+
 const toolbarDividerStyle = css({
   background: "gray.20",
   width: "[1px]",
@@ -287,6 +307,8 @@ export const SimulationControls: React.FC<SimulationControlsProps> = ({
     initialize,
     run,
     dt,
+    maxTime,
+    setMaxTime,
   } = use(SimulationContext);
 
   const {
@@ -310,10 +332,20 @@ export const SimulationControls: React.FC<SimulationControlsProps> = ({
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
-  // Dummy state for "Stopping conditions" option (UI only for now)
-  const [stoppingCondition, setStoppingCondition] = useState<
-    "indefinitely" | "fixed" | "condition"
-  >("fixed");
+  // Derive stopping condition from maxTime
+  const stoppingCondition: "indefinitely" | "fixed" =
+    maxTime === null ? "indefinitely" : "fixed";
+
+  const handleStoppingConditionChange = (
+    condition: "indefinitely" | "fixed",
+  ) => {
+    if (condition === "indefinitely") {
+      setMaxTime(null);
+    } else {
+      // Set default of 10 seconds when switching to fixed time
+      setMaxTime(10);
+    }
+  };
 
   // Close popover when clicking outside
   useEffect(() => {
@@ -662,8 +694,18 @@ export const SimulationControls: React.FC<SimulationControlsProps> = ({
                     type="button"
                     className={menuItemStyle({
                       selected: stoppingCondition === "indefinitely",
+                      disabled: hasSimulation,
                     })}
-                    onClick={() => setStoppingCondition("indefinitely")}
+                    onClick={() =>
+                      !hasSimulation &&
+                      handleStoppingConditionChange("indefinitely")
+                    }
+                    aria-disabled={hasSimulation}
+                    title={
+                      hasSimulation
+                        ? "Reset simulation to change stopping conditions"
+                        : undefined
+                    }
                   >
                     <TbInfinity className={menuItemIconStyle} />
                     <span className={menuItemTextStyle}>Run indefinitely</span>
@@ -675,30 +717,53 @@ export const SimulationControls: React.FC<SimulationControlsProps> = ({
                     type="button"
                     className={menuItemStyle({
                       selected: stoppingCondition === "fixed",
+                      disabled: hasSimulation,
                     })}
-                    onClick={() => setStoppingCondition("fixed")}
+                    onClick={() =>
+                      !hasSimulation && handleStoppingConditionChange("fixed")
+                    }
+                    aria-disabled={hasSimulation}
+                    title={
+                      hasSimulation
+                        ? "Reset simulation to change stopping conditions"
+                        : undefined
+                    }
                   >
                     <TbClock className={menuItemIconStyle} />
-                    <span className={menuItemTextStyle}>
-                      End at fixed steps/time
-                    </span>
+                    <span className={menuItemTextStyle}>End at fixed time</span>
                     {stoppingCondition === "fixed" && (
-                      <MdCheck className={checkIconStyle} />
+                      <>
+                        <input
+                          type="number"
+                          min="0.1"
+                          step="0.1"
+                          value={maxTime ?? 10}
+                          disabled={hasSimulation}
+                          onChange={(event) => {
+                            const value = Number.parseFloat(event.target.value);
+                            if (!Number.isNaN(value) && value > 0) {
+                              setMaxTime(value);
+                            }
+                          }}
+                          onClick={(event) => event.stopPropagation()}
+                          className={maxTimeInputStyle}
+                          aria-label="Maximum simulation time in seconds"
+                        />
+                        <span
+                          style={{
+                            fontSize: "12px",
+                            color: "var(--colors-gray-50)",
+                          }}
+                        >
+                          s
+                        </span>
+                      </>
                     )}
-                  </button>
-                  <button
-                    type="button"
-                    className={menuItemStyle({
-                      selected: stoppingCondition === "condition",
-                    })}
-                    onClick={() => setStoppingCondition("condition")}
-                  >
-                    <MdCheckBox className={menuItemIconStyle} />
-                    <span className={menuItemTextStyle}>
-                      End when condition satisfied
-                    </span>
-                    {stoppingCondition === "condition" && (
-                      <MdCheck className={checkIconStyle} />
+                    {stoppingCondition !== "fixed" && (
+                      <MdCheck
+                        className={checkIconStyle}
+                        style={{ visibility: "hidden" }}
+                      />
                     )}
                   </button>
                   <div className={popoverDividerStyle} />
