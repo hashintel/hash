@@ -143,6 +143,23 @@ impl<A: Allocator + Clone> StatementPlacement<A> for PostgresStatementPlacement 
             body,
             context,
             is_supported_rvalue,
+            initialize_boundary: |body, domain| {
+                match body.source {
+                    Source::GraphReadFilter(_) => {}
+                    Source::Ctor(_)
+                    | Source::Closure(..)
+                    | Source::Thunk(..)
+                    | Source::Intrinsic(_) => return,
+                }
+
+                debug_assert_eq!(body.args, 2);
+                // Inside of postgres, the first argument (the env) can only be transferred if it
+                // doesn't contain unsupported data, aka: no closure pointers
+
+                // The entity itself is also never supported directly, because we need to construct
+                // that one
+                domain.remove(Local::new(1));
+            },
         }
         .finish_in(alloc);
 

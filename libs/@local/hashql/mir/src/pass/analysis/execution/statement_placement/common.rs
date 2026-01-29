@@ -29,11 +29,14 @@ use crate::{
 type RValueFn<'heap> =
     fn(&MirContext<'_, 'heap>, &Body<'heap>, &DenseBitSet<Local>, &RValue<'heap>) -> bool;
 
+type InitializeBoundaryFn<'heap> = fn(&Body<'heap>, &mut DenseBitSet<Local>);
+
 pub(crate) struct SupportedAnalysis<'ctx, 'env, 'heap> {
     pub body: &'ctx Body<'heap>,
     pub context: &'ctx MirContext<'env, 'heap>,
 
     pub is_supported_rvalue: RValueFn<'heap>,
+    pub initialize_boundary: InitializeBoundaryFn<'heap>,
 }
 
 impl SupportedAnalysis<'_, '_, '_> {
@@ -66,7 +69,14 @@ impl<'heap> DataflowAnalysis<'heap> for SupportedAnalysis<'_, '_, 'heap> {
         Reverse(PowersetLattice::new(body.local_decls.len()))
     }
 
-    fn initialize_boundary<A: Allocator>(&self, _: &Body<'heap>, _: &mut Self::Domain<A>, _: A) {}
+    fn initialize_boundary<A: Allocator>(
+        &self,
+        body: &Body<'heap>,
+        domain: &mut Self::Domain<A>,
+        _: A,
+    ) {
+        (self.initialize_boundary)(body, domain)
+    }
 
     fn transfer_statement<A: Allocator>(
         &self,
