@@ -206,6 +206,12 @@ export type SimulationContextValue = {
   parameterValues: Record<string, string>;
   initialMarking: InitialMarking;
   dt: number;
+  /**
+   * Maximum simulation time in seconds.
+   * When the simulation reaches this time, it will be marked as "Complete".
+   * If null, the simulation runs until no transitions are enabled.
+   */
+  maxTime: number | null;
 
   // Actions
   setInitialMarking: (
@@ -214,6 +220,11 @@ export type SimulationContextValue = {
   ) => void;
   setParameterValue: (parameterId: string, value: string) => void;
   setDt: (dt: number) => void;
+  /**
+   * Set the maximum simulation time in seconds.
+   * Pass null to disable the time limit.
+   */
+  setMaxTime: (maxTime: number | null) => void;
   initializeParameterValuesFromDefaults: () => void;
   initialize: (params: { seed: number; dt: number }) => void;
   run: () => void;
@@ -229,9 +240,11 @@ const DEFAULT_CONTEXT_VALUE: SimulationContextValue = {
   parameterValues: {},
   initialMarking: new Map(),
   dt: 0.01,
+  maxTime: null,
   setInitialMarking: () => {},
   setParameterValue: () => {},
   setDt: () => {},
+  setMaxTime: () => {},
   initializeParameterValuesFromDefaults: () => {},
   initialize: () => {},
   run: () => {},
