@@ -208,10 +208,15 @@ export type SimulationContextValue = {
   dt: number;
   /**
    * Maximum simulation time in seconds.
-   * When the simulation reaches this time, it will be marked as "Complete".
+   * When the simulation reaches this time, it will be paused.
    * If null, the simulation runs until no transitions are enabled.
    */
   maxTime: number | null;
+  /**
+   * Duration in seconds to buffer ahead when in computeBuffer mode.
+   * Default is 1 second.
+   */
+  computeBufferDuration: number;
 
   // Actions
   setInitialMarking: (
@@ -225,6 +230,10 @@ export type SimulationContextValue = {
    * Pass null to disable the time limit.
    */
   setMaxTime: (maxTime: number | null) => void;
+  /**
+   * Set the compute buffer duration in seconds.
+   */
+  setComputeBufferDuration: (duration: number) => void;
   initializeParameterValuesFromDefaults: () => void;
   initialize: (params: { seed: number; dt: number }) => void;
   run: () => void;
@@ -241,10 +250,12 @@ const DEFAULT_CONTEXT_VALUE: SimulationContextValue = {
   initialMarking: new Map(),
   dt: 0.01,
   maxTime: null,
+  computeBufferDuration: 1,
   setInitialMarking: () => {},
   setParameterValue: () => {},
   setDt: () => {},
   setMaxTime: () => {},
+  setComputeBufferDuration: () => {},
   initializeParameterValuesFromDefaults: () => {},
   initialize: () => {},
   run: () => {},
