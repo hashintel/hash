@@ -258,6 +258,7 @@ fn assert_admin_reduction_pass<'heap>(
         indent: 4,
         sources: (),
         types: &mut formatter,
+        annotations: (),
     }
     .build();
 

@@ -68,6 +68,7 @@ fn format_body<'heap>(env: &Environment<'heap>, body: &Body<'heap>) -> impl Disp
         indent: 4,
         sources: (),
         types: TypeFormatter::new(&formatter, env, TypeFormatterOptions::terse()),
+        annotations: (),
     }
     .build();
 

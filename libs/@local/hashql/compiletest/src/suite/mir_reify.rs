@@ -92,6 +92,7 @@ pub(crate) fn mir_format_text<'heap>(
         indent: 4,
         sources: bodies,
         types,
+        annotations: (),
     }
     .build();
 
