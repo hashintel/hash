@@ -27,6 +27,7 @@ use crate::{
     visit::Visitor,
 };
 
+/// Single-use value wrapper ensuring a value is consumed exactly once.
 pub(crate) struct OnceValue<T>(Cell<Option<T>>);
 
 impl<T> OnceValue<T> {
@@ -45,6 +46,14 @@ type RValueFn<'heap> =
 type OperandFn<'heap> =
     fn(&MirContext<'_, 'heap>, &Body<'heap>, &DenseBitSet<Local>, &Operand<'heap>) -> bool;
 
+/// Computes which locals can be dispatched to an execution target.
+///
+/// This is a "must" analysis: a local is only considered dispatchable if it is supported along
+/// *all* paths reaching return blocks. If any path produces an unsupported value for a local,
+/// that local is excluded from the dispatchable set.
+///
+/// The analysis is parameterized by target-specific predicates that determine whether individual
+/// rvalues and operands are supported by that target.
 pub(crate) struct SupportedAnalysis<'ctx, 'env, 'heap, B> {
     pub body: &'ctx Body<'heap>,
     pub context: &'ctx MirContext<'env, 'heap>,
@@ -55,6 +64,9 @@ pub(crate) struct SupportedAnalysis<'ctx, 'env, 'heap, B> {
 }
 
 impl<'heap, B> SupportedAnalysis<'_, '_, 'heap, B> {
+    /// Runs the analysis and returns the set of dispatchable locals.
+    ///
+    /// A local is dispatchable only if it is supported at every return block.
     pub(crate) fn finish_in<A: Allocator + Clone>(self, alloc: A) -> DenseBitSet<Local>
     where
         B: FnOnce(&Body<'heap>, &mut DenseBitSet<Local>),
@@ -149,6 +161,11 @@ where
     }
 }
 
+/// Assigns costs to statements based on the dispatchable set.
+///
+/// After the supportedness analysis computes which locals are dispatchable, this visitor walks
+/// the body and assigns costs. A statement receives a cost if its rvalue is supported given the
+/// dispatchable locals; otherwise it gets `None`. Storage statements always receive zero cost.
 pub(crate) struct CostVisitor<'ctx, 'env, 'heap> {
     pub body: &'ctx Body<'heap>,
     pub context: &'ctx MirContext<'env, 'heap>,

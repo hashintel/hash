@@ -34,8 +34,7 @@ impl<'heap> Visitor<'heap> for CostVisitor<'heap> {
         location: Location,
         statement: &Statement<'heap>,
     ) -> Self::Result {
-        // Due to `TraversalExtraction`, we're able to access all the data through the use of
-        // dedicated traversals from the backend. Therefore the cost keeps being the same.
+        // All statements are supported; TraversalExtraction provides backend data access
         match &statement.kind {
             StatementKind::Assign(_) => {
                 self.statement_costs[location] = Some(self.cost);
@@ -49,6 +48,9 @@ impl<'heap> Visitor<'heap> for CostVisitor<'heap> {
     }
 }
 
+/// Statement placement for the [`Interpreter`] execution target.
+///
+/// Supports all statements unconditionally, serving as the universal fallback.
 #[derive(Debug)]
 pub struct InterpreterStatementPlacement {
     statement_cost: Cost,

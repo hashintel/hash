@@ -31,11 +31,9 @@ fn is_supported_place<'heap>(
     domain: &DenseBitSet<Local>,
     place: &Place<'heap>,
 ) -> bool {
-    // the first argument to the function is the environment, which depends on the domain, and
-    // the second local is the filter itself. Therefore the second argument is specially handled.
+    // For GraphReadFilter bodies, local 1 is the filter argument (vertex). Check if the
+    // projection path maps to an Embedding-accessible field.
     if matches!(body.source, Source::GraphReadFilter(_)) && place.local.as_usize() == 1 {
-        // we must first check the type, to determine what "type" of filter it is, the function will
-        // have a vertex, which is an opaque of either entity, entity-type, etc.
         let local_type = body.local_decls[place.local].r#type;
         let type_name = context
             .env
@@ -85,11 +83,13 @@ fn is_supported_rvalue<'heap>(
     }
 }
 
+/// Statement placement for the [`Embedding`] execution target.
+///
+/// Only supports loading from entity projections that access the `encodings.vectors` path.
+/// No arguments are transferable, and no other operations are supported.
 pub struct EmbeddingStatementPlacement {
     statement_cost: Cost,
 }
-
-// Embeddings only support anything in the `encoding.vectors` path, which is in the entity try.
 impl Default for EmbeddingStatementPlacement {
     fn default() -> Self {
         Self {
@@ -125,7 +125,7 @@ impl<'heap, A: Allocator + Clone> StatementPlacement<'heap, A> for EmbeddingStat
 
                     debug_assert_eq!(body.args, 2);
 
-                    // Inside of an embedding, no arguments are allowed to be transferred
+                    // Embedding backend cannot receive any arguments directly
                     for arg in 0..body.args {
                         domain.remove(Local::new(arg));
                     }

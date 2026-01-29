@@ -49,11 +49,9 @@ fn is_supported_place<'heap>(
     domain: &DenseBitSet<Local>,
     place: &Place<'heap>,
 ) -> bool {
-    // the first argument to the function is the environment, which depends on the domain, and
-    // the second local is the filter itself. Therefore the second argument is specially handled.
+    // For GraphReadFilter bodies, local 1 is the filter argument (vertex). Check if the
+    // projection path maps to a Postgres-accessible field.
     if matches!(body.source, Source::GraphReadFilter(_)) && place.local.as_usize() == 1 {
-        // we must first check the type, to determine what "type" of filter it is, the function will
-        // have a vertex, which is an opaque of either entity, entity-type, etc.
         let local_type = body.local_decls[place.local].r#type;
         let type_name = context
             .env
@@ -96,14 +94,12 @@ fn is_supported_rvalue<'heap>(
     match rvalue {
         RValue::Load(operand) => is_supported_operand(context, body, domain, operand),
         RValue::Binary(Binary { op: _, left, right }) => {
-            // Any binary operation present and supported is also supported by postgres (given that
-            // the type is first coerced)
+            // All MIR binary operations have Postgres equivalents (with type coercion)
             is_supported_operand(context, body, domain, left)
                 && is_supported_operand(context, body, domain, right)
         }
         RValue::Unary(Unary { op: _, operand }) => {
-            // Any unary operation currently support is also supported by postgres, given a type
-            // coercion.
+            // All MIR unary operations have Postgres equivalents (with type coercion)
             is_supported_operand(context, body, domain, operand)
         }
         RValue::Aggregate(Aggregate { kind, operands }) => {
@@ -111,16 +107,14 @@ fn is_supported_rvalue<'heap>(
                 return false;
             }
 
-            // We can construct a JSONB equivalent for each data type (opaques are simply
-            // eliminated) given that we work in JSONB.
+            // Non-closure aggregates can be constructed as JSONB
             operands
                 .iter()
                 .all(|operand| is_supported_operand(context, body, domain, operand))
         }
-        // In general input is supported, as long as these parameters are given to the query
-        // beforehand
+        // Query parameters are passed to Postgres
         RValue::Input(_) => true,
-        // Function calls are in general **not** supported
+        // Function calls cannot be pushed to Postgres
         RValue::Apply(_) => false,
     }
 }
@@ -142,6 +136,11 @@ impl<'heap> r#type::visit::Visitor<'heap> for HasClosureVisitor<'_, 'heap> {
     }
 }
 
+/// Statement placement for the [`Postgres`] execution target.
+///
+/// Supports constants, binary/unary operations, aggregates (except closures), inputs, and entity
+/// field projections that map to Postgres columns or JSONB paths. The environment argument is
+/// only transferable if it contains no closure types.
 pub struct PostgresStatementPlacement<'heap> {
     statement_cost: Cost,
     type_visitor_guard: RecursiveVisitorGuard<'heap>,
@@ -185,22 +184,20 @@ impl<'heap, A: Allocator + Clone> StatementPlacement<'heap, A>
 
                     debug_assert_eq!(body.args, 2);
 
-                    // Inside of postgres, the first argument (the env) can only be transferred if
-                    // it doesn't contain unsupported data, aka: no closure pointers
+                    // Environment (local 0) is only transferable if it contains no closures
                     let env_type = body.local_decls[Local::new(0)].r#type;
-                    let has_env_pointer = (
+                    let has_closure = (
                         &mut self.type_visitor_guard,
                         HasClosureVisitor { env: context.env },
                     )
                         .visit_id(env_type)
                         .is_break();
 
-                    if has_env_pointer {
+                    if has_closure {
                         domain.remove(Local::new(0));
                     }
 
-                    // The entity itself is also never supported directly, because we need to
-                    // construct that one
+                    // Entity argument (local 1) must be constructed from field projections
                     domain.remove(Local::new(1));
                 },
             ),

@@ -8,7 +8,6 @@ pub(crate) enum AccessMode {
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub(crate) enum Access {
-    /// Maps to a single column or JSONB path. Any operation can be pushed.
     Postgres(AccessMode),
     Embedding(AccessMode),
 }
@@ -54,6 +53,7 @@ impl PathNode {
         }
     }
 
+    /// Creates a JSONB node where any sub-path is also Postgres-accessible.
     pub(crate) const fn jsonb(name: Symbol<'static>) -> Self {
         Self {
             name,
