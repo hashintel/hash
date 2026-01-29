@@ -1,6 +1,5 @@
 import { css } from "@hashintel/ds-helpers/css";
 import { refractive } from "@hashintel/refractive";
-import { LayoutGroup, motion } from "motion/react";
 import { use, useCallback, useEffect } from "react";
 import { FaChevronDown, FaChevronUp } from "react-icons/fa6";
 
@@ -101,62 +100,56 @@ export const BottomBar: React.FC<BottomBarProps> = ({
     : 24;
 
   return (
-    <LayoutGroup>
-      <div className={bottomBarPositionStyle} style={{ bottom: bottomOffset }}>
-        {/* Edition/Linting segment */}
-        <motion.div layout>
-          <refractive.div
-            className={glassPanelStyle}
-            refraction={{
-              radius: 12,
-              blur: 3,
-              bezelWidth: 20,
-              glassThickness: 100,
-            }}
+    <div className={bottomBarPositionStyle} style={{ bottom: bottomOffset }}>
+      {/* Edition/Linting segment */}
+      <refractive.div
+        className={glassPanelStyle}
+        refraction={{
+          radius: 12,
+          blur: 3,
+          bezelWidth: 20,
+          glassThickness: 100,
+        }}
+      >
+        <div className={toolbarContainerStyle}>
+          <ToolbarButton
+            tooltip={isBottomPanelOpen ? "Hide Panel" : "Show Panel"}
+            onClick={toggleBottomPanel}
+            ariaLabel={isBottomPanelOpen ? "Hide panel" : "Show panel"}
+            ariaExpanded={isBottomPanelOpen}
           >
-            <motion.div className={toolbarContainerStyle} layout>
-              <ToolbarButton
-                tooltip={isBottomPanelOpen ? "Hide Panel" : "Show Panel"}
-                onClick={toggleBottomPanel}
-                ariaLabel={isBottomPanelOpen ? "Hide panel" : "Show panel"}
-                ariaExpanded={isBottomPanelOpen}
-              >
-                {isBottomPanelOpen ? (
-                  <FaChevronDown size={14} />
-                ) : (
-                  <FaChevronUp size={14} />
-                )}
-              </ToolbarButton>
-              <DiagnosticsIndicator
-                onClick={showDiagnostics}
-                isExpanded={isBottomPanelOpen}
-              />
-              <div className={dividerStyle} />
-              <ToolbarModes
-                editionMode={editionMode}
-                onEditionModeChange={onEditionModeChange}
-              />
-            </motion.div>
-          </refractive.div>
-        </motion.div>
+            {isBottomPanelOpen ? (
+              <FaChevronDown size={14} />
+            ) : (
+              <FaChevronUp size={14} />
+            )}
+          </ToolbarButton>
+          <DiagnosticsIndicator
+            onClick={showDiagnostics}
+            isExpanded={isBottomPanelOpen}
+          />
+          <div className={dividerStyle} />
+          <ToolbarModes
+            editionMode={editionMode}
+            onEditionModeChange={onEditionModeChange}
+          />
+        </div>
+      </refractive.div>
 
-        {/* Play/PlaybackSettings/Timeline segment */}
-        <motion.div layout>
-          <refractive.div
-            className={glassPanelStyle}
-            refraction={{
-              radius: 12,
-              blur: 3,
-              bezelWidth: 20,
-              glassThickness: 100,
-            }}
-          >
-            <motion.div className={toolbarContainerStyle} layout>
-              <SimulationControls disabled={hasDiagnostics} />
-            </motion.div>
-          </refractive.div>
-        </motion.div>
-      </div>
-    </LayoutGroup>
+      {/* Play/PlaybackSettings/Timeline segment */}
+      <refractive.div
+        className={glassPanelStyle}
+        refraction={{
+          radius: 12,
+          blur: 3,
+          bezelWidth: 20,
+          glassThickness: 100,
+        }}
+      >
+        <div className={toolbarContainerStyle}>
+          <SimulationControls disabled={hasDiagnostics} />
+        </div>
+      </refractive.div>
+    </div>
   );
 };
