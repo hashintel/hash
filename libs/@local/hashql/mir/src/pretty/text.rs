@@ -1,6 +1,6 @@
 // Textual representation of bodies, based on a similar syntax used by rustc
 
-use std::io;
+use std::io::{self, Write as _};
 
 use hashql_core::{
     id::Id as _,
@@ -52,6 +52,19 @@ struct KeyValuePair<K, V>(K, V);
 
 pub(crate) struct HighlightBody<'def>(pub &'def [DefId]);
 
+pub struct TextFormatOptions<W, S, T> {
+    pub writer: W,
+    pub indent: usize,
+    pub sources: S,
+    pub types: T,
+}
+
+impl<W, S, T> TextFormatOptions<W, S, T> {
+    pub fn build(self) -> TextFormat<W, S, T> {
+        TextFormat::new(self)
+    }
+}
+
 /// A text-based formatter for MIR (Middle Intermediate Representation) structures.
 ///
 /// This formatter converts MIR components into human-readable text representation,
@@ -68,11 +81,32 @@ pub struct TextFormat<W, S, T> {
     /// The writer where formatted text will be written.
     pub writer: W,
     /// Amount of indention per level.
-    pub indent: usize,
+    indent: usize,
     /// Source lookup for resolving symbols and identifiers.
-    pub sources: S,
+    sources: S,
     /// Type formatter for formatting type information.
-    pub types: T,
+    types: T,
+
+    line_buffer: Vec<u8>,
+}
+
+impl<W, S, T> TextFormat<W, S, T> {
+    pub fn new(
+        TextFormatOptions {
+            writer,
+            indent,
+            sources,
+            types,
+        }: TextFormatOptions<W, S, T>,
+    ) -> Self {
+        Self {
+            writer,
+            indent,
+            sources,
+            types,
+            line_buffer: Vec::new(),
+        }
+    }
 }
 
 impl<W, S, T> TextFormat<W, S, T>
@@ -97,7 +131,8 @@ where
         S: SourceLookup<'heap>,
         T: AsMut<TypeFormatter<'fmt, 'env, 'heap>>,
     {
-        self.format_part((bodies, HighlightBody(highlight)))
+        self.format_part((bodies, HighlightBody(highlight)))?;
+        self.flush()
     }
 
     /// Formats a single MIR body as human-readable text.
@@ -118,7 +153,8 @@ where
         S: SourceLookup<'heap>,
         T: AsMut<TypeFormatter<'fmt, 'env, 'heap>>,
     {
-        self.format_part((body, BodyRenderOptions { highlight: false }))
+        self.format_part((body, BodyRenderOptions { highlight: false }))?;
+        self.flush()
     }
 
     fn separated_list<V>(
@@ -137,7 +173,7 @@ where
         self.format_part(first)?;
 
         for value in values {
-            self.writer.write_all(sep)?;
+            self.line_buffer.write_all(sep)?;
             self.format_part(value)?;
         }
 
@@ -152,7 +188,26 @@ where
     }
 
     fn indent(&mut self, level: usize) -> io::Result<()> {
-        write!(self.writer, "{:width$}", "", width = level * self.indent)
+        write!(
+            self.line_buffer,
+            "{:width$}",
+            "",
+            width = level * self.indent
+        )
+    }
+
+    fn newline(&mut self) -> io::Result<()> {
+        self.line_buffer.push(b'\n');
+        self.writer.write_all(&self.line_buffer)?;
+
+        self.line_buffer.clear();
+        Ok(())
+    }
+
+    pub(crate) fn flush(&mut self) -> io::Result<()> {
+        self.writer.write_all(&self.line_buffer)?;
+        self.line_buffer.clear();
+        Ok(())
     }
 }
 
@@ -166,7 +221,7 @@ where
         if let Some(source) = source {
             self.format_part(source)
         } else {
-            write!(self.writer, "{{def@{value}}}")
+            write!(self.line_buffer, "{{def@{value}}}")
         }
     }
 }
@@ -176,7 +231,7 @@ where
     W: io::Write,
 {
     fn format_part(&mut self, value: &str) -> io::Result<()> {
-        write!(self.writer, "{value}")
+        write!(self.line_buffer, "{value}")
     }
 }
 
@@ -185,7 +240,7 @@ where
     W: io::Write,
 {
     fn format_part(&mut self, value: Symbol<'heap>) -> io::Result<()> {
-        write!(self.writer, "{value}")
+        write!(self.line_buffer, "{value}")
     }
 }
 
@@ -194,7 +249,7 @@ where
     W: io::Write,
 {
     fn format_part(&mut self, value: Local) -> io::Result<()> {
-        write!(self.writer, "{value}")
+        write!(self.line_buffer, "{value}")
     }
 }
 
@@ -207,12 +262,12 @@ where
 
         for projection in projections {
             match projection.kind {
-                ProjectionKind::Field(index) => write!(self.writer, ".{index}")?,
-                ProjectionKind::FieldByName(symbol) => write!(self.writer, ".{symbol}")?,
+                ProjectionKind::Field(index) => write!(self.line_buffer, ".{index}")?,
+                ProjectionKind::FieldByName(symbol) => write!(self.line_buffer, ".{symbol}")?,
                 ProjectionKind::Index(local) => {
-                    write!(self.writer, "[")?;
+                    write!(self.line_buffer, "[")?;
                     self.format_part(local)?;
-                    write!(self.writer, "]")?;
+                    write!(self.line_buffer, "]")?;
                 }
             }
         }
@@ -228,13 +283,13 @@ where
 {
     fn format_part(&mut self, value: Constant<'heap>) -> io::Result<()> {
         match value {
-            Constant::Int(int) => write!(self.writer, "{int}"),
-            Constant::Primitive(primitive) => write!(self.writer, "{primitive}"),
-            Constant::Unit => self.writer.write_all(b"()"),
+            Constant::Int(int) => write!(self.line_buffer, "{int}"),
+            Constant::Primitive(primitive) => write!(self.line_buffer, "{primitive}"),
+            Constant::Unit => self.line_buffer.write_all(b"()"),
             Constant::FnPtr(def) => {
-                self.writer.write_all(b"(")?;
+                self.line_buffer.write_all(b"(")?;
                 self.format_part(def)?;
-                self.writer.write_all(b" as FnPtr)")
+                self.line_buffer.write_all(b" as FnPtr)")
             }
         }
     }
@@ -261,24 +316,24 @@ where
         let mut named_symbol = |name, id, binder: Option<Binder<'_>>| {
             if let Some(binder) = binder {
                 if let Some(name) = binder.name {
-                    return self.writer.write_all(name.as_bytes());
+                    return self.line_buffer.write_all(name.as_bytes());
                 }
 
-                return write!(self.writer, "{{{name}#{}}}", binder.id);
+                return write!(self.line_buffer, "{{{name}#{}}}", binder.id);
             }
 
-            write!(self.writer, "{{{name}@{id}}}")
+            write!(self.line_buffer, "{{{name}@{id}}}")
         };
 
         match value {
             Source::Ctor(symbol) => {
-                write!(self.writer, "{{ctor#{symbol}}}")
+                write!(self.line_buffer, "{{ctor#{symbol}}}")
             }
             Source::Closure(id, binder) => named_symbol("closure", id, binder),
             Source::GraphReadFilter(id) => named_symbol("graph::read::filter", id, None),
             Source::Thunk(id, binder) => named_symbol("thunk", id, binder),
             Source::Intrinsic(def_id) => {
-                write!(self.writer, "{{intrinsic#{def_id}}}")
+                write!(self.line_buffer, "{{intrinsic#{def_id}}}")
             }
         }
     }
@@ -292,25 +347,25 @@ where
     fn format_part(&mut self, (id, block): (BasicBlockId, &BasicBlock<'heap>)) -> io::Result<()> {
         self.indent(1)?;
 
-        write!(self.writer, "{id}(")?;
+        write!(self.line_buffer, "{id}(")?;
         self.csv(block.params.iter().copied())?;
-        writeln!(self.writer, "): {{")?;
+        writeln!(self.line_buffer, "): {{")?;
 
         for statement in &block.statements {
             self.format_part(statement)?;
-            self.writer.write_all(b"\n")?;
+            self.newline()?;
         }
 
         if !block.statements.is_empty() {
-            self.writer.write_all(b"\n")?;
+            self.newline()?;
         }
 
         self.indent(2)?;
         self.format_part(&block.terminator)?;
-        self.writer.write_all(b"\n")?;
+        self.newline()?;
 
         self.indent(1)?;
-        writeln!(self.writer, "}}")?;
+        writeln!(self.line_buffer, "}}")?;
 
         Ok(())
     }
@@ -325,9 +380,9 @@ where
     S: SourceLookup<'heap>,
 {
     fn format_part(&mut self, TargetParams(args): TargetParams<'heap>) -> io::Result<()> {
-        write!(self.writer, "(")?;
+        write!(self.line_buffer, "(")?;
         self.csv(args.iter().copied())?;
-        write!(self.writer, ")")
+        write!(self.line_buffer, ")")
     }
 }
 
@@ -337,7 +392,7 @@ where
     S: SourceLookup<'heap>,
 {
     fn format_part(&mut self, Target { block, args }: Target<'heap>) -> io::Result<()> {
-        write!(self.writer, "{block}")?;
+        write!(self.line_buffer, "{block}")?;
         self.format_part(TargetParams(args))
     }
 }
@@ -350,7 +405,7 @@ where
     S: SourceLookup<'heap>,
 {
     fn format_part(&mut self, AnonymousTarget(id): AnonymousTarget) -> io::Result<()> {
-        write!(self.writer, "{id}(_)")
+        write!(self.line_buffer, "{id}(_)")
     }
 }
 
@@ -378,7 +433,7 @@ where
     fn format_part(&mut self, Type(r#type, options): Type) -> io::Result<()> {
         self.types
             .as_mut()
-            .render_into(r#type, options.render(), &mut self.writer)
+            .render_into(r#type, options.render(), &mut self.line_buffer)
     }
 }
 
@@ -389,10 +444,10 @@ where
     T: AsMut<TypeFormatter<'fmt, 'env, 'heap>>,
 {
     fn format_part(&mut self, Signature(body, options): Signature<'body, 'heap>) -> io::Result<()> {
-        write!(self.writer, "{} ", source_keyword(body.source))?;
+        write!(self.line_buffer, "{} ", source_keyword(body.source))?;
         self.format_part(body.source)?;
 
-        self.writer.write_all(b"(")?;
+        self.line_buffer.write_all(b"(")?;
         self.csv((0..body.args).map(Local::new).map(|local| {
             let decl = body.local_decls[local];
 
@@ -406,7 +461,7 @@ where
                 ),
             )
         }))?;
-        self.writer.write_all(b") -> ")?;
+        self.line_buffer.write_all(b") -> ")?;
         self.format_part(Type(
             body.return_type,
             TypeOptions {
@@ -426,9 +481,9 @@ where
     fn format_part(&mut self, value: GraphReadHead<'heap>) -> io::Result<()> {
         match value {
             GraphReadHead::Entity { axis } => {
-                self.writer.write_all(b"entities(")?;
+                self.line_buffer.write_all(b"entities(")?;
                 self.format_part(axis)?;
-                self.writer.write_all(b")")
+                self.line_buffer.write_all(b")")
             }
         }
     }
@@ -442,11 +497,11 @@ where
     fn format_part(&mut self, value: GraphReadBody) -> io::Result<()> {
         match value {
             GraphReadBody::Filter(def_id, local) => {
-                self.writer.write_all(b"filter(")?;
+                self.line_buffer.write_all(b"filter(")?;
                 self.format_part(def_id)?;
-                self.writer.write_all(b", ")?;
+                self.line_buffer.write_all(b", ")?;
                 self.format_part(local)?;
-                self.writer.write_all(b")")
+                self.line_buffer.write_all(b")")
             }
         }
     }
@@ -458,7 +513,7 @@ where
 {
     fn format_part(&mut self, value: GraphReadTail) -> io::Result<()> {
         match value {
-            GraphReadTail::Collect => self.writer.write_all(b"collect"),
+            GraphReadTail::Collect => self.line_buffer.write_all(b"collect"),
         }
     }
 }
@@ -477,19 +532,19 @@ where
             target: _,
         }: &GraphRead<'heap>,
     ) -> io::Result<()> {
-        self.writer.write_all(b"graph read ")?;
+        self.line_buffer.write_all(b"graph read ")?;
         self.format_part(*head)?;
 
         for &body in body {
-            self.writer.write_all(b"\n")?;
+            self.newline()?;
             self.indent(2)?;
-            self.writer.write_all(b"|> ")?;
+            self.line_buffer.write_all(b"|> ")?;
             self.format_part(body)?;
         }
 
-        self.writer.write_all(b"\n")?;
+        self.newline()?;
         self.indent(2)?;
-        self.writer.write_all(b"|> ")?;
+        self.line_buffer.write_all(b"|> ")?;
         self.format_part(*tail)
     }
 }
@@ -507,21 +562,21 @@ where
 {
     fn format_part(&mut self, TerminatorHead(kind): TerminatorHead<'_, 'heap>) -> io::Result<()> {
         match kind {
-            &TerminatorKind::Goto(Goto { target: _ }) => write!(self.writer, "goto"),
+            &TerminatorKind::Goto(Goto { target: _ }) => write!(self.line_buffer, "goto"),
             &TerminatorKind::SwitchInt(SwitchInt {
                 discriminant,
                 targets: _,
             }) => {
-                write!(self.writer, "switchInt(")?;
+                write!(self.line_buffer, "switchInt(")?;
                 self.format_part(discriminant)?;
-                self.writer.write_all(b")")
+                self.line_buffer.write_all(b")")
             }
             &TerminatorKind::Return(Return { value }) => {
-                write!(self.writer, "return ")?;
+                write!(self.line_buffer, "return ")?;
                 self.format_part(value)
             }
             TerminatorKind::GraphRead(graph_read) => self.format_part(graph_read),
-            TerminatorKind::Unreachable => write!(self.writer, "unreachable"),
+            TerminatorKind::Unreachable => write!(self.line_buffer, "unreachable"),
         }
     }
 }
@@ -531,7 +586,7 @@ where
     W: io::Write,
 {
     fn format_part(&mut self, value: u128) -> io::Result<()> {
-        write!(self.writer, "{value}")
+        write!(self.line_buffer, "{value}")
     }
 }
 
@@ -543,24 +598,24 @@ where
     fn format_part(&mut self, TerminatorTail(kind): TerminatorTail<'_, 'heap>) -> io::Result<()> {
         match kind {
             &TerminatorKind::Goto(Goto { target }) => {
-                write!(self.writer, " -> ")?;
+                write!(self.line_buffer, " -> ")?;
                 self.format_part(target)
             }
             TerminatorKind::SwitchInt(SwitchInt {
                 discriminant: _,
                 targets,
             }) => {
-                write!(self.writer, " -> [")?;
+                write!(self.line_buffer, " -> [")?;
                 self.csv(
                     targets
                         .iter()
                         .map(|(value, target)| KeyValuePair(value, target)),
                 )?;
                 if let Some(otherwise) = targets.otherwise() {
-                    write!(self.writer, ", otherwise: ")?;
+                    write!(self.line_buffer, ", otherwise: ")?;
                     self.format_part(otherwise)?;
                 }
-                write!(self.writer, "]")
+                write!(self.line_buffer, "]")
             }
             &TerminatorKind::Return(_) | TerminatorKind::Unreachable => Ok(()),
             TerminatorKind::GraphRead(GraphRead {
@@ -569,7 +624,7 @@ where
                 tail: _,
                 target,
             }) => {
-                write!(self.writer, " -> ")?;
+                write!(self.line_buffer, " -> ")?;
                 self.format_part(AnonymousTarget(*target))
             }
         }
@@ -594,7 +649,7 @@ where
 {
     fn format_part(&mut self, Binary { op, left, right }: Binary<'heap>) -> io::Result<()> {
         self.format_part(left)?;
-        write!(self.writer, " {} ", op.as_str())?;
+        write!(self.line_buffer, " {} ", op.as_str())?;
         self.format_part(right)
     }
 }
@@ -605,7 +660,7 @@ where
     S: SourceLookup<'heap>,
 {
     fn format_part(&mut self, Unary { op, operand }: Unary<'heap>) -> io::Result<()> {
-        write!(self.writer, "{}", op.as_str())?;
+        write!(self.line_buffer, "{}", op.as_str())?;
         self.format_part(operand)
     }
 }
@@ -617,7 +672,7 @@ where
 {
     fn format_part(&mut self, KeyValuePair(key, value): KeyValuePair<K, V>) -> io::Result<()> {
         self.format_part(key)?;
-        self.writer.write_all(b": ")?;
+        self.line_buffer.write_all(b": ")?;
         self.format_part(value)
     }
 }
@@ -630,12 +685,12 @@ where
     fn format_part(&mut self, Aggregate { kind, operands }: &Aggregate<'heap>) -> io::Result<()> {
         match kind {
             AggregateKind::Tuple => {
-                self.writer.write_all(b"(")?;
+                self.line_buffer.write_all(b"(")?;
                 self.csv(operands.iter().copied())?;
-                self.writer.write_all(b")")
+                self.line_buffer.write_all(b")")
             }
             AggregateKind::Struct { fields } => {
-                self.writer.write_all(b"(")?;
+                self.line_buffer.write_all(b"(")?;
 
                 self.csv(
                     fields
@@ -644,15 +699,15 @@ where
                         .map(|(&key, &value)| KeyValuePair(key, value)),
                 )?;
 
-                self.writer.write_all(b")")
+                self.line_buffer.write_all(b")")
             }
             AggregateKind::List => {
-                self.writer.write_all(b"list(")?;
+                self.line_buffer.write_all(b"list(")?;
                 self.csv(operands.iter().copied())?;
-                self.writer.write_all(b")")
+                self.line_buffer.write_all(b")")
             }
             AggregateKind::Dict => {
-                self.writer.write_all(b"dict(")?;
+                self.line_buffer.write_all(b"dict(")?;
 
                 self.csv(
                     operands
@@ -662,19 +717,19 @@ where
                         .map(|[key, value]| KeyValuePair(key, value)),
                 )?;
 
-                self.writer.write_all(b")")
+                self.line_buffer.write_all(b")")
             }
             AggregateKind::Opaque(symbol) => {
-                self.writer.write_all(b"opaque(")?;
-                self.writer.write_all(symbol.as_bytes())?;
-                self.writer.write_all(b", ")?;
+                self.line_buffer.write_all(b"opaque(")?;
+                self.line_buffer.write_all(symbol.as_bytes())?;
+                self.line_buffer.write_all(b", ")?;
                 self.csv(operands.iter().copied())?;
-                self.writer.write_all(b")")
+                self.line_buffer.write_all(b")")
             }
             AggregateKind::Closure => {
-                self.writer.write_all(b"closure(")?;
+                self.line_buffer.write_all(b"closure(")?;
                 self.csv(operands.iter().copied())?;
-                self.writer.write_all(b")")
+                self.line_buffer.write_all(b")")
             }
         }
     }
@@ -685,18 +740,18 @@ where
     W: io::Write,
 {
     fn format_part(&mut self, Input { op, name }: Input<'heap>) -> io::Result<()> {
-        self.writer.write_all(b"input ")?;
+        self.line_buffer.write_all(b"input ")?;
 
         match op {
             InputOp::Load { required: _ } => {
-                self.writer.write_all(b"LOAD ")?;
+                self.line_buffer.write_all(b"LOAD ")?;
             }
             InputOp::Exists => {
-                self.writer.write_all(b"EXISTS ")?;
+                self.line_buffer.write_all(b"EXISTS ")?;
             }
         }
 
-        self.writer.write_all(name.as_bytes())
+        self.line_buffer.write_all(name.as_bytes())
     }
 }
 
@@ -712,11 +767,11 @@ where
             arguments,
         }: &Apply<'heap>,
     ) -> io::Result<()> {
-        self.writer.write_all(b"apply ")?;
+        self.line_buffer.write_all(b"apply ")?;
         self.format_part(*function)?;
 
         for argument in arguments {
-            self.writer.write_all(b" ")?;
+            self.line_buffer.write_all(b" ")?;
             self.format_part(*argument)?;
         }
 
@@ -752,16 +807,16 @@ where
         match kind {
             StatementKind::Assign(Assign { lhs, rhs }) => {
                 self.format_part(*lhs)?;
-                self.writer.write_all(b" = ")?;
+                self.line_buffer.write_all(b" = ")?;
                 self.format_part(rhs)
             }
-            StatementKind::Nop => self.writer.write_all(b"nop"),
+            StatementKind::Nop => self.line_buffer.write_all(b"nop"),
             &StatementKind::StorageLive(local) => {
-                self.writer.write_all(b"let ")?;
+                self.line_buffer.write_all(b"let ")?;
                 self.format_part(local)
             }
             &StatementKind::StorageDead(local) => {
-                self.writer.write_all(b"drop ")?;
+                self.line_buffer.write_all(b"drop ")?;
                 self.format_part(local)
             }
         }
@@ -784,7 +839,7 @@ where
         (body, options): (&Body<'heap>, BodyRenderOptions),
     ) -> io::Result<()> {
         if options.highlight {
-            self.writer.write_all(b"*")?;
+            self.line_buffer.write_all(b"*")?;
         }
 
         self.format_part(Signature(
@@ -793,34 +848,35 @@ where
                 format: RenderFormat::Plain,
             },
         ))?;
-        self.writer.write_all(b" {\n")?;
+        self.line_buffer.write_all(b" {")?;
+        self.newline()?;
 
         // Do not render locals that are arguments, as they are already rendered in the signature
         for (local, decl) in body.local_decls.iter_enumerated().skip(body.args) {
             self.indent(1)?;
-            write!(self.writer, "let {local}: ")?;
+            write!(self.line_buffer, "let {local}: ")?;
             self.format_part(Type(
                 decl.r#type,
                 TypeOptions {
                     format: RenderFormat::Plain,
                 },
             ))?;
-            self.writer.write_all(b"\n")?;
+            self.newline()?;
         }
 
         if body.local_decls.len() > body.args {
-            self.writer.write_all(b"\n")?;
+            self.newline()?;
         }
 
         for (index, block) in body.basic_blocks.iter_enumerated() {
             if index.as_usize() > 0 {
-                self.writer.write_all(b"\n")?;
+                self.newline()?;
             }
 
             self.format_part((index, block))?;
         }
 
-        self.writer.write_all(b"}")?;
+        self.line_buffer.write_all(b"}")?;
         Ok(())
     }
 }

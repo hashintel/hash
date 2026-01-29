@@ -25,7 +25,7 @@ use crate::{
     def::DefIdSlice,
     intern::Interner,
     pass::{Changed, TransformPass as _},
-    pretty::TextFormat,
+    pretty::TextFormatOptions,
 };
 
 #[track_caller]
@@ -40,12 +40,13 @@ fn assert_inst_simplify_pass<'heap>(
         context.env,
         TypeFormatterOptions::terse().with_qualified_opaque_names(true),
     );
-    let mut text_format = TextFormat {
+    let mut text_format = TextFormatOptions {
         writer: Vec::new(),
         indent: 4,
         sources: (),
         types: &mut formatter,
-    };
+    }
+    .build();
 
     let mut bodies = [body];
 

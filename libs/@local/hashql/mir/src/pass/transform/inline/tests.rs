@@ -30,7 +30,7 @@ use crate::{
             BodyProperties, Candidate, analysis::InlineDirective, heuristics::InlineHeuristics,
         },
     },
-    pretty::TextFormat,
+    pretty::TextFormatOptions,
 };
 
 /// Creates an identity function: `fn(x: Int) -> Int { return x; }`.
@@ -84,12 +84,13 @@ fn format_bodies<'heap>(
         context.env,
         TypeFormatterOptions::terse().with_qualified_opaque_names(true),
     );
-    let mut text_format = TextFormat {
+    let mut text_format = TextFormatOptions {
         writer: Vec::new(),
         indent: 4,
         sources: (),
         types: &mut formatter,
-    };
+    }
+    .build();
 
     text_format
         .format(bodies, &[])

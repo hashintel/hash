@@ -17,7 +17,7 @@ use crate::{
     builder::body,
     intern::Interner,
     pass::analysis::dataflow::framework::{DataflowAnalysis as _, DataflowResults, Direction},
-    pretty::TextFormat,
+    pretty::TextFormatOptions,
 };
 
 fn format_liveness_state(mut write: impl fmt::Write, state: &DenseBitSet<Local>) -> fmt::Result {
@@ -63,12 +63,13 @@ fn format_liveness(
 
 fn format_body<'heap>(env: &Environment<'heap>, body: &Body<'heap>) -> impl Display {
     let formatter = Formatter::new(env.heap);
-    let mut text_formatter = TextFormat {
+    let mut text_formatter = TextFormatOptions {
         writer: Vec::<u8>::new(),
         indent: 4,
         sources: (),
         types: TypeFormatter::new(&formatter, env, TypeFormatterOptions::terse()),
-    };
+    }
+    .build();
 
     text_formatter.format_body(body).expect("infallible");
 
