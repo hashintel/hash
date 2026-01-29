@@ -1,14 +1,19 @@
-use core::alloc::Allocator;
+use core::{alloc::Allocator, ops::ControlFlow};
 
 use hashql_core::{
     heap::Heap,
     id::{Id as _, bit_vec::DenseBitSet},
     symbol::sym,
+    r#type::{
+        self,
+        environment::Environment,
+        visit::{RecursiveVisitorGuard, Visitor as _},
+    },
 };
 
 use super::{
     StatementPlacement,
-    common::{CostVisitor, SupportedAnalysis},
+    common::{CostVisitor, OnceValue, SupportedAnalysis},
 };
 use crate::{
     body::{
@@ -24,6 +29,7 @@ use crate::{
         analysis::execution::{
             cost::{Cost, StatementCostVec, TraversalCostVec},
             statement_placement::lookup::{Access, entity_projection_access},
+            target::Postgres,
         },
         transform::Traversals,
     },
@@ -119,21 +125,44 @@ fn is_supported_rvalue<'heap>(
     }
 }
 
-pub(crate) struct PostgresStatementPlacement {
-    statement_cost: Cost,
+struct HasClosureVisitor<'env, 'heap> {
+    env: &'env Environment<'heap>,
 }
 
-impl Default for PostgresStatementPlacement {
+impl<'heap> r#type::visit::Visitor<'heap> for HasClosureVisitor<'_, 'heap> {
+    type Filter = r#type::visit::filter::Deep;
+    type Result = ControlFlow<()>;
+
+    fn env(&self) -> &Environment<'heap> {
+        self.env
+    }
+
+    fn visit_closure(&mut self, _: r#type::Type<'heap, r#type::kind::ClosureType>) -> Self::Result {
+        ControlFlow::Break(())
+    }
+}
+
+pub(crate) struct PostgresStatementPlacement<'heap> {
+    statement_cost: Cost,
+    type_visitor_guard: RecursiveVisitorGuard<'heap>,
+}
+
+impl Default for PostgresStatementPlacement<'_> {
     fn default() -> Self {
         Self {
             statement_cost: cost!(4),
+            type_visitor_guard: RecursiveVisitorGuard::default(),
         }
     }
 }
 
-impl<A: Allocator + Clone> StatementPlacement<A> for PostgresStatementPlacement {
-    fn statement_placement<'heap>(
-        &self,
+impl<'heap, A: Allocator + Clone> StatementPlacement<'heap, A>
+    for PostgresStatementPlacement<'heap>
+{
+    type Target = Postgres;
+
+    fn statement_placement(
+        &mut self,
         context: &MirContext<'_, 'heap>,
         body: &Body<'heap>,
         traversals: &Traversals<'heap>,
@@ -143,23 +172,37 @@ impl<A: Allocator + Clone> StatementPlacement<A> for PostgresStatementPlacement 
             body,
             context,
             is_supported_rvalue,
-            initialize_boundary: |body, domain| {
-                match body.source {
-                    Source::GraphReadFilter(_) => {}
-                    Source::Ctor(_)
-                    | Source::Closure(..)
-                    | Source::Thunk(..)
-                    | Source::Intrinsic(_) => return,
-                }
+            initialize_boundary: OnceValue::new(
+                |body: &Body<'heap>, domain: &mut DenseBitSet<Local>| {
+                    match body.source {
+                        Source::GraphReadFilter(_) => {}
+                        Source::Ctor(_)
+                        | Source::Closure(..)
+                        | Source::Thunk(..)
+                        | Source::Intrinsic(_) => return,
+                    }
 
-                debug_assert_eq!(body.args, 2);
-                // Inside of postgres, the first argument (the env) can only be transferred if it
-                // doesn't contain unsupported data, aka: no closure pointers
+                    debug_assert_eq!(body.args, 2);
 
-                // The entity itself is also never supported directly, because we need to construct
-                // that one
-                domain.remove(Local::new(1));
-            },
+                    // Inside of postgres, the first argument (the env) can only be transferred if
+                    // it doesn't contain unsupported data, aka: no closure pointers
+                    let env_type = body.local_decls[Local::new(0)].r#type;
+                    let has_env_pointer = (
+                        &mut self.type_visitor_guard,
+                        HasClosureVisitor { env: context.env },
+                    )
+                        .visit_id(env_type)
+                        .is_break();
+
+                    if has_env_pointer {
+                        domain.remove(Local::new(0));
+                    }
+
+                    // The entity itself is also never supported directly, because we need to
+                    // construct that one
+                    domain.remove(Local::new(1));
+                },
+            ),
         }
         .finish_in(alloc);
 

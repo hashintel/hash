@@ -8,7 +8,7 @@ use hashql_core::{
 
 use super::{
     StatementPlacement,
-    common::{CostVisitor, SupportedAnalysis},
+    common::{CostVisitor, OnceValue, SupportedAnalysis},
 };
 use crate::{
     body::{Body, Source, local::Local, operand::Operand, place::Place, rvalue::RValue},
@@ -18,6 +18,7 @@ use crate::{
             Cost, StatementCostVec,
             cost::TraversalCostVec,
             statement_placement::lookup::{Access, entity_projection_access},
+            target::Embedding,
         },
         transform::Traversals,
     },
@@ -97,9 +98,11 @@ impl Default for EmbeddingStatementPlacement {
     }
 }
 
-impl<A: Allocator + Clone> StatementPlacement<A> for EmbeddingStatementPlacement {
-    fn statement_placement<'heap>(
-        &self,
+impl<'heap, A: Allocator + Clone> StatementPlacement<'heap, A> for EmbeddingStatementPlacement {
+    type Target = Embedding;
+
+    fn statement_placement(
+        &mut self,
         context: &MirContext<'_, 'heap>,
         body: &Body<'heap>,
         traversals: &Traversals<'heap>,
@@ -109,22 +112,24 @@ impl<A: Allocator + Clone> StatementPlacement<A> for EmbeddingStatementPlacement
             body,
             context,
             is_supported_rvalue,
-            initialize_boundary: |body, domain| {
-                match body.source {
-                    Source::GraphReadFilter(_) => {}
-                    Source::Ctor(_)
-                    | Source::Closure(..)
-                    | Source::Thunk(..)
-                    | Source::Intrinsic(_) => return,
-                }
+            initialize_boundary: OnceValue::new(
+                |body: &Body<'heap>, domain: &mut DenseBitSet<Local>| {
+                    match body.source {
+                        Source::GraphReadFilter(_) => {}
+                        Source::Ctor(_)
+                        | Source::Closure(..)
+                        | Source::Thunk(..)
+                        | Source::Intrinsic(_) => return,
+                    }
 
-                debug_assert_eq!(body.args, 2);
+                    debug_assert_eq!(body.args, 2);
 
-                // Inside of an embedding, no arguments are allowed to be transferred
-                for arg in 0..body.args {
-                    domain.remove(Local::new(arg));
-                }
-            },
+                    // Inside of an embedding, no arguments are allowed to be transferred
+                    for arg in 0..body.args {
+                        domain.remove(Local::new(arg));
+                    }
+                },
+            ),
         }
         .finish_in(alloc);
 

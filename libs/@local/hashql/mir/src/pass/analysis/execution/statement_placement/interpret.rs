@@ -11,7 +11,10 @@ use crate::{
     },
     context::MirContext,
     pass::{
-        analysis::execution::cost::{Cost, StatementCostVec, TraversalCostVec},
+        analysis::execution::{
+            cost::{Cost, StatementCostVec, TraversalCostVec},
+            target::Interpreter,
+        },
         transform::Traversals,
     },
     visit::Visitor,
@@ -50,11 +53,11 @@ impl<'heap> Visitor<'heap> for CostVisitor<'_, '_, 'heap> {
 }
 
 #[derive(Debug)]
-pub(crate) struct InterpretStatementPlacement {
+pub(crate) struct InterpreterStatementPlacement {
     statement_cost: Cost,
 }
 
-impl Default for InterpretStatementPlacement {
+impl Default for InterpreterStatementPlacement {
     fn default() -> Self {
         Self {
             statement_cost: cost!(8),
@@ -62,9 +65,11 @@ impl Default for InterpretStatementPlacement {
     }
 }
 
-impl<A: Allocator> StatementPlacement<A> for InterpretStatementPlacement {
-    fn statement_placement<'heap>(
-        &self,
+impl<'heap, A: Allocator> StatementPlacement<'heap, A> for InterpreterStatementPlacement {
+    type Target = Interpreter;
+
+    fn statement_placement(
+        &mut self,
         context: &MirContext<'_, 'heap>,
         body: &Body<'heap>,
         traversals: &Traversals<'heap>,

@@ -125,6 +125,7 @@ impl<'heap> Traversals<'heap> {
         self.derivations.lookup(local)
     }
 
+    #[must_use]
     pub fn enabled(&self, body: &Body<'heap>) -> DenseBitSet<Local> {
         let mut set = DenseBitSet::new_empty(body.local_decls.len());
 
