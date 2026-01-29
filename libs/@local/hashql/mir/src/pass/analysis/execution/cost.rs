@@ -139,35 +139,27 @@ pub struct StatementCostVec<A: Allocator = Global> {
 }
 
 impl<A: Allocator> StatementCostVec<A> {
-    /// Creates a cost map with space for all statements in the given blocks.
-    ///
-    /// All costs are initialized to `None` (unsupported). Use indexing to assign costs.
     #[expect(unsafe_code)]
-    pub fn new(blocks: &BasicBlocks, alloc: A) -> Self
+    fn from_iter(mut iter: impl ExactSizeIterator<Item = u32>, alloc: A) -> Self
     where
         A: Clone,
     {
-        let mut offsets = Box::new_uninit_slice_in(blocks.len() + 1, alloc.clone());
+        let mut offsets = Box::new_uninit_slice_in(iter.len() + 1, alloc.clone());
 
         let mut offset = 0_u32;
-        let mut remaining = blocks.as_raw();
 
         offsets[0].write(0);
 
-        #[expect(clippy::cast_possible_truncation)]
         let (_, rest) = offsets[1..].write_iter(iter::from_fn(|| {
-            let (next, rest) = remaining.split_first()?;
+            let next = iter.next()?;
 
-            remaining = rest;
-
-            let length = next.statements.len();
-            offset += length as u32;
+            offset += next;
 
             Some(offset)
         }));
 
         debug_assert!(rest.is_empty());
-        debug_assert!(remaining.is_empty());
+        debug_assert_eq!(iter.len(), 0);
 
         let costs = alloc::vec::from_elem_in(None, offset as usize, alloc);
 
@@ -176,6 +168,20 @@ impl<A: Allocator> StatementCostVec<A> {
         let offsets = BasicBlockSlice::from_boxed_slice(offsets);
 
         Self { offsets, costs }
+    }
+
+    /// Creates a cost map with space for all statements in the given blocks.
+    ///
+    /// All costs are initialized to `None` (unsupported). Use indexing to assign costs.
+    #[expect(clippy::cast_possible_truncation)]
+    pub fn new(blocks: &BasicBlocks, alloc: A) -> Self
+    where
+        A: Clone,
+    {
+        Self::from_iter(
+            blocks.iter().map(|block| block.statements.len() as u32),
+            alloc,
+        )
     }
 
     /// Returns the cost at `location`, or `None` if out of bounds or unassigned.
@@ -210,5 +216,166 @@ impl<A: Allocator> IndexMut<Location> for StatementCostVec<A> {
 
         // statement_index is 1-based
         &mut self.costs[range][index.statement_index - 1]
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use alloc::alloc::Global;
+
+    use super::{Cost, StatementCostVec};
+    use crate::body::{basic_block::BasicBlockId, location::Location};
+
+    /// `Cost::new` succeeds for valid values (0 and 100).
+    #[test]
+    fn cost_new_valid_values() {
+        let zero = Cost::new(0);
+        assert!(zero.is_some());
+
+        let hundred = Cost::new(100);
+        assert!(hundred.is_some());
+    }
+
+    /// `Cost::new(u32::MAX)` returns `None` (reserved as niche for `Option<Cost>`).
+    #[test]
+    fn cost_new_max_returns_none() {
+        let max = Cost::new(u32::MAX);
+        assert!(max.is_none());
+    }
+
+    /// `Cost::new(u32::MAX - 1)` succeeds (largest valid cost value).
+    #[test]
+    fn cost_new_max_minus_one_valid() {
+        let max_valid = Cost::new(u32::MAX - 1);
+        assert!(max_valid.is_some());
+    }
+
+    /// `Cost::new_unchecked` with valid values works correctly.
+    ///
+    /// This test exercises unsafe code and should be run under Miri.
+    #[test]
+    #[expect(unsafe_code)]
+    fn cost_new_unchecked_valid() {
+        // SAFETY: 0 is not u32::MAX
+        let zero = unsafe { Cost::new_unchecked(0) };
+        assert_eq!(Cost::new(0), Some(zero));
+
+        // SAFETY: 100 is not u32::MAX
+        let hundred = unsafe { Cost::new_unchecked(100) };
+        assert_eq!(Cost::new(100), Some(hundred));
+    }
+
+    /// `StatementCostVec` correctly indexes by `Location` across multiple blocks.
+    #[test]
+    fn statement_cost_vec_indexing() {
+        // bb0: 2 statements, bb1: 3 statements, bb2: 1 statement
+        let mut costs = StatementCostVec::from_iter([2, 3, 1].into_iter(), Global);
+
+        // Assign costs at various locations
+        let loc_0_1 = Location {
+            block: BasicBlockId::new(0),
+            statement_index: 1,
+        };
+        let loc_0_2 = Location {
+            block: BasicBlockId::new(0),
+            statement_index: 2,
+        };
+        let loc_1_2 = Location {
+            block: BasicBlockId::new(1),
+            statement_index: 2,
+        };
+        let loc_2_1 = Location {
+            block: BasicBlockId::new(2),
+            statement_index: 1,
+        };
+
+        costs[loc_0_1] = Some(cost!(10));
+        costs[loc_0_2] = Some(cost!(20));
+        costs[loc_1_2] = Some(cost!(30));
+        costs[loc_2_1] = Some(cost!(40));
+
+        // Verify retrieval
+        assert_eq!(costs.get(loc_0_1), Some(cost!(10)));
+        assert_eq!(costs.get(loc_0_2), Some(cost!(20)));
+        assert_eq!(costs.get(loc_1_2), Some(cost!(30)));
+        assert_eq!(costs.get(loc_2_1), Some(cost!(40)));
+
+        // Unassigned locations return None
+        let loc_1_1 = Location {
+            block: BasicBlockId::new(1),
+            statement_index: 1,
+        };
+        assert_eq!(costs.get(loc_1_1), None);
+    }
+
+    /// `StatementCostVec` initialization with a single block.
+    ///
+    /// This test exercises unsafe code and should be run under Miri.
+    #[test]
+    fn statement_cost_vec_init_single_block() {
+        // Single block with 5 statements
+        let mut costs = StatementCostVec::from_iter([5].into_iter(), Global);
+
+        // All 5 statements should be accessible
+        for index in 1..=5_u32 {
+            let location = Location {
+                block: BasicBlockId::new(0),
+                statement_index: index as usize,
+            };
+
+            costs[location] = Some(Cost::new(index).expect("should be non-zero"));
+        }
+
+        for index in 1..=5 {
+            let location = Location {
+                block: BasicBlockId::new(0),
+                statement_index: index as usize,
+            };
+
+            assert_eq!(costs.get(location), Cost::new(index));
+        }
+    }
+
+    /// `StatementCostVec` initialization with multiple blocks of varying sizes.
+    ///
+    /// This test exercises unsafe code and should be run under Miri.
+    #[test]
+    fn statement_cost_vec_init_multiple_blocks() {
+        // 0 statements, 1 statement, 5 statements
+        let mut costs = StatementCostVec::from_iter([0, 1, 5].into_iter(), Global);
+
+        // bb1 has 1 statement
+        let loc_1_1 = Location {
+            block: BasicBlockId::new(1),
+            statement_index: 1,
+        };
+        costs[loc_1_1] = Some(cost!(100));
+        assert_eq!(costs.get(loc_1_1), Some(cost!(100)));
+
+        // bb2 has 5 statements
+        for index in 1..=5 {
+            let location = Location {
+                block: BasicBlockId::new(2),
+                statement_index: index as usize,
+            };
+
+            costs[location] = Some(Cost::new(index).expect("non-zero"));
+        }
+        for index in 1..=5 {
+            let location = Location {
+                block: BasicBlockId::new(2),
+                statement_index: index as usize,
+            };
+            assert_eq!(costs.get(location), Cost::new(index));
+        }
+    }
+
+    /// `StatementCostVec` initialization with zero blocks.
+    ///
+    /// This test exercises unsafe code and should be run under Miri.
+    #[test]
+    fn statement_cost_vec_init_empty() {
+        // Should not panic
+        let _costs = StatementCostVec::from_iter(core::iter::empty::<u32>(), Global);
     }
 }

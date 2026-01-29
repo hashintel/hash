@@ -73,3 +73,24 @@ impl ExecutionTarget for Embedding {
         TargetId::EMBEDDING
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::{Embedding, ExecutionTarget as _, Interpreter, Postgres, TargetId};
+
+    /// Target IDs are distinct and don't collide.
+    #[test]
+    fn target_ids_are_distinct() {
+        assert_ne!(TargetId::POSTGRES, TargetId::INTERPRETER);
+        assert_ne!(TargetId::POSTGRES, TargetId::EMBEDDING);
+        assert_ne!(TargetId::INTERPRETER, TargetId::EMBEDDING);
+    }
+
+    /// Target `name()` returns expected strings derived from type names.
+    #[test]
+    fn target_names_derived_correctly() {
+        assert_eq!(Postgres.name(), "Postgres");
+        assert_eq!(Interpreter.name(), "Interpreter");
+        assert_eq!(Embedding.name(), "Embedding");
+    }
+}

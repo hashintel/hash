@@ -20,6 +20,9 @@ use crate::{
     visit::Visitor,
 };
 
+#[cfg(test)]
+mod tests;
+
 struct CostVisitor<'heap> {
     cost: Cost,
 
