@@ -297,6 +297,7 @@ export const SimulationControls: React.FC<SimulationControlsProps> = ({
     playbackSpeed,
     playMode,
     isViewOnlyAvailable,
+    isComputeAvailable,
     setCurrentViewedFrame,
     play: playbackPlay,
     pause: playbackPause,
@@ -565,7 +566,7 @@ export const SimulationControls: React.FC<SimulationControlsProps> = ({
                     aria-disabled={!isViewOnlyAvailable}
                     title={
                       !isViewOnlyAvailable
-                        ? "Only available when simulation is complete"
+                        ? "Available when there are computed frames"
                         : undefined
                     }
                   >
@@ -581,14 +582,14 @@ export const SimulationControls: React.FC<SimulationControlsProps> = ({
                     type="button"
                     className={menuItemStyle({
                       selected: playMode === "computeBuffer",
-                      disabled: isViewOnlyAvailable,
+                      disabled: !isComputeAvailable,
                     })}
                     onClick={() =>
-                      !isViewOnlyAvailable && setPlayMode("computeBuffer")
+                      isComputeAvailable && setPlayMode("computeBuffer")
                     }
-                    aria-disabled={isViewOnlyAvailable}
+                    aria-disabled={!isComputeAvailable}
                     title={
-                      isViewOnlyAvailable
+                      !isComputeAvailable
                         ? "Not available when simulation is complete"
                         : undefined
                     }
@@ -605,14 +606,14 @@ export const SimulationControls: React.FC<SimulationControlsProps> = ({
                     type="button"
                     className={menuItemStyle({
                       selected: playMode === "computeMax",
-                      disabled: isViewOnlyAvailable,
+                      disabled: !isComputeAvailable,
                     })}
                     onClick={() =>
-                      !isViewOnlyAvailable && setPlayMode("computeMax")
+                      isComputeAvailable && setPlayMode("computeMax")
                     }
-                    aria-disabled={isViewOnlyAvailable}
+                    aria-disabled={!isComputeAvailable}
                     title={
-                      isViewOnlyAvailable
+                      !isComputeAvailable
                         ? "Not available when simulation is complete"
                         : undefined
                     }

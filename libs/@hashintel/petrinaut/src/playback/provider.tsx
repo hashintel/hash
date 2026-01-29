@@ -97,27 +97,24 @@ export const PlaybackProvider: React.FC<PlaybackProviderProps> = ({
   const stableRunSimulation = useStableCallback(runSimulation);
   const stablePauseSimulation = useStableCallback(pauseSimulation);
 
-  // viewOnly mode is only available when simulation is Complete or Error
-  // When complete, viewOnly is the ONLY valid mode (nothing more to compute)
-  const isViewOnlyAvailable =
-    simulationState === "Complete" || simulationState === "Error";
+  // viewOnly mode is available when there are computed frames to view
+  const totalFrames = simulation?.frames.length ?? 0;
+  const isViewOnlyAvailable = totalFrames > 0;
+
+  // Compute modes are available when simulation can still compute more frames
+  const isComputeAvailable =
+    simulationState !== "Complete" && simulationState !== "Error";
 
   // Auto-switch play mode based on simulation state
   useEffect(() => {
-    if (isViewOnlyAvailable && stateValues.playMode !== "viewOnly") {
-      // When simulation completes, switch to viewOnly (compute modes no longer valid)
+    if (!isComputeAvailable && stateValues.playMode !== "viewOnly") {
+      // When simulation completes/errors, switch to viewOnly (compute modes no longer valid)
       setStateValues((prev) => ({
         ...prev,
         playMode: "viewOnly",
       }));
-    } else if (!isViewOnlyAvailable && stateValues.playMode === "viewOnly") {
-      // If viewOnly is not available but currently selected, switch to computeMax
-      setStateValues((prev) => ({
-        ...prev,
-        playMode: "computeMax",
-      }));
     }
-  }, [isViewOnlyAvailable, stateValues.playMode]);
+  }, [isComputeAvailable, stateValues.playMode]);
 
   // Reset playback state when simulation is reset or changes
   useEffect(() => {
@@ -163,8 +160,8 @@ export const PlaybackProvider: React.FC<PlaybackProviderProps> = ({
         return;
       }
 
-      const totalFrames = sim.frames.length;
-      if (totalFrames === 0) {
+      const frameCount = sim.frames.length;
+      if (frameCount === 0) {
         animationFrameId = requestAnimationFrame(tick);
         return;
       }
@@ -188,11 +185,11 @@ export const PlaybackProvider: React.FC<PlaybackProviderProps> = ({
         const desiredFrameIndex = state.currentFrameIndex + framesToAdvance;
 
         // Limit to available frames (simulation might still be computing)
-        const newFrameIndex = Math.min(desiredFrameIndex, totalFrames - 1);
+        const newFrameIndex = Math.min(desiredFrameIndex, frameCount - 1);
 
         // Handle computeBuffer mode: trigger computation when running low on frames
         if (mode === "computeBuffer" && simState === "Paused") {
-          const framesAhead = totalFrames - 1 - newFrameIndex;
+          const framesAhead = frameCount - 1 - newFrameIndex;
           if (framesAhead < COMPUTE_BUFFER_THRESHOLD) {
             // Trigger one tick of computation
             stableRunSimulation();
@@ -201,7 +198,7 @@ export const PlaybackProvider: React.FC<PlaybackProviderProps> = ({
         }
 
         // Check if we've reached the end of available frames
-        if (newFrameIndex >= totalFrames - 1) {
+        if (newFrameIndex >= frameCount - 1) {
           // If simulation is complete or in viewOnly mode, pause playback
           if (
             simState === "Complete" ||
@@ -210,7 +207,7 @@ export const PlaybackProvider: React.FC<PlaybackProviderProps> = ({
           ) {
             setStateValues((prev) => ({
               ...prev,
-              currentFrameIndex: totalFrames - 1,
+              currentFrameIndex: frameCount - 1,
               playbackState: "Paused",
             }));
             return;
@@ -255,8 +252,8 @@ export const PlaybackProvider: React.FC<PlaybackProviderProps> = ({
       simulationState === "Running" &&
       stateValues.playbackState === "Playing"
     ) {
-      const totalFrames = simulation?.frames.length ?? 0;
-      const framesAhead = totalFrames - 1 - stateValues.currentFrameIndex;
+      const frameCount = simulation?.frames.length ?? 0;
+      const framesAhead = frameCount - 1 - stateValues.currentFrameIndex;
 
       // If we have enough frames buffered, pause the simulation
       if (framesAhead >= COMPUTE_BUFFER_THRESHOLD) {
@@ -284,8 +281,8 @@ export const PlaybackProvider: React.FC<PlaybackProviderProps> = ({
           return;
         }
 
-        const totalFrames = sim.frames.length;
-        const clampedIndex = Math.max(0, Math.min(frameIndex, totalFrames - 1));
+        const frameCount = sim.frames.length;
+        const clampedIndex = Math.max(0, Math.min(frameIndex, frameCount - 1));
 
         setStateValues((prev) => ({
           ...prev,
@@ -356,8 +353,13 @@ export const PlaybackProvider: React.FC<PlaybackProviderProps> = ({
 
   const setPlayMode: PlaybackContextValue["setPlayMode"] = useCallback(
     (mode: PlayMode) => {
-      // If trying to set viewOnly but it's not available, ignore
+      // If trying to set viewOnly but there are no frames, ignore
       if (mode === "viewOnly" && !isViewOnlyAvailable) {
+        return;
+      }
+
+      // If trying to set compute mode but simulation can't compute more, ignore
+      if (mode !== "viewOnly" && !isComputeAvailable) {
         return;
       }
 
@@ -382,6 +384,7 @@ export const PlaybackProvider: React.FC<PlaybackProviderProps> = ({
     },
     [
       isViewOnlyAvailable,
+      isComputeAvailable,
       getSimulationState,
       stateValues.playbackState,
       stableRunSimulation,
@@ -395,8 +398,6 @@ export const PlaybackProvider: React.FC<PlaybackProviderProps> = ({
     stateValues.currentFrameIndex,
   );
 
-  const totalFrames = simulation?.frames.length ?? 0;
-
   const contextValue: PlaybackContextValue = {
     currentViewedFrame,
     playbackState: stateValues.playbackState,
@@ -405,6 +406,7 @@ export const PlaybackProvider: React.FC<PlaybackProviderProps> = ({
     playbackSpeed: stateValues.playbackSpeed,
     playMode: stateValues.playMode,
     isViewOnlyAvailable,
+    isComputeAvailable,
     setCurrentViewedFrame,
     play,
     pause,
