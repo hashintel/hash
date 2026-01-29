@@ -75,9 +75,9 @@ const ConfigAccordionSection = ({
       <AccordionSummary
         expandIcon={<ExpandMoreIcon />}
         sx={{
-          backgroundColor: ({ palette }) => palette[statusColor][20],
+          backgroundColor: ({ palette }) => palette[statusColor][10],
           border: 1,
-          borderColor: ({ palette }) => palette[statusColor][70],
+          borderColor: ({ palette }) => palette[statusColor][30],
           borderRadius: 1,
           minHeight: 48,
           "&.Mui-expanded": {

@@ -12,6 +12,6 @@ export const createFlowActivities: CreateFlowActivities<
 }: {
   graphApiClient: GraphApi;
 }) => ({
-  ...createAviationActivities(),
+  ...createAviationActivities({ graphApiClient }),
   ...createIntegrationActivities({ graphApiClient }),
 });

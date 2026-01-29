@@ -22,6 +22,9 @@ import {
   currentTimeInstantTemporalAxes,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { StatusCode } from "@local/status";
+import graphOpenApiSpec from "@rust/hash-graph-api/openapi.json" with {
+  type: "json",
+};
 import dedent from "dedent";
 
 import { getFlowContext } from "../shared/get-flow-context.js";
@@ -32,7 +35,66 @@ import type { LlmToolDefinition } from "../shared/get-llm-response/types.js";
 import { graphApiClient } from "../shared/graph-api-client.js";
 import { stringify } from "../shared/stringify.js";
 
+/**
+ * Generic JSON value type for schema definitions.
+ * This is more permissive than JSONSchema to avoid type conflicts with imported JSON.
+ */
+type JsonValue =
+  | string
+  | number
+  | boolean
+  | null
+  | JsonValue[]
+  | { [key: string]: JsonValue };
+
 const model: PermittedAnthropicModel = "claude-opus-4-5";
+
+/**
+ * Extracts and transforms a schema from the OpenAPI spec for use as a $def.
+ * Converts all $ref paths from #/components/schemas/X to #/$defs/X.
+ */
+const transformSchemaRefs = (schema: JsonValue): JsonValue => {
+  if (schema === null || typeof schema !== "object") {
+    return schema;
+  }
+
+  if (Array.isArray(schema)) {
+    return schema.map(transformSchemaRefs);
+  }
+
+  const result: { [key: string]: JsonValue } = {};
+  for (const [key, value] of Object.entries(schema)) {
+    if (key === "$ref" && typeof value === "string") {
+      result[key] = value.replace("#/components/schemas/", "#/$defs/");
+    } else {
+      result[key] = transformSchemaRefs(value);
+    }
+  }
+  return result;
+};
+
+/**
+ * Schema definitions extracted from the Graph API OpenAPI spec.
+ * These are used to validate the filter structure in AI tool calls.
+ */
+// eslint-disable-next-line @typescript-eslint/no-unsafe-member-access -- JSON import has known structure
+const schemas = graphOpenApiSpec.components.schemas as unknown as Record<
+  string,
+  JsonValue
+>;
+
+const filterSchemaDefinitions = {
+  Filter: transformSchemaRefs(schemas.Filter!),
+  FilterExpression: transformSchemaRefs(schemas.FilterExpression!),
+  PathExpression: transformSchemaRefs(schemas.PathExpression!),
+  ParameterExpression: transformSchemaRefs(schemas.ParameterExpression!),
+  DataTypeQueryToken: transformSchemaRefs(schemas.DataTypeQueryToken!),
+  PropertyTypeQueryToken: transformSchemaRefs(schemas.PropertyTypeQueryToken!),
+  EntityTypeQueryToken: transformSchemaRefs(schemas.EntityTypeQueryToken!),
+  EntityQueryToken: transformSchemaRefs(schemas.EntityQueryToken!),
+  Selector: transformSchemaRefs(schemas.Selector!),
+  VersionedUrl: transformSchemaRefs(schemas.VersionedUrl!),
+};
 
 const systemPrompt = dedent(`
   You are an expert at constructing database queries. You help users create queries to retrieve
@@ -104,7 +166,7 @@ const tools: LlmToolDefinition<ToolName>[] = [
       type: "object",
       properties: {
         filter: {
-          type: "object",
+          $ref: "#/$defs/Filter",
           description: "The filter object for the structural query",
         },
         limit: {
@@ -114,6 +176,7 @@ const tools: LlmToolDefinition<ToolName>[] = [
       },
       required: ["filter"],
       additionalProperties: false,
+      $defs: filterSchemaDefinitions as Record<string, unknown>,
     },
   },
   {
@@ -124,7 +187,7 @@ const tools: LlmToolDefinition<ToolName>[] = [
       type: "object",
       properties: {
         filter: {
-          type: "object",
+          $ref: "#/$defs/Filter",
           description: "The final filter object for the structural query",
         },
         explanation: {
@@ -144,6 +207,7 @@ const tools: LlmToolDefinition<ToolName>[] = [
       },
       required: ["filter", "explanation", "suggestedChartTypes"],
       additionalProperties: false,
+      $defs: filterSchemaDefinitions as Record<string, unknown>,
     },
   },
 ];

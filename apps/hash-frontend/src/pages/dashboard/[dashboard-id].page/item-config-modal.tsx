@@ -107,22 +107,32 @@ export const ItemConfigModal = ({
       header={{ title: "Configure Chart" }}
       contentStyle={{ p: { xs: 0, md: 0 } }}
     >
-      <Box>
+      <Box sx={{ minWidth: { xs: "95%", md: 740 } }}>
         {state.isLoading && <LinearProgress />}
 
         <Box sx={{ p: 3 }}>
           {/* Generation input and button */}
-          <Stack direction="row" spacing={2} sx={{ mb: 3 }}>
+          <Stack
+            component="form"
+            onSubmit={(evt) => {
+              evt.preventDefault();
+              void generateQuery();
+            }}
+            direction="row"
+            spacing={2}
+            sx={{ mb: 3 }}
+          >
             <TextField
               fullWidth
               value={goalValue}
               onChange={(event) => setUserGoal(event.target.value)}
               placeholder="Describe what you want to visualize..."
               disabled={state.isLoading}
-              size="small"
+              size="medium"
             />
             <Button
               variant="primary"
+              size="small"
               onClick={generateQuery}
               disabled={!goalValue.trim() || state.isLoading}
               startIcon={

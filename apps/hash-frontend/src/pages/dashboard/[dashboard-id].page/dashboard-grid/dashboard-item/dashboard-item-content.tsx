@@ -5,8 +5,8 @@ import {
 } from "@mui/icons-material";
 import { Box, CircularProgress, Typography } from "@mui/material";
 
-import type { DashboardItemData } from "../shared/types";
-import { ChartRenderer } from "./chart-renderer";
+import type { DashboardItemData } from "../../../shared/types";
+import { ChartRenderer } from "./dashboard-item-content/chart-renderer";
 
 type DashboardItemContentProps = {
   item: DashboardItemData;

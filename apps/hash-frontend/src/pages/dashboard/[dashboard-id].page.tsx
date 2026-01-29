@@ -415,6 +415,7 @@ const DashboardPage: NextPageWithLayout = () => {
 
       <DashboardGrid
         dashboard={dashboard}
+        onAddItemClick={handleAddItem}
         onLayoutChange={handleLayoutChange}
         onItemConfigureClick={handleItemConfigureClick}
         onItemRefreshClick={handleItemRefreshClick}

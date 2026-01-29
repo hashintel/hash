@@ -1,4 +1,5 @@
 import type { ProvidedEntityEditionProvenance } from "@blockprotocol/type-system";
+import { stringifyError } from "@local/hash-isomorphic-utils/stringify-error";
 import type { Flight as HashFlight } from "@local/hash-isomorphic-utils/system-types/flight";
 
 import { mapFlight } from "./client/flight.js";
@@ -41,15 +42,15 @@ const makeRequest = async <T extends object>(url: string): Promise<T> => {
   const response = await fetch(url, {
     headers: {
       Accept: "application/json",
+      "Accept-Version": "v1",
       Authorization: `Bearer ${apiToken}`,
     },
   });
 
   if (!response.ok) {
-    const errorData = (await response.json()) as ErrorResponse;
-    throw new Error(
-      `Flightradar24 API error: ${errorData.error.message} (code: ${errorData.error.code})`,
-    );
+    const errorData = (await response.json()) as unknown;
+
+    throw new Error(`Flightradar24 API error: ${stringifyError(errorData)}`);
   }
 
   const data = (await response.json()) as T | ErrorResponse;

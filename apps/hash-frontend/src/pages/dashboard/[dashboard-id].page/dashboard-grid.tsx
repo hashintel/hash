@@ -9,25 +9,27 @@ import { useCallback, useMemo } from "react";
 import {
   GridLayout,
   type Layout,
-  noCompactor,
   useContainerWidth,
+  verticalCompactor,
 } from "react-grid-layout";
 
 import type { DashboardData, DashboardItemData } from "../shared/types";
-import { DashboardItem } from "./dashboard-item";
+import { DashboardItem } from "./dashboard-grid/dashboard-item";
 
 type DashboardGridProps = {
   dashboard: DashboardData;
-  onLayoutChange?: (layout: GridPosition[]) => void;
-  onItemConfigureClick?: (item: DashboardItemData) => void;
-  onItemRefreshClick?: (item: DashboardItemData) => void;
-  onItemDeleteClick?: (item: DashboardItemData) => void;
-  isEditing?: boolean;
-  canEdit?: boolean;
+  onAddItemClick: () => void;
+  onLayoutChange: (layout: GridPosition[]) => void;
+  onItemConfigureClick: (item: DashboardItemData) => void;
+  onItemRefreshClick: (item: DashboardItemData) => void;
+  onItemDeleteClick: (item: DashboardItemData) => void;
+  isEditing: boolean;
+  canEdit: boolean;
 };
 
 export const DashboardGrid = ({
   dashboard,
+  onAddItemClick,
   onLayoutChange,
   onItemConfigureClick,
   onItemRefreshClick,
@@ -53,7 +55,7 @@ export const DashboardGrid = ({
         w: layoutItem.w,
         h: layoutItem.h,
       }));
-      onLayoutChange?.(gridPositions);
+      onLayoutChange(gridPositions);
     },
     [onLayoutChange],
   );
@@ -62,8 +64,10 @@ export const DashboardGrid = ({
 
   return (
     <Box
+      onClick={showClickPrompt ? onAddItemClick : undefined}
       ref={containerRef}
       sx={({ palette }) => ({
+        cursor: showClickPrompt ? "pointer" : "default",
         position: "relative",
         borderRadius: 1,
         backgroundColor: palette.gray[10],
@@ -112,7 +116,7 @@ export const DashboardGrid = ({
         <GridLayout
           layout={layout}
           width={width}
-          compactor={noCompactor}
+          compactor={verticalCompactor}
           gridConfig={{
             cols: 12,
             rowHeight: 30,
@@ -132,9 +136,9 @@ export const DashboardGrid = ({
               <DashboardItem
                 item={item}
                 isEditing={isEditing}
-                onConfigureClick={() => onItemConfigureClick?.(item)}
-                onRefreshClick={() => onItemRefreshClick?.(item)}
-                onDeleteClick={() => onItemDeleteClick?.(item)}
+                onConfigureClick={() => onItemConfigureClick(item)}
+                onRefreshClick={() => onItemRefreshClick(item)}
+                onDeleteClick={() => onItemDeleteClick(item)}
               />
             </div>
           ))}

@@ -31,6 +31,7 @@ export type AiFlowActionDefinitionId =
  * Activities that are registered to the 'integration' temporal task queue.
  */
 export type IntegrationFlowActionDefinitionId =
+  | "getLiveFlightPositions"
   | "getScheduledFlights"
   | "persistIntegrationEntities";
 
@@ -696,6 +697,32 @@ const aiFlowActionDefinitionsAsConst = {
 >;
 
 const integrationFlowActionDefinitionsAsConst = {
+  getLiveFlightPositions: {
+    actionDefinitionId: "getLiveFlightPositions",
+    name: "Get Live Flight Positions",
+    description:
+      "Fetch live flight positions from FlightRadar24 for flights that have departed or recently arrived.",
+    kind: "action",
+    inputs: [
+      {
+        oneOfPayloadKinds: ["PersistedEntitiesMetadata"],
+        name: "persistedEntities",
+        description:
+          "The persisted flight entities to check for live positions",
+        required: true,
+        array: false,
+      },
+    ],
+    outputs: [
+      {
+        payloadKind: "ProposedEntity",
+        name: "proposedEntities",
+        description: "Updated flight entities with live position data",
+        array: true,
+        required: true,
+      },
+    ],
+  },
   getScheduledFlights: {
     actionDefinitionId: "getScheduledFlights",
     name: "Get Scheduled Flights",

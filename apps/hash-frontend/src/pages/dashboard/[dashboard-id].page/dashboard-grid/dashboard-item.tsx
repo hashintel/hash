@@ -6,8 +6,8 @@ import {
 } from "@mui/icons-material";
 import { Box, Paper } from "@mui/material";
 
-import type { DashboardItemData } from "../shared/types";
-import { DashboardItemContent } from "./dashboard-item-content";
+import type { DashboardItemData } from "../../shared/types";
+import { DashboardItemContent } from "./dashboard-item/dashboard-item-content";
 
 type DashboardItemProps = {
   item: DashboardItemData;

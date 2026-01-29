@@ -17,7 +17,7 @@ import {
 
 import { Button } from "../../../../shared/ui/button";
 import { MenuItem } from "../../../../shared/ui/menu-item";
-import { ChartRenderer } from "../chart-renderer";
+import { ChartRenderer } from "../dashboard-grid/dashboard-item/dashboard-item-content/chart-renderer";
 
 type ChartConfigStepProps = {
   chartData: unknown[] | null;
@@ -96,9 +96,7 @@ export const ChartConfigStep = ({
               <Select
                 value={chartType ?? "bar"}
                 label="Chart Type"
-                onChange={(event) =>
-                  onChartTypeChange(event.target.value as ChartType)
-                }
+                onChange={(event) => onChartTypeChange(event.target.value)}
               >
                 {CHART_TYPES.map((type) => (
                   <MenuItem key={type.value} value={type.value}>
@@ -137,14 +135,14 @@ export const ChartConfigStep = ({
                       ? [
                           {
                             ...currentSeries[0],
-                            dataKey: event.target.value as string,
+                            dataKey: event.target.value,
                           },
                           ...currentSeries.slice(1),
                         ]
                       : [
                           {
                             type: chartType ?? ("bar" as const),
-                            dataKey: event.target.value as string,
+                            dataKey: event.target.value,
                           },
                         ];
                   handleConfigChange("series", updatedSeries);
