@@ -22,7 +22,7 @@ mod d2;
 mod text;
 
 pub use d2::{D2Buffer, D2Format};
-pub use text::TextFormat;
+pub use text::{TextFormat, TextFormatOptions};
 
 /// A trait for looking up source information associated with function definitions.
 ///
