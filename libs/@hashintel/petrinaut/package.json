@@ -52,7 +52,6 @@
     "d3-scale": "4.0.2",
     "elkjs": "0.11.0",
     "monaco-editor": "0.55.1",
-    "motion": "12.23.24",
     "react-icons": "5.5.0",
     "reactflow": "11.11.4",
     "typescript": "5.9.3",
