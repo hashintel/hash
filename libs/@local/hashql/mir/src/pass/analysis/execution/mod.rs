@@ -5,7 +5,7 @@ macro_rules! cost {
 }
 
 mod cost;
-mod statement_placement;
-mod target;
+pub mod statement_placement;
+pub mod target;
 
-pub use self::cost::{Cost, StatementCostVec};
+pub use self::cost::{Cost, StatementCostVec, TraversalCostVec};

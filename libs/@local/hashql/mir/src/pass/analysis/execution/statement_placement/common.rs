@@ -1,8 +1,4 @@
-use core::{
-    cell::{Cell, OnceCell},
-    cmp::Reverse,
-};
-use std::alloc::Allocator;
+use core::{alloc::Allocator, cell::Cell, cmp::Reverse};
 
 use hashql_core::{
     heap::Heap,
@@ -12,8 +8,10 @@ use hashql_core::{
 use crate::{
     body::{
         Body,
+        basic_block::BasicBlockId,
         local::Local,
         location::Location,
+        operand::Operand,
         rvalue::RValue,
         statement::{Assign, Statement, StatementKind},
         terminator::TerminatorKind,
@@ -44,11 +42,15 @@ impl<T> OnceValue<T> {
 type RValueFn<'heap> =
     fn(&MirContext<'_, 'heap>, &Body<'heap>, &DenseBitSet<Local>, &RValue<'heap>) -> bool;
 
+type OperandFn<'heap> =
+    fn(&MirContext<'_, 'heap>, &Body<'heap>, &DenseBitSet<Local>, &Operand<'heap>) -> bool;
+
 pub(crate) struct SupportedAnalysis<'ctx, 'env, 'heap, B> {
     pub body: &'ctx Body<'heap>,
     pub context: &'ctx MirContext<'env, 'heap>,
 
     pub is_supported_rvalue: RValueFn<'heap>,
+    pub is_supported_operand: OperandFn<'heap>,
     pub initialize_boundary: OnceValue<B>,
 }
 
@@ -60,6 +62,7 @@ impl<'heap, B> SupportedAnalysis<'_, '_, 'heap, B> {
         let body = self.body;
         let DataflowResults { exit_states, .. } = self.iterate_to_fixpoint_in(body, alloc);
 
+        let mut has_return = false;
         let mut dispatchable = DenseBitSet::new_filled(body.local_decls.len());
 
         for (bb, state) in exit_states.iter_enumerated() {
@@ -68,7 +71,12 @@ impl<'heap, B> SupportedAnalysis<'_, '_, 'heap, B> {
                 TerminatorKind::Return(_)
             ) {
                 dispatchable.intersect(state);
+                has_return = true;
             }
+        }
+
+        if !has_return {
+            dispatchable.clear();
         }
 
         dispatchable
@@ -119,6 +127,24 @@ where
             state.insert(lhs.local);
         } else {
             state.remove(lhs.local);
+        }
+    }
+
+    fn transfer_edge<A: Allocator>(
+        &self,
+        _: BasicBlockId,
+        source_args: &[Operand<'heap>],
+
+        _: BasicBlockId,
+        target_params: &[Local],
+
+        state: &mut Self::Domain<A>,
+    ) {
+        debug_assert_eq!(source_args.len(), target_params.len());
+
+        for (arg, &param) in source_args.iter().zip(target_params) {
+            let is_supported = (self.is_supported_operand)(self.context, self.body, state, arg);
+            state.set(param, is_supported);
         }
     }
 }

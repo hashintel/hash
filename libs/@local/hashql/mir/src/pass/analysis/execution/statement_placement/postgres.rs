@@ -142,7 +142,7 @@ impl<'heap> r#type::visit::Visitor<'heap> for HasClosureVisitor<'_, 'heap> {
     }
 }
 
-pub(crate) struct PostgresStatementPlacement<'heap> {
+pub struct PostgresStatementPlacement<'heap> {
     statement_cost: Cost,
     type_visitor_guard: RecursiveVisitorGuard<'heap>,
 }
@@ -172,6 +172,7 @@ impl<'heap, A: Allocator + Clone> StatementPlacement<'heap, A>
             body,
             context,
             is_supported_rvalue,
+            is_supported_operand,
             initialize_boundary: OnceValue::new(
                 |body: &Body<'heap>, domain: &mut DenseBitSet<Local>| {
                     match body.source {

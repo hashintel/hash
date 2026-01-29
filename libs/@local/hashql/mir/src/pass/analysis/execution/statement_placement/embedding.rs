@@ -85,7 +85,7 @@ fn is_supported_rvalue<'heap>(
     }
 }
 
-pub(crate) struct EmbeddingStatementPlacement {
+pub struct EmbeddingStatementPlacement {
     statement_cost: Cost,
 }
 
@@ -112,6 +112,7 @@ impl<'heap, A: Allocator + Clone> StatementPlacement<'heap, A> for EmbeddingStat
             body,
             context,
             is_supported_rvalue,
+            is_supported_operand,
             initialize_boundary: OnceValue::new(
                 |body: &Body<'heap>, domain: &mut DenseBitSet<Local>| {
                     match body.source {
