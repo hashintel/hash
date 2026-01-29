@@ -13,6 +13,9 @@ use core::alloc::Allocator;
 
 use hashql_core::heap::Heap;
 
+#[cfg(test)]
+mod tests;
+
 mod common;
 mod embedding;
 mod interpret;

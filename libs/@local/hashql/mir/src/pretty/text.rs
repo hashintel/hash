@@ -413,7 +413,8 @@ where
 
         write!(self.line_buffer, "{id}(")?;
         self.csv(block.params.iter().copied())?;
-        writeln!(self.line_buffer, "): {{")?;
+        write!(self.line_buffer, "): {{")?;
+        self.newline()?;
 
         let mut location = Location {
             block: id,
@@ -436,7 +437,8 @@ where
         self.newline()?;
 
         self.indent(1)?;
-        writeln!(self.line_buffer, "}}")?;
+        write!(self.line_buffer, "}}")?;
+        self.newline()?;
 
         Ok(())
     }

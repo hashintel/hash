@@ -1,0 +1,17 @@
+---
+source: libs/@local/hashql/mir/src/pass/analysis/execution/statement_placement/tests.rs
+expression: output
+---
+fn {graph::read::filter@4294967040}(%0: (), %1: Entity) -> ? {
+    let %2: ?
+
+    bb0(): {
+        %2 = %1.properties
+
+        return %2
+    }
+}
+
+=================== Traversals ===================
+
+Traversals:

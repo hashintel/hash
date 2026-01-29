@@ -262,7 +262,7 @@ macro_rules! body {
         $interner:ident, $env:ident;
         $type:tt @ $id:tt / $arity:literal -> $body_type:tt {
             decl $($param:ident: $param_type:tt),*;
-            $(@proj $($proj:ident = $proj_base:ident.$field:literal: $proj_type:tt),*;)?
+            $(@proj $($proj:ident = $proj_base:ident.$field:tt: $proj_type:tt),*;)?
 
             $($block:ident($($block_param:ident),*) $block_body:tt),+
         }
@@ -278,7 +278,7 @@ macro_rules! body {
 
         $(
             $(
-                let $proj = builder.place(|p| p.from($proj_base).field($field, $crate::builder::body!(@type types; $proj_type)));
+                let $proj = builder.place($crate::builder::body!(@proj types; $proj_base; $field; $proj_type));
             )*
         )?
 
@@ -308,6 +308,13 @@ macro_rules! body {
         $id
     };
 
+    (@proj $types:ident; $proj_base:ident; $proj:literal; $proj_type:tt) => {
+        |p| p.from($proj_base).field($proj, $crate::builder::body!(@type $types; $proj_type))
+    };
+    (@proj $types:ident; $proj_base:ident; $proj:ident; $proj_type:tt) => {
+        |p| p.from($proj_base).field_by_name(stringify!($proj), $crate::builder::body!(@type $types; $proj_type))
+    };
+
     (@type $types:ident; Int) => {
         $types.integer()
     };
@@ -325,6 +332,9 @@ macro_rules! body {
     };
     (@type $types:ident; [List $sub:tt]) => {
         $types.list($crate::builder::body!(@type $types; $sub))
+    };
+    (@type $types:ident; [Opaque $sym:path; $value:tt]) => {
+        $types.opaque($sym, $crate::builder::body!(@type $types; $value))
     };
     (@type $types:ident; [fn($($args:tt),+) -> $ret:tt]) => {
         $types.closure([$($crate::builder::body!(@type $types; $args)),*], $crate::builder::body!(@type $types; $ret))

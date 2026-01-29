@@ -36,6 +36,9 @@ use crate::{
     visit::Visitor as _,
 };
 
+#[cfg(test)]
+mod tests;
+
 const fn is_supported_constant(constant: &Constant<'_>) -> bool {
     match constant {
         Constant::Int(_) | Constant::Primitive(_) | Constant::Unit => true,
