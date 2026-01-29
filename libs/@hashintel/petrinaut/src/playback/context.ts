@@ -86,9 +86,15 @@ export type PlaybackContextValue = {
 
   /**
    * Whether viewOnly mode is available.
-   * Only true when simulation is Complete or Error.
+   * True when there are computed frames to view.
    */
   isViewOnlyAvailable: boolean;
+
+  /**
+   * Whether compute modes are available.
+   * True when simulation is not Complete or Error (can still compute more frames).
+   */
+  isComputeAvailable: boolean;
 
   // Actions
   /**
@@ -132,6 +138,7 @@ const DEFAULT_CONTEXT_VALUE: PlaybackContextValue = {
   playbackSpeed: 1,
   playMode: "computeMax",
   isViewOnlyAvailable: false,
+  isComputeAvailable: true,
   setCurrentViewedFrame: () => {},
   play: () => {},
   pause: () => {},

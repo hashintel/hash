@@ -1,4 +1,5 @@
 import { css } from "@hashintel/ds-helpers/css";
+import { AnimatePresence, motion } from "motion/react";
 import { use, useCallback, useEffect, useRef } from "react";
 import { FaXmark } from "react-icons/fa6";
 
@@ -22,8 +23,6 @@ import {
 } from "../../../../state/editor-context";
 
 const glassPanelBaseStyle = css({
-  position: "fixed",
-  zIndex: 999,
   padding: "[4px]",
 });
 
@@ -129,10 +128,6 @@ export const BottomPanel: React.FC = () => {
     [setActiveTab],
   );
 
-  if (!isOpen) {
-    return null;
-  }
-
   // Calculate left position based on left sidebar state
   // Add sidebar padding (12px each side) when sidebar is open
   const leftOffset = isLeftSidebarOpen
@@ -140,48 +135,65 @@ export const BottomPanel: React.FC = () => {
     : PANEL_MARGIN;
 
   return (
-    <GlassPanel
-      className={glassPanelBaseStyle}
-      style={{
-        bottom: PANEL_MARGIN,
-        left: leftOffset,
-        right: PANEL_MARGIN,
-        height: panelHeight,
-      }}
-      contentClassName={panelContainerStyle}
-      resizable={{
-        edge: "top",
-        size: panelHeight,
-        onResize: setBottomPanelHeight,
-        minSize: MIN_BOTTOM_PANEL_HEIGHT,
-        maxSize: MAX_BOTTOM_PANEL_HEIGHT,
-      }}
-    >
-      {/* Tab Header */}
-      <div className={headerStyle}>
-        <HorizontalTabsHeader
-          subViews={subViews}
-          activeTabId={activeTab}
-          onTabChange={handleTabChange}
-        />
-        <div className={headerRightStyle}>
-          <HorizontalTabsHeaderAction
-            subViews={subViews}
-            activeTabId={activeTab}
-          />
-          <button
-            type="button"
-            onClick={toggleBottomPanel}
-            className={closeButtonStyle}
-            aria-label="Close panel"
+    <AnimatePresence>
+      {isOpen && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: 20 }}
+          transition={{ duration: 0.2, ease: "easeOut" }}
+          style={{
+            position: "fixed",
+            bottom: PANEL_MARGIN,
+            left: leftOffset,
+            right: PANEL_MARGIN,
+            height: panelHeight,
+            zIndex: 999,
+          }}
+        >
+          <GlassPanel
+            className={glassPanelBaseStyle}
+            style={{ height: "100%" }}
+            contentClassName={panelContainerStyle}
+            resizable={{
+              edge: "top",
+              size: panelHeight,
+              onResize: setBottomPanelHeight,
+              minSize: MIN_BOTTOM_PANEL_HEIGHT,
+              maxSize: MAX_BOTTOM_PANEL_HEIGHT,
+            }}
           >
-            <FaXmark size={14} />
-          </button>
-        </div>
-      </div>
+            {/* Tab Header */}
+            <div className={headerStyle}>
+              <HorizontalTabsHeader
+                subViews={subViews}
+                activeTabId={activeTab}
+                onTabChange={handleTabChange}
+              />
+              <div className={headerRightStyle}>
+                <HorizontalTabsHeaderAction
+                  subViews={subViews}
+                  activeTabId={activeTab}
+                />
+                <button
+                  type="button"
+                  onClick={toggleBottomPanel}
+                  className={closeButtonStyle}
+                  aria-label="Close panel"
+                >
+                  <FaXmark size={14} />
+                </button>
+              </div>
+            </div>
 
-      {/* Scrollable content */}
-      <HorizontalTabsContent subViews={subViews} activeTabId={activeTab} />
-    </GlassPanel>
+            {/* Scrollable content */}
+            <HorizontalTabsContent
+              subViews={subViews}
+              activeTabId={activeTab}
+            />
+          </GlassPanel>
+        </motion.div>
+      )}
+    </AnimatePresence>
   );
 };
