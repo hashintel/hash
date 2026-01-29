@@ -245,5 +245,6 @@ Initial scorers should prioritize:
 - `mastra-ner-workflow-spec.md` (lower-level implementation sketch; not the RFC)
 - `mastra-reflections.md`
 - `rfc/ai-features-captures.md`
+- `rfc/file-based-entity-inference-addendum.md`
 - `rfc/writing-sample-a.md`
 - `rfc/writing-sample-b.md`
