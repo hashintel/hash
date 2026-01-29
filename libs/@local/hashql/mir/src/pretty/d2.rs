@@ -7,7 +7,10 @@ use std::io;
 use bstr::ByteSlice as _;
 use hashql_core::{pretty::RenderFormat, r#type::TypeFormatter};
 
-use super::{DataFlowLookup, FormatPart, SourceLookup, TextFormat, text::HighlightBody};
+use super::{
+    DataFlowLookup, FormatPart, SourceLookup, TextFormat,
+    text::{HighlightBody, TextFormatOptions},
+};
 use crate::{
     body::{
         Body,
@@ -96,13 +99,16 @@ where
         for<'a> TextFormat<&'a mut W, &'a S, &'a mut TypeFormatter<'fmt, 'fmt, 'heap>>:
             FormatPart<V>,
     {
-        TextFormat {
+        let mut text = TextFormatOptions {
             writer: &mut self.writer,
             indent: 0,
             sources: &self.sources,
             types: &mut self.types,
         }
-        .format_part(value)
+        .build();
+
+        text.format_part(value)?;
+        text.flush()
     }
 
     fn format_text<V>(&mut self, value: V) -> io::Result<()>
@@ -119,13 +125,16 @@ where
         ];
         self.buffer.clear();
 
-        TextFormat {
+        let mut text = TextFormatOptions {
             writer: &mut self.buffer.front,
             indent: 0,
             sources: &self.sources,
             types: &mut self.types,
         }
-        .format_part(value)?;
+        .build();
+
+        text.format_part(value)?;
+        text.flush()?;
 
         self.buffer.back.reserve(self.buffer.front.len());
 
