@@ -401,6 +401,52 @@ fn entity_projection_jsonb() {
     );
 }
 
+/// `StorageLive`/`StorageDead` statements get `cost!(0)`.
+///
+/// Tests that storage management statements have zero cost even for Postgres,
+/// matching the interpreter behavior.
+#[test]
+fn storage_statements_zero_cost() {
+    let heap = Heap::new();
+    let interner = Interner::new(&heap);
+    let env = Environment::new(&heap);
+
+    let body = body!(interner, env; [graph::read::filter]@0/2 -> Int {
+        decl env: (), vertex: [Opaque sym::path::Entity; ?], x: Int, y: Int, result: Int;
+
+        bb0() {
+            let (x.local);
+            x = load 10;
+            let (y.local);
+            y = load 20;
+            result = bin.+ x y;
+            drop (x.local);
+            drop (y.local);
+            return result;
+        }
+    });
+
+    let mut context = MirContext {
+        heap: &heap,
+        env: &env,
+        interner: &interner,
+        diagnostics: DiagnosticIssues::new(),
+    };
+
+    let mut placement = PostgresStatementPlacement::default();
+    let (body, statement_costs, traversal_costs) =
+        run_placement(&mut context, &mut placement, body);
+
+    assert_placement(
+        "storage_statements_zero_cost",
+        "postgres",
+        &body,
+        &context,
+        &statement_costs,
+        &traversal_costs,
+    );
+}
+
 /// If one branch has an unsupported op, local is excluded from dispatchable set (must analysis).
 ///
 /// Diamond CFG: both branches converge at bb3. One branch (bb1) assigns `x` via a supported

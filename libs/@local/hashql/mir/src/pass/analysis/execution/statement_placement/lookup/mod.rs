@@ -1,6 +1,9 @@
 mod entity;
 mod trie;
 
+#[cfg(test)]
+mod tests;
+
 use self::entity::ENTITY_PATHS;
 pub(crate) use self::trie::Access;
 use crate::body::place::{Projection, ProjectionKind};
@@ -30,6 +33,7 @@ pub(crate) fn entity_projection_access(projections: &[Projection<'_>]) -> Option
         let Some(next_node) = node.lookup(name) else {
             return node.otherwise;
         };
+
         node = next_node;
     }
 

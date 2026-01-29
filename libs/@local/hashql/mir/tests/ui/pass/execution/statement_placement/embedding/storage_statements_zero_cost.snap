@@ -6,7 +6,9 @@ fn {graph::read::filter@4294967040}(%0: (), %1: Entity) -> ? {
     let %2: ?
 
     bb0(): {
-        %2 = %1.properties                                                      // cost: 4
+        let %2                                                                  // cost: 0
+        %2 = %1.encodings.vectors                                               // cost: 4
+        drop %2                                                                 // cost: 0
 
         return %2
     }

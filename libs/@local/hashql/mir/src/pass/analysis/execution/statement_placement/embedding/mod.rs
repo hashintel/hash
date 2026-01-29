@@ -25,6 +25,9 @@ use crate::{
     visit::Visitor as _,
 };
 
+#[cfg(test)]
+mod tests;
+
 fn is_supported_place<'heap>(
     context: &MirContext<'_, 'heap>,
     body: &Body<'heap>,

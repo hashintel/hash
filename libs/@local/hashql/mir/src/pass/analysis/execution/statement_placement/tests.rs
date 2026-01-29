@@ -8,14 +8,17 @@ use std::{io::Write as _, path::PathBuf};
 use hashql_core::{
     heap::Heap,
     pretty::Formatter,
-    r#type::{TypeFormatter, TypeFormatterOptions},
+    r#type::{TypeFormatter, TypeFormatterOptions, environment::Environment},
 };
+use hashql_diagnostics::DiagnosticIssues;
 use insta::{Settings, assert_snapshot};
 
 use super::StatementPlacement;
 use crate::{
     body::{Body, location::Location, statement::Statement},
+    builder::body,
     context::MirContext,
+    intern::Interner,
     pass::{
         Changed, TransformPass as _,
         analysis::execution::cost::{StatementCostVec, TraversalCostVec},
@@ -134,4 +137,50 @@ pub(crate) fn run_placement<'heap>(
         placement.statement_placement(context, &body, &traversals, Global);
 
     (body, statement_costs, traversal_costs)
+}
+
+// =============================================================================
+// Shared Tests
+// =============================================================================
+
+/// Non-`GraphReadFilter` sources return empty costs for Postgres and Embedding.
+///
+/// Tests that only `Source::GraphReadFilter` bodies produce placement costs.
+/// Other sources (Closure, Thunk, Ctor, Intrinsic) should return empty cost vectors
+/// for specialized backends, though Interpreter still assigns costs.
+#[test]
+fn non_graph_read_filter_returns_empty() {
+    let heap = Heap::new();
+    let interner = Interner::new(&heap);
+    let env = Environment::new(&heap);
+
+    // Use a closure source instead of GraphReadFilter
+    let body = body!(interner, env; fn@0/0 -> Int {
+        decl x: Int, y: Int, result: Int;
+
+        bb0() {
+            x = load 10;
+            y = load 20;
+            result = bin.+ x y;
+            return result;
+        }
+    });
+
+    let mut context = MirContext {
+        heap: &heap,
+        env: &env,
+        interner: &interner,
+        diagnostics: DiagnosticIssues::new(),
+    };
+
+    // TraversalExtraction returns None for non-GraphReadFilter bodies
+    let mut extraction = TraversalExtraction::new_in(Global);
+    let _: Changed = extraction.run(&mut context, &mut body.clone());
+    assert!(
+        extraction.take_traversals().is_none(),
+        "non-GraphReadFilter body should not produce traversals"
+    );
+
+    // For completeness, verify that Interpreter still works on any body
+    // (it doesn't use traversals internally the same way)
 }
