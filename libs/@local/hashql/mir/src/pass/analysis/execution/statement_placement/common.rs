@@ -1,4 +1,7 @@
-use core::cmp::Reverse;
+use core::{
+    cell::{Cell, OnceCell},
+    cmp::Reverse,
+};
 use std::alloc::Allocator;
 
 use hashql_core::{
@@ -26,21 +29,34 @@ use crate::{
     visit::Visitor,
 };
 
+pub(crate) struct OnceValue<T>(Cell<Option<T>>);
+
+impl<T> OnceValue<T> {
+    pub(crate) const fn new(value: T) -> Self {
+        Self(Cell::new(Some(value)))
+    }
+
+    fn take(&self) -> T {
+        self.0.take().expect("TakeCell already taken")
+    }
+}
+
 type RValueFn<'heap> =
     fn(&MirContext<'_, 'heap>, &Body<'heap>, &DenseBitSet<Local>, &RValue<'heap>) -> bool;
 
-type InitializeBoundaryFn<'heap> = fn(&Body<'heap>, &mut DenseBitSet<Local>);
-
-pub(crate) struct SupportedAnalysis<'ctx, 'env, 'heap> {
+pub(crate) struct SupportedAnalysis<'ctx, 'env, 'heap, B> {
     pub body: &'ctx Body<'heap>,
     pub context: &'ctx MirContext<'env, 'heap>,
 
     pub is_supported_rvalue: RValueFn<'heap>,
-    pub initialize_boundary: InitializeBoundaryFn<'heap>,
+    pub initialize_boundary: OnceValue<B>,
 }
 
-impl SupportedAnalysis<'_, '_, '_> {
-    pub(crate) fn finish_in<A: Allocator + Clone>(self, alloc: A) -> DenseBitSet<Local> {
+impl<'heap, B> SupportedAnalysis<'_, '_, 'heap, B> {
+    pub(crate) fn finish_in<A: Allocator + Clone>(self, alloc: A) -> DenseBitSet<Local>
+    where
+        B: FnOnce(&Body<'heap>, &mut DenseBitSet<Local>),
+    {
         let body = self.body;
         let DataflowResults { exit_states, .. } = self.iterate_to_fixpoint_in(body, alloc);
 
@@ -59,7 +75,10 @@ impl SupportedAnalysis<'_, '_, '_> {
     }
 }
 
-impl<'heap> DataflowAnalysis<'heap> for SupportedAnalysis<'_, '_, 'heap> {
+impl<'heap, B> DataflowAnalysis<'heap> for SupportedAnalysis<'_, '_, 'heap, B>
+where
+    B: FnOnce(&Body<'heap>, &mut DenseBitSet<Local>),
+{
     type Domain<A: Allocator> = DenseBitSet<Local>;
     type Lattice<A: Allocator + Clone> = Reverse<PowersetLattice>;
     type Metadata<A: Allocator> = !;
@@ -75,7 +94,9 @@ impl<'heap> DataflowAnalysis<'heap> for SupportedAnalysis<'_, '_, 'heap> {
         domain: &mut Self::Domain<A>,
         _: A,
     ) {
-        (self.initialize_boundary)(body, domain)
+        let initialize_boundary = self.initialize_boundary.take();
+
+        (initialize_boundary)(body, domain);
     }
 
     fn transfer_statement<A: Allocator>(
