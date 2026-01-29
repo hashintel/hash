@@ -25,6 +25,7 @@ type SimulationStateValues = {
   parameterValues: Record<string, string>;
   initialMarking: InitialMarking;
   dt: number;
+  maxTime: number | null;
 };
 
 const initialStateValues: SimulationStateValues = {
@@ -35,6 +36,7 @@ const initialStateValues: SimulationStateValues = {
   parameterValues: {},
   initialMarking: new Map(),
   dt: 0.01,
+  maxTime: null,
 };
 
 /**
@@ -52,7 +54,10 @@ const TICK_TIME_BUDGET_MS = 5;
 
 type UseSimulationRunnerParams = {
   isRunning: boolean;
-  getState: () => Pick<SimulationStateValues, "simulation" | "state">;
+  getState: () => Pick<
+    SimulationStateValues,
+    "simulation" | "state" | "maxTime"
+  >;
   setStateValues: React.Dispatch<React.SetStateAction<SimulationStateValues>>;
 };
 
@@ -76,10 +81,12 @@ const useSimulationRunner = ({
 
     const tick = () => {
       const tickStart = performance.now();
-      let simulation = getState().simulation;
+      const currentState = getState();
+      let simulation = currentState.simulation;
+      const { maxTime } = currentState;
       let shouldContinue = true;
 
-      if (!simulation || getState().state !== "Running") {
+      if (!simulation || currentState.state !== "Running") {
         return;
       }
 
@@ -94,9 +101,19 @@ const useSimulationRunner = ({
 
           simulation = updatedSimulation;
 
+          // Check if maxTime has been reached
+          const currentFrame =
+            updatedSimulation.frames[updatedSimulation.currentFrameNumber];
+          if (
+            currentFrame &&
+            maxTime !== null &&
+            currentFrame.time >= maxTime
+          ) {
+            shouldContinue = false;
+            break;
+          }
+
           if (!transitionFired) {
-            const currentFrame =
-              updatedSimulation.frames[updatedSimulation.currentFrameNumber];
             if (currentFrame) {
               const enablementResult = checkTransitionEnablement(currentFrame);
               if (!enablementResult.hasEnabledTransition) {
@@ -241,6 +258,10 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
     setStateValues((prev) => ({ ...prev, dt }));
   };
 
+  const setMaxTime: SimulationContextValue["setMaxTime"] = (maxTime) => {
+    setStateValues((prev) => ({ ...prev, maxTime }));
+  };
+
   const initializeParameterValuesFromDefaults: SimulationContextValue["initializeParameterValuesFromDefaults"] =
     () => {
       setStateValues((prev) => {
@@ -381,9 +402,11 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
     parameterValues: stateValues.parameterValues,
     initialMarking: stateValues.initialMarking,
     dt: stateValues.dt,
+    maxTime: stateValues.maxTime,
     setInitialMarking,
     setParameterValue,
     setDt,
+    setMaxTime,
     initializeParameterValuesFromDefaults,
     initialize,
     run,
