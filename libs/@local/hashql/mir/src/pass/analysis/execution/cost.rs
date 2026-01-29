@@ -1,3 +1,8 @@
+//! Cost tracking for execution planning.
+//!
+//! Provides data structures for recording the execution cost of statements on different targets.
+//! The execution planner uses these costs to select optimal targets for each statement.
+
 use alloc::alloc::Global;
 use core::{
     alloc::Allocator,
@@ -18,10 +23,23 @@ use crate::{
     pass::transform::Traversals,
 };
 
+/// Execution cost for a statement on a particular target.
+///
+/// Lower values indicate cheaper execution. When multiple targets can execute a statement, the
+/// execution planner selects the target with the lowest cost. A statement with no assigned cost
+/// (`None`) indicates the target cannot execute that statement.
+///
+/// Typical cost values:
+/// - `0`: Zero-cost operations (storage markers, nops)
+/// - `4`: Standard Postgres/Embedding operations
+/// - `8`: Interpreter operations (higher due to runtime overhead)
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Cost(core::num::niche_types::U32NotAllOnes);
 
 impl Cost {
+    /// Creates a cost from a `u32` value, returning `None` if the value is `u32::MAX`.
+    ///
+    /// The `u32::MAX` value is reserved as a niche for `Option<Cost>` optimization.
     #[must_use]
     pub const fn new(value: u32) -> Option<Self> {
         match core::num::niche_types::U32NotAllOnes::new(value) {
@@ -40,19 +58,35 @@ impl Cost {
         }
     }
 
+    /// Creates a cost without checking whether the value is valid.
+    ///
+    /// # Safety
+    ///
+    /// The caller must ensure `value` is not `u32::MAX`.
     #[must_use]
     #[expect(unsafe_code)]
-    pub unsafe fn new_unchecked(value: u32) -> Self {
+    pub const unsafe fn new_unchecked(value: u32) -> Self {
+        // SAFETY: The caller must ensure `value` is not `u32::MAX`.
         Self(unsafe { core::num::niche_types::U32NotAllOnes::new_unchecked(value) })
     }
 }
 
+/// Sparse cost map for traversal locals.
+///
+/// Traversals are locals that require data fetching from a backend (e.g., entity field access).
+/// This map only stores costs for locals marked as traversals; insertions for non-traversal
+/// locals are ignored. This allows the execution planner to focus on the operations that actually
+/// require backend coordination.
 pub struct TraversalCostVec<A: Allocator = Global> {
     traversals: DenseBitSet<Local>,
     costs: LocalVec<Option<Cost>, A>,
 }
 
 impl<A: Allocator> TraversalCostVec<A> {
+    /// Creates an empty traversal cost map for the given body.
+    ///
+    /// Only locals that are enabled traversals (per [`Traversals::enabled`]) will accept cost
+    /// insertions; other locals are silently ignored.
     pub fn new<'heap>(body: &Body<'heap>, traversals: &Traversals<'heap>, alloc: A) -> Self {
         Self {
             traversals: traversals.enabled(body),
@@ -60,6 +94,9 @@ impl<A: Allocator> TraversalCostVec<A> {
         }
     }
 
+    /// Records a cost for a traversal local.
+    ///
+    /// If `local` is not a traversal, the insertion is silently ignored.
     pub fn insert(&mut self, local: Local, cost: Cost) {
         if self.traversals.contains(local) {
             self.costs.insert(local, cost);
@@ -67,12 +104,22 @@ impl<A: Allocator> TraversalCostVec<A> {
     }
 }
 
+/// Dense cost map for all statements in a body.
+///
+/// Stores the execution cost for every statement, indexed by [`Location`]. A `None` cost
+/// indicates the target cannot execute that statement. The execution planner compares costs
+/// across targets to determine the optimal execution strategy.
+///
+/// Internally uses a flattened representation with per-block offsets for efficient indexing.
 pub struct StatementCostVec<A: Allocator = Global> {
     offsets: Box<BasicBlockSlice<u32>, A>,
     costs: Vec<Option<Cost>, A>,
 }
 
 impl<A: Allocator> StatementCostVec<A> {
+    /// Creates a cost map with space for all statements in the given blocks.
+    ///
+    /// All costs are initialized to `None` (unsupported). Use indexing to assign costs.
     #[expect(unsafe_code)]
     pub fn new(blocks: &BasicBlocks, alloc: A) -> Self
     where
@@ -109,11 +156,12 @@ impl<A: Allocator> StatementCostVec<A> {
         Self { offsets, costs }
     }
 
+    /// Returns the cost at `location`, or `None` if out of bounds or unassigned.
     pub fn get(&self, location: Location) -> Option<Cost> {
         let range = (self.offsets[location.block] as usize)
             ..(self.offsets[location.block.plus(1)] as usize);
 
-        // statement_index is 1 based
+        // statement_index is 1-based
         self.costs[range]
             .get(location.statement_index - 1)
             .copied()
@@ -128,7 +176,8 @@ impl<A: Allocator> Index<Location> for StatementCostVec<A> {
         let range =
             (self.offsets[index.block] as usize)..(self.offsets[index.block.plus(1)] as usize);
 
-        &self.costs[range][index.statement_index - 1] // statement_index is 1 based
+        // statement_index is 1-based
+        &self.costs[range][index.statement_index - 1]
     }
 }
 
@@ -137,6 +186,7 @@ impl<A: Allocator> IndexMut<Location> for StatementCostVec<A> {
         let range =
             (self.offsets[index.block] as usize)..(self.offsets[index.block.plus(1)] as usize);
 
-        &mut self.costs[range][index.statement_index - 1] // statement_index is 1 based
+        // statement_index is 1-based
+        &mut self.costs[range][index.statement_index - 1]
     }
 }
