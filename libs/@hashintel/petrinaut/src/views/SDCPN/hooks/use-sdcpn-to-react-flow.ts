@@ -2,7 +2,7 @@ import { use } from "react";
 import { MarkerType } from "reactflow";
 
 import { hexToHsl } from "../../../lib/hsl-color";
-import { SimulationContext } from "../../../simulation/context";
+import { PlaybackContext } from "../../../playback/context";
 import { EditorContext } from "../../../state/editor-context";
 import { generateArcId, SDCPNContext } from "../../../state/sdcpn-context";
 import type {
@@ -23,7 +23,7 @@ import type {
 export function useSdcpnToReactFlow(): PetrinautReactFlowDefinitionObject {
   const { petriNetDefinition } = use(SDCPNContext);
   const { draggingStateByNodeId, selectedItemIds } = use(EditorContext);
-  const { currentViewedFrame } = use(SimulationContext);
+  const { currentViewedFrame } = use(PlaybackContext);
 
   const nodes: NodeType[] = [];
 

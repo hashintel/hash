@@ -1,12 +1,28 @@
-import { css } from "@hashintel/ds-helpers/css";
-import { use } from "react";
+import { css, cva } from "@hashintel/ds-helpers/css";
+import { AnimatePresence, motion } from "motion/react";
+import { use, useEffect, useRef, useState } from "react";
+import { IoMdPause, IoMdPlay } from "react-icons/io";
 import {
-  IoMdCheckmarkCircleOutline,
-  IoMdPause,
-  IoMdPlay,
-} from "react-icons/io";
-import { MdRotateLeft } from "react-icons/md";
+  MdCheck,
+  MdCheckBox,
+  MdOutlinePlayArrow,
+  MdRotateLeft,
+} from "react-icons/md";
+import {
+  TbArrowBarToRight,
+  TbChartLine,
+  TbClock,
+  TbInfinity,
+  TbSettings,
+  TbX,
+} from "react-icons/tb";
 
+import {
+  formatPlaybackSpeed,
+  PLAYBACK_SPEEDS,
+  PlaybackContext,
+  type PlaybackSpeed,
+} from "../../../../playback/context";
 import { SimulationContext } from "../../../../simulation/context";
 import { EditorContext } from "../../../../state/editor-context";
 import { ToolbarButton } from "./toolbar-button";
@@ -68,6 +84,195 @@ const sliderStyle = css({
   },
 });
 
+const settingsButtonContainerStyle = css({
+  position: "relative",
+});
+
+// Popover styles
+const popoverContainerStyle = css({
+  position: "absolute",
+  bottom: "[100%]",
+  left: "[50%]",
+  transform: "translateX(-50%)",
+  marginBottom: "2",
+  zIndex: 1000,
+});
+
+const popoverStyle = css({
+  backgroundColor: "gray.10",
+  borderRadius: "[12px]",
+  boxShadow:
+    "[0px 0px 0px 1px rgba(0, 0, 0, 0.08), 0px 4px 6px -1px rgba(0, 0, 0, 0.1), 0px 10px 15px -3px rgba(0, 0, 0, 0.1), 0px 20px 25px -5px rgba(0, 0, 0, 0.1)]",
+  overflow: "hidden",
+  width: "[280px]",
+});
+
+const popoverHeaderStyle = css({
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "space-between",
+  paddingX: "[12px]",
+  paddingY: "[8px]",
+});
+
+const popoverTitleStyle = css({
+  fontSize: "[12px]",
+  fontWeight: "medium",
+  color: "gray.50",
+  textTransform: "uppercase",
+  letterSpacing: "[0.48px]",
+});
+
+const closeButtonStyle = css({
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  width: "[24px]",
+  height: "[24px]",
+  fontSize: "[14px]",
+  color: "gray.50",
+  backgroundColor: "[transparent]",
+  border: "none",
+  borderRadius: "[6px]",
+  cursor: "pointer",
+  _hover: {
+    backgroundColor: "[rgba(0, 0, 0, 0.05)]",
+  },
+});
+
+const sectionStyle = css({
+  paddingX: "[4px]",
+  paddingBottom: "[4px]",
+});
+
+const sectionCardStyle = css({
+  backgroundColor: "[white]",
+  borderRadius: "[8px]",
+  boxShadow:
+    "[0px 0px 0px 1px rgba(0, 0, 0, 0.06), 0px 1px 1px -0.5px rgba(0, 0, 0, 0.04), 0px 4px 4px -12px rgba(0, 0, 0, 0.02), 0px 12px 12px -6px rgba(0, 0, 0, 0.02)]",
+  overflow: "hidden",
+  padding: "[4px]",
+});
+
+const sectionLabelStyle = css({
+  fontSize: "[12px]",
+  fontWeight: "medium",
+  color: "gray.50",
+  paddingX: "[8px]",
+  paddingTop: "[8px]",
+  paddingBottom: "[6px]",
+});
+
+const menuItemStyle = cva({
+  base: {
+    display: "flex",
+    alignItems: "center",
+    gap: "[8px]",
+    width: "[100%]",
+    minWidth: "[130px]",
+    height: "[28px]",
+    paddingX: "[8px]",
+    borderRadius: "[8px]",
+    fontSize: "[14px]",
+    fontWeight: "medium",
+    color: "gray.90",
+    backgroundColor: "[transparent]",
+    border: "none",
+    cursor: "pointer",
+    textAlign: "left",
+    _hover: {
+      backgroundColor: "gray.10",
+    },
+  },
+  variants: {
+    selected: {
+      true: {
+        backgroundColor: "blue.20",
+        _hover: {
+          backgroundColor: "blue.20",
+        },
+      },
+    },
+    disabled: {
+      true: {
+        opacity: "[0.4]",
+        cursor: "not-allowed",
+        _hover: {
+          backgroundColor: "[transparent]",
+        },
+      },
+    },
+  },
+});
+
+const menuItemIconStyle = css({
+  fontSize: "[14px]",
+  color: "gray.50",
+  flexShrink: 0,
+});
+
+const menuItemTextStyle = css({
+  flex: "[1]",
+  overflow: "hidden",
+  textOverflow: "ellipsis",
+  whiteSpace: "nowrap",
+});
+
+const checkIconStyle = css({
+  fontSize: "[14px]",
+  color: "blue.50",
+  flexShrink: 0,
+});
+
+const speedGridStyle = css({
+  display: "grid",
+  gridTemplateColumns: "repeat(4, 1fr)",
+  paddingX: "[8px]",
+  paddingBottom: "[4px]",
+});
+
+const speedButtonStyle = cva({
+  base: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    padding: "[8px]",
+    fontSize: "[14px]",
+    fontWeight: "medium",
+    color: "gray.90",
+    backgroundColor: "[transparent]",
+    border: "none",
+    borderRadius: "[8px]",
+    cursor: "pointer",
+    _hover: {
+      backgroundColor: "gray.10",
+    },
+  },
+  variants: {
+    selected: {
+      true: {
+        backgroundColor: "blue.20",
+        _hover: {
+          backgroundColor: "blue.20",
+        },
+      },
+    },
+  },
+});
+
+const popoverDividerStyle = css({
+  height: "[1px]",
+  backgroundColor: "gray.10",
+  marginTop: "[4px]",
+});
+
+const toolbarDividerStyle = css({
+  background: "gray.20",
+  width: "[1px]",
+  height: "[16px]",
+  margin: "[0 4px]",
+});
+
 interface SimulationControlsProps {
   disabled?: boolean;
 }
@@ -81,13 +286,62 @@ export const SimulationControls: React.FC<SimulationControlsProps> = ({
     reset,
     initialize,
     run,
-    pause,
     dt,
-    currentViewedFrame,
-    setCurrentViewedFrame,
   } = use(SimulationContext);
 
+  const {
+    currentViewedFrame,
+    currentFrameIndex,
+    totalFrames,
+    playbackState,
+    playbackSpeed,
+    playMode,
+    isViewOnlyAvailable,
+    setCurrentViewedFrame,
+    play: playbackPlay,
+    pause: playbackPause,
+    setPlaybackSpeed,
+    setPlayMode,
+  } = use(PlaybackContext);
+
   const { setBottomPanelOpen, setActiveBottomPanelTab } = use(EditorContext);
+
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  // Dummy state for "Stopping conditions" option (UI only for now)
+  const [stoppingCondition, setStoppingCondition] = useState<
+    "indefinitely" | "fixed" | "condition"
+  >("fixed");
+
+  // Close popover when clicking outside
+  useEffect(() => {
+    if (!isMenuOpen) {
+      return;
+    }
+
+    const menuElement = menuRef.current;
+
+    const handleClickOutside = (event: MouseEvent) => {
+      if (menuElement && !menuElement.contains(event.target as Node)) {
+        setIsMenuOpen(false);
+      }
+    };
+
+    const handleFocusOut = (event: FocusEvent) => {
+      if (menuElement && !menuElement.contains(event.relatedTarget as Node)) {
+        setIsMenuOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    menuElement?.addEventListener("focusout", handleFocusOut);
+
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      menuElement?.removeEventListener("focusout", handleFocusOut);
+    };
+  }, [isMenuOpen]);
 
   const isDisabled = disabled;
 
@@ -96,43 +350,49 @@ export const SimulationControls: React.FC<SimulationControlsProps> = ({
     setBottomPanelOpen(true);
   };
 
-  const totalFrames = simulation?.frames.length ?? 0;
   const hasSimulation = simulation !== null;
-  const isRunning = simulationState === "Running";
-  const isComplete = simulationState === "Complete";
-  const frameIndex = currentViewedFrame?.number ?? 0;
+  const isSimulationComplete = simulationState === "Complete";
+  const isSimulationErrored = simulationState === "Error";
+  const isPlaybackPlaying = playbackState === "Playing";
+  const frameIndex = currentFrameIndex;
   const elapsedTime = currentViewedFrame?.time ?? 0;
+
+  // Disable play button when at the last frame and simulation is complete or errored
+  const isAtLastFrame = totalFrames > 0 && frameIndex >= totalFrames - 1;
+  const isPlayDisabled =
+    isDisabled ||
+    ((isSimulationComplete || isSimulationErrored) && isAtLastFrame);
 
   const getPlayPauseTooltip = () => {
     if (isDisabled) {
       return "Fix errors to run simulation";
     }
+    if ((isSimulationComplete || isSimulationErrored) && isAtLastFrame) {
+      return "Playback finished - Reset to run again";
+    }
     if (simulationState === "NotRun") {
       return "Start Simulation";
     }
-    if (simulationState === "Complete") {
-      return "Simulation Complete - Reset to run again";
+    if (isPlaybackPlaying) {
+      return "Pause Playback";
     }
-    if (isRunning) {
-      return "Pause Simulation";
-    }
-    return "Continue Simulation";
+    return "Play";
   };
 
   const getPlayPauseAriaLabel = () => {
     if (isDisabled) {
       return "Fix errors to run simulation";
     }
+    if ((isSimulationComplete || isSimulationErrored) && isAtLastFrame) {
+      return "Playback finished";
+    }
     if (simulationState === "NotRun") {
       return "Run simulation";
     }
-    if (simulationState === "Complete") {
-      return "Simulation complete";
+    if (isPlaybackPlaying) {
+      return "Pause playback";
     }
-    if (isRunning) {
-      return "Pause simulation";
-    }
-    return "Continue simulation";
+    return "Play";
   };
 
   const handlePlayPause = () => {
@@ -143,21 +403,21 @@ export const SimulationControls: React.FC<SimulationControlsProps> = ({
     }
 
     if (simulationState === "NotRun") {
-      // Initialize and start continuous simulation
+      // Initialize and start simulation computation
+      // PlaybackProvider will auto-start playback when simulation starts running
       initialize({
         seed: Date.now(),
         dt,
       });
-      // Run will be called after initialization completes
       setTimeout(() => {
         run();
       }, 0);
-    } else if (isRunning) {
-      // Pause the running simulation
-      pause();
-    } else if (simulationState === "Paused") {
-      // Resume continuous simulation
-      run();
+    } else if (isPlaybackPlaying) {
+      // Pause playback
+      playbackPause();
+    } else {
+      // Start/resume playback
+      playbackPlay();
     }
   };
 
@@ -165,60 +425,288 @@ export const SimulationControls: React.FC<SimulationControlsProps> = ({
     reset();
   };
 
+  // Split speeds into two rows of 4
+  const speedRows: PlaybackSpeed[][] = [
+    PLAYBACK_SPEEDS.slice(0, 4),
+    PLAYBACK_SPEEDS.slice(4),
+  ];
+
+  const animationConfig = {
+    initial: { opacity: 0, scale: 0.8, width: 0 },
+    animate: { opacity: 1, scale: 1, width: "auto" },
+    exit: { opacity: 0, scale: 0.8, width: 0 },
+    transition: { duration: 0.2, ease: "easeInOut" as const },
+  };
+
+  const dividerAnimationConfig = {
+    initial: { opacity: 0, scaleY: 0 },
+    animate: { opacity: 1, scaleY: 1 },
+    exit: { opacity: 0, scaleY: 0 },
+    transition: { duration: 0.15, ease: "easeInOut" as const },
+  };
+
   return (
     <>
-      {/* Play/Pause button - always visible */}
-      <ToolbarButton
-        tooltip={getPlayPauseTooltip()}
-        onClick={handlePlayPause}
-        disabled={isDisabled || isComplete}
-        ariaLabel={getPlayPauseAriaLabel()}
-      >
-        {isComplete ? (
-          <IoMdCheckmarkCircleOutline />
-        ) : isRunning ? (
-          <IoMdPause />
-        ) : (
-          <IoMdPlay />
+      {/* Stop button - only visible when simulation exists */}
+      <AnimatePresence>
+        {hasSimulation && (
+          <motion.div
+            key="reset-section"
+            layout
+            style={{ display: "flex", alignItems: "center", gap: "inherit" }}
+            {...animationConfig}
+          >
+            <ToolbarButton
+              tooltip="Stop simulation"
+              onClick={handleReset}
+              disabled={isDisabled}
+              ariaLabel="Reset simulation"
+            >
+              <MdRotateLeft />
+            </ToolbarButton>
+            <motion.div
+              className={toolbarDividerStyle}
+              {...dividerAnimationConfig}
+            />
+          </motion.div>
         )}
-      </ToolbarButton>
+      </AnimatePresence>
+
+      {/* Play/Pause button - always visible */}
+      <motion.div layout>
+        <ToolbarButton
+          tooltip={getPlayPauseTooltip()}
+          onClick={handlePlayPause}
+          disabled={isPlayDisabled}
+          ariaLabel={getPlayPauseAriaLabel()}
+        >
+          {isPlaybackPlaying ? <IoMdPause /> : <IoMdPlay />}
+        </ToolbarButton>
+      </motion.div>
 
       {/* Frame controls - only visible when simulation exists */}
-      {hasSimulation && (
-        <>
-          <div className={frameInfoStyle}>
-            <div>Frame</div>
-            <div className={frameIndexStyle}>
-              {frameIndex + 1} / {totalFrames}
+      <AnimatePresence>
+        {hasSimulation && (
+          <motion.div
+            key="frame-controls"
+            layout
+            style={{ display: "flex", alignItems: "center", gap: "inherit" }}
+            {...animationConfig}
+          >
+            <div className={frameInfoStyle}>
+              <div>Frame</div>
+              <div className={frameIndexStyle}>
+                {frameIndex + 1} / {totalFrames}
+              </div>
+              <div className={elapsedTimeStyle}>{elapsedTime.toFixed(3)}s</div>
             </div>
-            <div className={elapsedTimeStyle}>{elapsedTime.toFixed(3)}s</div>
-          </div>
 
-          <input
-            type="range"
-            min="0"
-            max={Math.max(0, totalFrames - 1)}
-            value={frameIndex}
-            disabled={isDisabled}
-            onChange={(event) =>
-              setCurrentViewedFrame(Number(event.target.value))
-            }
-            className={sliderStyle}
-          />
-        </>
-      )}
+            <input
+              type="range"
+              min="0"
+              max={Math.max(0, totalFrames - 1)}
+              value={frameIndex}
+              disabled={isDisabled}
+              onChange={(event) =>
+                setCurrentViewedFrame(Number(event.target.value))
+              }
+              className={sliderStyle}
+            />
 
-      {/* Stop button - only visible when simulation exists */}
-      {hasSimulation && (
+            <motion.div
+              className={toolbarDividerStyle}
+              {...dividerAnimationConfig}
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Settings button with popover */}
+      <motion.div layout ref={menuRef} className={settingsButtonContainerStyle}>
         <ToolbarButton
-          tooltip="Stop simulation"
-          onClick={handleReset}
-          disabled={isDisabled}
-          ariaLabel="Reset simulation"
+          tooltip="Playback settings"
+          onClick={() => setIsMenuOpen((prev) => !prev)}
+          ariaLabel="Playback settings"
+          ariaExpanded={isMenuOpen}
         >
-          <MdRotateLeft />
+          <TbSettings />
         </ToolbarButton>
-      )}
+
+        {/* Playback settings menu */}
+        {isMenuOpen && (
+          <div className={popoverContainerStyle}>
+            <div className={popoverStyle}>
+              {/* Header */}
+              <div className={popoverHeaderStyle}>
+                <span className={popoverTitleStyle}>Playback Controls</span>
+                <button
+                  type="button"
+                  className={closeButtonStyle}
+                  onClick={() => setIsMenuOpen(false)}
+                  aria-label="Close menu"
+                >
+                  <TbX />
+                </button>
+              </div>
+
+              {/* When pressing play section */}
+              <div className={sectionStyle}>
+                <div className={sectionCardStyle}>
+                  <div className={sectionLabelStyle}>When pressing play</div>
+                  <button
+                    type="button"
+                    className={menuItemStyle({
+                      selected: playMode === "viewOnly",
+                      disabled: !isViewOnlyAvailable,
+                    })}
+                    onClick={() =>
+                      isViewOnlyAvailable && setPlayMode("viewOnly")
+                    }
+                    aria-disabled={!isViewOnlyAvailable}
+                    title={
+                      !isViewOnlyAvailable
+                        ? "Only available when simulation is complete"
+                        : undefined
+                    }
+                  >
+                    <MdOutlinePlayArrow className={menuItemIconStyle} />
+                    <span className={menuItemTextStyle}>
+                      Play computed steps only
+                    </span>
+                    {playMode === "viewOnly" && (
+                      <MdCheck className={checkIconStyle} />
+                    )}
+                  </button>
+                  <button
+                    type="button"
+                    className={menuItemStyle({
+                      selected: playMode === "computeBuffer",
+                      disabled: isViewOnlyAvailable,
+                    })}
+                    onClick={() =>
+                      !isViewOnlyAvailable && setPlayMode("computeBuffer")
+                    }
+                    aria-disabled={isViewOnlyAvailable}
+                    title={
+                      isViewOnlyAvailable
+                        ? "Not available when simulation is complete"
+                        : undefined
+                    }
+                  >
+                    <TbChartLine className={menuItemIconStyle} />
+                    <span className={menuItemTextStyle}>
+                      Play + compute buffer
+                    </span>
+                    {playMode === "computeBuffer" && (
+                      <MdCheck className={checkIconStyle} />
+                    )}
+                  </button>
+                  <button
+                    type="button"
+                    className={menuItemStyle({
+                      selected: playMode === "computeMax",
+                      disabled: isViewOnlyAvailable,
+                    })}
+                    onClick={() =>
+                      !isViewOnlyAvailable && setPlayMode("computeMax")
+                    }
+                    aria-disabled={isViewOnlyAvailable}
+                    title={
+                      isViewOnlyAvailable
+                        ? "Not available when simulation is complete"
+                        : undefined
+                    }
+                  >
+                    <TbArrowBarToRight className={menuItemIconStyle} />
+                    <span className={menuItemTextStyle}>
+                      Play + compute max
+                    </span>
+                    {playMode === "computeMax" && (
+                      <MdCheck className={checkIconStyle} />
+                    )}
+                  </button>
+                  <div className={popoverDividerStyle} />
+                </div>
+              </div>
+
+              {/* Playback speed section */}
+              <div className={sectionStyle}>
+                <div className={sectionCardStyle}>
+                  <div className={sectionLabelStyle}>Playback speed</div>
+                  {speedRows.map((row) => (
+                    <div key={row[0]} className={speedGridStyle}>
+                      {row.map((speed) => (
+                        <button
+                          key={speed}
+                          type="button"
+                          className={speedButtonStyle({
+                            selected: speed === playbackSpeed,
+                          })}
+                          onClick={() => setPlaybackSpeed(speed)}
+                        >
+                          {formatPlaybackSpeed(speed)}
+                        </button>
+                      ))}
+                    </div>
+                  ))}
+                  <div className={popoverDividerStyle} />
+                </div>
+              </div>
+
+              {/* Stopping conditions section */}
+              <div className={sectionStyle}>
+                <div className={sectionCardStyle}>
+                  <div className={sectionLabelStyle}>Stopping conditions</div>
+                  <button
+                    type="button"
+                    className={menuItemStyle({
+                      selected: stoppingCondition === "indefinitely",
+                    })}
+                    onClick={() => setStoppingCondition("indefinitely")}
+                  >
+                    <TbInfinity className={menuItemIconStyle} />
+                    <span className={menuItemTextStyle}>Run indefinitely</span>
+                    {stoppingCondition === "indefinitely" && (
+                      <MdCheck className={checkIconStyle} />
+                    )}
+                  </button>
+                  <button
+                    type="button"
+                    className={menuItemStyle({
+                      selected: stoppingCondition === "fixed",
+                    })}
+                    onClick={() => setStoppingCondition("fixed")}
+                  >
+                    <TbClock className={menuItemIconStyle} />
+                    <span className={menuItemTextStyle}>
+                      End at fixed steps/time
+                    </span>
+                    {stoppingCondition === "fixed" && (
+                      <MdCheck className={checkIconStyle} />
+                    )}
+                  </button>
+                  <button
+                    type="button"
+                    className={menuItemStyle({
+                      selected: stoppingCondition === "condition",
+                    })}
+                    onClick={() => setStoppingCondition("condition")}
+                  >
+                    <MdCheckBox className={menuItemIconStyle} />
+                    <span className={menuItemTextStyle}>
+                      End when condition satisfied
+                    </span>
+                    {stoppingCondition === "condition" && (
+                      <MdCheck className={checkIconStyle} />
+                    )}
+                  </button>
+                  <div className={popoverDividerStyle} />
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+      </motion.div>
     </>
   );
 };
