@@ -112,7 +112,7 @@ const PlaceInitialStateContent: React.FC = () => {
           onChange={(event) => {
             const count = Math.max(
               0,
-              Number.parseInt(event.target.value, 10) || 0
+              Number.parseInt(event.target.value, 10) || 0,
             );
             setInitialMarking(place.id, {
               values: new Float64Array(0), // Empty array for places without type
