@@ -1016,6 +1016,398 @@ export const researchEntitiesAction = async (params) => {
 
 ---
 
+## External Project Development
+
+This section covers developing the Mastra workflows in a **separate project outside the HASH monorepo**, which provides cleaner separation and easier iteration.
+
+### Dependency Analysis
+
+The current NER logic relies on monorepo-internal packages:
+
+| Package | What It Provides | Published? |
+|---------|-----------------|------------|
+| `@blockprotocol/type-system` | `EntityId`, `VersionedUrl`, `PropertyValue`, etc. | ✅ npm |
+| `@local/hash-isomorphic-utils` | `ProposedEntity`, flow types, ontology IDs | ❌ Private |
+| `@local/hash-graph-sdk` | `HashEntity`, `createClaim`, entity operations | ❌ Private |
+| `@local/hash-graph-client` | GraphQL client for Graph service | ❌ Private |
+| `@local/hash-backend-utils` | `createGraphClient`, flow utilities | ❌ Private |
+
+### Recommended Architecture
+
+Use an **HTTP boundary** between the HASH monorepo and the external Mastra project:
+
+```
+┌─────────────────────────────────────────────────────────┐
+│                   HASH Monorepo                          │
+│                                                          │
+│  ┌─────────────────────────────────────────────────┐    │
+│  │              Temporal Activity                   │    │
+│  │  inferEntitiesFromContentAction                  │    │
+│  │                                                  │    │
+│  │  1. Dereference entity types (Graph API)        │    │
+│  │  2. Call Mastra service (HTTP)                  │    │
+│  │  3. Transform response to ProposedEntity[]      │    │
+│  │  4. Record usage, create claims, persist        │    │
+│  └─────────────────────────────────────────────────┘    │
+│                          │                               │
+│                          │ HTTP POST                     │
+│                          ▼                               │
+└─────────────────────────────────────────────────────────┘
+                           │
+                           ▼
+┌─────────────────────────────────────────────────────────┐
+│                 Mastra Project (External)                │
+│                                                          │
+│  ┌─────────────────────────────────────────────────┐    │
+│  │              Mastra HTTP Server                  │    │
+│  │  POST /ner/extract                              │    │
+│  │                                                  │    │
+│  │  Input:                                         │    │
+│  │    - content (string or WebPage)                │    │
+│  │    - entityTypeSchemas (JSON, pre-dereferenced) │    │
+│  │    - relevantEntitiesPrompt                     │    │
+│  │                                                  │    │
+│  │  Output:                                        │    │
+│  │    - entitySummaries[]                          │    │
+│  │    - claims[] (as data, not persisted)          │    │
+│  │    - proposedEntities[] (plain JSON)            │    │
+│  │    - metrics                                    │    │
+│  └─────────────────────────────────────────────────┘    │
+│                                                          │
+│  ┌─────────────────────────────────────────────────┐    │
+│  │              Mastra Workflows                    │    │
+│  │  - Entity Discovery Step                        │    │
+│  │  - Claim Extraction Step                        │    │
+│  │  - Entity Proposal Step                         │    │
+│  │  - Validation Step                              │    │
+│  └─────────────────────────────────────────────────┘    │
+│                                                          │
+│  Observability: Langfuse / Studio                        │
+│  Evals: @mastra/evals scorers                           │
+└─────────────────────────────────────────────────────────┘
+```
+
+### Benefits of External Development
+
+| Benefit | Description |
+|---------|-------------|
+| **Clean boundary** | Mastra knows nothing about HASH Graph internals |
+| **Type safety at boundary** | Define Zod schemas in Mastra, map to HASH types in Temporal |
+| **Independent deployment** | Mastra service can run anywhere |
+| **Easier testing** | Test Mastra workflows without full HASH stack |
+| **Gradual migration** | Swap in Mastra incrementally |
+| **Faster iteration** | No monorepo build overhead during development |
+
+### Local Service Ports
+
+When running HASH services locally (via `apps/hash-external-services`):
+
+| Service | Port | Purpose | Needed by Mastra? |
+|---------|------|---------|-------------------|
+| Graph API | 4000 | Entity/type operations | ❌ (schemas passed in) |
+| Temporal | 7233 | Workflow orchestration | ❌ (Mastra has own) |
+| Vault | 8200 | Secrets (API keys) | ❌ (use .env) |
+| PostgreSQL | 5432 | Backing store | ❌ (Mastra has own) |
+| **Mastra** | 4111 | Mastra Studio (dev) | ✅ (your project) |
+
+The Mastra project only needs to expose an HTTP endpoint that the Temporal activity calls.
+
+### API Contract
+
+Define a shared contract between the two systems:
+
+```typescript
+// Shared contract (can be a small package or just duplicated)
+import { z } from 'zod';
+
+// --- Request ---
+
+const WebPageSchema = z.object({
+  url: z.string().url(),
+  title: z.string(),
+  htmlContent: z.string(),
+});
+
+const EntityTypeSchemaSchema = z.object({
+  $id: z.string().url(), // VersionedUrl
+  title: z.string(),
+  description: z.string().optional(),
+  properties: z.record(z.unknown()), // Dereferenced property schemas
+  required: z.array(z.string()).optional(),
+  links: z.record(z.unknown()).optional(),
+});
+
+export const NerRequestSchema = z.object({
+  content: z.union([z.string(), WebPageSchema]),
+  entityTypeSchemas: z.array(EntityTypeSchemaSchema),
+  relevantEntitiesPrompt: z.string().optional(),
+  model: z.enum(['gpt-4o', 'claude-3-5-sonnet', 'gemini-1.5-pro']).optional(),
+});
+
+// --- Response ---
+
+const EntitySummarySchema = z.object({
+  localId: z.string(), // Generated UUID
+  name: z.string(),
+  summary: z.string(),
+  entityTypeIds: z.array(z.string().url()),
+});
+
+const ClaimDataSchema = z.object({
+  claimId: z.string(),
+  subjectEntityLocalId: z.string(),
+  objectEntityLocalId: z.string().optional(),
+  text: z.string(),
+  prepositionalPhrases: z.array(z.string()),
+});
+
+const ProposedEntityDataSchema = z.object({
+  localEntityId: z.string(),
+  entityTypeIds: z.array(z.string().url()),
+  properties: z.record(z.unknown()),
+  summary: z.string().optional(),
+  confidence: z.number().min(0).max(1).optional(),
+  sourceClaimIds: z.array(z.string()),
+});
+
+const MetricsSchema = z.object({
+  totalInputTokens: z.number(),
+  totalOutputTokens: z.number(),
+  latencyMs: z.number(),
+  stepMetrics: z.record(z.object({
+    inputTokens: z.number(),
+    outputTokens: z.number(),
+    latencyMs: z.number(),
+  })),
+});
+
+export const NerResponseSchema = z.object({
+  status: z.enum(['success', 'partial', 'error']),
+  entitySummaries: z.array(EntitySummarySchema),
+  claims: z.array(ClaimDataSchema),
+  proposedEntities: z.array(ProposedEntityDataSchema),
+  metrics: MetricsSchema,
+  errors: z.array(z.object({
+    step: z.string(),
+    message: z.string(),
+  })).optional(),
+});
+
+export type NerRequest = z.infer<typeof NerRequestSchema>;
+export type NerResponse = z.infer<typeof NerResponseSchema>;
+```
+
+### Temporal Activity Integration
+
+The Temporal activity calls the Mastra service and transforms the response:
+
+```typescript
+// src/activities/flow-activities/infer-entities-from-content-action.ts
+import type { NerRequest, NerResponse } from '@hash/ner-contract';
+
+const MASTRA_NER_URL = process.env.MASTRA_NER_SERVICE_URL ?? 'http://localhost:3000';
+
+export const inferEntitiesFromContentAction: AiFlowActionActivity<
+  "inferEntitiesFromContent"
+> = async ({ inputs }) => {
+  const { content, entityTypeIds, model, relevantEntitiesPrompt } = 
+    getSimplifiedAiFlowActionInputs({ inputs, actionType: "inferEntitiesFromContent" });
+
+  const { flowEntityId, userAuthentication, stepId, webId } = await getFlowContext();
+
+  // 1. Dereference entity types (this stays in HASH)
+  const dereferencedTypes = await getDereferencedEntityTypesActivity({
+    graphApiClient,
+    entityTypeIds,
+    actorId: userAuthentication.actorId,
+  });
+
+  // 2. Build request for Mastra service
+  const nerRequest: NerRequest = {
+    content,
+    entityTypeSchemas: Object.values(dereferencedTypes).map(t => ({
+      $id: t.schema.$id,
+      title: t.schema.title,
+      description: t.schema.description,
+      properties: t.schema.properties,
+      required: t.schema.required,
+      links: t.links,
+    })),
+    relevantEntitiesPrompt,
+    model: inferenceModelAliasToSpecificModel[model],
+  };
+
+  // 3. Call Mastra service
+  const response = await fetch(`${MASTRA_NER_URL}/ner/extract`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(nerRequest),
+  });
+
+  if (!response.ok) {
+    return {
+      code: StatusCode.Internal,
+      contents: [],
+      message: `Mastra NER service error: ${response.status}`,
+    };
+  }
+
+  const nerResponse: NerResponse = await response.json();
+
+  if (nerResponse.status === 'error') {
+    return {
+      code: StatusCode.Internal,
+      contents: [],
+      message: nerResponse.errors?.[0]?.message ?? 'Unknown NER error',
+    };
+  }
+
+  // 4. Transform to HASH ProposedEntity format
+  const proposedEntities = transformMastraToHashEntities(
+    nerResponse.proposedEntities,
+    nerResponse.claims,
+    { flowEntityId, stepId, webId },
+  );
+
+  // 5. Record usage (optional: create claims in Graph)
+  await recordUsageMetrics(nerResponse.metrics, {
+    flowEntityId,
+    stepId,
+    webId,
+    userActorId: userAuthentication.actorId,
+  });
+
+  return {
+    code: StatusCode.Ok,
+    contents: [{
+      outputs: [{
+        outputName: "proposedEntities",
+        payload: { kind: "ProposedEntity", value: proposedEntities },
+      }],
+    }],
+  };
+};
+
+function transformMastraToHashEntities(
+  mastraEntities: NerResponse['proposedEntities'],
+  mastraClaims: NerResponse['claims'],
+  context: { flowEntityId: EntityId; stepId: string; webId: WebId },
+): ProposedEntity[] {
+  return mastraEntities.map(entity => ({
+    localEntityId: entityIdFromComponents(context.webId, entity.localEntityId as EntityUuid),
+    entityTypeIds: entity.entityTypeIds as VersionedUrl[],
+    properties: entity.properties,
+    propertyMetadata: buildPropertyMetadata(entity, mastraClaims),
+    claims: {
+      isSubjectOf: mastraClaims
+        .filter(c => c.subjectEntityLocalId === entity.localEntityId)
+        .map(c => c.claimId as EntityId),
+      isObjectOf: mastraClaims
+        .filter(c => c.objectEntityLocalId === entity.localEntityId)
+        .map(c => c.claimId as EntityId),
+    },
+    provenance: {
+      actorType: 'ai',
+      origin: {
+        type: 'flow',
+        id: context.flowEntityId,
+        stepIds: [context.stepId],
+      },
+    },
+  }));
+}
+```
+
+### Mastra Server Setup
+
+In your external Mastra project:
+
+```typescript
+// src/server.ts
+import { Mastra } from '@mastra/core';
+import { serve } from '@mastra/core/server';
+import { nerExtractionWorkflow } from './workflows/ner-extraction';
+import { NerRequestSchema, NerResponseSchema } from './contract';
+
+const mastra = new Mastra({
+  name: 'hash-ner-service',
+  workflows: { nerExtractionWorkflow },
+  // ... agents, storage, telemetry
+});
+
+// Mastra's built-in server with custom endpoint
+const app = serve(mastra, {
+  port: 3000,
+  routes: {
+    '/ner/extract': {
+      POST: async (req) => {
+        const body = await req.json();
+        const input = NerRequestSchema.parse(body);
+        
+        const workflow = mastra.getWorkflow('ner-extraction');
+        const run = workflow.createRun();
+        const result = await run.start({ inputData: input });
+        
+        if (result.status === 'success') {
+          return Response.json(NerResponseSchema.parse({
+            status: 'success',
+            ...result.result,
+          }));
+        }
+        
+        return Response.json({
+          status: 'error',
+          entitySummaries: [],
+          claims: [],
+          proposedEntities: [],
+          metrics: { totalInputTokens: 0, totalOutputTokens: 0, latencyMs: 0, stepMetrics: {} },
+          errors: [{ step: 'workflow', message: result.error?.message ?? 'Unknown' }],
+        }, { status: 500 });
+      },
+    },
+  },
+});
+
+console.log('Mastra NER service running on http://localhost:3000');
+```
+
+### Development Workflow
+
+1. **Start HASH services** (if you need to test full integration):
+   ```bash
+   cd apps/hash-external-services && yarn deploy
+   yarn start:graph
+   ```
+
+2. **Start Mastra project** (separate terminal):
+   ```bash
+   cd ~/my-mastra-ner-project
+   npx mastra dev  # Studio at localhost:4111
+   # or
+   yarn start      # HTTP server at localhost:3000
+   ```
+
+3. **Test Mastra in isolation** (no HASH needed):
+   - Use Mastra Studio to test workflows with sample inputs
+   - Run `mastra eval` for scorer tests
+
+4. **Test integration**:
+   - Start both HASH and Mastra services
+   - Trigger a flow via HASH frontend or API
+   - Observe traces in Langfuse
+
+### Caveats
+
+| Issue | Mitigation |
+|-------|------------|
+| **Type drift** | Keep contract schemas in sync; consider shared package |
+| **Network latency** | Minimal for local dev; consider embedding for production |
+| **Error propagation** | Map Mastra errors to HASH `StatusCode` values |
+| **Claim persistence** | Either persist in Mastra (needs Graph access) or return as data |
+| **Authentication** | Mastra service is internal; add auth if exposed |
+
+---
+
 ## Open Questions
 
 ### Technical
@@ -1035,6 +1427,12 @@ export const researchEntitiesAction = async (params) => {
 
 1. **Research agent**: Include coordinating/sub-coordinating agents in Mastra, or keep as Temporal activities?
 2. **Deduplication**: Implement `matchExistingEntity` as Mastra step?
+
+### External Development
+
+1. **Shared contract package**: Publish to private registry or duplicate?
+2. **Claim creation**: Should Mastra call Graph API to persist claims, or return claim data for Temporal to persist?
+3. **Production deployment**: Run Mastra as sidecar, separate service, or embed in worker?
 
 ---
 
