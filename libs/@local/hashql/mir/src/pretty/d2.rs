@@ -15,6 +15,7 @@ use crate::{
     body::{
         Body,
         basic_block::{BasicBlock, BasicBlockId},
+        location::Location,
         terminator::{Goto, GraphRead, SwitchInt, TerminatorKind},
     },
     def::{DefId, DefIdSlice},
@@ -96,7 +97,7 @@ where
 
     fn format_text_unescaped<V>(&mut self, value: V) -> io::Result<()>
     where
-        for<'a> TextFormat<&'a mut W, &'a S, &'a mut TypeFormatter<'fmt, 'fmt, 'heap>>:
+        for<'a> TextFormat<&'a mut W, &'a S, &'a mut TypeFormatter<'fmt, 'fmt, 'heap>, ()>:
             FormatPart<V>,
     {
         let mut text = TextFormatOptions {
@@ -104,6 +105,7 @@ where
             indent: 0,
             sources: &self.sources,
             types: &mut self.types,
+            annotations: (),
         }
         .build();
 
@@ -113,7 +115,7 @@ where
 
     fn format_text<V>(&mut self, value: V) -> io::Result<()>
     where
-        for<'a> TextFormat<&'a mut Vec<u8>, &'a S, &'a mut TypeFormatter<'fmt, 'fmt, 'heap>>:
+        for<'a> TextFormat<&'a mut Vec<u8>, &'a S, &'a mut TypeFormatter<'fmt, 'fmt, 'heap>, ()>:
             FormatPart<V>,
     {
         const REPLACEMENTS: [(u8, &[u8]); 4] = [
@@ -130,6 +132,7 @@ where
             indent: 0,
             sources: &self.sources,
             types: &mut self.types,
+            annotations: (),
         }
         .build();
 
@@ -160,7 +163,7 @@ where
         aux: impl IntoIterator<Item: Display>,
     ) -> io::Result<()>
     where
-        for<'a> TextFormat<&'a mut Vec<u8>, &'a S, &'a mut TypeFormatter<'fmt, 'fmt, 'heap>>:
+        for<'a> TextFormat<&'a mut Vec<u8>, &'a S, &'a mut TypeFormatter<'fmt, 'fmt, 'heap>, ()>:
             FormatPart<V>,
     {
         let valign = if valign_bottom { "bottom" } else { "top" };
@@ -374,7 +377,18 @@ where
 
         for (index, statement) in block.statements.iter().enumerate() {
             let aux = self.dataflow.on_statement(def_id, block_id, index);
-            self.write_row(false, index, statement, aux)?;
+            self.write_row(
+                false,
+                index,
+                (
+                    Location {
+                        block: block_id,
+                        statement_index: index + 1,
+                    },
+                    statement,
+                ),
+                aux,
+            )?;
         }
 
         self.write_row(

@@ -43,6 +43,7 @@ fn assert_cp_pass<'heap>(
         indent: 4,
         sources: (),
         types: &mut formatter,
+        annotations: (),
     }
     .build();
 

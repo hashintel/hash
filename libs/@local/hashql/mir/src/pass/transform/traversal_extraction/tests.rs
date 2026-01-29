@@ -39,6 +39,7 @@ fn assert_traversal_pass<'heap>(
         indent: 4,
         sources: (),
         types: &mut formatter,
+        annotations: (),
     }
     .build();
 
