@@ -122,16 +122,35 @@ fn is_supported_rvalue<'heap>(
     }
 }
 
-struct HasClosureVisitor<'env, 'heap> {
+struct HasClosureVisitor<'env, 'heap, G = RecursiveVisitorGuard<'heap>> {
     env: &'env Environment<'heap>,
+    guard: G,
 }
 
-impl<'heap> r#type::visit::Visitor<'heap> for HasClosureVisitor<'_, 'heap> {
+impl<'heap, G> r#type::visit::Visitor<'heap> for HasClosureVisitor<'_, 'heap, G>
+where
+    G: AsMut<RecursiveVisitorGuard<'heap>>,
+{
     type Filter = r#type::visit::filter::Deep;
     type Result = ControlFlow<()>;
 
     fn env(&self) -> &Environment<'heap> {
         self.env
+    }
+
+    fn visit_type(&mut self, r#type: r#type::Type<'heap>) -> Self::Result {
+        self.guard.as_mut().with(
+            |guard, r#type| {
+                r#type::visit::walk_type(
+                    &mut HasClosureVisitor {
+                        env: self.env,
+                        guard,
+                    },
+                    r#type,
+                )
+            },
+            r#type,
+        )
     }
 
     fn visit_closure(&mut self, _: r#type::Type<'heap, r#type::kind::ClosureType>) -> Self::Result {
@@ -191,12 +210,12 @@ impl<'heap, A: Allocator + Clone> StatementPlacement<'heap, A>
 
                     // Environment (local 0) is only transferable if it contains no closures
                     let env_type = body.local_decls[Local::new(0)].r#type;
-                    let has_closure = (
-                        &mut self.type_visitor_guard,
-                        HasClosureVisitor { env: context.env },
-                    )
-                        .visit_id(env_type)
-                        .is_break();
+                    let has_closure = HasClosureVisitor {
+                        env: context.env,
+                        guard: &mut self.type_visitor_guard,
+                    }
+                    .visit_id(env_type)
+                    .is_break();
 
                     if has_closure {
                         domain.remove(Local::new(0));

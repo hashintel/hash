@@ -658,140 +658,31 @@ where
     }
 }
 
-pub struct RecursiveVisitor<'heap, V> {
-    visitor: V,
-    boundary: RecursionBoundary<'heap>,
-}
-
-impl<V> RecursiveVisitor<'_, V> {
-    pub fn new(visitor: V) -> Self {
-        Self {
-            visitor,
-            boundary: RecursionBoundary::new(),
-        }
-    }
-}
-
-impl<'heap, V> Visitor<'heap> for RecursiveVisitor<'heap, V>
-where
-    V: Visitor<'heap>,
-{
-    type Filter = V::Filter;
-    type Result = V::Result;
-
-    fn env(&self) -> &Environment<'heap> {
-        self.visitor.env()
-    }
-
-    fn visit_generic_arguments(&mut self, arguments: GenericArguments<'heap>) -> Self::Result {
-        self.visitor.visit_generic_arguments(arguments)
-    }
-
-    fn visit_generic_argument(&mut self, argument: GenericArgument<'heap>) -> Self::Result {
-        self.visitor.visit_generic_argument(argument)
-    }
-
-    fn visit_generic_substitutions(
-        &mut self,
-        substitutions: GenericSubstitutions<'heap>,
-    ) -> Self::Result {
-        self.visitor.visit_generic_substitutions(substitutions)
-    }
-
-    fn visit_generic_substitution(&mut self, substitution: GenericSubstitution) -> Self::Result {
-        self.visitor.visit_generic_substitution(substitution)
-    }
-
-    fn visit_id(&mut self, id: TypeId) -> Self::Result {
-        self.visitor.visit_id(id)
-    }
-
-    fn visit_type(&mut self, r#type: Type<'heap>) -> Self::Result {
-        if self.boundary.enter(r#type, r#type).is_break() {
-            return Ok!();
-        }
-
-        let result = self.visitor.visit_type(r#type);
-
-        self.boundary.exit(r#type, r#type);
-        result
-    }
-
-    fn visit_opaque(&mut self, opaque: Type<'heap, OpaqueType>) -> Self::Result {
-        self.visitor.visit_opaque(opaque)
-    }
-
-    fn visit_primitive(&mut self, primitive: Type<'heap, PrimitiveType>) -> Self::Result {
-        self.visitor.visit_primitive(primitive)
-    }
-
-    fn visit_intrinsic_list(&mut self, list: Type<'heap, ListType>) -> Self::Result {
-        self.visitor.visit_intrinsic_list(list)
-    }
-
-    fn visit_intrinsic_dict(&mut self, dict: Type<'heap, DictType>) -> Self::Result {
-        self.visitor.visit_intrinsic_dict(dict)
-    }
-
-    fn visit_intrinsic(&mut self, intrinsic: Type<'heap, IntrinsicType>) -> Self::Result {
-        self.visitor.visit_intrinsic(intrinsic)
-    }
-
-    fn visit_struct(&mut self, r#struct: Type<'heap, StructType>) -> Self::Result {
-        self.visitor.visit_struct(r#struct)
-    }
-
-    fn visit_struct_fields(&mut self, fields: StructFields<'heap>) -> Self::Result {
-        self.visitor.visit_struct_fields(fields)
-    }
-
-    fn visit_struct_field(&mut self, field: StructField<'heap>) -> Self::Result {
-        self.visitor.visit_struct_field(field)
-    }
-
-    fn visit_tuple(&mut self, tuple: Type<'heap, TupleType>) -> Self::Result {
-        self.visitor.visit_tuple(tuple)
-    }
-
-    fn visit_union(&mut self, union: Type<'heap, UnionType>) -> Self::Result {
-        self.visitor.visit_union(union)
-    }
-
-    fn visit_intersection(&mut self, intersection: Type<'heap, IntersectionType>) -> Self::Result {
-        self.visitor.visit_intersection(intersection)
-    }
-
-    fn visit_closure(&mut self, closure: Type<'heap, ClosureType>) -> Self::Result {
-        self.visitor.visit_closure(closure)
-    }
-
-    fn visit_apply(&mut self, apply: Type<'heap, Apply>) -> Self::Result {
-        self.visitor.visit_apply(apply)
-    }
-
-    fn visit_generic(&mut self, generic: Type<'heap, Generic<'heap>>) -> Self::Result {
-        self.visitor.visit_generic(generic)
-    }
-
-    fn visit_param(&mut self, param: Type<'heap, Param>) -> Self::Result {
-        self.visitor.visit_param(param)
-    }
-
-    fn visit_infer(&mut self, infer: Type<'heap, Infer>) -> Self::Result {
-        self.visitor.visit_infer(infer)
-    }
-}
-
 pub struct RecursiveVisitorGuard<'heap> {
     boundary: RecursionBoundary<'heap>,
 }
 
-impl RecursiveVisitorGuard<'_> {
+impl<'heap> RecursiveVisitorGuard<'heap> {
     #[must_use]
     pub fn new() -> Self {
         Self {
             boundary: RecursionBoundary::new(),
         }
+    }
+
+    pub fn with<T: Try<Output = ()>>(
+        &mut self,
+        visit: impl FnOnce(&mut Self, Type<'heap>) -> T,
+        r#type: Type<'heap>,
+    ) -> T {
+        if self.boundary.enter(r#type, r#type).is_break() {
+            return Ok!();
+        }
+
+        let result = visit(self, r#type);
+
+        self.boundary.exit(r#type, r#type);
+        result
     }
 }
 
@@ -801,112 +692,8 @@ impl Default for RecursiveVisitorGuard<'_> {
     }
 }
 
-impl<'heap, V> Visitor<'heap> for (&mut RecursiveVisitorGuard<'heap>, V)
-where
-    V: Visitor<'heap>,
-{
-    type Filter = V::Filter;
-    type Result = V::Result;
-
-    fn env(&self) -> &Environment<'heap> {
-        self.1.env()
-    }
-
-    fn visit_generic_arguments(&mut self, arguments: GenericArguments<'heap>) -> Self::Result {
-        self.1.visit_generic_arguments(arguments)
-    }
-
-    fn visit_generic_argument(&mut self, argument: GenericArgument<'heap>) -> Self::Result {
-        self.1.visit_generic_argument(argument)
-    }
-
-    fn visit_generic_substitutions(
-        &mut self,
-        substitutions: GenericSubstitutions<'heap>,
-    ) -> Self::Result {
-        self.1.visit_generic_substitutions(substitutions)
-    }
-
-    fn visit_generic_substitution(&mut self, substitution: GenericSubstitution) -> Self::Result {
-        self.1.visit_generic_substitution(substitution)
-    }
-
-    fn visit_id(&mut self, id: TypeId) -> Self::Result {
-        self.1.visit_id(id)
-    }
-
-    fn visit_type(&mut self, r#type: Type<'heap>) -> Self::Result {
-        if self.0.boundary.enter(r#type, r#type).is_break() {
-            return Ok!();
-        }
-
-        let result = self.1.visit_type(r#type);
-
-        self.0.boundary.exit(r#type, r#type);
-        result
-    }
-
-    fn visit_opaque(&mut self, opaque: Type<'heap, OpaqueType>) -> Self::Result {
-        self.1.visit_opaque(opaque)
-    }
-
-    fn visit_primitive(&mut self, primitive: Type<'heap, PrimitiveType>) -> Self::Result {
-        self.1.visit_primitive(primitive)
-    }
-
-    fn visit_intrinsic_list(&mut self, list: Type<'heap, ListType>) -> Self::Result {
-        self.1.visit_intrinsic_list(list)
-    }
-
-    fn visit_intrinsic_dict(&mut self, dict: Type<'heap, DictType>) -> Self::Result {
-        self.1.visit_intrinsic_dict(dict)
-    }
-
-    fn visit_intrinsic(&mut self, intrinsic: Type<'heap, IntrinsicType>) -> Self::Result {
-        self.1.visit_intrinsic(intrinsic)
-    }
-
-    fn visit_struct(&mut self, r#struct: Type<'heap, StructType>) -> Self::Result {
-        self.1.visit_struct(r#struct)
-    }
-
-    fn visit_struct_fields(&mut self, fields: StructFields<'heap>) -> Self::Result {
-        self.1.visit_struct_fields(fields)
-    }
-
-    fn visit_struct_field(&mut self, field: StructField<'heap>) -> Self::Result {
-        self.1.visit_struct_field(field)
-    }
-
-    fn visit_tuple(&mut self, tuple: Type<'heap, TupleType>) -> Self::Result {
-        self.1.visit_tuple(tuple)
-    }
-
-    fn visit_union(&mut self, union: Type<'heap, UnionType>) -> Self::Result {
-        self.1.visit_union(union)
-    }
-
-    fn visit_intersection(&mut self, intersection: Type<'heap, IntersectionType>) -> Self::Result {
-        self.1.visit_intersection(intersection)
-    }
-
-    fn visit_closure(&mut self, closure: Type<'heap, ClosureType>) -> Self::Result {
-        self.1.visit_closure(closure)
-    }
-
-    fn visit_apply(&mut self, apply: Type<'heap, Apply>) -> Self::Result {
-        self.1.visit_apply(apply)
-    }
-
-    fn visit_generic(&mut self, generic: Type<'heap, Generic<'heap>>) -> Self::Result {
-        self.1.visit_generic(generic)
-    }
-
-    fn visit_param(&mut self, param: Type<'heap, Param>) -> Self::Result {
-        self.1.visit_param(param)
-    }
-
-    fn visit_infer(&mut self, infer: Type<'heap, Infer>) -> Self::Result {
-        self.1.visit_infer(infer)
+impl AsMut<Self> for RecursiveVisitorGuard<'_> {
+    fn as_mut(&mut self) -> &mut Self {
+        self
     }
 }
