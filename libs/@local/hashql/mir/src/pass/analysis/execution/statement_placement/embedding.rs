@@ -109,6 +109,22 @@ impl<A: Allocator + Clone> StatementPlacement<A> for EmbeddingStatementPlacement
             body,
             context,
             is_supported_rvalue,
+            initialize_boundary: |body, domain| {
+                match body.source {
+                    Source::GraphReadFilter(_) => {}
+                    Source::Ctor(_)
+                    | Source::Closure(..)
+                    | Source::Thunk(..)
+                    | Source::Intrinsic(_) => return,
+                }
+
+                debug_assert_eq!(body.args, 2);
+
+                // Inside of an embedding, no arguments are allowed to be transferred
+                for arg in 0..body.args {
+                    domain.remove(Local::new(arg));
+                }
+            },
         }
         .finish_in(alloc);
 
