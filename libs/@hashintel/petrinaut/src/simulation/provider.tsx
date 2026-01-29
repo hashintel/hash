@@ -26,6 +26,7 @@ type SimulationStateValues = {
   initialMarking: InitialMarking;
   dt: number;
   maxTime: number | null;
+  computeBufferDuration: number;
 };
 
 const initialStateValues: SimulationStateValues = {
@@ -37,6 +38,7 @@ const initialStateValues: SimulationStateValues = {
   initialMarking: new Map(),
   dt: 0.01,
   maxTime: null,
+  computeBufferDuration: 1,
 };
 
 /**
@@ -101,7 +103,7 @@ const useSimulationRunner = ({
 
           simulation = updatedSimulation;
 
-          // Check if maxTime has been reached
+          // Check if maxTime has been reached - pause instead of complete
           const currentFrame =
             updatedSimulation.frames[updatedSimulation.currentFrameNumber];
           if (
@@ -109,8 +111,15 @@ const useSimulationRunner = ({
             maxTime !== null &&
             currentFrame.time >= maxTime
           ) {
-            shouldContinue = false;
-            break;
+            // Pause simulation when maxTime reached (can be resumed by extending maxTime)
+            setStateValues((prev) => ({
+              ...prev,
+              simulation,
+              state: "Paused",
+              error: null,
+              errorItemId: null,
+            }));
+            return;
           }
 
           if (!transitionFired) {
@@ -123,6 +132,7 @@ const useSimulationRunner = ({
           }
         }
 
+        // Only mark as Complete when no transitions are enabled (not when maxTime reached)
         const finalState: SimulationState = shouldContinue
           ? "Running"
           : "Complete";
@@ -261,6 +271,11 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
   const setMaxTime: SimulationContextValue["setMaxTime"] = (maxTime) => {
     setStateValues((prev) => ({ ...prev, maxTime }));
   };
+
+  const setComputeBufferDuration: SimulationContextValue["setComputeBufferDuration"] =
+    (duration) => {
+      setStateValues((prev) => ({ ...prev, computeBufferDuration: duration }));
+    };
 
   const initializeParameterValuesFromDefaults: SimulationContextValue["initializeParameterValuesFromDefaults"] =
     () => {
@@ -403,10 +418,12 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
     initialMarking: stateValues.initialMarking,
     dt: stateValues.dt,
     maxTime: stateValues.maxTime,
+    computeBufferDuration: stateValues.computeBufferDuration,
     setInitialMarking,
     setParameterValue,
     setDt,
     setMaxTime,
+    setComputeBufferDuration,
     initializeParameterValuesFromDefaults,
     initialize,
     run,
