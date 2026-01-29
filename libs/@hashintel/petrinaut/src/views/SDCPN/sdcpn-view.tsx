@@ -14,6 +14,7 @@ import { EditorContext } from "../../state/editor-context";
 import { SDCPNContext } from "../../state/sdcpn-context";
 import { useIsReadOnly } from "../../state/use-is-read-only";
 import { Arc } from "./components/arc";
+import { MiniMap } from "./components/mini-map";
 import { PlaceNode } from "./components/place-node";
 import { TransitionNode } from "./components/transition-node";
 import { useApplyNodeChanges } from "./hooks/use-apply-node-changes";
@@ -341,6 +342,7 @@ export const SDCPNView: React.FC = () => {
         zoomOnScroll
       >
         <Background gap={SNAP_GRID_SIZE} size={1} />
+        <MiniMap pannable zoomable />
       </ReactFlow>
     </div>
   );
