@@ -2,9 +2,16 @@ use hashql_core::symbol::sym;
 
 use super::trie::{Access, AccessMode, PathNode};
 
-/// Entity path access trie for Postgres pushability.
+/// Entity path access trie mapping field paths to backend access types.
 ///
-/// Entry point: `entity_temporal_metadata` table, which joins to `entity_ids`,
+/// The trie structure mirrors the entity schema, with paths mapping to their storage location:
+///
+/// - `properties` → JSONB column in `entity_editions`
+/// - `encodings.vectors` → Embedding backend
+/// - `metadata.*` → Various columns in `entity_temporal_metadata`, `entity_editions`, etc.
+/// - `link_data.*` → `entity_edge` table via joins
+///
+/// Entry point is the `entity_temporal_metadata` table which joins to `entity_ids`,
 /// `entity_editions`, `entity_is_of_type`, and `entity_edge`.
 pub(super) static ENTITY_PATHS: PathNode = PathNode::root(&[
     // entity_editions.properties (JSONB)
