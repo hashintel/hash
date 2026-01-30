@@ -226,6 +226,15 @@ export const getUser: ImpureGraphFunction<
     } catch {
       return null;
     }
+
+    // Verify the entity is actually a User type (getLatestEntityById doesn't filter by type)
+    if (
+      !entity.metadata.entityTypeIds.includes(
+        systemEntityTypes.user.entityTypeId,
+      )
+    ) {
+      return null;
+    }
   } else {
     let queryFilter: Filter;
 
