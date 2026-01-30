@@ -153,6 +153,7 @@ pub(crate) fn mir_spawn_d2() -> (BufWriter<ChildStdin>, JoinHandle<Vec<u8>>) {
         .args(["-l", "elk", "-b=false", "--stdout-format", "svg", "-"])
         .stdin(Stdio::piped())
         .stdout(Stdio::piped())
+        .stderr(Stdio::null())
         .spawn()
         .expect("should be able to spawn d2");
 
