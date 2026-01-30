@@ -63,7 +63,7 @@ impl<'graph> TrialGroup<'graph> {
         !ignore
     }
 
-    pub(crate) fn len(&self) -> usize {
+    pub(crate) const fn len(&self) -> usize {
         self.trials.len()
     }
 }

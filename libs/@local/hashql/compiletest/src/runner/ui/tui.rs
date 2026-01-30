@@ -1,5 +1,4 @@
-use alloc::collections::BinaryHeap;
-use core::{cmp, iter, time::Duration};
+use core::{iter, time::Duration};
 use std::{io, sync::mpsc, thread, time::Instant};
 
 use ansi_to_tui::IntoText as _;
@@ -13,11 +12,13 @@ use ratatui::{
     text::{Line, Span, Text},
     widgets::{Block, Gauge, LineGauge, Paragraph, Widget as _, Wrap},
 };
-use rayon::iter::{IndexedParallelIterator as _, IntoParallelIterator, ParallelIterator as _};
+use rayon::iter::{IndexedParallelIterator as _, IntoParallelIterator as _, ParallelIterator as _};
 use tracing_subscriber::{layer::SubscriberExt as _, util::SubscriberInitExt as _};
 
-use crate::harness::trial::{
-    Trial, TrialContext, TrialError, TrialGroup, TrialSet, TrialStatistics,
+use super::common::{AggregatedStats, TrialByTotal, TrialCounts, TrialState};
+use crate::{
+    harness::trial::{TrialContext, TrialError, TrialSet, TrialStatistics},
+    runner::ui::common::{format_bytes, format_duration},
 };
 
 #[derive(Debug, Clone)]
@@ -90,13 +91,6 @@ fn input_handler(tx: mpsc::Sender<Event>, TuiConfig { tick_rate }: TuiConfig) ->
     }
 }
 
-enum TrialState {
-    Pending,
-    Running,
-    Success(TrialStatistics),
-    Failure(TrialStatistics),
-}
-
 struct RenderState<'trial, 'graph> {
     set: TrialSet<'trial, 'graph>,
     results: Vec<TrialState>,
@@ -109,72 +103,6 @@ impl<'trial, 'graph> RenderState<'trial, 'graph> {
             results: Vec::from_fn(set.len(), |_| TrialState::Pending),
             start_time: Instant::now(),
         }
-    }
-}
-
-fn format_duration(duration: Duration) -> String {
-    format!("{duration:.2?}")
-}
-
-struct TrialCounts {
-    pending: usize,
-    running: usize,
-    success: usize,
-    failure: usize,
-}
-
-impl TrialCounts {
-    fn from_results(results: &[TrialState]) -> Self {
-        let mut counts = Self {
-            pending: 0,
-            running: 0,
-            success: 0,
-            failure: 0,
-        };
-        for result in results {
-            match result {
-                TrialState::Pending => counts.pending += 1,
-                TrialState::Running => counts.running += 1,
-                TrialState::Success(_) => counts.success += 1,
-                TrialState::Failure(_) => counts.failure += 1,
-            }
-        }
-        counts
-    }
-
-    const fn completed(&self) -> usize {
-        self.success + self.failure
-    }
-
-    const fn total(&self) -> usize {
-        self.pending + self.running + self.success + self.failure
-    }
-}
-
-struct TrialByTotal<'trial, 'graph> {
-    group: &'trial TrialGroup<'graph>,
-    trial: &'trial Trial,
-
-    total: Duration,
-}
-
-impl PartialEq for TrialByTotal<'_, '_> {
-    fn eq(&self, other: &Self) -> bool {
-        self.total == other.total
-    }
-}
-
-impl Eq for TrialByTotal<'_, '_> {}
-
-impl PartialOrd for TrialByTotal<'_, '_> {
-    fn partial_cmp(&self, other: &Self) -> Option<cmp::Ordering> {
-        Some(self.cmp(other))
-    }
-}
-
-impl Ord for TrialByTotal<'_, '_> {
-    fn cmp(&self, other: &Self) -> cmp::Ordering {
-        self.total.cmp(&other.total)
     }
 }
 
@@ -280,23 +208,19 @@ fn render_running(frame: &mut Frame, area: Rect, state: &RenderState, counts: &T
     frame.render_widget(para, inner);
 }
 
-#[expect(clippy::float_arithmetic, clippy::cast_precision_loss)]
 fn render_stats_io(frame: &mut Frame, area: Rect, totals: &TrialStatistics) {
-    let read_kib = totals.bytes_read as f64 / 1024.0;
-    let written_kib = totals.bytes_written as f64 / 1024.0;
-
     let lines = vec![
         Line::from(vec![
             Span::styled("read ", Style::new().dim()),
             Span::raw(format!("{}", totals.files_read)),
             Span::styled(" files ", Style::new().dim()),
-            Span::raw(format!("({read_kib:.1} KiB)")),
+            Span::raw(format!("({})", format_bytes(totals.bytes_read))),
         ]),
         Line::from(vec![
             Span::styled("wrote ", Style::new().dim()),
             Span::raw(format!("{}", totals.files_written)),
             Span::styled(" files ", Style::new().dim()),
-            Span::raw(format!("({written_kib:.1} KiB)")),
+            Span::raw(format!("({})", format_bytes(totals.bytes_written))),
         ]),
         Line::from(vec![
             Span::styled("removed ", Style::new().dim()),
@@ -435,28 +359,12 @@ fn render_stats_slowest(frame: &mut Frame, area: Rect, trials: &[TrialByTotal<'_
 }
 
 fn render_stats(frame: &mut Frame, area: Rect, state: &RenderState) {
-    let mut slowest = BinaryHeap::new();
-    let mut totals = TrialStatistics::default();
-    let mut finished = 0_usize;
-
-    for (index, trial_state) in state.results.iter().enumerate() {
-        let (TrialState::Success(trial_stats) | TrialState::Failure(trial_stats)) = trial_state
-        else {
-            continue;
-        };
-
-        finished += 1;
-        totals.plus(trial_stats);
-
-        let (group, trial) = state.set.trials[index];
-        slowest.push(TrialByTotal {
-            group,
-            trial,
-            total: trial_stats.total,
-        });
-    }
-
-    let fastest = slowest.into_sorted_vec();
+    let AggregatedStats {
+        totals,
+        finished,
+        fastest,
+        elapsed: _,
+    } = AggregatedStats::compute(&state.results, &state.set.trials, state.start_time);
 
     let block = Block::bordered().title(" Statistics ");
     let inner = block.inner(area);
@@ -606,9 +514,7 @@ fn run_trials(
     reports
 }
 
-pub(crate) fn init() {}
-
-pub struct Tui {
+pub(crate) struct Tui {
     tx: mpsc::Sender<Event>,
     rx: mpsc::Receiver<Event>,
     terminal: DefaultTerminal,
@@ -630,7 +536,7 @@ impl Tui {
             viewport: ratatui::Viewport::Inline(INLINE_HEIGHT),
         });
 
-        Self { terminal, tx, rx }
+        Self { tx, rx, terminal }
     }
 
     pub(crate) fn run(self, set: TrialSet, context: &TrialContext) -> Vec<Report<[TrialError]>> {

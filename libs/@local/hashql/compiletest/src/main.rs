@@ -1,7 +1,6 @@
 //! ## Workspace dependencies
 #![cfg_attr(doc, doc = simple_mermaid::mermaid!("../docs/dependency-diagram.mmd"))]
 use clap::Parser as _;
-use hashql_compiletest::{Options, OutputFormat};
 
 /// A test harness for HashQL that executes tests in the `/tests/ui` directory structure.
 ///
