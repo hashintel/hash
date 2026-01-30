@@ -4,6 +4,7 @@ use std::io;
 pub enum OutputFormat {
     #[default]
     Human,
+    Interactive,
     Json,
 }
 

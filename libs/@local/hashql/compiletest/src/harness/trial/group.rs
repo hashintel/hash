@@ -2,10 +2,10 @@ use guppy::graph::{PackageMetadata, cargo::BuildPlatform};
 use nextest_filtering::{BinaryQuery, EvalContext, Filterset};
 use nextest_metadata::{RustBinaryId, RustTestBinaryKind};
 
-use super::{set::TrialSet, trial::Trial};
+use super::{Trial, set::TrialSet};
 use crate::harness::test::TestGroup;
 
-pub struct TrialGroup<'graph> {
+pub(crate) struct TrialGroup<'graph> {
     pub ignore: bool,
     pub trials: Vec<Trial>,
     pub metadata: PackageMetadata<'graph>,
@@ -50,7 +50,7 @@ impl<'graph> TrialGroup<'graph> {
         }
     }
 
-    pub(crate) fn into_set<'this>(&'this self, set: &mut TrialSet<'this, 'graph>) -> bool {
+    pub(crate) fn append_into_set<'this>(&'this self, set: &mut TrialSet<'this, 'graph>) -> bool {
         let mut ignore = true;
 
         for trial in &self.trials {
@@ -63,15 +63,7 @@ impl<'graph> TrialGroup<'graph> {
         !ignore
     }
 
-    pub(crate) const fn len(&self) -> usize {
+    pub(crate) fn len(&self) -> usize {
         self.trials.len()
-    }
-
-    pub(crate) fn ignored(&self) -> usize {
-        if self.ignore {
-            self.trials.len()
-        } else {
-            self.trials.iter().filter(|trial| trial.ignore).count()
-        }
     }
 }

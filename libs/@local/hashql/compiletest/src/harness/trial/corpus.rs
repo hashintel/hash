@@ -6,7 +6,7 @@ use nextest_filtering::{CompiledExpr, EvalContext, Filterset, FiltersetKind, Par
 use super::{group::TrialGroup, set::TrialSet};
 use crate::harness::test::TestCorpus;
 
-pub struct TrialCorpus<'graph> {
+pub(crate) struct TrialCorpus<'graph> {
     pub groups: Vec<TrialGroup<'graph>>,
 }
 
@@ -29,11 +29,11 @@ impl<'graph> TrialCorpus<'graph> {
         Self { groups }
     }
 
-    pub(crate) fn into_set(&self) -> TrialSet {
+    pub(crate) fn to_set(&self) -> TrialSet<'_, 'graph> {
         let mut set = TrialSet::new();
 
         for group in &self.groups {
-            group.into_set(&mut set);
+            group.append_into_set(&mut set);
         }
 
         set
@@ -55,10 +55,10 @@ impl<'graph> TrialCorpus<'graph> {
     }
 
     pub(crate) fn len(&self) -> usize {
-        self.groups.iter().map(TrialGroup::len).sum()
+        self.groups.len()
     }
 
-    pub(crate) fn ignored(&self) -> usize {
-        self.groups.iter().map(TrialGroup::ignored).sum()
+    pub(crate) fn cases(&self) -> usize {
+        self.groups.iter().map(|group| group.len()).sum()
     }
 }

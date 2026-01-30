@@ -1,7 +1,7 @@
 use core::error;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, derive_more::Display)]
-pub enum TrialError {
+pub(crate) enum TrialError {
     #[display("io")]
     Io,
     #[display("annotation parsing: failed to process test annotations")]

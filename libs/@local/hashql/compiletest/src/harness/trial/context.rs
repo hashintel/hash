@@ -1,4 +1,4 @@
 #[derive(Debug)]
-pub struct TrialContext {
+pub(crate) struct TrialContext {
     pub bless: bool,
 }

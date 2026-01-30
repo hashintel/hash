@@ -31,7 +31,6 @@ use std::{
 };
 
 use guppy::{MetadataCommand, graph::PackageGraph};
-use rayon::iter::{IntoParallelIterator, ParallelIterator};
 
 use self::{
     annotation::file::FileAnnotations,
@@ -52,34 +51,6 @@ mod suite;
 mod ui;
 
 pub use self::output::OutputFormat;
-
-static PANICKED: AtomicBool = AtomicBool::new(false);
-
-fn panic_hook(panic_info: &PanicHookInfo) {
-    let message = panic_info
-        .payload_as_str()
-        .map_or_else(|| "Box<dyn Any>".to_owned(), ToOwned::to_owned);
-
-    let location = panic_info.location().map(ToString::to_string);
-
-    let backtrace = Backtrace::force_capture();
-
-    tracing::error!(message, location, %backtrace, "encountered panic");
-    PANICKED.store(true, Ordering::SeqCst);
-}
-
-pub enum Command {
-    Run { bless: bool },
-    List { format: OutputFormat },
-    Suites { format: OutputFormat },
-}
-
-pub struct Options {
-    pub filter: Option<String>,
-    pub quick_filter: bool,
-
-    pub command: Command,
-}
 
 impl Options {
     /// Runs the specified command with the given options.
@@ -112,10 +83,6 @@ impl Options {
             now.elapsed()
         );
 
-        let now = Instant::now();
-        let mut corpus = TrialCorpus::from_test(corpus);
-        tracing::info!("created trial set in {:?}", now.elapsed());
-
         if let Some(filter) = self.filter {
             corpus.filter(filter, &graph);
         }
@@ -127,7 +94,7 @@ impl Options {
 
                 panic::set_hook(Box::new(panic_hook));
 
-                let trials = corpus.into_set();
+                let trials = corpus.to_set();
                 runner::ui::tui::run(&trials, &TrialContext { bless });
 
                 let panicked = PANICKED.load(Ordering::SeqCst);

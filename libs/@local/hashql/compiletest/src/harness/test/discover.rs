@@ -104,17 +104,17 @@ fn find_entry_points(graph: &PackageGraph) -> Vec<EntryPoint<'_>> {
 }
 
 fn current_rustc_dir() -> &'static Path {
-    if let Some(rustc_root) = option_env!("CARGO_RUSTC_CURRENT_DIR") {
-        Path::new(rustc_root)
-    } else {
-        let manifest_dir = Path::new(::std::env!("CARGO_MANIFEST_DIR"));
+    option_env!("CARGO_RUSTC_CURRENT_DIR").map_or_else(
+        || {
+            let manifest_dir = Path::new(::std::env!("CARGO_MANIFEST_DIR"));
 
-        manifest_dir
-            .ancestors()
-            .filter(|it| it.join("Cargo.toml").exists())
-            .next()
-            .unwrap()
-    }
+            manifest_dir
+                .ancestors()
+                .find(|path| path.join("Cargo.toml").exists())
+                .expect("should have permission to read `hashql` directory")
+        },
+        |rustc_root| Path::new(rustc_root),
+    )
 }
 
 fn find_test_cases(entry_point: &EntryPoint) -> Vec<TestCase> {

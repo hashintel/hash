@@ -9,3 +9,4 @@ pub(crate) const MAGENTA: Style = Style::new().fg_color(Some(Color::Ansi(AnsiCol
 pub(crate) const GRAY: Style = Style::new().fg_color(Some(Color::Ansi(AnsiColor::BrightBlack)));
 
 pub(crate) const BOLD: Style = Style::new().bold();
+pub(crate) const DIM: Style = Style::new().dimmed();

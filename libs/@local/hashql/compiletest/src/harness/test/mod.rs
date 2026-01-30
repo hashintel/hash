@@ -33,16 +33,16 @@ pub(crate) struct TestCorpus<'graph> {
 }
 
 impl<'graph> TestCorpus<'graph> {
-    pub fn discover(graph: &'graph PackageGraph) -> Self {
+    pub(crate) fn discover(graph: &'graph PackageGraph) -> Self {
         let groups = discover::find_tests(graph);
         Self { groups }
     }
 
-    pub fn len(&self) -> usize {
+    pub(crate) const fn len(&self) -> usize {
         self.groups.len()
     }
 
-    pub fn cases(&self) -> usize {
+    pub(crate) fn cases(&self) -> usize {
         self.groups.iter().map(|group| group.cases.len()).sum()
     }
 }

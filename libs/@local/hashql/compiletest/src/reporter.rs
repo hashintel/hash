@@ -272,48 +272,4 @@ impl Reporter {
 
         Self { is_terminal: true }
     }
-
-    pub(crate) fn report_errors(reports: Vec<Report<[TrialError]>>) -> io::Result<()> {
-        let mut stderr = stderr();
-
-        let length = reports.len();
-        for (index, report) in reports.into_iter().enumerate() {
-            let mut delimiter = String::new();
-            let _ = write!(delimiter, "--- {RED}ERROR:{RED:#} ");
-
-            let description = report.request_ref::<TrialDescription>().next();
-
-            if let Some(TrialDescription {
-                package,
-                namespace,
-                name,
-            }) = description
-            {
-                let _ = write!(
-                    delimiter,
-                    "{MAGENTA}{}{MAGENTA:#} {CYAN}{}{CYAN:#}::{BLUE}{}{BLUE:#}",
-                    package,
-                    namespace.join("::"),
-                    name
-                );
-            } else {
-                let _ = write!(delimiter, "{RED}unknown{RED:#}");
-            }
-
-            write!(stderr, "{delimiter} ---")?;
-            write!(stderr, "\n\n")?;
-            #[expect(clippy::use_debug)]
-            write!(stderr, "{report:?}")?;
-            write!(stderr, "\n\n")?;
-            write!(stderr, "{delimiter} ---")?;
-
-            if index < length - 1 {
-                write!(stderr, "\n\n\n\n")?;
-            }
-
-            stderr.flush()?;
-        }
-
-        Ok(())
-    }
 }
