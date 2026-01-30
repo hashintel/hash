@@ -69,8 +69,8 @@ where
             // Test is not ignored, runs normally
         }
 
+        writeln!(self.inner)?;
         if let Some(description) = &annotations.directive.description {
-            writeln!(self.inner)?;
             description
                 .lines()
                 .try_for_each(|line| writeln!(self.inner, "    {GRAY}{line}{GRAY:#}"))?;
@@ -133,7 +133,7 @@ where
             write!(self.inner, r#"""#)?;
         }
 
-        write!(self.inner, "}}")?;
+        writeln!(self.inner, "}}")?;
 
         Ok(())
     }
