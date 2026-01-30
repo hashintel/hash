@@ -14,7 +14,8 @@
     pattern,
     string_from_utf8_lossy_owned,
     try_trait_v2,
-    vec_from_fn
+    vec_from_fn,
+    duration_millis_float
 )]
 
 extern crate alloc;
