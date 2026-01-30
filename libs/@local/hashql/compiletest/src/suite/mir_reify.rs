@@ -24,7 +24,7 @@ use hashql_mir::{
 };
 
 use super::{RunContext, Suite, SuiteDiagnostic, SuiteDirectives, common::process_status};
-use crate::executor::TrialError;
+use crate::harness::trial::TrialError;
 
 pub(crate) fn mir_reify<'heap>(
     heap: &'heap Heap,
