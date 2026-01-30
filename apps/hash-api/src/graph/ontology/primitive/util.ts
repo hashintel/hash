@@ -26,7 +26,7 @@ export const getWebShortname: ImpureGraphFunction<
         params.accountOrAccountGroupId,
         params.accountOrAccountGroupId,
       ),
-    })) ??
+    }).catch(() => null)) ??
     (await getOrgById(ctx, authentication, {
       entityId: entityIdFromComponents(
         params.accountOrAccountGroupId,
