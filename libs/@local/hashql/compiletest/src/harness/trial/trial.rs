@@ -1,34 +1,83 @@
 use std::{
-    fs::{self, File},
-    io::{self, Cursor},
+    fs::File,
+    io::Cursor,
     path::{Path, PathBuf},
-    time::Instant,
 };
 
 use error_stack::{Report, ReportSink, ResultExt as _};
 use guppy::graph::PackageMetadata;
 use hashql_ast::node::expr::Expr;
-use hashql_core::{collections::FastHashMap, heap::Heap, span::SpanTable};
-use hashql_diagnostics::source::SourceId;
-use hashql_syntax_jexpr::{Parser, span::Span};
+use hashql_core::{
+    collections::FastHashMap,
+    heap::Heap,
+    span::{Span, SpanId, SpanTable},
+};
+use hashql_diagnostics::{
+    Diagnostic, DiagnosticCategory, Source, Sources,
+    diagnostic::render::{ColorDepth, Format, RenderOptions},
+    source::{DiagnosticSpan, SourceId},
+};
+use hashql_syntax_jexpr::Parser;
 use line_index::LineIndex;
 use nextest_filtering::{BinaryQuery, EvalContext, Filterset, TestQuery};
 use similar_asserts::SimpleDiff;
 
-use super::{TrialContext, TrialError, annotations::verify_annotations, render_stderr};
-use crate::{
-    FileAnnotations, OutputFormat, Suite, TestCase,
-    annotation::directive::RunMode,
-    output::escape_json,
-    reporter::Statistics,
-    styles::{BLUE, CYAN, GRAY, GREEN, RED, YELLOW},
-    suite::{RunContext, RunContextPartial, SuiteDiagnostic, find_suite},
+use super::{
+    context::TrialContext,
+    error::TrialError,
+    stats::{TrialSection, TrialStatistics},
 };
+use crate::{
+    FileAnnotations,
+    annotation::{directive::RunMode, verify::verify_annotations},
+    harness::test::TestCase,
+    suite::{RunContext, RunContextPartial, Suite, SuiteDiagnostic, find_suite},
+};
+
+fn render_diagnostic<C, S, R>(
+    source: &str,
+    resolver: &mut R,
+    diagnostic: &Diagnostic<C, S>,
+) -> String
+where
+    C: DiagnosticCategory,
+    S: DiagnosticSpan<R>,
+{
+    let mut sources = Sources::new();
+    sources.push(Source::new(source));
+
+    let mut options = RenderOptions::new(Format::Ansi, &sources);
+    options.color_depth = ColorDepth::Monochrome;
+
+    diagnostic.render(options, resolver)
+}
+
+fn render_stderr<'a, C, S>(
+    source: &str,
+    mut spans: &SpanTable<S>,
+    diagnostics: impl IntoIterator<Item = &'a Diagnostic<C, SpanId>>,
+) -> Option<String>
+where
+    C: DiagnosticCategory + 'a,
+    S: Span,
+{
+    let mut output = Vec::new();
+
+    for diagnostic in diagnostics {
+        output.push(render_diagnostic(source, &mut spans, diagnostic));
+    }
+
+    if output.is_empty() {
+        return None;
+    }
+
+    Some(output.join("\n\n"))
+}
 
 fn parse_source<'heap>(
     source: &str,
     heap: &'heap Heap,
-) -> Result<(Expr<'heap>, SpanTable<Span>), Report<TrialError>> {
+) -> Result<(Expr<'heap>, SpanTable<hashql_syntax_jexpr::span::Span>), Report<TrialError>> {
     let mut spans = SpanTable::new(SourceId::new_unchecked(0x00));
     let mut parser = Parser::new(heap, &mut spans);
 
@@ -39,15 +88,22 @@ fn parse_source<'heap>(
     Ok((expr, spans))
 }
 
-fn bless_output(path: &Path, output: Option<&str>) -> Result<(), Report<TrialError>> {
+fn bless_output(
+    stats: &mut TrialStatistics,
+    path: &Path,
+    output: Option<&str>,
+) -> Result<(), Report<TrialError>> {
     match output {
-        Some(output) => fs::write(path, output).change_context(TrialError::Io),
-        None if path.exists() => fs::remove_file(path).change_context(TrialError::Io),
+        Some(output) => stats
+            .write_file(path, output)
+            .change_context(TrialError::Io),
+        None if path.exists() => stats.remove_file(path).change_context(TrialError::Io),
         None => Ok(()),
     }
 }
 
 fn assert_output(
+    stats: &mut TrialStatistics,
     received: Option<String>,
     expected: &Path,
     make_error: impl Fn(String) -> TrialError,
@@ -55,7 +111,9 @@ fn assert_output(
     let received = received.unwrap_or_default();
 
     let expected = if expected.exists() {
-        fs::read_to_string(expected).change_context(TrialError::Io)?
+        stats
+            .read_file_to_string(expected)
+            .change_context(TrialError::Io)?
     } else {
         String::new()
     };
@@ -82,17 +140,16 @@ pub(crate) struct TrialDescription {
     pub name: String,
 }
 
-pub(crate) struct Trial<'stats> {
+pub struct Trial {
     pub suite: &'static dyn Suite,
     pub path: PathBuf,
     pub namespace: Vec<String>,
     pub ignore: bool,
     pub annotations: FileAnnotations,
-    pub statistics: &'stats Statistics,
 }
 
-impl<'stats> Trial<'stats> {
-    pub(crate) fn from_test(case: TestCase, statistics: &'stats Statistics) -> Self {
+impl Trial {
+    pub(crate) fn from_test(case: TestCase) -> Self {
         let suite = find_suite(&case.spec.suite).expect("suite should be available");
 
         let file = File::open_buffered(&case.path).expect("should be able to open file");
@@ -114,7 +171,6 @@ impl<'stats> Trial<'stats> {
             namespace: case.namespace,
             ignore: matches!(annotations.directive.run, RunMode::Skip { .. }),
             annotations,
-            statistics,
         }
     }
 
@@ -122,7 +178,7 @@ impl<'stats> Trial<'stats> {
         &mut self,
         filterset: &Filterset,
         context: EvalContext,
-        binary_query: BinaryQuery,
+        query: BinaryQuery,
     ) {
         let mut test_name = self.namespace.join("::");
         test_name.push_str("::");
@@ -130,13 +186,17 @@ impl<'stats> Trial<'stats> {
 
         let matches = filterset.matches_test(
             &TestQuery {
-                binary_query,
+                binary_query: query,
                 test_name: &test_name,
             },
             &context,
         );
 
-        self.ignore = self.ignore || !matches;
+        self.ignore = self.ignore || !matches
+    }
+
+    pub(crate) fn include(&self) -> bool {
+        !self.ignore
     }
 
     fn stdout_file(&self) -> PathBuf {
@@ -151,160 +211,71 @@ impl<'stats> Trial<'stats> {
         self.path.with_extension(format!("aux.{extension}"))
     }
 
-    pub(crate) fn list(
-        &self,
-        mut output: impl io::Write,
-        parent: &str,
-        parent_ignore: bool,
-        format: OutputFormat,
-    ) -> io::Result<()> {
-        match format {
-            OutputFormat::Human => self.list_human(&mut output, parent, parent_ignore),
-            OutputFormat::Json => self.list_json(&mut output, parent, parent_ignore),
-        }
-    }
-
-    fn list_human(
-        &self,
-        mut output: impl io::Write,
-        parent: &str,
-        parent_ignore: bool,
-    ) -> io::Result<()> {
-        match self.annotations.directive.run {
-            RunMode::Pass => write!(output, "[{GREEN}PASS{GREEN:#}]"),
-            RunMode::Fail => write!(output, "[{RED}FAIL{RED:#}]"),
-            RunMode::Skip { .. } => write!(output, "[{YELLOW}SKIP{YELLOW:#}]"),
-        }?;
-
-        write!(output, " {CYAN}{parent}::")?;
-
-        for segment in &self.namespace {
-            write!(output, "{segment}::")?;
-        }
-
-        write!(
-            output,
-            "{CYAN:#}{BLUE}{}{BLUE:#}",
-            self.annotations.directive.name
-        )?;
-
-        if parent_ignore {
-            write!(output, " ({YELLOW}ignored{YELLOW:#} by parent)")?;
-        } else if self.ignore {
-            write!(output, " ({YELLOW}ignored{YELLOW:#})")?;
-        } else {
-            // Test is not ignored, runs normally
-        }
-
-        if let Some(description) = &self.annotations.directive.description {
-            writeln!(output)?;
-            write!(output, "    {GRAY}{description}{GRAY:#}")?;
-        }
-
-        Ok(())
-    }
-
-    fn list_json(
-        &self,
-        mut output: impl io::Write,
-        parent: &str,
-        parent_ignore: bool,
-    ) -> io::Result<()> {
-        let status = match self.annotations.directive.run {
-            RunMode::Pass => "pass",
-            RunMode::Fail => "fail",
-            RunMode::Skip { .. } => "skip",
-        };
-
-        write!(output, r#"{{"name":""#)?;
-        escape_json(&mut output, parent)?;
-        write!(output, "::")?;
-        for segment in &self.namespace {
-            escape_json(&mut output, segment)?;
-            write!(output, "::")?;
-        }
-        escape_json(&mut output, &self.annotations.directive.name)?;
-
-        let ignored = parent_ignore || self.ignore;
-        write!(output, r#"","status":"{status}","ignored":{ignored}"#)?;
-
-        if let Some(description) = &self.annotations.directive.description {
-            write!(output, r#","description":""#)?;
-            escape_json(&mut output, description)?;
-            write!(output, r#"""#)?;
-        }
-
-        write!(output, "}}")?;
-
-        Ok(())
-    }
-
     #[tracing::instrument(skip_all, fields(namespace = self.namespace.join("::"), name = self.annotations.directive.name))]
     pub(crate) fn run(
         &self,
         package: &PackageMetadata,
         context: &TrialContext,
-    ) -> Result<(), Report<[TrialError]>> {
-        if self.ignore {
-            return Ok(());
-        }
-
-        let now = Instant::now();
-        tracing::debug!("running trial");
-
+    ) -> (TrialStatistics, Result<(), Report<[TrialError]>>) {
+        let mut stats = TrialStatistics::new();
         let result = self
-            .run_impl(context)
+            .run_impl(context, &mut stats)
             .attach_opaque_with(|| TrialDescription {
                 package: package.name().to_owned(),
                 namespace: self.namespace.clone(),
                 name: self.annotations.directive.name.clone(),
             });
 
-        if result.is_ok() {
-            tracing::info!("trial passed");
-            self.statistics.increase_passed(now.elapsed());
-        } else {
-            tracing::error!("trial failed");
-            self.statistics.increase_failed(now.elapsed());
-        }
-
-        result
+        (stats, result)
     }
 
-    fn run_impl(&self, context: &TrialContext) -> Result<(), Report<[TrialError]>> {
+    fn run_impl(
+        &self,
+        context: &TrialContext,
+        stats: &mut TrialStatistics,
+    ) -> Result<(), Report<[TrialError]>> {
         // This is *way more* than we need, but allows us to avoid allocating a new slice, which we
         // don't do for speed, but instead do because it keeps the indices stable during printing of
         // types as we don't allocate a new block.
         let heap = Heap::with_capacity(4 * 1024 * 1024); // 4MiB
 
-        let (source, line_index, annotations) = self.load_source()?;
+        let (source, line_index, annotations) =
+            stats.time(TrialSection::ReadSource, |stats| self.load_source(stats))?;
 
-        let (expr, spans) = parse_source(&source, &heap)?;
+        let (expr, spans) = stats.time(TrialSection::Parse, |_| parse_source(&source, &heap))?;
 
-        let (received_stdout, diagnostics, secondary) = self.run_suite(&heap, expr)?;
+        let (received_stdout, diagnostics, secondary) =
+            stats.time(TrialSection::Run, |_| self.run_suite(&heap, expr))?;
 
         let mut sink = ReportSink::new_armed();
 
-        verify_annotations(
-            &source,
-            &mut &spans,
-            &line_index,
-            &diagnostics,
-            &annotations.diagnostics,
-            &mut sink,
-        );
-
-        let received_stderr = render_stderr(&source, &spans, &diagnostics);
-
-        let result = if context.bless {
-            self.bless_outputs(
-                received_stdout.as_deref(),
-                received_stderr.as_deref(),
-                secondary,
+        let result = stats.time(TrialSection::Verify, |_| {
+            verify_annotations(
+                &source,
+                &mut &spans,
+                &line_index,
+                &diagnostics,
+                &annotations.diagnostics,
             )
-        } else {
-            self.assert_outputs(received_stdout, received_stderr, secondary)
-        };
+        });
+        sink.attempt(result.change_context(TrialError::Annotation));
+
+        let received_stderr = stats.time(TrialSection::RenderStderr, |_| {
+            render_stderr(&source, &spans, &diagnostics)
+        });
+
+        let result = stats.time(TrialSection::Assert, |stats| {
+            if context.bless {
+                self.bless_outputs(
+                    stats,
+                    received_stdout.as_deref(),
+                    received_stderr.as_deref(),
+                    secondary,
+                )
+            } else {
+                self.assert_outputs(stats, received_stdout, received_stderr, secondary)
+            }
+        });
 
         if let Err(report) = result {
             sink.append(report);
@@ -313,8 +284,14 @@ impl<'stats> Trial<'stats> {
         sink.finish()
     }
 
-    fn load_source(&self) -> Result<(String, LineIndex, FileAnnotations), Report<TrialError>> {
-        let source = fs::read_to_string(&self.path).change_context(TrialError::Io)?;
+    fn load_source(
+        &self,
+        stats: &mut TrialStatistics,
+    ) -> Result<(String, LineIndex, FileAnnotations), Report<TrialError>> {
+        let source = stats
+            .read_file_to_string(&self.path)
+            .change_context(TrialError::Io)?;
+
         let cursor = Cursor::new(source.as_str());
 
         let mut annotations = self.annotations.clone();
@@ -371,6 +348,7 @@ impl<'stats> Trial<'stats> {
 
     fn bless_outputs(
         &self,
+        stats: &mut TrialStatistics,
         stdout: Option<&str>,
         stderr: Option<&str>,
         mut secondary: FastHashMap<&'static str, String>,
@@ -380,13 +358,13 @@ impl<'stats> Trial<'stats> {
 
         let mut sink = ReportSink::new_armed();
 
-        sink.attempt(bless_output(&stdout_file, stdout));
-        sink.attempt(bless_output(&stderr_file, stderr));
+        sink.attempt(bless_output(stats, &stdout_file, stdout));
+        sink.attempt(bless_output(stats, &stderr_file, stderr));
 
         for extension in self.suite.secondary_file_extensions() {
             let file = self.secondary_file(extension);
             let content = secondary.remove(extension);
-            sink.attempt(bless_output(&file, content.as_deref()));
+            sink.attempt(bless_output(stats, &file, content.as_deref()));
         }
 
         for (remaining, _) in secondary {
@@ -398,6 +376,7 @@ impl<'stats> Trial<'stats> {
 
     fn assert_outputs(
         &self,
+        stats: &mut TrialStatistics,
         received_stdout: Option<String>,
         received_stderr: Option<String>,
         mut secondary: FastHashMap<&'static str, String>,
@@ -408,11 +387,13 @@ impl<'stats> Trial<'stats> {
         let mut sink = ReportSink::new_armed();
 
         sink.attempt(assert_output(
+            stats,
             received_stdout,
             &stdout_file,
             TrialError::StdoutDiscrepancy,
         ));
         sink.attempt(assert_output(
+            stats,
             received_stderr,
             &stderr_file,
             TrialError::StderrDiscrepancy,
@@ -421,7 +402,7 @@ impl<'stats> Trial<'stats> {
         for extension in self.suite.secondary_file_extensions() {
             let file = self.secondary_file(extension);
             let content = secondary.remove(extension);
-            sink.attempt(assert_output(content, &file, |diff| {
+            sink.attempt(assert_output(stats, content, &file, |diff| {
                 TrialError::SecondaryFileDiscrepancy(extension, diff)
             }));
         }

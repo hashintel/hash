@@ -14,6 +14,7 @@
     lock_value_accessors,
     pattern,
     string_from_utf8_lossy_owned,
+    try_trait_v2
 )]
 
 extern crate alloc;
@@ -24,31 +25,30 @@ use std::{
     env,
     io::{Write as _, stdout},
     panic::{self, PanicHookInfo},
-    path::PathBuf,
     process::exit,
     time::Instant,
 };
 
-use guppy::{
-    MetadataCommand,
-    graph::{PackageGraph, PackageMetadata},
-};
+use guppy::{MetadataCommand, graph::PackageGraph};
+use rayon::iter::{IntoParallelIterator, ParallelIterator};
 
 use self::{
     annotation::file::FileAnnotations,
-    executor::{TrialContext, TrialSet},
+    harness::{
+        test::TestCorpus,
+        trial::{TrialContext, TrialCorpus},
+    },
     reporter::{Reporter, Statistics, Summary, setup_progress_header},
-    suite::Suite,
 };
 use crate::styles::{CYAN, GRAY};
 
 mod annotation;
-mod executor;
-mod find;
+mod harness;
 mod output;
 mod reporter;
 mod styles;
 mod suite;
+mod ui;
 
 pub use self::output::OutputFormat;
 
@@ -65,30 +65,6 @@ fn panic_hook(panic_info: &PanicHookInfo) {
 
     tracing::error!(message, location, %backtrace, "encountered panic");
     PANICKED.store(true, Ordering::SeqCst);
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, serde::Deserialize)]
-struct Spec {
-    suite: String,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-struct TestCase {
-    pub spec: Spec,
-    pub path: PathBuf,
-    pub namespace: Vec<String>,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-struct TestGroup<'graph> {
-    pub entry: EntryPoint<'graph>,
-    pub cases: Vec<TestCase>,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-struct EntryPoint<'graph> {
-    pub path: PathBuf,
-    pub metadata: PackageMetadata<'graph>,
 }
 
 pub enum Command {
@@ -129,18 +105,18 @@ impl Options {
         let graph = PackageGraph::from_command(&mut command).expect("failed to load package graph");
 
         let now = Instant::now();
-        let tests = find::find_tests(&graph);
+        let tests = TestCorpus::discover(&graph);
         tracing::info!(
             "found {} test groups with {} test cases, in {:?}",
             tests.len(),
-            tests.iter().map(|group| group.cases.len()).sum::<usize>(),
+            tests.cases(),
             now.elapsed()
         );
 
         let mut statistics = Statistics::new();
 
         let now = Instant::now();
-        let mut trials = TrialSet::from_test(tests, &statistics);
+        let mut trials = TrialCorpus::from_test(tests);
         tracing::info!("created trial set in {:?}", now.elapsed());
 
         if let Some(filter) = self.filter {
@@ -155,7 +131,11 @@ impl Options {
                 setup_progress_header!(reporter, Summary { total, ignored }, &statistics);
                 panic::set_hook(Box::new(panic_hook));
 
-                let reports = trials.run(&TrialContext { bless });
+                let trials = trials.into_set();
+                let reports: Vec<_> = trials
+                    .run(&TrialContext { bless })
+                    .into_par_iter()
+                    .collect();
                 let failures = reports.len();
 
                 let timings = statistics.timings();
