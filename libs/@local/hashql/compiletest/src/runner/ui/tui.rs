@@ -9,12 +9,8 @@ use ratatui::{
     layout::{Constraint, Direction, Layout, Rect},
     prelude::Backend,
     style::{Color, Style, Stylize},
-    symbols::Marker,
     text::{Line, Span, Text},
-    widgets::{
-        Block, Paragraph, Widget, Wrap,
-        canvas::{Canvas, Points},
-    },
+    widgets::{Block, LineGauge, Paragraph, Widget, Wrap},
 };
 use rayon::iter::{IndexedParallelIterator, IntoParallelRefIterator, ParallelIterator};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
@@ -124,8 +120,8 @@ fn average(duration: Duration, count: usize) -> Duration {
     }
 }
 
-fn render_grid(frame: &mut Frame, area: Rect, state: &RenderState) {
-    let total = state.results.len().max(1);
+fn render_progress(frame: &mut Frame, area: Rect, state: &RenderState) {
+    let total = state.results.len();
 
     let mut pending = 0_usize;
     let mut running = 0_usize;
@@ -141,82 +137,41 @@ fn render_grid(frame: &mut Frame, area: Rect, state: &RenderState) {
         }
     }
 
-    let title = Line::from(vec![
-        Span::raw(" "),
+    let completed = success + failure;
+    let ratio = if total > 0 {
+        completed as f64 / total as f64
+    } else {
+        0.0
+    };
+
+    let label = Line::from(vec![
+        Span::raw(format!("{completed}/{total}  ")),
         Span::styled(format!("{pending}"), Style::new().gray()),
-        Span::raw(" pending  "),
+        Span::styled(" pending  ", Style::new().dim()),
         Span::styled(format!("{running}"), Style::new().yellow()),
-        Span::raw(" running  "),
+        Span::styled(" running  ", Style::new().dim()),
         Span::styled(format!("{success}"), Style::new().green()),
-        Span::raw(" passed  "),
+        Span::styled(" passed  ", Style::new().dim()),
         Span::styled(format!("{failure}"), Style::new().red()),
-        Span::raw(" failed "),
+        Span::styled(" failed", Style::new().dim()),
     ]);
 
-    // Calculate logical grid dimensions
-    // HalfBlock gives 1x2 sub-pixels per terminal cell
-    let block = Block::bordered().title(title);
-    let inner = block.inner(area);
-    let pixel_cols = inner.width as usize;
-    let pixel_rows = inner.height as usize * 2; // HalfBlock doubles vertical resolution
-    let pixels = pixel_cols * pixel_rows;
+    let color = if failure > 0 {
+        Color::Red
+    } else if running > 0 {
+        Color::Yellow
+    } else {
+        Color::Green
+    };
 
-    // Arrange trials to fill the pixel grid
-    // Calculate grid dimensions where rows * cols >= total
-    let ratio = pixel_cols as f64 / pixel_rows.max(1) as f64;
-    let rows = ((total as f64 / ratio).sqrt().ceil() as usize).max(1);
-    let cols = ((total + rows - 1) / rows).max(1);
+    let gauge = LineGauge::default()
+        .block(Block::bordered().title(" Progress "))
+        .gauge_style(Style::new().fg(color))
+        .line_set(ratatui::symbols::line::THICK)
+        .ratio(ratio)
+        .label(label);
 
-    // Group points by color
-    let mut pending_pts = Vec::new();
-    let mut running_pts = Vec::new();
-    let mut success_pts = Vec::new();
-    let mut failure_pts = Vec::new();
-
-    for (idx, result) in state.results.iter().enumerate() {
-        let row = idx / cols;
-        let col = idx % cols;
-
-        // Canvas y=0 is at bottom, so flip
-        let x = col as f64;
-        let y = (rows - 1 - row) as f64;
-
-        let pts = match result {
-            TrialState::Pending => &mut pending_pts,
-            TrialState::Running => &mut running_pts,
-            TrialState::Success(_) => &mut success_pts,
-            TrialState::Failure(_) => &mut failure_pts,
-        };
-
-        // Fill the cell with a grid of points dense enough to cover all half-block pixels
-        pts.push((x, y));
-    }
-
-    let canvas = Canvas::default()
-        .block(block)
-        .marker(Marker::Braille)
-        .x_bounds([0.0, cols as f64])
-        .y_bounds([0.0, rows as f64])
-        .paint(|ctx| {
-            ctx.draw(&Points {
-                coords: &pending_pts,
-                color: Color::DarkGray,
-            });
-            ctx.draw(&Points {
-                coords: &running_pts,
-                color: Color::Yellow,
-            });
-            ctx.draw(&Points {
-                coords: &success_pts,
-                color: Color::Green,
-            });
-            ctx.draw(&Points {
-                coords: &failure_pts,
-                color: Color::Red,
-            });
-        });
-
-    frame.render_widget(canvas, area);
+    frame.render_widget(gauge, area);
 }
 
 fn trial_total_time(stats: &TrialStatistics) -> Duration {
@@ -389,10 +344,10 @@ fn render(frame: &mut Frame, state: &mut RenderState) {
 
     let layout = Layout::default()
         .direction(Direction::Vertical)
-        .constraints([Constraint::Min(4), Constraint::Length(5)])
+        .constraints([Constraint::Length(3), Constraint::Min(5)])
         .split(area);
 
-    render_grid(frame, layout[0], state);
+    render_progress(frame, layout[0], state);
     render_stats(frame, layout[1], state);
 }
 
