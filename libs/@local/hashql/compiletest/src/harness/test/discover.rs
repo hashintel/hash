@@ -108,10 +108,11 @@ fn current_rustc_dir() -> &'static Path {
         Path::new(rustc_root)
     } else {
         let manifest_dir = Path::new(::std::env!("CARGO_MANIFEST_DIR"));
+
         manifest_dir
             .ancestors()
             .filter(|it| it.join("Cargo.toml").exists())
-            .last()
+            .next()
             .unwrap()
     }
 }

@@ -1,6 +1,7 @@
 use core::time::Duration;
 use std::{io, sync::mpsc, thread, time::Instant};
 
+use ansi_to_tui::IntoText;
 use error_stack::Report;
 use ratatui::{
     Frame, Terminal, TerminalOptions,
@@ -262,7 +263,7 @@ fn event_loop<B: Backend>(
 
     loop {
         if redraw {
-            terminal.draw(|frame| render(frame, &mut state));
+            terminal.draw(|frame| render(frame, &mut state))?;
         }
         redraw = true;
 
@@ -273,12 +274,13 @@ fn event_loop<B: Backend>(
         match event {
             Event::TracingMessage(bytes) => {
                 let size = terminal.size()?;
-                let paragraph = Paragraph::new(String::from_utf8_lossy_owned(bytes));
+                let paragraph =
+                    Paragraph::new(bytes.into_text().expect("bytes must be valid ANSI"));
                 let height = paragraph.line_count(size.height);
 
                 terminal.insert_before(height as u16, |buffer| {
                     paragraph.render(buffer.area, buffer);
-                });
+                })?;
             }
             Event::Resize => terminal.autoresize()?,
             Event::Tick => {}
@@ -286,6 +288,7 @@ fn event_loop<B: Backend>(
 
             Event::TrialStarted(index) => {
                 state.results[index] = TrialState::Running;
+                redraw = false;
             }
             Event::TrialFinished(index, success, trial_stats) => {
                 let next = if success {
@@ -295,6 +298,7 @@ fn event_loop<B: Backend>(
                 };
 
                 state.results[index] = next;
+                redraw = false;
             }
         }
     }
@@ -305,7 +309,7 @@ fn run_trials(
     context: &TrialContext,
     sender: mpsc::Sender<Event>,
 ) -> Vec<Report<[TrialError]>> {
-    set.trials
+    let reports = set.trials
         .par_iter()
         .enumerate()
         .map(|(index, (group, trial))| {
@@ -324,10 +328,13 @@ fn run_trials(
             result
         })
         .filter_map(Result::err)
-        .collect()
+        .collect();
+
+    tracing::info!("finished trial execution");
+    reports
 }
 
-fn run(set: &TrialSet, context: &TrialContext) -> Vec<Report<[TrialError]>> {
+pub(crate) fn run(set: &TrialSet, context: &TrialContext) -> Vec<Report<[TrialError]>> {
     let (tx, rx) = mpsc::channel();
 
     tracing_subscriber::registry()
