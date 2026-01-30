@@ -38,14 +38,13 @@ use self::{
         test::TestCorpus,
         trial::{ListTrials, TrialContext, TrialCorpus},
     },
-    reporter::{Reporter, Statistics, Summary, setup_progress_header},
 };
 use crate::styles::{CYAN, GRAY};
 
 mod annotation;
 mod harness;
 mod output;
-mod reporter;
+// mod reporter;
 mod runner;
 mod styles;
 mod suite;
@@ -95,8 +94,6 @@ impl Options {
             return;
         }
 
-        let reporter = Reporter::install();
-
         let mut command = MetadataCommand::new();
         if self.quick_filter {
             // speeds up tests from >600ms to ~40ms
@@ -114,8 +111,6 @@ impl Options {
             now.elapsed()
         );
 
-        let mut statistics = Statistics::new();
-
         let now = Instant::now();
         let mut corpus = TrialCorpus::from_test(corpus);
         tracing::info!("created trial set in {:?}", now.elapsed());
@@ -126,32 +121,17 @@ impl Options {
 
         match self.command {
             Command::Run { bless } => {
-                let total = corpus.len();
-                let ignored = corpus.ignored();
+                // let total = corpus.len();
+                // let ignored = corpus.ignored();
 
-                setup_progress_header!(reporter, Summary { total, ignored }, &statistics);
                 panic::set_hook(Box::new(panic_hook));
 
                 let trials = corpus.into_set();
-                let reports: Vec<_> = trials
-                    .run(&TrialContext { bless })
-                    .into_par_iter()
-                    .collect();
-                let failures = reports.len();
-
-                let timings = statistics.timings();
-
-                tracing::info!(
-                    success = total - ignored - failures,
-                    failures = failures,
-                    ?timings,
-                    "finished trial execution"
-                );
-
-                Reporter::report_errors(reports).expect("should be able to report errors");
+                runner::ui::tui::run(&trials, &TrialContext { bless });
 
                 let panicked = PANICKED.load(Ordering::SeqCst);
-                if failures > 0 || panicked {
+                // todo: failures > 0
+                if panicked {
                     exit(1);
                 }
             }

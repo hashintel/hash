@@ -16,7 +16,7 @@ use line_index::{LineCol, LineIndex};
 use crate::annotation::diagnostic::DiagnosticAnnotation;
 
 #[derive(Debug, Clone, derive_more::Display)]
-enum AnnotationError {
+pub(crate) enum AnnotationError {
     #[display("unexpected diagnostic:\n{_0}")]
     UnexpectedDiagnostic(String),
     #[display("unfulfilled annotation: {_0:?} did not match any emitted diagnostics")]

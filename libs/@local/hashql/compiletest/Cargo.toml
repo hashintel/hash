@@ -24,6 +24,7 @@ hashql-mir                     = { workspace = true }
 hashql-syntax-jexpr            = { workspace = true }
 
 # Private third-party dependencies
+ansi-to-tui        = "8.0.1"
 anstream           = { workspace = true }
 camino             = { workspace = true }
 clap               = { workspace = true, features = ["derive", "env"] }

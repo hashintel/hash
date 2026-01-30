@@ -1,5 +1,1 @@
-mod tui;
-
-trait Ui {
-    fn start(&mut self);
-}
+pub(crate) mod tui;
