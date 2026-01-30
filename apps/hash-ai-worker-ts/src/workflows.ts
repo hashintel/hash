@@ -1,10 +1,8 @@
 import {
   type ActorEntityUuid,
-  type BaseUrl,
   type DataTypeWithMetadata,
   type Entity,
   type EntityTypeWithMetadata,
-  extractBaseUrl,
   type PropertyTypeWithMetadata,
 } from "@blockprotocol/type-system";
 import { publicUserAccountId } from "@local/hash-backend-utils/public-user-account-id";
@@ -21,10 +19,7 @@ import {
   deserializeQueryEntitiesResponse,
   HashEntity,
 } from "@local/hash-graph-sdk/entity";
-import {
-  systemEntityTypes,
-  systemPropertyTypes,
-} from "@local/hash-isomorphic-utils/ontology-type-ids";
+import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type { ParseTextFromFileParams } from "@local/hash-isomorphic-utils/parse-text-from-file-types";
 import {
   ActivityCancellationType,

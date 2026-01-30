@@ -1,5 +1,4 @@
 import type {
-  BaseUrl,
   DataTypeWithMetadata,
   EntityTypeWithMetadata,
   PropertyObject,
