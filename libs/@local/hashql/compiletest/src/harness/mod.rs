@@ -1,2 +1,2 @@
-pub mod test;
-pub mod trial;
+pub(crate) mod test;
+pub(crate) mod trial;

@@ -1,6 +1,6 @@
 use core::ops::Try;
 
-use super::{corpus::TrialCorpus, group::TrialGroup, trial::Trial};
+use super::{Trial, corpus::TrialCorpus, group::TrialGroup};
 
 pub(crate) trait Visitor<'graph> {
     type Result: Try<Output = ()>;

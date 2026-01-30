@@ -1,7 +1,8 @@
 use core::time::Duration;
 use std::{fs, io, path::Path, time::Instant};
 
-pub enum TrialSection {
+#[derive(Debug, Copy, Clone)]
+pub(crate) enum TrialSection {
     ReadSource,
     Run,
     Parse,
@@ -11,7 +12,7 @@ pub enum TrialSection {
 }
 
 #[derive(Debug, Clone, Default)]
-pub struct TrialStatistics {
+pub(crate) struct TrialStatistics {
     pub files_read: usize,
     pub bytes_read: usize,
 
@@ -30,15 +31,15 @@ pub struct TrialStatistics {
 }
 
 impl TrialStatistics {
-    pub fn new() -> Self {
+    pub(crate) fn new() -> Self {
         Self::default()
     }
 
-    pub fn panic() -> Self {
+    pub(crate) fn panic() -> Self {
         Self::new()
     }
 
-    pub fn read_file_to_string(&mut self, path: impl AsRef<Path>) -> io::Result<String> {
+    pub(crate) fn read_file_to_string(&mut self, path: impl AsRef<Path>) -> io::Result<String> {
         let content = fs::read_to_string(path)?;
 
         self.files_read += 1;
@@ -47,7 +48,7 @@ impl TrialStatistics {
         Ok(content)
     }
 
-    pub fn write_file(
+    pub(crate) fn write_file(
         &mut self,
         path: impl AsRef<Path>,
         content: impl AsRef<[u8]>,
@@ -61,7 +62,7 @@ impl TrialStatistics {
         Ok(())
     }
 
-    pub fn remove_file(&mut self, path: impl AsRef<Path>) -> io::Result<()> {
+    pub(crate) fn remove_file(&mut self, path: impl AsRef<Path>) -> io::Result<()> {
         fs::remove_file(path)?;
 
         self.files_removed += 1;
@@ -69,7 +70,11 @@ impl TrialStatistics {
         Ok(())
     }
 
-    pub fn time<T>(&mut self, section: TrialSection, closure: impl FnOnce(&mut Self) -> T) -> T {
+    pub(crate) fn time<T>(
+        &mut self,
+        section: TrialSection,
+        closure: impl FnOnce(&mut Self) -> T,
+    ) -> T {
         let now = Instant::now();
         let output = closure(self);
         let elapsed = now.elapsed();
@@ -86,7 +91,7 @@ impl TrialStatistics {
         output
     }
 
-    pub fn plus(&mut self, other: &Self) {
+    pub(crate) fn plus(&mut self, other: &Self) {
         let Self {
             files_read,
             bytes_read,
