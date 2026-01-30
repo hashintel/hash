@@ -10,6 +10,10 @@ use hashql_core::{
 use hashql_diagnostics::DiagnosticIssues;
 use hashql_mir::{body::Body, context::MirContext, intern::Interner};
 
+const fn assert_static<T: 'static>(value: T) -> T {
+    value
+}
+
 #[expect(unsafe_code)]
 #[inline]
 pub(crate) fn run_bencher<T, const N: usize>(
@@ -86,7 +90,9 @@ pub(crate) fn run_bencher<T, const N: usize>(
                 heap,
                 env,
                 interner,
-                diagnostics: DiagnosticIssues::new(),
+                // `assert_static` here ensures that `DiagnosticIssues` does not carry any
+                // lifetimes, as that would bring a risk of unsoundness.
+                diagnostics: assert_static(DiagnosticIssues::new()),
             };
 
             let value = func(black_box(&mut context), black_box(body), black_box(scratch));
