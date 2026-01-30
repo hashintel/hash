@@ -8,14 +8,14 @@
 
     // Library Features
     assert_matches,
+    duration_millis_float,
+    exitcode_exit_method,
     file_buffered,
     formatting_options,
-    lock_value_accessors,
     pattern,
     string_from_utf8_lossy_owned,
     try_trait_v2,
     vec_from_fn,
-    duration_millis_float
 )]
 
 extern crate alloc;
@@ -32,7 +32,7 @@ use self::{
 
 mod annotation;
 mod harness;
-mod runner;
+pub mod runner;
 mod suite;
 mod ui;
 
