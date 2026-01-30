@@ -10,5 +10,5 @@ mod visit;
 
 pub use self::{
     context::TrialContext, corpus::TrialCorpus, error::TrialError, group::TrialGroup,
-    list::ListTrials, set::TrialSet, trial::Trial,
+    list::ListTrials, set::TrialSet, stats::TrialStatistics, trial::Trial,
 };

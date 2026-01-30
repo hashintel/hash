@@ -33,7 +33,7 @@ indicatif          = { workspace = true }
 line-index         = { workspace = true }
 nextest-filtering  = { workspace = true }
 nextest-metadata   = { workspace = true }
-radix_trie         = { workspace = true }
+ratatui            = { version = "0.30.0", features = ["unstable-rendered-line-info"] }
 rayon              = { workspace = true }
 serde              = { workspace = true }
 similar-asserts    = { workspace = true }

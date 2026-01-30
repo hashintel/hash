@@ -1,4 +1,5 @@
 use std::{
+    collections::HashMap,
     ffi::OsStr,
     fs::{self, DirEntry},
     path::{Path, PathBuf},
@@ -7,10 +8,35 @@ use std::{
 
 use camino::Utf8Path;
 use guppy::graph::{PackageGraph, Workspace};
-use radix_trie::Trie;
 use walkdir::WalkDir;
 
 use super::{EntryPoint, Spec, TestCase, TestGroup};
+
+struct SpecTrie {
+    entries: HashMap<PathBuf, Spec>,
+}
+
+impl SpecTrie {
+    fn new() -> Self {
+        Self {
+            entries: HashMap::new(),
+        }
+    }
+
+    fn insert(&mut self, path: PathBuf, spec: Spec) {
+        self.entries.insert(path, spec);
+    }
+
+    fn get_ancestor_value(&self, path: &Path) -> Option<&Spec> {
+        for ancestor in path.ancestors() {
+            if let Some(spec) = self.entries.get(ancestor) {
+                return Some(spec);
+            }
+        }
+
+        None
+    }
+}
 
 fn find_entry_point<'graph>(
     output: &mut Vec<EntryPoint<'graph>>,
@@ -95,7 +121,7 @@ fn find_test_cases(entry_point: &EntryPoint) -> Vec<TestCase> {
         .into_iter()
         .filter_map(Result::ok);
 
-    let mut specs: Trie<PathBuf, Spec> = Trie::new();
+    let mut specs = SpecTrie::new();
     let mut candidates = Vec::new();
 
     for entry in walk {
