@@ -3,10 +3,8 @@ use std::io::{self, Write as _, stderr};
 
 use error_stack::Report;
 
-use crate::{
-    harness::trial::{TrialDescription, TrialError},
-    styles::{BLUE, CYAN, DIM, MAGENTA, RED},
-};
+use super::ui::common::styles::{BLUE, CYAN, DIM, MAGENTA, RED};
+use crate::harness::trial::{TrialDescription, TrialError};
 
 const RULE_WIDTH: usize = 80;
 

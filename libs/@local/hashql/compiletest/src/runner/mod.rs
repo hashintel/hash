@@ -1,22 +1,32 @@
 use core::sync::atomic::{AtomicBool, Ordering};
 use std::{
     backtrace::Backtrace,
-    io,
+    io::{self, Write as _, stdout},
     panic::{self, PanicHookInfo},
     time::Instant,
 };
 
 use guppy::{MetadataCommand, graph::PackageGraph};
 
-use self::{reporter::report_errors, ui::tui::Tui};
-use crate::{
-    OutputFormat,
-    harness::{
-        test::TestCorpus,
-        trial::{TrialContext, TrialCorpus},
+use self::{
+    output::{OutputFormat, escape_json},
+    reporter::report_errors,
+    ui::{
+        common::styles::{CYAN, GRAY},
+        human::Human,
+        json::Json,
+        tui::Tui,
     },
 };
+use crate::{
+    harness::{
+        test::TestCorpus,
+        trial::{ListTrials, TrialContext, TrialCorpus},
+    },
+    suite,
+};
 
+pub(crate) mod output;
 pub(crate) mod reporter;
 pub(crate) mod ui;
 
@@ -35,26 +45,26 @@ fn panic_hook(panic_info: &PanicHookInfo) {
     PANICKED.store(true, Ordering::SeqCst);
 }
 
-pub struct Run {
+pub(crate) struct Run {
     pub format: OutputFormat,
     pub bless: bool,
 }
 
-pub struct List {
+pub(crate) struct List {
     pub format: OutputFormat,
 }
 
-pub struct Suites {
+pub(crate) struct Suites {
     pub format: OutputFormat,
 }
 
-pub enum Command {
+pub(crate) enum Command {
     Run(Run),
     List(List),
     Suites(Suites),
 }
 
-pub struct Runner {
+pub(crate) struct Runner {
     pub filter: Option<String>,
     pub quick_filter: bool,
 }
@@ -70,9 +80,9 @@ impl Runner {
         PackageGraph::from_command(&mut command).expect("failed to load package graph")
     }
 
-    fn test_corpus<'graph>(&self, graph: &'graph PackageGraph) -> TestCorpus<'graph> {
+    fn test_corpus(graph: &PackageGraph) -> TestCorpus<'_> {
         let now = Instant::now();
-        let corpus = TestCorpus::discover(&graph);
+        let corpus = TestCorpus::discover(graph);
 
         tracing::info!(
             groups = corpus.len(),
@@ -88,7 +98,7 @@ impl Runner {
     }
 
     fn trial_corpus<'graph>(&self, graph: &'graph PackageGraph) -> TrialCorpus<'graph> {
-        let corpus = self.test_corpus(graph);
+        let corpus = Self::test_corpus(graph);
 
         let corpus_len = corpus.len();
         let corpus_cases = corpus.cases();
@@ -127,31 +137,94 @@ impl Runner {
                 let corpus = self.trial_corpus(&graph);
                 let total = corpus.cases();
 
-                let reports = tui.run(corpus.to_set(), &context);
+                let mut set = corpus.to_set();
+                set.sort();
+
+                let reports = tui.run(set, &context);
                 report_errors(reports, total)
             }
             OutputFormat::Human => {
-                unimplemented!()
+                let human = Human::init();
+                let corpus = self.trial_corpus(&graph);
+                let total = corpus.cases();
+
+                let mut set = corpus.to_set();
+                set.sort();
+
+                let reports = human.run(set, &context);
+                report_errors(reports, total)
             }
             OutputFormat::Json => {
-                unimplemented!()
+                let json = Json::init();
+                let corpus = self.trial_corpus(&graph);
+                let total = corpus.cases();
+
+                let mut set = corpus.to_set();
+                set.sort();
+
+                let reports = json.run(set, &context);
+                report_errors(reports, total)
             }
         }
     }
 
     fn execute_list(self, List { format }: List) -> io::Result<()> {
-        todo!()
+        let graph = self.package_graph();
+
+        match format {
+            OutputFormat::Human | OutputFormat::Interactive => {
+                let _human = Human::init();
+
+                let corpus = self.trial_corpus(&graph);
+
+                ListTrials::new(&stdout(), format).render(&corpus)
+            }
+            OutputFormat::Json => {
+                let _json = Json::init();
+
+                let corpus = self.trial_corpus(&graph);
+
+                ListTrials::new(&stdout(), format).render(&corpus)
+            }
+        }
     }
 
-    fn execute_suites(self, Suites { format }: Suites) -> io::Result<()> {
-        todo!()
+    fn execute_suites(Suites { format }: Suites) -> io::Result<()> {
+        let mut stdout = stdout();
+        let suites = suite::iter();
+
+        match format {
+            OutputFormat::Human | OutputFormat::Interactive => {
+                let _human = Human::init();
+
+                for suite in suites {
+                    writeln!(stdout, "  {CYAN}{}{CYAN:#}", suite.name())?;
+                    writeln!(stdout, "      {GRAY}{}{GRAY:#}", suite.description())?;
+                }
+
+                Ok(())
+            }
+            OutputFormat::Json => {
+                let _json = Json::init();
+
+                for suite in suites {
+                    write!(stdout, r#"{{"name":""#)?;
+                    escape_json(&mut stdout, suite.name())?;
+                    write!(stdout, r#"","description":""#)?;
+                    escape_json(&mut stdout, suite.description())?;
+                    writeln!(stdout, r#""}}"#)?;
+                }
+
+                Ok(())
+            }
+        }
     }
 
-    pub fn execute(self, command: Command) -> io::Result<()> {
+    pub(crate) fn execute(self, command: Command) -> io::Result<()> {
         match command {
             Command::Run(run) => self.execute_run(run),
             Command::List(list) => self.execute_list(list),
-            Command::Suites(suites) => self.execute_suites(suites),
+            Command::Suites(suites) => Self::execute_suites(suites),
         }
     }
 }

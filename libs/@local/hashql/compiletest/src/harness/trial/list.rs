@@ -7,10 +7,11 @@ use super::{
     visit::{Visitor, walk_trial_group},
 };
 use crate::{
-    OutputFormat,
     annotation::directive::RunMode,
-    output::escape_json,
-    styles::{BLUE, CYAN, GRAY, GREEN, RED, YELLOW},
+    runner::{
+        output::{OutputFormat, escape_json},
+        ui::common::styles::{BLUE, CYAN, GRAY, GREEN, RED, YELLOW},
+    },
 };
 
 struct ListTrialsPretty<'graph, W> {
