@@ -1,23 +1,31 @@
 use core::time::Duration;
-use std::{io, sync::mpsc, time::Instant};
+use std::{io, sync::mpsc, thread, time::Instant};
 
+use error_stack::Report;
 use ratatui::{
-    Frame, Terminal,
+    Frame, Terminal, TerminalOptions,
     crossterm::event,
+    layout::{Constraint, Direction, Layout},
     prelude::Backend,
     style::Color,
     symbols::Marker,
     widgets::{
         Block, Paragraph, Widget,
-        canvas::{Canvas, Points, Rectangle},
+        canvas::{Canvas, Rectangle},
     },
 };
+use rayon::iter::{IndexedParallelIterator, IntoParallelRefIterator, ParallelIterator};
+use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
-use crate::harness::trial::{Trial, TrialGroup, TrialStatistics};
+use crate::harness::trial::{TrialContext, TrialError, TrialSet, TrialStatistics};
 
 #[derive(Debug, Clone)]
 enum Event {
     TracingMessage(Vec<u8>),
+
+    TrialStarted(usize),
+    TrialFinished(usize, bool, TrialStatistics),
+
     Shutdown,
     Tick,
     Resize,
@@ -77,28 +85,37 @@ enum TrialState {
     Pending,
     Running,
     Success(TrialStatistics),
-    Failure,
+    Failure(TrialStatistics),
 }
 
 struct RenderState<'trial, 'graph> {
-    trials: Vec<(&'trial TrialGroup<'graph>, &'trial Trial)>,
+    trials: TrialSet<'trial, 'graph>,
     results: Vec<TrialState>,
+}
+impl<'trial, 'graph> RenderState<'trial, 'graph> {
+    fn new(set: &TrialSet<'trial, 'graph>) -> Self {
+        Self {
+            trials: set.clone(),
+            results: Vec::from_fn(set.len(), |_| TrialState::Pending),
+        }
+    }
 }
 
 fn render(frame: &mut Frame, state: &mut RenderState) {
-    // We display the trial results in the following fashion:
-    // We have a top part, which has a list of the amount of pending, running and success and
-    // failure trials, as the header.
-    // Then below that we a 2 row detailed timing statistics for the total, such as the time spent
-    // to run the trial.
     let area = frame.area();
 
-    // Find a good ratio between the width and height of the canvas
-    let ratio = area.width as f64 / area.height as f64;
+    let stats_height = 4_u16;
 
-    // Use that ratio to determine the amount of rows and columns
-    let rows = (area.height as f64 * ratio).ceil() as u16;
-    let cols = (area.width as f64 / ratio).ceil() as u16;
+    let layout = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints([Constraint::Min(4), Constraint::Length(stats_height)])
+        .split(area);
+
+    let grid_area = layout[0];
+    let grid_ratio = grid_area.width.max(1) as f64 / grid_area.height.max(1) as f64;
+    let total = state.results.len().max(1) as f64;
+    let rows = (total / grid_ratio).sqrt().ceil().max(1.0) as u16;
+    let cols = ((total / rows as f64).ceil()).max(1.0) as u16;
 
     let mut pending = 0;
     let mut running = 0;
@@ -110,7 +127,7 @@ fn render(frame: &mut Frame, state: &mut RenderState) {
             TrialState::Pending => pending += 1,
             TrialState::Running => running += 1,
             TrialState::Success(_) => success += 1,
-            TrialState::Failure => failure += 1,
+            TrialState::Failure(_) => failure += 1,
         }
     }
 
@@ -122,8 +139,9 @@ fn render(frame: &mut Frame, state: &mut RenderState) {
         .x_bounds([0.0, rows as f64])
         .y_bounds([0.0, cols as f64])
         .paint(|ctx| {
-            let mut index = 0;
-            for result in &state.results {
+            for (index, result) in state.results.iter().enumerate() {
+                let index = index as u16;
+
                 let row = index / cols;
                 let col = index % cols;
 
@@ -136,23 +154,115 @@ fn render(frame: &mut Frame, state: &mut RenderState) {
                         TrialState::Pending => Color::Gray,
                         TrialState::Running => Color::Yellow,
                         TrialState::Success(_) => Color::Green,
-                        TrialState::Failure => Color::Red,
+                        TrialState::Failure(_) => Color::Red,
                     },
                 ));
-
-                index += 1;
             }
         });
+
+    frame.render_widget(canvas, grid_area);
+
+    let mut totals = TrialStatistics::default();
+    let mut stats_count = 0_usize;
+
+    for result in &state.results {
+        if let TrialState::Success(stats) = result {
+            stats_count += 1;
+            totals.files_read += stats.files_read;
+            totals.bytes_read += stats.bytes_read;
+            totals.files_written += stats.files_written;
+            totals.bytes_written += stats.bytes_written;
+            totals.files_removed += stats.files_removed;
+            totals.run += stats.run;
+            totals.assert += stats.assert;
+            totals.verify += stats.verify;
+            totals.read_source += stats.read_source;
+            totals.parse += stats.parse;
+            totals.render_stderr += stats.render_stderr;
+        }
+    }
+
+    let average = |duration: Duration, count: usize| -> Duration {
+        if count == 0 {
+            Duration::ZERO
+        } else {
+            let nanos = duration.as_nanos() / count as u128;
+            Duration::from_nanos(nanos as u64)
+        }
+    };
+
+    let format_duration = |duration: Duration| -> String {
+        let seconds = duration.as_secs_f64();
+        if seconds >= 1.0 {
+            format!("{seconds:.2}s")
+        } else {
+            format!("{:.1}ms", seconds * 1000.0)
+        }
+    };
+
+    let read_kib = totals.bytes_read as f64 / 1024.0;
+    let written_kib = totals.bytes_written as f64 / 1024.0;
+    let io_line = format!(
+        "I/O\nread {} files ({read_kib:.1} KiB) wrote {} files ({written_kib:.1} KiB) removed {}",
+        totals.files_read, totals.files_written, totals.files_removed
+    );
+
+    let avg_read_source = average(totals.read_source, stats_count);
+    let avg_parse = average(totals.parse, stats_count);
+    let avg_run = average(totals.run, stats_count);
+    let avg_assert = average(totals.assert, stats_count);
+    let avg_verify = average(totals.verify, stats_count);
+    let avg_render_stderr = average(totals.render_stderr, stats_count);
+    let avg_total = average(
+        totals.run
+            + totals.assert
+            + totals.verify
+            + totals.read_source
+            + totals.parse
+            + totals.render_stderr,
+        stats_count,
+    );
+
+    let timing_line = if stats_count == 0 {
+        "Timing\nwaiting for completed trials".to_string()
+    } else {
+        format!(
+            "Timing avg/{stats_count}\nread {} parse {} run {} assert {} verify {} stderr {} \
+             total {}",
+            format_duration(avg_read_source),
+            format_duration(avg_parse),
+            format_duration(avg_run),
+            format_duration(avg_assert),
+            format_duration(avg_verify),
+            format_duration(avg_render_stderr),
+            format_duration(avg_total)
+        )
+    };
+
+    let stats_area = layout[1];
+    let stats_block = Block::bordered().title("Statistics");
+    let stats_inner = stats_block.inner(stats_area);
+    frame.render_widget(stats_block, stats_area);
+
+    let stats_columns = Layout::default()
+        .direction(Direction::Horizontal)
+        .constraints([Constraint::Percentage(50), Constraint::Percentage(50)])
+        .split(stats_inner);
+
+    frame.render_widget(Paragraph::new(io_line), stats_columns[0]);
+    frame.render_widget(Paragraph::new(timing_line), stats_columns[1]);
 }
 
 fn event_loop<B: Backend>(
-    terminal: &mut Terminal<B>,
+    mut terminal: Terminal<B>,
+    mut state: RenderState,
     rx: mpsc::Receiver<Event>,
-) -> Result<(), B::Error> {
+) -> Result<Terminal<B>, B::Error> {
     let mut redraw = true;
+
     loop {
         if redraw {
-            terminal.draw(|frame| render(frame));
+            terminal.draw(|frame| render(frame, &mut state));
         }
         redraw = true;
 
@@ -172,16 +282,91 @@ fn event_loop<B: Backend>(
             }
             Event::Resize => terminal.autoresize()?,
             Event::Tick => {}
-            Event::Shutdown => return Ok(()),
+            Event::Shutdown => return Ok(terminal),
+
+            Event::TrialStarted(index) => {
+                state.results[index] = TrialState::Running;
+            }
+            Event::TrialFinished(index, success, trial_stats) => {
+                let next = if success {
+                    TrialState::Success(trial_stats)
+                } else {
+                    TrialState::Failure(trial_stats)
+                };
+
+                state.results[index] = next;
+            }
         }
     }
 }
 
-struct Tui {}
+fn run_trials(
+    set: &TrialSet,
+    context: &TrialContext,
+    sender: mpsc::Sender<Event>,
+) -> Vec<Report<[TrialError]>> {
+    set.trials
+        .par_iter()
+        .enumerate()
+        .map(|(index, (group, trial))| {
+            sender
+                .send(Event::TrialStarted(index))
+                .expect("should be able to send message");
 
-impl Tui {
-    fn run(&mut self) {
-        loop {}
-        todo!()
-    }
+
+            tracing::debug!(group = group.metadata.name(), trial = ?trial.namespace, "running trial");
+            let (stats, result) = trial.run_catch(&group.metadata, context);
+            sender
+                .send(Event::TrialFinished(index, result.is_ok(), stats))
+                .expect("should be able to send message");
+            tracing::debug!(group = group.metadata.name(), trial = ?trial.namespace, result = ?result, "finished trial");
+
+            result
+        })
+        .filter_map(Result::err)
+        .collect()
+}
+
+fn run(set: &TrialSet, context: &TrialContext) -> Vec<Report<[TrialError]>> {
+    let (tx, rx) = mpsc::channel();
+
+    tracing_subscriber::registry()
+        .with(tracing_subscriber::fmt::layer().with_writer({
+            let writer = TracingWriter { sender: tx.clone() };
+
+            move || writer.clone()
+        }))
+        .init();
+
+    let terminal = ratatui::init_with_options(TerminalOptions {
+        viewport: ratatui::Viewport::Inline(16),
+    });
+
+    let (reports, terminal) = thread::scope(|scope| {
+        scope.spawn({
+            let tx = tx.clone();
+
+            move || {
+                input_handler(
+                    tx,
+                    TuiConfig {
+                        tick_rate: Duration::from_millis(200),
+                    },
+                )
+            }
+        });
+
+        let state = RenderState::new(set);
+        let handle = scope.spawn(move || event_loop(terminal, state, rx));
+
+        let reports = run_trials(set, context, tx.clone());
+        tx.send(Event::Shutdown)
+            .expect("should be able to send shutdown");
+        let terminal = handle.join().expect("should be able to join handle");
+
+        (reports, terminal)
+    });
+
+    ratatui::restore();
+    reports
 }
