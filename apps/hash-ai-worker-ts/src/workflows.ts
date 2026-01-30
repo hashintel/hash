@@ -380,24 +380,10 @@ export const updateEntityEmbeddings = async (
         subgraph,
       });
 
-      // Exclude sensitive properties from embeddings to prevent enumeration attacks.
-      // For User entities, exclude email to prevent attackers from finding users by
-      // searching for semantically similar email addresses.
-      const excludedProperties: BaseUrl[] = [];
-      if (
-        entity.metadata.entityTypeIds.some(
-          (typeId) =>
-            extractBaseUrl(typeId) === systemEntityTypes.user.entityTypeBaseUrl,
-        )
-      ) {
-        excludedProperties.push(systemPropertyTypes.email.propertyTypeBaseUrl);
-      }
-
       const generatedEmbeddings =
         await aiActivities.createEntityEmbeddingsActivity({
           entityProperties: entity.properties,
           propertyTypes,
-          excludedProperties,
         });
 
       if (generatedEmbeddings.embeddings.length > 0) {

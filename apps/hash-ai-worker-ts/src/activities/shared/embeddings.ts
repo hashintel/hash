@@ -44,16 +44,10 @@ const createPropertyEmbeddingInput = (params: {
 
 /**
  * Creates embeddings for (a) each property and finally (b) a new line-separated list of all properties.
- *
- * @param params.excludedProperties - Property base URLs to exclude from embedding generation.
- *   Excluded properties will not have individual embeddings and will not be included in the
- *   combined embedding. Use this for sensitive properties that should not be searchable via
- *   semantic similarity (e.g., email on User entities to prevent enumeration attacks).
  */
 export const createEntityEmbeddings = async (params: {
   entityProperties: PropertyObject;
   propertyTypes: { title: string; $id: VersionedUrl }[];
-  excludedProperties?: BaseUrl[];
 }): Promise<{
   embeddings: {
     /** If 'property' is absent, this is the combined embedding for all properties */
@@ -77,11 +71,6 @@ export const createEntityEmbeddings = async (params: {
   let combinedEntityEmbedding = "";
   for (const propertyType of params.propertyTypes) {
     const baseUrl = extractBaseUrl(propertyType.$id);
-
-    // Skip excluded properties (e.g., email on User entities for security)
-    if (params.excludedProperties?.includes(baseUrl)) {
-      continue;
-    }
 
     const property = params.entityProperties[baseUrl];
 
