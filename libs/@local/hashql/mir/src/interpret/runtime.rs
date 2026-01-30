@@ -21,7 +21,9 @@
 //! 5. Returning the final value when the entry function returns
 
 use alloc::{alloc::Global, borrow::Cow};
-use core::{alloc::Allocator, assert_matches::debug_assert_matches, ops::ControlFlow};
+use core::{
+    alloc::Allocator, assert_matches::debug_assert_matches, hint::cold_path, ops::ControlFlow,
+};
 
 use hashql_core::{collections::FastHashMap, span::SpanId, symbol::Symbol};
 use hashql_hir::node::operation::{InputOp, UnOp};
@@ -30,7 +32,7 @@ use super::{
     error::{BinaryTypeMismatch, InterpretDiagnostic, RuntimeError, TypeName, UnaryTypeMismatch},
     locals::Locals,
     scratch::Scratch,
-    value::Value,
+    value::{Int, Value},
 };
 use crate::{
     body::{
@@ -78,7 +80,7 @@ impl<'ctx, 'heap, A: Allocator> CallStack<'ctx, 'heap, A> {
     pub fn new(
         runtime: &Runtime<'ctx, 'heap, A>,
         entry: DefId,
-        args: impl IntoIterator<Item = Value<'heap, A>>,
+        args: impl IntoIterator<Item = Value<'heap, A>, IntoIter: ExactSizeIterator>,
     ) -> Self
     where
         A: Clone,
@@ -208,9 +210,10 @@ impl<'ctx, 'heap, A: Allocator + Clone> Runtime<'ctx, 'heap, A> {
     fn make_frame<E>(
         &self,
         func: DefId,
-        args: impl IntoIterator<Item = Result<Value<'heap, A>, E>>,
+        args: impl ExactSizeIterator<Item = Result<Value<'heap, A>, E>>,
     ) -> Result<Frame<'ctx, 'heap, A>, E> {
         let body = &self.bodies[func];
+
         let locals = Locals::new_in(body, args, self.alloc.clone())?;
 
         Ok(Frame {
@@ -221,20 +224,28 @@ impl<'ctx, 'heap, A: Allocator + Clone> Runtime<'ctx, 'heap, A> {
         })
     }
 
+    #[inline]
     fn step_terminator_goto(
         &mut self,
         frame: &mut Frame<'ctx, 'heap, A>,
         Target { block, args }: Target<'heap>,
     ) -> Result<(), RuntimeError<'heap, A>> {
+        if args.is_empty() {
+            frame.current_block = &frame.body.basic_blocks[block];
+            frame.current_statement = 0;
+            return Ok(());
+        }
+
         debug_assert_eq!(args.len(), frame.body.basic_blocks[block].params.len());
 
         // We must ensure that the assignments are not clobbered, this may happen in the case that
         // we assign `(b, a)` to `(a, b)` inside of the block params.
+        self.scratch.target_args.reserve(args.len());
         frame.body.basic_blocks[block]
             .params
             .iter()
             .zip(args)
-            .map(|(&param, &arg)| {
+            .map(|(&param, arg)| {
                 frame
                     .locals
                     .operand(arg)
@@ -272,25 +283,33 @@ impl<'ctx, 'heap, A: Allocator + Clone> Runtime<'ctx, 'heap, A> {
                 discriminant,
                 targets,
             }) => {
-                let discriminant = frame.locals.operand(*discriminant)?;
+                let discriminant = frame.locals.operand(discriminant)?;
                 let &Value::Integer(int) = discriminant.as_ref() else {
+                    cold_path();
+
                     return Err(RuntimeError::InvalidDiscriminantType {
                         r#type: discriminant.type_name().into(),
                     });
                 };
 
                 let Some(target) = targets.target(int.as_uint()) else {
+                    cold_path();
+
                     return Err(RuntimeError::InvalidDiscriminant { value: int });
                 };
 
                 self.step_terminator_goto(frame, target)?;
                 Ok(ControlFlow::Continue(PopFrame::No))
             }
-            &TerminatorKind::Return(Return { value }) => {
+            TerminatorKind::Return(Return { value }) => {
                 let value = frame.locals.operand(value)?.into_owned();
 
                 // No caller frame means we're returning from the entry function.
                 let Some(caller) = stack.last_mut() else {
+                    // In most cases we just have straight function calls, only the last return is
+                    // one that we break on.
+                    cold_path();
+
                     return Ok(ControlFlow::Break(value));
                 };
 
@@ -318,88 +337,96 @@ impl<'ctx, 'heap, A: Allocator + Clone> Runtime<'ctx, 'heap, A> {
 
     fn eval_rvalue_binary(
         frame: &Frame<'ctx, 'heap, A>,
-        Binary { op, left, right }: Binary<'heap>,
+        Binary { op, left, right }: &Binary<'heap>,
     ) -> Result<Value<'heap, A>, RuntimeError<'heap, A>> {
         let lhs = frame.locals.operand(left)?;
         let rhs = frame.locals.operand(right)?;
 
-        let value = match op {
-            BinOp::Add => {
-                return match (lhs.as_ref(), rhs.as_ref()) {
-                    (Value::Integer(lhs), Value::Integer(rhs)) => Ok(Value::from(lhs + rhs)),
-                    (Value::Integer(lhs), Value::Number(rhs)) => Ok(Value::Number(lhs + rhs)),
-                    (Value::Number(lhs), Value::Integer(rhs)) => Ok(Value::Number(lhs + rhs)),
-                    (Value::Number(lhs), Value::Number(rhs)) => Ok(Value::Number(lhs + rhs)),
-                    _ => Err(RuntimeError::BinaryTypeMismatch(Box::new(
+        match op {
+            BinOp::Add => match (lhs.as_ref(), rhs.as_ref()) {
+                (Value::Integer(lhs), Value::Integer(rhs)) => Ok(Value::from(lhs + rhs)),
+                (Value::Integer(lhs), Value::Number(rhs)) => Ok(Value::Number(lhs + rhs)),
+                (Value::Number(lhs), Value::Integer(rhs)) => Ok(Value::Number(lhs + rhs)),
+                (Value::Number(lhs), Value::Number(rhs)) => Ok(Value::Number(lhs + rhs)),
+                _ => {
+                    cold_path();
+
+                    Err(RuntimeError::BinaryTypeMismatch(Box::new(
                         BinaryTypeMismatch {
-                            op,
+                            op: *op,
                             lhs_expected: TypeName::terse("Number"),
                             rhs_expected: TypeName::terse("Number"),
                             lhs: lhs.into_owned(),
                             rhs: rhs.into_owned(),
                         },
-                    ))),
-                };
-            }
-            BinOp::Sub => {
-                return match (lhs.as_ref(), rhs.as_ref()) {
-                    (Value::Integer(lhs), Value::Integer(rhs)) => Ok(Value::from(lhs - rhs)),
-                    (Value::Integer(lhs), Value::Number(rhs)) => Ok(Value::Number(lhs - rhs)),
-                    (Value::Number(lhs), Value::Integer(rhs)) => Ok(Value::Number(lhs - rhs)),
-                    (Value::Number(lhs), Value::Number(rhs)) => Ok(Value::Number(lhs - rhs)),
-                    _ => Err(RuntimeError::BinaryTypeMismatch(Box::new(
+                    )))
+                }
+            },
+            BinOp::Sub => match (lhs.as_ref(), rhs.as_ref()) {
+                (Value::Integer(lhs), Value::Integer(rhs)) => Ok(Value::from(lhs - rhs)),
+                (Value::Integer(lhs), Value::Number(rhs)) => Ok(Value::Number(lhs - rhs)),
+                (Value::Number(lhs), Value::Integer(rhs)) => Ok(Value::Number(lhs - rhs)),
+                (Value::Number(lhs), Value::Number(rhs)) => Ok(Value::Number(lhs - rhs)),
+                _ => {
+                    cold_path();
+
+                    Err(RuntimeError::BinaryTypeMismatch(Box::new(
                         BinaryTypeMismatch {
-                            op,
+                            op: *op,
                             lhs_expected: TypeName::terse("Number"),
                             rhs_expected: TypeName::terse("Number"),
                             lhs: lhs.into_owned(),
                             rhs: rhs.into_owned(),
                         },
-                    ))),
-                };
-            }
+                    )))
+                }
+            },
             BinOp::BitAnd => {
-                return match (lhs.as_ref(), rhs.as_ref()) {
-                    (Value::Integer(lhs), Value::Integer(rhs)) => Ok(Value::Integer(lhs & rhs)),
-                    _ => Err(RuntimeError::BinaryTypeMismatch(Box::new(
+                if let (Value::Integer(lhs), Value::Integer(rhs)) = (lhs.as_ref(), rhs.as_ref()) {
+                    Ok(Value::Integer(lhs & rhs))
+                } else {
+                    cold_path();
+
+                    Err(RuntimeError::BinaryTypeMismatch(Box::new(
                         BinaryTypeMismatch {
-                            op,
+                            op: *op,
                             lhs_expected: TypeName::terse("Integer"),
                             rhs_expected: TypeName::terse("Integer"),
                             lhs: lhs.into_owned(),
                             rhs: rhs.into_owned(),
                         },
-                    ))),
-                };
+                    )))
+                }
             }
             BinOp::BitOr => {
-                return match (lhs.as_ref(), rhs.as_ref()) {
-                    (Value::Integer(lhs), Value::Integer(rhs)) => Ok(Value::Integer(lhs | rhs)),
-                    _ => Err(RuntimeError::BinaryTypeMismatch(Box::new(
+                if let (Value::Integer(lhs), Value::Integer(rhs)) = (lhs.as_ref(), rhs.as_ref()) {
+                    Ok(Value::Integer(lhs | rhs))
+                } else {
+                    cold_path();
+
+                    Err(RuntimeError::BinaryTypeMismatch(Box::new(
                         BinaryTypeMismatch {
-                            op,
+                            op: *op,
                             lhs_expected: TypeName::terse("Integer"),
                             rhs_expected: TypeName::terse("Integer"),
                             lhs: lhs.into_owned(),
                             rhs: rhs.into_owned(),
                         },
-                    ))),
-                };
+                    )))
+                }
             }
-            BinOp::Eq => lhs == rhs,
-            BinOp::Ne => lhs != rhs,
-            BinOp::Lt => lhs < rhs,
-            BinOp::Lte => lhs <= rhs,
-            BinOp::Gt => lhs > rhs,
-            BinOp::Gte => lhs >= rhs,
-        };
-
-        Ok(Value::Integer(value.into()))
+            BinOp::Eq => Ok(Value::Integer(Int::from(lhs == rhs))),
+            BinOp::Ne => Ok(Value::Integer(Int::from(lhs != rhs))),
+            BinOp::Lt => Ok(Value::Integer(Int::from(lhs < rhs))),
+            BinOp::Lte => Ok(Value::Integer(Int::from(lhs <= rhs))),
+            BinOp::Gt => Ok(Value::Integer(Int::from(lhs > rhs))),
+            BinOp::Gte => Ok(Value::Integer(Int::from(lhs >= rhs))),
+        }
     }
 
     fn eval_rvalue_unary(
         frame: &Frame<'ctx, 'heap, A>,
-        Unary { op, operand }: Unary<'heap>,
+        Unary { op, operand }: &Unary<'heap>,
     ) -> Result<Value<'heap, A>, RuntimeError<'heap, A>> {
         let operand = frame.locals.operand(operand)?;
 
@@ -417,13 +444,17 @@ impl<'ctx, 'heap, A: Allocator + Clone> Runtime<'ctx, 'heap, A> {
                 | Value::Struct(_)
                 | Value::Tuple(_)
                 | Value::List(_)
-                | Value::Dict(_) => Err(RuntimeError::UnaryTypeMismatch(Box::new(
-                    UnaryTypeMismatch {
-                        op,
-                        expected: TypeName::terse("Boolean"),
-                        value: operand.into_owned(),
-                    },
-                ))),
+                | Value::Dict(_) => {
+                    cold_path();
+
+                    Err(RuntimeError::UnaryTypeMismatch(Box::new(
+                        UnaryTypeMismatch {
+                            op: *op,
+                            expected: TypeName::terse("Boolean"),
+                            value: operand.into_owned(),
+                        },
+                    )))
+                }
             },
             UnOp::BitNot => match operand.as_ref() {
                 Value::Integer(int) => Ok(Value::Integer(!int)),
@@ -435,13 +466,17 @@ impl<'ctx, 'heap, A: Allocator + Clone> Runtime<'ctx, 'heap, A> {
                 | Value::Struct(_)
                 | Value::Tuple(_)
                 | Value::List(_)
-                | Value::Dict(_) => Err(RuntimeError::UnaryTypeMismatch(Box::new(
-                    UnaryTypeMismatch {
-                        op,
-                        expected: TypeName::terse("Integer"),
-                        value: operand.into_owned(),
-                    },
-                ))),
+                | Value::Dict(_) => {
+                    cold_path();
+
+                    Err(RuntimeError::UnaryTypeMismatch(Box::new(
+                        UnaryTypeMismatch {
+                            op: *op,
+                            expected: TypeName::terse("Integer"),
+                            value: operand.into_owned(),
+                        },
+                    )))
+                }
             },
             UnOp::Neg => match operand.as_ref() {
                 Value::Integer(int) => Ok((-int).into()),
@@ -453,13 +488,17 @@ impl<'ctx, 'heap, A: Allocator + Clone> Runtime<'ctx, 'heap, A> {
                 | Value::Struct(_)
                 | Value::Tuple(_)
                 | Value::List(_)
-                | Value::Dict(_) => Err(RuntimeError::UnaryTypeMismatch(Box::new(
-                    UnaryTypeMismatch {
-                        op,
-                        expected: TypeName::terse("Number"),
-                        value: operand.into_owned(),
-                    },
-                ))),
+                | Value::Dict(_) => {
+                    cold_path();
+
+                    Err(RuntimeError::UnaryTypeMismatch(Box::new(
+                        UnaryTypeMismatch {
+                            op: *op,
+                            expected: TypeName::terse("Number"),
+                            value: operand.into_owned(),
+                        },
+                    )))
+                }
             },
         }
     }
@@ -487,8 +526,8 @@ impl<'ctx, 'heap, A: Allocator + Clone> Runtime<'ctx, 'heap, A> {
             arguments,
         }: &Apply<'heap>,
     ) -> Result<Frame<'ctx, 'heap, A>, RuntimeError<'heap, A>> {
-        let function = frame.locals.operand(*function)?;
-        let &Value::Pointer(pointer) = function.as_ref() else {
+        let function = frame.locals.operand(function)?;
+        let Value::Pointer(pointer) = function.as_ref() else {
             return Err(RuntimeError::ApplyNonPointer {
                 r#type: function.type_name().into(),
             });
@@ -498,7 +537,6 @@ impl<'ctx, 'heap, A: Allocator + Clone> Runtime<'ctx, 'heap, A> {
             pointer.def(),
             arguments
                 .iter()
-                .copied()
                 .map(|argument| frame.locals.operand(argument).map(Cow::into_owned)),
         )
     }
@@ -509,15 +547,15 @@ impl<'ctx, 'heap, A: Allocator + Clone> Runtime<'ctx, 'heap, A> {
         rvalue: &RValue<'heap>,
     ) -> Result<ControlFlow<Frame<'ctx, 'heap, A>, Value<'heap, A>>, RuntimeError<'heap, A>> {
         match rvalue {
-            &RValue::Load(operand) => frame
+            RValue::Load(operand) => frame
                 .locals
                 .operand(operand)
                 .map(Cow::into_owned)
                 .map(ControlFlow::Continue),
-            &RValue::Binary(binary) => {
+            RValue::Binary(binary) => {
                 Self::eval_rvalue_binary(frame, binary).map(ControlFlow::Continue)
             }
-            &RValue::Unary(unary) => {
+            RValue::Unary(unary) => {
                 Self::eval_rvalue_unary(frame, unary).map(ControlFlow::Continue)
             }
             RValue::Aggregate(aggregate) => {
@@ -559,6 +597,7 @@ impl<'ctx, 'heap, A: Allocator + Clone> Runtime<'ctx, 'heap, A> {
             return match next {
                 ControlFlow::Continue(PopFrame::Yes) => {
                     callstack.frames.pop();
+
                     Ok(ControlFlow::Continue(()))
                 }
                 ControlFlow::Continue(PopFrame::No) => Ok(ControlFlow::Continue(())),

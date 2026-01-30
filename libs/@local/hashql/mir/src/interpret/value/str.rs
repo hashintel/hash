@@ -81,6 +81,14 @@ impl<'heap, A: Allocator> From<String<'heap>> for Str<'heap, A> {
     }
 }
 
+impl<'heap, A: Allocator> From<&String<'heap>> for Str<'heap, A> {
+    fn from(value: &String<'heap>) -> Self {
+        Self {
+            inner: StrInner::Interned(value.as_symbol()),
+        }
+    }
+}
+
 impl<A: Allocator> PartialEq for Str<'_, A> {
     fn eq(&self, other: &Self) -> bool {
         let Self { inner } = self;

@@ -143,6 +143,15 @@ where
         Self::from_raw(Vec::with_capacity_in(capacity, alloc))
     }
 
+    /// Reserves capacity for at least `additional` more elements to be inserted in the given
+    /// `IdVec`.
+    ///
+    /// See [`Vec::reserve`] for details.
+    #[inline]
+    pub fn reserve(&mut self, additional: usize) {
+        self.raw.reserve(additional);
+    }
+
     /// Creates an `IdVec` with `size` elements initialized to `elem`, using a custom allocator.
     ///
     /// # Examples

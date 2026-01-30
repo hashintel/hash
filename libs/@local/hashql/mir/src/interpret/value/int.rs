@@ -1,6 +1,7 @@
 use core::{
     error::Error,
     fmt::{self, Display},
+    hint,
     num::TryFromIntError,
     ops::{Add, BitAnd, BitAndAssign, BitOr, BitOrAssign, BitXor, BitXorAssign, Neg, Not, Sub},
 };
@@ -627,7 +628,6 @@ impl Not for Int {
 impl Neg for Int {
     type Output = Numeric;
 
-    #[inline]
     #[expect(clippy::cast_precision_loss, clippy::float_arithmetic)]
     fn neg(self) -> Self::Output {
         let (value, overflow) = self.as_int().overflowing_neg();
@@ -645,12 +645,11 @@ impl Neg for Int {
 impl Add for Int {
     type Output = Numeric;
 
-    #[inline]
     #[expect(clippy::float_arithmetic)]
     fn add(self, rhs: Self) -> Self::Output {
         let (value, overflow) = self.as_int().overflowing_add(rhs.as_int());
 
-        if overflow {
+        if hint::unlikely(overflow) {
             Numeric::Num(Num::from(self.as_f64() + rhs.as_f64()))
         } else {
             Numeric::Int(Self::from_value_unchecked(value))
@@ -671,12 +670,11 @@ impl Add<Num> for Int {
 impl Sub for Int {
     type Output = Numeric;
 
-    #[inline]
     #[expect(clippy::float_arithmetic)]
     fn sub(self, rhs: Self) -> Self::Output {
         let (value, overflow) = self.as_int().overflowing_sub(rhs.as_int());
 
-        if overflow {
+        if hint::unlikely(overflow) {
             Numeric::Num(Num::from(self.as_f64() - rhs.as_f64()))
         } else {
             Numeric::Int(Self::from_value_unchecked(value))
