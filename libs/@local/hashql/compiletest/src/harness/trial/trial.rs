@@ -1,4 +1,4 @@
-use core::any::Any;
+use core::{any::Any, fmt::Display};
 use std::{
     fs::File,
     io::Cursor,
@@ -26,6 +26,7 @@ use nextest_filtering::{BinaryQuery, EvalContext, Filterset, TestQuery};
 use similar_asserts::SimpleDiff;
 
 use super::{
+    TrialGroup,
     context::TrialContext,
     error::TrialError,
     stats::{TrialSection, TrialStatistics},
@@ -206,6 +207,18 @@ impl Trial {
         );
 
         self.ignore = self.ignore || !matches
+    }
+
+    pub(crate) fn name(&self, group: &TrialGroup) -> impl Display {
+        core::fmt::from_fn(|fmt| {
+            write!(fmt, "{}::", group.metadata.name())?;
+
+            for segment in &self.namespace {
+                write!(fmt, "{segment}::")?;
+            }
+
+            core::fmt::Display::fmt(&self.annotations.directive.name, fmt)
+        })
     }
 
     pub(crate) fn include(&self) -> bool {

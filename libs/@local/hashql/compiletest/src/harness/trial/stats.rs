@@ -85,4 +85,34 @@ impl TrialStatistics {
 
         output
     }
+
+    pub fn plus(&mut self, other: &Self) {
+        let Self {
+            files_read,
+            bytes_read,
+            files_written,
+            bytes_written,
+            files_removed,
+            total,
+            run,
+            assert,
+            verify,
+            read_source,
+            parse,
+            render_stderr,
+        } = self;
+
+        *files_read += other.files_read;
+        *bytes_read += other.bytes_read;
+        *files_written += other.files_written;
+        *bytes_written += other.bytes_written;
+        *files_removed += other.files_removed;
+        *total += other.total;
+        *run += other.run;
+        *assert += other.assert;
+        *verify += other.verify;
+        *read_source += other.read_source;
+        *parse += other.parse;
+        *render_stderr += other.render_stderr;
+    }
 }
