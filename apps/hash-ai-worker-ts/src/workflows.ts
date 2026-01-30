@@ -1,10 +1,10 @@
 import {
-  extractBaseUrl,
   type ActorEntityUuid,
   type BaseUrl,
   type DataTypeWithMetadata,
   type Entity,
   type EntityTypeWithMetadata,
+  extractBaseUrl,
   type PropertyTypeWithMetadata,
 } from "@blockprotocol/type-system";
 import { publicUserAccountId } from "@local/hash-backend-utils/public-user-account-id";
@@ -387,7 +387,7 @@ export const updateEntityEmbeddings = async (
       if (
         entity.metadata.entityTypeIds.some(
           (typeId) =>
-            extractBaseUrl(typeId) == systemEntityTypes.user.entityTypeBaseUrl,
+            extractBaseUrl(typeId) === systemEntityTypes.user.entityTypeBaseUrl,
         )
       ) {
         excludedProperties.push(systemPropertyTypes.email.propertyTypeBaseUrl);

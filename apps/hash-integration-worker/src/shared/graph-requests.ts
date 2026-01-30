@@ -11,11 +11,10 @@ import {
 } from "@blockprotocol/type-system";
 import type { GraphApi } from "@local/hash-graph-client";
 import {
-  type HashEntity,
+  HashEntity,
   HashLinkEntity,
   queryEntities,
 } from "@local/hash-graph-sdk/entity";
-import { mapGraphApiEntityToEntity } from "@local/hash-graph-sdk/subgraph";
 import {
   currentTimeInstantTemporalAxes,
   generateVersionedUrlMatchingFilter,
@@ -105,10 +104,7 @@ export const getEntityOutgoingLinks = async (params: {
   );
 
   const outgoingLinkEntities = response.entities.map(
-    (entity) =>
-      new HashLinkEntity(
-        mapGraphApiEntityToEntity(entity, authentication.actorId),
-      ),
+    (entity) => new HashLinkEntity(new HashEntity(entity)),
   );
 
   return outgoingLinkEntities;

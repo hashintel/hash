@@ -1,5 +1,12 @@
 version: v1.0.0
 
+# Allow webhooks to call private IPs (needed for local development)
+clients:
+  http:
+    private_ip_exception_urls:
+      - http://host.docker.internal:5001/*
+      - http://localhost:5001/*
+
 serve:
   public:
     base_url: http://localhost:4433/
