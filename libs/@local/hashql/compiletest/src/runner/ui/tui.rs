@@ -10,9 +10,9 @@ use ratatui::{
     prelude::Backend,
     style::{Color, Style, Stylize},
     symbols::Marker,
-    text::{Line, Span},
+    text::{Line, Span, Text},
     widgets::{
-        Block, Paragraph, Widget,
+        Block, Paragraph, Widget, Wrap,
         canvas::{Canvas, Points},
     },
 };
@@ -41,7 +41,10 @@ struct TracingWriter {
 impl io::Write for TracingWriter {
     fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
         let len = buf.len();
-        self.sender.send(Event::TracingMessage(buf.to_vec()));
+        self.sender
+            .send(Event::TracingMessage(buf.to_vec()))
+            .map_err(io::Error::other)?;
+
         Ok(len)
     }
 
@@ -124,15 +127,6 @@ fn average(duration: Duration, count: usize) -> Duration {
 fn render_grid(frame: &mut Frame, area: Rect, state: &RenderState) {
     let total = state.results.len().max(1);
 
-    // Calculate grid dimensions based on aspect ratio
-    // Each terminal cell is roughly 2x taller than wide, so adjust ratio
-    let cell_aspect = 2.0;
-    let area_ratio = (area.width as f64 * cell_aspect) / area.height.max(1) as f64;
-
-    // rows * cols >= total, with cols/rows ≈ area_ratio
-    let rows = ((total as f64 / area_ratio).sqrt().ceil() as usize).max(1);
-    let cols = ((total + rows - 1) / rows).max(1);
-
     let mut pending = 0_usize;
     let mut running = 0_usize;
     let mut success = 0_usize;
@@ -159,59 +153,65 @@ fn render_grid(frame: &mut Frame, area: Rect, state: &RenderState) {
         Span::raw(" failed "),
     ]);
 
-    // Group results by color for efficient drawing
-    let mut pending_coords = Vec::new();
-    let mut running_coords = Vec::new();
-    let mut success_coords = Vec::new();
-    let mut failure_coords = Vec::new();
+    // Calculate logical grid dimensions
+    // HalfBlock gives 1x2 sub-pixels per terminal cell
+    let block = Block::bordered().title(title);
+    let inner = block.inner(area);
+    let pixel_cols = inner.width as usize;
+    let pixel_rows = inner.height as usize * 2; // HalfBlock doubles vertical resolution
+    let pixels = pixel_cols * pixel_rows;
 
-    // Generate multiple points per cell for better fill density
-    let subdivisions = 4;
-    let step = 1.0 / subdivisions as f64;
+    // Arrange trials to fill the pixel grid
+    // Calculate grid dimensions where rows * cols >= total
+    let ratio = pixel_cols as f64 / pixel_rows.max(1) as f64;
+    let rows = ((total as f64 / ratio).sqrt().ceil() as usize).max(1);
+    let cols = ((total + rows - 1) / rows).max(1);
 
-    for (index, result) in state.results.iter().enumerate() {
-        let row = index / cols;
-        let col = index % cols;
+    // Group points by color
+    let mut pending_pts = Vec::new();
+    let mut running_pts = Vec::new();
+    let mut success_pts = Vec::new();
+    let mut failure_pts = Vec::new();
 
-        // y is inverted (0 at bottom), so flip row
-        let base_y = (rows - 1 - row) as f64;
-        let base_x = col as f64;
+    for (idx, result) in state.results.iter().enumerate() {
+        let row = idx / cols;
+        let col = idx % cols;
 
-        // Fill the cell with a grid of points
-        let coords = match result {
-            TrialState::Pending => &mut pending_coords,
-            TrialState::Running => &mut running_coords,
-            TrialState::Success(_) => &mut success_coords,
-            TrialState::Failure(_) => &mut failure_coords,
+        // Canvas y=0 is at bottom, so flip
+        let x = col as f64;
+        let y = (rows - 1 - row) as f64;
+
+        let pts = match result {
+            TrialState::Pending => &mut pending_pts,
+            TrialState::Running => &mut running_pts,
+            TrialState::Success(_) => &mut success_pts,
+            TrialState::Failure(_) => &mut failure_pts,
         };
 
-        for sy in 0..subdivisions {
-            for sx in 0..subdivisions {
-                coords.push((base_x + sx as f64 * step, base_y + sy as f64 * step));
-            }
-        }
+        // Fill the cell with a grid of points dense enough to cover all half-block pixels
+        pts.push((x, y));
     }
 
     let canvas = Canvas::default()
-        .block(Block::bordered().title(title))
-        .marker(Marker::HalfBlock)
+        .block(block)
+        .marker(Marker::Braille)
         .x_bounds([0.0, cols as f64])
         .y_bounds([0.0, rows as f64])
         .paint(|ctx| {
             ctx.draw(&Points {
-                coords: &pending_coords,
+                coords: &pending_pts,
                 color: Color::DarkGray,
             });
             ctx.draw(&Points {
-                coords: &running_coords,
+                coords: &running_pts,
                 color: Color::Yellow,
             });
             ctx.draw(&Points {
-                coords: &success_coords,
+                coords: &success_pts,
                 color: Color::Green,
             });
             ctx.draw(&Points {
-                coords: &failure_coords,
+                coords: &failure_pts,
                 color: Color::Red,
             });
         });
@@ -219,9 +219,14 @@ fn render_grid(frame: &mut Frame, area: Rect, state: &RenderState) {
     frame.render_widget(canvas, area);
 }
 
+fn trial_total_time(stats: &TrialStatistics) -> Duration {
+    stats.run + stats.assert + stats.verify + stats.read_source + stats.parse + stats.render_stderr
+}
+
 fn render_stats(frame: &mut Frame, area: Rect, state: &RenderState) {
     let mut totals = TrialStatistics::default();
     let mut count = 0_usize;
+    let mut times: Vec<Duration> = Vec::new();
 
     for result in &state.results {
         if let TrialState::Success(stats) = result {
@@ -237,8 +242,11 @@ fn render_stats(frame: &mut Frame, area: Rect, state: &RenderState) {
             totals.read_source += stats.read_source;
             totals.parse += stats.parse;
             totals.render_stderr += stats.render_stderr;
+            times.push(trial_total_time(stats));
         }
     }
+
+    times.sort();
 
     let block = Block::bordered().title(" Statistics ");
     let inner = block.inner(area);
@@ -246,7 +254,11 @@ fn render_stats(frame: &mut Frame, area: Rect, state: &RenderState) {
 
     let columns = Layout::default()
         .direction(Direction::Horizontal)
-        .constraints([Constraint::Percentage(50), Constraint::Percentage(50)])
+        .constraints([
+            Constraint::Percentage(33),
+            Constraint::Percentage(34),
+            Constraint::Percentage(33),
+        ])
         .split(inner);
 
     // I/O column
@@ -264,28 +276,23 @@ fn render_stats(frame: &mut Frame, area: Rect, state: &RenderState) {
             Span::raw(format!("{}", totals.files_written)),
             Span::styled(" files ", Style::new().dim()),
             Span::raw(format!("({written_kib:.1} KiB)")),
-            Span::styled("  removed ", Style::new().dim()),
+        ]),
+        Line::from(vec![
+            Span::styled("removed ", Style::new().dim()),
             Span::raw(format!("{}", totals.files_removed)),
+            Span::styled(" files", Style::new().dim()),
         ]),
     ];
     frame.render_widget(Paragraph::new(io_lines), columns[0]);
 
-    // Timing column
+    // Timing averages column
     let timing_lines = if count == 0 {
         vec![Line::from(Span::styled(
-            "waiting for completed trials...",
+            "waiting for trials...",
             Style::new().dim().italic(),
         ))]
     } else {
-        let avg_total = average(
-            totals.run
-                + totals.assert
-                + totals.verify
-                + totals.read_source
-                + totals.parse
-                + totals.render_stderr,
-            count,
-        );
+        let avg_total = average(trial_total_time(&totals), count);
 
         vec![
             Line::from(vec![
@@ -299,7 +306,9 @@ fn render_stats(frame: &mut Frame, area: Rect, state: &RenderState) {
                 Span::raw(format_duration(average(totals.read_source, count))),
                 Span::styled("  parse ", Style::new().dim()),
                 Span::raw(format_duration(average(totals.parse, count))),
-                Span::styled("  run ", Style::new().dim()),
+            ]),
+            Line::from(vec![
+                Span::styled("run ", Style::new().dim()),
                 Span::raw(format_duration(average(totals.run, count))),
                 Span::styled("  verify ", Style::new().dim()),
                 Span::raw(format_duration(average(totals.verify, count))),
@@ -307,6 +316,35 @@ fn render_stats(frame: &mut Frame, area: Rect, state: &RenderState) {
         ]
     };
     frame.render_widget(Paragraph::new(timing_lines), columns[1]);
+
+    // Distribution column (min/median/max/outliers)
+    let dist_lines = if times.len() < 2 {
+        vec![Line::from(Span::styled(
+            "need more data...",
+            Style::new().dim().italic(),
+        ))]
+    } else {
+        let min = times.first().copied().unwrap_or_default();
+        let max = times.last().copied().unwrap_or_default();
+        let median = times[times.len() / 2];
+        let p95 = times[(times.len() * 95) / 100];
+
+        vec![
+            Line::from(vec![
+                Span::styled("min ", Style::new().dim()),
+                Span::styled(format_duration(min), Style::new().green()),
+                Span::styled("  median ", Style::new().dim()),
+                Span::raw(format_duration(median)),
+            ]),
+            Line::from(vec![
+                Span::styled("p95 ", Style::new().dim()),
+                Span::styled(format_duration(p95), Style::new().yellow()),
+                Span::styled("  max ", Style::new().dim()),
+                Span::styled(format_duration(max), Style::new().red()),
+            ]),
+        ]
+    };
+    frame.render_widget(Paragraph::new(dist_lines), columns[2]);
 }
 
 fn render(frame: &mut Frame, state: &mut RenderState) {
@@ -321,32 +359,38 @@ fn render(frame: &mut Frame, state: &mut RenderState) {
     render_stats(frame, layout[1], state);
 }
 
+const INLINE_HEIGHT: u16 = 8;
+
 fn event_loop<B: Backend>(
     mut terminal: Terminal<B>,
     mut state: RenderState,
     rx: mpsc::Receiver<Event>,
 ) -> Result<Terminal<B>, B::Error> {
-    // Initial draw
-    terminal.draw(|frame| render(frame, &mut state))?;
-
     let mut redraw = true;
+    let mut shutdown = false;
+
     let mut size = terminal.size()?;
     let mut text = Text::default();
 
     loop {
         if !text.lines.is_empty() {
-            let paragraph = Paragraph::new(text);
-            let height = paragraph.line_count(size.width);
+            let paragraph = Paragraph::new(text).wrap(Wrap { trim: true });
+            let height = paragraph.line_count(size.width) as u16;
 
-            terminal.insert_before(height as u16, |buffer| {
-                paragraph.render(buffer.area, buffer);
+            terminal.insert_before(height, |buffer| {
+                (&paragraph).render(buffer.area, buffer);
             })?;
+
             text = Text::default();
             redraw = true;
         }
 
         if redraw {
             terminal.draw(|frame| render(frame, &mut state))?;
+        }
+
+        if shutdown {
+            return Ok(terminal);
         }
 
         redraw = false;
@@ -371,7 +415,10 @@ fn event_loop<B: Backend>(
                     true
                 }
                 Event::Tick => true,
-                Event::Shutdown => return Ok(terminal),
+                Event::Shutdown => {
+                    shutdown = true;
+                    true
+                }
 
                 Event::TrialStarted(index) => {
                     state.results[index] = TrialState::Running;
@@ -434,7 +481,7 @@ pub(crate) fn run(set: &TrialSet, context: &TrialContext) -> Vec<Report<[TrialEr
         .init();
 
     let terminal = ratatui::init_with_options(TerminalOptions {
-        viewport: ratatui::Viewport::Inline(16),
+        viewport: ratatui::Viewport::Inline(INLINE_HEIGHT),
     });
 
     let (reports, terminal) = thread::scope(|scope| {
