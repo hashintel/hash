@@ -87,7 +87,6 @@ pub enum ParameterList<'p> {
     WebIds(&'p [WebId]),
 }
 
-/// A leaf value in a [`Filter`].
 #[derive_where(Debug, Clone, PartialEq, Eq; R::QueryPath<'p>)]
 pub enum FilterExpressionList<'p, R: QueryRecord> {
     Path { path: R::QueryPath<'p> },

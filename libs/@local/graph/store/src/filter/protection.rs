@@ -593,29 +593,51 @@ pub enum CellFilter<'p> {
 /// To protect email filtering on User entities:
 ///
 /// ```
-/// use std::collections::HashSet;
+/// # use std::{borrow::Cow, collections::HashSet};
+/// #
+/// # use hash_graph_store::{
+/// #     entity::EntityQueryPath,
+/// #     filter::{
+/// #         Parameter,
+/// #         protection::{
+/// #             CellFilter, CellFilterExpression, CellFilterExpressionList, FilterProtectionConfig,
+/// #         },
+/// #     },
+/// # };
+/// # use type_system::ontology::id::BaseUrl;
+/// #
+/// # const EMAIL_PROPERTY_TYPE_BASE_URL: &str = "https://hash.ai/@h/types/property-type/email/";
+/// # const USER_ENTITY_TYPE_BASE_URL: &str = "https://hash.ai/@h/types/entity-type/user/";
+/// #
+/// let email_url = BaseUrl::new(EMAIL_PROPERTY_TYPE_BASE_URL.to_owned())?;
 ///
-/// use hash_graph_store::filter::protection::FilterProtectionConfig;
-/// use type_system::ontology::id::BaseUrl;
-///
-/// let email_url =
-///     BaseUrl::new("https://hash.ai/@h/types/property-type/email/".to_owned()).unwrap();
-/// let user_url = BaseUrl::new("https://hash.ai/@h/types/entity-type/user/".to_owned()).unwrap();
-///
-/// let config =
-///     FilterProtectionConfig::new().protect_property(email_url, HashSet::from([user_url]));
+/// let config = FilterProtectionConfig::new().protect_property(
+///     email_url,
+///     CellFilter::In(
+///         CellFilterExpression::Parameter {
+///             parameter: Parameter::Text(Cow::Borrowed(USER_ENTITY_TYPE_BASE_URL)),
+///         },
+///         CellFilterExpressionList::Path {
+///             path: EntityQueryPath::TypeBaseUrls,
+///         },
+///     ),
+/// );
+/// # Ok::<(), Box<dyn core::error::Error>>(())
 /// ```
-/// Protection rules for a single property.
-///
-/// Defines when to apply protection (query filter, masking).
 #[derive(Debug, Clone)]
 pub struct PropertyProtectionRules<'p> {
     /// Filter for WHERE clause - when to block queries filtering on this property.
-    /// Also used for SELECT masking if `masking_filter` is None.
+    ///
+    /// Also used for SELECT masking if [`masking_filter`] is None.
+    ///
+    /// [`masking_filter`]: Self::masking_filter
     pub query_filter: CellFilter<'p>,
 
     /// Filter for SELECT masking - when to mask property in responses.
-    /// Falls back to `query_filter` if None.
+    ///
+    /// Falls back to [`query_filter`] if None.
+    ///
+    /// [`query_filter`]: Self::query_filter
     pub masking_filter: Option<CellFilter<'p>>,
 }
 
