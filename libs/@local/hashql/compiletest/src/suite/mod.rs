@@ -69,7 +69,7 @@ use self::{
     mir_pass_transform_pre_inline::MirPassTransformPreInline, mir_reify::MirReifySuite,
     parse_syntax_dump::ParseSyntaxDumpSuite,
 };
-use crate::executor::TrialError;
+use crate::harness::trial::TrialError;
 
 pub(crate) type SuiteDiagnostic = Diagnostic<Box<dyn DiagnosticCategory>, SpanId>;
 
