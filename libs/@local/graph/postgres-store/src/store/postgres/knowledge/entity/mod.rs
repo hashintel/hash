@@ -565,7 +565,8 @@ where
 
         // Apply filter protection when configured - protects sensitive properties (e.g., email)
         // from enumeration attacks and removes them from responses for non-owners.
-        let should_apply_protection = !self.settings.filter_protection.is_empty();
+        let should_apply_protection =
+            !self.settings.filter_protection.is_empty() && !policy_components.is_instance_admin();
 
         let protected_filter;
         let filter_to_use = if should_apply_protection {
@@ -1764,7 +1765,8 @@ where
 
         // Apply filter protection when configured - protects sensitive properties (e.g., email)
         // from enumeration attacks in count queries.
-        let should_apply_protection = !self.settings.filter_protection.is_empty();
+        let should_apply_protection =
+            !self.settings.filter_protection.is_empty() && !policy_components.is_instance_admin();
 
         let protected_filter;
         let filter_to_use = if should_apply_protection {
