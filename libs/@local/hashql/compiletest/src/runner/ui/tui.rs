@@ -5,7 +5,7 @@ use std::{io, sync::mpsc, thread, time::Instant};
 use ansi_to_tui::IntoText as _;
 use error_stack::Report;
 use ratatui::{
-    Frame, Terminal, TerminalOptions,
+    DefaultTerminal, Frame, Terminal, TerminalOptions,
     crossterm::event,
     layout::{Constraint, Layout, Rect},
     prelude::Backend,
@@ -13,9 +13,7 @@ use ratatui::{
     text::{Line, Span, Text},
     widgets::{Block, Gauge, LineGauge, Paragraph, Widget as _, Wrap},
 };
-use rayon::iter::{
-    IndexedParallelIterator as _, IntoParallelRefIterator as _, ParallelIterator as _,
-};
+use rayon::iter::{IndexedParallelIterator as _, IntoParallelIterator, ParallelIterator as _};
 use tracing_subscriber::{layer::SubscriberExt as _, util::SubscriberInitExt as _};
 
 use crate::harness::trial::{
@@ -63,6 +61,7 @@ struct TuiConfig {
     tick_rate: Duration,
 }
 
+#[expect(clippy::needless_pass_by_value)]
 fn input_handler(tx: mpsc::Sender<Event>, TuiConfig { tick_rate }: TuiConfig) -> io::Result<()> {
     let mut last_tick = Instant::now();
 
@@ -89,8 +88,6 @@ fn input_handler(tx: mpsc::Sender<Event>, TuiConfig { tick_rate }: TuiConfig) ->
             last_tick = Instant::now();
         }
     }
-
-    drop(tx);
 }
 
 enum TrialState {
@@ -157,7 +154,6 @@ impl TrialCounts {
 struct TrialByTotal<'trial, 'graph> {
     group: &'trial TrialGroup<'graph>,
     trial: &'trial Trial,
-    stats: &'trial TrialStatistics,
 
     total: Duration,
 }
@@ -182,6 +178,7 @@ impl Ord for TrialByTotal<'_, '_> {
     }
 }
 
+#[expect(clippy::float_arithmetic, clippy::cast_precision_loss)]
 fn render_header(frame: &mut Frame, area: Rect, state: &RenderState, counts: &TrialCounts) {
     let total = counts.total();
     let completed = counts.completed();
@@ -216,7 +213,7 @@ fn render_header(frame: &mut Frame, area: Rect, state: &RenderState, counts: &Tr
 
     let label = Line::from(vec![
         Span::styled(format!(" {completed}/{total} "), Style::new().bold()),
-        Span::styled("│", Style::new().dim()),
+        Span::styled("\u{2502}", Style::new().dim()),
         Span::raw(" "),
         Span::styled(format!("{}", counts.pending), Style::new().gray()),
         Span::styled(" pending ", Style::new().dim()),
@@ -226,9 +223,9 @@ fn render_header(frame: &mut Frame, area: Rect, state: &RenderState, counts: &Tr
         Span::styled(" passed ", Style::new().dim()),
         Span::styled(format!("{}", counts.failure), Style::new().red()),
         Span::styled(" failed ", Style::new().dim()),
-        Span::styled("│", Style::new().dim()),
+        Span::styled("\u{2502}", Style::new().dim()),
         Span::styled(format!(" {throughput:.1}/s "), Style::new().cyan()),
-        Span::styled("│", Style::new().dim()),
+        Span::styled("\u{2502}", Style::new().dim()),
         Span::styled(format!(" {elapsed_str} "), Style::new().dim()),
         Span::styled(&eta_str, Style::new().dim()),
     ]);
@@ -245,7 +242,8 @@ fn render_header(frame: &mut Frame, area: Rect, state: &RenderState, counts: &Tr
 
     let gauge = LineGauge::default()
         .filled_style(Style::new().fg(color))
-        .line_set(ratatui::symbols::line::THICK)
+        .filled_symbol(ratatui::symbols::line::THICK.horizontal)
+        .unfilled_symbol(ratatui::symbols::line::THICK.horizontal)
         .ratio(ratio)
         .label(label);
 
@@ -312,14 +310,25 @@ fn render_stats_io(frame: &mut Frame, area: Rect, totals: &TrialStatistics) {
 
 #[expect(clippy::float_arithmetic)]
 fn render_stats_phase(frame: &mut Frame, area: Rect, finished: usize, totals: &TrialStatistics) {
-    const PHASES: usize = 5;
+    const PHASES: usize = 6;
 
     if finished == 0 {
         return;
     }
 
-    let [name_col, gauge_col] =
-        area.layout(&Layout::horizontal([Constraint::Length(6), Constraint::Fill(1)]).spacing(2));
+    let [total_row, phase_rows] =
+        area.layout(&Layout::vertical([Constraint::Length(1), Constraint::Min(0)]).spacing(1));
+
+    frame.render_widget(
+        Paragraph::new(Line::from(vec![
+            Span::styled("total   ", Style::new().dim()),
+            Span::raw(format_duration(totals.total)),
+        ])),
+        total_row,
+    );
+
+    let [name_col, gauge_col] = phase_rows
+        .layout(&Layout::horizontal([Constraint::Length(6), Constraint::Fill(1)]).spacing(2));
 
     let phases: [_; PHASES] = [
         ("run", totals.run, Color::Cyan),
@@ -327,6 +336,7 @@ fn render_stats_phase(frame: &mut Frame, area: Rect, finished: usize, totals: &T
         ("read", totals.read_source, Color::Green),
         ("verify", totals.verify, Color::Yellow),
         ("assert", totals.assert, Color::Magenta),
+        ("render", totals.render_stderr, Color::Gray),
     ];
 
     frame.render_widget(
@@ -410,7 +420,6 @@ fn render_stats_slowest(frame: &mut Frame, area: Rect, trials: &[TrialByTotal<'_
             |TrialByTotal {
                  group,
                  trial,
-                 stats: _,
                  total,
              }| {
                 Line::from(vec![
@@ -443,7 +452,6 @@ fn render_stats(frame: &mut Frame, area: Rect, state: &RenderState) {
         slowest.push(TrialByTotal {
             group,
             trial,
-            stats: trial_stats,
             total: trial_stats.total,
         });
     }
@@ -573,12 +581,12 @@ fn event_loop<B: Backend>(
 }
 
 fn run_trials(
-    set: &TrialSet,
+    set: TrialSet,
     context: &TrialContext,
     sender: mpsc::Sender<Event>,
 ) -> Vec<Report<[TrialError]>> {
     let reports = set.trials
-        .par_iter()
+        .into_par_iter()
         .enumerate()
         .map(|(index, (group, trial))| {
             let _result = sender.send(Event::TrialStarted(index));
@@ -598,49 +606,67 @@ fn run_trials(
     reports
 }
 
-pub(crate) fn run(set: &TrialSet, context: &TrialContext) -> Vec<Report<[TrialError]>> {
-    let (tx, rx) = mpsc::channel();
+pub(crate) fn init() {}
 
-    tracing_subscriber::registry()
-        .with(tracing_subscriber::fmt::layer().with_writer({
-            let writer = TracingWriter { sender: tx.clone() };
+pub struct Tui {
+    tx: mpsc::Sender<Event>,
+    rx: mpsc::Receiver<Event>,
+    terminal: DefaultTerminal,
+}
 
-            move || writer.clone()
-        }))
-        .init();
+impl Tui {
+    pub(crate) fn init() -> Self {
+        let (tx, rx) = mpsc::channel();
 
-    let terminal = ratatui::init_with_options(TerminalOptions {
-        viewport: ratatui::Viewport::Inline(INLINE_HEIGHT),
-    });
+        tracing_subscriber::registry()
+            .with(tracing_subscriber::fmt::layer().with_writer({
+                let writer = TracingWriter { sender: tx.clone() };
 
-    let (reports, terminal) = thread::scope(|scope| {
-        scope.spawn({
-            let tx = tx.clone();
+                move || writer.clone()
+            }))
+            .init();
 
-            move || {
-                input_handler(
-                    tx,
-                    TuiConfig {
-                        tick_rate: Duration::from_millis(200),
-                    },
-                )
-            }
+        let terminal = ratatui::init_with_options(TerminalOptions {
+            viewport: ratatui::Viewport::Inline(INLINE_HEIGHT),
         });
 
-        let state = RenderState::new(set);
-        let handle = scope.spawn(move || event_loop(terminal, state, rx));
+        Self { terminal, tx, rx }
+    }
 
-        let reports = run_trials(set, context, tx.clone());
-        tx.send(Event::Shutdown)
-            .expect("should be able to send shutdown");
-        let terminal = handle
-            .join()
-            .expect("should be able to join handle")
-            .expect("should have not errored in event loop");
+    pub(crate) fn run(self, set: TrialSet, context: &TrialContext) -> Vec<Report<[TrialError]>> {
+        let Self { tx, rx, terminal } = self;
 
-        (reports, terminal)
-    });
+        let (reports, _) = thread::scope(|scope| {
+            scope.spawn({
+                let tx = tx.clone();
 
-    ratatui::restore();
-    reports
+                move || {
+                    input_handler(
+                        tx,
+                        TuiConfig {
+                            tick_rate: Duration::from_millis(200),
+                        },
+                    )
+                }
+            });
+
+            let state = RenderState::new(&set);
+            let handle = scope.spawn(move || event_loop(terminal, state, rx));
+
+            let reports = run_trials(set, context, tx.clone());
+            tx.send(Event::Shutdown)
+                .expect("should be able to send shutdown");
+            drop(tx);
+
+            let terminal = handle
+                .join()
+                .expect("should be able to join handle")
+                .expect("should have not errored in event loop");
+
+            (reports, terminal)
+        });
+
+        ratatui::restore();
+        reports
+    }
 }

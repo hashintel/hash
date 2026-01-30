@@ -1,9 +1,9 @@
 use std::io;
 
 use super::{
+    Trial,
     corpus::TrialCorpus,
     group::TrialGroup,
-    trial::Trial,
     visit::{Visitor, walk_trial_group},
 };
 use crate::{
@@ -72,8 +72,7 @@ where
             writeln!(self.inner)?;
             description
                 .lines()
-                .map(|line| writeln!(self.inner, "    {GRAY}{line}{GRAY:#}"))
-                .collect::<Result<(), _>>()?;
+                .try_for_each(|line| writeln!(self.inner, "    {GRAY}{line}{GRAY:#}"))?;
         }
 
         Ok(())
@@ -144,14 +143,14 @@ enum ListTrialsInner<'graph, W> {
     Json(ListTrialsJson<'graph, W>),
 }
 
-pub struct ListTrials<'graph, W> {
+pub(crate) struct ListTrials<'graph, W> {
     inner: ListTrialsInner<'graph, W>,
 }
 
 impl<'graph, W> ListTrials<'graph, W> {
-    pub fn new(output: W, format: OutputFormat) -> Self {
+    pub(crate) const fn new(output: W, format: OutputFormat) -> Self {
         match format {
-            OutputFormat::Human => ListTrials {
+            OutputFormat::Human | OutputFormat::Interactive => ListTrials {
                 inner: ListTrialsInner::Pretty(ListTrialsPretty {
                     inner: output,
                     current_parent: ("", false),
@@ -166,7 +165,7 @@ impl<'graph, W> ListTrials<'graph, W> {
         }
     }
 
-    pub fn render(&mut self, corpus: &TrialCorpus<'graph>) -> io::Result<()>
+    pub(crate) fn render(&mut self, corpus: &TrialCorpus<'graph>) -> io::Result<()>
     where
         W: io::Write,
     {
