@@ -36,8 +36,7 @@ import {
   type Org,
 } from "../../../../graph/knowledge/system-types/org";
 import {
-  getUserByEmail,
-  getUserByShortname,
+  getUser,
   isUserMemberOfOrg,
   type User,
 } from "../../../../graph/knowledge/system-types/user";
@@ -161,13 +160,12 @@ export const inviteUserToOrgResolver: ResolverFn<
   let existingUserToInvite: User | null = null;
 
   if (userEmail) {
-    existingUserToInvite = await getUserByEmail(context, authentication, {
-      email: userEmail,
+    existingUserToInvite = await getUser(context, authentication, {
+      emails: [userEmail],
     });
   } else if (userShortname) {
-    existingUserToInvite = await getUserByShortname(context, authentication, {
+    existingUserToInvite = await getUser(context, authentication, {
       shortname: userShortname,
-      includeEmails: true,
     });
 
     if (!existingUserToInvite) {

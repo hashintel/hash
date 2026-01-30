@@ -1,11 +1,13 @@
 import type { EntityId, EntityUuid, UserId } from "@blockprotocol/type-system";
 import {
+  atLeastOne,
   extractBaseUrl,
   extractEntityUuidFromEntityId,
   extractWebIdFromEntityId,
 } from "@blockprotocol/type-system";
 import { EntityTypeMismatchError } from "@local/hash-backend-utils/error";
 import { createWebMachineActorEntity } from "@local/hash-backend-utils/machine-actors";
+import type { Filter } from "@local/hash-graph-client";
 import {
   type HashEntity,
   queryEntities,
@@ -104,6 +106,44 @@ function assertUserEntity(
   }
 }
 
+/**
+ * Fetch user emails from Kratos identity traits.
+ * This is the source of truth for emails since DB-level masking hides them from non-owners.
+ */
+const getEmailsFromKratos = async (
+  kratosIdentityId: string,
+): Promise<string[]> => {
+  try {
+    const { data: identity } = await kratosIdentityApi.getIdentity({
+      id: kratosIdentityId,
+    });
+    return (identity.traits as KratosUserIdentityTraits).emails;
+  } catch (error) {
+    logger.warn(
+      `Failed to fetch emails from Kratos for identity ${kratosIdentityId}: ${error}`,
+    );
+    return [];
+  }
+};
+
+/**
+ * Lookup a Kratos identity by email address.
+ * Returns the kratosIdentityId if found, null otherwise.
+ */
+const getKratosIdentityIdByEmail = async (
+  email: string,
+): Promise<string | null> => {
+  try {
+    const { data: identities } = await kratosIdentityApi.listIdentities({
+      credentialsIdentifier: email,
+    });
+    return identities.length > 0 ? identities[0]!.id : null;
+  } catch (error) {
+    logger.warn(`Failed to lookup Kratos identity by email ${email}: ${error}`);
+    return null;
+  }
+};
+
 export const getUserFromEntity: PureGraphFunction<
   { entity: HashEntity },
   User
@@ -139,183 +179,142 @@ export const getUserFromEntity: PureGraphFunction<
 };
 
 /**
- * Get a system user entity by its entity id.
+ * Get a user by any available identifier.
+ * Emails are always fetched from Kratos (the source of truth) since DB-level
+ * masking hides them from non-owners.
  *
  * @param params.entityId - the entity id of the user
+ * @param params.shortname - the shortname of the user
+ * @param params.kratosIdentityId - the kratos identity id of the user
+ * @param params.emails - the emails of the user
  */
-export const getUserById: ImpureGraphFunction<
-  { entityId: EntityId },
-  Promise<User>
-> = async (ctx, authentication, { entityId }) => {
-  const entity = await getLatestEntityById(ctx, authentication, { entityId });
+export const getUser: ImpureGraphFunction<
+  | {
+      entityId: EntityId;
+      emails?: [string, ...string[]];
+    }
+  | {
+      shortname: string;
+      emails?: [string, ...string[]];
+      includeDrafts?: boolean;
+    }
+  | {
+      kratosIdentityId: string;
+      emails?: [string, ...string[]];
+      includeDrafts?: boolean;
+    }
+  | {
+      emails: [string, ...string[]];
+      kratosIdentityId?: string;
+      includeDrafts?: boolean;
+    },
+  Promise<User | null>
+> = async (context, authentication, params) => {
+  const knownShortname = "shortname" in params ? params.shortname : null;
+
+  let emails = params.emails;
+  let kratosIdentityId =
+    "kratosIdentityId" in params ? params.kratosIdentityId : null;
+
+  let entity: HashEntity<UserEntity>;
+
+  if ("entityId" in params) {
+    try {
+      entity = await getLatestEntityById<UserEntity>(context, authentication, {
+        entityId: params.entityId,
+      });
+    } catch {
+      return null;
+    }
+  } else {
+    let queryFilter: Filter;
+
+    if (emails && !kratosIdentityId && !knownShortname) {
+      // If we would have the shortname, we could use it to find the user, but we don't have it so we use the email to find the kratos Identity ID.
+      kratosIdentityId = await getKratosIdentityIdByEmail(emails[0]);
+      if (!kratosIdentityId) {
+        return null;
+      }
+    }
+
+    if (kratosIdentityId) {
+      queryFilter = {
+        equal: [
+          {
+            path: [
+              "properties",
+              systemPropertyTypes.kratosIdentityId.propertyTypeBaseUrl,
+            ],
+          },
+          { parameter: kratosIdentityId },
+        ],
+      };
+    } else {
+      queryFilter = {
+        equal: [
+          {
+            path: [
+              "properties",
+              systemPropertyTypes.shortname.propertyTypeBaseUrl,
+            ],
+          },
+          { parameter: knownShortname },
+        ],
+      };
+    }
+
+    const {
+      entities: [userEntity, ...unexpectedEntities],
+    } = await queryEntities<UserEntity>(context, authentication, {
+      filter: {
+        all: [
+          generateVersionedUrlMatchingFilter(
+            systemEntityTypes.user.entityTypeId,
+            {
+              ignoreParents: true,
+            },
+          ),
+          queryFilter,
+        ],
+      },
+      temporalAxes: currentTimeInstantTemporalAxes,
+      includeDrafts: !!params.includeDrafts,
+      includePermissions: false,
+    });
+
+    if (!userEntity) {
+      return null;
+    }
+
+    if (unexpectedEntities.length > 0) {
+      throw new Error(
+        `Critical: More than one user entity found for query params: ${JSON.stringify(params)}`,
+      );
+    }
+
+    entity = userEntity;
+  }
+
+  emails ??= atLeastOne(
+    await getEmailsFromKratos(
+      entity.properties[
+        "https://hash.ai/@h/types/property-type/kratos-identity-id/"
+      ],
+    ),
+  );
+
+  if (!emails) {
+    throw new Error(
+      `Critical: No email found for user with kratos identity id: ${
+        entity.properties[
+          "https://hash.ai/@h/types/property-type/kratos-identity-id/"
+        ]
+      }`,
+    );
+  }
+  entity.properties["https://hash.ai/@h/types/property-type/email/"] = emails;
 
   return getUserFromEntity({ entity });
-};
-
-/**
- * Get a system user entity by their email.
- *
- * @param params.email - the email of the user
- */
-export const getUserByEmail: ImpureGraphFunction<
-  { email: string; includeDrafts?: boolean },
-  Promise<User | null>
-> = async (context, authentication, params) => {
-  const {
-    entities: [userEntity, ...unexpectedEntities],
-  } = await queryEntities(
-    context,
-    authentication,
-    {
-      filter: {
-        all: [
-          generateVersionedUrlMatchingFilter(
-            systemEntityTypes.user.entityTypeId,
-            { ignoreParents: true },
-          ),
-          {
-            equal: [
-              {
-                /**
-                 * @todo H-4936 update when users can have more than one email
-                 */
-                path: [
-                  "properties",
-                  systemPropertyTypes.email.propertyTypeBaseUrl,
-                  0,
-                ],
-              },
-              { parameter: params.email },
-            ],
-          },
-        ],
-      },
-      temporalAxes: currentTimeInstantTemporalAxes,
-      includeDrafts: false,
-      includePermissions: false,
-    },
-    { preserveProperties: true },
-  );
-
-  if (unexpectedEntities.length > 0) {
-    throw new Error(
-      `Critical: More than one user entity with email ${params.email} found in the graph.`,
-    );
-  }
-
-  return userEntity ? getUserFromEntity({ entity: userEntity }) : null;
-};
-
-/**
- * Get a system user entity by their shortname.
- *
- * @param params.shortname - the shortname of the user
- */
-export const getUserByShortname: ImpureGraphFunction<
-  { shortname: string; includeDrafts?: boolean; includeEmails?: boolean },
-  Promise<User | null>
-> = async (context, authentication, params) => {
-  const {
-    entities: [userEntity, ...unexpectedEntities],
-  } = await queryEntities(
-    context,
-    authentication,
-    {
-      filter: {
-        all: [
-          generateVersionedUrlMatchingFilter(
-            systemEntityTypes.user.entityTypeId,
-            { ignoreParents: true },
-          ),
-          {
-            equal: [
-              {
-                path: [
-                  "properties",
-                  systemPropertyTypes.shortname.propertyTypeBaseUrl,
-                ],
-              },
-              { parameter: params.shortname },
-            ],
-          },
-        ],
-      },
-      // TODO: Should this be an all-time query? What happens if the user is
-      //       archived/deleted, do we want to allow users to replace their
-      //       shortname?
-      //   see https://linear.app/hash/issue/H-757
-      temporalAxes: currentTimeInstantTemporalAxes,
-      includeDrafts: params.includeDrafts ?? false,
-      includePermissions: false,
-    },
-    { preserveProperties: true },
-  );
-
-  if (unexpectedEntities.length > 0) {
-    throw new Error(
-      `Critical: More than one user entity with shortname ${params.shortname} found in the graph.`,
-    );
-  }
-
-  return userEntity ? getUserFromEntity({ entity: userEntity }) : null;
-};
-
-/**
- * Get a system user entity by their kratos identity id – only to be used for resolving the requesting user,
- * or checking for conflicts with an existing kratosIdentityId.
- *
- * @param params.kratosIdentityId - the kratos identity id
- */
-export const getUserByKratosIdentityId: ImpureGraphFunction<
-  { kratosIdentityId: string; includeDrafts?: boolean },
-  Promise<User | null>
-> = async (context, authentication, params) => {
-  const {
-    entities: [userEntity, ...unexpectedEntities],
-  } = await queryEntities(
-    context,
-    authentication,
-    {
-      filter: {
-        all: [
-          generateVersionedUrlMatchingFilter(
-            systemEntityTypes.user.entityTypeId,
-            { ignoreParents: true },
-          ),
-          {
-            equal: [
-              {
-                path: [
-                  "properties",
-                  systemPropertyTypes.kratosIdentityId.propertyTypeBaseUrl,
-                ],
-              },
-              { parameter: params.kratosIdentityId },
-            ],
-          },
-        ],
-      },
-      temporalAxes: currentTimeInstantTemporalAxes,
-      includeDrafts: params.includeDrafts ?? false,
-      includePermissions: false,
-    },
-    {
-      /**
-       * We don't have the user's actorId yet, so the mapping function can't match the requesting user
-       * to the entity being sought – we pass 'true' to preserve their properties so that private properties aren't omitted.
-       * This function should only be used to return the user entity to a user who is authenticated with the correct kratosIdentityId.
-       */
-      preserveProperties: true,
-    },
-  );
-
-  if (unexpectedEntities.length > 0) {
-    throw new Error(
-      `Critical: More than one user entity with kratos identity Id ${params.kratosIdentityId} found in the graph.`,
-    );
-  }
-
-  return userEntity ? getUserFromEntity({ entity: userEntity }) : null;
 };
 
 /**
@@ -331,7 +330,7 @@ export const getUserByKratosIdentityId: ImpureGraphFunction<
  */
 export const createUser: ImpureGraphFunction<
   {
-    emails: string[];
+    emails: [string, ...string[]];
     kratosIdentityId: string;
     enabledFeatureFlags?: FeatureFlag[];
     shortname?: string;
@@ -349,13 +348,10 @@ export const createUser: ImpureGraphFunction<
     isInstanceAdmin = false,
   } = params;
 
-  const existingUserWithKratosIdentityId = await getUserByKratosIdentityId(
-    ctx,
-    authentication,
-    {
-      kratosIdentityId,
-    },
-  );
+  const existingUserWithKratosIdentityId = await getUser(ctx, authentication, {
+    kratosIdentityId,
+    emails,
+  });
 
   if (existingUserWithKratosIdentityId) {
     throw new Error(

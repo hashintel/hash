@@ -81,10 +81,7 @@ use type_system::{
         },
         id::{BaseUrl, OntologyTypeUuid, OntologyTypeVersion, VersionedUrl},
     },
-    principal::{
-        actor::{ActorEntityUuid, ActorType},
-        actor_group::WebId,
-    },
+    principal::{actor::ActorEntityUuid, actor_group::WebId},
 };
 use uuid::Uuid;
 
@@ -566,12 +563,9 @@ where
             policy_components.optimization_data(ActionName::ViewEntity),
         );
 
-        // Machine actors (system) bypass filter protection - they need full access.
-        // For all other actors (users, AI), protect sensitive properties to prevent enumeration.
-        let should_apply_protection = !self.settings.filter_protection.is_empty()
-            && policy_components
-                .actor_id()
-                .is_none_or(|id| id.actor_type() != ActorType::Machine);
+        // Apply filter protection when configured - protects sensitive properties (e.g., email)
+        // from enumeration attacks and removes them from responses for non-owners.
+        let should_apply_protection = !self.settings.filter_protection.is_empty();
 
         let protected_filter;
         let filter_to_use = if should_apply_protection {
@@ -1768,14 +1762,12 @@ where
             policy_components.optimization_data(ActionName::ViewEntity),
         );
 
-        // Machine actors (system) bypass email protection - they need full access.
-        // For all other actors (users, AI), protect email property to prevent enumeration.
-        let should_protect_email = policy_components
-            .actor_id()
-            .is_none_or(|id| id.actor_type() != ActorType::Machine);
+        // Apply filter protection when configured - protects sensitive properties (e.g., email)
+        // from enumeration attacks in count queries.
+        let should_apply_protection = !self.settings.filter_protection.is_empty();
 
         let protected_filter;
-        let filter_to_use = if should_protect_email {
+        let filter_to_use = if should_apply_protection {
             // Transform filter to protect against email filtering on Users
             // Note: count_entities has no sorting, so only filter protection applies
             protected_filter = transform_filter(

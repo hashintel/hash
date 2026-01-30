@@ -17,7 +17,7 @@ export const kratosIdentityApi = new IdentityApi(
 
 export type KratosUserIdentityTraits = {
   shortname?: string;
-  emails: string[];
+  emails: [string, ...string[]];
 };
 
 export type KratosUserIdentity = Omit<Identity, "traits"> & {

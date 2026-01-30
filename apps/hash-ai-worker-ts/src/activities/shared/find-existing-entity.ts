@@ -15,9 +15,8 @@ import type {
   CosineDistanceFilter,
   GraphApi,
 } from "@local/hash-graph-client";
-import { type HashEntity, queryEntities } from "@local/hash-graph-sdk/entity";
+import { HashEntity, queryEntities } from "@local/hash-graph-sdk/entity";
 import { queryEntityTypeSubgraph } from "@local/hash-graph-sdk/entity-type";
-import { mapGraphApiEntityToEntity } from "@local/hash-graph-sdk/subgraph";
 import type { ProposedEntity } from "@local/hash-isomorphic-utils/flows/types";
 import {
   almostFullOntologyResolveDepths,
@@ -213,9 +212,7 @@ export const findExistingEntity = async ({
         includePermissions: false,
       },
     ).then(({ entities }) =>
-      entities
-        .slice(0, 3)
-        .map((entity) => mapGraphApiEntityToEntity(entity, actorId)),
+      entities.slice(0, 3).map((entity) => new HashEntity(entity)),
     );
   }
 
@@ -251,9 +248,7 @@ export const findExistingEntity = async ({
           includePermissions: false,
         },
       ).then(({ entities }) =>
-        entities
-          .slice(0, 3)
-          .map((entity) => mapGraphApiEntityToEntity(entity, actorId)),
+        entities.slice(0, 3).map((entity) => new HashEntity(entity)),
       );
     }
   }
