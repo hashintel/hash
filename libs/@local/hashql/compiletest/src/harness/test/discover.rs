@@ -1,4 +1,6 @@
 use std::{
+    collections::HashMap,
+    ffi::OsStr,
     fs::{self, DirEntry},
     path::{Path, PathBuf},
     thread,
@@ -6,32 +8,35 @@ use std::{
 
 use camino::Utf8Path;
 use guppy::graph::{PackageGraph, Workspace};
-use radix_trie::Trie;
 use walkdir::WalkDir;
 
-use crate::{EntryPoint, Spec, TestCase, TestGroup};
+use super::{EntryPoint, Spec, TestCase, TestGroup};
 
-// vendored in from `snapbox`
-macro current_dir() {{
-    let root = cargo_rustc_current_dir!();
-    let file = file!();
-    let rel_path = Path::new(file).parent().unwrap();
+struct SpecTrie {
+    entries: HashMap<PathBuf, Spec>,
+}
 
-    root.join(rel_path)
-}}
-
-macro cargo_rustc_current_dir() {{
-    if let Some(rustc_root) = option_env!("CARGO_RUSTC_CURRENT_DIR") {
-        Path::new(rustc_root)
-    } else {
-        let manifest_dir = Path::new(::std::env!("CARGO_MANIFEST_DIR"));
-        manifest_dir
-            .ancestors()
-            .filter(|it| it.join("Cargo.toml").exists())
-            .last()
-            .unwrap()
+impl SpecTrie {
+    fn new() -> Self {
+        Self {
+            entries: HashMap::new(),
+        }
     }
-}}
+
+    fn insert(&mut self, path: PathBuf, spec: Spec) {
+        self.entries.insert(path, spec);
+    }
+
+    fn get_ancestor_value(&self, path: &Path) -> Option<&Spec> {
+        for ancestor in path.ancestors() {
+            if let Some(spec) = self.entries.get(ancestor) {
+                return Some(spec);
+            }
+        }
+
+        None
+    }
+}
 
 fn find_entry_point<'graph>(
     output: &mut Vec<EntryPoint<'graph>>,
@@ -74,14 +79,14 @@ fn find_entry_point<'graph>(
 
 fn find_entry_points(graph: &PackageGraph) -> Vec<EntryPoint<'_>> {
     let workspace = graph.workspace();
-    let current_dir = current_dir!();
+    let current_dir = current_rustc_dir();
 
     // Our search location is that of the 2nd parent
     let root_dir = current_dir
         .parent()
-        .expect("should have parent directory `compiletest`")
-        .parent()
         .expect("should have parent directory `hashql`");
+
+    assert_eq!(root_dir.file_name(), Some(OsStr::new("hashql")));
 
     let mut entry_points = Vec::new();
 
@@ -98,12 +103,26 @@ fn find_entry_points(graph: &PackageGraph) -> Vec<EntryPoint<'_>> {
     entry_points
 }
 
+fn current_rustc_dir() -> &'static Path {
+    option_env!("CARGO_RUSTC_CURRENT_DIR").map_or_else(
+        || {
+            let manifest_dir = Path::new(::std::env!("CARGO_MANIFEST_DIR"));
+
+            manifest_dir
+                .ancestors()
+                .find(|path| path.join("Cargo.toml").exists())
+                .expect("should have permission to read `hashql` directory")
+        },
+        |rustc_root| Path::new(rustc_root),
+    )
+}
+
 fn find_test_cases(entry_point: &EntryPoint) -> Vec<TestCase> {
     let walk = WalkDir::new(&entry_point.path)
         .into_iter()
         .filter_map(Result::ok);
 
-    let mut specs: Trie<PathBuf, Spec> = Trie::new();
+    let mut specs = SpecTrie::new();
     let mut candidates = Vec::new();
 
     for entry in walk {
