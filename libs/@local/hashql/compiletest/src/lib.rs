@@ -13,7 +13,8 @@
     lock_value_accessors,
     pattern,
     string_from_utf8_lossy_owned,
-    try_trait_v2
+    try_trait_v2,
+    vec_from_fn
 )]
 
 extern crate alloc;
