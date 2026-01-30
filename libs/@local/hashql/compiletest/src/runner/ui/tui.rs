@@ -1,4 +1,4 @@
-use core::time::Duration;
+use core::{iter, time::Duration};
 use std::{io, sync::mpsc, thread, time::Instant};
 
 use ansi_to_tui::IntoText;
@@ -6,13 +6,14 @@ use error_stack::Report;
 use ratatui::{
     Frame, Terminal, TerminalOptions,
     crossterm::event,
-    layout::{Constraint, Direction, Layout},
+    layout::{Constraint, Direction, Layout, Rect},
     prelude::Backend,
-    style::Color,
+    style::{Color, Style, Stylize},
     symbols::Marker,
+    text::{Line, Span},
     widgets::{
         Block, Paragraph, Widget,
-        canvas::{Canvas, Rectangle},
+        canvas::{Canvas, Points},
     },
 };
 use rayon::iter::{IndexedParallelIterator, IntoParallelRefIterator, ParallelIterator};
@@ -102,26 +103,40 @@ impl<'trial, 'graph> RenderState<'trial, 'graph> {
     }
 }
 
-fn render(frame: &mut Frame, state: &mut RenderState) {
-    let area = frame.area();
+fn format_duration(duration: Duration) -> String {
+    let seconds = duration.as_secs_f64();
+    if seconds >= 1.0 {
+        format!("{seconds:.2}s")
+    } else {
+        format!("{:.1}ms", seconds * 1000.0)
+    }
+}
 
-    let stats_height = 4_u16;
+fn average(duration: Duration, count: usize) -> Duration {
+    if count == 0 {
+        Duration::ZERO
+    } else {
+        let nanos = duration.as_nanos() / count as u128;
+        Duration::from_nanos(nanos as u64)
+    }
+}
 
-    let layout = Layout::default()
-        .direction(Direction::Vertical)
-        .constraints([Constraint::Min(4), Constraint::Length(stats_height)])
-        .split(area);
+fn render_grid(frame: &mut Frame, area: Rect, state: &RenderState) {
+    let total = state.results.len().max(1);
 
-    let grid_area = layout[0];
-    let grid_ratio = grid_area.width.max(1) as f64 / grid_area.height.max(1) as f64;
-    let total = state.results.len().max(1) as f64;
-    let rows = (total / grid_ratio).sqrt().ceil().max(1.0) as u16;
-    let cols = ((total / rows as f64).ceil()).max(1.0) as u16;
+    // Calculate grid dimensions based on aspect ratio
+    // Each terminal cell is roughly 2x taller than wide, so adjust ratio
+    let cell_aspect = 2.0;
+    let area_ratio = (area.width as f64 * cell_aspect) / area.height.max(1) as f64;
 
-    let mut pending = 0;
-    let mut running = 0;
-    let mut success = 0;
-    let mut failure = 0;
+    // rows * cols >= total, with cols/rows ≈ area_ratio
+    let rows = ((total as f64 / area_ratio).sqrt().ceil() as usize).max(1);
+    let cols = ((total + rows - 1) / rows).max(1);
+
+    let mut pending = 0_usize;
+    let mut running = 0_usize;
+    let mut success = 0_usize;
+    let mut failure = 0_usize;
 
     for result in &state.results {
         match result {
@@ -132,43 +147,85 @@ fn render(frame: &mut Frame, state: &mut RenderState) {
         }
     }
 
-    let canvas = Canvas::default()
-        .block(Block::bordered().title(format!(
-            "Pending: {pending} Running: {running} Success: {success} Failure: {failure}"
-        )))
-        .marker(Marker::Octant)
-        .x_bounds([0.0, rows as f64])
-        .y_bounds([0.0, cols as f64])
-        .paint(|ctx| {
-            for (index, result) in state.results.iter().enumerate() {
-                let index = index as u16;
+    let title = Line::from(vec![
+        Span::raw(" "),
+        Span::styled(format!("{pending}"), Style::new().gray()),
+        Span::raw(" pending  "),
+        Span::styled(format!("{running}"), Style::new().yellow()),
+        Span::raw(" running  "),
+        Span::styled(format!("{success}"), Style::new().green()),
+        Span::raw(" passed  "),
+        Span::styled(format!("{failure}"), Style::new().red()),
+        Span::raw(" failed "),
+    ]);
 
-                let row = index / cols;
-                let col = index % cols;
+    // Group results by color for efficient drawing
+    let mut pending_coords = Vec::new();
+    let mut running_coords = Vec::new();
+    let mut success_coords = Vec::new();
+    let mut failure_coords = Vec::new();
 
-                ctx.draw(&Rectangle::new(
-                    row as f64,
-                    col as f64,
-                    1.0,
-                    1.0,
-                    match result {
-                        TrialState::Pending => Color::Gray,
-                        TrialState::Running => Color::Yellow,
-                        TrialState::Success(_) => Color::Green,
-                        TrialState::Failure(_) => Color::Red,
-                    },
-                ));
+    // Generate multiple points per cell for better fill density
+    let subdivisions = 4;
+    let step = 1.0 / subdivisions as f64;
+
+    for (index, result) in state.results.iter().enumerate() {
+        let row = index / cols;
+        let col = index % cols;
+
+        // y is inverted (0 at bottom), so flip row
+        let base_y = (rows - 1 - row) as f64;
+        let base_x = col as f64;
+
+        // Fill the cell with a grid of points
+        let coords = match result {
+            TrialState::Pending => &mut pending_coords,
+            TrialState::Running => &mut running_coords,
+            TrialState::Success(_) => &mut success_coords,
+            TrialState::Failure(_) => &mut failure_coords,
+        };
+
+        for sy in 0..subdivisions {
+            for sx in 0..subdivisions {
+                coords.push((base_x + sx as f64 * step, base_y + sy as f64 * step));
             }
+        }
+    }
+
+    let canvas = Canvas::default()
+        .block(Block::bordered().title(title))
+        .marker(Marker::HalfBlock)
+        .x_bounds([0.0, cols as f64])
+        .y_bounds([0.0, rows as f64])
+        .paint(|ctx| {
+            ctx.draw(&Points {
+                coords: &pending_coords,
+                color: Color::DarkGray,
+            });
+            ctx.draw(&Points {
+                coords: &running_coords,
+                color: Color::Yellow,
+            });
+            ctx.draw(&Points {
+                coords: &success_coords,
+                color: Color::Green,
+            });
+            ctx.draw(&Points {
+                coords: &failure_coords,
+                color: Color::Red,
+            });
         });
 
-    frame.render_widget(canvas, grid_area);
+    frame.render_widget(canvas, area);
+}
 
+fn render_stats(frame: &mut Frame, area: Rect, state: &RenderState) {
     let mut totals = TrialStatistics::default();
-    let mut stats_count = 0_usize;
+    let mut count = 0_usize;
 
     for result in &state.results {
         if let TrialState::Success(stats) = result {
-            stats_count += 1;
+            count += 1;
             totals.files_read += stats.files_read;
             totals.bytes_read += stats.bytes_read;
             totals.files_written += stats.files_written;
@@ -183,75 +240,85 @@ fn render(frame: &mut Frame, state: &mut RenderState) {
         }
     }
 
-    let average = |duration: Duration, count: usize| -> Duration {
-        if count == 0 {
-            Duration::ZERO
-        } else {
-            let nanos = duration.as_nanos() / count as u128;
-            Duration::from_nanos(nanos as u64)
-        }
-    };
+    let block = Block::bordered().title(" Statistics ");
+    let inner = block.inner(area);
+    frame.render_widget(block, area);
 
-    let format_duration = |duration: Duration| -> String {
-        let seconds = duration.as_secs_f64();
-        if seconds >= 1.0 {
-            format!("{seconds:.2}s")
-        } else {
-            format!("{:.1}ms", seconds * 1000.0)
-        }
-    };
-
-    let read_kib = totals.bytes_read as f64 / 1024.0;
-    let written_kib = totals.bytes_written as f64 / 1024.0;
-    let io_line = format!(
-        "I/O\nread {} files ({read_kib:.1} KiB) wrote {} files ({written_kib:.1} KiB) removed {}",
-        totals.files_read, totals.files_written, totals.files_removed
-    );
-
-    let avg_read_source = average(totals.read_source, stats_count);
-    let avg_parse = average(totals.parse, stats_count);
-    let avg_run = average(totals.run, stats_count);
-    let avg_assert = average(totals.assert, stats_count);
-    let avg_verify = average(totals.verify, stats_count);
-    let avg_render_stderr = average(totals.render_stderr, stats_count);
-    let avg_total = average(
-        totals.run
-            + totals.assert
-            + totals.verify
-            + totals.read_source
-            + totals.parse
-            + totals.render_stderr,
-        stats_count,
-    );
-
-    let timing_line = if stats_count == 0 {
-        "Timing\nwaiting for completed trials".to_string()
-    } else {
-        format!(
-            "Timing avg/{stats_count}\nread {} parse {} run {} assert {} verify {} stderr {} \
-             total {}",
-            format_duration(avg_read_source),
-            format_duration(avg_parse),
-            format_duration(avg_run),
-            format_duration(avg_assert),
-            format_duration(avg_verify),
-            format_duration(avg_render_stderr),
-            format_duration(avg_total)
-        )
-    };
-
-    let stats_area = layout[1];
-    let stats_block = Block::bordered().title("Statistics");
-    let stats_inner = stats_block.inner(stats_area);
-    frame.render_widget(stats_block, stats_area);
-
-    let stats_columns = Layout::default()
+    let columns = Layout::default()
         .direction(Direction::Horizontal)
         .constraints([Constraint::Percentage(50), Constraint::Percentage(50)])
-        .split(stats_inner);
+        .split(inner);
 
-    frame.render_widget(Paragraph::new(io_line), stats_columns[0]);
-    frame.render_widget(Paragraph::new(timing_line), stats_columns[1]);
+    // I/O column
+    let read_kib = totals.bytes_read as f64 / 1024.0;
+    let written_kib = totals.bytes_written as f64 / 1024.0;
+    let io_lines = vec![
+        Line::from(vec![
+            Span::styled("read ", Style::new().dim()),
+            Span::raw(format!("{}", totals.files_read)),
+            Span::styled(" files ", Style::new().dim()),
+            Span::raw(format!("({read_kib:.1} KiB)")),
+        ]),
+        Line::from(vec![
+            Span::styled("wrote ", Style::new().dim()),
+            Span::raw(format!("{}", totals.files_written)),
+            Span::styled(" files ", Style::new().dim()),
+            Span::raw(format!("({written_kib:.1} KiB)")),
+            Span::styled("  removed ", Style::new().dim()),
+            Span::raw(format!("{}", totals.files_removed)),
+        ]),
+    ];
+    frame.render_widget(Paragraph::new(io_lines), columns[0]);
+
+    // Timing column
+    let timing_lines = if count == 0 {
+        vec![Line::from(Span::styled(
+            "waiting for completed trials...",
+            Style::new().dim().italic(),
+        ))]
+    } else {
+        let avg_total = average(
+            totals.run
+                + totals.assert
+                + totals.verify
+                + totals.read_source
+                + totals.parse
+                + totals.render_stderr,
+            count,
+        );
+
+        vec![
+            Line::from(vec![
+                Span::styled("avg/", Style::new().dim()),
+                Span::raw(format!("{count}")),
+                Span::styled("  total ", Style::new().dim()),
+                Span::styled(format_duration(avg_total), Style::new().bold()),
+            ]),
+            Line::from(vec![
+                Span::styled("read ", Style::new().dim()),
+                Span::raw(format_duration(average(totals.read_source, count))),
+                Span::styled("  parse ", Style::new().dim()),
+                Span::raw(format_duration(average(totals.parse, count))),
+                Span::styled("  run ", Style::new().dim()),
+                Span::raw(format_duration(average(totals.run, count))),
+                Span::styled("  verify ", Style::new().dim()),
+                Span::raw(format_duration(average(totals.verify, count))),
+            ]),
+        ]
+    };
+    frame.render_widget(Paragraph::new(timing_lines), columns[1]);
+}
+
+fn render(frame: &mut Frame, state: &mut RenderState) {
+    let area = frame.area();
+
+    let layout = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints([Constraint::Min(4), Constraint::Length(4)])
+        .split(area);
+
+    render_grid(frame, layout[0], state);
+    render_stats(frame, layout[1], state);
 }
 
 fn event_loop<B: Backend>(
@@ -259,47 +326,68 @@ fn event_loop<B: Backend>(
     mut state: RenderState,
     rx: mpsc::Receiver<Event>,
 ) -> Result<Terminal<B>, B::Error> {
+    // Initial draw
+    terminal.draw(|frame| render(frame, &mut state))?;
+
     let mut redraw = true;
+    let mut size = terminal.size()?;
+    let mut text = Text::default();
 
     loop {
+        if !text.lines.is_empty() {
+            let paragraph = Paragraph::new(text);
+            let height = paragraph.line_count(size.width);
+
+            terminal.insert_before(height as u16, |buffer| {
+                paragraph.render(buffer.area, buffer);
+            })?;
+            text = Text::default();
+            redraw = true;
+        }
+
         if redraw {
             terminal.draw(|frame| render(frame, &mut state))?;
         }
-        redraw = true;
+
+        redraw = false;
 
         let event = rx
             .recv()
             .expect("receivers should be dropped before sender");
+        let events = iter::once(event).chain(rx.try_iter());
 
-        match event {
-            Event::TracingMessage(bytes) => {
-                let size = terminal.size()?;
-                let paragraph =
-                    Paragraph::new(bytes.into_text().expect("bytes must be valid ANSI"));
-                let height = paragraph.line_count(size.height);
+        for event in events {
+            redraw = match event {
+                Event::TracingMessage(bytes) => {
+                    let tracing_text = bytes.into_text().expect("bytes must be valid ANSI");
+                    text += tracing_text;
 
-                terminal.insert_before(height as u16, |buffer| {
-                    paragraph.render(buffer.area, buffer);
-                })?;
-            }
-            Event::Resize => terminal.autoresize()?,
-            Event::Tick => {}
-            Event::Shutdown => return Ok(terminal),
+                    false
+                }
+                Event::Resize => {
+                    terminal.autoresize()?;
+                    size = terminal.size()?;
 
-            Event::TrialStarted(index) => {
-                state.results[index] = TrialState::Running;
-                redraw = false;
-            }
-            Event::TrialFinished(index, success, trial_stats) => {
-                let next = if success {
-                    TrialState::Success(trial_stats)
-                } else {
-                    TrialState::Failure(trial_stats)
-                };
+                    true
+                }
+                Event::Tick => true,
+                Event::Shutdown => return Ok(terminal),
 
-                state.results[index] = next;
-                redraw = false;
-            }
+                Event::TrialStarted(index) => {
+                    state.results[index] = TrialState::Running;
+                    true
+                }
+                Event::TrialFinished(index, success, trial_stats) => {
+                    let next = if success {
+                        TrialState::Success(trial_stats)
+                    } else {
+                        TrialState::Failure(trial_stats)
+                    };
+
+                    state.results[index] = next;
+                    true
+                }
+            };
         }
     }
 }
