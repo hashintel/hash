@@ -10,7 +10,7 @@ pub enum TrialSection {
     RenderStderr,
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug, Clone, Default)]
 pub struct TrialStatistics {
     pub files_read: usize,
     pub bytes_read: usize,
@@ -20,6 +20,7 @@ pub struct TrialStatistics {
 
     pub files_removed: usize,
 
+    pub total: Duration,
     pub run: Duration,
     pub assert: Duration,
     pub verify: Duration,

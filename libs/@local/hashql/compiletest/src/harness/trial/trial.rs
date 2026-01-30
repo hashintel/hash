@@ -1,7 +1,10 @@
+use core::any::Any;
 use std::{
     fs::File,
     io::Cursor,
+    panic,
     path::{Path, PathBuf},
+    time::Instant,
 };
 
 use error_stack::{Report, ReportSink, ResultExt as _};
@@ -128,6 +131,16 @@ fn assert_output(
     Err(Report::new(error))
 }
 
+// Adapted from: https://github.com/rust-lang/rust/blob/6c8138de8f1c96b2f66adbbc0e37c73525444750/library/std/src/panicking.rs#L779-L787
+fn panic_payload_as_str(payload: Box<dyn Any + Send + 'static>) -> String {
+    match payload.downcast::<&'static str>() {
+        Ok(value) => (*value).to_owned(),
+        Err(payload) => payload
+            .downcast::<String>()
+            .map_or_else(|_| "Box<dyn Any>".to_owned(), |value| *value),
+    }
+}
+
 type SuiteOutput = (
     Option<String>,
     Vec<SuiteDiagnostic>,
@@ -218,6 +231,8 @@ impl Trial {
         context: &TrialContext,
     ) -> (TrialStatistics, Result<(), Report<[TrialError]>>) {
         let mut stats = TrialStatistics::new();
+
+        let now = Instant::now();
         let result = self
             .run_impl(context, &mut stats)
             .attach_opaque_with(|| TrialDescription {
@@ -225,8 +240,31 @@ impl Trial {
                 namespace: self.namespace.clone(),
                 name: self.annotations.directive.name.clone(),
             });
+        stats.total += now.elapsed();
 
         (stats, result)
+    }
+
+    pub(crate) fn run_catch(
+        &self,
+        package: &PackageMetadata,
+        context: &TrialContext,
+    ) -> (TrialStatistics, Result<(), Report<[TrialError]>>) {
+        match panic::catch_unwind(|| self.run(package, context)) {
+            Err(panic) => (
+                TrialStatistics::panic(),
+                Err(Report::new(TrialError::AssertionFailed {
+                    message: panic_payload_as_str(panic),
+                })
+                .attach_opaque(TrialDescription {
+                    package: package.name().to_owned(),
+                    namespace: self.namespace.clone(),
+                    name: self.annotations.directive.name.clone(),
+                })
+                .expand()),
+            ),
+            Ok(error) => error,
+        }
     }
 
     fn run_impl(
