@@ -70,6 +70,7 @@ The `<id>` can be a numeric literal (`0`, `1`, `42`) or a variable identifier (`
 | `fn` | `Source::Closure` | Regular closures/functions |
 | `thunk` | `Source::Thunk` | Thunk bodies (zero-arg delayed computations) |
 | `[ctor sym::path]` | `Source::Ctor(sym)` | Constructor bodies (always inlined) |
+| `[graph::read::filter]` | `Source::GraphReadFilter` | Graph read filter bodies (never inlined) |
 | `intrinsic` | `Source::Intrinsic` | Intrinsic bodies (never inlined) |
 
 ### Types
@@ -220,6 +221,22 @@ let body = body!(interner, env; fn@0/0 -> Null {
     },
     bb3() {
         return null;
+    }
+});
+```
+
+### Graph Read Filter
+
+Filter bodies for graph traversal. The first two declared locals become the function arguments (`_0` = env tuple, `_1` = vertex):
+
+```rust
+let body = body!(interner, env; [graph::read::filter]@0/2 -> Bool {
+    decl env: (Int,), vertex: (Int, Int), result: Bool;
+    @proj vertex_field = vertex.0: Int;
+
+    bb0() {
+        result = bin.== vertex_field 42;
+        return result;
     }
 });
 ```

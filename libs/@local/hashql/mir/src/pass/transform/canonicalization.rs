@@ -60,6 +60,17 @@ impl<A: BumpAllocator> Canonicalization<A> {
         Self { alloc, config }
     }
 
+    /// Returns a reference to the allocator used for temporary data structures.
+    pub const fn allocator(&self) -> &A {
+        &self.alloc
+    }
+
+    /// Returns a mutable reference to the allocator, allowing callers to run additional
+    /// passes within the same allocator scope.
+    pub const fn allocator_mut(&mut self) -> &mut A {
+        &mut self.alloc
+    }
+
     /// Runs a local transform pass on all unstable bodies.
     ///
     /// Only bodies in the `unstable` set are processed. The `state` slice is updated to track
