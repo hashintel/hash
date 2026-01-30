@@ -58,7 +58,7 @@ fn print_header<W: io::Write>(writer: &mut W) -> io::Result<()> {
     writeln!(
         writer,
         "{BOLD}{CYAN}{:═^80}{BOLD:#}{CYAN:#}",
-        " Test Results Summary"
+        " Test Results Summary "
     )
 }
 

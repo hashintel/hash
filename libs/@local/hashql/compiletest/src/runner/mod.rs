@@ -3,6 +3,7 @@ use std::{
     backtrace::Backtrace,
     io::{self, Write as _, stdout},
     panic::{self, PanicHookInfo},
+    process::ExitCode,
     time::Instant,
 };
 
@@ -26,6 +27,7 @@ use crate::{
     suite,
 };
 
+pub mod cli;
 pub(crate) mod output;
 pub(crate) mod reporter;
 pub(crate) mod ui;
@@ -125,7 +127,7 @@ impl Runner {
         corpus
     }
 
-    fn execute_run(self, Run { format, bless }: Run) -> io::Result<()> {
+    fn execute_run(self, Run { format, bless }: Run) -> io::Result<ExitCode> {
         panic::set_hook(Box::new(panic_hook));
 
         let graph = self.package_graph();
@@ -220,11 +222,11 @@ impl Runner {
         }
     }
 
-    pub(crate) fn execute(self, command: Command) -> io::Result<()> {
+    pub(crate) fn execute(self, command: Command) -> io::Result<ExitCode> {
         match command {
             Command::Run(run) => self.execute_run(run),
-            Command::List(list) => self.execute_list(list),
-            Command::Suites(suites) => Self::execute_suites(suites),
+            Command::List(list) => self.execute_list(list).map(|()| ExitCode::SUCCESS),
+            Command::Suites(suites) => Self::execute_suites(suites).map(|()| ExitCode::SUCCESS),
         }
     }
 }

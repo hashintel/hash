@@ -1,19 +1,20 @@
 use core::fmt::Write as _;
-use std::io::{self, Write as _, stderr};
+use std::{
+    io::{self, Write as _, stderr},
+    process::ExitCode,
+};
 
 use error_stack::Report;
 
 use super::ui::common::styles::{BLUE, CYAN, DIM, MAGENTA, RED};
 use crate::harness::trial::{TrialDescription, TrialError};
 
-const RULE_WIDTH: usize = 80;
-
 pub(crate) fn report_errors(
     reports: Vec<Report<[TrialError]>>,
     total_trials: usize,
-) -> io::Result<()> {
+) -> io::Result<ExitCode> {
     if reports.is_empty() {
-        return Ok(());
+        return Ok(ExitCode::SUCCESS);
     }
 
     let mut stderr = stderr();
@@ -44,7 +45,7 @@ pub(crate) fn report_errors(
         }
 
         writeln!(stderr, "{title}")?;
-        writeln!(stderr, "{DIM}{}{DIM:#}", "─".repeat(RULE_WIDTH))?;
+        writeln!(stderr, "{DIM}{:─^80}{DIM:#}", "")?;
 
         #[expect(clippy::use_debug)]
         writeln!(stderr, "{report:?}")?;
@@ -54,5 +55,6 @@ pub(crate) fn report_errors(
         }
     }
 
-    stderr.flush()
+    stderr.flush()?;
+    Ok(ExitCode::FAILURE)
 }

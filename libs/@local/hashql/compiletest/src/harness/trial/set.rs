@@ -1,11 +1,6 @@
 use core::cmp::Reverse;
 
-use error_stack::Report;
-use rayon::iter::{IntoParallelIterator, IntoParallelRefIterator as _, ParallelIterator as _};
-
-use super::{
-    Trial, context::TrialContext, error::TrialError, group::TrialGroup, stats::TrialStatistics,
-};
+use super::{Trial, group::TrialGroup};
 
 #[derive(Clone)]
 pub(crate) struct TrialSet<'trial, 'graph> {
@@ -28,24 +23,5 @@ impl<'trial, 'graph> TrialSet<'trial, 'graph> {
     pub(crate) fn sort(&mut self) {
         self.trials
             .sort_by_key(|(_, trial)| Reverse(trial.suite.priority()));
-    }
-
-    #[tracing::instrument(skip_all)]
-    pub(crate) fn run(
-        &self,
-        context: &TrialContext,
-    ) -> impl IntoParallelIterator<
-        Item = (
-            &TrialGroup<'graph>,
-            &Trial,
-            TrialStatistics,
-            Result<(), Report<[TrialError]>>,
-        ),
-    > {
-        self.trials.par_iter().map(|&(group, trial)| {
-            let (statistics, result) = trial.run_catch(&group.metadata, context);
-
-            (group, trial, statistics, result)
-        })
     }
 }
