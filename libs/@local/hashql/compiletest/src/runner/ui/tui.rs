@@ -227,8 +227,9 @@ fn render_stats(frame: &mut Frame, area: Rect, state: &RenderState) {
     let mut totals = TrialStatistics::default();
     let mut count = 0_usize;
     let mut times: Vec<Duration> = Vec::new();
+    let mut named_times: Vec<(String, Duration)> = Vec::new();
 
-    for result in &state.results {
+    for (idx, result) in state.results.iter().enumerate() {
         if let TrialState::Success(stats) = result {
             count += 1;
             totals.files_read += stats.files_read;
@@ -242,11 +243,22 @@ fn render_stats(frame: &mut Frame, area: Rect, state: &RenderState) {
             totals.read_source += stats.read_source;
             totals.parse += stats.parse;
             totals.render_stderr += stats.render_stderr;
-            times.push(trial_total_time(stats));
+
+            let time = trial_total_time(stats);
+            times.push(time);
+
+            let name = state
+                .trials
+                .trials
+                .get(idx)
+                .map(|(_, t)| t.namespace.join("::"))
+                .unwrap_or_default();
+            named_times.push((name, time));
         }
     }
 
     times.sort();
+    named_times.sort_by(|a, b| b.1.cmp(&a.1)); // Sort descending by time
 
     let block = Block::bordered().title(" Statistics ");
     let inner = block.inner(area);
@@ -255,9 +267,10 @@ fn render_stats(frame: &mut Frame, area: Rect, state: &RenderState) {
     let columns = Layout::default()
         .direction(Direction::Horizontal)
         .constraints([
-            Constraint::Percentage(33),
-            Constraint::Percentage(34),
-            Constraint::Percentage(33),
+            Constraint::Percentage(25),
+            Constraint::Percentage(25),
+            Constraint::Percentage(20),
+            Constraint::Percentage(30),
         ])
         .split(inner);
 
@@ -317,7 +330,7 @@ fn render_stats(frame: &mut Frame, area: Rect, state: &RenderState) {
     };
     frame.render_widget(Paragraph::new(timing_lines), columns[1]);
 
-    // Distribution column (min/median/max/outliers)
+    // Distribution column (min/median/max)
     let dist_lines = if times.len() < 2 {
         vec![Line::from(Span::styled(
             "need more data...",
@@ -333,18 +346,42 @@ fn render_stats(frame: &mut Frame, area: Rect, state: &RenderState) {
             Line::from(vec![
                 Span::styled("min ", Style::new().dim()),
                 Span::styled(format_duration(min), Style::new().green()),
-                Span::styled("  median ", Style::new().dim()),
+            ]),
+            Line::from(vec![
+                Span::styled("p50 ", Style::new().dim()),
                 Span::raw(format_duration(median)),
             ]),
             Line::from(vec![
                 Span::styled("p95 ", Style::new().dim()),
                 Span::styled(format_duration(p95), Style::new().yellow()),
-                Span::styled("  max ", Style::new().dim()),
-                Span::styled(format_duration(max), Style::new().red()),
             ]),
         ]
     };
     frame.render_widget(Paragraph::new(dist_lines), columns[2]);
+
+    // Slowest trials column
+    let max_slowest = inner.height as usize;
+    let slowest_lines: Vec<Line> = named_times
+        .iter()
+        .take(max_slowest)
+        .map(|(name, time)| {
+            Line::from(vec![
+                Span::styled(format_duration(*time), Style::new().red()),
+                Span::styled(" ", Style::new()),
+                Span::raw(name.clone()),
+            ])
+        })
+        .collect();
+
+    let slowest_para = if slowest_lines.is_empty() {
+        Paragraph::new(Line::from(Span::styled(
+            "no completed trials",
+            Style::new().dim().italic(),
+        )))
+    } else {
+        Paragraph::new(slowest_lines)
+    };
+    frame.render_widget(slowest_para, columns[3]);
 }
 
 fn render(frame: &mut Frame, state: &mut RenderState) {
@@ -352,14 +389,14 @@ fn render(frame: &mut Frame, state: &mut RenderState) {
 
     let layout = Layout::default()
         .direction(Direction::Vertical)
-        .constraints([Constraint::Min(4), Constraint::Length(4)])
+        .constraints([Constraint::Min(4), Constraint::Length(5)])
         .split(area);
 
     render_grid(frame, layout[0], state);
     render_stats(frame, layout[1], state);
 }
 
-const INLINE_HEIGHT: u16 = 8;
+const INLINE_HEIGHT: u16 = 12;
 
 fn event_loop<B: Backend>(
     mut terminal: Terminal<B>,
