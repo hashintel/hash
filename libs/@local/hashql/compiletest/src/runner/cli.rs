@@ -16,6 +16,13 @@ struct Cli {
     /// Uses nextest-compatible filter patterns to select which tests to run or list.
     /// For example: `--filter "test(some_namespace::specific_test)"`
     /// or `--filter package(hashql-ast)`.
+    ///
+    /// Examples:
+    ///
+    /// ```text
+    /// --filter "test(hashql::parser::smoke)"
+    /// --filter "package(hashql-core)"
+    /// ```
     #[arg(long, short, global = true)]
     filter: Option<String>,
 
@@ -23,6 +30,9 @@ struct Cli {
     ///
     /// Quick filtering will allow for faster test execution (reduction by 500ms), but won't allow
     /// for any dependency related filtering.
+    ///
+    /// Use this when you only need to filter by test name or package and you do not need
+    /// dependency graph filtering.
     #[arg(long, global = true)]
     quick_filter: bool,
 
@@ -38,14 +48,38 @@ enum Command {
     /// Executes tests, verifying outputs against expected results stored in
     /// `.stdout` and `.stderr` files. Tests are considered successful if their
     /// actual output matches the expected output.
+    ///
+    /// Exits with a non-zero status if any test fails.
+    ///
+    /// Examples:
+    ///
+    /// ```text
+    /// hashql-compiletest run
+    /// hashql-compiletest run --bless
+    /// hashql-compiletest run --format json
+    /// ```
     Run(RunCommand),
 
     /// List all available tests without running them.
     ///
     /// Displays test names and their expected status (pass/fail/skip).
+    ///
+    /// Examples:
+    ///
+    /// ```text
+    /// hashql-compiletest list
+    /// hashql-compiletest list --json
+    /// ```
     List(ListCommand),
 
     /// List all available test suites and their descriptions.
+    ///
+    /// Examples:
+    ///
+    /// ```text
+    /// hashql-compiletest suites
+    /// hashql-compiletest suites --format json
+    /// ```
     Suites(SuitesCommand),
 }
 
@@ -112,7 +146,8 @@ struct FormatArgs {
 
     /// Output in JSON format for machine-readable consumption.
     ///
-    /// This is equivalent to `--format json`.
+    /// This is equivalent to `--format json` and writes newline-delimited JSON
+    /// events to stdout with tracing logs on stderr.
     #[arg(long, conflicts_with = "format")]
     json: bool,
 }
