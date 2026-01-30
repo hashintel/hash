@@ -4,7 +4,6 @@
 #![feature(
     // Language Features
     coverage_attribute,
-    decl_macro,
     if_let_guard,
 
     // Library Features
@@ -36,7 +35,7 @@ use self::{
     annotation::file::FileAnnotations,
     harness::{
         test::TestCorpus,
-        trial::{TrialContext, TrialCorpus},
+        trial::{ListTrials, TrialContext, TrialCorpus},
     },
     reporter::{Reporter, Statistics, Summary, setup_progress_header},
 };
@@ -46,6 +45,7 @@ mod annotation;
 mod harness;
 mod output;
 mod reporter;
+mod runner;
 mod styles;
 mod suite;
 mod ui;
@@ -105,33 +105,33 @@ impl Options {
         let graph = PackageGraph::from_command(&mut command).expect("failed to load package graph");
 
         let now = Instant::now();
-        let tests = TestCorpus::discover(&graph);
+        let corpus = TestCorpus::discover(&graph);
         tracing::info!(
             "found {} test groups with {} test cases, in {:?}",
-            tests.len(),
-            tests.cases(),
+            corpus.len(),
+            corpus.cases(),
             now.elapsed()
         );
 
         let mut statistics = Statistics::new();
 
         let now = Instant::now();
-        let mut trials = TrialCorpus::from_test(tests);
+        let mut corpus = TrialCorpus::from_test(corpus);
         tracing::info!("created trial set in {:?}", now.elapsed());
 
         if let Some(filter) = self.filter {
-            trials.filter(filter, &graph);
+            corpus.filter(filter, &graph);
         }
 
         match self.command {
             Command::Run { bless } => {
-                let total = trials.len();
-                let ignored = trials.ignored();
+                let total = corpus.len();
+                let ignored = corpus.ignored();
 
                 setup_progress_header!(reporter, Summary { total, ignored }, &statistics);
                 panic::set_hook(Box::new(panic_hook));
 
-                let trials = trials.into_set();
+                let trials = corpus.into_set();
                 let reports: Vec<_> = trials
                     .run(&TrialContext { bless })
                     .into_par_iter()
@@ -155,8 +155,8 @@ impl Options {
                 }
             }
             Command::List { format } => {
-                trials
-                    .list(&stdout(), format)
+                ListTrials::new(&stdout(), format)
+                    .render(&corpus)
                     .expect("should be able to write to stdout");
             }
             Command::Suites { .. } => unreachable!(),
