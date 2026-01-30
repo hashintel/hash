@@ -81,10 +81,10 @@ export const PlaybackProvider: React.FC<PlaybackProviderProps> = ({
     simulation,
     dt,
     state: simulationState,
-    maxTime,
     computeBufferDuration,
     run: runSimulation,
     pause: pauseSimulation,
+    maxTime,
     setMaxTime,
   } = use(SimulationContext);
 
@@ -100,9 +100,6 @@ export const PlaybackProvider: React.FC<PlaybackProviderProps> = ({
   const getComputeBufferDuration = useStableCallback(
     () => computeBufferDuration,
   );
-  const stableRunSimulation = useStableCallback(runSimulation);
-  const stablePauseSimulation = useStableCallback(pauseSimulation);
-  const stableSetMaxTime = useStableCallback(setMaxTime);
 
   // viewOnly mode is available when there are computed frames to view
   const totalFrames = simulation?.frames.length ?? 0;
@@ -205,14 +202,14 @@ export const PlaybackProvider: React.FC<PlaybackProviderProps> = ({
           if (currentMaxTime === null) {
             // No maxTime set yet - set initial buffer limit
             const initialMaxTime = currentFrameTime + bufferDuration;
-            stableSetMaxTime(initialMaxTime);
+            setMaxTime(initialMaxTime);
           } else if (currentFrameTime >= currentMaxTime - bufferDuration) {
             // We're within bufferDuration of maxTime, extend it
             const newMaxTime = currentMaxTime + bufferDuration;
-            stableSetMaxTime(newMaxTime);
+            setMaxTime(newMaxTime);
             // Resume simulation if it was paused at maxTime
             if (simState === "Paused") {
-              stableRunSimulation();
+              runSimulation();
             }
           }
         }
@@ -264,8 +261,8 @@ export const PlaybackProvider: React.FC<PlaybackProviderProps> = ({
     getStateValues,
     getMaxTime,
     getComputeBufferDuration,
-    stableRunSimulation,
-    stableSetMaxTime,
+    runSimulation,
+    setMaxTime,
   ]);
 
   //
@@ -308,12 +305,12 @@ export const PlaybackProvider: React.FC<PlaybackProviderProps> = ({
       if (state.playMode === "computeBuffer" && currentMaxTime === null) {
         const currentFrame = sim.frames[state.currentFrameIndex];
         const currentFrameTime = currentFrame?.time ?? 0;
-        stableSetMaxTime(currentFrameTime + bufferDuration);
+        setMaxTime(currentFrameTime + bufferDuration);
       }
 
       // Resume simulation generation if it was paused (for computeBuffer and computeMax)
       if (simState === "Paused") {
-        stableRunSimulation();
+        runSimulation();
       }
     }
 
@@ -332,8 +329,8 @@ export const PlaybackProvider: React.FC<PlaybackProviderProps> = ({
     getStateValues,
     getMaxTime,
     getComputeBufferDuration,
-    stableRunSimulation,
-    stableSetMaxTime,
+    runSimulation,
+    setMaxTime,
   ]);
 
   const pause: PlaybackContextValue["pause"] = useCallback(() => {
@@ -342,14 +339,14 @@ export const PlaybackProvider: React.FC<PlaybackProviderProps> = ({
 
     // Pause simulation generation if it's running (except in viewOnly mode where we don't control it)
     if (state.playMode !== "viewOnly" && simState === "Running") {
-      stablePauseSimulation();
+      pauseSimulation();
     }
 
     setStateValues((prev) => ({
       ...prev,
       playbackState: "Paused",
     }));
-  }, [getSimulationState, getStateValues, stablePauseSimulation]);
+  }, [getSimulationState, getStateValues, pauseSimulation]);
 
   const stop: PlaybackContextValue["stop"] = useCallback(() => {
     setStateValues((prev) => ({
@@ -388,24 +385,24 @@ export const PlaybackProvider: React.FC<PlaybackProviderProps> = ({
       if (mode === "computeBuffer" && currentMaxTime === null && sim) {
         const currentFrame = sim.frames[stateValues.currentFrameIndex];
         const currentFrameTime = currentFrame?.time ?? 0;
-        stableSetMaxTime(currentFrameTime + bufferDuration);
+        setMaxTime(currentFrameTime + bufferDuration);
       }
 
       // If switching away from computeBuffer to computeMax, remove maxTime limit
       if (mode === "computeMax" && currentMaxTime !== null) {
-        stableSetMaxTime(null);
+        setMaxTime(null);
       }
 
       // If switching away from viewOnly while simulation is paused, may need to start it
       if (mode !== "viewOnly" && stateValues.playbackState === "Playing") {
         if (simState === "Paused") {
-          stableRunSimulation();
+          runSimulation();
         }
       }
 
       // If switching to viewOnly, pause any running simulation
       if (mode === "viewOnly" && simState === "Running") {
-        stablePauseSimulation();
+        pauseSimulation();
       }
 
       setStateValues((prev) => ({
@@ -422,9 +419,9 @@ export const PlaybackProvider: React.FC<PlaybackProviderProps> = ({
       getSimulation,
       stateValues.playbackState,
       stateValues.currentFrameIndex,
-      stableRunSimulation,
-      stablePauseSimulation,
-      stableSetMaxTime,
+      runSimulation,
+      pauseSimulation,
+      setMaxTime,
     ],
   );
 
