@@ -1,3 +1,5 @@
+use core::ops::Try;
+
 use self::filter::{Deep, Filter as _};
 use super::{
     Type, TypeId,
@@ -9,6 +11,7 @@ use super::{
         intrinsic::{DictType, ListType},
         r#struct::{StructField, StructFields},
     },
+    recursion::RecursionBoundary,
 };
 
 pub mod filter {
@@ -104,6 +107,12 @@ pub mod filter {
     }
 }
 
+macro_rules! Ok {
+    () => {
+        Try::from_output(())
+    };
+}
+
 /// A visitor for traversing and analyzing the type system.
 ///
 /// To implement a custom type visitor, create a type that implements this trait
@@ -132,141 +141,155 @@ pub mod filter {
 /// recursion.
 pub trait Visitor<'heap> {
     type Filter: filter::Filter = Deep;
+    type Result: Try<Output = ()>;
 
     fn env(&self) -> &Environment<'heap>;
 
-    fn visit_generic_arguments(&mut self, arguments: GenericArguments<'heap>) {
-        walk_generic_arguments(self, arguments);
+    fn visit_generic_arguments(&mut self, arguments: GenericArguments<'heap>) -> Self::Result {
+        walk_generic_arguments(self, arguments)
     }
 
-    fn visit_generic_argument(&mut self, argument: GenericArgument<'heap>) {
-        walk_generic_argument(self, argument);
+    fn visit_generic_argument(&mut self, argument: GenericArgument<'heap>) -> Self::Result {
+        walk_generic_argument(self, argument)
     }
 
-    fn visit_generic_substitutions(&mut self, substitutions: GenericSubstitutions<'heap>) {
-        walk_generic_substitutions(self, substitutions);
+    fn visit_generic_substitutions(
+        &mut self,
+        substitutions: GenericSubstitutions<'heap>,
+    ) -> Self::Result {
+        walk_generic_substitutions(self, substitutions)
     }
 
-    fn visit_generic_substitution(&mut self, substitution: GenericSubstitution) {
-        walk_generic_substitution(self, substitution);
+    fn visit_generic_substitution(&mut self, substitution: GenericSubstitution) -> Self::Result {
+        walk_generic_substitution(self, substitution)
     }
 
-    fn visit_id(&mut self, id: TypeId) {
-        walk_id(self, id);
+    fn visit_id(&mut self, id: TypeId) -> Self::Result {
+        walk_id(self, id)
     }
 
-    fn visit_type(&mut self, r#type: Type<'heap>) {
-        walk_type(self, r#type);
+    fn visit_type(&mut self, r#type: Type<'heap>) -> Self::Result {
+        walk_type(self, r#type)
     }
 
-    fn visit_opaque(&mut self, opaque: Type<'heap, OpaqueType>) {
-        walk_opaque(self, opaque);
+    fn visit_opaque(&mut self, opaque: Type<'heap, OpaqueType>) -> Self::Result {
+        walk_opaque(self, opaque)
     }
 
     #[expect(unused_variables, reason = "trait definition")]
-    fn visit_primitive(&mut self, primitive: Type<'heap, PrimitiveType>) {
+    fn visit_primitive(&mut self, primitive: Type<'heap, PrimitiveType>) -> Self::Result {
         // Do nothing, there's nothing to walk
+        Ok!()
     }
 
-    fn visit_intrinsic_list(&mut self, list: Type<'heap, ListType>) {
-        walk_intrinsic_list(self, list);
+    fn visit_intrinsic_list(&mut self, list: Type<'heap, ListType>) -> Self::Result {
+        walk_intrinsic_list(self, list)
     }
 
-    fn visit_intrinsic_dict(&mut self, dict: Type<'heap, DictType>) {
-        walk_intrinsic_dict(self, dict);
+    fn visit_intrinsic_dict(&mut self, dict: Type<'heap, DictType>) -> Self::Result {
+        walk_intrinsic_dict(self, dict)
     }
 
-    fn visit_intrinsic(&mut self, intrinsic: Type<'heap, IntrinsicType>) {
-        walk_intrinsic(self, intrinsic);
+    fn visit_intrinsic(&mut self, intrinsic: Type<'heap, IntrinsicType>) -> Self::Result {
+        walk_intrinsic(self, intrinsic)
     }
 
-    fn visit_struct(&mut self, r#struct: Type<'heap, StructType>) {
-        walk_struct(self, r#struct);
+    fn visit_struct(&mut self, r#struct: Type<'heap, StructType>) -> Self::Result {
+        walk_struct(self, r#struct)
     }
 
-    fn visit_struct_fields(&mut self, fields: StructFields<'heap>) {
-        walk_struct_fields(self, fields);
+    fn visit_struct_fields(&mut self, fields: StructFields<'heap>) -> Self::Result {
+        walk_struct_fields(self, fields)
     }
 
-    fn visit_struct_field(&mut self, field: StructField<'heap>) {
-        walk_struct_field(self, field);
+    fn visit_struct_field(&mut self, field: StructField<'heap>) -> Self::Result {
+        walk_struct_field(self, field)
     }
 
-    fn visit_tuple(&mut self, tuple: Type<'heap, TupleType>) {
-        walk_tuple(self, tuple);
+    fn visit_tuple(&mut self, tuple: Type<'heap, TupleType>) -> Self::Result {
+        walk_tuple(self, tuple)
     }
 
-    fn visit_union(&mut self, union: Type<'heap, UnionType>) {
-        walk_union(self, union);
+    fn visit_union(&mut self, union: Type<'heap, UnionType>) -> Self::Result {
+        walk_union(self, union)
     }
 
-    fn visit_intersection(&mut self, intersection: Type<'heap, IntersectionType>) {
-        walk_intersection(self, intersection);
+    fn visit_intersection(&mut self, intersection: Type<'heap, IntersectionType>) -> Self::Result {
+        walk_intersection(self, intersection)
     }
 
-    fn visit_closure(&mut self, closure: Type<'heap, ClosureType>) {
-        walk_closure(self, closure);
+    fn visit_closure(&mut self, closure: Type<'heap, ClosureType>) -> Self::Result {
+        walk_closure(self, closure)
     }
 
-    fn visit_apply(&mut self, apply: Type<'heap, Apply>) {
-        walk_apply(self, apply);
+    fn visit_apply(&mut self, apply: Type<'heap, Apply>) -> Self::Result {
+        walk_apply(self, apply)
     }
 
-    fn visit_generic(&mut self, generic: Type<'heap, Generic<'heap>>) {
-        walk_generic(self, generic);
+    fn visit_generic(&mut self, generic: Type<'heap, Generic<'heap>>) -> Self::Result {
+        walk_generic(self, generic)
     }
 
-    fn visit_param(&mut self, param: Type<'heap, Param>) {
-        walk_param(self, param);
+    fn visit_param(&mut self, param: Type<'heap, Param>) -> Self::Result {
+        walk_param(self, param)
     }
 
-    fn visit_infer(&mut self, infer: Type<'heap, Infer>) {
-        walk_infer(self, infer);
+    fn visit_infer(&mut self, infer: Type<'heap, Infer>) -> Self::Result {
+        walk_infer(self, infer)
     }
 }
 
 pub fn walk_generic_arguments<'heap, V: Visitor<'heap> + ?Sized>(
     visitor: &mut V,
     generic_arguments: GenericArguments<'heap>,
-) {
+) -> V::Result {
     for &generic_argument in generic_arguments.iter() {
-        visitor.visit_generic_argument(generic_argument);
+        visitor.visit_generic_argument(generic_argument)?;
     }
+
+    Ok!()
 }
 
 pub fn walk_generic_argument<'heap, V: Visitor<'heap> + ?Sized>(
     visitor: &mut V,
     generic_argument: GenericArgument<'heap>,
-) {
+) -> V::Result {
     if let Some(constraint) = generic_argument.constraint {
-        visitor.visit_id(constraint);
+        visitor.visit_id(constraint)?;
     }
+
+    Ok!()
 }
 
 pub fn walk_generic_substitutions<'heap, V: Visitor<'heap> + ?Sized>(
     visitor: &mut V,
     substitutions: GenericSubstitutions<'heap>,
-) {
+) -> V::Result {
     for &substitution in substitutions.iter() {
-        visitor.visit_generic_substitution(substitution);
+        visitor.visit_generic_substitution(substitution)?;
     }
+
+    Ok!()
 }
 
 pub fn walk_generic_substitution<'heap, V: Visitor<'heap> + ?Sized>(
     visitor: &mut V,
     GenericSubstitution { argument: _, value }: GenericSubstitution,
-) {
-    visitor.visit_id(value);
+) -> V::Result {
+    visitor.visit_id(value)?;
+
+    Ok!()
 }
 
-pub fn walk_id<'heap, V: Visitor<'heap> + ?Sized>(visitor: &mut V, id: TypeId) {
+pub fn walk_id<'heap, V: Visitor<'heap> + ?Sized>(visitor: &mut V, id: TypeId) -> V::Result {
     if !V::Filter::DEEP {
-        return;
+        return Ok!();
     }
 
     let r#type = visitor.env().r#type(id);
 
-    visitor.visit_type(r#type);
+    visitor.visit_type(r#type)?;
+    Ok!()
 }
 
 pub fn walk_type<'heap, V: Visitor<'heap> + ?Sized>(
@@ -276,7 +299,7 @@ pub fn walk_type<'heap, V: Visitor<'heap> + ?Sized>(
         span: _,
         kind,
     }: Type<'heap>,
-) {
+) -> V::Result {
     match kind {
         TypeKind::Opaque(opaque) => visitor.visit_opaque(r#type.with(opaque)),
         TypeKind::Primitive(primitive) => visitor.visit_primitive(r#type.with(primitive)),
@@ -285,14 +308,14 @@ pub fn walk_type<'heap, V: Visitor<'heap> + ?Sized>(
         TypeKind::Tuple(tuple) => visitor.visit_tuple(r#type.with(tuple)),
         TypeKind::Union(union) => visitor.visit_union(r#type.with(union)),
         TypeKind::Intersection(intersection) => {
-            visitor.visit_intersection(r#type.with(intersection));
+            visitor.visit_intersection(r#type.with(intersection))
         }
         TypeKind::Closure(closure) => visitor.visit_closure(r#type.with(closure)),
         TypeKind::Apply(apply) => visitor.visit_apply(r#type.with(apply)),
         TypeKind::Generic(generic) => visitor.visit_generic(r#type.with(generic)),
         TypeKind::Param(param) => visitor.visit_param(r#type.with(param)),
         TypeKind::Infer(infer) => visitor.visit_infer(r#type.with(infer)),
-        TypeKind::Never | TypeKind::Unknown => {}
+        TypeKind::Never | TypeKind::Unknown => Ok!(),
     }
 }
 
@@ -303,10 +326,12 @@ pub fn walk_opaque<'heap, V: Visitor<'heap> + ?Sized>(
         span: _,
         kind: &OpaqueType { name: _, repr },
     }: Type<'heap, OpaqueType>,
-) {
+) -> V::Result {
     if V::Filter::GENERIC_PARAMETERS {
-        visitor.visit_id(repr);
+        visitor.visit_id(repr)?;
     }
+
+    Ok!()
 }
 
 pub fn walk_intrinsic_list<'heap, V: Visitor<'heap> + ?Sized>(
@@ -316,10 +341,12 @@ pub fn walk_intrinsic_list<'heap, V: Visitor<'heap> + ?Sized>(
         span: _,
         kind: &ListType { element },
     }: Type<'heap, ListType>,
-) {
+) -> V::Result {
     if V::Filter::GENERIC_PARAMETERS {
-        visitor.visit_id(element);
+        visitor.visit_id(element)?;
     }
+
+    Ok!()
 }
 
 pub fn walk_intrinsic_dict<'heap, V: Visitor<'heap> + ?Sized>(
@@ -329,11 +356,13 @@ pub fn walk_intrinsic_dict<'heap, V: Visitor<'heap> + ?Sized>(
         span: _,
         kind: &DictType { key, value },
     }: Type<'heap, DictType>,
-) {
+) -> V::Result {
     if V::Filter::GENERIC_PARAMETERS {
-        visitor.visit_id(key);
-        visitor.visit_id(value);
+        visitor.visit_id(key)?;
+        visitor.visit_id(value)?;
     }
+
+    Ok!()
 }
 
 pub fn walk_intrinsic<'heap, V: Visitor<'heap> + ?Sized>(
@@ -343,7 +372,7 @@ pub fn walk_intrinsic<'heap, V: Visitor<'heap> + ?Sized>(
         span: _,
         kind,
     }: Type<'heap, IntrinsicType>,
-) {
+) -> V::Result {
     match kind {
         IntrinsicType::List(list) => visitor.visit_intrinsic_list(intrinsic.with(list)),
         IntrinsicType::Dict(dict) => visitor.visit_intrinsic_dict(intrinsic.with(dict)),
@@ -357,28 +386,33 @@ pub fn walk_struct<'heap, V: Visitor<'heap> + ?Sized>(
         span: _,
         kind: &StructType { fields },
     }: Type<'heap, StructType>,
-) {
-    visitor.visit_struct_fields(fields);
+) -> V::Result {
+    visitor.visit_struct_fields(fields)?;
+    Ok!()
 }
 
 pub fn walk_struct_fields<'heap, V: Visitor<'heap> + ?Sized>(
     visitor: &mut V,
     fields: StructFields<'heap>,
-) {
+) -> V::Result {
     if !V::Filter::MEMBERS {
-        return;
+        return Ok!();
     }
 
     for &field in fields.iter() {
-        visitor.visit_struct_field(field);
+        visitor.visit_struct_field(field)?;
     }
+
+    Ok!()
 }
 
 pub fn walk_struct_field<'heap, V: Visitor<'heap> + ?Sized>(
     visitor: &mut V,
     StructField { name: _, value }: StructField<'heap>,
-) {
-    visitor.visit_id(value);
+) -> V::Result {
+    visitor.visit_id(value)?;
+
+    Ok!()
 }
 
 pub fn walk_tuple<'heap, V: Visitor<'heap> + ?Sized>(
@@ -388,14 +422,16 @@ pub fn walk_tuple<'heap, V: Visitor<'heap> + ?Sized>(
         span: _,
         kind: &TupleType { fields },
     }: Type<'heap, TupleType>,
-) {
+) -> V::Result {
     if !V::Filter::MEMBERS {
-        return;
+        return Ok!();
     }
 
     for &field in fields {
-        visitor.visit_id(field);
+        visitor.visit_id(field)?;
     }
+
+    Ok!()
 }
 
 pub fn walk_union<'heap, V: Visitor<'heap> + ?Sized>(
@@ -405,10 +441,12 @@ pub fn walk_union<'heap, V: Visitor<'heap> + ?Sized>(
         span: _,
         kind: &UnionType { variants },
     }: Type<'heap, UnionType>,
-) {
+) -> V::Result {
     for &variant in variants {
-        visitor.visit_id(variant);
+        visitor.visit_id(variant)?;
     }
+
+    Ok!()
 }
 
 pub fn walk_intersection<'heap, V: Visitor<'heap> + ?Sized>(
@@ -418,10 +456,12 @@ pub fn walk_intersection<'heap, V: Visitor<'heap> + ?Sized>(
         span: _,
         kind: &IntersectionType { variants },
     }: Type<'heap, IntersectionType>,
-) {
+) -> V::Result {
     for &variant in variants {
-        visitor.visit_id(variant);
+        visitor.visit_id(variant)?;
     }
+
+    Ok!()
 }
 
 pub fn walk_closure<'heap, V: Visitor<'heap> + ?Sized>(
@@ -431,16 +471,17 @@ pub fn walk_closure<'heap, V: Visitor<'heap> + ?Sized>(
         span: _,
         kind: &ClosureType { params, returns },
     }: Type<'heap, ClosureType>,
-) {
+) -> V::Result {
     if !V::Filter::MEMBERS {
-        return;
+        return Ok!();
     }
 
     for &param in params {
-        visitor.visit_id(param);
+        visitor.visit_id(param)?;
     }
 
-    visitor.visit_id(returns);
+    visitor.visit_id(returns)?;
+    Ok!()
 }
 
 pub fn walk_apply<'heap, V: Visitor<'heap> + ?Sized>(
@@ -453,9 +494,11 @@ pub fn walk_apply<'heap, V: Visitor<'heap> + ?Sized>(
             substitutions,
         },
     }: Type<'heap, Apply>,
-) {
-    visitor.visit_generic_substitutions(substitutions);
-    visitor.visit_id(base);
+) -> V::Result {
+    visitor.visit_generic_substitutions(substitutions)?;
+    visitor.visit_id(base)?;
+
+    Ok!()
 }
 
 pub fn walk_generic<'heap, V: Visitor<'heap> + ?Sized>(
@@ -465,9 +508,11 @@ pub fn walk_generic<'heap, V: Visitor<'heap> + ?Sized>(
         span: _,
         kind: &Generic { base, arguments },
     }: Type<'heap, Generic>,
-) {
-    visitor.visit_generic_arguments(arguments);
-    visitor.visit_id(base);
+) -> V::Result {
+    visitor.visit_generic_arguments(arguments)?;
+    visitor.visit_id(base)?;
+
+    Ok!()
 }
 
 pub fn walk_param<'heap, V: Visitor<'heap> + ?Sized>(
@@ -477,16 +522,17 @@ pub fn walk_param<'heap, V: Visitor<'heap> + ?Sized>(
         span: _,
         kind: &Param { argument },
     }: Type<'heap, Param>,
-) {
+) -> V::Result {
     if !V::Filter::SUBSTITUTIONS {
-        return;
+        return Ok!();
     }
 
     let Some(substitution) = visitor.env().substitution.argument(argument) else {
-        return;
+        return Ok!();
     };
 
-    visitor.visit_id(substitution);
+    visitor.visit_id(substitution)?;
+    Ok!()
 }
 
 pub fn walk_infer<'heap, V: Visitor<'heap> + ?Sized>(
@@ -496,14 +542,158 @@ pub fn walk_infer<'heap, V: Visitor<'heap> + ?Sized>(
         span: _,
         kind: &Infer { hole },
     }: Type<'heap, Infer>,
-) {
+) -> V::Result {
     if !V::Filter::SUBSTITUTIONS {
-        return;
+        return Ok!();
     }
 
     let Some(substitution) = visitor.env().substitution.infer(hole) else {
-        return;
+        return Ok!();
     };
 
-    visitor.visit_id(substitution);
+    visitor.visit_id(substitution)?;
+    Ok!()
+}
+
+impl<'heap, V> Visitor<'heap> for &mut V
+where
+    V: Visitor<'heap>,
+{
+    type Filter = V::Filter;
+    type Result = V::Result;
+
+    fn env(&self) -> &Environment<'heap> {
+        V::env(self)
+    }
+
+    fn visit_generic_arguments(&mut self, arguments: GenericArguments<'heap>) -> Self::Result {
+        V::visit_generic_arguments(self, arguments)
+    }
+
+    fn visit_generic_argument(&mut self, argument: GenericArgument<'heap>) -> Self::Result {
+        V::visit_generic_argument(self, argument)
+    }
+
+    fn visit_generic_substitutions(
+        &mut self,
+        substitutions: GenericSubstitutions<'heap>,
+    ) -> Self::Result {
+        V::visit_generic_substitutions(self, substitutions)
+    }
+
+    fn visit_generic_substitution(&mut self, substitution: GenericSubstitution) -> Self::Result {
+        V::visit_generic_substitution(self, substitution)
+    }
+
+    fn visit_id(&mut self, id: TypeId) -> Self::Result {
+        V::visit_id(self, id)
+    }
+
+    fn visit_type(&mut self, r#type: Type<'heap>) -> Self::Result {
+        V::visit_type(self, r#type)
+    }
+
+    fn visit_opaque(&mut self, opaque: Type<'heap, OpaqueType>) -> Self::Result {
+        V::visit_opaque(self, opaque)
+    }
+
+    fn visit_primitive(&mut self, primitive: Type<'heap, PrimitiveType>) -> Self::Result {
+        V::visit_primitive(self, primitive)
+    }
+
+    fn visit_intrinsic_list(&mut self, list: Type<'heap, ListType>) -> Self::Result {
+        V::visit_intrinsic_list(self, list)
+    }
+
+    fn visit_intrinsic_dict(&mut self, dict: Type<'heap, DictType>) -> Self::Result {
+        V::visit_intrinsic_dict(self, dict)
+    }
+
+    fn visit_intrinsic(&mut self, intrinsic: Type<'heap, IntrinsicType>) -> Self::Result {
+        V::visit_intrinsic(self, intrinsic)
+    }
+
+    fn visit_struct(&mut self, r#struct: Type<'heap, StructType>) -> Self::Result {
+        V::visit_struct(self, r#struct)
+    }
+
+    fn visit_struct_fields(&mut self, fields: StructFields<'heap>) -> Self::Result {
+        V::visit_struct_fields(self, fields)
+    }
+
+    fn visit_struct_field(&mut self, field: StructField<'heap>) -> Self::Result {
+        V::visit_struct_field(self, field)
+    }
+
+    fn visit_tuple(&mut self, tuple: Type<'heap, TupleType>) -> Self::Result {
+        V::visit_tuple(self, tuple)
+    }
+
+    fn visit_union(&mut self, union: Type<'heap, UnionType>) -> Self::Result {
+        V::visit_union(self, union)
+    }
+
+    fn visit_intersection(&mut self, intersection: Type<'heap, IntersectionType>) -> Self::Result {
+        V::visit_intersection(self, intersection)
+    }
+
+    fn visit_closure(&mut self, closure: Type<'heap, ClosureType>) -> Self::Result {
+        V::visit_closure(self, closure)
+    }
+
+    fn visit_apply(&mut self, apply: Type<'heap, Apply>) -> Self::Result {
+        V::visit_apply(self, apply)
+    }
+
+    fn visit_generic(&mut self, generic: Type<'heap, Generic<'heap>>) -> Self::Result {
+        V::visit_generic(self, generic)
+    }
+
+    fn visit_param(&mut self, param: Type<'heap, Param>) -> Self::Result {
+        V::visit_param(self, param)
+    }
+
+    fn visit_infer(&mut self, infer: Type<'heap, Infer>) -> Self::Result {
+        V::visit_infer(self, infer)
+    }
+}
+
+pub struct RecursiveVisitorGuard<'heap> {
+    boundary: RecursionBoundary<'heap>,
+}
+
+impl<'heap> RecursiveVisitorGuard<'heap> {
+    #[must_use]
+    pub fn new() -> Self {
+        Self {
+            boundary: RecursionBoundary::new(),
+        }
+    }
+
+    pub fn with<T: Try<Output = ()>>(
+        &mut self,
+        visit: impl FnOnce(&mut Self, Type<'heap>) -> T,
+        r#type: Type<'heap>,
+    ) -> T {
+        if self.boundary.enter(r#type, r#type).is_break() {
+            return Ok!();
+        }
+
+        let result = visit(self, r#type);
+
+        self.boundary.exit(r#type, r#type);
+        result
+    }
+}
+
+impl Default for RecursiveVisitorGuard<'_> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl AsMut<Self> for RecursiveVisitorGuard<'_> {
+    fn as_mut(&mut self) -> &mut Self {
+        self
+    }
 }

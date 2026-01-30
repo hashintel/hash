@@ -52,6 +52,18 @@ body!(interner, env; <source> @ <id> / <arity> -> <return_type> {
 })
 ```
 
+**Important:** Only a single `decl` statement is supported. Declare all locals in one comma-separated list:
+
+```rust
+// ✅ Correct - single decl with all locals
+decl env: (), vertex: Entity, x: Int, y: Int, result: Bool;
+
+// ❌ Wrong - multiple decl statements will not compile
+decl env: (), vertex: Entity;
+decl x: Int, y: Int;
+decl result: Bool;
+```
+
 ### Header
 
 | Component | Description | Example |
@@ -87,6 +99,7 @@ The `<id>` can be a numeric literal (`0`, `1`, `42`) or a variable identifier (`
 | `(a: T1, b: T2)` | Struct types | `(a: Int, b: Bool)` |
 | `[List T]` | List type (intrinsic) | `[List Int]`, `[List (Int, Bool)]` |
 | `[fn(T1, T2) -> R]` | Closure types | `[fn(Int) -> Int]`, `[fn() -> Bool]` |
+| `[Opaque path; T]` | Opaque type with symbol path | `[Opaque sym::path::Entity; ?]` |
 | `\|types\| types.custom()` | Custom type expression | `\|t\| t.null()` |
 
 ### Projections (Optional)
@@ -97,16 +110,38 @@ Declare field projections after `decl` to access struct/tuple fields as places:
 @proj <name> = <base>.<field>: <type>, ...;
 ```
 
-Supports nested projections:
+**Field access modes:**
+
+- Numeric index (e.g., `tup.0`) → `ProjectionKind::Field`
+- Named field (e.g., `entity.metadata`) → `ProjectionKind::FieldByName`
+
+Each `@proj` declaration supports only ONE field after the base. For deeper paths, chain through intermediate declarations:
 
 ```rust
 let body = body!(interner, env; fn@0/0 -> Int {
     decl tup: ((Int, Int), Int), result: Int;
-    @proj inner = tup.0: (Int, Int), inner_1 = tup.0.1: Int;
+    // inner uses tup as base, inner_1 uses inner as base
+    @proj inner = tup.0: (Int, Int), inner_1 = inner.1: Int;
 
     bb0() {
         result = load inner_1;
         return result;
+    }
+});
+```
+
+Named field projections for opaque types:
+
+```rust
+use hashql_core::symbol::sym;
+
+let body = body!(interner, env; [graph::read::filter]@0/2 -> Bool {
+    decl env: (), vertex: [Opaque sym::path::Entity; ?];
+    // Chain: vertex -> metadata -> archived
+    @proj metadata = vertex.metadata: ?, archived = metadata.archived: Bool;
+
+    bb0() {
+        return archived;
     }
 });
 ```

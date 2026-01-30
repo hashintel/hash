@@ -422,9 +422,45 @@ pub trait AnalysisPass<'env, 'heap> {
     }
 }
 
+/// A global analysis pass over MIR.
+///
+/// Unlike [`AnalysisPass`] which operates on a single [`Body`], global analysis passes have
+/// access to **all** bodies simultaneously via a [`DefIdSlice`]. This enables inter-procedural
+/// analyses that need to:
+///
+/// - Build and traverse the call graph
+/// - Gather cross-function statistics or diagnostics
+///
+/// # When to Use
+///
+/// Use `GlobalAnalysisPass` when your analysis requires visibility across multiple functions.
+/// For single-function analyses, prefer [`AnalysisPass`] which is simpler and allows the pass
+/// manager more flexibility in scheduling.
+///
+/// # Implementing a Global Analysis Pass
+///
+/// ```ignore
+/// struct CallGraphAnalysis;
+///
+/// impl<'env, 'heap> GlobalAnalysisPass<'env, 'heap> for CallGraphAnalysis {
+///     fn run(&mut self, context: &mut MirContext<'env, 'heap>, bodies: &DefIdSlice<Body<'heap>>) {
+///         // Analyze relationships between functions, report diagnostics, etc.
+///     }
+/// }
+/// ```
+///
+/// [`name`]: GlobalAnalysisPass::name
 pub trait GlobalAnalysisPass<'env, 'heap> {
+    /// Executes the analysis pass on all bodies.
+    ///
+    /// The `context` provides access to the heap allocator, type environment, interner, and
+    /// diagnostic collection. The `bodies` slice allows reading any function body.
     fn run(&mut self, context: &mut MirContext<'env, 'heap>, bodies: &DefIdSlice<Body<'heap>>);
 
+    /// Returns a human-readable name for this pass.
+    ///
+    /// The default implementation extracts the type name without module path or generic
+    /// parameters. Override this method to provide a custom name.
     fn name(&self) -> &'static str {
         const { simplify_type_name(core::any::type_name::<Self>()) }
     }

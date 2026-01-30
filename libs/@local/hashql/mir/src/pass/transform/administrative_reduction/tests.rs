@@ -19,7 +19,7 @@ use crate::{
     def::{DefId, DefIdSlice},
     intern::Interner,
     pass::{Changed, GlobalTransformPass as _, GlobalTransformState},
-    pretty::TextFormat,
+    pretty::TextFormatOptions,
 };
 
 /// Tests `TrivialThunk` classification for an identity function (returns parameter).
@@ -253,12 +253,14 @@ fn assert_admin_reduction_pass<'heap>(
         context.env,
         TypeFormatterOptions::terse().with_qualified_opaque_names(true),
     );
-    let mut text_format = TextFormat {
+    let mut text_format = TextFormatOptions {
         writer: Vec::new(),
         indent: 4,
         sources: (),
         types: &mut formatter,
-    };
+        annotations: (),
+    }
+    .build();
 
     text_format
         .format(DefIdSlice::from_raw(bodies), &[])
