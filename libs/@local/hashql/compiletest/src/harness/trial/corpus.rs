@@ -54,11 +54,11 @@ impl<'graph> TrialCorpus<'graph> {
         }
     }
 
-    pub(crate) fn len(&self) -> usize {
+    pub(crate) const fn len(&self) -> usize {
         self.groups.len()
     }
 
     pub(crate) fn cases(&self) -> usize {
-        self.groups.iter().map(|group| group.len()).sum()
+        self.groups.iter().map(TrialGroup::len).sum()
     }
 }
