@@ -78,25 +78,19 @@ const ClearStateHeaderAction: React.FC = () => {
 const PlaceInitialStateContent: React.FC = () => {
   const { place, placeType } = usePlacePropertiesContext();
 
-  const { simulation, initialMarking, setInitialMarking } =
-    use(SimulationContext);
-  const { currentFrameIndex } = use(PlaybackContext);
+  const { initialMarking, setInitialMarking } = use(SimulationContext);
+  const { currentFrame, totalFrames } = use(PlaybackContext);
 
   // Determine if simulation is running (has frames)
-  const hasSimulationFrames =
-    simulation !== null && simulation.frames.length > 0;
-  const frameIndex = currentFrameIndex;
+  const hasSimulationFrames = totalFrames > 0;
 
   // If no type or type has 0 dimensions, show simple number input
   if (!placeType || placeType.elements.length === 0) {
     // Get token count from simulation frame or initial marking
     let currentTokenCount = 0;
-    if (hasSimulationFrames) {
-      const currentFrame = simulation.frames[frameIndex];
-      if (currentFrame) {
-        const placeState = currentFrame.places.get(place.id);
-        currentTokenCount = placeState?.count ?? 0;
-      }
+    if (hasSimulationFrames && currentFrame) {
+      const placeState = currentFrame.places[place.id];
+      currentTokenCount = placeState?.count ?? 0;
     } else {
       const currentMarking = initialMarking.get(place.id);
       currentTokenCount = currentMarking?.count ?? 0;

@@ -1,7 +1,12 @@
 /**
  * @vitest-environment jsdom
  */
-import { act, render, type RenderResult } from "@testing-library/react";
+import {
+  act,
+  render,
+  type RenderResult,
+  waitFor,
+} from "@testing-library/react";
 import { use } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -9,7 +14,6 @@ import {
   SimulationContext,
   type SimulationContextValue,
   type SimulationFrame,
-  type SimulationInstance,
 } from "../simulation/context";
 import { PlaybackContext, type PlaybackContextValue } from "./context";
 import { PlaybackProvider } from "./provider";
@@ -33,40 +37,39 @@ function createMockFrame(time: number): SimulationFrame {
 }
 
 /**
- * Creates a minimal SimulationInstance for testing.
+ * Creates mock frames array for testing.
  */
-function createMockSimulation(frameCount: number): SimulationInstance {
-  const simulation: SimulationInstance = {
-    places: new Map(),
-    transitions: new Map(),
-    types: new Map(),
-    differentialEquationFns: new Map(),
-    lambdaFns: new Map(),
-    transitionKernelFns: new Map(),
-    parameterValues: {},
-    dt: 0.01,
-    rngState: 0,
-    frames: [],
-    currentFrameNumber: 0,
-  };
-
-  // Add frames
+function createMockFrames(frameCount: number): SimulationFrame[] {
+  const frames: SimulationFrame[] = [];
   for (let i = 0; i < frameCount; i++) {
-    simulation.frames.push(createMockFrame(i * 0.01));
+    frames.push(createMockFrame(i * 0.01));
   }
+  return frames;
+}
 
-  return simulation;
+/**
+ * Creates mock getFrame and getAllFrames functions for testing.
+ */
+function createMockFrameAccessors(frames: SimulationFrame[]) {
+  return {
+    getFrame: vi.fn(async (index: number) => frames[index] ?? null),
+    getAllFrames: vi.fn(async () => frames),
+  };
 }
 
 /**
  * Creates a mock SimulationContextValue with sensible defaults.
  * Override specific fields as needed for each test.
+ * Pass `frameCount` to create mock frames automatically.
  */
 function createMockSimulationContext(
   overrides: MockSimulationContextOverrides = {},
+  frameCount = 0,
 ): SimulationContextValue {
+  const frames = createMockFrames(frameCount);
+  const frameAccessors = createMockFrameAccessors(frames);
+
   return {
-    simulation: null,
     state: "NotRun",
     error: null,
     errorItemId: null,
@@ -75,6 +78,9 @@ function createMockSimulationContext(
     dt: 0.01,
     maxTime: null,
     computeBufferDuration: 1,
+    totalFrames: frameCount,
+    getFrame: frameAccessors.getFrame,
+    getAllFrames: frameAccessors.getAllFrames,
     setInitialMarking: vi.fn(),
     setParameterValue: vi.fn(),
     setDt: vi.fn(),
@@ -209,11 +215,12 @@ describe("PlaybackProvider", () => {
     });
 
     it("should have viewOnly available when there are frames", () => {
-      const simulation = createMockSimulation(10);
-      const simulationContext = createMockSimulationContext({
-        simulation,
-        state: "Running",
-      });
+      const simulationContext = createMockSimulationContext(
+        {
+          state: "Running",
+        },
+        10,
+      );
       const { getPlaybackValue } = renderPlaybackProvider(simulationContext);
 
       const playbackValue = getPlaybackValue();
@@ -223,11 +230,12 @@ describe("PlaybackProvider", () => {
     });
 
     it("should disable compute modes when simulation is complete", () => {
-      const simulation = createMockSimulation(100);
-      const simulationContext = createMockSimulationContext({
-        simulation,
-        state: "Complete",
-      });
+      const simulationContext = createMockSimulationContext(
+        {
+          state: "Complete",
+        },
+        100,
+      );
       const { getPlaybackValue } = renderPlaybackProvider(simulationContext);
 
       const playbackValue = getPlaybackValue();
@@ -236,12 +244,13 @@ describe("PlaybackProvider", () => {
     });
 
     it("should disable compute modes when simulation has error", () => {
-      const simulation = createMockSimulation(50);
-      const simulationContext = createMockSimulationContext({
-        simulation,
-        state: "Error",
-        error: "Some error",
-      });
+      const simulationContext = createMockSimulationContext(
+        {
+          state: "Error",
+          error: "Some error",
+        },
+        50,
+      );
       const { getPlaybackValue } = renderPlaybackProvider(simulationContext);
 
       const playbackValue = getPlaybackValue();
@@ -252,11 +261,12 @@ describe("PlaybackProvider", () => {
 
   describe("auto-switch play mode", () => {
     it("should switch to viewOnly when simulation completes", () => {
-      const simulation = createMockSimulation(10);
-      const simulationContext = createMockSimulationContext({
-        simulation,
-        state: "Running",
-      });
+      const simulationContext = createMockSimulationContext(
+        {
+          state: "Running",
+        },
+        10,
+      );
       const { getPlaybackValue, rerender } =
         renderPlaybackProvider(simulationContext);
 
@@ -265,10 +275,12 @@ describe("PlaybackProvider", () => {
 
       // Simulate completion
       rerender(
-        createMockSimulationContext({
-          simulation,
-          state: "Complete",
-        }),
+        createMockSimulationContext(
+          {
+            state: "Complete",
+          },
+          10,
+        ),
       );
 
       // Should auto-switch to viewOnly
@@ -278,11 +290,12 @@ describe("PlaybackProvider", () => {
 
   describe("reset on simulation reset", () => {
     it("should reset playback state when simulation is reset", () => {
-      const simulation = createMockSimulation(10);
-      const simulationContext = createMockSimulationContext({
-        simulation,
-        state: "Running",
-      });
+      const simulationContext = createMockSimulationContext(
+        {
+          state: "Running",
+        },
+        10,
+      );
       const { getPlaybackValue, rerender } =
         renderPlaybackProvider(simulationContext);
 
@@ -305,11 +318,12 @@ describe("PlaybackProvider", () => {
 
   describe("setCurrentViewedFrame", () => {
     it("should set frame index within bounds", () => {
-      const simulation = createMockSimulation(10);
-      const simulationContext = createMockSimulationContext({
-        simulation,
-        state: "Running",
-      });
+      const simulationContext = createMockSimulationContext(
+        {
+          state: "Running",
+        },
+        10,
+      );
       const { getPlaybackValue } = renderPlaybackProvider(simulationContext);
 
       act(() => {
@@ -320,11 +334,12 @@ describe("PlaybackProvider", () => {
     });
 
     it("should clamp frame index to valid range", () => {
-      const simulation = createMockSimulation(10);
-      const simulationContext = createMockSimulationContext({
-        simulation,
-        state: "Running",
-      });
+      const simulationContext = createMockSimulationContext(
+        {
+          state: "Running",
+        },
+        10,
+      );
       const { getPlaybackValue } = renderPlaybackProvider(simulationContext);
 
       // Try to set beyond max
@@ -377,11 +392,12 @@ describe("PlaybackProvider", () => {
 
   describe("setPlayMode", () => {
     it("should allow setting viewOnly when frames exist", () => {
-      const simulation = createMockSimulation(10);
-      const simulationContext = createMockSimulationContext({
-        simulation,
-        state: "Running",
-      });
+      const simulationContext = createMockSimulationContext(
+        {
+          state: "Running",
+        },
+        10,
+      );
       const { getPlaybackValue } = renderPlaybackProvider(simulationContext);
 
       expect(getPlaybackValue().playMode).toBe("computeMax");
@@ -408,11 +424,12 @@ describe("PlaybackProvider", () => {
     });
 
     it("should ignore compute modes when simulation is complete", () => {
-      const simulation = createMockSimulation(10);
-      const simulationContext = createMockSimulationContext({
-        simulation,
-        state: "Complete",
-      });
+      const simulationContext = createMockSimulationContext(
+        {
+          state: "Complete",
+        },
+        10,
+      );
       const { getPlaybackValue } = renderPlaybackProvider(simulationContext);
 
       // Should auto-switch to viewOnly due to Complete state
@@ -428,13 +445,14 @@ describe("PlaybackProvider", () => {
     });
 
     it("should pause running simulation when switching to viewOnly", () => {
-      const simulation = createMockSimulation(10);
       const pauseFn = vi.fn();
-      const simulationContext = createMockSimulationContext({
-        simulation,
-        state: "Running",
-        pause: pauseFn,
-      });
+      const simulationContext = createMockSimulationContext(
+        {
+          state: "Running",
+          pause: pauseFn,
+        },
+        10,
+      );
       const { getPlaybackValue } = renderPlaybackProvider(simulationContext);
 
       act(() => {
@@ -458,11 +476,12 @@ describe("PlaybackProvider", () => {
     });
 
     it("should do nothing when simulation has no frames", () => {
-      const simulation = createMockSimulation(0);
-      const simulationContext = createMockSimulationContext({
-        simulation,
-        state: "Running",
-      });
+      const simulationContext = createMockSimulationContext(
+        {
+          state: "Running",
+        },
+        0,
+      );
       const { getPlaybackValue } = renderPlaybackProvider(simulationContext);
 
       act(() => {
@@ -473,11 +492,12 @@ describe("PlaybackProvider", () => {
     });
 
     it("should start playing when frames exist", () => {
-      const simulation = createMockSimulation(10);
-      const simulationContext = createMockSimulationContext({
-        simulation,
-        state: "Paused",
-      });
+      const simulationContext = createMockSimulationContext(
+        {
+          state: "Paused",
+        },
+        10,
+      );
       const { getPlaybackValue } = renderPlaybackProvider(simulationContext);
 
       act(() => {
@@ -488,11 +508,12 @@ describe("PlaybackProvider", () => {
     });
 
     it("should restart from beginning when at the last frame", () => {
-      const simulation = createMockSimulation(10);
-      const simulationContext = createMockSimulationContext({
-        simulation,
-        state: "Paused",
-      });
+      const simulationContext = createMockSimulationContext(
+        {
+          state: "Paused",
+        },
+        10,
+      );
       const { getPlaybackValue } = renderPlaybackProvider(simulationContext);
 
       // Go to last frame
@@ -512,13 +533,14 @@ describe("PlaybackProvider", () => {
     });
 
     it("should resume simulation when in compute mode and paused", () => {
-      const simulation = createMockSimulation(10);
       const runFn = vi.fn();
-      const simulationContext = createMockSimulationContext({
-        simulation,
-        state: "Paused",
-        run: runFn,
-      });
+      const simulationContext = createMockSimulationContext(
+        {
+          state: "Paused",
+          run: runFn,
+        },
+        10,
+      );
       const { getPlaybackValue } = renderPlaybackProvider(simulationContext);
 
       // Ensure in compute mode
@@ -532,13 +554,14 @@ describe("PlaybackProvider", () => {
     });
 
     it("should not resume simulation when in viewOnly mode", () => {
-      const simulation = createMockSimulation(10);
       const runFn = vi.fn();
-      const simulationContext = createMockSimulationContext({
-        simulation,
-        state: "Paused",
-        run: runFn,
-      });
+      const simulationContext = createMockSimulationContext(
+        {
+          state: "Paused",
+          run: runFn,
+        },
+        10,
+      );
       const { getPlaybackValue } = renderPlaybackProvider(simulationContext);
 
       // Switch to viewOnly
@@ -557,11 +580,12 @@ describe("PlaybackProvider", () => {
 
   describe("pause action", () => {
     it("should pause playback", () => {
-      const simulation = createMockSimulation(10);
-      const simulationContext = createMockSimulationContext({
-        simulation,
-        state: "Paused",
-      });
+      const simulationContext = createMockSimulationContext(
+        {
+          state: "Paused",
+        },
+        10,
+      );
       const { getPlaybackValue } = renderPlaybackProvider(simulationContext);
 
       // Start playing
@@ -580,13 +604,14 @@ describe("PlaybackProvider", () => {
     });
 
     it("should pause simulation when in compute mode and simulation is running", () => {
-      const simulation = createMockSimulation(10);
       const pauseFn = vi.fn();
-      const simulationContext = createMockSimulationContext({
-        simulation,
-        state: "Running",
-        pause: pauseFn,
-      });
+      const simulationContext = createMockSimulationContext(
+        {
+          state: "Running",
+          pause: pauseFn,
+        },
+        10,
+      );
       const { getPlaybackValue } = renderPlaybackProvider(simulationContext);
 
       act(() => {
@@ -597,13 +622,14 @@ describe("PlaybackProvider", () => {
     });
 
     it("should not pause simulation when in viewOnly mode", () => {
-      const simulation = createMockSimulation(10);
       const pauseFn = vi.fn();
-      const simulationContext = createMockSimulationContext({
-        simulation,
-        state: "Running",
-        pause: pauseFn,
-      });
+      const simulationContext = createMockSimulationContext(
+        {
+          state: "Running",
+          pause: pauseFn,
+        },
+        10,
+      );
       const { getPlaybackValue } = renderPlaybackProvider(simulationContext);
 
       // Switch to viewOnly (this will call pause once)
@@ -626,11 +652,12 @@ describe("PlaybackProvider", () => {
 
   describe("stop action", () => {
     it("should stop playback and reset to frame 0", () => {
-      const simulation = createMockSimulation(10);
-      const simulationContext = createMockSimulationContext({
-        simulation,
-        state: "Paused",
-      });
+      const simulationContext = createMockSimulationContext(
+        {
+          state: "Paused",
+        },
+        10,
+      );
       const { getPlaybackValue } = renderPlaybackProvider(simulationContext);
 
       // Set frame and play
@@ -661,31 +688,39 @@ describe("PlaybackProvider", () => {
     });
 
     it("should be null when simulation has no frames", () => {
-      const simulation = createMockSimulation(0);
-      const simulationContext = createMockSimulationContext({
-        simulation,
-        state: "Running",
-      });
+      const simulationContext = createMockSimulationContext(
+        {
+          state: "Running",
+        },
+        0,
+      );
       const { getPlaybackValue } = renderPlaybackProvider(simulationContext);
 
       expect(getPlaybackValue().currentViewedFrame).toBeNull();
     });
 
-    it("should return frame state for current frame index", () => {
-      const simulation = createMockSimulation(10);
-      const simulationContext = createMockSimulationContext({
-        simulation,
-        state: "Running",
-      });
+    it("should return frame state for current frame index", async () => {
+      const simulationContext = createMockSimulationContext(
+        {
+          state: "Running",
+        },
+        10,
+      );
       const { getPlaybackValue } = renderPlaybackProvider(simulationContext);
+
+      // Wait for initial async frame loading (flush promises and effects)
+      await act(async () => {
+        await Promise.resolve();
+      });
 
       expect(getPlaybackValue().currentViewedFrame).not.toBeNull();
       expect(getPlaybackValue().currentViewedFrame!.number).toBe(0);
       expect(getPlaybackValue().currentViewedFrame!.time).toBe(0);
 
       // Move to frame 5
-      act(() => {
+      await act(async () => {
         getPlaybackValue().setCurrentViewedFrame(5);
+        await Promise.resolve();
       });
 
       expect(getPlaybackValue().currentViewedFrame!.number).toBe(5);
@@ -695,11 +730,12 @@ describe("PlaybackProvider", () => {
 
   describe("auto-start playback", () => {
     it("should auto-start playback when simulation transitions to Running", () => {
-      const simulation = createMockSimulation(10);
-      const simulationContext = createMockSimulationContext({
-        simulation,
-        state: "NotRun",
-      });
+      const simulationContext = createMockSimulationContext(
+        {
+          state: "NotRun",
+        },
+        10,
+      );
       const { getPlaybackValue, rerender } =
         renderPlaybackProvider(simulationContext);
 
@@ -707,10 +743,12 @@ describe("PlaybackProvider", () => {
 
       // Transition to Running
       rerender(
-        createMockSimulationContext({
-          simulation,
-          state: "Running",
-        }),
+        createMockSimulationContext(
+          {
+            state: "Running",
+          },
+          10,
+        ),
       );
 
       expect(getPlaybackValue().playbackState).toBe("Playing");

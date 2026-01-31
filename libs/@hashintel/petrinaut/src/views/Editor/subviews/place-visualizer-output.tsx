@@ -29,9 +29,8 @@ const visualizerErrorStyle = css({
 const PlaceVisualizerOutputContent: React.FC = () => {
   const { place, placeType } = usePlacePropertiesContext();
 
-  const { simulation, initialMarking, parameterValues } =
-    use(SimulationContext);
-  const { currentFrameIndex } = use(PlaybackContext);
+  const { initialMarking, parameterValues } = use(SimulationContext);
+  const { currentFrame, totalFrames } = use(PlaybackContext);
 
   // Get default parameter values from SDCPN definition
   const defaultParameterValues = useDefaultParameterValues();
@@ -66,19 +65,11 @@ const PlaceVisualizerOutputContent: React.FC = () => {
   const dimensions = placeType.elements.length;
   const tokens: Record<string, number>[] = [];
   let parameters: Record<string, number | boolean> = {};
-  const frameIndex = currentFrameIndex;
 
   // Check if we have simulation frames or use initial marking
-  if (simulation && simulation.frames.length > 0) {
+  if (totalFrames > 0 && currentFrame) {
     // Use currently viewed simulation frame (need raw frame for buffer access)
-    const currentFrame = simulation.frames[frameIndex];
-    if (!currentFrame) {
-      return (
-        <div className={visualizerMessageStyle}>No frame data available</div>
-      );
-    }
-
-    const placeState = currentFrame.places.get(place.id);
+    const placeState = currentFrame.places[place.id];
     if (!placeState) {
       return (
         <div className={visualizerMessageStyle}>Place not found in frame</div>

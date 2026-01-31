@@ -1,8 +1,5 @@
 import { use, useCallback, useEffect, useRef, useState } from "react";
-import ts from "typescript";
 
-import { checkSDCPN } from "../core/checker/checker";
-import { SDCPNItemError } from "../core/errors";
 import type { SDCPN } from "../core/types/sdcpn";
 import { deriveDefaultParameterValues } from "../hooks/use-default-parameter-values";
 import { useNotifications } from "../notifications/notifications-context";
@@ -11,17 +8,19 @@ import {
   type InitialMarking,
   SimulationContext,
   type SimulationContextValue,
+  type SimulationFrame,
   type SimulationState,
 } from "./context";
-import { buildSimulation } from "./simulator/build-simulation";
-import { checkTransitionEnablement } from "./simulator/check-transition-enablement";
-import { computeNextFrame } from "./simulator/compute-next-frame";
+import {
+  useSimulationWorker,
+  type WorkerStatus,
+} from "./worker/use-simulation-worker";
 
+/**
+ * Internal state for the simulation provider.
+ * Configuration values that aren't managed by the worker.
+ */
 type SimulationStateValues = {
-  simulation: SimulationContextValue["simulation"];
-  state: SimulationState;
-  error: string | null;
-  errorItemId: string | null;
   parameterValues: Record<string, string>;
   initialMarking: InitialMarking;
   dt: number;
@@ -30,10 +29,6 @@ type SimulationStateValues = {
 };
 
 const initialStateValues: SimulationStateValues = {
-  simulation: null,
-  state: "NotRun",
-  error: null,
-  errorItemId: null,
   parameterValues: {},
   initialMarking: new Map(),
   dt: 0.01,
@@ -42,140 +37,26 @@ const initialStateValues: SimulationStateValues = {
 };
 
 /**
- * Time between each batch of simulation frames (in milliseconds).
- * This is the interval between setTimeout calls to allow the UI to remain responsive.
+ * Maps worker status to SimulationContext state.
  */
-const TICK_INTERVAL_MS = 45;
-
-/**
- * Maximum time budget for computing frames within a single tick (in milliseconds).
- * The simulation will compute as many frames as possible within this time budget
- * before yielding control back to the browser for rendering and event handling.
- */
-const TICK_TIME_BUDGET_MS = 5;
-
-type UseSimulationRunnerParams = {
-  isRunning: boolean;
-  getState: () => Pick<
-    SimulationStateValues,
-    "simulation" | "state" | "maxTime"
-  >;
-  setStateValues: React.Dispatch<React.SetStateAction<SimulationStateValues>>;
-};
-
-/**
- * Hook that handles running the simulation with batched frame computation.
- * When the simulation state is "Running", it computes as many frames as possible
- * within the time budget, then yields to allow UI updates.
- */
-const useSimulationRunner = ({
-  isRunning,
-  getState,
-  setStateValues,
-}: UseSimulationRunnerParams) => {
-  useEffect(() => {
-    if (!isRunning) {
-      return;
-    }
-
-    let timeoutId: number | null = null;
-    let cancelled = false;
-
-    const tick = () => {
-      const tickStart = performance.now();
-      const currentState = getState();
-      let simulation = currentState.simulation;
-      const { maxTime } = currentState;
-      let shouldContinue = true;
-
-      if (!simulation || currentState.state !== "Running") {
-        return;
-      }
-
-      try {
-        // Compute as many frames as possible within the time budget
-        while (
-          shouldContinue &&
-          performance.now() - tickStart < TICK_TIME_BUDGET_MS
-        ) {
-          const { simulation: updatedSimulation, transitionFired } =
-            computeNextFrame(simulation);
-
-          simulation = updatedSimulation;
-
-          // Check if maxTime has been reached - pause instead of complete
-          const currentFrame =
-            updatedSimulation.frames[updatedSimulation.currentFrameNumber];
-          if (
-            currentFrame &&
-            maxTime !== null &&
-            currentFrame.time >= maxTime
-          ) {
-            // Pause simulation when maxTime reached (can be resumed by extending maxTime)
-            setStateValues((prev) => ({
-              ...prev,
-              simulation,
-              state: "Paused",
-              error: null,
-              errorItemId: null,
-            }));
-            return;
-          }
-
-          if (!transitionFired) {
-            if (currentFrame) {
-              const enablementResult = checkTransitionEnablement(currentFrame);
-              if (!enablementResult.hasEnabledTransition) {
-                shouldContinue = false;
-              }
-            }
-          }
-        }
-
-        // Only mark as Complete when no transitions are enabled (not when maxTime reached)
-        const finalState: SimulationState = shouldContinue
-          ? "Running"
-          : "Complete";
-
-        setStateValues((prev) => ({
-          ...prev,
-          simulation,
-          state: finalState,
-          error: null,
-          errorItemId: null,
-        }));
-
-        // Continue the loop if still running
-        if (!cancelled && finalState === "Running") {
-          timeoutId = window.setTimeout(tick, TICK_INTERVAL_MS);
-        }
-      } catch (error) {
-        // eslint-disable-next-line no-console
-        console.error("Error during simulation step:", error);
-
-        setStateValues((prev) => ({
-          ...prev,
-          state: "Error",
-          error:
-            error instanceof Error
-              ? error.message
-              : "Unknown error occurred during step",
-          errorItemId: error instanceof SDCPNItemError ? error.itemId : null,
-        }));
-      }
-    };
-
-    // Start the loop
-    timeoutId = window.setTimeout(tick, TICK_INTERVAL_MS);
-
-    return () => {
-      cancelled = true;
-      if (timeoutId !== null) {
-        clearTimeout(timeoutId);
-      }
-    };
-  }, [isRunning, getState, setStateValues]);
-};
+function mapWorkerStatusToSimulationState(
+  status: WorkerStatus,
+): SimulationState {
+  switch (status) {
+    case "idle":
+    case "initializing":
+      return "NotRun";
+    case "ready":
+    case "paused":
+      return "Paused";
+    case "running":
+      return "Running";
+    case "complete":
+      return "Complete";
+    case "error":
+      return "Error";
+  }
+}
 
 /**
  * Internal component that subscribes to simulation state changes
@@ -212,6 +93,7 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
     sdcpnRef.current = petriNetDefinition;
   }, [petriNetDefinition]);
 
+  // Configuration state (not managed by worker)
   const [stateValues, setStateValues] =
     useState<SimulationStateValues>(initialStateValues);
 
@@ -222,19 +104,20 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
   }, [stateValues]);
 
   const getSDCPN = useCallback(() => sdcpnRef.current, []);
-  const getState = useCallback(() => stateValuesRef.current, []);
+
+  // WebWorker for simulation computation
+  const { state: workerState, actions: workerActions } = useSimulationWorker();
 
   // Reinitialize when petriNetId changes
   useEffect(() => {
+    workerActions.reset();
     setStateValues(initialStateValues);
-  }, [petriNetId]);
+  }, [petriNetId, workerActions]);
 
-  // Run the simulation runner
-  useSimulationRunner({
-    isRunning: stateValues.state === "Running",
-    getState,
-    setStateValues,
-  });
+  // Sync maxTime changes to worker
+  useEffect(() => {
+    workerActions.setMaxTime(stateValues.maxTime);
+  }, [stateValues.maxTime, workerActions]);
 
   //
   // Actions
@@ -293,100 +176,48 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
     };
 
   const initialize: SimulationContextValue["initialize"] = ({ seed, dt }) => {
-    // Use functional update to ensure we see the latest state at processing time.
-    // This prevents race conditions where another action (like run()) modifies
-    // state between when we read it and when the update is processed.
-    setStateValues((prev) => {
-      if (prev.state === "Running") {
-        // Don't overwrite if another action changed state to Running.
-        // We can't throw inside a state updater, so we just return unchanged.
-        // The UI should prevent this case, but this is a safety guard.
-        return prev;
-      }
+    const currentState = stateValuesRef.current;
+    const sdcpn = getSDCPN();
 
-      try {
-        const sdcpn = getSDCPN();
-
-        // Check SDCPN validity before building simulation
-        const checkResult = checkSDCPN(sdcpn);
-
-        if (!checkResult.isValid) {
-          const firstError = checkResult.itemDiagnostics[0]!;
-          const firstDiagnostic = firstError.diagnostics[0]!;
-          const errorMessage =
-            typeof firstDiagnostic.messageText === "string"
-              ? firstDiagnostic.messageText
-              : ts.flattenDiagnosticMessageText(
-                  firstDiagnostic.messageText,
-                  "\n",
-                );
-
-          return {
-            ...prev,
-            simulation: null,
-            state: "Error" as const,
-            error: `TypeScript error in ${firstError.itemType} (${firstError.itemId}): ${errorMessage}`,
-            errorItemId: firstError.itemId,
-          };
-        }
-
-        // Build the simulation instance using stored initialMarking and parameterValues
-        const simulationInstance = buildSimulation({
-          sdcpn,
-          initialMarking: prev.initialMarking,
-          parameterValues: prev.parameterValues,
-          seed,
-          dt,
-        });
-
-        return {
-          ...prev,
-          simulation: simulationInstance,
-          state: "Paused",
-          error: null,
-          errorItemId: null,
-        };
-      } catch (error) {
-        // eslint-disable-next-line no-console
-        console.error("Error initializing simulation:", error);
-
-        return {
-          ...prev,
-          simulation: null,
-          state: "Error",
-          error:
-            error instanceof Error
-              ? error.message
-              : "Unknown error occurred during initialization",
-          errorItemId: error instanceof SDCPNItemError ? error.itemId : null,
-        };
-      }
+    // Delegate to worker
+    workerActions.initialize({
+      sdcpn,
+      initialMarking: currentState.initialMarking,
+      parameterValues: currentState.parameterValues,
+      seed,
+      dt,
     });
+
+    // Update local dt
+    setStateValues((prev) => ({ ...prev, dt }));
   };
 
   const run: SimulationContextValue["run"] = () => {
-    // Use functional update to ensure we see the latest state at processing time.
-    // This prevents race conditions where state changes between validation and update.
-    setStateValues((prev) => {
-      // Guard against invalid states - return unchanged if we can't run
-      if (prev.state === "Running") {
-        return prev; // Already running
-      }
+    const simulationState = mapWorkerStatusToSimulationState(
+      workerState.status,
+    );
 
-      if (!prev.simulation) {
-        return prev; // No simulation initialized
-      }
+    // Guard against invalid states
+    if (simulationState === "Running") {
+      return; // Already running
+    }
 
-      if (prev.state === "Error" || prev.state === "Complete") {
-        return prev; // Can't run from these states
-      }
+    if (
+      workerState.status === "idle" ||
+      workerState.status === "initializing"
+    ) {
+      return; // No simulation initialized
+    }
 
-      return { ...prev, state: "Running" };
-    });
+    if (simulationState === "Error" || simulationState === "Complete") {
+      return; // Can't run from these states
+    }
+
+    workerActions.start();
   };
 
   const pause: SimulationContextValue["pause"] = () => {
-    setStateValues((prev) => ({ ...prev, state: "Paused" }));
+    workerActions.pause();
   };
 
   const reset: SimulationContextValue["reset"] = () => {
@@ -398,27 +229,45 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
       parameterValues[key] = String(value);
     }
 
+    workerActions.reset();
+
     setStateValues((prev) => ({
       ...prev,
-      simulation: null,
-      state: "NotRun",
-      error: null,
-      errorItemId: null,
       parameterValues,
       // Keep initialMarking when resetting - it's configuration, not simulation state
     }));
   };
 
+  // Frame access - get from worker state
+  const getFrame = useCallback(
+    (frameIndex: number): Promise<SimulationFrame | null> => {
+      const frame = workerState.frames[frameIndex];
+      return Promise.resolve(frame ?? null);
+    },
+    [workerState.frames],
+  );
+
+  // Get all frames - get from worker state
+  const getAllFrames = useCallback((): Promise<SimulationFrame[]> => {
+    return Promise.resolve(workerState.frames);
+  }, [workerState.frames]);
+
+  // Map worker state to context value
+  const simulationState = mapWorkerStatusToSimulationState(workerState.status);
+  const totalFrames = workerState.frames.length;
+
   const contextValue: SimulationContextValue = {
-    simulation: stateValues.simulation,
-    state: stateValues.state,
-    error: stateValues.error,
-    errorItemId: stateValues.errorItemId,
+    state: simulationState,
+    error: workerState.error,
+    errorItemId: workerState.errorItemId,
     parameterValues: stateValues.parameterValues,
     initialMarking: stateValues.initialMarking,
     dt: stateValues.dt,
     maxTime: stateValues.maxTime,
     computeBufferDuration: stateValues.computeBufferDuration,
+    totalFrames,
+    getFrame,
+    getAllFrames,
     setInitialMarking,
     setParameterValue,
     setDt,

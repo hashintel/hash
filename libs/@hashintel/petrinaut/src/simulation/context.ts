@@ -204,15 +204,36 @@ export type InitialMarking = Map<
 
 /**
  * The combined simulation context containing both state and actions.
+ *
+ * Note: The full SimulationInstance is not exposed. Instead, use `getFrame()`
+ * to access individual frame data. This encapsulation supports the WebWorker
+ * architecture where frames are computed off the main thread.
  */
 export type SimulationContextValue = {
   // State values
-  simulation: SimulationInstance | null;
+  /**
+   * Current lifecycle state of the simulation.
+   */
   state: SimulationState;
+  /**
+   * Error message if state is "Error".
+   */
   error: string | null;
+  /**
+   * ID of the SDCPN item that caused the error, if applicable.
+   */
   errorItemId: string | null;
+  /**
+   * Current parameter values (string representation for UI binding).
+   */
   parameterValues: Record<string, string>;
+  /**
+   * Initial token distribution for each place.
+   */
   initialMarking: InitialMarking;
+  /**
+   * Time step for simulation advancement.
+   */
   dt: number;
   /**
    * Maximum simulation time in seconds.
@@ -225,6 +246,34 @@ export type SimulationContextValue = {
    * Default is 1 second.
    */
   computeBufferDuration: number;
+  /**
+   * Total number of computed frames available.
+   */
+  totalFrames: number;
+
+  // Frame access
+  /**
+   * Get a specific frame by index.
+   * Returns null if the index is out of bounds or no simulation exists.
+   *
+   * This is the primary way to access frame data. The full frame history
+   * is kept internal to the provider for memory management.
+   *
+   * @param frameIndex - The index of the frame to retrieve (0-based)
+   * @returns Promise resolving to the frame data or null
+   */
+  getFrame: (frameIndex: number) => Promise<SimulationFrame | null>;
+
+  /**
+   * Get all computed frames.
+   * Returns an empty array if no simulation exists.
+   *
+   * Note: For large simulations, this may return a large array.
+   * Consider using getFrame() for single-frame access when possible.
+   *
+   * @returns Promise resolving to array of all frames
+   */
+  getAllFrames: () => Promise<SimulationFrame[]>;
 
   // Actions
   setInitialMarking: (
@@ -250,7 +299,6 @@ export type SimulationContextValue = {
 };
 
 const DEFAULT_CONTEXT_VALUE: SimulationContextValue = {
-  simulation: null,
   state: "NotRun",
   error: null,
   errorItemId: null,
@@ -259,6 +307,9 @@ const DEFAULT_CONTEXT_VALUE: SimulationContextValue = {
   dt: 0.01,
   maxTime: null,
   computeBufferDuration: 1,
+  totalFrames: 0,
+  getFrame: async () => null,
+  getAllFrames: async () => [],
   setInitialMarking: () => {},
   setParameterValue: () => {},
   setDt: () => {},
