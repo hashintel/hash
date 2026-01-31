@@ -23,7 +23,6 @@ describe("isTransitionStructurallyEnabled", () => {
     };
 
     const frame: SimulationFrame = {
-      simulation,
       time: 0,
       places: new Map([
         [
@@ -87,7 +86,6 @@ describe("isTransitionStructurallyEnabled", () => {
     };
 
     const frame: SimulationFrame = {
-      simulation,
       time: 0,
       places: new Map([
         [
@@ -151,7 +149,6 @@ describe("isTransitionStructurallyEnabled", () => {
     };
 
     const frame: SimulationFrame = {
-      simulation,
       time: 0,
       places: new Map([
         [
@@ -216,7 +213,6 @@ describe("isTransitionStructurallyEnabled", () => {
     };
 
     const frame: SimulationFrame = {
-      simulation,
       time: 0,
       places: new Map([
         [
@@ -301,7 +297,6 @@ describe("isTransitionStructurallyEnabled", () => {
     };
 
     const frame: SimulationFrame = {
-      simulation,
       time: 0,
       places: new Map(),
       transitions: new Map([
@@ -349,7 +344,6 @@ describe("checkTransitionEnablement", () => {
     };
 
     const frame: SimulationFrame = {
-      simulation,
       time: 0,
       places: new Map([
         [
@@ -453,7 +447,6 @@ describe("checkTransitionEnablement", () => {
     };
 
     const frame: SimulationFrame = {
-      simulation,
       time: 0,
       places: new Map([
         [
@@ -557,7 +550,6 @@ describe("checkTransitionEnablement", () => {
     };
 
     const frame: SimulationFrame = {
-      simulation,
       time: 0,
       places: new Map(),
       transitions: new Map(),
@@ -589,7 +581,6 @@ describe("checkTransitionEnablement", () => {
     };
 
     const frame: SimulationFrame = {
-      simulation,
       time: 0,
       places: new Map([
         [

@@ -152,11 +152,14 @@ export function computeNextFrame(
   }
 
   // Step 2: Execute all transitions on the frame with updated dynamics
-  const frameAfterTransitions = executeTransitions(frameAfterDynamics);
-
-  // Detect if any transition fired by checking if time changed
-  // (executeTransitions only increments time when transitions fire)
-  const transitionFired = frameAfterTransitions.time !== currentFrame.time;
+  const transitionsResult = executeTransitions(
+    frameAfterDynamics,
+    simulation,
+    simulation.dt,
+    simulation.rngState,
+  );
+  const frameAfterTransitions = transitionsResult.frame;
+  const transitionFired = transitionsResult.transitionFired;
 
   // Step 3: Ensure time is always incremented (executeTransitions only increments if transitions fire)
   const finalFrame = transitionFired
@@ -184,6 +187,7 @@ export function computeNextFrame(
       ...simulation,
       frames: [...simulation.frames, finalFrame],
       currentFrameNumber: simulation.currentFrameNumber + 1,
+      rngState: transitionsResult.rngState,
     },
     transitionFired,
   };

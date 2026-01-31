@@ -20,7 +20,6 @@ describe("removeTokensFromSimulationFrame", () => {
     };
 
     const frame: SimulationFrame = {
-      simulation,
       time: 0,
       places: new Map(),
       transitions: new Map(),
@@ -51,7 +50,6 @@ describe("removeTokensFromSimulationFrame", () => {
     };
 
     const frame: SimulationFrame = {
-      simulation,
       time: 0,
       places: new Map([
         [
@@ -97,7 +95,6 @@ describe("removeTokensFromSimulationFrame", () => {
     };
 
     const frame: SimulationFrame = {
-      simulation,
       time: 0,
       places: new Map([
         [
@@ -143,7 +140,6 @@ describe("removeTokensFromSimulationFrame", () => {
     };
 
     const frame: SimulationFrame = {
-      simulation,
       time: 0,
       places: new Map([
         [
@@ -193,7 +189,6 @@ describe("removeTokensFromSimulationFrame", () => {
     };
 
     const frame: SimulationFrame = {
-      simulation,
       time: 0,
       places: new Map([
         [
@@ -244,7 +239,6 @@ describe("removeTokensFromSimulationFrame", () => {
     };
 
     const frame: SimulationFrame = {
-      simulation,
       time: 0,
       places: new Map([
         [
@@ -295,7 +289,6 @@ describe("removeTokensFromSimulationFrame", () => {
     };
 
     const frame: SimulationFrame = {
-      simulation,
       time: 0,
       places: new Map([
         [
@@ -350,7 +343,6 @@ describe("removeTokensFromSimulationFrame", () => {
     };
 
     const frame: SimulationFrame = {
-      simulation,
       time: 0,
       places: new Map([
         [
@@ -424,7 +416,6 @@ describe("removeTokensFromSimulationFrame", () => {
     };
 
     const frame: SimulationFrame = {
-      simulation,
       time: 0,
       places: new Map([
         [
@@ -494,7 +485,6 @@ describe("removeTokensFromSimulationFrame", () => {
     };
 
     const frame: SimulationFrame = {
-      simulation,
       time: 0,
       places: new Map([
         [
@@ -589,7 +579,6 @@ describe("removeTokensFromSimulationFrame", () => {
     };
 
     const frame: SimulationFrame = {
-      simulation,
       time: 0,
       places: new Map([
         [
