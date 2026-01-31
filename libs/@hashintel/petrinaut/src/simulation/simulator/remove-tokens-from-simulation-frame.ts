@@ -27,7 +27,7 @@ export function removeTokensFromSimulationFrame(
 
   // Validate all places and indices first
   for (const [placeId, indices] of tokensToRemove) {
-    const placeState = frame.places.get(placeId);
+    const placeState = frame.places[placeId];
     if (!placeState) {
       throw new Error(
         `Place with ID ${placeId} not found in simulation frame.`,
@@ -64,7 +64,7 @@ export function removeTokensFromSimulationFrame(
   const globalIndicesToRemove = new Set<number>();
 
   for (const [placeId, indices] of tokensToRemove) {
-    const placeState = frame.places.get(placeId)!;
+    const placeState = frame.places[placeId]!;
     const { offset, dimensions } = placeState;
     const tokenSize = dimensions;
 
@@ -102,11 +102,11 @@ export function removeTokensFromSimulationFrame(
 
   // Calculate offset adjustments for each place
   // We need to track cumulative size removed before each place's offset
-  const placesByOffset = Array.from(frame.places.entries()).sort(
+  const placesByOffset = Object.entries(frame.places).sort(
     (a, b) => a[1].offset - b[1].offset,
   );
 
-  const newPlaces = new Map(frame.places);
+  const newPlaces: SimulationFrame["places"] = { ...frame.places };
   let cumulativeRemoved = 0;
 
   for (const [placeId, placeState] of placesByOffset) {
@@ -120,11 +120,11 @@ export function removeTokensFromSimulationFrame(
     const sizeRemovedFromPlace = tokensRemovedFromPlace * tokenSize;
 
     // Update this place with adjusted offset and count
-    newPlaces.set(placeId, {
+    newPlaces[placeId] = {
       ...placeState,
       offset: offset - cumulativeRemoved,
       count: count - tokensRemovedFromPlace,
-    });
+    };
 
     // Add this place's removed size to cumulative for next places
     cumulativeRemoved += sizeRemovedFromPlace;

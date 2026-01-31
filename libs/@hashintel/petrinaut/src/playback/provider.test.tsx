@@ -26,8 +26,8 @@ type MockSimulationContextOverrides = Partial<SimulationContextValue>;
 function createMockFrame(time: number): SimulationFrame {
   return {
     time,
-    places: new Map(),
-    transitions: new Map(),
+    places: {},
+    transitions: {},
     buffer: new Float64Array(),
   };
 }

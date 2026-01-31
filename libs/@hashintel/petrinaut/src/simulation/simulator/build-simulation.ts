@@ -188,15 +188,7 @@ export function buildSimulation(input: SimulationInput): SimulationInstance {
 
   // Calculate buffer size and build place states
   let bufferSize = 0;
-  const placeStates = new Map<
-    string,
-    {
-      instance: (typeof sdcpn.places)[0];
-      offset: number;
-      count: number;
-      dimensions: number;
-    }
-  >();
+  const placeStates: SimulationFrame["places"] = {};
 
   // Process places in a consistent order (sorted by ID)
   const sortedPlaceIds = Array.from(placesMap.keys()).sort();
@@ -207,12 +199,12 @@ export function buildSimulation(input: SimulationInput): SimulationInstance {
     const count = marking?.count ?? 0;
     const dimensions = getPlaceDimensions(place, sdcpn);
 
-    placeStates.set(placeId, {
+    placeStates[placeId] = {
       instance: place,
       offset: bufferSize,
       count,
       dimensions,
-    });
+    };
 
     bufferSize += dimensions * count;
   }
@@ -231,17 +223,15 @@ export function buildSimulation(input: SimulationInput): SimulationInstance {
   }
 
   // Initialize transition states
-  const transitionStates = new Map(
-    sdcpn.transitions.map((transition) => [
-      transition.id,
-      {
-        instance: transition,
-        timeSinceLastFiringMs: 0,
-        firedInThisFrame: false,
-        firingCount: 0,
-      },
-    ]),
-  );
+  const transitionStates: SimulationFrame["transitions"] = {};
+  for (const transition of sdcpn.transitions) {
+    transitionStates[transition.id] = {
+      instance: transition,
+      timeSinceLastFiringMs: 0,
+      firedInThisFrame: false,
+      firingCount: 0,
+    };
+  }
 
   // Create the simulation instance (without frames initially)
   const simulationInstance: SimulationInstance = {
