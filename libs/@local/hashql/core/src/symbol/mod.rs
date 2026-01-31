@@ -20,6 +20,7 @@
 
 mod repr;
 pub mod sym;
+mod sym2;
 mod table;
 
 use core::{
