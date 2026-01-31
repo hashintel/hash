@@ -57,7 +57,7 @@ impl<'heap> String<'heap> {
     /// assert_eq!(literal.as_str(), "Hello, world!");
     /// ```
     #[must_use]
-    pub const fn as_str(&self) -> &str {
+    pub fn as_str(&self) -> &str {
         self.value.as_str()
     }
 
