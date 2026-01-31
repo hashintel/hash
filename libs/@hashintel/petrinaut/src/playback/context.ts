@@ -1,6 +1,9 @@
 import { createContext } from "react";
 
-import type { SimulationFrameState } from "../simulation/context";
+import type {
+  SimulationFrame,
+  SimulationFrameState,
+} from "../simulation/context";
 
 /**
  * Current state of the playback lifecycle.
@@ -53,7 +56,15 @@ export function formatPlaybackSpeed(speed: PlaybackSpeed): string {
 export type PlaybackContextValue = {
   // State values
   /**
-   * The currently viewed simulation frame state.
+   * The raw simulation frame data for the currently viewed frame.
+   * Contains buffer data for accessing token values directly.
+   * Null when no simulation is running or no frames exist.
+   */
+  currentFrame: SimulationFrame | null;
+
+  /**
+   * The currently viewed simulation frame state (simplified view).
+   * Provides easy access to token counts and transition states.
    * Null when no simulation is running or no frames exist.
    */
   currentViewedFrame: SimulationFrameState | null;
@@ -131,6 +142,7 @@ export type PlaybackContextValue = {
 };
 
 const DEFAULT_CONTEXT_VALUE: PlaybackContextValue = {
+  currentFrame: null,
   currentViewedFrame: null,
   playbackState: "Stopped",
   currentFrameIndex: 0,

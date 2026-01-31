@@ -28,7 +28,7 @@ import type {
   DifferentialEquation,
   Place,
 } from "../../../../core/types/sdcpn";
-import { SimulationContext } from "../../../../simulation/context";
+import { PlaybackContext } from "../../../../playback/context";
 import { EditorContext } from "../../../../state/editor-context";
 import { SDCPNContext } from "../../../../state/sdcpn-context";
 import { useIsReadOnly } from "../../../../state/use-is-read-only";
@@ -175,7 +175,7 @@ export const PlaceProperties: React.FC<PlacePropertiesProps> = ({
   differentialEquations,
   updatePlace,
 }) => {
-  const { simulation } = use(SimulationContext);
+  const { totalFrames } = use(PlaybackContext);
   const isReadOnly = useIsReadOnly();
   const { globalMode, setSelectedResourceId } = use(EditorContext);
 
@@ -270,8 +270,7 @@ export const PlaceProperties: React.FC<PlacePropertiesProps> = ({
     : [];
 
   // Determine if we should show visualization (when simulation has frames)
-  const hasSimulationFrames =
-    simulation !== null && simulation.frames.length > 0;
+  const hasSimulationFrames = totalFrames > 0;
   const showVisualizerOutput = isReadOnly || hasSimulationFrames;
 
   // Build subviews array dynamically based on current state

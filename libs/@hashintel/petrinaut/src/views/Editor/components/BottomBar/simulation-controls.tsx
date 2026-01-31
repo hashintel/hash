@@ -300,7 +300,6 @@ export const SimulationControls: React.FC<SimulationControlsProps> = ({
   disabled = false,
 }) => {
   const {
-    simulation,
     state: simulationState,
     reset,
     initialize,
@@ -382,7 +381,7 @@ export const SimulationControls: React.FC<SimulationControlsProps> = ({
     setBottomPanelOpen(true);
   };
 
-  const hasSimulation = simulation !== null;
+  const hasSimulation = simulationState !== "NotRun";
   const isSimulationComplete = simulationState === "Complete";
   const isSimulationErrored = simulationState === "Error";
   const isPlaybackPlaying = playbackState === "Playing";

@@ -1,6 +1,6 @@
 import { css } from "@hashintel/ds-helpers/css";
 import { scaleLinear } from "d3-scale";
-import { use, useCallback, useMemo, useRef, useState } from "react";
+import { use, useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { SegmentGroup } from "../../../components/segment-group";
 import type { SubView } from "../../../components/sub-view/types";
@@ -222,6 +222,15 @@ interface CompartmentData {
 }
 
 /**
+ * Return type for useCompartmentData hook.
+ * Includes both compartment data and frame times for tooltip display.
+ */
+interface CompartmentDataResult {
+  compartmentData: CompartmentData[];
+  frameTimes: number[];
+}
+
+/**
  * Shared legend state interface for chart components.
  */
 interface LegendState {
@@ -245,44 +254,75 @@ interface TooltipState {
 
 /**
  * Hook to extract compartment data from simulation frames.
+ * Uses getAllFrames() for async-compatible frame access.
  */
-const useCompartmentData = (): CompartmentData[] => {
-  const { simulation } = use(SimulationContext);
+const useCompartmentData = (): CompartmentDataResult => {
+  const { getAllFrames, totalFrames } = use(SimulationContext);
   const {
     petriNetDefinition: { places, types },
   } = use(SDCPNContext);
 
-  return useMemo((): CompartmentData[] => {
-    if (!simulation || simulation.frames.length === 0) {
-      return [];
-    }
+  const [result, setResult] = useState<CompartmentDataResult>({
+    compartmentData: [],
+    frameTimes: [],
+  });
 
-    // Create a map of place ID to color
-    const placeColors = new Map<string, string>();
-    for (const [index, place] of places.entries()) {
-      // Try to get color from the place's token type
-      const tokenType = types.find((type) => type.id === place.colorId);
-      const color =
-        tokenType?.displayColor ??
-        DEFAULT_COLORS[index % DEFAULT_COLORS.length]!;
-      placeColors.set(place.id, color);
-    }
+  useEffect(() => {
+    let cancelled = false;
 
-    // Extract token counts for each place across all frames
-    return places.map((place) => {
-      const values = simulation.frames.map((frame) => {
-        const placeData = frame.places[place.id];
-        return placeData?.count ?? 0;
+    const fetchData = async () => {
+      if (totalFrames === 0) {
+        setResult({ compartmentData: [], frameTimes: [] });
+        return;
+      }
+
+      const frames = await getAllFrames();
+      if (cancelled || frames.length === 0) {
+        return;
+      }
+
+      // Create a map of place ID to color
+      const placeColors = new Map<string, string>();
+      for (const [index, place] of places.entries()) {
+        // Try to get color from the place's token type
+        const tokenType = types.find((type) => type.id === place.colorId);
+        const color =
+          tokenType?.displayColor ??
+          DEFAULT_COLORS[index % DEFAULT_COLORS.length]!;
+        placeColors.set(place.id, color);
+      }
+
+      // Extract token counts for each place across all frames
+      const compartmentData = places.map((place) => {
+        const values = frames.map((frame) => {
+          const placeData = frame.places[place.id];
+          return placeData?.count ?? 0;
+        });
+
+        return {
+          placeId: place.id,
+          placeName: place.name,
+          color: placeColors.get(place.id) ?? DEFAULT_COLORS[0]!,
+          values,
+        };
       });
 
-      return {
-        placeId: place.id,
-        placeName: place.name,
-        color: placeColors.get(place.id) ?? DEFAULT_COLORS[0]!,
-        values,
-      };
-    });
-  }, [simulation, places, types]);
+      // Extract frame times for tooltip display
+      const frameTimes = frames.map((frame) => frame.time);
+
+      if (!cancelled) {
+        setResult({ compartmentData, frameTimes });
+      }
+    };
+
+    void fetchData();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [getAllFrames, totalFrames, places, types]);
+
+  return result;
 };
 
 /**
@@ -498,6 +538,7 @@ const TimelineLegend: React.FC<{
 
 interface ChartProps {
   compartmentData: CompartmentData[];
+  frameTimes: number[];
   legendState: LegendState;
   yAxisScale: YAxisScale;
   onTooltipChange: (tooltip: TooltipState | null) => void;
@@ -510,12 +551,13 @@ interface ChartProps {
  */
 const CompartmentTimeSeries: React.FC<ChartProps> = ({
   compartmentData,
+  frameTimes,
   legendState,
   yAxisScale,
   onTooltipChange,
   onPlaceHover,
 }) => {
-  const { simulation } = use(SimulationContext);
+  const { totalFrames } = use(SimulationContext);
   const { setCurrentViewedFrame } = use(PlaybackContext);
 
   const chartRef = useRef<SVGSVGElement>(null);
@@ -533,11 +575,9 @@ const CompartmentTimeSeries: React.FC<ChartProps> = ({
 
   // Calculate chart dimensions and scales
   const chartMetrics = useMemo(() => {
-    if (compartmentData.length === 0 || !simulation) {
+    if (compartmentData.length === 0 || totalFrames === 0) {
       return null;
     }
-
-    const totalFrames = simulation.frames.length;
 
     return {
       totalFrames,
@@ -546,7 +586,7 @@ const CompartmentTimeSeries: React.FC<ChartProps> = ({
       yScale: (value: number, height: number) =>
         height - (value / yAxisScale.yMax) * height,
     };
-  }, [compartmentData, simulation, yAxisScale.yMax]);
+  }, [compartmentData, totalFrames, yAxisScale.yMax]);
 
   // Calculate frame index from mouse position
   const getFrameFromEvent = useCallback(
@@ -579,7 +619,7 @@ const CompartmentTimeSeries: React.FC<ChartProps> = ({
   // Update tooltip based on mouse position and hovered place
   const updateTooltip = useCallback(
     (event: React.MouseEvent<SVGSVGElement>) => {
-      if (!localHoveredPlaceId || !simulation) {
+      if (!localHoveredPlaceId || frameTimes.length === 0) {
         onTooltipChange(null);
         return;
       }
@@ -599,7 +639,7 @@ const CompartmentTimeSeries: React.FC<ChartProps> = ({
       }
 
       const value = placeData.values[frameIndex] ?? 0;
-      const time = simulation.frames[frameIndex]?.time ?? 0;
+      const time = frameTimes[frameIndex] ?? 0;
 
       onTooltipChange({
         visible: true,
@@ -616,7 +656,7 @@ const CompartmentTimeSeries: React.FC<ChartProps> = ({
       compartmentData,
       hiddenPlaces,
       localHoveredPlaceId,
-      simulation,
+      frameTimes,
       getFrameFromEvent,
       onTooltipChange,
     ],
@@ -681,7 +721,7 @@ const CompartmentTimeSeries: React.FC<ChartProps> = ({
     [chartMetrics],
   );
 
-  if (!simulation || compartmentData.length === 0 || !chartMetrics) {
+  if (totalFrames === 0 || compartmentData.length === 0 || !chartMetrics) {
     return null;
   }
 
@@ -802,12 +842,13 @@ const CompartmentTimeSeries: React.FC<ChartProps> = ({
  */
 const StackedAreaChart: React.FC<ChartProps> = ({
   compartmentData,
+  frameTimes,
   legendState,
   yAxisScale,
   onTooltipChange,
   onPlaceHover,
 }) => {
-  const { simulation } = use(SimulationContext);
+  const { totalFrames } = use(SimulationContext);
   const { setCurrentViewedFrame } = use(PlaybackContext);
 
   const chartRef = useRef<SVGSVGElement>(null);
@@ -830,11 +871,9 @@ const StackedAreaChart: React.FC<ChartProps> = ({
 
   // Calculate stacked values and chart metrics
   const { stackedData, chartMetrics } = useMemo(() => {
-    if (visibleCompartmentData.length === 0 || !simulation) {
+    if (visibleCompartmentData.length === 0 || totalFrames === 0) {
       return { stackedData: [], chartMetrics: null };
     }
-
-    const totalFrames = simulation.frames.length;
 
     // Calculate stacked values: for each frame, accumulate the values
     // stackedData[i] contains { placeId, color, baseValues[], topValues[] }
@@ -876,7 +915,7 @@ const StackedAreaChart: React.FC<ChartProps> = ({
           height - (value / yAxisScale.yMax) * height,
       },
     };
-  }, [visibleCompartmentData, simulation, yAxisScale.yMax]);
+  }, [visibleCompartmentData, totalFrames, yAxisScale.yMax]);
 
   // Calculate frame index from mouse position
   const getFrameFromEvent = useCallback(
@@ -909,7 +948,7 @@ const StackedAreaChart: React.FC<ChartProps> = ({
   // Update tooltip based on mouse position and hovered place
   const updateTooltip = useCallback(
     (event: React.MouseEvent<SVGSVGElement>) => {
-      if (!localHoveredPlaceId || !simulation) {
+      if (!localHoveredPlaceId || frameTimes.length === 0) {
         onTooltipChange(null);
         return;
       }
@@ -930,7 +969,7 @@ const StackedAreaChart: React.FC<ChartProps> = ({
       }
 
       const value = placeData.values[frameIndex] ?? 0;
-      const time = simulation.frames[frameIndex]?.time ?? 0;
+      const time = frameTimes[frameIndex] ?? 0;
 
       onTooltipChange({
         visible: true,
@@ -947,7 +986,7 @@ const StackedAreaChart: React.FC<ChartProps> = ({
       compartmentData,
       hiddenPlaces,
       localHoveredPlaceId,
-      simulation,
+      frameTimes,
       getFrameFromEvent,
       onTooltipChange,
     ],
@@ -1026,7 +1065,7 @@ const StackedAreaChart: React.FC<ChartProps> = ({
     [chartMetrics],
   );
 
-  if (!simulation || compartmentData.length === 0 || !chartMetrics) {
+  if (totalFrames === 0 || compartmentData.length === 0 || !chartMetrics) {
     return null;
   }
 
@@ -1101,8 +1140,8 @@ const StackedAreaChart: React.FC<ChartProps> = ({
  */
 const SimulationTimelineContent: React.FC = () => {
   const { timelineChartType: chartType } = use(EditorContext);
-  const { simulation } = use(SimulationContext);
-  const compartmentData = useCompartmentData();
+  const { totalFrames } = use(SimulationContext);
+  const { compartmentData, frameTimes } = useCompartmentData();
 
   // Shared legend state - persists across chart type switches
   const [hiddenPlaces, setHiddenPlaces] = useState<Set<string>>(new Set());
@@ -1140,8 +1179,6 @@ const SimulationTimelineContent: React.FC = () => {
     setTooltip(newTooltip);
   }, []);
 
-  const totalFrames = simulation?.frames.length ?? 0;
-
   if (compartmentData.length === 0 || totalFrames === 0) {
     return (
       <div className={containerStyle}>
@@ -1160,6 +1197,7 @@ const SimulationTimelineContent: React.FC = () => {
           {chartType === "stacked" ? (
             <StackedAreaChart
               compartmentData={compartmentData}
+              frameTimes={frameTimes}
               legendState={legendState}
               yAxisScale={yAxisScale}
               onTooltipChange={handleTooltipChange}
@@ -1168,6 +1206,7 @@ const SimulationTimelineContent: React.FC = () => {
           ) : (
             <CompartmentTimeSeries
               compartmentData={compartmentData}
+              frameTimes={frameTimes}
               legendState={legendState}
               yAxisScale={yAxisScale}
               onTooltipChange={handleTooltipChange}
