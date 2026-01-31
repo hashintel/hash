@@ -271,7 +271,7 @@ const useCompartmentData = (): CompartmentData[] => {
     // Extract token counts for each place across all frames
     return places.map((place) => {
       const values = simulation.frames.map((frame) => {
-        const placeData = frame.places.get(place.id);
+        const placeData = frame.places[place.id];
         return placeData?.count ?? 0;
       });
 

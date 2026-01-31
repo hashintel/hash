@@ -131,19 +131,29 @@ export type SimulationInstance = {
 };
 
 /**
+ * State of a place within a simulation frame.
+ */
+export type SimulationFrameState_Place = {
+  instance: Place;
+  offset: number;
+  count: number;
+  dimensions: number;
+};
+
+/**
  * A single frame (snapshot) of the simulation state at a point in time.
  * Contains the complete token distribution and transition states.
+ *
+ * All properties are serializable (no Map types) to support transfer
+ * between WebWorker and Main Thread via structured clone.
  */
 export type SimulationFrame = {
   /** Simulation time at this frame */
   time: number;
-  /** Place states with token buffer offsets */
-  places: Map<
-    ID,
-    { instance: Place; offset: number; count: number; dimensions: number }
-  >;
-  /** Transition states with firing information */
-  transitions: Map<
+  /** Place states with token buffer offsets, keyed by place ID */
+  places: Record<ID, SimulationFrameState_Place>;
+  /** Transition states with firing information, keyed by transition ID */
+  transitions: Record<
     ID,
     SimulationFrameState_Transition & { instance: Transition }
   >;
@@ -154,7 +164,7 @@ export type SimulationFrame = {
    *
    * Layout: For each place, its tokens are stored contiguously.
    *
-   * Access to a place's token values can be done via the offset and count in the `places` map.
+   * Access to a place's token values can be done via the offset and count in the `places` record.
    */
   buffer: Float64Array;
 };

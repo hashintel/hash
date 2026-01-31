@@ -42,7 +42,7 @@ export function computeNextFrame(
     const newBuffer = new Float64Array(currentFrame.buffer);
 
     // Apply differential equations to each place that has dynamics enabled
-    for (const [placeId, placeState] of currentFrame.places) {
+    for (const [placeId, placeState] of Object.entries(currentFrame.places)) {
       // Skip places without dynamics enabled
       if (!placeState.instance.dynamicsEnabled) {
         continue;
@@ -168,16 +168,18 @@ export function computeNextFrame(
         ...frameAfterTransitions,
         time: currentFrame.time + simulation.dt,
         // Also update transition timeSinceLastFiringMs and firedInThisFrame since time advanced
-        transitions: new Map(
-          Array.from(frameAfterTransitions.transitions).map(([id, state]) => [
-            id,
-            {
-              ...state,
-              timeSinceLastFiringMs:
-                state.timeSinceLastFiringMs + simulation.dt,
-              firedInThisFrame: false,
-            },
-          ]),
+        transitions: Object.fromEntries(
+          Object.entries(frameAfterTransitions.transitions).map(
+            ([id, state]) => [
+              id,
+              {
+                ...state,
+                timeSinceLastFiringMs:
+                  state.timeSinceLastFiringMs + simulation.dt,
+                firedInThisFrame: false,
+              },
+            ],
+          ),
         ),
       };
 

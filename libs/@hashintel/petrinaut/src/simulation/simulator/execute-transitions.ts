@@ -30,7 +30,7 @@ function addTokensToSimulationFrame(
 
   // Validate all places and token dimensions first
   for (const [placeId, tokens] of tokensToAdd) {
-    const placeState = frame.places.get(placeId);
+    const placeState = frame.places[placeId];
     if (!placeState) {
       throw new Error(
         `Place with ID ${placeId} not found in simulation frame.`,
@@ -51,7 +51,7 @@ function addTokensToSimulationFrame(
   // Calculate total size increase needed in buffer
   let totalSizeIncrease = 0;
   for (const [placeId, tokens] of tokensToAdd) {
-    const placeState = frame.places.get(placeId)!;
+    const placeState = frame.places[placeId]!;
     const tokenSize = placeState.dimensions;
     totalSizeIncrease += tokens.length * tokenSize;
   }
@@ -60,11 +60,11 @@ function addTokensToSimulationFrame(
   const newBuffer = new Float64Array(frame.buffer.length + totalSizeIncrease);
 
   // Process places in order of their offsets to build the new buffer
-  const placesByOffset = Array.from(frame.places.entries()).sort(
+  const placesByOffset = Object.entries(frame.places).sort(
     (a, b) => a[1].offset - b[1].offset,
   );
 
-  const newPlaces = new Map(frame.places);
+  const newPlaces: SimulationFrame["places"] = { ...frame.places };
   let sourceIndex = 0;
   let targetIndex = 0;
 
@@ -88,24 +88,24 @@ function addTokensToSimulationFrame(
       }
 
       // Update this place's count
-      newPlaces.set(placeId, {
+      newPlaces[placeId] = {
         ...placeState,
         count: count + newTokens.length,
-      });
+      };
     }
   }
 
   // Recalculate all offsets based on the new buffer layout
   let currentOffset = 0;
   for (const [placeId, _placeState] of placesByOffset) {
-    const updatedState = newPlaces.get(placeId)!;
+    const updatedState = newPlaces[placeId]!;
     const tokenSize = updatedState.dimensions;
     const placeSize = updatedState.count * tokenSize;
 
-    newPlaces.set(placeId, {
+    newPlaces[placeId] = {
       ...updatedState,
       offset: currentOffset,
-    });
+    };
 
     currentOffset += placeSize;
   }
@@ -164,7 +164,7 @@ export function executeTransitions(
   let currentRngState = rngState;
 
   // Iterate through all transitions in the frame
-  for (const [transitionId, _transitionState] of currentFrame.transitions) {
+  for (const transitionId of Object.keys(currentFrame.transitions)) {
     // Compute if this transition can fire based on the current state
     const result = computePossibleTransition(
       currentFrame,
@@ -209,23 +209,27 @@ export function executeTransitions(
   const newFrame = addTokensToSimulationFrame(currentFrame, tokensToAdd);
 
   // Update transition timeSinceLastFiringMs, firedInThisFrame, and firingCount
-  const newTransitions = new Map(newFrame.transitions);
-  for (const [transitionId, transitionState] of newFrame.transitions) {
+  const newTransitions: SimulationFrame["transitions"] = {
+    ...newFrame.transitions,
+  };
+  for (const [transitionId, transitionState] of Object.entries(
+    newFrame.transitions,
+  )) {
     if (transitionsFired.has(transitionId)) {
       // Reset time since last firing and increment firing count for transitions that fired
-      newTransitions.set(transitionId, {
+      newTransitions[transitionId] = {
         ...transitionState,
         timeSinceLastFiringMs: 0,
         firedInThisFrame: true,
         firingCount: transitionState.firingCount + 1,
-      });
+      };
     } else {
       // Increment time for transitions that didn't fire
-      newTransitions.set(transitionId, {
+      newTransitions[transitionId] = {
         ...transitionState,
         timeSinceLastFiringMs: transitionState.timeSinceLastFiringMs + dt,
         firedInThisFrame: false,
-      });
+      };
     }
   }
 

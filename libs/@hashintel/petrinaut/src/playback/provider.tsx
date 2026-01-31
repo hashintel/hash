@@ -49,14 +49,16 @@ function buildFrameState(
   }
 
   const places: SimulationFrameState["places"] = {};
-  for (const [placeId, placeData] of frame.places) {
+  for (const [placeId, placeData] of Object.entries(frame.places)) {
     places[placeId] = {
       tokenCount: placeData.count,
     };
   }
 
   const transitions: SimulationFrameState["transitions"] = {};
-  for (const [transitionId, transitionData] of frame.transitions) {
+  for (const [transitionId, transitionData] of Object.entries(
+    frame.transitions,
+  )) {
     transitions[transitionId] = {
       timeSinceLastFiringMs: transitionData.timeSinceLastFiringMs,
       firedInThisFrame: transitionData.firedInThisFrame,
