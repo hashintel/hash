@@ -10,7 +10,7 @@
  * @see ./README.md for usage documentation
  */
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import type { SDCPN } from "../../core/types/sdcpn";
 import type {
@@ -202,79 +202,78 @@ export function useSimulationWorker(): {
   }, []);
 
   // Helper to post messages
-  const postMessage = useCallback((message: ToWorkerMessage) => {
+  const postMessage = (message: ToWorkerMessage) => {
     workerRef.current?.postMessage(message);
-  }, []);
+  };
 
-  // Actions
-  const initialize = useCallback<WorkerActions["initialize"]>(
-    ({ sdcpn, initialMarking, parameterValues, seed, dt }) => {
-      setState({
-        status: "initializing",
-        frames: [],
-        error: null,
-        errorItemId: null,
-      });
+  // Actions - React Compiler automatically memoizes these based on dependencies
+  const initialize: WorkerActions["initialize"] = ({
+    sdcpn,
+    initialMarking,
+    parameterValues,
+    seed,
+    dt,
+  }) => {
+    setState({
+      status: "initializing",
+      frames: [],
+      error: null,
+      errorItemId: null,
+    });
 
-      // Convert Map to array for serialization
-      const serializedMarking = Array.from(initialMarking.entries());
+    // Convert Map to array for serialization
+    const serializedMarking = Array.from(initialMarking.entries());
 
-      postMessage({
-        type: "init",
-        sdcpn,
-        initialMarking: serializedMarking,
-        parameterValues,
-        seed,
-        dt,
-      });
-    },
-    [postMessage],
-  );
+    postMessage({
+      type: "init",
+      sdcpn,
+      initialMarking: serializedMarking,
+      parameterValues,
+      seed,
+      dt,
+    });
+  };
 
-  const start = useCallback<WorkerActions["start"]>(() => {
+  const start: WorkerActions["start"] = () => {
     setState((prev) => ({ ...prev, status: "running" }));
     postMessage({ type: "start" });
-  }, [postMessage]);
+  };
 
-  const pause = useCallback<WorkerActions["pause"]>(() => {
+  const pause: WorkerActions["pause"] = () => {
     postMessage({ type: "pause" });
     // Status will be updated when worker confirms
-  }, [postMessage]);
-
-  const stop = useCallback<WorkerActions["stop"]>(() => {
-    postMessage({ type: "stop" });
-    setState(initialState);
-  }, [postMessage]);
-
-  const updateParameters = useCallback<WorkerActions["updateParameters"]>(
-    (parameterValues) => {
-      postMessage({ type: "updateParameters", parameterValues });
-    },
-    [postMessage],
-  );
-
-  const setMaxTime = useCallback<WorkerActions["setMaxTime"]>(
-    (maxTime) => {
-      postMessage({ type: "setMaxTime", maxTime });
-    },
-    [postMessage],
-  );
-
-  const reset = useCallback<WorkerActions["reset"]>(() => {
-    postMessage({ type: "stop" });
-    setState(initialState);
-  }, [postMessage]);
-
-  return {
-    state,
-    actions: {
-      initialize,
-      start,
-      pause,
-      stop,
-      updateParameters,
-      setMaxTime,
-      reset,
-    },
   };
+
+  const stop: WorkerActions["stop"] = () => {
+    postMessage({ type: "stop" });
+    setState(initialState);
+  };
+
+  const updateParameters: WorkerActions["updateParameters"] = (
+    parameterValues,
+  ) => {
+    postMessage({ type: "updateParameters", parameterValues });
+  };
+
+  const setMaxTime: WorkerActions["setMaxTime"] = (maxTime) => {
+    postMessage({ type: "setMaxTime", maxTime });
+  };
+
+  const reset: WorkerActions["reset"] = () => {
+    postMessage({ type: "stop" });
+    setState(initialState);
+  };
+
+  // Actions object - React Compiler memoizes this automatically
+  const actions: WorkerActions = {
+    initialize,
+    start,
+    pause,
+    stop,
+    updateParameters,
+    setMaxTime,
+    reset,
+  };
+
+  return { state, actions };
 }
