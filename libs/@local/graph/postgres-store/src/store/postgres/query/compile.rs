@@ -4,10 +4,13 @@ use std::collections::{HashMap, HashSet};
 
 use error_stack::{Report, bail, ensure};
 use hash_graph_store::{
-    entity::EntityQueryPath,
     filter::{
         Filter, FilterExpression, FilterExpressionList, Parameter, ParameterList, ParameterType,
-        PathToken, QueryRecord, protection::FilterProtectionConfig,
+        PathToken, QueryRecord,
+        protection::{
+            PropertyFilter, PropertyFilterExpression, PropertyFilterExpressionList,
+            PropertyProtectionFilter, PropertyProtectionFilterConfig,
+        },
     },
     query::{NullOrdering, Ordering},
     subgraph::temporal_axes::QueryTemporalAxes,
@@ -16,13 +19,11 @@ use hash_graph_temporal_versioning::TimeAxis;
 use postgres_types::ToSql;
 use tracing::instrument;
 use type_system::{knowledge::Entity, principal::actor::ActorId};
+use uuid::Uuid;
 
-use super::{
-    expression::{JoinType, TableName, TableReference},
-    property_masking::{MaskingAliases, build_masking_expression},
-};
+use super::expression::{JoinType, TableName, TableReference};
 use crate::store::postgres::query::{
-    Alias, Column, Condition, Distinctness, EqualityOperator, Expression, Function,
+    Alias, Column, Condition, Constant, Distinctness, EqualityOperator, Expression, Function,
     PostgresQueryPath, PostgresRecord, SelectExpression, SelectStatement, Table, Transpile as _,
     WindowStatement,
     expression::{FromItem, GroupByExpression, PostgresType},
@@ -65,11 +66,12 @@ struct PathSelection {
 }
 
 type TableHook<'p, 'q, T> = fn(&mut SelectCompiler<'p, 'q, T>, Alias) -> Vec<Condition>;
+type ColumnHook<'p, 'q, T> = fn(&mut SelectCompiler<'p, 'q, T>, Expression) -> Expression;
 
 /// Configuration for property masking in SELECT statements.
 struct PropertyMaskingConfig<'a> {
     /// The filter protection configuration.
-    protection_config: &'a FilterProtectionConfig<'a>,
+    protection_config: &'a PropertyProtectionFilterConfig<'a>,
     /// The actor ID for self-exclusion bypass.
     actor_id: Option<ActorId>,
     /// Table alias for `entity_is_of_type_ids` (for type checks in masking conditions).
@@ -82,9 +84,13 @@ pub struct SelectCompiler<'p, 'q: 'p, T: QueryRecord> {
     temporal_axes: Option<&'p QueryTemporalAxes>,
     include_drafts: bool,
     table_hooks: HashMap<TableName<'p>, TableHook<'p, 'q, T>>,
+    column_hooks: HashMap<Column, ColumnHook<'p, 'q, T>>,
     selections: HashMap<&'p T::QueryPath<'q>, PathSelection>,
-    /// Optional property masking configuration for Entity queries.
-    property_masking: Option<PropertyMaskingConfig<'p>>,
+    /// Optional property protection filter for Entity queries (lazy evaluation).
+    /// Parameters are only bound when Properties/PropertyMetadata columns are actually selected.
+    property_protection_filter: Option<&'p PropertyProtectionFilter<'p, 'q>>,
+    /// Cached masking expression (built lazily on first use).
+    property_keys_to_remove: Option<Expression>,
 }
 
 #[derive(Debug, derive_more::Display, derive_more::Error)]
@@ -145,9 +151,11 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
             },
             temporal_axes,
             table_hooks,
+            column_hooks: HashMap::new(),
             include_drafts,
             selections: HashMap::new(),
-            property_masking: None,
+            property_protection_filter: None,
+            property_keys_to_remove: None,
         }
     }
 
@@ -863,34 +871,10 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
                 .extend(conditions);
         }
 
-        let column_expression = Expression::ColumnReference(column.aliased(alias));
-
-        // Apply property masking for Properties and PropertyMetadata columns if configured
-        let column_expression = if let Some(masking_config) = &self.property_masking {
-            let needs_masking = matches!(
-                column,
-                Column::EntityEditions(
-                    EntityEditions::Properties | EntityEditions::PropertyMetadata
-                )
-            );
-            if needs_masking {
-                let aliases = MaskingAliases {
-                    base_alias: Alias::default(),
-                    entity_is_of_type_alias: masking_config.entity_is_of_type_alias,
-                };
-                build_masking_expression(
-                    masking_config.protection_config,
-                    masking_config.actor_id,
-                    column_expression,
-                    aliases,
-                )
-                .unwrap_or_else(|| Expression::ColumnReference(column.aliased(alias)))
-            } else {
-                column_expression
-            }
-        } else {
-            column_expression
-        };
+        let mut column_expression = Expression::ColumnReference(column.aliased(alias));
+        if let Some(hook) = self.column_hooks.get(&column) {
+            column_expression = hook(self, column_expression);
+        }
 
         match parameter {
             None => column_expression,
@@ -1228,17 +1212,121 @@ impl<'p, 'q: 'p> SelectCompiler<'p, 'q, Entity> {
     /// the correct aliases internally.
     pub fn with_property_masking(
         &mut self,
-        protection_config: &'p FilterProtectionConfig<'p>,
-        actor_id: Option<ActorId>,
+        property_protection_filter: &'p PropertyProtectionFilter<'p, 'q>,
     ) {
-        // Add TypeBaseUrls join to get the entity_is_of_type_ids alias.
-        // This ensures the join exists and we know its alias for the masking expression.
-        let entity_is_of_type_alias = self.add_join_statements(&EntityQueryPath::TypeBaseUrls);
+        if property_protection_filter.is_empty() {
+            return;
+        }
 
-        self.property_masking = Some(PropertyMaskingConfig {
-            protection_config,
-            actor_id,
-            entity_is_of_type_alias,
-        });
+        // Store reference for lazy evaluation - parameters bound only when columns are selected
+        self.property_protection_filter = Some(property_protection_filter);
+
+        self.column_hooks.insert(
+            Column::EntityEditions(EntityEditions::Properties),
+            Self::remove_property_keys_for_column,
+        );
+        self.column_hooks.insert(
+            Column::EntityEditions(EntityEditions::PropertyMetadata),
+            Self::remove_property_keys_for_column,
+        );
+    }
+
+    fn remove_property_keys_for_column(compiler: &mut Self, column: Expression) -> Expression {
+        // Build masking expression lazily on first use
+        if compiler.property_keys_to_remove.is_none()
+            && let Some(filter) = compiler.property_protection_filter
+        {
+            compiler.property_keys_to_remove = Some(Expression::Function(Function::ArrayConcat(
+                filter
+                    .iter()
+                    .map(|(property_url, filter)| {
+                        // Compile the condition - this will bind all necessary parameters
+                        let condition = compiler
+                            .compile_filter(filter)
+                            .expect("filter should compile");
+
+                        Expression::CaseWhen {
+                            conditions: vec![(
+                                Expression::Condition(Box::new(condition)),
+                                Expression::Function(Function::ArrayLiteral {
+                                    elements: vec![compiler.compile_parameter(property_url).0],
+                                    element_type: PostgresType::Text,
+                                }),
+                            )],
+                            else_result: Some(Box::new(Expression::Function(
+                                Function::ArrayLiteral {
+                                    elements: vec![],
+                                    element_type: PostgresType::Text,
+                                },
+                            ))),
+                        }
+                    })
+                    .collect(),
+            )));
+        }
+
+        if let Some(keys) = compiler.property_keys_to_remove.clone() {
+            Expression::Function(Function::JsonDeleteKeys(Box::new(column), Box::new(keys)))
+        } else {
+            column
+        }
+    }
+
+    fn compile_property_filter<'f: 'q>(
+        &mut self,
+        filter: &'p PropertyFilter<'f>,
+        actor_id: Option<ActorId>,
+    ) -> Condition {
+        match filter {
+            PropertyFilter::All(filters) => Condition::All(
+                filters
+                    .iter()
+                    .map(|inner| self.compile_property_filter(inner, actor_id))
+                    .collect(),
+            ),
+            PropertyFilter::Any(filters) => Condition::Any(
+                filters
+                    .iter()
+                    .map(|inner| self.compile_property_filter(inner, actor_id))
+                    .collect(),
+            ),
+            PropertyFilter::Equal(lhs, rhs) => Condition::Equal(
+                self.compile_property_filter_expression(lhs, actor_id),
+                self.compile_property_filter_expression(rhs, actor_id),
+            ),
+            PropertyFilter::NotEqual(lhs, rhs) => Condition::NotEqual(
+                self.compile_property_filter_expression(lhs, actor_id),
+                self.compile_property_filter_expression(rhs, actor_id),
+            ),
+            PropertyFilter::In(value, list) => Condition::In(
+                self.compile_property_filter_expression(value, actor_id),
+                self.compile_property_filter_expression_list(list),
+            ),
+        }
+    }
+
+    fn compile_property_filter_expression<'f: 'q>(
+        &mut self,
+        expr: &'p PropertyFilterExpression<'f>,
+        actor_id: Option<ActorId>,
+    ) -> Expression {
+        match expr {
+            PropertyFilterExpression::Path { path } => self.compile_path_column(path),
+            PropertyFilterExpression::Parameter { parameter } => {
+                self.compile_parameter(parameter).0
+            }
+            PropertyFilterExpression::ActorId => {
+                Expression::Constant(Constant::Uuid(actor_id.map_or_else(Uuid::nil, Uuid::from)))
+            }
+        }
+    }
+
+    fn compile_property_filter_expression_list<'f: 'q>(
+        &mut self,
+        expr: &'p PropertyFilterExpressionList<'f>,
+    ) -> Expression {
+        match expr {
+            PropertyFilterExpressionList::Path { path } => self.compile_path_column(path),
+        }
     }
 }

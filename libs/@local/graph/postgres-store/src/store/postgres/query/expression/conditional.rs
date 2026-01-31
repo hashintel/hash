@@ -3,6 +3,7 @@ use core::fmt::{
 };
 
 use hash_graph_store::filter::PathToken;
+use uuid::Uuid;
 
 use super::ColumnReference;
 use crate::store::postgres::query::{
@@ -173,6 +174,7 @@ pub enum Constant {
     Boolean(bool),
     String(&'static str),
     UnsignedInteger(u32),
+    Uuid(Uuid),
 }
 
 impl Transpile for Constant {
@@ -181,6 +183,7 @@ impl Transpile for Constant {
             Self::Boolean(value) => fmt.write_str(if *value { "TRUE" } else { "FALSE" }),
             Self::String(value) => write!(fmt, "'{value}'"),
             Self::UnsignedInteger(value) => write!(fmt, "{value}"),
+            Self::Uuid(value) => write!(fmt, "'{value}'"),
         }
     }
 }
@@ -190,6 +193,7 @@ pub enum PostgresType {
     Array(Box<Self>),
     Row(Table),
     Text,
+    Uuid,
     JsonPath,
 }
 
@@ -202,6 +206,7 @@ impl Transpile for PostgresType {
             }
             Self::Row(table) => table.transpile(fmt),
             Self::Text => fmt.write_str("text"),
+            Self::Uuid => fmt.write_str("uuid"),
             Self::JsonPath => fmt.write_str("jsonpath"),
         }
     }
@@ -238,7 +243,7 @@ pub enum Expression {
     /// {else_result} END` in PostgreSQL.
     CaseWhen {
         /// List of (condition, result) pairs.
-        conditions: Vec<(Box<Self>, Box<Self>)>,
+        conditions: Vec<(Self, Self)>,
         /// Optional else result if no condition matches.
         else_result: Option<Box<Self>>,
     },
@@ -360,12 +365,12 @@ mod tests {
         let case_expr = Expression::CaseWhen {
             conditions: vec![
                 (
-                    Box::new(Expression::Constant(Constant::Boolean(true))),
-                    Box::new(Expression::Constant(Constant::String("yes"))),
+                    Expression::Constant(Constant::Boolean(true)),
+                    Expression::Constant(Constant::String("yes")),
                 ),
                 (
-                    Box::new(Expression::Constant(Constant::Boolean(false))),
-                    Box::new(Expression::Constant(Constant::String("maybe"))),
+                    Expression::Constant(Constant::Boolean(false)),
+                    Expression::Constant(Constant::String("maybe")),
                 ),
             ],
             else_result: Some(Box::new(Expression::Constant(Constant::String("no")))),
@@ -380,8 +385,8 @@ mod tests {
     fn transpile_case_when_no_else() {
         let case_expr = Expression::CaseWhen {
             conditions: vec![(
-                Box::new(Expression::Constant(Constant::Boolean(true))),
-                Box::new(Expression::Constant(Constant::String("yes"))),
+                Expression::Constant(Constant::Boolean(true)),
+                Expression::Constant(Constant::String("yes")),
             )],
             else_result: None,
         };

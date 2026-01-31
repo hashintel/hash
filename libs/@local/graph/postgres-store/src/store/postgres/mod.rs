@@ -43,7 +43,7 @@ use hash_graph_store::{
         WebRetrievalError,
     },
     error::{InsertionError, UpdateError},
-    filter::protection::FilterProtectionConfig,
+    filter::protection::PropertyProtectionFilterConfig,
     query::ConflictBehavior,
 };
 use hash_graph_temporal_versioning::{LeftClosedTemporalInterval, TransactionTime};
@@ -92,7 +92,7 @@ pub struct PostgresStoreSettings {
     ///
     /// When set, filters on protected properties will automatically exclude
     /// specified entity types to prevent enumeration attacks.
-    pub filter_protection: FilterProtectionConfig<'static>,
+    pub filter_protection: PropertyProtectionFilterConfig<'static>,
 }
 
 impl Default for PostgresStoreSettings {
@@ -100,7 +100,7 @@ impl Default for PostgresStoreSettings {
         Self {
             validate_links: true,
             skip_embedding_creation: false,
-            filter_protection: FilterProtectionConfig::hash_default(),
+            filter_protection: PropertyProtectionFilterConfig::hash_default(),
         }
     }
 }

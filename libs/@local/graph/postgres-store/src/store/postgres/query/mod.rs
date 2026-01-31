@@ -8,7 +8,6 @@ mod data_type;
 mod entity;
 mod entity_type;
 mod expression;
-mod property_masking;
 mod property_type;
 pub(crate) mod rows;
 mod statement;
