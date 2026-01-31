@@ -172,6 +172,10 @@ impl RuntimeSymbol {
 struct ConstantSymbol(usize);
 
 impl ConstantSymbol {
+    const fn new_unchecked(index: usize) -> Self {
+        Self(index)
+    }
+
     /// Returns the string value for this constant symbol.
     fn as_str(self) -> &'static str {
         STRINGS[self.0]
