@@ -188,7 +188,7 @@ version = "1.1.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "40c48f72fd53cd289104fc64099abca73db4166ad86ea0b4341abe65af83dadc"
 dependencies = [
- "windows-sys 0.61.2",
+ "windows-sys 0.60.2",
 ]
 
 [[package]]
@@ -212,7 +212,7 @@ checksum = "291e6a250ff86cd4a820112fb8898808a366d8f9f58ce16d1f538353ad55747d"
 dependencies = [
  "anstyle",
  "once_cell_polyfill",
- "windows-sys 0.61.2",
+ "windows-sys 0.60.2",
 ]
 
 [[package]]
@@ -1508,7 +1508,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "117725a109d387c937a1533ce01b450cbde6b88abceea8473c4d7a85853cda3c"
 dependencies = [
  "lazy_static",
- "windows-sys 0.52.0",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]
@@ -1592,9 +1592,9 @@ dependencies = [
 
 [[package]]
 name = "convert_case"
-version = "0.10.0"
+version = "0.11.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "633458d4ef8c78b72454de2d54fd6ab2e60f9e02be22f3c6104cdc8a4e0fceb9"
+checksum = "affbf0190ed2caf063e3def54ff444b449371d55c58e513a95ab98eca50adb49"
 dependencies = [
  "unicode-segmentation",
 ]
@@ -2134,11 +2134,11 @@ dependencies = [
 
 [[package]]
 name = "derive_more"
-version = "2.1.1"
+version = "2.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d751e9e49156b02b44f9c1815bcb94b984cdcc4396ecc32521c739452808b134"
+checksum = "093242cf7570c207c83073cf82f79706fe7b8317e98620a47d5be7c3d8497678"
 dependencies = [
- "derive_more-impl 2.1.1",
+ "derive_more-impl 2.0.1",
 ]
 
 [[package]]
@@ -2155,14 +2155,12 @@ dependencies = [
 
 [[package]]
 name = "derive_more-impl"
-version = "2.1.1"
+version = "2.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "799a97264921d8623a957f6c3b9011f3b5492f557bbb7a5a19b7fa6d06ba8dcb"
+checksum = "bda628edc44c4bb645fbe0f758797143e4e07926f7ebf4e9bdfbd3d2ce621df3"
 dependencies = [
- "convert_case 0.10.0",
  "proc-macro2",
  "quote",
- "rustc_version",
  "syn 2.0.114",
  "unicode-xid",
 ]
@@ -2454,7 +2452,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "39cab71617ae0d63f51a36d69f866391735b51691dbda63cf6f96d042b63efeb"
 dependencies = [
  "libc",
- "windows-sys 0.52.0",
+ "windows-sys 0.60.2",
 ]
 
 [[package]]
@@ -2941,7 +2939,7 @@ version = "0.0.0"
 dependencies = [
  "bytes",
  "derive-where",
- "derive_more 2.1.1",
+ "derive_more 2.0.1",
  "error-stack",
  "futures",
  "harpc-codec",
@@ -2983,7 +2981,7 @@ version = "0.0.0"
 dependencies = [
  "bytes",
  "bytes-utils",
- "derive_more 2.1.1",
+ "derive_more 2.0.1",
  "error-stack",
  "futures",
  "futures-core",
@@ -3025,7 +3023,7 @@ version = "0.0.0"
 dependencies = [
  "bytes",
  "derive-where",
- "derive_more 2.1.1",
+ "derive_more 2.0.1",
  "error-stack",
  "frunk",
  "frunk_core",
@@ -3065,7 +3063,7 @@ name = "harpc-tower"
 version = "0.0.0"
 dependencies = [
  "bytes",
- "derive_more 2.1.1",
+ "derive_more 2.0.1",
  "error-stack",
  "futures",
  "futures-core",
@@ -3126,7 +3124,7 @@ dependencies = [
  "dashu-base",
  "dashu-float",
  "derive-where",
- "derive_more 2.1.1",
+ "derive_more 2.0.1",
  "error-stack",
  "harpc-types",
  "harpc-wire-protocol",
@@ -3198,7 +3196,7 @@ dependencies = [
  "axum-core 0.5.6",
  "bytes",
  "derive-where",
- "derive_more 2.1.1",
+ "derive_more 2.0.1",
  "error-stack",
  "frunk",
  "futures",
@@ -3254,7 +3252,7 @@ dependencies = [
  "bytes",
  "cedar-policy-core",
  "derive-where",
- "derive_more 2.1.1",
+ "derive_more 2.0.1",
  "enum-iterator",
  "error-stack",
  "futures",
@@ -3288,7 +3286,7 @@ version = "0.0.0"
 dependencies = [
  "criterion",
  "criterion-macro",
- "derive_more 2.1.1",
+ "derive_more 2.0.1",
  "either",
  "error-stack",
  "hash-graph-api",
@@ -3345,7 +3343,7 @@ dependencies = [
  "bytes",
  "clap",
  "clap_complete",
- "derive_more 2.1.1",
+ "derive_more 2.0.1",
  "error-stack",
  "futures",
  "hash-graph-migrations-macros",
@@ -3365,8 +3363,8 @@ dependencies = [
 name = "hash-graph-migrations-macros"
 version = "0.0.0"
 dependencies = [
- "convert_case 0.10.0",
- "derive_more 2.1.1",
+ "convert_case 0.11.0",
+ "derive_more 2.0.1",
  "proc-macro-error2",
  "proc-macro2",
  "quote",
@@ -3388,7 +3386,7 @@ dependencies = [
  "deadpool",
  "deadpool-postgres",
  "derive-where",
- "derive_more 2.1.1",
+ "derive_more 2.0.1",
  "dotenv-flow",
  "error-stack",
  "futures",
@@ -3428,7 +3426,7 @@ version = "0.0.0"
 dependencies = [
  "bytes",
  "derive-where",
- "derive_more 2.1.1",
+ "derive_more 2.0.1",
  "error-stack",
  "futures",
  "hash-codec",
@@ -3472,7 +3470,7 @@ dependencies = [
 name = "hash-graph-test-data"
 version = "0.0.0"
 dependencies = [
- "derive_more 2.1.1",
+ "derive_more 2.0.1",
  "error-stack",
  "hash-codec",
  "hash-graph-store",
@@ -3527,7 +3525,7 @@ dependencies = [
 name = "hash-graph-type-fetcher"
 version = "0.0.0"
 dependencies = [
- "derive_more 2.1.1",
+ "derive_more 2.0.1",
  "error-stack",
  "futures",
  "hash-graph-authorization",
@@ -3556,7 +3554,7 @@ name = "hash-graph-types"
 version = "0.0.0"
 dependencies = [
  "bytes",
- "derive_more 2.1.1",
+ "derive_more 2.0.1",
  "error-stack",
  "futures",
  "hash-codec",
@@ -3581,7 +3579,7 @@ dependencies = [
 name = "hash-graph-validation"
 version = "0.0.0"
 dependencies = [
- "derive_more 2.1.1",
+ "derive_more 2.0.1",
  "error-stack",
  "futures",
  "hash-graph-store",
@@ -3612,7 +3610,7 @@ dependencies = [
  "clap",
  "clap_complete",
  "criterion",
- "derive_more 2.1.1",
+ "derive_more 2.0.1",
  "error-stack",
  "globset",
  "guppy",
@@ -3645,7 +3643,7 @@ version = "0.0.0"
 dependencies = [
  "clap",
  "clap_builder",
- "derive_more 2.1.1",
+ "derive_more 2.0.1",
  "error-stack",
  "opentelemetry",
  "opentelemetry-appender-tracing",
@@ -3721,7 +3719,7 @@ dependencies = [
 name = "hashql-ast"
 version = "0.0.0"
 dependencies = [
- "derive_more 2.1.1",
+ "derive_more 2.0.1",
  "enum-iterator",
  "foldhash 0.2.0",
  "hashbrown 0.16.1",
@@ -3739,7 +3737,7 @@ dependencies = [
  "anstream",
  "camino",
  "clap",
- "derive_more 2.1.1",
+ "derive_more 2.0.1",
  "error-stack",
  "guppy",
  "hash-graph-store",
@@ -3776,7 +3774,7 @@ dependencies = [
  "bitvec",
  "bump-scope",
  "codspeed-criterion-compat",
- "derive_more 2.1.1",
+ "derive_more 2.0.1",
  "ena",
  "foldhash 0.2.0",
  "hash-codec",
@@ -3810,7 +3808,7 @@ dependencies = [
  "anstyle",
  "anstyle-lossy",
  "anstyle-svg",
- "derive_more 2.1.1",
+ "derive_more 2.0.1",
  "rstest",
  "serde",
  "serde_core",
@@ -3823,7 +3821,7 @@ dependencies = [
 name = "hashql-eval"
 version = "0.0.0"
 dependencies = [
- "derive_more 2.1.1",
+ "derive_more 2.0.1",
  "hash-graph-store",
  "hashql-compiletest",
  "hashql-core",
@@ -4506,7 +4504,7 @@ checksum = "3640c1c38b8e4e43584d8df18be5fc6b0aa314ce6ebf51b53313d4306cca8e46"
 dependencies = [
  "hermit-abi",
  "libc",
- "windows-sys 0.52.0",
+ "windows-sys 0.60.2",
 ]
 
 [[package]]
@@ -5671,7 +5669,7 @@ version = "0.50.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7957b9740744892f114936ab4a57b3f487491bbeafaf8083688b16841a4240e5"
 dependencies = [
- "windows-sys 0.61.2",
+ "windows-sys 0.60.2",
 ]
 
 [[package]]
@@ -7001,7 +6999,7 @@ dependencies = [
  "once_cell",
  "socket2 0.5.10",
  "tracing",
- "windows-sys 0.52.0",
+ "windows-sys 0.60.2",
 ]
 
 [[package]]
@@ -7499,7 +7497,7 @@ dependencies = [
  "errno",
  "libc",
  "linux-raw-sys",
- "windows-sys 0.52.0",
+ "windows-sys 0.60.2",
 ]
 
 [[package]]
@@ -8198,7 +8196,6 @@ dependencies = [
  "cfg-if",
  "libc",
  "psm",
- "windows-sys 0.52.0",
  "windows-sys 0.59.0",
 ]
 
@@ -8454,7 +8451,7 @@ dependencies = [
  "getrandom 0.3.4",
  "once_cell",
  "rustix",
- "windows-sys 0.52.0",
+ "windows-sys 0.60.2",
 ]
 
 [[package]]
@@ -8533,7 +8530,7 @@ version = "1.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d8c27177b12a6399ffc08b98f76f7c9a1f4fe9fc967c784c5a071fa8d93cf7e1"
 dependencies = [
- "windows-sys 0.61.2",
+ "windows-sys 0.60.2",
 ]
 
 [[package]]
@@ -9245,7 +9242,7 @@ version = "0.0.0"
 dependencies = [
  "bytes",
  "console_error_panic_hook",
- "derive_more 2.1.1",
+ "derive_more 2.0.1",
  "email_address",
  "error-stack",
  "futures",
@@ -9831,7 +9828,7 @@ version = "0.1.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c2a7b1c03c876122aa43f3020e6c3c3ee5c05081c9a00739faf7503aeba10d22"
 dependencies = [
- "windows-sys 0.52.0",
+ "windows-sys 0.60.2",
 ]
 
 [[package]]
