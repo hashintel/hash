@@ -1379,7 +1379,7 @@ mod tests {
                 &compiler,
                 r#"
                 SELECT ("entity_editions_0_1_0"."properties" - (CASE WHEN
-                    ((($1::text) = ANY("entity_is_of_type_ids_0_1_0"."base_urls"))
+                    (($1 = ANY("entity_is_of_type_ids_0_1_0"."base_urls"))
                     AND ("entity_temporal_metadata_0_0_0"."entity_uuid" != $2))
                     THEN ARRAY[$3]::text[]
                     ELSE ARRAY[]::text[] END))
