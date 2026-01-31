@@ -84,10 +84,8 @@ import type {
   ClosedMultiEntityTypesRootMap,
   EntityTypeResolveDefinitions,
 } from "./ontology.js";
-import { isUserHashInstanceAdmin } from "./principal/hash-instance-admins.js";
 import {
   deserializeGraphVertices,
-  mapGraphApiEntityToEntity,
   mapGraphApiSubgraphToSubgraph,
   serializeGraphVertices,
 } from "./subgraph.js";
@@ -241,69 +239,6 @@ export type SerializedQueryEntitiesResponse<
   }
 >;
 
-export const queryEntities = async <
-  PropertyMap extends
-    TypeIdsAndPropertiesForEntity = TypeIdsAndPropertiesForEntity,
->(
-  context: {
-    graphApi: GraphApi;
-    temporalClient?: TemporalClient;
-  },
-  authentication: AuthenticationContext,
-  params: QueryEntitiesRequest,
-  options?: { preserveProperties?: boolean },
-): Promise<QueryEntitiesResponse<PropertyMap>> => {
-  if (Predicate.hasProperty(params, "filter")) {
-    // TODO: https://linear.app/hash/issue/BE-108/consider-moving-semantic-filter-rewriting-to-the-graph
-    await rewriteSemanticFilter(params.filter, context.temporalClient);
-  }
-
-  const { preserveProperties = false } = options ?? {};
-
-  const isRequesterAdmin = preserveProperties
-    ? true
-    : process.env.NODE_ENV === "test"
-      ? false
-      : await isUserHashInstanceAdmin(context, authentication, {
-          userAccountId: authentication.actorId,
-        });
-
-  return context.graphApi
-    .queryEntities(authentication.actorId, params)
-    .then(({ data: response }) => ({
-      ...response,
-      entities: response.entities.map((entity) =>
-        mapGraphApiEntityToEntity(
-          entity,
-          authentication.actorId,
-          isRequesterAdmin,
-        ),
-      ),
-      closedMultiEntityTypes: response.closedMultiEntityTypes
-        ? mapGraphApiClosedMultiEntityTypeMapToClosedMultiEntityTypeMap(
-            response.closedMultiEntityTypes,
-          )
-        : undefined,
-      definitions: response.definitions
-        ? mapGraphApiEntityTypeResolveDefinitionsToEntityTypeResolveDefinitions(
-            response.definitions,
-          )
-        : undefined,
-      webIds: response.webIds as Record<WebId, number> | undefined,
-      createdByIds: response.createdByIds as
-        | Record<ActorEntityUuid, number>
-        | undefined,
-      editionCreatedByIds: response.editionCreatedByIds as
-        | Record<ActorEntityUuid, number>
-        | undefined,
-      typeIds: response.typeIds as Record<VersionedUrl, number> | undefined,
-      typeTitles: response.typeTitles as
-        | Record<VersionedUrl, string>
-        | undefined,
-      permissions: response.permissions as EntityPermissionsMap | undefined,
-    }));
-};
-
 export type QueryEntitySubgraphRequest = ExclusiveUnion<
   DistributiveReplaceProperties<
     QueryEntitySubgraphRequestGraphApi,
@@ -363,13 +298,6 @@ export const queryEntitySubgraph = async <
     await rewriteSemanticFilter(params.filter, context.temporalClient);
   }
 
-  const isRequesterAdmin =
-    process.env.NODE_ENV === "test"
-      ? false
-      : await isUserHashInstanceAdmin(context, authentication, {
-          userAccountId: authentication.actorId,
-        });
-
   return await context.graphApi
     .queryEntitySubgraph(authentication.actorId, params)
     .then(({ data }) => {
@@ -378,7 +306,7 @@ export const queryEntitySubgraph = async <
       const subgraph = mapGraphApiSubgraphToSubgraph<
         EntityRootType<HashEntity<PropertyMap>>,
         PropertyMap
-      >(unfilteredSubgraph, authentication.actorId, isRequesterAdmin);
+      >(unfilteredSubgraph);
       // filter archived entities from the vertices until we implement archival by timestamp, not flag: remove after H-349
       for (const [entityId, editionMap] of typedEntries(subgraph.vertices)) {
         const latestEditionTimestamp = typedKeys(editionMap).sort().pop()!;
@@ -1401,6 +1329,52 @@ export class HashLinkEntity<
     return super.linkData!;
   }
 }
+
+export const queryEntities = async <
+  PropertyMap extends
+    TypeIdsAndPropertiesForEntity = TypeIdsAndPropertiesForEntity,
+>(
+  context: {
+    graphApi: GraphApi;
+    temporalClient?: TemporalClient;
+  },
+  authentication: AuthenticationContext,
+  params: QueryEntitiesRequest,
+): Promise<QueryEntitiesResponse<PropertyMap>> => {
+  if (Predicate.hasProperty(params, "filter")) {
+    // TODO: https://linear.app/hash/issue/BE-108/consider-moving-semantic-filter-rewriting-to-the-graph
+    await rewriteSemanticFilter(params.filter, context.temporalClient);
+  }
+
+  return context.graphApi
+    .queryEntities(authentication.actorId, params)
+    .then(({ data: response }) => ({
+      ...response,
+      entities: response.entities.map((entity) => new HashEntity(entity)),
+      closedMultiEntityTypes: response.closedMultiEntityTypes
+        ? mapGraphApiClosedMultiEntityTypeMapToClosedMultiEntityTypeMap(
+            response.closedMultiEntityTypes,
+          )
+        : undefined,
+      definitions: response.definitions
+        ? mapGraphApiEntityTypeResolveDefinitionsToEntityTypeResolveDefinitions(
+            response.definitions,
+          )
+        : undefined,
+      webIds: response.webIds as Record<WebId, number> | undefined,
+      createdByIds: response.createdByIds as
+        | Record<ActorEntityUuid, number>
+        | undefined,
+      editionCreatedByIds: response.editionCreatedByIds as
+        | Record<ActorEntityUuid, number>
+        | undefined,
+      typeIds: response.typeIds as Record<VersionedUrl, number> | undefined,
+      typeTitles: response.typeTitles as
+        | Record<VersionedUrl, string>
+        | undefined,
+      permissions: response.permissions as EntityPermissionsMap | undefined,
+    }));
+};
 
 export const serializeQueryEntitiesResponse = <
   PropertyMap extends

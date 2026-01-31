@@ -1076,11 +1076,7 @@ describe("The dereferenceEntityType function", () => {
         "https://hash.ai/@test/types/entity-type/property-values-demo/v/4",
       subgraph: {
         ...testSubgraph,
-        vertices: mapGraphApiVerticesToVertices(
-          testSubgraph.vertices,
-          null,
-          true,
-        ),
+        vertices: mapGraphApiVerticesToVertices(testSubgraph.vertices),
       } as Subgraph,
     });
 

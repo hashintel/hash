@@ -159,6 +159,16 @@ export const countEntities: ImpureGraphFunction<
 > = async ({ graphApi }, { actorId }, params) =>
   graphApi.countEntities(actorId, params).then(({ data }) => data);
 
+type GetLatestEntityByIdFunction<
+  Properties extends
+    TypeIdsAndPropertiesForEntity = TypeIdsAndPropertiesForEntity,
+> = ImpureGraphFunction<
+  {
+    entityId: EntityId;
+  },
+  Promise<HashEntity<Properties>>
+>;
+
 /**
  * Get the latest edition of an entity by its entityId. See notes on params.
  *
@@ -178,13 +188,13 @@ export const countEntities: ImpureGraphFunction<
  *   2. if there is somehow more than one edition for the requested entityId at the current time, which is an internal
  *   fault
  */
-export const getLatestEntityById: ImpureGraphFunction<
-  {
-    entityId: EntityId;
-  },
-  Promise<HashEntity>
-> = async (context, authentication, params) => {
-  const { entityId } = params;
+export const getLatestEntityById = async <
+  Properties extends
+    TypeIdsAndPropertiesForEntity = TypeIdsAndPropertiesForEntity,
+>(
+  ...args: Parameters<GetLatestEntityByIdFunction<Properties>>
+): ReturnType<GetLatestEntityByIdFunction<Properties>> => {
+  const [context, authentication, { entityId }] = args;
 
   const [webId, entityUuid, draftId] = splitEntityId(entityId);
 
@@ -223,7 +233,7 @@ export const getLatestEntityById: ImpureGraphFunction<
 
   const {
     entities: [entity, ...unexpectedEntities],
-  } = await queryEntities(context, authentication, {
+  } = await queryEntities<Properties>(context, authentication, {
     filter: {
       all: allFilter,
     },
@@ -368,9 +378,9 @@ export const createEntityWithLinks = async <
        * pages which may affect this.
        */
       const entity = existingEntityId
-        ? ((await getLatestEntityById(context, authentication, {
+        ? await getLatestEntityById<Properties>(context, authentication, {
             entityId: existingEntityId,
-          })) as HashEntity<Properties>)
+          })
         : await createEntity<Properties>(context, authentication, {
             ...createParams,
             properties: definition.entityProperties!,

@@ -8,10 +8,7 @@ import type { Express, Request, RequestHandler } from "express";
 
 import type { ImpureGraphContext } from "../graph/context-types";
 import type { User } from "../graph/knowledge/system-types/user";
-import {
-  createUser,
-  getUserByKratosIdentityId,
-} from "../graph/knowledge/system-types/user";
+import { createUser, getUser } from "../graph/knowledge/system-types/user";
 import { systemAccountId } from "../graph/system-account";
 import { hydraAdmin } from "./ory-hydra";
 import type { KratosUserIdentity } from "./ory-kratos";
@@ -140,10 +137,11 @@ export const getUserAndSession = async ({
       throw new Error("Could not find kratos identity for session");
     }
 
-    const { id: kratosIdentityId } = identity;
+    const { id: kratosIdentityId, traits } = identity as KratosUserIdentity;
 
-    const user = await getUserByKratosIdentityId(context, authentication, {
+    const user = await getUser(context, authentication, {
       kratosIdentityId,
+      emails: traits.emails,
     });
 
     if (!user) {
@@ -179,7 +177,7 @@ export const createAuthMiddleware = (params: {
         token: accessOrSessionToken,
       });
       if (introspectionResult.data.active && introspectionResult.data.sub) {
-        const user = await getUserByKratosIdentityId(
+        const user = await getUser(
           context,
           { actorId: publicUserAccountId },
           {

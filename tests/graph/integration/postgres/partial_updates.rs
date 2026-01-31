@@ -160,35 +160,34 @@ async fn properties_add() {
     .await
     .expect("could not patch entity");
 
-    let entities = api
-        .query_entities(
-            api.account_id,
-            QueryEntitiesParams {
-                filter: Filter::for_entity_by_entity_id(entity_id),
-                temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
-                    pinned: PinnedTemporalAxisUnresolved::new(None),
-                    variable: VariableTemporalAxisUnresolved::new(None, None),
-                },
-                sorting: EntityQuerySorting {
-                    paths: Vec::new(),
-                    cursor: None,
-                },
-                limit: None,
-                conversions: Vec::new(),
-                include_count: false,
-                include_entity_types: None,
-                include_drafts: false,
-                include_web_ids: false,
-                include_created_by_ids: false,
-                include_edition_created_by_ids: false,
-                include_type_ids: false,
-                include_type_titles: false,
-                include_permissions: false,
+    let entities = Box::pin(api.query_entities(
+        api.account_id,
+        QueryEntitiesParams {
+            filter: Filter::for_entity_by_entity_id(entity_id),
+            temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
+                pinned: PinnedTemporalAxisUnresolved::new(None),
+                variable: VariableTemporalAxisUnresolved::new(None, None),
             },
-        )
-        .await
-        .expect("could not get entity")
-        .entities;
+            sorting: EntityQuerySorting {
+                paths: Vec::new(),
+                cursor: None,
+            },
+            limit: None,
+            conversions: Vec::new(),
+            include_count: false,
+            include_entity_types: None,
+            include_drafts: false,
+            include_web_ids: false,
+            include_created_by_ids: false,
+            include_edition_created_by_ids: false,
+            include_type_ids: false,
+            include_type_titles: false,
+            include_permissions: false,
+        },
+    ))
+    .await
+    .expect("could not get entity")
+    .entities;
     assert_eq!(entities.len(), 1, "unexpected number of entities found");
     let entity = entities.into_iter().next().unwrap();
 
@@ -256,35 +255,34 @@ async fn properties_remove() {
     .await
     .expect("could not patch entity");
 
-    let entities = api
-        .query_entities(
-            api.account_id,
-            QueryEntitiesParams {
-                filter: Filter::for_entity_by_entity_id(entity_id),
-                temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
-                    pinned: PinnedTemporalAxisUnresolved::new(None),
-                    variable: VariableTemporalAxisUnresolved::new(None, None),
-                },
-                sorting: EntityQuerySorting {
-                    paths: Vec::new(),
-                    cursor: None,
-                },
-                limit: None,
-                conversions: Vec::new(),
-                include_count: false,
-                include_entity_types: None,
-                include_drafts: false,
-                include_web_ids: false,
-                include_created_by_ids: false,
-                include_edition_created_by_ids: false,
-                include_type_ids: false,
-                include_type_titles: false,
-                include_permissions: false,
+    let entities = Box::pin(api.query_entities(
+        api.account_id,
+        QueryEntitiesParams {
+            filter: Filter::for_entity_by_entity_id(entity_id),
+            temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
+                pinned: PinnedTemporalAxisUnresolved::new(None),
+                variable: VariableTemporalAxisUnresolved::new(None, None),
             },
-        )
-        .await
-        .expect("could not get entity")
-        .entities;
+            sorting: EntityQuerySorting {
+                paths: Vec::new(),
+                cursor: None,
+            },
+            limit: None,
+            conversions: Vec::new(),
+            include_count: false,
+            include_entity_types: None,
+            include_drafts: false,
+            include_web_ids: false,
+            include_created_by_ids: false,
+            include_edition_created_by_ids: false,
+            include_type_ids: false,
+            include_type_titles: false,
+            include_permissions: false,
+        },
+    ))
+    .await
+    .expect("could not get entity")
+    .entities;
     assert_eq!(entities.len(), 1, "unexpected number of entities found");
     let entity = entities.into_iter().next().unwrap();
 
@@ -354,35 +352,34 @@ async fn properties_replace() {
     .await
     .expect("could not patch entity");
 
-    let entities = api
-        .query_entities(
-            api.account_id,
-            QueryEntitiesParams {
-                filter: Filter::for_entity_by_entity_id(entity_id),
-                temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
-                    pinned: PinnedTemporalAxisUnresolved::new(None),
-                    variable: VariableTemporalAxisUnresolved::new(None, None),
-                },
-                sorting: EntityQuerySorting {
-                    paths: Vec::new(),
-                    cursor: None,
-                },
-                limit: None,
-                conversions: Vec::new(),
-                include_count: false,
-                include_entity_types: None,
-                include_drafts: false,
-                include_web_ids: false,
-                include_created_by_ids: false,
-                include_edition_created_by_ids: false,
-                include_type_ids: false,
-                include_type_titles: false,
-                include_permissions: false,
+    let entities = Box::pin(api.query_entities(
+        api.account_id,
+        QueryEntitiesParams {
+            filter: Filter::for_entity_by_entity_id(entity_id),
+            temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
+                pinned: PinnedTemporalAxisUnresolved::new(None),
+                variable: VariableTemporalAxisUnresolved::new(None, None),
             },
-        )
-        .await
-        .expect("could not get entity")
-        .entities;
+            sorting: EntityQuerySorting {
+                paths: Vec::new(),
+                cursor: None,
+            },
+            limit: None,
+            conversions: Vec::new(),
+            include_count: false,
+            include_entity_types: None,
+            include_drafts: false,
+            include_web_ids: false,
+            include_created_by_ids: false,
+            include_edition_created_by_ids: false,
+            include_type_ids: false,
+            include_type_titles: false,
+            include_permissions: false,
+        },
+    ))
+    .await
+    .expect("could not get entity")
+    .entities;
     assert_eq!(entities.len(), 1, "unexpected number of entities found");
     let entity = entities.into_iter().next().unwrap();
 
@@ -445,35 +442,34 @@ async fn type_ids() {
     .await
     .expect("could not patch entity");
 
-    let entities = api
-        .query_entities(
-            api.account_id,
-            QueryEntitiesParams {
-                filter: Filter::for_entity_by_entity_id(entity_id),
-                temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
-                    pinned: PinnedTemporalAxisUnresolved::new(None),
-                    variable: VariableTemporalAxisUnresolved::new(None, None),
-                },
-                sorting: EntityQuerySorting {
-                    paths: Vec::new(),
-                    cursor: None,
-                },
-                limit: None,
-                conversions: Vec::new(),
-                include_count: false,
-                include_entity_types: None,
-                include_drafts: false,
-                include_web_ids: false,
-                include_created_by_ids: false,
-                include_edition_created_by_ids: false,
-                include_type_ids: false,
-                include_type_titles: false,
-                include_permissions: false,
+    let entities = Box::pin(api.query_entities(
+        api.account_id,
+        QueryEntitiesParams {
+            filter: Filter::for_entity_by_entity_id(entity_id),
+            temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
+                pinned: PinnedTemporalAxisUnresolved::new(None),
+                variable: VariableTemporalAxisUnresolved::new(None, None),
             },
-        )
-        .await
-        .expect("could not get entity")
-        .entities;
+            sorting: EntityQuerySorting {
+                paths: Vec::new(),
+                cursor: None,
+            },
+            limit: None,
+            conversions: Vec::new(),
+            include_count: false,
+            include_entity_types: None,
+            include_drafts: false,
+            include_web_ids: false,
+            include_created_by_ids: false,
+            include_edition_created_by_ids: false,
+            include_type_ids: false,
+            include_type_titles: false,
+            include_permissions: false,
+        },
+    ))
+    .await
+    .expect("could not get entity")
+    .entities;
     assert_eq!(entities.len(), 1, "unexpected number of entities found");
     let entity = entities.into_iter().next().unwrap();
     assert!(
@@ -504,35 +500,34 @@ async fn type_ids() {
     .await
     .expect("could not patch entity");
 
-    let entities = api
-        .query_entities(
-            api.account_id,
-            QueryEntitiesParams {
-                filter: Filter::for_entity_by_entity_id(entity_id),
-                temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
-                    pinned: PinnedTemporalAxisUnresolved::new(None),
-                    variable: VariableTemporalAxisUnresolved::new(None, None),
-                },
-                sorting: EntityQuerySorting {
-                    paths: Vec::new(),
-                    cursor: None,
-                },
-                limit: None,
-                conversions: Vec::new(),
-                include_count: false,
-                include_entity_types: None,
-                include_drafts: false,
-                include_web_ids: false,
-                include_created_by_ids: false,
-                include_edition_created_by_ids: false,
-                include_type_ids: false,
-                include_type_titles: false,
-                include_permissions: false,
+    let entities = Box::pin(api.query_entities(
+        api.account_id,
+        QueryEntitiesParams {
+            filter: Filter::for_entity_by_entity_id(entity_id),
+            temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
+                pinned: PinnedTemporalAxisUnresolved::new(None),
+                variable: VariableTemporalAxisUnresolved::new(None, None),
             },
-        )
-        .await
-        .expect("could not get entity")
-        .entities;
+            sorting: EntityQuerySorting {
+                paths: Vec::new(),
+                cursor: None,
+            },
+            limit: None,
+            conversions: Vec::new(),
+            include_count: false,
+            include_entity_types: None,
+            include_drafts: false,
+            include_web_ids: false,
+            include_created_by_ids: false,
+            include_edition_created_by_ids: false,
+            include_type_ids: false,
+            include_type_titles: false,
+            include_permissions: false,
+        },
+    ))
+    .await
+    .expect("could not get entity")
+    .entities;
     assert_eq!(entities.len(), 1, "unexpected number of entities found");
     let entity = entities.into_iter().next().unwrap();
     assert_eq!(
@@ -565,35 +560,34 @@ async fn type_ids() {
     .await
     .expect("could not patch entity");
 
-    let entities = api
-        .query_entities(
-            api.account_id,
-            QueryEntitiesParams {
-                filter: Filter::for_entity_by_entity_id(entity_id),
-                temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
-                    pinned: PinnedTemporalAxisUnresolved::new(None),
-                    variable: VariableTemporalAxisUnresolved::new(None, None),
-                },
-                sorting: EntityQuerySorting {
-                    paths: Vec::new(),
-                    cursor: None,
-                },
-                limit: None,
-                conversions: Vec::new(),
-                include_count: false,
-                include_entity_types: None,
-                include_drafts: false,
-                include_web_ids: false,
-                include_created_by_ids: false,
-                include_edition_created_by_ids: false,
-                include_type_ids: false,
-                include_type_titles: false,
-                include_permissions: false,
+    let entities = Box::pin(api.query_entities(
+        api.account_id,
+        QueryEntitiesParams {
+            filter: Filter::for_entity_by_entity_id(entity_id),
+            temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
+                pinned: PinnedTemporalAxisUnresolved::new(None),
+                variable: VariableTemporalAxisUnresolved::new(None, None),
             },
-        )
-        .await
-        .expect("could not get entity")
-        .entities;
+            sorting: EntityQuerySorting {
+                paths: Vec::new(),
+                cursor: None,
+            },
+            limit: None,
+            conversions: Vec::new(),
+            include_count: false,
+            include_entity_types: None,
+            include_drafts: false,
+            include_web_ids: false,
+            include_created_by_ids: false,
+            include_edition_created_by_ids: false,
+            include_type_ids: false,
+            include_type_titles: false,
+            include_permissions: false,
+        },
+    ))
+    .await
+    .expect("could not get entity")
+    .entities;
     assert_eq!(entities.len(), 1, "unexpected number of entities found");
     let entity = entities.into_iter().next().unwrap();
 

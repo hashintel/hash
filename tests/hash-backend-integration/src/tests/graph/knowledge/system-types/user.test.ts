@@ -10,8 +10,7 @@ import {
 import type { User } from "@apps/hash-api/src/graph/knowledge/system-types/user";
 import {
   createUser,
-  getUserByKratosIdentityId,
-  getUserByShortname,
+  getUser,
   isUserMemberOfOrg,
   joinOrg,
 } from "@apps/hash-api/src/graph/knowledge/system-types/user";
@@ -115,7 +114,7 @@ describe("User model class", () => {
   it("can get a user by its shortname", async () => {
     const authentication = { actorId: createdUser.accountId };
 
-    const fetchedUser = await getUserByShortname(graphContext, authentication, {
+    const fetchedUser = await getUser(graphContext, authentication, {
       shortname,
     });
 
@@ -127,13 +126,9 @@ describe("User model class", () => {
   it("can get a user by its kratos identity id", async () => {
     const authentication = { actorId: createdUser.accountId };
 
-    const fetchedUser = await getUserByKratosIdentityId(
-      graphContext,
-      authentication,
-      {
-        kratosIdentityId: createdUser.kratosIdentityId,
-      },
-    );
+    const fetchedUser = await getUser(graphContext, authentication, {
+      kratosIdentityId: createdUser.kratosIdentityId,
+    });
 
     expect(fetchedUser).not.toBeNull();
 

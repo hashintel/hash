@@ -13,7 +13,7 @@ import {
   getMentionedUsersInTextualContent,
   getTextFromEntity,
 } from "../../../system-types/text";
-import { getUserById } from "../../../system-types/user";
+import { getUser } from "../../../system-types/user";
 import { checkPermissionsOnEntity } from "../../entity";
 import { getTextUpdateOccurredIn } from "../shared/mention-notification";
 import type { AfterUpdateEntityHookCallback } from "../update-entity-hooks";
@@ -79,12 +79,20 @@ export const textAfterUpdateEntityHookCallback: AfterUpdateEntityHookCallback =
         ),
     );
 
-    const triggeredByUser = await getUserById(context, authentication, {
-      entityId: entityIdFromComponents(
-        authentication.actorId as WebId,
-        authentication.actorId as string as EntityUuid,
-      ),
+    const triggeredByUserEntityId = entityIdFromComponents(
+      authentication.actorId as WebId,
+      authentication.actorId as string as EntityUuid,
+    );
+
+    const triggeredByUser = await getUser(context, authentication, {
+      entityId: triggeredByUserEntityId,
     });
+
+    if (!triggeredByUser) {
+      throw new Error(
+        `User with entityId ${triggeredByUserEntityId} doesn't exist or cannot be accessed by requesting user.`,
+      );
+    }
 
     await Promise.all([
       ...removedMentionedUsers.map(async (removedMentionedUser) => {

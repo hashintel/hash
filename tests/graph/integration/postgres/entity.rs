@@ -91,38 +91,34 @@ async fn insert() {
         .await
         .expect("could not create entity");
 
-    let entities = api
-        .query_entities(
-            api.account_id,
-            QueryEntitiesParams {
-                filter: Filter::for_entity_by_entity_id(entity.metadata.record_id.entity_id),
-                temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
-                    pinned: PinnedTemporalAxisUnresolved::new(None),
-                    variable: VariableTemporalAxisUnresolved::new(
-                        Some(TemporalBound::Unbounded),
-                        None,
-                    ),
-                },
-                sorting: EntityQuerySorting {
-                    paths: Vec::new(),
-                    cursor: None,
-                },
-                limit: None,
-                conversions: Vec::new(),
-                include_count: true,
-                include_entity_types: None,
-                include_drafts: false,
-                include_web_ids: false,
-                include_created_by_ids: false,
-                include_edition_created_by_ids: false,
-                include_type_ids: false,
-                include_type_titles: false,
-                include_permissions: false,
+    let entities = Box::pin(api.query_entities(
+        api.account_id,
+        QueryEntitiesParams {
+            filter: Filter::for_entity_by_entity_id(entity.metadata.record_id.entity_id),
+            temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
+                pinned: PinnedTemporalAxisUnresolved::new(None),
+                variable: VariableTemporalAxisUnresolved::new(Some(TemporalBound::Unbounded), None),
             },
-        )
-        .await
-        .expect("could not get entity")
-        .entities;
+            sorting: EntityQuerySorting {
+                paths: Vec::new(),
+                cursor: None,
+            },
+            limit: None,
+            conversions: Vec::new(),
+            include_count: true,
+            include_entity_types: None,
+            include_drafts: false,
+            include_web_ids: false,
+            include_created_by_ids: false,
+            include_edition_created_by_ids: false,
+            include_type_ids: false,
+            include_type_titles: false,
+            include_permissions: false,
+        },
+    ))
+    .await
+    .expect("could not get entity")
+    .entities;
 
     assert_eq!(entities.len(), 1);
     assert_eq!(entities[0].properties, person);
@@ -177,38 +173,34 @@ async fn query() {
         .await
         .expect("could not create entity");
 
-    let queried_organizations = api
-        .query_entities(
-            api.account_id,
-            QueryEntitiesParams {
-                filter: Filter::for_entity_by_entity_id(entity.metadata.record_id.entity_id),
-                temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
-                    pinned: PinnedTemporalAxisUnresolved::new(None),
-                    variable: VariableTemporalAxisUnresolved::new(
-                        Some(TemporalBound::Unbounded),
-                        None,
-                    ),
-                },
-                sorting: EntityQuerySorting {
-                    paths: Vec::new(),
-                    cursor: None,
-                },
-                limit: None,
-                conversions: Vec::new(),
-                include_count: true,
-                include_entity_types: None,
-                include_drafts: false,
-                include_web_ids: false,
-                include_created_by_ids: false,
-                include_edition_created_by_ids: false,
-                include_type_ids: false,
-                include_type_titles: false,
-                include_permissions: false,
+    let queried_organizations = Box::pin(api.query_entities(
+        api.account_id,
+        QueryEntitiesParams {
+            filter: Filter::for_entity_by_entity_id(entity.metadata.record_id.entity_id),
+            temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
+                pinned: PinnedTemporalAxisUnresolved::new(None),
+                variable: VariableTemporalAxisUnresolved::new(Some(TemporalBound::Unbounded), None),
             },
-        )
-        .await
-        .expect("could not get entity")
-        .entities;
+            sorting: EntityQuerySorting {
+                paths: Vec::new(),
+                cursor: None,
+            },
+            limit: None,
+            conversions: Vec::new(),
+            include_count: true,
+            include_entity_types: None,
+            include_drafts: false,
+            include_web_ids: false,
+            include_created_by_ids: false,
+            include_edition_created_by_ids: false,
+            include_type_ids: false,
+            include_type_titles: false,
+            include_permissions: false,
+        },
+    ))
+    .await
+    .expect("could not get entity")
+    .entities;
 
     assert_eq!(queried_organizations.len(), 1);
     assert_eq!(queried_organizations[0].properties, organization);
@@ -312,35 +304,34 @@ async fn update() {
         .expect("could not count entities");
     assert_eq!(num_entities, 2);
 
-    let entities = api
-        .query_entities(
-            api.account_id,
-            QueryEntitiesParams {
-                filter: Filter::for_entity_by_entity_id(v2_entity.metadata.record_id.entity_id),
-                temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
-                    pinned: PinnedTemporalAxisUnresolved::new(None),
-                    variable: VariableTemporalAxisUnresolved::new(None, None),
-                },
-                sorting: EntityQuerySorting {
-                    paths: Vec::new(),
-                    cursor: None,
-                },
-                limit: None,
-                conversions: Vec::new(),
-                include_count: false,
-                include_entity_types: None,
-                include_drafts: false,
-                include_web_ids: false,
-                include_created_by_ids: false,
-                include_edition_created_by_ids: false,
-                include_type_ids: false,
-                include_type_titles: false,
-                include_permissions: false,
+    let entities = Box::pin(api.query_entities(
+        api.account_id,
+        QueryEntitiesParams {
+            filter: Filter::for_entity_by_entity_id(v2_entity.metadata.record_id.entity_id),
+            temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
+                pinned: PinnedTemporalAxisUnresolved::new(None),
+                variable: VariableTemporalAxisUnresolved::new(None, None),
             },
-        )
-        .await
-        .expect("could not get entity")
-        .entities;
+            sorting: EntityQuerySorting {
+                paths: Vec::new(),
+                cursor: None,
+            },
+            limit: None,
+            conversions: Vec::new(),
+            include_count: false,
+            include_entity_types: None,
+            include_drafts: false,
+            include_web_ids: false,
+            include_created_by_ids: false,
+            include_edition_created_by_ids: false,
+            include_type_ids: false,
+            include_type_titles: false,
+            include_permissions: false,
+        },
+    ))
+    .await
+    .expect("could not get entity")
+    .entities;
     assert_eq!(entities.len(), 1, "unexpected number of entities found");
     let entity_v2 = entities.into_iter().next().unwrap();
 
@@ -349,74 +340,72 @@ async fn update() {
     let ClosedTemporalBound::Inclusive(entity_v1_timestamp) =
         *v1_entity.metadata.temporal_versioning.decision_time.start();
 
-    let mut response_v1 = api
-        .query_entities(
-            api.account_id,
-            QueryEntitiesParams {
-                filter: Filter::for_entity_by_entity_id(v1_entity.metadata.record_id.entity_id),
-                temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
-                    pinned: PinnedTemporalAxisUnresolved::new(None),
-                    variable: VariableTemporalAxisUnresolved::new(
-                        Some(TemporalBound::Inclusive(entity_v1_timestamp)),
-                        Some(LimitedTemporalBound::Inclusive(entity_v1_timestamp)),
-                    ),
-                },
-                sorting: EntityQuerySorting {
-                    paths: Vec::new(),
-                    cursor: None,
-                },
-                limit: None,
-                conversions: Vec::new(),
-                include_count: true,
-                include_entity_types: None,
-                include_drafts: false,
-                include_web_ids: false,
-                include_created_by_ids: false,
-                include_edition_created_by_ids: false,
-                include_type_ids: false,
-                include_type_titles: false,
-                include_permissions: false,
+    let mut response_v1 = Box::pin(api.query_entities(
+        api.account_id,
+        QueryEntitiesParams {
+            filter: Filter::for_entity_by_entity_id(v1_entity.metadata.record_id.entity_id),
+            temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
+                pinned: PinnedTemporalAxisUnresolved::new(None),
+                variable: VariableTemporalAxisUnresolved::new(
+                    Some(TemporalBound::Inclusive(entity_v1_timestamp)),
+                    Some(LimitedTemporalBound::Inclusive(entity_v1_timestamp)),
+                ),
             },
-        )
-        .await
-        .expect("could not get entities");
+            sorting: EntityQuerySorting {
+                paths: Vec::new(),
+                cursor: None,
+            },
+            limit: None,
+            conversions: Vec::new(),
+            include_count: true,
+            include_entity_types: None,
+            include_drafts: false,
+            include_web_ids: false,
+            include_created_by_ids: false,
+            include_edition_created_by_ids: false,
+            include_type_ids: false,
+            include_type_titles: false,
+            include_permissions: false,
+        },
+    ))
+    .await
+    .expect("could not get entities");
     assert_eq!(response_v1.count, Some(1));
     let entity_v1 = response_v1.entities.pop().expect("no entity found");
     assert_eq!(entity_v1.properties.properties(), page_v1.properties());
 
     let ClosedTemporalBound::Inclusive(entity_v2_timestamp) =
         *v2_entity.metadata.temporal_versioning.decision_time.start();
-    let mut response_v2 = api
-        .query_entities(
-            api.account_id,
-            QueryEntitiesParams {
-                filter: Filter::for_entity_by_entity_id(v2_entity.metadata.record_id.entity_id),
-                temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
-                    pinned: PinnedTemporalAxisUnresolved::new(None),
-                    variable: VariableTemporalAxisUnresolved::new(
-                        Some(TemporalBound::Inclusive(entity_v2_timestamp)),
-                        Some(LimitedTemporalBound::Inclusive(entity_v2_timestamp)),
-                    ),
-                },
-                sorting: EntityQuerySorting {
-                    paths: Vec::new(),
-                    cursor: None,
-                },
-                limit: None,
-                conversions: Vec::new(),
-                include_count: true,
-                include_entity_types: None,
-                include_drafts: false,
-                include_web_ids: false,
-                include_created_by_ids: false,
-                include_edition_created_by_ids: false,
-                include_type_ids: false,
-                include_type_titles: false,
-                include_permissions: false,
+    let mut response_v2 = Box::pin(api.query_entities(
+        api.account_id,
+        QueryEntitiesParams {
+            filter: Filter::for_entity_by_entity_id(v2_entity.metadata.record_id.entity_id),
+            temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
+                pinned: PinnedTemporalAxisUnresolved::new(None),
+                variable: VariableTemporalAxisUnresolved::new(
+                    Some(TemporalBound::Inclusive(entity_v2_timestamp)),
+                    Some(LimitedTemporalBound::Inclusive(entity_v2_timestamp)),
+                ),
             },
-        )
-        .await
-        .expect("could not get entities");
+            sorting: EntityQuerySorting {
+                paths: Vec::new(),
+                cursor: None,
+            },
+            limit: None,
+            conversions: Vec::new(),
+            include_count: true,
+            include_entity_types: None,
+            include_drafts: false,
+            include_web_ids: false,
+            include_created_by_ids: false,
+            include_edition_created_by_ids: false,
+            include_type_ids: false,
+            include_type_titles: false,
+            include_permissions: false,
+        },
+    ))
+    .await
+    .expect("could not get entities");
     assert_eq!(response_v2.count, Some(1));
     let entity_v2 = response_v2.entities.pop().expect("no entity found");
     assert_eq!(entity_v2.properties.properties(), page_v2.properties());

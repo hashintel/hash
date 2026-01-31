@@ -1,9 +1,9 @@
-import type {
-  ActorEntityUuid,
-  DataTypeWithMetadata,
-  Entity,
-  EntityTypeWithMetadata,
-  PropertyTypeWithMetadata,
+import {
+  type ActorEntityUuid,
+  type DataTypeWithMetadata,
+  type Entity,
+  type EntityTypeWithMetadata,
+  type PropertyTypeWithMetadata,
 } from "@blockprotocol/type-system";
 import { publicUserAccountId } from "@local/hash-backend-utils/public-user-account-id";
 import type {

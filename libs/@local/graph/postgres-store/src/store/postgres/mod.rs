@@ -43,6 +43,7 @@ use hash_graph_store::{
         WebRetrievalError,
     },
     error::{InsertionError, UpdateError},
+    filter::protection::PropertyProtectionFilterConfig,
     query::ConflictBehavior,
 };
 use hash_graph_temporal_versioning::{LeftClosedTemporalInterval, TransactionTime};
@@ -83,10 +84,15 @@ use crate::store::error::{
     StoreError, VersionedUrlAlreadyExists,
 };
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct PostgresStoreSettings {
     pub validate_links: bool,
     pub skip_embedding_creation: bool,
+    /// Configuration for filter protection against information leakage.
+    ///
+    /// When set, filters on protected properties will automatically exclude
+    /// specified entity types to prevent enumeration attacks.
+    pub filter_protection: PropertyProtectionFilterConfig<'static>,
 }
 
 impl Default for PostgresStoreSettings {
@@ -94,6 +100,7 @@ impl Default for PostgresStoreSettings {
         Self {
             validate_links: true,
             skip_embedding_creation: false,
+            filter_protection: PropertyProtectionFilterConfig::hash_default(),
         }
     }
 }
@@ -102,7 +109,7 @@ impl Default for PostgresStoreSettings {
 pub struct PostgresStore<C> {
     client: C,
     pub temporal_client: Option<Arc<TemporalClient>>,
-    pub settings: PostgresStoreSettings,
+    pub settings: Arc<PostgresStoreSettings>,
 }
 
 impl PostgresStore<tokio_postgres::Transaction<'_>> {
@@ -2447,7 +2454,7 @@ where
     pub const fn new(
         client: C,
         temporal_client: Option<Arc<TemporalClient>>,
-        settings: PostgresStoreSettings,
+        settings: Arc<PostgresStoreSettings>,
     ) -> Self {
         Self {
             client,
@@ -3150,7 +3157,7 @@ where
                 .await
                 .change_context(StoreError)?,
             self.temporal_client.clone(),
-            self.settings.clone(),
+            Arc::clone(&self.settings),
         ))
     }
 }

@@ -163,99 +163,95 @@ async fn insert() {
     .await
     .expect("could not create link");
 
-    let entities = api
-        .query_entities(
-            api.account_id,
-            QueryEntitiesParams {
-                filter: Filter::All(vec![
-                    Filter::Equal(
-                        FilterExpression::Path {
-                            path: EntityQueryPath::EntityEdge {
-                                edge_kind: KnowledgeGraphEdgeKind::HasLeftEntity,
-                                path: Box::new(EntityQueryPath::Uuid),
-                                direction: EdgeDirection::Outgoing,
-                            },
+    let entities = Box::pin(api.query_entities(
+        api.account_id,
+        QueryEntitiesParams {
+            filter: Filter::All(vec![
+                Filter::Equal(
+                    FilterExpression::Path {
+                        path: EntityQueryPath::EntityEdge {
+                            edge_kind: KnowledgeGraphEdgeKind::HasLeftEntity,
+                            path: Box::new(EntityQueryPath::Uuid),
+                            direction: EdgeDirection::Outgoing,
                         },
-                        FilterExpression::Parameter {
-                            parameter: Parameter::Uuid(
-                                alice_entity.metadata.record_id.entity_id.entity_uuid.into(),
-                            ),
-                            convert: None,
+                    },
+                    FilterExpression::Parameter {
+                        parameter: Parameter::Uuid(
+                            alice_entity.metadata.record_id.entity_id.entity_uuid.into(),
+                        ),
+                        convert: None,
+                    },
+                ),
+                Filter::Equal(
+                    FilterExpression::Path {
+                        path: EntityQueryPath::EntityEdge {
+                            edge_kind: KnowledgeGraphEdgeKind::HasLeftEntity,
+                            path: Box::new(EntityQueryPath::WebId),
+                            direction: EdgeDirection::Outgoing,
                         },
-                    ),
-                    Filter::Equal(
-                        FilterExpression::Path {
-                            path: EntityQueryPath::EntityEdge {
-                                edge_kind: KnowledgeGraphEdgeKind::HasLeftEntity,
-                                path: Box::new(EntityQueryPath::WebId),
-                                direction: EdgeDirection::Outgoing,
-                            },
+                    },
+                    FilterExpression::Parameter {
+                        parameter: Parameter::Uuid(
+                            alice_entity.metadata.record_id.entity_id.web_id.into(),
+                        ),
+                        convert: None,
+                    },
+                ),
+                Filter::Equal(
+                    FilterExpression::Path {
+                        path: EntityQueryPath::EntityTypeEdge {
+                            edge_kind: SharedEdgeKind::IsOfType,
+                            path: EntityTypeQueryPath::BaseUrl,
+                            inheritance_depth: Some(0),
                         },
-                        FilterExpression::Parameter {
-                            parameter: Parameter::Uuid(
-                                alice_entity.metadata.record_id.entity_id.web_id.into(),
-                            ),
-                            convert: None,
+                    },
+                    FilterExpression::Parameter {
+                        parameter: Parameter::Text(Cow::Borrowed(
+                            friend_of_type_id.base_url.as_str(),
+                        )),
+                        convert: None,
+                    },
+                ),
+                Filter::Equal(
+                    FilterExpression::Path {
+                        path: EntityQueryPath::EntityTypeEdge {
+                            edge_kind: SharedEdgeKind::IsOfType,
+                            path: EntityTypeQueryPath::Version,
+                            inheritance_depth: Some(0),
                         },
-                    ),
-                    Filter::Equal(
-                        FilterExpression::Path {
-                            path: EntityQueryPath::EntityTypeEdge {
-                                edge_kind: SharedEdgeKind::IsOfType,
-                                path: EntityTypeQueryPath::BaseUrl,
-                                inheritance_depth: Some(0),
-                            },
-                        },
-                        FilterExpression::Parameter {
-                            parameter: Parameter::Text(Cow::Borrowed(
-                                friend_of_type_id.base_url.as_str(),
-                            )),
-                            convert: None,
-                        },
-                    ),
-                    Filter::Equal(
-                        FilterExpression::Path {
-                            path: EntityQueryPath::EntityTypeEdge {
-                                edge_kind: SharedEdgeKind::IsOfType,
-                                path: EntityTypeQueryPath::Version,
-                                inheritance_depth: Some(0),
-                            },
-                        },
-                        FilterExpression::Parameter {
-                            parameter: Parameter::OntologyTypeVersion(Cow::Borrowed(
-                                &friend_of_type_id.version,
-                            )),
-                            convert: None,
-                        },
-                    ),
-                ]),
-                temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
-                    pinned: PinnedTemporalAxisUnresolved::new(None),
-                    variable: VariableTemporalAxisUnresolved::new(
-                        Some(TemporalBound::Unbounded),
-                        None,
-                    ),
-                },
-                sorting: EntityQuerySorting {
-                    paths: Vec::new(),
-                    cursor: None,
-                },
-                limit: None,
-                conversions: Vec::new(),
-                include_count: true,
-                include_entity_types: None,
-                include_drafts: false,
-                include_web_ids: false,
-                include_created_by_ids: false,
-                include_edition_created_by_ids: false,
-                include_type_ids: false,
-                include_type_titles: false,
-                include_permissions: false,
+                    },
+                    FilterExpression::Parameter {
+                        parameter: Parameter::OntologyTypeVersion(Cow::Borrowed(
+                            &friend_of_type_id.version,
+                        )),
+                        convert: None,
+                    },
+                ),
+            ]),
+            temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
+                pinned: PinnedTemporalAxisUnresolved::new(None),
+                variable: VariableTemporalAxisUnresolved::new(Some(TemporalBound::Unbounded), None),
             },
-        )
-        .await
-        .expect("could not get entity")
-        .entities;
+            sorting: EntityQuerySorting {
+                paths: Vec::new(),
+                cursor: None,
+            },
+            limit: None,
+            conversions: Vec::new(),
+            include_count: true,
+            include_entity_types: None,
+            include_drafts: false,
+            include_web_ids: false,
+            include_created_by_ids: false,
+            include_edition_created_by_ids: false,
+            include_type_ids: false,
+            include_type_titles: false,
+            include_permissions: false,
+        },
+    ))
+    .await
+    .expect("could not get entity")
+    .entities;
 
     let link_entity = match entities.len() {
         1 => entities.into_iter().next().unwrap(),
@@ -472,49 +468,48 @@ async fn get_entity_links() {
     .await
     .expect("could not create link");
 
-    let links_from_source = api
-        .query_entities(
-            api.account_id,
-            QueryEntitiesParams {
-                filter: Filter::Equal(
-                    FilterExpression::Path {
-                        path: EntityQueryPath::EntityEdge {
-                            edge_kind: KnowledgeGraphEdgeKind::HasLeftEntity,
-                            path: Box::new(EntityQueryPath::Uuid),
-                            direction: EdgeDirection::Outgoing,
-                        },
+    let links_from_source = Box::pin(api.query_entities(
+        api.account_id,
+        QueryEntitiesParams {
+            filter: Filter::Equal(
+                FilterExpression::Path {
+                    path: EntityQueryPath::EntityEdge {
+                        edge_kind: KnowledgeGraphEdgeKind::HasLeftEntity,
+                        path: Box::new(EntityQueryPath::Uuid),
+                        direction: EdgeDirection::Outgoing,
                     },
-                    FilterExpression::Parameter {
-                        parameter: Parameter::Uuid(
-                            alice_entity.metadata.record_id.entity_id.entity_uuid.into(),
-                        ),
-                        convert: None,
-                    },
-                ),
-                temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
-                    pinned: PinnedTemporalAxisUnresolved::new(None),
-                    variable: VariableTemporalAxisUnresolved::new(None, None),
                 },
-                sorting: EntityQuerySorting {
-                    paths: Vec::new(),
-                    cursor: None,
+                FilterExpression::Parameter {
+                    parameter: Parameter::Uuid(
+                        alice_entity.metadata.record_id.entity_id.entity_uuid.into(),
+                    ),
+                    convert: None,
                 },
-                limit: None,
-                conversions: Vec::new(),
-                include_count: false,
-                include_entity_types: None,
-                include_drafts: false,
-                include_web_ids: false,
-                include_created_by_ids: false,
-                include_edition_created_by_ids: false,
-                include_type_ids: false,
-                include_type_titles: false,
-                include_permissions: false,
+            ),
+            temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
+                pinned: PinnedTemporalAxisUnresolved::new(None),
+                variable: VariableTemporalAxisUnresolved::new(None, None),
             },
-        )
-        .await
-        .expect("could not get entities")
-        .entities;
+            sorting: EntityQuerySorting {
+                paths: Vec::new(),
+                cursor: None,
+            },
+            limit: None,
+            conversions: Vec::new(),
+            include_count: false,
+            include_entity_types: None,
+            include_drafts: false,
+            include_web_ids: false,
+            include_created_by_ids: false,
+            include_edition_created_by_ids: false,
+            include_type_ids: false,
+            include_type_titles: false,
+            include_permissions: false,
+        },
+    ))
+    .await
+    .expect("could not get entities")
+    .entities;
 
     assert!(links_from_source.iter().any(|link_entity| {
         link_entity

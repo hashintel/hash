@@ -14,8 +14,8 @@ use hash_graph_postgres_store::{
 };
 use hash_graph_store::{
     data_type::CreateDataTypeParams, entity::CreateEntityParams,
-    entity_type::CreateEntityTypeParams, migration::StoreMigration as _, pool::StorePool as _,
-    property_type::CreatePropertyTypeParams,
+    entity_type::CreateEntityTypeParams, filter::protection::PropertyProtectionFilterConfig,
+    migration::StoreMigration as _, pool::StorePool as _, property_type::CreatePropertyTypeParams,
 };
 use hash_graph_test_data::seeding::{
     context::{ProduceContext, Provenance, RunId, ShardId, StageId},
@@ -126,7 +126,9 @@ pub fn run_scenario<M: Measurement>(
                         )
                         .entered();
 
-                        let result = stage.execute(&mut runner).await.expect("stage failed");
+                        let result = Box::pin(stage.execute(&mut runner))
+                            .await
+                            .expect("stage failed");
                         if current_iteration == 0 {
                             tracing::info!(result = %result, "Bench stage completed");
                         }
@@ -214,6 +216,7 @@ impl Runner {
             PostgresStoreSettings {
                 validate_links: true,
                 skip_embedding_creation: true,
+                filter_protection: PropertyProtectionFilterConfig::new(), // Disabled for benchmarks
             },
         )
         .await
