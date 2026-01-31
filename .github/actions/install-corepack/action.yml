@@ -14,7 +14,7 @@ runs:
 
     - name: Restore yarn corepack cache
       id: cache-restore
-      uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+      uses: actions/cache/restore@cdf6c1fa76f9f475f3d7449005a359c84ca0f306 # v5.0.3
       with:
         path: .yarn/corepack.tgz
         key: yarn-corepack-${{ steps.find-version.outputs.version }}
@@ -27,7 +27,7 @@ runs:
         mv corepack.tgz .yarn/corepack.tgz
 
     - name: Save yarn corepack cache
-      uses: actions/cache/save@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+      uses: actions/cache/save@cdf6c1fa76f9f475f3d7449005a359c84ca0f306 # v5.0.3
       if: steps.cache-restore.outputs.cache-hit != 'true'
       with:
         path: .yarn/corepack.tgz
