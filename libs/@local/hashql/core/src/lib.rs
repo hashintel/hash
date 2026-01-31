@@ -32,6 +32,7 @@
     step_trait,
     try_trait_v2,
     variant_count,
+    str_from_raw_parts
 )]
 
 extern crate alloc;
