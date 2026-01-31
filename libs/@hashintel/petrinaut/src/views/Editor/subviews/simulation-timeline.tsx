@@ -4,6 +4,7 @@ import { use, useCallback, useMemo, useRef, useState } from "react";
 
 import { SegmentGroup } from "../../../components/segment-group";
 import type { SubView } from "../../../components/sub-view/types";
+import { PlaybackContext } from "../../../playback/context";
 import { SimulationContext } from "../../../simulation/context";
 import {
   EditorContext,
@@ -270,7 +271,7 @@ const useCompartmentData = (): CompartmentData[] => {
     // Extract token counts for each place across all frames
     return places.map((place) => {
       const values = simulation.frames.map((frame) => {
-        const placeData = frame.places.get(place.id);
+        const placeData = frame.places[place.id];
         return placeData?.count ?? 0;
       });
 
@@ -421,8 +422,8 @@ const ChartTooltip: React.FC<{ tooltip: TooltipState | null }> = ({
 const PlayheadIndicator: React.FC<{ totalFrames: number }> = ({
   totalFrames,
 }) => {
-  const { currentViewedFrame } = use(SimulationContext);
-  const frameIndex = currentViewedFrame?.number ?? 0;
+  const { currentFrameIndex } = use(PlaybackContext);
+  const frameIndex = currentFrameIndex;
 
   return (
     <div
@@ -514,7 +515,8 @@ const CompartmentTimeSeries: React.FC<ChartProps> = ({
   onTooltipChange,
   onPlaceHover,
 }) => {
-  const { simulation, setCurrentViewedFrame } = use(SimulationContext);
+  const { simulation } = use(SimulationContext);
+  const { setCurrentViewedFrame } = use(PlaybackContext);
 
   const chartRef = useRef<SVGSVGElement>(null);
   const isDraggingRef = useRef(false);
@@ -805,7 +807,8 @@ const StackedAreaChart: React.FC<ChartProps> = ({
   onTooltipChange,
   onPlaceHover,
 }) => {
-  const { simulation, setCurrentViewedFrame } = use(SimulationContext);
+  const { simulation } = use(SimulationContext);
+  const { setCurrentViewedFrame } = use(PlaybackContext);
 
   const chartRef = useRef<SVGSVGElement>(null);
   const isDraggingRef = useRef(false);

@@ -131,21 +131,29 @@ export type SimulationInstance = {
 };
 
 /**
+ * State of a place within a simulation frame.
+ */
+export type SimulationFrameState_Place = {
+  instance: Place;
+  offset: number;
+  count: number;
+  dimensions: number;
+};
+
+/**
  * A single frame (snapshot) of the simulation state at a point in time.
  * Contains the complete token distribution and transition states.
+ *
+ * All properties are serializable (no Map types) to support transfer
+ * between WebWorker and Main Thread via structured clone.
  */
 export type SimulationFrame = {
-  /** Back-reference to the parent simulation instance */
-  simulation: SimulationInstance;
   /** Simulation time at this frame */
   time: number;
-  /** Place states with token buffer offsets */
-  places: Map<
-    ID,
-    { instance: Place; offset: number; count: number; dimensions: number }
-  >;
-  /** Transition states with firing information */
-  transitions: Map<
+  /** Place states with token buffer offsets, keyed by place ID */
+  places: Record<ID, SimulationFrameState_Place>;
+  /** Transition states with firing information, keyed by transition ID */
+  transitions: Record<
     ID,
     SimulationFrameState_Transition & { instance: Transition }
   >;
@@ -156,7 +164,7 @@ export type SimulationFrame = {
    *
    * Layout: For each place, its tokens are stored contiguously.
    *
-   * Access to a place's token values can be done via the offset and count in the `places` map.
+   * Access to a place's token values can be done via the offset and count in the `places` record.
    */
   buffer: Float64Array;
 };
@@ -205,12 +213,18 @@ export type SimulationContextValue = {
   errorItemId: string | null;
   parameterValues: Record<string, string>;
   initialMarking: InitialMarking;
-  /**
-   * The currently viewed simulation frame state.
-   * Null when no simulation is running or no frames exist.
-   */
-  currentViewedFrame: SimulationFrameState | null;
   dt: number;
+  /**
+   * Maximum simulation time in seconds.
+   * When the simulation reaches this time, it will be paused.
+   * If null, the simulation runs until no transitions are enabled.
+   */
+  maxTime: number | null;
+  /**
+   * Duration in seconds to buffer ahead when in computeBuffer mode.
+   * Default is 1 second.
+   */
+  computeBufferDuration: number;
 
   // Actions
   setInitialMarking: (
@@ -219,12 +233,20 @@ export type SimulationContextValue = {
   ) => void;
   setParameterValue: (parameterId: string, value: string) => void;
   setDt: (dt: number) => void;
+  /**
+   * Set the maximum simulation time in seconds.
+   * Pass null to disable the time limit.
+   */
+  setMaxTime: (maxTime: number | null) => void;
+  /**
+   * Set the compute buffer duration in seconds.
+   */
+  setComputeBufferDuration: (duration: number) => void;
   initializeParameterValuesFromDefaults: () => void;
   initialize: (params: { seed: number; dt: number }) => void;
   run: () => void;
   pause: () => void;
   reset: () => void;
-  setCurrentViewedFrame: (frameIndex: number) => void;
 };
 
 const DEFAULT_CONTEXT_VALUE: SimulationContextValue = {
@@ -234,17 +256,19 @@ const DEFAULT_CONTEXT_VALUE: SimulationContextValue = {
   errorItemId: null,
   parameterValues: {},
   initialMarking: new Map(),
-  currentViewedFrame: null,
   dt: 0.01,
+  maxTime: null,
+  computeBufferDuration: 1,
   setInitialMarking: () => {},
   setParameterValue: () => {},
   setDt: () => {},
+  setMaxTime: () => {},
+  setComputeBufferDuration: () => {},
   initializeParameterValuesFromDefaults: () => {},
   initialize: () => {},
   run: () => {},
   pause: () => {},
   reset: () => {},
-  setCurrentViewedFrame: () => {},
 };
 
 export const SimulationContext = createContext<SimulationContextValue>(

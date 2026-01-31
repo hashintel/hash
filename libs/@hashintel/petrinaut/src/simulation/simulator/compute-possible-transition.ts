@@ -2,12 +2,12 @@ import { SDCPNItemError } from "../../core/errors";
 import type { ID } from "../../core/types/sdcpn";
 import { enumerateWeightedMarkingIndicesGenerator } from "./enumerate-weighted-markings";
 import { nextRandom } from "./seeded-rng";
-import type { SimulationFrame } from "./types";
+import type { SimulationFrame, SimulationInstance } from "./types";
 
 type PlaceID = ID;
 
 /**
- * Takes a SimulationFrame, a TransitionID, and computes the possible transition.
+ * Takes a SimulationFrame, a SimulationInstance, a TransitionID, and computes the possible transition.
  * Returns null if no transition is possible.
  * Returns a record with:
  * - removed: Map from PlaceID to Set of token indices to remove.
@@ -16,23 +16,22 @@ type PlaceID = ID;
  */
 export function computePossibleTransition(
   frame: SimulationFrame,
+  simulation: SimulationInstance,
   transitionId: string,
 ): null | {
   remove: Record<PlaceID, Set<number> | number>;
   add: Record<PlaceID, number[][]>;
   newRngState: number;
 } {
-  const { simulation } = frame;
-
   // Get the transition from the simulation instance
-  const transition = frame.transitions.get(transitionId);
+  const transition = frame.transitions[transitionId];
   if (!transition) {
     throw new Error(`Transition with ID ${transitionId} not found.`);
   }
 
   // Gather input places with their weights relative to this transition.
   const inputPlaces = transition.instance.inputArcs.map((arc) => {
-    const placeState = frame.places.get(arc.placeId);
+    const placeState = frame.places[arc.placeId];
     if (!placeState) {
       throw new Error(
         `Place with ID ${arc.placeId} not found in current marking.`,
@@ -198,7 +197,7 @@ export function computePossibleTransition(
       const addMap: Record<PlaceID, number[][]> = {};
 
       for (const outputArc of transition.instance.outputArcs) {
-        const outputPlace = frame.places.get(outputArc.placeId);
+        const outputPlace = frame.places[outputArc.placeId];
         if (!outputPlace) {
           throw new Error(
             `Output place with ID ${outputArc.placeId} not found in frame`,

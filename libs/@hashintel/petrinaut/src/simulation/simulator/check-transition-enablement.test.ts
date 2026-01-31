@@ -23,48 +23,41 @@ describe("isTransitionStructurallyEnabled", () => {
     };
 
     const frame: SimulationFrame = {
-      simulation,
       time: 0,
-      places: new Map([
-        [
-          "p1",
-          {
-            instance: {
-              id: "p1",
-              name: "Place 1",
-              colorId: null,
-              differentialEquationId: null,
-              dynamicsEnabled: false,
-              x: 0,
-              y: 0,
-            },
-            offset: 0,
-            count: 2,
-            dimensions: 0,
+      places: {
+        p1: {
+          instance: {
+            id: "p1",
+            name: "Place 1",
+            colorId: null,
+            differentialEquationId: null,
+            dynamicsEnabled: false,
+            x: 0,
+            y: 0,
           },
-        ],
-      ]),
-      transitions: new Map([
-        [
-          "t1",
-          {
-            instance: {
-              id: "t1",
-              name: "Transition 1",
-              inputArcs: [{ placeId: "p1", weight: 1 }],
-              outputArcs: [],
-              lambdaType: "stochastic",
-              lambdaCode: "return 1.0;",
-              transitionKernelCode: "return {};",
-              x: 0,
-              y: 0,
-            },
-            timeSinceLastFiringMs: 0,
-            firedInThisFrame: false,
-            firingCount: 0,
+          offset: 0,
+          count: 2,
+          dimensions: 0,
+        },
+      },
+      transitions: {
+        t1: {
+          instance: {
+            id: "t1",
+            name: "Transition 1",
+            inputArcs: [{ placeId: "p1", weight: 1 }],
+            outputArcs: [],
+            lambdaType: "stochastic",
+            lambdaCode: "return 1.0;",
+            transitionKernelCode: "return {};",
+            x: 0,
+            y: 0,
           },
-        ],
-      ]),
+          timeSinceLastFiringMs: 0,
+          firedInThisFrame: false,
+          firingCount: 0,
+        },
+      },
       buffer: new Float64Array([]),
     };
 
@@ -87,48 +80,41 @@ describe("isTransitionStructurallyEnabled", () => {
     };
 
     const frame: SimulationFrame = {
-      simulation,
       time: 0,
-      places: new Map([
-        [
-          "p1",
-          {
-            instance: {
-              id: "p1",
-              name: "Place 1",
-              colorId: null,
-              differentialEquationId: null,
-              dynamicsEnabled: false,
-              x: 0,
-              y: 0,
-            },
-            offset: 0,
-            count: 0,
-            dimensions: 0,
+      places: {
+        p1: {
+          instance: {
+            id: "p1",
+            name: "Place 1",
+            colorId: null,
+            differentialEquationId: null,
+            dynamicsEnabled: false,
+            x: 0,
+            y: 0,
           },
-        ],
-      ]),
-      transitions: new Map([
-        [
-          "t1",
-          {
-            instance: {
-              id: "t1",
-              name: "Transition 1",
-              inputArcs: [{ placeId: "p1", weight: 1 }],
-              outputArcs: [],
-              lambdaType: "stochastic",
-              lambdaCode: "return 1.0;",
-              transitionKernelCode: "return {};",
-              x: 0,
-              y: 0,
-            },
-            timeSinceLastFiringMs: 0,
-            firedInThisFrame: false,
-            firingCount: 0,
+          offset: 0,
+          count: 0,
+          dimensions: 0,
+        },
+      },
+      transitions: {
+        t1: {
+          instance: {
+            id: "t1",
+            name: "Transition 1",
+            inputArcs: [{ placeId: "p1", weight: 1 }],
+            outputArcs: [],
+            lambdaType: "stochastic",
+            lambdaCode: "return 1.0;",
+            transitionKernelCode: "return {};",
+            x: 0,
+            y: 0,
           },
-        ],
-      ]),
+          timeSinceLastFiringMs: 0,
+          firedInThisFrame: false,
+          firingCount: 0,
+        },
+      },
       buffer: new Float64Array([]),
     };
 
@@ -151,48 +137,41 @@ describe("isTransitionStructurallyEnabled", () => {
     };
 
     const frame: SimulationFrame = {
-      simulation,
       time: 0,
-      places: new Map([
-        [
-          "p1",
-          {
-            instance: {
-              id: "p1",
-              name: "Place 1",
-              colorId: null,
-              differentialEquationId: null,
-              dynamicsEnabled: false,
-              x: 0,
-              y: 0,
-            },
-            offset: 0,
-            count: 2,
-            dimensions: 0,
+      places: {
+        p1: {
+          instance: {
+            id: "p1",
+            name: "Place 1",
+            colorId: null,
+            differentialEquationId: null,
+            dynamicsEnabled: false,
+            x: 0,
+            y: 0,
           },
-        ],
-      ]),
-      transitions: new Map([
-        [
-          "t1",
-          {
-            instance: {
-              id: "t1",
-              name: "Transition 1",
-              inputArcs: [{ placeId: "p1", weight: 3 }], // Requires 3 tokens
-              outputArcs: [],
-              lambdaType: "stochastic",
-              lambdaCode: "return 1.0;",
-              transitionKernelCode: "return {};",
-              x: 0,
-              y: 0,
-            },
-            timeSinceLastFiringMs: 0,
-            firedInThisFrame: false,
-            firingCount: 0,
+          offset: 0,
+          count: 2,
+          dimensions: 0,
+        },
+      },
+      transitions: {
+        t1: {
+          instance: {
+            id: "t1",
+            name: "Transition 1",
+            inputArcs: [{ placeId: "p1", weight: 3 }], // Requires 3 tokens
+            outputArcs: [],
+            lambdaType: "stochastic",
+            lambdaCode: "return 1.0;",
+            transitionKernelCode: "return {};",
+            x: 0,
+            y: 0,
           },
-        ],
-      ]),
+          timeSinceLastFiringMs: 0,
+          firedInThisFrame: false,
+          firingCount: 0,
+        },
+      },
       buffer: new Float64Array([]),
     };
 
@@ -216,68 +195,58 @@ describe("isTransitionStructurallyEnabled", () => {
     };
 
     const frame: SimulationFrame = {
-      simulation,
       time: 0,
-      places: new Map([
-        [
-          "p1",
-          {
-            instance: {
-              id: "p1",
-              name: "Place 1",
-              colorId: null,
-              differentialEquationId: null,
-              dynamicsEnabled: false,
-              x: 0,
-              y: 0,
-            },
-            offset: 0,
-            count: 2,
-            dimensions: 0,
+      places: {
+        p1: {
+          instance: {
+            id: "p1",
+            name: "Place 1",
+            colorId: null,
+            differentialEquationId: null,
+            dynamicsEnabled: false,
+            x: 0,
+            y: 0,
           },
-        ],
-        [
-          "p2",
-          {
-            instance: {
-              id: "p2",
-              name: "Place 2",
-              colorId: null,
-              differentialEquationId: null,
-              dynamicsEnabled: false,
-              x: 0,
-              y: 0,
-            },
-            offset: 0,
-            count: 0, // No tokens
-            dimensions: 0,
+          offset: 0,
+          count: 2,
+          dimensions: 0,
+        },
+        p2: {
+          instance: {
+            id: "p2",
+            name: "Place 2",
+            colorId: null,
+            differentialEquationId: null,
+            dynamicsEnabled: false,
+            x: 0,
+            y: 0,
           },
-        ],
-      ]),
-      transitions: new Map([
-        [
-          "t1",
-          {
-            instance: {
-              id: "t1",
-              name: "Transition 1",
-              inputArcs: [
-                { placeId: "p1", weight: 1 },
-                { placeId: "p2", weight: 1 },
-              ],
-              outputArcs: [],
-              lambdaType: "stochastic",
-              lambdaCode: "return 1.0;",
-              transitionKernelCode: "return {};",
-              x: 0,
-              y: 0,
-            },
-            timeSinceLastFiringMs: 0,
-            firedInThisFrame: false,
-            firingCount: 0,
+          offset: 0,
+          count: 0, // No tokens
+          dimensions: 0,
+        },
+      },
+      transitions: {
+        t1: {
+          instance: {
+            id: "t1",
+            name: "Transition 1",
+            inputArcs: [
+              { placeId: "p1", weight: 1 },
+              { placeId: "p2", weight: 1 },
+            ],
+            outputArcs: [],
+            lambdaType: "stochastic",
+            lambdaCode: "return 1.0;",
+            transitionKernelCode: "return {};",
+            x: 0,
+            y: 0,
           },
-        ],
-      ]),
+          timeSinceLastFiringMs: 0,
+          firedInThisFrame: false,
+          firingCount: 0,
+        },
+      },
       buffer: new Float64Array([]),
     };
 
@@ -301,30 +270,26 @@ describe("isTransitionStructurallyEnabled", () => {
     };
 
     const frame: SimulationFrame = {
-      simulation,
       time: 0,
-      places: new Map(),
-      transitions: new Map([
-        [
-          "t1",
-          {
-            instance: {
-              id: "t1",
-              name: "Transition 1",
-              inputArcs: [], // No input arcs
-              outputArcs: [{ placeId: "p1", weight: 1 }],
-              lambdaType: "stochastic",
-              lambdaCode: "return 1.0;",
-              transitionKernelCode: "return {};",
-              x: 0,
-              y: 0,
-            },
-            timeSinceLastFiringMs: 0,
-            firedInThisFrame: false,
-            firingCount: 0,
+      places: {},
+      transitions: {
+        t1: {
+          instance: {
+            id: "t1",
+            name: "Transition 1",
+            inputArcs: [], // No input arcs
+            outputArcs: [{ placeId: "p1", weight: 1 }],
+            lambdaType: "stochastic",
+            lambdaCode: "return 1.0;",
+            transitionKernelCode: "return {};",
+            x: 0,
+            y: 0,
           },
-        ],
-      ]),
+          timeSinceLastFiringMs: 0,
+          firedInThisFrame: false,
+          firingCount: 0,
+        },
+      },
       buffer: new Float64Array([]),
     };
 
@@ -349,84 +314,71 @@ describe("checkTransitionEnablement", () => {
     };
 
     const frame: SimulationFrame = {
-      simulation,
       time: 0,
-      places: new Map([
-        [
-          "p1",
-          {
-            instance: {
-              id: "p1",
-              name: "Place 1",
-              colorId: null,
-              differentialEquationId: null,
-              dynamicsEnabled: false,
-              x: 0,
-              y: 0,
-            },
-            offset: 0,
-            count: 1,
-            dimensions: 0,
+      places: {
+        p1: {
+          instance: {
+            id: "p1",
+            name: "Place 1",
+            colorId: null,
+            differentialEquationId: null,
+            dynamicsEnabled: false,
+            x: 0,
+            y: 0,
           },
-        ],
-        [
-          "p2",
-          {
-            instance: {
-              id: "p2",
-              name: "Place 2",
-              colorId: null,
-              differentialEquationId: null,
-              dynamicsEnabled: false,
-              x: 0,
-              y: 0,
-            },
-            offset: 0,
-            count: 0,
-            dimensions: 0,
+          offset: 0,
+          count: 1,
+          dimensions: 0,
+        },
+        p2: {
+          instance: {
+            id: "p2",
+            name: "Place 2",
+            colorId: null,
+            differentialEquationId: null,
+            dynamicsEnabled: false,
+            x: 0,
+            y: 0,
           },
-        ],
-      ]),
-      transitions: new Map([
-        [
-          "t1",
-          {
-            instance: {
-              id: "t1",
-              name: "Transition 1",
-              inputArcs: [{ placeId: "p1", weight: 1 }],
-              outputArcs: [],
-              lambdaType: "stochastic",
-              lambdaCode: "return 1.0;",
-              transitionKernelCode: "return {};",
-              x: 0,
-              y: 0,
-            },
-            timeSinceLastFiringMs: 0,
-            firedInThisFrame: false,
-            firingCount: 0,
+          offset: 0,
+          count: 0,
+          dimensions: 0,
+        },
+      },
+      transitions: {
+        t1: {
+          instance: {
+            id: "t1",
+            name: "Transition 1",
+            inputArcs: [{ placeId: "p1", weight: 1 }],
+            outputArcs: [],
+            lambdaType: "stochastic",
+            lambdaCode: "return 1.0;",
+            transitionKernelCode: "return {};",
+            x: 0,
+            y: 0,
           },
-        ],
-        [
-          "t2",
-          {
-            instance: {
-              id: "t2",
-              name: "Transition 2",
-              inputArcs: [{ placeId: "p2", weight: 1 }],
-              outputArcs: [],
-              lambdaType: "stochastic",
-              lambdaCode: "return 1.0;",
-              transitionKernelCode: "return {};",
-              x: 0,
-              y: 0,
-            },
-            timeSinceLastFiringMs: 0,
-            firedInThisFrame: false,
-            firingCount: 0,
+          timeSinceLastFiringMs: 0,
+          firedInThisFrame: false,
+          firingCount: 0,
+        },
+        t2: {
+          instance: {
+            id: "t2",
+            name: "Transition 2",
+            inputArcs: [{ placeId: "p2", weight: 1 }],
+            outputArcs: [],
+            lambdaType: "stochastic",
+            lambdaCode: "return 1.0;",
+            transitionKernelCode: "return {};",
+            x: 0,
+            y: 0,
           },
-        ],
-      ]),
+          timeSinceLastFiringMs: 0,
+          firedInThisFrame: false,
+          firingCount: 0,
+        },
+      },
       buffer: new Float64Array([]),
     };
 
@@ -453,84 +405,71 @@ describe("checkTransitionEnablement", () => {
     };
 
     const frame: SimulationFrame = {
-      simulation,
       time: 0,
-      places: new Map([
-        [
-          "p1",
-          {
-            instance: {
-              id: "p1",
-              name: "Place 1",
-              colorId: null,
-              differentialEquationId: null,
-              dynamicsEnabled: false,
-              x: 0,
-              y: 0,
-            },
-            offset: 0,
-            count: 0,
-            dimensions: 0,
+      places: {
+        p1: {
+          instance: {
+            id: "p1",
+            name: "Place 1",
+            colorId: null,
+            differentialEquationId: null,
+            dynamicsEnabled: false,
+            x: 0,
+            y: 0,
           },
-        ],
-        [
-          "p2",
-          {
-            instance: {
-              id: "p2",
-              name: "Place 2",
-              colorId: null,
-              differentialEquationId: null,
-              dynamicsEnabled: false,
-              x: 0,
-              y: 0,
-            },
-            offset: 0,
-            count: 0,
-            dimensions: 0,
+          offset: 0,
+          count: 0,
+          dimensions: 0,
+        },
+        p2: {
+          instance: {
+            id: "p2",
+            name: "Place 2",
+            colorId: null,
+            differentialEquationId: null,
+            dynamicsEnabled: false,
+            x: 0,
+            y: 0,
           },
-        ],
-      ]),
-      transitions: new Map([
-        [
-          "t1",
-          {
-            instance: {
-              id: "t1",
-              name: "Transition 1",
-              inputArcs: [{ placeId: "p1", weight: 1 }],
-              outputArcs: [],
-              lambdaType: "stochastic",
-              lambdaCode: "return 1.0;",
-              transitionKernelCode: "return {};",
-              x: 0,
-              y: 0,
-            },
-            timeSinceLastFiringMs: 0,
-            firedInThisFrame: false,
-            firingCount: 0,
+          offset: 0,
+          count: 0,
+          dimensions: 0,
+        },
+      },
+      transitions: {
+        t1: {
+          instance: {
+            id: "t1",
+            name: "Transition 1",
+            inputArcs: [{ placeId: "p1", weight: 1 }],
+            outputArcs: [],
+            lambdaType: "stochastic",
+            lambdaCode: "return 1.0;",
+            transitionKernelCode: "return {};",
+            x: 0,
+            y: 0,
           },
-        ],
-        [
-          "t2",
-          {
-            instance: {
-              id: "t2",
-              name: "Transition 2",
-              inputArcs: [{ placeId: "p2", weight: 1 }],
-              outputArcs: [],
-              lambdaType: "stochastic",
-              lambdaCode: "return 1.0;",
-              transitionKernelCode: "return {};",
-              x: 0,
-              y: 0,
-            },
-            timeSinceLastFiringMs: 0,
-            firedInThisFrame: false,
-            firingCount: 0,
+          timeSinceLastFiringMs: 0,
+          firedInThisFrame: false,
+          firingCount: 0,
+        },
+        t2: {
+          instance: {
+            id: "t2",
+            name: "Transition 2",
+            inputArcs: [{ placeId: "p2", weight: 1 }],
+            outputArcs: [],
+            lambdaType: "stochastic",
+            lambdaCode: "return 1.0;",
+            transitionKernelCode: "return {};",
+            x: 0,
+            y: 0,
           },
-        ],
-      ]),
+          timeSinceLastFiringMs: 0,
+          firedInThisFrame: false,
+          firingCount: 0,
+        },
+      },
       buffer: new Float64Array([]),
     };
 
@@ -557,10 +496,9 @@ describe("checkTransitionEnablement", () => {
     };
 
     const frame: SimulationFrame = {
-      simulation,
       time: 0,
-      places: new Map(),
-      transitions: new Map(),
+      places: {},
+      transitions: {},
       buffer: new Float64Array([]),
     };
 
@@ -589,86 +527,73 @@ describe("checkTransitionEnablement", () => {
     };
 
     const frame: SimulationFrame = {
-      simulation,
       time: 0,
-      places: new Map([
-        [
-          "p1",
-          {
-            instance: {
-              id: "p1",
-              name: "Place 1",
-              colorId: null,
-              differentialEquationId: null,
-              dynamicsEnabled: false,
-              x: 0,
-              y: 0,
-            },
-            offset: 0,
-            count: 5,
-            dimensions: 0,
+      places: {
+        p1: {
+          instance: {
+            id: "p1",
+            name: "Place 1",
+            colorId: null,
+            differentialEquationId: null,
+            dynamicsEnabled: false,
+            x: 0,
+            y: 0,
           },
-        ],
-      ]),
-      transitions: new Map([
-        [
-          "t1",
-          {
-            instance: {
-              id: "t1",
-              name: "Transition 1",
-              inputArcs: [{ placeId: "p1", weight: 1 }],
-              outputArcs: [],
-              lambdaType: "stochastic",
-              lambdaCode: "return 1.0;",
-              transitionKernelCode: "return {};",
-              x: 0,
-              y: 0,
-            },
-            timeSinceLastFiringMs: 0,
-            firedInThisFrame: false,
-            firingCount: 0,
+          offset: 0,
+          count: 5,
+          dimensions: 0,
+        },
+      },
+      transitions: {
+        t1: {
+          instance: {
+            id: "t1",
+            name: "Transition 1",
+            inputArcs: [{ placeId: "p1", weight: 1 }],
+            outputArcs: [],
+            lambdaType: "stochastic",
+            lambdaCode: "return 1.0;",
+            transitionKernelCode: "return {};",
+            x: 0,
+            y: 0,
           },
-        ],
-        [
-          "t2",
-          {
-            instance: {
-              id: "t2",
-              name: "Transition 2",
-              inputArcs: [{ placeId: "p1", weight: 2 }],
-              outputArcs: [],
-              lambdaType: "stochastic",
-              lambdaCode: "return 1.0;",
-              transitionKernelCode: "return {};",
-              x: 0,
-              y: 0,
-            },
-            timeSinceLastFiringMs: 0,
-            firedInThisFrame: false,
-            firingCount: 0,
+          timeSinceLastFiringMs: 0,
+          firedInThisFrame: false,
+          firingCount: 0,
+        },
+        t2: {
+          instance: {
+            id: "t2",
+            name: "Transition 2",
+            inputArcs: [{ placeId: "p1", weight: 2 }],
+            outputArcs: [],
+            lambdaType: "stochastic",
+            lambdaCode: "return 1.0;",
+            transitionKernelCode: "return {};",
+            x: 0,
+            y: 0,
           },
-        ],
-        [
-          "t3",
-          {
-            instance: {
-              id: "t3",
-              name: "Transition 3",
-              inputArcs: [{ placeId: "p1", weight: 5 }],
-              outputArcs: [],
-              lambdaType: "stochastic",
-              lambdaCode: "return 1.0;",
-              transitionKernelCode: "return {};",
-              x: 0,
-              y: 0,
-            },
-            timeSinceLastFiringMs: 0,
-            firedInThisFrame: false,
-            firingCount: 0,
+          timeSinceLastFiringMs: 0,
+          firedInThisFrame: false,
+          firingCount: 0,
+        },
+        t3: {
+          instance: {
+            id: "t3",
+            name: "Transition 3",
+            inputArcs: [{ placeId: "p1", weight: 5 }],
+            outputArcs: [],
+            lambdaType: "stochastic",
+            lambdaCode: "return 1.0;",
+            transitionKernelCode: "return {};",
+            x: 0,
+            y: 0,
           },
-        ],
-      ]),
+          timeSinceLastFiringMs: 0,
+          firedInThisFrame: false,
+          firingCount: 0,
+        },
+      },
       buffer: new Float64Array([]),
     };
 

@@ -33,14 +33,14 @@ export const isTransitionStructurallyEnabled = (
   frame: SimulationFrame,
   transitionId: string,
 ): boolean => {
-  const transition = frame.transitions.get(transitionId);
+  const transition = frame.transitions[transitionId];
   if (!transition) {
     throw new Error(`Transition with ID ${transitionId} not found.`);
   }
 
   // Check if all input places have enough tokens for the required arc weights
   return transition.instance.inputArcs.every((arc) => {
-    const placeState = frame.places.get(arc.placeId);
+    const placeState = frame.places[arc.placeId];
     if (!placeState) {
       throw new Error(
         `Place with ID ${arc.placeId} not found in current marking.`,
@@ -81,7 +81,7 @@ export const checkTransitionEnablement = (
   const transitionStatus = new Map<string, boolean>();
   let hasEnabledTransition = false;
 
-  for (const [transitionId] of frame.transitions) {
+  for (const transitionId of Object.keys(frame.transitions)) {
     const isEnabled = isTransitionStructurallyEnabled(frame, transitionId);
     transitionStatus.set(transitionId, isEnabled);
 

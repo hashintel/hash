@@ -7,7 +7,7 @@ import { useFiringDelta } from "../hooks/use-firing-delta";
 import type { ArcData } from "../reactflow-types";
 
 const BASE_STROKE_WIDTH = 2;
-const ANIMATION_DURATION_MS = 300;
+const ANIMATION_DURATION_MS = 500;
 
 type AnimationState = {
   animation: Animation;
@@ -57,7 +57,7 @@ function useFiringAnimation(
 
     // Stroke width based on total transitions
     const peakStrokeWidth =
-      BASE_STROKE_WIDTH + Math.log(1 + transitionsToAnimate) * 3 * weight;
+      BASE_STROKE_WIDTH + Math.log(1 + transitionsToAnimate) * 6 * weight;
 
     const animation = path.animate(
       [
