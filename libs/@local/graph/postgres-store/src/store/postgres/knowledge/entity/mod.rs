@@ -26,7 +26,7 @@ use hash_graph_store::{
     error::{CheckPermissionError, InsertionError, QueryError, UpdateError},
     filter::{
         Filter, FilterExpression, FilterExpressionList, Parameter, ParameterList,
-        protection::{FilterProtectionConfig, transform_filter},
+        protection::{PropertyProtectionFilterConfig, transform_filter},
     },
     query::{QueryResult as _, Read},
     subgraph::{
@@ -111,7 +111,7 @@ use crate::store::{
 /// from being included in embeddings.
 fn filter_entities_for_embedding(
     entities: &[Entity],
-    config: &FilterProtectionConfig<'_>,
+    config: &PropertyProtectionFilterConfig<'_>,
 ) -> Vec<Entity> {
     let exclusions = config.embedding_exclusions();
     if exclusions.is_empty() {
@@ -129,7 +129,6 @@ fn filter_entities_for_embedding(
                 .iter()
                 .filter_map(|type_id| exclusions.get(&type_id.base_url))
                 .flatten()
-                .map(Cow::as_ref)
                 .collect();
 
             if !properties_to_exclude.is_empty() {
@@ -568,30 +567,28 @@ where
         let should_apply_protection =
             !self.settings.filter_protection.is_empty() && !policy_components.is_instance_admin();
 
+        let mut compiler = SelectCompiler::new(Some(temporal_axes), params.include_drafts);
+
         let protected_filter;
+        let property_protection_filter;
         let filter_to_use = if should_apply_protection {
-            // Transform filter to protect against filtering on protected properties
+            property_protection_filter = self
+                .settings
+                .filter_protection
+                .to_property_protection_filter(policy_components.actor_id());
+            compiler.with_property_masking(&property_protection_filter);
+
             protected_filter = transform_filter(
                 params.filter.clone(),
                 &self.settings.filter_protection,
                 0,
                 policy_components.actor_id(),
             );
+
             &protected_filter
         } else {
             &params.filter
         };
-
-        let mut compiler = SelectCompiler::new(Some(temporal_axes), params.include_drafts);
-
-        // Enable property masking to remove protected properties (e.g., email) from responses
-        // unless the actor is the entity owner
-        if should_apply_protection {
-            compiler.with_property_masking(
-                &self.settings.filter_protection,
-                policy_components.actor_id(),
-            );
-        }
 
         compiler
             .add_filter(&policy_filter)

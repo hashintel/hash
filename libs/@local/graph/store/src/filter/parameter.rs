@@ -22,7 +22,7 @@ use type_system::{
 };
 use uuid::Uuid;
 
-use crate::filter::{QueryRecord, protection::CellFilterExpressionList};
+use crate::filter::{QueryRecord, protection::PropertyFilterExpressionList};
 
 #[derive(Debug, Clone, PartialEq, Deserialize)]
 #[serde(untagged)]
@@ -93,10 +93,10 @@ pub enum FilterExpressionList<'p, R: QueryRecord> {
     ParameterList { parameters: ParameterList<'p> },
 }
 
-impl<'p> From<CellFilterExpressionList<'p>> for FilterExpressionList<'p, Entity> {
-    fn from(value: CellFilterExpressionList<'p>) -> Self {
+impl<'p> From<PropertyFilterExpressionList<'p>> for FilterExpressionList<'p, Entity> {
+    fn from(value: PropertyFilterExpressionList<'p>) -> Self {
         match value {
-            CellFilterExpressionList::Path { path } => FilterExpressionList::Path { path },
+            PropertyFilterExpressionList::Path { path } => FilterExpressionList::Path { path },
         }
     }
 }

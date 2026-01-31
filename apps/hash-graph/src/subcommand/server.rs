@@ -21,7 +21,7 @@ use hash_graph_authorization::policies::store::PrincipalStore;
 use hash_graph_postgres_store::store::{
     DatabaseConnectionInfo, DatabasePoolConfig, PostgresStorePool, PostgresStoreSettings,
 };
-use hash_graph_store::{filter::protection::FilterProtectionConfig, pool::StorePool};
+use hash_graph_store::{filter::protection::PropertyProtectionFilterConfig, pool::StorePool};
 use hash_graph_type_fetcher::FetchingPool;
 use hash_temporal_client::TemporalClientConfig;
 use multiaddr::{Multiaddr, Protocol};
@@ -271,9 +271,9 @@ pub async fn server(args: ServerArgs) -> Result<(), Report<GraphError>> {
             validate_links: !args.skip_link_validation,
             skip_embedding_creation: args.skip_embedding_creation,
             filter_protection: if args.skip_filter_protection {
-                FilterProtectionConfig::new()
+                PropertyProtectionFilterConfig::new()
             } else {
-                FilterProtectionConfig::hash_default()
+                PropertyProtectionFilterConfig::hash_default()
             },
         },
     )

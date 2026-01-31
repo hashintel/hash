@@ -46,7 +46,7 @@ use crate::{
     entity_type::EntityTypeQueryPath,
     filter::{
         parameter::ActualParameterType,
-        protection::{CellFilter, CellFilterExpression},
+        protection::{PropertyFilter, PropertyFilterExpression},
     },
     property_type::PropertyTypeQueryPath,
     subgraph::{
@@ -1148,29 +1148,29 @@ impl<'p> Filter<'p, Entity> {
     }
 
     #[must_use]
-    fn for_cell_filter(filter: CellFilter<'p>, actor_id: Option<ActorId>) -> Self {
+    fn for_property_filter(filter: PropertyFilter<'p>, actor_id: Option<ActorId>) -> Self {
         match filter {
-            CellFilter::All(filters) => Self::All(
+            PropertyFilter::All(filters) => Self::All(
                 filters
                     .into_iter()
-                    .map(|filter| Self::for_cell_filter(filter, actor_id))
+                    .map(|filter| Self::for_property_filter(filter, actor_id))
                     .collect(),
             ),
-            CellFilter::Any(filters) => Self::Any(
+            PropertyFilter::Any(filters) => Self::Any(
                 filters
                     .into_iter()
-                    .map(|filter| Self::for_cell_filter(filter, actor_id))
+                    .map(|filter| Self::for_property_filter(filter, actor_id))
                     .collect(),
             ),
-            CellFilter::Equal(lhs, rhs) => Self::Equal(
+            PropertyFilter::Equal(lhs, rhs) => Self::Equal(
                 FilterExpression::from_cell_filter_expression(lhs, actor_id),
                 FilterExpression::from_cell_filter_expression(rhs, actor_id),
             ),
-            CellFilter::NotEqual(lhs, rhs) => Self::NotEqual(
+            PropertyFilter::NotEqual(lhs, rhs) => Self::NotEqual(
                 FilterExpression::from_cell_filter_expression(lhs, actor_id),
                 FilterExpression::from_cell_filter_expression(rhs, actor_id),
             ),
-            CellFilter::In(lhs, rhs) => Self::In(
+            PropertyFilter::In(lhs, rhs) => Self::In(
                 FilterExpression::from_cell_filter_expression(lhs, actor_id),
                 FilterExpressionList::from(rhs),
             ),
@@ -1420,16 +1420,16 @@ impl<R: QueryRecord> FilterExpression<'_, R> {
 impl<'p> FilterExpression<'p, Entity> {
     #[must_use]
     pub fn from_cell_filter_expression(
-        expression: CellFilterExpression<'p>,
+        expression: PropertyFilterExpression<'p>,
         actor_id: Option<ActorId>,
     ) -> Self {
         match expression {
-            CellFilterExpression::Path { path } => Self::Path { path },
-            CellFilterExpression::Parameter { parameter } => Self::Parameter {
+            PropertyFilterExpression::Path { path } => Self::Path { path },
+            PropertyFilterExpression::Parameter { parameter } => Self::Parameter {
                 parameter,
                 convert: None,
             },
-            CellFilterExpression::ActorId => Self::Parameter {
+            PropertyFilterExpression::ActorId => Self::Parameter {
                 parameter: Parameter::Uuid(actor_id.map_or_else(Uuid::nil, Uuid::from)),
                 convert: None,
             },

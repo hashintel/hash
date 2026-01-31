@@ -29,7 +29,8 @@ use hash_graph_store::{
     filter::{
         Filter, FilterExpression, JsonPath, Parameter, PathToken,
         protection::{
-            CellFilter, CellFilterExpression, CellFilterExpressionList, FilterProtectionConfig,
+            PropertyFilter, PropertyFilterExpression, PropertyFilterExpressionList,
+            PropertyProtectionFilterConfig,
         },
     },
     query::{NullOrdering, Ordering},
@@ -1411,31 +1412,31 @@ fn phone_filter(phone: &str) -> Filter<'static, type_system::knowledge::entity::
 /// Creates a `FilterProtectionConfig` that protects both email AND phone for User.
 ///
 /// Excludes User entities when filtering by email or phone, UNLESS the actor is that User.
-fn multi_property_config() -> FilterProtectionConfig<'static> {
+fn multi_property_config() -> PropertyProtectionFilterConfig<'static> {
     let email_url = BaseUrl::new(EMAIL_PROPERTY_BASE_URL.to_owned()).expect("valid email base URL");
     let phone_url = BaseUrl::new(PHONE_PROPERTY_BASE_URL.to_owned()).expect("valid phone base URL");
 
     // Helper to create the protection filter: exclude User unless actor is the User
     let user_protection = || {
-        CellFilter::All(vec![
-            CellFilter::In(
-                CellFilterExpression::Parameter {
+        PropertyFilter::All(vec![
+            PropertyFilter::In(
+                PropertyFilterExpression::Parameter {
                     parameter: Parameter::Text(Cow::Borrowed(USER_ENTITY_TYPE_BASE_URL)),
                 },
-                CellFilterExpressionList::Path {
+                PropertyFilterExpressionList::Path {
                     path: EntityQueryPath::TypeBaseUrls,
                 },
             ),
-            CellFilter::NotEqual(
-                CellFilterExpression::Path {
+            PropertyFilter::NotEqual(
+                PropertyFilterExpression::Path {
                     path: EntityQueryPath::Uuid,
                 },
-                CellFilterExpression::ActorId,
+                PropertyFilterExpression::ActorId,
             ),
         ])
     };
 
-    let mut config = FilterProtectionConfig::new();
+    let mut config = PropertyProtectionFilterConfig::new();
     config.protect_property(email_url, user_protection());
     config.protect_property(phone_url, user_protection());
     config
@@ -2031,47 +2032,47 @@ fn secret_code_filter(
 /// Creates a `FilterProtectionConfig` for multi-type testing:
 /// - email protected for `User` (unless actor is that `User`)
 /// - `secret_code` protected for `SecretEntity` (unless actor is that `SecretEntity`)
-fn multi_type_config() -> FilterProtectionConfig<'static> {
+fn multi_type_config() -> PropertyProtectionFilterConfig<'static> {
     let email_url = BaseUrl::new(EMAIL_PROPERTY_BASE_URL.to_owned()).expect("valid email base URL");
     let secret_code_url =
         BaseUrl::new(SECRET_CODE_PROPERTY_BASE_URL.to_owned()).expect("valid secret_code base URL");
 
-    let mut config = FilterProtectionConfig::new();
+    let mut config = PropertyProtectionFilterConfig::new();
     config.protect_property(
         email_url,
-        CellFilter::All(vec![
-            CellFilter::In(
-                CellFilterExpression::Parameter {
+        PropertyFilter::All(vec![
+            PropertyFilter::In(
+                PropertyFilterExpression::Parameter {
                     parameter: Parameter::Text(Cow::Borrowed(USER_ENTITY_TYPE_BASE_URL)),
                 },
-                CellFilterExpressionList::Path {
+                PropertyFilterExpressionList::Path {
                     path: EntityQueryPath::TypeBaseUrls,
                 },
             ),
-            CellFilter::NotEqual(
-                CellFilterExpression::Path {
+            PropertyFilter::NotEqual(
+                PropertyFilterExpression::Path {
                     path: EntityQueryPath::Uuid,
                 },
-                CellFilterExpression::ActorId,
+                PropertyFilterExpression::ActorId,
             ),
         ]),
     );
     config.protect_property(
         secret_code_url,
-        CellFilter::All(vec![
-            CellFilter::In(
-                CellFilterExpression::Parameter {
+        PropertyFilter::All(vec![
+            PropertyFilter::In(
+                PropertyFilterExpression::Parameter {
                     parameter: Parameter::Text(Cow::Borrowed(SECRET_ENTITY_TYPE_BASE_URL)),
                 },
-                CellFilterExpressionList::Path {
+                PropertyFilterExpressionList::Path {
                     path: EntityQueryPath::TypeBaseUrls,
                 },
             ),
-            CellFilter::NotEqual(
-                CellFilterExpression::Path {
+            PropertyFilter::NotEqual(
+                PropertyFilterExpression::Path {
                     path: EntityQueryPath::Uuid,
                 },
-                CellFilterExpression::ActorId,
+                PropertyFilterExpression::ActorId,
             ),
         ]),
     );
