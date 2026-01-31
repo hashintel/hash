@@ -34,12 +34,8 @@ use core::{
     ptr::{self, NonNull},
 };
 
+use super::sym2::SYMBOLS;
 use crate::heap::BumpAllocator;
-
-/// Static table of constant symbol strings.
-///
-/// Constant symbols encode an index into this table rather than storing string data.
-static STRINGS: &[&str] = &["foo", "bar"];
 
 /// Header for a runtime-allocated symbol with inline string data.
 ///
@@ -169,16 +165,16 @@ impl RuntimeSymbol {
 
 /// A constant symbol represented as an index into [`STRINGS`].
 #[derive(Copy, Clone)]
-struct ConstantSymbol(usize);
+pub(crate) struct ConstantSymbol(usize);
 
 impl ConstantSymbol {
-    const fn new_unchecked(index: usize) -> Self {
+    pub(crate) const fn new_unchecked(index: usize) -> Self {
         Self(index)
     }
 
     /// Returns the string value for this constant symbol.
     fn as_str(self) -> &'static str {
-        STRINGS[self.0]
+        SYMBOLS[self.0]
     }
 
     /// Returns the string value without bounds checking.
@@ -188,7 +184,7 @@ impl ConstantSymbol {
     /// The index must be within bounds of [`STRINGS`].
     unsafe fn as_str_unchecked(self) -> &'static str {
         // SAFETY: Caller guarantees the index is in bounds.
-        unsafe { STRINGS.get_unchecked(self.0) }
+        unsafe { SYMBOLS.get_unchecked(self.0) }
     }
 }
 
@@ -204,9 +200,16 @@ impl ConstantSymbol {
 /// `Repr` is exactly one pointer in size. Thanks to [`NonNull`], `Option<Repr>`
 /// is also one pointer in size (niche optimization).
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-struct Repr {
+pub(crate) struct Repr {
     ptr: NonNull<u8>,
 }
+
+// SAFETY: while NonNull (for niche optimization), the pointer itself is only accessed via `*const`
+// ptr and never modified. The underlying data is Send + Sync.
+unsafe impl Send for Repr {}
+// SAFETY: while NonNull (for niche optimization), the pointer itself is only accessed via `*const`
+// ptr and never modified. The underlying data is Send + Sync.
+unsafe impl Sync for Repr {}
 
 impl Repr {
     /// Minimum alignment for runtime symbol allocations.
@@ -263,7 +266,7 @@ impl Repr {
     ///
     /// - For runtime symbols: the allocation must remain live for lifetime `'str`.
     /// - The returned string must not be mutated for lifetime `'str`.
-    unsafe fn as_str<'str>(self) -> &'str str {
+    pub(crate) unsafe fn as_str<'str>(self) -> &'str str {
         if self.tag() == Self::TAG_RUNTIME {
             // SAFETY: Caller guarantees the allocation is live for 'str.
             unsafe { RuntimeSymbol::as_str(self.as_runtime_symbol()) }
@@ -276,7 +279,7 @@ impl Repr {
     /// Creates a `Repr` for a constant symbol.
     ///
     /// The index is encoded directly in the pointer bits (shifted to make room for the tag).
-    const fn constant(constant: ConstantSymbol) -> Self {
+    pub(crate) const fn constant(constant: ConstantSymbol) -> Self {
         const {
             assert!(
                 Self::TAG_CONSTANT != 0,
@@ -288,7 +291,7 @@ impl Repr {
             (constant.0 << Self::TAG_SHIFT >> Self::TAG_SHIFT) == constant.0,
             "constant has set the top most bit"
         );
-        debug_assert!(constant.0 < STRINGS.len(), "constant is out of range");
+        debug_assert!(constant.0 < SYMBOLS.len(), "constant is out of range");
 
         let addr = (constant.0 << Self::TAG_SHIFT) | Self::TAG_CONSTANT;
         let ptr = ptr::without_provenance_mut(addr);
@@ -319,7 +322,7 @@ mod tests {
     #![expect(clippy::non_ascii_literal)]
     use core::mem;
 
-    use super::{ConstantSymbol, Repr, RuntimeSymbol, STRINGS};
+    use super::{ConstantSymbol, Repr, RuntimeSymbol, SYMBOLS};
     use crate::heap::Scratch;
 
     #[test]
@@ -343,7 +346,7 @@ mod tests {
         let repr = Repr::constant(constant);
 
         // SAFETY: `repr` is a constant symbol with a valid index, no allocation lifetime concerns.
-        assert_eq!(unsafe { repr.as_str() }, STRINGS[0]);
+        assert_eq!(unsafe { repr.as_str() }, SYMBOLS[0]);
         // SAFETY: `repr` is a constant symbol with a valid index, no allocation lifetime concerns.
         assert_eq!(unsafe { repr.as_str() }, "foo");
     }
@@ -354,7 +357,7 @@ mod tests {
         let repr = Repr::constant(constant);
 
         // SAFETY: `repr` is a constant symbol with a valid index, no allocation lifetime concerns.
-        assert_eq!(unsafe { repr.as_str() }, STRINGS[1]);
+        assert_eq!(unsafe { repr.as_str() }, SYMBOLS[1]);
         // SAFETY: `repr` is a constant symbol with a valid index, no allocation lifetime concerns.
         assert_eq!(unsafe { repr.as_str() }, "bar");
     }

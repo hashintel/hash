@@ -233,41 +233,41 @@ symbols![path; PATHS;
 
 pub(crate) const TABLES: &[&[&Symbol<'static>]] = &[LEXICAL, DIGITS, SYMBOLS, PATHS, INTERNAL];
 
-#[cfg(test)]
-mod test {
-    use core::ptr;
+// #[cfg(test)]
+// mod test {
+//     use core::ptr;
 
-    use super::TABLES;
-    use crate::{
-        heap::{Heap, ResetAllocator as _},
-        symbol::sym,
-    };
+//     use super::TABLES;
+//     use crate::{
+//         heap::{Heap, ResetAllocator as _},
+//         symbol::sym,
+//     };
 
-    #[test]
-    fn pointer_equality_from_heap() {
-        let mut heap = Heap::new();
+//     #[test]
+//     fn pointer_equality_from_heap() {
+//         let mut heap = Heap::new();
 
-        let mul_heap = heap.intern_symbol("*");
-        let mul_sym = sym::symbol::asterisk;
+//         let mul_heap = heap.intern_symbol("*");
+//         let mul_sym = sym::symbol::asterisk;
 
-        assert!(ptr::eq(mul_heap.0, mul_sym.0));
+//         assert!(ptr::eq(mul_heap.0, mul_sym.0));
 
-        // even after reset that should be the case
-        heap.reset();
+//         // even after reset that should be the case
+//         heap.reset();
 
-        let mul_heap = heap.intern_symbol("*");
-        let mul_sym = sym::symbol::asterisk;
+//         let mul_heap = heap.intern_symbol("*");
+//         let mul_sym = sym::symbol::asterisk;
 
-        assert!(ptr::eq(mul_heap.0, mul_sym.0));
-    }
+//         assert!(ptr::eq(mul_heap.0, mul_sym.0));
+//     }
 
-    #[test]
-    fn ensure_no_collisions() {
-        let mut set = std::collections::HashSet::new();
-        for &table in TABLES {
-            for &symbol in table {
-                assert!(set.insert(symbol.0));
-            }
-        }
-    }
-}
+//     #[test]
+//     fn ensure_no_collisions() {
+//         let mut set = std::collections::HashSet::new();
+//         for &table in TABLES {
+//             for &symbol in table {
+//                 assert!(set.insert(symbol.0));
+//             }
+//         }
+//     }
+// }

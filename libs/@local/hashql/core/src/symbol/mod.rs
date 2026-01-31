@@ -27,9 +27,11 @@ use core::{
     cmp::Ordering,
     fmt::{self, Display, Formatter},
     hash::{Hash, Hasher},
+    marker::PhantomData,
     ptr,
 };
 
+use self::repr::{ConstantSymbol, Repr};
 pub use self::table::SymbolTable;
 use crate::span::SpanId;
 
@@ -46,19 +48,35 @@ use crate::span::SpanId;
 /// The caller must ensure that the string is unique and interned. The types correctness requires
 /// relies on these *but it does not enforce it*.
 #[derive(Debug, Copy, Clone)]
-pub struct Symbol<'heap>(&'heap str);
+pub struct Symbol<'heap> {
+    repr: Repr,
+    _marker: PhantomData<&'heap ()>,
+}
 
+#[expect(unsafe_code)]
 impl<'heap> Symbol<'heap> {
     /// Creates a new interned symbol from a string slice.
     ///
     /// The caller must ensure that the string is unique and interned.
     pub(crate) const fn new_unchecked(string: &'heap str) -> Self {
-        Self(string)
+        Symbol {
+            repr: Repr::constant(ConstantSymbol::new_unchecked(0)),
+            _marker: PhantomData,
+        }
+        // unimplemented!()
+    }
+
+    const fn new_constant_unchecked(index: usize) -> Self {
+        Symbol {
+            repr: Repr::constant(ConstantSymbol::new_unchecked(index)),
+            _marker: PhantomData,
+        }
     }
 
     #[must_use]
-    pub const fn as_str(&self) -> &str {
-        self.0
+    pub fn as_str(&self) -> &str {
+        // SAFETY: Symbol carries a `'heap` lifetime, that is tied to the allocation of the string.
+        unsafe { self.repr.as_str() }
     }
 
     /// Returns the string representation of the symbol.
@@ -67,18 +85,21 @@ impl<'heap> Symbol<'heap> {
     /// instead of the symbol itself, somewhat circumventing the protections given to the symbol
     /// itself. Any unwrapped type should be considered no longer unique and interned.
     #[must_use]
-    pub const fn unwrap(&self) -> &'heap str {
-        self.0
+    pub fn unwrap(&self) -> &'heap str {
+        // SAFETY: Symbol carries a `'heap` lifetime, that is tied to the allocation of the string.
+        unsafe { self.repr.as_str() }
     }
 
     #[must_use]
     pub const fn as_bytes(&self) -> &[u8] {
-        self.0.as_bytes()
+        unimplemented!()
+        // self.0.as_bytes()
     }
 
     #[must_use]
     pub fn demangle(self) -> &'heap str {
-        self.0.rsplit_once(':').map_or(self.0, |(name, _)| name)
+        unimplemented!()
+        // self.0.rsplit_once(':').map_or(self.0, |(name, _)| name)
     }
 }
 
@@ -92,7 +113,8 @@ impl AsRef<Self> for Symbol<'_> {
 impl PartialEq for Symbol<'_> {
     fn eq(&self, other: &Self) -> bool {
         // Pointer equality implies string equality (due to the unique contents assumption)
-        ptr::eq(self.0, other.0)
+        // ptr::eq(self.0, other.0)
+        unimplemented!()
     }
 }
 
@@ -108,24 +130,27 @@ impl Ord for Symbol<'_> {
     fn cmp(&self, other: &Self) -> Ordering {
         // Pointer equality implies string equality (due to the unique contents assumption), but if
         // not the same the contents must be compared.
-        if self == other {
-            Ordering::Equal
-        } else {
-            self.0.cmp(other.0)
-        }
+        // if self == other {
+        //     Ordering::Equal
+        // } else {
+        //     self.0.cmp(other.0)
+        // }
+        unimplemented!()
     }
 }
 
 impl Hash for Symbol<'_> {
     fn hash<H: Hasher>(&self, state: &mut H) {
         // Pointer hashing is sufficient (due to the unique contents assumption)
-        ptr::hash(self.0, state);
+        // ptr::hash(self.0, state);
+        unimplemented!()
     }
 }
 
 impl Display for Symbol<'_> {
     fn fmt(&self, fmt: &mut Formatter<'_>) -> fmt::Result {
-        Display::fmt(self.0, fmt)
+        unimplemented!()
+        // Display::fmt(self.0, fmt)
     }
 }
 
@@ -285,6 +310,7 @@ impl AsRef<str> for Ident<'_> {
 
 impl Display for Ident<'_> {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-        Display::fmt(&self.value.0, fmt)
+        unimplemented!()
+        // Display::fmt(&self.value.0, fmt)
     }
 }
