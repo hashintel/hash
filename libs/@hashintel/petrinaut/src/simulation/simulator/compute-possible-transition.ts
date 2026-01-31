@@ -2,12 +2,12 @@ import { SDCPNItemError } from "../../core/errors";
 import type { ID } from "../../core/types/sdcpn";
 import { enumerateWeightedMarkingIndicesGenerator } from "./enumerate-weighted-markings";
 import { nextRandom } from "./seeded-rng";
-import type { SimulationFrame } from "./types";
+import type { SimulationFrame, SimulationInstance } from "./types";
 
 type PlaceID = ID;
 
 /**
- * Takes a SimulationFrame, a TransitionID, and computes the possible transition.
+ * Takes a SimulationFrame, a SimulationInstance, a TransitionID, and computes the possible transition.
  * Returns null if no transition is possible.
  * Returns a record with:
  * - removed: Map from PlaceID to Set of token indices to remove.
@@ -16,14 +16,13 @@ type PlaceID = ID;
  */
 export function computePossibleTransition(
   frame: SimulationFrame,
+  simulation: SimulationInstance,
   transitionId: string,
 ): null | {
   remove: Record<PlaceID, Set<number> | number>;
   add: Record<PlaceID, number[][]>;
   newRngState: number;
 } {
-  const { simulation } = frame;
-
   // Get the transition from the simulation instance
   const transition = frame.transitions.get(transitionId);
   if (!transition) {

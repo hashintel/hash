@@ -23,12 +23,8 @@ type MockSimulationContextOverrides = Partial<SimulationContextValue>;
 /**
  * Creates a minimal SimulationFrame for testing.
  */
-function createMockFrame(
-  simulation: SimulationInstance,
-  time: number,
-): SimulationFrame {
+function createMockFrame(time: number): SimulationFrame {
   return {
-    simulation,
     time,
     places: new Map(),
     transitions: new Map(),
@@ -56,7 +52,7 @@ function createMockSimulation(frameCount: number): SimulationInstance {
 
   // Add frames
   for (let i = 0; i < frameCount; i++) {
-    simulation.frames.push(createMockFrame(simulation, i * 0.01));
+    simulation.frames.push(createMockFrame(i * 0.01));
   }
 
   return simulation;
