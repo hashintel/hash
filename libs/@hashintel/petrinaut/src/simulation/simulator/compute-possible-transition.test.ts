@@ -21,7 +21,6 @@ describe("computePossibleTransition", () => {
     };
 
     const frame: SimulationFrame = {
-      simulation,
       time: 0,
       places: new Map([
         [
@@ -67,7 +66,7 @@ describe("computePossibleTransition", () => {
     };
 
     // WHEN computing possible transition
-    const result = computePossibleTransition(frame, "t1");
+    const result = computePossibleTransition(frame, simulation, "t1");
 
     // THEN it should return null (transition not enabled)
     expect(result).toBeNull();
@@ -136,7 +135,6 @@ describe("computePossibleTransition", () => {
     };
 
     const frame: SimulationFrame = {
-      simulation,
       time: 0,
       places: new Map([
         [
@@ -199,7 +197,7 @@ describe("computePossibleTransition", () => {
     };
 
     // WHEN computing possible transition
-    const result = computePossibleTransition(frame, "t1");
+    const result = computePossibleTransition(frame, simulation, "t1");
 
     // THEN it should return the result from the transition kernel
     expect(result).not.toBeNull();

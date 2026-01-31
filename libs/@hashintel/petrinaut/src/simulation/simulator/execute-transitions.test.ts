@@ -20,7 +20,6 @@ describe("executeTransitions", () => {
     };
 
     const frame: SimulationFrame = {
-      simulation,
       time: 0,
       places: new Map([
         [
@@ -65,9 +64,15 @@ describe("executeTransitions", () => {
       buffer: new Float64Array([]),
     };
 
-    const result = executeTransitions(frame);
+    const result = executeTransitions(
+      frame,
+      simulation,
+      simulation.dt,
+      simulation.rngState,
+    );
 
-    expect(result).toBe(frame);
+    expect(result.frame).toBe(frame);
+    expect(result.transitionFired).toBe(false);
   });
 
   it("removes tokens and adds new tokens when a single transition fires", () => {
@@ -124,7 +129,6 @@ describe("executeTransitions", () => {
     };
 
     const frame: SimulationFrame = {
-      simulation,
       time: 0,
       places: new Map([
         [
@@ -186,21 +190,27 @@ describe("executeTransitions", () => {
       buffer: new Float64Array([1.0, 1.5]),
     };
 
-    const result = executeTransitions(frame);
+    const result = executeTransitions(
+      frame,
+      simulation,
+      simulation.dt,
+      simulation.rngState,
+    );
 
     // Token should be removed from p1
-    expect(result.places.get("p1")?.count).toBe(1);
-    expect(result.buffer[0]).toBe(1.5); // Second token from p1 remains
+    expect(result.frame.places.get("p1")?.count).toBe(1);
+    expect(result.frame.buffer[0]).toBe(1.5); // Second token from p1 remains
 
     // Token should be added to p2
-    expect(result.places.get("p2")?.count).toBe(1);
-    expect(result.buffer[1]).toBe(2.0); // New token in p2
+    expect(result.frame.places.get("p2")?.count).toBe(1);
+    expect(result.frame.buffer[1]).toBe(2.0); // New token in p2
 
     // Time should be incremented
-    expect(result.time).toBe(0.1);
+    expect(result.frame.time).toBe(0.1);
 
     // Transition that fired should have timeSinceLastFiringMs reset to 0
-    expect(result.transitions.get("t1")?.timeSinceLastFiringMs).toBe(0);
+    expect(result.frame.transitions.get("t1")?.timeSinceLastFiringMs).toBe(0);
+    expect(result.transitionFired).toBe(true);
   });
 
   it("executes multiple transitions sequentially with proper token removal between each", () => {
@@ -276,7 +286,6 @@ describe("executeTransitions", () => {
     };
 
     const frame: SimulationFrame = {
-      simulation,
       time: 0,
       places: new Map([
         [
@@ -374,21 +383,26 @@ describe("executeTransitions", () => {
       buffer: new Float64Array([1.0, 2.0, 3.0]),
     };
 
-    const result = executeTransitions(frame);
+    const result = executeTransitions(
+      frame,
+      simulation,
+      simulation.dt,
+      simulation.rngState,
+    );
 
     // Both transitions should consume one token from p1 each
     // So p1 should have 1 token remaining
-    expect(result.places.get("p1")?.count).toBe(1);
+    expect(result.frame.places.get("p1")?.count).toBe(1);
 
     // p2 should have 1 token added by t1
-    expect(result.places.get("p2")?.count).toBe(1);
+    expect(result.frame.places.get("p2")?.count).toBe(1);
 
     // p3 should have 1 token added by t2
-    expect(result.places.get("p3")?.count).toBe(1);
+    expect(result.frame.places.get("p3")?.count).toBe(1);
 
     // Both transitions should have their timeSinceLastFiringMs reset
-    expect(result.transitions.get("t1")?.timeSinceLastFiringMs).toBe(0);
-    expect(result.transitions.get("t2")?.timeSinceLastFiringMs).toBe(0);
+    expect(result.frame.transitions.get("t1")?.timeSinceLastFiringMs).toBe(0);
+    expect(result.frame.transitions.get("t2")?.timeSinceLastFiringMs).toBe(0);
   });
 
   it("handles transitions with multi-dimensional tokens", () => {
@@ -454,7 +468,6 @@ describe("executeTransitions", () => {
     };
 
     const frame: SimulationFrame = {
-      simulation,
       time: 0,
       places: new Map([
         [
@@ -516,15 +529,20 @@ describe("executeTransitions", () => {
       buffer: new Float64Array([1.0, 2.0]),
     };
 
-    const result = executeTransitions(frame);
+    const result = executeTransitions(
+      frame,
+      simulation,
+      simulation.dt,
+      simulation.rngState,
+    );
 
     // p1 should have no tokens
-    expect(result.places.get("p1")?.count).toBe(0);
+    expect(result.frame.places.get("p1")?.count).toBe(0);
 
     // p2 should have 1 token with values [3.0, 4.0]
-    expect(result.places.get("p2")?.count).toBe(1);
-    expect(result.buffer[0]).toBe(3.0);
-    expect(result.buffer[1]).toBe(4.0);
+    expect(result.frame.places.get("p2")?.count).toBe(1);
+    expect(result.frame.buffer[0]).toBe(3.0);
+    expect(result.frame.buffer[1]).toBe(4.0);
   });
 
   it("updates timeSinceLastFiringMs for transitions that did not fire", () => {
@@ -588,7 +606,6 @@ describe("executeTransitions", () => {
     };
 
     const frame: SimulationFrame = {
-      simulation,
       time: 0,
       places: new Map([
         [
@@ -669,12 +686,17 @@ describe("executeTransitions", () => {
       buffer: new Float64Array([1.0, 1.5]),
     };
 
-    const result = executeTransitions(frame);
+    const result = executeTransitions(
+      frame,
+      simulation,
+      simulation.dt,
+      simulation.rngState,
+    );
 
     // t1 should have fired and timeSinceLastFiringMs reset
-    expect(result.transitions.get("t1")?.timeSinceLastFiringMs).toBe(0);
+    expect(result.frame.transitions.get("t1")?.timeSinceLastFiringMs).toBe(0);
 
     // t2 should not have fired and timeSinceLastFiringMs incremented by dt
-    expect(result.transitions.get("t2")?.timeSinceLastFiringMs).toBe(0.4);
+    expect(result.frame.transitions.get("t2")?.timeSinceLastFiringMs).toBe(0.4);
   });
 });

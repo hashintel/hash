@@ -260,7 +260,6 @@ export function buildSimulation(input: SimulationInput): SimulationInstance {
 
   // Create the initial frame
   const initialFrame: SimulationFrame = {
-    simulation: simulationInstance,
     time: 0,
     places: placeStates,
     transitions: transitionStates,

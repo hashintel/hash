@@ -135,8 +135,6 @@ export type SimulationInstance = {
  * Contains the complete token distribution and transition states.
  */
 export type SimulationFrame = {
-  /** Back-reference to the parent simulation instance */
-  simulation: SimulationInstance;
   /** Simulation time at this frame */
   time: number;
   /** Place states with token buffer offsets */
