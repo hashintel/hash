@@ -18,7 +18,7 @@ use codspeed_criterion_compat::{
 };
 use hashql_core::{
     heap::{Heap, ResetAllocator as _},
-    symbol::{Symbol, sym},
+    symbol::sym,
 };
 
 // =============================================================================
