@@ -97,14 +97,11 @@ impl<'heap> PartialQueryPath<'heap> for PartialEntityIdQueryPath {
     type QueryPath = EntityQueryPath<'heap>;
 
     fn from_field(_: &'heap Heap, field: Symbol<'heap>) -> Option<Self> {
-        if field == sym::lexical::web_id {
-            Some(Self::WebId)
-        } else if field == sym::lexical::entity_uuid {
-            Some(Self::EntityUuid)
-        } else if field == sym::lexical::draft_id {
-            Some(Self::DraftId)
-        } else {
-            None
+        match field.as_constant()? {
+            sym::web_id::CONST => Some(Self::WebId),
+            sym::entity_uuid::CONST => Some(Self::EntityUuid),
+            sym::draft_id::CONST => Some(Self::DraftId),
+            _ => None,
         }
     }
 
@@ -139,12 +136,10 @@ impl<'heap> PartialQueryPath<'heap> for PartialEntityRecordIdPath {
     type QueryPath = EntityQueryPath<'heap>;
 
     fn from_field(_: &'heap Heap, field: Symbol<'heap>) -> Option<Self> {
-        if field == sym::lexical::entity_id {
-            Some(Self::EntityId(None))
-        } else if field == sym::lexical::entity_edition_id {
-            Some(Self::EntityEditionId)
-        } else {
-            None
+        match field.as_constant()? {
+            sym::entity_id::CONST => Some(Self::EntityId(None)),
+            sym::entity_edition_id::CONST => Some(Self::EntityEditionId),
+            _ => None,
         }
     }
 
@@ -191,12 +186,10 @@ impl<'heap> PartialQueryPath<'heap> for PartialLinkDataPath {
     type QueryPath = EntityQueryPath<'heap>;
 
     fn from_field(_: &'heap Heap, field: Symbol<'heap>) -> Option<Self> {
-        if field == sym::lexical::left_entity_id {
-            Some(Self::LeftEntityId(None))
-        } else if field == sym::lexical::right_entity_id {
-            Some(Self::RightEntityId(None))
-        } else {
-            None
+        match field.as_constant()? {
+            sym::left_entity_id::CONST => Some(Self::LeftEntityId(None)),
+            sym::right_entity_id::CONST => Some(Self::RightEntityId(None)),
+            _ => None,
         }
     }
 
@@ -310,14 +303,11 @@ impl<'heap> PartialQueryPath<'heap> for PartialEntityQueryPath<'heap> {
     type QueryPath = EntityQueryPath<'heap>;
 
     fn from_field(_: &'heap Heap, field: Symbol<'heap>) -> Option<Self> {
-        if field == sym::lexical::id {
-            Some(PartialEntityQueryPath::Id(None))
-        } else if field == sym::lexical::properties {
-            Some(PartialEntityQueryPath::Properties(None))
-        } else if field == sym::lexical::link_data {
-            Some(PartialEntityQueryPath::LinkData(None))
-        } else {
-            None
+        match field.as_constant()? {
+            sym::id::CONST => Some(PartialEntityQueryPath::Id(None)),
+            sym::properties::CONST => Some(PartialEntityQueryPath::Properties(None)),
+            sym::link_data::CONST => Some(PartialEntityQueryPath::LinkData(None)),
+            _ => None,
         }
     }
 

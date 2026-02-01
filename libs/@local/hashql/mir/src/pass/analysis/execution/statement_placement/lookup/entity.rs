@@ -17,156 +17,119 @@ use super::trie::{Access, AccessMode, PathNode};
 // the same interned string.
 pub(super) static ENTITY_PATHS: PathNode = PathNode::root(&[
     // entity_editions.properties (JSONB)
-    PathNode::jsonb(&sym::lexical::properties),
+    PathNode::jsonb(sym::properties),
     // (tbd) encodings
     PathNode::branch(
-        &sym::lexical::encodings,
+        sym::encodings,
         None,
         &[
             // Vectors are stored outside the entity inside of an embeddings database
-            PathNode::branch(
-                &sym::lexical::vectors,
-                Access::Embedding(AccessMode::Direct),
-                &[],
-            ),
+            PathNode::branch(sym::vectors, Access::Embedding(AccessMode::Direct), &[]),
         ],
     ),
     PathNode::branch(
-        &sym::lexical::metadata,
+        sym::metadata,
         None,
         &[
             // entity_temporal_metadata: web_id, entity_uuid, draft_id, entity_edition_id
             PathNode::branch(
-                &sym::lexical::record_id,
+                sym::record_id,
                 Access::Postgres(AccessMode::Composite),
                 &[
                     // entity_temporal_metadata: web_id, entity_uuid, draft_id
                     PathNode::branch(
-                        &sym::lexical::entity_id,
+                        sym::entity_id,
                         Access::Postgres(AccessMode::Composite),
                         &[
                             // entity_temporal_metadata.web_id
-                            PathNode::leaf(
-                                &sym::lexical::web_id,
-                                Access::Postgres(AccessMode::Direct),
-                            ),
+                            PathNode::leaf(sym::web_id, Access::Postgres(AccessMode::Direct)),
                             // entity_temporal_metadata.entity_uuid
-                            PathNode::leaf(
-                                &sym::lexical::entity_uuid,
-                                Access::Postgres(AccessMode::Direct),
-                            ),
+                            PathNode::leaf(sym::entity_uuid, Access::Postgres(AccessMode::Direct)),
                             // entity_temporal_metadata.draft_id
-                            PathNode::leaf(
-                                &sym::lexical::draft_id,
-                                Access::Postgres(AccessMode::Direct),
-                            ),
+                            PathNode::leaf(sym::draft_id, Access::Postgres(AccessMode::Direct)),
                         ],
                     ),
                     // entity_temporal_metadata.entity_edition_id
-                    PathNode::leaf(
-                        &sym::lexical::edition_id,
-                        Access::Postgres(AccessMode::Direct),
-                    ),
+                    PathNode::leaf(sym::edition_id, Access::Postgres(AccessMode::Direct)),
                 ],
             ),
             // entity_temporal_metadata: decision_time, transaction_time
             PathNode::branch(
-                &sym::lexical::temporal_versioning,
+                sym::temporal_versioning,
                 Access::Postgres(AccessMode::Composite),
                 &[
                     // entity_temporal_metadata.decision_time
-                    PathNode::leaf(
-                        &sym::lexical::decision_time,
-                        Access::Postgres(AccessMode::Direct),
-                    ),
+                    PathNode::leaf(sym::decision_time, Access::Postgres(AccessMode::Direct)),
                     // entity_temporal_metadata.transaction_time
-                    PathNode::leaf(
-                        &sym::lexical::transaction_time,
-                        Access::Postgres(AccessMode::Direct),
-                    ),
+                    PathNode::leaf(sym::transaction_time, Access::Postgres(AccessMode::Direct)),
                 ],
             ),
             // entity_is_of_type (via JOIN)
-            PathNode::leaf(
-                &sym::lexical::entity_type_ids,
-                Access::Postgres(AccessMode::Direct),
-            ),
+            PathNode::leaf(sym::entity_type_ids, Access::Postgres(AccessMode::Direct)),
             // entity_editions.archived
-            PathNode::leaf(
-                &sym::lexical::archived,
-                Access::Postgres(AccessMode::Direct),
-            ),
+            PathNode::leaf(sym::archived, Access::Postgres(AccessMode::Direct)),
             // entity_editions.confidence
-            PathNode::leaf(
-                &sym::lexical::confidence,
-                Access::Postgres(AccessMode::Direct),
-            ),
+            PathNode::leaf(sym::confidence, Access::Postgres(AccessMode::Direct)),
             // spans entity_ids.provenance + entity_editions.provenance
             PathNode::branch(
-                &sym::lexical::provenance,
+                sym::provenance,
                 None,
                 &[
                     // entity_ids.provenance (JSONB)
-                    PathNode::jsonb(&sym::lexical::inferred),
+                    PathNode::jsonb(sym::inferred),
                     // entity_editions.provenance (JSONB)
-                    PathNode::jsonb(&sym::lexical::edition),
+                    PathNode::jsonb(sym::edition),
                 ],
             ),
             // entity_editions.property_metadata (JSONB)
-            PathNode::jsonb(&sym::lexical::properties),
+            PathNode::jsonb(sym::properties),
         ],
     ),
     // contains synthesized draft_id fields
     PathNode::branch(
-        &sym::lexical::link_data,
+        sym::link_data,
         None,
         &[
             // draft_id is synthesized (always None), not stored
             PathNode::branch(
-                &sym::lexical::left_entity_id,
+                sym::left_entity_id,
                 None,
                 &[
                     // entity_has_left_entity -> entity_edge.target_web_id
-                    PathNode::leaf(&sym::lexical::web_id, Access::Postgres(AccessMode::Direct)),
+                    PathNode::leaf(sym::web_id, Access::Postgres(AccessMode::Direct)),
                     // entity_has_left_entity -> entity_edge.target_entity_uuid
-                    PathNode::leaf(
-                        &sym::lexical::entity_uuid,
-                        Access::Postgres(AccessMode::Direct),
-                    ),
+                    PathNode::leaf(sym::entity_uuid, Access::Postgres(AccessMode::Direct)),
                     // synthesized, not in entity_edge
-                    PathNode::leaf(&sym::lexical::draft_id, None),
+                    PathNode::leaf(sym::draft_id, None),
                 ],
             ),
             // draft_id is synthesized (always None), not stored
             PathNode::branch(
-                &sym::lexical::right_entity_id,
+                sym::right_entity_id,
                 None,
                 &[
                     // entity_has_right_entity -> entity_edge.target_web_id
-                    PathNode::leaf(&sym::lexical::web_id, Access::Postgres(AccessMode::Direct)),
+                    PathNode::leaf(sym::web_id, Access::Postgres(AccessMode::Direct)),
                     // entity_has_right_entity -> entity_edge.target_entity_uuid
-                    PathNode::leaf(
-                        &sym::lexical::entity_uuid,
-                        Access::Postgres(AccessMode::Direct),
-                    ),
+                    PathNode::leaf(sym::entity_uuid, Access::Postgres(AccessMode::Direct)),
                     // synthesized, not in entity_edge
-                    PathNode::leaf(&sym::lexical::draft_id, None),
+                    PathNode::leaf(sym::draft_id, None),
                 ],
             ),
             // entity_edge.confidence (via entity_has_left_entity)
             PathNode::leaf(
-                &sym::lexical::left_entity_confidence,
+                sym::left_entity_confidence,
                 Access::Postgres(AccessMode::Direct),
             ),
             // entity_edge.provenance (JSONB, via entity_has_left_entity)
-            PathNode::jsonb(&sym::lexical::left_entity_provenance),
+            PathNode::jsonb(sym::left_entity_provenance),
             // entity_edge.confidence (via entity_has_right_entity)
             PathNode::leaf(
-                &sym::lexical::right_entity_confidence,
+                sym::right_entity_confidence,
                 Access::Postgres(AccessMode::Direct),
             ),
             // entity_edge.provenance (JSONB, via entity_has_right_entity)
-            PathNode::jsonb(&sym::lexical::right_entity_provenance),
+            PathNode::jsonb(sym::right_entity_provenance),
         ],
     ),
 ]);

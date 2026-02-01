@@ -104,7 +104,6 @@ use core::{alloc, mem, ptr};
 use std::sync::Mutex;
 
 use ::alloc::{boxed, collections::vec_deque, vec};
-use hashbrown::HashSet;
 
 use self::allocator::{Allocator, AllocatorScope, Checkpoint};
 pub use self::{
@@ -115,10 +114,7 @@ pub use self::{
     scratch::Scratch,
     transfer::TransferInto,
 };
-use crate::{
-    collections::{FastHashSet, fast_hash_set_with_capacity},
-    symbol::{Symbol, SymbolTable},
-};
+use crate::symbol::{Symbol, SymbolTable};
 
 /// A boxed value allocated on the `Heap`.
 ///

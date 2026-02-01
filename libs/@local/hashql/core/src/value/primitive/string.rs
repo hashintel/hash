@@ -74,7 +74,7 @@ impl<'heap> String<'heap> {
     /// assert_eq!(literal.as_bytes(), b"Hello");
     /// ```
     #[must_use]
-    pub const fn as_bytes(&self) -> &[u8] {
+    pub fn as_bytes(&self) -> &[u8] {
         self.value.as_bytes()
     }
 
@@ -91,7 +91,7 @@ impl<'heap> String<'heap> {
     /// assert_eq!(literal.as_symbol(), heap.intern_symbol("Hello"));
     /// ```
     #[must_use]
-    pub const fn as_symbol(&self) -> Symbol<'heap> {
+    pub const fn as_symbol(self) -> Symbol<'heap> {
         self.value
     }
 }

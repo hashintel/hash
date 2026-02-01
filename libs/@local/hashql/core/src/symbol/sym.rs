@@ -1,5 +1,5 @@
-#![expect(non_upper_case_globals, clippy::min_ident_chars)]
-use super::Symbol;
+#![expect(non_upper_case_globals, non_snake_case, clippy::min_ident_chars)]
+use super::{ConstantSymbol, Symbol};
 
 macro_rules! symbols {
     (@strings [$($acc:tt)*];) => {
@@ -42,7 +42,15 @@ macro_rules! symbols {
     };
     (@consts [$($count:tt)*]; $name:ident : $value:literal $(, $($rest:tt)*)?) => {
         const _: () = { assert!(SYMBOLS[${count($count)}] == $value) };
-        pub const $name: Symbol<'static> = Symbol::new_constant_unchecked(${count($count)});
+        #[doc = concat!("The symbol `", $value, "`")]
+        pub const $name: Symbol<'static> = Symbol::from_constant($name::CONST);
+
+        pub mod $name {
+            use super::*;
+
+            pub const CONST: ConstantSymbol = ConstantSymbol::new_unchecked(${count($count)});
+        }
+
         symbols!(@consts [$($count)* ()]; $($($rest)*)?);
     };
     (@consts [$($count:tt)*]; $module:ident : { $($inner:tt)* } $(, $($rest:tt)*)?) => {
@@ -56,7 +64,15 @@ macro_rules! symbols {
     };
     (@consts [$($count:tt)*]; $name:ident $(, $($rest:tt)*)?) => {
         const _: () = { assert!(SYMBOLS[${count($count)}] == stringify!($name)) };
-        pub const $name: Symbol<'static> = Symbol::new_constant_unchecked(${count($count)});
+        #[doc = concat!("The symbol `", stringify!($name), "`")]
+        pub const $name: Symbol<'static> = Symbol::from_constant($name::CONST);
+
+        pub mod $name {
+            use super::*;
+
+            pub const CONST: ConstantSymbol = ConstantSymbol::new_unchecked(${count($count)});
+        }
+
         symbols!(@consts [$($count)* ()]; $($($rest)*)?);
     };
 
@@ -68,17 +84,6 @@ macro_rules! symbols {
     };
 
     (@lookup [$(, $arm:expr => $value:expr)*] [$($path:tt),*];) => {
-        #[expect(unsafe_code)]
-        pub(crate) fn prime<S: core::hash::BuildHasher, A: core::alloc::Allocator>(map: &mut hashbrown::HashMap<&'static str, super::repr::Repr, S, A>) {
-            debug_assert!(map.is_empty());
-            map.reserve(SYMBOLS.len());
-
-            $(
-                // SAFETY: The declarative macro guarantees that the symbol is unique.
-                unsafe { map.insert_unique_unchecked($arm, $value.into_repr()); }
-            )*
-        }
-
         pub(crate) static LOOKUP: &[(&'static str, super::repr::Repr)] = &[
             $(($arm, $value.into_repr())),*
         ];
@@ -234,7 +239,7 @@ symbols! {@table;
         brackets: "[]",
         caret: "^",
         colon: ":",
-        colon_colon: "::",
+        coloncolon: "::",
         comma: ",",
         dollar: "$",
         dollar_question_mark: "$?",
@@ -272,12 +277,13 @@ symbols! {@table;
 
     path: {
         // [tidy] sort alphabetically start
+        Entity: "::graph::types::knowledge::entity::Entity",
+        graph_body_filter: "::graph::body::filter",
+        graph_head_entities: "::graph::head::entities",
+        graph_tail_collect: "::graph::tail::collect",
+        none: "::core::option::None",
         option: "::core::option::Option",
         some: "::core::option::Some",
-        none: "::core::option::None",
-        graph_head_entities: "::graph::head::entities",
-        graph_body_filter: "::graph::body::filter",
-        graph_tail_collect: "::graph::tail::collect",
         // [tidy] sort alphabetically end
     }
 }

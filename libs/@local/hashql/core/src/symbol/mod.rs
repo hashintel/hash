@@ -26,14 +26,33 @@ mod table;
 use core::{
     cmp::Ordering,
     fmt::{self, Display, Formatter},
-    hash::{Hash, Hasher},
+    hash::Hash,
     marker::PhantomData,
 };
 
 pub use self::lookup::SymbolLookup;
-use self::repr::{ConstantSymbol, Repr};
+use self::repr::{ConstantRepr, Repr};
 pub(crate) use self::table::SymbolTable;
 use crate::span::SpanId;
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+pub struct ConstantSymbol {
+    repr: ConstantRepr,
+}
+
+impl ConstantSymbol {
+    #[inline]
+    const fn new_unchecked(index: usize) -> Self {
+        Self {
+            repr: ConstantRepr::new_unchecked(index),
+        }
+    }
+
+    #[inline]
+    const fn from_repr(repr: ConstantRepr) -> Self {
+        Self { repr }
+    }
+}
 
 /// A string-like value used throughout the HashQL compiler.
 ///
@@ -47,7 +66,9 @@ use crate::span::SpanId;
 ///
 /// The caller must ensure that the string is unique and interned. The types correctness requires
 /// relies on these *but it does not enforce it*.
-#[derive(Debug, Copy, Clone)]
+// We can relay to the derives for PartialEq, Eq, and Hash, as `_marker` is ignored, and the
+// internal representation makes a pointer comparison.
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub struct Symbol<'heap> {
     repr: Repr,
     _marker: PhantomData<&'heap ()>,
@@ -56,9 +77,9 @@ pub struct Symbol<'heap> {
 #[expect(unsafe_code)]
 impl<'heap> Symbol<'heap> {
     #[inline]
-    const fn new_constant_unchecked(index: usize) -> Self {
-        Symbol {
-            repr: Repr::constant(ConstantSymbol::new_unchecked(index)),
+    const fn from_constant(constant: ConstantSymbol) -> Self {
+        Self {
+            repr: Repr::constant(constant.repr),
             _marker: PhantomData,
         }
     }
@@ -74,6 +95,12 @@ impl<'heap> Symbol<'heap> {
     #[inline]
     const fn into_repr(self) -> Repr {
         self.repr
+    }
+
+    pub fn as_constant(self) -> Option<ConstantSymbol> {
+        self.repr
+            .try_as_constant_symbol()
+            .map(ConstantSymbol::from_repr)
     }
 
     #[must_use]
@@ -118,15 +145,6 @@ impl AsRef<Self> for Symbol<'_> {
     }
 }
 
-impl PartialEq for Symbol<'_> {
-    fn eq(&self, other: &Self) -> bool {
-        // Pointer equality implies string equality (due to the unique contents assumption)
-        self.repr == other.repr
-    }
-}
-
-impl Eq for Symbol<'_> {}
-
 impl PartialOrd for Symbol<'_> {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
         Some(self.cmp(other))
@@ -142,13 +160,6 @@ impl Ord for Symbol<'_> {
         } else {
             self.as_str().cmp(other.as_str())
         }
-    }
-}
-
-impl Hash for Symbol<'_> {
-    fn hash<H: Hasher>(&self, state: &mut H) {
-        // Pointer hashing is sufficient (due to the unique contents assumption)
-        Hash::hash(&self.repr, state);
     }
 }
 
