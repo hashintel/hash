@@ -819,7 +819,7 @@ where
         .await?;
 
         traversal_context
-            .read_traversed_vertices(self, &mut subgraph, false)
+            .read_traversed_vertices(self, &mut subgraph, false, &policy_components)
             .await?;
 
         Ok(QueryPropertyTypeSubgraphResponse {

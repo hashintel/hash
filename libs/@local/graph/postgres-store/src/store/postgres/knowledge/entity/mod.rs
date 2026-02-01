@@ -1623,7 +1623,15 @@ where
             }
 
             traversal_context
-                .read_traversed_vertices(self, &mut subgraph, request.include_drafts)
+                .read_traversed_vertices(
+                    self,
+                    &mut subgraph,
+                    request.include_drafts,
+                    provider
+                        .policy_components
+                        .as_ref()
+                        .expect("Policy components should be set"),
+                )
                 .await?;
 
             if !request.conversions.is_empty() {
