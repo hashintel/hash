@@ -1,4 +1,3 @@
-#![expect(unsafe_code)]
 //! Compact symbol representation using tagged pointers.
 //!
 //! This module provides [`Repr`], a single-word representation for symbols that can be either:
@@ -25,6 +24,7 @@
 //! full allocation provenance. Creating `&RuntimeSymbol` would narrow provenance to just the
 //! header, causing undefined behavior when accessing the trailing inline bytes under strict
 //! provenance / Stacked Borrows.
+#![expect(unsafe_code)]
 
 use alloc::alloc::handle_alloc_error;
 use core::{
@@ -34,7 +34,7 @@ use core::{
     ptr::{self, NonNull},
 };
 
-use super::sym2::SYMBOLS;
+use super::sym::SYMBOLS;
 use crate::heap::BumpAllocator;
 
 /// Header for a runtime-allocated symbol with inline string data.
@@ -186,6 +186,16 @@ impl ConstantSymbol {
         // SAFETY: Caller guarantees the index is in bounds.
         unsafe { *SYMBOLS.as_ptr().add(self.0) }
     }
+
+    /// Returns the byte slice for this constant symbol without bounds checking.
+    ///
+    /// # Safety
+    ///
+    /// The index must be within bounds of [`STRINGS`].
+    const unsafe fn as_bytes_unchecked(self) -> &'static [u8] {
+        // SAFETY: Constant symbols return &'static str, which coerces to &'static [u8].
+        unsafe { self.as_str_unchecked().as_bytes() }
+    }
 }
 
 /// A compact, single-word representation for symbols.
@@ -273,6 +283,22 @@ impl Repr {
         } else {
             // SAFETY: Constant symbols return &'static str, which coerces to &'str.
             unsafe { self.as_constant_symbol().as_str_unchecked() }
+        }
+    }
+
+    /// Returns the byte content of this symbol.
+    ///
+    /// # Safety
+    ///
+    /// - For runtime symbols: the allocation must remain live for lifetime `'str`.
+    /// - The returned bytes must not be mutated for lifetime `'str`.
+    pub(crate) unsafe fn as_bytes<'str>(self) -> &'str [u8] {
+        if self.tag() == Self::TAG_RUNTIME {
+            // SAFETY: Caller guarantees the allocation is live for 'str.
+            unsafe { RuntimeSymbol::as_bytes(self.as_runtime_symbol()) }
+        } else {
+            // SAFETY: Constant symbols return &'static str, which coerces to &'str.
+            unsafe { self.as_constant_symbol().as_bytes_unchecked() }
         }
     }
 
