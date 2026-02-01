@@ -73,6 +73,10 @@ impl<'heap> Symbol<'heap> {
         }
     }
 
+    const fn into_repr(self) -> Repr {
+        self.repr
+    }
+
     #[must_use]
     pub fn as_str(&self) -> &str {
         // SAFETY: Symbol carries a `'heap` lifetime, that is tied to the allocation of the string.

@@ -182,9 +182,9 @@ impl ConstantSymbol {
     /// # Safety
     ///
     /// The index must be within bounds of [`STRINGS`].
-    unsafe fn as_str_unchecked(self) -> &'static str {
+    const unsafe fn as_str_unchecked(self) -> &'static str {
         // SAFETY: Caller guarantees the index is in bounds.
-        unsafe { SYMBOLS.get_unchecked(self.0) }
+        unsafe { *SYMBOLS.as_ptr().add(self.0) }
     }
 }
 
@@ -347,8 +347,14 @@ mod tests {
 
         // SAFETY: `repr` is a constant symbol with a valid index, no allocation lifetime concerns.
         assert_eq!(unsafe { repr.as_str() }, SYMBOLS[0]);
+    }
+
+    #[test]
+    fn constant_symbol_first_entry_unchecked() {
+        let constant = ConstantSymbol(0);
+
         // SAFETY: `repr` is a constant symbol with a valid index, no allocation lifetime concerns.
-        assert_eq!(unsafe { repr.as_str() }, "foo");
+        assert_eq!(unsafe { constant.as_str_unchecked() }, SYMBOLS[0]);
     }
 
     #[test]
@@ -358,8 +364,6 @@ mod tests {
 
         // SAFETY: `repr` is a constant symbol with a valid index, no allocation lifetime concerns.
         assert_eq!(unsafe { repr.as_str() }, SYMBOLS[1]);
-        // SAFETY: `repr` is a constant symbol with a valid index, no allocation lifetime concerns.
-        assert_eq!(unsafe { repr.as_str() }, "bar");
     }
 
     #[test]
