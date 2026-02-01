@@ -44,7 +44,7 @@ function getMessages<T extends ToMainMessage["type"]>(
   type: T,
 ): Extract<ToMainMessage, { type: T }>[] {
   return postedMessages.filter(
-    (m): m is Extract<ToMainMessage, { type: T }> => m.type === type,
+    (msg): msg is Extract<ToMainMessage, { type: T }> => msg.type === type,
   );
 }
 
@@ -187,7 +187,7 @@ describe("simulation.worker", () => {
       expect(pausedMessages[0]?.frameNumber).toBe(0);
     });
 
-    it("clears state on stop", async () => {
+    it("clears state on stop", () => {
       clearMessages();
 
       // Initialize
@@ -211,46 +211,6 @@ describe("simulation.worker", () => {
       const errorMessages = getMessages("error");
       expect(errorMessages).toHaveLength(1);
       expect(errorMessages[0]?.message).toContain("not initialized");
-    });
-  });
-
-  describe("parameter updates", () => {
-    it("updates parameters without restart", () => {
-      clearMessages();
-
-      // Initialize with a parameter
-      const sdcpn: SDCPN = {
-        ...createMinimalSDCPN(),
-        parameters: [
-          {
-            id: "param1",
-            name: "rate",
-            variableName: "rate",
-            type: "real",
-            defaultValue: "1.0",
-          },
-        ],
-      };
-
-      sendToWorker({
-        type: "init",
-        sdcpn,
-        initialMarking: [["p1", { values: new Float64Array([1.0]), count: 1 }]],
-        parameterValues: { param1: "1.0" },
-        seed: 42,
-        dt: 0.1,
-      });
-      clearMessages();
-
-      // Update parameters - should not produce error or reset
-      sendToWorker({
-        type: "updateParameters",
-        parameterValues: { rate: 2.0 },
-      });
-
-      // No error messages
-      const errorMessages = getMessages("error");
-      expect(errorMessages).toHaveLength(0);
     });
   });
 

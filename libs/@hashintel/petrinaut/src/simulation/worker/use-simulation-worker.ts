@@ -13,11 +13,7 @@
 import { useEffect, useRef, useState } from "react";
 
 import type { SDCPN } from "../../core/types/sdcpn";
-import type {
-  InitialMarking,
-  ParameterValues,
-  SimulationFrame,
-} from "../context";
+import type { InitialMarking, SimulationFrame } from "../context";
 import type { ToMainMessage, ToWorkerMessage } from "./messages";
 
 /**
@@ -60,8 +56,6 @@ export type WorkerActions = {
   pause: () => void;
   /** Stop and discard simulation */
   stop: () => void;
-  /** Hot-reload parameter values */
-  updateParameters: (parameterValues: ParameterValues) => void;
   /** Update maximum simulation time */
   setMaxTime: (maxTime: number | null) => void;
   /** Reset to initial state */
@@ -79,7 +73,7 @@ const initialState: WorkerState = {
  * Interval (in ms) between acknowledgment messages to worker.
  * Provides backpressure feedback.
  */
-const ACK_INTERVAL_MS = 100;
+const ACK_INTERVAL_MS = 10;
 
 /**
  * Hook for managing the simulation WebWorker.
@@ -249,12 +243,6 @@ export function useSimulationWorker(): {
     setState(initialState);
   };
 
-  const updateParameters: WorkerActions["updateParameters"] = (
-    parameterValues,
-  ) => {
-    postMessage({ type: "updateParameters", parameterValues });
-  };
-
   const setMaxTime: WorkerActions["setMaxTime"] = (maxTime) => {
     postMessage({ type: "setMaxTime", maxTime });
   };
@@ -270,7 +258,6 @@ export function useSimulationWorker(): {
     start,
     pause,
     stop,
-    updateParameters,
     setMaxTime,
     reset,
   };

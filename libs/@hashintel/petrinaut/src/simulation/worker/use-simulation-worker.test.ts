@@ -51,7 +51,7 @@ class MockWorker {
     type: T,
   ): Extract<ToWorkerMessage, { type: T }>[] {
     return this.postedMessages.filter(
-      (m): m is Extract<ToWorkerMessage, { type: T }> => m.type === type,
+      (msg): msg is Extract<ToWorkerMessage, { type: T }> => msg.type === type,
     );
   }
 
@@ -255,20 +255,6 @@ describe("useSimulationWorker", () => {
       expect(mockWorkerInstance!.getMessages("stop")).toHaveLength(1);
       expect(result.current.state.status).toBe("idle");
       expect(result.current.state.frames).toEqual([]);
-    });
-  });
-
-  describe("updateParameters action", () => {
-    it("sends updateParameters message", () => {
-      const { result } = renderHook(() => useSimulationWorker());
-
-      act(() => {
-        result.current.actions.updateParameters({ rate: 2.5 });
-      });
-
-      const messages = mockWorkerInstance!.getMessages("updateParameters");
-      expect(messages).toHaveLength(1);
-      expect(messages[0]?.parameterValues).toEqual({ rate: 2.5 });
     });
   });
 

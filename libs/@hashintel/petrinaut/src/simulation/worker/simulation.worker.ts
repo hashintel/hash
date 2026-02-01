@@ -9,10 +9,10 @@
  */
 
 import { SDCPNItemError } from "../../core/errors";
-import type { SimulationInstance } from "../context";
 import { buildSimulation } from "../simulator/build-simulation";
 import { checkTransitionEnablement } from "../simulator/check-transition-enablement";
 import { computeNextFrame } from "../simulator/compute-next-frame";
+import type { SimulationInstance } from "../simulator/types";
 import type { ToMainMessage, ToWorkerMessage } from "./messages";
 
 //
@@ -23,13 +23,13 @@ import type { ToMainMessage, ToWorkerMessage } from "./messages";
  * Maximum number of frames the worker can compute ahead of acknowledgment.
  * Provides backpressure to prevent unbounded memory growth.
  */
-const MAX_FRAMES_AHEAD = 1000;
+const MAX_FRAMES_AHEAD = 100000;
 
 /**
  * Number of frames to compute in each batch before checking for messages.
  * Higher values improve throughput but reduce responsiveness to pause/stop.
  */
-const BATCH_SIZE = 10;
+const BATCH_SIZE = 1000;
 
 //
 // Worker State
@@ -57,14 +57,16 @@ async function computeLoop(): Promise<void> {
     const currentFrameNumber = simulation.currentFrameNumber;
     if (currentFrameNumber - lastAckedFrame > MAX_FRAMES_AHEAD) {
       // Yield and wait for ack
-      await new Promise((resolve) => setTimeout(resolve, 10));
+      await new Promise((resolve) => {
+        setTimeout(resolve, 10);
+      });
       continue;
     }
 
     // Compute a batch of frames
     const framesToSend: typeof simulation.frames = [];
 
-    for (let i = 0; i < BATCH_SIZE && isRunning && simulation; i++) {
+    for (let i = 0; i < BATCH_SIZE; i++) {
       try {
         const { simulation: updatedSimulation, transitionFired } =
           computeNextFrame(simulation);
@@ -120,7 +122,9 @@ async function computeLoop(): Promise<void> {
     }
 
     // Yield to allow message processing
-    await new Promise((resolve) => setTimeout(resolve, 0));
+    await new Promise((resolve) => {
+      setTimeout(resolve, 0);
+    });
   }
 }
 
@@ -206,17 +210,6 @@ self.onmessage = (event: MessageEvent<ToWorkerMessage>) => {
       simulation = null;
       maxTime = null;
       lastAckedFrame = 0;
-      break;
-    }
-
-    case "updateParameters": {
-      if (simulation) {
-        // Hot-reload parameters without rebuilding
-        simulation = {
-          ...simulation,
-          parameterValues: message.parameterValues,
-        };
-      }
       break;
     }
 
