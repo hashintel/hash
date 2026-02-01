@@ -1,4 +1,4 @@
-[hash.ai]: https://app.hash.ai?utm_medium=organic&utm_source=github_readme_hash-repo_root
+[hash.ai]: https://app.hash.ai/?utm_medium=organic&utm_source=github_readme_hash-repo_root
 [create an account]: https://app.hash.ai/signup?utm_medium=organic&utm_source=github_readme_hash-repo_root
 [development roadmap]: https://hash.dev/roadmap?utm_medium=organic&utm_source=github_readme_hash-repo_root
 [hiring]: https://hash.ai/careers?utm_medium=organic&utm_source=github_readme_hash-repo_root
@@ -38,7 +38,7 @@ This is HASH's _public monorepo_ which contains our public code, docs, and other
 ## [![a](/.github/assets/gh_icon_getting-started_20px-base.svg)][gh-getting-started] &nbsp; Getting started
 
 <details>
-  <summary> &nbsp; <strong>Option 1.</strong> Use <a href="https://app.hash.ai/">hash.ai</a> — <em>recommended (quick-start: <5 mins)</em> 🚀</summary>
+  <summary> &nbsp; <strong>Option 1.</strong> Use <a href="https://app.hash.ai/?utm_medium=organic&utm_source=github_readme_hash-repo_root">hash.ai</a> — <em>recommended (quick-start: <5 mins)</em> 🚀</summary>
 
 ### Create an account
 
@@ -59,7 +59,7 @@ When you first create an account you may be placed on a waitlist. To jump the qu
 
 ### Running HASH locally
 
-**Running HASH locally is not yet officially supported.** In the meantime, use [hash.ai](https://app.hash.ai/) or try the experimental instructions below. These instructions will be replaced with a comprehensive guide to setting up and [running your own instance] in due course.
+**Running HASH locally is not yet officially supported.** In the meantime, use [hash.ai] or try the experimental instructions below. These instructions will be replaced with a comprehensive guide to setting up and [running your own instance] in due course.
 
 #### Experimental instructions
 
