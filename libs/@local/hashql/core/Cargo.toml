@@ -29,7 +29,6 @@ derive_more          = { workspace = true, features = ["debug", "from"] }
 ena                  = { workspace = true }
 lexical              = { workspace = true, features = ["parse-integers", "parse-floats", "format"] }
 memchr               = { workspace = true }
-phf                  = { version = "0.13.1", features = ["macros"] }
 rapidfuzz            = { workspace = true }
 roaring              = { workspace = true, features = ["std"] }
 rpds                 = { workspace = true, features = ["std"] }

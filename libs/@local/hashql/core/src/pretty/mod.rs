@@ -24,11 +24,11 @@
 //! let fmt = Formatter::new(&heap);
 //!
 //! let doc = fmt
-//!     .keyword(sym::lexical::r#let)
+//!     .keyword(sym::r#let)
 //!     .append(fmt.space())
 //!     .append(fmt.literal_str("43"))
 //!     .append(fmt.space())
-//!     .append(fmt.punct(sym::symbol::assign))
+//!     .append(fmt.punct(sym::symbol::eq))
 //!     .append(fmt.space())
 //!     .append(fmt.literal_str("42"));
 //!

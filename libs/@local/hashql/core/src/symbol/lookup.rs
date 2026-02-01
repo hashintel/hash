@@ -45,17 +45,17 @@ enum SymbolLookupInner<'heap, I> {
 /// # Examples
 ///
 /// ```
-/// # use hashql_core::{heap::Heap, symbol::SymbolTable, newtype, id::Id as _};
+/// # use hashql_core::{heap::Heap, symbol::SymbolLookup, newtype, id::Id as _};
 /// # newtype!(struct MyId(u32 is 0..=0xFFFF_FF00));
 /// # let mut heap = Heap::new();
 /// # let symbol = heap.intern_symbol("example");
 /// // Dense storage for sequential IDs
-/// let mut dense_table = SymbolTable::<MyId>::dense();
+/// let mut dense_table = SymbolLookup::<MyId>::dense();
 /// dense_table.insert(MyId::from_u32(0), symbol);
 /// assert_eq!(dense_table.get(MyId::from_u32(0)), Some(symbol));
 ///
 /// // Gapped storage for mostly contiguous IDs with some gaps
-/// let mut gapped_table = SymbolTable::<MyId>::gapped();
+/// let mut gapped_table = SymbolLookup::<MyId>::gapped();
 /// gapped_table.insert(MyId::from_u32(0), symbol);
 /// gapped_table.insert(MyId::from_u32(5), symbol); // Gap at IDs 1-4
 /// assert_eq!(gapped_table.get(MyId::from_u32(0)), Some(symbol));
@@ -63,7 +63,7 @@ enum SymbolLookupInner<'heap, I> {
 /// assert_eq!(gapped_table.get(MyId::from_u32(5)), Some(symbol));
 ///
 /// // Sparse storage for arbitrary IDs
-/// let mut sparse_table = SymbolTable::<MyId>::sparse();
+/// let mut sparse_table = SymbolLookup::<MyId>::sparse();
 /// sparse_table.insert(MyId::from_u32(100), symbol);
 /// assert_eq!(sparse_table.get(MyId::from_u32(100)), Some(symbol));
 /// sparse_table.insert(MyId::from_u32(5), symbol);
@@ -86,9 +86,9 @@ where
     /// # Examples
     ///
     /// ```
-    /// # use hashql_core::{symbol::SymbolTable, newtype};
+    /// # use hashql_core::{symbol::SymbolLookup, newtype};
     /// # newtype!(struct MyId(u32 is 0..=0xFFFF_FF00));
-    /// let table = SymbolTable::<MyId>::dense();
+    /// let table = SymbolLookup::<MyId>::dense();
     /// // Insertions must be sequential: 0, 1, 2, ...
     /// ```
     #[must_use]
@@ -107,9 +107,9 @@ where
     /// # Examples
     ///
     /// ```
-    /// # use hashql_core::{symbol::SymbolTable, newtype};
+    /// # use hashql_core::{symbol::SymbolLookup, newtype};
     /// # newtype!(struct MyId(u32 is 0..=0xFFFF_FF00));
-    /// let table = SymbolTable::<MyId>::gapped();
+    /// let table = SymbolLookup::<MyId>::gapped();
     /// // Insertions can have gaps: 0, 5, 3, 10, ...
     /// ```
     #[must_use]
@@ -127,9 +127,9 @@ where
     /// # Examples
     ///
     /// ```
-    /// # use hashql_core::{symbol::SymbolTable, newtype};
+    /// # use hashql_core::{symbol::SymbolLookup, newtype};
     /// # newtype!(struct MyId(u32 is 0..=0xFFFF_FF00));
-    /// let table = SymbolTable::<MyId>::sparse();
+    /// let table = SymbolLookup::<MyId>::sparse();
     /// // Insertions can be in any order: 100, 5, 1000, ...
     /// ```
     #[must_use]
@@ -155,11 +155,11 @@ where
     /// # Examples
     ///
     /// ```
-    /// # use hashql_core::{heap::Heap, symbol::SymbolTable, newtype, id::Id as _};
+    /// # use hashql_core::{heap::Heap, symbol::SymbolLookup, newtype, id::Id as _};
     /// # newtype!(struct MyId(u32 is 0..=0xFFFF_FF00));
     /// # let mut heap = Heap::new();
     /// # let symbol = heap.intern_symbol("example");
-    /// let mut table = SymbolTable::<MyId>::dense();
+    /// let mut table = SymbolLookup::<MyId>::dense();
     /// table.insert(MyId::from_u32(0), symbol); // First insertion
     /// table.insert(MyId::from_u32(1), symbol); // Sequential insertion
     /// ```
@@ -167,11 +167,11 @@ where
     /// Non-sequential insertions will panic in dense tables:
     ///
     /// ```should_panic
-    /// # use hashql_core::{heap::Heap, symbol::SymbolTable, newtype, id::Id as _};
+    /// # use hashql_core::{heap::Heap, symbol::SymbolLookup, newtype, id::Id as _};
     /// # newtype!(struct MyId(u32 is 0..=0xFFFF_FF00));
     /// # let mut heap = Heap::new();
     /// # let symbol = heap.intern_symbol("example");
-    /// let mut table = SymbolTable::<MyId>::dense();
+    /// let mut table = SymbolLookup::<MyId>::dense();
     /// table.insert(MyId::from_u32(0), symbol); // First insertion
     /// table.insert(MyId::from_u32(2), symbol); // Non-sequential insertion
     /// ```
@@ -203,11 +203,11 @@ where
     /// # Examples
     ///
     /// ```
-    /// # use hashql_core::{heap::Heap, symbol::SymbolTable, newtype, id::Id as _};
+    /// # use hashql_core::{heap::Heap, symbol::SymbolLookup, newtype, id::Id as _};
     /// # newtype!(struct MyId(u32 is 0..=0xFFFF_FF00));
     /// # let mut heap = Heap::new();
     /// # let symbol = heap.intern_symbol("example");
-    /// let mut table = SymbolTable::<MyId>::sparse();
+    /// let mut table = SymbolLookup::<MyId>::sparse();
     /// table.insert(MyId::from_u32(42), symbol);
     ///
     /// assert_eq!(table.get(MyId::from_u32(42)), Some(symbol));

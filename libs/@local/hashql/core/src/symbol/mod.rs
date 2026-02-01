@@ -25,7 +25,7 @@ mod table;
 
 use core::{
     cmp::Ordering,
-    fmt::{self, Display, Formatter},
+    fmt::{self, Debug, Display, Formatter},
     hash::Hash,
     marker::PhantomData,
 };
@@ -68,7 +68,7 @@ impl ConstantSymbol {
 /// relies on these *but it does not enforce it*.
 // We can relay to the derives for PartialEq, Eq, and Hash, as `_marker` is ignored, and the
 // internal representation makes a pointer comparison.
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+#[derive(Copy, Clone, PartialEq, Eq, Hash)]
 pub struct Symbol<'heap> {
     repr: Repr,
     _marker: PhantomData<&'heap ()>,
@@ -160,6 +160,12 @@ impl Ord for Symbol<'_> {
         } else {
             self.as_str().cmp(other.as_str())
         }
+    }
+}
+
+impl Debug for Symbol<'_> {
+    fn fmt(&self, fmt: &mut Formatter<'_>) -> fmt::Result {
+        fmt.debug_tuple("Symbol").field(&self.as_str()).finish()
     }
 }
 
