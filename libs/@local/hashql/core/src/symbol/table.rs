@@ -78,7 +78,7 @@ use crate::heap::BumpAllocator;
 /// Note: This assumes the [`HashTable`]'s own allocator `A` (used for bucket storage) is
 /// still valid. With the default `A = Global`, this is always the case.
 #[derive(Debug)]
-struct SymbolTable<A: Allocator = Global> {
+pub(crate) struct SymbolTable<A: Allocator = Global> {
     inner: HashTable<Repr, A>,
     hasher: RandomState,
 }
@@ -88,7 +88,7 @@ impl SymbolTable {
     ///
     /// The table is not primed. Call [`prime`](Self::prime) to populate it with
     /// predefined symbols before use.
-    fn new() -> Self {
+    pub(crate) fn new() -> Self {
         Self {
             inner: HashTable::new(),
             hasher: RandomState::default(),
@@ -109,12 +109,12 @@ impl<A: Allocator> SymbolTable<A> {
     }
 
     /// Returns the number of symbols currently in the table.
-    fn len(&self) -> usize {
+    pub(crate) fn len(&self) -> usize {
         self.inner.len()
     }
 
     /// Returns `true` if the table contains no symbols.
-    fn is_empty(&self) -> bool {
+    pub(crate) fn is_empty(&self) -> bool {
         self.inner.is_empty()
     }
 }
@@ -152,11 +152,11 @@ impl<A: Allocator> SymbolTable<A> {
     ///
     /// [`sym2::LOOKUP`]: super::sym2::LOOKUP
     pub(crate) unsafe fn prime(&mut self) {
-        self.inner.reserve(super::sym2::LOOKUP.len(), |_| {
+        self.inner.reserve(super::sym::LOOKUP.len(), |_| {
             unreachable!("prime() requires an empty table; hasher callback should not be invoked")
         });
 
-        for &(name, value) in super::sym2::LOOKUP {
+        for &(name, value) in super::sym::LOOKUP {
             let hash = self.hasher.hash_one(name);
 
             self.inner.insert_unique(hash, value, |_| {
@@ -264,7 +264,7 @@ impl<A: Allocator> SymbolTable<A> {
 mod tests {
     #![expect(unsafe_code, clippy::non_ascii_literal)]
 
-    use super::{super::sym2, SymbolTable};
+    use super::{super::sym, SymbolTable};
     use crate::heap::Scratch;
 
     #[test]
@@ -282,7 +282,7 @@ mod tests {
             table.prime();
         }
 
-        assert_eq!(table.len(), sym2::LOOKUP.len());
+        assert_eq!(table.len(), sym::LOOKUP.len());
         assert!(!table.is_empty());
     }
 
@@ -339,7 +339,7 @@ mod tests {
 
         // Intern a predefined symbol (e.g., "and" from LOOKUP).
         // The returned Repr should match the one in LOOKUP.
-        for &(name, expected_repr) in sym2::LOOKUP {
+        for &(name, expected_repr) in sym::LOOKUP {
             // SAFETY: Table is primed, scratch is live.
             let repr = unsafe { table.intern(&scratch, name) };
             assert_eq!(
@@ -451,7 +451,7 @@ mod tests {
         };
 
         // Get a constant Repr by interning a predefined symbol.
-        let (name, expected_repr) = sym2::LOOKUP[0];
+        let (name, expected_repr) = sym::LOOKUP[0];
         // SAFETY: Table is primed, scratch is live.
         let repr_before = unsafe { table.intern(&scratch, name) };
         assert_eq!(repr_before, expected_repr);

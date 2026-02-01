@@ -117,7 +117,7 @@ pub use self::{
 };
 use crate::{
     collections::{FastHashSet, fast_hash_set_with_capacity},
-    symbol::{Symbol, sym::TABLES},
+    symbol::{Symbol, SymbolTable},
 };
 
 /// A boxed value allocated on the `Heap`.
@@ -152,11 +152,7 @@ pub type HashMap<'heap, K, V, S = foldhash::fast::RandomState> =
 #[derive(Debug)]
 pub struct Heap {
     inner: Allocator,
-    // Interned strings stored as `&'static str` for implementation convenience.
-    // SAFETY: The `'static` is a lie. These point into arena memory and are safe because:
-    // - All access goes through `Symbol<'heap>`, bounding the effective lifetime
-    // - This set is cleared before `inner.reset()` is called
-    strings: Mutex<HashSet<&'static str, foldhash::fast::RandomState>>,
+    strings: Mutex<SymbolTable>,
 }
 
 impl Heap {
@@ -178,7 +174,7 @@ impl Heap {
     pub fn uninitialized() -> Self {
         Self {
             inner: Allocator::new(),
-            strings: Mutex::default(),
+            strings: Mutex::new(SymbolTable::new()),
         }
     }
 
@@ -201,7 +197,10 @@ impl Heap {
             "heap has already been primed or has interned symbols"
         );
 
-        Self::prime_symbols(strings);
+        // SAFETY: We have verified that the symbol table is empty.
+        unsafe {
+            strings.prime();
+        }
     }
 
     /// Creates a new heap.
@@ -214,12 +213,16 @@ impl Heap {
     #[must_use]
     #[inline]
     pub fn new() -> Self {
-        let mut strings = fast_hash_set_with_capacity(0);
-        Self::prime_symbols(&mut strings);
+        let mut table = SymbolTable::new();
+
+        // SAFETY: fresh symbol table is empty
+        unsafe {
+            table.prime();
+        }
 
         Self {
             inner: Allocator::new(),
-            strings: Mutex::new(strings),
+            strings: Mutex::new(table),
         }
     }
 
@@ -232,12 +235,16 @@ impl Heap {
     #[must_use]
     #[inline]
     pub fn with_capacity(capacity: usize) -> Self {
-        let mut strings = fast_hash_set_with_capacity(0);
-        Self::prime_symbols(&mut strings);
+        let mut table = SymbolTable::new();
+
+        // SAFETY: fresh symbol table is empty
+        unsafe {
+            table.prime();
+        }
 
         Self {
             inner: Allocator::with_capacity(capacity),
-            strings: Mutex::new(strings),
+            strings: Mutex::new(table),
         }
     }
 
@@ -250,16 +257,6 @@ impl Heap {
         const { assert!(!core::mem::needs_drop::<T>()) };
 
         self.inner.alloc_with(|| value)
-    }
-
-    fn prime_symbols(strings: &mut FastHashSet<&'static str>) {
-        strings.reserve(TABLES.iter().map(|table| table.len()).sum());
-
-        for &table in TABLES {
-            for symbol in table {
-                assert!(strings.insert(symbol.as_str()));
-            }
-        }
     }
 
     /// Interns a string symbol, returning a reference to the interned value.
@@ -277,22 +274,16 @@ impl Heap {
     pub fn intern_symbol<'this>(&'this self, value: &str) -> Symbol<'this> {
         let mut strings = self.strings.lock().expect("lock should not be poisoned");
 
-        if let Some(&string) = strings.get(value) {
-            return Symbol::new_unchecked(string);
-        }
+        // SAFETY: `SymbolTable::intern` requires:
+        // 1. No dangling pointers: The table is reset before the arena in `Heap::reset`.
+        // 2. Allocator consistency: We always pass `self` as the allocator.
+        // 3. Allocator lifetime: `self` outlives the returned `Repr`.
+        let repr = unsafe { strings.intern(self, value) };
 
-        let string = &*value.transfer_into(self);
-
-        // SAFETY: The `'static` lifetime is a lie to enable HashSet storage.
-        // Sound because: (1) external access is through `Symbol<'this>`, (2) strings
-        // are cleared before arena reset, (3) `reset()` requires `&mut self`.
-        #[expect(unsafe_code)]
-        let string: &'static str = unsafe { &*ptr::from_ref::<str>(string) };
-
-        strings.insert(string);
-        drop(strings);
-
-        Symbol::new_unchecked(string)
+        // SAFETY: The `Repr` was just interned with `self` as the allocator, so it is
+        // valid for `'this`. Runtime symbols point into `self.inner`, and constant
+        // symbols have static lifetime.
+        unsafe { Symbol::from_repr(repr) }
     }
 }
 
@@ -347,12 +338,14 @@ impl ResetAllocator for Heap {
     /// Panics if the internal mutex is poisoned.
     #[inline]
     fn reset(&mut self) {
-        // IMPORTANT: Clear strings BEFORE resetting the arena to prevent dangling references.
-        // The HashSet stores `&'static str` that actually point into arena memory.
         {
             let mut strings = self.strings.lock().expect("lock should not be poisoned");
-            strings.clear();
-            Self::prime_symbols(&mut strings);
+
+            // SAFETY: The symbol table is reset before the arena, so no dangling references exist.
+            unsafe {
+                strings.reset();
+            };
+
             drop(strings);
         }
 

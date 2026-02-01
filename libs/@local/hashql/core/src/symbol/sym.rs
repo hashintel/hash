@@ -1,66 +1,113 @@
-//! This module defines a collection of static symbol constants used throughout the codebase.
-//!
-//! # Usage
-//!
-//! These symbols should only ever be imported with the `sym` prefix to avoid naming conflicts
-//! and maintain clarity about where the symbols are defined. For example:
-//!
-//! ```rust
-//! use hashql_core::symbol::sym;
-//!
-//! // Correct usage:
-//! let add_symbol = sym::lexical::add;
-//! let asterisk = sym::symbol::asterisk;
-//!
-//! // Incorrect usage (avoid):
-//! // use crate::symbol::sym::lexical::*;
-//! ```
-//!
-//! These symbols provide pointer equality guarantees when interned from a `Heap`,
-//! which allows for efficient symbol comparison operations.
 #![expect(non_upper_case_globals, clippy::min_ident_chars)]
 use super::Symbol;
 
-/// Macro for defining groups of static symbol constants.
-///
-/// This macro creates modules containing static `Symbol` instances and
-/// generates tables that group these symbols for efficient lookup.
-///
-/// The macro supports several forms:
-/// - Basic symbol: uses the identifier name as the symbol value
-/// - Custom symbol: allows specifying a custom string value with the `name: "value"` syntax
-/// - Special handling for Rust keywords using the `r#` prefix
-///
-/// For each symbol group, this macro also creates a corresponding table of references
-/// to all symbols in that group.
 macro_rules! symbols {
-    (@sym) => {};
-    (@sym $name:ident $(, $($rest:tt)*)?) => {
-        pub static $name: super::Symbol<'static> = super::Symbol::new_unchecked(stringify!($name));
-        $(symbols!(@sym $($rest)*);)?
-    };
-    (@sym $name:ident : $value:literal $(, $($rest:tt)*)?) => {
-        pub static $name: super::Symbol<'static> = super::Symbol::new_unchecked($value);
-        $(symbols!(@sym $($rest)*);)?
-    };
-    (@table $module:ident $table:ident #($($name:ident)*)) => {
-        const $table: &[&Symbol<'static>] = &[
-            $(&$module::$name),*
+    (@strings [$($acc:tt)*];) => {
+        pub(crate) static SYMBOLS: &[&str] = &[
+            $($acc),*
         ];
     };
-    (@table $module:ident $table:ident #($($acc:tt)*) $name:ident $(: $value:literal)? $(, $($rest:tt)*)?) => {
-        symbols!(@table $module $table #($($acc)* $name) $($($rest)*)?);
+    (@strings [$($acc:tt)*]; , $($rest:tt)*) => {
+        symbols!(@strings [$($acc)*]; $($rest)*);
     };
-    ($module:ident; $table:ident; $($items:tt)*) => {
+    (@strings [$($acc:tt)*]; $module:ident : { $($inner:tt)* } $(, $($rest:tt)*)?) => {
+        symbols!(@strings [$($acc)*]; $($inner)* $(, $($rest)*)?);
+    };
+    (@strings [$($acc:tt)*]; $name:ident : $value:literal $(, $($rest:tt)*)?) => {
+        symbols!(@strings [$($acc)* $value]; $($($rest)*)?);
+    };
+    (@strings [$($acc:tt)*]; $name:ident $(, $($rest:tt)*)?) => {
+        symbols!(@strings [$($acc)* (stringify!($name))]; $($($rest)*)?);
+    };
+
+    (@consts @cont [$($count:tt)*] [$($next:tt)*];) => {
+        symbols!(@consts [$($count)*]; $($next)*);
+    };
+    (@consts @cont [$($count:tt)*] [$($next:tt)*]; , $($rest:tt)*) => {
+        symbols!(@consts @cont [$($count)*] [$($next)*]; $($rest)*);
+    };
+    (@consts @cont [$($count:tt)*] [$($next:tt)*]; $name:ident : $value:literal $(, $($rest:tt)*)?) => {
+        symbols!(@consts @cont [$($count)* ()] [$($next)*]; $($($rest)*)?);
+    };
+    (@consts @cont [$($count:tt)*] [$($next:tt)*]; $module:ident : { $($inner:tt)* } $(, $($rest:tt)*)?) => {
+        symbols!(@consts @cont [$($count)* ()] [$($next)*];; $($inner)* $(, $($rest)*)?);
+    };
+    (@consts @cont [$($count:tt)*] [$($next:tt)*]; $name:ident $(, $($rest:tt)*)?) => {
+        symbols!(@consts @cont [$($count)* ()] [$($next)*]; $($($rest)*)?);
+    };
+
+    (@consts [$($count:tt)*];) => {};
+    (@consts [$($count:tt)*]; , $($rest:tt)*) => {
+        symbols!(@consts [$($count)*]; $($rest)*);
+    };
+    (@consts [$($count:tt)*]; $name:ident : $value:literal $(, $($rest:tt)*)?) => {
+        const _: () = { assert!(SYMBOLS[${count($count)}] == $value) };
+        pub const $name: Symbol<'static> = Symbol::new_constant_unchecked(${count($count)});
+        symbols!(@consts [$($count)* ()]; $($($rest)*)?);
+    };
+    (@consts [$($count:tt)*]; $module:ident : { $($inner:tt)* } $(, $($rest:tt)*)?) => {
         pub mod $module {
-            symbols!(@sym $($items)*);
+            use super::*;
+
+            symbols!(@consts [$($count)*]; $($inner)*);
         }
 
-        symbols!(@table $module $table #() $($items)*);
+        symbols!(@consts @cont [$($count)*] [$($($rest)*)?]; $($inner)*);
+    };
+    (@consts [$($count:tt)*]; $name:ident $(, $($rest:tt)*)?) => {
+        const _: () = { assert!(SYMBOLS[${count($count)}] == stringify!($name)) };
+        pub const $name: Symbol<'static> = Symbol::new_constant_unchecked(${count($count)});
+        symbols!(@consts [$($count)* ()]; $($($rest)*)?);
+    };
+
+    (@path [] [$($path:ident)*];) => {
+        $($path)::*
+    };
+    (@path [$next:tt $($rest:tt)*] [$($path:tt)*];) => {
+        symbols!(@path [$($rest)*] [$next $($path)*];)
+    };
+
+    (@lookup [$(, $arm:expr => $value:expr)*] [$($path:tt),*];) => {
+        #[expect(unsafe_code)]
+        pub(crate) fn prime<S: core::hash::BuildHasher, A: core::alloc::Allocator>(map: &mut hashbrown::HashMap<&'static str, super::repr::Repr, S, A>) {
+            debug_assert!(map.is_empty());
+            map.reserve(SYMBOLS.len());
+
+            $(
+                // SAFETY: The declarative macro guarantees that the symbol is unique.
+                unsafe { map.insert_unique_unchecked($arm, $value.into_repr()); }
+            )*
+        }
+
+        pub(crate) static LOOKUP: &[(&'static str, super::repr::Repr)] = &[
+            $(($arm, $value.into_repr())),*
+        ];
+    };
+    (@lookup [$($arms:tt)*] [$tail:tt $(, $path:tt)*]; | $($rest:tt)*) => {
+        symbols!(@lookup [$($arms)*] [$($path),*]; $($rest)*);
+    };
+    (@lookup [$($arms:tt)*] [$($path:tt),*]; , $($rest:tt)*) => {
+        symbols!(@lookup [$($arms)*] [$($path),*]; $($rest)*);
+    };
+    (@lookup [$($arms:tt)*] [$($path:tt),*]; $name:ident : $value:literal $(, $($rest:tt)*)?) => {
+        symbols!(@lookup [$($arms)*, $value => symbols!(@path [$name $($path)*] [];)] [$($path),*]; $($($rest)*)?);
+    };
+    (@lookup [$($arms:tt)*] [$($path:tt),*]; $module:ident : { $($inner:tt)* } $(, $($rest:tt)*)?) => {
+        symbols!(@lookup [$($arms)*] [$module $(, $path)*]; $($inner)* ,| $($($rest)*)?);
+    };
+    (@lookup [$($arms:tt)*] [$($path:tt),*]; $name:ident $(, $($rest:tt)*)?) => {
+        symbols!(@lookup [$($arms)*, stringify!($name) => symbols!(@path [$name $($path)*] [];)] [$($path),*]; $($($rest)*)?);
+    };
+
+    (@table; $($items:tt)*) => {
+        symbols!(@strings []; $($items)*);
+        symbols!(@consts []; $($items)*);
+        symbols!(@lookup [] [self]; $($items)*);
     };
 }
 
-symbols![lexical; LEXICAL;
+symbols! {@table;
+    // [tidy] sort alphabetically start
     access,
     add,
     and,
@@ -85,6 +132,7 @@ symbols![lexical; LEXICAL;
     Dict,
     div,
     draft_id,
+    dummy: "<!dummy!>",
     E,
     edition,
     edition_id,
@@ -168,106 +216,86 @@ symbols![lexical; LEXICAL;
     Url,
     vectors,
     web_id,
-];
+    // [tidy] sort alphabetically end
 
-// Internal names are non user constructible
-symbols![internal; INTERNAL;
-    ClosureEnv: "'<ClosureEnv>"
-];
+    internal: {
+        ClosureEnv: "'<ClosureEnv>"
+    },
 
-symbols![digit; DIGITS;
-    zero: "0",
-    one: "1",
-    two: "2",
-    three: "3",
-    four: "4",
-    five: "5",
-    six: "6",
-    seven: "7",
-    eight: "8",
-    nine: "9",
-];
+    symbol: {
+        // [tidy] sort alphabetically start
+        ampamp: "&&",
+        ampersand: "&",
+        arrow: "->",
+        arrow_head: "|>",
+        asterisk: "*",
+        exclamation: "!",
+        excleq: "!=",
+        brackets: "[]",
+        caret: "^",
+        colon: ":",
+        colon_colon: "::",
+        comma: ",",
+        dollar: "$",
+        dollar_question_mark: "$?",
+        dot: ".",
+        eq: "=",
+        eqeq: "==",
+        gt: ">",
+        gteq: ">=",
+        gtgt: ">>",
+        lt: "<",
+        lteq: "<=",
+        ltlt: "<<",
+        minus: "-",
+        pipepipe: "||",
+        pipe: "|",
+        plus: "+",
+        question_mark: "?",
+        slash: "/",
+        tilde: "~",
+        // [tidy] sort alphabetically end
+    },
 
-symbols![symbol; SYMBOLS;
-    add: "+",
-    ampersand: "&",
-    and: "&&",
-    arrow: "->",
-    arrow_head: "|>",
-    assign: "=",
-    asterisk: "*",
-    backets: "[]",
-    bit_shl: "<<",
-    bit_shr: ">>",
-    caret: "^",
-    colon: ":",
-    colon_colon: "::",
-    comma: ",",
-    dollar: "$",
-    dollar_question_mark: "$?",
-    dot: ".",
-    eq: "==",
-    exclamation_mark: "!",
-    gt: ">",
-    gte: ">=",
-    lt: "<",
-    lte: "<=",
-    ne: "!=",
-    or: "||",
-    pipe: "|",
-    question_mark: "?",
-    slash: "/",
-    sub: "-",
-    tilde: "~",
-];
+    digit: {
+        zero: "0",
+        one: "1",
+        two: "2",
+        three: "3",
+        four: "4",
+        five: "5",
+        six: "6",
+        seven: "7",
+        eight: "8",
+        nine: "9",
+    },
 
-symbols![path; PATHS;
-    option: "::core::option::Option",
-    some: "::core::option::Some",
-    none: "::core::option::None",
-    graph_head_entities: "::graph::head::entities",
-    graph_body_filter: "::graph::body::filter",
-    graph_tail_collect: "::graph::tail::collect",
-    Entity: "::graph::types::knowledge::entity::Entity"
-];
+    path: {
+        // [tidy] sort alphabetically start
+        option: "::core::option::Option",
+        some: "::core::option::Some",
+        none: "::core::option::None",
+        graph_head_entities: "::graph::head::entities",
+        graph_body_filter: "::graph::body::filter",
+        graph_tail_collect: "::graph::tail::collect",
+        // [tidy] sort alphabetically end
+    }
+}
 
-pub(crate) const TABLES: &[&[&Symbol<'static>]] = &[LEXICAL, DIGITS, SYMBOLS, PATHS, INTERNAL];
+#[cfg(test)]
+mod tests {
+    use std::collections::HashSet;
 
-// #[cfg(test)]
-// mod test {
-//     use core::ptr;
+    use super::SYMBOLS;
 
-//     use super::TABLES;
-//     use crate::{
-//         heap::{Heap, ResetAllocator as _},
-//         symbol::sym,
-//     };
+    #[test]
+    fn symbols_are_unique() {
+        let mut set = HashSet::with_capacity(SYMBOLS.len());
 
-//     #[test]
-//     fn pointer_equality_from_heap() {
-//         let mut heap = Heap::new();
+        for symbol in SYMBOLS {
+            set.insert(*symbol);
+        }
 
-//         let mul_heap = heap.intern_symbol("*");
-//         let mul_sym = sym::symbol::asterisk;
-
-//         assert!(ptr::eq(mul_heap.0, mul_sym.0));
-
-//         // even after reset that should be the case
-//         heap.reset();
-
-//         let mul_heap = heap.intern_symbol("*");
-//         let mul_sym = sym::symbol::asterisk;
-
-//         assert!(ptr::eq(mul_heap.0, mul_sym.0));
-//     }
-
-//     #[test]
-//     fn ensure_no_collisions() {
-//         let mut set = std::collections::HashSet::new();
-//         for &table in TABLES {
-//             for &symbol in table {
-//                 assert!(set.insert(symbol.0));
-//             }
-//         }
-//     }
-// }
+        assert_eq!(set.len(), SYMBOLS.len(), "duplicate symbol value found");
+    }
+}
