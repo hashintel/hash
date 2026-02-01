@@ -7,10 +7,7 @@ use hash_graph_store::{
     filter::{
         Filter, FilterExpression, FilterExpressionList, Parameter, ParameterList, ParameterType,
         PathToken, QueryRecord,
-        protection::{
-            PropertyFilter, PropertyFilterExpression, PropertyFilterExpressionList,
-            PropertyProtectionFilter, PropertyProtectionFilterConfig,
-        },
+        protection::{PropertyProtectionFilter, PropertyProtectionFilterConfig},
     },
     query::{NullOrdering, Ordering},
     subgraph::temporal_axes::QueryTemporalAxes,
@@ -19,11 +16,10 @@ use hash_graph_temporal_versioning::TimeAxis;
 use postgres_types::ToSql;
 use tracing::instrument;
 use type_system::{knowledge::Entity, principal::actor::ActorId};
-use uuid::Uuid;
 
 use super::expression::{JoinType, TableName, TableReference};
 use crate::store::postgres::query::{
-    Alias, Column, Condition, Constant, Distinctness, EqualityOperator, Expression, Function,
+    Alias, Column, Condition, Distinctness, EqualityOperator, Expression, Function,
     PostgresQueryPath, PostgresRecord, SelectExpression, SelectStatement, Table, Transpile as _,
     WindowStatement,
     expression::{FromItem, GroupByExpression, PostgresType},
