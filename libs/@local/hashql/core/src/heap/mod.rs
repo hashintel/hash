@@ -101,7 +101,6 @@ mod scratch;
 mod transfer;
 
 use core::{alloc, mem, ptr};
-use std::sync::Mutex;
 
 use ::alloc::{boxed, collections::vec_deque, vec};
 
@@ -114,7 +113,10 @@ pub use self::{
     scratch::Scratch,
     transfer::TransferInto,
 };
-use crate::symbol::{Symbol, SymbolTable};
+use crate::{
+    symbol::{Symbol, SymbolTable},
+    sync::lock::LocalLock,
+};
 
 /// A boxed value allocated on the `Heap`.
 ///
@@ -148,7 +150,7 @@ pub type HashMap<'heap, K, V, S = foldhash::fast::RandomState> =
 #[derive(Debug)]
 pub struct Heap {
     inner: Allocator,
-    strings: Mutex<SymbolTable>,
+    strings: LocalLock<SymbolTable>,
 }
 
 impl Heap {
@@ -170,7 +172,7 @@ impl Heap {
     pub fn uninitialized() -> Self {
         Self {
             inner: Allocator::new(),
-            strings: Mutex::new(SymbolTable::new()),
+            strings: LocalLock::new(SymbolTable::new()),
         }
     }
 
@@ -187,7 +189,7 @@ impl Heap {
     ///
     /// Panics if the heap is already primed.
     pub fn prime(&mut self) {
-        let strings = self.strings.get_mut().expect("lock should not be poisoned");
+        let strings = self.strings.get_mut();
         assert!(
             strings.is_empty(),
             "heap has already been primed or has interned symbols"
@@ -218,7 +220,7 @@ impl Heap {
 
         Self {
             inner: Allocator::new(),
-            strings: Mutex::new(table),
+            strings: LocalLock::new(table),
         }
     }
 
@@ -240,7 +242,7 @@ impl Heap {
 
         Self {
             inner: Allocator::with_capacity(capacity),
-            strings: Mutex::new(table),
+            strings: LocalLock::new(table),
         }
     }
 
@@ -268,7 +270,7 @@ impl Heap {
     ///
     /// Panics if the internal mutex is poisoned.
     pub fn intern_symbol<'this>(&'this self, value: &str) -> Symbol<'this> {
-        let mut strings = self.strings.lock().expect("lock should not be poisoned");
+        let mut strings = self.strings.lock();
 
         // SAFETY: `SymbolTable::intern` requires:
         // 1. No dangling pointers: The table is reset before the arena in `Heap::reset`.
@@ -335,7 +337,7 @@ impl ResetAllocator for Heap {
     #[inline]
     fn reset(&mut self) {
         {
-            let mut strings = self.strings.lock().expect("lock should not be poisoned");
+            let mut strings = self.strings.lock();
 
             // SAFETY: The symbol table is reset before the arena, so no dangling references exist.
             unsafe {
