@@ -5,7 +5,7 @@
  */
 
 import type { SDCPN } from "../../core/types/sdcpn";
-import type { ParameterValues, SimulationFrame } from "../context";
+import type { SimulationFrame } from "../context";
 
 //
 // Main Thread → Worker Messages
@@ -51,15 +51,6 @@ export type StopMessage = {
 };
 
 /**
- * Hot-reload parameter values without rebuilding the simulation.
- * Takes effect on the next computed frame.
- */
-export type UpdateParametersMessage = {
-  type: "updateParameters";
-  parameterValues: ParameterValues;
-};
-
-/**
  * Update the maximum simulation time stopping condition.
  */
 export type SetMaxTimeMessage = {
@@ -85,7 +76,6 @@ export type ToWorkerMessage =
   | StartMessage
   | PauseMessage
   | StopMessage
-  | UpdateParametersMessage
   | SetMaxTimeMessage
   | AckMessage;
 

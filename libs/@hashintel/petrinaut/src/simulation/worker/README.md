@@ -112,17 +112,6 @@ Stop and discard the simulation entirely.
 { type: "stop" }
 ```
 
-#### `updateParameters`
-
-Hot-reload parameter values. Takes effect on next computed frame.
-
-```typescript
-{
-  type: "updateParameters",
-  parameterValues: Record<string, number | boolean>,
-}
-```
-
 #### `setMaxTime`
 
 Update the maximum simulation time stopping condition.
