@@ -22,7 +22,7 @@ pub(crate) enum Access {
 #[derive(Debug, Copy, Clone)]
 pub(crate) struct PathNode {
     /// Field name this node matches (empty string for root).
-    pub name: &'static Symbol<'static>,
+    pub name: Symbol<'static>,
     /// Access level when the path ends at this node (no more projections).
     pub access: Option<Access>,
     /// Access level for paths beyond known children (e.g., JSONB allows any sub-path).
@@ -34,7 +34,7 @@ pub(crate) struct PathNode {
 impl PathNode {
     pub(crate) const fn root(children: &'static [Self]) -> Self {
         Self {
-            name: &sym::lexical::entity,
+            name: sym::entity,
             access: None,
             otherwise: None,
             children,
@@ -42,7 +42,7 @@ impl PathNode {
     }
 
     pub(crate) const fn leaf(
-        name: &'static Symbol<'static>,
+        name: Symbol<'static>,
         access: impl [const] Into<Option<Access>>,
     ) -> Self {
         Self {
@@ -54,7 +54,7 @@ impl PathNode {
     }
 
     /// Creates a JSONB node where any sub-path is also Postgres-accessible.
-    pub(crate) const fn jsonb(name: &'static Symbol<'static>) -> Self {
+    pub(crate) const fn jsonb(name: Symbol<'static>) -> Self {
         Self {
             name,
             access: Some(Access::Postgres(AccessMode::Direct)),
@@ -64,7 +64,7 @@ impl PathNode {
     }
 
     pub(crate) const fn branch(
-        name: &'static Symbol<'static>,
+        name: Symbol<'static>,
         access: impl [const] Into<Option<Access>>,
         children: &'static [Self],
     ) -> Self {
@@ -77,6 +77,6 @@ impl PathNode {
     }
 
     pub(crate) fn lookup(&self, name: Symbol<'_>) -> Option<&Self> {
-        self.children.iter().find(|node| *node.name == name)
+        self.children.iter().find(|node| node.name == name)
     }
 }

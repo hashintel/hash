@@ -42,7 +42,7 @@ use core::{alloc::Allocator, hash::BuildHasher as _};
 use foldhash::fast::RandomState;
 use hashbrown::{HashTable, hash_table::Entry};
 
-use super::repr::{Repr, RuntimeSymbol};
+use super::repr::{Repr, RuntimeRepr};
 use crate::heap::BumpAllocator;
 
 /// A string interning table mapping `&str` to canonical [`Repr`] values.
@@ -253,7 +253,7 @@ impl<A: Allocator> SymbolTable<A> {
         ) {
             Entry::Occupied(entry) => *entry.get(),
             Entry::Vacant(entry) => {
-                let repr = Repr::runtime(RuntimeSymbol::alloc(alloc, value));
+                let repr = Repr::runtime(RuntimeRepr::alloc(alloc, value));
                 *entry.insert(repr).get()
             }
         }
