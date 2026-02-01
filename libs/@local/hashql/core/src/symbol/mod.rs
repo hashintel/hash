@@ -21,7 +21,6 @@
 mod lookup;
 mod repr;
 pub mod sym;
-mod sym2;
 mod table;
 
 use core::{
@@ -33,6 +32,7 @@ use core::{
 
 pub use self::lookup::SymbolLookup;
 use self::repr::{ConstantSymbol, Repr};
+pub(crate) use self::table::SymbolTable;
 use crate::span::SpanId;
 
 /// A string-like value used throughout the HashQL compiler.
@@ -55,17 +55,7 @@ pub struct Symbol<'heap> {
 
 #[expect(unsafe_code)]
 impl<'heap> Symbol<'heap> {
-    /// Creates a new interned symbol from a string slice.
-    ///
-    /// The caller must ensure that the string is unique and interned.
-    pub(crate) const fn new_unchecked(string: &'heap str) -> Self {
-        Symbol {
-            repr: Repr::constant(ConstantSymbol::new_unchecked(0)),
-            _marker: PhantomData,
-        }
-        // unimplemented!()
-    }
-
+    #[inline]
     const fn new_constant_unchecked(index: usize) -> Self {
         Symbol {
             repr: Repr::constant(ConstantSymbol::new_unchecked(index)),
@@ -73,11 +63,21 @@ impl<'heap> Symbol<'heap> {
         }
     }
 
+    #[inline]
+    pub(crate) const unsafe fn from_repr(repr: Repr) -> Self {
+        Symbol {
+            repr,
+            _marker: PhantomData,
+        }
+    }
+
+    #[inline]
     const fn into_repr(self) -> Repr {
         self.repr
     }
 
     #[must_use]
+    #[inline]
     pub fn as_str(&self) -> &str {
         // SAFETY: Symbol carries a `'heap` lifetime, that is tied to the allocation of the string.
         unsafe { self.repr.as_str() }
@@ -89,21 +89,25 @@ impl<'heap> Symbol<'heap> {
     /// instead of the symbol itself, somewhat circumventing the protections given to the symbol
     /// itself. Any unwrapped type should be considered no longer unique and interned.
     #[must_use]
-    pub fn unwrap(&self) -> &'heap str {
+    #[inline]
+    pub fn unwrap(self) -> &'heap str {
         // SAFETY: Symbol carries a `'heap` lifetime, that is tied to the allocation of the string.
         unsafe { self.repr.as_str() }
     }
 
     #[must_use]
-    pub const fn as_bytes(&self) -> &[u8] {
-        unimplemented!()
-        // self.0.as_bytes()
+    #[inline]
+    pub fn as_bytes(&self) -> &[u8] {
+        // SAFETY: Symbol carries a `'heap` lifetime, that is tied to the allocation of the string.
+        unsafe { self.repr.as_bytes() }
     }
 
     #[must_use]
+    #[inline]
     pub fn demangle(self) -> &'heap str {
-        unimplemented!()
-        // self.0.rsplit_once(':').map_or(self.0, |(name, _)| name)
+        let value = self.unwrap();
+
+        value.rsplit_once(':').map_or(value, |(name, _)| name)
     }
 }
 
@@ -117,8 +121,7 @@ impl AsRef<Self> for Symbol<'_> {
 impl PartialEq for Symbol<'_> {
     fn eq(&self, other: &Self) -> bool {
         // Pointer equality implies string equality (due to the unique contents assumption)
-        // ptr::eq(self.0, other.0)
-        unimplemented!()
+        self.repr == other.repr
     }
 }
 
@@ -134,27 +137,24 @@ impl Ord for Symbol<'_> {
     fn cmp(&self, other: &Self) -> Ordering {
         // Pointer equality implies string equality (due to the unique contents assumption), but if
         // not the same the contents must be compared.
-        // if self == other {
-        //     Ordering::Equal
-        // } else {
-        //     self.0.cmp(other.0)
-        // }
-        unimplemented!()
+        if self == other {
+            Ordering::Equal
+        } else {
+            self.as_str().cmp(other.as_str())
+        }
     }
 }
 
 impl Hash for Symbol<'_> {
     fn hash<H: Hasher>(&self, state: &mut H) {
         // Pointer hashing is sufficient (due to the unique contents assumption)
-        // ptr::hash(self.0, state);
-        unimplemented!()
+        Hash::hash(&self.repr, state);
     }
 }
 
 impl Display for Symbol<'_> {
     fn fmt(&self, fmt: &mut Formatter<'_>) -> fmt::Result {
-        unimplemented!()
-        // Display::fmt(self.0, fmt)
+        Display::fmt(self.as_str(), fmt)
     }
 }
 
@@ -314,7 +314,6 @@ impl AsRef<str> for Ident<'_> {
 
 impl Display for Ident<'_> {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-        unimplemented!()
-        // Display::fmt(&self.value.0, fmt)
+        Display::fmt(&self.value.as_str(), fmt)
     }
 }
