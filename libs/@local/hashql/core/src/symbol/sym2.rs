@@ -78,6 +78,10 @@ macro_rules! symbols {
                 unsafe { map.insert_unique_unchecked($arm, $value.into_repr()); }
             )*
         }
+
+        pub(crate) static LOOKUP: &[(&'static str, super::repr::Repr)] = &[
+            $(($arm, $value.into_repr())),*
+        ];
     };
     (@lookup [$($arms:tt)*] [$tail:tt $(, $path:tt)*]; | $($rest:tt)*) => {
         symbols!(@lookup [$($arms)*] [$($path),*]; $($rest)*);

@@ -57,7 +57,7 @@ use crate::heap::BumpAllocator;
 /// not the trailing bytes. All access must go through [`NonNull<RuntimeSymbol>`]
 /// to preserve full allocation provenance.
 #[repr(C, align(2))]
-struct RuntimeSymbol {
+pub(crate) struct RuntimeSymbol {
     len: usize,
     data: [u8; 0],
 }
@@ -80,7 +80,7 @@ impl RuntimeSymbol {
     /// # Panics
     ///
     /// Panics if allocation fails.
-    fn alloc<A: BumpAllocator>(alloc: &A, value: &str) -> NonNull<Self> {
+    pub(crate) fn alloc<A: BumpAllocator>(alloc: &A, value: &str) -> NonNull<Self> {
         let Ok(value) = Self::try_alloc(alloc, value) else {
             handle_alloc_error(Self::layout(value.len()))
         };
@@ -306,7 +306,7 @@ impl Repr {
     ///
     /// The pointer is stored directly with its tag bit set to 0 (which is a no-op
     /// since runtime allocations are already aligned).
-    fn runtime(symbol: NonNull<RuntimeSymbol>) -> Self {
+    pub(crate) fn runtime(symbol: NonNull<RuntimeSymbol>) -> Self {
         const {
             assert!(align_of::<RuntimeSymbol>() >= Self::MIN_ALIGN);
         }
