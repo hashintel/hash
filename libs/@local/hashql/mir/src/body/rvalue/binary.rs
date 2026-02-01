@@ -72,15 +72,15 @@ impl BinOp {
     #[must_use]
     pub const fn as_symbol(self) -> Symbol<'static> {
         match self {
-            Self::Add => sym::symbol::add,
-            Self::Sub => sym::symbol::sub,
+            Self::Add => sym::symbol::plus,
+            Self::Sub => sym::symbol::minus,
             Self::BitAnd => sym::symbol::ampersand,
             Self::BitOr => sym::symbol::pipe,
-            Self::Eq => sym::symbol::eq,
+            Self::Eq => sym::symbol::eqeq,
             Self::Lt => sym::symbol::lt,
-            Self::Lte => sym::symbol::lte,
-            Self::Ne => sym::symbol::ne,
-            Self::Gte => sym::symbol::gte,
+            Self::Lte => sym::symbol::lteq,
+            Self::Ne => sym::symbol::excleq,
+            Self::Gte => sym::symbol::gteq,
             Self::Gt => sym::symbol::gt,
         }
     }

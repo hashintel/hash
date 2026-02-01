@@ -19,7 +19,7 @@ fn proj(name: impl Into<hashql_core::symbol::Symbol<'static>>) -> Projection<'st
 /// `[.properties]` → `Access::Postgres(Direct)` (JSONB column).
 #[test]
 fn properties_is_postgres() {
-    let projections = &[proj(sym::lexical::properties)];
+    let projections = &[proj(sym::properties)];
     let access = entity_projection_access(projections);
 
     assert_eq!(access, Some(Access::Postgres(AccessMode::Direct)));
@@ -30,11 +30,7 @@ fn properties_is_postgres() {
 /// JSONB nodes have `otherwise` set, so any sub-path is also Postgres-accessible.
 #[test]
 fn properties_subpath_is_postgres() {
-    let projections = &[
-        proj(sym::lexical::properties),
-        proj(sym::lexical::foo),
-        proj(sym::lexical::bar),
-    ];
+    let projections = &[proj(sym::properties), proj(sym::foo), proj(sym::bar)];
     let access = entity_projection_access(projections);
 
     assert_eq!(access, Some(Access::Postgres(AccessMode::Direct)));
@@ -43,7 +39,7 @@ fn properties_subpath_is_postgres() {
 /// `[.encodings.vectors]` → `Access::Embedding(Direct)`.
 #[test]
 fn vectors_is_embedding() {
-    let projections = &[proj(sym::lexical::encodings), proj(sym::lexical::vectors)];
+    let projections = &[proj(sym::encodings), proj(sym::vectors)];
     let access = entity_projection_access(projections);
 
     assert_eq!(access, Some(Access::Embedding(AccessMode::Direct)));
@@ -53,14 +49,14 @@ fn vectors_is_embedding() {
 #[test]
 fn metadata_columns_are_postgres() {
     // metadata.archived -> Direct
-    let projections = &[proj(sym::lexical::metadata), proj(sym::lexical::archived)];
+    let projections = &[proj(sym::metadata), proj(sym::archived)];
     assert_eq!(
         entity_projection_access(projections),
         Some(Access::Postgres(AccessMode::Direct))
     );
 
     // metadata.record_id -> Composite
-    let projections = &[proj(sym::lexical::metadata), proj(sym::lexical::record_id)];
+    let projections = &[proj(sym::metadata), proj(sym::record_id)];
     assert_eq!(
         entity_projection_access(projections),
         Some(Access::Postgres(AccessMode::Composite))
@@ -68,10 +64,10 @@ fn metadata_columns_are_postgres() {
 
     // metadata.record_id.entity_id.web_id -> Direct
     let projections = &[
-        proj(sym::lexical::metadata),
-        proj(sym::lexical::record_id),
-        proj(sym::lexical::entity_id),
-        proj(sym::lexical::web_id),
+        proj(sym::metadata),
+        proj(sym::record_id),
+        proj(sym::entity_id),
+        proj(sym::web_id),
     ];
     assert_eq!(
         entity_projection_access(projections),
@@ -80,9 +76,9 @@ fn metadata_columns_are_postgres() {
 
     // metadata.temporal_versioning.decision_time -> Direct
     let projections = &[
-        proj(sym::lexical::metadata),
-        proj(sym::lexical::temporal_versioning),
-        proj(sym::lexical::decision_time),
+        proj(sym::metadata),
+        proj(sym::temporal_versioning),
+        proj(sym::decision_time),
     ];
     assert_eq!(
         entity_projection_access(projections),
@@ -94,9 +90,9 @@ fn metadata_columns_are_postgres() {
 #[test]
 fn link_data_synthesized_is_none() {
     let projections = &[
-        proj(sym::lexical::link_data),
-        proj(sym::lexical::left_entity_id),
-        proj(sym::lexical::draft_id),
+        proj(sym::link_data),
+        proj(sym::left_entity_id),
+        proj(sym::draft_id),
     ];
     let access = entity_projection_access(projections);
 
@@ -106,7 +102,7 @@ fn link_data_synthesized_is_none() {
 /// Invalid path like `[.unknown]` → `None`.
 #[test]
 fn unknown_path_returns_none() {
-    let projections = &[proj(sym::lexical::unknown)];
+    let projections = &[proj(sym::unknown)];
     let access = entity_projection_access(projections);
 
     assert_eq!(access, None);

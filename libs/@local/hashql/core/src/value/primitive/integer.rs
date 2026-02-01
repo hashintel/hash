@@ -83,7 +83,7 @@ impl<'heap> Integer<'heap> {
     /// assert_eq!(integer("300").as_u8(), None);
     /// ```
     #[must_use]
-    pub fn as_u8(&self) -> Option<u8> {
+    pub fn as_u8(self) -> Option<u8> {
         u8::from_lexical_with_options::<{ format::JSON }>(self.value.as_bytes(), &PARSE).ok()
     }
 
@@ -110,7 +110,7 @@ impl<'heap> Integer<'heap> {
     /// assert_eq!(integer("70000").as_u16(), None);
     /// ```
     #[must_use]
-    pub fn as_u16(&self) -> Option<u16> {
+    pub fn as_u16(self) -> Option<u16> {
         u16::from_lexical_with_options::<{ format::JSON }>(self.value.as_bytes(), &PARSE).ok()
     }
 
@@ -137,7 +137,7 @@ impl<'heap> Integer<'heap> {
     /// assert_eq!(integer("5000000000").as_u32(), None);
     /// ```
     #[must_use]
-    pub fn as_u32(&self) -> Option<u32> {
+    pub fn as_u32(self) -> Option<u32> {
         u32::from_lexical_with_options::<{ format::JSON }>(self.value.as_bytes(), &PARSE).ok()
     }
 
@@ -164,7 +164,7 @@ impl<'heap> Integer<'heap> {
     /// assert_eq!(integer("99999999999999999999999").as_u64(), None);
     /// ```
     #[must_use]
-    pub fn as_u64(&self) -> Option<u64> {
+    pub fn as_u64(self) -> Option<u64> {
         u64::from_lexical_with_options::<{ format::JSON }>(self.value.as_bytes(), &PARSE).ok()
     }
 
@@ -197,7 +197,7 @@ impl<'heap> Integer<'heap> {
     /// );
     /// ```
     #[must_use]
-    pub fn as_u128(&self) -> Option<u128> {
+    pub fn as_u128(self) -> Option<u128> {
         u128::from_lexical_with_options::<{ format::JSON }>(self.value.as_bytes(), &PARSE).ok()
     }
 
@@ -224,7 +224,7 @@ impl<'heap> Integer<'heap> {
     /// assert_eq!(integer("99999999999999999999999").as_usize(), None);
     /// ```
     #[must_use]
-    pub fn as_usize(&self) -> Option<usize> {
+    pub fn as_usize(self) -> Option<usize> {
         usize::from_lexical_with_options::<{ format::JSON }>(self.value.as_bytes(), &PARSE).ok()
     }
 
@@ -251,7 +251,7 @@ impl<'heap> Integer<'heap> {
     /// assert_eq!(integer("200").as_i8(), None);
     /// ```
     #[must_use]
-    pub fn as_i8(&self) -> Option<i8> {
+    pub fn as_i8(self) -> Option<i8> {
         i8::from_lexical_with_options::<{ format::JSON }>(self.value.as_bytes(), &PARSE).ok()
     }
 
@@ -278,7 +278,7 @@ impl<'heap> Integer<'heap> {
     /// assert_eq!(integer("50000").as_i16(), None);
     /// ```
     #[must_use]
-    pub fn as_i16(&self) -> Option<i16> {
+    pub fn as_i16(self) -> Option<i16> {
         i16::from_lexical_with_options::<{ format::JSON }>(self.value.as_bytes(), &PARSE).ok()
     }
 
@@ -305,7 +305,7 @@ impl<'heap> Integer<'heap> {
     /// assert_eq!(integer("3000000000").as_i32(), None);
     /// ```
     #[must_use]
-    pub fn as_i32(&self) -> Option<i32> {
+    pub fn as_i32(self) -> Option<i32> {
         i32::from_lexical_with_options::<{ format::JSON }>(self.value.as_bytes(), &PARSE).ok()
     }
 
@@ -332,7 +332,7 @@ impl<'heap> Integer<'heap> {
     /// assert_eq!(integer("999999999999999999999").as_i64(), None);
     /// ```
     #[must_use]
-    pub fn as_i64(&self) -> Option<i64> {
+    pub fn as_i64(self) -> Option<i64> {
         i64::from_lexical_with_options::<{ format::JSON }>(self.value.as_bytes(), &PARSE).ok()
     }
 
@@ -368,7 +368,7 @@ impl<'heap> Integer<'heap> {
     /// );
     /// ```
     #[must_use]
-    pub fn as_i128(&self) -> Option<i128> {
+    pub fn as_i128(self) -> Option<i128> {
         i128::from_lexical_with_options::<{ format::JSON }>(self.value.as_bytes(), &PARSE).ok()
     }
 
@@ -395,7 +395,7 @@ impl<'heap> Integer<'heap> {
     /// assert_eq!(integer("99999999999999999999").as_isize(), None);
     /// ```
     #[must_use]
-    pub fn as_isize(&self) -> Option<isize> {
+    pub fn as_isize(self) -> Option<isize> {
         isize::from_lexical_with_options::<{ format::JSON }>(self.value.as_bytes(), &PARSE).ok()
     }
 
@@ -428,7 +428,7 @@ impl<'heap> Integer<'heap> {
     /// Panics if the stored value is not a valid JSON-formatted integer.
     /// This should never happen for properly constructed AST nodes.
     #[must_use]
-    pub fn as_f32(&self) -> f32 {
+    pub fn as_f32(self) -> f32 {
         f32::from_lexical_with_options::<{ format::JSON }>(self.value.as_bytes(), &float::PARSE)
             .expect("integer literal should be formatted according to JSON specification")
     }
@@ -462,7 +462,7 @@ impl<'heap> Integer<'heap> {
     /// Panics if the stored value is not a valid JSON-formatted integer.
     /// This should never happen for properly constructed AST nodes.
     #[must_use]
-    pub fn as_f64(&self) -> f64 {
+    pub fn as_f64(self) -> f64 {
         f64::from_lexical_with_options::<{ format::JSON }>(self.value.as_bytes(), &float::PARSE)
             .expect("integer literal should be formatted according to JSON specification")
     }
@@ -498,7 +498,7 @@ impl<'heap> Integer<'heap> {
     /// Panics if the stored value is not a valid JSON-formatted integer.
     /// This should never happen for properly constructed AST nodes.
     #[must_use]
-    pub fn as_real(&self) -> Real {
+    pub fn as_real(self) -> Real {
         Real::from_str(self.value.as_str())
             .expect("integer literal should be formatted according to JSON specification")
     }
@@ -527,7 +527,7 @@ impl<'heap> Integer<'heap> {
     /// assert_eq!(symbol.as_str(), "123456789012345678901234567890");
     /// ```
     #[must_use]
-    pub const fn as_symbol(&self) -> Symbol<'heap> {
+    pub const fn as_symbol(self) -> Symbol<'heap> {
         self.value
     }
 }
