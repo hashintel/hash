@@ -14,7 +14,7 @@ use core::{
 use std::collections::hash_map::DefaultHasher;
 
 use codspeed_criterion_compat::{
-    BenchmarkId, Criterion, Throughput, criterion_group, criterion_main,
+    BatchSize, BenchmarkId, Criterion, Throughput, criterion_group, criterion_main,
 };
 use hashql_core::{
     heap::{Heap, ResetAllocator as _},
@@ -81,7 +81,7 @@ fn generate_unique_identifiers(count: usize) -> Vec<String> {
 // =============================================================================
 
 fn interning(criterion: &mut Criterion) {
-    let mut group = criterion.benchmark_group("symbol/intern");
+    let mut group = criterion.benchmark_group("intern");
 
     // Benchmark: Intern unique strings (no dedup hits)
     for count in [100, 1000, 10000] {
@@ -153,7 +153,7 @@ fn interning(criterion: &mut Criterion) {
 // =============================================================================
 
 fn constant_access(criterion: &mut Criterion) {
-    let mut group = criterion.benchmark_group("symbol/constant");
+    let mut group = criterion.benchmark_group("constant");
 
     // Benchmark: Access pre-defined constant symbols
     group.bench_function("access", |bencher| {
@@ -161,10 +161,10 @@ fn constant_access(criterion: &mut Criterion) {
     });
 
     // Benchmark: Extract constant for pattern matching
-    // group.bench_function("as_constant", |bencher| {
-    //     let symbol = sym::r#let;
-    //     bencher.iter(|| black_box(symbol).as_constant());
-    // });
+    group.bench_function("as_constant", |bencher| {
+        let symbol = sym::r#let;
+        bencher.iter(|| black_box(symbol).as_constant());
+    });
 
     group.finish();
 }
@@ -174,7 +174,7 @@ fn constant_access(criterion: &mut Criterion) {
 // =============================================================================
 
 fn equality(criterion: &mut Criterion) {
-    let mut group = criterion.benchmark_group("symbol/equality");
+    let mut group = criterion.benchmark_group("equality");
 
     // Benchmark: Compare constant symbols (fast path - same pointer)
     group.bench_function("constant_equal", |bencher| {
@@ -234,9 +234,7 @@ fn equality(criterion: &mut Criterion) {
 // =============================================================================
 
 fn hashing(criterion: &mut Criterion) {
-    use codspeed_criterion_compat::BatchSize;
-
-    let mut group = criterion.benchmark_group("symbol/hash");
+    let mut group = criterion.benchmark_group("hash");
 
     // Benchmark: Hash constant symbols
     group.bench_function("constant", |bencher| {
@@ -275,7 +273,7 @@ fn hashing(criterion: &mut Criterion) {
 // =============================================================================
 
 fn string_access(criterion: &mut Criterion) {
-    let mut group = criterion.benchmark_group("symbol/as_str");
+    let mut group = criterion.benchmark_group("as_str");
 
     // Benchmark: Access string content of constant symbols
     group.bench_function("constant", |bencher| {
@@ -298,7 +296,7 @@ fn string_access(criterion: &mut Criterion) {
 // =============================================================================
 #[expect(clippy::integer_division_remainder_used)]
 fn realistic(criterion: &mut Criterion) {
-    let mut group = criterion.benchmark_group("symbol/realistic");
+    let mut group = criterion.benchmark_group("realistic");
 
     // Simulate a lexer: tokenize identifiers and compare against keywords
     group.bench_function("lexer_simulation", |bencher| {
