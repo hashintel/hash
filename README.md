@@ -1,4 +1,4 @@
-[app.hash.ai]: https://app.hash.ai?utm_medium=organic&utm_source=github_readme_hash-repo_root
+[hash.ai]: https://app.hash.ai?utm_medium=organic&utm_source=github_readme_hash-repo_root
 [create an account]: https://app.hash.ai/signup?utm_medium=organic&utm_source=github_readme_hash-repo_root
 [development roadmap]: https://hash.dev/roadmap?utm_medium=organic&utm_source=github_readme_hash-repo_root
 [hiring]: https://hash.ai/careers?utm_medium=organic&utm_source=github_readme_hash-repo_root
@@ -222,7 +222,7 @@ Transactional emails templates are located in the following locations:
 
 ## [![a](/.github/assets/gh_icon_examples_20px-base.svg)][gh-examples] &nbsp; Examples
 
-Learn how you might use HASH by browsing the [use cases] directory, or check out the _[Awesome HASH]_ repository for more inspiration.
+Discover ways to use HASH by browsing the [use cases] directory, or check out the _[Awesome HASH]_ repository for more inspiration.
 
 ## [![a](/.github/assets/gh_icon_roadmap_20px-base.svg)][gh-roadmap] &nbsp; Roadmap
 
