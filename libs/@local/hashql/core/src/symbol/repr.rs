@@ -184,9 +184,9 @@ impl ConstantRepr {
     ///
     /// The index must be within bounds of [`STRINGS`].
     #[inline]
-    pub(super) const unsafe fn as_str_unchecked(self) -> &'static str {
+    pub(super) unsafe fn as_str_unchecked(self) -> &'static str {
         // SAFETY: Caller guarantees the index is in bounds.
-        unsafe { *SYMBOLS.as_ptr().add(self.0) }
+        unsafe { SYMBOLS.get_unchecked(self.0) }
     }
 
     /// Returns the byte slice for this constant symbol without bounds checking.
@@ -195,7 +195,7 @@ impl ConstantRepr {
     ///
     /// The index must be within bounds of [`STRINGS`].
     #[inline]
-    pub(super) const unsafe fn as_bytes_unchecked(self) -> &'static [u8] {
+    pub(super) unsafe fn as_bytes_unchecked(self) -> &'static [u8] {
         // SAFETY: Constant symbols return &'static str, which coerces to &'static [u8].
         unsafe { self.as_str_unchecked().as_bytes() }
     }
@@ -363,28 +363,18 @@ impl Repr {
     }
 }
 
+const _: () = {
+    assert!(size_of::<Repr>() == size_of::<*const ()>());
+    assert!(size_of::<Option<Repr>>() == size_of::<*const ()>());
+    assert!(align_of::<RuntimeRepr>() >= Repr::MIN_ALIGN);
+};
+
 #[cfg(test)]
 mod tests {
     #![expect(clippy::non_ascii_literal)]
-    use core::mem;
 
     use super::{ConstantRepr, Repr, RuntimeRepr, SYMBOLS};
     use crate::heap::Scratch;
-
-    #[test]
-    fn repr_size_is_one_pointer() {
-        assert_eq!(mem::size_of::<Repr>(), mem::size_of::<*const ()>());
-    }
-
-    #[test]
-    fn option_repr_size_is_one_pointer() {
-        assert_eq!(mem::size_of::<Option<Repr>>(), mem::size_of::<*const ()>());
-    }
-
-    #[test]
-    fn runtime_symbol_has_minimum_alignment() {
-        assert!(mem::align_of::<RuntimeRepr>() >= Repr::MIN_ALIGN);
-    }
 
     #[test]
     fn constant_symbol_first_entry() {
