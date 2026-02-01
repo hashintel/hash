@@ -3,8 +3,8 @@
 //! This module provides [`SymbolTable`], a hash-based interner that maps strings to their
 //! canonical [`Repr`] representation. The table supports two kinds of symbols:
 //!
-//! - **Constant symbols**: Statically defined symbols from [`sym2::LOOKUP`]. Their [`Repr`] encodes
-//!   an index into the static [`sym2::SYMBOLS`] array (effectively `'static` lifetime).
+//! - **Constant symbols**: Statically defined symbols from [`sym::LOOKUP`]. Their [`Repr`] encodes
+//!   an index into the static [`sym::SYMBOLS`] array (effectively `'static` lifetime).
 //!
 //! - **Runtime symbols**: Dynamically interned strings allocated on a bump allocator. Their
 //!   [`Repr`] holds a pointer to a [`RuntimeSymbol`] allocation.
@@ -30,11 +30,11 @@
 //! # Priming
 //!
 //! Calling [`SymbolTable::prime`] populates the table with predefined symbols from
-//! [`sym2::LOOKUP`]. This ensures that interning a predefined string returns its
+//! [`sym::LOOKUP`]. This ensures that interning a predefined string returns its
 //! canonical constant [`Repr`] rather than allocating a runtime symbol.
 //!
-//! [`sym2::LOOKUP`]: super::sym2::LOOKUP
-//! [`sym2::SYMBOLS`]: super::sym2::SYMBOLS
+//! [`sym::LOOKUP`]: super::sym::LOOKUP
+//! [`sym::SYMBOLS`]: super::sym::SYMBOLS
 
 use alloc::alloc::Global;
 use core::{alloc::Allocator, hash::BuildHasher as _};
@@ -138,7 +138,7 @@ impl<A: Allocator> SymbolTable<A> {
         self.inner.clear();
     }
 
-    /// Populates the table with predefined symbols from [`sym2::LOOKUP`].
+    /// Populates the table with predefined symbols from [`sym::LOOKUP`].
     ///
     /// After priming, interning any predefined symbol string will return its canonical
     /// constant [`Repr`] rather than allocating a new runtime symbol.
@@ -152,7 +152,7 @@ impl<A: Allocator> SymbolTable<A> {
     ///
     /// The caller must ensure that the table is empty before calling this method.
     ///
-    /// [`sym2::LOOKUP`]: super::sym2::LOOKUP
+    /// [`sym::LOOKUP`]: super::sym::LOOKUP
     pub(crate) unsafe fn prime(&mut self) {
         self.inner.reserve(super::sym::LOOKUP.len(), |_| {
             unreachable!("prime() requires an empty table; hasher callback should not be invoked")
@@ -191,10 +191,10 @@ impl<A: Allocator> SymbolTable<A> {
     ///
     /// After this method returns:
     /// - All runtime symbols are removed from the table.
-    /// - All constant symbols from [`sym2::LOOKUP`] are present.
+    /// - All constant symbols from [`sym::LOOKUP`] are present.
     /// - The table is ready for a new epoch of interning.
     ///
-    /// [`sym2::LOOKUP`]: super::sym2::LOOKUP
+    /// [`sym::LOOKUP`]: super::sym::LOOKUP
     #[inline]
     pub(crate) unsafe fn reset(&mut self) {
         // SAFETY: correct order of operations is present.
