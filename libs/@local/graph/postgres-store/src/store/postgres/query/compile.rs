@@ -6,8 +6,7 @@ use error_stack::{Report, bail, ensure};
 use hash_graph_store::{
     filter::{
         Filter, FilterExpression, FilterExpressionList, Parameter, ParameterList, ParameterType,
-        PathToken, QueryRecord,
-        protection::{PropertyProtectionFilter, PropertyProtectionFilterConfig},
+        PathToken, QueryRecord, protection::PropertyProtectionFilter,
     },
     query::{NullOrdering, Ordering},
     subgraph::temporal_axes::QueryTemporalAxes,
@@ -15,7 +14,7 @@ use hash_graph_store::{
 use hash_graph_temporal_versioning::TimeAxis;
 use postgres_types::ToSql;
 use tracing::instrument;
-use type_system::{knowledge::Entity, principal::actor::ActorId};
+use type_system::knowledge::Entity;
 
 use super::expression::{JoinType, TableName, TableReference};
 use crate::store::postgres::query::{
@@ -63,16 +62,6 @@ struct PathSelection {
 
 type TableHook<'p, 'q, T> = fn(&mut SelectCompiler<'p, 'q, T>, Alias) -> Vec<Condition>;
 type ColumnHook<'p, 'q, T> = fn(&mut SelectCompiler<'p, 'q, T>, Expression) -> Expression;
-
-/// Configuration for property masking in SELECT statements.
-struct PropertyMaskingConfig<'a> {
-    /// The filter protection configuration.
-    protection_config: &'a PropertyProtectionFilterConfig<'a>,
-    /// The actor ID for self-exclusion bypass.
-    actor_id: Option<ActorId>,
-    /// Table alias for `entity_is_of_type_ids` (for type checks in masking conditions).
-    entity_is_of_type_alias: Alias,
-}
 
 pub struct SelectCompiler<'p, 'q: 'p, T: QueryRecord> {
     statement: SelectStatement,

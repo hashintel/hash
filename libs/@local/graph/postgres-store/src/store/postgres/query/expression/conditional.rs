@@ -3,7 +3,6 @@ use core::fmt::{
 };
 
 use hash_graph_store::filter::PathToken;
-use uuid::Uuid;
 
 use super::ColumnReference;
 use crate::store::postgres::query::{
@@ -174,7 +173,6 @@ pub enum Constant {
     Boolean(bool),
     String(&'static str),
     UnsignedInteger(u32),
-    Uuid(Uuid),
 }
 
 impl Transpile for Constant {
@@ -183,7 +181,6 @@ impl Transpile for Constant {
             Self::Boolean(value) => fmt.write_str(if *value { "TRUE" } else { "FALSE" }),
             Self::String(value) => write!(fmt, "'{value}'"),
             Self::UnsignedInteger(value) => write!(fmt, "{value}"),
-            Self::Uuid(value) => write!(fmt, "'{value}'"),
         }
     }
 }
@@ -193,7 +190,6 @@ pub enum PostgresType {
     Array(Box<Self>),
     Row(Table),
     Text,
-    Uuid,
     JsonPath,
 }
 
@@ -206,7 +202,6 @@ impl Transpile for PostgresType {
             }
             Self::Row(table) => table.transpile(fmt),
             Self::Text => fmt.write_str("text"),
-            Self::Uuid => fmt.write_str("uuid"),
             Self::JsonPath => fmt.write_str("jsonpath"),
         }
     }

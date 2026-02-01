@@ -35,7 +35,7 @@ use hash_graph_store::{
     },
     query::{NullOrdering, Ordering},
     subgraph::{
-        edges::{EdgeDirection, EntityTraversalEdge, EntityTraversalPath},
+        edges::{EdgeDirection, EntityTraversalEdge, EntityTraversalPath, GraphResolveDepths},
         temporal_axes::{
             PinnedTemporalAxisUnresolved, QueryTemporalAxesUnresolved,
             VariableTemporalAxisUnresolved,
@@ -2982,7 +2982,7 @@ const ORGANIZATION_TYPE_BASE_URL: &str =
 const HAS_MEMBER_LINK_TYPE_BASE_URL: &str =
     "https://blockprotocol.org/@test/types/entity-type/has-member/";
 
-/// Seeds the database with User, Organization, and HasMember link types.
+/// Seeds the database with User, Organization, and `HasMember` link types.
 async fn seed_with_org_and_user(database: &mut DatabaseTestWrapper) -> DatabaseApi<'_> {
     database
         .seed(
@@ -3005,6 +3005,7 @@ async fn seed_with_org_and_user(database: &mut DatabaseTestWrapper) -> DatabaseA
 /// This test verifies that property masking is applied to traversed entities,
 /// not just root entities in a subgraph query.
 #[tokio::test]
+#[expect(clippy::too_many_lines)]
 async fn subgraph_traversal_masks_linked_user_email() {
     let mut database = DatabaseTestWrapper::new().await;
     let mut api = seed_with_org_and_user(&mut database).await;
@@ -3129,7 +3130,7 @@ async fn subgraph_traversal_masks_linked_user_email() {
         .query_entity_subgraph(
             api.account_id,
             QueryEntitySubgraphParams::ResolveDepths {
-                graph_resolve_depths: Default::default(),
+                graph_resolve_depths: GraphResolveDepths::default(),
                 traversal_paths: vec![EntityTraversalPath {
                     edges: vec![
                         // From org, follow incoming HasLeftEntity edges to find links where org
@@ -3183,7 +3184,9 @@ async fn subgraph_traversal_masks_linked_user_email() {
         .vertices
         .entities
         .values()
-        .find(|e| e.metadata.record_id.entity_id == other_user.metadata.record_id.entity_id)
+        .find(|entity| {
+            entity.metadata.record_id.entity_id == other_user.metadata.record_id.entity_id
+        })
         .expect("User should be in subgraph vertices after traversal");
 
     // The email property should be masked (not present) since we're not the owner

@@ -88,16 +88,17 @@ function assertFeatureFlags(
   }
 }
 
+function isUserEntity(entity: HashEntity): entity is HashEntity<UserEntity> {
+  return entity.metadata.entityTypeIds.some(
+    (entityTypeId) =>
+      extractBaseUrl(entityTypeId) === systemEntityTypes.user.entityTypeBaseUrl,
+  );
+}
+
 function assertUserEntity(
   entity: HashEntity,
 ): asserts entity is HashEntity<UserEntity> {
-  if (
-    !entity.metadata.entityTypeIds.some(
-      (entityTypeId) =>
-        extractBaseUrl(entityTypeId) ===
-        systemEntityTypes.user.entityTypeBaseUrl,
-    )
-  ) {
+  if (!isUserEntity(entity)) {
     throw new EntityTypeMismatchError(
       entity.metadata.recordId.entityId,
       systemEntityTypes.user.entityTypeId,
@@ -228,11 +229,7 @@ export const getUser: ImpureGraphFunction<
     }
 
     // Verify the entity is actually a User type (getLatestEntityById doesn't filter by type)
-    if (
-      !entity.metadata.entityTypeIds.includes(
-        systemEntityTypes.user.entityTypeId,
-      )
-    ) {
+    if (!isUserEntity(entity)) {
       return null;
     }
   } else {
