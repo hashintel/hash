@@ -1,7 +1,8 @@
-import { use, useCallback, useEffect, useRef, useState } from "react";
+import { use, useEffect, useRef, useState } from "react";
 
-import type { SDCPN } from "../core/types/sdcpn";
 import { deriveDefaultParameterValues } from "../hooks/use-default-parameter-values";
+import { useLatest } from "../hooks/use-latest";
+import { useStableCallback } from "../hooks/use-stable-callback";
 import { useNotifications } from "../notifications/notifications-context";
 import { SDCPNContext } from "../state/sdcpn-context";
 import {
@@ -88,22 +89,14 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
   const sdcpnContext = use(SDCPNContext);
   const { petriNetId, petriNetDefinition } = sdcpnContext;
 
-  const sdcpnRef = useRef<SDCPN>(petriNetDefinition);
-  useEffect(() => {
-    sdcpnRef.current = petriNetDefinition;
-  }, [petriNetDefinition]);
+  const petriNetDefinitionRef = useLatest(petriNetDefinition);
 
   // Configuration state (not managed by worker)
   const [stateValues, setStateValues] =
     useState<SimulationStateValues>(initialStateValues);
 
-  // Use refs to access latest state in callbacks
-  const stateValuesRef = useRef(stateValues);
-  useEffect(() => {
-    stateValuesRef.current = stateValues;
-  }, [stateValues]);
-
-  const getSDCPN = useCallback(() => sdcpnRef.current, []);
+  // Ref for accessing latest state in callbacks
+  const stateValuesRef = useLatest(stateValues);
 
   // WebWorker for simulation computation
   const { state: workerState, actions: workerActions } = useSimulationWorker();
@@ -163,7 +156,7 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
   const initializeParameterValuesFromDefaults: SimulationContextValue["initializeParameterValuesFromDefaults"] =
     () => {
       setStateValues((prev) => {
-        const sdcpn = getSDCPN();
+        const sdcpn = petriNetDefinitionRef.current;
         const defaultValues = deriveDefaultParameterValues(sdcpn.parameters);
 
         const parameterValues: Record<string, string> = {};
@@ -177,7 +170,7 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
 
   const initialize: SimulationContextValue["initialize"] = ({ seed, dt }) => {
     const currentState = stateValuesRef.current;
-    const sdcpn = getSDCPN();
+    const sdcpn = petriNetDefinitionRef.current;
 
     // Delegate to worker
     workerActions.initialize({
@@ -221,7 +214,7 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
   };
 
   const reset: SimulationContextValue["reset"] = () => {
-    const sdcpn = getSDCPN();
+    const sdcpn = petriNetDefinitionRef.current;
     const defaultValues = deriveDefaultParameterValues(sdcpn.parameters);
 
     const parameterValues: Record<string, string> = {};
@@ -238,19 +231,21 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
     }));
   };
 
+  // Ref for accessing latest frames in stable callbacks
+  const framesRef = useLatest(workerState.frames);
+
   // Frame access - get from worker state
-  const getFrame = useCallback(
-    (frameIndex: number): Promise<SimulationFrame | null> => {
-      const frame = workerState.frames[frameIndex];
-      return Promise.resolve(frame ?? null);
-    },
-    [workerState.frames],
-  );
+  const getFrame: SimulationContextValue["getFrame"] = (
+    frameIndex: number,
+  ): Promise<SimulationFrame | null> => {
+    const frame = framesRef.current[frameIndex];
+    return Promise.resolve(frame ?? null);
+  };
 
   // Get all frames - get from worker state
-  const getAllFrames = useCallback((): Promise<SimulationFrame[]> => {
-    return Promise.resolve(workerState.frames);
-  }, [workerState.frames]);
+  const getAllFrames: SimulationContextValue["getAllFrames"] = () => {
+    return Promise.resolve(framesRef.current);
+  };
 
   // Map worker state to context value
   const simulationState = mapWorkerStatusToSimulationState(workerState.status);
@@ -266,18 +261,20 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
     maxTime: stateValues.maxTime,
     computeBufferDuration: stateValues.computeBufferDuration,
     totalFrames,
-    getFrame,
-    getAllFrames,
-    setInitialMarking,
-    setParameterValue,
-    setDt,
-    setMaxTime,
-    setComputeBufferDuration,
-    initializeParameterValuesFromDefaults,
-    initialize,
-    run,
-    pause,
-    reset,
+    getFrame: useStableCallback(getFrame),
+    getAllFrames: useStableCallback(getAllFrames),
+    setInitialMarking: useStableCallback(setInitialMarking),
+    setParameterValue: useStableCallback(setParameterValue),
+    setDt: useStableCallback(setDt),
+    setMaxTime: useStableCallback(setMaxTime),
+    setComputeBufferDuration: useStableCallback(setComputeBufferDuration),
+    initializeParameterValuesFromDefaults: useStableCallback(
+      initializeParameterValuesFromDefaults,
+    ),
+    initialize: useStableCallback(initialize),
+    run: useStableCallback(run),
+    pause: useStableCallback(pause),
+    reset: useStableCallback(reset),
   };
 
   return (

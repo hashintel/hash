@@ -1,5 +1,7 @@
-import { use, useCallback, useEffect, useRef, useState } from "react";
+/* eslint-disable @typescript-eslint/no-misused-promises */
+import { use, useEffect, useRef, useState } from "react";
 
+import { useLatest } from "../hooks/use-latest";
 import { useStableCallback } from "../hooks/use-stable-callback";
 import {
   SimulationContext,
@@ -92,18 +94,13 @@ export const PlaybackProvider: React.FC<PlaybackProviderProps> = ({
   const [stateValues, setStateValues] =
     useState<PlaybackStateValues>(initialStateValues);
 
-  // Stable getters for accessing latest state in animation callbacks
-  const getStateValues = useStableCallback(() => stateValues);
-  const getDt = useStableCallback(() => dt);
-  const getSimulationState = useStableCallback(() => simulationState);
-  const getMaxTime = useStableCallback(() => maxTime);
-  const getComputeBufferDuration = useStableCallback(
-    () => computeBufferDuration,
-  );
-  const getTotalFrames = useStableCallback(() => totalFrames);
-  const getFrameCallback = useStableCallback((index: number) =>
-    getFrame(index),
-  );
+  // Refs for accessing latest values in animation callbacks without re-triggering effects
+  const stateValuesRef = useLatest(stateValues);
+  const dtRef = useLatest(dt);
+  const simulationStateRef = useLatest(simulationState);
+  const maxTimeRef = useLatest(maxTime);
+  const computeBufferDurationRef = useLatest(computeBufferDuration);
+  const totalFramesRef = useLatest(totalFrames);
 
   // viewOnly mode is available when there are computed frames to view
   const isViewOnlyAvailable = totalFrames > 0;
@@ -177,12 +174,12 @@ export const PlaybackProvider: React.FC<PlaybackProviderProps> = ({
     let accumulatedTime = 0;
 
     const tick = async (currentTime: number) => {
-      const currentDt = getDt();
-      const state = getStateValues();
-      const simState = getSimulationState();
-      const currentMaxTime = getMaxTime();
-      const bufferDuration = getComputeBufferDuration();
-      const frameCount = getTotalFrames();
+      const currentDt = dtRef.current;
+      const state = stateValuesRef.current;
+      const simState = simulationStateRef.current;
+      const currentMaxTime = maxTimeRef.current;
+      const bufferDuration = computeBufferDurationRef.current;
+      const frameCount = totalFramesRef.current;
       const speed = state.playbackSpeed;
       const mode = state.playMode;
 
@@ -217,7 +214,7 @@ export const PlaybackProvider: React.FC<PlaybackProviderProps> = ({
         const newFrameIndex = Math.min(desiredFrameIndex, frameCount - 1);
 
         // Get current frame for buffer calculations
-        const currentFrame = await getFrameCallback(newFrameIndex);
+        const currentFrame = await getFrame(newFrameIndex);
         const currentFrameTime = currentFrame?.time ?? 0;
 
         // Handle computeBuffer mode: set initial maxTime or extend when approaching buffer limit
@@ -281,55 +278,54 @@ export const PlaybackProvider: React.FC<PlaybackProviderProps> = ({
     };
   }, [
     stateValues.playbackState,
-    getDt,
-    getSimulationState,
-    getStateValues,
-    getMaxTime,
-    getComputeBufferDuration,
-    getTotalFrames,
-    getFrameCallback,
     runSimulation,
     setMaxTime,
+    // These refs and stable callbacks have stable identities, safe to include
+    computeBufferDurationRef,
+    dtRef,
+    maxTimeRef,
+    simulationStateRef,
+    getFrame,
+    stateValuesRef,
+    totalFramesRef,
   ]);
 
   //
-  // Actions
+  // Actions - React Compiler handles memoization automatically
   //
 
-  const setCurrentViewedFrame: PlaybackContextValue["setCurrentViewedFrame"] =
-    useCallback(
-      (frameIndex: number) => {
-        const frameCount = getTotalFrames();
-        if (frameCount === 0) {
-          return;
-        }
-
-        const clampedIndex = Math.max(0, Math.min(frameIndex, frameCount - 1));
-
-        setStateValues((prev) => ({
-          ...prev,
-          currentFrameIndex: clampedIndex,
-        }));
-      },
-      [getTotalFrames],
-    );
-
-  const play: PlaybackContextValue["play"] = useCallback(async () => {
-    const frameCount = getTotalFrames();
+  const setCurrentViewedFrame: PlaybackContextValue["setCurrentViewedFrame"] = (
+    frameIndex: number,
+  ) => {
+    const frameCount = totalFramesRef.current;
     if (frameCount === 0) {
       return;
     }
 
-    const simState = getSimulationState();
-    const state = getStateValues();
-    const currentMaxTime = getMaxTime();
-    const bufferDuration = getComputeBufferDuration();
+    const clampedIndex = Math.max(0, Math.min(frameIndex, frameCount - 1));
+
+    setStateValues((prev) => ({
+      ...prev,
+      currentFrameIndex: clampedIndex,
+    }));
+  };
+
+  const play: PlaybackContextValue["play"] = async () => {
+    const frameCount = totalFramesRef.current;
+    if (frameCount === 0) {
+      return;
+    }
+
+    const simState = simulationStateRef.current;
+    const state = stateValuesRef.current;
+    const currentMaxTime = maxTimeRef.current;
+    const bufferDuration = computeBufferDurationRef.current;
 
     // Handle simulation control based on play mode
     if (state.playMode !== "viewOnly") {
       // For computeBuffer mode, ensure maxTime is set before resuming
       if (state.playMode === "computeBuffer" && currentMaxTime === null) {
-        const currentFrame = await getFrameCallback(state.currentFrameIndex);
+        const currentFrame = await getFrame(state.currentFrameIndex);
         const currentFrameTime = currentFrame?.time ?? 0;
         setMaxTime(currentFrameTime + bufferDuration);
       }
@@ -349,20 +345,11 @@ export const PlaybackProvider: React.FC<PlaybackProviderProps> = ({
         currentFrameIndex: shouldRestart ? 0 : prev.currentFrameIndex,
       };
     });
-  }, [
-    getTotalFrames,
-    getSimulationState,
-    getStateValues,
-    getMaxTime,
-    getComputeBufferDuration,
-    getFrameCallback,
-    runSimulation,
-    setMaxTime,
-  ]);
+  };
 
-  const pause: PlaybackContextValue["pause"] = useCallback(() => {
-    const simState = getSimulationState();
-    const state = getStateValues();
+  const pause: PlaybackContextValue["pause"] = () => {
+    const simState = simulationStateRef.current;
+    const state = stateValuesRef.current;
 
     // Pause simulation generation if it's running (except in viewOnly mode where we don't control it)
     if (state.playMode !== "viewOnly" && simState === "Running") {
@@ -373,91 +360,73 @@ export const PlaybackProvider: React.FC<PlaybackProviderProps> = ({
       ...prev,
       playbackState: "Paused",
     }));
-  }, [getSimulationState, getStateValues, pauseSimulation]);
+  };
 
-  const stop: PlaybackContextValue["stop"] = useCallback(() => {
+  const stop: PlaybackContextValue["stop"] = () => {
     setStateValues((prev) => ({
       ...prev,
       playbackState: "Stopped",
       currentFrameIndex: 0,
     }));
-  }, []);
+  };
 
-  const setPlaybackSpeed: PlaybackContextValue["setPlaybackSpeed"] =
-    useCallback((speed: PlaybackSpeed) => {
-      setStateValues((prev) => ({
-        ...prev,
-        playbackSpeed: speed,
-      }));
-    }, []);
+  const setPlaybackSpeed: PlaybackContextValue["setPlaybackSpeed"] = (
+    speed: PlaybackSpeed,
+  ) => {
+    setStateValues((prev) => ({
+      ...prev,
+      playbackSpeed: speed,
+    }));
+  };
 
-  const setPlayMode: PlaybackContextValue["setPlayMode"] = useCallback(
-    async (mode: PlayMode) => {
-      // If trying to set viewOnly but there are no frames, ignore
-      if (mode === "viewOnly" && !isViewOnlyAvailable) {
-        return;
+  const setPlayMode: PlaybackContextValue["setPlayMode"] = async (
+    mode: PlayMode,
+  ) => {
+    // If trying to set viewOnly but there are no frames, ignore
+    if (mode === "viewOnly" && !isViewOnlyAvailable) {
+      return;
+    }
+
+    // If trying to set compute mode but simulation can't compute more, ignore
+    if (mode !== "viewOnly" && !isComputeAvailable) {
+      return;
+    }
+
+    const simState = simulationStateRef.current;
+    const currentMaxTime = maxTimeRef.current;
+    const bufferDuration = computeBufferDurationRef.current;
+    const frameCount = totalFramesRef.current;
+    const state = stateValuesRef.current;
+
+    // If switching to computeBuffer, set initial maxTime if not already set
+    if (mode === "computeBuffer" && currentMaxTime === null && frameCount > 0) {
+      const currentFrame = await getFrame(state.currentFrameIndex);
+      const currentFrameTime = currentFrame?.time ?? 0;
+      setMaxTime(currentFrameTime + bufferDuration);
+    }
+
+    // If switching away from computeBuffer to computeMax, remove maxTime limit
+    if (mode === "computeMax" && currentMaxTime !== null) {
+      setMaxTime(null);
+    }
+
+    // If switching away from viewOnly while simulation is paused, may need to start it
+    if (mode !== "viewOnly" && state.playbackState === "Playing") {
+      if (simState === "Paused") {
+        runSimulation();
       }
+    }
 
-      // If trying to set compute mode but simulation can't compute more, ignore
-      if (mode !== "viewOnly" && !isComputeAvailable) {
-        return;
-      }
+    // If switching to viewOnly, pause any running simulation
+    if (mode === "viewOnly" && simState === "Running") {
+      pauseSimulation();
+    }
 
-      const simState = getSimulationState();
-      const currentMaxTime = getMaxTime();
-      const bufferDuration = getComputeBufferDuration();
-      const frameCount = getTotalFrames();
-
-      // If switching to computeBuffer, set initial maxTime if not already set
-      if (
-        mode === "computeBuffer" &&
-        currentMaxTime === null &&
-        frameCount > 0
-      ) {
-        const currentFrame = await getFrameCallback(
-          stateValues.currentFrameIndex,
-        );
-        const currentFrameTime = currentFrame?.time ?? 0;
-        setMaxTime(currentFrameTime + bufferDuration);
-      }
-
-      // If switching away from computeBuffer to computeMax, remove maxTime limit
-      if (mode === "computeMax" && currentMaxTime !== null) {
-        setMaxTime(null);
-      }
-
-      // If switching away from viewOnly while simulation is paused, may need to start it
-      if (mode !== "viewOnly" && stateValues.playbackState === "Playing") {
-        if (simState === "Paused") {
-          runSimulation();
-        }
-      }
-
-      // If switching to viewOnly, pause any running simulation
-      if (mode === "viewOnly" && simState === "Running") {
-        pauseSimulation();
-      }
-
-      setStateValues((prev) => ({
-        ...prev,
-        playMode: mode,
-      }));
-    },
-    [
-      isViewOnlyAvailable,
-      isComputeAvailable,
-      getSimulationState,
-      getMaxTime,
-      getComputeBufferDuration,
-      getTotalFrames,
-      getFrameCallback,
-      stateValues.playbackState,
-      stateValues.currentFrameIndex,
-      runSimulation,
-      pauseSimulation,
-      setMaxTime,
-    ],
-  );
+    setStateValues((prev) => ({
+      ...prev,
+      playMode: mode,
+    }));
+  };
 
   // Compute the currently viewed frame state (simplified view)
   const currentViewedFrame = buildFrameState(
@@ -475,12 +444,12 @@ export const PlaybackProvider: React.FC<PlaybackProviderProps> = ({
     playMode: stateValues.playMode,
     isViewOnlyAvailable,
     isComputeAvailable,
-    setCurrentViewedFrame,
-    play,
-    pause,
-    stop,
-    setPlaybackSpeed,
-    setPlayMode,
+    setCurrentViewedFrame: useStableCallback(setCurrentViewedFrame),
+    play: useStableCallback(play),
+    pause: useStableCallback(pause),
+    stop: useStableCallback(stop),
+    setPlaybackSpeed: useStableCallback(setPlaybackSpeed),
+    setPlayMode: useStableCallback(setPlayMode),
   };
 
   return (
