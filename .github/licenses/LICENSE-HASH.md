@@ -18,8 +18,8 @@ successors.
 "**Open-Source Edition**" shall mean the "open" version of the [HASH product]
 described in the [HASH Developer Docs] available at `https://hash.dev/docs`.
 
-"**Open-Source License**" shall mean the [applicable open-source license] available directly
-at or via `https://hash.dev/license`.
+"**Open-Source License**" shall mean the [applicable open-source license] available
+directly at or via `https://hash.dev/license`.
 
 "**HASH Subscription**" shall mean a valid, active subscription agreement with HASH
 for the correct number of user seats and instances as defined in the [HASH
