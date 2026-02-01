@@ -24,7 +24,7 @@ use hash_graph_postgres_store::store::PostgresStoreSettings;
 use hash_graph_store::{
     entity::{
         CountEntitiesParams, CreateEntityParams, EntityQueryPath, EntityQuerySorting,
-        EntityQuerySortingRecord, EntityStore as _,
+        EntityQuerySortingRecord, EntityStore as _, QueryEntitiesParams, QueryEntitySubgraphParams,
     },
     filter::{
         Filter, FilterExpression, JsonPath, Parameter, PathToken,
@@ -34,16 +34,20 @@ use hash_graph_store::{
         },
     },
     query::{NullOrdering, Ordering},
-    subgraph::temporal_axes::{
-        PinnedTemporalAxisUnresolved, QueryTemporalAxesUnresolved, VariableTemporalAxisUnresolved,
+    subgraph::{
+        edges::{EdgeDirection, EntityTraversalEdge, EntityTraversalPath},
+        temporal_axes::{
+            PinnedTemporalAxisUnresolved, QueryTemporalAxesUnresolved,
+            VariableTemporalAxisUnresolved,
+        },
     },
 };
 use hash_graph_temporal_versioning::TemporalBound;
-use hash_graph_test_data::data_type;
+use hash_graph_test_data::{data_type, entity_type};
 use type_system::{
     knowledge::{
-        entity::{id::EntityUuid, provenance::ProvidedEntityEditionProvenance},
-        property::{PropertyObject, PropertyObjectWithMetadata},
+        entity::{LinkData, id::EntityUuid, provenance::ProvidedEntityEditionProvenance},
+        property::{PropertyObject, PropertyObjectWithMetadata, metadata::PropertyProvenance},
     },
     ontology::id::{BaseUrl, OntologyTypeVersion, VersionedUrl},
     principal::{actor::ActorType, actor_group::WebId},
@@ -2929,5 +2933,281 @@ async fn sorting_by_email_masks_other_users() {
     assert!(
         other_ids.contains(&other_b.metadata.record_id.entity_id),
         "bob should be in results"
+    );
+}
+
+// =============================================================================
+// Subgraph Traversal Tests - Property Masking on Linked Entities
+// =============================================================================
+
+/// Organization entity type - a non-User entity that can link to Users.
+const ORGANIZATION_ENTITY_TYPE: &str = r#"{
+    "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/entity-type",
+    "kind": "entityType",
+    "$id": "https://blockprotocol.org/@test/types/entity-type/organization/v/1",
+    "type": "object",
+    "title": "Organization",
+    "description": "An organization that can have members.",
+    "properties": {
+        "https://hash.ai/@h/types/property-type/shortname/": {
+            "$ref": "https://hash.ai/@h/types/property-type/shortname/v/1"
+        }
+    },
+    "links": {
+        "https://blockprotocol.org/@test/types/entity-type/has-member/v/1": {
+            "type": "array",
+            "items": {
+                "oneOf": [
+                    { "$ref": "https://hash.ai/@h/types/entity-type/user/v/1" }
+                ]
+            }
+        }
+    }
+}"#;
+
+/// Link entity type for organization membership.
+const HAS_MEMBER_LINK_TYPE: &str = r#"{
+    "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/entity-type",
+    "kind": "entityType",
+    "$id": "https://blockprotocol.org/@test/types/entity-type/has-member/v/1",
+    "type": "object",
+    "title": "Has Member",
+    "description": "Links an organization to its members.",
+    "allOf": [{ "$ref": "https://blockprotocol.org/@blockprotocol/types/entity-type/link/v/1" }],
+    "properties": {}
+}"#;
+
+const ORGANIZATION_TYPE_BASE_URL: &str =
+    "https://blockprotocol.org/@test/types/entity-type/organization/";
+const HAS_MEMBER_LINK_TYPE_BASE_URL: &str =
+    "https://blockprotocol.org/@test/types/entity-type/has-member/";
+
+/// Seeds the database with User, Organization, and HasMember link types.
+async fn seed_with_org_and_user(database: &mut DatabaseTestWrapper) -> DatabaseApi<'_> {
+    database
+        .seed(
+            [data_type::VALUE_V1, data_type::TEXT_V1],
+            [EMAIL_PROPERTY_TYPE, SHORTNAME_PROPERTY_TYPE],
+            [
+                entity_type::LINK_V1, // Base link type must be seeded first
+                USER_ENTITY_TYPE,
+                ORGANIZATION_ENTITY_TYPE,
+                HAS_MEMBER_LINK_TYPE,
+            ],
+        )
+        .await
+        .expect("could not seed database")
+}
+
+/// When traversing from an Organization to linked User entities via subgraph query,
+/// the User's email should be masked (not visible to non-owners).
+///
+/// This test verifies that property masking is applied to traversed entities,
+/// not just root entities in a subgraph query.
+#[tokio::test]
+async fn subgraph_traversal_masks_linked_user_email() {
+    let mut database = DatabaseTestWrapper::new().await;
+    let mut api = seed_with_org_and_user(&mut database).await;
+
+    let org_type_id = VersionedUrl {
+        base_url: BaseUrl::new(ORGANIZATION_TYPE_BASE_URL.to_owned()).unwrap(),
+        version: OntologyTypeVersion {
+            major: 1,
+            pre_release: None,
+        },
+    };
+
+    let user_type_id = VersionedUrl {
+        base_url: BaseUrl::new(USER_ENTITY_TYPE_BASE_URL.to_owned()).unwrap(),
+        version: OntologyTypeVersion {
+            major: 1,
+            pre_release: None,
+        },
+    };
+
+    let link_type_id = VersionedUrl {
+        base_url: BaseUrl::new(HAS_MEMBER_LINK_TYPE_BASE_URL.to_owned()).unwrap(),
+        version: OntologyTypeVersion {
+            major: 1,
+            pre_release: None,
+        },
+    };
+
+    // Create an organization
+    let org = api
+        .create_entity(
+            api.account_id,
+            CreateEntityParams {
+                web_id: WebId::new(api.account_id),
+                entity_uuid: None,
+                decision_time: None,
+                entity_type_ids: HashSet::from([org_type_id.clone()]),
+                properties: PropertyObjectWithMetadata::from_parts(
+                    serde_json::from_value(serde_json::json!({
+                        "https://hash.ai/@h/types/property-type/shortname/": "acme-corp"
+                    }))
+                    .unwrap(),
+                    None,
+                )
+                .unwrap(),
+                link_data: None,
+                draft: false,
+                policies: Vec::new(),
+                confidence: None,
+                provenance: ProvidedEntityEditionProvenance {
+                    actor_type: ActorType::User,
+                    origin: OriginProvenance::from_empty_type(OriginType::Api),
+                    sources: Vec::new(),
+                },
+            },
+        )
+        .await
+        .expect("could not create organization");
+
+    // Create a User (NOT owned by the querying actor)
+    let other_user = api
+        .create_entity(
+            api.account_id,
+            CreateEntityParams {
+                web_id: WebId::new(api.account_id),
+                entity_uuid: Some(EntityUuid::new(Uuid::new_v4())), /* Different UUID = different
+                                                                     * owner */
+                decision_time: None,
+                entity_type_ids: HashSet::from([user_type_id]),
+                properties: PropertyObjectWithMetadata::from_parts(
+                    properties_with("secret@example.com", "other-user"),
+                    None,
+                )
+                .unwrap(),
+                link_data: None,
+                draft: false,
+                policies: Vec::new(),
+                confidence: None,
+                provenance: ProvidedEntityEditionProvenance {
+                    actor_type: ActorType::User,
+                    origin: OriginProvenance::from_empty_type(OriginType::Api),
+                    sources: Vec::new(),
+                },
+            },
+        )
+        .await
+        .expect("could not create user");
+
+    // Create a link from org to user
+    api.create_entity(
+        api.account_id,
+        CreateEntityParams {
+            web_id: WebId::new(api.account_id),
+            entity_uuid: None,
+            decision_time: None,
+            entity_type_ids: HashSet::from([link_type_id]),
+            properties: PropertyObjectWithMetadata::from_parts(PropertyObject::empty(), None)
+                .unwrap(),
+            link_data: Some(LinkData {
+                left_entity_id: org.metadata.record_id.entity_id,
+                right_entity_id: other_user.metadata.record_id.entity_id,
+                left_entity_confidence: None,
+                left_entity_provenance: PropertyProvenance::default(),
+                right_entity_confidence: None,
+                right_entity_provenance: PropertyProvenance::default(),
+            }),
+            draft: false,
+            policies: Vec::new(),
+            confidence: None,
+            provenance: ProvidedEntityEditionProvenance {
+                actor_type: ActorType::User,
+                origin: OriginProvenance::from_empty_type(OriginType::Api),
+                sources: Vec::new(),
+            },
+        },
+    )
+    .await
+    .expect("could not create link");
+
+    // Query subgraph starting from org, traversing to linked entities (the user)
+    let response = api
+        .query_entity_subgraph(
+            api.account_id,
+            QueryEntitySubgraphParams::ResolveDepths {
+                graph_resolve_depths: Default::default(),
+                traversal_paths: vec![EntityTraversalPath {
+                    edges: vec![
+                        // From org, follow incoming HasLeftEntity edges to find links where org
+                        // is the left entity
+                        EntityTraversalEdge::HasLeftEntity {
+                            direction: EdgeDirection::Incoming,
+                        },
+                        // Then follow outgoing HasRightEntity to get the linked user
+                        EntityTraversalEdge::HasRightEntity {
+                            direction: EdgeDirection::Outgoing,
+                        },
+                    ],
+                }],
+                request: QueryEntitiesParams {
+                    filter: Filter::Equal(
+                        FilterExpression::Path {
+                            path: EntityQueryPath::Uuid,
+                        },
+                        FilterExpression::Parameter {
+                            parameter: Parameter::Uuid(
+                                org.metadata.record_id.entity_id.entity_uuid.into(),
+                            ),
+                            convert: None,
+                        },
+                    ),
+                    temporal_axes: standard_temporal_axes(),
+                    sorting: EntityQuerySorting {
+                        paths: Vec::new(),
+                        cursor: None,
+                    },
+                    limit: None,
+                    conversions: Vec::new(),
+                    include_count: false,
+                    include_entity_types: None,
+                    include_drafts: false,
+                    include_web_ids: false,
+                    include_created_by_ids: false,
+                    include_edition_created_by_ids: false,
+                    include_type_ids: false,
+                    include_type_titles: false,
+                    include_permissions: false,
+                },
+            },
+        )
+        .await
+        .expect("could not query subgraph");
+
+    // Find the user entity in the subgraph vertices
+    let traversed_user = response
+        .subgraph
+        .vertices
+        .entities
+        .values()
+        .find(|e| e.metadata.record_id.entity_id == other_user.metadata.record_id.entity_id)
+        .expect("User should be in subgraph vertices after traversal");
+
+    // The email property should be masked (not present) since we're not the owner
+    let email_key = "https://hash.ai/@h/types/property-type/email/";
+    let has_email = traversed_user
+        .properties
+        .properties()
+        .contains_key(&BaseUrl::new(email_key.to_owned()).unwrap());
+
+    assert!(
+        !has_email,
+        "Email should be masked for traversed User entity. Found email in properties: {:?}",
+        traversed_user.properties
+    );
+
+    // Shortname should still be visible (not a protected property)
+    let shortname_key = "https://hash.ai/@h/types/property-type/shortname/";
+    let has_shortname = traversed_user
+        .properties
+        .properties()
+        .contains_key(&BaseUrl::new(shortname_key.to_owned()).unwrap());
+
+    assert!(
+        has_shortname,
+        "Shortname should still be visible for traversed User entity"
     );
 }

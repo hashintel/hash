@@ -149,9 +149,6 @@ where
 
         let mut compiler = SelectCompiler::new(temporal_axes, include_drafts);
 
-        let record_artifacts = Entity::parameters();
-        let record_indices = Entity::compile(&mut compiler, &record_artifacts);
-
         let should_apply_protection =
             !self.settings.filter_protection.is_empty() && !policy_components.is_instance_admin();
 
@@ -166,6 +163,9 @@ where
                 .to_property_protection_filter(policy_components.actor_id());
             compiler.with_property_masking(&property_protection_filter);
         }
+
+        let record_artifacts = Entity::parameters();
+        let record_indices = Entity::compile(&mut compiler, &record_artifacts);
 
         compiler.add_filter(&filter).change_context(QueryError)?;
 
