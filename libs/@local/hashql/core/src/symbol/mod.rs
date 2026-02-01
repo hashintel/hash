@@ -18,6 +18,7 @@
 //! This encapsulation enables future optimizations such as string interning (either through
 //! the `string_interner` crate or a custom implementation) without requiring API changes.
 
+mod lookup;
 mod repr;
 pub mod sym;
 mod sym2;
@@ -28,11 +29,10 @@ use core::{
     fmt::{self, Display, Formatter},
     hash::{Hash, Hasher},
     marker::PhantomData,
-    ptr,
 };
 
+pub use self::lookup::SymbolLookup;
 use self::repr::{ConstantSymbol, Repr};
-pub use self::table::SymbolTable;
 use crate::span::SpanId;
 
 /// A string-like value used throughout the HashQL compiler.
