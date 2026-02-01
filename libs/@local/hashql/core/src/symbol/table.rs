@@ -88,11 +88,9 @@ impl SymbolTable {
     ///
     /// The table is not primed. Call [`prime`](Self::prime) to populate it with
     /// predefined symbols before use.
+    #[inline]
     pub(crate) fn new() -> Self {
-        Self {
-            inner: HashTable::new(),
-            hasher: RandomState::default(),
-        }
+        Self::new_in(Global)
     }
 }
 
@@ -101,6 +99,7 @@ impl<A: Allocator> SymbolTable<A> {
     ///
     /// The table is not primed. Call [`prime`](Self::prime) to populate it with
     /// predefined symbols before use.
+    #[inline]
     fn new_in(alloc: A) -> Self {
         Self {
             inner: HashTable::new_in(alloc),
@@ -109,11 +108,13 @@ impl<A: Allocator> SymbolTable<A> {
     }
 
     /// Returns the number of symbols currently in the table.
+    #[cfg(test)]
     pub(crate) fn len(&self) -> usize {
         self.inner.len()
     }
 
     /// Returns `true` if the table contains no symbols.
+    #[inline]
     pub(crate) fn is_empty(&self) -> bool {
         self.inner.is_empty()
     }
@@ -132,6 +133,7 @@ impl<A: Allocator> SymbolTable<A> {
     /// a new runtime symbol instead of returning the canonical constant [`Repr`] that matches
     /// the static symbols in [`sym`](super::sym). This would break the invariant that
     /// predefined symbols intern to their canonical constant representations.
+    #[inline]
     pub(crate) unsafe fn clear(&mut self) {
         self.inner.clear();
     }
@@ -193,6 +195,7 @@ impl<A: Allocator> SymbolTable<A> {
     /// - The table is ready for a new epoch of interning.
     ///
     /// [`sym2::LOOKUP`]: super::sym2::LOOKUP
+    #[inline]
     pub(crate) unsafe fn reset(&mut self) {
         // SAFETY: correct order of operations is present.
         unsafe {

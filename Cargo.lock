@@ -3784,7 +3784,6 @@ dependencies = [
  "insta",
  "lexical",
  "memchr",
- "phf 0.13.1",
  "pretty",
  "proptest",
  "rapidfuzz",
