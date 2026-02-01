@@ -15,22 +15,22 @@ enum SymbolLookupInner<'heap, I> {
 
 /// A mapping from identifiers to symbols optimized for different access patterns.
 ///
-/// [`SymbolTable`] provides efficient storage and retrieval of [`Symbol`] instances which are tied
+/// `SymbolLookup` provides efficient storage and retrieval of [`Symbol`] instances which are tied
 /// to a specific identifier (which is any type that implements the [`Id`] trait).
 ///
 /// # Storage Strategies
 ///
-/// To accommodate different access patterns, [`SymbolTable`] supports three storage strategies:
+/// To accommodate different access patterns, `SymbolLookup` supports three storage strategies:
 ///
 /// ## Dense Storage
 ///
-/// Created with [`SymbolTable::dense()`], this mode uses a [`Vec`] internally and requires
+/// Created with [`SymbolLookup::dense()`], this mode uses a [`Vec`] internally and requires
 /// IDs to be inserted sequentially starting from 0. This provides optimal memory efficiency
 /// and cache performance for contiguous ID ranges.
 ///
 /// ## Gapped Storage
 ///
-/// Created with [`SymbolTable::gapped()`], this mode uses a [`Vec`] of [`Option<Symbol>`]
+/// Created with [`SymbolLookup::gapped()`], this mode uses a [`Vec`] of [`Option<Symbol>`]
 /// internally and allows insertion at arbitrary indices. Unlike dense storage, gaps are allowed in
 /// the ID sequence. This provides a balance between the memory efficiency of dense storage and the
 /// flexibility of sparse storage, making it ideal for scenarios where most IDs are contiguous but
@@ -38,7 +38,7 @@ enum SymbolLookupInner<'heap, I> {
 ///
 /// ## Sparse Storage
 ///
-/// Created with [`SymbolTable::sparse()`], this mode uses a [`FastHashMap`] internally and
+/// Created with [`SymbolLookup::sparse()`], this mode uses a [`FastHashMap`] internally and
 /// supports arbitrary ID insertion order. This provides flexibility at the cost of higher
 /// memory overhead per entry.
 ///

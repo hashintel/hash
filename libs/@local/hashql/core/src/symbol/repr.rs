@@ -168,7 +168,7 @@ impl RuntimeRepr {
     }
 }
 
-/// A constant symbol represented as an index into [`STRINGS`].
+/// A constant symbol represented as an index into [`SYMBOLS`].
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub(crate) struct ConstantRepr(usize);
 
@@ -182,7 +182,7 @@ impl ConstantRepr {
     ///
     /// # Safety
     ///
-    /// The index must be within bounds of [`STRINGS`].
+    /// The index must be within bounds of [`SYMBOLS`].
     #[inline]
     pub(super) unsafe fn as_str_unchecked(self) -> &'static str {
         // SAFETY: Caller guarantees the index is in bounds.
@@ -193,7 +193,7 @@ impl ConstantRepr {
     ///
     /// # Safety
     ///
-    /// The index must be within bounds of [`STRINGS`].
+    /// The index must be within bounds of [`SYMBOLS`].
     #[inline]
     pub(super) unsafe fn as_bytes_unchecked(self) -> &'static [u8] {
         // SAFETY: Constant symbols return &'static str, which coerces to &'static [u8].
@@ -205,8 +205,8 @@ impl ConstantRepr {
 ///
 /// Uses a tagged pointer to distinguish between runtime and constant symbols:
 ///
-/// - **Runtime** (tag = 0): Pointer to a [`RuntimeSymbol`] allocation
-/// - **Constant** (tag = 1): Index into [`STRINGS`] encoded in the pointer bits
+/// - **Runtime** (tag = 0): Pointer to a [`RuntimeRepr`] allocation
+/// - **Constant** (tag = 1): Index into [`SYMBOLS`] encoded in the pointer bits
 ///
 /// # Size
 ///
