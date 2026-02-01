@@ -89,18 +89,13 @@ pub async fn snapshot(args: SnapshotArgs) -> Result<(), Report<GraphError>> {
         settings.validate_links = !args.skip_validation;
     }
 
-    let pool = PostgresStorePool::new(
-        &args.db_info,
-        &args.pool_config,
-        NoTls,
-        PostgresStoreSettings::default(),
-    )
-    .await
-    .change_context(GraphError)
-    .map_err(|report| {
-        tracing::error!(error = ?report, "Failed to connect to database");
-        report
-    })?;
+    let pool = PostgresStorePool::new(&args.db_info, &args.pool_config, NoTls, settings)
+        .await
+        .change_context(GraphError)
+        .map_err(|report| {
+            tracing::error!(error = ?report, "Failed to connect to database");
+            report
+        })?;
 
     match args.command {
         SnapshotCommand::Dump(args) => {
