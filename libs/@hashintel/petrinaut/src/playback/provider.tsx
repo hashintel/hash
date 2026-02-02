@@ -89,6 +89,7 @@ export const PlaybackProvider: React.FC<PlaybackProviderProps> = ({
     pause: pauseSimulation,
     maxTime,
     setMaxTime,
+    ack,
   } = use(SimulationContext);
 
   const [stateValues, setStateValues] =
@@ -162,6 +163,51 @@ export const PlaybackProvider: React.FC<PlaybackProviderProps> = ({
       }));
     }
   }, [simulationState]);
+
+  // Backpressure control: call ack based on playMode
+  // - viewOnly: never call ack (worker should not compute more)
+  // - computeBuffer: call ack when in buffer zone (near end of available frames)
+  // - computeMax: call ack every time new frames arrive
+  const prevTotalFramesRef = useRef(totalFrames);
+  useEffect(() => {
+    const prevFrames = prevTotalFramesRef.current;
+    prevTotalFramesRef.current = totalFrames;
+
+    // Skip if no new frames or no frames at all
+    if (totalFrames === 0 || totalFrames === prevFrames) {
+      return;
+    }
+
+    const mode = stateValues.playMode;
+
+    if (mode === "viewOnly") {
+      // Never ack in viewOnly mode - we don't want more computation
+      return;
+    }
+
+    if (mode === "computeMax") {
+      // Always ack when new frames arrive to allow continuous computation
+      ack(totalFrames);
+      return;
+    }
+
+    // mode === "computeBuffer"
+    // Ack only when in the buffer zone (current frame is near the end of available frames)
+    const currentIndex = stateValues.currentFrameIndex;
+    const bufferFrames = Math.ceil(computeBufferDuration / dt);
+
+    // If we're within bufferFrames of the end, ack to allow more computation
+    if (currentIndex >= totalFrames - bufferFrames) {
+      ack(totalFrames);
+    }
+  }, [
+    totalFrames,
+    stateValues.playMode,
+    stateValues.currentFrameIndex,
+    computeBufferDuration,
+    dt,
+    ack,
+  ]);
 
   // Playback animation loop using requestAnimationFrame
   useEffect(() => {

@@ -79,6 +79,8 @@ export type WorkerActions = {
   stop: () => void;
   /** Update backpressure configuration at runtime */
   setBackpressure: (params: BackpressureParams) => void;
+  /** Acknowledge receipt of frames up to the given frame number (for backpressure) */
+  ack: (frameNumber: number) => void;
   /** Reset to initial state */
   reset: () => void;
 };
@@ -89,12 +91,6 @@ const initialState: WorkerState = {
   error: null,
   errorItemId: null,
 };
-
-/**
- * Interval (in ms) between acknowledgment messages to worker.
- * Provides backpressure feedback.
- */
-const ACK_INTERVAL_MS = 10;
 
 /**
  * Hook for managing the simulation WebWorker.
@@ -122,13 +118,6 @@ export function useSimulationWorker(): {
 } {
   const [state, setState] = useState<WorkerState>(initialState);
   const workerRef = useRef<Worker | null>(null);
-  const ackIntervalRef = useRef<number | null>(null);
-  const framesLengthRef = useRef(0);
-
-  // Track frames length for ack
-  useEffect(() => {
-    framesLengthRef.current = state.frames.length;
-  }, [state.frames.length]);
 
   // Initialize worker on mount
   useEffect(() => {
@@ -198,21 +187,8 @@ export function useSimulationWorker(): {
 
     workerRef.current = worker;
 
-    // Set up periodic ack for backpressure
-    ackIntervalRef.current = window.setInterval(() => {
-      if (workerRef.current && framesLengthRef.current > 0) {
-        workerRef.current.postMessage({
-          type: "ack",
-          frameNumber: framesLengthRef.current,
-        } satisfies ToWorkerMessage);
-      }
-    }, ACK_INTERVAL_MS);
-
     return () => {
       worker.terminate();
-      if (ackIntervalRef.current !== null) {
-        clearInterval(ackIntervalRef.current);
-      }
     };
   }, []);
 
@@ -277,6 +253,10 @@ export function useSimulationWorker(): {
     postMessage({ type: "setBackpressure", maxFramesAhead, batchSize });
   };
 
+  const ack: WorkerActions["ack"] = (frameNumber) => {
+    postMessage({ type: "ack", frameNumber });
+  };
+
   const reset: WorkerActions["reset"] = () => {
     postMessage({ type: "stop" });
     setState(initialState);
@@ -289,6 +269,7 @@ export function useSimulationWorker(): {
     pause,
     stop,
     setBackpressure,
+    ack,
     reset,
   };
 

@@ -471,32 +471,37 @@ describe("useSimulationWorker", () => {
   });
 
   describe("backpressure (ack)", () => {
-    it("sends periodic ack messages", () => {
-      renderHook(() => useSimulationWorker());
-
-      // Add some frames
-      act(() => {
-        mockWorkerInstance!.simulateMessage({
-          type: "frame",
-          frame: {
-            time: 0,
-            places: {},
-            transitions: {},
-            buffer: new Float64Array(),
-          },
-        });
-      });
+    it("sends ack message when ack action is called", () => {
+      const { result } = renderHook(() => useSimulationWorker());
 
       mockWorkerInstance!.clearMessages();
 
-      // Advance timers to trigger ack
+      // Call ack action with frame number
       act(() => {
-        vi.advanceTimersByTime(150); // > ACK_INTERVAL_MS (100)
+        result.current.actions.ack(42);
       });
 
       const ackMessages = mockWorkerInstance!.getMessages("ack");
-      expect(ackMessages.length).toBeGreaterThan(0);
-      expect(ackMessages[0]?.frameNumber).toBe(1);
+      expect(ackMessages.length).toBe(1);
+      expect(ackMessages[0]?.frameNumber).toBe(42);
+    });
+
+    it("sends multiple ack messages with different frame numbers", () => {
+      const { result } = renderHook(() => useSimulationWorker());
+
+      mockWorkerInstance!.clearMessages();
+
+      act(() => {
+        result.current.actions.ack(10);
+        result.current.actions.ack(20);
+        result.current.actions.ack(30);
+      });
+
+      const ackMessages = mockWorkerInstance!.getMessages("ack");
+      expect(ackMessages.length).toBe(3);
+      expect(ackMessages[0]?.frameNumber).toBe(10);
+      expect(ackMessages[1]?.frameNumber).toBe(20);
+      expect(ackMessages[2]?.frameNumber).toBe(30);
     });
   });
 

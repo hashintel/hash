@@ -16,11 +16,11 @@ type PlaybackState = 'Stopped' | 'Playing' | 'Paused';
 
 Determines how simulation computation is handled during playback.
 
-| Mode            | Description                           | Available When                    |
-| --------------- | ------------------------------------- | --------------------------------- |
-| `viewOnly`      | Only plays existing frames            | Simulation is Complete or Error   |
-| `computeBuffer` | Computes when < 100 frames ahead      | Simulation can compute more       |
-| `computeMax`    | Computes as fast as possible          | Simulation can compute more       |
+| Mode            | Description                           | Backpressure (ack)                  | Available When                    |
+| --------------- | ------------------------------------- | ----------------------------------- | --------------------------------- |
+| `viewOnly`      | Only plays existing frames            | Never acks (no more computation)    | Simulation is Complete or Error   |
+| `computeBuffer` | Computes ahead by buffer duration     | Acks when near end of frames        | Simulation can compute more       |
+| `computeMax`    | Computes as fast as possible          | Acks on every new frame arrival     | Simulation can compute more       |
 
 ### Playback Speed
 
@@ -74,12 +74,19 @@ type PlaybackContextValue = {
 
 ### Integration with SimulationContext
 
-PlaybackContext reads from SimulationContext:
+PlaybackProvider interacts with SimulationContext:
+
+**Reading:**
 
 - Gets frames via `getFrame()` / `getAllFrames()`
 - Uses `dt` for real-time playback timing
 - Monitors `totalFrames` to know when new frames are available
 - Uses `state` to determine available play modes
+
+**Writing:**
+
+- Calls `ack(frameNumber)` to control worker backpressure based on play mode
+- Calls `run()` / `pause()` to control simulation in compute modes
 
 ### Usage
 

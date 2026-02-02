@@ -14,14 +14,14 @@ WebWorker for off-main-thread SDCPN simulation computation.
 
 ## Messages: Main Thread → Worker
 
-| Type              | Payload                                                                          | Description                          |
-| ----------------- | -------------------------------------------------------------------------------- | ------------------------------------ |
-| `init`            | `{ sdcpn, initialMarking, parameterValues, seed, dt, maxTime, maxFramesAhead?, batchSize? }` | Initialize simulation   |
-| `start`           | —                                                                                | Begin/resume computing frames        |
-| `pause`           | —                                                                                | Pause computation (state retained)   |
-| `stop`            | —                                                                                | Stop and discard simulation          |
-| `setBackpressure` | `{ maxFramesAhead?, batchSize? }`                                                | Reconfigure backpressure at runtime  |
-| `ack`             | `{ frameNumber }`                                                                | Acknowledge frame receipt            |
+| Type              | Payload                                                                                      | Description                         |
+| ----------------- | -------------------------------------------------------------------------------------------- | ----------------------------------- |
+| `init`            | `{ sdcpn, initialMarking, parameterValues, seed, dt, maxTime, maxFramesAhead?, batchSize? }` | Initialize simulation               |
+| `start`           | —                                                                                            | Begin/resume computing frames       |
+| `pause`           | —                                                                                            | Pause computation (state retained)  |
+| `stop`            | —                                                                                            | Stop and discard simulation         |
+| `setBackpressure` | `{ maxFramesAhead?, batchSize? }`                                                            | Reconfigure backpressure at runtime |
+| `ack`             | `{ frameNumber }`                                                                            | Acknowledge frame receipt           |
 
 ## Messages: Worker → Main Thread
 
@@ -37,7 +37,16 @@ WebWorker for off-main-thread SDCPN simulation computation.
 ## Backpressure
 
 Worker pauses when `currentFrame - lastAckedFrame > maxFramesAhead`.
-Main thread sends periodic `ack` messages to allow worker to continue.
+The main thread sends `ack` messages to allow worker to continue.
+
+**Important:** Ack messages are controlled by the **PlaybackProvider**, not sent automatically.
+The PlaybackProvider calls `SimulationContext.ack()` based on the current play mode:
+
+| Play Mode        | Ack Behavior                                              |
+| ---------------- | --------------------------------------------------------- |
+| `viewOnly`       | Never calls ack (no more computation needed)              |
+| `computeBuffer`  | Calls ack when in buffer zone (near end of frames)        |
+| `computeMax`     | Calls ack every time new frames arrive                    |
 
 Backpressure parameters can be configured:
 
@@ -91,6 +100,7 @@ state.errorItemId: string | null
 | `stop`            | `() => void`                                           | Send stop message, reset state      |
 | `reset`           | `() => void`                                           | Alias for stop                      |
 | `setBackpressure` | `(params: { maxFramesAhead?, batchSize? }) => void`    | Reconfigure backpressure at runtime |
+| `ack`             | `(frameNumber: number) => void`                        | Acknowledge frames (backpressure)   |
 
 ### InitializeParams
 

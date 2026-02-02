@@ -440,9 +440,11 @@ export const SimulationControls: React.FC<SimulationControlsProps> = ({
         seed: Date.now(),
         dt,
       });
+      // Wait for simulation to initialize
+      // This could be improved by using a promise of initialize completion instead of a timeout
       setTimeout(() => {
         run();
-      }, 0);
+      }, 50);
     } else if (isPlaybackPlaying) {
       // Pause playback
       playbackPause();

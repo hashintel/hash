@@ -68,6 +68,9 @@ type SimulationContextValue = {
   run: () => void;
   pause: () => void;
   reset: () => void;
+
+  // Backpressure Control (called by PlaybackProvider)
+  ack: (frameNumber: number) => void;
 };
 ```
 

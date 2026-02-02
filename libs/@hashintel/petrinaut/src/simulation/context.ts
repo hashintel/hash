@@ -201,6 +201,17 @@ export type SimulationContextValue = {
   run: () => void;
   pause: () => void;
   reset: () => void;
+  /**
+   * Acknowledge receipt of frames up to the given frame number.
+   * Used for backpressure control - the worker will pause computation
+   * when it gets too far ahead of acknowledged frames.
+   *
+   * This should be called by PlaybackProvider based on playMode:
+   * - viewOnly: never call ack
+   * - computeBuffer: call ack when in the buffer zone (near end of available frames)
+   * - computeMax: call ack every time new frames arrive
+   */
+  ack: (frameNumber: number) => void;
 };
 
 const DEFAULT_CONTEXT_VALUE: SimulationContextValue = {
@@ -225,6 +236,7 @@ const DEFAULT_CONTEXT_VALUE: SimulationContextValue = {
   run: () => {},
   pause: () => {},
   reset: () => {},
+  ack: () => {},
 };
 
 export const SimulationContext = createContext<SimulationContextValue>(
