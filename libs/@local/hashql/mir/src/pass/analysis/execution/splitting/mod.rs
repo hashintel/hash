@@ -1,12 +1,22 @@
-use core::num::NonZero;
+use core::{convert::Infallible, mem, num::NonZero};
 use std::alloc::Allocator;
 
-use hashql_core::id::bit_vec::FiniteBitSet;
+use hashql_core::{
+    id::{Id as _, bit_vec::FiniteBitSet},
+    intern::Interned,
+    span::SpanId,
+};
 
 use super::{StatementCostVec, target::TargetId};
-use crate::body::{
-    Body,
-    basic_block::{BasicBlockId, BasicBlockSlice, BasicBlockVec},
+use crate::{
+    body::{
+        Body,
+        basic_block::{BasicBlock, BasicBlockId, BasicBlockSlice, BasicBlockVec},
+        location::Location,
+        terminator::Terminator,
+    },
+    context::MirContext,
+    visit::{VisitorMut, r#mut::filter},
 };
 
 // The first phase is determining the number of regions that are needed, once done we can offset the
@@ -62,9 +72,65 @@ fn count_regions<'heap, A: Allocator, B: Allocator>(
     regions
 }
 
-fn offset_basic_blocks<'heap>(body: &mut Body<'heap>, regions: &BasicBlockSlice<NonZero<usize>>) {
+struct RemapBasicBlockId<'ctx> {
+    ids: &'ctx BasicBlockSlice<BasicBlockId>,
+}
+
+impl<'heap> VisitorMut<'heap> for RemapBasicBlockId<'_> {
+    type Filter = filter::Shallow;
+    type Residual = Result<Infallible, !>;
+    type Result<T>
+        = Result<T, !>
+    where
+        T: 'heap;
+
+    fn visit_basic_block_id(
+        &mut self,
+        _: Location,
+        basic_block_id: &mut BasicBlockId,
+    ) -> Self::Result<()> {
+        *basic_block_id = self.ids[*basic_block_id];
+        Ok(())
+    }
+}
+
+fn offset_basic_blocks<'heap, B: Allocator + Clone>(
+    context: &MirContext<'_, 'heap>,
+    body: &mut Body<'heap>,
+    regions: &BasicBlockSlice<NonZero<usize>>,
+    alloc: B,
+) {
     // TODO: create a vec of offsets (which we track), once done, visit all the blocks and increment
     // their id by the offset indicated. We visit each only once, so this is fine.
+    let mut length = BasicBlockId::START;
+    let mut indices =
+        BasicBlockVec::from_elem_in(BasicBlockId::MIN, body.basic_blocks.len(), alloc.clone());
+
+    for (id, regions) in regions.iter_enumerated() {
+        indices[id] = length;
+        length.increment_by(regions.get());
+    }
+
+    // We now need to remap all the basic blocks to their new ids
+    Ok(()) = RemapBasicBlockId { ids: &indices }.visit_body(body);
+
+    // We now resize the basic blocks with new empty blocks, these blocks for now are completely
+    // uninitialized. This will change
+    body.basic_blocks
+        .as_mut()
+        .fill_until(length, || BasicBlock {
+            params: Interned::empty(),
+            statements: Vec::new_in(context.heap),
+            terminator: Terminator::unreachable(SpanId::SYNTHETIC),
+        });
+
+    // We now go through all the blocks, and move them from their old location to their new one. We
+    // do this in reverse as to not overwrite anything.
+    for (old, &new) in indices.iter_enumerated().rev() {
+        body.basic_blocks.as_mut().swap(old, new);
+    }
+
+    // Now that it's offset, we can take this to split up the regions (TODO)
 
     // We then offset properly, which means if there are more than 1 region we remove the
     // terminator, add it to the last and then create a chain of blocks with GOTO.
