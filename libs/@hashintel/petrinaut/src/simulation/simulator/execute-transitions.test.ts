@@ -183,18 +183,18 @@ describe("executeTransitions", () => {
     );
 
     // Token should be removed from p1
-    expect(result.frame.places["p1"]?.count).toBe(1);
+    expect(result.frame.places.p1?.count).toBe(1);
     expect(result.frame.buffer[0]).toBe(1.5); // Second token from p1 remains
 
     // Token should be added to p2
-    expect(result.frame.places["p2"]?.count).toBe(1);
+    expect(result.frame.places.p2?.count).toBe(1);
     expect(result.frame.buffer[1]).toBe(2.0); // New token in p2
 
     // Time should be incremented
     expect(result.frame.time).toBe(0.1);
 
     // Transition that fired should have timeSinceLastFiringMs reset to 0
-    expect(result.frame.transitions["t1"]?.timeSinceLastFiringMs).toBe(0);
+    expect(result.frame.transitions.t1?.timeSinceLastFiringMs).toBe(0);
     expect(result.transitionFired).toBe(true);
   });
 
@@ -362,17 +362,17 @@ describe("executeTransitions", () => {
 
     // Both transitions should consume one token from p1 each
     // So p1 should have 1 token remaining
-    expect(result.frame.places["p1"]?.count).toBe(1);
+    expect(result.frame.places.p1?.count).toBe(1);
 
     // p2 should have 1 token added by t1
-    expect(result.frame.places["p2"]?.count).toBe(1);
+    expect(result.frame.places.p2?.count).toBe(1);
 
     // p3 should have 1 token added by t2
-    expect(result.frame.places["p3"]?.count).toBe(1);
+    expect(result.frame.places.p3?.count).toBe(1);
 
     // Both transitions should have their timeSinceLastFiringMs reset
-    expect(result.frame.transitions["t1"]?.timeSinceLastFiringMs).toBe(0);
-    expect(result.frame.transitions["t2"]?.timeSinceLastFiringMs).toBe(0);
+    expect(result.frame.transitions.t1?.timeSinceLastFiringMs).toBe(0);
+    expect(result.frame.transitions.t2?.timeSinceLastFiringMs).toBe(0);
   });
 
   it("handles transitions with multi-dimensional tokens", () => {
@@ -498,10 +498,10 @@ describe("executeTransitions", () => {
     );
 
     // p1 should have no tokens
-    expect(result.frame.places["p1"]?.count).toBe(0);
+    expect(result.frame.places.p1?.count).toBe(0);
 
     // p2 should have 1 token with values [3.0, 4.0]
-    expect(result.frame.places["p2"]?.count).toBe(1);
+    expect(result.frame.places.p2?.count).toBe(1);
     expect(result.frame.buffer[0]).toBe(3.0);
     expect(result.frame.buffer[1]).toBe(4.0);
   });
@@ -643,9 +643,9 @@ describe("executeTransitions", () => {
     );
 
     // t1 should have fired and timeSinceLastFiringMs reset
-    expect(result.frame.transitions["t1"]?.timeSinceLastFiringMs).toBe(0);
+    expect(result.frame.transitions.t1?.timeSinceLastFiringMs).toBe(0);
 
     // t2 should not have fired and timeSinceLastFiringMs incremented by dt
-    expect(result.frame.transitions["t2"]?.timeSinceLastFiringMs).toBe(0.4);
+    expect(result.frame.transitions.t2?.timeSinceLastFiringMs).toBe(0.4);
   });
 });

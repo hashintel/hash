@@ -44,7 +44,7 @@ let lastAckedFrame = 0;
  * Post a typed message to the main thread.
  */
 function postTypedMessage(message: ToMainMessage): void {
-  self.postMessage(message);
+  globalThis.postMessage(message);
 }
 
 /**
@@ -131,7 +131,7 @@ async function computeLoop(): Promise<void> {
 /**
  * Handle incoming messages from main thread.
  */
-self.onmessage = (event: MessageEvent<ToWorkerMessage>) => {
+globalThis.onmessage = (event: MessageEvent<ToWorkerMessage>) => {
   const message = event.data;
 
   switch (message.type) {

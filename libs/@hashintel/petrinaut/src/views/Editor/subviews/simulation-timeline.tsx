@@ -310,9 +310,7 @@ const useCompartmentData = (): CompartmentDataResult => {
       // Extract frame times for tooltip display
       const frameTimes = frames.map((frame) => frame.time);
 
-      if (!cancelled) {
-        setResult({ compartmentData, frameTimes });
-      }
+      setResult({ compartmentData, frameTimes });
     };
 
     void fetchData();

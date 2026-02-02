@@ -8,7 +8,7 @@ import type { SimulationFrame, SimulationInstance } from "./types";
 
 describe("isTransitionStructurallyEnabled", () => {
   it("returns true when input place has sufficient tokens", () => {
-    const simulation: SimulationInstance = {
+    const _simulation: SimulationInstance = {
       places: new Map(),
       transitions: new Map(),
       types: new Map(),
@@ -65,7 +65,7 @@ describe("isTransitionStructurallyEnabled", () => {
   });
 
   it("returns false when input place has insufficient tokens", () => {
-    const simulation: SimulationInstance = {
+    const _simulation: SimulationInstance = {
       places: new Map(),
       transitions: new Map(),
       types: new Map(),
@@ -122,7 +122,7 @@ describe("isTransitionStructurallyEnabled", () => {
   });
 
   it("respects arc weights when checking enablement", () => {
-    const simulation: SimulationInstance = {
+    const _simulation: SimulationInstance = {
       places: new Map(),
       transitions: new Map(),
       types: new Map(),
@@ -180,7 +180,7 @@ describe("isTransitionStructurallyEnabled", () => {
   });
 
   it("checks all input places for enablement", () => {
-    const simulation: SimulationInstance = {
+    const _simulation: SimulationInstance = {
       places: new Map(),
       transitions: new Map(),
       types: new Map(),
@@ -255,7 +255,7 @@ describe("isTransitionStructurallyEnabled", () => {
   });
 
   it("returns true for transitions with no input arcs", () => {
-    const simulation: SimulationInstance = {
+    const _simulation: SimulationInstance = {
       places: new Map(),
       transitions: new Map(),
       types: new Map(),
@@ -299,7 +299,7 @@ describe("isTransitionStructurallyEnabled", () => {
 
 describe("checkTransitionEnablement", () => {
   it("returns hasEnabledTransition=true when at least one transition is enabled", () => {
-    const simulation: SimulationInstance = {
+    const _simulation: SimulationInstance = {
       places: new Map(),
       transitions: new Map(),
       types: new Map(),
@@ -390,7 +390,7 @@ describe("checkTransitionEnablement", () => {
   });
 
   it("returns hasEnabledTransition=false when no transitions are enabled (deadlock)", () => {
-    const simulation: SimulationInstance = {
+    const _simulation: SimulationInstance = {
       places: new Map(),
       transitions: new Map(),
       types: new Map(),
@@ -481,7 +481,7 @@ describe("checkTransitionEnablement", () => {
   });
 
   it("returns hasEnabledTransition=false when there are no transitions", () => {
-    const simulation: SimulationInstance = {
+    const _simulation: SimulationInstance = {
       places: new Map(),
       transitions: new Map(),
       types: new Map(),
@@ -512,7 +512,7 @@ describe("checkTransitionEnablement", () => {
   });
 
   it("returns all transitions enabled when all have sufficient tokens", () => {
-    const simulation: SimulationInstance = {
+    const _simulation: SimulationInstance = {
       places: new Map(),
       transitions: new Map(),
       types: new Map(),

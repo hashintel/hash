@@ -5,7 +5,7 @@ import type { SimulationFrame, SimulationInstance } from "./types";
 
 describe("removeTokensFromSimulationFrame", () => {
   it("throws error when place ID is not found", () => {
-    const simulation: SimulationInstance = {
+    const _simulation: SimulationInstance = {
       types: new Map(),
       places: new Map(),
       transitions: new Map(),
@@ -35,7 +35,7 @@ describe("removeTokensFromSimulationFrame", () => {
   });
 
   it("returns frame unchanged when tokens map is empty", () => {
-    const simulation: SimulationInstance = {
+    const _simulation: SimulationInstance = {
       types: new Map(),
       places: new Map(),
       transitions: new Map(),
@@ -77,7 +77,7 @@ describe("removeTokensFromSimulationFrame", () => {
   });
 
   it("throws error when token index is out of bounds", () => {
-    const simulation: SimulationInstance = {
+    const _simulation: SimulationInstance = {
       types: new Map(),
       places: new Map(),
       transitions: new Map(),
@@ -119,7 +119,7 @@ describe("removeTokensFromSimulationFrame", () => {
   });
 
   it("returns frame unchanged when place has empty set of indices", () => {
-    const simulation: SimulationInstance = {
+    const _simulation: SimulationInstance = {
       types: new Map(),
       places: new Map(),
       transitions: new Map(),
@@ -161,11 +161,11 @@ describe("removeTokensFromSimulationFrame", () => {
     );
 
     expect(result.buffer).toEqual(new Float64Array([1.0, 2.0, 3.0]));
-    expect(result.places["p1"]?.count).toBe(3);
+    expect(result.places.p1?.count).toBe(3);
   });
 
   it("removes a single token from a place with 1D tokens", () => {
-    const simulation: SimulationInstance = {
+    const _simulation: SimulationInstance = {
       types: new Map(),
       places: new Map(),
       transitions: new Map(),
@@ -207,12 +207,12 @@ describe("removeTokensFromSimulationFrame", () => {
     );
 
     expect(result.buffer).toEqual(new Float64Array([1.0, 3.0]));
-    expect(result.places["p1"]?.count).toBe(2);
-    expect(result.places["p1"]?.offset).toBe(0);
+    expect(result.places.p1?.count).toBe(2);
+    expect(result.places.p1?.offset).toBe(0);
   });
 
   it("removes multiple tokens from a place with 1D tokens", () => {
-    const simulation: SimulationInstance = {
+    const _simulation: SimulationInstance = {
       types: new Map(),
       places: new Map(),
       transitions: new Map(),
@@ -254,12 +254,12 @@ describe("removeTokensFromSimulationFrame", () => {
     );
 
     expect(result.buffer).toEqual(new Float64Array([2.0, 4.0]));
-    expect(result.places["p1"]?.count).toBe(2);
-    expect(result.places["p1"]?.offset).toBe(0);
+    expect(result.places.p1?.count).toBe(2);
+    expect(result.places.p1?.offset).toBe(0);
   });
 
   it("removes tokens from a place with multi-dimensional tokens", () => {
-    const simulation: SimulationInstance = {
+    const _simulation: SimulationInstance = {
       types: new Map(),
       places: new Map(),
       transitions: new Map(),
@@ -305,12 +305,12 @@ describe("removeTokensFromSimulationFrame", () => {
     expect(result.buffer).toEqual(
       new Float64Array([1.0, 2.0, 3.0, 7.0, 8.0, 9.0]),
     );
-    expect(result.places["p1"]?.count).toBe(2);
-    expect(result.places["p1"]?.offset).toBe(0);
+    expect(result.places.p1?.count).toBe(2);
+    expect(result.places.p1?.offset).toBe(0);
   });
 
   it("adjusts offsets for subsequent places after removal", () => {
-    const simulation: SimulationInstance = {
+    const _simulation: SimulationInstance = {
       types: new Map(),
       places: new Map(),
       transitions: new Map(),
@@ -369,15 +369,15 @@ describe("removeTokensFromSimulationFrame", () => {
 
     // Expected: p1: [3,4]  |  p2: [5], [6], [7]
     expect(result.buffer).toEqual(new Float64Array([3.0, 4.0, 5.0, 6.0, 7.0]));
-    expect(result.places["p1"]?.count).toBe(1);
-    expect(result.places["p1"]?.offset).toBe(0);
+    expect(result.places.p1?.count).toBe(1);
+    expect(result.places.p1?.offset).toBe(0);
     // p2's offset should be adjusted from 4 to 2 (removed 2 elements)
-    expect(result.places["p2"]?.offset).toBe(2);
-    expect(result.places["p2"]?.count).toBe(3);
+    expect(result.places.p2?.offset).toBe(2);
+    expect(result.places.p2?.count).toBe(3);
   });
 
   it("removes all tokens from a place", () => {
-    const simulation: SimulationInstance = {
+    const _simulation: SimulationInstance = {
       types: new Map(),
       places: new Map(),
       transitions: new Map(),
@@ -433,14 +433,14 @@ describe("removeTokensFromSimulationFrame", () => {
     );
 
     expect(result.buffer).toEqual(new Float64Array([3.0, 4.0]));
-    expect(result.places["p1"]?.count).toBe(0);
-    expect(result.places["p1"]?.offset).toBe(0);
-    expect(result.places["p2"]?.offset).toBe(0);
-    expect(result.places["p2"]?.count).toBe(2);
+    expect(result.places.p1?.count).toBe(0);
+    expect(result.places.p1?.offset).toBe(0);
+    expect(result.places.p2?.offset).toBe(0);
+    expect(result.places.p2?.count).toBe(2);
   });
 
   it("handles removal from middle place with three places", () => {
-    const simulation: SimulationInstance = {
+    const _simulation: SimulationInstance = {
       types: new Map(),
       places: new Map(),
       transitions: new Map(),
@@ -515,17 +515,17 @@ describe("removeTokensFromSimulationFrame", () => {
     expect(result.buffer).toEqual(
       new Float64Array([1.0, 2.0, 3.0, 5.0, 6.0, 7.0]),
     );
-    expect(result.places["p1"]?.offset).toBe(0);
-    expect(result.places["p1"]?.count).toBe(2);
-    expect(result.places["p2"]?.offset).toBe(2);
-    expect(result.places["p2"]?.count).toBe(2);
+    expect(result.places.p1?.offset).toBe(0);
+    expect(result.places.p1?.count).toBe(2);
+    expect(result.places.p2?.offset).toBe(2);
+    expect(result.places.p2?.count).toBe(2);
     // p3's offset should be adjusted from 5 to 4 (removed 1 element)
-    expect(result.places["p3"]?.offset).toBe(4);
-    expect(result.places["p3"]?.count).toBe(2);
+    expect(result.places.p3?.offset).toBe(4);
+    expect(result.places.p3?.count).toBe(2);
   });
 
   it("removes tokens from multiple places simultaneously", () => {
-    const simulation: SimulationInstance = {
+    const _simulation: SimulationInstance = {
       types: new Map(),
       places: new Map(),
       transitions: new Map(),
@@ -602,11 +602,11 @@ describe("removeTokensFromSimulationFrame", () => {
 
     // Expected: p1: [1], [3] | p2: [6,7] | p3: [8]
     expect(result.buffer).toEqual(new Float64Array([1.0, 3.0, 6.0, 7.0, 8.0]));
-    expect(result.places["p1"]?.count).toBe(2);
-    expect(result.places["p1"]?.offset).toBe(0);
-    expect(result.places["p2"]?.count).toBe(1);
-    expect(result.places["p2"]?.offset).toBe(2);
-    expect(result.places["p3"]?.count).toBe(1);
-    expect(result.places["p3"]?.offset).toBe(4);
+    expect(result.places.p1?.count).toBe(2);
+    expect(result.places.p1?.offset).toBe(0);
+    expect(result.places.p2?.count).toBe(1);
+    expect(result.places.p2?.offset).toBe(2);
+    expect(result.places.p3?.count).toBe(1);
+    expect(result.places.p3?.offset).toBe(4);
   });
 });
