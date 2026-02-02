@@ -7,7 +7,7 @@
 //!   an index into the static [`sym::SYMBOLS`] array (effectively `'static` lifetime).
 //!
 //! - **Runtime symbols**: Dynamically interned strings allocated on a bump allocator. Their
-//!   [`Repr`] holds a pointer to a [`RuntimeSymbol`] allocation.
+//!   [`Repr`] holds a pointer to a [`RuntimeRepr`] allocation.
 //!
 //! # Lifecycle and Epoch Coupling
 //!
@@ -208,7 +208,7 @@ impl<A: Allocator> SymbolTable<A> {
     ///
     /// If the string has already been interned (either as a predefined constant or a
     /// previously interned runtime symbol), returns the existing [`Repr`]. Otherwise,
-    /// allocates a new [`RuntimeSymbol`] on the provided bump allocator and inserts it.
+    /// allocates a new [`RuntimeRepr`] on the provided bump allocator and inserts it.
     ///
     /// # Returns
     ///

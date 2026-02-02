@@ -15,13 +15,13 @@
 //!
 //! Uses the lowest bit as a discriminant tag (possible because allocations are 2-byte aligned):
 //!
-//! - Bit 0 = `0`: Runtime symbol (pointer to [`RuntimeSymbol`] allocation)
+//! - Bit 0 = `0`: Runtime symbol (pointer to [`RuntimeRepr`] allocation)
 //! - Bit 0 = `1`: Constant symbol (index shifted left by 1, `OR`ed with tag)
 //!
 //! # Provenance
 //!
-//! Runtime symbols store a [`NonNull<RuntimeSymbol>`] rather than a reference to preserve
-//! full allocation provenance. Creating `&RuntimeSymbol` would narrow provenance to just the
+//! Runtime symbols store a [`NonNull<RuntimeRepr>`] rather than a reference to preserve
+//! full allocation provenance. Creating `&RuntimeRepr` would narrow provenance to just the
 //! header, causing undefined behavior when accessing the trailing inline bytes under strict
 //! provenance / Stacked Borrows.
 #![expect(unsafe_code)]
@@ -131,7 +131,7 @@ impl RuntimeRepr {
     ///
     /// # Safety
     ///
-    /// - `this` must point to a valid, initialized [`RuntimeSymbol`] allocation.
+    /// - `this` must point to a valid, initialized [`RuntimeRepr`] allocation.
     /// - The allocation must remain live for the duration of this call.
     #[inline]
     const unsafe fn len(this: NonNull<Self>) -> usize {
@@ -143,7 +143,7 @@ impl RuntimeRepr {
     ///
     /// # Safety
     ///
-    /// - `this` must point to a valid, initialized [`RuntimeSymbol`] allocation.
+    /// - `this` must point to a valid, initialized [`RuntimeRepr`] allocation.
     /// - The allocation must remain live for the lifetime `'a`.
     /// - The returned slice must not be mutated for the lifetime `'a`.
     #[inline]
@@ -157,7 +157,7 @@ impl RuntimeRepr {
     ///
     /// # Safety
     ///
-    /// - `this` must point to a valid, initialized [`RuntimeSymbol`] allocation.
+    /// - `this` must point to a valid, initialized [`RuntimeRepr`] allocation.
     /// - The allocation must remain live for the lifetime `'a`.
     /// - The returned string must not be mutated for the lifetime `'a`.
     #[inline]
