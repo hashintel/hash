@@ -87,7 +87,7 @@ RUN --mount=type=cache,target=/usr/local/cargo/registry,sharing=locked \
     --mount=type=cache,target=/usr/local/cargo/git,sharing=locked \
     --mount=type=cache,target=/usr/local/src/target,sharing=locked \
     --mount=type=cache,target=/usr/local/src/.turbo/cache,sharing=locked \
-    turbo build --filter '@apps/hash-frontend' --env-mode=loose
+    PROTOC="$(mise which protoc)" turbo build --filter '@apps/hash-frontend' --env-mode=loose
 
 
 FROM mise AS runner
