@@ -1,24 +1,21 @@
 import type {
   ActorEntityUuid,
+  BaseUrl,
   DataTypeWithMetadata,
   Entity,
+  EntityId,
   EntityTypeWithMetadata,
   PropertyTypeWithMetadata,
 } from "@blockprotocol/type-system";
+import { extractBaseUrl } from "@blockprotocol/type-system";
 import { publicUserAccountId } from "@local/hash-backend-utils/public-user-account-id";
-import type {
-  Entity as GraphApiEntity,
-  EntityQueryCursor,
-  Filter,
-} from "@local/hash-graph-client";
+import type { EntityQueryCursor, Filter } from "@local/hash-graph-client";
 import type {
   CreateEmbeddingsParams,
   CreateEmbeddingsReturn,
 } from "@local/hash-graph-sdk/embeddings";
-import {
-  deserializeQueryEntitiesResponse,
-  HashEntity,
-} from "@local/hash-graph-sdk/entity";
+import { deserializeQueryEntitiesResponse } from "@local/hash-graph-sdk/entity";
+import { generateEntityIdFilter } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type { ParseTextFromFileParams } from "@local/hash-isomorphic-utils/parse-text-from-file-types";
 import {
@@ -276,9 +273,14 @@ type UpdateEntityEmbeddingsParams = {
   authentication: {
     actorId: ActorEntityUuid;
   };
+  /**
+   * Properties to exclude from embedding generation, keyed by entity type base URL.
+   * Values are arrays of property type base URLs to exclude for that entity type.
+   */
+  embeddingExclusions?: Record<BaseUrl, BaseUrl[]>;
 } & (
   | {
-      entities: GraphApiEntity[];
+      entityIds: EntityId[];
     }
   | {
       filter: Filter;
@@ -310,26 +312,45 @@ export const updateEntityEmbeddings = async (
     total_tokens: 0,
   };
 
+  // Build filter from entity IDs if provided
+  let filter: Filter;
+  if ("entityIds" in params) {
+    // Build a filter matching any of the entity IDs, excluding FlowRun entities
+    filter = {
+      all: [
+        {
+          any: params.entityIds.map((entityId) =>
+            generateEntityIdFilter({ entityId, includeArchived: true }),
+          ),
+        },
+        {
+          notEqual: [
+            { path: ["type", "versionedUrl"] },
+            { parameter: systemEntityTypes.flowRun.entityTypeId },
+          ],
+        },
+      ],
+    };
+  } else {
+    filter = params.filter;
+  }
+
   // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
   while (true) {
-    if ("entities" in params) {
-      entities = params.entities.map((entity) => new HashEntity(entity));
-    } else {
-      const serializedResponse = await graphActivities.queryEntities({
-        authentication: params.authentication,
-        request: {
-          filter: params.filter,
-          temporalAxes,
-          includeDrafts: true,
-          includePermissions: false,
-          cursor,
-          limit: 100,
-        },
-      });
-      const response = deserializeQueryEntitiesResponse(serializedResponse);
-      cursor = response.cursor;
-      entities = response.entities;
-    }
+    const serializedResponse = await graphActivities.queryEntities({
+      authentication: params.authentication,
+      request: {
+        filter,
+        temporalAxes,
+        includeDrafts: true,
+        includePermissions: false,
+        cursor,
+        limit: 100,
+      },
+    });
+    const response = deserializeQueryEntitiesResponse(serializedResponse);
+    cursor = response.cursor;
+    entities = response.entities;
 
     if (entities.length === 0) {
       break;
@@ -339,6 +360,8 @@ export const updateEntityEmbeddings = async (
       /**
        * Don't try to create embeddings for `FlowRun` entities, due to the size
        * of their property values.
+       *
+       * This is a safety fallback - the filter should already exclude these.
        *
        * @todo: consider having a general approach for declaring which entity/property
        * types should be skipped when generating embeddings.
@@ -375,9 +398,24 @@ export const updateEntityEmbeddings = async (
         subgraph,
       });
 
+      // Filter out protected properties before embedding generation based on config.
+      const filteredProperties = { ...entity.properties };
+      if (params.embeddingExclusions) {
+        for (const entityTypeId of entity.metadata.entityTypeIds) {
+          const entityTypeBaseUrl = extractBaseUrl(entityTypeId);
+          const excludedProperties =
+            params.embeddingExclusions[entityTypeBaseUrl];
+          if (excludedProperties) {
+            for (const propertyBaseUrl of excludedProperties) {
+              delete filteredProperties[propertyBaseUrl];
+            }
+          }
+        }
+      }
+
       const generatedEmbeddings =
         await aiActivities.createEntityEmbeddingsActivity({
-          entityProperties: entity.properties,
+          entityProperties: filteredProperties,
           propertyTypes,
         });
 
