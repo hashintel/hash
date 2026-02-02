@@ -16,23 +16,6 @@ import {
   type PlayMode,
 } from "./context";
 
-/**
- * Buffer duration in seconds based on play mode.
- * - viewOnly: 0 (no buffering needed)
- * - computeBuffer: 0.5s ahead
- * - computeMax: 10s ahead (large buffer for continuous computation)
- */
-function getBufferDuration(mode: PlayMode): number {
-  switch (mode) {
-    case "viewOnly":
-      return 0;
-    case "computeBuffer":
-      return 0.5;
-    case "computeMax":
-      return 10;
-  }
-}
-
 type PlaybackStateValues = {
   /** Current playback state */
   playbackState: PlaybackState;
@@ -199,6 +182,7 @@ export const PlaybackProvider: React.FC<PlaybackProviderProps> = ({
 
     if (mode === "computeMax") {
       // Always ack when new frames arrive to allow continuous computation
+      console.log(">>ack(totalFrames)", totalFrames);
       ack(totalFrames);
       return;
     }
@@ -206,11 +190,12 @@ export const PlaybackProvider: React.FC<PlaybackProviderProps> = ({
     // mode === "computeBuffer"
     // Ack only when in the buffer zone (current frame is near the end of available frames)
     const currentIndex = stateValues.currentFrameIndex;
-    const bufferDuration = getBufferDuration(mode);
-    const bufferFrames = Math.ceil(bufferDuration / dt);
+    const bufferDurationInSeconds = 0.5;
+    const bufferFrames = Math.ceil(bufferDurationInSeconds / dt);
 
     // If we're within bufferFrames of the end, ack to allow more computation
     if (currentIndex >= totalFrames - bufferFrames) {
+      console.log("::ack(totalFrames) computeBuffer", totalFrames);
       ack(totalFrames);
     }
   }, [

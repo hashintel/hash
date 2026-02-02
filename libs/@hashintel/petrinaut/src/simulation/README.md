@@ -58,7 +58,6 @@ type SimulationContextValue = {
   setParameterValue: (parameterId: string, value: string) => void;
   setDt: (dt: number) => void;
   setMaxTime: (maxTime: number | null) => void;
-  initializeParameterValuesFromDefaults: () => void;
 
   // Lifecycle Actions
   initialize: (config: { seed: number; dt: number }) => void;

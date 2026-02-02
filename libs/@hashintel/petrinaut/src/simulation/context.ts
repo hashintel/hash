@@ -187,7 +187,6 @@ export type SimulationContextValue = {
    * Pass null to disable the time limit.
    */
   setMaxTime: (maxTime: number | null) => void;
-  initializeParameterValuesFromDefaults: () => void;
   initialize: (params: { seed: number; dt: number }) => void;
   run: () => void;
   pause: () => void;
@@ -220,7 +219,6 @@ const DEFAULT_CONTEXT_VALUE: SimulationContextValue = {
   setParameterValue: () => {},
   setDt: () => {},
   setMaxTime: () => {},
-  initializeParameterValuesFromDefaults: () => {},
   initialize: () => {},
   run: () => {},
   pause: () => {},

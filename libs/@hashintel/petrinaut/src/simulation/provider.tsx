@@ -141,21 +141,6 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
     setStateValues((prev) => ({ ...prev, maxTime }));
   };
 
-  const initializeParameterValuesFromDefaults: SimulationContextValue["initializeParameterValuesFromDefaults"] =
-    () => {
-      setStateValues((prev) => {
-        const sdcpn = petriNetDefinitionRef.current;
-        const defaultValues = deriveDefaultParameterValues(sdcpn.parameters);
-
-        const parameterValues: Record<string, string> = {};
-        for (const [key, value] of Object.entries(defaultValues)) {
-          parameterValues[key] = String(value);
-        }
-
-        return { ...prev, parameterValues };
-      });
-    };
-
   const initialize: SimulationContextValue["initialize"] = ({ seed, dt }) => {
     const currentState = stateValuesRef.current;
     const sdcpn = petriNetDefinitionRef.current;
@@ -259,9 +244,6 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
     setParameterValue: useStableCallback(setParameterValue),
     setDt: useStableCallback(setDt),
     setMaxTime: useStableCallback(setMaxTime),
-    initializeParameterValuesFromDefaults: useStableCallback(
-      initializeParameterValuesFromDefaults,
-    ),
     initialize: useStableCallback(initialize),
     run: useStableCallback(run),
     pause: useStableCallback(pause),
